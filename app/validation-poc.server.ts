@@ -154,9 +154,9 @@ export function startValidationLockHeartbeat(
   let stopped = false;
   let renewal = Promise.resolve(true);
   const timer = setInterval(() => {
-    renewal = renewal.then(() =>
-      stopped ? true : renewValidationLock(db, shopDomain, ownerToken),
-    );
+    renewal = renewal
+      .catch(() => false)
+      .then(() => (stopped ? true : renewValidationLock(db, shopDomain, ownerToken)));
     void renewal.catch(() => undefined);
   }, VALIDATION_LOCK_RENEWAL_MS);
 
