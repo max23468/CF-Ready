@@ -17,7 +17,7 @@ Se modifichi un asset, aggiorna anche il documento e la tavola. Sono tre facce d
 | `icon-app.svg` | `0 0 512 512` | Icona quadrata per App Store e listing. Marchio centrato su fondo panna, largo il 70% della tela. |
 | `icon-app-notext.svg` | `0 0 512 512` | Stessa icona **senza la sigla**. Variante di riserva, vedi «Testo dentro l'icona» più sotto. |
 | `favicon.svg` | `0 0 32 32` | Favicon. Marchio ingrandito e margini ridotti per restare leggibile a 16 px. |
-| `nav-icon.svg` | `0 0 16 16` | Icona di navigazione dell'Admin. Sola sagoma della tessera, senza fascia né sigla: un `<rect>`, nessun `mask` né `clipPath`. |
+| `nav-icon.svg` | `0 0 16 16` | Icona di navigazione dell'Admin. Riduzione monocromatica del marchio: tessera a contorno, fascia superiore e sigla `CF`, senza `mask` o `clipPath`. |
 | `wordmark.svg` | tight | Solo wordmark, in tracciati. Colore da `currentColor`. |
 | `lockup-horizontal.svg` | `0 0 129,05 24` | Lockup primaria. Header del sito, materiali, firma dei documenti. |
 | `lockup-vertical.svg` | `0 0 71,88 50,72` | Lockup verticale. Copertine e formati quadrati. |
@@ -56,15 +56,13 @@ Voce separata dall'icona dell'App Store: si carica in **App setup → Embedded a
 | Requisito | Valore | Stato |
 |---|---|---|
 | Formato | SVG 16 × 16 px, come dichiarato dal campo di caricamento | ✅ `viewBox`, `width` e `height` a 16 |
-| Immagine | monocromatica su fondo trasparente | ✅ un solo `<rect>` in `#000000`, il resto trasparente |
+| Immagine | monocromatica su fondo trasparente | ✅ solo primitive in `#000000`, il resto trasparente |
 | Angoli | ritaglio a 4 px applicato da Shopify | ✅ la tessera resta dentro l'area sicura |
-| Coerenza | deve somigliare all'icona dell'App Store | ✅ stessa tessera, stesse proporzioni ISO ID-1 |
+| Coerenza | deve somigliare all'icona dell'App Store | ✅ stesso concetto di tessera, adattato alla leggibilità a 16 px |
 
-Il file è la sola **sagoma della tessera**: `<rect x="0.5" y="3.285" width="15" height="9.43" rx="1.18">`, centrata sulla tela. Niente fascia e niente sigla.
+Il file usa una tessera più orizzontale (`14 × 7,5`) a contorno e conserva i due elementi distintivi del marchio: fascia piena in alto e sigla `CF` centrata sotto. È un adattamento ottico per la griglia a 16 px, non un marchio alternativo.
 
-Non è una semplificazione estetica. A 16 px la sigla sta sotto il pixel, e la fascia forata cancella i due angoli superiori: il marchio smette di leggersi come tessera e diventa un blocco squadrato in alto e arrotondato in basso, otticamente sbilanciato verso il basso. Restano quindi sagoma e proporzione, che a questa dimensione sono l'unica cosa che sopravvive.
-
-La costruzione minima serve anche al caricamento: nessun `mask`, `clipPath`, `defs`, `currentColor` o `<title>` che un sanitizer possa rimuovere o rifiutare. Il colore lo applica Shopify — grigio se inattiva, verde se attiva — quindi il nero è solo la sorgente opaca.
+La costruzione resta compatibile con il caricamento: la sigla è un tracciato, non testo; non usa `mask`, `clipPath`, `defs`, `currentColor` o `<title>` che un sanitizer possa rimuovere o rifiutare. Il colore lo applica Shopify — grigio se inattiva, verde se attiva — quindi il nero è solo l'inchiostro sorgente.
 
 Fonte: [Navigation](https://shopify.dev/docs/apps/design/navigation) · verificato il 28 luglio 2026. La pagina non dichiara nessuna dimensione: l'unico valore disponibile è il 16 × 16 scritto nel campo di caricamento.
 
