@@ -423,7 +423,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-118 | Le PR ordinarie puntano a `develop` e usano squash; `main` accetta soltanto promozioni autorizzate da `develop`, unite con merge commit. La cancellazione automatica dei branch resta disattivata e i soli branch temporanei vengono eliminati esplicitamente. | Preserva l’ascendenza tra integrazione e Production, evita il drift strutturale causato da squash indipendenti sui due rami e impedisce che una promozione elimini `develop`. |
 | D-119 | Abilitare l’auto-merge nativo in `develop` per le sole PR Dependabot minor/patch dopo `CI` e `React Doctor` verdi. Eliminare dopo il merge soltanto i branch `dependabot/*`; major e promozioni `develop` → `main` restano manuali. | Allinea CF Ready a SyncBay e Pratix, rende atomico il vincolo sullo SHA verificato, preserva gli eventi post-merge e non espone `develop` alla cancellazione globale dei branch. |
 | D-120 | La visibilità pubblica non rende il progetto open-source: nessuna licenza viene concessa finché l’owner non sceglie esplicitamente e aggiunge un file `LICENSE`. | Una licenza attribuisce diritti di riuso e distribuzione e non va dedotta dalla sola pubblicazione del codice. |
-| D-121 | Ogni `shopify app deploy` rilasciato usa `--version`: `<SemVer>-dev.<build>` in Development e `<SemVer>` in Production. | Mantiene leggibili i due ambienti, collega ogni snapshot Shopify alla release applicativa ed evita identificatori automatici come `cf-ready-1`. |
+| D-121 | `package.json#version` è la fonte canonica di `<SemVer>`. Ogni `shopify app deploy` rilasciato passa dal workflow GitHub Actions dell'ambiente e usa `--version`: `<SemVer>-dev.<run_number>.<run_attempt>` in Development e `<SemVer>` in Production. | Evita collisioni fra deploy automatici, manuali e retry, collega ogni snapshot Shopify alla release applicativa ed evita identificatori automatici come `cf-ready-1`. |
 
 ---
 
@@ -2377,16 +2377,21 @@ release-owned e non vengono modificati nelle PR ordinarie.
 Ogni snapshot Shopify rilasciato deve ricevere un identificatore esplicito con
 `shopify app deploy --version`:
 
-- Development: `<X.Y.Z>-dev.<build>`;
+- Development: `<X.Y.Z>-dev.<run_number>.<run_attempt>`;
 - Production: `<X.Y.Z>`, identico alla release SemVer.
 
-`<build>` è il numero monotono del workflow CI o, per un deploy manuale
-autorizzato, una sequenza monotona del relativo ambiente. La ricevuta di deploy
-registra ambiente, configurazione, versione Shopify, commit, ID della versione
-rilasciata e versione di rollback. Gli identificatori automatici creati durante
-il bootstrap, come `cf-ready-1` e `cf-ready-2`, restano nella cronologia come
-rollback: non vengono rinominati o cancellati, ma non devono essere generati da
-nuovi deploy.
+`package.json#version`, inizialmente `0.1.0`, è la fonte canonica di `<X.Y.Z>` e
+deve coincidere con il lockfile e, in Production, con il tag `vX.Y.Z`. Tutti i
+deploy rilasciati, inclusi quelli avviati manualmente dall'owner, passano dal
+workflow GitHub Actions dell'ambiente; `github.run_number` con
+`github.run_attempt` rende univoci anche i retry. Un deploy locale diretto può
+essere usato solo come preview non rilasciata.
+
+La ricevuta di deploy registra ambiente, configurazione, versione Shopify,
+commit, ID della versione rilasciata e versione di rollback. Gli identificatori
+automatici creati durante il bootstrap, come `cf-ready-1` e `cf-ready-2`,
+restano nella cronologia come rollback: non vengono rinominati o cancellati, ma
+non devono essere generati da nuovi deploy.
 
 ### 19.6 GitHub Actions
 
