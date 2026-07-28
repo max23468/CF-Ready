@@ -95,8 +95,7 @@ Prima della `1.0.0`, riconferma nelle fonti Shopify correnti la Function API
 
 | Ambiente | ID | Branch | Uso |
 | --- | --- | --- | --- |
-| Development | `dev` | feature locali | sviluppo quotidiano |
-| Testing | `test` | `develop` | integrazione separata |
+| Development | `dev` | feature locali e `develop` | sviluppo e collaudo sul dev store |
 | Production | `prod` | `main` | merchant reali |
 
 - Le PR ordinarie puntano a `develop` e usano squash. `main` accetta soltanto
@@ -110,6 +109,11 @@ Prima della `1.0.0`, riconferma nelle fonti Shopify correnti la Function API
   submission App Store e attivazioni commerciali restano azioni separate.
 - Per operazioni remote preferisci l’integrazione ufficiale del provider
   disponibile; usa CLI, API raw o browser solo per la parte non coperta.
+- Prima di usare il connettore Shopify, leggi sempre l’identità dello store.
+  Durante sviluppo e test consenti scritture CF Ready solo su
+  `cf-ready-dev.myshopify.com`; se il connettore punta a un altro store,
+  fermati e cambia store. Production richiede comunque l’autorizzazione
+  separata prevista sotto.
 - Prima di una scrittura remota identifica ambiente, account Cloudflare,
   organizzazione/app/store Shopify e stato target; verifica presenza delle
   credenziali, autorizzazione, backup e rollback senza esporre segreti.
