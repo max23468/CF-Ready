@@ -11,9 +11,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - if: github.event_name == 'pull_request' && github.base_ref == 'main' && (github.head_ref != 'develop' || github.event.pull_request.head.repo.full_name != github.repository)
         run: |
