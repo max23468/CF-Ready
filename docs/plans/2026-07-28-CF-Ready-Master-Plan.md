@@ -417,11 +417,12 @@ Rispetto alle alternative più ampie o invasive:
 | D-112 | Tipografia: grottesco geometrico di sistema per sito e materiali, nessun webfont, nessun font dichiarato dentro l’Admin. Sigla e wordmark in tracciati derivati da Jost (SIL OFL), peso 500. | Zero richieste di rete e nessuna dipendenza da font installati. Jost al posto del Futura per licenza: il Futura è commerciale e distribuito in bundle con macOS. |
 | D-113 | Nessuna dark mode del sito pubblico nella 1.0. | Una superficie in meno da mantenere e verificare. Decisione indipendente da Shopify: al 28 luglio 2026 l’Admin non ha dark mode nativa e, usando solo token Polaris, l’app la seguirebbe comunque da sola. |
 | D-114 | Presentare l’icona della listing con la sigla `CF`, accettando la raccomandazione Shopify di evitare il testo nell’icona. | Raccomandazione nelle best practice, non criterio di rifiuto nei requisiti; i monogrammi di due lettere sono diffusi fra le app approvate. Variante senza sigla pronta come rimedio, attivabile senza nuova approvazione (§24.5). |
-| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection e i gate `verify` e `react-doctor` richiesti su `develop` e `main`. | Rende effettivi i gate già eseguiti, indirizza anche le security update nella corsia ordinaria e conserva la promozione separata `develop` → `main`. |
+| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate `verify` e `react-doctor` richiesti su `develop` e `main`; abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate già eseguiti, indirizza le security update nella corsia ordinaria, offre un canale privato per le vulnerabilità e conserva la promozione separata `develop` → `main`. |
 | D-116 | Restare sull’ultima React Router 7 compatibile con Shopify e non abilitare le API RSC instabili finché Shopify non supporta React Router 8 o esiste un backport. | `GHSA-qwww-vcr4-c8h2` riguarda soltanto i percorsi RSC instabili, non usati da CF Ready. `npm audit` continuerà a segnalarla come high per intervallo di versione: l’abilitazione RSC richiede prima la rimozione dell’eccezione. |
 | D-117 | Usare React Doctor stabile con pin esatto: scansione completa bloccante nel gate locale e Action ufficiale advisory sulle modifiche delle PR. Disabilitare score, condivisione, telemetria e controllo supply-chain esterni. | Aggiunge controlli React deterministici e feedback inline senza delegare il gate a un servizio esterno o duplicare i controlli dipendenze già coperti da npm e GitHub. |
 | D-118 | Le PR ordinarie puntano a `develop` e usano squash; `main` accetta soltanto promozioni autorizzate da `develop`, unite con merge commit. La cancellazione automatica dei branch resta disattivata e i soli branch temporanei vengono eliminati esplicitamente. | Preserva l’ascendenza tra Testing e Production, evita il drift strutturale causato da squash indipendenti sui due rami e impedisce che una promozione elimini `develop`. |
 | D-119 | Abilitare l’auto-merge nativo in `develop` per le sole PR Dependabot minor/patch dopo `CI` e `React Doctor` verdi. Eliminare dopo il merge soltanto i branch `dependabot/*`; major e promozioni `develop` → `main` restano manuali. | Allinea CF Ready a SyncBay e Pratix, rende atomico il vincolo sullo SHA verificato, preserva gli eventi post-merge e non espone `develop` alla cancellazione globale dei branch. |
+| D-120 | La visibilità pubblica non rende il progetto open-source: nessuna licenza viene concessa finché l’owner non sceglie esplicitamente e aggiunge un file `LICENSE`. | Una licenza attribuisce diritti di riuso e distribuzione e non va dedotta dalla sola pubblicazione del codice. |
 
 ---
 
@@ -2421,8 +2422,11 @@ Il deploy Production e le release richiedono autorizzazione esplicita dell’own
 Configurazione minima GitHub:
 
 - template PR con verifiche, impatto deploy/release e rollback;
+- template issue separati per bug e miglioramenti, senza dati reali;
+- `SECURITY.md` e private vulnerability reporting;
 - Dependabot per npm e GitHub Actions;
-- Vulnerability alerts;
+- Vulnerability alerts, Secret Scanning, Push Protection e CodeQL;
+- Action di terze parti vincolate a commit e permessi workflow minimi;
 - squash per le PR ordinarie e merge commit per le sole promozioni
   `develop` → `main`;
 - cancellazione automatica dei branch disattivata; eliminazione esplicita dei
@@ -2433,7 +2437,8 @@ Configurazione minima GitHub:
   major e promozioni verso `main` restano manuali.
 
 Il repository pubblico su GitHub Free usa branch protection su `develop` e
-`main`, con `develop` come branch predefinito e `verify` e `react-doctor` come
+`main`, con `develop` come branch predefinito, base aggiornata, conversazioni
+risolte, protezioni applicate agli admin e `verify` e `react-doctor` come
 required checks. Restano applicabili:
 
 - niente push diretti intenzionali su `main` o `develop`;
@@ -2737,8 +2742,8 @@ In caso di differenze interpretative prevale la versione italiana, previa confer
 
 ### 21.9 Segnalazione vulnerabilità
 
-Prima di rendere l’app disponibile a merchant esterni, la root contiene
-`SECURITY.md` con:
+La root contiene `SECURITY.md` e GitHub Private Vulnerability Reporting è
+attivo. La policy include:
 
 - versioni supportate;
 - canale privato per le segnalazioni;
@@ -3699,8 +3704,7 @@ La `1.0.0` è accettabile quando:
 - [x] Creare `AGENTS.md` e `CLAUDE.md` minimale.
 - [x] Creare `docs/INDEX.md` e `docs/CONTEXT.md`.
 - [x] Configurare template PR, Dependabot e baseline sicurezza GitHub; le
-  funzioni non disponibili sul piano GitHub corrente sono registrate in
-  `docs/CONTEXT.md`.
+  protezioni e i servizi attivi sono registrati in `docs/CONTEXT.md`.
 
 ### Scaffold
 
@@ -3716,7 +3720,7 @@ La `1.0.0` è accettabile quando:
 - [x] Sostituire lint/format con Oxlint/Oxfmt.
 - [ ] Rimuovere dipendenze non usate.
 - [x] Pin esatti e lockfile.
-- [ ] Aggiungere controllo documentazione.
+- [x] Aggiungere controllo documentazione.
 - [ ] Aggiungere preflight provider senza stampa di segreti.
 
 ### Infrastruttura Testing
@@ -3754,7 +3758,7 @@ La `1.0.0` è accettabile quando:
 - [x] D1/R2 prod.
 - [ ] secret separati.
 - [ ] documenti legali.
-- [ ] `SECURITY.md` e canale vulnerabilità.
+- [x] `SECURITY.md` e canale vulnerabilità.
 - [ ] support email.
 - [ ] backup/restore.
 - [ ] soglie Free tier documentate.
@@ -3937,6 +3941,7 @@ Codex definisce contratti e dati; Claude definisce presentazione e interazione. 
 | Review legale contesta retention | media | alta | legal review e cancellazione prevalente |
 | Un solo dev store nasconde first install | media | media | utility reset e review Shopify |
 | Dipendenza `0.x` Oxfmt cambia comportamento | media | bassa | pin esatto e update deliberato |
+| Issue o PR pubblica espone dati reali o codice ostile | media | alta | template con divieti espliciti, workflow PR senza secret, approvazione dei primi contributori e disclosure privata |
 | Advisory React Router RSC segnalato da `npm audit` | nulla finché RSC è disattivo | alta se RSC viene abilitato | vietare RSC instabile; monitorare supporto Shopify a React Router 8 o backport |
 | Abuso modulo supporto | bassa | bassa | limite semplice/turnstile solo se necessario |
 
@@ -3963,8 +3968,12 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
    - ~~decisione sulla sigla nell’icona della listing~~ — **chiusa il 28 luglio 2026**: rischio accettato, si presenta l’icona con la sigla (D-114);
    - riverifica del marchio dentro l’Admin reale in M1 e sullo store reale in M10 — non anticipabile, richiede l’app installata;
    - feature image 1600 × 900, da produrre in M9 insieme agli screenshot — richiede contenuto reale.
+6. **Licenza del repository** — la repo è pubblica ma non open-source. La scelta
+   tra una licenza permissiva, copyleft o nessuna concessione resta
+   esplicitamente all’owner; fino ad allora non si aggiunge `LICENSE` e vale
+   D-120.
 
-Nessuno dei due punti residui è di brand: sono verifiche e produzione di materiali che dipendono da milestone successive. **La Brand Foundation è chiusa.**
+I punti residui di brand sono verifiche e produzione di materiali che dipendono da milestone successive. **La Brand Foundation è chiusa.**
 
 I punti 1 e 2 erano da decidere presto in M2 e sono stati chiusi lì.
 

@@ -26,11 +26,17 @@ con il deploy Testing di M1 e `cf-ready` prima del primo deploy Production.
 ## Vincoli osservati
 
 - Il repository è pubblico su GitHub Free. `develop` e `main` richiedono i gate
-  `verify` e `react-doctor`; `develop` è il branch predefinito e l’auto-merge
-  nativo è abilitato per le sole PR Dependabot minor/patch. Le PR ordinarie
-  usano squash, mentre le sole promozioni `develop` → `main` usano merge commit.
-  La cancellazione globale dei branch resta disattivata per non eliminare
-  `develop`; il workflow elimina soltanto i branch `dependabot/*` già uniti.
+  `verify` e `react-doctor`, inclusa la sincronizzazione con la base; `develop`
+  è il branch predefinito. Gli admin non possono aggirare le protezioni e le
+  conversazioni devono essere risolte. Secret scanning, push protection,
+  CodeQL, Dependabot security updates e private vulnerability reporting sono
+  attivi. L’auto-merge nativo è limitato alle PR Dependabot minor/patch; le PR
+  ordinarie usano squash e le sole promozioni `develop` → `main` usano merge
+  commit. La cancellazione globale dei branch resta disattivata; il workflow
+  elimina soltanto i branch `dependabot/*` già uniti.
+- I pattern generici non-provider e i validity check estesi di Secret Scanning
+  restano disabilitati sul repository personale GitHub Free corrente; non
+  vengono descritti come controlli attivi.
 - Secret e callback reali restano da configurare per ambiente durante M1: non
   appartengono al repository.
 - Node.js è bloccato a `26.5.0` in `mise.toml`; setup locale e CI usano la
@@ -38,8 +44,8 @@ con il deploy Testing di M1 e `cf-ready` prima del primo deploy Production.
 
 ## Prossimo passo
 
-Completare M1 con query Admin GraphQL, Function minimale e controllo
-documentazione persistente. Poi verificare login embedded, refresh offline token
-e sessione sul dev store, eseguire il preflight e il primo deploy Testing,
-misurare la CPU e registrare ricevuta, readback e rollback. Al 28 luglio 2026
-`cf-ready-test` non esiste ancora e `cf-ready-db-test` non ha tabelle applicate.
+Completare M1 con query Admin GraphQL e Function minimale. Poi verificare login
+embedded, refresh offline token e sessione sul dev store, eseguire il preflight
+e il primo deploy Testing, misurare la CPU e registrare ricevuta, readback e
+rollback. Al 28 luglio 2026 `cf-ready-test` non esiste ancora e
+`cf-ready-db-test` non ha tabelle applicate.
