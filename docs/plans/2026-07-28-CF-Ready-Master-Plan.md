@@ -4,7 +4,6 @@
 
 **Stato:** baseline approvata per scaffolding e implementazione · M0 e M2 completate
 **Data:** 27 luglio 2026 · revisione 28 luglio 2026  
-**Versione documento:** 1.9\
 **Documenti vincolanti collegati:** `docs/brand/brand-foundation.md` (identità visiva, tono, materiali pubblici)  
 **Brand:** CF Ready  
 **Nome pubblico:** CF Ready — Codice Fiscale nel Checkout  
@@ -3368,7 +3367,7 @@ In parallelo a M1, a cura di Claude Code. **Chiusa il 28 luglio 2026.**
 
 Deliverable, tutti consegnati:
 
-- mini brand guide → `docs/brand/brand-foundation.md` v1.1;
+- mini brand guide → `docs/brand/brand-foundation.md`;
 - palette e tipografia → approvate (D-108, D-112);
 - tono → approvato (§7 del documento di brand);
 - design token → `docs/brand/assets/tokens.css`;

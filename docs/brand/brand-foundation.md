@@ -3,8 +3,7 @@
 **Milestone:** M2 — Brand Foundation
 **Stato:** ✅ **Approvata e chiusa il 28 luglio 2026.** Nessuna decisione di brand resta aperta. Vincolante per M6 (UI), M7 (sito e legale) e M9 (listing e screenshot).
 **Data:** 27 luglio 2026 · revisione approvata 28 luglio 2026
-**Versione documento:** 1.3
-**Fonte vincolante superiore:** `docs/plans/2026-07-28-CF-Ready-Master-Plan.md` v1.3
+**Fonte vincolante superiore:** `docs/plans/2026-07-28-CF-Ready-Master-Plan.md`
 **Autore:** Claude Code (responsabile Brand Foundation per D-079 e §32.1)
 
 Documenti collegati:
@@ -885,16 +884,3 @@ Fonti: [App Store requirements](https://shopify.dev/docs/apps/launch/shopify-app
 Gli SVG del marchio usano `viewBox="0 0 32 32"` con la geometria canonica di §6.2; `icon-app.svg`, `wordmark.svg` e le lockup hanno viewBox propri, documentati nel `README.md`. Sigla e wordmark sono tracciati vettoriali: nessun asset dipende da un font installato.
 
 `docs/brand/brand-board.html` è la tavola di direzione approvata: è la versione visiva di questo documento e va aggiornata insieme a esso.
-
----
-
-## Note di versione
-
-| Versione | Data | Modifiche |
-|---|---|---|
-| 1.3 | 28 luglio 2026 | Rischio sulla sigla dentro l'icona accettato dall'owner (A-15), con piano di rimedio pronto. Precisazione di licenza: Jost non viene ridistribuito. Nessuna decisione di brand resta aperta. |
-| 1.2 | 28 luglio 2026 | Crenatura corretta a mano su coppia `C`/`F` e spazio-parola, asset rigenerati (A-13). Requisiti App Store verificati sulle fonti ufficiali e aggiunta §12.1 (A-14). Aperta A-15 sulla sigla dentro l'icona della listing, con variante di riserva `icon-app-notext.svg`. |
-| 1.1 | 28 luglio 2026 | Sigla e wordmark convertiti in tracciati da Jost (SIL OFL) per ragioni di licenza; esportazioni PNG; verifica in contesto eseguita, con la regola di contrasto che ne deriva (§6.4). Chiuse A-11 (nessuna dark mode) e A-12 (tracciati). Aperte A-13 e A-14. |
-| 1.0 | 28 luglio 2026 | **Approvata.** Riscritti §2, §3, §4, §5, §6, §9 e §10 sulla direzione geometrica con verde bottiglia e marchio «Tessera con fascia». Aggiunto §11.3 con le alternative scartate e §12 con il pacchetto asset. §7 e §8 invariati rispetto alla 0.2. |
-| 0.2 | 27 luglio 2026 | Owner approva in blocco A-01, A-02, A-03 e A-07 nella direzione blu, poi superata. |
-| 0.1 | 27 luglio 2026 | Prima stesura della Brand Foundation (M2). Nessuna decisione approvata. |
