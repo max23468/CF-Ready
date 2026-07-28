@@ -95,8 +95,7 @@ Prima della `1.0.0`, riconferma nelle fonti Shopify correnti la Function API
 
 | Ambiente | ID | Branch | Uso |
 | --- | --- | --- | --- |
-| Development | `dev` | feature locali | sviluppo quotidiano |
-| Testing | `test` | `develop` | integrazione separata |
+| Development | `dev` | feature locali e `develop` | sviluppo e collaudo sul dev store |
 | Production | `prod` | `main` | merchant reali |
 
 - Le PR ordinarie puntano a `develop` e usano squash. `main` accetta soltanto
