@@ -4,7 +4,7 @@ App pubblica Shopify per validare Codice Fiscale e PEC al checkout.
 
 ## Sviluppo locale
 
-Prerequisiti: Node.js `>=22.18`, Shopify CLI e una chiave AES-256 in
+Prerequisiti: Node.js `>=26.5.0 <27`, Shopify CLI e una chiave AES-256 in
 `SESSION_ENCRYPTION_KEY`, codificata in base64.
 
 ```sh

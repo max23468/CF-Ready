@@ -22,14 +22,14 @@
   },
   "type": "module",
   "engines": {
-    "node": ">=22.18"
+    "node": ">=26.5.0 <27"
   },
   "dependencies": {
     "@shopify/shopify-api": "13.1.0",
     "@shopify/shopify-app-react-router": "1.2.1",
     "@shopify/shopify-app-session-storage": "5.0.1",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "react-router": "7.18.1"
   },
   "devDependencies": {
@@ -37,13 +37,13 @@
     "@cloudflare/vitest-pool-workers": "0.18.8",
     "@react-router/dev": "7.18.1",
     "@shopify/polaris-types": "1.0.7",
-    "@types/node": "22.20.1",
-    "@types/react": "18.3.31",
-    "@types/react-dom": "18.3.7",
+    "@types/node": "26.1.2",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
     "oxfmt": "0.61.0",
     "oxlint": "1.76.0",
-    "typescript": "5.9.3",
-    "vite": "6.4.3",
+    "typescript": "6.0.3",
+    "vite": "8.1.5",
     "vitest": "4.1.10",
     "wrangler": "4.114.0"
   },
