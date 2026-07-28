@@ -4,7 +4,7 @@
 
 **Stato:** baseline approvata per scaffolding e implementazione · M2 Brand Foundation completata  
 **Data:** 27 luglio 2026 · revisione 28 luglio 2026  
-**Versione documento:** 1.5  
+**Versione documento:** 1.7\
 **Documenti vincolanti collegati:** `docs/brand/brand-foundation.md` (identità visiva, tono, materiali pubblici)  
 **Brand:** CF Ready  
 **Nome pubblico:** CF Ready — Codice Fiscale nel Checkout  
@@ -41,6 +41,8 @@ Questa revisione integra inoltre:
 - lifecycle e namespace del metafield della Function;
 - costi e trattenute Shopify rilevanti;
 - benchmark pubblico del pricing;
+- governance di `AGENTS.md`, README e documentazione tecnica;
+- preflight provider, ricevute di deploy, readiness e soglie di rivalutazione;
 - profilo di esecuzione richiesto per il successivo handover.
 
 ### 1.2 Regole di prevalenza
@@ -2038,6 +2040,21 @@ Italiano principale e inglese completo per:
 
 Le versioni devono restare semanticamente allineate; niente traduzioni automatiche parziali.
 
+### 16.5 Glossario canonico
+
+In M6 creare `docs/glossario.md` per i termini che compaiono in UI, checkout,
+supporto e documenti pubblici. Deve distinguere almeno:
+
+- Codice Fiscale, CF provvisorio e validazione formale;
+- PEC e indirizzo email formalmente valido;
+- Validation, regole, attivazione e disattivazione;
+- prova, piano, abbonamento, annuale e pagamento una tantum;
+- store, merchant, cliente e acquirente;
+- Testing, Production, publish, deploy e release.
+
+Il glossario stabilisce termini e traduzioni IT/EN, non duplica requisiti o
+microcopy completa.
+
 ---
 
 ## 17. Brand Foundation
@@ -2182,6 +2199,18 @@ Il numero di ordini dei merchant non determina il carico del Worker: la Function
 
 La stima preliminare discussa per il piano Free era **10.000–20.000 store** con ampio margine, assumendo circa 50–100 richieste dinamiche mensili per store. È una stima di capacità non contrattuale, non un claim pubblico: prima di usarla per decisioni operative servono misure CPU, query D1, picchi webhook e prova di carico. La prima soglia commerciale reale sarà molto inferiore e non richiede pre-ottimizzazione.
 
+Prima del Controlled Launch, M8 registra soglie numeriche basate sulle quote
+Cloudflare allora vigenti. L’architettura e il piano economico vanno rivalutati
+se si verifica almeno una di queste condizioni:
+
+- CPU Worker `p95` oltre il 50% del limite per sette giorni;
+- consumo di una quota Workers, D1 o R2 oltre il 50% per due periodi consecutivi;
+- backup o restore non rispettano più il tempo operativo documentato;
+- picchi webhook, lock o concorrenza rendono instabile il modello corrente;
+- l’osservabilità non consente più di diagnosticare un P0/P1 senza dati aggiuntivi.
+
+Le soglie sono stop point, non trigger di migrazione automatica.
+
 ### 18.5 Backup
 
 Due livelli:
@@ -2226,14 +2255,23 @@ cf-ready/
 ├── tests/
 │   └── e2e/
 ├── docs/
+│   ├── INDEX.md
+│   ├── CONTEXT.md
+│   ├── glossario.md
 │   ├── plans/
 │   │   └── 2026-07-28-CF-Ready-Master-Plan.md
 │   ├── brand/                  # brand-foundation.md, brand-board.html, assets/
 │   ├── legal/
 │   └── runbooks/
-├── .github/workflows/
+├── .github/                    # workflow, template PR, Dependabot
+├── AGENTS.md
+├── CLAUDE.md
+├── README.md
+├── SECURITY.md
 ├── shopify.app.toml
-├── wrangler.toml
+├── shopify.app.dev.toml
+├── shopify.app.test.toml
+├── wrangler.jsonc
 ├── package.json
 └── package-lock.json
 ```
@@ -2241,6 +2279,9 @@ cf-ready/
 Non creare un monorepo framework o pacchetti condivisi finché una duplicazione reale non lo giustifica.
 
 ### 19.2 Ambienti
+
+Le app Shopify e il dev store CF Ready appartengono all’organizzazione Partner
+`Temisfera`.
 
 | Nome umano | Identificatore | Uso |
 |---|---|---|
@@ -2282,8 +2323,13 @@ Lo store standard dell’attività:
 - `develop` → Testing;
 - `feature/*` → lavoro isolato;
 - PR verso `develop` o `main`;
+- commit e titoli PR in formato Conventional Commit;
+- squash merge come percorso ordinario;
 - Production solo con merge esplicito;
 - nessuna cancellazione automatica di estensioni Shopify.
+
+Pubblicazione Git, deploy Testing, deploy Production e release SemVer sono
+azioni distinte. Una non autorizza implicitamente le altre.
 
 ### 19.5 Versionamento
 
@@ -2305,6 +2351,10 @@ Ogni release Production:
 - riferimento al commit deployato;
 - piano di rollback.
 
+Modifiche solo a documentazione interna, ADR, piani o governance agentica non
+richiedono bump, tag o GitHub Release. Versione, changelog e tag sono
+release-owned e non vengono modificati nelle PR ordinarie.
+
 ### 19.6 GitHub Actions
 
 Unico sistema CI/CD.
@@ -2321,7 +2371,10 @@ Unico sistema CI/CD.
 - build Worker;
 - build Function;
 - build sito;
-- test migrazioni.
+- test migrazioni;
+- controllo documentazione;
+- audit dipendenze quando cambiano manifest o lockfile;
+- titolo PR Conventional Commit.
 
 **Merge su `develop`**
 
@@ -2344,6 +2397,55 @@ Unico sistema CI/CD.
 
 Il deploy Production e le release richiedono autorizzazione esplicita dell’owner.
 
+Configurazione minima GitHub:
+
+- template PR con verifiche, impatto deploy/release e rollback;
+- Dependabot per npm e GitHub Actions;
+- secret scanning e push protection, quando disponibili;
+- squash merge e divieto di force push su `main`;
+- un unico risultato CI finale da rendere required;
+- nessun auto-merge per dipendenze runtime critiche.
+
+### 19.7 Documentazione repository
+
+- `AGENTS.md` vive nella root ed è creato in M0 prima di M1;
+- contiene solo regole operative stabili, comandi di verifica, mappa ambienti e
+  vincoli di deploy/release;
+- `CLAUDE.md` è minimale e importa `AGENTS.md`, senza duplicarne le regole;
+- `README.md` descrive setup locale, comandi correnti e struttura reale;
+- `docs/INDEX.md` è il catalogo canonico della documentazione;
+- `docs/CONTEXT.md` riassume stato osservato, blocchi e prossimo passo senza
+  sostituire il Master Plan;
+- `docs/TOOLCHAIN.md` raccoglie runtime, comandi e gate quando non sono più
+  leggibili direttamente dal README e da `package.json`;
+- ADR, runbook e documentazione tecnica vengono aggiornati nella stessa modifica
+  che cambia comportamento, configurazione o operatività;
+- un controllo CI verifica link e anchor locali, script `npm run` citati e
+  assenza di output generati tracciati;
+- non creare documenti paralleli con stesso titolo, basename o scopo;
+- non duplicare il Master Plan: gli altri documenti rimandano alla fonte
+  decisionale pertinente.
+
+### 19.8 Preflight provider e ricevute
+
+Prima di qualsiasi write remota o deploy:
+
+1. identificare ambiente, account Cloudflare, organizzazione Shopify, app,
+   store e risorse target;
+2. leggere lo stato remoto corrente e verificare che il target coincida;
+3. controllare solo la presenza delle credenziali necessarie, senza stamparle;
+4. confermare autorizzazione applicabile, backup e rollback;
+5. interrompere l’operazione se target o identità non coincidono.
+
+Dopo ogni write remota o deploy:
+
+- eseguire readback dalla fonte autorevole;
+- registrare commit SHA, versione/deployment ID, stato migrazioni e smoke;
+- registrare il target di rollback;
+- distinguere chiaramente prova locale, publish Git e stato live.
+
+Un comando terminato con exit code `0` non è, da solo, prova del risultato live.
+
 ---
 
 ## 20. Dipendenze
@@ -2361,6 +2463,10 @@ Usare la più recente versione stabile compatibile dell’intera matrice Shopify
 - revisione trimestrale allineata alle API Shopify;
 - Dependabot settimanale;
 - nessun auto-merge dei componenti critici.
+
+Un alert senza percorso vulnerabile attivo può essere chiuso solo con motivazione
+verificabile e va rivalutato se cambia la superficie usata. Non forzare major
+incompatibili per eliminare un alert non applicabile.
 
 ### 20.2 Runtime app previsto
 
@@ -2585,6 +2691,21 @@ I Termini incorporano:
 
 In caso di differenze interpretative prevale la versione italiana, previa conferma legale.
 
+### 21.9 Segnalazione vulnerabilità
+
+Prima di rendere l’app disponibile a merchant esterni, la root contiene
+`SECURITY.md` con:
+
+- versioni supportate;
+- canale privato per le segnalazioni;
+- informazioni minime da includere senza dati merchant;
+- presa in carico indicativa entro 3 giorni lavorativi;
+- prima classificazione indicativa entro 7 giorni lavorativi;
+- regole di disclosure coordinata e aggiornamenti al segnalante.
+
+Questi tempi sono obiettivi operativi, non uno SLA. Vulnerabilità, credenziali e
+dettagli sfruttabili non vengono gestiti tramite issue pubbliche.
+
 ---
 
 ## 22. Assistenza
@@ -2653,6 +2774,20 @@ Prima di implementare l’invio, verificare che l’Email binding Cloudflare cor
    - store reale canary.
 
 Non imporre una percentuale di coverage globale. La logica fiscale, geografica, billing, entitlement, webhook e migrazioni deve avere copertura esplicita completa dei rami.
+
+### 23.1.1 Gate per tipo di modifica
+
+| Corsia | Quando | Gate minimo |
+|---|---|---|
+| `docs` | documentazione e governance senza runtime | controllo documentazione, formato, `git diff --check` |
+| `standard` | TypeScript, route, config o test ordinari | docs gate, lint, typecheck, test mirati, build |
+| `security/dependency` | auth, webhook, cifratura, manifest o lockfile | standard, audit, lockfile, test di regressione mirato |
+| `deploy` | provider, migrazioni, Worker, Function o Pages | gate completo, preflight provider, backup se applicabile, smoke, readback e rollback |
+
+Il comando canonico locale resta uno solo e può instradare queste corsie. Non
+costruire classificatori o cache di verifica finché il costo reale dei gate non
+lo giustifica. Provider, database, browser e deploy richiedono sempre prove
+fresche.
 
 ### 23.2 Fixture Codice Fiscale
 
@@ -2972,6 +3107,23 @@ Fornire:
 - nessuna feature descritta ma assente;
 - nessun prezzo o limite ambiguo.
 
+### 24.9 Record di release readiness
+
+Prima della submission, creare
+`docs/runbooks/release-readiness-1.0.md`. Non duplica i requisiti: collega prove
+fresche per ogni gate bloccante e registra:
+
+- commit e versione candidati;
+- configurazioni e API effettivamente validate;
+- migrazioni applicate per ambiente;
+- risultati CI, smoke, E2E, backup/restore e security audit;
+- URL, documenti pubblici e canale di segnalazione vulnerabilità;
+- rischi non bloccanti esplicitamente accettati;
+- autorizzazione separata a deploy Production e release.
+
+Una checklist compilata senza link, ID o risultati osservati non costituisce
+readiness.
+
 ---
 
 ## 25. Controlled Launch
@@ -3096,6 +3248,10 @@ Nessuna analytics sugli acquirenti.
 - nessuna migrazione distruttiva insieme a una release non verificata;
 - verificare allineamento Worker/Function/schema dopo rollback.
 
+Ogni deploy conserva una ricevuta minima con ambiente, commit, deployment ID,
+migrazioni, smoke, readback e versione di rollback. Il rollback è concluso solo
+dopo il readback dell’allineamento remoto, non quando termina il comando.
+
 ### 26.4 Verifiche periodiche
 
 - ripristino backup;
@@ -3107,7 +3263,16 @@ Nessuna analytics sugli acquirenti.
 - casella supporto;
 - quote Workers/D1/R2;
 - alert GitHub Actions;
-- privacy retention.
+- privacy retention;
+- coerenza di `SECURITY.md`, documenti, link e comandi operativi;
+- validità di secret, token CI e accessi provider senza esporne i valori;
+- soglie Free tier e necessità di rivalutazione architetturale.
+
+Cadenza minima:
+
+- mensile: GitHub, alert, workflow falliti, dipendenze e documentazione;
+- trimestrale: API Shopify, quote Cloudflare, secret/accessi e restore drill;
+- prima di ogni release: controllo completo basato su prove fresche.
 
 ---
 
@@ -3125,13 +3290,20 @@ Deliverable:
 - D1/R2 nominati;
 - inventario secret;
 - dev store Basic unico;
-- ADR breve con stack definitivo.
+- ADR breve con stack definitivo;
+- `AGENTS.md` operativo;
+- `CLAUDE.md` minimale che importa `AGENTS.md`;
+- README e documentazione tecnica di baseline allineati allo scaffold reale;
+- `docs/INDEX.md` e `docs/CONTEXT.md`;
+- template PR, Dependabot e baseline sicurezza GitHub.
 
 Gate:
 
 - disponibilità nomi confermata;
 - nessun deploy Production;
-- nessun segreto nel repository.
+- nessun segreto nel repository;
+- istruzioni operative e comandi documentati corrispondono al repository;
+- nessuna duplicazione fra istruzioni Codex e Claude Code.
 
 ### M1 — Proof of concept tecnico
 
@@ -3147,8 +3319,11 @@ Deliverable:
 - webhook HMAC;
 - scrittura/lettura D1;
 - Function minimale;
+- preflight provider;
+- controllo documentazione;
 - deploy Testing;
-- misurazione CPU.
+- misurazione CPU;
+- prima ricevuta di deploy Testing.
 
 Gate:
 
@@ -3156,6 +3331,8 @@ Gate:
 - sessione persistente;
 - Function blocca un caso controllato;
 - CPU compatibile col Free tier;
+- target Testing confermato prima del write e verificato tramite readback;
+- link, anchor e comandi documentati validi;
 - nessun fallback a framework alternativo.
 
 ### M2 — Brand Foundation ✅ completata
@@ -3250,6 +3427,7 @@ Deliverable:
 - Guida;
 - onboarding;
 - IT/EN;
+- glossario canonico di termini cliente e tecnici;
 - Reviews prompt;
 - responsive/accessibilità.
 
@@ -3268,6 +3446,7 @@ Deliverable:
 - Home pubblica;
 - Privacy;
 - Termini;
+- `SECURITY.md`;
 - Support;
 - modulo o fallback `mailto:`;
 - contenuti IT/EN.
@@ -3276,6 +3455,7 @@ Gate:
 
 - URL pubblici;
 - revisione legale;
+- canale privato per vulnerabilità verificato;
 - testi coerenti con listing/app.
 
 ### M8 — Hardening
@@ -3289,6 +3469,9 @@ Deliverable:
 - security audit;
 - dependency audit;
 - load/CPU check;
+- soglie Free tier e criteri di rivalutazione;
+- formato ricevuta deploy/readback;
+- manutenzione periodica GitHub/provider;
 - E2E;
 - manual matrix.
 
@@ -3296,7 +3479,8 @@ Gate:
 
 - nessun P0/P1;
 - fail-open provato;
-- rollback provato.
+- rollback provato e verificato tramite readback;
+- restore drill e soglie operative documentati.
 
 ### M9 — Release candidate e review
 
@@ -3308,11 +3492,13 @@ Deliverable:
 - screenshot;
 - demo screencast;
 - reviewer instructions;
+- record `release-readiness-1.0`;
 - audit App Store;
 - submission.
 
 Gate:
 
+- readiness supportata da prove fresche;
 - approvazione Shopify.
 
 ### M10 — Canary store reale
@@ -3442,7 +3628,11 @@ La `1.0.0` è accettabile quando:
 28. CI riproduce build e test;
 29. review screencast e listing sono completi;
 30. store reale standard supera il canary;
-31. non restano P0/P1 aperti.
+31. non restano P0/P1 aperti;
+32. ogni deploy ha target verificato, ricevuta, readback e rollback;
+33. `SECURITY.md` e il canale privato per vulnerabilità sono operativi;
+34. link, anchor e comandi documentati superano il controllo automatico;
+35. il record di release readiness collega prove fresche per tutti i gate.
 
 ---
 
@@ -3460,6 +3650,9 @@ La `1.0.0` è accettabile quando:
 - [ ] Creare dev store Basic `cf-ready-dev`.
 - [ ] Definire API version supportata più recente.
 - [ ] Inventariare secret senza copiarli nel piano.
+- [x] Creare `AGENTS.md` e `CLAUDE.md` minimale.
+- [ ] Creare `docs/INDEX.md` e `docs/CONTEXT.md`.
+- [ ] Configurare template PR, Dependabot, secret scanning e push protection.
 
 ### Scaffold
 
@@ -3475,6 +3668,8 @@ La `1.0.0` è accettabile quando:
 - [ ] Sostituire lint/format con Oxlint/Oxfmt.
 - [ ] Rimuovere dipendenze non usate.
 - [ ] Pin esatti e lockfile.
+- [ ] Aggiungere controllo documentazione.
+- [ ] Aggiungere preflight provider senza stampa di segreti.
 
 ### Infrastruttura Testing
 
@@ -3486,6 +3681,7 @@ La `1.0.0` è accettabile quando:
 - [ ] webhook.
 - [ ] Pages preview/sito test.
 - [ ] GitHub environment protetto.
+- [ ] Ricevuta deploy Testing con readback e rollback.
 
 ### Proof of concept
 
@@ -3509,8 +3705,12 @@ La `1.0.0` è accettabile quando:
 - [ ] D1/R2 prod.
 - [ ] secret separati.
 - [ ] documenti legali.
+- [ ] `SECURITY.md` e canale vulnerabilità.
 - [ ] support email.
 - [ ] backup/restore.
+- [ ] soglie Free tier documentate.
+- [ ] record `release-readiness-1.0` completo.
+- [ ] preflight Production e target di rollback verificati.
 - [ ] video reviewer.
 - [ ] reviewer instructions.
 - [ ] approvazione owner al deploy.
@@ -3774,14 +3974,21 @@ Il progetto è realmente concluso solo quando:
 - IT/EN sono complete;
 - Brand Foundation è applicata;
 - sicurezza, privacy e documenti legali sono verificati;
+- policy di segnalazione vulnerabilità è pubblica e operativa;
 - backup è ripristinabile;
 - CI/CD è riproducibile;
+- preflight, ricevute, readback e rollback identificano ogni target remoto;
 - App Store review è superata;
 - store reale standard supera il canary;
 - `v1.0.0` è taggata e deployata con autorizzazione;
 - Controlled Launch raggiunge i criteri;
 - nessun bug critico resta aperto;
 - i merchant non sono esposti a blocchi checkout in condizioni non supportate;
+- `AGENTS.md`, README, ADR, runbook e documentazione tecnica descrivono il
+  comportamento corrente;
+- `CLAUDE.md` importa le stesse regole senza duplicarle;
+- indice, contesto, link e comandi documentati sono verificati;
+- soglie operative e record di release readiness sono aggiornati;
 - ogni claim pubblico corrisponde a un comportamento osservato.
 
 ---
