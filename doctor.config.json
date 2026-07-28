@@ -1,0 +1,16 @@
+{
+  "$schema": "https://react.doctor/schema/config.json",
+  "blocking": "warning",
+  "noScore": true,
+  "supplyChain": {
+    "enabled": false
+  },
+  "ignore": {
+    "overrides": [
+      {
+        "files": ["app/routes/app.tsx"],
+        "rules": ["react-doctor/only-export-components"]
+      }
+    ]
+  }
+}
