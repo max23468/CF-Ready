@@ -1,5 +1,12 @@
+import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
-import { findPocValidation, mutationError, queryContext } from "../app/validation-poc.server";
+import {
+  acquireValidationLock,
+  findPocValidation,
+  mutationError,
+  queryContext,
+  releaseValidationLock,
+} from "../app/validation-poc.server";
 
 const validation = {
   id: "gid://shopify/Validation/1",
@@ -47,4 +54,27 @@ test("trasforma una risposta GraphQL senza data in errore operativo", () => {
   expect(mutationError({ errors: [{ message: "errore temporaneo" }] }, "validationCreate")).toBe(
     "Operazione Shopify non riuscita.",
   );
+});
+
+test("concede un solo lock Validation per store alla volta", async () => {
+  const now = 1_000;
+  const shop = "concurrent.example.myshopify.com";
+  const timestamp = "2026-07-28T00:00:00.000Z";
+  await env.DB.prepare(
+    `INSERT INTO shops (
+       shop_domain, installation_status, installed_at, created_at, updated_at
+     ) VALUES (?, 'active', ?, ?, ?)`,
+  )
+    .bind(shop, timestamp, timestamp, timestamp)
+    .run();
+
+  const locks = await Promise.all([
+    acquireValidationLock(env.DB, shop, now, "request-a"),
+    acquireValidationLock(env.DB, shop, now, "request-b"),
+  ]);
+  expect(locks.filter(Boolean)).toHaveLength(1);
+
+  const owner = locks.find((lock): lock is string => Boolean(lock))!;
+  await releaseValidationLock(env.DB, shop, owner);
+  expect(await acquireValidationLock(env.DB, shop, now, "request-c")).toBe("request-c");
 });

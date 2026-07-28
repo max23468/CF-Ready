@@ -1,4 +1,6 @@
 export const FUNCTION_HANDLE = "cf-ready-validation";
+// ponytail: lease globale per store; passare a Durable Objects solo se le operazioni superano 60 s.
+const VALIDATION_LOCK_TTL_MS = 60_000;
 
 const CONTEXT_QUERY = `#graphql
   query PocContext($after: String) {
@@ -103,4 +105,39 @@ export function mutationError(
   }
   const userErrors = result.data[operation].userErrors;
   return userErrors.length ? userErrors.map(({ message }) => message).join(" ") : null;
+}
+
+export async function acquireValidationLock(
+  db: D1Database,
+  shopDomain: string,
+  now = Date.now(),
+  ownerToken: string = crypto.randomUUID(),
+) {
+  const lock = await db
+    .prepare(
+      `INSERT INTO validation_operation_locks (shop_domain, owner_token, expires_at)
+       VALUES (?, ?, ?)
+       ON CONFLICT (shop_domain) DO UPDATE SET
+         owner_token = excluded.owner_token,
+         expires_at = excluded.expires_at
+       WHERE validation_operation_locks.expires_at <= ?
+       RETURNING owner_token`,
+    )
+    .bind(shopDomain, ownerToken, now + VALIDATION_LOCK_TTL_MS, now)
+    .first<{ owner_token: string }>();
+  return lock?.owner_token === ownerToken ? ownerToken : null;
+}
+
+export async function releaseValidationLock(
+  db: D1Database,
+  shopDomain: string,
+  ownerToken: string,
+) {
+  await db
+    .prepare(
+      `DELETE FROM validation_operation_locks
+       WHERE shop_domain = ? AND owner_token = ?`,
+    )
+    .bind(shopDomain, ownerToken)
+    .run();
 }
