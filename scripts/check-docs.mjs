@@ -20,6 +20,7 @@ export function checkDocs(repositoryRoot = root) {
       ":(icase)*.md",
       ":(icase)*.markdown",
       ":(icase)*.html",
+      ":(icase)*.svg",
     ],
     { cwd: repositoryRoot, encoding: "utf8" },
   )
@@ -31,10 +32,10 @@ export function checkDocs(repositoryRoot = root) {
   for (const file of files) {
     const content = readFileSync(resolve(repositoryRoot, file), "utf8");
     const undefinedReferences = [];
-    const targets =
-      extname(file).toLowerCase() === ".html"
-        ? htmlTargets(content)
-        : markdownTargets(content, undefinedReferences);
+    const extension = extname(file).toLowerCase();
+    const targets = [".html", ".svg"].includes(extension)
+      ? htmlTargets(content)
+      : markdownTargets(content, undefinedReferences);
 
     for (const reference of undefinedReferences) {
       errors.push(`${file}: riferimento Markdown senza definizione: ${reference}`);
@@ -119,18 +120,26 @@ export function markdownTargets(content, undefinedReferences = []) {
 
 export function htmlTargets(content) {
   const inactive = inactiveHtmlRanges(content);
-  return htmlTags(content)
+  const attributes = htmlTags(content)
     .filter((tag) => !isInactive(tag.index, inactive))
-    .flatMap(({ value }) =>
-      tagAttributes(value)
-        .filter(({ name }) => /^(?:href|src|xlink:href)$/i.test(name))
-        .map(({ value }) => value),
-    );
+    .flatMap(({ value }) => tagAttributes(value))
+    .flatMap(({ name, value }) => [
+      ...(/^(?:href|src|xlink:href)$/i.test(name) ? [value] : []),
+      ...(/^(?:style|clip-path|mask|filter|fill|stroke|marker-(?:start|mid|end)|cursor)$/i.test(
+        name,
+      )
+        ? cssTargets(value)
+        : []),
+    ]);
+  const styles = [...content.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi)]
+    .filter((match) => !isInactive(match.index, inactive))
+    .flatMap((match) => cssTargets(match[1]));
+  return [...attributes, ...styles];
 }
 
 export function markdownAnchors(content) {
   const result = new Set();
-  const duplicates = new Map();
+  const nextSuffix = new Map();
 
   visitMarkdown(fromMarkdown(content), (node) => {
     if (node.type !== "heading") return;
@@ -139,12 +148,23 @@ export function markdownAnchors(content) {
       .replace(/[^\p{L}\p{N}_\s-]/gu, "")
       .trim()
       .replace(/\s+/g, "-");
-    const count = duplicates.get(base) ?? 0;
-    result.add(count ? `${base}-${count}` : base);
-    duplicates.set(base, count + 1);
+    let suffix = nextSuffix.get(base) ?? 0;
+    let slug = suffix ? `${base}-${suffix}` : base;
+    while (result.has(slug)) {
+      suffix += 1;
+      slug = `${base}-${suffix}`;
+    }
+    nextSuffix.set(base, suffix + 1);
+    result.add(slug);
   });
 
   return result;
+}
+
+function cssTargets(value) {
+  return [...value.matchAll(/url\(\s*(?:(["'])(.*?)\1|([^)]*?))\s*\)/gi)]
+    .map((match) => (match[2] ?? match[3]).trim())
+    .filter(Boolean);
 }
 
 export function htmlAnchors(content) {
@@ -243,9 +263,24 @@ function tagAttributes(tag) {
   const attribute = /\s+([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/gy;
   attribute.lastIndex = nameEnd;
   for (let match = attribute.exec(tag); match; match = attribute.exec(tag)) {
-    attributes.push({ name: match[1], value: match[2] ?? match[3] ?? match[4] ?? "" });
+    attributes.push({
+      name: match[1],
+      value: decodeEntities(match[2] ?? match[3] ?? match[4] ?? ""),
+    });
   }
   return attributes;
+}
+
+function decodeEntities(value) {
+  const named = { amp: "&", apos: "'", gt: ">", lt: "<", quot: '"' };
+  return value.replace(
+    /&(?:#(\d+)|#x([\da-f]+)|(amp|apos|gt|lt|quot));/gi,
+    (entity, dec, hex, name) => {
+      if (name) return named[name.toLowerCase()];
+      const codePoint = Number.parseInt(dec ?? hex, dec ? 10 : 16);
+      return codePoint <= 0x10ffff ? String.fromCodePoint(codePoint) : entity;
+    },
+  );
 }
 
 function isInactive(index, ranges) {
