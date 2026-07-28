@@ -27,9 +27,9 @@ per sviluppo e collaudo.
 ## Vincoli osservati
 
 - Il repository è pubblico su GitHub Free. `develop` e `main` richiedono i gate
-  `verify` e `react-doctor`, inclusa la sincronizzazione con la base; `develop`
-  è il branch predefinito. Gli admin non possono aggirare le protezioni e le
-  conversazioni devono essere risolte. Secret scanning, push protection,
+  `verify`, `react-doctor` e `dependency-review`, inclusa la sincronizzazione
+  con la base; `develop` è il branch predefinito. Gli admin non possono aggirare
+  le protezioni e le conversazioni devono essere risolte. Secret scanning, push protection,
   CodeQL, Dependabot security updates e private vulnerability reporting sono
   attivi. L’auto-merge nativo è limitato alle PR Dependabot minor/patch; le PR
   ordinarie usano squash e le sole promozioni `develop` → `main` usano merge

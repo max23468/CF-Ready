@@ -53,12 +53,19 @@ test("calcola gli anchor GitHub ignorando i blocchi di codice", () => {
   const anchors = markdownAnchors("```\n# Does not exist\n```\n\n#### `shopify_sessions`");
   assert(!anchors.has("does-not-exist"));
   assert(anchors.has("shopify_sessions"));
+  assert.deepEqual([...markdownAnchors("# Foo\n# Foo\n# Foo-1")], ["foo", "foo-1", "foo-1-1"]);
 });
 
 test("rileva riferimenti e anchor HTML", () => {
   const html =
-    '<svg><symbol id="marchio"></symbol><use href=#marchio /><use xlink:href="legacy.svg#marchio" /></svg><!-- <img src="old.svg"> --><script>"src=old.svg"</script><code>href=old.svg</code><div data-example="src=old.svg"></div>';
-  assert.deepEqual(htmlTargets(html), ["#marchio", "legacy.svg#marchio"]);
+    '<svg><symbol id="marchio"></symbol><use href=#marchio /><use xlink:href="legacy.svg#marchio" /><path clip-path="url(#cardclip)" style="mask: url(&quot;#monomask&quot;)" /><style>.icon{filter:url(#stylefilter)}</style></svg><!-- <style>.old{mask:url(old.svg)}</style><img src="old.svg"> --><script>"<style>.old{mask:url(old.svg)}</style>"</script><code>href=old.svg</code><div data-example="src=old.svg url(missing.svg)"></div>';
+  assert.deepEqual(htmlTargets(html), [
+    "#marchio",
+    "legacy.svg#marchio",
+    "#cardclip",
+    "#monomask",
+    "#stylefilter",
+  ]);
   assert(htmlAnchors(html).has("marchio"));
 });
 
@@ -98,6 +105,25 @@ test("valida i link nei file HTML senza distinzione di maiuscole", () => {
 
     assert.deepEqual(checkDocs(repository).errors, [
       "PAGE.HTML: link locale inesistente: missing.html",
+    ]);
+  } finally {
+    rmSync(repository, { force: true, recursive: true });
+  }
+});
+
+test("valida i riferimenti CSS nei file SVG", () => {
+  const repository = mkdtempSync(join(tmpdir(), "cf-ready-docs-"));
+  try {
+    execFileSync("git", ["init", "-q"], { cwd: repository });
+    writeFileSync(join(repository, "package.json"), '{"scripts":{}}');
+    writeFileSync(
+      join(repository, "icon.svg"),
+      '<svg><path clip-path="url(&quot;#missing&quot;)"/></svg>',
+    );
+    execFileSync("git", ["add", "."], { cwd: repository });
+
+    assert.deepEqual(checkDocs(repository).errors, [
+      "icon.svg: anchor locale inesistente: #missing",
     ]);
   } finally {
     rmSync(repository, { force: true, recursive: true });
