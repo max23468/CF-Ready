@@ -2,22 +2,30 @@ import { env } from "cloudflare:workers";
 import { ApiVersion, AppDistribution, shopifyApp } from "@shopify/shopify-app-react-router/server";
 import { D1SessionStorage } from "./session-storage.server";
 
-const d1SessionStorage = new D1SessionStorage(env.DB, process.env.SESSION_ENCRYPTION_KEY || "");
+type ShopifyBindings = Env & {
+  SCOPES?: string;
+  SESSION_ENCRYPTION_KEY?: string;
+  SHOPIFY_API_KEY?: string;
+  SHOPIFY_API_SECRET?: string;
+  SHOPIFY_APP_URL?: string;
+  SHOP_CUSTOM_DOMAIN?: string;
+};
+
+const bindings = env as ShopifyBindings;
+const d1SessionStorage = new D1SessionStorage(bindings.DB, bindings.SESSION_ENCRYPTION_KEY || "");
 const shopify = shopifyApp({
-  apiKey: process.env.SHOPIFY_API_KEY,
-  apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
+  apiKey: bindings.SHOPIFY_API_KEY,
+  apiSecretKey: bindings.SHOPIFY_API_SECRET || "",
   apiVersion: ApiVersion.July26,
-  scopes: process.env.SCOPES?.split(","),
-  appUrl: process.env.SHOPIFY_APP_URL || "",
+  scopes: bindings.SCOPES?.split(","),
+  appUrl: bindings.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
   sessionStorage: d1SessionStorage,
   distribution: AppDistribution.AppStore,
   future: {
     expiringOfflineAccessTokens: true,
   },
-  ...(process.env.SHOP_CUSTOM_DOMAIN
-    ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
-    : {}),
+  ...(bindings.SHOP_CUSTOM_DOMAIN ? { customShopDomains: [bindings.SHOP_CUSTOM_DOMAIN] } : {}),
 });
 
 export const apiVersion = ApiVersion.July26;

@@ -3,9 +3,9 @@
 Public app Shopify per validare formalmente Codice Fiscale e PEC nei campi
 nativi del checkout italiano.
 
-> Il progetto è in sviluppo: lo scaffold tecnico è presente, ma la Validation
-> Function, il billing e i flussi merchant della 1.0 non sono ancora completi né
-> pubblicati.
+> Il progetto è in sviluppo: il proof of concept M1 include la Validation
+> Function minimale, ma il motore completo, il billing e i flussi merchant
+> della 1.0 non sono ancora completi né pubblicati.
 
 ## Sviluppo locale
 
@@ -25,6 +25,8 @@ mise exec -- npm run dev
 
 ```sh
 mise exec -- npm test
+mise exec -- npm run test:function
+mise exec -- npm run preflight:dev
 mise exec -- npm run docs:check
 mise exec -- npm run check
 ```

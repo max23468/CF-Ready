@@ -13,19 +13,26 @@ test("salva la sessione cifrata e la ricarica da D1", async () => {
     isOnline: false,
     scope: "write_validations",
     accessToken: "secret-token",
+    expires: new Date("2026-07-28T23:30:00.000Z"),
+    refreshToken: "secret-refresh-token",
+    refreshTokenExpires: new Date("2026-08-28T23:30:00.000Z"),
   });
 
   expect(await storage.storeSession(session)).toBe(true);
 
   const row = await env.DB.prepare(
-    "SELECT access_token_ciphertext, session_payload_ciphertext FROM shopify_sessions WHERE id = ?",
+    `SELECT access_token_ciphertext, refresh_token_ciphertext,
+            session_payload_ciphertext
+     FROM shopify_sessions
+     WHERE id = ?`,
   )
     .bind(session.id)
     .first<{
       access_token_ciphertext: string;
+      refresh_token_ciphertext: string;
       session_payload_ciphertext: string;
     }>();
-  expect(JSON.stringify(row)).not.toContain("secret-token");
+  expect(JSON.stringify(row)).not.toMatch(/secret-(?:token|refresh-token)/);
   expect((await storage.loadSession(session.id))?.toPropertyArray(true)).toEqual(
     session.toPropertyArray(true),
   );
