@@ -10,7 +10,7 @@ presenti e superano il gate locale.
 
 Sono disponibili:
 
-- repository GitHub privato `max23468/CF-Ready`;
+- repository GitHub pubblico `max23468/CF-Ready`;
 - app Shopify Development, Testing e Production nell’organizzazione Temisfera;
 - progetto Cloudflare Pages `cf-ready`;
 - sottodominio Workers `tmsf.workers.dev`;
@@ -26,10 +26,11 @@ con il deploy Testing di M1 e `cf-ready` prima del primo deploy Production.
 ## Vincoli osservati
 
 - Il repository è pubblico su GitHub Free. `develop` e `main` richiedono i gate
-  `verify` e `react-doctor`; l’auto-merge nativo è abilitato per le sole PR
-  Dependabot minor/patch verso `develop`. Le PR ordinarie usano squash, mentre
-  le sole promozioni `develop` → `main` usano merge commit. La cancellazione
-  automatica dei branch resta disattivata per non eliminare `develop`.
+  `verify` e `react-doctor`; `develop` è il branch predefinito e l’auto-merge
+  nativo è abilitato per le sole PR Dependabot minor/patch. Le PR ordinarie
+  usano squash, mentre le sole promozioni `develop` → `main` usano merge commit.
+  La cancellazione globale dei branch resta disattivata per non eliminare
+  `develop`; il workflow elimina soltanto i branch `dependabot/*` già uniti.
 - Secret e callback reali restano da configurare per ambiente durante M1: non
   appartengono al repository.
 - Node.js è bloccato a `26.5.0` in `mise.toml`; setup locale e CI usano la
