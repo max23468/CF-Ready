@@ -68,5 +68,9 @@
     "fsevents@2.3.3": true,
     "workerd@1.20260722.1": true
   },
+  "overrides": {
+    "graphql-config": "5.1.6",
+    "lodash": "4.18.1"
+  },
   "author": "Matteo"
 }
