@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Segnalazione privata di sicurezza
+    url: https://github.com/max23468/CF-Ready/security/advisories/new
+    about: Segnala vulnerabilità o credenziali senza pubblicare dettagli.
