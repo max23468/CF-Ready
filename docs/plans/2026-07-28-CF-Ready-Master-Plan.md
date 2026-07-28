@@ -2493,6 +2493,9 @@ Un comando terminato con exit code `0` non è, da solo, prova del risultato live
 Usare la più recente versione stabile compatibile dell’intera matrice Shopify–React Router–Cloudflare al momento dello scaffold, non `@latest` indiscriminato.
 
 - versioni dirette pin esatto;
+- Node.js `26.5.0` bloccato in `mise.toml`; il setup locale usa
+  `mise trust`, `mise install` e `mise exec`, mentre la CI usa la stessa
+  versione tramite `actions/setup-node`;
 - `package-lock.json` committato;
 - `npm ci` in CI;
 - nessuna beta/RC/canary per dipendenze e toolchain, salvo la sola eccezione approvata della Function API `2026-07` durante lo sviluppo `0.x`;
