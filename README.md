@@ -29,6 +29,13 @@ mise exec -- npm run docs:check
 mise exec -- npm run check
 ```
 
+Per ispezionare il collegamento Shopify senza permettere alla CLI di
+normalizzare i file TOML del repository:
+
+```sh
+mise exec -- npm run shopify:info -- shopify.app.dev.toml
+```
+
 ## Documentazione e contributi
 
 La documentazione parte da [`docs/INDEX.md`](docs/INDEX.md). Il

@@ -2147,11 +2147,11 @@ Il brand si esprime soprattutto in:
 
 ### 18.2 Nomi risorse
 
-| Ambiente | Worker | D1 | R2 backup |
-|---|---|---|---|
-| Development | locale | `cf-ready-db-dev` | nessuno |
-| Testing | `cf-ready-test` | `cf-ready-db-test` | `cf-ready-backups-test` |
-| Production | `cf-ready` | `cf-ready-db-prod` | `cf-ready-backups-prod` |
+| Ambiente | Worker | D1 | R2 backup | Jurisdiction R2 |
+|---|---|---|---|---|
+| Development | locale | `cf-ready-db-dev` | nessuno | — |
+| Testing | `cf-ready-test` | `cf-ready-db-test` | `cf-ready-backups-test` | `eu` |
+| Production | `cf-ready` | `cf-ready-db-prod` | `cf-ready-backups-prod` | `eu` |
 
 Nell’URL Production non compare `prod`.
 
@@ -2231,6 +2231,8 @@ Due livelli:
    - verifica di ripristino periodica.
 
 I backup sono separati per ambiente. Le chiavi di cifratura non risiedono nel bucket.
+I bucket R2 di Testing e Production usano la jurisdiction `eu`; ogni binding
+Worker o endpoint S3 deve dichiarare la stessa jurisdiction.
 
 Non automatizzare una pipeline complessa prima di validare il metodo di export D1 dal runtime/CI: implementare il percorso più semplice supportato da Wrangler e GitHub Actions.
 
@@ -3743,7 +3745,7 @@ La `1.0.0` è accettabile quando:
 
 - [ ] Worker `cf-ready-test`.
 - [x] D1 `cf-ready-db-test`.
-- [x] R2 `cf-ready-backups-test`.
+- [x] R2 `cf-ready-backups-test` con jurisdiction `eu`.
 - [ ] secret Testing.
 - [ ] callback OAuth.
 - [ ] webhook.
@@ -3771,7 +3773,7 @@ La `1.0.0` è accettabile quando:
 - [ ] Function API `2026-07` stabile e validata con la CLI corrente.
 - [ ] `test: false`.
 - [ ] URL prod.
-- [x] D1/R2 prod.
+- [x] D1/R2 prod; bucket R2 con jurisdiction `eu`.
 - [ ] secret separati.
 - [ ] documenti legali.
 - [x] `SECURITY.md` e canale vulnerabilità.

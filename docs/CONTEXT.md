@@ -15,8 +15,8 @@ Sono disponibili:
 - progetto Cloudflare Pages `cf-ready`;
 - sottodominio Workers `tmsf.workers.dev`;
 - database D1 `cf-ready-db-test` e `cf-ready-db-prod`;
-- bucket R2 `cf-ready-backups-test` e `cf-ready-backups-prod`, con location hint
-  Europa occidentale;
+- bucket R2 `cf-ready-backups-test` e `cf-ready-backups-prod`, entrambi vuoti
+  e vincolati alla jurisdiction `eu`;
 - nomi definiti per i Worker secondo il Master Plan;
 - baseline documentale, ADR, inventario secret e configurazione GitHub.
 
@@ -39,6 +39,9 @@ con il deploy Testing di M1 e `cf-ready` prima del primo deploy Production.
   vengono descritti come controlli attivi.
 - Secret e callback reali restano da configurare per ambiente durante M1: non
   appartengono al repository.
+- Il Cloudflare MCP corrente legge correttamente D1 e Pages, ma non espone
+  l'header di jurisdiction richiesto dalle API R2. Per i bucket `eu` si usa
+  Wrangler con `--jurisdiction eu` finché il connettore non copre il parametro.
 - Node.js è bloccato a `26.5.0` in `mise.toml`; setup locale e CI usano la
   stessa versione e `npm ci`.
 
