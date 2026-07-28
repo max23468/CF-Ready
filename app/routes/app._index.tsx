@@ -7,7 +7,8 @@ import {
   FUNCTION_HANDLE,
   mutationError,
   queryContext,
-  releaseValidationLock,
+  releaseValidationLockBestEffort,
+  startValidationLockHeartbeat,
 } from "../validation-poc.server";
 import type { MutationResult } from "../validation-poc.server";
 
@@ -82,6 +83,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   if (!lockToken) {
     return { ok: false, error: "Un’altra operazione sulla Validation è già in corso." };
   }
+  const heartbeat = startValidationLockHeartbeat(db, session.shop, lockToken);
 
   try {
     const data = await queryContext(admin);
@@ -109,6 +111,9 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
             metafields,
           },
         };
+    if (!(await heartbeat.isHeld())) {
+      return { ok: false, error: "Il coordinamento della Validation non è più valido." };
+    }
     const response = await admin.graphql(existing ? UPDATE_VALIDATION : CREATE_VALIDATION, {
       variables,
     });
@@ -125,7 +130,8 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     }
     return { ok: true };
   } finally {
-    await releaseValidationLock(db, session.shop, lockToken);
+    await heartbeat.stop();
+    await releaseValidationLockBestEffort(db, session.shop, lockToken);
   }
 };
 

@@ -1203,11 +1203,13 @@ La UI non deve presentare come certo uno stato locale vecchio: all’apertura de
 2. verifica store italiano;
 3. verifica configurazione completa;
 4. verifica prova o licenza valida;
-5. verifica che non esista già la Validation CFR;
-6. crea una sola Validation con `validationCreate`, `blockOnFailure: false` e il metafield JSON nello stesso owner input supportato dalla versione corrente;
-7. verifica tramite readback che Validation e metafield coincidano;
-8. registra l’evento tecnico;
-9. mostra toast di conferma.
+5. acquisisce una lease D1 per store, rinnovata dal proprietario finché
+   l’operazione resta attiva e rilasciata come cleanup best-effort;
+6. verifica che non esista già la Validation CFR;
+7. crea una sola Validation con `validationCreate`, `blockOnFailure: false` e il metafield JSON nello stesso owner input supportato dalla versione corrente;
+8. verifica tramite readback che Validation e metafield coincidano;
+9. registra l’evento tecnico;
+10. mostra toast di conferma.
 
 Nessuna Validation viene creata alla sola installazione.
 
@@ -1224,7 +1226,10 @@ Il salvataggio di regole o messaggi:
 5. aggiorna hash/versione osservata in D1;
 6. segnala un conflitto se una seconda sessione ha modificato la configurazione nel frattempo.
 
-Per la concorrenza è sufficiente un controllo ottimistico con hash o timestamp: non serve un sistema di lock distribuito.
+Per modifiche concorrenti alle regole è sufficiente un controllo ottimistico
+con hash o timestamp. La lease D1 per store serializza invece il lifecycle
+create/enable/disable, dove due `validationCreate` concorrenti lascerebbero
+risorse duplicate su Shopify.
 
 ### 11.5 Disattivazione
 

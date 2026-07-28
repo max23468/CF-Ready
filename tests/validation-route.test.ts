@@ -5,7 +5,8 @@ import {
   findPocValidation,
   mutationError,
   queryContext,
-  releaseValidationLock,
+  releaseValidationLockBestEffort,
+  renewValidationLock,
 } from "../app/validation-poc.server";
 
 const validation = {
@@ -56,7 +57,7 @@ test("trasforma una risposta GraphQL senza data in errore operativo", () => {
   );
 });
 
-test("concede un solo lock Validation per store alla volta", async () => {
+test("mantiene un solo lock Validation mentre il proprietario lo rinnova", async () => {
   const now = 1_000;
   const shop = "concurrent.example.myshopify.com";
   const timestamp = "2026-07-28T00:00:00.000Z";
@@ -75,6 +76,25 @@ test("concede un solo lock Validation per store alla volta", async () => {
   expect(locks.filter(Boolean)).toHaveLength(1);
 
   const owner = locks.find((lock): lock is string => Boolean(lock))!;
-  await releaseValidationLock(env.DB, shop, owner);
-  expect(await acquireValidationLock(env.DB, shop, now, "request-c")).toBe("request-c");
+  expect(await renewValidationLock(env.DB, shop, owner, now + 40_000)).toBe(true);
+  expect(await acquireValidationLock(env.DB, shop, now + 61_000, "request-c")).toBeNull();
+
+  await releaseValidationLockBestEffort(env.DB, shop, owner);
+  expect(await acquireValidationLock(env.DB, shop, now + 61_000, "request-c")).toBe("request-c");
+});
+
+test("il cleanup del lock non sovrascrive l'esito dell'operazione", async () => {
+  const unavailableDb = {
+    prepare: () => ({
+      bind: () => ({
+        run: async () => {
+          throw new Error("D1 temporaneamente non disponibile");
+        },
+      }),
+    }),
+  } as unknown as D1Database;
+
+  await expect(
+    releaseValidationLockBestEffort(unavailableDb, "cleanup.example.myshopify.com", "owner"),
+  ).resolves.toBeUndefined();
 });
