@@ -4,7 +4,11 @@ Aggiornato il 28 luglio 2026.
 
 ## Stato
 
-M0 è completata. Sono disponibili:
+M0 e M2 sono completate. M1 è in corso: scaffold React Router, adattamento
+Workers, SessionStorage D1 cifrato, Home minimale e autenticazione webhook sono
+presenti e superano il gate locale.
+
+Sono disponibili:
 
 - repository GitHub privato `max23468/CF-Ready`;
 - app Shopify Development, Testing e Production nell’organizzazione Temisfera;
@@ -33,7 +37,8 @@ con il deploy Testing di M1 e `cf-ready` prima del primo deploy Production.
 
 ## Prossimo passo
 
-Avviare M1 dal proof of concept Testing: adattamento Workers/D1, sessioni,
-login embedded, webhook HMAC e Function minimale. Il primo deploy deve creare
-`cf-ready-test`, usare solo risorse Testing e produrre ricevuta, readback e
-rollback.
+Completare M1 con query Admin GraphQL, Function minimale e controllo
+documentazione persistente. Poi verificare login embedded, refresh offline token
+e sessione sul dev store, eseguire il preflight e il primo deploy Testing,
+misurare la CPU e registrare ricevuta, readback e rollback. Al 28 luglio 2026
+`cf-ready-test` non esiste ancora e `cf-ready-db-test` non ha tabelle applicate.
