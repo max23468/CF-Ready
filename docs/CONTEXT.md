@@ -29,9 +29,10 @@ con il deploy Testing di M1 e `cf-ready` prima del primo deploy Production.
   protection, required checks, deployment environment protetti, secret scanning
   e push protection è accettata dall’owner e non blocca la `1.0.0`.
   Vulnerability alerts, Dependabot, PR operative, CI verde verificata prima del
-  merge, squash per le PR ordinarie, merge commit per le sole promozioni
-  `develop` → `main` e controlli locali sui secret costituiscono la baseline
-  applicabile. La CI rifiuta le altre PR verso `main`; i branch temporanei
+  merge, auto-merge delle sole PR Dependabot minor/patch verso `develop`, squash
+  per le PR ordinarie, merge commit per le sole promozioni `develop` → `main` e
+  controlli locali sui secret costituiscono la baseline applicabile. La CI
+  rifiuta le altre PR verso `main`; i branch temporanei
   vengono eliminati esplicitamente, così l’automazione non può cancellare
   `develop` dopo una promozione. Rivalutare il piano solo se entrano
   collaboratori o cambia materialmente il profilo di rischio.
