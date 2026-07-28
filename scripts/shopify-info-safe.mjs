@@ -6,11 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const config = process.argv[2] ?? "shopify.app.dev.toml";
-const allowedConfigs = new Set([
-  "shopify.app.toml",
-  "shopify.app.dev.toml",
-  "shopify.app.test.toml",
-]);
+const allowedConfigs = new Set(["shopify.app.toml", "shopify.app.dev.toml"]);
 
 if (basename(config) !== config || !allowedConfigs.has(config)) {
   throw new Error(`Configurazione Shopify non ammessa: ${config}`);
@@ -23,7 +19,6 @@ try {
     "package.json",
     "shopify.app.toml",
     "shopify.app.dev.toml",
-    "shopify.app.test.toml",
     "shopify.web.toml",
   ]) {
     await cp(join(root, file), join(auditRoot, file));

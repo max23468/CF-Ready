@@ -11,17 +11,18 @@ presenti e superano il gate locale.
 Sono disponibili:
 
 - repository GitHub pubblico `max23468/CF-Ready`;
-- app Shopify Development, Testing e Production nell’organizzazione Temisfera;
+- app Shopify Development e Production nell’organizzazione Temisfera;
 - progetto Cloudflare Pages `cf-ready`;
 - sottodominio Workers `tmsf.workers.dev`;
-- database D1 `cf-ready-db-test` e `cf-ready-db-prod`;
-- bucket R2 `cf-ready-backups-test` e `cf-ready-backups-prod`, entrambi vuoti
-  e vincolati alla jurisdiction `eu`;
+- database D1 Production `cf-ready-db-prod`;
+- bucket R2 Production `cf-ready-backups-prod`, vuoto e vincolato alla
+  jurisdiction `eu`;
 - nomi definiti per i Worker secondo il Master Plan;
 - baseline documentale, ADR, inventario secret e configurazione GitHub.
 
-I Worker non vengono creati senza codice placeholder: `cf-ready-test` nascerà
-con il deploy Testing di M1 e `cf-ready` prima del primo deploy Production.
+Il Worker `cf-ready` non viene creato senza codice placeholder: nascerà prima
+del primo deploy Production. Development usa il runtime locale e il dev store
+per sviluppo e collaudo.
 
 ## Vincoli osservati
 
@@ -49,6 +50,4 @@ con il deploy Testing di M1 e `cf-ready` prima del primo deploy Production.
 
 Completare M1 con query Admin GraphQL e Function minimale. Poi verificare login
 embedded, refresh offline token e sessione sul dev store, eseguire il preflight
-e il primo deploy Testing, misurare la CPU e registrare ricevuta, readback e
-rollback. Al 28 luglio 2026 `cf-ready-test` non esiste ancora e
-`cf-ready-db-test` non ha tabelle applicate.
+Development, misurare la CPU e registrare le evidenze del proof of concept.
