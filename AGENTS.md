@@ -99,7 +99,12 @@ Prima della `1.0.0`, riconferma nelle fonti Shopify correnti la Function API
 | Testing | `test` | `develop` | integrazione separata |
 | Production | `prod` | `main` | merchant reali |
 
-- Commit e titoli PR seguono Conventional Commits; il merge ordinario è squash.
+- Le PR ordinarie puntano a `develop` e usano squash. `main` accetta soltanto
+  promozioni autorizzate da `develop`, unite con merge commit per preservare
+  l’ascendenza tra i due rami. Dopo uno squash elimina il branch temporaneo;
+  non eliminare mai `develop` dopo una promozione.
+- Commit e titoli PR seguono Conventional Commits. Non fare push diretti
+  intenzionali su `main` o `develop`.
 - “Pubblica” richiede il ciclo Git completo fino al merge e, quando la modifica
   è deployabile, il deploy pertinente con verifica live. Le release SemVer,
   submission App Store e attivazioni commerciali restano azioni separate.
