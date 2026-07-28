@@ -1,0 +1,11 @@
+# Indice documentazione
+
+- [Master Plan](plans/2026-07-28-CF-Ready-Master-Plan.md) — requisiti,
+  decisioni, milestone e gate.
+- [Contesto corrente](CONTEXT.md) — stato osservato, vincoli e prossimo passo.
+- [ADR 0001](adr/0001-stack.md) — stack applicativo e provider.
+- [Brand Foundation](brand/brand-foundation.md) — identità e tono.
+- [Brand board](brand/brand-board.html) — riferimento visuale.
+- [Asset del brand](brand/assets/README.md) — file e modalità d’uso.
+- [Inventario secret](runbooks/secret-inventory.md) — soli nomi e destinazioni.
+- [README](../README.md) — setup e comandi correnti.

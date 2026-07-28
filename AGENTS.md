@@ -98,8 +98,9 @@ Prima della `1.0.0`, riconferma nelle fonti Shopify correnti la Function API
 | Production | `prod` | `main` | merchant reali |
 
 - Commit e titoli PR seguono Conventional Commits; il merge ordinario è squash.
-- Publish Git, deploy Testing, deploy Production e release SemVer sono azioni
-  distinte: una non autorizza le altre.
+- “Pubblica” richiede il ciclo Git completo fino al merge e, quando la modifica
+  è deployabile, il deploy pertinente con verifica live. Le release SemVer,
+  submission App Store e attivazioni commerciali restano azioni separate.
 - Per operazioni remote preferisci l’integrazione ufficiale del provider
   disponibile; usa CLI, API raw o browser solo per la parte non coperta.
 - Prima di una scrittura remota identifica ambiente, account Cloudflare,

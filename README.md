@@ -20,5 +20,6 @@ npm test
 npm run check
 ```
 
-Il piano decisionale è in
-[`docs/plans/2026-07-28-CF-Ready-Master-Plan.md`](docs/plans/2026-07-28-CF-Ready-Master-Plan.md).
+La documentazione parte da [`docs/INDEX.md`](docs/INDEX.md); il
+[Master Plan](docs/plans/2026-07-28-CF-Ready-Master-Plan.md) resta la fonte
+decisionale.

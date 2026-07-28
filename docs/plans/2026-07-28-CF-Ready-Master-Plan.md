@@ -2,9 +2,9 @@
 
 ## Master Plan di prodotto, architettura, implementazione e lancio
 
-**Stato:** baseline approvata per scaffolding e implementazione · M2 Brand Foundation completata  
+**Stato:** baseline approvata per scaffolding e implementazione · M0 e M2 completate
 **Data:** 27 luglio 2026 · revisione 28 luglio 2026  
-**Versione documento:** 1.7\
+**Versione documento:** 1.8\
 **Documenti vincolanti collegati:** `docs/brand/brand-foundation.md` (identità visiva, tono, materiali pubblici)  
 **Brand:** CF Ready  
 **Nome pubblico:** CF Ready — Codice Fiscale nel Checkout  
@@ -2163,11 +2163,13 @@ https://cf-ready.pages.dev/support
 Worker:
 
 ```text
-https://cf-ready.<account-subdomain>.workers.dev
-https://cf-ready-test.<account-subdomain>.workers.dev
+https://cf-ready.tem-is.workers.dev
+https://cf-ready-test.tem-is.workers.dev
 ```
 
-Il sottodominio account va letto in Cloudflare Workers & Pages. Non cambiarlo senza verificare l’impatto sugli altri Worker. La disponibilità di nomi e URL è un prerequisito da confermare nei dashboard; nessuna disponibilità è assunta dal piano.
+Il sottodominio account osservato è `tem-is`. Non cambiarlo senza verificare
+l’impatto sugli altri Worker. La disponibilità dei nomi Worker va riconfermata
+nel preflight del primo deploy.
 
 L’utente nell’app vede normalmente:
 
@@ -2328,8 +2330,10 @@ Lo store standard dell’attività:
 - Production solo con merge esplicito;
 - nessuna cancellazione automatica di estensioni Shopify.
 
-Pubblicazione Git, deploy Testing, deploy Production e release SemVer sono
-azioni distinte. Una non autorizza implicitamente le altre.
+“Pubblica” richiede commit, push, PR, gate, merge e, quando la modifica è
+deployabile, il deploy pertinente con verifica live. La release SemVer,
+submission App Store e attivazioni commerciali restano azioni separate e
+richiedono autorizzazione esplicita.
 
 ### 19.5 Versionamento
 
@@ -3278,7 +3282,7 @@ Cadenza minima:
 
 ## 27. Milestone e sequenza di implementazione
 
-### M0 — Prenotazioni e fondazioni
+### M0 — Prenotazioni e fondazioni ✅ completata
 
 Deliverable:
 
@@ -3286,7 +3290,8 @@ Deliverable:
 - handle Shopify `cf-ready`;
 - app Development/Testing/Production secondo disponibilità;
 - progetto Pages `cf-ready`;
-- Worker `cf-ready-test` e `cf-ready`;
+- nomi Worker `cf-ready-test` e `cf-ready` confermati; le risorse vengono create
+  dal primo deploy dei rispettivi ambienti in M1 e prima della Production;
 - D1/R2 nominati;
 - inventario secret;
 - dev store Basic unico;
@@ -3300,7 +3305,8 @@ Deliverable:
 Gate:
 
 - disponibilità nomi confermata;
-- nessun deploy Production;
+- nessun deploy del backend o dell’app Production; è ammesso il placeholder
+  Pages usato per riservare `cf-ready.pages.dev`;
 - nessun segreto nel repository;
 - istruzioni operative e comandi documentati corrispondono al repository;
 - nessuna duplicazione fra istruzioni Codex e Claude Code.
@@ -3640,19 +3646,21 @@ La `1.0.0` è accettabile quando:
 
 ### Prima di generare codice
 
-- [ ] Confermare owner Shopify Partner e Cloudflare.
-- [ ] Verificare disponibilità `CF Ready`.
-- [ ] Riservare handle `cf-ready`.
-- [ ] Riservare `cf-ready.pages.dev`.
-- [ ] Leggere sottodominio `workers.dev`.
-- [ ] Creare repository privato `cf-ready`.
-- [ ] Creare/provisionare app `dev`, `test`, `prod` secondo il flusso Shopify corrente.
-- [ ] Creare dev store Basic `cf-ready-dev`.
-- [ ] Definire API version supportata più recente.
-- [ ] Inventariare secret senza copiarli nel piano.
+- [x] Confermare owner Shopify Partner e Cloudflare.
+- [x] Verificare disponibilità `CF Ready`.
+- [x] Riservare handle `cf-ready`.
+- [x] Riservare `cf-ready.pages.dev`.
+- [x] Leggere sottodominio `workers.dev`: `tem-is`.
+- [x] Creare repository privato `cf-ready`.
+- [x] Creare/provisionare app `dev`, `test`, `prod` secondo il flusso Shopify corrente.
+- [x] Creare dev store Basic `cf-ready-dev`.
+- [x] Definire API version supportata più recente.
+- [x] Inventariare secret senza copiarli nel piano.
 - [x] Creare `AGENTS.md` e `CLAUDE.md` minimale.
-- [ ] Creare `docs/INDEX.md` e `docs/CONTEXT.md`.
-- [ ] Configurare template PR, Dependabot, secret scanning e push protection.
+- [x] Creare `docs/INDEX.md` e `docs/CONTEXT.md`.
+- [x] Configurare template PR, Dependabot e baseline sicurezza GitHub; le
+  funzioni non disponibili sul piano GitHub corrente sono registrate in
+  `docs/CONTEXT.md`.
 
 ### Scaffold
 
@@ -3674,8 +3682,8 @@ La `1.0.0` è accettabile quando:
 ### Infrastruttura Testing
 
 - [ ] Worker `cf-ready-test`.
-- [ ] D1 `cf-ready-db-test`.
-- [ ] R2 `cf-ready-backups-test`.
+- [x] D1 `cf-ready-db-test`.
+- [x] R2 `cf-ready-backups-test`.
 - [ ] secret Testing.
 - [ ] callback OAuth.
 - [ ] webhook.
@@ -3702,7 +3710,7 @@ La `1.0.0` è accettabile quando:
 - [ ] Function API `2026-07` stabile e validata con la CLI corrente.
 - [ ] `test: false`.
 - [ ] URL prod.
-- [ ] D1/R2 prod.
+- [x] D1/R2 prod.
 - [ ] secret separati.
 - [ ] documenti legali.
 - [ ] `SECURITY.md` e canale vulnerabilità.
