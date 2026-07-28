@@ -3703,8 +3703,8 @@ La `1.0.0` è accettabile quando:
 ### Scaffold
 
 - [x] Generare dal template Shopify React Router corrente.
-- [x] Eseguire baseline locale prima di modificare dipendenze.
-- [x] Committare baseline identificabile.
+- [ ] Eseguire baseline locale prima di modificare dipendenze.
+- [ ] Committare baseline identificabile.
 - [x] Integrare Cloudflare Vite plugin.
 - [x] Rimuovere server Node.
 - [x] Rimuovere Prisma/SQLite.
