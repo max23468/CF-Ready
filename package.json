@@ -10,7 +10,7 @@
     "lint": "oxlint .",
     "format": "oxfmt --write app scripts workers tests react-router.config.ts vite.config.ts vitest.config.ts",
     "format:check": "oxfmt --check app scripts workers tests react-router.config.ts vite.config.ts vitest.config.ts",
-    "docs:check": "node scripts/check-docs.mjs",
+    "docs:check": "node --test scripts/check-docs.node-test.mjs && node scripts/check-docs.mjs",
     "test": "vitest run",
     "doctor": "react-doctor",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
