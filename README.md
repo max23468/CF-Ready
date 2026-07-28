@@ -9,6 +9,7 @@ in `SESSION_ENCRYPTION_KEY`, codificata in base64. La versione Node.js è
 bloccata in `mise.toml`.
 
 ```sh
+mise trust mise.toml
 mise install
 mise exec -- npm ci
 mise exec -- npm run db:migrate:local
