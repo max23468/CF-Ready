@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import {
   acquireValidationLock,
   findPocValidation,
@@ -7,6 +7,7 @@ import {
   queryContext,
   releaseValidationLockBestEffort,
   renewValidationLock,
+  startValidationLockHeartbeat,
 } from "../app/validation-poc.server";
 
 const validation = {
@@ -97,4 +98,34 @@ test("il cleanup del lock non sovrascrive l'esito dell'operazione", async () => 
   await expect(
     releaseValidationLockBestEffort(unavailableDb, "cleanup.example.myshopify.com", "owner"),
   ).resolves.toBeUndefined();
+});
+
+test("il heartbeat ritenta dopo un errore D1 transitorio", async () => {
+  vi.useFakeTimers();
+  let attempts = 0;
+  const recoveringDb = {
+    prepare: () => ({
+      bind: () => ({
+        first: async () => {
+          attempts += 1;
+          if (attempts === 1) throw new Error("D1 temporaneamente non disponibile");
+          return { owner_token: "owner" };
+        },
+      }),
+    }),
+  } as unknown as D1Database;
+  const heartbeat = startValidationLockHeartbeat(
+    recoveringDb,
+    "heartbeat.example.myshopify.com",
+    "owner",
+  );
+
+  try {
+    await vi.advanceTimersByTimeAsync(40_000);
+    expect(attempts).toBe(2);
+    expect(await heartbeat.isHeld()).toBe(true);
+  } finally {
+    await heartbeat.stop();
+    vi.useRealTimers();
+  }
 });
