@@ -12,7 +12,7 @@
     {
       "binding": "DB",
       "database_name": "cf-ready-db-dev",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "9490eaea-3a12-465d-bb48-e2622b31fc4d",
       "migrations_dir": "migrations"
     }
   ]

@@ -1,0 +1,41 @@
+{
+  "payload": {
+    "export": "cart-validations-generate-run",
+    "target": "cart.validations.generate.run",
+    "input": {
+      "buyerJourney": {
+        "step": "CHECKOUT_COMPLETION"
+      },
+      "cart": {
+        "localizedFields": [
+          {
+            "key": "TAX_CREDENTIAL_IT",
+            "value": ""
+          }
+        ]
+      },
+      "validation": {
+        "metafield": {
+          "jsonValue": {
+            "pocVersion": 1,
+            "enabled": true
+          }
+        }
+      }
+    },
+    "output": {
+      "operations": [
+        {
+          "validationAdd": {
+            "errors": [
+              {
+                "message": "PoC CF Ready: inserisci il Codice Fiscale.",
+                "target": "$.cart.localizedFields.TAX_CREDENTIAL_IT"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

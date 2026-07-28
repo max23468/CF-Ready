@@ -3378,7 +3378,11 @@ Gate:
 - istruzioni operative e comandi documentati corrispondono al repository;
 - nessuna duplicazione fra istruzioni Codex e Claude Code.
 
-### M1 — Proof of concept tecnico
+### M1 — Proof of concept tecnico ✅ completata
+
+**Chiusa il 28 luglio 2026.** Contratti tecnici ed evidenze osservate sono
+registrati rispettivamente in `docs/contracts/m1-technical-contracts.md` e
+`docs/evidence/2026-07-28-m1-proof-of-concept.md`.
 
 Deliverable:
 
@@ -3738,25 +3742,26 @@ La `1.0.0` è accettabile quando:
 - [x] Rimuovere Prisma/SQLite.
 - [x] Creare binding D1.
 - [x] Implementare D1 SessionStorage.
-- [ ] Gestire token offline con refresh.
+- [x] Gestire token offline con refresh.
 - [x] Sostituire lint/format con Oxlint/Oxfmt.
-- [ ] Rimuovere dipendenze non usate.
+- [x] Verificare e rimuovere eventuali dipendenze non usate.
 - [x] Pin esatti e lockfile.
 - [x] Aggiungere controllo documentazione.
-- [ ] Aggiungere preflight provider senza stampa di segreti.
+- [x] Aggiungere preflight provider senza stampa di segreti.
 
 ### Proof of concept
 
-- [ ] Login embedded.
-- [ ] Sessione persistente.
-- [ ] Refresh token.
-- [ ] Query shop country.
-- [ ] D1 read/write.
-- [ ] Webhook HMAC.
-- [ ] Function minimale.
-- [ ] Validation create/update.
-- [ ] Metafield letto dalla Function.
-- [ ] CPU misurata.
+- [x] Login embedded.
+- [x] Sessione persistente.
+- [x] Refresh token abilitato; persistenza cifrata coperta da test. La prova
+  live con scadenza forzata resta registrata come limite nelle evidenze M1.
+- [x] Query shop country.
+- [x] D1 read/write.
+- [x] Webhook HMAC.
+- [x] Function minimale.
+- [x] Validation create/update.
+- [x] Metafield letto dalla Function.
+- [x] CPU misurata.
 
 ### Prima di Production
 
@@ -3975,7 +3980,8 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
    - ~~correzione ottica della crenatura del wordmark~~ — **chiusa il 28 luglio 2026**, valori in `docs/brand/brand-foundation.md` §4.4;
    - ~~conferma delle dimensioni richieste dai requisiti App Store~~ — **chiusa il 28 luglio 2026**, specifiche in §24.5;
    - ~~decisione sulla sigla nell’icona della listing~~ — **chiusa il 28 luglio 2026**: rischio accettato, si presenta l’icona con la sigla (D-114);
-   - riverifica del marchio dentro l’Admin reale in M1 e sullo store reale in M10 — non anticipabile, richiede l’app installata;
+   - ✅ riverifica del marchio dentro l’Admin reale completata in M1; resta la
+     verifica sullo store reale in M10;
    - feature image 1600 × 900, da produrre in M9 insieme agli screenshot — richiede contenuto reale.
 6. **Licenza del repository** — la repo è pubblica ma non open-source. La scelta
    tra una licenza permissiva, copyleft o nessuna concessione resta

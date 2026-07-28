@@ -4,9 +4,9 @@ Aggiornato il 28 luglio 2026.
 
 ## Stato
 
-M0 e M2 sono completate. M1 è in corso: scaffold React Router, adattamento
-Workers, SessionStorage D1 cifrato, Home minimale e autenticazione webhook sono
-presenti e superano il gate locale.
+M0, M1 e M2 sono completate. Il proof of concept M1 comprende scaffold React
+Router su Workers, SessionStorage D1 cifrato, Home embedded minimale, query
+Admin GraphQL, autenticazione webhook e Validation Function minimale.
 
 Sono disponibili:
 
@@ -15,6 +15,7 @@ Sono disponibili:
 - progetto Cloudflare Pages `cf-ready`;
 - sottodominio Workers `tmsf.workers.dev`;
 - database D1 Production `cf-ready-db-prod`;
+- database D1 Development `cf-ready-db-dev`;
 - bucket R2 Production `cf-ready-backups-prod`, vuoto e vincolato alla
   jurisdiction `eu`;
 - nomi definiti per i Worker secondo il Master Plan;
@@ -38,8 +39,8 @@ per sviluppo e collaudo.
 - I pattern generici non-provider e i validity check estesi di Secret Scanning
   restano disabilitati sul repository personale GitHub Free corrente; non
   vengono descritti come controlli attivi.
-- Secret e callback reali restano da configurare per ambiente durante M1: non
-  appartengono al repository.
+- Secret e callback reali restano separati per ambiente e non appartengono al
+  repository.
 - Il Cloudflare MCP corrente legge correttamente D1 e Pages, ma non espone
   l'header di jurisdiction richiesto dalle API R2. Per i bucket `eu` si usa
   Wrangler con `--jurisdiction eu` finché il connettore non copre il parametro.
@@ -48,6 +49,7 @@ per sviluppo e collaudo.
 
 ## Prossimo passo
 
-Completare M1 con query Admin GraphQL e Function minimale. Poi verificare login
-embedded, refresh offline token e sessione sul dev store, eseguire il preflight
-Development, misurare la CPU e registrare le evidenze del proof of concept.
+Implementare M3: query Function completa, validazione formale di Codice Fiscale
+e PEC, geografia, i18n e matrice di fixture fail-open. Il refresh di un token
+offline realmente scaduto resta una prova live da ripetere prima della 1.0; il
+percorso è abilitato e la persistenza cifrata è coperta dal test M1.
