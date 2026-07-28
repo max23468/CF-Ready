@@ -1,34 +1,16 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
 import { authenticate } from "../shopify.server";
+import {
+  findPocValidation,
+  FUNCTION_HANDLE,
+  mutationError,
+  queryContext,
+} from "../validation-poc.server";
+import type { MutationResult } from "../validation-poc.server";
 
 const POC_TITLE = "CF Ready — PoC tecnico";
 const POC_CONFIG = { pocVersion: 1, enabled: true } as const;
-
-const CONTEXT_QUERY = `#graphql
-  query PocContext {
-    shop {
-      name
-      shopAddress {
-        countryCodeV2
-      }
-    }
-    validations(first: 25) {
-      nodes {
-        id
-        title
-        enabled
-        blockOnFailure
-        metafield(
-          namespace: "$app:cf-ready-validation"
-          key: "function-configuration"
-        ) {
-          jsonValue
-        }
-      }
-    }
-  }
-`;
 
 const CREATE_VALIDATION = `#graphql
   mutation PocValidationCreate($validation: ValidationCreateInput!) {
@@ -57,19 +39,6 @@ const UPDATE_VALIDATION = `#graphql
     }
   }
 `;
-
-type Validation = {
-  id: string;
-  title: string;
-  enabled: boolean;
-  blockOnFailure: boolean;
-  metafield: { jsonValue: unknown } | null;
-};
-
-type Context = {
-  shop: { name: string; shopAddress: { countryCodeV2: string } };
-  validations: { nodes: Validation[] };
-};
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
@@ -125,7 +94,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     : {
         validation: {
           title: POC_TITLE,
-          functionHandle: "cf-ready-validation",
+          functionHandle: FUNCTION_HANDLE,
           enable,
           blockOnFailure: false,
           metafields,
@@ -134,15 +103,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const response = await admin.graphql(existing ? UPDATE_VALIDATION : CREATE_VALIDATION, {
     variables,
   });
-  const result = (await response.json()) as {
-    data: {
-      validationCreate?: { userErrors: { message: string }[] };
-      validationUpdate?: { userErrors: { message: string }[] };
-    };
-  };
-  const userErrors = (result.data.validationCreate ?? result.data.validationUpdate)?.userErrors;
-  if (userErrors?.length) {
-    return { ok: false, error: userErrors.map(({ message }) => message).join(" ") };
+  const result = (await response.json()) as MutationResult;
+  const operation = existing ? "validationUpdate" : "validationCreate";
+  const error = mutationError(result, operation);
+  if (error) {
+    return { ok: false, error };
   }
 
   const readback = findPocValidation((await queryContext(admin)).validations.nodes);
@@ -179,33 +144,4 @@ export default function Home() {
       </s-section>
     </s-page>
   );
-}
-
-async function queryContext(admin: {
-  graphql: (query: string, options?: { variables?: Record<string, unknown> }) => Promise<Response>;
-}) {
-  const response = await admin.graphql(CONTEXT_QUERY);
-  const body = (await response.json()) as { data?: Context };
-  if (!body.data) throw new Response("Query Shopify non riuscita", { status: 502 });
-  return body.data;
-}
-
-function findPocValidation(validations: Validation[]) {
-  const matches = validations.filter(({ title, metafield }) => {
-    const config = metafield?.jsonValue;
-    return (
-      title === POC_TITLE &&
-      config !== null &&
-      typeof config === "object" &&
-      !Array.isArray(config) &&
-      "pocVersion" in config &&
-      config.pocVersion === 1
-    );
-  });
-  if (matches.length > 1) {
-    throw new Response("Sono presenti più Validation CF Ready PoC.", {
-      status: 409,
-    });
-  }
-  return matches[0];
 }
