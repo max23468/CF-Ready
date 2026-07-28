@@ -417,9 +417,10 @@ Rispetto alle alternative più ampie o invasive:
 | D-112 | Tipografia: grottesco geometrico di sistema per sito e materiali, nessun webfont, nessun font dichiarato dentro l’Admin. Sigla e wordmark in tracciati derivati da Jost (SIL OFL), peso 500. | Zero richieste di rete e nessuna dipendenza da font installati. Jost al posto del Futura per licenza: il Futura è commerciale e distribuito in bundle con macOS. |
 | D-113 | Nessuna dark mode del sito pubblico nella 1.0. | Una superficie in meno da mantenere e verificare. Decisione indipendente da Shopify: al 28 luglio 2026 l’Admin non ha dark mode nativa e, usando solo token Polaris, l’app la seguirebbe comunque da sola. |
 | D-114 | Presentare l’icona della listing con la sigla `CF`, accettando la raccomandazione Shopify di evitare il testo nell’icona. | Raccomandazione nelle best practice, non criterio di rifiuto nei requisiti; i monogrammi di due lettere sono diffusi fra le app approvate. Variante senza sigla pronta come rimedio, attivabile senza nuova approvazione (§24.5). |
-| D-115 | Mantenere il repository privato su GitHub Free accettando l’assenza di branch protection, required checks, deployment environment protetti, secret scanning e push protection. | Il progetto ha un solo owner. Compensano PR operative, verifica manuale della CI verde prima del merge, solo squash merge, Vulnerability alerts, Dependabot e controllo locale dei secret. Il limite non blocca la `1.0.0`; rivalutare il piano se entrano collaboratori o cambia materialmente il rischio. |
+| D-115 | Mantenere il repository privato su GitHub Free accettando l’assenza di branch protection, required checks, deployment environment protetti, secret scanning e push protection. | Il progetto ha un solo owner. Compensano PR operative, verifica manuale della CI verde prima del merge, squash per le PR ordinarie, merge commit per le sole promozioni `develop` → `main`, Vulnerability alerts, Dependabot e controllo locale dei secret. Il limite non blocca la `1.0.0`; rivalutare il piano se entrano collaboratori o cambia materialmente il rischio. |
 | D-116 | Restare sull’ultima React Router 7 compatibile con Shopify e non abilitare le API RSC instabili finché Shopify non supporta React Router 8 o esiste un backport. | `GHSA-qwww-vcr4-c8h2` riguarda soltanto i percorsi RSC instabili, non usati da CF Ready. `npm audit` continuerà a segnalarla come high per intervallo di versione: l’abilitazione RSC richiede prima la rimozione dell’eccezione. |
 | D-117 | Usare React Doctor stabile con pin esatto: scansione completa bloccante nel gate locale e Action ufficiale advisory sulle modifiche delle PR. Disabilitare score, condivisione, telemetria e controllo supply-chain esterni. | Aggiunge controlli React deterministici e feedback inline senza delegare il gate a un servizio esterno o duplicare i controlli dipendenze già coperti da npm e GitHub. |
+| D-118 | Le PR ordinarie puntano a `develop` e usano squash; `main` accetta soltanto promozioni autorizzate da `develop`, unite con merge commit. La cancellazione automatica dei branch resta disattivata e i soli branch temporanei vengono eliminati esplicitamente. | Preserva l’ascendenza tra Testing e Production, evita il drift strutturale causato da squash indipendenti sui due rami e impedisce che una promozione elimini `develop`. |
 
 ---
 
@@ -2326,9 +2327,14 @@ Lo store standard dell’attività:
 - `main` → Production;
 - `develop` → Testing;
 - `feature/*` → lavoro isolato;
-- PR verso `develop` o `main`;
+- PR ordinarie verso `develop`;
+- promozioni Production esclusivamente da `develop` a `main`;
 - commit e titoli PR in formato Conventional Commit;
-- squash merge come percorso ordinario;
+- squash merge per le PR ordinarie;
+- merge commit per le sole promozioni `develop` → `main`, così `develop` resta
+  antenato di `main`;
+- cancellazione esplicita dei branch temporanei dopo lo squash; non eliminare
+  `develop` dopo una promozione;
 - Production solo con merge esplicito;
 - nessuna cancellazione automatica di estensioni Shopify.
 
@@ -2416,7 +2422,10 @@ Configurazione minima GitHub:
 - template PR con verifiche, impatto deploy/release e rollback;
 - Dependabot per npm e GitHub Actions;
 - Vulnerability alerts;
-- solo squash merge e cancellazione automatica del branch;
+- squash per le PR ordinarie e merge commit per le sole promozioni
+  `develop` → `main`;
+- cancellazione automatica dei branch disattivata; eliminazione esplicita dei
+  soli branch temporanei dopo il merge;
 - tutti i risultati CI applicabili verificati verdi prima di ogni merge;
 - nessun auto-merge per dipendenze runtime critiche.
 
@@ -2427,7 +2436,8 @@ simulati nella documentazione come controlli attivi. Fino a un eventuale
 upgrade:
 
 - niente push diretti intenzionali su `main` o `develop`;
-- ogni merge passa da PR, CI verde osservata e squash;
+- ogni merge passa da PR e CI verde osservata; squash per le PR ordinarie e
+  merge commit per le sole promozioni `develop` → `main`;
 - i controlli locali sui secret restano obbligatori;
 - i secret Production non vengono spostati in un repository secret privo di
   separazione per ambiente senza un preflight specifico;
