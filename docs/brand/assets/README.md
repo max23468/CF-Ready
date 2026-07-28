@@ -17,6 +17,7 @@ Se modifichi un asset, aggiorna anche il documento e la tavola. Sono tre facce d
 | `icon-app.svg` | `0 0 512 512` | Icona quadrata per App Store e listing. Marchio centrato su fondo panna, largo il 70% della tela. |
 | `icon-app-notext.svg` | `0 0 512 512` | Stessa icona **senza la sigla**. Variante di riserva, vedi «Testo dentro l'icona» più sotto. |
 | `favicon.svg` | `0 0 32 32` | Favicon. Marchio ingrandito e margini ridotti per restare leggibile a 16 px. |
+| `nav-icon.svg` | `0 0 16 16` | Icona di navigazione dell'Admin. Stessa costruzione di `icon-mono.svg` sulla griglia a 16, senza colore di default: è Shopify a colorarla. |
 | `wordmark.svg` | tight | Solo wordmark, in tracciati. Colore da `currentColor`. |
 | `lockup-horizontal.svg` | `0 0 129,05 24` | Lockup primaria. Header del sito, materiali, firma dei documenti. |
 | `lockup-vertical.svg` | `0 0 71,88 50,72` | Lockup verticale. Copertine e formati quadrati. |
@@ -47,6 +48,22 @@ Rigenerabili con headless Chrome; nessuna dipendenza da installare nel repositor
 | Marchi Shopify | vietati in icona, banner e screenshot | ✅ nessuno |
 
 Fonti: [App Store requirements](https://shopify.dev/docs/apps/launch/shopify-app-store/app-store-requirements) · [Best practices](https://shopify.dev/docs/apps/launch/shopify-app-store/best-practices) · [Visual design](https://shopify.dev/docs/apps/design/visual-design). Da riverificare alla submission: i requisiti cambiano.
+
+### Icona di navigazione
+
+Voce separata dall'icona dell'App Store: si carica in **App setup → Embedded app** e compare nella nav dell'Admin.
+
+| Requisito | Valore | Stato |
+|---|---|---|
+| Formato | SVG 16 × 16 px | ✅ `nav-icon.svg` |
+| Immagine | monocromatica su fondo trasparente | ✅ tessera in `currentColor`, fascia e sigla forate |
+| Colore | lo applica Shopify: grigio se inattiva, verde se attiva | ✅ nessun colore fissato nel file |
+| Angoli | ritaglio a 4 px applicato da Shopify | ✅ la tessera resta dentro l'area sicura |
+| Coerenza | deve somigliare all'icona dell'App Store | ✅ stessa geometria canonica |
+
+A 16 px la sigla non è leggibile, come per la favicon: la portano sagoma e fascia. È il limite della dimensione, non un difetto dell'asset.
+
+Fonte: [Navigation](https://shopify.dev/docs/apps/design/navigation) · verificato il 28 luglio 2026.
 
 ### Testo dentro l'icona
 
