@@ -6,10 +6,10 @@ Aggiornato il 28 luglio 2026.
 
 M0 è completata. Sono disponibili:
 
-- repository GitHub privato `max23468/cf-ready`;
+- repository GitHub privato `max23468/CF-Ready`;
 - app Shopify Development, Testing e Production nell’organizzazione Temisfera;
 - progetto Cloudflare Pages `cf-ready`;
-- sottodominio Workers `tem-is.workers.dev`;
+- sottodominio Workers `tmsf.workers.dev`;
 - database D1 `cf-ready-db-test` e `cf-ready-db-prod`;
 - bucket R2 `cf-ready-backups-test` e `cf-ready-backups-prod`, con location hint
   Europa occidentale;

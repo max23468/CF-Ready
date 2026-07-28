@@ -2163,11 +2163,11 @@ https://cf-ready.pages.dev/support
 Worker:
 
 ```text
-https://cf-ready.tem-is.workers.dev
-https://cf-ready-test.tem-is.workers.dev
+https://cf-ready.tmsf.workers.dev
+https://cf-ready-test.tmsf.workers.dev
 ```
 
-Il sottodominio account osservato è `tem-is`. Non cambiarlo senza verificare
+Il sottodominio account osservato è `tmsf`. Non cambiarlo senza verificare
 l’impatto sugli altri Worker. La disponibilità dei nomi Worker va riconfermata
 nel preflight del primo deploy.
 
@@ -3286,7 +3286,7 @@ Cadenza minima:
 
 Deliverable:
 
-- repository privato `cf-ready`;
+- repository privato `CF-Ready`;
 - handle Shopify `cf-ready`;
 - app Development/Testing/Production secondo disponibilità;
 - progetto Pages `cf-ready`;
@@ -3650,8 +3650,8 @@ La `1.0.0` è accettabile quando:
 - [x] Verificare disponibilità `CF Ready`.
 - [x] Riservare handle `cf-ready`.
 - [x] Riservare `cf-ready.pages.dev`.
-- [x] Leggere sottodominio `workers.dev`: `tem-is`.
-- [x] Creare repository privato `cf-ready`.
+- [x] Leggere sottodominio `workers.dev`: `tmsf`.
+- [x] Creare repository privato `CF-Ready`.
 - [x] Creare/provisionare app `dev`, `test`, `prod` secondo il flusso Shopify corrente.
 - [x] Creare dev store Basic `cf-ready-dev`.
 - [x] Definire API version supportata più recente.
