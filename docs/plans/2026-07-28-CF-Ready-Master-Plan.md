@@ -423,6 +423,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-118 | Le PR ordinarie puntano a `develop` e usano squash; `main` accetta soltanto promozioni autorizzate da `develop`, unite con merge commit. La cancellazione automatica dei branch resta disattivata e i soli branch temporanei vengono eliminati esplicitamente. | Preserva l’ascendenza tra Testing e Production, evita il drift strutturale causato da squash indipendenti sui due rami e impedisce che una promozione elimini `develop`. |
 | D-119 | Abilitare l’auto-merge nativo in `develop` per le sole PR Dependabot minor/patch dopo `CI` e `React Doctor` verdi. Eliminare dopo il merge soltanto i branch `dependabot/*`; major e promozioni `develop` → `main` restano manuali. | Allinea CF Ready a SyncBay e Pratix, rende atomico il vincolo sullo SHA verificato, preserva gli eventi post-merge e non espone `develop` alla cancellazione globale dei branch. |
 | D-120 | La visibilità pubblica non rende il progetto open-source: nessuna licenza viene concessa finché l’owner non sceglie esplicitamente e aggiunge un file `LICENSE`. | Una licenza attribuisce diritti di riuso e distribuzione e non va dedotta dalla sola pubblicazione del codice. |
+| D-121 | Ogni `shopify app deploy` rilasciato usa `--version`: `<SemVer>-dev.<build>` in Development, `<SemVer>-test.<build>` in Testing e `<SemVer>` in Production. | Mantiene leggibili i tre ambienti, collega ogni snapshot Shopify alla release applicativa ed evita identificatori automatici come `cf-ready-1`. |
 
 ---
 
@@ -2368,6 +2369,21 @@ Ogni release Production:
 Modifiche solo a documentazione interna, ADR, piani o governance agentica non
 richiedono bump, tag o GitHub Release. Versione, changelog e tag sono
 release-owned e non vengono modificati nelle PR ordinarie.
+
+Ogni snapshot Shopify rilasciato deve ricevere un identificatore esplicito con
+`shopify app deploy --version`:
+
+- Development: `<X.Y.Z>-dev.<build>`;
+- Testing: `<X.Y.Z>-test.<build>`;
+- Production: `<X.Y.Z>`, identico alla release SemVer.
+
+`<build>` è il numero monotono del workflow CI o, per un deploy manuale
+autorizzato, una sequenza monotona del relativo ambiente. La ricevuta di deploy
+registra ambiente, configurazione, versione Shopify, commit, ID della versione
+rilasciata e versione di rollback. Gli identificatori automatici creati durante
+il bootstrap, come `cf-ready-1` e `cf-ready-2`, restano nella cronologia come
+rollback: non vengono rinominati o cancellati, ma non devono essere generati da
+nuovi deploy.
 
 ### 19.6 GitHub Actions
 
