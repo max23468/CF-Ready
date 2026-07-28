@@ -419,6 +419,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-114 | Presentare l’icona della listing con la sigla `CF`, accettando la raccomandazione Shopify di evitare il testo nell’icona. | Raccomandazione nelle best practice, non criterio di rifiuto nei requisiti; i monogrammi di due lettere sono diffusi fra le app approvate. Variante senza sigla pronta come rimedio, attivabile senza nuova approvazione (§24.5). |
 | D-115 | Mantenere il repository privato su GitHub Free accettando l’assenza di branch protection, required checks, deployment environment protetti, secret scanning e push protection. | Il progetto ha un solo owner. Compensano PR operative, verifica manuale della CI verde prima del merge, solo squash merge, Vulnerability alerts, Dependabot e controllo locale dei secret. Il limite non blocca la `1.0.0`; rivalutare il piano se entrano collaboratori o cambia materialmente il rischio. |
 | D-116 | Restare sull’ultima React Router 7 compatibile con Shopify e non abilitare le API RSC instabili finché Shopify non supporta React Router 8 o esiste un backport. | `GHSA-qwww-vcr4-c8h2` riguarda soltanto i percorsi RSC instabili, non usati da CF Ready. `npm audit` continuerà a segnalarla come high per intervallo di versione: l’abilitazione RSC richiede prima la rimozione dell’eccezione. |
+| D-117 | Usare React Doctor stabile con pin esatto: scansione completa bloccante nel gate locale e Action ufficiale advisory sulle modifiche delle PR. Disabilitare score, condivisione, telemetria e controllo supply-chain esterni. | Aggiunge controlli React deterministici e feedback inline senza delegare il gate a un servizio esterno o duplicare i controlli dipendenze già coperti da npm e GitHub. |
 
 ---
 
@@ -2362,12 +2363,15 @@ release-owned e non vengono modificati nelle PR ordinarie.
 
 ### 19.6 GitHub Actions
 
-Unico sistema CI/CD.
+GitHub Actions resta l’unico sistema CI/CD.
 
-In M0 il workflow esegue soltanto `npm ci` e `npm run check` su PR e push verso
-`main` o `develop`. I controlli elencati sotto descrivono il target da attivare
-nelle milestone che introducono i relativi artifact; il controllo documentazione
-entra in M1. Codice e workflow provano sempre lo stato corrente.
+In M0 il workflow `CI` esegue `npm ci` e `npm run check` su PR e push verso
+`main` o `develop`; `npm run check` include React Doctor con blocco sui warning.
+Il workflow separato `React Doctor` analizza in modalità advisory le modifiche
+delle PR, pubblica annotazioni inline solo quando trova problemi e registra il
+risultato sui push verso `main`. I controlli elencati sotto descrivono il target
+da attivare nelle milestone che introducono i relativi artifact; il controllo
+documentazione entra in M1. Codice e workflow provano sempre lo stato corrente.
 
 **PR — configurazione target**
 
@@ -2413,7 +2417,7 @@ Configurazione minima GitHub:
 - Dependabot per npm e GitHub Actions;
 - Vulnerability alerts;
 - solo squash merge e cancellazione automatica del branch;
-- un unico risultato CI finale, da verificare verde prima di ogni merge;
+- tutti i risultati CI applicabili verificati verdi prima di ogni merge;
 - nessun auto-merge per dipendenze runtime critiche.
 
 Il repository privato su GitHub Free non offre branch protection, required
@@ -2516,6 +2520,7 @@ typescript
 @shopify/cli
 oxlint
 oxfmt
+react-doctor
 vitest
 @cloudflare/vitest-pool-workers
 @playwright/test
