@@ -19,6 +19,8 @@ già implementato: codice, test e configurazioni provano lo stato corrente.
 
 Se le fonti contraddicono lo stesso fatto, correggi nella stessa modifica la
 fonte canonica coinvolta senza nascondere il disallineamento.
+I documenti non hanno versioni proprie e rimandano agli altri documenti per
+percorso o sezione; la cronologia resta in Git.
 
 ## Invarianti di prodotto
 

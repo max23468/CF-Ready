@@ -1,6 +1,6 @@
 # CF Ready — pacchetto asset del brand
 
-Asset del marchio e token, derivati da [`../brand-foundation.md`](../brand-foundation.md) v1.0 (approvata il 28 luglio 2026).
+Asset del marchio e token, derivati da [`../brand-foundation.md`](../brand-foundation.md) (approvata il 28 luglio 2026).
 La versione visiva della direzione è [`../brand-board.html`](../brand-board.html): apri il file in un browser.
 
 Se modifichi un asset, aggiorna anche il documento e la tavola. Sono tre facce della stessa decisione.
