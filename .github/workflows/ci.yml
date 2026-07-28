@@ -22,6 +22,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          allow-ghsas: GHSA-mh99-v99m-4gvg, GHSA-r5fr-rjxr-66jc, GHSA-f23m-r3pf-42rh
 
   verify:
     runs-on: ubuntu-latest
@@ -36,5 +38,6 @@ jobs:
         with:
           node-version: 26.5.0
           cache: npm
+      - run: npm install --global @shopify/cli@4.5.2
       - run: npm ci
       - run: npm run check

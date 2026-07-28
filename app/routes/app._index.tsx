@@ -1,19 +1,146 @@
-import type { LoaderFunctionArgs } from "react-router";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import { useFetcher, useLoaderData } from "react-router";
 import { authenticate } from "../shopify.server";
+import {
+  findPocValidation,
+  FUNCTION_HANDLE,
+  mutationError,
+  queryContext,
+} from "../validation-poc.server";
+import type { MutationResult } from "../validation-poc.server";
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
-  return null;
+const POC_TITLE = "CF Ready — PoC tecnico";
+const POC_CONFIG = { pocVersion: 1, enabled: true } as const;
+
+const CREATE_VALIDATION = `#graphql
+  mutation PocValidationCreate($validation: ValidationCreateInput!) {
+    validationCreate(validation: $validation) {
+      validation {
+        id
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const UPDATE_VALIDATION = `#graphql
+  mutation PocValidationUpdate($id: ID!, $validation: ValidationUpdateInput!) {
+    validationUpdate(id: $id, validation: $validation) {
+      validation {
+        id
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+export const loader = async ({ request, context }: LoaderFunctionArgs) => {
+  const { admin, session } = await authenticate.admin(request);
+  const data = await queryContext(admin);
+  const countryCode = data.shop.shopAddress.countryCodeV2;
+  const now = new Date().toISOString();
+
+  await context.cloudflare.env.DB.prepare(
+    "UPDATE shops SET country_code = ?, updated_at = ? WHERE shop_domain = ?",
+  )
+    .bind(countryCode, now, session.shop)
+    .run();
+  const persisted = (await context.cloudflare.env.DB.prepare(
+    "SELECT country_code FROM shops WHERE shop_domain = ?",
+  )
+    .bind(session.shop)
+    .first()) as { country_code: string } | null;
+  if (persisted?.country_code !== countryCode) {
+    throw new Response("Readback D1 non riuscito", { status: 500 });
+  }
+
+  const validation = findPocValidation(data.validations.nodes);
+  return {
+    shopName: data.shop.name,
+    countryCode,
+    validationEnabled: validation?.enabled ?? false,
+  };
+};
+
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { admin } = await authenticate.admin(request);
+  const intent = (await request.formData()).get("intent");
+  if (intent !== "enable" && intent !== "disable") {
+    return { ok: false, error: "Azione non valida." };
+  }
+
+  const data = await queryContext(admin);
+  const existing = findPocValidation(data.validations.nodes);
+  const enable = intent === "enable";
+  const metafields = [
+    {
+      namespace: "$app:cf-ready-validation",
+      key: "function-configuration",
+      type: "json",
+      value: JSON.stringify(POC_CONFIG),
+    },
+  ];
+  const variables = existing
+    ? {
+        id: existing.id,
+        validation: { title: POC_TITLE, enable, blockOnFailure: false, metafields },
+      }
+    : {
+        validation: {
+          title: POC_TITLE,
+          functionHandle: FUNCTION_HANDLE,
+          enable,
+          blockOnFailure: false,
+          metafields,
+        },
+      };
+  const response = await admin.graphql(existing ? UPDATE_VALIDATION : CREATE_VALIDATION, {
+    variables,
+  });
+  const result = (await response.json()) as MutationResult;
+  const operation = existing ? "validationUpdate" : "validationCreate";
+  const error = mutationError(result, operation);
+  if (error) {
+    return { ok: false, error };
+  }
+
+  const readback = findPocValidation((await queryContext(admin)).validations.nodes);
+  if (!readback || readback.enabled !== enable || readback.blockOnFailure !== false) {
+    return { ok: false, error: "Readback Shopify non riuscito." };
+  }
+  return { ok: true };
 };
 
 export default function Home() {
+  const { shopName, countryCode, validationEnabled } = useLoaderData<typeof loader>();
+  const fetcher = useFetcher<typeof action>();
+
   return (
     <s-page heading="CF Ready">
-      <s-section heading="Configurazione">
+      <s-section heading="Proof of concept">
         <s-paragraph>
-          La base tecnica dell’app è pronta. Le regole di validazione saranno configurabili qui nel
-          prossimo incremento.
+          {shopName} ({countryCode}) · Validation PoC {validationEnabled ? "attiva" : "disattivata"}
+          .
         </s-paragraph>
+        <fetcher.Form method="post">
+          <input type="hidden" name="intent" value={validationEnabled ? "disable" : "enable"} />
+          <s-button
+            variant={validationEnabled ? "secondary" : "primary"}
+            type="submit"
+            disabled={fetcher.state !== "idle"}
+          >
+            {validationEnabled ? "Disattiva PoC" : "Attiva PoC"}
+          </s-button>
+        </fetcher.Form>
+        {fetcher.data && !fetcher.data.ok ? (
+          <s-banner tone="critical">{fetcher.data.error}</s-banner>
+        ) : null}
       </s-section>
     </s-page>
   );

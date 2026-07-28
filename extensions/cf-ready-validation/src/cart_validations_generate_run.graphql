@@ -1,0 +1,19 @@
+query CartValidationsGenerateRunInput {
+  buyerJourney {
+    step
+  }
+  cart {
+    localizedFields(keys: [TAX_CREDENTIAL_IT]) {
+      key
+      value
+    }
+  }
+  validation {
+    metafield(
+      namespace: "$app:cf-ready-validation"
+      key: "function-configuration"
+    ) {
+      jsonValue
+    }
+  }
+}
