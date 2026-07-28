@@ -21,10 +21,13 @@ con il deploy Testing di M1 e `cf-ready` prima del primo deploy Production.
 
 ## Vincoli osservati
 
-- Il piano GitHub corrente del repository privato non rende disponibili branch
-  protection, secret scanning e push protection. Vulnerability alerts,
-  PR obbligatoria per il flusso operativo e squash merge costituiscono la
-  baseline applicabile; il limite va rivalutato prima della prima release.
+- Il repository resta privato sul piano GitHub Free. L’assenza di branch
+  protection, required checks, deployment environment protetti, secret scanning
+  e push protection è accettata dall’owner e non blocca la `1.0.0`.
+  Vulnerability alerts, Dependabot, PR operative, CI verde verificata prima del
+  merge, solo squash merge e controlli locali sui secret costituiscono la
+  baseline applicabile. Rivalutare il piano solo se entrano collaboratori o
+  cambia materialmente il profilo di rischio.
 - Secret e callback reali restano da configurare per ambiente durante M1: non
   appartengono al repository.
 
