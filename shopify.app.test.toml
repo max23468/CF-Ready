@@ -2,6 +2,7 @@
 
 client_id = "f71b518888eb0e262aef5235dcd3e11a"
 name = "CF Ready Testing"
+handle = "cf-ready-testing"
 application_url = "https://example.com"
 embedded = true
 
@@ -23,5 +24,4 @@ api_version = "2026-07"
 redirect_urls = [ "https://example.com/api/auth" ]
 
 [build]
-include_config_on_deploy = true
 automatically_update_urls_on_dev = true
