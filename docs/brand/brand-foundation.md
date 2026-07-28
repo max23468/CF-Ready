@@ -861,6 +861,7 @@ Registrate per evitare che vengano riproposte senza una nuova decisione dell'own
 | `icon-app.svg` | Icona quadrata 512 per App Store e listing, marchio su fondo panna |
 | `icon-app-notext.svg` | Variante di riserva senza sigla, vedi A-15 |
 | `favicon.svg` | Favicon, marchio ingrandito con margini ridotti |
+| `nav-icon.svg` | Icona di navigazione dell'Admin: sola sagoma della tessera sulla griglia a 16, colorata da Shopify |
 | `wordmark.svg` | Solo wordmark in tracciati, colore da `currentColor` |
 | `lockup-horizontal.svg` | Lockup orizzontale, marchio + wordmark |
 | `lockup-vertical.svg` | Lockup verticale |

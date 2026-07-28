@@ -382,8 +382,8 @@ Rispetto alle alternative più ampie o invasive:
 | D-077 | Brand Foundation all’inizio, non alla fine. | Evita rework di UI, sito e listing. |
 | D-078 | UI quasi interamente Polaris/App Bridge Web Components. | Manutenzione bassa e coerenza con Admin Shopify. |
 | D-079 | Claude Code responsabile di brand, frontend e UI/UX; Codex può realizzare l’icona. | Separazione delle responsabilità creative e tecniche. |
-| D-080 | Ambienti Development, Testing, Production; suffissi tecnici `dev`, `test`, `prod`. | Terminologia sempre inglese. |
-| D-081 | `develop` distribuisce in test; `main` in prod; feature branch locali. | Flusso semplice e verificabile. |
+| D-080 | Due sole app e ambienti: Development (`dev`) e Production (`prod`). Development copre sviluppo, integrazione e collaudo sul dev store; Production serve merchant reali. | Per un’app verticale gestita da un solo team, una terza app senza store dedicato duplica configurazioni e introduce drift senza produrre isolamento reale. |
+| D-081 | `develop` integra e verifica senza deploy remoto; `main` promuove in Production; feature branch locali. | Conserva il gate tra integrazione e produzione senza mantenere un ambiente intermedio. |
 | D-082 | GitHub Actions unico CI/CD. | Coordina Worker, Pages e Shopify Function in una pipeline. |
 | D-083 | Test su tre livelli: Vitest, Function fixtures/CLI, Playwright mirato. | Copertura proporzionata al rischio. |
 | D-084 | Monitoraggio Cloudflare nativo; niente Sentry. | Restare sul piano gratuito e ridurre servizi. |
@@ -393,7 +393,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-088 | Prompt recensione nativo, neutrale e non incentivato. | Feedback autentico dopo un momento positivo. |
 | D-089 | Versioni di sviluppo `0.x`; `1.0.0` prima dei merchant esterni. | Non vendere una prerelease. |
 | D-090 | Un solo dev store Basic permanente. | Semplicità operativa. |
-| D-091 | Utility CLI di reset solo `dev`/`test`, impossibile in `prod`. | Ripetere flussi puliti con un solo dev store. |
+| D-091 | Utility CLI di reset solo `dev`, impossibile in `prod`. | Ripetere flussi puliti con un solo dev store. |
 | D-092 | Controlled Launch con listing a visibilità limitata. | Test operativo reale di una 1.0 completa. |
 | D-093 | Controlled Launch non comunicato come beta/pilot. | Comunicazione normale di lancio, senza nascondere limitazioni materiali o inventare trazione. |
 | D-094 | Criteri di uscita: 10 installazioni, 5 Validation attive, 2 settimane, nessun bug critico e flussi chiave verificati. | Gate oggettivo per piena visibilità. |
@@ -417,11 +417,13 @@ Rispetto alle alternative più ampie o invasive:
 | D-112 | Tipografia: grottesco geometrico di sistema per sito e materiali, nessun webfont, nessun font dichiarato dentro l’Admin. Sigla e wordmark in tracciati derivati da Jost (SIL OFL), peso 500. | Zero richieste di rete e nessuna dipendenza da font installati. Jost al posto del Futura per licenza: il Futura è commerciale e distribuito in bundle con macOS. |
 | D-113 | Nessuna dark mode del sito pubblico nella 1.0. | Una superficie in meno da mantenere e verificare. Decisione indipendente da Shopify: al 28 luglio 2026 l’Admin non ha dark mode nativa e, usando solo token Polaris, l’app la seguirebbe comunque da sola. |
 | D-114 | Presentare l’icona della listing con la sigla `CF`, accettando la raccomandazione Shopify di evitare il testo nell’icona. | Raccomandazione nelle best practice, non criterio di rifiuto nei requisiti; i monogrammi di due lettere sono diffusi fra le app approvate. Variante senza sigla pronta come rimedio, attivabile senza nuova approvazione (§24.5). |
-| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection e i gate `verify` e `react-doctor` richiesti su `develop` e `main`. | Rende effettivi i gate già eseguiti, indirizza anche le security update nella corsia ordinaria e conserva la promozione separata `develop` → `main`. |
+| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate `verify`, `react-doctor` e `dependency-review` richiesti su `develop` e `main`; abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate già eseguiti, indirizza le security update nella corsia ordinaria, offre un canale privato per le vulnerabilità e conserva la promozione separata `develop` → `main`. |
 | D-116 | Restare sull’ultima React Router 7 compatibile con Shopify e non abilitare le API RSC instabili finché Shopify non supporta React Router 8 o esiste un backport. | `GHSA-qwww-vcr4-c8h2` riguarda soltanto i percorsi RSC instabili, non usati da CF Ready. `npm audit` continuerà a segnalarla come high per intervallo di versione: l’abilitazione RSC richiede prima la rimozione dell’eccezione. |
 | D-117 | Usare React Doctor stabile con pin esatto: scansione completa bloccante nel gate locale e Action ufficiale advisory sulle modifiche delle PR. Disabilitare score, condivisione, telemetria e controllo supply-chain esterni. | Aggiunge controlli React deterministici e feedback inline senza delegare il gate a un servizio esterno o duplicare i controlli dipendenze già coperti da npm e GitHub. |
-| D-118 | Le PR ordinarie puntano a `develop` e usano squash; `main` accetta soltanto promozioni autorizzate da `develop`, unite con merge commit. La cancellazione automatica dei branch resta disattivata e i soli branch temporanei vengono eliminati esplicitamente. | Preserva l’ascendenza tra Testing e Production, evita il drift strutturale causato da squash indipendenti sui due rami e impedisce che una promozione elimini `develop`. |
+| D-118 | Le PR ordinarie puntano a `develop` e usano squash; `main` accetta soltanto promozioni autorizzate da `develop`, unite con merge commit. La cancellazione automatica dei branch resta disattivata e i soli branch temporanei vengono eliminati esplicitamente. | Preserva l’ascendenza tra integrazione e Production, evita il drift strutturale causato da squash indipendenti sui due rami e impedisce che una promozione elimini `develop`. |
 | D-119 | Abilitare l’auto-merge nativo in `develop` per le sole PR Dependabot minor/patch dopo `CI` e `React Doctor` verdi. Eliminare dopo il merge soltanto i branch `dependabot/*`; major e promozioni `develop` → `main` restano manuali. | Allinea CF Ready a SyncBay e Pratix, rende atomico il vincolo sullo SHA verificato, preserva gli eventi post-merge e non espone `develop` alla cancellazione globale dei branch. |
+| D-120 | La visibilità pubblica non rende il progetto open-source: nessuna licenza viene concessa finché l’owner non sceglie esplicitamente e aggiunge un file `LICENSE`. | Una licenza attribuisce diritti di riuso e distribuzione e non va dedotta dalla sola pubblicazione del codice. |
+| D-121 | Ogni `shopify app deploy` rilasciato usa `--version`: `<SemVer>-dev.<build>` in Development e `<SemVer>` in Production. | Mantiene leggibili i due ambienti, collega ogni snapshot Shopify alla release applicativa ed evita identificatori automatici come `cf-ready-1`. |
 
 ---
 
@@ -1506,7 +1508,7 @@ Registrare il risultato normalizzato in D1, ma ricontrollarlo all’apertura e d
 - offline access token con scadenza e refresh, obbligatorio per nuove public app dal 1° aprile 2026;
 - refresh trasparente e concorrenza controllata;
 - token cifrati con Web Crypto e chiave fornita come secret;
-- chiavi diverse tra `test` e `prod`;
+- chiavi diverse tra `dev` e `prod`;
 - rotazione documentata;
 - cancellazione immediata su disinstallazione.
 
@@ -2054,7 +2056,7 @@ supporto e documenti pubblici. Deve distinguere almeno:
 - Validation, regole, attivazione e disattivazione;
 - prova, piano, abbonamento, annuale e pagamento una tantum;
 - store, merchant, cliente e acquirente;
-- Testing, Production, publish, deploy e release.
+- Development, Production, publish, deploy e release.
 
 Il glossario stabilisce termini e traduzioni IT/EN, non duplica requisiti o
 microcopy completa.
@@ -2145,11 +2147,10 @@ Il brand si esprime soprattutto in:
 
 ### 18.2 Nomi risorse
 
-| Ambiente | Worker | D1 | R2 backup |
-|---|---|---|---|
-| Development | locale | `cf-ready-db-dev` | nessuno |
-| Testing | `cf-ready-test` | `cf-ready-db-test` | `cf-ready-backups-test` |
-| Production | `cf-ready` | `cf-ready-db-prod` | `cf-ready-backups-prod` |
+| Ambiente | Worker | D1 | R2 backup | Jurisdiction R2 |
+|---|---|---|---|---|
+| Development | locale | `cf-ready-db-dev` | nessuno | — |
+| Production | `cf-ready` | `cf-ready-db-prod` | `cf-ready-backups-prod` | `eu` |
 
 Nell’URL Production non compare `prod`.
 
@@ -2168,7 +2169,6 @@ Worker:
 
 ```text
 https://cf-ready.tmsf.workers.dev
-https://cf-ready-test.tmsf.workers.dev
 ```
 
 Il sottodominio account osservato è `tmsf`. Non cambiarlo senza verificare
@@ -2228,7 +2228,9 @@ Due livelli:
    - checksum;
    - verifica di ripristino periodica.
 
-I backup sono separati per ambiente. Le chiavi di cifratura non risiedono nel bucket.
+Le chiavi di cifratura non risiedono nel bucket. Il bucket R2 di Production usa
+la jurisdiction `eu`; ogni binding Worker o endpoint S3 deve dichiarare la
+stessa jurisdiction.
 
 Non automatizzare una pipeline complessa prima di validare il metodo di export D1 dal runtime/CI: implementare il percorso più semplice supportato da Wrangler e GitHub Actions.
 
@@ -2276,7 +2278,6 @@ cf-ready/
 ├── SECURITY.md
 ├── shopify.app.toml
 ├── shopify.app.dev.toml
-├── shopify.app.test.toml
 ├── wrangler.jsonc
 ├── package.json
 └── package-lock.json
@@ -2291,9 +2292,14 @@ Le app Shopify e il dev store CF Ready appartengono all’organizzazione Partner
 
 | Nome umano | Identificatore | Uso |
 |---|---|---|
-| Development | `dev` | locale e sviluppo quotidiano |
-| Testing | `test` | Worker, D1 e app Shopify separati |
+| Development | `dev` | sviluppo, integrazione e collaudo sul dev store |
 | Production | `prod` | merchant reali |
+
+La separazione Development/Production è il minimo raccomandato da Shopify.
+Una terza app intermedia non offre isolamento senza uno store dedicato e, per il
+team e lo scope correnti, duplicherebbe configurazioni, secret e deploy. Se in
+futuro più collaboratori o merchant reali rendessero insufficiente il dev store,
+un ambiente intermedio richiederebbe una nuova decisione basata su quel bisogno.
 
 Un solo dev store permanente, piano simulato Basic:
 
@@ -2301,7 +2307,7 @@ Un solo dev store permanente, piano simulato Basic:
 cf-ready-dev
 ```
 
-Utility CLI di reset per `dev` e `test`:
+Utility CLI di reset per `dev`:
 
 - richiede conferma;
 - elimina dati D1 dello store;
@@ -2326,7 +2332,7 @@ Lo store standard dell’attività:
 ### 19.4 Branch
 
 - `main` → Production;
-- `develop` → Testing;
+- `develop` → integrazione verificata su Development, senza deploy automatico;
 - `feature/*` → lavoro isolato;
 - PR ordinarie verso `develop`;
 - promozioni Production esclusivamente da `develop` a `main`;
@@ -2368,6 +2374,20 @@ Modifiche solo a documentazione interna, ADR, piani o governance agentica non
 richiedono bump, tag o GitHub Release. Versione, changelog e tag sono
 release-owned e non vengono modificati nelle PR ordinarie.
 
+Ogni snapshot Shopify rilasciato deve ricevere un identificatore esplicito con
+`shopify app deploy --version`:
+
+- Development: `<X.Y.Z>-dev.<build>`;
+- Production: `<X.Y.Z>`, identico alla release SemVer.
+
+`<build>` è il numero monotono del workflow CI o, per un deploy manuale
+autorizzato, una sequenza monotona del relativo ambiente. La ricevuta di deploy
+registra ambiente, configurazione, versione Shopify, commit, ID della versione
+rilasciata e versione di rollback. Gli identificatori automatici creati durante
+il bootstrap, come `cf-ready-1` e `cf-ready-2`, restano nella cronologia come
+rollback: non vengono rinominati o cancellati, ma non devono essere generati da
+nuovi deploy.
+
 ### 19.6 GitHub Actions
 
 GitHub Actions resta l’unico sistema CI/CD.
@@ -2400,11 +2420,9 @@ documentazione entra in M1. Codice e workflow provano sempre lo stato corrente.
 **Merge su `develop`**
 
 - ripete i gate;
-- applica migrazioni `test`;
-- deploy Worker `test`;
-- deploy app/Function `test`;
-- smoke di integrazione;
-- E2E critici appropriati.
+- non esegue scritture remote;
+- conserva su `develop` il candidato integrato da verificare con l’app
+  Development e il dev store prima della promozione.
 
 **Merge su `main`**
 
@@ -2421,8 +2439,11 @@ Il deploy Production e le release richiedono autorizzazione esplicita dell’own
 Configurazione minima GitHub:
 
 - template PR con verifiche, impatto deploy/release e rollback;
+- template issue separati per bug e miglioramenti, senza dati reali;
+- `SECURITY.md` e private vulnerability reporting;
 - Dependabot per npm e GitHub Actions;
-- Vulnerability alerts;
+- Vulnerability alerts, Secret Scanning, Push Protection e CodeQL;
+- Action di terze parti vincolate a commit e permessi workflow minimi;
 - squash per le PR ordinarie e merge commit per le sole promozioni
   `develop` → `main`;
 - cancellazione automatica dei branch disattivata; eliminazione esplicita dei
@@ -2433,8 +2454,9 @@ Configurazione minima GitHub:
   major e promozioni verso `main` restano manuali.
 
 Il repository pubblico su GitHub Free usa branch protection su `develop` e
-`main`, con `develop` come branch predefinito e `verify` e `react-doctor` come
-required checks. Restano applicabili:
+`main`, con `develop` come branch predefinito, base aggiornata, conversazioni
+risolte, protezioni applicate agli admin e `verify`, `react-doctor` e
+`dependency-review` come required checks. Restano applicabili:
 
 - niente push diretti intenzionali su `main` o `develop`;
 - ogni merge passa da PR e CI verde osservata; squash per le PR ordinarie e
@@ -2737,8 +2759,8 @@ In caso di differenze interpretative prevale la versione italiana, previa confer
 
 ### 21.9 Segnalazione vulnerabilità
 
-Prima di rendere l’app disponibile a merchant esterni, la root contiene
-`SECURITY.md` con:
+La root contiene `SECURITY.md` e GitHub Private Vulnerability Reporting è
+attivo. La policy include:
 
 - versioni supportate;
 - canale privato per le segnalazioni;
@@ -3272,15 +3294,15 @@ Nessuna analytics sugli acquirenti.
 3. disabilitare la regola interessata o distribuire config fail-open;
 4. preservare configurazioni;
 5. non disinstallare l’app;
-6. riprodurre in Testing;
+6. riprodurre con l’app Development sul dev store;
 7. correggere la causa condivisa;
 8. aggiungere il test minimo che falliva;
-9. deploy Testing;
-10. smoke checkout;
-11. autorizzazione Production;
-12. deploy e verifica;
-13. riattivazione automatica solo se sicuramente corretta; altrimenti azione merchant;
-14. postmortem breve.
+9. eseguire test automatici e smoke checkout sul dev store;
+10. ottenere l’autorizzazione Production;
+11. eseguire deploy e verifica;
+12. riattivare automaticamente solo se sicuramente corretto; altrimenti
+    richiedere un’azione merchant;
+13. redigere un postmortem breve.
 
 ### 26.3 Rollback
 
@@ -3328,10 +3350,10 @@ Deliverable:
 
 - repository pubblico `CF-Ready`;
 - handle Shopify `cf-ready`;
-- app Development/Testing/Production secondo disponibilità;
+- app Development e Production;
 - progetto Pages `cf-ready`;
-- nomi Worker `cf-ready-test` e `cf-ready` confermati; le risorse vengono create
-  dal primo deploy dei rispettivi ambienti in M1 e prima della Production;
+- nome Worker `cf-ready` confermato; la risorsa viene creata prima del primo
+  deploy Production;
 - D1/R2 nominati;
 - inventario secret;
 - dev store Basic unico;
@@ -3367,9 +3389,9 @@ Deliverable:
 - Function minimale;
 - preflight provider;
 - controllo documentazione;
-- deploy Testing;
+- verifica con l’app Development sul dev store;
 - misurazione CPU;
-- prima ricevuta di deploy Testing.
+- evidenze del proof of concept.
 
 Gate:
 
@@ -3377,7 +3399,7 @@ Gate:
 - sessione persistente;
 - Function blocca un caso controllato;
 - CPU compatibile col Free tier;
-- target Testing confermato prima del write e verificato tramite readback;
+- app Development e dev store confermati prima delle scritture;
 - link, anchor e comandi documentati validi;
 - nessun fallback a framework alternativo.
 
@@ -3692,15 +3714,14 @@ La `1.0.0` è accettabile quando:
 - [x] Riservare `cf-ready.pages.dev`.
 - [x] Leggere sottodominio `workers.dev`: `tmsf`.
 - [x] Creare repository pubblico `CF-Ready`.
-- [x] Creare/provisionare app `dev`, `test`, `prod` secondo il flusso Shopify corrente.
+- [x] Creare/provisionare app `dev` e `prod` secondo il flusso Shopify corrente.
 - [x] Creare dev store Basic `cf-ready-dev`.
 - [x] Definire API version supportata più recente.
 - [x] Inventariare secret senza copiarli nel piano.
 - [x] Creare `AGENTS.md` e `CLAUDE.md` minimale.
 - [x] Creare `docs/INDEX.md` e `docs/CONTEXT.md`.
 - [x] Configurare template PR, Dependabot e baseline sicurezza GitHub; le
-  funzioni non disponibili sul piano GitHub corrente sono registrate in
-  `docs/CONTEXT.md`.
+  protezioni e i servizi attivi sono registrati in `docs/CONTEXT.md`.
 
 ### Scaffold
 
@@ -3716,21 +3737,8 @@ La `1.0.0` è accettabile quando:
 - [x] Sostituire lint/format con Oxlint/Oxfmt.
 - [ ] Rimuovere dipendenze non usate.
 - [x] Pin esatti e lockfile.
-- [ ] Aggiungere controllo documentazione.
+- [x] Aggiungere controllo documentazione.
 - [ ] Aggiungere preflight provider senza stampa di segreti.
-
-### Infrastruttura Testing
-
-- [ ] Worker `cf-ready-test`.
-- [x] D1 `cf-ready-db-test`.
-- [x] R2 `cf-ready-backups-test`.
-- [ ] secret Testing.
-- [ ] callback OAuth.
-- [ ] webhook.
-- [ ] Pages preview/sito test.
-- [ ] Gate deploy Testing manuale; GitHub environment protetto non disponibile
-  sul piano accettato.
-- [ ] Ricevuta deploy Testing con readback e rollback.
 
 ### Proof of concept
 
@@ -3751,10 +3759,10 @@ La `1.0.0` è accettabile quando:
 - [ ] Function API `2026-07` stabile e validata con la CLI corrente.
 - [ ] `test: false`.
 - [ ] URL prod.
-- [x] D1/R2 prod.
+- [x] D1/R2 prod; bucket R2 con jurisdiction `eu`.
 - [ ] secret separati.
 - [ ] documenti legali.
-- [ ] `SECURITY.md` e canale vulnerabilità.
+- [x] `SECURITY.md` e canale vulnerabilità.
 - [ ] support email.
 - [ ] backup/restore.
 - [ ] soglie Free tier documentate.
@@ -3835,7 +3843,7 @@ Codex prende ownership di:
 - build Worker/Function;
 - migrazioni applicate;
 - stato CI;
-- URL Testing;
+- app Development e dev store verificati;
 - smoke;
 - CPU;
 - readback Validation/metafield;
@@ -3937,6 +3945,7 @@ Codex definisce contratti e dati; Claude definisce presentazione e interazione. 
 | Review legale contesta retention | media | alta | legal review e cancellazione prevalente |
 | Un solo dev store nasconde first install | media | media | utility reset e review Shopify |
 | Dipendenza `0.x` Oxfmt cambia comportamento | media | bassa | pin esatto e update deliberato |
+| Issue o PR pubblica espone dati reali o codice ostile | media | alta | template con divieti espliciti, workflow PR senza secret, approvazione dei primi contributori e disclosure privata |
 | Advisory React Router RSC segnalato da `npm audit` | nulla finché RSC è disattivo | alta se RSC viene abilitato | vietare RSC instabile; monitorare supporto Shopify a React Router 8 o backport |
 | Abuso modulo supporto | bassa | bassa | limite semplice/turnstile solo se necessario |
 
@@ -3963,8 +3972,12 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
    - ~~decisione sulla sigla nell’icona della listing~~ — **chiusa il 28 luglio 2026**: rischio accettato, si presenta l’icona con la sigla (D-114);
    - riverifica del marchio dentro l’Admin reale in M1 e sullo store reale in M10 — non anticipabile, richiede l’app installata;
    - feature image 1600 × 900, da produrre in M9 insieme agli screenshot — richiede contenuto reale.
+6. **Licenza del repository** — la repo è pubblica ma non open-source. La scelta
+   tra una licenza permissiva, copyleft o nessuna concessione resta
+   esplicitamente all’owner; fino ad allora non si aggiunge `LICENSE` e vale
+   D-120.
 
-Nessuno dei due punti residui è di brand: sono verifiche e produzione di materiali che dipendono da milestone successive. **La Brand Foundation è chiusa.**
+I punti residui di brand sono verifiche e produzione di materiali che dipendono da milestone successive. **La Brand Foundation è chiusa.**
 
 I punti 1 e 2 erano da decidere presto in M2 e sono stati chiusi lì.
 
