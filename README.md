@@ -10,16 +10,16 @@ bloccata in `mise.toml`.
 
 ```sh
 mise install
-npm ci
-npm run db:migrate:local
-npm run dev
+mise exec -- npm ci
+mise exec -- npm run db:migrate:local
+mise exec -- npm run dev
 ```
 
 ## Verifica
 
 ```sh
-npm test
-npm run check
+mise exec -- npm test
+mise exec -- npm run check
 ```
 
 La documentazione parte da [`docs/INDEX.md`](docs/INDEX.md); il
