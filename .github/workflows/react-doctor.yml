@@ -9,7 +9,6 @@ on:
 permissions:
   contents: read
   pull-requests: write
-  issues: write
   statuses: write
 
 concurrency:
@@ -26,3 +25,5 @@ jobs:
       - uses: millionco/react-doctor@v2
         with:
           blocking: none
+          comment: "false"
+          review-comments: "true"
