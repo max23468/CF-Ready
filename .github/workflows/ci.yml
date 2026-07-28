@@ -14,6 +14,10 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
+      - if: github.event_name == 'pull_request' && github.base_ref == 'main' && github.head_ref != 'develop'
+        run: |
+          echo "::error::main accetta solo promozioni da develop"
+          exit 1
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
