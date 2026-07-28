@@ -62,7 +62,7 @@ function anchors(file) {
     const base = match[1]
       .toLowerCase()
       .replace(/\[([^\]]+)]\([^)]+\)/g, "$1")
-      .replace(/<[^>]+>|[`*_~]/g, "")
+      .replace(/[`*_~]/g, "")
       .replace(/[^\p{L}\p{N}\s-]/gu, "")
       .trim()
       .replace(/\s+/g, "-");
