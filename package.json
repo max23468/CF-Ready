@@ -18,6 +18,7 @@
     "config:link": "shopify app config link",
     "generate": "shopify app generate",
     "config:use": "shopify app config use",
+    "shopify:info": "node scripts/shopify-info-safe.mjs",
     "env": "shopify app env",
     "shopify": "shopify",
     "vite": "vite"
