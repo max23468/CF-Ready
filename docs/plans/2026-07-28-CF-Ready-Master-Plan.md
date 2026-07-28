@@ -2368,10 +2368,10 @@ GitHub Actions resta l’unico sistema CI/CD.
 In M0 il workflow `CI` esegue `npm ci` e `npm run check` su PR e push verso
 `main` o `develop`; `npm run check` include React Doctor con blocco sui warning.
 Il workflow separato `React Doctor` analizza in modalità advisory le modifiche
-delle PR, pubblica riepilogo e annotazioni inline e registra il risultato sui
-push verso `main`. I controlli elencati sotto descrivono il target da attivare
-nelle milestone che introducono i relativi artifact; il controllo documentazione
-entra in M1. Codice e workflow provano sempre lo stato corrente.
+delle PR, pubblica annotazioni inline solo quando trova problemi e registra il
+risultato sui push verso `main`. I controlli elencati sotto descrivono il target
+da attivare nelle milestone che introducono i relativi artifact; il controllo
+documentazione entra in M1. Codice e workflow provano sempre lo stato corrente.
 
 **PR — configurazione target**
 
