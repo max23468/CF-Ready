@@ -25,17 +25,11 @@ con il deploy Testing di M1 e `cf-ready` prima del primo deploy Production.
 
 ## Vincoli osservati
 
-- Il repository resta privato sul piano GitHub Free. L’assenza di branch
-  protection, required checks, deployment environment protetti, secret scanning
-  e push protection è accettata dall’owner e non blocca la `1.0.0`.
-  Vulnerability alerts, Dependabot, PR operative, CI verde verificata prima del
-  merge, auto-merge delle sole PR Dependabot minor/patch verso `develop`, squash
-  per le PR ordinarie, merge commit per le sole promozioni `develop` → `main` e
-  controlli locali sui secret costituiscono la baseline applicabile. La CI
-  rifiuta le altre PR verso `main`; i branch temporanei
-  vengono eliminati esplicitamente, così l’automazione non può cancellare
-  `develop` dopo una promozione. Rivalutare il piano solo se entrano
-  collaboratori o cambia materialmente il profilo di rischio.
+- Il repository è pubblico su GitHub Free. `develop` e `main` richiedono i gate
+  `verify` e `react-doctor`; l’auto-merge nativo è abilitato per le sole PR
+  Dependabot minor/patch verso `develop`. Le PR ordinarie usano squash, mentre
+  le sole promozioni `develop` → `main` usano merge commit. La cancellazione
+  automatica dei branch resta disattivata per non eliminare `develop`.
 - Secret e callback reali restano da configurare per ambiente durante M1: non
   appartengono al repository.
 - Node.js è bloccato a `26.5.0` in `mise.toml`; setup locale e CI usano la

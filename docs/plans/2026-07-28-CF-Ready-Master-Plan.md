@@ -417,11 +417,11 @@ Rispetto alle alternative più ampie o invasive:
 | D-112 | Tipografia: grottesco geometrico di sistema per sito e materiali, nessun webfont, nessun font dichiarato dentro l’Admin. Sigla e wordmark in tracciati derivati da Jost (SIL OFL), peso 500. | Zero richieste di rete e nessuna dipendenza da font installati. Jost al posto del Futura per licenza: il Futura è commerciale e distribuito in bundle con macOS. |
 | D-113 | Nessuna dark mode del sito pubblico nella 1.0. | Una superficie in meno da mantenere e verificare. Decisione indipendente da Shopify: al 28 luglio 2026 l’Admin non ha dark mode nativa e, usando solo token Polaris, l’app la seguirebbe comunque da sola. |
 | D-114 | Presentare l’icona della listing con la sigla `CF`, accettando la raccomandazione Shopify di evitare il testo nell’icona. | Raccomandazione nelle best practice, non criterio di rifiuto nei requisiti; i monogrammi di due lettere sono diffusi fra le app approvate. Variante senza sigla pronta come rimedio, attivabile senza nuova approvazione (§24.5). |
-| D-115 | Mantenere il repository privato su GitHub Free accettando l’assenza di branch protection, required checks, deployment environment protetti, secret scanning e push protection. | Il progetto ha un solo owner. Compensano PR operative, verifica della CI verde prima del merge, squash per le PR ordinarie, merge commit per le sole promozioni `develop` → `main`, Vulnerability alerts, Dependabot e controllo locale dei secret. Il limite non blocca la `1.0.0`; rivalutare il piano se entrano collaboratori o cambia materialmente il rischio. |
+| D-115 | Mantenere il repository pubblico su GitHub Free con branch protection e i gate `verify` e `react-doctor` richiesti su `develop` e `main`. | Rende effettivi i gate già eseguiti, abilita l’auto-merge nativo e conserva la corsia `develop` → `main`. |
 | D-116 | Restare sull’ultima React Router 7 compatibile con Shopify e non abilitare le API RSC instabili finché Shopify non supporta React Router 8 o esiste un backport. | `GHSA-qwww-vcr4-c8h2` riguarda soltanto i percorsi RSC instabili, non usati da CF Ready. `npm audit` continuerà a segnalarla come high per intervallo di versione: l’abilitazione RSC richiede prima la rimozione dell’eccezione. |
 | D-117 | Usare React Doctor stabile con pin esatto: scansione completa bloccante nel gate locale e Action ufficiale advisory sulle modifiche delle PR. Disabilitare score, condivisione, telemetria e controllo supply-chain esterni. | Aggiunge controlli React deterministici e feedback inline senza delegare il gate a un servizio esterno o duplicare i controlli dipendenze già coperti da npm e GitHub. |
 | D-118 | Le PR ordinarie puntano a `develop` e usano squash; `main` accetta soltanto promozioni autorizzate da `develop`, unite con merge commit. La cancellazione automatica dei branch resta disattivata e i soli branch temporanei vengono eliminati esplicitamente. | Preserva l’ascendenza tra Testing e Production, evita il drift strutturale causato da squash indipendenti sui due rami e impedisce che una promozione elimini `develop`. |
-| D-119 | Unire automaticamente in `develop` le sole PR Dependabot minor/patch dopo `CI` e `React Doctor` verdi; le security update aperte obbligatoriamente da GitHub verso il branch predefinito vengono prima reindirizzate a `develop`. Major e promozioni `develop` → `main` restano manuali. | Mantiene la policy di SyncBay e Pratix senza dipendere dall’auto-merge nativo, non disponibile sul repository privato GitHub Free, e senza aggirare la corsia `develop` → `main`. |
+| D-119 | Abilitare l’auto-merge nativo in `develop` per le sole PR Dependabot minor/patch dopo `CI` e `React Doctor` verdi; le security update aperte obbligatoriamente verso il branch predefinito vengono prima reindirizzate a `develop`. Major e promozioni `develop` → `main` restano manuali. | Allinea CF Ready a SyncBay e Pratix, rende atomico il vincolo sullo SHA verificato e lascia a GitHub la generazione degli eventi post-merge. |
 
 ---
 
@@ -2431,11 +2431,8 @@ Configurazione minima GitHub:
 - auto-merge verso `develop` per le sole PR Dependabot minor/patch, dopo `CI`
   e `React Doctor` verdi; major e promozioni verso `main` restano manuali.
 
-Il repository privato su GitHub Free non offre branch protection, required
-checks, deployment environment protetti, secret scanning o push protection.
-L’owner accetta questi limiti: non sono gate per M1 o `1.0.0` e non vanno
-simulati nella documentazione come controlli attivi. Fino a un eventuale
-upgrade:
+Il repository pubblico su GitHub Free usa branch protection su `develop` e
+`main`, con `verify` e `react-doctor` come required checks. Restano applicabili:
 
 - niente push diretti intenzionali su `main` o `develop`;
 - ogni merge passa da PR e CI verde osservata; squash per le PR ordinarie e
@@ -3327,7 +3324,7 @@ Cadenza minima:
 
 Deliverable:
 
-- repository privato `CF-Ready`;
+- repository pubblico `CF-Ready`;
 - handle Shopify `cf-ready`;
 - app Development/Testing/Production secondo disponibilità;
 - progetto Pages `cf-ready`;
@@ -3692,7 +3689,7 @@ La `1.0.0` è accettabile quando:
 - [x] Riservare handle `cf-ready`.
 - [x] Riservare `cf-ready.pages.dev`.
 - [x] Leggere sottodominio `workers.dev`: `tmsf`.
-- [x] Creare repository privato `CF-Ready`.
+- [x] Creare repository pubblico `CF-Ready`.
 - [x] Creare/provisionare app `dev`, `test`, `prod` secondo il flusso Shopify corrente.
 - [x] Creare dev store Basic `cf-ready-dev`.
 - [x] Definire API version supportata più recente.
@@ -3938,7 +3935,6 @@ Codex definisce contratti e dati; Claude definisce presentazione e interazione. 
 | Review legale contesta retention | media | alta | legal review e cancellazione prevalente |
 | Un solo dev store nasconde first install | media | media | utility reset e review Shopify |
 | Dipendenza `0.x` Oxfmt cambia comportamento | media | bassa | pin esatto e update deliberato |
-| Protezioni GitHub non disponibili sul repository privato Free | bassa con owner unico | alta | PR operative, CI verde osservata, squash, Dependabot, Vulnerability alerts, controllo secret locale; rivalutare con collaboratori |
 | Advisory React Router RSC segnalato da `npm audit` | nulla finché RSC è disattivo | alta se RSC viene abilitato | vietare RSC instabile; monitorare supporto Shopify a React Router 8 o backport |
 | Abuso modulo supporto | bassa | bassa | limite semplice/turnstile solo se necessario |
 
