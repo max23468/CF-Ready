@@ -2363,7 +2363,12 @@ release-owned e non vengono modificati nelle PR ordinarie.
 
 Unico sistema CI/CD.
 
-**PR**
+In M0 il workflow esegue soltanto `npm ci` e `npm run check` su PR e push verso
+`main` o `develop`. I controlli elencati sotto descrivono il target da attivare
+nelle milestone che introducono i relativi artifact; il controllo documentazione
+entra in M1. Codice e workflow provano sempre lo stato corrente.
+
+**PR — configurazione target**
 
 - installazione con `npm ci`;
 - controllo lockfile;
