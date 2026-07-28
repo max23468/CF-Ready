@@ -3699,18 +3699,18 @@ La `1.0.0` è accettabile quando:
 
 ### Scaffold
 
-- [ ] Generare dal template Shopify React Router corrente.
-- [ ] Eseguire baseline locale prima di modificare dipendenze.
-- [ ] Committare baseline identificabile.
-- [ ] Integrare Cloudflare Vite plugin.
-- [ ] Rimuovere server Node.
-- [ ] Rimuovere Prisma/SQLite.
-- [ ] Creare binding D1.
-- [ ] Implementare D1 SessionStorage.
+- [x] Generare dal template Shopify React Router corrente.
+- [x] Eseguire baseline locale prima di modificare dipendenze.
+- [x] Committare baseline identificabile.
+- [x] Integrare Cloudflare Vite plugin.
+- [x] Rimuovere server Node.
+- [x] Rimuovere Prisma/SQLite.
+- [x] Creare binding D1.
+- [x] Implementare D1 SessionStorage.
 - [ ] Gestire token offline con refresh.
-- [ ] Sostituire lint/format con Oxlint/Oxfmt.
+- [x] Sostituire lint/format con Oxlint/Oxfmt.
 - [ ] Rimuovere dipendenze non usate.
-- [ ] Pin esatti e lockfile.
+- [x] Pin esatti e lockfile.
 - [ ] Aggiungere controllo documentazione.
 - [ ] Aggiungere preflight provider senza stampa di segreti.
 
