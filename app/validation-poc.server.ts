@@ -1,6 +1,6 @@
 export const FUNCTION_HANDLE = "cf-ready-validation";
-// ponytail: lease globale per store; passare a Durable Objects solo se le operazioni superano 60 s.
 const VALIDATION_LOCK_TTL_MS = 60_000;
+const VALIDATION_LOCK_RENEWAL_MS = 20_000;
 
 const CONTEXT_QUERY = `#graphql
   query PocContext($after: String) {
@@ -128,16 +128,64 @@ export async function acquireValidationLock(
   return lock?.owner_token === ownerToken ? ownerToken : null;
 }
 
-export async function releaseValidationLock(
+export async function renewValidationLock(
+  db: D1Database,
+  shopDomain: string,
+  ownerToken: string,
+  now = Date.now(),
+) {
+  const lock = await db
+    .prepare(
+      `UPDATE validation_operation_locks
+       SET expires_at = ?
+       WHERE shop_domain = ? AND owner_token = ? AND expires_at > ?
+       RETURNING owner_token`,
+    )
+    .bind(now + VALIDATION_LOCK_TTL_MS, shopDomain, ownerToken, now)
+    .first<{ owner_token: string }>();
+  return lock?.owner_token === ownerToken;
+}
+
+export function startValidationLockHeartbeat(
   db: D1Database,
   shopDomain: string,
   ownerToken: string,
 ) {
-  await db
-    .prepare(
-      `DELETE FROM validation_operation_locks
-       WHERE shop_domain = ? AND owner_token = ?`,
-    )
-    .bind(shopDomain, ownerToken)
-    .run();
+  let stopped = false;
+  let renewal = Promise.resolve(true);
+  const timer = setInterval(() => {
+    renewal = renewal.then(() =>
+      stopped ? true : renewValidationLock(db, shopDomain, ownerToken),
+    );
+    void renewal.catch(() => undefined);
+  }, VALIDATION_LOCK_RENEWAL_MS);
+
+  return {
+    async isHeld() {
+      return renewal.catch(() => false);
+    },
+    async stop() {
+      stopped = true;
+      clearInterval(timer);
+      await renewal.catch(() => undefined);
+    },
+  };
+}
+
+export async function releaseValidationLockBestEffort(
+  db: D1Database,
+  shopDomain: string,
+  ownerToken: string,
+) {
+  try {
+    await db
+      .prepare(
+        `DELETE FROM validation_operation_locks
+         WHERE shop_domain = ? AND owner_token = ?`,
+      )
+      .bind(shopDomain, ownerToken)
+      .run();
+  } catch {
+    // La lease scade comunque; Shopify resta autorevole sull'esito.
+  }
 }
