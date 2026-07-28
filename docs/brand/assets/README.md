@@ -60,7 +60,7 @@ Voce separata dall'icona dell'App Store: si carica in **App setup → Embedded a
 | Angoli | ritaglio a 4 px applicato da Shopify | ✅ la tessera resta dentro l'area sicura |
 | Coerenza | deve somigliare all'icona dell'App Store | ✅ stesso concetto di tessera, adattato alla leggibilità a 16 px |
 
-Il file usa una tessera più orizzontale (`14 × 7,5`) a contorno e conserva i due elementi distintivi del marchio: fascia piena in alto e sigla `CF` centrata sotto. È un adattamento ottico per la griglia a 16 px, non un marchio alternativo.
+Il file usa una tessera più orizzontale (`14 × 7,5`) a contorno e conserva i due elementi distintivi del marchio: fascia piena in alto e sigla `CF` centrata sotto. La sigla occupa `y=7,10–10,20` dentro l'apertura `y=6,80–10,55`, senza fondersi con fascia o bordo. È un adattamento ottico per la griglia a 16 px, non un marchio alternativo.
 
 La costruzione resta compatibile con il caricamento: la sigla è un tracciato, non testo; non usa `mask`, `clipPath`, `defs`, `currentColor` o `<title>` che un sanitizer possa rimuovere o rifiutare. Il colore lo applica Shopify — grigio se inattiva, verde se attiva — quindi il nero è solo l'inchiostro sorgente.
 
