@@ -4,7 +4,7 @@
 
 **Stato:** baseline approvata per scaffolding e implementazione · M0 e M2 completate
 **Data:** 27 luglio 2026 · revisione 28 luglio 2026  
-**Versione documento:** 1.8\
+**Versione documento:** 1.9\
 **Documenti vincolanti collegati:** `docs/brand/brand-foundation.md` (identità visiva, tono, materiali pubblici)  
 **Brand:** CF Ready  
 **Nome pubblico:** CF Ready — Codice Fiscale nel Checkout  
@@ -418,6 +418,8 @@ Rispetto alle alternative più ampie o invasive:
 | D-112 | Tipografia: grottesco geometrico di sistema per sito e materiali, nessun webfont, nessun font dichiarato dentro l’Admin. Sigla e wordmark in tracciati derivati da Jost (SIL OFL), peso 500. | Zero richieste di rete e nessuna dipendenza da font installati. Jost al posto del Futura per licenza: il Futura è commerciale e distribuito in bundle con macOS. |
 | D-113 | Nessuna dark mode del sito pubblico nella 1.0. | Una superficie in meno da mantenere e verificare. Decisione indipendente da Shopify: al 28 luglio 2026 l’Admin non ha dark mode nativa e, usando solo token Polaris, l’app la seguirebbe comunque da sola. |
 | D-114 | Presentare l’icona della listing con la sigla `CF`, accettando la raccomandazione Shopify di evitare il testo nell’icona. | Raccomandazione nelle best practice, non criterio di rifiuto nei requisiti; i monogrammi di due lettere sono diffusi fra le app approvate. Variante senza sigla pronta come rimedio, attivabile senza nuova approvazione (§24.5). |
+| D-115 | Mantenere il repository privato su GitHub Free accettando l’assenza di branch protection, required checks, deployment environment protetti, secret scanning e push protection. | Il progetto ha un solo owner. Compensano PR operative, verifica manuale della CI verde prima del merge, solo squash merge, Vulnerability alerts, Dependabot e controllo locale dei secret. Il limite non blocca la `1.0.0`; rivalutare il piano se entrano collaboratori o cambia materialmente il rischio. |
+| D-116 | Restare sull’ultima React Router 7 compatibile con Shopify e non abilitare le API RSC instabili finché Shopify non supporta React Router 8 o esiste un backport. | `GHSA-qwww-vcr4-c8h2` riguarda soltanto i percorsi RSC instabili, non usati da CF Ready. `npm audit` continuerà a segnalarla come high per intervallo di versione: l’abilitazione RSC richiede prima la rimozione dell’eccezione. |
 
 ---
 
@@ -2410,10 +2412,24 @@ Configurazione minima GitHub:
 
 - template PR con verifiche, impatto deploy/release e rollback;
 - Dependabot per npm e GitHub Actions;
-- secret scanning e push protection, quando disponibili;
-- squash merge e divieto di force push su `main`;
-- un unico risultato CI finale da rendere required;
+- Vulnerability alerts;
+- solo squash merge e cancellazione automatica del branch;
+- un unico risultato CI finale, da verificare verde prima di ogni merge;
 - nessun auto-merge per dipendenze runtime critiche.
+
+Il repository privato su GitHub Free non offre branch protection, required
+checks, deployment environment protetti, secret scanning o push protection.
+L’owner accetta questi limiti: non sono gate per M1 o `1.0.0` e non vanno
+simulati nella documentazione come controlli attivi. Fino a un eventuale
+upgrade:
+
+- niente push diretti intenzionali su `main` o `develop`;
+- ogni merge passa da PR, CI verde osservata e squash;
+- i controlli locali sui secret restano obbligatori;
+- i secret Production non vengono spostati in un repository secret privo di
+  separazione per ambiente senza un preflight specifico;
+- deploy Production e release restano azioni owner-triggered;
+- il piano si rivaluta solo con nuovi collaboratori o rischio materiale.
 
 ### 19.7 Documentazione repository
 
@@ -3693,7 +3709,8 @@ La `1.0.0` è accettabile quando:
 - [ ] callback OAuth.
 - [ ] webhook.
 - [ ] Pages preview/sito test.
-- [ ] GitHub environment protetto.
+- [ ] Gate deploy Testing manuale; GitHub environment protetto non disponibile
+  sul piano accettato.
 - [ ] Ricevuta deploy Testing con readback e rollback.
 
 ### Proof of concept
@@ -3901,6 +3918,8 @@ Codex definisce contratti e dati; Claude definisce presentazione e interazione. 
 | Review legale contesta retention | media | alta | legal review e cancellazione prevalente |
 | Un solo dev store nasconde first install | media | media | utility reset e review Shopify |
 | Dipendenza `0.x` Oxfmt cambia comportamento | media | bassa | pin esatto e update deliberato |
+| Protezioni GitHub non disponibili sul repository privato Free | bassa con owner unico | alta | PR operative, CI verde osservata, squash, Dependabot, Vulnerability alerts, controllo secret locale; rivalutare con collaboratori |
+| Advisory React Router RSC segnalato da `npm audit` | nulla finché RSC è disattivo | alta se RSC viene abilitato | vietare RSC instabile; monitorare supporto Shopify a React Router 8 o backport |
 | Abuso modulo supporto | bassa | bassa | limite semplice/turnstile solo se necessario |
 
 ---
