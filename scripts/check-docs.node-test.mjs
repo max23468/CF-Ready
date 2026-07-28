@@ -5,17 +5,48 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import {
+  checkDocs,
   htmlAnchors,
   htmlTargets,
   ignoredTrackedFiles,
   markdownAnchors,
   markdownTargets,
+  xmlAnchors,
 } from "./check-docs.mjs";
 
 test("rileva link Markdown reference-style", () => {
   assert.deepEqual(markdownTargets("[Guida][setup]\n\n[setup]: docs/missing.md"), [
     "docs/missing.md",
   ]);
+});
+
+test("segnala riferimenti Markdown senza definizione", () => {
+  const undefinedReferences = [];
+  markdownTargets("[Guida][setup]", undefinedReferences);
+  assert.deepEqual(undefinedReferences, ["setup"]);
+});
+
+test("ignora riferimenti Markdown commentati o sottoposti a escape", () => {
+  const undefinedReferences = [];
+  markdownTargets("<!-- [Guida][setup] -->\n\\[Guida][setup]", undefinedReferences);
+  assert.deepEqual(undefinedReferences, []);
+});
+
+test("ignora reference nei titoli inline e rileva badge annidati", () => {
+  const titleReferences = [];
+  assert.deepEqual(markdownTargets('[ok](dest.md "display [not][a-reference]")', titleReferences), [
+    "dest.md",
+  ]);
+  assert.deepEqual(titleReferences, []);
+
+  const badgeReferences = [];
+  assert.deepEqual(markdownTargets("[![CI](badge.svg)][workflow]", badgeReferences), ["badge.svg"]);
+  assert.deepEqual(badgeReferences, ["workflow"]);
+});
+
+test("considera la parità degli escape Markdown", () => {
+  assert.deepEqual(markdownTargets(String.raw`\[Doc](ignored.md)`), []);
+  assert.deepEqual(markdownTargets(String.raw`\\[Doc](missing.md)`), ["missing.md"]);
 });
 
 test("calcola gli anchor GitHub ignorando i blocchi di codice", () => {
@@ -25,9 +56,52 @@ test("calcola gli anchor GitHub ignorando i blocchi di codice", () => {
 });
 
 test("rileva riferimenti e anchor HTML", () => {
-  const html = '<svg><symbol id="marchio"></symbol><use href="#marchio"/></svg>';
-  assert.deepEqual(htmlTargets(html), ["#marchio"]);
+  const html =
+    '<svg><symbol id="marchio"></symbol><use href=#marchio /><use xlink:href="legacy.svg#marchio" /></svg><!-- <img src="old.svg"> --><script>"src=old.svg"</script><code>href=old.svg</code><div data-example="src=old.svg"></div>';
+  assert.deepEqual(htmlTargets(html), ["#marchio", "legacy.svg#marchio"]);
   assert(htmlAnchors(html).has("marchio"));
+});
+
+test("usa soltanto id per i frammenti SVG e XML", () => {
+  assert(!xmlAnchors('<symbol name="marchio"/>').has("marchio"));
+  assert(xmlAnchors('<symbol id="marchio"/>').has("marchio"));
+});
+
+test("gestisce link root-relative, URI esterni e frammenti SVG", () => {
+  const repository = mkdtempSync(join(tmpdir(), "cf-ready-docs-"));
+  try {
+    execFileSync("git", ["init", "-q"], { cwd: repository });
+    mkdirSync(join(repository, "docs"), { recursive: true });
+    writeFileSync(join(repository, "package.json"), '{"scripts":{}}');
+    writeFileSync(
+      join(repository, "README.md"),
+      "[Root](/../README.md)\n[Encoded](/docs/My%20File.md)\n[FTP](ftp://example.com/file)\n[Icon](docs/icon.svg#marchio)\n[Guide](docs/GUIDE.MARKDOWN#title)",
+    );
+    writeFileSync(join(repository, "docs/My File.md"), "# Encoded");
+    writeFileSync(join(repository, "docs/GUIDE.MARKDOWN"), "# Title");
+    writeFileSync(join(repository, "docs/icon.svg"), '<symbol id="marchio"/>');
+    execFileSync("git", ["add", "."], { cwd: repository });
+
+    assert.deepEqual(checkDocs(repository).errors, []);
+  } finally {
+    rmSync(repository, { force: true, recursive: true });
+  }
+});
+
+test("valida i link nei file HTML senza distinzione di maiuscole", () => {
+  const repository = mkdtempSync(join(tmpdir(), "cf-ready-docs-"));
+  try {
+    execFileSync("git", ["init", "-q"], { cwd: repository });
+    writeFileSync(join(repository, "package.json"), '{"scripts":{}}');
+    writeFileSync(join(repository, "PAGE.HTML"), '<a href="missing.html">Missing</a>');
+    execFileSync("git", ["add", "."], { cwd: repository });
+
+    assert.deepEqual(checkDocs(repository).errors, [
+      "PAGE.HTML: link locale inesistente: missing.html",
+    ]);
+  } finally {
+    rmSync(repository, { force: true, recursive: true });
+  }
 });
 
 test("rileva output tracciati in directory ignorate annidate", () => {
