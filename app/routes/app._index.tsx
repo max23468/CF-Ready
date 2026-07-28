@@ -2,10 +2,12 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
 import { authenticate } from "../shopify.server";
 import {
+  acquireValidationLock,
   findPocValidation,
   FUNCTION_HANDLE,
   mutationError,
   queryContext,
+  releaseValidationLock,
 } from "../validation-poc.server";
 import type { MutationResult } from "../validation-poc.server";
 
@@ -68,53 +70,63 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   };
 };
 
-export const action = async ({ request }: ActionFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
+export const action = async ({ request, context }: ActionFunctionArgs) => {
+  const { admin, session } = await authenticate.admin(request);
   const intent = (await request.formData()).get("intent");
   if (intent !== "enable" && intent !== "disable") {
     return { ok: false, error: "Azione non valida." };
   }
 
-  const data = await queryContext(admin);
-  const existing = findPocValidation(data.validations.nodes);
-  const enable = intent === "enable";
-  const metafields = [
-    {
-      namespace: "$app:cf-ready-validation",
-      key: "function-configuration",
-      type: "json",
-      value: JSON.stringify(POC_CONFIG),
-    },
-  ];
-  const variables = existing
-    ? {
-        id: existing.id,
-        validation: { title: POC_TITLE, enable, blockOnFailure: false, metafields },
-      }
-    : {
-        validation: {
-          title: POC_TITLE,
-          functionHandle: FUNCTION_HANDLE,
-          enable,
-          blockOnFailure: false,
-          metafields,
-        },
-      };
-  const response = await admin.graphql(existing ? UPDATE_VALIDATION : CREATE_VALIDATION, {
-    variables,
-  });
-  const result = (await response.json()) as MutationResult;
-  const operation = existing ? "validationUpdate" : "validationCreate";
-  const error = mutationError(result, operation);
-  if (error) {
-    return { ok: false, error };
+  const db = context.cloudflare.env.DB;
+  const lockToken = await acquireValidationLock(db, session.shop);
+  if (!lockToken) {
+    return { ok: false, error: "Un’altra operazione sulla Validation è già in corso." };
   }
 
-  const readback = findPocValidation((await queryContext(admin)).validations.nodes);
-  if (!readback || readback.enabled !== enable || readback.blockOnFailure !== false) {
-    return { ok: false, error: "Readback Shopify non riuscito." };
+  try {
+    const data = await queryContext(admin);
+    const existing = findPocValidation(data.validations.nodes);
+    const enable = intent === "enable";
+    const metafields = [
+      {
+        namespace: "$app:cf-ready-validation",
+        key: "function-configuration",
+        type: "json",
+        value: JSON.stringify(POC_CONFIG),
+      },
+    ];
+    const variables = existing
+      ? {
+          id: existing.id,
+          validation: { title: POC_TITLE, enable, blockOnFailure: false, metafields },
+        }
+      : {
+          validation: {
+            title: POC_TITLE,
+            functionHandle: FUNCTION_HANDLE,
+            enable,
+            blockOnFailure: false,
+            metafields,
+          },
+        };
+    const response = await admin.graphql(existing ? UPDATE_VALIDATION : CREATE_VALIDATION, {
+      variables,
+    });
+    const result = (await response.json()) as MutationResult;
+    const operation = existing ? "validationUpdate" : "validationCreate";
+    const error = mutationError(result, operation);
+    if (error) {
+      return { ok: false, error };
+    }
+
+    const readback = findPocValidation((await queryContext(admin)).validations.nodes);
+    if (!readback || readback.enabled !== enable || readback.blockOnFailure !== false) {
+      return { ok: false, error: "Readback Shopify non riuscito." };
+    }
+    return { ok: true };
+  } finally {
+    await releaseValidationLock(db, session.shop, lockToken);
   }
-  return { ok: true };
 };
 
 export default function Home() {
