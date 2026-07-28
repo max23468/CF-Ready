@@ -1,0 +1,25 @@
+name: Proposta di miglioramento
+description: Proponi un miglioramento coerente con il perimetro del prodotto.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema da risolvere
+      description: Descrivi il bisogno, non soltanto la soluzione proposta.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Risultato atteso
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Perimetro
+      options:
+        - label: Confermo che la proposta non contiene dati reali o credenziali.
+          required: true

@@ -1,0 +1,51 @@
+name: Segnalazione bug
+description: Segnala un comportamento riproducibile senza dati reali.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Non inserire Codici Fiscali, PEC, domini reali, token o altri dati personali.
+        Per vulnerabilità usa la segnalazione privata indicata in SECURITY.md.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema
+      description: Descrivi cosa è successo e cosa ti aspettavi.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Riproduzione minima
+      description: Usa esclusivamente dati sintetici.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versione o commit
+      placeholder: v0.x.y oppure SHA
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - App embedded
+        - Shopify Function
+        - Autenticazione o webhook
+        - Billing
+        - Documentazione o tooling
+        - Altro
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Dati
+      options:
+        - label: Confermo di non aver incluso segreti o dati reali di merchant o clienti.
+          required: true
