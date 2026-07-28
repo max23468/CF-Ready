@@ -1,7 +1,7 @@
 name: Dependabot auto-merge
 
-# Il repository privato su GitHub Free non dispone dell'auto-merge nativo.
-# Questo workflow non esegue né fa checkout del codice della PR.
+# `pull_request_target` è necessario: sugli eventi `pull_request` di Dependabot
+# il GITHUB_TOKEN è read-only. Il job non fa checkout né esegue codice della PR.
 on:
   pull_request_target:
     types: [opened, reopened, synchronize, edited]
@@ -10,19 +10,16 @@ on:
       - develop
 
 permissions:
-  checks: read
   contents: write
   pull-requests: write
 
-concurrency:
-  group: dependabot-automerge-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
 jobs:
-  merge:
+  enable-automerge:
+    name: Abilita auto-merge sicuro
     if: github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
+
     steps:
       - name: Instrada la PR su develop
         if: github.base_ref == 'main'
@@ -37,7 +34,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Attendi i gate e unisci patch e minor
+      - name: Abilita auto-merge per patch e minor
         if: >-
           steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
           steps.metadata.outputs.update-type == 'version-update:semver-minor'
@@ -45,36 +42,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_URL: ${{ github.event.pull_request.html_url }}
-        run: |
-          for _ in {1..72}; do
-            checks="$(gh pr view "$PR_URL" --json statusCheckRollup \
-              --jq '.statusCheckRollup[] | select(.name != null) | [.name, .status, (.conclusion // "")] | @tsv')"
-            ready=true
-
-            for expected in verify react-doctor; do
-              result="$(awk -F '\t' -v name="$expected" '$1 == name { print $2 "\t" $3; exit }' <<<"$checks")"
-              if [[ -z "$result" ]]; then
-                ready=false
-                continue
-              fi
-
-              read -r status conclusion <<<"$result"
-              if [[ "$status" == COMPLETED && "$conclusion" != SUCCESS ]]; then
-                echo "::error::$expected concluso con esito $conclusion"
-                exit 1
-              fi
-              [[ "$status" == COMPLETED ]] || ready=false
-            done
-
-            if [[ "$ready" == true ]]; then
-              current_sha="$(gh pr view "$PR_URL" --json headRefOid --jq .headRefOid)"
-              [[ "$current_sha" == "$HEAD_SHA" ]] || exit 1
-              gh pr merge --squash --delete-branch "$PR_URL"
-              exit 0
-            fi
-
-            sleep 15
-          done
-
-          echo "::error::Timeout in attesa dei gate Dependabot"
-          exit 1
+        run: gh pr merge --auto --squash --match-head-commit "$HEAD_SHA" "$PR_URL"
