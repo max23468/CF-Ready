@@ -1,0 +1,94 @@
+/* CF Ready — design token del brand
+   Fonte: docs/brand/brand-foundation.md §5 (versione 1.0, approvata 28 luglio 2026)
+
+   Ambito: sito pubblico e materiali pubblici.
+   NON usare dentro l'app embedded: là valgono esclusivamente i token Polaris. */
+
+:root {
+  /* ---- Colore ---- */
+  --cf-color-primary:        #20492F;  /* Verde bottiglia */
+  --cf-color-accent:         #C97B2E;  /* Arancio cotto — solo grafica e testo grande */
+  --cf-color-paper:          #F7F5EE;  /* Panna */
+  --cf-color-surface:        #FFFFFF;
+  --cf-color-ink:            #1A211C;
+  --cf-color-ink-muted:      #6B6A5C;
+  --cf-color-ink-inverse:    #F7F5EE;
+  --cf-color-border:         #B9B5A6;  /* bordi con funzione informativa */
+  --cf-color-border-subtle:  #DFDBCD;  /* separatori decorativi */
+
+  /* ---- Tipografia ---- */
+  --cf-font-sans: Futura, "Avenir Next", "Century Gothic",
+                  ui-sans-serif, system-ui, -apple-system,
+                  "Segoe UI", Roboto, sans-serif;
+  --cf-weight-regular:  400;
+  --cf-weight-medium:   500;
+  --cf-weight-semibold: 600;
+
+  --cf-text-display: 2.5rem;    --cf-leading-display: 1.15;
+  --cf-text-h1:      2rem;      --cf-leading-h1:      1.19;
+  --cf-text-h2:      1.5rem;    --cf-leading-h2:      1.25;
+  --cf-text-h3:      1.1875rem; --cf-leading-h3:      1.37;
+  --cf-text-body:    1.0625rem; --cf-leading-body:    1.59;
+  --cf-text-small:   0.9375rem; --cf-leading-small:   1.53;
+  --cf-text-label:   0.8125rem; --cf-leading-label:   1.38;
+  --cf-tracking-label: 0.06em;
+  --cf-tracking-word:  0.045em;
+
+  /* ---- Spaziatura (base 4) ---- */
+  --cf-space-1:  4px;
+  --cf-space-2:  8px;
+  --cf-space-3:  12px;
+  --cf-space-4:  16px;
+  --cf-space-6:  24px;
+  --cf-space-8:  32px;
+  --cf-space-12: 48px;
+  --cf-space-16: 64px;
+  --cf-space-24: 96px;
+
+  /* ---- Raggi ---- */
+  --cf-radius-sm:   3px;
+  --cf-radius-md:   6px;
+  --cf-radius-lg:   10px;
+  --cf-radius-card: 12.5%;   /* raggio del marchio, sul lato corto */
+  --cf-radius-pill: 999px;
+
+  /* ---- Bordi ---- */
+  --cf-border-width:        1px;
+  --cf-border-width-strong: 2px;
+  --cf-border:        var(--cf-border-width) solid var(--cf-color-border);
+  --cf-border-subtle: var(--cf-border-width) solid var(--cf-color-border-subtle);
+
+  /* ---- Ombre (uso raro, solo sito) ---- */
+  --cf-shadow-none:  none;
+  --cf-shadow-card:  0 1px 2px rgba(26, 33, 28, .06), 0 4px 12px rgba(26, 33, 28, .06);
+  --cf-shadow-frame: 0 2px 4px rgba(26, 33, 28, .08), 0 12px 32px rgba(26, 33, 28, .10);
+
+  /* ---- Focus ---- */
+  --cf-focus-color:  var(--cf-color-primary);
+  --cf-focus-width:  2px;
+  --cf-focus-offset: 2px;
+
+  /* ---- Motion ---- */
+  --cf-duration-fast: 120ms;
+  --cf-duration-base: 200ms;
+  --cf-easing: cubic-bezier(.2, 0, .38, .9);
+
+  /* ---- Layout ---- */
+  --cf-measure:       68ch;
+  --cf-container-max: 1080px;
+}
+
+/* Focus sempre visibile. Su fondo scuro il ring passa al colore chiaro. */
+:focus-visible {
+  outline: var(--cf-focus-width) solid var(--cf-focus-color);
+  outline-offset: var(--cf-focus-offset);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

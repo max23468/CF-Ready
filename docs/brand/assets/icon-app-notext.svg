@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="t">
+  <title id="t">CF Ready</title>
+  <defs>
+    <clipPath id="card"><rect x="2" y="7.2" width="28" height="17.6" rx="2.2"/></clipPath>
+  </defs>
+  <rect width="512" height="512" fill="#F7F5EE"/>
+  <g transform="translate(50.3 50.3) scale(12.857)">
+    <rect x="2" y="7.2" width="28" height="17.6" rx="2.2" fill="#20492F"/>
+    <rect x="2" y="7.2" width="28" height="4.8" fill="#C97B2E" clip-path="url(#card)"/>
+  </g>
+</svg>

@@ -1,0 +1,6 @@
+name = "React Router"
+roles = ["frontend", "backend"]
+webhooks_path = "/webhooks/app/uninstalled"
+
+[commands]
+dev = "npm exec vite dev"

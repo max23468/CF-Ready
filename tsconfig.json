@@ -1,0 +1,36 @@
+{
+  "include": [
+    ".wrangler/types/worker-configuration.d.ts",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "workers/**/*.ts",
+    "tests/**/*.ts",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "react-router.config.ts",
+    ".react-router/types/**/*"
+  ],
+  "compilerOptions": {
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "strict": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "allowSyntheticDefaultImports": true,
+    "removeComments": false,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "allowJs": false,
+    "resolveJsonModule": true,
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    "types": [
+      "node",
+      "vite/client",
+      "@shopify/polaris-types",
+      "@cloudflare/vitest-pool-workers/types"
+    ],
+    "rootDirs": [".", "./.react-router/types"]
+  }
+}

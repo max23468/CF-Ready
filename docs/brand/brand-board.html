@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}svg{display:block;max-width:100%}</style>
+</head>
+<body>
+<title>CF Ready — Tavola di direzione brand</title>
+
+<style>
+  :root{
+    --bottiglia:#20492F;
+    --arancio:#C97B2E;
+    --panna:#F7F5EE;
+    --inchiostro:#1A211C;
+    --grigio:#6B6A5C;
+
+    --ground:#F7F5EE;
+    --ground-2:#FFFFFF;
+    --ink:#1A211C;
+    --ink-2:#6B6A5C;
+    --rule:#DFDBCD;
+    --mark:#20492F;
+
+    --sans:Futura,"Avenir Next","Century Gothic",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+
+    --s1:.5rem; --s2:1rem; --s3:1.5rem; --s4:2.25rem; --s5:3.5rem; --s6:5rem;
+    --wrap:min(1080px,92vw);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --ground:#141C17; --ground-2:#1B241D; --ink:#EFEDE4; --ink-2:#9C9C8E; --rule:#2C382E; --mark:#EFEDE4; }
+  }
+  :root[data-theme="dark"]{ --ground:#141C17; --ground-2:#1B241D; --ink:#EFEDE4; --ink-2:#9C9C8E; --rule:#2C382E; --mark:#EFEDE4; }
+  :root[data-theme="light"]{ --ground:#F7F5EE; --ground-2:#FFFFFF; --ink:#1A211C; --ink-2:#6B6A5C; --rule:#DFDBCD; --mark:#20492F; }
+
+  body{background:var(--ground);color:var(--ink);font-family:var(--sans);line-height:1.6;}
+  .wrap{width:var(--wrap);margin:0 auto;padding:var(--s5) 0 var(--s6);}
+
+  .eyebrow{font-size:.6875rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);margin:0;}
+  h1{font-size:clamp(2rem,5vw,3rem);font-weight:500;letter-spacing:.01em;line-height:1.1;margin:var(--s2) 0 0;text-wrap:balance;}
+  h2{font-size:1.375rem;font-weight:500;letter-spacing:.02em;margin:0;}
+  h3{font-size:.9375rem;font-weight:500;letter-spacing:.02em;margin:0;}
+  p{margin:0;max-width:64ch;}
+  .lead{color:var(--ink-2);margin-top:var(--s2);font-size:1.0625rem;}
+  .muted{color:var(--ink-2);font-size:.875rem;}
+
+  header.top{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:flex-end;justify-content:space-between;padding-bottom:var(--s4);border-bottom:1px solid var(--rule);}
+  .stato{display:inline-flex;align-items:center;gap:.5rem;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--bottiglia);background:#E3B98C;padding:.35rem .75rem;border-radius:2px;}
+  .meta{font-family:var(--mono);font-size:.75rem;color:var(--ink-2);display:flex;flex-direction:column;gap:.25rem;text-align:right;font-variant-numeric:tabular-nums;}
+
+  section{padding:var(--s5) 0;border-bottom:1px solid var(--rule);display:grid;grid-template-columns:minmax(0,10rem) minmax(0,1fr);gap:var(--s4);}
+  section > .col{display:flex;flex-direction:column;gap:var(--s3);}
+  .head{display:flex;flex-direction:column;gap:.5rem;}
+  @media (max-width:720px){ section{grid-template-columns:1fr;gap:var(--s3);} .meta{text-align:left;} }
+
+  .panel{background:var(--panna);border-radius:4px;padding:var(--s4);display:flex;flex-wrap:wrap;align-items:center;gap:var(--s4);}
+  .panel.scuro{background:var(--bottiglia);}
+  .ladder{display:flex;align-items:flex-end;gap:1.25rem;}
+  .ladder figure{display:flex;flex-direction:column;align-items:center;gap:.5rem;margin:0;}
+  .ladder figcaption{font-family:var(--mono);font-size:.6875rem;color:var(--grigio);font-variant-numeric:tabular-nums;}
+  .panel.scuro .ladder figcaption{color:#9FB3A4;}
+
+  .lockup{display:flex;align-items:center;gap:.75rem;}
+  .word{font-size:1.5rem;font-weight:500;letter-spacing:.045em;color:var(--bottiglia);white-space:nowrap;}
+  .lockup.vert{flex-direction:column;gap:.625rem;}
+  .lockup.vert .word{font-size:1.125rem;}
+
+  .lockups{display:grid;grid-template-columns:1.35fr 1fr .8fr;background:var(--panna);border-radius:4px;overflow:hidden;}
+  .lockups > div{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.875rem;padding:var(--s3) var(--s2);min-height:8.5rem;}
+  .lockups > div + div{border-left:1px solid #E4E0D2;}
+  .lockups .cap{font-family:var(--mono);font-size:.6875rem;letter-spacing:.04em;color:var(--grigio);}
+  @media (max-width:640px){
+    .lockups{grid-template-columns:1fr;}
+    .lockups > div + div{border-left:0;border-top:1px solid #E4E0D2;}
+  }
+
+  .swatches{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--s2);}
+  .sw{display:flex;flex-direction:column;gap:.625rem;}
+  .sw .chip{height:82px;border-radius:3px;}
+  .sw .nome{font-size:.875rem;font-weight:500;}
+  .sw dl{margin:0;display:flex;flex-direction:column;gap:.125rem;font-size:.75rem;color:var(--ink-2);}
+  .sw dt{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);}
+  .sw dd{margin:0;}
+
+  table{border-collapse:collapse;width:100%;font-size:.875rem;}
+  th,td{text-align:left;padding:.625rem .75rem .625rem 0;border-bottom:1px solid var(--rule);vertical-align:top;}
+  th{font-weight:500;color:var(--ink-2);font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;}
+  td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .tblwrap{overflow-x:auto;}
+
+  .scala{display:flex;flex-direction:column;gap:.75rem;}
+  .scala > div{display:flex;align-items:baseline;gap:1rem;flex-wrap:wrap;}
+  .scala .tag{font-family:var(--mono);font-size:.6875rem;color:var(--ink-2);min-width:5.5rem;font-variant-numeric:tabular-nums;}
+  .specimen{font-size:clamp(1.25rem,3vw,1.75rem);font-weight:500;letter-spacing:.01em;line-height:1.3;color:var(--mark);max-width:22ch;text-wrap:balance;}
+
+  ul{margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.4rem;max-width:64ch;}
+  li::marker{color:var(--ink-2);}
+  .no li::marker{content:"— ";}
+  .no{padding-left:1rem;}
+
+  .appr{display:flex;flex-direction:column;gap:var(--s2);}
+  .appr .riga{display:grid;grid-template-columns:3.5rem minmax(0,1fr);gap:1rem;padding-bottom:var(--s2);border-bottom:1px solid var(--rule);}
+  .appr .riga:last-child{border-bottom:0;padding-bottom:0;}
+  .appr .cod{font-family:var(--mono);font-size:.8125rem;color:var(--arancio);font-variant-numeric:tabular-nums;}
+  .appr .txt{display:flex;flex-direction:column;gap:.25rem;}
+  .appr .txt strong{font-weight:500;}
+  .appr .txt span{font-size:.875rem;color:var(--ink-2);}
+</style>
+
+<svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs>
+  <clipPath id="cardclip"><rect x="2" y="7.2" width="28" height="17.6" rx="2.2"/></clipPath>
+  <symbol id="marchio" viewBox="0 0 32 32">
+    <rect x="2" y="7.2" width="28" height="17.6" rx="2.2" fill="#20492F"/>
+    <rect x="2" y="7.2" width="28" height="4.8" fill="#C97B2E" clip-path="url(#cardclip)"/>
+    <text x="16" y="22.2" text-anchor="middle" font-family="Futura,'Avenir Next','Century Gothic',ui-sans-serif,system-ui,sans-serif" font-size="10.5" font-weight="500" fill="#F7F5EE">CF</text>
+  </symbol>
+  <symbol id="marchio-neg" viewBox="0 0 32 32">
+    <rect x="2" y="7.2" width="28" height="17.6" rx="2.2" fill="#F7F5EE"/>
+    <rect x="2" y="7.2" width="28" height="4.8" fill="#C97B2E" clip-path="url(#cardclip)"/>
+    <text x="16" y="22.2" text-anchor="middle" font-family="Futura,'Avenir Next','Century Gothic',ui-sans-serif,system-ui,sans-serif" font-size="10.5" font-weight="500" fill="#20492F">CF</text>
+  </symbol>
+  <mask id="monomask">
+    <rect x="2" y="7.2" width="28" height="17.6" rx="2.2" fill="#FFFFFF"/>
+    <rect x="2" y="7.2" width="28" height="4.8" fill="#000000" clip-path="url(#cardclip)"/>
+    <text x="16" y="22.2" text-anchor="middle" font-family="Futura,'Avenir Next','Century Gothic',ui-sans-serif,system-ui,sans-serif" font-size="10.5" font-weight="500" fill="#000000">CF</text>
+  </mask>
+  <symbol id="marchio-mono-chiaro" viewBox="0 0 32 32">
+    <rect x="2" y="7.2" width="28" height="17.6" rx="2.2" fill="#F7F5EE" mask="url(#monomask)"/>
+  </symbol>
+  <symbol id="marchio-mono-scuro" viewBox="0 0 32 32">
+    <rect x="2" y="7.2" width="28" height="17.6" rx="2.2" fill="#20492F" mask="url(#monomask)"/>
+  </symbol>
+</defs></svg>
+
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <p class="eyebrow">CF Ready · Milestone M2</p>
+      <h1>Tavola di direzione brand</h1>
+      <p class="lead">Il segno, i colori e la voce visiva di CF Ready — Codice Fiscale nel Checkout. Vincolante per UI, sito, listing e screenshot.</p>
+      <p style="margin-top:1.25rem"><span class="stato" style="background:#20492F;color:#F7F5EE">Approvata · 28 luglio 2026</span></p>
+    </div>
+    <div class="meta">
+      <span>versione 1.1</span>
+      <span>28 luglio 2026</span>
+      <span>gate M2 superato</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="head">
+      <h2>Il segno</h2>
+      <p class="muted">Tessera con fascia</p>
+    </div>
+    <div class="col">
+      <div class="panel">
+        <svg width="132" height="132" aria-label="Icona CF Ready: tessera verde bottiglia con fascia arancio in alto e sigla CF"><use href="#marchio"/></svg>
+        <div class="ladder">
+          <figure><svg width="48" height="48" aria-hidden="true"><use href="#marchio"/></svg><figcaption>48</figcaption></figure>
+          <figure><svg width="32" height="32" aria-hidden="true"><use href="#marchio"/></svg><figcaption>32</figcaption></figure>
+          <figure><svg width="24" height="24" aria-hidden="true"><use href="#marchio"/></svg><figcaption>24</figcaption></figure>
+          <figure><svg width="16" height="16" aria-hidden="true"><use href="#marchio"/></svg><figcaption>16</figcaption></figure>
+        </div>
+        <div class="ladder" style="border-left:1px solid #E4E0D2;padding-left:var(--s3)">
+          <figure><svg width="48" height="48" aria-label="Versione a un solo inchiostro su fondo chiaro"><use href="#marchio-mono-scuro"/></svg><figcaption>mono</figcaption></figure>
+        </div>
+      </div>
+      <div class="panel scuro">
+        <svg width="96" height="96" aria-label="Versione in negativo su fondo verde"><use href="#marchio-neg"/></svg>
+        <div class="ladder">
+          <figure><svg width="40" height="40" aria-hidden="true"><use href="#marchio-neg"/></svg><figcaption>40</figcaption></figure>
+          <figure><svg width="24" height="24" aria-hidden="true"><use href="#marchio-neg"/></svg><figcaption>24</figcaption></figure>
+          <figure><svg width="16" height="16" aria-hidden="true"><use href="#marchio-neg"/></svg><figcaption>16</figcaption></figure>
+        </div>
+        <div class="ladder" style="border-left:1px solid rgba(247,245,238,.22);padding-left:var(--s3)">
+          <figure><svg width="48" height="48" aria-label="Versione a un solo inchiostro su fondo verde"><use href="#marchio-mono-chiaro"/></svg><figcaption>mono</figcaption></figure>
+        </div>
+      </div>
+      <p>Una tessera in proporzione <strong>ISO ID-1</strong> — lo stesso rapporto 1,586 della tessera sanitaria — con raggio d'angolo 2,2 su 17,6 di altezza. La fascia in alto legge come intestazione della carta, non come banda magnetica. La sigla è centrata otticamente nello spazio sotto la fascia.</p>
+      <ul>
+        <li>Area di rispetto su ogni lato: l'altezza della fascia.</li>
+        <li>Dimensione minima: 16 px. Sotto, non usare il marchio.</li>
+        <li><strong>Su fondi scuri la versione negativa è obbligatoria.</strong> La positiva su <code>#1A1A1A</code> dà 1,7:1 e la tessera si fonde col fondo; la negativa dà 16,0:1. È un requisito di contrasto, non una preferenza.</li>
+        <li>Nessun gradiente, nessuna ombra, nessuna rotazione, nessun contorno aggiunto.</li>
+        <li>La versione mono serve a stampa a un colore e a favicon monocromatiche.</li>
+        <li>Sigla e wordmark sono tracciati vettoriali derivati da Jost (SIL OFL): nessun asset dipende da un font installato.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="head">
+      <h2>Lockup</h2>
+      <p class="muted">Tre configurazioni</p>
+    </div>
+    <div class="col">
+      <div class="lockups">
+        <div>
+          <div class="lockup">
+            <svg width="44" height="44" aria-hidden="true"><use href="#marchio"/></svg>
+            <span class="word">CF Ready</span>
+          </div>
+          <span class="cap">orizzontale · header, materiali</span>
+        </div>
+        <div>
+          <div class="lockup vert">
+            <svg width="38" height="38" aria-hidden="true"><use href="#marchio"/></svg>
+            <span class="word">CF Ready</span>
+          </div>
+          <span class="cap">verticale · copertine</span>
+        </div>
+        <div>
+          <svg width="44" height="44" aria-label="Solo icona"><use href="#marchio"/></svg>
+          <span class="cap">solo icona · Admin, favicon</span>
+        </div>
+      </div>
+      <p>Orizzontale per header del sito e materiali; verticale per copertine e formati quadrati; solo icona per Admin, App Store e favicon. <strong>CF</strong> e <strong>Ready</strong> hanno lo stesso peso: differenziarli suggerirebbe che <em>Ready</em> sia un suffisso e non parte del nome.</p>
+      <ul class="no">
+        <li>Il nome lungo <em>CF Ready — Codice Fiscale nel Checkout</em> è un nome di listing, non una lockup: si compone accanto al marchio, non dentro.</li>
+        <li>La sigla interna <code>CFR</code> non compare in nessun materiale pubblico.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="head">
+      <h2>Palette</h2>
+      <p class="muted">Cinque valori</p>
+    </div>
+    <div class="col">
+      <div class="swatches">
+        <div class="sw"><div class="chip" style="background:#20492F"></div><span class="nome">Verde bottiglia</span><dl><dt>#20492F</dt><dd>Primario. Marchio, titoli, superfici del sito.</dd><dd>9,4:1 su panna</dd></dl></div>
+        <div class="sw"><div class="chip" style="background:#C97B2E"></div><span class="nome">Arancio cotto</span><dl><dt>#C97B2E</dt><dd>Accento unico. Solo grafica e testo grande.</dd><dd>3,1:1 su verde · 3,0:1 su panna</dd></dl></div>
+        <div class="sw"><div class="chip" style="background:#F7F5EE;box-shadow:inset 0 0 0 1px #DFDBCD"></div><span class="nome">Panna</span><dl><dt>#F7F5EE</dt><dd>Fondo caldo dei materiali pubblici.</dd><dd>—</dd></dl></div>
+        <div class="sw"><div class="chip" style="background:#1A211C"></div><span class="nome">Inchiostro</span><dl><dt>#1A211C</dt><dd>Testo corrente su fondo chiaro.</dd><dd>15,1:1 su panna</dd></dl></div>
+        <div class="sw"><div class="chip" style="background:#6B6A5C"></div><span class="nome">Grigio caldo</span><dl><dt>#6B6A5C</dt><dd>Testo secondario, didascalie.</dd><dd>5,0:1 su panna</dd></dl></div>
+      </div>
+      <p>L'arancio è stato scelto per un solo motivo verificabile: è l'unico tono caldo la cui luminanza supera 3:1 <em>sia</em> sul verde <em>sia</em> sulla panna. Un giallo grano regge sul verde ma crolla a 1,95:1 sulla carta; una terracotta fa l'opposto.</p>
+      <ul class="no">
+        <li>Il verde resta lontano dal verde-teal di Shopify: l'app non deve sembrare un prodotto ufficiale.</li>
+        <li>L'arancio non è mai un colore di stato — attenzione, errore e successo restano semantici di Polaris.</li>
+        <li>Nessun colore funzionale proprietario: duplicare i token Polaris creerebbe divergenza al primo aggiornamento.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="head">
+      <h2>Tipografia</h2>
+      <p class="muted">Un solo carattere</p>
+    </div>
+    <div class="col">
+      <div class="panel" style="flex-direction:column;align-items:flex-start;gap:var(--s3)">
+        <p class="specimen" style="color:#20492F">Mai più ordini da fatturare senza Codice Fiscale.</p>
+        <div class="scala" style="width:100%;color:#1A211C">
+          <div><span class="tag">40 / 700</span><span style="font-size:1.75rem;font-weight:500;letter-spacing:.01em">Display</span></div>
+          <div><span class="tag">32 / 600</span><span style="font-size:1.5rem;font-weight:500">Titolo di pagina</span></div>
+          <div><span class="tag">24 / 600</span><span style="font-size:1.25rem;font-weight:500">Titolo di sezione</span></div>
+          <div><span class="tag">17 / 400</span><span style="font-size:1.0625rem">Testo corrente, misura massima 68 caratteri</span></div>
+          <div><span class="tag">13 / 500</span><span style="font-size:.8125rem;letter-spacing:.06em;text-transform:uppercase;color:#6B6A5C">Etichetta di sezione</span></div>
+        </div>
+      </div>
+      <p>Un grottesco geometrico per sito, listing e materiali. <strong>Nessun webfont</strong>: si usa lo stack di sistema, che su macOS e Windows resta geometrico e non costa una richiesta di rete. Il wordmark verrà disegnato una sola volta e convertito in tracciati, così il logo non dipende da nessun carattere installato.</p>
+      <p class="muted">Dentro Shopify Admin non si dichiara alcun font: l'app eredita integralmente la tipografia di Polaris.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="head">
+      <h2>Dove vive</h2>
+      <p class="muted">Regola strutturale</p>
+    </div>
+    <div class="col">
+      <div class="tblwrap">
+        <table>
+          <thead><tr><th>Superficie</th><th>Presenza del brand</th><th>Cosa la governa</th></tr></thead>
+          <tbody>
+            <tr><td>Icona app, App Store</td><td>Massima</td><td>Marchio e palette</td></tr>
+            <tr><td>Sito pubblico</td><td>Massima</td><td>Marchio, palette, tipografia</td></tr>
+            <tr><td>Listing e screenshot</td><td>Alta</td><td>Cornici, fondi, didascalie</td></tr>
+            <tr><td>Onboarding e Guida in-app</td><td>Bassa</td><td>Solo l'icona già in navigazione</td></tr>
+            <tr><td>Home, Regole, Messaggi, Piano</td><td>Nessuna</td><td>Esclusivamente token Polaris</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Il brand è riconoscibile ai bordi del prodotto e neutro al centro. Dentro l'Admin non entra un solo colore proprietario: nessun bottone, banner o badge brandizzato. L'identità passa dal tono dei testi e dall'ordine delle informazioni, non dal colore — ed è così che l'app resta indistinguibile per qualità percepita da una funzione nativa di Shopify.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="head">
+      <h2>Cosa il brand non fa</h2>
+      <p class="muted">Limiti vincolanti</p>
+    </div>
+    <div class="col">
+      <ul class="no">
+        <li>Non usa il tricolore, stemmi, coccarde, timbri o simboli istituzionali.</li>
+        <li>Non imita l'identità Shopify e non usa la borsa o il verde del suo marchio.</li>
+        <li>Non rappresenta fatture, documenti fiscali complessi, monete o calcolatrici.</li>
+        <li>Non promette verifica anagrafica, certificazione o conformità: solo validazione formale.</li>
+        <li>Non usa prove sociali, recensioni o numeri di installazione non dimostrati.</li>
+        <li>Non introduce framework CSS, librerie UI o design system esterni.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section style="border-bottom:0">
+    <div class="head">
+      <h2>Approvate</h2>
+      <p class="muted">Gate M2 superato</p>
+    </div>
+    <div class="col">
+      <div class="appr">
+        <div class="riga"><span class="cod">A-01</span><span class="txt"><strong>Direzione visiva</strong><span>Geometrica e modernista, calda nei neutri. Brand ai bordi, neutro al centro.</span></span></div>
+        <div class="riga"><span class="cod">A-02</span><span class="txt"><strong>Palette</strong><span>Verde bottiglia, arancio cotto e tre neutri.</span></span></div>
+        <div class="riga"><span class="cod">A-04</span><span class="txt"><strong>Tipografia</strong><span>Grottesco geometrico di sistema, nessun webfont, nessun font dentro l'Admin.</span></span></div>
+        <div class="riga"><span class="cod">A-05</span><span class="txt"><strong>Marchio</strong><span>Tessera con fascia, proporzione ISO ID-1, fascia in alto a spessore pieno.</span></span></div>
+        <div class="riga"><span class="cod">A-06</span><span class="txt"><strong>Wordmark</strong><span>Due parole, peso uniforme, monocromo, tre configurazioni di lockup.</span></span></div>
+        <div class="riga"><span class="cod">A-07</span><span class="txt"><strong>Tono di voce</strong><span>Principi, glossario obbligatorio, regole per CTA, warning ed errori.</span></span></div>
+        <div class="riga"><span class="cod">A-09</span><span class="txt"><strong>Materiali pubblici</strong><span>Sito-documento, cornice unica per gli screenshot, una frase per immagine.</span></span></div>
+        <div class="riga"><span class="cod">A-11</span><span class="txt"><strong>Nessuna dark mode</strong><span>Il sito pubblico non ha dark mode nella 1.0. Il marchio ha comunque la versione negativa.</span></span></div>
+        <div class="riga"><span class="cod">A-12</span><span class="txt"><strong>Tracciati</strong><span>Sigla e wordmark in tracciati da Jost (SIL OFL): Futura è commerciale e non licenziabile per un logo distribuito.</span></span></div>
+        <div class="riga"><span class="cod">A-13</span><span class="txt"><strong>Crenatura</strong><span>Coppia C/F aperta di 0,030 em, spazio-parola stretto di 0,090 em: le due parole leggono come un'unità.</span></span></div>
+        <div class="riga"><span class="cod">A-14</span><span class="txt"><strong>Formati App Store</strong><span>Icona 1200 × 1200 PNG, angoli quadrati, padding. Requisiti verificati sulle fonti ufficiali.</span></span></div>
+        <div class="riga"><span class="cod">A-15</span><span class="txt"><strong>Sigla nell'icona</strong><span>Si presenta l'icona con la sigla, accettando la raccomandazione Shopify di evitarne il testo. Variante senza sigla pronta come rimedio.</span></span></div>
+      </div>
+      <p class="muted" style="margin-top:var(--s2)">Nessuna decisione di brand resta aperta. Il documento completo è <code>docs/brand/brand-foundation.md</code>, gli asset sono in <code>docs/brand/assets/</code>.</p>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
