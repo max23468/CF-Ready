@@ -417,11 +417,11 @@ Rispetto alle alternative più ampie o invasive:
 | D-112 | Tipografia: grottesco geometrico di sistema per sito e materiali, nessun webfont, nessun font dichiarato dentro l’Admin. Sigla e wordmark in tracciati derivati da Jost (SIL OFL), peso 500. | Zero richieste di rete e nessuna dipendenza da font installati. Jost al posto del Futura per licenza: il Futura è commerciale e distribuito in bundle con macOS. |
 | D-113 | Nessuna dark mode del sito pubblico nella 1.0. | Una superficie in meno da mantenere e verificare. Decisione indipendente da Shopify: al 28 luglio 2026 l’Admin non ha dark mode nativa e, usando solo token Polaris, l’app la seguirebbe comunque da sola. |
 | D-114 | Presentare l’icona della listing con la sigla `CF`, accettando la raccomandazione Shopify di evitare il testo nell’icona. | Raccomandazione nelle best practice, non criterio di rifiuto nei requisiti; i monogrammi di due lettere sono diffusi fra le app approvate. Variante senza sigla pronta come rimedio, attivabile senza nuova approvazione (§24.5). |
-| D-115 | Mantenere il repository pubblico su GitHub Free con branch protection e i gate `verify` e `react-doctor` richiesti su `develop` e `main`. | Rende effettivi i gate già eseguiti, abilita l’auto-merge nativo e conserva la corsia `develop` → `main`. |
+| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection e i gate `verify` e `react-doctor` richiesti su `develop` e `main`. | Rende effettivi i gate già eseguiti, indirizza anche le security update nella corsia ordinaria e conserva la promozione separata `develop` → `main`. |
 | D-116 | Restare sull’ultima React Router 7 compatibile con Shopify e non abilitare le API RSC instabili finché Shopify non supporta React Router 8 o esiste un backport. | `GHSA-qwww-vcr4-c8h2` riguarda soltanto i percorsi RSC instabili, non usati da CF Ready. `npm audit` continuerà a segnalarla come high per intervallo di versione: l’abilitazione RSC richiede prima la rimozione dell’eccezione. |
 | D-117 | Usare React Doctor stabile con pin esatto: scansione completa bloccante nel gate locale e Action ufficiale advisory sulle modifiche delle PR. Disabilitare score, condivisione, telemetria e controllo supply-chain esterni. | Aggiunge controlli React deterministici e feedback inline senza delegare il gate a un servizio esterno o duplicare i controlli dipendenze già coperti da npm e GitHub. |
 | D-118 | Le PR ordinarie puntano a `develop` e usano squash; `main` accetta soltanto promozioni autorizzate da `develop`, unite con merge commit. La cancellazione automatica dei branch resta disattivata e i soli branch temporanei vengono eliminati esplicitamente. | Preserva l’ascendenza tra Testing e Production, evita il drift strutturale causato da squash indipendenti sui due rami e impedisce che una promozione elimini `develop`. |
-| D-119 | Abilitare l’auto-merge nativo in `develop` per le sole PR Dependabot minor/patch dopo `CI` e `React Doctor` verdi; le security update aperte obbligatoriamente verso il branch predefinito vengono prima reindirizzate a `develop`. Major e promozioni `develop` → `main` restano manuali. | Allinea CF Ready a SyncBay e Pratix, rende atomico il vincolo sullo SHA verificato e lascia a GitHub la generazione degli eventi post-merge. |
+| D-119 | Abilitare l’auto-merge nativo in `develop` per le sole PR Dependabot minor/patch dopo `CI` e `React Doctor` verdi. Eliminare dopo il merge soltanto i branch `dependabot/*`; major e promozioni `develop` → `main` restano manuali. | Allinea CF Ready a SyncBay e Pratix, rende atomico il vincolo sullo SHA verificato, preserva gli eventi post-merge e non espone `develop` alla cancellazione globale dei branch. |
 
 ---
 
@@ -2429,10 +2429,12 @@ Configurazione minima GitHub:
   soli branch temporanei dopo il merge;
 - tutti i risultati CI applicabili verificati verdi prima di ogni merge;
 - auto-merge verso `develop` per le sole PR Dependabot minor/patch, dopo `CI`
-  e `React Doctor` verdi; major e promozioni verso `main` restano manuali.
+  e `React Doctor` verdi; pulizia dei soli branch `dependabot/*` già uniti;
+  major e promozioni verso `main` restano manuali.
 
 Il repository pubblico su GitHub Free usa branch protection su `develop` e
-`main`, con `verify` e `react-doctor` come required checks. Restano applicabili:
+`main`, con `develop` come branch predefinito e `verify` e `react-doctor` come
+required checks. Restano applicabili:
 
 - niente push diretti intenzionali su `main` o `develop`;
 - ogni merge passa da PR e CI verde osservata; squash per le PR ordinarie e

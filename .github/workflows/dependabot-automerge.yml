@@ -4,9 +4,8 @@ name: Dependabot auto-merge
 # il GITHUB_TOKEN è read-only. Il job non fa checkout né esegue codice della PR.
 on:
   pull_request_target:
-    types: [opened, reopened, synchronize, edited]
+    types: [opened, reopened, synchronize, closed]
     branches:
-      - main
       - develop
 
 permissions:
@@ -16,18 +15,11 @@ permissions:
 jobs:
   enable-automerge:
     name: Abilita auto-merge sicuro
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    if: github.event.action != 'closed' && github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
-      - name: Instrada la PR su develop
-        if: github.base_ref == 'main'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
-        run: gh pr edit "$PR_URL" --base develop
-
       - name: Leggi i metadati Dependabot
         id: metadata
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
@@ -43,3 +35,18 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_URL: ${{ github.event.pull_request.html_url }}
         run: gh pr merge --auto --squash --match-head-commit "$HEAD_SHA" "$PR_URL"
+
+  delete-branch:
+    name: Elimina branch Dependabot
+    if: >-
+      github.event.action == 'closed' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      startsWith(github.event.pull_request.head.ref, 'dependabot/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$HEAD_REF"
