@@ -1,8 +1,9 @@
 export const FUNCTION_HANDLE = "cf-ready-validation";
 export const isPocStore = (shop: string) => shop === "cf-ready-dev.myshopify.com";
 export const POC_CONFIG = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   enabled: true,
+  errorDisplay: "inline",
   entitlement: { kind: "one_time", validThrough: null },
   rules: {
     taxCode: "required_validated",

@@ -22,8 +22,9 @@ const messages = {
 };
 
 const baseConfig = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   enabled: true,
+  errorDisplay: "inline",
   entitlement: { kind: "trial", validThrough: "2026-07-29" },
   rules: {
     taxCode: "required_validated",
@@ -124,8 +125,10 @@ describe("applicabilità e fail-open", () => {
   it.each([
     ["step precedente", { step: "CHECKOUT_INTERACTION" }],
     ["config assente", { config: null }],
-    ["schema futuro", { config: { ...baseConfig, schemaVersion: 2 } }],
+    ["schema precedente", { config: { ...baseConfig, schemaVersion: 1 } }],
+    ["schema futuro", { config: { ...baseConfig, schemaVersion: 3 } }],
     ["disabilitata", { config: { ...baseConfig, enabled: false } }],
+    ["modalità errori sconosciuta", { config: { ...baseConfig, errorDisplay: "other" } }],
     [
       "regola sconosciuta",
       {
@@ -270,12 +273,31 @@ describe("applicabilità e fail-open", () => {
   it("non valida il localized field singolo assente", () => {
     expect(
       errors(input({ fields: [{ key: "TAX_EMAIL_IT", value: "" }] })).map(({ target }) => target),
-    ).toEqual(["$.cart.localizedFields.TAX_EMAIL_IT"]);
+    ).toEqual(["$.cart.localizedField.TAX_EMAIL_IT"]);
     expect(
       errors(input({ fields: [{ key: "TAX_CREDENTIAL_IT", value: "" }] })).map(
         ({ target }) => target,
       ),
-    ).toEqual(["$.cart.localizedFields.TAX_CREDENTIAL_IT"]);
+    ).toEqual(["$.cart.localizedField.TAX_CREDENTIAL_IT"]);
+  });
+
+  it("usa box globali solo a Interaction nella modalità preventiva", () => {
+    const config = { ...baseConfig, errorDisplay: "preventive" };
+
+    expect(errors(input({ config, step: "CHECKOUT_INTERACTION" }))).toEqual([
+      { message: "CF richiesto", target: "$.cart" },
+      { message: "PEC richiesta", target: "$.cart" },
+    ]);
+    expect(errors(input({ config }))).toEqual([
+      {
+        message: "CF richiesto",
+        target: "$.cart.localizedField.TAX_CREDENTIAL_IT",
+      },
+      {
+        message: "PEC richiesta",
+        target: "$.cart.localizedField.TAX_EMAIL_IT",
+      },
+    ]);
   });
 
   it("resta fail-open se il metafield è assente o il runtime genera un'eccezione", () => {
@@ -346,11 +368,11 @@ describe("regole e messaggi", () => {
     expect(errors(input())).toEqual([
       {
         message: "CF richiesto",
-        target: "$.cart.localizedFields.TAX_CREDENTIAL_IT",
+        target: "$.cart.localizedField.TAX_CREDENTIAL_IT",
       },
       {
         message: "PEC richiesta",
-        target: "$.cart.localizedFields.TAX_EMAIL_IT",
+        target: "$.cart.localizedField.TAX_EMAIL_IT",
       },
     ]);
   });
