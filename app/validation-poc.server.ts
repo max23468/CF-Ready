@@ -1,4 +1,28 @@
 export const FUNCTION_HANDLE = "cf-ready-validation";
+export const isPocStore = (shop: string) => shop === "cf-ready-dev.myshopify.com";
+export const POC_CONFIG = {
+  schemaVersion: 1,
+  enabled: true,
+  entitlement: { kind: "one_time", validThrough: null },
+  rules: {
+    taxCode: "required_validated",
+    pec: "optional_validated",
+  },
+  messages: {
+    it: {
+      taxCodeRequired: "Inserisci il Codice Fiscale per completare l’ordine.",
+      taxCodeInvalid: "Il Codice Fiscale inserito non è formalmente valido. Controllalo e riprova.",
+      pecRequired: "Inserisci l’indirizzo PEC per completare l’ordine.",
+      pecInvalid: "L’indirizzo PEC inserito non ha un formato email valido.",
+    },
+    en: {
+      taxCodeRequired: "Enter your Italian tax code to complete the order.",
+      taxCodeInvalid: "The Italian tax code entered is not formally valid. Check it and try again.",
+      pecRequired: "Enter your certified email address (PEC) to complete the order.",
+      pecInvalid: "The certified email address (PEC) does not have a valid email format.",
+    },
+  },
+} as const;
 const VALIDATION_LOCK_TTL_MS = 60_000;
 const VALIDATION_LOCK_RENEWAL_MS = 20_000;
 

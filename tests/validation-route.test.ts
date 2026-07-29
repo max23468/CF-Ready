@@ -3,12 +3,31 @@ import { expect, test, vi } from "vitest";
 import {
   acquireValidationLock,
   findPocValidation,
+  isPocStore,
   mutationError,
+  POC_CONFIG,
   queryContext,
   releaseValidationLockBestEffort,
   renewValidationLock,
   startValidationLockHeartbeat,
 } from "../app/validation-poc.server";
+
+test("il percorso PoC scrive una configurazione accettata dalla Function", () => {
+  expect(POC_CONFIG).toMatchObject({
+    schemaVersion: 1,
+    enabled: true,
+    entitlement: { kind: "one_time", validThrough: null },
+    rules: {
+      taxCode: "required_validated",
+      pec: "optional_validated",
+    },
+  });
+});
+
+test("il percorso PoC limita le scritture Shopify al dev store", () => {
+  expect(isPocStore("cf-ready-dev.myshopify.com")).toBe(true);
+  expect(isPocStore("merchant.myshopify.com")).toBe(false);
+});
 
 const validation = {
   id: "gid://shopify/Validation/1",
