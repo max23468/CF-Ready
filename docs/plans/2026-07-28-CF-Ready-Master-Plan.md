@@ -425,6 +425,8 @@ Rispetto alle alternative più ampie o invasive:
 | D-120 | La visibilità pubblica non rende il progetto open-source: nessuna licenza viene concessa finché l’owner non sceglie esplicitamente e aggiunge un file `LICENSE`. | Una licenza attribuisce diritti di riuso e distribuzione e non va dedotta dalla sola pubblicazione del codice. |
 | D-121 | `package.json#version` è la fonte canonica della versione Shopify. Ogni `shopify app deploy` rilasciato passa dal workflow GitHub Actions dell’ambiente e usa quella versione esatta con `--version`; una versione già rilasciata non viene riutilizzata e prima del successivo snapshot si incrementa il SemVer, usando un prerelease in Development quando opportuno. Il primo snapshot fisso Development è `0.1.0`. | Collega ogni snapshot al codice verificato, evita identificatori automatici come `cf-ready-1` e mantiene nomi leggibili senza collisioni. |
 | D-122 | Offrire `inline` come visualizzazione errori predefinita e `preventive` come opzione merchant; la Guida la consiglia quando è attiva la conferma ordine Shopify. | La prova live mostra che i box globali a Interaction impediscono la review silenziosa, ma possono apparire già al caricamento e richiedono una scelta informata. |
+| D-123 | Abilitare metriche e Workers Logs nativi, ma disabilitare gli invocation log automatici. Traces resta disattivato per default e può essere acceso solo temporaneamente in Development, con traffico sintetico e finestra di diagnosi delimitata. | Invocation log e trace automatici includono URL e query string; i trace includono anche il testo SQL D1. Il campionamento riduce volume e costo, non il rischio di raccogliere parametri tecnici sensibili. |
+| D-124 | Non collegare il repository a Workers Builds finché GitHub Actions è il CI/CD canonico. Logpush, OpenTelemetry, Tail Workers e servizi esterni restano differiti finché il monitoraggio Cloudflare nativo non risulta insufficiente. | Evita una seconda corsia di deploy e nuovi destinatari della telemetria senza un bisogno operativo misurato. |
 
 ---
 
@@ -2287,6 +2289,30 @@ Non automatizzare una pipeline complessa prima di validare il metodo di export D
 - conservazione nativa corrente del piano Free;
 - niente Sentry nella 1.0.
 
+Stato e attivazione progressiva:
+
+- da M3, metriche e Workers Logs sono attivi in Development; gli invocation log
+  automatici sono disattivati per non conservare URL e query string Shopify;
+- in M4 aggiungere soltanto gli eventi strutturati e sanitizzati necessari ad
+  auth, webhook e lifecycle, senza payload, header, token, store domain, CF o
+  PEC;
+- in M8 definire sampling degli eventi ordinari, query salvate, soglie e runbook
+  di osservabilità prima del Controlled Launch;
+- Traces resta spento per default in Development e Production. Può essere
+  abilitato al 100% solo durante una breve riproduzione Development con dati
+  sintetici, poi va disabilitato e verificato con readback; non usarlo su
+  traffico merchant;
+- Workers Builds/Git integration non viene attivato: GitHub Actions resta
+  l’unica corsia di deploy. Una sostituzione richiede una decisione esplicita,
+  non l’affiancamento dei due sistemi;
+- Logpush, export OpenTelemetry, Tail Workers e osservabilità esterna restano
+  P2 e si valutano soltanto se retention, query o diagnosi native risultano
+  insufficienti.
+
+L’attivazione Development del 29 luglio 2026 e il relativo rollback sono
+registrati in
+`docs/evidence/2026-07-29-checkout-validation-rendering.md#aggiornamento-osservabilità-development`.
+
 ---
 
 ## 19. Repository, ambienti, versionamento e CI/CD
@@ -3540,6 +3566,7 @@ Deliverable:
 - country gate;
 - Validation lifecycle;
 - riconciliazione.
+- log strutturati e sanitizzati per errori auth, webhook e lifecycle.
 
 Gate:
 
@@ -3617,6 +3644,9 @@ Deliverable:
 - backup R2;
 - restore test;
 - log;
+- sampling, query e runbook per Workers Logs;
+- procedura temporanea Traces solo Development con dati sintetici e readback
+  della disattivazione;
 - runbook;
 - security audit;
 - dependency audit;
