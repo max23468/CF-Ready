@@ -5,7 +5,9 @@ import {
   acquireValidationLock,
   findPocValidation,
   FUNCTION_HANDLE,
+  isPocStore,
   mutationError,
+  POC_CONFIG,
   queryContext,
   releaseValidationLockBestEffort,
   startValidationLockHeartbeat,
@@ -13,8 +15,6 @@ import {
 import type { MutationResult } from "../validation-poc.server";
 
 const POC_TITLE = "CF Ready — PoC tecnico";
-const POC_CONFIG = { pocVersion: 1, enabled: true } as const;
-
 const CREATE_VALIDATION = `#graphql
   mutation PocValidationCreate($validation: ValidationCreateInput!) {
     validationCreate(validation: $validation) {
@@ -73,6 +73,9 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
+  if (!isPocStore(session.shop)) {
+    return { ok: false, error: "Il PoC può modificare solo il dev store CF Ready." };
+  }
   const intent = (await request.formData()).get("intent");
   if (intent !== "enable" && intent !== "disable") {
     return { ok: false, error: "Azione non valida." };
