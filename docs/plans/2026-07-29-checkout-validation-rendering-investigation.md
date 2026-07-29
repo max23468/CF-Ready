@@ -158,8 +158,13 @@ accettabile per merchant italiani.
 
 ## 7. Messaggio e target
 
-Mantenere checkout standard guest, stesso layout, conferma ON e
-`CHECKOUT_COMPLETION`. Cambiare una sola variabile per volta.
+Mantenere checkout standard guest, stesso layout e `CHECKOUT_COMPLETION`.
+Usare come baseline la prima configurazione della sezione 6 che rende un errore
+Completion: se conferma ON fallisce e OFF funziona, eseguire le prove di
+sintassi con conferma OFF. Se nessuna configurazione rende l’errore, gli esiti
+visuali dei target non possono escludere alcuna sintassi; registrare comunque
+input e output e passare alla Function minimale. Cambiare una sola variabile per
+volta.
 
 1. Target plurale ufficiale con messaggio ASCII:
    `Codice Fiscale obbligatorio`.
@@ -182,9 +187,11 @@ Se una forma singolare funziona:
 1. verificarla con `TAX_EMAIL_IT`;
 2. provare valore mancante e invalido;
 3. provare italiano e inglese;
-4. verificare API stabile e API corrente;
-5. eseguire la matrice essenziale delle superfici;
-6. chiedere a Shopify quale sintassi sia contrattuale prima della release.
+4. ripeterla con conferma ON per misurare separatamente il bug della review,
+   senza invalidare il risultato ottenuto con conferma OFF;
+5. verificare API stabile e API corrente;
+6. eseguire la matrice essenziale delle superfici;
+7. chiedere a Shopify quale sintassi sia contrattuale prima della release.
 
 ## 8. `CHECKOUT_INTERACTION`
 
