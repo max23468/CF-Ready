@@ -1080,6 +1080,13 @@ $.cart.localizedFields.TAX_EMAIL_IT
 
 Verificare nel test CLI l’esatta forma richiesta dalla versione API pinata.
 
+Le fonti Shopify correnti indicano tre forme diverse per lo stesso target: la
+forma sopra viene dall’esempio della Function API, mentre la tabella dei target
+supportati e la Localized Fields API usano il singolare `localizedField`. La
+forma da usare va decisa su prova live, non su lettura; prove, rollback e
+criteri decisionali sono nel piano temporaneo
+`docs/plans/2026-07-29-checkout-validation-rendering-investigation.md`.
+
 ### 10.9 Budget prestazionale
 
 - nessuna iterazione sulle righe carrello;
@@ -3442,9 +3449,14 @@ gate locale completo sono verdi. Sul dev store Shopify esegue la Function,
 riceve l’errore atteso e blocca l’ordine, ma il checkout ospitato non rende il
 messaggio. Il problema è riprodotto anche con API stabile, target globale,
 checkout nuovo e tema pubblicato; l’evidenza è in
-`docs/evidence/2026-07-29-checkout-validation-rendering.md`. La milestone resta
-aperta fino all’escalation Shopify, alla nuova prova live e ai checkout
-accelerati disponibili.
+`docs/evidence/2026-07-29-checkout-validation-rendering.md`. Una seconda
+verifica indipendente ha confermato sui log di esecuzione reali che l’output
+della Function è corretto. Restano da isolare conferma/review, superficie
+standard o accelerata, messaggio ASCII, sintassi del target e timing
+Interaction/Completion secondo
+`docs/plans/2026-07-29-checkout-validation-rendering-investigation.md`. La
+milestone resta aperta fino al completamento delle prove, all’eventuale
+escalation Shopify e ai checkout accelerati disponibili.
 
 Deliverable:
 
