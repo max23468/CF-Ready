@@ -1,8 +1,5 @@
 export default {
   test: {
-    forceRerunTriggers: [
-      '**/tests/fixtures/**',
-      '**/src/**',
-    ],
+    forceRerunTriggers: ["**/tests/fixtures/**", "**/src/**"],
   },
 };

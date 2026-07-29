@@ -1,7 +1,15 @@
 import path from "path";
 import fs from "fs";
 import { describe, beforeAll, test, expect } from "vitest";
-import { buildFunction, getFunctionInfo, loadSchema, loadInputQuery, loadFixture, validateTestAssets, runFunction } from "@shopify/shopify-function-test-helpers";
+import {
+  buildFunction,
+  getFunctionInfo,
+  loadSchema,
+  loadInputQuery,
+  loadFixture,
+  validateTestAssets,
+  runFunction,
+} from "@shopify/shopify-function-test-helpers";
 
 describe("Default Integration Test", () => {
   let schema;
@@ -37,7 +45,13 @@ describe("Default Integration Test", () => {
       expect(validationResult.inputFixture.errors).toEqual([]);
       expect(validationResult.outputFixture.errors).toEqual([]);
 
-      const runResult = await runFunction(fixture, functionRunnerPath, wasmPath, targetInputQueryPath, schemaPath);
+      const runResult = await runFunction(
+        fixture,
+        functionRunnerPath,
+        wasmPath,
+        targetInputQueryPath,
+        schemaPath,
+      );
       expect(runResult.error).toBeNull();
       expect(runResult.result.output).toEqual(fixture.expectedOutput);
     }, 10000);
