@@ -1117,7 +1117,8 @@ in
 - trial scaduto non blocca;
 - eccezione runtime verificata con `blockOnFailure: false`;
 - limite di 25 Validation gestito senza toccare quelle di altre app;
-- checkout iniziale con prodotto in abbonamento verificato separatamente;
+- checkout iniziale con prodotto in abbonamento assegnato alla matrice canary
+  M10 e verificato separatamente prima della `1.0.0`;
 - nessuna pretesa di copertura delle ricorrenze successive.
 - build `1.0.0` rifiutata se la Function API `2026-07` è ancora release candidate o non validata dallo schema generato dalla CLI corrente.
 
@@ -3107,6 +3108,8 @@ Obbligatori prima di `1.0.0`:
 - checkout iniziale con prodotto in abbonamento, senza estrapolare il risultato alle ricorrenze successive.
 
 Se un wallet non è materialmente disponibile nell’ambiente di test, documentare il limite e verificare almeno il blocco server-side e il percorso di correzione offerto da Shopify.
+La prova con prodotto in abbonamento è eseguita in M10 sul canary store reale,
+dove prodotto e selling plan sono controllati.
 
 ### 23.12 Browser
 
@@ -3534,6 +3537,14 @@ Development minimo necessario all’URL persistente
 `cf-ready-dev.tmsf.workers.dev`; dati, auth e lifecycle completi restano
 deliverable M4.
 
+L’audit di chiusura ha misurato l’artefatto corrente con
+`shopify app function run`: 794.719 istruzioni su 11.000.000, 1.344 KiB di
+memoria, modulo Wasm da 15 KiB, output conforme e nessun log. Il readback della
+Home embedded, alimentato dalla query paginata delle Validation Shopify, ha
+confermato una sola Validation CF Ready attiva. Il checkout iniziale con
+prodotto in abbonamento è assegnato alla matrice canary M10, che dispone del
+prodotto con selling plan necessario.
+
 Deliverable:
 
 - query Function completa;
@@ -3695,6 +3706,8 @@ Deliverable:
 - ordini reali controllati;
 - checkout standard e wallet accelerati disponibili verificati con importi e
   dati controllati;
+- checkout iniziale con prodotto in abbonamento verificato con selling plan
+  controllato, senza estendere l’esito alle generazioni ricorrenti;
 - monitoraggio.
 
 Gate:
