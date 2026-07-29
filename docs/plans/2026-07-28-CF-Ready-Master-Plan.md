@@ -3482,11 +3482,17 @@ senza messaggio: è un difetto Shopify distinto. La modalità preventiva
 opzionale, con box globali a `CHECKOUT_INTERACTION` e Completion mantenuto,
 evita la review silenziosa. Il motore e il contratto config v2 sono implementati
 in M3; il controllo merchant sarà consegnato con la UI completa in M6.
+La superficie autenticata standard è verificata. I wallet non sono esposti dal
+dev store con Test Payment Gateway e vengono quindi verificati in M10 sul canary
+store reale dell’owner, senza trasformare l’assenza della superficie Development
+in un esito negativo.
+
 L’evidenza completa è in
 `docs/evidence/2026-07-29-checkout-validation-rendering.md`. La milestone resta
 aperta per la conferma Shopify della sintassi contrattuale, lo stato del bug
-review e le superfici autenticata e accelerate non disponibili nel dev store;
-il piano temporaneo resta in
+review e il deploy fisso Development della Function. Il backend Cloudflare
+persistente resta un deliverable M4; M3 non lo anticipa. Il piano temporaneo
+resta in
 `docs/plans/2026-07-29-checkout-validation-rendering-investigation.md`.
 
 Deliverable:
@@ -3505,7 +3511,10 @@ Gate:
 
 - matrice Function verde;
 - test dev store;
-- checkout accelerati verificati per quanto disponibile.
+- snapshot Shopify Function Development versionato, con smoke, readback e
+  rollback registrati;
+- checkout accelerati rinviati al canary M10, dove sono disponibili metodi reali
+  controllati.
 
 ### M4 — Dati, auth e lifecycle
 
@@ -3641,6 +3650,8 @@ Deliverable:
 - billing reale controllato;
 - attivazione a basso traffico;
 - ordini reali controllati;
+- checkout standard e wallet accelerati disponibili verificati con importi e
+  dati controllati;
 - monitoraggio.
 
 Gate:

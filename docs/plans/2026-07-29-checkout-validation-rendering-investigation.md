@@ -1,7 +1,9 @@
 # Piano di indagine — rendering errori checkout
 
-**Stato:** matrice disponibile completata il 29 luglio 2026; aperto per
-conferma Shopify e superfici autenticate o accelerate non disponibili.
+**Stato:** matrice Development disponibile completata il 29 luglio 2026; aperto
+per conferma Shopify e deploy fisso della Function. La superficie autenticata è
+verificata; i wallet sono rinviati al canary M10 sullo store reale dell’owner.
+La sola Validation CF Ready resta attiva in Development.
 
 **Ambiente consentito:** esclusivamente Development,
 `cf-ready-dev.myshopify.com`.
@@ -69,7 +71,8 @@ Fonti operative:
 ### Consentito dopo autorizzazione esplicita
 
 - scritture temporanee sull’app e sullo store Development;
-- attivazione temporanea della sola Validation CF Ready;
+- attivazione della sola Validation CF Ready, mantenuta attiva sullo store
+  Development fino a disattivazione esplicita dell’owner;
 - deploy di versioni diagnostiche della Function Development;
 - modifica temporanea e reversibile di layout e conferma ordine;
 - checkout con dati interamente sintetici;
@@ -111,11 +114,15 @@ Prima della prima scrittura remota:
 
 Dopo ogni gruppo di prove:
 
-1. disattivare la Validation;
-2. ripristinare layout e conferma ordine;
-3. ripristinare configurazione e versione app iniziali;
-4. eseguire il readback;
-5. confermare che non esista una seconda Validation attiva.
+1. ripristinare layout e conferma ordine;
+2. mantenere la configurazione Development approvata e una sola Validation CF
+   Ready attiva;
+3. eseguire il readback;
+4. confermare che non esista una seconda Validation attiva.
+
+La disattivazione della Validation è il rollback di emergenza per errori,
+configurazione incerta o richiesta esplicita dell’owner; non è più lo stato
+finale ordinario dell’indagine.
 
 ## 5. Dati da raccogliere per ogni prova
 
@@ -131,7 +138,7 @@ Dopo ogni gruppo di prove:
 | interfaccia | testo visibile, focus, scroll e albero accessibile |
 | rete | presenza dell’errore nella risposta, senza header o token |
 | risultato | ordine bloccato o completato |
-| rollback | versione e configurazione ripristinate |
+| stato finale | versione, configurazione e unica Validation attiva |
 
 Non allegare i log completi: contengono identificatori tecnici e configurazione.
 Produrre soltanto estratti sanitizzati.
@@ -287,6 +294,10 @@ funziona verificare:
 - Apple Pay, Google Pay e PayPal disponibili;
 - ingresso accelerato dal carrello e dal checkout;
 - focus, screen reader e assenza di loop.
+
+I wallet non esposti dal dev store con Test Payment Gateway non bloccano M3:
+Shop Pay, Apple Pay, Google Pay e PayPal disponibili vengono verificati in M10
+sul canary store reale dell’owner, con dati e importi controllati.
 
 ## 11. Criteri di stop
 
