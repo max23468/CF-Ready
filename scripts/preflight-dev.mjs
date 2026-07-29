@@ -3,8 +3,10 @@ import { readFile } from "node:fs/promises";
 
 const expected = {
   clientId: "adff48d4fe4ceb0dadb4734520701dd7",
+  appUrl: "https://cf-ready-dev.tmsf.workers.dev",
   databaseId: "9490eaea-3a12-465d-bb48-e2622b31fc4d",
   databaseName: "cf-ready-db-dev",
+  workerName: "cf-ready-dev",
 };
 
 const shopifyConfig = await readFile("shopify.app.dev.toml", "utf8");

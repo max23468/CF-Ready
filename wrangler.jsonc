@@ -1,9 +1,17 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "cf-ready-dev",
+  "account_id": "98195e505f42abaaeb4827f71a924b1a",
   "main": "./workers/app.ts",
   "compatibility_date": "2026-07-28",
   "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "SHOPIFY_API_KEY": "adff48d4fe4ceb0dadb4734520701dd7",
+    "SHOPIFY_APP_URL": "https://cf-ready-dev.tmsf.workers.dev",
+    "SCOPES": "write_validations"
+  },
   "observability": {
     "enabled": true
   },

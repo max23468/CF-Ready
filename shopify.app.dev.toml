@@ -3,7 +3,7 @@
 client_id = "adff48d4fe4ceb0dadb4734520701dd7"
 name = "CF Ready Development"
 handle = "cf-ready-development"
-application_url = "https://example.com"
+application_url = "https://cf-ready-dev.tmsf.workers.dev"
 embedded = true
 
 [access_scopes]
@@ -21,7 +21,7 @@ api_version = "2026-07"
   topics = [ "app/scopes_update" ]
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://cf-ready-dev.tmsf.workers.dev/auth/callback" ]
 
 [build]
 automatically_update_urls_on_dev = true

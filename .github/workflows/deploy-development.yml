@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   deploy-shopify:
-    name: Deploy Shopify Function
+    name: Deploy Shopify Development
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: Development
@@ -25,8 +25,8 @@ jobs:
 
       - name: Verifica URL Development persistenti
         run: |
-          grep -Fxq 'application_url = "https://cf-ready.tmsf.workers.dev"' shopify.app.dev.toml
-          grep -Fxq 'redirect_urls = [ "https://cf-ready.tmsf.workers.dev/api/auth" ]' shopify.app.dev.toml
+          grep -Fxq 'application_url = "https://cf-ready-dev.tmsf.workers.dev"' shopify.app.dev.toml
+          grep -Fxq 'redirect_urls = [ "https://cf-ready-dev.tmsf.workers.dev/auth/callback" ]' shopify.app.dev.toml
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -39,8 +39,18 @@ jobs:
 
       - name: Prepara versione
         run: |
-          version="$(node -p "require('./package.json').version")-dev.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
+          version="$(node -p "require('./package.json').version")"
           echo "DEPLOY_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Verifica backend Development
+        run: >-
+          curl
+          --fail
+          --silent
+          --show-error
+          --max-time 15
+          --output /dev/null
+          https://cf-ready-dev.tmsf.workers.dev
 
       - name: Verifica credenziale Shopify
         env:
