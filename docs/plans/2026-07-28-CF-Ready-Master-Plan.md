@@ -423,7 +423,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-118 | Le PR ordinarie puntano a `develop` e usano squash; `main` accetta soltanto promozioni autorizzate da `develop`, unite con merge commit. La cancellazione automatica dei branch resta disattivata e i soli branch temporanei vengono eliminati esplicitamente. | Preserva l’ascendenza tra integrazione e Production, evita il drift strutturale causato da squash indipendenti sui due rami e impedisce che una promozione elimini `develop`. |
 | D-119 | Abilitare l’auto-merge nativo in `develop` per le sole PR Dependabot minor/patch dopo `CI` e `React Doctor` verdi. Eliminare dopo il merge soltanto i branch `dependabot/*`; major e promozioni `develop` → `main` restano manuali. | Allinea CF Ready a SyncBay e Pratix, rende atomico il vincolo sullo SHA verificato, preserva gli eventi post-merge e non espone `develop` alla cancellazione globale dei branch. |
 | D-120 | La visibilità pubblica non rende il progetto open-source: nessuna licenza viene concessa finché l’owner non sceglie esplicitamente e aggiunge un file `LICENSE`. | Una licenza attribuisce diritti di riuso e distribuzione e non va dedotta dalla sola pubblicazione del codice. |
-| D-121 | `package.json#version` è la fonte canonica di `<SemVer>`. Ogni `shopify app deploy` rilasciato passa dal workflow GitHub Actions dell'ambiente e usa `--version`: `<SemVer>-dev.<run_number>.<run_attempt>` in Development e `<SemVer>` in Production. | Evita collisioni fra deploy automatici, manuali e retry, collega ogni snapshot Shopify alla release applicativa ed evita identificatori automatici come `cf-ready-1`. |
+| D-121 | `package.json#version` è la fonte canonica della versione Shopify. Ogni `shopify app deploy` rilasciato passa dal workflow GitHub Actions dell’ambiente e usa quella versione esatta con `--version`; una versione già rilasciata non viene riutilizzata e prima del successivo snapshot si incrementa il SemVer, usando un prerelease in Development quando opportuno. Il primo snapshot fisso Development è `0.1.0`. | Collega ogni snapshot al codice verificato, evita identificatori automatici come `cf-ready-1` e mantiene nomi leggibili senza collisioni. |
 | D-122 | Offrire `inline` come visualizzazione errori predefinita e `preventive` come opzione merchant; la Guida la consiglia quando è attiva la conferma ordine Shopify. | La prova live mostra che i box globali a Interaction impediscono la review silenziosa, ma possono apparire già al caricamento e richiedono una scelta informata. |
 
 ---
@@ -2185,7 +2185,7 @@ Il brand si esprime soprattutto in:
 
 | Ambiente | Worker | D1 | R2 backup | Jurisdiction R2 |
 |---|---|---|---|---|
-| Development | locale | `cf-ready-db-dev` | nessuno | — |
+| Development | `cf-ready-dev` | `cf-ready-db-dev` | nessuno | — |
 | Production | `cf-ready` | `cf-ready-db-prod` | `cf-ready-backups-prod` | `eu` |
 
 Nell’URL Production non compare `prod`.
@@ -2201,7 +2201,13 @@ https://cf-ready.pages.dev/terms
 https://cf-ready.pages.dev/support
 ```
 
-Worker:
+Worker Development:
+
+```text
+https://cf-ready-dev.tmsf.workers.dev
+```
+
+Worker Production:
 
 ```text
 https://cf-ready.tmsf.workers.dev
@@ -2412,15 +2418,17 @@ release-owned e non vengono modificati nelle PR ordinarie.
 Ogni snapshot Shopify rilasciato deve ricevere un identificatore esplicito con
 `shopify app deploy --version`:
 
-- Development: `<X.Y.Z>-dev.<run_number>.<run_attempt>`;
-- Production: `<X.Y.Z>`, identico alla release SemVer.
+- Development: versione esatta di `package.json`, con prerelease SemVer quando
+  opportuno;
+- Production: versione esatta di `package.json`, identica alla release SemVer.
 
 `package.json#version`, inizialmente `0.1.0`, è la fonte canonica di `<X.Y.Z>` e
 deve coincidere con il lockfile e, in Production, con il tag `vX.Y.Z`. Tutti i
-deploy rilasciati, inclusi quelli avviati manualmente dall'owner, passano dal
-workflow GitHub Actions dell'ambiente; `github.run_number` con
-`github.run_attempt` rende univoci anche i retry. Un deploy locale diretto può
-essere usato solo come preview non rilasciata.
+deploy Shopify rilasciati, inclusi quelli avviati manualmente dall’owner,
+passano dal workflow GitHub Actions dell’ambiente. Una versione già rilasciata
+non viene riutilizzata: prima di un nuovo snapshot si incrementa il SemVer nel
+manifest e nel lockfile. Un deploy locale diretto può essere usato solo come
+preview non rilasciata.
 
 La ricevuta di deploy registra ambiente, configurazione, versione Shopify,
 commit, ID della versione rilasciata e versione di rollback. Gli identificatori
@@ -3490,9 +3498,11 @@ in un esito negativo.
 L’evidenza completa è in
 `docs/evidence/2026-07-29-checkout-validation-rendering.md`. La milestone resta
 aperta per la conferma Shopify della sintassi contrattuale, lo stato del bug
-review e il deploy fisso Development della Function. Il backend Cloudflare
-persistente resta un deliverable M4; M3 non lo anticipa. Il piano temporaneo
-resta in
+review e il deploy fisso Development della Function. Poiché Shopify distribuisce
+configurazione app e Function nello stesso snapshot, M3 anticipa soltanto il
+backend Development minimo necessario all’URL persistente
+`cf-ready-dev.tmsf.workers.dev`; dati, auth e lifecycle completi restano
+deliverable M4. Il piano temporaneo resta in
 `docs/plans/2026-07-29-checkout-validation-rendering-investigation.md`.
 
 Deliverable:
