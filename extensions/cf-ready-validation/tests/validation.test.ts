@@ -78,11 +78,15 @@ describe("Codice Fiscale", () => {
     ["29 febbraio", "AAAAAA00B29A000D", true],
     ["lunghezza", "AAAAAA00A01A000", false],
     ["separatore", "AAAAAA00A01-A000", false],
+    ["spazio interno", "AAAAAA00A01 A000", false],
     ["mese", "AAAAAA00Z01A000D", false],
     ["giorno 00", "AAAAAA00A00A000I", false],
     ["giorno 35", "AAAAAA00A35A000X", false],
     ["giorno 72", "AAAAAA00A72A000T", false],
     ["31 aprile", "AAAAAA00D31A000Q", false],
+    ["31 giugno", "AAAAAA00H31A000M", false],
+    ["31 settembre", "AAAAAA00P31A000J", false],
+    ["31 novembre", "AAAAAA00S31A000F", false],
     ["30 febbraio", "AAAAAA00B30A000K", false],
     ["catastale", "AAAAAA00A010000H", false],
     ["checksum", "AAAAAA00A01A000A", false],
@@ -107,6 +111,9 @@ describe("PEC", () => {
     ["trattino iniziale", "nome@-pec.example", false],
     ["trattino finale", "nome@pec-.example", false],
     ["local part vuota", "@pec.example", false],
+    ["punto iniziale local part", ".nome@pec.example", false],
+    ["punto finale local part", "nome.@pec.example", false],
+    ["doppi punti local part", "no..me@pec.example", false],
     ["dominio senza TLD", "nome@pec", false],
   ])("%s", (_name, value, expected) => {
     expect(isValidPec(value)).toBe(expected);
@@ -140,6 +147,30 @@ describe("applicabilità e fail-open", () => {
         },
       },
     ],
+    [
+      "messaggio non trimmato",
+      {
+        config: {
+          ...baseConfig,
+          messages: {
+            ...messages,
+            it: { ...messages.it, taxCodeRequired: " CF richiesto" },
+          },
+        },
+      },
+    ],
+    [
+      "messaggio oltre limite",
+      {
+        config: {
+          ...baseConfig,
+          messages: {
+            ...messages,
+            it: { ...messages.it, taxCodeRequired: "x".repeat(201) },
+          },
+        },
+      },
+    ],
     ["data locale invalida", { date: "29/07/2026" }],
     [
       "trial scaduto",
@@ -147,6 +178,33 @@ describe("applicabilità e fail-open", () => {
         config: {
           ...baseConfig,
           entitlement: { kind: "trial", validThrough: "2026-07-28" },
+        },
+      },
+    ],
+    [
+      "abbonamento terminato",
+      {
+        config: {
+          ...baseConfig,
+          entitlement: { kind: "subscription", validThrough: "2026-07-28" },
+        },
+      },
+    ],
+    [
+      "rimborso totale una tantum",
+      {
+        config: {
+          ...baseConfig,
+          entitlement: { kind: "none", validThrough: null },
+        },
+      },
+    ],
+    [
+      "una tantum con scadenza",
+      {
+        config: {
+          ...baseConfig,
+          entitlement: { kind: "one_time", validThrough: "2026-08-01" },
         },
       },
     ],
@@ -181,6 +239,18 @@ describe("applicabilità e fail-open", () => {
       },
     ],
     [
+      "abbonamento in chiusura",
+      {
+        config: {
+          ...baseConfig,
+          entitlement: {
+            kind: "subscription",
+            validThrough: "2026-07-30",
+          },
+        },
+      },
+    ],
+    [
       "una tantum",
       {
         config: {
@@ -190,15 +260,39 @@ describe("applicabilità e fail-open", () => {
       },
     ],
     ["fatturazione assente", { billing: null }],
+    ["checkout senza spedizione", { deliveries: [] }],
     ["ritiro senza indirizzo", { deliveries: [null] }],
     ["ordine misto", { deliveries: ["FR", "IT"] }],
   ])("%s", (_name, options) => {
     expect(errors(input(options))).toHaveLength(2);
   });
+
+  it("non valida il localized field singolo assente", () => {
+    expect(
+      errors(input({ fields: [{ key: "TAX_EMAIL_IT", value: "" }] })).map(({ target }) => target),
+    ).toEqual(["$.cart.localizedFields.TAX_EMAIL_IT"]);
+    expect(
+      errors(input({ fields: [{ key: "TAX_CREDENTIAL_IT", value: "" }] })).map(
+        ({ target }) => target,
+      ),
+    ).toEqual(["$.cart.localizedFields.TAX_CREDENTIAL_IT"]);
+  });
+
+  it("resta fail-open se il metafield è assente o il runtime genera un'eccezione", () => {
+    const withoutMetafield = input();
+    withoutMetafield.validation.metafield = null;
+
+    expect(errors(withoutMetafield)).toEqual([]);
+    expect(errors(null as unknown as CartValidationsGenerateRunInput)).toEqual([]);
+  });
 });
 
 describe("regole e messaggi", () => {
   const rules = ["unmanaged", "optional_validated", "required_validated"] as const;
+  const values = {
+    taxCode: { valid: "RSSMRA80A01H501U", invalid: "non valido" },
+    pec: { valid: "nome@example.com", invalid: "non valida" },
+  };
 
   it.each(rules.flatMap((taxCode) => rules.map((pec) => [taxCode, pec])))(
     "combina CF %s e PEC %s",
@@ -220,25 +314,32 @@ describe("regole e messaggi", () => {
     },
   );
 
-  it("distingue vuoto, valido e invalido", () => {
+  it.each(
+    (["taxCode", "pec"] as const).flatMap((field) =>
+      rules.flatMap((rule) =>
+        [
+          ["vuoto", "", rule === "required_validated" ? "required" : null],
+          ["nullo", null, rule === "required_validated" ? "required" : null],
+          ["valido", values[field].valid, null],
+          ["invalido", values[field].invalid, rule === "unmanaged" ? null : "invalid"],
+        ].map(([state, value, expected]) => [field, rule, state, value, expected] as const),
+      ),
+    ),
+  )("%s %s con valore %s", (field, rule, _state, value, expected) => {
+    const key = field === "taxCode" ? "TAX_CREDENTIAL_IT" : "TAX_EMAIL_IT";
     const config = {
       ...baseConfig,
       rules: {
-        taxCode: "optional_validated",
-        pec: "required_validated",
+        taxCode: "unmanaged",
+        pec: "unmanaged",
+        [field]: rule,
       },
     };
-    expect(
-      errors(
-        input({
-          config,
-          fields: [
-            { key: "TAX_CREDENTIAL_IT", value: "" },
-            { key: "TAX_EMAIL_IT", value: "nome@example.com" },
-          ],
-        }),
-      ),
-    ).toEqual([]);
+    const result = errors(input({ config, fields: [{ key, value }] }));
+
+    expect(result.map(({ message }) => message)).toEqual(
+      expected ? [messages.it[`${field}${expected === "required" ? "Required" : "Invalid"}`]] : [],
+    );
   });
 
   it("restituisce due errori con target e lingua italiana", () => {
