@@ -2,7 +2,6 @@
 
 - [Master Plan](plans/2026-07-28-CF-Ready-Master-Plan.md) — requisiti,
   decisioni, milestone e gate.
-- [Contesto corrente](CONTEXT.md) — stato osservato, vincoli e prossimo passo.
 - [Contratti tecnici M1](contracts/m1-technical-contracts.md) — runtime,
   autenticazione, Home embedded, D1 e Validation PoC.
 - [Evidenze M1](evidence/2026-07-28-m1-proof-of-concept.md) — target, prove sul

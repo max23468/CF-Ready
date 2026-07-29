@@ -42,8 +42,7 @@ mise exec -- npm run shopify:info -- shopify.app.dev.toml
 
 La documentazione parte da [`docs/INDEX.md`](docs/INDEX.md). Il
 [Master Plan](docs/plans/2026-07-28-CF-Ready-Master-Plan.md) resta la fonte
-decisionale e il [contesto corrente](docs/CONTEXT.md) distingue ciò che è già
-implementato da ciò che è pianificato.
+decisionale; codice, test e configurazioni descrivono lo stato implementato.
 
 Prima di contribuire leggi [`CONTRIBUTING.md`](CONTRIBUTING.md). Le
 vulnerabilità vanno segnalate privatamente seguendo [`SECURITY.md`](SECURITY.md),
