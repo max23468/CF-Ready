@@ -1,7 +1,7 @@
 # Piano di indagine — rendering errori checkout
 
-**Stato:** matrice Development disponibile completata il 29 luglio 2026; aperto
-per conferma Shopify e deploy fisso della Function. La superficie autenticata è
+**Stato:** matrice Development disponibile e deploy fisso `0.1.0` completati il
+29 luglio 2026; aperto per conferma Shopify. La superficie autenticata è
 verificata; i wallet sono rinviati al canary M10 sullo store reale dell’owner.
 La sola Validation CF Ready resta attiva in Development.
 

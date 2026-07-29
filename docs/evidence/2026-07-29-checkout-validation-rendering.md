@@ -8,7 +8,7 @@
 
 **App:** CF Ready Development
 
-**Deploy:** nessuno
+**Deploy:** Development `0.1.0`
 
 ## Esito
 
@@ -47,8 +47,8 @@ Prima delle scritture remote sono stati verificati:
 - rollback alla versione Development rilasciata precedente;
 - checkout standard guest con dati esclusivamente sintetici.
 
-Production non è stata aperta né modificata. Non sono stati eseguiti deploy,
-release, billing o ordini reali.
+Production non è stata modificata. Non sono stati eseguiti release, billing o
+ordini reali.
 
 ## Matrice osservata
 
@@ -169,19 +169,43 @@ continue riattivazioni:
 - Validation PoC riattivata sul solo store Development;
 - una sola Validation CF Ready presente e attiva;
 - `blockOnFailure: false` confermato dal readback applicativo;
-- dev preview attiva sul candidato pubblicato in `develop`;
+- dev preview rimossa dopo il deploy fisso;
 - checkout a pagina singola ripristinato;
 - conferma ordine disattivata nell’ultimo readback Admin disponibile;
 - codice diagnostico sostituito dal ramo configurabile
   `errorDisplay: "preventive"`;
 - modalità inline locale predefinita e Completion-only;
-- nessun deploy eseguito.
+- backend caricato da `cf-ready-dev.tmsf.workers.dev`;
+- snapshot Shopify `0.1.0` attivo;
+- smoke autenticato sul checkout standard: `ABC` bloccato con il messaggio
+  inline configurato; nessun ordine creato.
 
 La Validation resta attiva in Development fino a richiesta esplicita
 dell’owner. La disattivazione resta il rollback di emergenza per errori,
 configurazione incerta o Function non disponibile. Production non è coinvolta.
-Prima del primo deploy fisso il rollback Shopify è la versione attiva
-`cf-ready-development-2` (`gid://shopify/Version/1067786829825`).
+
+## Ricevuta deploy Development
+
+| Voce | Valore |
+| --- | --- |
+| Commit | `e2f02400ab3cb2ee8ac84c24290d2439b4dff5e6` |
+| PR | `#52` |
+| Worker | `cf-ready-dev` |
+| URL Worker | `https://cf-ready-dev.tmsf.workers.dev` |
+| Deployment Cloudflare attivo | `d81b537d-0249-473e-ae34-be4918401c5a` |
+| Versione Worker attiva | `0854800b-9805-4a77-a614-827561e65ead` |
+| Versione Shopify attiva | `0.1.0` |
+| Version ID Shopify | `gid://shopify/Version/1069448986625` |
+| Workflow | `Deploy Development` run `30486465051` |
+| D1 | `cf-ready-db-dev`, nessuna migrazione pendente |
+| Secret readback | `SHOPIFY_API_SECRET` e `SESSION_ENCRYPTION_KEY` presenti per nome |
+| Validation | una sola CF Ready, attiva, `blockOnFailure: false` |
+
+Il Worker non aveva una versione utilizzabile precedente. Il rollback coordinato
+consiste nel riattivare
+`cf-ready-development-2` (`gid://shopify/Version/1067786829825`) prima di
+rimuovere `cf-ready-dev`; D1 resta intatto. La disattivazione della Validation
+resta il rollback immediato per un’anomalia della Function.
 
 ## Conclusione e escalation
 
