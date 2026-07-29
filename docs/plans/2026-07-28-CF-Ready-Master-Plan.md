@@ -2,7 +2,7 @@
 
 ## Master Plan di prodotto, architettura, implementazione e lancio
 
-**Stato:** baseline approvata per scaffolding e implementazione · M0–M2 completate · M3 implementata, rendering errori checkout da escalare a Shopify
+**Stato:** baseline approvata per scaffolding e implementazione · M0–M3 completate · conferma Shopify pre-Production e wallet M10 tracciati
 **Data:** 27 luglio 2026 · revisione 28 luglio 2026  
 **Documenti vincolanti collegati:** `docs/brand/brand-foundation.md` (identità visiva, tono, materiali pubblici)  
 **Brand:** CF Ready  
@@ -1090,8 +1090,8 @@ supportati e la Localized Fields API usano forme singolari. La prova live del
 29 luglio 2026 ha dimostrato che la forma camelCase sopra rende inline, mentre
 il plurale blocca senza messaggio. Prima della release Production chiedere a
 Shopify conferma della sintassi contrattuale; evidenza, rollback e quesiti sono
-nel piano temporaneo
-`docs/plans/2026-07-29-checkout-validation-rendering-investigation.md`.
+in
+`docs/evidence/2026-07-29-checkout-validation-rendering.md`.
 
 ### 10.9 Budget prestazionale
 
@@ -1109,7 +1109,8 @@ nel piano temporaneo
 - build Wasm riuscita;
 - `shopify app function run` conforme;
 - target errori verificato su dev store;
-- checkout accelerati verificati;
+- checkout accelerati assegnati al canary M10 e verificati prima della
+  `1.0.0`;
 - input/output senza dati nei log;
 - costo istruzioni ampiamente sotto i limiti;
 - config corrotta non blocca;
@@ -3499,9 +3500,9 @@ Gate:
 
 Rifiniture non bloccanti tracciate in Open items §34.5.
 
-### M3 — Motore di validazione
+### M3 — Motore di validazione ✅ completata
 
-**Implementazione locale completata il 29 luglio 2026.** Query, motore e matrice
+**Completata il 29 luglio 2026.** Query, motore e matrice
 automatizzata sono nel workspace `cf-ready-validation`; build Function, test e
 gate locale completo sono verdi. L’indagine live ha isolato il problema nel
 target al plurale dell’esempio Function: Shopify blocca senza rendere
@@ -3522,15 +3523,16 @@ store reale dell’owner, senza trasformare l’assenza della superficie Develop
 in un esito negativo.
 
 L’evidenza completa è in
-`docs/evidence/2026-07-29-checkout-validation-rendering.md`. La milestone resta
-aperta per la conferma Shopify della sintassi contrattuale, lo stato del bug
-review e il percorso supportato sulle superfici accelerate. Il deploy fisso
-Development è completato con lo snapshot Shopify `0.1.0` e il Worker
-`cf-ready-dev`. Poiché Shopify distribuisce configurazione app e Function nello
-stesso snapshot, M3 ha anticipato soltanto il backend Development minimo
-necessario all’URL persistente `cf-ready-dev.tmsf.workers.dev`; dati, auth e
-lifecycle completi restano deliverable M4. Il piano temporaneo resta in
-`docs/plans/2026-07-29-checkout-validation-rendering-investigation.md`.
+`docs/evidence/2026-07-29-checkout-validation-rendering.md`. La conferma Shopify
+della sintassi contrattuale, lo stato del bug review e il percorso supportato
+sulle superfici accelerate restano gate pre-Production tracciati
+nell’evidenza; non impediscono la chiusura della matrice Development
+disponibile. Il deploy fisso Development è completato con lo snapshot Shopify
+`0.1.0` e il Worker `cf-ready-dev`. Poiché Shopify distribuisce configurazione
+app e Function nello stesso snapshot, M3 ha anticipato soltanto il backend
+Development minimo necessario all’URL persistente
+`cf-ready-dev.tmsf.workers.dev`; dati, auth e lifecycle completi restano
+deliverable M4.
 
 Deliverable:
 

@@ -228,21 +228,23 @@ alla Function Shopify o ai dati:
 Il readback Cloudflare ha confermato la configurazione. Production, Validation e
 snapshot Shopify `0.1.0` non sono stati modificati.
 
-## Conclusione e escalation
+## Conclusione e gate successivi
 
 Il fix locale del rendering standard è il target
 `$.cart.localizedField.<KEY>`. Il bug della review con conferma ordine ON è
 confermato separatamente e coincide con la classe di difetti già riconosciuta
 da Shopify.
 
-L’indagine resta aperta soltanto per:
+L’indagine Development è conclusa per tutte le superfici disponibili. Restano
+come gate successivi, senza riaprire la matrice già completata:
 
-1. conferma Shopify della sintassi contrattuale del target;
-2. stato del bug Completion nella review europea;
-3. percorso supportato per coprire localized fields, conferma ordine e checkout
-   accelerati senza errori prematuri;
-4. prove sui wallet in M10, sul canary store reale dell’owner con dati e importi
+1. prima della release Production, chiedere a Shopify conferma della sintassi
+   contrattuale del target;
+2. chiedere lo stato del bug Completion nella review europea;
+3. chiedere il percorso supportato per coprire localized fields, conferma
+   ordine e checkout accelerati senza errori prematuri;
+4. in M10, provare i wallet sul canary store reale dell’owner con dati e importi
    controllati.
 
-Il [piano temporaneo](../plans/2026-07-29-checkout-validation-rendering-investigation.md)
-resta quindi presente e non viene rimosso dall’indice.
+Questi punti sono conservati nel Master Plan e non richiedono più il piano
+temporaneo dell’indagine.
