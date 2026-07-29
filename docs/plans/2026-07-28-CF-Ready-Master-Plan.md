@@ -3498,11 +3498,12 @@ in un esito negativo.
 L’evidenza completa è in
 `docs/evidence/2026-07-29-checkout-validation-rendering.md`. La milestone resta
 aperta per la conferma Shopify della sintassi contrattuale, lo stato del bug
-review e il deploy fisso Development della Function. Poiché Shopify distribuisce
-configurazione app e Function nello stesso snapshot, M3 anticipa soltanto il
-backend Development minimo necessario all’URL persistente
-`cf-ready-dev.tmsf.workers.dev`; dati, auth e lifecycle completi restano
-deliverable M4. Il piano temporaneo resta in
+review e il percorso supportato sulle superfici accelerate. Il deploy fisso
+Development è completato con lo snapshot Shopify `0.1.0` e il Worker
+`cf-ready-dev`. Poiché Shopify distribuisce configurazione app e Function nello
+stesso snapshot, M3 ha anticipato soltanto il backend Development minimo
+necessario all’URL persistente `cf-ready-dev.tmsf.workers.dev`; dati, auth e
+lifecycle completi restano deliverable M4. Il piano temporaneo resta in
 `docs/plans/2026-07-29-checkout-validation-rendering-investigation.md`.
 
 Deliverable:
@@ -3521,8 +3522,8 @@ Gate:
 
 - matrice Function verde;
 - test dev store;
-- snapshot Shopify Function Development versionato, con smoke, readback e
-  rollback registrati;
+- snapshot Shopify Function Development `0.1.0` versionato, con smoke, readback
+  e rollback registrati;
 - checkout accelerati rinviati al canary M10, dove sono disponibili metodi reali
   controllati.
 
