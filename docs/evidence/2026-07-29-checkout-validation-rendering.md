@@ -207,6 +207,27 @@ consiste nel riattivare
 rimuovere `cf-ready-dev`; D1 resta intatto. La disattivazione della Validation
 resta il rollback immediato per un’anomalia della Function.
 
+### Aggiornamento osservabilità Development
+
+Il 29 luglio 2026 il Worker Development è stato ridistribuito senza modifiche
+alla Function Shopify o ai dati:
+
+| Voce | Valore |
+| --- | --- |
+| Sorgente runtime | `bda2a2154abce7797f13e528c982e7bbced22ed2` più la configurazione osservabilità registrata insieme a questa ricevuta |
+| Deployment Cloudflare attivo | `24d386aa-3fb2-4cf3-955a-3eb492bca9eb` |
+| Versione Worker attiva | `53660a82-4d4c-44a3-a280-b02eceaecd70` |
+| Workers Logs | attivi, sampling `1` |
+| Invocation logs | disattivati |
+| Workers Traces | disattivato |
+| Logpush / Tail Workers | disattivati |
+| D1 | nessuna migrazione pendente |
+| Smoke | `GET /` → `302 /auth/login` |
+| Rollback Worker | deployment `d81b537d-0249-473e-ae34-be4918401c5a`, versione `0854800b-9805-4a77-a614-827561e65ead` |
+
+Il readback Cloudflare ha confermato la configurazione. Production, Validation e
+snapshot Shopify `0.1.0` non sono stati modificati.
+
 ## Conclusione e escalation
 
 Il fix locale del rendering standard è il target

@@ -13,7 +13,15 @@
     "SCOPES": "write_validations"
   },
   "observability": {
-    "enabled": true
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": false
+    },
+    "traces": {
+      "enabled": false
+    }
   },
   "upload_source_maps": true,
   "d1_databases": [
