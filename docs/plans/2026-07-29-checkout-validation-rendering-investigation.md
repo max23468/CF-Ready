@@ -1,7 +1,7 @@
 # Piano di indagine — rendering errori checkout
 
-**Stato:** attivo, nessuna prova prevista da questo documento è ancora stata
-autorizzata o eseguita.
+**Stato:** matrice disponibile completata il 29 luglio 2026; aperto per
+conferma Shopify e superfici autenticate o accelerate non disponibili.
 
 **Ambiente consentito:** esclusivamente Development,
 `cf-ready-dev.myshopify.com`.
@@ -25,7 +25,7 @@ Prima di escalare a Shopify vanno provate, una variabile alla volta, tutte le
 strade locali e di configurazione che possono produrre una soluzione valida per
 Basic, Grow, Advanced e Plus senza tema o Checkout UI Extension.
 
-## 2. Baseline verificata
+## 2. Baseline e risultati verificati
 
 - L’esempio ufficiale della Function API `2026-07` per i localized fields usa
   `CHECKOUT_COMPLETION` e `$.cart.localizedFields.<KEY>`.
@@ -33,19 +33,24 @@ Basic, Grow, Advanced e Plus senza tema o Checkout UI Extension.
   `$.cart.localizedfield.key`.
 - L’esempio della Checkout UI Extension usa
   `$.cart.localizedField.<KEY>`, ma appartiene a un’API diversa.
-- I log locali ignorati da Git contengono 89 esecuzioni reali:
-  - 52 a `CHECKOUT_INTERACTION`;
-  - 27 a `CHECKOUT_COMPLETION`;
-  - due controlli Completion con target globale `$.cart`;
-  - output completi, `status: success` e checkout bloccato nei casi invalidi.
+- I log locali ignorati da Git contengono le esecuzioni reali della matrice,
+  con output completi, `status: success` e checkout bloccato nei casi invalidi.
 - Molte esecuzioni Interaction ricevono i localized fields già presenti ma
   vuoti. Validare a questo step può quindi mostrare errori prima che il cliente
   inizi a compilare.
-- Non è documentato quale metodo di pagamento sia stato usato nelle prove
-  precedenti.
-- Non è stata eseguita una prova live con un messaggio solo ASCII.
+- La matrice corrente ha usato il Test Payment Gateway su checkout standard
+  guest.
+- Il messaggio solo ASCII non rende con il target plurale; i messaggi Unicode
+  rendono con il target singolare.
 - La Shopify CLI locale osservata è `4.5.2`.
-- La Validation è stata disattivata dopo le prove precedenti.
+- `$.cart.localizedField.<KEY>` rende inline CF e PEC con conferma ordine OFF,
+  sia one-page sia three-page, su Function API `2026-04` e `2026-07`.
+- Con conferma ordine ON, la review blocca il submit finale senza messaggio.
+- `CHECKOUT_INTERACTION` con target globale rende due box al caricamento e
+  impedisce l’ingresso nella review silenziosa; l’owner l’ha approvata come
+  modalità preventiva opzionale, mantenendo inline come default.
+- La Validation è stata disattivata e la conferma ordine riportata su OFF al
+  termine delle prove.
 
 Il caso coincide con un
 [bug già confermato da Shopify](https://community.shopify.dev/t/bug-cart-validation-functions-two-issues-blocking-migration-from-usebuyerjourneyintercept/31931):
@@ -228,8 +233,19 @@ Se Interaction mostra l’errore al caricamento, non esiste un guard locale
 affidabile che riproduca la validazione nativa senza aggiungere stato o UI.
 
 Se Interaction funziona, il problema non diventa soltanto documentale:
-Completion continua ad avere un difetto di rendering; Interaction è un
-workaround che cambia l’UX e richiede una nuova decisione di prodotto.
+Completion continua ad avere un difetto di rendering; Interaction cambia l’UX
+e resta quindi una scelta esplicita del merchant.
+
+La prova live ha mostrato che `CHECKOUT_INTERACTION` con target globale
+`$.cart` rende due box chiari in cima al checkout, uno per CF e uno per PEC,
+già al caricamento. Con checkout a pagina singola e conferma ordine attiva,
+“Rivedi l’ordine” blocca l’avanzamento e riporta la pagina sui box, evitando la
+review con blocco silenzioso. Questo comportamento è approvato come modalità
+preventiva opzionale, non come default: il motore usa
+`errorDisplay: "preventive"` nello schema config v2, mantiene
+`CHECKOUT_COMPLETION` come barriera finale e la futura UI merchant deve
+includere un avviso esplicito sull’anticipo degli errori. Il controllo
+configurabile sarà consegnato con la UI completa in M6.
 
 ## 9. Function ufficiale minimale
 

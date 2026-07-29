@@ -37,8 +37,9 @@
       "validation": {
         "metafield": {
           "jsonValue": {
-            "schemaVersion": 1,
+            "schemaVersion": 2,
             "enabled": true,
+            "errorDisplay": "inline",
             "entitlement": {
               "kind": "trial",
               "validThrough": "2026-07-29"
@@ -72,7 +73,7 @@
             "errors": [
               {
                 "message": "Inserisci il Codice Fiscale per completare l’ordine.",
-                "target": "$.cart.localizedFields.TAX_CREDENTIAL_IT"
+                "target": "$.cart.localizedField.TAX_CREDENTIAL_IT"
               }
             ]
           }
