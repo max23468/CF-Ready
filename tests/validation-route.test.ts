@@ -14,8 +14,9 @@ import {
 
 test("il percorso PoC scrive una configurazione accettata dalla Function", () => {
   expect(POC_CONFIG).toMatchObject({
-    schemaVersion: 1,
+    schemaVersion: 2,
     enabled: true,
+    errorDisplay: "inline",
     entitlement: { kind: "one_time", validThrough: null },
     rules: {
       taxCode: "required_validated",

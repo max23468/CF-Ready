@@ -54,17 +54,23 @@ client custom.
 | `blockOnFailure` | `false` |
 | namespace metafield | `$app:cf-ready-validation` |
 | chiave metafield | `function-configuration` |
-| configurazione | `{"pocVersion":1,"enabled":true}` |
+| configurazione | schema v2, `enabled: true`, `errorDisplay: "inline"` |
 
 La Function:
 
-- opera solo in `CHECKOUT_COMPLETION`;
+- in modalità inline opera solo in `CHECKOUT_COMPLETION`;
+- in modalità preventiva opera anche in `CHECKOUT_INTERACTION`, con target
+  globale `$.cart`, mantenendo Completion;
 - legge soltanto `TAX_CREDENTIAL_IT`;
 - se il localized field è assente applica il fail-open;
 - se il campo è presente ma vuoto restituisce l'errore sul target
-  `$.cart.localizedFields.TAX_CREDENTIAL_IT`;
+  `$.cart.localizedField.TAX_CREDENTIAL_IT`;
 - su configurazione mancante o non valida e su errore runtime applica il
   fail-open.
+
+La forma camelCase al singolare sostituisce il target plurale originario dopo
+la prova live documentata in
+`docs/evidence/2026-07-29-checkout-validation-rendering.md`.
 
 M1 non implementa ancora la validazione formale completa, le tre modalità
 merchant o PEC: sono deliverable successivi.

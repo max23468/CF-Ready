@@ -2,89 +2,121 @@
 
 **Data:** 29 luglio 2026
 
+**Ambiente:** Development
+
 **Store:** `cf-ready-dev.myshopify.com`
+
+**App:** CF Ready Development
+
+**Deploy:** nessuno
 
 ## Esito
 
-La Cart and Checkout Validation Function blocca correttamente il completamento
-quando `TAX_CREDENTIAL_IT` è vuoto, ma il checkout ospitato non mostra il
-messaggio restituito: il contenitore accessibile `alert` resta vuoto.
+La causa del blocco silenzioso nel checkout standard è il target al plurale:
 
-Il comportamento è stato riprodotto con:
-
-- Function API `2026-07` e `2026-04`;
-- target `$.cart.localizedFields.TAX_CREDENTIAL_IT` e, come controllo,
-  `$.cart`;
-- checkout nuovi;
-- tema pubblicato e anteprima tema.
-
-In ogni variante Shopify ha eseguito la Function a `CHECKOUT_COMPLETION`, ha
-ricevuto un `validationAdd` con il messaggio atteso e ha impedito la creazione
-dell’ordine. Un Codice Fiscale valido ha invece completato il checkout.
-
-## Seconda verifica indipendente
-
-Verifica successiva condotta solo in locale: nessuna prova live, nessun
-`shopify app dev`, nessuna scrittura Shopify e nessun deploy.
-
-### Prove locali
-
-I log di esecuzione prodotti dalle prove live restano in `.shopify/logs`, che
-Git ignora: sono artefatti locali, non versionati. La raccolta contiene 89
-esecuzioni reali, di cui 52 a `CHECKOUT_INTERACTION` e 27 a
-`CHECKOUT_COMPLETION`. Le esecuzioni Completion pertinenti riportano
-`status: success` e `logs: []`, con output completo. Esempio osservato con
-`TAX_CREDENTIAL_IT` vuoto:
-
-```json
-{
-  "operations": [
-    {
-      "validationAdd": {
-        "errors": [
-          {
-            "message": "Inserisci il Codice Fiscale per completare l’ordine.",
-            "target": "$.cart.localizedFields.TAX_CREDENTIAL_IT"
-          }
-        ]
-      }
-    }
-  ]
-}
+```text
+$.cart.localizedFields.TAX_CREDENTIAL_IT
+$.cart.localizedFields.TAX_EMAIL_IT
 ```
 
-La stessa raccolta contiene le due esecuzioni di controllo con target `$.cart`
-e messaggio identico: anche lì Shopify ha ricevuto un output completo e valido.
+Shopify esegue correttamente la Function e blocca l’ordine, ma non collega né
+mostra gli errori. La forma camelCase al singolare rende invece il messaggio
+inline sotto il localized field corrispondente:
 
-`npm run test:function` ricompila `dist/function.wasm` dai sorgenti ed esegue
-le fixture con `function-runner`, quindi confronta l’output reale del Wasm con
-quello atteso: 102 test verdi, apostrofi tipografici e accenti inclusi.
+```text
+$.cart.localizedField.TAX_CREDENTIAL_IT
+$.cart.localizedField.TAX_EMAIL_IT
+```
 
-La query di input è stata validata contro lo schema ufficiale della Function
-API `2026-07` senza errori.
+Il candidato locale usa quindi il target singolare. La modalità inline
+predefinita continua a validare soltanto a `CHECKOUT_COMPLETION`.
 
-Molte esecuzioni Interaction ricevono i localized fields già presenti ma
-vuoti. Abilitare la validazione a questo step può quindi mostrare errori prima
-che il cliente inizi a compilare. I log non permettono invece di ricostruire il
-metodo di pagamento usato nelle prove precedenti.
+Resta un difetto distinto della piattaforma: con il passaggio di conferma
+ordine attivo, la review read-only blocca il submit finale senza mostrare il
+messaggio, anche quando la Function restituisce il target singolare corretto.
 
-### Ipotesi escluse
+## Preparazione e perimetro
 
-| Ipotesi | Perché è esclusa |
+Prima delle scritture remote sono stati verificati:
+
+- store `cf-ready-dev.myshopify.com`;
+- organizzazione Temisfera;
+- app CF Ready Development;
+- ambiente Development e dev preview;
+- una sola Validation CF Ready;
+- rollback alla versione Development rilasciata precedente;
+- checkout standard guest con dati esclusivamente sintetici.
+
+Production non è stata aperta né modificata. Non sono stati eseguiti deploy,
+release, billing o ordini reali.
+
+## Matrice osservata
+
+| Variabile | Esito |
 | --- | --- |
-| Motore, regole, entitlement, geografia o lingua | l’input reale mostra `CHECKOUT_COMPLETION`, `IT` ovunque, config valida ed errore atteso |
-| Forma dell’output | `operations[].validationAdd.errors[].message` e `.target` coincidono con l’esempio ufficiale della Function API |
-| Serializzazione del messaggio nel Wasm | il Wasm reale emette i caratteri non ASCII intatti, confrontati byte a byte dalle fixture; resta da escludere una sensibilità del rendering con una prova live ASCII |
-| Testo, lingua o lunghezza | Shopify non documenta vincoli; i messaggi restano sotto 200 caratteri per costruzione |
-| Target globale come soluzione | anche `$.cart`, documentato come errore globale in cima al checkout, non ha reso il messaggio; la sintassi del target localized resta da verificare |
-| Coerenza API version, schema, tipi, CLI e bundle | `2026-07` in `shopify.extension.toml` e nella query validata, schema con `poNumber` e `LocalizedField.title`, Shopify CLI 4.5.2, Wasm ricostruito a ogni test |
-| Test che non eseguono il Wasm | `tests/default.test.js` chiama `buildFunction` e `runFunction`, non il sorgente TypeScript |
-| `blockOnFailure` | Shopify documenta che gli errori di validazione bloccano sempre e che il campo governa solo le eccezioni runtime |
+| Target plurale, one-page, conferma OFF | ordine bloccato, messaggio assente |
+| Target plurale, one-page, conferma ON | review raggiunta; submit finale bloccato, messaggio assente |
+| Target plurale, three-page, conferma OFF | ordine bloccato, messaggio assente |
+| Target plurale, three-page, conferma ON | submit finale bloccato, messaggio assente |
+| Messaggio solo ASCII con target plurale | messaggio assente |
+| Target singolare camelCase per CF | messaggio inline visibile e presente nell’albero accessibile |
+| Target singolare camelCase per PEC | messaggio inline visibile e presente nell’albero accessibile |
+| CF mancante | messaggio required inline |
+| CF formalmente invalido | messaggio invalid inline |
+| CF formalmente valido | errore rimosso durante la modifica |
+| PEC mancante con regola temporaneamente required | messaggio required inline |
+| Lingua italiana | messaggio italiano inline |
+| Lingua inglese | messaggio inglese inline |
+| API Function `2026-07` | target singolare funzionante |
+| API Function `2026-04` | target singolare funzionante |
+| One-page, conferma OFF, target singolare | funzionante |
+| Three-page, conferma OFF, target singolare | funzionante |
+| One-page, conferma ON, target singolare | submit finale nella review bloccato senza messaggio |
+| Three-page, conferma ON, target singolare | submit finale nella review bloccato senza messaggio |
 
-### Incoerenza nelle fonti Shopify
+Il testo non è la causa: il target plurale fallisce anche con ASCII semplice,
+mentre il target singolare rende correttamente apostrofi tipografici e accenti.
+La versione API non è la causa: `2026-04` e `2026-07` hanno lo stesso esito.
 
-Le fonti ufficiali correnti indicano tre forme diverse per il target di un
-localized field:
+## Modalità preventiva verificata
+
+La combinazione diagnostica seguente è stata verificata live:
+
+- `CHECKOUT_INTERACTION` con target globale `$.cart`;
+- `CHECKOUT_COMPLETION` mantenuto come barriera finale;
+- un errore globale per CF e uno per PEC.
+
+I due errori vengono mostrati come box distinti in cima al checkout già al
+caricamento. Con checkout a pagina singola e conferma ordine attiva, “Rivedi
+l’ordine” blocca l’avanzamento e riporta la pagina sui due box, evitando la
+review con blocco silenzioso.
+
+L’owner ha approvato questa modalità come opzione configurabile per il merchant.
+Il motore locale la implementa con `errorDisplay: "preventive"` nello schema
+config v2; `inline` resta il default. Il comportamento live è stato verificato
+con la stessa combinazione di step e target prima di consolidarlo nel contratto.
+La UI completa in M6 dovrà:
+
+- avvertire che i box possono apparire al caricamento;
+- mantenere `CHECKOUT_COMPLETION`;
+- consigliarla nella Guida e FAQ quando il merchant usa la conferma ordine;
+- non dichiarare di rilevare automaticamente l’impostazione Shopify.
+
+## Ipotesi escluse
+
+| Ipotesi | Evidenza |
+| --- | --- |
+| Motore, regole, entitlement o geografia | input e output live sono coerenti; la stessa logica rende con il target singolare |
+| Serializzazione Wasm | fixture reali del Wasm e messaggi Unicode corretti |
+| Testo, lingua o lunghezza | ASCII fallisce col plurale; IT/EN e Unicode rendono col singolare |
+| Versione API | stesso comportamento su `2026-04` e `2026-07` |
+| Layout come causa primaria | plurale fallisce e singolare rende sia one-page sia three-page con conferma OFF |
+| Configurazione della Validation | una sola Validation, Function eseguita con successo e output atteso |
+| `blockOnFailure` | non governa gli errori di validazione restituiti, ma le eccezioni runtime |
+
+## Incoerenza nelle fonti Shopify
+
+Le fonti ufficiali correnti indicano tre forme diverse:
 
 | Forma | Fonte |
 | --- | --- |
@@ -92,43 +124,67 @@ localized field:
 | `$.cart.localizedfield.key` | tabella “Supported checkout field targets” della stessa pagina |
 | `$.cart.localizedField.${taxIdField.key}` | esempio della [Localized Fields API](https://shopify.dev/docs/api/checkout-ui-extensions/2026-07/target-apis/checkout-apis/localized-fields-api) |
 
-CF Ready usa la prima, cioè quella dell’esempio ufficiale della Function API.
-Le altre due, entrambe al singolare, provengono dalle fonti che descrivono il
-lato rendering. La variante al singolare non è mai stata provata sul dev store.
+La prova live dimostra che la terza forma, camelCase al singolare, è quella che
+Shopify collega ai localized fields nel checkout corrente. La forma plurale
+dell’esempio Function blocca senza rendere. Prima di una release Production
+resta necessario chiedere a Shopify quale forma sia contrattuale.
 
-### Difetti Shopify già riconosciuti della stessa classe
+## Superfici non disponibili
 
-- [Errori Completion inghiottiti nella review con conferma ordine](https://community.shopify.dev/t/bug-cart-validation-functions-two-issues-blocking-migration-from-usebuyerjourneyintercept/31931):
-  target `$.cart`, blocco applicato e messaggio presente nella risposta ma
-  assente nella UI; Shopify ha confermato il bug il 9 marzo 2026. Lo stato della
-  conferma ordine durante le prove CF Ready non è ancora stato registrato.
-- [Errori non mostrati nel checkout accelerato Google Pay](https://community.shopify.dev/t/cart-and-checkout-validation-error-messages-not-displaying-during-google-pay-accelerated-checkout/23544):
-  target `$.cart`, blocco applicato e messaggio assente; Shopify ha confermato
-  il bug il 7 ottobre 2025.
-- [Errori non mostrati su indirizzi precompilati per clienti autenticati](https://community.shopify.dev/t/cart-checkout-validation-error-message-not-showing-for-deliveryaddress-logged-in-users/32643):
-  Shopify lo ha classificato come limite di piattaforma il 27 marzo 2026.
+- Cliente autenticato: non provato perché il nuovo account cliente richiede un
+  codice inviato via email e non era disponibile una casella sintetica
+  controllata.
+- Checkout accelerati: nel checkout osservato era disponibile soltanto il Test
+  Payment Gateway; Shop Pay, Apple Pay, Google Pay e PayPal non erano
+  selezionabili.
+- Function ufficiale minimale separata: non necessaria, perché una variante
+  locale minima del solo target ha risolto il rendering standard.
 
-### Prove live ancora da eseguire
+Questi limiti non vengono trasformati in esiti positivi impliciti.
 
-Le prove, il loro ordine, i rollback e i criteri di stop sono definiti nel
-[piano di indagine](../plans/2026-07-29-checkout-validation-rendering-investigation.md).
-Includono:
+## Verifiche locali
 
-1. checkout standard guest con conferma ordine ON/OFF;
-2. messaggio ASCII;
-3. target localized al singolare nelle due forme documentate;
-4. `CHECKOUT_INTERACTION` mantenendo Completion come gate finale;
-5. Function minimale generata dalla CLI;
-6. registrazione di layout, autenticazione, ingresso e metodo di pagamento.
+- build della Function riuscita;
+- 105 test Function verdi;
+- fixture Wasm aggiornata al target singolare;
+- Function API ripristinata a `2026-07`;
+- messaggi ripristinati e configurazione PoC locale aggiornata allo schema v2,
+  con modalità inline predefinita;
+- `git diff --check` verde.
 
-## Conclusione
+I log live restano in `.shopify/logs`, ignorati da Git. Non vengono allegati
+perché contengono identificatori tecnici e configurazione; l’evidenza riporta
+soltanto risultati sanitizzati.
 
-Il motore CF Ready, la configurazione, la forma dell’output e l’attivazione
-sono esclusi come causa, ora anche sulla base dei log di esecuzione reali.
-Restano da isolare sintassi del target, timing, configurazione della review e
-superficie checkout. Non viene introdotta una Checkout UI Extension come
-workaround perché non coprirebbe uniformemente i piani supportati; il gate
-richiede il completamento del piano di indagine e, se non emerge una soluzione
-accettabile, l’escalation a Shopify.
+## Rollback e stato finale
 
-La Validation è stata disattivata al termine delle prove.
+Al termine delle prove:
+
+- Validation PoC disattivata;
+- una sola Validation CF Ready presente e inattiva;
+- checkout a pagina singola ripristinato;
+- conferma ordine disattivata e riletta nell’Admin Shopify;
+- codice diagnostico sostituito dal ramo configurabile
+  `errorDisplay: "preventive"`;
+- modalità inline locale predefinita e Completion-only;
+- nessuna scrittura remota eseguita dopo l’introduzione dello schema v2;
+- nessun deploy eseguito.
+
+## Conclusione e escalation
+
+Il fix locale del rendering standard è il target
+`$.cart.localizedField.<KEY>`. Il bug della review con conferma ordine ON è
+confermato separatamente e coincide con la classe di difetti già riconosciuta
+da Shopify.
+
+L’indagine resta aperta soltanto per:
+
+1. conferma Shopify della sintassi contrattuale del target;
+2. stato del bug Completion nella review europea;
+3. percorso supportato per coprire localized fields, conferma ordine e checkout
+   accelerati senza errori prematuri;
+4. prove su cliente autenticato e wallet quando saranno disponibili superfici
+   sintetiche controllabili.
+
+Il [piano temporaneo](../plans/2026-07-29-checkout-validation-rendering-investigation.md)
+resta quindi presente e non viene rimosso dall’indice.

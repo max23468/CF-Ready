@@ -5,8 +5,10 @@ import type {
 
 type Rule = "unmanaged" | "optional_validated" | "required_validated";
 type MessageKey = "taxCodeRequired" | "taxCodeInvalid" | "pecRequired" | "pecInvalid";
+type ErrorDisplay = "inline" | "preventive";
 
 type Configuration = {
+  errorDisplay: ErrorDisplay;
   rules: { taxCode: Rule; pec: Rule };
   messages: Record<"it" | "en", Record<MessageKey, string>>;
 };
@@ -16,8 +18,8 @@ const allow: CartValidationsGenerateRunResult = {
 };
 
 const targets = {
-  taxCode: "$.cart.localizedFields.TAX_CREDENTIAL_IT",
-  pec: "$.cart.localizedFields.TAX_EMAIL_IT",
+  taxCode: "$.cart.localizedField.TAX_CREDENTIAL_IT",
+  pec: "$.cart.localizedField.TAX_EMAIL_IT",
 } as const;
 
 const omocodiaDigits: Record<string, string> = {
@@ -113,7 +115,7 @@ function isMessages(value: unknown): value is Record<"it" | "en", Record<Message
 function readConfiguration(value: unknown, localDate: unknown): Configuration | null {
   if (
     !isRecord(value) ||
-    value.schemaVersion !== 1 ||
+    value.schemaVersion !== 2 ||
     value.enabled !== true ||
     !isDate(localDate)
   ) {
@@ -128,6 +130,7 @@ function readConfiguration(value: unknown, localDate: unknown): Configuration | 
 
   const ruleValues = ["unmanaged", "optional_validated", "required_validated"];
   if (
+    (value.errorDisplay !== "inline" && value.errorDisplay !== "preventive") ||
     typeof rules.taxCode !== "string" ||
     !ruleValues.includes(rules.taxCode) ||
     typeof rules.pec !== "string" ||
@@ -144,6 +147,7 @@ function readConfiguration(value: unknown, localDate: unknown): Configuration | 
 
   return entitled
     ? {
+        errorDisplay: value.errorDisplay,
         rules: {
           taxCode: rules.taxCode as Rule,
           pec: rules.pec as Rule,
@@ -248,13 +252,19 @@ export function cartValidationsGenerateRun(
   input: CartValidationsGenerateRunInput,
 ): CartValidationsGenerateRunResult {
   try {
-    if (input.buyerJourney.step !== "CHECKOUT_COMPLETION") return allow;
-
     const config = readConfiguration(
       input.validation.metafield?.jsonValue,
       input.shop.localTime.date,
     );
-    if (!config || input.cart.localizedFields.length === 0) return allow;
+    const step = input.buyerJourney.step;
+    if (
+      !config ||
+      (step !== "CHECKOUT_COMPLETION" &&
+        !(config.errorDisplay === "preventive" && step === "CHECKOUT_INTERACTION"))
+    ) {
+      return allow;
+    }
+    if (input.cart.localizedFields.length === 0) return allow;
     if (input.cart.billingAddress?.countryCode && input.cart.billingAddress.countryCode !== "IT") {
       return allow;
     }
@@ -278,7 +288,7 @@ export function cartValidationsGenerateRun(
       messages,
       "taxCodeRequired",
       "taxCodeInvalid",
-      targets.taxCode,
+      step === "CHECKOUT_INTERACTION" ? "$.cart" : targets.taxCode,
       isValidTaxCode,
     );
     addFieldError(
@@ -288,7 +298,7 @@ export function cartValidationsGenerateRun(
       messages,
       "pecRequired",
       "pecInvalid",
-      targets.pec,
+      step === "CHECKOUT_INTERACTION" ? "$.cart" : targets.pec,
       isValidPec,
     );
 

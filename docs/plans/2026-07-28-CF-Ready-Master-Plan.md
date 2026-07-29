@@ -321,12 +321,12 @@ Rispetto alle alternative più ampie o invasive:
 | D-016 | Validazione formale rafforzata del CF. | Rifiuta date palesemente impossibili senza fingere verifica anagrafica. |
 | D-017 | Non applicare checksum Partita IVA al CF provvisorio. | Evita di certificare erroneamente una sequenza numerica. |
 | D-018 | Normalizzare solo per la validazione, senza riscrivere il dato Shopify. | La Function valida ma non deve mutare l’input cliente. |
-| D-019 | Validare solo a `CHECKOUT_COMPLETION`. | Evita errori prematuri e segue il pattern Shopify per localized fields. |
+| D-019 | La modalità inline valida solo a `CHECKOUT_COMPLETION`; la modalità preventiva aggiunge `CHECKOUT_INTERACTION` senza rimuovere Completion. | Mantiene il default non invasivo e offre copertura esplicita al bug Shopify della review. |
 | D-020 | Mostrare simultaneamente gli errori CF e PEC. | Il cliente corregge tutto in un solo tentativo. |
 | D-021 | Messaggi IT/EN personalizzabili, otto in totale. | Merchant italiani con checkout multilingua. |
 | D-022 | Inglese fallback per ogni altra lingua checkout. | Copertura semplice e prevedibile della 1.0. |
 | D-023 | Limite 200 caratteri, trim e divieto di messaggi vuoti. | Mantiene messaggi leggibili e validi. |
-| D-024 | Errori collegati direttamente ai campi nativi. | Migliore UX rispetto a un errore globale. |
+| D-024 | In modalità inline gli errori sono collegati ai campi nativi; in modalità preventiva sono box globali distinti per CF e PEC. | Il target globale è necessario per rendere gli errori prima della review. |
 | D-025 | Nessuna regola per destinazione estera. | I campi italiani non sono pertinenti o possono non essere disponibili. |
 | D-026 | Fatturazione estera esenta automaticamente CF e PEC, anche con consegna in Italia. | Shopify non comunica la cittadinanza; il Paese di fatturazione è il proxy disponibile. |
 | D-027 | Se la fatturazione non è ancora disponibile ma il contesto italiano è rilevabile, applicare prudentemente la regola. | Evita aggiramenti dovuti a dato temporaneamente assente. |
@@ -424,6 +424,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-119 | Abilitare l’auto-merge nativo in `develop` per le sole PR Dependabot minor/patch dopo `CI` e `React Doctor` verdi. Eliminare dopo il merge soltanto i branch `dependabot/*`; major e promozioni `develop` → `main` restano manuali. | Allinea CF Ready a SyncBay e Pratix, rende atomico il vincolo sullo SHA verificato, preserva gli eventi post-merge e non espone `develop` alla cancellazione globale dei branch. |
 | D-120 | La visibilità pubblica non rende il progetto open-source: nessuna licenza viene concessa finché l’owner non sceglie esplicitamente e aggiunge un file `LICENSE`. | Una licenza attribuisce diritti di riuso e distribuzione e non va dedotta dalla sola pubblicazione del codice. |
 | D-121 | `package.json#version` è la fonte canonica di `<SemVer>`. Ogni `shopify app deploy` rilasciato passa dal workflow GitHub Actions dell'ambiente e usa `--version`: `<SemVer>-dev.<run_number>.<run_attempt>` in Development e `<SemVer>` in Production. | Evita collisioni fra deploy automatici, manuali e retry, collega ogni snapshot Shopify alla release applicativa ed evita identificatori automatici come `cf-ready-1`. |
+| D-122 | Offrire `inline` come visualizzazione errori predefinita e `preventive` come opzione merchant; la Guida la consiglia quando è attiva la conferma ordine Shopify. | La prova live mostra che i box globali a Interaction impediscono la review silenziosa, ma possono apparire già al caricamento e richiedono una scelta informata. |
 
 ---
 
@@ -471,11 +472,13 @@ required
 
 **FR-013** — `required` blocca vuoto e valore non valido con messaggi distinti.
 
-**FR-014** — La Validation viene eseguita solo a `CHECKOUT_COMPLETION`.
+**FR-014** — In modalità `inline` la Validation viene eseguita solo a `CHECKOUT_COMPLETION`; in modalità `preventive` viene eseguita anche a `CHECKOUT_INTERACTION`.
 
 **FR-015** — Se entrambi i campi falliscono, vengono restituiti entrambi gli errori.
 
-**FR-016** — Gli errori devono puntare al localized field corrispondente.
+**FR-016** — A Completion gli errori puntano al localized field corrispondente; a Interaction, in modalità preventiva, ogni errore usa il target globale `$.cart`.
+
+**FR-017** — La modalità preventiva è disattivata per default, mantiene Completion come barriera finale e mostra un avviso merchant sugli errori anticipati.
 
 ### 7.3 Applicabilità geografica
 
@@ -874,13 +877,13 @@ flowchart LR
 ### 9.4 Flusso checkout
 
 1. Shopify esegue la Function a un evento della buyer journey.
-2. Se non è `CHECKOUT_COMPLETION`, la Function restituisce zero errori.
-3. Legge JSON configurazione dal metafield.
-4. Se JSON assente, disabilitato, corrotto, non supportato o entitlement scaduto, restituisce zero errori.
+2. Legge JSON configurazione dal metafield.
+3. Se JSON assente, disabilitato, corrotto, non supportato o entitlement scaduto, restituisce zero errori.
+4. Accetta sempre `CHECKOUT_COMPLETION`; accetta `CHECKOUT_INTERACTION` solo in modalità preventiva.
 5. Determina applicabilità geografica.
 6. Se billing estero o destinazione esclusivamente estera, restituisce zero errori.
 7. Per ogni localized field presente applica la regola.
-8. Restituisce da zero a due errori, collegati ai campi.
+8. A Completion restituisce errori inline; a Interaction restituisce box globali distinti.
 
 ### 9.5 Flusso salvataggio
 
@@ -926,7 +929,7 @@ sequenceDiagram
 - Target corrente: `cart.validations.generate.run`.
 - Function API: pin `2026-07` durante lo sviluppo `0.x`. Al 27 luglio 2026 Shopify la classifica ancora come **release candidate**; non pubblicare `1.0.0` finché non è diventata stabile e non ha superato build, fixture e checkout reali.
 - Admin GraphQL API: pin `2026-07`, già stabile.
-- Trigger logico: solo `CHECKOUT_COMPLETION`.
+- Trigger logico: `CHECKOUT_COMPLETION`; anche `CHECKOUT_INTERACTION` quando `errorDisplay` è `preventive`.
 - Configurazione: un metafield JSON sulla Validation.
 - Output: `validationAdd.errors`.
 - Modalità errore runtime: `blockOnFailure: false`.
@@ -985,15 +988,16 @@ Il commento sul metodo di consegna non autorizza una query più ampia “per sic
 Pseudocodice vincolante:
 
 ```text
-if buyerJourney.step != CHECKOUT_COMPLETION:
-  allow
-
 config = parseConfiguration()
 if config invalid or config.enabled != true:
   allow
 
 if entitlement is not active at shop local time:
   allow
+
+if buyerJourney.step != CHECKOUT_COMPLETION:
+  if config.errorDisplay != preventive or buyerJourney.step != CHECKOUT_INTERACTION:
+    allow
 
 fields = localized fields actually returned by Shopify
 if neither CF nor PEC field is present:
@@ -1074,17 +1078,17 @@ Il fail-open deve essere applicato anche dal proprietario della Function: `valid
 Usare:
 
 ```text
-$.cart.localizedFields.TAX_CREDENTIAL_IT
-$.cart.localizedFields.TAX_EMAIL_IT
+$.cart.localizedField.TAX_CREDENTIAL_IT
+$.cart.localizedField.TAX_EMAIL_IT
 ```
 
-Verificare nel test CLI l’esatta forma richiesta dalla versione API pinata.
-
 Le fonti Shopify correnti indicano tre forme diverse per lo stesso target: la
-forma sopra viene dall’esempio della Function API, mentre la tabella dei target
-supportati e la Localized Fields API usano il singolare `localizedField`. La
-forma da usare va decisa su prova live, non su lettura; prove, rollback e
-criteri decisionali sono nel piano temporaneo
+Function API mostra il plurale `localizedFields`, mentre la tabella dei target
+supportati e la Localized Fields API usano forme singolari. La prova live del
+29 luglio 2026 ha dimostrato che la forma camelCase sopra rende inline, mentre
+il plurale blocca senza messaggio. Prima della release Production chiedere a
+Shopify conferma della sintassi contrattuale; evidenza, rollback e quesiti sono
+nel piano temporaneo
 `docs/plans/2026-07-29-checkout-validation-rendering-investigation.md`.
 
 ### 10.9 Budget prestazionale
@@ -1136,8 +1140,9 @@ La forma logica del valore è:
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "enabled": true,
+  "errorDisplay": "inline",
   "entitlement": {
     "kind": "trial",
     "validThrough": "2026-08-10"
@@ -1171,6 +1176,13 @@ optional_validated
 required_validated
 ```
 
+Valori ammessi per `errorDisplay`:
+
+```text
+inline
+preventive
+```
+
 Valori ammessi per `entitlement.kind`:
 
 ```text
@@ -1185,6 +1197,8 @@ Regole:
 - `validThrough` è una data locale inclusiva per prova e sottoscrizione;
 - per una licenza una tantum valida, `validThrough` è `null`;
 - `enabled` rappresenta la volontà operativa del merchant, non sostituisce l’entitlement;
+- `errorDisplay` è obbligatorio; `inline` è il default applicativo e
+  `preventive` abilita anche Interaction con target globali;
 - la Function valida entrambi: app attiva e diritto commerciale valido;
 - messaggi sempre presenti, non vuoti, trimmati e di massimo 200 caratteri;
 - configurazioni con schema futuro sconosciuto sono fail-open.
@@ -1876,6 +1890,9 @@ Due sezioni con tre radio sempre visibili.
 Ogni opzione ha una spiegazione concreta. Dopo le regole:
 
 - riquadro non modificabile `Eccezioni automatiche`;
+- controllo `Mostra avvisi preventivi nel checkout`, disattivato per default,
+  con avviso che gli errori possono apparire già al caricamento e indicazione
+  “Consigliato se usi la conferma ordine Shopify”;
 - anteprima dinamica `Come funzionerà il checkout`;
 - Save Bar `Salva` / `Annulla`;
 - salvataggio non attiva implicitamente una Validation disattivata.
@@ -1939,6 +1956,7 @@ Pagina unica con sezioni espandibili:
 - significato di “formalmente valido”;
 - CF ordinario e provvisorio;
 - validazione PEC;
+- modalità di visualizzazione degli errori e conferma ordine;
 - checkout accelerati;
 - app disattivata;
 - prova e pagamenti;
@@ -1950,6 +1968,12 @@ Pagina unica con sezioni espandibili:
 - risoluzione problemi;
 - riapertura onboarding;
 - contatto sviluppatore.
+
+La Guida e FAQ deve consigliare la modalità preventiva con box globali ai
+merchant che mantengono attivo il passaggio Shopify di conferma dell’ordine.
+Deve spiegare che i box possono apparire già al caricamento, ma evitano che il
+cliente raggiunga la review con un blocco senza messaggio. Non deve suggerire
+che CF Ready rilevi automaticamente l’impostazione Shopify.
 
 ### 15.8 Store non supportato
 
@@ -3445,18 +3469,25 @@ Rifiniture non bloccanti tracciate in Open items §34.5.
 
 **Implementazione locale completata il 29 luglio 2026.** Query, motore e matrice
 automatizzata sono nel workspace `cf-ready-validation`; build Function, test e
-gate locale completo sono verdi. Sul dev store Shopify esegue la Function,
-riceve l’errore atteso e blocca l’ordine, ma il checkout ospitato non rende il
-messaggio. Il problema è riprodotto anche con API stabile, target globale,
-checkout nuovo e tema pubblicato; l’evidenza è in
-`docs/evidence/2026-07-29-checkout-validation-rendering.md`. Una seconda
-verifica indipendente ha confermato sui log di esecuzione reali che l’output
-della Function è corretto. Restano da isolare conferma/review, superficie
-standard o accelerata, messaggio ASCII, sintassi del target e timing
-Interaction/Completion secondo
-`docs/plans/2026-07-29-checkout-validation-rendering-investigation.md`. La
-milestone resta aperta fino al completamento delle prove, all’eventuale
-escalation Shopify e ai checkout accelerati disponibili.
+gate locale completo sono verdi. L’indagine live ha isolato il problema nel
+target al plurale dell’esempio Function: Shopify blocca senza rendere
+`$.cart.localizedFields.<KEY>`, mentre
+`$.cart.localizedField.<KEY>` rende inline CF e PEC su checkout standard
+one-page e three-page con conferma ordine OFF. Messaggi ASCII e Unicode,
+italiano e inglese, Function API `2026-04` e `2026-07` confermano che testo e
+versione API non sono la causa.
+
+Con conferma ordine ON, la review read-only continua a bloccare il submit finale
+senza messaggio: è un difetto Shopify distinto. La modalità preventiva
+opzionale, con box globali a `CHECKOUT_INTERACTION` e Completion mantenuto,
+evita la review silenziosa. Il motore e il contratto config v2 sono implementati
+in M3; il controllo merchant sarà consegnato con la UI completa in M6.
+L’evidenza completa è in
+`docs/evidence/2026-07-29-checkout-validation-rendering.md`. La milestone resta
+aperta per la conferma Shopify della sintassi contrattuale, lo stato del bug
+review e le superfici autenticata e accelerate non disponibili nel dev store;
+il piano temporaneo resta in
+`docs/plans/2026-07-29-checkout-validation-rendering-investigation.md`.
 
 Deliverable:
 
@@ -4010,7 +4041,6 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
    tra una licenza permissiva, copyleft o nessuna concessione resta
    esplicitamente all’owner; fino ad allora non si aggiunge `LICENSE` e vale
    D-120.
-
 I punti residui di brand sono verifiche e produzione di materiali che dipendono da milestone successive. **La Brand Foundation è chiusa.**
 
 I punti 1 e 2 erano da decidere presto in M2 e sono stati chiusi lì.
