@@ -1,0 +1,70 @@
+name: Deploy Development
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-development
+  cancel-in-progress: false
+
+jobs:
+  deploy-shopify:
+    name: Deploy Shopify Function
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: Development
+
+    steps:
+      - name: Verifica branch
+        run: test "$GITHUB_REF" = "refs/heads/develop"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26.5.0
+          cache: npm
+
+      - run: npm install --global @shopify/cli@4.5.2
+      - run: npm ci
+      - run: npm run check
+
+      - name: Prepara versione
+        run: |
+          version="$(node -p "require('./package.json').version")-dev.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
+          echo "DEPLOY_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Verifica credenziale Shopify
+        env:
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+        run: test -n "$SHOPIFY_APP_AUTOMATION_TOKEN"
+
+      - name: Deploy Shopify Development
+        env:
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+        run: >-
+          shopify app deploy
+          --config dev
+          --allow-updates
+          --version "$DEPLOY_VERSION"
+          --message "Development ${GITHUB_SHA}"
+          --source-control-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
+          --no-color
+
+      - name: Readback versione attiva
+        env:
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+        run: |
+          shopify app versions list --config dev --no-color --json > "$RUNNER_TEMP/shopify-versions.json"
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const versions = JSON.parse(readFileSync(process.argv[1], "utf8"));
+            const active = versions.find(({ status }) => status === "active");
+            if (active?.versionTag !== process.env.DEPLOY_VERSION) {
+              throw new Error("Readback Shopify Development non riuscito.");
+            }
+            console.log(`Versione attiva verificata: ${active.versionTag} (${active.versionId})`);
+          ' "$RUNNER_TEMP/shopify-versions.json"

@@ -65,6 +65,13 @@ release, billing o ordini reali.
 | CF formalmente invalido | messaggio invalid inline |
 | CF formalmente valido | errore rimosso durante la modifica |
 | PEC mancante con regola temporaneamente required | messaggio required inline |
+| PEC formalmente invalida | messaggio “L’indirizzo PEC inserito non ha un formato email valido.” visibile |
+| PEC formalmente valida (`test@example.com`) | accettata; checkout non bloccato |
+| Dominio sintetico `test@pec.example` | respinto prima dalla validazione nativa del campo Shopify |
+| Cliente autenticato, PEC formalmente invalida | messaggio configurato visibile; checkout bloccato |
+| Cliente autenticato, PEC formalmente valida | accettata; ordine di test completato |
+| Checkout accelerati | non esposti dal dev store con Test Payment Gateway; prova rinviata al canary M10 |
+| Focus e scroll su PEC invalida | ritorno automatico al campo, bordo di focus e cursore visibili |
 | Lingua italiana | messaggio italiano inline |
 | Lingua inglese | messaggio inglese inline |
 | API Function `2026-07` | target singolare funzionante |
@@ -156,19 +163,28 @@ I log live restano in `.shopify/logs`, ignorati da Git. Non vengono allegati
 perché contengono identificatori tecnici e configurazione; l’evidenza riporta
 soltanto risultati sanitizzati.
 
-## Rollback e stato finale
+## Stato operativo corrente
 
-Al termine delle prove:
+Al termine della prima sessione di prove la Validation era stata disattivata.
+Su autorizzazione successiva dell’owner, per completare la matrice senza
+continue riattivazioni:
 
-- Validation PoC disattivata;
-- una sola Validation CF Ready presente e inattiva;
+- Validation PoC riattivata sul solo store Development;
+- una sola Validation CF Ready presente e attiva;
+- `blockOnFailure: false` confermato dal readback applicativo;
+- dev preview attiva sul candidato pubblicato in `develop`;
 - checkout a pagina singola ripristinato;
-- conferma ordine disattivata e riletta nell’Admin Shopify;
+- conferma ordine disattivata nell’ultimo readback Admin disponibile;
 - codice diagnostico sostituito dal ramo configurabile
   `errorDisplay: "preventive"`;
 - modalità inline locale predefinita e Completion-only;
-- nessuna scrittura remota eseguita dopo l’introduzione dello schema v2;
 - nessun deploy eseguito.
+
+La Validation resta attiva in Development fino a richiesta esplicita
+dell’owner. La disattivazione resta il rollback di emergenza per errori,
+configurazione incerta o Function non disponibile. Production non è coinvolta.
+Prima del primo deploy fisso il rollback Shopify è la versione attiva
+`cf-ready-development-2` (`gid://shopify/Version/1067786829825`).
 
 ## Conclusione e escalation
 
@@ -183,8 +199,8 @@ L’indagine resta aperta soltanto per:
 2. stato del bug Completion nella review europea;
 3. percorso supportato per coprire localized fields, conferma ordine e checkout
    accelerati senza errori prematuri;
-4. prove su cliente autenticato e wallet quando saranno disponibili superfici
-   sintetiche controllabili.
+4. prove sui wallet in M10, sul canary store reale dell’owner con dati e importi
+   controllati.
 
 Il [piano temporaneo](../plans/2026-07-29-checkout-validation-rendering-investigation.md)
 resta quindi presente e non viene rimosso dall’indice.
