@@ -4,6 +4,8 @@ import type { SessionStorage } from "@shopify/shopify-app-session-storage";
 type Property = [string, string | number | boolean];
 
 type StoredSession = {
+  id: string;
+  shop_domain: string;
   access_token_ciphertext: string | null;
   refresh_token_ciphertext: string | null;
   session_payload_ciphertext: string;
@@ -24,9 +26,19 @@ export class D1SessionStorage implements SessionStorage {
     const now = new Date().toISOString();
 
     const [payload, accessTokenCiphertext, refreshTokenCiphertext] = await Promise.all([
-      this.encrypt(JSON.stringify(properties)),
-      accessToken === undefined ? null : this.encrypt(String(accessToken)),
-      refreshToken === undefined ? null : this.encrypt(String(refreshToken)),
+      this.encrypt(JSON.stringify(properties), sessionContext(session.id, session.shop, "payload")),
+      accessToken === undefined
+        ? null
+        : this.encrypt(
+            String(accessToken),
+            sessionContext(session.id, session.shop, "accessToken"),
+          ),
+      refreshToken === undefined
+        ? null
+        : this.encrypt(
+            String(refreshToken),
+            sessionContext(session.id, session.shop, "refreshToken"),
+          ),
     ]);
 
     const results = await this.db.batch([
@@ -85,10 +97,11 @@ export class D1SessionStorage implements SessionStorage {
   async loadSession(id: string): Promise<Session | undefined> {
     const row = await this.db
       .prepare(
-        `SELECT access_token_ciphertext, refresh_token_ciphertext,
-                session_payload_ciphertext
-         FROM shopify_sessions
-         WHERE id = ?`,
+        `SELECT s.id, shops.shop_domain, s.access_token_ciphertext,
+                s.refresh_token_ciphertext, s.session_payload_ciphertext
+         FROM shopify_sessions s
+         JOIN shops ON shops.id = s.shop_id
+         WHERE s.id = ?`,
       )
       .bind(id)
       .first<StoredSession>();
@@ -127,8 +140,8 @@ export class D1SessionStorage implements SessionStorage {
   async findSessionsByShop(shop: string): Promise<Session[]> {
     const { results } = await this.db
       .prepare(
-        `SELECT s.access_token_ciphertext, s.refresh_token_ciphertext,
-                s.session_payload_ciphertext
+        `SELECT s.id, shops.shop_domain, s.access_token_ciphertext,
+                s.refresh_token_ciphertext, s.session_payload_ciphertext
          FROM shopify_sessions s
          JOIN shops ON shops.id = s.shop_id
          WHERE shops.shop_domain = ?
@@ -142,36 +155,53 @@ export class D1SessionStorage implements SessionStorage {
   }
 
   private async deserialize(row: StoredSession): Promise<Session> {
-    const properties = parseProperties(await this.decrypt(row.session_payload_ciphertext));
+    const properties = parseProperties(
+      await this.decrypt(
+        row.session_payload_ciphertext,
+        sessionContext(row.id, row.shop_domain, "payload"),
+      ),
+    );
 
     if (row.access_token_ciphertext) {
-      properties.push(["accessToken", await this.decrypt(row.access_token_ciphertext)]);
+      properties.push([
+        "accessToken",
+        await this.decrypt(
+          row.access_token_ciphertext,
+          sessionContext(row.id, row.shop_domain, "accessToken"),
+        ),
+      ]);
     }
     if (row.refresh_token_ciphertext) {
-      properties.push(["refreshToken", await this.decrypt(row.refresh_token_ciphertext)]);
+      properties.push([
+        "refreshToken",
+        await this.decrypt(
+          row.refresh_token_ciphertext,
+          sessionContext(row.id, row.shop_domain, "refreshToken"),
+        ),
+      ]);
     }
 
     return Session.fromPropertyArray(properties, true);
   }
 
-  private async encrypt(value: string): Promise<string> {
+  private async encrypt(value: string, context: Uint8Array<ArrayBuffer>): Promise<string> {
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const ciphertext = await crypto.subtle.encrypt(
-      { name: "AES-GCM", iv },
+      { name: "AES-GCM", iv, additionalData: context },
       await this.cryptoKey(),
       new TextEncoder().encode(value),
     );
-    return `v1.${toBase64(iv)}.${toBase64(new Uint8Array(ciphertext))}`;
+    return `v2.${toBase64(iv)}.${toBase64(new Uint8Array(ciphertext))}`;
   }
 
-  private async decrypt(value: string): Promise<string> {
+  private async decrypt(value: string, context: Uint8Array<ArrayBuffer>): Promise<string> {
     const [version, encodedIv, encodedCiphertext] = value.split(".");
-    if (version !== "v1" || !encodedIv || !encodedCiphertext) {
+    if (version !== "v2" || !encodedIv || !encodedCiphertext) {
       throw new Error("Formato della sessione cifrata non valido");
     }
 
     const plaintext = await crypto.subtle.decrypt(
-      { name: "AES-GCM", iv: fromBase64(encodedIv) },
+      { name: "AES-GCM", iv: fromBase64(encodedIv), additionalData: context },
       await this.cryptoKey(),
       fromBase64(encodedCiphertext),
     );
@@ -212,12 +242,20 @@ function parseProperties(value: string): Property[] {
   return parsed as Property[];
 }
 
+function sessionContext(
+  id: string,
+  shop: string,
+  field: "payload" | "accessToken" | "refreshToken",
+): Uint8Array<ArrayBuffer> {
+  return new TextEncoder().encode(JSON.stringify([id, shop, field]));
+}
+
 function toBase64(value: Uint8Array) {
   let binary = "";
   for (const byte of value) binary += String.fromCharCode(byte);
   return btoa(binary);
 }
 
-function fromBase64(value: string) {
+function fromBase64(value: string): Uint8Array<ArrayBuffer> {
   return Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
 }
