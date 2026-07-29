@@ -33,7 +33,37 @@ test("salva la sessione cifrata e la ricarica da D1", async () => {
       session_payload_ciphertext: string;
     }>();
   expect(JSON.stringify(row)).not.toMatch(/secret-(?:token|refresh-token)/);
+  expect(row?.session_payload_ciphertext).toMatch(/^v2\./);
   expect((await storage.loadSession(session.id))?.toPropertyArray(true)).toEqual(
     session.toPropertyArray(true),
   );
+});
+
+test("rifiuta ciphertext trapiantati tra sessioni", async () => {
+  const key = btoa(String.fromCharCode(...new Uint8Array(32).fill(8)));
+  const storage = new D1SessionStorage(env.DB, key);
+  const makeSession = (shop: string) =>
+    new Session({
+      id: `offline_${shop}`,
+      shop,
+      state: "state",
+      isOnline: false,
+      accessToken: `token-${shop}`,
+    });
+  const source = makeSession("source.myshopify.com");
+  const target = makeSession("target.myshopify.com");
+  await storage.storeSession(source);
+  await storage.storeSession(target);
+
+  await env.DB.prepare(
+    `UPDATE shopify_sessions
+     SET access_token_ciphertext = (
+       SELECT access_token_ciphertext FROM shopify_sessions WHERE id = ?
+     )
+     WHERE id = ?`,
+  )
+    .bind(source.id, target.id)
+    .run();
+
+  await expect(storage.loadSession(target.id)).rejects.toThrow();
 });
