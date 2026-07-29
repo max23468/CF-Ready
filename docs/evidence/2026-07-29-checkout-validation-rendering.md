@@ -160,6 +160,33 @@ I log live restano in `.shopify/logs`, ignorati da Git. Non vengono allegati
 perché contengono identificatori tecnici e configurazione; l’evidenza riporta
 soltanto risultati sanitizzati.
 
+### Chiusura audit M3
+
+Il 29 luglio 2026 l’artefatto M3 corrente è stato ricostruito e invocato con
+`shopify app function run` sulla fixture sintetica `tax-code-required`:
+
+| Voce | Valore |
+| --- | --- |
+| Esito | `success: true`, output conforme |
+| Istruzioni | 794.719 su 11.000.000 |
+| Memoria | 1.344 KiB |
+| Modulo Wasm | 15 KiB |
+| Log Function | vuoti |
+
+Il costo osservato usa circa il 7,2% del limite e lascia oltre il 92% di
+margine.
+
+Il readback fresco della Home embedded sullo store
+`cf-ready-dev.myshopify.com` ha mostrato `Validation PoC attiva`. Il loader
+interroga la fonte autorevole Shopify, pagina tutte le Validation e rifiuta il
+rendering se trova più di una Validation con handle `cf-ready-validation`;
+l’esito osservato conferma quindi una sola Validation CF Ready attiva.
+
+Il test del checkout iniziale con un prodotto in abbonamento non appartiene al
+motore M3: richiede un prodotto con selling plan e un checkout reale. È
+assegnato esplicitamente alla matrice canary M10, senza estendere l’esito alle
+generazioni ricorrenti successive.
+
 ## Stato operativo corrente
 
 Al termine della prima sessione di prove la Validation era stata disattivata.
