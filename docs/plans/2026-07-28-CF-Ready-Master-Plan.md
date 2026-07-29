@@ -2,7 +2,7 @@
 
 ## Master Plan di prodotto, architettura, implementazione e lancio
 
-**Stato:** baseline approvata per scaffolding e implementazione · M0–M2 completate · M3 implementata localmente, gate remoti pendenti
+**Stato:** baseline approvata per scaffolding e implementazione · M0–M2 completate · M3 implementata, rendering errori checkout da escalare a Shopify
 **Data:** 27 luglio 2026 · revisione 28 luglio 2026  
 **Documenti vincolanti collegati:** `docs/brand/brand-foundation.md` (identità visiva, tono, materiali pubblici)  
 **Brand:** CF Ready  
@@ -3441,9 +3441,13 @@ Rifiniture non bloccanti tracciate in Open items §34.5.
 
 **Implementazione locale completata il 29 luglio 2026.** Query, motore e matrice
 automatizzata sono nel workspace `cf-ready-validation`; build Function, test e
-gate locale completo sono verdi. La milestone resta aperta fino ai test sul dev
-store e ai checkout accelerati disponibili, che richiedono un’attivazione
-remota separata.
+gate locale completo sono verdi. Sul dev store Shopify esegue la Function,
+riceve l’errore atteso e blocca l’ordine, ma il checkout ospitato non rende il
+messaggio. Il problema è riprodotto anche con API stabile, target globale,
+checkout nuovo e tema pubblicato; l’evidenza è in
+`docs/evidence/2026-07-29-checkout-validation-rendering.md`. La milestone resta
+aperta fino all’escalation Shopify, alla nuova prova live e ai checkout
+accelerati disponibili.
 
 Deliverable:
 

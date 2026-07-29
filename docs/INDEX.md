@@ -7,6 +7,8 @@
   autenticazione, Home embedded, D1 e Validation PoC.
 - [Evidenze M1](evidence/2026-07-28-m1-proof-of-concept.md) — target, prove sul
   dev store, CPU e confini operativi.
+- [Rendering errori checkout](evidence/2026-07-29-checkout-validation-rendering.md)
+  — blocco applicato da Shopify e messaggio non mostrato.
 - [ADR 0001](adr/0001-stack.md) — stack applicativo e provider.
 - [Brand Foundation](brand/brand-foundation.md) — identità e tono.
 - [Brand board](brand/brand-board.html) — riferimento visuale.
