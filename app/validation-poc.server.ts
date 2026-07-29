@@ -87,6 +87,7 @@ export async function queryContext(admin: {
   graphql: (query: string, options?: { variables?: Record<string, unknown> }) => Promise<Response>;
 }) {
   const nodes: Validation[] = [];
+  const cursors = new Set<string>();
   let after: string | null = null;
   let shop: Context["shop"] | undefined;
 
@@ -99,9 +100,10 @@ export async function queryContext(admin: {
     shop = body.data.shop;
     nodes.push(...body.data.validations.nodes);
     const { hasNextPage, endCursor } = body.data.validations.pageInfo;
-    if (hasNextPage && !endCursor) {
+    if (hasNextPage && (!endCursor || cursors.has(endCursor))) {
       throw new Response("Paginazione Shopify non valida", { status: 502 });
     }
+    if (endCursor) cursors.add(endCursor);
     after = hasNextPage ? endCursor : null;
   } while (after);
 

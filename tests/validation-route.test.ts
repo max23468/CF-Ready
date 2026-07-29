@@ -71,6 +71,29 @@ test("pagina tutte le Validation e usa il Function handle come identità", async
   expect(findPocValidation(data.validations.nodes)?.id).toBe(validation.id);
 });
 
+test("interrompe la paginazione Shopify se il cursore non avanza", async () => {
+  let calls = 0;
+  const page = {
+    data: {
+      shop: { name: "CF Ready Dev", shopAddress: { countryCodeV2: "IT" } },
+      validations: {
+        nodes: [],
+        pageInfo: { hasNextPage: true, endCursor: "stalled" },
+      },
+    },
+  };
+
+  await expect(
+    queryContext({
+      graphql: async () => {
+        calls += 1;
+        return Response.json(page);
+      },
+    }),
+  ).rejects.toMatchObject({ status: 502 });
+  expect(calls).toBe(2);
+});
+
 test("trasforma una risposta GraphQL senza data in errore operativo", () => {
   expect(mutationError({ errors: [{ message: "errore temporaneo" }] }, "validationCreate")).toBe(
     "Operazione Shopify non riuscita.",
