@@ -2269,7 +2269,6 @@ cf-ready/
 │   └── e2e/
 ├── docs/
 │   ├── INDEX.md
-│   ├── CONTEXT.md
 │   ├── glossario.md
 │   ├── plans/
 │   │   └── 2026-07-28-CF-Ready-Master-Plan.md
@@ -2485,8 +2484,6 @@ risolte, protezioni applicate agli admin e `verify`, `react-doctor` e
 - `CLAUDE.md` è minimale e importa `AGENTS.md`, senza duplicarne le regole;
 - `README.md` descrive setup locale, comandi correnti e struttura reale;
 - `docs/INDEX.md` è il catalogo canonico della documentazione;
-- `docs/CONTEXT.md` riassume stato osservato, blocchi e prossimo passo senza
-  sostituire il Master Plan;
 - `docs/TOOLCHAIN.md` raccoglie runtime, comandi e gate quando non sono più
   leggibili direttamente dal README e da `package.json`;
 - ADR, runbook e documentazione tecnica vengono aggiornati nella stessa modifica
@@ -3371,7 +3368,7 @@ Deliverable:
 - `AGENTS.md` operativo;
 - `CLAUDE.md` minimale che importa `AGENTS.md`;
 - README e documentazione tecnica di baseline allineati allo scaffold reale;
-- `docs/INDEX.md` e `docs/CONTEXT.md`;
+- `docs/INDEX.md`;
 - template PR, Dependabot e baseline sicurezza GitHub.
 
 Gate:
@@ -3743,9 +3740,8 @@ La `1.0.0` è accettabile quando:
 - [x] Definire API version supportata più recente.
 - [x] Inventariare secret senza copiarli nel piano.
 - [x] Creare `AGENTS.md` e `CLAUDE.md` minimale.
-- [x] Creare `docs/INDEX.md` e `docs/CONTEXT.md`.
-- [x] Configurare template PR, Dependabot e baseline sicurezza GitHub; le
-  protezioni e i servizi attivi sono registrati in `docs/CONTEXT.md`.
+- [x] Creare `docs/INDEX.md`.
+- [x] Configurare template PR, Dependabot e baseline sicurezza GitHub.
 
 ### Scaffold
 
