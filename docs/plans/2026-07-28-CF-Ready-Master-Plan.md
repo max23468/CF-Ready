@@ -2,7 +2,7 @@
 
 ## Master Plan di prodotto, architettura, implementazione e lancio
 
-**Stato:** baseline approvata per scaffolding e implementazione · M0 e M2 completate
+**Stato:** baseline approvata per scaffolding e implementazione · M0–M2 completate · M3 implementata localmente, gate remoti pendenti
 **Data:** 27 luglio 2026 · revisione 28 luglio 2026  
 **Documenti vincolanti collegati:** `docs/brand/brand-foundation.md` (identità visiva, tono, materiali pubblici)  
 **Brand:** CF Ready  
@@ -3438,6 +3438,12 @@ Gate:
 Rifiniture non bloccanti tracciate in Open items §34.5.
 
 ### M3 — Motore di validazione
+
+**Implementazione locale completata il 29 luglio 2026.** Query, motore e matrice
+automatizzata sono nel workspace `cf-ready-validation`; build Function, test e
+gate locale completo sono verdi. La milestone resta aperta fino ai test sul dev
+store e ai checkout accelerati disponibili, che richiedono un’attivazione
+remota separata.
 
 Deliverable:
 
