@@ -8,6 +8,8 @@
   dev store, CPU e confini operativi.
 - [Rendering errori checkout](evidence/2026-07-29-checkout-validation-rendering.md)
   — blocco applicato da Shopify e messaggio non mostrato.
+- [Piano di indagine rendering checkout](plans/2026-07-29-checkout-validation-rendering-investigation.md)
+  — prove controllate, rollback e criteri di escalation.
 - [ADR 0001](adr/0001-stack.md) — stack applicativo e provider.
 - [Brand Foundation](brand/brand-foundation.md) — identità e tono.
 - [Brand board](brand/brand-board.html) — riferimento visuale.
