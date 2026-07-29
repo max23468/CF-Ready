@@ -23,6 +23,11 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      - name: Verifica URL Development persistenti
+        run: |
+          grep -Fxq 'application_url = "https://cf-ready.tmsf.workers.dev"' shopify.app.dev.toml
+          grep -Fxq 'redirect_urls = [ "https://cf-ready.tmsf.workers.dev/api/auth" ]' shopify.app.dev.toml
+
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 26.5.0

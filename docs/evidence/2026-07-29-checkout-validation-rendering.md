@@ -138,9 +138,6 @@ resta necessario chiedere a Shopify quale forma sia contrattuale.
 
 ## Superfici non disponibili
 
-- Cliente autenticato: non provato perché il nuovo account cliente richiede un
-  codice inviato via email e non era disponibile una casella sintetica
-  controllata.
 - Checkout accelerati: nel checkout osservato era disponibile soltanto il Test
   Payment Gateway; Shop Pay, Apple Pay, Google Pay e PayPal non erano
   selezionabili.
