@@ -4,9 +4,11 @@ Aggiornato il 28 luglio 2026.
 
 ## Stato
 
-M0, M1 e M2 sono completate. Il proof of concept M1 comprende scaffold React
-Router su Workers, SessionStorage D1 cifrato, Home embedded minimale, query
-Admin GraphQL, autenticazione webhook e Validation Function minimale.
+M0, M1 e M2 sono completate. M3 è implementata e verificata localmente; restano
+i gate sul dev store e sui checkout accelerati disponibili prima della chiusura
+della milestone. Il proof of concept M1 comprende scaffold React Router su
+Workers, SessionStorage D1 cifrato, Home embedded minimale, query Admin GraphQL,
+autenticazione webhook e Validation Function minimale.
 
 Sono disponibili:
 
@@ -49,7 +51,7 @@ per sviluppo e collaudo.
 
 ## Prossimo passo
 
-Implementare M3: query Function completa, validazione formale di Codice Fiscale
-e PEC, geografia, i18n e matrice di fixture fail-open. Il refresh di un token
-offline realmente scaduto resta una prova live da ripetere prima della 1.0; il
-percorso è abilitato e la persistenza cifrata è coperta dal test M1.
+Pubblicare M3 sull’app Development e completare i gate disponibili sul dev
+store; poi avviare M4. Il refresh di un token offline realmente scaduto resta
+una prova live da ripetere prima della 1.0; il percorso è abilitato e la
+persistenza cifrata è coperta dal test M1.

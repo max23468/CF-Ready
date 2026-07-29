@@ -3352,7 +3352,8 @@ type Input {
   your fetch target, and that is passed as input to the run target. For more
   information, refer to [network access for Shopify Functions](https://shopify.dev/docs/apps/build/functions/input-output/network-access).
   """
-  fetchResult: HttpResponse @restrictTarget(only: ["purchase.validation.run", "cart.validations.generate.run"])
+  fetchResult: HttpResponse
+    @restrictTarget(only: ["purchase.validation.run", "cart.validations.generate.run"])
 
   """
   The regional and language settings that determine how the Function
@@ -4226,7 +4227,8 @@ type Localization {
   """
   The market of the active localized experience.
   """
-  market: Market! @deprecated(reason: "This `market` field will be removed in a future version of the API.")
+  market: Market!
+    @deprecated(reason: "This `market` field will be removed in a future version of the API.")
 }
 
 """
@@ -4607,7 +4609,8 @@ type MailingAddress {
   """
   The market of the address.
   """
-  market: Market @deprecated(reason: "This `market` field will be removed in a future version of the API.")
+  market: Market
+    @deprecated(reason: "This `market` field will be removed in a future version of the API.")
 
   """
   The full name of the customer, based on firstName and lastName.
