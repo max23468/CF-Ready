@@ -1,3 +1,4 @@
+import { recordEvent } from "./events.server";
 import { sha256Hex } from "./hash.server";
 
 // Data di lancio provvisoria: la generazione Launch copre i primi 90 giorni. Finché il lancio
@@ -96,18 +97,37 @@ export async function syncTrial(
       .run();
 
     trial = await readTrial(db, shopDomain);
+
+    if (trial?.status === "active") {
+      await recordEvent(db, {
+        shopDomain,
+        name: "trial_started",
+        class: "billing",
+        metadata: { pricing_generation: trial.pricing_generation },
+      });
+    }
   }
 
   if (!trial) return null;
   if (trial.status !== "active" || !trial.ends_at || trial.ends_at >= today) return trial;
 
-  await db
+  const expired = await db
     .prepare(
       `UPDATE trials SET status = 'expired', updated_at = ?
-       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?) AND status = 'active'`,
+       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?) AND status = 'active'
+       RETURNING shop_id`,
     )
     .bind(now, shopDomain)
-    .run();
+    .first<{ shop_id: number }>();
+
+  if (expired) {
+    await recordEvent(db, {
+      shopDomain,
+      name: "trial_expired",
+      class: "billing",
+      metadata: { pricing_generation: trial.pricing_generation },
+    });
+  }
 
   return { ...trial, status: "expired" };
 }

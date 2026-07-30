@@ -75,6 +75,19 @@ test("la prova parte una volta sola e scade da sé", async () => {
   const scaduta = await syncTrial(env.DB, shop, { eligible: true, today: "2026-08-13" });
   expect(scaduta?.status).toBe("expired");
   expect(entitlementFor(scaduta, "2026-08-13")).toEqual({ kind: "none", validThrough: null });
+
+  // Avvio e scadenza sono registrati una volta sola, anche riaprendo l'app dopo la scadenza.
+  await syncTrial(env.DB, shop, { eligible: true, today: "2026-08-14" });
+  const { results } = await env.DB.prepare(
+    `SELECT event_name, metadata_json FROM app_events
+     WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
+     ORDER BY occurred_at`,
+  )
+    .bind(shop)
+    .all<{ event_name: string; metadata_json: string }>();
+
+  expect(results.map((evento) => evento.event_name)).toEqual(["trial_started", "trial_expired"]);
+  expect(results[0].metadata_json).toBe('{"pricing_generation":"launch"}');
 });
 
 test("una prova già fruita non si rigenera dopo la cancellazione dei dati", async () => {

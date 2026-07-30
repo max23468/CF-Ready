@@ -76,7 +76,12 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
         namespace: METAFIELD_NAMESPACE,
         key: METAFIELD_KEY,
         type: "json",
-        value: JSON.stringify(configWithEntitlement(existing?.metafield?.jsonValue, entitlement)),
+        // `enabled` nella configurazione è la volontà operativa del merchant e la Function
+        // la richiede vera: va allineata all'intento, non lasciata al valore precedente.
+        value: JSON.stringify({
+          ...configWithEntitlement(existing?.metafield?.jsonValue, entitlement),
+          enabled: enable,
+        }),
       },
     ];
     const variables = existing
