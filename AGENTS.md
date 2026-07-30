@@ -110,9 +110,11 @@ Prima della `1.0.0`, riconferma nelle fonti Shopify correnti la Function API
   deploy pertinente con verifica live. Non aprire PR che esistono solo per
   alzare una versione o solo per depositare una ricevuta: se ti accorgi che
   manca un pezzo, aggiungilo al branch prima del merge.
-- La ricevuta di deploy è l’unico dato che nasce dopo il merge. Va nella PR di
-  chiusura della milestone, insieme all’esito dei gate live: una milestone ha
-  quindi la PR del lavoro e, alla fine, quella di chiusura.
+- La ricevuta di deploy è l’unico dato che nasce dopo il merge, e non ha mai una
+  PR propria. Quella di uno snapshot intermedio viaggia con la prima PR utile
+  successiva; quella dell’ultimo snapshot va nella PR di chiusura della
+  milestone, insieme all’esito dei gate live. Una milestone ha quindi le PR del
+  lavoro e, alla fine, quella di chiusura.
 - Submission App Store e attivazioni commerciali restano azioni separate.
 - Per operazioni remote preferisci l’integrazione ufficiale del provider
   disponibile; usa CLI, API raw o browser solo per la parte non coperta.
