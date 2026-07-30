@@ -2569,7 +2569,11 @@ In M0 il workflow `CI` esegue `npm ci` e `npm run check` su PR e push verso
 `main` o `develop`; `npm run check` include React Doctor con blocco sui warning.
 Il workflow separato `React Doctor` analizza in modalità advisory le modifiche
 delle PR, pubblica annotazioni inline solo quando trova problemi e registra il
-risultato sui push verso `main`. I controlli elencati sotto descrivono il target
+risultato sui push verso `main`. Il workflow `Promotion guard` verifica che
+`main` accetti solo promozioni da `develop`: è separato da `CI` perché deve
+ascoltare anche `edited`, l’unico evento che scatta quando cambia il base branch
+di una PR, e su `edited` `CI` rifarebbe l’intera verifica a ogni ritocco di
+titolo o descrizione. I controlli elencati sotto descrivono il target
 da attivare nelle milestone che introducono i relativi artifact; il controllo
 documentazione entra in M1. Codice e workflow provano sempre lo stato corrente.
 
@@ -2627,9 +2631,13 @@ Configurazione minima GitHub:
   major e promozioni verso `main` restano manuali.
 
 Il repository pubblico su GitHub Free usa branch protection su `develop` e
-`main`, con `develop` come branch predefinito, base aggiornata, conversazioni
+`main`, con `develop` come branch predefinito, conversazioni
 risolte, protezioni applicate agli admin e `verify`, `react-doctor` e
-`dependency-review` come required checks. Restano applicabili:
+`dependency-review` come required checks; su `main` è required anche
+`promotion-guard`. La base aggiornata prima del merge resta richiesta solo su
+`main`: su `develop` obbliga ogni PR già aperta a risincronizzare e rieseguire i
+gate dopo ogni merge, mentre `CI` sul push a `develop` intercetta comunque una
+rottura di integrazione entro il minuto successivo. Restano applicabili:
 
 - niente push diretti intenzionali su `main` o `develop`;
 - ogni merge passa da PR e CI verde osservata; squash per le PR ordinarie e
