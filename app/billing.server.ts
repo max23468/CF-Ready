@@ -223,6 +223,7 @@ type BillingResponse = {
         id: string;
         name: string;
         status: string;
+        test: boolean;
         currentPeriodEnd: string | null;
         lineItems: {
           plan: {
@@ -237,6 +238,7 @@ type BillingResponse = {
         nodes: {
           id: string;
           status: string;
+          test: boolean;
           createdAt: string;
           price: { amount: string; currencyCode: string } | null;
         }[];
@@ -247,20 +249,24 @@ type BillingResponse = {
 };
 
 // Shopify è la fonte autorevole: lo stato commerciale si legge sempre da qui, mai dal
-// ritorno di un redirect di approvazione.
-export async function readBilling(admin: {
-  graphql: (query: string) => Promise<Response>;
-}): Promise<ShopifyBilling> {
+// ritorno di un redirect di approvazione. Gli addebiti della modalità sbagliata vengono
+// ignorati, altrimenti un addebito di prova concederebbe il diritto in Production.
+export async function readBilling(
+  admin: { graphql: (query: string) => Promise<Response> },
+  isTest: boolean,
+): Promise<ShopifyBilling> {
   const response = await admin.graphql(BILLING_QUERY);
   const body = (await response.json()) as BillingResponse;
   if (!body.data || body.errors?.length) {
     throw new Response("Lettura billing Shopify non riuscita", { status: 502 });
   }
 
-  const subscription = body.data.currentAppInstallation.activeSubscriptions[0];
+  const subscription = body.data.currentAppInstallation.activeSubscriptions.find(
+    (candidate) => candidate.test === isTest,
+  );
   const pricing = subscription?.lineItems[0]?.plan.pricingDetails;
   const oneTime = body.data.currentAppInstallation.oneTimePurchases.nodes.find(
-    (purchase) => purchase.status === "ACTIVE",
+    (purchase) => purchase.status === "ACTIVE" && purchase.test === isTest,
   );
 
   return {
@@ -298,15 +304,7 @@ export async function syncBillingAccount(
     pricingGeneration,
   }: { today: string; timeZone: string; pricingGeneration: PricingGeneration },
 ): Promise<BillingAccount> {
-  const stored = await db
-    .prepare(
-      `SELECT b.entitlement_status, b.plan_kind, b.pricing_generation, b.shopify_charge_gid,
-              b.current_period_end
-       FROM billing_accounts b JOIN shops s ON s.id = b.shop_id
-       WHERE s.shop_domain = ?`,
-    )
-    .bind(shopDomain)
-    .first<BillingAccount>();
+  const stored = await readBillingAccount(db, shopDomain);
 
   const next = nextAccount(stored, billing, { today, timeZone, pricingGeneration });
   const now = new Date().toISOString();
@@ -344,7 +342,11 @@ export async function syncBillingAccount(
     )
     .run();
 
-  if (next.entitlement_status !== stored?.entitlement_status && next.shopify_charge_gid) {
+  const changed =
+    next.entitlement_status !== stored?.entitlement_status ||
+    next.shopify_charge_gid !== stored?.shopify_charge_gid;
+
+  if (changed && next.shopify_charge_gid) {
     await recordBillingEvent(db, shopDomain, {
       gid: next.shopify_charge_gid,
       type: next.entitlement_status,
@@ -461,6 +463,19 @@ export async function recordTrialLedger(db: D1Database, shopDomain: string) {
     )
     .bind(await sha256Hex(shopDomain), new Date().toISOString(), shopDomain)
     .run();
+}
+
+// Cache operativa: serve anche quando Shopify non risponde, per non perdere lo stato noto.
+export function readBillingAccount(db: D1Database, shopDomain: string) {
+  return db
+    .prepare(
+      `SELECT b.entitlement_status, b.plan_kind, b.pricing_generation, b.shopify_charge_gid,
+              b.current_period_end
+       FROM billing_accounts b JOIN shops s ON s.id = b.shop_id
+       WHERE s.shop_domain = ?`,
+    )
+    .bind(shopDomain)
+    .first<BillingAccount>();
 }
 
 function readTrial(db: D1Database, shopDomain: string) {

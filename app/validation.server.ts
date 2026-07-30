@@ -2,9 +2,11 @@ import {
   entitlementFor,
   localDate,
   readBilling,
+  readBillingAccount,
   syncBillingAccount,
   syncTrial,
 } from "./billing.server";
+import { BILLING_IS_TEST } from "./env.server";
 import type { Entitlement } from "./billing.server";
 
 export const FUNCTION_HANDLE = "cf-ready-validation";
@@ -196,13 +198,28 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
   }
 
   const trial = await syncTrial(db, shopDomain, { eligible, today });
-  const account = eligible
-    ? await syncBillingAccount(db, shopDomain, await readBilling(admin), {
-        today,
-        timeZone: shop.ianaTimezone,
-        pricingGeneration: trial?.pricing_generation ?? "launch",
-      })
-    : null;
+  let account = null;
+
+  if (eligible) {
+    try {
+      account = await syncBillingAccount(
+        db,
+        shopDomain,
+        await readBilling(admin, BILLING_IS_TEST),
+        {
+          today,
+          timeZone: shop.ianaTimezone,
+          pricingGeneration: trial?.pricing_generation ?? "launch",
+        },
+      );
+    } catch {
+      // Shopify non raggiungibile: si tiene lo stato noto invece di declassare il merchant
+      // o di rompere la pagina, e l'ambiguità resta visibile come codice errore.
+      account = await readBillingAccount(db, shopDomain);
+      errorCode ??= "billing_read_failed";
+    }
+  }
+
   const entitlement = entitlementFor(trial, today, account);
 
   // Il diritto commerciale vive nel metafield: la Function lo confronta con la data locale e

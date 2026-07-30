@@ -4,6 +4,7 @@ import {
   entitlementFor,
   localDate,
   pricingGeneration,
+  readBilling,
   remainingTrialDays,
   syncBillingAccount,
   syncTrial,
@@ -241,6 +242,74 @@ test("gli eventi billing sono append-only e idempotenti", async () => {
       period_end: "2026-08-31",
     },
   ]);
+});
+
+test("un cambio di piano produce un evento anche se lo stato resta attivo", async () => {
+  const shop = await insertShop("cambio.example.myshopify.com");
+
+  await syncBillingAccount(
+    env.DB,
+    shop,
+    abbonamento("gid://shopify/AppSubscription/10", "2026-08-31T21:59:59Z"),
+    opzioni,
+  );
+  await syncBillingAccount(
+    env.DB,
+    shop,
+    abbonamento("gid://shopify/AppSubscription/11", "2027-07-31T21:59:59Z", "ANNUAL"),
+    opzioni,
+  );
+
+  const { results } = await env.DB.prepare(
+    `SELECT shopify_resource_gid, status FROM billing_events
+     WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
+     ORDER BY id`,
+  )
+    .bind(shop)
+    .all<{ shopify_resource_gid: string; status: string }>();
+
+  expect(results).toEqual([
+    { shopify_resource_gid: "gid://shopify/AppSubscription/10", status: "monthly" },
+    { shopify_resource_gid: "gid://shopify/AppSubscription/11", status: "annual" },
+  ]);
+});
+
+test("gli addebiti della modalità sbagliata vengono ignorati", async () => {
+  const risposta = (test: boolean) => ({
+    json: async () => ({
+      data: {
+        currentAppInstallation: {
+          activeSubscriptions: [
+            {
+              id: "gid://shopify/AppSubscription/99",
+              name: "launch-monthly",
+              status: "ACTIVE",
+              test,
+              currentPeriodEnd: "2026-08-31T21:59:59Z",
+              lineItems: [
+                {
+                  plan: {
+                    pricingDetails: {
+                      interval: "EVERY_30_DAYS",
+                      price: { amount: "2.99", currencyCode: "EUR" },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          oneTimePurchases: { nodes: [] },
+        },
+      },
+    }),
+  });
+  const admin = (test: boolean) => ({ graphql: async () => risposta(test) as unknown as Response });
+
+  // Un addebito di prova non concede il diritto quando l'app addebita davvero.
+  expect((await readBilling(admin(true), false)).subscription).toBeNull();
+  expect((await readBilling(admin(true), true)).subscription).toMatchObject({
+    id: "gid://shopify/AppSubscription/99",
+  });
 });
 
 test("il diritto pagato prevale sulla prova ancora attiva", () => {

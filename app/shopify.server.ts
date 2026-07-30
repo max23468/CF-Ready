@@ -13,7 +13,6 @@ type ShopifyBindings = Env & {
   SHOPIFY_API_SECRET?: string;
   SHOPIFY_APP_URL?: string;
   SHOP_CUSTOM_DOMAIN?: string;
-  BILLING_TEST?: string;
 };
 
 const bindings = env as ShopifyBindings;
@@ -51,11 +50,6 @@ const shopify = shopifyApp({
   },
   ...(bindings.SHOP_CUSTOM_DOMAIN ? { customShopDomains: [bindings.SHOP_CUSTOM_DOMAIN] } : {}),
 });
-
-// Addebiti di prova finché la variabile non dice esplicitamente il contrario: in Production
-// va portata a "false" prima del rilascio.
-export const BILLING_IS_TEST = bindings.BILLING_TEST !== "false";
-export const APP_URL = bindings.SHOPIFY_APP_URL || "";
 
 export const apiVersion = ApiVersion.July26;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;

@@ -11,7 +11,8 @@ import { planFor, planPrices } from "../plans.server";
 import type { PlanKind } from "../plans.server";
 import type { Entitlement } from "../billing.server";
 import { recordEvent } from "../events.server";
-import { APP_URL, authenticate, BILLING_IS_TEST } from "../shopify.server";
+import { APP_URL, BILLING_IS_TEST } from "../env.server";
+import { authenticate } from "../shopify.server";
 import {
   acquireValidationLock,
   configWithEntitlement,
@@ -225,7 +226,7 @@ async function cancelSubscription(
   db: D1Database,
   shopDomain: string,
 ) {
-  const state = await readBilling(admin);
+  const state = await readBilling(admin, BILLING_IS_TEST);
   if (!state.subscription) {
     return { ok: false, error: "Non risulta alcuna sottoscrizione attiva da cancellare." };
   }
