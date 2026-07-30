@@ -291,6 +291,108 @@ export async function readBilling(
   };
 }
 
+const CREATE_SUBSCRIPTION = `#graphql
+  mutation CfReadySubscriptionCreate(
+    $name: String!
+    $returnUrl: URL!
+    $trialDays: Int
+    $test: Boolean
+    $replacementBehavior: AppSubscriptionReplacementBehavior
+    $lineItems: [AppSubscriptionLineItemInput!]!
+  ) {
+    appSubscriptionCreate(
+      name: $name
+      returnUrl: $returnUrl
+      trialDays: $trialDays
+      test: $test
+      replacementBehavior: $replacementBehavior
+      lineItems: $lineItems
+    ) {
+      confirmationUrl
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const CREATE_ONE_TIME = `#graphql
+  mutation CfReadyOneTimeCreate($name: String!, $price: MoneyInput!, $returnUrl: URL!, $test: Boolean) {
+    appPurchaseOneTimeCreate(name: $name, price: $price, returnUrl: $returnUrl, test: $test) {
+      confirmationUrl
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+// L'addebito si crea qui e si restituisce l'URL di conferma, che il client apre a livello
+// superiore: il redirect gestito dalla libreria non sopravvive a una richiesta fetch dentro
+// l'iframe embedded e faceva fallire l'intera pagina.
+export async function createCharge(
+  admin: {
+    graphql: (
+      query: string,
+      options?: { variables?: Record<string, unknown> },
+    ) => Promise<Response>;
+  },
+  charge: {
+    name: string;
+    amount: number;
+    currency: string;
+    interval: "EVERY_30_DAYS" | "ANNUAL" | null;
+    trialDays: number;
+    test: boolean;
+    returnUrl: string;
+  },
+) {
+  const oneTime = charge.interval === null;
+  const response = await admin.graphql(oneTime ? CREATE_ONE_TIME : CREATE_SUBSCRIPTION, {
+    variables: oneTime
+      ? {
+          name: charge.name,
+          price: { amount: charge.amount, currencyCode: charge.currency },
+          returnUrl: charge.returnUrl,
+          test: charge.test,
+        }
+      : {
+          name: charge.name,
+          returnUrl: charge.returnUrl,
+          trialDays: charge.trialDays,
+          test: charge.test,
+          // I cambi fra mensile e annuale usano il comportamento nativo Shopify.
+          replacementBehavior: "STANDARD",
+          lineItems: [
+            {
+              plan: {
+                appRecurringPricingDetails: {
+                  price: { amount: charge.amount, currencyCode: charge.currency },
+                  interval: charge.interval,
+                },
+              },
+            },
+          ],
+        },
+  });
+
+  const body = (await response.json()) as {
+    data?: Record<
+      string,
+      { confirmationUrl?: string; userErrors: { message: string }[] } | undefined
+    >;
+    errors?: { message: string }[];
+  };
+  const result = body.data?.[oneTime ? "appPurchaseOneTimeCreate" : "appSubscriptionCreate"];
+
+  if (body.errors?.length || !result || result.userErrors.length || !result.confirmationUrl) {
+    return { confirmationUrl: null, error: "charge_create_failed" };
+  }
+  return { confirmationUrl: result.confirmationUrl, error: null };
+}
+
 export const CANCEL_SUBSCRIPTION = `#graphql
   mutation CfReadySubscriptionCancel($id: ID!, $prorate: Boolean!) {
     appSubscriptionCancel(id: $id, prorate: $prorate) {
