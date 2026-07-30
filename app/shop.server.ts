@@ -1,3 +1,30 @@
+// Con la managed installation ogni rinnovo del token completa un'autenticazione e riesegue
+// `afterAuth`: l'evento vale una sola volta per installazione, cioè finché non arriva una
+// disinstallazione successiva.
+export async function recordInstallOnce(db: D1Database, shopDomain: string) {
+  const inserted = await db
+    .prepare(
+      `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
+       SELECT s.id, 'app_installed', 'lifecycle', ?
+       FROM shops s
+       WHERE s.shop_domain = ?
+         AND NOT EXISTS (
+           SELECT 1 FROM app_events installed
+           WHERE installed.shop_id = s.id
+             AND installed.event_name = 'app_installed'
+             AND installed.occurred_at > COALESCE((
+               SELECT MAX(uninstalled.occurred_at) FROM app_events uninstalled
+               WHERE uninstalled.shop_id = s.id AND uninstalled.event_name = 'app_uninstalled'
+             ), '')
+         )
+       RETURNING id`,
+    )
+    .bind(new Date().toISOString(), shopDomain)
+    .first<{ id: number }>();
+
+  return inserted !== null;
+}
+
 export async function markUninstalled(db: D1Database, shopDomain: string) {
   const now = new Date().toISOString();
   await db.batch([

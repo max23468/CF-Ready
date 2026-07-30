@@ -76,7 +76,7 @@ Gli eventi di classe `error` finiscono anche in Workers Logs come JSON.
 
 | Evento | Classe | Quando |
 | --- | --- | --- |
-| `app_installed` | `lifecycle` | completamento OAuth, installazione o reinstallazione |
+| `app_installed` | `lifecycle` | una volta per installazione, fino alla disinstallazione successiva |
 | `app_uninstalled` | `lifecycle` | `app/uninstalled` elaborato |
 | `shop_updated` | `lifecycle` | `shop/update` riconciliato |
 | `shop_update_skipped` | `lifecycle` | `shop/update` senza sessione utilizzabile |
@@ -116,8 +116,15 @@ solo come eventi di log, non come stato persistito.
 ## Riconciliazione e gate geografico
 
 `reconcile(admin, db, shopDomain)` è l'unico punto che allinea Shopify e D1.
-Viene invocata all'installazione, all'apertura della Home, su `shop/update` e
-dopo un errore di scrittura. Non esistono job periodici.
+Viene invocata a ogni autenticazione completata, all'apertura della Home, su
+`shop/update` e dopo un errore di scrittura. Non esistono job periodici.
+
+Con la managed installation Shopify non espone un evento di installazione
+distinto: `afterAuth` scatta anche al rinnovo del token offline, che avviene
+tramite token exchange. `app_installed` è quindi deduplicato — vale una volta
+per installazione, finché non arriva una disinstallazione — mentre la
+riconciliazione gira a ogni autenticazione, perché è idempotente e costa una
+sola query Shopify.
 
 Effetti:
 

@@ -3660,11 +3660,13 @@ Stato dei gate al 30 luglio 2026, con prove nell'evidenza Development:
   ricevute fallite, più consegne reali di Shopify elaborate una volta sola;
 - **store non italiano**: chiuso con residuo dichiarato, non osservabile in
   Development, Open items §34.7;
-- **refresh token**: da osservare alla scadenza reale del token offline.
+- **refresh token**: verde. Alla scadenza reale il token offline è stato
+  rinnovato senza intervento del merchant e senza alterare lo stato dello store.
 
-La reinstallazione ha esposto un difetto del percorso `shop/redact`, corretto
-prima della chiusura: la cancellazione dei dati avviene solo se lo store risulta
-ancora disinstallato.
+Le prove live hanno esposto due difetti, entrambi corretti prima della chiusura:
+`shop/redact` cancellava i dati anche di uno store che aveva reinstallato nel
+frattempo, e `app_installed` veniva registrato a ogni autenticazione invece che
+una volta per installazione.
 
 ### M5 — Billing
 

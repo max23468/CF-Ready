@@ -89,7 +89,7 @@ Eseguiti dall'owner il 30 luglio 2026, con readback D1 verificato:
 
 | Prova | Esito |
 | --- | --- |
-| Apertura dell'app, 10:14 UTC | OAuth completato, evento `app_installed`, riconciliazione che popola `app_state` con Validation `gid://shopify/Validation/140411184`, `schemaVersion` 2, hash calcolato e nessun codice errore |
+| Apertura dell'app, 10:14 UTC | autenticazione completata su installazione preesistente, riconciliazione che popola `app_state` con Validation `gid://shopify/Validation/140411184`, `schemaVersion` 2, hash calcolato e nessun codice errore |
 | Modifica delle impostazioni negozio, 10:17 UTC | consegna reale di `shop/update` da Shopify, ricevuta `processed` con lo shop domain vero, evento `shop_updated` con `country_code` `IT` |
 | Disinstallazione, 10:27 UTC | ricevuta `APP_UNINSTALLED` `processed`, evento `app_uninstalled`, store `uninstalled` con `uninstalled_at`, sessione eliminata, `validation_gid` azzerato |
 | Reinstallazione e riattivazione, 10:28 UTC | nuova sessione unica, evento `app_installed`, store di nuovo `active` con `uninstalled_at` nullo, evento `validation_enabled` e nuova Validation `gid://shopify/Validation/140509488` |
@@ -102,11 +102,15 @@ la Validation alla disinstallazione: azzerare lo stato locale evita che la UI
 dichiari attiva una risorsa inesistente. Nessun codice errore lungo l'intero
 ciclo, e una sola sessione presente al termine.
 
-Resta da osservare la scadenza reale del token offline, un'ora dopo il rilascio,
-con refresh token valido fino al 28 ottobre 2026.
+| Riapertura dopo la scadenza del token, 11:42 UTC | token rinnovato senza intervento del merchant: `access_token_expires_at` da 11:28 a 12:42, refresh token rigenerato fino al 28 ottobre, stessa riga sessione (`created_at` 10:28), `installation_status` invariato ad `active` |
 
-### Difetto emerso dalla reinstallazione
+Il rinnovo del token è il caso che avrebbe innescato il difetto corretto
+nell'audit, cioè lo stato riportato ad `active` a ogni scrittura di sessione:
+lo store è rimasto coerente.
 
+### Difetti emersi dalle prove live
+
+**`shop/redact` dopo una reinstallazione.**
 La reinstallazione immediata ha esposto un difetto del percorso `shop/redact`.
 Shopify invia quel topic 48 ore dopo la disinstallazione e la documentazione non
 prevede l'annullamento dell'invio se lo store reinstalla nel frattempo: la
@@ -118,6 +122,20 @@ guardia.
 
 Con la disinstallazione del 30 luglio alle 10:27 UTC, l'invio atteso cade
 intorno al 1 agosto 2026: la correzione va rilasciata prima di quella data.
+
+**`app_installed` registrato a ogni autenticazione.**
+Il rinnovo del token ha prodotto un terzo evento `app_installed` senza che ci
+fosse alcuna installazione: con la managed installation Shopify non espone un
+evento di installazione distinto, e `afterAuth` scatta anche al token exchange
+del rinnovo. Le prove delle 10:14 e delle 11:42 sono quindi autenticazioni su
+un'installazione esistente; l'unica installazione reale della giornata è quella
+delle 10:28. L'evento è ora registrato una volta sola per installazione, fino
+alla disinstallazione successiva, con un test dedicato. La riconciliazione
+resta invece a ogni autenticazione: è idempotente e costa una query.
+
+Gli eventi `app_installed` spuri già scritti nel D1 Development restano nella
+cronologia: la telemetria è un registro append-only e riscriverla falserebbe la
+prova.
 
 ## Gate geografico: residuo dichiarato
 
