@@ -2474,6 +2474,31 @@ non viene riutilizzata: prima di un nuovo snapshot si incrementa il SemVer nel
 manifest e nel lockfile. Un deploy locale diretto può essere usato solo come
 preview non rilasciata.
 
+Numero assegnato a ogni milestone fino alla `1.0.0`:
+
+| Milestone | Versione | Nota |
+| --- | --- | --- |
+| M0–M2 | nessuna | fondazioni, proof of concept e brand: niente di rilasciato |
+| M3 — Motore di validazione | `0.1.0` | primo snapshot Development fisso |
+| M4 — Dati, auth e lifecycle | `0.2.0` | |
+| M5 — Billing | `0.3.0` | |
+| M6 — UI completa | `0.4.0` | |
+| M7 — Sito, legale e supporto | `0.5.0` | |
+| M8 — Hardening | `0.8.0` | feature complete; `0.6.x` e `0.7.x` restano disponibili se M5–M7 richiedono minor intermedi |
+| M9 — Release candidate e review | `0.9.0` | |
+| M10 — Canary store reale | `0.9.x` | nessun minor: il canary usa la build della release candidate |
+| M11 — `1.0.0` e Controlled Launch | `1.0.0` | tag `v1.0.0` alla promozione Production |
+| M12 — Visibilità completa | nessuna | sola visibilità; i fix successivi sono `1.0.x` |
+
+Dentro una milestone, ogni ulteriore snapshot rilasciato incrementa la **patch**
+(`0.2.1`, `0.2.2`). Un **prerelease numerato**, `0.3.0-dev.1`, si usa solo per
+provare in Development un candidato prima della chiusura della milestone: non è
+il caso ordinario e non sostituisce il bump.
+
+Il bump vive in una PR dedicata `chore(release): X.Y.Z` che tocca manifest e
+lockfile, separata dalle PR di contenuto. Il tag `vX.Y.Z` viene creato alla
+promozione Production; per Development la ricevuta di deploy è il record.
+
 La ricevuta di deploy registra ambiente, configurazione, versione Shopify,
 commit, ID della versione rilasciata e versione di rollback. Gli identificatori
 automatici creati durante il bootstrap, come `cf-ready-1` e `cf-ready-2`,
@@ -3593,7 +3618,7 @@ Gate:
 
 **Implementata e distribuita in Development il 30 luglio 2026**, gate live
 residui. Codice e schema sono in `develop`; migrazione, deploy del Worker,
-snapshot Shopify `0.1.0-dev.ff878ab` e verifiche live sono registrati in
+snapshot Shopify `0.2.0` e verifiche live sono registrati in
 `docs/evidence/2026-07-30-m4-development-migration.md`.
 
 Per decisione, restano fuori da M4: i webhook billing e le tabelle `trials`,
