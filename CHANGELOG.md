@@ -5,6 +5,16 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.3.3 — 30 luglio 2026
+
+- l'app Development si installa solo sullo store di sviluppo: la distribuzione
+  pubblica, necessaria alla Billing API, la renderebbe installabile da chiunque
+  conosca il `client_id`, che è nel repository pubblico;
+- il ritorno dall'approvazione riporta il merchant dentro l'admin, con `shop` e
+  `host`: senza, atterrava sul Worker fuori da Shopify;
+- nessuna rivalidazione quando la pagina sta per essere sostituita
+  dall'approvazione Shopify.
+
 ## 0.3.2 — 30 luglio 2026
 
 - un rifiuto di Shopify sulla creazione dell'addebito viene registrato con il

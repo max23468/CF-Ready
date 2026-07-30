@@ -1,4 +1,27 @@
 import { recordTrialLedger } from "./billing.server";
+import { recordEvent } from "./events.server";
+
+// Installazione da uno store non ammesso: si cancella tutto ciò che l'autenticazione ha
+// appena creato, così non resta né una sessione utilizzabile né uno store sconosciuto.
+export async function refuseInstall(db: D1Database, shopDomain: string) {
+  await db.batch([
+    db
+      .prepare(
+        `DELETE FROM shopify_sessions
+         WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+      )
+      .bind(shopDomain),
+    db.prepare("DELETE FROM shops WHERE shop_domain = ?").bind(shopDomain),
+  ]);
+
+  // Registrato dopo, e senza riferimento allo store: la cancellazione porterebbe via anche
+  // l'evento, e lo store rifiutato non è nostro.
+  await recordEvent(db, {
+    name: "install_refused",
+    class: "lifecycle",
+    metadata: { reason: "shop_not_allowed" },
+  });
+}
 
 // Con la managed installation ogni rinnovo del token completa un'autenticazione e riesegue
 // `afterAuth`: l'evento vale una sola volta per installazione, cioè finché non arriva una

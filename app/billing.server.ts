@@ -1,3 +1,4 @@
+import { APP_URL } from "./env.server";
 import { recordEvent } from "./events.server";
 import { sha256Hex } from "./hash.server";
 
@@ -402,6 +403,17 @@ export async function createCharge(
     return { confirmationUrl: null, error: "charge_create_failed" };
   }
   return { confirmationUrl: result.confirmationUrl, error: null };
+}
+
+// Al ritorno dall'approvazione il merchant deve ritrovarsi dentro l'admin: senza `shop` e
+// `host` atterra sul Worker nudo, fuori da Shopify.
+export function returnUrlFor(request: Request, shopDomain: string) {
+  const incoming = new URL(request.url).searchParams;
+  const target = new URL("/app", APP_URL);
+  target.searchParams.set("shop", incoming.get("shop") ?? shopDomain);
+  const host = incoming.get("host");
+  if (host) target.searchParams.set("host", host);
+  return target.toString();
 }
 
 export const CANCEL_SUBSCRIPTION = `#graphql

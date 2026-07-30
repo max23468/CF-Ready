@@ -2,7 +2,8 @@ import { env } from "cloudflare:workers";
 import { ApiVersion, AppDistribution, shopifyApp } from "@shopify/shopify-app-react-router/server";
 import { recordEvent } from "./events.server";
 import { D1SessionStorage } from "./session-storage.server";
-import { recordInstallOnce } from "./shop.server";
+import { ALLOWED_SHOP } from "./env.server";
+import { recordInstallOnce, refuseInstall } from "./shop.server";
 import { reconcile } from "./validation.server";
 
 type ShopifyBindings = Env & {
@@ -32,6 +33,13 @@ const shopify = shopifyApp({
     // Ogni autenticazione completata, installazione o rinnovo del token: paese e stato
     // tecnico non aspettano la prima Home.
     afterAuth: async ({ session, admin }) => {
+      if (ALLOWED_SHOP && session.shop !== ALLOWED_SHOP) {
+        await refuseInstall(bindings.DB, session.shop);
+        throw new Response("Questa installazione di CF Ready è riservata allo store di sviluppo.", {
+          status: 403,
+        });
+      }
+
       try {
         await recordInstallOnce(bindings.DB, session.shop);
         await reconcile(admin, bindings.DB, session.shop);
