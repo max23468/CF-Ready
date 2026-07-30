@@ -3741,14 +3741,26 @@ Le prove live hanno esposto due difetti, entrambi corretti prima della chiusura:
 frattempo, e `app_installed` veniva registrato a ogni autenticazione invece che
 una volta per installazione.
 
-### M5 — Billing
+### M5 — Billing ✅ completata
 
-**Codice rilasciato in Development come `0.3.0` il 30 luglio 2026**, gate
-residui. Prova ed entitlement nel metafield, sottoscrizioni mensili e annuali,
-acquisto una tantum con conversione e rimborsi. I contratti sono in
-`docs/contracts/m5-technical-contracts.md`, la ricevuta in
-`docs/evidence/2026-07-30-m5-development-release.md`. Restano i gate, che
-richiedono addebiti di test sul dev store.
+**Chiusa il 30 luglio 2026**, rilasciata in Development dalla `0.3.0` alla
+`0.3.6`. I contratti sono in `docs/contracts/m5-technical-contracts.md`, gate e
+ricevute in `docs/evidence/2026-07-30-m5-development-release.md`.
+
+L'audit di chiusura ha osservato sul dev store, con addebiti di prova, la
+sottoscrizione durante la prova con i soli giorni residui, il cambio da mensile
+ad annuale con sostituzione nativa, l'acquisto abbandonato che lascia
+l'abbonamento intatto e il passaggio a pagamento unico con cancellazione
+successiva all'acquisto. In nessun caso il diritto è arrivato dal ritorno di un
+redirect. La reinstallazione ha inoltre mostrato che Shopify conserva l'acquisto
+una tantum attraverso le installazioni, quindi §14.11 non richiede un registro
+applicativo.
+
+I gate hanno prodotto otto correzioni, fra cui il flusso di approvazione che non
+sopravviveva all'iframe embedded, un rifiuto di Shopify invisibile, il webhook
+degli acquisti mancante e la conversione eseguita due volte per concorrenza. La
+cancellazione ordinaria resta l'unico gate non eseguito, con residuo dichiarato
+negli Open items §34.9.
 
 Deliverable:
 
@@ -3762,7 +3774,7 @@ Deliverable:
 - entitlement metafield;
 - scadenza fail-open.
 
-Gate:
+Gate: verdi, salvo la cancellazione ordinaria spostata al canary M10.
 
 - matrice billing test completa;
 - nessun entitlement basato su redirect;
@@ -4298,6 +4310,14 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
    checkout: da ricontrollare insieme alla riverifica della Function API
    `2026-07` prevista in §35.
 I punti residui di brand sono verifiche e produzione di materiali che dipendono da milestone successive. **La Brand Foundation è chiusa.**
+9. **Cancellazione ordinaria e credito pro rata** — spostati al canary M10 il
+   30 luglio 2026. Sul dev store il pagamento unico attivo impedisce di creare
+   un abbonamento da cancellare, e un addebito di prova non è rimborsabile
+   perché non è mai stato pagato. Restano coperti dai test automatici il periodo
+   di grazia `ending`, l'accesso fino a fine periodo e l'assenza di
+   proratazione; resta da confrontare la stima del credito mostrata al merchant
+   con l'importo calcolato da Shopify. Rischio di comunicazione, non di
+   diritto.
 
 I punti 1 e 2 erano da decidere presto in M2 e sono stati chiusi lì.
 
