@@ -1,10 +1,7 @@
 import { useEffect } from "react";
-import type {
-  ActionFunctionArgs,
-  LoaderFunctionArgs,
-  ShouldRevalidateFunction,
-} from "react-router";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
+import { skipRevalidationWhenLeaving } from "../revalidation";
 import {
   cancelSubscription,
   createCharge,
@@ -275,12 +272,7 @@ async function cancelPlan(admin: Admin, db: D1Database, shopDomain: string) {
   return { ok: true };
 }
 
-// Con un URL di conferma la pagina sta per essere sostituita da Shopify: rivalidare
-// significa solo lanciare richieste che verranno interrotte a metà.
-export const shouldRevalidate: ShouldRevalidateFunction = ({
-  actionResult,
-  defaultShouldRevalidate,
-}) => (actionResult && "confirmationUrl" in actionResult ? false : defaultShouldRevalidate);
+export const shouldRevalidate = skipRevalidationWhenLeaving;
 
 export default function Home() {
   const {
