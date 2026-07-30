@@ -6,6 +6,8 @@
   autenticazione, Home embedded, D1 e Validation del proof of concept.
 - [Contratti tecnici M4](contracts/m4-technical-contracts.md) — stato tecnico
   D1, ciclo webhook, eventi, codici errore e riconciliazione.
+- [Contratti tecnici M5](contracts/m5-technical-contracts.md) — prova, piani,
+  stato commerciale, diritto per il checkout e flussi con effetti economici.
 - [Evidenze M1](evidence/2026-07-28-m1-proof-of-concept.md) — target, prove sul
   dev store, CPU e confini operativi.
 - [Rendering errori checkout](evidence/2026-07-29-checkout-validation-rendering.md)

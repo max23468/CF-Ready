@@ -1667,6 +1667,12 @@ La generazione Value non va pubblicizzata come roadmap e non costituisce impegno
 
 ### 14.3 Prezzo di lancio
 
+Data di lancio provvisoria decisa il 30 luglio 2026: **1 settembre 2026**, con
+finestra Launch fino al **29 novembre 2026**. È il valore implementato in
+`app/billing.server.ts`; va riconfermato quando la data reale di lancio è nota,
+prima della `1.0.0`. Uno store che diventa idoneo prima dell'apertura della
+finestra riceve comunque la generazione `launch`.
+
 Durante i primi 90 giorni:
 
 - badge `Prezzo di lancio`;
@@ -3697,6 +3703,14 @@ frattempo, e `app_installed` veniva registrato a ogni autenticazione invece che
 una volta per installazione.
 
 ### M5 — Billing
+
+**In corso.** Il codice è consegnato in tre blocchi sul branch
+`feature/m5-trial-entitlement`, non ancora pubblicato: prova ed entitlement nel
+metafield, sottoscrizioni mensili e annuali, acquisto una tantum con conversione
+e rimborsi. I contratti sono in `docs/contracts/m5-technical-contracts.md`.
+Restano i gate, che richiedono addebiti di test sul dev store.
+
+Versione assegnata: `0.3.0`.
 
 Deliverable:
 
