@@ -37,10 +37,12 @@ jobs:
       - run: npm ci
       - run: npm run check
 
+      # Uno snapshot Development non è una release: il nome resta univoco per commit,
+      # così la versione di package.json continua a marcare solo le release SemVer.
       - name: Prepara versione
         run: |
           version="$(node -p "require('./package.json').version")"
-          echo "DEPLOY_VERSION=$version" >> "$GITHUB_ENV"
+          echo "DEPLOY_VERSION=$version-dev.${GITHUB_SHA::7}" >> "$GITHUB_ENV"
 
       - name: Verifica backend Development
         run: >-
