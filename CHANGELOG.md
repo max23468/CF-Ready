@@ -5,6 +5,14 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.3.6 — 30 luglio 2026
+
+- la conversione a pagamento unico è serializzata dalla lease per store: due
+  riconciliazioni simultanee chiedevano entrambe la cancellazione
+  dell'abbonamento e registravano l'evento due volte;
+- la contesa sulla lease non viene più mostrata al merchant come errore: se
+  un'altra riconciliazione sta già scrivendo, si esce senza segnalare nulla.
+
 ## 0.3.5 — 30 luglio 2026
 
 - registrato il topic `app_purchases_one_time/update`: senza, un rimborso che

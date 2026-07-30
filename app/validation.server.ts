@@ -213,18 +213,22 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
       // cancellare l'abbonamento con proratazione. Mai prima: un acquisto abbandonato deve
       // lasciare l'abbonamento intatto.
       if (state.oneTime && state.subscription) {
-        const cancelError = await cancelSubscription(admin, state.subscription.id, {
-          prorate: true,
-        });
-        if (cancelError) errorCode ??= cancelError;
-        else {
-          state = await readBilling(admin, BILLING_IS_TEST);
-          await recordEvent(db, {
-            shopDomain,
-            name: "subscription_converted",
-            class: "billing",
-            metadata: { reason: "one_time_purchased" },
-          });
+        const subscriptionId = state.subscription.id;
+        const conversion = await withValidationLock(db, shopDomain, () =>
+          cancelSubscription(admin, subscriptionId, { prorate: true }),
+        );
+
+        if (conversion.acquired) {
+          if (conversion.result) errorCode ??= conversion.result;
+          else {
+            state = await readBilling(admin, BILLING_IS_TEST);
+            await recordEvent(db, {
+              shopDomain,
+              name: "subscription_converted",
+              class: "billing",
+              metadata: { reason: "one_time_purchased" },
+            });
+          }
         }
       }
 
@@ -259,11 +263,14 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
   // Il diritto commerciale vive nel metafield: la Function lo confronta con la data locale e
   // si spegne da sola alla scadenza, senza job periodici.
   if (validation && entitlementDiffers(validation.metafield?.jsonValue, entitlement)) {
-    const writeError = await writeEntitlement(admin, db, shopDomain, validation, entitlement);
-    validation = findValidation((await queryContext(admin)).validations.nodes);
-    if (writeError) errorCode ??= writeError;
-    else if (entitlementDiffers(validation?.metafield?.jsonValue, entitlement)) {
-      errorCode ??= "entitlement_readback_failed";
+    const write = await writeEntitlement(admin, db, shopDomain, validation, entitlement);
+
+    if (write.acquired) {
+      validation = findValidation((await queryContext(admin)).validations.nodes);
+      if (write.result) errorCode ??= write.result;
+      else if (entitlementDiffers(validation?.metafield?.jsonValue, entitlement)) {
+        errorCode ??= "entitlement_readback_failed";
+      }
     }
   }
 
@@ -301,17 +308,14 @@ export function configWithEntitlement(config: unknown, entitlement: Entitlement)
   return { ...base, entitlement };
 }
 
-async function writeEntitlement(
+function writeEntitlement(
   admin: Admin,
   db: D1Database,
   shopDomain: string,
   validation: Validation,
   entitlement: Entitlement,
 ) {
-  const lockToken = await acquireValidationLock(db, shopDomain);
-  if (!lockToken) return "validation_locked";
-
-  try {
+  return withValidationLock(db, shopDomain, async () => {
     const response = await admin.graphql(UPDATE_VALIDATION, {
       variables: {
         id: validation.id,
@@ -333,11 +337,7 @@ async function writeEntitlement(
     });
     const result = (await response.json()) as MutationResult;
     return mutationError(result, "validationUpdate") ? "entitlement_write_failed" : null;
-  } catch {
-    return "entitlement_write_failed";
-  } finally {
-    await releaseValidationLockBestEffort(db, shopDomain, lockToken);
-  }
+  }).catch(() => ({ acquired: true as const, result: "entitlement_write_failed" }));
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -439,6 +439,24 @@ function canonicalJson(value: unknown): string {
       .join(",")}}`;
   }
   return JSON.stringify(value) ?? "null";
+}
+
+// La lease serializza le operazioni di lifecycle per store. Se è occupata, un'altra
+// riconciliazione sta già facendo la stessa cosa: si esce senza fare nulla e senza segnalare
+// un errore al merchant, perché non c'è nulla di rotto da segnalare.
+export async function withValidationLock<T>(
+  db: D1Database,
+  shopDomain: string,
+  operation: () => Promise<T>,
+): Promise<{ acquired: false } | { acquired: true; result: T }> {
+  const lockToken = await acquireValidationLock(db, shopDomain);
+  if (!lockToken) return { acquired: false };
+
+  try {
+    return { acquired: true, result: await operation() };
+  } finally {
+    await releaseValidationLockBestEffort(db, shopDomain, lockToken);
+  }
 }
 
 export async function acquireValidationLock(
