@@ -1308,6 +1308,13 @@ Non introdurre job periodici finché non esiste un problema osservato: il confro
 - payload webhook completi non conservati;
 - ogni tabella esiste perché serve a un requisito 1.0.
 
+Lo schema descritto qui è il bersaglio della 1.0, non il contenuto di una
+singola migrazione. Poiché le migrazioni applicate sono immutabili, ogni tabella
+e colonna viene creata dalla milestone che la usa: `shops` e `shopify_sessions`
+con M1, `app_state` tecnico, `webhook_events` e `app_events` con M4, `trials`,
+`billing_accounts` e `billing_events` con M5, le colonne di onboarding di
+`app_state` con M6, `support_requests` con il modulo di supporto.
+
 ### 12.2 Schema fisico minimo
 
 #### `shops`
@@ -1568,6 +1575,12 @@ customers/data_request
 customers/redact
 shop/redact
 ```
+
+I tre topic di compliance usano `compliance_topics` e condividono l’endpoint
+`/webhooks/compliance`. `app/scopes_update` è registrato dallo scaffold e
+mantenuto. I due topic billing vengono registrati con M5, insieme alla logica
+che li consuma: fino ad allora una sottoscrizione senza comportamento non
+aggiunge garanzie.
 
 Per ogni endpoint:
 
@@ -2785,6 +2798,11 @@ Dopo 90 giorni dalla disinstallazione, per store senza diritto una tantum:
 
 - elimina regole, onboarding, support metadata non necessari e stato tecnico;
 - conserva solo quanto indispensabile e giuridicamente sostenibile per prova, billing e contestazioni.
+
+I 90 giorni sono il limite massimo residuale. Shopify invia `shop/redact` circa
+48 ore dopo la disinstallazione: quando arriva, la cancellazione è immediata e
+la finestra non viene consumata. Non esiste un job periodico; la retention più
+lunga si applica solo agli store per cui il webhook non arriva.
 
 ### 21.6 `shop/redact`
 

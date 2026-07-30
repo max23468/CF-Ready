@@ -2,18 +2,18 @@ import { env } from "cloudflare:test";
 import { expect, test, vi } from "vitest";
 import {
   acquireValidationLock,
-  findPocValidation,
-  isPocStore,
+  configHash,
+  DEFAULT_CONFIG,
+  findValidation,
   mutationError,
-  POC_CONFIG,
   queryContext,
   releaseValidationLockBestEffort,
   renewValidationLock,
   startValidationLockHeartbeat,
-} from "../app/validation-poc.server";
+} from "../app/validation.server";
 
-test("il percorso PoC scrive una configurazione accettata dalla Function", () => {
-  expect(POC_CONFIG).toMatchObject({
+test("la configurazione scritta è accettata dalla Function", () => {
+  expect(DEFAULT_CONFIG).toMatchObject({
     schemaVersion: 2,
     enabled: true,
     errorDisplay: "inline",
@@ -25,9 +25,11 @@ test("il percorso PoC scrive una configurazione accettata dalla Function", () =>
   });
 });
 
-test("il percorso PoC limita le scritture Shopify al dev store", () => {
-  expect(isPocStore("cf-ready-dev.myshopify.com")).toBe(true);
-  expect(isPocStore("merchant.myshopify.com")).toBe(false);
+test("l'hash di configurazione ignora l'ordine dei campi ma non i valori", async () => {
+  const hash = await configHash({ schemaVersion: 2, rules: { pec: "optional_validated" } });
+
+  expect(await configHash({ rules: { pec: "optional_validated" }, schemaVersion: 2 })).toBe(hash);
+  expect(await configHash({ schemaVersion: 2, rules: { pec: "unmanaged" } })).not.toBe(hash);
 });
 
 const validation = {
@@ -69,7 +71,7 @@ test("pagina tutte le Validation e usa il Function handle come identità", async
   });
 
   expect(cursors).toEqual([null, "page-2"]);
-  expect(findPocValidation(data.validations.nodes)?.id).toBe(validation.id);
+  expect(findValidation(data.validations.nodes)?.id).toBe(validation.id);
 });
 
 test("interrompe la paginazione Shopify se il cursore non avanza", async () => {
