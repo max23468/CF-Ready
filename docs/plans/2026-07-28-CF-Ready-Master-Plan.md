@@ -427,6 +427,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-122 | Offrire `inline` come visualizzazione errori predefinita e `preventive` come opzione merchant; la Guida la consiglia quando è attiva la conferma ordine Shopify. | La prova live mostra che i box globali a Interaction impediscono la review silenziosa, ma possono apparire già al caricamento e richiedono una scelta informata. |
 | D-123 | Abilitare metriche e Workers Logs nativi, ma disabilitare gli invocation log automatici. Traces resta disattivato per default e può essere acceso solo temporaneamente in Development, con traffico sintetico e finestra di diagnosi delimitata. | Invocation log e trace automatici includono URL e query string; i trace includono anche il testo SQL D1. Il campionamento riduce volume e costo, non il rischio di raccogliere parametri tecnici sensibili. |
 | D-124 | Non collegare il repository a Workers Builds finché GitHub Actions è il CI/CD canonico. Logpush, OpenTelemetry, Tail Workers e servizi esterni restano differiti finché il monitoraggio Cloudflare nativo non risulta insufficiente. | Evita una seconda corsia di deploy e nuovi destinatari della telemetria senza un bisogno operativo misurato. |
+| D-125 | Avvisare il merchant che usa il campo “Interno” / “Indirizzo 2” per raccogliere il Codice Fiscale, tramite dichiarazione esplicita in configurazione e onboarding. Nessun rilevamento automatico e nessuno scope aggiuntivo. | Le impostazioni del modulo checkout non sono esposte dall’Admin API `2026-04`: `CheckoutAndAccountsConfiguration` espone solo `branding`, `overrides`, `isPublished`, `name` e i timestamp, `checkoutProfile` è deprecato e `read_checkout_settings` sblocca esclusivamente gli oggetti di branding. `TranslatableResourceType` non ha una risorsa per il contenuto checkout, quindi nemmeno la rinomina dell’etichetta è leggibile, e una rinomina fatta da una Checkout UI Extension di terzi resta invisibile per costruzione. La Function riceve `address2` ma è pura e non può segnalare nulla; leggere gli ordini richiederebbe `read_orders`, protected customer data e l’analisi di dati fiscali, contro §21.4. Il conflitto degrada l’esperienza con due campi duplicati, non blocca le vendite: non giustifica scope nuovi. |
 
 ---
 
@@ -582,6 +583,18 @@ required
 **FR-056** — Divergenze innocue vengono riparate automaticamente; situazioni ambigue producono banner e azione “Ripara configurazione”.
 
 **FR-057** — Due Validation duplicate non vengono cancellate automaticamente.
+
+**FR-058** — Prima dell’attivazione, CF Ready avverte che il campo nativo
+“Interno” / “Indirizzo 2” non va usato per raccogliere il Codice Fiscale e
+chiede al merchant una dichiarazione esplicita. Se il merchant dichiara di
+usarlo così, l’app mostra le istruzioni per rimuovere quell’uso in
+Impostazioni → Checkout e mantiene un promemoria in Home finché la
+dichiarazione non viene revocata.
+
+**FR-059** — L’avviso non è un rilevamento: non blocca l’attivazione, non è
+prerequisito di FR-052 e non deve essere presentato come verifica automatica
+della configurazione dello store. CF Ready non legge, non rinomina e non
+modifica il campo “Interno” (D-125).
 
 ### 7.7 Messaggi
 
@@ -1442,6 +1455,7 @@ Stato tecnico per store.
 | `onboarding_status` | `not_started`, `in_progress`, `completed` |
 | `onboarding_step` | integer |
 | `setup_checklist_dismissed_at` | text nullable |
+| `address2_conflict_declared_at` | text nullable, dichiarazione FR-058 |
 | `validation_gid` | text nullable |
 | `validation_enabled` | integer boolean |
 | `config_schema_version` | integer nullable |
@@ -1906,6 +1920,10 @@ Ordine dei contenuti:
    - risolvere sincronizzazione.
 5. **Guida e assistenza**.
 
+Finché la dichiarazione FR-058 resta attiva, il blocco `Prossimo passo
+consigliato` include il promemoria di rimuovere il Codice Fiscale dal campo
+“Interno”.
+
 Con Validation attiva:
 
 - azione primaria `Modifica regole`;
@@ -1937,6 +1955,9 @@ Ogni opzione ha una spiegazione concreta. Dopo le regole:
   con avviso che gli errori possono apparire già al caricamento e indicazione
   “Consigliato se usi la conferma ordine Shopify”;
 - anteprima dinamica `Come funzionerà il checkout`;
+- banner `warning` sul campo “Interno” quando il CF non è `unmanaged`, con
+  checkbox `Uso il campo Interno per il Codice Fiscale` e, se selezionata, le
+  istruzioni per rimuovere quell’uso (FR-058);
 - Save Bar `Salva` / `Annulla`;
 - salvataggio non attiva implicitamente una Validation disattivata.
 
@@ -2002,6 +2023,7 @@ Pagina unica con sezioni espandibili:
 - modalità di visualizzazione degli errori e conferma ordine;
 - checkout accelerati;
 - app disattivata;
+- campo “Interno” usato per il Codice Fiscale;
 - prova e pagamenti;
 - privacy e dati non conservati;
 - assenza di fatturazione elettronica;
@@ -2017,6 +2039,12 @@ merchant che mantengono attivo il passaggio Shopify di conferma dell’ordine.
 Deve spiegare che i box possono apparire già al caricamento, ma evitano che il
 cliente raggiunga la review con un blocco senza messaggio. Non deve suggerire
 che CF Ready rilevi automaticamente l’impostazione Shopify.
+
+La voce sul campo “Interno” spiega che il Codice Fiscale va raccolto nel campo
+fiscale nativo, che tenerlo anche in “Interno” mostra al cliente due campi per
+lo stesso dato e che l’uso va rimosso in Impostazioni → Checkout. Deve dire
+esplicitamente che CF Ready non può leggere quell’impostazione e si basa sulla
+dichiarazione del merchant (D-125).
 
 ### 15.8 Store non supportato
 
@@ -2039,7 +2067,7 @@ Quattro passaggi:
 1. introduzione, perimetro e limitazioni;
 2. scelta regole CF e PEC;
 3. eccezioni automatiche e revisione messaggi;
-4. riepilogo e attivazione.
+4. riepilogo, avviso sul campo “Interno” (FR-058) e attivazione.
 
 Regole:
 
@@ -3906,8 +3934,9 @@ Gate:
 2. Modulo supporto, se Email binding confermato.
 3. Telemetria Controlled Launch.
 4. Screenshot e sito rifiniti.
-5. Runbook incidenti.
-6. Query/report interni semplici sulle metriche.
+5. Avviso e dichiarazione sul campo “Interno” (FR-058, FR-059).
+6. Runbook incidenti.
+7. Query/report interni semplici sulle metriche.
 
 ### P2 — Dopo trazione, non blocca `1.0.0`
 
@@ -4258,6 +4287,14 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
    fail-open sull’errore e mancata riattivazione al rientro. Il rischio residuo
    è basso perché ogni errore del percorso è fail-open e non può bloccare
    vendite. Si riapre solo se un merchant reale non italiano installa l’app.
+8. **Rilevamento automatico del campo “Interno” usato come Codice Fiscale** —
+   rimandato il 30 luglio 2026. Verificato sull’Admin API `2026-04`: né lo
+   stato del campo (`Non includere` / `Facoltativo` / `Obbligatorio`) né la sua
+   etichetta sono leggibili, e nessun altro canale è compatibile con lo scope
+   minimo e con §21.4 (D-125). La 1.0 usa la dichiarazione del merchant
+   (FR-058). Si riapre solo se Shopify espone in lettura le opzioni modulo del
+   checkout: da ricontrollare insieme alla riverifica della Function API
+   `2026-07` prevista in §35.
 I punti residui di brand sono verifiche e produzione di materiali che dipendono da milestone successive. **La Brand Foundation è chiusa.**
 
 I punti 1 e 2 erano da decidere presto in M2 e sono stati chiusi lì.
@@ -4277,6 +4314,8 @@ Le API e i requisiti cambiano: prima di implementare o pubblicare, verificare se
 - [`validationCreate`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/validationCreate)
 - [`validationUpdate`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/validationUpdate)
 - [`ShopAddress`](https://shopify.dev/docs/api/admin-graphql/latest/objects/ShopAddress)
+- [`CheckoutAndAccountsConfiguration`](https://shopify.dev/docs/api/admin-graphql/latest/objects/CheckoutAndAccountsConfiguration) e [`TranslatableResourceType`](https://shopify.dev/docs/api/admin-graphql/latest/enums/TranslatableResourceType) — verificare se le opzioni modulo del checkout diventano leggibili (§34 punto 8)
+- [Opzioni modulo del checkout](https://help.shopify.com/en/manual/checkout-settings/checkout-form-options)
 - [Scaffold an app](https://shopify.dev/docs/apps/build/scaffold-app)
 - [App Home](https://shopify.dev/docs/apps/build/app-home)
 - [Polaris web components](https://shopify.dev/docs/api/app-home/web-components)
