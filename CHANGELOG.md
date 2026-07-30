@@ -5,6 +5,12 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.3.5 — 30 luglio 2026
+
+- registrato il topic `app_purchases_one_time/update`: senza, un rimborso che
+  revoca il diritto veniva recepito solo alla successiva apertura dell'app. Il
+  gestore dei due topic billing è ora un endpoint unico.
+
 ## 0.3.4 — 30 luglio 2026
 
 - il piano già attivo non viene più riproposto: premerlo creava un addebito che

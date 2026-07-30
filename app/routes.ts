@@ -8,6 +8,6 @@ export default [
   route("webhooks/app/uninstalled", "routes/webhooks.app.uninstalled.tsx"),
   route("webhooks/app/scopes_update", "routes/webhooks.app.scopes_update.tsx"),
   route("webhooks/shop/update", "routes/webhooks.shop.update.tsx"),
-  route("webhooks/app/subscriptions_update", "routes/webhooks.app.subscriptions_update.tsx"),
+  route("webhooks/app/billing", "routes/webhooks.app.billing.tsx"),
   route("webhooks/compliance", "routes/webhooks.compliance.tsx"),
 ] satisfies RouteConfig;
