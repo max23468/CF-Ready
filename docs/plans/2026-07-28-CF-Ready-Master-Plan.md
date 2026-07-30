@@ -3653,10 +3653,12 @@ Gate:
 - store non italiano.
 
 I quattro gate hanno copertura automatizzata sul comportamento D1 e sul
-percorso webhook, con consegna firmata verificata in Development. Restano da
-osservare sul dev store, con azioni manuali dell'owner: una reinstallazione
-completa, la scadenza reale del token offline e uno store con indirizzo non
-italiano.
+percorso webhook. Il 30 luglio 2026 il dev store ha confermato live
+l'installazione con riconciliazione e la consegna reale di `shop/update`.
+Restano da osservare sul dev store, con azioni manuali dell'owner, la
+reinstallazione completa e la scadenza reale del token offline. Il gate sullo
+store non italiano chiude invece con residuo dichiarato: non è osservabile in
+Development, come registrato negli Open items §34.7.
 
 ### M5 — Billing
 
@@ -4189,6 +4191,15 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
    tra una licenza permissiva, copyleft o nessuna concessione resta
    esplicitamente all’owner; fino ad allora non si aggiunge `LICENSE` e vale
    D-120.
+7. **Conferma live del gate geografico** — rischio accettato il 30 luglio 2026.
+   Il paese dell’indirizzo del dev store è vincolato all’entità commerciale
+   dell’account: cambiarlo creerebbe una nuova entità e scollegherebbe i negozi
+   esistenti, danno sproporzionato rispetto alla prova. Nemmeno il canary M10
+   aiuta, perché lo store reale dell’owner è italiano. Il ramo resta coperto dai
+   test automatici, che verificano disattivazione, marcatura `blocked_country`,
+   fail-open sull’errore e mancata riattivazione al rientro. Il rischio residuo
+   è basso perché ogni errore del percorso è fail-open e non può bloccare
+   vendite. Si riapre solo se un merchant reale non italiano installa l’app.
 I punti residui di brand sono verifiche e produzione di materiali che dipendono da milestone successive. **La Brand Foundation è chiusa.**
 
 I punti 1 e 2 erano da decidere presto in M2 e sono stati chiusi lì.

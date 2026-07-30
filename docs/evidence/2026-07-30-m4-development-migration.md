@@ -83,8 +83,30 @@ senza sessione la riconciliazione viene saltata con un codice stabile invece di
 generare retry, e l'evento resta senza `shop_id`. Le due ricevute sintetiche
 restano in `webhook_events` come traccia della prova.
 
-## Non eseguito
+## Gate live sul dev store
 
-Gate live che richiedono azioni sul dev store e non sono automatizzabili da qui:
-reinstallazione completa, scadenza reale del token offline con refresh e store
-con indirizzo non italiano.
+Eseguiti dall'owner il 30 luglio 2026, con readback D1 verificato:
+
+| Prova | Esito |
+| --- | --- |
+| Apertura dell'app | OAuth completato, evento `app_installed`, riconciliazione che popola `app_state` con Validation `gid://shopify/Validation/140411184`, `schemaVersion` 2, hash calcolato e nessun codice errore |
+| Modifica delle impostazioni negozio | consegna reale di `shop/update` da Shopify, ricevuta `processed` con lo shop domain vero, evento `shop_updated` con `country_code` `IT` |
+
+La consegna reale chiude anche la domanda sulla registrazione dei topic
+aggiunti dallo snapshot `0.2.0`, non ispezionabile via API.
+
+Restano da osservare, con azioni manuali dell'owner: la reinstallazione
+completa e la scadenza reale del token offline, previsto un'ora dopo il
+rilascio con refresh token valido fino al 28 ottobre 2026.
+
+## Gate geografico: residuo dichiarato
+
+Il gate sullo store non italiano non è verificabile in Development. Il paese
+dell'indirizzo del dev store è vincolato all'entità commerciale dell'account
+Shopify: cambiarlo creerebbe una nuova entità e scollegherebbe i negozi
+esistenti. La prova è stata quindi fermata prima di applicarla.
+
+Il ramo resta coperto dai test automatici, che verificano disattivazione,
+marcatura `blocked_country`, fail-open sull'errore di disattivazione e mancata
+riattivazione al rientro in Italia. Il rischio residuo è accettato e registrato
+nel Master Plan Open items §34.7.
