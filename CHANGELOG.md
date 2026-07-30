@@ -5,6 +5,24 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.3.0 — 30 luglio 2026
+
+Milestone M5, billing. Rilasciata in Development.
+
+- prova comune di quattordici giorni, avviata da sola quando uno store italiano
+  diventa idoneo, con scadenza calcolata come data locale dello store;
+- generazione tariffaria acquisita all'idoneità e mantenuta fra le modalità;
+- sottoscrizione mensile e annuale con i soli giorni di prova residui, cambi con
+  il comportamento nativo Shopify e cancellazione ordinaria che lascia l'accesso
+  fino a fine periodo pagato;
+- acquisto una tantum con conversione dall'abbonamento nell'ordine sicuro e
+  credito stimato sul solo ciclo corrente;
+- rimborso totale che revoca il diritto, parziale che lo conserva;
+- diritto commerciale scritto nel metafield della Validation: alla scadenza la
+  Function smette di bloccare senza bisogno di job periodici;
+- registro pseudonimizzato delle prove già fruite, per impedire una seconda
+  prova dopo la cancellazione dei dati.
+
 ## 0.2.1 — 30 luglio 2026
 
 Correzioni emerse dai gate live di M4 sul dev store.
