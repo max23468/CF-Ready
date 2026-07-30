@@ -15,3 +15,24 @@ dei rispettivi provider e non devono comparire nel repository o nei log.
 
 `SHOPIFY_API_KEY`, ID account, ID database e nomi delle risorse non sono
 segreti, ma non autorizzano alcun accesso.
+
+## Rotazione di `SESSION_ENCRYPTION_KEY`
+
+Le sessioni sono rigenerabili: non esiste una doppia chiave e non serve
+migrare i record esistenti. Una riga cifrata con la chiave precedente non è
+più leggibile, viene ignorata con l'evento `session_decrypt_failed` e Shopify
+ripete l'autenticazione in modo trasparente.
+
+1. genera 32 byte casuali codificati in base64, fuori dal repository;
+2. scrivi il secret nell'ambiente bersaglio con `wrangler secret put` e, dove
+   previsto, nel secret store di GitHub Actions;
+3. ridistribuisci il Worker dell'ambiente;
+4. verifica con un login embedded che una nuova sessione venga scritta e
+   ricaricata;
+5. facoltativo, elimina le righe residue di `shopify_sessions` dello store di
+   prova: nessun dato applicativo dipende da esse.
+
+Rollback: rimetti il valore precedente dal secret store e ridistribuisci. Le
+sessioni scritte con la chiave nuova diventano a loro volta inutilizzabili e
+vengono rigenerate al primo accesso. Chiavi diverse fra `dev` e `prod`; il
+valore non compare mai in log, PR o documenti.

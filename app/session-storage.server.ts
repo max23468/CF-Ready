@@ -48,7 +48,10 @@ export class D1SessionStorage implements SessionStorage {
              shop_domain, installation_status, installed_at, created_at, updated_at
            ) VALUES (?, 'active', ?, ?, ?)
            ON CONFLICT(shop_domain) DO UPDATE SET
-             installation_status = 'active',
+             installation_status = CASE
+               WHEN shops.installation_status = 'uninstalled' THEN 'active'
+               ELSE shops.installation_status
+             END,
              uninstalled_at = NULL,
              updated_at = excluded.updated_at`,
         )
@@ -106,7 +109,7 @@ export class D1SessionStorage implements SessionStorage {
       .bind(id)
       .first<StoredSession>();
 
-    return row ? this.deserialize(row) : undefined;
+    return row ? this.tryDeserialize(row) : undefined;
   }
 
   async deleteSession(id: string): Promise<boolean> {
@@ -151,7 +154,20 @@ export class D1SessionStorage implements SessionStorage {
       .bind(shop)
       .all<StoredSession>();
 
-    return Promise.all(results.map((row) => this.deserialize(row)));
+    const sessions = await Promise.all(results.map((row) => this.tryDeserialize(row)));
+    return sessions.filter((session): session is Session => session !== undefined);
+  }
+
+  // Chiave ruotata o record manomesso: la sessione non è utilizzabile e Shopify rifà OAuth.
+  // Restituire `undefined` invece di propagare evita che una rotazione blocchi l'app.
+  private async tryDeserialize(row: StoredSession): Promise<Session | undefined> {
+    try {
+      return await this.deserialize(row);
+    } catch {
+      // L'id sessione contiene lo shop domain: nel log resta solo il codice evento.
+      console.error(JSON.stringify({ event: "session_decrypt_failed", class: "error" }));
+      return undefined;
+    }
   }
 
   private async deserialize(row: StoredSession): Promise<Session> {

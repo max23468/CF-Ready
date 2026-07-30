@@ -4,6 +4,11 @@ Questo documento descrive il proof of concept consegnato da M1. Non estende il
 perimetro della 1.0 e non sostituisce il
 [Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md).
 
+M4 ha sostituito il percorso PoC con il lifecycle definitivo: il titolo della
+Validation è `CF Ready`, la guardia sul solo dev store è stata rimpiazzata dal
+gate geografico e il loader della Home passa dalla riconciliazione. Il codice
+corrente è in `app/validation.server.ts`.
+
 ## Runtime e autenticazione
 
 - Runtime: React Router e TypeScript su Cloudflare Workers.

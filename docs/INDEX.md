@@ -3,11 +3,13 @@
 - [Master Plan](plans/2026-07-28-CF-Ready-Master-Plan.md) — requisiti,
   decisioni, milestone e gate.
 - [Contratti tecnici M1](contracts/m1-technical-contracts.md) — runtime,
-  autenticazione, Home embedded, D1 e Validation PoC.
+  autenticazione, Home embedded, D1 e Validation del proof of concept.
 - [Evidenze M1](evidence/2026-07-28-m1-proof-of-concept.md) — target, prove sul
   dev store, CPU e confini operativi.
 - [Rendering errori checkout](evidence/2026-07-29-checkout-validation-rendering.md)
   — target verificato, limite della review e gate Shopify/M10 residui.
+- [Migrazione D1 Development M4](evidence/2026-07-30-m4-development-migration.md)
+  — preflight, readback e rollback dello schema tecnico M4.
 - [ADR 0001](adr/0001-stack.md) — stack applicativo e provider.
 - [Brand Foundation](brand/brand-foundation.md) — identità e tono.
 - [Brand board](brand/brand-board.html) — riferimento visuale.

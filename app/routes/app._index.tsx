@@ -1,81 +1,39 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
+import { recordEvent } from "../events.server";
 import { authenticate } from "../shopify.server";
 import {
   acquireValidationLock,
-  findPocValidation,
+  CREATE_VALIDATION,
+  DEFAULT_CONFIG,
+  ELIGIBLE_COUNTRY,
+  findValidation,
   FUNCTION_HANDLE,
-  isPocStore,
   mutationError,
-  POC_CONFIG,
+  persistValidationState,
   queryContext,
+  reconcile,
   releaseValidationLockBestEffort,
   startValidationLockHeartbeat,
-} from "../validation-poc.server";
-import type { MutationResult } from "../validation-poc.server";
-
-const POC_TITLE = "CF Ready — PoC tecnico";
-const CREATE_VALIDATION = `#graphql
-  mutation PocValidationCreate($validation: ValidationCreateInput!) {
-    validationCreate(validation: $validation) {
-      validation {
-        id
-      }
-      userErrors {
-        field
-        message
-      }
-    }
-  }
-`;
-
-const UPDATE_VALIDATION = `#graphql
-  mutation PocValidationUpdate($id: ID!, $validation: ValidationUpdateInput!) {
-    validationUpdate(id: $id, validation: $validation) {
-      validation {
-        id
-      }
-      userErrors {
-        field
-        message
-      }
-    }
-  }
-`;
+  UPDATE_VALIDATION,
+  VALIDATION_TITLE,
+} from "../validation.server";
+import type { MutationResult } from "../validation.server";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
-  const data = await queryContext(admin);
-  const countryCode = data.shop.shopAddress.countryCodeV2;
-  const now = new Date().toISOString();
+  const state = await reconcile(admin, context.cloudflare.env.DB, session.shop);
 
-  await context.cloudflare.env.DB.prepare(
-    "UPDATE shops SET country_code = ?, updated_at = ? WHERE shop_domain = ?",
-  )
-    .bind(countryCode, now, session.shop)
-    .run();
-  const persisted = (await context.cloudflare.env.DB.prepare(
-    "SELECT country_code FROM shops WHERE shop_domain = ?",
-  )
-    .bind(session.shop)
-    .first()) as { country_code: string } | null;
-  if (persisted?.country_code !== countryCode) {
-    throw new Response("Readback D1 non riuscito", { status: 500 });
-  }
-
-  const validation = findPocValidation(data.validations.nodes);
   return {
-    shopName: data.shop.name,
-    countryCode,
-    validationEnabled: validation?.enabled ?? false,
+    shopName: state.shopName,
+    countryCode: state.countryCode,
+    eligible: state.eligible,
+    validationEnabled: state.validation?.enabled ?? false,
   };
 };
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
-  if (!isPocStore(session.shop)) {
-    return { ok: false, error: "Il PoC può modificare solo il dev store CF Ready." };
-  }
   const intent = (await request.formData()).get("intent");
   if (intent !== "enable" && intent !== "disable") {
     return { ok: false, error: "Azione non valida." };
@@ -90,24 +48,33 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
   try {
     const data = await queryContext(admin);
-    const existing = findPocValidation(data.validations.nodes);
+    const countryCode = data.shop.shopAddress.countryCodeV2;
+    const eligible = countryCode === ELIGIBLE_COUNTRY;
     const enable = intent === "enable";
+    if (enable && !eligible) {
+      return {
+        ok: false,
+        error: "CF Ready è disponibile solo per store con indirizzo in Italia.",
+      };
+    }
+
+    const existing = findValidation(data.validations.nodes);
     const metafields = [
       {
         namespace: "$app:cf-ready-validation",
         key: "function-configuration",
         type: "json",
-        value: JSON.stringify(POC_CONFIG),
+        value: JSON.stringify(DEFAULT_CONFIG),
       },
     ];
     const variables = existing
       ? {
           id: existing.id,
-          validation: { title: POC_TITLE, enable, blockOnFailure: false, metafields },
+          validation: { title: VALIDATION_TITLE, enable, blockOnFailure: false, metafields },
         }
       : {
           validation: {
-            title: POC_TITLE,
+            title: VALIDATION_TITLE,
             functionHandle: FUNCTION_HANDLE,
             enable,
             blockOnFailure: false,
@@ -124,13 +91,35 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     const operation = existing ? "validationUpdate" : "validationCreate";
     const error = mutationError(result, operation);
     if (error) {
+      await persistValidationState(db, session.shop, {
+        countryCode,
+        eligible,
+        validation: existing,
+        errorCode: "validation_write_failed",
+      });
       return { ok: false, error };
     }
 
-    const readback = findPocValidation((await queryContext(admin)).validations.nodes);
-    if (!readback || readback.enabled !== enable || readback.blockOnFailure !== false) {
+    const readback = findValidation((await queryContext(admin)).validations.nodes);
+    const consistent = Boolean(
+      readback && readback.enabled === enable && readback.blockOnFailure === false,
+    );
+    await persistValidationState(db, session.shop, {
+      countryCode,
+      eligible,
+      validation: readback,
+      errorCode: consistent ? null : "validation_readback_failed",
+    });
+    if (!consistent) {
       return { ok: false, error: "Readback Shopify non riuscito." };
     }
+
+    await recordEvent(db, {
+      shopDomain: session.shop,
+      name: enable ? "validation_enabled" : "validation_disabled",
+      class: "validation",
+      metadata: { enabled: enable, schema_version: DEFAULT_CONFIG.schemaVersion },
+    });
     return { ok: true };
   } finally {
     await heartbeat.stop();
@@ -139,24 +128,29 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 };
 
 export default function Home() {
-  const { shopName, countryCode, validationEnabled } = useLoaderData<typeof loader>();
+  const { shopName, countryCode, eligible, validationEnabled } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
 
   return (
     <s-page heading="CF Ready">
-      <s-section heading="Proof of concept">
+      <s-section heading="Validation">
         <s-paragraph>
-          {shopName} ({countryCode}) · Validation PoC {validationEnabled ? "attiva" : "disattivata"}
-          .
+          {shopName} ({countryCode}) · Validation {validationEnabled ? "attiva" : "disattivata"}.
         </s-paragraph>
+        {eligible ? null : (
+          <s-banner tone="warning">
+            CF Ready è disponibile solo per store con indirizzo in Italia. La Validation resta
+            disattivata e il checkout non viene bloccato.
+          </s-banner>
+        )}
         <fetcher.Form method="post">
           <input type="hidden" name="intent" value={validationEnabled ? "disable" : "enable"} />
           <s-button
             variant={validationEnabled ? "secondary" : "primary"}
             type="submit"
-            disabled={fetcher.state !== "idle"}
+            disabled={fetcher.state !== "idle" || (!eligible && !validationEnabled)}
           >
-            {validationEnabled ? "Disattiva PoC" : "Attiva PoC"}
+            {validationEnabled ? "Disattiva nel checkout" : "Attiva nel checkout"}
           </s-button>
         </fetcher.Form>
         {fetcher.data && !fetcher.data.ok ? (

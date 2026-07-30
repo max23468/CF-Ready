@@ -1,13 +1,15 @@
 import type { ActionFunctionArgs } from "react-router";
 import { authenticate, sessionStorage } from "../shopify.server";
+import { handleWebhook } from "../webhooks.server";
 
-export const action = async ({ request }: ActionFunctionArgs) => {
-  const { payload, session } = await authenticate.webhook(request);
+export const action = async ({ request, context }: ActionFunctionArgs) => {
+  const webhook = await authenticate.webhook(request);
 
-  if (session) {
-    session.scope = (payload.current as string[]).join(",");
-    await sessionStorage.storeSession(session);
-  }
-
-  return new Response();
+  return handleWebhook(context.cloudflare.env.DB, webhook, async () => {
+    const { payload, session } = webhook;
+    if (session) {
+      session.scope = (payload.current as string[]).join(",");
+      await sessionStorage.storeSession(session);
+    }
+  });
 };
