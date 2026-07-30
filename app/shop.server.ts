@@ -1,3 +1,5 @@
+import { recordTrialLedger } from "./billing.server";
+
 // Con la managed installation ogni rinnovo del token completa un'autenticazione e riesegue
 // `afterAuth`: l'evento vale una sola volta per installazione, cioè finché non arriva una
 // disinstallazione successiva.
@@ -49,6 +51,16 @@ export async function markUninstalled(db: D1Database, shopDomain: string) {
 // disconnetterebbe il merchant. Nessun dato acquirente è coinvolto, quindi la richiesta
 // viene presa in carico senza cancellare finché l'installazione risulta attiva.
 export async function redactShop(db: D1Database, shopDomain: string) {
+  const shop = await db
+    .prepare("SELECT installation_status FROM shops WHERE shop_domain = ?")
+    .bind(shopDomain)
+    .first<{ installation_status: string }>();
+
+  if (shop?.installation_status !== "uninstalled") return false;
+
+  // Il registro va scritto prima: cancellando lo store se ne va anche la prova consumata.
+  await recordTrialLedger(db, shopDomain);
+
   const deleted = await db
     .prepare(
       `DELETE FROM shops WHERE shop_domain = ? AND installation_status = 'uninstalled'
@@ -59,9 +71,8 @@ export async function redactShop(db: D1Database, shopDomain: string) {
 
   if (!deleted) return false;
 
-  // ponytail: cancellazione totale finché non esistono prova e diritto una tantum (M5) da
-  // conservare in forma pseudonimizzata. Le ricevute webhook restano per l'idempotenza dei
-  // retry, senza più riferimento allo store.
+  // ponytail: il diritto una tantum entrerà nel registro con il blocco billing di M5. Le
+  // ricevute webhook restano per l'idempotenza dei retry, senza più riferimento allo store.
   await db
     .prepare("UPDATE webhook_events SET shop_domain = NULL WHERE shop_domain = ?")
     .bind(shopDomain)
