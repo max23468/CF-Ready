@@ -1,6 +1,9 @@
 export const FUNCTION_HANDLE = "cf-ready-validation";
-export const isPocStore = (shop: string) => shop === "cf-ready-dev.myshopify.com";
-export const POC_CONFIG = {
+export const VALIDATION_TITLE = "CF Ready";
+export const ELIGIBLE_COUNTRY = "IT";
+// ponytail: regole e messaggi fissi finché M6 non consegna l'editor merchant;
+// `entitlement` diventa dinamico con il billing M5.
+export const DEFAULT_CONFIG = {
   schemaVersion: 2,
   enabled: true,
   errorDisplay: "inline",
@@ -28,7 +31,7 @@ const VALIDATION_LOCK_TTL_MS = 60_000;
 const VALIDATION_LOCK_RENEWAL_MS = 20_000;
 
 const CONTEXT_QUERY = `#graphql
-  query PocContext($after: String) {
+  query CfReadyContext($after: String) {
     shop {
       name
       shopAddress {
@@ -59,7 +62,9 @@ const CONTEXT_QUERY = `#graphql
   }
 `;
 
-type Validation = {
+type Config = { schemaVersion?: number };
+
+export type Validation = {
   id: string;
   title: string;
   enabled: boolean;
@@ -84,9 +89,39 @@ export type MutationResult = {
   errors?: { message: string }[];
 };
 
-export async function queryContext(admin: {
+export type Admin = {
   graphql: (query: string, options?: { variables?: Record<string, unknown> }) => Promise<Response>;
-}) {
+};
+
+export const CREATE_VALIDATION = `#graphql
+  mutation CfReadyValidationCreate($validation: ValidationCreateInput!) {
+    validationCreate(validation: $validation) {
+      validation {
+        id
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+export const UPDATE_VALIDATION = `#graphql
+  mutation CfReadyValidationUpdate($id: ID!, $validation: ValidationUpdateInput!) {
+    validationUpdate(id: $id, validation: $validation) {
+      validation {
+        id
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+export async function queryContext(admin: Admin) {
   const nodes: Validation[] = [];
   const cursors = new Set<string>();
   let after: string | null = null;
@@ -111,12 +146,12 @@ export async function queryContext(admin: {
   return { shop: shop!, validations: { nodes } };
 }
 
-export function findPocValidation(validations: Validation[]) {
+export function findValidation(validations: Validation[]) {
   const matches = validations.filter(
     ({ shopifyFunction }) => shopifyFunction.handle === FUNCTION_HANDLE,
   );
   if (matches.length > 1) {
-    throw new Response("Sono presenti più Validation CF Ready PoC.", {
+    throw new Response("Sono presenti più Validation CF Ready.", {
       status: 409,
     });
   }
@@ -132,6 +167,121 @@ export function mutationError(
   }
   const userErrors = result.data[operation].userErrors;
   return userErrors.length ? userErrors.map(({ message }) => message).join(" ") : null;
+}
+
+export async function reconcile(admin: Admin, db: D1Database, shopDomain: string) {
+  const { shop, validations } = await queryContext(admin);
+  const countryCode = shop.shopAddress.countryCodeV2;
+  const eligible = countryCode === ELIGIBLE_COUNTRY;
+  let validation = findValidation(validations.nodes);
+  let errorCode: string | null = null;
+
+  if (!eligible && validation?.enabled) {
+    errorCode = await disableForCountry(admin, db, shopDomain, validation.id);
+    validation = findValidation((await queryContext(admin)).validations.nodes);
+    if (validation?.enabled) errorCode ??= "validation_still_enabled";
+  }
+
+  await persistValidationState(db, shopDomain, { countryCode, eligible, validation, errorCode });
+
+  return { shopName: shop.name, countryCode, eligible, validation, errorCode };
+}
+
+// Fail-open: uno store non idoneo perde la Validation, non le vendite. Nessun errore propagato.
+async function disableForCountry(admin: Admin, db: D1Database, shopDomain: string, id: string) {
+  const lockToken = await acquireValidationLock(db, shopDomain);
+  if (!lockToken) return "validation_locked";
+
+  try {
+    const response = await admin.graphql(UPDATE_VALIDATION, {
+      variables: { id, validation: { enable: false, blockOnFailure: false } },
+    });
+    const result = (await response.json()) as MutationResult;
+    return mutationError(result, "validationUpdate") ? "validation_disable_failed" : null;
+  } catch {
+    return "validation_disable_failed";
+  } finally {
+    await releaseValidationLockBestEffort(db, shopDomain, lockToken);
+  }
+}
+
+export async function persistValidationState(
+  db: D1Database,
+  shopDomain: string,
+  state: {
+    countryCode: string;
+    eligible: boolean;
+    validation: Validation | undefined;
+    errorCode: string | null;
+  },
+) {
+  const now = new Date().toISOString();
+  const config = state.validation?.metafield?.jsonValue;
+  const schemaVersion =
+    config && typeof config === "object" && typeof (config as Config).schemaVersion === "number"
+      ? (config as Config).schemaVersion
+      : null;
+
+  await db.batch([
+    db
+      .prepare(
+        `UPDATE shops SET
+           country_code = ?,
+           installation_status = CASE
+             WHEN ? = 0 AND installation_status = 'active' THEN 'blocked_country'
+             WHEN ? = 1 AND installation_status = 'blocked_country' THEN 'active'
+             ELSE installation_status
+           END,
+           updated_at = ?
+         WHERE shop_domain = ?`,
+      )
+      .bind(state.countryCode, Number(state.eligible), Number(state.eligible), now, shopDomain),
+    db
+      .prepare(
+        `INSERT INTO app_state (
+           shop_id, validation_gid, validation_enabled, config_schema_version,
+           config_hash, last_sync_at, last_error_code, updated_at
+         ) VALUES ((SELECT id FROM shops WHERE shop_domain = ?), ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(shop_id) DO UPDATE SET
+           validation_gid = excluded.validation_gid,
+           validation_enabled = excluded.validation_enabled,
+           config_schema_version = excluded.config_schema_version,
+           config_hash = excluded.config_hash,
+           last_sync_at = excluded.last_sync_at,
+           last_error_code = excluded.last_error_code,
+           updated_at = excluded.updated_at`,
+      )
+      .bind(
+        shopDomain,
+        state.validation?.id ?? null,
+        Number(state.validation?.enabled ?? false),
+        schemaVersion,
+        config === undefined || config === null ? null : await configHash(config),
+        now,
+        state.errorCode,
+        now,
+      ),
+  ]);
+}
+
+// Hash canonico: una riscrittura dei campi da parte di Shopify non deve sembrare un conflitto.
+export async function configHash(value: unknown) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(canonicalJson(value)),
+  );
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.entries(value)
+      .sort(([left], [right]) => (left < right ? -1 : 1))
+      .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalJson(entry)}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "null";
 }
 
 export async function acquireValidationLock(

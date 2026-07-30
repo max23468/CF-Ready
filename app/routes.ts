@@ -7,4 +7,6 @@ export default [
   route("auth/*", "routes/auth.$.tsx"),
   route("webhooks/app/uninstalled", "routes/webhooks.app.uninstalled.tsx"),
   route("webhooks/app/scopes_update", "routes/webhooks.app.scopes_update.tsx"),
+  route("webhooks/shop/update", "routes/webhooks.shop.update.tsx"),
+  route("webhooks/compliance", "routes/webhooks.compliance.tsx"),
 ] satisfies RouteConfig;

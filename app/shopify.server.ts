@@ -1,6 +1,8 @@
 import { env } from "cloudflare:workers";
 import { ApiVersion, AppDistribution, shopifyApp } from "@shopify/shopify-app-react-router/server";
+import { recordEvent } from "./events.server";
 import { D1SessionStorage } from "./session-storage.server";
+import { reconcile } from "./validation.server";
 
 type ShopifyBindings = Env & {
   SCOPES?: string;
@@ -24,6 +26,28 @@ const shopify = shopifyApp({
   distribution: AppDistribution.AppStore,
   future: {
     expiringOfflineAccessTokens: true,
+  },
+  hooks: {
+    // Installazione e reinstallazione: paese e stato tecnico non aspettano la prima Home.
+    afterAuth: async ({ session, admin }) => {
+      await recordEvent(bindings.DB, {
+        shopDomain: session.shop,
+        name: "app_installed",
+        class: "lifecycle",
+      });
+
+      try {
+        await reconcile(admin, bindings.DB, session.shop);
+      } catch {
+        // Fail-open: un errore Shopify non deve far fallire l'installazione.
+        await recordEvent(bindings.DB, {
+          shopDomain: session.shop,
+          name: "install_reconcile_failed",
+          class: "error",
+          metadata: { error_code: "reconcile_failed" },
+        });
+      }
+    },
   },
   ...(bindings.SHOP_CUSTOM_DOMAIN ? { customShopDomains: [bindings.SHOP_CUSTOM_DOMAIN] } : {}),
 });

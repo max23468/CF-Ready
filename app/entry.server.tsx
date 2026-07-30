@@ -17,7 +17,17 @@ export default async function handleRequest(
       onError(error: unknown) {
         responseStatusCode = 500;
         if (shellRendered) {
-          console.error(error);
+          // Nome e stack bastano a localizzare il difetto; il messaggio può contenere
+          // URL, query string o dati dello store.
+          console.error(
+            JSON.stringify({
+              event: "render_failed",
+              class: "error",
+              error_name: error instanceof Error ? error.name : "unknown",
+              // La prima riga dello stack ripete il messaggio: si tengono solo i frame.
+              frames: error instanceof Error ? error.stack?.split("\n").slice(1, 6) : undefined,
+            }),
+          );
         }
       },
     },
