@@ -64,9 +64,8 @@ Endpoint e topic registrati:
 | `/webhooks/app/uninstalled` | `app/uninstalled` |
 | `/webhooks/app/scopes_update` | `app/scopes_update` |
 | `/webhooks/shop/update` | `shop/update` |
+| `/webhooks/app/billing` | `app_subscriptions/update`, `app_purchases_one_time/update` |
 | `/webhooks/compliance` | `customers/data_request`, `customers/redact`, `shop/redact` |
-
-I topic billing sono registrati da M5 insieme alla logica che li consuma.
 
 ## Eventi e log
 
