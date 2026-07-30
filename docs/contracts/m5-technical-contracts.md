@@ -119,7 +119,7 @@ credito separato.
 | `trial_expired` | `billing` | prova scaduta senza pagamento |
 | `subscription_cancelled` | `billing` | cancellazione ordinaria richiesta dal merchant |
 | `subscription_converted` | `billing` | abbonamento cancellato dopo un acquisto una tantum |
-| `billing_updated` | `billing` | webhook billing elaborato |
+| `billing_updated` | `billing` | webhook billing elaborato, sottoscrizioni e acquisti |
 | `billing_update_skipped` | `billing` | webhook billing senza sessione utilizzabile |
 
 I metadati usano l'allowlist dei contratti M4, estesa con `pricing_generation`.

@@ -26,8 +26,8 @@ api_version = "2026-07"
   topics = [ "shop/update" ]
 
   [[webhooks.subscriptions]]
-  uri = "/webhooks/app/subscriptions_update"
-  topics = [ "app_subscriptions/update" ]
+  uri = "/webhooks/app/billing"
+  topics = [ "app_subscriptions/update", "app_purchases_one_time/update" ]
 
   [[webhooks.subscriptions]]
   uri = "/webhooks/compliance"
