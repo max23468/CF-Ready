@@ -39,6 +39,45 @@ test("salva la sessione cifrata e la ricarica da D1", async () => {
   );
 });
 
+test("la reinstallazione riattiva lo store ma non annulla il blocco geografico", async () => {
+  const key = btoa(String.fromCharCode(...new Uint8Array(32).fill(9)));
+  const storage = new D1SessionStorage(env.DB, key);
+  const session = (shop: string, accessToken: string) =>
+    new Session({ id: `offline_${shop}`, shop, state: "state", isOnline: false, accessToken });
+
+  const reinstalled = "reinstall.example.myshopify.com";
+  await storage.storeSession(session(reinstalled, "token-1"));
+  await env.DB.prepare(
+    `UPDATE shops SET installation_status = 'uninstalled', uninstalled_at = ? WHERE shop_domain = ?`,
+  )
+    .bind("2026-07-30T00:00:00.000Z", reinstalled)
+    .run();
+  await storage.storeSession(session(reinstalled, "token-2"));
+
+  expect(
+    await env.DB.prepare(
+      "SELECT installation_status, uninstalled_at FROM shops WHERE shop_domain = ?",
+    )
+      .bind(reinstalled)
+      .first(),
+  ).toMatchObject({ installation_status: "active", uninstalled_at: null });
+
+  const blocked = "blocked.example.myshopify.com";
+  await storage.storeSession(session(blocked, "token-1"));
+  await env.DB.prepare(
+    `UPDATE shops SET installation_status = 'blocked_country' WHERE shop_domain = ?`,
+  )
+    .bind(blocked)
+    .run();
+  await storage.storeSession(session(blocked, "token-2"));
+
+  expect(
+    await env.DB.prepare("SELECT installation_status FROM shops WHERE shop_domain = ?")
+      .bind(blocked)
+      .first(),
+  ).toMatchObject({ installation_status: "blocked_country" });
+});
+
 test("rifiuta ciphertext trapiantati tra sessioni", async () => {
   const key = btoa(String.fromCharCode(...new Uint8Array(32).fill(8)));
   const storage = new D1SessionStorage(env.DB, key);
@@ -65,5 +104,31 @@ test("rifiuta ciphertext trapiantati tra sessioni", async () => {
     .bind(source.id, target.id)
     .run();
 
-  await expect(storage.loadSession(target.id)).rejects.toThrow();
+  // Il ciphertext trapiantato non viene mai accettato; la sessione risulta assente e si rifà OAuth.
+  await expect(storage.loadSession(target.id)).resolves.toBeUndefined();
+  await expect(storage.findSessionsByShop(target.shop)).resolves.toEqual([]);
+});
+
+test("una chiave ruotata invalida le sessioni invece di rompere l'app", async () => {
+  const session = new Session({
+    id: "offline_rotazione.example.myshopify.com",
+    shop: "rotazione.example.myshopify.com",
+    state: "state",
+    isOnline: false,
+    accessToken: "token",
+  });
+  const before = new D1SessionStorage(
+    env.DB,
+    btoa(String.fromCharCode(...new Uint8Array(32).fill(1))),
+  );
+  await before.storeSession(session);
+
+  const after = new D1SessionStorage(
+    env.DB,
+    btoa(String.fromCharCode(...new Uint8Array(32).fill(2))),
+  );
+
+  await expect(after.loadSession(session.id)).resolves.toBeUndefined();
+  expect(await after.storeSession(session)).toBe(true);
+  expect((await after.loadSession(session.id))?.accessToken).toBe("token");
 });

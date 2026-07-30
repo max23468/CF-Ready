@@ -70,6 +70,7 @@ export async function finishWebhook(
 
 // Solo codici stabili: il messaggio di un errore imprevisto può contenere dati non sanitizzati.
 export function errorCode(error: unknown) {
+  if (error instanceof Response) return `response_${error.status}`;
   const message = error instanceof Error ? error.message : "";
   return /^[a-z0-9_]+$/.test(message) ? message : "unhandled_error";
 }

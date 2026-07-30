@@ -148,6 +148,7 @@ test("disinstallazione e redact ripuliscono i dati dello store", async () => {
   const shop = await insertShop("redact.example.myshopify.com");
   await recordEvent(env.DB, { shopDomain: shop, name: "app_installed", class: "lifecycle" });
   await claimWebhook(env.DB, "wh-redact", "SHOP_REDACT", shop);
+  await reconcile(adminStub([shopContext("IT", true)]), env.DB, shop);
 
   await markUninstalled(env.DB, shop);
   expect(
@@ -157,6 +158,7 @@ test("disinstallazione e redact ripuliscono i dati dello store", async () => {
       .bind(shop)
       .first(),
   ).toMatchObject({ installation_status: "uninstalled" });
+  expect(await appState(shop)).toMatchObject({ validation_enabled: 0, validation_gid: null });
 
   await redactShop(env.DB, shop);
 
