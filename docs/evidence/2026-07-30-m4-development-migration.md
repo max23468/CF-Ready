@@ -83,8 +83,68 @@ senza sessione la riconciliazione viene saltata con un codice stabile invece di
 generare retry, e l'evento resta senza `shop_id`. Le due ricevute sintetiche
 restano in `webhook_events` come traccia della prova.
 
-## Non eseguito
+## Gate live sul dev store
 
-Gate live che richiedono azioni sul dev store e non sono automatizzabili da qui:
-reinstallazione completa, scadenza reale del token offline con refresh e store
-con indirizzo non italiano.
+Eseguiti dall'owner il 30 luglio 2026, con readback D1 verificato:
+
+| Prova | Esito |
+| --- | --- |
+| Apertura dell'app, 10:14 UTC | autenticazione completata su installazione preesistente, riconciliazione che popola `app_state` con Validation `gid://shopify/Validation/140411184`, `schemaVersion` 2, hash calcolato e nessun codice errore |
+| Modifica delle impostazioni negozio, 10:17 UTC | consegna reale di `shop/update` da Shopify, ricevuta `processed` con lo shop domain vero, evento `shop_updated` con `country_code` `IT` |
+| Disinstallazione, 10:27 UTC | ricevuta `APP_UNINSTALLED` `processed`, evento `app_uninstalled`, store `uninstalled` con `uninstalled_at`, sessione eliminata, `validation_gid` azzerato |
+| Reinstallazione e riattivazione, 10:28 UTC | nuova sessione unica, evento `app_installed`, store di nuovo `active` con `uninstalled_at` nullo, evento `validation_enabled` e nuova Validation `gid://shopify/Validation/140509488` |
+
+La consegna reale chiude anche la domanda sulla registrazione dei topic
+aggiunti dallo snapshot `0.2.0`, non ispezionabile via API.
+
+Il cambio di `validation_gid` fra le due aperture conferma che Shopify rimuove
+la Validation alla disinstallazione: azzerare lo stato locale evita che la UI
+dichiari attiva una risorsa inesistente. Nessun codice errore lungo l'intero
+ciclo, e una sola sessione presente al termine.
+
+| Riapertura dopo la scadenza del token, 11:42 UTC | token rinnovato senza intervento del merchant: `access_token_expires_at` da 11:28 a 12:42, refresh token rigenerato fino al 28 ottobre, stessa riga sessione (`created_at` 10:28), `installation_status` invariato ad `active` |
+
+Il rinnovo del token è il caso che avrebbe innescato il difetto corretto
+nell'audit, cioè lo stato riportato ad `active` a ogni scrittura di sessione:
+lo store è rimasto coerente.
+
+### Difetti emersi dalle prove live
+
+**`shop/redact` dopo una reinstallazione.**
+La reinstallazione immediata ha esposto un difetto del percorso `shop/redact`.
+Shopify invia quel topic 48 ore dopo la disinstallazione e la documentazione non
+prevede l'annullamento dell'invio se lo store reinstalla nel frattempo: la
+versione `0.2.0` avrebbe quindi cancellato i dati di un'installazione viva,
+disconnettendo il merchant. La cancellazione è ora condizionata allo stato
+`uninstalled`, con la richiesta comunque presa in carico e registrata come
+`shop_redact_skipped`. Il caso è coperto da un test che fallisce senza la
+guardia.
+
+Con la disinstallazione del 30 luglio alle 10:27 UTC, l'invio atteso cade
+intorno al 1 agosto 2026: la correzione va rilasciata prima di quella data.
+
+**`app_installed` registrato a ogni autenticazione.**
+Il rinnovo del token ha prodotto un terzo evento `app_installed` senza che ci
+fosse alcuna installazione: con la managed installation Shopify non espone un
+evento di installazione distinto, e `afterAuth` scatta anche al token exchange
+del rinnovo. Le prove delle 10:14 e delle 11:42 sono quindi autenticazioni su
+un'installazione esistente; l'unica installazione reale della giornata è quella
+delle 10:28. L'evento è ora registrato una volta sola per installazione, fino
+alla disinstallazione successiva, con un test dedicato. La riconciliazione
+resta invece a ogni autenticazione: è idempotente e costa una query.
+
+Gli eventi `app_installed` spuri già scritti nel D1 Development restano nella
+cronologia: la telemetria è un registro append-only e riscriverla falserebbe la
+prova.
+
+## Gate geografico: residuo dichiarato
+
+Il gate sullo store non italiano non è verificabile in Development. Il paese
+dell'indirizzo del dev store è vincolato all'entità commerciale dell'account
+Shopify: cambiarlo creerebbe una nuova entità e scollegherebbe i negozi
+esistenti. La prova è stata quindi fermata prima di applicarla.
+
+Il ramo resta coperto dai test automatici, che verificano disattivazione,
+marcatura `blocked_country`, fail-open sull'errore di disattivazione e mancata
+riattivazione al rientro in Italia. Il rischio residuo è accettato e registrato
+nel Master Plan Open items §34.7.

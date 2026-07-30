@@ -9,7 +9,13 @@ export type EventClass =
 // L'allowlist dei campi sanitizzati è il tipo stesso: niente payload, header, token, CF o PEC.
 export type EventMetadata = Partial<
   Record<
-    "topic" | "country_code" | "error_code" | "enabled" | "schema_version" | "correlation_id",
+    | "topic"
+    | "country_code"
+    | "error_code"
+    | "reason"
+    | "enabled"
+    | "schema_version"
+    | "correlation_id",
     string | number | boolean
   >
 >;
