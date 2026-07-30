@@ -1,6 +1,7 @@
 import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
 import {
+  cancelSubscription,
   entitlementFor,
   localDate,
   markTrialConverted,
@@ -365,6 +366,27 @@ test("un acquisto una tantum rimborsato revoca il diritto", async () => {
     kind: "none",
     validThrough: null,
   });
+});
+
+test("la cancellazione riporta un errore invece di fingere il successo", async () => {
+  const risposta = (userErrors: { message: string }[]) => ({
+    json: async () => ({ data: { appSubscriptionCancel: { userErrors } } }),
+  });
+
+  expect(
+    await cancelSubscription(
+      { graphql: async () => risposta([]) as unknown as Response },
+      "gid://shopify/AppSubscription/50",
+      { prorate: false },
+    ),
+  ).toBeNull();
+  expect(
+    await cancelSubscription(
+      { graphql: async () => risposta([{ message: "non cancellabile" }]) as unknown as Response },
+      "gid://shopify/AppSubscription/50",
+      { prorate: true },
+    ),
+  ).toBe("subscription_cancel_failed");
 });
 
 test("la prova risulta convertita quando il merchant paga", async () => {

@@ -10,6 +10,7 @@ import {
   syncTrial,
 } from "./billing.server";
 import { BILLING_IS_TEST } from "./env.server";
+import { recordEvent } from "./events.server";
 import type { Entitlement } from "./billing.server";
 
 export const FUNCTION_HANDLE = "cf-ready-validation";
@@ -216,7 +217,15 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
           prorate: true,
         });
         if (cancelError) errorCode ??= cancelError;
-        else state = await readBilling(admin, BILLING_IS_TEST);
+        else {
+          state = await readBilling(admin, BILLING_IS_TEST);
+          await recordEvent(db, {
+            shopDomain,
+            name: "subscription_converted",
+            class: "billing",
+            metadata: { reason: "one_time_purchased" },
+          });
+        }
       }
 
       creditEstimate = state.subscription

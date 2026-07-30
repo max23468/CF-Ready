@@ -1,6 +1,7 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
 import {
+  cancelSubscription,
   entitlementFor,
   localDate,
   readBilling,
@@ -71,7 +72,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     });
   }
   if (intent === "cancel") {
-    return cancelSubscription(billing, admin, db, session.shop);
+    return cancelPlan(admin, db, session.shop);
   }
   if (intent !== "enable" && intent !== "disable") {
     return { ok: false, error: "Azione non valida." };
@@ -211,6 +212,10 @@ async function subscribe(
     return { ok: false, error: "CF Ready è disponibile solo per store con indirizzo in Italia." };
   }
 
+  if (kind === "one_time" && (await readBilling(admin, BILLING_IS_TEST)).oneTime) {
+    return { ok: false, error: "Il pagamento unico per questo store risulta già attivo." };
+  }
+
   const today = localDate(shop.ianaTimezone);
   const trial = await syncTrial(db, shopDomain, { eligible: true, today });
   const plan = planFor(trial?.pricing_generation ?? "launch", kind);
@@ -233,28 +238,19 @@ async function subscribe(
 }
 
 // Cancellazione ordinaria: nessuna proratazione, l'accesso resta fino a fine periodo pagato.
-async function cancelSubscription(
-  billing: BillingApi,
-  admin: Admin,
-  db: D1Database,
-  shopDomain: string,
-) {
+async function cancelPlan(admin: Admin, db: D1Database, shopDomain: string) {
   const state = await readBilling(admin, BILLING_IS_TEST);
   if (!state.subscription) {
     return { ok: false, error: "Non risulta alcuna sottoscrizione attiva da cancellare." };
   }
 
-  await billing.cancel({
-    subscriptionId: state.subscription.id,
-    isTest: BILLING_IS_TEST,
-    prorate: false,
-  });
-  await recordEvent(db, {
-    shopDomain,
-    name: "subscription_cancelled",
-    class: "billing",
-  });
+  // Cancellazione ordinaria: nessuna proratazione, l'accesso resta fino a fine periodo.
+  const error = await cancelSubscription(admin, state.subscription.id, { prorate: false });
+  if (error) {
+    return { ok: false, error: "Cancellazione non riuscita. Riprova fra poco." };
+  }
 
+  await recordEvent(db, { shopDomain, name: "subscription_cancelled", class: "billing" });
   return { ok: true };
 }
 
