@@ -1088,9 +1088,12 @@ Le fonti Shopify correnti indicano tre forme diverse per lo stesso target: la
 Function API mostra il plurale `localizedFields`, mentre la tabella dei target
 supportati e la Localized Fields API usano forme singolari. La prova live del
 29 luglio 2026 ha dimostrato che la forma camelCase sopra rende inline, mentre
-il plurale blocca senza messaggio. Prima della release Production chiedere a
-Shopify conferma della sintassi contrattuale; evidenza, rollback e quesiti sono
-in
+il plurale blocca senza messaggio. Il 30 luglio 2026 Shopify Developer Support
+ha confermato la forma singolare, il matching case-sensitive sulla chiave
+uppercase e la natura di difetto di piattaforma del plurale, annunciando una
+correzione documentale non ancora pubblicata. Il target resta quindi da
+riconfermare sulla reference quando la correzione esce, prima della `1.0.0`;
+evidenza, rollback e quesiti aperti sono in
 `docs/evidence/2026-07-29-checkout-validation-rendering.md`.
 
 ### 10.9 Budget prestazionale
@@ -3526,11 +3529,13 @@ store reale dell’owner, senza trasformare l’assenza della superficie Develop
 in un esito negativo.
 
 L’evidenza completa è in
-`docs/evidence/2026-07-29-checkout-validation-rendering.md`. La conferma Shopify
-della sintassi contrattuale, lo stato del bug review e il percorso supportato
-sulle superfici accelerate restano gate pre-Production tracciati
-nell’evidenza; non impediscono la chiusura della matrice Development
-disponibile. Il deploy fisso Development è completato con lo snapshot Shopify
+`docs/evidence/2026-07-29-checkout-validation-rendering.md`. Shopify ha
+confermato la sintassi del target e riconosciuto il bug della review il
+30 luglio 2026. Restano gate pre-Production tracciati nell’evidenza: la
+riconferma del target sulla reference corretta, il percorso supportato per campo
+vuoto con conferma ordine attiva e l’applicazione lato server della validazione
+sulle superfici accelerate. Non impediscono la chiusura della matrice
+Development disponibile. Il deploy fisso Development è completato con lo snapshot Shopify
 `0.1.0` e il Worker `cf-ready-dev`. Poiché Shopify distribuisce configurazione
 app e Function nello stesso snapshot, M3 ha anticipato soltanto il backend
 Development minimo necessario all’URL persistente
