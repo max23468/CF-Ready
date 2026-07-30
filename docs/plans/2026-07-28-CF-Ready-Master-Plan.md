@@ -2479,8 +2479,7 @@ Ogni release Production:
 - piano di rollback.
 
 Modifiche solo a documentazione interna, ADR, piani o governance agentica non
-richiedono bump, tag o GitHub Release. Versione, changelog e tag sono
-release-owned e non vengono modificati nelle PR ordinarie.
+richiedono bump, tag o GitHub Release.
 
 `CHANGELOG.md` è mantenuto dalla `0.1.0`: ogni snapshot rilasciato, anche in
 Development, ha una voce con versione, data, milestone e sintesi. Note pubbliche
@@ -2522,9 +2521,11 @@ Dentro una milestone, ogni ulteriore snapshot rilasciato incrementa la **patch**
 provare in Development un candidato prima della chiusura della milestone: non è
 il caso ordinario e non sostituisce il bump.
 
-Il bump vive in una PR dedicata `chore(release): X.Y.Z` che tocca manifest e
-lockfile, separata dalle PR di contenuto. Il tag `vX.Y.Z` viene creato alla
-promozione Production; per Development la ricevuta di deploy è il record.
+Una modifica si legge e si revisiona intera: codice, bump di manifest e
+lockfile, changelog e documentazione della stessa modifica stanno **nella
+stessa PR**, non in PR separate. La ricevuta di deploy, che esiste solo dopo il
+rilascio, viene registrata nella PR di chiusura della milestone insieme
+all'esito dei gate. Il tag `vX.Y.Z` viene creato alla promozione Production.
 
 La ricevuta di deploy registra ambiente, configurazione, versione Shopify,
 commit, ID della versione rilasciata e versione di rollback. Gli identificatori
