@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { ApiVersion, AppDistribution, shopifyApp } from "@shopify/shopify-app-react-router/server";
 import { recordEvent } from "./events.server";
+import { BILLING_PLANS } from "./plans.server";
 import { D1SessionStorage } from "./session-storage.server";
 import { recordInstallOnce } from "./shop.server";
 import { reconcile } from "./validation.server";
@@ -25,6 +26,7 @@ const shopify = shopifyApp({
   authPathPrefix: "/auth",
   sessionStorage: d1SessionStorage,
   distribution: AppDistribution.AppStore,
+  billing: BILLING_PLANS,
   future: {
     expiringOfflineAccessTokens: true,
   },

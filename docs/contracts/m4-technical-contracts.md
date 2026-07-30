@@ -89,7 +89,8 @@ Gli eventi di classe `error` finiscono anche in Workers Logs come JSON.
 
 I metadati ammessi sono un'allowlist espressa dal tipo `EventMetadata`:
 `topic`, `country_code`, `error_code`, `reason`, `enabled`, `schema_version`,
-`correlation_id`. Non esistono campi liberi: payload, header, token, shop
+`pricing_generation`, `correlation_id`. M5 aggiunge gli eventi `trial_started` e
+`trial_expired`, di classe `billing`. Non esistono campi liberi: payload, header, token, shop
 domain, Codice Fiscale e PEC non sono rappresentabili. Nei log strutturati vale
 lo stesso vincolo, e l'id sessione è escluso perché contiene lo shop domain.
 

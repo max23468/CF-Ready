@@ -2,6 +2,7 @@ import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
 import { recordEvent } from "../app/events.server";
 import { markUninstalled, recordInstallOnce, redactShop } from "../app/shop.server";
+import { localDate, trialEnd } from "../app/billing.server";
 import { reconcile } from "../app/validation.server";
 import { claimWebhook, finishWebhook } from "../app/webhooks.server";
 
@@ -19,10 +20,21 @@ async function insertShop(shopDomain: string) {
   return shopDomain;
 }
 
-function shopContext(countryCode: string, enabled: boolean | null) {
+const FUSO = "Europe/Rome";
+const SENZA_DIRITTO = { kind: "none", validThrough: null };
+
+function shopContext(
+  countryCode: string,
+  enabled: boolean | null,
+  entitlement: unknown = SENZA_DIRITTO,
+) {
   return {
     data: {
-      shop: { name: "Store di prova", shopAddress: { countryCodeV2: countryCode } },
+      shop: {
+        name: "Store di prova",
+        ianaTimezone: FUSO,
+        shopAddress: { countryCodeV2: countryCode },
+      },
       validations: {
         nodes:
           enabled === null
@@ -34,7 +46,7 @@ function shopContext(countryCode: string, enabled: boolean | null) {
                   enabled,
                   blockOnFailure: false,
                   shopifyFunction: { handle: "cf-ready-validation" },
-                  metafield: { jsonValue: CONFIG },
+                  metafield: { jsonValue: { ...CONFIG, entitlement } },
                 },
               ],
         pageInfo: { hasNextPage: false, endCursor: null },
@@ -43,12 +55,28 @@ function shopContext(countryCode: string, enabled: boolean | null) {
   };
 }
 
+// Nessuna sottoscrizione né acquisto: lo store è nella prova.
+const SENZA_ADDEBITI = {
+  data: {
+    currentAppInstallation: {
+      activeSubscriptions: [],
+      oneTimePurchases: { nodes: [] },
+    },
+  },
+};
+
 function adminStub(responses: unknown[]) {
   const calls: string[] = [];
   return {
     calls,
     graphql: async (query: string) => {
-      calls.push(query.includes("validationUpdate") ? "update" : "context");
+      calls.push(
+        query.includes("validationUpdate")
+          ? "update"
+          : query.includes("currentAppInstallation")
+            ? "billing"
+            : "context",
+      );
       return Response.json(responses.shift());
     },
   };
@@ -101,11 +129,20 @@ test("il rientro in Italia sblocca lo store senza riattivare la Validation", asy
     shop,
   );
 
-  const admin = adminStub([shopContext("IT", false)]);
+  // Tornato idoneo, lo store ottiene la prova: l'entitlement va scritto nel metafield.
+  const inProva = { kind: "trial", validThrough: trialEnd(localDate(FUSO)) };
+  const admin = adminStub([
+    shopContext("IT", false),
+    SENZA_ADDEBITI,
+    { data: { validationUpdate: { userErrors: [] } } },
+    shopContext("IT", false, inProva),
+  ]);
   const state = await reconcile(admin, env.DB, shop);
 
   expect(state.eligible).toBe(true);
-  expect(admin.calls).toEqual(["context"]);
+  expect(state.entitlement).toEqual(inProva);
+  expect(state.errorCode).toBeNull();
+  expect(admin.calls).toEqual(["context", "billing", "update", "context"]);
   expect(await appState(shop)).toMatchObject({
     installation_status: "active",
     country_code: "IT",
@@ -195,7 +232,16 @@ test("disinstallazione e redact ripuliscono i dati dello store", async () => {
       .bind(shop)
       .first<{ id: number }>()
   )?.id;
-  await reconcile(adminStub([shopContext("IT", true)]), env.DB, shop);
+  await reconcile(
+    adminStub([
+      shopContext("IT", true),
+      SENZA_ADDEBITI,
+      { data: { validationUpdate: { userErrors: [] } } },
+      shopContext("IT", true, { kind: "trial", validThrough: trialEnd(localDate(FUSO)) }),
+    ]),
+    env.DB,
+    shop,
+  );
 
   await markUninstalled(env.DB, shop);
   expect(
