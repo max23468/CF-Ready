@@ -127,6 +127,7 @@ I metadati usano l'allowlist dei contratti M4, estesa con `pricing_generation`.
 | Codice | Origine |
 | --- | --- |
 | `billing_read_failed` | Shopify non raggiungibile: si conserva lo stato noto invece di declassare il merchant |
+| — | la contesa sulla lease non produce codice: un'altra riconciliazione sta già facendo la stessa operazione |
 | `subscription_cancel_failed` | `appSubscriptionCancel` rifiutato o in errore |
 | `entitlement_write_failed` | scrittura del diritto nel metafield rifiutata |
 | `entitlement_readback_failed` | readback del metafield incoerente con il diritto calcolato |
