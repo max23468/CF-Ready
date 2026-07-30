@@ -388,6 +388,17 @@ export async function createCharge(
   const result = body.data?.[oneTime ? "appPurchaseOneTimeCreate" : "appSubscriptionCreate"];
 
   if (body.errors?.length || !result || result.userErrors.length || !result.confirmationUrl) {
+    // Il messaggio arriva da Shopify e non contiene dati del merchant: senza, un rifiuto
+    // dell'addebito resta indistinguibile da un guasto di rete.
+    console.error(
+      JSON.stringify({
+        event: "charge_create_failed",
+        class: "error",
+        shopify: [...(body.errors ?? []), ...(result?.userErrors ?? [])]
+          .map(({ message }) => message)
+          .slice(0, 3),
+      }),
+    );
     return { confirmationUrl: null, error: "charge_create_failed" };
   }
   return { confirmationUrl: result.confirmationUrl, error: null };
