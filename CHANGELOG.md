@@ -5,6 +5,11 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.3.2 — 30 luglio 2026
+
+- un rifiuto di Shopify sulla creazione dell'addebito viene registrato con il
+  messaggio originale: senza, resta indistinguibile da un guasto di rete.
+
 ## 0.3.1 — 30 luglio 2026
 
 - l'addebito viene creato con le mutation Billing dell'Admin API e l'URL di
