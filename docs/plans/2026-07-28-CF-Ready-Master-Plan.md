@@ -3704,13 +3704,12 @@ una volta per installazione.
 
 ### M5 — Billing
 
-**In corso.** Il codice è consegnato in tre blocchi sul branch
-`feature/m5-trial-entitlement`, non ancora pubblicato: prova ed entitlement nel
-metafield, sottoscrizioni mensili e annuali, acquisto una tantum con conversione
-e rimborsi. I contratti sono in `docs/contracts/m5-technical-contracts.md`.
-Restano i gate, che richiedono addebiti di test sul dev store.
-
-Versione assegnata: `0.3.0`.
+**Codice rilasciato in Development come `0.3.0` il 30 luglio 2026**, gate
+residui. Prova ed entitlement nel metafield, sottoscrizioni mensili e annuali,
+acquisto una tantum con conversione e rimborsi. I contratti sono in
+`docs/contracts/m5-technical-contracts.md`, la ricevuta in
+`docs/evidence/2026-07-30-m5-development-release.md`. Restano i gate, che
+richiedono addebiti di test sul dev store.
 
 Deliverable:
 
