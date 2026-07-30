@@ -1,10 +1,15 @@
 import { useEffect } from "react";
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import type {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction,
+} from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
 import {
   cancelSubscription,
   createCharge,
   entitlementFor,
+  returnUrlFor,
   localDate,
   readBilling,
   remainingTrialDays,
@@ -14,7 +19,7 @@ import { planFor, planPrices } from "../plans.server";
 import type { PlanKind } from "../plans.server";
 import type { Entitlement } from "../billing.server";
 import { recordEvent } from "../events.server";
-import { APP_URL, BILLING_IS_TEST } from "../env.server";
+import { BILLING_IS_TEST } from "../env.server";
 import { authenticate } from "../shopify.server";
 import {
   acquireValidationLock,
@@ -65,7 +70,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     intent === "subscribe_annual" ||
     intent === "buy_one_time"
   ) {
-    return subscribe(admin, db, session.shop, {
+    return subscribe(admin, db, session.shop, request, {
       kind:
         intent === "subscribe_monthly"
           ? "monthly"
@@ -206,6 +211,7 @@ async function subscribe(
   admin: Admin,
   db: D1Database,
   shopDomain: string,
+  request: Request,
   { kind }: { kind: PlanKind },
 ) {
   const { shop } = await queryContext(admin);
@@ -241,7 +247,7 @@ async function subscribe(
     // le sottoscrizioni ricevono invece solo i giorni di prova che restano.
     trialDays: kind === "one_time" ? 0 : remainingTrialDays(trial, today),
     test: BILLING_IS_TEST,
-    returnUrl: new URL("/app", APP_URL).toString(),
+    returnUrl: returnUrlFor(request, shopDomain),
   });
 
   if (error || !confirmationUrl) {
@@ -267,6 +273,13 @@ async function cancelPlan(admin: Admin, db: D1Database, shopDomain: string) {
   await recordEvent(db, { shopDomain, name: "subscription_cancelled", class: "billing" });
   return { ok: true };
 }
+
+// Con un URL di conferma la pagina sta per essere sostituita da Shopify: rivalidare
+// significa solo lanciare richieste che verranno interrotte a metà.
+export const shouldRevalidate: ShouldRevalidateFunction = ({
+  actionResult,
+  defaultShouldRevalidate,
+}) => (actionResult && "confirmationUrl" in actionResult ? false : defaultShouldRevalidate);
 
 export default function Home() {
   const {

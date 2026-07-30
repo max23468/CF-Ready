@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
 import { recordEvent } from "../app/events.server";
-import { markUninstalled, recordInstallOnce, redactShop } from "../app/shop.server";
+import { markUninstalled, recordInstallOnce, redactShop, refuseInstall } from "../app/shop.server";
 import { localDate, trialEnd } from "../app/billing.server";
 import { reconcile } from "../app/validation.server";
 import { claimWebhook, finishWebhook } from "../app/webhooks.server";
@@ -203,6 +203,34 @@ test("l'installazione è registrata una volta sola per ciclo di vita", async () 
 
   expect(await recordInstallOnce(env.DB, shop)).toBe(true);
   expect(await installati()).toBe(2);
+});
+
+test("un'installazione da uno store non ammesso non lascia nulla dietro", async () => {
+  const shop = await insertShop("estraneo.example.myshopify.com");
+  await env.DB.prepare(
+    `INSERT INTO shopify_sessions (
+       id, shop_id, is_online, session_payload_ciphertext, created_at, updated_at
+     ) SELECT ?, id, 0, 'x', ?, ? FROM shops WHERE shop_domain = ?`,
+  )
+    .bind(`offline_${shop}`, "2026-07-30T00:00:00.000Z", "2026-07-30T00:00:00.000Z", shop)
+    .run();
+
+  await refuseInstall(env.DB, shop);
+
+  expect(
+    await env.DB.prepare("SELECT id FROM shops WHERE shop_domain = ?").bind(shop).first(),
+  ).toBeNull();
+  expect(
+    await env.DB.prepare("SELECT id FROM shopify_sessions WHERE id = ?")
+      .bind(`offline_${shop}`)
+      .first(),
+  ).toBeNull();
+  // Il rifiuto resta tracciato, senza riferimento allo store cancellato.
+  expect(
+    await env.DB.prepare(
+      "SELECT event_name, metadata_json FROM app_events WHERE event_name = 'install_refused'",
+    ).first(),
+  ).toMatchObject({ metadata_json: '{"reason":"shop_not_allowed"}' });
 });
 
 test("il redact non cancella uno store che ha reinstallato nel frattempo", async () => {

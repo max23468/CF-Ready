@@ -10,7 +10,8 @@
   "vars": {
     "SHOPIFY_API_KEY": "adff48d4fe4ceb0dadb4734520701dd7",
     "SHOPIFY_APP_URL": "https://cf-ready-dev.tmsf.workers.dev",
-    "SCOPES": "write_validations"
+    "SCOPES": "write_validations",
+    "ALLOWED_SHOP": "cf-ready-dev.myshopify.com"
   },
   "observability": {
     "enabled": true,
