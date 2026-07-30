@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { ApiVersion, AppDistribution, shopifyApp } from "@shopify/shopify-app-react-router/server";
 import { recordEvent } from "./events.server";
 import { D1SessionStorage } from "./session-storage.server";
+import { recordInstallOnce } from "./shop.server";
 import { reconcile } from "./validation.server";
 
 type ShopifyBindings = Env & {
@@ -28,18 +29,14 @@ const shopify = shopifyApp({
     expiringOfflineAccessTokens: true,
   },
   hooks: {
-    // Installazione e reinstallazione: paese e stato tecnico non aspettano la prima Home.
+    // Ogni autenticazione completata, installazione o rinnovo del token: paese e stato
+    // tecnico non aspettano la prima Home.
     afterAuth: async ({ session, admin }) => {
-      await recordEvent(bindings.DB, {
-        shopDomain: session.shop,
-        name: "app_installed",
-        class: "lifecycle",
-      });
-
       try {
+        await recordInstallOnce(bindings.DB, session.shop);
         await reconcile(admin, bindings.DB, session.shop);
       } catch {
-        // Fail-open: un errore Shopify non deve far fallire l'installazione.
+        // Fail-open: un errore Shopify non deve far fallire l'autenticazione.
         await recordEvent(bindings.DB, {
           shopDomain: session.shop,
           name: "install_reconcile_failed",

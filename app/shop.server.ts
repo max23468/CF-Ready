@@ -1,3 +1,30 @@
+// Con la managed installation ogni rinnovo del token completa un'autenticazione e riesegue
+// `afterAuth`: l'evento vale una sola volta per installazione, cioè finché non arriva una
+// disinstallazione successiva.
+export async function recordInstallOnce(db: D1Database, shopDomain: string) {
+  const inserted = await db
+    .prepare(
+      `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
+       SELECT s.id, 'app_installed', 'lifecycle', ?
+       FROM shops s
+       WHERE s.shop_domain = ?
+         AND NOT EXISTS (
+           SELECT 1 FROM app_events installed
+           WHERE installed.shop_id = s.id
+             AND installed.event_name = 'app_installed'
+             AND installed.occurred_at > COALESCE((
+               SELECT MAX(uninstalled.occurred_at) FROM app_events uninstalled
+               WHERE uninstalled.shop_id = s.id AND uninstalled.event_name = 'app_uninstalled'
+             ), '')
+         )
+       RETURNING id`,
+    )
+    .bind(new Date().toISOString(), shopDomain)
+    .first<{ id: number }>();
+
+  return inserted !== null;
+}
+
 export async function markUninstalled(db: D1Database, shopDomain: string) {
   const now = new Date().toISOString();
   await db.batch([
@@ -17,14 +44,28 @@ export async function markUninstalled(db: D1Database, shopDomain: string) {
   ]);
 }
 
+// Shopify invia `shop/redact` 48 ore dopo la disinstallazione e non annulla l'invio se
+// nel frattempo lo store reinstalla: cancellare i dati di un'installazione viva
+// disconnetterebbe il merchant. Nessun dato acquirente è coinvolto, quindi la richiesta
+// viene presa in carico senza cancellare finché l'installazione risulta attiva.
 export async function redactShop(db: D1Database, shopDomain: string) {
+  const deleted = await db
+    .prepare(
+      `DELETE FROM shops WHERE shop_domain = ? AND installation_status = 'uninstalled'
+       RETURNING id`,
+    )
+    .bind(shopDomain)
+    .first<{ id: number }>();
+
+  if (!deleted) return false;
+
   // ponytail: cancellazione totale finché non esistono prova e diritto una tantum (M5) da
   // conservare in forma pseudonimizzata. Le ricevute webhook restano per l'idempotenza dei
   // retry, senza più riferimento allo store.
-  await db.batch([
-    db.prepare("DELETE FROM shops WHERE shop_domain = ?").bind(shopDomain),
-    db
-      .prepare("UPDATE webhook_events SET shop_domain = NULL WHERE shop_domain = ?")
-      .bind(shopDomain),
-  ]);
+  await db
+    .prepare("UPDATE webhook_events SET shop_domain = NULL WHERE shop_domain = ?")
+    .bind(shopDomain)
+    .run();
+
+  return true;
 }
