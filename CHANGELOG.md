@@ -5,6 +5,18 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.2.1 — 30 luglio 2026
+
+Correzioni emerse dai gate live di M4 sul dev store.
+
+- `shop/redact` cancella i dati solo se lo store risulta ancora disinstallato:
+  Shopify invia il topic 48 ore dopo la disinstallazione e non annulla l'invio
+  se lo store reinstalla nel frattempo. Con un'installazione attiva la richiesta
+  viene presa in carico e registrata, senza toccare dati né ricevute;
+- l'installazione è registrata una volta per ciclo di vita: con la managed
+  installation il rinnovo del token completa un'autenticazione e rieseguiva
+  l'evento. La riconciliazione resta a ogni autenticazione.
+
 ## 0.2.0 — 30 luglio 2026
 
 Milestone M4, dati, auth e lifecycle. Rilasciata in Development.
