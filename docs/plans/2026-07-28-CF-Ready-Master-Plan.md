@@ -3591,6 +3591,17 @@ Gate:
 
 ### M4 — Dati, auth e lifecycle
 
+**Implementata e distribuita in Development il 30 luglio 2026**, gate live
+residui. Codice e schema sono in `develop`; migrazione, deploy del Worker,
+snapshot Shopify `0.1.0-dev.ff878ab` e verifiche live sono registrati in
+`docs/evidence/2026-07-30-m4-development-migration.md`.
+
+Per decisione, restano fuori da M4: i webhook billing e le tabelle `trials`,
+`billing_accounts` e `billing_events` con M5, le colonne di onboarding di
+`app_state` con M6, `support_requests` con il modulo di supporto. Il limite
+delle 25 Validation attive è gestito oggi con il messaggio Shopify: il codice
+stabile e l'istruzione operativa arrivano con la messaggistica merchant di M6.
+
 Deliverable:
 
 - schema D1;
@@ -3610,6 +3621,12 @@ Gate:
 - refresh token;
 - webhook duplicati;
 - store non italiano.
+
+I quattro gate hanno copertura automatizzata sul comportamento D1 e sul
+percorso webhook, con consegna firmata verificata in Development. Restano da
+osservare sul dev store, con azioni manuali dell'owner: una reinstallazione
+completa, la scadenza reale del token offline e uno store con indirizzo non
+italiano.
 
 ### M5 — Billing
 

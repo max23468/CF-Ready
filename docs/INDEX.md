@@ -8,8 +8,8 @@
   dev store, CPU e confini operativi.
 - [Rendering errori checkout](evidence/2026-07-29-checkout-validation-rendering.md)
   — target verificato, limite della review e gate Shopify/M10 residui.
-- [Migrazione D1 Development M4](evidence/2026-07-30-m4-development-migration.md)
-  — preflight, readback e rollback dello schema tecnico M4.
+- [Operazioni Development M4](evidence/2026-07-30-m4-development-migration.md)
+  — migrazione D1, deploy, snapshot Shopify e verifiche live.
 - [ADR 0001](adr/0001-stack.md) — stack applicativo e provider.
 - [Brand Foundation](brand/brand-foundation.md) — identità e tono.
 - [Brand board](brand/brand-board.html) — riferimento visuale.
