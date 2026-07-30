@@ -17,7 +17,11 @@ import {
 } from "../app/billing.server";
 import { sha256Hex } from "../app/hash.server";
 import { redactShop } from "../app/shop.server";
-import { configWithEntitlement, entitlementDiffers } from "../app/validation.server";
+import {
+  configWithEntitlement,
+  entitlementDiffers,
+  withValidationLock,
+} from "../app/validation.server";
 
 async function insertShop(shopDomain: string) {
   const timestamp = "2026-07-30T00:00:00.000Z";
@@ -441,6 +445,33 @@ test("l'addebito restituisce l'URL di conferma e distingue i due tipi", async ()
   );
 
   expect(rifiutato).toEqual({ confirmationUrl: null, error: "charge_create_failed" });
+});
+
+test("la lease impedisce che due riconciliazioni facciano la stessa operazione", async () => {
+  const shop = await insertShop("contesa.example.myshopify.com");
+  let esecuzioni = 0;
+  const operazione = async () => {
+    esecuzioni += 1;
+    // Mentre la prima tiene la lease, la seconda deve uscire senza fare nulla.
+    const seconda = await withValidationLock(env.DB, shop, async () => {
+      esecuzioni += 1;
+      return "eseguita";
+    });
+    expect(seconda).toEqual({ acquired: false });
+    return "eseguita";
+  };
+
+  expect(await withValidationLock(env.DB, shop, operazione)).toEqual({
+    acquired: true,
+    result: "eseguita",
+  });
+  expect(esecuzioni).toBe(1);
+
+  // Rilasciata la lease, l'operazione successiva può procedere.
+  expect(await withValidationLock(env.DB, shop, async () => "dopo")).toEqual({
+    acquired: true,
+    result: "dopo",
+  });
 });
 
 test("l'URL di ritorno riporta il merchant dentro l'admin", () => {
