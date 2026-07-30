@@ -2459,6 +2459,10 @@ Modifiche solo a documentazione interna, ADR, piani o governance agentica non
 richiedono bump, tag o GitHub Release. Versione, changelog e tag sono
 release-owned e non vengono modificati nelle PR ordinarie.
 
+`CHANGELOG.md` è mantenuto dalla `0.1.0`: ogni snapshot rilasciato, anche in
+Development, ha una voce con versione, data, milestone e sintesi. Note pubbliche
+IT/EN e tag restano requisiti delle sole release Production.
+
 Ogni snapshot Shopify rilasciato deve ricevere un identificatore esplicito con
 `shopify app deploy --version`:
 
@@ -3619,7 +3623,8 @@ Gate:
 **Implementata e distribuita in Development il 30 luglio 2026**, gate live
 residui. Codice e schema sono in `develop`; migrazione, deploy del Worker,
 snapshot Shopify `0.2.0` e verifiche live sono registrati in
-`docs/evidence/2026-07-30-m4-development-migration.md`.
+`docs/evidence/2026-07-30-m4-development-migration.md`. I contratti che M5 e M6
+riusano sono in `docs/contracts/m4-technical-contracts.md`.
 
 Per decisione, restano fuori da M4: i webhook billing e le tabelle `trials`,
 `billing_accounts` e `billing_events` con M5, le colonne di onboarding di
