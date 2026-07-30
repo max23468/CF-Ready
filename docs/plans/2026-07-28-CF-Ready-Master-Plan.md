@@ -2484,7 +2484,7 @@ Numero assegnato a ogni milestone fino alla `1.0.0`:
 | M5 — Billing | `0.3.0` | |
 | M6 — UI completa | `0.4.0` | |
 | M7 — Sito, legale e supporto | `0.5.0` | |
-| M8 — Hardening | `0.8.0` | feature complete; `0.6.x` e `0.7.x` restano disponibili se M5–M7 richiedono minor intermedi |
+| M8 — Hardening | `0.6.0` → `0.8.0` | consegnata in tre layer, un minor ciascuno: `0.6.0` durabilità e osservabilità, `0.7.0` sicurezza e dipendenze, `0.8.0` capacità e prove operative, che chiude feature complete |
 | M9 — Release candidate e review | `0.9.0` | |
 | M10 — Canary store reale | `0.9.x` | nessun minor: il canary usa la build della release candidate |
 | M11 — `1.0.0` e Controlled Launch | `1.0.0` | tag `v1.0.0` alla promozione Production |
@@ -3716,6 +3716,17 @@ Gate:
 - testi coerenti con listing/app.
 
 ### M8 — Hardening
+
+Consegnata in tre layer versionati, come da §19.5:
+
+- `0.6.0` durabilità e osservabilità: backup R2, restore test, log, sampling,
+  query e runbook Workers Logs, procedura temporanea Traces, formato della
+  ricevuta di deploy;
+- `0.7.0` sicurezza e dipendenze: security audit, dependency audit,
+  manutenzione periodica GitHub e provider;
+- `0.8.0` capacità e prove operative: load/CPU check, soglie Free tier e
+  criteri di rivalutazione, runbook, E2E e matrice manuale. Chiude feature
+  complete.
 
 Deliverable:
 
