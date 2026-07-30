@@ -4317,7 +4317,8 @@ I punti residui di brand sono verifiche e produzione di materiali che dipendono 
    di grazia `ending`, l'accesso fino a fine periodo e l'assenza di
    proratazione; resta da confrontare la stima del credito mostrata al merchant
    con l'importo calcolato da Shopify. Rischio di comunicazione, non di
-   diritto.
+   diritto. Nello stesso gruppo rientra la revoca per rimborso di FR-084, non
+   esercitabile su un addebito di prova mai pagato.
 
 I punti 1 e 2 erano da decidere presto in M2 e sono stati chiusi lì.
 

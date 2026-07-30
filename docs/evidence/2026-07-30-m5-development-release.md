@@ -98,6 +98,20 @@ ordinaria, la stima mostrata con l'importo che Shopify calcola davvero. Il
 Master Plan §14.8 già dichiara la stima come tale, quindi il rischio è di
 comunicazione, non di diritto: un credito diverso non toglie nulla al merchant.
 
+### Revoca per rimborso: non esercitata
+
+Un rimborso totale revoca il diritto e uno parziale lo conserva, ma il percorso
+non è stato provato live: un addebito di prova non è mai stato pagato, quindi
+non è rimborsabile. Il comportamento resta coperto dai test, dove un acquisto
+che sparisce dagli attivi porta lo stato a `refunded`. La prova reale richiede
+un addebito pagato davvero e si sposta con gli altri residui.
+
+### Avvisi di prova
+
+Gli avvisi in app a sette giorni, tre giorni, ultimo giorno e scadenza previsti
+da FR-077 non sono implementati: sono microcopy della UI merchant e appartengono
+a M6, che consegna la pagina Piano e fatturazione completa.
+
 ## Difetti trovati dai gate
 
 Tutti corretti e rilasciati, dalla `0.3.1` alla `0.3.6`.
