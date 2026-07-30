@@ -57,6 +57,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     plan: planPrices(state.trial?.pricing_generation ?? "launch"),
     creditEstimate: state.creditEstimate,
     errorCode: state.errorCode,
+    planKind: state.account?.plan_kind ?? "none",
   };
 };
 
@@ -293,6 +294,7 @@ export default function Home() {
     plan,
     creditEstimate,
     errorCode,
+    planKind,
   } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   // L'azione restituisce forme diverse a seconda dell'intento: qui interessa solo l'URL.
@@ -352,21 +354,23 @@ export default function Home() {
               bloccato: riapri la pagina fra qualche minuto o scrivici se il problema resta.
             </s-banner>
           ) : null}
-          {entitlement.kind === "one_time" ? null : (
-            <>
-              <fetcher.Form method="post">
-                <input type="hidden" name="intent" value="subscribe_monthly" />
-                <s-button type="submit" variant="primary" disabled={fetcher.state !== "idle"}>
-                  Passa al mensile
-                </s-button>
-              </fetcher.Form>
-              <fetcher.Form method="post">
-                <input type="hidden" name="intent" value="subscribe_annual" />
-                <s-button type="submit" disabled={fetcher.state !== "idle"}>
-                  Passa all’annuale
-                </s-button>
-              </fetcher.Form>
-            </>
+          {/* Il piano già attivo non si ripropone: premerlo creerebbe un addebito che
+              sostituisce sé stesso, un'azione senza alcun effetto utile. */}
+          {entitlement.kind === "one_time" || planKind === "monthly" ? null : (
+            <fetcher.Form method="post">
+              <input type="hidden" name="intent" value="subscribe_monthly" />
+              <s-button type="submit" variant="primary" disabled={fetcher.state !== "idle"}>
+                {planKind === "annual" ? "Passa al mensile" : "Attiva il mensile"}
+              </s-button>
+            </fetcher.Form>
+          )}
+          {entitlement.kind === "one_time" || planKind === "annual" ? null : (
+            <fetcher.Form method="post">
+              <input type="hidden" name="intent" value="subscribe_annual" />
+              <s-button type="submit" disabled={fetcher.state !== "idle"}>
+                {planKind === "monthly" ? "Passa all’annuale" : "Attiva l’annuale"}
+              </s-button>
+            </fetcher.Form>
           )}
           {entitlement.kind === "one_time" ? null : (
             <fetcher.Form method="post">
