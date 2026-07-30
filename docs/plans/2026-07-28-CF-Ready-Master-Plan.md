@@ -2552,8 +2552,10 @@ il caso ordinario e non sostituisce il bump.
 Una modifica si legge e si revisiona intera: codice, bump di manifest e
 lockfile, changelog e documentazione della stessa modifica stanno **nella
 stessa PR**, non in PR separate. La ricevuta di deploy, che esiste solo dopo il
-rilascio, viene registrata nella PR di chiusura della milestone insieme
-all'esito dei gate. Il tag `vX.Y.Z` viene creato alla promozione Production.
+rilascio, non ha mai una PR propria: quella di uno snapshot intermedio viaggia
+con la prima PR utile successiva, quella dell'ultimo snapshot viene registrata
+nella PR di chiusura della milestone insieme all'esito dei gate. Il tag
+`vX.Y.Z` viene creato alla promozione Production.
 
 La ricevuta di deploy registra ambiente, configurazione, versione Shopify,
 commit, ID della versione rilasciata e versione di rollback. Gli identificatori
