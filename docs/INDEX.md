@@ -14,6 +14,8 @@
   — target verificato, limite della review e gate Shopify/M10 residui.
 - [Operazioni Development M4](evidence/2026-07-30-m4-development-migration.md)
   — migrazione D1, deploy, snapshot Shopify e verifiche live.
+- [Rilascio Development M5](evidence/2026-07-30-m5-development-release.md)
+  — migrazioni, deploy `0.3.0` e gate billing residui.
 - [ADR 0001](adr/0001-stack.md) — stack applicativo e provider.
 - [Brand Foundation](brand/brand-foundation.md) — identità e tono.
 - [Brand board](brand/brand-board.html) — riferimento visuale.

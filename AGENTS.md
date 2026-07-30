@@ -104,9 +104,16 @@ Prima della `1.0.0`, riconferma nelle fonti Shopify correnti la Function API
   non eliminare mai `develop` dopo una promozione.
 - Commit e titoli PR seguono Conventional Commits. Non fare push diretti
   intenzionali su `main` o `develop`.
-- “Pubblica” richiede il ciclo Git completo fino al merge e, quando la modifica
-  è deployabile, il deploy pertinente con verifica live. Le release SemVer,
-  submission App Store e attivazioni commerciali restano azioni separate.
+- “Pubblica” è **una sola PR** portata fino in fondo. Il branch contiene già
+  tutto ciò che la modifica comporta: codice, test, documentazione, bump di
+  versione e voce di changelog quando è deployabile. Poi merge, e subito il
+  deploy pertinente con verifica live. Non aprire PR che esistono solo per
+  alzare una versione o solo per depositare una ricevuta: se ti accorgi che
+  manca un pezzo, aggiungilo al branch prima del merge.
+- La ricevuta di deploy è l’unico dato che nasce dopo il merge. Va nella PR di
+  chiusura della milestone, insieme all’esito dei gate live: una milestone ha
+  quindi la PR del lavoro e, alla fine, quella di chiusura.
+- Submission App Store e attivazioni commerciali restano azioni separate.
 - Per operazioni remote preferisci l’integrazione ufficiale del provider
   disponibile; usa CLI, API raw o browser solo per la parte non coperta.
 - Prima di usare il connettore Shopify, leggi sempre l’identità dello store.

@@ -49,6 +49,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     entitlement: state.entitlement,
     plan: planPrices(state.trial?.pricing_generation ?? "launch"),
     creditEstimate: state.creditEstimate,
+    errorCode: state.errorCode,
   };
 };
 
@@ -212,8 +213,16 @@ async function subscribe(
     return { ok: false, error: "CF Ready è disponibile solo per store con indirizzo in Italia." };
   }
 
-  if (kind === "one_time" && (await readBilling(admin, BILLING_IS_TEST)).oneTime) {
-    return { ok: false, error: "Il pagamento unico per questo store risulta già attivo." };
+  // Un pagamento unico copre lo store per sempre: nessun altro addebito va creato sopra,
+  // né un secondo acquisto né un abbonamento.
+  if ((await readBilling(admin, BILLING_IS_TEST)).oneTime) {
+    return {
+      ok: false,
+      error:
+        kind === "one_time"
+          ? "Il pagamento unico per questo store risulta già attivo."
+          : "Questo store ha già il pagamento unico: un abbonamento aggiungerebbe un addebito.",
+    };
   }
 
   const today = localDate(shop.ianaTimezone);
@@ -265,6 +274,7 @@ export default function Home() {
     entitlement,
     plan,
     creditEstimate,
+    errorCode,
   } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
 
@@ -309,18 +319,28 @@ export default function Home() {
               € ogni 30 giorni oppure {euro(plan.annual)} € all’anno.
             </s-paragraph>
           ) : null}
-          <fetcher.Form method="post">
-            <input type="hidden" name="intent" value="subscribe_monthly" />
-            <s-button type="submit" variant="primary" disabled={fetcher.state !== "idle"}>
-              Passa al mensile
-            </s-button>
-          </fetcher.Form>
-          <fetcher.Form method="post">
-            <input type="hidden" name="intent" value="subscribe_annual" />
-            <s-button type="submit" disabled={fetcher.state !== "idle"}>
-              Passa all’annuale
-            </s-button>
-          </fetcher.Form>
+          {errorCode ? (
+            <s-banner tone="warning">
+              Alcune informazioni sul piano non sono aggiornate ({errorCode}). Il checkout non viene
+              bloccato: riapri la pagina fra qualche minuto o scrivici se il problema resta.
+            </s-banner>
+          ) : null}
+          {entitlement.kind === "one_time" ? null : (
+            <>
+              <fetcher.Form method="post">
+                <input type="hidden" name="intent" value="subscribe_monthly" />
+                <s-button type="submit" variant="primary" disabled={fetcher.state !== "idle"}>
+                  Passa al mensile
+                </s-button>
+              </fetcher.Form>
+              <fetcher.Form method="post">
+                <input type="hidden" name="intent" value="subscribe_annual" />
+                <s-button type="submit" disabled={fetcher.state !== "idle"}>
+                  Passa all’annuale
+                </s-button>
+              </fetcher.Form>
+            </>
+          )}
           {entitlement.kind === "one_time" ? null : (
             <fetcher.Form method="post">
               <input type="hidden" name="intent" value="buy_one_time" />
