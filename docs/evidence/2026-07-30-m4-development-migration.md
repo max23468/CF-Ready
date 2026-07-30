@@ -42,21 +42,28 @@ il rollback ordinario di questo schema.
 
 ## Deploy Worker e snapshot Shopify
 
+Release M4: **`0.2.0`**.
+
 | Voce | Valore |
 | --- | --- |
-| Sorgente runtime | `693d6c8` (PR #58) |
+| Sorgente runtime | `a7587d2`, che rilascia il codice M4 mergiato con `693d6c8` (PR #58) |
 | Worker | `cf-ready-dev`, `https://cf-ready-dev.tmsf.workers.dev` |
-| Versione Worker attiva | `899753e6-3997-4601-8902-d6ce896e44d2` |
-| Rollback Worker | versione `53660a82-4d4c-44a3-a280-b02eceaecd70` |
-| Versione Shopify attiva | `0.2.0` |
+| Versione Worker attiva | `45f7e85e-c120-46a9-b96b-e55ff720484e` |
+| Rollback Worker | versione `53660a82-4d4c-44a3-a280-b02eceaecd70`, precedente a M4 |
+| Versione Shopify attiva | `0.2.0`, `gid://shopify/Version/1070080524289` |
 | Rollback Shopify | versione `0.1.0` |
+| Workflow | `Deploy Development` run `30530905262` |
 
 Il deploy Shopify ha richiesto tre passaggi. Il run `30528975291` è fallito
 perché il nome `0.1.0` esisteva già. Il run `30529548074` ha rilasciato uno
 snapshot con nome derivato dal commit, `0.1.0-dev.ff878ab`
 (`gid://shopify/Version/1070049361921`), soluzione poi scartata: la chiusura di
-una milestone è una release, e il numero assegnato a ogni milestone fino alla
-`1.0.0` è ora nel Master Plan §19.5. M4 è stata quindi rilasciata come `0.2.0`.
+una milestone è una release. Il numero assegnato a ogni milestone fino alla
+`1.0.0` è ora nel Master Plan §19.5 e M4 è stata rilasciata come `0.2.0` con il
+run `30530905262`. Il Worker è stato ridistribuito dallo stesso commit della
+release, così snapshot Shopify e runtime Cloudflare condividono una sola
+sorgente; la versione intermedia `899753e6-3997-4601-8902-d6ce896e44d2`
+conteneva lo stesso codice M4 e resta nella cronologia.
 
 ## Verifiche live
 
@@ -66,6 +73,10 @@ una milestone è una release, e il numero assegnato a ogni milestone fino alla
 | `POST` sulle quattro rotte webhook senza HMAC | `400`, nessuna elaborazione |
 | `shop/update` firmato via `shopify app webhook trigger` | ricevuta `SHOP_UPDATE` `processed`, evento `shop_update_skipped` con codice `missing_admin_context` |
 | `customers/data_request` firmato | ricevuta `CUSTOMERS_DATA_REQUEST` `processed` |
+
+Le prove firmate sono state eseguite sullo snapshot precedente; smoke di `GET /`
+e delle rotte webhook sono stati ripetuti dopo il deploy della `0.2.0`, che non
+cambia il codice del Worker.
 
 I payload di esempio della CLI usano lo store fittizio `shop.myshopify.com`:
 senza sessione la riconciliazione viene saltata con un codice stabile invece di
