@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
 import {
   cancelSubscription,
+  createCharge,
   entitlementFor,
   localDate,
   readBilling,
@@ -54,7 +56,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
-  const { admin, billing, session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const db = context.cloudflare.env.DB;
   const intent = (await request.formData()).get("intent");
 
@@ -63,7 +65,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     intent === "subscribe_annual" ||
     intent === "buy_one_time"
   ) {
-    return subscribe(billing, admin, db, session.shop, {
+    return subscribe(admin, db, session.shop, {
       kind:
         intent === "subscribe_monthly"
           ? "monthly"
@@ -197,12 +199,10 @@ function planSummary({
     : "Nessun piano attivo.";
 }
 
-type BillingApi = Awaited<ReturnType<typeof authenticate.admin>>["billing"];
-
-// L'approvazione avviene su Shopify: qui si crea solo la richiesta e si restituisce l'URL,
-// che il client apre a livello superiore. Il diritto non viene mai concesso dal ritorno.
+// L'approvazione avviene su Shopify: qui si crea l'addebito e si restituisce l'URL di
+// conferma, che il client apre a livello superiore. Il diritto non viene mai concesso dal
+// ritorno: lo stato si rilegge sempre da Shopify.
 async function subscribe(
-  billing: BillingApi,
   admin: Admin,
   db: D1Database,
   shopDomain: string,
@@ -232,18 +232,23 @@ async function subscribe(
     return { ok: false, error: "Piano non disponibile per questo store." };
   }
 
-  // La richiesta non ritorna: la libreria interrompe con il redirect verso l'approvazione
-  // Shopify, gestendo da sé il caso embedded.
-  await billing.request({
-    plan: plan.name,
-    isTest: BILLING_IS_TEST,
+  const { confirmationUrl, error } = await createCharge(admin, {
+    name: plan.name,
+    amount: plan.amount,
+    currency: plan.currency,
+    interval: plan.interval,
     // L'acquisto una tantum viene addebitato all'approvazione e rinuncia ai giorni residui;
     // le sottoscrizioni ricevono invece solo i giorni di prova che restano.
-    ...(kind === "one_time" ? {} : { trialDays: remainingTrialDays(trial, today) }),
+    trialDays: kind === "one_time" ? 0 : remainingTrialDays(trial, today),
+    test: BILLING_IS_TEST,
     returnUrl: new URL("/app", APP_URL).toString(),
   });
 
-  return { ok: true };
+  if (error || !confirmationUrl) {
+    return { ok: false, error: "Non è stato possibile avviare il pagamento. Riprova fra poco." };
+  }
+
+  return { ok: true, confirmationUrl };
 }
 
 // Cancellazione ordinaria: nessuna proratazione, l'accesso resta fino a fine periodo pagato.
@@ -277,6 +282,17 @@ export default function Home() {
     errorCode,
   } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
+  // L'azione restituisce forme diverse a seconda dell'intento: qui interessa solo l'URL.
+  const esito = fetcher.data as
+    | { ok: boolean; error?: string; confirmationUrl?: string }
+    | undefined;
+  const confirmationUrl = esito?.confirmationUrl;
+
+  // L'approvazione di un addebito vive fuori dall'iframe: va aperta a livello superiore,
+  // altrimenti Shopify rifiuta di caricarla.
+  useEffect(() => {
+    if (confirmationUrl) open(confirmationUrl, "_top");
+  }, [confirmationUrl]);
 
   return (
     <s-page heading="CF Ready">
@@ -300,9 +316,7 @@ export default function Home() {
             {validationEnabled ? "Disattiva nel checkout" : "Attiva nel checkout"}
           </s-button>
         </fetcher.Form>
-        {fetcher.data && !fetcher.data.ok ? (
-          <s-banner tone="critical">{fetcher.data.error}</s-banner>
-        ) : null}
+        {esito && !esito.ok ? <s-banner tone="critical">{esito.error}</s-banner> : null}
       </s-section>
       {eligible ? (
         <s-section heading="Piano">

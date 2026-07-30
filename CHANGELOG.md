@@ -5,6 +5,13 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.3.1 — 30 luglio 2026
+
+- l'addebito viene creato con le mutation Billing dell'Admin API e l'URL di
+  conferma viene aperto a livello superiore: il redirect gestito dalla libreria
+  non sopravviveva alla richiesta dentro l'iframe embedded e faceva fallire
+  l'intera pagina dell'app.
+
 ## 0.3.0 — 30 luglio 2026
 
 Milestone M5, billing. Rilasciata in Development.
