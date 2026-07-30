@@ -2,6 +2,7 @@ import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
 import {
   cancelSubscription,
+  createCharge,
   entitlementFor,
   localDate,
   markTrialConverted,
@@ -366,6 +367,79 @@ test("un acquisto una tantum rimborsato revoca il diritto", async () => {
     kind: "none",
     validThrough: null,
   });
+});
+
+test("l'addebito restituisce l'URL di conferma e distingue i due tipi", async () => {
+  const chiamate: { query: string; variables: unknown }[] = [];
+  const admin = (payload: unknown) => ({
+    graphql: async (query: string, options?: { variables?: Record<string, unknown> }) => {
+      chiamate.push({ query, variables: options?.variables });
+      return { json: async () => payload } as unknown as Response;
+    },
+  });
+
+  const abbonamento = await createCharge(
+    admin({
+      data: {
+        appSubscriptionCreate: { confirmationUrl: "https://shopify/conferma", userErrors: [] },
+      },
+    }),
+    {
+      name: "CF Ready — abbonamento mensile",
+      amount: 2.99,
+      currency: "EUR",
+      interval: "EVERY_30_DAYS",
+      trialDays: 6,
+      test: true,
+      returnUrl: "https://app.example/app",
+    },
+  );
+
+  expect(abbonamento).toEqual({ confirmationUrl: "https://shopify/conferma", error: null });
+  expect(chiamate[0].query).toContain("appSubscriptionCreate");
+  expect(chiamate[0].variables).toMatchObject({
+    trialDays: 6,
+    test: true,
+    replacementBehavior: "STANDARD",
+  });
+
+  const unaTantum = await createCharge(
+    admin({
+      data: {
+        appPurchaseOneTimeCreate: { confirmationUrl: "https://shopify/unica", userErrors: [] },
+      },
+    }),
+    {
+      name: "CF Ready — pagamento unico",
+      amount: 89.9,
+      currency: "EUR",
+      interval: null,
+      trialDays: 0,
+      test: true,
+      returnUrl: "https://app.example/app",
+    },
+  );
+
+  expect(unaTantum.confirmationUrl).toBe("https://shopify/unica");
+  expect(chiamate[1].query).toContain("appPurchaseOneTimeCreate");
+
+  // Un rifiuto di Shopify non deve passare per successo con un URL mancante.
+  const rifiutato = await createCharge(
+    admin({
+      data: { appSubscriptionCreate: { confirmationUrl: null, userErrors: [{ message: "no" }] } },
+    }),
+    {
+      name: "CF Ready — abbonamento mensile",
+      amount: 2.99,
+      currency: "EUR",
+      interval: "EVERY_30_DAYS",
+      trialDays: 0,
+      test: true,
+      returnUrl: "https://app.example/app",
+    },
+  );
+
+  expect(rifiutato).toEqual({ confirmationUrl: null, error: "charge_create_failed" });
 });
 
 test("la cancellazione riporta un errore invece di fingere il successo", async () => {
