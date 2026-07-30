@@ -133,8 +133,56 @@ Le fonti ufficiali correnti indicano tre forme diverse:
 
 La prova live dimostra che la terza forma, camelCase al singolare, è quella che
 Shopify collega ai localized fields nel checkout corrente. La forma plurale
-dell’esempio Function blocca senza rendere. Prima di una release Production
-resta necessario chiedere a Shopify quale forma sia contrattuale.
+dell’esempio Function blocca senza rendere. Shopify ha poi confermato la forma
+singolare come corretta; la sezione seguente riporta la risposta.
+
+## Risposta di Shopify Developer Support
+
+Il 30 luglio 2026 Shopify Developer Support ha risposto all’escalation aperta
+dall’owner tramite il supporto Partner. Contenuto tecnico rilevante, in sintesi.
+
+**Sintassi del target.** La forma camelCase al singolare con chiave uppercase è
+quella corretta, e il riferimento autorevole indicato è l’esempio della
+Localized Fields API. Il matching è case-sensitive: `TAX_CREDENTIAL_IT`, non
+`tax_credential_it`. La forma plurale viene scartata perché il checkout la
+classifica come errore di localized field, la rimuove dal pool degli errori
+globali e poi la elimina, non trovando alcun componente di campo che
+corrisponda al path plurale completo. Il blocco resta corretto e il messaggio
+non compare in nessun punto. Shopify qualifica il comportamento come difetto di
+piattaforma e ha annunciato una correzione della documentazione.
+
+**Bug della review.** Confermato come difetto di piattaforma già riconosciuto
+dal team di engineering, con re-escalation interna sul contesto di riproduzione
+fornito. Lo step di conferma ordine non monta, in nessun layout, le superfici
+che ospitano i messaggi dei localized fields, e non esiste un fallback a
+banner. Thread pubblici indicati:
+
+- [errori Completion inghiottiti nella review](https://community.shopify.dev/t/bug-cart-validation-functions-two-issues-blocking-migration-from-usebuyerjourneyintercept/31931);
+- [wallet: errore poco utile da pagina prodotto e carrello](https://community.shopify.dev/t/bug-cart-validation-functions-apple-pay-google-pay-shows-unhelpful-validation-error-on-product-cart-page/31935).
+
+**Approccio provvisorio consigliato.** Shopify suggerisce campo vuoto a
+`CHECKOUT_COMPLETION` come barriera di conformità e `CHECKOUT_INTERACTION`
+limitato ai soli valori presenti ma formalmente invalidi, per evitare errori su
+un checkout appena caricato.
+
+| Punto | Motore corrente | Decisione |
+| --- | --- | --- |
+| Target singolare camelCase, chiave uppercase | già adottato | nessuna modifica |
+| Target di campo anche a `CHECKOUT_INTERACTION` | usa `$.cart` | non adottato: la modalità preventiva serve proprio quando il campo non è montato, dove un target di campo non rende; `$.cart` è la sola forma verificata live a quello step |
+| A `CHECKOUT_INTERACTION` solo il formato invalido, mai il vuoto | emette vuoto e invalido | non adottato: il campo vuoto è il caso principale e a Completion con conferma attiva non viene mostrato; escluderlo renderebbe la modalità preventiva inefficace nello scenario per cui è stata approvata. Il costo, box visibili al caricamento, resta il compromesso già registrato e l’avviso al merchant resta un requisito della UI in M6 |
+
+**Checkout accelerati.** Shopify dichiara che i localized fields non vengono
+raccolti nei flussi wallet e che gli errori emergono in forma generica. La
+conseguenza per CF Ready non è di rendering: con i campi assenti il motore
+applica il fail-open richiesto dagli invarianti e l’ordine può completarsi senza
+Codice Fiscale. Non è un difetto del motore, ma un limite da chiarire prima del
+listing, perché riguarda la copertura dichiarata. Un follow-up chiede a Shopify
+se la validazione sia comunque applicata lato server in quei flussi.
+
+La risposta è un’email di supporto, non un contratto pubblicato: la reference
+della Function API mostra ancora la forma plurale nell’esempio e una terza
+variante nella tabella dei target. Il target resta quindi ancorato a una prova
+live e a questa risposta fino alla pubblicazione della correzione.
 
 ## Superfici non disponibili
 
@@ -262,15 +310,22 @@ Il fix locale del rendering standard è il target
 confermato separatamente e coincide con la classe di difetti già riconosciuta
 da Shopify.
 
-L’indagine Development è conclusa per tutte le superfici disponibili. Restano
-come gate successivi, senza riaprire la matrice già completata:
+L’indagine Development è conclusa per tutte le superfici disponibili. La
+risposta di Shopify del 30 luglio 2026 chiude i primi due gate: la sintassi del
+target è confermata e il bug della review è riconosciuto dal team di
+engineering. Restano aperti, senza riaprire la matrice già completata:
 
-1. prima della release Production, chiedere a Shopify conferma della sintassi
-   contrattuale del target;
-2. chiedere lo stato del bug Completion nella review europea;
-3. chiedere il percorso supportato per coprire localized fields, conferma
-   ordine e checkout accelerati senza errori prematuri;
-4. in M10, provare i wallet sul canary store reale dell’owner con dati e importi
+1. riconfermare il target sulla reference pubblicata quando esce la correzione
+   documentale annunciata, prima della `1.0.0`;
+2. ottenere un identificativo di tracciamento per il bug della review, per
+   verificarne lo stato senza riaprire un ticket;
+3. chiarire se nei flussi wallet la validazione sia applicata lato server: con i
+   localized fields assenti il fail-open lascia completare l’ordine senza Codice
+   Fiscale, e la copertura dichiarata nel listing dipende dalla risposta;
+4. chiudere il percorso supportato per campo vuoto e conferma ordine attiva:
+   l’approccio consigliato da Shopify non copre quel caso e il follow-up chiede
+   se esista un segnale di tentativo di avanzamento nell’input della Function;
+5. in M10, provare i wallet sul canary store reale dell’owner con dati e importi
    controllati.
 
 Questi punti sono conservati nel Master Plan e non richiedono più il piano
