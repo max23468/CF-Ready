@@ -1,6 +1,11 @@
+import { entitlementFor, localDate, syncTrial } from "./billing.server";
+import type { Entitlement } from "./billing.server";
+
 export const FUNCTION_HANDLE = "cf-ready-validation";
 export const VALIDATION_TITLE = "CF Ready";
 export const ELIGIBLE_COUNTRY = "IT";
+export const METAFIELD_NAMESPACE = "$app:cf-ready-validation";
+export const METAFIELD_KEY = "function-configuration";
 // ponytail: regole e messaggi fissi finché M6 non consegna l'editor merchant;
 // `entitlement` diventa dinamico con il billing M5.
 export const DEFAULT_CONFIG = {
@@ -34,6 +39,7 @@ const CONTEXT_QUERY = `#graphql
   query CfReadyContext($after: String) {
     shop {
       name
+      ianaTimezone
       shopAddress {
         countryCodeV2
       }
@@ -62,7 +68,7 @@ const CONTEXT_QUERY = `#graphql
   }
 `;
 
-type Config = { schemaVersion?: number };
+type Config = { schemaVersion?: number; rules?: unknown; messages?: unknown };
 
 export type Validation = {
   id: string;
@@ -74,7 +80,7 @@ export type Validation = {
 };
 
 type Context = {
-  shop: { name: string; shopAddress: { countryCodeV2: string } };
+  shop: { name: string; ianaTimezone: string; shopAddress: { countryCodeV2: string } };
   validations: {
     nodes: Validation[];
     pageInfo: { hasNextPage: boolean; endCursor: string | null };
@@ -173,6 +179,7 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
   const { shop, validations } = await queryContext(admin);
   const countryCode = shop.shopAddress.countryCodeV2;
   const eligible = countryCode === ELIGIBLE_COUNTRY;
+  const today = localDate(shop.ianaTimezone);
   let validation = findValidation(validations.nodes);
   let errorCode: string | null = null;
 
@@ -182,9 +189,85 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
     if (validation?.enabled) errorCode ??= "validation_still_enabled";
   }
 
+  const trial = await syncTrial(db, shopDomain, { eligible, today });
+  const entitlement = entitlementFor(trial, today);
+
+  // Il diritto commerciale vive nel metafield: la Function lo confronta con la data locale e
+  // si spegne da sola alla scadenza, senza job periodici.
+  if (validation && entitlementDiffers(validation.metafield?.jsonValue, entitlement)) {
+    const writeError = await writeEntitlement(admin, db, shopDomain, validation, entitlement);
+    validation = findValidation((await queryContext(admin)).validations.nodes);
+    if (writeError) errorCode ??= writeError;
+    else if (entitlementDiffers(validation?.metafield?.jsonValue, entitlement)) {
+      errorCode ??= "entitlement_readback_failed";
+    }
+  }
+
   await persistValidationState(db, shopDomain, { countryCode, eligible, validation, errorCode });
 
-  return { shopName: shop.name, countryCode, eligible, validation, errorCode };
+  return { shopName: shop.name, countryCode, eligible, validation, trial, entitlement, errorCode };
+}
+
+export function entitlementDiffers(config: unknown, entitlement: Entitlement) {
+  const current = isRecord(config) ? config.entitlement : undefined;
+  return (
+    !isRecord(current) ||
+    current.kind !== entitlement.kind ||
+    (current.validThrough ?? null) !== entitlement.validThrough
+  );
+}
+
+// La configurazione si scrive intera, mai a patch: rules e messaggi del merchant restano
+// quelli osservati, si sostituisce soltanto il diritto commerciale.
+export function configWithEntitlement(config: unknown, entitlement: Entitlement) {
+  const base =
+    isRecord(config) && config.schemaVersion === 2 && isRecord(config.rules)
+      ? config
+      : DEFAULT_CONFIG;
+  return { ...base, entitlement };
+}
+
+async function writeEntitlement(
+  admin: Admin,
+  db: D1Database,
+  shopDomain: string,
+  validation: Validation,
+  entitlement: Entitlement,
+) {
+  const lockToken = await acquireValidationLock(db, shopDomain);
+  if (!lockToken) return "validation_locked";
+
+  try {
+    const response = await admin.graphql(UPDATE_VALIDATION, {
+      variables: {
+        id: validation.id,
+        validation: {
+          enable: validation.enabled,
+          blockOnFailure: false,
+          metafields: [
+            {
+              namespace: METAFIELD_NAMESPACE,
+              key: METAFIELD_KEY,
+              type: "json",
+              value: JSON.stringify(
+                configWithEntitlement(validation.metafield?.jsonValue, entitlement),
+              ),
+            },
+          ],
+        },
+      },
+    });
+    const result = (await response.json()) as MutationResult;
+    return mutationError(result, "validationUpdate") ? "entitlement_write_failed" : null;
+  } catch {
+    return "entitlement_write_failed";
+  } finally {
+    await releaseValidationLockBestEffort(db, shopDomain, lockToken);
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 // Fail-open: uno store non idoneo perde la Validation, non le vendite. Nessun errore propagato.

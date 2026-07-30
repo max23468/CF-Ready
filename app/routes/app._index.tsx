@@ -1,12 +1,16 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
+import { entitlementFor, localDate, syncTrial } from "../billing.server";
 import { recordEvent } from "../events.server";
 import { authenticate } from "../shopify.server";
 import {
   acquireValidationLock,
+  configWithEntitlement,
   CREATE_VALIDATION,
   DEFAULT_CONFIG,
   ELIGIBLE_COUNTRY,
+  METAFIELD_KEY,
+  METAFIELD_NAMESPACE,
   findValidation,
   FUNCTION_HANDLE,
   mutationError,
@@ -29,6 +33,9 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     countryCode: state.countryCode,
     eligible: state.eligible,
     validationEnabled: state.validation?.enabled ?? false,
+    trialStatus: state.trial?.status ?? null,
+    trialEndsAt: state.trial?.ends_at ?? null,
+    entitlement: state.entitlement,
   };
 };
 
@@ -59,12 +66,17 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     }
 
     const existing = findValidation(data.validations.nodes);
+    const today = localDate(data.shop.ianaTimezone);
+    const entitlement = entitlementFor(
+      await syncTrial(db, session.shop, { eligible, today }),
+      today,
+    );
     const metafields = [
       {
-        namespace: "$app:cf-ready-validation",
-        key: "function-configuration",
+        namespace: METAFIELD_NAMESPACE,
+        key: METAFIELD_KEY,
         type: "json",
-        value: JSON.stringify(DEFAULT_CONFIG),
+        value: JSON.stringify(configWithEntitlement(existing?.metafield?.jsonValue, entitlement)),
       },
     ];
     const variables = existing
@@ -128,7 +140,15 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 };
 
 export default function Home() {
-  const { shopName, countryCode, eligible, validationEnabled } = useLoaderData<typeof loader>();
+  const {
+    shopName,
+    countryCode,
+    eligible,
+    validationEnabled,
+    trialStatus,
+    trialEndsAt,
+    entitlement,
+  } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
 
   return (
@@ -157,6 +177,21 @@ export default function Home() {
           <s-banner tone="critical">{fetcher.data.error}</s-banner>
         ) : null}
       </s-section>
+      {trialStatus ? (
+        <s-section heading="Prova">
+          <s-paragraph>
+            {trialStatus === "active"
+              ? `Prova attiva fino al ${trialEndsAt}.`
+              : "Prova terminata: le regole non vengono più applicate al checkout."}
+          </s-paragraph>
+          {entitlement.kind === "none" ? (
+            <s-banner tone="warning">
+              Senza un piano attivo il checkout non viene bloccato. Regole e messaggi restano
+              salvati.
+            </s-banner>
+          ) : null}
+        </s-section>
+      ) : null}
     </s-page>
   );
 }

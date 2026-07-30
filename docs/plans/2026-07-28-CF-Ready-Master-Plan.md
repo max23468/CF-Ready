@@ -1312,8 +1312,8 @@ Lo schema descritto qui è il bersaglio della 1.0, non il contenuto di una
 singola migrazione. Poiché le migrazioni applicate sono immutabili, ogni tabella
 e colonna viene creata dalla milestone che la usa: `shops` e `shopify_sessions`
 con M1, `app_state` tecnico, `webhook_events` e `app_events` con M4, `trials`,
-`billing_accounts` e `billing_events` con M5, le colonne di onboarding di
-`app_state` con M6, `support_requests` con il modulo di supporto.
+`trial_ledger`, `billing_accounts` e `billing_events` con M5, le colonne di
+onboarding di `app_state` con M6, `support_requests` con il modulo di supporto.
 
 ### 12.2 Schema fisico minimo
 
@@ -1374,6 +1374,23 @@ Una prova per store idoneo.
 | `updated_at` | text |
 
 La prova parte quando uno store idoneo italiano apre per la prima volta l’app. Uno store non italiano non consuma la prova.
+
+#### `trial_ledger`
+
+Registro pseudonimizzato delle prove già fruite, introdotto in M5. Serve a
+impedire che il ciclo disinstalla, attendi `shop/redact`, reinstalla produca una
+seconda prova: la cancellazione dei dati porta via anche `trials`.
+
+| Campo | Tipo/logica |
+|---|---|
+| `shop_hash` | text primary key, SHA-256 del dominio dello store |
+| `trial_ends_at` | text nullable |
+| `pricing_generation` | `launch`, `balanced`, `value` |
+| `recorded_at` | text |
+
+Non contiene dominio, identificatori Shopify o dati riferibili in chiaro, ed è
+l’unica traccia che sopravvive a `shop/redact`, come consentito da §21.5 e
+§21.6. Viene consultato solo quando manca la riga in `trials`.
 
 #### `billing_accounts`
 
@@ -2838,7 +2855,7 @@ lunga si applica solo agli store per cui il webhook non arriva.
 Applicare:
 
 - eliminazione di sessioni, token, configurazione, onboarding e log riferibili non necessari;
-- eventuale conservazione minimale di identificatore pseudonimizzato, prova già fruita, pricing generation, diritto una tantum e record amministrativi;
+- eventuale conservazione minimale di identificatore pseudonimizzato, prova già fruita, pricing generation, diritto una tantum e record amministrativi; la forma implementata è `trial_ledger`, descritta in §12.2;
 - nessun contenuto libero del merchant oltre obblighi applicabili.
 
 La base giuridica e la forma della pseudonimizzazione devono essere validate nella revisione legale prima del lancio. Se la revisione stabilisce che una parte non è conservabile, prevale la cancellazione e va individuato un meccanismo Shopify compatibile per riconoscere il diritto.
