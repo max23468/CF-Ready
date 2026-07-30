@@ -2507,8 +2507,7 @@ Ogni release Production:
 - piano di rollback.
 
 Modifiche solo a documentazione interna, ADR, piani o governance agentica non
-richiedono bump, tag o GitHub Release. Versione, changelog e tag sono
-release-owned e non vengono modificati nelle PR ordinarie.
+richiedono bump, tag o GitHub Release.
 
 `CHANGELOG.md` è mantenuto dalla `0.1.0`: ogni snapshot rilasciato, anche in
 Development, ha una voce con versione, data, milestone e sintesi. Note pubbliche
@@ -2550,9 +2549,11 @@ Dentro una milestone, ogni ulteriore snapshot rilasciato incrementa la **patch**
 provare in Development un candidato prima della chiusura della milestone: non è
 il caso ordinario e non sostituisce il bump.
 
-Il bump vive in una PR dedicata `chore(release): X.Y.Z` che tocca manifest e
-lockfile, separata dalle PR di contenuto. Il tag `vX.Y.Z` viene creato alla
-promozione Production; per Development la ricevuta di deploy è il record.
+Una modifica si legge e si revisiona intera: codice, bump di manifest e
+lockfile, changelog e documentazione della stessa modifica stanno **nella
+stessa PR**, non in PR separate. La ricevuta di deploy, che esiste solo dopo il
+rilascio, viene registrata nella PR di chiusura della milestone insieme
+all'esito dei gate. Il tag `vX.Y.Z` viene creato alla promozione Production.
 
 La ricevuta di deploy registra ambiente, configurazione, versione Shopify,
 commit, ID della versione rilasciata e versione di rollback. Gli identificatori
@@ -3740,13 +3741,12 @@ una volta per installazione.
 
 ### M5 — Billing
 
-**In corso.** Il codice è consegnato in tre blocchi sul branch
-`feature/m5-trial-entitlement`, non ancora pubblicato: prova ed entitlement nel
-metafield, sottoscrizioni mensili e annuali, acquisto una tantum con conversione
-e rimborsi. I contratti sono in `docs/contracts/m5-technical-contracts.md`.
-Restano i gate, che richiedono addebiti di test sul dev store.
-
-Versione assegnata: `0.3.0`.
+**Codice rilasciato in Development come `0.3.0` il 30 luglio 2026**, gate
+residui. Prova ed entitlement nel metafield, sottoscrizioni mensili e annuali,
+acquisto una tantum con conversione e rimborsi. I contratti sono in
+`docs/contracts/m5-technical-contracts.md`, la ricevuta in
+`docs/evidence/2026-07-30-m5-development-release.md`. Restano i gate, che
+richiedono addebiti di test sul dev store.
 
 Deliverable:
 
