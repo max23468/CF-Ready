@@ -1,11 +1,11 @@
 import { useEffect } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
+import { describeCheckout, resolveLocale, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import {
   cancelSubscription,
   createCharge,
-  entitlementFor,
   returnUrlFor,
   localDate,
   readBilling,
@@ -14,40 +14,36 @@ import {
 } from "../billing.server";
 import { planFor, planPrices } from "../plans.server";
 import type { PlanKind } from "../plans.server";
-import type { Entitlement } from "../billing.server";
 import { recordEvent } from "../events.server";
 import { BILLING_IS_TEST } from "../env.server";
 import { authenticate } from "../shopify.server";
+import { ELIGIBLE_COUNTRY, readConfig } from "../config";
 import {
-  acquireValidationLock,
-  configWithEntitlement,
-  CREATE_VALIDATION,
-  DEFAULT_CONFIG,
-  ELIGIBLE_COUNTRY,
-  METAFIELD_KEY,
-  METAFIELD_NAMESPACE,
   findValidation,
-  FUNCTION_HANDLE,
-  mutationError,
-  persistValidationState,
   queryContext,
+  readAddress2Declaration,
   reconcile,
-  releaseValidationLockBestEffort,
-  startValidationLockHeartbeat,
-  UPDATE_VALIDATION,
-  VALIDATION_TITLE,
+  writeValidation,
 } from "../validation.server";
-import type { Admin, MutationResult } from "../validation.server";
+import type { Admin } from "../validation.server";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
-  const state = await reconcile(admin, context.cloudflare.env.DB, session.shop);
+  const db = context.cloudflare.env.DB;
+  // §11.6: la Home riconcilia a ogni apertura. Lo stato locale non viene mai presentato come
+  // certo senza aver riletto Shopify.
+  const state = await reconcile(admin, db, session.shop);
+  const config = readConfig(state.validation?.metafield?.jsonValue);
 
   return {
+    locale: resolveLocale(request),
     shopName: state.shopName,
     countryCode: state.countryCode,
     eligible: state.eligible,
     validationEnabled: state.validation?.enabled ?? false,
+    rules: config.rules,
+    errorDisplay: config.errorDisplay,
+    address2Declared: (await readAddress2Declaration(db, session.shop)) !== null,
     trialStatus: state.trial?.status ?? null,
     trialEndsAt: state.trial?.ends_at ?? null,
     entitlement: state.entitlement,
@@ -81,126 +77,34 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     return cancelPlan(admin, db, session.shop);
   }
   if (intent !== "enable" && intent !== "disable") {
-    return { ok: false, error: "Azione non valida." };
+    return { ok: false, errorCode: "generic" };
   }
 
-  const lockToken = await acquireValidationLock(db, session.shop);
-  if (!lockToken) {
-    return { ok: false, error: "Un’altra operazione sulla Validation è già in corso." };
-  }
-  const heartbeat = startValidationLockHeartbeat(db, session.shop, lockToken);
+  // Attivazione e disattivazione non toccano la configurazione: si riscrive quella osservata
+  // cambiando solo lo stato della Validation (FR-052, FR-053).
+  const current = readConfig(
+    findValidation((await queryContext(admin)).validations.nodes)?.metafield?.jsonValue,
+  );
+  const result = await writeValidation(
+    admin,
+    db,
+    session.shop,
+    { rules: current.rules, errorDisplay: current.errorDisplay, messages: current.messages },
+    intent === "enable",
+  );
 
-  try {
-    const data = await queryContext(admin);
-    const countryCode = data.shop.shopAddress.countryCodeV2;
-    const eligible = countryCode === ELIGIBLE_COUNTRY;
-    const enable = intent === "enable";
-    if (enable && !eligible) {
-      return {
-        ok: false,
-        error: "CF Ready è disponibile solo per store con indirizzo in Italia.",
-      };
-    }
+  if (!result.ok) return { ok: false, errorCode: result.errorCode };
 
-    const existing = findValidation(data.validations.nodes);
-    const today = localDate(data.shop.ianaTimezone);
-    const entitlement = entitlementFor(
-      await syncTrial(db, session.shop, { eligible, today }),
-      today,
-    );
-    const metafields = [
-      {
-        namespace: METAFIELD_NAMESPACE,
-        key: METAFIELD_KEY,
-        type: "json",
-        // `enabled` nella configurazione è la volontà operativa del merchant e la Function
-        // la richiede vera: va allineata all'intento, non lasciata al valore precedente.
-        value: JSON.stringify({
-          ...configWithEntitlement(existing?.metafield?.jsonValue, entitlement),
-          enabled: enable,
-        }),
-      },
-    ];
-    const variables = existing
-      ? {
-          id: existing.id,
-          validation: { title: VALIDATION_TITLE, enable, blockOnFailure: false, metafields },
-        }
-      : {
-          validation: {
-            title: VALIDATION_TITLE,
-            functionHandle: FUNCTION_HANDLE,
-            enable,
-            blockOnFailure: false,
-            metafields,
-          },
-        };
-    if (!(await heartbeat.isHeld())) {
-      return { ok: false, error: "Il coordinamento della Validation non è più valido." };
-    }
-    const response = await admin.graphql(existing ? UPDATE_VALIDATION : CREATE_VALIDATION, {
-      variables,
-    });
-    const result = (await response.json()) as MutationResult;
-    const operation = existing ? "validationUpdate" : "validationCreate";
-    const error = mutationError(result, operation);
-    if (error) {
-      await persistValidationState(db, session.shop, {
-        countryCode,
-        eligible,
-        validation: existing,
-        errorCode: "validation_write_failed",
-      });
-      return { ok: false, error };
-    }
-
-    const readback = findValidation((await queryContext(admin)).validations.nodes);
-    const consistent = Boolean(
-      readback && readback.enabled === enable && readback.blockOnFailure === false,
-    );
-    await persistValidationState(db, session.shop, {
-      countryCode,
-      eligible,
-      validation: readback,
-      errorCode: consistent ? null : "validation_readback_failed",
-    });
-    if (!consistent) {
-      return { ok: false, error: "Readback Shopify non riuscito." };
-    }
-
-    await recordEvent(db, {
-      shopDomain: session.shop,
-      name: enable ? "validation_enabled" : "validation_disabled",
-      class: "validation",
-      metadata: { enabled: enable, schema_version: DEFAULT_CONFIG.schemaVersion },
-    });
-    return { ok: true };
-  } finally {
-    await heartbeat.stop();
-    await releaseValidationLockBestEffort(db, session.shop, lockToken);
-  }
+  await recordEvent(db, {
+    shopDomain: session.shop,
+    name: result.enabled ? "validation_enabled" : "validation_disabled",
+    class: "validation",
+    metadata: { enabled: result.enabled, schema_version: 2 },
+  });
+  return { ok: true };
 };
 
 const euro = (amount: number) => amount.toFixed(2).replace(".", ",");
-
-function planSummary({
-  entitlement,
-  trialStatus,
-  trialEndsAt,
-}: {
-  entitlement: Entitlement;
-  trialStatus: string | null;
-  trialEndsAt: string | null;
-}) {
-  if (entitlement.kind === "trial") return `Prova attiva fino al ${trialEndsAt}.`;
-  if (entitlement.kind === "one_time") return "Pagamento unico attivo, senza rinnovi.";
-  if (entitlement.kind === "subscription") {
-    return `Abbonamento attivo fino al ${entitlement.validThrough}.`;
-  }
-  return trialStatus === "expired"
-    ? "Prova terminata: scegli una modalità per riattivare le regole."
-    : "Nessun piano attivo.";
-}
 
 // L'approvazione avviene su Shopify: qui si crea l'addebito e si restituisce l'URL di
 // conferma, che il client apre a livello superiore. Il diritto non viene mai concesso dal
@@ -214,26 +118,20 @@ async function subscribe(
 ) {
   const { shop } = await queryContext(admin);
   if (shop.shopAddress.countryCodeV2 !== ELIGIBLE_COUNTRY) {
-    return { ok: false, error: "CF Ready è disponibile solo per store con indirizzo in Italia." };
+    return { ok: false, errorCode: "country_not_eligible" };
   }
 
   // Un pagamento unico copre lo store per sempre: nessun altro addebito va creato sopra,
   // né un secondo acquisto né un abbonamento.
   if ((await readBilling(admin, BILLING_IS_TEST)).oneTime) {
-    return {
-      ok: false,
-      error:
-        kind === "one_time"
-          ? "Il pagamento unico per questo store risulta già attivo."
-          : "Questo store ha già il pagamento unico: un abbonamento aggiungerebbe un addebito.",
-    };
+    return { ok: false, errorCode: "one_time_already_active" };
   }
 
   const today = localDate(shop.ianaTimezone);
   const trial = await syncTrial(db, shopDomain, { eligible: true, today });
   const plan = planFor(trial?.pricing_generation ?? "launch", kind);
   if (!plan) {
-    return { ok: false, error: "Piano non disponibile per questo store." };
+    return { ok: false, errorCode: "generic" };
   }
 
   const { confirmationUrl, error } = await createCharge(admin, {
@@ -249,7 +147,7 @@ async function subscribe(
   });
 
   if (error || !confirmationUrl) {
-    return { ok: false, error: "Non è stato possibile avviare il pagamento. Riprova fra poco." };
+    return { ok: false, errorCode: "charge_failed" };
   }
 
   return { ok: true, confirmationUrl };
@@ -259,13 +157,12 @@ async function subscribe(
 async function cancelPlan(admin: Admin, db: D1Database, shopDomain: string) {
   const state = await readBilling(admin, BILLING_IS_TEST);
   if (!state.subscription) {
-    return { ok: false, error: "Non risulta alcuna sottoscrizione attiva da cancellare." };
+    return { ok: false, errorCode: "no_subscription" };
   }
 
-  // Cancellazione ordinaria: nessuna proratazione, l'accesso resta fino a fine periodo.
   const error = await cancelSubscription(admin, state.subscription.id, { prorate: false });
   if (error) {
-    return { ok: false, error: "Cancellazione non riuscita. Riprova fra poco." };
+    return { ok: false, errorCode: "cancel_failed" };
   }
 
   await recordEvent(db, { shopDomain, name: "subscription_cancelled", class: "billing" });
@@ -275,23 +172,12 @@ async function cancelPlan(admin: Admin, db: D1Database, shopDomain: string) {
 export const shouldRevalidate = skipRevalidationWhenLeaving;
 
 export default function Home() {
-  const {
-    shopName,
-    countryCode,
-    eligible,
-    validationEnabled,
-    trialStatus,
-    trialEndsAt,
-    entitlement,
-    plan,
-    creditEstimate,
-    errorCode,
-    planKind,
-  } = useLoaderData<typeof loader>();
+  const data = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
+  const t = texts(data.locale);
   // L'azione restituisce forme diverse a seconda dell'intento: qui interessa solo l'URL.
   const esito = fetcher.data as
-    | { ok: boolean; error?: string; confirmationUrl?: string }
+    | { ok: boolean; errorCode?: string; confirmationUrl?: string }
     | undefined;
   const confirmationUrl = esito?.confirmationUrl;
 
@@ -301,94 +187,166 @@ export default function Home() {
     if (confirmationUrl) open(confirmationUrl, "_top");
   }, [confirmationUrl]);
 
+  if (!data.eligible) {
+    return (
+      <s-page heading={t.home.heading}>
+        <s-section heading={t.home.unsupported}>
+          <s-paragraph>{t.home.unsupportedBody}</s-paragraph>
+          <s-paragraph>
+            {data.shopName} · {data.countryCode} → {ELIGIBLE_COUNTRY}
+          </s-paragraph>
+        </s-section>
+      </s-page>
+    );
+  }
+
+  const entitled = data.entitlement.kind !== "none";
+  const configured = data.rules.taxCode !== "unmanaged" || data.rules.pec !== "unmanaged";
+  const nextStep = !entitled
+    ? t.home.nextChoosePlan
+    : !configured
+      ? t.home.nextConfigure
+      : !data.validationEnabled
+        ? t.home.nextActivate
+        : t.home.nextTestOrder;
+
   return (
-    <s-page heading="CF Ready">
-      <s-section heading="Validation">
-        <s-paragraph>
-          {shopName} ({countryCode}) · Validation {validationEnabled ? "attiva" : "disattivata"}.
-        </s-paragraph>
-        {eligible ? null : (
-          <s-banner tone="warning">
-            CF Ready è disponibile solo per store con indirizzo in Italia. La Validation resta
-            disattivata e il checkout non viene bloccato.
-          </s-banner>
+    <s-page heading={t.home.heading}>
+      {/* §8.6: un solo banner in cima, e vince quello che blocca l'operatività. */}
+      {data.errorCode ? (
+        <s-banner tone="warning">{t.home.syncNeeded}</s-banner>
+      ) : !entitled ? (
+        <s-banner tone="warning">{t.home.noEntitlement}</s-banner>
+      ) : null}
+      {esito && !esito.ok ? (
+        <s-banner tone="critical">
+          {t.errors[esito.errorCode as keyof typeof t.errors] ?? t.errors.generic}
+        </s-banner>
+      ) : null}
+
+      <s-section heading={t.home.stateHeading}>
+        <s-badge tone={data.validationEnabled && entitled ? "success" : "neutral"}>
+          {data.validationEnabled ? t.home.active : t.home.inactive}
+        </s-badge>
+        {/* Lo stato si legge come conseguenza, non come etichetta: la prima riga dice cosa
+            succede davvero a un cliente. */}
+        {describeCheckout(
+          {
+            rules: data.rules,
+            errorDisplay: data.errorDisplay,
+            enabled: data.validationEnabled && entitled,
+          },
+          data.locale,
+        ).map((line) => (
+          <s-paragraph key={line}>{line}</s-paragraph>
+        ))}
+        {data.validationEnabled ? null : <s-paragraph>{t.home.inactiveBody}</s-paragraph>}
+
+        <s-button href="/app/rules" variant="primary">
+          {t.home.editRules}
+        </s-button>
+        {data.validationEnabled ? (
+          <s-button commandFor="deactivate" command="--show">
+            {t.home.deactivate}
+          </s-button>
+        ) : (
+          <fetcher.Form method="post">
+            <input type="hidden" name="intent" value="enable" />
+            <s-button type="submit" disabled={fetcher.state !== "idle"}>
+              {t.home.activate}
+            </s-button>
+          </fetcher.Form>
         )}
-        <fetcher.Form method="post">
-          <input type="hidden" name="intent" value={validationEnabled ? "disable" : "enable"} />
-          <s-button
-            variant={validationEnabled ? "secondary" : "primary"}
-            type="submit"
-            disabled={fetcher.state !== "idle" || (!eligible && !validationEnabled)}
-          >
-            {validationEnabled ? "Disattiva nel checkout" : "Attiva nel checkout"}
+      </s-section>
+
+      {/* D-067: le eccezioni automatiche restano visibili anche in Home. */}
+      <s-section heading={t.home.howHeading}>
+        <s-unordered-list>
+          {t.rules.exceptions.map((line) => (
+            <s-list-item key={line}>{line}</s-list-item>
+          ))}
+        </s-unordered-list>
+      </s-section>
+
+      {/* §15.3: un solo prossimo passo, più il promemoria FR-058 finché la dichiarazione resta. */}
+      <s-section heading={t.home.nextHeading}>
+        <s-paragraph>{nextStep}</s-paragraph>
+        {data.address2Declared ? <s-paragraph>{t.home.nextAddress2}</s-paragraph> : null}
+      </s-section>
+
+      {/* Il piano resta qui finché la pagina “Piano e fatturazione” non lo accoglie: spostarlo
+          adesso toglierebbe al merchant l'unico percorso di pagamento esistente. */}
+      <s-section heading="Piano">
+        <s-paragraph>
+          {data.entitlement.kind === "trial"
+            ? `Prova attiva fino al ${data.trialEndsAt}.`
+            : data.entitlement.kind === "one_time"
+              ? "Pagamento unico attivo, senza rinnovi."
+              : data.entitlement.kind === "subscription"
+                ? `Abbonamento attivo fino al ${data.entitlement.validThrough}.`
+                : data.trialStatus === "expired"
+                  ? "Prova terminata: scegli una modalità per riattivare le regole."
+                  : "Nessun piano attivo."}
+        </s-paragraph>
+        {data.plan ? (
+          <s-paragraph>
+            Prezzo {data.plan.generation === "launch" ? "di lancio" : "standard"}:{" "}
+            {euro(data.plan.monthly)} € ogni 30 giorni oppure {euro(data.plan.annual)} € all’anno.
+          </s-paragraph>
+        ) : null}
+        {data.entitlement.kind === "one_time" || data.planKind === "monthly" ? null : (
+          <fetcher.Form method="post">
+            <input type="hidden" name="intent" value="subscribe_monthly" />
+            <s-button type="submit" disabled={fetcher.state !== "idle"}>
+              {data.planKind === "annual" ? "Passa al mensile" : "Attiva il mensile"}
+            </s-button>
+          </fetcher.Form>
+        )}
+        {data.entitlement.kind === "one_time" || data.planKind === "annual" ? null : (
+          <fetcher.Form method="post">
+            <input type="hidden" name="intent" value="subscribe_annual" />
+            <s-button type="submit" disabled={fetcher.state !== "idle"}>
+              {data.planKind === "monthly" ? "Passa all’annuale" : "Attiva l’annuale"}
+            </s-button>
+          </fetcher.Form>
+        )}
+        {data.entitlement.kind === "one_time" ? null : (
+          <fetcher.Form method="post">
+            <input type="hidden" name="intent" value="buy_one_time" />
+            <s-button type="submit" disabled={fetcher.state !== "idle"}>
+              {data.plan
+                ? `Un solo pagamento: ${euro(data.plan.one_time)} €`
+                : "Passa a un solo pagamento"}
+            </s-button>
+          </fetcher.Form>
+        )}
+        {data.entitlement.kind === "subscription" && data.creditEstimate ? (
+          <s-paragraph>
+            Credito stimato sul periodo non usufruito: {euro(data.creditEstimate)} €. È una stima:
+            nella fattura Shopify l’acquisto può comparire a prezzo pieno e il credito
+            separatamente, e l’importo effettivo è quello calcolato da Shopify.
+          </s-paragraph>
+        ) : null}
+        {data.entitlement.kind === "subscription" ? (
+          <fetcher.Form method="post">
+            <input type="hidden" name="intent" value="cancel" />
+            <s-button type="submit" disabled={fetcher.state !== "idle"}>
+              Cancella il rinnovo
+            </s-button>
+          </fetcher.Form>
+        ) : null}
+      </s-section>
+
+      {/* §15.1: le azioni ad alto impatto dichiarano la conseguenza concreta, non “sei sicuro?”. */}
+      <s-modal id="deactivate" heading={t.home.deactivate}>
+        <s-paragraph>{t.home.deactivateConfirm}</s-paragraph>
+        <fetcher.Form method="post" slot="primary-action">
+          <input type="hidden" name="intent" value="disable" />
+          <s-button type="submit" variant="primary" disabled={fetcher.state !== "idle"}>
+            {t.home.deactivate}
           </s-button>
         </fetcher.Form>
-        {esito && !esito.ok ? <s-banner tone="critical">{esito.error}</s-banner> : null}
-      </s-section>
-      {eligible ? (
-        <s-section heading="Piano">
-          <s-paragraph>{planSummary({ entitlement, trialStatus, trialEndsAt })}</s-paragraph>
-          {entitlement.kind === "none" ? (
-            <s-banner tone="warning">
-              Senza un piano attivo il checkout non viene bloccato. Regole e messaggi restano
-              salvati e tornano attivi con il pagamento.
-            </s-banner>
-          ) : null}
-          {plan ? (
-            <s-paragraph>
-              Prezzo {plan.generation === "launch" ? "di lancio" : "standard"}: {euro(plan.monthly)}{" "}
-              € ogni 30 giorni oppure {euro(plan.annual)} € all’anno.
-            </s-paragraph>
-          ) : null}
-          {errorCode ? (
-            <s-banner tone="warning">
-              Alcune informazioni sul piano non sono aggiornate ({errorCode}). Il checkout non viene
-              bloccato: riapri la pagina fra qualche minuto o scrivici se il problema resta.
-            </s-banner>
-          ) : null}
-          {/* Il piano già attivo non si ripropone: premerlo creerebbe un addebito che
-              sostituisce sé stesso, un'azione senza alcun effetto utile. */}
-          {entitlement.kind === "one_time" || planKind === "monthly" ? null : (
-            <fetcher.Form method="post">
-              <input type="hidden" name="intent" value="subscribe_monthly" />
-              <s-button type="submit" variant="primary" disabled={fetcher.state !== "idle"}>
-                {planKind === "annual" ? "Passa al mensile" : "Attiva il mensile"}
-              </s-button>
-            </fetcher.Form>
-          )}
-          {entitlement.kind === "one_time" || planKind === "annual" ? null : (
-            <fetcher.Form method="post">
-              <input type="hidden" name="intent" value="subscribe_annual" />
-              <s-button type="submit" disabled={fetcher.state !== "idle"}>
-                {planKind === "monthly" ? "Passa all’annuale" : "Attiva l’annuale"}
-              </s-button>
-            </fetcher.Form>
-          )}
-          {entitlement.kind === "one_time" ? null : (
-            <fetcher.Form method="post">
-              <input type="hidden" name="intent" value="buy_one_time" />
-              <s-button type="submit" disabled={fetcher.state !== "idle"}>
-                {plan ? `Un solo pagamento: ${euro(plan.one_time)} €` : "Passa a un solo pagamento"}
-              </s-button>
-            </fetcher.Form>
-          )}
-          {entitlement.kind === "subscription" && creditEstimate ? (
-            <s-paragraph>
-              Credito stimato sul periodo non usufruito: {euro(creditEstimate)} €. È una stima:
-              nella fattura Shopify l’acquisto può comparire a prezzo pieno e il credito
-              separatamente, e l’importo effettivo è quello calcolato da Shopify.
-            </s-paragraph>
-          ) : null}
-          {entitlement.kind === "subscription" ? (
-            <fetcher.Form method="post">
-              <input type="hidden" name="intent" value="cancel" />
-              <s-button type="submit" variant="secondary" disabled={fetcher.state !== "idle"}>
-                Cancella il rinnovo
-              </s-button>
-            </fetcher.Form>
-          ) : null}
-        </s-section>
-      ) : null}
+      </s-modal>
     </s-page>
   );
 }

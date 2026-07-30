@@ -5,6 +5,35 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.0 — 31 luglio 2026
+
+M6, primo strato: interfaccia bilingue, Home riscritta e pagina Regole
+checkout.
+
+- la lingua dell'interfaccia segue l'amministratore Shopify corrente, letta dal
+  parametro `locale` e dall'header impostato da App Bridge, senza librerie e
+  senza preferenze salvate;
+- nuova pagina `Regole checkout`: tre modalità per Codice Fiscale e PEC,
+  eccezioni automatiche non modificabili, avvisi preventivi, Save Bar nativa e
+  anteprima testuale che dice cosa vedrà il cliente;
+- il contratto di configurazione di §11.1 esce da `validation.server.ts` e vive
+  in `app/config.ts`, con lettura tollerante che torna ai default invece di
+  propagare valori fuori contratto;
+- salvataggio e attivazione passano da un percorso unico con lease, scrittura
+  intera e readback: il primo salvataggio crea la Validation disattivata, e
+  salvare non attiva mai (FR-051);
+- i default di prima installazione sono quelli di FR-050: entrambi i campi non
+  gestiti, non più regole fisse di sviluppo;
+- il limite di Validation attive di Shopify ha ora un codice stabile
+  `validation_limit_reached` e un'istruzione operativa, al posto del messaggio
+  grezzo di Shopify (FR-098);
+- Home riscritta: stato come conseguenza per il cliente, eccezioni automatiche,
+  un solo prossimo passo e la dichiarazione FR-058 sul campo “Interno”, con la
+  migrazione `0007` che aggiunge le colonne di stato UI;
+- il diritto scritto nel metafield viene ricalcolato a ogni scrittura anche dal
+  conto commerciale: prima l'attivazione poteva scriverlo guardando la sola
+  prova.
+
 ## 0.3.6 — 30 luglio 2026
 
 - la conversione a pagamento unico è serializzata dalla lease per store: due

@@ -9,41 +9,34 @@ import {
   syncBillingAccount,
   syncTrial,
 } from "./billing.server";
+import { DEFAULT_CONFIG, ELIGIBLE_COUNTRY, readConfig } from "./config";
+import type { CheckoutConfig, Entitlement, ErrorDisplay, Rules } from "./config";
 import { BILLING_IS_TEST } from "./env.server";
 import { recordEvent } from "./events.server";
-import type { Entitlement } from "./billing.server";
+
+export {
+  DEFAULT_CONFIG,
+  ELIGIBLE_COUNTRY,
+  ERROR_DISPLAYS,
+  MESSAGE_KEYS,
+  MESSAGE_MAX_LENGTH,
+  RULE_MODES,
+  readConfig,
+} from "./config";
+export type {
+  CheckoutConfig,
+  Entitlement,
+  ErrorDisplay,
+  Messages,
+  RuleMode,
+  Rules,
+} from "./config";
 
 export const FUNCTION_HANDLE = "cf-ready-validation";
 export const VALIDATION_TITLE = "CF Ready";
-export const ELIGIBLE_COUNTRY = "IT";
 export const METAFIELD_NAMESPACE = "$app:cf-ready-validation";
 export const METAFIELD_KEY = "function-configuration";
-// ponytail: regole e messaggi fissi finché M6 non consegna l'editor merchant;
-// `entitlement` diventa dinamico con il billing M5.
-export const DEFAULT_CONFIG = {
-  schemaVersion: 2,
-  enabled: true,
-  errorDisplay: "inline",
-  entitlement: { kind: "one_time", validThrough: null },
-  rules: {
-    taxCode: "required_validated",
-    pec: "optional_validated",
-  },
-  messages: {
-    it: {
-      taxCodeRequired: "Inserisci il Codice Fiscale per completare l’ordine.",
-      taxCodeInvalid: "Il Codice Fiscale inserito non è formalmente valido. Controllalo e riprova.",
-      pecRequired: "Inserisci l’indirizzo PEC per completare l’ordine.",
-      pecInvalid: "L’indirizzo PEC inserito non ha un formato email valido.",
-    },
-    en: {
-      taxCodeRequired: "Enter your Italian tax code to complete the order.",
-      taxCodeInvalid: "The Italian tax code entered is not formally valid. Check it and try again.",
-      pecRequired: "Enter your certified email address (PEC) to complete the order.",
-      pecInvalid: "The certified email address (PEC) does not have a valid email format.",
-    },
-  },
-} as const;
+
 const VALIDATION_LOCK_TTL_MS = 60_000;
 const VALIDATION_LOCK_RENEWAL_MS = 20_000;
 
@@ -308,6 +301,132 @@ export function configWithEntitlement(config: unknown, entitlement: Entitlement)
   return { ...base, entitlement };
 }
 
+export type ValidationWriteResult =
+  | { ok: true; enabled: boolean }
+  | { ok: false; errorCode: string };
+
+// Percorso unico di scrittura verso Shopify, condiviso da salvataggio delle regole e
+// attivazione: lease per store, configurazione intera, readback, stato persistito. `enable` a
+// `null` conserva lo stato corrente della Validation, che è ciò che FR-051 chiede al
+// salvataggio; la Validation viene creata disattivata se non esiste ancora.
+export async function writeValidation(
+  admin: Admin,
+  db: D1Database,
+  shopDomain: string,
+  next: { rules: Rules; errorDisplay: ErrorDisplay; messages: CheckoutConfig["messages"] },
+  enable: boolean | null,
+): Promise<ValidationWriteResult> {
+  const lockToken = await acquireValidationLock(db, shopDomain);
+  if (!lockToken) return { ok: false, errorCode: "validation_locked" };
+  const heartbeat = startValidationLockHeartbeat(db, shopDomain, lockToken);
+
+  try {
+    const data = await queryContext(admin);
+    const countryCode = data.shop.shopAddress.countryCodeV2;
+    const eligible = countryCode === ELIGIBLE_COUNTRY;
+    if (enable && !eligible) return { ok: false, errorCode: "country_not_eligible" };
+
+    const existing = findValidation(data.validations.nodes);
+    const enabled = enable ?? existing?.enabled ?? false;
+    const today = localDate(data.shop.ianaTimezone);
+    const entitlement = entitlementFor(
+      await syncTrial(db, shopDomain, { eligible, today }),
+      today,
+      await readBillingAccount(db, shopDomain),
+    );
+    const config: CheckoutConfig = {
+      schemaVersion: 2,
+      enabled,
+      errorDisplay: next.errorDisplay,
+      entitlement,
+      rules: next.rules,
+      messages: next.messages,
+    };
+    const metafields = [
+      {
+        namespace: METAFIELD_NAMESPACE,
+        key: METAFIELD_KEY,
+        type: "json",
+        value: JSON.stringify(config),
+      },
+    ];
+    const variables = existing
+      ? {
+          id: existing.id,
+          validation: {
+            title: VALIDATION_TITLE,
+            enable: enabled,
+            blockOnFailure: false,
+            metafields,
+          },
+        }
+      : {
+          validation: {
+            title: VALIDATION_TITLE,
+            functionHandle: FUNCTION_HANDLE,
+            enable: enabled,
+            blockOnFailure: false,
+            metafields,
+          },
+        };
+
+    if (!(await heartbeat.isHeld())) return { ok: false, errorCode: "validation_locked" };
+
+    const operation = existing ? "validationUpdate" : "validationCreate";
+    const response = await admin.graphql(existing ? UPDATE_VALIDATION : CREATE_VALIDATION, {
+      variables,
+    });
+    const error = mutationError((await response.json()) as MutationResult, operation);
+
+    if (error) {
+      const errorCode = validationLimitReached(error)
+        ? "validation_limit_reached"
+        : "validation_write_failed";
+      await persistValidationState(db, shopDomain, {
+        countryCode,
+        eligible,
+        validation: existing,
+        errorCode,
+      });
+      return { ok: false, errorCode };
+    }
+
+    const readback = findValidation((await queryContext(admin)).validations.nodes);
+    const stored = readConfig(readback?.metafield?.jsonValue);
+    const consistent = Boolean(
+      readback &&
+      readback.enabled === enabled &&
+      readback.blockOnFailure === false &&
+      stored.rules.taxCode === config.rules.taxCode &&
+      stored.rules.pec === config.rules.pec &&
+      stored.errorDisplay === config.errorDisplay,
+    );
+
+    await persistValidationState(db, shopDomain, {
+      countryCode,
+      eligible,
+      validation: readback,
+      errorCode: consistent ? null : "validation_readback_failed",
+    });
+    if (!consistent) return { ok: false, errorCode: "validation_readback_failed" };
+
+    return { ok: true, enabled };
+  } finally {
+    await heartbeat.stop();
+    await releaseValidationLockBestEffort(db, shopDomain, lockToken);
+  }
+}
+
+// FR-098: lo store ha già 25 Validation Function attive. Shopify lo comunica solo nel testo
+// dello userError, quindi il codice stabile si ricava da lì; se il testo cambia si ricade sul
+// codice generico, che resta corretto ma meno utile.
+// ponytail: match sul messaggio, unico segnale disponibile. Da rivedere se Shopify espone un
+// codice tipizzato su ValidationUserError.
+function validationLimitReached(message: string) {
+  const text = message.toLowerCase();
+  return text.includes("maximum") || text.includes("limit");
+}
+
 function writeEntitlement(
   admin: Admin,
   db: D1Database,
@@ -419,6 +538,40 @@ export async function persistValidationState(
         now,
       ),
   ]);
+}
+
+// FR-058: dichiarazione del merchant sull'uso del campo “Interno”, non un rilevamento. Finché
+// resta registrata, la Home mostra il promemoria di rimuovere quell'uso.
+export async function readAddress2Declaration(db: D1Database, shopDomain: string) {
+  const row = await db
+    .prepare(
+      `SELECT address2_conflict_declared_at FROM app_state
+       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    )
+    .bind(shopDomain)
+    .first<{ address2_conflict_declared_at: string | null }>();
+  return row?.address2_conflict_declared_at ?? null;
+}
+
+export async function saveAddress2Declaration(
+  db: D1Database,
+  shopDomain: string,
+  declared: boolean,
+) {
+  const now = new Date().toISOString();
+  await db
+    .prepare(
+      `UPDATE app_state
+         SET address2_conflict_declared_at = CASE
+               WHEN ? = 0 THEN NULL
+               WHEN address2_conflict_declared_at IS NULL THEN ?
+               ELSE address2_conflict_declared_at
+             END,
+             updated_at = ?
+       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    )
+    .bind(Number(declared), now, now, shopDomain)
+    .run();
 }
 
 // Hash canonico: una riscrittura dei campi da parte di Shopify non deve sembrare un conflitto.
