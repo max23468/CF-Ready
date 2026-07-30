@@ -65,6 +65,25 @@ release, così snapshot Shopify e runtime Cloudflare condividono una sola
 sorgente; la versione intermedia `899753e6-3997-4601-8902-d6ce896e44d2`
 conteneva lo stesso codice M4 e resta nella cronologia.
 
+### Correttivo `0.2.1`
+
+Rilasciato lo stesso giorno con le due correzioni emerse dai gate live.
+
+| Voce | Valore |
+| --- | --- |
+| Sorgente runtime | `716ba2a` (PR #64 e #65) |
+| Versione Worker attiva | `33331e71-0d5a-475d-90f7-24d3188f0cc8` |
+| Rollback Worker | versione `45f7e85e-c120-46a9-b96b-e55ff720484e` |
+| Versione Shopify attiva | `0.2.1`, `gid://shopify/Version/1070300528641` |
+| Rollback Shopify | versione `0.2.0` |
+| Workflow | `Deploy Development` run `30541236622` |
+| Smoke | `GET /` → `302 /auth/login`; le rotte webhook rispondono `400` senza HMAC |
+
+La guardia su `shop/redact` non è provabile in Development con un payload
+sintetico, perché la CLI firma sempre lo store fittizio `shop.myshopify.com`.
+La conferma arriverà dal `shop/redact` reale atteso intorno al 1 agosto 2026:
+lo store deve sopravvivere con un evento `shop_redact_skipped`.
+
 ## Verifiche live
 
 | Prova | Esito |
