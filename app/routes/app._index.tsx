@@ -47,6 +47,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     trialEndsAt: state.trial?.ends_at ?? null,
     entitlement: state.entitlement,
     plan: planPrices(state.trial?.pricing_generation ?? "launch"),
+    creditEstimate: state.creditEstimate,
   };
 };
 
@@ -55,9 +56,18 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const db = context.cloudflare.env.DB;
   const intent = (await request.formData()).get("intent");
 
-  if (intent === "subscribe_monthly" || intent === "subscribe_annual") {
+  if (
+    intent === "subscribe_monthly" ||
+    intent === "subscribe_annual" ||
+    intent === "buy_one_time"
+  ) {
     return subscribe(billing, admin, db, session.shop, {
-      kind: intent === "subscribe_monthly" ? "monthly" : "annual",
+      kind:
+        intent === "subscribe_monthly"
+          ? "monthly"
+          : intent === "subscribe_annual"
+            ? "annual"
+            : "one_time",
     });
   }
   if (intent === "cancel") {
@@ -164,6 +174,8 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   }
 };
 
+const euro = (amount: number) => amount.toFixed(2).replace(".", ",");
+
 function planSummary({
   entitlement,
   trialStatus,
@@ -211,8 +223,9 @@ async function subscribe(
   await billing.request({
     plan: plan.name,
     isTest: BILLING_IS_TEST,
-    // Solo i giorni di prova residui: la sottoscrizione non riavvia i quattordici giorni.
-    trialDays: remainingTrialDays(trial, today),
+    // L'acquisto una tantum viene addebitato all'approvazione e rinuncia ai giorni residui;
+    // le sottoscrizioni ricevono invece solo i giorni di prova che restano.
+    ...(kind === "one_time" ? {} : { trialDays: remainingTrialDays(trial, today) }),
     returnUrl: new URL("/app", APP_URL).toString(),
   });
 
@@ -255,6 +268,7 @@ export default function Home() {
     trialEndsAt,
     entitlement,
     plan,
+    creditEstimate,
   } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
 
@@ -295,9 +309,8 @@ export default function Home() {
           ) : null}
           {plan ? (
             <s-paragraph>
-              Prezzo {plan.generation === "launch" ? "di lancio" : "standard"}:{" "}
-              {plan.monthly.toFixed(2).replace(".", ",")} € ogni 30 giorni oppure{" "}
-              {plan.annual.toFixed(2).replace(".", ",")} € all’anno.
+              Prezzo {plan.generation === "launch" ? "di lancio" : "standard"}: {euro(plan.monthly)}{" "}
+              € ogni 30 giorni oppure {euro(plan.annual)} € all’anno.
             </s-paragraph>
           ) : null}
           <fetcher.Form method="post">
@@ -312,6 +325,21 @@ export default function Home() {
               Passa all’annuale
             </s-button>
           </fetcher.Form>
+          {entitlement.kind === "one_time" ? null : (
+            <fetcher.Form method="post">
+              <input type="hidden" name="intent" value="buy_one_time" />
+              <s-button type="submit" disabled={fetcher.state !== "idle"}>
+                {plan ? `Un solo pagamento: ${euro(plan.one_time)} €` : "Passa a un solo pagamento"}
+              </s-button>
+            </fetcher.Form>
+          )}
+          {entitlement.kind === "subscription" && creditEstimate ? (
+            <s-paragraph>
+              Credito stimato sul periodo non usufruito: {euro(creditEstimate)} €. È una stima:
+              nella fattura Shopify l’acquisto può comparire a prezzo pieno e il credito
+              separatamente, e l’importo effettivo è quello calcolato da Shopify.
+            </s-paragraph>
+          ) : null}
           {entitlement.kind === "subscription" ? (
             <fetcher.Form method="post">
               <input type="hidden" name="intent" value="cancel" />

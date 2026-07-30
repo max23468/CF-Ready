@@ -1,6 +1,9 @@
 import {
+  cancelSubscription,
   entitlementFor,
   localDate,
+  markTrialConverted,
+  proratedCredit,
   readBilling,
   readBillingAccount,
   syncBillingAccount,
@@ -199,19 +202,41 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
 
   const trial = await syncTrial(db, shopDomain, { eligible, today });
   let account = null;
+  let creditEstimate: number | null = null;
 
   if (eligible) {
     try {
-      account = await syncBillingAccount(
-        db,
-        shopDomain,
-        await readBilling(admin, BILLING_IS_TEST),
-        {
-          today,
-          timeZone: shop.ianaTimezone,
-          pricingGeneration: trial?.pricing_generation ?? "launch",
-        },
-      );
+      let state = await readBilling(admin, BILLING_IS_TEST);
+
+      // Passaggio a una tantum: l'acquisto è già approvato e attivo, quindi ora si può
+      // cancellare l'abbonamento con proratazione. Mai prima: un acquisto abbandonato deve
+      // lasciare l'abbonamento intatto.
+      if (state.oneTime && state.subscription) {
+        const cancelError = await cancelSubscription(admin, state.subscription.id, {
+          prorate: true,
+        });
+        if (cancelError) errorCode ??= cancelError;
+        else state = await readBilling(admin, BILLING_IS_TEST);
+      }
+
+      creditEstimate = state.subscription
+        ? proratedCredit({
+            amount: state.subscription.amount,
+            interval: state.subscription.interval,
+            periodEnd: state.subscription.currentPeriodEnd,
+            today,
+          })
+        : null;
+
+      account = await syncBillingAccount(db, shopDomain, state, {
+        today,
+        timeZone: shop.ianaTimezone,
+        pricingGeneration: trial?.pricing_generation ?? "launch",
+      });
+
+      if (account.entitlement_status === "active") {
+        await markTrialConverted(db, shopDomain);
+      }
     } catch {
       // Shopify non raggiungibile: si tiene lo stato noto invece di declassare il merchant
       // o di rompere la pagina, e l'ambiguità resta visibile come codice errore.
@@ -243,6 +268,7 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
     trial,
     account,
     entitlement,
+    creditEstimate,
     errorCode,
   };
 }

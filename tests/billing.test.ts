@@ -3,7 +3,9 @@ import { expect, test } from "vitest";
 import {
   entitlementFor,
   localDate,
+  markTrialConverted,
   pricingGeneration,
+  proratedCredit,
   readBilling,
   remainingTrialDays,
   syncBillingAccount,
@@ -310,6 +312,74 @@ test("gli addebiti della modalità sbagliata vengono ignorati", async () => {
   expect((await readBilling(admin(true), true)).subscription).toMatchObject({
     id: "gid://shopify/AppSubscription/99",
   });
+});
+
+test("il credito stimato copre solo il ciclo corrente", () => {
+  const mensile = {
+    amount: "2.99",
+    interval: "EVERY_30_DAYS" as const,
+    periodEnd: "2026-08-31",
+  };
+
+  // Metà ciclo residuo su trenta giorni.
+  expect(proratedCredit({ ...mensile, today: "2026-08-16" })).toBeCloseTo(1.495, 3);
+  // Ciclo concluso: nessun credito, e nessun cumulo dai cicli precedenti.
+  expect(proratedCredit({ ...mensile, today: "2026-08-31" })).toBe(0);
+  expect(proratedCredit({ ...mensile, today: "2026-09-10" })).toBe(0);
+  expect(
+    proratedCredit({
+      amount: "29.90",
+      interval: "ANNUAL",
+      periodEnd: "2027-07-31",
+      today: "2027-06-01",
+    }),
+  ).toBeCloseTo(4.915, 3);
+  expect(
+    proratedCredit({ amount: null, interval: null, periodEnd: null, today: "2026-08-16" }),
+  ).toBeNull();
+});
+
+test("un acquisto una tantum rimborsato revoca il diritto", async () => {
+  const shop = await insertShop("rimborso.example.myshopify.com");
+  const acquisto = {
+    subscription: null,
+    oneTime: {
+      id: "gid://shopify/AppPurchaseOneTime/1",
+      createdAt: "2026-08-01T10:00:00Z",
+      amount: "89.90",
+      currency: "EUR",
+    },
+  };
+
+  const attivo = await syncBillingAccount(env.DB, shop, acquisto, opzioni);
+  expect(attivo).toMatchObject({ entitlement_status: "active", plan_kind: "one_time" });
+  expect(entitlementFor(null, "2026-08-01", attivo)).toEqual({
+    kind: "one_time",
+    validThrough: null,
+  });
+
+  // Un rimborso totale toglie l'acquisto dagli attivi: gli acquisti una tantum non scadono.
+  const rimborsato = await syncBillingAccount(env.DB, shop, NESSUN_ADDEBITO, opzioni);
+  expect(rimborsato.entitlement_status).toBe("refunded");
+  expect(entitlementFor(null, "2026-08-01", rimborsato)).toEqual({
+    kind: "none",
+    validThrough: null,
+  });
+});
+
+test("la prova risulta convertita quando il merchant paga", async () => {
+  const shop = await insertShop("convertita.example.myshopify.com");
+  await syncTrial(env.DB, shop, { eligible: true, today: "2026-07-30" });
+
+  await markTrialConverted(env.DB, shop);
+
+  expect(
+    await env.DB.prepare(
+      "SELECT status FROM trials WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)",
+    )
+      .bind(shop)
+      .first(),
+  ).toMatchObject({ status: "converted" });
 });
 
 test("il diritto pagato prevale sulla prova ancora attiva", () => {

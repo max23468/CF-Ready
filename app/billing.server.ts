@@ -291,6 +291,66 @@ export async function readBilling(
   };
 }
 
+export const CANCEL_SUBSCRIPTION = `#graphql
+  mutation CfReadySubscriptionCancel($id: ID!, $prorate: Boolean!) {
+    appSubscriptionCancel(id: $id, prorate: $prorate) {
+      appSubscription {
+        id
+        status
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+// La proratazione è nativa Shopify e serve solo al passaggio a una tantum: la cancellazione
+// ordinaria non ne ha, l'accesso resta fino a fine periodo già pagato.
+export async function cancelSubscription(
+  admin: {
+    graphql: (
+      query: string,
+      options?: { variables?: Record<string, unknown> },
+    ) => Promise<Response>;
+  },
+  id: string,
+  { prorate }: { prorate: boolean },
+) {
+  const response = await admin.graphql(CANCEL_SUBSCRIPTION, { variables: { id, prorate } });
+  const body = (await response.json()) as {
+    data?: { appSubscriptionCancel?: { userErrors: { message: string }[] } };
+    errors?: { message: string }[];
+  };
+  const userErrors = body.data?.appSubscriptionCancel?.userErrors;
+
+  if (body.errors?.length || !userErrors) return "subscription_cancel_failed";
+  return userErrors.length ? "subscription_cancel_failed" : null;
+}
+
+// Credito informativo sul solo ciclo corrente: niente cumulo storico, niente giorni di prova.
+// Shopify resta la fonte dell'importo effettivo, questa è una stima da mostrare.
+export function proratedCredit({
+  amount,
+  interval,
+  periodEnd,
+  today,
+}: {
+  amount: string | null;
+  interval: "EVERY_30_DAYS" | "ANNUAL" | null;
+  periodEnd: string | null;
+  today: string;
+}) {
+  if (!amount || !interval || !periodEnd) return null;
+
+  const cycleDays = interval === "ANNUAL" ? 365 : 30;
+  const remaining = Math.round((Date.parse(periodEnd) - Date.parse(today)) / 86_400_000);
+  if (remaining <= 0) return 0;
+
+  return Math.round(Number(amount) * Math.min(remaining, cycleDays) * 100) / cycleDays / 100;
+}
+
 // Normalizza lo stato Shopify in D1. Una sottoscrizione cancellata sparisce subito dalle
 // attive, ma la cancellazione ordinaria lascia l'accesso fino a fine periodo: quel periodo
 // vive qui come stato `ending`, non come diritto inventato.
@@ -394,6 +454,12 @@ function nextAccount(
     };
   }
 
+  // Un acquisto una tantum non scade: se sparisce dagli attivi è stato rimborsato per intero.
+  // Un rimborso parziale non cambia lo stato Shopify e quindi conserva il diritto.
+  if (stored?.plan_kind === "one_time" && stored.entitlement_status === "active") {
+    return { ...stored, entitlement_status: "refunded" };
+  }
+
   const inGracePeriod =
     (stored?.entitlement_status === "active" || stored?.entitlement_status === "ending") &&
     stored.plan_kind !== "one_time" &&
@@ -462,6 +528,18 @@ export async function recordTrialLedger(db: D1Database, shopDomain: string) {
        ON CONFLICT(shop_hash) DO NOTHING`,
     )
     .bind(await sha256Hex(shopDomain), new Date().toISOString(), shopDomain)
+    .run();
+}
+
+// I giorni di prova residui sono rinunciati con l'acquisto: la prova risulta convertita,
+// non scaduta, e non produce più eventi di scadenza.
+export async function markTrialConverted(db: D1Database, shopDomain: string) {
+  await db
+    .prepare(
+      `UPDATE trials SET status = 'converted', updated_at = ?
+       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?) AND status = 'active'`,
+    )
+    .bind(new Date().toISOString(), shopDomain)
     .run();
 }
 
