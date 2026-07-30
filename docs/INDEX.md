@@ -4,6 +4,8 @@
   decisioni, milestone e gate.
 - [Contratti tecnici M1](contracts/m1-technical-contracts.md) — runtime,
   autenticazione, Home embedded, D1 e Validation del proof of concept.
+- [Contratti tecnici M4](contracts/m4-technical-contracts.md) — stato tecnico
+  D1, ciclo webhook, eventi, codici errore e riconciliazione.
 - [Evidenze M1](evidence/2026-07-28-m1-proof-of-concept.md) — target, prove sul
   dev store, CPU e confini operativi.
 - [Rendering errori checkout](evidence/2026-07-29-checkout-validation-rendering.md)
@@ -15,6 +17,7 @@
 - [Brand board](brand/brand-board.html) — riferimento visuale.
 - [Asset del brand](brand/assets/README.md) — file e modalità d’uso.
 - [Inventario secret](runbooks/secret-inventory.md) — soli nomi e destinazioni.
+- [Changelog](../CHANGELOG.md) — versioni rilasciate e sintesi per milestone.
 - [README](../README.md) — setup e comandi correnti.
 - [Sicurezza](../SECURITY.md) — canale privato e disclosure coordinata.
 - [Contributi](../CONTRIBUTING.md) — issue, pull request e dati vietati.
