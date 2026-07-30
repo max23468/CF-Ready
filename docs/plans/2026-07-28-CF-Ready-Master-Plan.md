@@ -2,7 +2,7 @@
 
 ## Master Plan di prodotto, architettura, implementazione e lancio
 
-**Stato:** baseline approvata per scaffolding e implementazione · M0–M3 completate · conferma Shopify pre-Production e wallet M10 tracciati
+**Stato:** baseline approvata per scaffolding e implementazione · M0–M4 completate, Development alla `0.2.1` · conferma Shopify pre-Production e wallet M10 tracciati
 **Data:** 27 luglio 2026 · revisione 28 luglio 2026  
 **Documenti vincolanti collegati:** `docs/brand/brand-foundation.md` (identità visiva, tono, materiali pubblici)  
 **Brand:** CF Ready  
@@ -3618,13 +3618,24 @@ Gate:
 - checkout accelerati rinviati al canary M10, dove sono disponibili metodi reali
   controllati.
 
-### M4 — Dati, auth e lifecycle
+### M4 — Dati, auth e lifecycle ✅ completata
 
-**Implementata e distribuita in Development il 30 luglio 2026**, gate live
-residui. Codice e schema sono in `develop`; migrazione, deploy del Worker,
-snapshot Shopify `0.2.0` e verifiche live sono registrati in
+**Chiusa il 30 luglio 2026**, rilasciata in Development come `0.2.0` e corretta
+in giornata con la `0.2.1`. Migrazione D1, deploy, snapshot Shopify, gate live e
+difetti emersi sono registrati in
 `docs/evidence/2026-07-30-m4-development-migration.md`. I contratti che M5 e M6
 riusano sono in `docs/contracts/m4-technical-contracts.md`.
+
+L'audit di chiusura ha osservato sul dev store l'intero ciclo di vita:
+autenticazione con riconciliazione, consegna reale di `shop/update` da Shopify,
+disinstallazione con eliminazione della sessione, reinstallazione con creazione
+di una nuova Validation e rinnovo trasparente del token offline alla scadenza.
+Le prove live hanno prodotto due correzioni — la guardia su `shop/redact` per
+gli store che reinstallano e la deduplicazione dell'evento di installazione —
+entrambe rilasciate prima della chiusura. Il gate sullo store non italiano è
+chiuso con residuo accettato, §34.7. Resta una sola conferma differita, non
+bloccante: il `shop/redact` reale atteso intorno al 1 agosto 2026, che deve
+lasciare intatto lo store reinstallato.
 
 Per decisione, restano fuori da M4: i webhook billing e le tabelle `trials`,
 `billing_accounts` e `billing_events` con M5, le colonne di onboarding di
