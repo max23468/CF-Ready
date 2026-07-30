@@ -5,6 +5,14 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.3.4 — 30 luglio 2026
+
+- il piano già attivo non viene più riproposto: premerlo creava un addebito che
+  sostituiva sé stesso, senza alcun effetto utile per il merchant;
+- nessuna rivalidazione mentre la pagina esce verso l'approvazione Shopify,
+  nemmeno sulla rotta padre: la richiesta interrotta a metà faceva comparire un
+  errore per il tempo del redirect.
+
 ## 0.3.3 — 30 luglio 2026
 
 - l'app Development si installa solo sullo store di sviluppo: la distribuzione
