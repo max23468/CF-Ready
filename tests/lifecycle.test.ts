@@ -55,12 +55,28 @@ function shopContext(
   };
 }
 
+// Nessuna sottoscrizione né acquisto: lo store è nella prova.
+const SENZA_ADDEBITI = {
+  data: {
+    currentAppInstallation: {
+      activeSubscriptions: [],
+      oneTimePurchases: { nodes: [] },
+    },
+  },
+};
+
 function adminStub(responses: unknown[]) {
   const calls: string[] = [];
   return {
     calls,
     graphql: async (query: string) => {
-      calls.push(query.includes("validationUpdate") ? "update" : "context");
+      calls.push(
+        query.includes("validationUpdate")
+          ? "update"
+          : query.includes("currentAppInstallation")
+            ? "billing"
+            : "context",
+      );
       return Response.json(responses.shift());
     },
   };
@@ -117,6 +133,7 @@ test("il rientro in Italia sblocca lo store senza riattivare la Validation", asy
   const inProva = { kind: "trial", validThrough: trialEnd(localDate(FUSO)) };
   const admin = adminStub([
     shopContext("IT", false),
+    SENZA_ADDEBITI,
     { data: { validationUpdate: { userErrors: [] } } },
     shopContext("IT", false, inProva),
   ]);
@@ -125,7 +142,7 @@ test("il rientro in Italia sblocca lo store senza riattivare la Validation", asy
   expect(state.eligible).toBe(true);
   expect(state.entitlement).toEqual(inProva);
   expect(state.errorCode).toBeNull();
-  expect(admin.calls).toEqual(["context", "update", "context"]);
+  expect(admin.calls).toEqual(["context", "billing", "update", "context"]);
   expect(await appState(shop)).toMatchObject({
     installation_status: "active",
     country_code: "IT",
@@ -218,6 +235,7 @@ test("disinstallazione e redact ripuliscono i dati dello store", async () => {
   await reconcile(
     adminStub([
       shopContext("IT", true),
+      SENZA_ADDEBITI,
       { data: { validationUpdate: { userErrors: [] } } },
       shopContext("IT", true, { kind: "trial", validThrough: trialEnd(localDate(FUSO)) }),
     ]),

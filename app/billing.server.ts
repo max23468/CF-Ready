@@ -20,6 +20,28 @@ export type Trial = {
   pricing_generation: PricingGeneration;
 };
 
+export type EntitlementStatus = "trial" | "active" | "ending" | "expired" | "refunded" | "none";
+
+export type BillingAccount = {
+  entitlement_status: EntitlementStatus;
+  plan_kind: "monthly" | "annual" | "one_time" | "none";
+  pricing_generation: PricingGeneration;
+  shopify_charge_gid: string | null;
+  current_period_end: string | null;
+};
+
+export type ShopifyBilling = {
+  subscription: {
+    id: string;
+    name: string;
+    currentPeriodEnd: string | null;
+    interval: "EVERY_30_DAYS" | "ANNUAL" | null;
+    amount: string | null;
+    currency: string | null;
+  } | null;
+  oneTime: { id: string; createdAt: string; amount: string | null; currency: string | null } | null;
+};
+
 // La generazione è acquisita quando lo store diventa idoneo e non cambia più: `value` resta
 // un'ipotesi interna e non viene mai assegnata automaticamente.
 export function pricingGeneration(eligibleOn: string): PricingGeneration {
@@ -29,6 +51,13 @@ export function pricingGeneration(eligibleOn: string): PricingGeneration {
 // Il giorno di avvio è il giorno 1 e l'accesso vale fino alla fine del giorno 14 locale.
 export function trialEnd(startedOn: string) {
   return addDays(startedOn, TRIAL_DAYS - 1);
+}
+
+// Giorni di prova ancora da consumare, oggi incluso: sono quelli che Shopify riceve come
+// `trialDays`, così la sottoscrizione non riavvia la prova né la accorcia.
+export function remainingTrialDays(trial: Trial | null, today: string) {
+  if (trial?.status !== "active" || !trial.ends_at || trial.ends_at < today) return 0;
+  return Math.round((Date.parse(trial.ends_at) - Date.parse(today)) / 86_400_000) + 1;
 }
 
 // Un formatter per fuso: costruirlo è costoso e ogni store ne usa sempre lo stesso.
@@ -50,11 +79,26 @@ export function localDate(timeZone: string, now = new Date()) {
   return formatter.format(now);
 }
 
-export function entitlementFor(trial: Trial | null, today: string): Entitlement {
+// Il diritto pagato prevale sulla prova: chi sottoscrive durante la prova non perde i giorni
+// residui, perché Shopify li riceve come `trialDays` della sottoscrizione.
+export function entitlementFor(
+  trial: Trial | null,
+  today: string,
+  account?: BillingAccount | null,
+): Entitlement {
+  if (account?.plan_kind === "one_time" && account.entitlement_status === "active") {
+    return { kind: "one_time", validThrough: null };
+  }
+  if (
+    (account?.entitlement_status === "active" || account?.entitlement_status === "ending") &&
+    account.current_period_end &&
+    account.current_period_end >= today
+  ) {
+    return { kind: "subscription", validThrough: account.current_period_end };
+  }
   if (trial?.status === "active" && trial.ends_at && trial.ends_at >= today) {
     return { kind: "trial", validThrough: trial.ends_at };
   }
-  // ponytail: sottoscrizioni e una tantum entrano qui con i blocchi successivi di M5.
   return { kind: "none", validThrough: null };
 }
 
@@ -130,6 +174,278 @@ export async function syncTrial(
   }
 
   return { ...trial, status: "expired" };
+}
+
+export const BILLING_QUERY = `#graphql
+  query CfReadyBilling {
+    currentAppInstallation {
+      activeSubscriptions {
+        id
+        name
+        status
+        test
+        currentPeriodEnd
+        lineItems {
+          plan {
+            pricingDetails {
+              ... on AppRecurringPricing {
+                interval
+                price {
+                  amount
+                  currencyCode
+                }
+              }
+            }
+          }
+        }
+      }
+      oneTimePurchases(first: 10, sortKey: CREATED_AT, reverse: true) {
+        nodes {
+          id
+          name
+          status
+          test
+          createdAt
+          price {
+            amount
+            currencyCode
+          }
+        }
+      }
+    }
+  }
+`;
+
+type BillingResponse = {
+  data?: {
+    currentAppInstallation: {
+      activeSubscriptions: {
+        id: string;
+        name: string;
+        status: string;
+        currentPeriodEnd: string | null;
+        lineItems: {
+          plan: {
+            pricingDetails: {
+              interval?: "EVERY_30_DAYS" | "ANNUAL";
+              price?: { amount: string; currencyCode: string };
+            };
+          };
+        }[];
+      }[];
+      oneTimePurchases: {
+        nodes: {
+          id: string;
+          status: string;
+          createdAt: string;
+          price: { amount: string; currencyCode: string } | null;
+        }[];
+      };
+    };
+  };
+  errors?: { message: string }[];
+};
+
+// Shopify è la fonte autorevole: lo stato commerciale si legge sempre da qui, mai dal
+// ritorno di un redirect di approvazione.
+export async function readBilling(admin: {
+  graphql: (query: string) => Promise<Response>;
+}): Promise<ShopifyBilling> {
+  const response = await admin.graphql(BILLING_QUERY);
+  const body = (await response.json()) as BillingResponse;
+  if (!body.data || body.errors?.length) {
+    throw new Response("Lettura billing Shopify non riuscita", { status: 502 });
+  }
+
+  const subscription = body.data.currentAppInstallation.activeSubscriptions[0];
+  const pricing = subscription?.lineItems[0]?.plan.pricingDetails;
+  const oneTime = body.data.currentAppInstallation.oneTimePurchases.nodes.find(
+    (purchase) => purchase.status === "ACTIVE",
+  );
+
+  return {
+    subscription: subscription
+      ? {
+          id: subscription.id,
+          name: subscription.name,
+          currentPeriodEnd: subscription.currentPeriodEnd,
+          interval: pricing?.interval ?? null,
+          amount: pricing?.price?.amount ?? null,
+          currency: pricing?.price?.currencyCode ?? null,
+        }
+      : null,
+    oneTime: oneTime
+      ? {
+          id: oneTime.id,
+          createdAt: oneTime.createdAt,
+          amount: oneTime.price?.amount ?? null,
+          currency: oneTime.price?.currencyCode ?? null,
+        }
+      : null,
+  };
+}
+
+// Normalizza lo stato Shopify in D1. Una sottoscrizione cancellata sparisce subito dalle
+// attive, ma la cancellazione ordinaria lascia l'accesso fino a fine periodo: quel periodo
+// vive qui come stato `ending`, non come diritto inventato.
+export async function syncBillingAccount(
+  db: D1Database,
+  shopDomain: string,
+  billing: ShopifyBilling,
+  {
+    today,
+    timeZone,
+    pricingGeneration,
+  }: { today: string; timeZone: string; pricingGeneration: PricingGeneration },
+): Promise<BillingAccount> {
+  const stored = await db
+    .prepare(
+      `SELECT b.entitlement_status, b.plan_kind, b.pricing_generation, b.shopify_charge_gid,
+              b.current_period_end
+       FROM billing_accounts b JOIN shops s ON s.id = b.shop_id
+       WHERE s.shop_domain = ?`,
+    )
+    .bind(shopDomain)
+    .first<BillingAccount>();
+
+  const next = nextAccount(stored, billing, { today, timeZone, pricingGeneration });
+  const now = new Date().toISOString();
+  const oneTimePurchasedAt = billing.oneTime ? billing.oneTime.createdAt : null;
+
+  await db
+    .prepare(
+      `INSERT INTO billing_accounts (
+         shop_id, entitlement_status, plan_kind, pricing_generation, shopify_charge_gid,
+         current_period_start, current_period_end, one_time_purchased_at, last_reconciled_at,
+         created_at, updated_at
+       )
+       SELECT id, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ? FROM shops WHERE shop_domain = ?
+       ON CONFLICT(shop_id) DO UPDATE SET
+         entitlement_status = excluded.entitlement_status,
+         plan_kind = excluded.plan_kind,
+         pricing_generation = excluded.pricing_generation,
+         shopify_charge_gid = excluded.shopify_charge_gid,
+         current_period_end = excluded.current_period_end,
+         one_time_purchased_at = COALESCE(excluded.one_time_purchased_at, billing_accounts.one_time_purchased_at),
+         last_reconciled_at = excluded.last_reconciled_at,
+         updated_at = excluded.updated_at`,
+    )
+    .bind(
+      next.entitlement_status,
+      next.plan_kind,
+      next.pricing_generation,
+      next.shopify_charge_gid,
+      next.current_period_end,
+      oneTimePurchasedAt,
+      now,
+      now,
+      now,
+      shopDomain,
+    )
+    .run();
+
+  if (next.entitlement_status !== stored?.entitlement_status && next.shopify_charge_gid) {
+    await recordBillingEvent(db, shopDomain, {
+      gid: next.shopify_charge_gid,
+      type: next.entitlement_status,
+      planKind: next.plan_kind,
+      amount: billing.subscription?.amount ?? billing.oneTime?.amount ?? null,
+      currency: billing.subscription?.currency ?? billing.oneTime?.currency ?? null,
+      periodEnd: next.current_period_end,
+      occurredAt: now,
+    });
+  }
+
+  return next;
+}
+
+function nextAccount(
+  stored: BillingAccount | null,
+  billing: ShopifyBilling,
+  {
+    today,
+    timeZone,
+    pricingGeneration,
+  }: { today: string; timeZone: string; pricingGeneration: PricingGeneration },
+): BillingAccount {
+  const generation = stored?.pricing_generation ?? pricingGeneration;
+
+  if (billing.oneTime) {
+    return {
+      entitlement_status: "active",
+      plan_kind: "one_time",
+      pricing_generation: generation,
+      shopify_charge_gid: billing.oneTime.id,
+      current_period_end: null,
+    };
+  }
+
+  if (billing.subscription) {
+    return {
+      entitlement_status: "active",
+      plan_kind: billing.subscription.interval === "ANNUAL" ? "annual" : "monthly",
+      pricing_generation: generation,
+      shopify_charge_gid: billing.subscription.id,
+      current_period_end: billing.subscription.currentPeriodEnd
+        ? localDate(timeZone, new Date(billing.subscription.currentPeriodEnd))
+        : null,
+    };
+  }
+
+  const inGracePeriod =
+    (stored?.entitlement_status === "active" || stored?.entitlement_status === "ending") &&
+    stored.plan_kind !== "one_time" &&
+    stored.current_period_end !== null &&
+    stored.current_period_end >= today;
+
+  if (inGracePeriod) {
+    return { ...stored, entitlement_status: "ending" };
+  }
+
+  return {
+    entitlement_status: stored && stored.entitlement_status !== "none" ? "expired" : "none",
+    plan_kind: "none",
+    pricing_generation: generation,
+    shopify_charge_gid: stored?.shopify_charge_gid ?? null,
+    current_period_end: stored?.current_period_end ?? null,
+  };
+}
+
+// Registro append-only: l'indice univoco su risorsa e tipo rende innocuo ogni retry.
+async function recordBillingEvent(
+  db: D1Database,
+  shopDomain: string,
+  event: {
+    gid: string;
+    type: string;
+    planKind: string;
+    amount: string | null;
+    currency: string | null;
+    periodEnd: string | null;
+    occurredAt: string;
+  },
+) {
+  await db
+    .prepare(
+      `INSERT INTO billing_events (
+         shop_id, shopify_resource_gid, event_type, status, amount_minor, currency,
+         period_start, period_end, occurred_at, created_at
+       )
+       SELECT id, ?, ?, ?, ?, ?, NULL, ?, ?, ? FROM shops WHERE shop_domain = ?
+       ON CONFLICT (shopify_resource_gid, event_type) DO NOTHING`,
+    )
+    .bind(
+      event.gid,
+      event.type,
+      event.planKind,
+      event.amount === null ? null : Math.round(Number(event.amount) * 100),
+      event.currency,
+      event.periodEnd,
+      event.occurredAt,
+      event.occurredAt,
+      shopDomain,
+    )
+    .run();
 }
 
 // Scritto prima della cancellazione dei dati: conserva solo un identificatore non reversibile,

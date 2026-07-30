@@ -1,4 +1,10 @@
-import { entitlementFor, localDate, syncTrial } from "./billing.server";
+import {
+  entitlementFor,
+  localDate,
+  readBilling,
+  syncBillingAccount,
+  syncTrial,
+} from "./billing.server";
 import type { Entitlement } from "./billing.server";
 
 export const FUNCTION_HANDLE = "cf-ready-validation";
@@ -190,7 +196,14 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
   }
 
   const trial = await syncTrial(db, shopDomain, { eligible, today });
-  const entitlement = entitlementFor(trial, today);
+  const account = eligible
+    ? await syncBillingAccount(db, shopDomain, await readBilling(admin), {
+        today,
+        timeZone: shop.ianaTimezone,
+        pricingGeneration: trial?.pricing_generation ?? "launch",
+      })
+    : null;
+  const entitlement = entitlementFor(trial, today, account);
 
   // Il diritto commerciale vive nel metafield: la Function lo confronta con la data locale e
   // si spegne da sola alla scadenza, senza job periodici.
@@ -205,7 +218,16 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
 
   await persistValidationState(db, shopDomain, { countryCode, eligible, validation, errorCode });
 
-  return { shopName: shop.name, countryCode, eligible, validation, trial, entitlement, errorCode };
+  return {
+    shopName: shop.name,
+    countryCode,
+    eligible,
+    validation,
+    trial,
+    account,
+    entitlement,
+    errorCode,
+  };
 }
 
 export function entitlementDiffers(config: unknown, entitlement: Entitlement) {

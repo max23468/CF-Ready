@@ -4,6 +4,8 @@ import {
   entitlementFor,
   localDate,
   pricingGeneration,
+  remainingTrialDays,
+  syncBillingAccount,
   syncTrial,
   trialEnd,
 } from "../app/billing.server";
@@ -129,6 +131,151 @@ test("il registro della prova non conserva il dominio in chiaro", async () => {
   expect(registro).toMatchObject({ trial_ends_at: "2026-08-12" });
   expect(registro?.shop_hash).toMatch(/^[0-9a-f]{64}$/);
   expect(JSON.stringify(registro)).not.toContain("registro.example");
+});
+
+const NESSUN_ADDEBITO = { subscription: null, oneTime: null };
+const opzioni = {
+  today: "2026-08-01",
+  timeZone: "Europe/Rome",
+  pricingGeneration: "launch" as const,
+};
+
+// Un identificatore Shopify è unico nel mondo reale: i test non devono riusarlo, altrimenti
+// l'indice di idempotenza scarta l'evento del test successivo.
+function abbonamento(
+  id: string,
+  currentPeriodEnd: string,
+  interval: "EVERY_30_DAYS" | "ANNUAL" = "EVERY_30_DAYS",
+) {
+  return {
+    subscription: {
+      id,
+      name: "launch-monthly",
+      currentPeriodEnd,
+      interval,
+      amount: "2.99",
+      currency: "EUR",
+    },
+    oneTime: null,
+  };
+}
+
+test("una sottoscrizione attiva diventa diritto fino a fine periodo", async () => {
+  const shop = await insertShop("abbonato.example.myshopify.com");
+
+  const account = await syncBillingAccount(
+    env.DB,
+    shop,
+    abbonamento("gid://shopify/AppSubscription/1", "2026-08-31T21:59:59Z"),
+    opzioni,
+  );
+
+  expect(account).toMatchObject({
+    entitlement_status: "active",
+    plan_kind: "monthly",
+    current_period_end: "2026-08-31",
+  });
+  expect(entitlementFor(null, "2026-08-01", account)).toEqual({
+    kind: "subscription",
+    validThrough: "2026-08-31",
+  });
+});
+
+test("la cancellazione lascia l'accesso fino a fine periodo e poi scade", async () => {
+  const shop = await insertShop("cancellato.example.myshopify.com");
+  await syncBillingAccount(
+    env.DB,
+    shop,
+    abbonamento("gid://shopify/AppSubscription/2", "2026-08-31T21:59:59Z"),
+    opzioni,
+  );
+
+  // Shopify non elenca più la sottoscrizione cancellata: il periodo pagato resta nostro.
+  const inScadenza = await syncBillingAccount(env.DB, shop, NESSUN_ADDEBITO, opzioni);
+  expect(inScadenza).toMatchObject({
+    entitlement_status: "ending",
+    current_period_end: "2026-08-31",
+  });
+  expect(entitlementFor(null, "2026-08-31", inScadenza)).toEqual({
+    kind: "subscription",
+    validThrough: "2026-08-31",
+  });
+
+  const scaduto = await syncBillingAccount(env.DB, shop, NESSUN_ADDEBITO, {
+    ...opzioni,
+    today: "2026-09-01",
+  });
+  expect(scaduto.entitlement_status).toBe("expired");
+  expect(entitlementFor(null, "2026-09-01", scaduto)).toEqual({ kind: "none", validThrough: null });
+});
+
+test("gli eventi billing sono append-only e idempotenti", async () => {
+  const shop = await insertShop("eventi.example.myshopify.com");
+  const stato = abbonamento("gid://shopify/AppSubscription/3", "2026-08-31T21:59:59Z");
+
+  await syncBillingAccount(env.DB, shop, stato, opzioni);
+  await syncBillingAccount(env.DB, shop, stato, opzioni);
+  await syncBillingAccount(env.DB, shop, NESSUN_ADDEBITO, opzioni);
+
+  const { results } = await env.DB.prepare(
+    `SELECT event_type, status, amount_minor, currency, period_end FROM billing_events
+     WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
+     ORDER BY id`,
+  )
+    .bind(shop)
+    .all<Record<string, unknown>>();
+
+  expect(results).toEqual([
+    {
+      event_type: "active",
+      status: "monthly",
+      amount_minor: 299,
+      currency: "EUR",
+      period_end: "2026-08-31",
+    },
+    {
+      event_type: "ending",
+      status: "monthly",
+      amount_minor: null,
+      currency: null,
+      period_end: "2026-08-31",
+    },
+  ]);
+});
+
+test("il diritto pagato prevale sulla prova ancora attiva", () => {
+  const prova = {
+    status: "active" as const,
+    started_at: null,
+    ends_at: "2026-08-12",
+    pricing_generation: "launch" as const,
+  };
+  const unaTantum = {
+    entitlement_status: "active" as const,
+    plan_kind: "one_time" as const,
+    pricing_generation: "launch" as const,
+    shopify_charge_gid: "gid://shopify/AppPurchaseOneTime/1",
+    current_period_end: null,
+  };
+
+  expect(entitlementFor(prova, "2026-08-01", unaTantum)).toEqual({
+    kind: "one_time",
+    validThrough: null,
+  });
+});
+
+test("i giorni di prova residui includono oggi e non vanno sotto zero", () => {
+  const prova = {
+    status: "active" as const,
+    started_at: null,
+    ends_at: "2026-08-12",
+    pricing_generation: "launch" as const,
+  };
+
+  expect(remainingTrialDays(prova, "2026-08-01")).toBe(12);
+  expect(remainingTrialDays(prova, "2026-08-12")).toBe(1);
+  expect(remainingTrialDays(prova, "2026-08-13")).toBe(0);
+  expect(remainingTrialDays(null, "2026-08-01")).toBe(0);
 });
 
 test("l'entitlement viene riscritto solo quando cambia davvero", () => {

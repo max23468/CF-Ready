@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { ApiVersion, AppDistribution, shopifyApp } from "@shopify/shopify-app-react-router/server";
 import { recordEvent } from "./events.server";
+import { BILLING_PLANS } from "./plans.server";
 import { D1SessionStorage } from "./session-storage.server";
 import { recordInstallOnce } from "./shop.server";
 import { reconcile } from "./validation.server";
@@ -12,6 +13,7 @@ type ShopifyBindings = Env & {
   SHOPIFY_API_SECRET?: string;
   SHOPIFY_APP_URL?: string;
   SHOP_CUSTOM_DOMAIN?: string;
+  BILLING_TEST?: string;
 };
 
 const bindings = env as ShopifyBindings;
@@ -25,6 +27,7 @@ const shopify = shopifyApp({
   authPathPrefix: "/auth",
   sessionStorage: d1SessionStorage,
   distribution: AppDistribution.AppStore,
+  billing: BILLING_PLANS,
   future: {
     expiringOfflineAccessTokens: true,
   },
@@ -48,6 +51,11 @@ const shopify = shopifyApp({
   },
   ...(bindings.SHOP_CUSTOM_DOMAIN ? { customShopDomains: [bindings.SHOP_CUSTOM_DOMAIN] } : {}),
 });
+
+// Addebiti di prova finché la variabile non dice esplicitamente il contrario: in Production
+// va portata a "false" prima del rilascio.
+export const BILLING_IS_TEST = bindings.BILLING_TEST !== "false";
+export const APP_URL = bindings.SHOPIFY_APP_URL || "";
 
 export const apiVersion = ApiVersion.July26;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
