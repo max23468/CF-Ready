@@ -44,18 +44,19 @@ il rollback ordinario di questo schema.
 
 | Voce | Valore |
 | --- | --- |
-| Sorgente runtime | `693d6c8` (PR #58), con `ff878ab` (PR #59) per il nome dello snapshot |
+| Sorgente runtime | `693d6c8` (PR #58) |
 | Worker | `cf-ready-dev`, `https://cf-ready-dev.tmsf.workers.dev` |
 | Versione Worker attiva | `899753e6-3997-4601-8902-d6ce896e44d2` |
 | Rollback Worker | versione `53660a82-4d4c-44a3-a280-b02eceaecd70` |
-| Versione Shopify attiva | `0.1.0-dev.ff878ab`, `gid://shopify/Version/1070049361921` |
+| Versione Shopify attiva | `0.2.0` |
 | Rollback Shopify | versione `0.1.0` |
-| Workflow | `Deploy Development` run `30529548074` |
 
-Il primo tentativo di deploy Shopify, run `30528975291`, è fallito perché il
-nome versione `0.1.0` esisteva già. Gli snapshot Development ora usano
-`<versione>-dev.<sha breve>`: la versione di `package.json` resta il marcatore
-delle sole release SemVer, che restano azioni separate.
+Il deploy Shopify ha richiesto tre passaggi. Il run `30528975291` è fallito
+perché il nome `0.1.0` esisteva già. Il run `30529548074` ha rilasciato uno
+snapshot con nome derivato dal commit, `0.1.0-dev.ff878ab`
+(`gid://shopify/Version/1070049361921`), soluzione poi scartata: la chiusura di
+una milestone è una release, e il numero assegnato a ogni milestone fino alla
+`1.0.0` è ora nel Master Plan §19.5. M4 è stata quindi rilasciata come `0.2.0`.
 
 ## Verifiche live
 
