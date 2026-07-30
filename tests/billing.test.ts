@@ -10,6 +10,7 @@ import {
   proratedCredit,
   readBilling,
   remainingTrialDays,
+  returnUrlFor,
   syncBillingAccount,
   syncTrial,
   trialEnd,
@@ -440,6 +441,21 @@ test("l'addebito restituisce l'URL di conferma e distingue i due tipi", async ()
   );
 
   expect(rifiutato).toEqual({ confirmationUrl: null, error: "charge_create_failed" });
+});
+
+test("l'URL di ritorno riporta il merchant dentro l'admin", () => {
+  const dentroAdmin = returnUrlFor(
+    new Request("https://app.example/app?embedded=1&shop=negozio.myshopify.com&host=YWRtaW4="),
+    "negozio.myshopify.com",
+  );
+
+  expect(dentroAdmin).toContain("shop=negozio.myshopify.com");
+  expect(dentroAdmin).toContain("host=YWRtaW4%3D");
+
+  // Senza `host` resta almeno lo store, che permette ad App Bridge di rientrare.
+  const senzaHost = returnUrlFor(new Request("https://app.example/app"), "negozio.myshopify.com");
+  expect(senzaHost).toContain("shop=negozio.myshopify.com");
+  expect(senzaHost).not.toContain("host=");
 });
 
 test("la cancellazione riporta un errore invece di fingere il successo", async () => {
