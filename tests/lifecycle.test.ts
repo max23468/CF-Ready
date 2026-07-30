@@ -144,6 +144,24 @@ test("un webhook duplicato viene ignorato e un retry dopo errore viene rielabora
   expect(await claimWebhook(env.DB, "wh-1", "SHOP_UPDATE", shop)).toBe(false);
 });
 
+test("il redact non cancella uno store che ha reinstallato nel frattempo", async () => {
+  const shop = await insertShop("reinstallato.example.myshopify.com");
+  await claimWebhook(env.DB, "wh-redact-attivo", "SHOP_REDACT", shop);
+
+  expect(await redactShop(env.DB, shop)).toBe(false);
+
+  expect(
+    await env.DB.prepare("SELECT installation_status FROM shops WHERE shop_domain = ?")
+      .bind(shop)
+      .first(),
+  ).toMatchObject({ installation_status: "active" });
+  expect(
+    await env.DB.prepare("SELECT shop_domain FROM webhook_events WHERE webhook_id = ?")
+      .bind("wh-redact-attivo")
+      .first(),
+  ).toMatchObject({ shop_domain: shop });
+});
+
 test("disinstallazione e redact ripuliscono i dati dello store", async () => {
   const shop = await insertShop("redact.example.myshopify.com");
   await recordEvent(env.DB, { shopDomain: shop, name: "app_installed", class: "lifecycle" });
@@ -160,7 +178,7 @@ test("disinstallazione e redact ripuliscono i dati dello store", async () => {
   ).toMatchObject({ installation_status: "uninstalled" });
   expect(await appState(shop)).toMatchObject({ validation_enabled: 0, validation_gid: null });
 
-  await redactShop(env.DB, shop);
+  expect(await redactShop(env.DB, shop)).toBe(true);
 
   expect(
     await env.DB.prepare("SELECT id FROM shops WHERE shop_domain = ?").bind(shop).first(),

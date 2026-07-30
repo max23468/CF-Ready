@@ -17,14 +17,28 @@ export async function markUninstalled(db: D1Database, shopDomain: string) {
   ]);
 }
 
+// Shopify invia `shop/redact` 48 ore dopo la disinstallazione e non annulla l'invio se
+// nel frattempo lo store reinstalla: cancellare i dati di un'installazione viva
+// disconnetterebbe il merchant. Nessun dato acquirente è coinvolto, quindi la richiesta
+// viene presa in carico senza cancellare finché l'installazione risulta attiva.
 export async function redactShop(db: D1Database, shopDomain: string) {
+  const deleted = await db
+    .prepare(
+      `DELETE FROM shops WHERE shop_domain = ? AND installation_status = 'uninstalled'
+       RETURNING id`,
+    )
+    .bind(shopDomain)
+    .first<{ id: number }>();
+
+  if (!deleted) return false;
+
   // ponytail: cancellazione totale finché non esistono prova e diritto una tantum (M5) da
   // conservare in forma pseudonimizzata. Le ricevute webhook restano per l'idempotenza dei
   // retry, senza più riferimento allo store.
-  await db.batch([
-    db.prepare("DELETE FROM shops WHERE shop_domain = ?").bind(shopDomain),
-    db
-      .prepare("UPDATE webhook_events SET shop_domain = NULL WHERE shop_domain = ?")
-      .bind(shopDomain),
-  ]);
+  await db
+    .prepare("UPDATE webhook_events SET shop_domain = NULL WHERE shop_domain = ?")
+    .bind(shopDomain)
+    .run();
+
+  return true;
 }

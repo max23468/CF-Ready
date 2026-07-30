@@ -89,15 +89,35 @@ Eseguiti dall'owner il 30 luglio 2026, con readback D1 verificato:
 
 | Prova | Esito |
 | --- | --- |
-| Apertura dell'app | OAuth completato, evento `app_installed`, riconciliazione che popola `app_state` con Validation `gid://shopify/Validation/140411184`, `schemaVersion` 2, hash calcolato e nessun codice errore |
-| Modifica delle impostazioni negozio | consegna reale di `shop/update` da Shopify, ricevuta `processed` con lo shop domain vero, evento `shop_updated` con `country_code` `IT` |
+| Apertura dell'app, 10:14 UTC | OAuth completato, evento `app_installed`, riconciliazione che popola `app_state` con Validation `gid://shopify/Validation/140411184`, `schemaVersion` 2, hash calcolato e nessun codice errore |
+| Modifica delle impostazioni negozio, 10:17 UTC | consegna reale di `shop/update` da Shopify, ricevuta `processed` con lo shop domain vero, evento `shop_updated` con `country_code` `IT` |
+| Disinstallazione, 10:27 UTC | ricevuta `APP_UNINSTALLED` `processed`, evento `app_uninstalled`, store `uninstalled` con `uninstalled_at`, sessione eliminata, `validation_gid` azzerato |
+| Reinstallazione e riattivazione, 10:28 UTC | nuova sessione unica, evento `app_installed`, store di nuovo `active` con `uninstalled_at` nullo, evento `validation_enabled` e nuova Validation `gid://shopify/Validation/140509488` |
 
 La consegna reale chiude anche la domanda sulla registrazione dei topic
 aggiunti dallo snapshot `0.2.0`, non ispezionabile via API.
 
-Restano da osservare, con azioni manuali dell'owner: la reinstallazione
-completa e la scadenza reale del token offline, previsto un'ora dopo il
-rilascio con refresh token valido fino al 28 ottobre 2026.
+Il cambio di `validation_gid` fra le due aperture conferma che Shopify rimuove
+la Validation alla disinstallazione: azzerare lo stato locale evita che la UI
+dichiari attiva una risorsa inesistente. Nessun codice errore lungo l'intero
+ciclo, e una sola sessione presente al termine.
+
+Resta da osservare la scadenza reale del token offline, un'ora dopo il rilascio,
+con refresh token valido fino al 28 ottobre 2026.
+
+### Difetto emerso dalla reinstallazione
+
+La reinstallazione immediata ha esposto un difetto del percorso `shop/redact`.
+Shopify invia quel topic 48 ore dopo la disinstallazione e la documentazione non
+prevede l'annullamento dell'invio se lo store reinstalla nel frattempo: la
+versione `0.2.0` avrebbe quindi cancellato i dati di un'installazione viva,
+disconnettendo il merchant. La cancellazione è ora condizionata allo stato
+`uninstalled`, con la richiesta comunque presa in carico e registrata come
+`shop_redact_skipped`. Il caso è coperto da un test che fallisce senza la
+guardia.
+
+Con la disinstallazione del 30 luglio alle 10:27 UTC, l'invio atteso cade
+intorno al 1 agosto 2026: la correzione va rilasciata prima di quella data.
 
 ## Gate geografico: residuo dichiarato
 

@@ -49,6 +49,14 @@ mai il payload. `shop/redact` azzera `shop_domain` sulle ricevute dello store
 invece di eliminarle, così l'idempotenza dei retry sopravvive alla
 cancellazione.
 
+`shop/redact` arriva 48 ore dopo la disinstallazione e Shopify non annulla
+l'invio se lo store reinstalla nel frattempo. La cancellazione avviene quindi
+solo se l'installazione risulta ancora `uninstalled`: con un'installazione
+attiva la richiesta viene presa in carico con `200` e registrata come
+`shop_redact_skipped`, senza toccare dati né ricevute. Nessun dato acquirente è
+coinvolto, quindi l'obbligo di cancellazione non è in discussione: sarebbe in
+discussione la sessione viva di un merchant installato.
+
 Endpoint e topic registrati:
 
 | Endpoint | Topic |
@@ -74,12 +82,13 @@ Gli eventi di classe `error` finiscono anche in Workers Logs come JSON.
 | `shop_update_skipped` | `lifecycle` | `shop/update` senza sessione utilizzabile |
 | `compliance_acknowledged` | `lifecycle` | topic `customers/*` presi in carico |
 | `shop_redacted` | `lifecycle` | dati dello store eliminati |
+| `shop_redact_skipped` | `lifecycle` | `shop/redact` per uno store che ha reinstallato |
 | `validation_enabled` / `validation_disabled` | `validation` | scrittura merchant riuscita e verificata |
 | `install_reconcile_failed` | `error` | riconciliazione fallita durante l'installazione |
 | `webhook_failed` | `error` | handler in errore |
 
 I metadati ammessi sono un'allowlist espressa dal tipo `EventMetadata`:
-`topic`, `country_code`, `error_code`, `enabled`, `schema_version`,
+`topic`, `country_code`, `error_code`, `reason`, `enabled`, `schema_version`,
 `correlation_id`. Non esistono campi liberi: payload, header, token, shop
 domain, Codice Fiscale e PEC non sono rappresentabili. Nei log strutturati vale
 lo stesso vincolo, e l'id sessione è escluso perché contiene lo shop domain.

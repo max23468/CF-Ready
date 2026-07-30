@@ -21,7 +21,16 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       return;
     }
 
-    await redactShop(db, shop);
-    await recordEvent(db, { name: "shop_redacted", class: "lifecycle", metadata: { topic } });
+    if (await redactShop(db, shop)) {
+      await recordEvent(db, { name: "shop_redacted", class: "lifecycle", metadata: { topic } });
+      return;
+    }
+
+    await recordEvent(db, {
+      shopDomain: shop,
+      name: "shop_redact_skipped",
+      class: "lifecycle",
+      metadata: { topic, reason: "installation_active" },
+    });
   });
 };

@@ -3652,13 +3652,19 @@ Gate:
 - webhook duplicati;
 - store non italiano.
 
-I quattro gate hanno copertura automatizzata sul comportamento D1 e sul
-percorso webhook. Il 30 luglio 2026 il dev store ha confermato live
-l'installazione con riconciliazione e la consegna reale di `shop/update`.
-Restano da osservare sul dev store, con azioni manuali dell'owner, la
-reinstallazione completa e la scadenza reale del token offline. Il gate sullo
-store non italiano chiude invece con residuo dichiarato: non è osservabile in
-Development, come registrato negli Open items §34.7.
+Stato dei gate al 30 luglio 2026, con prove nell'evidenza Development:
+
+- **reinstallazione**: verde. Ciclo completo osservato sul dev store, inclusa la
+  ricreazione della Validation dopo la reinstallazione;
+- **webhook duplicati**: verde. Test automatici sulla riacquisizione delle sole
+  ricevute fallite, più consegne reali di Shopify elaborate una volta sola;
+- **store non italiano**: chiuso con residuo dichiarato, non osservabile in
+  Development, Open items §34.7;
+- **refresh token**: da osservare alla scadenza reale del token offline.
+
+La reinstallazione ha esposto un difetto del percorso `shop/redact`, corretto
+prima della chiusura: la cancellazione dei dati avviene solo se lo store risulta
+ancora disinstallato.
 
 ### M5 — Billing
 
