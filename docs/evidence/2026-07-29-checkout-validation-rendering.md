@@ -184,6 +184,82 @@ della Function API mostra ancora la forma plurale nell’esempio e una terza
 variante nella tabella dei target. Il target resta quindi ancorato a una prova
 live e a questa risposta fino alla pubblicazione della correzione.
 
+### Seconda risposta, 31 luglio 2026
+
+Le fonti citate sono due, non quattro: la reference della Function API compare
+due volte e gli altri due link sono i thread già noti. Nessuna fonte nuova. In
+particolare l’affermazione che un difetto di bypass di questa forma sia stato
+individuato e corretto ad agosto 2025 non è appoggiata da alcun riferimento e
+resta non verificata.
+
+**Applicazione lato server nei wallet.** Confermata: la Function viene eseguita
+nella negoziazione di completamento prima che sia costruito un ordine, e i
+flussi express non sono esentati. La reference dichiara esplicitamente la
+copertura di Shop Pay, PayPal, Google Pay e Apple Pay. Shopify corregge inoltre
+la lettura del thread sui wallet: il reporter originale segnala un messaggio
+poco comprensibile, non un ordine completato; la frase sul pagamento completato
+proviene da un commento successivo di un altro sviluppatore, mai verificato.
+
+**Materializzazione dei localized fields.** `cart.localizedFields` si popola
+solo dopo che destinazione e origine sono risolte, e l’origine dipende dalle
+location dell’opzione di consegna selezionata. Nei flussi express in cui nessuna
+opzione è ancora selezionata l’array arriva vuoto. Il motore, che decide sulla
+presenza dei campi, non trova nulla da validare e lascia completare l’ordine
+senza Codice Fiscale. Shopify qualifica il caso come forma del fail-open
+dell’app, non come bypass di piattaforma, e chiede di eseguire comunque la
+matrice completa dei wallet prima del lancio, segnalando con gli identificativi
+di esecuzione qualunque flusso che si completi senza Codice Fiscale.
+
+**Segnale di intento.** Confermato assente sullo schema `2026-07`:
+`BuyerJourney` espone soltanto `step` con tre valori, e nulla distingue un
+tentativo di avanzamento dal semplice caricamento dello step. Poiché la chiave
+compare nell’array solo dopo la risoluzione della consegna, la sua presenza è
+già il proxy cercato: l’euristica su indirizzo e opzione di consegna non serve e
+la query di input resta invariata.
+
+**Fallback a banner nella review.** Nessuna soluzione confermata né in
+lavorazione e nessun tempo indicato. La modalità preventiva resta quindi
+l’unica mitigazione sotto il nostro controllo e l’avviso al merchant previsto
+nella UI resta necessario.
+
+**Identificativo di tracciamento.** Non condivisibile. Shopify ha lasciato una
+nota interna sulla comunicazione.
+
+### Decisione sul fail-open dei campi assenti
+
+Il difetto è reale e riguarda il motore, non la piattaforma: decidere sulla
+presenza dei campi lascia completare senza Codice Fiscale ogni flusso in cui
+l’array non si è ancora popolato.
+
+La correzione è definita. La regola diventa: destinazione italiana **e**
+spedizione presente **e** Codice Fiscale assente o vuoto, quindi errore. La
+condizione sulla spedizione è ciò che protegge gli ordini senza consegna, dove
+l’origine non si risolve mai, il campo non compare e un blocco lascerebbe il
+cliente senza nulla da compilare. I dati necessari sono già nella query di
+input.
+
+L’adozione è sospesa a una sola premessa non verificabile in locale: che per un
+ordine con spedizione verso l’Italia il campo esista sempre. Se esistesse un
+caso in cui Shopify non lo raccoglie comunque, la regola bloccherebbe una
+vendita legittima senza via d’uscita. I due errori non hanno lo stesso peso: un
+ordine sfuggito è recuperabile contattando il cliente, una vendita bloccata è
+persa. La premessa è oggetto di una domanda esplicita a Shopify.
+
+Alla conferma della premessa la regola viene implementata subito, con i test e
+con l’aggiornamento dell’invariante fail-open in `AGENTS.md` e della decisione
+D-029 nello stesso cambio. In assenza di conferma la regola va ristretta
+ulteriormente prima di adottarla. La matrice wallet di M10 verifica la
+correzione, non decide se scriverla.
+
+Il rischio corrente è nullo: l’app non è pubblicata e il dev store non espone
+wallet. Il difetto esiste nel codice, non su merchant reali.
+
+Resta aperta una verifica minore: Shopify afferma che con la chiave presente
+l’errore non può comparire su un checkout appena caricato, mentre la prova live
+ha visto i box della modalità preventiva comparire al caricamento. La
+spiegazione probabile è che in quel test la consegna fosse già risolta. Va
+riverificato durante la matrice wallet, non prima, e oggi non cambia il motore.
+
 ## Superfici non disponibili
 
 - Checkout accelerati: nel checkout osservato era disponibile soltanto il Test
@@ -310,23 +386,27 @@ Il fix locale del rendering standard è il target
 confermato separatamente e coincide con la classe di difetti già riconosciuta
 da Shopify.
 
-L’indagine Development è conclusa per tutte le superfici disponibili. La
-risposta di Shopify del 30 luglio 2026 chiude i primi due gate: la sintassi del
-target è confermata e il bug della review è riconosciuto dal team di
-engineering. Restano aperti, senza riaprire la matrice già completata:
+L’indagine Development è conclusa per tutte le superfici disponibili. Le due
+risposte di Shopify chiudono la sintassi del target, il riconoscimento del bug
+della review, l’applicazione lato server nei wallet e l’assenza di un segnale di
+intento. L’identificativo di tracciamento non è ottenibile e il punto è chiuso.
+
+Restano aperti, senza riaprire la matrice già completata:
 
 1. riconfermare il target sulla reference pubblicata quando esce la correzione
    documentale annunciata, prima della `1.0.0`;
-2. ottenere un identificativo di tracciamento per il bug della review, per
-   verificarne lo stato senza riaprire un ticket;
-3. chiarire se nei flussi wallet la validazione sia applicata lato server: con i
-   localized fields assenti il fail-open lascia completare l’ordine senza Codice
-   Fiscale, e la copertura dichiarata nel listing dipende dalla risposta;
-4. chiudere il percorso supportato per campo vuoto e conferma ordine attiva:
-   l’approccio consigliato da Shopify non copre quel caso e il follow-up chiede
-   se esista un segnale di tentativo di avanzamento nell’input della Function;
-5. in M10, provare i wallet sul canary store reale dell’owner con dati e importi
-   controllati.
+2. ottenere da Shopify la conferma che per un ordine con spedizione verso
+   l’Italia il localized field esista sempre. È la premessa che sblocca la
+   correzione del fail-open descritta sopra, da implementare appena arriva la
+   risposta e non da rinviare alla matrice;
+3. matrice wallet sul canary reale dell’owner con dati e importi controllati,
+   come gate bloccante prima del lancio: Apple Pay, Google Pay, Shop Pay e
+   PayPal, avviati da pagina prodotto, carrello e checkout. Verifica la
+   correzione già applicata; un flusso che si completi comunque senza Codice
+   Fiscale va segnalato a Shopify con gli identificativi di esecuzione;
+4. nella stessa matrice, verificare se i box della modalità preventiva compaiano
+   su un checkout appena caricato, dato che Shopify lo esclude e la prova live
+   li aveva osservati.
 
 Questi punti sono conservati nel Master Plan e non richiedono più il piano
 temporaneo dell’indagine.

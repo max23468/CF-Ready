@@ -1084,6 +1084,17 @@ Restituiscono zero errori:
 - contesto geografico escluso;
 - eccezione non gestita.
 
+Il caso “campo nativo assente” è in correzione. Nei flussi express
+`cart.localizedFields` può arrivare vuoto, perché l’origine dipende
+dall’opzione di consegna selezionata, e un motore che decide sulla presenza dei
+campi lascia completare l’ordine senza Codice Fiscale. La regola sostitutiva è
+già definita, destinazione italiana e spedizione presente, e mantiene il
+fail-open per gli ordini senza consegna, dove il campo non può comparire.
+L’adozione attende da Shopify la conferma che con una spedizione verso l’Italia
+il campo esista sempre; la matrice wallet di M10 verifica la correzione, non la
+decide. Motivazione ed esito in
+`docs/evidence/2026-07-29-checkout-validation-rendering.md`.
+
 La Function può scrivere log tecnici minimi, entro il limite Shopify, senza valori fiscali.
 
 Il fail-open deve essere applicato anche dal proprietario della Function: `validationCreate` e `validationUpdate` impostano sempre `blockOnFailure: false`. In questo modo gli errori di validazione restituiti intenzionalmente continuano a bloccare il checkout, mentre un’eccezione runtime imprevista non blocca le vendite.
@@ -3895,6 +3906,8 @@ Deliverable:
 - ordini reali controllati;
 - checkout standard e wallet accelerati disponibili verificati con importi e
   dati controllati;
+- matrice wallet completa: Apple Pay, Google Pay, Shop Pay e PayPal avviati da
+  pagina prodotto, carrello e checkout;
 - checkout iniziale con prodotto in abbonamento verificato con selling plan
   controllato, senza estendere l’esito alle generazioni ricorrenti;
 - monitoraggio.
@@ -3902,7 +3915,12 @@ Deliverable:
 Gate:
 
 - nessun errore critico;
-- conferma compatibilità piano standard.
+- conferma compatibilità piano standard;
+- nessun flusso wallet completa un ordine senza Codice Fiscale quando la
+  destinazione è italiana. È bloccante e presuppone la correzione del fail-open
+  già applicata; un esito negativo va segnalato a Shopify con gli
+  identificativi di esecuzione. Regola e motivazione in
+  `docs/evidence/2026-07-29-checkout-validation-rendering.md`.
 
 ### M11 — `1.0.0` e Controlled Launch
 
