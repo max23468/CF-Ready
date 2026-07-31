@@ -1,6 +1,7 @@
 import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
 import {
+  addDays,
   cancelSubscription,
   createCharge,
   entitlementFor,
@@ -589,4 +590,25 @@ test("la riscrittura conserva regole e messaggi del merchant", () => {
     schemaVersion: 2,
     rules: { taxCode: "unmanaged" },
   });
+});
+
+test("la data del primo addebito è il giorno dopo i giorni di prova ceduti a Shopify", () => {
+  const trial = {
+    status: "active" as const,
+    started_at: "2026-07-29",
+    ends_at: "2026-08-11",
+    pricing_generation: "launch" as const,
+  };
+
+  // §14.6: chi attiva oggi cede a Shopify i giorni residui, oggi incluso, e il primo addebito
+  // cade il giorno dopo l'ultimo giorno di prova.
+  const remaining = remainingTrialDays(trial, "2026-08-01");
+  expect(remaining).toBe(11);
+  expect(addDays("2026-08-01", remaining)).toBe("2026-08-12");
+  expect(addDays(trial.ends_at, 1)).toBe("2026-08-12");
+
+  // Ultimo giorno di prova: resta un giorno, quindi l'addebito è domani.
+  expect(addDays("2026-08-11", remainingTrialDays(trial, "2026-08-11"))).toBe("2026-08-12");
+  // Prova finita: nessun giorno da cedere, l'addebito parte all'approvazione.
+  expect(remainingTrialDays(trial, "2026-08-12")).toBe(0);
 });
