@@ -92,9 +92,11 @@ const it = {
     reset: "Ripristina testi predefiniti",
     resetConfirm: (language: string) =>
       `I quattro messaggi in ${language} tornano ai testi predefiniti. Gli altri non cambiano, e la modifica vale solo dopo il salvataggio.`,
-    exampleHeading: "Come compaiono nel checkout",
-    exampleIntro:
-      "Il cliente legge una sola di queste righe, quella del caso che lo riguarda. Qui sotto la versione in",
+    appearHeading: "Quali messaggi compaiono",
+    appearIntro:
+      "Dipende dalle regole attive: i messaggi di un campo non gestito non li legge nessuno.",
+    appears: "Compare",
+    appearsNot: "Non compare",
   },
   plan: {
     heading: "Piano",
@@ -255,9 +257,11 @@ const en: typeof it = {
     reset: "Restore default texts",
     resetConfirm: (language: string) =>
       `The four ${language} messages go back to their default texts. The others don’t change, and it only takes effect once you save.`,
-    exampleHeading: "How they appear at checkout",
-    exampleIntro:
-      "A customer reads only one of these lines, the one that applies to them. Below, the version in",
+    appearHeading: "Which messages appear",
+    appearIntro:
+      "It depends on your active rules: nobody reads the messages of a field you don’t manage.",
+    appears: "Shown",
+    appearsNot: "Not shown",
   },
   plan: {
     heading: "Plan",

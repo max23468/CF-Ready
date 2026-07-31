@@ -5,6 +5,20 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.7 — 31 luglio 2026
+
+Rifiniture di `Messaggi al cliente` dai gate live.
+
+- l'introduzione era incollata al primo box: `s-page` spazia le sezioni, non un
+  paragrafo sciolto, quindi la distanza va dichiarata;
+- i campi crescono con il testo. Polaris non ha un campo che si ridimensiona da
+  solo, e a 200 caratteri il messaggio finiva in uno scroll interno proprio nel
+  momento in cui serve vederlo tutto per decidere cosa tagliare;
+- il riquadro laterale non ripete più le stesse frasi che stanno nei campi
+  accanto: dice quali messaggi il cliente può davvero incontrare con le regole
+  attive. Con un campo non gestito i suoi due messaggi non li legge nessuno, e
+  da questa pagina non si poteva sapere.
+
 ## 0.4.6 — 31 luglio 2026
 
 Pagina `Messaggi al cliente` e spaziatura uniforme fra le colonne.

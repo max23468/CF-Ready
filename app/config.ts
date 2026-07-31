@@ -139,3 +139,11 @@ export function validateMessages(
 
   return { messages };
 }
+
+// Quali messaggi il cliente può davvero leggere, date le regole attive. Il messaggio di campo
+// obbligatorio esiste solo se il campo è obbligatorio; quello di formato non valido vale anche
+// per un campo facoltativo, perché scatta su ciò che il cliente ha scritto.
+export function messageAppears(rules: Rules, key: (typeof MESSAGE_KEYS)[number]) {
+  const mode = key.startsWith("taxCode") ? rules.taxCode : rules.pec;
+  return key.endsWith("Required") ? mode === "required_validated" : mode !== "unmanaged";
+}
