@@ -87,8 +87,8 @@ export default function Home() {
           {/* A-16: unica eccezione approvata al divieto di colore di brand nell'app. Il colore
               vive dentro un'illustrazione, mai su un controllo o su uno stato, e solo su
               superfici senza azioni operative. */}
-          <s-box maxInlineSize="80px">
-            <s-image src="/cf-ready-mark.svg" alt="" />
+          <s-box maxInlineSize="180px">
+            <s-image src="/cf-ready-lockup.svg" alt="CF Ready" />
           </s-box>
           <s-paragraph>{t.home.unsupportedBody}</s-paragraph>
           <s-paragraph>

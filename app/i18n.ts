@@ -107,9 +107,11 @@ const it = {
     heading: "Guida e FAQ",
     intro:
       "Come si comporta CF Ready nel checkout, cosa controlla e cosa no. Se non trovi la risposta, scrivici.",
-    asideHeading: "Cosa fa e cosa non fa",
+    expandAll: "Espandi tutte",
+    collapseAll: "Comprimi tutte",
+    asideHeading: "Cosa fa e cosa non fa CF Ready",
     asideBody:
-      "CF Ready controlla solo la forma dei dati, non li verifica presso nessun registro e non emette fatture. Dove c’è un limite, in questa pagina è dichiarato.",
+      "CF Ready serve a non ricevere ordini italiani da fatturare senza Codice Fiscale: lo rende obbligatorio nel campo nativo del checkout e ne controlla la forma. Non verifica che il codice appartenga a chi lo inserisce, non emette fatture e non gestisce Partita IVA e Codice SDI.",
     entries: [
       {
         q: "Cos’è CF Ready",
@@ -120,24 +122,12 @@ const it = {
         a: "Quando lo imposti come obbligatorio e il cliente ha consegna e fatturazione in Italia. Sei tu a decidere se serve: CF Ready non stabilisce quando la tua attività deve raccoglierlo.",
       },
       {
-        q: "Clienti con fatturazione estera",
-        a: "Se la fatturazione è fuori dall’Italia, il cliente completa l’ordine senza controlli, anche quando la consegna è italiana. È una delle eccezioni automatiche e non si può disattivare.",
+        q: "Perché un ordine è passato senza i dati richiesti",
+        a: "Le regole valgono solo quando consegna e fatturazione sono entrambe italiane: chi fattura all’estero completa l’ordine senza controlli, anche con consegna in Italia. Lo stesso vale quando non c’è un indirizzo di consegna, come nel ritiro in negozio, e quando il campo fiscale non compare nel checkout, cosa che può succedere nei pagamenti rapidi. In tutti questi casi l’ordine passa: un errore dell’app non deve bloccare una vendita legittima.",
       },
       {
-        q: "Eccezioni automatiche",
-        a: "Le regole valgono solo con consegna e fatturazione italiane. Se il campo fiscale non è presente nel checkout, l’ordine passa lo stesso: un errore dell’app non deve bloccare una vendita legittima.",
-      },
-      {
-        q: "Ritiro in negozio",
-        a: "Senza indirizzo di consegna non c’è un Paese da confrontare, quindi le regole non si applicano e l’ordine passa. Se raccogli il Codice Fiscale anche per i ritiri, chiedilo fuori dal checkout.",
-      },
-      {
-        q: "Che cosa vuol dire “formalmente valido”",
-        a: "Che il codice rispetta le regole di composizione: lunghezza, struttura, data, codice catastale e carattere di controllo. Un Codice Fiscale formalmente valido può comunque non appartenere alla persona che lo inserisce, e CF Ready non lo verifica presso l’Agenzia delle Entrate.",
-      },
-      {
-        q: "Codice Fiscale ordinario e provvisorio",
-        a: "Sono accettate sia la forma ordinaria a 16 caratteri, comprese le varianti da omocodia, sia quella provvisoria a 11 cifre. Entrambe sono controllate solo nella composizione.",
+        q: "Che cosa viene controllato sul Codice Fiscale",
+        a: "La composizione: lunghezza, struttura, data, codice catastale e carattere di controllo. Sono accettate la forma ordinaria a 16 caratteri, comprese le varianti da omocodia, e quella provvisoria a 11 cifre. Un Codice Fiscale formalmente valido può comunque non appartenere alla persona che lo inserisce, e non viene verificato presso l’Agenzia delle Entrate.",
       },
       {
         q: "Come viene validata la PEC",
@@ -148,14 +138,6 @@ const it = {
         a: "Di norma quando prova a procedere. Se attivi gli avvisi preventivi, gli errori possono comparire già al caricamento del checkout: è la modalità consigliata se tieni attivo il passaggio di conferma dell’ordine di Shopify, perché evita che il cliente arrivi alla revisione bloccato e senza un messaggio. CF Ready non può leggere quell’impostazione del tuo store: la scelta è tua.",
       },
       {
-        q: "Checkout accelerati",
-        a: "Nei pagamenti rapidi il campo fiscale può non essere presente. In quel caso l’ordine passa senza controlli, per la stessa ragione per cui un campo assente non blocca mai una vendita.",
-      },
-      {
-        q: "Cosa succede se disattivo l’app",
-        a: "Il checkout torna a comportarsi come prima e nessun ordine viene più bloccato. Regole e messaggi restano salvati e tornano validi quando riattivi.",
-      },
-      {
         q: "Uso il campo “Interno” per il Codice Fiscale",
         a: "Il Codice Fiscale va raccolto nel campo fiscale nativo del checkout italiano. Se lo raccogli anche nella seconda riga dell’indirizzo, il cliente vede due campi per lo stesso dato: apri Impostazioni → Checkout e porta quella riga su “Facoltativo” o “Non includere”, poi rimetti l’etichetta originale da “Gestisci la lingua del checkout”. CF Ready non legge e non modifica quell’impostazione: l’avviso che vedi in app si basa sulla tua dichiarazione.",
       },
@@ -164,24 +146,20 @@ const it = {
         a: "La prova dura quattordici giorni, uno solo per store, senza chiedere un metodo di pagamento. Se scegli un piano durante la prova, i giorni che restano non li perdi: Shopify li riceve come giorni di prova della sottoscrizione.",
       },
       {
+        q: "Limitazioni e canali supportati",
+        a: "CF Ready funziona sul checkout web di Shopify e richiede uno store con indirizzo in Italia. Il controllo è solo formale, non anagrafico, e gli ordini creati fuori dal checkout, per esempio dal pannello, non ci passano. Le generazioni successive degli ordini ricorrenti in abbonamento non sono coperte.",
+      },
+      {
+        q: "Fatturazione elettronica, Partita IVA e Codice SDI",
+        a: "CF Ready non emette, non trasmette e non conserva fatture, e non si collega al Sistema di Interscambio. Partita IVA e Codice SDI hanno regole di validazione e flussi diversi da quelli dei due campi che gestiamo, e i localized fields del checkout non li espongono allo stesso modo: oggi non rientrano in ciò su cui stiamo lavorando.",
+      },
+      {
         q: "Privacy e dati",
         a: "CF Ready non conserva Codici Fiscali, indirizzi PEC, ordini o dati dei tuoi clienti. Il controllo avviene durante il checkout e non lascia traccia dei valori inseriti.",
       },
       {
-        q: "CF Ready emette fatture?",
-        a: "No. Non emette, non trasmette e non conserva fatture, e non si collega al Sistema di Interscambio.",
-      },
-      {
-        q: "Perché non gestisce Partita IVA e Codice SDI",
-        a: "Sono dati che seguono regole diverse e servono a flussi di fatturazione elettronica che CF Ready non copre. Preferiamo fare bene due campi invece che quattro male.",
-      },
-      {
-        q: "Piani Shopify e canali supportati",
-        a: "CF Ready funziona sul checkout web di Shopify e richiede uno store con indirizzo in Italia. Gli ordini creati fuori dal checkout, per esempio dal pannello, non passano dai controlli.",
-      },
-      {
-        q: "Limitazioni",
-        a: "Il controllo è solo formale, non anagrafico. Le generazioni successive degli ordini ricorrenti in abbonamento non sono coperte, e nei checkout dove il campo fiscale non compare l’ordine passa senza controlli.",
+        q: "Cosa succede se disattivo l’app",
+        a: "Il checkout torna a comportarsi come prima e nessun ordine viene più bloccato. Regole e messaggi restano salvati e tornano validi quando riattivi.",
       },
       {
         q: "Qualcosa non torna",
@@ -390,9 +368,11 @@ const en: typeof it = {
     heading: "Help and FAQ",
     intro:
       "How CF Ready behaves at checkout, what it checks and what it doesn’t. If you can’t find your answer, contact us.",
-    asideHeading: "What it does and doesn’t do",
+    expandAll: "Expand all",
+    collapseAll: "Collapse all",
+    asideHeading: "What CF Ready does and doesn’t do",
     asideBody:
-      "CF Ready only checks the shape of the data, verifies it against no registry and issues no invoices. Wherever there’s a limit, this page states it.",
+      "CF Ready exists so you stop receiving Italian orders to invoice without a tax code: it makes the field required in the native checkout field and checks its shape. It doesn’t verify that the code belongs to whoever entered it, doesn’t issue invoices and doesn’t handle VAT numbers or SDI codes.",
     entries: [
       {
         q: "What CF Ready does",
@@ -403,24 +383,12 @@ const en: typeof it = {
         a: "When you set it as required and the customer has both delivery and billing in Italy. You decide whether you need it: CF Ready doesn’t determine when your business has to collect it.",
       },
       {
-        q: "Customers billing outside Italy",
-        a: "If billing is outside Italy, the customer completes the order with no checks, even when delivery is Italian. It’s one of the automatic exceptions and can’t be turned off.",
+        q: "Why an order went through without the required fields",
+        a: "Rules only apply when delivery and billing are both Italian: a customer billing abroad completes the order with no checks, even with Italian delivery. The same happens when there’s no delivery address, as with local pickup, and when the tax field doesn’t appear in the checkout, which can happen in express payments. In all these cases the order goes through: an app error must never block a legitimate sale.",
       },
       {
-        q: "Automatic exceptions",
-        a: "Rules only apply when both delivery and billing are Italian. If the tax field isn’t in the checkout, the order goes through anyway: an app error must never block a legitimate sale.",
-      },
-      {
-        q: "Local pickup",
-        a: "With no delivery address there’s no country to compare, so the rules don’t apply and the order goes through. If you collect the tax code for pickups too, ask for it outside the checkout.",
-      },
-      {
-        q: "What “formally valid” means",
-        a: "That the code follows the composition rules: length, structure, date, town code and check character. A formally valid tax code may still not belong to the person entering it, and CF Ready doesn’t verify it with the Italian tax authority.",
-      },
-      {
-        q: "Ordinary and provisional tax codes",
-        a: "Both the ordinary 16-character form, including omocodia variants, and the provisional 11-digit form are accepted. Both are checked on composition only.",
+        q: "What gets checked on the tax code",
+        a: "Its composition: length, structure, date, town code and check character. Both the ordinary 16-character form, including omocodia variants, and the provisional 11-digit form are accepted. A formally valid tax code may still not belong to the person entering it, and it isn’t verified with the Italian tax authority.",
       },
       {
         q: "How PEC is validated",
@@ -431,14 +399,6 @@ const en: typeof it = {
         a: "Normally when they try to continue. If you turn on early warnings, errors can appear as soon as checkout loads: that’s the recommended mode if you keep Shopify’s order confirmation step, because it stops customers reaching the review page blocked and without a message. CF Ready can’t read that setting on your store: the choice is yours.",
       },
       {
-        q: "Accelerated checkouts",
-        a: "In express payments the tax field may not be present. In that case the order goes through with no checks, for the same reason a missing field never blocks a sale.",
-      },
-      {
-        q: "What happens if I turn the app off",
-        a: "Checkout goes back to how it was and no order is blocked any more. Your rules and messages stay saved and apply again when you turn it back on.",
-      },
-      {
         q: "I use the “Apartment, suite, etc.” field for the tax code",
         a: "The tax code belongs in the native Italian checkout field. If you also collect it in the second address line, customers see two fields for the same value: open Settings → Checkout and set that line to “Optional” or “Don’t include”, then restore the original label from “Manage checkout language”. CF Ready can’t read or change that setting: the warning you see in the app is based on what you told us.",
       },
@@ -447,24 +407,20 @@ const en: typeof it = {
         a: "The trial lasts fourteen days, one per store, with no payment method required. If you choose a plan during the trial you don’t lose the days you have left: Shopify receives them as trial days on the subscription.",
       },
       {
+        q: "Limitations and supported channels",
+        a: "CF Ready works on Shopify’s web checkout and needs a store based in Italy. The check is only formal, not against any registry, and orders created outside the checkout, for example from the admin, don’t go through it. Later generations of recurring subscription orders aren’t covered.",
+      },
+      {
+        q: "Electronic invoicing, VAT number and SDI code",
+        a: "CF Ready doesn’t issue, transmit or store invoices, and it doesn’t connect to the Italian exchange system. VAT numbers and SDI codes follow different validation rules and flows from the two fields we handle, and the checkout’s localized fields don’t expose them the same way: they aren’t part of what we’re working on today.",
+      },
+      {
         q: "Privacy and data",
         a: "CF Ready doesn’t store tax codes, PEC addresses, orders or any of your customers’ data. The check happens during checkout and leaves no trace of the values entered.",
       },
       {
-        q: "Does CF Ready issue invoices?",
-        a: "No. It doesn’t issue, transmit or store invoices, and it doesn’t connect to the Italian exchange system.",
-      },
-      {
-        q: "Why it doesn’t handle VAT number and SDI code",
-        a: "They follow different rules and serve electronic invoicing flows CF Ready doesn’t cover. We’d rather do two fields well than four badly.",
-      },
-      {
-        q: "Shopify plans and supported channels",
-        a: "CF Ready works on Shopify’s web checkout and needs a store based in Italy. Orders created outside the checkout, for example from the admin, don’t go through the checks.",
-      },
-      {
-        q: "Limitations",
-        a: "The check is only formal, not against any registry. Later generations of recurring subscription orders aren’t covered, and in checkouts where the tax field doesn’t appear the order goes through unchecked.",
+        q: "What happens if I turn the app off",
+        a: "Checkout goes back to how it was and no order is blocked any more. Your rules and messages stay saved and apply again when you turn it back on.",
       },
       {
         q: "Something doesn’t look right",
