@@ -5,6 +5,20 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.15 — 31 luglio 2026
+
+Difetti trovati rileggendo M6 per intero.
+
+- riaprendo l'onboarding non si passava oltre il primo passo: il contatore
+  arrivava da D1 ma veniva forzato a uno finché lo stato risultava concluso,
+  quindi `Continua` scriveva e la pagina tornava indietro;
+- la riga dei messaggi era sparita dal primo blocco della Home e le etichette
+  della configurazione non erano più collegamenti: entrambe erano andate perse
+  riscrivendo la Home per assorbire il Piano;
+- il banner di errore aveva perso la distinzione fra una lettura commerciale
+  fallita e una divergenza di sincronizzazione, che era stata introdotta con la
+  `0.4.9`.
+
 ## 0.4.14 — 31 luglio 2026
 
 Chiusura di M6: onboarding, prompt recensioni e registro delle operazioni.
