@@ -5,6 +5,21 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.17 — 31 luglio 2026
+
+- la procedura guidata si apre come finestra a schermo intero sopra la Home
+  invece di cambiare pagina, usando il componente che Shopify prevede per i
+  flussi multi-passo. Il codice della procedura resta uno solo;
+- spuntare “Uso il campo Interno per il Codice Fiscale” non salvava nulla: la
+  spunta veniva letta dalla proprietà dell'elemento, che nello shadow DOM può
+  non esserci, invece che dal modulo;
+- compariva un “Passo 0 di 4” con la schermata vuota: la colonna del passo
+  nasce a zero e il valore predefinito non scattava su una riga già esistente;
+- avanti e indietro non fanno più rimbalzare l'altezza del riquadro: il passo
+  vive nello stato della pagina e la scrittura viaggia in sottofondo, senza il
+  giro sul server a ogni transizione. Il secondo passo resta l'eccezione,
+  perché scrive su Shopify e deve aspettare l'esito.
+
 ## 0.4.16 — 31 luglio 2026
 
 - la Home apre con la guida di configurazione, la composizione `Setup guide`
