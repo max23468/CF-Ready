@@ -48,8 +48,12 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const intent = form.get("intent");
   const step = Number(form.get("step") ?? 1);
 
-  if (intent === "back") {
-    await saveOnboarding(db, session.shop, { status: "in_progress", step: Math.max(1, step - 1) });
+  // La sola memoria del passo, senza altri effetti: serve a riprendere la procedura dove era.
+  if (intent === "progress" || intent === "back" || intent === "next") {
+    await saveOnboarding(db, session.shop, {
+      status: "in_progress",
+      step: Math.min(STEPS, Math.max(1, step)),
+    });
     return { ok: true as const };
   }
 
@@ -75,14 +79,6 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     if (!result.ok) return { ok: false as const, errorCode: result.errorCode };
 
     await saveOnboarding(db, session.shop, { status: "in_progress", step: 3 });
-    return { ok: true as const };
-  }
-
-  if (intent === "next") {
-    await saveOnboarding(db, session.shop, {
-      status: "in_progress",
-      step: Math.min(STEPS, step + 1),
-    });
     return { ok: true as const };
   }
 
@@ -134,13 +130,24 @@ export default function Onboarding() {
   const saved = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const t = texts(saved.locale);
-  const [step, setStep] = useState(saved.step);
+  const [step, setStepState] = useState(saved.step);
+  const [declared, setDeclared] = useState(saved.address2Declared);
   const form = useRef<HTMLFormElement>(null);
+  // Un secondo canale per la sola memoria del passo: la scrittura non tocca lo stato del
+  // pulsante principale e non viene mai riletta, quindi non può far rimbalzare la pagina.
+  const progress = useFetcher();
   const busy = fetcher.state !== "idle";
   const esito = fetcher.data as { ok: boolean; errorCode?: string } | undefined;
 
   const go = (intent: string, extra: Record<string, string> = {}) =>
     fetcher.submit({ intent, step: String(step), ...extra }, { method: "post" });
+
+  // §15.9: riaprendo la procedura si torna dove si era rimasti. Il passo si ricorda scrivendolo,
+  // mai rileggendolo: il valore letto all'apertura serve solo come punto di partenza.
+  const setStep = (next: number) => {
+    setStepState(next);
+    progress.submit({ intent: "progress", step: String(next) }, { method: "post" });
+  };
 
   // Il passo vive solo qui. Mescolarlo con lo stato del server produceva salti e blocchi: il
   // server lo riceve quando la procedura si chiude, che è l'unico momento in cui serve
@@ -150,7 +157,7 @@ export default function Onboarding() {
   useEffect(() => {
     if (fetcher.state !== "idle" || !savingRules.current) return;
     savingRules.current = false;
-    if (esito?.ok) setStep(3);
+    if (esito?.ok) setStepState(3);
   }, [fetcher.state, esito]);
 
   if (saved.completed && step === 1 && !busy && esito?.ok) {
@@ -177,8 +184,13 @@ export default function Onboarding() {
     });
   };
 
+  const readDeclaration = () => {
+    const data = form.current ? new FormData(form.current) : null;
+    setDeclared(Boolean(data?.get("address2")));
+  };
+
   return (
-    <form ref={form}>
+    <form ref={form} onChange={readDeclaration}>
       <s-page heading={t.onboarding.heading}>
         {esito && !esito.ok ? (
           <s-banner tone="critical">
@@ -297,6 +309,9 @@ export default function Onboarding() {
                       value="declared"
                       defaultChecked={saved.address2Declared}
                     />
+                    {/* Come in Regole checkout: spuntando la dichiarazione compaiono i due
+                        passaggi da fare in Shopify. */}
+                    {declared ? <s-paragraph>{t.rules.address2Instructions}</s-paragraph> : null}
                   </>
                 )}
                 <s-paragraph>{t.onboarding.step4Body}</s-paragraph>

@@ -359,9 +359,17 @@ export default function Home() {
 
       {/* A-16, estesa alla Home: il marchio chiude la colonna di riferimento come una firma,
           senza cornice e senza competere con i blocchi operativi. */}
-      <s-box slot="aside" maxInlineSize="130px">
-        <s-image src="/cf-ready-lockup.svg" alt="" aspectRatio="16/3" objectFit="contain" />
-      </s-box>
+      <s-stack
+        slot="aside"
+        direction="inline"
+        gap="base"
+        alignItems="center"
+        justifyContent="center"
+      >
+        <s-box maxInlineSize="130px">
+          <s-image src="/cf-ready-lockup.svg" alt="" aspectRatio="16/3" objectFit="contain" />
+        </s-box>
+      </s-stack>
 
       <s-app-window id="onboarding-window" src="/app/onboarding" />
 
@@ -594,40 +602,40 @@ function SetupGuide({
   return (
     <s-section>
       <s-stack direction="block" gap="base">
-        {/* L'azione sta sulla riga del titolo: su un blocco ormai corto un'illustrazione a
-            destra lasciava una colonna vuota per tutta l'altezza, e un bottone in fondo
-            allungava la card senza usarne la larghezza. */}
-        <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="center">
+        <s-stack direction="block" gap="small-100">
+          <s-heading>{t.setup.heading}</s-heading>
+          <s-text color="subdued">{t.setup.progress(done, steps.length)}</s-text>
+        </s-stack>
+
+        {/* I passi stanno in riga: incolonnati lasciavano vuota tutta la larghezza della card.
+            La spiegazione del passo in corso sta sotto, così una colonna più alta non deforma
+            le altre. */}
+        <s-grid gridTemplateColumns={steps.map(() => "1fr").join(" ")} gap="base">
+          {steps.map((step, index) => (
+            <s-stack key={step.title} direction="inline" gap="small-100" alignItems="center">
+              {/* La spunta è un token semantico: dice fatto o da fare, non decora. */}
+              <s-icon type="check-circle" tone={step.done ? "success" : "auto"} />
+              <s-text
+                type={index === active ? "strong" : undefined}
+                color={step.done ? "subdued" : "base"}
+              >
+                {step.title}
+              </s-text>
+            </s-stack>
+          ))}
+        </s-grid>
+
+        {active >= 0 ? (
           <s-stack direction="block" gap="small-100">
-            <s-heading>{t.setup.heading}</s-heading>
-            <s-text color="subdued">{t.setup.progress(done, steps.length)}</s-text>
+            <s-paragraph>{steps[active].body}</s-paragraph>
+            {steps[active].action}
           </s-stack>
+        ) : null}
+
+        <s-stack direction="inline" gap="base">
           <s-button commandFor="onboarding-window" command="--show" variant="primary">
             {t.setup.guided}
           </s-button>
-        </s-grid>
-
-        <s-stack direction="block" gap="small-100">
-          {steps.map((step, index) => (
-            <s-grid
-              key={step.title}
-              gridTemplateColumns="auto 1fr"
-              gap="small-100"
-              alignItems="start"
-            >
-              {/* La spunta è un token semantico: dice fatto o da fare, non decora. */}
-              <s-icon type="check-circle" tone={step.done ? "success" : "auto"} />
-              {index === active ? (
-                <s-stack direction="block" gap="small-100">
-                  <s-text type="strong">{step.title}</s-text>
-                  <s-paragraph>{step.body}</s-paragraph>
-                  {step.action}
-                </s-stack>
-              ) : (
-                <s-text color={step.done ? "subdued" : "base"}>{step.title}</s-text>
-              )}
-            </s-grid>
-          ))}
         </s-stack>
       </s-stack>
     </s-section>
