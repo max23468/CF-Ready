@@ -5,6 +5,18 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.4 — 31 luglio 2026
+
+- le azioni della Home non venivano rese: dopo le regole attive restava uno
+  spazio vuoto al posto di `Modifica regole` e `Disattiva nel checkout`. Il
+  gruppo di bottoni è sostituito dallo stack in linea che nella stessa card
+  funziona;
+- `Prossimo passo` passa nella seconda colonna sotto il Piano: sono le due cose
+  che il merchant può fare adesso, e la colonna principale resta stato e
+  riferimento;
+- tolto il filetto fra le regole attive e le azioni, che non separava nulla di
+  utile.
+
 ## 0.4.3 — 31 luglio 2026
 
 Terzo giro di correzioni dai gate live, tutte sull'aspetto e sulla reattività.

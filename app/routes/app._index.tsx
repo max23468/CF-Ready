@@ -240,13 +240,11 @@ export default function Home() {
             cosa succede, su cosa, e cosa può farci, senza costringerlo a scorrere. */}
         <s-section>
           <s-stack direction="block" gap="base">
-            <s-stack direction="inline" gap="small-100" alignItems="center">
-              <s-badge
-                tone={status === "active" ? "success" : status === "lapsed" ? "warning" : "neutral"}
-              >
-                {data.validationEnabled ? t.home.badgeActive : t.home.badgeInactive}
-              </s-badge>
-            </s-stack>
+            <s-badge
+              tone={status === "active" ? "success" : status === "lapsed" ? "warning" : "neutral"}
+            >
+              {data.validationEnabled ? t.home.badgeActive : t.home.badgeInactive}
+            </s-badge>
             <s-heading>
               {status === "active"
                 ? t.home.titleActive
@@ -273,9 +271,7 @@ export default function Home() {
               </s-grid>
             </s-stack>
 
-            <s-divider />
-
-            <s-button-group>
+            <s-stack direction="inline" gap="base">
               <s-button href="/app/rules" variant="primary">
                 {t.home.editRules}
               </s-button>
@@ -288,7 +284,7 @@ export default function Home() {
                   {t.home.activate}
                 </s-button>
               )}
-            </s-button-group>
+            </s-stack>
           </s-stack>
         </s-section>
 
@@ -300,73 +296,79 @@ export default function Home() {
             ))}
           </s-unordered-list>
         </s-section>
-
-        {/* §15.3: un solo prossimo passo, più il promemoria FR-058 finché la dichiarazione resta. */}
-        <s-section heading={t.home.nextHeading}>
-          <s-paragraph>{nextStep}</s-paragraph>
-          {data.address2Declared ? <s-paragraph>{t.home.nextAddress2}</s-paragraph> : null}
-        </s-section>
       </s-stack>
 
       {/* Il piano resta qui finché la pagina “Piano e fatturazione” non lo accoglie: spostarlo
           adesso toglierebbe al merchant l'unico percorso di pagamento esistente. */}
       <s-box slot="aside">
-        <s-section heading={t.plan.heading}>
-          <s-paragraph>
-            {data.entitlement.kind === "trial"
-              ? t.plan.trial(formatDate(data.trialEndsAt, data.locale))
-              : data.entitlement.kind === "one_time"
-                ? t.plan.oneTime
-                : data.entitlement.kind === "subscription"
-                  ? t.plan.subscription(formatDate(data.entitlement.validThrough, data.locale))
-                  : data.trialStatus === "expired"
-                    ? t.plan.trialOver
-                    : t.plan.none}
-          </s-paragraph>
-          {data.plan ? (
+        <s-stack direction="block" gap="base">
+          <s-section heading={t.plan.heading}>
             <s-paragraph>
-              {(data.plan.generation === "launch" ? t.plan.pricesLaunch : t.plan.pricesStandard)(
-                formatMoney(data.plan.monthly, data.locale),
-                formatMoney(data.plan.annual, data.locale),
+              {data.entitlement.kind === "trial"
+                ? t.plan.trial(formatDate(data.trialEndsAt, data.locale))
+                : data.entitlement.kind === "one_time"
+                  ? t.plan.oneTime
+                  : data.entitlement.kind === "subscription"
+                    ? t.plan.subscription(formatDate(data.entitlement.validThrough, data.locale))
+                    : data.trialStatus === "expired"
+                      ? t.plan.trialOver
+                      : t.plan.none}
+            </s-paragraph>
+            {data.plan ? (
+              <s-paragraph>
+                {(data.plan.generation === "launch" ? t.plan.pricesLaunch : t.plan.pricesStandard)(
+                  formatMoney(data.plan.monthly, data.locale),
+                  formatMoney(data.plan.annual, data.locale),
+                )}
+              </s-paragraph>
+            ) : null}
+            <s-stack direction="inline" gap="base">
+              {data.entitlement.kind === "one_time" || data.planKind === "monthly" ? null : (
+                <s-button
+                  disabled={fetcher.state !== "idle"}
+                  onClick={() => submit("subscribe_monthly")}
+                >
+                  {data.planKind === "annual" ? t.plan.monthlySwitch : t.plan.monthlyStart}
+                </s-button>
               )}
-            </s-paragraph>
-          ) : null}
-          <s-button-group>
-            {data.entitlement.kind === "one_time" || data.planKind === "monthly" ? null : (
-              <s-button
-                disabled={fetcher.state !== "idle"}
-                onClick={() => submit("subscribe_monthly")}
-              >
-                {data.planKind === "annual" ? t.plan.monthlySwitch : t.plan.monthlyStart}
+              {data.entitlement.kind === "one_time" || data.planKind === "annual" ? null : (
+                <s-button
+                  disabled={fetcher.state !== "idle"}
+                  onClick={() => submit("subscribe_annual")}
+                >
+                  {data.planKind === "monthly" ? t.plan.annualSwitch : t.plan.annualStart}
+                </s-button>
+              )}
+              {data.entitlement.kind === "one_time" ? null : (
+                <s-button
+                  disabled={fetcher.state !== "idle"}
+                  onClick={() => submit("buy_one_time")}
+                >
+                  {data.plan
+                    ? t.plan.oneTimeBuy(formatMoney(data.plan.one_time, data.locale))
+                    : t.plan.oneTimeSwitch}
+                </s-button>
+              )}
+            </s-stack>
+            {data.entitlement.kind === "subscription" && data.creditEstimate ? (
+              <s-paragraph>
+                {t.plan.creditEstimate(formatMoney(data.creditEstimate, data.locale))}
+              </s-paragraph>
+            ) : null}
+            {data.entitlement.kind === "subscription" ? (
+              <s-button disabled={fetcher.state !== "idle"} onClick={() => submit("cancel")}>
+                {t.plan.cancelRenewal}
               </s-button>
-            )}
-            {data.entitlement.kind === "one_time" || data.planKind === "annual" ? null : (
-              <s-button
-                disabled={fetcher.state !== "idle"}
-                onClick={() => submit("subscribe_annual")}
-              >
-                {data.planKind === "monthly" ? t.plan.annualSwitch : t.plan.annualStart}
-              </s-button>
-            )}
-            {data.entitlement.kind === "one_time" ? null : (
-              <s-button disabled={fetcher.state !== "idle"} onClick={() => submit("buy_one_time")}>
-                {data.plan
-                  ? t.plan.oneTimeBuy(formatMoney(data.plan.one_time, data.locale))
-                  : t.plan.oneTimeSwitch}
-              </s-button>
-            )}
-          </s-button-group>
-          {data.entitlement.kind === "subscription" && data.creditEstimate ? (
-            <s-paragraph>
-              {t.plan.creditEstimate(formatMoney(data.creditEstimate, data.locale))}
-            </s-paragraph>
-          ) : null}
-          {data.entitlement.kind === "subscription" ? (
-            <s-button disabled={fetcher.state !== "idle"} onClick={() => submit("cancel")}>
-              {t.plan.cancelRenewal}
-            </s-button>
-          ) : null}
-        </s-section>
+            ) : null}
+          </s-section>
+
+          {/* §15.3: un solo prossimo passo, più il promemoria FR-058 finché la dichiarazione
+              resta. Sta accanto al piano perché è l'altra cosa che il merchant può fare ora. */}
+          <s-section heading={t.home.nextHeading}>
+            <s-paragraph>{nextStep}</s-paragraph>
+            {data.address2Declared ? <s-paragraph>{t.home.nextAddress2}</s-paragraph> : null}
+          </s-section>
+        </s-stack>
       </s-box>
 
       {/* §15.1: le azioni ad alto impatto dichiarano la conseguenza concreta, non “sei sicuro?”. */}
