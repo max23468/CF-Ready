@@ -1,6 +1,10 @@
 // Contratto di configurazione di §11.1: forma, valori ammessi e default. Vive fuori da un
 // modulo `.server` perché regole, limiti e testi predefiniti servono anche alla UI, che deve
 // mostrare le stesse opzioni che il server accetta.
+// La valuta dei piani è parte del contratto commerciale e serve anche alla UI, che deve
+// formattare gli importi senza importare un modulo server.
+export const CURRENCY = "EUR";
+
 // Idoneità geografica: è parte del contratto, non dell'I/O Shopify, e la UI deve poterla
 // dichiarare senza importare un modulo server.
 export const ELIGIBLE_COUNTRY = "IT";
