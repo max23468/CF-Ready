@@ -1899,10 +1899,15 @@ Claude Code definisce frontend e UX finale nel rispetto dei requisiti funzionali
 1. Home
 2. Regole checkout
 3. Messaggi al cliente
-4. Piano e fatturazione
-5. Guida e FAQ
+4. Guida e FAQ
 
-L’onboarding non è una sesta pagina permanente.
+L’onboarding non è una quinta pagina permanente.
+
+Piano e fatturazione non è più una pagina propria: stato commerciale e scelta
+della modalità vivono in Home, in due blocchi distinti — lo stato nella colonna
+laterale, la scelta in quella principale. La decisione nasce dal fatto che il
+merchant apre la Home e da lì deve poter vedere se la prova sta finendo senza
+cambiare pagina. Il contenuto di §15.6 resta invariato: cambia solo dove sta.
 
 Home resta una voce visibile del menu ed è anche dichiarata ad App Bridge come
 rotta di casa dell’app, così il titolo dell’app riporta lì. Senza quella
@@ -2009,6 +2014,8 @@ Comportamenti:
 - conferma prima del ripristino.
 
 ### 15.6 Piano e fatturazione
+
+I contenuti di questa sezione vivono in Home, non in una pagina propria (§15.2).
 
 Durante la prova:
 
@@ -3811,7 +3818,7 @@ Gate: verdi, salvo la cancellazione ordinaria spostata al canary M10.
 - nessun entitlement basato su redirect;
 - `test` charges verificati.
 
-### M6 — UI completa
+### M6 — UI completa ✅ completata
 
 Deliverable:
 
@@ -3832,6 +3839,12 @@ Gate:
 - Save Bar;
 - E2E critici;
 - nessun framework UI extra.
+
+Consegnata da `0.4.0` a `0.4.13`. Gli E2E di §23.10 sono stati eseguiti
+manualmente sul dev store, uno per snapshot: l'automazione richiede
+un'infrastruttura browser e una sessione staff autenticata, ed è una decisione
+di dipendenza rimasta aperta. Operazioni e residui in
+`docs/evidence/2026-07-31-m6-ui-completa.md`.
 
 ### M7 — Sito, legale e supporto
 
@@ -3860,6 +3873,12 @@ Consegnata in tre layer versionati, come da §19.5:
 - `0.6.0` durabilità e osservabilità: backup R2, restore test, log, sampling,
   query e runbook Workers Logs, procedura temporanea Traces, formato della
   ricevuta di deploy;
+- automazione degli E2E di §23.10: decisione rimandata qui da M6. Richiede
+  un'infrastruttura browser e una sessione staff autenticata, quindi è una
+  scelta di dipendenza e non un dettaglio di implementazione. Il perimetro
+  proposto è una manciata di percorsi critici con sessione catturata a mano,
+  eseguiti in locale prima di un rilascio, più i controlli che l'automazione fa
+  meglio di una persona: ordine di tabulazione, focus, viewport stretto e largo;
 - `0.7.0` sicurezza e dipendenze: security audit, dependency audit,
   manutenzione periodica GitHub e provider;
 - `0.8.0` capacità e prove operative: load/CPU check, soglie Free tier e

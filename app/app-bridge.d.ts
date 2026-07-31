@@ -20,6 +20,7 @@ declare module "react" {
 declare global {
   const shopify: {
     loading(isLoading: boolean): void;
+    reviews: { request(): Promise<{ success: boolean; code: string; message: string }> };
     saveBar: {
       show(id: string): Promise<void>;
       hide(id: string): Promise<void>;

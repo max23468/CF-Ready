@@ -5,6 +5,31 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.14 — 31 luglio 2026
+
+Chiusura di M6: onboarding, prompt recensioni e registro delle operazioni.
+
+- procedura guidata in quattro passi: perimetro e limiti, scelta delle regole,
+  cosa succede nel checkout con i messaggi in revisione, riepilogo con
+  l'avviso sul campo “Interno” e le due azioni finali. Si torna indietro, le
+  regole scelte si salvano subito e attivare resta separato dal salvare;
+- completare senza attivare conserva la configurazione, la checklist della Home
+  non ricompare più e la procedura resta riapribile dalla Guida senza azzerare
+  nulla;
+- la richiesta di recensione usa la modale nativa di Shopify e parte solo a
+  onboarding concluso, con la validazione attiva da almeno sette giorni e
+  nessun errore aperto — mai da un'azione del merchant;
+- `docs/evidence/2026-07-31-m6-ui-completa.md` registra i quattordici snapshot
+  della milestone, la migrazione, i gate live e i residui dichiarati;
+- la navigazione passa a quattro voci: `Piano e fatturazione` è assorbita dalla
+  Home, con lo stato commerciale nella colonna laterale e la scelta della
+  modalità in quella principale;
+- la Home porta dove si agisce: il prossimo passo ha il suo collegamento, le
+  regole e i messaggi si raggiungono dalle righe di configurazione, e una riga
+  nuova dice se i testi per il cliente sono ancora quelli predefiniti;
+- l'automazione degli E2E di §23.10 è rimandata a M8, dove è registrata come
+  decisione di dipendenza con il perimetro proposto.
+
 ## 0.4.13 — 31 luglio 2026
 
 - i titoli delle voci tornano in grassetto con `strong`, l'elemento nativo:

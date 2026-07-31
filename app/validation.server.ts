@@ -590,6 +590,72 @@ export async function saveAddress2Declaration(
     .run();
 }
 
+export type OnboardingStatus = "not_started" | "in_progress" | "completed";
+
+export async function readOnboarding(db: D1Database, shopDomain: string) {
+  const row = await db
+    .prepare(
+      `SELECT onboarding_status, onboarding_step, last_error_code, validation_enabled
+       FROM app_state WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    )
+    .bind(shopDomain)
+    .first<{
+      onboarding_status: OnboardingStatus;
+      onboarding_step: number;
+      last_error_code: string | null;
+      validation_enabled: number;
+    }>();
+
+  return {
+    status: row?.onboarding_status ?? "not_started",
+    step: row?.onboarding_step ?? 1,
+    errorCode: row?.last_error_code ?? null,
+    validationEnabled: Boolean(row?.validation_enabled),
+  };
+}
+
+export async function saveOnboarding(
+  db: D1Database,
+  shopDomain: string,
+  { status, step }: { status: OnboardingStatus; step: number },
+) {
+  const now = new Date().toISOString();
+  await db
+    .prepare(
+      // §15.9: riaprire la procedura non la riapre davvero. Una volta conclusa lo stato non
+      // torna indietro, altrimenti la checklist della Home ricomparirebbe (D-063).
+      `UPDATE app_state
+         SET onboarding_status = CASE
+               WHEN onboarding_status = 'completed' THEN 'completed'
+               ELSE ?
+             END,
+             onboarding_step = ?,
+             setup_checklist_dismissed_at = CASE
+               WHEN ? = 'completed' AND setup_checklist_dismissed_at IS NULL THEN ?
+               ELSE setup_checklist_dismissed_at
+             END,
+             updated_at = ?
+       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    )
+    .bind(status, step, status, now, now, shopDomain)
+    .run();
+}
+
+// §15.10: la richiesta di recensione parte solo con Validation attiva da almeno sette giorni.
+// Il momento dell'attivazione è già nel registro eventi, quindi non serve una colonna nuova.
+export async function validationEnabledSince(db: D1Database, shopDomain: string) {
+  const row = await db
+    .prepare(
+      `SELECT occurred_at FROM app_events
+       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
+         AND event_name = 'validation_enabled'
+       ORDER BY occurred_at DESC LIMIT 1`,
+    )
+    .bind(shopDomain)
+    .first<{ occurred_at: string }>();
+  return row?.occurred_at ?? null;
+}
+
 // Hash canonico: una riscrittura dei campi da parte di Shopify non deve sembrare un conflitto.
 export async function configHash(value: unknown) {
   const digest = await crypto.subtle.digest(
