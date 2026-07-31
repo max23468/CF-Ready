@@ -2772,7 +2772,10 @@ vitest
 @playwright/test
 ```
 
-`@types/node` resta solo se realmente richiesto dalla toolchain generata; rimuoverlo se l’adattamento Workers non lo usa.
+`@types/node` resta: serve al typecheck dei file di configurazione build-time
+(`vite.config.ts` usa `process.env`, `vitest.config.ts` importa `node:path` e
+`node:url`) ed è dichiarato in `tsconfig.json` sotto `compilerOptions.types`. Il
+codice runtime in `app/` e `workers/` non usa API Node.
 
 ### 20.4 Shopify Function
 
