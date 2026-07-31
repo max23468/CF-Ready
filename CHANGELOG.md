@@ -5,6 +5,18 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.16 — 31 luglio 2026
+
+- la Home apre con la guida di configurazione, la composizione `Setup guide`
+  che Polaris pubblica: passi con stato reale, spunta di completamento,
+  contatore di avanzamento e il proprio collegamento. Sparisce per sempre a
+  onboarding concluso (D-063), mentre `Prossimo passo` resta indipendente;
+- i passi hanno un completamento oggettivo. “Fai un ordine di prova” resta
+  fuori: CF Ready non legge gli ordini e non è nel suo perimetro;
+- la procedura guidata mostra i passi già fatti con la spunta, non solo il
+  contatore;
+- via i collegamenti dalle righe di configurazione in Home: restano dati.
+
 ## 0.4.15 — 31 luglio 2026
 
 Difetti trovati rileggendo M6 per intero.

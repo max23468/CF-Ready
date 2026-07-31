@@ -165,7 +165,20 @@ export default function Onboarding() {
 
       <s-section>
         <s-stack direction="block" gap="base">
-          <s-text color="subdued">{t.onboarding.stepOf(step, STEPS)}</s-text>
+          {/* Avanzamento con le spunte dei passi già fatti, come nella guida di configurazione. */}
+          <s-stack direction="block" gap="small-100">
+            <s-text color="subdued">{t.onboarding.stepOf(step, STEPS)}</s-text>
+            <s-stack direction="inline" gap="base">
+              {t.onboarding.stepNames.map((name, index) => (
+                <s-stack key={name} direction="inline" gap="small-100" alignItems="center">
+                  {index + 1 < step ? <s-icon type="check-circle" tone="success" /> : null}
+                  <s-text type={index + 1 === step ? "strong" : undefined} color="subdued">
+                    {name}
+                  </s-text>
+                </s-stack>
+              ))}
+            </s-stack>
+          </s-stack>
 
           {step === 1 ? (
             <>
