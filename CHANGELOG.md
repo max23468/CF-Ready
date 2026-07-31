@@ -5,6 +5,21 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.9 — 31 luglio 2026
+
+Correzioni dalla rilettura di `Piano e fatturazione`.
+
+- il passaggio a pagamento unico mostra anche il costo netto stimato, non solo
+  il credito: FR-081 chiede prezzo, periodo residuo, credito e costo netto
+  prima di creare l'acquisto;
+- un rinnovo già cancellato non propone più di cancellarlo una seconda volta:
+  dichiara che l'accesso resta fino a fine periodo pagato;
+- il banner di errore distingue una lettura commerciale fallita da una
+  divergenza di sincronizzazione: prima mostrava il testo commerciale per
+  qualunque codice;
+- rimosse quattro voci di dizionario rimaste senza lettore quando il Piano ha
+  lasciato la Home.
+
 ## 0.4.8 — 31 luglio 2026
 
 Pagina `Piano e fatturazione`, con i due residui che M5 aveva lasciato a M6.

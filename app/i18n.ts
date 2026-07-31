@@ -110,20 +110,14 @@ const it = {
     trialLastDay: (date: string) =>
       `Oggi è l’ultimo giorno di prova: finisce il ${date}. Da domani il checkout non blocca più nulla, e regole e messaggi restano salvati.`,
     none: "Nessun piano attivo.",
-    pricesLaunch: (monthly: string, annual: string) =>
-      `Prezzo di lancio: ${monthly} ogni 30 giorni oppure ${annual} all’anno.`,
-    pricesStandard: (monthly: string, annual: string) =>
-      `Prezzo: ${monthly} ogni 30 giorni oppure ${annual} all’anno.`,
     monthlyStart: "Attiva il mensile",
     monthlySwitch: "Passa al mensile",
     annualStart: "Attiva l’annuale",
     annualSwitch: "Passa all’annuale",
-    oneTimeBuy: (price: string) => `Un solo pagamento: ${price}`,
     oneTimeSwitch: "Passa a un solo pagamento",
     cancelRenewal: "Cancella il rinnovo",
     cancelBody:
       "L’accesso resta fino alla fine del periodo già pagato, senza rimborsi parziali. Regole e messaggi restano salvati.",
-    endsOn: (date: string) => `La prova finisce il ${date}.`,
     firstCharge: (date: string) =>
       `Se attivi oggi, il primo addebito è il ${date}: i giorni di prova che restano non li perdi.`,
     firstChargeNow: "L’addebito parte alla tua approvazione su Shopify.",
@@ -136,6 +130,9 @@ const it = {
     periodEnds: (date: string) => `Il periodo pagato finisce il ${date}.`,
     lastAttempt:
       "L’ultima lettura dello stato commerciale non è riuscita. Il checkout non viene bloccato: riapri la pagina fra qualche minuto.",
+    netCost: (amount: string) => `Costo netto stimato oggi: ${amount}.`,
+    endingAlready:
+      "Il rinnovo è già stato cancellato: l’accesso resta fino alla fine del periodo pagato.",
     monthlyName: "Mensile",
     annualName: "Annuale",
     oneTimeName: "Un solo pagamento",
@@ -298,20 +295,14 @@ const en: typeof it = {
     trialLastDay: (date: string) =>
       `Today is the last day of your trial: it ends on ${date}. From tomorrow checkout blocks nothing, and your rules and messages stay saved.`,
     none: "No active plan.",
-    pricesLaunch: (monthly: string, annual: string) =>
-      `Launch price: ${monthly} every 30 days, or ${annual} a year.`,
-    pricesStandard: (monthly: string, annual: string) =>
-      `Price: ${monthly} every 30 days, or ${annual} a year.`,
     monthlyStart: "Start monthly",
     monthlySwitch: "Switch to monthly",
     annualStart: "Start annual",
     annualSwitch: "Switch to annual",
-    oneTimeBuy: (price: string) => `One payment: ${price}`,
     oneTimeSwitch: "Switch to one payment",
     cancelRenewal: "Cancel renewal",
     cancelBody:
       "Access stays until the end of the period you already paid for, with no partial refund. Your rules and messages stay saved.",
-    endsOn: (date: string) => `Your trial ends on ${date}.`,
     firstCharge: (date: string) =>
       `If you start today, the first charge is on ${date}: you keep the trial days you have left.`,
     firstChargeNow: "The charge starts as soon as you approve it on Shopify.",
@@ -324,6 +315,9 @@ const en: typeof it = {
     periodEnds: (date: string) => `The paid period ends on ${date}.`,
     lastAttempt:
       "The last read of your billing status failed. Checkout isn’t blocked: reload the page in a few minutes.",
+    netCost: (amount: string) => `Estimated net cost today: ${amount}.`,
+    endingAlready:
+      "The renewal is already cancelled: access stays until the end of the period you paid for.",
     monthlyName: "Monthly",
     annualName: "Annual",
     oneTimeName: "One payment",
