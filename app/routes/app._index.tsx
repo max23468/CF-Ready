@@ -220,7 +220,6 @@ export default function Home() {
 
   const entitled = data.entitlement.kind !== "none";
   const notice = trialNotice({ remaining: data.remaining, endsAt: data.trialEndsAt }, data.locale);
-  const onOneTime = data.entitlement.kind === "one_time";
   const busy = fetcher.state !== "idle";
   // §14.6: la data del primo addebito accanto alla scelta, non in un riepilogo.
   const firstCharge = data.firstChargeAt
@@ -357,6 +356,8 @@ export default function Home() {
           <s-link href="/app/guide">{t.nav.guide}</s-link>
         </s-stack>
       </s-section>
+
+      <s-app-window id="onboarding-window" src="/app/onboarding" />
 
       {/* §15.1: le azioni ad alto impatto dichiarano la conseguenza concreta, non “sei sicuro?”. */}
       <s-modal id="deactivate" heading={t.home.deactivate}>
@@ -604,7 +605,10 @@ function SetupGuide({
           ))}
 
           <s-stack direction="inline" gap="base">
-            <s-button href="/app/onboarding" variant="primary">
+            {/* La procedura si apre come finestra a schermo intero sopra la Home invece di
+                cambiare pagina: è il caso d'uso che `s-app-window` copre, e il codice della
+                procedura resta uno solo. */}
+            <s-button commandFor="onboarding-window" command="--show" variant="primary">
               {t.setup.guided}
             </s-button>
           </s-stack>
