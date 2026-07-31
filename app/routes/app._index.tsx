@@ -241,7 +241,9 @@ export default function Home() {
     <s-page heading={t.home.heading}>
       {/* §8.6: un solo banner in cima, e vince quello che blocca l'operatività. */}
       {data.errorCode ? (
-        <s-banner tone="warning">{t.home.syncNeeded}</s-banner>
+        <s-banner tone="warning">
+          {data.errorCode === "billing_read_failed" ? t.plan.lastAttempt : t.home.syncNeeded}
+        </s-banner>
       ) : !entitled ? (
         <s-banner tone="warning">{t.home.noEntitlement}</s-banner>
       ) : notice ? (
@@ -292,15 +294,22 @@ export default function Home() {
 
           <s-divider />
 
-          {/* Due dati, non prosa: etichetta a sinistra, modalità a destra. */}
+          {/* Dati, non prosa: etichetta a sinistra, stato a destra. Le etichette portano alla
+              pagina che li governa, così la Home non è solo da leggere. */}
           <s-stack direction="block" gap="small-100">
             <s-stack direction="inline" gap="small-100" alignItems="center">
-              <s-text>{t.rules.taxCodeLabel}</s-text>
+              <s-link href="/app/rules">{t.rules.taxCodeLabel}</s-link>
               <s-badge>{t.rules.taxCode[data.rules.taxCode]}</s-badge>
             </s-stack>
             <s-stack direction="inline" gap="small-100" alignItems="center">
-              <s-text>{t.rules.pecLabel}</s-text>
+              <s-link href="/app/rules">{t.rules.pecLabel}</s-link>
               <s-badge>{t.rules.pec[data.rules.pec]}</s-badge>
+            </s-stack>
+            <s-stack direction="inline" gap="small-100" alignItems="center">
+              <s-link href="/app/messages">{t.home.messagesLabel}</s-link>
+              <s-badge>
+                {data.messagesDefault ? t.home.messagesDefault : t.home.messagesCustom}
+              </s-badge>
             </s-stack>
           </s-stack>
 

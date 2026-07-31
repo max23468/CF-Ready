@@ -28,9 +28,10 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 
   return {
     locale: resolveLocale(request),
-    // Riaprire la procedura non azzera nulla (§15.9): si riparte dal primo passo con la
-    // configurazione già salvata sotto gli occhi.
-    step: onboarding.status === "completed" ? 1 : onboarding.step,
+    // Il passo arriva da D1 così la procedura si riprende dove era rimasta. Chiuderla riporta
+    // il contatore a uno: riaprirla dalla Guida riparte dall'inizio, senza azzerare nulla
+    // (§15.9), e senza restare incastrata sul riepilogo.
+    step: onboarding.step,
     completed: onboarding.status === "completed",
     rules: config.rules,
     errorDisplay: config.errorDisplay,
@@ -111,7 +112,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   }
 
   // FR-052 resta separato: completare senza attivare conserva la configurazione.
-  await saveOnboarding(db, session.shop, { status: "completed", step: STEPS });
+  await saveOnboarding(db, session.shop, { status: "completed", step: 1 });
   await recordEvent(db, {
     shopDomain: session.shop,
     name: "onboarding_completed",
