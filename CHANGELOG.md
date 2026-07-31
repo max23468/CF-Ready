@@ -5,6 +5,26 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.3 — 31 luglio 2026
+
+Terzo giro di correzioni dai gate live, tutte sull'aspetto e sulla reattività.
+
+- via gli sfondi grigi: il fondo pagina dell'Admin è già grigio, quindi un
+  riquadro `subdued` era grigio su grigio e per di più in Polaris legge come
+  “disattivato”. Tutti i blocchi sono ora card bianche uniformi, e la gerarchia
+  la fanno struttura e tipografia;
+- la distanza fra i blocchi della Home è dichiarata invece di essere lasciata
+  alle regole implicite della pagina: `Prossimo passo` restava attaccato al
+  blocco sopra;
+- ogni navigazione accende l'indicatore di caricamento nativo dell'Admin: App
+  Bridge cambia l'URL al clic mentre React Router aspetta il loader, e senza
+  segnale il clic sembrava ignorato;
+- il primo blocco della Home non è più una riga sola. Ha un titolo che
+  dichiara lo stato — compreso il caso “attiva ma piano non attivo”, che prima
+  non aveva un nome — la conseguenza per il cliente, le due regole attive e le
+  azioni. `Configurazione corrente` era un blocco a sé magro quanto quello:
+  ora è dentro, e la Home ha un riquadro in meno.
+
 ## 0.4.2 — 31 luglio 2026
 
 Secondo giro di correzioni dai gate live, con la revisione visiva delle due

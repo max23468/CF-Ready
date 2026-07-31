@@ -208,13 +208,12 @@ export default function CheckoutRules() {
           </s-section>
         )}
 
-        {/* Riferimento accanto alla decisione, non in fondo alla pagina: si guarda l'anteprima
-            mentre si sceglie, invece di cercarla dopo. */}
+        {/* L'anteprima è ciò che si guarda mentre si decide, quindi sta accanto alle scelte e
+            apre la colonna; le eccezioni la seguono come blocco a sé. */}
         <s-box slot="aside">
           <s-stack direction="block" gap="base">
-            <s-box padding="base" background="subdued" borderRadius="base">
-              <s-stack direction="block" gap="small-100">
-                <s-heading>{t.rules.previewHeading}</s-heading>
+            <s-section heading={t.rules.previewHeading}>
+              <s-stack direction="block" gap="base">
                 <s-checkbox
                   label={t.rules.preventiveLabel}
                   details={t.rules.preventiveHelp}
@@ -223,30 +222,29 @@ export default function CheckoutRules() {
                   defaultChecked={saved.errorDisplay === "preventive"}
                 />
                 {/* D-068: anteprima testuale, nessuna simulazione grafica del checkout. */}
-                {describeCheckout(
-                  {
-                    rules: draft.rules,
-                    errorDisplay: draft.errorDisplay,
-                    status: saved.enabled ? "active" : "disabled",
-                  },
-                  saved.locale,
-                ).map((line) => (
-                  <s-paragraph key={line}>{line}</s-paragraph>
-                ))}
+                <s-stack direction="block" gap="small-100">
+                  {describeCheckout(
+                    {
+                      rules: draft.rules,
+                      errorDisplay: draft.errorDisplay,
+                      status: saved.enabled ? "active" : "disabled",
+                    },
+                    saved.locale,
+                  ).map((line) => (
+                    <s-paragraph key={line}>{line}</s-paragraph>
+                  ))}
+                </s-stack>
               </s-stack>
-            </s-box>
+            </s-section>
 
             {/* D-067: le eccezioni sono sempre visibili e non modificabili. */}
-            <s-box padding="base" background="subdued" borderRadius="base">
-              <s-stack direction="block" gap="small-100">
-                <s-heading>{t.rules.exceptionsHeading}</s-heading>
-                <s-unordered-list>
-                  {t.rules.exceptions.map((line) => (
-                    <s-list-item key={line}>{line}</s-list-item>
-                  ))}
-                </s-unordered-list>
-              </s-stack>
-            </s-box>
+            <s-section heading={t.rules.exceptionsHeading}>
+              <s-unordered-list>
+                {t.rules.exceptions.map((line) => (
+                  <s-list-item key={line}>{line}</s-list-item>
+                ))}
+              </s-unordered-list>
+            </s-section>
           </s-stack>
         </s-box>
       </s-page>
