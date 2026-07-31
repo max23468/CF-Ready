@@ -2232,6 +2232,12 @@ Il brand si esprime soprattutto in:
 - eventuali illustrazioni;
 - accenti compatibili con Polaris.
 
+Dentro l’Admin il colore di brand non compare su controlli e stati. La sola
+deroga è la decisione A-16 della Brand Foundation, che lo ammette dentro
+un’illustrazione sulle superfici prive di azioni operative: primo passo e
+riepilogo dell’onboarding, testata di Guida e FAQ, schermata Store non
+supportato.
+
 ### 17.4 Responsabilità
 
 - Claude Code: Brand Foundation, frontend, UI/UX, sito, screenshot e materiali pubblici;

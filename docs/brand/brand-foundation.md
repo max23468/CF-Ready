@@ -169,10 +169,12 @@ Regola strutturale: **il brand è riconoscibile ai bordi del prodotto, neutro al
 | Icona app (nav Admin, App Store) | Massima |
 | Sito pubblico | Massima |
 | Listing e screenshot | Alta — cornici, fondi, didascalie |
-| Onboarding e Guida in-app | Bassa — solo l'icona già presente in navigazione |
+| Onboarding, Guida e Store non supportato | Bassa — l'icona in navigazione e l'illustrazione ammessa da A-16 |
 | Home, Regole, Messaggi, Piano | **Nulla** — solo token Polaris |
 
-Dentro l'app embedded il colore di brand non viene usato: nessun bottone verde CF Ready accanto a un bottone Polaris, nessun banner colorato custom, nessuna intestazione brandizzata. La coerenza si ottiene dal tono dei testi e dalla struttura delle pagine, non dal colore. Questo soddisfa §17.3, NFR-040 e NFR-044.
+Dentro l'app embedded il colore di brand non viene usato sui controlli e sugli stati: nessun bottone verde CF Ready accanto a un bottone Polaris, nessun banner colorato custom, nessuna intestazione brandizzata. La coerenza si ottiene dal tono dei testi e dalla struttura delle pagine, non dal colore. Questo soddisfa §17.3, NFR-040 e NFR-044.
+
+L'unica eccezione approvata è A-16: il colore di brand può comparire **dentro un'illustrazione**, e solo sulle superfici prive di azioni operative elencate sopra. Il confine è il tipo di elemento, non la quantità di colore: ciò che il reviewer App Store confronta con l'Admin nativo sono i controlli, non le figure.
 
 ---
 
@@ -628,10 +630,10 @@ Valgono le regole di §10: gerarchia heading corretta, focus sempre visibile e m
 
 ### 8.13 Uso limitato degli accenti di brand
 
-- **Zero colore di brand dentro l'app.** L'unico elemento di brand presente è l'icona nella navigazione, fornita da Shopify.
-- Nessuna intestazione brandizzata, nessun badge colorato custom, nessuna illustrazione decorativa, nessun grigio proprietario.
+- **Zero colore di brand su controlli e stati.** Bottoni, banner, badge, campi e severità restano token Polaris, sempre e ovunque.
+- Nessuna intestazione brandizzata, nessun badge colorato custom, nessun grigio proprietario.
 - L'identità dentro l'Admin passa da coerenza dei testi, ordine delle informazioni, prevedibilità delle azioni.
-- Un'eventuale eccezione futura va approvata a parte e resta singola.
+- **A-16, eccezione unica e approvata:** il colore di brand è ammesso dentro un'illustrazione, sulle sole superfici senza azioni operative — primo passo dell'onboarding, riepilogo finale dell'onboarding, testata di Guida e FAQ, schermata Store non supportato. Nessuna altra eccezione è aperta: una nuova va approvata a parte.
 
 ---
 
@@ -795,7 +797,7 @@ Parte della direzione, non un controllo finale. Vale per app embedded, sito, lis
 |---|---|---|---|
 | **A-01** | Direzione visiva | «L'oggetto e lo strumento»: riferimento concreto alla tessera, linguaggio geometrico modernista, neutri caldi. Brand ai bordi, neutro al centro (§2) | 28/07/2026 |
 | **A-02** | Palette | Verde bottiglia `#20492F`, Arancio cotto `#C97B2E`, Panna `#F7F5EE`, Inchiostro `#1A211C`, Grigio caldo `#6B6A5C` (§3) | 28/07/2026 |
-| **A-03** | Zero colore di brand nell'app embedded | Solo token Polaris; brand presente unicamente tramite l'icona in navigazione (§2.6, §8.13) | 27/07/2026 |
+| **A-03** | Zero colore di brand nell'app embedded | Solo token Polaris su controlli e stati; brand presente tramite l'icona in navigazione. Derogata per le sole illustrazioni da A-16 (§2.6, §8.13) | 27/07/2026 |
 | **A-04** | Tipografia | Grottesco geometrico di sistema, nessun webfont, nessun font dichiarato dentro l'Admin, wordmark in tracciati (§4) | 28/07/2026 |
 | **A-05** | Marchio | «Tessera con fascia»: proporzione ISO ID-1, raggio 12,5% del lato corto, fascia in alto a spessore pieno, sigla `CF` centrata (§6.1–6.5) | 28/07/2026 |
 | **A-06** | Wordmark e lockup | Due parole, peso uniforme, monocromo, tre configurazioni (§6.6–6.7) | 28/07/2026 |
@@ -809,6 +811,7 @@ Parte della direzione, non un controllo finale. Vale per app embedded, sito, lis
 | **A-13** | Crenatura | Correzioni manuali su coppia `C`/`F` e spazio-parola, valori in §4.4 | 28/07/2026 |
 | **A-14** | Formati App Store | Icona 1200 × 1200 PNG, angoli quadrati, padding. Requisiti verificati sulle fonti ufficiali (§12.1) | 28/07/2026 |
 | **A-15** | Sigla dentro l'icona della listing | Si presenta l'icona **con** la sigla, accettando la raccomandazione Shopify di evitarne il testo. Rimedio pronto se la review contesta (§11.3) | 28/07/2026 |
+| **A-16** | Colore di brand dentro l'app, per illustrazione | Deroga unica ad A-03: verde bottiglia e arancio cotto sono ammessi **dentro un'illustrazione**, mai su un controllo o su uno stato, e solo su onboarding (primo passo e riepilogo), testata di Guida e FAQ e schermata Store non supportato (§2.6, §8.13) | 31/07/2026 |
 
 ### 11.2 Nota sulla dark mode
 

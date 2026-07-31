@@ -1,4 +1,5 @@
 import { APP_URL } from "./env.server";
+import type { Entitlement } from "./config";
 import { recordEvent } from "./events.server";
 import { sha256Hex } from "./hash.server";
 
@@ -9,10 +10,7 @@ export const TRIAL_DAYS = 14;
 
 export type PricingGeneration = "launch" | "balanced" | "value";
 export type TrialStatus = "not_started" | "active" | "expired" | "converted";
-export type Entitlement = {
-  kind: "trial" | "subscription" | "one_time" | "none";
-  validThrough: string | null;
-};
+export type { Entitlement } from "./config";
 
 export type Trial = {
   status: TrialStatus;
