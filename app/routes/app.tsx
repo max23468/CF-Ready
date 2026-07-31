@@ -1,5 +1,6 @@
+import { useEffect } from "react";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Outlet, useLoaderData, useRouteError } from "react-router";
+import { Outlet, useLoaderData, useNavigation, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { env } from "cloudflare:workers";
@@ -26,6 +27,15 @@ export const shouldRevalidate = skipRevalidationWhenLeaving;
 export default function App() {
   const { apiKey, locale } = useLoaderData<typeof loader>();
   const t = texts(locale).nav;
+  const navigation = useNavigation();
+
+  // App Bridge cambia l'URL appena si clicca, mentre React Router aspetta il loader della
+  // pagina nuova: senza un segnale il clic sembra ignorato e il merchant preme di nuovo.
+  // L'indicatore è quello nativo dell'header dell'Admin.
+  useEffect(() => {
+    if (typeof shopify === "undefined") return;
+    shopify.loading(navigation.state !== "idle");
+  }, [navigation.state]);
 
   return (
     <AppProvider embedded apiKey={apiKey}>
