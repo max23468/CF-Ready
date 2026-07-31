@@ -132,6 +132,7 @@ export default function Onboarding() {
   const t = texts(saved.locale);
   const [step, setStepState] = useState(saved.step);
   const [declared, setDeclared] = useState(saved.address2Declared);
+  const [finished, setFinished] = useState(false);
   const form = useRef<HTMLFormElement>(null);
   // Un secondo canale per la sola memoria del passo: la scrittura non tocca lo stato del
   // pulsante principale e non viene mai riletta, quindi non può far rimbalzare la pagina.
@@ -153,14 +154,24 @@ export default function Onboarding() {
   // server lo riceve quando la procedura si chiude, che è l'unico momento in cui serve
   // ricordarlo. Il secondo passo resta l'eccezione perché scrive le regole su Shopify.
   const savingRules = useRef(false);
+  const closing = useRef(false);
 
   useEffect(() => {
-    if (fetcher.state !== "idle" || !savingRules.current) return;
-    savingRules.current = false;
-    if (esito?.ok) setStepState(3);
+    if (fetcher.state !== "idle") return;
+    if (savingRules.current) {
+      savingRules.current = false;
+      if (esito?.ok) setStepState(3);
+    }
+    // La chiusura va riconosciuta esplicitamente: prima la schermata finale dipendeva dal
+    // passo locale, che dopo l'attivazione resta il quarto, quindi non compariva mai e
+    // premere `Attiva nel checkout` sembrava non fare nulla.
+    if (closing.current) {
+      closing.current = false;
+      if (esito?.ok) setFinished(true);
+    }
   }, [fetcher.state, esito]);
 
-  if (saved.completed && step === 1 && !busy && esito?.ok) {
+  if (finished) {
     return (
       <s-page heading={t.onboarding.heading}>
         <s-section heading={t.onboarding.doneHeading}>
@@ -176,6 +187,7 @@ export default function Onboarding() {
   // FR-058: la dichiarazione si legge dal modulo, dove i componenti Polaris partecipano
   // davvero, e non dalla proprietà dell'elemento, che nello shadow DOM può non esserci.
   const close = (intent: "activate" | "finish") => {
+    closing.current = true;
     const data = form.current ? new FormData(form.current) : null;
     const shown = data?.has("address2Shown") ?? false;
     go(intent, {
