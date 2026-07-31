@@ -29,7 +29,7 @@ export default function Guide() {
 
   return (
     <s-page heading={t.guide.heading}>
-      <s-box paddingBlockEnd="base">
+      <s-box paddingBlockEnd="base" maxInlineSize="640px">
         <s-paragraph>{t.guide.intro}</s-paragraph>
       </s-box>
 
@@ -38,15 +38,16 @@ export default function Guide() {
           accessibile e utilizzabile da tastiera senza reimplementare nulla (§8.1). */}
       <s-section id="faq">
         <s-stack direction="block" gap="small-100">
-          <s-stack direction="inline" gap="base">
+          <s-grid gridTemplateColumns="1fr auto" alignItems="center" gap="base">
+            <s-heading>{t.guide.faqHeading}</s-heading>
             <s-button onClick={toggleAll}>
               {expanded ? t.guide.collapseAll : t.guide.expandAll}
             </s-button>
-          </s-stack>
+          </s-grid>
           {t.guide.entries.map((entry) => (
             <details key={entry.q}>
               <summary>
-                <s-text type="strong">{entry.q}</s-text>
+                <strong>{entry.q}</strong>
               </summary>
               <s-box paddingBlockStart="small-100">
                 <s-paragraph>{entry.a}</s-paragraph>
@@ -69,6 +70,12 @@ export default function Guide() {
             />
           </s-box>
           <s-paragraph>{t.guide.asideBody}</s-paragraph>
+          <s-stack direction="block" gap="small-100">
+            <s-heading>{t.guide.asideLinks}</s-heading>
+            <s-link href="/app/rules">{t.nav.rules}</s-link>
+            <s-link href="/app/messages">{t.nav.messages}</s-link>
+            <s-link href="/app/plan">{t.nav.plan}</s-link>
+          </s-stack>
         </s-stack>
       </s-section>
     </s-page>

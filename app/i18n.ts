@@ -107,9 +107,11 @@ const it = {
     heading: "Guida e FAQ",
     intro:
       "Come si comporta CF Ready nel checkout, cosa controlla e cosa no. Se non trovi la risposta, scrivici.",
+    faqHeading: "Domande frequenti",
     expandAll: "Espandi tutte",
     collapseAll: "Comprimi tutte",
     asideHeading: "Cosa fa e cosa non fa CF Ready",
+    asideLinks: "Dove si configura",
     asideBody:
       "CF Ready serve a non ricevere ordini italiani da fatturare senza Codice Fiscale: lo rende obbligatorio nel campo nativo del checkout e ne controlla la forma. Non verifica che il codice appartenga a chi lo inserisce, non emette fatture e non gestisce Partita IVA e Codice SDI.",
     entries: [
@@ -368,9 +370,11 @@ const en: typeof it = {
     heading: "Help and FAQ",
     intro:
       "How CF Ready behaves at checkout, what it checks and what it doesn’t. If you can’t find your answer, contact us.",
+    faqHeading: "Frequently asked",
     expandAll: "Expand all",
     collapseAll: "Collapse all",
     asideHeading: "What CF Ready does and doesn’t do",
+    asideLinks: "Where to set it up",
     asideBody:
       "CF Ready exists so you stop receiving Italian orders to invoice without a tax code: it makes the field required in the native checkout field and checks its shape. It doesn’t verify that the code belongs to whoever entered it, doesn’t issue invoices and doesn’t handle VAT numbers or SDI codes.",
     entries: [

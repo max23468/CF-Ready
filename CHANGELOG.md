@@ -5,6 +5,17 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.13 — 31 luglio 2026
+
+- i titoli delle voci tornano in grassetto con `strong`, l'elemento nativo:
+  è inline, quindi il segnalino di apertura resta sulla riga del titolo;
+- l'aside della Guida porta ai tre punti in cui si configura ciò di cui le
+  voci parlano;
+- l'introduzione ha una misura di lettura contenuta invece di attraversare
+  tutto lo schermo;
+- la sezione delle voci ha un titolo e il comando di apertura sta alla sua
+  destra, dove l'Admin colloca le azioni di sezione.
+
 ## 0.4.12 — 31 luglio 2026
 
 - il marchio non è più circondato da spazio vuoto: senza un rapporto
