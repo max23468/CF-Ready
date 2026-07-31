@@ -5,6 +5,30 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.2 — 31 luglio 2026
+
+Secondo giro di correzioni dai gate live, con la revisione visiva delle due
+pagine.
+
+- i bottoni non sono più fratelli nudi: stanno in `s-button-group`, e le azioni
+  non passano più da un `<form>` per bottone, che li isolava dalla spaziatura e
+  mandava a capo quello di attivazione;
+- il Save Bar è pilotato dalla pagina invece che dal confronto automatico, che
+  non si spegneva quando il merchant tornava sui suoi passi: lo stato “da
+  salvare” ora si calcola sui valori salvati e correnti;
+- Stato e anteprima rientrano nel limite di tre frasi per blocco di §7.7, con
+  un test che percorre le combinazioni più affollate. La Home riassume in una
+  riga, Regole spiega;
+- le due pagine non sono più pile di contenitori uguali: la frase di esito è il
+  titolo della schermata, i blocchi di riferimento diventano riquadri leggeri e
+  Regole mette l'anteprima nell'aside, accanto alle decisioni invece che sotto;
+- il titolo dell'app nella barra laterale riporta alla Home invece che al form
+  di accesso: la rotta di casa non era dichiarata ad App Bridge. La voce `Home`
+  resta comunque visibile nel menu;
+- il blocco Piano era rimasto in italiano: ora è nel dizionario come il resto,
+  e importi e date seguono la lingua di chi guarda invece di essere sempre
+  all'italiana. La valuta dei piani ha una sola definizione.
+
 ## 0.4.1 — 31 luglio 2026
 
 Correzioni dai gate live sul dev store.

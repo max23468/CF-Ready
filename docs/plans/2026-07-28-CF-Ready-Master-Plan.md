@@ -1893,6 +1893,11 @@ Claude Code definisce frontend e UX finale nel rispetto dei requisiti funzionali
 
 L’onboarding non è una sesta pagina permanente.
 
+Home resta una voce visibile del menu ed è anche dichiarata ad App Bridge come
+rotta di casa dell’app, così il titolo dell’app riporta lì. Senza quella
+dichiarazione il titolo porta alla radice dell’URL, che senza `shop` finisce sul
+form di accesso.
+
 ### 15.3 Home
 
 Ordine dei contenuti:

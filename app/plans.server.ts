@@ -1,8 +1,9 @@
 import type { PricingGeneration } from "./billing.server";
+import { CURRENCY } from "./config";
 
 export type PlanKind = "monthly" | "annual" | "one_time";
 
-export const CURRENCY = "EUR";
+export { CURRENCY } from "./config";
 
 // Prezzi del Master Plan §14.2. La generazione `value` è un'ipotesi interna: non ha prezzi
 // finché non esiste una decisione commerciale, quindi non è acquistabile per errore.
