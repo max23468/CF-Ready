@@ -231,74 +231,82 @@ export default function Home() {
         </s-banner>
       ) : null}
 
-      {/* §8.2: una sola idea dominante, dichiarata dal titolo. La frase di esito è il titolo
-          della schermata, non un paragrafo in mezzo ad altri quattro uguali. */}
-      <s-section>
-        <s-stack direction="block" gap="base">
-          <s-badge
-            tone={status === "active" ? "success" : status === "lapsed" ? "warning" : "neutral"}
-          >
-            {data.validationEnabled ? t.home.active : t.home.inactive}
-          </s-badge>
-          {summariseCheckout({ rules: data.rules, status }, data.locale).map((line, index) =>
-            index === 0 ? (
-              <s-heading key={line}>{line}</s-heading>
-            ) : (
-              <s-paragraph key={line}>{line}</s-paragraph>
-            ),
-          )}
-          {/* I bottoni stanno in un gruppo, non uno accanto all'altro come fratelli nudi: un
-              `<form>` per bottone li isolava anche dalla spaziatura. */}
-          <s-button-group>
-            <s-button href="/app/rules" variant="primary">
-              {t.home.editRules}
-            </s-button>
-            {data.validationEnabled ? (
-              <s-button commandFor="deactivate" command="--show">
-                {t.home.deactivate}
-              </s-button>
-            ) : (
-              <s-button disabled={fetcher.state !== "idle"} onClick={() => submit("enable")}>
-                {t.home.activate}
-              </s-button>
-            )}
-          </s-button-group>
-        </s-stack>
-      </s-section>
+      {/* La distanza fra i blocchi è dichiarata qui invece di essere lasciata alle regole
+          implicite della pagina: così è identica fra tutte le sezioni, comprese quelle che
+          compaiono e spariscono. */}
+      <s-stack direction="block" gap="base">
+        {/* §15.3: stato e configurazione corrente sono i primi due contenuti e stanno nello
+            stesso riquadro. È il primo blocco che il merchant vede a ogni apertura: deve dire
+            cosa succede, su cosa, e cosa può farci, senza costringerlo a scorrere. */}
+        <s-section>
+          <s-stack direction="block" gap="base">
+            <s-stack direction="inline" gap="small-100" alignItems="center">
+              <s-badge
+                tone={status === "active" ? "success" : status === "lapsed" ? "warning" : "neutral"}
+              >
+                {data.validationEnabled ? t.home.badgeActive : t.home.badgeInactive}
+              </s-badge>
+            </s-stack>
+            <s-heading>
+              {status === "active"
+                ? t.home.titleActive
+                : status === "lapsed"
+                  ? t.home.titleLapsed
+                  : t.home.titleDisabled}
+            </s-heading>
+            {/* Il titolo dichiara lo stato, la riga sotto dice cosa vive un cliente. */}
+            <s-paragraph>
+              {summariseCheckout({ rules: data.rules, status: "active" }, data.locale)[0]}
+            </s-paragraph>
 
-      {/* Riferimento, non impostazioni: contenitore più leggero delle card operative, così le
-          sezioni smettono di pesare tutte uguali. */}
-      <s-box padding="base" background="subdued" borderRadius="base">
-        <s-stack direction="block" gap="small-100">
-          <s-heading>{t.home.configHeading}</s-heading>
-          <s-stack direction="inline" gap="small-100" alignItems="center">
-            <s-text>{t.rules.taxCodeLabel}</s-text>
-            <s-badge>{t.rules.taxCode[data.rules.taxCode]}</s-badge>
-          </s-stack>
-          <s-stack direction="inline" gap="small-100" alignItems="center">
-            <s-text>{t.rules.pecLabel}</s-text>
-            <s-badge>{t.rules.pec[data.rules.pec]}</s-badge>
-          </s-stack>
-        </s-stack>
-      </s-box>
+            <s-divider />
 
-      {/* D-067: le eccezioni automatiche restano visibili anche in Home. */}
-      <s-box padding="base" background="subdued" borderRadius="base">
-        <s-stack direction="block" gap="small-100">
-          <s-heading>{t.home.howHeading}</s-heading>
+            {/* Due dati, non prosa: etichetta a sinistra, modalità a destra. */}
+            <s-stack direction="block" gap="small-100">
+              <s-grid gridTemplateColumns="1fr auto" alignItems="center" gap="base">
+                <s-text>{t.rules.taxCodeLabel}</s-text>
+                <s-badge>{t.rules.taxCode[data.rules.taxCode]}</s-badge>
+              </s-grid>
+              <s-grid gridTemplateColumns="1fr auto" alignItems="center" gap="base">
+                <s-text>{t.rules.pecLabel}</s-text>
+                <s-badge>{t.rules.pec[data.rules.pec]}</s-badge>
+              </s-grid>
+            </s-stack>
+
+            <s-divider />
+
+            <s-button-group>
+              <s-button href="/app/rules" variant="primary">
+                {t.home.editRules}
+              </s-button>
+              {data.validationEnabled ? (
+                <s-button commandFor="deactivate" command="--show">
+                  {t.home.deactivate}
+                </s-button>
+              ) : (
+                <s-button disabled={fetcher.state !== "idle"} onClick={() => submit("enable")}>
+                  {t.home.activate}
+                </s-button>
+              )}
+            </s-button-group>
+          </s-stack>
+        </s-section>
+
+        {/* D-067: le eccezioni automatiche restano visibili anche in Home. */}
+        <s-section heading={t.home.howHeading}>
           <s-unordered-list>
             {t.rules.exceptions.map((line) => (
               <s-list-item key={line}>{line}</s-list-item>
             ))}
           </s-unordered-list>
-        </s-stack>
-      </s-box>
+        </s-section>
 
-      {/* §15.3: un solo prossimo passo, più il promemoria FR-058 finché la dichiarazione resta. */}
-      <s-section heading={t.home.nextHeading}>
-        <s-paragraph>{nextStep}</s-paragraph>
-        {data.address2Declared ? <s-paragraph>{t.home.nextAddress2}</s-paragraph> : null}
-      </s-section>
+        {/* §15.3: un solo prossimo passo, più il promemoria FR-058 finché la dichiarazione resta. */}
+        <s-section heading={t.home.nextHeading}>
+          <s-paragraph>{nextStep}</s-paragraph>
+          {data.address2Declared ? <s-paragraph>{t.home.nextAddress2}</s-paragraph> : null}
+        </s-section>
+      </s-stack>
 
       {/* Il piano resta qui finché la pagina “Piano e fatturazione” non lo accoglie: spostarlo
           adesso toglierebbe al merchant l'unico percorso di pagamento esistente. */}

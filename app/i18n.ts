@@ -47,11 +47,13 @@ const it = {
   },
   home: {
     heading: "CF Ready",
-    configHeading: "Configurazione corrente",
     howHeading: "Come si applicano le regole",
     nextHeading: "Prossimo passo",
-    active: "Attiva nel checkout",
-    inactive: "Disattivata",
+    badgeActive: "Attiva",
+    badgeInactive: "Disattivata",
+    titleActive: "Validazione attiva nel checkout",
+    titleDisabled: "Validazione disattivata",
+    titleLapsed: "Validazione attiva, piano non attivo",
     unsupported: "Store non supportato",
     unsupportedBody:
       "CF Ready funziona solo con store che hanno l’indirizzo in Italia. Nessuna prova è iniziata, nessuna Validation è stata creata e nessun pagamento è stato richiesto.",
@@ -187,11 +189,13 @@ const en: typeof it = {
   },
   home: {
     heading: "CF Ready",
-    configHeading: "Active rules",
     howHeading: "How the rules apply",
     nextHeading: "Next step",
-    active: "Active in checkout",
-    inactive: "Turned off",
+    badgeActive: "Active",
+    badgeInactive: "Turned off",
+    titleActive: "Validation active in checkout",
+    titleDisabled: "Validation turned off",
+    titleLapsed: "Validation on, plan not active",
     unsupported: "Store not supported",
     unsupportedBody:
       "CF Ready only works with stores based in Italy. No trial has started, no validation has been created and no payment has been requested.",
