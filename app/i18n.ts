@@ -19,8 +19,6 @@ const it = {
     rules: "Regole checkout",
   },
   common: {
-    save: "Salva",
-    cancel: "Annulla",
     saved: "Regole salvate. Valgono dal prossimo ordine.",
   },
   errors: {
@@ -33,6 +31,8 @@ const it = {
       "Questo store ha già il numero massimo di Validation attive consentito da Shopify. Le tue regole restano salvate. Disattiva la Validation di un’altra app da Impostazioni → Checkout, poi riprova: CF Ready non tocca le risorse di altre app.",
     country_not_eligible:
       "CF Ready funziona solo con store che hanno l’indirizzo in Italia. Le regole restano salvate.",
+    config_conflict:
+      "Le regole sono cambiate da un’altra scheda o da un altro membro dello staff mentre modificavi. Riapri la pagina per vedere quelle correnti, poi rifai la tua modifica: non sovrascriviamo il lavoro di qualcun altro.",
     billing_read_failed:
       "Le informazioni sul piano non sono aggiornate. Il checkout non viene bloccato: riapri la pagina fra qualche minuto.",
     one_time_already_active:
@@ -45,17 +45,18 @@ const it = {
   home: {
     heading: "CF Ready",
     stateHeading: "Stato",
-    configHeading: "Regole attive",
+    configHeading: "Configurazione corrente",
     howHeading: "Come si applicano le regole",
     nextHeading: "Prossimo passo",
-    helpHeading: "Guida e assistenza",
     active: "Attiva nel checkout",
     inactive: "Disattivata",
     inactiveBody:
       "Le regole sono salvate ma non valgono per i clienti. Il checkout si comporta come se CF Ready non fosse installata.",
     unsupported: "Store non supportato",
     unsupportedBody:
-      "CF Ready funziona solo con store che hanno l’indirizzo in Italia. Nessuna prova è iniziata e nessun pagamento è stato richiesto.",
+      "CF Ready funziona solo con store che hanno l’indirizzo in Italia. Nessuna prova è iniziata, nessuna Validation è stata creata e nessun pagamento è stato richiesto.",
+    unsupportedCheckAddress:
+      "Se lo store è italiano, controlla l’indirizzo in Impostazioni → Dettagli negozio: CF Ready legge il Paese da lì.",
     noEntitlement:
       "Senza un piano attivo il checkout non blocca più nulla. Regole e messaggi restano salvati e tornano validi con il pagamento.",
     syncNeeded:
@@ -126,6 +127,8 @@ const it = {
     preventive:
       "Gli avvisi compaiono già al caricamento del checkout, non solo quando il cliente prova a procedere.",
     disabled: "La Validation è disattivata: queste regole non valgono ancora per i clienti.",
+    lapsed:
+      "La Validation è attiva ma il piano non lo è: finché resta così il checkout non blocca nulla.",
   },
 };
 
@@ -135,8 +138,6 @@ const en: typeof it = {
     rules: "Checkout rules",
   },
   common: {
-    save: "Save",
-    cancel: "Cancel",
     saved: "Rules saved. They apply from the next order.",
   },
   errors: {
@@ -149,6 +150,8 @@ const en: typeof it = {
       "This store already has the maximum number of active validations Shopify allows. Your rules are still saved. Turn off another app’s validation in Settings → Checkout, then try again: CF Ready never touches other apps’ resources.",
     country_not_eligible:
       "CF Ready only works with stores based in Italy. Your rules are still saved.",
+    config_conflict:
+      "The rules changed in another tab or from another staff member while you were editing. Reload the page to see the current ones, then redo your change: we don’t overwrite someone else’s work.",
     billing_read_failed:
       "Plan information isn’t up to date. Checkout isn’t blocked: reload the page in a few minutes.",
     one_time_already_active:
@@ -164,14 +167,15 @@ const en: typeof it = {
     configHeading: "Active rules",
     howHeading: "How the rules apply",
     nextHeading: "Next step",
-    helpHeading: "Help and support",
     active: "Active in checkout",
     inactive: "Turned off",
     inactiveBody:
       "Your rules are saved but don’t apply to customers. Checkout behaves as if CF Ready weren’t installed.",
     unsupported: "Store not supported",
     unsupportedBody:
-      "CF Ready only works with stores based in Italy. No trial has started and no payment has been requested.",
+      "CF Ready only works with stores based in Italy. No trial has started, no validation has been created and no payment has been requested.",
+    unsupportedCheckAddress:
+      "If your store is Italian, check the address in Settings → Store details: that’s where CF Ready reads the country from.",
     noEntitlement:
       "Without an active plan, checkout no longer blocks anything. Rules and messages stay saved and apply again once you pay.",
     syncNeeded:
@@ -242,6 +246,8 @@ const en: typeof it = {
     preventive:
       "Warnings appear as soon as checkout loads, not only when the customer tries to continue.",
     disabled: "The validation is turned off: these rules don’t apply to customers yet.",
+    lapsed:
+      "The validation is on but your plan isn’t: while that’s the case, checkout blocks nothing.",
   },
 };
 
@@ -254,8 +260,14 @@ export function texts(locale: Locale) {
 // L'anteprima di §15.4 e lo stato della Home dicono la stessa cosa e devono dirla con le stesse
 // parole: una frase per conseguenza, mai un elenco di stati. Nessuna simulazione grafica del
 // checkout (D-068), solo testo.
+export type CheckoutStatus = "active" | "disabled" | "lapsed";
+
 export function describeCheckout(
-  { rules, errorDisplay, enabled }: { rules: Rules; errorDisplay: ErrorDisplay; enabled: boolean },
+  {
+    rules,
+    errorDisplay,
+    status,
+  }: { rules: Rules; errorDisplay: ErrorDisplay; status: CheckoutStatus },
   locale: Locale,
 ) {
   const t = texts(locale).checkout;
@@ -270,6 +282,8 @@ export function describeCheckout(
   if (!lines.length) return [t.nothing];
 
   lines.push(t.foreign, errorDisplay === "preventive" ? t.preventive : t.inline);
-  if (!enabled) lines.push(t.disabled);
+  // Una Validation attiva senza diritto commerciale non è "disattivata": dirlo sarebbe falso e
+  // nasconderebbe la causa vera al merchant.
+  if (status !== "active") lines.push(status === "lapsed" ? t.lapsed : t.disabled);
   return lines;
 }

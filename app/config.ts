@@ -106,3 +106,10 @@ function oneOf<T extends string>(allowed: readonly T[], value: unknown): T | nul
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
+
+// FR-058: la dichiarazione sul campo “Interno” si revoca solo togliendo la spunta. Quando il
+// Codice Fiscale non è gestito il blocco non viene reso, e un invio che non lo contiene non
+// dice nulla sulla dichiarazione: `null` significa “non toccarla”, non “revocala”.
+export function address2Declaration(form: FormData): boolean | null {
+  return form.get("address2Shown") === null ? null : form.get("address2") !== null;
+}

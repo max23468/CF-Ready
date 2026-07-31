@@ -360,3 +360,63 @@ test("il limite di Validation attive ha un codice stabile e non perde la configu
     last_error_code: "validation_limit_reached",
   });
 });
+
+test("il salvataggio non sovrascrive la configurazione cambiata da un'altra sessione", async () => {
+  const shop = "conflict.example.myshopify.com";
+  await seedShop(shop);
+  const { admin, calls } = stubAdmin({ existing: { enabled: false } });
+
+  const stale = await writeValidation(
+    admin,
+    env.DB,
+    shop,
+    {
+      rules: { taxCode: "required_validated", pec: "unmanaged" },
+      errorDisplay: "inline",
+      messages: DEFAULT_CONFIG.messages,
+    },
+    null,
+    "firma-di-una-configurazione-precedente",
+  );
+
+  // §11.4: nessuna mutazione parte, così il lavoro dell'altra sessione resta intatto.
+  expect(stale).toEqual({ ok: false, errorCode: "config_conflict" });
+  expect(calls).toHaveLength(0);
+
+  const current = await writeValidation(
+    admin,
+    env.DB,
+    shop,
+    {
+      rules: { taxCode: "required_validated", pec: "unmanaged" },
+      errorDisplay: "inline",
+      messages: DEFAULT_CONFIG.messages,
+    },
+    null,
+    await configHash(DEFAULT_CONFIG),
+  );
+
+  expect(current).toEqual({ ok: true, enabled: false });
+  expect(calls).toHaveLength(1);
+});
+
+test("attivazione e disattivazione non passano dal controllo ottimistico", async () => {
+  const shop = "activate-no-hash.example.myshopify.com";
+  await seedShop(shop);
+  const { admin, calls } = stubAdmin({ existing: { enabled: false } });
+
+  const result = await writeValidation(
+    admin,
+    env.DB,
+    shop,
+    {
+      rules: { taxCode: "required_validated", pec: "unmanaged" },
+      errorDisplay: "inline",
+      messages: DEFAULT_CONFIG.messages,
+    },
+    true,
+  );
+
+  expect(result).toEqual({ ok: true, enabled: true });
+  expect(calls[0].enable).toBe(true);
+});

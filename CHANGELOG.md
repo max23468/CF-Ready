@@ -32,7 +32,18 @@ checkout.
   migrazione `0007` che aggiunge le colonne di stato UI;
 - il diritto scritto nel metafield viene ricalcolato a ogni scrittura anche dal
   conto commerciale: prima l'attivazione poteva scriverlo guardando la sola
-  prova.
+  prova;
+- il salvataggio delle regole ha il controllo ottimistico di §11.4: se un'altra
+  sessione ha cambiato la configurazione nel frattempo, la scrittura non parte
+  e il merchant lo legge invece di sovrascrivere il lavoro altrui;
+- la dichiarazione sul campo “Interno” non si revoca più da sola quando il
+  Codice Fiscale torna “Non gestito” e il blocco esce dallo schermo;
+- una Validation attiva senza piano non viene più descritta come disattivata:
+  è un terzo stato e dice la causa vera;
+- la schermata `Store non supportato` indica dove correggere l'indirizzo dello
+  store e porta l'illustrazione del marchio ammessa dalla nuova decisione di
+  brand A-16, che apre il colore alle sole illustrazioni su superfici senza
+  azioni operative.
 
 ## 0.3.6 — 30 luglio 2026
 

@@ -4,10 +4,11 @@ import { Form, useLoaderData, useActionData } from "react-router";
 import { describeCheckout, resolveLocale, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { authenticate } from "../shopify.server";
-import { ERROR_DISPLAYS, readConfig, RULE_MODES } from "../config";
+import { address2Declaration, ERROR_DISPLAYS, readConfig, RULE_MODES } from "../config";
 import type { ErrorDisplay, RuleMode } from "../config";
 import {
   findValidation,
+  observedConfigHash,
   queryContext,
   readAddress2Declaration,
   saveAddress2Declaration,
@@ -21,6 +22,8 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 
   return {
     locale: resolveLocale(request),
+    // §11.4: firma della configurazione osservata, rimandata indietro al salvataggio.
+    configHash: await observedConfigHash(validation),
     rules: config.rules,
     errorDisplay: config.errorDisplay,
     messages: config.messages,
@@ -45,7 +48,8 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const validation = findValidation((await queryContext(admin)).validations.nodes);
   const current = readConfig(validation?.metafield?.jsonValue);
 
-  await saveAddress2Declaration(db, session.shop, form.get("address2") !== null);
+  const declared = address2Declaration(form);
+  if (declared !== null) await saveAddress2Declaration(db, session.shop, declared);
 
   // FR-051: il salvataggio aggiorna la configurazione e conserva lo stato della Validation.
   // I messaggi non sono editabili da questa pagina: si riscrivono quelli osservati.
@@ -55,6 +59,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     session.shop,
     { rules: { taxCode, pec }, errorDisplay, messages: current.messages },
     null,
+    (form.get("configHash") as string) || null,
   );
 
   return result.ok ? { ok: true as const } : { ok: false as const, errorCode: result.errorCode };
@@ -114,6 +119,7 @@ export default function CheckoutRules() {
           })
         }
       >
+        <input type="hidden" name="configHash" value={saved.configHash ?? ""} />
         <s-section heading={t.rules.taxCodeLabel}>
           <s-choice-list
             label={t.rules.taxCodeLabel}
@@ -165,7 +171,11 @@ export default function CheckoutRules() {
           />
           {/* D-068: anteprima testuale, nessuna simulazione grafica del checkout. */}
           {describeCheckout(
-            { rules: draft.rules, errorDisplay: draft.errorDisplay, enabled: saved.enabled },
+            {
+              rules: draft.rules,
+              errorDisplay: draft.errorDisplay,
+              status: saved.enabled ? "active" : "disabled",
+            },
             saved.locale,
           ).map((line) => (
             <s-paragraph key={line}>{line}</s-paragraph>
@@ -176,6 +186,7 @@ export default function CheckoutRules() {
             Fiscale è gestito, perché è lì che i due campi si sovrappongono. */}
         {draft.rules.taxCode === "unmanaged" ? null : (
           <s-section heading={t.rules.address2Heading}>
+            <input type="hidden" name="address2Shown" value="1" />
             <s-banner tone="warning">{t.rules.address2Body}</s-banner>
             <s-checkbox
               label={t.rules.address2Checkbox}

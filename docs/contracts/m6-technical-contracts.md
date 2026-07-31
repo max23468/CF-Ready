@@ -49,6 +49,12 @@ configurazione intera mai a patch, readback e stato persistito in `app_state`.
 `enable` a `null` conserva lo stato corrente della Validation ed è ciò che il
 salvataggio usa: FR-051 tiene separati salvataggio e attivazione.
 
+Il salvataggio passa anche la firma della configurazione che stava guardando,
+letta dal metafield all'apertura della pagina. Se nel frattempo un'altra
+sessione l'ha cambiata, la mutazione non parte: è il controllo ottimistico di
+§11.4, e usa lo stesso hash canonico di `app_state.config_hash`. Attivazione e
+disattivazione non lo usano, perché non modificano la configurazione.
+
 La configurazione vive nel metafield della Validation, che è il suo unico
 owner. Il primo salvataggio crea quindi la Validation **disattivata**: senza
 owner la configurazione non avrebbe dove stare, e §11.3 vieta soltanto di
@@ -66,12 +72,19 @@ dichiarazione del merchant, non un rilevamento: CF Ready non legge e non
 modifica quell'impostazione (D-125). Finché la colonna è valorizzata, la Home
 mostra il promemoria di rimuovere quell'uso.
 
+La dichiarazione si revoca solo togliendo la spunta. Il blocco viene reso solo
+quando il Codice Fiscale è gestito, ed è lì che nasce la sovrapposizione fra i
+due campi; un invio che non lo contiene non dice nulla sulla dichiarazione e la
+lascia com'è. `address2Declaration(form)` esprime la regola e distingue i tre
+casi: dichiarata, revocata, non toccata.
+
 ## Codici aggiunti da M6
 
 | Codice | Origine |
 | --- | --- |
 | `validation_limit_reached` | Shopify rifiuta la creazione perché lo store ha già il numero massimo di Validation Function attive (FR-098) |
 | `country_not_eligible` | operazione richiesta su uno store con indirizzo fuori dall'Italia |
+| `config_conflict` | la configurazione è cambiata fra l'apertura della pagina e il salvataggio: la scrittura non parte |
 
 `validation_limit_reached` si ricava dal testo dello userError, unico segnale
 che Shopify espone: se il testo cambia si ricade su `validation_write_failed`,

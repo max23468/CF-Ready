@@ -315,6 +315,7 @@ export async function writeValidation(
   shopDomain: string,
   next: { rules: Rules; errorDisplay: ErrorDisplay; messages: CheckoutConfig["messages"] },
   enable: boolean | null,
+  expectedHash?: string | null,
 ): Promise<ValidationWriteResult> {
   const lockToken = await acquireValidationLock(db, shopDomain);
   if (!lockToken) return { ok: false, errorCode: "validation_locked" };
@@ -327,6 +328,14 @@ export async function writeValidation(
     if (enable && !eligible) return { ok: false, errorCode: "country_not_eligible" };
 
     const existing = findValidation(data.validations.nodes);
+
+    // §11.4: controllo ottimistico. Chi ha aperto la pagina dichiara la configurazione che
+    // stava guardando; se nel frattempo un'altra sessione l'ha cambiata, la modifica non parte.
+    // Attivazione e disattivazione non passano di qui: non modificano la configurazione.
+    if (expectedHash !== undefined && (await observedConfigHash(existing)) !== expectedHash) {
+      return { ok: false, errorCode: "config_conflict" };
+    }
+
     const enabled = enable ?? existing?.enabled ?? false;
     const today = localDate(data.shop.ianaTimezone);
     const entitlement = entitlementFor(
@@ -415,6 +424,12 @@ export async function writeValidation(
     await heartbeat.stop();
     await releaseValidationLockBestEffort(db, shopDomain, lockToken);
   }
+}
+
+// La stessa forma usata da `persistValidationState`, così il confronto è fra valori omogenei.
+export async function observedConfigHash(validation: Validation | undefined) {
+  const config = validation?.metafield?.jsonValue;
+  return config === undefined || config === null ? null : await configHash(config);
 }
 
 // FR-098: lo store ha già 25 Validation Function attive. Shopify lo comunica solo nel testo

@@ -191,16 +191,24 @@ export default function Home() {
     return (
       <s-page heading={t.home.heading}>
         <s-section heading={t.home.unsupported}>
+          {/* A-16: unica eccezione approvata al divieto di colore di brand nell'app. Il colore
+              vive dentro un'illustrazione, mai su un controllo o su uno stato, e solo su
+              superfici senza azioni operative. */}
+          <s-box maxInlineSize="80px">
+            <s-image src="/cf-ready-mark.svg" alt="" />
+          </s-box>
           <s-paragraph>{t.home.unsupportedBody}</s-paragraph>
           <s-paragraph>
             {data.shopName} · {data.countryCode} → {ELIGIBLE_COUNTRY}
           </s-paragraph>
+          <s-paragraph>{t.home.unsupportedCheckAddress}</s-paragraph>
         </s-section>
       </s-page>
     );
   }
 
   const entitled = data.entitlement.kind !== "none";
+  const status = !data.validationEnabled ? "disabled" : entitled ? "active" : "lapsed";
   const configured = data.rules.taxCode !== "unmanaged" || data.rules.pec !== "unmanaged";
   const nextStep = !entitled
     ? t.home.nextChoosePlan
@@ -225,17 +233,15 @@ export default function Home() {
       ) : null}
 
       <s-section heading={t.home.stateHeading}>
-        <s-badge tone={data.validationEnabled && entitled ? "success" : "neutral"}>
+        <s-badge
+          tone={status === "active" ? "success" : status === "lapsed" ? "warning" : "neutral"}
+        >
           {data.validationEnabled ? t.home.active : t.home.inactive}
         </s-badge>
         {/* Lo stato si legge come conseguenza, non come etichetta: la prima riga dice cosa
             succede davvero a un cliente. */}
         {describeCheckout(
-          {
-            rules: data.rules,
-            errorDisplay: data.errorDisplay,
-            enabled: data.validationEnabled && entitled,
-          },
+          { rules: data.rules, errorDisplay: data.errorDisplay, status },
           data.locale,
         ).map((line) => (
           <s-paragraph key={line}>{line}</s-paragraph>
@@ -257,6 +263,15 @@ export default function Home() {
             </s-button>
           </fetcher.Form>
         )}
+      </s-section>
+
+      <s-section heading={t.home.configHeading}>
+        <s-paragraph>
+          {t.rules.taxCodeLabel}: {t.rules.taxCode[data.rules.taxCode]}
+        </s-paragraph>
+        <s-paragraph>
+          {t.rules.pecLabel}: {t.rules.pec[data.rules.pec]}
+        </s-paragraph>
       </s-section>
 
       {/* D-067: le eccezioni automatiche restano visibili anche in Home. */}
