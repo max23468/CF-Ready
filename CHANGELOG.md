@@ -5,6 +5,25 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.1 — 31 luglio 2026
+
+Correzioni dai gate live sul dev store.
+
+- la conferma di `Disattiva nel checkout` non aveva alcun pulsante: il modulo
+  era nello slot dove Polaris si aspetta un bottone, quindi la modale mostrava
+  il testo e non permetteva di disattivare nulla;
+- le sezioni di `Regole checkout` erano attaccate fra loro: il modulo che le
+  racchiude sta fuori dal layout della pagina e ora le impila con la
+  spaziatura Polaris;
+- i valori del modulo tornano al DOM: riscriverli a ogni render faceva vedere
+  al Save Bar una modifica anche quando il merchant era tornato sui suoi
+  passi, per esempio togliendo una spunta appena messa;
+- le istruzioni sul campo “Interno” erano sbagliate. I passaggi reali sono
+  due: portare la seconda riga dell'indirizzo su “Facoltativo” o “Non
+  includere” in Impostazioni → Checkout, e rimettere l'etichetta originale da
+  “Gestisci la lingua del checkout” o da Impostazioni → Lingue se la lingua è
+  tradotta.
+
 ## 0.4.0 — 31 luglio 2026
 
 M6, primo strato: interfaccia bilingue, Home riscritta e pagina Regole

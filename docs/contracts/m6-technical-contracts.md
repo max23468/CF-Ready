@@ -72,6 +72,13 @@ dichiarazione del merchant, non un rilevamento: CF Ready non legge e non
 modifica quell'impostazione (D-125). Finché la colonna è valorizzata, la Home
 mostra il promemoria di rimuovere quell'uso.
 
+Le istruzioni mostrate al merchant descrivono due passaggi verificati sulle
+fonti Shopify: la seconda riga dell'indirizzo si porta su “Facoltativo” o “Non
+includere” in Impostazioni → Checkout, sezione Opzioni del modulo, e
+l'etichetta, se cambiata, si rimette da “Gestisci la lingua del checkout” o da
+Impostazioni → Lingue, scheda “Checkout e sistema”. Non è il tema a governare
+quell'etichetta.
+
 La dichiarazione si revoca solo togliendo la spunta. Il blocco viene reso solo
 quando il Codice Fiscale è gestito, ed è lì che nasce la sovrapposizione fra i
 due campi; un invio che non lo contiene non dice nulla sulla dichiarazione e la

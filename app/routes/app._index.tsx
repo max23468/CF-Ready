@@ -355,12 +355,19 @@ export default function Home() {
       {/* §15.1: le azioni ad alto impatto dichiarano la conseguenza concreta, non “sei sicuro?”. */}
       <s-modal id="deactivate" heading={t.home.deactivate}>
         <s-paragraph>{t.home.deactivateConfirm}</s-paragraph>
-        <fetcher.Form method="post" slot="primary-action">
-          <input type="hidden" name="intent" value="disable" />
-          <s-button type="submit" variant="primary" disabled={fetcher.state !== "idle"}>
-            {t.home.deactivate}
-          </s-button>
-        </fetcher.Form>
+        <s-button slot="secondary-actions" commandFor="deactivate" command="--hide">
+          {t.common.cancel}
+        </s-button>
+        {/* §7.7: nella conferma il bottone ripete l'azione, non dice “OK”. */}
+        <s-button
+          slot="primary-action"
+          variant="primary"
+          commandFor="deactivate"
+          command="--hide"
+          onClick={() => fetcher.submit({ intent: "disable" }, { method: "post" })}
+        >
+          {t.home.deactivate}
+        </s-button>
       </s-modal>
     </s-page>
   );
