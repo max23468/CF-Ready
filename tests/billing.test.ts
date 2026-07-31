@@ -587,6 +587,6 @@ test("la riscrittura conserva regole e messaggi del merchant", () => {
   // Configurazione illeggibile: si riparte dal default invece di propagare spazzatura.
   expect(configWithEntitlement("rotto", { kind: "none", validThrough: null })).toMatchObject({
     schemaVersion: 2,
-    rules: { taxCode: "required_validated" },
+    rules: { taxCode: "unmanaged" },
   });
 });

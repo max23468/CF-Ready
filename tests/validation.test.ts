@@ -7,20 +7,22 @@ import {
   findValidation,
   mutationError,
   queryContext,
+  readConfig,
   releaseValidationLockBestEffort,
   renewValidationLock,
   startValidationLockHeartbeat,
+  writeValidation,
 } from "../app/validation.server";
 
 test("la configurazione scritta è accettata dalla Function", () => {
   expect(DEFAULT_CONFIG).toMatchObject({
     schemaVersion: 2,
-    enabled: true,
+    enabled: false,
     errorDisplay: "inline",
-    entitlement: { kind: "one_time", validThrough: null },
+    entitlement: { kind: "none", validThrough: null },
     rules: {
-      taxCode: "required_validated",
-      pec: "optional_validated",
+      taxCode: "unmanaged",
+      pec: "unmanaged",
     },
   });
 });
@@ -173,4 +175,248 @@ test("il heartbeat ritenta dopo un errore D1 transitorio", async () => {
     await heartbeat.stop();
     vi.useRealTimers();
   }
+});
+
+test("una configurazione illeggibile o fuori contratto torna ai default senza lanciare", () => {
+  expect(readConfig(undefined)).toMatchObject(DEFAULT_CONFIG);
+  expect(readConfig({ schemaVersion: 99, rules: { taxCode: "required_validated" } })).toMatchObject(
+    DEFAULT_CONFIG,
+  );
+
+  const config = readConfig({
+    schemaVersion: 2,
+    enabled: true,
+    errorDisplay: "urlato",
+    rules: { taxCode: "required_validated", pec: "chissà" },
+    messages: {
+      it: { taxCodeRequired: "  Inserisci il Codice Fiscale.  ", pecRequired: "x".repeat(201) },
+      en: {},
+    },
+  });
+
+  expect(config.rules).toEqual({ taxCode: "required_validated", pec: "unmanaged" });
+  expect(config.errorDisplay).toBe("inline");
+  expect(config.messages.it.taxCodeRequired).toBe("Inserisci il Codice Fiscale.");
+  // FR-061: un messaggio vuoto o oltre i 200 caratteri non può restare nell'editor.
+  expect(config.messages.it.pecRequired).toBe(DEFAULT_CONFIG.messages.it.pecRequired);
+  expect(config.messages.en).toEqual(DEFAULT_CONFIG.messages.en);
+});
+
+async function seedShop(shop: string) {
+  const timestamp = "2026-07-31T00:00:00.000Z";
+  await env.DB.prepare(
+    `INSERT INTO shops (
+       shop_domain, country_code, installation_status, installed_at, created_at, updated_at
+     ) VALUES (?, 'IT', 'active', ?, ?, ?)`,
+  )
+    .bind(shop, timestamp, timestamp, timestamp)
+    .run();
+}
+
+function stubAdmin({
+  existing,
+  userErrors = [],
+}: {
+  existing?: { enabled: boolean };
+  userErrors?: { message: string }[];
+}) {
+  const calls: { operation: string; enable?: boolean; config?: Record<string, unknown> }[] = [];
+  let node = existing
+    ? {
+        id: "gid://shopify/Validation/1",
+        title: "CF Ready",
+        enabled: existing.enabled,
+        blockOnFailure: false,
+        shopifyFunction: { handle: "cf-ready-validation" },
+        metafield: { jsonValue: DEFAULT_CONFIG },
+      }
+    : undefined;
+
+  return {
+    calls,
+    admin: {
+      graphql: async (query: string, options?: { variables?: Record<string, any> }) => {
+        if (query.includes("CfReadyContext")) {
+          return Response.json({
+            data: {
+              shop: {
+                name: "CF Ready Dev",
+                ianaTimezone: "Europe/Rome",
+                shopAddress: { countryCodeV2: "IT" },
+              },
+              validations: {
+                nodes: node ? [node] : [],
+                pageInfo: { hasNextPage: false, endCursor: null },
+              },
+            },
+          });
+        }
+
+        const operation = query.includes("CfReadyValidationCreate")
+          ? "validationCreate"
+          : "validationUpdate";
+        const input = options?.variables?.validation;
+        const config = JSON.parse(input.metafields[0].value);
+        calls.push({ operation, enable: input.enable, config });
+
+        if (!userErrors.length) {
+          node = {
+            id: "gid://shopify/Validation/1",
+            title: "CF Ready",
+            enabled: input.enable,
+            blockOnFailure: false,
+            shopifyFunction: { handle: "cf-ready-validation" },
+            metafield: { jsonValue: config },
+          };
+        }
+        return Response.json({ data: { [operation]: { userErrors } } });
+      },
+    },
+  };
+}
+
+test("il primo salvataggio crea la Validation disattivata e non la attiva", async () => {
+  const shop = "first-save.example.myshopify.com";
+  await seedShop(shop);
+  const { admin, calls } = stubAdmin({});
+
+  const result = await writeValidation(
+    admin,
+    env.DB,
+    shop,
+    {
+      rules: { taxCode: "required_validated", pec: "unmanaged" },
+      errorDisplay: "preventive",
+      messages: DEFAULT_CONFIG.messages,
+    },
+    null,
+  );
+
+  expect(result).toEqual({ ok: true, enabled: false });
+  expect(calls).toHaveLength(1);
+  expect(calls[0].operation).toBe("validationCreate");
+  // FR-051: salvare non attiva. La configurazione esiste comunque, perché vive nel metafield
+  // della Validation e senza owner non avrebbe dove stare.
+  expect(calls[0].enable).toBe(false);
+  expect(calls[0].config).toMatchObject({
+    enabled: false,
+    errorDisplay: "preventive",
+    rules: { taxCode: "required_validated", pec: "unmanaged" },
+  });
+});
+
+test("il salvataggio conserva lo stato di una Validation già attiva", async () => {
+  const shop = "keep-enabled.example.myshopify.com";
+  await seedShop(shop);
+  const { admin, calls } = stubAdmin({ existing: { enabled: true } });
+
+  const result = await writeValidation(
+    admin,
+    env.DB,
+    shop,
+    {
+      rules: { taxCode: "optional_validated", pec: "optional_validated" },
+      errorDisplay: "inline",
+      messages: DEFAULT_CONFIG.messages,
+    },
+    null,
+  );
+
+  expect(result).toEqual({ ok: true, enabled: true });
+  expect(calls[0].operation).toBe("validationUpdate");
+  expect(calls[0].enable).toBe(true);
+  expect(calls[0].config).toMatchObject({ enabled: true });
+});
+
+test("il limite di Validation attive ha un codice stabile e non perde la configurazione", async () => {
+  const shop = "limit.example.myshopify.com";
+  await seedShop(shop);
+  const { admin } = stubAdmin({
+    userErrors: [{ message: "You have reached the maximum number of active validations." }],
+  });
+
+  const result = await writeValidation(
+    admin,
+    env.DB,
+    shop,
+    {
+      rules: { taxCode: "required_validated", pec: "unmanaged" },
+      errorDisplay: "inline",
+      messages: DEFAULT_CONFIG.messages,
+    },
+    true,
+  );
+
+  // FR-098: nessuna Validation di terzi toccata, codice stabile, stato locale non falsamente attivo.
+  expect(result).toEqual({ ok: false, errorCode: "validation_limit_reached" });
+  const state = await env.DB.prepare(
+    `SELECT validation_enabled, last_error_code FROM app_state
+     WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+  )
+    .bind(shop)
+    .first<{ validation_enabled: number; last_error_code: string }>();
+  expect(state).toMatchObject({
+    validation_enabled: 0,
+    last_error_code: "validation_limit_reached",
+  });
+});
+
+test("il salvataggio non sovrascrive la configurazione cambiata da un'altra sessione", async () => {
+  const shop = "conflict.example.myshopify.com";
+  await seedShop(shop);
+  const { admin, calls } = stubAdmin({ existing: { enabled: false } });
+
+  const stale = await writeValidation(
+    admin,
+    env.DB,
+    shop,
+    {
+      rules: { taxCode: "required_validated", pec: "unmanaged" },
+      errorDisplay: "inline",
+      messages: DEFAULT_CONFIG.messages,
+    },
+    null,
+    "firma-di-una-configurazione-precedente",
+  );
+
+  // §11.4: nessuna mutazione parte, così il lavoro dell'altra sessione resta intatto.
+  expect(stale).toEqual({ ok: false, errorCode: "config_conflict" });
+  expect(calls).toHaveLength(0);
+
+  const current = await writeValidation(
+    admin,
+    env.DB,
+    shop,
+    {
+      rules: { taxCode: "required_validated", pec: "unmanaged" },
+      errorDisplay: "inline",
+      messages: DEFAULT_CONFIG.messages,
+    },
+    null,
+    await configHash(DEFAULT_CONFIG),
+  );
+
+  expect(current).toEqual({ ok: true, enabled: false });
+  expect(calls).toHaveLength(1);
+});
+
+test("attivazione e disattivazione non passano dal controllo ottimistico", async () => {
+  const shop = "activate-no-hash.example.myshopify.com";
+  await seedShop(shop);
+  const { admin, calls } = stubAdmin({ existing: { enabled: false } });
+
+  const result = await writeValidation(
+    admin,
+    env.DB,
+    shop,
+    {
+      rules: { taxCode: "required_validated", pec: "unmanaged" },
+      errorDisplay: "inline",
+      messages: DEFAULT_CONFIG.messages,
+    },
+    true,
+  );
+
+  expect(result).toEqual({ ok: true, enabled: true });
+  expect(calls[0].enable).toBe(true);
 });
