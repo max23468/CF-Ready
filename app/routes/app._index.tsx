@@ -580,45 +580,54 @@ function SetupGuide({
   ];
   const done = steps.filter((step) => step.done).length;
 
+  // Solo il primo passo ancora da fare è aperto: i passi conclusi si riducono a una riga, che
+  // è ciò che serve sapere di loro. Nessuna cornice per passo — erano riquadri dentro un
+  // riquadro, alti e con il fianco vuoto.
+  const active = steps.findIndex((step) => !step.done);
+
   return (
     <s-section>
-      <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="start">
-        <s-stack direction="block" gap="base">
+      <s-stack direction="block" gap="base">
+        <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="center">
           <s-stack direction="block" gap="small-100">
             <s-heading>{t.setup.heading}</s-heading>
-            <s-paragraph>{t.setup.intro}</s-paragraph>
             <s-text color="subdued">{t.setup.progress(done, steps.length)}</s-text>
           </s-stack>
+          {/* A-16: illustrazione su una superficie di onboarding, una sola per il blocco. */}
+          <s-box maxInlineSize="110px">
+            <s-image src="/cf-ready-lockup.svg" alt="" aspectRatio="16/3" objectFit="contain" />
+          </s-box>
+        </s-grid>
 
-          {steps.map((step) => (
-            <s-box key={step.title} border="base" borderRadius="base" padding="base">
-              <s-grid gridTemplateColumns="auto 1fr" gap="base" alignItems="start">
-                {/* La spunta è un token semantico: dice fatto o da fare, non decora. */}
-                <s-icon type="check-circle" tone={step.done ? "success" : "auto"} />
+        <s-stack direction="block" gap="small-100">
+          {steps.map((step, index) => (
+            <s-grid
+              key={step.title}
+              gridTemplateColumns="auto 1fr"
+              gap="small-100"
+              alignItems="start"
+            >
+              {/* La spunta è un token semantico: dice fatto o da fare, non decora. */}
+              <s-icon type="check-circle" tone={step.done ? "success" : "auto"} />
+              {index === active ? (
                 <s-stack direction="block" gap="small-100">
                   <s-text type="strong">{step.title}</s-text>
                   <s-paragraph>{step.body}</s-paragraph>
                   {step.action}
                 </s-stack>
-              </s-grid>
-            </s-box>
+              ) : (
+                <s-text color={step.done ? "subdued" : "base"}>{step.title}</s-text>
+              )}
+            </s-grid>
           ))}
-
-          <s-stack direction="inline" gap="base">
-            {/* La procedura si apre come finestra a schermo intero sopra la Home invece di
-                cambiare pagina: è il caso d'uso che `s-app-window` copre, e il codice della
-                procedura resta uno solo. */}
-            <s-button commandFor="onboarding-window" command="--show" variant="primary">
-              {t.setup.guided}
-            </s-button>
-          </s-stack>
         </s-stack>
 
-        {/* A-16: illustrazione su una superficie di onboarding, una sola per il blocco. */}
-        <s-box maxInlineSize="120px">
-          <s-image src="/cf-ready-lockup.svg" alt="" aspectRatio="16/3" objectFit="contain" />
-        </s-box>
-      </s-grid>
+        <s-stack direction="inline" gap="base">
+          <s-button commandFor="onboarding-window" command="--show" variant="primary">
+            {t.setup.guided}
+          </s-button>
+        </s-stack>
+      </s-stack>
     </s-section>
   );
 }
