@@ -81,13 +81,21 @@ prova a sette, tre e ultimo giorno, la data del primo addebito, l'etichetta
 pagamento unico attivo. Sono coperti dai test automatici e la verifica reale
 appartiene a M10, sul canary.
 
+## Navigazione a quattro voci
+
+La milestone si chiude con quattro pagine permanenti invece di cinque: `Piano e
+fatturazione` è stata assorbita dalla Home, dove lo stato commerciale sta nella
+colonna laterale e la scelta della modalità in quella principale. La decisione
+è dell'owner ed è registrata in §15.2 e §15.6 del Master Plan e in §1.3, §8.3 e
+§8.4 della Brand Foundation, che perdono il tetto dei blocchi e la regola di una
+sola azione primaria per schermata limitatamente alla Home.
+
 ## E2E di §23.10
 
 La matrice di §23.10 elenca diciannove scenari da eseguire in un browser dentro
 l'Admin Shopify. Un'automazione richiederebbe una sessione staff autenticata e
 un'infrastruttura browser che il repository oggi non ha: introdurla è una
-decisione di dipendenza da prendere a parte, non un dettaglio di questa
-milestone.
+decisione di dipendenza, rimandata a M8 insieme al perimetro proposto.
 
 Gli scenari sono stati eseguiti **manualmente** dall'owner sul dev store, uno
 per snapshot rilasciato, e i difetti emersi sono elencati sopra. I casi non
@@ -100,7 +108,7 @@ negli Open items §34.7.
 | Residuo | Dove si chiude |
 | --- | --- |
 | Modulo di supporto e casella verificata: la Guida rimanda a un contatto non ancora attivo | M7 |
-| Link alla gestione nativa Shopify nella pagina Piano: percorso non documentato | quando Shopify lo documenta |
+| Link alla gestione nativa Shopify nel blocco del piano: percorso non documentato | quando Shopify lo documenta |
 | Nomi dei piani in italiano nella fattura Shopify | decisione commerciale dell'owner |
-| Automazione degli E2E di §23.10 | decisione di dipendenza, da prendere a parte |
+| Automazione degli E2E di §23.10 | M8, dove la decisione è stata registrata |
 | Stati commerciali non riproducibili sul dev store | M10, canary |

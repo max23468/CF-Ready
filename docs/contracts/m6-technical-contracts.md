@@ -122,3 +122,13 @@ la documentazione Shopify richiede.
 
 `onboarding_completed` si aggiunge agli eventi, di classe `onboarding`, con
 `enabled` a dire se la procedura si è chiusa attivando o no.
+
+## Dove vive lo stato commerciale
+
+Non esiste una rotta `plan`: §15.6 è reso dalla Home in due blocchi. `PlanStatus`
+sta nella colonna laterale e non ha azioni — è ciò che si legge. `PlanChoice`
+sta in quella principale con i propri bottoni, e resta visibile anche quando non
+c'è nulla da scegliere: con un pagamento unico attivo spiega perché.
+
+La riconciliazione di §11.6, che il Master Plan chiedeva all'apertura della Home
+e di Piano e fatturazione, ora avviene in un punto solo.

@@ -166,3 +166,11 @@ export function reviewIsDue(
   if (state.errorCode || !state.enabledSince) return false;
   return now - Date.parse(state.enabledSince) >= REVIEW_MIN_DAYS * 86_400_000;
 }
+
+// I messaggi sono ancora quelli di fabbrica? Serve alla Home per dire in una riga se qualcuno
+// li ha riscritti, informazione che altrimenti richiede di aprire la pagina e ricordarsene.
+export function messagesAreDefault(messages: CheckoutConfig["messages"]) {
+  return (["it", "en"] as const).every((locale) =>
+    MESSAGE_KEYS.every((key) => messages[locale][key] === DEFAULT_CONFIG.messages[locale][key]),
+  );
+}

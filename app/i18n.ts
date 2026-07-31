@@ -19,7 +19,6 @@ const it = {
     home: "Home",
     rules: "Regole checkout",
     messages: "Messaggi al cliente",
-    plan: "Piano e fatturazione",
     guide: "Guida e FAQ",
   },
   common: {
@@ -67,6 +66,9 @@ const it = {
       "Senza un piano attivo il checkout non blocca più nulla. Regole e messaggi restano salvati e tornano validi con il pagamento.",
     syncNeeded:
       "Lo stato mostrato qui potrebbe non coincidere con Shopify. Il checkout non viene bloccato. Riapri la pagina fra qualche minuto.",
+    messagesLabel: "Messaggi al cliente",
+    messagesDefault: "Predefiniti",
+    messagesCustom: "Personalizzati",
     editRules: "Modifica regole",
     activate: "Attiva nel checkout",
     deactivate: "Disattiva nel checkout",
@@ -232,6 +234,11 @@ const it = {
     firstChargeNow: "L’addebito parte alla tua approvazione su Shopify.",
     oneTimeCharge:
       "Addebito unico alla tua approvazione su Shopify. I giorni di prova residui decadono.",
+    chooseHeading: "Scegli una modalità",
+    // §14.11: formulazione approvata. §7.2 vieta “a vita”, “per sempre”, “illimitato” e
+    // “senza limiti di tempo”: la durata si dice come durata operativa del servizio.
+    oneTimeSettled:
+      "Un solo pagamento per questo store, senza rinnovi. Include l’app e i suoi aggiornamenti finché il servizio resta attivo. Non c’è altro da scegliere.",
     recommended: "Consigliato",
     generationLaunch: "Prezzo di lancio, acquisito da questo store.",
     generationStandard: "Prezzo standard, acquisito da questo store.",
@@ -313,7 +320,6 @@ const en: typeof it = {
     home: "Home",
     rules: "Checkout rules",
     messages: "Customer messages",
-    plan: "Plan and billing",
     guide: "Help and FAQ",
   },
   common: {
@@ -361,6 +367,9 @@ const en: typeof it = {
       "Without an active plan, checkout no longer blocks anything. Rules and messages stay saved and apply again once you pay.",
     syncNeeded:
       "What you see here may not match Shopify. Checkout isn’t blocked. Reload the page in a few minutes.",
+    messagesLabel: "Customer messages",
+    messagesDefault: "Default",
+    messagesCustom: "Edited",
     editRules: "Edit rules",
     activate: "Turn on in checkout",
     deactivate: "Turn off in checkout",
@@ -526,6 +535,9 @@ const en: typeof it = {
     firstChargeNow: "The charge starts as soon as you approve it on Shopify.",
     oneTimeCharge:
       "One charge as soon as you approve it on Shopify. Any remaining trial days are given up.",
+    chooseHeading: "Choose a plan",
+    oneTimeSettled:
+      "One payment for this store, with no renewals. It includes the app and its updates for as long as the service stays available. There’s nothing else to choose.",
     recommended: "Recommended",
     generationLaunch: "Launch price, locked in for this store.",
     generationStandard: "Standard price, locked in for this store.",

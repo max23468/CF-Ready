@@ -20,7 +20,15 @@ Chiusura di M6: onboarding, prompt recensioni e registro delle operazioni.
   onboarding concluso, con la validazione attiva da almeno sette giorni e
   nessun errore aperto — mai da un'azione del merchant;
 - `docs/evidence/2026-07-31-m6-ui-completa.md` registra i quattordici snapshot
-  della milestone, la migrazione, i gate live e i residui dichiarati.
+  della milestone, la migrazione, i gate live e i residui dichiarati;
+- la navigazione passa a quattro voci: `Piano e fatturazione` è assorbita dalla
+  Home, con lo stato commerciale nella colonna laterale e la scelta della
+  modalità in quella principale;
+- la Home porta dove si agisce: il prossimo passo ha il suo collegamento, le
+  regole e i messaggi si raggiungono dalle righe di configurazione, e una riga
+  nuova dice se i testi per il cliente sono ancora quelli predefiniti;
+- l'automazione degli E2E di §23.10 è rimandata a M8, dove è registrata come
+  decisione di dipendenza con il perimetro proposto.
 
 ## 0.4.13 — 31 luglio 2026
 

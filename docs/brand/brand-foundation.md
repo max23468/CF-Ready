@@ -71,7 +71,7 @@ Solo i vincoli che governano identità visiva, tono, logo/icona, UI embedded, si
 - Messaggi in tab Italiano/English con reset separato per lingua (D-069, §15.5).
 - Azioni ad alto impatto con conferma (§15.1); Home attiva: `Modifica regole` primaria, `Disattiva nel checkout` secondaria (D-064).
 - Checklist onboarding scompare definitivamente dopo il completamento (D-063).
-- Cinque pagine permanenti: Home, Regole checkout, Messaggi al cliente, Piano e fatturazione, Guida e FAQ (§15.2).
+- Quattro pagine permanenti: Home, Regole checkout, Messaggi al cliente, Guida e FAQ (§15.2). Stato commerciale e scelta della modalità stanno in Home, in due blocchi distinti.
 - Nessuna pagina Diagnostica né Analytics merchant (D-039, §5.2).
 - Lingua UI automatica dalla locale Shopify, nessun selettore (D-071, §16.1).
 
@@ -92,7 +92,7 @@ Formulazioni approvate riutilizzabili come sono (§4.3, §16.3, §14.11):
 
 - promessa breve: «Mai più ordini da fatturare senza Codice Fiscale.»
 - formulazione prudente: «Per i merchant che devono emettere fattura elettronica per gli ordini B2C, CF Ready impedisce che un cliente completi un ordine italiano senza aver compilato un Codice Fiscale formalmente valido.»
-- una tantum: «Un solo pagamento per questo store Shopify, senza rinnovi. Include le funzionalità dell'app e i relativi aggiornamenti per la durata operativa del servizio.»
+- una tantum: «Un solo pagamento per questo store, senza rinnovi. Include l'app e i suoi aggiornamenti finché il servizio resta attivo.»
 
 Altri vincoli linguistici: evitare "lifetime" come titolo contrattuale, usare `Un solo pagamento` (D-070); annuale etichettato `Consigliato` (D-070); badge `Prezzo di lancio` con data esatta e **niente countdown** (§14.3); IT ed EN semanticamente allineati (§16.4); prevalenza della versione italiana nei documenti legali (D-074); Controlled Launch non comunicato come beta o pilot (D-093); nessun incentivo alle recensioni (D-088, FR-095); listing, FAQ e Termini devono dichiarare che le generazioni successive degli ordini in abbonamento non sono coperte (FR-099).
 
@@ -560,13 +560,13 @@ Solo principi. Wireframe, stati completi e layout definitivi appartengono a M6, 
 ### 8.3 Densità informativa
 
 - Densità bassa: CF Ready ha poche impostazioni, mostrarle affollate le farebbe sembrare complesse.
-- Massimo 3–4 blocchi di primo livello per pagina.
+- Il tetto di 3–4 blocchi di primo livello per pagina non vale più per la Home, che ha assorbito Piano e fatturazione: lì il limite è che ogni blocco risponda a una domanda sola e che stato e decisioni restino in colonne diverse. Sulle altre pagine il tetto resta.
 - Nessuna metrica, nessun KPI, nessun grafico (D-039, §5.3).
 - Il testo esplicativo accompagna l'opzione, non una legenda separata (§15.4).
 
 ### 8.4 Azioni primarie
 
-- Una sola azione primaria visibile per schermata.
+- Una sola azione primaria per blocco, non per schermata: la Home ne ha due, `Modifica regole` nello stato e l'attivazione della modalità annuale nella scelta, perché sono due decisioni indipendenti. Sulle altre pagine resta una per schermata.
 - Le azioni che cambiano il comportamento del checkout sono sempre separate dal salvataggio: salvare non attiva mai implicitamente (D-011, FR-051).
 - Le azioni ad alto impatto passano da una conferma che dichiara la conseguenza concreta, non da un «Sei sicuro?».
 - Nessuna azione primaria dentro un blocco informativo.

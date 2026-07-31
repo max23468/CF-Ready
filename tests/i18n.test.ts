@@ -1,7 +1,9 @@
 import { expect, test } from "vitest";
 import {
   address2Declaration,
+  DEFAULT_CONFIG,
   MESSAGE_KEYS,
+  messagesAreDefault,
   messageAppears,
   reviewIsDue,
   validateMessages,
@@ -257,4 +259,15 @@ test("la recensione si chiede solo alle condizioni di §15.10", () => {
   expect(reviewIsDue({ ...ready, errorCode: "validation_readback_failed" }, now)).toBe(false);
   // Mai attivata: non c'è un momento da cui contare.
   expect(reviewIsDue({ ...ready, enabledSince: null }, now)).toBe(false);
+});
+
+test("la Home distingue i messaggi predefiniti da quelli riscritti", () => {
+  expect(messagesAreDefault(DEFAULT_CONFIG.messages)).toBe(true);
+
+  const edited = {
+    ...DEFAULT_CONFIG.messages,
+    en: { ...DEFAULT_CONFIG.messages.en, pecInvalid: "Check the address and try again." },
+  };
+  // Basta un testo riscritto in una lingua sola: la riga in Home deve dirlo.
+  expect(messagesAreDefault(edited)).toBe(false);
 });

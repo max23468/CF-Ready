@@ -1,10 +1,29 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useEffect } from "react";
 import { useFetcher, useLoaderData } from "react-router";
-import { remainingTrialDays } from "../billing.server";
-import { ELIGIBLE_COUNTRY, readConfig, reviewIsDue } from "../config";
+import {
+  addDays,
+  cancelSubscription,
+  createCharge,
+  localDate,
+  readBilling,
+  remainingTrialDays,
+  returnUrlFor,
+  syncTrial,
+} from "../billing.server";
+import { ELIGIBLE_COUNTRY, messagesAreDefault, readConfig, reviewIsDue } from "../config";
+import { BILLING_IS_TEST } from "../env.server";
 import { recordEvent } from "../events.server";
-import { resolveLocale, summariseCheckout, texts, trialNotice } from "../i18n";
+import {
+  formatDate,
+  formatMoney,
+  resolveLocale,
+  summariseCheckout,
+  texts,
+  trialNotice,
+} from "../i18n";
+import { planFor, planPrices } from "../plans.server";
+import type { PlanKind } from "../plans.server";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { authenticate } from "../shopify.server";
 import {
@@ -16,6 +35,7 @@ import {
   validationEnabledSince,
   writeValidation,
 } from "../validation.server";
+import type { Admin } from "../validation.server";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
@@ -34,10 +54,22 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     validationEnabled: state.validation?.enabled ?? false,
     rules: config.rules,
     errorDisplay: config.errorDisplay,
+    messagesDefault: messagesAreDefault(config.messages),
     address2Declared: (await readAddress2Declaration(db, session.shop)) !== null,
     trialEndsAt: state.trial?.ends_at ?? null,
     remaining: remainingTrialDays(state.trial, state.today),
     entitlement: state.entitlement,
+    // §14.6: il primo addebito cade il giorno dopo i giorni di prova ceduti a Shopify.
+    firstChargeAt:
+      remainingTrialDays(state.trial, state.today) > 0
+        ? addDays(state.today, remainingTrialDays(state.trial, state.today))
+        : null,
+    trialStatus: state.trial?.status ?? null,
+    plan: planPrices(state.trial?.pricing_generation ?? "launch"),
+    planKind: state.account?.plan_kind ?? "none",
+    periodEnd: state.account?.current_period_end ?? null,
+    accountStatus: state.account?.entitlement_status ?? "none",
+    creditEstimate: state.creditEstimate,
     errorCode: state.errorCode,
     onboarding: onboarding.status,
     // §15.10: la decisione si prende qui, non a un clic del merchant.
@@ -58,6 +90,10 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const db = context.cloudflare.env.DB;
   const intent = (await request.formData()).get("intent");
 
+  if (intent === "cancel") return cancelPlan(admin, db, session.shop);
+  if (intent === "monthly" || intent === "annual" || intent === "one_time") {
+    return subscribe(admin, db, session.shop, request, intent);
+  }
   if (intent !== "enable" && intent !== "disable") {
     return { ok: false, errorCode: "generic" };
   }
@@ -85,6 +121,59 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   });
   return { ok: true };
 };
+
+// L'approvazione avviene su Shopify: qui si crea l'addebito e si restituisce l'URL di conferma,
+// che il client apre a livello superiore. Il diritto non viene mai concesso dal ritorno.
+async function subscribe(
+  admin: Admin,
+  db: D1Database,
+  shopDomain: string,
+  request: Request,
+  kind: PlanKind,
+) {
+  const { shop } = await queryContext(admin);
+  if (shop.shopAddress.countryCodeV2 !== ELIGIBLE_COUNTRY) {
+    return { ok: false, errorCode: "country_not_eligible" };
+  }
+
+  // Un pagamento unico copre lo store per sempre: nessun altro addebito va creato sopra.
+  if ((await readBilling(admin, BILLING_IS_TEST)).oneTime) {
+    return { ok: false, errorCode: "one_time_already_active" };
+  }
+
+  const today = localDate(shop.ianaTimezone);
+  const trial = await syncTrial(db, shopDomain, { eligible: true, today });
+  const plan = planFor(trial?.pricing_generation ?? "launch", kind);
+  if (!plan) return { ok: false, errorCode: "generic" };
+
+  const { confirmationUrl, error } = await createCharge(admin, {
+    name: plan.name,
+    amount: plan.amount,
+    currency: plan.currency,
+    interval: plan.interval,
+    // L'acquisto una tantum viene addebitato all'approvazione e rinuncia ai giorni residui;
+    // le sottoscrizioni ricevono invece solo i giorni di prova che restano (FR-074).
+    trialDays: kind === "one_time" ? 0 : remainingTrialDays(trial, today),
+    test: BILLING_IS_TEST,
+    returnUrl: returnUrlFor(request, shopDomain),
+  });
+
+  if (error || !confirmationUrl) return { ok: false, errorCode: "charge_failed" };
+  return { ok: true, confirmationUrl };
+}
+
+// FR-080: cancellazione ordinaria, nessuna proratazione, accesso fino a fine periodo pagato.
+async function cancelPlan(admin: Admin, db: D1Database, shopDomain: string) {
+  const state = await readBilling(admin, BILLING_IS_TEST);
+  if (!state.subscription) return { ok: false, errorCode: "no_subscription" };
+
+  if (await cancelSubscription(admin, state.subscription.id, { prorate: false })) {
+    return { ok: false, errorCode: "cancel_failed" };
+  }
+
+  await recordEvent(db, { shopDomain, name: "subscription_cancelled", class: "billing" });
+  return { ok: true };
+}
 
 export const shouldRevalidate = skipRevalidationWhenLeaving;
 
@@ -131,15 +220,22 @@ export default function Home() {
 
   const entitled = data.entitlement.kind !== "none";
   const notice = trialNotice({ remaining: data.remaining, endsAt: data.trialEndsAt }, data.locale);
+  const onOneTime = data.entitlement.kind === "one_time";
+  const busy = fetcher.state !== "idle";
+  // §14.6: la data del primo addebito accanto alla scelta, non in un riepilogo.
+  const firstCharge = data.firstChargeAt
+    ? t.plan.firstCharge(formatDate(data.firstChargeAt, data.locale))
+    : t.plan.firstChargeNow;
   const status = !data.validationEnabled ? "disabled" : entitled ? "active" : "lapsed";
   const configured = data.rules.taxCode !== "unmanaged" || data.rules.pec !== "unmanaged";
+  // §15.3: il prossimo passo è l'elemento guidato della Home, quindi porta dove si compie.
   const nextStep = !entitled
-    ? t.home.nextChoosePlan
+    ? { text: t.home.nextChoosePlan, href: null }
     : !configured
-      ? t.home.nextConfigure
+      ? { text: t.home.nextConfigure, href: "/app/rules" }
       : !data.validationEnabled
-        ? t.home.nextActivate
-        : t.home.nextTestOrder;
+        ? { text: t.home.nextActivate, href: null }
+        : { text: t.home.nextTestOrder, href: null };
 
   return (
     <s-page heading={t.home.heading}>
@@ -158,29 +254,24 @@ export default function Home() {
         </s-banner>
       ) : null}
 
-      {/* La distanza fra i blocchi è dichiarata qui invece di essere lasciata alle regole
-          implicite della pagina: così è identica fra tutte le sezioni, comprese quelle che
-          compaiono e spariscono. */}
-      {/* Nessuno stack attorno alle sezioni: la spaziatura la dà `s-page`, che è la sola
-          costruzione identica fra colonna principale e colonna laterale. */}
+      {/* D-063: la checklist iniziale sparisce per sempre a onboarding completato. */}
+      {data.onboarding === "completed" ? null : (
+        <s-section heading={t.onboarding.homeHeading}>
+          <s-stack direction="block" gap="small-100">
+            <s-paragraph>{t.onboarding.homeBody}</s-paragraph>
+            <s-stack direction="inline" gap="base">
+              <s-button href="/app/onboarding" variant="primary">
+                {t.onboarding.homeStart}
+              </s-button>
+            </s-stack>
+          </s-stack>
+        </s-section>
+      )}
+
       {/* §15.3: stato e configurazione corrente sono i primi due contenuti e stanno nello
           stesso riquadro. È il primo blocco che il merchant vede a ogni apertura: deve dire
           cosa succede, su cosa, e cosa può farci, senza costringerlo a scorrere. */}
       <s-section>
-        {/* D-063: la checklist iniziale sparisce per sempre a onboarding completato. */}
-        {data.onboarding === "completed" ? null : (
-          <s-section heading={t.onboarding.homeHeading}>
-            <s-stack direction="block" gap="small-100">
-              <s-paragraph>{t.onboarding.homeBody}</s-paragraph>
-              <s-stack direction="inline" gap="base">
-                <s-button href="/app/onboarding" variant="primary">
-                  {t.onboarding.homeStart}
-                </s-button>
-              </s-stack>
-            </s-stack>
-          </s-section>
-        )}
-
         <s-stack direction="block" gap="base">
           <s-badge
             tone={status === "active" ? "success" : status === "lapsed" ? "warning" : "neutral"}
@@ -230,6 +321,12 @@ export default function Home() {
         </s-stack>
       </s-section>
 
+      {/* §15.6 vive qui: la pagina dedicata è stata assorbita e la navigazione è passata a
+          quattro voci. Stato e scelta stanno in due blocchi diversi perché fanno due lavori
+          diversi: qui si decide, nella colonna laterale si legge come si sta messi. Con un
+          pagamento unico attivo il blocco resta e spiega perché non c'è nulla da scegliere. */}
+      <PlanChoice data={data} busy={busy} submit={submit} firstCharge={firstCharge} />
+
       {/* D-067: le eccezioni automatiche restano visibili anche in Home. */}
       <s-section heading={t.home.howHeading}>
         <s-unordered-list>
@@ -239,9 +336,19 @@ export default function Home() {
         </s-unordered-list>
       </s-section>
 
+      <PlanStatus data={data} />
+
       <s-section slot="aside" heading={t.home.nextHeading}>
-        <s-paragraph>{nextStep}</s-paragraph>
-        {data.address2Declared ? <s-paragraph>{t.home.nextAddress2}</s-paragraph> : null}
+        <s-stack direction="block" gap="small-100">
+          <s-paragraph>{nextStep.text}</s-paragraph>
+          {nextStep.href ? <s-link href={nextStep.href}>{t.nav.rules}</s-link> : null}
+          {data.address2Declared ? (
+            <>
+              <s-paragraph>{t.home.nextAddress2}</s-paragraph>
+              <s-link href="/app/rules">{t.nav.rules}</s-link>
+            </>
+          ) : null}
+        </s-stack>
       </s-section>
 
       <s-section slot="aside" heading={t.home.helpHeading}>
@@ -269,5 +376,151 @@ export default function Home() {
         </s-button>
       </s-modal>
     </s-page>
+  );
+}
+
+type HomeData = Awaited<ReturnType<typeof loader>>;
+
+// Lo stato commerciale è informazione: sta nella colonna laterale e non ha bottoni.
+function PlanStatus({ data }: { data: HomeData }) {
+  const t = texts(data.locale);
+  const onOneTime = data.entitlement.kind === "one_time";
+
+  return (
+    <s-section slot="aside" heading={t.plan.heading}>
+      <s-stack direction="block" gap="small-100">
+        <s-paragraph>
+          {data.entitlement.kind === "trial"
+            ? t.plan.trial(formatDate(data.trialEndsAt, data.locale))
+            : onOneTime
+              ? t.plan.oneTime
+              : data.entitlement.kind === "subscription"
+                ? t.plan.subscription(formatDate(data.entitlement.validThrough, data.locale))
+                : data.trialStatus === "expired"
+                  ? t.plan.trialOver
+                  : t.plan.none}
+        </s-paragraph>
+        {data.periodEnd && data.planKind !== "one_time" ? (
+          <s-paragraph>
+            {data.accountStatus === "ending"
+              ? t.plan.periodEnds(formatDate(data.periodEnd, data.locale))
+              : t.plan.nextCharge(formatDate(data.periodEnd, data.locale))}
+          </s-paragraph>
+        ) : null}
+        {data.plan ? (
+          <s-paragraph>
+            {data.plan.generation === "launch"
+              ? t.plan.generationLaunch
+              : t.plan.generationStandard}
+          </s-paragraph>
+        ) : null}
+      </s-stack>
+    </s-section>
+  );
+}
+
+// La scelta è una decisione: sta nella colonna principale, con le sue azioni.
+function PlanChoice({
+  data,
+  busy,
+  submit,
+  firstCharge,
+}: {
+  data: HomeData;
+  busy: boolean;
+  submit: (intent: string) => void;
+  firstCharge: string;
+}) {
+  const t = texts(data.locale);
+  const onOneTime = data.entitlement.kind === "one_time";
+
+  return (
+    <s-section heading={onOneTime ? t.plan.oneTimeName : t.plan.chooseHeading}>
+      {onOneTime || !data.plan ? (
+        <s-paragraph>{onOneTime ? t.plan.oneTimeSettled : t.plan.none}</s-paragraph>
+      ) : (
+        <s-stack direction="block" gap="base">
+          <s-stack direction="block" gap="small-100">
+            <s-stack direction="inline" gap="small-100" alignItems="center">
+              <s-text type="strong">{t.plan.monthlyName}</s-text>
+              <s-text>{formatMoney(data.plan.monthly, data.locale)}</s-text>
+            </s-stack>
+            <s-paragraph>{firstCharge}</s-paragraph>
+            {data.planKind === "monthly" ? null : (
+              <s-stack direction="inline" gap="base">
+                <s-button disabled={busy} onClick={() => submit("monthly")}>
+                  {data.planKind === "annual" ? t.plan.monthlySwitch : t.plan.monthlyStart}
+                </s-button>
+              </s-stack>
+            )}
+          </s-stack>
+
+          <s-divider />
+
+          <s-stack direction="block" gap="small-100">
+            {/* D-070: `Consigliato`, senza percentuali di risparmio. */}
+            <s-stack direction="inline" gap="small-100" alignItems="center">
+              <s-text type="strong">{t.plan.annualName}</s-text>
+              <s-text>{formatMoney(data.plan.annual, data.locale)}</s-text>
+              <s-badge>{t.plan.recommended}</s-badge>
+            </s-stack>
+            <s-paragraph>{firstCharge}</s-paragraph>
+            {data.planKind === "annual" ? null : (
+              <s-stack direction="inline" gap="base">
+                <s-button variant="primary" disabled={busy} onClick={() => submit("annual")}>
+                  {data.planKind === "monthly" ? t.plan.annualSwitch : t.plan.annualStart}
+                </s-button>
+              </s-stack>
+            )}
+          </s-stack>
+
+          <s-divider />
+
+          <s-stack direction="block" gap="small-100">
+            <s-stack direction="inline" gap="small-100" alignItems="center">
+              <s-text type="strong">{t.plan.oneTimeName}</s-text>
+              <s-text>{formatMoney(data.plan.one_time, data.locale)}</s-text>
+            </s-stack>
+            <s-paragraph>{t.plan.oneTimeCharge}</s-paragraph>
+            {/* FR-081: prezzo, credito e costo netto prima di creare l'acquisto. */}
+            {data.entitlement.kind === "subscription" && data.creditEstimate ? (
+              <>
+                <s-paragraph>
+                  {t.plan.netCost(
+                    formatMoney(Math.max(0, data.plan.one_time - data.creditEstimate), data.locale),
+                  )}
+                </s-paragraph>
+                <s-paragraph>
+                  {t.plan.creditEstimate(formatMoney(data.creditEstimate, data.locale))}
+                </s-paragraph>
+              </>
+            ) : null}
+            <s-stack direction="inline" gap="base">
+              <s-button disabled={busy} onClick={() => submit("one_time")}>
+                {t.plan.oneTimeSwitch}
+              </s-button>
+            </s-stack>
+          </s-stack>
+
+          {data.entitlement.kind === "subscription" ? (
+            <>
+              <s-divider />
+              <s-stack direction="block" gap="small-100">
+                <s-paragraph>
+                  {data.accountStatus === "ending" ? t.plan.endingAlready : t.plan.cancelBody}
+                </s-paragraph>
+                {data.accountStatus === "ending" ? null : (
+                  <s-stack direction="inline" gap="base">
+                    <s-button disabled={busy} onClick={() => submit("cancel")}>
+                      {t.plan.cancelRenewal}
+                    </s-button>
+                  </s-stack>
+                )}
+              </s-stack>
+            </>
+          ) : null}
+        </s-stack>
+      )}
+    </s-section>
   );
 }
