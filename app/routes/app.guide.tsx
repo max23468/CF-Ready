@@ -37,7 +37,7 @@ export default function Guide() {
           divulgazione, quindi si usa `details`, che è l'elemento nativo della piattaforma:
           accessibile e utilizzabile da tastiera senza reimplementare nulla (§8.1). */}
       <s-section id="faq">
-        <s-stack direction="block" gap="base">
+        <s-stack direction="block" gap="small-100">
           <s-stack direction="inline" gap="base">
             <s-button onClick={toggleAll}>
               {expanded ? t.guide.collapseAll : t.guide.expandAll}
@@ -46,7 +46,7 @@ export default function Guide() {
           {t.guide.entries.map((entry) => (
             <details key={entry.q}>
               <summary>
-                <s-heading>{entry.q}</s-heading>
+                <s-text type="strong">{entry.q}</s-text>
               </summary>
               <s-box paddingBlockStart="small-100">
                 <s-paragraph>{entry.a}</s-paragraph>
@@ -61,7 +61,12 @@ export default function Guide() {
       <s-section slot="aside" heading={t.guide.asideHeading}>
         <s-stack direction="block" gap="base">
           <s-box maxInlineSize="160px">
-            <s-image src="/cf-ready-lockup.svg" alt="CF Ready" />
+            <s-image
+              src="/cf-ready-lockup.svg"
+              alt="CF Ready"
+              aspectRatio="16/3"
+              objectFit="contain"
+            />
           </s-box>
           <s-paragraph>{t.guide.asideBody}</s-paragraph>
         </s-stack>
