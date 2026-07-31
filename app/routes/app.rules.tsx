@@ -210,43 +210,41 @@ export default function CheckoutRules() {
 
         {/* L'anteprima è ciò che si guarda mentre si decide, quindi sta accanto alle scelte e
             apre la colonna; le eccezioni la seguono come blocco a sé. */}
-        <s-box slot="aside">
-          <s-stack direction="block" gap="base">
-            <s-section heading={t.rules.previewHeading}>
-              <s-stack direction="block" gap="base">
-                <s-checkbox
-                  label={t.rules.preventiveLabel}
-                  details={t.rules.preventiveHelp}
-                  name="errorDisplay"
-                  value="preventive"
-                  defaultChecked={saved.errorDisplay === "preventive"}
-                />
-                {/* D-068: anteprima testuale, nessuna simulazione grafica del checkout. */}
-                <s-stack direction="block" gap="small-100">
-                  {describeCheckout(
-                    {
-                      rules: draft.rules,
-                      errorDisplay: draft.errorDisplay,
-                      status: saved.enabled ? "active" : "disabled",
-                    },
-                    saved.locale,
-                  ).map((line) => (
-                    <s-paragraph key={line}>{line}</s-paragraph>
-                  ))}
-                </s-stack>
-              </s-stack>
-            </s-section>
-
-            {/* D-067: le eccezioni sono sempre visibili e non modificabili. */}
-            <s-section heading={t.rules.exceptionsHeading}>
-              <s-unordered-list>
-                {t.rules.exceptions.map((line) => (
-                  <s-list-item key={line}>{line}</s-list-item>
+        <s-stack slot="aside" direction="block" gap="base">
+          <s-section heading={t.rules.previewHeading}>
+            <s-stack direction="block" gap="base">
+              <s-checkbox
+                label={t.rules.preventiveLabel}
+                details={t.rules.preventiveHelp}
+                name="errorDisplay"
+                value="preventive"
+                defaultChecked={saved.errorDisplay === "preventive"}
+              />
+              {/* D-068: anteprima testuale, nessuna simulazione grafica del checkout. */}
+              <s-stack direction="block" gap="small-100">
+                {describeCheckout(
+                  {
+                    rules: draft.rules,
+                    errorDisplay: draft.errorDisplay,
+                    status: saved.enabled ? "active" : "disabled",
+                  },
+                  saved.locale,
+                ).map((line) => (
+                  <s-paragraph key={line}>{line}</s-paragraph>
                 ))}
-              </s-unordered-list>
-            </s-section>
-          </s-stack>
-        </s-box>
+              </s-stack>
+            </s-stack>
+          </s-section>
+
+          {/* D-067: le eccezioni sono sempre visibili e non modificabili. */}
+          <s-section heading={t.rules.exceptionsHeading}>
+            <s-unordered-list>
+              {t.rules.exceptions.map((line) => (
+                <s-list-item key={line}>{line}</s-list-item>
+              ))}
+            </s-unordered-list>
+          </s-section>
+        </s-stack>
       </s-page>
     </form>
   );

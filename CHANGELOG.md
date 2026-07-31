@@ -5,6 +5,16 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.5 — 31 luglio 2026
+
+- etichetta e modalità tornano vicine: una griglia `1fr auto` le spingeva ai
+  due bordi opposti della card, e su schermo largo si leggevano come due cose
+  scollegate;
+- la distanza fra i box della seconda colonna è ora uguale a quella di tutti
+  gli altri: la colonna laterale aveva un contenitore in più della principale e
+  ne sommava la spaziatura. Stessa correzione in Regole checkout, dove il
+  difetto non si notava ma la costruzione era identica.
+
 ## 0.4.4 — 31 luglio 2026
 
 - le azioni della Home non venivano rese: dopo le regole attive restava uno
