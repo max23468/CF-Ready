@@ -357,6 +357,12 @@ export default function Home() {
         </s-stack>
       </s-section>
 
+      {/* A-16, estesa alla Home: il marchio chiude la colonna di riferimento come una firma,
+          senza cornice e senza competere con i blocchi operativi. */}
+      <s-box slot="aside" maxInlineSize="130px">
+        <s-image src="/cf-ready-lockup.svg" alt="" aspectRatio="16/3" objectFit="contain" />
+      </s-box>
+
       <s-app-window id="onboarding-window" src="/app/onboarding" />
 
       {/* §15.1: le azioni ad alto impatto dichiarano la conseguenza concreta, non “sei sicuro?”. */}
@@ -588,15 +594,17 @@ function SetupGuide({
   return (
     <s-section>
       <s-stack direction="block" gap="base">
+        {/* L'azione sta sulla riga del titolo: su un blocco ormai corto un'illustrazione a
+            destra lasciava una colonna vuota per tutta l'altezza, e un bottone in fondo
+            allungava la card senza usarne la larghezza. */}
         <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="center">
           <s-stack direction="block" gap="small-100">
             <s-heading>{t.setup.heading}</s-heading>
             <s-text color="subdued">{t.setup.progress(done, steps.length)}</s-text>
           </s-stack>
-          {/* A-16: illustrazione su una superficie di onboarding, una sola per il blocco. */}
-          <s-box maxInlineSize="110px">
-            <s-image src="/cf-ready-lockup.svg" alt="" aspectRatio="16/3" objectFit="contain" />
-          </s-box>
+          <s-button commandFor="onboarding-window" command="--show" variant="primary">
+            {t.setup.guided}
+          </s-button>
         </s-grid>
 
         <s-stack direction="block" gap="small-100">
@@ -620,12 +628,6 @@ function SetupGuide({
               )}
             </s-grid>
           ))}
-        </s-stack>
-
-        <s-stack direction="inline" gap="base">
-          <s-button commandFor="onboarding-window" command="--show" variant="primary">
-            {t.setup.guided}
-          </s-button>
         </s-stack>
       </s-stack>
     </s-section>

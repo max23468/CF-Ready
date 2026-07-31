@@ -5,6 +5,21 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.19 — 31 luglio 2026
+
+- la procedura guidata non salta più passi e non si blocca: il passo vive
+  soltanto nello stato della pagina, mentre prima lo stato locale e quello del
+  server si contendevano lo stesso valore. Il server lo riceve quando la
+  procedura si chiude;
+- i radio del secondo passo non sono più controllati: riscriverli a ogni render
+  faceva sfarfallare la sezione PEC e poteva far fallire il gestore
+  dell'evento, lasciando `Continua` senza risposta. I valori si leggono dal
+  modulo al salvataggio, come in Regole checkout;
+- la guida di configurazione mette l'azione sulla riga del titolo invece che in
+  fondo: il blocco era corto e largo, con una colonna vuota a destra;
+- il marchio compare in fondo alla colonna laterale della Home, come firma, e
+  nel primo passo della procedura. A-16 è estesa di conseguenza.
+
 ## 0.4.18 — 31 luglio 2026
 
 - nella procedura guidata il terzo passo non andava né avanti né indietro:
