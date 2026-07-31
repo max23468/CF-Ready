@@ -134,7 +134,6 @@ export default function Onboarding() {
   const saved = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const t = texts(saved.locale);
-  const [rules, setRules] = useState(saved.rules);
   const [step, setStep] = useState(saved.step);
   const form = useRef<HTMLFormElement>(null);
   const busy = fetcher.state !== "idle";
@@ -143,9 +142,9 @@ export default function Onboarding() {
   const go = (intent: string, extra: Record<string, string> = {}) =>
     fetcher.submit({ intent, step: String(step), ...extra }, { method: "post" });
 
-  // Il passo due scrive su Shopify: avanza solo quando quella scrittura è andata a buon fine.
-  // Il flag distingue l'esito del salvataggio delle regole da quello di un semplice
-  // `Indietro`, che altrimenti rispedirebbe avanti chi torna sui suoi passi.
+  // Il passo vive solo qui. Mescolarlo con lo stato del server produceva salti e blocchi: il
+  // server lo riceve quando la procedura si chiude, che è l'unico momento in cui serve
+  // ricordarlo. Il secondo passo resta l'eccezione perché scrive le regole su Shopify.
   const savingRules = useRef(false);
 
   useEffect(() => {
@@ -153,11 +152,6 @@ export default function Onboarding() {
     savingRules.current = false;
     if (esito?.ok) setStep(3);
   }, [fetcher.state, esito]);
-
-  const move = (next: number) => {
-    setStep(next);
-    go(next > step ? "next" : "back");
-  };
 
   if (saved.completed && step === 1 && !busy && esito?.ok) {
     return (
@@ -211,6 +205,15 @@ export default function Onboarding() {
 
             {step === 1 ? (
               <>
+                {/* A-16: il primo passo è il momento in cui il merchant incontra il prodotto. */}
+                <s-box maxInlineSize="150px">
+                  <s-image
+                    src="/cf-ready-lockup.svg"
+                    alt="CF Ready"
+                    aspectRatio="16/3"
+                    objectFit="contain"
+                  />
+                </s-box>
                 <s-heading>{t.onboarding.step1Heading}</s-heading>
                 <s-paragraph>{t.onboarding.step1Body}</s-paragraph>
                 <s-unordered-list>
@@ -225,19 +228,17 @@ export default function Onboarding() {
               <>
                 <s-heading>{t.onboarding.step2Heading}</s-heading>
                 <s-paragraph>{t.onboarding.step2Body}</s-paragraph>
+                {/* Non controllati, come in Regole checkout: i valori appartengono al modulo e
+                    si leggono al salvataggio. Riscriverli a ogni render li faceva sfarfallare e
+                    poteva far fallire il gestore dell'evento. */}
                 {(["taxCode", "pec"] as const).map((field) => (
                   <s-choice-list
                     key={field}
                     label={field === "taxCode" ? t.rules.taxCodeLabel : t.rules.pecLabel}
                     name={field}
-                    values={[rules[field]]}
-                    onChange={(event: { currentTarget: { values: string[] } }) => {
-                      const value = pick(event.currentTarget.values[0]);
-                      if (value) setRules((current) => ({ ...current, [field]: value }));
-                    }}
                   >
                     {RULE_MODES.map((mode) => (
-                      <s-choice key={mode} value={mode}>
+                      <s-choice key={mode} value={mode} selected={mode === saved.rules[field]}>
                         {t.rules[field][mode]}
                         <s-text slot="details">{t.rules[field][`${mode}Help`]}</s-text>
                       </s-choice>
@@ -304,7 +305,7 @@ export default function Onboarding() {
 
             <s-stack direction="inline" gap="base">
               {step > 1 ? (
-                <s-button disabled={busy} onClick={() => move(step - 1)}>
+                <s-button disabled={busy} onClick={() => setStep(step - 1)}>
                   {t.onboarding.back}
                 </s-button>
               ) : null}
@@ -321,9 +322,15 @@ export default function Onboarding() {
                 <s-button
                   variant="primary"
                   disabled={busy}
-                  onClick={() =>
-                    step === 2 ? go("rules", { taxCode: rules.taxCode, pec: rules.pec }) : move(3)
-                  }
+                  onClick={() => {
+                    if (step !== 2) return setStep(step + 1);
+                    const data = form.current ? new FormData(form.current) : null;
+                    const taxCode = pick(data?.get("taxCode"));
+                    const pec = pick(data?.get("pec"));
+                    if (!taxCode || !pec) return;
+                    savingRules.current = true;
+                    go("rules", { taxCode, pec });
+                  }}
                 >
                   {t.onboarding.next}
                 </s-button>
