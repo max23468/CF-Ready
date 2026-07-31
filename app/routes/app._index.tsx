@@ -88,7 +88,12 @@ export default function Home() {
               vive dentro un'illustrazione, mai su un controllo o su uno stato, e solo su
               superfici senza azioni operative. */}
           <s-box maxInlineSize="180px">
-            <s-image src="/cf-ready-lockup.svg" alt="CF Ready" />
+            <s-image
+              src="/cf-ready-lockup.svg"
+              alt="CF Ready"
+              aspectRatio="16/3"
+              objectFit="contain"
+            />
           </s-box>
           <s-paragraph>{t.home.unsupportedBody}</s-paragraph>
           <s-paragraph>
