@@ -622,8 +622,13 @@ export async function saveOnboarding(
   const now = new Date().toISOString();
   await db
     .prepare(
+      // §15.9: riaprire la procedura non la riapre davvero. Una volta conclusa lo stato non
+      // torna indietro, altrimenti la checklist della Home ricomparirebbe (D-063).
       `UPDATE app_state
-         SET onboarding_status = ?,
+         SET onboarding_status = CASE
+               WHEN onboarding_status = 'completed' THEN 'completed'
+               ELSE ?
+             END,
              onboarding_step = ?,
              setup_checklist_dismissed_at = CASE
                WHEN ? = 'completed' AND setup_checklist_dismissed_at IS NULL THEN ?

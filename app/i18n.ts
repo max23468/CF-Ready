@@ -238,7 +238,7 @@ const it = {
     // §14.11: formulazione approvata. §7.2 vieta “a vita”, “per sempre”, “illimitato” e
     // “senza limiti di tempo”: la durata si dice come durata operativa del servizio.
     oneTimeSettled:
-      "Un solo pagamento per questo store, senza rinnovi. Include l’app e i suoi aggiornamenti finché il servizio resta attivo. Non c’è altro da scegliere.",
+      "Un solo pagamento per questo store, senza rinnovi. Include gli aggiornamenti dell’app e l’assistenza, senza costi aggiuntivi. Non c’è altro da scegliere.",
     recommended: "Consigliato",
     generationLaunch: "Prezzo di lancio, acquisito da questo store.",
     generationStandard: "Prezzo standard, acquisito da questo store.",
@@ -537,7 +537,7 @@ const en: typeof it = {
       "One charge as soon as you approve it on Shopify. Any remaining trial days are given up.",
     chooseHeading: "Choose a plan",
     oneTimeSettled:
-      "One payment for this store, with no renewals. It includes the app and its updates for as long as the service stays available. There’s nothing else to choose.",
+      "One payment for this store, with no renewals. It includes app updates and support, at no extra cost. There’s nothing else to choose.",
     recommended: "Recommended",
     generationLaunch: "Launch price, locked in for this store.",
     generationStandard: "Standard price, locked in for this store.",

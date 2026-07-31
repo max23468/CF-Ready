@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import { recordEvent } from "../app/events.server";
 import { markUninstalled, recordInstallOnce, redactShop, refuseInstall } from "../app/shop.server";
 import { localDate, trialEnd } from "../app/billing.server";
-import { reconcile } from "../app/validation.server";
+import { readOnboarding, reconcile, saveOnboarding } from "../app/validation.server";
 import { claimWebhook, finishWebhook } from "../app/webhooks.server";
 
 const CONFIG = { schemaVersion: 2, rules: { taxCode: "required_validated" } };
@@ -296,4 +296,26 @@ test("disinstallazione e redact ripuliscono i dati dello store", async () => {
       .bind("wh-redact")
       .first(),
   ).toMatchObject({ shop_domain: null, topic: "SHOP_REDACT" });
+});
+
+test("riaprire l'onboarding non lo riporta a in corso", async () => {
+  const shop = await insertShop("reopen.example.myshopify.com");
+  await env.DB.prepare(
+    `INSERT INTO app_state (shop_id, updated_at)
+     VALUES ((SELECT id FROM shops WHERE shop_domain = ?), ?)`,
+  )
+    .bind(shop, "2026-07-31T00:00:00.000Z")
+    .run();
+
+  await saveOnboarding(env.DB, shop, { status: "in_progress", step: 2 });
+  expect((await readOnboarding(env.DB, shop)).status).toBe("in_progress");
+
+  await saveOnboarding(env.DB, shop, { status: "completed", step: 4 });
+  // §15.9: la procedura resta riapribile, ma ripercorrerla non la riapre davvero: lo stato non
+  // torna indietro, altrimenti la checklist della Home ricomparirebbe (D-063).
+  await saveOnboarding(env.DB, shop, { status: "in_progress", step: 1 });
+
+  const state = await readOnboarding(env.DB, shop);
+  expect(state.status).toBe("completed");
+  expect(state.step).toBe(1);
 });
