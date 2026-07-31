@@ -95,6 +95,8 @@ export default function Home() {
             {data.shopName} · {data.countryCode} → {ELIGIBLE_COUNTRY}
           </s-paragraph>
           <s-paragraph>{t.home.unsupportedCheckAddress}</s-paragraph>
+          <s-paragraph>{t.home.unsupportedGuide}</s-paragraph>
+          <s-link href="/app/guide">{t.nav.guide}</s-link>
         </s-section>
       </s-page>
     );
@@ -194,6 +196,13 @@ export default function Home() {
             <s-list-item key={line}>{line}</s-list-item>
           ))}
         </s-unordered-list>
+      </s-section>
+
+      <s-section slot="aside" heading={t.home.helpHeading}>
+        <s-stack direction="block" gap="small-100">
+          <s-paragraph>{t.home.helpBody}</s-paragraph>
+          <s-link href="/app/guide">{t.nav.guide}</s-link>
+        </s-stack>
       </s-section>
 
       <s-section slot="aside" heading={t.home.nextHeading}>

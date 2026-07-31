@@ -1,0 +1,54 @@
+import type { LoaderFunctionArgs } from "react-router";
+import { useLoaderData } from "react-router";
+import { resolveLocale, texts } from "../i18n";
+import { skipRevalidationWhenLeaving } from "../revalidation";
+import { authenticate } from "../shopify.server";
+
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  await authenticate.admin(request);
+  return { locale: resolveLocale(request) };
+};
+
+export const shouldRevalidate = skipRevalidationWhenLeaving;
+
+export default function Guide() {
+  const { locale } = useLoaderData<typeof loader>();
+  const t = texts(locale);
+
+  return (
+    <s-page heading={t.guide.heading}>
+      <s-box paddingBlockEnd="base">
+        <s-paragraph>{t.guide.intro}</s-paragraph>
+      </s-box>
+
+      {/* §15.7: pagina unica con sezioni espandibili. Polaris non ha un componente di
+          divulgazione, quindi si usa `details`, che è l'elemento nativo della piattaforma:
+          accessibile e utilizzabile da tastiera senza reimplementare nulla (§8.1). */}
+      <s-section>
+        <s-stack direction="block" gap="base">
+          {t.guide.entries.map((entry) => (
+            <details key={entry.q}>
+              <summary>
+                <s-text type="strong">{entry.q}</s-text>
+              </summary>
+              <s-box paddingBlockStart="small-100">
+                <s-paragraph>{entry.a}</s-paragraph>
+              </s-box>
+            </details>
+          ))}
+        </s-stack>
+      </s-section>
+
+      {/* A-16: il colore di brand è ammesso dentro un'illustrazione, su superfici prive di
+          azioni operative. Questa è documentazione, non configurazione. */}
+      <s-section slot="aside" heading={t.home.helpHeading}>
+        <s-stack direction="block" gap="base">
+          <s-box maxInlineSize="64px">
+            <s-image src="/cf-ready-mark.svg" alt="" />
+          </s-box>
+          <s-paragraph>{t.guide.asideBody}</s-paragraph>
+        </s-stack>
+      </s-section>
+    </s-page>
+  );
+}

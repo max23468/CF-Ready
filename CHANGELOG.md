@@ -5,6 +5,23 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.10 — 31 luglio 2026
+
+Pagina `Guida e FAQ`, glossario canonico e completamento di `Store non
+supportato`.
+
+- ventuno voci espandibili con le risposte previste da §15.7, bilingui: cosa
+  controlla l'app e cosa no, eccezioni automatiche, ritiro in negozio,
+  significato di “formalmente valido”, PEC, modalità di visualizzazione degli
+  errori, checkout accelerati, campo “Interno”, prova e pagamenti, privacy,
+  limitazioni;
+- `docs/glossario.md`: termini e traduzioni IT/EN per interfaccia, checkout,
+  assistenza e documenti pubblici, come chiede §16.5;
+- la Home ha il blocco `Guida e assistenza` di §15.3, che finora non aveva una
+  destinazione, e `Store non supportato` rimanda alla Guida;
+- la Guida porta l'illustrazione del marchio ammessa da A-16: è documentazione,
+  non una superficie operativa.
+
 ## 0.4.9 — 31 luglio 2026
 
 Correzioni dalla rilettura di `Piano e fatturazione`.
