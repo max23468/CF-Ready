@@ -3840,7 +3840,7 @@ Gate:
 - E2E critici;
 - nessun framework UI extra.
 
-Consegnata da `0.4.0` a `0.4.13`. Gli E2E di §23.10 sono stati eseguiti
+Consegnata da `0.4.0` a `0.4.21`. Gli E2E di §23.10 sono stati eseguiti
 manualmente sul dev store, uno per snapshot: l'automazione richiede
 un'infrastruttura browser e una sessione staff autenticata, ed è una decisione
 di dipendenza rimasta aperta. Operazioni e residui in

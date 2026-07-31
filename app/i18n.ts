@@ -145,9 +145,6 @@ const it = {
     doneBody:
       "Le regole sono salvate. Puoi cambiarle quando vuoi, e questa procedura resta disponibile dalla Guida.",
     reopen: "Rivedi la configurazione iniziale",
-    homeHeading: "Completa la configurazione",
-    homeBody: "Quattro passaggi per scegliere cosa controllare e attivare le regole nel checkout.",
-    homeStart: "Inizia",
   },
   guide: {
     heading: "Guida e FAQ",
@@ -459,9 +456,6 @@ const en: typeof it = {
     doneBody:
       "Your rules are saved. You can change them whenever you want, and these steps stay available from the Help page.",
     reopen: "Review your initial setup",
-    homeHeading: "Finish setting up",
-    homeBody: "Four steps to choose what to check and turn the rules on in checkout.",
-    homeStart: "Start",
   },
   guide: {
     heading: "Help and FAQ",
