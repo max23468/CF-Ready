@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useActionData, useLoaderData, useSubmit } from "react-router";
-import { DEFAULT_CONFIG, MESSAGE_KEYS, MESSAGE_MAX_LENGTH, readConfig } from "../config";
+import {
+  DEFAULT_CONFIG,
+  MESSAGE_KEYS,
+  MESSAGE_MAX_LENGTH,
+  messageAppears,
+  readConfig,
+} from "../config";
 import { validateMessages } from "../config";
 import type { CheckoutConfig, Messages } from "../config";
 import { resolveLocale, texts } from "../i18n";
@@ -24,6 +30,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     locale: resolveLocale(request),
     configHash: await observedConfigHash(validation),
     messages: config.messages,
+    rules: config.rules,
   };
 };
 
@@ -50,6 +57,16 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 };
 
 const SAVE_BAR = "cf-ready-messages";
+
+// Polaris non ha un campo che si ridimensiona da solo: `rows` fissa le righe visibili e il
+// resto finisce in uno scroll interno. Le righe si calcolano quindi dal testo, così il campo
+// cresce e nulla resta nascosto — nemmeno oltre i 200 caratteri, che è proprio il momento in
+// cui il merchant deve vedere tutto per decidere cosa tagliare.
+// ponytail: stima a 45 caratteri per riga, prudente per le colonne strette. Se Polaris
+// introduce l'auto-ridimensionamento, questa funzione sparisce.
+function rowsFor(text: string) {
+  return Math.max(2, Math.ceil((text.length + 1) / 45));
+}
 
 export const shouldRevalidate = skipRevalidationWhenLeaving;
 
@@ -138,7 +155,11 @@ export default function CustomerMessages() {
           </button>
         </ui-save-bar>
 
-        <s-paragraph>{t.messages.intro}</s-paragraph>
+        {/* L'introduzione non è una sezione, quindi non riceve la spaziatura che `s-page` dà
+            alle card: la distanza dal primo box va dichiarata qui. */}
+        <s-box paddingBlockEnd="base">
+          <s-paragraph>{t.messages.intro}</s-paragraph>
+        </s-box>
 
         {/* D-069 prevedeva due tab, ma Polaris non ha un componente tab e costruirlo a mano
               significherebbe reimplementarne l'accessibilità (§8.1). Le due lingue restano quindi
@@ -169,7 +190,7 @@ export default function CustomerMessages() {
                     key={`${key}-${mounted[locale]}`}
                     label={t.messages[key]}
                     name={`${locale}.${key}`}
-                    rows={2}
+                    rows={rowsFor(value)}
                     defaultValue={value}
                     details={t.messages.counter(value.length)}
                     error={invalid}
@@ -183,16 +204,22 @@ export default function CustomerMessages() {
           </s-section>
         ))}
 
-        {/* §15.5: esempio testuale, non un mockup del checkout. */}
-        <s-section slot="aside" heading={t.messages.exampleHeading}>
+        {/* §15.5 chiede un esempio testuale, non un mockup. Ripetere qui le stesse frasi che
+            stanno nei campi a sinistra non aggiungeva nulla: questo riquadro dice invece quali
+            messaggi il cliente può davvero incontrare con le regole attive, che da questa pagina
+            non si potrebbe sapere. */}
+        <s-section slot="aside" heading={t.messages.appearHeading}>
           <s-stack direction="block" gap="small-100">
-            <s-paragraph>
-              {t.messages.exampleIntro}{" "}
-              {saved.locale === "it" ? t.messages.italian : t.messages.english}.
-            </s-paragraph>
+            <s-paragraph>{t.messages.appearIntro}</s-paragraph>
             {MESSAGE_KEYS.map((key) => (
-              <s-paragraph key={key}>{draft[saved.locale][key]}</s-paragraph>
+              <s-stack key={key} direction="inline" gap="small-100" alignItems="center">
+                <s-text>{t.messages[key]}</s-text>
+                <s-badge>
+                  {messageAppears(saved.rules, key) ? t.messages.appears : t.messages.appearsNot}
+                </s-badge>
+              </s-stack>
             ))}
+            <s-link href="/app/rules">{t.nav.rules}</s-link>
           </s-stack>
         </s-section>
 
