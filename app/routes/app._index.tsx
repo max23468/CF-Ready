@@ -95,6 +95,8 @@ export default function Home() {
             {data.shopName} · {data.countryCode} → {ELIGIBLE_COUNTRY}
           </s-paragraph>
           <s-paragraph>{t.home.unsupportedCheckAddress}</s-paragraph>
+          <s-paragraph>{t.home.unsupportedGuide}</s-paragraph>
+          <s-link href="/app/guide">{t.nav.guide}</s-link>
         </s-section>
       </s-page>
     );
@@ -199,6 +201,13 @@ export default function Home() {
       <s-section slot="aside" heading={t.home.nextHeading}>
         <s-paragraph>{nextStep}</s-paragraph>
         {data.address2Declared ? <s-paragraph>{t.home.nextAddress2}</s-paragraph> : null}
+      </s-section>
+
+      <s-section slot="aside" heading={t.home.helpHeading}>
+        <s-stack direction="block" gap="small-100">
+          <s-paragraph>{t.home.helpBody}</s-paragraph>
+          <s-link href="/app/guide">{t.nav.guide}</s-link>
+        </s-stack>
       </s-section>
 
       {/* §15.1: le azioni ad alto impatto dichiarano la conseguenza concreta, non “sei sicuro?”. */}
