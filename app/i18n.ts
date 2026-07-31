@@ -20,6 +20,7 @@ const it = {
   },
   common: {
     saved: "Regole salvate. Valgono dal prossimo ordine.",
+    cancel: "Annulla",
   },
   errors: {
     validation_locked: "Un’altra operazione su questa Validation è in corso. Riprova fra poco.",
@@ -71,7 +72,7 @@ const it = {
     nextTestOrder: "Fai un ordine di prova per vedere le regole all’opera.",
     nextChoosePlan: "Scegli una modalità per riattivare le regole nel checkout.",
     nextAddress2:
-      "Rimuovi il Codice Fiscale dal campo “Interno” in Impostazioni → Checkout: oggi il cliente vede due campi per lo stesso dato.",
+      "Smetti di usare il campo “Interno” per il Codice Fiscale: oggi il cliente vede due campi per lo stesso dato. Le istruzioni sono in Regole checkout.",
   },
   rules: {
     heading: "Regole checkout",
@@ -112,7 +113,7 @@ const it = {
       "Il Codice Fiscale va raccolto nel campo fiscale nativo del checkout italiano. Se lo raccogli anche in “Interno”, il cliente vede due campi per lo stesso dato. CF Ready non legge e non modifica quell’impostazione: qui contiamo sulla tua dichiarazione.",
     address2Checkbox: "Uso il campo “Interno” per il Codice Fiscale",
     address2Instructions:
-      "Apri Impostazioni → Checkout in Shopify e togli il Codice Fiscale dal campo “Interno” / “Indirizzo 2”. Finché la dichiarazione resta attiva, il promemoria compare anche in Home.",
+      "Servono due passaggi. In Impostazioni → Checkout, sezione “Opzioni del modulo”, porta la seconda riga dell’indirizzo su “Facoltativo” o “Non includere”; poi, se ne hai cambiato l’etichetta, rimettila com’era da “Gestisci la lingua del checkout”, o da Impostazioni → Lingue, scheda “Checkout e sistema”, se la lingua è tradotta.",
   },
   checkout: {
     nothing: "Nessuna regola attiva: il checkout si comporta come oggi.",
@@ -139,6 +140,7 @@ const en: typeof it = {
   },
   common: {
     saved: "Rules saved. They apply from the next order.",
+    cancel: "Cancel",
   },
   errors: {
     validation_locked: "Another operation on this validation is running. Try again shortly.",
@@ -190,7 +192,7 @@ const en: typeof it = {
     nextTestOrder: "Place a test order to see the rules at work.",
     nextChoosePlan: "Choose a plan to apply your rules in checkout again.",
     nextAddress2:
-      "Remove the tax code from the “Apartment, suite, etc.” field in Settings → Checkout: right now customers see two fields for the same value.",
+      "Stop using the “Apartment, suite, etc.” field for the tax code: right now customers see two fields for the same value. The steps are on Checkout rules.",
   },
   rules: {
     heading: "Checkout rules",
@@ -231,7 +233,7 @@ const en: typeof it = {
       "The tax code belongs in the native Italian checkout field. If you also collect it in “Apartment, suite, etc.”, customers see two fields for the same value. CF Ready can’t read or change that setting: this relies on what you tell us.",
     address2Checkbox: "I use the “Apartment, suite, etc.” field for the tax code",
     address2Instructions:
-      "Open Settings → Checkout in Shopify and remove the tax code from the “Apartment, suite, etc.” field. While this declaration stays on, the reminder also shows on Home.",
+      "Two steps. In Settings → Checkout, under “Form options”, set the second address line to “Optional” or “Don’t include”; then, if you changed its label, restore it from “Manage checkout language”, or from Settings → Languages, “Checkout and system” tab, for a translated language.",
   },
   checkout: {
     nothing: "No rules active: checkout behaves exactly as it does today.",

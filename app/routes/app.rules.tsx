@@ -119,84 +119,84 @@ export default function CheckoutRules() {
           })
         }
       >
-        <input type="hidden" name="configHash" value={saved.configHash ?? ""} />
-        <s-section heading={t.rules.taxCodeLabel}>
-          <s-choice-list
-            label={t.rules.taxCodeLabel}
-            labelAccessibilityVisibility="exclusive"
-            name="taxCode"
-            values={[draft.rules.taxCode]}
-          >
-            {RULE_MODES.map((mode) => (
-              <s-choice key={mode} value={mode}>
-                {t.rules.taxCode[mode]}
-                <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
-              </s-choice>
-            ))}
-          </s-choice-list>
-        </s-section>
-
-        <s-section heading={t.rules.pecLabel}>
-          <s-choice-list
-            label={t.rules.pecLabel}
-            labelAccessibilityVisibility="exclusive"
-            name="pec"
-            values={[draft.rules.pec]}
-          >
-            {RULE_MODES.map((mode) => (
-              <s-choice key={mode} value={mode}>
-                {t.rules.pec[mode]}
-                <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
-              </s-choice>
-            ))}
-          </s-choice-list>
-        </s-section>
-
-        {/* D-067: le eccezioni sono sempre visibili e non modificabili. */}
-        <s-section heading={t.rules.exceptionsHeading}>
-          <s-unordered-list>
-            {t.rules.exceptions.map((line) => (
-              <s-list-item key={line}>{line}</s-list-item>
-            ))}
-          </s-unordered-list>
-        </s-section>
-
-        <s-section heading={t.rules.previewHeading}>
-          <s-checkbox
-            label={t.rules.preventiveLabel}
-            details={t.rules.preventiveHelp}
-            name="errorDisplay"
-            value="preventive"
-            checked={draft.errorDisplay === "preventive"}
-          />
-          {/* D-068: anteprima testuale, nessuna simulazione grafica del checkout. */}
-          {describeCheckout(
-            {
-              rules: draft.rules,
-              errorDisplay: draft.errorDisplay,
-              status: saved.enabled ? "active" : "disabled",
-            },
-            saved.locale,
-          ).map((line) => (
-            <s-paragraph key={line}>{line}</s-paragraph>
-          ))}
-        </s-section>
-
-        {/* FR-058: avviso e dichiarazione, mai un rilevamento. Compare solo quando il Codice
-            Fiscale è gestito, perché è lì che i due campi si sovrappongono. */}
-        {draft.rules.taxCode === "unmanaged" ? null : (
-          <s-section heading={t.rules.address2Heading}>
-            <input type="hidden" name="address2Shown" value="1" />
-            <s-banner tone="warning">{t.rules.address2Body}</s-banner>
-            <s-checkbox
-              label={t.rules.address2Checkbox}
-              name="address2"
-              value="declared"
-              checked={draft.address2}
-            />
-            {draft.address2 ? <s-paragraph>{t.rules.address2Instructions}</s-paragraph> : null}
+        <s-stack direction="block" gap="base">
+          <input type="hidden" name="configHash" value={saved.configHash ?? ""} />
+          <s-section heading={t.rules.taxCodeLabel}>
+            <s-choice-list
+              label={t.rules.taxCodeLabel}
+              labelAccessibilityVisibility="exclusive"
+              name="taxCode"
+            >
+              {RULE_MODES.map((mode) => (
+                <s-choice key={mode} value={mode} selected={mode === saved.rules.taxCode}>
+                  {t.rules.taxCode[mode]}
+                  <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
+                </s-choice>
+              ))}
+            </s-choice-list>
           </s-section>
-        )}
+
+          <s-section heading={t.rules.pecLabel}>
+            <s-choice-list
+              label={t.rules.pecLabel}
+              labelAccessibilityVisibility="exclusive"
+              name="pec"
+            >
+              {RULE_MODES.map((mode) => (
+                <s-choice key={mode} value={mode} selected={mode === saved.rules.pec}>
+                  {t.rules.pec[mode]}
+                  <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
+                </s-choice>
+              ))}
+            </s-choice-list>
+          </s-section>
+
+          {/* D-067: le eccezioni sono sempre visibili e non modificabili. */}
+          <s-section heading={t.rules.exceptionsHeading}>
+            <s-unordered-list>
+              {t.rules.exceptions.map((line) => (
+                <s-list-item key={line}>{line}</s-list-item>
+              ))}
+            </s-unordered-list>
+          </s-section>
+
+          <s-section heading={t.rules.previewHeading}>
+            <s-checkbox
+              label={t.rules.preventiveLabel}
+              details={t.rules.preventiveHelp}
+              name="errorDisplay"
+              value="preventive"
+              defaultChecked={saved.errorDisplay === "preventive"}
+            />
+            {/* D-068: anteprima testuale, nessuna simulazione grafica del checkout. */}
+            {describeCheckout(
+              {
+                rules: draft.rules,
+                errorDisplay: draft.errorDisplay,
+                status: saved.enabled ? "active" : "disabled",
+              },
+              saved.locale,
+            ).map((line) => (
+              <s-paragraph key={line}>{line}</s-paragraph>
+            ))}
+          </s-section>
+
+          {/* FR-058: avviso e dichiarazione, mai un rilevamento. Compare solo quando il Codice
+              Fiscale è gestito, perché è lì che i due campi si sovrappongono. */}
+          {draft.rules.taxCode === "unmanaged" ? null : (
+            <s-section heading={t.rules.address2Heading}>
+              <input type="hidden" name="address2Shown" value="1" />
+              <s-banner tone="warning">{t.rules.address2Body}</s-banner>
+              <s-checkbox
+                label={t.rules.address2Checkbox}
+                name="address2"
+                value="declared"
+                defaultChecked={saved.address2Declared}
+              />
+              {draft.address2 ? <s-paragraph>{t.rules.address2Instructions}</s-paragraph> : null}
+            </s-section>
+          )}
+        </s-stack>
       </Form>
     </s-page>
   );
