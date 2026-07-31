@@ -310,12 +310,16 @@ test("riaprire l'onboarding non lo riporta a in corso", async () => {
   await saveOnboarding(env.DB, shop, { status: "in_progress", step: 2 });
   expect((await readOnboarding(env.DB, shop)).status).toBe("in_progress");
 
-  await saveOnboarding(env.DB, shop, { status: "completed", step: 4 });
+  // Chiudere la procedura riporta il contatore a uno, così riaprirla riparte dall'inizio
+  // invece di restare incastrata sul riepilogo.
+  await saveOnboarding(env.DB, shop, { status: "completed", step: 1 });
+  expect((await readOnboarding(env.DB, shop)).step).toBe(1);
+
+  // Ripercorrerla avanza davvero, senza far ricomparire la checklist della Home.
+  await saveOnboarding(env.DB, shop, { status: "in_progress", step: 2 });
+  expect((await readOnboarding(env.DB, shop)).step).toBe(2);
   // §15.9: la procedura resta riapribile, ma ripercorrerla non la riapre davvero: lo stato non
   // torna indietro, altrimenti la checklist della Home ricomparirebbe (D-063).
-  await saveOnboarding(env.DB, shop, { status: "in_progress", step: 1 });
-
   const state = await readOnboarding(env.DB, shop);
   expect(state.status).toBe("completed");
-  expect(state.step).toBe(1);
 });
