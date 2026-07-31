@@ -152,7 +152,9 @@ export default function Plan() {
     <s-page heading={t.nav.plan}>
       {/* §8.6: un solo banner in cima, e vince quello che blocca l'operatività. */}
       {data.errorCode ? (
-        <s-banner tone="warning">{t.plan.lastAttempt}</s-banner>
+        <s-banner tone="warning">
+          {data.errorCode === "billing_read_failed" ? t.plan.lastAttempt : t.home.syncNeeded}
+        </s-banner>
       ) : data.entitlement.kind === "none" ? (
         <s-banner tone="warning">{t.home.noEntitlement}</s-banner>
       ) : notice ? (
@@ -237,9 +239,19 @@ export default function Plan() {
               <s-paragraph>{t.plan.oneTimeCharge}</s-paragraph>
               {/* FR-081: il credito stimato si mostra prima di creare l'acquisto. */}
               {data.entitlement.kind === "subscription" && data.creditEstimate ? (
-                <s-paragraph>
-                  {t.plan.creditEstimate(formatMoney(data.creditEstimate, data.locale))}
-                </s-paragraph>
+                <>
+                  <s-paragraph>
+                    {t.plan.netCost(
+                      formatMoney(
+                        Math.max(0, data.plan.one_time - data.creditEstimate),
+                        data.locale,
+                      ),
+                    )}
+                  </s-paragraph>
+                  <s-paragraph>
+                    {t.plan.creditEstimate(formatMoney(data.creditEstimate, data.locale))}
+                  </s-paragraph>
+                </>
               ) : null}
               <s-stack direction="inline" gap="base">
                 <s-button disabled={busy} onClick={() => submit("one_time")}>
@@ -254,12 +266,16 @@ export default function Plan() {
       {data.entitlement.kind === "subscription" ? (
         <s-section slot="aside" heading={t.plan.cancelRenewal}>
           <s-stack direction="block" gap="small-100">
-            <s-paragraph>{t.plan.cancelBody}</s-paragraph>
-            <s-stack direction="inline" gap="base">
-              <s-button disabled={busy} onClick={() => submit("cancel")}>
-                {t.plan.cancelRenewal}
-              </s-button>
-            </s-stack>
+            <s-paragraph>
+              {data.accountStatus === "ending" ? t.plan.endingAlready : t.plan.cancelBody}
+            </s-paragraph>
+            {data.accountStatus === "ending" ? null : (
+              <s-stack direction="inline" gap="base">
+                <s-button disabled={busy} onClick={() => submit("cancel")}>
+                  {t.plan.cancelRenewal}
+                </s-button>
+              </s-stack>
+            )}
           </s-stack>
         </s-section>
       ) : null}
