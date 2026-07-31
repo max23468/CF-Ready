@@ -3811,7 +3811,7 @@ Gate: verdi, salvo la cancellazione ordinaria spostata al canary M10.
 - nessun entitlement basato su redirect;
 - `test` charges verificati.
 
-### M6 — UI completa
+### M6 — UI completa ✅ completata
 
 Deliverable:
 
@@ -3832,6 +3832,12 @@ Gate:
 - Save Bar;
 - E2E critici;
 - nessun framework UI extra.
+
+Consegnata da `0.4.0` a `0.4.13`. Gli E2E di §23.10 sono stati eseguiti
+manualmente sul dev store, uno per snapshot: l'automazione richiede
+un'infrastruttura browser e una sessione staff autenticata, ed è una decisione
+di dipendenza rimasta aperta. Operazioni e residui in
+`docs/evidence/2026-07-31-m6-ui-completa.md`.
 
 ### M7 — Sito, legale e supporto
 

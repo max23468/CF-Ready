@@ -1,5 +1,11 @@
 import { expect, test } from "vitest";
-import { address2Declaration, MESSAGE_KEYS, messageAppears, validateMessages } from "../app/config";
+import {
+  address2Declaration,
+  MESSAGE_KEYS,
+  messageAppears,
+  reviewIsDue,
+  validateMessages,
+} from "../app/config";
 import {
   describeCheckout,
   formatDate,
@@ -225,4 +231,30 @@ test("gli avvisi di prova scattano a sette, tre e all'ultimo giorno", () => {
   // §14.3: nessun conto alla rovescia, la data è esplicita.
   expect(at(3)?.text).toContain("10 agosto 2026");
   expect(at(3)?.text).not.toMatch(/\b3\b/);
+});
+
+test("la recensione si chiede solo alle condizioni di §15.10", () => {
+  const day = 86_400_000;
+  const now = Date.parse("2026-08-10T12:00:00.000Z");
+  const ready = {
+    onboarding: "completed",
+    validationEnabled: true,
+    errorCode: null,
+    enabledSince: new Date(now - 8 * day).toISOString(),
+  };
+
+  expect(reviewIsDue(ready, now)).toBe(true);
+  // Sette giorni esatti bastano, sei no.
+  expect(reviewIsDue({ ...ready, enabledSince: new Date(now - 7 * day).toISOString() }, now)).toBe(
+    true,
+  );
+  expect(reviewIsDue({ ...ready, enabledSince: new Date(now - 6 * day).toISOString() }, now)).toBe(
+    false,
+  );
+  // Onboarding non concluso, validazione ferma, errore aperto: nessuna richiesta.
+  expect(reviewIsDue({ ...ready, onboarding: "in_progress" }, now)).toBe(false);
+  expect(reviewIsDue({ ...ready, validationEnabled: false }, now)).toBe(false);
+  expect(reviewIsDue({ ...ready, errorCode: "validation_readback_failed" }, now)).toBe(false);
+  // Mai attivata: non c'è un momento da cui contare.
+  expect(reviewIsDue({ ...ready, enabledSince: null }, now)).toBe(false);
 });

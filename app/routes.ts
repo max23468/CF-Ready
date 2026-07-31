@@ -8,6 +8,7 @@ export default [
     route("messages", "routes/app.messages.tsx"),
     route("plan", "routes/app.plan.tsx"),
     route("guide", "routes/app.guide.tsx"),
+    route("onboarding", "routes/app.onboarding.tsx"),
   ]),
   route("auth/login", "routes/auth.login/route.tsx"),
   route("auth/*", "routes/auth.$.tsx"),

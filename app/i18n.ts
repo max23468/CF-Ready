@@ -103,6 +103,37 @@ const it = {
     appears: "Compare",
     appearsNot: "Non compare",
   },
+  onboarding: {
+    heading: "Configura CF Ready",
+    stepOf: (current: number, total: number) => `Passo ${current} di ${total}`,
+    back: "Indietro",
+    next: "Continua",
+    step1Heading: "Cosa fa e cosa non fa",
+    step1Body:
+      "CF Ready controlla il Codice Fiscale e la PEC nel campo fiscale nativo del checkout italiano. Non modifica il tema, non aggiunge campi e non emette fatture.",
+    step1Limits: [
+      "Il controllo è formale: verifica la composizione del dato, non a chi appartiene.",
+      "Le regole valgono solo con consegna e fatturazione in Italia.",
+      "Se il campo non è presente nel checkout, l’ordine passa: un errore dell’app non blocca una vendita.",
+    ],
+    step2Heading: "Scegli cosa controllare",
+    step2Body: "Puoi cambiare queste scelte quando vuoi da Regole checkout.",
+    step3Heading: "Cosa succede nel checkout",
+    step3Messages: "I testi che il cliente legge",
+    step3MessagesBody:
+      "Sono già pronti in italiano e inglese. Puoi riscriverli quando vuoi da Messaggi al cliente.",
+    step4Heading: "Riepilogo",
+    step4Body: "Da qui puoi attivare subito le regole oppure salvarle e attivarle più tardi.",
+    activate: "Attiva nel checkout",
+    finishWithout: "Completa senza attivare",
+    doneHeading: "Configurazione completata",
+    doneBody:
+      "Le regole sono salvate. Puoi cambiarle quando vuoi, e questa procedura resta disponibile dalla Guida.",
+    reopen: "Rivedi la configurazione iniziale",
+    homeHeading: "Completa la configurazione",
+    homeBody: "Quattro passaggi per scegliere cosa controllare e attivare le regole nel checkout.",
+    homeStart: "Inizia",
+  },
   guide: {
     heading: "Guida e FAQ",
     intro:
@@ -169,7 +200,7 @@ const it = {
       },
       {
         q: "Rivedere la configurazione iniziale",
-        a: "Puoi cambiare regole e messaggi quando vuoi dalle rispettive pagine, senza rifare la procedura iniziale.",
+        a: "Puoi cambiare regole e messaggi quando vuoi dalle rispettive pagine. La procedura guidata resta disponibile e ripercorrerla non azzera nulla: le tue scelte restano quelle salvate.",
       },
       {
         q: "Contattare lo sviluppatore",
@@ -366,6 +397,37 @@ const en: typeof it = {
     appears: "Shown",
     appearsNot: "Not shown",
   },
+  onboarding: {
+    heading: "Set up CF Ready",
+    stepOf: (current: number, total: number) => `Step ${current} of ${total}`,
+    back: "Back",
+    next: "Continue",
+    step1Heading: "What it does and doesn’t do",
+    step1Body:
+      "CF Ready checks the Italian tax code (Codice Fiscale) and the certified email address (PEC) in the native Italian checkout field. It doesn’t change your theme, doesn’t add fields and doesn’t issue invoices.",
+    step1Limits: [
+      "The check is formal: it verifies how the value is composed, not who it belongs to.",
+      "Rules only apply when delivery and billing are both in Italy.",
+      "If the field isn’t in the checkout, the order goes through: an app error never blocks a sale.",
+    ],
+    step2Heading: "Choose what to check",
+    step2Body: "You can change these choices whenever you want from Checkout rules.",
+    step3Heading: "What happens at checkout",
+    step3Messages: "The texts customers read",
+    step3MessagesBody:
+      "They’re ready in Italian and English. You can rewrite them whenever you want from Customer messages.",
+    step4Heading: "Summary",
+    step4Body: "From here you can turn the rules on now, or save them and turn them on later.",
+    activate: "Turn on in checkout",
+    finishWithout: "Finish without turning on",
+    doneHeading: "Setup complete",
+    doneBody:
+      "Your rules are saved. You can change them whenever you want, and these steps stay available from the Help page.",
+    reopen: "Review your initial setup",
+    homeHeading: "Finish setting up",
+    homeBody: "Four steps to choose what to check and turn the rules on in checkout.",
+    homeStart: "Start",
+  },
   guide: {
     heading: "Help and FAQ",
     intro:
@@ -432,7 +494,7 @@ const en: typeof it = {
       },
       {
         q: "Reviewing your initial setup",
-        a: "You can change rules and messages whenever you want from their own pages, without redoing the initial steps.",
+        a: "You can change rules and messages whenever you want from their own pages. The guided steps stay available and going through them again resets nothing: your saved choices stay as they are.",
       },
       {
         q: "Contacting the developer",

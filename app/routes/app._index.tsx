@@ -1,7 +1,8 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import { useEffect } from "react";
 import { useFetcher, useLoaderData } from "react-router";
 import { remainingTrialDays } from "../billing.server";
-import { ELIGIBLE_COUNTRY, readConfig } from "../config";
+import { ELIGIBLE_COUNTRY, readConfig, reviewIsDue } from "../config";
 import { recordEvent } from "../events.server";
 import { resolveLocale, summariseCheckout, texts, trialNotice } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
@@ -10,7 +11,9 @@ import {
   findValidation,
   queryContext,
   readAddress2Declaration,
+  readOnboarding,
   reconcile,
+  validationEnabledSince,
   writeValidation,
 } from "../validation.server";
 
@@ -21,6 +24,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   // certo senza aver riletto Shopify.
   const state = await reconcile(admin, db, session.shop);
   const config = readConfig(state.validation?.metafield?.jsonValue);
+  const onboarding = await readOnboarding(db, session.shop);
 
   return {
     locale: resolveLocale(request),
@@ -35,6 +39,17 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     remaining: remainingTrialDays(state.trial, state.today),
     entitlement: state.entitlement,
     errorCode: state.errorCode,
+    onboarding: onboarding.status,
+    // §15.10: la decisione si prende qui, non a un clic del merchant.
+    reviewDue: reviewIsDue(
+      {
+        onboarding: onboarding.status,
+        validationEnabled: state.validation?.enabled ?? false,
+        errorCode: state.errorCode,
+        enabledSince: await validationEnabledSince(db, session.shop),
+      },
+      Date.now(),
+    ),
   };
 };
 
@@ -79,6 +94,13 @@ export default function Home() {
   const t = texts(data.locale);
   const esito = fetcher.data as { ok: boolean; errorCode?: string } | undefined;
   const submit = (intent: string) => fetcher.submit({ intent }, { method: "post" });
+
+  // La modale è di Shopify, che decide da sé idoneità, frequenza e rifiuti: qui si sceglie solo
+  // il momento, e non deve essere un'azione del merchant.
+  useEffect(() => {
+    if (!data.reviewDue || typeof shopify === "undefined") return;
+    void shopify.reviews.request().catch(() => undefined);
+  }, [data.reviewDue]);
 
   if (!data.eligible) {
     return (
@@ -145,6 +167,20 @@ export default function Home() {
           stesso riquadro. È il primo blocco che il merchant vede a ogni apertura: deve dire
           cosa succede, su cosa, e cosa può farci, senza costringerlo a scorrere. */}
       <s-section>
+        {/* D-063: la checklist iniziale sparisce per sempre a onboarding completato. */}
+        {data.onboarding === "completed" ? null : (
+          <s-section heading={t.onboarding.homeHeading}>
+            <s-stack direction="block" gap="small-100">
+              <s-paragraph>{t.onboarding.homeBody}</s-paragraph>
+              <s-stack direction="inline" gap="base">
+                <s-button href="/app/onboarding" variant="primary">
+                  {t.onboarding.homeStart}
+                </s-button>
+              </s-stack>
+            </s-stack>
+          </s-section>
+        )}
+
         <s-stack direction="block" gap="base">
           <s-badge
             tone={status === "active" ? "success" : status === "lapsed" ? "warning" : "neutral"}

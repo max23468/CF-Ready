@@ -147,3 +147,22 @@ export function messageAppears(rules: Rules, key: (typeof MESSAGE_KEYS)[number])
   const mode = key.startsWith("taxCode") ? rules.taxCode : rules.pec;
   return key.endsWith("Required") ? mode === "required_validated" : mode !== "unmanaged";
 }
+
+export const REVIEW_MIN_DAYS = 7;
+
+// §15.10 e FR-093: si chiede una recensione solo a onboarding concluso, con la validazione
+// attiva da almeno sette giorni e nessun errore tecnico aperto. Shopify decide poi da sé se
+// mostrarla davvero: idoneità, frequenza e rifiuti sono gestiti dalla sua modale.
+export function reviewIsDue(
+  state: {
+    onboarding: string;
+    validationEnabled: boolean;
+    errorCode: string | null;
+    enabledSince: string | null;
+  },
+  now: number,
+) {
+  if (state.onboarding !== "completed" || !state.validationEnabled) return false;
+  if (state.errorCode || !state.enabledSince) return false;
+  return now - Date.parse(state.enabledSince) >= REVIEW_MIN_DAYS * 86_400_000;
+}

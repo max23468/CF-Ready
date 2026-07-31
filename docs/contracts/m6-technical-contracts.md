@@ -100,3 +100,25 @@ toccata e la configurazione del merchant resta salvata.
 
 I codici restano valori chiusi, sicuri da mostrare e da confrontare, come da
 contratti M4.
+
+## Onboarding e recensioni
+
+`app_state.onboarding_status` e `onboarding_step` guidano la procedura di
+§15.9. Le regole scelte al secondo passo vengono salvate subito con il percorso
+ordinario, quindi la Validation nasce disattivata e sopravvive a una ricarica;
+attivare resta il gesto finale, separato, di FR-051. Completare senza attivare
+conserva la configurazione e porta lo stato a `completed`, che è anche ciò che
+valorizza `setup_checklist_dismissed_at`: la checklist della Home non ricompare
+più (D-063). Riaprire la procedura dalla Guida non azzera nulla — si ripercorre
+sulla configurazione salvata.
+
+La richiesta di recensione usa la modale nativa di Shopify, che decide da sé
+idoneità, frequenza e rifiuti: le tre risposte di FR-094 sono sue. L'app sceglie
+soltanto il momento, e la scelta è espressa da `reviewIsDue`: onboarding
+concluso, Validation attiva, nessun codice errore aperto e almeno sette giorni
+dall'ultimo evento `validation_enabled`, che è già nel registro e rende inutile
+una colonna dedicata. La chiamata non parte mai da un'azione del merchant, come
+la documentazione Shopify richiede.
+
+`onboarding_completed` si aggiunge agli eventi, di classe `onboarding`, con
+`enabled` a dire se la procedura si è chiusa attivando o no.
