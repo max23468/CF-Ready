@@ -5,6 +5,22 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.6 — 31 luglio 2026
+
+Pagina `Messaggi al cliente` e spaziatura uniforme fra le colonne.
+
+- nuova pagina `Messaggi al cliente`: otto testi, quattro per lingua, con
+  contatore, limite di 200 caratteri, divieto di valore vuoto e ripristino dei
+  testi predefiniti separato per lingua con conferma. Il salvataggio conserva
+  regole e stato della Validation e passa dallo stesso controllo ottimistico
+  delle altre pagine;
+- le due lingue sono due sezioni entrambe visibili invece di due schede:
+  Polaris non ha un componente tab e costruirlo a mano significherebbe
+  reimplementarne l'accessibilità. Annotato in §15.5 del Master Plan;
+- la spaziatura fra i box è ora la stessa nelle due colonne di tutte le
+  pagine: la colonna principale usava uno stack esplicito e quella laterale la
+  spaziatura della pagina, che non coincidono. Ora la dà `s-page` per entrambe.
+
 ## 0.4.5 — 31 luglio 2026
 
 - etichetta e modalità tornano vicine: una griglia `1fr auto` le spingeva ai

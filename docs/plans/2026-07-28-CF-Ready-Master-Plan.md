@@ -1979,12 +1979,18 @@ Ogni opzione ha una spiegazione concreta. Dopo le regole:
 
 ### 15.5 Messaggi al cliente
 
-Due tab:
+Due sezioni, una per lingua:
 
 - Italiano
 - English
 
-Quattro campi per tab:
+Polaris Web Components non espone un componente tab e costruirne uno a mano
+significherebbe reimplementarne l’accessibilità, che §8.1 della Brand
+Foundation vieta. Le due lingue restano quindi entrambe visibili: la regola
+per cui un errore non può nascondersi dietro una scheda chiusa è così
+soddisfatta per costruzione, e il ripristino resta separato per lingua.
+
+Quattro campi per lingua:
 
 - CF obbligatorio;
 - CF non valido;

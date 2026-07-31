@@ -18,6 +18,7 @@ const it = {
   nav: {
     home: "Home",
     rules: "Regole checkout",
+    messages: "Messaggi al cliente",
   },
   common: {
     saved: "Regole salvate. Valgono dal prossimo ordine.",
@@ -74,6 +75,26 @@ const it = {
     nextChoosePlan: "Scegli una modalità per riattivare le regole nel checkout.",
     nextAddress2:
       "Smetti di usare il campo “Interno” per il Codice Fiscale: oggi il cliente vede due campi per lo stesso dato. Le istruzioni sono in Regole checkout.",
+  },
+  messages: {
+    heading: "Messaggi al cliente",
+    intro:
+      "Sono i testi che il cliente legge nel checkout quando un campo manca o non è formalmente valido. Chi ha il checkout in italiano vede quelli italiani, tutti gli altri vedono quelli inglesi.",
+    italian: "Italiano",
+    english: "English",
+    taxCodeRequired: "Codice Fiscale obbligatorio",
+    taxCodeInvalid: "Codice Fiscale non valido",
+    pecRequired: "PEC obbligatoria",
+    pecInvalid: "PEC non valida",
+    counter: (used: number) => `${used}/200 caratteri`,
+    tooLong: "Massimo 200 caratteri.",
+    empty: "Il messaggio non può restare vuoto.",
+    reset: "Ripristina testi predefiniti",
+    resetConfirm: (language: string) =>
+      `I quattro messaggi in ${language} tornano ai testi predefiniti. Gli altri non cambiano, e la modifica vale solo dopo il salvataggio.`,
+    exampleHeading: "Come compaiono nel checkout",
+    exampleIntro:
+      "Il cliente legge una sola di queste righe, quella del caso che lo riguarda. Qui sotto la versione in",
   },
   plan: {
     heading: "Piano",
@@ -160,6 +181,7 @@ const en: typeof it = {
   nav: {
     home: "Home",
     rules: "Checkout rules",
+    messages: "Customer messages",
   },
   common: {
     saved: "Rules saved. They apply from the next order.",
@@ -216,6 +238,26 @@ const en: typeof it = {
     nextChoosePlan: "Choose a plan to apply your rules in checkout again.",
     nextAddress2:
       "Stop using the “Apartment, suite, etc.” field for the tax code: right now customers see two fields for the same value. The steps are on Checkout rules.",
+  },
+  messages: {
+    heading: "Customer messages",
+    intro:
+      "These are the texts customers read at checkout when a field is missing or not formally valid. Customers checking out in Italian see the Italian ones, everyone else sees the English ones.",
+    italian: "Italiano",
+    english: "English",
+    taxCodeRequired: "Tax code required",
+    taxCodeInvalid: "Tax code invalid",
+    pecRequired: "PEC required",
+    pecInvalid: "PEC invalid",
+    counter: (used: number) => `${used}/200 characters`,
+    tooLong: "200 characters maximum.",
+    empty: "The message can’t be empty.",
+    reset: "Restore default texts",
+    resetConfirm: (language: string) =>
+      `The four ${language} messages go back to their default texts. The others don’t change, and it only takes effect once you save.`,
+    exampleHeading: "How they appear at checkout",
+    exampleIntro:
+      "A customer reads only one of these lines, the one that applies to them. Below, the version in",
   },
   plan: {
     heading: "Plan",

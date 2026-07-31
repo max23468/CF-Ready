@@ -117,3 +117,25 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function address2Declaration(form: FormData): boolean | null {
   return form.get("address2Shown") === null ? null : form.get("address2") !== null;
 }
+
+export type MessageProblem = { locale: "it" | "en"; key: (typeof MESSAGE_KEYS)[number] };
+
+// FR-061 e FR-062: trim, mai vuoti, mai oltre 200 caratteri. La validazione client è cortesia,
+// questa è la difesa: un testo fuori contratto non viene corretto in silenzio, la scrittura non
+// parte e il campo colpevole viene indicato.
+export function validateMessages(
+  input: Record<string, unknown>,
+): { messages: CheckoutConfig["messages"] } | { problem: MessageProblem } {
+  const messages = { it: {}, en: {} } as CheckoutConfig["messages"];
+
+  for (const locale of ["it", "en"] as const) {
+    for (const key of MESSAGE_KEYS) {
+      const value = input[`${locale}.${key}`];
+      const text = typeof value === "string" ? value.trim() : "";
+      if (!text || text.length > MESSAGE_MAX_LENGTH) return { problem: { locale, key } };
+      messages[locale][key] = text;
+    }
+  }
+
+  return { messages };
+}
