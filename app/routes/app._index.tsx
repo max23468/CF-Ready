@@ -256,18 +256,10 @@ export default function Home() {
         </s-banner>
       ) : null}
 
-      {/* D-063: la checklist iniziale sparisce per sempre a onboarding completato. */}
+      {/* D-063: la guida di configurazione apre la colonna principale finché serve, poi
+          sparisce per sempre. `Prossimo passo` è indipendente e resta. */}
       {data.onboarding === "completed" ? null : (
-        <s-section heading={t.onboarding.homeHeading}>
-          <s-stack direction="block" gap="small-100">
-            <s-paragraph>{t.onboarding.homeBody}</s-paragraph>
-            <s-stack direction="inline" gap="base">
-              <s-button href="/app/onboarding" variant="primary">
-                {t.onboarding.homeStart}
-              </s-button>
-            </s-stack>
-          </s-stack>
-        </s-section>
+        <SetupGuide data={data} busy={busy} submit={submit} />
       )}
 
       {/* §15.3: stato e configurazione corrente sono i primi due contenuti e stanno nello
@@ -294,19 +286,18 @@ export default function Home() {
 
           <s-divider />
 
-          {/* Dati, non prosa: etichetta a sinistra, stato a destra. Le etichette portano alla
-              pagina che li governa, così la Home non è solo da leggere. */}
+          {/* Dati, non prosa: etichetta a sinistra, stato a destra. */}
           <s-stack direction="block" gap="small-100">
             <s-stack direction="inline" gap="small-100" alignItems="center">
-              <s-link href="/app/rules">{t.rules.taxCodeLabel}</s-link>
+              <s-text>{t.rules.taxCodeLabel}</s-text>
               <s-badge>{t.rules.taxCode[data.rules.taxCode]}</s-badge>
             </s-stack>
             <s-stack direction="inline" gap="small-100" alignItems="center">
-              <s-link href="/app/rules">{t.rules.pecLabel}</s-link>
+              <s-text>{t.rules.pecLabel}</s-text>
               <s-badge>{t.rules.pec[data.rules.pec]}</s-badge>
             </s-stack>
             <s-stack direction="inline" gap="small-100" alignItems="center">
-              <s-link href="/app/messages">{t.home.messagesLabel}</s-link>
+              <s-text>{t.home.messagesLabel}</s-text>
               <s-badge>
                 {data.messagesDefault ? t.home.messagesDefault : t.home.messagesCustom}
               </s-badge>
@@ -530,6 +521,100 @@ function PlanChoice({
           ) : null}
         </s-stack>
       )}
+    </s-section>
+  );
+}
+
+// Composizione `Setup guide` di Polaris: passi con stato reale, spunta di completamento e
+// contatore. I passi hanno un completamento oggettivo — «fai un ordine di prova» resterebbe
+// fuori, perché CF Ready non legge gli ordini e non è nel suo perimetro.
+function SetupGuide({
+  data,
+  busy,
+  submit,
+}: {
+  data: HomeData;
+  busy: boolean;
+  submit: (intent: string) => void;
+}) {
+  const t = texts(data.locale);
+  const configured = data.rules.taxCode !== "unmanaged" || data.rules.pec !== "unmanaged";
+  const steps = [
+    {
+      done: configured,
+      title: t.setup.rulesTitle,
+      body: t.setup.rulesBody,
+      action: <s-link href="/app/rules">{t.nav.rules}</s-link>,
+    },
+    {
+      done: data.validationEnabled,
+      title: t.setup.activateTitle,
+      body: t.setup.activateBody,
+      action:
+        data.validationEnabled || !configured ? null : (
+          <s-stack direction="inline" gap="base">
+            <s-button disabled={busy} onClick={() => submit("enable")}>
+              {t.home.activate}
+            </s-button>
+          </s-stack>
+        ),
+    },
+    {
+      done: data.planKind !== "none",
+      title: t.setup.planTitle,
+      body: t.setup.planBody,
+      action: null,
+    },
+    // FR-058: compare solo se la dichiarazione è attiva, e sparisce quando viene revocata.
+    ...(data.address2Declared
+      ? [
+          {
+            done: false,
+            title: t.setup.address2Title,
+            body: t.home.nextAddress2,
+            action: <s-link href="/app/rules">{t.nav.rules}</s-link>,
+          },
+        ]
+      : []),
+  ];
+  const done = steps.filter((step) => step.done).length;
+
+  return (
+    <s-section>
+      <s-grid gridTemplateColumns="1fr auto" gap="base" alignItems="start">
+        <s-stack direction="block" gap="base">
+          <s-stack direction="block" gap="small-100">
+            <s-heading>{t.setup.heading}</s-heading>
+            <s-paragraph>{t.setup.intro}</s-paragraph>
+            <s-text color="subdued">{t.setup.progress(done, steps.length)}</s-text>
+          </s-stack>
+
+          {steps.map((step) => (
+            <s-box key={step.title} border="base" borderRadius="base" padding="base">
+              <s-grid gridTemplateColumns="auto 1fr" gap="base" alignItems="start">
+                {/* La spunta è un token semantico: dice fatto o da fare, non decora. */}
+                <s-icon type="check-circle" tone={step.done ? "success" : "auto"} />
+                <s-stack direction="block" gap="small-100">
+                  <s-text type="strong">{step.title}</s-text>
+                  <s-paragraph>{step.body}</s-paragraph>
+                  {step.action}
+                </s-stack>
+              </s-grid>
+            </s-box>
+          ))}
+
+          <s-stack direction="inline" gap="base">
+            <s-button href="/app/onboarding" variant="primary">
+              {t.setup.guided}
+            </s-button>
+          </s-stack>
+        </s-stack>
+
+        {/* A-16: illustrazione su una superficie di onboarding, una sola per il blocco. */}
+        <s-box maxInlineSize="120px">
+          <s-image src="/cf-ready-lockup.svg" alt="" aspectRatio="16/3" objectFit="contain" />
+        </s-box>
+      </s-grid>
     </s-section>
   );
 }
