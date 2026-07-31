@@ -19,6 +19,7 @@ const it = {
     home: "Home",
     rules: "Regole checkout",
     messages: "Messaggi al cliente",
+    plan: "Piano e fatturazione",
   },
   common: {
     saved: "Regole salvate. Valgono dal prossimo ordine.",
@@ -104,6 +105,10 @@ const it = {
     oneTime: "Pagamento unico attivo, senza rinnovi.",
     subscription: (date: string) => `Abbonamento attivo fino al ${date}.`,
     trialOver: "Prova terminata: scegli una modalità per riattivare le regole.",
+    trialEndsSoon: (date: string) =>
+      `La prova finisce il ${date}. Dopo quella data il checkout non blocca più gli ordini senza i dati richiesti, e regole e messaggi restano salvati.`,
+    trialLastDay: (date: string) =>
+      `Oggi è l’ultimo giorno di prova: finisce il ${date}. Da domani il checkout non blocca più nulla, e regole e messaggi restano salvati.`,
     none: "Nessun piano attivo.",
     pricesLaunch: (monthly: string, annual: string) =>
       `Prezzo di lancio: ${monthly} ogni 30 giorni oppure ${annual} all’anno.`,
@@ -116,6 +121,24 @@ const it = {
     oneTimeBuy: (price: string) => `Un solo pagamento: ${price}`,
     oneTimeSwitch: "Passa a un solo pagamento",
     cancelRenewal: "Cancella il rinnovo",
+    cancelBody:
+      "L’accesso resta fino alla fine del periodo già pagato, senza rimborsi parziali. Regole e messaggi restano salvati.",
+    endsOn: (date: string) => `La prova finisce il ${date}.`,
+    firstCharge: (date: string) =>
+      `Se attivi oggi, il primo addebito è il ${date}: i giorni di prova che restano non li perdi.`,
+    firstChargeNow: "L’addebito parte alla tua approvazione su Shopify.",
+    oneTimeCharge:
+      "Addebito unico alla tua approvazione su Shopify. I giorni di prova residui decadono.",
+    recommended: "Consigliato",
+    generationLaunch: "Prezzo di lancio, acquisito da questo store.",
+    generationStandard: "Prezzo standard, acquisito da questo store.",
+    nextCharge: (date: string) => `Prossimo addebito il ${date}.`,
+    periodEnds: (date: string) => `Il periodo pagato finisce il ${date}.`,
+    lastAttempt:
+      "L’ultima lettura dello stato commerciale non è riuscita. Il checkout non viene bloccato: riapri la pagina fra qualche minuto.",
+    monthlyName: "Mensile",
+    annualName: "Annuale",
+    oneTimeName: "Un solo pagamento",
     creditEstimate: (amount: string) =>
       `Credito stimato sul periodo non usufruito: ${amount}. È una stima: nella fattura Shopify l’acquisto può comparire a prezzo pieno e il credito separatamente, e l’importo effettivo è quello calcolato da Shopify.`,
   },
@@ -184,6 +207,7 @@ const en: typeof it = {
     home: "Home",
     rules: "Checkout rules",
     messages: "Customer messages",
+    plan: "Plan and billing",
   },
   common: {
     saved: "Rules saved. They apply from the next order.",
@@ -269,6 +293,10 @@ const en: typeof it = {
     oneTime: "One payment active, no renewals.",
     subscription: (date: string) => `Subscription active until ${date}.`,
     trialOver: "Trial over: choose a plan to apply your rules again.",
+    trialEndsSoon: (date: string) =>
+      `Your trial ends on ${date}. After that date checkout no longer blocks orders missing the required fields, and your rules and messages stay saved.`,
+    trialLastDay: (date: string) =>
+      `Today is the last day of your trial: it ends on ${date}. From tomorrow checkout blocks nothing, and your rules and messages stay saved.`,
     none: "No active plan.",
     pricesLaunch: (monthly: string, annual: string) =>
       `Launch price: ${monthly} every 30 days, or ${annual} a year.`,
@@ -281,6 +309,24 @@ const en: typeof it = {
     oneTimeBuy: (price: string) => `One payment: ${price}`,
     oneTimeSwitch: "Switch to one payment",
     cancelRenewal: "Cancel renewal",
+    cancelBody:
+      "Access stays until the end of the period you already paid for, with no partial refund. Your rules and messages stay saved.",
+    endsOn: (date: string) => `Your trial ends on ${date}.`,
+    firstCharge: (date: string) =>
+      `If you start today, the first charge is on ${date}: you keep the trial days you have left.`,
+    firstChargeNow: "The charge starts as soon as you approve it on Shopify.",
+    oneTimeCharge:
+      "One charge as soon as you approve it on Shopify. Any remaining trial days are given up.",
+    recommended: "Recommended",
+    generationLaunch: "Launch price, locked in for this store.",
+    generationStandard: "Standard price, locked in for this store.",
+    nextCharge: (date: string) => `Next charge on ${date}.`,
+    periodEnds: (date: string) => `The paid period ends on ${date}.`,
+    lastAttempt:
+      "The last read of your billing status failed. Checkout isn’t blocked: reload the page in a few minutes.",
+    monthlyName: "Monthly",
+    annualName: "Annual",
+    oneTimeName: "One payment",
     creditEstimate: (amount: string) =>
       `Estimated credit for the unused period: ${amount}. It’s an estimate: on the Shopify invoice the purchase can appear at full price with the credit listed separately, and the actual amount is the one Shopify calculates.`,
   },
@@ -424,4 +470,18 @@ export function summariseCheckout(
 
   if (status !== "active") lines.push(status === "lapsed" ? t.lapsed : t.disabled);
   return lines;
+}
+
+// FR-077: avvisi di prova a sette giorni, tre giorni, ultimo giorno e scadenza. Solo in app,
+// nessuna email (FR-078), e mai un conto alla rovescia (§14.3): si dice la data.
+export function trialNotice(
+  { remaining, endsAt }: { remaining: number; endsAt: string | null },
+  locale: Locale,
+): { tone: "info" | "warning"; text: string } | null {
+  const t = texts(locale).plan;
+  if (!endsAt || remaining > 7 || remaining < 1) return null;
+  const date = formatDate(endsAt, locale);
+
+  if (remaining === 1) return { tone: "warning", text: t.trialLastDay(date) };
+  return { tone: remaining <= 3 ? "warning" : "info", text: t.trialEndsSoon(date) };
 }
