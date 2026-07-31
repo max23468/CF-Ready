@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { address2Declaration, MESSAGE_KEYS, validateMessages } from "../app/config";
+import { address2Declaration, MESSAGE_KEYS, messageAppears, validateMessages } from "../app/config";
 import {
   describeCheckout,
   formatDate,
@@ -187,4 +187,22 @@ test("i messaggi rifiutano vuoti e testi oltre il limite, e li trimmano", () => 
   expect(validateMessages(missing)).toEqual({
     problem: { locale: "en", key: "taxCodeInvalid" },
   });
+});
+
+test("un messaggio compare solo se le regole lo rendono raggiungibile", () => {
+  const shown = (rules: Parameters<typeof messageAppears>[0]) =>
+    MESSAGE_KEYS.filter((key) => messageAppears(rules, key));
+
+  // Campo non gestito: nessuno dei suoi due messaggi raggiunge il cliente.
+  expect(shown({ taxCode: "unmanaged", pec: "unmanaged" })).toEqual([]);
+  // Facoltativo: il messaggio di obbligo non esiste, quello di formato sì.
+  expect(shown({ taxCode: "optional_validated", pec: "unmanaged" })).toEqual(["taxCodeInvalid"]);
+  expect(shown({ taxCode: "required_validated", pec: "optional_validated" })).toEqual([
+    "taxCodeRequired",
+    "taxCodeInvalid",
+    "pecInvalid",
+  ]);
+  expect(shown({ taxCode: "required_validated", pec: "required_validated" })).toEqual([
+    ...MESSAGE_KEYS,
+  ]);
 });
