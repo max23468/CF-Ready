@@ -13,6 +13,7 @@ declare module "react" {
     interface IntrinsicElements {
       "s-app-nav": HTMLAttributes<HTMLElement>;
       "ui-save-bar": HTMLAttributes<HTMLElement> & { id: string };
+      "s-app-window": HTMLAttributes<HTMLElement> & { id: string; src: string };
     }
   }
 }

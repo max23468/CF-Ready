@@ -608,7 +608,9 @@ export async function readOnboarding(db: D1Database, shopDomain: string) {
 
   return {
     status: row?.onboarding_status ?? "not_started",
-    step: row?.onboarding_step ?? 1,
+    // La colonna nasce a zero: `?? 1` non scatta su una riga che esiste già, e un passo zero
+    // produce una schermata vuota. Il valore viene quindi riportato dentro l'intervallo.
+    step: Math.min(4, Math.max(1, row?.onboarding_step ?? 1)),
     errorCode: row?.last_error_code ?? null,
     validationEnabled: Boolean(row?.validation_enabled),
   };
