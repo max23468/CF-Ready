@@ -198,16 +198,16 @@ export default function Home() {
         </s-unordered-list>
       </s-section>
 
+      <s-section slot="aside" heading={t.home.nextHeading}>
+        <s-paragraph>{nextStep}</s-paragraph>
+        {data.address2Declared ? <s-paragraph>{t.home.nextAddress2}</s-paragraph> : null}
+      </s-section>
+
       <s-section slot="aside" heading={t.home.helpHeading}>
         <s-stack direction="block" gap="small-100">
           <s-paragraph>{t.home.helpBody}</s-paragraph>
           <s-link href="/app/guide">{t.nav.guide}</s-link>
         </s-stack>
-      </s-section>
-
-      <s-section slot="aside" heading={t.home.nextHeading}>
-        <s-paragraph>{nextStep}</s-paragraph>
-        {data.address2Declared ? <s-paragraph>{t.home.nextAddress2}</s-paragraph> : null}
       </s-section>
 
       {/* §15.1: le azioni ad alto impatto dichiarano la conseguenza concreta, non “sei sicuro?”. */}

@@ -107,6 +107,7 @@ const it = {
     heading: "Guida e FAQ",
     intro:
       "Come si comporta CF Ready nel checkout, cosa controlla e cosa no. Se non trovi la risposta, scrivici.",
+    asideHeading: "Cosa fa e cosa non fa",
     asideBody:
       "CF Ready controlla solo la forma dei dati, non li verifica presso nessun registro e non emette fatture. Dove c’è un limite, in questa pagina è dichiarato.",
     entries: [
@@ -389,6 +390,7 @@ const en: typeof it = {
     heading: "Help and FAQ",
     intro:
       "How CF Ready behaves at checkout, what it checks and what it doesn’t. If you can’t find your answer, contact us.",
+    asideHeading: "What it does and doesn’t do",
     asideBody:
       "CF Ready only checks the shape of the data, verifies it against no registry and issues no invoices. Wherever there’s a limit, this page states it.",
     entries: [

@@ -41,7 +41,7 @@ export default function Guide() {
 
       {/* A-16: il colore di brand è ammesso dentro un'illustrazione, su superfici prive di
           azioni operative. Questa è documentazione, non configurazione. */}
-      <s-section slot="aside" heading={t.home.helpHeading}>
+      <s-section slot="aside" heading={t.guide.asideHeading}>
         <s-stack direction="block" gap="base">
           <s-box maxInlineSize="64px">
             <s-image src="/cf-ready-mark.svg" alt="" />
