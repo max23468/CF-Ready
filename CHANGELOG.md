@@ -5,6 +5,20 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.20 — 31 luglio 2026
+
+- riaprendo la procedura guidata si torna dove si era rimasti: il passo veniva
+  ricordato solo al salvataggio delle regole, quindi si ripartiva da un valore
+  vecchio. Ora ogni transizione lo scrive, su un canale che non viene mai
+  riletto — è la rilettura, non la scrittura, che faceva rimbalzare la pagina;
+- nella procedura, spuntare la dichiarazione sul campo “Interno” mostra i due
+  passaggi da fare in Shopify, come già in Regole checkout;
+- la guida di configurazione dispone i passi in riga invece che incolonnati:
+  tre righe corte lasciavano vuota tutta la larghezza della card. La
+  spiegazione riguarda solo il passo in corso e sta sotto, e l'azione torna in
+  fondo;
+- il marchio in fondo alla colonna laterale è centrato.
+
 ## 0.4.19 — 31 luglio 2026
 
 - la procedura guidata non salta più passi e non si blocca: il passo vive
