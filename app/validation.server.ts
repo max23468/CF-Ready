@@ -272,6 +272,7 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
   return {
     shopName: shop.name,
     countryCode,
+    today,
     eligible,
     validation,
     trial,

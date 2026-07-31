@@ -1,23 +1,11 @@
-import { useEffect } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
-import { formatDate, formatMoney, resolveLocale, summariseCheckout, texts } from "../i18n";
-import { skipRevalidationWhenLeaving } from "../revalidation";
-import {
-  cancelSubscription,
-  createCharge,
-  returnUrlFor,
-  localDate,
-  readBilling,
-  remainingTrialDays,
-  syncTrial,
-} from "../billing.server";
-import { planFor, planPrices } from "../plans.server";
-import type { PlanKind } from "../plans.server";
-import { recordEvent } from "../events.server";
-import { BILLING_IS_TEST } from "../env.server";
-import { authenticate } from "../shopify.server";
+import { remainingTrialDays } from "../billing.server";
 import { ELIGIBLE_COUNTRY, readConfig } from "../config";
+import { recordEvent } from "../events.server";
+import { resolveLocale, summariseCheckout, texts, trialNotice } from "../i18n";
+import { skipRevalidationWhenLeaving } from "../revalidation";
+import { authenticate } from "../shopify.server";
 import {
   findValidation,
   queryContext,
@@ -25,7 +13,6 @@ import {
   reconcile,
   writeValidation,
 } from "../validation.server";
-import type { Admin } from "../validation.server";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
@@ -44,13 +31,10 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     rules: config.rules,
     errorDisplay: config.errorDisplay,
     address2Declared: (await readAddress2Declaration(db, session.shop)) !== null,
-    trialStatus: state.trial?.status ?? null,
     trialEndsAt: state.trial?.ends_at ?? null,
+    remaining: remainingTrialDays(state.trial, state.today),
     entitlement: state.entitlement,
-    plan: planPrices(state.trial?.pricing_generation ?? "launch"),
-    creditEstimate: state.creditEstimate,
     errorCode: state.errorCode,
-    planKind: state.account?.plan_kind ?? "none",
   };
 };
 
@@ -59,23 +43,6 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const db = context.cloudflare.env.DB;
   const intent = (await request.formData()).get("intent");
 
-  if (
-    intent === "subscribe_monthly" ||
-    intent === "subscribe_annual" ||
-    intent === "buy_one_time"
-  ) {
-    return subscribe(admin, db, session.shop, request, {
-      kind:
-        intent === "subscribe_monthly"
-          ? "monthly"
-          : intent === "subscribe_annual"
-            ? "annual"
-            : "one_time",
-    });
-  }
-  if (intent === "cancel") {
-    return cancelPlan(admin, db, session.shop);
-  }
   if (intent !== "enable" && intent !== "disable") {
     return { ok: false, errorCode: "generic" };
   }
@@ -104,87 +71,14 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   return { ok: true };
 };
 
-// L'approvazione avviene su Shopify: qui si crea l'addebito e si restituisce l'URL di
-// conferma, che il client apre a livello superiore. Il diritto non viene mai concesso dal
-// ritorno: lo stato si rilegge sempre da Shopify.
-async function subscribe(
-  admin: Admin,
-  db: D1Database,
-  shopDomain: string,
-  request: Request,
-  { kind }: { kind: PlanKind },
-) {
-  const { shop } = await queryContext(admin);
-  if (shop.shopAddress.countryCodeV2 !== ELIGIBLE_COUNTRY) {
-    return { ok: false, errorCode: "country_not_eligible" };
-  }
-
-  // Un pagamento unico copre lo store per sempre: nessun altro addebito va creato sopra,
-  // né un secondo acquisto né un abbonamento.
-  if ((await readBilling(admin, BILLING_IS_TEST)).oneTime) {
-    return { ok: false, errorCode: "one_time_already_active" };
-  }
-
-  const today = localDate(shop.ianaTimezone);
-  const trial = await syncTrial(db, shopDomain, { eligible: true, today });
-  const plan = planFor(trial?.pricing_generation ?? "launch", kind);
-  if (!plan) {
-    return { ok: false, errorCode: "generic" };
-  }
-
-  const { confirmationUrl, error } = await createCharge(admin, {
-    name: plan.name,
-    amount: plan.amount,
-    currency: plan.currency,
-    interval: plan.interval,
-    // L'acquisto una tantum viene addebitato all'approvazione e rinuncia ai giorni residui;
-    // le sottoscrizioni ricevono invece solo i giorni di prova che restano.
-    trialDays: kind === "one_time" ? 0 : remainingTrialDays(trial, today),
-    test: BILLING_IS_TEST,
-    returnUrl: returnUrlFor(request, shopDomain),
-  });
-
-  if (error || !confirmationUrl) {
-    return { ok: false, errorCode: "charge_failed" };
-  }
-
-  return { ok: true, confirmationUrl };
-}
-
-// Cancellazione ordinaria: nessuna proratazione, l'accesso resta fino a fine periodo pagato.
-async function cancelPlan(admin: Admin, db: D1Database, shopDomain: string) {
-  const state = await readBilling(admin, BILLING_IS_TEST);
-  if (!state.subscription) {
-    return { ok: false, errorCode: "no_subscription" };
-  }
-
-  const error = await cancelSubscription(admin, state.subscription.id, { prorate: false });
-  if (error) {
-    return { ok: false, errorCode: "cancel_failed" };
-  }
-
-  await recordEvent(db, { shopDomain, name: "subscription_cancelled", class: "billing" });
-  return { ok: true };
-}
-
 export const shouldRevalidate = skipRevalidationWhenLeaving;
 
 export default function Home() {
   const data = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const t = texts(data.locale);
-  // L'azione restituisce forme diverse a seconda dell'intento: qui interessa solo l'URL.
-  const esito = fetcher.data as
-    | { ok: boolean; errorCode?: string; confirmationUrl?: string }
-    | undefined;
-  const confirmationUrl = esito?.confirmationUrl;
+  const esito = fetcher.data as { ok: boolean; errorCode?: string } | undefined;
   const submit = (intent: string) => fetcher.submit({ intent }, { method: "post" });
-
-  // L'approvazione di un addebito vive fuori dall'iframe: va aperta a livello superiore,
-  // altrimenti Shopify rifiuta di caricarla.
-  useEffect(() => {
-    if (confirmationUrl) open(confirmationUrl, "_top");
-  }, [confirmationUrl]);
 
   if (!data.eligible) {
     return (
@@ -207,6 +101,7 @@ export default function Home() {
   }
 
   const entitled = data.entitlement.kind !== "none";
+  const notice = trialNotice({ remaining: data.remaining, endsAt: data.trialEndsAt }, data.locale);
   const status = !data.validationEnabled ? "disabled" : entitled ? "active" : "lapsed";
   const configured = data.rules.taxCode !== "unmanaged" || data.rules.pec !== "unmanaged";
   const nextStep = !entitled
@@ -224,6 +119,9 @@ export default function Home() {
         <s-banner tone="warning">{t.home.syncNeeded}</s-banner>
       ) : !entitled ? (
         <s-banner tone="warning">{t.home.noEntitlement}</s-banner>
+      ) : notice ? (
+        // FR-077: l'avviso di prova compare anche qui, che è la pagina che il merchant apre.
+        <s-banner tone={notice.tone}>{notice.text}</s-banner>
       ) : null}
       {esito && !esito.ok ? (
         <s-banner tone="critical">
@@ -298,67 +196,6 @@ export default function Home() {
         </s-unordered-list>
       </s-section>
 
-      {/* Il piano resta qui finché la pagina “Piano e fatturazione” non lo accoglie: spostarlo
-          adesso toglierebbe al merchant l'unico percorso di pagamento esistente. */}
-      <s-section slot="aside" heading={t.plan.heading}>
-        <s-paragraph>
-          {data.entitlement.kind === "trial"
-            ? t.plan.trial(formatDate(data.trialEndsAt, data.locale))
-            : data.entitlement.kind === "one_time"
-              ? t.plan.oneTime
-              : data.entitlement.kind === "subscription"
-                ? t.plan.subscription(formatDate(data.entitlement.validThrough, data.locale))
-                : data.trialStatus === "expired"
-                  ? t.plan.trialOver
-                  : t.plan.none}
-        </s-paragraph>
-        {data.plan ? (
-          <s-paragraph>
-            {(data.plan.generation === "launch" ? t.plan.pricesLaunch : t.plan.pricesStandard)(
-              formatMoney(data.plan.monthly, data.locale),
-              formatMoney(data.plan.annual, data.locale),
-            )}
-          </s-paragraph>
-        ) : null}
-        <s-stack direction="inline" gap="base">
-          {data.entitlement.kind === "one_time" || data.planKind === "monthly" ? null : (
-            <s-button
-              disabled={fetcher.state !== "idle"}
-              onClick={() => submit("subscribe_monthly")}
-            >
-              {data.planKind === "annual" ? t.plan.monthlySwitch : t.plan.monthlyStart}
-            </s-button>
-          )}
-          {data.entitlement.kind === "one_time" || data.planKind === "annual" ? null : (
-            <s-button
-              disabled={fetcher.state !== "idle"}
-              onClick={() => submit("subscribe_annual")}
-            >
-              {data.planKind === "monthly" ? t.plan.annualSwitch : t.plan.annualStart}
-            </s-button>
-          )}
-          {data.entitlement.kind === "one_time" ? null : (
-            <s-button disabled={fetcher.state !== "idle"} onClick={() => submit("buy_one_time")}>
-              {data.plan
-                ? t.plan.oneTimeBuy(formatMoney(data.plan.one_time, data.locale))
-                : t.plan.oneTimeSwitch}
-            </s-button>
-          )}
-        </s-stack>
-        {data.entitlement.kind === "subscription" && data.creditEstimate ? (
-          <s-paragraph>
-            {t.plan.creditEstimate(formatMoney(data.creditEstimate, data.locale))}
-          </s-paragraph>
-        ) : null}
-        {data.entitlement.kind === "subscription" ? (
-          <s-button disabled={fetcher.state !== "idle"} onClick={() => submit("cancel")}>
-            {t.plan.cancelRenewal}
-          </s-button>
-        ) : null}
-      </s-section>
-
-      {/* §15.3: un solo prossimo passo, più il promemoria FR-058 finché la dichiarazione
-              resta. Sta accanto al piano perché è l'altra cosa che il merchant può fare ora. */}
       <s-section slot="aside" heading={t.home.nextHeading}>
         <s-paragraph>{nextStep}</s-paragraph>
         {data.address2Declared ? <s-paragraph>{t.home.nextAddress2}</s-paragraph> : null}

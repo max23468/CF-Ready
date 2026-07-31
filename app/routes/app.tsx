@@ -52,6 +52,7 @@ export default function App() {
         </s-link>
         <s-link href="/app/rules">{t.rules}</s-link>
         <s-link href="/app/messages">{t.messages}</s-link>
+        <s-link href="/app/plan">{t.plan}</s-link>
       </s-app-nav>
       <Outlet />
     </AppProvider>

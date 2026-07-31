@@ -9,7 +9,7 @@ import {
   readConfig,
 } from "../config";
 import { validateMessages } from "../config";
-import type { CheckoutConfig, Messages } from "../config";
+import type { CheckoutConfig } from "../config";
 import { resolveLocale, texts } from "../i18n";
 import type { Locale } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";

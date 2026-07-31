@@ -6,6 +6,7 @@ export default [
     index("routes/app._index.tsx"),
     route("rules", "routes/app.rules.tsx"),
     route("messages", "routes/app.messages.tsx"),
+    route("plan", "routes/app.plan.tsx"),
   ]),
   route("auth/login", "routes/auth.login/route.tsx"),
   route("auth/*", "routes/auth.$.tsx"),
