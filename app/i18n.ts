@@ -107,7 +107,6 @@ const it = {
   },
   setup: {
     heading: "Prepara CF Ready",
-    intro: "Tre passaggi per far valere le regole nel checkout.",
     progress: (done: number, total: number) => `${done} di ${total} completati`,
     rulesTitle: "Scegli cosa controllare",
     rulesBody: "Decidi se Codice Fiscale e PEC sono non gestiti, facoltativi o obbligatori.",
@@ -422,7 +421,6 @@ const en: typeof it = {
   },
   setup: {
     heading: "Get CF Ready ready",
-    intro: "Three steps to make your rules apply at checkout.",
     progress: (done: number, total: number) => `${done} of ${total} done`,
     rulesTitle: "Choose what to check",
     rulesBody: "Decide whether the tax code and PEC are not managed, optional or required.",

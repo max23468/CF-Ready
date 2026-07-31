@@ -5,6 +5,18 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.18 — 31 luglio 2026
+
+- nella procedura guidata il terzo passo non andava né avanti né indietro:
+  `Continua` aveva il numero del passo scritto a mano, e `Indietro` veniva
+  annullato dall'avanzamento automatico che seguiva il salvataggio delle
+  regole, perché guardava se l'ultima azione era riuscita invece di quale
+  azione fosse;
+- la guida di configurazione era tutta cornici e vuoti: via i riquadri per
+  passo, che erano riquadri dentro un riquadro con il fianco vuoto, e resta
+  aperto solo il primo passo ancora da fare. I passi conclusi si riducono a
+  una riga con la spunta.
+
 ## 0.4.17 — 31 luglio 2026
 
 - la procedura guidata si apre come finestra a schermo intero sopra la Home

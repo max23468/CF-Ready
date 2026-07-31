@@ -143,11 +143,16 @@ export default function Onboarding() {
   const go = (intent: string, extra: Record<string, string> = {}) =>
     fetcher.submit({ intent, step: String(step), ...extra }, { method: "post" });
 
-  // Il passo due scrive su Shopify: avanza solo quando la scrittura è andata a buon fine,
-  // altrimenti si resterebbe con regole non salvate e la procedura andata avanti lo stesso.
+  // Il passo due scrive su Shopify: avanza solo quando quella scrittura è andata a buon fine.
+  // Il flag distingue l'esito del salvataggio delle regole da quello di un semplice
+  // `Indietro`, che altrimenti rispedirebbe avanti chi torna sui suoi passi.
+  const savingRules = useRef(false);
+
   useEffect(() => {
-    if (fetcher.state === "idle" && esito?.ok && step === 2) setStep(3);
-  }, [fetcher.state, esito, step]);
+    if (fetcher.state !== "idle" || !savingRules.current) return;
+    savingRules.current = false;
+    if (esito?.ok) setStep(3);
+  }, [fetcher.state, esito]);
 
   const move = (next: number) => {
     setStep(next);
