@@ -27,6 +27,14 @@ milestone aggiunge colonne con default e non altera dati esistenti.
 | `0.4.11` | `8bcfc70` | `955a7926-0b2b-455e-b6e6-053ff9a6d185` | `1071867035649` | `30639554463` |
 | `0.4.12` | `114586b` | `92d28fd2-1dc4-417f-8339-67e63557175a` | `1071889514497` | `30640809528` |
 | `0.4.13` | `c621046` | `0fe74add-1b03-4a4b-8eb2-854da22b1048` | `1071898198017` | `30641382862` |
+| `0.4.14` | `71e6a6c` | `4ecbf652-8118-4c5a-bc7b-54a90cd83b79` | `1072105848833` | `30654891748` |
+| `0.4.15` | `a8c606f` | `f4c7788e-c208-400c-9fad-efde7a1b73e7` | `1072116105217` | `30655705611` |
+| `0.4.16` | `427ae55` | `80412182-72dd-4b23-8e2f-82593c39fe09` | `1072130654209` | `30656638831` |
+| `0.4.17` | `0f03a37` | `7ecf5691-c10b-48de-aa52-a87a5985838a` | `1072141959169` | `30657284427` |
+| `0.4.18` | `91fa954` | `21c7ff7b-adba-4b8e-a9ed-fb2bbb425a60` | `1072153165825` | `30658192024` |
+| `0.4.19` | `488ebed` | `9128599c-0ace-4b30-a839-546b838e655e` | `1072164962305` | `30658975959` |
+| `0.4.20` | `a46ff27` | `9e98abf9-31d2-4119-b92f-331da8a6b4a9` | `1072177119233` | `30659886865` |
+| `0.4.21` | `d497179` | `2b13a7ef-b10d-4ccc-963c-f63ed7652689` | `1072184786945` | `30660443646` |
 
 Il rollback di ogni riga è la versione Worker della riga precedente, e per
 Shopify lo snapshot precedente.
@@ -63,11 +71,16 @@ cronologia con un'etichetta sbagliata e non va usata come riferimento. La
 
 Eseguiti dall'owner sullo store `cf-ready-dev.myshopify.com` lungo tutta la
 milestone, uno per snapshot rilasciato. Hanno prodotto i difetti corretti nelle
-patch da `0.4.1` a `0.4.13`, fra cui: la conferma di disattivazione senza
+patch da `0.4.1` a `0.4.21`, fra cui: la conferma di disattivazione senza
 pulsanti, le azioni della Home non rese, il Save Bar che non si spegneva
 tornando sui propri passi, il titolo dell'app che portava al form di accesso,
 il blocco Piano rimasto in italiano nell'interfaccia inglese, e la spaziatura
-disuguale fra le due colonne.
+disuguale fra le due colonne. Gli ultimi otto snapshot hanno riguardato la
+procedura guidata e la guida di configurazione: passi che saltavano o si
+bloccavano, radio che sfarfallavano, la dichiarazione sul campo “Interno” che
+non si salvava, e la schermata finale che non compariva pur avendo attivato la
+validazione. Quasi tutti nascevano dallo stesso errore di fondo, il passo della
+procedura tenuto in due posti insieme.
 
 Verificati direttamente sull'Admin: navigazione fra le pagine, coerenza dello
 stato in Home, salvataggio che non attiva né disattiva, rilevamento del
