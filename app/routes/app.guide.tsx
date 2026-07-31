@@ -74,7 +74,7 @@ export default function Guide() {
             <s-heading>{t.guide.asideLinks}</s-heading>
             <s-link href="/app/rules">{t.nav.rules}</s-link>
             <s-link href="/app/messages">{t.nav.messages}</s-link>
-            <s-link href="/app/plan">{t.nav.plan}</s-link>
+            <s-link href="/app/onboarding">{t.onboarding.reopen}</s-link>
           </s-stack>
         </s-stack>
       </s-section>
