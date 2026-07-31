@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { resolveLocale, texts } from "../i18n";
@@ -14,6 +15,17 @@ export const shouldRevalidate = skipRevalidationWhenLeaving;
 export default function Guide() {
   const { locale } = useLoaderData<typeof loader>();
   const t = texts(locale);
+  const [expanded, setExpanded] = useState(false);
+
+  // Un solo comando per aprire e chiudere tutto. Agisce sull'attributo nativo di `details`,
+  // quindi non serve tenere in stato l'apertura di ogni voce.
+  const toggleAll = () => {
+    const open = !expanded;
+    document.querySelectorAll<HTMLDetailsElement>("#faq details").forEach((entry) => {
+      entry.open = open;
+    });
+    setExpanded(open);
+  };
 
   return (
     <s-page heading={t.guide.heading}>
@@ -24,12 +36,17 @@ export default function Guide() {
       {/* §15.7: pagina unica con sezioni espandibili. Polaris non ha un componente di
           divulgazione, quindi si usa `details`, che è l'elemento nativo della piattaforma:
           accessibile e utilizzabile da tastiera senza reimplementare nulla (§8.1). */}
-      <s-section>
+      <s-section id="faq">
         <s-stack direction="block" gap="base">
+          <s-stack direction="inline" gap="base">
+            <s-button onClick={toggleAll}>
+              {expanded ? t.guide.collapseAll : t.guide.expandAll}
+            </s-button>
+          </s-stack>
           {t.guide.entries.map((entry) => (
             <details key={entry.q}>
               <summary>
-                <s-text type="strong">{entry.q}</s-text>
+                <s-heading>{entry.q}</s-heading>
               </summary>
               <s-box paddingBlockStart="small-100">
                 <s-paragraph>{entry.a}</s-paragraph>
@@ -43,8 +60,8 @@ export default function Guide() {
           azioni operative. Questa è documentazione, non configurazione. */}
       <s-section slot="aside" heading={t.guide.asideHeading}>
         <s-stack direction="block" gap="base">
-          <s-box maxInlineSize="64px">
-            <s-image src="/cf-ready-mark.svg" alt="" />
+          <s-box maxInlineSize="160px">
+            <s-image src="/cf-ready-lockup.svg" alt="CF Ready" />
           </s-box>
           <s-paragraph>{t.guide.asideBody}</s-paragraph>
         </s-stack>

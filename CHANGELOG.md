@@ -5,6 +5,26 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.11 — 31 luglio 2026
+
+Revisione della Guida dopo la lettura dei contenuti.
+
+- le voci passano da ventuno a quindici, accorpando invece di tagliare:
+  fatturazione estera, eccezioni automatiche, ritiro in negozio e checkout
+  accelerati rispondevano tutte alla stessa domanda reale, cioè perché un
+  ordine sia passato senza i dati richiesti, e ora sono una voce sola;
+- l'ordine segue l'importanza per il merchant: funzionamento, casi limite,
+  commerciale, operativo;
+- la voce su Partita IVA e Codice SDI dichiara i limiti tecnici invece di una
+  preferenza di prodotto;
+- il titolo di ogni voce è un'intestazione, non testo forte: pesa di più ed è
+  la struttura corretta per chi naviga con uno screen reader;
+- un solo comando apre e chiude tutte le voci;
+- dove compare il marchio ora c'è la lockup completa con la scritta, in Guida
+  e nella schermata di store non supportato;
+- in Home `Guida e assistenza` torna dopo `Prossimo passo`, che è l'ordine
+  di §15.3.
+
 ## 0.4.10 — 31 luglio 2026
 
 Pagina `Guida e FAQ`, glossario canonico e completamento di `Store non
