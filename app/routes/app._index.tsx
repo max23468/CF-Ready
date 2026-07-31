@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
-import { describeCheckout, resolveLocale, texts } from "../i18n";
+import { formatDate, formatMoney, resolveLocale, summariseCheckout, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import {
   cancelSubscription,
@@ -104,8 +104,6 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   return { ok: true };
 };
 
-const euro = (amount: number) => amount.toFixed(2).replace(".", ",");
-
 // L'approvazione avviene su Shopify: qui si crea l'addebito e si restituisce l'URL di
 // conferma, che il client apre a livello superiore. Il diritto non viene mai concesso dal
 // ritorno: lo stato si rilegge sempre da Shopify.
@@ -180,6 +178,7 @@ export default function Home() {
     | { ok: boolean; errorCode?: string; confirmationUrl?: string }
     | undefined;
   const confirmationUrl = esito?.confirmationUrl;
+  const submit = (intent: string) => fetcher.submit({ intent }, { method: "post" });
 
   // L'approvazione di un addebito vive fuori dall'iframe: va aperta a livello superiore,
   // altrimenti Shopify rifiuta di caricarla.
@@ -232,56 +231,68 @@ export default function Home() {
         </s-banner>
       ) : null}
 
-      <s-section heading={t.home.stateHeading}>
-        <s-badge
-          tone={status === "active" ? "success" : status === "lapsed" ? "warning" : "neutral"}
-        >
-          {data.validationEnabled ? t.home.active : t.home.inactive}
-        </s-badge>
-        {/* Lo stato si legge come conseguenza, non come etichetta: la prima riga dice cosa
-            succede davvero a un cliente. */}
-        {describeCheckout(
-          { rules: data.rules, errorDisplay: data.errorDisplay, status },
-          data.locale,
-        ).map((line) => (
-          <s-paragraph key={line}>{line}</s-paragraph>
-        ))}
-        {data.validationEnabled ? null : <s-paragraph>{t.home.inactiveBody}</s-paragraph>}
-
-        <s-button href="/app/rules" variant="primary">
-          {t.home.editRules}
-        </s-button>
-        {data.validationEnabled ? (
-          <s-button commandFor="deactivate" command="--show">
-            {t.home.deactivate}
-          </s-button>
-        ) : (
-          <fetcher.Form method="post">
-            <input type="hidden" name="intent" value="enable" />
-            <s-button type="submit" disabled={fetcher.state !== "idle"}>
-              {t.home.activate}
+      {/* §8.2: una sola idea dominante, dichiarata dal titolo. La frase di esito è il titolo
+          della schermata, non un paragrafo in mezzo ad altri quattro uguali. */}
+      <s-section>
+        <s-stack direction="block" gap="base">
+          <s-badge
+            tone={status === "active" ? "success" : status === "lapsed" ? "warning" : "neutral"}
+          >
+            {data.validationEnabled ? t.home.active : t.home.inactive}
+          </s-badge>
+          {summariseCheckout({ rules: data.rules, status }, data.locale).map((line, index) =>
+            index === 0 ? (
+              <s-heading key={line}>{line}</s-heading>
+            ) : (
+              <s-paragraph key={line}>{line}</s-paragraph>
+            ),
+          )}
+          {/* I bottoni stanno in un gruppo, non uno accanto all'altro come fratelli nudi: un
+              `<form>` per bottone li isolava anche dalla spaziatura. */}
+          <s-button-group>
+            <s-button href="/app/rules" variant="primary">
+              {t.home.editRules}
             </s-button>
-          </fetcher.Form>
-        )}
+            {data.validationEnabled ? (
+              <s-button commandFor="deactivate" command="--show">
+                {t.home.deactivate}
+              </s-button>
+            ) : (
+              <s-button disabled={fetcher.state !== "idle"} onClick={() => submit("enable")}>
+                {t.home.activate}
+              </s-button>
+            )}
+          </s-button-group>
+        </s-stack>
       </s-section>
 
-      <s-section heading={t.home.configHeading}>
-        <s-paragraph>
-          {t.rules.taxCodeLabel}: {t.rules.taxCode[data.rules.taxCode]}
-        </s-paragraph>
-        <s-paragraph>
-          {t.rules.pecLabel}: {t.rules.pec[data.rules.pec]}
-        </s-paragraph>
-      </s-section>
+      {/* Riferimento, non impostazioni: contenitore più leggero delle card operative, così le
+          sezioni smettono di pesare tutte uguali. */}
+      <s-box padding="base" background="subdued" borderRadius="base">
+        <s-stack direction="block" gap="small-100">
+          <s-heading>{t.home.configHeading}</s-heading>
+          <s-stack direction="inline" gap="small-100" alignItems="center">
+            <s-text>{t.rules.taxCodeLabel}</s-text>
+            <s-badge>{t.rules.taxCode[data.rules.taxCode]}</s-badge>
+          </s-stack>
+          <s-stack direction="inline" gap="small-100" alignItems="center">
+            <s-text>{t.rules.pecLabel}</s-text>
+            <s-badge>{t.rules.pec[data.rules.pec]}</s-badge>
+          </s-stack>
+        </s-stack>
+      </s-box>
 
       {/* D-067: le eccezioni automatiche restano visibili anche in Home. */}
-      <s-section heading={t.home.howHeading}>
-        <s-unordered-list>
-          {t.rules.exceptions.map((line) => (
-            <s-list-item key={line}>{line}</s-list-item>
-          ))}
-        </s-unordered-list>
-      </s-section>
+      <s-box padding="base" background="subdued" borderRadius="base">
+        <s-stack direction="block" gap="small-100">
+          <s-heading>{t.home.howHeading}</s-heading>
+          <s-unordered-list>
+            {t.rules.exceptions.map((line) => (
+              <s-list-item key={line}>{line}</s-list-item>
+            ))}
+          </s-unordered-list>
+        </s-stack>
+      </s-box>
 
       {/* §15.3: un solo prossimo passo, più il promemoria FR-058 finché la dichiarazione resta. */}
       <s-section heading={t.home.nextHeading}>
@@ -291,66 +302,64 @@ export default function Home() {
 
       {/* Il piano resta qui finché la pagina “Piano e fatturazione” non lo accoglie: spostarlo
           adesso toglierebbe al merchant l'unico percorso di pagamento esistente. */}
-      <s-section heading="Piano">
-        <s-paragraph>
-          {data.entitlement.kind === "trial"
-            ? `Prova attiva fino al ${data.trialEndsAt}.`
-            : data.entitlement.kind === "one_time"
-              ? "Pagamento unico attivo, senza rinnovi."
-              : data.entitlement.kind === "subscription"
-                ? `Abbonamento attivo fino al ${data.entitlement.validThrough}.`
-                : data.trialStatus === "expired"
-                  ? "Prova terminata: scegli una modalità per riattivare le regole."
-                  : "Nessun piano attivo."}
-        </s-paragraph>
-        {data.plan ? (
+      <s-box slot="aside">
+        <s-section heading={t.plan.heading}>
           <s-paragraph>
-            Prezzo {data.plan.generation === "launch" ? "di lancio" : "standard"}:{" "}
-            {euro(data.plan.monthly)} € ogni 30 giorni oppure {euro(data.plan.annual)} € all’anno.
+            {data.entitlement.kind === "trial"
+              ? t.plan.trial(formatDate(data.trialEndsAt, data.locale))
+              : data.entitlement.kind === "one_time"
+                ? t.plan.oneTime
+                : data.entitlement.kind === "subscription"
+                  ? t.plan.subscription(formatDate(data.entitlement.validThrough, data.locale))
+                  : data.trialStatus === "expired"
+                    ? t.plan.trialOver
+                    : t.plan.none}
           </s-paragraph>
-        ) : null}
-        {data.entitlement.kind === "one_time" || data.planKind === "monthly" ? null : (
-          <fetcher.Form method="post">
-            <input type="hidden" name="intent" value="subscribe_monthly" />
-            <s-button type="submit" disabled={fetcher.state !== "idle"}>
-              {data.planKind === "annual" ? "Passa al mensile" : "Attiva il mensile"}
+          {data.plan ? (
+            <s-paragraph>
+              {(data.plan.generation === "launch" ? t.plan.pricesLaunch : t.plan.pricesStandard)(
+                formatMoney(data.plan.monthly, data.locale),
+                formatMoney(data.plan.annual, data.locale),
+              )}
+            </s-paragraph>
+          ) : null}
+          <s-button-group>
+            {data.entitlement.kind === "one_time" || data.planKind === "monthly" ? null : (
+              <s-button
+                disabled={fetcher.state !== "idle"}
+                onClick={() => submit("subscribe_monthly")}
+              >
+                {data.planKind === "annual" ? t.plan.monthlySwitch : t.plan.monthlyStart}
+              </s-button>
+            )}
+            {data.entitlement.kind === "one_time" || data.planKind === "annual" ? null : (
+              <s-button
+                disabled={fetcher.state !== "idle"}
+                onClick={() => submit("subscribe_annual")}
+              >
+                {data.planKind === "monthly" ? t.plan.annualSwitch : t.plan.annualStart}
+              </s-button>
+            )}
+            {data.entitlement.kind === "one_time" ? null : (
+              <s-button disabled={fetcher.state !== "idle"} onClick={() => submit("buy_one_time")}>
+                {data.plan
+                  ? t.plan.oneTimeBuy(formatMoney(data.plan.one_time, data.locale))
+                  : t.plan.oneTimeSwitch}
+              </s-button>
+            )}
+          </s-button-group>
+          {data.entitlement.kind === "subscription" && data.creditEstimate ? (
+            <s-paragraph>
+              {t.plan.creditEstimate(formatMoney(data.creditEstimate, data.locale))}
+            </s-paragraph>
+          ) : null}
+          {data.entitlement.kind === "subscription" ? (
+            <s-button disabled={fetcher.state !== "idle"} onClick={() => submit("cancel")}>
+              {t.plan.cancelRenewal}
             </s-button>
-          </fetcher.Form>
-        )}
-        {data.entitlement.kind === "one_time" || data.planKind === "annual" ? null : (
-          <fetcher.Form method="post">
-            <input type="hidden" name="intent" value="subscribe_annual" />
-            <s-button type="submit" disabled={fetcher.state !== "idle"}>
-              {data.planKind === "monthly" ? "Passa all’annuale" : "Attiva l’annuale"}
-            </s-button>
-          </fetcher.Form>
-        )}
-        {data.entitlement.kind === "one_time" ? null : (
-          <fetcher.Form method="post">
-            <input type="hidden" name="intent" value="buy_one_time" />
-            <s-button type="submit" disabled={fetcher.state !== "idle"}>
-              {data.plan
-                ? `Un solo pagamento: ${euro(data.plan.one_time)} €`
-                : "Passa a un solo pagamento"}
-            </s-button>
-          </fetcher.Form>
-        )}
-        {data.entitlement.kind === "subscription" && data.creditEstimate ? (
-          <s-paragraph>
-            Credito stimato sul periodo non usufruito: {euro(data.creditEstimate)} €. È una stima:
-            nella fattura Shopify l’acquisto può comparire a prezzo pieno e il credito
-            separatamente, e l’importo effettivo è quello calcolato da Shopify.
-          </s-paragraph>
-        ) : null}
-        {data.entitlement.kind === "subscription" ? (
-          <fetcher.Form method="post">
-            <input type="hidden" name="intent" value="cancel" />
-            <s-button type="submit" disabled={fetcher.state !== "idle"}>
-              Cancella il rinnovo
-            </s-button>
-          </fetcher.Form>
-        ) : null}
-      </s-section>
+          ) : null}
+        </s-section>
+      </s-box>
 
       {/* §15.1: le azioni ad alto impatto dichiarano la conseguenza concreta, non “sei sicuro?”. */}
       <s-modal id="deactivate" heading={t.home.deactivate}>
@@ -364,7 +373,7 @@ export default function Home() {
           variant="primary"
           commandFor="deactivate"
           command="--hide"
-          onClick={() => fetcher.submit({ intent: "disable" }, { method: "post" })}
+          onClick={() => submit("disable")}
         >
           {t.home.deactivate}
         </s-button>

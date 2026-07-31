@@ -1,3 +1,4 @@
+import { CURRENCY } from "./config";
 import type { ErrorDisplay, Rules } from "./config";
 
 const LOCALES = ["it", "en"] as const;
@@ -20,6 +21,7 @@ const it = {
   },
   common: {
     saved: "Regole salvate. Valgono dal prossimo ordine.",
+    save: "Salva",
     cancel: "Annulla",
   },
   errors: {
@@ -45,14 +47,11 @@ const it = {
   },
   home: {
     heading: "CF Ready",
-    stateHeading: "Stato",
     configHeading: "Configurazione corrente",
     howHeading: "Come si applicano le regole",
     nextHeading: "Prossimo passo",
     active: "Attiva nel checkout",
     inactive: "Disattivata",
-    inactiveBody:
-      "Le regole sono salvate ma non valgono per i clienti. Il checkout si comporta come se CF Ready non fosse installata.",
     unsupported: "Store non supportato",
     unsupportedBody:
       "CF Ready funziona solo con store che hanno l’indirizzo in Italia. Nessuna prova è iniziata, nessuna Validation è stata creata e nessun pagamento è stato richiesto.",
@@ -73,6 +72,27 @@ const it = {
     nextChoosePlan: "Scegli una modalità per riattivare le regole nel checkout.",
     nextAddress2:
       "Smetti di usare il campo “Interno” per il Codice Fiscale: oggi il cliente vede due campi per lo stesso dato. Le istruzioni sono in Regole checkout.",
+  },
+  plan: {
+    heading: "Piano",
+    trial: (date: string) => `Prova attiva fino al ${date}.`,
+    oneTime: "Pagamento unico attivo, senza rinnovi.",
+    subscription: (date: string) => `Abbonamento attivo fino al ${date}.`,
+    trialOver: "Prova terminata: scegli una modalità per riattivare le regole.",
+    none: "Nessun piano attivo.",
+    pricesLaunch: (monthly: string, annual: string) =>
+      `Prezzo di lancio: ${monthly} ogni 30 giorni oppure ${annual} all’anno.`,
+    pricesStandard: (monthly: string, annual: string) =>
+      `Prezzo: ${monthly} ogni 30 giorni oppure ${annual} all’anno.`,
+    monthlyStart: "Attiva il mensile",
+    monthlySwitch: "Passa al mensile",
+    annualStart: "Attiva l’annuale",
+    annualSwitch: "Passa all’annuale",
+    oneTimeBuy: (price: string) => `Un solo pagamento: ${price}`,
+    oneTimeSwitch: "Passa a un solo pagamento",
+    cancelRenewal: "Cancella il rinnovo",
+    creditEstimate: (amount: string) =>
+      `Credito stimato sul periodo non usufruito: ${amount}. È una stima: nella fattura Shopify l’acquisto può comparire a prezzo pieno e il credito separatamente, e l’importo effettivo è quello calcolato da Shopify.`,
   },
   rules: {
     heading: "Regole checkout",
@@ -123,8 +143,9 @@ const it = {
       "Un cliente con consegna e fatturazione in Italia può lasciare vuoto il Codice Fiscale, ma se lo compila deve essere formalmente valido.",
     pecRequired: "Lo stesso cliente deve inserire una PEC con formato email valido.",
     pecOptional: "La PEC può restare vuota, ma se compilata deve avere un formato email valido.",
-    foreign: "Un cliente con fatturazione estera completa l’ordine senza controlli.",
-    inline: "Gli errori compaiono quando il cliente prova a procedere.",
+    summaryBlocking: "Un cliente italiano non completa l’ordine senza i dati richiesti.",
+    summaryChecking:
+      "I dati che i clienti italiani inseriscono vengono controllati, ma nessuno è obbligatorio.",
     preventive:
       "Gli avvisi compaiono già al caricamento del checkout, non solo quando il cliente prova a procedere.",
     disabled: "La Validation è disattivata: queste regole non valgono ancora per i clienti.",
@@ -140,6 +161,7 @@ const en: typeof it = {
   },
   common: {
     saved: "Rules saved. They apply from the next order.",
+    save: "Save",
     cancel: "Cancel",
   },
   errors: {
@@ -165,14 +187,11 @@ const en: typeof it = {
   },
   home: {
     heading: "CF Ready",
-    stateHeading: "Status",
     configHeading: "Active rules",
     howHeading: "How the rules apply",
     nextHeading: "Next step",
     active: "Active in checkout",
     inactive: "Turned off",
-    inactiveBody:
-      "Your rules are saved but don’t apply to customers. Checkout behaves as if CF Ready weren’t installed.",
     unsupported: "Store not supported",
     unsupportedBody:
       "CF Ready only works with stores based in Italy. No trial has started, no validation has been created and no payment has been requested.",
@@ -193,6 +212,27 @@ const en: typeof it = {
     nextChoosePlan: "Choose a plan to apply your rules in checkout again.",
     nextAddress2:
       "Stop using the “Apartment, suite, etc.” field for the tax code: right now customers see two fields for the same value. The steps are on Checkout rules.",
+  },
+  plan: {
+    heading: "Plan",
+    trial: (date: string) => `Trial active until ${date}.`,
+    oneTime: "One payment active, no renewals.",
+    subscription: (date: string) => `Subscription active until ${date}.`,
+    trialOver: "Trial over: choose a plan to apply your rules again.",
+    none: "No active plan.",
+    pricesLaunch: (monthly: string, annual: string) =>
+      `Launch price: ${monthly} every 30 days, or ${annual} a year.`,
+    pricesStandard: (monthly: string, annual: string) =>
+      `Price: ${monthly} every 30 days, or ${annual} a year.`,
+    monthlyStart: "Start monthly",
+    monthlySwitch: "Switch to monthly",
+    annualStart: "Start annual",
+    annualSwitch: "Switch to annual",
+    oneTimeBuy: (price: string) => `One payment: ${price}`,
+    oneTimeSwitch: "Switch to one payment",
+    cancelRenewal: "Cancel renewal",
+    creditEstimate: (amount: string) =>
+      `Estimated credit for the unused period: ${amount}. It’s an estimate: on the Shopify invoice the purchase can appear at full price with the credit listed separately, and the actual amount is the one Shopify calculates.`,
   },
   rules: {
     heading: "Checkout rules",
@@ -243,8 +283,8 @@ const en: typeof it = {
       "A customer with delivery and billing in Italy can leave the tax code empty, but if they fill it in it must be formally valid.",
     pecRequired: "The same customer must enter a PEC address in a valid email format.",
     pecOptional: "PEC can stay empty, but if filled in it must be a valid email format.",
-    foreign: "A customer billing outside Italy completes the order with no checks.",
-    inline: "Errors appear when the customer tries to continue.",
+    summaryBlocking: "An Italian customer can’t complete the order without the required fields.",
+    summaryChecking: "What Italian customers enter is checked, but nothing is required.",
     preventive:
       "Warnings appear as soon as checkout loads, not only when the customer tries to continue.",
     disabled: "The validation is turned off: these rules don’t apply to customers yet.",
@@ -254,6 +294,33 @@ const en: typeof it = {
 };
 
 const dictionaries = { it, en };
+
+// Importi e date seguono la locale di chi guarda: “2,99 €” dentro un'interfaccia inglese è
+// sbagliato quanto una frase non tradotta. `Intl` è nella piattaforma, nessuna dipendenza.
+// I formatter restano in cache come in `billing.server.ts`: costruirli è caro e le locale sono due.
+const moneyFormatters = new Map<Locale, Intl.NumberFormat>();
+const dateFormatters = new Map<Locale, Intl.DateTimeFormat>();
+
+export function formatMoney(amount: number, locale: Locale) {
+  let formatter = moneyFormatters.get(locale);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, { style: "currency", currency: CURRENCY });
+    moneyFormatters.set(locale, formatter);
+  }
+  return formatter.format(amount);
+}
+
+// La data arriva come giorno locale dello store, senza orario: si formatta in UTC per non
+// spostarla di un giorno nel fuso di chi legge.
+export function formatDate(iso: string | null, locale: Locale) {
+  if (!iso) return "";
+  let formatter = dateFormatters.get(locale);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, { dateStyle: "long", timeZone: "UTC" });
+    dateFormatters.set(locale, formatter);
+  }
+  return formatter.format(new Date(`${iso}T00:00:00Z`));
+}
 
 export function texts(locale: Locale) {
   return dictionaries[locale];
@@ -283,9 +350,28 @@ export function describeCheckout(
 
   if (!lines.length) return [t.nothing];
 
-  lines.push(t.foreign, errorDisplay === "preventive" ? t.preventive : t.inline);
-  // Una Validation attiva senza diritto commerciale non è "disattivata": dirlo sarebbe falso e
-  // nasconderebbe la causa vera al merchant.
+  // §7.7: massimo tre frasi per blocco. L'eccezione estera non si ripete qui, perché il
+  // riquadro `Eccezioni automatiche` la dichiara nella stessa schermata; fra le due avvertenze
+  // vince quella che decide se le regole valgono davvero.
+  if (status !== "active") lines.push(status === "lapsed" ? t.lapsed : t.disabled);
+  else if (errorDisplay === "preventive") lines.push(t.preventive);
+  return lines;
+}
+
+// In Home lo stato dice l'esito in una riga: le regole per campo stanno nel blocco
+// `Configurazione corrente` e non vanno ripetute in prosa due sezioni più sopra.
+export function summariseCheckout(
+  { rules, status }: { rules: Rules; status: CheckoutStatus },
+  locale: Locale,
+) {
+  const t = texts(locale).checkout;
+  const modes = [rules.taxCode, rules.pec];
+  const lines: string[] = [];
+
+  if (modes.includes("required_validated")) lines.push(t.summaryBlocking);
+  else if (modes.includes("optional_validated")) lines.push(t.summaryChecking);
+  else return [t.nothing];
+
   if (status !== "active") lines.push(status === "lapsed" ? t.lapsed : t.disabled);
   return lines;
 }

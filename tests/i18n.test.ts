@@ -1,6 +1,13 @@
 import { expect, test } from "vitest";
 import { address2Declaration } from "../app/config";
-import { describeCheckout, resolveLocale, texts } from "../app/i18n";
+import {
+  describeCheckout,
+  formatDate,
+  formatMoney,
+  resolveLocale,
+  summariseCheckout,
+  texts,
+} from "../app/i18n";
 
 const url = "https://cf-ready-dev.tmsf.workers.dev/app";
 
@@ -44,8 +51,6 @@ test("l'anteprima dice la conseguenza per il cliente, non lo stato dei campi", (
   );
 
   expect(lines[0]).toContain("non completa l’ordine senza un Codice Fiscale");
-  // L'eccezione estera è sempre dichiarata accanto alla regola che la rende rilevante.
-  expect(lines).toContain(texts("it").checkout.foreign);
   expect(lines).not.toContain(texts("it").checkout.disabled);
 });
 
@@ -105,4 +110,55 @@ test("la dichiarazione sul campo “Interno” cambia solo quando il blocco è s
   expect(submitted([["address2Shown", "1"]])).toBe(false);
   // Codice Fiscale non gestito: il blocco non è sullo schermo e la dichiarazione resta com'è.
   expect(submitted([])).toBeNull();
+});
+
+// §7.7: massimo tre frasi per blocco. È il caso più affollato possibile: due campi gestiti,
+// avvisi preventivi e Validation disattivata.
+test("l'anteprima non supera mai le tre frasi", () => {
+  for (const status of ["active", "disabled", "lapsed"] as const) {
+    for (const errorDisplay of ["inline", "preventive"] as const) {
+      const lines = describeCheckout(
+        {
+          rules: { taxCode: "required_validated", pec: "required_validated" },
+          errorDisplay,
+          status,
+        },
+        "it",
+      );
+
+      expect(lines.length).toBeLessThanOrEqual(3);
+      expect(new Set(lines).size).toBe(lines.length);
+    }
+  }
+});
+
+test("in Home lo stato sta in una riga, due se le regole non valgono", () => {
+  const active = summariseCheckout(
+    { rules: { taxCode: "required_validated", pec: "optional_validated" }, status: "active" },
+    "it",
+  );
+  expect(active).toEqual([texts("it").checkout.summaryBlocking]);
+
+  const lapsed = summariseCheckout(
+    { rules: { taxCode: "optional_validated", pec: "unmanaged" }, status: "lapsed" },
+    "it",
+  );
+  expect(lapsed).toEqual([texts("it").checkout.summaryChecking, texts("it").checkout.lapsed]);
+
+  expect(
+    summariseCheckout(
+      { rules: { taxCode: "unmanaged", pec: "unmanaged" }, status: "disabled" },
+      "en",
+    ),
+  ).toEqual([texts("en").checkout.nothing]);
+});
+
+test("importi e date seguono la lingua di chi guarda", () => {
+  // `Intl` separa importo e simbolo con uno spazio unificatore, non con uno spazio normale.
+  expect(formatMoney(2.99, "it")).toBe("2,99\u00a0€");
+  expect(formatMoney(2.99, "en")).toBe("€2.99");
+  // La data è un giorno locale dello store: formattarla non deve spostarla di un giorno.
+  expect(formatDate("2026-08-10", "it")).toBe("10 agosto 2026");
+  expect(formatDate("2026-08-10", "en")).toBe("August 10, 2026");
+  expect(formatDate(null, "en")).toBe("");
 });

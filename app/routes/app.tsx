@@ -17,6 +17,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   };
 };
 
+// `rel` non è fra le prop tipizzate di `s-link`: passarlo per spread evita di allargare i tipi
+// del pacchetto per un solo attributo.
+const HOME: Record<string, string> = { rel: "home" };
+
 export const shouldRevalidate = skipRevalidationWhenLeaving;
 
 export default function App() {
@@ -26,9 +30,16 @@ export default function App() {
   return (
     <AppProvider embedded apiKey={apiKey}>
       <s-app-nav>
-        {/* §15.2: Home è una voce permanente, quindi resta visibile invece di essere
-            assorbita dal titolo dell'app con `rel="home"`. */}
+        {/* Due link alla stessa rotta, con ruoli diversi. Il primo è visibile ed è la voce
+            `Home` di §15.2: senza, chi non conosce la convenzione Shopify non sa che per
+            tornare a casa si clicca il titolo dell'app. Il secondo non compare nel menu e serve
+            solo a dichiarare ad App Bridge qual è la rotta di casa: senza quella dichiarazione
+            il titolo dell'app punta alla radice dell'URL, che senza `shop` non sa quale store
+            sia e finisce sul form di accesso. */}
         <s-link href="/app">{t.home}</s-link>
+        <s-link href="/app" {...HOME}>
+          {t.home}
+        </s-link>
         <s-link href="/app/rules">{t.rules}</s-link>
       </s-app-nav>
       <Outlet />
