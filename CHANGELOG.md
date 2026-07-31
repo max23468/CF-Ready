@@ -5,6 +5,16 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.12 — 31 luglio 2026
+
+- il marchio non è più circondato da spazio vuoto: senza un rapporto
+  dichiarato l'immagine assumeva un riquadro quadrato e la lockup, larga più
+  di cinque volte la sua altezza, restava centrata in mezzo al nulla;
+- il segnalino di apertura delle voci resta sulla riga del titolo:
+  un'intestazione dentro `summary` è un elemento di blocco e lo mandava a capo.
+  Il titolo è ora un testo forte, inline e comunque in grassetto;
+- con i titoli su una riga sola la spaziatura fra le voci si stringe.
+
 ## 0.4.11 — 31 luglio 2026
 
 Revisione della Guida dopo la lettura dei contenuti.
