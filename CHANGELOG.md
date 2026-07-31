@@ -5,6 +5,24 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.8 — 31 luglio 2026
+
+Pagina `Piano e fatturazione`, con i due residui che M5 aveva lasciato a M6.
+
+- il blocco Piano lascia la Home e diventa una pagina, che riconcilia con
+  Shopify a ogni apertura come chiede §11.6;
+- la data del primo addebito compare accanto a ogni modalità, non in un
+  riepilogo: è il giorno dopo la fine dei giorni di prova ceduti a Shopify
+  (§14.6);
+- avvisi di prova a sette giorni, tre giorni e all'ultimo giorno, in app e
+  senza conto alla rovescia: si dice la data (FR-077, §14.3). Compaiono sia in
+  Home sia nella pagina Piano;
+- l'annuale è etichettato `Consigliato`, senza percentuali di risparmio
+  (D-070);
+- periodo corrente, prossimo addebito e generazione tariffaria acquisita sono
+  dichiarati; la cancellazione ordinaria spiega che l'accesso resta fino a fine
+  periodo pagato, senza rimborsi parziali.
+
 ## 0.4.7 — 31 luglio 2026
 
 Rifiniture di `Messaggi al cliente` dai gate live.

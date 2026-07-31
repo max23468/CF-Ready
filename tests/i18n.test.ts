@@ -7,6 +7,7 @@ import {
   resolveLocale,
   summariseCheckout,
   texts,
+  trialNotice,
 } from "../app/i18n";
 
 const url = "https://cf-ready-dev.tmsf.workers.dev/app";
@@ -205,4 +206,23 @@ test("un messaggio compare solo se le regole lo rendono raggiungibile", () => {
   expect(shown({ taxCode: "required_validated", pec: "required_validated" })).toEqual([
     ...MESSAGE_KEYS,
   ]);
+});
+
+test("gli avvisi di prova scattano a sette, tre e all'ultimo giorno", () => {
+  const at = (remaining: number) => trialNotice({ remaining, endsAt: "2026-08-10" }, "it");
+
+  // Oltre la settimana non si dice nulla: sarebbe pressione senza motivo.
+  expect(at(8)).toBeNull();
+  expect(at(7)?.tone).toBe("info");
+  expect(at(4)?.tone).toBe("info");
+  // Da tre giorni il tono sale, ma il testo resta una constatazione con la data.
+  expect(at(3)?.tone).toBe("warning");
+  expect(at(2)?.tone).toBe("warning");
+  expect(at(1)?.text).toBe(texts("it").plan.trialLastDay("10 agosto 2026"));
+  // Scaduta: se ne occupa il banner di piano assente, non questo.
+  expect(at(0)).toBeNull();
+  expect(trialNotice({ remaining: 3, endsAt: null }, "it")).toBeNull();
+  // §14.3: nessun conto alla rovescia, la data è esplicita.
+  expect(at(3)?.text).toContain("10 agosto 2026");
+  expect(at(3)?.text).not.toMatch(/\b3\b/);
 });
