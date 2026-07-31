@@ -5,6 +5,13 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.21 — 31 luglio 2026
+
+- al quarto passo `Attiva nel checkout` sembrava non fare nulla: la validazione
+  veniva attivata e la procedura conclusa, ma la schermata finale dipendeva dal
+  passo locale, che dopo l'attivazione resta il quarto, quindi non compariva
+  mai. La chiusura viene ora riconosciuta esplicitamente.
+
 ## 0.4.20 — 31 luglio 2026
 
 - riaprendo la procedura guidata si torna dove si era rimasti: il passo veniva
