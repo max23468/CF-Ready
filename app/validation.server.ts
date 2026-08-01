@@ -295,7 +295,14 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
     }
   }
 
-  await persistValidationState(db, shopDomain, { countryCode, eligible, validation, errorCode });
+  const validationEnabled = validation?.enabled ?? matches.some(({ enabled }) => enabled);
+  await persistValidationState(db, shopDomain, {
+    countryCode,
+    eligible,
+    validation,
+    validationEnabled,
+    errorCode,
+  });
 
   return {
     shopName: shop.name,
@@ -303,6 +310,7 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
     today,
     eligible,
     validation,
+    validationEnabled,
     trial,
     account,
     entitlement,
@@ -551,13 +559,18 @@ async function disableDuplicateValidations(
   shopDomain: string,
   validations: Validation[],
 ) {
-  return withValidationLock(db, shopDomain, async () => {
+  return withValidationLock(db, shopDomain, async (heartbeat) => {
     for (const { id, enabled } of validations) {
       if (!enabled) continue;
-      const response = await admin.graphql(UPDATE_VALIDATION, {
-        variables: { id, validation: { enable: false, blockOnFailure: false } },
-      });
-      if (mutationError((await response.json()) as MutationResult, "validationUpdate")) break;
+      if (!(await heartbeat.isHeld())) throw new Error("Validation lock persa");
+      try {
+        const response = await admin.graphql(UPDATE_VALIDATION, {
+          variables: { id, validation: { enable: false, blockOnFailure: false } },
+        });
+        await response.json();
+      } catch {
+        // Il readback aggrega l'esito; un duplicato guasto non impedisce gli altri tentativi.
+      }
     }
   });
 }
@@ -569,6 +582,7 @@ export async function persistValidationState(
     countryCode: string;
     eligible: boolean;
     validation: Validation | undefined;
+    validationEnabled?: boolean;
     errorCode: string | null;
   },
 ) {
@@ -611,7 +625,7 @@ export async function persistValidationState(
       .bind(
         shopDomain,
         state.validation?.id ?? null,
-        Number(state.validation?.enabled ?? false),
+        Number(state.validationEnabled ?? state.validation?.enabled ?? false),
         schemaVersion,
         config === undefined || config === null ? null : await configHash(config),
         now,
@@ -752,14 +766,17 @@ function canonicalJson(value: unknown): string {
 export async function withValidationLock<T>(
   db: D1Database,
   shopDomain: string,
-  operation: () => Promise<T>,
+  operation: (heartbeat: ReturnType<typeof startValidationLockHeartbeat>) => Promise<T>,
 ): Promise<{ acquired: false } | { acquired: true; result: T }> {
   const lockToken = await acquireValidationLock(db, shopDomain);
   if (!lockToken) return { acquired: false };
+  const heartbeat = startValidationLockHeartbeat(db, shopDomain, lockToken);
 
   try {
-    return { acquired: true, result: await operation() };
+    if (!(await heartbeat.isHeld())) return { acquired: false };
+    return { acquired: true, result: await operation(heartbeat) };
   } finally {
+    await heartbeat.stop();
     await releaseValidationLockBestEffort(db, shopDomain, lockToken);
   }
 }

@@ -214,20 +214,30 @@ test("il rifiuto della disattivazione duplicati resta visibile senza cancellare 
     ...context.data.validations.nodes[0],
     id: "gid://shopify/Validation/2",
   });
+  context.data.validations.nodes.push({
+    ...context.data.validations.nodes[0],
+    id: "gid://shopify/Validation/3",
+  });
+  const readback = structuredClone(context);
+  readback.data.validations.nodes[1].enabled = false;
+  readback.data.validations.nodes[2].enabled = false;
   const admin = adminStub([
     context,
     { data: { validationUpdate: { userErrors: [{ message: "non disponibile" }] } } },
-    context,
+    { data: { validationUpdate: { userErrors: [] } } },
+    { data: { validationUpdate: { userErrors: [] } } },
+    readback,
     SENZA_ADDEBITI,
   ]);
 
   const state = await reconcile(admin, env.DB, shop);
 
+  expect(state.validationEnabled).toBe(true);
   expect(state.errorCode).toBe("duplicate_validations_active");
-  expect(admin.calls).toEqual(["context", "update", "context", "billing"]);
+  expect(admin.calls).toEqual(["context", "update", "update", "update", "context", "billing"]);
   expect(await appState(shop)).toMatchObject({
     validation_gid: null,
-    validation_enabled: 0,
+    validation_enabled: 1,
     last_error_code: "duplicate_validations_active",
   });
 });
