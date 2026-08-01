@@ -5,6 +5,13 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.32 — 1 agosto 2026
+
+- riaprendo una configurazione completata, l’onboarding descrive lo stato reale
+  della Validation e, se è già attiva, termina con una sola azione di revisione;
+- una revisione non riscrive regole invariate né persiste nuovamente i passaggi,
+  e l’evento finale registra lo stato effettivo della Validation.
+
 ## 0.4.31 — 1 agosto 2026
 
 - onboarding rifiuta passi non interi o fuori intervallo e una scrittura

@@ -10,7 +10,7 @@ import {
 } from "../config";
 import type { RuleMode } from "../config";
 import { recordEvent } from "../events.server";
-import { describeCheckout, resolveLocale, texts } from "../i18n";
+import { describeCheckout, resolveLocale, texts, validationStatus } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { authenticate } from "../shopify.server";
 import {
@@ -118,12 +118,14 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   }
 
   // FR-052 resta separato: completare senza attivare conserva la configurazione.
+  const enabled =
+    intent === "activate" ? true : (await readOnboarding(db, session.shop)).validationEnabled;
   await saveOnboarding(db, session.shop, { status: "completed", step: 1 });
   await recordEvent(db, {
     shopDomain: session.shop,
     name: "onboarding_completed",
     class: "onboarding",
-    metadata: { enabled: intent === "activate" },
+    metadata: { enabled },
   });
   return { ok: true as const };
 };
@@ -158,7 +160,9 @@ export default function Onboarding() {
   // mai rileggendolo: il valore letto all'apertura serve solo come punto di partenza.
   const setStep = (next: number) => {
     setStepState(next);
-    progress.submit({ intent: "progress", step: String(next) }, { method: "post" });
+    if (!saved.completed) {
+      progress.submit({ intent: "progress", step: String(next) }, { method: "post" });
+    }
   };
 
   // Il passo vive solo qui. Mescolarlo con lo stato del server produceva salti e blocchi: il
@@ -287,7 +291,11 @@ export default function Onboarding() {
               <>
                 <s-heading>{t.onboarding.step3Heading}</s-heading>
                 {describeCheckout(
-                  { rules: saved.rules, errorDisplay: saved.errorDisplay, status: "disabled" },
+                  {
+                    rules: saved.rules,
+                    errorDisplay: saved.errorDisplay,
+                    status: validationStatus(saved.enabled),
+                  },
                   saved.locale,
                 ).map((line) => (
                   <s-paragraph key={line}>{line}</s-paragraph>
@@ -325,7 +333,9 @@ export default function Onboarding() {
                 {saved.rules.taxCode === "unmanaged" ? null : (
                   <Address2DeclarationPrompt declared={declared} t={t} />
                 )}
-                <s-paragraph>{t.onboarding.step4Body}</s-paragraph>
+                <s-paragraph>
+                  {saved.enabled ? t.onboarding.reviewStep4Body : t.onboarding.step4Body}
+                </s-paragraph>
               </>
             ) : null}
 
@@ -336,23 +346,34 @@ export default function Onboarding() {
                 </s-button>
               ) : null}
               {step === 4 ? (
-                <>
+                saved.enabled ? (
                   <s-button
                     variant="primary"
-                    disabled={busy || !saved.entitled}
-                    loading={pendingIntent === "activate"}
-                    onClick={() => close("activate")}
-                  >
-                    {t.onboarding.activate}
-                  </s-button>
-                  <s-button
                     disabled={busy}
                     loading={pendingIntent === "finish"}
                     onClick={() => close("finish")}
                   >
-                    {t.onboarding.finishWithout}
+                    {t.onboarding.completeReview}
                   </s-button>
-                </>
+                ) : (
+                  <>
+                    <s-button
+                      variant="primary"
+                      disabled={busy || !saved.entitled}
+                      loading={pendingIntent === "activate"}
+                      onClick={() => close("activate")}
+                    >
+                      {t.onboarding.activate}
+                    </s-button>
+                    <s-button
+                      disabled={busy}
+                      loading={pendingIntent === "finish"}
+                      onClick={() => close("finish")}
+                    >
+                      {t.onboarding.finishWithout}
+                    </s-button>
+                  </>
+                )
               ) : (
                 <s-button
                   variant="primary"
@@ -364,6 +385,13 @@ export default function Onboarding() {
                     const taxCode = pick(data?.get("taxCode"));
                     const pec = pick(data?.get("pec"));
                     if (!taxCode || !pec) return;
+                    if (
+                      saved.completed &&
+                      taxCode === saved.rules.taxCode &&
+                      pec === saved.rules.pec
+                    ) {
+                      return setStep(3);
+                    }
                     savingRules.current = true;
                     go("rules", { taxCode, pec });
                   }}
