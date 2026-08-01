@@ -16,6 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: Development
+    outputs:
+      rollback_commit: ${{ steps.rollback_snapshot.outputs.commit }}
+      shopify_rollback_version_tag: ${{ steps.rollback_snapshot.outputs.shopify_version_tag }}
+      worker_rollback_version_id: ${{ steps.rollback_snapshot.outputs.worker_version_id }}
 
     steps:
       - name: Verifica branch
@@ -61,6 +65,7 @@ jobs:
           fi
 
       - name: Registra rollback Worker Development
+        id: rollback_snapshot
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
@@ -74,9 +79,10 @@ jobs:
             const deployment = JSON.parse(readFileSync(process.argv[1], "utf8"));
             const versions = JSON.parse(readFileSync(process.argv[2], "utf8"));
             const rollback = verifyCoordinatedRollback(deployment, versions);
-            appendFileSync(process.env.GITHUB_ENV,
-              `WORKER_ROLLBACK_DEPLOYMENT_ID=${rollback.deploymentId}\n` +
-              `WORKER_ROLLBACK_VERSION_ID=${rollback.workerVersionId}\n`);
+            appendFileSync(process.env.GITHUB_OUTPUT,
+              `worker_version_id=${rollback.workerVersionId}\n` +
+              `shopify_version_tag=${rollback.shopifyVersionTag}\n` +
+              `commit=${rollback.commit}\n`);
             appendFileSync(process.env.GITHUB_STEP_SUMMARY,
               `- Rollback coordinato: Worker deployment \`${rollback.deploymentId}\`, ` +
               `versione \`${rollback.workerVersionId}\`; Shopify \`${rollback.shopifyVersionTag}\` ` +
@@ -105,6 +111,7 @@ jobs:
           ' "$RUNNER_TEMP/d1-migrations.txt"
 
       - name: Deploy Worker Development
+        id: worker_deploy
         if: env.DEPLOY_READBACK_ONLY != 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -167,3 +174,85 @@ jobs:
               `commit \`${process.env.GITHUB_SHA}\`\n`);
             console.log(`Versione attiva verificata: ${active.versionTag} (${active.versionId})`);
           ' "$RUNNER_TEMP/shopify-versions.json"
+
+  rollback:
+    name: Ripristina Development se il deploy non termina
+    needs: deploy
+    if: ${{ always() && needs.deploy.result != 'success' && needs.deploy.outputs.rollback_commit != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: Development
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26.5.0
+          cache: npm
+
+      - run: npm install --global @shopify/cli@4.5.2
+      - run: npm ci
+
+      - name: Ripristina snapshot Development coordinato
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+          ROLLBACK_COMMIT: ${{ needs.deploy.outputs.rollback_commit }}
+          SHOPIFY_ROLLBACK_VERSION_TAG: ${{ needs.deploy.outputs.shopify_rollback_version_tag }}
+          WORKER_ROLLBACK_VERSION_ID: ${{ needs.deploy.outputs.worker_rollback_version_id }}
+        run: |
+          rollback_failed=0
+          shopify_restored=0
+          worker_restored=0
+
+          if shopify app versions list --config dev --no-color --json > "$RUNNER_TEMP/shopify-before-rollback.json"; then
+            active_tag="$(node -e 'const v=require(process.argv[1]); process.stdout.write(v.find(x=>x.status==="active")?.versionTag??"")' "$RUNNER_TEMP/shopify-before-rollback.json")"
+            if [ "$active_tag" = "$SHOPIFY_ROLLBACK_VERSION_TAG" ]; then
+              shopify_restored=1
+            elif shopify app release --config dev --version "$SHOPIFY_ROLLBACK_VERSION_TAG" --allow-updates --no-color; then
+              if shopify app versions list --config dev --no-color --json > "$RUNNER_TEMP/shopify-after-release.json"; then
+                active_tag="$(node -e 'const v=require(process.argv[1]); process.stdout.write(v.find(x=>x.status==="active")?.versionTag??"")' "$RUNNER_TEMP/shopify-after-release.json")"
+                [ "$active_tag" = "$SHOPIFY_ROLLBACK_VERSION_TAG" ] && shopify_restored=1
+              fi
+            fi
+          fi
+
+          if [ "$shopify_restored" -ne 1 ]; then
+            echo "::error::Impossibile ripristinare la versione Shopify Development precedente."
+            rollback_failed=1
+          fi
+
+          if npm exec -- wrangler deployments status --json > "$RUNNER_TEMP/worker-before-rollback.json"; then
+            active_worker_version="$(node -e 'const d=require(process.argv[1]); process.stdout.write(d.versions?.[0]?.version_id??"")' "$RUNNER_TEMP/worker-before-rollback.json")"
+            if [ "$active_worker_version" = "$WORKER_ROLLBACK_VERSION_ID" ]; then
+              worker_restored=1
+            elif [ "$shopify_restored" -eq 1 ] && npm exec -- wrangler rollback "$WORKER_ROLLBACK_VERSION_ID" --message "Rollback Development ${ROLLBACK_COMMIT}" --yes; then
+              worker_restored=1
+            fi
+          fi
+          if [ "$worker_restored" -ne 1 ]; then
+            echo "::error::Impossibile ripristinare la versione Worker Development precedente."
+            rollback_failed=1
+          fi
+
+          if [ "$rollback_failed" -eq 0 ]; then
+            npm exec -- wrangler deployments status --json > "$RUNNER_TEMP/worker-after-rollback.json" || rollback_failed=1
+            shopify app versions list --config dev --no-color --json > "$RUNNER_TEMP/shopify-after-rollback.json" || rollback_failed=1
+          fi
+          if [ "$rollback_failed" -eq 0 ]; then
+            # shellcheck disable=SC2016
+            node --input-type=module -e '
+              import { readFileSync } from "node:fs";
+              import { verifyCoordinatedRollback } from "./scripts/preflight-dev.mjs";
+              const deployment = JSON.parse(readFileSync(process.argv[1], "utf8"));
+              const versions = JSON.parse(readFileSync(process.argv[2], "utf8"));
+              const rollback = verifyCoordinatedRollback(deployment, versions);
+              if (rollback.commit !== process.env.ROLLBACK_COMMIT) {
+                throw new Error("Il readback non coincide con il commit di rollback.");
+              }
+              console.log(`Snapshot Development ripristinato: ${rollback.commit}`);
+            ' "$RUNNER_TEMP/worker-after-rollback.json" "$RUNNER_TEMP/shopify-after-rollback.json" || rollback_failed=1
+          fi
+
+          exit "$rollback_failed"

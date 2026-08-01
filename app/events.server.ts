@@ -25,6 +25,7 @@ export async function recordEvent(
   db: D1Database,
   event: {
     shopDomain?: string | null;
+    webhookId?: string;
     name: string;
     class: EventClass;
     metadata?: EventMetadata;
@@ -46,11 +47,14 @@ export async function recordEvent(
   try {
     await db
       .prepare(
-        `INSERT INTO app_events (shop_id, event_name, event_class, metadata_json, occurred_at)
-         VALUES ((SELECT id FROM shops WHERE shop_domain = ?), ?, ?, ?, ?)`,
+        `INSERT INTO app_events (
+           shop_id, webhook_id, event_name, event_class, metadata_json, occurred_at
+         ) VALUES ((SELECT id FROM shops WHERE shop_domain = ?), ?, ?, ?, ?, ?)
+         ON CONFLICT(webhook_id, event_name) WHERE webhook_id IS NOT NULL DO NOTHING`,
       )
       .bind(
         event.shopDomain ?? null,
+        event.webhookId ?? null,
         event.name,
         event.class,
         event.metadata ? JSON.stringify(event.metadata) : null,

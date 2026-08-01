@@ -48,6 +48,10 @@ export class D1SessionStorage implements SessionStorage {
              shop_domain, installation_status, installed_at, created_at, updated_at
            ) VALUES (?, 'active', ?, ?, ?)
            ON CONFLICT(shop_domain) DO UPDATE SET
+             installed_at = CASE
+               WHEN shops.installation_status = 'uninstalled' THEN excluded.installed_at
+               ELSE shops.installed_at
+             END,
              installation_status = CASE
                WHEN shops.installation_status = 'uninstalled' THEN 'active'
                ELSE shops.installation_status
