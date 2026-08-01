@@ -489,7 +489,7 @@ CF Ready
 | **Obiettivo** | Far compiere l'azione giusta | Spiegare il problema e i limiti | Far capire in 10 secondi se serve |
 | **Registro** | Operativo, neutro | Esplicativo, disteso | Sintetico, orientato al beneficio |
 | **Lunghezza** | Minima, una riga per concetto | Media, paragrafi brevi | Corta, bullet |
-| **Vendita** | Nessuna, tranne la pagina Piano | Presente ma sobria | Presente, mai iperbolica |
+| **Vendita** | Nessuna, tranne la scelta del piano nella Home | Presente ma sobria | Presente, mai iperbolica |
 | **Limiti** | Dichiarati dove impattano | Sezione dedicata | Sezione esplicita (§24.4, FR-099) |
 
 La stessa cosa si chiama con la stessa parola nei tre contesti.
