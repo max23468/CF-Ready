@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useActionData, useLoaderData, useSubmit } from "react-router";
-import { describeCheckout, resolveLocale, texts } from "../i18n";
+import { describeCheckout, resolveLocale, texts, validationStatus } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { authenticate } from "../shopify.server";
 import {
@@ -17,12 +17,14 @@ import {
   observedConfigHash,
   queryContext,
   readAddress2Declaration,
+  reconcile,
   writeValidation,
 } from "../validation.server";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
-  const validation = findValidation((await queryContext(admin)).validations.nodes);
+  const state = await reconcile(admin, context.cloudflare.env.DB, session.shop);
+  const validation = state.validation;
   const config = readConfig(validation?.metafield?.jsonValue);
 
   return {
@@ -33,6 +35,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     errorDisplay: config.errorDisplay,
     messages: config.messages,
     enabled: validation?.enabled ?? false,
+    entitled: state.entitlement.kind !== "none",
     address2Declared:
       (await readAddress2Declaration(context.cloudflare.env.DB, session.shop)) !== null,
   };
@@ -242,7 +245,7 @@ export default function CheckoutRules() {
                   {
                     rules: draft.rules,
                     errorDisplay: draft.errorDisplay,
-                    status: saved.enabled ? "active" : "disabled",
+                    status: validationStatus(saved.enabled, saved.entitled),
                   },
                   saved.locale,
                 ).map((line) => (
