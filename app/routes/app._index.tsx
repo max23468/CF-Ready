@@ -28,7 +28,6 @@ import type { PlanKind } from "../plans.server";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { authenticate } from "../shopify.server";
 import {
-  findValidation,
   queryContext,
   readAddress2Declaration,
   readOnboarding,
@@ -101,21 +100,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
   // Attivazione e disattivazione non toccano la configurazione: si riscrive quella osservata
   // cambiando solo lo stato della Validation (FR-052, FR-053).
-  let result;
-  try {
-    const current = readConfig(
-      findValidation((await queryContext(admin)).validations.nodes)?.metafield?.jsonValue,
-    );
-    result = await writeValidation(
-      admin,
-      db,
-      session.shop,
-      { rules: current.rules, errorDisplay: current.errorDisplay, messages: current.messages },
-      intent === "enable",
-    );
-  } catch {
-    return { ok: false, errorCode: "validation_write_failed" };
-  }
+  const result = await writeValidation(admin, db, session.shop, null, intent === "enable");
 
   if (!result.ok) return { ok: false, errorCode: result.errorCode };
 
@@ -330,7 +315,10 @@ export default function Home() {
                 {t.home.deactivate}
               </s-button>
             ) : (
-              <s-button disabled={fetcher.state !== "idle"} onClick={() => submit("enable")}>
+              <s-button
+                disabled={!entitled || fetcher.state !== "idle"}
+                onClick={() => submit("enable")}
+              >
                 {t.home.activate}
               </s-button>
             )}
@@ -586,7 +574,10 @@ function SetupGuide({
       action:
         data.validationEnabled || !configured ? null : (
           <s-stack direction="inline" gap="base">
-            <s-button disabled={busy} onClick={() => submit("enable")}>
+            <s-button
+              disabled={busy || data.entitlement.kind === "none"}
+              onClick={() => submit("enable")}
+            >
               {t.home.activate}
             </s-button>
           </s-stack>
