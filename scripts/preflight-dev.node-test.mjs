@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import {
@@ -135,4 +136,24 @@ test("il rollback richiede Worker e Shopify sullo stesso commit", () => {
       ),
     /non coincide/,
   );
+});
+
+test("il workflow ripristina entrambi i provider da un job indipendente", () => {
+  const workflow = readFileSync(
+    new URL("../.github/workflows/deploy-development.yml", import.meta.url),
+    "utf8",
+  );
+  const deployJob = workflow.indexOf("  deploy:");
+  const rollbackJob = workflow.indexOf("  rollback:");
+  const rollbackStep = workflow.slice(rollbackJob);
+
+  assert.ok(deployJob >= 0 && rollbackJob > deployJob);
+  assert.match(
+    rollbackStep,
+    /always\(\).*needs\.deploy\.result != 'success'.*needs\.deploy\.outputs\.rollback_commit != ''/,
+  );
+  assert.match(rollbackStep, /needs: deploy/);
+  assert.match(rollbackStep, /shopify app release[\s\S]*SHOPIFY_ROLLBACK_VERSION_TAG/);
+  assert.match(rollbackStep, /wrangler rollback "\$WORKER_ROLLBACK_VERSION_ID"/);
+  assert.match(rollbackStep, /verifyCoordinatedRollback\(deployment, versions\)/);
 });

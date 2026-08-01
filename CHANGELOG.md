@@ -5,6 +5,20 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.23 — 1 agosto 2026
+
+- un errore, timeout o annullamento dopo lo snapshot iniziale avvia un job di
+  rollback indipendente, ripristina lo snapshot Development coordinato
+  precedente e ne verifica il commit su Worker e Shopify;
+- un webhook interrotto mentre era `processing` può essere riacquisito dopo
+  cinque minuti; un heartbeat impedisce handler paralleli ancora vivi, solo il
+  claim corrente può chiudere la ricevuta e la disinstallazione applica stato,
+  sessioni ed evento nello stesso batch senza confondere un rinnovo di sessione
+  o un claim precedente alla migrazione con una reinstallazione; gli eventi
+  sono deduplicati per webhook e `shop_redacted` nasce nello stesso batch della
+  cancellazione, anonimizzando anche ricevute pre-migrazione già parzialmente
+  elaborate e le altre ricevute dello stesso dominio.
+
 ## 0.4.22 — 1 agosto 2026
 
 - il deploy Development applica le migrazioni D1, pubblica e rilegge il Worker

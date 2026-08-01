@@ -14,6 +14,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       // Senza sessione non esiste un token valido: ritentare non aiuta.
       await recordEvent(db, {
         shopDomain: shop,
+        webhookId: webhook.webhookId,
         name: "shop_update_skipped",
         class: "lifecycle",
         metadata: { error_code: "missing_admin_context" },
@@ -24,6 +25,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     const state = await reconcile(admin, db, shop);
     await recordEvent(db, {
       shopDomain: shop,
+      webhookId: webhook.webhookId,
       name: "shop_updated",
       class: "lifecycle",
       metadata: {

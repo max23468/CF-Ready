@@ -10,7 +10,8 @@ si corregge nella stessa modifica il documento coinvolto.
 ## Stato tecnico in D1
 
 Le tabelle sono create dalla milestone che le usa. M4 aggiunge `app_state`,
-`webhook_events` e `app_events` con la migrazione `0003`.
+`webhook_events` e `app_events` con la migrazione `0003`; la forward migration
+`0008` aggiunge proprietà del claim e chiave webhook degli eventi.
 
 `app_state`, una riga per store, è lo stato normalizzato per la UI, non la
 verità: Shopify resta autorevole per Validation e configurazione.
@@ -36,18 +37,35 @@ Ogni endpoint segue lo stesso percorso: `authenticate.webhook` valida l'HMAC
 sui byte originali, poi `handleWebhook` gestisce ricevuta ed esito.
 
 1. `claimWebhook` inserisce la ricevuta in `webhook_events` con stato
-   `processing`. Se l'ID esiste già, la ricevuta viene riacquisita solo se era
-   `failed`: un duplicato di un webhook `processing` o `processed` esce subito
-   con `200` senza rielaborare, un retry Shopify dopo un errore viene invece
-   rielaborato.
+   `processing`. Se l'ID esiste già, la ricevuta viene riacquisita se era
+   `failed` o se resta `processing` per almeno cinque minuti. Un claim ancora
+   attivo risponde `500`, così Shopify continua a ritentare; solo un duplicato
+   già `processed` riceve `200` senza rielaborazione.
 2. L'handler gira. Un errore porta la ricevuta a `failed` con un codice
    stabile, registra `webhook_failed` e risponde `500`, così Shopify ritenta.
-3. L'esito pulito porta la ricevuta a `processed`.
+   Finché gira, un heartbeat rinnova `received_at`: un retry può riacquisire il
+   claim soltanto dopo che il proprietario ha davvero smesso di avanzare.
+3. Claim ed esito condividono un token: soltanto il proprietario corrente può
+   portare la ricevuta a `processed` o `failed`. Per `APP_UNINSTALLED` il claim
+   conserva anche l'inizio del ciclo di installazione, quindi un replay non può
+   disinstallare né cancellare le sessioni di una reinstallazione successiva.
+   Stato, sessioni ed evento `app_uninstalled` cambiano nello stesso batch: una
+   scrittura di sessione concorrente viene quindi completata prima della
+   disinstallazione oppure riattiva uno store già `uninstalled`, senza dedurre
+   una reinstallazione dalla sola presenza del claim. Le ricevute create prima
+   di `0008`, prive del riferimento al ciclo, restano senza ciclo al retry e non
+   vengono attribuite in modo distruttivo all'installazione corrente.
 
-La ricevuta conserva `webhook_id`, `shop_domain`, `topic`, stato e timestamp:
-mai il payload. `shop/redact` azzera `shop_domain` sulle ricevute dello store
-invece di eliminarle, così l'idempotenza dei retry sopravvive alla
-cancellazione.
+La ricevuta conserva `webhook_id`, `shop_domain`, `topic`, stato, timestamp,
+token del claim e riferimento tecnico al ciclo di installazione: mai il
+payload. `shop/redact` azzera `shop_domain` sulle ricevute dello store invece di
+eliminarle, così l'idempotenza dei retry sopravvive alla cancellazione.
+Gli eventi prodotti da un webhook conservano lo stesso ID tecnico e sono unici
+per nome: riacquisire un claim dopo gli effetti non duplica la telemetria. Per
+`shop/redact`, cancellazione dello store, evento `shop_redacted` e anonimizzazione
+della ricevuta condividono lo stesso batch. Il retry anonimizza anche una
+ricevuta precedente a `0008` se lo store era già stato cancellato, insieme a
+tutte le altre ricevute ancora associate allo stesso dominio.
 
 `shop/redact` arriva 48 ore dopo la disinstallazione e Shopify non annulla
 l'invio se lo store reinstalla nel frattempo. La cancellazione avviene quindi
@@ -72,6 +90,8 @@ Endpoint e topic registrati:
 `recordEvent` scrive in `app_events` ed è best effort: un errore di scrittura
 non interrompe il lifecycle, viene solo segnalato come `app_event_write_failed`.
 Gli eventi di classe `error` finiscono anche in Workers Logs come JSON.
+`webhook_id` è valorizzato soltanto dagli endpoint webhook e deduplica i retry
+dello stesso evento senza introdurre payload o dati merchant.
 
 | Evento | Classe | Quando |
 | --- | --- | --- |

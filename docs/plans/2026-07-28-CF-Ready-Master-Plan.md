@@ -1487,6 +1487,8 @@ Ricevute idempotenti, non payload.
 | `received_at` | text |
 | `processed_at` | text nullable |
 | `error_code` | text nullable |
+| `claim_token` | text nullable, proprietario corrente del claim |
+| `installation_started_at` | text nullable, ciclo protetto dal claim |
 
 #### `app_events`
 
@@ -1496,6 +1498,7 @@ Telemetria essenziale e audit operativo sono consolidati in una sola tabella.
 |---|---|
 | `id` | integer primary key |
 | `shop_id` | foreign key nullable |
+| `webhook_id` | text nullable, chiave di idempotenza per nome evento |
 | `event_name` | text |
 | `event_class` | `lifecycle`, `billing`, `validation`, `onboarding`, `support`, `error` |
 | `metadata_json` | text con allowlist di campi non sensibili |

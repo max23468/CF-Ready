@@ -115,7 +115,7 @@ test("una prova già fruita non si rigenera dopo la cancellazione dei dati", asy
   await env.DB.prepare("UPDATE shops SET installation_status = 'uninstalled' WHERE shop_domain = ?")
     .bind(shop)
     .run();
-  expect(await redactShop(env.DB, shop)).toBe(true);
+  expect(await redactShop(env.DB, shop, "wh-ledger-consumato")).toBe(true);
   await insertShop(shop);
 
   expect(await syncTrial(env.DB, shop, { eligible: true, today: "2026-09-01" })).toMatchObject({
@@ -131,7 +131,7 @@ test("il registro della prova non conserva il dominio in chiaro", async () => {
   await env.DB.prepare("UPDATE shops SET installation_status = 'uninstalled' WHERE shop_domain = ?")
     .bind(shop)
     .run();
-  await redactShop(env.DB, shop);
+  await redactShop(env.DB, shop, "wh-ledger-attivo");
 
   const registro = await env.DB.prepare(
     "SELECT shop_hash, trial_ends_at FROM trial_ledger WHERE shop_hash = ?",

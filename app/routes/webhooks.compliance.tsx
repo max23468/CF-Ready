@@ -14,6 +14,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     if (topic !== "SHOP_REDACT") {
       await recordEvent(db, {
         shopDomain: shop,
+        webhookId: webhook.webhookId,
         name: "compliance_acknowledged",
         class: "lifecycle",
         metadata: { topic },
@@ -21,13 +22,11 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       return;
     }
 
-    if (await redactShop(db, shop)) {
-      await recordEvent(db, { name: "shop_redacted", class: "lifecycle", metadata: { topic } });
-      return;
-    }
+    if (await redactShop(db, shop, webhook.webhookId)) return;
 
     await recordEvent(db, {
       shopDomain: shop,
+      webhookId: webhook.webhookId,
       name: "shop_redact_skipped",
       class: "lifecycle",
       metadata: { topic, reason: "installation_active" },
