@@ -95,10 +95,9 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   }
 
   const declared = address2Declaration(form);
-  if (declared !== null) await saveAddress2Declaration(db, session.shop, declared);
 
   if (intent === "activate") {
-    const result = await writeValidation(admin, db, session.shop, null, true);
+    const result = await writeValidation(admin, db, session.shop, null, true, undefined, declared);
     if (!result.ok) return { ok: false as const, errorCode: result.errorCode };
 
     await recordEvent(db, {
@@ -107,6 +106,8 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       class: "validation",
       metadata: { enabled: true, schema_version: 2 },
     });
+  } else if (declared !== null) {
+    await saveAddress2Declaration(db, session.shop, declared);
   }
 
   // FR-052 resta separato: completare senza attivare conserva la configurazione.
