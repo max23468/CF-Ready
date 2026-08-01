@@ -46,6 +46,10 @@ const it = {
       "Attiva prima una prova o un piano. Senza un diritto valido la Validation resterebbe inefficace.",
     config_conflict:
       "Le regole sono cambiate da un’altra scheda o da un altro membro dello staff mentre modificavi. Riapri la pagina per vedere quelle correnti, poi rifai la tua modifica: non sovrascriviamo il lavoro di qualcun altro.",
+    duplicate_validations:
+      "Shopify restituisce più Validation CF Ready. Sono state disattivate per mantenere il checkout fail-open, ma non possiamo scegliere quale conservare senza rischiare di perdere configurazione: nessuna viene eliminata automaticamente.",
+    duplicate_validations_active:
+      "Shopify restituisce più Validation CF Ready e non ha confermato la loro disattivazione. Riprova la riparazione: nessuna Validation viene eliminata automaticamente.",
     billing_read_failed:
       "Le informazioni sul piano non sono aggiornate. Il checkout non viene bloccato: riapri la pagina fra qualche minuto.",
     one_time_already_active:
@@ -76,6 +80,7 @@ const it = {
       "Senza un piano attivo il checkout non blocca più nulla. Regole e messaggi restano salvati e tornano validi con il pagamento.",
     syncNeeded:
       "Lo stato mostrato qui potrebbe non coincidere con Shopify. Il checkout non viene bloccato. Riapri la pagina fra qualche minuto.",
+    repair: "Ripara configurazione",
     messagesLabel: "Messaggi al cliente",
     messagesDefault: "Predefiniti",
     messagesCustom: "Personalizzati",
@@ -371,6 +376,10 @@ const en: typeof it = {
       "Start a trial or plan first. Without a valid entitlement, the validation would have no effect.",
     config_conflict:
       "The rules changed in another tab or from another staff member while you were editing. Reload the page to see the current ones, then redo your change: we don’t overwrite someone else’s work.",
+    duplicate_validations:
+      "Shopify returned more than one CF Ready validation. They were turned off to keep checkout fail-open, but we can’t choose which one to keep without risking your configuration: none is deleted automatically.",
+    duplicate_validations_active:
+      "Shopify returned more than one CF Ready validation and didn’t confirm that they were turned off. Try the repair again: no validation is deleted automatically.",
     billing_read_failed:
       "Plan information isn’t up to date. Checkout isn’t blocked: reload the page in a few minutes.",
     one_time_already_active:
@@ -401,6 +410,7 @@ const en: typeof it = {
       "Without an active plan, checkout no longer blocks anything. Rules and messages stay saved and apply again once you pay.",
     syncNeeded:
       "What you see here may not match Shopify. Checkout isn’t blocked. Reload the page in a few minutes.",
+    repair: "Repair configuration",
     messagesLabel: "Customer messages",
     messagesDefault: "Default",
     messagesCustom: "Edited",
