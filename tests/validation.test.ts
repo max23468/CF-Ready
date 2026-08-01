@@ -239,7 +239,7 @@ async function seedShop(shop: string) {
 function stubAdmin({
   existing,
   userErrors = [],
-  billing = { subscription: null, oneTime: null },
+  billing = { subscription: null, oneTime: null, pendingOneTime: false },
   billingError = false,
   readback,
 }: {
@@ -322,6 +322,7 @@ function stubAdmin({
                         },
                       ]
                     : [],
+                  pageInfo: { hasNextPage: false, endCursor: null },
                 },
               },
             },
@@ -449,6 +450,7 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
       currency: "EUR",
     },
     oneTime: null,
+    pendingOneTime: false,
   };
   const active = stubAdmin({ existing: { enabled: false }, billing: subscription });
 
@@ -489,6 +491,7 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
         amount: "89.90",
         currency: "EUR",
       },
+      pendingOneTime: false,
     },
     { today: "2026-01-01", timeZone: "Europe/Rome", pricingGeneration: "launch" },
   );
@@ -541,6 +544,7 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
         amount: "89.90",
         currency: "EUR",
       },
+      pendingOneTime: false,
     },
     { today: "2026-01-01", timeZone: "Europe/Rome", pricingGeneration: "launch" },
   );

@@ -1724,6 +1724,11 @@ Durante i primi 90 giorni:
 - un acquisto una tantum non perde mai il prezzo o diritto già approvato;
 - nessun prezzo viene cambiato retroattivamente.
 
+La lettura degli acquisti una tantum percorre l'intera connessione Shopify:
+l'assenza nelle sole transazioni più recenti non dimostra un rimborso. Un
+acquisto pendente impedisce di crearne un secondo e protegge la conversione da
+una cancellazione ordinaria concorrente.
+
 ### 14.5 Prova comune
 
 1. Lo store italiano apre per la prima volta l’app.
