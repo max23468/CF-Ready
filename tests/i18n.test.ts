@@ -324,12 +324,15 @@ test("il messaggio di assistenza porta solo i dati dell'allowlist e nulla del cl
       errorCode: "validation_readback_failed",
     },
     "it",
+    "checkout",
   );
 
   expect(link.startsWith(`mailto:${SUPPORT_EMAIL}?`)).toBe(true);
 
   const body = new URL(link).searchParams.get("body") ?? "";
-  expect(new URL(link).searchParams.get("subject")).toBe(texts("it").support.subject);
+  expect(new URL(link).searchParams.get("subject")).toBe(
+    `${texts("it").support.subject}: ${texts("it").support.categories.checkout}`,
+  );
   // §22: ogni campo dell'allowlist compare con il proprio valore.
   expect(body).toContain("cf-ready-dev.myshopify.com");
   expect(body).toContain("0.5.0");
@@ -339,11 +342,14 @@ test("il messaggio di assistenza porta solo i dati dell'allowlist e nulla del cl
   expect(link).not.toContain("+");
 
   // I campi facoltativi omessi non lasciano righe vuote o etichette senza valore.
-  const minimal = new URL(supportMailto({ shopDomain: "a.myshopify.com", version: "0.5.0" }, "en"));
+  const minimal = new URL(
+    supportMailto({ shopDomain: "a.myshopify.com", version: "0.5.0" }, "en", "other"),
+  );
   const minimalBody = minimal.searchParams.get("body") ?? "";
   expect(minimalBody).not.toContain(texts("en").support.fieldErrorCode);
   expect(minimalBody).not.toContain(texts("en").support.fieldCountry);
   expect(minimalBody).toContain("a.myshopify.com");
+  expect(minimalBody).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
 });
 
 test("la Home distingue i messaggi predefiniti da quelli riscritti", () => {

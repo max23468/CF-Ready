@@ -154,4 +154,6 @@ di scrittura. Più Validation CF Ready producono `duplicate_validations`: la Hom
 resta accessibile, tutte vengono disattivate per mantenere il checkout fail-open
 e nessuna risorsa viene scelta o cancellata automaticamente. Se Shopify non
 conferma la disattivazione, il codice resta `duplicate_validations_active` e
-l'azione di riparazione la ritenta.
+l'azione di riparazione la ritenta. Finché restano duplicati, nessuna loro
+configurazione viene scelta: la pagina Regole mostra l'anomalia invece di
+presentare i default come configurazione attiva.

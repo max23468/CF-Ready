@@ -12,7 +12,8 @@ prezzi e regole commerciali; qui c'è come sono implementate.
 | Informazione | Fonte |
 | --- | --- |
 | Sottoscrizioni e acquisti attivi | Shopify, letti a ogni riconciliazione |
-| Prova, giorni residui e generazione acquisita | D1 |
+| Prova e giorni residui | D1 |
+| Generazione acquisita | prezzo e valuta dell'addebito Shopify attivo; D1 durante prova e continuità commerciale |
 | Diritto usato dal checkout | metafield della Validation, scritto dalla riconciliazione |
 | Periodo pagato dopo una cancellazione | D1, come stato `ending` |
 
@@ -45,7 +46,8 @@ esiste continuità commerciale, anche passando fra le modalità. Dopo una
 cessazione completa, una nuova sottoscrizione acquisisce la generazione
 corrente. `launch` vale fino alla fine della finestra di lancio, poi
 `balanced`. `value` è un'ipotesi interna: non ha piani configurati, quindi non
-è acquistabile per errore.
+è acquistabile per errore. Quando Shopify espone un addebito attivo, prezzo e
+valuta ricostruiscono la generazione anche se la cache D1 manca o è obsoleta.
 
 ## Piani
 

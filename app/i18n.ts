@@ -170,11 +170,15 @@ const it = {
   support: {
     heading: "Assistenza",
     body: "Le richieste arrivano a chi sviluppa l’app e ricevono una risposta scritta a mano. Il collegamento apre il tuo programma di posta con un messaggio già compilato: puoi leggerlo e modificarlo prima di inviarlo.",
-    action: "Scrivi allo sviluppatore",
-    contactDeveloper: "Contatta lo sviluppatore",
     privacyNote:
       "Nel messaggio finiscono solo dominio dello store, versione, lingua e stato tecnico dell’app. Non allegare Codici Fiscali, PEC, ordini o dati dei tuoi clienti: per capire un problema non servono.",
     subject: "Assistenza CF Ready",
+    chooseCategory: "Scegli l’argomento:",
+    categories: {
+      checkout: "Checkout e regole",
+      billing: "Piano e pagamento",
+      other: "Altro",
+    },
     technicalHeading: "--- Dati tecnici, puoi cancellarli ---",
     fieldShop: "Store",
     fieldVersion: "Versione app",
@@ -183,7 +187,6 @@ const it = {
     fieldEntitlement: "Prova o piano attivo",
     fieldValidation: "Validazione attiva",
     fieldErrorCode: "Ultimo codice di errore",
-    fieldDate: "Data e ora",
     yes: "sì",
     no: "no",
   },
@@ -498,7 +501,7 @@ const en: typeof it = {
     step1Limits: [
       "The check is formal: it verifies how the value is composed, not who it belongs to.",
       "Rules only apply when delivery and billing are both in Italy.",
-      "If the field isn’t in the checkout, the order goes through: an app error never blocks a sale.",
+      "If Shopify shows an Italian delivery but omits a required field, CF Ready blocks checkout with a global warning; without an observable delivery, it remains fail-open.",
     ],
     step2Heading: "Choose what to check",
     step2Body: "You can change these choices whenever you want from Checkout rules.",
@@ -520,11 +523,15 @@ const en: typeof it = {
   support: {
     heading: "Support",
     body: "Requests reach whoever builds the app and get an answer written by hand. The link opens your mail app with a message already filled in: you can read it and edit it before sending.",
-    action: "Write to the developer",
-    contactDeveloper: "Contact the developer",
     privacyNote:
       "The message only carries your store domain, app version, language and technical status. Don’t attach tax codes, PEC addresses, orders or your customers’ data: they aren’t needed to understand a problem.",
     subject: "CF Ready support",
+    chooseCategory: "Choose a topic:",
+    categories: {
+      checkout: "Checkout and rules",
+      billing: "Plan and payment",
+      other: "Other",
+    },
     technicalHeading: "--- Technical details, you can delete them ---",
     fieldShop: "Store",
     fieldVersion: "App version",
@@ -533,7 +540,6 @@ const en: typeof it = {
     fieldEntitlement: "Trial or plan active",
     fieldValidation: "Validation active",
     fieldErrorCode: "Last error code",
-    fieldDate: "Date and time",
     yes: "yes",
     no: "no",
   },
@@ -683,7 +689,7 @@ const en: typeof it = {
     exceptions: [
       "Rules only apply when both delivery and billing are in Italy.",
       "A customer billing outside Italy completes the order with no checks.",
-      "If the field isn’t in the checkout, the order goes through: an app error never blocks a sale.",
+      "If Shopify shows an Italian delivery but omits a required field, CF Ready blocks checkout with a global warning; without an observable delivery, it remains fail-open.",
     ],
     preventiveLabel: "Show warnings early in checkout",
     preventiveHelp:
@@ -822,7 +828,9 @@ export type SupportDetails = {
   errorCode?: string | null;
 };
 
-export function supportMailto(details: SupportDetails, locale: Locale) {
+export type SupportCategory = keyof typeof it.support.categories;
+
+export function supportMailto(details: SupportDetails, locale: Locale, category: SupportCategory) {
   const t = texts(locale).support;
   const lines = [
     "",
@@ -841,9 +849,10 @@ export function supportMailto(details: SupportDetails, locale: Locale) {
     lines.push(`${t.fieldValidation}: ${details.validationEnabled ? t.yes : t.no}`);
   }
   if (details.errorCode) lines.push(`${t.fieldErrorCode}: ${details.errorCode}`);
-  lines.push(`${t.fieldDate}: ${new Date().toISOString()}`);
-
-  const query = new URLSearchParams({ subject: t.subject, body: lines.join("\n") });
+  const query = new URLSearchParams({
+    subject: `${t.subject}: ${t.categories[category]}`,
+    body: lines.join("\n"),
+  });
   // URLSearchParams codifica lo spazio come "+", che nel corpo di un mailto resterebbe tale.
   return `mailto:${SUPPORT_EMAIL}?${query.toString().replaceAll("+", "%20")}`;
 }

@@ -85,7 +85,19 @@ export default function Guide() {
       <s-section slot="aside" heading={t.support.heading}>
         <s-stack direction="block" gap="base">
           <s-paragraph>{t.support.body}</s-paragraph>
-          <s-link href={supportMailto({ shopDomain, version }, locale)}>{t.support.action}</s-link>
+          <s-paragraph>{t.support.chooseCategory}</s-paragraph>
+          {Object.entries(t.support.categories).map(([category, label]) => (
+            <s-link
+              key={category}
+              href={supportMailto(
+                { shopDomain, version },
+                locale,
+                category as keyof typeof t.support.categories,
+              )}
+            >
+              {label}
+            </s-link>
+          ))}
           <s-text color="subdued">{t.support.privacyNote}</s-text>
         </s-stack>
       </s-section>

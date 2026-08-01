@@ -295,7 +295,8 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
     }
   }
 
-  const validationEnabled = validation?.enabled ?? matches.some(({ enabled }) => enabled);
+  const validationEnabled =
+    validation?.enabled ?? (matches.length > 1 && matches.some(({ enabled }) => enabled));
   await persistValidationState(db, shopDomain, {
     countryCode,
     eligible,

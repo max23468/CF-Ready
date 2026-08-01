@@ -1,7 +1,13 @@
 import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
 import { recordEvent } from "../app/events.server";
-import { markUninstalled, recordInstallOnce, redactShop, refuseInstall } from "../app/shop.server";
+import {
+  markUninstalled,
+  recordInstallOnce,
+  redactExpiredShops,
+  redactShop,
+  refuseInstall,
+} from "../app/shop.server";
 import { localDate, trialEnd } from "../app/billing.server";
 import { readOnboarding, reconcile, saveOnboarding } from "../app/validation.server";
 import {
@@ -173,6 +179,25 @@ test("una disattivazione non riuscita resta fail-open e registra un codice error
     installation_status: "blocked_country",
     validation_enabled: 1,
     last_error_code: "validation_disable_failed",
+  });
+});
+
+test("un readback senza Validation non conserva lo stato attivo precedente", async () => {
+  const shop = await insertShop("validation-rimossa.example.myshopify.com");
+  const admin = adminStub([
+    shopContext("IT", true),
+    SENZA_ADDEBITI,
+    { data: { validationUpdate: { userErrors: [] } } },
+    shopContext("IT", null),
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.validation).toBeUndefined();
+  expect(state.validationEnabled).toBe(false);
+  expect(await appState(shop)).toMatchObject({
+    validation_gid: null,
+    validation_enabled: 0,
   });
 });
 
@@ -654,6 +679,51 @@ test("disinstallazione e redact ripuliscono i dati dello store", async () => {
        WHERE webhook_id = 'wh-redact' AND event_name = 'shop_redacted'`,
     ).first(),
   ).toMatchObject({ total: 1 });
+});
+
+test("la retention elimina solo gli store disinstallati da almeno 90 giorni", async () => {
+  const expired = await insertShop("retention-expired.example.myshopify.com");
+  const recent = await insertShop("retention-recent.example.myshopify.com");
+  const active = await insertShop("retention-active.example.myshopify.com");
+
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE shops SET installation_status = 'uninstalled', uninstalled_at = ?
+         WHERE shop_domain = ?`,
+    ).bind("2026-05-04T00:00:00.000Z", expired),
+    env.DB.prepare(
+      `UPDATE shops SET installation_status = 'uninstalled', uninstalled_at = ?
+         WHERE shop_domain = ?`,
+    ).bind("2026-05-04T00:00:00.001Z", recent),
+    env.DB.prepare("UPDATE shops SET uninstalled_at = ? WHERE shop_domain = ?").bind(
+      "2026-05-01T00:00:00.000Z",
+      active,
+    ),
+    env.DB.prepare(
+      `INSERT INTO webhook_events (webhook_id, shop_domain, topic, status, received_at)
+         VALUES ('wh-retention', ?, 'APP_UNINSTALLED', 'processed', ?)`,
+    ).bind(expired, "2026-05-04T00:00:00.000Z"),
+  ]);
+
+  expect(await redactExpiredShops(env.DB, new Date("2026-08-02T00:00:00.000Z"))).toBe(1);
+  expect(
+    await env.DB.prepare("SELECT id FROM shops WHERE shop_domain = ?").bind(expired).first(),
+  ).toBeNull();
+  expect(
+    await env.DB.prepare("SELECT shop_domain FROM shops WHERE shop_domain = ?")
+      .bind(recent)
+      .first(),
+  ).toMatchObject({ shop_domain: recent });
+  expect(
+    await env.DB.prepare("SELECT installation_status FROM shops WHERE shop_domain = ?")
+      .bind(active)
+      .first(),
+  ).toMatchObject({ installation_status: "active" });
+  expect(
+    await env.DB.prepare("SELECT shop_domain FROM webhook_events WHERE webhook_id = ?")
+      .bind("wh-retention")
+      .first(),
+  ).toMatchObject({ shop_domain: null });
 });
 
 test("riaprire l'onboarding non lo riporta a in corso", async () => {

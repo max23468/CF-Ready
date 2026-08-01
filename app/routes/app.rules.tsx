@@ -27,9 +27,15 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const state = await reconcile(admin, context.cloudflare.env.DB, session.shop);
   const validation = state.validation;
   const config = readConfig(validation?.metafield?.jsonValue);
+  const duplicateError: "duplicate_validations" | "duplicate_validations_active" | null =
+    state.errorCode === "duplicate_validations" ||
+    state.errorCode === "duplicate_validations_active"
+      ? state.errorCode
+      : null;
 
   return {
     locale: resolveLocale(request),
+    duplicateError,
     // §11.4: firma della configurazione osservata, rimandata indietro al salvataggio.
     configHash: await observedConfigHash(validation),
     rules: config.rules,
@@ -153,6 +159,14 @@ export default function CheckoutRules() {
       address2: saved.address2Declared,
     });
   };
+
+  if (saved.duplicateError) {
+    return (
+      <s-page heading={t.rules.heading}>
+        <s-banner tone="critical">{t.errors[saved.duplicateError]}</s-banner>
+      </s-page>
+    );
+  }
 
   return (
     // Il form avvolge la pagina, così l'anteprima nell'aside resta parte dello stesso modulo.

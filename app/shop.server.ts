@@ -100,7 +100,12 @@ export async function markUninstalled(
 // nel frattempo lo store reinstalla: cancellare i dati di un'installazione viva
 // disconnetterebbe il merchant. Nessun dato acquirente è coinvolto, quindi la richiesta
 // viene presa in carico senza cancellare finché l'installazione risulta attiva.
-export async function redactShop(db: D1Database, shopDomain: string, webhookId: string) {
+export async function redactShop(
+  db: D1Database,
+  shopDomain: string,
+  webhookId: string,
+  topic = "SHOP_REDACT",
+) {
   const alreadyRedacted = await db
     .prepare(
       `SELECT id FROM app_events
@@ -133,7 +138,7 @@ export async function redactShop(db: D1Database, shopDomain: string, webhookId: 
            ) VALUES (NULL, ?, 'shop_redacted', 'lifecycle', ?, ?)
            ON CONFLICT(webhook_id, event_name) WHERE webhook_id IS NOT NULL DO NOTHING`,
         )
-        .bind(webhookId, JSON.stringify({ topic: "SHOP_REDACT" }), now),
+        .bind(webhookId, JSON.stringify({ topic }), now),
       db
         .prepare("UPDATE webhook_events SET shop_domain = NULL WHERE shop_domain = ?")
         .bind(shopDomain),
@@ -161,7 +166,7 @@ export async function redactShop(db: D1Database, shopDomain: string, webhookId: 
          )
          ON CONFLICT(webhook_id, event_name) WHERE webhook_id IS NOT NULL DO NOTHING`,
       )
-      .bind(webhookId, JSON.stringify({ topic: "SHOP_REDACT" }), now, shopDomain),
+      .bind(webhookId, JSON.stringify({ topic }), now, shopDomain),
     db
       .prepare(`DELETE FROM shops WHERE shop_domain = ? AND installation_status = 'uninstalled'`)
       .bind(shopDomain),
@@ -185,4 +190,22 @@ export async function redactShop(db: D1Database, shopDomain: string, webhookId: 
       .bind(webhookId)
       .first()) !== null
   );
+}
+
+export async function redactExpiredShops(db: D1Database, now = new Date()) {
+  const cutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1_000).toISOString();
+  const { results } = await db
+    .prepare(
+      `SELECT shop_domain FROM shops
+       WHERE installation_status = 'uninstalled' AND uninstalled_at <= ?`,
+    )
+    .bind(cutoff)
+    .all<{ shop_domain: string }>();
+
+  const redacted = await Promise.all(
+    results.map(({ shop_domain: shopDomain }) =>
+      redactShop(db, shopDomain, `retention-${crypto.randomUUID()}`, "RETENTION_EXPIRED"),
+    ),
+  );
+  return redacted.filter(Boolean).length;
 }

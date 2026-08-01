@@ -48,3 +48,23 @@ test("la pagina Regole carica l’entitlement autorevole per l’anteprima", asy
   expect(result).toMatchObject({ enabled: true, entitled: false });
   expect(mocks.reconcile).toHaveBeenCalledWith(admin, db, "example.myshopify.com");
 });
+
+test("la pagina Regole segnala la configurazione indeterminata dei duplicati", async () => {
+  mocks.reconcile.mockResolvedValue({
+    validationEnabled: true,
+    validation: undefined,
+    entitlement: { kind: "trial", validThrough: "2026-08-12" },
+    errorCode: "duplicate_validations_active",
+  });
+  mocks.observedConfigHash.mockResolvedValue(null);
+  mocks.readAddress2Declaration.mockResolvedValue(null);
+
+  const { loader } = await import("../app/routes/app.rules");
+  const result = await loader({
+    request: new Request("https://example.test/app/rules?locale=it"),
+    context: { cloudflare: { env: { DB: {} } } },
+    params: {},
+  } as never);
+
+  expect(result.duplicateError).toBe("duplicate_validations_active");
+});

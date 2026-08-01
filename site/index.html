@@ -70,11 +70,11 @@
     <div class="wrap">
       <p><strong>Il campo è quello di Shopify.</strong> Quello che il checkout italiano mostra già, non uno aggiunto da noi.</p>
       <p><strong>Il tema resta com’è.</strong> Nessun codice da incollare, nessuna estensione da installare.</p>
-      <p><strong>Va bene il tuo piano.</strong> Serve Shopify, non Shopify Plus.</p>
+      <p><strong>Funziona sui piani standard.</strong> Basic, Grow, Advanced e Plus.</p>
     </div>
   </section>
 
-  <section class="divided">
+  <section>
     <div class="wrap column">
       <span class="label">Il problema</span>
       <h2>L’ordine è arrivato, la fattura no</h2>
@@ -137,7 +137,7 @@
       <div class="section-head">
         <span class="label">Cosa controlla</span>
         <h2>Contare i caratteri non basta</h2>
-        <p>CF Ready ricostruisce il codice come lo costruisce la regola ufficiale, e riconosce i casi in cui i controlli fatti in fretta sbagliano.</p>
+        <p>CF Ready controlla lunghezza, struttura, data, codice catastale e carattere di controllo, e riconosce i casi in cui i controlli fatti in fretta sbagliano.</p>
       </div>
 
       <div class="grid">
@@ -179,8 +179,8 @@
       <ul class="checks grid two">
         <li>Ordine che parte per l’estero: nessun controllo.</li>
         <li>Fatturazione estera, anche se consegni o fai ritirare in Italia: nessun controllo.</li>
-        <li>Ritiro in negozio e ordini misti: si controlla se almeno una consegna è italiana.</li>
-        <li>Checkout accelerati, e tutti i casi in cui Shopify non mostra i campi: nessun errore.</li>
+        <li>Ritiro in negozio: si controlla quando i campi sono presenti. Negli ordini misti, si controlla se almeno una consegna è italiana.</li>
+        <li>Campo obbligatorio non mostrato: blocca solo con almeno una consegna italiana osservabile; senza consegna osservabile il checkout resta aperto.</li>
         <li>Configurazione illeggibile o guasto tecnico: il checkout resta aperto.</li>
         <li>Prova finita o piano non attivo: il checkout resta aperto.</li>
       </ul>
@@ -220,7 +220,7 @@
     <div class="wrap column">
       <span class="label">Dati</span>
       <h2>Quello che scrivono i tuoi clienti resta in Shopify</h2>
-      <p>Il controllo avviene dentro Shopify, mentre il cliente è alla cassa. I codici fiscali e le PEC non arrivano ai nostri server, non finiscono in un registro e non restano da nessuna parte: l’app riceve il valore, lo guarda, e risponde solo se c’è un errore.</p>
+      <p>Il controllo avviene dentro Shopify, mentre il cliente è alla cassa. I codici fiscali e le PEC restano in Shopify: non arrivano ai nostri server, non finiscono in un registro di CF Ready e non vengono conservati da CF Ready. L’app riceve il valore, lo guarda e risponde solo se c’è un errore.</p>
       <p>Dei tuoi ordini, clienti, prodotti e giacenze non sappiamo niente, e i permessi che chiediamo a Shopify si fermano a quello che serve per funzionare. Nella <a href="privacy.html">Privacy Policy</a> è scritto per esteso.</p>
     </div>
   </section>
@@ -229,7 +229,7 @@
     <div class="wrap column">
       <span class="label">Prova e prezzo</span>
       <h2>Quattordici giorni per decidere</h2>
-      <p>La prova dura due settimane, è completa e non ti chiede un euro. Alla fine scegli come pagare: ogni mese, una volta l’anno, oppure una volta sola per questo store e non se ne parla più.</p>
+      <p>La prova dura due settimane, è completa e non ti chiede un euro. Alla fine scegli come pagare: ogni mese, una volta l’anno, oppure con un solo pagamento per questo store Shopify, senza rinnovi.</p>
       <p>Cambia solo quando paghi, non cosa ottieni: nessun limite di ordini, niente funzioni riservate a chi spende di più. Il prezzo aggiornato lo trovi sull’App Store e dentro l’app quando scegli, e l’addebito arriva sempre sulla tua fattura Shopify.</p>
       <div class="actions">
         <button class="button" type="button" disabled>Presto sullo Shopify App Store</button>
@@ -249,17 +249,17 @@
 
       <details>
         <summary>Funziona con il mio piano Shopify?</summary>
-        <p>Sui piani normali sì, e Plus non serve. Quello che conta è che lo store abbia l’indirizzo in Italia: da lì dipende la presenza dei campi fiscali nel checkout.</p>
+        <p>Sì, sui piani Basic, Grow, Advanced e Plus. Quello che conta è che lo store abbia l’indirizzo in Italia: da lì dipende la presenza dei campi fiscali nel checkout.</p>
       </details>
 
       <details>
         <summary>Rischio di bloccare ordini buoni?</summary>
-        <p>È la cosa a cui abbiamo pensato di più. Gli ordini esteri non li tocca, dove Shopify non mostra i campi non dice niente, e qualsiasi intoppo tecnico lascia il checkout aperto. Se vuoi andarci piano puoi partire con i campi facoltativi: segnala chi scrive male, lascia passare chi lascia vuoto.</p>
+        <p>È la cosa a cui abbiamo pensato di più. Gli ordini esteri non li tocca; se un campo obbligatorio manca, blocca solo quando Shopify espone almeno una consegna italiana. Senza una consegna osservabile, e per qualsiasi intoppo tecnico, il checkout resta aperto. Se vuoi andarci piano puoi partire con i campi facoltativi: segnala chi scrive male, lascia passare chi lascia vuoto.</p>
       </details>
 
       <details>
         <summary>Il Codice Fiscale viene verificato sul serio?</summary>
-        <p>Viene verificato com’è scritto, non a chi appartiene. Il codice deve essere costruito bene, e su questo non transigiamo. Ma se quel codice sia davvero del cliente, non possiamo saperlo: non lo sa nessuna app di checkout.</p>
+        <p>Viene verificato com’è scritto, non a chi appartiene. Il codice deve superare i controlli formali, e su questo non transigiamo. Ma se quel codice sia davvero del cliente, non possiamo saperlo: non lo sa nessuna app di checkout.</p>
       </details>
 
       <details>

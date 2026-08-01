@@ -18,7 +18,12 @@
 
     // La soglia evita che la testata sparisca al primo pixel, e che tremi
     // durante il rimbalzo elastico in cima alla pagina.
-    if (mobile.matches && scendendo && y > 240) {
+    if (
+      mobile.matches &&
+      scendendo &&
+      y > 240 &&
+      !masthead.contains(document.activeElement)
+    ) {
       masthead.classList.add("is-hidden");
     } else if (!scendendo || !mobile.matches) {
       masthead.classList.remove("is-hidden");
@@ -28,6 +33,9 @@
   }
 
   window.addEventListener("scroll", onScroll, { passive: true });
+  masthead.addEventListener("focusin", function () {
+    masthead.classList.remove("is-hidden");
+  });
   mobile.addEventListener("change", function () {
     masthead.classList.remove("is-hidden");
   });
@@ -39,7 +47,7 @@
       return a.hash.length > 1;
     },
   );
-  if (!links.length || !("IntersectionObserver" in window)) return;
+  if (!links.length) return;
 
   var sections = links.flatMap(function (a) {
     var section = document.getElementById(a.hash.slice(1));
@@ -48,31 +56,31 @@
 
   function segna(hash) {
     links.forEach(function (a) {
-      a.classList.toggle("is-active", a.hash === hash);
+      var corrente = a.hash === hash;
+      a.classList.toggle("is-active", corrente);
+      if (corrente) a.setAttribute("aria-current", "location");
+      else a.removeAttribute("aria-current");
     });
   }
 
-  var observer = new IntersectionObserver(
-    function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) segna("#" + entry.target.id);
-      });
-    },
-    // La fascia stretta al centro dello schermo evita che due sezioni contigue
-    // si contendano l'evidenziazione mentre si scorre.
-    { rootMargin: "-45% 0px -45% 0px" },
-  );
-
-  sections.forEach(function (section) {
-    observer.observe(section);
-  });
-
-  // In cima alla pagina nessuna sezione è al centro: lì la voce giusta è Home.
-  // Vale anche all'apertura, prima che si scorra.
-  function segnaSeInCima() {
-    if (window.scrollY < 120) segna("#top");
+  // È corrente l'ultima sezione che ha raggiunto la testata. Funziona anche
+  // aprendo direttamente un'ancora e con sezioni più corte del viewport.
+  function segnaSezione() {
+    var corrente = sections[0];
+    var scrollPadding = parseFloat(
+      getComputedStyle(document.documentElement).scrollPaddingTop,
+    );
+    var soglia = Math.max(
+      masthead.getBoundingClientRect().bottom,
+      scrollPadding || 0,
+    );
+    sections.forEach(function (section) {
+      if (section.getBoundingClientRect().top <= soglia + 1) corrente = section;
+    });
+    if (corrente) segna("#" + corrente.id);
   }
 
-  window.addEventListener("scroll", segnaSeInCima, { passive: true });
-  segnaSeInCima();
+  window.addEventListener("scroll", segnaSezione, { passive: true });
+  window.addEventListener("hashchange", segnaSezione);
+  segnaSezione();
 })();

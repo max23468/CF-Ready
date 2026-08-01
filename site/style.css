@@ -1,7 +1,7 @@
 /* CF Ready — sito pubblico
    Direzione: docs/brand/brand-foundation.md §9.1. Token: tokens.css (copia di
    docs/brand/assets/tokens.css, fonte canonica del brand).
-   Nessun webfont, nessuno script, nessuna richiesta di rete verso terzi.
+   Nessun webfont; JavaScript locale e beacon Cloudflare senza cookie.
    Gli elementi visivi sono forme del sistema — tessera, fascia, blocchi — mai
    fotografie, personaggi o scene: la credibilità viene dalla precisione. */
 
@@ -501,6 +501,7 @@ section.facts p {
   padding: var(--cf-space-6);
   box-shadow: var(--cf-shadow-card);
   max-width: 26rem;
+  align-self: center;
 }
 
 .mock-label {
@@ -613,7 +614,14 @@ footer ul {
   }
 
   nav ul {
+    flex-wrap: nowrap;
     gap: var(--cf-space-3) var(--cf-space-4);
+    white-space: nowrap;
+  }
+
+  .masthead nav {
+    max-width: 100%;
+    overflow-x: auto;
   }
 
   html {
