@@ -1,19 +1,21 @@
 import { useState } from "react";
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
-import { resolveLocale, texts } from "../i18n";
+import { APP_VERSION } from "../env.server";
+import { resolveLocale, supportMailto, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
-  return { locale: resolveLocale(request) };
+  const { session } = await authenticate.admin(request);
+  // La Guida non rilegge Shopify: allega i soli dati già disponibili qui (§22).
+  return { locale: resolveLocale(request), shopDomain: session.shop, version: APP_VERSION };
 };
 
 export const shouldRevalidate = skipRevalidationWhenLeaving;
 
 export default function Guide() {
-  const { locale } = useLoaderData<typeof loader>();
+  const { locale, shopDomain, version } = useLoaderData<typeof loader>();
   const t = texts(locale);
   const [expanded, setExpanded] = useState(false);
 
@@ -76,6 +78,15 @@ export default function Guide() {
             <s-link href="/app/messages">{t.nav.messages}</s-link>
             <s-link href="/app/onboarding">{t.onboarding.reopen}</s-link>
           </s-stack>
+        </s-stack>
+      </s-section>
+
+      {/* FR-090: il recapito è un `mailto:` precompilato, non un modulo che invia (§22). */}
+      <s-section slot="aside" heading={t.support.heading}>
+        <s-stack direction="block" gap="base">
+          <s-paragraph>{t.support.body}</s-paragraph>
+          <s-link href={supportMailto({ shopDomain, version }, locale)}>{t.support.action}</s-link>
+          <s-text color="subdued">{t.support.privacyNote}</s-text>
         </s-stack>
       </s-section>
     </s-page>

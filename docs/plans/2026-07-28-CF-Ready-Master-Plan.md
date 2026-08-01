@@ -253,7 +253,7 @@ Rispetto alle alternative più ampie o invasive:
 - Prova gratuita comune di 14 giorni.
 - Billing mensile, annuale e una tantum.
 - Pricing di lancio e generazioni tariffarie.
-- Pagina interna di supporto e modulo minimale.
+- Percorso di assistenza dentro l’app, nella forma decisa in §22.
 - Sito pubblico bilingue con pagine legali e supporto.
 - Controlled Launch.
 
@@ -682,14 +682,16 @@ English:
 
 ### 7.9 Supporto e recensioni
 
-**FR-090** — Modulo supporto minimale con:
+**FR-090** — Percorso di assistenza minimale dentro l’app, che prepara un
+messaggio già compilato verso la casella sviluppatore con:
 
-- categoria;
-- oggetto;
-- messaggio;
-- email merchant precompilata ma modificabile;
-- metadati tecnici non sensibili;
-- numero richiesta mostrato nell’app.
+- categoria scelta dal merchant, riportata nell’oggetto;
+- corpo modificabile prima dell’invio;
+- metadati tecnici non sensibili dell’allowlist di §22, visibili nel messaggio.
+
+Nella 1.0 il recapito avviene tramite un collegamento `mailto:`, per l’esito
+della verifica registrato in §22: non esiste quindi un numero richiesta, che
+senza un sistema ricevente non avrebbe riscontro.
 
 **FR-091** — Nessuna copia automatica al merchant nella 1.0.
 
@@ -1341,7 +1343,9 @@ singola migrazione. Poiché le migrazioni applicate sono immutabili, ogni tabell
 e colonna viene creata dalla milestone che la usa: `shops` e `shopify_sessions`
 con M1, `app_state` tecnico, `webhook_events` e `app_events` con M4, `trials`,
 `trial_ledger`, `billing_accounts` e `billing_events` con M5, le colonne di
-onboarding di `app_state` con M6, `support_requests` con il modulo di supporto.
+onboarding di `app_state` con M6. `support_requests` non viene creata nella 1.0:
+il recapito dell’assistenza avviene via `mailto:` e nessuna riga verrebbe
+scritta.
 
 ### 12.2 Schema fisico minimo
 
@@ -1513,7 +1517,10 @@ Non registrare URL completi, form body, Codice Fiscale, PEC, indirizzi o payload
 
 #### `support_requests`
 
-Solo per il modulo interno minimale.
+Struttura prevista, **non implementata nella 1.0**: con il recapito via
+`mailto:` deciso in §22 non esiste un sistema ricevente che possa scrivere
+queste righe. Resta descritta qui per il caso in cui l’invio server-side venga
+implementato, e in quel caso nasce con la propria migrazione.
 
 | Campo | Tipo/logica |
 |---|---|
@@ -1825,7 +1832,16 @@ Il calcolo visibile è una stima: Shopify resta la fonte dell’importo effettiv
 
 Testo pubblico:
 
-> Un solo pagamento per questo store Shopify, senza rinnovi. Include le funzionalità dell’app e i relativi aggiornamenti per la durata operativa del servizio.
+> Un solo pagamento per questo store Shopify, senza rinnovi. Include gli
+> aggiornamenti dell’app e l’assistenza, senza costi aggiuntivi.
+
+La formulazione precedente si chiudeva con «per la durata operativa del
+servizio». M6 l’ha sostituita: la durata operativa descriveva un limite che il
+merchant non può verificare, e prometteva implicitamente una cessazione. La resa
+in-app di [`app/i18n.ts`](../../app/i18n.ts) aggiunge la frase di chiusura «Non
+c’è altro da scegliere», che orienta la scelta e non fa parte del testo
+contrattuale; i Termini pubblicati in `site/` riportano la formulazione qui
+sopra.
 
 Regole interne:
 
@@ -2320,6 +2336,20 @@ https://cf-ready.pages.dev/terms
 https://cf-ready.pages.dev/support
 ```
 
+Le versioni inglesi vivono sotto `/en/`, con gli stessi percorsi:
+
+```text
+https://cf-ready.pages.dev/en/
+https://cf-ready.pages.dev/en/privacy
+https://cf-ready.pages.dev/en/terms
+https://cf-ready.pages.dev/en/support
+```
+
+L’italiano sta nella radice perché è la lingua principale del prodotto (§16.4) e
+perché la versione italiana dei documenti legali è quella che prevale (§21.8).
+Nessuna negoziazione automatica della lingua: il passaggio è un collegamento
+esplicito, così l’URL condiviso mostra a tutti la stessa pagina.
+
 Worker Development:
 
 ```text
@@ -2453,7 +2483,6 @@ cf-ready/
 │   ├── plans/
 │   │   └── 2026-07-28-CF-Ready-Master-Plan.md
 │   ├── brand/                  # brand-foundation.md, brand-board.html, assets/
-│   ├── legal/
 │   └── runbooks/
 ├── .github/                    # workflow, template PR, Dependabot
 ├── AGENTS.md
@@ -2468,6 +2497,10 @@ cf-ready/
 ```
 
 Non creare un monorepo framework o pacchetti condivisi finché una duplicazione reale non lo giustifica.
+
+I testi legali non hanno una copia in `docs/`: le pagine pubblicate in `site/`
+sono la loro unica fonte, così non esistono due versioni dello stesso documento
+da tenere allineate (M7).
 
 ### 19.2 Ambienti
 
@@ -3023,13 +3056,39 @@ dettagli sfruttabili non vengono gestiti tramite issue pubbliche.
 La 1.0 implementa solo il minimo:
 
 - supporto nativo Shopify;
-- Support link verso `/help`;
-- pagina FAQ;
-- modulo interno;
-- invio a una casella sviluppatore verificata;
-- conferma in-app con numero richiesta;
+- Support link verso `/support` del sito pubblico (§18.3);
+- pagina FAQ dentro l’app, in Guida e FAQ (§15.7);
+- percorso di assistenza in-app che prepara un messaggio precompilato;
+- recapito a una casella sviluppatore verificata;
 - nessuna copia email automatica al merchant;
 - risposta manuale dello sviluppatore.
+
+**Esito della verifica sull’Email binding, 1 agosto 2026.** La verifica imposta
+più sotto è stata eseguita: l’Email binding di Cloudflare invia gratuitamente
+verso indirizzi di destinazione verificati, su qualunque piano e con il solo
+Email Routing configurato, **ma soltanto da un dominio proprio onboardato**.
+`pages.dev` e `workers.dev` non sono zone del progetto, e l’owner ha deciso di
+non registrare un dominio per la 1.0. Il binding non è quindi utilizzabile e
+vale il fallback previsto: un collegamento `mailto:` precompilato.
+
+Ne discendono tre conseguenze, recepite in FR-090 e §12.2:
+
+- nessun numero richiesta, perché senza un sistema ricevente sarebbe un
+  identificatore privo di riscontro;
+- nessuna tabella `support_requests` nella 1.0: resta descritta in §12.2 come
+  struttura prevista se l’invio verrà implementato;
+- il messaggio precompilato resta interamente ispezionabile e modificabile dal
+  merchant prima dell’invio, che è anche la ragione per cui l’allowlist qui
+  sotto non è una formalità.
+
+La casella è `cfready@icloud.com`, la stessa dichiarata nel sito pubblico e in
+`SECURITY.md`. Il collegamento compare in due punti: nella colonna laterale di
+Guida e FAQ, che è il percorso ordinario, e nella schermata Store non supportato
+(§15.8, D-043), dove il merchant ha bisogno di un chiarimento proprio perché non
+può usare l’app. La Guida non rilegge Shopify per comporre il messaggio: allega i
+dati che ha già, mentre la Home aggiunge il Paese rilevato. L’obiettivo di
+risposta dichiarato al merchant è di uno o due giorni lavorativi; resta un
+obiettivo operativo, non uno SLA.
 
 Dati tecnici allegabili tramite allowlist:
 
@@ -3053,6 +3112,11 @@ Mai allegare:
 - payload completi.
 
 Prima di implementare l’invio, verificare che l’Email binding Cloudflare corrente copra il destinatario verificato nel piano usato. In caso contrario, il fallback 1.0 è un link `mailto:` precompilato: non introdurre un SaaS email a pagamento solo per il modulo.
+
+La verifica è stata fatta e il fallback è quello adottato: vedi l’esito in
+apertura di sezione. Se in futuro il progetto acquisirà un dominio proprio, la
+verifica va rifatta prima di riaprire la questione, perché è il dominio a
+sbloccare il binding, non il piano Cloudflare.
 
 ---
 
@@ -3876,7 +3940,7 @@ Deliverable:
 - Termini;
 - `SECURITY.md`;
 - Support;
-- modulo o fallback `mailto:`;
+- fallback `mailto:`, per l’esito della verifica registrato in §22;
 - contenuti IT/EN.
 
 Gate:
@@ -3885,6 +3949,23 @@ Gate:
 - revisione legale;
 - canale privato per vulnerabilità verificato;
 - testi coerenti con listing/app.
+
+Decisioni prese durante la milestone:
+
+- **nessun dominio proprio nella 1.0.** Il sito resta sui percorsi `pages.dev`
+  di §18.3. La conseguenza operativa non è estetica: senza un dominio
+  onboardato l’Email binding di Cloudflare non può inviare, quindi cade il
+  modulo con invio e resta il `mailto:`;
+- **il sito non duplica l’app.** Niente FAQ e niente prezzi sulle pagine
+  pubbliche: la FAQ operativa vive in Guida e FAQ (§15.7) e i prezzi vivono
+  nell’app e nello Shopify App Store, che sono le sole fonti che restano
+  aggiornate da sole. Il sito dichiara cosa fa l’app, cosa non fa, come si
+  comporta nei casi particolari e dove chiedere aiuto;
+- **i testi legali stanno solo in `site/`** (§19.1), per non avere due copie
+  dello stesso documento;
+- **le due promesse lasciate aperte da M6 sono chiuse**: la Guida indica la
+  casella di assistenza e offre il collegamento precompilato, e la schermata
+  Store non supportato ha il contatto sviluppatore previsto da §15.8 e D-043.
 
 ### M8 — Hardening
 

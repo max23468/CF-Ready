@@ -4,6 +4,9 @@ import type { ErrorDisplay, Rules } from "./config";
 const LOCALES = ["it", "en"] as const;
 export type Locale = (typeof LOCALES)[number];
 
+// §22: unica casella di assistenza, la stessa dichiarata nel sito pubblico e in `SECURITY.md`.
+export const SUPPORT_EMAIL = "cfready@icloud.com";
+
 // §16.1: la lingua è quella dell'amministratore Shopify corrente, non quella dello store e non
 // una preferenza salvata. Il caricamento iniziale porta `locale` nell'URL; sulle richieste
 // successive App Bridge imposta `Accept-Language` verso il dominio dell'app. Tutto ciò che non
@@ -164,6 +167,26 @@ const it = {
       "Le regole sono salvate. Puoi cambiarle quando vuoi, e questa procedura resta disponibile dalla Guida.",
     reopen: "Rivedi la configurazione iniziale",
   },
+  support: {
+    heading: "Assistenza",
+    body: "Le richieste arrivano a chi sviluppa l’app e ricevono una risposta scritta a mano. Il collegamento apre il tuo programma di posta con un messaggio già compilato: puoi leggerlo e modificarlo prima di inviarlo.",
+    action: "Scrivi allo sviluppatore",
+    contactDeveloper: "Contatta lo sviluppatore",
+    privacyNote:
+      "Nel messaggio finiscono solo dominio dello store, versione, lingua e stato tecnico dell’app. Non allegare Codici Fiscali, PEC, ordini o dati dei tuoi clienti: per capire un problema non servono.",
+    subject: "Assistenza CF Ready",
+    technicalHeading: "--- Dati tecnici, puoi cancellarli ---",
+    fieldShop: "Store",
+    fieldVersion: "Versione app",
+    fieldLanguage: "Lingua",
+    fieldCountry: "Paese rilevato",
+    fieldEntitlement: "Prova o piano attivo",
+    fieldValidation: "Validazione attiva",
+    fieldErrorCode: "Ultimo codice di errore",
+    fieldDate: "Data e ora",
+    yes: "sì",
+    no: "no",
+  },
   guide: {
     heading: "Guida e FAQ",
     intro:
@@ -234,7 +257,7 @@ const it = {
       },
       {
         q: "Contattare lo sviluppatore",
-        a: "Il canale di assistenza sarà indicato qui appena disponibile.",
+        a: "Scrivi a cfready@icloud.com, oppure usa il collegamento nella colonna a fianco: prepara il messaggio con i dati tecnici dello store già compilati. Rispondiamo a mano, di solito entro uno o due giorni lavorativi. Se il problema blocca il checkout, scrivilo nell’oggetto.",
       },
     ],
   },
@@ -264,7 +287,7 @@ const it = {
       "Addebito unico alla tua approvazione su Shopify. I giorni di prova residui decadono.",
     chooseHeading: "Scegli una modalità",
     // §14.11: formulazione approvata. §7.2 vieta “a vita”, “per sempre”, “illimitato” e
-    // “senza limiti di tempo”: la durata si dice come durata operativa del servizio.
+    // “senza limiti di tempo”: si dice cosa il pagamento include, senza promettere una durata.
     oneTimeSettled:
       "Un solo pagamento per questo store, senza rinnovi. Include gli aggiornamenti dell’app e l’assistenza, senza costi aggiuntivi. Non c’è altro da scegliere.",
     recommended: "Consigliato",
@@ -494,6 +517,26 @@ const en: typeof it = {
       "Your rules are saved. You can change them whenever you want, and these steps stay available from the Help page.",
     reopen: "Review your initial setup",
   },
+  support: {
+    heading: "Support",
+    body: "Requests reach whoever builds the app and get an answer written by hand. The link opens your mail app with a message already filled in: you can read it and edit it before sending.",
+    action: "Write to the developer",
+    contactDeveloper: "Contact the developer",
+    privacyNote:
+      "The message only carries your store domain, app version, language and technical status. Don’t attach tax codes, PEC addresses, orders or your customers’ data: they aren’t needed to understand a problem.",
+    subject: "CF Ready support",
+    technicalHeading: "--- Technical details, you can delete them ---",
+    fieldShop: "Store",
+    fieldVersion: "App version",
+    fieldLanguage: "Language",
+    fieldCountry: "Detected country",
+    fieldEntitlement: "Trial or plan active",
+    fieldValidation: "Validation active",
+    fieldErrorCode: "Last error code",
+    fieldDate: "Date and time",
+    yes: "yes",
+    no: "no",
+  },
   guide: {
     heading: "Help and FAQ",
     intro:
@@ -564,7 +607,7 @@ const en: typeof it = {
       },
       {
         q: "Contacting the developer",
-        a: "The support channel will be shown here as soon as it’s available.",
+        a: "Write to cfready@icloud.com, or use the link in the side column: it prepares the message with your store’s technical details already filled in. We answer by hand, usually within one or two business days. If the problem is blocking your checkout, say so in the subject line.",
       },
     ],
   },
@@ -764,6 +807,45 @@ export function homeCheckoutSummary(
   if (status === "active") return summariseCheckout({ rules, status }, locale)[0];
   const t = texts(locale).checkout;
   return status === "lapsed" ? t.lapsed : t.disabled;
+}
+
+// FR-090: il recapito dell'assistenza è un `mailto:` precompilato, per l'esito della verifica
+// sull'Email binding registrato in §22. Nel corpo finiscono soltanto i campi dell'allowlist di
+// §22, che il merchant vede e può cancellare prima di inviare: mai Codice Fiscale, PEC, ordini,
+// indirizzi, token o payload.
+export type SupportDetails = {
+  shopDomain: string;
+  version: string;
+  countryCode?: string | null;
+  entitlement?: boolean;
+  validationEnabled?: boolean;
+  errorCode?: string | null;
+};
+
+export function supportMailto(details: SupportDetails, locale: Locale) {
+  const t = texts(locale).support;
+  const lines = [
+    "",
+    "",
+    t.technicalHeading,
+    `${t.fieldShop}: ${details.shopDomain}`,
+    `${t.fieldVersion}: ${details.version}`,
+    `${t.fieldLanguage}: ${locale}`,
+  ];
+
+  if (details.countryCode) lines.push(`${t.fieldCountry}: ${details.countryCode}`);
+  if (details.entitlement !== undefined) {
+    lines.push(`${t.fieldEntitlement}: ${details.entitlement ? t.yes : t.no}`);
+  }
+  if (details.validationEnabled !== undefined) {
+    lines.push(`${t.fieldValidation}: ${details.validationEnabled ? t.yes : t.no}`);
+  }
+  if (details.errorCode) lines.push(`${t.fieldErrorCode}: ${details.errorCode}`);
+  lines.push(`${t.fieldDate}: ${new Date().toISOString()}`);
+
+  const query = new URLSearchParams({ subject: t.subject, body: lines.join("\n") });
+  // URLSearchParams codifica lo spazio come "+", che nel corpo di un mailto resterebbe tale.
+  return `mailto:${SUPPORT_EMAIL}?${query.toString().replaceAll("+", "%20")}`;
 }
 
 // FR-077: avvisi di prova a sette giorni, tre giorni, ultimo giorno e scadenza. Solo in app,

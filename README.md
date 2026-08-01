@@ -4,10 +4,10 @@ Public app Shopify per validare formalmente Codice Fiscale e PEC nei campi
 nativi del checkout italiano.
 
 > Il progetto è in sviluppo: M0–M6 sono completate per il perimetro Development
-> e lo snapshot Development corrente è `0.4.39`, con motore di validazione,
-> billing, interfaccia merchant
-> e onboarding implementati. Production, submission App Store e gate wallet
-> M10 non sono ancora completati.
+> e M7 è in corso. Lo snapshot Development corrente è `0.4.39` e la versione del
+> repository è `0.5.0`, con motore di validazione, billing, interfaccia
+> merchant, onboarding e sito pubblico implementati. Production, submission App
+> Store e gate wallet M10 non sono ancora completati.
 
 ## Sviluppo locale
 
@@ -22,6 +22,26 @@ mise exec -- npm ci
 mise exec -- npm run db:migrate:local
 mise exec -- npm run dev
 ```
+
+## Sito pubblico
+
+Le pagine statiche bilingui stanno in `site/` e non hanno passo di build né
+dipendenze: si servono così come sono.
+
+```sh
+mise exec -- npm run site:dev
+mise exec -- npm run site:deploy
+```
+
+`site/tokens.css` è una copia di `docs/brand/assets/tokens.css`, che resta la
+fonte canonica dei token di brand: se cambiano i token, va aggiornata anche la
+copia.
+
+Entrambi i comandi rimuovono prima `.wrangler/deploy/config.json`, l'artefatto
+che `react-router build` lascia per il Worker: finché esiste, Wrangler dirotta
+anche i comandi Pages sulla configurazione dell'app e il sito non parte. Pages
+non accetta un file di configurazione alternativo, quindi si toglie di mezzo
+quello sbagliato; viene rigenerato alla build successiva.
 
 ## Verifica
 
