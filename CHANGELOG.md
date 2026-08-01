@@ -5,6 +5,21 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.5.2 — 1 agosto 2026
+
+- la Home pubblica passa da scheda tecnica a pagina che spiega e convince:
+  problema, tre passi, cosa controlla davvero il motore — omocodia e date
+  impossibili comprese — casi in cui non blocca, dati, prova e domande di chi
+  deve ancora installare. Le illustrazioni sono forme del sistema, non
+  fotografie, e lo schema del checkout è dichiarato tale invece di imitare la UI
+  di Shopify;
+- i richiami all'installazione puntano a un URL provvisorio della listing, che
+  non esiste ancora: il segnaposto è registrato in §27 con la milestone che lo
+  sostituisce;
+- la direzione di brand §9.1 registra la decisione: cambia la densità della
+  Home, non il registro, e restano fermi i divieti su prove sociali, logo wall e
+  finte schermate.
+
 ## 0.5.1 — 1 agosto 2026
 
 - la riconciliazione conserva lo stato attivo quando Shopify lascia una

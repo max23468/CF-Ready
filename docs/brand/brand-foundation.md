@@ -643,7 +643,9 @@ Direzione, non materiali finali. Testi completi, listing, screenshot definitivi 
 
 ### 9.1 Sito pubblico
 
-**Stile generale.** Documento, non landing page commerciale. Una colonna, misura di lettura contenuta, sezioni separate da spazio ampio. Nessun hero a tutta pagina con immagine di sfondo, nessuna sezione "loved by", nessun logo wall, nessun contatore. La credibilità viene dalla precisione dei contenuti — inclusi i limiti dichiarati — non dalla scenografia.
+**Stile generale.** Sezioni separate da spazio ampio e misura di lettura contenuta per i testi lunghi. Nessun hero a tutta pagina con immagine di sfondo, nessuna sezione "loved by", nessun logo wall, nessun contatore. La credibilità viene dalla precisione dei contenuti — inclusi i limiti dichiarati — non dalla scenografia.
+
+**Aggiornamento M7, 1 agosto 2026.** La direzione iniziale prescriveva una sola colonna e un tono da documento. L'owner ha deciso che la Home deve anche convincere chi non conosce il prodotto, quindi ammette griglie di schede, passi numerati, richiami all'installazione e un esempio visivo del comportamento nel checkout. Restano validi tutti i divieti elencati sopra e nei paragrafi seguenti: cambia la densità, non il registro. Le pagine legali e di assistenza restano a colonna singola.
 
 **Palette.** Fondo Panna come default; card e blocchi di esempio su Superficie bianca. Verde bottiglia per titoli, link e bottoni. Una o due sezioni su Verde bottiglia pieno per scandire il ritmo, tipicamente la sezione dei limiti e il piè di pagina. Arancio cotto al massimo una volta per schermata.
 
@@ -651,7 +653,7 @@ Direzione, non materiali finali. Testi completi, listing, screenshot definitivi 
 
 **Sezioni.** Struttura fissa: occhiello → titolo → uno o due paragrafi → eventuale elenco o elemento visivo. Le sezioni previste da §24.4 — beneficio, campo nativo, nessuna modifica al tema, compatibilità piani, validazione, eccezioni estere, canali supportati, **limitazioni**, pricing e prova, privacy, link legali e supporto — hanno tutte lo stesso peso grafico: le limitazioni non stanno in corpo minore né nascoste in fondo.
 
-**Illustrazioni.** Preferenza per **nessuna illustrazione**. Dove un elemento visivo aiuta davvero si usano forme del sistema — la tessera, la fascia, i blocchi — in due colori, senza personaggi, senza isometrie, senza scene d'ufficio. Nessuna illustrazione che rappresenti fatture, timbri, ricevute o l'Agenzia delle Entrate.
+**Illustrazioni.** Solo forme del sistema — la tessera, la fascia, i blocchi, il campo — in due colori, senza personaggi, senza isometrie, senza scene d'ufficio. Nessuna illustrazione che rappresenti fatture, timbri, ricevute o l'Agenzia delle Entrate. Un elemento visivo si aggiunge quando mostra un comportamento che il testo dovrebbe altrimenti descrivere a parole; non per riempire una colonna. Uno schema del checkout è ammesso ed è utile, ma va dichiarato come schema e non deve somigliare a una schermata reale di Shopify (§9.3, §24.5 del Master Plan).
 
 **Rapporto con l'app.** Il sito è più espressivo dell'app ma parla la stessa lingua e usa le stesse parole: chi arriva nell'app dopo aver letto il sito riconosce i termini uno a uno.
 

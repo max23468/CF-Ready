@@ -3956,16 +3956,37 @@ Decisioni prese durante la milestone:
   di §18.3. La conseguenza operativa non è estetica: senza un dominio
   onboardato l’Email binding di Cloudflare non può inviare, quindi cade il
   modulo con invio e resta il `mailto:`;
-- **il sito non duplica l’app.** Niente FAQ e niente prezzi sulle pagine
-  pubbliche: la FAQ operativa vive in Guida e FAQ (§15.7) e i prezzi vivono
-  nell’app e nello Shopify App Store, che sono le sole fonti che restano
-  aggiornate da sole. Il sito dichiara cosa fa l’app, cosa non fa, come si
-  comporta nei casi particolari e dove chiedere aiuto;
+- **il sito è la superficie che deve convincere**, quindi è più espressivo di
+  quanto §9.1 del brand lasciasse intendere: illustrazioni costruite con le
+  forme del sistema, schede, passi numerati, un esempio di errore nel checkout e
+  richiami all’installazione. Restano fuori gli elementi che §9.1 vieta e che
+  non useremo comunque: nessuna fotografia, nessun logo wall, nessuna prova
+  sociale, nessun contatore, nessuna riproduzione fedele della UI di Shopify;
+- **il sito non duplica la documentazione dell’app.** La FAQ pubblica risponde a
+  chi *valuta* l’app — tema, piani, rischio di bloccare ordini, cosa succede se
+  smetti di pagare — mentre la FAQ operativa resta in Guida e FAQ (§15.7) per
+  chi l’app ce l’ha già installata. I due elenchi non condividono voci;
+- **niente importi sul sito.** Il sito dichiara la prova di 14 giorni e le tre
+  modalità, e per la cifra rimanda allo Shopify App Store e all’app: sono le
+  uniche fonti che restano aggiornate da sole quando cambia la generazione
+  tariffaria (§14.4);
 - **i testi legali stanno solo in `site/`** (§19.1), per non avere due copie
   dello stesso documento;
 - **le due promesse lasciate aperte da M6 sono chiuse**: la Guida indica la
   casella di assistenza e offre il collegamento precompilato, e la schermata
   Store non supportato ha il contatto sviluppatore previsto da §15.8 e D-043.
+
+Segnaposto lasciati nel sito, da sostituire nelle milestone indicate:
+
+| Segnaposto | Dove | Sostituzione |
+| --- | --- | --- |
+| `https://apps.shopify.com/cf-ready` | richiami all’installazione su tutte le pagine | URL reale della listing, quando esiste (M11) |
+| Nessuno screenshot dell’app | Home | screenshot reali prodotti da M9 (§24.5, §9.3 del brand) |
+| Identità del titolare limitata al nome | Privacy e Termini | denominazione completa e indirizzo, prima della submission (M9) |
+
+Finché la listing non esiste, i richiami all’installazione puntano a un URL che
+risponde 404: è accettabile perché il sito non è ancora collegato da nessuna
+superficie pubblica, e va risolto prima di annunciarlo.
 
 ### M8 — Hardening
 
