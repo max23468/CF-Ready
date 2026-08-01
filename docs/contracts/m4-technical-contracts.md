@@ -121,7 +121,7 @@ contengono testo Shopify né dati dello store.
 | Codice | Origine |
 | --- | --- |
 | `unhandled_error` | eccezione non riconosciuta in un webhook |
-| `response_<status>` | `Response` lanciata durante un webhook, per esempio `response_409` per Validation duplicate |
+| `response_<status>` | `Response` lanciata durante un webhook |
 | `missing_admin_context` | `shop/update` senza sessione utilizzabile |
 | `reconcile_failed` | riconciliazione fallita in `afterAuth` |
 | `validation_locked` | lease per store non acquisibile |

@@ -13,6 +13,7 @@ import {
   releaseValidationLockBestEffort,
   renewValidationLock,
   startValidationLockHeartbeat,
+  withValidationLock,
   writeValidation,
 } from "../app/validation.server";
 import type { CheckoutConfig } from "../app/validation.server";
@@ -196,6 +197,26 @@ test("il heartbeat ritenta dopo un errore D1 transitorio", async () => {
     expect(await heartbeat.isHeld()).toBe(true);
   } finally {
     await heartbeat.stop();
+    vi.useRealTimers();
+  }
+});
+
+test("la lease condivisa resta posseduta durante un'operazione lunga", async () => {
+  vi.useFakeTimers();
+  const shop = "heartbeat-lock.example.myshopify.com";
+  await seedShop(shop);
+  const startedAt = Date.now();
+
+  try {
+    const result = await withValidationLock(env.DB, shop, async (heartbeat) => {
+      await vi.advanceTimersByTimeAsync(40_000);
+      expect(await heartbeat.isHeld()).toBe(true);
+      expect(await acquireValidationLock(env.DB, shop, startedAt + 61_000, "intruso")).toBeNull();
+      return "completata";
+    });
+
+    expect(result).toEqual({ acquired: true, result: "completata" });
+  } finally {
     vi.useRealTimers();
   }
 });

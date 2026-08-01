@@ -102,6 +102,8 @@ diretta.
 | `validation_limit_reached` | Shopify rifiuta la creazione perché lo store ha già il numero massimo di Validation Function attive (FR-098) |
 | `country_not_eligible` | operazione richiesta su uno store con indirizzo fuori dall'Italia |
 | `config_conflict` | la configurazione è cambiata fra l'apertura della pagina e il salvataggio: la scrittura non parte |
+| `duplicate_validations` | Shopify espone più Validation CF Ready, tutte disattivate |
+| `duplicate_validations_active` | Shopify espone più Validation CF Ready e almeno una è ancora attiva |
 
 `validation_limit_reached` si ricava dal testo dello userError, unico segnale
 che Shopify espone: se il testo cambia si ricade su `validation_write_failed`,
