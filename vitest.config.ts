@@ -9,7 +9,7 @@ export default defineConfig({
   plugins: [
     cloudflareTest(async () => ({
       main: "./tests/worker.ts",
-      wrangler: { configPath: "./wrangler.jsonc" },
+      wrangler: { configPath: "./wrangler.json" },
       miniflare: {
         bindings: {
           TEST_MIGRATIONS: await readD1Migrations(path.join(root, "migrations")),
