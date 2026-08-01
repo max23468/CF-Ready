@@ -11,7 +11,6 @@ import {
   observedConfigHash,
   queryContext,
   readAddress2Declaration,
-  saveAddress2Declaration,
   writeValidation,
 } from "../validation.server";
 
@@ -54,7 +53,6 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   }
 
   const declared = address2Declaration(form);
-  if (declared !== null) await saveAddress2Declaration(db, session.shop, declared);
 
   // FR-051: il salvataggio aggiorna la configurazione e conserva lo stato della Validation.
   // I messaggi non sono editabili da questa pagina: si riscrivono quelli osservati.
@@ -65,6 +63,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     { rules: { taxCode, pec }, errorDisplay, messages: current.messages },
     null,
     (form.get("configHash") as string) || null,
+    declared,
   );
 
   return result.ok ? { ok: true as const } : { ok: false as const, errorCode: result.errorCode };

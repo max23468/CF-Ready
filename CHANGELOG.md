@@ -5,6 +5,11 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.28 — 1 agosto 2026
+
+- la dichiarazione merchant sul campo “Interno” viene persistita in D1 soltanto
+  dopo che Shopify ha accettato il salvataggio o l'attivazione associata.
+
 ## 0.4.27 — 1 agosto 2026
 
 - ogni scrittura Validation riconcilia prima il billing autorevole Shopify,
