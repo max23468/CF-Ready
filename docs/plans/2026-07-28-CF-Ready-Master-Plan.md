@@ -2355,7 +2355,7 @@ esplicito, così l’URL condiviso mostra a tutti la stessa pagina.
 Cloudflare Web Analytics è abilitata sul progetto Pages con iniezione
 automatica del beacon. Il token resta nella configurazione Cloudflare, non nel
 repository; la CSP consente lo script da `static.cloudflareinsights.com` e
-l'invio allo stesso dominio tramite `/cdn-cgi/rum`.
+l'invio a `cloudflareinsights.com/cdn-cgi/rum`.
 
 Worker Development:
 
