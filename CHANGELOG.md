@@ -5,6 +5,28 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.5.6 — 1 agosto 2026
+
+- via il restringimento della testata allo scorrimento;
+- su schermo largo il menu resta agganciato; su telefono si ritira mentre si
+  scende e torna appena si risale, con `site/menu.js`: due comportamenti, nessuna
+  dipendenza, e la Content-Security-Policy passa a `script-src 'self'` invece di
+  ammettere codice in linea. Senza JavaScript il sito resta utilizzabile;
+- il menu segna dove ci si trova: la sezione in vista sulla Home, la pagina
+  aperta altrove, con una sottolineatura spessa che non dipende dal colore;
+- le griglie chiudono le righe: sei schede in tre colonne e quattro in due,
+  invece di lasciare buchi in fondo. Anche i tre passi stanno su una riga sola;
+- i bottoni hanno tutti la stessa altezza, perché `a` e `button` avevano
+  metriche diverse;
+- il cambio lingua si distingue dalle voci ordinarie del menu;
+- nell'esempio del checkout la sedicesima lettera non è più in grassetto: il
+  codice si legge già come non valido dal bordo e dal messaggio;
+- un test di billing falliva per due ore al giorno, ovunque e anche in CI: si
+  aspettava la scadenza dell'abbonamento in UTC, mentre l'app la esprime nel
+  fuso dello store. Se la scadenza cadeva fra le 22:00 UTC e la mezzanotte, a
+  Roma era già il giorno dopo. Ora il test fissa la scadenza a mezzogiorno UTC,
+  fuori dalla finestra ambigua.
+
 ## 0.5.5 — 1 agosto 2026
 
 - il menu del sito porta anche alla Home, resta agganciato in alto mentre si
