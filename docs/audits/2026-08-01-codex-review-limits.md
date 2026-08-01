@@ -17,8 +17,8 @@ avevano invece ricevuto una review reale di Codex e sono incluse per controllo.
 
 Il risultato sul codice corrente è:
 
-- **3 finding P1**, due dei quali sono gate espliciti prima della `1.0.0`;
-- **16 finding P2**;
+- **2 finding P1**, uno dei quali è un gate esplicito prima della `1.0.0`;
+- **15 finding P2**;
 - **10 finding P3**;
 - nessun P0;
 - 3 thread Codex reali ancora `unresolved` su GitHub: uno in `#68`, due in
@@ -30,8 +30,6 @@ Il risultato sul codice corrente è:
 
 | ID          | PR principale | Classe                    | Priorità   | Sintesi                                                                                                           |
 | ----------- | ------------- | ------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
-| F-M3-52-01  | #52           | bug operativo/CI-CD       | P1 pre-1.0 | il workflow pubblica Shopify senza distribuire e verificare il Worker dello stesso commit                         |
-| F-M3-52-02  | #52           | bug di verifica           | P2         | il preflight cerca valori liberi nei file e non verifica che appartengano alle chiavi e ai target corretti         |
 | F-M3-57-01  | #57           | limite di prodotto        | P1 pre-1.0 | con `localizedFields` vuoto i checkout accelerati possono passare senza Codice Fiscale richiesto                  |
 | F-M4-58-01  | #58           | bug di affidabilità       | P1         | una ricevuta webhook lasciata `processing` dopo crash non viene mai più acquisita                                 |
 | F-M4-58-02  | #58/#70/#99   | documentazione operativa  | P3         | le ricevute propongono rollback che eliminano tabelle, colonne e cronologia di migrazioni già applicate           |
@@ -146,7 +144,7 @@ workflow Shopify senza eseguire Production.
 
 #### F-M3-52-01 — Shopify e Worker non sono distribuiti dallo stesso workflow
 
-- **Classe/priorità/stato:** bug operativo/CI-CD, P1 pre-`1.0.0`, aperto.
+- **Classe/priorità/stato:** bug operativo/CI-CD, P1 pre-`1.0.0`, chiuso.
 - **Evidenza:** `.github/workflows/deploy-development.yml:14-87` contiene un
   solo job, `deploy-shopify`: esegue `npm run check`, verifica con `curl` un
   backend già esistente e pubblica Shopify, ma non applica migrazioni D1 né
@@ -163,13 +161,17 @@ workflow Shopify senza eseguire Production.
   le sole migrazioni pendenti, distribuisca il Worker dallo stesso checkout e
   ne verifichi versione/commit prima di `shopify app deploy`. Non serve un
   secondo sistema di rilascio.
+- **Esito:** il workflow rifiuta prima delle scritture uno stato Worker/Shopify
+  disallineato, registra il rollback coordinato, applica le migrazioni,
+  distribuisce e rilegge il Worker del `GITHUB_SHA`, esegue lo smoke e solo dopo
+  pubblica Shopify.
 
 #### F-M3-52-02 — il preflight non lega i valori alle chiavi verificate
 
-- **Classe/priorità/stato:** bug di verifica del target, P2, aperto.
+- **Classe/priorità/stato:** bug di verifica del target, P2, chiuso.
 - **Evidenza:** `scripts/preflight-dev.mjs:4-18` scorre i valori attesi e
   considera valido ciascuno se compare in uno qualunque fra
-  `shopify.app.dev.toml` e `wrangler.jsonc`. Non controlla né il nome della
+  `shopify.app.dev.toml` e `wrangler.json`. Non controlla né il nome della
   chiave né il file proprietario. In particolare `cf-ready-dev` compare già
   nell’URL `https://cf-ready-dev.tmsf.workers.dev`: il campo `name` di Wrangler
   può quindi puntare a un altro Worker e il controllo passa comunque. Il
@@ -181,6 +183,9 @@ workflow Shopify senza eseguire Production.
   `client_id`, `application_url`, `name`, `database_name` e `database_id`, con
   confronti mirati sul formato già presente. Basta una fixture negativa in cui
   il nome Worker cambia; non serve introdurre un parser o una dipendenza.
+- **Esito:** il preflight confronta ogni valore con la chiave e il file
+  proprietario, mantenuto come JSON rigoroso; una regressione sul nome Worker è
+  coperta da un test Node.
 
 Gli URL `example.com` nella configurazione Production restano invece
 intenzionalmente non distribuibili nello stato corrente e sono un gate di

@@ -9,23 +9,91 @@ const expected = {
   workerName: "cf-ready-dev",
 };
 
-const shopifyConfig = await readFile("shopify.app.dev.toml", "utf8");
-const wranglerConfig = await readFile("wrangler.jsonc", "utf8");
-for (const value of Object.values(expected)) {
-  if (!shopifyConfig.includes(value) && !wranglerConfig.includes(value)) {
+export function verifyDevelopmentConfig(shopifyConfig, wranglerConfig) {
+  const shopifyTargets = [
+    [shopifyConfig, /^client_id\s*=\s*"adff48d4fe4ceb0dadb4734520701dd7"\s*$/m],
+    [shopifyConfig, /^application_url\s*=\s*"https:\/\/cf-ready-dev\.tmsf\.workers\.dev"\s*$/m],
+  ];
+  const wrangler = JSON.parse(wranglerConfig);
+  const database = wrangler.d1_databases?.find(({ binding }) => binding === "DB");
+  if (
+    shopifyTargets.some(([config, pattern]) => !pattern.test(config)) ||
+    wrangler.name !== expected.workerName ||
+    wrangler.vars?.SHOPIFY_API_KEY !== expected.clientId ||
+    wrangler.vars?.SHOPIFY_APP_URL !== expected.appUrl ||
+    wrangler.vars?.ALLOWED_SHOP !== "cf-ready-dev.myshopify.com" ||
+    database?.database_name !== expected.databaseName ||
+    database?.database_id !== expected.databaseId
+  ) {
     throw new Error("Il target Development non coincide con la configurazione attesa.");
   }
 }
 
-run("node", ["scripts/shopify-info-safe.mjs", "shopify.app.dev.toml"]);
-const d1 = JSON.parse(
-  run("npm", ["exec", "--", "wrangler", "d1", "info", expected.databaseName, "--json"], false),
-);
-if (d1.uuid !== expected.databaseId || d1.name !== expected.databaseName) {
-  throw new Error("Il database D1 Development non coincide con il target atteso.");
+export function verifyVersionAvailable(versions, version) {
+  if (versions.some(({ versionTag }) => versionTag === version)) {
+    throw new Error(`La versione Shopify ${version} è già stata pubblicata.`);
+  }
 }
 
-console.log("Preflight Development superato: Shopify dev store e D1 verificati.");
+export function verifyWorkerSecrets(secrets) {
+  const names = new Set(secrets.map(({ name }) => name));
+  if (!["SHOPIFY_API_SECRET", "SESSION_ENCRYPTION_KEY"].every((name) => names.has(name))) {
+    throw new Error("Mancano secret runtime sul Worker Development.");
+  }
+}
+
+export function verifyCoordinatedRollback(deployment, versions) {
+  const active = versions.find(({ status }) => status === "active");
+  const commit = active?.message?.match(/^Development ([0-9a-f]{40})$/)?.[1];
+  const workerMessage = deployment.annotations?.["workers/message"];
+  if (
+    !deployment.id ||
+    deployment.versions?.length !== 1 ||
+    deployment.versions[0].percentage !== 100 ||
+    !active?.versionId ||
+    !active.versionTag ||
+    !commit ||
+    !workerMessage?.includes(commit.slice(0, 7))
+  ) {
+    throw new Error("Il Worker attivo non coincide con la versione Shopify Development attiva.");
+  }
+  return {
+    deploymentId: deployment.id,
+    workerVersionId: deployment.versions[0].version_id,
+    shopifyVersionId: active.versionId,
+    shopifyVersionTag: active.versionTag,
+    commit,
+  };
+}
+
+async function main() {
+  const shopifyConfig = await readFile("shopify.app.dev.toml", "utf8");
+  const wranglerConfig = await readFile("wrangler.json", "utf8");
+  verifyDevelopmentConfig(shopifyConfig, wranglerConfig);
+
+  run("node", ["scripts/shopify-info-safe.mjs", "shopify.app.dev.toml"]);
+  const { version } = JSON.parse(await readFile("package.json", "utf8"));
+  const versions = JSON.parse(
+    run("shopify", ["app", "versions", "list", "--config", "dev", "--no-color", "--json"], false),
+  );
+  verifyVersionAvailable(versions, version);
+  const deployment = JSON.parse(
+    run("npm", ["exec", "--", "wrangler", "deployments", "status", "--json"], false),
+  );
+  verifyCoordinatedRollback(deployment, versions);
+  const d1 = JSON.parse(
+    run("npm", ["exec", "--", "wrangler", "d1", "info", expected.databaseName, "--json"], false),
+  );
+  if (d1.uuid !== expected.databaseId || d1.name !== expected.databaseName) {
+    throw new Error("Il database D1 Development non coincide con il target atteso.");
+  }
+  const secrets = JSON.parse(
+    run("npm", ["exec", "--", "wrangler", "secret", "list", "--format", "json"], false),
+  );
+  verifyWorkerSecrets(secrets);
+
+  console.log("Preflight Development superato: Shopify, D1 e secret Worker verificati.");
+}
 
 function run(command, args, inherit = true) {
   const result = spawnSync(command, args, {
@@ -37,3 +105,5 @@ function run(command, args, inherit = true) {
   }
   return result.stdout;
 }
+
+if (import.meta.main) await main();
