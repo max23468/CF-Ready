@@ -5,13 +5,17 @@ import {
   MESSAGE_KEYS,
   messagesAreDefault,
   messageAppears,
+  pendingFetcherIntent,
+  pendingFetcherSource,
   reviewIsDue,
+  showSavedBanner,
   validateMessages,
 } from "../app/config";
 import {
   describeCheckout,
   formatDate,
   formatMoney,
+  homeCheckoutSummary,
   resolveLocale,
   summariseCheckout,
   texts,
@@ -32,6 +36,25 @@ test("la lingua viene dallo staff Shopify, non dallo store né da una preferenza
     resolveLocale(new Request(`${url}?locale=en-US`, { headers: { "accept-language": "it" } })),
   ).toBe("en");
   expect(resolveLocale(new Request(url))).toBe("en");
+});
+
+test("anche l'accesso pubblico segue la locale comune", () => {
+  expect(texts(resolveLocale(new Request(`${url}?locale=it-IT`))).auth.heading).toBe("Accedi");
+  expect(texts(resolveLocale(new Request(`${url}?locale=en-US`))).auth.heading).toBe("Log in");
+});
+
+test("feedback di salvataggio e caricamento seguono l'azione corrente", () => {
+  expect(showSavedBanner({ ok: true }, false)).toBe(true);
+  expect(showSavedBanner({ ok: true }, true)).toBe(false);
+  expect(showSavedBanner({ ok: true }, false, true)).toBe(false);
+
+  const form = new FormData();
+  form.set("intent", "annual");
+  form.set("source", "status");
+  expect(pendingFetcherIntent(form)).toBe("annual");
+  expect(pendingFetcherSource(form)).toBe("status");
+  expect(pendingFetcherIntent(undefined)).toBeNull();
+  expect(pendingFetcherSource(undefined)).toBeNull();
 });
 
 test("italiano e inglese descrivono le stesse cose", () => {
@@ -101,6 +124,16 @@ test("una Validation attiva senza piano non viene descritta come disattivata", (
 
   expect(lines).toContain(texts("it").checkout.lapsed);
   expect(lines).not.toContain(texts("it").checkout.disabled);
+});
+
+test("la Home descrive lo stato reale prima delle regole", () => {
+  const rules = { taxCode: "required_validated", pec: "unmanaged" } as const;
+
+  expect(homeCheckoutSummary({ rules, status: "active" }, "it")).toContain("non completa l’ordine");
+  expect(homeCheckoutSummary({ rules, status: "disabled" }, "it")).toBe(
+    texts("it").checkout.disabled,
+  );
+  expect(homeCheckoutSummary({ rules, status: "lapsed" }, "en")).toBe(texts("en").checkout.lapsed);
 });
 
 test("la dichiarazione sul campo “Interno” cambia solo quando il blocco è stato mostrato", () => {

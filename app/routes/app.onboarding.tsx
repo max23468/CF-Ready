@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
-import { address2Declaration, readConfig, RULE_MODES } from "../config";
+import { address2Declaration, pendingFetcherIntent, readConfig, RULE_MODES } from "../config";
 import type { RuleMode } from "../config";
 import { recordEvent } from "../events.server";
 import { describeCheckout, resolveLocale, texts } from "../i18n";
@@ -141,6 +141,7 @@ export default function Onboarding() {
   // pulsante principale e non viene mai riletta, quindi non può far rimbalzare la pagina.
   const progress = useFetcher();
   const busy = fetcher.state !== "idle";
+  const pendingIntent = pendingFetcherIntent(fetcher.formData);
   const esito = fetcher.data as { ok: boolean; errorCode?: string } | undefined;
 
   const go = (intent: string, extra: Record<string, string> = {}) =>
@@ -344,11 +345,16 @@ export default function Onboarding() {
                   <s-button
                     variant="primary"
                     disabled={busy || !saved.entitled}
+                    loading={pendingIntent === "activate"}
                     onClick={() => close("activate")}
                   >
                     {t.onboarding.activate}
                   </s-button>
-                  <s-button disabled={busy} onClick={() => close("finish")}>
+                  <s-button
+                    disabled={busy}
+                    loading={pendingIntent === "finish"}
+                    onClick={() => close("finish")}
+                  >
                     {t.onboarding.finishWithout}
                   </s-button>
                 </>
@@ -356,6 +362,7 @@ export default function Onboarding() {
                 <s-button
                   variant="primary"
                   disabled={busy}
+                  loading={pendingIntent === "rules"}
                   onClick={() => {
                     if (step !== 2) return setStep(step + 1);
                     const data = form.current ? new FormData(form.current) : null;

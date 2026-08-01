@@ -20,6 +20,8 @@ Nessuna preferenza viene salvata, coerente con §12.2: due membri dello staff
 sullo stesso store possono vedere lingue diverse. I testi sono due dizionari
 TypeScript in `app/i18n.ts`, senza libreria i18n. L'italiano è la lingua
 sorgente e l'inglese ha le stesse chiavi: un test lo verifica.
+Anche la rotta pubblica di login usa la stessa risoluzione e gli stessi
+dizionari, così lingua del documento, etichette ed errori restano coerenti.
 
 I messaggi mostrati al cliente nel checkout non passano di qui. Sono dati del
 merchant nel metafield e seguono FR-060.
