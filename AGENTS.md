@@ -33,9 +33,10 @@ percorso o sezione; la cronologia resta in Git.
   Salvataggio delle regole e attivazione della Validation restano separati.
 - La validazione è formale, non anagrafica: non attestare l’appartenenza di un
   Codice Fiscale o che una casella email sia realmente una PEC.
-- Configurazione o entitlement incerti, errori runtime e localized fields
-  assenti devono essere fail-open. Un errore dell’app non blocca vendite
-  legittime.
+- Configurazione o entitlement incerti ed errori runtime devono essere
+  fail-open. Un localized field obbligatorio assente blocca con errore globale
+  soltanto quando Shopify espone almeno una consegna italiana; senza consegna
+  osservabile resta fail-open. Un errore dell’app non blocca vendite legittime.
 - Shopify è autorevole per Validation e billing; D1 conserva stato operativo,
   non una verità alternativa.
 - Gestisci una sola Validation per store e non modificare risorse di altre app.

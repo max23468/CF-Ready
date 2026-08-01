@@ -264,7 +264,6 @@ export function cartValidationsGenerateRun(
     ) {
       return allow;
     }
-    if (input.cart.localizedFields.length === 0) return allow;
     if (input.cart.billingAddress?.countryCode && input.cart.billingAddress.countryCode !== "IT") {
       return allow;
     }
@@ -279,26 +278,33 @@ export function cartValidationsGenerateRun(
       return allow;
     }
 
+    const hasItalianDelivery = deliveryCountries.includes(
+      "IT" as (typeof deliveryCountries)[number],
+    );
+    if (input.cart.localizedFields.length === 0 && !hasItalianDelivery) return allow;
+
     const messages = config.messages[input.localization.language.isoCode === "IT" ? "it" : "en"];
     const errors: { message: string; target: string }[] = [];
+    const taxCode = input.cart.localizedFields.find(({ key }) => key === "TAX_CREDENTIAL_IT");
+    const pec = input.cart.localizedFields.find(({ key }) => key === "TAX_EMAIL_IT");
     addFieldError(
       errors,
-      input.cart.localizedFields.find(({ key }) => key === "TAX_CREDENTIAL_IT"),
+      taxCode ?? (hasItalianDelivery ? {} : undefined),
       config.rules.taxCode,
       messages,
       "taxCodeRequired",
       "taxCodeInvalid",
-      step === "CHECKOUT_INTERACTION" ? "$.cart" : targets.taxCode,
+      step === "CHECKOUT_INTERACTION" || !taxCode ? "$.cart" : targets.taxCode,
       isValidTaxCode,
     );
     addFieldError(
       errors,
-      input.cart.localizedFields.find(({ key }) => key === "TAX_EMAIL_IT"),
+      pec ?? (hasItalianDelivery ? {} : undefined),
       config.rules.pec,
       messages,
       "pecRequired",
       "pecInvalid",
-      step === "CHECKOUT_INTERACTION" ? "$.cart" : targets.pec,
+      step === "CHECKOUT_INTERACTION" || !pec ? "$.cart" : targets.pec,
       isValidPec,
     );
 

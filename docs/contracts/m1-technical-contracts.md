@@ -67,7 +67,9 @@ La Function:
 - in modalità preventiva opera anche in `CHECKOUT_INTERACTION`, con target
   globale `$.cart`, mantenendo Completion;
 - legge soltanto `TAX_CREDENTIAL_IT`;
-- se il localized field è assente applica il fail-open;
+- se il localized field obbligatorio è assente ma Shopify espone una consegna
+  italiana restituisce un errore globale; senza consegna osservabile applica
+  il fail-open;
 - se il campo è presente ma vuoto restituisce l'errore sul target
   `$.cart.localizedField.TAX_CREDENTIAL_IT`;
 - su configurazione mancante o non valida e su errore runtime applica il

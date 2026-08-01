@@ -20,7 +20,7 @@ avevano invece ricevuto una review reale di Codex e sono incluse per controllo.
 
 Il risultato sul codice corrente è:
 
-- **1 finding P1**, che resta un gate esplicito prima della `1.0.0`;
+- **0 finding P1**;
 - **0 finding P2**;
 - **0 finding P3**;
 - nessun P0;
@@ -31,9 +31,7 @@ Il risultato sul codice corrente è:
 
 ### Finding ancora aperti
 
-| ID          | PR principale | Classe                    | Priorità   | Sintesi                                                                                                           |
-| ----------- | ------------- | ------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
-| F-M3-57-01  | #57           | limite di prodotto        | P1 pre-1.0 | con `localizedFields` vuoto i checkout accelerati possono passare senza Codice Fiscale richiesto                  |
+Nessuno.
 
 ## 2. Metodo, classificazione e limiti
 
@@ -192,7 +190,7 @@ confine dichiarato: log abilitati, `invocation_logs: false`, trace disattivate.
 Consolida l’indagine e rimuove il piano temporaneo.
 
 **Finding:** nessun finding aperto attribuibile alla PR. Il rischio wallet non
-fu nascosto: resta il finding noto F-M3-57-01.
+fu nascosto ed è stato poi chiuso in F-M3-57-01.
 
 ### [PR #56 — close M3 audit](https://github.com/max23468/CF-Ready/pull/56)
 
@@ -209,19 +207,20 @@ Registra la risposta Shopify su target dei localized field e wallet.
 
 #### F-M3-57-01 — checkout accelerato senza campo richiesto
 
-- **Classe/priorità/stato:** limite di prodotto, P1 pre-`1.0.0`, aperto e già
-  assegnato a M10.
-- **Evidenza:** `extensions/cf-ready-validation/src/cart_validations_generate_run.ts:267`
-  restituisce `allow` quando `localizedFields.length === 0`. Le evidenze
+- **Classe/priorità/stato:** limite di prodotto, P1 pre-`1.0.0`, chiuso; M10
+  conserva la verifica wallet live.
+- **Evidenza originaria:** il motore restituiva `allow` quando
+  `localizedFields.length === 0`. Le evidenze
   `docs/evidence/2026-07-29-checkout-validation-rendering.md` spiegano che nei
   flussi express l’array può essere vuoto prima che destinazione/origine siano
   risolte.
 - **Impatto:** un merchant che configura il Codice Fiscale come obbligatorio può
   ricevere un ordine accelerato senza quel dato. È fail-open voluto dal motore,
   ma limita materialmente la promessa commerciale.
-- **Correzione proporzionata:** nessun fallback o nuova estensione ora. Prima
-  della 1.0 va eseguita la matrice M10 e adottata soltanto la regola sostitutiva
-  già descritta nel Master Plan se Shopify ne conferma la premessa.
+- **Correzione:** il motore usa la consegna italiana già presente nell'input
+  come segnale applicabile. Se un campo obbligatorio manca restituisce un errore
+  globale; senza consegna osservabile resta fail-open. Il test di regressione
+  copre entrambi i rami senza nuove query, estensioni o dipendenze.
 
 ---
 
@@ -789,9 +788,9 @@ alla radice da #86; nessun residuo corrente specifico.
 
 **Stato:** merged, `e7541e0`; 2 file, `+113/-15`; review Codex non eseguita.
 
-**Finding:** nessun nuovo difetto; la PR rende più precisa la causa del limite
-wallet e rimanda correttamente la decisione alla prova M10. Vedere
-F-M3-57-01.
+**Finding:** nessun nuovo difetto; la PR rese più precisa la causa del limite
+wallet. Il finding F-M3-57-01 è stato chiuso successivamente e M10 ne conserva
+la prova live.
 
 ### [PR #86 — gerarchia, Save Bar e bilinguismo Piano](https://github.com/max23468/CF-Ready/pull/86)
 
@@ -1164,8 +1163,8 @@ alcun meccanismo di sincronizzazione documentale.
 
 ## 7. Ordine operativo consigliato
 
-1. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
-   prima della prova reale.
+1. Verificare in M10 la correzione F-M3-57-01 sui wallet reali, senza ampliare
+   query o runtime.
 
 Questo ordine non richiede retrocompatibilità, supporto di formati legacy,
 nuovi provider o nuove astrazioni. Ogni correzione può restare nel punto

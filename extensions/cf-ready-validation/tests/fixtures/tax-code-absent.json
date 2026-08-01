@@ -65,7 +65,16 @@
       "operations": [
         {
           "validationAdd": {
-            "errors": []
+            "errors": [
+              {
+                "message": "Inserisci il Codice Fiscale per completare l’ordine.",
+                "target": "$.cart"
+              },
+              {
+                "message": "Inserisci l’indirizzo PEC per completare l’ordine.",
+                "target": "$.cart"
+              }
+            ]
           }
         }
       ]

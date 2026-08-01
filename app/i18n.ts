@@ -138,7 +138,7 @@ const it = {
     step1Limits: [
       "Il controllo è formale: verifica la composizione del dato, non a chi appartiene.",
       "Le regole valgono solo con consegna e fatturazione in Italia.",
-      "Se il campo non è presente nel checkout, l’ordine passa: un errore dell’app non blocca una vendita.",
+      "Se Shopify mostra una consegna italiana ma omette un campo obbligatorio, CF Ready blocca con un avviso generale; senza consegna osservabile resta fail-open.",
     ],
     step2Heading: "Scegli cosa controllare",
     step2Body: "Puoi cambiare queste scelte quando vuoi da Regole checkout.",
@@ -179,7 +179,7 @@ const it = {
       },
       {
         q: "Perché un ordine è passato senza i dati richiesti",
-        a: "Le regole valgono solo quando consegna e fatturazione sono entrambe italiane: chi fattura all’estero completa l’ordine senza controlli, anche con consegna in Italia. Lo stesso vale quando non c’è un indirizzo di consegna, come nel ritiro in negozio, e quando il campo fiscale non compare nel checkout, cosa che può succedere nei pagamenti rapidi. In tutti questi casi l’ordine passa: un errore dell’app non deve bloccare una vendita legittima.",
+        a: "Le regole non si applicano con fatturazione estera o con sole consegne estere. Nei pagamenti rapidi, se Shopify espone una consegna italiana ma omette un campo obbligatorio, CF Ready mostra un errore generale e blocca il completamento; senza una consegna osservabile il campo assente resta fail-open, perché il cliente potrebbe non avere nulla da compilare.",
       },
       {
         q: "Che cosa viene controllato sul Codice Fiscale",
@@ -305,7 +305,7 @@ const it = {
     exceptions: [
       "Le regole valgono solo quando consegna e fatturazione sono in Italia.",
       "Un cliente con fatturazione estera completa l’ordine senza controlli.",
-      "Se il campo non è presente nel checkout, l’ordine passa: un errore dell’app non blocca una vendita.",
+      "Se Shopify mostra una consegna italiana ma omette un campo obbligatorio, CF Ready blocca con un avviso generale; senza consegna osservabile resta fail-open.",
     ],
     preventiveLabel: "Mostra avvisi preventivi nel checkout",
     preventiveHelp:
@@ -502,7 +502,7 @@ const en: typeof it = {
       },
       {
         q: "Why an order went through without the required fields",
-        a: "Rules only apply when delivery and billing are both Italian: a customer billing abroad completes the order with no checks, even with Italian delivery. The same happens when there’s no delivery address, as with local pickup, and when the tax field doesn’t appear in the checkout, which can happen in express payments. In all these cases the order goes through: an app error must never block a legitimate sale.",
+        a: "Rules don’t apply with foreign billing or only foreign deliveries. In express checkout, if Shopify exposes an Italian delivery but omits a required field, CF Ready shows a global error and blocks completion; without an observable delivery, an absent field remains fail-open because the customer might have nothing to fill in.",
       },
       {
         q: "What gets checked on the tax code",
