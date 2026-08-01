@@ -101,7 +101,7 @@ function readMessages(value: unknown, fallback: Messages): Messages {
   return messages;
 }
 
-function oneOf<T extends string>(allowed: readonly T[], value: unknown): T | null {
+export function oneOf<T extends string>(allowed: readonly T[], value: unknown): T | null {
   return typeof value === "string" && (allowed as readonly string[]).includes(value)
     ? (value as T)
     : null;

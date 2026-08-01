@@ -3,12 +3,12 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
 import {
   address2Declaration,
+  oneOf,
   parseOnboardingStep,
   pendingFetcherIntent,
   readConfig,
   RULE_MODES,
 } from "../config";
-import type { RuleMode } from "../config";
 import { recordEvent } from "../events.server";
 import { describeCheckout, resolveLocale, texts, validationStatus } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
@@ -71,8 +71,8 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   // procedura può essere ripresa. La Validation nasce disattivata: attivare resta il gesto
   // finale ed esplicito di FR-051.
   if (intent === "rules") {
-    const taxCode = pick(form.get("taxCode"));
-    const pec = pick(form.get("pec"));
+    const taxCode = oneOf(RULE_MODES, form.get("taxCode"));
+    const pec = oneOf(RULE_MODES, form.get("pec"));
     if (!taxCode || !pec) return { ok: false as const, errorCode: "generic" };
 
     let current;
@@ -129,12 +129,6 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   });
   return { ok: true as const };
 };
-
-function pick(value: unknown): RuleMode | null {
-  return typeof value === "string" && (RULE_MODES as readonly string[]).includes(value)
-    ? (value as RuleMode)
-    : null;
-}
 
 export const shouldRevalidate = skipRevalidationWhenLeaving;
 
@@ -382,8 +376,8 @@ export default function Onboarding() {
                   onClick={() => {
                     if (step !== 2) return setStep(step + 1);
                     const data = form.current ? new FormData(form.current) : null;
-                    const taxCode = pick(data?.get("taxCode"));
-                    const pec = pick(data?.get("pec"));
+                    const taxCode = oneOf(RULE_MODES, data?.get("taxCode"));
+                    const pec = oneOf(RULE_MODES, data?.get("pec"));
                     if (!taxCode || !pec) return;
                     if (
                       saved.completed &&
