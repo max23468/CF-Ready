@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CF Ready — Codice Fiscale in the Italian checkout</title>
-<meta name="description" content="CF Ready makes the Codice Fiscale required and formally validated in Shopify’s native Italian checkout field, with no theme changes.">
+<title>CF Ready — Codice Fiscale required and validated in the Italian checkout</title>
+<meta name="description" content="CF Ready makes the Italian tax code required and formally validated in Shopify’s native Italian checkout field. No theme changes, no extra fields, 14-day trial.">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../style.css">
 <link rel="alternate" hreflang="it" href="https://cf-ready.pages.dev/">
@@ -17,10 +17,12 @@
     <img src="../assets/lockup-horizontal.svg" alt="CF Ready">
     <nav>
       <ul>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#limits">Limits</a></li>
+        <li><a href="#pricing">Trial and price</a></li>
         <li><a href="support.html">Support</a></li>
-        <li><a href="privacy.html">Privacy</a></li>
-        <li><a href="terms.html">Terms</a></li>
-        <li><a href="../index.html" lang="it">Italiano</a></li>
+        <li><a href="../index.html" lang="it">IT</a></li>
+        <li><a class="button" href="https://apps.shopify.com/cf-ready">Install</a></li>
       </ul>
     </nav>
   </div>
@@ -28,85 +30,268 @@
 
 <main>
 
-  <section>
-    <div class="wrap column">
-      <span class="label">Shopify app for the Italian checkout</span>
-      <h1 class="display">The Codice Fiscale, collected in the right field and checked before the order goes through.</h1>
-      <p class="lede">For merchants who need to issue invoices for B2C orders, CF Ready prevents a customer from completing an Italian order without a formally valid Codice Fiscale.</p>
-      <p>The app installs from the Shopify App Store, takes a few steps to configure, and works on the native tax field of the Italian checkout. It does not modify your theme and adds nothing to your cart.</p>
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-copy">
+        <span class="label">Shopify app for the Italian checkout</span>
+        <h1 class="display">No more orders to invoice without a Codice Fiscale.</h1>
+        <p class="lede">CF Ready makes the Italian tax code required in the native checkout field and checks its shape before the order goes through. Without touching your theme, without adding fields.</p>
+        <div class="actions">
+          <a class="button" href="https://apps.shopify.com/cf-ready">Install from Shopify</a>
+          <a class="button secondary" href="#how">How it works</a>
+        </div>
+        <p class="small" style="margin-top: var(--cf-space-4)">14-day trial. We never ask for a card: billing goes through Shopify and you approve it.</p>
+      </div>
+
+      <!-- Built from the system’s own shapes: the card, the band, the field. No scenes, no
+           characters, no fake Shopify UI (§9.1, §24.5). -->
+      <div>
+        <svg viewBox="0 0 420 300" role="img" aria-label="A card carrying the brand band, and a checkout field filled in correctly" xmlns="http://www.w3.org/2000/svg">
+          <rect x="18" y="26" width="250" height="158" rx="18" fill="#20492F"/>
+          <rect x="18" y="76" width="250" height="26" fill="#C97B2E"/>
+          <rect x="42" y="126" width="120" height="10" rx="5" fill="#F7F5EE" opacity=".92"/>
+          <rect x="42" y="146" width="76" height="10" rx="5" fill="#F7F5EE" opacity=".55"/>
+          <text x="42" y="62" fill="#F7F5EE" font-family="Futura, 'Avenir Next', sans-serif" font-size="26" font-weight="500" letter-spacing="1.4">CF</text>
+
+          <rect x="150" y="150" width="252" height="124" rx="14" fill="#FFFFFF" stroke="#DFDBCD"/>
+          <text x="174" y="182" fill="#6B6A5C" font-family="Futura, 'Avenir Next', sans-serif" font-size="11" letter-spacing="1.1">CODICE FISCALE</text>
+          <rect x="174" y="194" width="204" height="34" rx="8" fill="#F7F5EE" stroke="#B9B5A6"/>
+          <text x="188" y="216" fill="#1A211C" font-family="ui-monospace, monospace" font-size="14" letter-spacing="1.6">RSSMRA85T10A562S</text>
+          <path d="M180 250 l7 7 l14 -15" fill="none" stroke="#20492F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <text x="210" y="255" fill="#20492F" font-family="Futura, 'Avenir Next', sans-serif" font-size="13">Formally valid</text>
+        </svg>
+      </div>
     </div>
   </section>
 
-  <section>
-    <div class="wrap column">
-      <span class="label">How it works</span>
-      <h2>Shopify’s own field, made required and validated</h2>
-      <p>Shopify’s Italian checkout exposes two localized tax fields: the Codice Fiscale and a PEC address. CF Ready decides whether each one is ignored, optional or required, and checks its format through a Cart and Checkout Validation run by Shopify.</p>
-      <p>The check is <strong>formal</strong>. On a standard 16-character Codice Fiscale the app verifies structure, date, gender marker, municipal code, omocodia substitutions and the check character; on a provisional code it verifies that it is eleven digits. On a PEC address it verifies that the address is written in a valid form.</p>
+  <div class="wrap">
+    <div class="facts">
+      <p><strong>Shopify’s native field.</strong> The one the Italian checkout already shows, not an extra one.</p>
+      <p><strong>No theme changes.</strong> No code to paste, no extension to install.</p>
+      <p><strong>All standard plans.</strong> Shopify Plus isn’t needed, and no feature is held back.</p>
     </div>
-  </section>
+  </div>
 
   <section>
     <div class="wrap column">
-      <span class="label">What you don’t have to do</span>
-      <h2>No theme changes, no extra fields</h2>
-      <ul>
-        <li>No theme modifications and no checkout extension to install.</li>
-        <li>No additional field shown to the customer: the app uses the one Shopify already provides.</li>
-        <li>Works on standard Shopify plans; Shopify Plus is not required.</li>
-        <li>No functional differences between the app’s pricing options.</li>
-        <li>The checkout’s “Internal” field is neither used nor required.</li>
+      <span class="label">The problem</span>
+      <h2>The order arrived, the invoice didn’t</h2>
+      <p>If you issue invoices for B2C orders, you need the Codice Fiscale. Shopify’s Italian checkout has a field for it, but it is optional by default: customers can leave it blank, or type it wrong. You find out afterwards, when the order is closed and you have to chase the customer by email — and hope they reply.</p>
+      <p>The usual workarounds are adding a custom field to the theme or repurposing the checkout’s “Internal” field. Both show your customer two boxes for the same value and leave theme changes for somebody to maintain.</p>
+    </div>
+  </section>
+
+  <section class="divided" id="how">
+    <div class="wrap">
+      <div class="column">
+        <span class="label">How it works</span>
+        <h2>Three steps, once</h2>
+      </div>
+      <ol class="steps" style="margin-top: var(--cf-space-8)">
+        <li>
+          <h3>Install</h3>
+          <p>The app installs from the Shopify App Store and works out on its own whether the store’s address is in Italy. It asks for no access to orders, customers or products.</p>
+        </li>
+        <li>
+          <h3>Choose your rules</h3>
+          <p>Decide separately for the tax code and the PEC address: ignored, optional or required. A four-step guided setup takes you through to activation.</p>
+        </li>
+        <li>
+          <h3>Turn it on</h3>
+          <p>From then on Shopify runs the check at every Italian checkout. No deployment, no theme edits, nothing to touch in your store.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="divided">
+    <div class="wrap">
+      <div class="hero-copy" style="max-width: none">
+        <div class="grid two" style="align-items: center">
+          <div>
+            <span class="label">What the customer sees</span>
+            <h2>A clear message, written by you</h2>
+            <p>When a value doesn’t work, the customer reads your message in the right place in the checkout — not a technical error. The texts are editable in Italian and English, and you choose whether the error appears at order confirmation or already while the customer types.</p>
+            <p class="small">The sketch alongside illustrates the behaviour: it is not a reproduction of Shopify’s interface.</p>
+          </div>
+
+          <div class="mock">
+            <div class="mock-label">Codice fiscale</div>
+            <div class="mock-field invalid">RSSMRA85T10A562<strong>X</strong></div>
+            <div class="mock-error">
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="8" cy="8" r="7" fill="none" stroke="#C97B2E" stroke-width="2"/>
+                <path d="M8 4.5v4.2" stroke="#C97B2E" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="8" cy="11.4" r="1" fill="#C97B2E"/>
+              </svg>
+              <span>Check the tax code: the format isn’t valid.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="divided">
+    <div class="wrap">
+      <div class="column">
+        <span class="label">What it checks</span>
+        <h2>A formal check, done properly</h2>
+        <p>Counting characters isn’t enough. CF Ready verifies the code’s structure as the official formation rule defines it, and recognises the cases others get wrong.</p>
+      </div>
+
+      <div class="grid" style="margin-top: var(--cf-space-8)">
+        <div class="card">
+          <h3>Standard code</h3>
+          <p class="small">Sixteen characters: name positions, a coherent date of birth, the gender marker, the municipal code and the final check character.</p>
+        </div>
+        <div class="card">
+          <h3>Omocodia</h3>
+          <p class="small">Codes carrying the substitutions used when two people would otherwise generate the same tax code are recognised, not rejected.</p>
+        </div>
+        <div class="card">
+          <h3>Provisional code</h3>
+          <p class="small">Eleven digits, the form issued to those who don’t have a standard tax code yet.</p>
+        </div>
+        <div class="card">
+          <h3>Impossible dates</h3>
+          <p class="small">31 April, 30 February and the other dates that don’t exist are rejected even when the rest of the code adds up.</p>
+        </div>
+        <div class="card">
+          <h3>PEC address</h3>
+          <p class="small">A check on the address shape, including subdomains and the characters allowed in the local part.</p>
+        </div>
+        <div class="card">
+          <h3>Three modes</h3>
+          <p class="small">Each field can be ignored, optional — blank is fine, wrong isn’t — or required. The two choices are independent.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="divided">
+    <div class="wrap">
+      <div class="column">
+        <span class="label">Edge cases</span>
+        <h2>Whoever shouldn’t be blocked, isn’t</h2>
+        <p>This is what separates a useful check from one that costs you orders.</p>
+      </div>
+      <ul class="checks grid two" style="margin-top: var(--cf-space-8)">
+        <li>Order shipping abroad: no validation.</li>
+        <li>Foreign billing details, even with delivery or pickup in Italy: no validation.</li>
+        <li>Store pickup and mixed orders: rules apply if at least one delivery is Italian.</li>
+        <li>Accelerated checkouts and cases where Shopify doesn’t expose the fields: no errors.</li>
+        <li>Unreadable configuration or a technical error: checkout stays open.</li>
+        <li>Expired trial or inactive plan: checkout stays open.</li>
       </ul>
+      <p class="small" style="margin-top: var(--cf-space-6); max-width: var(--cf-measure)">When in doubt, the app does not block. A lost sale costs more than an invoice completed by hand, and this is a design decision, not a fallback.</p>
+    </div>
+  </section>
+
+  <section class="inverse" id="limits">
+    <div class="wrap">
+      <div class="column">
+        <span class="label">Limits</span>
+        <h2>What CF Ready does not do</h2>
+        <p>They sit here, with the same weight as everything else, because you should know them before installing and not after.</p>
+      </div>
+      <div class="grid two" style="margin-top: var(--cf-space-8)">
+        <div class="card">
+          <h3>Not an identity check</h3>
+          <p class="small">The check is formal. We don’t verify with the Italian Revenue Agency that a code exists or belongs to whoever entered it, and a formally valid address isn’t necessarily an active PEC mailbox.</p>
+        </div>
+        <div class="card">
+          <h3>It doesn’t decide your obligations</h3>
+          <p class="small">Whether and when to collect the tax code depends on your business and your accountant. The app decides nothing on your behalf and is not a substitute for tax advice.</p>
+        </div>
+        <div class="card">
+          <h3>No electronic invoicing</h3>
+          <p class="small">The app does not issue, transmit or store invoices, and does not connect to the Italian exchange system. It handles neither VAT numbers nor SDI recipient codes.</p>
+        </div>
+        <div class="card">
+          <h3>Subscriptions and POS</h3>
+          <p class="small">Subsequent generations of recurring orders are not covered: the check runs at checkout, not on the automatic renewals that follow. In POS the app does not intervene.</p>
+        </div>
+      </div>
     </div>
   </section>
 
   <section>
-    <div class="wrap column">
-      <span class="label">Edge cases</span>
-      <h2>Whoever shouldn’t be blocked, isn’t</h2>
-      <p>The rules apply to Italian orders. An order shipping abroad is not validated, and neither is an order with foreign billing details, even when delivery or pickup happens in Italy.</p>
-      <p>In accelerated checkouts, and wherever Shopify does not expose the tax fields, the app raises no errors: a legitimate order is never stopped because the app lacks the data to decide. The same applies if the configuration cannot be read or something goes wrong — when in doubt, the checkout stays open.</p>
+    <div class="wrap">
+      <div class="column">
+        <span class="label">Data</span>
+        <h2>Your customers’ data stays in Shopify</h2>
+        <p>The check runs inside Shopify, during checkout. Your customers’ tax codes and PEC addresses never reach our systems, are never logged and are never stored: the app receives the values from Shopify, evaluates them and returns only an error, if any.</p>
+        <p>We don’t read your orders, customers, products or inventory, and the permissions the app requests from Shopify stop at what it needs to work. The details are in the <a href="privacy.html">Privacy Policy</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="divided" id="pricing">
+    <div class="wrap">
+      <div class="column">
+        <span class="label">Trial and price</span>
+        <h2>Fourteen days to decide</h2>
+        <p>The trial lasts 14 days, is complete and asks for no payment. At the end you choose how to pay: <strong>monthly</strong>, <strong>annually</strong> or <strong>one single payment</strong> for this store, with no renewals.</p>
+        <p>Every option gives you the same features: no order limits, no reserved functionality, no differences between Shopify plans. Current prices are on the Shopify App Store and inside the app when you choose, and billing always goes through your Shopify invoice.</p>
+        <div class="actions">
+          <a class="button" href="https://apps.shopify.com/cf-ready">See the price on Shopify</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="divided">
+    <div class="wrap column faq">
+      <span class="label">Questions</span>
+      <h2>Before you install</h2>
+
+      <details>
+        <summary>Do I have to change my theme?</summary>
+        <p>No. CF Ready works on the field Shopify’s Italian checkout already exposes, through the validation mechanism Shopify provides. There is no code to paste, and nothing is left behind in your theme if you uninstall.</p>
+      </details>
+
+      <details>
+        <summary>Does it work with my Shopify plan?</summary>
+        <p>Yes, on standard plans. Shopify Plus isn’t needed and no feature is reserved for one plan over another. You do need a store with an Italian address: that’s what determines whether the tax fields appear in the checkout.</p>
+      </details>
+
+      <details>
+        <summary>Could it block legitimate orders?</summary>
+        <p>It is built to avoid exactly that. Foreign orders aren’t validated, checkouts where Shopify doesn’t expose the fields raise no errors, and any uncertainty or technical error leaves the checkout open. You can also start with fields set to optional, which flags wrong values without blocking those who leave them blank.</p>
+      </details>
+
+      <details>
+        <summary>Is the tax code really verified?</summary>
+        <p>Its form is verified, not its registration. The app checks that the code is correctly built — structure, date, check character, omocodia — but it cannot know whether that code truly belongs to the customer. No checkout app can.</p>
+      </details>
+
+      <details>
+        <summary>What happens if I stop paying?</summary>
+        <p>The checkout goes back to behaving as before and no order is blocked. Your rules and messages stay saved: if you reactivate, you find everything as it was.</p>
+      </details>
+
+      <details>
+        <summary>Who answers if something goes wrong?</summary>
+        <p>The person who builds the app, by hand. There is no call centre and no chatbot: details are on the <a href="support.html">support page</a>.</p>
+      </details>
     </div>
   </section>
 
   <section class="inverse">
     <div class="wrap column">
-      <span class="label">Limitations</span>
-      <h2>What CF Ready does not do</h2>
-      <p>These are not footnotes. They are the boundary of what the app does, and you should know them before installing it.</p>
-      <ul>
-        <li>Validation is <strong>formal</strong>. The app does not check with the Italian Revenue Agency that a Codice Fiscale exists or belongs to the person entering it, and it does not certify that a formally valid address is an active PEC mailbox.</li>
-        <li>The app does not determine whether and when you are required to collect the Codice Fiscale: that obligation depends on your business and your accountant, not on us.</li>
-        <li>The app does not issue, transmit or store invoices, and does not handle Italian electronic invoicing.</li>
-        <li>It does not handle VAT numbers (Partita IVA) or SDI recipient codes.</li>
-        <li>It does not work in POS and does not modify orders that already exist.</li>
-        <li>Subsequent generations of recurring subscription orders are not covered: the validation surface used by Shopify runs at checkout, not on the automatic renewals that follow.</li>
-        <li>The app is not a substitute for tax advice.</li>
-      </ul>
-    </div>
-  </section>
-
-  <section>
-    <div class="wrap column">
-      <span class="label">Data</span>
-      <h2>Your customers’ data stays in Shopify</h2>
-      <p>The check runs inside Shopify, during checkout. Customers’ Codice Fiscale and PEC values are never sent to our systems, never logged and never stored. The app does not read your orders, customers, products or inventory.</p>
-      <p>What we do keep is the minimum needed to run the app on your store: configuration, trial and subscription status, and minimal technical records. The details are in the <a href="privacy.html">Privacy Policy</a>.</p>
-    </div>
-  </section>
-
-  <section>
-    <div class="wrap column">
-      <span class="label">Support</span>
-      <h2>One person, who answers</h2>
-      <p>CF Ready is built and maintained by one person. Requests reach whoever writes the code, and answers are written by hand. Full instructions and frequently asked questions live inside the app, on the Help and FAQ page.</p>
-      <p><a href="support.html">How to reach us</a></p>
+      <h2>Try CF Ready on your store</h2>
+      <p>Fourteen full days, a few minutes to set up, and no theme changes to undo if you change your mind.</p>
+      <div class="actions">
+        <a class="button" href="https://apps.shopify.com/cf-ready">Install from Shopify</a>
+        <a class="button secondary" href="support.html">Ask us a question</a>
+      </div>
     </div>
   </section>
 
 </main>
 
-<footer class="inverse">
+<footer class="inverse" style="border-top: 1px solid color-mix(in srgb, #F7F5EE 22%, transparent)">
   <div class="wrap">
     <ul>
       <li><a href="privacy.html">Privacy Policy</a></li>
