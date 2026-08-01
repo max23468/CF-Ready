@@ -386,7 +386,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-081 | `develop` integra e verifica senza deploy remoto; `main` promuove in Production; feature branch locali. | Conserva il gate tra integrazione e produzione senza mantenere un ambiente intermedio. |
 | D-082 | GitHub Actions unico CI/CD. | Coordina Worker, Pages e Shopify Function in una pipeline. |
 | D-083 | Test su tre livelli: Vitest, Function fixtures/CLI, Playwright mirato. | Copertura proporzionata al rischio. |
-| D-084 | Monitoraggio Cloudflare nativo; niente Sentry. | Restare sul piano gratuito e ridurre servizi. |
+| D-084 | Monitoraggio Cloudflare nativo, inclusa Web Analytics sul solo sito pubblico; niente Sentry. | Restare sul piano gratuito, misurare le prestazioni reali del sito e ridurre servizi. |
 | D-085 | Backup D1 cifrati in R2: 8 settimanali e 12 mensili. | Copertura oltre i 7 giorni di D1 Time Travel. |
 | D-086 | Retention configurazione 90 giorni dopo uninstall. | Reinstallazione semplice, poi minimizzazione. |
 | D-087 | Telemetria tecnica minimale sempre attiva, senza opt-out. | Necessaria a operatività, sicurezza e misurazione essenziale. |
@@ -2313,7 +2313,7 @@ supportato.
 - D1: unico database applicativo;
 - R2: backup cifrati;
 - Workers Logs: osservabilità;
-- Pages: sito pubblico statico;
+- Pages: sito pubblico statico con Web Analytics nativa;
 - Email binding: invio supporto al destinatario verificato, previa verifica nel proof of concept.
 
 ### 18.2 Nomi risorse
@@ -2349,6 +2349,11 @@ L’italiano sta nella radice perché è la lingua principale del prodotto (§16
 perché la versione italiana dei documenti legali è quella che prevale (§21.8).
 Nessuna negoziazione automatica della lingua: il passaggio è un collegamento
 esplicito, così l’URL condiviso mostra a tutti la stessa pagina.
+
+Cloudflare Web Analytics è abilitata sul progetto Pages con iniezione
+automatica del beacon. Il token resta nella configurazione Cloudflare, non nel
+repository; la CSP consente lo script da `static.cloudflareinsights.com` e
+l'invio allo stesso dominio tramite `/cdn-cgi/rum`.
 
 Worker Development:
 
@@ -3011,6 +3016,11 @@ Eventi permessi:
 - pricing generation.
 
 Sempre attiva perché necessaria a funzionamento, sicurezza e valutazione del lancio. Descritta nella Privacy Policy. Nessun cookie analytics, fingerprint o comportamento di clienti.
+
+Il solo sito pubblico usa inoltre Cloudflare Web Analytics per visite aggregate
+e prestazioni reali. Il beacon non usa cookie o archiviazione locale, non crea
+fingerprint, non registra query string e non raggiunge checkout o app embedded.
+La Privacy Policy descrive metriche, finalità, base giuridica e destinatario.
 
 ### 21.8 Documenti legali
 

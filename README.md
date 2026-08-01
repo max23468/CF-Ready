@@ -30,6 +30,10 @@ mise exec -- npm run dev
 Le pagine statiche bilingui stanno in `site/` e non hanno passo di build né
 dipendenze: si servono così come sono.
 
+Cloudflare Web Analytics è attivo sul progetto Pages con iniezione automatica:
+il token resta nella configurazione Cloudflare e non va aggiunto agli HTML. La
+CSP in `site/_headers` consente il beacon e l'invio allo stesso dominio.
+
 ```sh
 mise exec -- npm run site:dev
 mise exec -- npm run site:deploy
