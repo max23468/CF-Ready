@@ -170,7 +170,7 @@ Regola strutturale: **il brand è riconoscibile ai bordi del prodotto, neutro al
 | Sito pubblico | Massima |
 | Listing e screenshot | Alta — cornici, fondi, didascalie |
 | Onboarding, Guida, Store non supportato e piede della colonna laterale in Home | Bassa — l'icona in navigazione e l'illustrazione ammessa da A-16 |
-| Home, Regole, Messaggi, Piano | **Nulla** — solo token Polaris |
+| Home, Regole e Messaggi | **Nulla** — solo token Polaris |
 
 Dentro l'app embedded il colore di brand non viene usato sui controlli e sugli stati: nessun bottone verde CF Ready accanto a un bottone Polaris, nessun banner colorato custom, nessuna intestazione brandizzata. La coerenza si ottiene dal tono dei testi e dalla struttura delle pagine, non dal colore. Questo soddisfa §17.3, NFR-040 e NFR-044.
 
@@ -489,7 +489,7 @@ CF Ready
 | **Obiettivo** | Far compiere l'azione giusta | Spiegare il problema e i limiti | Far capire in 10 secondi se serve |
 | **Registro** | Operativo, neutro | Esplicativo, disteso | Sintetico, orientato al beneficio |
 | **Lunghezza** | Minima, una riga per concetto | Media, paragrafi brevi | Corta, bullet |
-| **Vendita** | Nessuna, tranne la pagina Piano | Presente ma sobria | Presente, mai iperbolica |
+| **Vendita** | Nessuna, tranne la scelta del piano nella Home | Presente ma sobria | Presente, mai iperbolica |
 | **Limiti** | Dichiarati dove impattano | Sezione dedicata | Sezione esplicita (§24.4, FR-099) |
 
 La stessa cosa si chiama con la stessa parola nei tre contesti.
