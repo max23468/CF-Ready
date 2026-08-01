@@ -5,6 +5,16 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.5.4 — 1 agosto 2026
+
+- il sito ha un ritmo verticale unico: ogni sezione porta la stessa mezza
+  distanza sopra e sotto, le fasce a fondo pieno respirano di più e i tre punti
+  fermi sotto il primo schermo diventano una sezione invece di un blocco fuori
+  dal flusso. Spariscono gli stili in linea che davano a ogni blocco uno stacco
+  diverso;
+- il marchio in testata riporta alla Home e il piè di pagina della Home elenca
+  anche sé stessa, come già fanno le altre pagine.
+
 ## 0.5.3 — 1 agosto 2026
 
 - il registro delle operazioni di M7 raccoglie i due deployment del sito, lo
