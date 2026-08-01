@@ -1,6 +1,6 @@
 {
   "name": "cf-ready",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "private": true,
   "scripts": {
     "build": "react-router build",
