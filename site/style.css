@@ -13,6 +13,15 @@
   box-sizing: border-box;
 }
 
+/* Lo scorrimento verso un'ancora è accompagnato, non uno scatto. Chi ha chiesto
+   meno animazioni al sistema torna allo scatto: ci pensa il blocco
+   prefers-reduced-motion di tokens.css. `scroll-padding-top` tiene conto della
+   testata, che resta sopra il contenuto. */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
+}
+
 body {
   margin: 0;
   background: var(--cf-color-paper);
@@ -90,13 +99,33 @@ section.inverse {
 /* ---- Testata ---- */
 
 .masthead {
-  padding: var(--cf-space-4) 0;
+  padding-block: var(--cf-space-4);
   border-bottom: var(--cf-border-subtle);
   position: sticky;
   top: 0;
   background: color-mix(in srgb, var(--cf-color-paper) 92%, transparent);
   backdrop-filter: blur(8px);
   z-index: 10;
+}
+
+/* Appena si scorre, la testata si stringe e stacca un'ombra: resta raggiungibile
+   ma occupa meno. L'animazione è legata alla posizione dello scorrimento, quindi
+   torna indietro da sola risalendo, senza una riga di JavaScript e senza dover
+   allentare la Content-Security-Policy del sito. Dove le animazioni legate allo
+   scorrimento non esistono, la testata resta semplicemente fissa. */
+@supports (animation-timeline: scroll()) {
+  .masthead {
+    animation: masthead-compatta linear both;
+    animation-timeline: scroll();
+    animation-range: 0 8rem;
+  }
+
+  @keyframes masthead-compatta {
+    to {
+      padding-block: var(--cf-space-2);
+      box-shadow: var(--cf-shadow-card);
+    }
+  }
 }
 
 .masthead .wrap {
@@ -254,6 +283,22 @@ a:hover {
 .masthead .button {
   padding: var(--cf-space-2) var(--cf-space-4);
   font-size: var(--cf-text-small);
+}
+
+/* Finché la scheda sull'App Store non esiste, il richiamo all'installazione è un
+   `button` disabilitato: si vede, dice cosa sarà, e non porta su un errore. */
+button.button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+button.button[disabled] {
+  cursor: default;
+  opacity: 0.55;
+}
+
+button.button[disabled]:hover {
+  opacity: 0.55;
 }
 
 /* ---- Hero ---- */
@@ -497,7 +542,17 @@ footer ul {
     margin-bottom: var(--cf-space-6);
   }
 
+  /* La testata resta raggiungibile anche da telefono: si accorcia il passo, non
+     la si sgancia. */
   .masthead {
-    position: static;
+    padding-block: var(--cf-space-3);
+  }
+
+  nav ul {
+    gap: var(--cf-space-3) var(--cf-space-4);
+  }
+
+  html {
+    scroll-padding-top: 8rem;
   }
 }

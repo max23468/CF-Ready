@@ -5,6 +5,21 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.5.5 — 1 agosto 2026
+
+- il menu del sito porta anche alla Home, resta agganciato in alto mentre si
+  scorre e si stringe dopo i primi centimetri di scorrimento, senza una riga di
+  JavaScript: l'animazione è legata alla posizione, quindi si riavvolge da sé
+  risalendo e non obbliga ad allentare la Content-Security-Policy;
+- i collegamenti interni scorrono invece di saltare, e chi ha chiesto al sistema
+  meno animazioni continua a vedere lo scatto secco;
+- i richiami all'installazione non portano più a un 404: sono pulsanti
+  disabilitati che dicono di aspettare la pubblicazione. Un collegamento rotto
+  promette una destinazione che non esiste, un pulsante spento no;
+- i testi del sito sono riscritti in un italiano parlato, con periodi di
+  lunghezza diversa e meno costruzioni simmetriche. Nei due documenti legali
+  l'intervento riguarda solo le frasi di raccordo: le clausole restano quelle.
+
 ## 0.5.4 — 1 agosto 2026
 
 - il sito ha un ritmo verticale unico: ogni sezione porta la stessa mezza

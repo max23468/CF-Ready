@@ -4,25 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CF Ready — Codice Fiscale obbligatorio e validato nel checkout italiano</title>
-<meta name="description" content="CF Ready rende obbligatorio e valida formalmente il Codice Fiscale nel campo nativo del checkout italiano di Shopify. Nessuna modifica al tema, nessun campo aggiuntivo, 14 giorni di prova.">
+<meta name="description" content="CF Ready rende obbligatorio il Codice Fiscale nel campo che Shopify già mostra nel checkout italiano, e ne controlla la forma prima che l’ordine si chiuda. Nessuna modifica al tema, 14 giorni di prova.">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 <link rel="alternate" hreflang="it" href="https://cf-ready.pages.dev/">
 <link rel="alternate" hreflang="en" href="https://cf-ready.pages.dev/en/">
 </head>
-<body>
+<body id="top">
 
 <header class="masthead">
   <div class="wrap">
-    <a href="index.html"><img src="assets/lockup-horizontal.svg" alt="CF Ready"></a>
+    <a href="#top"><img src="assets/lockup-horizontal.svg" alt="CF Ready"></a>
     <nav>
       <ul>
+        <li><a href="#top">Home</a></li>
         <li><a href="#come-funziona">Come funziona</a></li>
         <li><a href="#limiti">Limiti</a></li>
         <li><a href="#prezzo">Prova e prezzo</a></li>
         <li><a href="support.html">Assistenza</a></li>
         <li><a href="en/index.html" lang="en">EN</a></li>
-        <li><a class="button" href="https://apps.shopify.com/cf-ready">Installa</a></li>
+        <li><button class="button" type="button" disabled>Presto su Shopify</button></li>
       </ul>
     </nav>
   </div>
@@ -35,12 +36,13 @@
       <div class="hero-copy">
         <span class="label">App Shopify per il checkout italiano</span>
         <h1 class="display">Mai più ordini da fatturare senza Codice Fiscale.</h1>
-        <p class="lede">CF Ready rende obbligatorio il Codice Fiscale nel campo nativo del checkout italiano e ne controlla la forma prima che l’ordine si chiuda. Senza toccare il tema, senza aggiungere campi.</p>
+        <p class="lede">CF Ready rende obbligatorio il Codice Fiscale nel campo che Shopify già mostra nel checkout italiano, e ne controlla la forma prima che l’ordine si chiuda.</p>
+        <p>Niente da toccare nel tema, niente caselle in più per il cliente. Si installa, decidi cosa chiedere, e da lì in poi lavora da sola.</p>
         <div class="actions">
-          <a class="button" href="https://apps.shopify.com/cf-ready">Installa da Shopify</a>
+          <button class="button" type="button" disabled>Presto sullo Shopify App Store</button>
           <a class="button secondary" href="#come-funziona">Come funziona</a>
         </div>
-        <p class="small note">14 giorni di prova. Nessuna carta richiesta da noi: l’addebito passa da Shopify e lo approvi tu.</p>
+        <p class="small note">Quattordici giorni di prova. La carta non la dai a noi: si paga tramite Shopify, e l’addebito lo approvi tu.</p>
       </div>
 
       <!-- Illustrazione costruita con le forme del sistema: la tessera, la fascia, il campo.
@@ -66,9 +68,9 @@
 
   <section class="facts">
     <div class="wrap">
-      <p><strong>Campo nativo Shopify.</strong> Quello che il checkout italiano già mostra, non uno in più.</p>
-      <p><strong>Nessuna modifica al tema.</strong> Niente codice da incollare, niente estensioni da installare.</p>
-      <p><strong>Tutti i piani standard.</strong> Shopify Plus non serve, e non ci sono funzioni riservate.</p>
+      <p><strong>Il campo è quello di Shopify.</strong> Quello che il checkout italiano mostra già, non uno aggiunto da noi.</p>
+      <p><strong>Il tema resta com’è.</strong> Nessun codice da incollare, nessuna estensione da installare.</p>
+      <p><strong>Va bene il tuo piano.</strong> Serve Shopify, non Shopify Plus.</p>
     </div>
   </section>
 
@@ -76,8 +78,8 @@
     <div class="wrap column">
       <span class="label">Il problema</span>
       <h2>L’ordine è arrivato, la fattura no</h2>
-      <p>Se emetti fattura per gli ordini B2C, il Codice Fiscale ti serve. Shopify lo prevede nel checkout italiano, ma di default è facoltativo: il cliente può lasciarlo vuoto, oppure scriverlo storto. Te ne accorgi dopo, quando l’ordine è già chiuso e devi rincorrere il cliente via email — sperando che risponda.</p>
-      <p>La soluzione più diffusa è aggiungere un campo personalizzato al tema o dirottare il campo “Interno”. Entrambe le strade mostrano al cliente due caselle per lo stesso dato e lasciano modifiche nel tema che qualcuno dovrà mantenere.</p>
+      <p>Se fatturi anche ai privati, il Codice Fiscale ti serve. Shopify una casella per scriverlo ce l’ha, nel checkout italiano, ma di serie non è obbligatoria: il cliente la salta, oppure ci scrive dentro qualcosa che codice fiscale non è. Te ne accorgi il giorno dopo, con l’ordine già chiuso, e tocca scrivergli sperando che risponda.</p>
+      <p>Chi ci è passato di solito prova due strade: aggiungere un campo al tema, o riciclare il campo “Interno” del checkout. La prima lascia in casa modifiche che qualcuno dovrà mantenere. La seconda mostra al cliente due caselle per la stessa cosa.</p>
     </div>
   </section>
 
@@ -85,20 +87,20 @@
     <div class="wrap">
       <div class="section-head">
         <span class="label">Come funziona</span>
-        <h2>Tre passaggi, una volta sola</h2>
+        <h2>Tre passaggi, e non ci pensi più</h2>
       </div>
       <ol class="steps">
         <li>
           <h3>Installi</h3>
-          <p>L’app si installa dallo Shopify App Store e riconosce da sola se lo store ha l’indirizzo in Italia. Non chiede accesso a ordini, clienti o prodotti.</p>
+          <p>Dallo Shopify App Store. L’app guarda l’indirizzo dello store e capisce da sola se sei in Italia. Non chiede di leggere ordini, clienti o prodotti, perché non le servono.</p>
         </li>
         <li>
-          <h3>Scegli le regole</h3>
-          <p>Per Codice Fiscale e PEC decidi separatamente: ignorato, facoltativo o obbligatorio. Una procedura guidata di quattro passi ti porta fino all’attivazione.</p>
+          <h3>Decidi cosa chiedere</h3>
+          <p>Codice Fiscale e PEC si impostano separatamente: puoi ignorarne uno, renderlo facoltativo o renderlo obbligatorio. Una procedura in quattro passi ti accompagna fino all’attivazione.</p>
         </li>
         <li>
-          <h3>Attivi nel checkout</h3>
-          <p>Da quel momento Shopify esegue il controllo a ogni checkout italiano. Nessun deploy, nessuna modifica al tema, nessun intervento sul negozio.</p>
+          <h3>Accendi</h3>
+          <p>Da quel momento è Shopify a eseguire il controllo, a ogni checkout italiano. Non c’è niente da pubblicare e niente da toccare nel negozio.</p>
         </li>
       </ol>
     </div>
@@ -106,26 +108,24 @@
 
   <section class="divided">
     <div class="wrap">
-      <div>
-        <div class="grid two">
-          <div>
-            <span class="label">Cosa vede il cliente</span>
-            <h2>Un messaggio chiaro, scritto da te</h2>
-            <p>Quando il valore non va bene, il cliente legge il tuo messaggio nel punto giusto del checkout — non un errore tecnico. I testi sono modificabili in italiano e in inglese, e puoi decidere se l’errore compare alla conferma dell’ordine o già mentre il cliente compila.</p>
-            <p class="small">Lo schema qui accanto illustra il comportamento: non è una riproduzione dell’interfaccia di Shopify.</p>
-          </div>
+      <div class="grid two">
+        <div>
+          <span class="label">Cosa vede il cliente</span>
+          <h2>Un messaggio scritto da te</h2>
+          <p>Se il valore non va, il cliente legge la tua frase, nel punto giusto del checkout. Niente errori tecnici, niente codici. I testi li cambi tu, in italiano e in inglese, e scegli anche quando far comparire l’avviso: solo alla conferma dell’ordine, oppure già mentre il cliente sta scrivendo.</p>
+          <p class="small">Qui accanto c’è uno schema di come si comporta. Non è una riproduzione del checkout di Shopify.</p>
+        </div>
 
-          <div class="mock">
-            <div class="mock-label">Codice fiscale</div>
-            <div class="mock-field invalid">RSSMRA85T10A562<strong>X</strong></div>
-            <div class="mock-error">
-              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="8" cy="8" r="7" fill="none" stroke="#C97B2E" stroke-width="2"/>
-                <path d="M8 4.5v4.2" stroke="#C97B2E" stroke-width="2" stroke-linecap="round"/>
-                <circle cx="8" cy="11.4" r="1" fill="#C97B2E"/>
-              </svg>
-              <span>Controlla il Codice Fiscale: il formato non è valido.</span>
-            </div>
+        <div class="mock">
+          <div class="mock-label">Codice fiscale</div>
+          <div class="mock-field invalid">RSSMRA85T10A562<strong>X</strong></div>
+          <div class="mock-error">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="8" cy="8" r="7" fill="none" stroke="#C97B2E" stroke-width="2"/>
+              <path d="M8 4.5v4.2" stroke="#C97B2E" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="8" cy="11.4" r="1" fill="#C97B2E"/>
+            </svg>
+            <span>Controlla il Codice Fiscale: il formato non è valido.</span>
           </div>
         </div>
       </div>
@@ -136,34 +136,34 @@
     <div class="wrap">
       <div class="section-head">
         <span class="label">Cosa controlla</span>
-        <h2>Un controllo formale, fatto per bene</h2>
-        <p>Non basta contare i caratteri. CF Ready verifica la struttura del codice come la definisce la regola di formazione, e riconosce i casi che gli altri sbagliano.</p>
+        <h2>Contare i caratteri non basta</h2>
+        <p>CF Ready ricostruisce il codice come lo costruisce la regola ufficiale, e riconosce i casi in cui i controlli fatti in fretta sbagliano.</p>
       </div>
 
       <div class="grid">
         <div class="card">
           <h3>Codice ordinario</h3>
-          <p class="small">Sedici caratteri: posizioni nominali, data di nascita coerente, marcatore del sesso, codice del comune e carattere di controllo finale.</p>
+          <p class="small">Sedici caratteri: le lettere di cognome e nome, la data di nascita, il segno del sesso, il codice del comune e il carattere di controllo finale.</p>
         </div>
         <div class="card">
           <h3>Omocodia</h3>
-          <p class="small">I codici con le sostituzioni previste quando due persone genererebbero lo stesso Codice Fiscale vengono riconosciuti, non rifiutati.</p>
+          <p class="small">Quando due persone genererebbero lo stesso codice, alcune cifre diventano lettere. Quei codici sono validi, e vengono accettati.</p>
         </div>
         <div class="card">
           <h3>Codice provvisorio</h3>
-          <p class="small">Undici cifre, la forma che riceve chi non ha ancora un Codice Fiscale ordinario.</p>
+          <p class="small">Undici cifre, la forma di chi un codice fiscale ordinario non ce l’ha ancora.</p>
         </div>
         <div class="card">
-          <h3>Date impossibili</h3>
-          <p class="small">Il 31 di aprile, il 30 di febbraio e le altre date che non esistono vengono respinte anche quando il resto del codice torna.</p>
+          <h3>Date che non esistono</h3>
+          <p class="small">Il 31 aprile e il 30 febbraio vengono respinti anche quando tutto il resto del codice sembra a posto.</p>
         </div>
         <div class="card">
           <h3>Indirizzo PEC</h3>
-          <p class="small">Controllo della forma dell’indirizzo, con i sottodomini e i caratteri ammessi nella parte locale.</p>
+          <p class="small">Si controlla che l’indirizzo sia scritto in una forma valida, sottodomini compresi.</p>
         </div>
         <div class="card">
-          <h3>Tre modalità</h3>
-          <p class="small">Ogni campo può essere ignorato, facoltativo — vuoto sì, sbagliato no — oppure obbligatorio. Le scelte sono indipendenti.</p>
+          <h3>Tre modi, per ogni campo</h3>
+          <p class="small">Ignorato, facoltativo (vuoto passa, sbagliato no) oppure obbligatorio. Le due scelte non si influenzano.</p>
         </div>
       </div>
     </div>
@@ -173,18 +173,18 @@
     <div class="wrap">
       <div class="section-head">
         <span class="label">Casi particolari</span>
-        <h2>Chi non deve essere bloccato, non viene bloccato</h2>
-        <p>È la parte che distingue un controllo utile da uno che fa perdere ordini.</p>
+        <h2>Chi non va bloccato, non viene bloccato</h2>
+        <p>È qui che si vede la differenza fra un controllo utile e uno che ti fa perdere ordini.</p>
       </div>
       <ul class="checks grid two">
-        <li>Ordine con destinazione estera: nessuna validazione.</li>
-        <li>Fatturazione estera, anche con consegna o ritiro in Italia: nessuna validazione.</li>
-        <li>Ritiro in negozio e ordini misti: le regole valgono se almeno una consegna è italiana.</li>
-        <li>Checkout accelerati e casi in cui Shopify non espone i campi: nessun errore.</li>
-        <li>Configurazione illeggibile o errore tecnico: il checkout resta aperto.</li>
-        <li>Prova scaduta o piano non attivo: il checkout resta aperto.</li>
+        <li>Ordine che parte per l’estero: nessun controllo.</li>
+        <li>Fatturazione estera, anche se consegni o fai ritirare in Italia: nessun controllo.</li>
+        <li>Ritiro in negozio e ordini misti: si controlla se almeno una consegna è italiana.</li>
+        <li>Checkout accelerati, e tutti i casi in cui Shopify non mostra i campi: nessun errore.</li>
+        <li>Configurazione illeggibile o guasto tecnico: il checkout resta aperto.</li>
+        <li>Prova finita o piano non attivo: il checkout resta aperto.</li>
       </ul>
-      <p class="small note">In caso di dubbio l’app non blocca. Una vendita persa costa più di una fattura da completare a mano, e questa è una decisione di progetto, non un ripiego.</p>
+      <p class="small note">Nel dubbio, l’app lascia passare. Una vendita persa costa più di una fattura da sistemare a mano, e l’abbiamo deciso in partenza, non come ripiego.</p>
     </div>
   </section>
 
@@ -193,50 +193,46 @@
       <div class="section-head">
         <span class="label">Limiti</span>
         <h2>Cosa CF Ready non fa</h2>
-        <p>Stanno qui, con lo stesso rilievo del resto, perché è giusto saperlo prima di installare e non dopo.</p>
+        <p>Sono qui in mezzo, con lo stesso spazio di tutto il resto, perché è meglio saperlo prima di installare.</p>
       </div>
       <div class="grid two">
         <div class="card">
-          <h3>Non è una verifica anagrafica</h3>
-          <p class="small">Il controllo è formale. Non verifichiamo presso l’Agenzia delle Entrate che un codice esista o appartenga a chi lo inserisce, e un indirizzo formalmente valido non è per forza una casella PEC attiva.</p>
+          <h3>Non controlla l’anagrafe</h3>
+          <p class="small">Verifichiamo com’è scritto il codice, non a chi appartiene. Non lo chiediamo all’Agenzia delle Entrate, e un indirizzo scritto bene non è detto sia una PEC davvero attiva.</p>
         </div>
         <div class="card">
-          <h3>Non decide i tuoi obblighi</h3>
-          <p class="small">Se e quando raccogliere il Codice Fiscale dipende dalla tua attività e dal tuo consulente. L’app non stabilisce nulla al posto tuo e non sostituisce una consulenza fiscale.</p>
+          <h3>Non decide per te</h3>
+          <p class="small">Se e quando devi raccogliere il Codice Fiscale lo stabilisci tu con il tuo commercialista. L’app non lo decide e non sostituisce una consulenza.</p>
         </div>
         <div class="card">
           <h3>Niente fatturazione elettronica</h3>
-          <p class="small">L’app non emette, non trasmette e non conserva fatture, e non si collega al Sistema di Interscambio. Non gestisce Partita IVA né Codice Destinatario SDI.</p>
+          <p class="small">Non emettiamo fatture, non le mandiamo allo SDI e non le conserviamo. Partita IVA e Codice Destinatario non li gestiamo.</p>
         </div>
         <div class="card">
           <h3>Abbonamenti e POS</h3>
-          <p class="small">Le generazioni successive degli ordini ricorrenti non sono coperte: il controllo agisce sul checkout, non sui rinnovi automatici. Nel POS l’app non interviene.</p>
+          <p class="small">Il controllo lavora sul checkout. I rinnovi automatici degli abbonamenti nascono dopo, e lì non arriva. Nel POS non interviene.</p>
         </div>
       </div>
     </div>
   </section>
 
   <section>
-    <div class="wrap">
-      <div class="section-head">
-        <span class="label">Dati</span>
-        <h2>I dati dei tuoi clienti restano in Shopify</h2>
-        <p>Il controllo avviene dentro Shopify, durante il checkout. I Codici Fiscali e gli indirizzi PEC dei tuoi clienti non arrivano ai nostri sistemi, non vengono registrati e non vengono conservati: l’app riceve i valori da Shopify, li valuta e restituisce soltanto un eventuale errore.</p>
-        <p>Non leggiamo i tuoi ordini, i tuoi clienti, i tuoi prodotti né il tuo magazzino, e i permessi che l’app chiede a Shopify si fermano a quello che le serve per funzionare. Il dettaglio è nella <a href="privacy.html">Privacy Policy</a>.</p>
-      </div>
+    <div class="wrap column">
+      <span class="label">Dati</span>
+      <h2>Quello che scrivono i tuoi clienti resta in Shopify</h2>
+      <p>Il controllo avviene dentro Shopify, mentre il cliente è alla cassa. I codici fiscali e le PEC non arrivano ai nostri server, non finiscono in un registro e non restano da nessuna parte: l’app riceve il valore, lo guarda, e risponde solo se c’è un errore.</p>
+      <p>Dei tuoi ordini, clienti, prodotti e giacenze non sappiamo niente, e i permessi che chiediamo a Shopify si fermano a quello che serve per funzionare. Nella <a href="privacy.html">Privacy Policy</a> è scritto per esteso.</p>
     </div>
   </section>
 
   <section class="divided" id="prezzo">
-    <div class="wrap">
-      <div class="section-head">
-        <span class="label">Prova e prezzo</span>
-        <h2>Quattordici giorni per decidere</h2>
-        <p>La prova dura 14 giorni, è completa e non chiede alcun pagamento. Alla fine scegli come pagare: <strong>mensile</strong>, <strong>annuale</strong> oppure <strong>un solo pagamento</strong> per questo store, senza rinnovi.</p>
-        <p>Tutte le modalità danno le stesse funzionalità: nessun limite di ordini, nessuna funzione riservata, nessuna differenza fra i piani Shopify. Gli importi aggiornati sono nello Shopify App Store e dentro l’app quando scegli, e l’addebito passa sempre dalla tua fattura Shopify.</p>
-        <div class="actions">
-          <a class="button" href="https://apps.shopify.com/cf-ready">Vedi il prezzo su Shopify</a>
-        </div>
+    <div class="wrap column">
+      <span class="label">Prova e prezzo</span>
+      <h2>Quattordici giorni per decidere</h2>
+      <p>La prova dura due settimane, è completa e non ti chiede un euro. Alla fine scegli come pagare: ogni mese, una volta l’anno, oppure una volta sola per questo store e non se ne parla più.</p>
+      <p>Cambia solo quando paghi, non cosa ottieni: nessun limite di ordini, niente funzioni riservate a chi spende di più. Il prezzo aggiornato lo trovi sull’App Store e dentro l’app quando scegli, e l’addebito arriva sempre sulla tua fattura Shopify.</p>
+      <div class="actions">
+        <button class="button" type="button" disabled>Presto sullo Shopify App Store</button>
       </div>
     </div>
   </section>
@@ -247,44 +243,44 @@
       <h2>Prima di installare</h2>
 
       <details>
-        <summary>Devo modificare il tema?</summary>
-        <p>No. CF Ready lavora sul campo che il checkout italiano di Shopify espone già, attraverso il meccanismo di validazione che Shopify mette a disposizione. Non c’è codice da incollare e non resta nulla nel tema se disinstalli l’app.</p>
+        <summary>Devo mettere le mani nel tema?</summary>
+        <p>No, e non ce le mettiamo nemmeno noi. CF Ready lavora sul campo che il checkout italiano ha già, usando il meccanismo di validazione di Shopify. Se un giorno disinstalli, nel tema non resta niente.</p>
       </details>
 
       <details>
         <summary>Funziona con il mio piano Shopify?</summary>
-        <p>Sì, sui piani standard. Non serve Shopify Plus e l’app non ha funzioni riservate a un piano piuttosto che a un altro. Serve però uno store con indirizzo in Italia: è da lì che dipende la presenza dei campi fiscali nel checkout.</p>
+        <p>Sui piani normali sì, e Plus non serve. Quello che conta è che lo store abbia l’indirizzo in Italia: da lì dipende la presenza dei campi fiscali nel checkout.</p>
       </details>
 
       <details>
-        <summary>Rischio di bloccare ordini legittimi?</summary>
-        <p>L’app è costruita per evitarlo. Gli ordini esteri non vengono validati, i checkout dove Shopify non espone i campi non generano errori, e qualsiasi incertezza o errore tecnico lascia il checkout aperto. Puoi anche partire con i campi in modalità facoltativa, che segnala i valori sbagliati senza bloccare chi lascia vuoto.</p>
+        <summary>Rischio di bloccare ordini buoni?</summary>
+        <p>È la cosa a cui abbiamo pensato di più. Gli ordini esteri non li tocca, dove Shopify non mostra i campi non dice niente, e qualsiasi intoppo tecnico lascia il checkout aperto. Se vuoi andarci piano puoi partire con i campi facoltativi: segnala chi scrive male, lascia passare chi lascia vuoto.</p>
       </details>
 
       <details>
-        <summary>Il Codice Fiscale viene verificato davvero?</summary>
-        <p>Viene verificato nella forma, non nell’anagrafe. L’app controlla che il codice sia costruito correttamente — struttura, data, carattere di controllo, omocodia — ma non può sapere se quel codice appartiene davvero al cliente. Nessuna app di checkout può farlo.</p>
+        <summary>Il Codice Fiscale viene verificato sul serio?</summary>
+        <p>Viene verificato com’è scritto, non a chi appartiene. Il codice deve essere costruito bene, e su questo non transigiamo. Ma se quel codice sia davvero del cliente, non possiamo saperlo: non lo sa nessuna app di checkout.</p>
       </details>
 
       <details>
-        <summary>Cosa succede se smetto di pagare?</summary>
-        <p>Il checkout torna a comportarsi come prima e nessun ordine viene bloccato. Le tue regole e i tuoi messaggi restano salvati: se riattivi, ritrovi tutto com’era.</p>
+        <summary>E se smetto di pagare?</summary>
+        <p>Il checkout torna com’era e nessun ordine viene fermato. Regole e messaggi restano dove li avevi lasciati, così se riattivi non devi rifare niente.</p>
       </details>
 
       <details>
-        <summary>Chi risponde se ho un problema?</summary>
-        <p>La persona che sviluppa l’app, a mano. Non c’è un centralino e non c’è un chatbot: i dettagli sono nella <a href="support.html">pagina di assistenza</a>.</p>
+        <summary>Chi mi risponde se qualcosa non va?</summary>
+        <p>Chi ha scritto l’app, di persona. Non c’è un call center e non c’è un bot: trovi tutto nella <a href="support.html">pagina di assistenza</a>.</p>
       </details>
     </div>
   </section>
 
   <section class="inverse">
     <div class="wrap column">
-      <h2>Prova CF Ready sul tuo store</h2>
-      <p>Quattordici giorni completi, configurazione in pochi minuti, nessuna modifica al tema da annullare se cambi idea.</p>
+      <h2>Provala sul tuo store</h2>
+      <p>Due settimane intere, pochi minuti per configurarla, e niente da disfare nel tema se poi cambi idea.</p>
       <div class="actions">
-        <a class="button" href="https://apps.shopify.com/cf-ready">Installa da Shopify</a>
-        <a class="button secondary" href="support.html">Facci una domanda</a>
+        <button class="button" type="button" disabled>Presto sullo Shopify App Store</button>
+        <a class="button secondary" href="support.html">Scrivici una domanda</a>
       </div>
     </div>
   </section>
@@ -294,7 +290,7 @@
 <footer class="inverse">
   <div class="wrap">
     <ul>
-      <li><a href="index.html">Home</a></li>
+      <li><a href="#top">Home</a></li>
       <li><a href="privacy.html">Privacy Policy</a></li>
       <li><a href="terms.html">Termini e condizioni</a></li>
       <li><a href="support.html">Assistenza</a></li>
