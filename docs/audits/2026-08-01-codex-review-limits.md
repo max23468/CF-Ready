@@ -21,8 +21,8 @@ avevano invece ricevuto una review reale di Codex e sono incluse per controllo.
 Il risultato sul codice corrente è:
 
 - **1 finding P1**, che resta un gate esplicito prima della `1.0.0`;
-- **5 finding P2**;
-- **4 finding P3**;
+- **3 finding P2**;
+- **2 finding P3**;
 - nessun P0;
 - 3 thread Codex reali ancora `unresolved` su GitHub: uno in `#68`, due in
   `#105`;
@@ -34,10 +34,6 @@ Il risultato sul codice corrente è:
 | ID          | PR principale | Classe                    | Priorità   | Sintesi                                                                                                           |
 | ----------- | ------------- | ------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
 | F-M3-57-01  | #57           | limite di prodotto        | P1 pre-1.0 | con `localizedFields` vuoto i checkout accelerati possono passare senza Codice Fiscale richiesto                  |
-| F-M6-83-04  | #83           | bug UX/i18n               | P3         | la rotta di login ignora la locale comune e mostra sempre etichette ed errori in inglese                          |
-| F-M6-86-01  | #83/#86/#90   | bug UX/feedback           | P2         | il banner di successo resta durante nuove modifiche e in Messaggi dichiara erroneamente «Regole salvate»          |
-| F-M6-87-01  | #87 / #99     | miglioramento UX          | P3         | le azioni via fetcher disabilitano i pulsanti senza mostrare quale operazione è in corso                          |
-| F-M6-90-01  | #90           | bug UX/contenuto          | P2         | Home descrive un checkout attivo anche quando la Validation è disattivata o il diritto è scaduto                  |
 | F-M6-99-03  | #99           | bug UX/salvaguardia       | P2         | la cancellazione del rinnovo parte al primo clic senza la conferma richiesta per azioni ad alto impatto           |
 | F-M6-101-01 | #101/#103/#105 | accessibilità/responsive | P3         | i passi incompleti hanno comunque l’icona di spunta e la griglia forza quattro colonne                            |
 | F-M6-105-01 | #105          | bug di concorrenza        | P2         | la persistenza del passo può terminare dopo la chiusura e riportare `onboarding_step` a 4                         |
@@ -66,7 +62,7 @@ con impatto circoscritto ma reale; P3 hardening, accuratezza o caso marginale.
 
 Verifiche fresche eseguite:
 
-- `npm run check`: verde sullo snapshot con il report; 37 documenti, 87 test
+- `npm run check`: verde sullo snapshot con il report; 37 documenti, 90 test
   app, 105 test Function, React Doctor 100/100, build app e Function, dry-run
   Wrangler;
 - `npm audit --omit=dev --audit-level=high`: un advisory high su
@@ -83,11 +79,11 @@ Verifiche fresche eseguite:
 Readback remoto, solo in lettura:
 
 - Cloudflare Development non ha migrazioni D1 pendenti; `0008` è applicata e il
-  Worker attivo è la versione `7da7f2b0-26dc-4089-92a7-38c16e4857f3`,
-  deployment `778ff4be-8f65-4e17-96b0-d6a117be2efb`, sul commit `75468e3`;
-- Shopify Development ha attiva la versione `0.4.27`
-  (`gid://shopify/Version/1072819339265`), riferita allo stesso commit;
-- il run coordinato `30709246370` ha riletto D1, pubblicato e
+  Worker attivo è la versione `ef113a64-8388-4cef-afa8-905d96e9a5e3`,
+  deployment `d04b5d95-13d8-47e8-a4f1-373601f74cd6`, sul commit `8da4bd1`;
+- Shopify Development ha attiva la versione `0.4.28`
+  (`gid://shopify/Version/1072828383233`), riferita allo stesso commit;
+- il run coordinato `30709857755` ha riletto D1, pubblicato e
   riletto Worker e Shopify, ed eseguito lo smoke del Worker.
 
 La review UX/UI è statica: gerarchia, copy, stato, feedback, accessibilità e
@@ -113,7 +109,7 @@ webhook e fino a otto retry per le chiamate fallite; Cloudflare documenta che
 [GitHub Advisory GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2).
 
 Durante la campagna sono stati eseguiti i deploy Development coordinati
-da `0.4.22` a `0.4.27`, inclusa la migrazione additiva `0008`. Non sono stati
+da `0.4.22` a `0.4.28`, inclusa la migrazione additiva `0008`. Non sono stati
 eseguiti addebiti di prova, scenari browser sul dev store o scritture Production;
 le altre prove live storiche restano evidenze, non sono presentate come nuove.
 
@@ -738,7 +734,7 @@ onboarding.
 
 #### F-M6-83-04 — login escluso dal bilinguismo comune
 
-- **Classe/priorità/stato:** bug UX/i18n, P3, aperto.
+- **Classe/priorità/stato:** bug UX/i18n, P3, chiuso.
 - **Evidenza:** il contratto M6 stabilisce che `resolveLocale(request)` sia
   l’unico punto di scelta della lingua e che i due dizionari abbiano le stesse
   chiavi (`docs/contracts/m6-technical-contracts.md:11-22`). La rotta pubblica
@@ -753,6 +749,9 @@ onboarding.
 - **Correzione proporzionata:** aggiungere i pochi testi auth ai dizionari
   esistenti e restituire la locale da loader/action con `resolveLocale`; nessuna
   libreria i18n o componente nuovo.
+- **Esito:** loader e action login risolvono la locale comune e usano il nuovo
+  namespace bilingue `auth`; il test verifica italiano e inglese sul percorso
+  pubblico.
 
 #### F-M6-83-05 — attivazione consentita senza diritto valido
 
@@ -805,7 +804,7 @@ F-M3-57-01.
 
 #### F-M6-86-01 — conferma di salvataggio falsa o ormai superata
 
-- **Classe/priorità/stato:** bug UX/feedback, P2, aperto; il testo nasce in #83,
+- **Classe/priorità/stato:** bug UX/feedback, P2, chiuso; il testo nasce in #83,
   il dirty state corrente in #86 e la seconda occorrenza in #90.
 - **Evidenza:** `app/i18n.ts:24-27` e `:335-338` definisce un unico messaggio
   «Regole salvate. Valgono dal prossimo ordine». Regole e Messaggi lo mostrano
@@ -820,7 +819,10 @@ F-M3-57-01.
   salvati siano già effettivi nel checkout.
 - **Correzione proporzionata:** usare due stringhe neutre, «Regole salvate» e
   «Messaggi salvati», già nel rispettivo namespace i18n, e mostrare il banner
-  solo con `result.ok && !dirty`. Non serve un sistema toast o altro stato.
+  solo finché non avviene una modifica successiva. Non serve un sistema toast.
+- **Esito:** i due namespace espongono conferme neutre distinte e il predicato
+  condiviso le nasconde in modo persistente alla prima modifica successiva,
+  anche se la bozza torna poi uguale ai valori salvati.
 
 Gli altri bug storici risultano corretti: dirty state calcolato esplicitamente,
 home link App Bridge, valuta/date localizzate.
@@ -831,7 +833,7 @@ home link App Bridge, valuta/date localizzate.
 
 #### F-M6-87-01 — azioni fetcher senza avanzamento visibile
 
-- **Classe/priorità/stato:** miglioramento UX, P3, aperto; riguarda anche
+- **Classe/priorità/stato:** miglioramento UX, P3, chiuso; riguarda anche
   onboarding #99.
 - **Evidenza:** `app/routes/app.tsx:30-38` attiva l’indicatore App Bridge solo
   per `useNavigation`. Home e onboarding inviano invece le azioni con
@@ -847,6 +849,10 @@ home link App Bridge, valuta/date localizzate.
   `fetcher.formData` già disponibile e impostare `loading` sul solo pulsante che
   lo ha avviato, mantenendo `disabled` sugli altri. Non serve un loader globale
   né uno store aggiuntivo.
+- **Esito:** Home e onboarding derivano l'intent dal `formData` del fetcher;
+  quando due pulsanti condividono l'intent di attivazione, anche l'origine viene
+  inviata nel form. Soltanto il pulsante che ha avviato l'azione riceve
+  `loading`, mentre gli altri restano disabilitati durante la richiesta.
 
 La riconciliazione sincrona della Home resta invece una decisione `§11.6` per
 non presentare stato commerciale stale, non un difetto di performance
@@ -872,7 +878,7 @@ spaziatura divergente.
 
 #### F-M6-90-01 — Home descrive come attivo un checkout non attivo
 
-- **Classe/priorità/stato:** bug UX/contenuto, P2, aperto.
+- **Classe/priorità/stato:** bug UX/contenuto, P2, chiuso.
 - **Evidenza:** `app/routes/app._index.tsx:228` calcola correttamente lo stato
   `active`, `disabled` o `lapsed` e `:275-279` lo usa nel titolo; il paragrafo
   subito sotto chiama però `summariseCheckout` con `status: "active"` hardcoded
@@ -887,6 +893,9 @@ spaziatura divergente.
   di stato già esistente; soltanto nello stato attivo usare il riepilogo delle
   regole. Aggiungere un test mirato della frase scelta dalla Home, senza nuovi
   componenti o copy.
+- **Esito:** la composizione Home usa il riepilogo delle regole solo quando
+  attiva e, negli altri stati, la frase `disabled` o `lapsed` già tradotta; la
+  regressione copre tutti e tre gli stati.
 
 Validazione trust-boundary, trim, limite, parità lingue e conflitto sono
 coperti. Readback ed entitlement sono ora chiusi da F-M6-83-01/03; resta il
@@ -1144,13 +1153,10 @@ alcun meccanismo di sincronizzazione documentale.
 
 ## 7. Ordine operativo consigliato
 
-1. Correggere i residui UX statici con componenti e stati già presenti: login
-   bilingue, banner salvataggio, frase Home, loading del pulsante e Setup guide
-   (F-M6-83-04, F-M6-86-01, F-M6-90-01, F-M6-87-01).
-2. Aggiungere la conferma cancellazione F-M6-99-03 riusando la modale presente.
-3. Stabilizzare stato e layout dell'onboarding con i test minimi di regressione
+1. Aggiungere la conferma cancellazione F-M6-99-03 riusando la modale presente.
+2. Stabilizzare stato e layout dell'onboarding con i test minimi di regressione
    (F-M6-101-01, F-M6-105-01/02/03).
-4. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
+3. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
    prima della prova reale.
 
 Questo ordine non richiede retrocompatibilità, supporto di formati legacy,

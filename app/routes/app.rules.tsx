@@ -4,7 +4,13 @@ import { useActionData, useLoaderData, useSubmit } from "react-router";
 import { describeCheckout, resolveLocale, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { authenticate } from "../shopify.server";
-import { address2Declaration, ERROR_DISPLAYS, readConfig, RULE_MODES } from "../config";
+import {
+  address2Declaration,
+  ERROR_DISPLAYS,
+  readConfig,
+  RULE_MODES,
+  showSavedBanner,
+} from "../config";
 import type { ErrorDisplay, RuleMode } from "../config";
 import {
   findValidation,
@@ -86,6 +92,7 @@ export default function CheckoutRules() {
   const t = texts(saved.locale);
   const form = useRef<HTMLFormElement>(null);
   const send = useSubmit();
+  const [changedSinceResult, setChangedSinceResult] = useState(false);
   const [draft, setDraft] = useState({
     rules: saved.rules,
     errorDisplay: saved.errorDisplay,
@@ -96,6 +103,7 @@ export default function CheckoutRules() {
   // Polaris risalgono fin qui e l'anteprima legge sempre lo stato reale del modulo.
   const readDraft = (event: { currentTarget: HTMLFormElement }) => {
     const data = new FormData(event.currentTarget);
+    setChangedSinceResult(true);
     setDraft({
       rules: {
         taxCode: (data.get("taxCode") as RuleMode) ?? saved.rules.taxCode,
@@ -105,6 +113,8 @@ export default function CheckoutRules() {
       address2: data.get("address2") !== null,
     });
   };
+
+  useEffect(() => setChangedSinceResult(false), [result]);
 
   // Il confronto automatico del Save Bar non ha spento la barra quando il merchant tornava sui
   // suoi passi. Qui lo stato "da salvare" è calcolato sui valori che la pagina già conosce,
@@ -150,7 +160,9 @@ export default function CheckoutRules() {
     // Il form avvolge la pagina, così l'anteprima nell'aside resta parte dello stesso modulo.
     <form ref={form} onChange={readDraft}>
       <s-page heading={t.rules.heading}>
-        {result?.ok ? <s-banner tone="success">{t.common.saved}</s-banner> : null}
+        {showSavedBanner(result, dirty, changedSinceResult) ? (
+          <s-banner tone="success">{t.rules.saved}</s-banner>
+        ) : null}
         {result && !result.ok ? (
           <s-banner tone="critical">
             {t.errors[result.errorCode as keyof typeof t.errors] ?? t.errors.generic}

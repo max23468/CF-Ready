@@ -12,14 +12,21 @@ import {
   returnUrlFor,
   syncTrial,
 } from "../billing.server";
-import { ELIGIBLE_COUNTRY, messagesAreDefault, readConfig, reviewIsDue } from "../config";
+import {
+  ELIGIBLE_COUNTRY,
+  messagesAreDefault,
+  pendingFetcherIntent,
+  pendingFetcherSource,
+  readConfig,
+  reviewIsDue,
+} from "../config";
 import { BILLING_IS_TEST } from "../env.server";
 import { recordEvent } from "../events.server";
 import {
   formatDate,
   formatMoney,
+  homeCheckoutSummary,
   resolveLocale,
-  summariseCheckout,
   texts,
   trialNotice,
 } from "../i18n";
@@ -185,7 +192,8 @@ export default function Home() {
   const fetcher = useFetcher<typeof action>();
   const t = texts(data.locale);
   const esito = fetcher.data as { ok: boolean; errorCode?: string } | undefined;
-  const submit = (intent: string) => fetcher.submit({ intent }, { method: "post" });
+  const submit = (intent: string, source?: string) =>
+    fetcher.submit(source ? { intent, source } : { intent }, { method: "post" });
 
   // La modale è di Shopify, che decide da sé idoneità, frequenza e rifiuti: qui si sceglie solo
   // il momento, e non deve essere un'azione del merchant.
@@ -224,6 +232,8 @@ export default function Home() {
   const entitled = data.entitlement.kind !== "none";
   const notice = trialNotice({ remaining: data.remaining, endsAt: data.trialEndsAt }, data.locale);
   const busy = fetcher.state !== "idle";
+  const pendingIntent = pendingFetcherIntent(fetcher.formData);
+  const pendingSource = pendingFetcherSource(fetcher.formData);
   // §14.6: la data del primo addebito accanto alla scelta, non in un riepilogo.
   const firstCharge = data.firstChargeAt
     ? t.plan.firstCharge(formatDate(data.firstChargeAt, data.locale))
@@ -261,7 +271,13 @@ export default function Home() {
       {/* D-063: la guida di configurazione apre la colonna principale finché serve, poi
           sparisce per sempre. `Prossimo passo` è indipendente e resta. */}
       {data.onboarding === "completed" ? null : (
-        <SetupGuide data={data} busy={busy} submit={submit} />
+        <SetupGuide
+          data={data}
+          busy={busy}
+          pendingIntent={pendingIntent}
+          pendingSource={pendingSource}
+          submit={submit}
+        />
       )}
 
       {/* §15.3: stato e configurazione corrente sono i primi due contenuti e stanno nello
@@ -283,7 +299,7 @@ export default function Home() {
           </s-heading>
           {/* Il titolo dichiara lo stato, la riga sotto dice cosa vive un cliente. */}
           <s-paragraph>
-            {summariseCheckout({ rules: data.rules, status: "active" }, data.locale)[0]}
+            {homeCheckoutSummary({ rules: data.rules, status }, data.locale)}
           </s-paragraph>
 
           <s-divider />
@@ -317,7 +333,8 @@ export default function Home() {
             ) : (
               <s-button
                 disabled={!entitled || fetcher.state !== "idle"}
-                onClick={() => submit("enable")}
+                loading={pendingIntent === "enable" && pendingSource === "status"}
+                onClick={() => submit("enable", "status")}
               >
                 {t.home.activate}
               </s-button>
@@ -330,7 +347,13 @@ export default function Home() {
           quattro voci. Stato e scelta stanno in due blocchi diversi perché fanno due lavori
           diversi: qui si decide, nella colonna laterale si legge come si sta messi. Con un
           pagamento unico attivo il blocco resta e spiega perché non c'è nulla da scegliere. */}
-      <PlanChoice data={data} busy={busy} submit={submit} firstCharge={firstCharge} />
+      <PlanChoice
+        data={data}
+        busy={busy}
+        pendingIntent={pendingIntent}
+        submit={submit}
+        firstCharge={firstCharge}
+      />
 
       {/* D-067: le eccezioni automatiche restano visibili anche in Home. */}
       <s-section heading={t.home.howHeading}>
@@ -389,6 +412,7 @@ export default function Home() {
         <s-button
           slot="primary-action"
           variant="primary"
+          loading={pendingIntent === "disable"}
           commandFor="deactivate"
           command="--hide"
           onClick={() => submit("disable")}
@@ -444,11 +468,13 @@ function PlanStatus({ data }: { data: HomeData }) {
 function PlanChoice({
   data,
   busy,
+  pendingIntent,
   submit,
   firstCharge,
 }: {
   data: HomeData;
   busy: boolean;
+  pendingIntent: string | null;
   submit: (intent: string) => void;
   firstCharge: string;
 }) {
@@ -469,7 +495,11 @@ function PlanChoice({
             <s-paragraph>{firstCharge}</s-paragraph>
             {data.planKind === "monthly" ? null : (
               <s-stack direction="inline" gap="base">
-                <s-button disabled={busy} onClick={() => submit("monthly")}>
+                <s-button
+                  disabled={busy}
+                  loading={pendingIntent === "monthly"}
+                  onClick={() => submit("monthly")}
+                >
                   {data.planKind === "annual" ? t.plan.monthlySwitch : t.plan.monthlyStart}
                 </s-button>
               </s-stack>
@@ -488,7 +518,12 @@ function PlanChoice({
             <s-paragraph>{firstCharge}</s-paragraph>
             {data.planKind === "annual" ? null : (
               <s-stack direction="inline" gap="base">
-                <s-button variant="primary" disabled={busy} onClick={() => submit("annual")}>
+                <s-button
+                  variant="primary"
+                  disabled={busy}
+                  loading={pendingIntent === "annual"}
+                  onClick={() => submit("annual")}
+                >
                   {data.planKind === "monthly" ? t.plan.annualSwitch : t.plan.annualStart}
                 </s-button>
               </s-stack>
@@ -517,7 +552,11 @@ function PlanChoice({
               </>
             ) : null}
             <s-stack direction="inline" gap="base">
-              <s-button disabled={busy} onClick={() => submit("one_time")}>
+              <s-button
+                disabled={busy}
+                loading={pendingIntent === "one_time"}
+                onClick={() => submit("one_time")}
+              >
                 {t.plan.oneTimeSwitch}
               </s-button>
             </s-stack>
@@ -532,7 +571,11 @@ function PlanChoice({
                 </s-paragraph>
                 {data.accountStatus === "ending" ? null : (
                   <s-stack direction="inline" gap="base">
-                    <s-button disabled={busy} onClick={() => submit("cancel")}>
+                    <s-button
+                      disabled={busy}
+                      loading={pendingIntent === "cancel"}
+                      onClick={() => submit("cancel")}
+                    >
                       {t.plan.cancelRenewal}
                     </s-button>
                   </s-stack>
@@ -552,11 +595,15 @@ function PlanChoice({
 function SetupGuide({
   data,
   busy,
+  pendingIntent,
+  pendingSource,
   submit,
 }: {
   data: HomeData;
   busy: boolean;
-  submit: (intent: string) => void;
+  pendingIntent: string | null;
+  pendingSource: string | null;
+  submit: (intent: string, source?: string) => void;
 }) {
   const t = texts(data.locale);
   const configured = data.rules.taxCode !== "unmanaged" || data.rules.pec !== "unmanaged";
@@ -576,7 +623,8 @@ function SetupGuide({
           <s-stack direction="inline" gap="base">
             <s-button
               disabled={busy || data.entitlement.kind === "none"}
-              onClick={() => submit("enable")}
+              loading={pendingIntent === "enable" && pendingSource === "setup"}
+              onClick={() => submit("enable", "setup")}
             >
               {t.home.activate}
             </s-button>

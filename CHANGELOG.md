@@ -5,6 +5,14 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.29 — 1 agosto 2026
+
+- login e relativi errori seguono la locale comune italiana/inglese;
+- Regole e Messaggi nascondono le rispettive conferme alla prima modifica
+  successiva, anche se la bozza torna poi ai valori salvati;
+- Home e onboarding mostrano il caricamento della sola azione fetcher in corso
+  e la Home descrive lo stato reale della Validation.
+
 ## 0.4.28 — 1 agosto 2026
 
 - la dichiarazione merchant sul campo “Interno” viene persistita in D1 soltanto
