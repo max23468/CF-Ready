@@ -21,7 +21,7 @@ avevano invece ricevuto una review reale di Codex e sono incluse per controllo.
 Il risultato sul codice corrente è:
 
 - **1 finding P1**, che resta un gate esplicito prima della `1.0.0`;
-- **3 finding P2**;
+- **2 finding P2**;
 - **2 finding P3**;
 - nessun P0;
 - 3 thread Codex reali ancora `unresolved` su GitHub: uno in `#68`, due in
@@ -34,7 +34,6 @@ Il risultato sul codice corrente è:
 | ID          | PR principale | Classe                    | Priorità   | Sintesi                                                                                                           |
 | ----------- | ------------- | ------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
 | F-M3-57-01  | #57           | limite di prodotto        | P1 pre-1.0 | con `localizedFields` vuoto i checkout accelerati possono passare senza Codice Fiscale richiesto                  |
-| F-M6-99-03  | #99           | bug UX/salvaguardia       | P2         | la cancellazione del rinnovo parte al primo clic senza la conferma richiesta per azioni ad alto impatto           |
 | F-M6-101-01 | #101/#103/#105 | accessibilità/responsive | P3         | i passi incompleti hanno comunque l’icona di spunta e la griglia forza quattro colonne                            |
 | F-M6-105-01 | #105          | bug di concorrenza        | P2         | la persistenza del passo può terminare dopo la chiusura e riportare `onboarding_step` a 4                         |
 | F-M6-105-02 | #105          | bug UI/stato              | P2         | checkbox e istruzioni della dichiarazione possono divergere tornando al riepilogo                                 |
@@ -62,7 +61,7 @@ con impatto circoscritto ma reale; P3 hardening, accuratezza o caso marginale.
 
 Verifiche fresche eseguite:
 
-- `npm run check`: verde sullo snapshot con il report; 37 documenti, 90 test
+- `npm run check`: verde sullo snapshot con il report; 37 documenti, 91 test
   app, 105 test Function, React Doctor 100/100, build app e Function, dry-run
   Wrangler;
 - `npm audit --omit=dev --audit-level=high`: un advisory high su
@@ -79,11 +78,11 @@ Verifiche fresche eseguite:
 Readback remoto, solo in lettura:
 
 - Cloudflare Development non ha migrazioni D1 pendenti; `0008` è applicata e il
-  Worker attivo è la versione `ef113a64-8388-4cef-afa8-905d96e9a5e3`,
-  deployment `d04b5d95-13d8-47e8-a4f1-373601f74cd6`, sul commit `8da4bd1`;
-- Shopify Development ha attiva la versione `0.4.28`
-  (`gid://shopify/Version/1072828383233`), riferita allo stesso commit;
-- il run coordinato `30709857755` ha riletto D1, pubblicato e
+  Worker attivo è la versione `31cb930e-6bcd-44b4-86af-1768688932da`,
+  deployment `8e9a7aff-68a3-4e4c-8670-c82b0fc3bf0e`, sul commit `afa9d81`;
+- Shopify Development ha attiva la versione `0.4.29`
+  (`gid://shopify/Version/1072832970753`), riferita allo stesso commit;
+- il run coordinato `30710205150` ha riletto D1, pubblicato e
   riletto Worker e Shopify, ed eseguito lo smoke del Worker.
 
 La review UX/UI è statica: gerarchia, copy, stato, feedback, accessibilità e
@@ -109,7 +108,7 @@ webhook e fino a otto retry per le chiamate fallite; Cloudflare documenta che
 [GitHub Advisory GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2).
 
 Durante la campagna sono stati eseguiti i deploy Development coordinati
-da `0.4.22` a `0.4.28`, inclusa la migrazione additiva `0008`. Non sono stati
+da `0.4.22` a `0.4.29`, inclusa la migrazione additiva `0008`. Non sono stati
 eseguiti addebiti di prova, scenari browser sul dev store o scritture Production;
 le altre prove live storiche restano evidenze, non sono presentate come nuove.
 
@@ -1003,7 +1002,7 @@ Introduce onboarding, review prompt e assorbimento Piano nella Home.
 
 #### F-M6-99-03 — cancellazione rinnovo senza conferma
 
-- **Classe/priorità/stato:** bug UX/salvaguardia, P2, aperto.
+- **Classe/priorità/stato:** bug UX/salvaguardia, P2, chiuso.
 - **Evidenza:** `app/routes/app._index.tsx:520-533` invia immediatamente
   `submit("cancel")` al primo clic; `cancelPlan` (`:165-175`) chiama subito la
   mutation Shopify e, diversamente dalla scelta piano, non passa da una
@@ -1017,6 +1016,10 @@ Introduce onboarding, review prompt e assorbimento Piano nella Home.
 - **Correzione proporzionata:** applicare alla cancellazione lo stesso pattern
   `s-modal` già presente, riusando `cancelBody` e un’azione esplicita
   «Annulla rinnovo». Nessun componente modale custom.
+- **Esito:** il primo clic apre la modale Polaris con la conseguenza già
+  tradotta; soltanto l'azione primaria esplicita invia `cancel`, mostrando il
+  relativo stato di caricamento anche sul trigger rimasto visibile. Il test di
+  regressione verifica separatamente apertura e conferma.
 
 I difetti di riapertura, card annidata e composizione Home dichiarati dalla PR
 furono corretti fra #100 e #106. Resta il feedback fetcher F-M6-87-01; la
@@ -1153,10 +1156,9 @@ alcun meccanismo di sincronizzazione documentale.
 
 ## 7. Ordine operativo consigliato
 
-1. Aggiungere la conferma cancellazione F-M6-99-03 riusando la modale presente.
-2. Stabilizzare stato e layout dell'onboarding con i test minimi di regressione
+1. Stabilizzare stato e layout dell'onboarding con i test minimi di regressione
    (F-M6-101-01, F-M6-105-01/02/03).
-3. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
+2. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
    prima della prova reale.
 
 Questo ordine non richiede retrocompatibilità, supporto di formati legacy,

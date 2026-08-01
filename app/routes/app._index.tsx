@@ -465,7 +465,7 @@ function PlanStatus({ data }: { data: HomeData }) {
 }
 
 // La scelta è una decisione: sta nella colonna principale, con le sue azioni.
-function PlanChoice({
+export function PlanChoice({
   data,
   busy,
   pendingIntent,
@@ -481,7 +481,7 @@ function PlanChoice({
   const t = texts(data.locale);
   const onOneTime = data.entitlement.kind === "one_time";
 
-  return (
+  const choice = (
     <s-section heading={onOneTime ? t.plan.oneTimeName : t.plan.chooseHeading}>
       {onOneTime || !data.plan ? (
         <s-paragraph>{onOneTime ? t.plan.oneTimeSettled : t.plan.none}</s-paragraph>
@@ -574,7 +574,8 @@ function PlanChoice({
                     <s-button
                       disabled={busy}
                       loading={pendingIntent === "cancel"}
-                      onClick={() => submit("cancel")}
+                      commandFor="cancel-renewal"
+                      command="--show"
                     >
                       {t.plan.cancelRenewal}
                     </s-button>
@@ -586,6 +587,28 @@ function PlanChoice({
         </s-stack>
       )}
     </s-section>
+  );
+
+  return (
+    <>
+      {choice}
+      <s-modal id="cancel-renewal" heading={t.plan.cancelRenewal}>
+        <s-paragraph>{t.plan.cancelBody}</s-paragraph>
+        <s-button slot="secondary-actions" commandFor="cancel-renewal" command="--hide">
+          {t.common.cancel}
+        </s-button>
+        <s-button
+          slot="primary-action"
+          variant="primary"
+          loading={pendingIntent === "cancel"}
+          commandFor="cancel-renewal"
+          command="--hide"
+          onClick={() => submit("cancel")}
+        >
+          {t.plan.cancelRenewal}
+        </s-button>
+      </s-modal>
+    </>
   );
 }
 
