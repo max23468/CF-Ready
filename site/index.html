@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CF Ready — Codice Fiscale nel checkout italiano</title>
+<meta name="description" content="CF Ready rende obbligatorio e valida formalmente il Codice Fiscale nel campo nativo del checkout italiano di Shopify, senza modificare il tema.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<link rel="alternate" hreflang="it" href="https://cf-ready.pages.dev/">
+<link rel="alternate" hreflang="en" href="https://cf-ready.pages.dev/en/">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <img src="assets/lockup-horizontal.svg" alt="CF Ready">
+    <nav>
+      <ul>
+        <li><a href="support.html">Assistenza</a></li>
+        <li><a href="privacy.html">Privacy</a></li>
+        <li><a href="terms.html">Termini</a></li>
+        <li><a href="en/index.html" lang="en">English</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <section>
+    <div class="wrap column">
+      <span class="label">App Shopify per il checkout italiano</span>
+      <h1 class="display">Il Codice Fiscale, raccolto nel campo giusto e controllato prima che l’ordine si chiuda.</h1>
+      <p class="lede">Per i merchant che devono emettere fattura per gli ordini B2C, CF Ready impedisce che un cliente completi un ordine italiano senza aver compilato un Codice Fiscale formalmente valido.</p>
+      <p>L’app si installa dall’App Store di Shopify, si configura in pochi passaggi e lavora sul campo fiscale nativo del checkout italiano. Non modifica il tema e non aggiunge moduli al carrello.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap column">
+      <span class="label">Come funziona</span>
+      <h2>Il campo nativo di Shopify, reso obbligatorio e validato</h2>
+      <p>Shopify espone nel checkout italiano due campi fiscali localizzati: il Codice Fiscale e l’indirizzo PEC. CF Ready decide se ciascuno dei due è ignorato, facoltativo oppure obbligatorio, e ne controlla il formato con una Cart and Checkout Validation eseguita da Shopify.</p>
+      <p>Il controllo è <strong>formale</strong>. Su un Codice Fiscale ordinario di 16 caratteri l’app verifica struttura, data, sesso, codice catastale, omocodia e carattere di controllo; su un codice provvisorio verifica che siano undici cifre. Sulla PEC verifica che l’indirizzo sia scritto in una forma valida.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap column">
+      <span class="label">Cosa non serve fare</span>
+      <h2>Nessuna modifica al tema, nessun campo in più</h2>
+      <ul>
+        <li>Nessuna modifica al tema e nessuna estensione da installare nel checkout.</li>
+        <li>Nessun campo aggiuntivo mostrato al cliente: si usa quello che Shopify già prevede.</li>
+        <li>Funziona sui piani Shopify standard e non richiede Shopify Plus.</li>
+        <li>Nessuna differenza di funzionalità fra i piani commerciali dell’app.</li>
+        <li>Il campo “Interno” del checkout non viene usato né richiesto.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap column">
+      <span class="label">Casi particolari</span>
+      <h2>Chi non deve essere bloccato, non viene bloccato</h2>
+      <p>Le regole valgono per gli ordini italiani. Un ordine con destinazione estera non viene validato, e nemmeno un ordine con dati di fatturazione esteri, anche quando la consegna o il ritiro avvengono in Italia.</p>
+      <p>Nei checkout accelerati e nei flussi in cui Shopify non espone i campi fiscali, l’app non genera errori: un ordine legittimo non viene fermato perché l’app non ha i dati per decidere. Lo stesso vale se la configurazione non è leggibile o se qualcosa va storto: in caso di dubbio il checkout resta aperto.</p>
+    </div>
+  </section>
+
+  <section class="inverse">
+    <div class="wrap column">
+      <span class="label">Limitazioni</span>
+      <h2>Cosa CF Ready non fa</h2>
+      <p>Queste non sono note a margine: sono il perimetro dell’app, ed è giusto conoscerlo prima di installarla.</p>
+      <ul>
+        <li>La validazione è <strong>formale</strong>. L’app non verifica presso l’Agenzia delle Entrate che un Codice Fiscale esista o appartenga a chi lo inserisce, e non attesta che un indirizzo formalmente valido sia davvero una casella PEC attiva.</li>
+        <li>L’app non stabilisce se e quando tu debba raccogliere il Codice Fiscale: quell’obbligo dipende dalla tua attività e dal tuo consulente, non da noi.</li>
+        <li>L’app non emette, non trasmette e non conserva fatture, e non gestisce la fatturazione elettronica.</li>
+        <li>Non gestisce Partita IVA né Codice Destinatario SDI.</li>
+        <li>Non funziona nel POS e non modifica gli ordini già creati.</li>
+        <li>Le generazioni successive degli ordini ricorrenti in abbonamento non sono coperte: la superficie di validazione usata da Shopify interviene sul checkout, non sui rinnovi automatici che ne derivano.</li>
+        <li>L’app non sostituisce una consulenza fiscale.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap column">
+      <span class="label">Dati</span>
+      <h2>I dati dei tuoi clienti restano in Shopify</h2>
+      <p>Il controllo avviene dentro Shopify, durante il checkout. I Codici Fiscali e gli indirizzi PEC dei clienti non vengono inviati ai nostri sistemi, non vengono registrati e non vengono conservati. L’app non legge i tuoi ordini, i tuoi clienti, i tuoi prodotti né il tuo magazzino.</p>
+      <p>Quello che conserviamo è lo stretto necessario per far funzionare l’app sul tuo store: configurazione, stato della prova e dell’abbonamento, e registrazioni tecniche minime. Il dettaglio è nella <a href="privacy.html">Privacy Policy</a>.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap column">
+      <span class="label">Assistenza</span>
+      <h2>Una persona sola, che risponde</h2>
+      <p>CF Ready è sviluppata e mantenuta da una persona. Le richieste arrivano direttamente a chi scrive il codice, e la risposta è manuale. Le istruzioni d’uso complete e le domande frequenti stanno dentro l’app, nella pagina Guida e FAQ.</p>
+      <p><a href="support.html">Come contattarci</a></p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="inverse">
+  <div class="wrap">
+    <ul>
+      <li><a href="privacy.html">Privacy Policy</a></li>
+      <li><a href="terms.html">Termini e condizioni</a></li>
+      <li><a href="support.html">Assistenza</a></li>
+      <li><a href="en/index.html" lang="en">English</a></li>
+    </ul>
+    <p class="small">CF Ready è un’app di Temisfera. Shopify è un marchio di Shopify Inc., che non è affiliata a CF Ready né la sponsorizza.</p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,242 @@
+/* CF Ready — sito pubblico
+   Direzione: docs/brand/brand-foundation.md §9.1. Token: tokens.css (copia di
+   docs/brand/assets/tokens.css, fonte canonica del brand).
+   Nessun webfont, nessuna richiesta di rete, nessuna misurazione. */
+
+@import "tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--cf-color-paper);
+  color: var(--cf-color-ink);
+  font-family: var(--cf-font-sans);
+  font-size: var(--cf-text-body);
+  line-height: var(--cf-leading-body);
+  font-weight: var(--cf-weight-regular);
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ---- Struttura ---- */
+
+.wrap {
+  max-width: var(--cf-container-max);
+  margin: 0 auto;
+  padding: 0 var(--cf-space-6);
+}
+
+.column {
+  max-width: var(--cf-measure);
+}
+
+main section {
+  padding: var(--cf-space-16) 0;
+  border-top: var(--cf-border-subtle);
+}
+
+main section:first-of-type {
+  border-top: 0;
+}
+
+/* Sezione a fondo pieno: limiti e piè di pagina, come da §9.1. */
+.inverse {
+  background: var(--cf-color-primary);
+  color: var(--cf-color-ink-inverse);
+  border-top: 0;
+}
+
+.inverse :is(h2, h3, a) {
+  color: var(--cf-color-ink-inverse);
+}
+
+.inverse :focus-visible {
+  outline-color: var(--cf-color-ink-inverse);
+}
+
+/* ---- Testata e navigazione ---- */
+
+.masthead {
+  padding: var(--cf-space-6) 0;
+  border-bottom: var(--cf-border-subtle);
+}
+
+.masthead .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cf-space-4) var(--cf-space-8);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.masthead img {
+  display: block;
+  height: 32px;
+  width: auto;
+}
+
+nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cf-space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--cf-text-small);
+}
+
+/* ---- Tipografia, scala di §4.3 ---- */
+
+h1,
+h2,
+h3 {
+  font-weight: var(--cf-weight-medium);
+  color: var(--cf-color-primary);
+  margin: 0 0 var(--cf-space-4);
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--cf-text-h1);
+  line-height: var(--cf-leading-h1);
+}
+
+.display {
+  font-size: var(--cf-text-display);
+  line-height: var(--cf-leading-display);
+}
+
+h2 {
+  font-size: var(--cf-text-h2);
+  line-height: var(--cf-leading-h2);
+}
+
+h3 {
+  font-size: var(--cf-text-h3);
+  line-height: var(--cf-leading-h3);
+  margin-top: var(--cf-space-8);
+}
+
+p,
+ul,
+ol {
+  margin: 0 0 var(--cf-space-4);
+}
+
+li {
+  margin-bottom: var(--cf-space-2);
+}
+
+/* Occhiello: orienta, non decora. */
+.label {
+  display: block;
+  font-size: var(--cf-text-label);
+  line-height: var(--cf-leading-label);
+  font-weight: var(--cf-weight-medium);
+  letter-spacing: var(--cf-tracking-label);
+  text-transform: uppercase;
+  color: var(--cf-color-ink-muted);
+  margin-bottom: var(--cf-space-2);
+}
+
+.inverse .label {
+  color: var(--cf-color-ink-inverse);
+  opacity: 0.85;
+}
+
+.lede {
+  font-size: var(--cf-text-h3);
+  line-height: var(--cf-leading-h3);
+}
+
+small,
+.small {
+  font-size: var(--cf-text-small);
+  line-height: var(--cf-leading-small);
+  color: var(--cf-color-ink-muted);
+}
+
+.inverse .small {
+  color: var(--cf-color-ink-inverse);
+  opacity: 0.85;
+}
+
+a {
+  color: var(--cf-color-primary);
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* ---- Blocchi ---- */
+
+.card {
+  background: var(--cf-color-surface);
+  border: var(--cf-border-subtle);
+  border-radius: var(--cf-radius-lg);
+  padding: var(--cf-space-6);
+  margin-bottom: var(--cf-space-4);
+}
+
+.card > :last-child,
+section > :last-child {
+  margin-bottom: 0;
+}
+
+.legal h2 {
+  margin-top: var(--cf-space-12);
+}
+
+.legal h2:first-of-type {
+  margin-top: 0;
+}
+
+.updated {
+  color: var(--cf-color-ink-muted);
+  font-size: var(--cf-text-small);
+}
+
+/* ---- Piè di pagina ---- */
+
+footer {
+  padding: var(--cf-space-12) 0;
+}
+
+footer ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cf-space-4) var(--cf-space-6);
+  margin: 0 0 var(--cf-space-6);
+  padding: 0;
+  list-style: none;
+}
+
+/* ---- Mobile: scala ridotta di §4.3 ---- */
+
+@media (max-width: 40rem) {
+  .display {
+    font-size: 2rem;
+  }
+
+  h1 {
+    font-size: 1.625rem;
+  }
+
+  h2 {
+    font-size: 1.3125rem;
+  }
+
+  h3 {
+    font-size: 1.125rem;
+  }
+
+  main section {
+    padding: var(--cf-space-12) 0;
+  }
+}

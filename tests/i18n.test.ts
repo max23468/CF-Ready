@@ -19,6 +19,8 @@ import {
   homeCheckoutSummary,
   resolveLocale,
   summariseCheckout,
+  SUPPORT_EMAIL,
+  supportMailto,
   texts,
   trialNotice,
   validationStatus,
@@ -309,6 +311,39 @@ test("la recensione si chiede solo alle condizioni di §15.10", () => {
   expect(reviewIsDue({ ...ready, errorCode: "validation_readback_failed" }, now)).toBe(false);
   // Mai attivata: non c'è un momento da cui contare.
   expect(reviewIsDue({ ...ready, enabledSince: null }, now)).toBe(false);
+});
+
+test("il messaggio di assistenza porta solo i dati dell'allowlist e nulla del cliente", () => {
+  const link = supportMailto(
+    {
+      shopDomain: "cf-ready-dev.myshopify.com",
+      version: "0.5.0",
+      countryCode: "IT",
+      entitlement: true,
+      validationEnabled: false,
+      errorCode: "validation_readback_failed",
+    },
+    "it",
+  );
+
+  expect(link.startsWith(`mailto:${SUPPORT_EMAIL}?`)).toBe(true);
+
+  const body = new URL(link).searchParams.get("body") ?? "";
+  expect(new URL(link).searchParams.get("subject")).toBe(texts("it").support.subject);
+  // §22: ogni campo dell'allowlist compare con il proprio valore.
+  expect(body).toContain("cf-ready-dev.myshopify.com");
+  expect(body).toContain("0.5.0");
+  expect(body).toContain("IT");
+  expect(body).toContain("validation_readback_failed");
+  // Lo spazio resta uno spazio: URLSearchParams lo scriverebbe come "+" dentro il corpo.
+  expect(link).not.toContain("+");
+
+  // I campi facoltativi omessi non lasciano righe vuote o etichette senza valore.
+  const minimal = new URL(supportMailto({ shopDomain: "a.myshopify.com", version: "0.5.0" }, "en"));
+  const minimalBody = minimal.searchParams.get("body") ?? "";
+  expect(minimalBody).not.toContain(texts("en").support.fieldErrorCode);
+  expect(minimalBody).not.toContain(texts("en").support.fieldCountry);
+  expect(minimalBody).toContain("a.myshopify.com");
 });
 
 test("la Home distingue i messaggi predefiniti da quelli riscritti", () => {
