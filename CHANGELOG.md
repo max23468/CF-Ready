@@ -5,6 +5,11 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.30 — 1 agosto 2026
+
+- la cancellazione del rinnovo richiede una conferma Polaris esplicita prima
+  di inviare la mutation Shopify e mantiene visibile lo stato di caricamento.
+
 ## 0.4.29 — 1 agosto 2026
 
 - login e relativi errori seguono la locale comune italiana/inglese;

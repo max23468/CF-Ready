@@ -2,7 +2,7 @@
 
 ## Master Plan di prodotto, architettura, implementazione e lancio
 
-**Stato:** baseline approvata per scaffolding e implementazione · M0–M6 completate, Development alla `0.4.28` · Production, submission App Store e wallet M10 non completati
+**Stato:** baseline approvata per scaffolding e implementazione · M0–M6 completate, Development alla `0.4.29` · Production, submission App Store e wallet M10 non completati
 **Data:** 27 luglio 2026 · revisione 28 luglio 2026  
 **Documenti vincolanti collegati:** `docs/brand/brand-foundation.md` (identità visiva, tono, materiali pubblici)  
 **Brand:** CF Ready  
