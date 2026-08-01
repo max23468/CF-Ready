@@ -5,6 +5,15 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.24 — 1 agosto 2026
+
+- il test delle migrazioni copre l'upgrade `0001`–`0006` → `0007` → `0008` con
+  dati preesistenti e il vincolo di unicità degli eventi webhook;
+- le ricevute storiche distinguono le opzioni allora sicure dal rollback
+  corrente con Worker compatibile e migrazione forward-fix;
+- commento e retention di `shop/redact` mantengono Shopify autorevole per gli
+  acquisti una tantum e limitano il ledger alla prova fruita.
+
 ## 0.4.23 — 1 agosto 2026
 
 - un errore, timeout o annullamento dopo lo snapshot iniziale avvia un job di

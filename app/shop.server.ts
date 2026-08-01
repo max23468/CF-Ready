@@ -143,7 +143,8 @@ export async function redactShop(db: D1Database, shopDomain: string, webhookId: 
 
   if (shop.installation_status !== "uninstalled") return false;
 
-  // Il registro va scritto prima: cancellando lo store se ne va anche la prova consumata.
+  // Il ledger conserva soltanto la prova fruita; Shopify resta autorevole per
+  // l'acquisto una tantum. Va scritto prima perché la cancellazione rimuove lo store.
   await recordTrialLedger(db, shopDomain);
 
   const now = new Date().toISOString();

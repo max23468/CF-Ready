@@ -2,7 +2,7 @@
 
 ## Master Plan di prodotto, architettura, implementazione e lancio
 
-**Stato:** baseline approvata per scaffolding e implementazione · M0–M6 completate, Development alla `0.4.22` · Production, submission App Store e wallet M10 non completati
+**Stato:** baseline approvata per scaffolding e implementazione · M0–M6 completate, Development alla `0.4.23` · Production, submission App Store e wallet M10 non completati
 **Data:** 27 luglio 2026 · revisione 28 luglio 2026  
 **Documenti vincolanti collegati:** `docs/brand/brand-foundation.md` (identità visiva, tono, materiali pubblici)  
 **Brand:** CF Ready  
@@ -2920,15 +2920,16 @@ La Function riceve i valori necessari in Shopify, li valuta localmente e restitu
 | Telemetria essenziale `app_events` | 12 mesi |
 | Ricevute webhook | periodo minimo utile, target 90 giorni |
 | Prova e pricing generation pseudonimizzati | a lungo termine per prevenire abuso e preservare condizioni |
-| Diritto una tantum e riferimenti billing | durata operativa dell’app e obblighi amministrativi |
+| Stato billing operativo D1 e riferimenti Shopify | fino a `shop/redact`; Shopify resta autorevole per acquisti e obblighi amministrativi |
 | Backup settimanali | ultime 8 copie |
 | Backup mensili | 12 mesi |
 | Dati acquirente | mai conservati |
 
-Dopo 90 giorni dalla disinstallazione, per store senza diritto una tantum:
+Dopo 90 giorni dalla disinstallazione, se `shop/redact` non è arrivato:
 
 - elimina regole, onboarding, support metadata non necessari e stato tecnico;
-- conserva solo quanto indispensabile e giuridicamente sostenibile per prova, billing e contestazioni.
+- conserva soltanto il `trial_ledger` pseudonimizzato, se giuridicamente
+  sostenibile, per impedire una seconda prova.
 
 I 90 giorni sono il limite massimo residuale. Shopify invia `shop/redact` circa
 48 ore dopo la disinstallazione: quando arriva, la cancellazione è immediata e
@@ -2940,10 +2941,16 @@ lunga si applica solo agli store per cui il webhook non arriva.
 Applicare:
 
 - eliminazione di sessioni, token, configurazione, onboarding e log riferibili non necessari;
-- eventuale conservazione minimale di identificatore pseudonimizzato, prova già fruita, pricing generation, diritto una tantum e record amministrativi; la forma implementata è `trial_ledger`, descritta in §12.2;
+- eventuale conservazione della sola prova già fruita e della relativa pricing
+  generation nel `trial_ledger` pseudonimizzato descritto in §12.2;
+- nessuna copia D1 del diritto una tantum o dei riferimenti billing: dopo una
+  reinstallazione vengono riletti dalla fonte autorevole Shopify;
 - nessun contenuto libero del merchant oltre obblighi applicabili.
 
-La base giuridica e la forma della pseudonimizzazione devono essere validate nella revisione legale prima del lancio. Se la revisione stabilisce che una parte non è conservabile, prevale la cancellazione e va individuato un meccanismo Shopify compatibile per riconoscere il diritto.
+La base giuridica e la forma della pseudonimizzazione devono essere validate
+nella revisione legale prima del lancio. Se il `trial_ledger` non è conservabile,
+prevale la cancellazione e va individuato un meccanismo Shopify compatibile per
+impedire una seconda prova.
 
 ### 21.7 Telemetria
 
