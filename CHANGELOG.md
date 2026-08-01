@@ -5,6 +5,28 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.5.0 — 1 agosto 2026
+
+- sito pubblico bilingue in `site/`, statico e senza framework: Home, Privacy
+  Policy, Termini e Assistenza in italiano e in inglese, con i token di brand e
+  nessuna richiesta di rete verso terzi;
+- il sito non ripete quello che l'app già dice: la FAQ operativa resta in Guida
+  e FAQ e i prezzi restano nell'app e nell'App Store, che sono le fonti che
+  restano aggiornate da sole;
+- `SECURITY.md` completa la policy di §21.9 con recapito alternativo, regole di
+  disclosure coordinata e perimetro delle segnalazioni: fail-open e validazione
+  formale sono comportamenti voluti, non vulnerabilità;
+- registrato in §22 l'esito della verifica sull'Email binding Cloudflare, che
+  invia soltanto da un dominio proprio onboardato: senza dominio vale il
+  fallback `mailto:`, quindi niente numero richiesta e niente tabella
+  `support_requests` nella 1.0;
+- la Guida non promette più un canale «appena disponibile»: indica la casella di
+  assistenza e offre un collegamento che prepara il messaggio con i soli dati
+  dell'allowlist di §22, che il merchant legge e può cancellare prima di
+  inviare; lo stesso contatto compare nella schermata Store non supportato, dove
+  serve di più perché l'app non è utilizzabile;
+- allineate le fonti canoniche: FR-090, §12.1, §12.2, §14.11, §18.3, §19.1 e §22.
+
 ## 0.4.39 — 1 agosto 2026
 
 - la scelta di un piano apre nuovamente l'approvazione Shopify fuori dall'iframe;

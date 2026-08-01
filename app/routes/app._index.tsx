@@ -23,12 +23,13 @@ import {
   readConfig,
   reviewIsDue,
 } from "../config";
-import { BILLING_IS_TEST } from "../env.server";
+import { APP_VERSION, BILLING_IS_TEST } from "../env.server";
 import { recordEvent } from "../events.server";
 import {
   formatDate,
   formatMoney,
   homeCheckoutSummary,
+  supportMailto,
   resolveLocale,
   texts,
   trialNotice,
@@ -61,6 +62,8 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   return {
     locale: resolveLocale(request),
     shopName: state.shopName,
+    shopDomain: session.shop,
+    version: APP_VERSION,
     countryCode: state.countryCode,
     eligible: state.eligible,
     validationEnabled: state.validation?.enabled ?? false,
@@ -265,6 +268,20 @@ export default function Home() {
           <s-paragraph>{t.home.unsupportedCheckAddress}</s-paragraph>
           <s-paragraph>{t.home.unsupportedGuide}</s-paragraph>
           <s-link href="/app/guide">{t.nav.guide}</s-link>
+          {/* FR-003 e D-043: l'assistenza resta raggiungibile anche da uno store non idoneo,
+              che è proprio il caso in cui il merchant ha bisogno di un chiarimento. */}
+          <s-link
+            href={supportMailto(
+              {
+                shopDomain: data.shopDomain,
+                version: data.version,
+                countryCode: data.countryCode,
+              },
+              data.locale,
+            )}
+          >
+            {t.support.contactDeveloper}
+          </s-link>
         </s-section>
       </s-page>
     );
