@@ -222,9 +222,27 @@ describe("applicabilità e fail-open", () => {
     ],
     ["fatturazione estera", { billing: "FR" }],
     ["consegna solo estera", { deliveries: ["FR", "DE"] }],
-    ["campi assenti", { fields: [] }],
   ])("%s", (_name, options) => {
     expect(errors(input(options))).toEqual([]);
+  });
+
+  it("blocca i campi obbligatori assenti quando esiste una consegna italiana", () => {
+    expect(errors(input({ fields: [] }))).toEqual([
+      { message: "CF richiesto", target: "$.cart" },
+      { message: "PEC richiesta", target: "$.cart" },
+    ]);
+    expect(errors(input({ fields: [], deliveries: [] }))).toEqual([]);
+    expect(
+      errors(
+        input({
+          config: {
+            ...baseConfig,
+            rules: { taxCode: "optional_validated", pec: "optional_validated" },
+          },
+          fields: [],
+        }),
+      ),
+    ).toEqual([]);
   });
 
   it.each([
@@ -270,15 +288,15 @@ describe("applicabilità e fail-open", () => {
     expect(errors(input(options))).toHaveLength(2);
   });
 
-  it("non valida il localized field singolo assente", () => {
+  it("richiede il localized field singolo assente con consegna italiana", () => {
     expect(
       errors(input({ fields: [{ key: "TAX_EMAIL_IT", value: "" }] })).map(({ target }) => target),
-    ).toEqual(["$.cart.localizedField.TAX_EMAIL_IT"]);
+    ).toEqual(["$.cart", "$.cart.localizedField.TAX_EMAIL_IT"]);
     expect(
       errors(input({ fields: [{ key: "TAX_CREDENTIAL_IT", value: "" }] })).map(
         ({ target }) => target,
       ),
-    ).toEqual(["$.cart.localizedField.TAX_CREDENTIAL_IT"]);
+    ).toEqual(["$.cart.localizedField.TAX_CREDENTIAL_IT", "$.cart"]);
   });
 
   it("usa box globali solo a Interaction nella modalità preventiva", () => {

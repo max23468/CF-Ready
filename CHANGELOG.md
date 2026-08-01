@@ -5,6 +5,14 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.36 — 1 agosto 2026
+
+- i checkout con consegna italiana bloccano i campi fiscali obbligatori omessi
+  da Shopify con un errore generale; senza consegna osservabile restano
+  fail-open;
+- contratti, copy merchant, audit e Master Plan descrivono lo stesso confine e
+  mantengono la verifica wallet reale nel gate M10.
+
 ## 0.4.35 — 1 agosto 2026
 
 - il session adapter restituisce tutte le sessioni dello store senza troncarle

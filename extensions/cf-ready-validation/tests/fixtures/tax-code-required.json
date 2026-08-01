@@ -46,7 +46,7 @@
             },
             "rules": {
               "taxCode": "required_validated",
-              "pec": "required_validated"
+              "pec": "unmanaged"
             },
             "messages": {
               "it": {

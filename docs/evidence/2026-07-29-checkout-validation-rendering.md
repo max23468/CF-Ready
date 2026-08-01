@@ -171,13 +171,12 @@ un checkout appena caricato.
 | Target di campo anche a `CHECKOUT_INTERACTION` | usa `$.cart` | non adottato: la modalità preventiva serve proprio quando il campo non è montato, dove un target di campo non rende; `$.cart` è la sola forma verificata live a quello step |
 | A `CHECKOUT_INTERACTION` solo il formato invalido, mai il vuoto | emette vuoto e invalido | non adottato: il campo vuoto è il caso principale e a Completion con conferma attiva non viene mostrato; escluderlo renderebbe la modalità preventiva inefficace nello scenario per cui è stata approvata. Il costo, box visibili al caricamento, resta il compromesso già registrato e l’avviso al merchant resta un requisito della UI in M6 |
 
-**Checkout accelerati.** Shopify dichiara che i localized fields non vengono
+**Checkout accelerati.** Shopify dichiarava che i localized fields non vengono
 raccolti nei flussi wallet e che gli errori emergono in forma generica. La
-conseguenza per CF Ready non è di rendering: con i campi assenti il motore
-applica il fail-open richiesto dagli invarianti e l’ordine può completarsi senza
-Codice Fiscale. Non è un difetto del motore, ma un limite da chiarire prima del
-listing, perché riguarda la copertura dichiarata. Un follow-up chiede a Shopify
-se la validazione sia comunque applicata lato server in quei flussi.
+conseguenza osservata allora per CF Ready non era di rendering: con i campi
+assenti il motore applicava il fail-open e l’ordine poteva completarsi senza
+Codice Fiscale. Il limite è stato poi chiuso come descritto nella decisione
+sotto.
 
 La risposta è un’email di supporto, non un contratto pubblicato: la reference
 della Function API mostra ancora la forma plurale nell’esempio e una terza
@@ -238,21 +237,13 @@ l’origine non si risolve mai, il campo non compare e un blocco lascerebbe il
 cliente senza nulla da compilare. I dati necessari sono già nella query di
 input.
 
-L’adozione è sospesa a una sola premessa non verificabile in locale: che per un
-ordine con spedizione verso l’Italia il campo esista sempre. Se esistesse un
-caso in cui Shopify non lo raccoglie comunque, la regola bloccherebbe una
-vendita legittima senza via d’uscita. I due errori non hanno lo stesso peso: un
-ordine sfuggito è recuperabile contattando il cliente, una vendita bloccata è
-persa. La premessa è oggetto di una domanda esplicita a Shopify.
-
-Alla conferma della premessa la regola viene implementata subito, con i test e
-con l’aggiornamento dell’invariante fail-open in `AGENTS.md` e della decisione
-D-029 nello stesso cambio. In assenza di conferma la regola va ristretta
-ulteriormente prima di adottarla. La matrice wallet di M10 verifica la
-correzione, non decide se scriverla.
-
-Il rischio corrente è nullo: l’app non è pubblicata e il dev store non espone
-wallet. Il difetto esiste nel codice, non su merchant reali.
+L’adozione era stata inizialmente sospesa perché bloccare in assenza di un
+segnale di consegna avrebbe potuto fermare una vendita senza campo compilabile.
+Il 1º agosto 2026 l’owner ha autorizzato la chiusura del finding con la regola
+ristretta già definita: solo una consegna italiana osservabile autorizza
+l’errore per un campo obbligatorio assente; senza consegna il fail-open resta
+invariato. La matrice wallet di M10 verifica la correzione e non decide più se
+scriverla.
 
 Resta aperta una verifica minore: Shopify afferma che con la chiave presente
 l’errore non può comparire su un checkout appena caricato, mentre la prova live
@@ -391,20 +382,22 @@ risposte di Shopify chiudono la sintassi del target, il riconoscimento del bug
 della review, l’applicazione lato server nei wallet e l’assenza di un segnale di
 intento. L’identificativo di tracciamento non è ottenibile e il punto è chiuso.
 
+La correzione del campo assente è ora implementata: quando Shopify espone una
+consegna italiana, ogni campo configurato come obbligatorio ma assente genera
+un errore globale `$.cart`; senza consegna osservabile il motore resta
+fail-open. Un test di regressione copre entrambi i rami. La matrice wallet M10
+verifica il comportamento sulle superfici reali e non decide più se adottarlo.
+
 Restano aperti, senza riaprire la matrice già completata:
 
 1. riconfermare il target sulla reference pubblicata quando esce la correzione
    documentale annunciata, prima della `1.0.0`;
-2. ottenere da Shopify la conferma che per un ordine con spedizione verso
-   l’Italia il localized field esista sempre. È la premessa che sblocca la
-   correzione del fail-open descritta sopra, da implementare appena arriva la
-   risposta e non da rinviare alla matrice;
-3. matrice wallet sul canary reale dell’owner con dati e importi controllati,
+2. matrice wallet sul canary reale dell’owner con dati e importi controllati,
    come gate bloccante prima del lancio: Apple Pay, Google Pay, Shop Pay e
    PayPal, avviati da pagina prodotto, carrello e checkout. Verifica la
    correzione già applicata; un flusso che si completi comunque senza Codice
    Fiscale va segnalato a Shopify con gli identificativi di esecuzione;
-4. nella stessa matrice, verificare se i box della modalità preventiva compaiano
+3. nella stessa matrice, verificare se i box della modalità preventiva compaiano
    su un checkout appena caricato, dato che Shopify lo esclude e la prova live
    li aveva osservati.
 
