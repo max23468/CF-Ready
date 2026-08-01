@@ -5,6 +5,14 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.5.1 — 1 agosto 2026
+
+- la riconciliazione conserva lo stato attivo quando Shopify lascia una
+  Validation CF Ready duplicata in esecuzione;
+- la lease viene rinnovata durante le operazioni condivise e la disattivazione
+  prosegue in best effort sugli altri duplicati dopo un errore per risorsa;
+- i contratti tecnici includono i codici operativi delle Validation duplicate.
+
 ## 0.5.0 — 1 agosto 2026
 
 - sito pubblico bilingue in `site/`, statico e senza framework: Home, Privacy

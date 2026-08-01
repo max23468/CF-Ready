@@ -24,6 +24,7 @@ test("la pagina Regole carica l’entitlement autorevole per l’anteprima", asy
   const db = {};
   mocks.authenticate.mockResolvedValue({ admin, session: { shop: "example.myshopify.com" } });
   mocks.reconcile.mockResolvedValue({
+    validationEnabled: true,
     validation: {
       id: "gid://shopify/Validation/1",
       title: "CF Ready",

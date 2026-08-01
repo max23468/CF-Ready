@@ -66,7 +66,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     version: APP_VERSION,
     countryCode: state.countryCode,
     eligible: state.eligible,
-    validationEnabled: state.validation?.enabled ?? false,
+    validationEnabled: state.validationEnabled,
     rules: config.rules,
     errorDisplay: config.errorDisplay,
     messagesDefault: messagesAreDefault(config.messages),
@@ -91,7 +91,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     reviewDue: reviewIsDue(
       {
         onboarding: onboarding.status,
-        validationEnabled: state.validation?.enabled ?? false,
+        validationEnabled: state.validationEnabled,
         errorCode: state.errorCode,
         enabledSince: await validationEnabledSince(db, session.shop),
       },

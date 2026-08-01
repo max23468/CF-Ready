@@ -35,7 +35,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     rules: config.rules,
     errorDisplay: config.errorDisplay,
     messages: config.messages,
-    enabled: validation?.enabled ?? false,
+    enabled: state.validationEnabled,
     entitled: state.entitlement.kind !== "none",
     address2Declared:
       (await readAddress2Declaration(context.cloudflare.env.DB, session.shop)) !== null,

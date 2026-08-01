@@ -30,7 +30,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       class: "lifecycle",
       metadata: {
         country_code: state.countryCode,
-        enabled: state.validation?.enabled ?? false,
+        enabled: state.validationEnabled,
         ...(state.errorCode ? { error_code: state.errorCode } : {}),
       },
     });
