@@ -21,11 +21,11 @@ avevano invece ricevuto una review reale di Codex e sono incluse per controllo.
 Il risultato sul codice corrente è:
 
 - **1 finding P1**, che resta un gate esplicito prima della `1.0.0`;
-- **2 finding P2**;
-- **2 finding P3**;
+- **0 finding P2**;
+- **0 finding P3**;
 - nessun P0;
-- 3 thread Codex reali ancora `unresolved` su GitHub: uno in `#68`, due in
-  `#105`;
+- 1 thread Codex reale ancora `unresolved` su GitHub, in `#68`; i due thread
+  `#105` sono stati risolti con gli esiti documentati sotto;
 - numerosi difetti storici delle PR intermedie risultano corretti dalle PR
   successive e sono riportati come tali, senza riaprirli.
 
@@ -34,10 +34,6 @@ Il risultato sul codice corrente è:
 | ID          | PR principale | Classe                    | Priorità   | Sintesi                                                                                                           |
 | ----------- | ------------- | ------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
 | F-M3-57-01  | #57           | limite di prodotto        | P1 pre-1.0 | con `localizedFields` vuoto i checkout accelerati possono passare senza Codice Fiscale richiesto                  |
-| F-M6-101-01 | #101/#103/#105 | accessibilità/responsive | P3         | i passi incompleti hanno comunque l’icona di spunta e la griglia forza quattro colonne                            |
-| F-M6-105-01 | #105          | bug di concorrenza        | P2         | la persistenza del passo può terminare dopo la chiusura e riportare `onboarding_step` a 4                         |
-| F-M6-105-02 | #105          | bug UI/stato              | P2         | checkbox e istruzioni della dichiarazione possono divergere tornando al riepilogo                                 |
-| F-M6-105-03 | #99 / #105    | validazione input         | P3         | `Number(...)` più `Math.min/max` lascia passare `NaN` fino a D1                                                   |
 
 ## 2. Metodo, classificazione e limiti
 
@@ -61,7 +57,7 @@ con impatto circoscritto ma reale; P3 hardening, accuratezza o caso marginale.
 
 Verifiche fresche eseguite:
 
-- `npm run check`: verde sullo snapshot con il report; 37 documenti, 91 test
+- `npm run check`: verde sullo snapshot con il report; 37 documenti, 94 test
   app, 105 test Function, React Doctor 100/100, build app e Function, dry-run
   Wrangler;
 - `npm audit --omit=dev --audit-level=high`: un advisory high su
@@ -78,11 +74,11 @@ Verifiche fresche eseguite:
 Readback remoto, solo in lettura:
 
 - Cloudflare Development non ha migrazioni D1 pendenti; `0008` è applicata e il
-  Worker attivo è la versione `31cb930e-6bcd-44b4-86af-1768688932da`,
-  deployment `8e9a7aff-68a3-4e4c-8670-c82b0fc3bf0e`, sul commit `afa9d81`;
-- Shopify Development ha attiva la versione `0.4.29`
-  (`gid://shopify/Version/1072832970753`), riferita allo stesso commit;
-- il run coordinato `30710205150` ha riletto D1, pubblicato e
+  Worker attivo è la versione `c1527ee1-f2af-444f-8296-fb06b8066dc3`,
+  deployment `0b124adb-270d-473a-9913-d5155af67c75`, sul commit `336d1c7`;
+- Shopify Development ha attiva la versione `0.4.30`
+  (`gid://shopify/Version/1072837951489`), riferita allo stesso commit;
+- il run coordinato `30710502111` ha riletto D1, pubblicato e
   riletto Worker e Shopify, ed eseguito lo smoke del Worker.
 
 La review UX/UI è statica: gerarchia, copy, stato, feedback, accessibilità e
@@ -108,7 +104,7 @@ webhook e fino a otto retry per le chiamate fallite; Cloudflare documenta che
 [GitHub Advisory GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2).
 
 Durante la campagna sono stati eseguiti i deploy Development coordinati
-da `0.4.22` a `0.4.29`, inclusa la migrazione additiva `0008`. Non sono stati
+da `0.4.22` a `0.4.30`, inclusa la migrazione additiva `0008`. Non sono stati
 eseguiti addebiti di prova, scenari browser sul dev store o scritture Production;
 le altre prove live storiche restano evidenze, non sono presentate come nuove.
 
@@ -1039,7 +1035,7 @@ modifiche successive, senza impatto runtime.
 
 #### F-M6-101-01 — spunte ambigue e griglia non responsive nella Setup guide
 
-- **Classe/priorità/stato:** accessibilità e responsive design, P3, aperto;
+- **Classe/priorità/stato:** accessibilità e responsive design, P3, chiuso;
   la guida nasce in #101, l’icona corrente in #103 e la riga a colonne fisse in
   #105.
 - **Evidenza:** `app/routes/app._index.tsx:613` costruisce sempre tre o quattro
@@ -1057,6 +1053,9 @@ modifiche successive, senza impatto runtime.
   aggiungere un testo di stato già localizzato) e usare la sintassi responsive
   nativa di `s-grid` per passare a una colonna quando lo spazio non basta. Non
   servono CSS, media query o un componente checklist custom.
+- **Esito:** i passi incompleti non renderizzano più `check-circle`; la griglia
+  usa `auto-fit` e `minmax` nativi in `s-grid`, riducendo le colonne in base allo
+  spazio disponibile senza CSS aggiuntivo; la regressione controlla entrambi.
 
 I completamenti restano correttamente derivati da stato osservabile; non va
 inventato un check ordine che richiederebbe nuovi scope.
@@ -1089,11 +1088,11 @@ richiesta di ulteriore state machine.
 ### [PR #105 — memoria del passo e dichiarazione](https://github.com/max23468/CF-Ready/pull/105)
 
 **Stato:** merged, `a46ff27`; 5 file, `+85/-48`; review Codex reale con due
-thread, entrambi ancora non risolti e non resi obsoleti da #106/#107.
+thread, risolti il 1 agosto 2026 dalle correzioni e regressioni di questa serie.
 
 #### F-M6-105-01 — chiusura concorrente con `progress.submit`
 
-- **Classe/priorità/stato:** bug di concorrenza, P2, aperto.
+- **Classe/priorità/stato:** bug di concorrenza, P2, chiuso.
 - **Thread Codex:**
   [discussion_r3692939671](https://github.com/max23468/CF-Ready/pull/105#discussion_r3692939671).
 - **Evidenza:** `app/routes/app.onboarding.tsx:139-150` usa un secondo fetcher,
@@ -1106,10 +1105,13 @@ thread, entrambi ancora non risolti e non resi obsoleti da #106/#107.
 - **Correzione proporzionata:** disabilitare le azioni finali mentre `progress`
   non è idle oppure serializzare la singola scrittura pendente. Non serve un
   nuovo store di stato.
+- **Esito:** `saveOnboarding` conserva sempre il passo 1 quando lo stato è già
+  `completed`, quindi anche un `progress` tardivo non può riaprire il riepilogo;
+  il test riproduce l'ordine delle due scritture.
 
 #### F-M6-105-02 — checkbox e istruzioni divergenti
 
-- **Classe/priorità/stato:** bug UI/stato, P2, aperto.
+- **Classe/priorità/stato:** bug UI/stato, P2, chiuso.
 - **Thread Codex:**
   [discussion_r3692939674](https://github.com/max23468/CF-Ready/pull/105#discussion_r3692939674).
 - **Evidenza:** lo stato `declared` nasce da `saved.address2Declared`
@@ -1122,10 +1124,13 @@ thread, entrambi ancora non risolti e non resi obsoleti da #106/#107.
   istruzioni.
 - **Correzione proporzionata:** riallineare `declared` quando si entra nel passo
   4 o far condividere alla checkbox il solo stato già esistente.
+- **Esito:** la checkbox è controllata da `declared`, lo stesso stato che decide
+  se mostrare le istruzioni e che sopravvive al cambio di passo; la regressione
+  verifica entrambi gli stati del prompt.
 
 #### F-M6-105-03 — `NaN` come passo D1
 
-- **Classe/priorità/stato:** validazione trust-boundary, P3, aperto.
+- **Classe/priorità/stato:** validazione trust-boundary, P3, chiuso.
 - **Evidenza:** `app/routes/app.onboarding.tsx:49-56` converte qualsiasi input
   con `Number`; `Math.min/max` non corregge `NaN`. Una POST autenticata con
   `intent=progress&step=x` arriva quindi al binding D1 come numero non valido.
@@ -1133,13 +1138,16 @@ thread, entrambi ancora non risolti e non resi obsoleti da #106/#107.
   privilegi.
 - **Correzione proporzionata:** `Number.isInteger(step)` e range 1–4 prima della
   scrittura, con un test mirato.
+- **Esito:** `parseOnboardingStep` accetta soltanto interi da 1 a 4 e l'action
+  rifiuta il resto prima di D1; la regressione copre testo, decimale e range.
 
 ### [PR #106 — riconoscimento chiusura procedura](https://github.com/max23468/CF-Ready/pull/106)
 
 **Stato:** merged, `d497179`; 4 file, `+26/-7`; review Codex non eseguita.
 
-**Finding:** la schermata finale dopo attivazione è corretta. La PR non tocca i
-due thread di #105, che restano aperti.
+**Finding:** la schermata finale dopo attivazione è corretta. In quello snapshot
+la PR non toccava i due thread di #105, rimasti aperti fino alle correzioni e
+regressioni chiuse il 1 agosto 2026 e documentate nella sezione precedente.
 
 ### [PR #107 — registro M6 e chiavi senza lettore](https://github.com/max23468/CF-Ready/pull/107)
 
@@ -1156,9 +1164,7 @@ alcun meccanismo di sincronizzazione documentale.
 
 ## 7. Ordine operativo consigliato
 
-1. Stabilizzare stato e layout dell'onboarding con i test minimi di regressione
-   (F-M6-101-01, F-M6-105-01/02/03).
-2. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
+1. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
    prima della prova reale.
 
 Questo ordine non richiede retrocompatibilità, supporto di formati legacy,

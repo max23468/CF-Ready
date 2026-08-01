@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
-import { address2Declaration, pendingFetcherIntent, readConfig, RULE_MODES } from "../config";
+import {
+  address2Declaration,
+  parseOnboardingStep,
+  pendingFetcherIntent,
+  readConfig,
+  RULE_MODES,
+} from "../config";
 import type { RuleMode } from "../config";
 import { recordEvent } from "../events.server";
 import { describeCheckout, resolveLocale, texts } from "../i18n";
@@ -49,13 +55,14 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const db = context.cloudflare.env.DB;
   const form = await request.formData();
   const intent = form.get("intent");
-  const step = Number(form.get("step") ?? 1);
 
   // La sola memoria del passo, senza altri effetti: serve a riprendere la procedura dove era.
   if (intent === "progress" || intent === "back" || intent === "next") {
+    const step = parseOnboardingStep(form.get("step"));
+    if (step === null) return { ok: false as const, errorCode: "generic" };
     await saveOnboarding(db, session.shop, {
       status: "in_progress",
-      step: Math.min(STEPS, Math.max(1, step)),
+      step,
     });
     return { ok: true as const };
   }
@@ -316,19 +323,7 @@ export default function Onboarding() {
                 </s-stack>
                 {/* FR-058: l'avviso sul campo “Interno” compare prima dell'attivazione. */}
                 {saved.rules.taxCode === "unmanaged" ? null : (
-                  <>
-                    <input type="hidden" name="address2Shown" value="1" />
-                    <s-banner tone="warning">{t.rules.address2Body}</s-banner>
-                    <s-checkbox
-                      label={t.rules.address2Checkbox}
-                      name="address2"
-                      value="declared"
-                      defaultChecked={saved.address2Declared}
-                    />
-                    {/* Come in Regole checkout: spuntando la dichiarazione compaiono i due
-                        passaggi da fare in Shopify. */}
-                    {declared ? <s-paragraph>{t.rules.address2Instructions}</s-paragraph> : null}
-                  </>
+                  <Address2DeclarationPrompt declared={declared} t={t} />
                 )}
                 <s-paragraph>{t.onboarding.step4Body}</s-paragraph>
               </>
@@ -381,5 +376,27 @@ export default function Onboarding() {
         </s-section>
       </s-page>
     </form>
+  );
+}
+
+export function Address2DeclarationPrompt({
+  declared,
+  t,
+}: {
+  declared: boolean;
+  t: ReturnType<typeof texts>;
+}) {
+  return (
+    <>
+      <input type="hidden" name="address2Shown" value="1" />
+      <s-banner tone="warning">{t.rules.address2Body}</s-banner>
+      <s-checkbox
+        label={t.rules.address2Checkbox}
+        name="address2"
+        value="declared"
+        checked={declared}
+      />
+      {declared ? <s-paragraph>{t.rules.address2Instructions}</s-paragraph> : null}
+    </>
   );
 }
