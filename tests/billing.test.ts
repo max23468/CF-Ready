@@ -4,6 +4,7 @@ import {
   addDays,
   cancelSubscription,
   createCharge,
+  currentPricingGeneration,
   entitlementFor,
   localDate,
   markTrialConverted,
@@ -164,7 +165,7 @@ test("il registro della prova non conserva il dominio in chiaro", async () => {
   expect(JSON.stringify(registro)).not.toContain("registro.example");
 });
 
-const NESSUN_ADDEBITO = { subscription: null, oneTime: null };
+const NESSUN_ADDEBITO = { subscription: null, oneTime: null, pendingOneTime: false };
 const opzioni = {
   today: "2026-08-01",
   timeZone: "Europe/Rome",
@@ -188,6 +189,7 @@ function abbonamento(
       currency: "EUR",
     },
     oneTime: null,
+    pendingOneTime: false,
   };
 }
 
@@ -381,7 +383,10 @@ test("gli addebiti della modalità sbagliata vengono ignorati", async () => {
               ],
             },
           ],
-          oneTimePurchases: { nodes: [] },
+          oneTimePurchases: {
+            nodes: [],
+            pageInfo: { hasNextPage: false, endCursor: null },
+          },
         },
       },
     }),
@@ -393,6 +398,90 @@ test("gli addebiti della modalità sbagliata vengono ignorati", async () => {
   expect((await readBilling(admin(true), true)).subscription).toMatchObject({
     id: "gid://shopify/AppSubscription/99",
   });
+});
+
+test("la lettura pagina tutti gli acquisti e riconosce quelli pendenti", async () => {
+  const after: unknown[] = [];
+  const pages = [
+    {
+      nodes: [
+        {
+          id: "gid://shopify/AppPurchaseOneTime/pending",
+          status: "PENDING",
+          test: true,
+          createdAt: "2026-08-01T12:00:00Z",
+          price: { amount: "89.90", currencyCode: "EUR" },
+        },
+      ],
+      pageInfo: { hasNextPage: true, endCursor: "pagina-2" },
+    },
+    {
+      nodes: [
+        {
+          id: "gid://shopify/AppPurchaseOneTime/active",
+          status: "ACTIVE",
+          test: true,
+          createdAt: "2026-07-01T12:00:00Z",
+          price: { amount: "89.90", currencyCode: "EUR" },
+        },
+      ],
+      pageInfo: { hasNextPage: false, endCursor: null },
+    },
+  ];
+  const admin = {
+    graphql: async (_query: string, options?: { variables?: Record<string, unknown> }) => {
+      after.push(options?.variables?.after);
+      return Response.json({
+        data: {
+          currentAppInstallation: {
+            activeSubscriptions: [],
+            oneTimePurchases: pages.shift(),
+          },
+        },
+      });
+    },
+  };
+
+  expect(await readBilling(admin, true)).toMatchObject({
+    oneTime: { id: "gid://shopify/AppPurchaseOneTime/active" },
+    pendingOneTime: true,
+  });
+  expect(after).toEqual([null, "pagina-2"]);
+});
+
+test("la generazione cambia solo dopo una cessazione commerciale completa", async () => {
+  const trial = {
+    status: "expired" as const,
+    started_at: "2026-07-30T00:00:00Z",
+    ends_at: "2026-08-12",
+    pricing_generation: "launch" as const,
+  };
+  const active = {
+    entitlement_status: "active" as const,
+    plan_kind: "monthly" as const,
+    pricing_generation: "launch" as const,
+    shopify_charge_gid: "gid://shopify/AppSubscription/generation",
+    current_period_end: "2026-12-31",
+  };
+
+  expect(currentPricingGeneration(trial, active, "2026-12-01")).toBe("launch");
+  expect(
+    currentPricingGeneration(trial, { ...active, entitlement_status: "expired" }, "2026-12-01"),
+  ).toBe("balanced");
+
+  const shop = await insertShop("nuova-generazione.example.myshopify.com");
+  await syncBillingAccount(env.DB, shop, NESSUN_ADDEBITO, {
+    today: "2026-12-01",
+    timeZone: "Europe/Rome",
+    pricingGeneration: "launch",
+  });
+  const renewed = await syncBillingAccount(
+    env.DB,
+    shop,
+    abbonamento("gid://shopify/AppSubscription/generation-new", "2026-12-31T22:59:59Z"),
+    { today: "2026-12-01", timeZone: "Europe/Rome", pricingGeneration: "balanced" },
+  );
+  expect(renewed.pricing_generation).toBe("balanced");
 });
 
 test("il credito stimato copre solo il ciclo corrente", () => {
@@ -430,6 +519,7 @@ test("un acquisto una tantum rimborsato revoca il diritto", async () => {
       amount: "89.90",
       currency: "EUR",
     },
+    pendingOneTime: false,
   };
 
   const attivo = await syncBillingAccount(env.DB, shop, acquisto, opzioni);

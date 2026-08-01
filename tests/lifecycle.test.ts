@@ -65,7 +65,10 @@ const SENZA_ADDEBITI = {
   data: {
     currentAppInstallation: {
       activeSubscriptions: [],
-      oneTimePurchases: { nodes: [] },
+      oneTimePurchases: {
+        nodes: [],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      },
     },
   },
 };

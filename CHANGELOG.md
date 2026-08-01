@@ -5,6 +5,19 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.37 — 1 agosto 2026
+
+- la riconciliazione percorre tutti gli acquisti una tantum prima di dedurre un
+  rimborso e impedisce duplicati mentre un acquisto attende approvazione;
+- sottoscrizioni, conversioni e cancellazioni condividono la lease per store,
+  così una cancellazione ordinaria non può sottrarre la proratazione a una
+  conversione una tantum;
+- la generazione tariffaria resta acquisita durante la prova e la continuità
+  commerciale, ma una nuova sottoscrizione dopo cessazione completa usa il
+  listino corrente;
+- il runner Workers risolve direttamente gli entrypoint React, evitando gli
+  errori dovuti agli spazi nel percorso locale del repository.
+
 ## 0.4.36 — 1 agosto 2026
 
 - i checkout con consegna italiana bloccano i campi fiscali obbligatori omessi

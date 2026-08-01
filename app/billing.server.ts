@@ -39,6 +39,7 @@ export type ShopifyBilling = {
     currency: string | null;
   } | null;
   oneTime: { id: string; createdAt: string; amount: string | null; currency: string | null } | null;
+  pendingOneTime: boolean;
 };
 
 export function requestedRecurringPlanIsActive(
@@ -53,6 +54,22 @@ export function requestedRecurringPlanIsActive(
 // un'ipotesi interna e non viene mai assegnata automaticamente.
 export function pricingGeneration(eligibleOn: string): PricingGeneration {
   return eligibleOn <= LAUNCH_WINDOW_END ? "launch" : "balanced";
+}
+
+// La generazione resta acquisita durante la prova e finché esiste continuità commerciale.
+// Dopo una cessazione completa una nuova sottoscrizione usa invece il listino corrente.
+export function currentPricingGeneration(
+  trial: Trial | null,
+  account: BillingAccount | null,
+  today: string,
+): PricingGeneration {
+  if (account?.entitlement_status === "active" || account?.entitlement_status === "ending") {
+    return account.pricing_generation;
+  }
+  if (trial?.status === "active" && trial.ends_at && trial.ends_at >= today) {
+    return trial.pricing_generation;
+  }
+  return pricingGeneration(today);
 }
 
 // Il giorno di avvio è il giorno 1 e l'accesso vale fino alla fine del giorno 14 locale.
@@ -185,7 +202,7 @@ export async function syncTrial(
 }
 
 export const BILLING_QUERY = `#graphql
-  query CfReadyBilling {
+  query CfReadyBilling($after: String) {
     currentAppInstallation {
       activeSubscriptions {
         id
@@ -207,7 +224,7 @@ export const BILLING_QUERY = `#graphql
           }
         }
       }
-      oneTimePurchases(first: 10, sortKey: CREATED_AT, reverse: true) {
+      oneTimePurchases(first: 50, after: $after, sortKey: CREATED_AT, reverse: true) {
         nodes {
           id
           name
@@ -218,6 +235,10 @@ export const BILLING_QUERY = `#graphql
             amount
             currencyCode
           }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
         }
       }
     }
@@ -250,32 +271,64 @@ type BillingResponse = {
           createdAt: string;
           price: { amount: string; currencyCode: string } | null;
         }[];
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
       };
     };
   };
   errors?: { message: string }[];
 };
 
+type BillingInstallation = NonNullable<BillingResponse["data"]>["currentAppInstallation"];
+
 // Shopify è la fonte autorevole: lo stato commerciale si legge sempre da qui, mai dal
 // ritorno di un redirect di approvazione. Gli addebiti della modalità sbagliata vengono
 // ignorati, altrimenti un addebito di prova concederebbe il diritto in Production.
 export async function readBilling(
-  admin: { graphql: (query: string) => Promise<Response> },
+  admin: {
+    graphql: (
+      query: string,
+      options?: { variables?: Record<string, unknown> },
+    ) => Promise<Response>;
+  },
   isTest: boolean,
 ): Promise<ShopifyBilling> {
-  const response = await admin.graphql(BILLING_QUERY);
-  const body = (await response.json()) as BillingResponse;
-  if (!body.data || body.errors?.length) {
-    throw new Response("Lettura billing Shopify non riuscita", { status: 502 });
-  }
+  let after: string | null = null;
+  let subscription: BillingInstallation["activeSubscriptions"][number] | undefined;
+  let oneTime: BillingInstallation["oneTimePurchases"]["nodes"][number] | undefined;
+  let pendingOneTime = false;
+  const cursors = new Set<string>();
 
-  const subscription = body.data.currentAppInstallation.activeSubscriptions.find(
-    (candidate) => candidate.test === isTest,
-  );
+  do {
+    const response = await admin.graphql(BILLING_QUERY, { variables: { after } });
+    const body = (await response.json()) as BillingResponse;
+    if (!body.data || body.errors?.length) {
+      throw new Response("Lettura billing Shopify non riuscita", { status: 502 });
+    }
+
+    subscription ??= body.data.currentAppInstallation.activeSubscriptions.find(
+      (candidate) => candidate.test === isTest,
+    );
+    const purchases = body.data.currentAppInstallation.oneTimePurchases;
+    oneTime = purchases.nodes.find(
+      (purchase) => purchase.status === "ACTIVE" && purchase.test === isTest,
+    );
+    pendingOneTime ||= purchases.nodes.some(
+      (purchase) => purchase.status === "PENDING" && purchase.test === isTest,
+    );
+
+    const { hasNextPage, endCursor } = purchases.pageInfo;
+    if (!oneTime && hasNextPage) {
+      if (!endCursor || cursors.has(endCursor)) {
+        throw new Response("Paginazione billing Shopify non valida", { status: 502 });
+      }
+      cursors.add(endCursor);
+      after = endCursor;
+    } else {
+      after = null;
+    }
+  } while (after);
+
   const pricing = subscription?.lineItems[0]?.plan.pricingDetails;
-  const oneTime = body.data.currentAppInstallation.oneTimePurchases.nodes.find(
-    (purchase) => purchase.status === "ACTIVE" && purchase.test === isTest,
-  );
 
   return {
     subscription: subscription
@@ -296,6 +349,7 @@ export async function readBilling(
           currency: oneTime.price?.currencyCode ?? null,
         }
       : null,
+    pendingOneTime,
   };
 }
 
@@ -595,7 +649,10 @@ function nextAccount(
     pricingGeneration,
   }: { today: string; timeZone: string; pricingGeneration: PricingGeneration },
 ): BillingAccount {
-  const generation = stored?.pricing_generation ?? pricingGeneration;
+  const generation =
+    stored?.entitlement_status === "active" || stored?.entitlement_status === "ending"
+      ? stored.pricing_generation
+      : pricingGeneration;
 
   if (billing.oneTime) {
     return {
