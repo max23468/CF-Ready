@@ -294,7 +294,7 @@ export default function Onboarding() {
                   {
                     rules: saved.rules,
                     errorDisplay: saved.errorDisplay,
-                    status: validationStatus(saved.enabled),
+                    status: validationStatus(saved.enabled, saved.entitled),
                   },
                   saved.locale,
                 ).map((line) => (

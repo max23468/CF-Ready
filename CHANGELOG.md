@@ -5,6 +5,11 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.33 — 1 agosto 2026
+
+- onboarding e Home derivano dallo stesso punto lo stato operativo della
+  Validation e dichiarano quando è attiva ma il piano non lo è.
+
 ## 0.4.32 — 1 agosto 2026
 
 - riaprendo una configurazione completata, l’onboarding descrive lo stato reale

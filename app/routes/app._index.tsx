@@ -29,6 +29,7 @@ import {
   resolveLocale,
   texts,
   trialNotice,
+  validationStatus,
 } from "../i18n";
 import { planFor, planPrices } from "../plans.server";
 import type { PlanKind } from "../plans.server";
@@ -238,7 +239,7 @@ export default function Home() {
   const firstCharge = data.firstChargeAt
     ? t.plan.firstCharge(formatDate(data.firstChargeAt, data.locale))
     : t.plan.firstChargeNow;
-  const status = !data.validationEnabled ? "disabled" : entitled ? "active" : "lapsed";
+  const status = validationStatus(data.validationEnabled, entitled);
   const configured = data.rules.taxCode !== "unmanaged" || data.rules.pec !== "unmanaged";
   // §15.3: il prossimo passo è l'elemento guidato della Home, quindi porta dove si compie.
   const nextStep = !entitled
