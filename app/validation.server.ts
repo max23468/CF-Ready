@@ -562,6 +562,8 @@ async function disableDuplicateValidations(
   return withValidationLock(db, shopDomain, async (heartbeat) => {
     for (const { id, enabled } of validations) {
       if (!enabled) continue;
+      // Le mutation restano seriali: ogni scrittura parte solo se la lease è ancora nostra.
+      // react-doctor-disable-next-line react-doctor/async-await-in-loop
       if (!(await heartbeat.isHeld())) throw new Error("Validation lock persa");
       try {
         const response = await admin.graphql(UPDATE_VALIDATION, {
