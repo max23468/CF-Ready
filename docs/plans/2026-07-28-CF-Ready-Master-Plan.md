@@ -3961,6 +3961,14 @@ Decisioni prese durante la milestone:
   di §18.3. La conseguenza operativa non è estetica: senza un dominio
   onboardato l’Email binding di Cloudflare non può inviare, quindi cade il
   modulo con invio e resta il `mailto:`;
+- **un solo script sul sito, servito dal sito stesso.** Il menu che si ritira
+  scorrendo su telefono e l'evidenziazione della sezione in vista non si
+  ottengono con i soli fogli di stile: servirebbe conoscere la direzione dello
+  scorrimento. `site/menu.js` fa quelle due cose e nient'altro, non ha
+  dipendenze, e la Content-Security-Policy passa da nessuno script a
+  `script-src 'self'`, che resta più stretta di consentire codice in linea.
+  Senza JavaScript il sito resta interamente utilizzabile: la testata è
+  agganciata via CSS e tutti i collegamenti funzionano;
 - **il sito è la superficie che deve convincere**, quindi è più espressivo di
   quanto §9.1 del brand lasciasse intendere: illustrazioni costruite con le
   forme del sistema, schede, passi numerati, un esempio di errore nel checkout e

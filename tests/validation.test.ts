@@ -460,7 +460,15 @@ test.each(["messaggio", "entitlement"] as const)(
 test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", async () => {
   const activeShop = "write-paid.example.myshopify.com";
   await seedShop(activeShop);
-  const currentPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1_000).toISOString();
+  // Mezzogiorno UTC, non l'ora corrente: `entitlementFor` esprime la scadenza nel fuso
+  // dello store (`Europe/Rome` nello stub), quindi una scadenza che cade fra le 22:00 e la
+  // mezzanotte UTC a Roma è già il giorno dopo. Con l'ora corrente il confronto qui sotto
+  // falliva per due ore al giorno, ovunque, CI compresa.
+  const currentPeriodEnd = (() => {
+    const end = new Date(Date.now() + 30 * 24 * 60 * 60 * 1_000);
+    end.setUTCHours(12, 0, 0, 0);
+    return end.toISOString();
+  })();
   const subscription: ShopifyBilling = {
     subscription: {
       id: "gid://shopify/AppSubscription/write-paid",
