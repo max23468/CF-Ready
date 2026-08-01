@@ -41,6 +41,26 @@ test("salva la sessione cifrata e la ricarica da D1", async () => {
   );
 });
 
+test("restituisce tutte le sessioni dello store", async () => {
+  const key = btoa(String.fromCharCode(...new Uint8Array(32).fill(5)));
+  const storage = new D1SessionStorage(env.DB, key);
+  const shop = "staff.example.myshopify.com";
+
+  for (let index = 0; index < 26; index += 1) {
+    await storage.storeSession(
+      new Session({
+        id: `online_${shop}_${index}`,
+        shop,
+        state: "state",
+        isOnline: true,
+        accessToken: `token-${index}`,
+      }),
+    );
+  }
+
+  expect(await storage.findSessionsByShop(shop)).toHaveLength(26);
+});
+
 test("la reinstallazione riattiva lo store ma non annulla il blocco geografico", async () => {
   const key = btoa(String.fromCharCode(...new Uint8Array(32).fill(9)));
   const storage = new D1SessionStorage(env.DB, key);
