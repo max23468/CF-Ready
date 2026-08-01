@@ -2,6 +2,7 @@ import { APP_URL } from "./env.server";
 import type { Entitlement } from "./config";
 import { recordEvent } from "./events.server";
 import { sha256Hex } from "./hash.server";
+import { planFor } from "./plans.server";
 
 // Data di lancio provvisoria: la generazione Launch copre i primi 90 giorni. Finché il lancio
 // non è avvenuto la finestra non è ancora aperta, quindi vale comunque il prezzo di lancio.
@@ -650,9 +651,10 @@ function nextAccount(
   }: { today: string; timeZone: string; pricingGeneration: PricingGeneration },
 ): BillingAccount {
   const generation =
-    stored?.entitlement_status === "active" || stored?.entitlement_status === "ending"
+    generationFromActiveCharge(billing) ??
+    (stored?.entitlement_status === "active" || stored?.entitlement_status === "ending"
       ? stored.pricing_generation
-      : pricingGeneration;
+      : pricingGeneration);
 
   if (billing.oneTime) {
     return {
@@ -699,6 +701,28 @@ function nextAccount(
     shopify_charge_gid: stored?.shopify_charge_gid ?? null,
     current_period_end: stored?.current_period_end ?? null,
   };
+}
+
+function generationFromActiveCharge(billing: ShopifyBilling): PricingGeneration | null {
+  const kind = billing.oneTime
+    ? "one_time"
+    : billing.subscription?.interval === "ANNUAL"
+      ? "annual"
+      : billing.subscription
+        ? "monthly"
+        : null;
+  const charge = billing.oneTime ?? billing.subscription;
+  if (!kind || !charge?.amount || !charge.currency) return null;
+
+  return (
+    (["launch", "balanced"] as const).find((generation) => {
+      const plan = planFor(generation, kind);
+      return (
+        plan?.currency === charge.currency &&
+        Math.round(plan.amount * 100) === Math.round(Number(charge.amount) * 100)
+      );
+    }) ?? null
+  );
 }
 
 // Scritto prima della cancellazione: conserva un identificatore pseudonimizzato, non il dominio

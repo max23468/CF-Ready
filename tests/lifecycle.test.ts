@@ -182,6 +182,25 @@ test("una disattivazione non riuscita resta fail-open e registra un codice error
   });
 });
 
+test("un readback senza Validation non conserva lo stato attivo precedente", async () => {
+  const shop = await insertShop("validation-rimossa.example.myshopify.com");
+  const admin = adminStub([
+    shopContext("IT", true),
+    SENZA_ADDEBITI,
+    { data: { validationUpdate: { userErrors: [] } } },
+    shopContext("IT", null),
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.validation).toBeUndefined();
+  expect(state.validationEnabled).toBe(false);
+  expect(await appState(shop)).toMatchObject({
+    validation_gid: null,
+    validation_enabled: 0,
+  });
+});
+
 test("Validation CF Ready duplicate restano intatte e producono un errore operativo", async () => {
   const shop = await insertShop("duplicati.example.myshopify.com");
   const context = shopContext("IT", true);
