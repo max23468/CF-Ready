@@ -36,18 +36,21 @@ Ogni endpoint segue lo stesso percorso: `authenticate.webhook` valida l'HMAC
 sui byte originali, poi `handleWebhook` gestisce ricevuta ed esito.
 
 1. `claimWebhook` inserisce la ricevuta in `webhook_events` con stato
-   `processing`. Se l'ID esiste già, la ricevuta viene riacquisita solo se era
-   `failed`: un duplicato di un webhook `processing` o `processed` esce subito
-   con `200` senza rielaborare, un retry Shopify dopo un errore viene invece
-   rielaborato.
+   `processing`. Se l'ID esiste già, la ricevuta viene riacquisita se era
+   `failed` o se resta `processing` per almeno cinque minuti. Un claim ancora
+   attivo risponde `500`, così Shopify continua a ritentare; solo un duplicato
+   già `processed` riceve `200` senza rielaborazione.
 2. L'handler gira. Un errore porta la ricevuta a `failed` con un codice
    stabile, registra `webhook_failed` e risponde `500`, così Shopify ritenta.
-3. L'esito pulito porta la ricevuta a `processed`.
+3. Claim ed esito condividono un token: soltanto il proprietario corrente può
+   portare la ricevuta a `processed` o `failed`. Per `APP_UNINSTALLED` il claim
+   conserva anche l'inizio del ciclo di installazione, quindi un replay non può
+   disinstallare né cancellare le sessioni di una reinstallazione successiva.
 
-La ricevuta conserva `webhook_id`, `shop_domain`, `topic`, stato e timestamp:
-mai il payload. `shop/redact` azzera `shop_domain` sulle ricevute dello store
-invece di eliminarle, così l'idempotenza dei retry sopravvive alla
-cancellazione.
+La ricevuta conserva `webhook_id`, `shop_domain`, `topic`, stato, timestamp,
+token del claim e riferimento tecnico al ciclo di installazione: mai il
+payload. `shop/redact` azzera `shop_domain` sulle ricevute dello store invece di
+eliminarle, così l'idempotenza dei retry sopravvive alla cancellazione.
 
 `shop/redact` arriva 48 ore dopo la disinstallazione e Shopify non annulla
 l'invio se lo store reinstalla nel frattempo. La cancellazione avviene quindi

@@ -17,7 +17,7 @@ avevano invece ricevuto una review reale di Codex e sono incluse per controllo.
 
 Il risultato sul codice corrente è:
 
-- **2 finding P1**, uno dei quali è un gate esplicito prima della `1.0.0`;
+- **1 finding P1**, che resta un gate esplicito prima della `1.0.0`;
 - **15 finding P2**;
 - **10 finding P3**;
 - nessun P0;
@@ -31,7 +31,6 @@ Il risultato sul codice corrente è:
 | ID          | PR principale | Classe                    | Priorità   | Sintesi                                                                                                           |
 | ----------- | ------------- | ------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
 | F-M3-57-01  | #57           | limite di prodotto        | P1 pre-1.0 | con `localizedFields` vuoto i checkout accelerati possono passare senza Codice Fiscale richiesto                  |
-| F-M4-58-01  | #58           | bug di affidabilità       | P1         | una ricevuta webhook lasciata `processing` dopo crash non viene mai più acquisita                                 |
 | F-M4-58-02  | #58/#70/#99   | documentazione operativa  | P3         | le ricevute propongono rollback che eliminano tabelle, colonne e cronologia di migrazioni già applicate           |
 | F-M4-58-03  | #58/#99       | gap di verifica           | P3         | i test applicano le migrazioni solo a un database vuoto, mai allo snapshot della versione precedente              |
 | F-M4-64-01  | #64/#82       | documentazione nel codice | P3         | il commento su `shop/redact` promette ancora un registro M5 del diritto una tantum che non deve esistere           |
@@ -256,7 +255,7 @@ lifecycle e riconciliazione.
 
 #### F-M4-58-01 — webhook abbandonato nello stato `processing`
 
-- **Classe/priorità/stato:** bug di affidabilità e idempotenza, P1, aperto.
+- **Classe/priorità/stato:** bug di affidabilità e idempotenza, P1, chiuso.
 - **Evidenza:** `app/webhooks.server.ts:32-54` riacquisisce soltanto righe con
   `status = 'failed'`. `handleWebhook` imposta `processed` solo dopo il gestore
   (`:14-29`). Un crash, timeout o errore nel `finishWebhook` lascia la riga
@@ -271,6 +270,10 @@ lifecycle e riconciliazione.
 - **Correzione proporzionata:** riacquisire anche un `processing` più vecchio di
   una soglia usando `received_at`, con un singolo test su claim scaduto. Non
   serve una coda o una nuova infrastruttura.
+- **Esito:** il claim comune riacquisisce una ricevuta `processing` dopo cinque
+  minuti, mantiene ritentabili i duplicati ancora in corso e lega l'esito a un
+  token. `APP_UNINSTALLED` conserva inoltre il ciclo di installazione originale,
+  così un replay non modifica una reinstallazione successiva.
 
 #### F-M4-58-02 — rollback documentato mutando migrazioni applicate
 

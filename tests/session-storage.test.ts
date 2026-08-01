@@ -48,19 +48,27 @@ test("la reinstallazione riattiva lo store ma non annulla il blocco geografico",
   const reinstalled = "reinstall.example.myshopify.com";
   await storage.storeSession(session(reinstalled, "token-1"));
   await env.DB.prepare(
-    `UPDATE shops SET installation_status = 'uninstalled', uninstalled_at = ? WHERE shop_domain = ?`,
+    `UPDATE shops SET installation_status = 'uninstalled', installed_at = ?, uninstalled_at = ?
+     WHERE shop_domain = ?`,
   )
-    .bind("2026-07-30T00:00:00.000Z", reinstalled)
+    .bind("2026-07-30T00:00:00.000Z", "2026-07-30T00:00:00.000Z", reinstalled)
     .run();
   await storage.storeSession(session(reinstalled, "token-2"));
 
   expect(
     await env.DB.prepare(
-      "SELECT installation_status, uninstalled_at FROM shops WHERE shop_domain = ?",
+      "SELECT installation_status, installed_at, uninstalled_at FROM shops WHERE shop_domain = ?",
     )
       .bind(reinstalled)
       .first(),
   ).toMatchObject({ installation_status: "active", uninstalled_at: null });
+  expect(
+    (
+      await env.DB.prepare("SELECT installed_at FROM shops WHERE shop_domain = ?")
+        .bind(reinstalled)
+        .first<{ installed_at: string }>()
+    )?.installed_at,
+  ).not.toBe("2026-07-30T00:00:00.000Z");
 
   const blocked = "blocked.example.myshopify.com";
   await storage.storeSession(session(blocked, "token-1"));

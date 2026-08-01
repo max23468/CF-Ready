@@ -5,6 +5,12 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.23 — 1 agosto 2026
+
+- un webhook interrotto mentre era `processing` può essere riacquisito dopo
+  cinque minuti; i retry precedenti restano ritentabili, solo il claim corrente
+  può chiudere la ricevuta e un replay non tocca una reinstallazione successiva.
+
 ## 0.4.22 — 1 agosto 2026
 
 - il deploy Development applica le migrazioni D1, pubblica e rilegge il Worker

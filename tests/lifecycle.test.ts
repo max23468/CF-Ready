@@ -4,7 +4,7 @@ import { recordEvent } from "../app/events.server";
 import { markUninstalled, recordInstallOnce, redactShop, refuseInstall } from "../app/shop.server";
 import { localDate, trialEnd } from "../app/billing.server";
 import { readOnboarding, reconcile, saveOnboarding } from "../app/validation.server";
-import { claimWebhook, finishWebhook } from "../app/webhooks.server";
+import { claimWebhook, finishWebhook, handleWebhook } from "../app/webhooks.server";
 
 const CONFIG = { schemaVersion: 2, rules: { taxCode: "required_validated" } };
 
@@ -171,14 +171,122 @@ test("una disattivazione non riuscita resta fail-open e registra un codice error
 test("un webhook duplicato viene ignorato e un retry dopo errore viene rielaborato", async () => {
   const shop = await insertShop("webhook.example.myshopify.com");
 
-  expect(await claimWebhook(env.DB, "wh-1", "SHOP_UPDATE", shop)).toBe(true);
-  expect(await claimWebhook(env.DB, "wh-1", "SHOP_UPDATE", shop)).toBe(false);
+  const first = await claimWebhook(env.DB, "wh-1", "SHOP_UPDATE", shop);
+  expect(first.acquired).toBe(true);
+  if (!first.acquired) throw new Error("claim non acquisito");
+  expect(await claimWebhook(env.DB, "wh-1", "SHOP_UPDATE", shop)).toEqual({
+    acquired: false,
+    retry: true,
+  });
 
-  await finishWebhook(env.DB, "wh-1", "failed", "unhandled_error");
-  expect(await claimWebhook(env.DB, "wh-1", "SHOP_UPDATE", shop)).toBe(true);
+  expect(await finishWebhook(env.DB, "wh-1", first.token, "failed", "unhandled_error")).toBe(true);
+  const retry = await claimWebhook(env.DB, "wh-1", "SHOP_UPDATE", shop);
+  expect(retry.acquired).toBe(true);
+  if (!retry.acquired) throw new Error("retry non acquisito");
 
-  await finishWebhook(env.DB, "wh-1", "processed");
-  expect(await claimWebhook(env.DB, "wh-1", "SHOP_UPDATE", shop)).toBe(false);
+  expect(await finishWebhook(env.DB, "wh-1", retry.token, "processed")).toBe(true);
+  expect(await claimWebhook(env.DB, "wh-1", "SHOP_UPDATE", shop)).toEqual({
+    acquired: false,
+    retry: false,
+  });
+});
+
+test("un webhook rimasto processing viene riacquisito dopo cinque minuti", async () => {
+  const shop = await insertShop("webhook-interrotto.example.myshopify.com");
+
+  const first = await claimWebhook(
+    env.DB,
+    "wh-interrotto",
+    "SHOP_UPDATE",
+    shop,
+    "2026-08-01T10:00:00.000Z",
+    "claim-uno",
+  );
+  expect(first.acquired).toBe(true);
+  expect(
+    await claimWebhook(env.DB, "wh-interrotto", "SHOP_UPDATE", shop, "2026-08-01T10:04:59.999Z"),
+  ).toEqual({ acquired: false, retry: true });
+  const retry = await claimWebhook(
+    env.DB,
+    "wh-interrotto",
+    "SHOP_UPDATE",
+    shop,
+    "2026-08-01T10:05:00.000Z",
+    "claim-due",
+  );
+  expect(retry.acquired).toBe(true);
+  if (!first.acquired || !retry.acquired) throw new Error("claim non acquisito");
+  expect(await finishWebhook(env.DB, "wh-interrotto", first.token, "failed")).toBe(false);
+  expect(await finishWebhook(env.DB, "wh-interrotto", retry.token, "processed")).toBe(true);
+});
+
+test("un claim ancora attivo mantiene la risposta ritentabile", async () => {
+  const shop = await insertShop("webhook-in-corso.example.myshopify.com");
+  await claimWebhook(env.DB, "wh-in-corso", "SHOP_UPDATE", shop);
+  let handled = false;
+
+  const response = await handleWebhook(
+    env.DB,
+    { webhookId: "wh-in-corso", topic: "SHOP_UPDATE", shop },
+    async () => {
+      handled = true;
+    },
+  );
+
+  expect(response.status).toBe(500);
+  expect(handled).toBe(false);
+});
+
+test("il replay della disinstallazione non tocca una reinstallazione successiva", async () => {
+  const shop = await insertShop("uninstall-replay.example.myshopify.com");
+  const first = await claimWebhook(
+    env.DB,
+    "wh-uninstall-replay",
+    "APP_UNINSTALLED",
+    shop,
+    "2026-08-01T10:00:00.000Z",
+    "claim-installazione-uno",
+  );
+  if (!first.acquired || !first.installationStartedAt) throw new Error("claim non acquisito");
+  expect(await markUninstalled(env.DB, shop, first.installationStartedAt, first.receivedAt)).toBe(
+    true,
+  );
+
+  await env.DB.prepare(
+    `UPDATE shops SET installation_status = 'active', installed_at = ?, uninstalled_at = NULL
+     WHERE shop_domain = ?`,
+  )
+    .bind("2026-08-01T10:01:00.000Z", shop)
+    .run();
+  await env.DB.prepare(
+    `INSERT INTO shopify_sessions (
+       id, shop_id, is_online, session_payload_ciphertext, created_at, updated_at
+     ) SELECT 'offline_reinstallato', id, 0, 'x', ?, ? FROM shops WHERE shop_domain = ?`,
+  )
+    .bind("2026-08-01T10:01:00.000Z", "2026-08-01T10:01:00.000Z", shop)
+    .run();
+
+  const response = await handleWebhook(
+    env.DB,
+    { webhookId: "wh-uninstall-replay", topic: "APP_UNINSTALLED", shop },
+    async (claim) => {
+      if (claim.installationStartedAt) {
+        await markUninstalled(env.DB, shop, claim.installationStartedAt, claim.receivedAt);
+      }
+    },
+  );
+
+  expect(response.status).toBe(200);
+  expect(
+    await env.DB.prepare("SELECT installation_status FROM shops WHERE shop_domain = ?")
+      .bind(shop)
+      .first(),
+  ).toMatchObject({ installation_status: "active" });
+  expect(
+    await env.DB.prepare(
+      "SELECT id FROM shopify_sessions WHERE id = 'offline_reinstallato'",
+    ).first(),
+  ).not.toBeNull();
 });
 
 test("l'installazione è registrata una volta sola per ciclo di vita", async () => {
@@ -271,7 +379,7 @@ test("disinstallazione e redact ripuliscono i dati dello store", async () => {
     shop,
   );
 
-  await markUninstalled(env.DB, shop);
+  await markUninstalled(env.DB, shop, "2026-07-30T00:00:00.000Z", "2026-08-01T00:00:00.000Z");
   expect(
     await env.DB.prepare(
       "SELECT installation_status, uninstalled_at FROM shops WHERE shop_domain = ?",
