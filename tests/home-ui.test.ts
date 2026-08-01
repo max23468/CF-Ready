@@ -2,6 +2,7 @@ import type { ReactElement, ReactNode } from "react";
 import { isValidElement } from "react";
 import { expect, test, vi } from "vitest";
 import { texts } from "../app/i18n";
+import { openBillingApproval } from "../app/revalidation";
 import { PlanChoice, SetupGuide } from "../app/routes/app._index";
 import { Address2DeclarationPrompt } from "../app/routes/app.onboarding";
 
@@ -21,6 +22,14 @@ const data = {
   accountStatus: "active",
   creditEstimate: null,
 } as Parameters<typeof PlanChoice>[0]["data"];
+
+test("l'approvazione billing si apre fuori dall'iframe", () => {
+  const opener = vi.fn();
+
+  openBillingApproval("https://shopify.example/approve", opener);
+
+  expect(opener).toHaveBeenCalledWith("https://shopify.example/approve", "_top");
+});
 
 test("la cancellazione apre la conferma e invia l'intent soltanto dall'azione primaria", () => {
   const submit = vi.fn();

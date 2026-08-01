@@ -159,15 +159,17 @@ export async function queryContext(admin: Admin) {
 }
 
 export function findValidation(validations: Validation[]) {
-  const matches = validations.filter(
-    ({ shopifyFunction }) => shopifyFunction.handle === FUNCTION_HANDLE,
-  );
+  const matches = validationsForApp(validations);
   if (matches.length > 1) {
     throw new Response("Sono presenti più Validation CF Ready.", {
       status: 409,
     });
   }
   return matches[0];
+}
+
+function validationsForApp(validations: Validation[]) {
+  return validations.filter(({ shopifyFunction }) => shopifyFunction.handle === FUNCTION_HANDLE);
 }
 
 export function mutationError(
@@ -186,8 +188,22 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
   const countryCode = shop.shopAddress.countryCodeV2;
   const eligible = countryCode === ELIGIBLE_COUNTRY;
   const today = localDate(shop.ianaTimezone);
-  let validation = findValidation(validations.nodes);
-  let errorCode: string | null = null;
+  let matches = validationsForApp(validations.nodes);
+  if (matches.length > 1 && matches.some(({ enabled }) => enabled)) {
+    try {
+      await disableDuplicateValidations(admin, db, shopDomain, matches);
+      matches = validationsForApp((await queryContext(admin)).validations.nodes);
+    } catch {
+      // Il banner operativo resta disponibile usando l'ultima lettura certa.
+    }
+  }
+  let validation = matches.length === 1 ? matches[0] : undefined;
+  let errorCode: string | null =
+    matches.length > 1
+      ? matches.some(({ enabled }) => enabled)
+        ? "duplicate_validations_active"
+        : "duplicate_validations"
+      : null;
 
   if (!eligible && validation?.enabled) {
     errorCode = await disableForCountry(admin, db, shopDomain, validation.id);
@@ -527,6 +543,23 @@ async function disableForCountry(admin: Admin, db: D1Database, shopDomain: strin
   } finally {
     await releaseValidationLockBestEffort(db, shopDomain, lockToken);
   }
+}
+
+async function disableDuplicateValidations(
+  admin: Admin,
+  db: D1Database,
+  shopDomain: string,
+  validations: Validation[],
+) {
+  return withValidationLock(db, shopDomain, async () => {
+    for (const { id, enabled } of validations) {
+      if (!enabled) continue;
+      const response = await admin.graphql(UPDATE_VALIDATION, {
+        variables: { id, validation: { enable: false, blockOnFailure: false } },
+      });
+      if (mutationError((await response.json()) as MutationResult, "validationUpdate")) break;
+    }
+  });
 }
 
 export async function persistValidationState(
