@@ -5,7 +5,7 @@ nativi del checkout italiano.
 
 > Il progetto è in sviluppo: M0–M6 sono completate per il perimetro Development
 > e M7 è in corso. Lo snapshot Development corrente è `0.4.39` e la versione del
-> repository è `0.5.0`, con motore di validazione, billing, interfaccia
+> repository è `0.5.2`, con motore di validazione, billing, interfaccia
 > merchant, onboarding e sito pubblico implementati. Production, submission App
 > Store e gate wallet M10 non sono ancora completati.
 
