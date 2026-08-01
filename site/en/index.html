@@ -14,7 +14,7 @@
 
 <header class="masthead">
   <div class="wrap">
-    <img src="../assets/lockup-horizontal.svg" alt="CF Ready">
+    <a href="index.html"><img src="../assets/lockup-horizontal.svg" alt="CF Ready"></a>
     <nav>
       <ul>
         <li><a href="#how">How it works</a></li>
@@ -40,7 +40,7 @@
           <a class="button" href="https://apps.shopify.com/cf-ready">Install from Shopify</a>
           <a class="button secondary" href="#how">How it works</a>
         </div>
-        <p class="small" style="margin-top: var(--cf-space-4)">14-day trial. We never ask for a card: billing goes through Shopify and you approve it.</p>
+        <p class="small note">14-day trial. We never ask for a card: billing goes through Shopify and you approve it.</p>
       </div>
 
       <!-- Built from the system’s own shapes: the card, the band, the field. No scenes, no
@@ -64,15 +64,15 @@
     </div>
   </section>
 
-  <div class="wrap">
-    <div class="facts">
+  <section class="facts">
+    <div class="wrap">
       <p><strong>Shopify’s native field.</strong> The one the Italian checkout already shows, not an extra one.</p>
       <p><strong>No theme changes.</strong> No code to paste, no extension to install.</p>
       <p><strong>All standard plans.</strong> Shopify Plus isn’t needed, and no feature is held back.</p>
     </div>
-  </div>
+  </section>
 
-  <section>
+  <section class="divided">
     <div class="wrap column">
       <span class="label">The problem</span>
       <h2>The order arrived, the invoice didn’t</h2>
@@ -83,11 +83,11 @@
 
   <section class="divided" id="how">
     <div class="wrap">
-      <div class="column">
+      <div class="section-head">
         <span class="label">How it works</span>
         <h2>Three steps, once</h2>
       </div>
-      <ol class="steps" style="margin-top: var(--cf-space-8)">
+      <ol class="steps">
         <li>
           <h3>Install</h3>
           <p>The app installs from the Shopify App Store and works out on its own whether the store’s address is in Italy. It asks for no access to orders, customers or products.</p>
@@ -106,8 +106,8 @@
 
   <section class="divided">
     <div class="wrap">
-      <div class="hero-copy" style="max-width: none">
-        <div class="grid two" style="align-items: center">
+      <div>
+        <div class="grid two">
           <div>
             <span class="label">What the customer sees</span>
             <h2>A clear message, written by you</h2>
@@ -134,13 +134,13 @@
 
   <section class="divided">
     <div class="wrap">
-      <div class="column">
+      <div class="section-head">
         <span class="label">What it checks</span>
         <h2>A formal check, done properly</h2>
         <p>Counting characters isn’t enough. CF Ready verifies the code’s structure as the official formation rule defines it, and recognises the cases others get wrong.</p>
       </div>
 
-      <div class="grid" style="margin-top: var(--cf-space-8)">
+      <div class="grid">
         <div class="card">
           <h3>Standard code</h3>
           <p class="small">Sixteen characters: name positions, a coherent date of birth, the gender marker, the municipal code and the final check character.</p>
@@ -171,12 +171,12 @@
 
   <section class="divided">
     <div class="wrap">
-      <div class="column">
+      <div class="section-head">
         <span class="label">Edge cases</span>
         <h2>Whoever shouldn’t be blocked, isn’t</h2>
         <p>This is what separates a useful check from one that costs you orders.</p>
       </div>
-      <ul class="checks grid two" style="margin-top: var(--cf-space-8)">
+      <ul class="checks grid two">
         <li>Order shipping abroad: no validation.</li>
         <li>Foreign billing details, even with delivery or pickup in Italy: no validation.</li>
         <li>Store pickup and mixed orders: rules apply if at least one delivery is Italian.</li>
@@ -184,18 +184,18 @@
         <li>Unreadable configuration or a technical error: checkout stays open.</li>
         <li>Expired trial or inactive plan: checkout stays open.</li>
       </ul>
-      <p class="small" style="margin-top: var(--cf-space-6); max-width: var(--cf-measure)">When in doubt, the app does not block. A lost sale costs more than an invoice completed by hand, and this is a design decision, not a fallback.</p>
+      <p class="small note">When in doubt, the app does not block. A lost sale costs more than an invoice completed by hand, and this is a design decision, not a fallback.</p>
     </div>
   </section>
 
   <section class="inverse" id="limits">
     <div class="wrap">
-      <div class="column">
+      <div class="section-head">
         <span class="label">Limits</span>
         <h2>What CF Ready does not do</h2>
         <p>They sit here, with the same weight as everything else, because you should know them before installing and not after.</p>
       </div>
-      <div class="grid two" style="margin-top: var(--cf-space-8)">
+      <div class="grid two">
         <div class="card">
           <h3>Not an identity check</h3>
           <p class="small">The check is formal. We don’t verify with the Italian Revenue Agency that a code exists or belongs to whoever entered it, and a formally valid address isn’t necessarily an active PEC mailbox.</p>
@@ -218,7 +218,7 @@
 
   <section>
     <div class="wrap">
-      <div class="column">
+      <div class="section-head">
         <span class="label">Data</span>
         <h2>Your customers’ data stays in Shopify</h2>
         <p>The check runs inside Shopify, during checkout. Your customers’ tax codes and PEC addresses never reach our systems, are never logged and are never stored: the app receives the values from Shopify, evaluates them and returns only an error, if any.</p>
@@ -229,7 +229,7 @@
 
   <section class="divided" id="pricing">
     <div class="wrap">
-      <div class="column">
+      <div class="section-head">
         <span class="label">Trial and price</span>
         <h2>Fourteen days to decide</h2>
         <p>The trial lasts 14 days, is complete and asks for no payment. At the end you choose how to pay: <strong>monthly</strong>, <strong>annually</strong> or <strong>one single payment</strong> for this store, with no renewals.</p>
@@ -291,9 +291,10 @@
 
 </main>
 
-<footer class="inverse" style="border-top: 1px solid color-mix(in srgb, #F7F5EE 22%, transparent)">
+<footer class="inverse">
   <div class="wrap">
     <ul>
+      <li><a href="index.html">Home</a></li>
       <li><a href="privacy.html">Privacy Policy</a></li>
       <li><a href="terms.html">Terms and conditions</a></li>
       <li><a href="support.html">Support</a></li>
