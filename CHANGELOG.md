@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.5.10 — 2 agosto 2026
+
+- chiusi i rilievi Codex ancora aperti su billing, riconciliazione delle
+  Validation, interfaccia merchant, supporto e sito pubblico, con copy italiano
+  e inglese riallineato;
+- gli store ancora disinstallati vengono cancellati automaticamente al termine
+  dei 90 giorni dichiarati, mantenendo soltanto il ledger pseudonimizzato della
+  prova;
+- Privacy Policy e Termini dichiarano il canale iCloud, la conservazione delle
+  metriche Cloudflare e il comportamento fail-open effettivo.
+
 ## 0.5.9 — 2 agosto 2026
 
 - la Content-Security-Policy consente gli host dedicati agli asset e alla
