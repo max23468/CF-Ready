@@ -7,6 +7,7 @@ import {
   createCharge,
   localDate,
   readBilling,
+  requestedRecurringPlanIsActive,
   remainingTrialDays,
   returnUrlFor,
   syncTrial,
@@ -100,16 +101,21 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
   // Attivazione e disattivazione non toccano la configurazione: si riscrive quella osservata
   // cambiando solo lo stato della Validation (FR-052, FR-053).
-  const current = readConfig(
-    findValidation((await queryContext(admin)).validations.nodes)?.metafield?.jsonValue,
-  );
-  const result = await writeValidation(
-    admin,
-    db,
-    session.shop,
-    { rules: current.rules, errorDisplay: current.errorDisplay, messages: current.messages },
-    intent === "enable",
-  );
+  let result;
+  try {
+    const current = readConfig(
+      findValidation((await queryContext(admin)).validations.nodes)?.metafield?.jsonValue,
+    );
+    result = await writeValidation(
+      admin,
+      db,
+      session.shop,
+      { rules: current.rules, errorDisplay: current.errorDisplay, messages: current.messages },
+      intent === "enable",
+    );
+  } catch {
+    return { ok: false, errorCode: "validation_write_failed" };
+  }
 
   if (!result.ok) return { ok: false, errorCode: result.errorCode };
 
@@ -131,48 +137,60 @@ async function subscribe(
   request: Request,
   kind: PlanKind,
 ) {
-  const { shop } = await queryContext(admin);
-  if (shop.shopAddress.countryCodeV2 !== ELIGIBLE_COUNTRY) {
-    return { ok: false, errorCode: "country_not_eligible" };
+  try {
+    const { shop } = await queryContext(admin);
+    if (shop.shopAddress.countryCodeV2 !== ELIGIBLE_COUNTRY) {
+      return { ok: false, errorCode: "country_not_eligible" };
+    }
+
+    const billing = await readBilling(admin, BILLING_IS_TEST);
+    // Un pagamento unico copre lo store per sempre: nessun altro addebito va creato sopra.
+    if (billing.oneTime) {
+      return { ok: false, errorCode: "one_time_already_active" };
+    }
+    if (requestedRecurringPlanIsActive(billing, kind)) {
+      return { ok: false, errorCode: "generic" };
+    }
+
+    const today = localDate(shop.ianaTimezone);
+    const trial = await syncTrial(db, shopDomain, { eligible: true, today });
+    const plan = planFor(trial?.pricing_generation ?? "launch", kind);
+    if (!plan) return { ok: false, errorCode: "generic" };
+
+    const { confirmationUrl, error } = await createCharge(admin, {
+      name: plan.name,
+      amount: plan.amount,
+      currency: plan.currency,
+      interval: plan.interval,
+      // L'acquisto una tantum viene addebitato all'approvazione e rinuncia ai giorni residui;
+      // le sottoscrizioni ricevono invece solo i giorni di prova che restano (FR-074).
+      trialDays: kind === "one_time" ? 0 : remainingTrialDays(trial, today),
+      test: BILLING_IS_TEST,
+      returnUrl: returnUrlFor(request, shopDomain),
+    });
+
+    if (error || !confirmationUrl) return { ok: false, errorCode: "charge_failed" };
+    return { ok: true, confirmationUrl };
+  } catch {
+    return { ok: false, errorCode: "charge_failed" };
   }
-
-  // Un pagamento unico copre lo store per sempre: nessun altro addebito va creato sopra.
-  if ((await readBilling(admin, BILLING_IS_TEST)).oneTime) {
-    return { ok: false, errorCode: "one_time_already_active" };
-  }
-
-  const today = localDate(shop.ianaTimezone);
-  const trial = await syncTrial(db, shopDomain, { eligible: true, today });
-  const plan = planFor(trial?.pricing_generation ?? "launch", kind);
-  if (!plan) return { ok: false, errorCode: "generic" };
-
-  const { confirmationUrl, error } = await createCharge(admin, {
-    name: plan.name,
-    amount: plan.amount,
-    currency: plan.currency,
-    interval: plan.interval,
-    // L'acquisto una tantum viene addebitato all'approvazione e rinuncia ai giorni residui;
-    // le sottoscrizioni ricevono invece solo i giorni di prova che restano (FR-074).
-    trialDays: kind === "one_time" ? 0 : remainingTrialDays(trial, today),
-    test: BILLING_IS_TEST,
-    returnUrl: returnUrlFor(request, shopDomain),
-  });
-
-  if (error || !confirmationUrl) return { ok: false, errorCode: "charge_failed" };
-  return { ok: true, confirmationUrl };
 }
 
 // FR-080: cancellazione ordinaria, nessuna proratazione, accesso fino a fine periodo pagato.
 async function cancelPlan(admin: Admin, db: D1Database, shopDomain: string) {
-  const state = await readBilling(admin, BILLING_IS_TEST);
-  if (!state.subscription) return { ok: false, errorCode: "no_subscription" };
+  try {
+    const state = await readBilling(admin, BILLING_IS_TEST);
+    if (!state.subscription) return { ok: false, errorCode: "no_subscription" };
 
-  if (await cancelSubscription(admin, state.subscription.id, { prorate: false })) {
+    if (await cancelSubscription(admin, state.subscription.id, { prorate: false })) {
+      return { ok: false, errorCode: "cancel_failed" };
+    }
+
+    await recordEvent(db, { shopDomain, name: "subscription_cancelled", class: "billing" });
+    return { ok: true };
+  } catch {
     return { ok: false, errorCode: "cancel_failed" };
   }
-
-  await recordEvent(db, { shopDomain, name: "subscription_cancelled", class: "billing" });
-  return { ok: true };
 }
 
 export const shouldRevalidate = skipRevalidationWhenLeaving;

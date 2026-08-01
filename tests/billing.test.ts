@@ -10,6 +10,7 @@ import {
   pricingGeneration,
   proratedCredit,
   readBilling,
+  requestedRecurringPlanIsActive,
   remainingTrialDays,
   returnUrlFor,
   syncBillingAccount,
@@ -518,6 +519,29 @@ test("l'addebito restituisce l'URL di conferma e distingue i due tipi", async ()
   );
 
   expect(rifiutato).toEqual({ confirmationUrl: null, error: "charge_create_failed" });
+
+  expect(
+    await createCharge(
+      { graphql: async () => Promise.reject(new Error("Shopify non disponibile")) },
+      {
+        name: "CF Ready — abbonamento mensile",
+        amount: 2.99,
+        currency: "EUR",
+        interval: "EVERY_30_DAYS",
+        trialDays: 0,
+        test: true,
+        returnUrl: "https://app.example/app",
+      },
+    ),
+  ).toEqual({ confirmationUrl: null, error: "charge_create_failed" });
+});
+
+test("il confine billing riconosce il piano ricorrente già attivo", () => {
+  const mensile = abbonamento("gid://shopify/AppSubscription/attivo", "2026-08-31");
+
+  expect(requestedRecurringPlanIsActive(mensile, "monthly")).toBe(true);
+  expect(requestedRecurringPlanIsActive(mensile, "annual")).toBe(false);
+  expect(requestedRecurringPlanIsActive(mensile, "one_time")).toBe(false);
 });
 
 test("la lease impedisce che due riconciliazioni facciano la stessa operazione", async () => {
@@ -548,16 +572,21 @@ test("la lease impedisce che due riconciliazioni facciano la stessa operazione",
 });
 
 test("l'URL di ritorno riporta il merchant dentro l'admin", () => {
+  const host = btoa("admin.shopify.com/store/negozio");
   const dentroAdmin = returnUrlFor(
-    new Request("https://app.example/app?embedded=1&shop=negozio.myshopify.com&host=YWRtaW4="),
+    new Request(`https://app.example/app?shop=intruso.myshopify.com&host=${host}`),
     "negozio.myshopify.com",
   );
 
   expect(dentroAdmin).toContain("shop=negozio.myshopify.com");
-  expect(dentroAdmin).toContain("host=YWRtaW4%3D");
+  expect(dentroAdmin).not.toContain("intruso");
+  expect(dentroAdmin).toContain(`host=${encodeURIComponent(host)}`);
 
-  // Senza `host` resta almeno lo store, che permette ad App Bridge di rientrare.
-  const senzaHost = returnUrlFor(new Request("https://app.example/app"), "negozio.myshopify.com");
+  // Un `host` non coerente viene scartato; lo shop autenticato permette comunque il rientro.
+  const senzaHost = returnUrlFor(
+    new Request(`https://app.example/app?host=${btoa("admin.shopify.com/store/altro")}`),
+    "negozio.myshopify.com",
+  );
   expect(senzaHost).toContain("shop=negozio.myshopify.com");
   expect(senzaHost).not.toContain("host=");
 });
@@ -579,6 +608,13 @@ test("la cancellazione riporta un errore invece di fingere il successo", async (
       { graphql: async () => risposta([{ message: "non cancellabile" }]) as unknown as Response },
       "gid://shopify/AppSubscription/50",
       { prorate: true },
+    ),
+  ).toBe("subscription_cancel_failed");
+  expect(
+    await cancelSubscription(
+      { graphql: async () => Promise.reject(new Error("Shopify non disponibile")) },
+      "gid://shopify/AppSubscription/50",
+      { prorate: false },
     ),
   ).toBe("subscription_cancel_failed");
 });

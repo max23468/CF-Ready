@@ -105,6 +105,25 @@ test("trasforma una risposta GraphQL senza data in errore operativo", () => {
   );
 });
 
+test("un errore di trasporto Validation resta nel risultato tipizzato", async () => {
+  const shop = "trasporto-validation.example.myshopify.com";
+  await seedShop(shop);
+
+  expect(
+    await writeValidation(
+      { graphql: async () => Promise.reject(new Error("Shopify non disponibile")) },
+      env.DB,
+      shop,
+      {
+        rules: DEFAULT_CONFIG.rules,
+        errorDisplay: DEFAULT_CONFIG.errorDisplay,
+        messages: DEFAULT_CONFIG.messages,
+      },
+      null,
+    ),
+  ).toEqual({ ok: false, errorCode: "validation_write_failed" });
+});
+
 test("mantiene un solo lock Validation mentre il proprietario lo rinnova", async () => {
   const now = 1_000;
   const shop = "concurrent.example.myshopify.com";

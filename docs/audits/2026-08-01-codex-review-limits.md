@@ -21,8 +21,8 @@ avevano invece ricevuto una review reale di Codex e sono incluse per controllo.
 Il risultato sul codice corrente è:
 
 - **1 finding P1**, che resta un gate esplicito prima della `1.0.0`;
-- **13 finding P2**;
-- **5 finding P3**;
+- **11 finding P2**;
+- **4 finding P3**;
 - nessun P0;
 - 3 thread Codex reali ancora `unresolved` su GitHub: uno in `#68`, due in
   `#105`;
@@ -34,9 +34,6 @@ Il risultato sul codice corrente è:
 | ID          | PR principale | Classe                    | Priorità   | Sintesi                                                                                                           |
 | ----------- | ------------- | ------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
 | F-M3-57-01  | #57           | limite di prodotto        | P1 pre-1.0 | con `localizedFields` vuoto i checkout accelerati possono passare senza Codice Fiscale richiesto                  |
-| F-M5-74-01  | #74 / #83     | bug di gestione errori    | P2         | errori di trasporto/risposta Shopify sfuggono ai risultati tipizzati e aprono la Error Boundary                   |
-| F-M5-76-01  | #76           | hardening                 | P3         | il `returnUrl` billing preferisce il parametro `shop` non fidato alla sessione autenticata                        |
-| F-M5-79-01  | #74/#79       | bug di validazione billing | P2        | l’action accetta il piano ricorrente già attivo e può creare una sostituzione/addebito ridondante                 |
 | F-M6-83-01  | #83 / #90     | bug di verifica           | P2         | il readback della configurazione non confronta messaggi, entitlement e intero metafield                           |
 | F-M6-83-02  | #83           | bug di consistenza        | P2         | Regole salva la dichiarazione D1 prima di sapere se Shopify ha accettato la configurazione                        |
 | F-M6-83-03  | #83/#90/#99   | bug di consistenza        | P2         | ogni salvataggio riscrive l’entitlement dalla cache D1 senza riconciliare prima Shopify                           |
@@ -75,7 +72,7 @@ con impatto circoscritto ma reale; P3 hardening, accuratezza o caso marginale.
 
 Verifiche fresche eseguite:
 
-- `npm run check`: verde sullo snapshot con il report; 37 documenti, 80 test
+- `npm run check`: verde sullo snapshot con il report; 37 documenti, 82 test
   app, 105 test Function, React Doctor 100/100, build app e Function, dry-run
   Wrangler;
 - `npm audit --omit=dev --audit-level=high`: un advisory high su
@@ -92,11 +89,11 @@ Verifiche fresche eseguite:
 Readback remoto, solo in lettura:
 
 - Cloudflare Development non ha migrazioni D1 pendenti; `0008` è applicata e il
-  Worker attivo è la versione `062372ef-91e8-4255-b00e-fd73bc83844b`,
-  deployment `483f5ca1-74af-42ef-a67a-7b50a8be69f8`, sul commit `6e931c9`;
-- Shopify Development ha attiva la versione `0.4.24`
-  (`gid://shopify/Version/1072798892033`), riferita allo stesso commit;
-- il run coordinato `30707986047` ha riletto D1, pubblicato e
+  Worker attivo è la versione `063256eb-5905-4f2e-ba28-aff24e3294e3`,
+  deployment `48d62221-5edf-4863-b266-397536397d86`, sul commit `31939bc`;
+- Shopify Development ha attiva la versione `0.4.25`
+  (`gid://shopify/Version/1072804790273`), riferita allo stesso commit;
+- il run coordinato `30708276253` ha riletto D1, pubblicato e
   riletto Worker e Shopify, ed eseguito lo smoke del Worker.
 
 La review UX/UI è statica: gerarchia, copy, stato, feedback, accessibilità e
@@ -122,7 +119,7 @@ webhook e fino a otto retry per le chiamate fallite; Cloudflare documenta che
 [GitHub Advisory GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2).
 
 Durante la campagna sono stati eseguiti i deploy Development coordinati
-da `0.4.22` a `0.4.24`, inclusa la migrazione additiva `0008`. Non sono stati
+da `0.4.22` a `0.4.25`, inclusa la migrazione additiva `0008`. Non sono stati
 eseguiti addebiti di prova, scenari browser sul dev store o scritture Production;
 le altre prove live storiche restano evidenze, non sono presentate come nuove.
 
@@ -545,7 +542,7 @@ Plan; non impone PR di compatibilità o ricevute isolate.
 
 #### F-M5-74-01 — errori Shopify di trasporto fuori dal contratto tipizzato
 
-- **Classe/priorità/stato:** bug di gestione errori e UX, P2, aperto; il ramo
+- **Classe/priorità/stato:** bug di gestione errori e UX, P2, chiuso; il ramo
   Validation introdotto da #83 ha lo stesso difetto.
 - **Evidenza:** `app/billing.server.ts:334-403` e `:434-452` convertono errori
   GraphQL presenti nel body nei codici stabili `charge_failed` e
@@ -565,10 +562,13 @@ Plan; non impone PR di compatibilità o ricevute isolate.
   restituire i codici stabili già esistenti, conservando il `finally` della
   lease. Un test con `graphql` rifiutata per billing e uno per Validation
   bastano; non serve un nuovo livello di errori.
+- **Esito:** creazione e cancellazione billing, writer Validation e letture
+  preliminari delle action convertono trasporto e parsing nei codici stabili già
+  mostrati dall'interfaccia; le due regressioni usano Promise rifiutate.
 
 Il bug storico `Application Error` è invece corretto: la mutation restituisce
 la confirmation URL e il client esce dall’iframe. Stato ed entitlement
-continuano a provenire dal readback Shopify. Resta anche F-M5-76-01 sul ritorno.
+continuano a provenire dal readback Shopify.
 
 ### [PR #75 — log del rifiuto di addebito](https://github.com/max23468/CF-Ready/pull/75)
 
@@ -584,7 +584,7 @@ riconfermato se in futuro alle mutation vengono passati dati liberi del merchant
 
 #### F-M5-76-01 — `shop` del return URL preso dalla query
 
-- **Classe/priorità/stato:** hardening di confine, P3, aperto.
+- **Classe/priorità/stato:** hardening di confine, P3, chiuso.
 - **Evidenza:** `app/billing.server.ts:408-414` riceve il dominio autenticato
   `shopDomain`, ma usa `incoming.get("shop") ?? shopDomain`. Un parametro query
   manipolato prevale quindi sulla sessione validata; anche `host` è inoltrato
@@ -594,6 +594,9 @@ riconfermato se in futuro alle mutation vengono passati dati liberi del merchant
   `APP_URL`, quindi non è un open redirect esterno.
 - **Correzione proporzionata:** usare sempre `shopDomain` per `shop`; mantenere
   `host` soltanto se necessario al rientro embedded e coerente col contesto.
+- **Esito:** il return URL usa sempre lo shop della sessione e conserva `host`
+  soltanto se decodifica nel formato corrente
+  `admin.shopify.com/store/{shop-name}` dello stesso store.
 
 La guardia `ALLOWED_SHOP` Development è invece corretta e cancella sessione e
 store creati prima di rifiutare l’installazione.
@@ -620,7 +623,7 @@ codice è nel ramo corrente.
 
 #### F-M5-79-01 — il server accetta ancora il piano ricorrente già attivo
 
-- **Classe/priorità/stato:** bug di validazione al confine billing, P2, aperto;
+- **Classe/priorità/stato:** bug di validazione al confine billing, P2, chiuso;
   la PR ha corretto soltanto la presentazione client.
 - **Evidenza:** Home nasconde il bottone mensile o annuale corrente in
   `app/routes/app._index.tsx:464-489`. L’action accetta però direttamente gli
@@ -636,6 +639,9 @@ codice è nel ramo corrente.
   eseguito e rifiutare `monthly` con `EVERY_30_DAYS` e `annual` con `ANNUAL`,
   prima di creare l’addebito; un test di action verifica che la mutation non
   parta. Nessun nuovo stato billing.
+- **Esito:** `subscribe` confronta il piano richiesto con il readback Shopify e
+  termina prima di prova, piano e mutation se l'intervallo è già attivo; la
+  regressione copre mensile, annuale e acquisto una tantum.
 
 Il secondo difetto affrontato dalla PR, la rivalidazione durante l’uscita, è
 corretto anche sulla rotta padre e non è conteggiato come finding.
@@ -1124,21 +1130,19 @@ alcun meccanismo di sincronizzazione documentale.
 
 ## 7. Ordine operativo consigliato
 
-1. Validare al confine server gli errori Shopify, il `returnUrl` e il piano già
-   attivo (F-M5-74-01, F-M5-76-01, F-M5-79-01).
-2. Chiudere il percorso di mutazione condiviso: errori Shopify tipizzati,
+1. Chiudere il percorso di mutazione condiviso: errori Shopify tipizzati,
    riconciliazione entitlement, readback completo, rifiuto dell’attivazione
    senza diritto e configurazione riletta dentro la lease (F-M6-83-01/03/05 e
    F-M6-99-01).
-3. Persistire le dichiarazioni D1 soltanto dopo il successo Shopify
+2. Persistire le dichiarazioni D1 soltanto dopo il successo Shopify
    (F-M6-83-02, F-M6-99-02).
-4. Correggere i residui UX statici con componenti e stati già presenti: login
+3. Correggere i residui UX statici con componenti e stati già presenti: login
    bilingue, banner salvataggio, frase Home, loading del pulsante e Setup guide
    (F-M6-83-04, F-M6-86-01, F-M6-90-01, F-M6-87-01).
-5. Aggiungere la conferma cancellazione F-M6-99-03 riusando la modale presente.
-6. Stabilizzare stato e layout dell'onboarding con i test minimi di regressione
+4. Aggiungere la conferma cancellazione F-M6-99-03 riusando la modale presente.
+5. Stabilizzare stato e layout dell'onboarding con i test minimi di regressione
    (F-M6-101-01, F-M6-105-01/02/03).
-7. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
+6. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
    prima della prova reale.
 
 Questo ordine non richiede retrocompatibilità, supporto di formati legacy,
