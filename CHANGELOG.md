@@ -7,9 +7,10 @@ restano requisiti delle sole release Production.
 
 ## 0.5.9 — 2 agosto 2026
 
-- la Content-Security-Policy consente l'endpoint RUM effettivamente usato dal
-  beacon sul dominio `pages.dev`, e Privacy Policy e documentazione riportano
-  la destinazione corretta.
+- la Content-Security-Policy consente gli host dedicati agli asset e alla
+  raccolta Cloudflare Web Analytics, incluso l'endpoint RUM effettivamente usato
+  sul dominio `pages.dev`; Privacy Policy e documentazione riportano la
+  destinazione corretta.
 
 ## 0.5.8 — 2 agosto 2026
 
