@@ -5,6 +5,14 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.22 — 1 agosto 2026
+
+- il deploy Development applica le migrazioni D1, pubblica e rilegge il Worker
+  dello stesso commit, esegue lo smoke e soltanto dopo pubblica Shopify; prima
+  di ogni scrittura accetta come rollback solo Worker e Shopify già coordinati;
+- il preflight verifica ogni target Development nella chiave e nel file che lo
+  possiedono, così un nome Worker errato non può passare grazie all'URL corretto.
+
 ## 0.4.21 — 31 luglio 2026
 
 - al quarto passo `Attiva nel checkout` sembrava non fare nulla: la validazione
