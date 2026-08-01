@@ -615,7 +615,7 @@ export function PlanChoice({
 // Composizione `Setup guide` di Polaris: passi con stato reale, spunta di completamento e
 // contatore. I passi hanno un completamento oggettivo — «fai un ordine di prova» resterebbe
 // fuori, perché CF Ready non legge gli ordini e non è nel suo perimetro.
-function SetupGuide({
+export function SetupGuide({
   data,
   busy,
   pendingIntent,
@@ -690,11 +690,10 @@ function SetupGuide({
         {/* I passi stanno in riga: incolonnati lasciavano vuota tutta la larghezza della card.
             La spiegazione del passo in corso sta sotto, così una colonna più alta non deforma
             le altre. */}
-        <s-grid gridTemplateColumns={steps.map(() => "1fr").join(" ")} gap="base">
+        <s-grid gridTemplateColumns="repeat(auto-fit, minmax(12rem, 1fr))" gap="base">
           {steps.map((step, index) => (
             <s-stack key={step.title} direction="inline" gap="small-100" alignItems="center">
-              {/* La spunta è un token semantico: dice fatto o da fare, non decora. */}
-              <s-icon type="check-circle" tone={step.done ? "success" : "auto"} />
+              {step.done ? <s-icon type="check-circle" tone="success" /> : null}
               <s-text
                 type={index === active ? "strong" : undefined}
                 color={step.done ? "subdued" : "base"}

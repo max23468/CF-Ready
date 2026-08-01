@@ -5,6 +5,7 @@ import {
   MESSAGE_KEYS,
   messagesAreDefault,
   messageAppears,
+  parseOnboardingStep,
   pendingFetcherIntent,
   pendingFetcherSource,
   reviewIsDue,
@@ -55,6 +56,14 @@ test("feedback di salvataggio e caricamento seguono l'azione corrente", () => {
   expect(pendingFetcherSource(form)).toBe("status");
   expect(pendingFetcherIntent(undefined)).toBeNull();
   expect(pendingFetcherSource(undefined)).toBeNull();
+});
+
+test("il passo onboarding accetta soltanto interi nell'intervallo", () => {
+  expect(parseOnboardingStep("1")).toBe(1);
+  expect(parseOnboardingStep("4")).toBe(4);
+  expect(parseOnboardingStep("x")).toBeNull();
+  expect(parseOnboardingStep("2.5")).toBeNull();
+  expect(parseOnboardingStep("5")).toBeNull();
 });
 
 test("italiano e inglese descrivono le stesse cose", () => {
