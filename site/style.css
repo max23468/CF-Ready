@@ -40,19 +40,43 @@ svg {
   max-width: var(--cf-measure);
 }
 
+/* Ritmo verticale unico: ogni sezione porta la stessa mezza distanza sopra e
+   sotto, così lo stacco fra due sezioni è sempre lo stesso. Le eccezioni sono
+   solo due, e sono volute: il primo schermo e le fasce a fondo pieno. */
 section {
-  padding: var(--cf-space-16) 0;
+  padding-block: var(--cf-space-12);
 }
 
 .divided {
   border-top: var(--cf-border-subtle);
 }
 
-/* Sezione a fondo pieno: limiti, chiusura e piè di pagina (§9.1). */
+/* Intestazione di sezione: occhiello, titolo, eventuale spiegazione. Lo stacco
+   verso il contenuto vive qui invece che in uno stile in linea per blocco. */
+.section-head {
+  max-width: var(--cf-measure);
+  margin-bottom: var(--cf-space-8);
+}
+
+.section-head > :last-child {
+  margin-bottom: 0;
+}
+
+.note {
+  max-width: var(--cf-measure);
+  margin-top: var(--cf-space-6);
+}
+
+/* Sezione a fondo pieno: limiti, chiusura e piè di pagina (§9.1). Respira più
+   delle altre perché il colore ne definisce i bordi, che altrimenti stringono. */
 .inverse {
   background: var(--cf-color-primary);
   color: var(--cf-color-ink-inverse);
   border-top: 0;
+}
+
+section.inverse {
+  padding-block: var(--cf-space-16);
 }
 
 .inverse :is(h2, h3, a, strong) {
@@ -235,8 +259,7 @@ a:hover {
 /* ---- Hero ---- */
 
 .hero {
-  padding-top: var(--cf-space-16);
-  padding-bottom: var(--cf-space-12);
+  padding-block: var(--cf-space-16) var(--cf-space-12);
 }
 
 .hero .wrap {
@@ -285,16 +308,20 @@ section > .wrap > :last-child,
   margin-bottom: var(--cf-space-4);
 }
 
-/* Barra dei tre punti fermi sotto l'hero. */
-.facts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: var(--cf-space-6);
-  padding: var(--cf-space-8) 0;
+/* Fascia dei tre punti fermi sotto il primo schermo: una riga di respiro breve
+   fra l'hero e il corpo, non una sezione a sé. */
+section.facts {
+  padding-block: var(--cf-space-8);
   border-block: var(--cf-border-subtle);
 }
 
-.facts p {
+section.facts .wrap {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--cf-space-6);
+}
+
+section.facts p {
   margin: 0;
 }
 
@@ -458,7 +485,16 @@ footer ul {
   }
 
   section {
-    padding: var(--cf-space-12) 0;
+    padding-block: var(--cf-space-8);
+  }
+
+  section.inverse,
+  .hero {
+    padding-block: var(--cf-space-12);
+  }
+
+  .section-head {
+    margin-bottom: var(--cf-space-6);
   }
 
   .masthead {
