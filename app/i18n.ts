@@ -148,8 +148,10 @@ const it = {
       "Sono già pronti in italiano e inglese. Puoi riscriverli quando vuoi da Messaggi al cliente.",
     step4Heading: "Riepilogo",
     step4Body: "Da qui puoi attivare subito le regole oppure salvarle e attivarle più tardi.",
+    reviewStep4Body: "La Validation è già attiva. Completa la revisione per tornare alla Home.",
     activate: "Attiva nel checkout",
     finishWithout: "Completa senza attivare",
+    completeReview: "Completa revisione",
     doneHeading: "Configurazione completata",
     doneBody:
       "Le regole sono salvate. Puoi cambiarle quando vuoi, e questa procedura resta disponibile dalla Guida.",
@@ -469,8 +471,10 @@ const en: typeof it = {
       "They’re ready in Italian and English. You can rewrite them whenever you want from Customer messages.",
     step4Heading: "Summary",
     step4Body: "From here you can turn the rules on now, or save them and turn them on later.",
+    reviewStep4Body: "Validation is already active. Complete the review to return Home.",
     activate: "Turn on in checkout",
     finishWithout: "Finish without turning on",
+    completeReview: "Complete review",
     doneHeading: "Setup complete",
     doneBody:
       "Your rules are saved. You can change them whenever you want, and these steps stay available from the Help page.",
@@ -690,6 +694,9 @@ export function texts(locale: Locale) {
 // parole: una frase per conseguenza, mai un elenco di stati. Nessuna simulazione grafica del
 // checkout (D-068), solo testo.
 export type CheckoutStatus = "active" | "disabled" | "lapsed";
+
+export const validationStatus = (enabled: boolean): CheckoutStatus =>
+  enabled ? "active" : "disabled";
 
 export function describeCheckout(
   {

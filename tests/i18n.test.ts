@@ -21,6 +21,7 @@ import {
   summariseCheckout,
   texts,
   trialNotice,
+  validationStatus,
 } from "../app/i18n";
 
 const url = "https://cf-ready-dev.tmsf.workers.dev/app";
@@ -93,6 +94,11 @@ test("l'anteprima dice la conseguenza per il cliente, non lo stato dei campi", (
 
   expect(lines[0]).toContain("non completa l’ordine senza un Codice Fiscale");
   expect(lines).not.toContain(texts("it").checkout.disabled);
+});
+
+test("la revisione onboarding descrive lo stato reale della Validation", () => {
+  expect(validationStatus(true)).toBe("active");
+  expect(validationStatus(false)).toBe("disabled");
 });
 
 test("senza regole attive l'anteprima non promette nulla", () => {
