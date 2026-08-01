@@ -51,7 +51,7 @@ documentazione tecnica: nell'interfaccia si parla di **validazione**.
 | Un solo pagamento | One payment | L'acquisto singolo senza rinnovi | Lifetime, a vita, per sempre, illimitato |
 | Consigliato | Recommended | L'etichetta dell'annuale | Migliore offerta, Risparmia il 17% |
 | prezzo di lancio | launch price | Il prezzo della prima generazione tariffaria | sconto, promozione, offerta |
-| generazione tariffaria | pricing generation | Il listino acquisito dallo store e non più modificato | fascia, tier |
+| generazione tariffaria | pricing generation | Il listino acquisito dallo store e mantenuto finché esiste continuità commerciale | fascia, tier |
 | primo addebito | first charge | La data del primo pagamento effettivo | scadenza, rinnovo |
 | credito stimato | estimated credit | La quota del ciclo corrente non usufruita, mostrata come stima | rimborso, storno |
 

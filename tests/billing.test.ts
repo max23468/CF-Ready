@@ -475,13 +475,37 @@ test("la generazione cambia solo dopo una cessazione commerciale completa", asyn
     timeZone: "Europe/Rome",
     pricingGeneration: "launch",
   });
-  const renewed = await syncBillingAccount(
+  const renewedBilling = abbonamento(
+    "gid://shopify/AppSubscription/generation-new",
+    "2026-12-31T22:59:59Z",
+  );
+  renewedBilling.subscription.amount = "3.99";
+  const renewed = await syncBillingAccount(env.DB, shop, renewedBilling, {
+    today: "2026-12-01",
+    timeZone: "Europe/Rome",
+    pricingGeneration: "balanced",
+  });
+  expect(renewed.pricing_generation).toBe("balanced");
+});
+
+test("un addebito Shopify attivo ricostruisce la generazione tariffaria", async () => {
+  const launchShop = await insertShop("addebito-launch.example.myshopify.com");
+  const launch = await syncBillingAccount(
     env.DB,
-    shop,
-    abbonamento("gid://shopify/AppSubscription/generation-new", "2026-12-31T22:59:59Z"),
+    launchShop,
+    abbonamento("gid://shopify/AppSubscription/launch-source", "2026-12-31T22:59:59Z"),
     { today: "2026-12-01", timeZone: "Europe/Rome", pricingGeneration: "balanced" },
   );
-  expect(renewed.pricing_generation).toBe("balanced");
+  expect(launch.pricing_generation).toBe("launch");
+
+  const balancedShop = await insertShop("addebito-balanced.example.myshopify.com");
+  const balancedBilling = abbonamento(
+    "gid://shopify/AppSubscription/balanced-source",
+    "2026-12-31T22:59:59Z",
+  );
+  balancedBilling.subscription.amount = "3.99";
+  const balanced = await syncBillingAccount(env.DB, balancedShop, balancedBilling, opzioni);
+  expect(balanced.pricing_generation).toBe("balanced");
 });
 
 test("il credito stimato copre solo il ciclo corrente", () => {

@@ -70,11 +70,11 @@
     <div class="wrap">
       <p><strong>It’s Shopify’s own field.</strong> The one the Italian checkout already shows, not one we bolted on.</p>
       <p><strong>Your theme stays as it is.</strong> No code to paste, no extension to install.</p>
-      <p><strong>Your plan is fine.</strong> You need Shopify, not Shopify Plus.</p>
+      <p><strong>It works on standard plans.</strong> Basic, Grow, Advanced and Plus.</p>
     </div>
   </section>
 
-  <section class="divided">
+  <section>
     <div class="wrap column">
       <span class="label">The problem</span>
       <h2>The order arrived, the invoice didn’t</h2>
@@ -137,7 +137,7 @@
       <div class="section-head">
         <span class="label">What it checks</span>
         <h2>Counting characters isn’t enough</h2>
-        <p>CF Ready rebuilds the code the way the official rule builds it, and catches the cases that quick checks get wrong.</p>
+        <p>CF Ready checks length, structure, date, municipality code and check character, and catches the cases that quick checks get wrong.</p>
       </div>
 
       <div class="grid">
@@ -179,8 +179,8 @@
       <ul class="checks grid two">
         <li>Order heading abroad: no check.</li>
         <li>Foreign billing details, even if you deliver or hand over in Italy: no check.</li>
-        <li>Store pickup and mixed orders: checked if at least one delivery is Italian.</li>
-        <li>Accelerated checkouts, and anywhere Shopify doesn’t show the fields: no errors.</li>
+        <li>Store pickup: checked when the fields are present. Mixed orders: checked if at least one delivery is Italian.</li>
+        <li>Required field not shown: blocked only when at least one Italian delivery is observable; without an observable delivery, checkout stays open.</li>
         <li>Unreadable configuration or a technical fault: the checkout stays open.</li>
         <li>Trial over or plan inactive: the checkout stays open.</li>
       </ul>
@@ -220,7 +220,7 @@
     <div class="wrap column">
       <span class="label">Data</span>
       <h2>What your customers type stays in Shopify</h2>
-      <p>The check happens inside Shopify, while the customer is at the till. Tax codes and PEC addresses never reach our servers, never end up in a log and don’t stick around anywhere: the app receives the value, looks at it, and answers only if something is wrong.</p>
+      <p>The check happens inside Shopify, while the customer is at the till. Tax codes and PEC addresses stay in Shopify: they never reach our servers, never end up in a CF Ready log and are not stored by CF Ready. The app receives the value, looks at it and answers only if something is wrong.</p>
       <p>We know nothing about your orders, customers, products or stock, and the permissions we ask Shopify for stop at what the app needs to run. It’s written out in full in the <a href="privacy.html">Privacy Policy</a>.</p>
     </div>
   </section>
@@ -229,7 +229,7 @@
     <div class="wrap column">
       <span class="label">Trial and price</span>
       <h2>Fourteen days to make up your mind</h2>
-      <p>The trial runs two weeks, it’s the full app, and it doesn’t cost a thing. At the end you pick how to pay: every month, once a year, or once and for all for this store.</p>
+      <p>The trial runs two weeks, it’s the full app, and it doesn’t cost a thing. At the end you pick how to pay: every month, once a year, or with one payment for this Shopify store, without renewals.</p>
       <p>What changes is when you pay, not what you get: no order limits, no features held back for whoever spends more. The current price is on the App Store and inside the app when you choose, and the charge always lands on your Shopify invoice.</p>
       <div class="actions">
         <button class="button" type="button" disabled>Coming to the Shopify App Store</button>
@@ -249,17 +249,17 @@
 
       <details>
         <summary>Does it work with my Shopify plan?</summary>
-        <p>On the regular plans, yes, and Plus isn’t needed. What matters is that the store address is in Italy: that’s what decides whether the tax fields show up in the checkout at all.</p>
+        <p>Yes, on Basic, Grow, Advanced and Plus. What matters is that the store address is in Italy: that’s what decides whether the tax fields show up in the checkout at all.</p>
       </details>
 
       <details>
         <summary>Could it block good orders?</summary>
-        <p>It’s the thing we thought about most. It leaves foreign orders alone, says nothing where Shopify doesn’t show the fields, and any technical hiccup leaves the checkout open. If you want to ease into it, start with the fields optional: it flags people who type it wrong and lets through people who leave it blank.</p>
+        <p>It’s the thing we thought about most. It leaves foreign orders alone; if a required field is missing, it blocks only when Shopify exposes at least one Italian delivery. Without an observable delivery, and for any technical hiccup, checkout stays open. If you want to ease into it, start with the fields optional: it flags people who type it wrong and lets through people who leave it blank.</p>
       </details>
 
       <details>
         <summary>Is the tax code really verified?</summary>
-        <p>How it’s written is verified, not who it belongs to. The code has to be properly built, and on that we don’t bend. Whether it really is that customer’s code, we can’t know: no checkout app can.</p>
+        <p>How it’s written is verified, not who it belongs to. The code has to pass the format checks, and on that we don’t bend. Whether it really is that customer’s code, we can’t know: no checkout app can.</p>
       </details>
 
       <details>

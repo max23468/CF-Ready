@@ -690,8 +690,10 @@ messaggio già compilato verso la casella sviluppatore con:
 - metadati tecnici non sensibili dell’allowlist di §22, visibili nel messaggio.
 
 Nella 1.0 il recapito avviene tramite un collegamento `mailto:`, per l’esito
-della verifica registrato in §22: non esiste quindi un numero richiesta, che
-senza un sistema ricevente non avrebbe riscontro.
+della verifica registrato in §22, verso `cfready@icloud.com`; Apple/iCloud è
+dichiarata nella Privacy Policy tra i fornitori che trattano indirizzo del
+mittente, contenuto e metadati tecnici delle email. Non esiste quindi un numero
+richiesta, che senza un sistema ricevente non avrebbe riscontro.
 
 **FR-091** — Nessuna copia automatica al merchant nella 1.0.
 
@@ -1826,7 +1828,7 @@ Il calcolo visibile è una stima: Shopify resta la fonte dell’importo effettiv
 - normalmente nessun rimborso per ripensamento dopo la prova;
 - rimborso totale di una tantum revoca il diritto;
 - rimborso parziale mantiene il diritto salvo accordo diverso;
-- policy definitiva soggetta a revisione legale.
+- policy definitiva approvata dall'owner il 2 agosto 2026.
 
 ### 14.11 Comunicazione “Un solo pagamento”
 
@@ -2982,8 +2984,9 @@ Dopo 90 giorni dalla disinstallazione, se `shop/redact` non è arrivato:
 
 I 90 giorni sono il limite massimo residuale. Shopify invia `shop/redact` circa
 48 ore dopo la disinstallazione: quando arriva, la cancellazione è immediata e
-la finestra non viene consumata. Non esiste un job periodico; la retention più
-lunga si applica solo agli store per cui il webhook non arriva.
+la finestra non viene consumata. Un trigger orario del Worker cancella gli
+store ancora disinstallati che raggiungono i 90 giorni, come fallback quando il
+webhook non arriva.
 
 ### 21.6 `shop/redact`
 
@@ -2996,10 +2999,9 @@ Applicare:
   reinstallazione vengono riletti dalla fonte autorevole Shopify;
 - nessun contenuto libero del merchant oltre obblighi applicabili.
 
-La base giuridica e la forma della pseudonimizzazione devono essere validate
-nella revisione legale prima del lancio. Se il `trial_ledger` non è conservabile,
-prevale la cancellazione e va individuato un meccanismo Shopify compatibile per
-impedire una seconda prova.
+La base giuridica e la forma della pseudonimizzazione sono state approvate
+dall'owner il 2 agosto 2026. Il ledger conserva soltanto hash del dominio, stato
+della prova e generazione tariffaria, senza dati di checkout o contenuti liberi.
 
 ### 21.7 Telemetria
 
@@ -3020,7 +3022,9 @@ Sempre attiva perché necessaria a funzionamento, sicurezza e valutazione del la
 Il solo sito pubblico usa inoltre Cloudflare Web Analytics per visite aggregate
 e prestazioni reali. Il beacon non usa cookie o archiviazione locale, non crea
 fingerprint, non registra query string e non raggiunge checkout o app embedded.
-La Privacy Policy descrive metriche, finalità, base giuridica e destinatario.
+Cloudflare conserva i dati beacon non campionati per 7 giorni e poi li aggrega;
+CF Ready può consultare le metriche aggregate degli ultimi 6 mesi. La Privacy
+Policy descrive metriche, finalità, base giuridica, destinatario e retention.
 
 ### 21.8 Documenti legali
 
@@ -3944,8 +3948,9 @@ di dipendenza rimasta aperta. Operazioni e residui in
 
 Registro delle operazioni:
 [`docs/evidence/2026-08-01-m7-sito-legale-supporto.md`](../evidence/2026-08-01-m7-sito-legale-supporto.md).
-Il gate della revisione legale resta aperto in carico all'owner, e con esso
-l'identità completa del titolare nei due documenti.
+I testi legali e la conservazione pseudonimizzata del `trial_ledger` sono stati
+approvati dall'owner il 2 agosto 2026. Resta separato il completamento
+dell'identità del titolare nei due documenti prima della submission.
 
 Deliverable:
 

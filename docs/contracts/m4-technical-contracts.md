@@ -75,6 +75,11 @@ attiva la richiesta viene presa in carico con `200` e registrata come
 coinvolto, quindi l'obbligo di cancellazione non è in discussione: sarebbe in
 discussione la sessione viva di un merchant installato.
 
+Il trigger orario del Worker applica lo stesso percorso di cancellazione agli
+store che risultano ancora `uninstalled` dopo 90 giorni. Le ricevute webhook
+vengono anonimizzate e sopravvive soltanto il `trial_ledger` pseudonimizzato;
+uno store reinstallato non soddisfa la query e non viene toccato.
+
 Endpoint e topic registrati:
 
 | Endpoint | Topic |
