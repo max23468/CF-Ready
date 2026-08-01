@@ -22,9 +22,15 @@ const it = {
     guide: "Guida e FAQ",
   },
   common: {
-    saved: "Regole salvate. Valgono dal prossimo ordine.",
     save: "Salva",
     cancel: "Annulla",
+  },
+  auth: {
+    heading: "Accedi",
+    shopLabel: "Dominio dello store",
+    submit: "Accedi",
+    missingShop: "Inserisci il dominio dello store per accedere",
+    invalidShop: "Inserisci un dominio dello store valido per accedere",
   },
   errors: {
     validation_locked: "Un’altra operazione su questa Validation è in corso. Riprova fra poco.",
@@ -87,6 +93,7 @@ const it = {
   },
   messages: {
     heading: "Messaggi al cliente",
+    saved: "Messaggi salvati.",
     intro:
       "Sono i testi che il cliente legge nel checkout quando un campo manca o non è formalmente valido. Chi ha il checkout in italiano vede quelli italiani, tutti gli altri vedono quelli inglesi.",
     italian: "Italiano",
@@ -269,6 +276,7 @@ const it = {
   },
   rules: {
     heading: "Regole checkout",
+    saved: "Regole salvate.",
     taxCodeLabel: "Codice Fiscale",
     pecLabel: "PEC",
     taxCode: {
@@ -335,9 +343,15 @@ const en: typeof it = {
     guide: "Help and FAQ",
   },
   common: {
-    saved: "Rules saved. They apply from the next order.",
     save: "Save",
     cancel: "Cancel",
+  },
+  auth: {
+    heading: "Log in",
+    shopLabel: "Shop domain",
+    submit: "Log in",
+    missingShop: "Please enter your shop domain to log in",
+    invalidShop: "Please enter a valid shop domain to log in",
   },
   errors: {
     validation_locked: "Another operation on this validation is running. Try again shortly.",
@@ -400,6 +414,7 @@ const en: typeof it = {
   },
   messages: {
     heading: "Customer messages",
+    saved: "Messages saved.",
     intro:
       "These are the texts customers read at checkout when a field is missing or not formally valid. Customers checking out in Italian see the Italian ones, everyone else sees the English ones.",
     italian: "Italiano",
@@ -580,6 +595,7 @@ const en: typeof it = {
   },
   rules: {
     heading: "Checkout rules",
+    saved: "Rules saved.",
     taxCodeLabel: "Italian tax code (Codice Fiscale)",
     pecLabel: "Certified email address (PEC)",
     taxCode: {
@@ -718,6 +734,15 @@ export function summariseCheckout(
 
   if (status !== "active") lines.push(status === "lapsed" ? t.lapsed : t.disabled);
   return lines;
+}
+
+export function homeCheckoutSummary(
+  { rules, status }: { rules: Rules; status: CheckoutStatus },
+  locale: Locale,
+) {
+  if (status === "active") return summariseCheckout({ rules, status }, locale)[0];
+  const t = texts(locale).checkout;
+  return status === "lapsed" ? t.lapsed : t.disabled;
 }
 
 // FR-077: avvisi di prova a sette giorni, tre giorni, ultimo giorno e scadenza. Solo in app,

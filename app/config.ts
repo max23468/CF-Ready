@@ -118,6 +118,22 @@ export function address2Declaration(form: FormData): boolean | null {
   return form.get("address2Shown") === null ? null : form.get("address2") !== null;
 }
 
+export function pendingFetcherIntent(form: FormData | undefined) {
+  return form?.get("intent")?.toString() ?? null;
+}
+
+export function pendingFetcherSource(form: FormData | undefined) {
+  return form?.get("source")?.toString() ?? null;
+}
+
+export function showSavedBanner(
+  result: { ok: boolean } | undefined,
+  dirty: boolean,
+  changedSinceResult = false,
+) {
+  return result?.ok === true && !dirty && !changedSinceResult;
+}
+
 export type MessageProblem = { locale: "it" | "en"; key: (typeof MESSAGE_KEYS)[number] };
 
 // FR-061 e FR-062: trim, mai vuoti, mai oltre 200 caratteri. La validazione client è cortesia,

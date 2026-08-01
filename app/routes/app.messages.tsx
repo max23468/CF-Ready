@@ -6,6 +6,7 @@ import {
   MESSAGE_KEYS,
   MESSAGE_MAX_LENGTH,
   messageAppears,
+  showSavedBanner,
   readConfig,
 } from "../config";
 import { validateMessages } from "../config";
@@ -80,6 +81,7 @@ export default function CustomerMessages() {
   const result = useActionData<typeof action>();
   const send = useSubmit();
   const t = texts(saved.locale);
+  const [changedSinceResult, setChangedSinceResult] = useState(false);
   const [draft, setDraft] = useState<CheckoutConfig["messages"]>(saved.messages);
   // I campi non sono controllati: React che riscrive `value` a ogni tasto farebbe saltare il
   // cursore dentro un testo lungo. Il ripristino li rimonta cambiando chiave, così ripartono
@@ -90,6 +92,7 @@ export default function CustomerMessages() {
   // spazio finale lascerebbe la Save Bar accesa per sempre.
   useEffect(() => {
     if (!result?.ok) return;
+    setChangedSinceResult(false);
     setDraft(saved.messages);
     setMounted((current) => ({ it: current.it + 1, en: current.en + 1 }));
   }, [result, saved.messages]);
@@ -110,6 +113,7 @@ export default function CustomerMessages() {
     const [locale, key] = (field?.name ?? "").split(".");
     if (locale !== "it" && locale !== "en") return;
     if (!(MESSAGE_KEYS as readonly string[]).includes(key)) return;
+    setChangedSinceResult(true);
     setDraft((current) => ({
       ...current,
       [locale]: { ...current[locale], [key]: field?.value ?? "" },
@@ -137,6 +141,7 @@ export default function CustomerMessages() {
   // FR-063: il ripristino agisce su una lingua sola e lo dichiara nella conferma. Non salva da
   // sé: rimette i testi predefiniti nei campi e il salvataggio resta un gesto esplicito.
   const restore = (locale: Locale) => {
+    setChangedSinceResult(true);
     setDraft((current) => ({ ...current, [locale]: { ...DEFAULT_CONFIG.messages[locale] } }));
     setMounted((current) => ({ ...current, [locale]: current[locale] + 1 }));
   };
@@ -144,7 +149,9 @@ export default function CustomerMessages() {
   return (
     <form onInput={readDraft} onChange={readDraft}>
       <s-page heading={t.messages.heading}>
-        {result?.ok ? <s-banner tone="success">{t.common.saved}</s-banner> : null}
+        {showSavedBanner(result, dirty, changedSinceResult) ? (
+          <s-banner tone="success">{t.messages.saved}</s-banner>
+        ) : null}
         {result && !result.ok && "errorCode" in result ? (
           <s-banner tone="critical">
             {t.errors[result.errorCode as keyof typeof t.errors] ?? t.errors.generic}
