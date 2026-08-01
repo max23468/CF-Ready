@@ -126,6 +126,11 @@ export function pendingFetcherSource(form: FormData | undefined) {
   return form?.get("source")?.toString() ?? null;
 }
 
+export function parseOnboardingStep(value: FormDataEntryValue | null) {
+  const step = Number(value);
+  return Number.isInteger(step) && step >= 1 && step <= 4 ? step : null;
+}
+
 export function showSavedBanner(
   result: { ok: boolean } | undefined,
   dirty: boolean,

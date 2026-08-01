@@ -121,6 +121,9 @@ conserva la configurazione e porta lo stato a `completed`, che è anche ciò che
 valorizza `setup_checklist_dismissed_at`: la checklist della Home non ricompare
 più (D-063). Riaprire la procedura dalla Guida non azzera nulla — si ripercorre
 sulla configurazione salvata.
+Il confine server accetta soltanto passi interi da 1 a 4; quando lo stato è già
+`completed`, scritture di avanzamento tardive conservano il passo 1. Nel quarto
+passo checkbox e istruzioni leggono lo stesso stato controllato.
 
 La richiesta di recensione usa la modale nativa di Shopify, che decide da sé
 idoneità, frequenza e rifiuti: le tre risposte di FR-094 sono sue. L'app sceglie

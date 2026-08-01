@@ -651,7 +651,10 @@ export async function saveOnboarding(
                WHEN onboarding_status = 'completed' THEN 'completed'
                ELSE ?
              END,
-             onboarding_step = ?,
+             onboarding_step = CASE
+               WHEN onboarding_status = 'completed' THEN 1
+               ELSE ?
+             END,
              setup_checklist_dismissed_at = CASE
                WHEN ? = 'completed' AND setup_checklist_dismissed_at IS NULL THEN ?
                ELSE setup_checklist_dismissed_at
