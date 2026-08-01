@@ -21,7 +21,7 @@ avevano invece ricevuto una review reale di Codex e sono incluse per controllo.
 Il risultato sul codice corrente è:
 
 - **1 finding P1**, che resta un gate esplicito prima della `1.0.0`;
-- **7 finding P2**;
+- **5 finding P2**;
 - **4 finding P3**;
 - nessun P0;
 - 3 thread Codex reali ancora `unresolved` su GitHub: uno in `#68`, due in
@@ -34,12 +34,10 @@ Il risultato sul codice corrente è:
 | ID          | PR principale | Classe                    | Priorità   | Sintesi                                                                                                           |
 | ----------- | ------------- | ------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
 | F-M3-57-01  | #57           | limite di prodotto        | P1 pre-1.0 | con `localizedFields` vuoto i checkout accelerati possono passare senza Codice Fiscale richiesto                  |
-| F-M6-83-02  | #83           | bug di consistenza        | P2         | Regole salva la dichiarazione D1 prima di sapere se Shopify ha accettato la configurazione                        |
 | F-M6-83-04  | #83           | bug UX/i18n               | P3         | la rotta di login ignora la locale comune e mostra sempre etichette ed errori in inglese                          |
 | F-M6-86-01  | #83/#86/#90   | bug UX/feedback           | P2         | il banner di successo resta durante nuove modifiche e in Messaggi dichiara erroneamente «Regole salvate»          |
 | F-M6-87-01  | #87 / #99     | miglioramento UX          | P3         | le azioni via fetcher disabilitano i pulsanti senza mostrare quale operazione è in corso                          |
 | F-M6-90-01  | #90           | bug UX/contenuto          | P2         | Home descrive un checkout attivo anche quando la Validation è disattivata o il diritto è scaduto                  |
-| F-M6-99-02  | #99           | bug di consistenza        | P2         | l’attivazione onboarding salva la dichiarazione prima dell’esito Shopify                                          |
 | F-M6-99-03  | #99           | bug UX/salvaguardia       | P2         | la cancellazione del rinnovo parte al primo clic senza la conferma richiesta per azioni ad alto impatto           |
 | F-M6-101-01 | #101/#103/#105 | accessibilità/responsive | P3         | i passi incompleti hanno comunque l’icona di spunta e la griglia forza quattro colonne                            |
 | F-M6-105-01 | #105          | bug di concorrenza        | P2         | la persistenza del passo può terminare dopo la chiusura e riportare `onboarding_step` a 4                         |
@@ -68,7 +66,7 @@ con impatto circoscritto ma reale; P3 hardening, accuratezza o caso marginale.
 
 Verifiche fresche eseguite:
 
-- `npm run check`: verde sullo snapshot con il report; 37 documenti, 86 test
+- `npm run check`: verde sullo snapshot con il report; 37 documenti, 87 test
   app, 105 test Function, React Doctor 100/100, build app e Function, dry-run
   Wrangler;
 - `npm audit --omit=dev --audit-level=high`: un advisory high su
@@ -85,11 +83,11 @@ Verifiche fresche eseguite:
 Readback remoto, solo in lettura:
 
 - Cloudflare Development non ha migrazioni D1 pendenti; `0008` è applicata e il
-  Worker attivo è la versione `b0fc6149-42b3-41a5-9383-bebee6313063`,
-  deployment `672f7b2a-7145-444a-9334-f94664ce5618`, sul commit `3ca5d5e`;
-- Shopify Development ha attiva la versione `0.4.26`
-  (`gid://shopify/Version/1072810622977`), riferita allo stesso commit;
-- il run coordinato `30708633016` ha riletto D1, pubblicato e
+  Worker attivo è la versione `7da7f2b0-26dc-4089-92a7-38c16e4857f3`,
+  deployment `778ff4be-8f65-4e17-96b0-d6a117be2efb`, sul commit `75468e3`;
+- Shopify Development ha attiva la versione `0.4.27`
+  (`gid://shopify/Version/1072819339265`), riferita allo stesso commit;
+- il run coordinato `30709246370` ha riletto D1, pubblicato e
   riletto Worker e Shopify, ed eseguito lo smoke del Worker.
 
 La review UX/UI è statica: gerarchia, copy, stato, feedback, accessibilità e
@@ -115,7 +113,7 @@ webhook e fino a otto retry per le chiamate fallite; Cloudflare documenta che
 [GitHub Advisory GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2).
 
 Durante la campagna sono stati eseguiti i deploy Development coordinati
-da `0.4.22` a `0.4.26`, inclusa la migrazione additiva `0008`. Non sono stati
+da `0.4.22` a `0.4.27`, inclusa la migrazione additiva `0008`. Non sono stati
 eseguiti addebiti di prova, scenari browser sul dev store o scritture Production;
 le altre prove live storiche restano evidenze, non sono presentate come nuove.
 
@@ -697,7 +695,7 @@ onboarding.
 
 #### F-M6-83-02 — dichiarazione D1 salvata prima del metafield
 
-- **Classe/priorità/stato:** bug di consistenza, P2, aperto.
+- **Classe/priorità/stato:** bug di consistenza, P2, chiuso.
 - **Evidenza:** `app/routes/app.rules.tsx:51-52` salva
   `address2_conflict_declared_at`; solo dopo, `:56-65`, prova il write Shopify.
   `config_conflict`, lock occupata, limite Validation o errore rete lasciano
@@ -707,6 +705,9 @@ onboarding.
 - **Correzione proporzionata:** persistere la dichiarazione dopo `result.ok`.
   Non è necessaria una transazione distribuita perché la scrittura Shopify è la
   sola che può fallire prima.
+- **Esito:** salvataggio Regole e attivazione onboarding usano il writer
+  condiviso, che aggiorna la dichiarazione dopo il readback Shopify e prima di
+  rilasciare la lease; la regressione verifica conflitto e ordine del lock.
 
 #### F-M6-83-03 — entitlement riscritto da una cache non riconciliata
 
@@ -979,7 +980,7 @@ Introduce onboarding, review prompt e assorbimento Piano nella Home.
 
 #### F-M6-99-02 — dichiarazione salvata prima dell’attivazione
 
-- **Classe/priorità/stato:** bug di consistenza, P2, aperto.
+- **Classe/priorità/stato:** bug di consistenza, P2, chiuso.
 - **Evidenza:** `app/routes/app.onboarding.tsx:89-100` salva la dichiarazione in
   D1 prima di `writeValidation(..., true)`. Se l’attivazione fallisce, il form
   resta sul riepilogo con errore ma Home considera già cambiata la dichiarazione.
@@ -987,6 +988,9 @@ Introduce onboarding, review prompt e assorbimento Piano nella Home.
   una dichiarazione che apparteneva a un’attivazione fallita.
 - **Correzione proporzionata:** per `activate` salvare dopo `result.ok`. Per
   `finish` senza Shopify il salvataggio diretto resta corretto.
+- **Esito:** `activate` passa la dichiarazione al writer condiviso, che la salva
+  dentro la lease dopo il readback; `finish` conserva la scrittura locale
+  diretta prevista dal flusso senza attivazione.
 
 #### F-M6-99-03 — cancellazione rinnovo senza conferma
 
@@ -1140,15 +1144,13 @@ alcun meccanismo di sincronizzazione documentale.
 
 ## 7. Ordine operativo consigliato
 
-1. Persistire le dichiarazioni D1 soltanto dopo il successo Shopify
-   (F-M6-83-02, F-M6-99-02).
-2. Correggere i residui UX statici con componenti e stati già presenti: login
+1. Correggere i residui UX statici con componenti e stati già presenti: login
    bilingue, banner salvataggio, frase Home, loading del pulsante e Setup guide
    (F-M6-83-04, F-M6-86-01, F-M6-90-01, F-M6-87-01).
-3. Aggiungere la conferma cancellazione F-M6-99-03 riusando la modale presente.
-4. Stabilizzare stato e layout dell'onboarding con i test minimi di regressione
+2. Aggiungere la conferma cancellazione F-M6-99-03 riusando la modale presente.
+3. Stabilizzare stato e layout dell'onboarding con i test minimi di regressione
    (F-M6-101-01, F-M6-105-01/02/03).
-5. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
+4. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
    prima della prova reale.
 
 Questo ordine non richiede retrocompatibilità, supporto di formati legacy,

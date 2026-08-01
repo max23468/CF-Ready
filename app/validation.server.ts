@@ -317,6 +317,7 @@ export async function writeValidation(
   next: { rules: Rules; errorDisplay: ErrorDisplay; messages: CheckoutConfig["messages"] } | null,
   enable: boolean | null,
   expectedHash?: string | null,
+  declared?: boolean | null,
 ): Promise<ValidationWriteResult> {
   const lockToken = await acquireValidationLock(db, shopDomain);
   if (!lockToken) return { ok: false, errorCode: "validation_locked" };
@@ -433,6 +434,9 @@ export async function writeValidation(
       errorCode: consistent ? null : "validation_readback_failed",
     });
     if (!consistent) return { ok: false, errorCode: "validation_readback_failed" };
+    if (declared !== undefined && declared !== null) {
+      await saveAddress2Declaration(db, shopDomain, declared);
+    }
 
     return { ok: true, enabled };
   } catch {

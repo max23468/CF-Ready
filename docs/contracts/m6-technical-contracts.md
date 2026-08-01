@@ -88,6 +88,10 @@ quando il Codice Fiscale è gestito, ed è lì che nasce la sovrapposizione fra 
 due campi; un invio che non lo contiene non dice nulla sulla dichiarazione e la
 lascia com'è. `address2Declaration(form)` esprime la regola e distingue i tre
 casi: dichiarata, revocata, non toccata.
+Quando la dichiarazione accompagna un salvataggio o un'attivazione Validation,
+D1 viene aggiornato dentro la stessa lease, soltanto dopo il readback Shopify;
+il completamento onboarding senza attivazione resta invece una scrittura locale
+diretta.
 
 ## Codici aggiunti da M6
 

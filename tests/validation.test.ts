@@ -8,6 +8,7 @@ import {
   findValidation,
   mutationError,
   queryContext,
+  readAddress2Declaration,
   readConfig,
   releaseValidationLockBestEffort,
   renewValidationLock,
@@ -642,6 +643,61 @@ test("il salvataggio non sovrascrive la configurazione cambiata da un'altra sess
 
   expect(current).toEqual({ ok: true, enabled: false });
   expect(calls).toHaveLength(1);
+});
+
+test("la dichiarazione D1 cambia soltanto dopo il successo Shopify", async () => {
+  const shop = "declaration-after-shopify.example.myshopify.com";
+  await seedShop(shop);
+  let lockHeldDuringDeclaration = false;
+  const observedDb = {
+    prepare(query: string) {
+      const statement = env.DB.prepare(query);
+      if (!query.includes("SET address2_conflict_declared_at")) return statement;
+      return {
+        bind(...values: unknown[]) {
+          const bound = statement.bind(...values);
+          return {
+            async run() {
+              lockHeldDuringDeclaration = Boolean(
+                await env.DB.prepare(
+                  "SELECT 1 FROM validation_operation_locks WHERE shop_domain = ?",
+                )
+                  .bind(shop)
+                  .first(),
+              );
+              return bound.run();
+            },
+          };
+        },
+      } as unknown as D1PreparedStatement;
+    },
+    batch: env.DB.batch.bind(env.DB),
+  } as unknown as D1Database;
+  const { admin } = stubAdmin({ existing: { enabled: false } });
+  const next = {
+    rules: DEFAULT_CONFIG.rules,
+    errorDisplay: DEFAULT_CONFIG.errorDisplay,
+    messages: DEFAULT_CONFIG.messages,
+  };
+
+  expect(
+    await writeValidation(admin, observedDb, shop, next, null, "configurazione-superata", true),
+  ).toEqual({ ok: false, errorCode: "config_conflict" });
+  expect(await readAddress2Declaration(env.DB, shop)).toBeNull();
+
+  expect(
+    await writeValidation(
+      admin,
+      observedDb,
+      shop,
+      next,
+      null,
+      await configHash(DEFAULT_CONFIG),
+      true,
+    ),
+  ).toEqual({ ok: true, enabled: false });
+  expect(lockHeldDuringDeclaration).toBe(true);
+  expect(await readAddress2Declaration(env.DB, shop)).not.toBeNull();
 });
 
 test("l'attivazione conserva la configurazione letta dentro la lease", async () => {
