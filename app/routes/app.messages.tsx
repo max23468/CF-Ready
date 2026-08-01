@@ -41,9 +41,14 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   if ("problem" in validated) return { ok: false as const, problem: validated.problem };
 
   // FR-051: si salvano i messaggi e si conserva tutto il resto, stato della Validation compreso.
-  const current = readConfig(
-    findValidation((await queryContext(admin)).validations.nodes)?.metafield?.jsonValue,
-  );
+  let current;
+  try {
+    current = readConfig(
+      findValidation((await queryContext(admin)).validations.nodes)?.metafield?.jsonValue,
+    );
+  } catch {
+    return { ok: false as const, errorCode: "validation_write_failed" };
+  }
   const result = await writeValidation(
     admin,
     context.cloudflare.env.DB,

@@ -421,6 +421,8 @@ export async function writeValidation(
     if (!consistent) return { ok: false, errorCode: "validation_readback_failed" };
 
     return { ok: true, enabled };
+  } catch {
+    return { ok: false, errorCode: "validation_write_failed" };
   } finally {
     await heartbeat.stop();
     await releaseValidationLockBestEffort(db, shopDomain, lockToken);

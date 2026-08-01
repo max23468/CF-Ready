@@ -5,6 +5,15 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.26 — 1 agosto 2026
+
+- errori di trasporto o parsing Shopify restano nei risultati tipizzati di
+  billing e Validation, così le action mostrano il feedback contestuale;
+- il ritorno billing usa sempre lo shop autenticato e conserva soltanto un
+  `host` coerente con il contesto Admin corrente;
+- il server rifiuta un piano ricorrente uguale a quello già attivo prima di
+  creare una nuova approvazione Shopify.
+
 ## 0.4.25 — 1 agosto 2026
 
 - conto operativo ed evento billing vengono scritti atomicamente e l'evento
