@@ -152,8 +152,7 @@ export class D1SessionStorage implements SessionStorage {
          FROM shopify_sessions s
          JOIN shops ON shops.id = s.shop_id
          WHERE shops.shop_domain = ?
-         ORDER BY s.updated_at DESC
-         LIMIT 25`,
+         ORDER BY s.updated_at DESC`,
       )
       .bind(shop)
       .all<StoredSession>();

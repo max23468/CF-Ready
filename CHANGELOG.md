@@ -5,6 +5,11 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.35 — 1 agosto 2026
+
+- il session adapter restituisce tutte le sessioni dello store senza troncarle
+  dopo le prime 25.
+
 ## 0.4.34 — 1 agosto 2026
 
 - anche l’anteprima di Regole checkout usa l’entitlement autorevole e segnala
