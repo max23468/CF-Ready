@@ -3985,13 +3985,14 @@ Segnaposto lasciati nel sito, da sostituire nelle milestone indicate:
 
 | Segnaposto | Dove | Sostituzione |
 | --- | --- | --- |
-| `https://apps.shopify.com/cf-ready` | richiami all’installazione su tutte le pagine | URL reale della listing, quando esiste (M11) |
+| Pulsante disabilitato «Presto sullo Shopify App Store» | richiami all’installazione su tutte le pagine | pulsante attivo verso la listing, quando esiste (M11) |
 | Nessuno screenshot dell’app | Home | screenshot reali prodotti da M9 (§24.5, §9.3 del brand) |
 | Identità del titolare limitata al nome | Privacy e Termini | denominazione completa e indirizzo, prima della submission (M9) |
 
-Finché la listing non esiste, i richiami all’installazione puntano a un URL che
-risponde 404: è accettabile perché il sito non è ancora collegato da nessuna
-superficie pubblica, e va risolto prima di annunciarlo.
+Finché la listing non esiste, i richiami all’installazione sono pulsanti
+disabilitati che dichiarano l’attesa: un collegamento che porta a un errore 404
+è peggio di un pulsante che non fa nulla, perché promette una destinazione che
+non c’è. Alla pubblicazione diventano collegamenti veri.
 
 ### M8 — Hardening
 
