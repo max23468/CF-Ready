@@ -97,8 +97,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 - il registro delle operazioni di M7 raccoglie i due deployment del sito, lo
   snapshot Development `0.5.2`, l'esito dei gate della milestone e i residui:
   identità del titolare, link alla listing e screenshot dell'app;
-- M7 è dichiarata completata nel Master Plan, con la revisione legale ancora
-  aperta in carico all'owner.
+- M7 è dichiarata completata nel Master Plan; il completamento dell'identità
+  del titolare resta programmato in M9.
 
 ## 0.5.2 — 1 agosto 2026
 

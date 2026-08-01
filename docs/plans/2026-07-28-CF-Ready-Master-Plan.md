@@ -2,7 +2,7 @@
 
 ## Master Plan di prodotto, architettura, implementazione e lancio
 
-**Stato:** baseline approvata per scaffolding e implementazione · M0–M6 completate, Development alla `0.4.30` · Production, submission App Store e wallet M10 non completati
+**Stato:** baseline approvata per scaffolding e implementazione · M0–M7 completate, Development alla `0.5.2` · Production, submission App Store e wallet M10 non completati
 **Data:** 27 luglio 2026 · revisione 28 luglio 2026  
 **Documenti vincolanti collegati:** `docs/brand/brand-foundation.md` (identità visiva, tono, materiali pubblici)  
 **Brand:** CF Ready  
@@ -3949,8 +3949,8 @@ di dipendenza rimasta aperta. Operazioni e residui in
 Registro delle operazioni:
 [`docs/evidence/2026-08-01-m7-sito-legale-supporto.md`](../evidence/2026-08-01-m7-sito-legale-supporto.md).
 I testi legali e la conservazione pseudonimizzata del `trial_ledger` sono stati
-approvati dall'owner il 2 agosto 2026. Resta separato il completamento
-dell'identità del titolare nei due documenti prima della submission.
+approvati dall'owner il 2 agosto 2026. Il completamento dell'identità del
+titolare nei due documenti è programmato in M9, prima della submission.
 
 Deliverable:
 
@@ -3966,7 +3966,6 @@ Deliverable:
 Gate:
 
 - URL pubblici;
-- revisione legale;
 - canale privato per vulnerabilità verificato;
 - testi coerenti con listing/app.
 
@@ -4467,7 +4466,6 @@ Codex definisce contratti e dati; Claude definisce presentazione e interazione. 
 | Single-region/service outage | bassa | media | Shopify Function continua; Admin degrada |
 | Requisiti App Store cambiano | media | alta | audit fresco pre-submission |
 | Nome/URL non disponibile | media | media | riservare in M0 |
-| Review legale contesta retention | media | alta | legal review e cancellazione prevalente |
 | Un solo dev store nasconde first install | media | media | utility reset e review Shopify |
 | Dipendenza `0.x` Oxfmt cambia comportamento | media | bassa | pin esatto e update deliberato |
 | Issue o PR pubblica espone dati reali o codice ostile | media | alta | template con divieti espliciti, workflow PR senza secret, approvazione dei primi contributori e disclosure privata |
