@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -152,4 +152,10 @@ test("rileva output tracciati in directory ignorate annidate", () => {
   } finally {
     rmSync(repository, { force: true, recursive: true });
   }
+});
+
+test("la CSP consente beacon e raccolta Cloudflare Web Analytics", () => {
+  const headers = readFileSync(new URL("../site/_headers", import.meta.url), "utf8");
+  assert.match(headers, /script-src .*https:\/\/static\.cloudflareinsights\.com/);
+  assert.match(headers, /connect-src .*https:\/\/cloudflareinsights\.com/);
 });
