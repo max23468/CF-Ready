@@ -21,7 +21,7 @@ avevano invece ricevuto una review reale di Codex e sono incluse per controllo.
 Il risultato sul codice corrente è:
 
 - **1 finding P1**, che resta un gate esplicito prima della `1.0.0`;
-- **11 finding P2**;
+- **7 finding P2**;
 - **4 finding P3**;
 - nessun P0;
 - 3 thread Codex reali ancora `unresolved` su GitHub: uno in `#68`, due in
@@ -34,15 +34,11 @@ Il risultato sul codice corrente è:
 | ID          | PR principale | Classe                    | Priorità   | Sintesi                                                                                                           |
 | ----------- | ------------- | ------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
 | F-M3-57-01  | #57           | limite di prodotto        | P1 pre-1.0 | con `localizedFields` vuoto i checkout accelerati possono passare senza Codice Fiscale richiesto                  |
-| F-M6-83-01  | #83 / #90     | bug di verifica           | P2         | il readback della configurazione non confronta messaggi, entitlement e intero metafield                           |
 | F-M6-83-02  | #83           | bug di consistenza        | P2         | Regole salva la dichiarazione D1 prima di sapere se Shopify ha accettato la configurazione                        |
-| F-M6-83-03  | #83/#90/#99   | bug di consistenza        | P2         | ogni salvataggio riscrive l’entitlement dalla cache D1 senza riconciliare prima Shopify                           |
 | F-M6-83-04  | #83           | bug UX/i18n               | P3         | la rotta di login ignora la locale comune e mostra sempre etichette ed errori in inglese                          |
-| F-M6-83-05  | #83/#99       | bug di validazione        | P2         | Home e onboarding permettono di abilitare la Validation anche senza prova o licenza valida                        |
 | F-M6-86-01  | #83/#86/#90   | bug UX/feedback           | P2         | il banner di successo resta durante nuove modifiche e in Messaggi dichiara erroneamente «Regole salvate»          |
 | F-M6-87-01  | #87 / #99     | miglioramento UX          | P3         | le azioni via fetcher disabilitano i pulsanti senza mostrare quale operazione è in corso                          |
 | F-M6-90-01  | #90           | bug UX/contenuto          | P2         | Home descrive un checkout attivo anche quando la Validation è disattivata o il diritto è scaduto                  |
-| F-M6-99-01  | #83/#99       | bug di concorrenza        | P2         | enable/disable riscrivono la configurazione letta prima della lease e possono perdere una modifica concorrente    |
 | F-M6-99-02  | #99           | bug di consistenza        | P2         | l’attivazione onboarding salva la dichiarazione prima dell’esito Shopify                                          |
 | F-M6-99-03  | #99           | bug UX/salvaguardia       | P2         | la cancellazione del rinnovo parte al primo clic senza la conferma richiesta per azioni ad alto impatto           |
 | F-M6-101-01 | #101/#103/#105 | accessibilità/responsive | P3         | i passi incompleti hanno comunque l’icona di spunta e la griglia forza quattro colonne                            |
@@ -72,7 +68,7 @@ con impatto circoscritto ma reale; P3 hardening, accuratezza o caso marginale.
 
 Verifiche fresche eseguite:
 
-- `npm run check`: verde sullo snapshot con il report; 37 documenti, 82 test
+- `npm run check`: verde sullo snapshot con il report; 37 documenti, 86 test
   app, 105 test Function, React Doctor 100/100, build app e Function, dry-run
   Wrangler;
 - `npm audit --omit=dev --audit-level=high`: un advisory high su
@@ -89,11 +85,11 @@ Verifiche fresche eseguite:
 Readback remoto, solo in lettura:
 
 - Cloudflare Development non ha migrazioni D1 pendenti; `0008` è applicata e il
-  Worker attivo è la versione `063256eb-5905-4f2e-ba28-aff24e3294e3`,
-  deployment `48d62221-5edf-4863-b266-397536397d86`, sul commit `31939bc`;
-- Shopify Development ha attiva la versione `0.4.25`
-  (`gid://shopify/Version/1072804790273`), riferita allo stesso commit;
-- il run coordinato `30708276253` ha riletto D1, pubblicato e
+  Worker attivo è la versione `b0fc6149-42b3-41a5-9383-bebee6313063`,
+  deployment `672f7b2a-7145-444a-9334-f94664ce5618`, sul commit `3ca5d5e`;
+- Shopify Development ha attiva la versione `0.4.26`
+  (`gid://shopify/Version/1072810622977`), riferita allo stesso commit;
+- il run coordinato `30708633016` ha riletto D1, pubblicato e
   riletto Worker e Shopify, ed eseguito lo smoke del Worker.
 
 La review UX/UI è statica: gerarchia, copy, stato, feedback, accessibilità e
@@ -119,7 +115,7 @@ webhook e fino a otto retry per le chiamate fallite; Cloudflare documenta che
 [GitHub Advisory GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2).
 
 Durante la campagna sono stati eseguiti i deploy Development coordinati
-da `0.4.22` a `0.4.25`, inclusa la migrazione additiva `0008`. Non sono stati
+da `0.4.22` a `0.4.26`, inclusa la migrazione additiva `0008`. Non sono stati
 eseguiti addebiti di prova, scenari browser sul dev store o scritture Production;
 le altre prove live storiche restano evidenze, non sono presentate come nuove.
 
@@ -682,7 +678,7 @@ onboarding.
 
 #### F-M6-83-01 — readback parziale della configurazione
 
-- **Classe/priorità/stato:** bug di verifica, P2, aperto; coinvolge anche i
+- **Classe/priorità/stato:** bug di verifica, P2, chiuso; coinvolge anche i
   messaggi introdotti da #90.
 - **Evidenza:** `app/validation.server.ts:404-413` confronta `enabled`,
   `blockOnFailure`, due regole ed `errorDisplay`, ma non gli otto messaggi,
@@ -695,6 +691,9 @@ onboarding.
 - **Correzione proporzionata:** confrontare la configurazione canonica completa
   già scritta, riusando `configHash`/JSON canonico esistente, con un test che
   altera un messaggio e uno che altera entitlement.
+- **Esito:** il readback confronta l'hash canonico dell'intero metafield scritto
+  e riletto, oltre a stato e `blockOnFailure`; le regressioni alterano
+  separatamente messaggio ed entitlement.
 
 #### F-M6-83-02 — dichiarazione D1 salvata prima del metafield
 
@@ -711,7 +710,7 @@ onboarding.
 
 #### F-M6-83-03 — entitlement riscritto da una cache non riconciliata
 
-- **Classe/priorità/stato:** bug di consistenza commerciale, P2, aperto;
+- **Classe/priorità/stato:** bug di consistenza commerciale, P2, chiuso;
   coinvolge ogni salvataggio Regole/Messaggi e l’onboarding di #99.
 - **Evidenza:** `app/validation.server.ts:340-346` ricalcola l’entitlement con
   `syncTrial` e `readBillingAccount`, quindi soltanto dalla cache D1. Le action
@@ -730,6 +729,11 @@ onboarding.
   riusando il flusso esistente; se Shopify non risponde, conservare la cache
   nota come già fa `reconcile`. Un test con D1 stale e Shopify attivo/rimborsato
   verifica entrambi i versi senza duplicare logica nelle route.
+- **Esito:** il writer comune rilegge Shopify e sincronizza il conto D1 prima di
+  calcolare il diritto; il test copre diritto pagato acquisito, rimborso e
+  fallback alla cache nota quando Shopify non risponde. Il fallback non copre
+  errori della successiva sincronizzazione D1: in quel caso la scrittura
+  Validation viene interrotta senza ripubblicare un diritto obsoleto.
 
 #### F-M6-83-04 — login escluso dal bilinguismo comune
 
@@ -751,7 +755,7 @@ onboarding.
 
 #### F-M6-83-05 — attivazione consentita senza diritto valido
 
-- **Classe/priorità/stato:** bug di validazione e stato prodotto, P2, aperto;
+- **Classe/priorità/stato:** bug di validazione e stato prodotto, P2, chiuso;
   coinvolge anche l’onboarding di #99.
 - **Evidenza:** il Master Plan `§11.3` richiede di verificare prova o licenza
   valida prima di attivare. `writeValidation` calcola l’entitlement in
@@ -771,6 +775,9 @@ onboarding.
   `false → true` se l’entitlement fresco è `none`, con un error code bilingue,
   e nascondere o disabilitare le due azioni finché manca il diritto. Un test
   server è la salvaguardia necessaria; nessun nuovo stato o flusso commerciale.
+- **Esito:** il writer rifiuta la sola transizione da spenta ad attiva con
+  entitlement `none`, usando un codice bilingue; Home, Setup guide e onboarding
+  disabilitano la stessa azione senza alterare il fail-open della Function.
 
 I difetti DOM dichiarati nella PR sono stati effettivamente trovati e corretti
 nelle patch #84–#89; non sono riaperti qui.
@@ -881,8 +888,8 @@ spaziatura divergente.
   componenti o copy.
 
 Validazione trust-boundary, trim, limite, parità lingue e conflitto sono
-coperti. Il salvataggio usa però anche il readback incompleto F-M6-83-01,
-l’entitlement non riconciliato F-M6-83-03 e il feedback comune F-M6-86-01.
+coperti. Readback ed entitlement sono ora chiusi da F-M6-83-01/03; resta il
+feedback comune F-M6-86-01.
 
 ### [PR #91 — rifiniture Messaggi](https://github.com/max23468/CF-Ready/pull/91)
 
@@ -947,7 +954,7 @@ Introduce onboarding, review prompt e assorbimento Piano nella Home.
 
 #### F-M6-99-01 — enable/disable riscrivono una configurazione letta prima della lease
 
-- **Classe/priorità/stato:** bug di concorrenza e perdita modifica, P2, aperto.
+- **Classe/priorità/stato:** bug di concorrenza e perdita modifica, P2, chiuso.
 - **Evidenza:** il contratto e i commenti affermano che enable/disable non
   modificano la configurazione, ma `writeValidation` ricostruisce sempre
   l’intero metafield dai dati `next` del chiamante
@@ -966,6 +973,9 @@ Introduce onboarding, review prompt e assorbimento Piano nella Home.
   ottimistico resta soltanto agli editor; un test cambia la config prima del
   lock e verifica che enable/disable la conservino. È una correzione nel punto
   condiviso, non un nuovo meccanismo di concorrenza.
+- **Esito:** i lifecycle passano `next = null` e il writer deriva regole,
+  messaggi ed `errorDisplay` dal metafield letto dentro la lease; la regressione
+  verifica che una config più recente del chiamante venga conservata.
 
 #### F-M6-99-02 — dichiarazione salvata prima dell’attivazione
 
@@ -1130,19 +1140,15 @@ alcun meccanismo di sincronizzazione documentale.
 
 ## 7. Ordine operativo consigliato
 
-1. Chiudere il percorso di mutazione condiviso: errori Shopify tipizzati,
-   riconciliazione entitlement, readback completo, rifiuto dell’attivazione
-   senza diritto e configurazione riletta dentro la lease (F-M6-83-01/03/05 e
-   F-M6-99-01).
-2. Persistire le dichiarazioni D1 soltanto dopo il successo Shopify
+1. Persistire le dichiarazioni D1 soltanto dopo il successo Shopify
    (F-M6-83-02, F-M6-99-02).
-3. Correggere i residui UX statici con componenti e stati già presenti: login
+2. Correggere i residui UX statici con componenti e stati già presenti: login
    bilingue, banner salvataggio, frase Home, loading del pulsante e Setup guide
    (F-M6-83-04, F-M6-86-01, F-M6-90-01, F-M6-87-01).
-4. Aggiungere la conferma cancellazione F-M6-99-03 riusando la modale presente.
-5. Stabilizzare stato e layout dell'onboarding con i test minimi di regressione
+3. Aggiungere la conferma cancellazione F-M6-99-03 riusando la modale presente.
+4. Stabilizzare stato e layout dell'onboarding con i test minimi di regressione
    (F-M6-101-01, F-M6-105-01/02/03).
-6. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
+5. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
    prima della prova reale.
 
 Questo ordine non richiede retrocompatibilità, supporto di formati legacy,

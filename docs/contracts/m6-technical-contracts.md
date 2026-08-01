@@ -62,7 +62,11 @@ crearla alla sola installazione. L'attivazione resta una seconda operazione
 esplicita.
 
 Il diritto commerciale scritto nel metafield viene ricalcolato a ogni scrittura
-da prova e conto commerciale letti in D1, non ereditato da quello osservato.
+dalla prova D1 e dal billing riletto da Shopify e sincronizzato in D1. Se la
+lettura Shopify fallisce si conserva lo stato operativo noto, come nella
+riconciliazione Home; se fallisce la successiva sincronizzazione D1, la scrittura
+Validation viene interrotta. Una transizione da disattivata ad attiva è
+rifiutata se il diritto risultante è `none`.
 
 ## Dichiarazione sul campo “Interno”
 

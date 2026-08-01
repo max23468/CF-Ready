@@ -5,6 +5,16 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.27 — 1 agosto 2026
+
+- ogni scrittura Validation riconcilia prima il billing autorevole Shopify,
+  conservando lo stato D1 noto soltanto se il readback non è disponibile e
+  interrompendosi se la successiva sincronizzazione locale fallisce;
+- il readback confronta l'intera configurazione canonica, inclusi messaggi e
+  diritto, e attivazione/disattivazione conservano la config letta nella lease;
+- una Validation spenta non può essere attivata senza prova o piano valido e le
+  azioni merchant restano disabilitate finché manca il diritto.
+
 ## 0.4.26 — 1 agosto 2026
 
 - errori di trasporto o parsing Shopify restano nei risultati tipizzati di
