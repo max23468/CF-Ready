@@ -13,6 +13,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     if (!admin) {
       await recordEvent(db, {
         shopDomain: shop,
+        webhookId: webhook.webhookId,
         name: "billing_update_skipped",
         class: "billing",
         metadata: { error_code: "missing_admin_context" },
@@ -24,6 +25,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     const state = await reconcile(admin, db, shop);
     await recordEvent(db, {
       shopDomain: shop,
+      webhookId: webhook.webhookId,
       name: "billing_updated",
       class: "billing",
       metadata: {

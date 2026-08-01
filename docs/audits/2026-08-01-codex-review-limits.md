@@ -17,7 +17,7 @@ avevano invece ricevuto una review reale di Codex e sono incluse per controllo.
 
 Il risultato sul codice corrente è:
 
-- **2 finding P1**, uno dei quali è un gate esplicito prima della `1.0.0`;
+- **1 finding P1**, che resta un gate esplicito prima della `1.0.0`;
 - **15 finding P2**;
 - **10 finding P3**;
 - nessun P0;
@@ -31,7 +31,6 @@ Il risultato sul codice corrente è:
 | ID          | PR principale | Classe                    | Priorità   | Sintesi                                                                                                           |
 | ----------- | ------------- | ------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
 | F-M3-57-01  | #57           | limite di prodotto        | P1 pre-1.0 | con `localizedFields` vuoto i checkout accelerati possono passare senza Codice Fiscale richiesto                  |
-| F-M4-58-01  | #58           | bug di affidabilità       | P1         | una ricevuta webhook lasciata `processing` dopo crash non viene mai più acquisita                                 |
 | F-M4-58-02  | #58/#70/#99   | documentazione operativa  | P3         | le ricevute propongono rollback che eliminano tabelle, colonne e cronologia di migrazioni già applicate           |
 | F-M4-58-03  | #58/#99       | gap di verifica           | P3         | i test applicano le migrazioni solo a un database vuoto, mai allo snapshot della versione precedente              |
 | F-M4-64-01  | #64/#82       | documentazione nel codice | P3         | il commento su `shop/redact` promette ancora un registro M5 del diritto una tantum che non deve esistere           |
@@ -164,7 +163,10 @@ workflow Shopify senza eseguire Production.
 - **Esito:** il workflow rifiuta prima delle scritture uno stato Worker/Shopify
   disallineato, registra il rollback coordinato, applica le migrazioni,
   distribuisce e rilegge il Worker del `GITHUB_SHA`, esegue lo smoke e solo dopo
-  pubblica Shopify.
+  pubblica Shopify. Se il job termina con errore, timeout o annullamento dopo lo
+  snapshot iniziale, un job indipendente ripristina soltanto i provider che si
+  sono discostati: prima la versione Shopify precedente, poi il Worker salvato,
+  verificando di nuovo che entrambi corrispondano allo stesso commit.
 
 #### F-M3-52-02 — il preflight non lega i valori alle chiavi verificate
 
@@ -256,7 +258,7 @@ lifecycle e riconciliazione.
 
 #### F-M4-58-01 — webhook abbandonato nello stato `processing`
 
-- **Classe/priorità/stato:** bug di affidabilità e idempotenza, P1, aperto.
+- **Classe/priorità/stato:** bug di affidabilità e idempotenza, P1, chiuso.
 - **Evidenza:** `app/webhooks.server.ts:32-54` riacquisisce soltanto righe con
   `status = 'failed'`. `handleWebhook` imposta `processed` solo dopo il gestore
   (`:14-29`). Un crash, timeout o errore nel `finishWebhook` lascia la riga
@@ -271,6 +273,17 @@ lifecycle e riconciliazione.
 - **Correzione proporzionata:** riacquisire anche un `processing` più vecchio di
   una soglia usando `received_at`, con un singolo test su claim scaduto. Non
   serve una coda o una nuova infrastruttura.
+- **Esito:** il claim comune riacquisisce una ricevuta `processing` dopo cinque
+  minuti, mantiene vivo il proprietario durante l'handler e lega l'esito a un
+  token. `APP_UNINSTALLED` conserva inoltre il ciclo originale e applica stato,
+  pulizia sessioni ed evento in un solo batch; una normale scrittura di sessione
+  non viene scambiata per una reinstallazione e gli stati geografici o sospesi
+  possono comunque passare a `uninstalled`. Gli altri eventi sono deduplicati
+  per ID webhook e `shop_redacted` è atomico con la cancellazione. I claim
+  `APP_UNINSTALLED` precedenti a `0008` senza ciclo non vengono attribuiti alla
+  reinstallazione corrente; un `shop/redact` precedente a `0008` già arrivato alla
+  cancellazione anonimizza comunque al retry tutte le ricevute dello stesso
+  dominio.
 
 #### F-M4-58-02 — rollback documentato mutando migrazioni applicate
 
@@ -295,7 +308,8 @@ lifecycle e riconciliazione.
 #### F-M4-58-03 — manca il test di upgrade dalla versione precedente
 
 - **Classe/priorità/stato:** gap di verifica migrazioni, P3, aperto; la
-  migrazione più recente è la `0007` introdotta da #99.
+  migrazione più recente è la `0008` introdotta dalla correzione di
+  F-M4-58-01.
 - **Evidenza:** `tests/apply-migrations.ts:1-6` riceve da
   `vitest.config.ts:10-16` l’intero elenco e lo applica sempre a un database
   vuoto prima dei test. Non esiste una prova che applichi prima `0001`–`0006`,
@@ -305,11 +319,11 @@ lifecycle e riconciliazione.
 - **Impatto:** il gate verde prova sintassi e installazione pulita, ma non
   rileverebbe una migrazione che fallisce su righe esistenti o altera default e
   dati della versione precedente. Il readback remoto conferma che `0007` è già
-  applicata: questo è un residuo di copertura corrente, non l’affermazione di
-  una perdita dati già avvenuta.
+  applicata, mentre `0008` non è ancora pubblicata: questo è un residuo di
+  copertura corrente, non l’affermazione di una perdita dati già avvenuta.
 - **Correzione proporzionata:** aggiungere un solo test che applica
-  `0001`–`0006`, inserisce le righe minime di `shops`/`app_state`, applica
-  `0007` e verifica conservazione dei valori e nuovi default. Nessun framework
+  `0001`–`0006`, inserisce righe rappresentative, verifica l’upgrade `0007` e
+  poi `0008`, incluse colonne e unicità degli eventi webhook. Nessun framework
   di snapshot o percorso legacy.
 
 Il resto della PR ha controlli coerenti: AES-GCM con AAD, payload di sessione
@@ -1096,32 +1110,28 @@ alcun meccanismo di sincronizzazione documentale.
 
 ## 7. Ordine operativo consigliato
 
-1. Rendere il workflow Development coordinato sullo stesso commit e fare in
-   modo che il preflight verifichi chiavi e target reali (F-M3-52-01/02) prima
-   di riusarlo come base Production.
-2. Correggere F-M4-58-01 e aggiungere il test sul webhook `processing` scaduto.
-3. Chiudere il percorso di mutazione condiviso: errori Shopify tipizzati,
+1. Chiudere il percorso di mutazione condiviso: errori Shopify tipizzati,
    riconciliazione entitlement, readback completo, rifiuto dell’attivazione
    senza diritto, configurazione riletta dentro la lease e dichiarazione D1
    solo dopo successo (F-M5-74-01, F-M6-83-01/02/03/05 e
    F-M6-99-01/02).
-4. Chiudere i due thread #105 e F-M6-105-03 con i tre test minimi di stato/input;
+2. Chiudere i due thread #105 e F-M6-105-03 con i tre test minimi di stato/input;
    nello stesso passaggio aggiungere la conferma cancellazione F-M6-99-03.
-5. Al confine billing rifiutare il piano già attivo; poi rendere atomici
+3. Al confine billing rifiutare il piano già attivo; poi rendere atomici
    conto/evento, selezionare l’importo dalla risorsa effettiva e legare
    `trial_started` al solo inserimento vincente (F-M5-79-01 e
    F-M5-67-01/02/04).
-6. Aggiungere il singolo test di upgrade `0001`–`0006` → `0007`
+4. Aggiungere il singolo test di upgrade `0001`–`0006` → `0007`
    (F-M4-58-03).
-7. Correggere i residui UX statici con componenti e stati già presenti: login
+5. Correggere i residui UX statici con componenti e stati già presenti: login
    bilingue, banner salvataggio, frase Home, loading del pulsante e Setup guide
    (F-M6-83-04, F-M6-86-01, F-M6-90-01, F-M6-87-01,
    F-M6-101-01).
-8. Correggere i due residui documentali ancora aperti: runbook di rollback e
+6. Correggere i due residui documentali ancora aperti: runbook di rollback e
    commento `shop/redact` (F-M4-58-02, F-M4-64-01).
-9. Applicare i due hardening minori: `returnUrl` dalla sessione e formulazione
+7. Applicare i due hardening minori: `returnUrl` dalla sessione e formulazione
    corretta dello SHA-256.
-10. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
+8. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
    prima della prova reale.
 
 Questo ordine non richiede retrocompatibilità, supporto di formati legacy,

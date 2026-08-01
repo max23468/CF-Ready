@@ -2,6 +2,8 @@ import { env } from "cloudflare:test";
 import { Session } from "@shopify/shopify-api";
 import { expect, test } from "vitest";
 import { D1SessionStorage } from "../app/session-storage.server";
+import { markUninstalled } from "../app/shop.server";
+import { claimWebhook } from "../app/webhooks.server";
 
 test("salva la sessione cifrata e la ricarica da D1", async () => {
   const key = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
@@ -48,19 +50,27 @@ test("la reinstallazione riattiva lo store ma non annulla il blocco geografico",
   const reinstalled = "reinstall.example.myshopify.com";
   await storage.storeSession(session(reinstalled, "token-1"));
   await env.DB.prepare(
-    `UPDATE shops SET installation_status = 'uninstalled', uninstalled_at = ? WHERE shop_domain = ?`,
+    `UPDATE shops SET installation_status = 'uninstalled', installed_at = ?, uninstalled_at = ?
+     WHERE shop_domain = ?`,
   )
-    .bind("2026-07-30T00:00:00.000Z", reinstalled)
+    .bind("2026-07-30T00:00:00.000Z", "2026-07-30T00:00:00.000Z", reinstalled)
     .run();
   await storage.storeSession(session(reinstalled, "token-2"));
 
   expect(
     await env.DB.prepare(
-      "SELECT installation_status, uninstalled_at FROM shops WHERE shop_domain = ?",
+      "SELECT installation_status, installed_at, uninstalled_at FROM shops WHERE shop_domain = ?",
     )
       .bind(reinstalled)
       .first(),
   ).toMatchObject({ installation_status: "active", uninstalled_at: null });
+  expect(
+    (
+      await env.DB.prepare("SELECT installed_at FROM shops WHERE shop_domain = ?")
+        .bind(reinstalled)
+        .first<{ installed_at: string }>()
+    )?.installed_at,
+  ).not.toBe("2026-07-30T00:00:00.000Z");
 
   const blocked = "blocked.example.myshopify.com";
   await storage.storeSession(session(blocked, "token-1"));
@@ -76,6 +86,56 @@ test("la reinstallazione riattiva lo store ma non annulla il blocco geografico",
       .bind(blocked)
       .first(),
   ).toMatchObject({ installation_status: "blocked_country" });
+});
+
+test("un rinnovo di sessione non simula una reinstallazione prima della disinstallazione", async () => {
+  const key = btoa(String.fromCharCode(...new Uint8Array(32).fill(6)));
+  const storage = new D1SessionStorage(env.DB, key);
+  const shop = "claim-reinstall.example.myshopify.com";
+  const session = (token: string) =>
+    new Session({
+      id: `offline_${shop}`,
+      shop,
+      state: "state",
+      isOnline: false,
+      accessToken: token,
+    });
+
+  await storage.storeSession(session("token-uno"));
+  await env.DB.prepare("UPDATE shops SET installed_at = ? WHERE shop_domain = ?")
+    .bind("2026-08-01T10:00:00.000Z", shop)
+    .run();
+  const claim = await claimWebhook(
+    env.DB,
+    "wh-claim-reinstall",
+    "APP_UNINSTALLED",
+    shop,
+    "2026-08-01T10:01:00.000Z",
+  );
+  if (!claim.acquired || !claim.installationStartedAt) throw new Error("claim non acquisito");
+
+  await storage.storeSession(session("token-due"));
+
+  expect(await markUninstalled(env.DB, shop, claim.installationStartedAt)).toBe(true);
+  expect(
+    await env.DB.prepare(
+      "SELECT installation_status, installed_at FROM shops WHERE shop_domain = ?",
+    )
+      .bind(shop)
+      .first(),
+  ).toMatchObject({
+    installation_status: "uninstalled",
+    installed_at: claim.installationStartedAt,
+  });
+  expect(
+    await env.DB.prepare(
+      `SELECT session.id FROM shopify_sessions session
+       JOIN shops shop ON shop.id = session.shop_id
+       WHERE shop.shop_domain = ?`,
+    )
+      .bind(shop)
+      .first(),
+  ).toBeNull();
 });
 
 test("rifiuta ciphertext trapiantati tra sessioni", async () => {
