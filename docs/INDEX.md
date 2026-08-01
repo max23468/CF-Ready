@@ -20,6 +20,8 @@
   — migrazioni, deploy `0.3.0` e gate billing residui.
 - [Rilascio Development M6](evidence/2026-07-31-m6-ui-completa.md) — snapshot
   `0.4.21`, gate UI e verifiche live della milestone.
+- [Operazioni M7](evidence/2026-08-01-m7-sito-legale-supporto.md) — pubblicazione
+  del sito, snapshot `0.5.2`, gate della milestone e residui.
 - [ADR 0001](adr/0001-stack.md) — stack applicativo e provider.
 - [Brand Foundation](brand/brand-foundation.md) — identità e tono.
 - [Brand board](brand/brand-board.html) — riferimento visuale.

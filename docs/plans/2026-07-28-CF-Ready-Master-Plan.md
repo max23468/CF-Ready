@@ -3930,7 +3930,12 @@ un'infrastruttura browser e una sessione staff autenticata, ed è una decisione
 di dipendenza rimasta aperta. Operazioni e residui in
 `docs/evidence/2026-07-31-m6-ui-completa.md`.
 
-### M7 — Sito, legale e supporto
+### M7 — Sito, legale e supporto ✅ completata
+
+Registro delle operazioni:
+[`docs/evidence/2026-08-01-m7-sito-legale-supporto.md`](../evidence/2026-08-01-m7-sito-legale-supporto.md).
+Il gate della revisione legale resta aperto in carico all'owner, e con esso
+l'identità completa del titolare nei due documenti.
 
 Deliverable:
 
