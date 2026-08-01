@@ -5,6 +5,15 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.5.8 — 2 agosto 2026
+
+- Cloudflare Web Analytics misura visite aggregate e prestazioni del solo sito
+  pubblico, senza cookie, archiviazione locale, fingerprint o query string;
+- la Content-Security-Policy consente il beacon Cloudflare e il relativo invio
+  RUM allo stesso dominio;
+- Privacy Policy italiana e inglese e documentazione operativa descrivono
+  metriche, finalità, base giuridica e confini della misurazione.
+
 ## 0.5.7 — 2 agosto 2026
 
 - su telefono il menu resta visibile per i primi 240 pixel di scorrimento dalla
