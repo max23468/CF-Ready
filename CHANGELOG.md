@@ -5,6 +5,11 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.5.10 — 2 agosto 2026
+
+- la pagina Support indica direttamente l'indirizzo email per le segnalazioni
+  di sicurezza e non rimanda più a GitHub o al file `SECURITY.md`.
+
 ## 0.5.9 — 2 agosto 2026
 
 - la Content-Security-Policy consente gli host dedicati agli asset e alla
