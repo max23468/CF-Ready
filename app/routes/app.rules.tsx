@@ -7,6 +7,7 @@ import { authenticate } from "../shopify.server";
 import {
   address2Declaration,
   ERROR_DISPLAYS,
+  oneOf,
   readConfig,
   RULE_MODES,
   showSavedBanner,
@@ -48,9 +49,9 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
   // NFR-023: la validazione lato client è cortesia, questa è la difesa. Un valore fuori
   // dall'insieme ammesso non viene corretto in silenzio: la scrittura non parte.
-  const taxCode = pick(RULE_MODES, form.get("taxCode"));
-  const pec = pick(RULE_MODES, form.get("pec"));
-  const errorDisplay = pick(ERROR_DISPLAYS, form.get("errorDisplay") ? "preventive" : "inline");
+  const taxCode = oneOf(RULE_MODES, form.get("taxCode"));
+  const pec = oneOf(RULE_MODES, form.get("pec"));
+  const errorDisplay = oneOf(ERROR_DISPLAYS, form.get("errorDisplay") ? "preventive" : "inline");
   if (!taxCode || !pec || !errorDisplay) return { ok: false as const, errorCode: "generic" };
 
   let current;
@@ -77,12 +78,6 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
   return result.ok ? { ok: true as const } : { ok: false as const, errorCode: result.errorCode };
 };
-
-function pick<T extends string>(allowed: readonly T[], value: unknown): T | null {
-  return typeof value === "string" && (allowed as readonly string[]).includes(value)
-    ? (value as T)
-    : null;
-}
 
 const SAVE_BAR = "cf-ready-rules";
 

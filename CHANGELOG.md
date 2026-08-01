@@ -5,6 +5,11 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.38 — 1 agosto 2026
+
+- regole e onboarding riusano lo stesso parser degli enum di configurazione,
+  eliminando due implementazioni duplicate senza cambiare il comportamento.
+
 ## 0.4.37 — 1 agosto 2026
 
 - la riconciliazione percorre tutti gli acquisti una tantum prima di dedurre un
