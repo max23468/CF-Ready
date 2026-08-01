@@ -37,6 +37,7 @@ milestone aggiunge colonne con default e non altera dati esistenti.
 | `0.4.21` | `d497179` | `2b13a7ef-b10d-4ccc-963c-f63ed7652689` | `1072184786945` | `30660443646` |
 | `0.4.22` | `6bb01d3` | `1814626e-c044-4645-8cf1-0a57b9598ca8` | `1072742957057` | `30704039699` |
 | `0.4.23` | `f13c14c` | `a310b057-7eb7-4066-992a-2a1e1e74c17a` | `1072789684225` | `30707318436` |
+| `0.4.24` | `6e931c9` | `062372ef-91e8-4255-b00e-fd73bc83844b` | `1072798892033` | `30707986047` |
 
 Il rollback di ogni riga è la versione Worker della riga precedente, e per
 Shopify lo snapshot precedente.

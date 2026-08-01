@@ -5,6 +5,14 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.25 — 1 agosto 2026
+
+- conto operativo ed evento billing vengono scritti atomicamente e l'evento
+  usa prezzo e valuta della risorsa Shopify effettiva;
+- due primi accessi concorrenti registrano un solo evento di avvio prova;
+- il ledger è descritto come pseudonimizzato, senza attribuire a SHA-256
+  proprietà di anonimizzazione.
+
 ## 0.4.24 — 1 agosto 2026
 
 - il test delle migrazioni copre l'upgrade `0001`–`0006` → `0007` → `0008` con

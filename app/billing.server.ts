@@ -118,14 +118,15 @@ export async function syncTrial(
       .bind(await sha256Hex(shopDomain))
       .first<{ trial_ends_at: string | null; pricing_generation: PricingGeneration }>();
 
-    await db
+    const inserted = await db
       .prepare(
         `INSERT INTO trials (
            shop_id, status, eligible_at, started_at, ends_at, pricing_generation,
            created_at, updated_at
          )
          SELECT id, ?, ?, ?, ?, ?, ?, ? FROM shops WHERE shop_domain = ?
-         ON CONFLICT(shop_id) DO NOTHING`,
+         ON CONFLICT(shop_id) DO NOTHING
+         RETURNING shop_id`,
       )
       .bind(
         consumed ? "expired" : "active",
@@ -137,11 +138,11 @@ export async function syncTrial(
         now,
         shopDomain,
       )
-      .run();
+      .first<{ shop_id: number }>();
 
     trial = await readTrial(db, shopDomain);
 
-    if (trial?.status === "active") {
+    if (inserted && trial?.status === "active") {
       await recordEvent(db, {
         shopDomain,
         name: "trial_started",
@@ -493,7 +494,7 @@ export async function syncBillingAccount(
   const now = new Date().toISOString();
   const oneTimePurchasedAt = billing.oneTime ? billing.oneTime.createdAt : null;
 
-  await db
+  const accountStatement = db
     .prepare(
       `INSERT INTO billing_accounts (
          shop_id, entitlement_status, plan_kind, pricing_generation, shopify_charge_gid,
@@ -522,24 +523,41 @@ export async function syncBillingAccount(
       now,
       now,
       shopDomain,
-    )
-    .run();
+    );
 
   const changed =
     next.entitlement_status !== stored?.entitlement_status ||
     next.shopify_charge_gid !== stored?.shopify_charge_gid;
 
+  const statements = [accountStatement];
   if (changed && next.shopify_charge_gid) {
-    await recordBillingEvent(db, shopDomain, {
-      gid: next.shopify_charge_gid,
-      type: next.entitlement_status,
-      planKind: next.plan_kind,
-      amount: billing.subscription?.amount ?? billing.oneTime?.amount ?? null,
-      currency: billing.subscription?.currency ?? billing.oneTime?.currency ?? null,
-      periodEnd: next.current_period_end,
-      occurredAt: now,
-    });
+    const charge = next.plan_kind === "one_time" ? billing.oneTime : billing.subscription;
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO billing_events (
+             shop_id, shopify_resource_gid, event_type, status, amount_minor, currency,
+             period_start, period_end, occurred_at, created_at
+           )
+           SELECT id, ?, ?, ?, ?, ?, NULL, ?, ?, ? FROM shops WHERE shop_domain = ?
+           ON CONFLICT (shopify_resource_gid, event_type) DO NOTHING`,
+        )
+        .bind(
+          next.shopify_charge_gid,
+          next.entitlement_status,
+          next.plan_kind,
+          charge?.amount === null || charge?.amount === undefined
+            ? null
+            : Math.round(Number(charge.amount) * 100),
+          charge?.currency ?? null,
+          next.current_period_end,
+          now,
+          now,
+          shopDomain,
+        ),
+    );
   }
+  await db.batch(statements);
 
   return next;
 }
@@ -602,45 +620,8 @@ function nextAccount(
   };
 }
 
-// Registro append-only: l'indice univoco su risorsa e tipo rende innocuo ogni retry.
-async function recordBillingEvent(
-  db: D1Database,
-  shopDomain: string,
-  event: {
-    gid: string;
-    type: string;
-    planKind: string;
-    amount: string | null;
-    currency: string | null;
-    periodEnd: string | null;
-    occurredAt: string;
-  },
-) {
-  await db
-    .prepare(
-      `INSERT INTO billing_events (
-         shop_id, shopify_resource_gid, event_type, status, amount_minor, currency,
-         period_start, period_end, occurred_at, created_at
-       )
-       SELECT id, ?, ?, ?, ?, ?, NULL, ?, ?, ? FROM shops WHERE shop_domain = ?
-       ON CONFLICT (shopify_resource_gid, event_type) DO NOTHING`,
-    )
-    .bind(
-      event.gid,
-      event.type,
-      event.planKind,
-      event.amount === null ? null : Math.round(Number(event.amount) * 100),
-      event.currency,
-      event.periodEnd,
-      event.occurredAt,
-      event.occurredAt,
-      shopDomain,
-    )
-    .run();
-}
-
-// Scritto prima della cancellazione dei dati: conserva solo un identificatore non reversibile,
-// la scadenza della prova e la generazione acquisita, come previsto dalla retention.
+// Scritto prima della cancellazione: conserva un identificatore pseudonimizzato, non il dominio
+// in chiaro, insieme alla scadenza e alla generazione della prova previste dalla retention.
 export async function recordTrialLedger(db: D1Database, shopDomain: string) {
   await db
     .prepare(
