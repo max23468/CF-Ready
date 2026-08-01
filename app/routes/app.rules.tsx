@@ -45,8 +45,13 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const errorDisplay = pick(ERROR_DISPLAYS, form.get("errorDisplay") ? "preventive" : "inline");
   if (!taxCode || !pec || !errorDisplay) return { ok: false as const, errorCode: "generic" };
 
-  const validation = findValidation((await queryContext(admin)).validations.nodes);
-  const current = readConfig(validation?.metafield?.jsonValue);
+  let current;
+  try {
+    const validation = findValidation((await queryContext(admin)).validations.nodes);
+    current = readConfig(validation?.metafield?.jsonValue);
+  } catch {
+    return { ok: false as const, errorCode: "validation_write_failed" };
+  }
 
   const declared = address2Declaration(form);
   if (declared !== null) await saveAddress2Declaration(db, session.shop, declared);

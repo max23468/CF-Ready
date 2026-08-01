@@ -41,6 +41,14 @@ export type ShopifyBilling = {
   oneTime: { id: string; createdAt: string; amount: string | null; currency: string | null } | null;
 };
 
+export function requestedRecurringPlanIsActive(
+  billing: ShopifyBilling,
+  kind: "monthly" | "annual" | "one_time",
+) {
+  if (kind === "one_time") return false;
+  return billing.subscription?.interval === (kind === "monthly" ? "EVERY_30_DAYS" : "ANNUAL");
+}
+
 // La generazione è acquisita quando lo store diventa idoneo e non cambia più: `value` resta
 // un'ipotesi interna e non viene mai assegnata automaticamente.
 export function pricingGeneration(eligibleOn: string): PricingGeneration {
@@ -349,59 +357,63 @@ export async function createCharge(
     returnUrl: string;
   },
 ) {
-  const oneTime = charge.interval === null;
-  const response = await admin.graphql(oneTime ? CREATE_ONE_TIME : CREATE_SUBSCRIPTION, {
-    variables: oneTime
-      ? {
-          name: charge.name,
-          price: { amount: charge.amount, currencyCode: charge.currency },
-          returnUrl: charge.returnUrl,
-          test: charge.test,
-        }
-      : {
-          name: charge.name,
-          returnUrl: charge.returnUrl,
-          trialDays: charge.trialDays,
-          test: charge.test,
-          // I cambi fra mensile e annuale usano il comportamento nativo Shopify.
-          replacementBehavior: "STANDARD",
-          lineItems: [
-            {
-              plan: {
-                appRecurringPricingDetails: {
-                  price: { amount: charge.amount, currencyCode: charge.currency },
-                  interval: charge.interval,
+  try {
+    const oneTime = charge.interval === null;
+    const response = await admin.graphql(oneTime ? CREATE_ONE_TIME : CREATE_SUBSCRIPTION, {
+      variables: oneTime
+        ? {
+            name: charge.name,
+            price: { amount: charge.amount, currencyCode: charge.currency },
+            returnUrl: charge.returnUrl,
+            test: charge.test,
+          }
+        : {
+            name: charge.name,
+            returnUrl: charge.returnUrl,
+            trialDays: charge.trialDays,
+            test: charge.test,
+            // I cambi fra mensile e annuale usano il comportamento nativo Shopify.
+            replacementBehavior: "STANDARD",
+            lineItems: [
+              {
+                plan: {
+                  appRecurringPricingDetails: {
+                    price: { amount: charge.amount, currencyCode: charge.currency },
+                    interval: charge.interval,
+                  },
                 },
               },
-            },
-          ],
-        },
-  });
+            ],
+          },
+    });
 
-  const body = (await response.json()) as {
-    data?: Record<
-      string,
-      { confirmationUrl?: string; userErrors: { message: string }[] } | undefined
-    >;
-    errors?: { message: string }[];
-  };
-  const result = body.data?.[oneTime ? "appPurchaseOneTimeCreate" : "appSubscriptionCreate"];
+    const body = (await response.json()) as {
+      data?: Record<
+        string,
+        { confirmationUrl?: string; userErrors: { message: string }[] } | undefined
+      >;
+      errors?: { message: string }[];
+    };
+    const result = body.data?.[oneTime ? "appPurchaseOneTimeCreate" : "appSubscriptionCreate"];
 
-  if (body.errors?.length || !result || result.userErrors.length || !result.confirmationUrl) {
-    // Il messaggio arriva da Shopify e non contiene dati del merchant: senza, un rifiuto
-    // dell'addebito resta indistinguibile da un guasto di rete.
-    console.error(
-      JSON.stringify({
-        event: "charge_create_failed",
-        class: "error",
-        shopify: [...(body.errors ?? []), ...(result?.userErrors ?? [])]
-          .map(({ message }) => message)
-          .slice(0, 3),
-      }),
-    );
+    if (body.errors?.length || !result || result.userErrors.length || !result.confirmationUrl) {
+      // Il messaggio arriva da Shopify e non contiene dati del merchant: senza, un rifiuto
+      // dell'addebito resta indistinguibile da un guasto di rete.
+      console.error(
+        JSON.stringify({
+          event: "charge_create_failed",
+          class: "error",
+          shopify: [...(body.errors ?? []), ...(result?.userErrors ?? [])]
+            .map(({ message }) => message)
+            .slice(0, 3),
+        }),
+      );
+      return { confirmationUrl: null, error: "charge_create_failed" };
+    }
+    return { confirmationUrl: result.confirmationUrl, error: null };
+  } catch {
     return { confirmationUrl: null, error: "charge_create_failed" };
   }
-  return { confirmationUrl: result.confirmationUrl, error: null };
 }
 
 // Al ritorno dall'approvazione il merchant deve ritrovarsi dentro l'admin: senza `shop` e
@@ -409,9 +421,17 @@ export async function createCharge(
 export function returnUrlFor(request: Request, shopDomain: string) {
   const incoming = new URL(request.url).searchParams;
   const target = new URL("/app", APP_URL);
-  target.searchParams.set("shop", incoming.get("shop") ?? shopDomain);
+  target.searchParams.set("shop", shopDomain);
   const host = incoming.get("host");
-  if (host) target.searchParams.set("host", host);
+  if (host) {
+    try {
+      const decoded = atob(host.replaceAll("-", "+").replaceAll("_", "/"));
+      const shopName = shopDomain.replace(/\.myshopify\.com$/, "");
+      if (decoded === `admin.shopify.com/store/${shopName}`) target.searchParams.set("host", host);
+    } catch {
+      // Un host manipolato non serve al rientro: lo shop autenticato resta sufficiente.
+    }
+  }
   return target.toString();
 }
 
@@ -442,15 +462,19 @@ export async function cancelSubscription(
   id: string,
   { prorate }: { prorate: boolean },
 ) {
-  const response = await admin.graphql(CANCEL_SUBSCRIPTION, { variables: { id, prorate } });
-  const body = (await response.json()) as {
-    data?: { appSubscriptionCancel?: { userErrors: { message: string }[] } };
-    errors?: { message: string }[];
-  };
-  const userErrors = body.data?.appSubscriptionCancel?.userErrors;
+  try {
+    const response = await admin.graphql(CANCEL_SUBSCRIPTION, { variables: { id, prorate } });
+    const body = (await response.json()) as {
+      data?: { appSubscriptionCancel?: { userErrors: { message: string }[] } };
+      errors?: { message: string }[];
+    };
+    const userErrors = body.data?.appSubscriptionCancel?.userErrors;
 
-  if (body.errors?.length || !userErrors) return "subscription_cancel_failed";
-  return userErrors.length ? "subscription_cancel_failed" : null;
+    if (body.errors?.length || !userErrors) return "subscription_cancel_failed";
+    return userErrors.length ? "subscription_cancel_failed" : null;
+  } catch {
+    return "subscription_cancel_failed";
+  }
 }
 
 // Credito informativo sul solo ciclo corrente: niente cumulo storico, niente giorni di prova.

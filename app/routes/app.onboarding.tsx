@@ -57,9 +57,14 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     return { ok: true as const };
   }
 
-  const current = readConfig(
-    findValidation((await queryContext(admin)).validations.nodes)?.metafield?.jsonValue,
-  );
+  let current;
+  try {
+    current = readConfig(
+      findValidation((await queryContext(admin)).validations.nodes)?.metafield?.jsonValue,
+    );
+  } catch {
+    return { ok: false as const, errorCode: "validation_write_failed" };
+  }
 
   // Le regole scelte al passo due si salvano subito, così sopravvivono a una ricarica e la
   // procedura può essere ripresa. La Validation nasce disattivata: attivare resta il gesto
