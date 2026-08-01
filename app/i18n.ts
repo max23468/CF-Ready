@@ -695,8 +695,8 @@ export function texts(locale: Locale) {
 // checkout (D-068), solo testo.
 export type CheckoutStatus = "active" | "disabled" | "lapsed";
 
-export const validationStatus = (enabled: boolean): CheckoutStatus =>
-  enabled ? "active" : "disabled";
+export const validationStatus = (enabled: boolean, entitled: boolean): CheckoutStatus =>
+  !enabled ? "disabled" : entitled ? "active" : "lapsed";
 
 export function describeCheckout(
   {

@@ -97,8 +97,10 @@ test("l'anteprima dice la conseguenza per il cliente, non lo stato dei campi", (
 });
 
 test("la revisione onboarding descrive lo stato reale della Validation", () => {
-  expect(validationStatus(true)).toBe("active");
-  expect(validationStatus(false)).toBe("disabled");
+  expect(validationStatus(true, true)).toBe("active");
+  expect(validationStatus(true, false)).toBe("lapsed");
+  expect(validationStatus(false, true)).toBe("disabled");
+  expect(validationStatus(false, false)).toBe("disabled");
 });
 
 test("senza regole attive l'anteprima non promette nulla", () => {
