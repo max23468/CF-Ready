@@ -5,6 +5,14 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.5.3 — 1 agosto 2026
+
+- il registro delle operazioni di M7 raccoglie i due deployment del sito, lo
+  snapshot Development `0.5.2`, l'esito dei gate della milestone e i residui:
+  identità del titolare, link alla listing e screenshot dell'app;
+- M7 è dichiarata completata nel Master Plan, con la revisione legale ancora
+  aperta in carico all'owner.
+
 ## 0.5.2 — 1 agosto 2026
 
 - la Home pubblica passa da scheda tecnica a pagina che spiega e convince:
