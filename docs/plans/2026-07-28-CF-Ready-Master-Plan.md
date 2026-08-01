@@ -33,7 +33,7 @@ La conversazione di origine è stata trattata come materiale storico non autorev
 
 Questa revisione integra inoltre:
 
-- strategia API aggiornata: Admin GraphQL `2026-07` stabile e Function API `2026-07` release candidate durante lo sviluppo `0.x`;
+- strategia API aggiornata: Admin GraphQL e Function API `2026-07` stabili;
 - comportamento esplicito `blockOnFailure: false`;
 - limite Shopify di 25 Validation Function attive per store;
 - limite relativo alle generazioni ricorrenti degli ordini in abbonamento;
@@ -326,11 +326,11 @@ Rispetto alle alternative più ampie o invasive:
 | D-021 | Messaggi IT/EN personalizzabili, otto in totale. | Merchant italiani con checkout multilingua. |
 | D-022 | Inglese fallback per ogni altra lingua checkout. | Copertura semplice e prevedibile della 1.0. |
 | D-023 | Limite 200 caratteri, trim e divieto di messaggi vuoti. | Mantiene messaggi leggibili e validi. |
-| D-024 | In modalità inline gli errori sono collegati ai campi nativi; in modalità preventiva sono box globali distinti per CF e PEC. | Il target globale è necessario per rendere gli errori prima della review. |
+| D-024 | In modalità inline gli errori sono collegati ai campi nativi; se un campo obbligatorio è assente con consegna italiana o la modalità è preventiva, sono box globali distinti per CF e PEC. | Il target globale rende l’errore anche quando il relativo campo non è montato o prima della review. |
 | D-025 | Nessuna regola per destinazione estera. | I campi italiani non sono pertinenti o possono non essere disponibili. |
 | D-026 | Fatturazione estera esenta automaticamente CF e PEC, anche con consegna in Italia. | Shopify non comunica la cittadinanza; il Paese di fatturazione è il proxy disponibile. |
 | D-027 | Se la fatturazione non è ancora disponibile ma il contesto italiano è rilevabile, applicare prudentemente la regola. | Evita aggiramenti dovuti a dato temporaneamente assente. |
-| D-028 | Se i localized fields non sono esposti, non bloccare. | Non chiedere un dato che il cliente non può inserire. |
+| D-028 | Se un localized field obbligatorio non è esposto ma Shopify comunica almeno una consegna italiana, restituire un errore globale; senza consegna osservabile, fail-open. | Chiude il bypass dei checkout accelerati senza bloccare prodotti digitali, ritiro o contesti in cui il campo non può comparire. |
 | D-029 | Prodotti digitali: validare solo se i localized fields sono presenti. | Il checkout può non raccogliere consegna o campi fiscali. |
 | D-030 | Ritiro online incluso se i campi sono presenti; ordini misti inclusi se almeno una consegna è in Italia. | Coprire il caso reale senza coinvolgere POS. |
 | D-031 | Configurazione assente, corrotta o sconosciuta: fail-open. | Un errore app non deve interrompere le vendite. |
@@ -407,7 +407,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-102 | Usare una sola Validation per store e non modificare quelle di altre app. | Shopify consente al massimo 25 Validation Function attive per store; se il limite è raggiunto l’app mostra un errore operativo senza eliminare risorse altrui. |
 | D-103 | Non promettere copertura delle generazioni successive degli ordini ricorrenti in abbonamento. | La superficie Cart and Checkout Validation corrente non le supporta; il checkout iniziale va testato e documentato separatamente. |
 | D-104 | Il metafield della Function usa il namespace riservato `$app:cf-ready-validation` e la key `function-configuration`. | Allinea il dato al relativo Function handle e riduce collisioni o ambiguità. |
-| D-105 | Sviluppare sulla Function API `2026-07` release candidate durante le versioni `0.x`; usare Admin GraphQL `2026-07`. | Evita una migrazione pianificata durante lo sviluppo; `1.0.0` è bloccata finché la Function API `2026-07` non è stabile e convalidata. |
+| D-105 | Usare Function API e Admin GraphQL `2026-07`, stabili dal 1º luglio 2026. | Mantiene entrambe le superfici sulla stessa versione trimestrale; prima della `1.0.0` lo schema generato dalla CLI corrente resta un gate obbligatorio. |
 | D-106 | Handover operativo con Sol 5.6 e ragionamento `medium`. | Profilo definitivo indicato dall’owner. |
 | D-107 | Brand Foundation approvata il 28 luglio 2026. `docs/brand/brand-foundation.md` è la fonte vincolante per identità visiva, tono di voce e materiali pubblici. | Gate M2 superato: UI, sito, listing e screenshot si progettano senza rework di brand. |
 | D-108 | Palette: Verde bottiglia `#20492F` primario, Arancio cotto `#C97B2E` accento unico, Panna `#F7F5EE`, Inchiostro `#1A211C`, Grigio caldo `#6B6A5C`. | Il verde porta l’associazione con la validazione restando lontano dal verde-teal Shopify. L’arancio è l’unico tono caldo sopra 3:1 sia sul verde sia sulla carta. |
@@ -479,7 +479,9 @@ required
 
 **FR-015** — Se entrambi i campi falliscono, vengono restituiti entrambi gli errori.
 
-**FR-016** — A Completion gli errori puntano al localized field corrispondente; a Interaction, in modalità preventiva, ogni errore usa il target globale `$.cart`.
+**FR-016** — A Completion gli errori puntano al localized field corrispondente;
+se il campo obbligatorio è assente con consegna italiana, o a Interaction in
+modalità preventiva, ogni errore usa il target globale `$.cart`.
 
 **FR-017** — La modalità preventiva è disattivata per default, mantiene Completion come barriera finale e mostra un avviso merchant sugli errori anticipati.
 
@@ -491,7 +493,8 @@ required
 
 **FR-022** — Destinazione italiana e fatturazione italiana: regole normali.
 
-**FR-023** — Destinazione italiana e fatturazione non ancora disponibile: regole normali se i localized fields sono presenti.
+**FR-023** — Destinazione italiana e fatturazione non ancora disponibile:
+regole normali; un campo obbligatorio assente genera un errore globale.
 
 **FR-024** — Checkout senza spedizione: regole solo se i localized fields sono presenti e non esiste una fatturazione estera.
 
@@ -499,7 +502,9 @@ required
 
 **FR-026** — Ordine misto: applicare le regole se almeno un gruppo di consegna è in Italia, salvo fatturazione estera.
 
-**FR-027** — Localized field assente: non generare errore per quel campo.
+**FR-027** — Localized field obbligatorio assente: generare un errore globale
+solo se almeno un gruppo di consegna ha destinazione italiana; senza consegna
+osservabile non generare errori per il campo assente.
 
 ### 7.4 Codice Fiscale
 
@@ -897,7 +902,9 @@ flowchart LR
 4. Accetta sempre `CHECKOUT_COMPLETION`; accetta `CHECKOUT_INTERACTION` solo in modalità preventiva.
 5. Determina applicabilità geografica.
 6. Se billing estero o destinazione esclusivamente estera, restituisce zero errori.
-7. Per ogni localized field presente applica la regola.
+7. Per ogni localized field presente applica la regola; con consegna italiana,
+   applica la modalità `required` anche al campo assente usando un errore
+   globale.
 8. A Completion restituisce errori inline; a Interaction restituisce box globali distinti.
 
 ### 9.5 Flusso salvataggio
@@ -942,7 +949,9 @@ sequenceDiagram
 - Tipo: Cart and Checkout Validation Function.
 - Linguaggio: TypeScript.
 - Target corrente: `cart.validations.generate.run`.
-- Function API: pin `2026-07` durante lo sviluppo `0.x`. Al 27 luglio 2026 Shopify la classifica ancora come **release candidate**; non pubblicare `1.0.0` finché non è diventata stabile e non ha superato build, fixture e checkout reali.
+- Function API: pin `2026-07`, stabile dal 1º luglio 2026. Non pubblicare
+  `1.0.0` finché schema generato, build, fixture e checkout reali non sono stati
+  riconfermati con la CLI supportata corrente.
 - Admin GraphQL API: pin `2026-07`, già stabile.
 - Trigger logico: `CHECKOUT_COMPLETION`; anche `CHECKOUT_INTERACTION` quando `errorDisplay` è `preventive`.
 - Configurazione: un metafield JSON sulla Validation.
@@ -1014,10 +1023,6 @@ if buyerJourney.step != CHECKOUT_COMPLETION:
   if config.errorDisplay != preventive or buyerJourney.step != CHECKOUT_INTERACTION:
     allow
 
-fields = localized fields actually returned by Shopify
-if neither CF nor PEC field is present:
-  allow
-
 if billing country exists and billing country != IT:
   allow
 
@@ -1026,6 +1031,8 @@ if one or more delivery countries exist:
     allow
   else:
     validate present fields
+    for each required field absent from the input:
+      add a global error
 else:
   # digital, pickup or no delivery address
   # localized field presence is treated as Shopify's applicability signal
@@ -1080,19 +1087,16 @@ Restituiscono zero errori:
 - `enabled` falso;
 - entitlement scaduto o non valido;
 - local time non leggibile;
-- campo nativo assente;
+- campo nativo assente senza una consegna italiana osservabile;
 - contesto geografico escluso;
 - eccezione non gestita.
 
-Il caso “campo nativo assente” è in correzione. Nei flussi express
-`cart.localizedFields` può arrivare vuoto, perché l’origine dipende
-dall’opzione di consegna selezionata, e un motore che decide sulla presenza dei
-campi lascia completare l’ordine senza Codice Fiscale. La regola sostitutiva è
-già definita, destinazione italiana e spedizione presente, e mantiene il
-fail-open per gli ordini senza consegna, dove il campo non può comparire.
-L’adozione attende da Shopify la conferma che con una spedizione verso l’Italia
-il campo esista sempre; la matrice wallet di M10 verifica la correzione, non la
-decide. Motivazione ed esito in
+Nei flussi express `cart.localizedFields` può arrivare vuoto. Se Shopify espone
+almeno una consegna italiana, un campo configurato come obbligatorio e assente
+genera quindi un errore globale; senza consegna osservabile il motore resta
+fail-open, perché il cliente potrebbe non avere alcun campo da compilare. La
+matrice wallet di M10 verifica questa correzione sulle superfici reali.
+Motivazione ed esito sono in
 `docs/evidence/2026-07-29-checkout-validation-rendering.md`.
 
 La Function può scrivere log tecnici minimi, entro il limite Shopify, senza valori fiscali.
@@ -1147,7 +1151,8 @@ evidenza, rollback e quesiti aperti sono in
 - checkout iniziale con prodotto in abbonamento assegnato alla matrice canary
   M10 e verificato separatamente prima della `1.0.0`;
 - nessuna pretesa di copertura delle ricorrenze successive.
-- build `1.0.0` rifiutata se la Function API `2026-07` è ancora release candidate o non validata dallo schema generato dalla CLI corrente.
+- build `1.0.0` rifiutata se la Function API `2026-07` non è validata dallo
+  schema generato dalla CLI corrente.
 
 ---
 
@@ -1934,7 +1939,8 @@ Ordine dei contenuti:
 3. **Come si applicano le regole**
    - consegna e fatturazione italiane;
    - fatturazione estera esclusa;
-   - campi assenti fail-open.
+   - campi obbligatori assenti bloccati solo con consegna italiana osservabile;
+   - campi assenti senza consegna osservabile fail-open.
 4. **Prossimo passo consigliato**
    - completare onboarding;
    - attivare;
@@ -3143,7 +3149,8 @@ Usare dati sintetici o pubblicamente documentati, mai CF di clienti reali.
 | solo ritiro Italia | Italia/assente | sì | applicate |
 | solo ritiro Italia | estero | sì | non applicate |
 | ordine misto con consegna Italia | Italia/assente | sì | applicate |
-| qualsiasi | qualsiasi | no | fail-open |
+| Italia | Italia/assente | no | errore globale per i campi obbligatori |
+| nessuna consegna osservabile | Italia/assente | no | fail-open |
 
 Testare esplicitamente più delivery groups e i tipi `SHIPPING`, `LOCAL`, `PICK_UP`, `PICKUP_POINT`, `RETAIL` se esposti dalla versione Function.
 
@@ -3662,7 +3669,7 @@ Gate:
 
 Rifiniture non bloccanti tracciate in Open items §34.5.
 
-### M3 — Motore di validazione ✅ completata
+### M3 — Motore di validazione Development ✅ completata · gate M10 aperto
 
 **Completata il 29 luglio 2026.** Query, motore e matrice
 automatizzata sono nel workspace `cf-ready-validation`; build Function, test e
@@ -3679,10 +3686,10 @@ senza messaggio: è un difetto Shopify distinto. La modalità preventiva
 opzionale, con box globali a `CHECKOUT_INTERACTION` e Completion mantenuto,
 evita la review silenziosa. Il motore e il contratto config v2 sono implementati
 in M3; il controllo merchant sarà consegnato con la UI completa in M6.
-La superficie autenticata standard è verificata. I wallet non sono esposti dal
-dev store con Test Payment Gateway e vengono quindi verificati in M10 sul canary
-store reale dell’owner, senza trasformare l’assenza della superficie Development
-in un esito negativo.
+La superficie autenticata standard è verificata. Il bypass dovuto a
+`localizedFields` vuoto è corretto nel motore con errore globale quando esiste
+una consegna italiana; i wallet non esposti dal dev store con Test Payment
+Gateway vengono verificati in M10 sul canary store reale dell’owner.
 
 L’evidenza completa è in
 `docs/evidence/2026-07-29-checkout-validation-rendering.md`. Shopify ha
@@ -4061,7 +4068,9 @@ La `1.0.0` è accettabile quando:
 13. fatturazione estera è esclusa;
 14. destinazione estera è esclusa;
 15. ritiro Italia è coperto quando i campi esistono;
-16. campi assenti/config corrotta/entitlement incerto sono fail-open;
+16. campi obbligatori assenti con consegna italiana sono bloccati; senza
+    consegna osservabile, config corrotta o entitlement incerto il motore è
+    fail-open;
 17. disattivazione conserva config;
 18. trial scaduto non blocca ordini;
 19. mensile, annuale e una tantum funzionano;
@@ -4302,7 +4311,7 @@ Codex definisce contratti e dati; Claude definisce presentazione e interazione. 
 
 | Rischio | Probabilità | Impatto | Mitigazione |
 |---|---:|---:|---|
-| Localized fields non presenti in un flusso | media | alta | campo assente = fail-open; test reali |
+| Localized fields non presenti in un flusso | bassa | alta | errore globale per campo obbligatorio con consegna italiana; fail-open senza consegna; test wallet reali |
 | Accelerated checkout mostra errore poco chiaro | media | media/alta | test wallet; FAQ trasparente |
 | Store ha già 25 Validation Function attive | bassa | media | una sola Validation CFR; errore operativo; non toccare risorse terze |
 | Merchant presume copertura delle ricorrenze in abbonamento | media | alta | listing/FAQ/Termini espliciti; test separato del checkout iniziale |
@@ -4397,7 +4406,7 @@ Le API e i requisiti cambiano: prima di implementare o pubblicare, verificare se
 
 - [Shopify Functions](https://shopify.dev/docs/apps/build/functions/index)
 - [Cart and Checkout Validation Function API — latest](https://shopify.dev/docs/api/functions/latest/cart-and-checkout-validation)
-- [Cart and Checkout Validation Function API 2026-07 — release candidate al 27 luglio 2026](https://shopify.dev/docs/api/functions/2026-07/cart-and-checkout-validation)
+- [Cart and Checkout Validation Function API 2026-07](https://shopify.dev/docs/api/functions/2026-07/cart-and-checkout-validation)
 - [Admin GraphQL API 2026-07](https://shopify.dev/docs/api/admin-graphql/2026-07)
 - [`validationCreate`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/validationCreate)
 - [`validationUpdate`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/validationUpdate)
