@@ -36,6 +36,8 @@ const it = {
       "Questo store ha già il numero massimo di Validation attive consentito da Shopify. Le tue regole restano salvate. Disattiva la Validation di un’altra app da Impostazioni → Checkout, poi riprova: CF Ready non tocca le risorse di altre app.",
     country_not_eligible:
       "CF Ready funziona solo con store che hanno l’indirizzo in Italia. Le regole restano salvate.",
+    entitlement_required:
+      "Attiva prima una prova o un piano. Senza un diritto valido la Validation resterebbe inefficace.",
     config_conflict:
       "Le regole sono cambiate da un’altra scheda o da un altro membro dello staff mentre modificavi. Riapri la pagina per vedere quelle correnti, poi rifai la tua modifica: non sovrascriviamo il lavoro di qualcun altro.",
     billing_read_failed:
@@ -347,6 +349,8 @@ const en: typeof it = {
       "This store already has the maximum number of active validations Shopify allows. Your rules are still saved. Turn off another app’s validation in Settings → Checkout, then try again: CF Ready never touches other apps’ resources.",
     country_not_eligible:
       "CF Ready only works with stores based in Italy. Your rules are still saved.",
+    entitlement_required:
+      "Start a trial or plan first. Without a valid entitlement, the validation would have no effect.",
     config_conflict:
       "The rules changed in another tab or from another staff member while you were editing. Reload the page to see the current ones, then redo your change: we don’t overwrite someone else’s work.",
     billing_read_failed:

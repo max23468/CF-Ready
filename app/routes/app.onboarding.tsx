@@ -12,6 +12,7 @@ import {
   queryContext,
   readAddress2Declaration,
   readOnboarding,
+  reconcile,
   saveAddress2Declaration,
   saveOnboarding,
   writeValidation,
@@ -22,7 +23,8 @@ const STEPS = 4;
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
   const db = context.cloudflare.env.DB;
-  const validation = findValidation((await queryContext(admin)).validations.nodes);
+  const state = await reconcile(admin, db, session.shop);
+  const validation = state.validation;
   const config = readConfig(validation?.metafield?.jsonValue);
   const onboarding = await readOnboarding(db, session.shop);
 
@@ -37,6 +39,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     errorDisplay: config.errorDisplay,
     messages: config.messages,
     enabled: validation?.enabled ?? false,
+    entitled: state.entitlement.kind !== "none",
     address2Declared: (await readAddress2Declaration(db, session.shop)) !== null,
   };
 };
@@ -57,15 +60,6 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     return { ok: true as const };
   }
 
-  let current;
-  try {
-    current = readConfig(
-      findValidation((await queryContext(admin)).validations.nodes)?.metafield?.jsonValue,
-    );
-  } catch {
-    return { ok: false as const, errorCode: "validation_write_failed" };
-  }
-
   // Le regole scelte al passo due si salvano subito, così sopravvivono a una ricarica e la
   // procedura può essere ripresa. La Validation nasce disattivata: attivare resta il gesto
   // finale ed esplicito di FR-051.
@@ -73,6 +67,15 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     const taxCode = pick(form.get("taxCode"));
     const pec = pick(form.get("pec"));
     if (!taxCode || !pec) return { ok: false as const, errorCode: "generic" };
+
+    let current;
+    try {
+      current = readConfig(
+        findValidation((await queryContext(admin)).validations.nodes)?.metafield?.jsonValue,
+      );
+    } catch {
+      return { ok: false as const, errorCode: "validation_write_failed" };
+    }
 
     const result = await writeValidation(
       admin,
@@ -95,13 +98,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   if (declared !== null) await saveAddress2Declaration(db, session.shop, declared);
 
   if (intent === "activate") {
-    const result = await writeValidation(
-      admin,
-      db,
-      session.shop,
-      { rules: current.rules, errorDisplay: current.errorDisplay, messages: current.messages },
-      true,
-    );
+    const result = await writeValidation(admin, db, session.shop, null, true);
     if (!result.ok) return { ok: false as const, errorCode: result.errorCode };
 
     await recordEvent(db, {
@@ -343,7 +340,11 @@ export default function Onboarding() {
               ) : null}
               {step === 4 ? (
                 <>
-                  <s-button variant="primary" disabled={busy} onClick={() => close("activate")}>
+                  <s-button
+                    variant="primary"
+                    disabled={busy || !saved.entitled}
+                    onClick={() => close("activate")}
+                  >
                     {t.onboarding.activate}
                   </s-button>
                   <s-button disabled={busy} onClick={() => close("finish")}>

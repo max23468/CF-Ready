@@ -314,7 +314,7 @@ export async function writeValidation(
   admin: Admin,
   db: D1Database,
   shopDomain: string,
-  next: { rules: Rules; errorDisplay: ErrorDisplay; messages: CheckoutConfig["messages"] },
+  next: { rules: Rules; errorDisplay: ErrorDisplay; messages: CheckoutConfig["messages"] } | null,
   enable: boolean | null,
   expectedHash?: string | null,
 ): Promise<ValidationWriteResult> {
@@ -339,18 +339,35 @@ export async function writeValidation(
 
     const enabled = enable ?? existing?.enabled ?? false;
     const today = localDate(data.shop.ianaTimezone);
-    const entitlement = entitlementFor(
-      await syncTrial(db, shopDomain, { eligible, today }),
-      today,
-      await readBillingAccount(db, shopDomain),
-    );
+    const trial = await syncTrial(db, shopDomain, { eligible, today });
+    let account = await readBillingAccount(db, shopDomain);
+    let billing: Awaited<ReturnType<typeof readBilling>> | null = null;
+    try {
+      billing = await readBilling(admin, BILLING_IS_TEST);
+    } catch {
+      // Shopify non raggiungibile: come in `reconcile`, si conserva lo stato operativo noto.
+    }
+    if (billing) {
+      account = await syncBillingAccount(db, shopDomain, billing, {
+        today,
+        timeZone: data.shop.ianaTimezone,
+        pricingGeneration: trial?.pricing_generation ?? "launch",
+      });
+      if (account.entitlement_status === "active") await markTrialConverted(db, shopDomain);
+    }
+    const entitlement = entitlementFor(trial, today, account);
+    if (enable === true && !existing?.enabled && entitlement.kind === "none") {
+      return { ok: false, errorCode: "entitlement_required" };
+    }
+    if (enable === null && !next) return { ok: false, errorCode: "validation_write_failed" };
+    const source = enable === null ? next! : readConfig(existing?.metafield?.jsonValue);
     const config: CheckoutConfig = {
       schemaVersion: 2,
       enabled,
-      errorDisplay: next.errorDisplay,
+      errorDisplay: source.errorDisplay,
       entitlement,
-      rules: next.rules,
-      messages: next.messages,
+      rules: source.rules,
+      messages: source.messages,
     };
     const metafields = [
       {
@@ -402,14 +419,11 @@ export async function writeValidation(
     }
 
     const readback = findValidation((await queryContext(admin)).validations.nodes);
-    const stored = readConfig(readback?.metafield?.jsonValue);
     const consistent = Boolean(
       readback &&
       readback.enabled === enabled &&
       readback.blockOnFailure === false &&
-      stored.rules.taxCode === config.rules.taxCode &&
-      stored.rules.pec === config.rules.pec &&
-      stored.errorDisplay === config.errorDisplay,
+      (await observedConfigHash(readback)) === (await configHash(config)),
     );
 
     await persistValidationState(db, shopDomain, {
