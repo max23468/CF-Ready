@@ -3821,12 +3821,11 @@ Gate: verdi, salvo la cancellazione ordinaria spostata al canary M10.
 
 Deliverable:
 
-- Home;
+- Home con stato e scelta del piano;
 - Regole;
 - Messaggi;
-- Piano;
 - Guida;
-- onboarding;
+- onboarding in finestra;
 - IT/EN;
 - glossario canonico di termini cliente e tecnici;
 - Reviews prompt;
