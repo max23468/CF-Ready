@@ -4,7 +4,10 @@
 
 **Repository:** `max23468/CF-Ready`
 
-**Snapshot applicativo:** `develop` a `978acf4` (`#107`)
+**Snapshot originario dell’audit:** `develop` a `978acf4` (`#107`)
+
+**Stato delle correzioni:** aggiornato durante la campagna delle 10 PR; la
+tabella «Finding ancora aperti» rappresenta il backlog corrente.
 
 **Perimetro:** PR `#52`–`#107`, incluse espressamente `#68` e `#105`
 
@@ -19,7 +22,7 @@ Il risultato sul codice corrente è:
 
 - **1 finding P1**, che resta un gate esplicito prima della `1.0.0`;
 - **15 finding P2**;
-- **10 finding P3**;
+- **7 finding P3**;
 - nessun P0;
 - 3 thread Codex reali ancora `unresolved` su GitHub: uno in `#68`, due in
   `#105`;
@@ -31,9 +34,6 @@ Il risultato sul codice corrente è:
 | ID          | PR principale | Classe                    | Priorità   | Sintesi                                                                                                           |
 | ----------- | ------------- | ------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
 | F-M3-57-01  | #57           | limite di prodotto        | P1 pre-1.0 | con `localizedFields` vuoto i checkout accelerati possono passare senza Codice Fiscale richiesto                  |
-| F-M4-58-02  | #58/#70/#99   | documentazione operativa  | P3         | le ricevute propongono rollback che eliminano tabelle, colonne e cronologia di migrazioni già applicate           |
-| F-M4-58-03  | #58/#99       | gap di verifica           | P3         | i test applicano le migrazioni solo a un database vuoto, mai allo snapshot della versione precedente              |
-| F-M4-64-01  | #64/#82       | documentazione nel codice | P3         | il commento su `shop/redact` promette ancora un registro M5 del diritto una tantum che non deve esistere           |
 | F-M5-67-01  | #67           | bug di integrità dati     | P2         | aggiornamento conto ed evento billing non sono atomici; un evento può perdersi definitivamente                    |
 | F-M5-67-02  | #67 / #81     | bug di integrità dati     | P2         | durante la conversione a una tantum l’evento può registrare importo e valuta della sottoscrizione                 |
 | F-M5-67-03  | #67           | documentazione/compliance | P3         | SHA-256 del dominio viene descritto come «non reversibile», formulazione troppo forte                             |
@@ -61,10 +61,11 @@ Il risultato sul codice corrente è:
 
 Per ogni PR sono stati controllati metadati GitHub, stato, diff, file toccati,
 descrizione, check e commenti/review. I diff sono stati poi confrontati con il
-codice corrente e con `git blame`. Per richiesta dell’owner, tabella e sezioni
-`F-*` includono **soltanto problemi ancora aperti nello snapshot corrente**;
-una correzione successiva è citata solo come esito storico della PR, non come
-finding. Gli esiti usati nella rassegna per PR sono:
+codice corrente e con `git blame`. Per richiesta dell’owner, la tabella include
+**soltanto problemi ancora aperti nello snapshot corrente**. Le sezioni `F-*`
+sono invece il registro stabile dei finding individuati: mantengono ID e stato,
+e quando una correzione viene verificata passano a «chiuso», riportano l’esito e
+vengono rimosse dalla tabella. Gli esiti usati nella rassegna per PR sono:
 
 - **aperto**: il problema è riproducibile o dimostrabile nello snapshot corrente;
 - **corretto, non finding**: il difetto esisteva nella PR ma una PR successiva
@@ -78,7 +79,7 @@ con impatto circoscritto ma reale; P3 hardening, accuratezza o caso marginale.
 
 Verifiche fresche eseguite:
 
-- `npm run check`: verde sullo snapshot con il report; 37 documenti, 66 test
+- `npm run check`: verde sullo snapshot con il report; 37 documenti, 77 test
   app, 105 test Function, React Doctor 100/100, build app e Function, dry-run
   Wrangler;
 - `npm audit --omit=dev --audit-level=high`: un advisory high su
@@ -94,16 +95,13 @@ Verifiche fresche eseguite:
 
 Readback remoto, solo in lettura:
 
-- Cloudflare Development non ha migrazioni D1 pendenti; il Worker attivo è la
-  versione `2b13a7ef-b10d-4ccc-963c-f63ed7652689`, deployment
-  `b59a50f8-f523-45ee-a171-15c778609231`, creato da Wrangler sul commit
-  `d497179`;
-- Shopify Development ha attiva la versione `0.4.21`
-  (`gid://shopify/Version/1072184786945`), anch’essa riferita a `d497179`;
-- il run GitHub `30660443646` ha pubblicato e riletto Shopify, ma non ha
-  distribuito Cloudflare. Il Worker era stato pubblicato manualmente circa
-  trenta secondi prima. `#107` cambia solo documentazione e tre chiavi i18n
-  inutilizzate, quindi non introduce un delta comportamentale remoto.
+- Cloudflare Development non ha migrazioni D1 pendenti; `0008` è applicata e il
+  Worker attivo è la versione `a310b057-7eb7-4066-992a-2a1e1e74c17a`,
+  deployment `2ec5147e-5623-49f1-8dc6-801848a49315`, sul commit `f13c14c`;
+- Shopify Development ha attiva la versione `0.4.23`
+  (`gid://shopify/Version/1072789684225`), riferita allo stesso commit;
+- il run coordinato `30707318436` ha applicato e riletto D1, pubblicato e
+  riletto Worker e Shopify, ed eseguito lo smoke del Worker.
 
 La review UX/UI è statica: gerarchia, copy, stato, feedback, accessibilità e
 responsività sono stati confrontati con il codice React e con i pattern nativi
@@ -127,9 +125,10 @@ webhook e fino a otto retry per le chiamate fallite; Cloudflare documenta che
 [Shopify appSubscriptionCreate](https://shopify.dev/docs/api/admin-graphql/2026-04/mutations/appSubscriptionCreate),
 [GitHub Advisory GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2).
 
-Non sono stati ripetuti deploy, migrazioni remote, addebiti di prova o scenari
-browser sul dev store: l’audit è stato read-only sui provider. Le prove live
-storiche sono state controllate come evidenze, non presentate come nuove.
+Durante la campagna sono stati eseguiti i deploy Development coordinati
+`0.4.22` e `0.4.23`, inclusa la migrazione additiva `0008`. Non sono stati
+eseguiti addebiti di prova, scenari browser sul dev store o scritture Production;
+le altre prove live storiche restano evidenze, non sono presentate come nuove.
 
 ---
 
@@ -287,7 +286,7 @@ lifecycle e riconciliazione.
 
 #### F-M4-58-02 — rollback documentato mutando migrazioni applicate
 
-- **Classe/priorità/stato:** documentazione operativa, P3, aperto; ricorre
+- **Classe/priorità/stato:** documentazione operativa, P3, chiuso; ricorre
   anche nelle ricevute introdotte da #70 e #99.
 - **Evidenza:** `docs/evidence/2026-07-30-m4-development-migration.md:36-41`
   propone `DROP TABLE` e cancellazione della riga in `d1_migrations`;
@@ -304,10 +303,13 @@ lifecycle e riconciliazione.
   valide soltanto prima dell’uso dei dati e indicare, per lo stato corrente,
   rollback Worker + forward-fix dello schema; Time Travel resta riservato a
   perdita o corruzione. Non va aggiunta una migrazione di compatibilità.
+- **Esito:** le tre ricevute mantengono il contesto storico, ma indicano per lo
+  stato corrente rollback Worker, migrazione forward-fix e Time Travel solo per
+  perdita o corruzione.
 
 #### F-M4-58-03 — manca il test di upgrade dalla versione precedente
 
-- **Classe/priorità/stato:** gap di verifica migrazioni, P3, aperto; la
+- **Classe/priorità/stato:** gap di verifica migrazioni, P3, chiuso; la
   migrazione più recente è la `0008` introdotta dalla correzione di
   F-M4-58-01.
 - **Evidenza:** `tests/apply-migrations.ts:1-6` riceve da
@@ -319,12 +321,16 @@ lifecycle e riconciliazione.
 - **Impatto:** il gate verde prova sintassi e installazione pulita, ma non
   rileverebbe una migrazione che fallisce su righe esistenti o altera default e
   dati della versione precedente. Il readback remoto conferma che `0007` è già
-  applicata, mentre `0008` non è ancora pubblicata: questo è un residuo di
-  copertura corrente, non l’affermazione di una perdita dati già avvenuta.
+  applicata; il workflow Development `30707318436` ha poi applicato `0008` e
+  confermato zero migrazioni pendenti. Il finding riguardava la copertura
+  preventiva, non una perdita dati osservata.
 - **Correzione proporzionata:** aggiungere un solo test che applica
   `0001`–`0006`, inserisce righe rappresentative, verifica l’upgrade `0007` e
   poi `0008`, incluse colonne e unicità degli eventi webhook. Nessun framework
   di snapshot o percorso legacy.
+- **Esito:** un database isolato applica `0001`–`0006`, riceve righe
+  rappresentative, applica prima `0007` e poi `0008`, conserva i dati, verifica
+  i nuovi default e prova l'unicità degli eventi per webhook.
 
 Il resto della PR ha controlli coerenti: AES-GCM con AAD, payload di sessione
 validato, HMAC delegato all’autenticatore Shopify, eventi con allowlist e fail-open
@@ -374,7 +380,7 @@ Corregge la cancellazione di dati di uno store reinstallato.
 
 #### F-M4-64-01 — il commento promette un registro M5 che non deve esistere
 
-- **Classe/priorità/stato:** documentazione nel codice, P3, aperto dopo #82.
+- **Classe/priorità/stato:** documentazione nel codice, P3, chiuso dopo #82.
 - **Evidenza:** `app/shop.server.ts:97-98`, nel percorso `shop/redact`, afferma
   ancora che «il diritto una tantum entrerà nel registro con il blocco billing
   di M5». M5 è completata, ma non ha introdotto quel registro: per decisione
@@ -387,6 +393,8 @@ Corregge la cancellazione di dati di uno store reinstallato.
 - **Correzione proporzionata:** sostituire le due righe con una frase che separi
   trial ledger e acquisto una tantum autorevole in Shopify. Nessun nuovo
   registro, schema o comportamento legacy.
+- **Esito:** il commento limita il ledger alla prova fruita e mantiene Shopify
+  autorevole per l'acquisto una tantum.
 
 ### [PR #65 — release 0.2.1](https://github.com/max23468/CF-Ready/pull/65)
 
@@ -498,8 +506,9 @@ di tracciabilità è stato risolto dalla regola della PR unica di #73.
 **Stato:** merged, `fde7452`; 5 file, `+115/-29`; review Codex non eseguita.
 
 **Finding:** il bug storico è corretto: qualunque nuovo addebito è rifiutato se
-esiste un acquisto una tantum. La ricevuta aggiunta dalla PR eredita però la
-procedura di rollback non più valida come runbook corrente: F-M4-58-02.
+esiste un acquisto una tantum. La ricevuta aggiunta dalla PR ereditava una
+procedura di rollback non più valida, ora storicizzata dalla chiusura di
+F-M4-58-02.
 
 ### [PR #71 — avviso sul campo Interno](https://github.com/max23468/CF-Ready/pull/71)
 
@@ -976,8 +985,8 @@ Introduce onboarding, review prompt e assorbimento Piano nella Home.
   «Annulla rinnovo». Nessun componente modale custom.
 
 I difetti di riapertura, card annidata e composizione Home dichiarati dalla PR
-furono corretti fra #100 e #106. Restano inoltre il feedback fetcher
-F-M6-87-01 e la procedura di rollback storica F-M4-58-02.
+furono corretti fra #100 e #106. Resta il feedback fetcher F-M6-87-01; la
+procedura di rollback storica è stata corretta con F-M4-58-02.
 
 ### [PR #100 — difetti dalla rilettura completa M6](https://github.com/max23468/CF-Ready/pull/100)
 
@@ -1110,28 +1119,25 @@ alcun meccanismo di sincronizzazione documentale.
 
 ## 7. Ordine operativo consigliato
 
-1. Chiudere il percorso di mutazione condiviso: errori Shopify tipizzati,
+1. Correggere la descrizione compliance dello SHA-256 come identificatore
+   pseudonimizzato, non anonimo o non reversibile (F-M5-67-03).
+2. Preservare integrità e unicità degli eventi billing, selezionando l'importo
+   dalla risorsa effettiva (F-M5-67-01/02/04).
+3. Validare al confine server gli errori Shopify, il `returnUrl` e il piano già
+   attivo (F-M5-74-01, F-M5-76-01, F-M5-79-01).
+4. Chiudere il percorso di mutazione condiviso: errori Shopify tipizzati,
    riconciliazione entitlement, readback completo, rifiuto dell’attivazione
-   senza diritto, configurazione riletta dentro la lease e dichiarazione D1
-   solo dopo successo (F-M5-74-01, F-M6-83-01/02/03/05 e
-   F-M6-99-01/02).
-2. Chiudere i due thread #105 e F-M6-105-03 con i tre test minimi di stato/input;
-   nello stesso passaggio aggiungere la conferma cancellazione F-M6-99-03.
-3. Al confine billing rifiutare il piano già attivo; poi rendere atomici
-   conto/evento, selezionare l’importo dalla risorsa effettiva e legare
-   `trial_started` al solo inserimento vincente (F-M5-79-01 e
-   F-M5-67-01/02/04).
-4. Aggiungere il singolo test di upgrade `0001`–`0006` → `0007`
-   (F-M4-58-03).
-5. Correggere i residui UX statici con componenti e stati già presenti: login
+   senza diritto e configurazione riletta dentro la lease (F-M6-83-01/03/05 e
+   F-M6-99-01).
+5. Persistire le dichiarazioni D1 soltanto dopo il successo Shopify
+   (F-M6-83-02, F-M6-99-02).
+6. Correggere i residui UX statici con componenti e stati già presenti: login
    bilingue, banner salvataggio, frase Home, loading del pulsante e Setup guide
-   (F-M6-83-04, F-M6-86-01, F-M6-90-01, F-M6-87-01,
-   F-M6-101-01).
-6. Correggere i due residui documentali ancora aperti: runbook di rollback e
-   commento `shop/redact` (F-M4-58-02, F-M4-64-01).
-7. Applicare i due hardening minori: `returnUrl` dalla sessione e formulazione
-   corretta dello SHA-256.
-8. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
+   (F-M6-83-04, F-M6-86-01, F-M6-90-01, F-M6-87-01).
+7. Aggiungere la conferma cancellazione F-M6-99-03 riusando la modale presente.
+8. Stabilizzare stato e layout dell'onboarding con i test minimi di regressione
+   (F-M6-101-01, F-M6-105-01/02/03).
+9. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
    prima della prova reale.
 
 Questo ordine non richiede retrocompatibilità, supporto di formati legacy,

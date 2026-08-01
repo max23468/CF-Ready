@@ -35,6 +35,8 @@ milestone aggiunge colonne con default e non altera dati esistenti.
 | `0.4.19` | `488ebed` | `9128599c-0ace-4b30-a839-546b838e655e` | `1072164962305` | `30658975959` |
 | `0.4.20` | `a46ff27` | `9e98abf9-31d2-4119-b92f-331da8a6b4a9` | `1072177119233` | `30659886865` |
 | `0.4.21` | `d497179` | `2b13a7ef-b10d-4ccc-963c-f63ed7652689` | `1072184786945` | `30660443646` |
+| `0.4.22` | `6bb01d3` | `1814626e-c044-4645-8cf1-0a57b9598ca8` | `1072742957057` | `30704039699` |
+| `0.4.23` | `f13c14c` | `a310b057-7eb7-4066-992a-2a1e1e74c17a` | `1072789684225` | `30707318436` |
 
 Il rollback di ogni riga è la versione Worker della riga precedente, e per
 Shopify lo snapshot precedente.
@@ -54,9 +56,20 @@ esecuzione.
 
 `ALTER TABLE ADD COLUMN` con default: il Worker allora attivo inseriva in
 `app_state` con lista colonne esplicita, quindi ha continuato a funzionare
-nell'intervallo fra migrazione e deploy. Rollback: `DROP COLUMN` sulle quattro
-colonne e rimozione della riga in `d1_migrations`; nessun dato applicativo
-andrebbe perso.
+nell'intervallo fra migrazione e deploy. All'epoca, prima di usare le colonne,
+era possibile eliminarle insieme alla riga in `d1_migrations`; non è una
+procedura valida sullo schema corrente. Il rollback ordinario ripristina il
+Worker compatibile e usa una nuova migrazione forward-fix; Time Travel resta
+riservato a corruzione o perdita.
+
+### Migrazione D1 `0008`
+
+Il workflow `30707318436` ha applicato
+`0008_webhook_claim_ownership.sql` prima del Worker `0.4.23`: tre colonne e un
+indice parziale, 5 comandi. Il readback remoto ha confermato zero migrazioni
+pendenti. Non serviva un backup dedicato perché la migrazione è soltanto
+additiva; un rollback del Worker usa la versione compatibile precedente e un
+eventuale problema di schema richiede una migrazione forward-fix.
 
 ### Un'etichetta non corrispondente
 

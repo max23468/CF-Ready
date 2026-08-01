@@ -35,10 +35,11 @@ I dati preesistenti sono intatti: 1 riga in `shops`, 1 in `shopify_sessions`,
 
 ### Rollback
 
-`DROP TABLE app_state`, `app_events`, `webhook_events` e la riga corrispondente
-in `d1_migrations`. Nessun dato applicativo verrebbe perso. Il ripristino Time
-Travel al bookmark registrato sopra resta la rete per corruzione o perdita, non
-il rollback ordinario di questo schema.
+All'epoca, prima che le nuove tabelle ricevessero dati, era possibile eliminarle
+insieme alla riga corrispondente in `d1_migrations` senza perdere dati
+applicativi. Non è una procedura valida sullo schema corrente: il rollback
+ordinario ripristina il Worker compatibile e corregge lo schema con una nuova
+migrazione forward-fix. Time Travel resta riservato a corruzione o perdita.
 
 ## Deploy Worker e snapshot Shopify
 
