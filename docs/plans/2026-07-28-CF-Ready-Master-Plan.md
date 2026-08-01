@@ -2,7 +2,7 @@
 
 ## Master Plan di prodotto, architettura, implementazione e lancio
 
-**Stato:** baseline approvata per scaffolding e implementazione · M0–M4 completate, Development alla `0.2.1` · conferma Shopify pre-Production e wallet M10 tracciati
+**Stato:** baseline approvata per scaffolding e implementazione · M0–M6 completate, Development alla `0.4.21` · Production, submission App Store e wallet M10 non completati
 **Data:** 27 luglio 2026 · revisione 28 luglio 2026  
 **Documenti vincolanti collegati:** `docs/brand/brand-foundation.md` (identità visiva, tono, materiali pubblici)  
 **Brand:** CF Ready  
@@ -50,7 +50,7 @@ Quando due passaggi storici risultano in tensione, vale la decisione approvata p
 
 - il nome definitivo è **CF Ready — Codice Fiscale nel Checkout**, non “Codice Fiscale Checkout”;
 - l’unica abbreviazione interna ammessa è `CFR`; ogni abbreviazione precedente è eliminata;
-- l’app ha cinque pagine permanenti, perché **Piano e fatturazione** è stata aggiunta dopo la prima proposta a quattro pagine;
+- l’app ha quattro pagine permanenti; stato e scelta del piano sono nella Home e l’onboarding si apre in una finestra;
 - non esiste un selettore manuale della lingua;
 - si mantiene un solo dev store;
 - ESLint e Prettier sono sostituiti da Oxlint e Oxfmt;
@@ -823,7 +823,7 @@ flowchart LR
 - React e TypeScript.
 - Polaris Web Components.
 - App Bridge Web Components.
-- Cinque pagine e onboarding.
+- Quattro pagine permanenti e onboarding in finestra.
 - Loader/action server-side nel Worker.
 
 #### Cloudflare Worker
@@ -1245,7 +1245,7 @@ Regole:
 | Onboarding e stato UI | D1 | Nessuna |
 | Sessioni e token | D1 cifrato | Nessuna |
 
-La UI non deve presentare come certo uno stato locale vecchio: all’apertura della pagina Piano e fatturazione e prima di ogni mutazione rilevante va eseguita una riconciliazione con Shopify.
+La UI non deve presentare come certo uno stato locale vecchio: all’apertura della Home e prima di ogni mutazione rilevante va eseguita una riconciliazione con Shopify.
 
 ### 11.3 Creazione
 
@@ -1299,7 +1299,6 @@ risorse duplicate su Shopify.
 Eseguire riconciliazione:
 
 - all’apertura della Home;
-- all’apertura di Piano e fatturazione;
 - dopo webhook billing;
 - dopo `shop/update`;
 - dopo ritorno da una pagina di approvazione Shopify;
@@ -3989,7 +3988,7 @@ Gate:
 6. Country gate.
 7. Trial e billing manuale completo.
 8. Entitlement fail-open.
-9. Cinque pagine e onboarding.
+9. Quattro pagine permanenti e onboarding in finestra.
 10. IT/EN.
 11. Webhook privacy e lifecycle.
 12. Privacy/Termini.
@@ -4236,7 +4235,7 @@ Claude Code prende ownership di:
 - tipografia;
 - tono e microcopy;
 - UI/UX;
-- frontend delle cinque pagine;
+- frontend delle quattro pagine permanenti;
 - onboarding;
 - responsive/accessibilità;
 - sito Pages;

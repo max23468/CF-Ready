@@ -18,7 +18,7 @@ avevano invece ricevuto una review reale di Codex e sono incluse per controllo.
 Il risultato sul codice corrente è:
 
 - **3 finding P1**, due dei quali sono gate espliciti prima della `1.0.0`;
-- **18 finding P2**;
+- **16 finding P2**;
 - **10 finding P3**;
 - nessun P0;
 - 3 thread Codex reali ancora `unresolved` su GitHub: uno in `#68`, due in
@@ -41,7 +41,6 @@ Il risultato sul codice corrente è:
 | F-M5-67-02  | #67 / #81     | bug di integrità dati     | P2         | durante la conversione a una tantum l’evento può registrare importo e valuta della sottoscrizione                 |
 | F-M5-67-03  | #67           | documentazione/compliance | P3         | SHA-256 del dominio viene descritto come «non reversibile», formulazione troppo forte                             |
 | F-M5-67-04  | #67           | bug di concorrenza        | P3         | due primi accessi concorrenti possono registrare due eventi `trial_started` per lo stesso store                   |
-| F-M5-68-01  | #68           | documentazione/stato      | P2         | il finding Codex sullo stato M5 è stato chiuso solo in parte; l’intestazione canonica è ancora ferma a M4/0.2.1   |
 | F-M5-74-01  | #74 / #83     | bug di gestione errori    | P2         | errori di trasporto/risposta Shopify sfuggono ai risultati tipizzati e aprono la Error Boundary                   |
 | F-M5-76-01  | #76           | hardening                 | P3         | il `returnUrl` billing preferisce il parametro `shop` non fidato alla sessione autenticata                        |
 | F-M5-79-01  | #74/#79       | bug di validazione billing | P2        | l’action accetta il piano ricorrente già attivo e può creare una sostituzione/addebito ridondante                 |
@@ -60,7 +59,6 @@ Il risultato sul codice corrente è:
 | F-M6-105-01 | #105          | bug di concorrenza        | P2         | la persistenza del passo può terminare dopo la chiusura e riportare `onboarding_step` a 4                         |
 | F-M6-105-02 | #105          | bug UI/stato              | P2         | checkbox e istruzioni della dichiarazione possono divergere tornando al riepilogo                                 |
 | F-M6-105-03 | #99 / #105    | validazione input         | P3         | `Number(...)` più `Math.min/max` lascia passare `NaN` fino a D1                                                   |
-| F-M6-107-01 | #107          | documentazione/stato      | P2         | la chiusura M6 lascia README, indice e riferimenti alle cinque pagine non allineati allo stato reale              |
 
 ## 2. Metodo, classificazione e limiti
 
@@ -384,7 +382,8 @@ di processo poi superata dalla regola della PR unica in #73.
 
 **Finding:** la chiusura è supportata dalle prove registrate, salvo la copertura
 incompleta dei crash webhook descritta in F-M4-58-01. L’intestazione del Master
-Plan aggiornata qui è poi rimasta ferma a M4: vedere F-M5-68-01.
+Plan aggiornata qui è poi rimasta ferma a M4 fino al successivo riallineamento
+documentale; non è più un finding corrente.
 
 ---
 
@@ -459,20 +458,12 @@ entitlement e webhook billing.
 Il thread è ancora non risolto:
 [discussion_r3684506411](https://github.com/max23468/CF-Ready/pull/68#discussion_r3684506411).
 
-#### F-M5-68-01 — stato release non allineato alla fonte canonica
-
-- **Classe/priorità/stato:** documentazione/stato, P2, parzialmente aperto.
-- **Valutazione del commento Codex:** al momento della PR era corretto: il
-  changelog dichiarava M5 rilasciata, mentre il deploy doveva ancora avvenire e
-  il Master Plan indicava M5 in corso. #70 e #82 hanno poi aggiunto ricevuta e
-  chiusura, quindi la parte temporale è risolta.
-- **Evidenza corrente:** `docs/plans/2026-07-28-CF-Ready-Master-Plan.md:5`
-  dichiara ancora «M0–M4 completate, Development 0.2.1», mentre le sezioni
-  `:3782-3847` chiudono M5 e M6 fino alla `0.4.21`.
-- **Impatto:** la prima riga della fonte canonica presenta come corrente uno
-  snapshot superato e può falsare pianificazione, review e handover successivi.
-- **Correzione proporzionata:** aggiornare l’intestazione alla milestone/versione
-  reale e risolvere il thread GitHub dopo verifica del diff.
+**Finding:** il commento Codex era corretto al momento della PR: il changelog
+dichiarava M5 rilasciata prima del deploy e il Master Plan era ancora fermo a
+M4. #70 e #82 hanno aggiunto ricevuta e chiusura; il successivo riallineamento
+documentale ha aggiornato anche l’intestazione canonica a M6/`0.4.21`. Non resta
+un finding corrente, anche se il thread storico è ancora formalmente aperto su
+GitHub.
 
 ### [PR #69 — record 0.3.0 Development release](https://github.com/max23468/CF-Ready/pull/69)
 
@@ -636,9 +627,9 @@ vedere F-M5-67-02.
 **Stato:** merged, `012deae`; 2 file, `+124/-18`; review Codex non eseguita.
 
 **Finding:** gate live e residui M10 sono dichiarati. Nessun nuovo finding, ma
-la chiusura non ha aggiornato l’intestazione del Master Plan
-(F-M5-68-01) e non copre i due difetti di integrità eventi scoperti in questo
-audit (F-M5-67-01/02).
+la chiusura non copre i due difetti di integrità eventi scoperti in questo audit
+(F-M5-67-01/02). L’intestazione del Master Plan, inizialmente rimasta indietro,
+è stata riallineata dal follow-up documentale.
 
 ---
 
@@ -1090,25 +1081,11 @@ due thread di #105, che restano aperti.
 **Stato:** merged, `978acf4`; 3 file, `+16/-9`; review Codex non eseguita.
 Completa la tabella snapshot fino a `0.4.21` e rimuove tre stringhe morte.
 
-#### F-M6-107-01 — chiusura documentale incompleta
-
-- **Classe/priorità/stato:** documentazione/stato, P2, aperto.
-- **Evidenze correnti:**
-  - `README.md:6-8` dice ancora che esistono solo PoC M1 e Function minimale e
-    che motore, billing e flussi merchant non sono completi;
-  - `docs/INDEX.md:5-24` non elenca né i contratti M6 né l’evidenza M6, pur
-    essendo il catalogo canonico;
-  - `docs/plans/...Master-Plan.md:53`, `:826` e `:3992` parlano ancora di cinque
-    pagine permanenti, mentre §15.2 e l’evidenza M6 dichiarano quattro pagine e
-    Piano assorbito nella Home;
-  - l’intestazione del Master Plan resta obsoleta, già F-M5-68-01.
-- **Impatto:** chi entra dal README o dall’indice ricava uno stato falso; parti
-  dello stesso documento canonico si contraddicono. `docs:check` resta verde
-  perché verifica struttura e riferimenti, non verità semantica.
-- **Correzione proporzionata:** un solo aggiornamento documentale: stato
-  corrente nel README e nell’intestazione, aggiunta dei due link M6 all’indice,
-  sostituzione dei riferimenti prescrittivi alle cinque pagine. Nessuna
-  versione documentale o meccanismo di sincronizzazione nuovo.
+**Finding:** nessun finding aperto. Il follow-up al commento Codex di #108 ha
+allineato stato corrente in README e intestazione del Master Plan, aggiunto
+contratti ed evidenza M6 all’indice e sostituito i riferimenti prescrittivi alle
+cinque pagine con le quattro pagine permanenti effettive. Non è stato introdotto
+alcun meccanismo di sincronizzazione documentale.
 
 ---
 
@@ -1135,9 +1112,8 @@ Completa la tabella snapshot fino a `0.4.21` e rimuove tre stringhe morte.
    bilingue, banner salvataggio, frase Home, loading del pulsante e Setup guide
    (F-M6-83-04, F-M6-86-01, F-M6-90-01, F-M6-87-01,
    F-M6-101-01).
-8. Fare un solo riallineamento documentale, includendo ricevute rollback,
-   README/indice/Master Plan e commento `shop/redact`, quindi risolvere il
-   thread #68 (F-M4-58-02, F-M4-64-01, F-M5-68-01, F-M6-107-01).
+8. Correggere i due residui documentali ancora aperti: runbook di rollback e
+   commento `shop/redact` (F-M4-58-02, F-M4-64-01).
 9. Applicare i due hardening minori: `returnUrl` dalla sessione e formulazione
    corretta dello SHA-256.
 10. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
