@@ -40,8 +40,10 @@ esaurita invece di ottenerne una nuova.
 
 ## Generazione tariffaria
 
-Acquisita quando lo store diventa idoneo e mai più cambiata, nemmeno passando
-fra le modalità. `launch` fino alla fine della finestra di lancio, poi
+Acquisita quando lo store diventa idoneo e mantenuta durante la prova e finché
+esiste continuità commerciale, anche passando fra le modalità. Dopo una
+cessazione completa, una nuova sottoscrizione acquisisce la generazione
+corrente. `launch` vale fino alla fine della finestra di lancio, poi
 `balanced`. `value` è un'ipotesi interna: non ha piani configurati, quindi non
 è acquistabile per errore.
 

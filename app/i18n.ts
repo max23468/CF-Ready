@@ -50,6 +50,8 @@ const it = {
       "Le informazioni sul piano non sono aggiornate. Il checkout non viene bloccato: riapri la pagina fra qualche minuto.",
     one_time_already_active:
       "Questo store ha già il pagamento unico: un altro addebito non aggiungerebbe nulla.",
+    charge_pending:
+      "Un pagamento unico è già in attesa di approvazione. Completalo o attendi la sua scadenza prima di riprovare.",
     charge_failed: "Non è stato possibile avviare il pagamento. Riprova fra poco.",
     no_subscription: "Non risulta alcun abbonamento da cancellare.",
     cancel_failed: "La cancellazione non è riuscita. Riprova fra poco.",
@@ -373,6 +375,8 @@ const en: typeof it = {
       "Plan information isn’t up to date. Checkout isn’t blocked: reload the page in a few minutes.",
     one_time_already_active:
       "This store already has the one-time payment: another charge wouldn’t add anything.",
+    charge_pending:
+      "A one-time payment is already waiting for approval. Complete it or wait for it to expire before trying again.",
     charge_failed: "Couldn’t start the payment. Try again shortly.",
     no_subscription: "There’s no subscription to cancel.",
     cancel_failed: "The cancellation didn’t go through. Try again shortly.",

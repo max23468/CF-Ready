@@ -6,6 +6,22 @@ import { defineConfig } from "vitest/config";
 const root = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  resolve: {
+    alias: [
+      {
+        find: /^react$/,
+        replacement: path.join(root, "node_modules/react/cjs/react.development.js"),
+      },
+      {
+        find: /^react\/jsx-runtime$/,
+        replacement: path.join(root, "node_modules/react/cjs/react-jsx-runtime.development.js"),
+      },
+      {
+        find: /^react\/jsx-dev-runtime$/,
+        replacement: path.join(root, "node_modules/react/cjs/react-jsx-dev-runtime.development.js"),
+      },
+    ],
+  },
   plugins: [
     cloudflareTest(async () => ({
       main: "./tests/worker.ts",

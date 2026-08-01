@@ -5,11 +5,14 @@ import {
   addDays,
   cancelSubscription,
   createCharge,
+  currentPricingGeneration,
   localDate,
   readBilling,
+  readBillingAccount,
   requestedRecurringPlanIsActive,
   remainingTrialDays,
   returnUrlFor,
+  syncBillingAccount,
   syncTrial,
 } from "../billing.server";
 import {
@@ -41,6 +44,7 @@ import {
   readOnboarding,
   reconcile,
   validationEnabledSince,
+  withValidationLock,
   writeValidation,
 } from "../validation.server";
 import type { Admin } from "../validation.server";
@@ -73,7 +77,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
         ? addDays(state.today, remainingTrialDays(state.trial, state.today))
         : null,
     trialStatus: state.trial?.status ?? null,
-    plan: planPrices(state.trial?.pricing_generation ?? "launch"),
+    plan: planPrices(currentPricingGeneration(state.trial, state.account, state.today)),
     planKind: state.account?.plan_kind ?? "none",
     periodEnd: state.account?.current_period_end ?? null,
     accountStatus: state.account?.entitlement_status ?? "none",
@@ -131,39 +135,55 @@ async function subscribe(
   kind: PlanKind,
 ) {
   try {
-    const { shop } = await queryContext(admin);
-    if (shop.shopAddress.countryCodeV2 !== ELIGIBLE_COUNTRY) {
-      return { ok: false, errorCode: "country_not_eligible" };
-    }
+    const mutation = await withValidationLock(db, shopDomain, async () => {
+      const { shop } = await queryContext(admin);
+      if (shop.shopAddress.countryCodeV2 !== ELIGIBLE_COUNTRY) {
+        return { ok: false, errorCode: "country_not_eligible" };
+      }
 
-    const billing = await readBilling(admin, BILLING_IS_TEST);
-    // Un pagamento unico copre lo store per sempre: nessun altro addebito va creato sopra.
-    if (billing.oneTime) {
-      return { ok: false, errorCode: "one_time_already_active" };
-    }
-    if (requestedRecurringPlanIsActive(billing, kind)) {
-      return { ok: false, errorCode: "generic" };
-    }
+      const billing = await readBilling(admin, BILLING_IS_TEST);
+      // Un pagamento unico copre lo store per sempre: nessun altro addebito va creato sopra.
+      if (billing.oneTime) {
+        return { ok: false, errorCode: "one_time_already_active" };
+      }
+      if (kind === "one_time" && billing.pendingOneTime) {
+        return { ok: false, errorCode: "charge_pending" };
+      }
+      if (requestedRecurringPlanIsActive(billing, kind)) {
+        return { ok: false, errorCode: "generic" };
+      }
 
-    const today = localDate(shop.ianaTimezone);
-    const trial = await syncTrial(db, shopDomain, { eligible: true, today });
-    const plan = planFor(trial?.pricing_generation ?? "launch", kind);
-    if (!plan) return { ok: false, errorCode: "generic" };
+      const today = localDate(shop.ianaTimezone);
+      const [trial, storedAccount] = await Promise.all([
+        syncTrial(db, shopDomain, { eligible: true, today }),
+        readBillingAccount(db, shopDomain),
+      ]);
+      let account = storedAccount;
+      account = await syncBillingAccount(db, shopDomain, billing, {
+        today,
+        timeZone: shop.ianaTimezone,
+        pricingGeneration: currentPricingGeneration(trial, account, today),
+      });
+      const plan = planFor(currentPricingGeneration(trial, account, today), kind);
+      if (!plan) return { ok: false, errorCode: "generic" };
 
-    const { confirmationUrl, error } = await createCharge(admin, {
-      name: plan.name,
-      amount: plan.amount,
-      currency: plan.currency,
-      interval: plan.interval,
-      // L'acquisto una tantum viene addebitato all'approvazione e rinuncia ai giorni residui;
-      // le sottoscrizioni ricevono invece solo i giorni di prova che restano (FR-074).
-      trialDays: kind === "one_time" ? 0 : remainingTrialDays(trial, today),
-      test: BILLING_IS_TEST,
-      returnUrl: returnUrlFor(request, shopDomain),
+      const { confirmationUrl, error } = await createCharge(admin, {
+        name: plan.name,
+        amount: plan.amount,
+        currency: plan.currency,
+        interval: plan.interval,
+        // L'acquisto una tantum viene addebitato all'approvazione e rinuncia ai giorni residui;
+        // le sottoscrizioni ricevono invece solo i giorni di prova che restano (FR-074).
+        trialDays: kind === "one_time" ? 0 : remainingTrialDays(trial, today),
+        test: BILLING_IS_TEST,
+        returnUrl: returnUrlFor(request, shopDomain),
+      });
+
+      if (error || !confirmationUrl) return { ok: false, errorCode: "charge_failed" };
+      return { ok: true, confirmationUrl };
     });
 
-    if (error || !confirmationUrl) return { ok: false, errorCode: "charge_failed" };
-    return { ok: true, confirmationUrl };
+    return mutation.acquired ? mutation.result : { ok: false, errorCode: "validation_locked" };
   } catch {
     return { ok: false, errorCode: "charge_failed" };
   }
@@ -172,15 +192,20 @@ async function subscribe(
 // FR-080: cancellazione ordinaria, nessuna proratazione, accesso fino a fine periodo pagato.
 async function cancelPlan(admin: Admin, db: D1Database, shopDomain: string) {
   try {
-    const state = await readBilling(admin, BILLING_IS_TEST);
-    if (!state.subscription) return { ok: false, errorCode: "no_subscription" };
+    const mutation = await withValidationLock(db, shopDomain, async () => {
+      const state = await readBilling(admin, BILLING_IS_TEST);
+      if (state.oneTime) return { ok: false, errorCode: "one_time_already_active" };
+      if (state.pendingOneTime) return { ok: false, errorCode: "charge_pending" };
+      if (!state.subscription) return { ok: false, errorCode: "no_subscription" };
 
-    if (await cancelSubscription(admin, state.subscription.id, { prorate: false })) {
-      return { ok: false, errorCode: "cancel_failed" };
-    }
+      if (await cancelSubscription(admin, state.subscription.id, { prorate: false })) {
+        return { ok: false, errorCode: "cancel_failed" };
+      }
 
-    await recordEvent(db, { shopDomain, name: "subscription_cancelled", class: "billing" });
-    return { ok: true };
+      await recordEvent(db, { shopDomain, name: "subscription_cancelled", class: "billing" });
+      return { ok: true };
+    });
+    return mutation.acquired ? mutation.result : { ok: false, errorCode: "validation_locked" };
   } catch {
     return { ok: false, errorCode: "cancel_failed" };
   }

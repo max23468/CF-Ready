@@ -1,5 +1,6 @@
 import {
   cancelSubscription,
+  currentPricingGeneration,
   entitlementFor,
   localDate,
   markTrialConverted,
@@ -194,8 +195,11 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
     if (validation?.enabled) errorCode ??= "validation_still_enabled";
   }
 
-  const trial = await syncTrial(db, shopDomain, { eligible, today });
-  let account = null;
+  const [trial, storedAccount] = await Promise.all([
+    syncTrial(db, shopDomain, { eligible, today }),
+    readBillingAccount(db, shopDomain),
+  ]);
+  let account = storedAccount;
   let creditEstimate: number | null = null;
 
   if (eligible) {
@@ -206,15 +210,23 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
       // cancellare l'abbonamento con proratazione. Mai prima: un acquisto abbandonato deve
       // lasciare l'abbonamento intatto.
       if (state.oneTime && state.subscription) {
-        const subscriptionId = state.subscription.id;
-        const conversion = await withValidationLock(db, shopDomain, () =>
-          cancelSubscription(admin, subscriptionId, { prorate: true }),
-        );
+        const conversion = await withValidationLock(db, shopDomain, async () => {
+          const current = await readBilling(admin, BILLING_IS_TEST);
+          if (!current.oneTime || !current.subscription) {
+            return { state: current, error: null, converted: false };
+          }
+          const error = await cancelSubscription(admin, current.subscription.id, { prorate: true });
+          return {
+            state: error ? current : await readBilling(admin, BILLING_IS_TEST),
+            error,
+            converted: !error,
+          };
+        });
 
         if (conversion.acquired) {
-          if (conversion.result) errorCode ??= conversion.result;
-          else {
-            state = await readBilling(admin, BILLING_IS_TEST);
+          state = conversion.result.state;
+          if (conversion.result.error) errorCode ??= conversion.result.error;
+          else if (conversion.result.converted) {
             await recordEvent(db, {
               shopDomain,
               name: "subscription_converted",
@@ -237,7 +249,7 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
       account = await syncBillingAccount(db, shopDomain, state, {
         today,
         timeZone: shop.ianaTimezone,
-        pricingGeneration: trial?.pricing_generation ?? "launch",
+        pricingGeneration: currentPricingGeneration(trial, account, today),
       });
 
       if (account.entitlement_status === "active") {
@@ -352,7 +364,7 @@ export async function writeValidation(
       account = await syncBillingAccount(db, shopDomain, billing, {
         today,
         timeZone: data.shop.ianaTimezone,
-        pricingGeneration: trial?.pricing_generation ?? "launch",
+        pricingGeneration: currentPricingGeneration(trial, account, today),
       });
       if (account.entitlement_status === "active") await markTrialConverted(db, shopDomain);
     }
