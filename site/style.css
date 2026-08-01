@@ -108,24 +108,16 @@ section.inverse {
   z-index: 10;
 }
 
-/* Appena si scorre, la testata si stringe e stacca un'ombra: resta raggiungibile
-   ma occupa meno. L'animazione è legata alla posizione dello scorrimento, quindi
-   torna indietro da sola risalendo, senza una riga di JavaScript e senza dover
-   allentare la Content-Security-Policy del sito. Dove le animazioni legate allo
-   scorrimento non esistono, la testata resta semplicemente fissa. */
-@supports (animation-timeline: scroll()) {
-  .masthead {
-    animation: masthead-compatta linear both;
-    animation-timeline: scroll();
-    animation-range: 0 8rem;
-  }
+/* Su schermo largo la testata resta ferma dov'è. Su telefono si ritira mentre si
+   scende e torna appena si risale: la classe la mette `menu.js`, che agisce solo
+   sotto la soglia mobile. Senza JavaScript la testata resta comunque agganciata,
+   che è il comportamento di prima. */
+.masthead.is-hidden {
+  transform: translateY(-100%);
+}
 
-  @keyframes masthead-compatta {
-    to {
-      padding-block: var(--cf-space-2);
-      box-shadow: var(--cf-shadow-card);
-    }
-  }
+.masthead {
+  transition: transform var(--cf-duration-base) var(--cf-easing);
 }
 
 .masthead .wrap {
@@ -248,14 +240,24 @@ a:hover {
   margin-top: var(--cf-space-8);
 }
 
+/* `a` e `button` hanno metriche diverse: senza un'altezza dichiarata e senza
+   allineamento interno, due bottoni affiancati risultano alti in modo diverso. */
 .button {
-  display: inline-block;
-  padding: var(--cf-space-3) var(--cf-space-6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 3rem;
+  padding-inline: var(--cf-space-6);
+  padding-block: 0;
   border-radius: var(--cf-radius-pill);
   background: var(--cf-color-primary);
   color: var(--cf-color-ink-inverse);
   text-decoration: none;
+  font-family: inherit;
+  font-size: var(--cf-text-body);
+  line-height: 1.2;
   font-weight: var(--cf-weight-medium);
+  text-align: center;
   border: var(--cf-border-width-strong) solid var(--cf-color-primary);
   transition: opacity var(--cf-duration-fast) var(--cf-easing);
 }
@@ -281,8 +283,46 @@ a:hover {
 }
 
 .masthead .button {
-  padding: var(--cf-space-2) var(--cf-space-4);
+  min-block-size: 2.25rem;
+  padding-inline: var(--cf-space-4);
   font-size: var(--cf-text-small);
+}
+
+/* Il cambio lingua non è una voce del menu come le altre: porta altrove la
+   stessa pagina. Si distingue con una cornice, non con il solo colore (§10.7). */
+.lang {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 2.25rem;
+  padding-inline: var(--cf-space-3);
+  border: var(--cf-border);
+  border-radius: var(--cf-radius-pill);
+  font-weight: var(--cf-weight-medium);
+  text-decoration: none;
+  letter-spacing: 0.04em;
+}
+
+.lang:hover {
+  border-color: var(--cf-color-primary);
+}
+
+.inverse .lang {
+  border-color: color-mix(in srgb, var(--cf-color-ink-inverse) 45%, transparent);
+}
+
+.inverse .lang:hover {
+  border-color: var(--cf-color-ink-inverse);
+}
+
+/* Voce corrente: la sezione in vista sulla Home, o la pagina aperta. Il segno è
+   una sottolineatura spessa, che resta visibile anche senza distinguere i
+   colori. */
+nav a[aria-current],
+nav a.is-active {
+  font-weight: var(--cf-weight-medium);
+  text-decoration: underline;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 0.35em;
 }
 
 /* Finché la scheda sull'App Store non esiste, il richiamo all'installazione è un
@@ -320,14 +360,31 @@ button.button[disabled]:hover {
 
 /* ---- Griglie ---- */
 
+/* Le colonne sono fissate per scaglioni invece che con `auto-fit`: sei schede in
+   quattro colonne lasciavano una riga con due elementi e due buchi, quattro in
+   tre ne lasciavano uno solo in fondo. Tre e due dividono esattamente sei e
+   quattro, quindi le righe si chiudono sempre. */
 .grid {
   display: grid;
   gap: var(--cf-space-4);
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .grid.two {
-  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 64rem) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 40rem) {
+  .grid,
+  .grid.two {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .card {
@@ -375,10 +432,16 @@ section.facts p {
   counter-reset: step;
   display: grid;
   gap: var(--cf-space-6);
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   padding: 0;
   list-style: none;
   margin: 0;
+}
+
+@media (max-width: 52rem) {
+  .steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .steps li {

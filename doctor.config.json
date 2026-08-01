@@ -5,6 +5,7 @@
     "enabled": false
   },
   "ignore": {
+    "files": ["site/**"],
     "overrides": [
       {
         "files": ["app/routes/app.tsx"],
