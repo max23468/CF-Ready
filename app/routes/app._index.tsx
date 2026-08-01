@@ -270,18 +270,23 @@ export default function Home() {
           <s-link href="/app/guide">{t.nav.guide}</s-link>
           {/* FR-003 e D-043: l'assistenza resta raggiungibile anche da uno store non idoneo,
               che è proprio il caso in cui il merchant ha bisogno di un chiarimento. */}
-          <s-link
-            href={supportMailto(
-              {
-                shopDomain: data.shopDomain,
-                version: data.version,
-                countryCode: data.countryCode,
-              },
-              data.locale,
-            )}
-          >
-            {t.support.contactDeveloper}
-          </s-link>
+          <s-paragraph>{t.support.chooseCategory}</s-paragraph>
+          {Object.entries(t.support.categories).map(([category, label]) => (
+            <s-link
+              key={category}
+              href={supportMailto(
+                {
+                  shopDomain: data.shopDomain,
+                  version: data.version,
+                  countryCode: data.countryCode,
+                },
+                data.locale,
+                category as keyof typeof t.support.categories,
+              )}
+            >
+              {label}
+            </s-link>
+          ))}
         </s-section>
       </s-page>
     );

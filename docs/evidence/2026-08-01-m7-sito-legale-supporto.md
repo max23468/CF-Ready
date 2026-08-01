@@ -14,7 +14,7 @@ i deployment erano di anteprima.
 
 | Deployment | Ambiente | Commit | Contenuto |
 | --- | --- | --- | --- |
-| `12a52ecd-…` | Production | `99dc94c` | prima pubblicazione delle otto pagine |
+| `12a52ecd-8a65-4af5-ad63-3e2d2c9119b8` | Production | `99dc94c` | prima pubblicazione delle otto pagine |
 | `af9443c1-29b4-46ab-9bfb-6d6c3822fdb1` | Production | `4f38c17` | Home riscritta per spiegare e convincere |
 
 Il rollback è il deployment precedente della stessa lista, che Pages conserva e
