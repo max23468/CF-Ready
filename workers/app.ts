@@ -1,4 +1,5 @@
 import { createRequestHandler } from "react-router";
+import { redactExpiredShops } from "../app/shop.server";
 
 declare module "react-router" {
   interface AppLoadContext {
@@ -19,5 +20,8 @@ export default {
     return requestHandler(request, {
       cloudflare: { env, ctx },
     });
+  },
+  scheduled(_controller, env, ctx) {
+    ctx.waitUntil(redactExpiredShops(env.DB));
   },
 } satisfies ExportedHandler<Env>;

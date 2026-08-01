@@ -690,8 +690,10 @@ messaggio già compilato verso la casella sviluppatore con:
 - metadati tecnici non sensibili dell’allowlist di §22, visibili nel messaggio.
 
 Nella 1.0 il recapito avviene tramite un collegamento `mailto:`, per l’esito
-della verifica registrato in §22: non esiste quindi un numero richiesta, che
-senza un sistema ricevente non avrebbe riscontro.
+della verifica registrato in §22, verso `cfready@icloud.com`; Apple/iCloud è
+dichiarata nella Privacy Policy tra i fornitori che trattano indirizzo del
+mittente, contenuto e metadati tecnici delle email. Non esiste quindi un numero
+richiesta, che senza un sistema ricevente non avrebbe riscontro.
 
 **FR-091** — Nessuna copia automatica al merchant nella 1.0.
 
@@ -2982,8 +2984,9 @@ Dopo 90 giorni dalla disinstallazione, se `shop/redact` non è arrivato:
 
 I 90 giorni sono il limite massimo residuale. Shopify invia `shop/redact` circa
 48 ore dopo la disinstallazione: quando arriva, la cancellazione è immediata e
-la finestra non viene consumata. Non esiste un job periodico; la retention più
-lunga si applica solo agli store per cui il webhook non arriva.
+la finestra non viene consumata. Un trigger orario del Worker cancella gli
+store ancora disinstallati che raggiungono i 90 giorni, come fallback quando il
+webhook non arriva.
 
 ### 21.6 `shop/redact`
 
@@ -3020,7 +3023,9 @@ Sempre attiva perché necessaria a funzionamento, sicurezza e valutazione del la
 Il solo sito pubblico usa inoltre Cloudflare Web Analytics per visite aggregate
 e prestazioni reali. Il beacon non usa cookie o archiviazione locale, non crea
 fingerprint, non registra query string e non raggiunge checkout o app embedded.
-La Privacy Policy descrive metriche, finalità, base giuridica e destinatario.
+Cloudflare conserva i dati beacon non campionati per 7 giorni e poi li aggrega;
+CF Ready può consultare le metriche aggregate degli ultimi 6 mesi. La Privacy
+Policy descrive metriche, finalità, base giuridica, destinatario e retention.
 
 ### 21.8 Documenti legali
 
