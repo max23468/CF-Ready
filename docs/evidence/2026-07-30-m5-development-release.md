@@ -16,8 +16,11 @@ precedente, quindi applicarle prima è sicuro.
 | Readback | `trials`, `trial_ledger`, `billing_accounts`, `billing_events` presenti |
 | Dati preesistenti | 1 riga in `shops`, 1 in `shopify_sessions`, 1 in `app_state` |
 
-Rollback: `DROP TABLE` delle quattro tabelle e delle righe corrispondenti in
-`d1_migrations`. Nessun dato applicativo esistente verrebbe perso.
+All'epoca, prima che le nuove tabelle ricevessero dati, era possibile eliminare
+le quattro tabelle e le righe corrispondenti in `d1_migrations` senza perdere
+dati applicativi. Non è una procedura valida sullo schema corrente: il rollback
+ordinario ripristina il Worker compatibile e usa una nuova migrazione
+forward-fix; Time Travel resta riservato a corruzione o perdita.
 
 ## Deploy
 
