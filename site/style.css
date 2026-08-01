@@ -114,10 +114,11 @@ section.inverse {
    che è il comportamento di prima. */
 .masthead.is-hidden {
   transform: translateY(-100%);
+  transition-delay: var(--cf-duration-fast);
 }
 
 .masthead {
-  transition: transform var(--cf-duration-base) var(--cf-easing);
+  transition: transform calc(var(--cf-duration-base) * 1.5) var(--cf-easing);
 }
 
 .masthead .wrap {

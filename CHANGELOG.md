@@ -5,6 +5,12 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.5.7 — 2 agosto 2026
+
+- su telefono il menu resta visibile per i primi 240 pixel di scorrimento dalla
+  cima, aspetta ancora un istante prima di ritirarsi e usa una transizione più
+  morbida; quando si risale ricompare senza ritardo.
+
 ## 0.5.6 — 1 agosto 2026
 
 - via il restringimento della testata allo scorrimento;

@@ -18,7 +18,7 @@
 
     // La soglia evita che la testata sparisca al primo pixel, e che tremi
     // durante il rimbalzo elastico in cima alla pagina.
-    if (mobile.matches && scendendo && y > 120) {
+    if (mobile.matches && scendendo && y > 240) {
       masthead.classList.add("is-hidden");
     } else if (!scendendo || !mobile.matches) {
       masthead.classList.remove("is-hidden");
