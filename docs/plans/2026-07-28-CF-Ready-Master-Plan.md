@@ -1828,7 +1828,7 @@ Il calcolo visibile è una stima: Shopify resta la fonte dell’importo effettiv
 - normalmente nessun rimborso per ripensamento dopo la prova;
 - rimborso totale di una tantum revoca il diritto;
 - rimborso parziale mantiene il diritto salvo accordo diverso;
-- policy definitiva soggetta a revisione legale.
+- policy definitiva approvata dall'owner il 2 agosto 2026.
 
 ### 14.11 Comunicazione “Un solo pagamento”
 
@@ -2999,10 +2999,9 @@ Applicare:
   reinstallazione vengono riletti dalla fonte autorevole Shopify;
 - nessun contenuto libero del merchant oltre obblighi applicabili.
 
-La base giuridica e la forma della pseudonimizzazione devono essere validate
-nella revisione legale prima del lancio. Se il `trial_ledger` non è conservabile,
-prevale la cancellazione e va individuato un meccanismo Shopify compatibile per
-impedire una seconda prova.
+La base giuridica e la forma della pseudonimizzazione sono state approvate
+dall'owner il 2 agosto 2026. Il ledger conserva soltanto hash del dominio, stato
+della prova e generazione tariffaria, senza dati di checkout o contenuti liberi.
 
 ### 21.7 Telemetria
 
@@ -3949,8 +3948,9 @@ di dipendenza rimasta aperta. Operazioni e residui in
 
 Registro delle operazioni:
 [`docs/evidence/2026-08-01-m7-sito-legale-supporto.md`](../evidence/2026-08-01-m7-sito-legale-supporto.md).
-Il gate della revisione legale resta aperto in carico all'owner, e con esso
-l'identità completa del titolare nei due documenti.
+I testi legali e la conservazione pseudonimizzata del `trial_ledger` sono stati
+approvati dall'owner il 2 agosto 2026. Resta separato il completamento
+dell'identità del titolare nei due documenti prima della submission.
 
 Deliverable:
 

@@ -71,7 +71,7 @@ attiva, verificata come `0.5.2`.
 | URL pubblici | **superato.** Otto pagine `200` sul dominio pubblico, header applicati |
 | Canale privato per vulnerabilità | **superato con una riserva.** Private Vulnerability Reporting attivato via API e confermato `enabled`; segnalazione di prova `GHSA-jv8v-x9hc-q5qh` creata in privato e chiusa subito dopo |
 | Testi coerenti fra sito, app e futura listing | **superato.** Stessa casella di assistenza ovunque, stessi limiti dichiarati con le stesse parole, nessun claim vietato da §4.4 |
-| Revisione legale | **aperto.** In carico all'owner |
+| Revisione legale | **superato.** Testi e conservazione pseudonimizzata del `trial_ledger` approvati dall'owner il 2 agosto 2026 |
 
 La riserva sul canale vulnerabilità: la prova è stata creata dall'account
 proprietario del repository, quindi dimostra che il canale esiste, è privato e
@@ -93,7 +93,7 @@ notifica raggiunge `cfready@icloud.com` spetta a chi legge quella casella.
 
 - **Identità del titolare.** Privacy e Termini indicano `Temisfera` senza
   denominazione completa né indirizzo, per decisione dell'owner. Va completata
-  prima della submission, insieme alla revisione legale.
+  prima della submission.
 - **Link alla listing.** I richiami all'installazione puntano a
   `https://apps.shopify.com/cf-ready`, che oggi risponde `404`. Accettabile
   finché il sito non è collegato da nessuna superficie pubblica; da sostituire

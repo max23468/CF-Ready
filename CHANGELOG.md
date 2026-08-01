@@ -15,7 +15,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   dei 90 giorni dichiarati, mantenendo soltanto il ledger pseudonimizzato della
   prova;
 - Privacy Policy e Termini dichiarano il canale iCloud, la conservazione delle
-  metriche Cloudflare e il comportamento fail-open effettivo.
+  metriche Cloudflare e il comportamento fail-open effettivo; l'owner ha
+  approvato i testi legali e la conservazione pseudonimizzata del ledger.
 
 ## 0.5.9 — 2 agosto 2026
 

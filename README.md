@@ -7,9 +7,8 @@ nativi del checkout italiano.
 > Lo snapshot Development corrente è `0.5.9` e la versione del repository è
 > `0.5.10`, con motore di validazione, billing, interfaccia merchant, onboarding
 > e sito pubblico implementati. Il sito è pubblicato su
-> [cf-ready.pages.dev](https://cf-ready.pages.dev/); la revisione legale dei
-> documenti pubblici, Production, submission App Store e gate wallet M10 non
-> sono ancora completati.
+> [cf-ready.pages.dev](https://cf-ready.pages.dev/); Production, submission App
+> Store e gate wallet M10 non sono ancora completati.
 
 ## Sviluppo locale
 
