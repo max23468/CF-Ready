@@ -36,7 +36,7 @@ import {
 } from "../i18n";
 import { planFor, planPrices } from "../plans.server";
 import type { PlanKind } from "../plans.server";
-import { skipRevalidationWhenLeaving } from "../revalidation";
+import { openBillingApproval, skipRevalidationWhenLeaving } from "../revalidation";
 import { authenticate } from "../shopify.server";
 import {
   queryContext,
@@ -102,6 +102,14 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const db = context.cloudflare.env.DB;
   const intent = (await request.formData()).get("intent");
 
+  if (intent === "repair") {
+    try {
+      const state = await reconcile(admin, db, session.shop);
+      return state.errorCode ? { ok: false, errorCode: state.errorCode } : { ok: true };
+    } catch {
+      return { ok: false, errorCode: "validation_write_failed" };
+    }
+  }
   if (intent === "cancel") return cancelPlan(admin, db, session.shop);
   if (intent === "monthly" || intent === "annual" || intent === "one_time") {
     return subscribe(admin, db, session.shop, request, intent);
@@ -217,7 +225,10 @@ export default function Home() {
   const data = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const t = texts(data.locale);
-  const esito = fetcher.data as { ok: boolean; errorCode?: string } | undefined;
+  const esito = fetcher.data as
+    | { ok: boolean; errorCode?: string; confirmationUrl?: string }
+    | undefined;
+  const confirmationUrl = esito?.confirmationUrl;
   const submit = (intent: string, source?: string) =>
     fetcher.submit(source ? { intent, source } : { intent }, { method: "post" });
 
@@ -227,6 +238,10 @@ export default function Home() {
     if (!data.reviewDue || typeof shopify === "undefined") return;
     void shopify.reviews.request().catch(() => undefined);
   }, [data.reviewDue]);
+
+  useEffect(() => {
+    openBillingApproval(confirmationUrl);
+  }, [confirmationUrl]);
 
   if (!data.eligible) {
     return (
@@ -280,7 +295,23 @@ export default function Home() {
       {/* §8.6: un solo banner in cima, e vince quello che blocca l'operatività. */}
       {data.errorCode ? (
         <s-banner tone="warning">
-          {data.errorCode === "billing_read_failed" ? t.plan.lastAttempt : t.home.syncNeeded}
+          <s-stack direction="block" gap="small-100">
+            <s-paragraph>
+              {data.errorCode === "billing_read_failed"
+                ? t.plan.lastAttempt
+                : data.errorCode === "duplicate_validations" ||
+                    data.errorCode === "duplicate_validations_active"
+                  ? t.errors[data.errorCode]
+                  : t.home.syncNeeded}
+            </s-paragraph>
+            <s-button
+              disabled={busy}
+              loading={pendingIntent === "repair"}
+              onClick={() => submit("repair")}
+            >
+              {t.home.repair}
+            </s-button>
+          </s-stack>
         </s-banner>
       ) : !entitled ? (
         <s-banner tone="warning">{t.home.noEntitlement}</s-banner>

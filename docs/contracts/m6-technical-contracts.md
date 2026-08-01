@@ -145,3 +145,11 @@ c'è nulla da scegliere: con un pagamento unico attivo spiega perché.
 
 La riconciliazione di §11.6, che il Master Plan chiedeva all'apertura della Home
 e di Piano e fatturazione, ora avviene in un punto solo.
+
+Quando resta un errore operativo, la Home espone `Ripara configurazione`, che
+ripete la stessa riconciliazione autorevole senza introdurre un secondo percorso
+di scrittura. Più Validation CF Ready producono `duplicate_validations`: la Home
+resta accessibile, tutte vengono disattivate per mantenere il checkout fail-open
+e nessuna risorsa viene scelta o cancellata automaticamente. Se Shopify non
+conferma la disattivazione, il codice resta `duplicate_validations_active` e
+l'azione di riparazione la ritenta.

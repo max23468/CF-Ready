@@ -7,3 +7,10 @@ export const skipRevalidationWhenLeaving: ShouldRevalidateFunction = ({
   actionResult,
   defaultShouldRevalidate,
 }) => (actionResult && "confirmationUrl" in actionResult ? false : defaultShouldRevalidate);
+
+export function openBillingApproval(
+  confirmationUrl: string | undefined,
+  opener: (url: string, target: string) => unknown = open,
+) {
+  if (confirmationUrl) opener(confirmationUrl, "_top");
+}

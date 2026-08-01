@@ -5,6 +5,13 @@ Le versioni seguono SemVer e la cadenza per milestone descritta nel
 corrisponde a uno snapshot rilasciato; le note pubbliche IT/EN e il tag Git
 restano requisiti delle sole release Production.
 
+## 0.4.39 — 1 agosto 2026
+
+- la scelta di un piano apre nuovamente l'approvazione Shopify fuori dall'iframe;
+- la Home offre la riparazione esplicita della configurazione e segnala le
+  Validation CF Ready duplicate, disattivandole in fail-open senza sceglierne o
+  cancellarne una.
+
 ## 0.4.38 — 1 agosto 2026
 
 - regole e onboarding riusano lo stesso parser degli enum di configurazione,
