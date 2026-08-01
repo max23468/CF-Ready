@@ -21,8 +21,8 @@ avevano invece ricevuto una review reale di Codex e sono incluse per controllo.
 Il risultato sul codice corrente è:
 
 - **1 finding P1**, che resta un gate esplicito prima della `1.0.0`;
-- **15 finding P2**;
-- **7 finding P3**;
+- **13 finding P2**;
+- **5 finding P3**;
 - nessun P0;
 - 3 thread Codex reali ancora `unresolved` su GitHub: uno in `#68`, due in
   `#105`;
@@ -34,10 +34,6 @@ Il risultato sul codice corrente è:
 | ID          | PR principale | Classe                    | Priorità   | Sintesi                                                                                                           |
 | ----------- | ------------- | ------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
 | F-M3-57-01  | #57           | limite di prodotto        | P1 pre-1.0 | con `localizedFields` vuoto i checkout accelerati possono passare senza Codice Fiscale richiesto                  |
-| F-M5-67-01  | #67           | bug di integrità dati     | P2         | aggiornamento conto ed evento billing non sono atomici; un evento può perdersi definitivamente                    |
-| F-M5-67-02  | #67 / #81     | bug di integrità dati     | P2         | durante la conversione a una tantum l’evento può registrare importo e valuta della sottoscrizione                 |
-| F-M5-67-03  | #67           | documentazione/compliance | P3         | SHA-256 del dominio viene descritto come «non reversibile», formulazione troppo forte                             |
-| F-M5-67-04  | #67           | bug di concorrenza        | P3         | due primi accessi concorrenti possono registrare due eventi `trial_started` per lo stesso store                   |
 | F-M5-74-01  | #74 / #83     | bug di gestione errori    | P2         | errori di trasporto/risposta Shopify sfuggono ai risultati tipizzati e aprono la Error Boundary                   |
 | F-M5-76-01  | #76           | hardening                 | P3         | il `returnUrl` billing preferisce il parametro `shop` non fidato alla sessione autenticata                        |
 | F-M5-79-01  | #74/#79       | bug di validazione billing | P2        | l’action accetta il piano ricorrente già attivo e può creare una sostituzione/addebito ridondante                 |
@@ -79,7 +75,7 @@ con impatto circoscritto ma reale; P3 hardening, accuratezza o caso marginale.
 
 Verifiche fresche eseguite:
 
-- `npm run check`: verde sullo snapshot con il report; 37 documenti, 77 test
+- `npm run check`: verde sullo snapshot con il report; 37 documenti, 80 test
   app, 105 test Function, React Doctor 100/100, build app e Function, dry-run
   Wrangler;
 - `npm audit --omit=dev --audit-level=high`: un advisory high su
@@ -96,11 +92,11 @@ Verifiche fresche eseguite:
 Readback remoto, solo in lettura:
 
 - Cloudflare Development non ha migrazioni D1 pendenti; `0008` è applicata e il
-  Worker attivo è la versione `a310b057-7eb7-4066-992a-2a1e1e74c17a`,
-  deployment `2ec5147e-5623-49f1-8dc6-801848a49315`, sul commit `f13c14c`;
-- Shopify Development ha attiva la versione `0.4.23`
-  (`gid://shopify/Version/1072789684225`), riferita allo stesso commit;
-- il run coordinato `30707318436` ha applicato e riletto D1, pubblicato e
+  Worker attivo è la versione `062372ef-91e8-4255-b00e-fd73bc83844b`,
+  deployment `483f5ca1-74af-42ef-a67a-7b50a8be69f8`, sul commit `6e931c9`;
+- Shopify Development ha attiva la versione `0.4.24`
+  (`gid://shopify/Version/1072798892033`), riferita allo stesso commit;
+- il run coordinato `30707986047` ha riletto D1, pubblicato e
   riletto Worker e Shopify, ed eseguito lo smoke del Worker.
 
 La review UX/UI è statica: gerarchia, copy, stato, feedback, accessibilità e
@@ -126,7 +122,7 @@ webhook e fino a otto retry per le chiamate fallite; Cloudflare documenta che
 [GitHub Advisory GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2).
 
 Durante la campagna sono stati eseguiti i deploy Development coordinati
-`0.4.22` e `0.4.23`, inclusa la migrazione additiva `0008`. Non sono stati
+da `0.4.22` a `0.4.24`, inclusa la migrazione additiva `0008`. Non sono stati
 eseguiti addebiti di prova, scenari browser sul dev store o scritture Production;
 le altre prove live storiche restano evidenze, non sono presentate come nuove.
 
@@ -424,7 +420,7 @@ entitlement e webhook billing.
 
 #### F-M5-67-01 — conto aggiornato senza evento billing
 
-- **Classe/priorità/stato:** bug di integrità dati, P2, aperto.
+- **Classe/priorità/stato:** bug di integrità dati, P2, chiuso.
 - **Evidenza:** `app/billing.server.ts:496-526` esegue l’upsert di
   `billing_accounts`; solo dopo, `:528-541`, inserisce `billing_events`. Se il
   secondo comando fallisce, `reconcile` cattura l’errore, ma al retry il conto è
@@ -434,10 +430,13 @@ entitlement e webhook billing.
 - **Correzione proporzionata:** eseguire upsert ed eventuale insert evento nello
   stesso `db.batch`, già disponibile e transazionale in D1; aggiungere un test
   che simuli il fallimento dell’evento o verifichi l’atomicità.
+- **Esito:** conto ed eventuale evento vengono preparati e inviati nello stesso
+  batch D1; una regressione forza il fallimento dell’evento e verifica il
+  rollback del conto.
 
 #### F-M5-67-02 — importo errato durante la conversione a una tantum
 
-- **Classe/priorità/stato:** bug di integrità dati, P2, aperto; rilevante anche
+- **Classe/priorità/stato:** bug di integrità dati, P2, chiuso; rilevante anche
   per la review di #81.
 - **Evidenza:** `nextAccount` sceglie correttamente `one_time` quando acquisto e
   sottoscrizione coesistono (`app/billing.server.ts:558-565`), ma l’evento usa
@@ -447,10 +446,12 @@ entitlement e webhook billing.
   prezzo/valuta della sottoscrizione; report e audit economico risultano falsi.
 - **Correzione proporzionata:** scegliere importo e valuta dalla risorsa indicata
   da `next.plan_kind`/`next.shopify_charge_gid`, con un test sullo stato misto.
+- **Esito:** importo e valuta provengono dalla risorsa scelta da `plan_kind`; lo
+  stato misto registra GID e prezzo dell'acquisto una tantum.
 
 #### F-M5-67-03 — hash descritto come non reversibile
 
-- **Classe/priorità/stato:** documentazione/compliance, P3, aperto.
+- **Classe/priorità/stato:** documentazione/compliance, P3, chiuso.
 - **Evidenza:** `app/billing.server.ts:642-643` chiama «non reversibile» lo
   SHA-256 del dominio. Il Master Plan lo descrive più correttamente come
   pseudonimizzazione soggetta a revisione legale (`§12.2`, `§21.6`). Un dominio
@@ -461,11 +462,13 @@ entitlement e webhook billing.
 - **Correzione proporzionata:** correggere la formulazione in «identificatore
   pseudonimizzato non conservato in chiaro». Nessun nuovo servizio o schema è
   necessario salvo diversa decisione della revisione legale.
+- **Esito:** il commento descrive l'hash come identificatore pseudonimizzato e
+  non come dato non reversibile o anonimo.
 
 #### F-M5-67-04 — avvio prova registrato due volte sotto concorrenza
 
 - **Classe/priorità/stato:** bug di concorrenza e accuratezza eventi, P3,
-  aperto.
+  chiuso.
 - **Evidenza:** due chiamate contemporanee a `syncTrial` possono entrambe
   leggere `trial = null` (`app/billing.server.ts:110-113`). L’`INSERT` usa
   correttamente `ON CONFLICT DO NOTHING` (`:121-140`), ma entrambe rileggono poi
@@ -478,6 +481,8 @@ entitlement e webhook billing.
 - **Correzione proporzionata:** usare `RETURNING shop_id` sull’`INSERT` già
   presente e registrare l’evento soltanto nel chiamante che ha creato la riga;
   un solo test con due `syncTrial` concorrenti. Non serve aggiungere una lock.
+- **Esito:** `RETURNING shop_id` identifica l'unico inserimento vincente e solo
+  quel chiamante registra `trial_started`; il test esercita due avvii paralleli.
 
 ### [PR #68 — release 0.3.0](https://github.com/max23468/CF-Ready/pull/68)
 
@@ -1119,25 +1124,21 @@ alcun meccanismo di sincronizzazione documentale.
 
 ## 7. Ordine operativo consigliato
 
-1. Correggere la descrizione compliance dello SHA-256 come identificatore
-   pseudonimizzato, non anonimo o non reversibile (F-M5-67-03).
-2. Preservare integrità e unicità degli eventi billing, selezionando l'importo
-   dalla risorsa effettiva (F-M5-67-01/02/04).
-3. Validare al confine server gli errori Shopify, il `returnUrl` e il piano già
+1. Validare al confine server gli errori Shopify, il `returnUrl` e il piano già
    attivo (F-M5-74-01, F-M5-76-01, F-M5-79-01).
-4. Chiudere il percorso di mutazione condiviso: errori Shopify tipizzati,
+2. Chiudere il percorso di mutazione condiviso: errori Shopify tipizzati,
    riconciliazione entitlement, readback completo, rifiuto dell’attivazione
    senza diritto e configurazione riletta dentro la lease (F-M6-83-01/03/05 e
    F-M6-99-01).
-5. Persistire le dichiarazioni D1 soltanto dopo il successo Shopify
+3. Persistire le dichiarazioni D1 soltanto dopo il successo Shopify
    (F-M6-83-02, F-M6-99-02).
-6. Correggere i residui UX statici con componenti e stati già presenti: login
+4. Correggere i residui UX statici con componenti e stati già presenti: login
    bilingue, banner salvataggio, frase Home, loading del pulsante e Setup guide
    (F-M6-83-04, F-M6-86-01, F-M6-90-01, F-M6-87-01).
-7. Aggiungere la conferma cancellazione F-M6-99-03 riusando la modale presente.
-8. Stabilizzare stato e layout dell'onboarding con i test minimi di regressione
+5. Aggiungere la conferma cancellazione F-M6-99-03 riusando la modale presente.
+6. Stabilizzare stato e layout dell'onboarding con i test minimi di regressione
    (F-M6-101-01, F-M6-105-01/02/03).
-9. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
+7. Conservare F-M3-57-01 come gate esplicito M10, senza inventare workaround
    prima della prova reale.
 
 Questo ordine non richiede retrocompatibilità, supporto di formati legacy,

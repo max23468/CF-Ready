@@ -103,6 +103,25 @@ test("la prova parte una volta sola e scade da sé", async () => {
   expect(results[0].metadata_json).toBe('{"pricing_generation":"launch"}');
 });
 
+test("due primi accessi concorrenti registrano un solo avvio prova", async () => {
+  const shop = await insertShop("prova-concorrente.example.myshopify.com");
+
+  await Promise.all([
+    syncTrial(env.DB, shop, { eligible: true, today: "2026-07-30" }),
+    syncTrial(env.DB, shop, { eligible: true, today: "2026-07-30" }),
+  ]);
+
+  expect(
+    await env.DB.prepare(
+      `SELECT COUNT(*) AS totale FROM app_events
+       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
+         AND event_name = 'trial_started'`,
+    )
+      .bind(shop)
+      .first(),
+  ).toMatchObject({ totale: 1 });
+});
+
 test("una prova già fruita non si rigenera dopo la cancellazione dei dati", async () => {
   const shop = await insertShop("ritorno.example.myshopify.com");
 
@@ -254,6 +273,31 @@ test("gli eventi billing sono append-only e idempotenti", async () => {
   ]);
 });
 
+test("conto ed evento billing falliscono atomicamente", async () => {
+  const shop = await insertShop("evento-atomico.example.myshopify.com");
+  await env.DB.prepare(
+    `CREATE TRIGGER rifiuta_evento BEFORE INSERT ON billing_events
+     BEGIN SELECT RAISE(FAIL, 'evento rifiutato'); END`,
+  ).run();
+
+  await expect(
+    syncBillingAccount(
+      env.DB,
+      shop,
+      abbonamento("gid://shopify/AppSubscription/atomico", "2026-08-31T21:59:59Z"),
+      opzioni,
+    ),
+  ).rejects.toThrow();
+  await env.DB.prepare("DROP TRIGGER rifiuta_evento").run();
+  expect(
+    await env.DB.prepare(
+      "SELECT COUNT(*) AS totale FROM billing_accounts WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)",
+    )
+      .bind(shop)
+      .first(),
+  ).toMatchObject({ totale: 0 });
+});
+
 test("un cambio di piano produce un evento anche se lo stato resta attivo", async () => {
   const shop = await insertShop("cambio.example.myshopify.com");
 
@@ -282,6 +326,34 @@ test("un cambio di piano produce un evento anche se lo stato resta attivo", asyn
     { shopify_resource_gid: "gid://shopify/AppSubscription/10", status: "monthly" },
     { shopify_resource_gid: "gid://shopify/AppSubscription/11", status: "annual" },
   ]);
+});
+
+test("la conversione a una tantum registra il prezzo dell'acquisto", async () => {
+  const shop = await insertShop("conversione.example.myshopify.com");
+  const billing = {
+    ...abbonamento("gid://shopify/AppSubscription/conversione", "2026-08-31T21:59:59Z"),
+    oneTime: {
+      id: "gid://shopify/AppPurchaseOneTime/conversione",
+      createdAt: "2026-08-01T10:00:00Z",
+      amount: "89.90",
+      currency: "EUR",
+    },
+  };
+
+  await syncBillingAccount(env.DB, shop, billing, opzioni);
+
+  expect(
+    await env.DB.prepare(
+      `SELECT shopify_resource_gid, amount_minor, currency FROM billing_events
+       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    )
+      .bind(shop)
+      .first(),
+  ).toMatchObject({
+    shopify_resource_gid: "gid://shopify/AppPurchaseOneTime/conversione",
+    amount_minor: 8990,
+    currency: "EUR",
+  });
 });
 
 test("gli addebiti della modalità sbagliata vengono ignorati", async () => {
