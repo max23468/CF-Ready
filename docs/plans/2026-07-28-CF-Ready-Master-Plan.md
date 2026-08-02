@@ -4030,13 +4030,16 @@ non c’è. Alla pubblicazione diventano collegamenti veri.
 
 ### M8 — Hardening
 
+La corsia manuale Pages Production è stata anticipata alla chiusura dell'audit
+M7: resta vincolata a `main`, mantiene disattivata l'integrazione Git Cloudflare
+ed esegue gate, readback, smoke e rollback. Gli altri deliverable restano M8.
+
 Consegnata in tre layer versionati, come da §19.5:
 
 - `0.6.0` durabilità e osservabilità: backup R2, restore test, log, sampling,
   query e runbook Workers Logs, procedura temporanea Traces, formato della
-  ricevuta di deploy; workflow GitHub Actions manuale per Pages con gate,
-  target Production `main`, readback e rollback, mantenendo disattivata
-  l'integrazione Git Cloudflare;
+  ricevuta di deploy; la corsia GitHub Actions manuale per Pages già disponibile
+  viene esercitata e mantenuta insieme ai suoi gate, readback e rollback;
 - automazione degli E2E di §23.10: decisione rimandata qui da M6. Richiede
   un'infrastruttura browser e una sessione staff autenticata, quindi è una
   scelta di dipendenza e non un dettaglio di implementazione. Il perimetro

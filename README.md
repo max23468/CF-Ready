@@ -38,9 +38,11 @@ CSP in `site/_headers` consente il beacon e l'invio a `cloudflareinsights.com`.
 mise exec -- npm run site:dev
 ```
 
-Il deploy Pages Production non ha un comando locale: il workflow controllato,
-serializzato e vincolato a `main` è pianificato in M8. Fino ad allora non esiste
-una corsia supportata per sostituire il sito pubblico dal checkout locale.
+Il deploy Pages Production non ha un comando locale. Il workflow manuale
+`Deploy Pages Production`, serializzato e vincolato a `main`, esegue il gate
+completo, pubblica soltanto `site/`, verifica commit e target tramite API, prova
+le otto URL pubbliche e ripristina il deployment precedente se readback o smoke
+falliscono. L'integrazione Git di Pages resta disattivata.
 
 `site/tokens.css` è una copia di `docs/brand/assets/tokens.css`, che resta la
 fonte canonica dei token di brand: se cambiano i token, va aggiornata anche la
