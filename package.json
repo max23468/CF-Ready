@@ -20,7 +20,7 @@
     "doctor": "react-doctor",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "site:dev": "rm -f .wrangler/deploy/config.json && wrangler pages dev site",
-    "site:deploy": "[ \"$(git rev-parse HEAD)\" = \"$(git rev-parse origin/main)\" ] || { echo \"site:deploy richiede il commit origin/main\" >&2; exit 1; }; rm -f .wrangler/deploy/config.json && wrangler pages deploy site --project-name cf-ready --branch main",
+    "site:deploy": "[ \"$(git rev-parse HEAD)\" = \"$(git rev-parse origin/main)\" ] || { echo \"site:deploy richiede il commit origin/main\" >&2; exit 1; }; [ -z \"$(git status --porcelain --untracked-files=all -- site)\" ] || { echo \"site:deploy richiede site/ pulita\" >&2; exit 1; }; rm -f .wrangler/deploy/config.json && wrangler pages deploy site --project-name cf-ready --branch main",
     "check": "npm run docs:check && npm run lint && npm run format:check && npm run typecheck && npm run test:preflight && npm test && npm run test:function && npm run doctor && npm run build && npm run build:function && wrangler deploy --dry-run",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",

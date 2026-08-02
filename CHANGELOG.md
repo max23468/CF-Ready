@@ -13,8 +13,9 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   contenere dettagli sfruttabili e serve a concordare un canale sicuro;
 - il Master Plan distingue questo percorso pubblico dai canali di sicurezza
   disponibili direttamente nel repository;
-- il deploy Pages Production rifiuta checkout diversi dal commit `origin/main`,
-  impedendo a `develop` o a un feature branch di pubblicarsi come `main`.
+- il deploy Pages Production rifiuta checkout diversi dal commit `origin/main`
+  e una directory `site/` sporca, impedendo di pubblicare come `main` contenuti
+  non revisionati.
 
 ## 0.5.10 — 2 agosto 2026
 

@@ -165,5 +165,32 @@ test("il deploy Production del sito accetta soltanto il commit origin/main", () 
   const script = packageJson.scripts["site:deploy"];
   assert.match(script, /git rev-parse HEAD/);
   assert.match(script, /git rev-parse origin\/main/);
+  assert.match(script, /git status --porcelain --untracked-files=all -- site/);
   assert.match(script, /--branch main(?:\s|$)/);
+});
+
+test("il deploy Production rifiuta file del sito non revisionati", () => {
+  const repository = mkdtempSync(join(tmpdir(), "cf-ready-site-deploy-"));
+  const script = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"))
+    .scripts["site:deploy"];
+  try {
+    execFileSync("git", ["init", "-q"], { cwd: repository });
+    mkdirSync(join(repository, "site"));
+    writeFileSync(join(repository, "site/index.html"), "revisionato");
+    execFileSync("git", ["add", "."], { cwd: repository });
+    execFileSync(
+      "git",
+      ["-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-qm", "base"],
+      { cwd: repository },
+    );
+    execFileSync("git", ["update-ref", "refs/remotes/origin/main", "HEAD"], { cwd: repository });
+    writeFileSync(join(repository, "site/index.html"), "non revisionato");
+
+    assert.throws(
+      () => execFileSync("sh", ["-c", script], { cwd: repository, encoding: "utf8" }),
+      ({ stderr }) => stderr.includes("site:deploy richiede site/ pulita"),
+    );
+  } finally {
+    rmSync(repository, { force: true, recursive: true });
+  }
 });
