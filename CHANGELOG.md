@@ -8,9 +8,11 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
 ## 0.5.11 — 2 agosto 2026
 
-- la pagina Support pubblica la policy e il canale GitHub privato per le
-  vulnerabilità; l'email resta soltanto il fallback per concordare un canale
-  sicuro, senza inviare dettagli sfruttabili.
+- la pagina Support mantiene per scelta il solo contatto email per le
+  vulnerabilità, senza riferimenti al repository: il primo messaggio non deve
+  contenere dettagli sfruttabili e serve a concordare un canale sicuro;
+- il Master Plan distingue questo percorso pubblico dai canali di sicurezza
+  disponibili direttamente nel repository.
 
 ## 0.5.10 — 2 agosto 2026
 

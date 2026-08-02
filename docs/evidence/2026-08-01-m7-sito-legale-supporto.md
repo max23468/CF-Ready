@@ -89,7 +89,7 @@ Shopify attiva, verificata da ultimo come `0.5.10`.
 | Gate | Esito |
 | --- | --- |
 | URL pubblici | **superato.** Otto pagine `200` sul dominio pubblico, header applicati |
-| Canale privato per vulnerabilità | **superato.** Private Vulnerability Reporting attivato via API e confermato `enabled`; segnalazione di prova `GHSA-jv8v-x9hc-q5qh` creata in privato e chiusa subito dopo, con notifica ricevuta sulla casella prevista |
+| Segnalazione vulnerabilità | **superato.** Il sito Pages espone soltanto il primo contatto email senza dettagli sfruttabili, per decisione dell'owner; nel repository Private Vulnerability Reporting è attivato e verificato separatamente |
 | Testi coerenti fra sito, app e futura listing | **superato.** Stessa casella di assistenza ovunque, stessi limiti dichiarati con le stesse parole, nessun claim vietato da §4.4 |
 
 ## Verifiche manuali
