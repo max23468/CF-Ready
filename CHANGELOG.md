@@ -12,7 +12,9 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   vulnerabilità, senza riferimenti al repository: il primo messaggio non deve
   contenere dettagli sfruttabili e serve a concordare un canale sicuro;
 - il Master Plan distingue questo percorso pubblico dai canali di sicurezza
-  disponibili direttamente nel repository.
+  disponibili direttamente nel repository;
+- il deploy Pages Production rifiuta checkout diversi dal commit `origin/main`,
+  impedendo a `develop` o a un feature branch di pubblicarsi come `main`.
 
 ## 0.5.10 — 2 agosto 2026
 

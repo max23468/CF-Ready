@@ -160,7 +160,10 @@ test("la CSP consente beacon e raccolta Cloudflare Web Analytics", () => {
   assert.match(headers, /connect-src .*https:\/\/cloudflareinsights\.com/);
 });
 
-test("il deploy del sito aggiorna sempre il branch Production", () => {
+test("il deploy Production del sito accetta soltanto il commit origin/main", () => {
   const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-  assert.match(packageJson.scripts["site:deploy"], /--branch main(?:\s|$)/);
+  const script = packageJson.scripts["site:deploy"];
+  assert.match(script, /git rev-parse HEAD/);
+  assert.match(script, /git rev-parse origin\/main/);
+  assert.match(script, /--branch main(?:\s|$)/);
 });

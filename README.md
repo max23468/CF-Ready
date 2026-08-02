@@ -38,6 +38,10 @@ mise exec -- npm run site:dev
 mise exec -- npm run site:deploy
 ```
 
+`site:deploy` pubblica sul branch Pages Production `main` soltanto quando il
+checkout coincide esattamente con `origin/main`; da `develop` e dai feature
+branch il comando si ferma senza modificare il sito pubblico.
+
 `site/tokens.css` è una copia di `docs/brand/assets/tokens.css`, che resta la
 fonte canonica dei token di brand: se cambiano i token, va aggiornata anche la
 copia.
