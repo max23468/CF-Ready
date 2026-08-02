@@ -63,8 +63,6 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   return result.ok ? { ok: true as const } : { ok: false as const, errorCode: result.errorCode };
 };
 
-const SAVE_BAR = "cf-ready-messages";
-
 // Polaris non ha un campo che si ridimensiona da solo: `rows` fissa le righe visibili e il
 // resto finisce in uno scroll interno. Le righe si calcolano quindi dal testo, così il campo
 // cresce e nulla resta nascosto — nemmeno oltre i 200 caratteri, che è proprio il momento in
@@ -101,11 +99,6 @@ export default function CustomerMessages() {
   const dirty = (["it", "en"] as const).some((locale) =>
     MESSAGE_KEYS.some((key) => draft[locale][key] !== saved.messages[locale][key]),
   );
-
-  useEffect(() => {
-    if (typeof shopify === "undefined") return;
-    void (dirty ? shopify.saveBar.show(SAVE_BAR) : shopify.saveBar.hide(SAVE_BAR));
-  }, [dirty]);
 
   // Un solo ascoltatore per la pagina: gli eventi dei componenti Polaris risalgono fino al
   // modulo, come già in Regole checkout.
@@ -148,7 +141,16 @@ export default function CustomerMessages() {
   };
 
   return (
-    <form onInput={readDraft} onChange={readDraft}>
+    <form
+      data-save-bar
+      onInput={readDraft}
+      onChange={readDraft}
+      onReset={discard}
+      onSubmit={(event) => {
+        event.preventDefault();
+        save();
+      }}
+    >
       <s-page heading={t.messages.heading}>
         {showSavedBanner(result, dirty, changedSinceResult) ? (
           <s-banner tone="success">{t.messages.saved}</s-banner>
@@ -158,15 +160,6 @@ export default function CustomerMessages() {
             {t.errors[result.errorCode as keyof typeof t.errors] ?? t.errors.generic}
           </s-banner>
         ) : null}
-
-        <ui-save-bar id={SAVE_BAR}>
-          <button type="button" variant="primary" onClick={save}>
-            {t.common.save}
-          </button>
-          <button type="button" onClick={discard}>
-            {t.common.cancel}
-          </button>
-        </ui-save-bar>
 
         {/* L'introduzione non è una sezione, quindi non riceve la spaziatura che `s-page` dà
             alle card: la distanza dal primo box va dichiarata qui. */}
@@ -237,7 +230,14 @@ export default function CustomerMessages() {
         </s-section>
 
         {(["it", "en"] as const).map((locale) => (
-          <s-modal key={locale} id={`restore-${locale}`} heading={t.messages.reset}>
+          <s-modal
+            key={locale}
+            id={`restore-${locale}`}
+            heading={t.messages.reset}
+            accessibilityLabel={t.messages.resetConfirm(
+              locale === "it" ? t.messages.italian : t.messages.english,
+            )}
+          >
             <s-paragraph>
               {t.messages.resetConfirm(locale === "it" ? t.messages.italian : t.messages.english)}
             </s-paragraph>
