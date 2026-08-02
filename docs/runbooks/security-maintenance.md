@@ -15,7 +15,9 @@ provider senza introdurre una seconda corsia di deploy.
 Il workflow trimestrale è in sola lettura. Non applica migrazioni, non pubblica
 versioni e non accede a Production. L'esecuzione manuale lancia entrambi i job.
 I required checks vivono anche nei ruleset pubblici, così il readback mensile
-non richiede un token con permessi amministrativi.
+non richiede un token con permessi amministrativi. L'API pubblica non espone
+gli eventuali bypass actor: l'owner li verifica nelle impostazioni dei ruleset
+quando esegue la manutenzione mensile.
 
 ## Advisory React Router
 
@@ -40,6 +42,6 @@ prima il supporto del pacchetto Shopify e il gate completo della toolchain.
 5. pubblicare Development e ripetere il workflow manuale.
 
 I controlli locali equivalenti sono `npm run audit:security`,
-`npm audit signatures`, `npm run docs:check` e `npm run preflight:dev`. Il
-preflight accetta una versione già attiva solo quando lo SHA Worker e Shopify
-coincide con `GITHUB_SHA`.
+`npm audit signatures`, `npm run docs:check` e `npm run readback:dev`. Il
+readback confronta direttamente la versione Shopify e il Worker attivi; il
+preflight di deploy lega invece entrambi a `GITHUB_SHA`.

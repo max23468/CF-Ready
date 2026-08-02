@@ -14,6 +14,7 @@
     "docs:check": "node --test scripts/check-docs.node-test.mjs && node scripts/check-docs.mjs",
     "audit:security": "node --test scripts/security-audit.node-test.mjs && node scripts/security-audit.mjs",
     "preflight:dev": "node scripts/preflight-dev.mjs",
+    "readback:dev": "node scripts/preflight-dev.mjs --readback-only",
     "test:preflight": "node --test scripts/preflight-dev.node-test.mjs",
     "test:operations": "node --test scripts/backup-crypto.node-test.mjs",
     "test": "vitest run",

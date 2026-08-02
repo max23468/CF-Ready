@@ -50,7 +50,9 @@ jobs:
               <<< "$rulesets")"
             test -n "$url"
             ruleset="$(curl --fail --silent --show-error "$url")"
-            test "$(jq -r '[(.bypass_actors // [])[]] | length' <<< "$ruleset")" = 0
+            test "$(jq -r --arg ref "refs/heads/$branch" \
+              '.target == "branch" and .conditions.ref_name.include == [$ref] and \
+              (.conditions.ref_name.exclude | length == 0)' <<< "$ruleset")" = true
             test "$(jq -r '.rules[] | select(.type == "pull_request") | \
               .parameters.required_review_thread_resolution' <<< "$ruleset")" = true
             test "$(jq -r '.rules[] | select(.type == "required_status_checks") | \
@@ -61,6 +63,7 @@ jobs:
           }
           verify_ruleset develop false dependency-review,react-doctor,verify
           verify_ruleset main true dependency-review,promotion-guard,react-doctor,verify
+          echo "::notice::Verificare manualmente che i ruleset non abbiano bypass actors."
           for workflow in ci.yml deploy-development.yml; do
             test "$(gh run list --workflow "$workflow" --branch develop --limit 1 \
               --json conclusion --jq '.[0].conclusion')" = success
@@ -92,7 +95,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
           SHOPIFY_PROJECT_FILE: config/shopify-project.dev.json
-        run: npm run preflight:dev
+        run: npm run readback:dev
       - name: Smoke Worker Development
         run: >-
           curl --fail --silent --show-error --max-time 15 --output /dev/null

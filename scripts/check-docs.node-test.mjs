@@ -250,10 +250,14 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.match(workflow, /cron: "47 6 1 1,4,7,10 \*"/);
   assert.match(workflow, /npm run audit:security/);
   assert.match(workflow, /npm audit signatures/);
-  assert.match(workflow, /npm run preflight:dev/);
+  assert.match(workflow, /npm run readback:dev/);
   assert.match(workflow, /delete_branch_on_merge/);
   assert.match(workflow, /required_status_checks/);
   assert.match(workflow, /dependency-review,promotion-guard,react-doctor,verify/);
+  assert.match(workflow, /\.target == "branch"/);
+  assert.match(workflow, /\.conditions\.ref_name\.include == \[\$ref\]/);
+  assert.match(workflow, /Verificare manualmente che i ruleset non abbiano bypass actors/);
+  assert.doesNotMatch(workflow, /bypass_actors/);
   assert.doesNotMatch(workflow, /branches\/$branch\/protection/);
   assert.equal((workflow.match(/test "\$GITHUB_REF" = "refs\/heads\/develop"/g) ?? []).length, 2);
   assert.doesNotMatch(workflow, /shopify app deploy|wrangler deploy|d1 migrations apply/);
