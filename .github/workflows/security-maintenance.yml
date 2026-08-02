@@ -54,8 +54,8 @@ jobs:
             test "$(jq -r '.rules[] | select(.type == "required_status_checks") | .parameters.strict_required_status_checks_policy' <<< "$ruleset")" = "$strict"
             test "$(jq -r '[.rules[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | sort | join(",")' <<< "$ruleset")" = "$expected_checks"
           }
-          verify_ruleset develop false dependency-review,react-doctor,verify
-          verify_ruleset main true dependency-review,promotion-guard,react-doctor,verify
+          verify_ruleset develop false dependency-review,e2e,react-doctor,verify
+          verify_ruleset main true dependency-review,e2e,promotion-guard,react-doctor,verify
           for workflow in ci.yml deploy-development.yml; do
             test "$(gh run list --workflow "$workflow" --branch develop --limit 1 \
               --json conclusion --jq '.[0].conclusion')" = success

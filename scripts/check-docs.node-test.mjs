@@ -273,6 +273,17 @@ test("osservabilità sicura e ricevute restano configurate", () => {
   assert.match(development, /## Ricevuta deploy Development/);
 });
 
+test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
+  const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  const ci = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
+  assert.equal(
+    packageJson.scripts["test:e2e"],
+    "playwright test --config tests/playwright.config.ts",
+  );
+  assert.match(ci, /playwright install --with-deps chromium webkit/);
+  assert.match(ci, /npm run test:e2e/);
+});
+
 test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   const ci = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
   const workflow = readFileSync(
@@ -285,7 +296,7 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.match(workflow, /npm audit signatures/);
   assert.match(workflow, /npm run readback:dev/);
   assert.match(workflow, /required_status_checks/);
-  assert.match(workflow, /dependency-review,promotion-guard,react-doctor,verify/);
+  assert.match(workflow, /dependency-review,e2e,promotion-guard,react-doctor,verify/);
   assert.doesNotMatch(ci, /allow-ghsas:/);
   assert.match(workflow, /\.target == "branch"/);
   assert.match(workflow, /\.conditions\.ref_name\.include == \[\$ref\]/);
