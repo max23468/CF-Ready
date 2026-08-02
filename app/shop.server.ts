@@ -197,15 +197,71 @@ export async function redactExpiredShops(db: D1Database, now = new Date()) {
   const { results } = await db
     .prepare(
       `SELECT shop_domain FROM shops
-       WHERE installation_status = 'uninstalled' AND uninstalled_at <= ?`,
+       WHERE installation_status = 'uninstalled' AND uninstalled_at <= ?
+       ORDER BY uninstalled_at, id
+       LIMIT 25`,
     )
     .bind(cutoff)
     .all<{ shop_domain: string }>();
 
-  const redacted = await Promise.all(
-    results.map(({ shop_domain: shopDomain }) =>
-      redactShop(db, shopDomain, `retention-${crypto.randomUUID()}`, "RETENTION_EXPIRED"),
-    ),
-  );
-  return redacted.filter(Boolean).length;
+  let redacted = 0;
+  const errors: unknown[] = [];
+  for (const { shop_domain: shopDomain } of results) {
+    try {
+      if (
+        // Le cancellazioni restano seriali per non esaurire le subrequest del cron.
+        // react-doctor-disable-next-line react-doctor/async-await-in-loop
+        await redactShop(db, shopDomain, `retention-${crypto.randomUUID()}`, "RETENTION_EXPIRED")
+      ) {
+        redacted += 1;
+      }
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+  if (errors.length) throw new AggregateError(errors, "Retention store incompleta");
+  return redacted;
+}
+
+export async function applyRetention(db: D1Database, now = new Date()) {
+  const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1_000).toISOString();
+  const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1_000).toISOString();
+  const deleted = await db.batch([
+    db
+      .prepare(
+        `DELETE FROM webhook_events WHERE webhook_id IN (
+           SELECT webhook_id FROM webhook_events WHERE received_at <= ?
+           ORDER BY received_at LIMIT 1000
+         )`,
+      )
+      .bind(ninetyDaysAgo),
+    db
+      .prepare(
+        `DELETE FROM app_events WHERE id IN (
+           SELECT id FROM app_events WHERE event_class = 'error' AND occurred_at <= ?
+           ORDER BY occurred_at LIMIT 1000
+         )`,
+      )
+      .bind(ninetyDaysAgo),
+    db
+      .prepare(
+        `DELETE FROM app_events WHERE id IN (
+           SELECT id FROM app_events WHERE event_class != 'error' AND occurred_at <= ?
+           ORDER BY occurred_at LIMIT 1000
+         )`,
+      )
+      .bind(oneYearAgo),
+    db
+      .prepare(
+        `DELETE FROM billing_events WHERE id IN (
+           SELECT id FROM billing_events WHERE occurred_at <= ?
+           ORDER BY occurred_at LIMIT 1000
+         )`,
+      )
+      .bind(oneYearAgo),
+  ]);
+  return {
+    events: deleted.reduce((total, result) => total + result.meta.changes, 0),
+    shops: await redactExpiredShops(db, now),
+  };
 }

@@ -71,6 +71,7 @@ locale per il deploy Production.
 | --- | --- | --- | --- | --- |
 | `0.5.2` | `4f38c17` | `9bc3aadf-801e-4883-b8a1-a0b99f005bda` | `1072951492609` | `30718590672` |
 | `0.5.10` | `aa5d4e7` | `a7519816-7e68-4014-bc1e-cdc819e7efcd` | `1073017978881` | `30724380570` |
+| `0.5.11` | `712c232` | `3a794b7b-af39-421a-8c4f-2e948d84bca5` | `1073037115393` | `30725871501` |
 
 La `0.5.0` e la `0.5.1` non hanno avuto uno snapshot Shopify proprio: la prima
 non toccava l'app, la seconda è la correzione sulle Validation duplicate entrata
@@ -87,7 +88,7 @@ zero migrazioni pendenti. Deployment Worker
 
 Tutti i passi dei workflow rilasciati sono risultati verdi, inclusi preflight,
 readback delle migrazioni, readback del Worker, smoke e readback della versione
-Shopify attiva, verificata da ultimo come `0.5.10`.
+Shopify attiva, verificata da ultimo come `0.5.11`.
 
 ## Gate della milestone
 
@@ -109,11 +110,10 @@ Shopify attiva, verificata da ultimo come `0.5.10`.
 
 - **Identità del titolare.** Privacy e Termini indicano `Temisfera` senza
   denominazione completa né indirizzo, per decisione dell'owner. Il
-  completamento è programmato in M9, prima della submission.
-- **Link alla listing.** I richiami all'installazione puntano a
-  `https://apps.shopify.com/cf-ready`, che oggi risponde `404`. Accettabile
-  finché il sito non è collegato da nessuna superficie pubblica; da sostituire
-  in M11.
+  completamento è un gate della milestone di lancio M9, prima della submission
+  e della disponibilità per merchant esterni.
+- **Link alla listing.** I richiami all'installazione sono pulsanti disabilitati
+  finché la scheda App Store non esiste; da trasformare in collegamenti in M11.
 - **Screenshot dell'app.** La Home non ne contiene: quelli reali nascono in M9.
 - **`shop/redact` di prova.** Non ancora arrivato; quando arriverà lo store deve
   restare intatto con un evento `shop_redact_skipped`. Non appartiene a M7.

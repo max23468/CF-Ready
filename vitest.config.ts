@@ -30,6 +30,7 @@ export default defineConfig({
         d1Databases: ["MIGRATION_DB"],
         bindings: {
           TEST_MIGRATIONS: await readD1Migrations(path.join(root, "migrations")),
+          TRIAL_LEDGER_HMAC_KEY: btoa(String.fromCharCode(...new Uint8Array(32).fill(4))),
         },
       },
     })),
