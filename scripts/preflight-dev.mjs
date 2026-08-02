@@ -61,7 +61,7 @@ export function verifyMigrationSafety(migrations) {
   const unsafe = migrations.find(
     ({ name, sql }) =>
       name > "0010_privacy_hardening.sql" &&
-      /\bDROP\s+(?:TABLE|COLUMN)\b|\bALTER\s+TABLE\b[\s\S]*\bRENAME\b/i.test(sql),
+      /\bDROP\s+(?:TABLE|COLUMN)\b|\bALTER\s+TABLE\b[\s\S]*\bRENAME\b|\bDELETE\s+FROM\b/i.test(sql),
   );
   if (unsafe) {
     throw new Error(`La migrazione ${unsafe.name} richiede un deploy in due fasi.`);

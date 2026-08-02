@@ -114,6 +114,13 @@ test("il preflight richiede due fasi per nuove migrazioni distruttive", () => {
       ]),
     /deploy in due fasi/,
   );
+  assert.throws(
+    () =>
+      verifyMigrationSafety([
+        { name: "0012_delete_trials.sql", sql: "DELETE FROM trials WHERE trial_ends_at < ?;" },
+      ]),
+    /deploy in due fasi/,
+  );
 });
 
 test("il preflight richiede tutti i secret runtime Worker", () => {
