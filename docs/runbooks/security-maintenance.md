@@ -28,8 +28,8 @@ L'audit ammette soltanto
 che riguarda le API RSC instabili. Il repository non le usa e Shopify dichiara
 compatibilità con React Router 7 tramite la peer dependency del proprio
 pacchetto applicativo. React Router `7.18.2` include il backport della correzione;
-l'eccezione resta necessaria soltanto finché il database advisory globale non
-aggiorna l'intervallo vulnerabile.
+l'audit npm e `dependency-review` ammettono quindi lo stesso identificativo
+finché il database advisory globale non aggiorna l'intervallo vulnerabile.
 
 Il gate fallisce se compare un advisory diverso o se viene introdotta una API
 `unstable_*` nel runtime, inclusi gli helper RSC che non contengono `RSC` nel
