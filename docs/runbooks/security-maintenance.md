@@ -15,9 +15,19 @@ provider senza introdurre una seconda corsia di deploy.
 Il workflow trimestrale è in sola lettura. Non applica migrazioni, non pubblica
 versioni e non accede a Production. L'esecuzione manuale lancia entrambi i job.
 I required checks vivono anche nei ruleset pubblici, così il readback mensile
-non richiede un token con permessi amministrativi. L'API pubblica non espone
-gli eventuali bypass actor: l'owner li verifica nelle impostazioni dei ruleset
-quando esegue la manutenzione mensile.
+non richiede un token con permessi amministrativi. L'API pubblica e il token
+standard di Actions non espongono bypass actor, auto-merge e cancellazione
+automatica dei branch: l'owner li verifica nelle impostazioni del repository
+quando esegue la manutenzione mensile. Il workflow non può terminare con esito
+positivo finché l'owner non approva l'environment `Security governance` dopo
+aver confermato che non esistono bypass actor, che l'auto-merge è attivo e che
+la cancellazione automatica globale dei branch è disattivata.
+
+`Security governance` è un prerequisito del workflow: nelle impostazioni
+GitHub deve avere `max23468` come required reviewer e una deployment branch
+policy limitata a `develop`. Il readback effettuato durante l'introduzione del
+gate ha confermato entrambe le protection rule; se l'environment viene ricreato
+o modificato, l'owner deve ripetere il readback prima del run successivo.
 
 ## Advisory React Router
 
