@@ -181,14 +181,18 @@ test("non espone un comando locale per il deploy Pages Production", () => {
   assert.equal(packageJson.scripts["site:deploy"], undefined);
 });
 
-test("npm 12 e il peer Shopify sono riproducibili in locale e nei workflow", () => {
+test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow", () => {
   const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const lockfile = JSON.parse(
     readFileSync(new URL("../package-lock.json", import.meta.url), "utf8"),
   );
+  const tsconfig = JSON.parse(readFileSync(new URL("../tsconfig.json", import.meta.url), "utf8"));
   const npmrc = readFileSync(new URL("../.npmrc", import.meta.url), "utf8");
   const mise = readFileSync(new URL("../mise.toml", import.meta.url), "utf8");
   assert.equal(packageJson.packageManager, "npm@12.0.2");
+  assert.equal(packageJson.engines.node, ">=26.5.1 <27");
+  assert.equal(packageJson.devDependencies.typescript, "7.0.2");
+  assert.equal(packageJson.devDependencies["@typescript/typescript6"], undefined);
   assert.equal(packageJson.allowScripts["fsevents@2.3.2"], false);
   assert.equal(
     packageJson.packageExtensions["@shopify/shopify-app-react-router@1.2.1"].peerDependencies[
@@ -197,7 +201,15 @@ test("npm 12 e il peer Shopify sono riproducibili in locale e nei workflow", () 
     "^7.18.2 || ^8.3.0",
   );
   assert.equal(lockfile.lockfileVersion, 4);
+  assert.equal(lockfile.packages[""].engines.node, ">=26.5.1 <27");
+  assert.equal(lockfile.packages[""].devDependencies.typescript, "7.0.2");
+  assert.equal(tsconfig.compilerOptions.strict, true);
+  assert.equal(tsconfig.compilerOptions.noUncheckedSideEffectImports, true);
+  assert.deepEqual(tsconfig.compilerOptions.lib, ["DOM", "ES2022"]);
+  assert.equal(tsconfig.compilerOptions.ignoreDeprecations, undefined);
+  assert.equal(tsconfig.compilerOptions.stableTypeOrdering, undefined);
   assert.match(npmrc, /^strict-allow-scripts=true$/m);
+  assert.match(mise, /^node = "26\.5\.1"$/m);
   assert.match(mise, /^npm = "12\.0\.2"$/m);
 
   for (const path of [
@@ -208,6 +220,11 @@ test("npm 12 e il peer Shopify sono riproducibili in locale e nei workflow", () 
     "deploy-pages-production.yml",
   ]) {
     const workflow = readFileSync(new URL(`../.github/workflows/${path}`, import.meta.url), "utf8");
+    const nodeVersions = [...workflow.matchAll(/node-version:\s*([^\s]+)/g)].map(
+      (match) => match[1],
+    );
+    assert(nodeVersions.length > 0, path);
+    assert.deepEqual([...new Set(nodeVersions)], ["26.5.1"], path);
     assert.equal(
       workflow.match(/npm install --global npm@12\.0\.2/g)?.length,
       workflow.match(/npm ci/g)?.length,
