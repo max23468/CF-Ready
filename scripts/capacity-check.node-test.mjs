@@ -95,3 +95,31 @@ test("attende l'avvio lento del tail oltre la vecchia soglia", async () => {
 
   assert.equal(probes, 31);
 });
+
+test("include la durata delle probe nel timeout di readiness", async () => {
+  let elapsed = 0;
+  let probes = 0;
+
+  await assert.rejects(
+    waitForTail(
+      { exitCode: null },
+      "https://example.invalid",
+      "target",
+      () => "",
+      () => "",
+      {
+        request: async () => {
+          probes += 1;
+          elapsed += 15_000;
+        },
+        pause: async (milliseconds) => {
+          elapsed += milliseconds;
+        },
+        now: () => elapsed,
+      },
+    ),
+    /60 secondi/,
+  );
+
+  assert.equal(probes, 4);
+});

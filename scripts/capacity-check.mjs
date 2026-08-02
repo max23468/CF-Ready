@@ -127,12 +127,16 @@ export async function waitForTail(
   marker,
   output,
   errors,
-  { request = requestBatch, pause = wait } = {},
+  { request = requestBatch, pause = wait, now = () => performance.now() } = {},
 ) {
-  for (let elapsed = 0; elapsed < TAIL_READY_TIMEOUT_MS; elapsed += TAIL_POLL_INTERVAL_MS) {
+  const deadline = now() + TAIL_READY_TIMEOUT_MS;
+  while (now() < deadline) {
     if (tail.exitCode !== null) throw new Error(`Tail Cloudflare non avviato: ${errors().trim()}`);
     await request(target, 1, 1, marker, "probe");
-    await pause(TAIL_POLL_INTERVAL_MS);
+    if (parseJsonObjects(output()).length) return;
+    const remaining = deadline - now();
+    if (remaining <= 0) break;
+    await pause(Math.min(TAIL_POLL_INTERVAL_MS, remaining));
     if (parseJsonObjects(output()).length) return;
   }
   throw new Error("Tail Cloudflare non pronto entro 60 secondi.");
