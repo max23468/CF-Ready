@@ -4,16 +4,17 @@ Public app Shopify per validare formalmente Codice Fiscale e PEC nei campi
 nativi del checkout italiano.
 
 > Il progetto è in sviluppo: M0–M7 sono completate per il perimetro Development.
-> Lo snapshot Development corrente è `0.5.10` e la versione del repository è
-> `0.5.11`, con motore di validazione, billing, interfaccia merchant, onboarding
-> e sito pubblico implementati. Il sito è pubblicato su
-> [cf-ready.pages.dev](https://cf-ready.pages.dev/); Production, submission App
-> Store e gate wallet M10 non sono ancora completati.
+> La versione del repository è `0.5.12`, con motore di validazione, billing,
+> interfaccia merchant, onboarding e sito pubblico implementati. Le ricevute
+> degli snapshot Development sono registrate in `docs/evidence/`. Il sito è
+> pubblicato su [cf-ready.pages.dev](https://cf-ready.pages.dev/); Production,
+> submission App Store e gate wallet M10 non sono ancora completati.
 
 ## Sviluppo locale
 
-Prerequisiti: [mise](https://mise.jdx.dev/), Shopify CLI e una chiave AES-256
-in `SESSION_ENCRYPTION_KEY`, codificata in base64. La versione Node.js è
+Prerequisiti: [mise](https://mise.jdx.dev/), Shopify CLI, una chiave AES-256 in
+`SESSION_ENCRYPTION_KEY` e una chiave HMAC dedicata in
+`TRIAL_LEDGER_HMAC_KEY`, entrambe codificate in base64. La versione Node.js è
 bloccata in `mise.toml`.
 
 ```sh

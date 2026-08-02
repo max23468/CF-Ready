@@ -59,7 +59,11 @@ export function verifyNoPendingMigrations(output) {
 
 export function verifyWorkerSecrets(secrets) {
   const names = new Set(secrets.map(({ name }) => name));
-  if (!["SHOPIFY_API_SECRET", "SESSION_ENCRYPTION_KEY"].every((name) => names.has(name))) {
+  if (
+    !["SHOPIFY_API_SECRET", "SESSION_ENCRYPTION_KEY", "TRIAL_LEDGER_HMAC_KEY"].every((name) =>
+      names.has(name),
+    )
+  ) {
     throw new Error("Mancano secret runtime sul Worker Development.");
   }
 }
@@ -68,6 +72,7 @@ export function verifyCoordinatedRollback(deployment, versions) {
   const active = versions.find(({ status }) => status === "active");
   const commit = active?.message?.match(/^Development ([0-9a-f]{40})$/)?.[1];
   const workerMessage = deployment.annotations?.["workers/message"];
+  const secretOnly = deployment.annotations?.["workers/triggered_by"] === "secret";
   if (
     !deployment.id ||
     deployment.versions?.length !== 1 ||
@@ -75,7 +80,7 @@ export function verifyCoordinatedRollback(deployment, versions) {
     !active?.versionId ||
     !active.versionTag ||
     !commit ||
-    !workerMessage?.includes(commit.slice(0, 7))
+    (!secretOnly && !workerMessage?.includes(commit.slice(0, 7)))
   ) {
     throw new Error("Il Worker attivo non coincide con la versione Shopify Development attiva.");
   }

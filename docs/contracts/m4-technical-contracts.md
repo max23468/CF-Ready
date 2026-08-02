@@ -78,7 +78,9 @@ discussione la sessione viva di un merchant installato.
 Il trigger orario del Worker applica lo stesso percorso di cancellazione agli
 store che risultano ancora `uninstalled` dopo 90 giorni. Le ricevute webhook
 vengono anonimizzate e sopravvive soltanto il `trial_ledger` pseudonimizzato;
-uno store reinstallato non soddisfa la query e non viene toccato.
+uno store reinstallato non soddisfa la query e non viene toccato. Ogni
+esecuzione tratta al massimo 25 store e applica anche le soglie temporali di 90
+giorni a ricevute ed errori e di 12 mesi agli altri eventi tecnici e di billing.
 
 Endpoint e topic registrati:
 
@@ -142,7 +144,8 @@ solo come eventi di log, non come stato persistito.
 
 `reconcile(admin, db, shopDomain)` è l'unico punto che allinea Shopify e D1.
 Viene invocata a ogni autenticazione completata, all'apertura della Home, su
-`shop/update` e dopo un errore di scrittura. Non esistono job periodici.
+`shop/update` e dopo un errore di scrittura. Il job orario si limita alla
+retention locale e non esegue riconciliazioni con Shopify.
 
 Con la managed installation Shopify non espone un evento di installazione
 distinto: `afterAuth` scatta anche al rinnovo del token offline, che avviene

@@ -106,6 +106,20 @@ section.inverse {
   background: color-mix(in srgb, var(--cf-color-paper) 92%, transparent);
   backdrop-filter: blur(8px);
   z-index: 10;
+  transition: transform calc(var(--cf-duration-base) * 1.5) var(--cf-easing);
+}
+
+.skip-link {
+  position: fixed;
+  inset: var(--cf-space-3) auto auto var(--cf-space-3);
+  z-index: 20;
+  padding: var(--cf-space-3) var(--cf-space-4);
+  background: var(--cf-color-paper);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
 }
 
 /* Su schermo largo la testata resta ferma dov'è. Su telefono si ritira mentre si
@@ -115,10 +129,6 @@ section.inverse {
 .masthead.is-hidden {
   transform: translateY(-100%);
   transition-delay: var(--cf-duration-fast);
-}
-
-.masthead {
-  transition: transform calc(var(--cf-duration-base) * 1.5) var(--cf-easing);
 }
 
 .masthead .wrap {
@@ -328,17 +338,8 @@ nav a.is-active {
 
 /* Finché la scheda sull'App Store non esiste, il richiamo all'installazione è un
    `button` disabilitato: si vede, dice cosa sarà, e non porta su un errore. */
-button.button {
-  font-family: inherit;
-  cursor: pointer;
-}
-
 button.button[disabled] {
   cursor: default;
-  opacity: 0.55;
-}
-
-button.button[disabled]:hover {
   opacity: 0.55;
 }
 

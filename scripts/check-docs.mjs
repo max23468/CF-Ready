@@ -50,11 +50,15 @@ export function checkDocs(repositoryRoot = root) {
         ? decodeURIComponent(new URL(rawPath, "https://docs.invalid").pathname)
         : decodeURIComponent(rawPath);
       const fragment = encodedFragment && decodeURIComponent(encodedFragment);
-      const linkedFile = !path
+      const rawLinkedFile = !path
         ? resolve(repositoryRoot, file)
         : path.startsWith("/")
           ? resolve(repositoryRoot, `.${path}`)
           : resolve(repositoryRoot, dirname(file), path);
+      const linkedFile =
+        extension === ".html" && !existsSync(rawLinkedFile) && existsSync(`${rawLinkedFile}.html`)
+          ? `${rawLinkedFile}.html`
+          : rawLinkedFile;
       if (relative(repositoryRoot, linkedFile).split(/[\\/]/)[0] === "..") {
         errors.push(`${file}: link locale fuori repository: ${path}`);
       } else if (!existsSync(linkedFile)) {

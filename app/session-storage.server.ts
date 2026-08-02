@@ -20,7 +20,9 @@ export class D1SessionStorage implements SessionStorage {
   ) {}
 
   async storeSession(session: Session): Promise<boolean> {
-    const properties = session.toPropertyArray(true);
+    // Shopify ricostruisce una sessione online con il solo ID utente: nome, email,
+    // lingua e ruolo dell'admin non servono all'app e non vengono conservati.
+    const properties = session.toPropertyArray(false);
     const accessToken = take(properties, "accessToken");
     const refreshToken = take(properties, "refreshToken");
     const now = new Date().toISOString();
@@ -65,10 +67,9 @@ export class D1SessionStorage implements SessionStorage {
           `INSERT INTO shopify_sessions (
              id, shop_id, is_online, scope, access_token_ciphertext,
              refresh_token_ciphertext, access_token_expires_at,
-             refresh_token_expires_at, online_user_id,
-             session_payload_ciphertext, created_at, updated_at
+             refresh_token_expires_at, session_payload_ciphertext, created_at, updated_at
            ) VALUES (
-             ?, (SELECT id FROM shops WHERE shop_domain = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+             ?, (SELECT id FROM shops WHERE shop_domain = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?
            )
            ON CONFLICT(id) DO UPDATE SET
              shop_id = excluded.shop_id,
@@ -78,7 +79,6 @@ export class D1SessionStorage implements SessionStorage {
              refresh_token_ciphertext = excluded.refresh_token_ciphertext,
              access_token_expires_at = excluded.access_token_expires_at,
              refresh_token_expires_at = excluded.refresh_token_expires_at,
-             online_user_id = excluded.online_user_id,
              session_payload_ciphertext = excluded.session_payload_ciphertext,
              updated_at = excluded.updated_at`,
         )
@@ -91,7 +91,6 @@ export class D1SessionStorage implements SessionStorage {
           refreshTokenCiphertext,
           session.expires?.toISOString() ?? null,
           session.refreshTokenExpires?.toISOString() ?? null,
-          session.onlineAccessInfo?.associated_user.id?.toString() ?? null,
           payload,
           now,
           now,

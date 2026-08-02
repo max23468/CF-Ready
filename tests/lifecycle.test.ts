@@ -2,6 +2,7 @@ import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
 import { recordEvent } from "../app/events.server";
 import {
+  applyRetention,
   markUninstalled,
   recordInstallOnce,
   redactExpiredShops,
@@ -724,6 +725,81 @@ test("la retention elimina solo gli store disinstallati da almeno 90 giorni", as
       .bind("wh-retention")
       .first(),
   ).toMatchObject({ shop_domain: null });
+});
+
+test("la retention rispetta le soglie pubblicate per eventi e ricevute", async () => {
+  const shop = await insertShop("retention-events.example.myshopify.com");
+  const shopId = (await env.DB.prepare("SELECT id FROM shops WHERE shop_domain = ?")
+    .bind(shop)
+    .first<{ id: number }>())!.id;
+
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO webhook_events (webhook_id, topic, status, received_at)
+       VALUES ('receipt-expired', 'SHOP_UPDATE', 'processed', '2026-05-04T00:00:00.000Z')`,
+    ),
+    env.DB.prepare(
+      `INSERT INTO webhook_events (webhook_id, topic, status, received_at)
+       VALUES ('receipt-current', 'SHOP_UPDATE', 'processed', '2026-05-04T00:00:00.001Z')`,
+    ),
+    env.DB.prepare(
+      `INSERT INTO app_events (event_name, event_class, occurred_at)
+       VALUES ('error-expired', 'error', '2026-05-04T00:00:00.000Z')`,
+    ),
+    env.DB.prepare(
+      `INSERT INTO app_events (event_name, event_class, occurred_at)
+       VALUES ('error-current', 'error', '2026-05-04T00:00:00.001Z')`,
+    ),
+    env.DB.prepare(
+      `INSERT INTO app_events (event_name, event_class, occurred_at)
+       VALUES ('event-expired', 'lifecycle', '2025-08-02T00:00:00.000Z')`,
+    ),
+    env.DB.prepare(
+      `INSERT INTO app_events (event_name, event_class, occurred_at)
+       VALUES ('event-current', 'lifecycle', '2025-08-02T00:00:00.001Z')`,
+    ),
+    env.DB.prepare(
+      `INSERT INTO billing_events (
+           shop_id, shopify_resource_gid, event_type, status, occurred_at, created_at
+         ) VALUES (?, 'gid://expired', 'subscription', 'active', ?, ?)`,
+    ).bind(shopId, "2025-08-02T00:00:00.000Z", "2025-08-02T00:00:00.000Z"),
+    env.DB.prepare(
+      `INSERT INTO billing_events (
+           shop_id, shopify_resource_gid, event_type, status, occurred_at, created_at
+         ) VALUES (?, 'gid://current', 'subscription', 'active', ?, ?)`,
+    ).bind(shopId, "2025-08-02T00:00:00.001Z", "2025-08-02T00:00:00.001Z"),
+  ]);
+
+  expect((await applyRetention(env.DB, new Date("2026-08-02T00:00:00.000Z"))).shops).toBe(0);
+  expect(
+    (
+      await env.DB.prepare(
+        `SELECT webhook_id AS value FROM webhook_events WHERE webhook_id LIKE 'receipt-%'
+         UNION ALL SELECT event_name FROM app_events WHERE event_name LIKE 'error-%' OR event_name LIKE 'event-%'
+         UNION ALL SELECT shopify_resource_gid FROM billing_events WHERE shopify_resource_gid LIKE 'gid://%'
+         ORDER BY value`,
+      ).all<{ value: string }>()
+    ).results.map(({ value }) => value),
+  ).toEqual(["error-current", "event-current", "gid://current", "receipt-current"]);
+});
+
+test("la retention limita ogni esecuzione a 25 store", async () => {
+  for (let index = 0; index < 26; index += 1) {
+    const shop = await insertShop(`retention-batch-${index}.example.myshopify.com`);
+    await env.DB.prepare(
+      `UPDATE shops SET installation_status = 'uninstalled', uninstalled_at = ?
+       WHERE shop_domain = ?`,
+    )
+      .bind("2020-01-01T00:00:00.000Z", shop)
+      .run();
+  }
+
+  expect(await redactExpiredShops(env.DB, new Date("2026-08-02T00:00:00.000Z"))).toBe(25);
+  expect(
+    await env.DB.prepare(
+      "SELECT COUNT(*) AS total FROM shops WHERE shop_domain LIKE 'retention-batch-%'",
+    ).first(),
+  ).toMatchObject({ total: 1 });
 });
 
 test("riaprire l'onboarding non lo riporta a in corso", async () => {
