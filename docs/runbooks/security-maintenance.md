@@ -15,12 +15,13 @@ provider senza introdurre una seconda corsia di deploy.
 
 Il workflow trimestrale è in sola lettura. Non applica migrazioni, non pubblica
 versioni e non accede a Production. L'esecuzione manuale lancia entrambi i job.
-I required checks vivono anche nei ruleset pubblici, così il readback mensile
-non richiede un token con permessi amministrativi. L'API pubblica e il token
-standard di Actions non espongono bypass actor, auto-merge e cancellazione
-automatica dei branch: l'owner li verifica nelle impostazioni del repository
-soltanto quando modifica la governance. Questi controlli non aggiungono
-approvazioni o notifiche al workflow periodico.
+I required checks vivono anche nei ruleset pubblici. Gli alert usano il secret
+`SECURITY_AUDIT_TOKEN` dell'environment `Security Maintenance`, ammesso soltanto
+su `develop`; il job dichiara `deployment: false`, quindi non crea notifiche o
+ricevute di deploy. Il token ha accesso in lettura agli alert Dependabot, CodeQL
+e Secret Scanning. L'API pubblica non espone bypass actor, auto-merge e
+cancellazione automatica dei branch: l'owner li verifica nelle impostazioni del
+repository soltanto quando modifica la governance.
 
 ## Dipendenze npm
 

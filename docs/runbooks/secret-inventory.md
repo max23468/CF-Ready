@@ -13,8 +13,9 @@ dei rispettivi provider e non devono comparire nel repository o nei log.
 | `SESSION_ENCRYPTION_KEY` | Production | Cloudflare Workers | da generare |
 | `TRIAL_LEDGER_HMAC_KEY` | Production | Cloudflare Workers | da generare prima del lancio |
 | `CLOUDFLARE_API_TOKEN` | CI Pages Production | GitHub Actions | configurato il 1 agosto 2026; accesso verificato dal preflight del workflow |
-| `CLOUDFLARE_API_TOKEN` | Backup Production | GitHub Actions | da limitare a export D1 e oggetti R2 |
-| `D1_BACKUP_KEY` | Backup Production | GitHub Actions | da generare: 32 byte in base64, recuperabile fuori da R2 |
+| `CLOUDFLARE_API_TOKEN` | Backup Production | GitHub Actions | configurato il 3 agosto 2026; da limitare a export D1 e oggetti R2 |
+| `D1_BACKUP_KEY` | Backup Production | GitHub Actions | configurato il 3 agosto 2026; copia recuperabile nel Portachiavi macOS |
+| `SECURITY_AUDIT_TOKEN` | Security Maintenance | GitHub Actions | configurato il 3 agosto 2026; environment limitato a `develop`, soli readback alert |
 | `SHOPIFY_CLI_PARTNERS_TOKEN` | CI Production | GitHub Actions | da creare con privilegi minimi |
 
 `SHOPIFY_API_KEY`, ID account, ID database e nomi delle risorse non sono

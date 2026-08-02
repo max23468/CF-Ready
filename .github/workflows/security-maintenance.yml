@@ -21,6 +21,9 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 6 1 * *'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment:
+      name: Security Maintenance
+      deployment: false
     steps:
       - name: Verifica branch
         run: test "$GITHUB_REF" = "refs/heads/develop"
@@ -36,7 +39,7 @@ jobs:
       - run: npm run docs:check
       - name: Verifica governance e workflow GitHub
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.SECURITY_AUDIT_TOKEN }}
         run: |
           test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .default_branch)" = develop
           rulesets="$(curl --fail --silent --show-error \
