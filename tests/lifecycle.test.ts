@@ -60,6 +60,29 @@ async function insertShop(shopDomain: string) {
   return shopDomain;
 }
 
+test("gli eventi lifecycle inseriti direttamente raggiungono i log una volta sola", async () => {
+  const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+  const shop = await insertShop("log-diretti.example.myshopify.com");
+  const installedAt = "2026-07-30T00:00:00.000Z";
+
+  expect(await markUninstalled(env.DB, shop, installedAt, "wh-log-uninstall")).toBe(true);
+  expect(await markUninstalled(env.DB, shop, installedAt, "wh-log-uninstall")).toBe(false);
+  expect(await redactShop(env.DB, shop, "wh-log-redact")).toBe(true);
+  expect(await redactShop(env.DB, shop, "wh-log-redact")).toBe(true);
+
+  expect(
+    info.mock.calls.map(([record]) => ({
+      event: record.event,
+      correlation_id: record.correlation_id,
+      webhook: record.webhook,
+    })),
+  ).toEqual([
+    { event: "app_uninstalled", correlation_id: "wh-log-uninstall", webhook: true },
+    { event: "shop_redacted", correlation_id: "wh-log-redact", webhook: true },
+  ]);
+  info.mockRestore();
+});
+
 const FUSO = "Europe/Rome";
 const SENZA_DIRITTO = { kind: "none", validThrough: null };
 
@@ -499,8 +522,12 @@ test("il replay della disinstallazione non tocca una reinstallazione successiva"
     "2026-08-01T10:00:00.000Z",
   );
   if (!first.acquired || !first.installationStartedAt) throw new Error("claim non acquisito");
-  expect(await markUninstalled(env.DB, shop, first.installationStartedAt)).toBe(true);
-  expect(await markUninstalled(env.DB, shop, first.installationStartedAt)).toBe(false);
+  expect(
+    await markUninstalled(env.DB, shop, first.installationStartedAt, "wh-uninstall-replay"),
+  ).toBe(true);
+  expect(
+    await markUninstalled(env.DB, shop, first.installationStartedAt, "wh-uninstall-replay"),
+  ).toBe(false);
 
   await env.DB.prepare(
     `UPDATE shops SET installation_status = 'active', installed_at = ?, uninstalled_at = NULL
@@ -526,7 +553,7 @@ test("il replay della disinstallazione non tocca una reinstallazione successiva"
     },
     async (claim) => {
       if (claim.installationStartedAt) {
-        await markUninstalled(env.DB, shop, claim.installationStartedAt);
+        await markUninstalled(env.DB, shop, claim.installationStartedAt, "wh-uninstall-replay");
       }
     },
   );
@@ -585,7 +612,12 @@ test("la prima consegna tardiva della disinstallazione non tocca la reinstallazi
     },
     async (claim) => {
       if (claim.installationStartedAt) {
-        await markUninstalled(env.DB, shop, claim.installationStartedAt);
+        await markUninstalled(
+          env.DB,
+          shop,
+          claim.installationStartedAt,
+          "wh-uninstall-prima-consegna-tardiva",
+        );
       }
     },
   );
@@ -611,8 +643,8 @@ test("la disinstallazione completa stato ed evento anche da uno stato parziale",
     .bind(installedAt, shop)
     .run();
 
-  expect(await markUninstalled(env.DB, shop, installedAt)).toBe(true);
-  expect(await markUninstalled(env.DB, shop, installedAt)).toBe(false);
+  expect(await markUninstalled(env.DB, shop, installedAt, "wh-uninstall-parziale")).toBe(true);
+  expect(await markUninstalled(env.DB, shop, installedAt, "wh-uninstall-parziale")).toBe(false);
   expect(
     await env.DB.prepare(
       `SELECT installation_status,
@@ -741,7 +773,7 @@ test("disinstallazione e redact ripuliscono i dati dello store", async () => {
     shop,
   );
 
-  await markUninstalled(env.DB, shop, "2026-07-30T00:00:00.000Z");
+  await markUninstalled(env.DB, shop, "2026-07-30T00:00:00.000Z", "wh-uninstall-redact");
   expect(
     await env.DB.prepare(
       "SELECT installation_status, uninstalled_at FROM shops WHERE shop_domain = ?",
