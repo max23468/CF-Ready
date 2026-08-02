@@ -38,6 +38,8 @@ jobs:
 
       - run: npm ci
 
+      - run: npm install --global @shopify/cli@4.5.2
+
       - name: Preflight Pages Production
         id: preflight
         env:

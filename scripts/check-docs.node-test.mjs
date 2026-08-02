@@ -175,6 +175,10 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /wrangler pages deploy site/);
   assert.match(workflow, /--branch main/);
   assert.match(workflow, /--commit-hash "\$GITHUB_SHA"/);
+  assert.match(workflow, /npm install --global @shopify\/cli@4\.5\.2/);
+  assert(
+    workflow.indexOf("npm install --global @shopify/cli@4.5.2") < workflow.indexOf("npm run check"),
+  );
   assert.match(workflow, /canonical_deployment\.deployment_trigger\.metadata\.commit_hash/);
   assert.match(workflow, /deployments\/\$ROLLBACK_ID\/rollback/);
   assert.doesNotMatch(workflow, /wrangler deploy(?:\s|$)/);
