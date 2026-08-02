@@ -37,8 +37,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .default_branch)" = develop
-          test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .allow_auto_merge)" = true
-          test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .delete_branch_on_merge)" = false
           rulesets="$(curl --fail --silent --show-error \
             "https://api.github.com/repos/$GITHUB_REPOSITORY/rulesets")"
           verify_ruleset() {
@@ -63,7 +61,7 @@ jobs:
           }
           verify_ruleset develop false dependency-review,react-doctor,verify
           verify_ruleset main true dependency-review,promotion-guard,react-doctor,verify
-          echo "::notice::Verificare manualmente che i ruleset non abbiano bypass actors."
+          echo "::notice::Verificare manualmente bypass, auto-merge e cancellazione branch."
           for workflow in ci.yml deploy-development.yml; do
             test "$(gh run list --workflow "$workflow" --branch develop --limit 1 \
               --json conclusion --jq '.[0].conclusion')" = success

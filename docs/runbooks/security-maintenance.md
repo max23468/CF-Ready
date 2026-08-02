@@ -15,8 +15,9 @@ provider senza introdurre una seconda corsia di deploy.
 Il workflow trimestrale è in sola lettura. Non applica migrazioni, non pubblica
 versioni e non accede a Production. L'esecuzione manuale lancia entrambi i job.
 I required checks vivono anche nei ruleset pubblici, così il readback mensile
-non richiede un token con permessi amministrativi. L'API pubblica non espone
-gli eventuali bypass actor: l'owner li verifica nelle impostazioni dei ruleset
+non richiede un token con permessi amministrativi. L'API pubblica e il token
+standard di Actions non espongono bypass actor, auto-merge e cancellazione
+automatica dei branch: l'owner li verifica nelle impostazioni del repository
 quando esegue la manutenzione mensile.
 
 ## Advisory React Router

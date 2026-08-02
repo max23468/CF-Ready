@@ -6,6 +6,11 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.7.1 — 2 agosto 2026
+
+- la manutenzione GitHub limita il readback automatico ai dati esposti al token
+  standard di Actions e segnala i controlli amministrativi riservati all'owner.
+
 ## 0.7.0 — 2 agosto 2026
 
 - l'audit dipendenze ammette soltanto l'advisory React Router relativo alle API
