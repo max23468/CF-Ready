@@ -18,6 +18,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   automaticamente l’abbonamento ricorrente tramite Shopify;
 - il sito usa URL interni canonici, skip link e un gate statico bilingue; menu e
   CSS sono stati semplificati senza dipendenze nuove;
+- il sito Pages Production dispone di un workflow manuale, serializzato e
+  vincolato a `main`, con gate completo, readback del commit, smoke e rollback;
 - l’identificazione completa del titolare resta un gate della milestone di
   lancio, prima della submission e della disponibilità per merchant esterni.
 

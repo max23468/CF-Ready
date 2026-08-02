@@ -1,0 +1,158 @@
+name: Deploy Pages Production
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-pages-production
+  cancel-in-progress: false
+
+env:
+  CLOUDFLARE_ACCOUNT_ID: 98195e505f42abaaeb4827f71a924b1a
+  PAGES_PROJECT: cf-ready
+  PAGES_DOMAIN: cf-ready.pages.dev
+
+jobs:
+  deploy:
+    name: Deploy Pages Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: Pages Production
+    outputs:
+      deployed: ${{ steps.deploy.outputs.deployed }}
+      rollback_id: ${{ steps.preflight.outputs.rollback_id }}
+
+    steps:
+      - name: Verifica branch
+        run: test "$GITHUB_REF" = "refs/heads/main"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26.5.0
+          cache: npm
+
+      - run: npm ci
+
+      - name: Preflight Pages Production
+        id: preflight
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          curl --fail --silent --show-error \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PAGES_PROJECT" \
+            --output "$RUNNER_TEMP/pages-before.json"
+          jq --exit-status \
+            --arg project "$PAGES_PROJECT" \
+            --arg domain "$PAGES_DOMAIN" \
+            '.success == true and
+             .result.name == $project and
+             .result.subdomain == $domain and
+             .result.production_branch == "main" and
+             .result.source == null and
+             .result.canonical_deployment.environment == "production" and
+             .result.canonical_deployment.latest_stage.status == "success"' \
+            "$RUNNER_TEMP/pages-before.json" > /dev/null
+          rollback_id="$(jq --raw-output '.result.canonical_deployment.id' "$RUNNER_TEMP/pages-before.json")"
+          rollback_commit="$(jq --raw-output '.result.canonical_deployment.deployment_trigger.metadata.commit_hash' "$RUNNER_TEMP/pages-before.json")"
+          test -n "$rollback_id" && test "$rollback_id" != "null"
+          echo "rollback_id=$rollback_id" >> "$GITHUB_OUTPUT"
+          echo "- Rollback Pages: deployment \`$rollback_id\`, commit \`$rollback_commit\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - run: npm run check
+
+      - name: Deploy Pages Production
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          rm -f .wrangler/deploy/config.json
+          npm exec -- wrangler pages deploy site \
+            --project-name "$PAGES_PROJECT" \
+            --branch main \
+            --commit-hash "$GITHUB_SHA" \
+            --commit-message "Production $GITHUB_SHA" \
+            --commit-dirty=false
+          echo "deployed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Readback Pages Production
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          curl --fail --silent --show-error \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PAGES_PROJECT" \
+            --output "$RUNNER_TEMP/pages-after.json"
+          jq --exit-status \
+            --arg project "$PAGES_PROJECT" \
+            --arg domain "$PAGES_DOMAIN" \
+            --arg commit "$GITHUB_SHA" \
+            '.success == true and
+             .result.name == $project and
+             .result.subdomain == $domain and
+             .result.production_branch == "main" and
+             .result.canonical_deployment.environment == "production" and
+             .result.canonical_deployment.latest_stage.status == "success" and
+             .result.canonical_deployment.deployment_trigger.metadata.branch == "main" and
+             .result.canonical_deployment.deployment_trigger.metadata.commit_hash == $commit and
+             .result.canonical_deployment.deployment_trigger.metadata.commit_dirty == false' \
+            "$RUNNER_TEMP/pages-after.json" > /dev/null
+          deployment_id="$(jq --raw-output '.result.canonical_deployment.id' "$RUNNER_TEMP/pages-after.json")"
+          deployment_url="$(jq --raw-output '.result.canonical_deployment.url' "$RUNNER_TEMP/pages-after.json")"
+          echo "- Pages Production: deployment \`$deployment_id\`, commit \`$GITHUB_SHA\`, URL $deployment_url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Smoke sito pubblico
+        run: |
+          for path in / /privacy /terms /support /en/ /en/privacy /en/terms /en/support; do
+            curl --fail --silent --show-error --max-time 15 \
+              --output /dev/null "https://$PAGES_DOMAIN$path"
+          done
+          curl --fail --silent --show-error --max-time 15 \
+            --dump-header "$RUNNER_TEMP/pages-headers.txt" \
+            --output "$RUNNER_TEMP/pages-home.html" "https://$PAGES_DOMAIN/"
+          grep -Fq 'class="skip-link"' "$RUNNER_TEMP/pages-home.html"
+          for header in content-security-policy referrer-policy x-content-type-options permissions-policy; do
+            grep --ignore-case --quiet "^$header:" "$RUNNER_TEMP/pages-headers.txt"
+          done
+          echo "- Smoke pubblico: otto URL e header di sicurezza verificati" >> "$GITHUB_STEP_SUMMARY"
+
+  rollback:
+    name: Rollback Pages Production
+    needs: deploy
+    if: ${{ always() && needs.deploy.result == 'failure' && needs.deploy.outputs.deployed == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: Pages Production
+
+    steps:
+      - name: Ripristina il deployment precedente
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ROLLBACK_ID: ${{ needs.deploy.outputs.rollback_id }}
+        run: |
+          test -n "$ROLLBACK_ID"
+          curl --fail --silent --show-error --request POST \
+            --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PAGES_PROJECT/deployments/$ROLLBACK_ID/rollback" \
+            --output "$RUNNER_TEMP/pages-rollback.json"
+          jq --exit-status '.success == true' "$RUNNER_TEMP/pages-rollback.json" > /dev/null
+          for _ in 1 2 3 4 5; do
+            curl --fail --silent --show-error \
+              --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PAGES_PROJECT" \
+              --output "$RUNNER_TEMP/pages-rollback-readback.json"
+            if jq --exit-status --arg id "$ROLLBACK_ID" \
+              '.success == true and .result.canonical_deployment.id == $id' \
+              "$RUNNER_TEMP/pages-rollback-readback.json" > /dev/null; then
+              echo "- Rollback Pages verificato: deployment \`$ROLLBACK_ID\`" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1

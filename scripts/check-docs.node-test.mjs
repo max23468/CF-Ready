@@ -165,6 +165,22 @@ test("non espone un comando locale per il deploy Pages Production", () => {
   assert.equal(packageJson.scripts["site:deploy"], undefined);
 });
 
+test("il workflow Pages Production resta manuale, vincolato e verificabile", () => {
+  const workflow = readFileSync(
+    new URL("../.github/workflows/deploy-pages-production.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /test "\$GITHUB_REF" = "refs\/heads\/main"/);
+  assert.match(workflow, /wrangler pages deploy site/);
+  assert.match(workflow, /--branch main/);
+  assert.match(workflow, /--commit-hash "\$GITHUB_SHA"/);
+  assert.match(workflow, /canonical_deployment\.deployment_trigger\.metadata\.commit_hash/);
+  assert.match(workflow, /deployments\/\$ROLLBACK_ID\/rollback/);
+  assert.doesNotMatch(workflow, /wrangler deploy(?:\s|$)/);
+  assert.doesNotMatch(workflow, /shopify app deploy/);
+});
+
 test("il sito italiano e inglese mantiene il contratto pubblico essenziale", () => {
   const pairs = [
     ["index.html", "en/index.html"],
