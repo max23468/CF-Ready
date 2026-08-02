@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.7.6 — 2 agosto 2026
+
+- npm passa alla `12.0.2` in locale e nei workflow, con lockfile v4;
+- React Router passa alla `8.3.0`, eliminando l'advisory RSC senza eccezioni e
+  correggendo nel manifest root la peer dependency Shopify troppo restrittiva;
+- Dependabot resta attivo, con aggiornamento manuale del lockfile se il supporto
+  npm 12 non è ancora disponibile.
+
 ## 0.7.5 — 2 agosto 2026
 
 - React Router passa alla `7.18.2`, che applica il backport della correzione RSC
