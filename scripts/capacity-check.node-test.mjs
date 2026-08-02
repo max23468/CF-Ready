@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { assessCapacity, parseJsonObjects } from "./capacity-check.mjs";
+import { assessCapacity, parseJsonObjects, waitForEvents } from "./capacity-check.mjs";
 
 const event = (cpuTime, marker = "target", outcome = "ok", status = 302, phase = "measure") => ({
   cpuTime,
@@ -57,4 +57,21 @@ test("verifica p95, successi e numero minimo degli eventi sintetici", () => {
     () => assessCapacity([...events.slice(0, 99), event(1, "target", "exception")], "target"),
     /contiene errori/,
   );
+});
+
+test("mantiene aperto il tail per gli eventi tardivi dopo il minimo", async () => {
+  const counts = [100, 100, 110, 119, 120];
+  let sample = 0;
+
+  await waitForEvents(
+    () =>
+      counts[sample] &&
+      Array.from({ length: counts[sample] }, () => JSON.stringify(event(1))).join("\n"),
+    "target",
+    async () => {
+      sample += 1;
+    },
+  );
+
+  assert.equal(sample, 4);
 });

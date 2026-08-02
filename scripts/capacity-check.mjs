@@ -129,15 +129,18 @@ async function waitForTail(tail, target, marker, output, errors) {
   throw new Error("Tail Cloudflare non pronto entro 15 secondi.");
 }
 
-async function waitForEvents(output, marker) {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
+export async function waitForEvents(output, marker, pause = wait) {
+  let samplesAfterMinimum = 0;
+  for (let attempt = 0; attempt < 44; attempt += 1) {
     const count = parseJsonObjects(output()).filter(
       ({ event }) =>
         header(event?.request?.headers, "x-cf-ready-capacity") === marker &&
         header(event?.request?.headers, "x-cf-ready-capacity-phase") === "measure",
     ).length;
-    if (count >= MIN_EVENTS) return;
-    await wait(500);
+    if (count === REQUESTS) return;
+    samplesAfterMinimum = count >= MIN_EVENTS ? samplesAfterMinimum + 1 : 0;
+    if (samplesAfterMinimum === 5) return;
+    await pause(500);
   }
 }
 
