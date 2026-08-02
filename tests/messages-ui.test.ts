@@ -1,17 +1,14 @@
 import { expect, test, vi } from "vitest";
-import { notifySaveBarFields } from "../app/save-bar";
+import { setSaveBarVisibility } from "../app/save-bar";
 
-test("il ripristino notifica la Save Bar dopo il remount dei messaggi", () => {
-  const fields = Array.from({ length: 4 }, () => ({ dispatchEvent: vi.fn() }));
-  const querySelectorAll = vi.fn(() => fields);
-  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => callback(0));
+test("la Save Bar programmatica segue lo stato custom dei messaggi", () => {
+  const show = vi.fn(() => Promise.resolve());
+  const hide = vi.fn(() => Promise.resolve());
+  vi.stubGlobal("shopify", { saveBar: { show, hide } });
 
-  notifySaveBarFields({ querySelectorAll } as unknown as HTMLFormElement, "it.");
+  setSaveBarVisibility("messages", true);
+  setSaveBarVisibility("messages", false);
 
-  expect(querySelectorAll).toHaveBeenCalledWith('[name^="it."]');
-  for (const field of fields) {
-    expect(field.dispatchEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "input", bubbles: true }),
-    );
-  }
+  expect(show).toHaveBeenCalledWith("messages");
+  expect(hide).toHaveBeenCalledWith("messages");
 });
