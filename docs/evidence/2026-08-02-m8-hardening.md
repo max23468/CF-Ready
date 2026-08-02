@@ -33,14 +33,14 @@ Production Worker/Shopify, App Store, checkout o canary.
 - Pages Production: run `30741094451`, rollback esercitato e letto; run
   `30743184121`, deploy/readback/smoke verdi.
 - Sicurezza e provider Development: run `30749648119`, entrambi i job verdi.
-- Snapshot Development `0.8.5`: run `30762543106`, gate, capacità, Worker,
-  Shopify e readback verdi; 120 richieste, CPU p95 1 ms, massimo 4 ms.
+- Snapshot Development `0.8.6`: run `30768120300`, gate, capacità, Worker,
+  Shopify e readback verdi; 120 richieste, CPU p95 1 ms, massimo 2 ms.
 - D1 Production inizializzato con le dieci migrazioni versionate, readback senza
   migrazioni pendenti e 11 tabelle applicative/operative; nessun deploy Worker o
   Shopify Production.
-- Backup D1 Production: run `30769276781`, export cifrato, restore locale di 32
-  comandi, `integrity_check=ok`, slot settimanale e mensile R2 con readback
-  remoto riuscito.
+- Backup D1 Production: run `30769584725`, export cifrato senza URL firmato nei
+  log, restore locale di 32 comandi, `integrity_check=ok`, slot settimanale R2
+  con readback remoto riuscito.
 
 Il backup R2 Production usa una corsia separata autorizzata e registra la
 propria ricevuta nel riepilogo GitHub del workflow.
