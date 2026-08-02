@@ -81,6 +81,7 @@
   "allowScripts": {
     "core-js": false,
     "esbuild@0.28.1": true,
+    "fsevents@2.3.2": false,
     "fsevents@2.3.3": true,
     "workerd@1.20260730.1": true
   },

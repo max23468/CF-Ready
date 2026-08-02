@@ -16,6 +16,13 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   WebKit; i flussi embedded che richiedono Shopify reale restano espliciti nella
   matrice manuale.
 
+## 0.7.7 — 2 agosto 2026
+
+- npm rende vincolante la policy degli script di installazione e nega
+  esplicitamente la versione transitiva di `fsevents` non necessaria;
+- la CI considera falliti gli E2E intermittenti e conserva le trace Playwright
+  dei fallimenti per la diagnosi.
+
 ## 0.7.6 — 2 agosto 2026
 
 - la CI esegue gli E2E pubblici Playwright richiesti dal ruleset di `develop`;

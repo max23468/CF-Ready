@@ -186,8 +186,10 @@ test("npm 12 e il peer Shopify sono riproducibili in locale e nei workflow", () 
   const lockfile = JSON.parse(
     readFileSync(new URL("../package-lock.json", import.meta.url), "utf8"),
   );
+  const npmrc = readFileSync(new URL("../.npmrc", import.meta.url), "utf8");
   const mise = readFileSync(new URL("../mise.toml", import.meta.url), "utf8");
   assert.equal(packageJson.packageManager, "npm@12.0.2");
+  assert.equal(packageJson.allowScripts["fsevents@2.3.2"], false);
   assert.equal(
     packageJson.packageExtensions["@shopify/shopify-app-react-router@1.2.1"].peerDependencies[
       "react-router"
@@ -195,6 +197,7 @@ test("npm 12 e il peer Shopify sono riproducibili in locale e nei workflow", () 
     "^7.18.2 || ^8.3.0",
   );
   assert.equal(lockfile.lockfileVersion, 4);
+  assert.match(npmrc, /^strict-allow-scripts=true$/m);
   assert.match(mise, /^npm = "12\.0\.2"$/m);
 
   for (const path of [
@@ -311,6 +314,12 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
   assert.match(ci, /npm run test:e2e/);
   assert.match(readme, /playwright install chromium webkit/);
   assert.match(playwright, /fileURLToPath\(new URL\("\.\."/);
+  assert.match(ci, /actions\/upload-artifact@[0-9a-f]{40}/);
+  assert.match(ci, /path: test-results/);
+  assert.match(playwright, /failOnFlakyTests: Boolean\(process\.env\.CI\)/);
+  assert.match(playwright, /wrangler dev --config build\/server\/wrangler\.json/);
+  assert.match(playwright, /npm run site:dev/);
+  assert.doesNotMatch(playwright, /cf-ready-dev|cf-ready\.pages\.dev/);
 });
 
 test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
