@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 
 const ALLOWED_ADVISORIES = new Set([1124282]);
-const RSC_PATTERN = /unstable_(?:rsc|matchRSC|routeRSC)|entry\.rsc/i;
+const RSC_PATTERN = /unstable_|entry\.rsc/i;
 
 function advisorySources(name, vulnerabilities, seen = new Set()) {
   if (seen.has(name)) return new Set();
@@ -19,7 +19,14 @@ function advisorySources(name, vulnerabilities, seen = new Set()) {
 }
 
 export function verifySecurityAudit(report, sourceFiles = []) {
-  const vulnerabilities = report.vulnerabilities ?? {};
+  if (
+    report.auditReportVersion !== 2 ||
+    !report.vulnerabilities ||
+    typeof report.metadata?.vulnerabilities?.total !== "number"
+  ) {
+    throw new Error("Report npm audit non valido.");
+  }
+  const vulnerabilities = report.vulnerabilities;
   for (const name of Object.keys(vulnerabilities)) {
     const sources = advisorySources(name, vulnerabilities);
     if (!sources.size || [...sources].some((source) => !ALLOWED_ADVISORIES.has(source))) {

@@ -8,12 +8,14 @@ provider senza introdurre una seconda corsia di deploy.
 `security-maintenance.yml` esegue:
 
 - ogni mese: audit npm con eccezioni puntuali, firme del registry, documenti,
-  governance GitHub e ultimo esito dei workflow critici;
+  ruleset GitHub pubblici e ultimo esito dei workflow critici;
 - ogni trimestre: identità e accessi Shopify/Cloudflare Development, stato
   coordinato della versione attiva, D1, secret Worker e smoke HTTP.
 
 Il workflow trimestrale è in sola lettura. Non applica migrazioni, non pubblica
 versioni e non accede a Production. L'esecuzione manuale lancia entrambi i job.
+I required checks vivono anche nei ruleset pubblici, così il readback mensile
+non richiede un token con permessi amministrativi.
 
 ## Advisory React Router
 
@@ -24,9 +26,9 @@ compatibilità con React Router 7 tramite la peer dependency del proprio
 pacchetto applicativo.
 
 Il gate fallisce se compare un advisory diverso o se viene introdotta una API
-RSC instabile. Non usare `npm audit fix --force`: l'upgrade a React Router 8
-richiede prima il supporto del pacchetto Shopify e il gate completo della
-toolchain.
+`unstable_*` nel runtime, inclusi gli helper RSC che non contengono `RSC` nel
+nome. Non usare `npm audit fix --force`: l'upgrade a React Router 8 richiede
+prima il supporto del pacchetto Shopify e il gate completo della toolchain.
 
 ## Gestione di un fallimento
 

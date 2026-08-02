@@ -39,11 +39,29 @@ jobs:
           test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .default_branch)" = develop
           test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .allow_auto_merge)" = true
           test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .delete_branch_on_merge)" = false
-          for branch in develop main; do
-            test "$(gh api "repos/$GITHUB_REPOSITORY/branches/$branch/protection" \
-              --jq '.enforce_admins.enabled and .required_conversation_resolution.enabled')" = true
-          done
-          for workflow in ci.yml react-doctor.yml deploy-development.yml; do
+          rulesets="$(curl --fail --silent --show-error \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/rulesets")"
+          verify_ruleset() {
+            branch="$1"
+            strict="$2"
+            expected_checks="$3"
+            url="$(jq -r --arg name "$branch governance" \
+              '.[] | select(.name == $name and .enforcement == "active") | ._links.self.href' \
+              <<< "$rulesets")"
+            test -n "$url"
+            ruleset="$(curl --fail --silent --show-error "$url")"
+            test "$(jq -r '[(.bypass_actors // [])[]] | length' <<< "$ruleset")" = 0
+            test "$(jq -r '.rules[] | select(.type == "pull_request") | \
+              .parameters.required_review_thread_resolution' <<< "$ruleset")" = true
+            test "$(jq -r '.rules[] | select(.type == "required_status_checks") | \
+              .parameters.strict_required_status_checks_policy' <<< "$ruleset")" = "$strict"
+            test "$(jq -r '[.rules[] | select(.type == "required_status_checks") | \
+              .parameters.required_status_checks[].context] | sort | join(",")' \
+              <<< "$ruleset")" = "$expected_checks"
+          }
+          verify_ruleset develop false dependency-review,react-doctor,verify
+          verify_ruleset main true dependency-review,promotion-guard,react-doctor,verify
+          for workflow in ci.yml deploy-development.yml; do
             test "$(gh run list --workflow "$workflow" --branch develop --limit 1 \
               --json conclusion --jq '.[0].conclusion')" = success
           done
