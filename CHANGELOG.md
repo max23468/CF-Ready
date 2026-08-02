@@ -6,6 +6,11 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.7.5 — 2 agosto 2026
+
+- React Router passa alla `7.18.2`, che applica il backport della correzione RSC
+  restando compatibile con il pacchetto applicativo Shopify.
+
 ## 0.7.4 — 2 agosto 2026
 
 - la manutenzione sicurezza non richiede approvazioni manuali e non invia

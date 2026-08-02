@@ -242,6 +242,7 @@ test("osservabilità sicura e ricevute restano configurate", () => {
 });
 
 test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
+  const ci = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
   const workflow = readFileSync(
     new URL("../.github/workflows/security-maintenance.yml", import.meta.url),
     "utf8",
@@ -253,6 +254,7 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.match(workflow, /npm run readback:dev/);
   assert.match(workflow, /required_status_checks/);
   assert.match(workflow, /dependency-review,promotion-guard,react-doctor,verify/);
+  assert.match(ci, /allow-ghsas: GHSA-qwww-vcr4-c8h2/);
   assert.match(workflow, /\.target == "branch"/);
   assert.match(workflow, /\.conditions\.ref_name\.include == \[\$ref\]/);
   for (const [, singleQuoted] of workflow.matchAll(/'([^']*)'/g)) {
