@@ -4498,7 +4498,7 @@ Codex definisce contratti e dati; Claude definisce presentazione e interazione. 
 | Un solo dev store nasconde first install | media | media | utility reset e review Shopify |
 | Dipendenza `0.x` Oxfmt cambia comportamento | media | bassa | pin esatto e update deliberato |
 | Issue o PR pubblica espone dati reali o codice ostile | media | alta | template con divieti espliciti, workflow PR senza secret, approvazione dei primi contributori e disclosure privata |
-| Advisory React Router RSC segnalato da `npm audit` | nulla finché RSC è disattivo | alta se RSC viene abilitato | vietare RSC instabile; monitorare supporto Shopify a React Router 8 o backport |
+| Advisory React Router RSC segnalato da `npm audit` | nulla finché RSC è disattivo | alta se RSC viene abilitato | vietare RSC instabile; mantenere il backport `7.18.2` e rimuovere le eccezioni audit appena il database advisory viene corretto; monitorare il supporto Shopify a React Router 8 |
 | Abuso modulo supporto | bassa | bassa | limite semplice/turnstile solo se necessario |
 
 ---
