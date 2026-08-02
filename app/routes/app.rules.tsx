@@ -13,6 +13,7 @@ import {
   showSavedBanner,
 } from "../config";
 import type { ErrorDisplay, RuleMode } from "../config";
+import { databaseContext } from "../context.server";
 import {
   findValidation,
   observedConfigHash,
@@ -24,7 +25,8 @@ import {
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
-  const state = await reconcile(admin, context.cloudflare.env.DB, session.shop);
+  const db = context.get(databaseContext);
+  const state = await reconcile(admin, db, session.shop);
   const validation = state.validation;
   const config = readConfig(validation?.metafield?.jsonValue);
   const duplicateError: "duplicate_validations" | "duplicate_validations_active" | null =
@@ -43,14 +45,13 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     messages: config.messages,
     enabled: state.validationEnabled,
     entitled: state.entitlement.kind !== "none",
-    address2Declared:
-      (await readAddress2Declaration(context.cloudflare.env.DB, session.shop)) !== null,
+    address2Declared: (await readAddress2Declaration(db, session.shop)) !== null,
   };
 };
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
-  const db = context.cloudflare.env.DB;
+  const db = context.get(databaseContext);
   const form = await request.formData();
 
   // NFR-023: la validazione lato client è cortesia, questa è la difesa. Un valore fuori

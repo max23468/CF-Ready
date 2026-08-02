@@ -1,4 +1,5 @@
 import { expect, test, vi } from "vitest";
+import { createAppContext } from "../app/context.server";
 
 const mocks = vi.hoisted(() => ({
   authenticate: vi.fn(),
@@ -45,7 +46,7 @@ test("la riparazione ripete la riconciliazione autorevole", async () => {
       method: "POST",
       body: new URLSearchParams({ intent: "repair" }),
     }),
-    context: { cloudflare: { env: { DB: db } } },
+    context: createAppContext(db as D1Database),
     params: {},
   } as never);
 
@@ -78,7 +79,7 @@ test("la cancellazione non compete con un acquisto una tantum pendente", async (
       method: "POST",
       body: new URLSearchParams({ intent: "cancel" }),
     }),
-    context: { cloudflare: { env: { DB: db } } },
+    context: createAppContext(db as D1Database),
     params: {},
   } as never);
 

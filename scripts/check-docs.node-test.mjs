@@ -181,6 +181,38 @@ test("non espone un comando locale per il deploy Pages Production", () => {
   assert.equal(packageJson.scripts["site:deploy"], undefined);
 });
 
+test("npm 12 e il peer Shopify sono riproducibili in locale e nei workflow", () => {
+  const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  const lockfile = JSON.parse(
+    readFileSync(new URL("../package-lock.json", import.meta.url), "utf8"),
+  );
+  const mise = readFileSync(new URL("../mise.toml", import.meta.url), "utf8");
+  assert.equal(packageJson.packageManager, "npm@12.0.2");
+  assert.equal(
+    packageJson.packageExtensions["@shopify/shopify-app-react-router@1.2.1"].peerDependencies[
+      "react-router"
+    ],
+    "^7.18.2 || ^8.3.0",
+  );
+  assert.equal(lockfile.lockfileVersion, 4);
+  assert.match(mise, /^npm = "12\.0\.2"$/m);
+
+  for (const path of [
+    "ci.yml",
+    "security-maintenance.yml",
+    "backup-production.yml",
+    "deploy-development.yml",
+    "deploy-pages-production.yml",
+  ]) {
+    const workflow = readFileSync(new URL(`../.github/workflows/${path}`, import.meta.url), "utf8");
+    assert.equal(
+      workflow.match(/npm install --global npm@12\.0\.2/g)?.length,
+      workflow.match(/npm ci/g)?.length,
+      path,
+    );
+  }
+});
+
 test("il workflow Pages Production resta manuale, vincolato e verificabile", () => {
   const workflow = readFileSync(
     new URL("../.github/workflows/deploy-pages-production.yml", import.meta.url),
@@ -294,7 +326,7 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.match(workflow, /npm run readback:dev/);
   assert.match(workflow, /required_status_checks/);
   assert.match(workflow, /dependency-review,e2e,promotion-guard,react-doctor,verify/);
-  assert.match(ci, /allow-ghsas: GHSA-qwww-vcr4-c8h2/);
+  assert.doesNotMatch(ci, /allow-ghsas:/);
   assert.match(workflow, /\.target == "branch"/);
   assert.match(workflow, /\.conditions\.ref_name\.include == \[\$ref\]/);
   for (const [, singleQuoted] of workflow.matchAll(/'([^']*)'/g)) {

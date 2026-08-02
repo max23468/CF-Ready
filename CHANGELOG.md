@@ -16,6 +16,15 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   WebKit; i flussi embedded che richiedono Shopify reale restano espliciti nella
   matrice manuale.
 
+## 0.7.6 — 2 agosto 2026
+
+- la CI esegue gli E2E pubblici Playwright richiesti dal ruleset di `develop`;
+- npm passa alla `12.0.2` in locale e nei workflow, con lockfile v4;
+- React Router passa alla `8.3.0`, eliminando l'advisory RSC senza eccezioni e
+  correggendo nel manifest root la peer dependency Shopify troppo restrittiva;
+- Dependabot resta attivo, con aggiornamento manuale del lockfile se il supporto
+  npm 12 non è ancora disponibile.
+
 ## 0.7.5 — 2 agosto 2026
 
 - React Router passa alla `7.18.2`, che applica il backport della correzione RSC

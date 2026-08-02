@@ -15,22 +15,17 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "node scripts/vite-dev.mjs",
+      command:
+        "npm run build && npx wrangler dev --config build/server/wrangler.json --var SHOPIFY_API_SECRET:e2e-test-secret --port 4173",
       cwd: repositoryRoot,
-      env: {
-        PORT: "3000",
-        SHOPIFY_APP_URL: "http://localhost:3000",
-        SHOPIFY_API_SECRET: "e2e",
-        SESSION_ENCRYPTION_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      },
-      url: "http://localhost:3000/auth/login",
-      reuseExistingServer: !process.env.CI,
+      url: "http://localhost:4173/auth/login",
+      timeout: 120_000,
     },
     {
-      command: "npm run site:dev -- --port 3001 --ip 127.0.0.1",
+      command: "npm run site:dev -- --port 4174",
       cwd: repositoryRoot,
-      url: "http://127.0.0.1:3001",
-      reuseExistingServer: !process.env.CI,
+      url: "http://localhost:4174",
+      timeout: 120_000,
     },
   ],
   projects: [
@@ -39,7 +34,7 @@ export default defineConfig({
       testMatch: /login\.spec\.ts/,
       use: {
         browserName: "chromium",
-        baseURL: "http://localhost:3000",
+        baseURL: "http://localhost:4173",
         viewport: { width: 390, height: 844 },
       },
     },
@@ -48,7 +43,7 @@ export default defineConfig({
       testMatch: /login\.spec\.ts/,
       use: {
         browserName: "chromium",
-        baseURL: "http://localhost:3000",
+        baseURL: "http://localhost:4173",
         viewport: { width: 1440, height: 900 },
       },
     },
@@ -57,7 +52,7 @@ export default defineConfig({
       testMatch: /site\.spec\.ts/,
       use: {
         browserName: "webkit",
-        baseURL: "http://127.0.0.1:3001",
+        baseURL: "http://localhost:4174",
         viewport: { width: 390, height: 844 },
       },
     },
@@ -66,7 +61,7 @@ export default defineConfig({
       testMatch: /site\.spec\.ts/,
       use: {
         browserName: "webkit",
-        baseURL: "http://127.0.0.1:3001",
+        baseURL: "http://localhost:4174",
         viewport: { width: 1440, height: 900 },
       },
     },
