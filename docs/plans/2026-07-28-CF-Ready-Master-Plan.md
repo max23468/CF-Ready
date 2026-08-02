@@ -3944,7 +3944,7 @@ Gate:
 - E2E critici;
 - nessun framework UI extra.
 
-Consegnata da `0.4.0` a `0.4.21`. Gli E2E di §23.10 sono stati eseguiti
+Consegnata da `0.4.0` a `0.4.30`. Gli E2E di §23.10 sono stati eseguiti
 manualmente sul dev store, uno per snapshot: l'automazione richiede
 un'infrastruttura browser e una sessione staff autenticata, ed è una decisione
 di dipendenza rimasta aperta. Operazioni e residui in
@@ -4492,14 +4492,9 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
 
 1. ~~**Icona finale**~~ — **chiuso il 28 luglio 2026.** Marchio «Tessera con fascia» approvato, asset vettoriali in `docs/brand/assets/` (D-110).
 2. ~~**Dettagli finali del brand**~~ — **chiuso il 28 luglio 2026.** Palette, tipografia, design token, logo e tono di voce approvati (D-107…D-113). La microcopy definitiva resta da scrivere in M6 e M7, ma dentro le regole già fissate.
-3. **Dettagli visuali UI/UX** — ancora aperto, come previsto:
-   - composizione definitiva;
-   - spaziature;
-   - accenti;
-   - eventuali illustrazioni;
-   - responsive fine.
-
-   Dipende dai contratti route/form/stati che Codex consegna a fine M1 (§31.4). Non è un tema di brand.
+3. ~~**Dettagli visuali UI/UX**~~ — **chiuso il 31 luglio 2026.** Composizione,
+   spaziature, accenti e responsive fine sono stati verificati nell'Admin reale
+   durante M6; la UI embedded non richiede illustrazioni aggiuntive.
 4. **Pacchetto visivo pubblico** — direzione fissata in `docs/brand/brand-foundation.md` §9. Restano da produrre i materiali veri in M7 e M9: testi del sito, listing completa, screenshot, didascalie.
 5. **Rifiniture di brand non bloccanti**
    - ~~correzione ottica della crenatura del wordmark~~ — **chiusa il 28 luglio 2026**, valori in `docs/brand/brand-foundation.md` §4.4;
