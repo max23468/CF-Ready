@@ -42,7 +42,9 @@ Verificati sul dominio pubblico dopo l'ultimo deploy, tutti `200`:
 canonici di §18.3 sono quelli effettivamente serviti. Gli header di
 `site/_headers` sono applicati: `Content-Security-Policy: default-src 'none'`,
 `Referrer-Policy`, `X-Content-Type-Options`, `Permissions-Policy`. La Home non
-carica alcuna risorsa da domini terzi.
+carica risorse di terzi oltre al beacon automatico Cloudflare Web Analytics da
+`static.cloudflareinsights.com`; il readback browser ha osservato il `POST` a
+`cloudflareinsights.com/cdn-cgi/rum` concluso con `204`.
 
 Durante la chiusura, un'esecuzione di `site:deploy` dal branch `develop` ha
 creato la sola preview `d05b3ab8-bce8-4da0-9b2d-e9d1781a5088`, senza cambiare
