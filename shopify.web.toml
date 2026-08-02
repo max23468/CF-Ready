@@ -3,4 +3,4 @@ roles = ["frontend", "backend"]
 webhooks_path = "/webhooks/app/uninstalled"
 
 [commands]
-dev = "npm exec vite dev"
+dev = "node scripts/vite-dev.mjs"

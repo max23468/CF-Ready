@@ -2,7 +2,7 @@
 
 ## Master Plan di prodotto, architettura, implementazione e lancio
 
-**Stato:** baseline approvata per scaffolding e implementazione · M0 e M2 completate
+**Stato:** baseline approvata per scaffolding e implementazione · M0–M7 completate in Development · Production, submission App Store e wallet M10 non completati
 **Data:** 27 luglio 2026 · revisione 28 luglio 2026  
 **Documenti vincolanti collegati:** `docs/brand/brand-foundation.md` (identità visiva, tono, materiali pubblici)  
 **Brand:** CF Ready  
@@ -33,7 +33,7 @@ La conversazione di origine è stata trattata come materiale storico non autorev
 
 Questa revisione integra inoltre:
 
-- strategia API aggiornata: Admin GraphQL `2026-07` stabile e Function API `2026-07` release candidate durante lo sviluppo `0.x`;
+- strategia API aggiornata: Admin GraphQL e Function API `2026-07` stabili;
 - comportamento esplicito `blockOnFailure: false`;
 - limite Shopify di 25 Validation Function attive per store;
 - limite relativo alle generazioni ricorrenti degli ordini in abbonamento;
@@ -50,7 +50,7 @@ Quando due passaggi storici risultano in tensione, vale la decisione approvata p
 
 - il nome definitivo è **CF Ready — Codice Fiscale nel Checkout**, non “Codice Fiscale Checkout”;
 - l’unica abbreviazione interna ammessa è `CFR`; ogni abbreviazione precedente è eliminata;
-- l’app ha cinque pagine permanenti, perché **Piano e fatturazione** è stata aggiunta dopo la prima proposta a quattro pagine;
+- l’app ha quattro pagine permanenti; stato e scelta del piano sono nella Home e l’onboarding si apre in una finestra;
 - non esiste un selettore manuale della lingua;
 - si mantiene un solo dev store;
 - ESLint e Prettier sono sostituiti da Oxlint e Oxfmt;
@@ -253,7 +253,7 @@ Rispetto alle alternative più ampie o invasive:
 - Prova gratuita comune di 14 giorni.
 - Billing mensile, annuale e una tantum.
 - Pricing di lancio e generazioni tariffarie.
-- Pagina interna di supporto e modulo minimale.
+- Percorso di assistenza dentro l’app, nella forma decisa in §22.
 - Sito pubblico bilingue con pagine legali e supporto.
 - Controlled Launch.
 
@@ -321,16 +321,16 @@ Rispetto alle alternative più ampie o invasive:
 | D-016 | Validazione formale rafforzata del CF. | Rifiuta date palesemente impossibili senza fingere verifica anagrafica. |
 | D-017 | Non applicare checksum Partita IVA al CF provvisorio. | Evita di certificare erroneamente una sequenza numerica. |
 | D-018 | Normalizzare solo per la validazione, senza riscrivere il dato Shopify. | La Function valida ma non deve mutare l’input cliente. |
-| D-019 | Validare solo a `CHECKOUT_COMPLETION`. | Evita errori prematuri e segue il pattern Shopify per localized fields. |
+| D-019 | La modalità inline valida solo a `CHECKOUT_COMPLETION`; la modalità preventiva aggiunge `CHECKOUT_INTERACTION` senza rimuovere Completion. | Mantiene il default non invasivo e offre copertura esplicita al bug Shopify della review. |
 | D-020 | Mostrare simultaneamente gli errori CF e PEC. | Il cliente corregge tutto in un solo tentativo. |
 | D-021 | Messaggi IT/EN personalizzabili, otto in totale. | Merchant italiani con checkout multilingua. |
 | D-022 | Inglese fallback per ogni altra lingua checkout. | Copertura semplice e prevedibile della 1.0. |
 | D-023 | Limite 200 caratteri, trim e divieto di messaggi vuoti. | Mantiene messaggi leggibili e validi. |
-| D-024 | Errori collegati direttamente ai campi nativi. | Migliore UX rispetto a un errore globale. |
+| D-024 | In modalità inline gli errori sono collegati ai campi nativi; se un campo obbligatorio è assente con consegna italiana o la modalità è preventiva, sono box globali distinti per CF e PEC. | Il target globale rende l’errore anche quando il relativo campo non è montato o prima della review. |
 | D-025 | Nessuna regola per destinazione estera. | I campi italiani non sono pertinenti o possono non essere disponibili. |
 | D-026 | Fatturazione estera esenta automaticamente CF e PEC, anche con consegna in Italia. | Shopify non comunica la cittadinanza; il Paese di fatturazione è il proxy disponibile. |
 | D-027 | Se la fatturazione non è ancora disponibile ma il contesto italiano è rilevabile, applicare prudentemente la regola. | Evita aggiramenti dovuti a dato temporaneamente assente. |
-| D-028 | Se i localized fields non sono esposti, non bloccare. | Non chiedere un dato che il cliente non può inserire. |
+| D-028 | Se un localized field obbligatorio non è esposto ma Shopify comunica almeno una consegna italiana, restituire un errore globale; senza consegna osservabile, fail-open. | Chiude il bypass dei checkout accelerati senza bloccare prodotti digitali, ritiro o contesti in cui il campo non può comparire. |
 | D-029 | Prodotti digitali: validare solo se i localized fields sono presenti. | Il checkout può non raccogliere consegna o campi fiscali. |
 | D-030 | Ritiro online incluso se i campi sono presenti; ordini misti inclusi se almeno una consegna è in Italia. | Coprire il caso reale senza coinvolgere POS. |
 | D-031 | Configurazione assente, corrotta o sconosciuta: fail-open. | Un errore app non deve interrompere le vendite. |
@@ -386,7 +386,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-081 | `develop` integra e verifica senza deploy remoto; `main` promuove in Production; feature branch locali. | Conserva il gate tra integrazione e produzione senza mantenere un ambiente intermedio. |
 | D-082 | GitHub Actions unico CI/CD. | Coordina Worker, Pages e Shopify Function in una pipeline. |
 | D-083 | Test su tre livelli: Vitest, Function fixtures/CLI, Playwright mirato. | Copertura proporzionata al rischio. |
-| D-084 | Monitoraggio Cloudflare nativo; niente Sentry. | Restare sul piano gratuito e ridurre servizi. |
+| D-084 | Monitoraggio Cloudflare nativo, inclusa Web Analytics sul solo sito pubblico; niente Sentry. | Restare sul piano gratuito, misurare le prestazioni reali del sito e ridurre servizi. |
 | D-085 | Backup D1 cifrati in R2: 8 settimanali e 12 mensili. | Copertura oltre i 7 giorni di D1 Time Travel. |
 | D-086 | Retention configurazione 90 giorni dopo uninstall. | Reinstallazione semplice, poi minimizzazione. |
 | D-087 | Telemetria tecnica minimale sempre attiva, senza opt-out. | Necessaria a operatività, sicurezza e misurazione essenziale. |
@@ -407,7 +407,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-102 | Usare una sola Validation per store e non modificare quelle di altre app. | Shopify consente al massimo 25 Validation Function attive per store; se il limite è raggiunto l’app mostra un errore operativo senza eliminare risorse altrui. |
 | D-103 | Non promettere copertura delle generazioni successive degli ordini ricorrenti in abbonamento. | La superficie Cart and Checkout Validation corrente non le supporta; il checkout iniziale va testato e documentato separatamente. |
 | D-104 | Il metafield della Function usa il namespace riservato `$app:cf-ready-validation` e la key `function-configuration`. | Allinea il dato al relativo Function handle e riduce collisioni o ambiguità. |
-| D-105 | Sviluppare sulla Function API `2026-07` release candidate durante le versioni `0.x`; usare Admin GraphQL `2026-07`. | Evita una migrazione pianificata durante lo sviluppo; `1.0.0` è bloccata finché la Function API `2026-07` non è stabile e convalidata. |
+| D-105 | Usare Function API e Admin GraphQL `2026-07`, stabili dal 1º luglio 2026. | Mantiene entrambe le superfici sulla stessa versione trimestrale; prima della `1.0.0` lo schema generato dalla CLI corrente resta un gate obbligatorio. |
 | D-106 | Handover operativo con Sol 5.6 e ragionamento `medium`. | Profilo definitivo indicato dall’owner. |
 | D-107 | Brand Foundation approvata il 28 luglio 2026. `docs/brand/brand-foundation.md` è la fonte vincolante per identità visiva, tono di voce e materiali pubblici. | Gate M2 superato: UI, sito, listing e screenshot si progettano senza rework di brand. |
 | D-108 | Palette: Verde bottiglia `#20492F` primario, Arancio cotto `#C97B2E` accento unico, Panna `#F7F5EE`, Inchiostro `#1A211C`, Grigio caldo `#6B6A5C`. | Il verde porta l’associazione con la validazione restando lontano dal verde-teal Shopify. L’arancio è l’unico tono caldo sopra 3:1 sia sul verde sia sulla carta. |
@@ -419,11 +419,15 @@ Rispetto alle alternative più ampie o invasive:
 | D-114 | Presentare l’icona della listing con la sigla `CF`, accettando la raccomandazione Shopify di evitare il testo nell’icona. | Raccomandazione nelle best practice, non criterio di rifiuto nei requisiti; i monogrammi di due lettere sono diffusi fra le app approvate. Variante senza sigla pronta come rimedio, attivabile senza nuova approvazione (§24.5). |
 | D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate `verify`, `react-doctor` e `dependency-review` richiesti su `develop` e `main`; abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate già eseguiti, indirizza le security update nella corsia ordinaria, offre un canale privato per le vulnerabilità e conserva la promozione separata `develop` → `main`. |
 | D-116 | Restare sull’ultima React Router 7 compatibile con Shopify e non abilitare le API RSC instabili finché Shopify non supporta React Router 8 o esiste un backport. | `GHSA-qwww-vcr4-c8h2` riguarda soltanto i percorsi RSC instabili, non usati da CF Ready. `npm audit` continuerà a segnalarla come high per intervallo di versione: l’abilitazione RSC richiede prima la rimozione dell’eccezione. |
-| D-117 | Usare React Doctor stabile con pin esatto: scansione completa bloccante nel gate locale e Action ufficiale advisory sulle modifiche delle PR. Disabilitare score, condivisione, telemetria e controllo supply-chain esterni. | Aggiunge controlli React deterministici e feedback inline senza delegare il gate a un servizio esterno o duplicare i controlli dipendenze già coperti da npm e GitHub. |
+| D-117 | Usare React Doctor stabile con pin esatto: scansione completa bloccante nel gate locale e Action ufficiale advisory sulle modifiche delle PR. Tenere attivi score e share URL, disabilitare il controllo supply-chain esterno. | Aggiunge controlli React deterministici e feedback inline senza duplicare i controlli dipendenze già coperti da npm e GitHub. Il gate resta locale: lo score è indicativo e non decide l’esito, che dipende da `blocking: warning`. |
 | D-118 | Le PR ordinarie puntano a `develop` e usano squash; `main` accetta soltanto promozioni autorizzate da `develop`, unite con merge commit. La cancellazione automatica dei branch resta disattivata e i soli branch temporanei vengono eliminati esplicitamente. | Preserva l’ascendenza tra integrazione e Production, evita il drift strutturale causato da squash indipendenti sui due rami e impedisce che una promozione elimini `develop`. |
 | D-119 | Abilitare l’auto-merge nativo in `develop` per le sole PR Dependabot minor/patch dopo `CI` e `React Doctor` verdi. Eliminare dopo il merge soltanto i branch `dependabot/*`; major e promozioni `develop` → `main` restano manuali. | Allinea CF Ready a SyncBay e Pratix, rende atomico il vincolo sullo SHA verificato, preserva gli eventi post-merge e non espone `develop` alla cancellazione globale dei branch. |
 | D-120 | La visibilità pubblica non rende il progetto open-source: nessuna licenza viene concessa finché l’owner non sceglie esplicitamente e aggiunge un file `LICENSE`. | Una licenza attribuisce diritti di riuso e distribuzione e non va dedotta dalla sola pubblicazione del codice. |
-| D-121 | `package.json#version` è la fonte canonica di `<SemVer>`. Ogni `shopify app deploy` rilasciato passa dal workflow GitHub Actions dell'ambiente e usa `--version`: `<SemVer>-dev.<run_number>.<run_attempt>` in Development e `<SemVer>` in Production. | Evita collisioni fra deploy automatici, manuali e retry, collega ogni snapshot Shopify alla release applicativa ed evita identificatori automatici come `cf-ready-1`. |
+| D-121 | `package.json#version` è la fonte canonica della versione Shopify. Ogni `shopify app deploy` rilasciato passa dal workflow GitHub Actions dell’ambiente e usa quella versione esatta con `--version`; una versione già rilasciata non viene riutilizzata e prima del successivo snapshot si incrementa il SemVer, usando un prerelease in Development quando opportuno. Il primo snapshot fisso Development è `0.1.0`. | Collega ogni snapshot al codice verificato, evita identificatori automatici come `cf-ready-1` e mantiene nomi leggibili senza collisioni. |
+| D-122 | Offrire `inline` come visualizzazione errori predefinita e `preventive` come opzione merchant; la Guida la consiglia quando è attiva la conferma ordine Shopify. | La prova live mostra che i box globali a Interaction impediscono la review silenziosa, ma possono apparire già al caricamento e richiedono una scelta informata. |
+| D-123 | Abilitare metriche e Workers Logs nativi, ma disabilitare gli invocation log automatici. Traces resta disattivato per default e può essere acceso solo temporaneamente in Development, con traffico sintetico e finestra di diagnosi delimitata. | Invocation log e trace automatici includono URL e query string; i trace includono anche il testo SQL D1. Il campionamento riduce volume e costo, non il rischio di raccogliere parametri tecnici sensibili. |
+| D-124 | Non collegare il repository a Workers Builds finché GitHub Actions è il CI/CD canonico. Logpush, OpenTelemetry, Tail Workers e servizi esterni restano differiti finché il monitoraggio Cloudflare nativo non risulta insufficiente. | Evita una seconda corsia di deploy e nuovi destinatari della telemetria senza un bisogno operativo misurato. |
+| D-125 | Avvisare il merchant che usa il campo “Interno” / “Indirizzo 2” per raccogliere il Codice Fiscale, tramite dichiarazione esplicita in configurazione e onboarding. Nessun rilevamento automatico e nessuno scope aggiuntivo. | Le impostazioni del modulo checkout non sono esposte dall’Admin API `2026-04`: `CheckoutAndAccountsConfiguration` espone solo `branding`, `overrides`, `isPublished`, `name` e i timestamp, `checkoutProfile` è deprecato e `read_checkout_settings` sblocca esclusivamente gli oggetti di branding. `TranslatableResourceType` non ha una risorsa per il contenuto checkout, quindi nemmeno la rinomina dell’etichetta è leggibile, e una rinomina fatta da una Checkout UI Extension di terzi resta invisibile per costruzione. La Function riceve `address2` ma è pura e non può segnalare nulla; leggere gli ordini richiederebbe `read_orders`, protected customer data e l’analisi di dati fiscali, contro §21.4. Il conflitto degrada l’esperienza con due campi duplicati, non blocca le vendite: non giustifica scope nuovi. |
 
 ---
 
@@ -471,11 +475,15 @@ required
 
 **FR-013** — `required` blocca vuoto e valore non valido con messaggi distinti.
 
-**FR-014** — La Validation viene eseguita solo a `CHECKOUT_COMPLETION`.
+**FR-014** — In modalità `inline` la Validation viene eseguita solo a `CHECKOUT_COMPLETION`; in modalità `preventive` viene eseguita anche a `CHECKOUT_INTERACTION`.
 
 **FR-015** — Se entrambi i campi falliscono, vengono restituiti entrambi gli errori.
 
-**FR-016** — Gli errori devono puntare al localized field corrispondente.
+**FR-016** — A Completion gli errori puntano al localized field corrispondente;
+se il campo obbligatorio è assente con consegna italiana, o a Interaction in
+modalità preventiva, ogni errore usa il target globale `$.cart`.
+
+**FR-017** — La modalità preventiva è disattivata per default, mantiene Completion come barriera finale e mostra un avviso merchant sugli errori anticipati.
 
 ### 7.3 Applicabilità geografica
 
@@ -485,7 +493,8 @@ required
 
 **FR-022** — Destinazione italiana e fatturazione italiana: regole normali.
 
-**FR-023** — Destinazione italiana e fatturazione non ancora disponibile: regole normali se i localized fields sono presenti.
+**FR-023** — Destinazione italiana e fatturazione non ancora disponibile:
+regole normali; un campo obbligatorio assente genera un errore globale.
 
 **FR-024** — Checkout senza spedizione: regole solo se i localized fields sono presenti e non esiste una fatturazione estera.
 
@@ -493,7 +502,9 @@ required
 
 **FR-026** — Ordine misto: applicare le regole se almeno un gruppo di consegna è in Italia, salvo fatturazione estera.
 
-**FR-027** — Localized field assente: non generare errore per quel campo.
+**FR-027** — Localized field obbligatorio assente: generare un errore globale
+solo se almeno un gruppo di consegna ha destinazione italiana; senza consegna
+osservabile non generare errori per il campo assente.
 
 ### 7.4 Codice Fiscale
 
@@ -578,6 +589,18 @@ required
 
 **FR-057** — Due Validation duplicate non vengono cancellate automaticamente.
 
+**FR-058** — Prima dell’attivazione, CF Ready avverte che il campo nativo
+“Interno” / “Indirizzo 2” non va usato per raccogliere il Codice Fiscale e
+chiede al merchant una dichiarazione esplicita. Se il merchant dichiara di
+usarlo così, l’app mostra le istruzioni per rimuovere quell’uso in
+Impostazioni → Checkout e mantiene un promemoria in Home finché la
+dichiarazione non viene revocata.
+
+**FR-059** — L’avviso non è un rilevamento: non blocca l’attivazione, non è
+prerequisito di FR-052 e non deve essere presentato come verifica automatica
+della configurazione dello store. CF Ready non legge, non rinomina e non
+modifica il campo “Interno” (D-125).
+
 ### 7.7 Messaggi
 
 **FR-060** — Otto messaggi modificabili:
@@ -659,14 +682,18 @@ English:
 
 ### 7.9 Supporto e recensioni
 
-**FR-090** — Modulo supporto minimale con:
+**FR-090** — Percorso di assistenza minimale dentro l’app, che prepara un
+messaggio già compilato verso la casella sviluppatore con:
 
-- categoria;
-- oggetto;
-- messaggio;
-- email merchant precompilata ma modificabile;
-- metadati tecnici non sensibili;
-- numero richiesta mostrato nell’app.
+- categoria scelta dal merchant, riportata nell’oggetto;
+- corpo modificabile prima dell’invio;
+- metadati tecnici non sensibili dell’allowlist di §22, visibili nel messaggio.
+
+Nella 1.0 il recapito avviene tramite un collegamento `mailto:`, per l’esito
+della verifica registrato in §22, verso `cfready@icloud.com`; Apple/iCloud è
+dichiarata nella Privacy Policy tra i fornitori che trattano indirizzo del
+mittente, contenuto e metadati tecnici delle email. Non esiste quindi un numero
+richiesta, che senza un sistema ricevente non avrebbe riscontro.
 
 **FR-091** — Nessuna copia automatica al merchant nella 1.0.
 
@@ -805,7 +832,7 @@ flowchart LR
 - React e TypeScript.
 - Polaris Web Components.
 - App Bridge Web Components.
-- Cinque pagine e onboarding.
+- Quattro pagine permanenti e onboarding in finestra.
 - Loader/action server-side nel Worker.
 
 #### Cloudflare Worker
@@ -874,13 +901,15 @@ flowchart LR
 ### 9.4 Flusso checkout
 
 1. Shopify esegue la Function a un evento della buyer journey.
-2. Se non è `CHECKOUT_COMPLETION`, la Function restituisce zero errori.
-3. Legge JSON configurazione dal metafield.
-4. Se JSON assente, disabilitato, corrotto, non supportato o entitlement scaduto, restituisce zero errori.
+2. Legge JSON configurazione dal metafield.
+3. Se JSON assente, disabilitato, corrotto, non supportato o entitlement scaduto, restituisce zero errori.
+4. Accetta sempre `CHECKOUT_COMPLETION`; accetta `CHECKOUT_INTERACTION` solo in modalità preventiva.
 5. Determina applicabilità geografica.
 6. Se billing estero o destinazione esclusivamente estera, restituisce zero errori.
-7. Per ogni localized field presente applica la regola.
-8. Restituisce da zero a due errori, collegati ai campi.
+7. Per ogni localized field presente applica la regola; con consegna italiana,
+   applica la modalità `required` anche al campo assente usando un errore
+   globale.
+8. A Completion restituisce errori inline; a Interaction restituisce box globali distinti.
 
 ### 9.5 Flusso salvataggio
 
@@ -924,9 +953,11 @@ sequenceDiagram
 - Tipo: Cart and Checkout Validation Function.
 - Linguaggio: TypeScript.
 - Target corrente: `cart.validations.generate.run`.
-- Function API: pin `2026-07` durante lo sviluppo `0.x`. Al 27 luglio 2026 Shopify la classifica ancora come **release candidate**; non pubblicare `1.0.0` finché non è diventata stabile e non ha superato build, fixture e checkout reali.
+- Function API: pin `2026-07`, stabile dal 1º luglio 2026. Non pubblicare
+  `1.0.0` finché schema generato, build, fixture e checkout reali non sono stati
+  riconfermati con la CLI supportata corrente.
 - Admin GraphQL API: pin `2026-07`, già stabile.
-- Trigger logico: solo `CHECKOUT_COMPLETION`.
+- Trigger logico: `CHECKOUT_COMPLETION`; anche `CHECKOUT_INTERACTION` quando `errorDisplay` è `preventive`.
 - Configurazione: un metafield JSON sulla Validation.
 - Output: `validationAdd.errors`.
 - Modalità errore runtime: `blockOnFailure: false`.
@@ -985,9 +1016,6 @@ Il commento sul metodo di consegna non autorizza una query più ampia “per sic
 Pseudocodice vincolante:
 
 ```text
-if buyerJourney.step != CHECKOUT_COMPLETION:
-  allow
-
 config = parseConfiguration()
 if config invalid or config.enabled != true:
   allow
@@ -995,9 +1023,9 @@ if config invalid or config.enabled != true:
 if entitlement is not active at shop local time:
   allow
 
-fields = localized fields actually returned by Shopify
-if neither CF nor PEC field is present:
-  allow
+if buyerJourney.step != CHECKOUT_COMPLETION:
+  if config.errorDisplay != preventive or buyerJourney.step != CHECKOUT_INTERACTION:
+    allow
 
 if billing country exists and billing country != IT:
   allow
@@ -1007,6 +1035,8 @@ if one or more delivery countries exist:
     allow
   else:
     validate present fields
+    for each required field absent from the input:
+      add a global error
 else:
   # digital, pickup or no delivery address
   # localized field presence is treated as Shopify's applicability signal
@@ -1061,9 +1091,17 @@ Restituiscono zero errori:
 - `enabled` falso;
 - entitlement scaduto o non valido;
 - local time non leggibile;
-- campo nativo assente;
+- campo nativo assente senza una consegna italiana osservabile;
 - contesto geografico escluso;
 - eccezione non gestita.
+
+Nei flussi express `cart.localizedFields` può arrivare vuoto. Se Shopify espone
+almeno una consegna italiana, un campo configurato come obbligatorio e assente
+genera quindi un errore globale; senza consegna osservabile il motore resta
+fail-open, perché il cliente potrebbe non avere alcun campo da compilare. La
+matrice wallet di M10 verifica questa correzione sulle superfici reali.
+Motivazione ed esito sono in
+`docs/evidence/2026-07-29-checkout-validation-rendering.md`.
 
 La Function può scrivere log tecnici minimi, entro il limite Shopify, senza valori fiscali.
 
@@ -1074,11 +1112,21 @@ Il fail-open deve essere applicato anche dal proprietario della Function: `valid
 Usare:
 
 ```text
-$.cart.localizedFields.TAX_CREDENTIAL_IT
-$.cart.localizedFields.TAX_EMAIL_IT
+$.cart.localizedField.TAX_CREDENTIAL_IT
+$.cart.localizedField.TAX_EMAIL_IT
 ```
 
-Verificare nel test CLI l’esatta forma richiesta dalla versione API pinata.
+Le fonti Shopify correnti indicano tre forme diverse per lo stesso target: la
+Function API mostra il plurale `localizedFields`, mentre la tabella dei target
+supportati e la Localized Fields API usano forme singolari. La prova live del
+29 luglio 2026 ha dimostrato che la forma camelCase sopra rende inline, mentre
+il plurale blocca senza messaggio. Il 30 luglio 2026 Shopify Developer Support
+ha confermato la forma singolare, il matching case-sensitive sulla chiave
+uppercase e la natura di difetto di piattaforma del plurale, annunciando una
+correzione documentale non ancora pubblicata. Il target resta quindi da
+riconfermare sulla reference quando la correzione esce, prima della `1.0.0`;
+evidenza, rollback e quesiti aperti sono in
+`docs/evidence/2026-07-29-checkout-validation-rendering.md`.
 
 ### 10.9 Budget prestazionale
 
@@ -1096,16 +1144,19 @@ Verificare nel test CLI l’esatta forma richiesta dalla versione API pinata.
 - build Wasm riuscita;
 - `shopify app function run` conforme;
 - target errori verificato su dev store;
-- checkout accelerati verificati;
+- checkout accelerati assegnati al canary M10 e verificati prima della
+  `1.0.0`;
 - input/output senza dati nei log;
 - costo istruzioni ampiamente sotto i limiti;
 - config corrotta non blocca;
 - trial scaduto non blocca;
 - eccezione runtime verificata con `blockOnFailure: false`;
 - limite di 25 Validation gestito senza toccare quelle di altre app;
-- checkout iniziale con prodotto in abbonamento verificato separatamente;
+- checkout iniziale con prodotto in abbonamento assegnato alla matrice canary
+  M10 e verificato separatamente prima della `1.0.0`;
 - nessuna pretesa di copertura delle ricorrenze successive.
-- build `1.0.0` rifiutata se la Function API `2026-07` è ancora release candidate o non validata dallo schema generato dalla CLI corrente.
+- build `1.0.0` rifiutata se la Function API `2026-07` non è validata dallo
+  schema generato dalla CLI corrente.
 
 ---
 
@@ -1129,8 +1180,9 @@ La forma logica del valore è:
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "enabled": true,
+  "errorDisplay": "inline",
   "entitlement": {
     "kind": "trial",
     "validThrough": "2026-08-10"
@@ -1164,6 +1216,13 @@ optional_validated
 required_validated
 ```
 
+Valori ammessi per `errorDisplay`:
+
+```text
+inline
+preventive
+```
+
 Valori ammessi per `entitlement.kind`:
 
 ```text
@@ -1178,6 +1237,8 @@ Regole:
 - `validThrough` è una data locale inclusiva per prova e sottoscrizione;
 - per una licenza una tantum valida, `validThrough` è `null`;
 - `enabled` rappresenta la volontà operativa del merchant, non sostituisce l’entitlement;
+- `errorDisplay` è obbligatorio; `inline` è il default applicativo e
+  `preventive` abilita anche Interaction con target globali;
 - la Function valida entrambi: app attiva e diritto commerciale valido;
 - messaggi sempre presenti, non vuoti, trimmati e di massimo 200 caratteri;
 - configurazioni con schema futuro sconosciuto sono fail-open.
@@ -1193,7 +1254,7 @@ Regole:
 | Onboarding e stato UI | D1 | Nessuna |
 | Sessioni e token | D1 cifrato | Nessuna |
 
-La UI non deve presentare come certo uno stato locale vecchio: all’apertura della pagina Piano e fatturazione e prima di ogni mutazione rilevante va eseguita una riconciliazione con Shopify.
+La UI non deve presentare come certo uno stato locale vecchio: all’apertura della Home e prima di ogni mutazione rilevante va eseguita una riconciliazione con Shopify.
 
 ### 11.3 Creazione
 
@@ -1203,11 +1264,13 @@ La UI non deve presentare come certo uno stato locale vecchio: all’apertura de
 2. verifica store italiano;
 3. verifica configurazione completa;
 4. verifica prova o licenza valida;
-5. verifica che non esista già la Validation CFR;
-6. crea una sola Validation con `validationCreate`, `blockOnFailure: false` e il metafield JSON nello stesso owner input supportato dalla versione corrente;
-7. verifica tramite readback che Validation e metafield coincidano;
-8. registra l’evento tecnico;
-9. mostra toast di conferma.
+5. acquisisce una lease D1 per store, rinnovata dal proprietario finché
+   l’operazione resta attiva e rilasciata come cleanup best-effort;
+6. verifica che non esista già la Validation CFR;
+7. crea una sola Validation con `validationCreate`, `blockOnFailure: false` e il metafield JSON nello stesso owner input supportato dalla versione corrente;
+8. verifica tramite readback che Validation e metafield coincidano;
+9. registra l’evento tecnico;
+10. mostra toast di conferma.
 
 Nessuna Validation viene creata alla sola installazione.
 
@@ -1224,7 +1287,10 @@ Il salvataggio di regole o messaggi:
 5. aggiorna hash/versione osservata in D1;
 6. segnala un conflitto se una seconda sessione ha modificato la configurazione nel frattempo.
 
-Per la concorrenza è sufficiente un controllo ottimistico con hash o timestamp: non serve un sistema di lock distribuito.
+Per modifiche concorrenti alle regole è sufficiente un controllo ottimistico
+con hash o timestamp. La lease D1 per store serializza invece il lifecycle
+create/enable/disable, dove due `validationCreate` concorrenti lascerebbero
+risorse duplicate su Shopify.
 
 ### 11.5 Disattivazione
 
@@ -1242,7 +1308,6 @@ Per la concorrenza è sufficiente un controllo ottimistico con hash o timestamp:
 Eseguire riconciliazione:
 
 - all’apertura della Home;
-- all’apertura di Piano e fatturazione;
 - dopo webhook billing;
 - dopo `shop/update`;
 - dopo ritorno da una pagina di approvazione Shopify;
@@ -1257,7 +1322,8 @@ La riconciliazione:
 4. corregge automaticamente solo divergenze sicure;
 5. in caso di ambiguità, mantiene fail-open e mostra un avviso operativo.
 
-Non introdurre job periodici finché non esiste un problema osservato: il confronto della data locale nella Function e la riconciliazione event-driven coprono la 1.0.
+La riconciliazione resta event-driven: il solo job periodico applicativo è la
+retention oraria, che non legge né modifica lo stato Shopify.
 
 ---
 
@@ -1274,6 +1340,16 @@ Non introdurre job periodici finché non esiste un problema osservato: il confro
 - nessun dato di acquirenti;
 - payload webhook completi non conservati;
 - ogni tabella esiste perché serve a un requisito 1.0.
+
+Lo schema descritto qui è il bersaglio della 1.0, non il contenuto di una
+singola migrazione. Poiché le migrazioni applicate sono immutabili, ogni tabella
+e colonna viene creata dalla milestone che la usa: `shops` e `shopify_sessions`
+con M1, `app_state` tecnico, `webhook_events` e `app_events` con M4, `trials`,
+`trial_ledger`, `billing_accounts` e `billing_events` con M5, le colonne di
+onboarding di `app_state` con M6. `support_requests` non viene creata nella 1.0:
+il recapito dell’assistenza avviene via `mailto:` e nessuna riga verrebbe
+scritta. L'hardening successivo a M7 rimuove la colonna sessione ridondante,
+protegge il ledger con HMAC e indicizza le soglie di retention.
 
 ### 12.2 Schema fisico minimo
 
@@ -1311,7 +1387,6 @@ Implementa il contratto `SessionStorage` richiesto dal pacchetto Shopify.
 | `refresh_token_ciphertext` | blob/text nullable, cifrato |
 | `access_token_expires_at` | text nullable |
 | `refresh_token_expires_at` | text nullable |
-| `online_user_id` | text nullable |
 | `session_payload_ciphertext` | blob/text cifrato, solo campi necessari |
 | `created_at` | text |
 | `updated_at` | text |
@@ -1334,6 +1409,23 @@ Una prova per store idoneo.
 | `updated_at` | text |
 
 La prova parte quando uno store idoneo italiano apre per la prima volta l’app. Uno store non italiano non consuma la prova.
+
+#### `trial_ledger`
+
+Registro pseudonimizzato delle prove già fruite, introdotto in M5. Serve a
+impedire che il ciclo disinstalla, attendi `shop/redact`, reinstalla produca una
+seconda prova: la cancellazione dei dati porta via anche `trials`.
+
+| Campo | Tipo/logica |
+|---|---|
+| `shop_hash` | text primary key, HMAC-SHA-256 del dominio con secret dedicato |
+| `trial_ends_at` | text nullable |
+| `pricing_generation` | `launch`, `balanced`, `value` |
+| `recorded_at` | text |
+
+Non contiene dominio, identificatori Shopify o dati riferibili in chiaro, ed è
+l’unica traccia che sopravvive a `shop/redact`, come consentito da §21.5 e
+§21.6. Viene consultato solo quando manca la riga in `trials`.
 
 #### `billing_accounts`
 
@@ -1385,6 +1477,7 @@ Stato tecnico per store.
 | `onboarding_status` | `not_started`, `in_progress`, `completed` |
 | `onboarding_step` | integer |
 | `setup_checklist_dismissed_at` | text nullable |
+| `address2_conflict_declared_at` | text nullable, dichiarazione FR-058 |
 | `validation_gid` | text nullable |
 | `validation_enabled` | integer boolean |
 | `config_schema_version` | integer nullable |
@@ -1406,6 +1499,8 @@ Ricevute idempotenti, non payload.
 | `received_at` | text |
 | `processed_at` | text nullable |
 | `error_code` | text nullable |
+| `claim_token` | text nullable, proprietario corrente del claim |
+| `installation_started_at` | text nullable, ciclo protetto dal claim |
 
 #### `app_events`
 
@@ -1415,6 +1510,7 @@ Telemetria essenziale e audit operativo sono consolidati in una sola tabella.
 |---|---|
 | `id` | integer primary key |
 | `shop_id` | foreign key nullable |
+| `webhook_id` | text nullable, chiave di idempotenza per nome evento |
 | `event_name` | text |
 | `event_class` | `lifecycle`, `billing`, `validation`, `onboarding`, `support`, `error` |
 | `metadata_json` | text con allowlist di campi non sensibili |
@@ -1424,7 +1520,10 @@ Non registrare URL completi, form body, Codice Fiscale, PEC, indirizzi o payload
 
 #### `support_requests`
 
-Solo per il modulo interno minimale.
+Struttura prevista, **non implementata nella 1.0**: con il recapito via
+`mailto:` deciso in §22 non esiste un sistema ricevente che possa scrivere
+queste righe. Resta descritta qui per il caso in cui l’invio server-side venga
+implementato, e in quel caso nasce con la propria migrazione.
 
 | Campo | Tipo/logica |
 |---|---|
@@ -1536,6 +1635,12 @@ customers/redact
 shop/redact
 ```
 
+I tre topic di compliance usano `compliance_topics` e condividono l’endpoint
+`/webhooks/compliance`. `app/scopes_update` è registrato dallo scaffold e
+mantenuto. I due topic billing vengono registrati con M5, insieme alla logica
+che li consuma: fino ad allora una sottoscrizione senza comportamento non
+aggiunge garanzie.
+
 Per ogni endpoint:
 
 - verifica HMAC sui byte originali;
@@ -1604,6 +1709,12 @@ La generazione Value non va pubblicizzata come roadmap e non costituisce impegno
 
 ### 14.3 Prezzo di lancio
 
+Data di lancio provvisoria decisa il 30 luglio 2026: **1 settembre 2026**, con
+finestra Launch fino al **29 novembre 2026**. È il valore implementato in
+`app/billing.server.ts`; va riconfermato quando la data reale di lancio è nota,
+prima della `1.0.0`. Uno store che diventa idoneo prima dell'apertura della
+finestra riceve comunque la generazione `launch`.
+
 Durante i primi 90 giorni:
 
 - badge `Prezzo di lancio`;
@@ -1622,6 +1733,11 @@ Durante i primi 90 giorni:
 - persa dopo cessazione completa e successiva nuova sottoscrizione;
 - un acquisto una tantum non perde mai il prezzo o diritto già approvato;
 - nessun prezzo viene cambiato retroattivamente.
+
+La lettura degli acquisti una tantum percorre l'intera connessione Shopify:
+l'assenza nelle sole transazioni più recenti non dimostra un rimborso. Un
+acquisto pendente impedisce di crearne un secondo e protegge la conversione da
+una cancellazione ordinaria concorrente.
 
 ### 14.5 Prova comune
 
@@ -1713,13 +1829,22 @@ Il calcolo visibile è una stima: Shopify resta la fonte dell’importo effettiv
 - normalmente nessun rimborso per ripensamento dopo la prova;
 - rimborso totale di una tantum revoca il diritto;
 - rimborso parziale mantiene il diritto salvo accordo diverso;
-- policy definitiva soggetta a revisione legale.
+- policy definitiva approvata dall'owner il 2 agosto 2026.
 
 ### 14.11 Comunicazione “Un solo pagamento”
 
 Testo pubblico:
 
-> Un solo pagamento per questo store Shopify, senza rinnovi. Include le funzionalità dell’app e i relativi aggiornamenti per la durata operativa del servizio.
+> Un solo pagamento per questo store Shopify, senza rinnovi. Include gli
+> aggiornamenti dell’app e l’assistenza, senza costi aggiuntivi.
+
+La formulazione precedente si chiudeva con «per la durata operativa del
+servizio». M6 l’ha sostituita: la durata operativa descriveva un limite che il
+merchant non può verificare, e prometteva implicitamente una cessazione. La resa
+in-app di [`app/i18n.ts`](../../app/i18n.ts) aggiunge la frase di chiusura «Non
+c’è altro da scegliere», che orienta la scelta e non fa parte del testo
+contrattuale; i Termini pubblicati in `site/` riportano la formulazione qui
+sopra.
 
 Regole interne:
 
@@ -1805,10 +1930,20 @@ Claude Code definisce frontend e UX finale nel rispetto dei requisiti funzionali
 1. Home
 2. Regole checkout
 3. Messaggi al cliente
-4. Piano e fatturazione
-5. Guida e FAQ
+4. Guida e FAQ
 
-L’onboarding non è una sesta pagina permanente.
+L’onboarding non è una quinta pagina permanente.
+
+Piano e fatturazione non è più una pagina propria: stato commerciale e scelta
+della modalità vivono in Home, in due blocchi distinti — lo stato nella colonna
+laterale, la scelta in quella principale. La decisione nasce dal fatto che il
+merchant apre la Home e da lì deve poter vedere se la prova sta finendo senza
+cambiare pagina. Il contenuto di §15.6 resta invariato: cambia solo dove sta.
+
+Home resta una voce visibile del menu ed è anche dichiarata ad App Bridge come
+rotta di casa dell’app, così il titolo dell’app riporta lì. Senza quella
+dichiarazione il titolo porta alla radice dell’URL, che senza `shop` finisce sul
+form di accesso.
 
 ### 15.3 Home
 
@@ -1828,7 +1963,8 @@ Ordine dei contenuti:
 3. **Come si applicano le regole**
    - consegna e fatturazione italiane;
    - fatturazione estera esclusa;
-   - campi assenti fail-open.
+   - campi obbligatori assenti bloccati solo con consegna italiana osservabile;
+   - campi assenti senza consegna osservabile fail-open.
 4. **Prossimo passo consigliato**
    - completare onboarding;
    - attivare;
@@ -1836,6 +1972,10 @@ Ordine dei contenuti:
    - scegliere piano;
    - risolvere sincronizzazione.
 5. **Guida e assistenza**.
+
+Finché la dichiarazione FR-058 resta attiva, il blocco `Prossimo passo
+consigliato` include il promemoria di rimuovere il Codice Fiscale dal campo
+“Interno”.
 
 Con Validation attiva:
 
@@ -1864,18 +2004,30 @@ Due sezioni con tre radio sempre visibili.
 Ogni opzione ha una spiegazione concreta. Dopo le regole:
 
 - riquadro non modificabile `Eccezioni automatiche`;
+- controllo `Mostra avvisi preventivi nel checkout`, disattivato per default,
+  con avviso che gli errori possono apparire già al caricamento e indicazione
+  “Consigliato se usi la conferma ordine Shopify”;
 - anteprima dinamica `Come funzionerà il checkout`;
+- banner `warning` sul campo “Interno” quando il CF non è `unmanaged`, con
+  checkbox `Uso il campo Interno per il Codice Fiscale` e, se selezionata, le
+  istruzioni per rimuovere quell’uso (FR-058);
 - Save Bar `Salva` / `Annulla`;
 - salvataggio non attiva implicitamente una Validation disattivata.
 
 ### 15.5 Messaggi al cliente
 
-Due tab:
+Due sezioni, una per lingua:
 
 - Italiano
 - English
 
-Quattro campi per tab:
+Polaris Web Components non espone un componente tab e costruirne uno a mano
+significherebbe reimplementarne l’accessibilità, che §8.1 della Brand
+Foundation vieta. Le due lingue restano quindi entrambe visibili: la regola
+per cui un errore non può nascondersi dietro una scheda chiusa è così
+soddisfatta per costruzione, e il ripristino resta separato per lingua.
+
+Quattro campi per lingua:
 
 - CF obbligatorio;
 - CF non valido;
@@ -1894,6 +2046,8 @@ Comportamenti:
 - conferma prima del ripristino.
 
 ### 15.6 Piano e fatturazione
+
+I contenuti di questa sezione vivono in Home, non in una pagina propria (§15.2).
 
 Durante la prova:
 
@@ -1927,8 +2081,10 @@ Pagina unica con sezioni espandibili:
 - significato di “formalmente valido”;
 - CF ordinario e provvisorio;
 - validazione PEC;
+- modalità di visualizzazione degli errori e conferma ordine;
 - checkout accelerati;
 - app disattivata;
+- campo “Interno” usato per il Codice Fiscale;
 - prova e pagamenti;
 - privacy e dati non conservati;
 - assenza di fatturazione elettronica;
@@ -1938,6 +2094,18 @@ Pagina unica con sezioni espandibili:
 - risoluzione problemi;
 - riapertura onboarding;
 - contatto sviluppatore.
+
+La Guida e FAQ deve consigliare la modalità preventiva con box globali ai
+merchant che mantengono attivo il passaggio Shopify di conferma dell’ordine.
+Deve spiegare che i box possono apparire già al caricamento, ma evitano che il
+cliente raggiunga la review con un blocco senza messaggio. Non deve suggerire
+che CF Ready rilevi automaticamente l’impostazione Shopify.
+
+La voce sul campo “Interno” spiega che il Codice Fiscale va raccolto nel campo
+fiscale nativo, che tenerlo anche in “Interno” mostra al cliente due campi per
+lo stesso dato e che l’uso va rimosso in Impostazioni → Checkout. Deve dire
+esplicitamente che CF Ready non può leggere quell’impostazione e si basa sulla
+dichiarazione del merchant (D-125).
 
 ### 15.8 Store non supportato
 
@@ -1960,7 +2128,7 @@ Quattro passaggi:
 1. introduzione, perimetro e limitazioni;
 2. scelta regole CF e PEC;
 3. eccezioni automatiche e revisione messaggi;
-4. riepilogo e attivazione.
+4. riepilogo, avviso sul campo “Interno” (FR-058) e attivazione.
 
 Regole:
 
@@ -2125,6 +2293,12 @@ Il brand si esprime soprattutto in:
 - eventuali illustrazioni;
 - accenti compatibili con Polaris.
 
+Dentro l’Admin il colore di brand non compare su controlli e stati. La sola
+deroga è la decisione A-16 della Brand Foundation, che lo ammette dentro
+un’illustrazione sulle superfici prive di azioni operative: primo passo e
+riepilogo dell’onboarding, testata di Guida e FAQ, schermata Store non
+supportato.
+
 ### 17.4 Responsabilità
 
 - Claude Code: Brand Foundation, frontend, UI/UX, sito, screenshot e materiali pubblici;
@@ -2142,14 +2316,14 @@ Il brand si esprime soprattutto in:
 - D1: unico database applicativo;
 - R2: backup cifrati;
 - Workers Logs: osservabilità;
-- Pages: sito pubblico statico;
+- Pages: sito pubblico statico con Web Analytics nativa;
 - Email binding: invio supporto al destinatario verificato, previa verifica nel proof of concept.
 
 ### 18.2 Nomi risorse
 
 | Ambiente | Worker | D1 | R2 backup | Jurisdiction R2 |
 |---|---|---|---|---|
-| Development | locale | `cf-ready-db-dev` | nessuno | — |
+| Development | `cf-ready-dev` | `cf-ready-db-dev` | nessuno | — |
 | Production | `cf-ready` | `cf-ready-db-prod` | `cf-ready-backups-prod` | `eu` |
 
 Nell’URL Production non compare `prod`.
@@ -2165,7 +2339,32 @@ https://cf-ready.pages.dev/terms
 https://cf-ready.pages.dev/support
 ```
 
-Worker:
+Le versioni inglesi vivono sotto `/en/`, con gli stessi percorsi:
+
+```text
+https://cf-ready.pages.dev/en/
+https://cf-ready.pages.dev/en/privacy
+https://cf-ready.pages.dev/en/terms
+https://cf-ready.pages.dev/en/support
+```
+
+L’italiano sta nella radice perché è la lingua principale del prodotto (§16.4) e
+perché la versione italiana dei documenti legali è quella che prevale (§21.8).
+Nessuna negoziazione automatica della lingua: il passaggio è un collegamento
+esplicito, così l’URL condiviso mostra a tutti la stessa pagina.
+
+Cloudflare Web Analytics è abilitata sul progetto Pages con iniezione
+automatica del beacon. Il token resta nella configurazione Cloudflare, non nel
+repository; la CSP consente lo script da `static.cloudflareinsights.com` e
+l'invio a `cloudflareinsights.com/cdn-cgi/rum`.
+
+Worker Development:
+
+```text
+https://cf-ready-dev.tmsf.workers.dev
+```
+
+Worker Production:
 
 ```text
 https://cf-ready.tmsf.workers.dev
@@ -2245,6 +2444,30 @@ Non automatizzare una pipeline complessa prima di validare il metodo di export D
 - conservazione nativa corrente del piano Free;
 - niente Sentry nella 1.0.
 
+Stato e attivazione progressiva:
+
+- da M3, metriche e Workers Logs sono attivi in Development; gli invocation log
+  automatici sono disattivati per non conservare URL e query string Shopify;
+- in M4 aggiungere soltanto gli eventi strutturati e sanitizzati necessari ad
+  auth, webhook e lifecycle, senza payload, header, token, store domain, CF o
+  PEC;
+- in M8 definire sampling degli eventi ordinari, query salvate, soglie e runbook
+  di osservabilità prima del Controlled Launch;
+- Traces resta spento per default in Development e Production. Può essere
+  abilitato al 100% solo durante una breve riproduzione Development con dati
+  sintetici, poi va disabilitato e verificato con readback; non usarlo su
+  traffico merchant;
+- Workers Builds e l'integrazione Git di Pages non vengono attivati: GitHub
+  Actions resta l’unica corsia di deploy. Una sostituzione richiede una
+  decisione esplicita, non l’affiancamento dei sistemi;
+- Logpush, export OpenTelemetry, Tail Workers e osservabilità esterna restano
+  P2 e si valutano soltanto se retention, query o diagnosi native risultano
+  insufficienti.
+
+L’attivazione Development del 29 luglio 2026 e il relativo rollback sono
+registrati in
+`docs/evidence/2026-07-29-checkout-validation-rendering.md#aggiornamento-osservabilità-development`.
+
 ---
 
 ## 19. Repository, ambienti, versionamento e CI/CD
@@ -2264,12 +2487,10 @@ cf-ready/
 │   └── e2e/
 ├── docs/
 │   ├── INDEX.md
-│   ├── CONTEXT.md
 │   ├── glossario.md
 │   ├── plans/
 │   │   └── 2026-07-28-CF-Ready-Master-Plan.md
 │   ├── brand/                  # brand-foundation.md, brand-board.html, assets/
-│   ├── legal/
 │   └── runbooks/
 ├── .github/                    # workflow, template PR, Dependabot
 ├── AGENTS.md
@@ -2278,12 +2499,16 @@ cf-ready/
 ├── SECURITY.md
 ├── shopify.app.toml
 ├── shopify.app.dev.toml
-├── wrangler.jsonc
+├── wrangler.json
 ├── package.json
 └── package-lock.json
 ```
 
 Non creare un monorepo framework o pacchetti condivisi finché una duplicazione reale non lo giustifica.
+
+I testi legali non hanno una copia in `docs/`: le pagine pubblicate in `site/`
+sono la loro unica fonte, così non esistono due versioni dello stesso documento
+da tenere allineate (M7).
 
 ### 19.2 Ambienti
 
@@ -2371,21 +2596,55 @@ Ogni release Production:
 - piano di rollback.
 
 Modifiche solo a documentazione interna, ADR, piani o governance agentica non
-richiedono bump, tag o GitHub Release. Versione, changelog e tag sono
-release-owned e non vengono modificati nelle PR ordinarie.
+richiedono bump, tag o GitHub Release.
+
+`CHANGELOG.md` è mantenuto dalla `0.1.0`: ogni snapshot rilasciato, anche in
+Development, ha una voce con versione, data, milestone e sintesi. Note pubbliche
+IT/EN e tag restano requisiti delle sole release Production.
 
 Ogni snapshot Shopify rilasciato deve ricevere un identificatore esplicito con
 `shopify app deploy --version`:
 
-- Development: `<X.Y.Z>-dev.<run_number>.<run_attempt>`;
-- Production: `<X.Y.Z>`, identico alla release SemVer.
+- Development: versione esatta di `package.json`, con prerelease SemVer quando
+  opportuno;
+- Production: versione esatta di `package.json`, identica alla release SemVer.
 
 `package.json#version`, inizialmente `0.1.0`, è la fonte canonica di `<X.Y.Z>` e
 deve coincidere con il lockfile e, in Production, con il tag `vX.Y.Z`. Tutti i
-deploy rilasciati, inclusi quelli avviati manualmente dall'owner, passano dal
-workflow GitHub Actions dell'ambiente; `github.run_number` con
-`github.run_attempt` rende univoci anche i retry. Un deploy locale diretto può
-essere usato solo come preview non rilasciata.
+deploy Shopify rilasciati, inclusi quelli avviati manualmente dall’owner,
+passano dal workflow GitHub Actions dell’ambiente. Una versione già rilasciata
+non viene riutilizzata: prima di un nuovo snapshot si incrementa il SemVer nel
+manifest e nel lockfile. Un deploy locale diretto può essere usato solo come
+preview non rilasciata.
+
+Numero assegnato a ogni milestone fino alla `1.0.0`:
+
+| Milestone | Versione | Nota |
+| --- | --- | --- |
+| M0–M2 | nessuna | fondazioni, proof of concept e brand: niente di rilasciato |
+| M3 — Motore di validazione | `0.1.0` | primo snapshot Development fisso |
+| M4 — Dati, auth e lifecycle | `0.2.0` | |
+| M5 — Billing | `0.3.0` | |
+| M6 — UI completa | `0.4.0` | |
+| M7 — Sito, legale e supporto | `0.5.0` | |
+| M8 — Hardening | `0.6.0` → `0.8.0` | consegnata in tre layer, un minor ciascuno: `0.6.0` durabilità e osservabilità, `0.7.0` sicurezza e dipendenze, `0.8.0` capacità e prove operative, che chiude feature complete |
+| M9 — Release candidate e review | `0.9.0` | |
+| M10 — Canary store reale | `0.9.x` | nessun minor: il canary usa la build della release candidate |
+| M11 — `1.0.0` e Controlled Launch | `1.0.0` | tag `v1.0.0` alla promozione Production |
+| M12 — Visibilità completa | nessuna | sola visibilità; i fix successivi sono `1.0.x` |
+
+Dentro una milestone, ogni ulteriore snapshot rilasciato incrementa la **patch**
+(`0.2.1`, `0.2.2`). Un **prerelease numerato**, `0.3.0-dev.1`, si usa solo per
+provare in Development un candidato prima della chiusura della milestone: non è
+il caso ordinario e non sostituisce il bump.
+
+Una modifica si legge e si revisiona intera: codice, bump di manifest e
+lockfile, changelog e documentazione della stessa modifica stanno **nella
+stessa PR**, non in PR separate. La ricevuta di deploy, che esiste solo dopo il
+rilascio, non ha mai una PR propria: quella di uno snapshot intermedio viaggia
+con la prima PR utile successiva, quella dell'ultimo snapshot viene registrata
+nella PR di chiusura della milestone insieme all'esito dei gate. Il tag
+`vX.Y.Z` viene creato alla promozione Production.
 
 La ricevuta di deploy registra ambiente, configurazione, versione Shopify,
 commit, ID della versione rilasciata e versione di rollback. Gli identificatori
@@ -2401,7 +2660,11 @@ In M0 il workflow `CI` esegue `npm ci` e `npm run check` su PR e push verso
 `main` o `develop`; `npm run check` include React Doctor con blocco sui warning.
 Il workflow separato `React Doctor` analizza in modalità advisory le modifiche
 delle PR, pubblica annotazioni inline solo quando trova problemi e registra il
-risultato sui push verso `main`. I controlli elencati sotto descrivono il target
+risultato sui push verso `main`. Il workflow `Promotion guard` verifica che
+`main` accetti solo promozioni da `develop`: è separato da `CI` perché deve
+ascoltare anche `edited`, l’unico evento che scatta quando cambia il base branch
+di una PR, e su `edited` `CI` rifarebbe l’intera verifica a ogni ritocco di
+titolo o descrizione. I controlli elencati sotto descrivono il target
 da attivare nelle milestone che introducono i relativi artifact; il controllo
 documentazione entra in M1. Codice e workflow provano sempre lo stato corrente.
 
@@ -2459,9 +2722,13 @@ Configurazione minima GitHub:
   major e promozioni verso `main` restano manuali.
 
 Il repository pubblico su GitHub Free usa branch protection su `develop` e
-`main`, con `develop` come branch predefinito, base aggiornata, conversazioni
+`main`, con `develop` come branch predefinito, conversazioni
 risolte, protezioni applicate agli admin e `verify`, `react-doctor` e
-`dependency-review` come required checks. Restano applicabili:
+`dependency-review` come required checks; su `main` è required anche
+`promotion-guard`. La base aggiornata prima del merge resta richiesta solo su
+`main`: su `develop` obbliga ogni PR già aperta a risincronizzare e rieseguire i
+gate dopo ogni merge, mentre `CI` sul push a `develop` intercetta comunque una
+rottura di integrazione entro il minuto successivo. Restano applicabili:
 
 - niente push diretti intenzionali su `main` o `develop`;
 - ogni merge passa da PR e CI verde osservata; squash per le PR ordinarie e
@@ -2480,8 +2747,6 @@ risolte, protezioni applicate agli admin e `verify`, `react-doctor` e
 - `CLAUDE.md` è minimale e importa `AGENTS.md`, senza duplicarne le regole;
 - `README.md` descrive setup locale, comandi correnti e struttura reale;
 - `docs/INDEX.md` è il catalogo canonico della documentazione;
-- `docs/CONTEXT.md` riassume stato osservato, blocchi e prossimo passo senza
-  sostituire il Master Plan;
 - `docs/TOOLCHAIN.md` raccoglie runtime, comandi e gate quando non sono più
   leggibili direttamente dal README e da `package.json`;
 - ADR, runbook e documentazione tecnica vengono aggiornati nella stessa modifica
@@ -2568,7 +2833,10 @@ vitest
 @playwright/test
 ```
 
-`@types/node` resta solo se realmente richiesto dalla toolchain generata; rimuoverlo se l’adattamento Workers non lo usa.
+`@types/node` resta: serve al typecheck dei file di configurazione build-time
+(`vite.config.ts` usa `process.env`, `vitest.config.ts` importa `node:path` e
+`node:url`) ed è dichiarato in `tsconfig.json` sotto `compilerOptions.types`. Il
+codice runtime in `app/` e `workers/` non usa API Node.
 
 ### 20.4 Shopify Function
 
@@ -2704,25 +2972,40 @@ La Function riceve i valori necessari in Shopify, li valuta localmente e restitu
 | Telemetria essenziale `app_events` | 12 mesi |
 | Ricevute webhook | periodo minimo utile, target 90 giorni |
 | Prova e pricing generation pseudonimizzati | a lungo termine per prevenire abuso e preservare condizioni |
-| Diritto una tantum e riferimenti billing | durata operativa dell’app e obblighi amministrativi |
+| Stato billing operativo D1 e riferimenti Shopify | fino a `shop/redact`; Shopify resta autorevole per acquisti e obblighi amministrativi |
 | Backup settimanali | ultime 8 copie |
 | Backup mensili | 12 mesi |
 | Dati acquirente | mai conservati |
 
-Dopo 90 giorni dalla disinstallazione, per store senza diritto una tantum:
+Dopo 90 giorni dalla disinstallazione, se `shop/redact` non è arrivato:
 
 - elimina regole, onboarding, support metadata non necessari e stato tecnico;
-- conserva solo quanto indispensabile e giuridicamente sostenibile per prova, billing e contestazioni.
+- conserva soltanto il `trial_ledger` pseudonimizzato, se giuridicamente
+  sostenibile, per impedire una seconda prova.
+
+I 90 giorni sono il limite massimo residuale. Shopify invia `shop/redact` circa
+48 ore dopo la disinstallazione: quando arriva, la cancellazione è immediata e
+la finestra non viene consumata. Un trigger orario del Worker cancella gli
+store ancora disinstallati che raggiungono i 90 giorni, in batch deterministici
+da 25, come fallback quando il webhook non arriva. Lo stesso trigger elimina
+ricevute webhook ed errori dettagliati dopo 90 giorni, e gli altri eventi
+tecnici e di billing dopo 12 mesi, tramite indici sulle relative date.
 
 ### 21.6 `shop/redact`
 
 Applicare:
 
 - eliminazione di sessioni, token, configurazione, onboarding e log riferibili non necessari;
-- eventuale conservazione minimale di identificatore pseudonimizzato, prova già fruita, pricing generation, diritto una tantum e record amministrativi;
+- eventuale conservazione della sola prova già fruita e della relativa pricing
+  generation nel `trial_ledger` pseudonimizzato descritto in §12.2;
+- nessuna copia D1 del diritto una tantum o dei riferimenti billing: dopo una
+  reinstallazione vengono riletti dalla fonte autorevole Shopify;
 - nessun contenuto libero del merchant oltre obblighi applicabili.
 
-La base giuridica e la forma della pseudonimizzazione devono essere validate nella revisione legale prima del lancio. Se la revisione stabilisce che una parte non è conservabile, prevale la cancellazione e va individuato un meccanismo Shopify compatibile per riconoscere il diritto.
+La base giuridica e la forma della pseudonimizzazione sono state approvate
+dall'owner il 2 agosto 2026. Il ledger conserva soltanto HMAC-SHA-256 del
+dominio, stato della prova e generazione tariffaria, senza dati di checkout o
+contenuti liberi.
 
 ### 21.7 Telemetria
 
@@ -2739,6 +3022,13 @@ Eventi permessi:
 - pricing generation.
 
 Sempre attiva perché necessaria a funzionamento, sicurezza e valutazione del lancio. Descritta nella Privacy Policy. Nessun cookie analytics, fingerprint o comportamento di clienti.
+
+Il solo sito pubblico usa inoltre Cloudflare Web Analytics per visite aggregate
+e prestazioni reali. Il beacon non usa cookie o archiviazione locale, non crea
+fingerprint, non registra query string e non raggiunge checkout o app embedded.
+Cloudflare conserva i dati beacon non campionati per 7 giorni e poi li aggrega;
+CF Ready può consultare le metriche aggregate degli ultimi 6 mesi. La Privacy
+Policy descrive metriche, finalità, base giuridica, destinatario e retention.
 
 ### 21.8 Documenti legali
 
@@ -2777,6 +3067,12 @@ attivo. La policy include:
 Questi tempi sono obiettivi operativi, non uno SLA. Vulnerabilità, credenziali e
 dettagli sfruttabili non vengono gestiti tramite issue pubbliche.
 
+Per decisione dell'owner, il sito Pages non espone riferimenti al repository,
+a `SECURITY.md` o a GitHub. La pagina Support pubblica soltanto la casella email:
+il primo messaggio descrive il tipo di problema e un recapito, senza dettagli
+sfruttabili, e serve a concordare un canale sicuro. `SECURITY.md` e Private
+Vulnerability Reporting restano disponibili a chi raggiunge il repository.
+
 ---
 
 ## 22. Assistenza
@@ -2784,13 +3080,39 @@ dettagli sfruttabili non vengono gestiti tramite issue pubbliche.
 La 1.0 implementa solo il minimo:
 
 - supporto nativo Shopify;
-- Support link verso `/help`;
-- pagina FAQ;
-- modulo interno;
-- invio a una casella sviluppatore verificata;
-- conferma in-app con numero richiesta;
+- Support link verso `/support` del sito pubblico (§18.3);
+- pagina FAQ dentro l’app, in Guida e FAQ (§15.7);
+- percorso di assistenza in-app che prepara un messaggio precompilato;
+- recapito a una casella sviluppatore verificata;
 - nessuna copia email automatica al merchant;
 - risposta manuale dello sviluppatore.
+
+**Esito della verifica sull’Email binding, 1 agosto 2026.** La verifica imposta
+più sotto è stata eseguita: l’Email binding di Cloudflare invia gratuitamente
+verso indirizzi di destinazione verificati, su qualunque piano e con il solo
+Email Routing configurato, **ma soltanto da un dominio proprio onboardato**.
+`pages.dev` e `workers.dev` non sono zone del progetto, e l’owner ha deciso di
+non registrare un dominio per la 1.0. Il binding non è quindi utilizzabile e
+vale il fallback previsto: un collegamento `mailto:` precompilato.
+
+Ne discendono tre conseguenze, recepite in FR-090 e §12.2:
+
+- nessun numero richiesta, perché senza un sistema ricevente sarebbe un
+  identificatore privo di riscontro;
+- nessuna tabella `support_requests` nella 1.0: resta descritta in §12.2 come
+  struttura prevista se l’invio verrà implementato;
+- il messaggio precompilato resta interamente ispezionabile e modificabile dal
+  merchant prima dell’invio, che è anche la ragione per cui l’allowlist qui
+  sotto non è una formalità.
+
+La casella è `cfready@icloud.com`, la stessa dichiarata nel sito pubblico e in
+`SECURITY.md`. Il collegamento compare in due punti: nella colonna laterale di
+Guida e FAQ, che è il percorso ordinario, e nella schermata Store non supportato
+(§15.8, D-043), dove il merchant ha bisogno di un chiarimento proprio perché non
+può usare l’app. La Guida non rilegge Shopify per comporre il messaggio: allega i
+dati che ha già, mentre la Home aggiunge il Paese rilevato. L’obiettivo di
+risposta dichiarato al merchant è di uno o due giorni lavorativi; resta un
+obiettivo operativo, non uno SLA.
 
 Dati tecnici allegabili tramite allowlist:
 
@@ -2814,6 +3136,11 @@ Mai allegare:
 - payload completi.
 
 Prima di implementare l’invio, verificare che l’Email binding Cloudflare corrente copra il destinatario verificato nel piano usato. In caso contrario, il fallback 1.0 è un link `mailto:` precompilato: non introdurre un SaaS email a pagamento solo per il modulo.
+
+La verifica è stata fatta e il fallback è quello adottato: vedi l’esito in
+apertura di sezione. Se in futuro il progetto acquisirà un dominio proprio, la
+verifica va rifatta prima di riaprire la questione, perché è il dominio a
+sbloccare il binding, non il piano Cloudflare.
 
 ---
 
@@ -2915,7 +3242,8 @@ Usare dati sintetici o pubblicamente documentati, mai CF di clienti reali.
 | solo ritiro Italia | Italia/assente | sì | applicate |
 | solo ritiro Italia | estero | sì | non applicate |
 | ordine misto con consegna Italia | Italia/assente | sì | applicate |
-| qualsiasi | qualsiasi | no | fail-open |
+| Italia | Italia/assente | no | errore globale per i campi obbligatori |
+| nessuna consegna osservabile | Italia/assente | no | fail-open |
 
 Testare esplicitamente più delivery groups e i tipi `SHIPPING`, `LOCAL`, `PICK_UP`, `PICKUP_POINT`, `RETAIL` se esposti dalla versione Function.
 
@@ -3039,6 +3367,8 @@ Obbligatori prima di `1.0.0`:
 - checkout iniziale con prodotto in abbonamento, senza estrapolare il risultato alle ricorrenze successive.
 
 Se un wallet non è materialmente disponibile nell’ambiente di test, documentare il limite e verificare almeno il blocco server-side e il percorso di correzione offerto da Shopify.
+La prova con prodotto in abbonamento è eseguita in M10 sul canary store reale,
+dove prodotto e selling plan sono controllati.
 
 ### 23.12 Browser
 
@@ -3366,7 +3696,7 @@ Deliverable:
 - `AGENTS.md` operativo;
 - `CLAUDE.md` minimale che importa `AGENTS.md`;
 - README e documentazione tecnica di baseline allineati allo scaffold reale;
-- `docs/INDEX.md` e `docs/CONTEXT.md`;
+- `docs/INDEX.md`;
 - template PR, Dependabot e baseline sicurezza GitHub.
 
 Gate:
@@ -3378,7 +3708,11 @@ Gate:
 - istruzioni operative e comandi documentati corrispondono al repository;
 - nessuna duplicazione fra istruzioni Codex e Claude Code.
 
-### M1 — Proof of concept tecnico
+### M1 — Proof of concept tecnico ✅ completata
+
+**Chiusa il 28 luglio 2026.** Contratti tecnici ed evidenze osservate sono
+registrati rispettivamente in `docs/contracts/m1-technical-contracts.md` e
+`docs/evidence/2026-07-28-m1-proof-of-concept.md`.
 
 Deliverable:
 
@@ -3428,7 +3762,49 @@ Gate:
 
 Rifiniture non bloccanti tracciate in Open items §34.5.
 
-### M3 — Motore di validazione
+### M3 — Motore di validazione Development ✅ completata · gate M10 aperto
+
+**Completata il 29 luglio 2026.** Query, motore e matrice
+automatizzata sono nel workspace `cf-ready-validation`; build Function, test e
+gate locale completo sono verdi. L’indagine live ha isolato il problema nel
+target al plurale dell’esempio Function: Shopify blocca senza rendere
+`$.cart.localizedFields.<KEY>`, mentre
+`$.cart.localizedField.<KEY>` rende inline CF e PEC su checkout standard
+one-page e three-page con conferma ordine OFF. Messaggi ASCII e Unicode,
+italiano e inglese, Function API `2026-04` e `2026-07` confermano che testo e
+versione API non sono la causa.
+
+Con conferma ordine ON, la review read-only continua a bloccare il submit finale
+senza messaggio: è un difetto Shopify distinto. La modalità preventiva
+opzionale, con box globali a `CHECKOUT_INTERACTION` e Completion mantenuto,
+evita la review silenziosa. Il motore e il contratto config v2 sono implementati
+in M3; il controllo merchant sarà consegnato con la UI completa in M6.
+La superficie autenticata standard è verificata. Il bypass dovuto a
+`localizedFields` vuoto è corretto nel motore con errore globale quando esiste
+una consegna italiana; i wallet non esposti dal dev store con Test Payment
+Gateway vengono verificati in M10 sul canary store reale dell’owner.
+
+L’evidenza completa è in
+`docs/evidence/2026-07-29-checkout-validation-rendering.md`. Shopify ha
+confermato la sintassi del target e riconosciuto il bug della review il
+30 luglio 2026. Restano gate pre-Production tracciati nell’evidenza: la
+riconferma del target sulla reference corretta, il percorso supportato per campo
+vuoto con conferma ordine attiva e l’applicazione lato server della validazione
+sulle superfici accelerate. Non impediscono la chiusura della matrice
+Development disponibile. Il deploy fisso Development è completato con lo snapshot Shopify
+`0.1.0` e il Worker `cf-ready-dev`. Poiché Shopify distribuisce configurazione
+app e Function nello stesso snapshot, M3 ha anticipato soltanto il backend
+Development minimo necessario all’URL persistente
+`cf-ready-dev.tmsf.workers.dev`; dati, auth e lifecycle completi restano
+deliverable M4.
+
+L’audit di chiusura ha misurato l’artefatto corrente con
+`shopify app function run`: 794.719 istruzioni su 11.000.000, 1.344 KiB di
+memoria, modulo Wasm da 15 KiB, output conforme e nessun log. Il readback della
+Home embedded, alimentato dalla query paginata delle Validation Shopify, ha
+confermato una sola Validation CF Ready attiva. Il checkout iniziale con
+prodotto in abbonamento è assegnato alla matrice canary M10, che dispone del
+prodotto con selling plan necessario.
 
 Deliverable:
 
@@ -3446,9 +3822,35 @@ Gate:
 
 - matrice Function verde;
 - test dev store;
-- checkout accelerati verificati per quanto disponibile.
+- snapshot Shopify Function Development `0.1.0` versionato, con smoke, readback
+  e rollback registrati;
+- checkout accelerati rinviati al canary M10, dove sono disponibili metodi reali
+  controllati.
 
-### M4 — Dati, auth e lifecycle
+### M4 — Dati, auth e lifecycle ✅ completata
+
+**Chiusa il 30 luglio 2026**, rilasciata in Development come `0.2.0` e corretta
+in giornata con la `0.2.1`. Migrazione D1, deploy, snapshot Shopify, gate live e
+difetti emersi sono registrati in
+`docs/evidence/2026-07-30-m4-development-migration.md`. I contratti che M5 e M6
+riusano sono in `docs/contracts/m4-technical-contracts.md`.
+
+L'audit di chiusura ha osservato sul dev store l'intero ciclo di vita:
+autenticazione con riconciliazione, consegna reale di `shop/update` da Shopify,
+disinstallazione con eliminazione della sessione, reinstallazione con creazione
+di una nuova Validation e rinnovo trasparente del token offline alla scadenza.
+Le prove live hanno prodotto due correzioni — la guardia su `shop/redact` per
+gli store che reinstallano e la deduplicazione dell'evento di installazione —
+entrambe rilasciate prima della chiusura. Il gate sullo store non italiano è
+chiuso con residuo accettato, §34.7. Resta una sola conferma differita, non
+bloccante: il `shop/redact` reale atteso intorno al 1 agosto 2026, che deve
+lasciare intatto lo store reinstallato.
+
+Per decisione, restano fuori da M4: i webhook billing e le tabelle `trials`,
+`billing_accounts` e `billing_events` con M5, le colonne di onboarding di
+`app_state` con M6, `support_requests` con il modulo di supporto. Il limite
+delle 25 Validation attive è gestito oggi con il messaggio Shopify: il codice
+stabile e l'istruzione operativa arrivano con la messaggistica merchant di M6.
 
 Deliverable:
 
@@ -3461,6 +3863,7 @@ Deliverable:
 - country gate;
 - Validation lifecycle;
 - riconciliazione.
+- log strutturati e sanitizzati per errori auth, webhook e lifecycle.
 
 Gate:
 
@@ -3469,7 +3872,42 @@ Gate:
 - webhook duplicati;
 - store non italiano.
 
-### M5 — Billing
+Stato dei gate al 30 luglio 2026, con prove nell'evidenza Development:
+
+- **reinstallazione**: verde. Ciclo completo osservato sul dev store, inclusa la
+  ricreazione della Validation dopo la reinstallazione;
+- **webhook duplicati**: verde. Test automatici sulla riacquisizione delle sole
+  ricevute fallite, più consegne reali di Shopify elaborate una volta sola;
+- **store non italiano**: chiuso con residuo dichiarato, non osservabile in
+  Development, Open items §34.7;
+- **refresh token**: verde. Alla scadenza reale il token offline è stato
+  rinnovato senza intervento del merchant e senza alterare lo stato dello store.
+
+Le prove live hanno esposto due difetti, entrambi corretti prima della chiusura:
+`shop/redact` cancellava i dati anche di uno store che aveva reinstallato nel
+frattempo, e `app_installed` veniva registrato a ogni autenticazione invece che
+una volta per installazione.
+
+### M5 — Billing ✅ completata
+
+**Chiusa il 30 luglio 2026**, rilasciata in Development dalla `0.3.0` alla
+`0.3.6`. I contratti sono in `docs/contracts/m5-technical-contracts.md`, gate e
+ricevute in `docs/evidence/2026-07-30-m5-development-release.md`.
+
+L'audit di chiusura ha osservato sul dev store, con addebiti di prova, la
+sottoscrizione durante la prova con i soli giorni residui, il cambio da mensile
+ad annuale con sostituzione nativa, l'acquisto abbandonato che lascia
+l'abbonamento intatto e il passaggio a pagamento unico con cancellazione
+successiva all'acquisto. In nessun caso il diritto è arrivato dal ritorno di un
+redirect. La reinstallazione ha inoltre mostrato che Shopify conserva l'acquisto
+una tantum attraverso le installazioni, quindi §14.11 non richiede un registro
+applicativo.
+
+I gate hanno prodotto otto correzioni, fra cui il flusso di approvazione che non
+sopravviveva all'iframe embedded, un rifiuto di Shopify invisibile, il webhook
+degli acquisti mancante e la conversione eseguita due volte per concorrenza. La
+cancellazione ordinaria resta l'unico gate non eseguito, con residuo dichiarato
+negli Open items §34.9.
 
 Deliverable:
 
@@ -3483,22 +3921,21 @@ Deliverable:
 - entitlement metafield;
 - scadenza fail-open.
 
-Gate:
+Gate: verdi, salvo la cancellazione ordinaria spostata al canary M10.
 
 - matrice billing test completa;
 - nessun entitlement basato su redirect;
 - `test` charges verificati.
 
-### M6 — UI completa
+### M6 — UI completa ✅ completata
 
 Deliverable:
 
-- Home;
+- Home con stato e scelta del piano;
 - Regole;
 - Messaggi;
-- Piano;
 - Guida;
-- onboarding;
+- onboarding in finestra;
 - IT/EN;
 - glossario canonico di termini cliente e tecnici;
 - Reviews prompt;
@@ -3511,7 +3948,20 @@ Gate:
 - E2E critici;
 - nessun framework UI extra.
 
-### M7 — Sito, legale e supporto
+Consegnata da `0.4.0` a `0.4.39`. Gli E2E di §23.10 sono stati eseguiti
+manualmente sul dev store, uno per snapshot: l'automazione richiede
+un'infrastruttura browser e una sessione staff autenticata, ed è una decisione
+di dipendenza rimasta aperta. Operazioni e residui in
+`docs/evidence/2026-07-31-m6-ui-completa.md`.
+
+### M7 — Sito, legale e supporto ✅ completata
+
+Registro delle operazioni:
+[`docs/evidence/2026-08-01-m7-sito-legale-supporto.md`](../evidence/2026-08-01-m7-sito-legale-supporto.md).
+I testi legali e la conservazione pseudonimizzata del `trial_ledger` sono stati
+approvati dall'owner il 2 agosto 2026. Il completamento dell'identità del
+titolare nei due documenti è un gate della milestone di lancio M9, prima della
+submission e prima della disponibilità per merchant esterni.
 
 Deliverable:
 
@@ -3521,29 +3971,102 @@ Deliverable:
 - Termini;
 - `SECURITY.md`;
 - Support;
-- modulo o fallback `mailto:`;
+- fallback `mailto:`, per l’esito della verifica registrato in §22;
 - contenuti IT/EN.
 
 Gate:
 
 - URL pubblici;
-- revisione legale;
-- canale privato per vulnerabilità verificato;
+- primo contatto email per vulnerabilità verificato sul sito Pages e canale
+  privato verificato nel repository, senza collegamenti fra le due superfici;
 - testi coerenti con listing/app.
 
+Decisioni prese durante la milestone:
+
+- **nessun dominio proprio nella 1.0.** Il sito resta sui percorsi `pages.dev`
+  di §18.3. La conseguenza operativa non è estetica: senza un dominio
+  onboardato l’Email binding di Cloudflare non può inviare, quindi cade il
+  modulo con invio e resta il `mailto:`;
+- **un solo script sul sito, servito dal sito stesso.** Il menu che si ritira
+  scorrendo su telefono e l'evidenziazione della sezione in vista non si
+  ottengono con i soli fogli di stile: servirebbe conoscere la direzione dello
+  scorrimento. `site/menu.js` fa quelle due cose e nient'altro, non ha
+  dipendenze, e la Content-Security-Policy passa da nessuno script a
+  `script-src 'self'`, che resta più stretta di consentire codice in linea.
+  Senza JavaScript il sito resta interamente utilizzabile: la testata è
+  agganciata via CSS e tutti i collegamenti funzionano;
+- **il sito è la superficie che deve convincere**, quindi è più espressivo di
+  quanto §9.1 del brand lasciasse intendere: illustrazioni costruite con le
+  forme del sistema, schede, passi numerati, un esempio di errore nel checkout e
+  richiami all’installazione. Restano fuori gli elementi che §9.1 vieta e che
+  non useremo comunque: nessuna fotografia, nessun logo wall, nessuna prova
+  sociale, nessun contatore, nessuna riproduzione fedele della UI di Shopify;
+- **il sito non duplica la documentazione dell’app.** La FAQ pubblica risponde a
+  chi *valuta* l’app — tema, piani, rischio di bloccare ordini, cosa succede se
+  smetti di pagare — mentre la FAQ operativa resta in Guida e FAQ (§15.7) per
+  chi l’app ce l’ha già installata. I due elenchi non condividono voci;
+- **niente importi sul sito.** Il sito dichiara la prova di 14 giorni e le tre
+  modalità, e per la cifra rimanda allo Shopify App Store e all’app: sono le
+  uniche fonti che restano aggiornate da sole quando cambia la generazione
+  tariffaria (§14.4);
+- **i testi legali stanno solo in `site/`** (§19.1), per non avere due copie
+  dello stesso documento;
+- **le due promesse lasciate aperte da M6 sono chiuse**: la Guida indica la
+  casella di assistenza e offre il collegamento precompilato, e la schermata
+  Store non supportato ha il contatto sviluppatore previsto da §15.8 e D-043.
+
+Segnaposto lasciati nel sito, da sostituire nelle milestone indicate:
+
+| Segnaposto | Dove | Sostituzione |
+| --- | --- | --- |
+| Pulsante disabilitato «Presto sullo Shopify App Store» | richiami all’installazione su tutte le pagine | pulsante attivo verso la listing, quando esiste (M11) |
+| Nessuno screenshot dell’app | Home | screenshot reali prodotti da M9 (§24.5, §9.3 del brand) |
+| Identità del titolare limitata al nome | Privacy e Termini | denominazione completa e indirizzo nella milestone di lancio, prima della submission e della disponibilità esterna (M9) |
+
+Finché la listing non esiste, i richiami all’installazione sono pulsanti
+disabilitati che dichiarano l’attesa: un collegamento che porta a un errore 404
+è peggio di un pulsante che non fa nulla, perché promette una destinazione che
+non c’è. Alla pubblicazione diventano collegamenti veri.
+
 ### M8 — Hardening
+
+La corsia manuale Pages Production è stata anticipata alla chiusura dell'audit
+M7: resta vincolata a `main`, mantiene disattivata l'integrazione Git Cloudflare
+ed esegue gate, readback, smoke e rollback. Gli altri deliverable restano M8.
+
+Consegnata in tre layer versionati, come da §19.5:
+
+- `0.6.0` durabilità e osservabilità: backup R2, restore test, log, sampling,
+  query e runbook Workers Logs, procedura temporanea Traces, formato della
+  ricevuta di deploy; la corsia GitHub Actions manuale per Pages già disponibile
+  viene esercitata e mantenuta insieme ai suoi gate, readback e rollback;
+- automazione degli E2E di §23.10: decisione rimandata qui da M6. Richiede
+  un'infrastruttura browser e una sessione staff autenticata, quindi è una
+  scelta di dipendenza e non un dettaglio di implementazione. Il perimetro
+  proposto è una manciata di percorsi critici con sessione catturata a mano,
+  eseguiti in locale prima di un rilascio, più i controlli che l'automazione fa
+  meglio di una persona: ordine di tabulazione, focus, viewport stretto e largo;
+- `0.7.0` sicurezza e dipendenze: security audit, dependency audit,
+  manutenzione periodica GitHub e provider;
+- `0.8.0` capacità e prove operative: load/CPU check, soglie Free tier e
+  criteri di rivalutazione, runbook, E2E e matrice manuale. Chiude feature
+  complete.
 
 Deliverable:
 
 - backup R2;
 - restore test;
 - log;
+- sampling, query e runbook per Workers Logs;
+- procedura temporanea Traces solo Development con dati sintetici e readback
+  della disattivazione;
 - runbook;
 - security audit;
 - dependency audit;
 - load/CPU check;
 - soglie Free tier e criteri di rivalutazione;
 - formato ricevuta deploy/readback;
+- workflow GitHub Actions controllato per il deploy Pages;
 - manutenzione periodica GitHub/provider;
 - E2E;
 - manual matrix.
@@ -3553,6 +4076,8 @@ Gate:
 - nessun P0/P1;
 - fail-open provato;
 - rollback provato e verificato tramite readback;
+- deploy Pages eseguito soltanto dal workflow GitHub Actions, con integrazione
+  Git Cloudflare disattivata e target Production verificato;
 - restore drill e soglie operative documentati.
 
 ### M9 — Release candidate e review
@@ -3582,12 +4107,23 @@ Deliverable:
 - billing reale controllato;
 - attivazione a basso traffico;
 - ordini reali controllati;
+- checkout standard e wallet accelerati disponibili verificati con importi e
+  dati controllati;
+- matrice wallet completa: Apple Pay, Google Pay, Shop Pay e PayPal avviati da
+  pagina prodotto, carrello e checkout;
+- checkout iniziale con prodotto in abbonamento verificato con selling plan
+  controllato, senza estendere l’esito alle generazioni ricorrenti;
 - monitoraggio.
 
 Gate:
 
 - nessun errore critico;
-- conferma compatibilità piano standard.
+- conferma compatibilità piano standard;
+- nessun flusso wallet completa un ordine senza Codice Fiscale quando la
+  destinazione è italiana. È bloccante e presuppone la correzione del fail-open
+  già applicata; un esito negativo va segnalato a Shopify con gli
+  identificativi di esecuzione. Regola e motivazione in
+  `docs/evidence/2026-07-29-checkout-validation-rendering.md`.
 
 ### M11 — `1.0.0` e Controlled Launch
 
@@ -3623,7 +4159,7 @@ Gate:
 6. Country gate.
 7. Trial e billing manuale completo.
 8. Entitlement fail-open.
-9. Cinque pagine e onboarding.
+9. Quattro pagine permanenti e onboarding in finestra.
 10. IT/EN.
 11. Webhook privacy e lifecycle.
 12. Privacy/Termini.
@@ -3639,8 +4175,9 @@ Gate:
 2. Modulo supporto, se Email binding confermato.
 3. Telemetria Controlled Launch.
 4. Screenshot e sito rifiniti.
-5. Runbook incidenti.
-6. Query/report interni semplici sulle metriche.
+5. Avviso e dichiarazione sul campo “Interno” (FR-058, FR-059).
+6. Runbook incidenti.
+7. Query/report interni semplici sulle metriche.
 
 ### P2 — Dopo trazione, non blocca `1.0.0`
 
@@ -3686,7 +4223,9 @@ La `1.0.0` è accettabile quando:
 13. fatturazione estera è esclusa;
 14. destinazione estera è esclusa;
 15. ritiro Italia è coperto quando i campi esistono;
-16. campi assenti/config corrotta/entitlement incerto sono fail-open;
+16. campi obbligatori assenti con consegna italiana sono bloccati; senza
+    consegna osservabile, config corrotta o entitlement incerto il motore è
+    fail-open;
 17. disattivazione conserva config;
 18. trial scaduto non blocca ordini;
 19. mensile, annuale e una tantum funzionano;
@@ -3724,9 +4263,8 @@ La `1.0.0` è accettabile quando:
 - [x] Definire API version supportata più recente.
 - [x] Inventariare secret senza copiarli nel piano.
 - [x] Creare `AGENTS.md` e `CLAUDE.md` minimale.
-- [x] Creare `docs/INDEX.md` e `docs/CONTEXT.md`.
-- [x] Configurare template PR, Dependabot e baseline sicurezza GitHub; le
-  protezioni e i servizi attivi sono registrati in `docs/CONTEXT.md`.
+- [x] Creare `docs/INDEX.md`.
+- [x] Configurare template PR, Dependabot e baseline sicurezza GitHub.
 
 ### Scaffold
 
@@ -3738,25 +4276,26 @@ La `1.0.0` è accettabile quando:
 - [x] Rimuovere Prisma/SQLite.
 - [x] Creare binding D1.
 - [x] Implementare D1 SessionStorage.
-- [ ] Gestire token offline con refresh.
+- [x] Gestire token offline con refresh.
 - [x] Sostituire lint/format con Oxlint/Oxfmt.
-- [ ] Rimuovere dipendenze non usate.
+- [x] Verificare e rimuovere eventuali dipendenze non usate.
 - [x] Pin esatti e lockfile.
 - [x] Aggiungere controllo documentazione.
-- [ ] Aggiungere preflight provider senza stampa di segreti.
+- [x] Aggiungere preflight provider senza stampa di segreti.
 
 ### Proof of concept
 
-- [ ] Login embedded.
-- [ ] Sessione persistente.
-- [ ] Refresh token.
-- [ ] Query shop country.
-- [ ] D1 read/write.
-- [ ] Webhook HMAC.
-- [ ] Function minimale.
-- [ ] Validation create/update.
-- [ ] Metafield letto dalla Function.
-- [ ] CPU misurata.
+- [x] Login embedded.
+- [x] Sessione persistente.
+- [x] Refresh token abilitato; persistenza cifrata coperta da test. La prova
+  live con scadenza forzata resta registrata come limite nelle evidenze M1.
+- [x] Query shop country.
+- [x] D1 read/write.
+- [x] Webhook HMAC.
+- [x] Function minimale.
+- [x] Validation create/update.
+- [x] Metafield letto dalla Function.
+- [x] CPU misurata.
 
 ### Prima di Production
 
@@ -3869,7 +4408,7 @@ Claude Code prende ownership di:
 - tipografia;
 - tono e microcopy;
 - UI/UX;
-- frontend delle cinque pagine;
+- frontend delle quattro pagine permanenti;
 - onboarding;
 - responsive/accessibilità;
 - sito Pages;
@@ -3927,7 +4466,7 @@ Codex definisce contratti e dati; Claude definisce presentazione e interazione. 
 
 | Rischio | Probabilità | Impatto | Mitigazione |
 |---|---:|---:|---|
-| Localized fields non presenti in un flusso | media | alta | campo assente = fail-open; test reali |
+| Localized fields non presenti in un flusso | bassa | alta | errore globale per campo obbligatorio con consegna italiana; fail-open senza consegna; test wallet reali |
 | Accelerated checkout mostra errore poco chiaro | media | media/alta | test wallet; FAQ trasparente |
 | Store ha già 25 Validation Function attive | bassa | media | una sola Validation CFR; errore operativo; non toccare risorse terze |
 | Merchant presume copertura delle ricorrenze in abbonamento | media | alta | listing/FAQ/Termini espliciti; test separato del checkout iniziale |
@@ -3947,7 +4486,6 @@ Codex definisce contratti e dati; Claude definisce presentazione e interazione. 
 | Single-region/service outage | bassa | media | Shopify Function continua; Admin degrada |
 | Requisiti App Store cambiano | media | alta | audit fresco pre-submission |
 | Nome/URL non disponibile | media | media | riservare in M0 |
-| Review legale contesta retention | media | alta | legal review e cancellazione prevalente |
 | Un solo dev store nasconde first install | media | media | utility reset e review Shopify |
 | Dipendenza `0.x` Oxfmt cambia comportamento | media | bassa | pin esatto e update deliberato |
 | Issue o PR pubblica espone dati reali o codice ostile | media | alta | template con divieti espliciti, workflow PR senza secret, approvazione dei primi contributori e disclosure privata |
@@ -3962,27 +4500,49 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
 
 1. ~~**Icona finale**~~ — **chiuso il 28 luglio 2026.** Marchio «Tessera con fascia» approvato, asset vettoriali in `docs/brand/assets/` (D-110).
 2. ~~**Dettagli finali del brand**~~ — **chiuso il 28 luglio 2026.** Palette, tipografia, design token, logo e tono di voce approvati (D-107…D-113). La microcopy definitiva resta da scrivere in M6 e M7, ma dentro le regole già fissate.
-3. **Dettagli visuali UI/UX** — ancora aperto, come previsto:
-   - composizione definitiva;
-   - spaziature;
-   - accenti;
-   - eventuali illustrazioni;
-   - responsive fine.
-
-   Dipende dai contratti route/form/stati che Codex consegna a fine M1 (§31.4). Non è un tema di brand.
+3. ~~**Dettagli visuali UI/UX**~~ — **chiuso il 2 agosto 2026.** Composizione,
+   spaziature, accenti e responsive fine sono stati verificati dall'owner
+   nell'Admin reale, compreso il collaudo successivo alla correzione responsive
+   `0.4.31`; la UI embedded non richiede illustrazioni aggiuntive.
 4. **Pacchetto visivo pubblico** — direzione fissata in `docs/brand/brand-foundation.md` §9. Restano da produrre i materiali veri in M7 e M9: testi del sito, listing completa, screenshot, didascalie.
 5. **Rifiniture di brand non bloccanti**
    - ~~correzione ottica della crenatura del wordmark~~ — **chiusa il 28 luglio 2026**, valori in `docs/brand/brand-foundation.md` §4.4;
    - ~~conferma delle dimensioni richieste dai requisiti App Store~~ — **chiusa il 28 luglio 2026**, specifiche in §24.5;
    - ~~decisione sulla sigla nell’icona della listing~~ — **chiusa il 28 luglio 2026**: rischio accettato, si presenta l’icona con la sigla (D-114);
-   - riverifica del marchio dentro l’Admin reale in M1 e sullo store reale in M10 — non anticipabile, richiede l’app installata;
+   - ✅ riverifica del marchio dentro l’Admin reale completata in M1; resta la
+     verifica sullo store reale in M10;
    - feature image 1600 × 900, da produrre in M9 insieme agli screenshot — richiede contenuto reale.
 6. **Licenza del repository** — la repo è pubblica ma non open-source. La scelta
    tra una licenza permissiva, copyleft o nessuna concessione resta
    esplicitamente all’owner; fino ad allora non si aggiunge `LICENSE` e vale
    D-120.
-
+7. **Conferma live del gate geografico** — rischio accettato il 30 luglio 2026.
+   Il paese dell’indirizzo del dev store è vincolato all’entità commerciale
+   dell’account: cambiarlo creerebbe una nuova entità e scollegherebbe i negozi
+   esistenti, danno sproporzionato rispetto alla prova. Nemmeno il canary M10
+   aiuta, perché lo store reale dell’owner è italiano. Il ramo resta coperto dai
+   test automatici, che verificano disattivazione, marcatura `blocked_country`,
+   fail-open sull’errore e mancata riattivazione al rientro. Il rischio residuo
+   è basso perché ogni errore del percorso è fail-open e non può bloccare
+   vendite. Si riapre solo se un merchant reale non italiano installa l’app.
+8. **Rilevamento automatico del campo “Interno” usato come Codice Fiscale** —
+   rimandato il 30 luglio 2026. Verificato sull’Admin API `2026-04`: né lo
+   stato del campo (`Non includere` / `Facoltativo` / `Obbligatorio`) né la sua
+   etichetta sono leggibili, e nessun altro canale è compatibile con lo scope
+   minimo e con §21.4 (D-125). La 1.0 usa la dichiarazione del merchant
+   (FR-058). Si riapre solo se Shopify espone in lettura le opzioni modulo del
+   checkout: da ricontrollare insieme alla riverifica della Function API
+   `2026-07` prevista in §35.
 I punti residui di brand sono verifiche e produzione di materiali che dipendono da milestone successive. **La Brand Foundation è chiusa.**
+9. **Cancellazione ordinaria e credito pro rata** — spostati al canary M10 il
+   30 luglio 2026. Sul dev store il pagamento unico attivo impedisce di creare
+   un abbonamento da cancellare, e un addebito di prova non è rimborsabile
+   perché non è mai stato pagato. Restano coperti dai test automatici il periodo
+   di grazia `ending`, l'accesso fino a fine periodo e l'assenza di
+   proratazione; resta da confrontare la stima del credito mostrata al merchant
+   con l'importo calcolato da Shopify. Rischio di comunicazione, non di
+   diritto. Nello stesso gruppo rientra la revoca per rimborso di FR-084, non
+   esercitabile su un addebito di prova mai pagato.
 
 I punti 1 e 2 erano da decidere presto in M2 e sono stati chiusi lì.
 
@@ -3996,11 +4556,13 @@ Le API e i requisiti cambiano: prima di implementare o pubblicare, verificare se
 
 - [Shopify Functions](https://shopify.dev/docs/apps/build/functions/index)
 - [Cart and Checkout Validation Function API — latest](https://shopify.dev/docs/api/functions/latest/cart-and-checkout-validation)
-- [Cart and Checkout Validation Function API 2026-07 — release candidate al 27 luglio 2026](https://shopify.dev/docs/api/functions/2026-07/cart-and-checkout-validation)
+- [Cart and Checkout Validation Function API 2026-07](https://shopify.dev/docs/api/functions/2026-07/cart-and-checkout-validation)
 - [Admin GraphQL API 2026-07](https://shopify.dev/docs/api/admin-graphql/2026-07)
 - [`validationCreate`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/validationCreate)
 - [`validationUpdate`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/validationUpdate)
 - [`ShopAddress`](https://shopify.dev/docs/api/admin-graphql/latest/objects/ShopAddress)
+- [`CheckoutAndAccountsConfiguration`](https://shopify.dev/docs/api/admin-graphql/latest/objects/CheckoutAndAccountsConfiguration) e [`TranslatableResourceType`](https://shopify.dev/docs/api/admin-graphql/latest/enums/TranslatableResourceType) — verificare se le opzioni modulo del checkout diventano leggibili (§34 punto 8)
+- [Opzioni modulo del checkout](https://help.shopify.com/en/manual/checkout-settings/checkout-form-options)
 - [Scaffold an app](https://shopify.dev/docs/apps/build/scaffold-app)
 - [App Home](https://shopify.dev/docs/apps/build/app-home)
 - [Polaris web components](https://shopify.dev/docs/api/app-home/web-components)

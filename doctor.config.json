@@ -1,11 +1,11 @@
 {
   "$schema": "https://react.doctor/schema/config.json",
   "blocking": "warning",
-  "noScore": true,
   "supplyChain": {
     "enabled": false
   },
   "ignore": {
+    "files": ["site/**"],
     "overrides": [
       {
         "files": ["app/routes/app.tsx"],

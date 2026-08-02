@@ -1,6 +1,6 @@
 {
   "name": "cf-ready",
-  "version": "0.1.0",
+  "version": "0.5.12",
   "private": true,
   "scripts": {
     "build": "react-router build",
@@ -9,13 +9,18 @@
     "typegen": "mkdir -p .wrangler/types && wrangler types .wrangler/types/worker-configuration.d.ts && react-router typegen",
     "typecheck": "npm run typegen && tsc --noEmit",
     "lint": "oxlint .",
-    "format": "oxfmt --write app scripts workers tests react-router.config.ts vite.config.ts vitest.config.ts",
-    "format:check": "oxfmt --check app scripts workers tests react-router.config.ts vite.config.ts vitest.config.ts",
+    "format": "oxfmt --write app extensions scripts workers tests react-router.config.ts vite.config.ts vitest.config.ts",
+    "format:check": "oxfmt --check app extensions scripts workers tests react-router.config.ts vite.config.ts vitest.config.ts",
     "docs:check": "node --test scripts/check-docs.node-test.mjs && node scripts/check-docs.mjs",
+    "preflight:dev": "node scripts/preflight-dev.mjs",
+    "test:preflight": "node --test scripts/preflight-dev.node-test.mjs",
     "test": "vitest run",
+    "test:function": "npm test --workspace cf-ready-validation -- --run",
+    "build:function": "npm run build --workspace cf-ready-validation",
     "doctor": "react-doctor",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
-    "check": "npm run docs:check && npm run lint && npm run format:check && npm run typecheck && npm test && npm run doctor && npm run build && wrangler deploy --dry-run",
+    "site:dev": "rm -f .wrangler/deploy/config.json && wrangler pages dev site",
+    "check": "npm run docs:check && npm run lint && npm run format:check && npm run typecheck && npm run test:preflight && npm test && npm run test:function && npm run doctor && npm run build && npm run build:function && wrangler deploy --dry-run",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",
     "config:use": "shopify app config use",
@@ -37,21 +42,21 @@
     "react-router": "7.18.1"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.47.0",
-    "@cloudflare/vitest-pool-workers": "0.18.8",
+    "@cloudflare/vite-plugin": "^1.49.1",
+    "@cloudflare/vitest-pool-workers": "^0.20.0",
     "@react-router/dev": "7.18.1",
     "@shopify/polaris-types": "1.0.7",
     "@types/node": "26.1.2",
-    "@types/react": "19.2.17",
-    "@types/react-dom": "19.2.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
     "mdast-util-from-markdown": "2.0.3",
     "oxfmt": "0.61.0",
     "oxlint": "1.76.0",
     "react-doctor": "0.9.2",
     "typescript": "6.0.3",
-    "vite": "8.1.5",
+    "vite": "^8.2.0",
     "vitest": "4.1.10",
-    "wrangler": "4.114.0"
+    "wrangler": "^4.117.0"
   },
   "workspaces": [
     "extensions/*"
@@ -59,5 +64,15 @@
   "trustedDependencies": [
     "@shopify/plugin-cloudflare"
   ],
+  "allowScripts": {
+    "core-js": false,
+    "esbuild@0.28.1": true,
+    "fsevents@2.3.3": true,
+    "workerd@1.20260730.1": true
+  },
+  "overrides": {
+    "graphql-config": "5.1.6",
+    "lodash": "4.18.1"
+  },
   "author": "Matteo"
 }

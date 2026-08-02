@@ -71,7 +71,7 @@ Solo i vincoli che governano identità visiva, tono, logo/icona, UI embedded, si
 - Messaggi in tab Italiano/English con reset separato per lingua (D-069, §15.5).
 - Azioni ad alto impatto con conferma (§15.1); Home attiva: `Modifica regole` primaria, `Disattiva nel checkout` secondaria (D-064).
 - Checklist onboarding scompare definitivamente dopo il completamento (D-063).
-- Cinque pagine permanenti: Home, Regole checkout, Messaggi al cliente, Piano e fatturazione, Guida e FAQ (§15.2).
+- Quattro pagine permanenti: Home, Regole checkout, Messaggi al cliente, Guida e FAQ (§15.2). Stato commerciale e scelta della modalità stanno in Home, in due blocchi distinti.
 - Nessuna pagina Diagnostica né Analytics merchant (D-039, §5.2).
 - Lingua UI automatica dalla locale Shopify, nessun selettore (D-071, §16.1).
 
@@ -92,7 +92,7 @@ Formulazioni approvate riutilizzabili come sono (§4.3, §16.3, §14.11):
 
 - promessa breve: «Mai più ordini da fatturare senza Codice Fiscale.»
 - formulazione prudente: «Per i merchant che devono emettere fattura elettronica per gli ordini B2C, CF Ready impedisce che un cliente completi un ordine italiano senza aver compilato un Codice Fiscale formalmente valido.»
-- una tantum: «Un solo pagamento per questo store Shopify, senza rinnovi. Include le funzionalità dell'app e i relativi aggiornamenti per la durata operativa del servizio.»
+- una tantum: «Un solo pagamento per questo store, senza rinnovi. Include l'app e i suoi aggiornamenti finché il servizio resta attivo.»
 
 Altri vincoli linguistici: evitare "lifetime" come titolo contrattuale, usare `Un solo pagamento` (D-070); annuale etichettato `Consigliato` (D-070); badge `Prezzo di lancio` con data esatta e **niente countdown** (§14.3); IT ed EN semanticamente allineati (§16.4); prevalenza della versione italiana nei documenti legali (D-074); Controlled Launch non comunicato come beta o pilot (D-093); nessun incentivo alle recensioni (D-088, FR-095); listing, FAQ e Termini devono dichiarare che le generazioni successive degli ordini in abbonamento non sono coperte (FR-099).
 
@@ -169,10 +169,12 @@ Regola strutturale: **il brand è riconoscibile ai bordi del prodotto, neutro al
 | Icona app (nav Admin, App Store) | Massima |
 | Sito pubblico | Massima |
 | Listing e screenshot | Alta — cornici, fondi, didascalie |
-| Onboarding e Guida in-app | Bassa — solo l'icona già presente in navigazione |
-| Home, Regole, Messaggi, Piano | **Nulla** — solo token Polaris |
+| Onboarding, Guida, Store non supportato e piede della colonna laterale in Home | Bassa — l'icona in navigazione e l'illustrazione ammessa da A-16 |
+| Home, Regole e Messaggi | **Nulla** — solo token Polaris |
 
-Dentro l'app embedded il colore di brand non viene usato: nessun bottone verde CF Ready accanto a un bottone Polaris, nessun banner colorato custom, nessuna intestazione brandizzata. La coerenza si ottiene dal tono dei testi e dalla struttura delle pagine, non dal colore. Questo soddisfa §17.3, NFR-040 e NFR-044.
+Dentro l'app embedded il colore di brand non viene usato sui controlli e sugli stati: nessun bottone verde CF Ready accanto a un bottone Polaris, nessun banner colorato custom, nessuna intestazione brandizzata. La coerenza si ottiene dal tono dei testi e dalla struttura delle pagine, non dal colore. Questo soddisfa §17.3, NFR-040 e NFR-044.
+
+L'unica eccezione approvata è A-16: il colore di brand può comparire **dentro un'illustrazione**, e solo sulle superfici prive di azioni operative elencate sopra. Il confine è il tipo di elemento, non la quantità di colore: ciò che il reviewer App Store confronta con l'Admin nativo sono i controlli, non le figure.
 
 ---
 
@@ -487,7 +489,7 @@ CF Ready
 | **Obiettivo** | Far compiere l'azione giusta | Spiegare il problema e i limiti | Far capire in 10 secondi se serve |
 | **Registro** | Operativo, neutro | Esplicativo, disteso | Sintetico, orientato al beneficio |
 | **Lunghezza** | Minima, una riga per concetto | Media, paragrafi brevi | Corta, bullet |
-| **Vendita** | Nessuna, tranne la pagina Piano | Presente ma sobria | Presente, mai iperbolica |
+| **Vendita** | Nessuna, tranne la scelta del piano nella Home | Presente ma sobria | Presente, mai iperbolica |
 | **Limiti** | Dichiarati dove impattano | Sezione dedicata | Sezione esplicita (§24.4, FR-099) |
 
 La stessa cosa si chiama con la stessa parola nei tre contesti.
@@ -558,13 +560,13 @@ Solo principi. Wireframe, stati completi e layout definitivi appartengono a M6, 
 ### 8.3 Densità informativa
 
 - Densità bassa: CF Ready ha poche impostazioni, mostrarle affollate le farebbe sembrare complesse.
-- Massimo 3–4 blocchi di primo livello per pagina.
+- Il tetto di 3–4 blocchi di primo livello per pagina non vale più per la Home, che ha assorbito Piano e fatturazione: lì il limite è che ogni blocco risponda a una domanda sola e che stato e decisioni restino in colonne diverse. Sulle altre pagine il tetto resta.
 - Nessuna metrica, nessun KPI, nessun grafico (D-039, §5.3).
 - Il testo esplicativo accompagna l'opzione, non una legenda separata (§15.4).
 
 ### 8.4 Azioni primarie
 
-- Una sola azione primaria visibile per schermata.
+- Una sola azione primaria per blocco, non per schermata: la Home ne ha due, `Modifica regole` nello stato e l'attivazione della modalità annuale nella scelta, perché sono due decisioni indipendenti. Sulle altre pagine resta una per schermata.
 - Le azioni che cambiano il comportamento del checkout sono sempre separate dal salvataggio: salvare non attiva mai implicitamente (D-011, FR-051).
 - Le azioni ad alto impatto passano da una conferma che dichiara la conseguenza concreta, non da un «Sei sicuro?».
 - Nessuna azione primaria dentro un blocco informativo.
@@ -628,10 +630,10 @@ Valgono le regole di §10: gerarchia heading corretta, focus sempre visibile e m
 
 ### 8.13 Uso limitato degli accenti di brand
 
-- **Zero colore di brand dentro l'app.** L'unico elemento di brand presente è l'icona nella navigazione, fornita da Shopify.
-- Nessuna intestazione brandizzata, nessun badge colorato custom, nessuna illustrazione decorativa, nessun grigio proprietario.
+- **Zero colore di brand su controlli e stati.** Bottoni, banner, badge, campi e severità restano token Polaris, sempre e ovunque.
+- Nessuna intestazione brandizzata, nessun badge colorato custom, nessun grigio proprietario.
 - L'identità dentro l'Admin passa da coerenza dei testi, ordine delle informazioni, prevedibilità delle azioni.
-- Un'eventuale eccezione futura va approvata a parte e resta singola.
+- **A-16, eccezione unica e approvata:** il colore di brand è ammesso dentro un'illustrazione, sulle sole superfici senza azioni operative — primo passo dell'onboarding, riepilogo finale dell'onboarding, testata di Guida e FAQ, schermata Store non supportato, e il piede della colonna laterale in Home, dove il marchio chiude la pagina come una firma. Nessuna altra eccezione è aperta: una nuova va approvata a parte.
 
 ---
 
@@ -641,7 +643,9 @@ Direzione, non materiali finali. Testi completi, listing, screenshot definitivi 
 
 ### 9.1 Sito pubblico
 
-**Stile generale.** Documento, non landing page commerciale. Una colonna, misura di lettura contenuta, sezioni separate da spazio ampio. Nessun hero a tutta pagina con immagine di sfondo, nessuna sezione "loved by", nessun logo wall, nessun contatore. La credibilità viene dalla precisione dei contenuti — inclusi i limiti dichiarati — non dalla scenografia.
+**Stile generale.** Sezioni separate da spazio ampio e misura di lettura contenuta per i testi lunghi. Nessun hero a tutta pagina con immagine di sfondo, nessuna sezione "loved by", nessun logo wall, nessun contatore. La credibilità viene dalla precisione dei contenuti — inclusi i limiti dichiarati — non dalla scenografia.
+
+**Aggiornamento M7, 1 agosto 2026.** La direzione iniziale prescriveva una sola colonna e un tono da documento. L'owner ha deciso che la Home deve anche convincere chi non conosce il prodotto, quindi ammette griglie di schede, passi numerati, richiami all'installazione e un esempio visivo del comportamento nel checkout. Restano validi tutti i divieti elencati sopra e nei paragrafi seguenti: cambia la densità, non il registro. Le pagine legali e di assistenza restano a colonna singola.
 
 **Palette.** Fondo Panna come default; card e blocchi di esempio su Superficie bianca. Verde bottiglia per titoli, link e bottoni. Una o due sezioni su Verde bottiglia pieno per scandire il ritmo, tipicamente la sezione dei limiti e il piè di pagina. Arancio cotto al massimo una volta per schermata.
 
@@ -649,7 +653,7 @@ Direzione, non materiali finali. Testi completi, listing, screenshot definitivi 
 
 **Sezioni.** Struttura fissa: occhiello → titolo → uno o due paragrafi → eventuale elenco o elemento visivo. Le sezioni previste da §24.4 — beneficio, campo nativo, nessuna modifica al tema, compatibilità piani, validazione, eccezioni estere, canali supportati, **limitazioni**, pricing e prova, privacy, link legali e supporto — hanno tutte lo stesso peso grafico: le limitazioni non stanno in corpo minore né nascoste in fondo.
 
-**Illustrazioni.** Preferenza per **nessuna illustrazione**. Dove un elemento visivo aiuta davvero si usano forme del sistema — la tessera, la fascia, i blocchi — in due colori, senza personaggi, senza isometrie, senza scene d'ufficio. Nessuna illustrazione che rappresenti fatture, timbri, ricevute o l'Agenzia delle Entrate.
+**Illustrazioni.** Solo forme del sistema — la tessera, la fascia, i blocchi, il campo — in due colori, senza personaggi, senza isometrie, senza scene d'ufficio. Nessuna illustrazione che rappresenti fatture, timbri, ricevute o l'Agenzia delle Entrate. Un elemento visivo si aggiunge quando mostra un comportamento che il testo dovrebbe altrimenti descrivere a parole; non per riempire una colonna. Uno schema del checkout è ammesso ed è utile, ma va dichiarato come schema e non deve somigliare a una schermata reale di Shopify (§9.3, §24.5 del Master Plan).
 
 **Rapporto con l'app.** Il sito è più espressivo dell'app ma parla la stessa lingua e usa le stesse parole: chi arriva nell'app dopo aver letto il sito riconosce i termini uno a uno.
 
@@ -795,7 +799,7 @@ Parte della direzione, non un controllo finale. Vale per app embedded, sito, lis
 |---|---|---|---|
 | **A-01** | Direzione visiva | «L'oggetto e lo strumento»: riferimento concreto alla tessera, linguaggio geometrico modernista, neutri caldi. Brand ai bordi, neutro al centro (§2) | 28/07/2026 |
 | **A-02** | Palette | Verde bottiglia `#20492F`, Arancio cotto `#C97B2E`, Panna `#F7F5EE`, Inchiostro `#1A211C`, Grigio caldo `#6B6A5C` (§3) | 28/07/2026 |
-| **A-03** | Zero colore di brand nell'app embedded | Solo token Polaris; brand presente unicamente tramite l'icona in navigazione (§2.6, §8.13) | 27/07/2026 |
+| **A-03** | Zero colore di brand nell'app embedded | Solo token Polaris su controlli e stati; brand presente tramite l'icona in navigazione. Derogata per le sole illustrazioni da A-16 (§2.6, §8.13) | 27/07/2026 |
 | **A-04** | Tipografia | Grottesco geometrico di sistema, nessun webfont, nessun font dichiarato dentro l'Admin, wordmark in tracciati (§4) | 28/07/2026 |
 | **A-05** | Marchio | «Tessera con fascia»: proporzione ISO ID-1, raggio 12,5% del lato corto, fascia in alto a spessore pieno, sigla `CF` centrata (§6.1–6.5) | 28/07/2026 |
 | **A-06** | Wordmark e lockup | Due parole, peso uniforme, monocromo, tre configurazioni (§6.6–6.7) | 28/07/2026 |
@@ -809,6 +813,7 @@ Parte della direzione, non un controllo finale. Vale per app embedded, sito, lis
 | **A-13** | Crenatura | Correzioni manuali su coppia `C`/`F` e spazio-parola, valori in §4.4 | 28/07/2026 |
 | **A-14** | Formati App Store | Icona 1200 × 1200 PNG, angoli quadrati, padding. Requisiti verificati sulle fonti ufficiali (§12.1) | 28/07/2026 |
 | **A-15** | Sigla dentro l'icona della listing | Si presenta l'icona **con** la sigla, accettando la raccomandazione Shopify di evitarne il testo. Rimedio pronto se la review contesta (§11.3) | 28/07/2026 |
+| **A-16** | Colore di brand dentro l'app, per illustrazione | Deroga unica ad A-03: verde bottiglia e arancio cotto sono ammessi **dentro un'illustrazione**, mai su un controllo o su uno stato, e solo su onboarding (primo passo e riepilogo), testata di Guida e FAQ, schermata Store non supportato e piede della colonna laterale in Home (§2.6, §8.13) | 31/07/2026 |
 
 ### 11.2 Nota sulla dark mode
 
@@ -861,7 +866,7 @@ Registrate per evitare che vengano riproposte senza una nuova decisione dell'own
 | `icon-app.svg` | Icona quadrata 512 per App Store e listing, marchio su fondo panna |
 | `icon-app-notext.svg` | Variante di riserva senza sigla, vedi A-15 |
 | `favicon.svg` | Favicon, marchio ingrandito con margini ridotti |
-| `nav-icon.svg` | Icona di navigazione dell'Admin: sola sagoma della tessera sulla griglia a 16, colorata da Shopify |
+| `nav-icon.svg` | Icona di navigazione dell'Admin: riduzione monocromatica del marchio con tessera, fascia superiore e sigla `CF` sulla griglia a 16, colorata da Shopify |
 | `wordmark.svg` | Solo wordmark in tracciati, colore da `currentColor` |
 | `lockup-horizontal.svg` | Lockup orizzontale, marchio + wordmark |
 | `lockup-vertical.svg` | Lockup verticale |

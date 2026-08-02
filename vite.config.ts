@@ -10,7 +10,7 @@ if (
   process.env.HOST &&
   (!process.env.SHOPIFY_APP_URL || process.env.SHOPIFY_APP_URL === process.env.HOST)
 ) {
-  process.env.SHOPIFY_APP_URL = process.env.HOST;
+  (process.env as Record<string, string | undefined>).SHOPIFY_APP_URL = process.env.HOST;
   delete process.env.HOST;
 }
 

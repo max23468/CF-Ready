@@ -3,7 +3,7 @@
 client_id = "adff48d4fe4ceb0dadb4734520701dd7"
 name = "CF Ready Development"
 handle = "cf-ready-development"
-application_url = "https://example.com"
+application_url = "https://cf-ready-dev.tmsf.workers.dev"
 embedded = true
 
 [access_scopes]
@@ -20,8 +20,20 @@ api_version = "2026-07"
   uri = "/webhooks/app/scopes_update"
   topics = [ "app/scopes_update" ]
 
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/shop/update"
+  topics = [ "shop/update" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/billing"
+  topics = [ "app_subscriptions/update", "app_purchases_one_time/update" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/compliance"
+  compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
+
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://cf-ready-dev.tmsf.workers.dev/auth/callback" ]
 
 [build]
 automatically_update_urls_on_dev = true
