@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { assessCapacity, parseJsonObjects, waitForEvents } from "./capacity-check.mjs";
+import { assessCapacity, parseJsonObjects, waitForEvents, waitForTail } from "./capacity-check.mjs";
 
 const event = (cpuTime, marker = "target", outcome = "ok", status = 302, phase = "measure") => ({
   cpuTime,
@@ -74,4 +74,24 @@ test("mantiene aperto il tail per gli eventi tardivi dopo il minimo", async () =
   );
 
   assert.equal(sample, 4);
+});
+
+test("attende l'avvio lento del tail oltre la vecchia soglia", async () => {
+  let probes = 0;
+
+  await waitForTail(
+    { exitCode: null },
+    "https://example.invalid",
+    "target",
+    () => (probes > 30 ? "{}" : ""),
+    () => "",
+    {
+      request: async () => {
+        probes += 1;
+      },
+      pause: async () => {},
+    },
+  );
+
+  assert.equal(probes, 31);
 });

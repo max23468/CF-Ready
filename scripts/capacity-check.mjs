@@ -4,6 +4,8 @@ import { appendFile } from "node:fs/promises";
 const REQUESTS = 120;
 const MIN_EVENTS = 100;
 const CPU_LIMIT_MS = 10;
+const TAIL_READY_TIMEOUT_MS = 60_000;
+const TAIL_POLL_INTERVAL_MS = 500;
 
 export function parseJsonObjects(input) {
   const objects = [];
@@ -119,14 +121,21 @@ async function main() {
   }
 }
 
-async function waitForTail(tail, target, marker, output, errors) {
-  for (let attempt = 0; attempt < 30; attempt += 1) {
+export async function waitForTail(
+  tail,
+  target,
+  marker,
+  output,
+  errors,
+  { request = requestBatch, pause = wait } = {},
+) {
+  for (let elapsed = 0; elapsed < TAIL_READY_TIMEOUT_MS; elapsed += TAIL_POLL_INTERVAL_MS) {
     if (tail.exitCode !== null) throw new Error(`Tail Cloudflare non avviato: ${errors().trim()}`);
-    await requestBatch(target, 1, 1, marker, "probe");
-    await wait(500);
+    await request(target, 1, 1, marker, "probe");
+    await pause(TAIL_POLL_INTERVAL_MS);
     if (parseJsonObjects(output()).length) return;
   }
-  throw new Error("Tail Cloudflare non pronto entro 15 secondi.");
+  throw new Error("Tail Cloudflare non pronto entro 60 secondi.");
 }
 
 export async function waitForEvents(output, marker, pause = wait) {

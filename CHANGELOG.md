@@ -6,6 +6,13 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.8.2 — 2 agosto 2026
+
+- la verifica capacità attende fino a 60 secondi l'avvio del tail Cloudflare
+  prima del carico, senza allentare soglie CPU, numero di eventi o errori;
+- una regressione copre un tail disponibile oltre la precedente soglia di 15
+  secondi.
+
 ## 0.8.1 — 2 agosto 2026
 
 - TypeScript passa al compilatore nativo `7.0.2`, mantenendo configurazione
