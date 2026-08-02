@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
-import { expect, test } from "vitest";
-import { recordEvent } from "../app/events.server";
+import { expect, test, vi } from "vitest";
+import { logEvent, recordEvent } from "../app/events.server";
 import {
   applyRetention,
   markUninstalled,
@@ -19,6 +19,34 @@ import {
 } from "../app/webhooks.server";
 
 const CONFIG = { schemaVersion: 2, rules: { taxCode: "required_validated" } };
+
+test("i log conservano errori e webhook e campionano gli eventi ordinari", () => {
+  const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+  const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  const occurredAt = "2026-08-02T00:00:00.000Z";
+
+  logEvent(
+    { name: "ordinary", class: "billing", shopDomain: "secret.myshopify.com" },
+    occurredAt,
+    1,
+  );
+  logEvent({ name: "sampled", class: "billing" }, occurredAt, 0.09);
+  logEvent({ name: "webhook", class: "lifecycle", webhookId: "wh-1" }, occurredAt, 1);
+  logEvent({ name: "failure", class: "error" }, occurredAt, 1);
+
+  expect(info).toHaveBeenCalledTimes(2);
+  expect(info.mock.calls[0][0]).toMatchObject({ event: "sampled", class: "billing" });
+  expect(info.mock.calls[1][0]).toMatchObject({
+    event: "webhook",
+    correlation_id: "wh-1",
+    webhook: true,
+  });
+  expect(JSON.stringify(info.mock.calls)).not.toContain("secret.myshopify.com");
+  expect(error).toHaveBeenCalledOnce();
+
+  info.mockRestore();
+  error.mockRestore();
+});
 
 async function insertShop(shopDomain: string) {
   const timestamp = "2026-07-30T00:00:00.000Z";

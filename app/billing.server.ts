@@ -1,6 +1,6 @@
 import { APP_URL } from "./env.server";
 import type { Entitlement } from "./config";
-import { recordEvent } from "./events.server";
+import { logEvent, recordEvent } from "./events.server";
 import { trialLedgerHash } from "./hash.server";
 import { planFor } from "./plans.server";
 
@@ -452,21 +452,27 @@ export async function createCharge(
     const result = body.data?.[oneTime ? "appPurchaseOneTimeCreate" : "appSubscriptionCreate"];
 
     if (body.errors?.length || !result || result.userErrors.length || !result.confirmationUrl) {
-      // Il messaggio arriva da Shopify e non contiene dati del merchant: senza, un rifiuto
-      // dell'addebito resta indistinguibile da un guasto di rete.
-      console.error(
-        JSON.stringify({
-          event: "charge_create_failed",
+      // I messaggi esterni possono cambiare o contenere dati inattesi: resta solo il codice.
+      logEvent(
+        {
+          name: "charge_create_failed",
           class: "error",
-          shopify: [...(body.errors ?? []), ...(result?.userErrors ?? [])]
-            .map(({ message }) => message)
-            .slice(0, 3),
-        }),
+          metadata: { error_code: "shopify_charge_rejected" },
+        },
+        new Date().toISOString(),
       );
       return { confirmationUrl: null, error: "charge_create_failed" };
     }
     return { confirmationUrl: result.confirmationUrl, error: null };
   } catch {
+    logEvent(
+      {
+        name: "charge_create_failed",
+        class: "error",
+        metadata: { error_code: "shopify_charge_request_failed" },
+      },
+      new Date().toISOString(),
+    );
     return { confirmationUrl: null, error: "charge_create_failed" };
   }
 }

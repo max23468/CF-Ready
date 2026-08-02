@@ -196,6 +196,52 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /needs\.deploy\.outputs\.rollback_armed == 'true'/);
   assert.doesNotMatch(workflow, /wrangler deploy(?:\s|$)/);
   assert.doesNotMatch(workflow, /shopify app deploy/);
+  assert.match(workflow, /## Ricevuta deploy Pages Production/);
+});
+
+test("il backup Production cifra, ruota gli slot e prova il restore", () => {
+  const workflow = readFileSync(
+    new URL("../.github/workflows/backup-production.yml", import.meta.url),
+    "utf8",
+  );
+  const schedule = readFileSync(
+    new URL("../.github/workflows/schedule-backup-production.yml", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(workflow, /schedule:/);
+  assert.match(workflow, /refs\/heads\/main/);
+  assert.match(schedule, /schedule:/);
+  assert.match(schedule, /gh workflow run backup-production\.yml .*--ref main/);
+  assert.match(workflow, /environment: Production Backups/);
+  assert.match(workflow, /wrangler d1 export "\$D1_DATABASE" --remote/);
+  assert.match(workflow, /backup-crypto\.mjs encrypt/);
+  assert.match(workflow, /backup-crypto\.mjs check-key/);
+  assert.match(workflow, /wrangler r2 object put "\$R2_BUCKET\/\$weekly_key"/);
+  assert.match(workflow, /wrangler r2 object get "\$R2_BUCKET\/\$WEEKLY_KEY"/);
+  assert.match(workflow, /--jurisdiction eu/);
+  assert.match(workflow, /backup-crypto\.mjs verify/);
+  assert.match(workflow, /wrangler d1 execute DB --local/);
+  assert.doesNotMatch(workflow, /d1 execute .*--remote/);
+});
+
+test("osservabilità sicura e ricevute restano configurate", () => {
+  const wrangler = JSON.parse(readFileSync(new URL("../wrangler.json", import.meta.url), "utf8"));
+  const development = readFileSync(
+    new URL("../.github/workflows/deploy-development.yml", import.meta.url),
+    "utf8",
+  );
+  assert.equal(wrangler.observability.logs.head_sampling_rate, 1);
+  assert.equal(wrangler.observability.logs.invocation_logs, false);
+  assert.equal(wrangler.observability.traces.enabled, false);
+  assert.match(development, /## Ricevuta deploy Development/);
+});
+
+test("README e indice non duplicano la versione corrente", () => {
+  const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+  const index = readFileSync(new URL("../docs/INDEX.md", import.meta.url), "utf8");
+  assert.doesNotMatch(readme, /\b0\.\d+\.\d+\b/);
+  assert.doesNotMatch(readme, /\bM\d+\b|progetto è in sviluppo/i);
+  assert.doesNotMatch(index, /\b0\.\d+\.\d+\b/);
 });
 
 test("il sito italiano e inglese mantiene il contratto pubblico essenziale", () => {

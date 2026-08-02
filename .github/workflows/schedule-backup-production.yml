@@ -1,0 +1,35 @@
+name: Pianifica backup D1 Production
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1"
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: schedule-backup-d1-production
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    name: Avvia il workflow promosso su main
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Dispatch del backup Production
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ! gh api \
+            "repos/$GITHUB_REPOSITORY/contents/.github/workflows/backup-production.yml?ref=main" \
+            > /dev/null 2>&1; then
+            echo "Workflow backup non ancora promosso su main: nessuna operazione Production." \
+              >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          gh workflow run backup-production.yml --repo "$GITHUB_REPOSITORY" --ref main
+          echo "Backup Production richiesto dalla revisione main." >> "$GITHUB_STEP_SUMMARY"
