@@ -1,14 +1,6 @@
 import { createRequestHandler } from "react-router";
+import { createAppContext } from "../app/context.server";
 import { applyRetention } from "../app/shop.server";
-
-declare module "react-router" {
-  interface AppLoadContext {
-    cloudflare: {
-      env: Env;
-      ctx: ExecutionContext;
-    };
-  }
-}
 
 const requestHandler = createRequestHandler(
   () => import("virtual:react-router/server-build"),
@@ -16,10 +8,8 @@ const requestHandler = createRequestHandler(
 );
 
 export default {
-  fetch(request, env, ctx) {
-    return requestHandler(request, {
-      cloudflare: { env, ctx },
-    });
+  fetch(request, env) {
+    return requestHandler(request, createAppContext(env.DB));
   },
   scheduled(_controller, env, ctx) {
     ctx.waitUntil(applyRetention(env.DB));

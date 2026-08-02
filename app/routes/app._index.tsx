@@ -23,6 +23,7 @@ import {
   readConfig,
   reviewIsDue,
 } from "../config";
+import { databaseContext } from "../context.server";
 import { APP_VERSION, BILLING_IS_TEST } from "../env.server";
 import { recordEvent } from "../events.server";
 import {
@@ -52,7 +53,7 @@ import type { Admin } from "../validation.server";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
-  const db = context.cloudflare.env.DB;
+  const db = context.get(databaseContext);
   // §11.6: la Home riconcilia a ogni apertura. Lo stato locale non viene mai presentato come
   // certo senza aver riletto Shopify.
   const state = await reconcile(admin, db, session.shop);
@@ -102,7 +103,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
-  const db = context.cloudflare.env.DB;
+  const db = context.get(databaseContext);
   const intent = (await request.formData()).get("intent");
 
   if (intent === "repair") {
