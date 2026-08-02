@@ -42,7 +42,8 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           D1_BACKUP_KEY: ${{ secrets.D1_BACKUP_KEY }}
         run: |
-          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$D1_BACKUP_KEY"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$D1_BACKUP_KEY"
           npm exec -- wrangler d1 info "$D1_DATABASE" --json > "$RUNNER_TEMP/d1-info.json"
           npm exec -- wrangler r2 bucket info "$R2_BUCKET" --jurisdiction eu --json > "$RUNNER_TEMP/r2-info.json"
           node --input-type=module -e '
@@ -63,7 +64,7 @@ jobs:
         run: |
           umask 077
           npm exec -- wrangler d1 export "$D1_DATABASE" --remote --skip-confirmation \
-            --output "$RUNNER_TEMP/d1.sql"
+            --output "$RUNNER_TEMP/d1.sql" > /dev/null
           node scripts/backup-crypto.mjs encrypt "$RUNNER_TEMP/d1.sql" "$RUNNER_TEMP/d1.cfrb"
 
       - name: Prova il restore prima dell'upload
