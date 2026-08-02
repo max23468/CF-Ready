@@ -483,7 +483,11 @@ export default function Home() {
       <s-app-window id="onboarding-window" src="/app/onboarding" />
 
       {/* §15.1: le azioni ad alto impatto dichiarano la conseguenza concreta, non “sei sicuro?”. */}
-      <s-modal id="deactivate" heading={t.home.deactivate}>
+      <s-modal
+        id="deactivate"
+        heading={t.home.deactivate}
+        accessibilityLabel={t.home.deactivateConfirm}
+      >
         <s-paragraph>{t.home.deactivateConfirm}</s-paragraph>
         <s-button slot="secondary-actions" commandFor="deactivate" command="--hide">
           {t.common.cancel}
@@ -672,7 +676,11 @@ export function PlanChoice({
   return (
     <>
       {choice}
-      <s-modal id="cancel-renewal" heading={t.plan.cancelRenewal}>
+      <s-modal
+        id="cancel-renewal"
+        heading={t.plan.cancelRenewal}
+        accessibilityLabel={t.plan.cancelBody}
+      >
         <s-paragraph>{t.plan.cancelBody}</s-paragraph>
         <s-button slot="secondary-actions" commandFor="cancel-renewal" command="--hide">
           {t.common.cancel}

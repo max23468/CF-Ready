@@ -6,6 +6,13 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.8.4
+
+- le pagine Regole e Messaggi affidano la Save Bar al form nativo App Bridge:
+  Annulla ripristina i valori e chiude subito lo stato non salvato;
+- le conferme di disattivazione, cancellazione e ripristino testi espongono una
+  descrizione accessibile esplicita ai browser assistivi.
+
 ## 0.8.3 — 2 agosto 2026
 
 - il timeout di readiness del tail Cloudflare usa una deadline monotona e

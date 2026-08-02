@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useActionData, useLoaderData, useSubmit } from "react-router";
 import { describeCheckout, resolveLocale, texts, validationStatus } from "../i18n";
@@ -86,8 +86,6 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   return result.ok ? { ok: true as const } : { ok: false as const, errorCode: result.errorCode };
 };
 
-const SAVE_BAR = "cf-ready-rules";
-
 export const shouldRevalidate = skipRevalidationWhenLeaving;
 
 export default function CheckoutRules() {
@@ -95,7 +93,6 @@ export default function CheckoutRules() {
   const result = useActionData<typeof action>();
 
   const t = texts(saved.locale);
-  const form = useRef<HTMLFormElement>(null);
   const send = useSubmit();
   const [changedSinceResult, setChangedSinceResult] = useState(false);
   const [draft, setDraft] = useState({
@@ -121,21 +118,11 @@ export default function CheckoutRules() {
 
   useEffect(() => setChangedSinceResult(false), [result]);
 
-  // Il confronto automatico del Save Bar non ha spento la barra quando il merchant tornava sui
-  // suoi passi. Qui lo stato "da salvare" è calcolato sui valori che la pagina già conosce,
-  // quindi tornare esattamente alla configurazione salvata la fa sparire per costruzione.
   const dirty =
     draft.rules.taxCode !== saved.rules.taxCode ||
     draft.rules.pec !== saved.rules.pec ||
     draft.errorDisplay !== saved.errorDisplay ||
     draft.address2 !== saved.address2Declared;
-
-  useEffect(() => {
-    // Se App Bridge non è ancora pronto la pagina resta usabile: un errore dell'app non deve
-    // togliere al merchant la possibilità di salvare.
-    if (typeof shopify === "undefined") return;
-    void (dirty ? shopify.saveBar.show(SAVE_BAR) : shopify.saveBar.hide(SAVE_BAR));
-  }, [dirty]);
 
   const save = () =>
     send(
@@ -153,7 +140,6 @@ export default function CheckoutRules() {
     );
 
   const discard = () => {
-    form.current?.reset();
     setDraft({
       rules: saved.rules,
       errorDisplay: saved.errorDisplay,
@@ -170,8 +156,17 @@ export default function CheckoutRules() {
   }
 
   return (
-    // Il form avvolge la pagina, così l'anteprima nell'aside resta parte dello stesso modulo.
-    <form ref={form} onChange={readDraft}>
+    // App Bridge gestisce nativamente visibilità, submit e reset della Save Bar. Il form avvolge
+    // la pagina, così anche l'anteprima nell'aside resta parte dello stesso modulo.
+    <form
+      data-save-bar
+      onChange={readDraft}
+      onReset={discard}
+      onSubmit={(event) => {
+        event.preventDefault();
+        save();
+      }}
+    >
       <s-page heading={t.rules.heading}>
         {showSavedBanner(result, dirty, changedSinceResult) ? (
           <s-banner tone="success">{t.rules.saved}</s-banner>
@@ -181,15 +176,6 @@ export default function CheckoutRules() {
             {t.errors[result.errorCode as keyof typeof t.errors] ?? t.errors.generic}
           </s-banner>
         ) : null}
-
-        <ui-save-bar id={SAVE_BAR}>
-          <button type="button" variant="primary" onClick={save}>
-            {t.common.save}
-          </button>
-          <button type="button" onClick={discard}>
-            {t.common.cancel}
-          </button>
-        </ui-save-bar>
 
         {/* Le due decisioni sono la pagina: restano le uniche card operative. */}
         <s-section heading={t.rules.taxCodeLabel}>
