@@ -111,6 +111,22 @@ test("valida i link nei file HTML senza distinzione di maiuscole", () => {
   }
 });
 
+test("ignora il vecchio percorso di un documento rinominato ma non staged", () => {
+  const repository = mkdtempSync(join(tmpdir(), "cf-ready-docs-"));
+  try {
+    execFileSync("git", ["init", "-q"], { cwd: repository });
+    writeFileSync(join(repository, "package.json"), '{"scripts":{}}');
+    writeFileSync(join(repository, "old.md"), "# Old");
+    execFileSync("git", ["add", "."], { cwd: repository });
+    rmSync(join(repository, "old.md"));
+    writeFileSync(join(repository, "new.md"), "# New");
+
+    assert.deepEqual(checkDocs(repository).errors, []);
+  } finally {
+    rmSync(repository, { force: true, recursive: true });
+  }
+});
+
 test("valida i riferimenti CSS nei file SVG", () => {
   const repository = mkdtempSync(join(tmpdir(), "cf-ready-docs-"));
   try {
@@ -270,15 +286,22 @@ test("osservabilità sicura e ricevute restano configurate", () => {
     new URL("../.github/workflows/deploy-development.yml", import.meta.url),
     "utf8",
   );
+  const operations = readFileSync(
+    new URL("../docs/runbooks/operations.md", import.meta.url),
+    "utf8",
+  );
   assert.equal(wrangler.observability.logs.head_sampling_rate, 1);
   assert.equal(wrangler.observability.logs.invocation_logs, false);
   assert.equal(wrangler.observability.traces.enabled, false);
   assert.match(development, /## Ricevuta deploy Development/);
+  assert.match(development, /npm run capacity:dev/);
+  assert.match(operations, /D1 storage per database \| 500 MB \| 400 MB/);
 });
 
 test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
   const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const ci = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
+  const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
   const playwright = readFileSync(
     new URL("../tests/playwright.config.ts", import.meta.url),
     "utf8",
@@ -289,6 +312,8 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
   );
   assert.match(ci, /playwright install --with-deps chromium webkit/);
   assert.match(ci, /npm run test:e2e/);
+  assert.match(readme, /playwright install chromium webkit/);
+  assert.match(playwright, /fileURLToPath\(new URL\("\.\."/);
   assert.match(ci, /actions\/upload-artifact@[0-9a-f]{40}/);
   assert.match(ci, /path: test-results/);
   assert.match(playwright, /failOnFlakyTests: Boolean\(process\.env\.CI\)/);

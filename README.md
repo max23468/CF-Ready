@@ -19,6 +19,7 @@ bloccata in `mise.toml`.
 mise trust mise.toml
 mise install
 mise exec -- npm ci
+mise exec -- npx playwright install chromium webkit
 mise exec -- npm run db:migrate:local
 mise exec -- npm run dev
 ```
@@ -57,6 +58,7 @@ quello sbagliato; viene rigenerato alla build successiva.
 ```sh
 mise exec -- npm test
 mise exec -- npm run test:function
+mise exec -- npm run test:e2e
 mise exec -- npm run preflight:dev
 mise exec -- npm run docs:check
 mise exec -- npm run check

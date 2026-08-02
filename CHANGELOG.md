@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.8.0
+
+- il deploy Development misura almeno cento invocazioni sintetiche dopo warm-up
+  e fallisce oltre metà del limite CPU Free al `p95`, su errori o tail incompleto;
+- il runbook operativo fissa stop point numerici per Workers, D1 e R2 e una
+  matrice browser ripetibile senza conservare sessioni staff nel repository;
+- gli E2E Playwright ripetibili coprono login bilingue, focus, viewport e sito pubblico
+  WebKit; i flussi embedded che richiedono Shopify reale restano espliciti nella
+  matrice manuale.
+
 ## 0.7.7 — 2 agosto 2026
 
 - npm rende vincolante la policy degli script di installazione e nega
