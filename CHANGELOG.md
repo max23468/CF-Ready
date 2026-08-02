@@ -6,6 +6,11 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.7.4 — 2 agosto 2026
+
+- la manutenzione sicurezza non richiede approvazioni manuali e non invia
+  notifiche di deploy per i controlli amministrativi GitHub.
+
 ## 0.7.3 — 2 agosto 2026
 
 - tutti i filtri `jq` del readback ruleset sono eseguiti senza escape letterali
