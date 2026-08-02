@@ -10,13 +10,28 @@ export default defineConfig({
   use: {
     trace: "retain-on-failure",
   },
+  webServer: [
+    {
+      command:
+        "npm run build && npx wrangler dev --config build/server/wrangler.json --var SHOPIFY_API_SECRET:e2e-test-secret --port 4173",
+      cwd: "..",
+      url: "http://localhost:4173/auth/login",
+      timeout: 120_000,
+    },
+    {
+      command: "npm run site:dev -- --port 4174",
+      cwd: "..",
+      url: "http://localhost:4174",
+      timeout: 120_000,
+    },
+  ],
   projects: [
     {
       name: "login-chromium",
       testMatch: /login\.spec\.ts/,
       use: {
         browserName: "chromium",
-        baseURL: "https://cf-ready-dev.tmsf.workers.dev",
+        baseURL: "http://localhost:4173",
         viewport: { width: 390, height: 844 },
       },
     },
@@ -25,7 +40,7 @@ export default defineConfig({
       testMatch: /site\.spec\.ts/,
       use: {
         browserName: "webkit",
-        baseURL: "https://cf-ready.pages.dev",
+        baseURL: "http://localhost:4174",
         viewport: { width: 390, height: 844 },
       },
     },
