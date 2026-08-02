@@ -13,7 +13,6 @@ import {
   markdownTargets,
   xmlAnchors,
 } from "./check-docs.mjs";
-import { siteArchive } from "./deploy-site.mjs";
 
 test("rileva link Markdown reference-style", () => {
   assert.deepEqual(markdownTargets("[Guida][setup]\n\n[setup]: docs/missing.md"), [
@@ -161,47 +160,7 @@ test("la CSP consente beacon e raccolta Cloudflare Web Analytics", () => {
   assert.match(headers, /connect-src .*https:\/\/cloudflareinsights\.com/);
 });
 
-test("il deploy Production legge main dal remoto e pubblica l'archivio Git", () => {
+test("non espone un comando locale per il deploy Pages Production", () => {
   const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-  const script = packageJson.scripts["site:deploy"];
-  const deployer = readFileSync(new URL("./deploy-site.mjs", import.meta.url), "utf8");
-  assert.match(script, /node scripts\/deploy-site\.mjs/);
-  assert.match(deployer, /ls-remote.*refs\/heads\/main/s);
-  assert.match(deployer, /git", \["archive"/);
-  assert.match(deployer, /"--branch",\s*"main"/);
-});
-
-test("l'archivio Pages esclude file ignorati e non revisionati", () => {
-  const repository = mkdtempSync(join(tmpdir(), "cf-ready-site-deploy-"));
-  try {
-    execFileSync("git", ["init", "-q"], { cwd: repository });
-    mkdirSync(join(repository, "site"));
-    writeFileSync(join(repository, ".gitignore"), ".env\n");
-    writeFileSync(join(repository, "site/index.html"), "revisionato");
-    execFileSync("git", ["add", "."], { cwd: repository });
-    execFileSync(
-      "git",
-      ["-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-qm", "base"],
-      { cwd: repository },
-    );
-    writeFileSync(join(repository, "site/index.html"), "non revisionato");
-    writeFileSync(join(repository, "site/.env"), "segreto");
-
-    const archive = siteArchive(repository);
-    const files = execFileSync("tar", ["-tf", "-"], {
-      input: archive,
-      encoding: "utf8",
-    });
-    assert.match(files, /site\/index\.html/);
-    assert.doesNotMatch(files, /\.env/);
-    assert.equal(
-      execFileSync("tar", ["-xOf", "-", "site/index.html"], {
-        input: archive,
-        encoding: "utf8",
-      }),
-      "revisionato",
-    );
-  } finally {
-    rmSync(repository, { force: true, recursive: true });
-  }
+  assert.equal(packageJson.scripts["site:deploy"], undefined);
 });

@@ -35,12 +35,11 @@ CSP in `site/_headers` consente il beacon e l'invio a `cloudflareinsights.com`.
 
 ```sh
 mise exec -- npm run site:dev
-mise exec -- npm run site:deploy
 ```
 
-`site:deploy` confronta il checkout con `main` letto direttamente dal remoto e
-pubblica sul branch Pages Production soltanto l'archivio `site/` di quel commit.
-Modifiche locali, file non tracciati o ignorati non entrano nel deploy.
+Il deploy Pages Production non ha un comando locale: il workflow controllato,
+serializzato e vincolato a `main` è pianificato in M8. Fino ad allora non esiste
+una corsia supportata per sostituire il sito pubblico dal checkout locale.
 
 `site/tokens.css` è una copia di `docs/brand/assets/tokens.css`, che resta la
 fonte canonica dei token di brand: se cambiano i token, va aggiornata anche la

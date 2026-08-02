@@ -51,6 +51,9 @@ creato la sola preview `d05b3ab8-bce8-4da0-9b2d-e9d1781a5088`, senza cambiare
 il dominio canonico. La causa era il branch Pages derivato dal checkout: la PR
 `#144` ha fissato esplicitamente il target Production `main`, coperto dal test
 documentale, e il deploy successivo `d7017616-…` ha superato il readback live.
+I rilievi successivi hanno però mostrato che un comando locale non può
+serializzare atomicamente verifica e pubblicazione del branch remoto: la `#143`
+lo rimuove, in attesa del workflow controllato pianificato in M8.
 
 ### Una trappola nel deploy
 
@@ -58,9 +61,9 @@ documentale, e il deploy successivo `d7017616-…` ha superato il readback live.
 `react-router build` lascia per il Worker, e da lì viene dirottato sulla
 configurazione dell'app: il sito non parte e il comando fallisce con i binding
 D1 in errore. Pages non accetta un file di configurazione alternativo — `--config`
-è esplicitamente rifiutato — quindi gli script `site:dev` e `site:deploy`
-rimuovono quell'artefatto prima di invocare Pages. Viene rigenerato alla build
-successiva.
+è esplicitamente rifiutato — quindi `site:dev` rimuove quell'artefatto prima di
+invocare Pages. Viene rigenerato alla build successiva. Non resta un comando
+locale per il deploy Production.
 
 ## Snapshot Development rilasciati
 

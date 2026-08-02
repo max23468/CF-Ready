@@ -20,7 +20,6 @@
     "doctor": "react-doctor",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "site:dev": "rm -f .wrangler/deploy/config.json && wrangler pages dev site",
-    "site:deploy": "rm -f .wrangler/deploy/config.json && node scripts/deploy-site.mjs",
     "check": "npm run docs:check && npm run lint && npm run format:check && npm run typecheck && npm run test:preflight && npm test && npm run test:function && npm run doctor && npm run build && npm run build:function && wrangler deploy --dry-run",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",

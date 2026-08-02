@@ -13,9 +13,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   contenere dettagli sfruttabili e serve a concordare un canale sicuro;
 - il Master Plan distingue questo percorso pubblico dai canali di sicurezza
   disponibili direttamente nel repository;
-- il deploy Pages Production confronta il checkout con il `main` remoto corrente
-  e pubblica un archivio costruito dal commit, impedendo a revisioni stale o a
-  file locali, non tracciati o ignorati di raggiungere il sito.
+- il comando locale di deploy Pages Production è rimosso: la corsia controllata,
+  serializzata e vincolata a `main` resta il workflow pianificato in M8.
 
 ## 0.5.10 — 2 agosto 2026
 
