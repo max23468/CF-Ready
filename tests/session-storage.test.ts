@@ -170,7 +170,9 @@ test("un rinnovo di sessione non simula una reinstallazione prima della disinsta
 
   await storage.storeSession(session("token-due"));
 
-  expect(await markUninstalled(env.DB, shop, claim.installationStartedAt)).toBe(true);
+  expect(
+    await markUninstalled(env.DB, shop, claim.installationStartedAt, "wh-session-reinstall"),
+  ).toBe(true);
   expect(
     await env.DB.prepare(
       "SELECT installation_status, installed_at FROM shops WHERE shop_domain = ?",

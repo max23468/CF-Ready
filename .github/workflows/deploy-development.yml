@@ -60,6 +60,13 @@ jobs:
         run: |
           version="$(node -p "require('./package.json').version")"
           echo "DEPLOY_VERSION=$version" >> "$GITHUB_ENV"
+          {
+            echo "## Ricevuta deploy Development"
+            echo "- Ambiente: Development"
+            echo "- Configurazione: \`wrangler.json\`, \`shopify.app.dev.toml\`"
+            echo "- Versione repository/Shopify: \`$version\`"
+            echo "- Commit: \`$GITHUB_SHA\`"
+          } >> "$GITHUB_STEP_SUMMARY"
           if [ "$DEPLOY_READBACK_ONLY" = "true" ]; then
             echo "- Retry dello snapshot già coordinato: eseguito solo readback" >> "$GITHUB_STEP_SUMMARY"
           fi
@@ -138,9 +145,10 @@ jobs:
           ' "$RUNNER_TEMP/worker-deployment.json"
 
       - name: Smoke Worker Development
-        run: >-
-          curl --fail --silent --show-error --max-time 15 --output /dev/null
-          https://cf-ready-dev.tmsf.workers.dev
+        run: |
+          curl --fail --silent --show-error --max-time 15 --output /dev/null \
+            https://cf-ready-dev.tmsf.workers.dev
+          echo "- Smoke: Worker Development raggiungibile" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Deploy Shopify Development
         if: env.DEPLOY_READBACK_ONLY != 'true'

@@ -6,6 +6,19 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.6.0 — 2 agosto 2026
+
+- il workflow promosso su `main` esporta D1, cifra l'export prima di R2,
+  mantiene otto slot settimanali e dodici mensili e prova ogni copia su un D1
+  locale effimero; lo scheduler sul branch predefinito può soltanto avviare
+  quella revisione Production;
+- errori e webhook entrano sempre nei Workers Logs strutturati, gli eventi
+  ordinari sono campionati al 10% e nessun record contiene lo shop domain;
+- il runbook fissa query, soglie iniziali, procedura Traces solo Development,
+  ripristino su un nuovo D1 e formato comune delle ricevute di deploy;
+- i workflow Development e Pages producono ricevute leggibili e complete nel
+  riepilogo GitHub Actions.
+
 ## 0.5.13 — 2 agosto 2026
 
 - un errore nella lettura billing Shopify pubblica un entitlement `none`
