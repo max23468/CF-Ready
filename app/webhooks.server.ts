@@ -4,11 +4,11 @@ const PROCESSING_TIMEOUT_MS = 5 * 60 * 1000;
 
 export async function handleWebhook(
   db: D1Database,
-  webhook: { webhookId: string; topic: string; shop: string },
+  webhook: { webhookId: string; topic: string; shop: string; triggeredAt?: string },
   handler: (claim: { installationStartedAt: string | null }) => Promise<void>,
 ) {
-  const { webhookId, topic, shop } = webhook;
-  const claim = await claimWebhook(db, webhookId, topic, shop);
+  const { webhookId, topic, shop, triggeredAt } = webhook;
+  const claim = await claimWebhook(db, webhookId, topic, shop, undefined, undefined, triggeredAt);
 
   if (!claim.acquired) {
     return new Response(null, { status: claim.retry ? 500 : 200 });
@@ -89,14 +89,24 @@ export async function claimWebhook(
   shopDomain: string | null,
   now = new Date().toISOString(),
   token: string = crypto.randomUUID(),
+  triggeredAt?: string,
 ) {
   const staleBefore = new Date(Date.parse(now) - PROCESSING_TIMEOUT_MS).toISOString();
+  const eventTimestamp = triggeredAt ? Date.parse(triggeredAt) : Number.NaN;
+  if (topic === "APP_UNINSTALLED" && Number.isNaN(eventTimestamp)) {
+    return { acquired: false, retry: true } as const;
+  }
+  const eventTime = Number.isNaN(eventTimestamp) ? "" : new Date(eventTimestamp).toISOString();
   const claim = await db
     .prepare(
       `INSERT INTO webhook_events (
          webhook_id, shop_domain, topic, status, received_at, claim_token, installation_started_at
        )
-       VALUES (?, ?, ?, 'processing', ?, ?, (SELECT installed_at FROM shops WHERE shop_domain = ?))
+       VALUES (
+         ?, ?, ?, 'processing', ?, ?,
+         (SELECT installed_at FROM shops
+          WHERE shop_domain = ? AND (? != 'APP_UNINSTALLED' OR installed_at <= ?))
+       )
        ON CONFLICT (webhook_id) DO UPDATE SET
          status = 'processing',
          received_at = excluded.received_at,
@@ -108,7 +118,7 @@ export async function claimWebhook(
           OR (webhook_events.status = 'processing' AND webhook_events.received_at <= ?)
        RETURNING claim_token, installation_started_at`,
     )
-    .bind(webhookId, shopDomain, topic, now, token, shopDomain, staleBefore)
+    .bind(webhookId, shopDomain, topic, now, token, shopDomain, topic, eventTime, staleBefore)
     .first<{ claim_token: string; installation_started_at: string | null }>();
 
   if (claim) {

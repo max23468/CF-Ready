@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 20
     environment: Pages Production
     outputs:
-      deployed: ${{ steps.deploy.outputs.deployed }}
+      rollback_armed: ${{ steps.rollback_guard.outputs.armed }}
       rollback_id: ${{ steps.preflight.outputs.rollback_id }}
 
     steps:
@@ -69,19 +69,22 @@ jobs:
 
       - run: npm run check
 
+      - name: Arma rollback Pages Production
+        id: rollback_guard
+        run: echo "armed=true" >> "$GITHUB_OUTPUT"
+
       - name: Deploy Pages Production
-        id: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           rm -f .wrangler/deploy/config.json
+          printf '%s\n' "$GITHUB_SHA" > site/deployment.txt
           npm exec -- wrangler pages deploy site \
             --project-name "$PAGES_PROJECT" \
             --branch main \
             --commit-hash "$GITHUB_SHA" \
             --commit-message "Production $GITHUB_SHA" \
             --commit-dirty=false
-          echo "deployed=true" >> "$GITHUB_OUTPUT"
 
       - name: Readback Pages Production
         env:
@@ -113,11 +116,11 @@ jobs:
         run: |
           published=false
           for _ in 1 2 3 4 5 6 7 8 9 10; do
-            curl --fail --silent --show-error --max-time 15 \
+            if curl --fail --silent --show-error --location --max-redirs 5 --max-time 15 \
               --header "Cache-Control: no-cache" \
-              --output "$RUNNER_TEMP/pages-home.html" \
-              "https://$PAGES_DOMAIN/?commit=$GITHUB_SHA"
-            if grep -Fq 'class="skip-link"' "$RUNNER_TEMP/pages-home.html"; then
+              --output "$RUNNER_TEMP/pages-deployment.txt" \
+              "https://$PAGES_DOMAIN/deployment.txt?commit=$GITHUB_SHA" && \
+              grep -Fxq "$GITHUB_SHA" "$RUNNER_TEMP/pages-deployment.txt"; then
               published=true
               break
             fi
@@ -125,11 +128,13 @@ jobs:
           done
           test "$published" = true
           for route in / /privacy /terms /support /en/ /en/privacy /en/terms /en/support; do
-            curl --fail --silent --show-error --max-time 15 \
+            effective_url="$(curl --fail --silent --show-error --location --max-redirs 5 --max-time 15 \
               --header "Cache-Control: no-cache" \
-              --output /dev/null "https://$PAGES_DOMAIN$route?commit=$GITHUB_SHA"
+              --output /dev/null --write-out '%{url_effective}' \
+              "https://$PAGES_DOMAIN$route?commit=$GITHUB_SHA")"
+            test "$effective_url" = "https://$PAGES_DOMAIN$route?commit=$GITHUB_SHA"
           done
-          curl --fail --silent --show-error --max-time 15 \
+          curl --fail --silent --show-error --location --max-redirs 5 --max-time 15 \
             --header "Cache-Control: no-cache" \
             --dump-header "$RUNNER_TEMP/pages-headers.txt" \
             --output /dev/null "https://$PAGES_DOMAIN/?commit=$GITHUB_SHA"
@@ -141,7 +146,7 @@ jobs:
   rollback:
     name: Rollback Pages Production
     needs: deploy
-    if: ${{ always() && needs.deploy.result == 'failure' && needs.deploy.outputs.deployed == 'true' }}
+    if: ${{ always() && needs.deploy.result == 'failure' && needs.deploy.outputs.rollback_armed == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     environment: Pages Production
