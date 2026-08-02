@@ -18,6 +18,12 @@ dei rispettivi provider e non devono comparire nel repository o nei log.
 `SHOPIFY_API_KEY`, ID account, ID database e nomi delle risorse non sono
 segreti, ma non autorizzano alcun accesso.
 
+`TRIAL_LEDGER_HMAC_KEY` è un identificatore stabile del ledger, non una chiave
+di sessione: non va ruotata ordinariamente. Va conservata nel secret store con
+backup recuperabile; in caso di compromissione, la vecchia versione resta
+necessaria per riconoscere le prove già registrate e la migrazione a una nuova
+chiave richiede una procedura dedicata prima della sostituzione.
+
 ## Rotazione di `SESSION_ENCRYPTION_KEY`
 
 Le sessioni sono rigenerabili: non esiste una doppia chiave e non serve

@@ -217,6 +217,7 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
   ]);
   let account = storedAccount;
   let creditEstimate: number | null = null;
+  let billingConfirmed = false;
 
   if (eligible) {
     try {
@@ -267,19 +268,22 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
         timeZone: shop.ianaTimezone,
         pricingGeneration: currentPricingGeneration(trial, account, today),
       });
+      billingConfirmed = true;
 
       if (account.entitlement_status === "active") {
         await markTrialConverted(db, shopDomain);
       }
     } catch {
-      // Shopify non raggiungibile: si tiene lo stato noto invece di declassare il merchant
-      // o di rompere la pagina, e l'ambiguità resta visibile come codice errore.
+      // La cache resta disponibile alla UI, ma non concede diritti: quando Shopify è incerto
+      // il metafield deve diventare fail-open invece di trattare D1 come verità alternativa.
       account = await readBillingAccount(db, shopDomain);
       errorCode ??= "billing_read_failed";
     }
   }
 
-  const entitlement = entitlementFor(trial, today, account);
+  const entitlement: Entitlement = billingConfirmed
+    ? entitlementFor(trial, today, account)
+    : { kind: "none", validThrough: null };
 
   // Il diritto commerciale vive nel metafield: la Function lo confronta con la data locale e
   // si spegne da sola alla scadenza, senza job periodici.
@@ -393,7 +397,9 @@ export async function writeValidation(
       });
       if (account.entitlement_status === "active") await markTrialConverted(db, shopDomain);
     }
-    const entitlement = entitlementFor(trial, today, account);
+    const entitlement: Entitlement = billing
+      ? entitlementFor(trial, today, account)
+      : { kind: "none", validThrough: null };
     if (enable === true && !existing?.enabled && entitlement.kind === "none") {
       return { ok: false, errorCode: "entitlement_required" };
     }

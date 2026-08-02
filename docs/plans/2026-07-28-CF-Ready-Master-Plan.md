@@ -1418,14 +1418,17 @@ seconda prova: la cancellazione dei dati porta via anche `trials`.
 
 | Campo | Tipo/logica |
 |---|---|
-| `shop_hash` | text primary key, HMAC-SHA-256 del dominio con secret dedicato |
+| `shop_hash` | text primary key, HMAC-SHA-256 del dominio con secret dedicato e stabile per tutta la vita del ledger |
 | `trial_ends_at` | text nullable |
 | `pricing_generation` | `launch`, `balanced`, `value` |
 | `recorded_at` | text |
 
 Non contiene dominio, identificatori Shopify o dati riferibili in chiaro, ed è
 l’unica traccia che sopravvive a `shop/redact`, come consentito da §21.5 e
-§21.6. Viene consultato solo quando manca la riga in `trials`.
+§21.6. Viene consultato solo quando manca la riga in `trials`. La chiave non è
+soggetta alla rotazione ordinaria delle sessioni: va custodita e sottoposta a
+backup nello stesso secret store, perché senza le versioni storiche non è
+possibile riconoscere gli hash già registrati.
 
 #### `billing_accounts`
 

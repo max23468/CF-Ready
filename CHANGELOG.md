@@ -6,6 +6,20 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.5.13 — 2 agosto 2026
+
+- un errore nella lettura billing Shopify pubblica un entitlement `none`
+  fail-open senza usare la cache D1 come verità alternativa;
+- un webhook di disinstallazione consegnato dopo una reinstallazione usa il
+  momento autenticato dell'evento e non cancella la nuova installazione;
+- il preflight Development blocca nuove migrazioni distruttive che richiedono
+  un rilascio compatibile in due fasi;
+- il deploy Pages arma il rollback prima dell'upload, verifica sul dominio
+  canonico un marker del commit, ritenta gli errori transitori e controlla la
+  destinazione finale dei redirect;
+- la chiave HMAC del ledger è dichiarata stabile e recuperabile, così le prove
+  già fruite restano riconoscibili.
+
 ## 0.5.12 — 2 agosto 2026
 
 - la retention oraria applica le soglie pubblicate a ricevute webhook, errori,
