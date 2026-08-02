@@ -365,6 +365,8 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.match(workflow, /alerts="\$\(gh api/);
   assert.match(workflow, /alert_count="\$\(jq/);
   assert.match(workflow, /security-events: read/);
+  assert.match(workflow, /name: Security Maintenance\n\s+deployment: false/);
+  assert.match(workflow, /GH_TOKEN: \$\{\{ secrets\.SECURITY_AUDIT_TOKEN \}\}/);
   assert.doesNotMatch(workflow, /success\|skipped\|neutral\|never/);
   assert.match(workflow, /\.path != "\.github\/workflows\/security-maintenance\.yml"/);
   assert.doesNotMatch(ci, /allow-ghsas:/);
