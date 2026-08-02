@@ -65,6 +65,19 @@ jobs:
             --output "$RUNNER_TEMP/d1.sql"
           node scripts/backup-crypto.mjs encrypt "$RUNNER_TEMP/d1.sql" "$RUNNER_TEMP/d1.cfrb"
 
+      - name: Prova il restore prima dell'upload
+        env:
+          D1_BACKUP_KEY: ${{ secrets.D1_BACKUP_KEY }}
+        run: |
+          umask 077
+          node scripts/backup-crypto.mjs decrypt \
+            "$RUNNER_TEMP/d1.cfrb" "$RUNNER_TEMP/preflight.sql"
+          cmp "$RUNNER_TEMP/d1.sql" "$RUNNER_TEMP/preflight.sql"
+          npm exec -- wrangler d1 execute DB --local --yes \
+            --persist-to "$RUNNER_TEMP/preflight-state" --file "$RUNNER_TEMP/preflight.sql"
+          node scripts/backup-crypto.mjs verify \
+            "$RUNNER_TEMP/preflight.sql" "$RUNNER_TEMP/preflight.sqlite"
+
       - name: Pubblica gli slot di retention
         id: upload
         env:
@@ -85,7 +98,7 @@ jobs:
             echo "monthly_key=$monthly_key" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Readback e restore drill locale
+      - name: Readback remoto e ricevuta
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           D1_BACKUP_KEY: ${{ secrets.D1_BACKUP_KEY }}
@@ -94,12 +107,10 @@ jobs:
           umask 077
           npm exec -- wrangler r2 object get "$R2_BUCKET/$WEEKLY_KEY" \
             --remote --jurisdiction eu --file "$RUNNER_TEMP/readback.cfrb"
-          node scripts/backup-crypto.mjs decrypt "$RUNNER_TEMP/readback.cfrb" "$RUNNER_TEMP/restore.sql"
-          cmp "$RUNNER_TEMP/d1.sql" "$RUNNER_TEMP/restore.sql"
-          npm exec -- wrangler d1 execute DB --local --yes \
-            --persist-to "$RUNNER_TEMP/restore-state" --file "$RUNNER_TEMP/restore.sql"
-          node scripts/backup-crypto.mjs verify \
-            "$RUNNER_TEMP/restore.sql" "$RUNNER_TEMP/restore.sqlite"
+          cmp "$RUNNER_TEMP/d1.cfrb" "$RUNNER_TEMP/readback.cfrb"
+          node scripts/backup-crypto.mjs decrypt \
+            "$RUNNER_TEMP/readback.cfrb" "$RUNNER_TEMP/readback.sql"
+          cmp "$RUNNER_TEMP/d1.sql" "$RUNNER_TEMP/readback.sql"
           checksum="$(sha256sum "$RUNNER_TEMP/readback.cfrb" | cut -d " " -f 1)"
           {
             echo "## Ricevuta backup D1 Production"
@@ -108,7 +119,8 @@ jobs:
             echo "- Database: \`$D1_DATABASE\` (\`$D1_DATABASE_ID\`)"
             echo "- Oggetto R2: \`$WEEKLY_KEY\`"
             echo "- SHA-256 cifrato: \`$checksum\`"
-            echo "- Readback: decifratura, confronto export, import D1 locale e \`integrity_check=ok\`"
+            echo "- Pre-upload: import D1 locale e \`integrity_check=ok\`"
+            echo "- Readback R2: oggetto cifrato e SQL uguali all'export verificato"
             if [ -n "${{ steps.upload.outputs.monthly_key }}" ]; then
               echo "- Copia mensile: \`${{ steps.upload.outputs.monthly_key }}\`"
             fi

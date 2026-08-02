@@ -24,10 +24,11 @@ Ogni esecuzione:
 1. verifica account, UUID e jurisdiction D1 e nome/jurisdiction R2;
 2. esporta il database remoto con `wrangler d1 export --remote`;
 3. cifra prima dell'upload;
-4. scarica lo slot appena scritto e ne verifica checksum, autenticità e
-   uguaglianza con l'export;
-5. importa la copia in un D1 locale effimero e verifica separatamente l'export
-   con `PRAGMA integrity_check` del runtime SQLite incluso in Node.js;
+4. decifra e importa la copia in un D1 locale effimero, quindi verifica
+   separatamente l'export con `PRAGMA integrity_check` del runtime SQLite
+   incluso in Node.js;
+5. soltanto dopo il restore riuscito sovrascrive gli slot R2, riscarica quello
+   settimanale e ne verifica identità, autenticità e uguaglianza con l'export;
 6. registra chiave R2, checksum e risultato nel riepilogo GitHub.
 
 La prima esecuzione remota richiede: environment `Production Backups`, secret

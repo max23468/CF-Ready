@@ -221,6 +221,9 @@ test("il backup Production cifra, ruota gli slot e prova il restore", () => {
   assert.match(workflow, /--jurisdiction eu/);
   assert.match(workflow, /backup-crypto\.mjs verify/);
   assert.match(workflow, /wrangler d1 execute DB --local/);
+  assert.ok(
+    workflow.indexOf("backup-crypto.mjs verify") < workflow.indexOf("wrangler r2 object put"),
+  );
   assert.doesNotMatch(workflow, /d1 execute .*--remote/);
 });
 

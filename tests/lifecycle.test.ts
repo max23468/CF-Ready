@@ -442,6 +442,7 @@ test("un claim ancora attivo mantiene la risposta ritentabile", async () => {
 });
 
 test("il replay dello stesso webhook non duplica i suoi eventi", async () => {
+  const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
   const shop = await insertShop("webhook-evento.example.myshopify.com");
   const event = {
     shopDomain: shop,
@@ -461,6 +462,8 @@ test("il replay dello stesso webhook non duplica i suoi eventi", async () => {
       .bind(event.webhookId, event.name)
       .first(),
   ).toMatchObject({ total: 1 });
+  expect(info.mock.calls.filter(([record]) => record.event === event.name)).toHaveLength(1);
+  info.mockRestore();
 });
 
 test("un errore transitorio del heartbeat non abbandona un claim ancora posseduto", async () => {
