@@ -60,20 +60,6 @@ jobs:
               --json conclusion --jq '.[0].conclusion')" = success
           done
 
-  governance:
-    name: Conferma mensile governance amministrativa
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 6 1 * *'
-    needs: repository
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    # Prerequisito live: required reviewer max23468 e branch policy develop.
-    environment: Security governance
-    steps:
-      - name: Registra conferma owner
-        run: >-
-          echo "Confermati: nessun bypass actor, auto-merge attivo e cancellazione
-          automatica dei branch disattivata."
-
   providers:
     name: Verifica trimestrale provider Development
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '47 6 1 1,4,7,10 *'

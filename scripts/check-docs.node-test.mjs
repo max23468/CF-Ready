@@ -258,11 +258,7 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   for (const [, singleQuoted] of workflow.matchAll(/'([^']*)'/g)) {
     assert.doesNotMatch(singleQuoted, /\\/);
   }
-  assert.match(workflow, /name: Conferma mensile governance amministrativa/);
-  assert.match(workflow, /needs: repository/);
-  assert.match(workflow, /required reviewer max23468 e branch policy develop/);
-  assert.match(workflow, /environment: Security governance/);
-  assert.match(workflow, /nessun bypass actor, auto-merge attivo/);
+  assert.doesNotMatch(workflow, /Security governance|required reviewer|approval|approvazione/);
   assert.doesNotMatch(workflow, /bypass_actors/);
   assert.doesNotMatch(workflow, /allow_auto_merge|delete_branch_on_merge/);
   assert.doesNotMatch(workflow, /branches\/$branch\/protection/);
