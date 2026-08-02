@@ -6,6 +6,12 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.5.11 — 2 agosto 2026
+
+- la pagina Support pubblica la policy e il canale GitHub privato per le
+  vulnerabilità; l'email resta soltanto il fallback per concordare un canale
+  sicuro, senza inviare dettagli sfruttabili.
+
 ## 0.5.10 — 2 agosto 2026
 
 - chiusi i rilievi Codex ancora aperti su billing, riconciliazione delle

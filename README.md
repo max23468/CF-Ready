@@ -4,8 +4,8 @@ Public app Shopify per validare formalmente Codice Fiscale e PEC nei campi
 nativi del checkout italiano.
 
 > Il progetto è in sviluppo: M0–M7 sono completate per il perimetro Development.
-> Lo snapshot Development corrente è `0.5.9` e la versione del repository è
-> `0.5.10`, con motore di validazione, billing, interfaccia merchant, onboarding
+> Lo snapshot Development corrente è `0.5.10` e la versione del repository è
+> `0.5.11`, con motore di validazione, billing, interfaccia merchant, onboarding
 > e sito pubblico implementati. Il sito è pubblicato su
 > [cf-ready.pages.dev](https://cf-ready.pages.dev/); Production, submission App
 > Store e gate wallet M10 non sono ancora completati.
