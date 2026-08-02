@@ -30,7 +30,8 @@ verso Shopify.
 | Memoria Worker | 128 MB | un solo `exceededMemory` |
 | D1 letture | 5 milioni righe/giorno | 2,5 milioni/giorno per due giorni |
 | D1 scritture | 100.000 righe/giorno | 50.000/giorno per due giorni |
-| D1 storage | 5 GB totali | 2,5 GB |
+| D1 storage per database | 500 MB | 400 MB |
+| D1 storage account | 5 GB totali | 2,5 GB |
 | R2 Standard storage | 10 GB-mese/mese | 5 GB-mese per due mesi |
 | R2 operazioni Class A | 1 milione/mese | 500.000/mese per due mesi |
 | R2 operazioni Class B | 10 milioni/mese | 5 milioni/mese per due mesi |

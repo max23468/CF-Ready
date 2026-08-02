@@ -1,6 +1,7 @@
 import { defineConfig } from "@playwright/test";
+import { fileURLToPath } from "node:url";
 
-const repositoryRoot = new URL("..", import.meta.url).pathname;
+const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
 
 export default defineConfig({
   testDir: "./e2e",
