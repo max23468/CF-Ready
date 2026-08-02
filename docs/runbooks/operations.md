@@ -14,6 +14,10 @@ massimo resta nella ricevuta per rendere visibili eventuali cold start, ma non
 sostituisce il percentile operativo. Gli eventi non sintetici non attraversano
 il confine Cloudflare-runner.
 
+L'avvio del tail può richiedere fino a 60 secondi; il carico non parte finché
+una probe marcata non torna dal provider. La soglia riguarda soltanto la
+connessione al tail e non allenta numero di eventi, errori o limiti CPU.
+
 Il workflow Development esegue il controllo dopo il deploy Worker e prima dello
 snapshot Shopify. Un fallimento attiva il rollback coordinato già previsto. La
 prova riguarda il costo base del routing React Router; i percorsi autenticati,
