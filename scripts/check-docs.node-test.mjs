@@ -257,6 +257,7 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.match(workflow, /\.conditions\.ref_name\.include == \[\$ref\]/);
   assert.match(workflow, /name: Conferma mensile governance amministrativa/);
   assert.match(workflow, /needs: repository/);
+  assert.match(workflow, /required reviewer max23468 e branch policy develop/);
   assert.match(workflow, /environment: Security governance/);
   assert.match(workflow, /nessun bypass actor, auto-merge attivo/);
   assert.doesNotMatch(workflow, /bypass_actors/);

@@ -23,6 +23,12 @@ positivo finché l'owner non approva l'environment `Security governance` dopo
 aver confermato che non esistono bypass actor, che l'auto-merge è attivo e che
 la cancellazione automatica globale dei branch è disattivata.
 
+`Security governance` è un prerequisito del workflow: nelle impostazioni
+GitHub deve avere `max23468` come required reviewer e una deployment branch
+policy limitata a `develop`. Il readback effettuato durante l'introduzione del
+gate ha confermato entrambe le protection rule; se l'environment viene ricreato
+o modificato, l'owner deve ripetere il readback prima del run successivo.
+
 ## Advisory React Router
 
 L'audit ammette soltanto
