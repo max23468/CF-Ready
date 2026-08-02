@@ -38,9 +38,9 @@ mise exec -- npm run site:dev
 mise exec -- npm run site:deploy
 ```
 
-`site:deploy` pubblica sul branch Pages Production `main` soltanto quando il
-checkout coincide esattamente con `origin/main` e `site/` non contiene modifiche
-o file non tracciati; negli altri casi si ferma senza modificare il sito pubblico.
+`site:deploy` confronta il checkout con `main` letto direttamente dal remoto e
+pubblica sul branch Pages Production soltanto l'archivio `site/` di quel commit.
+Modifiche locali, file non tracciati o ignorati non entrano nel deploy.
 
 `site/tokens.css` è una copia di `docs/brand/assets/tokens.css`, che resta la
 fonte canonica dei token di brand: se cambiano i token, va aggiornata anche la
