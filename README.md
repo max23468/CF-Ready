@@ -4,8 +4,8 @@ Public app Shopify per validare formalmente Codice Fiscale e PEC nei campi
 nativi del checkout italiano.
 
 > Il progetto è in sviluppo: M0–M7 sono completate per il perimetro Development.
-> Lo snapshot Development corrente è `0.5.9` e la versione del repository è
-> `0.5.10`, con motore di validazione, billing, interfaccia merchant, onboarding
+> Lo snapshot Development corrente è `0.5.10` e la versione del repository è
+> `0.5.11`, con motore di validazione, billing, interfaccia merchant, onboarding
 > e sito pubblico implementati. Il sito è pubblicato su
 > [cf-ready.pages.dev](https://cf-ready.pages.dev/); Production, submission App
 > Store e gate wallet M10 non sono ancora completati.
@@ -35,16 +35,19 @@ CSP in `site/_headers` consente il beacon e l'invio a `cloudflareinsights.com`.
 
 ```sh
 mise exec -- npm run site:dev
-mise exec -- npm run site:deploy
 ```
+
+Il deploy Pages Production non ha un comando locale: il workflow controllato,
+serializzato e vincolato a `main` è pianificato in M8. Fino ad allora non esiste
+una corsia supportata per sostituire il sito pubblico dal checkout locale.
 
 `site/tokens.css` è una copia di `docs/brand/assets/tokens.css`, che resta la
 fonte canonica dei token di brand: se cambiano i token, va aggiornata anche la
 copia.
 
-Entrambi i comandi rimuovono prima `.wrangler/deploy/config.json`, l'artefatto
-che `react-router build` lascia per il Worker: finché esiste, Wrangler dirotta
-anche i comandi Pages sulla configurazione dell'app e il sito non parte. Pages
+`site:dev` rimuove prima `.wrangler/deploy/config.json`, l'artefatto che
+`react-router build` lascia per il Worker: finché esiste, Wrangler dirotta anche
+i comandi Pages sulla configurazione dell'app e il sito non parte. Pages
 non accetta un file di configurazione alternativo, quindi si toglie di mezzo
 quello sbagliato; viene rigenerato alla build successiva.
 

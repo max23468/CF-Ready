@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.5.11 — 2 agosto 2026
+
+- la pagina Support mantiene per scelta il solo contatto email per le
+  vulnerabilità, senza riferimenti al repository: il primo messaggio non deve
+  contenere dettagli sfruttabili e serve a concordare un canale sicuro;
+- il Master Plan distingue questo percorso pubblico dai canali di sicurezza
+  disponibili direttamente nel repository;
+- il comando locale di deploy Pages Production è rimosso: la corsia controllata,
+  serializzata e vincolata a `main` resta il workflow pianificato in M8.
+
 ## 0.5.10 — 2 agosto 2026
 
 - chiusi i rilievi Codex ancora aperti su billing, riconciliazione delle
