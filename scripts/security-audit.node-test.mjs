@@ -3,22 +3,17 @@ import test from "node:test";
 
 import { verifySecurityAudit } from "./security-audit.mjs";
 
-const allowedReport = {
+const cleanReport = {
   auditReportVersion: 2,
-  vulnerabilities: {
-    "react-router": { via: [{ source: 1124282 }] },
-    "@react-router/dev": { via: ["react-router"] },
-  },
-  metadata: { vulnerabilities: { total: 2 } },
+  vulnerabilities: {},
+  metadata: { vulnerabilities: { total: 0 } },
 };
 
-test("accetta soltanto l'advisory RSC noto quando RSC non è usato", () => {
-  assert.doesNotThrow(() =>
-    verifySecurityAudit(allowedReport, [{ path: "app/root.tsx", content: "export default {};" }]),
-  );
+test("accetta un audit senza vulnerabilità", () => {
+  assert.doesNotThrow(() => verifySecurityAudit(cleanReport));
 });
 
-test("rifiuta advisory nuovi e l'uso delle API RSC instabili", () => {
+test("rifiuta qualsiasi vulnerabilità", () => {
   assert.throws(
     () =>
       verifySecurityAudit({
@@ -26,19 +21,7 @@ test("rifiuta advisory nuovi e l'uso delle API RSC instabili", () => {
         vulnerabilities: { pacchetto: { via: [{ source: 42 }] } },
         metadata: { vulnerabilities: { total: 1 } },
       }),
-    /non consentito/,
-  );
-  assert.throws(
-    () =>
-      verifySecurityAudit(
-        {
-          auditReportVersion: 2,
-          vulnerabilities: {},
-          metadata: { vulnerabilities: { total: 0 } },
-        },
-        [{ path: "app/root.tsx", content: "unstable_createCallServer();" }],
-      ),
-    /RSC instabili/,
+    /vulnerabilità/,
   );
 });
 

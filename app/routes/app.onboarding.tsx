@@ -9,6 +9,7 @@ import {
   readConfig,
   RULE_MODES,
 } from "../config";
+import { databaseContext } from "../context.server";
 import { recordEvent } from "../events.server";
 import { describeCheckout, resolveLocale, texts, validationStatus } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
@@ -28,7 +29,7 @@ const STEPS = 4;
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
-  const db = context.cloudflare.env.DB;
+  const db = context.get(databaseContext);
   const state = await reconcile(admin, db, session.shop);
   const validation = state.validation;
   const config = readConfig(validation?.metafield?.jsonValue);
@@ -52,7 +53,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
-  const db = context.cloudflare.env.DB;
+  const db = context.get(databaseContext);
   const form = await request.formData();
   const intent = form.get("intent");
 

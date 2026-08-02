@@ -1,5 +1,6 @@
 import { expect, test, vi } from "vitest";
 import { DEFAULT_CONFIG } from "../app/config";
+import { createAppContext } from "../app/context.server";
 
 const mocks = vi.hoisted(() => ({
   authenticate: vi.fn(),
@@ -41,7 +42,7 @@ test("la pagina Regole carica l’entitlement autorevole per l’anteprima", asy
   const { loader } = await import("../app/routes/app.rules");
   const result = await loader({
     request: new Request("https://example.test/app/rules?locale=it"),
-    context: { cloudflare: { env: { DB: db } } },
+    context: createAppContext(db as D1Database),
     params: {},
   } as never);
 
@@ -62,7 +63,7 @@ test("la pagina Regole segnala la configurazione indeterminata dei duplicati", a
   const { loader } = await import("../app/routes/app.rules");
   const result = await loader({
     request: new Request("https://example.test/app/rules?locale=it"),
-    context: { cloudflare: { env: { DB: {} } } },
+    context: createAppContext({} as D1Database),
     params: {},
   } as never);
 

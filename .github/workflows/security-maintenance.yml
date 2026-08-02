@@ -28,6 +28,7 @@ jobs:
         with:
           node-version: 26.5.0
           cache: npm
+      - run: npm install --global npm@12.0.2
       - run: npm ci
       - run: npm run audit:security
       - run: npm audit signatures
@@ -53,8 +54,8 @@ jobs:
             test "$(jq -r '.rules[] | select(.type == "required_status_checks") | .parameters.strict_required_status_checks_policy' <<< "$ruleset")" = "$strict"
             test "$(jq -r '[.rules[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | sort | join(",")' <<< "$ruleset")" = "$expected_checks"
           }
-          verify_ruleset develop false dependency-review,react-doctor,verify
-          verify_ruleset main true dependency-review,promotion-guard,react-doctor,verify
+          verify_ruleset develop false dependency-review,e2e,react-doctor,verify
+          verify_ruleset main true dependency-review,e2e,promotion-guard,react-doctor,verify
           for workflow in ci.yml deploy-development.yml; do
             test "$(gh run list --workflow "$workflow" --branch develop --limit 1 \
               --json conclusion --jq '.[0].conclusion')" = success
@@ -74,6 +75,7 @@ jobs:
         with:
           node-version: 26.5.0
           cache: npm
+      - run: npm install --global npm@12.0.2
       - run: npm install --global @shopify/cli@4.6.0
       - run: npm ci
       - name: Verifica credenziali provider

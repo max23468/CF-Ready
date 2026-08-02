@@ -7,7 +7,7 @@ provider senza introdurre una seconda corsia di deploy.
 
 `security-maintenance.yml` esegue:
 
-- ogni mese: audit npm con eccezioni puntuali, firme del registry, documenti,
+- ogni mese: audit npm senza eccezioni, firme del registry, documenti,
   ruleset GitHub pubblici e ultimo esito dei workflow critici;
 - ogni trimestre: identità e accessi Shopify/Cloudflare Development, stato
   coordinato della versione attiva, D1, secret Worker e smoke HTTP.
@@ -21,20 +21,17 @@ automatica dei branch: l'owner li verifica nelle impostazioni del repository
 soltanto quando modifica la governance. Questi controlli non aggiungono
 approvazioni o notifiche al workflow periodico.
 
-## Advisory React Router
+## Dipendenze npm
 
-L'audit ammette soltanto
-[`GHSA-qwww-vcr4-c8h2`](https://github.com/advisories/GHSA-qwww-vcr4-c8h2),
-che riguarda le API RSC instabili. Il repository non le usa e Shopify dichiara
-compatibilità con React Router 7 tramite la peer dependency del proprio
-pacchetto applicativo. React Router `7.18.2` include il backport della correzione;
-l'audit npm e `dependency-review` ammettono quindi lo stesso identificativo
-finché il database advisory globale non aggiorna l'intervallo vulnerabile.
+Il repository usa npm 12 e il relativo lockfile v4. React Router `8.3.0`
+risolve `GHSA-qwww-vcr4-c8h2`; `npm audit` e `dependency-review` non ammettono
+eccezioni. Finché Shopify non amplia la propria peer dependency, il manifest
+root corregge soltanto quel metadato con `packageExtensions`.
 
-Il gate fallisce se compare un advisory diverso o se viene introdotta una API
-`unstable_*` nel runtime, inclusi gli helper RSC che non contengono `RSC` nel
-nome. Non usare `npm audit fix --force`: l'upgrade a React Router 8 richiede
-prima il supporto del pacchetto Shopify e il gate completo della toolchain.
+GitHub documenta Dependabot fino a npm 11. Alert e security update restano
+attivi, ma ogni PR che non riesca ad aggiornare il lockfile v4 va sostituita da
+un aggiornamento ordinario generato e verificato con la versione npm fissata nel
+repository. Non usare `--force` o `--legacy-peer-deps`.
 
 ## Gestione di un fallimento
 

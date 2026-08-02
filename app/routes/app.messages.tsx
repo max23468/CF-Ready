@@ -11,6 +11,7 @@ import {
 } from "../config";
 import { validateMessages } from "../config";
 import type { CheckoutConfig } from "../config";
+import { databaseContext } from "../context.server";
 import { resolveLocale, texts } from "../i18n";
 import type { Locale } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
@@ -52,7 +53,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   }
   const result = await writeValidation(
     admin,
-    context.cloudflare.env.DB,
+    context.get(databaseContext),
     session.shop,
     { rules: current.rules, errorDisplay: current.errorDisplay, messages: validated.messages },
     null,
