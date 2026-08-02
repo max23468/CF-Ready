@@ -42,13 +42,18 @@ Verificati sul dominio pubblico dopo l'ultimo deploy, tutti `200`:
 canonici di §18.3 sono quelli effettivamente serviti. Gli header di
 `site/_headers` sono applicati: `Content-Security-Policy: default-src 'none'`,
 `Referrer-Policy`, `X-Content-Type-Options`, `Permissions-Policy`. La Home non
-carica alcuna risorsa da domini terzi.
+carica risorse di terzi oltre al beacon automatico Cloudflare Web Analytics da
+`static.cloudflareinsights.com`; il readback browser ha osservato il `POST` a
+`cloudflareinsights.com/cdn-cgi/rum` concluso con `204`.
 
 Durante la chiusura, un'esecuzione di `site:deploy` dal branch `develop` ha
 creato la sola preview `d05b3ab8-bce8-4da0-9b2d-e9d1781a5088`, senza cambiare
 il dominio canonico. La causa era il branch Pages derivato dal checkout: la PR
 `#144` ha fissato esplicitamente il target Production `main`, coperto dal test
 documentale, e il deploy successivo `d7017616-…` ha superato il readback live.
+I rilievi successivi hanno però mostrato che un comando locale non può
+serializzare atomicamente verifica e pubblicazione del branch remoto: la `#143`
+lo rimuove, in attesa del workflow controllato pianificato in M8.
 
 ### Una trappola nel deploy
 
@@ -56,9 +61,9 @@ documentale, e il deploy successivo `d7017616-…` ha superato il readback live.
 `react-router build` lascia per il Worker, e da lì viene dirottato sulla
 configurazione dell'app: il sito non parte e il comando fallisce con i binding
 D1 in errore. Pages non accetta un file di configurazione alternativo — `--config`
-è esplicitamente rifiutato — quindi gli script `site:dev` e `site:deploy`
-rimuovono quell'artefatto prima di invocare Pages. Viene rigenerato alla build
-successiva.
+è esplicitamente rifiutato — quindi `site:dev` rimuove quell'artefatto prima di
+invocare Pages. Viene rigenerato alla build successiva. Non resta un comando
+locale per il deploy Production.
 
 ## Snapshot Development rilasciati
 
@@ -89,7 +94,7 @@ Shopify attiva, verificata da ultimo come `0.5.10`.
 | Gate | Esito |
 | --- | --- |
 | URL pubblici | **superato.** Otto pagine `200` sul dominio pubblico, header applicati |
-| Canale privato per vulnerabilità | **superato.** Private Vulnerability Reporting attivato via API e confermato `enabled`; segnalazione di prova `GHSA-jv8v-x9hc-q5qh` creata in privato e chiusa subito dopo, con notifica ricevuta sulla casella prevista |
+| Segnalazione vulnerabilità | **superato.** Il sito Pages espone soltanto il primo contatto email senza dettagli sfruttabili, per decisione dell'owner; nel repository Private Vulnerability Reporting è attivato e verificato separatamente |
 | Testi coerenti fra sito, app e futura listing | **superato.** Stessa casella di assistenza ovunque, stessi limiti dichiarati con le stesse parole, nessun claim vietato da §4.4 |
 
 ## Verifiche manuali

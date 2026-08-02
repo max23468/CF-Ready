@@ -3063,6 +3063,12 @@ attivo. La policy include:
 Questi tempi sono obiettivi operativi, non uno SLA. Vulnerabilità, credenziali e
 dettagli sfruttabili non vengono gestiti tramite issue pubbliche.
 
+Per decisione dell'owner, il sito Pages non espone riferimenti al repository,
+a `SECURITY.md` o a GitHub. La pagina Support pubblica soltanto la casella email:
+il primo messaggio descrive il tipo di problema e un recapito, senza dettagli
+sfruttabili, e serve a concordare un canale sicuro. `SECURITY.md` e Private
+Vulnerability Reporting restano disponibili a chi raggiunge il repository.
+
 ---
 
 ## 22. Assistenza
@@ -3966,7 +3972,8 @@ Deliverable:
 Gate:
 
 - URL pubblici;
-- canale privato per vulnerabilità verificato;
+- primo contatto email per vulnerabilità verificato sul sito Pages e canale
+  privato verificato nel repository, senza collegamenti fra le due superfici;
 - testi coerenti con listing/app.
 
 Decisioni prese durante la milestone:

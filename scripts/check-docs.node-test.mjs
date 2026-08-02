@@ -160,7 +160,7 @@ test("la CSP consente beacon e raccolta Cloudflare Web Analytics", () => {
   assert.match(headers, /connect-src .*https:\/\/cloudflareinsights\.com/);
 });
 
-test("il deploy del sito aggiorna sempre il branch Production", () => {
+test("non espone un comando locale per il deploy Pages Production", () => {
   const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-  assert.match(packageJson.scripts["site:deploy"], /--branch main(?:\s|$)/);
+  assert.equal(packageJson.scripts["site:deploy"], undefined);
 });
