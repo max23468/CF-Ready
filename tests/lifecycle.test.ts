@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
-import { expect, test } from "vitest";
-import { recordEvent } from "../app/events.server";
+import { expect, test, vi } from "vitest";
+import { logEvent, recordEvent } from "../app/events.server";
 import {
   applyRetention,
   markUninstalled,
@@ -20,6 +20,34 @@ import {
 
 const CONFIG = { schemaVersion: 2, rules: { taxCode: "required_validated" } };
 
+test("i log conservano errori e webhook e campionano gli eventi ordinari", () => {
+  const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+  const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  const occurredAt = "2026-08-02T00:00:00.000Z";
+
+  logEvent(
+    { name: "ordinary", class: "billing", shopDomain: "secret.myshopify.com" },
+    occurredAt,
+    1,
+  );
+  logEvent({ name: "sampled", class: "billing" }, occurredAt, 0.09);
+  logEvent({ name: "webhook", class: "lifecycle", webhookId: "wh-1" }, occurredAt, 1);
+  logEvent({ name: "failure", class: "error" }, occurredAt, 1);
+
+  expect(info).toHaveBeenCalledTimes(2);
+  expect(info.mock.calls[0][0]).toMatchObject({ event: "sampled", class: "billing" });
+  expect(info.mock.calls[1][0]).toMatchObject({
+    event: "webhook",
+    correlation_id: "wh-1",
+    webhook: true,
+  });
+  expect(JSON.stringify(info.mock.calls)).not.toContain("secret.myshopify.com");
+  expect(error).toHaveBeenCalledOnce();
+
+  info.mockRestore();
+  error.mockRestore();
+});
+
 async function insertShop(shopDomain: string) {
   const timestamp = "2026-07-30T00:00:00.000Z";
   await env.DB.prepare(
@@ -31,6 +59,29 @@ async function insertShop(shopDomain: string) {
     .run();
   return shopDomain;
 }
+
+test("gli eventi lifecycle inseriti direttamente raggiungono i log una volta sola", async () => {
+  const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+  const shop = await insertShop("log-diretti.example.myshopify.com");
+  const installedAt = "2026-07-30T00:00:00.000Z";
+
+  expect(await markUninstalled(env.DB, shop, installedAt, "wh-log-uninstall")).toBe(true);
+  expect(await markUninstalled(env.DB, shop, installedAt, "wh-log-uninstall")).toBe(false);
+  expect(await redactShop(env.DB, shop, "wh-log-redact")).toBe(true);
+  expect(await redactShop(env.DB, shop, "wh-log-redact")).toBe(true);
+
+  expect(
+    info.mock.calls.map(([record]) => ({
+      event: record.event,
+      correlation_id: record.correlation_id,
+      webhook: record.webhook,
+    })),
+  ).toEqual([
+    { event: "app_uninstalled", correlation_id: "wh-log-uninstall", webhook: true },
+    { event: "shop_redacted", correlation_id: "wh-log-redact", webhook: true },
+  ]);
+  info.mockRestore();
+});
 
 const FUSO = "Europe/Rome";
 const SENZA_DIRITTO = { kind: "none", validThrough: null };
@@ -391,6 +442,7 @@ test("un claim ancora attivo mantiene la risposta ritentabile", async () => {
 });
 
 test("il replay dello stesso webhook non duplica i suoi eventi", async () => {
+  const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
   const shop = await insertShop("webhook-evento.example.myshopify.com");
   const event = {
     shopDomain: shop,
@@ -410,6 +462,8 @@ test("il replay dello stesso webhook non duplica i suoi eventi", async () => {
       .bind(event.webhookId, event.name)
       .first(),
   ).toMatchObject({ total: 1 });
+  expect(info.mock.calls.filter(([record]) => record.event === event.name)).toHaveLength(1);
+  info.mockRestore();
 });
 
 test("un errore transitorio del heartbeat non abbandona un claim ancora posseduto", async () => {
@@ -471,8 +525,12 @@ test("il replay della disinstallazione non tocca una reinstallazione successiva"
     "2026-08-01T10:00:00.000Z",
   );
   if (!first.acquired || !first.installationStartedAt) throw new Error("claim non acquisito");
-  expect(await markUninstalled(env.DB, shop, first.installationStartedAt)).toBe(true);
-  expect(await markUninstalled(env.DB, shop, first.installationStartedAt)).toBe(false);
+  expect(
+    await markUninstalled(env.DB, shop, first.installationStartedAt, "wh-uninstall-replay"),
+  ).toBe(true);
+  expect(
+    await markUninstalled(env.DB, shop, first.installationStartedAt, "wh-uninstall-replay"),
+  ).toBe(false);
 
   await env.DB.prepare(
     `UPDATE shops SET installation_status = 'active', installed_at = ?, uninstalled_at = NULL
@@ -498,7 +556,7 @@ test("il replay della disinstallazione non tocca una reinstallazione successiva"
     },
     async (claim) => {
       if (claim.installationStartedAt) {
-        await markUninstalled(env.DB, shop, claim.installationStartedAt);
+        await markUninstalled(env.DB, shop, claim.installationStartedAt, "wh-uninstall-replay");
       }
     },
   );
@@ -557,7 +615,12 @@ test("la prima consegna tardiva della disinstallazione non tocca la reinstallazi
     },
     async (claim) => {
       if (claim.installationStartedAt) {
-        await markUninstalled(env.DB, shop, claim.installationStartedAt);
+        await markUninstalled(
+          env.DB,
+          shop,
+          claim.installationStartedAt,
+          "wh-uninstall-prima-consegna-tardiva",
+        );
       }
     },
   );
@@ -583,8 +646,8 @@ test("la disinstallazione completa stato ed evento anche da uno stato parziale",
     .bind(installedAt, shop)
     .run();
 
-  expect(await markUninstalled(env.DB, shop, installedAt)).toBe(true);
-  expect(await markUninstalled(env.DB, shop, installedAt)).toBe(false);
+  expect(await markUninstalled(env.DB, shop, installedAt, "wh-uninstall-parziale")).toBe(true);
+  expect(await markUninstalled(env.DB, shop, installedAt, "wh-uninstall-parziale")).toBe(false);
   expect(
     await env.DB.prepare(
       `SELECT installation_status,
@@ -713,7 +776,7 @@ test("disinstallazione e redact ripuliscono i dati dello store", async () => {
     shop,
   );
 
-  await markUninstalled(env.DB, shop, "2026-07-30T00:00:00.000Z");
+  await markUninstalled(env.DB, shop, "2026-07-30T00:00:00.000Z", "wh-uninstall-redact");
   expect(
     await env.DB.prepare(
       "SELECT installation_status, uninstalled_at FROM shops WHERE shop_domain = ?",

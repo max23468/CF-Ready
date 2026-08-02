@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import {
   addDays,
   cancelSubscription,
@@ -563,6 +563,7 @@ test("un acquisto una tantum rimborsato revoca il diritto", async () => {
 });
 
 test("l'addebito restituisce l'URL di conferma e distingue i due tipi", async () => {
+  const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
   const chiamate: { query: string; variables: unknown }[] = [];
   const admin = (payload: unknown) => ({
     graphql: async (query: string, options?: { variables?: Record<string, unknown> }) => {
@@ -648,6 +649,12 @@ test("l'addebito restituisce l'URL di conferma e distingue i due tipi", async ()
       },
     ),
   ).toEqual({ confirmationUrl: null, error: "charge_create_failed" });
+
+  expect(error.mock.calls.map(([record]) => record.error_code)).toEqual([
+    "shopify_charge_rejected",
+    "shopify_charge_request_failed",
+  ]);
+  error.mockRestore();
 });
 
 test("il confine billing riconosce il piano ricorrente già attivo", () => {

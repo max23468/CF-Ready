@@ -2,8 +2,9 @@
 
 ## Master Plan di prodotto, architettura, implementazione e lancio
 
-**Stato:** baseline approvata per scaffolding e implementazione · M0–M7 completate in Development · Production, submission App Store e wallet M10 non completati
-**Data:** 27 luglio 2026 · revisione 28 luglio 2026  
+**Uso:** requisiti, decisioni e gate restano canonici qui; versione e stato
+corrente si leggono da `package.json`, `CHANGELOG.md`, codice, configurazioni e
+ricevute operative.
 **Documenti vincolanti collegati:** `docs/brand/brand-foundation.md` (identità visiva, tono, materiali pubblici)  
 **Brand:** CF Ready  
 **Nome pubblico:** CF Ready — Codice Fiscale nel Checkout  
@@ -2655,6 +2656,11 @@ automatici creati durante il bootstrap, come `cf-ready-1` e `cf-ready-2`,
 restano nella cronologia come rollback: non vengono rinominati o cancellati, ma
 non devono essere generati da nuovi deploy.
 
+README e indice non duplicano la versione corrente. Le ricevute sotto
+`docs/evidence/` sono fotografie storiche: una volta chiusa la milestone non si
+aggiornano per bump successivi. Le nuove versioni entrano in `CHANGELOG.md`, nel
+manifest e nella ricevuta del workflow o della milestone corrente.
+
 ### 19.6 GitHub Actions
 
 GitHub Actions resta l’unico sistema CI/CD.
@@ -4507,7 +4513,9 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
    spaziature, accenti e responsive fine sono stati verificati dall'owner
    nell'Admin reale, compreso il collaudo successivo alla correzione responsive
    `0.4.31`; la UI embedded non richiede illustrazioni aggiuntive.
-4. **Pacchetto visivo pubblico** — direzione fissata in `docs/brand/brand-foundation.md` §9. Restano da produrre i materiali veri in M7 e M9: testi del sito, listing completa, screenshot, didascalie.
+4. **Pacchetto visivo pubblico** — testi del sito completati in M7 secondo la
+   direzione fissata in `docs/brand/brand-foundation.md` §9. Listing completa,
+   screenshot e didascalie restano da produrre in M9.
 5. **Rifiniture di brand non bloccanti**
    - ~~correzione ottica della crenatura del wordmark~~ — **chiusa il 28 luglio 2026**, valori in `docs/brand/brand-foundation.md` §4.4;
    - ~~conferma delle dimensioni richieste dai requisiti App Store~~ — **chiusa il 28 luglio 2026**, specifiche in §24.5;

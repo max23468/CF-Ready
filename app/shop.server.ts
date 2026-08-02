@@ -1,5 +1,5 @@
 import { recordTrialLedger } from "./billing.server";
-import { recordEvent } from "./events.server";
+import { logEvent, recordEvent } from "./events.server";
 
 // Installazione da uno store non ammesso: si cancella tutto ciò che l'autenticazione ha
 // appena creato, così non resta né una sessione utilizzabile né uno store sconosciuto.
@@ -27,6 +27,7 @@ export async function refuseInstall(db: D1Database, shopDomain: string) {
 // `afterAuth`: l'evento vale una sola volta per installazione, cioè finché non arriva una
 // disinstallazione successiva.
 export async function recordInstallOnce(db: D1Database, shopDomain: string) {
+  const occurredAt = new Date().toISOString();
   const inserted = await db
     .prepare(
       `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
@@ -44,9 +45,12 @@ export async function recordInstallOnce(db: D1Database, shopDomain: string) {
          )
        RETURNING id`,
     )
-    .bind(new Date().toISOString(), shopDomain)
+    .bind(occurredAt, shopDomain)
     .first<{ id: number }>();
 
+  if (inserted) {
+    logEvent({ name: "app_installed", class: "lifecycle" }, occurredAt);
+  }
   return inserted !== null;
 }
 
@@ -54,6 +58,7 @@ export async function markUninstalled(
   db: D1Database,
   shopDomain: string,
   installationStartedAt: string,
+  webhookId: string,
 ) {
   const now = new Date().toISOString();
   const results = await db.batch([
@@ -93,7 +98,11 @@ export async function markUninstalled(
       )
       .bind(now, shopDomain, installationStartedAt),
   ]);
-  return results[3].meta.changes === 1;
+  const inserted = results[3].meta.changes === 1;
+  if (inserted) {
+    logEvent({ name: "app_uninstalled", class: "lifecycle", webhookId }, now);
+  }
+  return inserted;
 }
 
 // Shopify invia `shop/redact` 48 ore dopo la disinstallazione e non annulla l'invio se
@@ -130,7 +139,7 @@ export async function redactShop(
   // anonimizzare la ricevuta. Il dominio non deve restare nella riga ormai priva di owner.
   if (!shop) {
     const now = new Date().toISOString();
-    await db.batch([
+    const results = await db.batch([
       db
         .prepare(
           `INSERT INTO app_events (
@@ -143,6 +152,17 @@ export async function redactShop(
         .prepare("UPDATE webhook_events SET shop_domain = NULL WHERE shop_domain = ?")
         .bind(shopDomain),
     ]);
+    if (results[0].meta.changes === 1) {
+      logEvent(
+        {
+          name: "shop_redacted",
+          class: "lifecycle",
+          ...(topic === "SHOP_REDACT" ? { webhookId } : {}),
+          metadata: { topic },
+        },
+        now,
+      );
+    }
     return true;
   }
 
@@ -153,7 +173,7 @@ export async function redactShop(
   await recordTrialLedger(db, shopDomain);
 
   const now = new Date().toISOString();
-  await db.batch([
+  const results = await db.batch([
     db
       .prepare(
         `INSERT INTO app_events (
@@ -180,6 +200,18 @@ export async function redactShop(
       )
       .bind(shopDomain, webhookId),
   ]);
+
+  if (results[0].meta.changes === 1) {
+    logEvent(
+      {
+        name: "shop_redacted",
+        class: "lifecycle",
+        ...(topic === "SHOP_REDACT" ? { webhookId } : {}),
+        metadata: { topic },
+      },
+      now,
+    );
+  }
 
   return (
     (await db

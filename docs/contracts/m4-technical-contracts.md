@@ -96,9 +96,12 @@ Endpoint e topic registrati:
 
 `recordEvent` scrive in `app_events` ed è best effort: un errore di scrittura
 non interrompe il lifecycle, viene solo segnalato come `app_event_write_failed`.
-Gli eventi di classe `error` finiscono anche in Workers Logs come JSON.
-`webhook_id` è valorizzato soltanto dagli endpoint webhook e deduplica i retry
-dello stesso evento senza introdurre payload o dati merchant.
+Gli eventi di classe `error` e quelli nati da webhook finiscono sempre in
+Workers Logs come oggetti JSON strutturati; gli altri eventi sono campionati al
+10%. Ogni record di log riceve un `correlation_id`, ma non lo shop domain.
+`webhook_id` è valorizzato soltanto dagli endpoint webhook, deduplica i retry
+dello stesso evento e diventa il correlation ID del log senza introdurre
+payload o dati merchant.
 
 | Evento | Classe | Quando |
 | --- | --- | --- |

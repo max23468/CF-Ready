@@ -9,7 +9,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
   return handleWebhook(db, webhook, async (claim) => {
     if (claim.installationStartedAt) {
-      await markUninstalled(db, webhook.shop, claim.installationStartedAt);
+      await markUninstalled(db, webhook.shop, claim.installationStartedAt, webhook.webhookId);
     }
   });
 };
