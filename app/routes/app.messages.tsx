@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useActionData, useLoaderData, useSubmit } from "react-router";
 import {
@@ -15,6 +15,7 @@ import { databaseContext } from "../context.server";
 import { resolveLocale, texts } from "../i18n";
 import type { Locale } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
+import { notifySaveBarFields } from "../save-bar";
 import { authenticate } from "../shopify.server";
 import {
   findValidation,
@@ -82,6 +83,7 @@ export default function CustomerMessages() {
   const t = texts(saved.locale);
   const [changedSinceResult, setChangedSinceResult] = useState(false);
   const [draft, setDraft] = useState<CheckoutConfig["messages"]>(saved.messages);
+  const form = useRef<HTMLFormElement>(null);
   // I campi non sono controllati: React che riscrive `value` a ogni tasto farebbe saltare il
   // cursore dentro un testo lungo. Il ripristino li rimonta cambiando chiave, così ripartono
   // dal nuovo valore predefinito senza che React possieda il contenuto.
@@ -138,10 +140,12 @@ export default function CustomerMessages() {
     setChangedSinceResult(true);
     setDraft((current) => ({ ...current, [locale]: { ...DEFAULT_CONFIG.messages[locale] } }));
     setMounted((current) => ({ ...current, [locale]: current[locale] + 1 }));
+    notifySaveBarFields(form.current, `${locale}.`);
   };
 
   return (
     <form
+      ref={form}
       data-save-bar
       onInput={readDraft}
       onChange={readDraft}
