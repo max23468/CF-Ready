@@ -1,7 +1,4 @@
-export function notifySaveBarFields(form: HTMLFormElement | null, namePrefix: string) {
-  requestAnimationFrame(() => {
-    form
-      ?.querySelectorAll(`[name^="${namePrefix}"]`)
-      .forEach((field) => field.dispatchEvent(new Event("input", { bubbles: true })));
-  });
+export function setSaveBarVisibility(id: string, visible: boolean) {
+  if (typeof shopify === "undefined") return;
+  void (visible ? shopify.saveBar.show(id) : shopify.saveBar.hide(id));
 }

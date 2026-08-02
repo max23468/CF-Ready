@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useActionData, useLoaderData, useSubmit } from "react-router";
 import {
@@ -15,7 +15,7 @@ import { databaseContext } from "../context.server";
 import { resolveLocale, texts } from "../i18n";
 import type { Locale } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
-import { notifySaveBarFields } from "../save-bar";
+import { setSaveBarVisibility } from "../save-bar";
 import { authenticate } from "../shopify.server";
 import {
   findValidation,
@@ -64,6 +64,8 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   return result.ok ? { ok: true as const } : { ok: false as const, errorCode: result.errorCode };
 };
 
+const SAVE_BAR = "cf-ready-messages";
+
 // Polaris non ha un campo che si ridimensiona da solo: `rows` fissa le righe visibili e il
 // resto finisce in uno scroll interno. Le righe si calcolano quindi dal testo, così il campo
 // cresce e nulla resta nascosto — nemmeno oltre i 200 caratteri, che è proprio il momento in
@@ -83,7 +85,6 @@ export default function CustomerMessages() {
   const t = texts(saved.locale);
   const [changedSinceResult, setChangedSinceResult] = useState(false);
   const [draft, setDraft] = useState<CheckoutConfig["messages"]>(saved.messages);
-  const form = useRef<HTMLFormElement>(null);
   // I campi non sono controllati: React che riscrive `value` a ogni tasto farebbe saltare il
   // cursore dentro un testo lungo. Il ripristino li rimonta cambiando chiave, così ripartono
   // dal nuovo valore predefinito senza che React possieda il contenuto.
@@ -101,6 +102,8 @@ export default function CustomerMessages() {
   const dirty = (["it", "en"] as const).some((locale) =>
     MESSAGE_KEYS.some((key) => draft[locale][key] !== saved.messages[locale][key]),
   );
+
+  useEffect(() => setSaveBarVisibility(SAVE_BAR, dirty), [dirty]);
 
   // Un solo ascoltatore per la pagina: gli eventi dei componenti Polaris risalgono fino al
   // modulo, come già in Regole checkout.
@@ -140,21 +143,10 @@ export default function CustomerMessages() {
     setChangedSinceResult(true);
     setDraft((current) => ({ ...current, [locale]: { ...DEFAULT_CONFIG.messages[locale] } }));
     setMounted((current) => ({ ...current, [locale]: current[locale] + 1 }));
-    notifySaveBarFields(form.current, `${locale}.`);
   };
 
   return (
-    <form
-      ref={form}
-      data-save-bar
-      onInput={readDraft}
-      onChange={readDraft}
-      onReset={discard}
-      onSubmit={(event) => {
-        event.preventDefault();
-        save();
-      }}
-    >
+    <form onInput={readDraft} onChange={readDraft}>
       <s-page heading={t.messages.heading}>
         {showSavedBanner(result, dirty, changedSinceResult) ? (
           <s-banner tone="success">{t.messages.saved}</s-banner>
@@ -164,6 +156,15 @@ export default function CustomerMessages() {
             {t.errors[result.errorCode as keyof typeof t.errors] ?? t.errors.generic}
           </s-banner>
         ) : null}
+
+        <ui-save-bar id={SAVE_BAR}>
+          <button type="button" variant="primary" onClick={save}>
+            {t.common.save}
+          </button>
+          <button type="button" onClick={discard}>
+            {t.common.cancel}
+          </button>
+        </ui-save-bar>
 
         {/* L'introduzione non è una sezione, quindi non riceve la spaziatura che `s-page` dà
             alle card: la distanza dal primo box va dichiarata qui. */}
