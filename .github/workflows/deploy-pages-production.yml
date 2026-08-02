@@ -111,14 +111,28 @@ jobs:
 
       - name: Smoke sito pubblico
         run: |
-          for path in / /privacy /terms /support /en/ /en/privacy /en/terms /en/support; do
+          published=false
+          for _ in 1 2 3 4 5 6 7 8 9 10; do
             curl --fail --silent --show-error --max-time 15 \
-              --output /dev/null "https://$PAGES_DOMAIN$path"
+              --header "Cache-Control: no-cache" \
+              --output "$RUNNER_TEMP/pages-home.html" \
+              "https://$PAGES_DOMAIN/?commit=$GITHUB_SHA"
+            if grep -Fq 'class="skip-link"' "$RUNNER_TEMP/pages-home.html"; then
+              published=true
+              break
+            fi
+            sleep 3
+          done
+          test "$published" = true
+          for route in / /privacy /terms /support /en/ /en/privacy /en/terms /en/support; do
+            curl --fail --silent --show-error --max-time 15 \
+              --header "Cache-Control: no-cache" \
+              --output /dev/null "https://$PAGES_DOMAIN$route?commit=$GITHUB_SHA"
           done
           curl --fail --silent --show-error --max-time 15 \
+            --header "Cache-Control: no-cache" \
             --dump-header "$RUNNER_TEMP/pages-headers.txt" \
-            --output "$RUNNER_TEMP/pages-home.html" "https://$PAGES_DOMAIN/"
-          grep -Fq 'class="skip-link"' "$RUNNER_TEMP/pages-home.html"
+            --output /dev/null "https://$PAGES_DOMAIN/?commit=$GITHUB_SHA"
           for header in content-security-policy referrer-policy x-content-type-options permissions-policy; do
             grep --ignore-case --quiet "^$header:" "$RUNNER_TEMP/pages-headers.txt"
           done

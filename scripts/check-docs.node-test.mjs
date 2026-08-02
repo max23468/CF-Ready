@@ -181,6 +181,8 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   );
   assert.match(workflow, /canonical_deployment\.deployment_trigger\.metadata\.commit_hash/);
   assert.match(workflow, /deployments\/\$ROLLBACK_ID\/rollback/);
+  assert.match(workflow, /--header "Cache-Control: no-cache"/);
+  assert.match(workflow, /test "\$published" = true/);
   assert.doesNotMatch(workflow, /wrangler deploy(?:\s|$)/);
   assert.doesNotMatch(workflow, /shopify app deploy/);
 });
