@@ -20,7 +20,9 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 - la pagina Support indica direttamente l'indirizzo email per le segnalazioni
   di sicurezza e non rimanda più a GitHub o al file `SECURITY.md`;
 - il comando di deploy del sito fissa il branch Pages Production `main`, così
-  l'esecuzione da `develop` non crea soltanto una preview.
+  l'esecuzione da `develop` non crea soltanto una preview;
+- M8 include il workflow GitHub Actions controllato per Pages; l'integrazione
+  Git Cloudflare resta disattivata per evitare una seconda corsia di deploy.
 
 ## 0.5.9 — 2 agosto 2026
 

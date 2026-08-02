@@ -2456,9 +2456,9 @@ Stato e attivazione progressiva:
   abilitato al 100% solo durante una breve riproduzione Development con dati
   sintetici, poi va disabilitato e verificato con readback; non usarlo su
   traffico merchant;
-- Workers Builds/Git integration non viene attivato: GitHub Actions resta
-  l’unica corsia di deploy. Una sostituzione richiede una decisione esplicita,
-  non l’affiancamento dei due sistemi;
+- Workers Builds e l'integrazione Git di Pages non vengono attivati: GitHub
+  Actions resta l’unica corsia di deploy. Una sostituzione richiede una
+  decisione esplicita, non l’affiancamento dei sistemi;
 - Logpush, export OpenTelemetry, Tail Workers e osservabilità esterna restano
   P2 e si valutano soltanto se retention, query o diagnosi native risultano
   insufficienti.
@@ -4022,7 +4022,9 @@ Consegnata in tre layer versionati, come da §19.5:
 
 - `0.6.0` durabilità e osservabilità: backup R2, restore test, log, sampling,
   query e runbook Workers Logs, procedura temporanea Traces, formato della
-  ricevuta di deploy;
+  ricevuta di deploy; workflow GitHub Actions manuale per Pages con gate,
+  target Production `main`, readback e rollback, mantenendo disattivata
+  l'integrazione Git Cloudflare;
 - automazione degli E2E di §23.10: decisione rimandata qui da M6. Richiede
   un'infrastruttura browser e una sessione staff autenticata, quindi è una
   scelta di dipendenza e non un dettaglio di implementazione. Il perimetro
@@ -4049,6 +4051,7 @@ Deliverable:
 - load/CPU check;
 - soglie Free tier e criteri di rivalutazione;
 - formato ricevuta deploy/readback;
+- workflow GitHub Actions controllato per il deploy Pages;
 - manutenzione periodica GitHub/provider;
 - E2E;
 - manual matrix.
@@ -4058,6 +4061,8 @@ Gate:
 - nessun P0/P1;
 - fail-open provato;
 - rollback provato e verificato tramite readback;
+- deploy Pages eseguito soltanto dal workflow GitHub Actions, con integrazione
+  Git Cloudflare disattivata e target Production verificato;
 - restore drill e soglie operative documentati.
 
 ### M9 — Release candidate e review
