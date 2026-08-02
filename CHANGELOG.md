@@ -16,12 +16,11 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   prova;
 - Privacy Policy e Termini dichiarano il canale iCloud, la conservazione delle
   metriche Cloudflare e il comportamento fail-open effettivo; l'owner ha
-  approvato i testi legali e la conservazione pseudonimizzata del ledger.
-
-## 0.5.10 — 2 agosto 2026
-
+  approvato i testi legali e la conservazione pseudonimizzata del ledger;
 - la pagina Support indica direttamente l'indirizzo email per le segnalazioni
-  di sicurezza e non rimanda più a GitHub o al file `SECURITY.md`.
+  di sicurezza e non rimanda più a GitHub o al file `SECURITY.md`;
+- il comando di deploy del sito fissa il branch Pages Production `main`, così
+  l'esecuzione da `develop` non crea soltanto una preview.
 
 ## 0.5.9 — 2 agosto 2026
 
