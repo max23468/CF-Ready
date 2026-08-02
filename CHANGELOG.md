@@ -6,6 +6,18 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.7.0 — 2 agosto 2026
+
+- l'audit dipendenze ammette soltanto l'advisory React Router relativo alle API
+  RSC instabili e fallisce se compare un nuovo advisory o se RSC viene attivato;
+- Cloudflare, Wrangler, React Doctor e Shopify CLI sono aggiornati alle patch
+  compatibili e tutte le dipendenze dirette sono bloccate a versioni esatte;
+- un workflow mensile verifica firme npm, documenti, governance e workflow
+  GitHub; ogni trimestre rilegge accessi e stato coordinato dei provider
+  Development ed esegue lo smoke senza scritture remote;
+- la cancellazione automatica globale dei branch GitHub è disattivata, mentre
+  la pulizia mirata dei branch temporanei resta nel flusso di merge.
+
 ## 0.6.0 — 2 agosto 2026
 
 - il workflow promosso su `main` esporta D1, cifra l'export prima di R2,
