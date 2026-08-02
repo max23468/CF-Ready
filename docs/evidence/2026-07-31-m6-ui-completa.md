@@ -104,8 +104,8 @@ patch da `0.4.1` a `0.4.21`, fra cui: la conferma di disattivazione senza
 pulsanti, le azioni della Home non rese, il Save Bar che non si spegneva
 tornando sui propri passi, il titolo dell'app che portava al form di accesso,
 il blocco Piano rimasto in italiano nell'interfaccia inglese, e la spaziatura
-disuguale fra le due colonne. Gli ultimi otto snapshot hanno riguardato la
-procedura guidata e la guida di configurazione: passi che saltavano o si
+disuguale fra le due colonne. Le patch da `0.4.14` a `0.4.21` hanno riguardato
+la procedura guidata e la guida di configurazione: passi che saltavano o si
 bloccavano, radio che sfarfallavano, la dichiarazione sul campo “Interno” che
 non si salvava, e la schermata finale che non compariva pur avendo attivato la
 validazione. Quasi tutti nascevano dallo stesso errore di fondo, il passo della
