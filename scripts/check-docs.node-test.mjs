@@ -255,7 +255,9 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.match(workflow, /dependency-review,promotion-guard,react-doctor,verify/);
   assert.match(workflow, /\.target == "branch"/);
   assert.match(workflow, /\.conditions\.ref_name\.include == \[\$ref\]/);
-  assert.doesNotMatch(workflow, /and \\\s*$/m);
+  for (const [, singleQuoted] of workflow.matchAll(/'([^']*)'/g)) {
+    assert.doesNotMatch(singleQuoted, /\\/);
+  }
   assert.match(workflow, /name: Conferma mensile governance amministrativa/);
   assert.match(workflow, /needs: repository/);
   assert.match(workflow, /required reviewer max23468 e branch policy develop/);
