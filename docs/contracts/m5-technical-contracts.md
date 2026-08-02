@@ -36,8 +36,10 @@ con `shop.localTime.date`, quindi l'ultimo giorno è incluso da entrambe le part
 
 Uno store non idoneo non crea la riga e quindi non consuma la prova. Una prova
 già fruita sopravvive alla cancellazione dei dati in `trial_ledger`, con
-l'HMAC-SHA-256 del dominio e un secret dedicato: dopo un `shop/redact` la reinstallazione la ritrova
-esaurita invece di ottenerne una nuova.
+l'HMAC-SHA-256 del dominio e un secret dedicato e stabile: dopo un `shop/redact`
+la reinstallazione la ritrova esaurita invece di ottenerne una nuova. La chiave
+non viene ruotata come una credenziale di sessione, perché perdere la versione
+precedente renderebbe irriconoscibili le prove già registrate.
 
 ## Generazione tariffaria
 
@@ -130,7 +132,7 @@ I metadati usano l'allowlist dei contratti M4, estesa con `pricing_generation`.
 
 | Codice | Origine |
 | --- | --- |
-| `billing_read_failed` | Shopify non raggiungibile: si conserva lo stato noto invece di declassare il merchant |
+| `billing_read_failed` | Shopify non raggiungibile: la cache D1 resta informativa per la UI, mentre il metafield riceve `none` e la Validation resta fail-open |
 | — | la contesa sulla lease non produce codice: un'altra riconciliazione sta già facendo la stessa operazione |
 | `subscription_cancel_failed` | `appSubscriptionCancel` rifiutato o in errore |
 | `entitlement_write_failed` | scrittura del diritto nel metafield rifiutata |

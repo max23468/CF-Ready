@@ -182,7 +182,18 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /canonical_deployment\.deployment_trigger\.metadata\.commit_hash/);
   assert.match(workflow, /deployments\/\$ROLLBACK_ID\/rollback/);
   assert.match(workflow, /--header "Cache-Control: no-cache"/);
+  assert.match(workflow, /printf '%s\\n' "\$GITHUB_SHA" > site\/deployment\.txt/);
+  assert.match(workflow, /if curl --fail/);
+  assert.match(workflow, /--location --max-redirs 5/);
+  assert.match(workflow, /PAGES_DOMAIN\/deployment\.txt/);
+  assert.match(workflow, /grep -Fxq "\$GITHUB_SHA"/);
+  assert.match(workflow, /--write-out '%\{url_effective\}'/);
   assert.match(workflow, /test "\$published" = true/);
+  assert(
+    workflow.indexOf("Arma rollback Pages Production") <
+      workflow.indexOf("wrangler pages deploy site"),
+  );
+  assert.match(workflow, /needs\.deploy\.outputs\.rollback_armed == 'true'/);
   assert.doesNotMatch(workflow, /wrangler deploy(?:\s|$)/);
   assert.doesNotMatch(workflow, /shopify app deploy/);
 });
