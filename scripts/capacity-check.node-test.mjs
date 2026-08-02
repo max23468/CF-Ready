@@ -108,9 +108,9 @@ test("include la durata delle probe nel timeout di readiness", async () => {
       () => "",
       () => "",
       {
-        request: async () => {
+        request: async (_target, _count, _concurrency, _marker, _phase, timeout) => {
           probes += 1;
-          elapsed += 15_000;
+          elapsed += timeout;
         },
         pause: async (milliseconds) => {
           elapsed += milliseconds;
@@ -122,4 +122,5 @@ test("include la durata delle probe nel timeout di readiness", async () => {
   );
 
   assert.equal(probes, 4);
+  assert.equal(elapsed, 60_000);
 });
