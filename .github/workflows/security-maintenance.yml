@@ -49,13 +49,9 @@ jobs:
             test -n "$url"
             ruleset="$(curl --fail --silent --show-error "$url")"
             test "$(jq -r --arg ref "refs/heads/$branch" '.target == "branch" and .conditions.ref_name.include == [$ref] and (.conditions.ref_name.exclude | length == 0)' <<< "$ruleset")" = true
-            test "$(jq -r '.rules[] | select(.type == "pull_request") | \
-              .parameters.required_review_thread_resolution' <<< "$ruleset")" = true
-            test "$(jq -r '.rules[] | select(.type == "required_status_checks") | \
-              .parameters.strict_required_status_checks_policy' <<< "$ruleset")" = "$strict"
-            test "$(jq -r '[.rules[] | select(.type == "required_status_checks") | \
-              .parameters.required_status_checks[].context] | sort | join(",")' \
-              <<< "$ruleset")" = "$expected_checks"
+            test "$(jq -r '.rules[] | select(.type == "pull_request") | .parameters.required_review_thread_resolution' <<< "$ruleset")" = true
+            test "$(jq -r '.rules[] | select(.type == "required_status_checks") | .parameters.strict_required_status_checks_policy' <<< "$ruleset")" = "$strict"
+            test "$(jq -r '[.rules[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | sort | join(",")' <<< "$ruleset")" = "$expected_checks"
           }
           verify_ruleset develop false dependency-review,react-doctor,verify
           verify_ruleset main true dependency-review,promotion-guard,react-doctor,verify
