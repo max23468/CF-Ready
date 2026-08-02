@@ -221,6 +221,8 @@ test("il backup Production cifra, ruota gli slot e prova il restore", () => {
   assert.match(workflow, /--jurisdiction eu/);
   assert.match(workflow, /backup-crypto\.mjs verify/);
   assert.match(workflow, /wrangler d1 execute DB --local/);
+  assert.match(workflow, /monthly\/latest\.txt/);
+  assert.doesNotMatch(workflow, /date -u \+%d/);
   assert.ok(
     workflow.indexOf("backup-crypto.mjs verify") < workflow.indexOf("wrangler r2 object put"),
   );

@@ -6,6 +6,18 @@ const MAGIC = Buffer.from("CFRDYB01");
 const IV_BYTES = 12;
 const TAG_BYTES = 16;
 const CHECKSUM_BYTES = 32;
+const REQUIRED_TABLES = [
+  "app_events",
+  "app_state",
+  "billing_accounts",
+  "billing_events",
+  "shopify_sessions",
+  "shops",
+  "trial_ledger",
+  "trials",
+  "validation_operation_locks",
+  "webhook_events",
+];
 
 export function backupKey(cadence, date = new Date()) {
   if (cadence === "weekly") {
@@ -54,12 +66,20 @@ export function decryptBackup(backup, encodedKey) {
   ]);
 }
 
-export function verifySqlBackup(sql, databasePath = ":memory:") {
+export function verifySqlBackup(sql, databasePath = ":memory:", requiredTables = REQUIRED_TABLES) {
   const database = new DatabaseSync(databasePath);
   try {
     database.exec(sql.toString());
     const result = database.prepare("PRAGMA integrity_check").get();
     if (result?.integrity_check !== "ok") throw new Error("Integrity check del backup fallito.");
+    const tables = new Set(
+      database
+        .prepare("SELECT name FROM sqlite_schema WHERE type = 'table'")
+        .all()
+        .map(({ name }) => name),
+    );
+    const missing = requiredTables.filter((table) => !tables.has(table));
+    if (missing.length) throw new Error(`Tabelle mancanti nel backup: ${missing.join(", ")}.`);
   } finally {
     database.close();
   }

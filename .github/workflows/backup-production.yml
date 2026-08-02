@@ -89,12 +89,22 @@ jobs:
             --file "$RUNNER_TEMP/d1.cfrb"
           echo "weekly_key=$weekly_key" >> "$GITHUB_OUTPUT"
 
-          day="$(date -u +%d)"
-          if [ "$day" -le 7 ]; then
+          current_month="$(date -u +%Y-%m)"
+          monthly_marker="monthly/latest.txt"
+          published_month=""
+          if npm exec -- wrangler r2 object get "$R2_BUCKET/$monthly_marker" \
+            --remote --jurisdiction eu --file "$RUNNER_TEMP/monthly-marker.txt"; then
+            published_month="$(< "$RUNNER_TEMP/monthly-marker.txt")"
+          fi
+          if [ "$published_month" != "$current_month" ]; then
             monthly_key="$(node scripts/backup-crypto.mjs key monthly)"
             npm exec -- wrangler r2 object put "$R2_BUCKET/$monthly_key" \
               --remote --jurisdiction eu --force --content-type application/octet-stream \
               --file "$RUNNER_TEMP/d1.cfrb"
+            printf '%s' "$current_month" > "$RUNNER_TEMP/monthly-marker.txt"
+            npm exec -- wrangler r2 object put "$R2_BUCKET/$monthly_marker" \
+              --remote --jurisdiction eu --force --content-type text/plain \
+              --file "$RUNNER_TEMP/monthly-marker.txt"
             echo "monthly_key=$monthly_key" >> "$GITHUB_OUTPUT"
           fi
 

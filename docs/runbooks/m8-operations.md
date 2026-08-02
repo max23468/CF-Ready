@@ -16,8 +16,11 @@ Il cron del lunedì vive sul branch predefinito, ma può soltanto avviare
 `backup-production.yml` sulla revisione promossa in `main`; il workflow reale
 rifiuta ogni altro branch. Aggiorna uno di otto slot settimanali e, il primo
 lunedì del mese, uno di dodici slot mensili. Le chiavi sono circolari e
-mantengono esattamente 8+12 oggetti dopo il riempimento iniziale, senza job di
-cancellazione né permessi R2 aggiuntivi.
+mantengono esattamente 8+12 copie dopo il riempimento iniziale, senza job di
+cancellazione né permessi R2 aggiuntivi. Un marker tecnico non cifrato contiene
+soltanto l'ultimo mese completato: se il primo tentativo mensile fallisce o
+resta in attesa, il cron settimanale ritenta finché backup e marker non sono
+stati pubblicati.
 
 Ogni esecuzione:
 
@@ -26,7 +29,7 @@ Ogni esecuzione:
 3. cifra prima dell'upload;
 4. decifra e importa la copia in un D1 locale effimero, quindi verifica
    separatamente l'export con `PRAGMA integrity_check` del runtime SQLite
-   incluso in Node.js;
+   incluso in Node.js e richiede tutte le tabelle applicative minime;
 5. soltanto dopo il restore riuscito sovrascrive gli slot R2, riscarica quello
    settimanale e ne verifica identità, autenticità e uguaglianza con l'export;
 6. registra chiave R2, checksum e risultato nel riepilogo GitHub.

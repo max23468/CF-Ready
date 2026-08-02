@@ -37,8 +37,15 @@ test("ruota esattamente otto slot settimanali e dodici mensili", () => {
 
 test("verifica un export SQL ripristinabile", () => {
   assert.doesNotThrow(() =>
-    verifySqlBackup("CREATE TABLE prova (id INTEGER PRIMARY KEY); INSERT INTO prova VALUES (1);"),
+    verifySqlBackup(
+      "CREATE TABLE prova (id INTEGER PRIMARY KEY); INSERT INTO prova VALUES (1);",
+      ":memory:",
+      ["prova"],
+    ),
   );
-  assert.doesNotThrow(() => verifySqlBackup("PRAGMA defer_foreign_keys=TRUE;"));
+  assert.throws(
+    () => verifySqlBackup("PRAGMA defer_foreign_keys=TRUE;"),
+    /Tabelle mancanti nel backup/,
+  );
   assert.throws(() => verifySqlBackup("SQL non valido"));
 });
