@@ -6,6 +6,11 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.7.2 — 2 agosto 2026
+
+- il readback dei ruleset usa un filtro `jq` eseguibile senza escape letterali
+  introdotti dalla serializzazione YAML.
+
 ## 0.7.1 — 2 agosto 2026
 
 - la manutenzione GitHub limita il readback automatico ai dati esposti al token
