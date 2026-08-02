@@ -1,6 +1,6 @@
 {
   "name": "cf-ready",
-  "version": "0.7.5",
+  "version": "0.8.0",
   "private": true,
   "scripts": {
     "build": "react-router build",
@@ -16,7 +16,8 @@
     "preflight:dev": "node scripts/preflight-dev.mjs",
     "readback:dev": "node scripts/preflight-dev.mjs --readback-only",
     "test:preflight": "node --test scripts/preflight-dev.node-test.mjs",
-    "test:operations": "node --test scripts/backup-crypto.node-test.mjs",
+    "test:operations": "node --test scripts/backup-crypto.node-test.mjs scripts/capacity-check.node-test.mjs",
+    "capacity:dev": "node scripts/capacity-check.mjs",
     "test": "vitest run",
     "test:function": "npm test --workspace cf-ready-validation -- --run",
     "build:function": "npm run build --workspace cf-ready-validation",

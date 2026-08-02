@@ -31,8 +31,8 @@ corrente si legge da codice, configurazioni e `package.json`.
 - [Brand board](brand/brand-board.html) — riferimento visuale.
 - [Asset del brand](brand/assets/README.md) — file e modalità d’uso.
 - [Inventario secret](runbooks/secret-inventory.md) — soli nomi e destinazioni.
-- [Operazioni M8](runbooks/m8-operations.md) — backup/restore, Workers Logs,
-  Traces Development e formato delle ricevute.
+- [Operazioni](runbooks/operations.md) — capacità, matrice browser,
+  backup/restore, Workers Logs, Traces Development e ricevute.
 - [Manutenzione sicurezza](runbooks/security-maintenance.md) — audit periodici
   di repository, dipendenze e provider Development.
 - [Changelog](../CHANGELOG.md) — versioni rilasciate e sintesi per milestone.

@@ -150,6 +150,11 @@ jobs:
             https://cf-ready-dev.tmsf.workers.dev
           echo "- Smoke: Worker Development raggiungibile" >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Verifica capacità Worker Development
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npm run capacity:dev
+
       - name: Deploy Shopify Development
         if: env.DEPLOY_READBACK_ONLY != 'true'
         env:

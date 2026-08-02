@@ -111,6 +111,22 @@ test("valida i link nei file HTML senza distinzione di maiuscole", () => {
   }
 });
 
+test("ignora il vecchio percorso di un documento rinominato ma non staged", () => {
+  const repository = mkdtempSync(join(tmpdir(), "cf-ready-docs-"));
+  try {
+    execFileSync("git", ["init", "-q"], { cwd: repository });
+    writeFileSync(join(repository, "package.json"), '{"scripts":{}}');
+    writeFileSync(join(repository, "old.md"), "# Old");
+    execFileSync("git", ["add", "."], { cwd: repository });
+    rmSync(join(repository, "old.md"));
+    writeFileSync(join(repository, "new.md"), "# New");
+
+    assert.deepEqual(checkDocs(repository).errors, []);
+  } finally {
+    rmSync(repository, { force: true, recursive: true });
+  }
+});
+
 test("valida i riferimenti CSS nei file SVG", () => {
   const repository = mkdtempSync(join(tmpdir(), "cf-ready-docs-"));
   try {
@@ -239,6 +255,7 @@ test("osservabilità sicura e ricevute restano configurate", () => {
   assert.equal(wrangler.observability.logs.invocation_logs, false);
   assert.equal(wrangler.observability.traces.enabled, false);
   assert.match(development, /## Ricevuta deploy Development/);
+  assert.match(development, /npm run capacity:dev/);
 });
 
 test("la manutenzione sicurezza resta periodica e in sola lettura", () => {

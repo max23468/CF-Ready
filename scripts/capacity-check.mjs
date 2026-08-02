@@ -1,0 +1,163 @@
+import { spawn } from "node:child_process";
+import { appendFile } from "node:fs/promises";
+
+const REQUESTS = 120;
+const MIN_EVENTS = 100;
+const CPU_LIMIT_MS = 10;
+
+export function parseJsonObjects(input) {
+  const objects = [];
+  let start = -1;
+  let depth = 0;
+  let quoted = false;
+  let escaped = false;
+
+  for (let index = 0; index < input.length; index += 1) {
+    const character = input[index];
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (character === "\\") escaped = true;
+      else if (character === '"') quoted = false;
+      continue;
+    }
+    if (character === '"') quoted = true;
+    else if (character === "{") {
+      if (depth === 0) start = index;
+      depth += 1;
+    } else if (character === "}" && depth > 0) {
+      depth -= 1;
+      if (depth === 0) objects.push(JSON.parse(input.slice(start, index + 1)));
+    }
+  }
+  return objects;
+}
+
+export function assessCapacity(events, marker, minimum = MIN_EVENTS) {
+  const tagged = events.filter(({ event }) => {
+    const value = event?.request?.url && new URL(event.request.url).searchParams.get("capacity");
+    return value === marker || value === "warmup";
+  });
+  const measured = events.filter(({ event }) => {
+    const url = event?.request?.url;
+    return typeof url === "string" && new URL(url).searchParams.get("capacity") === marker;
+  });
+  if (measured.length < minimum) {
+    throw new Error(
+      `Tail incompleto: ${measured.length}/${minimum} eventi misurabili ` +
+        `su ${events.length} eventi totali.`,
+    );
+  }
+  if (
+    tagged.some(
+      ({ outcome, event }) =>
+        outcome !== "ok" || event?.response?.status < 200 || event?.response?.status >= 400,
+    )
+  ) {
+    throw new Error("Il carico sintetico contiene errori Worker o HTTP.");
+  }
+  const cpuTimes = measured.map(({ cpuTime }) => cpuTime).sort((left, right) => left - right);
+  const taggedCpuTimes = tagged.map(({ cpuTime }) => cpuTime);
+  if (taggedCpuTimes.some((value) => !Number.isFinite(value))) {
+    throw new Error("Il tail non contiene CPU time validi.");
+  }
+  const p95 = cpuTimes[Math.ceil(cpuTimes.length * 0.95) - 1];
+  const maximum = Math.max(...taggedCpuTimes);
+  if (p95 > CPU_LIMIT_MS / 2) {
+    throw new Error(`CPU p95 ${p95} ms oltre la soglia operativa di ${CPU_LIMIT_MS / 2} ms.`);
+  }
+  return { requests: measured.length, p95, maximum };
+}
+
+async function main() {
+  const target = process.argv[2] ?? "https://cf-ready-dev.tmsf.workers.dev";
+  const worker = process.argv[3] ?? "cf-ready-dev";
+  const marker = "synthetic";
+  let output = "";
+  let errors = "";
+  const tail = spawn(
+    "./node_modules/.bin/wrangler",
+    ["tail", worker, "--format", "json", "--sampling-rate", "0.999"],
+    { stdio: ["ignore", "pipe", "pipe"] },
+  );
+  tail.stdout.setEncoding("utf8").on("data", (chunk) => (output += chunk));
+  tail.stderr.setEncoding("utf8").on("data", (chunk) => (errors += chunk));
+
+  try {
+    await waitForTail(
+      tail,
+      target,
+      () => output,
+      () => errors,
+    );
+    const warmup = new URL(target);
+    warmup.searchParams.set("capacity", "warmup");
+    await requestBatch(warmup, 10, 1);
+    const url = new URL(target);
+    url.searchParams.set("capacity", marker);
+    await requestBatch(url, REQUESTS, 5);
+    await waitForEvents(() => output, marker);
+  } finally {
+    await stop(tail);
+  }
+
+  const result = assessCapacity(parseJsonObjects(output), marker);
+  const summary =
+    `Capacità Development: ${result.requests} richieste, CPU p95 ${result.p95} ms, ` +
+    `massimo ${result.maximum} ms, errori 0.`;
+  console.log(summary);
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    await appendFile(process.env.GITHUB_STEP_SUMMARY, `- ${summary}\n`);
+  }
+}
+
+async function waitForTail(tail, target, output, errors) {
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    if (tail.exitCode !== null) throw new Error(`Tail Cloudflare non avviato: ${errors().trim()}`);
+    await requestBatch(target, 1, 1);
+    await wait(500);
+    if (parseJsonObjects(output()).length) return;
+  }
+  throw new Error("Tail Cloudflare non pronto entro 15 secondi.");
+}
+
+async function waitForEvents(output, marker) {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const count = parseJsonObjects(output()).filter(({ event }) => {
+      const url = event?.request?.url;
+      return typeof url === "string" && new URL(url).searchParams.get("capacity") === marker;
+    }).length;
+    if (count >= MIN_EVENTS) return;
+    await wait(500);
+  }
+}
+
+async function requestBatch(target, count, concurrency) {
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: concurrency }, async () => {
+      while (next < count) {
+        next += 1;
+        const response = await fetch(target, {
+          redirect: "manual",
+          signal: AbortSignal.timeout(15_000),
+        });
+        if (response.status < 200 || response.status >= 400) {
+          throw new Error(`Carico sintetico interrotto da HTTP ${response.status}.`);
+        }
+      }
+    }),
+  );
+}
+
+const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+async function stop(child) {
+  if (child.exitCode !== null) return;
+  const closed = new Promise((resolve) => child.once("close", () => resolve(true)));
+  child.kill("SIGINT");
+  if (await Promise.race([closed, wait(5000).then(() => false)])) return;
+  child.kill("SIGKILL");
+  await closed;
+}
+
+if (import.meta.main) await main();

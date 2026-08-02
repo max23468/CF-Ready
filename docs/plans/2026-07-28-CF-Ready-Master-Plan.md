@@ -4049,12 +4049,11 @@ Consegnata in tre layer versionati, come da §19.5:
   query e runbook Workers Logs, procedura temporanea Traces, formato della
   ricevuta di deploy; la corsia GitHub Actions manuale per Pages già disponibile
   viene esercitata e mantenuta insieme ai suoi gate, readback e rollback;
-- automazione degli E2E di §23.10: decisione rimandata qui da M6. Richiede
-  un'infrastruttura browser e una sessione staff autenticata, quindi è una
-  scelta di dipendenza e non un dettaglio di implementazione. Il perimetro
-  proposto è una manciata di percorsi critici con sessione catturata a mano,
-  eseguiti in locale prima di un rilascio, più i controlli che l'automazione fa
-  meglio di una persona: ordine di tabulazione, focus, viewport stretto e largo;
+- automazione degli E2E di §23.10: Playwright CLI copre sito pubblico e login
+  senza sessione, inclusi lingua, tabulazione, focus e viewport stretto/largo.
+  I percorsi embedded restano nella matrice manuale Development: una sessione
+  staff persistente nel repository o in CI aumenterebbe il rischio senza
+  eliminare la dipendenza dallo stato Shopify reale;
 - `0.7.0` sicurezza e dipendenze: security audit, dependency audit,
   manutenzione periodica GitHub e provider;
 - `0.8.0` capacità e prove operative: load/CPU check, soglie Free tier e
@@ -4318,7 +4317,7 @@ La `1.0.0` è accettabile quando:
 - [x] `SECURITY.md` e canale vulnerabilità.
 - [ ] support email.
 - [ ] backup/restore.
-- [ ] soglie Free tier documentate.
+- [x] soglie Free tier documentate.
 - [ ] record `release-readiness-1.0` completo.
 - [ ] preflight Production e target di rollback verificati.
 - [ ] video reviewer.

@@ -1,8 +1,65 @@
-# Operazioni M8 — backup, osservabilità e ricevute
+# Operazioni — capacità, backup, osservabilità e verifiche
 
-Questo runbook copre il layer durabilità e osservabilità di M8. Le operazioni
-Production restano vincolate all'autorizzazione separata dell'owner; i workflow
-non rendono implicita tale autorizzazione.
+Le operazioni Production restano vincolate all'autorizzazione separata
+dell'owner; i workflow non rendono implicita tale autorizzazione.
+
+## Capacità Development
+
+`npm run capacity:dev` apre un tail Cloudflare senza stampare gli eventi,
+riscalda il Worker, invia 120 richieste sintetiche alla rotta pubblica e misura
+la CPU delle invocazioni marcate. Il comando fallisce se raccoglie meno di 100
+eventi, incontra un errore Worker o HTTP, oppure supera `5 ms` al `p95`, metà del
+limite Free per richiesta. Il massimo resta nella ricevuta per rendere visibili
+eventuali cold start, ma non sostituisce il percentile operativo.
+
+Il workflow Development esegue il controllo dopo il deploy Worker e prima dello
+snapshot Shopify. Un fallimento attiva il rollback coordinato già previsto. La
+prova riguarda il costo base del routing React Router; i percorsi autenticati,
+le query D1 e le chiamate Shopify si controllano anche con metriche reali e con
+la matrice sotto, perché un test sintetico non deve generare traffico artificiale
+verso Shopify.
+
+### Soglie Free tier
+
+| Risorsa | Quota Free di riferimento | Stop point operativo |
+| --- | --- | --- |
+| Worker HTTP | 100.000 richieste/giorno | 50.000/giorno per due giorni |
+| CPU Worker | 10 ms/richiesta | `p95 > 5 ms` per sette giorni |
+| Memoria Worker | 128 MB | un solo `exceededMemory` |
+| D1 letture | 5 milioni righe/giorno | 2,5 milioni/giorno per due giorni |
+| D1 scritture | 100.000 righe/giorno | 50.000/giorno per due giorni |
+| D1 storage | 5 GB totali | 2,5 GB |
+| R2 Standard storage | 10 GB-mese/mese | 5 GB-mese per due mesi |
+| R2 operazioni Class A | 1 milione/mese | 500.000/mese per due mesi |
+| R2 operazioni Class B | 10 milioni/mese | 5 milioni/mese per due mesi |
+
+Al raggiungimento di uno stop point: fermare nuovi store, verificare che il
+contatore appartenga a CF Ready, controllare indici e richieste anomale, quindi
+scegliere fra ottimizzazione mirata e passaggio al piano adatto. Nessuna soglia
+avvia automaticamente una migrazione. Le quote vanno confrontate con le fonti
+Cloudflare prima di una decisione commerciale o di capacità.
+
+## Verifica browser
+
+Gli E2E non conservano una sessione staff nel repository o in GitHub Actions.
+La superficie pubblica e il login senza sessione si provano con Playwright CLI;
+i flussi embedded restano una matrice Development eseguita con una sessione
+staff aperta dall'owner. Questo evita una credenziale browser persistente e una
+dipendenza di test per percorsi che richiedono comunque Shopify reale.
+
+| Superficie | Controllo | Browser e viewport |
+| --- | --- | --- |
+| Sito pubblico | home IT/EN, cambio lingua, skip link, landmark, CTA disabilitate, supporto e legali | WebKit stretto e largo |
+| Login app | copy IT/EN, label, errore campo vuoto, ordine focus campo → pulsante | Chromium stretto e largo |
+| Admin embedded | prima installazione, onboarding, completa senza attivare, riapertura | browser Admin, stretto e largo |
+| Regole e messaggi | Save Bar/Annulla, radio/anteprima, tab lingue, reset separato | browser Admin, tastiera |
+| Validation | attivazione, disattivazione, errore sync e riparazione fail-open | browser Admin |
+| Stato merchant | store non italiano, prova 7/3/1/0, billing e reinstallazione | test automatici; stato reale quando disponibile |
+
+Per la chiusura di una release annotare nella ricevuta commit, browser,
+viewport, righe eseguite, esito e limiti non riproducibili. Checkout standard,
+wallet e canary seguono la matrice dedicata del Master Plan e non vengono
+simulati da questi E2E.
 
 ## Backup D1 in R2
 
@@ -67,7 +124,7 @@ sola allowlist di metadati tecnici. Non contiene URL, query string, shop domain,
 payload, header, token, Codice Fiscale o PEC.
 
 Creare nel Query Builder Cloudflare queste query account-level dopo il primo
-deploy Development del layer:
+deploy che abilita questi log:
 
 | Nome | Filtro | Vista |
 | --- | --- | --- |
@@ -122,7 +179,11 @@ la superficie non li possiede:
 La ricevuta dell'ultimo snapshot della milestone entra nella PR di chiusura;
 non apre una PR autonoma.
 
-Fonti operative correnti: [D1 export](https://developers.cloudflare.com/d1/wrangler-commands/#d1-export),
+Fonti operative correnti: [Workers limits](https://developers.cloudflare.com/workers/platform/limits/),
+[Workers metrics](https://developers.cloudflare.com/workers/observability/metrics-and-analytics/),
+[D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/),
+[R2 pricing](https://developers.cloudflare.com/r2/pricing/),
+[D1 export](https://developers.cloudflare.com/d1/wrangler-commands/#d1-export),
 [R2 CLI](https://developers.cloudflare.com/r2/get-started/cli/),
 [Workers Logs](https://developers.cloudflare.com/workers/observability/logs/workers-logs/),
 [Query Builder](https://developers.cloudflare.com/workers/observability/query-builder/)
