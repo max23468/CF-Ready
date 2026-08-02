@@ -255,7 +255,10 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.match(workflow, /dependency-review,promotion-guard,react-doctor,verify/);
   assert.match(workflow, /\.target == "branch"/);
   assert.match(workflow, /\.conditions\.ref_name\.include == \[\$ref\]/);
-  assert.match(workflow, /Verificare manualmente bypass, auto-merge e cancellazione branch/);
+  assert.match(workflow, /name: Conferma mensile governance amministrativa/);
+  assert.match(workflow, /needs: repository/);
+  assert.match(workflow, /environment: Security governance/);
+  assert.match(workflow, /nessun bypass actor, auto-merge attivo/);
   assert.doesNotMatch(workflow, /bypass_actors/);
   assert.doesNotMatch(workflow, /allow_auto_merge|delete_branch_on_merge/);
   assert.doesNotMatch(workflow, /branches\/$branch\/protection/);

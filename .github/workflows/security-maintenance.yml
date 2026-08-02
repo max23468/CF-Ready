@@ -61,11 +61,23 @@ jobs:
           }
           verify_ruleset develop false dependency-review,react-doctor,verify
           verify_ruleset main true dependency-review,promotion-guard,react-doctor,verify
-          echo "::notice::Verificare manualmente bypass, auto-merge e cancellazione branch."
           for workflow in ci.yml deploy-development.yml; do
             test "$(gh run list --workflow "$workflow" --branch develop --limit 1 \
               --json conclusion --jq '.[0].conclusion')" = success
           done
+
+  governance:
+    name: Conferma mensile governance amministrativa
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 6 1 * *'
+    needs: repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: Security governance
+    steps:
+      - name: Registra conferma owner
+        run: >-
+          echo "Confermati: nessun bypass actor, auto-merge attivo e cancellazione
+          automatica dei branch disattivata."
 
   providers:
     name: Verifica trimestrale provider Development

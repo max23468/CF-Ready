@@ -9,7 +9,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 ## 0.7.1 — 2 agosto 2026
 
 - la manutenzione GitHub limita il readback automatico ai dati esposti al token
-  standard di Actions e segnala i controlli amministrativi riservati all'owner.
+  standard di Actions e richiede una conferma owner tracciata per i controlli
+  amministrativi.
 
 ## 0.7.0 — 2 agosto 2026
 
