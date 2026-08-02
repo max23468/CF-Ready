@@ -6,6 +6,7 @@ const MIN_EVENTS = 100;
 const CPU_LIMIT_MS = 10;
 const TAIL_READY_TIMEOUT_MS = 60_000;
 const TAIL_POLL_INTERVAL_MS = 500;
+const REQUEST_TIMEOUT_MS = 15_000;
 
 export function parseJsonObjects(input) {
   const objects = [];
@@ -127,12 +128,17 @@ export async function waitForTail(
   marker,
   output,
   errors,
-  { request = requestBatch, pause = wait } = {},
+  { request = requestBatch, pause = wait, now = () => performance.now() } = {},
 ) {
-  for (let elapsed = 0; elapsed < TAIL_READY_TIMEOUT_MS; elapsed += TAIL_POLL_INTERVAL_MS) {
+  const deadline = now() + TAIL_READY_TIMEOUT_MS;
+  while (now() < deadline) {
     if (tail.exitCode !== null) throw new Error(`Tail Cloudflare non avviato: ${errors().trim()}`);
-    await request(target, 1, 1, marker, "probe");
-    await pause(TAIL_POLL_INTERVAL_MS);
+    const requestTimeout = Math.max(1, Math.ceil(deadline - now()));
+    await request(target, 1, 1, marker, "probe", Math.min(REQUEST_TIMEOUT_MS, requestTimeout));
+    if (parseJsonObjects(output()).length) return;
+    const remaining = deadline - now();
+    if (remaining <= 0) break;
+    await pause(Math.min(TAIL_POLL_INTERVAL_MS, remaining));
     if (parseJsonObjects(output()).length) return;
   }
   throw new Error("Tail Cloudflare non pronto entro 60 secondi.");
@@ -153,7 +159,14 @@ export async function waitForEvents(output, marker, pause = wait) {
   }
 }
 
-async function requestBatch(target, count, concurrency, marker, phase) {
+async function requestBatch(
+  target,
+  count,
+  concurrency,
+  marker,
+  phase,
+  timeout = REQUEST_TIMEOUT_MS,
+) {
   let next = 0;
   await Promise.all(
     Array.from({ length: concurrency }, async () => {
@@ -165,7 +178,7 @@ async function requestBatch(target, count, concurrency, marker, phase) {
             "X-CF-Ready-Capacity-Phase": phase,
           },
           redirect: "manual",
-          signal: AbortSignal.timeout(15_000),
+          signal: AbortSignal.timeout(timeout),
         });
         if (response.status < 200 || response.status >= 400) {
           throw new Error(`Carico sintetico interrotto da HTTP ${response.status}.`);

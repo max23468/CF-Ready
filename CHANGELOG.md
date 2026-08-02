@@ -6,6 +6,13 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.8.3 — 2 agosto 2026
+
+- il timeout di readiness del tail Cloudflare usa una deadline monotona e
+  include la durata effettiva delle probe;
+- i metadati radice e workspace del lockfile restano allineati alla versione
+  dello snapshot.
+
 ## 0.8.2 — 2 agosto 2026
 
 - la verifica capacità attende fino a 60 secondi l'avvio del tail Cloudflare
