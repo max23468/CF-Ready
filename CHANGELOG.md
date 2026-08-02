@@ -6,6 +6,11 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.8.5
+
+- Messaggi usa la Save Bar programmatica prevista da Shopify per stato custom:
+  anche il ripristino dei testi apre uno stato salvabile e Annulla lo chiude.
+
 ## 0.8.4
 
 - le pagine Regole e Messaggi affidano la Save Bar al form nativo App Bridge:
