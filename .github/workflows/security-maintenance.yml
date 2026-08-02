@@ -9,6 +9,7 @@ on:
 permissions:
   actions: read
   contents: read
+  security-events: read
 
 concurrency:
   group: security-maintenance
@@ -56,9 +57,25 @@ jobs:
           }
           verify_ruleset develop false dependency-review,e2e,react-doctor,verify
           verify_ruleset main true dependency-review,e2e,promotion-guard,react-doctor,verify
-          for workflow in ci.yml deploy-development.yml; do
-            test "$(gh run list --workflow "$workflow" --branch develop --limit 1 \
-              --json conclusion --jq '.[0].conclusion')" = success
+          workflows="$(gh workflow list --all --json path,state \
+            --jq '.[] | select(.state == "active" and (.path | startswith(".github/workflows/"))) | .path')"
+          test -n "$workflows"
+          failed=0
+          while IFS= read -r workflow; do
+            conclusion="$(gh run list --workflow "$workflow" --status completed --limit 1 \
+              --json conclusion --jq '.[0].conclusion // "never"')"
+            case "$conclusion" in
+              success|skipped|neutral) ;;
+              *) echo "::error::Ultimo run non verde: $workflow ($conclusion)"; failed=1 ;;
+            esac
+          done <<< "$workflows"
+          test "$failed" -eq 0
+
+          for endpoint in dependabot/alerts code-scanning/alerts secret-scanning/alerts; do
+            alerts="$(gh api --paginate --slurp --method GET \
+              "repos/$GITHUB_REPOSITORY/$endpoint" -f state=open)"
+            alert_count="$(jq 'map(length) | add' <<< "$alerts")"
+            test "$alert_count" -eq 0
           done
 
   providers:

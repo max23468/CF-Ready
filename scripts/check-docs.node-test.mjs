@@ -312,7 +312,7 @@ test("osservabilità sicura e ricevute restano configurate", () => {
   assert.equal(wrangler.observability.traces.enabled, false);
   assert.match(development, /## Ricevuta deploy Development/);
   assert.match(development, /npm run capacity:dev/);
-  assert.match(operations, /D1 storage per database \| 500 MB \| 400 MB/);
+  assert.match(operations, /D1 storage per database \| 500 MB \| 250 MB/);
 });
 
 test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
@@ -352,6 +352,17 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.match(workflow, /npm run readback:dev/);
   assert.match(workflow, /required_status_checks/);
   assert.match(workflow, /dependency-review,e2e,promotion-guard,react-doctor,verify/);
+  assert.match(workflow, /gh workflow list --all/);
+  assert.match(workflow, /workflows="\$\(gh workflow list/);
+  assert.match(workflow, /test -n "\$workflows"/);
+  assert.match(workflow, /--status completed --limit 1/);
+  assert.match(workflow, /startswith\("\.github\/workflows\/"\)/);
+  assert.match(workflow, /dependabot\/alerts code-scanning\/alerts secret-scanning\/alerts/);
+  assert.match(workflow, /--paginate --slurp/);
+  assert.match(workflow, /alerts="\$\(gh api/);
+  assert.match(workflow, /alert_count="\$\(jq/);
+  assert.match(workflow, /security-events: read/);
+  assert.doesNotMatch(workflow, /success\|skipped\|neutral\|never/);
   assert.doesNotMatch(ci, /allow-ghsas:/);
   assert.match(workflow, /\.target == "branch"/);
   assert.match(workflow, /\.conditions\.ref_name\.include == \[\$ref\]/);
@@ -393,7 +404,7 @@ test("il sito italiano e inglese mantiene il contratto pubblico essenziale", () 
   for (const [italian, english] of pairs) {
     for (const page of [italian, english]) {
       assert.match(page, /<a class="skip-link" href="#content">/);
-      assert.match(page, /<main id="content">/);
+      assert.match(page, /<main id="content" tabindex="-1">/);
       assert.match(page, /<button class="button" type="button" disabled>/);
       assert.doesNotMatch(page, /href="[^"]*\.html/);
     }

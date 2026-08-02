@@ -34,7 +34,7 @@ verso Shopify.
 | Memoria Worker | 128 MB | un solo `exceededMemory` |
 | D1 letture | 5 milioni righe/giorno | 2,5 milioni/giorno per due giorni |
 | D1 scritture | 100.000 righe/giorno | 50.000/giorno per due giorni |
-| D1 storage per database | 500 MB | 400 MB |
+| D1 storage per database | 500 MB | 250 MB |
 | D1 storage account | 5 GB totali | 2,5 GB |
 | R2 Standard storage | 10 GB-mese/mese | 5 GB-mese per due mesi |
 | R2 operazioni Class A | 1 milione/mese | 500.000/mese per due mesi |
@@ -68,6 +68,9 @@ Per la chiusura di una release annotare nella ricevuta commit, browser,
 viewport, righe eseguite, esito e limiti non riproducibili. Checkout standard,
 wallet e canary seguono la matrice dedicata del Master Plan e non vengono
 simulati da questi E2E.
+
+La ricevuta riga per riga della chiusura M8 è in
+[`docs/evidence/2026-08-02-m8-hardening.md`](../evidence/2026-08-02-m8-hardening.md).
 
 ## Backup D1 in R2
 

@@ -9,10 +9,11 @@ test("sito pubblico bilingue e percorsi essenziali", async ({ page }) => {
       name: "Mai più ordini da fatturare senza Codice Fiscale.",
     }),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Vai al contenuto" })).toHaveAttribute(
-    "href",
-    "#content",
-  );
+  const skipLink = page.getByRole("link", { name: "Vai al contenuto" });
+  await page.keyboard.press(process.platform === "darwin" ? "Alt+Tab" : "Tab");
+  await expect(skipLink).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#content")).toBeFocused();
   await expect(page.getByRole("button", { name: /Presto su/ }).first()).toBeDisabled();
 
   await page.getByRole("link", { name: "EN", exact: true }).click();
@@ -24,7 +25,14 @@ test("sito pubblico bilingue e percorsi essenziali", async ({ page }) => {
     }),
   ).toBeVisible();
 
-  for (const path of ["/support", "/privacy", "/terms"]) {
+  for (const path of [
+    "/support",
+    "/privacy",
+    "/terms",
+    "/en/support",
+    "/en/privacy",
+    "/en/terms",
+  ]) {
     await page.goto(path);
     await expect(page.locator("main")).toBeVisible();
   }

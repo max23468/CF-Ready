@@ -26,6 +26,8 @@ corrente si legge da codice, configurazioni e `package.json`.
   Development, gate UI e verifiche live della milestone.
 - [Operazioni M7](evidence/2026-08-01-m7-sito-legale-supporto.md) — pubblicazione
   del sito, snapshot Development, gate della milestone e residui.
+- [Hardening M8](evidence/2026-08-02-m8-hardening.md) — matrice delle prove,
+  ricevute operative e limiti dichiarati della milestone.
 - [ADR 0001](adr/0001-stack.md) — stack applicativo e provider.
 - [Brand Foundation](brand/brand-foundation.md) — identità e tono.
 - [Brand board](brand/brand-board.html) — riferimento visuale.
