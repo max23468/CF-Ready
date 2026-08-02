@@ -48,9 +48,7 @@ jobs:
               <<< "$rulesets")"
             test -n "$url"
             ruleset="$(curl --fail --silent --show-error "$url")"
-            test "$(jq -r --arg ref "refs/heads/$branch" \
-              '.target == "branch" and .conditions.ref_name.include == [$ref] and \
-              (.conditions.ref_name.exclude | length == 0)' <<< "$ruleset")" = true
+            test "$(jq -r --arg ref "refs/heads/$branch" '.target == "branch" and .conditions.ref_name.include == [$ref] and (.conditions.ref_name.exclude | length == 0)' <<< "$ruleset")" = true
             test "$(jq -r '.rules[] | select(.type == "pull_request") | \
               .parameters.required_review_thread_resolution' <<< "$ruleset")" = true
             test "$(jq -r '.rules[] | select(.type == "required_status_checks") | \
