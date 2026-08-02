@@ -1,6 +1,6 @@
 # Operazioni Development M6 — UI completa
 
-**Data:** 31 luglio 2026 · **Ambiente:** Development. Registra gli snapshot
+**Data:** 31 luglio–2 agosto 2026 · **Ambiente:** Development. Registra gli snapshot
 rilasciati durante la milestone, i gate live eseguiti sul dev store e i residui
 dichiarati. La numerazione segue il
 [Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md) §19.5: `0.4.0` apre
@@ -44,6 +44,15 @@ milestone aggiunge colonne con default e non altera dati esistenti.
 | `0.4.28` | `8da4bd1` | `ef113a64-8388-4cef-afa8-905d96e9a5e3` | `1072828383233` | `30709857755` |
 | `0.4.29` | `afa9d81` | `31cb930e-6bcd-44b4-86af-1768688932da` | `1072832970753` | `30710205150` |
 | `0.4.30` | `336d1c7` | `c1527ee1-f2af-444f-8296-fb06b8066dc3` | `1072837951489` | `30710502111` |
+| `0.4.31` | `cdc1559` | `eed147b0-f06d-4a31-9b6b-e17304b86fbe` | `1072849747969` | `30711230202` |
+| `0.4.32` | `b8193c5` | `8acad8f4-721a-42fc-a033-18603b9b77f2` | `1072859774977` | `30711909509` |
+| `0.4.33` | `9e67e3c` | `ede4f390-4d35-496d-be41-d883e13a6253` | `1072863182849` | `30712137481` |
+| `0.4.34` | `9a902e5` | `b6a00d8e-4c95-45ee-a0d1-901924000bf6` | `1072868065281` | `30712457601` |
+| `0.4.35` | `eab188e` | `d3f5e9e0-6d05-4f70-a243-69ff88db8bb0` | `1072902569985` | `30715049631` |
+| `0.4.36` | `889d9ee` | `837aecbf-626e-4f82-a1cd-9a87b3274f70` | `1072903782401` | `30715144704` |
+| `0.4.37` | `4f2ca44` | `c48a9ae9-d65a-4381-9927-2a518bd284af` | `1072921280513` | `30716367222` |
+| `0.4.38` | `a0e0461` | `d1566872-c91f-4d5a-8dfc-56f04248c605` | `1072924196865` | `30716589387` |
+| `0.4.39` | `fb7596c` | `a2499768-f7ea-480f-83f7-874b8c54f02e` | `1072928194561` | `30716858900` |
 
 Il rollback di ogni riga è la versione Worker della riga precedente, e per
 Shopify lo snapshot precedente.
@@ -107,6 +116,11 @@ stato in Home, salvataggio che non attiva né disattiva, rilevamento del
 conflitto fra due schede, avviso e dichiarazione sul campo “Interno”,
 anteprima che si aggiorna al cambio delle regole, ripristino dei testi
 predefiniti per lingua, interfaccia inglese con importi e date localizzati.
+
+Il 2 agosto 2026 l'owner ha confermato di avere ripetuto con esito positivo il
+collaudo responsive nell'Admin reale dopo la correzione della Setup guide
+rilasciata con la `0.4.31`; la verifica non era stata comunicata durante la
+prima chiusura documentale.
 
 Restano non verificabili su questo store, per stato commerciale: gli avvisi di
 prova a sette, tre e ultimo giorno, la data del primo addebito, l'etichetta
