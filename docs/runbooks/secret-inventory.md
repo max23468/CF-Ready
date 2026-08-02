@@ -12,7 +12,7 @@ dei rispettivi provider e non devono comparire nel repository o nei log.
 | `SHOPIFY_API_SECRET` | Production | Cloudflare Workers | da configurare |
 | `SESSION_ENCRYPTION_KEY` | Production | Cloudflare Workers | da generare |
 | `TRIAL_LEDGER_HMAC_KEY` | Production | Cloudflare Workers | da generare prima del lancio |
-| `CLOUDFLARE_API_TOKEN` | CI Production | GitHub Actions | da creare con privilegi minimi |
+| `CLOUDFLARE_API_TOKEN` | CI Pages Production | GitHub Actions | configurato il 1 agosto 2026; accesso verificato dal preflight del workflow |
 | `SHOPIFY_CLI_PARTNERS_TOKEN` | CI Production | GitHub Actions | da creare con privilegi minimi |
 
 `SHOPIFY_API_KEY`, ID account, ID database e nomi delle risorse non sono
