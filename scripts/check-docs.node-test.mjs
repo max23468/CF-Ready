@@ -282,6 +282,9 @@ test("il backup Production cifra, ruota gli slot e prova il restore", () => {
   assert.match(schedule, /gh workflow run backup-production\.yml .*--ref main/);
   assert.match(workflow, /environment: Production Backups/);
   assert.match(workflow, /wrangler d1 export "\$D1_DATABASE" --remote/);
+  assert.match(workflow, /--output "\$RUNNER_TEMP\/d1\.sql" > \/dev\/null/);
+  assert.match(workflow, /test -n "\$CLOUDFLARE_API_TOKEN"\n\s+test -n "\$D1_BACKUP_KEY"/);
+  assert.doesNotMatch(workflow, /test -n "\$CLOUDFLARE_API_TOKEN" &&/);
   assert.match(workflow, /backup-crypto\.mjs encrypt/);
   assert.match(workflow, /backup-crypto\.mjs check-key/);
   assert.match(workflow, /wrangler r2 object put "\$R2_BUCKET\/\$weekly_key"/);
