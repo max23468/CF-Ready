@@ -33,6 +33,8 @@ corrente si legge da codice, configurazioni e `package.json`.
 - [Inventario secret](runbooks/secret-inventory.md) — soli nomi e destinazioni.
 - [Operazioni M8](runbooks/m8-operations.md) — backup/restore, Workers Logs,
   Traces Development e formato delle ricevute.
+- [Manutenzione sicurezza](runbooks/security-maintenance.md) — audit periodici
+  di repository, dipendenze e provider Development.
 - [Changelog](../CHANGELOG.md) — versioni rilasciate e sintesi per milestone.
 - [README](../README.md) — setup e comandi correnti.
 - [Sicurezza](../SECURITY.md) — canale privato e disclosure coordinata.
