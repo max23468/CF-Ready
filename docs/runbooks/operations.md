@@ -5,12 +5,14 @@ dell'owner; i workflow non rendono implicita tale autorizzazione.
 
 ## Capacità Development
 
-`npm run capacity:dev` apre un tail Cloudflare senza stampare gli eventi,
-riscalda il Worker, invia 120 richieste sintetiche alla rotta pubblica e misura
-la CPU delle invocazioni marcate. Il comando fallisce se raccoglie meno di 100
-eventi, incontra un errore Worker o HTTP, oppure supera `5 ms` al `p95`, metà del
-limite Free per richiesta. Il massimo resta nella ricevuta per rendere visibili
-eventuali cold start, ma non sostituisce il percentile operativo.
+`npm run capacity:dev` apre un tail Cloudflare filtrato lato provider da un
+header sintetico univoco, riscalda il Worker, invia 120 richieste alla rotta
+pubblica e misura la CPU delle sole invocazioni marcate. Il comando fallisce se
+raccoglie meno di 100 eventi o più dei 120 emessi, incontra un errore Worker o
+HTTP, oppure supera `5 ms` al `p95`, metà del limite Free per richiesta. Il
+massimo resta nella ricevuta per rendere visibili eventuali cold start, ma non
+sostituisce il percentile operativo. Gli eventi non sintetici non attraversano
+il confine Cloudflare-runner.
 
 Il workflow Development esegue il controllo dopo il deploy Worker e prima dello
 snapshot Shopify. Un fallimento attiva il rollback coordinato già previsto. La
@@ -42,10 +44,11 @@ Cloudflare prima di una decisione commerciale o di capacità.
 ## Verifica browser
 
 Gli E2E non conservano una sessione staff nel repository o in GitHub Actions.
-La superficie pubblica e il login senza sessione si provano con Playwright CLI;
+`npm run test:e2e` prova la superficie pubblica e il login senza sessione;
 i flussi embedded restano una matrice Development eseguita con una sessione
 staff aperta dall'owner. Questo evita una credenziale browser persistente e una
-dipendenza di test per percorsi che richiedono comunque Shopify reale.
+infrastruttura di autenticazione per percorsi che richiedono comunque Shopify
+reale. Il job `e2e` è un controllo richiesto sui rami protetti.
 
 | Superficie | Controllo | Browser e viewport |
 | --- | --- | --- |

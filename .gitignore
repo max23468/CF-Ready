@@ -19,6 +19,8 @@ node_modules
 *.pfx
 .wrangler/
 .playwright-cli/
+/playwright-report/
+/test-results/
 
 
 

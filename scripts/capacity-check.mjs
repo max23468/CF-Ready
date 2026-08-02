@@ -33,15 +33,13 @@ export function parseJsonObjects(input) {
 }
 
 export function assessCapacity(events, marker, minimum = MIN_EVENTS) {
-  const tagged = events.filter(({ event }) => {
-    const value = event?.request?.url && new URL(event.request.url).searchParams.get("capacity");
-    return value === marker || value === "warmup";
-  });
-  const measured = events.filter(({ event }) => {
-    const url = event?.request?.url;
-    return typeof url === "string" && new URL(url).searchParams.get("capacity") === marker;
-  });
-  if (measured.length < minimum) {
+  const tagged = events.filter(
+    ({ event }) => header(event?.request?.headers, "x-cf-ready-capacity") === marker,
+  );
+  const measured = tagged.filter(
+    ({ event }) => header(event?.request?.headers, "x-cf-ready-capacity-phase") === "measure",
+  );
+  if (measured.length < minimum || measured.length > REQUESTS) {
     throw new Error(
       `Tail incompleto: ${measured.length}/${minimum} eventi misurabili ` +
         `su ${events.length} eventi totali.`,
@@ -71,12 +69,26 @@ export function assessCapacity(events, marker, minimum = MIN_EVENTS) {
 async function main() {
   const target = process.argv[2] ?? "https://cf-ready-dev.tmsf.workers.dev";
   const worker = process.argv[3] ?? "cf-ready-dev";
-  const marker = "synthetic";
+  const marker = [
+    "cf-ready",
+    process.env.GITHUB_RUN_ID ?? "local",
+    process.env.GITHUB_RUN_ATTEMPT ?? process.pid,
+    Date.now(),
+  ].join("-");
   let output = "";
   let errors = "";
   const tail = spawn(
     "./node_modules/.bin/wrangler",
-    ["tail", worker, "--format", "json", "--sampling-rate", "0.999"],
+    [
+      "tail",
+      worker,
+      "--format",
+      "json",
+      "--sampling-rate",
+      "0.999",
+      "--header",
+      `X-CF-Ready-Capacity:${marker}`,
+    ],
     { stdio: ["ignore", "pipe", "pipe"] },
   );
   tail.stdout.setEncoding("utf8").on("data", (chunk) => (output += chunk));
@@ -86,15 +98,12 @@ async function main() {
     await waitForTail(
       tail,
       target,
+      marker,
       () => output,
       () => errors,
     );
-    const warmup = new URL(target);
-    warmup.searchParams.set("capacity", "warmup");
-    await requestBatch(warmup, 10, 1);
-    const url = new URL(target);
-    url.searchParams.set("capacity", marker);
-    await requestBatch(url, REQUESTS, 5);
+    await requestBatch(target, 10, 1, marker, "warmup");
+    await requestBatch(target, REQUESTS, 5, marker, "measure");
     await waitForEvents(() => output, marker);
   } finally {
     await stop(tail);
@@ -110,10 +119,10 @@ async function main() {
   }
 }
 
-async function waitForTail(tail, target, output, errors) {
+async function waitForTail(tail, target, marker, output, errors) {
   for (let attempt = 0; attempt < 30; attempt += 1) {
     if (tail.exitCode !== null) throw new Error(`Tail Cloudflare non avviato: ${errors().trim()}`);
-    await requestBatch(target, 1, 1);
+    await requestBatch(target, 1, 1, marker, "probe");
     await wait(500);
     if (parseJsonObjects(output()).length) return;
   }
@@ -122,22 +131,27 @@ async function waitForTail(tail, target, output, errors) {
 
 async function waitForEvents(output, marker) {
   for (let attempt = 0; attempt < 40; attempt += 1) {
-    const count = parseJsonObjects(output()).filter(({ event }) => {
-      const url = event?.request?.url;
-      return typeof url === "string" && new URL(url).searchParams.get("capacity") === marker;
-    }).length;
+    const count = parseJsonObjects(output()).filter(
+      ({ event }) =>
+        header(event?.request?.headers, "x-cf-ready-capacity") === marker &&
+        header(event?.request?.headers, "x-cf-ready-capacity-phase") === "measure",
+    ).length;
     if (count >= MIN_EVENTS) return;
     await wait(500);
   }
 }
 
-async function requestBatch(target, count, concurrency) {
+async function requestBatch(target, count, concurrency, marker, phase) {
   let next = 0;
   await Promise.all(
     Array.from({ length: concurrency }, async () => {
       while (next < count) {
         next += 1;
         const response = await fetch(target, {
+          headers: {
+            "X-CF-Ready-Capacity": marker,
+            "X-CF-Ready-Capacity-Phase": phase,
+          },
           redirect: "manual",
           signal: AbortSignal.timeout(15_000),
         });
@@ -147,6 +161,12 @@ async function requestBatch(target, count, concurrency) {
       }
     }),
   );
+}
+
+function header(headers, name) {
+  if (!headers) return undefined;
+  const key = Object.keys(headers).find((candidate) => candidate.toLowerCase() === name);
+  return key && headers[key];
 }
 
 const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));

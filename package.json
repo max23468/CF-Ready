@@ -18,6 +18,7 @@
     "test:preflight": "node --test scripts/preflight-dev.node-test.mjs",
     "test:operations": "node --test scripts/backup-crypto.node-test.mjs scripts/capacity-check.node-test.mjs",
     "capacity:dev": "node scripts/capacity-check.mjs",
+    "test:e2e": "playwright test --config tests/playwright.config.ts",
     "test": "vitest run",
     "test:function": "npm test --workspace cf-ready-validation -- --run",
     "build:function": "npm run build --workspace cf-ready-validation",
@@ -48,6 +49,7 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.50.0",
     "@cloudflare/vitest-pool-workers": "0.20.1",
+    "@playwright/test": "1.62.1",
     "@react-router/dev": "7.18.2",
     "@shopify/polaris-types": "1.0.7",
     "@types/node": "26.1.2",

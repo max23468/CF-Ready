@@ -2,11 +2,16 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { assessCapacity, parseJsonObjects } from "./capacity-check.mjs";
 
-const event = (cpuTime, marker = "target", outcome = "ok", status = 302) => ({
+const event = (cpuTime, marker = "target", outcome = "ok", status = 302, phase = "measure") => ({
   cpuTime,
   outcome,
   event: {
-    request: { url: `https://example.test/?capacity=${marker}` },
+    request: {
+      headers: {
+        "x-cf-ready-capacity": marker,
+        "x-cf-ready-capacity-phase": phase,
+      },
+    },
     response: { status },
   },
 });
@@ -24,12 +29,22 @@ test("verifica p95, successi e numero minimo degli eventi sintetici", () => {
     ...Array.from({ length: 5 }, () => event(5)),
   ];
 
-  assert.deepEqual(assessCapacity([...events, event(22, "warmup"), event(99, "altro")], "target"), {
-    requests: 100,
-    p95: 1,
-    maximum: 22,
-  });
+  assert.deepEqual(
+    assessCapacity(
+      [...events, event(22, "target", "ok", 302, "warmup"), event(99, "altro")],
+      "target",
+    ),
+    {
+      requests: 100,
+      p95: 1,
+      maximum: 22,
+    },
+  );
   assert.throws(() => assessCapacity(events.slice(0, 99), "target"), /Tail incompleto/);
+  assert.throws(
+    () => assessCapacity([...events, ...events, event(1)], "target"),
+    /Tail incompleto/,
+  );
   assert.throws(
     () =>
       assessCapacity(

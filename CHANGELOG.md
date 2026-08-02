@@ -12,7 +12,7 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   e fallisce oltre metà del limite CPU Free al `p95`, su errori o tail incompleto;
 - il runbook operativo fissa stop point numerici per Workers, D1 e R2 e una
   matrice browser ripetibile senza conservare sessioni staff nel repository;
-- i controlli Playwright coprono login bilingue, focus, viewport e sito pubblico
+- gli E2E Playwright ripetibili coprono login bilingue, focus, viewport e sito pubblico
   WebKit; i flussi embedded che richiedono Shopify reale restano espliciti nella
   matrice manuale.
 

@@ -4049,7 +4049,7 @@ Consegnata in tre layer versionati, come da §19.5:
   query e runbook Workers Logs, procedura temporanea Traces, formato della
   ricevuta di deploy; la corsia GitHub Actions manuale per Pages già disponibile
   viene esercitata e mantenuta insieme ai suoi gate, readback e rollback;
-- automazione degli E2E di §23.10: Playwright CLI copre sito pubblico e login
+- automazione degli E2E di §23.10: `npm run test:e2e` copre sito pubblico e login
   senza sessione, inclusi lingua, tabulazione, focus e viewport stretto/largo.
   I percorsi embedded restano nella matrice manuale Development: una sessione
   staff persistente nel repository o in CI aumenterebbe il rischio senza
