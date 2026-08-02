@@ -363,6 +363,7 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.match(workflow, /alert_count="\$\(jq/);
   assert.match(workflow, /security-events: read/);
   assert.doesNotMatch(workflow, /success\|skipped\|neutral\|never/);
+  assert.match(workflow, /\.path != "\.github\/workflows\/security-maintenance\.yml"/);
   assert.doesNotMatch(ci, /allow-ghsas:/);
   assert.match(workflow, /\.target == "branch"/);
   assert.match(workflow, /\.conditions\.ref_name\.include == \[\$ref\]/);
