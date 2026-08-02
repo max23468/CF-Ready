@@ -19,6 +19,7 @@ bloccata in `mise.toml`.
 mise trust mise.toml
 mise install
 mise exec -- npm ci
+mise exec -- npx playwright install chromium webkit
 mise exec -- npm run db:migrate:local
 mise exec -- npm run dev
 ```

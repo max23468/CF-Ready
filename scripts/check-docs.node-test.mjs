@@ -261,12 +261,14 @@ test("osservabilità sicura e ricevute restano configurate", () => {
 test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
   const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const ci = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
+  const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
   assert.equal(
     packageJson.scripts["test:e2e"],
     "playwright test --config tests/playwright.config.ts",
   );
   assert.match(ci, /playwright install --with-deps chromium webkit/);
   assert.match(ci, /npm run test:e2e/);
+  assert.match(readme, /playwright install chromium webkit/);
 });
 
 test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
