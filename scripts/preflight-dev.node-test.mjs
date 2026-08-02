@@ -5,6 +5,7 @@ import { test } from "node:test";
 import {
   verifyCoordinatedRollback,
   verifyDevelopmentConfig,
+  verifyMigrationSafety,
   verifyNoPendingMigrations,
   verifyVersionAvailable,
   verifyWorkerSecrets,
@@ -96,6 +97,22 @@ test("il readback D1 richiede zero migrazioni pendenti", () => {
   assert.throws(
     () => verifyNoPendingMigrations("Migrations to be applied:\n0008_claim.sql"),
     /ancora pendenti/,
+  );
+});
+
+test("il preflight richiede due fasi per nuove migrazioni distruttive", () => {
+  assert.doesNotThrow(() =>
+    verifyMigrationSafety([
+      { name: "0010_privacy_hardening.sql", sql: "ALTER TABLE shops DROP COLUMN online_user_id;" },
+      { name: "0011_add_index.sql", sql: "CREATE INDEX idx_shops ON shops(shop);" },
+    ]),
+  );
+  assert.throws(
+    () =>
+      verifyMigrationSafety([
+        { name: "0011_remove_column.sql", sql: "ALTER TABLE shops DROP COLUMN legacy;" },
+      ]),
+    /deploy in due fasi/,
   );
 });
 

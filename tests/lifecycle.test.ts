@@ -466,6 +466,7 @@ test("il replay della disinstallazione non tocca una reinstallazione successiva"
     shop,
     "2026-08-01T10:00:00.000Z",
     "claim-installazione-uno",
+    "2026-08-01T10:00:00.000Z",
   );
   if (!first.acquired || !first.installationStartedAt) throw new Error("claim non acquisito");
   expect(await markUninstalled(env.DB, shop, first.installationStartedAt)).toBe(true);
@@ -505,6 +506,45 @@ test("il replay della disinstallazione non tocca una reinstallazione successiva"
     await env.DB.prepare(
       "SELECT id FROM shopify_sessions WHERE id = 'offline_reinstallato'",
     ).first(),
+  ).not.toBeNull();
+});
+
+test("la prima consegna tardiva della disinstallazione non tocca la reinstallazione", async () => {
+  const shop = await insertShop("uninstall-tardivo.example.myshopify.com");
+  await env.DB.prepare("UPDATE shops SET installed_at = ? WHERE shop_domain = ?")
+    .bind("2026-08-01T10:10:00.000Z", shop)
+    .run();
+  await env.DB.prepare(
+    `INSERT INTO shopify_sessions (
+       id, shop_id, is_online, session_payload_ciphertext, created_at, updated_at
+     ) SELECT 'offline_tardivo', id, 0, 'x', ?, ? FROM shops WHERE shop_domain = ?`,
+  )
+    .bind("2026-08-01T10:10:00.000Z", "2026-08-01T10:10:00.000Z", shop)
+    .run();
+
+  const response = await handleWebhook(
+    env.DB,
+    {
+      webhookId: "wh-uninstall-prima-consegna-tardiva",
+      topic: "APP_UNINSTALLED",
+      shop,
+      triggeredAt: "2026-08-01T10:00:00.000Z",
+    },
+    async (claim) => {
+      if (claim.installationStartedAt) {
+        await markUninstalled(env.DB, shop, claim.installationStartedAt);
+      }
+    },
+  );
+
+  expect(response.status).toBe(200);
+  expect(
+    await env.DB.prepare("SELECT installation_status FROM shops WHERE shop_domain = ?")
+      .bind(shop)
+      .first(),
+  ).toMatchObject({ installation_status: "active" });
+  expect(
+    await env.DB.prepare("SELECT id FROM shopify_sessions WHERE id = 'offline_tardivo'").first(),
   ).not.toBeNull();
 });
 

@@ -558,7 +558,7 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
     },
     null,
   );
-  expect(cached.calls[0].config?.entitlement.kind).toBe("subscription");
+  expect(cached.calls[0].config?.entitlement).toEqual({ kind: "none", validThrough: null });
 
   const syncFailureShop = "write-billing-sync-failure.example.myshopify.com";
   await seedShop(syncFailureShop);

@@ -163,6 +163,8 @@ test("un rinnovo di sessione non simula una reinstallazione prima della disinsta
     "APP_UNINSTALLED",
     shop,
     "2026-08-01T10:01:00.000Z",
+    undefined,
+    "2026-08-01T10:01:00.000Z",
   );
   if (!claim.acquired || !claim.installationStartedAt) throw new Error("claim non acquisito");
 

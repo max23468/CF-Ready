@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { appendFile, readFile } from "node:fs/promises";
+import { appendFile, readFile, readdir } from "node:fs/promises";
 
 const expected = {
   clientId: "adff48d4fe4ceb0dadb4734520701dd7",
@@ -57,6 +57,17 @@ export function verifyNoPendingMigrations(output) {
   }
 }
 
+export function verifyMigrationSafety(migrations) {
+  const unsafe = migrations.find(
+    ({ name, sql }) =>
+      name > "0010_privacy_hardening.sql" &&
+      /\bDROP\s+(?:TABLE|COLUMN)\b|\bALTER\s+TABLE\b[\s\S]*\bRENAME\b/i.test(sql),
+  );
+  if (unsafe) {
+    throw new Error(`La migrazione ${unsafe.name} richiede un deploy in due fasi.`);
+  }
+}
+
 export function verifyWorkerSecrets(secrets) {
   const names = new Set(secrets.map(({ name }) => name));
   if (
@@ -97,6 +108,15 @@ async function main() {
   const shopifyConfig = await readFile("shopify.app.dev.toml", "utf8");
   const wranglerConfig = await readFile("wrangler.json", "utf8");
   verifyDevelopmentConfig(shopifyConfig, wranglerConfig);
+  const migrationNames = (await readdir("migrations")).filter((name) => name.endsWith(".sql"));
+  verifyMigrationSafety(
+    await Promise.all(
+      migrationNames.map(async (name) => ({
+        name,
+        sql: await readFile(`migrations/${name}`, "utf8"),
+      })),
+    ),
+  );
 
   run("node", ["scripts/shopify-info-safe.mjs", "shopify.app.dev.toml"]);
   const { version } = JSON.parse(await readFile("package.json", "utf8"));
