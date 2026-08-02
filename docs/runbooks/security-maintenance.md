@@ -8,7 +8,8 @@ provider senza introdurre una seconda corsia di deploy.
 `security-maintenance.yml` esegue:
 
 - ogni mese: audit npm senza eccezioni, firme del registry, documenti,
-  ruleset GitHub pubblici e ultimo esito dei workflow critici;
+  ruleset GitHub pubblici, alert Dependabot/CodeQL/Secret Scanning e ultimo
+  esito di ogni workflow attivo;
 - ogni trimestre: identità e accessi Shopify/Cloudflare Development, stato
   coordinato della versione attiva, D1, secret Worker e smoke HTTP.
 

@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.8.6 — 2 agosto 2026
+
+- la manutenzione mensile verifica l'ultimo esito di ogni workflow attivo e gli
+  alert aperti Dependabot, CodeQL e Secret Scanning;
+- lo stop point D1 per database coincide con il 50% della quota Free;
+- gli E2E pubblici provano focus dello skip link e pagine legali/supporto IT/EN;
+- una ricevuta durevole collega ogni riga della matrice M8 alla prova eseguita o
+  al limite esplicitamente differito.
+
 ## 0.8.5
 
 - Messaggi usa la Save Bar programmatica prevista da Shopify per stato custom:
