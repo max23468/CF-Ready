@@ -45,9 +45,9 @@ una corsia supportata per sostituire il sito pubblico dal checkout locale.
 fonte canonica dei token di brand: se cambiano i token, va aggiornata anche la
 copia.
 
-Entrambi i comandi rimuovono prima `.wrangler/deploy/config.json`, l'artefatto
-che `react-router build` lascia per il Worker: finché esiste, Wrangler dirotta
-anche i comandi Pages sulla configurazione dell'app e il sito non parte. Pages
+`site:dev` rimuove prima `.wrangler/deploy/config.json`, l'artefatto che
+`react-router build` lascia per il Worker: finché esiste, Wrangler dirotta anche
+i comandi Pages sulla configurazione dell'app e il sito non parte. Pages
 non accetta un file di configurazione alternativo, quindi si toglie di mezzo
 quello sbagliato; viene rigenerato alla build successiva.
 
