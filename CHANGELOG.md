@@ -6,6 +6,11 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.7.3 — 2 agosto 2026
+
+- tutti i filtri `jq` del readback ruleset sono eseguiti senza escape letterali
+  e il contratto documentale copre l'intera classe di regressione.
+
 ## 0.7.2 — 2 agosto 2026
 
 - il readback dei ruleset usa un filtro `jq` eseguibile senza escape letterali
