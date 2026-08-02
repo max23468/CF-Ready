@@ -2,8 +2,9 @@
 
 ## Master Plan di prodotto, architettura, implementazione e lancio
 
-**Stato:** baseline approvata per scaffolding e implementazione · M0–M7 completate in Development · Production, submission App Store e wallet M10 non completati
-**Data:** 27 luglio 2026 · revisione 28 luglio 2026  
+**Uso:** requisiti, decisioni e gate restano canonici qui; versione e stato
+corrente si leggono da `package.json`, `CHANGELOG.md`, codice, configurazioni e
+ricevute operative.
 **Documenti vincolanti collegati:** `docs/brand/brand-foundation.md` (identità visiva, tono, materiali pubblici)  
 **Brand:** CF Ready  
 **Nome pubblico:** CF Ready — Codice Fiscale nel Checkout  
@@ -417,8 +418,8 @@ Rispetto alle alternative più ampie o invasive:
 | D-112 | Tipografia: grottesco geometrico di sistema per sito e materiali, nessun webfont, nessun font dichiarato dentro l’Admin. Sigla e wordmark in tracciati derivati da Jost (SIL OFL), peso 500. | Zero richieste di rete e nessuna dipendenza da font installati. Jost al posto del Futura per licenza: il Futura è commerciale e distribuito in bundle con macOS. |
 | D-113 | Nessuna dark mode del sito pubblico nella 1.0. | Una superficie in meno da mantenere e verificare. Decisione indipendente da Shopify: al 28 luglio 2026 l’Admin non ha dark mode nativa e, usando solo token Polaris, l’app la seguirebbe comunque da sola. |
 | D-114 | Presentare l’icona della listing con la sigla `CF`, accettando la raccomandazione Shopify di evitare il testo nell’icona. | Raccomandazione nelle best practice, non criterio di rifiuto nei requisiti; i monogrammi di due lettere sono diffusi fra le app approvate. Variante senza sigla pronta come rimedio, attivabile senza nuova approvazione (§24.5). |
-| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate `verify`, `react-doctor` e `dependency-review` richiesti su `develop` e `main`; abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate già eseguiti, indirizza le security update nella corsia ordinaria, offre un canale privato per le vulnerabilità e conserva la promozione separata `develop` → `main`. |
-| D-116 | Restare sull’ultima React Router 7 compatibile con Shopify e non abilitare le API RSC instabili finché Shopify non supporta React Router 8 o esiste un backport. | `GHSA-qwww-vcr4-c8h2` riguarda soltanto i percorsi RSC instabili, non usati da CF Ready. `npm audit` continuerà a segnalarla come high per intervallo di versione: l’abilitazione RSC richiede prima la rimozione dell’eccezione. |
+| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate `verify`, `react-doctor`, `dependency-review` ed `e2e` richiesti su `develop` e `main`; abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate già eseguiti, indirizza le security update nella corsia ordinaria, offre un canale privato per le vulnerabilità e conserva la promozione separata `develop` → `main`. |
+| D-116 | Usare React Router `8.3.0` con npm 12 e correggere nel manifest root, tramite `packageExtensions`, la sola peer dependency troppo restrittiva di `@shopify/shopify-app-react-router@1.2.1`. | Elimina `GHSA-qwww-vcr4-c8h2` senza fork o installazioni forzate; il gate completo prova la compatibilità effettiva mentre l'estensione resta rimovibile appena Shopify pubblica metadati compatibili. |
 | D-117 | Usare React Doctor stabile con pin esatto: scansione completa bloccante nel gate locale e Action ufficiale advisory sulle modifiche delle PR. Tenere attivi score e share URL, disabilitare il controllo supply-chain esterno. | Aggiunge controlli React deterministici e feedback inline senza duplicare i controlli dipendenze già coperti da npm e GitHub. Il gate resta locale: lo score è indicativo e non decide l’esito, che dipende da `blocking: warning`. |
 | D-118 | Le PR ordinarie puntano a `develop` e usano squash; `main` accetta soltanto promozioni autorizzate da `develop`, unite con merge commit. La cancellazione automatica dei branch resta disattivata e i soli branch temporanei vengono eliminati esplicitamente. | Preserva l’ascendenza tra integrazione e Production, evita il drift strutturale causato da squash indipendenti sui due rami e impedisce che una promozione elimini `develop`. |
 | D-119 | Abilitare l’auto-merge nativo in `develop` per le sole PR Dependabot minor/patch dopo `CI` e `React Doctor` verdi. Eliminare dopo il merge soltanto i branch `dependabot/*`; major e promozioni `develop` → `main` restano manuali. | Allinea CF Ready a SyncBay e Pratix, rende atomico il vincolo sullo SHA verificato, preserva gli eventi post-merge e non espone `develop` alla cancellazione globale dei branch. |
@@ -2655,6 +2656,11 @@ automatici creati durante il bootstrap, come `cf-ready-1` e `cf-ready-2`,
 restano nella cronologia come rollback: non vengono rinominati o cancellati, ma
 non devono essere generati da nuovi deploy.
 
+README e indice non duplicano la versione corrente. Le ricevute sotto
+`docs/evidence/` sono fotografie storiche: una volta chiusa la milestone non si
+aggiornano per bump successivi. Le nuove versioni entrano in `CHANGELOG.md`, nel
+manifest e nella ricevuta del workflow o della milestone corrente.
+
 ### 19.6 GitHub Actions
 
 GitHub Actions resta l’unico sistema CI/CD.
@@ -2726,8 +2732,8 @@ Configurazione minima GitHub:
 
 Il repository pubblico su GitHub Free usa branch protection su `develop` e
 `main`, con `develop` come branch predefinito, conversazioni
-risolte, protezioni applicate agli admin e `verify`, `react-doctor` e
-`dependency-review` come required checks; su `main` è required anche
+risolte, protezioni applicate agli admin e `verify`, `react-doctor`,
+`dependency-review` ed `e2e` come required checks; su `main` è required anche
 `promotion-guard`. La base aggiornata prima del merge resta richiesta solo su
 `main`: su `develop` obbliga ogni PR già aperta a risincronizzare e rieseguire i
 gate dopo ogni merge, mentre `CI` sul push a `develop` intercetta comunque una
@@ -2789,9 +2795,12 @@ Un comando terminato con exit code `0` non è, da solo, prova del risultato live
 Usare la più recente versione stabile compatibile dell’intera matrice Shopify–React Router–Cloudflare al momento dello scaffold, non `@latest` indiscriminato.
 
 - versioni dirette pin esatto;
-- Node.js `26.5.0` bloccato in `mise.toml`; il setup locale usa
+- Node.js `26.5.1` bloccato in `mise.toml`; il setup locale usa
   `mise trust`, `mise install` e `mise exec`, mentre la CI usa la stessa
   versione tramite `actions/setup-node`;
+- TypeScript `7.0.2` usa il compilatore nativo senza shim dell’API TS6; il
+  parallelismo resta automatico e i flag sperimentali si fissano soltanto dopo
+  una misura che dimostri la necessità del tuning;
 - `package-lock.json` committato;
 - `npm ci` in CI;
 - nessuna beta/RC/canary per dipendenze e toolchain, salvo la sola eccezione approvata della Function API `2026-07` durante lo sviluppo `0.x`;
@@ -4043,12 +4052,11 @@ Consegnata in tre layer versionati, come da §19.5:
   query e runbook Workers Logs, procedura temporanea Traces, formato della
   ricevuta di deploy; la corsia GitHub Actions manuale per Pages già disponibile
   viene esercitata e mantenuta insieme ai suoi gate, readback e rollback;
-- automazione degli E2E di §23.10: decisione rimandata qui da M6. Richiede
-  un'infrastruttura browser e una sessione staff autenticata, quindi è una
-  scelta di dipendenza e non un dettaglio di implementazione. Il perimetro
-  proposto è una manciata di percorsi critici con sessione catturata a mano,
-  eseguiti in locale prima di un rilascio, più i controlli che l'automazione fa
-  meglio di una persona: ordine di tabulazione, focus, viewport stretto e largo;
+- automazione degli E2E di §23.10: `npm run test:e2e` copre sito pubblico e login
+  senza sessione, inclusi lingua, tabulazione, focus e viewport stretto/largo.
+  I percorsi embedded restano nella matrice manuale Development: una sessione
+  staff persistente nel repository o in CI aumenterebbe il rischio senza
+  eliminare la dipendenza dallo stato Shopify reale;
 - `0.7.0` sicurezza e dipendenze: security audit, dependency audit,
   manutenzione periodica GitHub e provider;
 - `0.8.0` capacità e prove operative: load/CPU check, soglie Free tier e
@@ -4312,7 +4320,7 @@ La `1.0.0` è accettabile quando:
 - [x] `SECURITY.md` e canale vulnerabilità.
 - [ ] support email.
 - [ ] backup/restore.
-- [ ] soglie Free tier documentate.
+- [x] soglie Free tier documentate.
 - [ ] record `release-readiness-1.0` completo.
 - [ ] preflight Production e target di rollback verificati.
 - [ ] video reviewer.
@@ -4492,7 +4500,7 @@ Codex definisce contratti e dati; Claude definisce presentazione e interazione. 
 | Un solo dev store nasconde first install | media | media | utility reset e review Shopify |
 | Dipendenza `0.x` Oxfmt cambia comportamento | media | bassa | pin esatto e update deliberato |
 | Issue o PR pubblica espone dati reali o codice ostile | media | alta | template con divieti espliciti, workflow PR senza secret, approvazione dei primi contributori e disclosure privata |
-| Advisory React Router RSC segnalato da `npm audit` | nulla finché RSC è disattivo | alta se RSC viene abilitato | vietare RSC instabile; monitorare supporto Shopify a React Router 8 o backport |
+| Dependabot non aggiorna il lockfile npm 12 | media finché npm 12 non è supportato | media | mantenere alert e security update attivi; rigenerare le PR incomplete con npm fissato nel repository |
 | Abuso modulo supporto | bassa | bassa | limite semplice/turnstile solo se necessario |
 
 ---
@@ -4507,7 +4515,9 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
    spaziature, accenti e responsive fine sono stati verificati dall'owner
    nell'Admin reale, compreso il collaudo successivo alla correzione responsive
    `0.4.31`; la UI embedded non richiede illustrazioni aggiuntive.
-4. **Pacchetto visivo pubblico** — direzione fissata in `docs/brand/brand-foundation.md` §9. Restano da produrre i materiali veri in M7 e M9: testi del sito, listing completa, screenshot, didascalie.
+4. **Pacchetto visivo pubblico** — testi del sito completati in M7 secondo la
+   direzione fissata in `docs/brand/brand-foundation.md` §9. Listing completa,
+   screenshot e didascalie restano da produrre in M9.
 5. **Rifiniture di brand non bloccanti**
    - ~~correzione ottica della crenatura del wordmark~~ — **chiusa il 28 luglio 2026**, valori in `docs/brand/brand-foundation.md` §4.4;
    - ~~conferma delle dimensioni richieste dai requisiti App Store~~ — **chiusa il 28 luglio 2026**, specifiche in §24.5;

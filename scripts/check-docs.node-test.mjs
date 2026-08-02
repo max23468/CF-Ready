@@ -111,6 +111,22 @@ test("valida i link nei file HTML senza distinzione di maiuscole", () => {
   }
 });
 
+test("ignora il vecchio percorso di un documento rinominato ma non staged", () => {
+  const repository = mkdtempSync(join(tmpdir(), "cf-ready-docs-"));
+  try {
+    execFileSync("git", ["init", "-q"], { cwd: repository });
+    writeFileSync(join(repository, "package.json"), '{"scripts":{}}');
+    writeFileSync(join(repository, "old.md"), "# Old");
+    execFileSync("git", ["add", "."], { cwd: repository });
+    rmSync(join(repository, "old.md"));
+    writeFileSync(join(repository, "new.md"), "# New");
+
+    assert.deepEqual(checkDocs(repository).errors, []);
+  } finally {
+    rmSync(repository, { force: true, recursive: true });
+  }
+});
+
 test("valida i riferimenti CSS nei file SVG", () => {
   const repository = mkdtempSync(join(tmpdir(), "cf-ready-docs-"));
   try {
@@ -165,6 +181,58 @@ test("non espone un comando locale per il deploy Pages Production", () => {
   assert.equal(packageJson.scripts["site:deploy"], undefined);
 });
 
+test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow", () => {
+  const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  const lockfile = JSON.parse(
+    readFileSync(new URL("../package-lock.json", import.meta.url), "utf8"),
+  );
+  const tsconfig = JSON.parse(readFileSync(new URL("../tsconfig.json", import.meta.url), "utf8"));
+  const npmrc = readFileSync(new URL("../.npmrc", import.meta.url), "utf8");
+  const mise = readFileSync(new URL("../mise.toml", import.meta.url), "utf8");
+  assert.equal(packageJson.packageManager, "npm@12.0.2");
+  assert.equal(packageJson.engines.node, ">=26.5.1 <27");
+  assert.equal(packageJson.devDependencies.typescript, "7.0.2");
+  assert.equal(packageJson.devDependencies["@typescript/typescript6"], undefined);
+  assert.equal(packageJson.allowScripts["fsevents@2.3.2"], false);
+  assert.equal(
+    packageJson.packageExtensions["@shopify/shopify-app-react-router@1.2.1"].peerDependencies[
+      "react-router"
+    ],
+    "^7.18.2 || ^8.3.0",
+  );
+  assert.equal(lockfile.lockfileVersion, 4);
+  assert.equal(lockfile.packages[""].engines.node, ">=26.5.1 <27");
+  assert.equal(lockfile.packages[""].devDependencies.typescript, "7.0.2");
+  assert.equal(tsconfig.compilerOptions.strict, true);
+  assert.equal(tsconfig.compilerOptions.noUncheckedSideEffectImports, true);
+  assert.deepEqual(tsconfig.compilerOptions.lib, ["DOM", "ES2022"]);
+  assert.equal(tsconfig.compilerOptions.ignoreDeprecations, undefined);
+  assert.equal(tsconfig.compilerOptions.stableTypeOrdering, undefined);
+  assert.match(npmrc, /^strict-allow-scripts=true$/m);
+  assert.match(mise, /^node = "26\.5\.1"$/m);
+  assert.match(mise, /^npm = "12\.0\.2"$/m);
+
+  for (const path of [
+    "ci.yml",
+    "security-maintenance.yml",
+    "backup-production.yml",
+    "deploy-development.yml",
+    "deploy-pages-production.yml",
+  ]) {
+    const workflow = readFileSync(new URL(`../.github/workflows/${path}`, import.meta.url), "utf8");
+    const nodeVersions = [...workflow.matchAll(/node-version:\s*([^\s]+)/g)].map(
+      (match) => match[1],
+    );
+    assert(nodeVersions.length > 0, path);
+    assert.deepEqual([...new Set(nodeVersions)], ["26.5.1"], path);
+    assert.equal(
+      workflow.match(/npm install --global npm@12\.0\.2/g)?.length,
+      workflow.match(/npm ci/g)?.length,
+      path,
+    );
+  }
+});
+
 test("il workflow Pages Production resta manuale, vincolato e verificabile", () => {
   const workflow = readFileSync(
     new URL("../.github/workflows/deploy-pages-production.yml", import.meta.url),
@@ -175,9 +243,9 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /wrangler pages deploy site/);
   assert.match(workflow, /--branch main/);
   assert.match(workflow, /--commit-hash "\$GITHUB_SHA"/);
-  assert.match(workflow, /npm install --global @shopify\/cli@4\.5\.2/);
+  assert.match(workflow, /npm install --global @shopify\/cli@4\.6\.0/);
   assert(
-    workflow.indexOf("npm install --global @shopify/cli@4.5.2") < workflow.indexOf("npm run check"),
+    workflow.indexOf("npm install --global @shopify/cli@4.6.0") < workflow.indexOf("npm run check"),
   );
   assert.match(workflow, /canonical_deployment\.deployment_trigger\.metadata\.commit_hash/);
   assert.match(workflow, /deployments\/\$ROLLBACK_ID\/rollback/);
@@ -196,6 +264,132 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /needs\.deploy\.outputs\.rollback_armed == 'true'/);
   assert.doesNotMatch(workflow, /wrangler deploy(?:\s|$)/);
   assert.doesNotMatch(workflow, /shopify app deploy/);
+  assert.match(workflow, /## Ricevuta deploy Pages Production/);
+});
+
+test("il backup Production cifra, ruota gli slot e prova il restore", () => {
+  const workflow = readFileSync(
+    new URL("../.github/workflows/backup-production.yml", import.meta.url),
+    "utf8",
+  );
+  const schedule = readFileSync(
+    new URL("../.github/workflows/schedule-backup-production.yml", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(workflow, /schedule:/);
+  assert.match(workflow, /refs\/heads\/main/);
+  assert.match(schedule, /schedule:/);
+  assert.match(schedule, /gh workflow run backup-production\.yml .*--ref main/);
+  assert.match(workflow, /environment: Production Backups/);
+  assert.match(workflow, /wrangler d1 export "\$D1_DATABASE" --remote/);
+  assert.match(workflow, /backup-crypto\.mjs encrypt/);
+  assert.match(workflow, /backup-crypto\.mjs check-key/);
+  assert.match(workflow, /wrangler r2 object put "\$R2_BUCKET\/\$weekly_key"/);
+  assert.match(workflow, /wrangler r2 object get "\$R2_BUCKET\/\$WEEKLY_KEY"/);
+  assert.match(workflow, /--jurisdiction eu/);
+  assert.match(workflow, /backup-crypto\.mjs verify/);
+  assert.match(workflow, /wrangler d1 execute DB --local/);
+  assert.match(workflow, /monthly\/latest\.txt/);
+  assert.doesNotMatch(workflow, /date -u \+%d/);
+  assert.ok(
+    workflow.indexOf("backup-crypto.mjs verify") < workflow.indexOf("wrangler r2 object put"),
+  );
+  assert.doesNotMatch(workflow, /d1 execute .*--remote/);
+});
+
+test("osservabilità sicura e ricevute restano configurate", () => {
+  const wrangler = JSON.parse(readFileSync(new URL("../wrangler.json", import.meta.url), "utf8"));
+  const development = readFileSync(
+    new URL("../.github/workflows/deploy-development.yml", import.meta.url),
+    "utf8",
+  );
+  const operations = readFileSync(
+    new URL("../docs/runbooks/operations.md", import.meta.url),
+    "utf8",
+  );
+  assert.equal(wrangler.observability.logs.head_sampling_rate, 1);
+  assert.equal(wrangler.observability.logs.invocation_logs, false);
+  assert.equal(wrangler.observability.traces.enabled, false);
+  assert.match(development, /## Ricevuta deploy Development/);
+  assert.match(development, /npm run capacity:dev/);
+  assert.match(operations, /D1 storage per database \| 500 MB \| 250 MB/);
+});
+
+test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
+  const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  const ci = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
+  const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+  const playwright = readFileSync(
+    new URL("../tests/playwright.config.ts", import.meta.url),
+    "utf8",
+  );
+  assert.equal(
+    packageJson.scripts["test:e2e"],
+    "playwright test --config tests/playwright.config.ts",
+  );
+  assert.match(ci, /playwright install --with-deps chromium webkit/);
+  assert.match(ci, /npm run test:e2e/);
+  assert.match(readme, /playwright install chromium webkit/);
+  assert.match(playwright, /fileURLToPath\(new URL\("\.\."/);
+  assert.match(ci, /actions\/upload-artifact@[0-9a-f]{40}/);
+  assert.match(ci, /path: test-results/);
+  assert.match(playwright, /failOnFlakyTests: Boolean\(process\.env\.CI\)/);
+  assert.match(playwright, /wrangler dev --config build\/server\/wrangler\.json/);
+  assert.match(playwright, /npm run site:dev/);
+  assert.doesNotMatch(playwright, /cf-ready-dev|cf-ready\.pages\.dev/);
+});
+
+test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
+  const ci = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
+  const workflow = readFileSync(
+    new URL("../.github/workflows/security-maintenance.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(workflow, /cron: "17 6 1 \* \*"/);
+  assert.match(workflow, /cron: "47 6 1 1,4,7,10 \*"/);
+  assert.match(workflow, /npm run audit:security/);
+  assert.match(workflow, /npm audit signatures/);
+  assert.match(workflow, /npm run readback:dev/);
+  assert.match(workflow, /required_status_checks/);
+  assert.match(workflow, /dependency-review,e2e,promotion-guard,react-doctor,verify/);
+  assert.match(workflow, /gh workflow list --all/);
+  assert.match(workflow, /workflows="\$\(gh workflow list/);
+  assert.match(workflow, /test -n "\$workflows"/);
+  assert.match(workflow, /--status completed --limit 1/);
+  assert.match(workflow, /startswith\("\.github\/workflows\/"\)/);
+  assert.match(workflow, /dependabot\/alerts code-scanning\/alerts secret-scanning\/alerts/);
+  assert.match(workflow, /--paginate --slurp/);
+  assert.match(workflow, /alerts="\$\(gh api/);
+  assert.match(workflow, /alert_count="\$\(jq/);
+  assert.match(workflow, /security-events: read/);
+  assert.doesNotMatch(workflow, /success\|skipped\|neutral\|never/);
+  assert.match(workflow, /\.path != "\.github\/workflows\/security-maintenance\.yml"/);
+  assert.doesNotMatch(ci, /allow-ghsas:/);
+  assert.match(workflow, /\.target == "branch"/);
+  assert.match(workflow, /\.conditions\.ref_name\.include == \[\$ref\]/);
+  for (const [, singleQuoted] of workflow.matchAll(/'([^']*)'/g)) {
+    assert.doesNotMatch(singleQuoted, /\\/);
+  }
+  assert.doesNotMatch(workflow, /Security governance|required reviewer|approval|approvazione/);
+  assert.doesNotMatch(workflow, /bypass_actors/);
+  assert.doesNotMatch(workflow, /allow_auto_merge|delete_branch_on_merge/);
+  assert.doesNotMatch(workflow, /branches\/$branch\/protection/);
+  assert.equal((workflow.match(/test "\$GITHUB_REF" = "refs\/heads\/develop"/g) ?? []).length, 2);
+  assert.doesNotMatch(workflow, /shopify app deploy|wrangler deploy|d1 migrations apply/);
+});
+
+test("README e indice non duplicano la versione corrente", () => {
+  const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+  const index = readFileSync(new URL("../docs/INDEX.md", import.meta.url), "utf8");
+  const security = readFileSync(new URL("../SECURITY.md", import.meta.url), "utf8");
+  const contributing = readFileSync(new URL("../CONTRIBUTING.md", import.meta.url), "utf8");
+  assert.doesNotMatch(readme, /\b0\.\d+\.\d+\b/);
+  assert.doesNotMatch(readme, /\bM\d+\b|progetto è in sviluppo/i);
+  assert.doesNotMatch(index, /\b0\.\d+\.\d+\b/);
+  assert.doesNotMatch(
+    `${security}\n${contributing}`,
+    /ancora in sviluppo|non ha release pubbliche/i,
+  );
 });
 
 test("il sito italiano e inglese mantiene il contratto pubblico essenziale", () => {
@@ -211,7 +405,7 @@ test("il sito italiano e inglese mantiene il contratto pubblico essenziale", () 
   for (const [italian, english] of pairs) {
     for (const page of [italian, english]) {
       assert.match(page, /<a class="skip-link" href="#content">/);
-      assert.match(page, /<main id="content">/);
+      assert.match(page, /<main id="content" tabindex="-1">/);
       assert.match(page, /<button class="button" type="button" disabled>/);
       assert.doesNotMatch(page, /href="[^"]*\.html/);
     }

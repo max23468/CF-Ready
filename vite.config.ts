@@ -43,7 +43,7 @@ export default defineConfig({
     hmr: hmrConfig,
     fs: {
       // See https://vitejs.dev/config/server-options.html#server-fs-allow for more information
-      allow: ["app", "workers", "node_modules"],
+      allow: ["app", "workers", "node_modules", "package.json"],
     },
   },
   plugins: [cloudflare({ viteEnvironment: { name: "ssr" } }), reactRouter()],

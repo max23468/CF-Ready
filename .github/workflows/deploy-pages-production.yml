@@ -33,12 +33,13 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 26.5.0
+          node-version: 26.5.1
           cache: npm
 
+      - run: npm install --global npm@12.0.2
       - run: npm ci
 
-      - run: npm install --global @shopify/cli@4.5.2
+      - run: npm install --global @shopify/cli@4.6.0
 
       - name: Preflight Pages Production
         id: preflight
@@ -64,6 +65,13 @@ jobs:
           rollback_id="$(jq --raw-output '.result.canonical_deployment.id' "$RUNNER_TEMP/pages-before.json")"
           rollback_commit="$(jq --raw-output '.result.canonical_deployment.deployment_trigger.metadata.commit_hash' "$RUNNER_TEMP/pages-before.json")"
           test -n "$rollback_id" && test "$rollback_id" != "null"
+          {
+            echo "## Ricevuta deploy Pages Production"
+            echo "- Ambiente: Pages Production"
+            echo "- Configurazione: progetto \`$PAGES_PROJECT\`, branch \`main\`"
+            echo "- Versione Shopify e migrazioni: non applicabile"
+            echo "- Commit: \`$GITHUB_SHA\`"
+          } >> "$GITHUB_STEP_SUMMARY"
           echo "rollback_id=$rollback_id" >> "$GITHUB_OUTPUT"
           echo "- Rollback Pages: deployment \`$rollback_id\`, commit \`$rollback_commit\`" >> "$GITHUB_STEP_SUMMARY"
 

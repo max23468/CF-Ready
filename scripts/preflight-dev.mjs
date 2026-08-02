@@ -105,6 +105,7 @@ export function verifyCoordinatedRollback(deployment, versions) {
 }
 
 async function main() {
+  const readbackOnly = process.argv.includes("--readback-only");
   const shopifyConfig = await readFile("shopify.app.dev.toml", "utf8");
   const wranglerConfig = await readFile("wrangler.json", "utf8");
   verifyDevelopmentConfig(shopifyConfig, wranglerConfig);
@@ -119,21 +120,23 @@ async function main() {
   );
 
   run("node", ["scripts/shopify-info-safe.mjs", "shopify.app.dev.toml"]);
-  const { version } = JSON.parse(await readFile("package.json", "utf8"));
   const versions = JSON.parse(
     run("shopify", ["app", "versions", "list", "--config", "dev", "--no-color", "--json"], false),
   );
   const deployment = JSON.parse(
     run("npm", ["exec", "--", "wrangler", "deployments", "status", "--json"], false),
   );
-  const readbackOnly = verifyVersionAvailable(
-    versions,
-    version,
-    deployment,
-    process.env.GITHUB_SHA,
-  );
-  if (process.env.GITHUB_ENV) {
-    await appendFile(process.env.GITHUB_ENV, `DEPLOY_READBACK_ONLY=${readbackOnly}\n`);
+  if (!readbackOnly) {
+    const { version } = JSON.parse(await readFile("package.json", "utf8"));
+    const deployReadbackOnly = verifyVersionAvailable(
+      versions,
+      version,
+      deployment,
+      process.env.GITHUB_SHA,
+    );
+    if (process.env.GITHUB_ENV) {
+      await appendFile(process.env.GITHUB_ENV, `DEPLOY_READBACK_ONLY=${deployReadbackOnly}\n`);
+    }
   }
   verifyCoordinatedRollback(deployment, versions);
   const d1 = JSON.parse(
@@ -147,7 +150,9 @@ async function main() {
   );
   verifyWorkerSecrets(secrets);
 
-  console.log("Preflight Development superato: Shopify, D1 e secret Worker verificati.");
+  console.log(
+    `${readbackOnly ? "Readback" : "Preflight"} Development superato: Shopify, D1 e secret Worker verificati.`,
+  );
 }
 
 function run(command, args, inherit = true) {

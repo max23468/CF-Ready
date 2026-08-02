@@ -1,0 +1,138 @@
+name: Backup D1 Production
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup-d1-production
+  cancel-in-progress: false
+
+env:
+  CLOUDFLARE_ACCOUNT_ID: 98195e505f42abaaeb4827f71a924b1a
+  D1_DATABASE: cf-ready-db-prod
+  D1_DATABASE_ID: 6434597c-d683-48d9-a51f-b0d15de6a684
+  R2_BUCKET: cf-ready-backups-prod
+
+jobs:
+  backup:
+    name: Backup cifrato e restore drill
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: Production Backups
+
+    steps:
+      - name: Verifica branch Production
+        run: test "$GITHUB_REF" = "refs/heads/main"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26.5.1
+          cache: npm
+
+      - run: npm install --global npm@12.0.2
+      - run: npm ci
+
+      - name: Preflight Production backup
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          D1_BACKUP_KEY: ${{ secrets.D1_BACKUP_KEY }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" && test -n "$D1_BACKUP_KEY"
+          npm exec -- wrangler d1 info "$D1_DATABASE" --json > "$RUNNER_TEMP/d1-info.json"
+          npm exec -- wrangler r2 bucket info "$R2_BUCKET" --jurisdiction eu --json > "$RUNNER_TEMP/r2-info.json"
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const d1 = JSON.parse(readFileSync(process.argv[1], "utf8"));
+            const r2 = JSON.parse(readFileSync(process.argv[2], "utf8"));
+            if (d1.uuid !== process.env.D1_DATABASE_ID || d1.name !== process.env.D1_DATABASE ||
+                d1.jurisdiction !== "eu" || r2.name !== process.env.R2_BUCKET) {
+              throw new Error("Il target backup Production non coincide con le risorse attese.");
+            }
+          ' "$RUNNER_TEMP/d1-info.json" "$RUNNER_TEMP/r2-info.json"
+          node scripts/backup-crypto.mjs check-key
+
+      - name: Esporta e cifra D1 Production
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          D1_BACKUP_KEY: ${{ secrets.D1_BACKUP_KEY }}
+        run: |
+          umask 077
+          npm exec -- wrangler d1 export "$D1_DATABASE" --remote --skip-confirmation \
+            --output "$RUNNER_TEMP/d1.sql"
+          node scripts/backup-crypto.mjs encrypt "$RUNNER_TEMP/d1.sql" "$RUNNER_TEMP/d1.cfrb"
+
+      - name: Prova il restore prima dell'upload
+        env:
+          D1_BACKUP_KEY: ${{ secrets.D1_BACKUP_KEY }}
+        run: |
+          umask 077
+          node scripts/backup-crypto.mjs decrypt \
+            "$RUNNER_TEMP/d1.cfrb" "$RUNNER_TEMP/preflight.sql"
+          cmp "$RUNNER_TEMP/d1.sql" "$RUNNER_TEMP/preflight.sql"
+          npm exec -- wrangler d1 execute DB --local --yes \
+            --persist-to "$RUNNER_TEMP/preflight-state" --file "$RUNNER_TEMP/preflight.sql"
+          node scripts/backup-crypto.mjs verify \
+            "$RUNNER_TEMP/preflight.sql" "$RUNNER_TEMP/preflight.sqlite"
+
+      - name: Pubblica gli slot di retention
+        id: upload
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          weekly_key="$(node scripts/backup-crypto.mjs key weekly)"
+          npm exec -- wrangler r2 object put "$R2_BUCKET/$weekly_key" \
+            --remote --jurisdiction eu --force --content-type application/octet-stream \
+            --file "$RUNNER_TEMP/d1.cfrb"
+          echo "weekly_key=$weekly_key" >> "$GITHUB_OUTPUT"
+
+          current_month="$(date -u +%Y-%m)"
+          monthly_marker="monthly/latest.txt"
+          published_month=""
+          if npm exec -- wrangler r2 object get "$R2_BUCKET/$monthly_marker" \
+            --remote --jurisdiction eu --file "$RUNNER_TEMP/monthly-marker.txt"; then
+            published_month="$(< "$RUNNER_TEMP/monthly-marker.txt")"
+          fi
+          if [ "$published_month" != "$current_month" ]; then
+            monthly_key="$(node scripts/backup-crypto.mjs key monthly)"
+            npm exec -- wrangler r2 object put "$R2_BUCKET/$monthly_key" \
+              --remote --jurisdiction eu --force --content-type application/octet-stream \
+              --file "$RUNNER_TEMP/d1.cfrb"
+            printf '%s' "$current_month" > "$RUNNER_TEMP/monthly-marker.txt"
+            npm exec -- wrangler r2 object put "$R2_BUCKET/$monthly_marker" \
+              --remote --jurisdiction eu --force --content-type text/plain \
+              --file "$RUNNER_TEMP/monthly-marker.txt"
+            echo "monthly_key=$monthly_key" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Readback remoto e ricevuta
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          D1_BACKUP_KEY: ${{ secrets.D1_BACKUP_KEY }}
+          WEEKLY_KEY: ${{ steps.upload.outputs.weekly_key }}
+        run: |
+          umask 077
+          npm exec -- wrangler r2 object get "$R2_BUCKET/$WEEKLY_KEY" \
+            --remote --jurisdiction eu --file "$RUNNER_TEMP/readback.cfrb"
+          cmp "$RUNNER_TEMP/d1.cfrb" "$RUNNER_TEMP/readback.cfrb"
+          node scripts/backup-crypto.mjs decrypt \
+            "$RUNNER_TEMP/readback.cfrb" "$RUNNER_TEMP/readback.sql"
+          cmp "$RUNNER_TEMP/d1.sql" "$RUNNER_TEMP/readback.sql"
+          checksum="$(sha256sum "$RUNNER_TEMP/readback.cfrb" | cut -d " " -f 1)"
+          {
+            echo "## Ricevuta backup D1 Production"
+            echo "- Ambiente: Production"
+            echo "- Commit: \`$GITHUB_SHA\`"
+            echo "- Database: \`$D1_DATABASE\` (\`$D1_DATABASE_ID\`)"
+            echo "- Oggetto R2: \`$WEEKLY_KEY\`"
+            echo "- SHA-256 cifrato: \`$checksum\`"
+            echo "- Pre-upload: import D1 locale e \`integrity_check=ok\`"
+            echo "- Readback R2: oggetto cifrato e SQL uguali all'export verificato"
+            if [ -n "${{ steps.upload.outputs.monthly_key }}" ]; then
+              echo "- Copia mensile: \`${{ steps.upload.outputs.monthly_key }}\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

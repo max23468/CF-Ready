@@ -34,10 +34,11 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 26.5.0
+          node-version: 26.5.1
           cache: npm
 
-      - run: npm install --global @shopify/cli@4.5.2
+      - run: npm install --global npm@12.0.2
+      - run: npm install --global @shopify/cli@4.6.0
       - run: npm ci
       - run: npm run check
 
@@ -60,6 +61,13 @@ jobs:
         run: |
           version="$(node -p "require('./package.json').version")"
           echo "DEPLOY_VERSION=$version" >> "$GITHUB_ENV"
+          {
+            echo "## Ricevuta deploy Development"
+            echo "- Ambiente: Development"
+            echo "- Configurazione: \`wrangler.json\`, \`shopify.app.dev.toml\`"
+            echo "- Versione repository/Shopify: \`$version\`"
+            echo "- Commit: \`$GITHUB_SHA\`"
+          } >> "$GITHUB_STEP_SUMMARY"
           if [ "$DEPLOY_READBACK_ONLY" = "true" ]; then
             echo "- Retry dello snapshot già coordinato: eseguito solo readback" >> "$GITHUB_STEP_SUMMARY"
           fi
@@ -138,9 +146,15 @@ jobs:
           ' "$RUNNER_TEMP/worker-deployment.json"
 
       - name: Smoke Worker Development
-        run: >-
-          curl --fail --silent --show-error --max-time 15 --output /dev/null
-          https://cf-ready-dev.tmsf.workers.dev
+        run: |
+          curl --fail --silent --show-error --max-time 15 --output /dev/null \
+            https://cf-ready-dev.tmsf.workers.dev
+          echo "- Smoke: Worker Development raggiungibile" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verifica capacità Worker Development
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npm run capacity:dev
 
       - name: Deploy Shopify Development
         if: env.DEPLOY_READBACK_ONLY != 'true'
@@ -188,10 +202,11 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 26.5.0
+          node-version: 26.5.1
           cache: npm
 
-      - run: npm install --global @shopify/cli@4.5.2
+      - run: npm install --global npm@12.0.2
+      - run: npm install --global @shopify/cli@4.6.0
       - run: npm ci
 
       - name: Ripristina snapshot Development coordinato
