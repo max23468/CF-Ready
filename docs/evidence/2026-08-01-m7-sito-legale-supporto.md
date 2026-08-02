@@ -22,6 +22,8 @@ i deployment erano di anteprima.
 | `d948ce04-0df1-408a-b3ab-d23e0ef7569a` | Production | `b0298b3` | ritiro del menu mobile ritardato |
 | `746baf9c-baa6-4035-a105-1216fc3accf3` | Production | `bc5acb8` | Cloudflare Web Analytics abilitata |
 | `ffed353e-b31d-445c-9ccb-ad4078ec396a` | Production | `e953488` | endpoint RUM consentito dalla Content-Security-Policy |
+| `d235e721-b71a-497c-b9f3-f551246ca4b1` | Production | `aa5d4e7` | correzioni finali al sito e ai documenti pubblici |
+| `d7017616-ed79-4af0-9750-a676c12bc095` | Production | `e5f730f` | chiusura documentale M7 e pianificazione della corsia Pages M8 |
 
 Il rollback è il deployment precedente della stessa lista, che Pages conserva e
 ripristina senza ricostruire nulla. Nessuna migrazione e nessun backup: il sito
@@ -42,6 +44,12 @@ canonici di §18.3 sono quelli effettivamente serviti. Gli header di
 `Referrer-Policy`, `X-Content-Type-Options`, `Permissions-Policy`. La Home non
 carica alcuna risorsa da domini terzi.
 
+Durante la chiusura, un'esecuzione di `site:deploy` dal branch `develop` ha
+creato la sola preview `d05b3ab8-bce8-4da0-9b2d-e9d1781a5088`, senza cambiare
+il dominio canonico. La causa era il branch Pages derivato dal checkout: la PR
+`#144` ha fissato esplicitamente il target Production `main`, coperto dal test
+documentale, e il deploy successivo `d7017616-…` ha superato il readback live.
+
 ### Una trappola nel deploy
 
 `wrangler pages` legge `.wrangler/deploy/config.json`, l'artefatto che
@@ -57,18 +65,24 @@ successiva.
 | Versione | Commit | Worker | Versione Shopify | Workflow |
 | --- | --- | --- | --- | --- |
 | `0.5.2` | `4f38c17` | `9bc3aadf-801e-4883-b8a1-a0b99f005bda` | `1072951492609` | `30718590672` |
+| `0.5.10` | `aa5d4e7` | `a7519816-7e68-4014-bc1e-cdc819e7efcd` | `1073017978881` | `30724380570` |
 
 La `0.5.0` e la `0.5.1` non hanno avuto uno snapshot Shopify proprio: la prima
 non toccava l'app, la seconda è la correzione sulle Validation duplicate entrata
 da un'altra PR. Il deploy `0.5.2` le comprende entrambe. Deployment Worker
 `03a89f9a-691c-4141-a77b-85807a3470c1`; il rollback è la versione Worker
 precedente e, per Shopify, lo snapshot precedente. Nessuna migrazione D1 in
-questa milestone: `support_requests` non viene creata, per la decisione
+quello snapshot: `support_requests` non viene creata, per la decisione
 registrata in §22.
 
-Tutti i passi del workflow sono risultati verdi, inclusi preflight, readback
-delle migrazioni, readback del Worker, smoke e readback della versione Shopify
-attiva, verificata come `0.5.2`.
+Lo snapshot `0.5.10` ha applicato `0009_shop_retention.sql`, poi ha confermato
+zero migrazioni pendenti. Deployment Worker
+`87661ab6-da8f-4471-9c58-55a834b8782e`; rollback coordinato allo snapshot
+`0.5.2` sul commit `4f38c17`.
+
+Tutti i passi dei workflow rilasciati sono risultati verdi, inclusi preflight,
+readback delle migrazioni, readback del Worker, smoke e readback della versione
+Shopify attiva, verificata da ultimo come `0.5.10`.
 
 ## Gate della milestone
 
