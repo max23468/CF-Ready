@@ -37,8 +37,40 @@ test("salva la sessione cifrata e la ricarica da D1", async () => {
   expect(JSON.stringify(row)).not.toMatch(/secret-(?:token|refresh-token)/);
   expect(row?.session_payload_ciphertext).toMatch(/^v2\./);
   expect((await storage.loadSession(session.id))?.toPropertyArray(true)).toEqual(
-    session.toPropertyArray(true),
+    session.toPropertyArray(false),
   );
+});
+
+test("non conserva i dati anagrafici dell'utente online", async () => {
+  const key = btoa(String.fromCharCode(...new Uint8Array(32).fill(3)));
+  const storage = new D1SessionStorage(env.DB, key);
+  const session = new Session({
+    id: "online_privacy.example.myshopify.com_123",
+    shop: "privacy.example.myshopify.com",
+    state: "state",
+    isOnline: true,
+    accessToken: "token",
+    onlineAccessInfo: {
+      expires_in: 3600,
+      associated_user_scope: "write_validations",
+      associated_user: {
+        id: 123,
+        first_name: "Mario",
+        last_name: "Rossi",
+        email: "mario@example.com",
+        locale: "it",
+        email_verified: true,
+        account_owner: true,
+        collaborator: false,
+      },
+    },
+  });
+
+  await storage.storeSession(session);
+
+  const loaded = await storage.loadSession(session.id);
+  expect(loaded?.onlineAccessInfo?.associated_user).toEqual({ id: 123 });
+  expect(JSON.stringify(loaded)).not.toMatch(/Mario|Rossi|mario@example\.com/);
 });
 
 test("restituisce tutte le sessioni dello store", async () => {

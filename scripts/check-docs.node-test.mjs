@@ -164,3 +164,37 @@ test("non espone un comando locale per il deploy Pages Production", () => {
   const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   assert.equal(packageJson.scripts["site:deploy"], undefined);
 });
+
+test("il sito italiano e inglese mantiene il contratto pubblico essenziale", () => {
+  const pairs = [
+    ["index.html", "en/index.html"],
+    ["support.html", "en/support.html"],
+    ["privacy.html", "en/privacy.html"],
+    ["terms.html", "en/terms.html"],
+  ].map((pair) =>
+    pair.map((file) => readFileSync(new URL(`../site/${file}`, import.meta.url), "utf8")),
+  );
+
+  for (const [italian, english] of pairs) {
+    for (const page of [italian, english]) {
+      assert.match(page, /<a class="skip-link" href="#content">/);
+      assert.match(page, /<main id="content">/);
+      assert.match(page, /<button class="button" type="button" disabled>/);
+      assert.doesNotMatch(page, /href="[^"]*\.html/);
+    }
+    assert.equal((italian.match(/<h2>/g) ?? []).length, (english.match(/<h2>/g) ?? []).length);
+  }
+
+  assert.match(pairs[2][0], /non viene inviato ai nostri sistemi, non viene registrato/);
+  assert.match(pairs[2][1], /never sent to our systems, never logged/);
+  assert.match(pairs[3][0], /cancella automaticamente l’abbonamento ricorrente/);
+  assert.match(pairs[3][1], /automatically cancels the recurring subscription/);
+  assert.deepEqual(
+    new Set(
+      pairs
+        .flat()
+        .flatMap((page) => [...page.matchAll(/mailto:([^?"]+)/g)].map((match) => match[1])),
+    ),
+    new Set(["cfready@icloud.com"]),
+  );
+});

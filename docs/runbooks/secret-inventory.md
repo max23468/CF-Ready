@@ -7,9 +7,11 @@ dei rispettivi provider e non devono comparire nel repository o nei log.
 |---|---|---|---|
 | `SHOPIFY_API_SECRET` | Development | Cloudflare Workers, GitHub Actions | configurato il 29 luglio 2026 |
 | `SESSION_ENCRYPTION_KEY` | Development | Cloudflare Workers, GitHub Actions | configurato il 29 luglio 2026 |
+| `TRIAL_LEDGER_HMAC_KEY` | Development | Cloudflare Workers | configurato il 2 agosto 2026 |
 | `SHOPIFY_APP_AUTOMATION_TOKEN` | Development | GitHub Actions | configurato il 29 luglio 2026 |
 | `SHOPIFY_API_SECRET` | Production | Cloudflare Workers | da configurare |
 | `SESSION_ENCRYPTION_KEY` | Production | Cloudflare Workers | da generare |
+| `TRIAL_LEDGER_HMAC_KEY` | Production | Cloudflare Workers | da generare prima del lancio |
 | `CLOUDFLARE_API_TOKEN` | CI Production | GitHub Actions | da creare con privilegi minimi |
 | `SHOPIFY_CLI_PARTNERS_TOKEN` | CI Production | GitHub Actions | da creare con privilegi minimi |
 

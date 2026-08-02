@@ -2,7 +2,7 @@
 
 ## Master Plan di prodotto, architettura, implementazione e lancio
 
-**Stato:** baseline approvata per scaffolding e implementazione · M0–M7 completate, Development alla `0.5.10` · Production, submission App Store e wallet M10 non completati
+**Stato:** baseline approvata per scaffolding e implementazione · M0–M7 completate in Development · Production, submission App Store e wallet M10 non completati
 **Data:** 27 luglio 2026 · revisione 28 luglio 2026  
 **Documenti vincolanti collegati:** `docs/brand/brand-foundation.md` (identità visiva, tono, materiali pubblici)  
 **Brand:** CF Ready  
@@ -1322,7 +1322,8 @@ La riconciliazione:
 4. corregge automaticamente solo divergenze sicure;
 5. in caso di ambiguità, mantiene fail-open e mostra un avviso operativo.
 
-Non introdurre job periodici finché non esiste un problema osservato: il confronto della data locale nella Function e la riconciliazione event-driven coprono la 1.0.
+La riconciliazione resta event-driven: il solo job periodico applicativo è la
+retention oraria, che non legge né modifica lo stato Shopify.
 
 ---
 
@@ -1347,7 +1348,8 @@ con M1, `app_state` tecnico, `webhook_events` e `app_events` con M4, `trials`,
 `trial_ledger`, `billing_accounts` e `billing_events` con M5, le colonne di
 onboarding di `app_state` con M6. `support_requests` non viene creata nella 1.0:
 il recapito dell’assistenza avviene via `mailto:` e nessuna riga verrebbe
-scritta.
+scritta. L'hardening successivo a M7 rimuove la colonna sessione ridondante,
+protegge il ledger con HMAC e indicizza le soglie di retention.
 
 ### 12.2 Schema fisico minimo
 
@@ -1385,7 +1387,6 @@ Implementa il contratto `SessionStorage` richiesto dal pacchetto Shopify.
 | `refresh_token_ciphertext` | blob/text nullable, cifrato |
 | `access_token_expires_at` | text nullable |
 | `refresh_token_expires_at` | text nullable |
-| `online_user_id` | text nullable |
 | `session_payload_ciphertext` | blob/text cifrato, solo campi necessari |
 | `created_at` | text |
 | `updated_at` | text |
@@ -1417,7 +1418,7 @@ seconda prova: la cancellazione dei dati porta via anche `trials`.
 
 | Campo | Tipo/logica |
 |---|---|
-| `shop_hash` | text primary key, SHA-256 del dominio dello store |
+| `shop_hash` | text primary key, HMAC-SHA-256 del dominio con secret dedicato |
 | `trial_ends_at` | text nullable |
 | `pricing_generation` | `launch`, `balanced`, `value` |
 | `recorded_at` | text |
@@ -2985,8 +2986,10 @@ Dopo 90 giorni dalla disinstallazione, se `shop/redact` non è arrivato:
 I 90 giorni sono il limite massimo residuale. Shopify invia `shop/redact` circa
 48 ore dopo la disinstallazione: quando arriva, la cancellazione è immediata e
 la finestra non viene consumata. Un trigger orario del Worker cancella gli
-store ancora disinstallati che raggiungono i 90 giorni, come fallback quando il
-webhook non arriva.
+store ancora disinstallati che raggiungono i 90 giorni, in batch deterministici
+da 25, come fallback quando il webhook non arriva. Lo stesso trigger elimina
+ricevute webhook ed errori dettagliati dopo 90 giorni, e gli altri eventi
+tecnici e di billing dopo 12 mesi, tramite indici sulle relative date.
 
 ### 21.6 `shop/redact`
 
@@ -3000,8 +3003,9 @@ Applicare:
 - nessun contenuto libero del merchant oltre obblighi applicabili.
 
 La base giuridica e la forma della pseudonimizzazione sono state approvate
-dall'owner il 2 agosto 2026. Il ledger conserva soltanto hash del dominio, stato
-della prova e generazione tariffaria, senza dati di checkout o contenuti liberi.
+dall'owner il 2 agosto 2026. Il ledger conserva soltanto HMAC-SHA-256 del
+dominio, stato della prova e generazione tariffaria, senza dati di checkout o
+contenuti liberi.
 
 ### 21.7 Telemetria
 
@@ -3956,7 +3960,8 @@ Registro delle operazioni:
 [`docs/evidence/2026-08-01-m7-sito-legale-supporto.md`](../evidence/2026-08-01-m7-sito-legale-supporto.md).
 I testi legali e la conservazione pseudonimizzata del `trial_ledger` sono stati
 approvati dall'owner il 2 agosto 2026. Il completamento dell'identità del
-titolare nei due documenti è programmato in M9, prima della submission.
+titolare nei due documenti è un gate della milestone di lancio M9, prima della
+submission e prima della disponibilità per merchant esterni.
 
 Deliverable:
 
@@ -4016,7 +4021,7 @@ Segnaposto lasciati nel sito, da sostituire nelle milestone indicate:
 | --- | --- | --- |
 | Pulsante disabilitato «Presto sullo Shopify App Store» | richiami all’installazione su tutte le pagine | pulsante attivo verso la listing, quando esiste (M11) |
 | Nessuno screenshot dell’app | Home | screenshot reali prodotti da M9 (§24.5, §9.3 del brand) |
-| Identità del titolare limitata al nome | Privacy e Termini | denominazione completa e indirizzo, prima della submission (M9) |
+| Identità del titolare limitata al nome | Privacy e Termini | denominazione completa e indirizzo nella milestone di lancio, prima della submission e della disponibilità esterna (M9) |
 
 Finché la listing non esiste, i richiami all’installazione sono pulsanti
 disabilitati che dichiarano l’attesa: un collegamento che porta a un errore 404

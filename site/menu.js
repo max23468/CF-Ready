@@ -41,18 +41,16 @@
   });
 
   // --- Segna la voce di menu della sezione che si sta guardando.
-  var links = Array.prototype.filter.call(
-    masthead.querySelectorAll('nav a[href^="#"]'),
-    function (a) {
-      return a.hash.length > 1;
-    },
-  );
+  var links = [...masthead.querySelectorAll('nav a[href^="#"]')].filter(function (a) {
+    return a.hash.length > 1;
+  });
   if (!links.length) return;
 
-  var sections = links.flatMap(function (a) {
-    var section = document.getElementById(a.hash.slice(1));
-    return section ? [section] : [];
-  });
+  var sections = links
+    .map(function (a) {
+      return document.getElementById(a.hash.slice(1));
+    })
+    .filter(Boolean);
 
   function segna(hash) {
     links.forEach(function (a) {

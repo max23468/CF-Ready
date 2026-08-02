@@ -18,7 +18,7 @@ import {
   syncTrial,
   trialEnd,
 } from "../app/billing.server";
-import { sha256Hex } from "../app/hash.server";
+import { trialLedgerHash } from "../app/hash.server";
 import { redactShop } from "../app/shop.server";
 import {
   configWithEntitlement,
@@ -157,7 +157,7 @@ test("il registro della prova non conserva il dominio in chiaro", async () => {
   const registro = await env.DB.prepare(
     "SELECT shop_hash, trial_ends_at FROM trial_ledger WHERE shop_hash = ?",
   )
-    .bind(await sha256Hex(shop))
+    .bind(await trialLedgerHash(shop))
     .first<{ shop_hash: string; trial_ends_at: string }>();
 
   expect(registro).toMatchObject({ trial_ends_at: "2026-08-12" });

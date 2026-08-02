@@ -99,10 +99,14 @@ test("il readback D1 richiede zero migrazioni pendenti", () => {
   );
 });
 
-test("il preflight richiede entrambi i secret runtime Worker", () => {
-  const all = [{ name: "SHOPIFY_API_SECRET" }, { name: "SESSION_ENCRYPTION_KEY" }];
+test("il preflight richiede tutti i secret runtime Worker", () => {
+  const all = [
+    { name: "SHOPIFY_API_SECRET" },
+    { name: "SESSION_ENCRYPTION_KEY" },
+    { name: "TRIAL_LEDGER_HMAC_KEY" },
+  ];
   assert.doesNotThrow(() => verifyWorkerSecrets(all));
-  assert.throws(() => verifyWorkerSecrets(all.slice(0, 1)), /Mancano secret runtime/);
+  assert.throws(() => verifyWorkerSecrets(all.slice(0, 2)), /Mancano secret runtime/);
 });
 
 test("il rollback richiede Worker e Shopify sullo stesso commit", () => {
@@ -135,6 +139,34 @@ test("il rollback richiede Worker e Shopify sullo stesso commit", () => {
         versions,
       ),
     /non coincide/,
+  );
+});
+
+test("il rollback accetta una versione Worker nata dalla sola rotazione secret", () => {
+  const commit = "d49717985a93a40f0b0958d19fa8bb012f24b701";
+  assert.deepEqual(
+    verifyCoordinatedRollback(
+      {
+        id: "deployment-secret",
+        annotations: { "workers/triggered_by": "secret" },
+        versions: [{ version_id: "worker-secret", percentage: 100 }],
+      },
+      [
+        {
+          status: "active",
+          versionId: "shopify-version-uno",
+          versionTag: "0.4.21",
+          message: `Development ${commit}`,
+        },
+      ],
+    ),
+    {
+      deploymentId: "deployment-secret",
+      workerVersionId: "worker-secret",
+      shopifyVersionId: "shopify-version-uno",
+      shopifyVersionTag: "0.4.21",
+      commit,
+    },
   );
 });
 

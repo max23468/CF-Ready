@@ -6,6 +6,21 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.5.12 — 2 agosto 2026
+
+- la retention oraria applica le soglie pubblicate a ricevute webhook, errori,
+  eventi tecnici e billing, e cancella gli store scaduti in batch da 25;
+- il registro antifrode delle prove usa HMAC-SHA-256 con un secret dedicato; le
+  sessioni online non conservano nome, email, lingua o ruolo dell’admin. La
+  migrazione azzera il solo ledger Development pre-HMAC, nato prima che l’app
+  fosse disponibile a merchant esterni;
+- i Termini chiariscono in italiano e inglese che la disinstallazione cancella
+  automaticamente l’abbonamento ricorrente tramite Shopify;
+- il sito usa URL interni canonici, skip link e un gate statico bilingue; menu e
+  CSS sono stati semplificati senza dipendenze nuove;
+- l’identificazione completa del titolare resta un gate della milestone di
+  lancio, prima della submission e della disponibilità per merchant esterni.
+
 ## 0.5.11 — 2 agosto 2026
 
 - la pagina Support mantiene per scelta il solo contatto email per le

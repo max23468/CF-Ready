@@ -1,7 +1,7 @@
 import { APP_URL } from "./env.server";
 import type { Entitlement } from "./config";
 import { recordEvent } from "./events.server";
-import { sha256Hex } from "./hash.server";
+import { trialLedgerHash } from "./hash.server";
 import { planFor } from "./plans.server";
 
 // Data di lancio provvisoria: la generazione Launch copre i primi 90 giorni. Finché il lancio
@@ -141,7 +141,7 @@ export async function syncTrial(
     // reinstallazione la ritrova esaurita invece di ottenerne una nuova.
     const consumed = await db
       .prepare("SELECT trial_ends_at, pricing_generation FROM trial_ledger WHERE shop_hash = ?")
-      .bind(await sha256Hex(shopDomain))
+      .bind(await trialLedgerHash(shopDomain))
       .first<{ trial_ends_at: string | null; pricing_generation: PricingGeneration }>();
 
     const inserted = await db
@@ -736,7 +736,7 @@ export async function recordTrialLedger(db: D1Database, shopDomain: string) {
        WHERE s.shop_domain = ?
        ON CONFLICT(shop_hash) DO NOTHING`,
     )
-    .bind(await sha256Hex(shopDomain), new Date().toISOString(), shopDomain)
+    .bind(await trialLedgerHash(shopDomain), new Date().toISOString(), shopDomain)
     .run();
 }
 

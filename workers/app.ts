@@ -1,5 +1,5 @@
 import { createRequestHandler } from "react-router";
-import { redactExpiredShops } from "../app/shop.server";
+import { applyRetention } from "../app/shop.server";
 
 declare module "react-router" {
   interface AppLoadContext {
@@ -22,6 +22,6 @@ export default {
     });
   },
   scheduled(_controller, env, ctx) {
-    ctx.waitUntil(redactExpiredShops(env.DB));
+    ctx.waitUntil(applyRetention(env.DB));
   },
 } satisfies ExportedHandler<Env>;

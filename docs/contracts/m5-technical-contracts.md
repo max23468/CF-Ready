@@ -36,7 +36,7 @@ con `shop.localTime.date`, quindi l'ultimo giorno è incluso da entrambe le part
 
 Uno store non idoneo non crea la riga e quindi non consuma la prova. Una prova
 già fruita sopravvive alla cancellazione dei dati in `trial_ledger`, con
-l'hash del dominio: dopo un `shop/redact` la reinstallazione la ritrova
+l'HMAC-SHA-256 del dominio e un secret dedicato: dopo un `shop/redact` la reinstallazione la ritrova
 esaurita invece di ottenerne una nuova.
 
 ## Generazione tariffaria

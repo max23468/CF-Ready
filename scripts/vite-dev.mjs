@@ -14,6 +14,7 @@ const allowed = [
   "SHOPIFY_API_SECRET",
   "SCOPES",
   "SESSION_ENCRYPTION_KEY",
+  "TRIAL_LEDGER_HMAC_KEY",
   "SHOP_CUSTOM_DOMAIN",
 ];
 const env = Object.fromEntries(
