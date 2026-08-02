@@ -92,10 +92,11 @@ export async function claimWebhook(
   triggeredAt?: string,
 ) {
   const staleBefore = new Date(Date.parse(now) - PROCESSING_TIMEOUT_MS).toISOString();
-  const eventTime =
-    triggeredAt && !Number.isNaN(Date.parse(triggeredAt))
-      ? new Date(triggeredAt).toISOString()
-      : "";
+  const eventTimestamp = triggeredAt ? Date.parse(triggeredAt) : Number.NaN;
+  if (topic === "APP_UNINSTALLED" && Number.isNaN(eventTimestamp)) {
+    return { acquired: false, retry: true } as const;
+  }
+  const eventTime = Number.isNaN(eventTimestamp) ? "" : new Date(eventTimestamp).toISOString();
   const claim = await db
     .prepare(
       `INSERT INTO webhook_events (

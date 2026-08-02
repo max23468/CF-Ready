@@ -339,6 +339,8 @@ test("un claim disinstallazione precedente alla migrazione non acquisisce una re
     "APP_UNINSTALLED",
     shop,
     "2026-08-01T10:05:00.000Z",
+    undefined,
+    "2026-08-01T10:00:00.000Z",
   );
 
   expect(retry.acquired).toBe(true);
@@ -488,7 +490,12 @@ test("il replay della disinstallazione non tocca una reinstallazione successiva"
 
   const response = await handleWebhook(
     env.DB,
-    { webhookId: "wh-uninstall-replay", topic: "APP_UNINSTALLED", shop },
+    {
+      webhookId: "wh-uninstall-replay",
+      topic: "APP_UNINSTALLED",
+      shop,
+      triggeredAt: "2026-08-01T10:00:00.000Z",
+    },
     async (claim) => {
       if (claim.installationStartedAt) {
         await markUninstalled(env.DB, shop, claim.installationStartedAt);
@@ -507,6 +514,24 @@ test("il replay della disinstallazione non tocca una reinstallazione successiva"
       "SELECT id FROM shopify_sessions WHERE id = 'offline_reinstallato'",
     ).first(),
   ).not.toBeNull();
+});
+
+test("una disinstallazione senza timestamp autenticato resta ritentabile", async () => {
+  const shop = await insertShop("uninstall-senza-timestamp.example.myshopify.com");
+  const response = await handleWebhook(
+    env.DB,
+    { webhookId: "wh-uninstall-senza-timestamp", topic: "APP_UNINSTALLED", shop },
+    async () => {
+      throw new Error("handler non atteso");
+    },
+  );
+
+  expect(response.status).toBe(500);
+  expect(
+    await env.DB.prepare("SELECT webhook_id FROM webhook_events WHERE webhook_id = ?")
+      .bind("wh-uninstall-senza-timestamp")
+      .first(),
+  ).toBeNull();
 });
 
 test("la prima consegna tardiva della disinstallazione non tocca la reinstallazione", async () => {
