@@ -1,0 +1,81 @@
+name: Manutenzione sicurezza
+
+on:
+  schedule:
+    - cron: "17 6 1 * *"
+    - cron: "47 6 1 1,4,7,10 *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: security-maintenance
+  cancel-in-progress: false
+
+jobs:
+  repository:
+    name: Verifica mensile repository
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 6 1 * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Verifica branch
+        run: test "$GITHUB_REF" = "refs/heads/develop"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26.5.0
+          cache: npm
+      - run: npm ci
+      - run: npm run audit:security
+      - run: npm audit signatures
+      - run: npm run docs:check
+      - name: Verifica governance e workflow GitHub
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .default_branch)" = develop
+          test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .allow_auto_merge)" = true
+          test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .delete_branch_on_merge)" = false
+          for branch in develop main; do
+            test "$(gh api "repos/$GITHUB_REPOSITORY/branches/$branch/protection" \
+              --jq '.enforce_admins.enabled and .required_conversation_resolution.enabled')" = true
+          done
+          for workflow in ci.yml react-doctor.yml deploy-development.yml; do
+            test "$(gh run list --workflow "$workflow" --branch develop --limit 1 \
+              --json conclusion --jq '.[0].conclusion')" = success
+          done
+
+  providers:
+    name: Verifica trimestrale provider Development
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '47 6 1 1,4,7,10 *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: Development
+    steps:
+      - name: Verifica branch
+        run: test "$GITHUB_REF" = "refs/heads/develop"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26.5.0
+          cache: npm
+      - run: npm install --global @shopify/cli@4.6.0
+      - run: npm ci
+      - name: Verifica credenziali provider
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+        run: test -n "$CLOUDFLARE_API_TOKEN" && test -n "$SHOPIFY_APP_AUTOMATION_TOKEN"
+      - name: Readback provider Development
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+          SHOPIFY_PROJECT_FILE: config/shopify-project.dev.json
+        run: npm run preflight:dev
+      - name: Smoke Worker Development
+        run: >-
+          curl --fail --silent --show-error --max-time 15 --output /dev/null
+          https://cf-ready-dev.tmsf.workers.dev

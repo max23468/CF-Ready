@@ -2,9 +2,8 @@
 
 ## Versioni supportate
 
-CF Ready è ancora in sviluppo e non ha release pubbliche. Le correzioni di
-sicurezza vengono applicate alla linea corrente di sviluppo e promosse secondo
-il flusso `develop` → `main`.
+Le correzioni di sicurezza vengono applicate alla linea supportata e promosse
+secondo il flusso `develop` → `main`.
 
 ## Segnalare una vulnerabilità
 

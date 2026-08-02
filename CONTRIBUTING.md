@@ -1,7 +1,7 @@
 # Contribuire a CF Ready
 
-CF Ready è una public app Shopify ancora in sviluppo. Prima di un contributo
-sostanziale, apri una issue per verificare che rientri nel perimetro della 1.0.
+CF Ready è una public app Shopify. Prima di un contributo sostanziale, apri una
+issue per verificare che rientri nel perimetro del prodotto.
 
 Per vulnerabilità usa esclusivamente la procedura in
 [`SECURITY.md`](SECURITY.md), non una issue pubblica.

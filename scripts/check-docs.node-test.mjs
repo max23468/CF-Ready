@@ -175,9 +175,9 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /wrangler pages deploy site/);
   assert.match(workflow, /--branch main/);
   assert.match(workflow, /--commit-hash "\$GITHUB_SHA"/);
-  assert.match(workflow, /npm install --global @shopify\/cli@4\.5\.2/);
+  assert.match(workflow, /npm install --global @shopify\/cli@4\.6\.0/);
   assert(
-    workflow.indexOf("npm install --global @shopify/cli@4.5.2") < workflow.indexOf("npm run check"),
+    workflow.indexOf("npm install --global @shopify/cli@4.6.0") < workflow.indexOf("npm run check"),
   );
   assert.match(workflow, /canonical_deployment\.deployment_trigger\.metadata\.commit_hash/);
   assert.match(workflow, /deployments\/\$ROLLBACK_ID\/rollback/);
@@ -241,12 +241,33 @@ test("osservabilità sicura e ricevute restano configurate", () => {
   assert.match(development, /## Ricevuta deploy Development/);
 });
 
+test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
+  const workflow = readFileSync(
+    new URL("../.github/workflows/security-maintenance.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(workflow, /cron: "17 6 1 \* \*"/);
+  assert.match(workflow, /cron: "47 6 1 1,4,7,10 \*"/);
+  assert.match(workflow, /npm run audit:security/);
+  assert.match(workflow, /npm audit signatures/);
+  assert.match(workflow, /npm run preflight:dev/);
+  assert.match(workflow, /delete_branch_on_merge/);
+  assert.equal((workflow.match(/test "\$GITHUB_REF" = "refs\/heads\/develop"/g) ?? []).length, 2);
+  assert.doesNotMatch(workflow, /shopify app deploy|wrangler deploy|d1 migrations apply/);
+});
+
 test("README e indice non duplicano la versione corrente", () => {
   const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
   const index = readFileSync(new URL("../docs/INDEX.md", import.meta.url), "utf8");
+  const security = readFileSync(new URL("../SECURITY.md", import.meta.url), "utf8");
+  const contributing = readFileSync(new URL("../CONTRIBUTING.md", import.meta.url), "utf8");
   assert.doesNotMatch(readme, /\b0\.\d+\.\d+\b/);
   assert.doesNotMatch(readme, /\bM\d+\b|progetto è in sviluppo/i);
   assert.doesNotMatch(index, /\b0\.\d+\.\d+\b/);
+  assert.doesNotMatch(
+    `${security}\n${contributing}`,
+    /ancora in sviluppo|non ha release pubbliche/i,
+  );
 });
 
 test("il sito italiano e inglese mantiene il contratto pubblico essenziale", () => {
