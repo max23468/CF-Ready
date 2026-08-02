@@ -1,0 +1,112 @@
+name: Manutenzione sicurezza
+
+on:
+  schedule:
+    - cron: "17 6 1 * *"
+    - cron: "47 6 1 1,4,7,10 *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  security-events: read
+
+concurrency:
+  group: security-maintenance
+  cancel-in-progress: false
+
+jobs:
+  repository:
+    name: Verifica mensile repository
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 6 1 * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Verifica branch
+        run: test "$GITHUB_REF" = "refs/heads/develop"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26.5.1
+          cache: npm
+      - run: npm install --global npm@12.0.2
+      - run: npm ci
+      - run: npm run audit:security
+      - run: npm audit signatures
+      - run: npm run docs:check
+      - name: Verifica governance e workflow GitHub
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .default_branch)" = develop
+          rulesets="$(curl --fail --silent --show-error \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/rulesets")"
+          verify_ruleset() {
+            branch="$1"
+            strict="$2"
+            expected_checks="$3"
+            url="$(jq -r --arg name "$branch governance" \
+              '.[] | select(.name == $name and .enforcement == "active") | ._links.self.href' \
+              <<< "$rulesets")"
+            test -n "$url"
+            ruleset="$(curl --fail --silent --show-error "$url")"
+            test "$(jq -r --arg ref "refs/heads/$branch" '.target == "branch" and .conditions.ref_name.include == [$ref] and (.conditions.ref_name.exclude | length == 0)' <<< "$ruleset")" = true
+            test "$(jq -r '.rules[] | select(.type == "pull_request") | .parameters.required_review_thread_resolution' <<< "$ruleset")" = true
+            test "$(jq -r '.rules[] | select(.type == "required_status_checks") | .parameters.strict_required_status_checks_policy' <<< "$ruleset")" = "$strict"
+            test "$(jq -r '[.rules[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | sort | join(",")' <<< "$ruleset")" = "$expected_checks"
+          }
+          verify_ruleset develop false dependency-review,e2e,react-doctor,verify
+          verify_ruleset main true dependency-review,e2e,promotion-guard,react-doctor,verify
+          workflows="$(gh workflow list --all --json path,state \
+            --jq '.[] | select(.state == "active" and (.path | startswith(".github/workflows/")) and .path != ".github/workflows/security-maintenance.yml") | .path')"
+          test -n "$workflows"
+          failed=0
+          while IFS= read -r workflow; do
+            conclusion="$(gh run list --workflow "$workflow" --status completed --limit 1 \
+              --json conclusion --jq '.[0].conclusion // "never"')"
+            case "$conclusion" in
+              success|skipped|neutral) ;;
+              *) echo "::error::Ultimo run non verde: $workflow ($conclusion)"; failed=1 ;;
+            esac
+          done <<< "$workflows"
+          test "$failed" -eq 0
+
+          for endpoint in dependabot/alerts code-scanning/alerts secret-scanning/alerts; do
+            alerts="$(gh api --paginate --slurp --method GET \
+              "repos/$GITHUB_REPOSITORY/$endpoint" -f state=open)"
+            alert_count="$(jq 'map(length) | add' <<< "$alerts")"
+            test "$alert_count" -eq 0
+          done
+
+  providers:
+    name: Verifica trimestrale provider Development
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '47 6 1 1,4,7,10 *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: Development
+    steps:
+      - name: Verifica branch
+        run: test "$GITHUB_REF" = "refs/heads/develop"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26.5.1
+          cache: npm
+      - run: npm install --global npm@12.0.2
+      - run: npm install --global @shopify/cli@4.6.0
+      - run: npm ci
+      - name: Verifica credenziali provider
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+        run: test -n "$CLOUDFLARE_API_TOKEN" && test -n "$SHOPIFY_APP_AUTOMATION_TOKEN"
+      - name: Readback provider Development
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+          SHOPIFY_PROJECT_FILE: config/shopify-project.dev.json
+        run: npm run readback:dev
+      - name: Smoke Worker Development
+        run: >-
+          curl --fail --silent --show-error --max-time 15 --output /dev/null
+          https://cf-ready-dev.tmsf.workers.dev

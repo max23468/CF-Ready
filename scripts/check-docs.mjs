@@ -25,7 +25,7 @@ export function checkDocs(repositoryRoot = root) {
     { cwd: repositoryRoot, encoding: "utf8" },
   )
     .split("\0")
-    .filter(Boolean);
+    .filter((file) => file && existsSync(resolve(repositoryRoot, file)));
   const errors = [];
   const anchorsByFile = new Map();
 

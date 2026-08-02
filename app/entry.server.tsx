@@ -1,5 +1,6 @@
 import { renderToReadableStream } from "react-dom/server";
 import { ServerRouter, type EntryContext } from "react-router";
+import { logEvent } from "./events.server";
 import { addDocumentResponseHeaders } from "./shopify.server";
 
 export default async function handleRequest(
@@ -14,19 +15,17 @@ export default async function handleRequest(
   const body = await renderToReadableStream(
     <ServerRouter context={reactRouterContext} url={request.url} />,
     {
-      onError(error: unknown) {
+      onError() {
         responseStatusCode = 500;
         if (shellRendered) {
-          // Nome e stack bastano a localizzare il difetto; il messaggio può contenere
-          // URL, query string o dati dello store.
-          console.error(
-            JSON.stringify({
-              event: "render_failed",
+          // Messaggio e stack possono contenere URL, query string o dati dello store.
+          logEvent(
+            {
+              name: "render_failed",
               class: "error",
-              error_name: error instanceof Error ? error.name : "unknown",
-              // La prima riga dello stack ripete il messaggio: si tengono solo i frame.
-              frames: error instanceof Error ? error.stack?.split("\n").slice(1, 6) : undefined,
-            }),
+              metadata: { error_code: "render_stream_failed" },
+            },
+            new Date().toISOString(),
           );
         }
       },

@@ -11,9 +11,11 @@ import {
 } from "../config";
 import { validateMessages } from "../config";
 import type { CheckoutConfig } from "../config";
+import { databaseContext } from "../context.server";
 import { resolveLocale, texts } from "../i18n";
 import type { Locale } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
+import { setSaveBarVisibility } from "../save-bar";
 import { authenticate } from "../shopify.server";
 import {
   findValidation,
@@ -52,7 +54,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   }
   const result = await writeValidation(
     admin,
-    context.cloudflare.env.DB,
+    context.get(databaseContext),
     session.shop,
     { rules: current.rules, errorDisplay: current.errorDisplay, messages: validated.messages },
     null,
@@ -101,10 +103,7 @@ export default function CustomerMessages() {
     MESSAGE_KEYS.some((key) => draft[locale][key] !== saved.messages[locale][key]),
   );
 
-  useEffect(() => {
-    if (typeof shopify === "undefined") return;
-    void (dirty ? shopify.saveBar.show(SAVE_BAR) : shopify.saveBar.hide(SAVE_BAR));
-  }, [dirty]);
+  useEffect(() => setSaveBarVisibility(SAVE_BAR, dirty), [dirty]);
 
   // Un solo ascoltatore per la pagina: gli eventi dei componenti Polaris risalgono fino al
   // modulo, come già in Regole checkout.
@@ -236,7 +235,14 @@ export default function CustomerMessages() {
         </s-section>
 
         {(["it", "en"] as const).map((locale) => (
-          <s-modal key={locale} id={`restore-${locale}`} heading={t.messages.reset}>
+          <s-modal
+            key={locale}
+            id={`restore-${locale}`}
+            heading={t.messages.reset}
+            accessibilityLabel={t.messages.resetConfirm(
+              locale === "it" ? t.messages.italian : t.messages.english,
+            )}
+          >
             <s-paragraph>
               {t.messages.resetConfirm(locale === "it" ? t.messages.italian : t.messages.english)}
             </s-paragraph>

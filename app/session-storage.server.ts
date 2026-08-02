@@ -1,5 +1,6 @@
 import { Session } from "@shopify/shopify-api";
 import type { SessionStorage } from "@shopify/shopify-app-session-storage";
+import { logEvent } from "./events.server";
 
 type Property = [string, string | number | boolean];
 
@@ -167,7 +168,7 @@ export class D1SessionStorage implements SessionStorage {
       return await this.deserialize(row);
     } catch {
       // L'id sessione contiene lo shop domain: nel log resta solo il codice evento.
-      console.error(JSON.stringify({ event: "session_decrypt_failed", class: "error" }));
+      logEvent({ name: "session_decrypt_failed", class: "error" }, new Date().toISOString());
       return undefined;
     }
   }

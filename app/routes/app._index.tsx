@@ -23,6 +23,7 @@ import {
   readConfig,
   reviewIsDue,
 } from "../config";
+import { databaseContext } from "../context.server";
 import { APP_VERSION, BILLING_IS_TEST } from "../env.server";
 import { recordEvent } from "../events.server";
 import {
@@ -52,7 +53,7 @@ import type { Admin } from "../validation.server";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
-  const db = context.cloudflare.env.DB;
+  const db = context.get(databaseContext);
   // §11.6: la Home riconcilia a ogni apertura. Lo stato locale non viene mai presentato come
   // certo senza aver riletto Shopify.
   const state = await reconcile(admin, db, session.shop);
@@ -102,7 +103,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
-  const db = context.cloudflare.env.DB;
+  const db = context.get(databaseContext);
   const intent = (await request.formData()).get("intent");
 
   if (intent === "repair") {
@@ -482,7 +483,11 @@ export default function Home() {
       <s-app-window id="onboarding-window" src="/app/onboarding" />
 
       {/* §15.1: le azioni ad alto impatto dichiarano la conseguenza concreta, non “sei sicuro?”. */}
-      <s-modal id="deactivate" heading={t.home.deactivate}>
+      <s-modal
+        id="deactivate"
+        heading={t.home.deactivate}
+        accessibilityLabel={t.home.deactivateConfirm}
+      >
         <s-paragraph>{t.home.deactivateConfirm}</s-paragraph>
         <s-button slot="secondary-actions" commandFor="deactivate" command="--hide">
           {t.common.cancel}
@@ -671,7 +676,11 @@ export function PlanChoice({
   return (
     <>
       {choice}
-      <s-modal id="cancel-renewal" heading={t.plan.cancelRenewal}>
+      <s-modal
+        id="cancel-renewal"
+        heading={t.plan.cancelRenewal}
+        accessibilityLabel={t.plan.cancelBody}
+      >
         <s-paragraph>{t.plan.cancelBody}</s-paragraph>
         <s-button slot="secondary-actions" commandFor="cancel-renewal" command="--hide">
           {t.common.cancel}

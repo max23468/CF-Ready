@@ -3,12 +3,10 @@
 Public app Shopify per validare formalmente Codice Fiscale e PEC nei campi
 nativi del checkout italiano.
 
-> Il progetto è in sviluppo: M0–M7 sono completate per il perimetro Development.
-> La versione del repository è `0.5.13`, con motore di validazione, billing,
-> interfaccia merchant, onboarding e sito pubblico implementati. Le ricevute
-> degli snapshot Development sono registrate in `docs/evidence/`. Il sito è
-> pubblicato su [cf-ready.pages.dev](https://cf-ready.pages.dev/); Production,
-> submission App Store e gate wallet M10 non sono ancora completati.
+Versione e stato corrente si leggono da `package.json`, `CHANGELOG.md`, codice e
+configurazioni. Le ricevute puntuali delle operazioni remote sono in
+`docs/evidence/`. Il sito pubblico è
+[cf-ready.pages.dev](https://cf-ready.pages.dev/).
 
 ## Sviluppo locale
 
@@ -21,6 +19,7 @@ bloccata in `mise.toml`.
 mise trust mise.toml
 mise install
 mise exec -- npm ci
+mise exec -- npx playwright install chromium webkit
 mise exec -- npm run db:migrate:local
 mise exec -- npm run dev
 ```
@@ -59,6 +58,7 @@ quello sbagliato; viene rigenerato alla build successiva.
 ```sh
 mise exec -- npm test
 mise exec -- npm run test:function
+mise exec -- npm run test:e2e
 mise exec -- npm run preflight:dev
 mise exec -- npm run docs:check
 mise exec -- npm run check
@@ -73,7 +73,9 @@ mise exec -- npm run shopify:info -- shopify.app.dev.toml
 
 ## Documentazione e contributi
 
-La documentazione parte da [`docs/INDEX.md`](docs/INDEX.md). Il
+La documentazione parte da [`docs/INDEX.md`](docs/INDEX.md). Versioni e commit
+storici restano nelle ricevute e nel changelog e non descrivono lo stato
+corrente. Il
 [Master Plan](docs/plans/2026-07-28-CF-Ready-Master-Plan.md) resta la fonte
 decisionale; codice, test e configurazioni descrivono lo stato implementato.
 

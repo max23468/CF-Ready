@@ -6,6 +6,127 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.8.6 — 2 agosto 2026
+
+- la manutenzione mensile verifica l'ultimo esito di ogni workflow attivo e gli
+  alert aperti Dependabot, CodeQL e Secret Scanning;
+- lo stop point D1 per database coincide con il 50% della quota Free;
+- gli E2E pubblici provano focus dello skip link e pagine legali/supporto IT/EN;
+- una ricevuta durevole collega ogni riga della matrice M8 alla prova eseguita o
+  al limite esplicitamente differito.
+
+## 0.8.5
+
+- Messaggi usa la Save Bar programmatica prevista da Shopify per stato custom:
+  anche il ripristino dei testi apre uno stato salvabile e Annulla lo chiude.
+
+## 0.8.4
+
+- le pagine Regole e Messaggi affidano la Save Bar al form nativo App Bridge:
+  Annulla ripristina i valori e chiude subito lo stato non salvato;
+- le conferme di disattivazione, cancellazione e ripristino testi espongono una
+  descrizione accessibile esplicita ai browser assistivi.
+
+## 0.8.3 — 2 agosto 2026
+
+- il timeout di readiness del tail Cloudflare usa una deadline monotona e
+  include la durata effettiva delle probe;
+- i metadati radice e workspace del lockfile restano allineati alla versione
+  dello snapshot.
+
+## 0.8.2 — 2 agosto 2026
+
+- la verifica capacità attende fino a 60 secondi l'avvio del tail Cloudflare
+  prima del carico, senza allentare soglie CPU, numero di eventi o errori;
+- una regressione copre un tail disponibile oltre la precedente soglia di 15
+  secondi.
+
+## 0.8.1 — 2 agosto 2026
+
+- TypeScript passa al compilatore nativo `7.0.2`, mantenendo configurazione
+  strict, target e tipi espliciti e il parallelismo automatico previsto da TS7;
+- Node.js passa alla security patch `26.5.1` in locale, manifest e workflow,
+  mentre il gate documentale impedisce divergenze future della toolchain;
+- la configurazione elimina `DOM.Iterable`, ormai incluso in `DOM`, e rende
+  esplicito il controllo degli import con soli effetti collaterali.
+
+## 0.8.0
+
+- il deploy Development misura almeno cento invocazioni sintetiche dopo warm-up
+  e fallisce oltre metà del limite CPU Free al `p95`, su errori o tail incompleto;
+- il runbook operativo fissa stop point numerici per Workers, D1 e R2 e una
+  matrice browser ripetibile senza conservare sessioni staff nel repository;
+- gli E2E Playwright ripetibili coprono login bilingue, focus, viewport e sito pubblico
+  WebKit; i flussi embedded che richiedono Shopify reale restano espliciti nella
+  matrice manuale.
+
+## 0.7.7 — 2 agosto 2026
+
+- npm rende vincolante la policy degli script di installazione e nega
+  esplicitamente la versione transitiva di `fsevents` non necessaria;
+- la CI considera falliti gli E2E intermittenti e conserva le trace Playwright
+  dei fallimenti per la diagnosi.
+
+## 0.7.6 — 2 agosto 2026
+
+- la CI esegue gli E2E pubblici Playwright richiesti dal ruleset di `develop`;
+- npm passa alla `12.0.2` in locale e nei workflow, con lockfile v4;
+- React Router passa alla `8.3.0`, eliminando l'advisory RSC senza eccezioni e
+  correggendo nel manifest root la peer dependency Shopify troppo restrittiva;
+- Dependabot resta attivo, con aggiornamento manuale del lockfile se il supporto
+  npm 12 non è ancora disponibile.
+
+## 0.7.5 — 2 agosto 2026
+
+- React Router passa alla `7.18.2`, che applica il backport della correzione RSC
+  restando compatibile con il pacchetto applicativo Shopify.
+
+## 0.7.4 — 2 agosto 2026
+
+- la manutenzione sicurezza non richiede approvazioni manuali e non invia
+  notifiche di deploy per i controlli amministrativi GitHub.
+
+## 0.7.3 — 2 agosto 2026
+
+- tutti i filtri `jq` del readback ruleset sono eseguiti senza escape letterali
+  e il contratto documentale copre l'intera classe di regressione.
+
+## 0.7.2 — 2 agosto 2026
+
+- il readback dei ruleset usa un filtro `jq` eseguibile senza escape letterali
+  introdotti dalla serializzazione YAML.
+
+## 0.7.1 — 2 agosto 2026
+
+- la manutenzione GitHub limita il readback automatico ai dati esposti al token
+  standard di Actions e richiede una conferma owner tracciata per i controlli
+  amministrativi.
+
+## 0.7.0 — 2 agosto 2026
+
+- l'audit dipendenze ammette soltanto l'advisory React Router relativo alle API
+  RSC instabili e fallisce se compare un nuovo advisory o se RSC viene attivato;
+- Cloudflare, Wrangler, React Doctor e Shopify CLI sono aggiornati alle patch
+  compatibili e tutte le dipendenze dirette sono bloccate a versioni esatte;
+- un workflow mensile verifica firme npm, documenti, governance e workflow
+  GitHub; ogni trimestre rilegge accessi e stato coordinato dei provider
+  Development ed esegue lo smoke senza scritture remote;
+- la cancellazione automatica globale dei branch GitHub è disattivata, mentre
+  la pulizia mirata dei branch temporanei resta nel flusso di merge.
+
+## 0.6.0 — 2 agosto 2026
+
+- il workflow promosso su `main` esporta D1, cifra l'export prima di R2,
+  mantiene otto slot settimanali e dodici mensili e prova ogni copia su un D1
+  locale effimero; lo scheduler sul branch predefinito può soltanto avviare
+  quella revisione Production;
+- errori e webhook entrano sempre nei Workers Logs strutturati, gli eventi
+  ordinari sono campionati al 10% e nessun record contiene lo shop domain;
+- il runbook fissa query, soglie iniziali, procedura Traces solo Development,
+  ripristino su un nuovo D1 e formato comune delle ricevute di deploy;
+- i workflow Development e Pages producono ricevute leggibili e complete nel
+  riepilogo GitHub Actions.
+
 ## 0.5.13 — 2 agosto 2026
 
 - un errore nella lettura billing Shopify pubblica un entitlement `none`

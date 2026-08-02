@@ -1,10 +1,9 @@
-// `@shopify/polaris-types` copre i componenti Polaris ma non quelli App Bridge: navigazione e
-// Save Bar non hanno quindi un tipo. Uno shim evita una dipendenza in più per tre elementi
+// `@shopify/polaris-types` copre i componenti Polaris ma non quelli App Bridge. Uno shim evita
+// una dipendenza in più per navigazione, Save Bar e finestra embedded
 // (§20.1). Da rimuovere se i tipi App Bridge entrano nel pacchetto già installato.
 import type { HTMLAttributes } from "react";
 
 declare module "react" {
-  // I bottoni dentro `ui-save-bar` sono `<button>` nativi che App Bridge stila con `variant`.
   interface ButtonHTMLAttributes<T> {
     variant?: "primary";
   }

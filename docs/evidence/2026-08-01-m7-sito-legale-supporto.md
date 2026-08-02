@@ -86,9 +86,10 @@ zero migrazioni pendenti. Deployment Worker
 `87661ab6-da8f-4471-9c58-55a834b8782e`; rollback coordinato allo snapshot
 `0.5.2` sul commit `4f38c17`.
 
-Tutti i passi dei workflow rilasciati sono risultati verdi, inclusi preflight,
-readback delle migrazioni, readback del Worker, smoke e readback della versione
-Shopify attiva, verificata da ultimo come `0.5.11`.
+Tutti i passi dei workflow registrati in questa ricevuta sono risultati verdi,
+inclusi preflight, readback delle migrazioni, readback del Worker, smoke e
+readback della versione Shopify attiva. La ricevuta si chiude con `0.5.11` e
+non viene aggiornata per le correzioni successive alla chiusura di M7.
 
 ## Gate della milestone
 
