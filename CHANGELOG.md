@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.8.1 — 2 agosto 2026
+
+- TypeScript passa al compilatore nativo `7.0.2`, mantenendo configurazione
+  strict, target e tipi espliciti e il parallelismo automatico previsto da TS7;
+- Node.js passa alla security patch `26.5.1` in locale, manifest e workflow,
+  mentre il gate documentale impedisce divergenze future della toolchain;
+- la configurazione elimina `DOM.Iterable`, ormai incluso in `DOM`, e rende
+  esplicito il controllo degli import con soli effetti collaterali.
+
 ## 0.8.0
 
 - il deploy Development misura almeno cento invocazioni sintetiche dopo warm-up
