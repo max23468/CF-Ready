@@ -1,6 +1,6 @@
 # Operazioni M7 — Sito, legale e supporto
 
-**Data:** 1 agosto 2026 · **Ambienti:** Cloudflare Pages (sito pubblico) e
+**Data:** 1–2 agosto 2026 · **Ambienti:** Cloudflare Pages (sito pubblico) e
 Development (app). Registra gli snapshot rilasciati, il deploy del sito, i gate
 eseguiti e i residui dichiarati. La numerazione segue il
 [Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md) §19.5: `0.5.0` apre
@@ -16,6 +16,12 @@ i deployment erano di anteprima.
 | --- | --- | --- | --- |
 | `12a52ecd-8a65-4af5-ad63-3e2d2c9119b8` | Production | `99dc94c` | prima pubblicazione delle otto pagine |
 | `af9443c1-29b4-46ab-9bfb-6d6c3822fdb1` | Production | `4f38c17` | Home riscritta per spiegare e convincere |
+| `4092e97d-6825-4c4f-a704-6a92d1cc3f3c` | Production | `9017045` | ritmo verticale e spaziatura del sito riallineati |
+| `202782f9-5258-4ea2-8cd2-f865cb1db347` | Production | `1920917` | menu agganciato, scorrimento accompagnato e copy rifinito |
+| `5ead87ec-1ef4-4dfa-8d8c-54f13270e6ac` | Production | `b5b9c21` | menu e griglie responsive corretti |
+| `d948ce04-0df1-408a-b3ab-d23e0ef7569a` | Production | `b0298b3` | ritiro del menu mobile ritardato |
+| `746baf9c-baa6-4035-a105-1216fc3accf3` | Production | `bc5acb8` | Cloudflare Web Analytics abilitata |
+| `ffed353e-b31d-445c-9ccb-ad4078ec396a` | Production | `e953488` | endpoint RUM consentito dalla Content-Security-Policy |
 
 Il rollback è il deployment precedente della stessa lista, che Pages conserva e
 ripristina senza ricostruire nulla. Nessuna migrazione e nessun backup: il sito
@@ -23,7 +29,7 @@ ripristina senza ricostruire nulla. Nessuna migrazione e nessun backup: il sito
 
 ### Readback degli URL pubblici
 
-Verificati sul dominio pubblico dopo il secondo deploy, tutti `200`:
+Verificati sul dominio pubblico dopo l'ultimo deploy, tutti `200`:
 
 ```text
 /            /privacy            /terms            /support
@@ -69,31 +75,22 @@ attiva, verificata come `0.5.2`.
 | Gate | Esito |
 | --- | --- |
 | URL pubblici | **superato.** Otto pagine `200` sul dominio pubblico, header applicati |
-| Canale privato per vulnerabilità | **superato con una riserva.** Private Vulnerability Reporting attivato via API e confermato `enabled`; segnalazione di prova `GHSA-jv8v-x9hc-q5qh` creata in privato e chiusa subito dopo |
+| Canale privato per vulnerabilità | **superato.** Private Vulnerability Reporting attivato via API e confermato `enabled`; segnalazione di prova `GHSA-jv8v-x9hc-q5qh` creata in privato e chiusa subito dopo, con notifica ricevuta sulla casella prevista |
 | Testi coerenti fra sito, app e futura listing | **superato.** Stessa casella di assistenza ovunque, stessi limiti dichiarati con le stesse parole, nessun claim vietato da §4.4 |
-| Revisione legale | **superato.** Testi e conservazione pseudonimizzata del `trial_ledger` approvati dall'owner il 2 agosto 2026 |
 
-La riserva sul canale vulnerabilità: la prova è stata creata dall'account
-proprietario del repository, quindi dimostra che il canale esiste, è privato e
-accetta segnalazioni, ma non riproduce l'invio da parte di un ricercatore
-esterno, che il proprietario non può simulare su sé stesso. La conferma che la
-notifica raggiunge `cfready@icloud.com` spetta a chi legge quella casella.
+## Verifiche manuali
 
-## Verifiche non eseguite
-
-- **Resa grafica del sito.** Il dominio pubblico è bloccato dalla policy del
-  browser integrato e le pagine del worktree vengono mostrate solo come
-  istantanee statiche: struttura, link, ancore e intestazioni HTTP sono
-  verificati, il giudizio visivo resta all'owner.
-- **Percorso di assistenza dentro l'Admin.** Il collegamento precompilato è
-  coperto dal test su `supportMailto`, ma il comportamento reale del programma
-  di posta all'apertura del link non è stato provato sul dev store.
+- **Resa grafica del sito:** verificata con successo dall'owner.
+- **Percorso di assistenza dentro l'Admin:** apertura del collegamento `mailto:`
+  precompilato verificata con successo dall'owner sul dev store.
+- **Notifica del canale vulnerabilità:** ricezione sulla casella prevista
+  verificata con successo dall'owner.
 
 ## Residui dichiarati
 
 - **Identità del titolare.** Privacy e Termini indicano `Temisfera` senza
-  denominazione completa né indirizzo, per decisione dell'owner. Va completata
-  prima della submission.
+  denominazione completa né indirizzo, per decisione dell'owner. Il
+  completamento è programmato in M9, prima della submission.
 - **Link alla listing.** I richiami all'installazione puntano a
   `https://apps.shopify.com/cf-ready`, che oggi risponde `404`. Accettabile
   finché il sito non è collegato da nessuna superficie pubblica; da sostituire
