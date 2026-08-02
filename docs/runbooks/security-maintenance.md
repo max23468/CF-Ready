@@ -27,7 +27,9 @@ L'audit ammette soltanto
 [`GHSA-qwww-vcr4-c8h2`](https://github.com/advisories/GHSA-qwww-vcr4-c8h2),
 che riguarda le API RSC instabili. Il repository non le usa e Shopify dichiara
 compatibilità con React Router 7 tramite la peer dependency del proprio
-pacchetto applicativo.
+pacchetto applicativo. React Router `7.18.2` include il backport della correzione;
+l'audit npm e `dependency-review` ammettono quindi lo stesso identificativo
+finché il database advisory globale non aggiorna l'intervallo vulnerabile.
 
 Il gate fallisce se compare un advisory diverso o se viene introdotta una API
 `unstable_*` nel runtime, inclusi gli helper RSC che non contengono `RSC` nel
