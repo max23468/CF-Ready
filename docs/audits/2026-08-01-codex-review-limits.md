@@ -435,14 +435,14 @@ entitlement e webhook billing.
 - **Classe/priorità/stato:** documentazione/compliance, P3, chiuso.
 - **Evidenza:** `app/billing.server.ts:642-643` chiama «non reversibile» lo
   SHA-256 del dominio. Il Master Plan lo descrive più correttamente come
-  pseudonimizzazione soggetta a revisione legale (`§12.2`, `§21.6`). Un dominio
-  Shopify appartiene a uno spazio enumerabile e spesso pubblico: l’hash non è
-  cifratura né anonimizzazione.
+  pseudonimizzazione (`§12.2`, `§21.6`). Un dominio Shopify appartiene a uno
+  spazio enumerabile e spesso pubblico: l’hash non è cifratura né
+  anonimizzazione.
 - **Impatto:** commento tecnico e possibili testi privacy possono sovrastimare la
   protezione effettiva.
 - **Correzione proporzionata:** correggere la formulazione in «identificatore
   pseudonimizzato non conservato in chiaro». Nessun nuovo servizio o schema è
-  necessario salvo diversa decisione della revisione legale.
+  necessario.
 - **Esito:** il commento descrive l'hash come identificatore pseudonimizzato e
   non come dato non reversibile o anonimo.
 
