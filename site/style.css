@@ -1,0 +1,631 @@
+/* CF Ready — sito pubblico
+   Direzione: docs/brand/brand-foundation.md §9.1. Token: tokens.css (copia di
+   docs/brand/assets/tokens.css, fonte canonica del brand).
+   Nessun webfont; JavaScript locale e beacon Cloudflare senza cookie.
+   Gli elementi visivi sono forme del sistema — tessera, fascia, blocchi — mai
+   fotografie, personaggi o scene: la credibilità viene dalla precisione. */
+
+@import "tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Lo scorrimento verso un'ancora è accompagnato, non uno scatto. Chi ha chiesto
+   meno animazioni al sistema torna allo scatto: ci pensa il blocco
+   prefers-reduced-motion di tokens.css. `scroll-padding-top` tiene conto della
+   testata, che resta sopra il contenuto. */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
+}
+
+body {
+  margin: 0;
+  background: var(--cf-color-paper);
+  color: var(--cf-color-ink);
+  font-family: var(--cf-font-sans);
+  font-size: var(--cf-text-body);
+  line-height: var(--cf-leading-body);
+  -webkit-text-size-adjust: 100%;
+}
+
+img,
+svg {
+  max-width: 100%;
+}
+
+/* ---- Struttura ---- */
+
+.wrap {
+  max-width: var(--cf-container-max);
+  margin: 0 auto;
+  padding: 0 var(--cf-space-6);
+}
+
+.column {
+  max-width: var(--cf-measure);
+}
+
+/* Ritmo verticale unico: ogni sezione porta la stessa mezza distanza sopra e
+   sotto, così lo stacco fra due sezioni è sempre lo stesso. Le eccezioni sono
+   solo due, e sono volute: il primo schermo e le fasce a fondo pieno. */
+section {
+  padding-block: var(--cf-space-12);
+}
+
+.divided {
+  border-top: var(--cf-border-subtle);
+}
+
+/* Intestazione di sezione: occhiello, titolo, eventuale spiegazione. Lo stacco
+   verso il contenuto vive qui invece che in uno stile in linea per blocco. */
+.section-head {
+  max-width: var(--cf-measure);
+  margin-bottom: var(--cf-space-8);
+}
+
+.section-head > :last-child {
+  margin-bottom: 0;
+}
+
+.note {
+  max-width: var(--cf-measure);
+  margin-top: var(--cf-space-6);
+}
+
+/* Sezione a fondo pieno: limiti, chiusura e piè di pagina (§9.1). Respira più
+   delle altre perché il colore ne definisce i bordi, che altrimenti stringono. */
+.inverse {
+  background: var(--cf-color-primary);
+  color: var(--cf-color-ink-inverse);
+  border-top: 0;
+}
+
+section.inverse {
+  padding-block: var(--cf-space-16);
+}
+
+.inverse :is(h2, h3, a, strong) {
+  color: var(--cf-color-ink-inverse);
+}
+
+.inverse :focus-visible {
+  outline-color: var(--cf-color-ink-inverse);
+}
+
+/* ---- Testata ---- */
+
+.masthead {
+  padding-block: var(--cf-space-4);
+  border-bottom: var(--cf-border-subtle);
+  position: sticky;
+  top: 0;
+  background: color-mix(in srgb, var(--cf-color-paper) 92%, transparent);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+  transition: transform calc(var(--cf-duration-base) * 1.5) var(--cf-easing);
+}
+
+.skip-link {
+  position: fixed;
+  inset: var(--cf-space-3) auto auto var(--cf-space-3);
+  z-index: 20;
+  padding: var(--cf-space-3) var(--cf-space-4);
+  background: var(--cf-color-paper);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* Su schermo largo la testata resta ferma dov'è. Su telefono si ritira mentre si
+   scende e torna appena si risale: la classe la mette `menu.js`, che agisce solo
+   sotto la soglia mobile. Senza JavaScript la testata resta comunque agganciata,
+   che è il comportamento di prima. */
+.masthead.is-hidden {
+  transform: translateY(-100%);
+  transition-delay: var(--cf-duration-fast);
+}
+
+.masthead .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cf-space-4) var(--cf-space-8);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.masthead img {
+  display: block;
+  height: 30px;
+  width: auto;
+}
+
+nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cf-space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--cf-text-small);
+}
+
+/* ---- Tipografia ---- */
+
+h1,
+h2,
+h3 {
+  font-weight: var(--cf-weight-medium);
+  color: var(--cf-color-primary);
+  margin: 0 0 var(--cf-space-4);
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--cf-text-h1);
+  line-height: var(--cf-leading-h1);
+}
+
+.display {
+  font-size: clamp(2rem, 1.4rem + 2.6vw, var(--cf-text-display));
+  line-height: var(--cf-leading-display);
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: clamp(1.3125rem, 1.1rem + 0.9vw, var(--cf-text-h2));
+  line-height: var(--cf-leading-h2);
+}
+
+h3 {
+  font-size: var(--cf-text-h3);
+  line-height: var(--cf-leading-h3);
+  margin-bottom: var(--cf-space-2);
+}
+
+p,
+ul,
+ol {
+  margin: 0 0 var(--cf-space-4);
+}
+
+li {
+  margin-bottom: var(--cf-space-2);
+}
+
+.label {
+  display: block;
+  font-size: var(--cf-text-label);
+  line-height: var(--cf-leading-label);
+  font-weight: var(--cf-weight-medium);
+  letter-spacing: var(--cf-tracking-label);
+  text-transform: uppercase;
+  color: var(--cf-color-ink-muted);
+  margin-bottom: var(--cf-space-3);
+}
+
+.inverse .label {
+  color: var(--cf-color-ink-inverse);
+  opacity: 0.85;
+}
+
+.lede {
+  font-size: var(--cf-text-h3);
+  line-height: var(--cf-leading-h3);
+}
+
+small,
+.small {
+  font-size: var(--cf-text-small);
+  line-height: var(--cf-leading-small);
+  color: var(--cf-color-ink-muted);
+}
+
+.inverse .small {
+  color: var(--cf-color-ink-inverse);
+  opacity: 0.85;
+}
+
+a {
+  color: var(--cf-color-primary);
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* ---- Azioni ---- */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cf-space-3);
+  align-items: center;
+  margin-top: var(--cf-space-8);
+}
+
+/* `a` e `button` hanno metriche diverse: senza un'altezza dichiarata e senza
+   allineamento interno, due bottoni affiancati risultano alti in modo diverso. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 3rem;
+  padding-inline: var(--cf-space-6);
+  padding-block: 0;
+  border-radius: var(--cf-radius-pill);
+  background: var(--cf-color-primary);
+  color: var(--cf-color-ink-inverse);
+  text-decoration: none;
+  font-family: inherit;
+  font-size: var(--cf-text-body);
+  line-height: 1.2;
+  font-weight: var(--cf-weight-medium);
+  text-align: center;
+  border: var(--cf-border-width-strong) solid var(--cf-color-primary);
+  transition: opacity var(--cf-duration-fast) var(--cf-easing);
+}
+
+.button:hover {
+  opacity: 0.88;
+}
+
+.button.secondary {
+  background: transparent;
+  color: var(--cf-color-primary);
+}
+
+.inverse .button {
+  background: var(--cf-color-ink-inverse);
+  color: var(--cf-color-primary);
+  border-color: var(--cf-color-ink-inverse);
+}
+
+.inverse .button.secondary {
+  background: transparent;
+  color: var(--cf-color-ink-inverse);
+}
+
+.masthead .button {
+  min-block-size: 2.25rem;
+  padding-inline: var(--cf-space-4);
+  font-size: var(--cf-text-small);
+}
+
+/* Il cambio lingua non è una voce del menu come le altre: porta altrove la
+   stessa pagina. Si distingue con una cornice, non con il solo colore (§10.7). */
+.lang {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 2.25rem;
+  padding-inline: var(--cf-space-3);
+  border: var(--cf-border);
+  border-radius: var(--cf-radius-pill);
+  font-weight: var(--cf-weight-medium);
+  text-decoration: none;
+  letter-spacing: 0.04em;
+}
+
+.lang:hover {
+  border-color: var(--cf-color-primary);
+}
+
+.inverse .lang {
+  border-color: color-mix(in srgb, var(--cf-color-ink-inverse) 45%, transparent);
+}
+
+.inverse .lang:hover {
+  border-color: var(--cf-color-ink-inverse);
+}
+
+/* Voce corrente: la sezione in vista sulla Home, o la pagina aperta. Il segno è
+   una sottolineatura spessa, che resta visibile anche senza distinguere i
+   colori. */
+nav a[aria-current],
+nav a.is-active {
+  font-weight: var(--cf-weight-medium);
+  text-decoration: underline;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 0.35em;
+}
+
+/* Finché la scheda sull'App Store non esiste, il richiamo all'installazione è un
+   `button` disabilitato: si vede, dice cosa sarà, e non porta su un errore. */
+button.button[disabled] {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* ---- Hero ---- */
+
+.hero {
+  padding-block: var(--cf-space-16) var(--cf-space-12);
+}
+
+.hero .wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: var(--cf-space-16);
+  align-items: center;
+}
+
+.hero-copy {
+  max-width: 34rem;
+}
+
+/* ---- Griglie ---- */
+
+/* Le colonne sono fissate per scaglioni invece che con `auto-fit`: sei schede in
+   quattro colonne lasciavano una riga con due elementi e due buchi, quattro in
+   tre ne lasciavano uno solo in fondo. Tre e due dividono esattamente sei e
+   quattro, quindi le righe si chiudono sempre. */
+.grid {
+  display: grid;
+  gap: var(--cf-space-4);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 64rem) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 40rem) {
+  .grid,
+  .grid.two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.card {
+  background: var(--cf-color-surface);
+  border: var(--cf-border-subtle);
+  border-radius: var(--cf-radius-lg);
+  padding: var(--cf-space-6);
+}
+
+.inverse .card {
+  background: color-mix(in srgb, var(--cf-color-ink-inverse) 8%, transparent);
+  border-color: color-mix(in srgb, var(--cf-color-ink-inverse) 22%, transparent);
+}
+
+.card > :last-child,
+section > .wrap > :last-child,
+.column > :last-child {
+  margin-bottom: 0;
+}
+
+.card svg {
+  display: block;
+  margin-bottom: var(--cf-space-4);
+}
+
+/* Fascia dei tre punti fermi sotto il primo schermo: una riga di respiro breve
+   fra l'hero e il corpo, non una sezione a sé. */
+section.facts {
+  padding-block: var(--cf-space-8);
+  border-block: var(--cf-border-subtle);
+}
+
+section.facts .wrap {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--cf-space-6);
+}
+
+section.facts p {
+  margin: 0;
+}
+
+/* Passi numerati. */
+.steps {
+  counter-reset: step;
+  display: grid;
+  gap: var(--cf-space-6);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 0;
+  list-style: none;
+  margin: 0;
+}
+
+@media (max-width: 52rem) {
+  .steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.steps li {
+  counter-increment: step;
+  margin: 0;
+}
+
+.steps li::before {
+  content: counter(step);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  margin-bottom: var(--cf-space-3);
+  border-radius: var(--cf-radius-pill);
+  background: var(--cf-color-primary);
+  color: var(--cf-color-ink-inverse);
+  font-size: var(--cf-text-small);
+  font-weight: var(--cf-weight-medium);
+}
+
+/* Elenco con segno di spunta disegnato, mai affidato al solo colore (§10.7). */
+.checks {
+  list-style: none;
+  padding: 0;
+}
+
+.checks li {
+  position: relative;
+  padding-left: var(--cf-space-8);
+}
+
+.checks li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  inline-size: 14px;
+  block-size: 8px;
+  border-left: var(--cf-border-width-strong) solid var(--cf-color-accent);
+  border-bottom: var(--cf-border-width-strong) solid var(--cf-color-accent);
+  transform: rotate(-45deg);
+}
+
+.inverse .checks li::before {
+  border-color: var(--cf-color-ink-inverse);
+}
+
+/* ---- Esempio di checkout: schema, non uno screenshot ---- */
+
+.mock {
+  background: var(--cf-color-surface);
+  border: var(--cf-border-subtle);
+  border-radius: var(--cf-radius-lg);
+  padding: var(--cf-space-6);
+  box-shadow: var(--cf-shadow-card);
+  max-width: 26rem;
+  align-self: center;
+}
+
+.mock-label {
+  font-size: var(--cf-text-label);
+  letter-spacing: var(--cf-tracking-label);
+  text-transform: uppercase;
+  color: var(--cf-color-ink-muted);
+  margin-bottom: var(--cf-space-2);
+}
+
+.mock-field {
+  border: var(--cf-border);
+  border-radius: var(--cf-radius-md);
+  padding: var(--cf-space-3) var(--cf-space-4);
+  font-size: var(--cf-text-small);
+  background: var(--cf-color-paper);
+}
+
+.mock-field.invalid {
+  border-color: var(--cf-color-accent);
+  border-width: var(--cf-border-width-strong);
+}
+
+.mock-error {
+  display: flex;
+  gap: var(--cf-space-2);
+  align-items: flex-start;
+  margin-top: var(--cf-space-3);
+  font-size: var(--cf-text-small);
+  line-height: var(--cf-leading-small);
+}
+
+.mock-error svg {
+  flex: none;
+  margin-top: 0.15em;
+}
+
+/* ---- FAQ ---- */
+
+.faq details {
+  border-bottom: var(--cf-border-subtle);
+  padding: var(--cf-space-4) 0;
+}
+
+.faq summary {
+  cursor: pointer;
+  font-weight: var(--cf-weight-medium);
+  color: var(--cf-color-primary);
+  font-size: var(--cf-text-h3);
+  line-height: var(--cf-leading-h3);
+}
+
+.faq details p {
+  margin: var(--cf-space-3) 0 0;
+}
+
+/* ---- Documenti legali ---- */
+
+.legal h2 {
+  margin-top: var(--cf-space-12);
+}
+
+.legal h2:first-of-type {
+  margin-top: 0;
+}
+
+.updated {
+  color: var(--cf-color-ink-muted);
+  font-size: var(--cf-text-small);
+}
+
+/* ---- Piè di pagina ---- */
+
+footer {
+  padding: var(--cf-space-12) 0;
+}
+
+footer ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cf-space-4) var(--cf-space-6);
+  margin: 0 0 var(--cf-space-6);
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 52rem) {
+  .hero .wrap {
+    grid-template-columns: 1fr;
+    gap: var(--cf-space-12);
+  }
+
+  section {
+    padding-block: var(--cf-space-8);
+  }
+
+  section.inverse,
+  .hero {
+    padding-block: var(--cf-space-12);
+  }
+
+  .section-head {
+    margin-bottom: var(--cf-space-6);
+  }
+
+  /* La testata resta raggiungibile anche da telefono: si accorcia il passo, non
+     la si sgancia. */
+  .masthead {
+    padding-block: var(--cf-space-3);
+  }
+
+  nav ul {
+    flex-wrap: nowrap;
+    gap: var(--cf-space-3) var(--cf-space-4);
+    white-space: nowrap;
+  }
+
+  .masthead nav {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  html {
+    scroll-padding-top: 8rem;
+  }
+}

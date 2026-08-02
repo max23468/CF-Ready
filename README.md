@@ -3,14 +3,18 @@
 Public app Shopify per validare formalmente Codice Fiscale e PEC nei campi
 nativi del checkout italiano.
 
-> Il progetto è in sviluppo: lo scaffold tecnico è presente, ma la Validation
-> Function, il billing e i flussi merchant della 1.0 non sono ancora completi né
-> pubblicati.
+> Il progetto è in sviluppo: M0–M7 sono completate per il perimetro Development.
+> La versione del repository è `0.5.12`, con motore di validazione, billing,
+> interfaccia merchant, onboarding e sito pubblico implementati. Le ricevute
+> degli snapshot Development sono registrate in `docs/evidence/`. Il sito è
+> pubblicato su [cf-ready.pages.dev](https://cf-ready.pages.dev/); Production,
+> submission App Store e gate wallet M10 non sono ancora completati.
 
 ## Sviluppo locale
 
-Prerequisiti: [mise](https://mise.jdx.dev/), Shopify CLI e una chiave AES-256
-in `SESSION_ENCRYPTION_KEY`, codificata in base64. La versione Node.js è
+Prerequisiti: [mise](https://mise.jdx.dev/), Shopify CLI, una chiave AES-256 in
+`SESSION_ENCRYPTION_KEY` e una chiave HMAC dedicata in
+`TRIAL_LEDGER_HMAC_KEY`, entrambe codificate in base64. La versione Node.js è
 bloccata in `mise.toml`.
 
 ```sh
@@ -21,10 +25,41 @@ mise exec -- npm run db:migrate:local
 mise exec -- npm run dev
 ```
 
+## Sito pubblico
+
+Le pagine statiche bilingui stanno in `site/` e non hanno passo di build né
+dipendenze: si servono così come sono.
+
+Cloudflare Web Analytics è attivo sul progetto Pages con iniezione automatica:
+il token resta nella configurazione Cloudflare e non va aggiunto agli HTML. La
+CSP in `site/_headers` consente il beacon e l'invio a `cloudflareinsights.com`.
+
+```sh
+mise exec -- npm run site:dev
+```
+
+Il deploy Pages Production non ha un comando locale. Il workflow manuale
+`Deploy Pages Production`, serializzato e vincolato a `main`, esegue il gate
+completo, pubblica soltanto `site/`, verifica commit e target tramite API, prova
+le otto URL pubbliche e ripristina il deployment precedente se readback o smoke
+falliscono. L'integrazione Git di Pages resta disattivata.
+
+`site/tokens.css` è una copia di `docs/brand/assets/tokens.css`, che resta la
+fonte canonica dei token di brand: se cambiano i token, va aggiornata anche la
+copia.
+
+`site:dev` rimuove prima `.wrangler/deploy/config.json`, l'artefatto che
+`react-router build` lascia per il Worker: finché esiste, Wrangler dirotta anche
+i comandi Pages sulla configurazione dell'app e il sito non parte. Pages
+non accetta un file di configurazione alternativo, quindi si toglie di mezzo
+quello sbagliato; viene rigenerato alla build successiva.
+
 ## Verifica
 
 ```sh
 mise exec -- npm test
+mise exec -- npm run test:function
+mise exec -- npm run preflight:dev
 mise exec -- npm run docs:check
 mise exec -- npm run check
 ```
@@ -40,8 +75,7 @@ mise exec -- npm run shopify:info -- shopify.app.dev.toml
 
 La documentazione parte da [`docs/INDEX.md`](docs/INDEX.md). Il
 [Master Plan](docs/plans/2026-07-28-CF-Ready-Master-Plan.md) resta la fonte
-decisionale e il [contesto corrente](docs/CONTEXT.md) distingue ciò che è già
-implementato da ciò che è pianificato.
+decisionale; codice, test e configurazioni descrivono lo stato implementato.
 
 Prima di contribuire leggi [`CONTRIBUTING.md`](CONTRIBUTING.md). Le
 vulnerabilità vanno segnalate privatamente seguendo [`SECURITY.md`](SECURITY.md),

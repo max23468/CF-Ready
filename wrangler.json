@@ -1,0 +1,39 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "cf-ready-dev",
+  "account_id": "98195e505f42abaaeb4827f71a924b1a",
+  "main": "./workers/app.ts",
+  "compatibility_date": "2026-07-28",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "SHOPIFY_API_KEY": "adff48d4fe4ceb0dadb4734520701dd7",
+    "SHOPIFY_APP_URL": "https://cf-ready-dev.tmsf.workers.dev",
+    "SCOPES": "write_validations",
+    "ALLOWED_SHOP": "cf-ready-dev.myshopify.com"
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": false
+    },
+    "traces": {
+      "enabled": false
+    }
+  },
+  "upload_source_maps": true,
+  "triggers": {
+    "crons": ["0 * * * *"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cf-ready-db-dev",
+      "database_id": "9490eaea-3a12-465d-bb48-e2622b31fc4d",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+name: Promotion guard
+
+# `edited` è l'unico evento che scatta quando cambia il base branch di una PR,
+# quindi la guardia su `main` deve ascoltarlo. Vive qui e non in CI perché su
+# `edited` scatta anche per un titolo o una descrizione: tenerla separata evita
+# di rifare l'intera verifica a ogni ritocco del testo della PR.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: promotion-guard-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  promotion-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - if: github.base_ref == 'main' && (github.head_ref != 'develop' || github.event.pull_request.head.repo.full_name != github.repository)
+        run: |
+          echo "::error::main accetta solo promozioni da develop"
+          exit 1

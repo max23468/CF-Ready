@@ -1,0 +1,84 @@
+{
+  "payload": {
+    "export": "cart-validations-generate-run",
+    "target": "cart.validations.generate.run",
+    "input": {
+      "buyerJourney": {
+        "step": "CHECKOUT_COMPLETION"
+      },
+      "cart": {
+        "billingAddress": {
+          "countryCode": "IT"
+        },
+        "deliveryGroups": [
+          {
+            "deliveryAddress": {
+              "countryCode": "IT"
+            }
+          }
+        ],
+        "localizedFields": [
+          {
+            "key": "TAX_CREDENTIAL_IT",
+            "value": ""
+          }
+        ]
+      },
+      "localization": {
+        "language": {
+          "isoCode": "IT"
+        }
+      },
+      "shop": {
+        "localTime": {
+          "date": "2026-07-29"
+        }
+      },
+      "validation": {
+        "metafield": {
+          "jsonValue": {
+            "schemaVersion": 2,
+            "enabled": true,
+            "errorDisplay": "inline",
+            "entitlement": {
+              "kind": "trial",
+              "validThrough": "2026-07-29"
+            },
+            "rules": {
+              "taxCode": "required_validated",
+              "pec": "unmanaged"
+            },
+            "messages": {
+              "it": {
+                "taxCodeRequired": "Inserisci il Codice Fiscale per completare l’ordine.",
+                "taxCodeInvalid": "Il Codice Fiscale inserito non è formalmente valido. Controllalo e riprova.",
+                "pecRequired": "Inserisci l’indirizzo PEC per completare l’ordine.",
+                "pecInvalid": "L’indirizzo PEC inserito non ha un formato email valido."
+              },
+              "en": {
+                "taxCodeRequired": "Enter your Italian tax code to complete the order.",
+                "taxCodeInvalid": "The Italian tax code entered is not formally valid. Check it and try again.",
+                "pecRequired": "Enter your certified email address (PEC) to complete the order.",
+                "pecInvalid": "The certified email address (PEC) does not have a valid email format."
+              }
+            }
+          }
+        }
+      }
+    },
+    "output": {
+      "operations": [
+        {
+          "validationAdd": {
+            "errors": [
+              {
+                "message": "Inserisci il Codice Fiscale per completare l’ordine.",
+                "target": "$.cart.localizedField.TAX_CREDENTIAL_IT"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

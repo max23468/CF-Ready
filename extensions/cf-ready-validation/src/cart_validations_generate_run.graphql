@@ -1,0 +1,34 @@
+query CartValidationsGenerateRunInput {
+  buyerJourney {
+    step
+  }
+  cart {
+    billingAddress {
+      countryCode
+    }
+    deliveryGroups {
+      deliveryAddress {
+        countryCode
+      }
+    }
+    localizedFields(keys: [TAX_CREDENTIAL_IT, TAX_EMAIL_IT]) {
+      key
+      value
+    }
+  }
+  localization {
+    language {
+      isoCode
+    }
+  }
+  shop {
+    localTime {
+      date
+    }
+  }
+  validation {
+    metafield(namespace: "$app:cf-ready-validation", key: "function-configuration") {
+      jsonValue
+    }
+  }
+}

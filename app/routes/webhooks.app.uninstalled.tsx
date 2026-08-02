@@ -1,12 +1,15 @@
 import type { ActionFunctionArgs } from "react-router";
-import { authenticate, sessionStorage } from "../shopify.server";
+import { markUninstalled } from "../shop.server";
+import { authenticate } from "../shopify.server";
+import { handleWebhook } from "../webhooks.server";
 
-export const action = async ({ request }: ActionFunctionArgs) => {
-  const { shop, session } = await authenticate.webhook(request);
+export const action = async ({ request, context }: ActionFunctionArgs) => {
+  const db = context.cloudflare.env.DB;
+  const webhook = await authenticate.webhook(request);
 
-  if (session) {
-    await sessionStorage.deleteSessionsByShop(shop);
-  }
-
-  return new Response();
+  return handleWebhook(db, webhook, async (claim) => {
+    if (claim.installationStartedAt) {
+      await markUninstalled(db, webhook.shop, claim.installationStartedAt);
+    }
+  });
 };
