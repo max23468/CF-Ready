@@ -15,7 +15,7 @@ dei rispettivi provider e non devono comparire nel repository o nei log.
 | `CLOUDFLARE_API_TOKEN` | CI Pages Production | GitHub Actions | configurato il 1 agosto 2026; accesso verificato dal preflight del workflow |
 | `CLOUDFLARE_API_TOKEN` | Backup Production | GitHub Actions | configurato il 3 agosto 2026; da limitare a export D1 e oggetti R2 |
 | `D1_BACKUP_KEY` | Backup Production | GitHub Actions | configurato il 3 agosto 2026; copia recuperabile nel Portachiavi macOS |
-| `SECURITY_AUDIT_TOKEN` | Security Maintenance | GitHub Actions | configurato il 3 agosto 2026; environment limitato a `develop`, soli readback alert |
+| `SECURITY_AUDIT_TOKEN` | Security Maintenance | GitHub Actions | sostituito il 3 agosto 2026 con un PAT fine-grained senza scadenza sul solo `CF-Ready`, in sola lettura su metadati, Actions e i tre alert; environment limitato a `develop`, copia recuperabile nel Portachiavi macOS |
 | `SHOPIFY_CLI_PARTNERS_TOKEN` | CI Production | GitHub Actions | da creare con privilegi minimi |
 
 `SHOPIFY_API_KEY`, ID account, ID database e nomi delle risorse non sono
