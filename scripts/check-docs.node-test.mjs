@@ -407,16 +407,23 @@ test("l'identità del titolare resta un segnaposto e i documenti legali non sono
     assert.match(page, /<strong>__OWNER_NAME__<\/strong>/);
   }
 
-  const headers = readFileSync(new URL("../site/_headers", import.meta.url), "utf8");
+  // Righe confrontate come stringhe: una regex costruita dai percorsi andrebbe
+  // sottoposta a escape, e un escape parziale cambierebbe in silenzio il pattern.
+  const lines = readFileSync(new URL("../site/_headers", import.meta.url), "utf8")
+    .split("\n")
+    .map((line) => line.trim());
+
   for (const route of ["/privacy*", "/terms*", "/en/privacy*", "/en/terms*"]) {
-    assert.match(
-      headers,
-      new RegExp(`^${route.replace("*", "\\*")}\\n\\s+X-Robots-Tag: noindex$`, "m"),
-      `manca il noindex per ${route}`,
-    );
+    const index = lines.indexOf(route);
+    assert.notEqual(index, -1, `manca la regola per ${route}`);
+    assert.equal(lines[index + 1], "X-Robots-Tag: noindex", `manca il noindex per ${route}`);
   }
+
   // Il noindex vale solo dove compare il nome: la Home e l'assistenza restano indicizzabili.
-  assert.doesNotMatch(headers, /^\/(?:en\/)?(?:index|support)\*?\n/m);
+  assert.deepEqual(
+    lines.filter((line) => line.startsWith("/") && !line.startsWith("/*")),
+    ["/privacy*", "/terms*", "/en/privacy*", "/en/terms*"],
+  );
 });
 
 test("il sito italiano e inglese mantiene il contratto pubblico essenziale", () => {
