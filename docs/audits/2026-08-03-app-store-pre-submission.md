@@ -25,12 +25,12 @@ cambiano e vanno riscaricati alla submission, che è un'altra data da questa.
 | Esito | Numero |
 | --- | --- |
 | Conforme | 14 |
-| Da chiudere prima della submission | 4 |
+| Da chiudere prima della submission | 4, di cui uno ridotto al solo checkout reale |
 | Non applicabile, gruppo saltato | 10 gruppi |
 
-Nessun requisito risulta violato dal comportamento dell'app. I quattro punti
-aperti sono tutti configurazioni Production che non esistono ancora, non difetti
-di prodotto.
+Nessun requisito risulta violato dal comportamento dell'app. Tre dei quattro
+punti aperti sono configurazioni Production che non esistono ancora; il quarto è
+un checkout reale da rieseguire. Nessuno è un difetto di prodotto.
 
 ## Da chiudere prima della submission
 
@@ -57,14 +57,19 @@ il reviewer deve vedere. Diventa un difetto **nel momento in cui l'app è
 disponibile a merchant reali**, quindi `BILLING_TEST=false` va impostato nella
 configurazione Production insieme al resto del deploy Production, non prima.
 
-### 3. Function API `2026-07` da riconfermare — bloccante per la `1.0.0`
+### 3. Function API `2026-07` — riconfermata, tranne il checkout reale
 
-`extensions/cf-ready-validation/shopify.extension.toml` pinna `api_version =
-"2026-07"`. Il Master Plan richiede, prima della `1.0.0`, di riconfermare sulle
-fonti Shopify correnti che la versione sia stabile, rigenerare lo schema con la
-CLI supportata e ripetere fixture e checkout reali. La riconferma **non è stata
-fatta in questo audit**: richiede la rigenerazione e un checkout reale, non una
-lettura.
+Il Master Plan chiede quattro cose prima della `1.0.0`. Tre sono state fatte il
+3 agosto 2026, la quarta no.
+
+| Richiesta | Esito |
+| --- | --- |
+| Versione stabile secondo le fonti Shopify correnti | ✅ la tabella di [About Shopify API versioning](https://shopify.dev/docs/api/usage/versioning) dà `2026-07` rilasciata il 1º luglio 2026 e accessibile fino al 16 luglio 2027; la Cart and Checkout Validation Function API è pubblicata sotto `/docs/api/functions/2026-07/` |
+| Schema rigenerato con la CLI supportata | ✅ `shopify app function schema --config dev --stdout` con CLI 4.6.0: il risultato è identico a `extensions/cf-ready-validation/schema.graphql` a meno di tre a-capo di direttiva e della riga finale, cioè della formattazione applicata da `oxfmt`. Nessuna differenza di contenuto |
+| Fixture ripetute | ✅ `npm run test:function`, 109 test verdi |
+| Checkout reali ripetuti | ❌ **non eseguito**: richiede il dev store e una sessione di acquisto vera |
+
+Resta quindi aperto il solo checkout reale, che è anche il gate di M10.
 
 ### 4. Configurazione Production assente nel Worker
 
@@ -127,6 +132,5 @@ Dichiarato per non far passare questo audit per più di quello che è:
 
 - nessun checkout reale è stato eseguito in questa sessione;
 - nessuna installazione pulita è stata rifatta;
-- la Function API non è stata rigenerata;
 - i requisiti App Store dovranno essere riscaricati alla submission, perché
   cambiano.

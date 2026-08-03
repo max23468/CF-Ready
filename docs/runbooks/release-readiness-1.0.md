@@ -30,7 +30,7 @@ visivi della listing e la riconferma della Function API.
 | --- | --- | --- |
 | Gate locale completo `npm run check` | eseguito il 3 agosto 2026 su `feat/m9-release-candidate` | ✅ |
 | Test della Validation Function | `npm run test:function`, 109 test | ✅ |
-| E2E pubblici | `tests/e2e/site.spec.ts` e `tests/e2e/login.spec.ts`, WebKit e Chromium, due viewport | ✅ dall'ultima esecuzione M8 |
+| E2E pubblici | `tests/e2e/site.spec.ts` e `tests/e2e/login.spec.ts`, WebKit e Chromium, due viewport — job `e2e` della PR #185, run `30855651057` | ✅ |
 | Snapshot Development verificato | run `30768120300`: gate, capacità, Worker, Shopify e readback verdi; 120 richieste, CPU p95 1 ms | ✅ |
 | Deploy Pages Production e smoke | run `30743184121`, otto URL e header di sicurezza | ✅ |
 | Rollback Pages esercitato e letto | run `30741094451` | ✅ |
@@ -42,7 +42,8 @@ visivi della listing e la riconferma della Function API.
 | **URL Production nel manifest Shopify** | `shopify.app.toml` punta ancora a `https://example.com` | ❌ assente |
 | **`BILLING_TEST=false` in Production** | variabile non definita: ogni addebito è di prova | ❌ assente |
 | **Secret Production separati** | `SHOPIFY_API_SECRET`, `SESSION_ENCRYPTION_KEY` e `TRIAL_LEDGER_HMAC_KEY` Production da generare | ❌ assente |
-| **Function API `2026-07` riconfermata** | nessuna rigenerazione con la CLI corrente, nessun checkout reale ripetuto | ❌ assente |
+| Function API `2026-07` stabile e rigenerata | fonte Shopify del 3 agosto 2026: stabile dal 1º luglio 2026, accessibile fino al 16 luglio 2027. Schema rigenerato con CLI 4.6.0, identico al committato a meno della formattazione | ✅ |
+| **Checkout reali ripetuti sulla Function** | nessuno in questa sessione; è anche il gate di M10 | ❌ assente |
 | **Screenshot della listing** | piano e didascalie pronti in [`screenshots.md`](../listing/screenshots.md); nessun file prodotto | ❌ assente |
 | **Demo screencast** | copione pronto in [`screencast-script.md`](../listing/screencast-script.md); nessuna ripresa | ❌ assente |
 | **Canary su store reale** | milestone M10, non ancora iniziata | ❌ assente |
@@ -51,7 +52,7 @@ visivi della listing e la riconferma della Function API.
 
 | Voce | Valore verificato |
 | --- | --- |
-| Function API | `2026-07`, pinnata in `extensions/cf-ready-validation/shopify.extension.toml` — **da riconfermare** |
+| Function API | `2026-07`, pinnata in `extensions/cf-ready-validation/shopify.extension.toml`, riconfermata stabile il 3 agosto 2026 |
 | Admin GraphQL API | `2026-07` |
 | Webhook API version | `2026-07` |
 | Access scope | `write_validations`, unico |
