@@ -25,12 +25,13 @@ cambiano e vanno riscaricati alla submission, che è un'altra data da questa.
 | Esito | Numero |
 | --- | --- |
 | Conforme | 14 |
-| Da chiudere prima della submission | 4, di cui uno ridotto al solo checkout reale |
+| Da chiudere prima della submission | 5, di cui uno ridotto al solo checkout reale |
 | Non applicabile, gruppo saltato | 10 gruppi |
 
-Nessun requisito risulta violato dal comportamento dell'app. Tre dei quattro
-punti aperti sono configurazioni Production che non esistono ancora; il quarto è
-un checkout reale da rieseguire. Nessuno è un difetto di prodotto.
+Nessun requisito risulta violato dal comportamento dell'app. Tre dei cinque
+punti aperti sono configurazioni Production che non esistono ancora, uno è un
+checkout reale da rieseguire e uno un recapito da registrare nel Partner
+Dashboard. Nessuno è un difetto di prodotto.
 
 ## Da chiudere prima della submission
 
@@ -71,12 +72,24 @@ Il Master Plan chiede quattro cose prima della `1.0.0`. Tre sono state fatte il
 
 Resta quindi aperto il solo checkout reale, che è anche il gate di M10.
 
-### 4. Configurazione Production assente nel Worker
+### 4. Contatto tecnico d'emergenza nel Partner Dashboard
+
+Il requisito 4.5.6 chiede un **emergency developer contact** registrato nelle
+impostazioni dell'account Partner: è il recapito su cui Shopify manda le
+comunicazioni tecniche critiche sull'app. Non si configura dal repository e non
+era stato elencato fra i deliverable: va impostato prima della submission.
+
+Stessa sezione dei requisiti: 4.5.4 e 4.5.5 chiedono credenziali di prova
+valide e complete dentro le **testing instructions** del form di submission.
+L'accesso del reviewer si dà così, con uno staff account del dev store — non
+con un collaborator account, che è il meccanismo con cui un Partner chiede
+accesso allo store di un merchant e non c'entra con la review.
+
+### 5. Configurazione Production assente nel Worker
 
 `wrangler.json` descrive solo `cf-ready-dev`: nessun ambiente Production, nessun
 binding Production, nessun secret separato. Non è un problema di conformità
-App Store in sé, ma nessuno dei tre punti sopra si chiude finché questo non
-esiste.
+App Store in sé, ma i punti 1 e 2 non si chiudono finché questo non esiste.
 
 ## Requisiti verificati come conformi
 
