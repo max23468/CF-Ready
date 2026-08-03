@@ -17,9 +17,18 @@ dei rispettivi provider e non devono comparire nel repository o nei log.
 | `D1_BACKUP_KEY` | Backup Production | GitHub Actions | configurato il 3 agosto 2026; copia recuperabile nel Portachiavi macOS |
 | `SECURITY_AUDIT_TOKEN` | Security Maintenance | GitHub Actions | sostituito il 3 agosto 2026 con un PAT fine-grained senza scadenza sul solo `CF-Ready`, in sola lettura su metadati, Actions e i tre alert; environment limitato a `develop`, copia recuperabile nel Portachiavi macOS |
 | `SHOPIFY_CLI_PARTNERS_TOKEN` | CI Production | GitHub Actions | da creare con privilegi minimi |
+| `OWNER_LEGAL_NAME` | Pages Production | GitHub Actions | da configurare in M9 con il nome della persona fisica titolare |
 
 `SHOPIFY_API_KEY`, ID account, ID database e nomi delle risorse non sono
 segreti, ma non autorizzano alcun accesso.
+
+`OWNER_LEGAL_NAME` non protegge un accesso: è il nome della persona fisica che
+Privacy e Termini devono dichiarare come titolare. Sta nel secret store per non
+lasciarlo in chiaro in un repository pubblico. Nel repository resta il
+segnaposto `__OWNER_NAME__`, che il workflow Pages sostituisce prima del deploy
+e lo smoke verifica assente nelle pagine pubblicate. Il nome resta visibile sul
+sito e nella listing: `X-Robots-Tag: noindex` sui quattro documenti legali lo
+tiene fuori dai motori di ricerca, non lo rende riservato.
 
 `TRIAL_LEDGER_HMAC_KEY` è un identificatore stabile del ledger, non una chiave
 di sessione: non va ruotata ordinariamente. Va conservata nel secret store con

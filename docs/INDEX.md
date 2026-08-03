@@ -28,6 +28,18 @@ corrente si legge da codice, configurazioni e `package.json`.
   del sito, snapshot Development, gate della milestone e residui.
 - [Hardening M8](evidence/2026-08-02-m8-hardening.md) — matrice delle prove,
   ricevute operative e limiti dichiarati della milestone.
+- [Audit pre-submission App Store](audits/2026-08-03-app-store-pre-submission.md)
+  — requisiti scaricati dalla fonte, esiti e punti da chiudere.
+- [Listing italiana](listing/listing-it.md) e
+  [inglese](listing/listing-en.md) — testi della listing App Store.
+- [Reviewer instructions](listing/reviewer-instructions.md) — store di prova,
+  valori sintetici e risultati attesi per la review Shopify.
+- [Copione dello screencast](listing/screencast-script.md) — scaletta della demo
+  obbligatoria.
+- [Screenshot della listing](listing/screenshots.md) — piano di cattura e
+  didascalie IT/EN.
+- [Release readiness 1.0](runbooks/release-readiness-1.0.md) — ogni gate con la
+  sua prova, o la dichiarazione che manca.
 - [ADR 0001](adr/0001-stack.md) — stack applicativo e provider.
 - [Brand Foundation](brand/brand-foundation.md) — identità e tono.
 - [Brand board](brand/brand-board.html) — riferimento visuale.
