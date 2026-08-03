@@ -1,0 +1,132 @@
+# Audit pre-submission App Store
+
+**Data:** 3 agosto 2026
+**Snapshot:** `develop` a `55db5da`, versione `0.8.6`, branch di lavoro
+`feat/m9-release-candidate`
+**Perimetro:** §24.8 del
+[Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md) e i requisiti di
+self-review pubblicati da Shopify
+
+## Come è stato fatto
+
+L'elenco dei requisiti non è stato ricordato né ricostruito: è stato scaricato
+dalla fonte con la CLI supportata, il 3 agosto 2026.
+
+```bash
+npm exec -- shopify doc fetch --url https://shopify.dev/docs/apps/launch/app-store-review/app-store-ai-self-review-requirements
+```
+
+Ogni requisito applicabile è stato verificato contro il codice di questo
+repository. **Un audit fatto su documentazione ricordata non vale**: i requisiti
+cambiano e vanno riscaricati alla submission, che è un'altra data da questa.
+
+## Esito
+
+| Esito | Numero |
+| --- | --- |
+| Conforme | 14 |
+| Da chiudere prima della submission | 4 |
+| Non applicabile, gruppo saltato | 10 gruppi |
+
+Nessun requisito risulta violato dal comportamento dell'app. I quattro punti
+aperti sono tutti configurazioni Production che non esistono ancora, non difetti
+di prodotto.
+
+## Da chiudere prima della submission
+
+### 1. URL Production nel manifest — bloccante
+
+`shopify.app.toml` dichiara ancora i valori dello scaffold:
+
+```
+application_url = "https://example.com"
+redirect_urls = [ "https://example.com/api/auth" ]
+```
+
+`shopify.app.dev.toml` è invece corretto e punta al Worker Development. Il
+manifest Production va compilato con l'URL reale prima di sottomettere: con
+questi valori l'installazione non arriverebbe da nessuna parte. Voce già
+prevista nella checklist «Prima di Production» del Master Plan.
+
+### 2. Billing ancora in modalità test — bloccante
+
+`app/env.server.ts` calcola `BILLING_IS_TEST = bindings.BILLING_TEST !== "false"`
+e `wrangler.json` non definisce la variabile: in assenza di configurazione ogni
+addebito è un addebito di prova. È corretto oggi, in Development, ed è quello che
+il reviewer deve vedere. Diventa un difetto **nel momento in cui l'app è
+disponibile a merchant reali**, quindi `BILLING_TEST=false` va impostato nella
+configurazione Production insieme al resto del deploy Production, non prima.
+
+### 3. Function API `2026-07` da riconfermare — bloccante per la `1.0.0`
+
+`extensions/cf-ready-validation/shopify.extension.toml` pinna `api_version =
+"2026-07"`. Il Master Plan richiede, prima della `1.0.0`, di riconfermare sulle
+fonti Shopify correnti che la versione sia stabile, rigenerare lo schema con la
+CLI supportata e ripetere fixture e checkout reali. La riconferma **non è stata
+fatta in questo audit**: richiede la rigenerazione e un checkout reale, non una
+lettura.
+
+### 4. Configurazione Production assente nel Worker
+
+`wrangler.json` descrive solo `cf-ready-dev`: nessun ambiente Production, nessun
+binding Production, nessun secret separato. Non è un problema di conformità
+App Store in sé, ma nessuno dei tre punti sopra si chiude finché questo non
+esiste.
+
+## Requisiti verificati come conformi
+
+| Requisito | Verifica |
+| --- | --- |
+| 1.1.1 Session token, niente cookie di terze parti | `app/routes/app.tsx` usa `AppProvider embedded` di `@shopify/shopify-app-react-router`; nessuna occorrenza di `localStorage` o `document.cookie` nel codice applicativo |
+| 1.1.2 Usa il checkout Shopify | nessun URL di checkout esterno, nessuna logica di pagamento: l'app non crea ordini |
+| 1.1.3 Nessun download di temi | nessuna chiamata Themes o Asset API; l'app non tocca il tema |
+| 1.1.4 Solo informazioni fattuali | nessun dato generato o simulato; la listing dichiara esplicitamente cosa l'app non fa |
+| 1.1.9 Nessun addebito aggiunto al carrello | la Function aggiunge soltanto `validationAdd.errors`, non righe né importi |
+| 1.2.1 Billing tramite Shopify | `app/billing.server.ts` usa `appSubscriptionCreate`, `appPurchaseOneTimeCreate` e `appSubscriptionCancel`; nessun sistema di pagamento esterno |
+| 1.2.2 Approvazione e rifiuto gestiti | stato dell'addebito riconciliato dal webhook `app_subscriptions/update` e `app_purchases_one_time/update`; la reinstallazione riconosce l'acquisto una tantum esistente |
+| 1.2.3 Cambio piano senza reinstallare né scrivere al supporto | passaggi mensile/annuale/una tantum gestiti in-app, con la sequenza sicura di §14 per la conversione a una tantum |
+| 2.2.1 Usa le API Shopify | OAuth, Admin GraphQL e Validation API |
+| 2.2.3 App Bridge corrente | dipendenza `@shopify/shopify-app-react-router` 1.2.1; nessuna traccia del pacchetto legacy `@shopify/app-bridge` |
+| 2.2.4 Solo GraphQL Admin API | nessuna chiamata a `/admin/api/*.json`, nessun client REST |
+| 2.3.1 Nessun inserimento manuale del dominio | nessun campo che chieda un `myshopify.com` nelle route dell'app |
+| 3.1.1 TLS valido | servito da Cloudflare Workers su HTTPS; nessun fallback in chiaro |
+| 3.2.x Scope minimi | un solo scope, `write_validations`. Nessuno degli scope sensibili elencati dai requisiti — `read_all_orders`, `write_payment_mandate`, `write_checkout_extensions_apis`, `read_advanced_dom_pixel_events`, `read_checkout_extensions_chat` — è richiesto |
+
+## Gruppi non applicabili
+
+| Gruppo | Perché saltato |
+| --- | --- |
+| 5.1 Online store | nessuna theme app extension: l'unica extension è `type = "function"` |
+| 5.2 Payment | nessuna extension di pagamento, nessuno scope `write_payment_gateway` |
+| 5.3 Payment facilitator | opt-in |
+| 5.4 Purchase option | nessuno scope subscription o payment mandate |
+| 5.5 Product sourcing | opt-in |
+| 5.6 Checkout customization | l'extension è una Function, non una UI extension con target di checkout |
+| 5.7 Sales channel | nessun `channel_config` |
+| 5.8 Post purchase | nessun `checkout_post_purchase` |
+| 5.9 Mobile app builder, 5.10 Donation | opt-in |
+
+## Voci §24.8 verificate fuori dai requisiti automatici
+
+| Voce | Esito |
+| --- | --- |
+| Webhook privacy | i tre topic obbligatori (`customers/data_request`, `customers/redact`, `shop/redact`) sono dichiarati in `shopify.app.toml` e gestiti da `app/routes/webhooks.compliance.tsx` |
+| Nessun dato personale nei log | verificato in M8 e coperto dai test; Codice Fiscale e PEC non lasciano l'infrastruttura Shopify |
+| Installazione pulita, disinstallazione e reinstallazione | coperte da `tests/lifecycle.test.ts` e `tests/session-storage.test.ts` |
+| Store Basic | il dev store è Basic; nessuna funzione richiede Plus |
+| IT/EN completi | `tests/i18n.test.ts` e le sei route del sito in `tests/e2e/site.spec.ts` |
+| URL legali e assistenza | pubblicati e verificati dallo smoke del workflow Pages |
+| Nessuna funzione descritta ma assente | listing e reviewer instructions scritte a partire dal comportamento implementato, non dai deliverable pianificati |
+| Prezzi non ambigui | tre modalità con identiche funzionalità; importi in `app/plans.server.ts`, coerenti con la listing |
+| Icona | rischio accettato D-114 sulla sigla dentro l'icona, con `icon-app-notext.svg` pronto come rimedio |
+| Review video | copione in [`screencast-script.md`](../listing/screencast-script.md); ripresa non ancora eseguita |
+
+## Cosa non è stato verificato
+
+Dichiarato per non far passare questo audit per più di quello che è:
+
+- nessun checkout reale è stato eseguito in questa sessione;
+- nessuna installazione pulita è stata rifatta;
+- la Function API non è stata rigenerata;
+- i requisiti App Store dovranno essere riscaricati alla submission, perché
+  cambiano.

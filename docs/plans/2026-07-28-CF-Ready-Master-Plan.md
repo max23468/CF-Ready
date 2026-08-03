@@ -4033,7 +4033,7 @@ Segnaposto lasciati nel sito, da sostituire nelle milestone indicate:
 | --- | --- | --- |
 | Pulsante disabilitato «Presto sullo Shopify App Store» | richiami all’installazione su tutte le pagine | pulsante attivo verso la listing, quando esiste (M11) |
 | Nessuno screenshot dell’app | Home | screenshot reali prodotti da M9 (§24.5, §9.3 del brand) |
-| Identità del titolare limitata al nome | Privacy e Termini | denominazione completa e indirizzo nella milestone di lancio, prima della submission e della disponibilità esterna (M9) |
+| ~~Identità del titolare limitata al nome~~ | Privacy e Termini | chiuso in M9: nome della persona fisica titolare, iniettato al deploy dal secret `OWNER_LEGAL_NAME`. Nessun indirizzo geografico, rischio accettato dall'owner |
 
 Finché la listing non esiste, i richiami all’installazione sono pulsanti
 disabilitati che dichiarano l’attesa: un collegamento che porta a un errore 404
@@ -4109,6 +4109,40 @@ Gate:
 
 - readiness supportata da prove fresche;
 - approvazione Shopify.
+
+Materiali sotto `docs/listing/`: listing bilingue, reviewer instructions,
+copione dello screencast e piano di cattura degli screenshot con le didascalie
+IT/EN. Il record di readiness è
+[`docs/runbooks/release-readiness-1.0.md`](../runbooks/release-readiness-1.0.md)
+e l'audit è
+[`docs/audits/2026-08-03-app-store-pre-submission.md`](../audits/2026-08-03-app-store-pre-submission.md).
+
+Decisioni prese durante la milestone:
+
+- **il titolare è una persona fisica senza Partita IVA**, identificato in
+  Privacy e Termini con nome e recapito email. L'art. 13.1.a GDPR chiede
+  identità e dati di contatto e non impone un indirizzo geografico; l'owner ha
+  deciso il 3 agosto 2026 di non pubblicarne uno e ha accettato il rischio che
+  la review lo richieda;
+- **il nome non sta nel repository.** `CF-Ready` è pubblico: pubblicare il nome
+  nei sorgenti lo renderebbe indicizzabile su GitHub a prescindere dagli header
+  del sito. I documenti contengono il segnaposto `__OWNER_NAME__` e il workflow
+  Pages lo sostituisce con il secret `OWNER_LEGAL_NAME` prima del deploy,
+  fallendo se il secret manca; lo smoke verifica che nessuna pagina pubblicata
+  contenga ancora il segnaposto;
+- **i quattro documenti legali rispondono `X-Robots-Tag: noindex`.** Non un
+  `Disallow` in `robots.txt`: quello impedisce la scansione ma non
+  l'indicizzazione, e un URL escluso dal crawl può comparire in SERP proprio
+  perché il crawler non entra a leggere il `noindex`. I documenti restano
+  pubblici e raggiungibili, come Shopify richiede;
+- **screencast e screenshot dell'Admin sono prodotti da Codex**, che ha accesso
+  alla sessione staff del dev store; la feature image è generata dal sistema
+  brand.
+
+Il gate «approvazione Shopify» non dipende da noi e resta aperto finché la
+submission non viene autorizzata ed eseguita. La milestone si porta fino a
+submission-ready: i quattro punti che la separano dalla submission sono elencati
+nell'audit e ripresi nel record di readiness.
 
 ### M10 — Canary store reale
 

@@ -6,6 +6,24 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.0 — 3 agosto 2026
+
+- Privacy e Termini dichiarano l'identità della persona fisica titolare, in
+  italiano e in inglese; il nome non sta nel repository pubblico ma nel secret
+  `OWNER_LEGAL_NAME`, che il workflow Pages inietta prima del deploy;
+- i quattro documenti legali rispondono con `X-Robots-Tag: noindex`: restano
+  pubblici e raggiungibili, fuori dai motori di ricerca. Lo smoke del deploy
+  verifica l'header e l'assenza del segnaposto sulle pagine pubblicate;
+- listing bilingue, reviewer instructions, copione dello screencast e piano
+  degli screenshot sotto `docs/listing/`;
+- feature image 1600 × 900 della listing, in italiano e in inglese;
+- audit pre-submission App Store contro i requisiti scaricati dalla fonte, e
+  record di release readiness che collega ogni gate alla sua prova o ne dichiara
+  l'assenza;
+- i valori di Codice Fiscale e PEC che il reviewer digiterà sono verificati dai
+  test della Validation Function, così le istruzioni non possono divergere dal
+  validatore.
+
 ## 0.8.6 — 2 agosto 2026
 
 - la manutenzione mensile verifica l'ultimo esito di ogni workflow attivo e gli

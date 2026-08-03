@@ -21,6 +21,7 @@ Se modifichi un asset, aggiorna anche il documento e la tavola. Sono tre facce d
 | `wordmark.svg` | tight | Solo wordmark, in tracciati. Colore da `currentColor`. |
 | `lockup-horizontal.svg` | `0 0 129,05 24` | Lockup primaria. Header del sito, materiali, firma dei documenti. |
 | `lockup-vertical.svg` | `0 0 71,88 50,72` | Lockup verticale. Copertine e formati quadrati. |
+| `feature-image-it.svg`, `feature-image-en.svg` | `0 0 1600 900` | Feature image della listing App Store, una per lingua. Fondo Verde bottiglia pieno, lockup in negativo, claim e un solo pannello: la tessera del marchio ingrandita con dentro il campo e il suo esito. |
 | `tokens.css` | — | Design token per sito e materiali pubblici. |
 | `png/` | — | Esportazioni raster, vedi sotto. |
 
@@ -33,8 +34,20 @@ Se modifichi un asset, aggiorna anche il documento e la tavola. Sono tre facce d
 | `png/icon-app-512.png` | Uso generico, documentazione, Partner Dashboard |
 | `png/favicon-32.png`, `png/favicon-16.png` | Favicon raster di fallback |
 | `png/lockup-horizontal-800.png` | Lockup per email, presentazioni, documenti non vettoriali |
+| `png/feature-image-it-1600.png`, `png/feature-image-en-1600.png` | Feature image da caricare nella listing, 1600 × 900 |
 
 Rigenerabili con headless Chrome; nessuna dipendenza da installare nel repository.
+Per la feature image, dove l'SVG è largo quanto il PNG:
+
+```bash
+printf '<style>html,body{margin:0}img{display:block;width:1600px;height:900px}</style><img src="feature-image-it.svg">' > /tmp/fi.html && cp docs/brand/assets/feature-image-it.svg /tmp/ && "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --hide-scrollbars --window-size=1600,900 --screenshot=docs/brand/assets/png/feature-image-it-1600.png /tmp/fi.html
+```
+
+**La feature image va rigenerata su macOS.** È l'unico asset con testo vivo
+invece che in tracciati: usa lo stesso stack di `--cf-font-sans` del sito, che
+si risolve in Futura. Su una macchina senza quel carattere il ripiego cambia le
+metriche e la composizione non è più quella approvata. Gli altri asset non
+hanno questo vincolo perché sigla e wordmark sono tracciati.
 
 ### Requisiti App Store — verificati il 28 luglio 2026
 
