@@ -397,6 +397,28 @@ test("README e indice non duplicano la versione corrente", () => {
   );
 });
 
+// Il nome della persona fisica titolare non deve entrare in un repository pubblico:
+// nei sorgenti sta il segnaposto e il workflow Pages lo sostituisce al deploy. Se
+// qualcuno scrive il nome qui, questo test lo ferma prima del commit.
+test("l'identità del titolare resta un segnaposto e i documenti legali non sono indicizzabili", () => {
+  const legal = ["privacy.html", "terms.html", "en/privacy.html", "en/terms.html"];
+  for (const file of legal) {
+    const page = readFileSync(new URL(`../site/${file}`, import.meta.url), "utf8");
+    assert.match(page, /<strong>__OWNER_NAME__<\/strong>/);
+  }
+
+  const headers = readFileSync(new URL("../site/_headers", import.meta.url), "utf8");
+  for (const route of ["/privacy*", "/terms*", "/en/privacy*", "/en/terms*"]) {
+    assert.match(
+      headers,
+      new RegExp(`^${route.replace("*", "\\*")}\\n\\s+X-Robots-Tag: noindex$`, "m"),
+      `manca il noindex per ${route}`,
+    );
+  }
+  // Il noindex vale solo dove compare il nome: la Home e l'assistenza restano indicizzabili.
+  assert.doesNotMatch(headers, /^\/(?:en\/)?(?:index|support)\*?\n/m);
+});
+
 test("il sito italiano e inglese mantiene il contratto pubblico essenziale", () => {
   const pairs = [
     ["index.html", "en/index.html"],

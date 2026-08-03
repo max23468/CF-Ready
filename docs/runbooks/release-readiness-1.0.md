@@ -37,7 +37,10 @@ visivi della listing e la riconferma della Function API.
 | Backup D1 Production e restore | run `30769584725`: export cifrato, restore locale di 32 comandi, `integrity_check=ok`, readback dello slot R2 | ✅ |
 | Security audit e manutenzione provider | run `30749648119`, entrambi i job verdi | ✅ |
 | Audit pre-submission App Store | [audit del 3 agosto 2026](../audits/2026-08-03-app-store-pre-submission.md) | ✅ con quattro punti aperti |
+| Migrazioni D1 Development | applicate e verificate a ogni snapshot, da ultimo nel run `30768120300` | ✅ |
 | Migrazioni D1 Production | dieci migrazioni versionate applicate, readback senza pendenti, 11 tabelle | ✅ |
+| `noindex` sui documenti legali | provato in locale il 3 agosto 2026 con `wrangler pages dev site`: i quattro percorsi rispondono `X-Robots-Tag: noindex`, la Home e l'assistenza no, e la regola si somma agli header di sicurezza invece di sostituirli. Riprovato dallo smoke a ogni deploy | ✅ |
+| Iniezione dell'identità del titolare | provata in locale sulla stessa copia: quattro file trovati, quattro sostituiti, nessun segnaposto residuo. Il segnaposto è ora protetto da un test in `scripts/check-docs.node-test.mjs` | ✅ in locale, da riprovare sul deploy |
 | **Worker Production distribuito** | nessuno: `wrangler.json` descrive solo `cf-ready-dev` | ❌ assente |
 | **URL Production nel manifest Shopify** | `shopify.app.toml` punta ancora a `https://example.com` | ❌ assente |
 | **`BILLING_TEST=false` in Production** | variabile non definita: ogni addebito è di prova | ❌ assente |

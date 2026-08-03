@@ -22,7 +22,10 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   l'assenza;
 - i valori di Codice Fiscale e PEC che il reviewer digiterà sono verificati dai
   test della Validation Function, così le istruzioni non possono divergere dal
-  validatore.
+  validatore;
+- un test impedisce che il nome del titolare finisca nei sorgenti al posto del
+  segnaposto e verifica che le quattro regole `noindex` restino nel file degli
+  header.
 
 ## 0.8.6 — 2 agosto 2026
 

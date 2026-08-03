@@ -24,10 +24,18 @@ for amounts, `extensions/cf-ready-validation/` for checkout behaviour.
 | App name | CF Ready — Codice Fiscale nel Checkout |
 | Short name in Admin | CF Ready |
 | Handle | `cf-ready` |
-| Proposed category | Store management → Tax and compliance |
+| Proposed category | Store management → Tax and compliance — **to be checked against the real list** in the Partner Dashboard: this is a guess, not a verified category |
 | Availability | merchants in Italy only |
 | Icon | `docs/brand/assets/png/icon-app-1200.png` |
 | Feature image | `docs/brand/assets/png/feature-image-en-1600.png` |
+
+The feature image needs alt text alongside it:
+
+> The Codice Fiscale and PEC fields of the Italian checkout, showing the
+> "Valid format" result.
+
+It describes what is visible, not what we would like the reader to conclude: alt
+text that repeats the tagline is useless to someone who cannot see the image.
 
 ## Tagline
 

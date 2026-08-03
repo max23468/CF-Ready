@@ -37,10 +37,11 @@ Se modifichi un asset, aggiorna anche il documento e la tavola. Sono tre facce d
 | `png/feature-image-it-1600.png`, `png/feature-image-en-1600.png` | Feature image da caricare nella listing, 1600 × 900 |
 
 Rigenerabili con headless Chrome; nessuna dipendenza da installare nel repository.
-Per la feature image, dove l'SVG è largo quanto il PNG:
+La feature image dichiara già la sua dimensione, quindi Chrome la fotografa senza
+alcun involucro HTML — da `docs/brand/assets/`:
 
 ```bash
-printf '<style>html,body{margin:0}img{display:block;width:1600px;height:900px}</style><img src="feature-image-it.svg">' > /tmp/fi.html && cp docs/brand/assets/feature-image-it.svg /tmp/ && "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --hide-scrollbars --window-size=1600,900 --screenshot=docs/brand/assets/png/feature-image-it-1600.png /tmp/fi.html
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --hide-scrollbars --window-size=1600,900 --screenshot=png/feature-image-it-1600.png feature-image-it.svg
 ```
 
 **La feature image va rigenerata su macOS.** È l'unico asset con testo vivo

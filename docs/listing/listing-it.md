@@ -23,10 +23,18 @@ checkout.
 | Nome app | CF Ready — Codice Fiscale nel Checkout |
 | Nome breve in Admin | CF Ready |
 | Handle | `cf-ready` |
-| Categoria proposta | Store management → Tassazione e conformità |
+| Categoria proposta | Store management → Tassazione e conformità — **da confrontare con l'elenco reale** del Partner Dashboard: è un'ipotesi, non una categoria verificata |
 | Disponibilità | solo merchant in Italia |
 | Icona | `docs/brand/assets/png/icon-app-1200.png` |
 | Feature image | `docs/brand/assets/png/feature-image-it-1600.png` |
+
+L'alt text della feature image è richiesto insieme all'immagine:
+
+> Il campo Codice Fiscale e il campo PEC del checkout italiano, con l'esito
+> «Formato valido».
+
+Descrive quello che si vede, non quello che vorremmo far capire: un alt text che
+ripete lo slogan è inutile a chi non vede l'immagine.
 
 ## Tagline
 
