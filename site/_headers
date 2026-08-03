@@ -3,3 +3,19 @@
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), interest-cohort=()
+
+# Privacy e Termini riportano il nome della persona fisica titolare. Restano
+# pubblici e raggiungibili — Shopify li richiede — ma fuori dai motori di
+# ricerca. Serve noindex, non un Disallow in robots.txt: una pagina esclusa dal
+# crawl può comunque finire in SERP, e il crawler non leggerebbe mai il noindex.
+/privacy*
+  X-Robots-Tag: noindex
+
+/terms*
+  X-Robots-Tag: noindex
+
+/en/privacy*
+  X-Robots-Tag: noindex
+
+/en/terms*
+  X-Robots-Tag: noindex

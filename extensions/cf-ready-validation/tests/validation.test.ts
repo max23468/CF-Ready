@@ -121,6 +121,25 @@ describe("PEC", () => {
   });
 });
 
+// I valori che il reviewer Shopify digiterà stanno scritti in
+// docs/listing/reviewer-instructions.md §4. Se il validatore cambia, quel
+// documento diventa falso davanti a chi decide l'approvazione: qui fallisce prima.
+describe("valori delle reviewer instructions", () => {
+  it.each([
+    ["Codice Fiscale valido", "RSSMRA85T10A562S", true],
+    ["Codice Fiscale non valido", "RSSMRA85T10A562X", false],
+  ])("%s", (_name, value, expected) => {
+    expect(isValidTaxCode(value)).toBe(expected);
+  });
+
+  it.each([
+    ["PEC valida", "mario.rossi@pec.it", true],
+    ["PEC non valida", "mario.rossi@pec", false],
+  ])("%s", (_name, value, expected) => {
+    expect(isValidPec(value)).toBe(expected);
+  });
+});
+
 describe("applicabilità e fail-open", () => {
   it.each([
     ["step precedente", { step: "CHECKOUT_INTERACTION" }],

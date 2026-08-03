@@ -77,6 +77,17 @@ jobs:
 
       - run: npm run check
 
+      - name: Inietta l'identità del titolare
+        env:
+          OWNER_LEGAL_NAME: ${{ secrets.OWNER_LEGAL_NAME }}
+        run: |
+          test -n "$OWNER_LEGAL_NAME"
+          files="$(grep --recursive --files-with-matches '__OWNER_NAME__' site)"
+          test -n "$files"
+          printf '%s\n' "$files" | xargs sed -i "s|__OWNER_NAME__|$OWNER_LEGAL_NAME|g"
+          ! grep --recursive --quiet '__OWNER_NAME__' site
+          echo "- Identità del titolare iniettata in $(printf '%s\n' "$files" | wc -l | tr -d ' ') pagine" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Arma rollback Pages Production
         id: rollback_guard
         run: echo "armed=true" >> "$GITHUB_OUTPUT"
@@ -150,6 +161,16 @@ jobs:
             grep --ignore-case --quiet "^$header:" "$RUNNER_TEMP/pages-headers.txt"
           done
           echo "- Smoke pubblico: otto URL e header di sicurezza verificati" >> "$GITHUB_STEP_SUMMARY"
+          for route in /privacy /terms /en/privacy /en/terms; do
+            curl --fail --silent --show-error --location --max-redirs 5 --max-time 15 \
+              --header "Cache-Control: no-cache" \
+              --dump-header "$RUNNER_TEMP/legal-headers.txt" \
+              --output "$RUNNER_TEMP/legal-body.html" \
+              "https://$PAGES_DOMAIN$route?commit=$GITHUB_SHA"
+            grep --ignore-case --quiet '^x-robots-tag:.*noindex' "$RUNNER_TEMP/legal-headers.txt"
+            ! grep --quiet '__OWNER_NAME__' "$RUNNER_TEMP/legal-body.html"
+          done
+          echo "- Documenti legali: \`noindex\` attivo sui quattro URL, nessun segnaposto residuo" >> "$GITHUB_STEP_SUMMARY"
 
   rollback:
     name: Rollback Pages Production
