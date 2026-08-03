@@ -29,7 +29,7 @@ This is stated in the listing and in the app itself.
 | --- | --- |
 | Store | `cf-ready-dev.myshopify.com` |
 | Store country | Italy — required for the app to operate |
-| Access | a collaborator account is provided through the Shopify submission form, not in this document |
+| Access | staff account credentials are supplied in the submission form's testing instructions, not in this document |
 | Plan | Basic — the app requires no Shopify Plus and no plan-specific feature |
 | Billing | test charges only; every charge you approve is a Shopify test charge and moves no money |
 

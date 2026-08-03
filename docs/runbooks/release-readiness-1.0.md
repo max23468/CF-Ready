@@ -67,6 +67,8 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | **Checkout reali ripetuti sulla Function** | nessuno in questa sessione; è anche il gate di M10 | ❌ assente |
 | **Screenshot della listing** | piano e didascalie pronti in [`screenshots.md`](../listing/screenshots.md); nessun file prodotto | ❌ assente |
 | **Demo screencast** | copione pronto in [`screencast-script.md`](../listing/screencast-script.md); nessuna ripresa | ❌ assente |
+| **Contatto tecnico d'emergenza** | requisito 4.5.6: recapito da registrare nelle impostazioni dell'account Partner, non configurabile dal repository | ❌ assente |
+| **Staff account per il reviewer** | credenziali di prova da creare sul dev store e da incollare nelle testing instructions (requisiti 4.5.4 e 4.5.5) | ❌ assente |
 | **Canary su store reale** | milestone M10, non ancora iniziata | ❌ assente |
 
 ## 3. Configurazioni e API validate
