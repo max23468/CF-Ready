@@ -161,14 +161,41 @@ jobs:
             grep --ignore-case --quiet "^$header:" "$RUNNER_TEMP/pages-headers.txt"
           done
           echo "- Smoke pubblico: otto URL e header di sicurezza verificati" >> "$GITHUB_STEP_SUMMARY"
+          # Le regole di _headers diventano effettive all'edge con un ritardo proprio,
+          # indipendente dalla propagazione del contenuto già attesa sopra: il primo
+          # documento si aspetta, gli altri tre sono verificati subito dopo.
+          legal_ready=false
+          for _ in 1 2 3 4 5 6 7 8 9 10; do
+            if curl --fail --silent --show-error --location --max-redirs 5 --max-time 15 \
+              --header "Cache-Control: no-cache" \
+              --dump-header "$RUNNER_TEMP/legal-headers.txt" \
+              --output /dev/null "https://$PAGES_DOMAIN/privacy?commit=$GITHUB_SHA" && \
+              grep --ignore-case --quiet '^x-robots-tag:.*noindex' "$RUNNER_TEMP/legal-headers.txt"; then
+              legal_ready=true
+              break
+            fi
+            sleep 3
+          done
+          if [ "$legal_ready" != true ]; then
+            echo "::error::/privacy non espone X-Robots-Tag: noindex. Header ricevuti:"
+            cat "$RUNNER_TEMP/legal-headers.txt"
+            exit 1
+          fi
           for route in /privacy /terms /en/privacy /en/terms; do
             curl --fail --silent --show-error --location --max-redirs 5 --max-time 15 \
               --header "Cache-Control: no-cache" \
               --dump-header "$RUNNER_TEMP/legal-headers.txt" \
               --output "$RUNNER_TEMP/legal-body.html" \
               "https://$PAGES_DOMAIN$route?commit=$GITHUB_SHA"
-            grep --ignore-case --quiet '^x-robots-tag:.*noindex' "$RUNNER_TEMP/legal-headers.txt"
-            ! grep --quiet '__OWNER_NAME__' "$RUNNER_TEMP/legal-body.html"
+            if ! grep --ignore-case --quiet '^x-robots-tag:.*noindex' "$RUNNER_TEMP/legal-headers.txt"; then
+              echo "::error::$route non espone X-Robots-Tag: noindex. Header ricevuti:"
+              cat "$RUNNER_TEMP/legal-headers.txt"
+              exit 1
+            fi
+            if grep --quiet '__OWNER_NAME__' "$RUNNER_TEMP/legal-body.html"; then
+              echo "::error::$route pubblica ancora il segnaposto dell'identità del titolare"
+              exit 1
+            fi
           done
           echo "- Documenti legali: \`noindex\` attivo sui quattro URL, nessun segnaposto residuo" >> "$GITHUB_STEP_SUMMARY"
 
