@@ -224,6 +224,47 @@ nella UI resta necessario.
 **Identificativo di tracciamento.** Non condivisibile. Shopify ha lasciato una
 nota interna sulla comunicazione.
 
+### Terza risposta, 3 agosto 2026
+
+**Come si materializza un localized field.** Shopify combina tre fattori: paese
+del negozio, paese di destinazione e paesi di origine della merce. L’origine si
+risolve percorrendo le sedi di evasione dell’opzione di consegna selezionata.
+La condizione sulla consegna adottata dal motore è quindi corretta: con una
+spedizione e un’opzione selezionata l’origine si risolve e il campo può
+comparire.
+
+**Configurazione del merchant.** L’attivazione per singolo negozio dei localized
+fields è stata rimossa: i campi sono obbligatori dove le condizioni li
+richiedono e il merchant non può disattivarli. Cade quindi una delle cause di
+falso blocco considerate in precedenza. CF Ready non ha mai avuto una
+impostazione corrispondente e nessun documento la assumeva.
+
+**Ciò che Shopify non conferma.** Non è documentato se la sola destinazione
+italiana basti a far comparire `TAX_CREDENTIAL_IT`, oppure se il campo dipenda
+dal paese del negozio. Se valesse la seconda ipotesi, un negozio non italiano
+che spedisce in Italia non vedrebbe mai il campo. La domanda è stata portata
+nell’escalation interna di Shopify.
+
+La conseguenza per CF Ready è nulla, per due ragioni indipendenti. L’app si
+attiva soltanto su negozi con paese Italia: `app/validation.server.ts` rifiuta
+l’attivazione altrove e disattiva la Validation se il negozio smette di essere
+idoneo. Inoltre la regola implementata non usa la destinazione dichiarata ma una
+consegna italiana osservabile, quindi è già più stretta dell’ipotesi discussa.
+
+**Accesso ai campi a livello negozio.** Una risposta Shopify su
+`TAX_CREDENTIAL_ES` in
+[un thread distinto](https://community.shopify.dev/t/how-do-i-enable-the-checkout-input-field-for-localizedfield-tax-credential-es-in-a-store/34495)
+indica che il merchant non può abilitare il campo da solo, che si tratta di
+early access e che il campo compare solo dopo che il negozio ha ottenuto
+l’accesso. Se qualcosa di analogo valesse per l’Italia, un negozio italiano
+senza accesso non avrebbe il campo e la regola lo bloccherebbe senza nulla da
+compilare. È la stessa classe di rischio già mitigata, con una causa diversa, ed
+è oggetto di una domanda aperta a Shopify.
+
+Il motore non può accertarlo da sé: nello schema della Function l’oggetto `Shop`
+espone soltanto ora locale e metafield, non il paese né eventuali accessi. Il
+solo canale disponibile resta il metafield di configurazione scritto dall’app.
+
 ### Decisione sul fail-open dei campi assenti
 
 Il difetto è reale e riguarda il motore, non la piattaforma: decidere sulla
@@ -399,7 +440,12 @@ Restano aperti, senza riaprire la matrice già completata:
    Fiscale va segnalato a Shopify con gli identificativi di esecuzione;
 3. nella stessa matrice, verificare se i box della modalità preventiva compaiano
    su un checkout appena caricato, dato che Shopify lo esclude e la prova live
-   li aveva osservati.
+   li aveva osservati;
+4. chiarire con Shopify se `TAX_CREDENTIAL_IT` richieda un accesso a livello
+   negozio come risulta per il campo spagnolo. In caso affermativo un negozio
+   italiano senza accesso verrebbe bloccato senza campo compilabile e la regola
+   andrebbe ristretta ulteriormente. Shopify ha inoltre in escalation la
+   combinazione di paesi che determina la comparsa del campo.
 
 Questi punti sono conservati nel Master Plan e non richiedono più il piano
 temporaneo dell’indagine.
