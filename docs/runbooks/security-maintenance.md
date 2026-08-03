@@ -18,8 +18,10 @@ versioni e non accede a Production. L'esecuzione manuale lancia entrambi i job.
 I required checks vivono anche nei ruleset pubblici. Gli alert usano il secret
 `SECURITY_AUDIT_TOKEN` dell'environment `Security Maintenance`, ammesso soltanto
 su `develop`; il job dichiara `deployment: false`, quindi non crea notifiche o
-ricevute di deploy. Il token ha accesso in lettura agli alert Dependabot, CodeQL
-e Secret Scanning. L'API pubblica non espone bypass actor, auto-merge e
+ricevute di deploy. Il token è un PAT fine-grained senza scadenza, limitato a
+`CF-Ready` e in sola lettura su metadati, Actions e alert Dependabot, CodeQL e
+Secret Scanning: non può scrivere sul repository e non va rinnovato
+periodicamente. L'API pubblica non espone bypass actor, auto-merge e
 cancellazione automatica dei branch: l'owner li verifica nelle impostazioni del
 repository soltanto quando modifica la governance.
 
