@@ -22,7 +22,7 @@ sono invece attivi in Production. Il sito pubblico e la versione Production
 di M9 dalla PR [#219](https://github.com/max23468/CF-Ready/pull/219) e il deploy
 Production è stato verificato dal run
 [#30954478305](https://github.com/max23468/CF-Ready/actions/runs/30954478305).
-La navigazione embedded della `0.9.8` è stata verificata in Safari sullo store
+La navigazione embedded della `0.9.9` è stata verificata in Safari sullo store
 `cf-ready-dev`: una sola voce Home, senza il doppione `/app`.
 
 ---
@@ -53,8 +53,8 @@ La navigazione embedded della `0.9.8` è stata verificata in Safari sullo store
 
 **Contenuto della `0.9.9`:** chiude i residui dell'audit su rollback, prova già
 consumata, percorso onboarding, governance e scadenze credenziali. Test e gate
-sono verdi. La navigazione embedded della Production `0.9.8` è stata verificata
-in Safari il 4 agosto 2026.
+sono verdi. La navigazione embedded della Production `0.9.9` è stata verificata
+in Safari dopo il deploy del 4 agosto 2026.
 
 ### Ricevuta del deploy Production `0.9.9`
 
@@ -133,7 +133,7 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | **`BILLING_TEST=false` in Production** | `wrangler.json` env `production` la definisce a `"false"` ed è effettiva sul Worker dalla `0.9.6` (D-129): gli addebiti dei merchant sono reali | ✅ |
 | Secret Production separati | tre secret runtime caricati sul Worker `cf-ready-prod` il 4 agosto 2026; il preflight li verifica a ogni deploy | ✅ |
 | Versione attiva dell'app CF Ready | Development `0.9.9`; Production `0.9.9`, entrambe verificate dai rispettivi readback del 4 agosto 2026 | ✅ |
-| Navigazione embedded D-130 | verificata in Safari il 4 agosto 2026 sullo store `cf-ready-dev` con la Production `0.9.8`: una sola Home, nessun doppione `/app` | ✅ |
+| Navigazione embedded D-130 | verificata in Safari dopo il deploy del 4 agosto 2026 sullo store `cf-ready-dev` con la Production `0.9.9`: una sola Home, nessun doppione `/app` | ✅ |
 | Function API `2026-07` stabile e rigenerata | fonte Shopify del 3 agosto 2026: stabile dal 1º luglio 2026, accessibile fino al 16 luglio 2027. Schema rigenerato con CLI 4.6.0, identico al committato a meno della formattazione | ✅ |
 | **Checkout reali ripetuti sulla Function** | nessuno in questa sessione; è anche il gate di M10 | ❌ assente |
 | Listing compilata nel Partner Dashboard | testi IT/EN, icona, disponibilità solo Italia e categoria, **dichiarato dall'owner il 4 agosto 2026**, con la submission inviata lo stesso giorno. La feature image corretta è pronta nel repository; la sostituzione nella submission resta in carico all'owner | ⚠️ sostituzione feature image aperta |
