@@ -350,6 +350,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-044 | Prova comune di 14 giorni senza scelta preventiva del piano. | Deve coprire anche chi intende acquistare una tantum. |
 | D-126 | La prova parte su richiesta esplicita del merchant, non all’apertura dell’app. | Deciso il 4 agosto 2026 provando l’app installata: trovarsi una prova già in corso senza averla chiesta toglie al merchant la scelta di quando cominciare a consumarla. |
 | D-127 | Nell’interfaccia merchant si dice «controllo nel checkout», mai «Validation» né «validazione». | Il termine tecnico non dice niente a chi vende: conta se le regole valgono per i suoi clienti. |
+| D-128 | Nessuna pagina di accesso con il dominio dello store: l’URL dell’app porta sempre all’autenticazione. | I requisiti 2.3.1 e 2.3.2 vietano di chiedere manualmente un dominio `myshopify.com` e di rendere interagibile una UI prima di OAuth. Il form era il residuo del template Shopify per la distribuzione custom: con la public app il merchant arriva sempre da Shopify con `shop`, quindi non serviva a nessuno e faceva fallire il check automatico «Immediately authenticates after install» del 4 agosto 2026. |
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
@@ -3341,6 +3342,7 @@ Testare tutte le nove combinazioni CF × PEC e due errori simultanei.
 
 ### 23.10 UI/E2E
 
+- URL dell’app prima di OAuth, senza UI interagibile né richiesta del dominio (D-128);
 - prima installazione;
 - onboarding completo;
 - completa senza attivare;
@@ -4054,8 +4056,10 @@ Consegnata in tre layer versionati, come da §19.5:
   query e runbook Workers Logs, procedura temporanea Traces, formato della
   ricevuta di deploy; la corsia GitHub Actions manuale per Pages già disponibile
   viene esercitata e mantenuta insieme ai suoi gate, readback e rollback;
-- automazione degli E2E di §23.10: `npm run test:e2e` copre sito pubblico e login
-  senza sessione, inclusi lingua, tabulazione, focus e viewport stretto/largo.
+- automazione degli E2E di §23.10: `npm run test:e2e` copre sito pubblico e
+  percorso pre-OAuth dell’URL dell’app, inclusi lingua, tabulazione, focus e
+  viewport stretto/largo. La copertura pre-OAuth nasce come accesso senza
+  sessione e diventa la verifica di D-128 quando quella pagina viene rimossa.
   I percorsi embedded restano nella matrice manuale Development: una sessione
   staff persistente nel repository o in CI aumenterebbe il rischio senza
   eliminare la dipendenza dallo stato Shopify reale;

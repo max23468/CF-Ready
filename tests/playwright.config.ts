@@ -19,7 +19,7 @@ export default defineConfig({
       command:
         "npm run build && npx wrangler dev --config build/server/wrangler.json --var SHOPIFY_API_SECRET:e2e-test-secret --port 4173",
       cwd: repositoryRoot,
-      url: "http://localhost:4173/auth/login",
+      url: "http://localhost:4173/favicon.svg",
       timeout: 120_000,
     },
     {
@@ -31,21 +31,13 @@ export default defineConfig({
   ],
   projects: [
     {
-      name: "login-chromium-stretto",
-      testMatch: /login\.spec\.ts/,
+      // Il percorso pre-OAuth si verifica sulle risposte HTTP, non su un rendering: niente
+      // viewport da confrontare.
+      name: "install-chromium",
+      testMatch: /install\.spec\.ts/,
       use: {
         browserName: "chromium",
         baseURL: "http://localhost:4173",
-        viewport: { width: 390, height: 844 },
-      },
-    },
-    {
-      name: "login-chromium-largo",
-      testMatch: /login\.spec\.ts/,
-      use: {
-        browserName: "chromium",
-        baseURL: "http://localhost:4173",
-        viewport: { width: 1440, height: 900 },
       },
     },
     {
