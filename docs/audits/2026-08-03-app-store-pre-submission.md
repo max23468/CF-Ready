@@ -85,11 +85,10 @@ impostazioni dell'account Partner: è il recapito su cui Shopify manda le
 comunicazioni tecniche critiche sull'app. Registrato dall'owner il 4 agosto
 2026.
 
-Stessa sezione dei requisiti: 4.5.4 e 4.5.5 chiedono credenziali di prova
-valide e complete dentro le **testing instructions** del form di submission.
-L'accesso del reviewer si dà così, con uno staff account del dev store — non
-con un collaborator account, che è il meccanismo con cui un Partner chiede
-accesso allo store di un merchant e non c'entra con la review.
+Il percorso di review è stato poi definito in D-132: CF Ready non ha un login
+proprio, quindi il requisito 4.5.5 sulle credenziali non si applica. Le
+**testing instructions** chiedono al reviewer di installare l'app su un proprio
+development store italiano; non vengono forniti account o store di CF Ready.
 
 ### 5. Configurazione Production del Worker — chiusa il 4 agosto 2026
 
