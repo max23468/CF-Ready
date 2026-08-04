@@ -6,6 +6,12 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.8 — 4 agosto 2026
+
+- i body dei form delle route merchant sono limitati centralmente a 16 KiB
+  prima del router: le richieste oltre soglia ricevono `413`, anche senza un
+  `Content-Length` affidabile, mentre JSON e webhook restano invariati.
+
 ## 0.9.7 — 4 agosto 2026
 
 - la voce «Home» torna nel menu senza reintrodurre il doppione che faceva
