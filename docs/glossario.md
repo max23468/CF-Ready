@@ -38,8 +38,11 @@ merchant o clienti.
 | avvisi preventivi | early warnings | La modalità che mostra gli errori già al caricamento del checkout | validazione live, controllo immediato |
 | messaggi al cliente | customer messages | I testi mostrati nel checkout quando un campo manca o non è valido | errori, alert |
 
-**Validation** con la maiuscola indica l'oggetto Shopify, e resta nella
-documentazione tecnica: nell'interfaccia si parla di **validazione**.
+**Validation** con la maiuscola indica l'oggetto Shopify e resta nella
+documentazione tecnica. Nell'interfaccia merchant non compare, e non compare
+nemmeno «validazione»: si parla di **controllo nel checkout**, perché è ciò che
+il merchant riconosce senza doverlo imparare. Le regole valgono, o non valgono,
+per i suoi clienti.
 
 ## Commerciale
 

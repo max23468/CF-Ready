@@ -127,56 +127,74 @@ export function entitlementFor(
   return { kind: "none", validThrough: null };
 }
 
-// Uno store non idoneo non consuma la prova: la riga nasce solo quando lo store è italiano.
-export async function syncTrial(
+// La prova non parte da sola: nasce quando il merchant la chiede, dalla procedura guidata
+// o dalla Home. Finché non lo fa, nessun giorno viene consumato e la scelta resta intera.
+// Uno store non idoneo non la consuma: la riga nasce solo quando lo store è italiano.
+export async function startTrial(
   db: D1Database,
   shopDomain: string,
   { eligible, today }: { eligible: boolean; today: string },
 ): Promise<Trial | null> {
+  if (!eligible) return null;
+  const existing = await readTrial(db, shopDomain);
+  if (existing) return existing;
+
   const now = new Date().toISOString();
-  let trial = await readTrial(db, shopDomain);
+  // Una prova già fruita resta nel registro anche dopo la cancellazione dei dati: la
+  // reinstallazione la ritrova esaurita invece di ottenerne una nuova.
+  const consumed = await db
+    .prepare("SELECT trial_ends_at, pricing_generation FROM trial_ledger WHERE shop_hash = ?")
+    .bind(await trialLedgerHash(shopDomain))
+    .first<{ trial_ends_at: string | null; pricing_generation: PricingGeneration }>();
 
-  if (!trial && eligible) {
-    // Una prova già fruita resta nel registro anche dopo la cancellazione dei dati: la
-    // reinstallazione la ritrova esaurita invece di ottenerne una nuova.
-    const consumed = await db
-      .prepare("SELECT trial_ends_at, pricing_generation FROM trial_ledger WHERE shop_hash = ?")
-      .bind(await trialLedgerHash(shopDomain))
-      .first<{ trial_ends_at: string | null; pricing_generation: PricingGeneration }>();
+  const inserted = await db
+    .prepare(
+      `INSERT INTO trials (
+         shop_id, status, eligible_at, started_at, ends_at, pricing_generation,
+         created_at, updated_at
+       )
+       SELECT id, ?, ?, ?, ?, ?, ?, ? FROM shops WHERE shop_domain = ?
+       ON CONFLICT(shop_id) DO NOTHING
+       RETURNING shop_id`,
+    )
+    .bind(
+      consumed ? "expired" : "active",
+      now,
+      consumed ? null : now,
+      consumed ? consumed.trial_ends_at : trialEnd(today),
+      consumed ? consumed.pricing_generation : pricingGeneration(today),
+      now,
+      now,
+      shopDomain,
+    )
+    .first<{ shop_id: number }>();
 
-    const inserted = await db
-      .prepare(
-        `INSERT INTO trials (
-           shop_id, status, eligible_at, started_at, ends_at, pricing_generation,
-           created_at, updated_at
-         )
-         SELECT id, ?, ?, ?, ?, ?, ?, ? FROM shops WHERE shop_domain = ?
-         ON CONFLICT(shop_id) DO NOTHING
-         RETURNING shop_id`,
-      )
-      .bind(
-        consumed ? "expired" : "active",
-        now,
-        consumed ? null : now,
-        consumed ? consumed.trial_ends_at : trialEnd(today),
-        consumed ? consumed.pricing_generation : pricingGeneration(today),
-        now,
-        now,
-        shopDomain,
-      )
-      .first<{ shop_id: number }>();
+  // La rilettura dipende dall'inserimento appena eseguito, non dal suo valore di ritorno:
+  // eseguirla in parallelo leggerebbe lo stato di prima.
+  // react-doctor-disable-next-line react-doctor/server-sequential-independent-await
+  const trial = await readTrial(db, shopDomain);
 
-    trial = await readTrial(db, shopDomain);
-
-    if (inserted && trial?.status === "active") {
-      await recordEvent(db, {
-        shopDomain,
-        name: "trial_started",
-        class: "billing",
-        metadata: { pricing_generation: trial.pricing_generation },
-      });
-    }
+  if (inserted && trial?.status === "active") {
+    await recordEvent(db, {
+      shopDomain,
+      name: "trial_started",
+      class: "billing",
+      metadata: { pricing_generation: trial.pricing_generation },
+    });
   }
+
+  return trial;
+}
+
+// Porta a scadenza una prova già avviata. Non ne crea: quello lo fa `startTrial`, e solo
+// su richiesta esplicita del merchant.
+export async function syncTrial(
+  db: D1Database,
+  shopDomain: string,
+  { today }: { today: string },
+): Promise<Trial | null> {
+  const now = new Date().toISOString();
+  const trial = await readTrial(db, shopDomain);
 
   if (!trial) return null;
   if (trial.status !== "active" || !trial.ends_at || trial.ends_at >= today) return trial;

@@ -38,6 +38,11 @@ A testable product is published in the store with stock available and a price
 low enough to complete checkout without concern. Any product works: the app does
 not read the catalogue.
 
+**The storefront is password protected**, as development stores are by default:
+`cf-ready-dev.myshopify.com` redirects to `/password`. The storefront password
+is supplied in the submission form's testing instructions alongside the staff
+credentials — without it the checkout steps below cannot be reached at all.
+
 ## 3. Setting the address
 
 The Italian tax fields only appear when Shopify has an **Italian delivery**.

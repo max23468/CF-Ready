@@ -10,8 +10,9 @@ qualcuno non la produce. Le righe si aggiornano nella stessa modifica che
 produce la prova.
 
 **Stato complessivo: non pronto.** Mancano i materiali visivi della listing, la
-compilazione della listing nel Partner Dashboard, il Worker Production e un
-checkout reale ripetuto. Il sito pubblico è invece allineato alla `0.9.0`.
+sua compilazione nel Partner Dashboard, lo staff account per il reviewer e un
+checkout reale ripetuto. Sito pubblico e app sono invece distribuiti e
+verificati.
 
 ---
 
@@ -19,11 +20,30 @@ checkout reale ripetuto. Il sito pubblico è invece allineato alla `0.9.0`.
 
 | Voce | Valore |
 | --- | --- |
-| Versione candidata | `0.9.0` |
+| Versione candidata | `0.9.1` |
 | Commit candidato | `290f053`, promosso a `main` con `4b6c7b8` |
 | Branch | `develop`, promosso a `main` il 3 agosto 2026 |
 | Ultimo snapshot Development provato | `0.8.6`, run `30768120300` |
 | Tag `v1.0.0` | non creato: si crea alla promozione Production della `1.0.0` |
+
+### Ricevuta del primo deploy Production
+
+| Campo | Valore |
+| --- | --- |
+| Ambiente e configurazione | Production: `wrangler.json` env `production`, `shopify.app.toml` |
+| Versione repository e commit | `0.9.1`, commit `fef471b` |
+| Worker | `cf-ready-prod`, `https://cf-ready-prod.tmsf.workers.dev` |
+| Versione Shopify | `0.9.1` attiva; `cf-ready-2` e `cf-ready-1` conservate inattive come rollback |
+| Migrazioni | dieci già applicate, nessuna pendente al readback remoto |
+| Run | [30888857219](https://github.com/max23468/CF-Ready/actions/runs/30888857219) |
+| Smoke e readback | Worker raggiungibile; deployment, versione Shopify e commit verificati |
+| Addebiti | **di prova**, come dichiarato nella ricevuta del run |
+| Rollback Worker | non armato: era il primo deploy e non esisteva una versione precedente |
+
+Il tentativo precedente ([30888124042](https://github.com/max23468/CF-Ready/actions/runs/30888124042))
+si è fermato sul passo che compila la ricevuta, prima di migrazioni e deploy:
+`require()` non carica un modulo ESM con top-level await. Production è rimasta
+intatta.
 
 ### Ricevuta del deploy Pages Production
 
@@ -60,17 +80,18 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | `noindex` sui documenti legali | verificato **live** dopo il deploy del 3 agosto 2026: i quattro percorsi rispondono `X-Robots-Tag: noindex`, la Home, l'assistenza e la Home inglese no | ✅ |
 | Iniezione dell'identità del titolare | verificata **live**: Privacy e Termini, IT ed EN, dichiarano il nome della persona fisica titolare e nessuna pagina pubblica contiene ancora il segnaposto. Il segnaposto nei sorgenti è protetto da un test in `scripts/check-docs.node-test.mjs` | ✅ |
 | Configurazione Worker Production | `wrangler.json` env `production`: Worker `cf-ready-prod`, D1 `cf-ready-db-prod`, `ALLOWED_SHOP` vuota, addebiti di prova | ✅ |
-| **Worker Production distribuito** | il Worker `cf-ready-prod` non esiste ancora: lo crea il primo secret runtime | ❌ assente |
+| Worker Production distribuito | run `30888857219` del 4 agosto 2026, commit `fef471b`; `https://cf-ready-prod.tmsf.workers.dev` risponde | ✅ |
 | URL Production nel manifest Shopify | `shopify.app.toml` punta a `https://cf-ready-prod.tmsf.workers.dev`, con aggiornamento automatico degli URL vietato | ✅ |
 | **`BILLING_TEST=false` in Production** | variabile non definita: ogni addebito è di prova | ❌ assente |
-| **Secret Production separati** | `SHOPIFY_API_SECRET`, `SESSION_ENCRYPTION_KEY` e `TRIAL_LEDGER_HMAC_KEY` da generare e caricare sul Worker; il preflight si ferma finché mancano | ❌ assente |
-| **Versione attiva dell'app CF Ready** | `cf-ready-2` del 28 luglio 2026, cioè il proof of concept: il prodotto non è mai stato pubblicato su questa app | ❌ assente |
+| Secret Production separati | tre secret runtime caricati sul Worker `cf-ready-prod` il 4 agosto 2026; il preflight li verifica a ogni deploy | ✅ |
+| Versione attiva dell'app CF Ready | `0.9.1`, pubblicata il 4 agosto 2026. `cf-ready-2` e `cf-ready-1` restano inattive come rollback | ✅ |
 | Function API `2026-07` stabile e rigenerata | fonte Shopify del 3 agosto 2026: stabile dal 1º luglio 2026, accessibile fino al 16 luglio 2027. Schema rigenerato con CLI 4.6.0, identico al committato a meno della formattazione | ✅ |
 | **Checkout reali ripetuti sulla Function** | nessuno in questa sessione; è anche il gate di M10 | ❌ assente |
 | **Screenshot della listing** | piano e didascalie pronti in [`screenshots.md`](../listing/screenshots.md); nessun file prodotto | ❌ assente |
 | **Demo screencast** | copione pronto in [`screencast-script.md`](../listing/screencast-script.md); nessuna ripresa | ❌ assente |
-| **Contatto tecnico d'emergenza** | requisito 4.5.6: recapito da registrare nelle impostazioni dell'account Partner, non configurabile dal repository | ❌ assente |
+| Contatto tecnico d'emergenza | requisito 4.5.6: registrato dall'owner nelle impostazioni dell'account Partner il 4 agosto 2026 | ✅ |
 | **Staff account per il reviewer** | da creare sul dev store con i permessi *Manage and install apps and channels*, *Approve app charges* e *Orders → View*; credenziali nelle testing instructions (requisiti 4.5.4 e 4.5.5) | ❌ assente |
+| **Password della vetrina nelle testing instructions** | il dev store redirige a `/password`: senza quella password il reviewer non raggiunge il checkout | ❌ assente |
 | **Canary su store reale** | milestone M10, non ancora iniziata | ❌ assente |
 
 ## 3. Configurazioni e API validate
