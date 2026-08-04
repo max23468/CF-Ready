@@ -48,8 +48,8 @@ jobs:
       - name: Verifica credenziali provider
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          SHOPIFY_CLI_PARTNERS_TOKEN: ${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}
-        run: test -n "$CLOUDFLARE_API_TOKEN" && test -n "$SHOPIFY_CLI_PARTNERS_TOKEN"
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+        run: test -n "$CLOUDFLARE_API_TOKEN" && test -n "$SHOPIFY_APP_AUTOMATION_TOKEN"
 
       - run: npm run check
 
@@ -66,7 +66,7 @@ jobs:
       - name: Preflight Production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          SHOPIFY_CLI_PARTNERS_TOKEN: ${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
         run: npm run preflight:prod
 
       - name: Prepara versione
@@ -90,7 +90,7 @@ jobs:
         id: rollback_snapshot
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          SHOPIFY_CLI_PARTNERS_TOKEN: ${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
         run: |
           if npm exec -- wrangler deployments status --config wrangler.json --env production --json \
             > "$RUNNER_TEMP/worker-rollback.json" 2>/dev/null; then :; else echo '{}' > "$RUNNER_TEMP/worker-rollback.json"; fi
@@ -167,7 +167,7 @@ jobs:
 
       - name: Deploy Shopify Production
         env:
-          SHOPIFY_CLI_PARTNERS_TOKEN: ${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
         run: >-
           shopify app deploy
           --allow-updates
@@ -178,7 +178,7 @@ jobs:
 
       - name: Readback versione attiva Shopify
         env:
-          SHOPIFY_CLI_PARTNERS_TOKEN: ${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
         run: |
           shopify app versions list --no-color --json > "$RUNNER_TEMP/shopify-versions.json"
           # shellcheck disable=SC2016
@@ -217,7 +217,7 @@ jobs:
       - name: Ripristina lo snapshot Production precedente
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          SHOPIFY_CLI_PARTNERS_TOKEN: ${{ secrets.SHOPIFY_CLI_PARTNERS_TOKEN }}
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
           ROLLBACK_ARMED: ${{ needs.deploy.outputs.rollback_armed }}
           WORKER_ROLLBACK_VERSION_ID: ${{ needs.deploy.outputs.worker_rollback_version_id }}
           SHOPIFY_ROLLBACK_VERSION_TAG: ${{ needs.deploy.outputs.shopify_rollback_version_tag }}

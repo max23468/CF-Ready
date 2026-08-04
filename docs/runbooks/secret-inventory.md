@@ -16,7 +16,7 @@ dei rispettivi provider e non devono comparire nel repository o nei log.
 | `CLOUDFLARE_API_TOKEN` | Backup Production | GitHub Actions | configurato il 3 agosto 2026; da limitare a export D1 e oggetti R2 |
 | `D1_BACKUP_KEY` | Backup Production | GitHub Actions | configurato il 3 agosto 2026; copia recuperabile nel Portachiavi macOS |
 | `SECURITY_AUDIT_TOKEN` | Security Maintenance | GitHub Actions | sostituito il 3 agosto 2026 con un PAT fine-grained senza scadenza sul solo `CF-Ready`, in sola lettura su metadati, Actions e i tre alert; environment limitato a `develop`, copia recuperabile nel Portachiavi macOS |
-| `SHOPIFY_CLI_PARTNERS_TOKEN` | CI Production | GitHub Actions | da creare con privilegi minimi nell'environment `Production` |
+| `SHOPIFY_APP_AUTOMATION_TOKEN` | CI Production | GitHub Actions | da creare dal Dev Dashboard dell'app CF Ready, nell'environment `Production`. I CLI token del Partner Dashboard sono superati dal 6 maggio 2026 |
 | `CLOUDFLARE_API_TOKEN` | CI Production | GitHub Actions | da configurare nell'environment `Production` |
 | `OWNER_LEGAL_NAME` | Pages Production | GitHub Actions | configurato il 3 agosto 2026 nell'environment `Pages Production`, iniettato dal workflow e verificato dallo smoke |
 | Staff account del reviewer | dev store `cf-ready-dev` | form di submission App Store | da creare in M9 su `cfready@icloud.com`; password nel Portachiavi macOS, mai nel repository |
