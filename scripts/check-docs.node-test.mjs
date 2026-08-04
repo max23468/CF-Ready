@@ -423,6 +423,12 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
   assert.match(gate, /requiresReviewedCommit: true/);
   assert.match(gate, /GITHUB_EVENT_NAME === "workflow_dispatch" \|\| event\.action === "reopened"/);
   assert.match(gate, /Review Codex non conclusa entro cinque ore/);
+  const plan = readFileSync(
+    new URL("../docs/plans/2026-07-28-CF-Ready-Master-Plan.md", import.meta.url),
+    "utf8",
+  );
+  assert.match(plan, /Il gate `codex-review` non chiede review e non pubblica mai commenti/);
+  assert.doesNotMatch(plan, /commento marker|può essere avviato manualmente indicando la PR/);
   const maintenance = readFileSync(
     new URL("../.github/workflows/security-maintenance.yml", import.meta.url),
     "utf8",
