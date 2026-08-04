@@ -127,6 +127,14 @@ prezzi di lancio valgono i primi 90 giorni; chi sottoscrive mantiene il prezzo
 acquisito anche dopo. Tutti i pagamenti passano dal sistema di fatturazione
 delle app di Shopify.
 
+**La vetrina della listing è in dollari e l'addebito è in euro.** L'editor dei
+piani del Partner Dashboard non ha un campo valuta: gli importi vanno inseriti
+in USD come controvalore, arrotondato per eccesso perché la vetrina non prometta
+mai meno di quanto la fattura chiede. Il prezzo in euro va ripetuto fra le
+funzionalità del piano, che sono dentro *Pricing details* e perciò l'unica area
+dove i requisiti 4.2.2 e 4.2.3 consentono di indicare importi. Motivi e fonti in
+§14.2 del [Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md).
+
 Verifica gli importi in `app/plans.server.ts` prima di pubblicare: la listing e
 il codice devono dire la stessa cifra.
 

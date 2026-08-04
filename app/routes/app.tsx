@@ -18,16 +18,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   };
 };
 
-// `rel` non è fra le prop tipizzate di `s-link`: passarlo per spread evita di allargare i tipi
-// del pacchetto per un solo attributo.
-const HOME: Record<string, string> = { rel: "home" };
-
-// Una voce per rotta, e una sola. `rel="home"` dichiara ad App Bridge la rotta di casa e la
-// nasconde dal menu: il titolo dell'app diventa il modo per tornarci. Dichiarare `/app` due
-// volte — una visibile e una con `rel` — lasciava l'Admin senza menu quando si arrivava alla
-// Home da un link dentro una pagina (D-130).
+// Una voce visibile per rotta, e una sola. Il titolo dell'app usa la rotta predefinita `/`,
+// che inoltra a `/app` senza mostrare una pagina intermedia (D-128, D-130).
 export const NAV = [
-  { href: "/app", label: "home", home: true },
+  { href: "/app", label: "home" },
   { href: "/app/rules", label: "rules" },
   { href: "/app/messages", label: "messages" },
   { href: "/app/guide", label: "guide" },
@@ -54,7 +48,7 @@ export default function App() {
     <AppProvider embedded apiKey={apiKey}>
       <s-app-nav>
         {NAV.map((item) => (
-          <s-link key={item.href} href={item.href} {...("home" in item ? HOME : {})}>
+          <s-link key={item.href} href={item.href}>
             {t[item.label]}
           </s-link>
         ))}

@@ -9,10 +9,10 @@ const bindings = env as Env & {
 };
 
 // Addebiti di prova finché la variabile non dice esplicitamente il contrario. In Production
-// vale "false" fin dalla pubblicazione: la modalità di prova non protegge il reviewer, perché
-// sui development store è Shopify a non addebitare, e lascerebbe l'app incapace di addebitare
-// i merchant (D-129). L'annotazione allarga il tipo letterale che `wrangler types` deduce dal
-// valore oggi configurato: il confronto deve continuare a valere anche quando quel valore cambia.
+// vale "false" fin dalla pubblicazione: i merchant devono ricevere addebiti reali, mentre il
+// reviewer usa la prova gratuita e non approva una charge Production (D-129). L'annotazione
+// allarga il tipo letterale che `wrangler types` deduce dal valore oggi configurato: il
+// confronto deve continuare a valere anche quando quel valore cambia.
 const billingTest: string | undefined = bindings.BILLING_TEST;
 export const BILLING_IS_TEST = billingTest !== "false";
 export const APP_URL = bindings.SHOPIFY_APP_URL || "";
