@@ -25,26 +25,24 @@ cambiano e vanno riscaricati alla submission, che è un'altra data da questa.
 | Esito | Numero |
 | --- | --- |
 | Conforme | 14 |
-| Da chiudere prima della submission | 5, di cui uno ridotto al solo checkout reale |
+| Da chiudere prima della submission | 2, di cui uno ridotto al solo checkout reale |
 | Non applicabile, gruppo saltato | 10 gruppi |
 
-Nessun requisito risulta violato dal comportamento dell'app. Tre dei cinque
-punti aperti sono configurazioni Production che non esistono ancora, uno è un
-checkout reale da rieseguire e uno un recapito da registrare nel Partner
-Dashboard. Nessuno è un difetto di prodotto.
+Nessun requisito risulta violato dal comportamento dell'app. Dei cinque punti
+aperti al 3 agosto ne restano due: gli addebiti reali, che spettano al canary,
+e un checkout reale da rieseguire. Nessuno è un difetto di prodotto.
 
 ## Da chiudere prima della submission
 
-### 1. URL Production nel manifest — chiuso il 4 agosto 2026
+### 1. URL Production nel manifest — chiuso il 4 agosto 2026 ✅
 
 `shopify.app.toml` dichiarava i valori dello scaffold, `https://example.com`.
 Ora punta a `https://cf-ready-prod.tmsf.workers.dev` e vieta
 `automatically_update_urls_on_dev`, così un `shopify app dev` distratto non può
 riscrivere gli URL dell'app pubblica con un tunnel.
 
-Resta aperto il passo successivo: quell'URL non risponde finché il Worker
-`cf-ready-prod` non viene distribuito, e la versione attiva dell'app è ancora
-`cf-ready-2` del 28 luglio, cioè il proof of concept.
+Chiuso anche il passo successivo: il Worker `cf-ready-prod` è distribuito e
+risponde, e la versione attiva dell'app è la `0.9.1` del 4 agosto 2026.
 
 ### 2. Billing ancora in modalità test — bloccante
 
@@ -69,12 +67,12 @@ Il Master Plan chiede quattro cose prima della `1.0.0`. Tre sono state fatte il
 
 Resta quindi aperto il solo checkout reale, che è anche il gate di M10.
 
-### 4. Contatto tecnico d'emergenza nel Partner Dashboard
+### 4. Contatto tecnico d'emergenza — chiuso il 4 agosto 2026 ✅
 
 Il requisito 4.5.6 chiede un **emergency developer contact** registrato nelle
 impostazioni dell'account Partner: è il recapito su cui Shopify manda le
-comunicazioni tecniche critiche sull'app. Non si configura dal repository e non
-era stato elencato fra i deliverable: va impostato prima della submission.
+comunicazioni tecniche critiche sull'app. Registrato dall'owner il 4 agosto
+2026.
 
 Stessa sezione dei requisiti: 4.5.4 e 4.5.5 chiedono credenziali di prova
 valide e complete dentro le **testing instructions** del form di submission.
@@ -82,11 +80,11 @@ L'accesso del reviewer si dà così, con uno staff account del dev store — non
 con un collaborator account, che è il meccanismo con cui un Partner chiede
 accesso allo store di un merchant e non c'entra con la review.
 
-### 5. Configurazione Production assente nel Worker
+### 5. Configurazione Production del Worker — chiusa il 4 agosto 2026
 
-`wrangler.json` ha ora l'ambiente `production`: Worker `cf-ready-prod`, D1
-`cf-ready-db-prod`, `ALLOWED_SHOP` vuota e addebiti di prova. Mancano i tre
-secret runtime, che sono anche ciò che crea materialmente il Worker.
+`wrangler.json` ha l'ambiente `production` e i tre secret runtime sono
+caricati: Worker `cf-ready-prod`, D1 `cf-ready-db-prod`, `ALLOWED_SHOP` vuota e
+addebiti di prova. Punto chiuso il 4 agosto 2026.
 
 Una trappola scoperta preparandolo, perché non si ripeta: il Vite plugin
 appiattisce l'ambiente **al momento della build**, quindi `wrangler deploy
