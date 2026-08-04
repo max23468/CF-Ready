@@ -37,7 +37,7 @@
 
     <text x="908" y="500" font-size="22" font-weight="500" letter-spacing="1.4" fill="#6B6A5C">PEC</text>
     <rect x="908" y="524" width="524" height="82" rx="8" fill="#FFFFFF" stroke="#B9B5A6" stroke-width="2"/>
-    <text x="936" y="578" font-size="33" fill="#1A211C">mario.rossi@pec.it</text>
+    <text x="936" y="578" font-size="33" fill="#1A211C">mario.rossi@example.com</text>
 
     <path d="M910 662 L927 679 L957 649" fill="none" stroke="#20492F" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
     <text x="975" y="679" font-size="30" font-weight="500" fill="#20492F">Valid format</text>

@@ -6,6 +6,22 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.9 — 4 agosto 2026
+
+- il rollback Production parte anche dopo un job cancellato, richiede uno
+  snapshot Shopify valido prima delle migrazioni e verifica che Shopify e
+  Worker siano davvero tornati alle versioni precedenti; Pages applica la
+  stessa copertura ai deploy non conclusi con successo;
+- Home e onboarding non dichiarano più avviata una prova già consumata e la
+  procedura guidata propone direttamente i piani quando la prova non è più
+  disponibile;
+- la manutenzione segnala come errore ogni token Shopify senza una scadenza
+  valida nel registro e usa l'autenticazione di `gh` anche per leggere i
+  ruleset;
+- istruzioni reviewer, screencast, fixture e runbook descrivono il percorso e
+  il billing correnti, usando un indirizzo email sintetico sul dominio
+  riservato `example.com`.
+
 ## 0.9.8 — 4 agosto 2026
 
 - i body dei form delle route merchant sono limitati centralmente a 16 KiB

@@ -241,7 +241,7 @@ export async function redactExpiredShops(db: D1Database, now = new Date()) {
   for (const { shop_domain: shopDomain } of results) {
     try {
       if (
-        // Le cancellazioni restano seriali per non esaurire le subrequest del cron.
+        // Le cancellazioni restano seriali per limitare le operazioni D1 concorrenti del cron.
         // react-doctor-disable-next-line react-doctor/async-await-in-loop
         await redactShop(db, shopDomain, `retention-${crypto.randomUUID()}`, "RETENTION_EXPIRED")
       ) {

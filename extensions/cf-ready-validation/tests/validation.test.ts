@@ -133,7 +133,7 @@ describe("valori delle reviewer instructions", () => {
   });
 
   it.each([
-    ["PEC valida", "mario.rossi@pec.it", true],
+    ["PEC valida", "mario.rossi@example.com", true],
     ["PEC non valida", "mario.rossi@pec", false],
   ])("%s", (_name, value, expected) => {
     expect(isValidPec(value)).toBe(expected);
