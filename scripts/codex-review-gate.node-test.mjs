@@ -26,7 +26,6 @@ test("il pollice sulla PR approva la review automatica iniziale", () => {
   assert.equal(
     classify({
       reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:03Z" }],
-      requiresReviewedCommit: true,
       reviews: [
         {
           user: bot,
@@ -43,7 +42,6 @@ test("un pollice tardivo non approva una review del commit precedente", () => {
   assert.equal(
     classify({
       reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:02Z" }],
-      requiresReviewedCommit: true,
       reviews: [
         {
           user: bot,
@@ -60,7 +58,6 @@ test("un vecchio pollice non approva una review successiva dello stesso commit",
   assert.equal(
     classify({
       reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:01Z" }],
-      requiresReviewedCommit: true,
       reviews: [
         {
           user: bot,
@@ -73,20 +70,18 @@ test("un vecchio pollice non approva una review successiva dello stesso commit",
   );
 });
 
-test("il pollice senza Reviewed commit non approva una richiesta esplicita", () => {
+test("il pollice senza Reviewed commit non approva", () => {
   assert.equal(
     classify({
-      requiresReviewedCommit: true,
       reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:01Z" }],
     }).state,
     "pending",
   );
 });
 
-test("un commento positivo senza pollice non approva l'HEAD", () => {
+test("un commento del task agent non approva l'HEAD neppure con il pollice", () => {
   assert.equal(
     classify({
-      requiresReviewedCommit: true,
       comments: [
         {
           user: bot,
@@ -94,31 +89,7 @@ test("un commento positivo senza pollice non approva l'HEAD", () => {
           body: `Codex Review: Didn't find any major issues.\n\n**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
         },
       ],
-    }).state,
-    "pending",
-  );
-});
-
-test("la richiesta esplicita approva soltanto Reviewed commit e pollice dello stesso HEAD", () => {
-  const comment = (commit) => ({
-    user: bot,
-    created_at: "2026-08-04T12:00:02Z",
-    body: `Codex Review: Didn't find any major issues.\n\n**Reviewed commit:** \`${commit}\``,
-  });
-  const reactions = [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:03Z" }];
-  assert.equal(
-    classify({
-      requiresReviewedCommit: true,
-      comments: [comment(headSha.slice(0, 10))],
-      reactions,
-    }).state,
-    "success",
-  );
-  assert.equal(
-    classify({
-      requiresReviewedCommit: true,
-      comments: [comment("abcdef0123")],
-      reactions,
+      reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:02Z" }],
     }).state,
     "pending",
   );
@@ -202,12 +173,11 @@ test("un finding precedente non chiude un nuovo tentativo sullo stesso HEAD", ()
           body: "**P1** Finding precedente",
         },
       ],
-      requiresReviewedCommit: true,
-      comments: [
+      reviews: [
         {
           user: bot,
-          created_at: "2026-08-04T12:00:02Z",
-          body: `Codex Review: Didn't find any major issues.\n\n**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
+          submitted_at: "2026-08-04T12:00:02Z",
+          body: `**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
         },
       ],
       reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:03Z" }],

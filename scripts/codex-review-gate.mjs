@@ -15,7 +15,6 @@ export function classifyCodexReview({
   comments,
   reactions,
   progressReactions = reactions,
-  requiresReviewedCommit = false,
   reviews = [],
   reviewComments,
 }) {
@@ -50,15 +49,7 @@ export function classifyCodexReview({
   for (const comment of comments) {
     if (comment.user?.login !== CODEX_BOT) continue;
 
-    const commit = reviewedCommit(comment.body);
     if (
-      commit &&
-      headSha.startsWith(commit) &&
-      timestamp(comment.created_at) >= timestamp(requestedAt) &&
-      /didn't find any major issues/i.test(comment.body)
-    ) {
-      cleanComments.push(timestamp(comment.created_at));
-    } else if (
       timestamp(comment.created_at) >= timestamp(requestedAt) &&
       now - timestamp(requestedAt) >= 30_000 &&
       !inProgress &&
@@ -94,7 +85,6 @@ export function classifyCodexReview({
     .reduce((latest, reaction) => Math.max(latest, timestamp(reaction.created_at)), 0);
 
   if (thumbsUpAt) {
-    if (!requiresReviewedCommit) cleanComments.push(thumbsUpAt);
     for (const commentAt of cleanComments) {
       if (thumbsUpAt < commentAt) continue;
       completions.push({
@@ -208,7 +198,6 @@ async function main() {
       requestedAt,
       comments,
       reactions,
-      requiresReviewedCommit: true,
       reviews,
       reviewComments,
     });
