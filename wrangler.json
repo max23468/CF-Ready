@@ -4,7 +4,9 @@
   "account_id": "98195e505f42abaaeb4827f71a924b1a",
   "main": "./workers/app.ts",
   "compatibility_date": "2026-07-28",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "workers_dev": true,
   "preview_urls": false,
   "vars": {
@@ -26,7 +28,9 @@
   },
   "upload_source_maps": true,
   "triggers": {
-    "crons": ["0 * * * *"]
+    "crons": [
+      "0 * * * *"
+    ]
   },
   "d1_databases": [
     {
@@ -35,5 +39,44 @@
       "database_id": "9490eaea-3a12-465d-bb48-e2622b31fc4d",
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+  "env": {
+    "production": {
+      "name": "cf-ready-prod",
+      "workers_dev": true,
+      "preview_urls": false,
+      "upload_source_maps": true,
+      "vars": {
+        "SHOPIFY_API_KEY": "3640fb39bcf605de0537d6dfc0d01c8a",
+        "SHOPIFY_APP_URL": "https://cf-ready-prod.tmsf.workers.dev",
+        "SCOPES": "write_validations",
+        "BILLING_TEST": "true",
+        "ALLOWED_SHOP": ""
+      },
+      "observability": {
+        "enabled": true,
+        "logs": {
+          "enabled": true,
+          "head_sampling_rate": 1,
+          "invocation_logs": false
+        },
+        "traces": {
+          "enabled": false
+        }
+      },
+      "triggers": {
+        "crons": [
+          "0 * * * *"
+        ]
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "cf-ready-db-prod",
+          "database_id": "6434597c-d683-48d9-a51f-b0d15de6a684",
+          "migrations_dir": "migrations"
+        }
+      ]
+    }
+  }
 }

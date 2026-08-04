@@ -353,6 +353,7 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.match(workflow, /npm run audit:security/);
   assert.match(workflow, /npm audit signatures/);
   assert.match(workflow, /npm run readback:dev/);
+  assert.match(workflow, /node scripts\/credential-expiry\.mjs/);
   assert.match(workflow, /required_status_checks/);
   assert.match(workflow, /dependency-review,e2e,promotion-guard,react-doctor,verify/);
   assert.match(workflow, /gh workflow list --all/);

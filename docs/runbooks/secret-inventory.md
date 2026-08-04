@@ -9,26 +9,32 @@ dei rispettivi provider e non devono comparire nel repository o nei log.
 | `SESSION_ENCRYPTION_KEY` | Development | Cloudflare Workers, GitHub Actions | configurato il 29 luglio 2026 |
 | `TRIAL_LEDGER_HMAC_KEY` | Development | Cloudflare Workers | configurato il 2 agosto 2026 |
 | `SHOPIFY_APP_AUTOMATION_TOKEN` | Development | GitHub Actions | configurato il 29 luglio 2026 |
-| `SHOPIFY_API_SECRET` | Production | Cloudflare Workers | da configurare |
-| `SESSION_ENCRYPTION_KEY` | Production | Cloudflare Workers | da generare |
-| `TRIAL_LEDGER_HMAC_KEY` | Production | Cloudflare Workers | da generare prima del lancio |
+| `SHOPIFY_API_SECRET` | Production | Cloudflare Workers | da configurare sul Worker `cf-ready-prod` con `wrangler secret put --env production` |
+| `SESSION_ENCRYPTION_KEY` | Production | Cloudflare Workers | da generare con `openssl rand -base64 32` e caricare sul Worker `cf-ready-prod` |
+| `TRIAL_LEDGER_HMAC_KEY` | Production | Cloudflare Workers | da generare con `openssl rand -base64 32` e caricare sul Worker `cf-ready-prod`; non ruotabile ordinariamente |
 | `CLOUDFLARE_API_TOKEN` | CI Pages Production | GitHub Actions | configurato il 1 agosto 2026; accesso verificato dal preflight del workflow |
 | `CLOUDFLARE_API_TOKEN` | Backup Production | GitHub Actions | configurato il 3 agosto 2026; da limitare a export D1 e oggetti R2 |
 | `D1_BACKUP_KEY` | Backup Production | GitHub Actions | configurato il 3 agosto 2026; copia recuperabile nel Portachiavi macOS |
 | `SECURITY_AUDIT_TOKEN` | Security Maintenance | GitHub Actions | sostituito il 3 agosto 2026 con un PAT fine-grained senza scadenza sul solo `CF-Ready`, in sola lettura su metadati, Actions e i tre alert; environment limitato a `develop`, copia recuperabile nel Portachiavi macOS |
-| `SHOPIFY_CLI_PARTNERS_TOKEN` | CI Production | GitHub Actions | da creare con privilegi minimi |
+| `SHOPIFY_APP_AUTOMATION_TOKEN` | CI Production | GitHub Actions | creato il 4 agosto 2026 dal Dev Dashboard dell'app CF Ready, environment `Production`. **Scade il 4 febbraio 2027**, vedi «Scadenze» |
+| `CLOUDFLARE_API_TOKEN` | CI Production | GitHub Actions | creato il 4 agosto 2026 con Workers Scripts Edit e D1 Edit sul solo account, environment `Production`; senza scadenza |
 | `OWNER_LEGAL_NAME` | Pages Production | GitHub Actions | configurato il 3 agosto 2026 nell'environment `Pages Production`, iniettato dal workflow e verificato dallo smoke |
-| Staff account del reviewer | dev store `cf-ready-dev` | form di submission App Store | da creare in M9; password nel Portachiavi macOS, mai nel repository |
+| Staff account del reviewer | dev store `cf-ready-dev` | form di submission App Store | da creare in M9 su `cfready@icloud.com`; password nel Portachiavi macOS, mai nel repository |
 
 `SHOPIFY_API_KEY`, ID account, ID database e nomi delle risorse non sono
 segreti, ma non autorizzano alcun accesso.
 
 Lo **staff account del reviewer** è un accesso di servizio al solo dev store, non
-un'identità personale: nome neutro, email che l'owner controlla e i tre permessi
-minimi del percorso di review — *Manage and install apps and channels*,
+un'identità personale: nome neutro, `cfready@icloud.com` come recapito e i tre
+permessi minimi del percorso di review — *Manage and install apps and channels*,
 *Approve app charges* e *Orders → View*. La password si genera al momento della
 creazione, si conserva nel Portachiavi e si incolla soltanto nelle testing
 instructions del form. Alla fine della review l'account va disattivato.
+
+`cfready@icloud.com` è la stessa casella dell'assistenza e dei documenti legali:
+una sola casella da presidiare invece di tre. Se quell'indirizzo risultasse già
+legato a un altro account Shopify, l'invito allo staff si aggancerebbe a quello
+e servirebbe un recapito distinto.
 
 `OWNER_LEGAL_NAME` non protegge un accesso: è il nome della persona fisica che
 Privacy e Termini devono dichiarare come titolare. Sta nel secret store per non
@@ -43,6 +49,20 @@ di sessione: non va ruotata ordinariamente. Va conservata nel secret store con
 backup recuperabile; in caso di compromissione, la vecchia versione resta
 necessaria per riconoscere le prove già registrate e la migrazione a una nuova
 chiave richiede una procedura dedicata prima della sostituzione.
+
+## Scadenze
+
+Gli App Automation Token di Shopify non possono essere perpetui: la scadenza
+massima è sei mesi. Alla scadenza il deploy fallisce sull'autenticazione, e
+l'unico modo per accorgersene in anticipo è averla scritta.
+
+| Credenziale | Ambiente | Scade | Cosa fare |
+| --- | --- | --- | --- |
+| `SHOPIFY_APP_AUTOMATION_TOKEN` | CI Production | **4 febbraio 2027** | rigenerare dal Dev Dashboard dell'app CF Ready, Settings → App Automation Token, e sostituire il secret nell'environment `Production` |
+| `SHOPIFY_APP_AUTOMATION_TOKEN` | Development | da verificare: creato il 29 luglio 2026, scadenza non registrata | leggere la scadenza nel Dev Dashboard dell'app Development e annotarla qui |
+
+Il token si vede una sola volta, al momento della creazione: se va perso si
+revoca e se ne genera un altro, non si recupera.
 
 ## Rotazione di `SESSION_ENCRYPTION_KEY`
 

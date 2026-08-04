@@ -59,10 +59,12 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | Migrazioni D1 Production | dieci migrazioni versionate applicate, readback senza pendenti, 11 tabelle | ✅ |
 | `noindex` sui documenti legali | verificato **live** dopo il deploy del 3 agosto 2026: i quattro percorsi rispondono `X-Robots-Tag: noindex`, la Home, l'assistenza e la Home inglese no | ✅ |
 | Iniezione dell'identità del titolare | verificata **live**: Privacy e Termini, IT ed EN, dichiarano il nome della persona fisica titolare e nessuna pagina pubblica contiene ancora il segnaposto. Il segnaposto nei sorgenti è protetto da un test in `scripts/check-docs.node-test.mjs` | ✅ |
-| **Worker Production distribuito** | nessuno: `wrangler.json` descrive solo `cf-ready-dev` | ❌ assente |
-| **URL Production nel manifest Shopify** | `shopify.app.toml` punta ancora a `https://example.com` | ❌ assente |
+| Configurazione Worker Production | `wrangler.json` env `production`: Worker `cf-ready-prod`, D1 `cf-ready-db-prod`, `ALLOWED_SHOP` vuota, addebiti di prova | ✅ |
+| **Worker Production distribuito** | il Worker `cf-ready-prod` non esiste ancora: lo crea il primo secret runtime | ❌ assente |
+| URL Production nel manifest Shopify | `shopify.app.toml` punta a `https://cf-ready-prod.tmsf.workers.dev`, con aggiornamento automatico degli URL vietato | ✅ |
 | **`BILLING_TEST=false` in Production** | variabile non definita: ogni addebito è di prova | ❌ assente |
-| **Secret Production separati** | `SHOPIFY_API_SECRET`, `SESSION_ENCRYPTION_KEY` e `TRIAL_LEDGER_HMAC_KEY` Production da generare | ❌ assente |
+| **Secret Production separati** | `SHOPIFY_API_SECRET`, `SESSION_ENCRYPTION_KEY` e `TRIAL_LEDGER_HMAC_KEY` da generare e caricare sul Worker; il preflight si ferma finché mancano | ❌ assente |
+| **Versione attiva dell'app CF Ready** | `cf-ready-2` del 28 luglio 2026, cioè il proof of concept: il prodotto non è mai stato pubblicato su questa app | ❌ assente |
 | Function API `2026-07` stabile e rigenerata | fonte Shopify del 3 agosto 2026: stabile dal 1º luglio 2026, accessibile fino al 16 luglio 2027. Schema rigenerato con CLI 4.6.0, identico al committato a meno della formattazione | ✅ |
 | **Checkout reali ripetuti sulla Function** | nessuno in questa sessione; è anche il gate di M10 | ❌ assente |
 | **Screenshot della listing** | piano e didascalie pronti in [`screenshots.md`](../listing/screenshots.md); nessun file prodotto | ❌ assente |
