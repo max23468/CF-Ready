@@ -6,13 +6,17 @@ requisiti: collega, per ogni gate bloccante, la prova che lo sostiene.
 
 **Una casella spuntata senza link, ID o risultato osservato non è readiness.**
 Dove la prova non esiste ancora, la riga dice «assente» e resta assente finché
-qualcuno non la produce. Le righe si aggiornano nella stessa modifica che
+qualcuno non la produce. Le righe marcate ⚠️ riportano una dichiarazione
+dell'owner su qualcosa che vive fuori dal repository: valgono come impegno, non
+come verifica, e chi legge deve poterle distinguere dalle altre. Le righe si aggiornano nella stessa modifica che
 produce la prova.
 
-**Stato complessivo: non pronto.** Mancano i materiali visivi della listing, la
-sua compilazione nel Partner Dashboard, lo staff account per il reviewer e un
-checkout reale ripetuto. Sito pubblico e app sono invece distribuiti e
-verificati.
+**Stato complessivo: non pronto.** Materiali e listing ci sono, per dichiarazione
+dell'owner. Mancano le due cose senza cui il reviewer non entrerebbe nemmeno:
+lo staff account e la password della vetrina nelle testing instructions, che
+sono i requisiti 4.5.4 e 4.5.5. Restano fuori per scelta il checkout reale
+ripetuto e gli addebiti reali, entrambi di competenza del canary M10. Sito
+pubblico e app sono distribuiti e verificati.
 
 ---
 
@@ -74,21 +78,22 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | Rollback Pages esercitato e letto | run `30741094451` | ✅ |
 | Backup D1 Production e restore | run `30769584725`: export cifrato, restore locale di 32 comandi, `integrity_check=ok`, readback dello slot R2 | ✅ |
 | Security audit e manutenzione provider | run `30749648119`, entrambi i job verdi | ✅ |
-| Audit pre-submission App Store | [audit del 3 agosto 2026](../audits/2026-08-03-app-store-pre-submission.md) | ✅ con quattro punti aperti |
+| Audit pre-submission App Store | [audit del 3 agosto 2026](../audits/2026-08-03-app-store-pre-submission.md) | ✅ con un punto aperto: il checkout reale sulla Function |
 | Migrazioni D1 Development | applicate e verificate a ogni snapshot, da ultimo nel run `30768120300` | ✅ |
 | Migrazioni D1 Production | dieci migrazioni versionate applicate, readback senza pendenti, 11 tabelle | ✅ |
 | `noindex` sui documenti legali | verificato **live** dopo il deploy del 3 agosto 2026: i quattro percorsi rispondono `X-Robots-Tag: noindex`, la Home, l'assistenza e la Home inglese no | ✅ |
 | Iniezione dell'identità del titolare | verificata **live**: Privacy e Termini, IT ed EN, dichiarano il nome della persona fisica titolare e nessuna pagina pubblica contiene ancora il segnaposto. Il segnaposto nei sorgenti è protetto da un test in `scripts/check-docs.node-test.mjs` | ✅ |
-| Configurazione Worker Production | `wrangler.json` env `production`: Worker `cf-ready-prod`, D1 `cf-ready-db-prod`, `ALLOWED_SHOP` vuota, addebiti di prova | ✅ |
+| Configurazione Worker Production | `wrangler.json` env `production`: Worker `cf-ready-prod`, D1 `cf-ready-db-prod`, `ALLOWED_SHOP` vuota, addebiti reali | ✅ |
 | Worker Production distribuito | run `30888857219` del 4 agosto 2026, commit `fef471b`; `https://cf-ready-prod.tmsf.workers.dev` risponde | ✅ |
 | URL Production nel manifest Shopify | `shopify.app.toml` punta a `https://cf-ready-prod.tmsf.workers.dev`, con aggiornamento automatico degli URL vietato | ✅ |
-| **`BILLING_TEST=false` in Production** | variabile non definita: ogni addebito è di prova | ❌ assente |
+| **`BILLING_TEST=false` in Production** | `wrangler.json` env `production` la definisce a `"false"` dal 4 agosto 2026 (D-129): gli addebiti dei merchant sono reali. Effettiva sul Worker al primo deploy Production successivo | ✅ configurata |
 | Secret Production separati | tre secret runtime caricati sul Worker `cf-ready-prod` il 4 agosto 2026; il preflight li verifica a ogni deploy | ✅ |
 | Versione attiva dell'app CF Ready | `0.9.1`, pubblicata il 4 agosto 2026. `cf-ready-2` e `cf-ready-1` restano inattive come rollback | ✅ |
 | Function API `2026-07` stabile e rigenerata | fonte Shopify del 3 agosto 2026: stabile dal 1º luglio 2026, accessibile fino al 16 luglio 2027. Schema rigenerato con CLI 4.6.0, identico al committato a meno della formattazione | ✅ |
 | **Checkout reali ripetuti sulla Function** | nessuno in questa sessione; è anche il gate di M10 | ❌ assente |
-| **Screenshot della listing** | piano e didascalie pronti in [`screenshots.md`](../listing/screenshots.md); nessun file prodotto | ❌ assente |
-| **Demo screencast** | copione pronto in [`screencast-script.md`](../listing/screencast-script.md); nessuna ripresa | ❌ assente |
+| Listing compilata nel Partner Dashboard | testi IT/EN, icona, feature image, disponibilità solo Italia e categoria, **dichiarato dall'owner il 4 agosto 2026**. Resta in bozza finché non parte la submission | ⚠️ dichiarato, non verificato da qui |
+| Screenshot della listing | prodotti e caricati nella listing, **dichiarato dall'owner il 4 agosto 2026**. Non entrano nel repository per decisione dello stesso giorno: piano di cattura e didascalie restano in [`screenshots.md`](../listing/screenshots.md) | ⚠️ dichiarato, non verificato da qui |
+| Demo screencast | registrato, **dichiarato dall'owner il 4 agosto 2026**. Non entra nel repository: il copione resta in [`screencast-script.md`](../listing/screencast-script.md), aggiornato all'avvio esplicito della prova | ⚠️ dichiarato, non verificato da qui |
 | Contatto tecnico d'emergenza | requisito 4.5.6: registrato dall'owner nelle impostazioni dell'account Partner il 4 agosto 2026 | ✅ |
 | **Staff account per il reviewer** | da creare sul dev store con i permessi *Manage and install apps and channels*, *Approve app charges* e *Orders → View*; credenziali nelle testing instructions (requisiti 4.5.4 e 4.5.5) | ❌ assente |
 | **Password della vetrina nelle testing instructions** | il dev store redirige a `/password`: senza quella password il reviewer non raggiunge il checkout | ❌ assente |

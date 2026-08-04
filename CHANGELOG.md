@@ -6,6 +6,39 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.5 — 4 agosto 2026
+
+- in Production gli addebiti dei merchant sono reali: `BILLING_TEST` vale
+  `"false"`. Restava in modalità di prova per proteggere il reviewer, ma sui
+  development store è Shopify a non addebitare, quindi il flag non tutelava
+  nessuno e lasciava l'app incapace di addebitare i merchant — il difetto
+  contestato dal requisito 1.2.2 (D-129). Il valore diventa effettivo al primo
+  deploy Production successivo;
+- audit di pre-submission e runbook di release non affermano più che il
+  reviewer debba vedere addebiti di prova, e registrano la voce 2.3.1 come
+  chiusa dalla rimozione della pagina di accesso.
+
+## 0.9.4 — 4 agosto 2026
+
+- `/auth/login` non risponde più con un errore del server: tolta la pagina in
+  `0.9.3` quell'indirizzo ricadeva sulla rotta generica di autenticazione, e la
+  libreria vi riconosceva il proprio percorso di accesso rispondendo `500` con
+  il nome della funzione da chiamare e la configurazione interna. Ora inoltra a
+  `/app` come la radice;
+- l'E2E pre-OAuth controlla anche lo status e copre `/auth/login`: la versione
+  precedente guardava solo il corpo della risposta, e un errore del server la
+  attraversava senza far rumore.
+
+## 0.9.3 — 4 agosto 2026
+
+- l'URL dell'app non mostra più la pagina che chiedeva di digitare il dominio
+  dello store: chi arriva finisce sempre nell'autenticazione. Quel form era il
+  residuo del template per la distribuzione custom e faceva fallire il check
+  automatico «Immediately authenticates after install» della pre-submission,
+  perché i requisiti App Store vietano sia la richiesta manuale di un dominio
+  `myshopify.com` sia una UI interagibile prima di OAuth (D-128);
+- gli E2E verificano il percorso pre-OAuth al posto della pagina rimossa.
+
 ## 0.9.2 — 4 agosto 2026
 
 - la prova non parte più da sola: la avvia il merchant, dalla procedura guidata

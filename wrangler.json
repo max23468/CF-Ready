@@ -50,7 +50,7 @@
         "SHOPIFY_API_KEY": "3640fb39bcf605de0537d6dfc0d01c8a",
         "SHOPIFY_APP_URL": "https://cf-ready-prod.tmsf.workers.dev",
         "SCOPES": "write_validations",
-        "BILLING_TEST": "true",
+        "BILLING_TEST": "false",
         "ALLOWED_SHOP": ""
       },
       "observability": {
