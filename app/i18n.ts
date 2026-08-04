@@ -28,13 +28,6 @@ const it = {
     save: "Salva",
     cancel: "Annulla",
   },
-  auth: {
-    heading: "Accedi",
-    shopLabel: "Dominio dello store",
-    submit: "Accedi",
-    missingShop: "Inserisci il dominio dello store per accedere",
-    invalidShop: "Inserisci un dominio dello store valido per accedere",
-  },
   errors: {
     validation_locked: "Un’altra operazione sul controllo è in corso. Riprova fra poco.",
     validation_write_failed:
@@ -407,13 +400,6 @@ const en: typeof it = {
   common: {
     save: "Save",
     cancel: "Cancel",
-  },
-  auth: {
-    heading: "Log in",
-    shopLabel: "Shop domain",
-    submit: "Log in",
-    missingShop: "Please enter your shop domain to log in",
-    invalidShop: "Please enter a valid shop domain to log in",
   },
   errors: {
     validation_locked: "Another operation on this validation is running. Try again shortly.",
