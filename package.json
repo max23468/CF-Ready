@@ -1,6 +1,6 @@
 {
   "name": "cf-ready",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "private": true,
   "packageManager": "npm@12.0.2",
   "packageExtensions": {
@@ -23,8 +23,8 @@
     "audit:security": "node --test scripts/security-audit.node-test.mjs && node scripts/security-audit.mjs",
     "preflight:dev": "node scripts/preflight-dev.mjs",
     "readback:dev": "node scripts/preflight-dev.mjs --readback-only",
-    "test:preflight": "node --test scripts/preflight-dev.node-test.mjs",
-    "test:operations": "node --test scripts/backup-crypto.node-test.mjs scripts/capacity-check.node-test.mjs",
+    "test:preflight": "node --test scripts/preflight-dev.node-test.mjs scripts/preflight-prod.node-test.mjs",
+    "test:operations": "node --test scripts/backup-crypto.node-test.mjs scripts/capacity-check.node-test.mjs scripts/credential-expiry.node-test.mjs",
     "capacity:dev": "node scripts/capacity-check.mjs",
     "test:e2e": "playwright test --config tests/playwright.config.ts",
     "test": "vitest run",
@@ -40,7 +40,8 @@
     "shopify:info": "node scripts/shopify-info-safe.mjs",
     "env": "shopify app env",
     "shopify": "shopify",
-    "vite": "vite"
+    "vite": "vite",
+    "preflight:prod": "node scripts/preflight-prod.mjs"
   },
   "type": "module",
   "engines": {

@@ -37,6 +37,12 @@ jobs:
       - run: npm run audit:security
       - run: npm audit signatures
       - run: npm run docs:check
+
+      # Gli App Automation Token durano al massimo sei mesi. Alla scadenza il deploy
+      # Production fallisce sull'autenticazione, e la diagnosi non è ovvia: l'avviso
+      # arriva dal registro delle scadenze, non dalla memoria di qualcuno.
+      - run: node scripts/credential-expiry.mjs
+
       - name: Verifica governance e workflow GitHub
         env:
           GH_TOKEN: ${{ secrets.SECURITY_AUDIT_TOKEN }}

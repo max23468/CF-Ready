@@ -6,6 +6,22 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.1 — 4 agosto 2026
+
+- `wrangler.json` descrive l'ambiente `production`: Worker `cf-ready-prod`, D1
+  `cf-ready-db-prod`, nessuna restrizione di store e addebiti di prova finché
+  non sarà il canary a renderli reali;
+- `shopify.app.toml` punta all'URL Production e vieta l'aggiornamento
+  automatico degli URL, così un `shopify app dev` non riscrive l'app pubblica
+  con un tunnel;
+- il deploy Production ha un workflow manuale, vincolato a `main` e a un
+  environment che richiede approvazione, che riconosce il primo deploy quando
+  non esiste ancora un Worker da ripristinare;
+- il preflight Production rifiuta un bundle costruito senza
+  `CLOUDFLARE_ENV=production`: il plugin Vite fissa l'ambiente al momento della
+  build, e senza quel controllo un deploy pubblicherebbe le variabili
+  Development sotto il nome sbagliato senza segnalarlo.
+
 ## 0.9.0 — 3 agosto 2026
 
 - Privacy e Termini dichiarano l'identità della persona fisica titolare, in

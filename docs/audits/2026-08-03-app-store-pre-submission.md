@@ -25,28 +25,26 @@ cambiano e vanno riscaricati alla submission, che è un'altra data da questa.
 | Esito | Numero |
 | --- | --- |
 | Conforme | 14 |
-| Da chiudere prima della submission | 4, di cui uno ridotto al solo checkout reale |
+| Da chiudere prima della submission | 5, di cui uno ridotto al solo checkout reale |
 | Non applicabile, gruppo saltato | 10 gruppi |
 
-Nessun requisito risulta violato dal comportamento dell'app. Tre dei quattro
-punti aperti sono configurazioni Production che non esistono ancora; il quarto è
-un checkout reale da rieseguire. Nessuno è un difetto di prodotto.
+Nessun requisito risulta violato dal comportamento dell'app. Tre dei cinque
+punti aperti sono configurazioni Production che non esistono ancora, uno è un
+checkout reale da rieseguire e uno un recapito da registrare nel Partner
+Dashboard. Nessuno è un difetto di prodotto.
 
 ## Da chiudere prima della submission
 
-### 1. URL Production nel manifest — bloccante
+### 1. URL Production nel manifest — chiuso il 4 agosto 2026
 
-`shopify.app.toml` dichiara ancora i valori dello scaffold:
+`shopify.app.toml` dichiarava i valori dello scaffold, `https://example.com`.
+Ora punta a `https://cf-ready-prod.tmsf.workers.dev` e vieta
+`automatically_update_urls_on_dev`, così un `shopify app dev` distratto non può
+riscrivere gli URL dell'app pubblica con un tunnel.
 
-```
-application_url = "https://example.com"
-redirect_urls = [ "https://example.com/api/auth" ]
-```
-
-`shopify.app.dev.toml` è invece corretto e punta al Worker Development. Il
-manifest Production va compilato con l'URL reale prima di sottomettere: con
-questi valori l'installazione non arriverebbe da nessuna parte. Voce già
-prevista nella checklist «Prima di Production» del Master Plan.
+Resta aperto il passo successivo: quell'URL non risponde finché il Worker
+`cf-ready-prod` non viene distribuito, e la versione attiva dell'app è ancora
+`cf-ready-2` del 28 luglio, cioè il proof of concept.
 
 ### 2. Billing ancora in modalità test — bloccante
 
@@ -71,12 +69,31 @@ Il Master Plan chiede quattro cose prima della `1.0.0`. Tre sono state fatte il
 
 Resta quindi aperto il solo checkout reale, che è anche il gate di M10.
 
-### 4. Configurazione Production assente nel Worker
+### 4. Contatto tecnico d'emergenza nel Partner Dashboard
 
-`wrangler.json` descrive solo `cf-ready-dev`: nessun ambiente Production, nessun
-binding Production, nessun secret separato. Non è un problema di conformità
-App Store in sé, ma nessuno dei tre punti sopra si chiude finché questo non
-esiste.
+Il requisito 4.5.6 chiede un **emergency developer contact** registrato nelle
+impostazioni dell'account Partner: è il recapito su cui Shopify manda le
+comunicazioni tecniche critiche sull'app. Non si configura dal repository e non
+era stato elencato fra i deliverable: va impostato prima della submission.
+
+Stessa sezione dei requisiti: 4.5.4 e 4.5.5 chiedono credenziali di prova
+valide e complete dentro le **testing instructions** del form di submission.
+L'accesso del reviewer si dà così, con uno staff account del dev store — non
+con un collaborator account, che è il meccanismo con cui un Partner chiede
+accesso allo store di un merchant e non c'entra con la review.
+
+### 5. Configurazione Production assente nel Worker
+
+`wrangler.json` ha ora l'ambiente `production`: Worker `cf-ready-prod`, D1
+`cf-ready-db-prod`, `ALLOWED_SHOP` vuota e addebiti di prova. Mancano i tre
+secret runtime, che sono anche ciò che crea materialmente il Worker.
+
+Una trappola scoperta preparandolo, perché non si ripeta: il Vite plugin
+appiattisce l'ambiente **al momento della build**, quindi `wrangler deploy
+--env production` dopo una build ordinaria pubblicherebbe le variabili
+Development sotto il nome sbagliato, in silenzio. Il preflight Production
+verifica il bundle e rifiuta di proseguire; una regressione in
+`scripts/preflight-prod.node-test.mjs` tiene fermo il controllo.
 
 ## Requisiti verificati come conformi
 

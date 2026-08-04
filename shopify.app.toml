@@ -3,7 +3,7 @@
 client_id = "3640fb39bcf605de0537d6dfc0d01c8a"
 name = "CF Ready"
 handle = "cf-ready"
-application_url = "https://example.com"
+application_url = "https://cf-ready-prod.tmsf.workers.dev"
 embedded = true
 
 [access_scopes]
@@ -34,7 +34,7 @@ api_version = "2026-07"
   compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://cf-ready-prod.tmsf.workers.dev/auth/callback" ]
 
 [build]
-automatically_update_urls_on_dev = true
+automatically_update_urls_on_dev = false
