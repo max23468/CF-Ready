@@ -9,10 +9,13 @@ const requestHandler = createRequestHandler(
 );
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const limited = await limitFormBody(request);
     if (limited instanceof Response) return limited;
-    return requestHandler(limited, createAppContext(env.DB));
+    return requestHandler(
+      limited,
+      createAppContext(env.DB, (promise) => ctx.waitUntil(promise)),
+    );
   },
   scheduled(_controller, env, ctx) {
     ctx.waitUntil(applyRetention(env.DB));

@@ -445,6 +445,40 @@ test("un claim ancora attivo mantiene la risposta ritentabile", async () => {
   expect(handled).toBe(false);
 });
 
+test("risponde prima che l'elaborazione asincrona del webhook termini", async () => {
+  const shop = await insertShop("webhook-ack.example.myshopify.com");
+  let release!: () => void;
+  const blocked = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let processing: Promise<unknown> | undefined;
+
+  const response = await handleWebhook(
+    env.DB,
+    { webhookId: "wh-ack", topic: "SHOP_UPDATE", shop },
+    async () => blocked,
+    (promise) => {
+      processing = promise;
+    },
+  );
+
+  expect(response.status).toBe(200);
+  expect(processing).toBeDefined();
+  expect(
+    await env.DB.prepare("SELECT status FROM webhook_events WHERE webhook_id = ?")
+      .bind("wh-ack")
+      .first(),
+  ).toMatchObject({ status: "processing" });
+
+  release();
+  await processing;
+  expect(
+    await env.DB.prepare("SELECT status FROM webhook_events WHERE webhook_id = ?")
+      .bind("wh-ack")
+      .first(),
+  ).toMatchObject({ status: "processed" });
+});
+
 test("il replay dello stesso webhook non duplica i suoi eventi", async () => {
   const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
   const shop = await insertShop("webhook-evento.example.myshopify.com");

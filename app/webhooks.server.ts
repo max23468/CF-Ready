@@ -1,4 +1,5 @@
 import { recordEvent } from "./events.server";
+import type { WaitUntil } from "./context.server";
 
 const PROCESSING_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -6,6 +7,7 @@ export async function handleWebhook(
   db: D1Database,
   webhook: { webhookId: string; topic: string; shop: string; triggeredAt?: string },
   handler: (claim: { installationStartedAt: string | null }) => Promise<void>,
+  waitUntil?: WaitUntil,
 ) {
   const { webhookId, topic, shop, triggeredAt } = webhook;
   const claim = await claimWebhook(db, webhookId, topic, shop, undefined, undefined, triggeredAt);
@@ -13,13 +15,32 @@ export async function handleWebhook(
   if (!claim.acquired) {
     return new Response(null, { status: claim.retry ? 500 : 200 });
   }
+
+  const processing = processWebhook(db, webhook, claim, handler);
+  if (waitUntil) {
+    // ponytail: waitUntil non offre retry durevoli; passa a Cloudflare Queues se i log mostrano
+    // elaborazioni interrotte che le riconciliazioni applicative non recuperano.
+    waitUntil(processing);
+    return new Response(null, { status: 200 });
+  }
+
+  return new Response(null, { status: (await processing) ? 200 : 500 });
+}
+
+async function processWebhook(
+  db: D1Database,
+  webhook: { webhookId: string; topic: string; shop: string },
+  claim: { token: string; installationStartedAt: string | null },
+  handler: (claim: { installationStartedAt: string | null }) => Promise<void>,
+) {
+  const { webhookId, topic, shop } = webhook;
   const heartbeat = startWebhookClaimHeartbeat(db, webhookId, claim.token);
 
   try {
     await handler({
       installationStartedAt: claim.installationStartedAt,
     });
-    if (!(await heartbeat.isHeld())) return new Response(null, { status: 500 });
+    if (!(await heartbeat.isHeld())) return false;
   } catch (error) {
     const code = errorCode(error);
     if (await finishWebhook(db, webhookId, claim.token, "failed", code)) {
@@ -31,13 +52,12 @@ export async function handleWebhook(
         metadata: { topic, error_code: code, correlation_id: webhookId },
       });
     }
-    return new Response(null, { status: 500 });
+    return false;
   } finally {
     await heartbeat.stop();
   }
 
-  const processed = await finishWebhook(db, webhookId, claim.token, "processed");
-  return new Response(null, { status: processed ? 200 : 500 });
+  return finishWebhook(db, webhookId, claim.token, "processed");
 }
 
 export async function renewWebhookClaim(
