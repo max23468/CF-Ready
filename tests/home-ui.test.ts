@@ -86,7 +86,17 @@ test("la Setup guide non marca come completati i passi aperti e usa la griglia r
   expect(grid?.props).toMatchObject({
     gridTemplateColumns: "repeat(auto-fit, minmax(12rem, 1fr))",
   });
-  expect(rendered.filter((element) => element.type === "s-icon")).toHaveLength(0);
+
+  // Ogni passo ha la sua icona, ma la spunta appartiene solo a quelli conclusi: qui
+  // nessuno lo è, quindi nessun `check-circle` e nessun tono di successo.
+  const icons = rendered.filter((element) => element.type === "s-icon");
+  expect(icons.length).toBeGreaterThan(0);
+  expect(
+    icons.filter((icon) => (icon.props as { type?: string }).type === "check-circle"),
+  ).toHaveLength(0);
+  expect(icons.filter((icon) => (icon.props as { tone?: string }).tone === "success")).toHaveLength(
+    0,
+  );
 });
 
 // La card è la prima cosa che si vede dopo l'installazione: deve accogliere, e deve

@@ -23,7 +23,10 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   passo anche durante la prova, non solo con un piano a pagamento;
 - nella stessa card il passo della prova precede l'attivazione: senza un diritto
   valido «Attiva nel checkout» resta disabilitato, e chi seguiva l'ordine si
-  fermava su un passo che non poteva completare.
+  fermava su un passo che non poteva completare;
+- la card ha un'icona per ogni passo e non solo la spunta sui conclusi, il
+  contatore è un badge accanto al titolo e il passo in corso sta in un riquadro
+  proprio, così si distingue da ciò che resta da fare.
 
 ## 0.9.1 — 4 agosto 2026
 
