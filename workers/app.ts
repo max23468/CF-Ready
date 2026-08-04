@@ -1,6 +1,7 @@
 import { createRequestHandler } from "react-router";
 import { createAppContext } from "../app/context.server";
 import { applyRetention } from "../app/shop.server";
+import { limitFormBody } from "./form-body";
 
 const requestHandler = createRequestHandler(
   () => import("virtual:react-router/server-build"),
@@ -8,8 +9,10 @@ const requestHandler = createRequestHandler(
 );
 
 export default {
-  fetch(request, env) {
-    return requestHandler(request, createAppContext(env.DB));
+  async fetch(request, env) {
+    const limited = await limitFormBody(request);
+    if (limited instanceof Response) return limited;
+    return requestHandler(limited, createAppContext(env.DB));
   },
   scheduled(_controller, env, ctx) {
     ctx.waitUntil(applyRetention(env.DB));

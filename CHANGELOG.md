@@ -6,6 +6,22 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.8 — 4 agosto 2026
+
+- i body dei form delle route merchant sono limitati centralmente a 16 KiB
+  prima del router: le richieste oltre soglia ricevono `413`, anche senza un
+  `Content-Length` affidabile, mentre JSON e webhook restano invariati.
+
+## 0.9.7 — 4 agosto 2026
+
+- la voce «Home» torna nel menu senza reintrodurre il doppione che faceva
+  sparire la navigazione: `/app` compare una sola volta e senza `rel="home"`;
+  il titolo dell'app usa la radice predefinita, che inoltra già a `/app`
+  dall'eliminazione della pagina di accesso (D-128, D-130);
+- le istruzioni reviewer non promettono più che una charge Production sia
+  gratuita su qualsiasi development store: il collaudo usa la prova di 14
+  giorni e apre la conferma del piano senza approvarla (D-129).
+
 ## 0.9.6 — 4 agosto 2026
 
 - il menu dell'app non sparisce più quando si torna alla Home da un link dentro
@@ -17,11 +33,11 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 ## 0.9.5 — 4 agosto 2026
 
 - in Production gli addebiti dei merchant sono reali: `BILLING_TEST` vale
-  `"false"`. Restava in modalità di prova per proteggere il reviewer, ma sui
-  development store è Shopify a non addebitare, quindi il flag non tutelava
-  nessuno e lasciava l'app incapace di addebitare i merchant — il difetto
-  contestato dal requisito 1.2.2 (D-129). Il valore diventa effettivo al primo
-  deploy Production successivo;
+  `"false"`. Restava in modalità di prova per proteggere il reviewer, ma così
+  l'app non poteva addebitare i merchant — il difetto contestato dal requisito
+  1.2.2. Il reviewer usa invece la prova gratuita e non approva una charge
+  Production (D-129). Il valore diventa effettivo al primo deploy Production
+  successivo;
 - audit di pre-submission e runbook di release non affermano più che il
   reviewer debba vedere addebiti di prova, e registrano la voce 2.3.1 come
   chiusa dalla rimozione della pagina di accesso.

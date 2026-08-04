@@ -52,14 +52,14 @@ risponde, e la versione attiva dell'app è la `0.9.1` del 4 agosto 2026.
 Development, dove la variabile non è definita.
 
 La versione precedente di questo punto rinviava il passaggio al canary, perché
-«il reviewer deve vedere addebiti di prova». La motivazione era sbagliata e non
-proveniva da una fonte Shopify. Sui development store è **Shopify** a non
-addebitare: prima del 28 aprile 2026 creando automaticamente una test
-subscription per lo store, dopo quella data tramite il piano privato a `0`. La
-protezione del reviewer non passa mai dal flag che manda l'app, quindi tenerlo a
-`"true"` non proteggeva nessuno e lasciava l'app incapace di addebitare i
-merchant — cioè esattamente il difetto contestato dal requisito 1.2.2. Vedi
-D-129 nel Master Plan.
+«il reviewer deve vedere addebiti di prova». Production deve invece inviare
+`test: false`, altrimenti i merchant non vengono addebitati — esattamente il
+difetto contestato dal requisito 1.2.2. Con Manual pricing, però, un development
+store non rende gratuita per costruzione una charge Production: per non
+addebitare serve `test: true`. Le istruzioni reviewer usano quindi la prova
+gratuita per il walkthrough e chiedono di aprire la conferma del piano senza
+approvarla; Development conserva le charge di test per il collaudo interno.
+Vedi D-129 nel Master Plan.
 
 Il valore diventa effettivo sul Worker soltanto al primo deploy Production
 successivo, che resta un'operazione autorizzata a parte.
@@ -85,11 +85,10 @@ impostazioni dell'account Partner: è il recapito su cui Shopify manda le
 comunicazioni tecniche critiche sull'app. Registrato dall'owner il 4 agosto
 2026.
 
-Stessa sezione dei requisiti: 4.5.4 e 4.5.5 chiedono credenziali di prova
-valide e complete dentro le **testing instructions** del form di submission.
-L'accesso del reviewer si dà così, con uno staff account del dev store — non
-con un collaborator account, che è il meccanismo con cui un Partner chiede
-accesso allo store di un merchant e non c'entra con la review.
+Il percorso di review è stato poi definito in D-132: CF Ready non ha un login
+proprio, quindi il requisito 4.5.5 sulle credenziali non si applica. Le
+**testing instructions** chiedono al reviewer di installare l'app su un proprio
+development store italiano; non vengono forniti account o store di CF Ready.
 
 ### 5. Configurazione Production del Worker — chiusa il 4 agosto 2026
 

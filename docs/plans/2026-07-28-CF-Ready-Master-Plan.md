@@ -351,8 +351,10 @@ Rispetto alle alternative più ampie o invasive:
 | D-126 | La prova parte su richiesta esplicita del merchant, non all’apertura dell’app. | Deciso il 4 agosto 2026 provando l’app installata: trovarsi una prova già in corso senza averla chiesta toglie al merchant la scelta di quando cominciare a consumarla. |
 | D-127 | Nell’interfaccia merchant si dice «controllo nel checkout», mai «Validation» né «validazione». | Il termine tecnico non dice niente a chi vende: conta se le regole valgono per i suoi clienti. |
 | D-128 | Nessuna pagina di accesso con il dominio dello store: l’URL dell’app porta sempre all’autenticazione. | I requisiti 2.3.1 e 2.3.2 vietano di chiedere manualmente un dominio `myshopify.com` e di rendere interagibile una UI prima di OAuth. Il form era il residuo del template Shopify per la distribuzione custom: con la public app il merchant arriva sempre da Shopify con `shop`, quindi non serviva a nessuno. È la violazione trovata il 4 agosto 2026, quando la pre-submission ha bocciato il check automatico «Immediately authenticates after install»: che fosse quella la causa lo conferma la riesecuzione del check, non il codice. La rotta `/auth/login` non torna 404 ma inoltra a `/app`, perché `authPathPrefix` continua a derivarne un `loginPath` che la libreria riconosce. |
-| D-129 | In Production gli addebiti sono reali dalla pubblicazione, non dal canary: `BILLING_TEST` vale `"false"`. | La modalità di prova non protegge il reviewer, che opera su un development store dove è Shopify a non addebitare — test subscription creata automaticamente fino al 28 aprile 2026, piano privato a `0` dopo. Tenerla attiva non tutelava nessuno e lasciava l’app incapace di addebitare i merchant, cioè il difetto contestato dal requisito 1.2.2. Deciso il 4 agosto 2026 correggendo la motivazione opposta, che non veniva da una fonte Shopify. |
-| D-130 | Una sola voce di menu per rotta: Home è dichiarata con `rel="home"` e non compare più fra le voci visibili. | Con `/app` dichiarata due volte — una voce visibile e una con `rel="home"` — arrivando alla Home da un link dentro una pagina l’Admin restava senza menu finché non si ricaricava; dagli altri link interni, che puntano a rotte dichiarate una volta sola, il menu resta. La documentazione di `s-app-nav` prevede un solo link per rotta e dichiara che `rel="home"` nasconde la voce dal menu. Deciso il 4 agosto 2026 accettando di perdere la voce «Home» di §15.2: il titolo dell’app resta la strada per tornare a casa. Correzione pubblicata senza riprodurre il difetto in un ambiente di prova, per decisione dell’owner. |
+| D-129 | In Production gli addebiti sono reali dalla pubblicazione, non dal canary: `BILLING_TEST` vale `"false"`. | Con Manual pricing una charge è gratuita soltanto quando l’app invia `test: true`; Production invia `false` perché i merchant devono essere addebitati. Il reviewer usa la prova gratuita per il walkthrough e verifica importo e intervallo aprendo la conferma Shopify senza approvarla. Development mantiene le charge di test per il collaudo interno. Deciso il 4 agosto 2026 e corretto lo stesso giorno dopo aver eliminato l’assunzione errata che qualsiasi development store rendesse gratuita una charge Production. |
+| D-130 | Una sola voce visibile per rotta: Home compare una volta come `/app`, senza `rel="home"`. | Con `/app` dichiarata due volte — una voce visibile e una nascosta con `rel="home"` — arrivando alla Home da un link dentro una pagina l’Admin restava senza menu finché non si ricaricava. `rel="home"` non può conservare la voce perché App Bridge lo nasconde per contratto; non serve più dopo D-128, perché il titolo dell’app usa la radice predefinita `/` e quella radice inoltra già a `/app`. La prima correzione, pubblicata il 4 agosto 2026 senza riprodurre il difetto in un ambiente di prova, aveva rimosso la voce visibile invece del solo doppione. |
+| D-131 | Addebiti sempre in euro, senza adeguarsi alla valuta di fatturazione del merchant. | La valuta dell’addebito è quella inviata nel `currencyCode` e EUR è pienamente supportato: seguire `shopBillingPreferences` significherebbe costruire un listino per valuta per servire la coda dei merchant italiani non fatturati in euro, e rinunciare al prezzo unico che paga tutto il resto del pubblico. Per quella coda Shopify converte in fattura, come farebbe comunque visto che la vetrina della listing è in USD per limitazione della piattaforma. Deciso il 4 agosto 2026 sulle risposte del supporto Shopify riportate in §14.2. |
+| D-132 | Nessuno store né credenziali forniti al reviewer: l’app dichiara di non richiedere un account. | L’app è embedded e non ha login propri, e il requisito 4.5.5 è condizionale — «If your app requires login credentials». Fornire uno store con l’app preinstallata è un requisito delle Payment app (5.2.1), non delle app ordinarie, e il campo *Test account* del form vieta esplicitamente credenziali di store Shopify. Le istruzioni chiedono quindi al reviewer di installare su un proprio development store italiano, condizione messa in testa perché senza di essa l’app si dichiara non idonea e sembrerebbe rotta. Deciso il 4 agosto 2026, sostituendo il piano precedente di creare uno staff account e comunicare la password della vetrina. |
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
@@ -1716,6 +1718,27 @@ L’inclusione di un acquisto una tantum richiede Manual Pricing tramite Shopify
 
 La generazione Value non va pubblicizzata come roadmap e non costituisce impegno.
 
+**Valuta.** Tutti gli addebiti sono in euro: l’app li crea con la Billing API
+passando `currencyCode: EUR` in `appSubscriptionCreate` e
+`appPurchaseOneTimeCreate`, e la valuta dell’addebito è quella che l’app invia.
+Non interroghiamo `shopBillingPreferences` e non adeguiamo il prezzo alla valuta
+di fatturazione del merchant (D-131). Quattro fatti confermati dal supporto
+Shopify il 4 agosto 2026:
+
+- il prezzo in valuta locale è disponibile **solo** tramite Billing API: i piani
+  gestiti di Shopify App Pricing hanno un prezzo unico in USD per tutti;
+- l’editor dei piani del Partner Dashboard **non ha un campo valuta** e si
+  esprime in USD: la vetrina della listing non può mostrare euro;
+- un merchant fatturato in una valuta diversa dall’euro vede in fattura un
+  importo convertito da Shopify, quindi diverso da quello annunciato;
+- i piani pubblici creati nel Partner Dashboard **non addebitano nessuno**: con
+  manual pricing l’addebito nasce solo dalla chiamata dell’app e
+  dall’approvazione del merchant sull’URL di conferma.
+
+Il prezzo in euro va quindi ripetuto nella descrizione dei piani, che è dentro
+*Pricing details* e perciò l’unica area della listing dove i requisiti 4.2.2 e
+4.2.3 consentono di indicare importi.
+
 ### 14.3 Prezzo di lancio
 
 Data di lancio provvisoria decisa il 30 luglio 2026: **1 settembre 2026**, con
@@ -1949,11 +1972,11 @@ laterale, la scelta in quella principale. La decisione nasce dal fatto che il
 merchant apre la Home e da lì deve poter vedere se la prova sta finendo senza
 cambiare pagina. Il contenuto di §15.6 resta invariato: cambia solo dove sta.
 
-Home **non** è una voce visibile del menu: è dichiarata ad App Bridge come rotta
-di casa dell’app con `rel="home"`, che la nasconde dal menu e fa del titolo
-dell’app il modo per tornarci. Senza quella dichiarazione il titolo porta alla
-radice dell’URL, che senza `shop` finisce sul form di accesso. Dichiararla due
-volte, una visibile e una con `rel`, rompeva il menu dell’Admin (D-130).
+Home resta una voce visibile del menu e `/app` vi compare una volta sola, senza
+`rel="home"`. Il titolo dell’app usa la rotta predefinita `/`, che dopo la
+rimozione della pagina di accesso inoltra a `/app` conservando i parametri della
+richiesta. Dichiarare invece `/app` due volte, una visibile e una nascosta con
+`rel="home"`, rompeva il menu dell’Admin (D-128, D-130).
 
 ### 15.3 Home
 
@@ -3497,12 +3520,13 @@ Il video promozionale pubblico resta facoltativo.
 
 Fornire:
 
-- store e credenziali di test secondo il canale Shopify previsto;
+- nessuno store né credenziali: il reviewer installa l'app su un proprio
+  development store italiano, come stabilito in D-132;
 - prodotto testabile;
 - come impostare indirizzi;
 - CF sintetici validi/non validi;
 - PEC valida/non valida;
-- percorso billing con test charge;
+- percorso billing fino alla conferma Shopify, senza approvare una charge Production;
 - risultati attesi;
 - limitazioni wallet;
 - contatto rapido.
