@@ -35,19 +35,16 @@ Dashboard. Nessuno è un difetto di prodotto.
 
 ## Da chiudere prima della submission
 
-### 1. URL Production nel manifest — bloccante
+### 1. URL Production nel manifest — chiuso il 4 agosto 2026
 
-`shopify.app.toml` dichiara ancora i valori dello scaffold:
+`shopify.app.toml` dichiarava i valori dello scaffold, `https://example.com`.
+Ora punta a `https://cf-ready-prod.tmsf.workers.dev` e vieta
+`automatically_update_urls_on_dev`, così un `shopify app dev` distratto non può
+riscrivere gli URL dell'app pubblica con un tunnel.
 
-```
-application_url = "https://example.com"
-redirect_urls = [ "https://example.com/api/auth" ]
-```
-
-`shopify.app.dev.toml` è invece corretto e punta al Worker Development. Il
-manifest Production va compilato con l'URL reale prima di sottomettere: con
-questi valori l'installazione non arriverebbe da nessuna parte. Voce già
-prevista nella checklist «Prima di Production» del Master Plan.
+Resta aperto il passo successivo: quell'URL non risponde finché il Worker
+`cf-ready-prod` non viene distribuito, e la versione attiva dell'app è ancora
+`cf-ready-2` del 28 luglio, cioè il proof of concept.
 
 ### 2. Billing ancora in modalità test — bloccante
 
@@ -87,9 +84,16 @@ accesso allo store di un merchant e non c'entra con la review.
 
 ### 5. Configurazione Production assente nel Worker
 
-`wrangler.json` descrive solo `cf-ready-dev`: nessun ambiente Production, nessun
-binding Production, nessun secret separato. Non è un problema di conformità
-App Store in sé, ma i punti 1 e 2 non si chiudono finché questo non esiste.
+`wrangler.json` ha ora l'ambiente `production`: Worker `cf-ready-prod`, D1
+`cf-ready-db-prod`, `ALLOWED_SHOP` vuota e addebiti di prova. Mancano i tre
+secret runtime, che sono anche ciò che crea materialmente il Worker.
+
+Una trappola scoperta preparandolo, perché non si ripeta: il Vite plugin
+appiattisce l'ambiente **al momento della build**, quindi `wrangler deploy
+--env production` dopo una build ordinaria pubblicherebbe le variabili
+Development sotto il nome sbagliato, in silenzio. Il preflight Production
+verifica il bundle e rifiuta di proseguire; una regressione in
+`scripts/preflight-prod.node-test.mjs` tiene fermo il controllo.
 
 ## Requisiti verificati come conformi
 

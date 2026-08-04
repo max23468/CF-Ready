@@ -9,8 +9,11 @@ const bindings = env as Env & {
 };
 
 // Addebiti di prova finché la variabile non dice esplicitamente il contrario: in Production
-// va portata a "false" prima del rilascio.
-export const BILLING_IS_TEST = bindings.BILLING_TEST !== "false";
+// va portata a "false" al canary, non prima — il reviewer Shopify deve vedere addebiti di
+// prova. L'annotazione allarga il tipo letterale che `wrangler types` deduce dal valore
+// oggi configurato: il confronto deve continuare a valere anche quando quel valore cambia.
+const billingTest: string | undefined = bindings.BILLING_TEST;
+export const BILLING_IS_TEST = billingTest !== "false";
 export const APP_URL = bindings.SHOPIFY_APP_URL || "";
 // L'app Development ha distribuzione pubblica per poter usare la Billing API: il suo
 // `client_id` è nel repository pubblico, quindi l'installazione resta ammessa solo sul dev

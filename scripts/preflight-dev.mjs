@@ -53,7 +53,7 @@ export function verifyVersionAvailable(versions, version, deployment, commit) {
 
 export function verifyNoPendingMigrations(output) {
   if (!output.includes("No migrations to apply!")) {
-    throw new Error("Il readback D1 segnala migrazioni Development ancora pendenti.");
+    throw new Error("Il readback D1 segnala migrazioni ancora pendenti.");
   }
 }
 
@@ -75,7 +75,7 @@ export function verifyWorkerSecrets(secrets) {
       names.has(name),
     )
   ) {
-    throw new Error("Mancano secret runtime sul Worker Development.");
+    throw new Error("Mancano secret runtime sul Worker.");
   }
 }
 
