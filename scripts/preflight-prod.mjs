@@ -14,6 +14,7 @@ const expected = {
   appUrl: "https://cf-ready-prod.tmsf.workers.dev",
   databaseId: "6434597c-d683-48d9-a51f-b0d15de6a684",
   databaseName: "cf-ready-db-prod",
+  queueName: "cf-ready-webhooks-prod",
   workerName: "cf-ready-prod",
 };
 
@@ -47,13 +48,18 @@ export function verifyProductionConfig(shopifyConfig) {
 export function verifyBuiltConfig(builtConfig) {
   const built = JSON.parse(builtConfig);
   const database = built.d1_databases?.find(({ binding }) => binding === "DB");
+  const queueProducer = built.queues?.producers?.find(({ binding }) => binding === "WEBHOOK_QUEUE");
+  const queueConsumer = built.queues?.consumers?.find(({ queue }) => queue === expected.queueName);
   if (
     built.name !== expected.workerName ||
     built.vars?.SHOPIFY_API_KEY !== expected.clientId ||
     built.vars?.SHOPIFY_APP_URL !== expected.appUrl ||
     built.vars?.SCOPES !== "write_validations" ||
     database?.database_name !== expected.databaseName ||
-    database?.database_id !== expected.databaseId
+    database?.database_id !== expected.databaseId ||
+    queueProducer?.queue !== expected.queueName ||
+    queueConsumer?.max_batch_size !== 1 ||
+    queueConsumer?.max_retries !== 5
   ) {
     throw new Error(
       "Il bundle non è quello Production: ricostruisci con CLOUDFLARE_ENV=production.",

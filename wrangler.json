@@ -40,6 +40,23 @@
       "migrations_dir": "migrations"
     }
   ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "WEBHOOK_QUEUE",
+        "queue": "cf-ready-webhooks-dev"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "cf-ready-webhooks-dev",
+        "max_batch_size": 1,
+        "max_batch_timeout": 1,
+        "max_retries": 5,
+        "retry_delay": 10
+      }
+    ]
+  },
   "env": {
     "production": {
       "name": "cf-ready-prod",
@@ -76,7 +93,24 @@
           "database_id": "6434597c-d683-48d9-a51f-b0d15de6a684",
           "migrations_dir": "migrations"
         }
-      ]
+      ],
+      "queues": {
+        "producers": [
+          {
+            "binding": "WEBHOOK_QUEUE",
+            "queue": "cf-ready-webhooks-prod"
+          }
+        ],
+        "consumers": [
+          {
+            "queue": "cf-ready-webhooks-prod",
+            "max_batch_size": 1,
+            "max_batch_timeout": 1,
+            "max_retries": 5,
+            "retry_delay": 10
+          }
+        ]
+      }
     }
   }
 }

@@ -1,44 +1,11 @@
 import type { ActionFunctionArgs } from "react-router";
-import { databaseContext, waitUntilContext } from "../context.server";
-import { recordEvent } from "../events.server";
+import { databaseContext, webhookQueueContext } from "../context.server";
 import { authenticate } from "../shopify.server";
-import { reconcile } from "../validation.server";
 import { handleWebhook } from "../webhooks.server";
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const db = context.get(databaseContext);
   const webhook = await authenticate.webhook(request);
 
-  return handleWebhook(
-    db,
-    webhook,
-    async () => {
-      const { admin, shop } = webhook;
-      if (!admin) {
-        // Senza sessione non esiste un token valido: ritentare non aiuta.
-        await recordEvent(db, {
-          shopDomain: shop,
-          webhookId: webhook.webhookId,
-          name: "shop_update_skipped",
-          class: "lifecycle",
-          metadata: { error_code: "missing_admin_context" },
-        });
-        return;
-      }
-
-      const state = await reconcile(admin, db, shop);
-      await recordEvent(db, {
-        shopDomain: shop,
-        webhookId: webhook.webhookId,
-        name: "shop_updated",
-        class: "lifecycle",
-        metadata: {
-          country_code: state.countryCode,
-          enabled: state.validationEnabled,
-          ...(state.errorCode ? { error_code: state.errorCode } : {}),
-        },
-      });
-    },
-    context.get(waitUntilContext),
-  );
+  return handleWebhook(db, webhook, context.get(webhookQueueContext));
 };

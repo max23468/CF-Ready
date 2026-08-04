@@ -1,12 +1,12 @@
 import { createContext, RouterContextProvider } from "react-router";
+import type { WebhookJob } from "./webhooks.server";
 
 export const databaseContext = createContext<D1Database>();
-export type WaitUntil = (promise: Promise<unknown>) => void;
-export const waitUntilContext = createContext<WaitUntil | undefined>(undefined);
+export const webhookQueueContext = createContext<Queue<WebhookJob> | undefined>(undefined);
 
-export function createAppContext(db: D1Database, waitUntil?: WaitUntil) {
+export function createAppContext(db: D1Database, webhookQueue?: Queue<WebhookJob>) {
   const context = new RouterContextProvider();
   context.set(databaseContext, db);
-  if (waitUntil) context.set(waitUntilContext, waitUntil);
+  if (webhookQueue) context.set(webhookQueueContext, webhookQueue);
   return context;
 }

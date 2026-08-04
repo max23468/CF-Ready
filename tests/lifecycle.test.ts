@@ -16,9 +16,20 @@ import {
   finishWebhook,
   handleWebhook,
   renewWebhookClaim,
+  runClaimedWebhook,
+  type WebhookJob,
 } from "../app/webhooks.server";
 
 const CONFIG = { schemaVersion: 2, rules: { taxCode: "required_validated" } };
+
+function webhookQueue(capture?: (job: WebhookJob) => void) {
+  return {
+    async send(job: WebhookJob) {
+      capture?.(job);
+      return {} as QueueSendResponse;
+    },
+  } as Queue<WebhookJob>;
+}
 
 test("i log conservano errori e webhook e campionano gli eventi ordinari", () => {
   const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
@@ -436,9 +447,9 @@ test("un claim ancora attivo mantiene la risposta ritentabile", async () => {
   const response = await handleWebhook(
     env.DB,
     { webhookId: "wh-in-corso", topic: "SHOP_UPDATE", shop },
-    async () => {
+    webhookQueue(() => {
       handled = true;
-    },
+    }),
   );
 
   expect(response.status).toBe(500);
@@ -451,30 +462,60 @@ test("risponde prima che l'elaborazione asincrona del webhook termini", async ()
   const blocked = new Promise<void>((resolve) => {
     release = resolve;
   });
-  let processing: Promise<unknown> | undefined;
+  let job: WebhookJob | undefined;
 
   const response = await handleWebhook(
     env.DB,
     { webhookId: "wh-ack", topic: "SHOP_UPDATE", shop },
-    async () => blocked,
-    (promise) => {
-      processing = promise;
-    },
+    webhookQueue((queued) => {
+      job = queued;
+    }),
   );
 
   expect(response.status).toBe(200);
-  expect(processing).toBeDefined();
+  expect(job).toBeDefined();
   expect(
     await env.DB.prepare("SELECT status FROM webhook_events WHERE webhook_id = ?")
       .bind("wh-ack")
       .first(),
   ).toMatchObject({ status: "processing" });
 
+  const processing = runClaimedWebhook(env.DB, job!, async () => blocked);
   release();
   await processing;
   expect(
     await env.DB.prepare("SELECT status FROM webhook_events WHERE webhook_id = ?")
       .bind("wh-ack")
+      .first(),
+  ).toMatchObject({ status: "processed" });
+});
+
+test("un errore del consumer lascia il claim disponibile al retry della coda", async () => {
+  const shop = await insertShop("webhook-queue-retry.example.myshopify.com");
+  let job: WebhookJob | undefined;
+  await handleWebhook(
+    env.DB,
+    { webhookId: "wh-queue-retry", topic: "SHOP_UPDATE", shop },
+    webhookQueue((queued) => {
+      job = queued;
+    }),
+  );
+
+  await expect(
+    runClaimedWebhook(env.DB, job!, async () => {
+      throw new Error("d1_transient");
+    }),
+  ).rejects.toThrow("d1_transient");
+  expect(
+    await env.DB.prepare("SELECT status FROM webhook_events WHERE webhook_id = ?")
+      .bind("wh-queue-retry")
+      .first(),
+  ).toMatchObject({ status: "processing" });
+
+  await runClaimedWebhook(env.DB, job!, async () => undefined);
+  expect(
+    await env.DB.prepare("SELECT status FROM webhook_events WHERE webhook_id = ?")
+      .bind("wh-queue-retry")
       .first(),
   ).toMatchObject({ status: "processed" });
 });
@@ -541,13 +582,17 @@ test("un errore transitorio del heartbeat non abbandona un claim ancora possedut
     },
   }) as D1Database;
 
+  let job: WebhookJob | undefined;
   const response = await handleWebhook(
     db,
     { webhookId: "wh-heartbeat-transitorio", topic: "SHOP_UPDATE", shop },
-    async () => undefined,
+    webhookQueue((queued) => {
+      job = queued;
+    }),
   );
 
   expect(response.status).toBe(200);
+  await runClaimedWebhook(db, job!, async () => undefined);
   expect(failRenewal).toBe(false);
 });
 
@@ -584,6 +629,7 @@ test("il replay della disinstallazione non tocca una reinstallazione successiva"
     .bind("2026-08-01T10:01:00.000Z", "2026-08-01T10:01:00.000Z", shop)
     .run();
 
+  let job: WebhookJob | undefined;
   const response = await handleWebhook(
     env.DB,
     {
@@ -592,12 +638,15 @@ test("il replay della disinstallazione non tocca una reinstallazione successiva"
       shop,
       triggeredAt: "2026-08-01T10:00:00.000Z",
     },
-    async (claim) => {
-      if (claim.installationStartedAt) {
-        await markUninstalled(env.DB, shop, claim.installationStartedAt, "wh-uninstall-replay");
-      }
-    },
+    webhookQueue((queued) => {
+      job = queued;
+    }),
   );
+  await runClaimedWebhook(env.DB, job!, async (claim) => {
+    if (claim.installationStartedAt) {
+      await markUninstalled(env.DB, shop, claim.installationStartedAt, "wh-uninstall-replay");
+    }
+  });
 
   expect(response.status).toBe(200);
   expect(
@@ -617,9 +666,9 @@ test("una disinstallazione senza timestamp autenticato resta ritentabile", async
   const response = await handleWebhook(
     env.DB,
     { webhookId: "wh-uninstall-senza-timestamp", topic: "APP_UNINSTALLED", shop },
-    async () => {
+    webhookQueue(() => {
       throw new Error("handler non atteso");
-    },
+    }),
   );
 
   expect(response.status).toBe(500);
@@ -643,6 +692,7 @@ test("la prima consegna tardiva della disinstallazione non tocca la reinstallazi
     .bind("2026-08-01T10:10:00.000Z", "2026-08-01T10:10:00.000Z", shop)
     .run();
 
+  let job: WebhookJob | undefined;
   const response = await handleWebhook(
     env.DB,
     {
@@ -651,17 +701,20 @@ test("la prima consegna tardiva della disinstallazione non tocca la reinstallazi
       shop,
       triggeredAt: "2026-08-01T10:00:00.000Z",
     },
-    async (claim) => {
-      if (claim.installationStartedAt) {
-        await markUninstalled(
-          env.DB,
-          shop,
-          claim.installationStartedAt,
-          "wh-uninstall-prima-consegna-tardiva",
-        );
-      }
-    },
+    webhookQueue((queued) => {
+      job = queued;
+    }),
   );
+  await runClaimedWebhook(env.DB, job!, async (claim) => {
+    if (claim.installationStartedAt) {
+      await markUninstalled(
+        env.DB,
+        shop,
+        claim.installationStartedAt,
+        "wh-uninstall-prima-consegna-tardiva",
+      );
+    }
+  });
 
   expect(response.status).toBe(200);
   expect(

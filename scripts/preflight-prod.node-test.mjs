@@ -26,6 +26,10 @@ const builtProduction = JSON.stringify({
       database_id: "6434597c-d683-48d9-a51f-b0d15de6a684",
     },
   ],
+  queues: {
+    producers: [{ binding: "WEBHOOK_QUEUE", queue: "cf-ready-webhooks-prod" }],
+    consumers: [{ queue: "cf-ready-webhooks-prod", max_batch_size: 1, max_retries: 5 }],
+  },
 });
 
 test("il manifest Production del repository supera il preflight", () => {
@@ -93,6 +97,12 @@ test("il preflight legge il database Production sbagliato", () => {
   const wrongDatabase = JSON.parse(builtProduction);
   wrongDatabase.d1_databases[0].database_name = "cf-ready-db-dev";
   assert.throws(() => verifyBuiltConfig(JSON.stringify(wrongDatabase)), /Production/);
+});
+
+test("il preflight rifiuta la coda webhook Production sbagliata", () => {
+  const wrongQueue = JSON.parse(builtProduction);
+  wrongQueue.queues.producers[0].queue = "cf-ready-webhooks-dev";
+  assert.throws(() => verifyBuiltConfig(JSON.stringify(wrongQueue)), /Production/);
 });
 
 test("la modalità di addebito è dichiarata come la legge il Worker", () => {

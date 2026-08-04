@@ -41,15 +41,16 @@ sui byte originali, poi `handleWebhook` gestisce ricevuta ed esito.
    `failed` o se resta `processing` per almeno cinque minuti. Un claim ancora
    attivo risponde `500`, così Shopify continua a ritentare; solo un duplicato
    già `processed` riceve `200` senza rielaborazione.
-2. Acquisito il claim, il Worker registra l'handler con `waitUntil` e risponde
-   subito `200`; l'elaborazione prosegue oltre la risposta senza trattenere la
-   consegna Shopify. Un errore porta comunque la ricevuta a `failed` con un
-   codice stabile e registra `webhook_failed`. Finché l'handler gira, un
-   heartbeat rinnova `received_at`: un replay può riacquisire il claim soltanto
-   dopo che il proprietario ha davvero smesso di avanzare. `waitUntil` non è
-   una coda durevole: le riconciliazioni applicative recuperano gli eventi
-   interrotti; Cloudflare Queues diventa necessaria solo se l'osservabilità
-   mostra interruzioni non recuperate.
+2. Acquisito il claim, il Worker pubblica un messaggio minimizzato su Cloudflare
+   Queues e risponde `200` solo dopo l'accettazione durevole. Il messaggio
+   contiene ID webhook, token del claim, dominio dello store necessario ai retry
+   dopo l'anonimizzazione D1 e, per `APP_SCOPES_UPDATE`, i soli scope tecnici.
+   Non contiene il payload. Il consumer esegue l'handler e ritenta fino a cinque
+   volte gli errori transitori; soltanto l'ultimo fallimento porta la ricevuta a
+   `failed` con un codice stabile e registra `webhook_failed`.
+   Finché l'handler gira, un heartbeat rinnova `received_at`: un replay può
+   riacquisire il claim soltanto dopo che il proprietario ha davvero smesso di
+   avanzare.
 3. Claim ed esito condividono un token: soltanto il proprietario corrente può
    portare la ricevuta a `processed` o `failed`. Per `APP_UNINSTALLED` il claim
    conserva anche l'inizio del ciclo di installazione, quindi un replay non può

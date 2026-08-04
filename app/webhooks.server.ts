@@ -1,14 +1,29 @@
 import { recordEvent } from "./events.server";
-import type { WaitUntil } from "./context.server";
 
 const PROCESSING_TIMEOUT_MS = 5 * 60 * 1000;
+
+export type WebhookJob = {
+  webhookId: string;
+  claimToken: string;
+  shop: string;
+  currentScopes?: string[];
+};
+
+type ClaimedWebhook = {
+  webhookId: string;
+  topic: string;
+  shop: string;
+  installationStartedAt: string | null;
+};
 
 export async function handleWebhook(
   db: D1Database,
   webhook: { webhookId: string; topic: string; shop: string; triggeredAt?: string },
-  handler: (claim: { installationStartedAt: string | null }) => Promise<void>,
-  waitUntil?: WaitUntil,
+  queue: Queue<WebhookJob> | undefined,
+  details: Pick<WebhookJob, "currentScopes"> = {},
 ) {
+  if (!queue) return new Response(null, { status: 500 });
+
   const { webhookId, topic, shop, triggeredAt } = webhook;
   const claim = await claimWebhook(db, webhookId, topic, shop, undefined, undefined, triggeredAt);
 
@@ -16,48 +31,76 @@ export async function handleWebhook(
     return new Response(null, { status: claim.retry ? 500 : 200 });
   }
 
-  const processing = processWebhook(db, webhook, claim, handler);
-  if (waitUntil) {
-    // ponytail: waitUntil non offre retry durevoli; passa a Cloudflare Queues se i log mostrano
-    // elaborazioni interrotte che le riconciliazioni applicative non recuperano.
-    waitUntil(processing);
+  const job = { webhookId, claimToken: claim.token, shop, ...details };
+  try {
+    await queue.send(job);
     return new Response(null, { status: 200 });
+  } catch {
+    await failClaimedWebhook(db, job, new Error("queue_enqueue_failed"));
+    return new Response(null, { status: 500 });
   }
-
-  return new Response(null, { status: (await processing) ? 200 : 500 });
 }
 
-async function processWebhook(
+export async function runClaimedWebhook(
   db: D1Database,
-  webhook: { webhookId: string; topic: string; shop: string },
-  claim: { token: string; installationStartedAt: string | null },
-  handler: (claim: { installationStartedAt: string | null }) => Promise<void>,
+  job: WebhookJob,
+  handler: (claim: ClaimedWebhook) => Promise<void>,
 ) {
-  const { webhookId, topic, shop } = webhook;
-  const heartbeat = startWebhookClaimHeartbeat(db, webhookId, claim.token);
+  const claim = await loadClaimedWebhook(db, job);
+  if (!claim) return;
+
+  const heartbeat = startWebhookClaimHeartbeat(db, job.webhookId, job.claimToken);
 
   try {
-    await handler({
-      installationStartedAt: claim.installationStartedAt,
-    });
-    if (!(await heartbeat.isHeld())) return false;
-  } catch (error) {
-    const code = errorCode(error);
-    if (await finishWebhook(db, webhookId, claim.token, "failed", code)) {
-      await recordEvent(db, {
-        shopDomain: shop,
-        webhookId,
-        name: "webhook_failed",
-        class: "error",
-        metadata: { topic, error_code: code, correlation_id: webhookId },
-      });
+    await handler(claim);
+    if (!(await heartbeat.isHeld())) throw new Error("webhook_claim_lost");
+    if (!(await finishWebhook(db, job.webhookId, job.claimToken, "processed"))) {
+      throw new Error("webhook_claim_lost");
     }
-    return false;
   } finally {
     await heartbeat.stop();
   }
+}
 
-  return finishWebhook(db, webhookId, claim.token, "processed");
+export async function failClaimedWebhook(db: D1Database, job: WebhookJob, error: unknown) {
+  const claim = await loadClaimedWebhook(db, job);
+  if (!claim) return;
+
+  const code = errorCode(error);
+  if (await finishWebhook(db, job.webhookId, job.claimToken, "failed", code)) {
+    await recordEvent(db, {
+      shopDomain: claim.shop,
+      webhookId: job.webhookId,
+      name: "webhook_failed",
+      class: "error",
+      metadata: { topic: claim.topic, error_code: code, correlation_id: job.webhookId },
+    });
+  }
+}
+
+async function loadClaimedWebhook(db: D1Database, job: WebhookJob) {
+  const claim = await db
+    .prepare(
+      `SELECT webhook_id, topic, shop_domain, installation_started_at
+       FROM webhook_events
+       WHERE webhook_id = ? AND status = 'processing' AND claim_token = ?`,
+    )
+    .bind(job.webhookId, job.claimToken)
+    .first<{
+      webhook_id: string;
+      topic: string;
+      shop_domain: string | null;
+      installation_started_at: string | null;
+    }>();
+
+  return claim
+    ? {
+        webhookId: claim.webhook_id,
+        topic: claim.topic,
+        shop: claim.shop_domain ?? job.shop,
+        installationStartedAt: claim.installation_started_at,
+      }
+    : null;
 }
 
 export async function renewWebhookClaim(
