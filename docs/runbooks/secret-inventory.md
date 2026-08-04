@@ -18,17 +18,22 @@ dei rispettivi provider e non devono comparire nel repository o nei log.
 | `SECURITY_AUDIT_TOKEN` | Security Maintenance | GitHub Actions | sostituito il 3 agosto 2026 con un PAT fine-grained senza scadenza sul solo `CF-Ready`, in sola lettura su metadati, Actions e i tre alert; environment limitato a `develop`, copia recuperabile nel Portachiavi macOS |
 | `SHOPIFY_CLI_PARTNERS_TOKEN` | CI Production | GitHub Actions | da creare con privilegi minimi |
 | `OWNER_LEGAL_NAME` | Pages Production | GitHub Actions | configurato il 3 agosto 2026 nell'environment `Pages Production`, iniettato dal workflow e verificato dallo smoke |
-| Staff account del reviewer | dev store `cf-ready-dev` | form di submission App Store | da creare in M9; password nel Portachiavi macOS, mai nel repository |
+| Staff account del reviewer | dev store `cf-ready-dev` | form di submission App Store | da creare in M9 su `cfready@icloud.com`; password nel Portachiavi macOS, mai nel repository |
 
 `SHOPIFY_API_KEY`, ID account, ID database e nomi delle risorse non sono
 segreti, ma non autorizzano alcun accesso.
 
 Lo **staff account del reviewer** è un accesso di servizio al solo dev store, non
-un'identità personale: nome neutro, email che l'owner controlla e i tre permessi
-minimi del percorso di review — *Manage and install apps and channels*,
+un'identità personale: nome neutro, `cfready@icloud.com` come recapito e i tre
+permessi minimi del percorso di review — *Manage and install apps and channels*,
 *Approve app charges* e *Orders → View*. La password si genera al momento della
 creazione, si conserva nel Portachiavi e si incolla soltanto nelle testing
 instructions del form. Alla fine della review l'account va disattivato.
+
+`cfready@icloud.com` è la stessa casella dell'assistenza e dei documenti legali:
+una sola casella da presidiare invece di tre. Se quell'indirizzo risultasse già
+legato a un altro account Shopify, l'invito allo staff si aggancerebbe a quello
+e servirebbe un recapito distinto.
 
 `OWNER_LEGAL_NAME` non protegge un accesso: è il nome della persona fisica che
 Privacy e Termini devono dichiarare come titolare. Sta nel secret store per non
