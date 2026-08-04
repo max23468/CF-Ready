@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
-import { classifyCodexReview, pullRequestNumber } from "./codex-review-gate.mjs";
+import {
+  classifyCodexReview,
+  hasSuccessfulCodexStatus,
+  pullRequestNumber,
+} from "./codex-review-gate.mjs";
 
 const headSha = "0123456789abcdef0123456789abcdef01234567";
 const requestedAt = "2026-08-04T12:00:00Z";
@@ -26,13 +30,6 @@ test("il pollice sulla PR approva la review automatica iniziale", () => {
   assert.equal(
     classify({
       reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:03Z" }],
-      reviews: [
-        {
-          user: bot,
-          submitted_at: "2026-08-04T12:00:02Z",
-          body: `**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
-        },
-      ],
     }).state,
     "success",
   );
@@ -42,6 +39,7 @@ test("un pollice tardivo non approva una review del commit precedente", () => {
   assert.equal(
     classify({
       reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:02Z" }],
+      requiresReviewedCommit: true,
       reviews: [
         {
           user: bot,
@@ -58,6 +56,7 @@ test("un vecchio pollice non approva una review successiva dello stesso commit",
   assert.equal(
     classify({
       reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:01Z" }],
+      requiresReviewedCommit: true,
       reviews: [
         {
           user: bot,
@@ -73,6 +72,7 @@ test("un vecchio pollice non approva una review successiva dello stesso commit",
 test("il pollice senza Reviewed commit non approva", () => {
   assert.equal(
     classify({
+      requiresReviewedCommit: true,
       reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:01Z" }],
     }).state,
     "pending",
@@ -82,6 +82,7 @@ test("il pollice senza Reviewed commit non approva", () => {
 test("un commento del task agent non approva l'HEAD neppure con il pollice", () => {
   assert.equal(
     classify({
+      requiresReviewedCommit: true,
       comments: [
         {
           user: bot,
@@ -221,6 +222,23 @@ test("il bootstrap accetta soltanto un numero PR", () => {
   assert.equal(pullRequestNumber({ pull_request: { number: 42 } }), "42");
   assert.equal(pullRequestNumber({}, "208"), "208");
   assert.throws(() => pullRequestNumber({}, "208/merge"), /Numero PR non valido/);
+});
+
+test("un rerun riusa soltanto l'ultimo status Codex riuscito dello stesso SHA", () => {
+  assert.equal(
+    hasSuccessfulCodexStatus([
+      { context: "codex-review", state: "success" },
+      { context: "codex-review", state: "pending" },
+    ]),
+    true,
+  );
+  assert.equal(
+    hasSuccessfulCodexStatus([
+      { context: "codex-review", state: "failure" },
+      { context: "codex-review", state: "success" },
+    ]),
+    false,
+  );
 });
 
 test("l'import in GitHub Actions non avvia la CLI", () => {

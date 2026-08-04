@@ -15,6 +15,7 @@ export function classifyCodexReview({
   comments,
   reactions,
   progressReactions = reactions,
+  requiresReviewedCommit = false,
   reviews = [],
   reviewComments,
 }) {
@@ -85,6 +86,7 @@ export function classifyCodexReview({
     .reduce((latest, reaction) => Math.max(latest, timestamp(reaction.created_at)), 0);
 
   if (thumbsUpAt) {
+    if (!requiresReviewedCommit) cleanComments.push(thumbsUpAt);
     for (const commentAt of cleanComments) {
       if (thumbsUpAt < commentAt) continue;
       completions.push({
@@ -102,6 +104,9 @@ export function classifyCodexReview({
     }
   );
 }
+
+export const hasSuccessfulCodexStatus = (statuses) =>
+  statuses.find((status) => status.context === "codex-review")?.state === "success";
 
 export function pullRequestNumber(event, input) {
   const number = String(event.pull_request?.number ?? input);
@@ -164,6 +169,13 @@ async function main() {
     event.pull_request ?? (await request(`/repos/${repository}/pulls/${requestedNumber}`));
   const number = pullRequest.number;
   const headSha = pullRequest.head.sha;
+  const reusesExistingReview =
+    process.env.GITHUB_EVENT_NAME === "workflow_dispatch" || event.action === "reopened";
+
+  if (reusesExistingReview) {
+    const statuses = await all(`/repos/${repository}/commits/${headSha}/statuses`);
+    if (hasSuccessfulCodexStatus(statuses)) return;
+  }
 
   await setStatus(
     repository,
@@ -187,10 +199,8 @@ async function main() {
     if (currentPullRequest.head.sha !== headSha) return;
   }
 
-  const requestedAt =
-    process.env.GITHUB_EVENT_NAME === "workflow_dispatch" || event.action === "reopened"
-      ? 0
-      : pullRequest.updated_at;
+  const freshReview = ["opened", "ready_for_review"].includes(event.action);
+  const requestedAt = reusesExistingReview ? 0 : pullRequest.updated_at;
   for (let attempt = 0; attempt < 600; attempt += 1) {
     const [comments, reactions, reviews, reviewComments] = await reviewSignals(repository, number);
     const result = classifyCodexReview({
@@ -198,6 +208,7 @@ async function main() {
       requestedAt,
       comments,
       reactions,
+      requiresReviewedCommit: !freshReview,
       reviews,
       reviewComments,
     });
