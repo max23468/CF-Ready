@@ -3492,7 +3492,7 @@ Specifiche verificate il 28 luglio 2026 sulle fonti Shopify. Vanno riverificate 
 | Angoli icona | quadrati, è Shopify ad arrotondarli | conforme |
 | Padding icona | il logo non deve toccare i bordi | conforme, marchio al 70% del lato |
 | Testo nell’icona | da evitare | vedi rischio sotto |
-| Feature image | 1600 × 900 px, 16:9, un solo punto focale, fondo pieno, contrasto ≥ 4,5:1, alt text | da produrre in M9 |
+| Feature image | 1600 × 900 px, 16:9, un solo punto focale, fondo pieno, contrasto ≥ 4,5:1, alt text | prodotta in M9, SVG e PNG IT/EN sotto `docs/brand/assets/` |
 | Marchi Shopify | vietati in icona, banner e screenshot | conforme, nessuno presente |
 | Contenuto delle immagini | devono mostrare soprattutto la UI reale dell’app | coerente con la direzione di brand §9.3 |
 
@@ -3515,12 +3515,13 @@ Scaletta:
 3. onboarding;
 4. CF obbligatorio;
 5. PEC;
-6. attivazione;
-7. checkout bloccato senza CF;
-8. checkout consentito con CF valido;
-9. fatturazione estera esclusa;
-10. billing test;
-11. disattivazione.
+6. avvio esplicito della prova;
+7. attivazione;
+8. checkout bloccato senza CF;
+9. checkout consentito con CF valido;
+10. cliente estero escluso;
+11. schermata di approvazione billing Production, senza approvare la charge;
+12. disattivazione.
 
 Il video promozionale pubblico resta facoltativo.
 
