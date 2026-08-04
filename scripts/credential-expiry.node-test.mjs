@@ -15,10 +15,11 @@ test("legge le scadenze registrate nell'inventario del repository", () => {
   const shopify = expiries.find(({ name }) => name === "SHOPIFY_APP_AUTOMATION_TOKEN");
   assert.ok(shopify, "la scadenza del token Shopify Production deve essere registrata");
   assert.equal(shopify.date, Date.UTC(2027, 1, 4));
-  assert.deepEqual(
-    missing.map(({ environment }) => environment),
-    ["Development"],
+  assert.equal(
+    expiries.find(({ environment }) => environment === "Development")?.date,
+    Date.UTC(2027, 0, 28),
   );
+  assert.deepEqual(missing, []);
 });
 
 test("segnala le righe senza una scadenza valida", () => {

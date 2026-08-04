@@ -9,9 +9,9 @@ dei rispettivi provider e non devono comparire nel repository o nei log.
 | `SESSION_ENCRYPTION_KEY` | Development | Cloudflare Workers, GitHub Actions | configurato il 29 luglio 2026 |
 | `TRIAL_LEDGER_HMAC_KEY` | Development | Cloudflare Workers | configurato il 2 agosto 2026 |
 | `SHOPIFY_APP_AUTOMATION_TOKEN` | Development | GitHub Actions | configurato il 29 luglio 2026 |
-| `SHOPIFY_API_SECRET` | Production | Cloudflare Workers | da configurare sul Worker `cf-ready-prod` con `wrangler secret put --env production` |
-| `SESSION_ENCRYPTION_KEY` | Production | Cloudflare Workers | da generare con `openssl rand -base64 32` e caricare sul Worker `cf-ready-prod` |
-| `TRIAL_LEDGER_HMAC_KEY` | Production | Cloudflare Workers | da generare con `openssl rand -base64 32` e caricare sul Worker `cf-ready-prod`; non ruotabile ordinariamente |
+| `SHOPIFY_API_SECRET` | Production | Cloudflare Workers | configurato il 4 agosto 2026; verificato dal preflight di ogni deploy |
+| `SESSION_ENCRYPTION_KEY` | Production | Cloudflare Workers | configurato il 4 agosto 2026; separato da Development |
+| `TRIAL_LEDGER_HMAC_KEY` | Production | Cloudflare Workers | configurato il 4 agosto 2026; non ruotabile ordinariamente |
 | `CLOUDFLARE_API_TOKEN` | CI Pages Production | GitHub Actions | configurato il 1 agosto 2026; accesso verificato dal preflight del workflow |
 | `CLOUDFLARE_API_TOKEN` | Backup Production | GitHub Actions | configurato il 3 agosto 2026; da limitare a export D1 e oggetti R2 |
 | `D1_BACKUP_KEY` | Backup Production | GitHub Actions | configurato il 3 agosto 2026; copia recuperabile nel Portachiavi macOS |
@@ -44,14 +44,14 @@ chiave richiede una procedura dedicata prima della sostituzione.
 
 ## Scadenze
 
-Gli App Automation Token di Shopify non possono essere perpetui: la scadenza
-massima è sei mesi. Alla scadenza il deploy fallisce sull'autenticazione, e
-l'unico modo per accorgersene in anticipo è averla scritta.
+Gli App Automation Token di Shopify non possono essere perpetui. Alla scadenza
+il deploy fallisce sull'autenticazione: registra qui la data mostrata dal Dev
+Dashboard e ruota il token prima della scadenza.
 
 | Credenziale | Ambiente | Scade | Cosa fare |
 | --- | --- | --- | --- |
 | `SHOPIFY_APP_AUTOMATION_TOKEN` | CI Production | **4 febbraio 2027** | rigenerare dal Dev Dashboard dell'app CF Ready, Settings → App Automation Token, e sostituire il secret nell'environment `Production` |
-| `SHOPIFY_APP_AUTOMATION_TOKEN` | Development | da verificare: creato il 29 luglio 2026, scadenza non registrata | leggere la scadenza nel Dev Dashboard dell'app Development e annotarla qui |
+| `SHOPIFY_APP_AUTOMATION_TOKEN` | Development | **28 gennaio 2027** | rigenerare dal Dev Dashboard dell'app Development e sostituire il secret nell'environment `Development` |
 
 Il token si vede una sola volta, al momento della creazione: se va perso si
 revoca e se ne genera un altro, non si recupera.
