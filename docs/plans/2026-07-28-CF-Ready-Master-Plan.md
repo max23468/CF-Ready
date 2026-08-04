@@ -348,6 +348,8 @@ Rispetto alle alternative più ampie o invasive:
 | D-042 | Store non italiano: schermata bloccata, niente prova, billing o Validation. | Il trial parte solo quando lo store diventa idoneo. |
 | D-043 | Assistenza disponibile anche nella schermata store non supportato. | Permette chiarimenti senza sbloccare funzionalità operative. |
 | D-044 | Prova comune di 14 giorni senza scelta preventiva del piano. | Deve coprire anche chi intende acquistare una tantum. |
+| D-126 | La prova parte su richiesta esplicita del merchant, non all’apertura dell’app. | Deciso il 4 agosto 2026 provando l’app installata: trovarsi una prova già in corso senza averla chiesta toglie al merchant la scelta di quando cominciare a consumarla. |
+| D-127 | Nell’interfaccia merchant si dice «controllo nel checkout», mai «Validation» né «validazione». | Il termine tecnico non dice niente a chi vende: conta se le regole valgono per i suoi clienti. |
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
@@ -456,7 +458,7 @@ Rispetto alle alternative più ampie o invasive:
 
 **FR-004** — Uno store bloccato non viene disinstallato automaticamente.
 
-**FR-005** — Se lo store diventa italiano, la prova parte al primo accesso idoneo, non alla prima installazione bloccata.
+**FR-005** — La prova non parte da sola: la avvia il merchant, dalla procedura guidata o dalla Home, e solo su uno store idoneo. Finché non la chiede non si consuma alcun giorno, e chi preferisce può scegliere subito una modalità a pagamento saltandola.
 
 **FR-006** — Se uno store attivo cambia Paese e non è più italiano, l’app disabilita la Validation, preserva la configurazione e mostra un avviso.
 
@@ -1409,7 +1411,7 @@ Una prova per store idoneo.
 | `created_at` | text |
 | `updated_at` | text |
 
-La prova parte quando uno store idoneo italiano apre per la prima volta l’app. Uno store non italiano non consuma la prova.
+La riga nasce quando il merchant chiede la prova su uno store idoneo italiano, non all’apertura dell’app. Uno store non italiano non consuma la prova.
 
 #### `trial_ledger`
 
@@ -4254,7 +4256,7 @@ Gate:
 La `1.0.0` è accettabile quando:
 
 1. uno store Basic italiano installa l’app;
-2. la prova parte senza pagamento;
+2. la prova parte quando il merchant la chiede, senza pagamento;
 3. onboarding e limiti sono chiari;
 4. regole e messaggi si salvano con Save Bar;
 5. nessun salvataggio attiva implicitamente;
