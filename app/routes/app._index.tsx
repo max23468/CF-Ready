@@ -12,6 +12,7 @@ import {
   requestedRecurringPlanIsActive,
   remainingTrialDays,
   returnUrlFor,
+  startTrial,
   syncBillingAccount,
   syncTrial,
 } from "../billing.server";
@@ -114,6 +115,16 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       return { ok: false, errorCode: "validation_write_failed" };
     }
   }
+  // La prova parte solo da qui: è il merchant a decidere quando cominciare a consumarla.
+  if (intent === "start_trial") {
+    const { shop } = await queryContext(admin);
+    const trial = await startTrial(db, session.shop, {
+      eligible: shop.shopAddress.countryCodeV2 === "IT",
+      today: localDate(shop.ianaTimezone),
+    });
+    if (!trial) return { ok: false, errorCode: "store_not_supported" };
+    return { ok: true };
+  }
   if (intent === "cancel") return cancelPlan(admin, db, session.shop);
   if (intent === "monthly" || intent === "annual" || intent === "one_time") {
     return subscribe(admin, db, session.shop, request, intent);
@@ -167,7 +178,7 @@ async function subscribe(
 
       const today = localDate(shop.ianaTimezone);
       const [trial, storedAccount] = await Promise.all([
-        syncTrial(db, shopDomain, { eligible: true, today }),
+        syncTrial(db, shopDomain, { today }),
         readBillingAccount(db, shopDomain),
       ]);
       let account = storedAccount;
@@ -565,12 +576,35 @@ export function PlanChoice({
   const t = texts(data.locale);
   const onOneTime = data.entitlement.kind === "one_time";
 
+  // La prova non è mai partita: la prima decisione è se cominciarla o pagare subito.
+  const trialNeverStarted = data.trialStatus === null && data.entitlement.kind === "none";
+
+  const startTrialSection = trialNeverStarted ? (
+    <s-section heading={t.plan.notStartedHeading}>
+      <s-stack direction="block" gap="base">
+        <s-paragraph>{t.plan.notStartedBody}</s-paragraph>
+        <s-stack direction="inline" gap="base">
+          <s-button
+            variant="primary"
+            disabled={busy || !data.eligible}
+            loading={pendingIntent === "start_trial"}
+            onClick={() => submit("start_trial")}
+          >
+            {t.plan.startTrial}
+          </s-button>
+        </s-stack>
+        <s-paragraph>{t.plan.orChoose}</s-paragraph>
+      </s-stack>
+    </s-section>
+  ) : null;
+
   const choice = (
     <s-section heading={onOneTime ? t.plan.oneTimeName : t.plan.chooseHeading}>
       {onOneTime || !data.plan ? (
         <s-paragraph>{onOneTime ? t.plan.oneTimeSettled : t.plan.none}</s-paragraph>
       ) : (
         <s-stack direction="block" gap="base">
+          <s-paragraph>{t.plan.chooseBody}</s-paragraph>
           <s-stack direction="block" gap="small-100">
             <s-stack direction="inline" gap="small-100" alignItems="center">
               <s-text type="strong">{t.plan.monthlyName}</s-text>
@@ -675,6 +709,7 @@ export function PlanChoice({
 
   return (
     <>
+      {startTrialSection}
       {choice}
       <s-modal
         id="cancel-renewal"

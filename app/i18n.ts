@@ -36,23 +36,23 @@ const it = {
     invalidShop: "Inserisci un dominio dello store valido per accedere",
   },
   errors: {
-    validation_locked: "Un’altra operazione su questa Validation è in corso. Riprova fra poco.",
+    validation_locked: "Un’altra operazione sul controllo è in corso. Riprova fra poco.",
     validation_write_failed:
       "Non è stato possibile salvare. Shopify non ha accettato la scrittura. Riprova; se l’errore si ripete, scrivici.",
     validation_readback_failed:
       "Non è stato possibile salvare. Shopify non ha confermato la scrittura. Riapri la pagina per vedere lo stato reale.",
     validation_limit_reached:
-      "Questo store ha già il numero massimo di Validation attive consentito da Shopify. Le tue regole restano salvate. Disattiva la Validation di un’altra app da Impostazioni → Checkout, poi riprova: CF Ready non tocca le risorse di altre app.",
+      "Questo store ha già il numero massimo di controlli al checkout consentito da Shopify. Le tue regole restano salvate. Disattiva il controllo di un’altra app da Impostazioni → Checkout, poi riprova: CF Ready non tocca le risorse di altre app.",
     country_not_eligible:
       "CF Ready funziona solo con store che hanno l’indirizzo in Italia. Le regole restano salvate.",
     entitlement_required:
-      "Attiva prima una prova o un piano. Senza un diritto valido la Validation resterebbe inefficace.",
+      "Inizia prima la prova o scegli come pagare: senza, il controllo resterebbe attivo ma senza effetto nel checkout.",
     config_conflict:
       "Le regole sono cambiate da un’altra scheda o da un altro membro dello staff mentre modificavi. Riapri la pagina per vedere quelle correnti, poi rifai la tua modifica: non sovrascriviamo il lavoro di qualcun altro.",
     duplicate_validations:
-      "Shopify restituisce più Validation CF Ready. Sono state disattivate per mantenere il checkout fail-open, ma non possiamo scegliere quale conservare senza rischiare di perdere configurazione: nessuna viene eliminata automaticamente.",
+      "Shopify restituisce più controlli CF Ready. Sono stati disattivati per lasciare il checkout aperto, ma non possiamo scegliere quale conservare senza rischiare di perdere configurazione: nessuno viene eliminato automaticamente.",
     duplicate_validations_active:
-      "Shopify restituisce più Validation CF Ready e non ha confermato la loro disattivazione. Riprova la riparazione: nessuna Validation viene eliminata automaticamente.",
+      "Shopify restituisce più controlli CF Ready e non ha confermato la loro disattivazione. Riprova la riparazione: nessun controllo viene eliminato automaticamente.",
     billing_read_failed:
       "Le informazioni sul piano non sono aggiornate. Il checkout non viene bloccato: riapri la pagina fra qualche minuto.",
     one_time_already_active:
@@ -75,7 +75,7 @@ const it = {
     titleLapsed: "Validazione attiva, piano non attivo",
     unsupported: "Store non supportato",
     unsupportedBody:
-      "CF Ready funziona solo con store che hanno l’indirizzo in Italia. Nessuna prova è iniziata, nessuna Validation è stata creata e nessun pagamento è stato richiesto.",
+      "CF Ready funziona solo con store che hanno l’indirizzo in Italia. Nessuna prova è iniziata, nessun controllo è stato creato e nessun pagamento è stato richiesto.",
     unsupportedCheckAddress:
       "Se lo store è italiano, controlla l’indirizzo in Impostazioni → Dettagli negozio: CF Ready legge il Paese da lì.",
     unsupportedGuide: "La Guida spiega cosa fa l’app e quali sono i suoi limiti.",
@@ -142,6 +142,9 @@ const it = {
     stepNames: ["Introduzione", "Regole", "Checkout", "Riepilogo"],
     back: "Indietro",
     next: "Continua",
+    welcomeHeading: "Benvenuto in CF Ready",
+    welcomeBody:
+      "Quattro passi, cinque minuti. Alla fine decidi tu se iniziare la prova o pagare subito: niente parte da solo.",
     step1Heading: "Cosa fa e cosa non fa",
     step1Body:
       "CF Ready controlla il Codice Fiscale e la PEC nel campo fiscale nativo del checkout italiano. Non modifica il tema, non aggiunge campi e non emette fatture.",
@@ -158,7 +161,14 @@ const it = {
       "Sono già pronti in italiano e inglese. Puoi riscriverli quando vuoi da Messaggi al cliente.",
     step4Heading: "Riepilogo",
     step4Body: "Da qui puoi attivare subito le regole oppure salvarle e attivarle più tardi.",
-    reviewStep4Body: "La Validation è già attiva. Completa la revisione per tornare alla Home.",
+    step4TrialHeading: "Prova o pagamento",
+    step4TrialBody:
+      "Le regole valgono nel checkout solo con una prova o un pagamento attivo. La prova dura 14 giorni, è gratuita e non chiede una carta: finché non la inizi, non si consuma.",
+    step4StartTrial: "Inizia la prova di 14 giorni",
+    step4SeePlans: "Vedi come pagare",
+    step4TrialActive: "Prova già attiva: non serve fare altro.",
+    reviewStep4Body:
+      "Il controllo è già attivo nel checkout. Completa la revisione per tornare alla Home.",
     activate: "Attiva nel checkout",
     finishWithout: "Completa senza attivare",
     completeReview: "Completa revisione",
@@ -185,7 +195,7 @@ const it = {
     fieldLanguage: "Lingua",
     fieldCountry: "Paese rilevato",
     fieldEntitlement: "Prova o piano attivo",
-    fieldValidation: "Validazione attiva",
+    fieldValidation: "Controllo attivo nel checkout",
     fieldErrorCode: "Ultimo codice di errore",
     yes: "sì",
     no: "no",
@@ -269,12 +279,19 @@ const it = {
     trial: (date: string) => `Prova attiva fino al ${date}.`,
     oneTime: "Pagamento unico attivo, senza rinnovi.",
     subscription: (date: string) => `Abbonamento attivo fino al ${date}.`,
-    trialOver: "Prova terminata: scegli una modalità per riattivare le regole.",
+    trialOver: "Prova terminata: scegli come continuare per riattivare le regole.",
     trialEndsSoon: (date: string) =>
       `La prova finisce il ${date}. Dopo quella data il checkout non blocca più gli ordini senza i dati richiesti, e regole e messaggi restano salvati.`,
     trialLastDay: (date: string) =>
       `Oggi è l’ultimo giorno di prova: finisce il ${date}. Da domani il checkout non blocca più nulla, e regole e messaggi restano salvati.`,
     none: "Nessun piano attivo.",
+    // Prima scelta: la prova non parte da sola, la avvia il merchant quando vuole.
+    notStartedHeading: "Prima di attivare il controllo",
+    notStartedBody:
+      "Per far valere le regole nel checkout serve una prova o un pagamento attivo. La prova dura 14 giorni, è gratuita e non chiede una carta: puoi iniziarla adesso o più tardi, e finché non lo fai non si consuma.",
+    startTrial: "Inizia la prova di 14 giorni",
+    startTrialDone: "Prova avviata.",
+    orChoose: "Oppure scegli subito come pagare, saltando la prova.",
     monthlyStart: "Attiva il mensile",
     monthlySwitch: "Passa al mensile",
     annualStart: "Attiva l’annuale",
@@ -288,7 +305,9 @@ const it = {
     firstChargeNow: "L’addebito parte alla tua approvazione su Shopify.",
     oneTimeCharge:
       "Addebito unico alla tua approvazione su Shopify. I giorni di prova residui decadono.",
-    chooseHeading: "Scegli una modalità",
+    chooseHeading: "Come vuoi continuare",
+    chooseBody:
+      "Le tre modalità hanno le stesse funzioni: cambia solo quando e quanto paghi. I pagamenti li gestisce Shopify e finiscono sulla fattura del tuo store, non su una carta lasciata a noi.",
     // §14.11: formulazione approvata. §7.2 vieta “a vita”, “per sempre”, “illimitato” e
     // “senza limiti di tempo”: si dice cosa il pagamento include, senza promettere una durata.
     oneTimeSettled:
@@ -364,9 +383,9 @@ const it = {
       "I dati che i clienti italiani inseriscono vengono controllati, ma nessuno è obbligatorio.",
     preventive:
       "Gli avvisi compaiono già al caricamento del checkout, non solo quando il cliente prova a procedere.",
-    disabled: "La Validation è disattivata: queste regole non valgono ancora per i clienti.",
+    disabled: "Il controllo non è attivo: queste regole non valgono ancora per i tuoi clienti.",
     lapsed:
-      "La Validation è attiva ma il piano non lo è: finché resta così il checkout non blocca nulla.",
+      "Il controllo è attivo ma il piano non lo è: finché resta così il checkout non blocca nulla.",
   },
 };
 
@@ -423,9 +442,9 @@ const en: typeof it = {
     nextHeading: "Next step",
     badgeActive: "Active",
     badgeInactive: "Turned off",
-    titleActive: "Validation active in checkout",
-    titleDisabled: "Validation turned off",
-    titleLapsed: "Validation on, plan not active",
+    titleActive: "Check active at checkout",
+    titleDisabled: "Check not active",
+    titleLapsed: "Check on, plan not active",
     unsupported: "Store not supported",
     unsupportedBody:
       "CF Ready only works with stores based in Italy. No trial has started, no validation has been created and no payment has been requested.",
@@ -495,6 +514,9 @@ const en: typeof it = {
     stepNames: ["Introduction", "Rules", "Checkout", "Summary"],
     back: "Back",
     next: "Continue",
+    welcomeHeading: "Welcome to CF Ready",
+    welcomeBody:
+      "Four steps, five minutes. At the end you decide whether to start the trial or pay right away: nothing starts on its own.",
     step1Heading: "What it does and doesn’t do",
     step1Body:
       "CF Ready checks the Italian tax code (Codice Fiscale) and the certified email address (PEC) in the native Italian checkout field. It doesn’t change your theme, doesn’t add fields and doesn’t issue invoices.",
@@ -511,7 +533,13 @@ const en: typeof it = {
       "They’re ready in Italian and English. You can rewrite them whenever you want from Customer messages.",
     step4Heading: "Summary",
     step4Body: "From here you can turn the rules on now, or save them and turn them on later.",
-    reviewStep4Body: "Validation is already active. Complete the review to return Home.",
+    step4TrialHeading: "Trial or payment",
+    step4TrialBody:
+      "Rules only apply at checkout with an active trial or payment. The trial lasts 14 days, is free and asks for no card: until you start it, none of it is spent.",
+    step4StartTrial: "Start the 14-day trial",
+    step4SeePlans: "See how to pay",
+    step4TrialActive: "Trial already active: nothing else to do here.",
+    reviewStep4Body: "The check is already active at checkout. Complete the review to return Home.",
     activate: "Turn on in checkout",
     finishWithout: "Finish without turning on",
     completeReview: "Complete review",
@@ -538,7 +566,7 @@ const en: typeof it = {
     fieldLanguage: "Language",
     fieldCountry: "Detected country",
     fieldEntitlement: "Trial or plan active",
-    fieldValidation: "Validation active",
+    fieldValidation: "Check active at checkout",
     fieldErrorCode: "Last error code",
     yes: "yes",
     no: "no",
@@ -628,6 +656,12 @@ const en: typeof it = {
     trialLastDay: (date: string) =>
       `Today is the last day of your trial: it ends on ${date}. From tomorrow checkout blocks nothing, and your rules and messages stay saved.`,
     none: "No active plan.",
+    notStartedHeading: "Before turning the check on",
+    notStartedBody:
+      "Rules only apply at checkout with an active trial or payment. The trial lasts 14 days, is free and asks for no card: start it now or later — until you do, none of it is spent.",
+    startTrial: "Start the 14-day trial",
+    startTrialDone: "Trial started.",
+    orChoose: "Or choose how to pay right away, skipping the trial.",
     monthlyStart: "Start monthly",
     monthlySwitch: "Switch to monthly",
     annualStart: "Start annual",
@@ -641,7 +675,9 @@ const en: typeof it = {
     firstChargeNow: "The charge starts as soon as you approve it on Shopify.",
     oneTimeCharge:
       "One charge as soon as you approve it on Shopify. Any remaining trial days are given up.",
-    chooseHeading: "Choose a plan",
+    chooseHeading: "How you want to continue",
+    chooseBody:
+      "All three have the same features: only when and how much you pay changes. Shopify handles the payments and they land on your store invoice, not on a card left with us.",
     oneTimeSettled:
       "One payment for this store, with no renewals. It includes app updates and support, at no extra cost. There’s nothing else to choose.",
     recommended: "Recommended",

@@ -6,6 +6,19 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.2 — 4 agosto 2026
+
+- la prova non parte più da sola: la avvia il merchant, dalla procedura guidata
+  o dalla Home, e chi preferisce sceglie subito una modalità a pagamento
+  saltandola. Finché non la chiede non si consuma alcun giorno (D-126);
+- l'interfaccia non dice più «Validation» né «validazione» ma **controllo nel
+  checkout**: il termine tecnico non dice niente a chi vende, e conta se le
+  regole valgono per i suoi clienti (D-127);
+- la procedura guidata si apre con un benvenuto e dichiara subito che niente
+  parte da solo;
+- il blocco commerciale spiega che le tre modalità hanno le stesse funzioni e
+  che i pagamenti li gestisce Shopify sulla fattura dello store.
+
 ## 0.9.1 — 4 agosto 2026
 
 - `wrangler.json` descrive l'ambiente `production`: Worker `cf-ready-prod`, D1
