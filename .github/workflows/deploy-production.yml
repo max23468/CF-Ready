@@ -73,7 +73,13 @@ jobs:
         run: |
           version="$(node -p "require('./package.json').version")"
           echo "DEPLOY_VERSION=$version" >> "$GITHUB_ENV"
-          billing="$(node -p "require('./scripts/preflight-prod.mjs').readBillingMode(require('node:fs').readFileSync('build/server/wrangler.json','utf8'))")"
+          # `require()` non carica un modulo ESM con top-level await: serve l'import.
+          # shellcheck disable=SC2016
+          billing="$(node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            import { readBillingMode } from "./scripts/preflight-prod.mjs";
+            process.stdout.write(readBillingMode(readFileSync("build/server/wrangler.json", "utf8")));
+          ')"
           {
             echo "## Ricevuta deploy Production"
             echo "- Ambiente: Production"
