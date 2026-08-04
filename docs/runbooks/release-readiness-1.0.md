@@ -17,7 +17,7 @@ dipende da noi. Materiali e listing ci sono per dichiarazione dell'owner.
 L'accesso del reviewer non è più un gate mancante ma una decisione registrata
 (D-132). Restano fuori per scelta il checkout reale ripetuto e gli addebiti
 reali, entrambi di competenza del canary M10. Il sito pubblico e la versione
-Production `0.9.6` sono distribuiti; la candidata `0.9.7` è verificata in
+Production `0.9.6` sono distribuiti; la candidata `0.9.8` è verificata in
 Development e attende la promozione autorizzata.
 
 Una verifica resta aperta e non è coperta da nessuna riga di questa tabella: che
@@ -29,29 +29,29 @@ la correzione del menu dell'app (D-130) faccia davvero quello che dichiara.
 
 | Voce | Valore |
 | --- | --- |
-| Versione candidata | `0.9.7` |
-| Commit candidato | `857b98d`, merge della PR [#207](https://github.com/max23468/CF-Ready/pull/207) |
+| Versione candidata | `0.9.8` |
+| Commit candidato | `48bdcb5`, merge della PR [#211](https://github.com/max23468/CF-Ready/pull/211); le PR documentali successive non cambiano lo snapshot applicativo |
 | Branch | `develop`; promozione verso `main` aperta nella PR [#208](https://github.com/max23468/CF-Ready/pull/208) |
-| Ultimo snapshot Development provato | `0.9.7`, run [30941114809](https://github.com/max23468/CF-Ready/actions/runs/30941114809) |
+| Ultimo snapshot Development provato | `0.9.8`, run [30943459841](https://github.com/max23468/CF-Ready/actions/runs/30943459841) |
 | Submission | inviata a Shopify il 4 agosto 2026 |
 | Tag `v1.0.0` | non creato: si crea alla promozione Production della `1.0.0` |
 
-### Ricevuta del deploy Development `0.9.7`
+### Ricevuta del deploy Development `0.9.8`
 
 | Campo | Valore |
 | --- | --- |
 | Ambiente e configurazione | Development: `wrangler.json`, `shopify.app.dev.toml` |
-| Versione repository e commit | `0.9.7`, commit `857b98d` |
-| Worker | deployment `4b3d98f6-8bc0-4717-9ff4-eb25b34d3786`, versione `fb62ac01-9e2e-4894-b66f-339ec82d2c1c` |
+| Versione repository e commit | `0.9.8`, commit `48bdcb5` |
+| Worker | deployment `354ad0e8-d8b9-4b52-ba8a-2dd1b12fb088`, versione `af56e57c-0d27-4e81-b4cf-fc743da08bbc` |
 | Migrazioni | nessuna pendente, confermato dal readback remoto |
-| Run | [30941114809](https://github.com/max23468/CF-Ready/actions/runs/30941114809) |
-| Smoke e capacità | Worker raggiungibile; 120 richieste, CPU p95 3 ms, massimo 12 ms, 0 errori |
-| Shopify | versione `0.9.7` attiva (`gid://shopify/Version/1076298448897`) |
-| Rollback | snapshot coordinato `ad4485d` verificato prima del deploy |
+| Run | [30943459841](https://github.com/max23468/CF-Ready/actions/runs/30943459841) |
+| Smoke e capacità | Worker raggiungibile; 120 richieste, CPU p95 1 ms, massimo 3 ms, 0 errori |
+| Shopify | versione `0.9.8` attiva (`gid://shopify/Version/1076329283585`) |
+| Rollback | snapshot coordinato `857b98d` verificato prima del deploy |
 
-**Contenuto della `0.9.7`:** la voce «Home» torna nel menu senza
-reintrodurre il doppione `/app` che faceva sparire la navigazione. Il test
-strutturale e i gate sono verdi; la verifica nell'Admin embedded resta aperta.
+**Contenuto della `0.9.8`:** conserva la voce «Home» senza il doppione `/app`
+e limita centralmente a 16 KiB i body dei form merchant. Test e gate sono
+verdi; la verifica del menu nell'Admin embedded resta aperta.
 
 ### Ricevuta del deploy Production `0.9.6`
 
@@ -68,8 +68,8 @@ strutturale e i gate sono verdi; la verifica nell'Admin embedded resta aperta.
 **Contenuto della `0.9.6`:** la sola correzione del menu dell'app (D-130),
 pubblicata **senza riprodurre il difetto** in un ambiente di prova, per
 decisione dell'owner. La verifica sul comportamento reale dell'Admin resta da
-fare; la candidata `0.9.7` sostituisce quella correzione perché ripristina la
-voce visibile senza il doppione.
+fare; la candidata `0.9.8` sostituisce quella correzione, ripristina la voce
+visibile senza il doppione e aggiunge il limite centrale ai body dei form.
 
 ### Ricevuta del primo deploy Production
 
@@ -111,16 +111,16 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 
 | Gate | Prova | Stato |
 | --- | --- | --- |
-| Gate locale completo `npm run check` | run Development [30941114809](https://github.com/max23468/CF-Ready/actions/runs/30941114809), commit `857b98d` | ✅ |
+| Gate locale completo `npm run check` | run Development [30943459841](https://github.com/max23468/CF-Ready/actions/runs/30943459841), commit `48bdcb5` | ✅ |
 | Test della Validation Function | `npm run test:function`, 109 test | ✅ |
-| E2E pubblici | job `e2e` della PR [#208](https://github.com/max23468/CF-Ready/pull/208), run `30941694737`: WebKit e Chromium verdi | ✅ |
-| Snapshot Development verificato | run `30941114809`: gate, capacità, Worker, Shopify e readback verdi; 120 richieste, CPU p95 3 ms | ✅ |
+| E2E pubblici | job `e2e` della PR [#208](https://github.com/max23468/CF-Ready/pull/208), run `30943681743`: WebKit e Chromium verdi sul candidato corrente | ✅ |
+| Snapshot Development verificato | run `30943459841`: gate, capacità, Worker, Shopify e readback verdi; 120 richieste, CPU p95 1 ms | ✅ |
 | Deploy Pages Production e smoke | run `30743184121`, otto URL e header di sicurezza | ✅ |
 | Rollback Pages esercitato e letto | run `30741094451` | ✅ |
 | Backup D1 Production e restore | run `30769584725`: export cifrato, restore locale di 32 comandi, `integrity_check=ok`, readback dello slot R2 | ✅ |
 | Security audit e manutenzione provider | run `30749648119`, entrambi i job verdi | ✅ |
 | Audit pre-submission App Store | [audit del 3 agosto 2026](../audits/2026-08-03-app-store-pre-submission.md) | ✅ con un punto aperto: il checkout reale sulla Function |
-| Migrazioni D1 Development | nessuna pendente al readback del run `30941114809` | ✅ |
+| Migrazioni D1 Development | nessuna pendente al readback del run `30943459841` | ✅ |
 | Migrazioni D1 Production | dieci migrazioni versionate applicate, readback senza pendenti, 11 tabelle | ✅ |
 | `noindex` sui documenti legali | verificato **live** dopo il deploy del 3 agosto 2026: i quattro percorsi rispondono `X-Robots-Tag: noindex`, la Home, l'assistenza e la Home inglese no | ✅ |
 | Iniezione dell'identità del titolare | verificata **live**: Privacy e Termini, IT ed EN, dichiarano il nome della persona fisica titolare e nessuna pagina pubblica contiene ancora il segnaposto. Il segnaposto nei sorgenti è protetto da un test in `scripts/check-docs.node-test.mjs` | ✅ |
@@ -129,7 +129,7 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | URL Production nel manifest Shopify | `shopify.app.toml` punta a `https://cf-ready-prod.tmsf.workers.dev`, con aggiornamento automatico degli URL vietato | ✅ |
 | **`BILLING_TEST=false` in Production** | `wrangler.json` env `production` la definisce a `"false"` ed è effettiva sul Worker dalla `0.9.6` (D-129): gli addebiti dei merchant sono reali | ✅ |
 | Secret Production separati | tre secret runtime caricati sul Worker `cf-ready-prod` il 4 agosto 2026; il preflight li verifica a ogni deploy | ✅ |
-| Versione attiva dell'app CF Ready | Development `0.9.7`; Production `0.9.6`, entrambe verificate dai rispettivi readback del 4 agosto 2026 | ✅ |
+| Versione attiva dell'app CF Ready | Development `0.9.8`; Production `0.9.6`, entrambe verificate dai rispettivi readback del 4 agosto 2026 | ✅ |
 | Function API `2026-07` stabile e rigenerata | fonte Shopify del 3 agosto 2026: stabile dal 1º luglio 2026, accessibile fino al 16 luglio 2027. Schema rigenerato con CLI 4.6.0, identico al committato a meno della formattazione | ✅ |
 | **Checkout reali ripetuti sulla Function** | nessuno in questa sessione; è anche il gate di M10 | ❌ assente |
 | Listing compilata nel Partner Dashboard | testi IT/EN, icona, feature image, disponibilità solo Italia e categoria, **dichiarato dall'owner il 4 agosto 2026**, con la submission inviata lo stesso giorno | ⚠️ dichiarato, non verificato da qui |
