@@ -9,8 +9,9 @@ Dove la prova non esiste ancora, la riga dice «assente» e resta assente finch�
 qualcuno non la produce. Le righe si aggiornano nella stessa modifica che
 produce la prova.
 
-**Stato complessivo: non pronto.** Mancano il deploy Production, i materiali
-visivi della listing e la riconferma della Function API.
+**Stato complessivo: non pronto.** Mancano i materiali visivi della listing, la
+compilazione della listing nel Partner Dashboard, il Worker Production e un
+checkout reale ripetuto. Il sito pubblico è invece allineato alla `0.9.0`.
 
 ---
 
@@ -19,10 +20,27 @@ visivi della listing e la riconferma della Function API.
 | Voce | Valore |
 | --- | --- |
 | Versione candidata | `0.9.0` |
-| Commit candidato | da registrare al merge di `feat/m9-release-candidate` |
-| Branch | `develop` → promozione a `main` solo con autorizzazione dell'owner |
+| Commit candidato | `290f053`, promosso a `main` con `4b6c7b8` |
+| Branch | `develop`, promosso a `main` il 3 agosto 2026 |
 | Ultimo snapshot Development provato | `0.8.6`, run `30768120300` |
-| Tag `v1.0.0` | non creato: si crea alla promozione Production |
+| Tag `v1.0.0` | non creato: si crea alla promozione Production della `1.0.0` |
+
+### Ricevuta del deploy Pages Production
+
+| Campo | Valore |
+| --- | --- |
+| Ambiente e configurazione | Pages Production, progetto `cf-ready`, branch `main`, dominio `cf-ready.pages.dev` |
+| Versione repository e commit | `0.9.0`, commit `1dd28e7` |
+| Versione Shopify e migrazioni | non applicabile: il deploy Pages riguarda il solo sito statico |
+| Run | [30858646562](https://github.com/max23468/CF-Ready/actions/runs/30858646562); deployment ID, URL e target di rollback sono nel riepilogo del run |
+| Smoke | otto URL, header di sicurezza, `noindex` sui quattro documenti legali e assenza del segnaposto |
+| Readback | commit corrispondente, `commit_dirty` falso, deployment canonico in stato `success` |
+| Rollback verificato | sì, esercitato davvero: il primo tentativo ([30857854448](https://github.com/max23468/CF-Ready/actions/runs/30857854448)) è fallito sullo smoke e il rollback ha ripristinato il deployment precedente senza intervento manuale |
+
+Il primo tentativo è fallito perché le regole di `_headers` diventano effettive
+all'edge con un ritardo proprio, distinto dalla propagazione del contenuto che
+lo smoke già attendeva. Lo smoke ora attende anche quelle e, soprattutto, dice
+quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max23468/CF-Ready/pull/187)).
 
 ## 2. Gate bloccanti
 
@@ -39,16 +57,20 @@ visivi della listing e la riconferma della Function API.
 | Audit pre-submission App Store | [audit del 3 agosto 2026](../audits/2026-08-03-app-store-pre-submission.md) | ✅ con quattro punti aperti |
 | Migrazioni D1 Development | applicate e verificate a ogni snapshot, da ultimo nel run `30768120300` | ✅ |
 | Migrazioni D1 Production | dieci migrazioni versionate applicate, readback senza pendenti, 11 tabelle | ✅ |
-| `noindex` sui documenti legali | provato in locale il 3 agosto 2026 con `wrangler pages dev site`: i quattro percorsi rispondono `X-Robots-Tag: noindex`, la Home e l'assistenza no, e la regola si somma agli header di sicurezza invece di sostituirli. Riprovato dallo smoke a ogni deploy | ✅ |
-| Iniezione dell'identità del titolare | provata in locale sulla stessa copia: quattro file trovati, quattro sostituiti, nessun segnaposto residuo. Il segnaposto è ora protetto da un test in `scripts/check-docs.node-test.mjs` | ✅ in locale, da riprovare sul deploy |
-| **Worker Production distribuito** | nessuno: `wrangler.json` descrive solo `cf-ready-dev` | ❌ assente |
-| **URL Production nel manifest Shopify** | `shopify.app.toml` punta ancora a `https://example.com` | ❌ assente |
+| `noindex` sui documenti legali | verificato **live** dopo il deploy del 3 agosto 2026: i quattro percorsi rispondono `X-Robots-Tag: noindex`, la Home, l'assistenza e la Home inglese no | ✅ |
+| Iniezione dell'identità del titolare | verificata **live**: Privacy e Termini, IT ed EN, dichiarano il nome della persona fisica titolare e nessuna pagina pubblica contiene ancora il segnaposto. Il segnaposto nei sorgenti è protetto da un test in `scripts/check-docs.node-test.mjs` | ✅ |
+| Configurazione Worker Production | `wrangler.json` env `production`: Worker `cf-ready-prod`, D1 `cf-ready-db-prod`, `ALLOWED_SHOP` vuota, addebiti di prova | ✅ |
+| **Worker Production distribuito** | il Worker `cf-ready-prod` non esiste ancora: lo crea il primo secret runtime | ❌ assente |
+| URL Production nel manifest Shopify | `shopify.app.toml` punta a `https://cf-ready-prod.tmsf.workers.dev`, con aggiornamento automatico degli URL vietato | ✅ |
 | **`BILLING_TEST=false` in Production** | variabile non definita: ogni addebito è di prova | ❌ assente |
-| **Secret Production separati** | `SHOPIFY_API_SECRET`, `SESSION_ENCRYPTION_KEY` e `TRIAL_LEDGER_HMAC_KEY` Production da generare | ❌ assente |
+| **Secret Production separati** | `SHOPIFY_API_SECRET`, `SESSION_ENCRYPTION_KEY` e `TRIAL_LEDGER_HMAC_KEY` da generare e caricare sul Worker; il preflight si ferma finché mancano | ❌ assente |
+| **Versione attiva dell'app CF Ready** | `cf-ready-2` del 28 luglio 2026, cioè il proof of concept: il prodotto non è mai stato pubblicato su questa app | ❌ assente |
 | Function API `2026-07` stabile e rigenerata | fonte Shopify del 3 agosto 2026: stabile dal 1º luglio 2026, accessibile fino al 16 luglio 2027. Schema rigenerato con CLI 4.6.0, identico al committato a meno della formattazione | ✅ |
 | **Checkout reali ripetuti sulla Function** | nessuno in questa sessione; è anche il gate di M10 | ❌ assente |
 | **Screenshot della listing** | piano e didascalie pronti in [`screenshots.md`](../listing/screenshots.md); nessun file prodotto | ❌ assente |
 | **Demo screencast** | copione pronto in [`screencast-script.md`](../listing/screencast-script.md); nessuna ripresa | ❌ assente |
+| **Contatto tecnico d'emergenza** | requisito 4.5.6: recapito da registrare nelle impostazioni dell'account Partner, non configurabile dal repository | ❌ assente |
+| **Staff account per il reviewer** | da creare sul dev store con i permessi *Manage and install apps and channels*, *Approve app charges* e *Orders → View*; credenziali nelle testing instructions (requisiti 4.5.4 e 4.5.5) | ❌ assente |
 | **Canary su store reale** | milestone M10, non ancora iniziata | ❌ assente |
 
 ## 3. Configurazioni e API validate
@@ -77,8 +99,7 @@ I quattro documenti legali sono serviti con `X-Robots-Tag: noindex`: restano
 pubblici e raggiungibili, fuori dai motori di ricerca. Il nome della persona
 fisica titolare non è nel repository — sta nel secret `OWNER_LEGAL_NAME` e viene
 iniettato dal workflow Pages, che verifica nello smoke di non aver pubblicato il
-segnaposto. **Il deploy che rende effettiva questa sostituzione non è ancora
-stato eseguito.**
+segnaposto. Deploy eseguito il 3 agosto 2026 e verificato live.
 
 ## 5. Rischi accettati, non bloccanti
 
