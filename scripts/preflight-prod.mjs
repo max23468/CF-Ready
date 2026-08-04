@@ -66,8 +66,7 @@ export function verifyBuiltConfig(builtConfig) {
   }
 }
 
-// Gli addebiti restano di prova finché il canary non li rende reali: è una decisione
-// esplicita, non una dimenticanza, e il deploy la dichiara nella ricevuta.
+// Il deploy dichiara nella ricevuta se il bundle usa addebiti reali o di prova.
 export function readBillingMode(builtConfig) {
   return JSON.parse(builtConfig).vars?.BILLING_TEST === "false" ? "reale" : "di prova";
 }

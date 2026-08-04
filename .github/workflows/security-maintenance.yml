@@ -48,8 +48,7 @@ jobs:
           GH_TOKEN: ${{ secrets.SECURITY_AUDIT_TOKEN }}
         run: |
           test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .default_branch)" = develop
-          rulesets="$(curl --fail --silent --show-error \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/rulesets")"
+          rulesets="$(gh api "repos/$GITHUB_REPOSITORY/rulesets")"
           verify_ruleset() {
             branch="$1"
             strict="$2"
@@ -58,7 +57,7 @@ jobs:
               '.[] | select(.name == $name and .enforcement == "active") | ._links.self.href' \
               <<< "$rulesets")"
             test -n "$url"
-            ruleset="$(curl --fail --silent --show-error "$url")"
+            ruleset="$(gh api "${url#https://api.github.com/}")"
             test "$(jq -r --arg ref "refs/heads/$branch" '.target == "branch" and .conditions.ref_name.include == [$ref] and (.conditions.ref_name.exclude | length == 0)' <<< "$ruleset")" = true
             test "$(jq -r '.rules[] | select(.type == "pull_request") | .parameters.required_review_thread_resolution' <<< "$ruleset")" = true
             test "$(jq -r '.rules[] | select(.type == "required_status_checks") | .parameters.strict_required_status_checks_policy' <<< "$ruleset")" = "$strict"

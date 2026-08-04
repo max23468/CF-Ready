@@ -262,9 +262,22 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
       workflow.indexOf("wrangler pages deploy site"),
   );
   assert.match(workflow, /needs\.deploy\.outputs\.rollback_armed == 'true'/);
+  assert.match(workflow, /needs\.deploy\.result != 'success'/);
   assert.doesNotMatch(workflow, /wrangler deploy(?:\s|$)/);
   assert.doesNotMatch(workflow, /shopify app deploy/);
   assert.match(workflow, /## Ricevuta deploy Pages Production/);
+});
+
+test("il rollback Production richiede uno snapshot Shopify e verifica il ripristino", () => {
+  const workflow = readFileSync(
+    new URL("../.github/workflows/deploy-production.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(workflow, /Nessuna versione Shopify attiva da registrare per il rollback/);
+  assert.match(workflow, /needs\.deploy\.result != 'success'/);
+  assert.match(workflow, /shopify-rollback-readback\.json/);
+  assert.match(workflow, /worker-rollback-readback\.json/);
+  assert.match(workflow, /Readback rollback Production non riuscito/);
 });
 
 test("il backup Production cifra, ruota gli slot e prova il restore", () => {
@@ -355,6 +368,8 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.match(workflow, /npm run readback:dev/);
   assert.match(workflow, /node scripts\/credential-expiry\.mjs/);
   assert.match(workflow, /required_status_checks/);
+  assert.match(workflow, /rulesets="\$\(gh api/);
+  assert.match(workflow, /ruleset="\$\(gh api/);
   assert.match(workflow, /codex-review,dependency-review,e2e,promotion-guard,react-doctor,verify/);
   assert.match(workflow, /gh workflow list --all/);
   assert.match(workflow, /workflows="\$\(gh workflow list/);

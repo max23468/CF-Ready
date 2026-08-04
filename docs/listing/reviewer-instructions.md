@@ -60,13 +60,13 @@ never blocks — that behaviour is intentional and is covered in step 5 below.
 
 ## 4. Test values
 
-Synthetic values. They belong to no real person: the tax code is the example
-used throughout Italian documentation, and the domains are not live mailboxes.
+Synthetic strings for format testing only. The tax code is not identity
+evidence; the valid email uses IANA's reserved `example.com` domain.
 
 | Field | Valid | Invalid | Why the invalid one fails |
 | --- | --- | --- | --- |
 | Codice Fiscale | `RSSMRA85T10A562S` | `RSSMRA85T10A562X` | wrong check character — the last letter is computed from the first fifteen |
-| PEC | `mario.rossi@pec.it` | `mario.rossi@pec` | the domain has no top-level label |
+| PEC | `mario.rossi@example.com` | `mario.rossi@pec` | the domain has no top-level label |
 
 These four values are checked against the shipped validator by
 `extensions/cf-ready-validation/tests/validation.test.ts`, so they cannot drift
@@ -78,7 +78,7 @@ Each step is independent; run them in order the first time.
 
 | # | Action | Expected result |
 | --- | --- | --- |
-| 1 | Open the app in the Admin | Guided setup opens, in Italian or English following the Admin language |
+| 1 | Open the app in the Admin | The Home shows the setup guide. Click **Open the guided setup**; it opens in Italian or English following the Admin language |
 | 2 | On **Regole / Rules**, set Codice Fiscale to **Obbligatorio / Required**, save | The rule is saved. The check is **not** active yet: saving rules and turning the check on are deliberately separate steps |
 | 3 | Start the 14-day trial — from the setup card on the Home, or at the end of the guided setup | The trial starts here and nowhere else. It never starts on its own, so until this step the store has no entitlement and step 4 stays disabled |
 | 4 | Turn the check on from the Home | One validation object is created for the store. Turning it on again later reuses the same one |
@@ -86,7 +86,7 @@ Each step is independent; run them in order the first time.
 | 6 | Enter `RSSMRA85T10A562X` | Blocked: the format is wrong |
 | 7 | Enter `RSSMRA85T10A562S` | Checkout completes |
 | 8 | Checkout with a non-Italian address | The Italian fields are not shown and checkout completes — a foreign customer is never blocked |
-| 9 | Set PEC to **Required** as well, repeat with `mario.rossi@pec` then `mario.rossi@pec.it` | Blocked, then allowed. The two rules are independent |
+| 9 | Set PEC to **Required** as well, repeat with `mario.rossi@pec` then `mario.rossi@example.com` | Blocked, then allowed. The two rules are independent |
 | 10 | On the Home, choose a paid mode, inspect Shopify's approval screen, then cancel without approving | The amount and billing interval match the selected mode. Production charges are real; the free trial already provides the entitlement needed for this walkthrough (D-129) |
 | 11 | Turn the check off | The checkout stops being affected and the configuration is kept, so nothing has to be reconfigured |
 
