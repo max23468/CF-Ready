@@ -96,6 +96,7 @@ export function classifyCodexReview({
   if (thumbsUpAt) {
     if (!requiresReviewedCommit) cleanComments.push(thumbsUpAt);
     for (const commentAt of cleanComments) {
+      if (thumbsUpAt < commentAt) continue;
       completions.push({
         state: "success",
         at: Math.max(thumbsUpAt, commentAt),

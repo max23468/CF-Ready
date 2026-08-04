@@ -25,7 +25,7 @@ test("resta pending senza un esito Codex", () => {
 test("il pollice sulla PR approva la review automatica iniziale", () => {
   assert.equal(
     classify({
-      reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:01Z" }],
+      reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:03Z" }],
       requiresReviewedCommit: true,
       reviews: [
         {
@@ -49,6 +49,23 @@ test("un pollice tardivo non approva una review del commit precedente", () => {
           user: bot,
           submitted_at: "2026-08-04T12:00:01Z",
           body: "**Reviewed commit:** `abcdef0123`",
+        },
+      ],
+    }).state,
+    "pending",
+  );
+});
+
+test("un vecchio pollice non approva una review successiva dello stesso commit", () => {
+  assert.equal(
+    classify({
+      reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:01Z" }],
+      requiresReviewedCommit: true,
+      reviews: [
+        {
+          user: bot,
+          submitted_at: "2026-08-04T12:00:02Z",
+          body: `**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
         },
       ],
     }).state,
@@ -88,7 +105,7 @@ test("la richiesta esplicita approva soltanto Reviewed commit e pollice dello st
     created_at: "2026-08-04T12:00:02Z",
     body: `Codex Review: Didn't find any major issues.\n\n**Reviewed commit:** \`${commit}\``,
   });
-  const reactions = [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:01Z" }];
+  const reactions = [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:03Z" }];
   assert.equal(
     classify({
       requiresReviewedCommit: true,
@@ -193,7 +210,7 @@ test("un finding precedente non chiude un nuovo tentativo sullo stesso HEAD", ()
           body: `Codex Review: Didn't find any major issues.\n\n**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
         },
       ],
-      reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:01Z" }],
+      reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:03Z" }],
     }).state,
     "success",
   );
