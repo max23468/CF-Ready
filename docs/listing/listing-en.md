@@ -124,6 +124,13 @@ All three modes have **identical functionality**: no artificial tiers. Launch
 prices apply for the first 90 days; whoever subscribes keeps the price they
 acquired. All payments go through Shopify's app billing.
 
+**The listing shows USD while the charge is in EUR.** The Partner Dashboard plan
+editor has no currency field, so the amounts are entered as a USD equivalent,
+rounded up so the listing never promises less than the invoice asks. The euro
+price is repeated among the plan features, inside *Pricing details* — the only
+area where requirements 4.2.2 and 4.2.3 allow amounts. Reasons and sources in
+§14.2 of the [Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md).
+
 Check the amounts in `app/plans.server.ts` before publishing: listing and code
 must state the same figure.
 

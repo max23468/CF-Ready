@@ -1,8 +1,8 @@
 # Reviewer instructions
 
 Written for the Shopify App Store reviewer, in English, to be pasted into the
-submission form. Everything below is reproducible on the test store; nothing
-here requires contacting us first.
+submission form. Everything below is reproducible on any Italian development
+store; nothing here requires contacting us first.
 
 The Italian-facing copy lives in [`listing-it.md`](listing-it.md); this document
 is not translated.
@@ -23,25 +23,26 @@ The check is **formal only**. The app does not query the Italian Revenue Agency
 and does not certify that an address is a genuinely active certified mailbox.
 This is stated in the listing and in the app itself.
 
-## 2. Test store and credentials
+## 2. Test environment
+
+**No account and no store of ours.** CF Ready is embedded in the Shopify admin
+and has no login of its own, so the submission form declares that the app
+requires no account. Requirement 4.5.5 is conditional — *«If your app requires
+login credentials»* — and the condition does not apply. Providing a pre-installed
+test store is a requirement of Payment apps (5.2.1), not of a regular app.
 
 | Item | Value |
 | --- | --- |
-| Store | `cf-ready-dev.myshopify.com` |
-| Store country | Italy — required for the app to operate |
-| Access | staff account credentials are supplied in the submission form's testing instructions, not in this document |
-| Staff permissions | *Manage and install apps and channels*, *Approve app charges*, and *Orders → View* — enough for every step below |
+| Store | any development store whose country and address are in **Italy** |
+| Store country | Italy — the app declares a non-Italian store ineligible and starts neither a trial nor a charge |
 | Plan | Basic — the app requires no Shopify Plus and no plan-specific feature |
-| Billing | test charges only; every charge you approve is a Shopify test charge and moves no money |
+| Product | any published product with stock; the app does not read the catalogue |
+| Billing | Shopify does not bill development stores, so no money moves whatever the reviewer approves |
 
-A testable product is published in the store with stock available and a price
-low enough to complete checkout without concern. Any product works: the app does
-not read the catalogue.
-
-**The storefront is password protected**, as development stores are by default:
-`cf-ready-dev.myshopify.com` redirects to `/password`. The storefront password
-is supplied in the submission form's testing instructions alongside the staff
-credentials — without it the checkout steps below cannot be reached at all.
+The instruction pasted in the submission form leads with the Italian store
+requirement, because that is the one condition without which none of the steps
+below can be reproduced — and a store that is not Italian would make the app
+look broken rather than ineligible by design.
 
 ## 3. Setting the address
 
@@ -86,7 +87,7 @@ Each step is independent; run them in order the first time.
 | 7 | Enter `RSSMRA85T10A562S` | Checkout completes |
 | 8 | Checkout with a non-Italian address | The Italian fields are not shown and checkout completes — a foreign customer is never blocked |
 | 9 | Set PEC to **Required** as well, repeat with `mario.rossi@pec` then `mario.rossi@pec.it` | Blocked, then allowed. The two rules are independent |
-| 10 | On the Home, choose a paid mode | Shopify's charge approval screen appears as a **test charge** |
+| 10 | On the Home, choose a paid mode | Shopify's charge approval screen appears. Shopify does not bill development stores, so approving it moves no money (D-129) |
 | 11 | Turn the check off | The checkout stops being affected and the configuration is kept, so nothing has to be reconfigured |
 
 ## 6. Deliberate behaviours that may look like bugs
