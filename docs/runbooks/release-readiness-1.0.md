@@ -19,8 +19,9 @@ L'accesso del reviewer non è più un gate mancante ma una decisione registrata
 sono invece attivi in Production. Il sito pubblico e la versione Production
 `0.9.8` sono distribuiti; la candidata `0.9.9` è verificata in Development ed è
 stata promossa su `main` dalla PR [#217](https://github.com/max23468/CF-Ready/pull/217).
-La chiusura documentale di M9 attende la promozione nella PR
-[#219](https://github.com/max23468/CF-Ready/pull/219).
+La chiusura documentale di M9 è stata promossa dalla PR
+[#219](https://github.com/max23468/CF-Ready/pull/219); il deploy Production della
+`0.9.9` resta da eseguire.
 La navigazione embedded della `0.9.8` è stata verificata in Safari sullo store
 `cf-ready-dev`: una sola voce Home, senza il doppione `/app`.
 
@@ -32,7 +33,7 @@ La navigazione embedded della `0.9.8` è stata verificata in Safari sullo store
 | --- | --- |
 | Versione candidata | `0.9.9` |
 | Commit candidato | `8fc5d5b`, merge della PR [#216](https://github.com/max23468/CF-Ready/pull/216) |
-| Branch | `develop`; `0.9.9` promossa con la PR [#217](https://github.com/max23468/CF-Ready/pull/217), chiusura M9 aperta nella PR [#219](https://github.com/max23468/CF-Ready/pull/219) |
+| Branch | `main`; `0.9.9` promossa con la PR [#217](https://github.com/max23468/CF-Ready/pull/217), chiusura M9 promossa con la PR [#219](https://github.com/max23468/CF-Ready/pull/219) |
 | Ultimo snapshot Development provato | `0.9.9`, run [30952347931](https://github.com/max23468/CF-Ready/actions/runs/30952347931) |
 | Submission | inviata a Shopify il 4 agosto 2026 |
 | Tag `v1.0.0` | non creato: si crea alla promozione Production della `1.0.0` |
@@ -188,7 +189,7 @@ eseguita.
 | Azione | Stato |
 | --- | --- |
 | Deploy Worker Production | `0.9.8` eseguita; promozione `0.9.9` autorizzata con «pubblica» il 4 agosto 2026 |
-| Promozione `develop` → `main` | `0.9.9` unita con [#217](https://github.com/max23468/CF-Ready/pull/217); chiusura M9 aperta in [#219](https://github.com/max23468/CF-Ready/pull/219) |
+| Promozione `develop` → `main` | `0.9.9` unita con [#217](https://github.com/max23468/CF-Ready/pull/217); chiusura M9 unita con [#219](https://github.com/max23468/CF-Ready/pull/219) |
 | Submission App Store | autorizzata ed eseguita dall'owner il 4 agosto 2026; stato `Submitted` |
 | Attivazione billing reale | autorizzata e attiva in Production dalla `0.9.6` |
 | Passaggio della listing a visibilità completa | M12, non autorizzato |
