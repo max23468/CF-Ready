@@ -108,6 +108,9 @@ jobs:
             const worker = readRollbackTarget(JSON.parse(readFileSync(process.argv[1], "utf8")));
             const versions = JSON.parse(readFileSync(process.argv[2], "utf8"));
             const active = versions.find(({ status }) => status === "active");
+            if (!active?.versionTag) {
+              throw new Error("Nessuna versione Shopify attiva da registrare per il rollback.");
+            }
             const lines = [
               `armed=${worker ? "true" : "false"}`,
               `worker_version_id=${worker?.workerVersionId ?? ""}`,
@@ -203,7 +206,7 @@ jobs:
   rollback:
     name: Ripristina Production se il deploy non termina
     needs: deploy
-    if: ${{ always() && needs.deploy.result == 'failure' && needs.deploy.outputs.shopify_rollback_version_tag != '' }}
+    if: ${{ always() && needs.deploy.result != 'success' && needs.deploy.outputs.shopify_rollback_version_tag != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: Production
@@ -248,6 +251,31 @@ jobs:
             fi
           else
             echo "- Worker: nessun ripristino possibile, era il primo deploy Production" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          shopify app versions list --no-color --json > "$RUNNER_TEMP/shopify-rollback-readback.json"
+          if [ "$ROLLBACK_ARMED" = "true" ]; then
+            npm exec -- wrangler deployments status --config wrangler.json --env production --json \
+              > "$RUNNER_TEMP/worker-rollback-readback.json"
+          else
+            echo '{}' > "$RUNNER_TEMP/worker-rollback-readback.json"
+          fi
+          # shellcheck disable=SC2016
+          if node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const versions = JSON.parse(readFileSync(process.argv[1], "utf8"));
+            const deployment = JSON.parse(readFileSync(process.argv[2], "utf8"));
+            const active = versions.find(({ status }) => status === "active");
+            if (active?.versionTag !== process.env.SHOPIFY_ROLLBACK_VERSION_TAG ||
+                (process.env.ROLLBACK_ARMED === "true" &&
+                 deployment.versions?.[0]?.version_id !== process.env.WORKER_ROLLBACK_VERSION_ID)) {
+              throw new Error("Readback rollback Production non riuscito.");
+            }
+          ' "$RUNNER_TEMP/shopify-rollback-readback.json" "$RUNNER_TEMP/worker-rollback-readback.json"; then
+            echo "- Readback rollback Production: Shopify e Worker corrispondono allo snapshot" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error::Il readback non conferma lo snapshot Production precedente."
+            rollback_failed=1
           fi
 
           exit "$rollback_failed"

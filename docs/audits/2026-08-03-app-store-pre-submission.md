@@ -94,7 +94,7 @@ development store italiano; non vengono forniti account o store di CF Ready.
 
 `wrangler.json` ha l'ambiente `production` e i tre secret runtime sono
 caricati: Worker `cf-ready-prod`, D1 `cf-ready-db-prod`, `ALLOWED_SHOP` vuota e
-addebiti di prova. Punto chiuso il 4 agosto 2026.
+addebiti reali. Punto chiuso il 4 agosto 2026.
 
 Una trappola scoperta preparandolo, perché non si ripeta: il Vite plugin
 appiattisce l'ambiente **al momento della build**, quindi `wrangler deploy

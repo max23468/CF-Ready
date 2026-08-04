@@ -49,6 +49,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     messages: config.messages,
     enabled: state.validationEnabled,
     entitled: state.entitlement.kind !== "none",
+    trialStatus: state.trial?.status ?? null,
     address2Declared: (await readAddress2Declaration(db, session.shop)) !== null,
   };
 };
@@ -108,9 +109,11 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       eligible: shop.shopAddress.countryCodeV2 === ELIGIBLE_COUNTRY,
       today: localDate(shop.ianaTimezone),
     });
-    return trial
-      ? { ok: true as const }
-      : { ok: false as const, errorCode: "store_not_supported" as const };
+    if (!trial) return { ok: false as const, errorCode: "store_not_supported" as const };
+    if (trial.status !== "active") {
+      return { ok: false as const, errorCode: "trial_unavailable" as const };
+    }
+    return { ok: true as const };
   }
 
   if (intent !== "finish" && intent !== "activate") {
@@ -357,7 +360,7 @@ export default function Onboarding() {
                 <s-heading>{t.onboarding.step4TrialHeading}</s-heading>
                 {saved.entitled ? (
                   <s-paragraph>{t.onboarding.step4TrialActive}</s-paragraph>
-                ) : (
+                ) : saved.trialStatus === null ? (
                   <>
                     <s-paragraph>{t.onboarding.step4TrialBody}</s-paragraph>
                     <s-stack direction="inline" gap="base">
@@ -371,6 +374,11 @@ export default function Onboarding() {
                       </s-button>
                       <s-link href="/app">{t.onboarding.step4SeePlans}</s-link>
                     </s-stack>
+                  </>
+                ) : (
+                  <>
+                    <s-paragraph>{t.plan.trialOver}</s-paragraph>
+                    <s-link href="/app">{t.onboarding.step4SeePlans}</s-link>
                   </>
                 )}
               </>

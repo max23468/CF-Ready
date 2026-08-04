@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { findExpiringSoon, readExpiries, WARNING_DAYS } from "./credential-expiry.mjs";
+import { findExpiringSoon, readExpiryRegistry, WARNING_DAYS } from "./credential-expiry.mjs";
 
 const inventory = readFileSync(
   new URL("../docs/runbooks/secret-inventory.md", import.meta.url),
@@ -10,14 +10,18 @@ const inventory = readFileSync(
 );
 
 test("legge le scadenze registrate nell'inventario del repository", () => {
-  const expiries = readExpiries(inventory);
+  const { expiries, missing } = readExpiryRegistry(inventory);
   assert.ok(expiries.length > 0, "l'inventario deve registrare almeno una scadenza");
   const shopify = expiries.find(({ name }) => name === "SHOPIFY_APP_AUTOMATION_TOKEN");
   assert.ok(shopify, "la scadenza del token Shopify Production deve essere registrata");
   assert.equal(shopify.date, Date.UTC(2027, 1, 4));
+  assert.deepEqual(
+    missing.map(({ environment }) => environment),
+    ["Development"],
+  );
 });
 
-test("ignora le righe senza una scadenza in grassetto", () => {
+test("segnala le righe senza una scadenza valida", () => {
   const table = [
     "| Credenziale | Ambiente | Scade | Cosa fare |",
     "| --- | --- | --- | --- |",
@@ -25,14 +29,21 @@ test("ignora le righe senza una scadenza in grassetto", () => {
     "| `MESE_IGNOTO` | CI | **4 brumaio 2027** | niente |",
     "| `BUONA` | CI Production | **4 febbraio 2027** | rigenerare |",
   ].join("\n");
+  const { expiries, missing } = readExpiryRegistry(table);
   assert.deepEqual(
-    readExpiries(table).map(({ name }) => name),
+    expiries.map(({ name }) => name),
     ["BUONA"],
+  );
+  assert.deepEqual(
+    missing.map(({ name }) => name),
+    ["SENZA_DATA", "MESE_IGNOTO"],
   );
 });
 
 test("avvisa solo entro la soglia, e con i giorni che mancano davvero", () => {
-  const expiries = readExpiries("| `TOKEN` | CI Production | **4 febbraio 2027** | rigenerare |");
+  const { expiries } = readExpiryRegistry(
+    "| `TOKEN` | CI Production | **4 febbraio 2027** | rigenerare |",
+  );
 
   assert.deepEqual(findExpiringSoon(expiries, "2026-08-04"), []);
 
