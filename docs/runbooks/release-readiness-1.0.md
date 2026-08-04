@@ -10,9 +10,9 @@ qualcuno non la produce. Le righe si aggiornano nella stessa modifica che
 produce la prova.
 
 **Stato complessivo: non pronto.** Mancano i materiali visivi della listing, la
-sua compilazione nel Partner Dashboard, lo staff account per il reviewer, il
-contatto tecnico d'emergenza e un checkout reale ripetuto. Sito pubblico e app
-sono invece distribuiti e verificati.
+sua compilazione nel Partner Dashboard, lo staff account per il reviewer e un
+checkout reale ripetuto. Sito pubblico e app sono invece distribuiti e
+verificati.
 
 ---
 
@@ -89,7 +89,7 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | **Checkout reali ripetuti sulla Function** | nessuno in questa sessione; è anche il gate di M10 | ❌ assente |
 | **Screenshot della listing** | piano e didascalie pronti in [`screenshots.md`](../listing/screenshots.md); nessun file prodotto | ❌ assente |
 | **Demo screencast** | copione pronto in [`screencast-script.md`](../listing/screencast-script.md); nessuna ripresa | ❌ assente |
-| **Contatto tecnico d'emergenza** | requisito 4.5.6: recapito da registrare nelle impostazioni dell'account Partner, non configurabile dal repository | ❌ assente |
+| Contatto tecnico d'emergenza | requisito 4.5.6: registrato dall'owner nelle impostazioni dell'account Partner il 4 agosto 2026 | ✅ |
 | **Staff account per il reviewer** | da creare sul dev store con i permessi *Manage and install apps and channels*, *Approve app charges* e *Orders → View*; credenziali nelle testing instructions (requisiti 4.5.4 e 4.5.5) | ❌ assente |
 | **Canary su store reale** | milestone M10, non ancora iniziata | ❌ assente |
 

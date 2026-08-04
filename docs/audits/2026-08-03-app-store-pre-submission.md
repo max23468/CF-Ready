@@ -25,13 +25,12 @@ cambiano e vanno riscaricati alla submission, che è un'altra data da questa.
 | Esito | Numero |
 | --- | --- |
 | Conforme | 14 |
-| Da chiudere prima della submission | 3, di cui uno ridotto al solo checkout reale |
+| Da chiudere prima della submission | 2, di cui uno ridotto al solo checkout reale |
 | Non applicabile, gruppo saltato | 10 gruppi |
 
 Nessun requisito risulta violato dal comportamento dell'app. Dei cinque punti
-aperti al 3 agosto ne restano tre: gli addebiti reali, che spettano al canary;
-un checkout reale da rieseguire; un recapito da registrare nel Partner
-Dashboard. Nessuno è un difetto di prodotto.
+aperti al 3 agosto ne restano due: gli addebiti reali, che spettano al canary,
+e un checkout reale da rieseguire. Nessuno è un difetto di prodotto.
 
 ## Da chiudere prima della submission
 
@@ -68,12 +67,12 @@ Il Master Plan chiede quattro cose prima della `1.0.0`. Tre sono state fatte il
 
 Resta quindi aperto il solo checkout reale, che è anche il gate di M10.
 
-### 4. Contatto tecnico d'emergenza nel Partner Dashboard
+### 4. Contatto tecnico d'emergenza — chiuso il 4 agosto 2026 ✅
 
 Il requisito 4.5.6 chiede un **emergency developer contact** registrato nelle
 impostazioni dell'account Partner: è il recapito su cui Shopify manda le
-comunicazioni tecniche critiche sull'app. Non si configura dal repository e non
-era stato elencato fra i deliverable: va impostato prima della submission.
+comunicazioni tecniche critiche sull'app. Registrato dall'owner il 4 agosto
+2026.
 
 Stessa sezione dei requisiti: 4.5.4 e 4.5.5 chiedono credenziali di prova
 valide e complete dentro le **testing instructions** del form di submission.
