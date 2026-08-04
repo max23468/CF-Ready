@@ -9,7 +9,7 @@ import {
   redactShop,
   refuseInstall,
 } from "../app/shop.server";
-import { localDate, trialEnd } from "../app/billing.server";
+import { localDate, startTrial, trialEnd } from "../app/billing.server";
 import { readOnboarding, reconcile, saveOnboarding } from "../app/validation.server";
 import {
   claimWebhook,
@@ -195,7 +195,9 @@ test("il rientro in Italia sblocca lo store senza riattivare la Validation", asy
     shop,
   );
 
-  // Tornato idoneo, lo store ottiene la prova: l'entitlement va scritto nel metafield.
+  // Tornato idoneo, il merchant avvia la prova: da lì l'entitlement va scritto nel metafield.
+  // La prova non parte più da sola, quindi la richiesta è esplicita anche nel test.
+  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
   const inProva = { kind: "trial", validThrough: trialEnd(localDate(FUSO)) };
   const admin = adminStub([
     shopContext("IT", false),
@@ -236,6 +238,8 @@ test("una disattivazione non riuscita resta fail-open e registra un codice error
 
 test("un readback senza Validation non conserva lo stato attivo precedente", async () => {
   const shop = await insertShop("validation-rimossa.example.myshopify.com");
+  // Con una prova in corso l'entitlement va riscritto: è la sequenza che porta al readback.
+  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
   const admin = adminStub([
     shopContext("IT", true),
     SENZA_ADDEBITI,

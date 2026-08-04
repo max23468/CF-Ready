@@ -91,6 +91,7 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | **Demo screencast** | copione pronto in [`screencast-script.md`](../listing/screencast-script.md); nessuna ripresa | ❌ assente |
 | Contatto tecnico d'emergenza | requisito 4.5.6: registrato dall'owner nelle impostazioni dell'account Partner il 4 agosto 2026 | ✅ |
 | **Staff account per il reviewer** | da creare sul dev store con i permessi *Manage and install apps and channels*, *Approve app charges* e *Orders → View*; credenziali nelle testing instructions (requisiti 4.5.4 e 4.5.5) | ❌ assente |
+| **Password della vetrina nelle testing instructions** | il dev store redirige a `/password`: senza quella password il reviewer non raggiunge il checkout | ❌ assente |
 | **Canary su store reale** | milestone M10, non ancora iniziata | ❌ assente |
 
 ## 3. Configurazioni e API validate

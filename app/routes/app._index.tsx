@@ -12,6 +12,7 @@ import {
   requestedRecurringPlanIsActive,
   remainingTrialDays,
   returnUrlFor,
+  startTrial,
   syncBillingAccount,
   syncTrial,
 } from "../billing.server";
@@ -114,6 +115,16 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       return { ok: false, errorCode: "validation_write_failed" };
     }
   }
+  // La prova parte solo da qui: è il merchant a decidere quando cominciare a consumarla.
+  if (intent === "start_trial") {
+    const { shop } = await queryContext(admin);
+    const trial = await startTrial(db, session.shop, {
+      eligible: shop.shopAddress.countryCodeV2 === "IT",
+      today: localDate(shop.ianaTimezone),
+    });
+    if (!trial) return { ok: false, errorCode: "store_not_supported" };
+    return { ok: true };
+  }
   if (intent === "cancel") return cancelPlan(admin, db, session.shop);
   if (intent === "monthly" || intent === "annual" || intent === "one_time") {
     return subscribe(admin, db, session.shop, request, intent);
@@ -167,7 +178,7 @@ async function subscribe(
 
       const today = localDate(shop.ianaTimezone);
       const [trial, storedAccount] = await Promise.all([
-        syncTrial(db, shopDomain, { eligible: true, today }),
+        syncTrial(db, shopDomain, { today }),
         readBillingAccount(db, shopDomain),
       ]);
       let account = storedAccount;
@@ -565,12 +576,35 @@ export function PlanChoice({
   const t = texts(data.locale);
   const onOneTime = data.entitlement.kind === "one_time";
 
+  // La prova non è mai partita: la prima decisione è se cominciarla o pagare subito.
+  const trialNeverStarted = data.trialStatus === null && data.entitlement.kind === "none";
+
+  const startTrialSection = trialNeverStarted ? (
+    <s-section heading={t.plan.notStartedHeading}>
+      <s-stack direction="block" gap="base">
+        <s-paragraph>{t.plan.notStartedBody}</s-paragraph>
+        <s-stack direction="inline" gap="base">
+          <s-button
+            variant="primary"
+            disabled={busy || !data.eligible}
+            loading={pendingIntent === "start_trial"}
+            onClick={() => submit("start_trial")}
+          >
+            {t.plan.startTrial}
+          </s-button>
+        </s-stack>
+        <s-paragraph>{t.plan.orChoose}</s-paragraph>
+      </s-stack>
+    </s-section>
+  ) : null;
+
   const choice = (
     <s-section heading={onOneTime ? t.plan.oneTimeName : t.plan.chooseHeading}>
       {onOneTime || !data.plan ? (
         <s-paragraph>{onOneTime ? t.plan.oneTimeSettled : t.plan.none}</s-paragraph>
       ) : (
         <s-stack direction="block" gap="base">
+          <s-paragraph>{t.plan.chooseBody}</s-paragraph>
           <s-stack direction="block" gap="small-100">
             <s-stack direction="inline" gap="small-100" alignItems="center">
               <s-text type="strong">{t.plan.monthlyName}</s-text>
@@ -675,6 +709,7 @@ export function PlanChoice({
 
   return (
     <>
+      {startTrialSection}
       {choice}
       <s-modal
         id="cancel-renewal"
@@ -718,15 +753,40 @@ export function SetupGuide({
 }) {
   const t = texts(data.locale);
   const configured = data.rules.taxCode !== "unmanaged" || data.rules.pec !== "unmanaged";
+  // Un'icona per passo, non solo sui completati: senza, i passi da fare erano testo nudo
+  // e la scheda si leggeva come un elenco puntato senza punti.
   const steps = [
     {
       done: configured,
+      icon: "forms" as const,
       title: t.setup.rulesTitle,
       body: t.setup.rulesBody,
       action: <s-link href="/app/rules">{t.nav.rules}</s-link>,
     },
     {
+      // Prima dell'attivazione, non dopo: senza un diritto valido «Attiva nel checkout»
+      // resta disabilitato, e chi seguisse l'ordine si fermerebbe su un passo che non
+      // può completare.
+      done: data.entitlement.kind !== "none",
+      icon: "credit-card" as const,
+      title: t.setup.planTitle,
+      body: data.trialStatus === null ? t.setup.planBody : t.setup.planBodyEntitled,
+      action:
+        data.trialStatus === null && data.entitlement.kind === "none" ? (
+          <s-stack direction="inline" gap="base">
+            <s-button
+              disabled={busy || !data.eligible}
+              loading={pendingIntent === "start_trial"}
+              onClick={() => submit("start_trial", "setup")}
+            >
+              {t.setup.startTrial}
+            </s-button>
+          </s-stack>
+        ) : null,
+    },
+    {
       done: data.validationEnabled,
+      icon: "toggle-on" as const,
       title: t.setup.activateTitle,
       body: t.setup.activateBody,
       action:
@@ -742,17 +802,12 @@ export function SetupGuide({
           </s-stack>
         ),
     },
-    {
-      done: data.planKind !== "none",
-      title: t.setup.planTitle,
-      body: t.setup.planBody,
-      action: null,
-    },
     // FR-058: compare solo se la dichiarazione è attiva, e sparisce quando viene revocata.
     ...(data.address2Declared
       ? [
           {
             done: false,
+            icon: "location" as const,
             title: t.setup.address2Title,
             body: t.home.nextAddress2,
             action: <s-link href="/app/rules">{t.nav.rules}</s-link>,
@@ -771,8 +826,17 @@ export function SetupGuide({
     <s-section>
       <s-stack direction="block" gap="base">
         <s-stack direction="block" gap="small-100">
-          <s-heading>{t.setup.heading}</s-heading>
-          <s-text color="subdued">{t.setup.progress(done, steps.length)}</s-text>
+          {/* Il contatore sta accanto al titolo come badge: era una riga grigia sotto, e
+              di un progresso interessa vederlo, non leggerlo. */}
+          <s-stack direction="inline" gap="small-100" alignItems="center">
+            <s-heading>{t.setup.heading}</s-heading>
+            <s-badge tone={done === steps.length ? "success" : "info"}>
+              {t.setup.progress(done, steps.length)}
+            </s-badge>
+          </s-stack>
+          {/* Il benvenuto vale solo la prima volta: a chi è già a metà strada
+              interessa il contatore, non la presentazione. */}
+          {done === 0 ? <s-paragraph>{t.setup.welcome}</s-paragraph> : null}
         </s-stack>
 
         {/* I passi stanno in riga: incolonnati lasciavano vuota tutta la larghezza della card.
@@ -781,7 +845,11 @@ export function SetupGuide({
         <s-grid gridTemplateColumns="repeat(auto-fit, minmax(12rem, 1fr))" gap="base">
           {steps.map((step, index) => (
             <s-stack key={step.title} direction="inline" gap="small-100" alignItems="center">
-              {step.done ? <s-icon type="check-circle" tone="success" /> : null}
+              {step.done ? (
+                <s-icon type="check-circle" tone="success" />
+              ) : (
+                <s-icon type={step.icon} color={index === active ? "base" : "subdued"} />
+              )}
               <s-text
                 type={index === active ? "strong" : undefined}
                 color={step.done ? "subdued" : "base"}
@@ -792,11 +860,20 @@ export function SetupGuide({
           ))}
         </s-grid>
 
+        {/* Il passo in corso dentro un riquadro suo: distingue ciò che c'è da fare adesso dal
+            resto della scheda. Resta l'unico riquadro — uno per passo erano cornici dentro una
+            cornice, alte e con il fianco vuoto. */}
         {active >= 0 ? (
-          <s-stack direction="block" gap="small-100">
-            <s-paragraph>{steps[active].body}</s-paragraph>
-            {steps[active].action}
-          </s-stack>
+          <s-box background="subdued" borderRadius="base" padding="base">
+            <s-stack direction="block" gap="small-100">
+              <s-stack direction="inline" gap="small-100" alignItems="center">
+                <s-icon type={steps[active].icon} color="base" />
+                <s-text type="strong">{steps[active].title}</s-text>
+              </s-stack>
+              <s-paragraph>{steps[active].body}</s-paragraph>
+              {steps[active].action}
+            </s-stack>
+          </s-box>
         ) : null}
 
         <s-stack direction="inline" gap="base">

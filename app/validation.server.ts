@@ -212,7 +212,7 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
   }
 
   const [trial, storedAccount] = await Promise.all([
-    syncTrial(db, shopDomain, { eligible, today }),
+    syncTrial(db, shopDomain, { today }),
     readBillingAccount(db, shopDomain),
   ]);
   let account = storedAccount;
@@ -381,7 +381,7 @@ export async function writeValidation(
 
     const enabled = enable ?? existing?.enabled ?? false;
     const today = localDate(data.shop.ianaTimezone);
-    const trial = await syncTrial(db, shopDomain, { eligible, today });
+    const trial = await syncTrial(db, shopDomain, { today });
     let account = await readBillingAccount(db, shopDomain);
     let billing: Awaited<ReturnType<typeof readBilling>> | null = null;
     try {
