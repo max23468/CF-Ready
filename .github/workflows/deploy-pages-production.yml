@@ -202,7 +202,7 @@ jobs:
   rollback:
     name: Rollback Pages Production
     needs: deploy
-    if: ${{ always() && needs.deploy.result == 'failure' && needs.deploy.outputs.rollback_armed == 'true' }}
+    if: ${{ always() && needs.deploy.result != 'success' && needs.deploy.outputs.rollback_armed == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     environment: Pages Production

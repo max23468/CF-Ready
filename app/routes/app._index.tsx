@@ -119,10 +119,11 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   if (intent === "start_trial") {
     const { shop } = await queryContext(admin);
     const trial = await startTrial(db, session.shop, {
-      eligible: shop.shopAddress.countryCodeV2 === "IT",
+      eligible: shop.shopAddress.countryCodeV2 === ELIGIBLE_COUNTRY,
       today: localDate(shop.ianaTimezone),
     });
     if (!trial) return { ok: false, errorCode: "store_not_supported" };
+    if (trial.status !== "active") return { ok: false, errorCode: "trial_unavailable" };
     return { ok: true };
   }
   if (intent === "cancel") return cancelPlan(admin, db, session.shop);

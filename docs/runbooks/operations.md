@@ -49,7 +49,7 @@ Cloudflare prima di una decisione commerciale o di capacità.
 ## Verifica browser
 
 Gli E2E non conservano una sessione staff nel repository o in GitHub Actions.
-`npm run test:e2e` prova la superficie pubblica e il login senza sessione;
+`npm run test:e2e` prova la superficie pubblica e l'ingresso pre-OAuth;
 i flussi embedded restano una matrice Development eseguita con una sessione
 staff aperta dall'owner. Questo evita una credenziale browser persistente e una
 infrastruttura di autenticazione per percorsi che richiedono comunque Shopify
@@ -58,7 +58,7 @@ reale. Il job `e2e` è un controllo richiesto sui rami protetti.
 | Superficie | Controllo | Browser e viewport |
 | --- | --- | --- |
 | Sito pubblico | home IT/EN, cambio lingua, skip link, landmark, CTA disabilitate, supporto e legali | WebKit stretto e largo |
-| Login app | copy IT/EN, label, errore campo vuoto, ordine focus campo → pulsante | Chromium stretto e largo |
+| Ingresso app | `/`, `/app` e `/auth/login` inoltrano all'autenticazione senza UI o errori server | Chromium stretto e largo |
 | Admin embedded | prima installazione, onboarding, completa senza attivare, riapertura | browser Admin, stretto e largo |
 | Regole e messaggi | Save Bar/Annulla, radio/anteprima, tab lingue, reset separato | browser Admin, tastiera |
 | Validation | attivazione, disattivazione, errore sync e riparazione fail-open | browser Admin |

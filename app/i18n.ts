@@ -53,6 +53,8 @@ const it = {
     charge_pending:
       "Un pagamento unico è già in attesa di approvazione. Completalo o attendi la sua scadenza prima di riprovare.",
     charge_failed: "Non è stato possibile avviare il pagamento. Riprova fra poco.",
+    trial_unavailable:
+      "La prova di questo store è già stata usata. Scegli come pagare per riattivare il controllo nel checkout.",
     no_subscription: "Non risulta alcun abbonamento da cancellare.",
     cancel_failed: "La cancellazione non è riuscita. Riprova fra poco.",
     generic: "Qualcosa non ha funzionato. Riprova; se l’errore si ripete, scrivici.",
@@ -426,6 +428,8 @@ const en: typeof it = {
     charge_pending:
       "A one-time payment is already waiting for approval. Complete it or wait for it to expire before trying again.",
     charge_failed: "Couldn’t start the payment. Try again shortly.",
+    trial_unavailable:
+      "This store has already used its trial. Choose how to pay to apply the checkout rules again.",
     no_subscription: "There’s no subscription to cancel.",
     cancel_failed: "The cancellation didn’t go through. Try again shortly.",
     generic: "Something went wrong. Try again; if it keeps failing, contact us.",
