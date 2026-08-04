@@ -414,8 +414,7 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
   assert.match(workflow, /node scripts\/codex-review-gate\.mjs/);
   assert.doesNotMatch(workflow, /github\.event\.pull_request\.head/);
   const gate = readFileSync(new URL("./codex-review-gate.mjs", import.meta.url), "utf8");
-  assert.match(gate, /event\.action === "synchronize"/);
-  assert.match(gate, /setTimeout\(resolve, 120_000\)/);
+  assert.doesNotMatch(workflow, /types: \[[^\]]*synchronize/);
   assert.match(gate, /currentPullRequest\.head\.sha !== headSha/);
   assert.doesNotMatch(gate, new RegExp(["@codex", "review"].join(" ")));
   assert.doesNotMatch(gate, /issues\/\$\{number\}\/comments[\s\S]*method: "POST"/);

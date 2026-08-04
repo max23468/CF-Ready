@@ -2790,9 +2790,10 @@ commento che avvia il task agent.
 
 La review nativa parte all'apertura della PR o al passaggio da draft a ready. Per
 richiederne una nuova senza task agent si porta la PR in draft e subito di nuovo
-in ready; non si usa un commento di comando. `synchronize` assorbe i rebase
-ravvicinati e verifica che l'HEAD sia stabile. `workflow_dispatch` e `reopened`
-non generano una review: servono soltanto a riusare l'ultimo status
+in ready; non si usa un commento di comando. Un nuovo commit non avvia il gate:
+il nuovo HEAD resta bloccato finché la PR non compie quel passaggio draft →
+ready, che verifica anche che lo SHA sia rimasto stabile. `workflow_dispatch` e
+`reopened` non generano una review: servono soltanto a riusare l'ultimo status
 `codex-review` riuscito sullo stesso SHA, senza reinterpretare reaction o
 commenti storici come una nuova richiesta.
 

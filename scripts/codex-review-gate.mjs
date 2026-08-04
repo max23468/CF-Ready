@@ -185,14 +185,6 @@ async function main() {
   );
   if (pullRequest.draft) return;
 
-  if (event.action === "synchronize") {
-    // ponytail: finestra fissa per assorbire rebase ravvicinati; passare agli
-    // eventi dei check solo se due minuti rallentano concretamente il flusso.
-    await new Promise((resolve) => setTimeout(resolve, 120_000));
-    const currentPullRequest = await request(`/repos/${repository}/pulls/${number}`);
-    if (currentPullRequest.head.sha !== headSha) return;
-  }
-
   if (["opened", "ready_for_review"].includes(event.action)) {
     await new Promise((resolve) => setTimeout(resolve, 30_000));
     const currentPullRequest = await request(`/repos/${repository}/pulls/${number}`);
