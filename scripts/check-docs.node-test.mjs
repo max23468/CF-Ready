@@ -408,17 +408,27 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /type: number/);
   assert.match(workflow, /ref: \$\{\{ github\.event\.repository\.default_branch \}\}/);
-  assert.match(workflow, /issues: write/);
+  assert.match(workflow, /issues: read/);
+  assert.doesNotMatch(workflow, /issues: write/);
   assert.match(workflow, /statuses: write/);
   assert.match(workflow, /node scripts\/codex-review-gate\.mjs/);
   assert.doesNotMatch(workflow, /github\.event\.pull_request\.head/);
   const gate = readFileSync(new URL("./codex-review-gate.mjs", import.meta.url), "utf8");
-  assert.match(gate, /event\.action === "synchronize"/);
-  assert.match(gate, /setTimeout\(resolve, 120_000\)/);
+  assert.doesNotMatch(workflow, /types: \[[^\]]*synchronize/);
   assert.match(gate, /currentPullRequest\.head\.sha !== headSha/);
-  assert.match(gate, /issues\/comments\/\$\{reactionCommentId\}\/reactions/);
-  assert.match(gate, /\[\.\.\.reactions, \.\.\.requestReactions\]/);
+  assert.doesNotMatch(gate, new RegExp(["@codex", "review"].join(" ")));
+  assert.doesNotMatch(gate, /issues\/\$\{number\}\/comments[\s\S]*method: "POST"/);
+  assert.doesNotMatch(gate, /didn't find any major issues/i);
+  assert.match(gate, /pulls\/\$\{number\}\/reviews/);
+  assert.match(gate, /commits\/\$\{headSha\}\/statuses/);
+  assert.match(gate, /requiresReviewedCommit: !freshReview/);
   assert.match(gate, /Review Codex non conclusa entro cinque ore/);
+  const plan = readFileSync(
+    new URL("../docs/plans/2026-07-28-CF-Ready-Master-Plan.md", import.meta.url),
+    "utf8",
+  );
+  assert.match(plan, /Il gate `codex-review` non chiede review e non pubblica mai commenti/);
+  assert.doesNotMatch(plan, /commento marker|può essere avviato manualmente indicando la PR/);
   const maintenance = readFileSync(
     new URL("../.github/workflows/security-maintenance.yml", import.meta.url),
     "utf8",
