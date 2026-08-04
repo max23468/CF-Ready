@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.4 — 4 agosto 2026
+
+- `/auth/login` non risponde più con un errore del server: tolta la pagina in
+  `0.9.3` quell'indirizzo ricadeva sulla rotta generica di autenticazione, e la
+  libreria vi riconosceva il proprio percorso di accesso rispondendo `500` con
+  il nome della funzione da chiamare e la configurazione interna. Ora inoltra a
+  `/app` come la radice;
+- l'E2E pre-OAuth controlla anche lo status e copre `/auth/login`: la versione
+  precedente guardava solo il corpo della risposta, e un errore del server la
+  attraversava senza far rumore.
+
 ## 0.9.3 — 4 agosto 2026
 
 - l'URL dell'app non mostra più la pagina che chiedeva di digitare il dominio
