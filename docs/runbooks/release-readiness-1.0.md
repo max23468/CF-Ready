@@ -6,13 +6,17 @@ requisiti: collega, per ogni gate bloccante, la prova che lo sostiene.
 
 **Una casella spuntata senza link, ID o risultato osservato non è readiness.**
 Dove la prova non esiste ancora, la riga dice «assente» e resta assente finché
-qualcuno non la produce. Le righe si aggiornano nella stessa modifica che
+qualcuno non la produce. Le righe marcate ⚠️ riportano una dichiarazione
+dell'owner su qualcosa che vive fuori dal repository: valgono come impegno, non
+come verifica, e chi legge deve poterle distinguere dalle altre. Le righe si aggiornano nella stessa modifica che
 produce la prova.
 
-**Stato complessivo: non pronto.** Mancano i materiali visivi della listing, la
-sua compilazione nel Partner Dashboard, lo staff account per il reviewer e un
-checkout reale ripetuto. Sito pubblico e app sono invece distribuiti e
-verificati.
+**Stato complessivo: non pronto.** Materiali e listing ci sono, per dichiarazione
+dell'owner. Mancano le due cose senza cui il reviewer non entrerebbe nemmeno:
+lo staff account e la password della vetrina nelle testing instructions, che
+sono i requisiti 4.5.4 e 4.5.5. Restano fuori per scelta il checkout reale
+ripetuto e gli addebiti reali, entrambi di competenza del canary M10. Sito
+pubblico e app sono distribuiti e verificati.
 
 ---
 
@@ -87,8 +91,9 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | Versione attiva dell'app CF Ready | `0.9.1`, pubblicata il 4 agosto 2026. `cf-ready-2` e `cf-ready-1` restano inattive come rollback | ✅ |
 | Function API `2026-07` stabile e rigenerata | fonte Shopify del 3 agosto 2026: stabile dal 1º luglio 2026, accessibile fino al 16 luglio 2027. Schema rigenerato con CLI 4.6.0, identico al committato a meno della formattazione | ✅ |
 | **Checkout reali ripetuti sulla Function** | nessuno in questa sessione; è anche il gate di M10 | ❌ assente |
-| **Screenshot della listing** | piano e didascalie pronti in [`screenshots.md`](../listing/screenshots.md); nessun file prodotto | ❌ assente |
-| **Demo screencast** | copione pronto in [`screencast-script.md`](../listing/screencast-script.md); nessuna ripresa | ❌ assente |
+| Listing compilata nel Partner Dashboard | testi IT/EN, icona, feature image, disponibilità solo Italia e categoria, **dichiarato dall'owner il 4 agosto 2026**. Resta in bozza finché non parte la submission | ⚠️ dichiarato, non verificato da qui |
+| Screenshot della listing | prodotti e caricati nella listing, **dichiarato dall'owner il 4 agosto 2026**. Non entrano nel repository per decisione dello stesso giorno: piano di cattura e didascalie restano in [`screenshots.md`](../listing/screenshots.md) | ⚠️ dichiarato, non verificato da qui |
+| Demo screencast | registrato, **dichiarato dall'owner il 4 agosto 2026**. Non entra nel repository: il copione resta in [`screencast-script.md`](../listing/screencast-script.md), aggiornato all'avvio esplicito della prova | ⚠️ dichiarato, non verificato da qui |
 | Contatto tecnico d'emergenza | requisito 4.5.6: registrato dall'owner nelle impostazioni dell'account Partner il 4 agosto 2026 | ✅ |
 | **Staff account per il reviewer** | da creare sul dev store con i permessi *Manage and install apps and channels*, *Approve app charges* e *Orders → View*; credenziali nelle testing instructions (requisiti 4.5.4 e 4.5.5) | ❌ assente |
 | **Password della vetrina nelle testing instructions** | il dev store redirige a `/password`: senza quella password il reviewer non raggiunge il checkout | ❌ assente |
