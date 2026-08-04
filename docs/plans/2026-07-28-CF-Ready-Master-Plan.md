@@ -2782,8 +2782,8 @@ per bootstrap o recupero; il percorso ordinario parte automaticamente a ogni
 nuovo HEAD, assorbe i rebase ravvicinati con una breve finestra di stabilizzazione
 e richiede una nuova review Codex soltanto sull'ultimo SHA rimasto corrente. Il
 gate lega le richieste esplicite all'HEAD richiedendo insieme il commento Codex
-`Reviewed commit` corrispondente e il pollice sulla PR; una risposta testuale
-senza pollice non sblocca il merge.
+`Reviewed commit` corrispondente e il pollice sulla PR o sul commento marker
+della richiesta; una risposta testuale senza pollice non sblocca il merge.
 
 ### 19.7 Documentazione repository
 
