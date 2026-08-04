@@ -17,11 +17,11 @@ dipende da noi. Materiali e listing ci sono per dichiarazione dell'owner.
 L'accesso del reviewer non è più un gate mancante ma una decisione registrata
 (D-132). Il checkout reale ripetuto resta nel canary M10; gli addebiti reali
 sono invece attivi in Production. Il sito pubblico e la versione Production
-`0.9.8` sono distribuiti; la candidata `0.9.9` è verificata in Development ed è
-stata promossa su `main` dalla PR [#217](https://github.com/max23468/CF-Ready/pull/217).
-La chiusura documentale di M9 è stata promossa dalla PR
-[#219](https://github.com/max23468/CF-Ready/pull/219); il deploy Production della
-`0.9.9` resta da eseguire.
+`0.9.9` sono distribuiti. La candidata è stata promossa su `main` dalla PR
+[#217](https://github.com/max23468/CF-Ready/pull/217), la chiusura documentale
+di M9 dalla PR [#219](https://github.com/max23468/CF-Ready/pull/219) e il deploy
+Production è stato verificato dal run
+[#30954478305](https://github.com/max23468/CF-Ready/actions/runs/30954478305).
 La navigazione embedded della `0.9.8` è stata verificata in Safari sullo store
 `cf-ready-dev`: una sola voce Home, senza il doppione `/app`.
 
@@ -56,20 +56,21 @@ consumata, percorso onboarding, governance e scadenze credenziali. Test e gate
 sono verdi. La navigazione embedded della Production `0.9.8` è stata verificata
 in Safari il 4 agosto 2026.
 
-### Ricevuta del deploy Production `0.9.8`
+### Ricevuta del deploy Production `0.9.9`
 
 | Campo | Valore |
 | --- | --- |
 | Ambiente e configurazione | Production: `wrangler.json` env `production`, `shopify.app.toml` |
-| Versione repository e commit | `0.9.8`, commit di promozione `fb0ba43` |
-| Worker | `cf-ready-prod`, versione `328a0869-07c4-4c9a-b4d0-bf6a628276c9` |
+| Versione repository e commit | `0.9.9`, commit di promozione `a21dc98` |
+| Worker | `cf-ready-prod`, deployment `b4334786-36ab-4025-8f1d-abe63144f214`, versione `98b88912-be2f-4614-b81f-15f16ac37281` |
 | Migrazioni | nessuna pendente, confermato dal readback remoto |
-| Run | [30946345558](https://github.com/max23468/CF-Ready/actions/runs/30946345558) |
-| Smoke e readback | superati: Worker, versione Shopify e commit verificati |
-| Rollback | armato dal workflow, versione precedente registrata negli output del run |
+| Run | [30954478305](https://github.com/max23468/CF-Ready/actions/runs/30954478305) |
+| Smoke e readback | Worker raggiungibile; Shopify `0.9.9` attiva (`gid://shopify/Version/1076466515969`); commit verificato |
+| Rollback | Worker deployment `41d9c08c-5630-4cae-8ed1-2d669ed6bcb4`, versione `328a0869-07c4-4c9a-b4d0-bf6a628276c9`; Shopify `0.9.8` |
 
-**Contenuto della `0.9.8`:** conserva la voce «Home» senza il doppione `/app` e
-limita centralmente a 16 KiB i body dei form merchant. In Safari, sullo store
+**Contenuto della `0.9.9`:** conserva la voce «Home» senza il doppione `/app`,
+limita centralmente a 16 KiB i body dei form merchant e chiude i residui
+dell'audit M9. In Safari, sullo store
 `cf-ready-dev`, il menu embedded espone una sola Home, Regole checkout, Messaggi
 al cliente e Guida e FAQ.
 
@@ -127,11 +128,11 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | `noindex` sui documenti legali | verificato **live** dopo il deploy del 3 agosto 2026: i quattro percorsi rispondono `X-Robots-Tag: noindex`, la Home, l'assistenza e la Home inglese no | ✅ |
 | Iniezione dell'identità del titolare | verificata **live**: Privacy e Termini, IT ed EN, dichiarano il nome della persona fisica titolare e nessuna pagina pubblica contiene ancora il segnaposto. Il segnaposto nei sorgenti è protetto da un test in `scripts/check-docs.node-test.mjs` | ✅ |
 | Configurazione Worker Production | `wrangler.json` env `production`: Worker `cf-ready-prod`, D1 `cf-ready-db-prod`, `ALLOWED_SHOP` vuota, addebiti reali | ✅ |
-| Worker Production distribuito | versione `0.9.8`, run `30946345558`, commit `fb0ba43`; `https://cf-ready-prod.tmsf.workers.dev` risponde | ✅ |
+| Worker Production distribuito | versione `0.9.9`, run `30954478305`, commit `a21dc98`; `https://cf-ready-prod.tmsf.workers.dev` risponde | ✅ |
 | URL Production nel manifest Shopify | `shopify.app.toml` punta a `https://cf-ready-prod.tmsf.workers.dev`, con aggiornamento automatico degli URL vietato | ✅ |
 | **`BILLING_TEST=false` in Production** | `wrangler.json` env `production` la definisce a `"false"` ed è effettiva sul Worker dalla `0.9.6` (D-129): gli addebiti dei merchant sono reali | ✅ |
 | Secret Production separati | tre secret runtime caricati sul Worker `cf-ready-prod` il 4 agosto 2026; il preflight li verifica a ogni deploy | ✅ |
-| Versione attiva dell'app CF Ready | Development `0.9.9`; Production `0.9.8`, entrambe verificate dai rispettivi readback del 4 agosto 2026 | ✅ |
+| Versione attiva dell'app CF Ready | Development `0.9.9`; Production `0.9.9`, entrambe verificate dai rispettivi readback del 4 agosto 2026 | ✅ |
 | Navigazione embedded D-130 | verificata in Safari il 4 agosto 2026 sullo store `cf-ready-dev` con la Production `0.9.8`: una sola Home, nessun doppione `/app` | ✅ |
 | Function API `2026-07` stabile e rigenerata | fonte Shopify del 3 agosto 2026: stabile dal 1º luglio 2026, accessibile fino al 16 luglio 2027. Schema rigenerato con CLI 4.6.0, identico al committato a meno della formattazione | ✅ |
 | **Checkout reali ripetuti sulla Function** | nessuno in questa sessione; è anche il gate di M10 | ❌ assente |
@@ -188,7 +189,7 @@ eseguita.
 
 | Azione | Stato |
 | --- | --- |
-| Deploy Worker Production | `0.9.8` eseguita; promozione `0.9.9` autorizzata con «pubblica» il 4 agosto 2026 |
+| Deploy Worker Production | `0.9.9` eseguita e verificata dal run [30954478305](https://github.com/max23468/CF-Ready/actions/runs/30954478305) |
 | Promozione `develop` → `main` | `0.9.9` unita con [#217](https://github.com/max23468/CF-Ready/pull/217); chiusura M9 unita con [#219](https://github.com/max23468/CF-Ready/pull/219) |
 | Submission App Store | autorizzata ed eseguita dall'owner il 4 agosto 2026; stato `Submitted` |
 | Attivazione billing reale | autorizzata e attiva in Production dalla `0.9.6` |
