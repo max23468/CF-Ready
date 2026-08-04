@@ -15,6 +15,7 @@ import {
   remainingTrialDays,
   returnUrlFor,
   syncBillingAccount,
+  startTrial,
   syncTrial,
   trialEnd,
 } from "../app/billing.server";
@@ -61,16 +62,49 @@ test("la data locale usa il fuso dello store e ripiega su UTC", () => {
 test("uno store non idoneo non consuma la prova", async () => {
   const shop = await insertShop("estero.example.myshopify.com");
 
-  expect(await syncTrial(env.DB, shop, { eligible: false, today: "2026-07-30" })).toBeNull();
+  expect(await startTrial(env.DB, shop, { eligible: false, today: "2026-07-30" })).toBeNull();
   expect(
     await env.DB.prepare("SELECT COUNT(*) AS totale FROM trials").first<{ totale: number }>(),
   ).toMatchObject({ totale: 0 });
 });
 
+// Il merchant decide quando cominciare: aprire l'app, anche molte volte, non gli toglie
+// nemmeno un giorno di prova. È il comportamento che distingue questa versione dalla
+// precedente, dove la prova partiva al primo accesso idoneo.
+test("aprire l'app non avvia la prova: la avvia solo una richiesta esplicita", async () => {
+  const shop = await insertShop("attesa.example.myshopify.com");
+
+  expect(await syncTrial(env.DB, shop, { today: "2026-07-30" })).toBeNull();
+  expect(await syncTrial(env.DB, shop, { today: "2026-08-20" })).toBeNull();
+  expect(
+    await env.DB.prepare("SELECT COUNT(*) AS totale FROM trials").first<{ totale: number }>(),
+  ).toMatchObject({ totale: 0 });
+  expect(entitlementFor(null, "2026-08-20")).toEqual({ kind: "none", validThrough: null });
+
+  // Chiesta il 20 agosto, la prova dura da lì: i giorni di attesa non sono stati consumati.
+  expect(await startTrial(env.DB, shop, { eligible: true, today: "2026-08-20" })).toMatchObject({
+    status: "active",
+    ends_at: "2026-09-02",
+  });
+
+  // Una seconda richiesta non ne apre un'altra né sposta la scadenza.
+  expect(await startTrial(env.DB, shop, { eligible: true, today: "2026-08-25" })).toMatchObject({
+    ends_at: "2026-09-02",
+  });
+  expect(
+    await env.DB.prepare(
+      `SELECT COUNT(*) AS totale FROM app_events
+       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?) AND event_name = 'trial_started'`,
+    )
+      .bind(shop)
+      .first(),
+  ).toMatchObject({ totale: 1 });
+});
+
 test("la prova parte una volta sola e scade da sé", async () => {
   const shop = await insertShop("prova.example.myshopify.com");
 
-  const avviata = await syncTrial(env.DB, shop, { eligible: true, today: "2026-07-30" });
+  const avviata = await startTrial(env.DB, shop, { eligible: true, today: "2026-07-30" });
   expect(avviata).toMatchObject({
     status: "active",
     ends_at: "2026-08-12",
@@ -82,17 +116,17 @@ test("la prova parte una volta sola e scade da sé", async () => {
   });
 
   // Riapertura durante la prova: nessuna seconda prova, scadenza invariata.
-  expect(await syncTrial(env.DB, shop, { eligible: true, today: "2026-08-01" })).toMatchObject({
+  expect(await syncTrial(env.DB, shop, { today: "2026-08-01" })).toMatchObject({
     status: "active",
     ends_at: "2026-08-12",
   });
 
-  const scaduta = await syncTrial(env.DB, shop, { eligible: true, today: "2026-08-13" });
+  const scaduta = await syncTrial(env.DB, shop, { today: "2026-08-13" });
   expect(scaduta?.status).toBe("expired");
   expect(entitlementFor(scaduta, "2026-08-13")).toEqual({ kind: "none", validThrough: null });
 
   // Avvio e scadenza sono registrati una volta sola, anche riaprendo l'app dopo la scadenza.
-  await syncTrial(env.DB, shop, { eligible: true, today: "2026-08-14" });
+  await syncTrial(env.DB, shop, { today: "2026-08-14" });
   const { results } = await env.DB.prepare(
     `SELECT event_name, metadata_json FROM app_events
      WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
@@ -109,8 +143,8 @@ test("due primi accessi concorrenti registrano un solo avvio prova", async () =>
   const shop = await insertShop("prova-concorrente.example.myshopify.com");
 
   await Promise.all([
-    syncTrial(env.DB, shop, { eligible: true, today: "2026-07-30" }),
-    syncTrial(env.DB, shop, { eligible: true, today: "2026-07-30" }),
+    startTrial(env.DB, shop, { eligible: true, today: "2026-07-30" }),
+    startTrial(env.DB, shop, { eligible: true, today: "2026-07-30" }),
   ]);
 
   expect(
@@ -127,7 +161,7 @@ test("due primi accessi concorrenti registrano un solo avvio prova", async () =>
 test("una prova già fruita non si rigenera dopo la cancellazione dei dati", async () => {
   const shop = await insertShop("ritorno.example.myshopify.com");
 
-  expect(await syncTrial(env.DB, shop, { eligible: true, today: "2026-07-30" })).toMatchObject({
+  expect(await startTrial(env.DB, shop, { eligible: true, today: "2026-07-30" })).toMatchObject({
     status: "active",
     ends_at: "2026-08-12",
   });
@@ -139,7 +173,7 @@ test("una prova già fruita non si rigenera dopo la cancellazione dei dati", asy
   expect(await redactShop(env.DB, shop, "wh-ledger-consumato")).toBe(true);
   await insertShop(shop);
 
-  expect(await syncTrial(env.DB, shop, { eligible: true, today: "2026-09-01" })).toMatchObject({
+  expect(await startTrial(env.DB, shop, { eligible: true, today: "2026-09-01" })).toMatchObject({
     status: "expired",
     ends_at: "2026-08-12",
     pricing_generation: "launch",
@@ -148,7 +182,7 @@ test("una prova già fruita non si rigenera dopo la cancellazione dei dati", asy
 
 test("il registro della prova non conserva il dominio in chiaro", async () => {
   const shop = await insertShop("registro.example.myshopify.com");
-  await syncTrial(env.DB, shop, { eligible: true, today: "2026-07-30" });
+  await startTrial(env.DB, shop, { eligible: true, today: "2026-07-30" });
   await env.DB.prepare("UPDATE shops SET installation_status = 'uninstalled' WHERE shop_domain = ?")
     .bind(shop)
     .run();
@@ -742,7 +776,7 @@ test("la cancellazione riporta un errore invece di fingere il successo", async (
 
 test("la prova risulta convertita quando il merchant paga", async () => {
   const shop = await insertShop("convertita.example.myshopify.com");
-  await syncTrial(env.DB, shop, { eligible: true, today: "2026-07-30" });
+  await startTrial(env.DB, shop, { eligible: true, today: "2026-07-30" });
 
   await markTrialConverted(env.DB, shop);
 

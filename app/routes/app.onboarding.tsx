@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
+import { localDate, startTrial } from "../billing.server";
 import {
   address2Declaration,
+  ELIGIBLE_COUNTRY,
   oneOf,
   parseOnboardingStep,
   pendingFetcherIntent,
@@ -96,6 +98,19 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
     await saveOnboarding(db, session.shop, { status: "in_progress", step: 3 });
     return { ok: true as const };
+  }
+
+  // La prova parte da una scelta esplicita, qui come in Home: nessun giorno si consuma
+  // finché il merchant non la chiede.
+  if (intent === "start_trial") {
+    const { shop } = await queryContext(admin);
+    const trial = await startTrial(db, session.shop, {
+      eligible: shop.shopAddress.countryCodeV2 === ELIGIBLE_COUNTRY,
+      today: localDate(shop.ianaTimezone),
+    });
+    return trial
+      ? { ok: true as const }
+      : { ok: false as const, errorCode: "store_not_supported" as const };
   }
 
   if (intent !== "finish" && intent !== "activate") {
@@ -248,6 +263,9 @@ export default function Onboarding() {
                     objectFit="contain"
                   />
                 </s-box>
+                <s-heading>{t.onboarding.welcomeHeading}</s-heading>
+                <s-paragraph>{t.onboarding.welcomeBody}</s-paragraph>
+                <s-divider />
                 <s-heading>{t.onboarding.step1Heading}</s-heading>
                 <s-paragraph>{t.onboarding.step1Body}</s-paragraph>
                 <s-unordered-list>
@@ -331,6 +349,30 @@ export default function Onboarding() {
                 <s-paragraph>
                   {saved.enabled ? t.onboarding.reviewStep4Body : t.onboarding.step4Body}
                 </s-paragraph>
+
+                {/* La prova non è mai partita da sola: qui il merchant decide se cominciarla
+                    o passare direttamente ai piani. Chi ha già un diritto valido non vede
+                    nulla di tutto questo. */}
+                <s-divider />
+                <s-heading>{t.onboarding.step4TrialHeading}</s-heading>
+                {saved.entitled ? (
+                  <s-paragraph>{t.onboarding.step4TrialActive}</s-paragraph>
+                ) : (
+                  <>
+                    <s-paragraph>{t.onboarding.step4TrialBody}</s-paragraph>
+                    <s-stack direction="inline" gap="base">
+                      <s-button
+                        variant="primary"
+                        disabled={busy}
+                        loading={pendingIntent === "start_trial"}
+                        onClick={() => go("start_trial")}
+                      >
+                        {t.onboarding.step4StartTrial}
+                      </s-button>
+                      <s-link href="/app">{t.onboarding.step4SeePlans}</s-link>
+                    </s-stack>
+                  </>
+                )}
               </>
             ) : null}
 

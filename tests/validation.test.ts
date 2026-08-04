@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
 import { expect, test, vi } from "vitest";
-import { syncBillingAccount } from "../app/billing.server";
+import { startTrial, syncBillingAccount } from "../app/billing.server";
 import {
   acquireValidationLock,
   configHash,
@@ -246,7 +246,10 @@ test("una configurazione illeggibile o fuori contratto torna ai default senza la
   expect(config.messages.en).toEqual(DEFAULT_CONFIG.messages.en);
 });
 
-async function seedShop(shop: string) {
+// La prova non parte più all'installazione: la avvia il merchant. Questi test descrivono
+// uno store già operativo, quindi la avviano subito; chi verifica il comportamento senza
+// alcun diritto passa `trial: false`.
+async function seedShop(shop: string, { trial = true }: { trial?: boolean } = {}) {
   const timestamp = "2026-07-31T00:00:00.000Z";
   await env.DB.prepare(
     `INSERT INTO shops (
@@ -255,6 +258,7 @@ async function seedShop(shop: string) {
   )
     .bind(shop, timestamp, timestamp, timestamp)
     .run();
+  if (trial) await startTrial(env.DB, shop, { eligible: true, today: "2026-07-31" });
 }
 
 function stubAdmin({
@@ -500,7 +504,8 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
   });
 
   const refundedShop = "write-refunded.example.myshopify.com";
-  await seedShop(refundedShop);
+  // Prova già esaurita: la riga viene inserita qui sotto, non avviata adesso.
+  await seedShop(refundedShop, { trial: false });
   await env.DB.prepare(
     `INSERT INTO trials (
        shop_id, status, eligible_at, started_at, ends_at, pricing_generation, created_at, updated_at
@@ -753,7 +758,7 @@ test("l'attivazione conserva la configurazione letta dentro la lease", async () 
 
 test("una Validation spenta non si attiva senza diritto valido", async () => {
   const shop = "activate-no-entitlement.example.myshopify.com";
-  await seedShop(shop);
+  await seedShop(shop, { trial: false });
   await env.DB.prepare(
     `INSERT INTO trials (
        shop_id, status, eligible_at, started_at, ends_at, pricing_generation, created_at, updated_at
