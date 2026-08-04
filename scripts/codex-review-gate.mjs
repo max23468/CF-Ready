@@ -99,25 +99,6 @@ export function classifyCodexReview({
   );
 }
 
-export const classifyReusableCodexReview = (args) =>
-  classifyCodexReview({ ...args, requiresReviewedCommit: true });
-
-export function codexReviewStarted({ requestedAt, comments, reactions, reviews }) {
-  const startedAt = timestamp(requestedAt);
-  return (
-    reactions.some(
-      (reaction) =>
-        reaction.user?.login === CODEX_BOT && timestamp(reaction.created_at) >= startedAt,
-    ) ||
-    comments.some(
-      (comment) => comment.user?.login === CODEX_BOT && timestamp(comment.created_at) >= startedAt,
-    ) ||
-    reviews.some(
-      (review) => review.user?.login === CODEX_BOT && timestamp(review.submitted_at) >= startedAt,
-    )
-  );
-}
-
 export function pullRequestNumber(event, input) {
   const number = String(event.pull_request?.number ?? input);
   if (!/^\d+$/.test(number)) throw new Error("Numero PR non valido");
@@ -161,15 +142,11 @@ async function setStatus(repository, sha, state, description) {
   });
 }
 
-const reviewSignals = (repository, number, reactionCommentId) =>
+const reviewSignals = (repository, number) =>
   Promise.all([
     all(`/repos/${repository}/issues/${number}/comments`),
     all(`/repos/${repository}/issues/${number}/reactions`),
-    all(`/repos/${repository}/pulls/${number}/reviews`),
     all(`/repos/${repository}/pulls/${number}/comments`),
-    reactionCommentId
-      ? all(`/repos/${repository}/issues/comments/${reactionCommentId}/reactions`)
-      : Promise.resolve([]),
   ]);
 
 async function main() {
@@ -199,69 +176,20 @@ async function main() {
     if (currentPullRequest.head.sha !== headSha) return;
   }
 
-  let requestedAt = pullRequest.updated_at;
-  let reactionCommentId;
   if (["opened", "ready_for_review"].includes(event.action)) {
     await new Promise((resolve) => setTimeout(resolve, 30_000));
     const currentPullRequest = await request(`/repos/${repository}/pulls/${number}`);
     if (currentPullRequest.head.sha !== headSha) return;
-    const [comments, reactions, reviews, reviewComments] = await reviewSignals(repository, number);
-    const result = classifyCodexReview({
-      headSha,
-      requestedAt,
-      comments,
-      reactions,
-      reviewComments,
-    });
-    if (result.state !== "pending") {
-      await setStatus(repository, headSha, result.state, result.description);
-      return;
-    }
-    if (!codexReviewStarted({ requestedAt, comments, reactions, reviews })) {
-      const comment = await request(`/repos/${repository}/issues/${number}/comments`, {
-        method: "POST",
-        body: JSON.stringify({ body: `@codex review\n\n<!-- codex-review-gate:${headSha} -->` }),
-      });
-      requestedAt = comment.created_at;
-      reactionCommentId = comment.id;
-    }
-  } else if (
-    process.env.GITHUB_EVENT_NAME === "workflow_dispatch" ||
-    ["synchronize", "reopened"].includes(event.action)
-  ) {
-    const [comments, reactions, , reviewComments] = await reviewSignals(repository, number);
-    const result = classifyReusableCodexReview({
-      headSha,
-      requestedAt,
-      comments,
-      reactions,
-      reviewComments,
-    });
-    if (result.state !== "pending") {
-      await setStatus(repository, headSha, result.state, result.description);
-      return;
-    }
-    const comment = await request(`/repos/${repository}/issues/${number}/comments`, {
-      method: "POST",
-      body: JSON.stringify({ body: `@codex review\n\n<!-- codex-review-gate:${headSha} -->` }),
-    });
-    requestedAt = comment.created_at;
-    reactionCommentId = comment.id;
   }
 
+  const requestedAt = pullRequest.updated_at;
   for (let attempt = 0; attempt < 600; attempt += 1) {
-    const [comments, reactions, , reviewComments, requestReactions] = await reviewSignals(
-      repository,
-      number,
-      reactionCommentId,
-    );
+    const [comments, reactions, reviewComments] = await reviewSignals(repository, number);
     const result = classifyCodexReview({
       headSha,
       requestedAt,
       comments,
-      reactions: reactionCommentId ? [...reactions, ...requestReactions] : reactions,
-      progressReactions: reactionCommentId ? requestReactions : reactions,
-      requiresReviewedCommit: Boolean(reactionCommentId),
+      reactions,
       reviewComments,
     });
     if (result.state !== "pending") {

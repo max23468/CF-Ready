@@ -408,7 +408,8 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /type: number/);
   assert.match(workflow, /ref: \$\{\{ github\.event\.repository\.default_branch \}\}/);
-  assert.match(workflow, /issues: write/);
+  assert.match(workflow, /issues: read/);
+  assert.doesNotMatch(workflow, /issues: write/);
   assert.match(workflow, /statuses: write/);
   assert.match(workflow, /node scripts\/codex-review-gate\.mjs/);
   assert.doesNotMatch(workflow, /github\.event\.pull_request\.head/);
@@ -416,8 +417,8 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
   assert.match(gate, /event\.action === "synchronize"/);
   assert.match(gate, /setTimeout\(resolve, 120_000\)/);
   assert.match(gate, /currentPullRequest\.head\.sha !== headSha/);
-  assert.match(gate, /issues\/comments\/\$\{reactionCommentId\}\/reactions/);
-  assert.match(gate, /\[\.\.\.reactions, \.\.\.requestReactions\]/);
+  assert.doesNotMatch(gate, new RegExp(["@codex", "review"].join(" ")));
+  assert.doesNotMatch(gate, /issues\/\$\{number\}\/comments[\s\S]*method: "POST"/);
   assert.match(gate, /Review Codex non conclusa entro cinque ore/);
   const maintenance = readFileSync(
     new URL("../.github/workflows/security-maintenance.yml", import.meta.url),

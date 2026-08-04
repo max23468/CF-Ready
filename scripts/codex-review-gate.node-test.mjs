@@ -1,38 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
-import {
-  classifyCodexReview,
-  classifyReusableCodexReview,
-  codexReviewStarted,
-  pullRequestNumber,
-} from "./codex-review-gate.mjs";
-
-test("un rerun riusa la review completa dell'HEAD senza richiederne un'altra", () => {
-  const requestedAt = "2026-01-01T10:00:00Z";
-  assert.equal(
-    classifyReusableCodexReview({
-      headSha: "abcdef1234567890abcdef1234567890abcdef12",
-      requestedAt,
-      comments: [
-        {
-          user: { login: "chatgpt-codex-connector[bot]" },
-          created_at: "2026-01-01T10:01:00Z",
-          body: "Didn't find any major issues.\n\n**Reviewed commit:** `abcdef1234`",
-        },
-      ],
-      reactions: [
-        {
-          user: { login: "chatgpt-codex-connector[bot]" },
-          created_at: "2026-01-01T10:01:01Z",
-          content: "+1",
-        },
-      ],
-      reviewComments: [],
-    }).state,
-    "success",
-  );
-});
+import { classifyCodexReview, pullRequestNumber } from "./codex-review-gate.mjs";
 
 const headSha = "0123456789abcdef0123456789abcdef01234567";
 const requestedAt = "2026-08-04T12:00:00Z";
@@ -240,18 +209,6 @@ test("il bootstrap accetta soltanto un numero PR", () => {
   assert.equal(pullRequestNumber({ pull_request: { number: 42 } }), "42");
   assert.equal(pullRequestNumber({}, "208"), "208");
   assert.throws(() => pullRequestNumber({}, "208/merge"), /Numero PR non valido/);
-});
-
-test("non duplica una review automatica già avviata", () => {
-  assert.equal(
-    codexReviewStarted({
-      requestedAt,
-      comments: [],
-      reviews: [],
-      reactions: [{ user: bot, content: "eyes", created_at: "2026-08-04T12:00:01Z" }],
-    }),
-    true,
-  );
 });
 
 test("l'import in GitHub Actions non avvia la CLI", () => {
