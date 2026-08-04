@@ -65,6 +65,7 @@ una review può fraintendere il prodotto:
 
 ## Consegna
 
-File video e sottotitoli in `docs/listing/`, oppure un link se il peso lo
-richiede — in quel caso il link va registrato qui e nella
-[release readiness](../runbooks/release-readiness-1.0.md).
+**Il video non entra nel repository**, per decisione dell'owner del 4 agosto
+2026: si carica dove la submission lo richiede. Qui resta il copione, che è la
+parte che deve restare allineata al prodotto — e che la `0.9.2` ha già dovuto
+correggere una volta.

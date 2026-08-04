@@ -60,16 +60,20 @@ una cambia, cambia anche l'altra.
 
 ## Consegna
 
-I file finiti vanno in `docs/brand/assets/png/`, con nomi
-`listing-shot-<numero>-<lingua>.png`, e vanno elencati qui sotto quando
-esistono. Finché la tabella resta vuota, la listing non è completa.
+**Gli screenshot non entrano nel repository**, per decisione dell'owner del
+4 agosto 2026: si caricano direttamente nella listing del Partner Dashboard.
+Il repository conserva questo piano di cattura e le didascalie, che sono la
+parte che deve restare coerente con il prodotto; i file vivono dove servono.
 
-| File | Schermata | Lingua | Stato |
-| --- | --- | --- | --- |
-| — | — | — | da produrre |
+Ne consegue che la prova della loro esistenza non è un file in Git ma la
+listing stessa: chi aggiorna la readiness registra chi li ha caricati e quando,
+senza spacciare la dichiarazione per una verifica.
 
 ## Sito pubblico
 
-Gli stessi screenshot chiudono il segnaposto lasciato da M7 sulla Home del sito:
-oggi il sito non mostra nessuna schermata dell'app. Usa il numero 1 e il numero
-2; le didascalie sono già bilingui e le pagine sono già IT/EN.
+Il segnaposto lasciato da M7 sulla Home del sito **resta aperto**: il sito è
+servito da `site/`, che sta nel repository, quindi non può mostrare immagini che
+nel repository non ci sono. Delle tre strade — versionare i soli due screenshot
+che servono alla Home, tenerli su una destinazione esterna raggiungibile dal
+sito, o rinunciare a mostrarli — nessuna è stata scelta, e finché non lo sarà la
+Home continua a descrivere l'app senza mostrarla.
