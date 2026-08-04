@@ -262,9 +262,22 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
       workflow.indexOf("wrangler pages deploy site"),
   );
   assert.match(workflow, /needs\.deploy\.outputs\.rollback_armed == 'true'/);
+  assert.match(workflow, /needs\.deploy\.result != 'success'/);
   assert.doesNotMatch(workflow, /wrangler deploy(?:\s|$)/);
   assert.doesNotMatch(workflow, /shopify app deploy/);
   assert.match(workflow, /## Ricevuta deploy Pages Production/);
+});
+
+test("il rollback Production richiede uno snapshot Shopify e verifica il ripristino", () => {
+  const workflow = readFileSync(
+    new URL("../.github/workflows/deploy-production.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(workflow, /Nessuna versione Shopify attiva da registrare per il rollback/);
+  assert.match(workflow, /needs\.deploy\.result != 'success'/);
+  assert.match(workflow, /shopify-rollback-readback\.json/);
+  assert.match(workflow, /worker-rollback-readback\.json/);
+  assert.match(workflow, /Readback rollback Production non riuscito/);
 });
 
 test("il backup Production cifra, ruota gli slot e prova il restore", () => {
@@ -355,7 +368,9 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.match(workflow, /npm run readback:dev/);
   assert.match(workflow, /node scripts\/credential-expiry\.mjs/);
   assert.match(workflow, /required_status_checks/);
-  assert.match(workflow, /dependency-review,e2e,promotion-guard,react-doctor,verify/);
+  assert.match(workflow, /rulesets="\$\(gh api/);
+  assert.match(workflow, /ruleset="\$\(gh api/);
+  assert.match(workflow, /codex-review,dependency-review,e2e,promotion-guard,react-doctor,verify/);
   assert.match(workflow, /gh workflow list --all/);
   assert.match(workflow, /workflows="\$\(gh workflow list/);
   assert.match(workflow, /test -n "\$workflows"/);
@@ -382,6 +397,33 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.doesNotMatch(workflow, /branches\/$branch\/protection/);
   assert.equal((workflow.match(/test "\$GITHUB_REF" = "refs\/heads\/develop"/g) ?? []).length, 2);
   assert.doesNotMatch(workflow, /shopify app deploy|wrangler deploy|d1 migrations apply/);
+});
+
+test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", () => {
+  const workflow = readFileSync(
+    new URL("../.github/workflows/codex-review-gate.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(workflow, /pull_request_target:/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /type: number/);
+  assert.match(workflow, /ref: \$\{\{ github\.event\.repository\.default_branch \}\}/);
+  assert.match(workflow, /issues: write/);
+  assert.match(workflow, /statuses: write/);
+  assert.match(workflow, /node scripts\/codex-review-gate\.mjs/);
+  assert.doesNotMatch(workflow, /github\.event\.pull_request\.head/);
+  const gate = readFileSync(new URL("./codex-review-gate.mjs", import.meta.url), "utf8");
+  assert.match(gate, /event\.action === "synchronize"/);
+  assert.match(gate, /setTimeout\(resolve, 120_000\)/);
+  assert.match(gate, /currentPullRequest\.head\.sha !== headSha/);
+  assert.match(gate, /issues\/comments\/\$\{reactionCommentId\}\/reactions/);
+  assert.match(gate, /\[\.\.\.reactions, \.\.\.requestReactions\]/);
+  assert.match(gate, /Review Codex non conclusa entro cinque ore/);
+  const maintenance = readFileSync(
+    new URL("../.github/workflows/security-maintenance.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(maintenance, /cancelled[\s\S]*codex-review-gate\.yml/);
 });
 
 test("README e indice non duplicano la versione corrente", () => {
