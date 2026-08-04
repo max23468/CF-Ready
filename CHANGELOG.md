@@ -6,6 +6,13 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.7 — 4 agosto 2026
+
+- la voce «Home» torna nel menu senza reintrodurre il doppione che faceva
+  sparire la navigazione: `/app` compare una sola volta e senza `rel="home"`;
+  il titolo dell'app usa la radice predefinita, che inoltra già a `/app`
+  dall'eliminazione della pagina di accesso (D-128, D-130).
+
 ## 0.9.6 — 4 agosto 2026
 
 - il menu dell'app non sparisce più quando si torna alla Home da un link dentro
