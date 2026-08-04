@@ -190,6 +190,33 @@ la superficie non li possiede:
 La ricevuta dell'ultimo snapshot della milestone entra nella PR di chiusura;
 non apre una PR autonoma.
 
+## Deploy Production
+
+Il workflow `deploy-production.yml` è manuale, parte solo da `main` e usa
+l'environment GitHub `Production`, che richiede un'approvazione: nessun deploy
+Production può partire da solo.
+
+**L'ambiente si sceglie a build time, non a deploy time.** Il Vite plugin di
+Cloudflare appiattisce la configurazione nel bundle, quindi
+`CLOUDFLARE_ENV=production npm run build` è ciò che decide dove si va a finire;
+`wrangler deploy --env production` dopo una build ordinaria pubblicherebbe le
+variabili Development sotto il nome sbagliato senza dirlo. Per questo il
+workflow ricostruisce dopo `npm run check` — che termina con una build
+Development — e il preflight legge `build/server/wrangler.json` prima di
+lasciar proseguire.
+
+I comandi che leggono la configurazione sorgente, migrazioni e secret, usano
+`--config wrangler.json --env production`; il deploy del Worker non passa
+`--env`, perché il bundle è già quello giusto.
+
+Il primo deploy Production non ha un Worker da ripristinare: il workflow lo
+riconosce, lo dichiara nella ricevuta e prosegue senza rollback armato del
+Worker. La versione Shopify resta ripristinabile fin dal primo giro.
+
+Il Worker `cf-ready-prod` viene creato materialmente dal primo
+`wrangler secret put --env production`: finché non esiste, il preflight si
+ferma e lo dice.
+
 Fonti operative correnti: [Workers limits](https://developers.cloudflare.com/workers/platform/limits/),
 [Workers metrics](https://developers.cloudflare.com/workers/observability/metrics-and-analytics/),
 [D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/),

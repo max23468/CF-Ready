@@ -9,14 +9,15 @@ dei rispettivi provider e non devono comparire nel repository o nei log.
 | `SESSION_ENCRYPTION_KEY` | Development | Cloudflare Workers, GitHub Actions | configurato il 29 luglio 2026 |
 | `TRIAL_LEDGER_HMAC_KEY` | Development | Cloudflare Workers | configurato il 2 agosto 2026 |
 | `SHOPIFY_APP_AUTOMATION_TOKEN` | Development | GitHub Actions | configurato il 29 luglio 2026 |
-| `SHOPIFY_API_SECRET` | Production | Cloudflare Workers | da configurare |
-| `SESSION_ENCRYPTION_KEY` | Production | Cloudflare Workers | da generare |
-| `TRIAL_LEDGER_HMAC_KEY` | Production | Cloudflare Workers | da generare prima del lancio |
+| `SHOPIFY_API_SECRET` | Production | Cloudflare Workers | da configurare sul Worker `cf-ready-prod` con `wrangler secret put --env production` |
+| `SESSION_ENCRYPTION_KEY` | Production | Cloudflare Workers | da generare con `openssl rand -base64 32` e caricare sul Worker `cf-ready-prod` |
+| `TRIAL_LEDGER_HMAC_KEY` | Production | Cloudflare Workers | da generare con `openssl rand -base64 32` e caricare sul Worker `cf-ready-prod`; non ruotabile ordinariamente |
 | `CLOUDFLARE_API_TOKEN` | CI Pages Production | GitHub Actions | configurato il 1 agosto 2026; accesso verificato dal preflight del workflow |
 | `CLOUDFLARE_API_TOKEN` | Backup Production | GitHub Actions | configurato il 3 agosto 2026; da limitare a export D1 e oggetti R2 |
 | `D1_BACKUP_KEY` | Backup Production | GitHub Actions | configurato il 3 agosto 2026; copia recuperabile nel Portachiavi macOS |
 | `SECURITY_AUDIT_TOKEN` | Security Maintenance | GitHub Actions | sostituito il 3 agosto 2026 con un PAT fine-grained senza scadenza sul solo `CF-Ready`, in sola lettura su metadati, Actions e i tre alert; environment limitato a `develop`, copia recuperabile nel Portachiavi macOS |
-| `SHOPIFY_CLI_PARTNERS_TOKEN` | CI Production | GitHub Actions | da creare con privilegi minimi |
+| `SHOPIFY_CLI_PARTNERS_TOKEN` | CI Production | GitHub Actions | da creare con privilegi minimi nell'environment `Production` |
+| `CLOUDFLARE_API_TOKEN` | CI Production | GitHub Actions | da configurare nell'environment `Production` |
 | `OWNER_LEGAL_NAME` | Pages Production | GitHub Actions | configurato il 3 agosto 2026 nell'environment `Pages Production`, iniettato dal workflow e verificato dallo smoke |
 | Staff account del reviewer | dev store `cf-ready-dev` | form di submission App Store | da creare in M9 su `cfready@icloud.com`; password nel Portachiavi macOS, mai nel repository |
 
