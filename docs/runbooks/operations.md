@@ -192,9 +192,11 @@ non apre una PR autonoma.
 
 ## Deploy Production
 
-Il workflow `deploy-production.yml` è manuale, parte solo da `main` e usa
-l'environment GitHub `Production`, che richiede un'approvazione: nessun deploy
-Production può partire da solo.
+Il workflow `deploy-production.yml` è manuale e parte solo da `main`, tramite
+l'environment GitHub `Production` che ne limita i branch. I due freni sono
+questi: nessun evento lo avvia da sé e nessun branch diverso da `main` può
+raggiungerlo. L'environment non chiede un'approvazione interattiva — sarebbe un
+terzo passaggio sullo stesso intento, dato che il lancio è già manuale.
 
 **L'ambiente si sceglie a build time, non a deploy time.** Il Vite plugin di
 Cloudflare appiattisce la configurazione nel bundle, quindi
