@@ -11,7 +11,10 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 - la voce «Home» torna nel menu senza reintrodurre il doppione che faceva
   sparire la navigazione: `/app` compare una sola volta e senza `rel="home"`;
   il titolo dell'app usa la radice predefinita, che inoltra già a `/app`
-  dall'eliminazione della pagina di accesso (D-128, D-130).
+  dall'eliminazione della pagina di accesso (D-128, D-130);
+- le istruzioni reviewer non promettono più che una charge Production sia
+  gratuita su qualsiasi development store: il collaudo usa la prova di 14
+  giorni e apre la conferma del piano senza approvarla (D-129).
 
 ## 0.9.6 — 4 agosto 2026
 
@@ -24,11 +27,11 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 ## 0.9.5 — 4 agosto 2026
 
 - in Production gli addebiti dei merchant sono reali: `BILLING_TEST` vale
-  `"false"`. Restava in modalità di prova per proteggere il reviewer, ma sui
-  development store è Shopify a non addebitare, quindi il flag non tutelava
-  nessuno e lasciava l'app incapace di addebitare i merchant — il difetto
-  contestato dal requisito 1.2.2 (D-129). Il valore diventa effettivo al primo
-  deploy Production successivo;
+  `"false"`. Restava in modalità di prova per proteggere il reviewer, ma così
+  l'app non poteva addebitare i merchant — il difetto contestato dal requisito
+  1.2.2. Il reviewer usa invece la prova gratuita e non approva una charge
+  Production (D-129). Il valore diventa effettivo al primo deploy Production
+  successivo;
 - audit di pre-submission e runbook di release non affermano più che il
   reviewer debba vedere addebiti di prova, e registrano la voce 2.3.1 come
   chiusa dalla rimozione della pagina di accesso.

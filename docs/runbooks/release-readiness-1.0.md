@@ -187,6 +187,6 @@ eseguita.
 | --- | --- |
 | Deploy Worker Production | autorizzato dall'owner il 4 agosto 2026; non ancora eseguito |
 | Promozione `develop` → `main` | autorizzata; PR [#208](https://github.com/max23468/CF-Ready/pull/208) aperta e vincolata alla review Codex positiva |
-| Submission App Store | non autorizzata |
-| Attivazione billing reale | non autorizzata |
+| Submission App Store | autorizzata ed eseguita dall'owner il 4 agosto 2026; stato `Submitted` |
+| Attivazione billing reale | autorizzata e attiva in Production dalla `0.9.6` |
 | Passaggio della listing a visibilità completa | M12, non autorizzato |
