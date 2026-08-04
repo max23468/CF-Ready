@@ -6,6 +6,18 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.5 — 4 agosto 2026
+
+- in Production gli addebiti dei merchant sono reali: `BILLING_TEST` vale
+  `"false"`. Restava in modalità di prova per proteggere il reviewer, ma sui
+  development store è Shopify a non addebitare, quindi il flag non tutelava
+  nessuno e lasciava l'app incapace di addebitare i merchant — il difetto
+  contestato dal requisito 1.2.2 (D-129). Il valore diventa effettivo al primo
+  deploy Production successivo;
+- audit di pre-submission e runbook di release non affermano più che il
+  reviewer debba vedere addebiti di prova, e registrano la voce 2.3.1 come
+  chiusa dalla rimozione della pagina di accesso.
+
 ## 0.9.4 — 4 agosto 2026
 
 - `/auth/login` non risponde più con un errore del server: tolta la pagina in

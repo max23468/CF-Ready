@@ -78,15 +78,15 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | Rollback Pages esercitato e letto | run `30741094451` | ✅ |
 | Backup D1 Production e restore | run `30769584725`: export cifrato, restore locale di 32 comandi, `integrity_check=ok`, readback dello slot R2 | ✅ |
 | Security audit e manutenzione provider | run `30749648119`, entrambi i job verdi | ✅ |
-| Audit pre-submission App Store | [audit del 3 agosto 2026](../audits/2026-08-03-app-store-pre-submission.md) | ✅ con quattro punti aperti |
+| Audit pre-submission App Store | [audit del 3 agosto 2026](../audits/2026-08-03-app-store-pre-submission.md) | ✅ con un punto aperto: il checkout reale sulla Function |
 | Migrazioni D1 Development | applicate e verificate a ogni snapshot, da ultimo nel run `30768120300` | ✅ |
 | Migrazioni D1 Production | dieci migrazioni versionate applicate, readback senza pendenti, 11 tabelle | ✅ |
 | `noindex` sui documenti legali | verificato **live** dopo il deploy del 3 agosto 2026: i quattro percorsi rispondono `X-Robots-Tag: noindex`, la Home, l'assistenza e la Home inglese no | ✅ |
 | Iniezione dell'identità del titolare | verificata **live**: Privacy e Termini, IT ed EN, dichiarano il nome della persona fisica titolare e nessuna pagina pubblica contiene ancora il segnaposto. Il segnaposto nei sorgenti è protetto da un test in `scripts/check-docs.node-test.mjs` | ✅ |
-| Configurazione Worker Production | `wrangler.json` env `production`: Worker `cf-ready-prod`, D1 `cf-ready-db-prod`, `ALLOWED_SHOP` vuota, addebiti di prova | ✅ |
+| Configurazione Worker Production | `wrangler.json` env `production`: Worker `cf-ready-prod`, D1 `cf-ready-db-prod`, `ALLOWED_SHOP` vuota, addebiti reali | ✅ |
 | Worker Production distribuito | run `30888857219` del 4 agosto 2026, commit `fef471b`; `https://cf-ready-prod.tmsf.workers.dev` risponde | ✅ |
 | URL Production nel manifest Shopify | `shopify.app.toml` punta a `https://cf-ready-prod.tmsf.workers.dev`, con aggiornamento automatico degli URL vietato | ✅ |
-| **`BILLING_TEST=false` in Production** | variabile non definita: ogni addebito è di prova | ❌ assente |
+| **`BILLING_TEST=false` in Production** | `wrangler.json` env `production` la definisce a `"false"` dal 4 agosto 2026 (D-129): gli addebiti dei merchant sono reali. Effettiva sul Worker al primo deploy Production successivo | ✅ configurata |
 | Secret Production separati | tre secret runtime caricati sul Worker `cf-ready-prod` il 4 agosto 2026; il preflight li verifica a ogni deploy | ✅ |
 | Versione attiva dell'app CF Ready | `0.9.1`, pubblicata il 4 agosto 2026. `cf-ready-2` e `cf-ready-1` restano inattive come rollback | ✅ |
 | Function API `2026-07` stabile e rigenerata | fonte Shopify del 3 agosto 2026: stabile dal 1º luglio 2026, accessibile fino al 16 luglio 2027. Schema rigenerato con CLI 4.6.0, identico al committato a meno della formattazione | ✅ |

@@ -44,14 +44,25 @@ riscrivere gli URL dell'app pubblica con un tunnel.
 Chiuso anche il passo successivo: il Worker `cf-ready-prod` è distribuito e
 risponde, e la versione attiva dell'app è la `0.9.1` del 4 agosto 2026.
 
-### 2. Billing ancora in modalità test — bloccante
+### 2. Billing ancora in modalità test — chiuso il 4 agosto 2026 ✅
 
-`app/env.server.ts` calcola `BILLING_IS_TEST = bindings.BILLING_TEST !== "false"`
-e `wrangler.json` non definisce la variabile: in assenza di configurazione ogni
-addebito è un addebito di prova. È corretto oggi, in Development, ed è quello che
-il reviewer deve vedere. Diventa un difetto **nel momento in cui l'app è
-disponibile a merchant reali**, quindi `BILLING_TEST=false` va impostato nella
-configurazione Production insieme al resto del deploy Production, non prima.
+`app/env.server.ts` calcola `BILLING_IS_TEST = bindings.BILLING_TEST !== "false"`.
+`wrangler.json` ora definisce la variabile a `"false"` nell'ambiente
+`production`: gli addebiti dei merchant sono reali. Resta `"true"` di fatto in
+Development, dove la variabile non è definita.
+
+La versione precedente di questo punto rinviava il passaggio al canary, perché
+«il reviewer deve vedere addebiti di prova». La motivazione era sbagliata e non
+proveniva da una fonte Shopify. Sui development store è **Shopify** a non
+addebitare: prima del 28 aprile 2026 creando automaticamente una test
+subscription per lo store, dopo quella data tramite il piano privato a `0`. La
+protezione del reviewer non passa mai dal flag che manda l'app, quindi tenerlo a
+`"true"` non proteggeva nessuno e lasciava l'app incapace di addebitare i
+merchant — cioè esattamente il difetto contestato dal requisito 1.2.2. Vedi
+D-129 nel Master Plan.
+
+Il valore diventa effettivo sul Worker soltanto al primo deploy Production
+successivo, che resta un'operazione autorizzata a parte.
 
 ### 3. Function API `2026-07` — riconfermata, tranne il checkout reale
 
@@ -108,7 +119,7 @@ verifica il bundle e rifiuta di proseguire; una regressione in
 | 2.2.1 Usa le API Shopify | OAuth, Admin GraphQL e Validation API |
 | 2.2.3 App Bridge corrente | dipendenza `@shopify/shopify-app-react-router` 1.2.1; nessuna traccia del pacchetto legacy `@shopify/app-bridge` |
 | 2.2.4 Solo GraphQL Admin API | nessuna chiamata a `/admin/api/*.json`, nessun client REST |
-| 2.3.1 Nessun inserimento manuale del dominio | nessun campo che chieda un `myshopify.com` nelle route dell'app |
+| 2.3.1 Nessun inserimento manuale del dominio | nessun campo che chieda un `myshopify.com`: la pagina di accesso che lo chiedeva è stata rimossa il 4 agosto 2026 (D-128), e `/auth/login` inoltra a `/app` |
 | 3.1.1 TLS valido | servito da Cloudflare Workers su HTTPS; nessun fallback in chiaro |
 | 3.2.x Scope minimi | un solo scope, `write_validations`. Nessuno degli scope sensibili elencati dai requisiti — `read_all_orders`, `write_payment_mandate`, `write_checkout_extensions_apis`, `read_advanced_dom_pixel_events`, `read_checkout_extensions_chat` — è richiesto |
 
