@@ -3520,7 +3520,8 @@ Il video promozionale pubblico resta facoltativo.
 
 Fornire:
 
-- store e credenziali di test secondo il canale Shopify previsto;
+- nessuno store né credenziali: il reviewer installa l'app su un proprio
+  development store italiano, come stabilito in D-132;
 - prodotto testabile;
 - come impostare indirizzi;
 - CF sintetici validi/non validi;
