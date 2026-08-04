@@ -352,6 +352,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-127 | Nell’interfaccia merchant si dice «controllo nel checkout», mai «Validation» né «validazione». | Il termine tecnico non dice niente a chi vende: conta se le regole valgono per i suoi clienti. |
 | D-128 | Nessuna pagina di accesso con il dominio dello store: l’URL dell’app porta sempre all’autenticazione. | I requisiti 2.3.1 e 2.3.2 vietano di chiedere manualmente un dominio `myshopify.com` e di rendere interagibile una UI prima di OAuth. Il form era il residuo del template Shopify per la distribuzione custom: con la public app il merchant arriva sempre da Shopify con `shop`, quindi non serviva a nessuno. È la violazione trovata il 4 agosto 2026, quando la pre-submission ha bocciato il check automatico «Immediately authenticates after install»: che fosse quella la causa lo conferma la riesecuzione del check, non il codice. La rotta `/auth/login` non torna 404 ma inoltra a `/app`, perché `authPathPrefix` continua a derivarne un `loginPath` che la libreria riconosce. |
 | D-129 | In Production gli addebiti sono reali dalla pubblicazione, non dal canary: `BILLING_TEST` vale `"false"`. | La modalità di prova non protegge il reviewer, che opera su un development store dove è Shopify a non addebitare — test subscription creata automaticamente fino al 28 aprile 2026, piano privato a `0` dopo. Tenerla attiva non tutelava nessuno e lasciava l’app incapace di addebitare i merchant, cioè il difetto contestato dal requisito 1.2.2. Deciso il 4 agosto 2026 correggendo la motivazione opposta, che non veniva da una fonte Shopify. |
+| D-130 | Una sola voce di menu per rotta: Home è dichiarata con `rel="home"` e non compare più fra le voci visibili. | Con `/app` dichiarata due volte — una voce visibile e una con `rel="home"` — arrivando alla Home da un link dentro una pagina l’Admin restava senza menu finché non si ricaricava; dagli altri link interni, che puntano a rotte dichiarate una volta sola, il menu resta. La documentazione di `s-app-nav` prevede un solo link per rotta e dichiara che `rel="home"` nasconde la voce dal menu. Deciso il 4 agosto 2026 accettando di perdere la voce «Home» di §15.2: il titolo dell’app resta la strada per tornare a casa. Correzione pubblicata senza riprodurre il difetto in un ambiente di prova, per decisione dell’owner. |
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
@@ -1948,10 +1949,11 @@ laterale, la scelta in quella principale. La decisione nasce dal fatto che il
 merchant apre la Home e da lì deve poter vedere se la prova sta finendo senza
 cambiare pagina. Il contenuto di §15.6 resta invariato: cambia solo dove sta.
 
-Home resta una voce visibile del menu ed è anche dichiarata ad App Bridge come
-rotta di casa dell’app, così il titolo dell’app riporta lì. Senza quella
-dichiarazione il titolo porta alla radice dell’URL, che senza `shop` finisce sul
-form di accesso.
+Home **non** è una voce visibile del menu: è dichiarata ad App Bridge come rotta
+di casa dell’app con `rel="home"`, che la nasconde dal menu e fa del titolo
+dell’app il modo per tornarci. Senza quella dichiarazione il titolo porta alla
+radice dell’URL, che senza `shop` finisce sul form di accesso. Dichiararla due
+volte, una visibile e una con `rel`, rompeva il menu dell’Admin (D-130).
 
 ### 15.3 Home
 

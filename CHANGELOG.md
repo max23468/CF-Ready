@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.6 — 4 agosto 2026
+
+- il menu dell'app non sparisce più quando si torna alla Home da un link dentro
+  una pagina: `/app` era dichiarata due volte in `s-app-nav`, una voce visibile
+  e una con `rel="home"`, e ora è dichiarata una sola volta. La voce «Home»
+  scompare dal menu: per tornare a casa si usa il titolo dell'app, come
+  prevede App Bridge (D-130).
+
 ## 0.9.5 — 4 agosto 2026
 
 - in Production gli addebiti dei merchant sono reali: `BILLING_TEST` vale

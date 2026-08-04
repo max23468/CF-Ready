@@ -22,6 +22,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 // del pacchetto per un solo attributo.
 const HOME: Record<string, string> = { rel: "home" };
 
+// Una voce per rotta, e una sola. `rel="home"` dichiara ad App Bridge la rotta di casa e la
+// nasconde dal menu: il titolo dell'app diventa il modo per tornarci. Dichiarare `/app` due
+// volte — una visibile e una con `rel` — lasciava l'Admin senza menu quando si arrivava alla
+// Home da un link dentro una pagina (D-130).
+export const NAV = [
+  { href: "/app", label: "home", home: true },
+  { href: "/app/rules", label: "rules" },
+  { href: "/app/messages", label: "messages" },
+  { href: "/app/guide", label: "guide" },
+] as const satisfies readonly { href: string; label: keyof Nav; home?: boolean }[];
+
+type Nav = ReturnType<typeof texts>["nav"];
+
 export const shouldRevalidate = skipRevalidationWhenLeaving;
 
 export default function App() {
@@ -40,19 +53,11 @@ export default function App() {
   return (
     <AppProvider embedded apiKey={apiKey}>
       <s-app-nav>
-        {/* Due link alla stessa rotta, con ruoli diversi. Il primo è visibile ed è la voce
-            `Home` di §15.2: senza, chi non conosce la convenzione Shopify non sa che per
-            tornare a casa si clicca il titolo dell'app. Il secondo non compare nel menu e serve
-            solo a dichiarare ad App Bridge qual è la rotta di casa: senza quella dichiarazione
-            il titolo dell'app punta alla radice dell'URL, che senza `shop` non sa quale store
-            sia e finisce sul form di accesso. */}
-        <s-link href="/app">{t.home}</s-link>
-        <s-link href="/app" {...HOME}>
-          {t.home}
-        </s-link>
-        <s-link href="/app/rules">{t.rules}</s-link>
-        <s-link href="/app/messages">{t.messages}</s-link>
-        <s-link href="/app/guide">{t.guide}</s-link>
+        {NAV.map((item) => (
+          <s-link key={item.href} href={item.href} {...("home" in item ? HOME : {})}>
+            {t[item.label]}
+          </s-link>
+        ))}
       </s-app-nav>
       <Outlet />
     </AppProvider>
