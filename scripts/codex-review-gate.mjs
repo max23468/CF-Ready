@@ -16,6 +16,7 @@ export function classifyCodexReview({
   reactions,
   progressReactions = reactions,
   requiresReviewedCommit = false,
+  reviews = [],
   reviewComments,
 }) {
   const completions = [];
@@ -68,6 +69,18 @@ export function classifyCodexReview({
         at: timestamp(comment.created_at),
         description: "La review Codex non è stata completata",
       });
+    }
+  }
+
+  for (const review of reviews) {
+    const commit = reviewedCommit(review.body);
+    if (
+      review.user?.login === CODEX_BOT &&
+      commit &&
+      headSha.startsWith(commit) &&
+      timestamp(review.submitted_at) >= timestamp(requestedAt)
+    ) {
+      cleanComments.push(timestamp(review.submitted_at));
     }
   }
 
@@ -146,6 +159,7 @@ const reviewSignals = (repository, number) =>
   Promise.all([
     all(`/repos/${repository}/issues/${number}/comments`),
     all(`/repos/${repository}/issues/${number}/reactions`),
+    all(`/repos/${repository}/pulls/${number}/reviews`),
     all(`/repos/${repository}/pulls/${number}/comments`),
   ]);
 
@@ -184,12 +198,14 @@ async function main() {
 
   const requestedAt = pullRequest.updated_at;
   for (let attempt = 0; attempt < 600; attempt += 1) {
-    const [comments, reactions, reviewComments] = await reviewSignals(repository, number);
+    const [comments, reactions, reviews, reviewComments] = await reviewSignals(repository, number);
     const result = classifyCodexReview({
       headSha,
       requestedAt,
       comments,
       reactions,
+      requiresReviewedCommit: true,
+      reviews,
       reviewComments,
     });
     if (result.state !== "pending") {

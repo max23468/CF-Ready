@@ -26,8 +26,33 @@ test("il pollice sulla PR approva la review automatica iniziale", () => {
   assert.equal(
     classify({
       reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:01Z" }],
+      requiresReviewedCommit: true,
+      reviews: [
+        {
+          user: bot,
+          submitted_at: "2026-08-04T12:00:02Z",
+          body: `**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
+        },
+      ],
     }).state,
     "success",
+  );
+});
+
+test("un pollice tardivo non approva una review del commit precedente", () => {
+  assert.equal(
+    classify({
+      reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:02Z" }],
+      requiresReviewedCommit: true,
+      reviews: [
+        {
+          user: bot,
+          submitted_at: "2026-08-04T12:00:01Z",
+          body: "**Reviewed commit:** `abcdef0123`",
+        },
+      ],
+    }).state,
+    "pending",
   );
 });
 

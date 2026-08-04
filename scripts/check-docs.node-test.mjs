@@ -419,6 +419,8 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
   assert.match(gate, /currentPullRequest\.head\.sha !== headSha/);
   assert.doesNotMatch(gate, new RegExp(["@codex", "review"].join(" ")));
   assert.doesNotMatch(gate, /issues\/\$\{number\}\/comments[\s\S]*method: "POST"/);
+  assert.match(gate, /pulls\/\$\{number\}\/reviews/);
+  assert.match(gate, /requiresReviewedCommit: true/);
   assert.match(gate, /Review Codex non conclusa entro cinque ore/);
   const maintenance = readFileSync(
     new URL("../.github/workflows/security-maintenance.yml", import.meta.url),
