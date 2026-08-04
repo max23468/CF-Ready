@@ -9,22 +9,22 @@ import {
 } from "./codex-review-gate.mjs";
 
 test("un rerun riusa la review completa dell'HEAD senza richiederne un'altra", () => {
-  const requestedAt = "2026-08-04T22:00:00Z";
+  const requestedAt = "2026-01-01T10:00:00Z";
   assert.equal(
     classifyReusableCodexReview({
-      headSha: "081714c6bb6991c4a03f8655c5b93aab11e37b1f",
+      headSha: "abcdef1234567890abcdef1234567890abcdef12",
       requestedAt,
       comments: [
         {
           user: { login: "chatgpt-codex-connector[bot]" },
-          created_at: "2026-08-04T22:01:00Z",
-          body: "Didn't find any major issues.\n\n**Reviewed commit:** `081714c6bb`",
+          created_at: "2026-01-01T10:01:00Z",
+          body: "Didn't find any major issues.\n\n**Reviewed commit:** `abcdef1234`",
         },
       ],
       reactions: [
         {
           user: { login: "chatgpt-codex-connector[bot]" },
-          created_at: "2026-08-04T22:01:01Z",
+          created_at: "2026-01-01T10:01:01Z",
           content: "+1",
         },
       ],
