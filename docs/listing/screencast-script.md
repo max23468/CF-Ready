@@ -25,7 +25,7 @@ La scelta va fatta una volta e tenuta per tutto il video.
 
 ## Scaletta
 
-Le undici scene sono quelle richieste. La colonna «Dice» è il senso da
+Le dodici scene sono quelle richieste, con l'avvio della prova che dalla `0.9.2` è un gesto esplicito del merchant. La colonna «Dice» è il senso da
 trasmettere, non un copione da leggere parola per parola.
 
 | # | Scena | Cosa si vede | Dice |
@@ -33,29 +33,31 @@ trasmettere, non un copione da leggere parola per parola.
 | 1 | Installazione | Installazione dall'Admin, schermata dei permessi, ingresso nell'app | Un solo permesso richiesto: `write_validations`. L'app non legge ordini, clienti o prodotti |
 | 2 | Store italiano | La verifica del Paese dello store | L'app opera sugli store italiani; su uno store non idoneo lo dichiara e non avvia nulla |
 | 3 | Onboarding | La procedura guidata, senza saltarla | Poche scelte, e nessuna tocca il tema |
-| 4 | Codice Fiscale obbligatorio | Regole → Codice Fiscale su Obbligatorio → salva | Salvare la regola **non** attiva ancora la validazione: sono due passi separati apposta |
+| 4 | Codice Fiscale obbligatorio | Regole → Codice Fiscale su Obbligatorio → salva | Salvare la regola **non** attiva ancora il controllo: sono due passi separati apposta |
 | 5 | PEC | La seconda regola, indipendente | La PEC si può richiedere insieme o lasciare fuori |
-| 6 | Attivazione | Attivazione dalla Home, con l'esito | Da qui in poi la regola vale nel checkout reale. Una sola Validation per store |
-| 7 | Checkout bloccato | Checkout con indirizzo italiano, campo vuoto, poi `RSSMRA85T10A562X` | Prima manca, poi è formalmente sbagliato: in entrambi i casi l'ordine non passa |
-| 8 | Checkout consentito | `RSSMRA85T10A562S`, ordine completato | Il controllo è formale: correttezza del codice, non appartenenza a una persona |
-| 9 | Cliente estero | Checkout con indirizzo non italiano | I campi italiani non compaiono e il cliente non viene mai bloccato |
-| 10 | Billing di prova | Scelta di una modalità a pagamento, schermata di approvazione Shopify | Addebito di test, gestito interamente da Shopify |
-| 11 | Disattivazione | Disattivazione dalla Home | Il checkout torna libero e la configurazione resta salvata |
+| 6 | Avvio della prova | Il pulsante «Inizia la prova» dalla scheda di preparazione | La prova non parte da sola: la decide il merchant, e fino a qui non si è consumato niente. Senza prova o pagamento il controllo non si può attivare |
+| 7 | Attivazione | Attivazione dalla Home, con l'esito | Da qui in poi la regola vale nel checkout reale. Un solo controllo per store |
+| 8 | Checkout bloccato | Checkout con indirizzo italiano, campo vuoto, poi `RSSMRA85T10A562X` | Prima manca, poi è formalmente sbagliato: in entrambi i casi l'ordine non passa |
+| 9 | Checkout consentito | `RSSMRA85T10A562S`, ordine completato | Il controllo è formale: correttezza del codice, non appartenenza a una persona |
+| 10 | Cliente estero | Checkout con indirizzo non italiano | I campi italiani non compaiono e il cliente non viene mai bloccato |
+| 11 | Billing di prova | Scelta di una modalità a pagamento, schermata di approvazione Shopify | Addebito di test, gestito interamente da Shopify |
+| 12 | Disattivazione | Disattivazione dalla Home | Il checkout torna libero e la configurazione resta salvata |
 
 ## Da dire esplicitamente nel video
 
-Tre frasi che devono essere pronunciate o mostrate, perché sono i punti su cui
+Quattro frasi che devono essere pronunciate o mostrate, perché sono i punti su cui
 una review può fraintendere il prodotto:
 
 1. la validazione è **formale**, non anagrafica;
-2. l'app **non blocca** quando è lei a fallire;
-3. l'app **non modifica il tema** e non aggiunge campi al checkout.
+2. la prova **non parte da sola**: la avvia il merchant quando vuole;
+3. l'app **non blocca** quando è lei a fallire;
+4. l'app **non modifica il tema** e non aggiunge campi al checkout.
 
 ## Da non fare
 
 - non accelerare le riprese del checkout: il reviewer deve vedere il messaggio
   di errore per il tempo di leggerlo;
-- non tagliare la scena 9, che è la prova del fail-open sul cliente estero;
+- non tagliare la scena 10, che è la prova del fail-open sul cliente estero;
 - non mostrare il Partner Dashboard, i secret, gli URL dei Worker o la
   configurazione Cloudflare;
 - non dichiarare a voce funzioni che l'app non ha: niente fatturazione
