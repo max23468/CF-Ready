@@ -52,14 +52,14 @@ risponde, e la versione attiva dell'app è la `0.9.1` del 4 agosto 2026.
 Development, dove la variabile non è definita.
 
 La versione precedente di questo punto rinviava il passaggio al canary, perché
-«il reviewer deve vedere addebiti di prova». La motivazione era sbagliata e non
-proveniva da una fonte Shopify. Sui development store è **Shopify** a non
-addebitare: prima del 28 aprile 2026 creando automaticamente una test
-subscription per lo store, dopo quella data tramite il piano privato a `0`. La
-protezione del reviewer non passa mai dal flag che manda l'app, quindi tenerlo a
-`"true"` non proteggeva nessuno e lasciava l'app incapace di addebitare i
-merchant — cioè esattamente il difetto contestato dal requisito 1.2.2. Vedi
-D-129 nel Master Plan.
+«il reviewer deve vedere addebiti di prova». Production deve invece inviare
+`test: false`, altrimenti i merchant non vengono addebitati — esattamente il
+difetto contestato dal requisito 1.2.2. Con Manual pricing, però, un development
+store non rende gratuita per costruzione una charge Production: per non
+addebitare serve `test: true`. Le istruzioni reviewer usano quindi la prova
+gratuita per il walkthrough e chiedono di aprire la conferma del piano senza
+approvarla; Development conserva le charge di test per il collaudo interno.
+Vedi D-129 nel Master Plan.
 
 Il valore diventa effettivo sul Worker soltanto al primo deploy Production
 successivo, che resta un'operazione autorizzata a parte.

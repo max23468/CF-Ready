@@ -1,8 +1,8 @@
 # Reviewer instructions
 
 Written for the Shopify App Store reviewer, in English, to be pasted into the
-submission form. Everything below is reproducible on any Italian development
-store; nothing here requires contacting us first.
+submission form. The functional walkthrough is reproducible on any Italian
+development store; paid Production charges are shown but never approved.
 
 The Italian-facing copy lives in [`listing-it.md`](listing-it.md); this document
 is not translated.
@@ -37,7 +37,7 @@ test store is a requirement of Payment apps (5.2.1), not of a regular app.
 | Store country | Italy — the app declares a non-Italian store ineligible and starts neither a trial nor a charge |
 | Plan | Basic — the app requires no Shopify Plus and no plan-specific feature |
 | Product | any published product with stock; the app does not read the catalogue |
-| Billing | Shopify does not bill development stores, so no money moves whatever the reviewer approves |
+| Billing | Use the 14-day trial for the walkthrough. Production uses real manual-pricing charges: open the approval screen in step 10, then cancel without approving |
 
 The instruction pasted in the submission form leads with the Italian store
 requirement, because that is the one condition without which none of the steps
@@ -87,7 +87,7 @@ Each step is independent; run them in order the first time.
 | 7 | Enter `RSSMRA85T10A562S` | Checkout completes |
 | 8 | Checkout with a non-Italian address | The Italian fields are not shown and checkout completes — a foreign customer is never blocked |
 | 9 | Set PEC to **Required** as well, repeat with `mario.rossi@pec` then `mario.rossi@pec.it` | Blocked, then allowed. The two rules are independent |
-| 10 | On the Home, choose a paid mode | Shopify's charge approval screen appears. Shopify does not bill development stores, so approving it moves no money (D-129) |
+| 10 | On the Home, choose a paid mode, inspect Shopify's approval screen, then cancel without approving | The amount and billing interval match the selected mode. Production charges are real; the free trial already provides the entitlement needed for this walkthrough (D-129) |
 | 11 | Turn the check off | The checkout stops being affected and the configuration is kept, so nothing has to be reconfigured |
 
 ## 6. Deliberate behaviours that may look like bugs
