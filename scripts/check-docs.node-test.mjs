@@ -421,6 +421,7 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
   assert.doesNotMatch(gate, /issues\/\$\{number\}\/comments[\s\S]*method: "POST"/);
   assert.match(gate, /pulls\/\$\{number\}\/reviews/);
   assert.match(gate, /requiresReviewedCommit: true/);
+  assert.match(gate, /GITHUB_EVENT_NAME === "workflow_dispatch" \|\| event\.action === "reopened"/);
   assert.match(gate, /Review Codex non conclusa entro cinque ore/);
   const maintenance = readFileSync(
     new URL("../.github/workflows/security-maintenance.yml", import.meta.url),

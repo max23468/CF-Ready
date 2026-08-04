@@ -196,7 +196,10 @@ async function main() {
     if (currentPullRequest.head.sha !== headSha) return;
   }
 
-  const requestedAt = pullRequest.updated_at;
+  const requestedAt =
+    process.env.GITHUB_EVENT_NAME === "workflow_dispatch" || event.action === "reopened"
+      ? 0
+      : pullRequest.updated_at;
   for (let attempt = 0; attempt < 600; attempt += 1) {
     const [comments, reactions, reviews, reviewComments] = await reviewSignals(repository, number);
     const result = classifyCodexReview({
