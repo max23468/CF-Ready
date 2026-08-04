@@ -139,7 +139,7 @@ verifica il bundle e rifiuta di proseguire; una regressione in
 | Nessuna funzione descritta ma assente | listing e reviewer instructions scritte a partire dal comportamento implementato, non dai deliverable pianificati |
 | Prezzi non ambigui | tre modalità con identiche funzionalità; importi in `app/plans.server.ts`, coerenti con la listing |
 | Icona | rischio accettato D-114 sulla sigla dentro l'icona, con `icon-app-notext.svg` pronto come rimedio |
-| Review video | copione in [`screencast-script.md`](../listing/screencast-script.md); ripresa non ancora eseguita |
+| Review video | copione in [`screencast-script.md`](../listing/screencast-script.md), aggiornato all'avvio esplicito della prova; ripresa dichiarata eseguita dall'owner il 4 agosto 2026, fuori dal repository |
 
 ## Cosa non è stato verificato
 
