@@ -99,6 +99,9 @@ export function classifyCodexReview({
   );
 }
 
+export const classifyReusableCodexReview = (args) =>
+  classifyCodexReview({ ...args, requiresReviewedCommit: true });
+
 export function codexReviewStarted({ requestedAt, comments, reactions, reviews }) {
   const startedAt = timestamp(requestedAt);
   return (
@@ -226,6 +229,18 @@ async function main() {
     process.env.GITHUB_EVENT_NAME === "workflow_dispatch" ||
     ["synchronize", "reopened"].includes(event.action)
   ) {
+    const [comments, reactions, , reviewComments] = await reviewSignals(repository, number);
+    const result = classifyReusableCodexReview({
+      headSha,
+      requestedAt,
+      comments,
+      reactions,
+      reviewComments,
+    });
+    if (result.state !== "pending") {
+      await setStatus(repository, headSha, result.state, result.description);
+      return;
+    }
     const comment = await request(`/repos/${repository}/issues/${number}/comments`, {
       method: "POST",
       body: JSON.stringify({ body: `@codex review\n\n<!-- codex-review-gate:${headSha} -->` }),

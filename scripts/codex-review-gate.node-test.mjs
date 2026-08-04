@@ -3,9 +3,36 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 import {
   classifyCodexReview,
+  classifyReusableCodexReview,
   codexReviewStarted,
   pullRequestNumber,
 } from "./codex-review-gate.mjs";
+
+test("un rerun riusa la review completa dell'HEAD senza richiederne un'altra", () => {
+  const requestedAt = "2026-08-04T22:00:00Z";
+  assert.equal(
+    classifyReusableCodexReview({
+      headSha: "081714c6bb6991c4a03f8655c5b93aab11e37b1f",
+      requestedAt,
+      comments: [
+        {
+          user: { login: "chatgpt-codex-connector[bot]" },
+          created_at: "2026-08-04T22:01:00Z",
+          body: "Didn't find any major issues.\n\n**Reviewed commit:** `081714c6bb`",
+        },
+      ],
+      reactions: [
+        {
+          user: { login: "chatgpt-codex-connector[bot]" },
+          created_at: "2026-08-04T22:01:01Z",
+          content: "+1",
+        },
+      ],
+      reviewComments: [],
+    }).state,
+    "success",
+  );
+});
 
 const headSha = "0123456789abcdef0123456789abcdef01234567";
 const requestedAt = "2026-08-04T12:00:00Z";
