@@ -89,6 +89,68 @@ test("la Setup guide non marca come completati i passi aperti e usa la griglia r
   expect(rendered.filter((element) => element.type === "s-icon")).toHaveLength(0);
 });
 
+// La card è la prima cosa che si vede dopo l'installazione: deve accogliere, e deve
+// offrire l'unica azione che sblocca tutto il resto invece di limitarsi a nominarla.
+test("la Setup guide accoglie alla prima apertura e offre di iniziare la prova", () => {
+  const base = {
+    locale: "it",
+    rules: { taxCode: "unmanaged", pec: "unmanaged" },
+    validationEnabled: false,
+    eligible: true,
+    entitlement: { kind: "none", validThrough: null },
+    trialStatus: null,
+    planKind: "none",
+    address2Declared: false,
+  } as Parameters<typeof SetupGuide>[0]["data"];
+  const submit = vi.fn();
+  const render = (data: Parameters<typeof SetupGuide>[0]["data"]) =>
+    elements(SetupGuide({ data, busy: false, pendingIntent: null, pendingSource: null, submit }));
+
+  const primaVolta = render(base);
+  const benvenuto = primaVolta.some(
+    (element) =>
+      element.type === "s-paragraph" &&
+      (element.props as { children?: ReactNode }).children === texts("it").setup.welcome,
+  );
+  expect(benvenuto).toBe(true);
+
+  // La card apre un passo per volta: quello della prova si apre con le regole già scelte,
+  // e viene prima dell'attivazione, che senza un diritto valido resterebbe disabilitata.
+  const alPassoProva = render({
+    ...base,
+    rules: { taxCode: "required_validated", pec: "unmanaged" },
+  } as Parameters<typeof SetupGuide>[0]["data"]);
+  const avvia = alPassoProva.find(
+    (element) =>
+      element.type === "s-button" &&
+      (element.props as { children?: ReactNode }).children === texts("it").setup.startTrial,
+  );
+  if (!avvia) throw new Error("azione per iniziare la prova assente");
+  (avvia.props as { onClick: () => void }).onClick();
+  expect(submit).toHaveBeenCalledWith("start_trial", "setup");
+
+  // Con la prova in corso il passo è concluso: niente benvenuto, niente pulsante.
+  const inProva = render({
+    ...base,
+    trialStatus: "active",
+    entitlement: { kind: "trial", validThrough: "2026-08-18" },
+  });
+  expect(
+    inProva.some(
+      (element) =>
+        element.type === "s-paragraph" &&
+        (element.props as { children?: ReactNode }).children === texts("it").setup.welcome,
+    ),
+  ).toBe(false);
+  expect(
+    inProva.some(
+      (element) =>
+        element.type === "s-button" &&
+        (element.props as { children?: ReactNode }).children === texts("it").setup.startTrial,
+    ),
+  ).toBe(false);
+});
+
 test("checkbox e istruzioni della dichiarazione condividono lo stesso stato", () => {
   const render = (declared: boolean) =>
     elements(Address2DeclarationPrompt({ declared, t: texts("it") }));

@@ -17,7 +17,13 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 - la procedura guidata si apre con un benvenuto e dichiara subito che niente
   parte da solo;
 - il blocco commerciale spiega che le tre modalità hanno le stesse funzioni e
-  che i pagamenti li gestisce Shopify sulla fattura dello store.
+  che i pagamenti li gestisce Shopify sulla fattura dello store;
+- la card di preparazione accoglie chi apre l'app per la prima volta, offre di
+  iniziare la prova invece di limitarsi a nominarla, e considera concluso quel
+  passo anche durante la prova, non solo con un piano a pagamento;
+- nella stessa card il passo della prova precede l'attivazione: senza un diritto
+  valido «Attiva nel checkout» resta disabilitato, e chi seguiva l'ordine si
+  fermava su un passo che non poteva completare.
 
 ## 0.9.1 — 4 agosto 2026
 

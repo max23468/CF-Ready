@@ -126,13 +126,21 @@ const it = {
   },
   setup: {
     heading: "Prepara CF Ready",
+    // Il merchant ha appena installato: la prima cosa che legge dice dove si trova e
+    // quanto ci vuole, non un contatore di passi.
+    welcome:
+      "Benvenuto. Da qui decidi quali dati chiedere ai tuoi clienti italiani nel checkout e quando far valere le regole. Bastano pochi minuti e puoi fermarti a metà: quello che salvi resta.",
     progress: (done: number, total: number) => `${done} di ${total} completati`,
     rulesTitle: "Scegli cosa controllare",
     rulesBody: "Decidi se Codice Fiscale e PEC sono non gestiti, facoltativi o obbligatori.",
     activateTitle: "Attiva nel checkout",
     activateBody: "Finché non attivi, le regole restano salvate ma non valgono per i clienti.",
-    planTitle: "Scegli come continuare",
-    planBody: "Alla fine della prova serve un piano, altrimenti il checkout smette di controllare.",
+    planTitle: "Inizia la prova o scegli come pagare",
+    planBody:
+      "La prova dura 14 giorni, è gratuita e non chiede una carta: finché non la inizi non si consuma. Senza prova né pagamento le regole restano salvate ma non valgono nel checkout.",
+    planBodyEntitled:
+      "Quando la prova finisce serve una modalità di pagamento, altrimenti il checkout smette di controllare.",
+    startTrial: "Inizia la prova",
     address2Title: "Smetti di usare il campo “Interno”",
     guided: "Apri la procedura guidata",
   },
@@ -498,13 +506,19 @@ const en: typeof it = {
   },
   setup: {
     heading: "Get CF Ready ready",
+    welcome:
+      "Welcome. From here you decide which details to ask your Italian customers at checkout, and when the rules start applying. It takes a few minutes and you can stop halfway: whatever you save stays saved.",
     progress: (done: number, total: number) => `${done} of ${total} done`,
     rulesTitle: "Choose what to check",
     rulesBody: "Decide whether the tax code and PEC are not managed, optional or required.",
     activateTitle: "Turn on in checkout",
     activateBody: "Until you turn it on, your rules are saved but don’t apply to customers.",
-    planTitle: "Choose how to continue",
-    planBody: "When the trial ends you need a plan, otherwise checkout stops checking.",
+    planTitle: "Start the trial or choose how to pay",
+    planBody:
+      "The trial lasts 14 days, is free and asks for no card: until you start it, none of it is spent. Without a trial or payment your rules stay saved but don't apply at checkout.",
+    planBodyEntitled:
+      "When the trial ends you need a payment mode, otherwise checkout stops checking.",
+    startTrial: "Start the trial",
     address2Title: "Stop using the “Apartment, suite, etc.” field",
     guided: "Open the guided setup",
   },

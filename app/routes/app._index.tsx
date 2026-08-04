@@ -761,6 +761,26 @@ export function SetupGuide({
       action: <s-link href="/app/rules">{t.nav.rules}</s-link>,
     },
     {
+      // Prima dell'attivazione, non dopo: senza un diritto valido «Attiva nel checkout»
+      // resta disabilitato, e chi seguisse l'ordine si fermerebbe su un passo che non
+      // può completare.
+      done: data.entitlement.kind !== "none",
+      title: t.setup.planTitle,
+      body: data.trialStatus === null ? t.setup.planBody : t.setup.planBodyEntitled,
+      action:
+        data.trialStatus === null && data.entitlement.kind === "none" ? (
+          <s-stack direction="inline" gap="base">
+            <s-button
+              disabled={busy || !data.eligible}
+              loading={pendingIntent === "start_trial"}
+              onClick={() => submit("start_trial", "setup")}
+            >
+              {t.setup.startTrial}
+            </s-button>
+          </s-stack>
+        ) : null,
+    },
+    {
       done: data.validationEnabled,
       title: t.setup.activateTitle,
       body: t.setup.activateBody,
@@ -776,12 +796,6 @@ export function SetupGuide({
             </s-button>
           </s-stack>
         ),
-    },
-    {
-      done: data.planKind !== "none",
-      title: t.setup.planTitle,
-      body: t.setup.planBody,
-      action: null,
     },
     // FR-058: compare solo se la dichiarazione è attiva, e sparisce quando viene revocata.
     ...(data.address2Declared
@@ -807,6 +821,9 @@ export function SetupGuide({
       <s-stack direction="block" gap="base">
         <s-stack direction="block" gap="small-100">
           <s-heading>{t.setup.heading}</s-heading>
+          {/* Il benvenuto vale solo la prima volta: a chi è già a metà strada
+              interessa il contatore, non la presentazione. */}
+          {done === 0 ? <s-paragraph>{t.setup.welcome}</s-paragraph> : null}
           <s-text color="subdued">{t.setup.progress(done, steps.length)}</s-text>
         </s-stack>
 
