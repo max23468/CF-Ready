@@ -9,19 +9,25 @@ const browser = {
   "user-agent": "Mozilla/5.0 (Macintosh) AppleWebKit/537.36 Chrome/140.0 Safari",
 };
 
-for (const path of [
-  "/",
-  "/?shop=cf-ready-dev.myshopify.com",
-  "/auth/login",
-  "/auth/login?shop=cf-ready-dev.myshopify.com",
-]) {
-  test(`l'URL dell'app non mostra UI prima di OAuth: ${path}`, async ({ request }) => {
+for (const path of ["/", "/?shop=cf-ready-dev.myshopify.com", "/auth/login"]) {
+  test(`l'ingresso dell'app inoltra a /app: ${path}`, async ({ request }) => {
     const response = await request.get(path, { maxRedirects: 0, headers: browser });
 
-    // Lo status conta quanto la destinazione: senza, un 500 della libreria passerebbe per un
-    // corpo che non contiene il form.
     expect(response.status()).toBe(302);
     expect(response.headers().location).toMatch(/^\/app/);
     expect(await response.text()).not.toContain("s-text-field");
+  });
+}
+
+for (const path of ["/app", "/app?shop=cf-ready-dev.myshopify.com"]) {
+  test(`la destinazione pre-OAuth espone solo il bootstrap App Bridge: ${path}`, async ({
+    request,
+  }) => {
+    const response = await request.get(path, { headers: browser });
+    const body = await response.text();
+
+    expect(response.status()).toBe(200);
+    expect(body).toContain("https://cdn.shopify.com/shopifycloud/app-bridge.js");
+    expect(body).not.toMatch(/<s-(?:button|link|text-field)/);
   });
 }

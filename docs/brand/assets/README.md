@@ -58,7 +58,7 @@ hanno questo vincolo perché sigla e wordmark sono tracciati.
 | Angoli dell'icona | quadrati: è Shopify ad arrotondarli | ✅ il fondo panna è a spigolo vivo |
 | Padding | il logo non deve toccare i bordi | ✅ il marchio occupa il 70% del lato |
 | Testo nell'icona | da evitare | ⚠️ vedi sotto |
-| Feature image | 1600 × 900 px, 16:9, un solo punto focale, fondo pieno, contrasto ≥ 4,5:1, alt text | ⏳ da produrre in M9 |
+| Feature image | 1600 × 900 px, 16:9, un solo punto focale, fondo pieno, contrasto ≥ 4,5:1, alt text | ✅ SVG e PNG IT/EN prodotti in M9 |
 | Marchi Shopify | vietati in icona, banner e screenshot | ✅ nessuno |
 
 Fonti: [App Store requirements](https://shopify.dev/docs/apps/launch/shopify-app-store/app-store-requirements) · [Best practices](https://shopify.dev/docs/apps/launch/shopify-app-store/best-practices) · [Visual design](https://shopify.dev/docs/apps/design/visual-design). Da riverificare alla submission: i requisiti cambiano.
@@ -184,8 +184,7 @@ Il controllo è stato fatto su ricostruzioni fedeli dei fondi dell'Admin, non de
 
 ---
 
-## Cosa manca ancora
+## Verifiche residue
 
-1. **Verifica dentro l'Admin reale.** Il controllo di contrasto qui sopra è su ricostruzioni dei fondi: va rifatto con l'app installata sul dev store in M1 e sullo store reale in M10.
-2. **Feature image 1600 × 900.** Da produrre in M9, insieme agli screenshot: serve contenuto reale, non si può anticipare.
-3. **Decisione sul testo nell'icona.** Vedi sopra: la variante di riserva è pronta, la scelta è dell'owner.
+1. **Verifica dentro l'Admin reale.** Il controllo di contrasto qui sopra è su ricostruzioni dei fondi: va rifatto sullo store reale in M10.
+2. **Testo nell'icona.** L'owner ha approvato la variante con sigla; quella senza testo resta il rimedio se Shopify la contesta.

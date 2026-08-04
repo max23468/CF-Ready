@@ -1,38 +1,40 @@
 # Audit pre-submission App Store
 
-**Data:** 3 agosto 2026
-**Snapshot:** `develop` a `55db5da`, versione `0.8.6`, branch di lavoro
-`feat/m9-release-candidate`
+**Data:** 4 agosto 2026
+**Snapshot:** `develop` a `8fc5d5b`, versione `0.9.9`
 **Perimetro:** §24.8 del
 [Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md) e i requisiti di
-self-review pubblicati da Shopify
+  self-review pubblicati da Shopify
 
 ## Come è stato fatto
 
 L'elenco dei requisiti non è stato ricordato né ricostruito: è stato scaricato
-dalla fonte con la CLI supportata, il 3 agosto 2026.
+  dalla fonte con la CLI supportata il 3 agosto e riscaricato il 4 agosto 2026,
+  dopo la submission e sull'ultimo snapshot Development.
 
 ```bash
 npm exec -- shopify doc fetch --url https://shopify.dev/docs/apps/launch/app-store-review/app-store-ai-self-review-requirements
 ```
 
 Ogni requisito applicabile è stato verificato contro il codice di questo
-repository. **Un audit fatto su documentazione ricordata non vale**: i requisiti
-cambiano e vanno riscaricati alla submission, che è un'altra data da questa.
+repository. **Un audit fatto su documentazione ricordata non vale**: il secondo
+passaggio ha incluso anche i requisiti di installazione `2.3.2`–`2.3.4` presenti
+nella fonte corrente.
 
 ## Esito
 
 | Esito | Numero |
 | --- | --- |
-| Conforme | 14 |
-| Da chiudere prima della submission | 2, di cui uno ridotto al solo checkout reale |
+| Probabilmente conforme nel controllo locale Shopify | 31 |
+| Probabilmente non conforme | 0 |
+| Richiede review manuale nel controllo locale | 0 |
 | Non applicabile, gruppo saltato | 10 gruppi |
 
-Nessun requisito risulta violato dal comportamento dell'app. Dei cinque punti
-aperti al 3 agosto ne restano due: gli addebiti reali, che spettano al canary,
-e un checkout reale da rieseguire. Nessuno è un difetto di prodotto.
+Nessun requisito locale risulta violato dal comportamento dell'app. Restano
+separati i controlli che Shopify esegue sulla submission e il checkout reale
+della Function, pianificato nel canary M10: non sono sostituiti da questo audit.
 
-## Da chiudere prima della submission
+## Punti preparatori chiusi e limite M10
 
 ### 1. URL Production nel manifest — chiuso il 4 agosto 2026 ✅
 
@@ -42,7 +44,8 @@ Ora punta a `https://cf-ready-prod.tmsf.workers.dev` e vieta
 riscrivere gli URL dell'app pubblica con un tunnel.
 
 Chiuso anche il passo successivo: il Worker `cf-ready-prod` è distribuito e
-risponde, e la versione attiva dell'app è la `0.9.1` del 4 agosto 2026.
+risponde, e la versione attiva dell'app è la `0.9.8` del 4 agosto 2026, run
+[`30946345558`](https://github.com/max23468/CF-Ready/actions/runs/30946345558).
 
 ### 2. Billing ancora in modalità test — chiuso il 4 agosto 2026 ✅
 
@@ -61,8 +64,8 @@ gratuita per il walkthrough e chiedono di aprire la conferma del piano senza
 approvarla; Development conserva le charge di test per il collaudo interno.
 Vedi D-129 nel Master Plan.
 
-Il valore diventa effettivo sul Worker soltanto al primo deploy Production
-successivo, che resta un'operazione autorizzata a parte.
+Il valore è effettivo sul Worker Production dalla `0.9.6` ed è stato riconfermato
+dal preflight e dal deploy della `0.9.8`.
 
 ### 3. Function API `2026-07` — riconfermata, tranne il checkout reale
 
@@ -71,12 +74,13 @@ Il Master Plan chiede quattro cose prima della `1.0.0`. Tre sono state fatte il
 
 | Richiesta | Esito |
 | --- | --- |
-| Versione stabile secondo le fonti Shopify correnti | ✅ la tabella di [About Shopify API versioning](https://shopify.dev/docs/api/usage/versioning) dà `2026-07` rilasciata il 1º luglio 2026 e accessibile fino al 16 luglio 2027; la Cart and Checkout Validation Function API è pubblicata sotto `/docs/api/functions/2026-07/` |
+| Versione stabile secondo le fonti Shopify correnti | ✅ la tabella di [About Shopify API versioning](https://shopify.dev/docs/api/usage/versioning) dà `2026-07` rilasciata il 1º luglio 2026 e accessibile fino al 16 luglio 2027; la Cart and Checkout Validation Function API è pubblicata sotto `/docs/api/functions/2026-07/` e la ricerca CLI del 4 agosto conferma gli express checkout supportati |
 | Schema rigenerato con la CLI supportata | ✅ `shopify app function schema --config dev --stdout` con CLI 4.6.0: il risultato è identico a `extensions/cf-ready-validation/schema.graphql` a meno di tre a-capo di direttiva e della riga finale, cioè della formattazione applicata da `oxfmt`. Nessuna differenza di contenuto |
 | Fixture ripetute | ✅ `npm run test:function`, 109 test verdi |
 | Checkout reali ripetuti | ❌ **non eseguito**: richiede il dev store e una sessione di acquisto vera |
 
-Resta quindi aperto il solo checkout reale, che è anche il gate di M10.
+Resta quindi aperto il checkout reale, che il piano assegna al canary M10 e non
+alla submission M9.
 
 ### 4. Contatto tecnico d'emergenza — chiuso il 4 agosto 2026 ✅
 
@@ -111,14 +115,25 @@ verifica il bundle e rifiuta di proseguire; una regressione in
 | 1.1.2 Usa il checkout Shopify | nessun URL di checkout esterno, nessuna logica di pagamento: l'app non crea ordini |
 | 1.1.3 Nessun download di temi | nessuna chiamata Themes o Asset API; l'app non tocca il tema |
 | 1.1.4 Solo informazioni fattuali | nessun dato generato o simulato; la listing dichiara esplicitamente cosa l'app non fa |
+| 1.1.6–1.1.8 Marketplace, Payment Gateway e POS esterni | nessun marketplace, gateway di pagamento o collegamento a POS terzi; POS è dichiarato non supportato |
 | 1.1.9 Nessun addebito aggiunto al carrello | la Function aggiunge soltanto `validationAdd.errors`, non righe né importi |
+| 1.1.10 Opzione di spedizione più economica | l'app non legge, riordina o modifica opzioni di spedizione |
+| 1.1.13 Duplicazione prodotti autorizzati | l'app non legge né copia prodotti |
+| 1.1.14 Nessun marketplace di agenzie | l'assistenza è interna e non mette in contatto merchant con terzi |
+| 1.1.15 Rimborsi tramite processore originale | l'app non emette rimborsi; osserva gli stati Shopify Billing |
+| 1.1.16 Nessun prestito | nessuna funzione o comunicazione di finanziamento |
 | 1.2.1 Billing tramite Shopify | `app/billing.server.ts` usa `appSubscriptionCreate`, `appPurchaseOneTimeCreate` e `appSubscriptionCancel`; nessun sistema di pagamento esterno |
 | 1.2.2 Approvazione e rifiuto gestiti | stato dell'addebito riconciliato dal webhook `app_subscriptions/update` e `app_purchases_one_time/update`; la reinstallazione riconosce l'acquisto una tantum esistente |
 | 1.2.3 Cambio piano senza reinstallare né scrivere al supporto | passaggi mensile/annuale/una tantum gestiti in-app, con la sequenza sicura di §14 per la conversione a una tantum |
 | 2.2.1 Usa le API Shopify | OAuth, Admin GraphQL e Validation API |
 | 2.2.3 App Bridge corrente | dipendenza `@shopify/shopify-app-react-router` 1.2.1; nessuna traccia del pacchetto legacy `@shopify/app-bridge` |
 | 2.2.4 Solo GraphQL Admin API | nessuna chiamata a `/admin/api/*.json`, nessun client REST |
+| 2.2.6 Nessuna promozione in Admin extension | nessuna Admin UI extension; il prompt recensione vive nell'App Home embedded |
+| 2.2.7 Max modal solo su gesto merchant | nessuna Max modal o API fullscreen |
 | 2.3.1 Nessun inserimento manuale del dominio | nessun campo che chieda un `myshopify.com`: la pagina di accesso che lo chiedeva è stata rimossa il 4 agosto 2026 (D-128), e `/auth/login` inoltra a `/app` |
+| 2.3.2 Autenticazione immediata dopo installazione | `/`, `/auth/login` e le varianti con `shop` inoltrano a `/app`; la destinazione senza sessione espone solo il bootstrap App Bridge, coperto da `tests/e2e/install.spec.ts` |
+| 2.3.3 UI dopo il consenso OAuth | `authenticate.admin` gestisce callback e session token; `afterAuth` completa lo stato dello store e l'App Home è la destinazione autenticata |
+| 2.3.4 OAuth immediato dopo reinstallazione | sessioni revocate rientrano nello stesso flusso `authenticate.admin`; reinstallazione e token sostituiti sono coperti dai test lifecycle/session storage |
 | 3.1.1 TLS valido | servito da Cloudflare Workers su HTTPS; nessun fallback in chiaro |
 | 3.2.x Scope minimi | un solo scope, `write_validations`. Nessuno degli scope sensibili elencati dai requisiti — `read_all_orders`, `write_payment_mandate`, `write_checkout_extensions_apis`, `read_advanced_dom_pixel_events`, `read_checkout_extensions_chat` — è richiesto |
 
@@ -142,7 +157,7 @@ verifica il bundle e rifiuta di proseguire; una regressione in
 | --- | --- |
 | Webhook privacy | i tre topic obbligatori (`customers/data_request`, `customers/redact`, `shop/redact`) sono dichiarati in `shopify.app.toml` e gestiti da `app/routes/webhooks.compliance.tsx` |
 | Nessun dato personale nei log | verificato in M8 e coperto dai test; Codice Fiscale e PEC non lasciano l'infrastruttura Shopify |
-| Installazione pulita, disinstallazione e reinstallazione | coperte da `tests/lifecycle.test.ts` e `tests/session-storage.test.ts` |
+| Installazione pulita, disinstallazione e reinstallazione | coperte da `tests/lifecycle.test.ts`, `tests/session-storage.test.ts` e dal percorso pre-OAuth di `tests/e2e/install.spec.ts` |
 | Store Basic | il dev store è Basic; nessuna funzione richiede Plus |
 | IT/EN completi | `tests/i18n.test.ts` e le sei route del sito in `tests/e2e/site.spec.ts` |
 | URL legali e assistenza | pubblicati e verificati dallo smoke del workflow Pages |
@@ -157,5 +172,5 @@ Dichiarato per non far passare questo audit per più di quello che è:
 
 - nessun checkout reale è stato eseguito in questa sessione;
 - nessuna installazione pulita è stata rifatta;
-- i requisiti App Store dovranno essere riscaricati alla submission, perché
-  cambiano.
+- listing, screenshot, screencast e stato della review vivono nel Dev Dashboard:
+  la loro presenza resta una prova esterna, distinta dal controllo locale.
