@@ -78,21 +78,26 @@ Each step is independent; run them in order the first time.
 | # | Action | Expected result |
 | --- | --- | --- |
 | 1 | Open the app in the Admin | Guided setup opens, in Italian or English following the Admin language |
-| 2 | On **Regole / Rules**, set Codice Fiscale to **Obbligatorio / Required**, save | The rule is saved. Validation is **not** active yet: saving rules and activating are deliberately separate steps |
-| 3 | Activate validation from the Home | One Validation is created for the store. Reactivating later reuses the same one |
-| 4 | Checkout with an Italian address, leaving the tax code empty | Checkout is blocked with the configured message |
-| 5 | Enter `RSSMRA85T10A562X` | Blocked: the format is wrong |
-| 6 | Enter `RSSMRA85T10A562S` | Checkout completes |
-| 7 | Checkout with a non-Italian address | The Italian fields are not shown and checkout completes — a foreign customer is never blocked |
-| 8 | Set PEC to **Required** as well, repeat with `mario.rossi@pec` then `mario.rossi@pec.it` | Blocked, then allowed. The two rules are independent |
-| 9 | On the Home, choose a paid mode | Shopify's charge approval screen appears as a **test charge** |
-| 10 | Deactivate validation | The checkout stops being affected and the configuration is kept, so nothing has to be reconfigured |
+| 2 | On **Regole / Rules**, set Codice Fiscale to **Obbligatorio / Required**, save | The rule is saved. The check is **not** active yet: saving rules and turning the check on are deliberately separate steps |
+| 3 | Start the 14-day trial — from the setup card on the Home, or at the end of the guided setup | The trial starts here and nowhere else. It never starts on its own, so until this step the store has no entitlement and step 4 stays disabled |
+| 4 | Turn the check on from the Home | One validation object is created for the store. Turning it on again later reuses the same one |
+| 5 | Checkout with an Italian address, leaving the tax code empty | Checkout is blocked with the configured message |
+| 6 | Enter `RSSMRA85T10A562X` | Blocked: the format is wrong |
+| 7 | Enter `RSSMRA85T10A562S` | Checkout completes |
+| 8 | Checkout with a non-Italian address | The Italian fields are not shown and checkout completes — a foreign customer is never blocked |
+| 9 | Set PEC to **Required** as well, repeat with `mario.rossi@pec` then `mario.rossi@pec.it` | Blocked, then allowed. The two rules are independent |
+| 10 | On the Home, choose a paid mode | Shopify's charge approval screen appears as a **test charge** |
+| 11 | Turn the check off | The checkout stops being affected and the configuration is kept, so nothing has to be reconfigured |
 
 ## 6. Deliberate behaviours that may look like bugs
 
-- **Saving rules does not activate validation.** Two separate actions, by
-  design: a merchant can prepare the configuration and choose when it starts
-  affecting live checkouts.
+- **The trial never starts on its own.** Installing the app and opening it, any
+  number of times, spends no trial day: the merchant decides when to begin. Until
+  a trial or a payment is active, rules can be configured but the check cannot be
+  turned on.
+- **Saving rules does not turn the check on.** Two separate actions, by design: a
+  merchant can prepare the configuration and choose when it starts affecting live
+  checkouts.
 - **The app never blocks on its own failure.** If the configuration cannot be
   read, if the entitlement has lapsed, or on any runtime error, checkout stays
   open. A required field that is genuinely missing blocks only when Shopify

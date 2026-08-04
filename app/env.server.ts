@@ -8,10 +8,11 @@ const bindings = env as Env & {
   TRIAL_LEDGER_HMAC_KEY?: string;
 };
 
-// Addebiti di prova finché la variabile non dice esplicitamente il contrario: in Production
-// va portata a "false" al canary, non prima — il reviewer Shopify deve vedere addebiti di
-// prova. L'annotazione allarga il tipo letterale che `wrangler types` deduce dal valore
-// oggi configurato: il confronto deve continuare a valere anche quando quel valore cambia.
+// Addebiti di prova finché la variabile non dice esplicitamente il contrario. In Production
+// vale "false" fin dalla pubblicazione: la modalità di prova non protegge il reviewer, perché
+// sui development store è Shopify a non addebitare, e lascerebbe l'app incapace di addebitare
+// i merchant (D-129). L'annotazione allarga il tipo letterale che `wrangler types` deduce dal
+// valore oggi configurato: il confronto deve continuare a valere anche quando quel valore cambia.
 const billingTest: string | undefined = bindings.BILLING_TEST;
 export const BILLING_IS_TEST = billingTest !== "false";
 export const APP_URL = bindings.SHOPIFY_APP_URL || "";

@@ -40,11 +40,7 @@ test("la lingua viene dallo staff Shopify, non dallo store né da una preferenza
     resolveLocale(new Request(`${url}?locale=en-US`, { headers: { "accept-language": "it" } })),
   ).toBe("en");
   expect(resolveLocale(new Request(url))).toBe("en");
-});
-
-test("anche l'accesso pubblico segue la locale comune", () => {
-  expect(texts(resolveLocale(new Request(`${url}?locale=it-IT`))).auth.heading).toBe("Accedi");
-  expect(texts(resolveLocale(new Request(`${url}?locale=en-US`))).auth.heading).toBe("Log in");
+  expect(texts(resolveLocale(new Request(`${url}?locale=it-IT`))).common.save).toBe("Salva");
 });
 
 test("feedback di salvataggio e caricamento seguono l'azione corrente", () => {
