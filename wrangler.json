@@ -4,9 +4,7 @@
   "account_id": "98195e505f42abaaeb4827f71a924b1a",
   "main": "./workers/app.ts",
   "compatibility_date": "2026-07-28",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
+  "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "preview_urls": false,
   "vars": {
@@ -28,9 +26,7 @@
   },
   "upload_source_maps": true,
   "triggers": {
-    "crons": [
-      "0 * * * *"
-    ]
+    "crons": ["0 * * * *"]
   },
   "d1_databases": [
     {
@@ -40,6 +36,32 @@
       "migrations_dir": "migrations"
     }
   ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "WEBHOOK_QUEUE",
+        "queue": "cf-ready-webhooks-dev"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "cf-ready-webhooks-dev",
+        "max_batch_size": 1,
+        "max_batch_timeout": 1,
+        "max_retries": 5,
+        "retry_delay": 10,
+        "dead_letter_queue": "cf-ready-webhooks-dev-failures"
+      },
+      {
+        "queue": "cf-ready-webhooks-dev-failures",
+        "max_batch_size": 1,
+        "max_batch_timeout": 1,
+        "max_retries": 100,
+        "retry_delay": 60,
+        "dead_letter_queue": "cf-ready-webhooks-dev"
+      }
+    ]
+  },
   "env": {
     "production": {
       "name": "cf-ready-prod",
@@ -65,9 +87,7 @@
         }
       },
       "triggers": {
-        "crons": [
-          "0 * * * *"
-        ]
+        "crons": ["0 * * * *"]
       },
       "d1_databases": [
         {
@@ -76,7 +96,33 @@
           "database_id": "6434597c-d683-48d9-a51f-b0d15de6a684",
           "migrations_dir": "migrations"
         }
-      ]
+      ],
+      "queues": {
+        "producers": [
+          {
+            "binding": "WEBHOOK_QUEUE",
+            "queue": "cf-ready-webhooks-prod"
+          }
+        ],
+        "consumers": [
+          {
+            "queue": "cf-ready-webhooks-prod",
+            "max_batch_size": 1,
+            "max_batch_timeout": 1,
+            "max_retries": 5,
+            "retry_delay": 10,
+            "dead_letter_queue": "cf-ready-webhooks-prod-failures"
+          },
+          {
+            "queue": "cf-ready-webhooks-prod-failures",
+            "max_batch_size": 1,
+            "max_batch_timeout": 1,
+            "max_retries": 100,
+            "retry_delay": 60,
+            "dead_letter_queue": "cf-ready-webhooks-prod"
+          }
+        ]
+      }
     }
   }
 }
