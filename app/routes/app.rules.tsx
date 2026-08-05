@@ -34,18 +34,22 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     state.errorCode === "duplicate_validations_active"
       ? state.errorCode
       : null;
+  const [configHash, address2Declaration] = await Promise.all([
+    observedConfigHash(validation),
+    readAddress2Declaration(db, session.shop),
+  ]);
 
   return {
     locale: resolveLocale(request),
     duplicateError,
     // §11.4: firma della configurazione osservata, rimandata indietro al salvataggio.
-    configHash: await observedConfigHash(validation),
+    configHash,
     rules: config.rules,
     errorDisplay: config.errorDisplay,
     messages: config.messages,
     enabled: state.validationEnabled,
     entitled: state.entitlement.kind !== "none",
-    address2Declared: (await readAddress2Declaration(db, session.shop)) !== null,
+    address2Declared: address2Declaration !== null,
   };
 };
 

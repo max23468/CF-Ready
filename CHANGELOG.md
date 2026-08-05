@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.11 — 5 agosto 2026
+
+- la Home avvia la lettura billing Shopify insieme allo stato commerciale D1
+  e legge in parallelo onboarding, dichiarazione del campo “Interno” e data di
+  attivazione; onboarding e Regole eliminano le stesse attese indipendenti;
+- l’app non carica più manualmente Inter, già incluso da Polaris: nell’iframe
+  resta un solo foglio dell’app e si evita un secondo font swap che poteva
+  contribuire al layout shift;
+- la risposta della Home espone `Server-Timing` per autenticazione, Shopify,
+  billing e D1 usando soltanto nomi tecnici e durate, senza dati del merchant.
+
 ## 0.9.10 — 5 agosto 2026
 
 - i webhook registrano prima il claim idempotente in D1 e affidano il lavoro a

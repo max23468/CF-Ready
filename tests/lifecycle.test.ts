@@ -230,6 +230,35 @@ test("il rientro in Italia sblocca lo store senza riattivare la Validation", asy
   });
 });
 
+test("un errore billing resta fail-open e produce soltanto timing tecnici", async () => {
+  const shop = await insertShop("billing-fallito.example.myshopify.com");
+  const admin = adminStub([
+    shopContext("IT", false),
+    { errors: [{ message: "servizio non disponibile" }] },
+  ]);
+  const timings: { name: string; durationMs: number }[] = [];
+
+  const state = await reconcile(admin, env.DB, shop, (name, durationMs) => {
+    timings.push({ name, durationMs });
+  });
+
+  expect(state.entitlement).toEqual(SENZA_DIRITTO);
+  expect(state.errorCode).toBe("billing_read_failed");
+  expect(admin.calls).toEqual(["context", "billing"]);
+  expect(timings.map(({ name }) => name)).toEqual(
+    expect.arrayContaining([
+      "shopify_context",
+      "d1_commercial",
+      "shopify_billing",
+      "d1_validation_state",
+    ]),
+  );
+  expect(timings.every(({ durationMs }) => Number.isFinite(durationMs) && durationMs >= 0)).toBe(
+    true,
+  );
+  expect(JSON.stringify(timings)).not.toContain(shop);
+});
+
 test("una disattivazione non riuscita resta fail-open e registra un codice errore", async () => {
   const shop = await insertShop("errore.example.myshopify.com");
   const admin = adminStub([

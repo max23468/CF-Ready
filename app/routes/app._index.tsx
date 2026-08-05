@@ -1,6 +1,7 @@
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useEffect } from "react";
-import { useFetcher, useLoaderData } from "react-router";
+import { data, useFetcher, useLoaderData } from "react-router";
+import { boundary } from "@shopify/shopify-app-react-router/server";
 import {
   addDays,
   cancelSubscription,
@@ -53,15 +54,27 @@ import {
 import type { Admin } from "../validation.server";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
+  const startedAt = performance.now();
+  const timings: string[] = [];
+  const authenticationStartedAt = performance.now();
   const { admin, session } = await authenticate.admin(request);
+  timings.push(`auth;dur=${(performance.now() - authenticationStartedAt).toFixed(1)}`);
   const db = context.get(databaseContext);
   // §11.6: la Home riconcilia a ogni apertura. Lo stato locale non viene mai presentato come
   // certo senza aver riletto Shopify.
-  const state = await reconcile(admin, db, session.shop);
+  const state = await reconcile(admin, db, session.shop, (name, durationMs) => {
+    timings.push(`${name};dur=${durationMs.toFixed(1)}`);
+  });
   const config = readConfig(state.validation?.metafield?.jsonValue);
-  const onboarding = await readOnboarding(db, session.shop);
+  const localStateStartedAt = performance.now();
+  const [onboarding, address2Declaration, enabledSince] = await Promise.all([
+    readOnboarding(db, session.shop),
+    readAddress2Declaration(db, session.shop),
+    validationEnabledSince(db, session.shop),
+  ]);
+  timings.push(`d1_home;dur=${(performance.now() - localStateStartedAt).toFixed(1)}`);
 
-  return {
+  const payload = {
     locale: resolveLocale(request),
     shopName: state.shopName,
     shopDomain: session.shop,
@@ -72,7 +85,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     rules: config.rules,
     errorDisplay: config.errorDisplay,
     messagesDefault: messagesAreDefault(config.messages),
-    address2Declared: (await readAddress2Declaration(db, session.shop)) !== null,
+    address2Declared: address2Declaration !== null,
     trialEndsAt: state.trial?.ends_at ?? null,
     remaining: remainingTrialDays(state.trial, state.today),
     entitlement: state.entitlement,
@@ -95,12 +108,16 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
         onboarding: onboarding.status,
         validationEnabled: state.validationEnabled,
         errorCode: state.errorCode,
-        enabledSince: await validationEnabledSince(db, session.shop),
+        enabledSince,
       },
       Date.now(),
     ),
   };
+  timings.push(`total;dur=${(performance.now() - startedAt).toFixed(1)}`);
+  return data(payload, { headers: { "Server-Timing": timings.join(", ") } });
 };
+
+export const headers: HeadersFunction = (headersArgs) => boundary.headers(headersArgs);
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
@@ -238,7 +255,7 @@ async function cancelPlan(admin: Admin, db: D1Database, shopDomain: string) {
 export const shouldRevalidate = skipRevalidationWhenLeaving;
 
 export default function Home() {
-  const data = useLoaderData<typeof loader>();
+  const data = useLoaderData<HomeData>();
   const fetcher = useFetcher<typeof action>();
   const t = texts(data.locale);
   const esito = fetcher.data as
@@ -520,7 +537,7 @@ export default function Home() {
   );
 }
 
-type HomeData = Awaited<ReturnType<typeof loader>>;
+type HomeData = Awaited<ReturnType<typeof loader>>["data"];
 
 // Lo stato commerciale è informazione: sta nella colonna laterale e non ha bottoni.
 function PlanStatus({ data }: { data: HomeData }) {

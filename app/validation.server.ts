@@ -105,6 +105,11 @@ export type Admin = {
   graphql: (query: string, options?: { variables?: Record<string, unknown> }) => Promise<Response>;
 };
 
+type ReconcileTiming = (
+  name: "shopify_context" | "d1_commercial" | "shopify_billing" | "d1_validation_state",
+  durationMs: number,
+) => void;
+
 export const CREATE_VALIDATION = `#graphql
   mutation CfReadyValidationCreate($validation: ValidationCreateInput!) {
     validationCreate(validation: $validation) {
@@ -183,8 +188,15 @@ export function mutationError(
   return userErrors.length ? userErrors.map(({ message }) => message).join(" ") : null;
 }
 
-export async function reconcile(admin: Admin, db: D1Database, shopDomain: string) {
+export async function reconcile(
+  admin: Admin,
+  db: D1Database,
+  shopDomain: string,
+  reportTiming?: ReconcileTiming,
+) {
+  const contextStartedAt = performance.now();
   const { shop, validations } = await queryContext(admin);
+  reportTiming?.("shopify_context", performance.now() - contextStartedAt);
   const countryCode = shop.shopAddress.countryCodeV2;
   const eligible = countryCode === ELIGIBLE_COUNTRY;
   const today = localDate(shop.ianaTimezone);
@@ -211,17 +223,33 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
     if (validation?.enabled) errorCode ??= "validation_still_enabled";
   }
 
+  const commercialStartedAt = performance.now();
+  const billingPromise = eligible
+    ? (async () => {
+        const startedAt = performance.now();
+        try {
+          return { state: await readBilling(admin, BILLING_IS_TEST), error: null };
+        } catch (error) {
+          return { state: null, error };
+        } finally {
+          reportTiming?.("shopify_billing", performance.now() - startedAt);
+        }
+      })()
+    : null;
   const [trial, storedAccount] = await Promise.all([
     syncTrial(db, shopDomain, { today }),
     readBillingAccount(db, shopDomain),
   ]);
+  reportTiming?.("d1_commercial", performance.now() - commercialStartedAt);
   let account = storedAccount;
   let creditEstimate: number | null = null;
   let billingConfirmed = false;
 
   if (eligible) {
     try {
-      let state = await readBilling(admin, BILLING_IS_TEST);
+      const initialBilling = await billingPromise!;
+      if (initialBilling.error) throw initialBilling.error;
+      let state = initialBilling.state!;
 
       // Passaggio a una tantum: l'acquisto è già approvato e attivo, quindi ora si può
       // cancellare l'abbonamento con proratazione. Mai prima: un acquisto abbandonato deve
@@ -301,6 +329,7 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
 
   const validationEnabled =
     validation?.enabled ?? (matches.length > 1 && matches.some(({ enabled }) => enabled));
+  const persistenceStartedAt = performance.now();
   await persistValidationState(db, shopDomain, {
     countryCode,
     eligible,
@@ -308,6 +337,7 @@ export async function reconcile(admin: Admin, db: D1Database, shopDomain: string
     validationEnabled,
     errorCode,
   });
+  reportTiming?.("d1_validation_state", performance.now() - persistenceStartedAt);
 
   return {
     shopName: shop.name,
