@@ -16,6 +16,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   contribuire al layout shift;
 - la risposta della Home espone `Server-Timing` per autenticazione, Shopify,
   billing e D1 usando soltanto nomi tecnici e durate, senza dati del merchant.
+- il deploy Production crea le code webhook mancanti prima del Worker e, in
+  caso di errore, ripristina soltanto i provider che erano già stati modificati.
 
 ## 0.9.10 — 5 agosto 2026
 
