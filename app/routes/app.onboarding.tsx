@@ -35,7 +35,10 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const state = await reconcile(admin, db, session.shop);
   const validation = state.validation;
   const config = readConfig(validation?.metafield?.jsonValue);
-  const onboarding = await readOnboarding(db, session.shop);
+  const [onboarding, address2Declaration] = await Promise.all([
+    readOnboarding(db, session.shop),
+    readAddress2Declaration(db, session.shop),
+  ]);
 
   return {
     locale: resolveLocale(request),
@@ -50,7 +53,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     enabled: state.validationEnabled,
     entitled: state.entitlement.kind !== "none",
     trialStatus: state.trial?.status ?? null,
-    address2Declared: (await readAddress2Declaration(db, session.shop)) !== null,
+    address2Declared: address2Declaration !== null,
   };
 };
 

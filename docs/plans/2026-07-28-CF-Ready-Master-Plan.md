@@ -11,7 +11,7 @@ ricevute operative.
 **Abbreviazione interna:** CFR  
 **Versione obiettivo:** `1.0.0`  
 **Distribuzione:** public app Shopify App Store, disponibile solo ai merchant in Italia  
-**Stack vincolante:** Shopify React Router template, TypeScript, Polaris Web Components, App Bridge Web Components, Shopify Function, Cloudflare Workers, D1, R2 e GitHub Actions
+**Stack vincolante:** Shopify React Router template, TypeScript, Polaris Web Components, App Bridge Web Components, Shopify Function, Cloudflare Workers, Queues, D1, R2 e GitHub Actions
 
 ---
 
@@ -355,6 +355,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-130 | Una sola voce visibile per rotta: Home compare una volta come `/app`, senza `rel="home"`. | Con `/app` dichiarata due volte — una voce visibile e una nascosta con `rel="home"` — arrivando alla Home da un link dentro una pagina l’Admin restava senza menu finché non si ricaricava. `rel="home"` non può conservare la voce perché App Bridge lo nasconde per contratto; non serve più dopo D-128, perché il titolo dell’app usa la radice predefinita `/` e quella radice inoltra già a `/app`. La prima correzione, pubblicata il 4 agosto 2026 senza riprodurre il difetto in un ambiente di prova, aveva rimosso la voce visibile invece del solo doppione. |
 | D-131 | Addebiti sempre in euro, senza adeguarsi alla valuta di fatturazione del merchant. | La valuta dell’addebito è quella inviata nel `currencyCode` e EUR è pienamente supportato: seguire `shopBillingPreferences` significherebbe costruire un listino per valuta per servire la coda dei merchant italiani non fatturati in euro, e rinunciare al prezzo unico che paga tutto il resto del pubblico. Per quella coda Shopify converte in fattura, come farebbe comunque visto che la vetrina della listing è in USD per limitazione della piattaforma. Deciso il 4 agosto 2026 sulle risposte del supporto Shopify riportate in §14.2. |
 | D-132 | Nessuno store né credenziali forniti al reviewer: l’app dichiara di non richiedere un account. | L’app è embedded e non ha login propri, e il requisito 4.5.5 è condizionale — «If your app requires login credentials». Fornire uno store con l’app preinstallata è un requisito delle Payment app (5.2.1), non delle app ordinarie, e il campo *Test account* del form vieta esplicitamente credenziali di store Shopify. Le istruzioni chiedono quindi al reviewer di installare su un proprio development store italiano, condizione messa in testa perché senza di essa l’app si dichiara non idonea e sembrerebbe rotta. Deciso il 4 agosto 2026, sostituendo il piano precedente di creare uno staff account e comunicare la password della vetrina. |
+| D-133 | Consegnare il lavoro webhook a Cloudflare Queues dopo il claim D1 e prima dell'ACK. | Shopify richiede risposte rapide, ma `waitUntil` non garantisce retry durevoli: una coda nativa conserva disinstallazioni, redazioni e riconciliazioni fallite senza introdurre un secondo stato applicativo o un provider. Una DLQ finalizza gli errori e rimanda il messaggio alla coda primaria se D1 resta indisponibile, evitando eliminazioni silenziose. |
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
@@ -425,7 +426,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-112 | Tipografia: grottesco geometrico di sistema per sito e materiali, nessun webfont, nessun font dichiarato dentro l’Admin. Sigla e wordmark in tracciati derivati da Jost (SIL OFL), peso 500. | Zero richieste di rete e nessuna dipendenza da font installati. Jost al posto del Futura per licenza: il Futura è commerciale e distribuito in bundle con macOS. |
 | D-113 | Nessuna dark mode del sito pubblico nella 1.0. | Una superficie in meno da mantenere e verificare. Decisione indipendente da Shopify: al 28 luglio 2026 l’Admin non ha dark mode nativa e, usando solo token Polaris, l’app la seguirebbe comunque da sola. |
 | D-114 | Presentare l’icona della listing con la sigla `CF`, accettando la raccomandazione Shopify di evitare il testo nell’icona. | Raccomandazione nelle best practice, non criterio di rifiuto nei requisiti; i monogrammi di due lettere sono diffusi fra le app approvate. Variante senza sigla pronta come rimedio, attivabile senza nuova approvazione (§24.5). |
-| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate `verify`, `react-doctor`, `dependency-review`, `e2e` e `codex-review` richiesti su `develop` e `main`; `codex-review` osserva soltanto il reviewer automatico nativo, lega la reaction positiva a un evento nativo sull'HEAD stabile o riusa uno status riuscito dello stesso SHA, non pubblica commenti e ha permesso Issues in sola lettura; abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate già eseguiti, impedisce il merge di commit non revisionati da Codex e impedisce all'automazione del repository di avviare il task agent tramite commenti, indirizza le security update nella corsia ordinaria, offre un canale privato per le vulnerabilità e conserva la promozione separata `develop` → `main`. |
+| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate `verify`, `react-doctor`, `dependency-review`, `e2e` e `codex-review` richiesti su `develop` e `main`; `codex-review` osserva soltanto il reviewer Codex, lega la reaction positiva a un evento nativo sull'HEAD stabile oppure accetta il suo verdetto pulito con `Reviewed commit` coincidente con l'HEAD, riusa uno status riuscito dello stesso SHA, non pubblica commenti e ha permesso Issues in sola lettura; abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate già eseguiti, impedisce il merge di commit non revisionati da Codex e impedisce all'automazione del repository di avviare il task agent tramite commenti, indirizza le security update nella corsia ordinaria, offre un canale privato per le vulnerabilità e conserva la promozione separata `develop` → `main`. |
 | D-116 | Usare React Router `8.3.0` con npm 12 e correggere nel manifest root, tramite `packageExtensions`, la sola peer dependency troppo restrittiva di `@shopify/shopify-app-react-router@1.2.1`. | Elimina `GHSA-qwww-vcr4-c8h2` senza fork o installazioni forzate; il gate completo prova la compatibilità effettiva mentre l'estensione resta rimovibile appena Shopify pubblica metadati compatibili. |
 | D-117 | Usare React Doctor stabile con pin esatto: scansione completa bloccante nel gate locale e Action ufficiale advisory sulle modifiche delle PR. Tenere attivi score e share URL, disabilitare il controllo supply-chain esterno. | Aggiunge controlli React deterministici e feedback inline senza duplicare i controlli dipendenze già coperti da npm e GitHub. Il gate resta locale: lo score è indicativo e non decide l’esito, che dipende da `blocking: warning`. |
 | D-118 | Le PR ordinarie puntano a `develop` e usano squash; `main` accetta soltanto promozioni autorizzate da `develop`, unite con merge commit. La cancellazione automatica dei branch resta disattivata e i soli branch temporanei vengono eliminati esplicitamente. | Preserva l’ascendenza tra integrazione e Production, evita il drift strutturale causato da squash indipendenti sui due rami e impedisce che una promozione elimini `develop`. |
@@ -818,6 +819,8 @@ richiesta, che senza un sistema ricevente non avrebbe riscontro.
 flowchart LR
     M["Merchant in Shopify Admin"] --> A["App embedded<br/>React Router + Polaris"]
     A --> W["Cloudflare Worker"]
+    W --> Q["Cloudflare Queues"]
+    Q --> W
     W --> D["Cloudflare D1"]
     W --> S["Shopify Admin GraphQL API"]
     S --> V["Cart and Checkout Validation"]
@@ -2345,6 +2348,7 @@ supportato.
 ### 18.1 Servizi
 
 - Workers: app embedded, React Router, API, OAuth, webhook, billing;
+- Queues: consegna durevole del lavoro webhook dopo il claim D1;
 - Static Assets: bundle frontend;
 - D1: unico database applicativo;
 - R2: backup cifrati;
@@ -2354,12 +2358,13 @@ supportato.
 
 ### 18.2 Nomi risorse
 
-| Ambiente | Worker | D1 | R2 backup | Jurisdiction R2 |
-|---|---|---|---|---|
-| Development | `cf-ready-dev` | `cf-ready-db-dev` | nessuno | — |
-| Production | `cf-ready` | `cf-ready-db-prod` | `cf-ready-backups-prod` | `eu` |
+| Ambiente | Worker | Queue webhook | DLQ webhook | D1 | R2 backup | Jurisdiction R2 |
+|---|---|---|---|---|---|---|
+| Development | `cf-ready-dev` | `cf-ready-webhooks-dev` | `cf-ready-webhooks-dev-failures` | `cf-ready-db-dev` | nessuno | — |
+| Production | `cf-ready-prod` | `cf-ready-webhooks-prod` | `cf-ready-webhooks-prod-failures` | `cf-ready-db-prod` | `cf-ready-backups-prod` | `eu` |
 
-Nell’URL Production non compare `prod`.
+Il nome e l’URL del Worker Production esplicitano `prod` per distinguerlo dal
+target Development nello stesso account Cloudflare.
 
 ### 18.3 URL
 
@@ -2400,7 +2405,7 @@ https://cf-ready-dev.tmsf.workers.dev
 Worker Production:
 
 ```text
-https://cf-ready.tmsf.workers.dev
+https://cf-ready-prod.tmsf.workers.dev
 ```
 
 Il sottodominio account osservato è `tmsf`. Non cambiarlo senza verificare
@@ -2778,24 +2783,24 @@ rottura di integrazione entro il minuto successivo. Restano applicabili:
 - il piano si rivaluta solo con nuovi collaboratori o rischio materiale.
 
 Il gate `codex-review` non chiede review e non pubblica mai commenti. Osserva
-soltanto i segnali del reviewer automatico nativo: un finding inline sull'HEAD
+soltanto i segnali del reviewer Codex: un finding inline sull'HEAD
 corrente fallisce il gate; l'esito positivo iniziale richiede una reaction Codex
 successiva all'apertura o al passaggio a ready, dopo la verifica che l'HEAD sia
-rimasto stabile. Quando non trova problemi, il reviewer nativo non crea una
-review `Reviewed commit`: la reaction è il suo solo esito positivo. Una
-spiegazione testuale del task agent, una reaction precedente all'evento o una
-review di uno SHA precedente non sbloccano il merge. Il workflow ha `issues:
-read`, non `issues: write`, così una regressione nello script non può creare il
-commento che avvia il task agent.
+rimasto stabile. Una review manuale può invece concludersi con il verdetto
+esplicito `Codex Review: Didn't find any major issues` e `Reviewed commit`: il
+gate lo accetta soltanto se autore, forma, timestamp e SHA coincidono. Una
+spiegazione testuale generica del task agent, una reaction precedente all'evento
+o una review di uno SHA precedente non sbloccano il merge. Il workflow ha
+`issues: read`, non `issues: write`, così una regressione nello script non può
+creare il commento che avvia il task agent.
 
-La review nativa parte all'apertura della PR o al passaggio da draft a ready. Per
-richiederne una nuova senza task agent si porta la PR in draft e subito di nuovo
-in ready; non si usa un commento di comando. Un nuovo commit non avvia il gate:
-il nuovo HEAD resta bloccato finché la PR non compie quel passaggio draft →
-ready, che verifica anche che lo SHA sia rimasto stabile. `workflow_dispatch` e
-`reopened` non generano una review: servono soltanto a riusare l'ultimo status
-`codex-review` riuscito sullo stesso SHA, senza reinterpretare reaction o
-commenti storici come una nuova richiesta.
+La review nativa parte all'apertura della PR o al passaggio da draft a ready. Si
+usa un solo trigger per ogni HEAD: draft → ready per la review nativa oppure una
+sola richiesta manuale seguita da `workflow_dispatch`, mai entrambi. Un nuovo
+commit non avvia il gate e resta bloccato finché uno dei due percorsi non verifica
+lo SHA stabile. `workflow_dispatch` e `reopened` non generano una review: riusano
+uno status riuscito oppure classificano l'esito Codex già completo dello stesso
+SHA, senza applicare reaction o commenti di commit precedenti.
 
 ### 19.7 Documentazione repository
 

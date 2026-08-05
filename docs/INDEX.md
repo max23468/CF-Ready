@@ -41,6 +41,7 @@ corrente si legge da codice, configurazioni e `package.json`.
 - [Release readiness 1.0](runbooks/release-readiness-1.0.md) — ogni gate con la
   sua prova, o la dichiarazione che manca.
 - [ADR 0001](adr/0001-stack.md) — stack applicativo e provider.
+- [ADR 0002](adr/0002-webhook-queue.md) — ACK webhook rapido con retry durevoli.
 - [Brand Foundation](brand/brand-foundation.md) — identità e tono.
 - [Brand board](brand/brand-board.html) — riferimento visuale.
 - [Asset del brand](brand/assets/README.md) — file e modalità d’uso.

@@ -6,6 +6,29 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.11 — 5 agosto 2026
+
+- la Home avvia la lettura billing Shopify insieme allo stato commerciale D1
+  e legge in parallelo onboarding, dichiarazione del campo “Interno” e data di
+  attivazione; onboarding e Regole eliminano le stesse attese indipendenti;
+- l’app non carica più manualmente Inter, già incluso da Polaris: nell’iframe
+  resta un solo foglio dell’app e si evita un secondo font swap che poteva
+  contribuire al layout shift;
+- la risposta della Home espone `Server-Timing` per autenticazione, Shopify,
+  billing e D1 usando soltanto nomi tecnici e durate, senza dati del merchant.
+
+## 0.9.10 — 5 agosto 2026
+
+- i webhook registrano prima il claim idempotente in D1 e affidano il lavoro a
+  Cloudflare Queues prima di rispondere a Shopify, evitando che riconciliazioni
+  e cancellazioni lente superino la finestra di consegna senza perdere i retry;
+- la coda ritenta cinque volte il lavoro fallito, poi una DLQ porta la ricevuta
+  a `failed`; se D1 non accetta la finalizzazione, il messaggio continua a
+  circolare senza essere eliminato, mantenendo token del claim, heartbeat ed
+  eventi di errore sanitizzati;
+- il gate Codex riconosce anche il verdetto pulito firmato per l’HEAD esatto e
+  usa un solo trigger di review per commit, senza aprire task duplicati.
+
 ## 0.9.9 — 4 agosto 2026
 
 - il rollback Production parte anche dopo un job cancellato, richiede uno
