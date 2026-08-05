@@ -30,6 +30,8 @@ corrente si legge da codice, configurazioni e `package.json`.
   ricevute operative e limiti dichiarati della milestone.
 - [Audit pre-submission App Store](audits/2026-08-03-app-store-pre-submission.md)
   — requisiti scaricati dalla fonte, esiti e punti da chiudere.
+- [Readiness Built for Shopify](audits/2026-08-05-built-for-shopify-readiness.md)
+  — integrazione, UI embedded, accessibilità verificabile e matrice checkout.
 - [Listing italiana](listing/listing-it.md) e
   [inglese](listing/listing-en.md) — testi della listing App Store.
 - [Reviewer instructions](listing/reviewer-instructions.md) — store di prova,
