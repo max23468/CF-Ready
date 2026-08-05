@@ -29,7 +29,14 @@ const wrangler = `{
     "binding": "DB",
     "database_name": "cf-ready-db-dev",
     "database_id": "9490eaea-3a12-465d-bb48-e2622b31fc4d"
-  }]
+  }],
+  "queues": {
+    "producers": [{"binding": "WEBHOOK_QUEUE", "queue": "cf-ready-webhooks-dev"}],
+    "consumers": [
+      {"queue": "cf-ready-webhooks-dev", "max_batch_size": 1, "max_retries": 5, "dead_letter_queue": "cf-ready-webhooks-dev-failures"},
+      {"queue": "cf-ready-webhooks-dev-failures", "max_batch_size": 1, "max_retries": 100, "dead_letter_queue": "cf-ready-webhooks-dev"}
+    ]
+  }
 }`;
 
 test("il preflight lega il nome Worker alla chiave corretta", () => {
@@ -65,6 +72,10 @@ test("il preflight lega il nome Worker alla chiave corretta", () => {
   ];
   assert.throws(
     () => verifyDevelopmentConfig(shopify, JSON.stringify(parsed)),
+    /target Development/,
+  );
+  assert.throws(
+    () => verifyDevelopmentConfig(shopify, wrangler.replaceAll("cf-ready-webhooks-dev", "wrong")),
     /target Development/,
   );
 });
