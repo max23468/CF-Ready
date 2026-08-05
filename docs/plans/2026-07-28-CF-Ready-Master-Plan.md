@@ -2361,9 +2361,10 @@ supportato.
 | Ambiente | Worker | Queue webhook | DLQ webhook | D1 | R2 backup | Jurisdiction R2 |
 |---|---|---|---|---|---|---|
 | Development | `cf-ready-dev` | `cf-ready-webhooks-dev` | `cf-ready-webhooks-dev-failures` | `cf-ready-db-dev` | nessuno | — |
-| Production | `cf-ready` | `cf-ready-webhooks-prod` | `cf-ready-webhooks-prod-failures` | `cf-ready-db-prod` | `cf-ready-backups-prod` | `eu` |
+| Production | `cf-ready-prod` | `cf-ready-webhooks-prod` | `cf-ready-webhooks-prod-failures` | `cf-ready-db-prod` | `cf-ready-backups-prod` | `eu` |
 
-Nell’URL Production non compare `prod`.
+Il nome e l’URL del Worker Production esplicitano `prod` per distinguerlo dal
+target Development nello stesso account Cloudflare.
 
 ### 18.3 URL
 
@@ -2404,7 +2405,7 @@ https://cf-ready-dev.tmsf.workers.dev
 Worker Production:
 
 ```text
-https://cf-ready.tmsf.workers.dev
+https://cf-ready-prod.tmsf.workers.dev
 ```
 
 Il sottodominio account osservato è `tmsf`. Non cambiarlo senza verificare
