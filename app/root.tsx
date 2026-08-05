@@ -16,7 +16,6 @@ export default function App() {
         <meta name="viewport" content="width=device-width,initial-scale=1" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="preconnect" href="https://cdn.shopify.com/" />
-        <link rel="stylesheet" href="https://cdn.shopify.com/static/fonts/inter/v4/styles.css" />
         <Meta />
         <Links />
       </head>
