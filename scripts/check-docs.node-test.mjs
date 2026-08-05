@@ -275,9 +275,33 @@ test("il rollback Production richiede uno snapshot Shopify e verifica il riprist
   );
   assert.match(workflow, /Nessuna versione Shopify attiva da registrare per il rollback/);
   assert.match(workflow, /needs\.deploy\.result != 'success'/);
+  assert.match(workflow, /needs\.deploy\.outputs\.worker_deploy_started == 'true'/);
+  assert.match(workflow, /needs\.deploy\.outputs\.shopify_deploy_started == 'true'/);
+  assert.match(workflow, /Arma rollback Worker Production/);
+  assert.match(workflow, /Arma rollback Shopify Production/);
+  assert(
+    workflow.indexOf("Arma rollback Worker Production") <
+      workflow.indexOf("Deploy Worker Production"),
+  );
+  assert(
+    workflow.indexOf("Arma rollback Shopify Production") <
+      workflow.indexOf("Deploy Shopify Production"),
+  );
+  assert.match(workflow, /if \[ "\$SHOPIFY_DEPLOY_STARTED" != "true" \]/);
+  assert.match(workflow, /if \[ "\$WORKER_DEPLOY_STARTED" != "true" \]/);
   assert.match(workflow, /shopify-rollback-readback\.json/);
   assert.match(workflow, /worker-rollback-readback\.json/);
   assert.match(workflow, /Readback rollback Production non riuscito/);
+});
+
+test("il deploy Production provisiona entrambe le code webhook dichiarate", () => {
+  const workflow = readFileSync(
+    new URL("../.github/workflows/deploy-production.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(workflow, /wrangler queues info "\$queue"/);
+  assert.match(workflow, /cf-ready-webhooks-prod cf-ready-webhooks-prod-failures/);
+  assert.match(workflow, /wrangler queues create "\$queue"/);
 });
 
 test("il backup Production cifra, ruota gli slot e prova il restore", () => {
