@@ -162,7 +162,7 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | Gate locale completo `npm run check` | run Production [30989878088](https://github.com/max23468/CF-Ready/actions/runs/30989878088), commit `117ecb6` | ✅ |
 | Test della Validation Function | `npm run test:function`, 109 test | ✅ |
 | E2E pubblici | job `e2e` della PR [#216](https://github.com/max23468/CF-Ready/pull/216), run `30952011063`: WebKit e Chromium verdi | ✅ |
-| Snapshot Development verificato | run `30952347931`: gate, capacità, Worker, Shopify e readback verdi; 120 richieste, CPU p95 1 ms | ✅ |
+| Snapshot Development verificato | run `30995275981`: gate, capacità, Worker, Shopify e readback verdi; 120 richieste, CPU p95 1 ms, massimo 20 ms, 0 errori | ✅ |
 | Deploy Pages Production e smoke | run `30743184121`, otto URL e header di sicurezza | ✅ |
 | Rollback Pages esercitato e letto | run `30741094451` | ✅ |
 | Backup D1 Production e restore | run `30769584725`: export cifrato, restore locale di 32 comandi, `integrity_check=ok`, readback dello slot R2 | ✅ |
