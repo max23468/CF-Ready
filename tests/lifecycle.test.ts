@@ -13,6 +13,7 @@ import { localDate, startTrial, trialEnd } from "../app/billing.server";
 import { readOnboarding, reconcile, saveOnboarding } from "../app/validation.server";
 import {
   claimWebhook,
+  consumeWebhookMessage,
   finishWebhook,
   handleWebhook,
   renewWebhookClaim,
@@ -518,6 +519,38 @@ test("un errore del consumer lascia il claim disponibile al retry della coda", a
       .bind("wh-queue-retry")
       .first(),
   ).toMatchObject({ status: "processed" });
+});
+
+test("la finalizzazione in DLQ non perde il webhook se D1 è indisponibile", async () => {
+  const shop = await insertShop("webhook-dlq.example.myshopify.com");
+  let job: WebhookJob | undefined;
+  await handleWebhook(
+    env.DB,
+    { webhookId: "wh-dlq", topic: "SHOP_UPDATE", shop },
+    webhookQueue((queued) => {
+      job = queued;
+    }),
+  );
+  const ack = vi.fn();
+  const retry = vi.fn();
+  const message = { body: job!, ack, retry } as unknown as Message<WebhookJob>;
+  const unavailable = new Proxy(env.DB, {
+    get() {
+      throw new Error("d1_unavailable");
+    },
+  });
+
+  await consumeWebhookMessage(unavailable, message, true, vi.fn());
+  expect(ack).not.toHaveBeenCalled();
+  expect(retry).toHaveBeenCalledWith({ delaySeconds: 60 });
+
+  await consumeWebhookMessage(env.DB, message, true, vi.fn());
+  expect(ack).toHaveBeenCalledOnce();
+  expect(
+    await env.DB.prepare("SELECT status, error_code FROM webhook_events WHERE webhook_id = ?")
+      .bind("wh-dlq")
+      .first(),
+  ).toMatchObject({ status: "failed", error_code: "queue_retries_exhausted" });
 });
 
 test("il replay dello stesso webhook non duplica i suoi eventi", async () => {

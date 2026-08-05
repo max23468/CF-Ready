@@ -9,6 +9,24 @@ export type WebhookJob = {
   currentScopes?: string[];
 };
 
+export async function consumeWebhookMessage(
+  db: D1Database,
+  message: Message<WebhookJob>,
+  finalizing: boolean,
+  process: (db: D1Database, job: WebhookJob) => Promise<void>,
+) {
+  try {
+    if (finalizing) {
+      await failClaimedWebhook(db, message.body, new Error("queue_retries_exhausted"));
+    } else {
+      await process(db, message.body);
+    }
+    message.ack();
+  } catch {
+    message.retry({ delaySeconds: finalizing ? 60 : 10 });
+  }
+}
+
 type ClaimedWebhook = {
   webhookId: string;
   topic: string;

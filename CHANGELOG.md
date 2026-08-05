@@ -6,14 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
-## 0.9.10 — 4 agosto 2026
+## 0.9.10 — 5 agosto 2026
 
 - i webhook registrano prima il claim idempotente in D1 e affidano il lavoro a
   Cloudflare Queues prima di rispondere a Shopify, evitando che riconciliazioni
   e cancellazioni lente superino la finestra di consegna senza perdere i retry;
-- la coda ritenta cinque volte il lavoro fallito e solo all'ultimo tentativo
-  porta la ricevuta a `failed`, mantenendo token del claim, heartbeat ed eventi
-  di errore sanitizzati.
+- la coda ritenta cinque volte il lavoro fallito, poi una DLQ porta la ricevuta
+  a `failed`; se D1 non accetta la finalizzazione, il messaggio continua a
+  circolare senza essere eliminato, mantenendo token del claim, heartbeat ed
+  eventi di errore sanitizzati.
 
 ## 0.9.9 — 4 agosto 2026
 

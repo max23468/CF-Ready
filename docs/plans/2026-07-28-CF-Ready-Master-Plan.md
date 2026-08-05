@@ -354,8 +354,8 @@ Rispetto alle alternative più ampie o invasive:
 | D-129 | In Production gli addebiti sono reali dalla pubblicazione, non dal canary: `BILLING_TEST` vale `"false"`. | Con Manual pricing una charge è gratuita soltanto quando l’app invia `test: true`; Production invia `false` perché i merchant devono essere addebitati. Il reviewer usa la prova gratuita per il walkthrough e verifica importo e intervallo aprendo la conferma Shopify senza approvarla. Development mantiene le charge di test per il collaudo interno. Deciso il 4 agosto 2026 e corretto lo stesso giorno dopo aver eliminato l’assunzione errata che qualsiasi development store rendesse gratuita una charge Production. |
 | D-130 | Una sola voce visibile per rotta: Home compare una volta come `/app`, senza `rel="home"`. | Con `/app` dichiarata due volte — una voce visibile e una nascosta con `rel="home"` — arrivando alla Home da un link dentro una pagina l’Admin restava senza menu finché non si ricaricava. `rel="home"` non può conservare la voce perché App Bridge lo nasconde per contratto; non serve più dopo D-128, perché il titolo dell’app usa la radice predefinita `/` e quella radice inoltra già a `/app`. La prima correzione, pubblicata il 4 agosto 2026 senza riprodurre il difetto in un ambiente di prova, aveva rimosso la voce visibile invece del solo doppione. |
 | D-131 | Addebiti sempre in euro, senza adeguarsi alla valuta di fatturazione del merchant. | La valuta dell’addebito è quella inviata nel `currencyCode` e EUR è pienamente supportato: seguire `shopBillingPreferences` significherebbe costruire un listino per valuta per servire la coda dei merchant italiani non fatturati in euro, e rinunciare al prezzo unico che paga tutto il resto del pubblico. Per quella coda Shopify converte in fattura, come farebbe comunque visto che la vetrina della listing è in USD per limitazione della piattaforma. Deciso il 4 agosto 2026 sulle risposte del supporto Shopify riportate in §14.2. |
-| D-132 | Consegnare il lavoro webhook a Cloudflare Queues dopo il claim D1 e prima dell'ACK. | Shopify richiede risposte rapide, ma `waitUntil` non garantisce retry durevoli: una coda nativa conserva disinstallazioni, redazioni e riconciliazioni fallite senza introdurre un secondo stato applicativo o un provider. |
 | D-132 | Nessuno store né credenziali forniti al reviewer: l’app dichiara di non richiedere un account. | L’app è embedded e non ha login propri, e il requisito 4.5.5 è condizionale — «If your app requires login credentials». Fornire uno store con l’app preinstallata è un requisito delle Payment app (5.2.1), non delle app ordinarie, e il campo *Test account* del form vieta esplicitamente credenziali di store Shopify. Le istruzioni chiedono quindi al reviewer di installare su un proprio development store italiano, condizione messa in testa perché senza di essa l’app si dichiara non idonea e sembrerebbe rotta. Deciso il 4 agosto 2026, sostituendo il piano precedente di creare uno staff account e comunicare la password della vetrina. |
+| D-133 | Consegnare il lavoro webhook a Cloudflare Queues dopo il claim D1 e prima dell'ACK. | Shopify richiede risposte rapide, ma `waitUntil` non garantisce retry durevoli: una coda nativa conserva disinstallazioni, redazioni e riconciliazioni fallite senza introdurre un secondo stato applicativo o un provider. Una DLQ finalizza gli errori e rimanda il messaggio alla coda primaria se D1 resta indisponibile, evitando eliminazioni silenziose. |
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
@@ -2358,10 +2358,10 @@ supportato.
 
 ### 18.2 Nomi risorse
 
-| Ambiente | Worker | Queue webhook | D1 | R2 backup | Jurisdiction R2 |
-|---|---|---|---|---|---|
-| Development | `cf-ready-dev` | `cf-ready-webhooks-dev` | `cf-ready-db-dev` | nessuno | — |
-| Production | `cf-ready` | `cf-ready-webhooks-prod` | `cf-ready-db-prod` | `cf-ready-backups-prod` | `eu` |
+| Ambiente | Worker | Queue webhook | DLQ webhook | D1 | R2 backup | Jurisdiction R2 |
+|---|---|---|---|---|---|---|
+| Development | `cf-ready-dev` | `cf-ready-webhooks-dev` | `cf-ready-webhooks-dev-failures` | `cf-ready-db-dev` | nessuno | — |
+| Production | `cf-ready` | `cf-ready-webhooks-prod` | `cf-ready-webhooks-prod-failures` | `cf-ready-db-prod` | `cf-ready-backups-prod` | `eu` |
 
 Nell’URL Production non compare `prod`.
 

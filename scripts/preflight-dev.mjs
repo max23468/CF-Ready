@@ -7,6 +7,7 @@ const expected = {
   databaseId: "9490eaea-3a12-465d-bb48-e2622b31fc4d",
   databaseName: "cf-ready-db-dev",
   queueName: "cf-ready-webhooks-dev",
+  failureQueueName: "cf-ready-webhooks-dev-failures",
   workerName: "cf-ready-dev",
 };
 
@@ -23,6 +24,9 @@ export function verifyDevelopmentConfig(shopifyConfig, wranglerConfig) {
   const queueConsumer = wrangler.queues?.consumers?.find(
     ({ queue }) => queue === expected.queueName,
   );
+  const failureQueueConsumer = wrangler.queues?.consumers?.find(
+    ({ queue }) => queue === expected.failureQueueName,
+  );
   const shopifyScopes = shopifyConfig.match(
     /^\[access_scopes\]\s*$[\s\S]*?^scopes\s*=\s*"([^"]*)"\s*$/m,
   )?.[1];
@@ -38,7 +42,11 @@ export function verifyDevelopmentConfig(shopifyConfig, wranglerConfig) {
     database?.database_id !== expected.databaseId ||
     queueProducer?.queue !== expected.queueName ||
     queueConsumer?.max_batch_size !== 1 ||
-    queueConsumer?.max_retries !== 5
+    queueConsumer?.max_retries !== 5 ||
+    queueConsumer?.dead_letter_queue !== expected.failureQueueName ||
+    failureQueueConsumer?.max_batch_size !== 1 ||
+    failureQueueConsumer?.max_retries !== 100 ||
+    failureQueueConsumer?.dead_letter_queue !== expected.queueName
   ) {
     throw new Error("Il target Development non coincide con la configurazione attesa.");
   }

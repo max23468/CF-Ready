@@ -28,7 +28,20 @@ const builtProduction = JSON.stringify({
   ],
   queues: {
     producers: [{ binding: "WEBHOOK_QUEUE", queue: "cf-ready-webhooks-prod" }],
-    consumers: [{ queue: "cf-ready-webhooks-prod", max_batch_size: 1, max_retries: 5 }],
+    consumers: [
+      {
+        queue: "cf-ready-webhooks-prod",
+        max_batch_size: 1,
+        max_retries: 5,
+        dead_letter_queue: "cf-ready-webhooks-prod-failures",
+      },
+      {
+        queue: "cf-ready-webhooks-prod-failures",
+        max_batch_size: 1,
+        max_retries: 100,
+        dead_letter_queue: "cf-ready-webhooks-prod",
+      },
+    ],
   },
 });
 

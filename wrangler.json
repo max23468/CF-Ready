@@ -4,9 +4,7 @@
   "account_id": "98195e505f42abaaeb4827f71a924b1a",
   "main": "./workers/app.ts",
   "compatibility_date": "2026-07-28",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
+  "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "preview_urls": false,
   "vars": {
@@ -28,9 +26,7 @@
   },
   "upload_source_maps": true,
   "triggers": {
-    "crons": [
-      "0 * * * *"
-    ]
+    "crons": ["0 * * * *"]
   },
   "d1_databases": [
     {
@@ -53,7 +49,16 @@
         "max_batch_size": 1,
         "max_batch_timeout": 1,
         "max_retries": 5,
-        "retry_delay": 10
+        "retry_delay": 10,
+        "dead_letter_queue": "cf-ready-webhooks-dev-failures"
+      },
+      {
+        "queue": "cf-ready-webhooks-dev-failures",
+        "max_batch_size": 1,
+        "max_batch_timeout": 1,
+        "max_retries": 100,
+        "retry_delay": 60,
+        "dead_letter_queue": "cf-ready-webhooks-dev"
       }
     ]
   },
@@ -82,9 +87,7 @@
         }
       },
       "triggers": {
-        "crons": [
-          "0 * * * *"
-        ]
+        "crons": ["0 * * * *"]
       },
       "d1_databases": [
         {
@@ -107,7 +110,16 @@
             "max_batch_size": 1,
             "max_batch_timeout": 1,
             "max_retries": 5,
-            "retry_delay": 10
+            "retry_delay": 10,
+            "dead_letter_queue": "cf-ready-webhooks-prod-failures"
+          },
+          {
+            "queue": "cf-ready-webhooks-prod-failures",
+            "max_batch_size": 1,
+            "max_batch_timeout": 1,
+            "max_retries": 100,
+            "retry_delay": 60,
+            "dead_letter_queue": "cf-ready-webhooks-prod"
           }
         ]
       }

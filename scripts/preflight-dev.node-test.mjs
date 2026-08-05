@@ -32,7 +32,10 @@ const wrangler = `{
   }],
   "queues": {
     "producers": [{"binding": "WEBHOOK_QUEUE", "queue": "cf-ready-webhooks-dev"}],
-    "consumers": [{"queue": "cf-ready-webhooks-dev", "max_batch_size": 1, "max_retries": 5}]
+    "consumers": [
+      {"queue": "cf-ready-webhooks-dev", "max_batch_size": 1, "max_retries": 5, "dead_letter_queue": "cf-ready-webhooks-dev-failures"},
+      {"queue": "cf-ready-webhooks-dev-failures", "max_batch_size": 1, "max_retries": 100, "dead_letter_queue": "cf-ready-webhooks-dev"}
+    ]
   }
 }`;
 
