@@ -50,6 +50,20 @@ export function classifyCodexReview({
   for (const comment of comments) {
     if (comment.user?.login !== CODEX_BOT) continue;
 
+    const commit = reviewedCommit(comment.body);
+    if (
+      commit &&
+      headSha.startsWith(commit) &&
+      timestamp(comment.created_at) >= timestamp(requestedAt) &&
+      /^Codex Review: Didn't find any major issues\./m.test(comment.body)
+    ) {
+      completions.push({
+        state: "success",
+        at: timestamp(comment.created_at),
+        description: "Codex ha approvato l'ultimo commit",
+      });
+    }
+
     if (
       timestamp(comment.created_at) >= timestamp(requestedAt) &&
       now - timestamp(requestedAt) >= 30_000 &&

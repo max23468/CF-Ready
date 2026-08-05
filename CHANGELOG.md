@@ -14,7 +14,9 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 - la coda ritenta cinque volte il lavoro fallito, poi una DLQ porta la ricevuta
   a `failed`; se D1 non accetta la finalizzazione, il messaggio continua a
   circolare senza essere eliminato, mantenendo token del claim, heartbeat ed
-  eventi di errore sanitizzati.
+  eventi di errore sanitizzati;
+- il gate Codex riconosce anche il verdetto pulito firmato per l’HEAD esatto e
+  usa un solo trigger di review per commit, senza aprire task duplicati.
 
 ## 0.9.9 — 4 agosto 2026
 

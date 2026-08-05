@@ -79,7 +79,7 @@ test("il pollice senza Reviewed commit non approva", () => {
   );
 });
 
-test("un commento del task agent non approva l'HEAD neppure con il pollice", () => {
+test("il verdetto pulito del task agent approva soltanto l'HEAD dichiarato", () => {
   assert.equal(
     classify({
       requiresReviewedCommit: true,
@@ -90,7 +90,32 @@ test("un commento del task agent non approva l'HEAD neppure con il pollice", () 
           body: `Codex Review: Didn't find any major issues.\n\n**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
         },
       ],
-      reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:02Z" }],
+    }).state,
+    "success",
+  );
+  assert.equal(
+    classify({
+      requiresReviewedCommit: true,
+      comments: [
+        {
+          user: bot,
+          created_at: "2026-08-04T12:00:01Z",
+          body: "Codex Review: Didn't find any major issues.\n\n**Reviewed commit:** `abcdef0123`",
+        },
+      ],
+    }).state,
+    "pending",
+  );
+  assert.equal(
+    classify({
+      requiresReviewedCommit: true,
+      comments: [
+        {
+          user: bot,
+          created_at: "2026-08-04T12:00:01Z",
+          body: `Nessun problema.\n\n**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
+        },
+      ],
     }).state,
     "pending",
   );
