@@ -418,7 +418,7 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
   assert.match(gate, /currentPullRequest\.head\.sha !== headSha/);
   assert.doesNotMatch(gate, new RegExp(["@codex", "review"].join(" ")));
   assert.doesNotMatch(gate, /issues\/\$\{number\}\/comments[\s\S]*method: "POST"/);
-  assert.doesNotMatch(gate, /didn't find any major issues/i);
+  assert.match(gate, /Didn't find any major issues/);
   assert.match(gate, /pulls\/\$\{number\}\/reviews/);
   assert.match(gate, /commits\/\$\{headSha\}\/statuses/);
   assert.match(gate, /requiresReviewedCommit: !freshReview/);
@@ -428,6 +428,7 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
     "utf8",
   );
   assert.match(plan, /Il gate `codex-review` non chiede review e non pubblica mai commenti/);
+  assert.match(plan, /un solo trigger per ogni HEAD/);
   assert.doesNotMatch(plan, /commento marker|può essere avviato manualmente indicando la PR/);
   const maintenance = readFileSync(
     new URL("../.github/workflows/security-maintenance.yml", import.meta.url),

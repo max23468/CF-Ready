@@ -6,6 +6,8 @@ const expected = {
   appUrl: "https://cf-ready-dev.tmsf.workers.dev",
   databaseId: "9490eaea-3a12-465d-bb48-e2622b31fc4d",
   databaseName: "cf-ready-db-dev",
+  queueName: "cf-ready-webhooks-dev",
+  failureQueueName: "cf-ready-webhooks-dev-failures",
   workerName: "cf-ready-dev",
 };
 
@@ -16,6 +18,15 @@ export function verifyDevelopmentConfig(shopifyConfig, wranglerConfig) {
   ];
   const wrangler = JSON.parse(wranglerConfig);
   const database = wrangler.d1_databases?.find(({ binding }) => binding === "DB");
+  const queueProducer = wrangler.queues?.producers?.find(
+    ({ binding }) => binding === "WEBHOOK_QUEUE",
+  );
+  const queueConsumer = wrangler.queues?.consumers?.find(
+    ({ queue }) => queue === expected.queueName,
+  );
+  const failureQueueConsumer = wrangler.queues?.consumers?.find(
+    ({ queue }) => queue === expected.failureQueueName,
+  );
   const shopifyScopes = shopifyConfig.match(
     /^\[access_scopes\]\s*$[\s\S]*?^scopes\s*=\s*"([^"]*)"\s*$/m,
   )?.[1];
@@ -28,7 +39,14 @@ export function verifyDevelopmentConfig(shopifyConfig, wranglerConfig) {
     wrangler.vars?.SCOPES !== shopifyScopes ||
     wrangler.vars?.ALLOWED_SHOP !== "cf-ready-dev.myshopify.com" ||
     database?.database_name !== expected.databaseName ||
-    database?.database_id !== expected.databaseId
+    database?.database_id !== expected.databaseId ||
+    queueProducer?.queue !== expected.queueName ||
+    queueConsumer?.max_batch_size !== 1 ||
+    queueConsumer?.max_retries !== 5 ||
+    queueConsumer?.dead_letter_queue !== expected.failureQueueName ||
+    failureQueueConsumer?.max_batch_size !== 1 ||
+    failureQueueConsumer?.max_retries !== 100 ||
+    failureQueueConsumer?.dead_letter_queue !== expected.queueName
   ) {
     throw new Error("Il target Development non coincide con la configurazione attesa.");
   }
