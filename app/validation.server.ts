@@ -232,6 +232,7 @@ export async function reconcile(
     const readback = await readValidationReadback(admin);
     if (readback === null) errorCode ??= "validation_disable_failed";
     else {
+      matches = readback;
       validation = readback.length === 1 ? readback[0] : undefined;
       errorCode ??= duplicateValidationError(readback);
       if (validation?.enabled) errorCode ??= "validation_still_enabled";
@@ -336,6 +337,7 @@ export async function reconcile(
     if (write.acquired) {
       const readback = await readValidationReadback(admin);
       if (readback !== null) {
+        matches = readback;
         validation = readback.length === 1 ? readback[0] : undefined;
         errorCode ??= duplicateValidationError(readback);
       }

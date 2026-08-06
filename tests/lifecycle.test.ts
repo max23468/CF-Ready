@@ -318,6 +318,34 @@ test("un readback entitlement non disponibile resta fail-open", async () => {
   });
 });
 
+test("il readback entitlement conserva lo stato attivo dei duplicati concorrenti", async () => {
+  const shop = await insertShop("readback-entitlement-duplicato.example.myshopify.com");
+  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  const entitlement = { kind: "trial", validThrough: trialEnd(localDate(FUSO)) };
+  const readback = shopContext("IT", true, entitlement);
+  readback.data.validations.nodes.push({
+    ...readback.data.validations.nodes[0],
+    id: "gid://shopify/Validation/2",
+    enabled: false,
+  });
+  const admin = adminStub([
+    shopContext("IT", true),
+    SENZA_ADDEBITI,
+    { data: { validationUpdate: { userErrors: [] } } },
+    readback,
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.validation).toBeUndefined();
+  expect(state.validationEnabled).toBe(true);
+  expect(state.errorCode).toBe("duplicate_validations_active");
+  expect(await appState(shop)).toMatchObject({
+    validation_enabled: 1,
+    last_error_code: "duplicate_validations_active",
+  });
+});
+
 test("un readback senza Validation non conserva lo stato attivo precedente", async () => {
   const shop = await insertShop("validation-rimossa.example.myshopify.com");
   // Con una prova in corso l'entitlement va riscritto: è la sequenza che porta al readback.

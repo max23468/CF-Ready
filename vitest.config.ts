@@ -38,5 +38,8 @@ export default defineConfig({
   test: {
     include: ["tests/**/*.test.ts"],
     setupFiles: ["./tests/apply-migrations.ts"],
+    // Il pool Workers compila gli import dinamici per file: su una cache fredda il limite
+    // Vitest predefinito di 5 secondi scadeva prima che iniziasse l'assertion.
+    testTimeout: 10_000,
   },
 });
