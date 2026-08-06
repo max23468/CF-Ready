@@ -230,12 +230,7 @@ export async function reconcile(
   let entitlementEnableOverride: boolean | undefined;
 
   if (!eligible && validation?.enabled) {
-    const { errorCode: disableError, rejected: disableRejected } = await disableForCountry(
-      admin,
-      db,
-      shopDomain,
-      validation.id,
-    );
+    const disableError = await disableForCountry(admin, db, shopDomain, validation.id);
     errorCode = disableError;
     const readback = await readValidationReadback(admin);
     if (readback === null) {
@@ -249,11 +244,7 @@ export async function reconcile(
       writeEntitlementOutsideEligible = validation?.enabled === true;
     }
     if (writeEntitlementOutsideEligible) {
-      entitlementEnableOverride = disableRejected
-        ? true
-        : disableError === null
-          ? false
-          : undefined;
+      entitlementEnableOverride = disableError === null ? false : undefined;
     }
   }
 
@@ -638,20 +629,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 // Fail-open: uno store non idoneo perde la Validation, non le vendite. Nessun errore propagato.
 async function disableForCountry(admin: Admin, db: D1Database, shopDomain: string, id: string) {
   const lockToken = await acquireValidationLock(db, shopDomain);
-  if (!lockToken) return { errorCode: "validation_locked", rejected: false };
+  if (!lockToken) return "validation_locked";
 
   try {
     const response = await admin.graphql(UPDATE_VALIDATION, {
       variables: { id, validation: { enable: false, blockOnFailure: false } },
     });
     const result = (await response.json()) as MutationResult;
-    const error = mutationError(result, "validationUpdate");
-    return {
-      errorCode: error ? "validation_disable_failed" : null,
-      rejected: Boolean(result.data?.validationUpdate?.userErrors.length),
-    };
+    return mutationError(result, "validationUpdate") ? "validation_disable_failed" : null;
   } catch {
-    return { errorCode: "validation_disable_failed", rejected: false };
+    return "validation_disable_failed";
   } finally {
     await releaseValidationLockBestEffort(db, shopDomain, lockToken);
   }
