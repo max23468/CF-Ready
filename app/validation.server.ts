@@ -341,7 +341,13 @@ export async function reconcile(
     validation &&
     entitlementDiffers(validation.metafield?.jsonValue, entitlement)
   ) {
-    const write = await writeEntitlement(admin, db, shopDomain, validation, entitlement);
+    const write = await writeEntitlement(
+      admin,
+      db,
+      shopDomain,
+      eligible ? validation : { ...validation, enabled: false },
+      entitlement,
+    );
 
     if (write.acquired) {
       const readback = await readValidationReadback(admin);

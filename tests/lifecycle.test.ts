@@ -145,9 +145,12 @@ const SENZA_ADDEBITI = {
 
 function adminStub(responses: unknown[]) {
   const calls: string[] = [];
+  const updates: unknown[] = [];
   return {
     calls,
-    graphql: async (query: string) => {
+    updates,
+    graphql: async (query: string, options?: { variables?: unknown }) => {
+      if (query.includes("validationUpdate")) updates.push(options?.variables);
       calls.push(
         query.includes("validationUpdate")
           ? "update"
@@ -274,6 +277,10 @@ test("una disattivazione non riuscita resta fail-open e registra un codice error
 
   expect(state.errorCode).toBe("validation_disable_failed");
   expect(admin.calls).toEqual(["context", "update", "context", "update", "context"]);
+  expect(admin.updates).toMatchObject([
+    { validation: { enable: false } },
+    { validation: { enable: false } },
+  ]);
   expect(await appState(shop)).toMatchObject({
     installation_status: "blocked_country",
     validation_enabled: 1,
