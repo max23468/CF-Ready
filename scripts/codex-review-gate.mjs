@@ -51,6 +51,20 @@ export function classifyCodexReview({
     if (comment.user?.login !== CODEX_BOT) continue;
 
     const commit = reviewedCommit(comment.body);
+    const belongsToCurrentReview = commit ? headSha.startsWith(commit) : !requiresReviewedCommit;
+    if (
+      belongsToCurrentReview &&
+      timestamp(comment.created_at) >= timestamp(requestedAt) &&
+      /\bP[0-3]\b/.test(comment.body)
+    ) {
+      completions.push({
+        state: "failure",
+        at: timestamp(comment.created_at),
+        finding: true,
+        description: "Codex ha trovato problemi nell'ultimo commit",
+      });
+    }
+
     if (
       commit &&
       headSha.startsWith(commit) &&
@@ -68,6 +82,7 @@ export function classifyCodexReview({
       timestamp(comment.created_at) >= timestamp(requestedAt) &&
       now - timestamp(requestedAt) >= 30_000 &&
       !inProgress &&
+      belongsToCurrentReview &&
       /reached your Codex usage limits|could not complete|unable to review/i.test(comment.body)
     ) {
       completions.push({
@@ -77,6 +92,11 @@ export function classifyCodexReview({
       });
     }
   }
+
+  const commentFailure = completions
+    .filter((completion) => completion.finding)
+    .sort((left, right) => right.at - left.at)[0];
+  if (commentFailure) return commentFailure;
 
   for (const review of reviews) {
     const commit = reviewedCommit(review.body);
