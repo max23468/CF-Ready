@@ -160,7 +160,9 @@ function adminStub(responses: unknown[]) {
             ? "billing"
             : "context",
       );
-      return Response.json(responses.shift());
+      const response = responses.shift();
+      if (response instanceof Error) throw response;
+      return Response.json(response);
     },
   };
 }
@@ -317,6 +319,28 @@ test("un readback geografico obsoleto non riattiva una disattivazione accettata"
 
   expect(state.validationEnabled).toBe(false);
   expect(state.errorCode).toBe("validation_still_enabled");
+  expect(admin.updates).toMatchObject([
+    { validation: { enable: false } },
+    { validation: { enable: false } },
+  ]);
+});
+
+test("un errore di trasporto conserva lo stato riletto sotto lease", async () => {
+  const shop = await insertShop("disattivazione-incerta.example.myshopify.com");
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
+  const admin = adminStub([
+    shopContext("DE", true, entitlementAttivo),
+    new Error("risposta persa"),
+    shopContext("DE", true, entitlementAttivo),
+    shopContext("DE", false, entitlementAttivo),
+    { data: { validationUpdate: { userErrors: [] } } },
+    shopContext("DE", false),
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.validationEnabled).toBe(false);
+  expect(state.errorCode).toBe("validation_disable_failed");
   expect(admin.updates).toMatchObject([
     { validation: { enable: false } },
     { validation: { enable: false } },
