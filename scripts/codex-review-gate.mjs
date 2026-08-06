@@ -52,6 +52,18 @@ export function classifyCodexReview({
 
     const commit = reviewedCommit(comment.body);
     if (
+      (!commit || headSha.startsWith(commit)) &&
+      timestamp(comment.created_at) >= timestamp(requestedAt) &&
+      /\bP[0-3]\b/.test(comment.body)
+    ) {
+      completions.push({
+        state: "failure",
+        at: timestamp(comment.created_at),
+        description: "Codex ha trovato problemi nell'ultimo commit",
+      });
+    }
+
+    if (
       commit &&
       headSha.startsWith(commit) &&
       timestamp(comment.created_at) >= timestamp(requestedAt) &&
@@ -77,6 +89,11 @@ export function classifyCodexReview({
       });
     }
   }
+
+  const commentFailure = completions
+    .filter((completion) => completion.state === "failure")
+    .sort((left, right) => right.at - left.at)[0];
+  if (commentFailure) return commentFailure;
 
   for (const review of reviews) {
     const commit = reviewedCommit(review.body);
