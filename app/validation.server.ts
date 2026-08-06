@@ -227,6 +227,7 @@ export async function reconcile(
   let validation = matches.length === 1 ? matches[0] : undefined;
   let errorCode: string | null = duplicateValidationError(matches);
   let writeEntitlementOutsideEligible = false;
+  let entitlementEnableOverride: boolean | undefined;
 
   if (!eligible && validation?.enabled) {
     const disableError = await disableForCountry(admin, db, shopDomain, validation.id);
@@ -242,6 +243,7 @@ export async function reconcile(
       if (validation?.enabled) errorCode ??= "validation_still_enabled";
       writeEntitlementOutsideEligible = validation?.enabled === true;
     }
+    if (writeEntitlementOutsideEligible) entitlementEnableOverride = disableError !== null;
   }
 
   const commercialStartedAt = performance.now();
@@ -347,7 +349,7 @@ export async function reconcile(
       shopDomain,
       validation,
       entitlement,
-      eligible ? undefined : false,
+      entitlementEnableOverride,
     );
 
     if (write.acquired) {
@@ -589,9 +591,10 @@ function writeEntitlement(
   entitlement: Entitlement,
   forceEnabled?: boolean,
 ) {
-  return withValidationLock(db, shopDomain, async () => {
+  return withValidationLock(db, shopDomain, async (heartbeat) => {
     const current = (await readValidationReadback(admin))?.find(({ id }) => id === validation.id);
     if (!current) return "entitlement_write_failed";
+    if (!(await heartbeat.isHeld())) return "entitlement_write_failed";
 
     const response = await admin.graphql(UPDATE_VALIDATION, {
       variables: {

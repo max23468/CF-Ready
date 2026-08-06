@@ -121,7 +121,9 @@ function shopContext(
                   enabled,
                   blockOnFailure: false,
                   shopifyFunction: { handle: "cf-ready-validation" },
-                  metafield: { jsonValue: { ...CONFIG, entitlement } },
+                  metafield: {
+                    jsonValue: { ...CONFIG, rules: { ...CONFIG.rules }, entitlement },
+                  },
                 },
               ],
         pageInfo: { hasNextPage: false, endCursor: null },
@@ -283,7 +285,7 @@ test("una disattivazione non riuscita resta fail-open e registra un codice error
   expect(admin.calls).toEqual(["context", "update", "context", "context", "update", "context"]);
   expect(admin.updates).toMatchObject([
     { validation: { enable: false } },
-    { validation: { enable: false } },
+    { validation: { enable: true } },
   ]);
   const fallbackUpdate = admin.updates[1] as {
     validation: { metafields: { value: string }[] };
@@ -297,6 +299,28 @@ test("una disattivazione non riuscita resta fail-open e registra un codice error
     validation_enabled: 1,
     last_error_code: "validation_disable_failed",
   });
+});
+
+test("un readback geografico obsoleto non riattiva una disattivazione accettata", async () => {
+  const shop = await insertShop("readback-paese-obsoleto.example.myshopify.com");
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
+  const admin = adminStub([
+    shopContext("DE", true, entitlementAttivo),
+    { data: { validationUpdate: { userErrors: [] } } },
+    shopContext("DE", true, entitlementAttivo),
+    shopContext("DE", true, entitlementAttivo),
+    { data: { validationUpdate: { userErrors: [] } } },
+    shopContext("DE", false),
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.validationEnabled).toBe(false);
+  expect(state.errorCode).toBe("validation_still_enabled");
+  expect(admin.updates).toMatchObject([
+    { validation: { enable: false } },
+    { validation: { enable: false } },
+  ]);
 });
 
 test("un readback geografico non disponibile resta fail-open", async () => {
