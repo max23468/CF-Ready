@@ -37,6 +37,19 @@ La navigazione embedded della `0.9.11` è stata verificata in Chrome sullo store
 | Submission | inviata a Shopify il 4 agosto 2026 |
 | Tag `v1.0.0` | non creato: si crea alla promozione Production della `1.0.0` |
 
+### Ricevuta del deploy Development `0.9.13`
+
+| Campo | Valore |
+| --- | --- |
+| Ambiente e configurazione | Development: `wrangler.json`, `shopify.app.dev.toml` |
+| Versione repository e commit | `0.9.13`, commit `f16d25b` |
+| Worker | deployment `0d236209-fcb6-41c7-8ebe-b73a051ef571`, versione `1e736d48-4b62-4729-9689-0f0784c5a9bb`, 100% del traffico |
+| Migrazioni | nessuna pendente, confermato dal readback remoto |
+| Run | [31112000908](https://github.com/max23468/CF-Ready/actions/runs/31112000908) |
+| Smoke e capacità | Worker raggiungibile; 120 richieste, CPU p95 1 ms, massimo 20 ms, 0 errori |
+| Shopify | versione `0.9.13` attiva (`gid://shopify/Version/1078945447937`), commit verificato |
+| Rollback | snapshot coordinato `0.9.12`, commit `4d84481`, verificato prima del deploy |
+
 ### Ricevuta del deploy Development `0.9.12`
 
 | Campo | Valore |

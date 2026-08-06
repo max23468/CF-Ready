@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.14 — 6 agosto 2026
+
+- fuori dall'Italia, il fallback azzera ancora l'entitlement se la Validation
+  resta attiva, senza riattivarla dopo una disattivazione accettata da Shopify;
+- la scrittura dell'entitlement rilegge Paese, regole e stato sotto la lease,
+  ricontrolla la lease prima della mutation e non sovrascrive salvataggi merchant
+  o attivazioni concorrenti.
+
 ## 0.9.13 — 6 agosto 2026
 
 - i readback Shopify successivi alle riparazioni sicure della Validation usano
@@ -13,10 +21,6 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   conserva l'ultima osservazione certa e registra un errore operativo;
 - disattivazione per cambio Paese e aggiornamento dell'entitlement non
   propagano più un errore `502` quando fallisce soltanto il readback finale;
-- fuori dall'Italia, il fallback azzera ancora l'entitlement se la Validation
-  resta attiva, senza riattivarla dopo una disattivazione accettata da Shopify;
-- la scrittura dell'entitlement rilegge le regole sotto la lease e non può più
-  sovrascrivere un salvataggio merchant concorrente;
 - il gate app concede alla compilazione concorrente del pool Workers un budget
   coerente con gli import dinamici, evitando timeout prima delle assertion.
 
