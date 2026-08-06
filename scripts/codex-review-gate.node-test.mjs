@@ -175,10 +175,9 @@ test("un finding top-level sull'HEAD prevale sul riepilogo pulito", () => {
   );
 });
 
-test("un finding top-level senza marker prevale sul riepilogo pulito", () => {
+test("un finding top-level senza marker prevale nella review iniziale", () => {
   assert.equal(
     classify({
-      requiresReviewedCommit: true,
       comments: [
         {
           user: bot,
@@ -193,6 +192,27 @@ test("un finding top-level senza marker prevale sul riepilogo pulito", () => {
       ],
     }).state,
     "failure",
+  );
+});
+
+test("un finding senza marker del tentativo precedente non blocca il nuovo HEAD", () => {
+  assert.equal(
+    classify({
+      requiresReviewedCommit: true,
+      comments: [
+        {
+          user: bot,
+          created_at: "2026-08-04T12:00:01Z",
+          body: "**P2** Finding del tentativo precedente.",
+        },
+        {
+          user: bot,
+          created_at: "2026-08-04T12:00:02Z",
+          body: `Codex Review: Didn't find any major issues.\n\n**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
+        },
+      ],
+    }).state,
+    "success",
   );
 });
 
@@ -287,6 +307,28 @@ test("un limite Codex chiude il gate senza lasciare il workflow appeso", () => {
       ],
     }).state,
     "failure",
+  );
+});
+
+test("un retry pulito supera un errore operativo precedente sullo stesso HEAD", () => {
+  assert.equal(
+    classify({
+      requiresReviewedCommit: true,
+      requestedAt: 0,
+      comments: [
+        {
+          user: bot,
+          created_at: "2026-08-04T12:00:01Z",
+          body: "Codex could not complete the review",
+        },
+        {
+          user: bot,
+          created_at: "2026-08-04T12:00:02Z",
+          body: `Codex Review: Didn't find any major issues.\n\n**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
+        },
+      ],
+    }).state,
+    "success",
   );
 });
 

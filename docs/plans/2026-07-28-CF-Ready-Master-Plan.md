@@ -2784,8 +2784,9 @@ rottura di integrazione entro il minuto successivo. Restano applicabili:
 
 Il gate `codex-review` non chiede review e non pubblica mai commenti. Osserva
 soltanto i segnali del reviewer Codex: un finding inline riferito all'HEAD
-corrente o un finding top-level P0-P3 del tentativo corrente fallisce il gate;
-un finding top-level marcato con uno SHA precedente non migra invece sul nuovo
+corrente fallisce il gate; un finding top-level P0-P3 senza marker vale soltanto
+per la review iniziale, mentre nei tentativi successivi deve dichiarare lo SHA
+corrente. Un finding top-level marcato con uno SHA precedente non migra sul nuovo
 HEAD. L'esito positivo iniziale richiede una reaction Codex successiva
 all'apertura o al passaggio a ready, dopo la verifica che l'HEAD sia rimasto
 stabile. I tentativi successivi richiedono un verdetto esplicito
@@ -2793,7 +2794,9 @@ stabile. I tentativi successivi richiedono un verdetto esplicito
 con l'HEAD, oppure una review nativa riferita allo stesso commit seguita dalla
 reaction positiva. Autore, forma, timestamp e SHA devono coincidere; una
 spiegazione testuale generica del task agent, una reaction precedente all'evento
-o una review di uno SHA precedente non sbloccano il merge. Il workflow ha
+o una review di uno SHA precedente non sbloccano il merge. Un errore operativo
+Codex resta bloccante solo finché non arriva un esito completo più recente sullo
+stesso SHA. Il workflow ha
 `issues: read`, non `issues: write`, così una regressione nello script non può
 creare il commento che avvia il task agent.
 
