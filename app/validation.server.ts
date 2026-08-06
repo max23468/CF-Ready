@@ -11,7 +11,7 @@ import {
   syncTrial,
 } from "./billing.server";
 import { DEFAULT_CONFIG, ELIGIBLE_COUNTRY, readConfig } from "./config";
-import type { CheckoutConfig, Entitlement, ErrorDisplay, Rules } from "./config";
+import type { CheckoutConfig, Entitlement } from "./config";
 import { BILLING_IS_TEST } from "./env.server";
 import { recordEvent } from "./events.server";
 
@@ -377,6 +377,8 @@ export type ValidationWriteResult =
   | { ok: true; enabled: boolean }
   | { ok: false; errorCode: string };
 
+type ValidationConfigUpdate = Partial<Pick<CheckoutConfig, "rules" | "errorDisplay" | "messages">>;
+
 // Percorso unico di scrittura verso Shopify, condiviso da salvataggio delle regole e
 // attivazione: lease per store, configurazione intera, readback, stato persistito. `enable` a
 // `null` conserva lo stato corrente della Validation, che è ciò che FR-051 chiede al
@@ -385,7 +387,7 @@ export async function writeValidation(
   admin: Admin,
   db: D1Database,
   shopDomain: string,
-  next: { rules: Rules; errorDisplay: ErrorDisplay; messages: CheckoutConfig["messages"] } | null,
+  next: ValidationConfigUpdate | null,
   enable: boolean | null,
   expectedHash?: string | null,
   declared?: boolean | null,
@@ -434,7 +436,10 @@ export async function writeValidation(
       return { ok: false, errorCode: "entitlement_required" };
     }
     if (enable === null && !next) return { ok: false, errorCode: "validation_write_failed" };
-    const source = enable === null ? next! : readConfig(existing?.metafield?.jsonValue);
+    const source = {
+      ...readConfig(existing?.metafield?.jsonValue),
+      ...(enable === null ? next : null),
+    };
     const config: CheckoutConfig = {
       schemaVersion: 2,
       enabled,

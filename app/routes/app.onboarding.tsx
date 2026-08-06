@@ -17,7 +17,6 @@ import { describeCheckout, resolveLocale, texts, validationStatus } from "../i18
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { authenticate } from "../shopify.server";
 import {
-  findValidation,
   queryContext,
   readAddress2Declaration,
   readOnboarding,
@@ -82,20 +81,11 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     const pec = oneOf(RULE_MODES, form.get("pec"));
     if (!taxCode || !pec) return { ok: false as const, errorCode: "generic" };
 
-    let current;
-    try {
-      current = readConfig(
-        findValidation((await queryContext(admin)).validations.nodes)?.metafield?.jsonValue,
-      );
-    } catch {
-      return { ok: false as const, errorCode: "validation_write_failed" };
-    }
-
     const result = await writeValidation(
       admin,
       db,
       session.shop,
-      { rules: { taxCode, pec }, errorDisplay: current.errorDisplay, messages: current.messages },
+      { rules: { taxCode, pec } },
       null,
     );
     if (!result.ok) return { ok: false as const, errorCode: result.errorCode };
