@@ -177,6 +177,21 @@ function validationsForApp(validations: Validation[]) {
   return validations.filter(({ shopifyFunction }) => shopifyFunction.handle === FUNCTION_HANDLE);
 }
 
+function duplicateValidationError(validations: Validation[]) {
+  if (validations.length < 2) return null;
+  return validations.some(({ enabled }) => enabled)
+    ? "duplicate_validations_active"
+    : "duplicate_validations";
+}
+
+async function readValidationReadback(admin: Admin) {
+  try {
+    return validationsForApp((await queryContext(admin)).validations.nodes);
+  } catch {
+    return null;
+  }
+}
+
 export function mutationError(
   result: MutationResult,
   operation: "validationCreate" | "validationUpdate",
@@ -204,23 +219,23 @@ export async function reconcile(
   if (matches.length > 1 && matches.some(({ enabled }) => enabled)) {
     try {
       await disableDuplicateValidations(admin, db, shopDomain, matches);
-      matches = validationsForApp((await queryContext(admin)).validations.nodes);
+      matches = (await readValidationReadback(admin)) ?? matches;
     } catch {
       // Il banner operativo resta disponibile usando l'ultima lettura certa.
     }
   }
   let validation = matches.length === 1 ? matches[0] : undefined;
-  let errorCode: string | null =
-    matches.length > 1
-      ? matches.some(({ enabled }) => enabled)
-        ? "duplicate_validations_active"
-        : "duplicate_validations"
-      : null;
+  let errorCode: string | null = duplicateValidationError(matches);
 
   if (!eligible && validation?.enabled) {
     errorCode = await disableForCountry(admin, db, shopDomain, validation.id);
-    validation = findValidation((await queryContext(admin)).validations.nodes);
-    if (validation?.enabled) errorCode ??= "validation_still_enabled";
+    const readback = await readValidationReadback(admin);
+    if (readback === null) errorCode ??= "validation_disable_failed";
+    else {
+      validation = readback.length === 1 ? readback[0] : undefined;
+      errorCode ??= duplicateValidationError(readback);
+      if (validation?.enabled) errorCode ??= "validation_still_enabled";
+    }
   }
 
   const commercialStartedAt = performance.now();
@@ -319,9 +334,16 @@ export async function reconcile(
     const write = await writeEntitlement(admin, db, shopDomain, validation, entitlement);
 
     if (write.acquired) {
-      validation = findValidation((await queryContext(admin)).validations.nodes);
+      const readback = await readValidationReadback(admin);
+      if (readback !== null) {
+        validation = readback.length === 1 ? readback[0] : undefined;
+        errorCode ??= duplicateValidationError(readback);
+      }
       if (write.result) errorCode ??= write.result;
-      else if (entitlementDiffers(validation?.metafield?.jsonValue, entitlement)) {
+      else if (
+        readback === null ||
+        entitlementDiffers(validation?.metafield?.jsonValue, entitlement)
+      ) {
         errorCode ??= "entitlement_readback_failed";
       }
     }
