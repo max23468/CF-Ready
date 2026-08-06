@@ -277,6 +277,76 @@ test("una disattivazione non riuscita resta fail-open e registra un codice error
   });
 });
 
+test("un readback geografico non disponibile resta fail-open", async () => {
+  const shop = await insertShop("readback-paese.example.myshopify.com");
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
+  const admin = adminStub([
+    shopContext("DE", true, entitlementAttivo),
+    { data: { validationUpdate: { userErrors: [] } } },
+    { errors: [{ message: "servizio non disponibile" }] },
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.validationEnabled).toBe(true);
+  expect(state.errorCode).toBe("validation_disable_failed");
+  expect(admin.calls).toEqual(["context", "update", "context"]);
+  expect(await appState(shop)).toMatchObject({
+    installation_status: "blocked_country",
+    validation_enabled: 1,
+    last_error_code: "validation_disable_failed",
+  });
+});
+
+test("un readback entitlement non disponibile resta fail-open", async () => {
+  const shop = await insertShop("readback-entitlement.example.myshopify.com");
+  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  const admin = adminStub([
+    shopContext("IT", true),
+    SENZA_ADDEBITI,
+    { data: { validationUpdate: { userErrors: [] } } },
+    { errors: [{ message: "servizio non disponibile" }] },
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.validationEnabled).toBe(true);
+  expect(state.errorCode).toBe("entitlement_readback_failed");
+  expect(admin.calls).toEqual(["context", "billing", "update", "context"]);
+  expect(await appState(shop)).toMatchObject({
+    validation_enabled: 1,
+    last_error_code: "entitlement_readback_failed",
+  });
+});
+
+test("il readback entitlement conserva lo stato attivo dei duplicati concorrenti", async () => {
+  const shop = await insertShop("readback-entitlement-duplicato.example.myshopify.com");
+  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  const entitlement = { kind: "trial", validThrough: trialEnd(localDate(FUSO)) };
+  const readback = shopContext("IT", true, entitlement);
+  readback.data.validations.nodes.push({
+    ...readback.data.validations.nodes[0],
+    id: "gid://shopify/Validation/2",
+    enabled: false,
+  });
+  const admin = adminStub([
+    shopContext("IT", true),
+    SENZA_ADDEBITI,
+    { data: { validationUpdate: { userErrors: [] } } },
+    readback,
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.validation).toBeUndefined();
+  expect(state.validationEnabled).toBe(true);
+  expect(state.errorCode).toBe("duplicate_validations_active");
+  expect(await appState(shop)).toMatchObject({
+    validation_enabled: 1,
+    last_error_code: "duplicate_validations_active",
+  });
+});
+
 test("un readback senza Validation non conserva lo stato attivo precedente", async () => {
   const shop = await insertShop("validation-rimossa.example.myshopify.com");
   // Con una prova in corso l'entitlement va riscritto: è la sequenza che porta al readback.
