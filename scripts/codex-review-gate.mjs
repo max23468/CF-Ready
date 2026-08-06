@@ -51,8 +51,9 @@ export function classifyCodexReview({
     if (comment.user?.login !== CODEX_BOT) continue;
 
     const commit = reviewedCommit(comment.body);
+    const belongsToCurrentReview = commit ? headSha.startsWith(commit) : !requiresReviewedCommit;
     if (
-      (commit ? headSha.startsWith(commit) : !requiresReviewedCommit) &&
+      belongsToCurrentReview &&
       timestamp(comment.created_at) >= timestamp(requestedAt) &&
       /\bP[0-3]\b/.test(comment.body)
     ) {
@@ -81,6 +82,7 @@ export function classifyCodexReview({
       timestamp(comment.created_at) >= timestamp(requestedAt) &&
       now - timestamp(requestedAt) >= 30_000 &&
       !inProgress &&
+      belongsToCurrentReview &&
       /reached your Codex usage limits|could not complete|unable to review/i.test(comment.body)
     ) {
       completions.push({

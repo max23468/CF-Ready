@@ -332,6 +332,38 @@ test("un retry pulito supera un errore operativo precedente sullo stesso HEAD", 
   );
 });
 
+test("un errore operativo senza SHA non migra sul tentativo successivo", () => {
+  assert.equal(
+    classify({
+      requiresReviewedCommit: true,
+      comments: [
+        {
+          user: bot,
+          created_at: "2026-08-04T12:00:01Z",
+          body: "Codex could not complete the review",
+        },
+      ],
+    }).state,
+    "pending",
+  );
+});
+
+test("un errore operativo marcato sullo SHA corrente chiude il gate", () => {
+  assert.equal(
+    classify({
+      requiresReviewedCommit: true,
+      comments: [
+        {
+          user: bot,
+          created_at: "2026-08-04T12:00:01Z",
+          body: `Codex could not complete the review\n\n**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
+        },
+      ],
+    }).state,
+    "failure",
+  );
+});
+
 test("un errore tardivo non chiude una review corrente ancora in corso", () => {
   assert.equal(
     classify({

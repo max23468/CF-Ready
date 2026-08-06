@@ -2794,9 +2794,10 @@ stabile. I tentativi successivi richiedono un verdetto esplicito
 con l'HEAD, oppure una review nativa riferita allo stesso commit seguita dalla
 reaction positiva. Autore, forma, timestamp e SHA devono coincidere; una
 spiegazione testuale generica del task agent, una reaction precedente all'evento
-o una review di uno SHA precedente non sbloccano il merge. Un errore operativo
-Codex resta bloccante solo finché non arriva un esito completo più recente sullo
-stesso SHA. Il workflow ha
+o una review di uno SHA precedente non sbloccano il merge. Dopo il tentativo
+iniziale anche un errore operativo Codex deve dichiarare lo SHA corrente e resta
+bloccante solo finché non arriva un esito completo più recente sullo stesso SHA.
+Il workflow ha
 `issues: read`, non `issues: write`, così una regressione nello script non può
 creare il commento che avvia il task agent.
 
