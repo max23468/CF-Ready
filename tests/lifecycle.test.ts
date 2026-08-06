@@ -121,7 +121,9 @@ function shopContext(
                   enabled,
                   blockOnFailure: false,
                   shopifyFunction: { handle: "cf-ready-validation" },
-                  metafield: { jsonValue: { ...CONFIG, entitlement } },
+                  metafield: {
+                    jsonValue: { ...CONFIG, rules: { ...CONFIG.rules }, entitlement },
+                  },
                 },
               ],
         pageInfo: { hasNextPage: false, endCursor: null },
@@ -145,9 +147,12 @@ const SENZA_ADDEBITI = {
 
 function adminStub(responses: unknown[]) {
   const calls: string[] = [];
+  const updates: unknown[] = [];
   return {
     calls,
-    graphql: async (query: string) => {
+    updates,
+    graphql: async (query: string, options?: { variables?: unknown }) => {
+      if (query.includes("validationUpdate")) updates.push(options?.variables);
       calls.push(
         query.includes("validationUpdate")
           ? "update"
@@ -155,7 +160,9 @@ function adminStub(responses: unknown[]) {
             ? "billing"
             : "context",
       );
-      return Response.json(responses.shift());
+      const response = responses.shift();
+      if (response instanceof Error) throw response;
+      return Response.json(response);
     },
   };
 }
@@ -214,6 +221,7 @@ test("il rientro in Italia sblocca lo store senza riattivare la Validation", asy
   const admin = adminStub([
     shopContext("IT", false),
     SENZA_ADDEBITI,
+    shopContext("IT", false),
     { data: { validationUpdate: { userErrors: [] } } },
     shopContext("IT", false, inProva),
   ]);
@@ -222,7 +230,7 @@ test("il rientro in Italia sblocca lo store senza riattivare la Validation", asy
   expect(state.eligible).toBe(true);
   expect(state.entitlement).toEqual(inProva);
   expect(state.errorCode).toBeNull();
-  expect(admin.calls).toEqual(["context", "billing", "update", "context"]);
+  expect(admin.calls).toEqual(["context", "billing", "context", "update", "context"]);
   expect(await appState(shop)).toMatchObject({
     installation_status: "active",
     country_code: "IT",
@@ -261,20 +269,99 @@ test("un errore billing resta fail-open e produce soltanto timing tecnici", asyn
 
 test("una disattivazione non riuscita resta fail-open e registra un codice errore", async () => {
   const shop = await insertShop("errore.example.myshopify.com");
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
+  const configurazioneCorrente = shopContext("DE", true, entitlementAttivo);
+  configurazioneCorrente.data.validations.nodes[0].metafield.jsonValue.rules.taxCode = "optional";
   const admin = adminStub([
-    shopContext("DE", true),
+    shopContext("DE", true, entitlementAttivo),
     { data: { validationUpdate: { userErrors: [{ message: "limite raggiunto" }] } } },
+    shopContext("DE", true, entitlementAttivo),
+    configurazioneCorrente,
+    { data: { validationUpdate: { userErrors: [] } } },
     shopContext("DE", true),
   ]);
 
   const state = await reconcile(admin, env.DB, shop);
 
   expect(state.errorCode).toBe("validation_disable_failed");
+  expect(admin.calls).toEqual(["context", "update", "context", "context", "update", "context"]);
+  expect(admin.updates).toMatchObject([
+    { validation: { enable: false } },
+    { validation: { enable: true } },
+  ]);
+  const fallbackUpdate = admin.updates[1] as {
+    validation: { metafields: { value: string }[] };
+  };
+  expect(JSON.parse(fallbackUpdate.validation.metafields[0].value)).toMatchObject({
+    rules: { taxCode: "optional" },
+    entitlement: SENZA_DIRITTO,
+  });
   expect(await appState(shop)).toMatchObject({
     installation_status: "blocked_country",
     validation_enabled: 1,
     last_error_code: "validation_disable_failed",
   });
+});
+
+test("un readback geografico obsoleto non riattiva una disattivazione accettata", async () => {
+  const shop = await insertShop("readback-paese-obsoleto.example.myshopify.com");
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
+  const admin = adminStub([
+    shopContext("DE", true, entitlementAttivo),
+    { data: { validationUpdate: { userErrors: [] } } },
+    shopContext("DE", true, entitlementAttivo),
+    shopContext("DE", true, entitlementAttivo),
+    { data: { validationUpdate: { userErrors: [] } } },
+    shopContext("DE", false),
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.validationEnabled).toBe(false);
+  expect(state.errorCode).toBe("validation_still_enabled");
+  expect(admin.updates).toMatchObject([
+    { validation: { enable: false } },
+    { validation: { enable: false } },
+  ]);
+});
+
+test("un errore di trasporto conserva lo stato riletto sotto lease", async () => {
+  const shop = await insertShop("disattivazione-incerta.example.myshopify.com");
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
+  const admin = adminStub([
+    shopContext("DE", true, entitlementAttivo),
+    new Error("risposta persa"),
+    shopContext("DE", true, entitlementAttivo),
+    shopContext("DE", false, entitlementAttivo),
+    { data: { validationUpdate: { userErrors: [] } } },
+    shopContext("DE", false),
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.validationEnabled).toBe(false);
+  expect(state.errorCode).toBe("validation_disable_failed");
+  expect(admin.updates).toMatchObject([
+    { validation: { enable: false } },
+    { validation: { enable: false } },
+  ]);
+});
+
+test("il fallback non disattiva una Validation se lo store è tornato idoneo", async () => {
+  const shop = await insertShop("paese-cambiato.example.myshopify.com");
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
+  const admin = adminStub([
+    shopContext("DE", true, entitlementAttivo),
+    { data: { validationUpdate: { userErrors: [] } } },
+    shopContext("DE", true, entitlementAttivo),
+    shopContext("IT", true, entitlementAttivo),
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.errorCode).toBe("validation_still_enabled");
+  expect(admin.calls).toEqual(["context", "update", "context", "context"]);
+  expect(admin.updates).toMatchObject([{ validation: { enable: false } }]);
 });
 
 test("un readback geografico non disponibile resta fail-open", async () => {
@@ -304,6 +391,7 @@ test("un readback entitlement non disponibile resta fail-open", async () => {
   const admin = adminStub([
     shopContext("IT", true),
     SENZA_ADDEBITI,
+    shopContext("IT", true),
     { data: { validationUpdate: { userErrors: [] } } },
     { errors: [{ message: "servizio non disponibile" }] },
   ]);
@@ -312,7 +400,7 @@ test("un readback entitlement non disponibile resta fail-open", async () => {
 
   expect(state.validationEnabled).toBe(true);
   expect(state.errorCode).toBe("entitlement_readback_failed");
-  expect(admin.calls).toEqual(["context", "billing", "update", "context"]);
+  expect(admin.calls).toEqual(["context", "billing", "context", "update", "context"]);
   expect(await appState(shop)).toMatchObject({
     validation_enabled: 1,
     last_error_code: "entitlement_readback_failed",
@@ -332,6 +420,7 @@ test("il readback entitlement conserva lo stato attivo dei duplicati concorrenti
   const admin = adminStub([
     shopContext("IT", true),
     SENZA_ADDEBITI,
+    shopContext("IT", true),
     { data: { validationUpdate: { userErrors: [] } } },
     readback,
   ]);
@@ -354,6 +443,7 @@ test("un readback senza Validation non conserva lo stato attivo precedente", asy
   const admin = adminStub([
     shopContext("IT", true),
     SENZA_ADDEBITI,
+    shopContext("IT", true),
     { data: { validationUpdate: { userErrors: [] } } },
     shopContext("IT", null),
   ]);
