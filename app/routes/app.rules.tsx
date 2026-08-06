@@ -15,9 +15,7 @@ import {
 import type { ErrorDisplay, RuleMode } from "../config";
 import { databaseContext } from "../context.server";
 import {
-  findValidation,
   observedConfigHash,
-  queryContext,
   readAddress2Declaration,
   reconcile,
   writeValidation,
@@ -65,23 +63,16 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const errorDisplay = oneOf(ERROR_DISPLAYS, form.get("errorDisplay") ? "preventive" : "inline");
   if (!taxCode || !pec || !errorDisplay) return { ok: false as const, errorCode: "generic" };
 
-  let current;
-  try {
-    const validation = findValidation((await queryContext(admin)).validations.nodes);
-    current = readConfig(validation?.metafield?.jsonValue);
-  } catch {
-    return { ok: false as const, errorCode: "validation_write_failed" };
-  }
-
   const declared = address2Declaration(form);
 
   // FR-051: il salvataggio aggiorna la configurazione e conserva lo stato della Validation.
-  // I messaggi non sono editabili da questa pagina: si riscrivono quelli osservati.
+  // I messaggi non sono editabili da questa pagina: il percorso condiviso conserva quelli
+  // osservati sotto la stessa lease usata per la scrittura.
   const result = await writeValidation(
     admin,
     db,
     session.shop,
-    { rules: { taxCode, pec }, errorDisplay, messages: current.messages },
+    { rules: { taxCode, pec }, errorDisplay },
     null,
     (form.get("configHash") as string) || null,
     declared,
