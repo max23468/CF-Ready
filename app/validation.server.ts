@@ -226,16 +226,25 @@ export async function reconcile(
   }
   let validation = matches.length === 1 ? matches[0] : undefined;
   let errorCode: string | null = duplicateValidationError(matches);
+  let writeEntitlementOutsideEligible = false;
+  let entitlementEnableOverride: boolean | undefined;
 
   if (!eligible && validation?.enabled) {
-    errorCode = await disableForCountry(admin, db, shopDomain, validation.id);
+    const disableError = await disableForCountry(admin, db, shopDomain, validation.id);
+    errorCode = disableError;
     const readback = await readValidationReadback(admin);
-    if (readback === null) errorCode ??= "validation_disable_failed";
-    else {
+    if (readback === null) {
+      errorCode ??= "validation_disable_failed";
+      writeEntitlementOutsideEligible = disableError !== null;
+    } else {
       matches = readback;
       validation = readback.length === 1 ? readback[0] : undefined;
       errorCode ??= duplicateValidationError(readback);
       if (validation?.enabled) errorCode ??= "validation_still_enabled";
+      writeEntitlementOutsideEligible = validation?.enabled === true;
+    }
+    if (writeEntitlementOutsideEligible) {
+      entitlementEnableOverride = disableError === null ? false : undefined;
     }
   }
 
@@ -331,10 +340,22 @@ export async function reconcile(
 
   // Il diritto commerciale vive nel metafield: la Function lo confronta con la data locale e
   // si spegne da sola alla scadenza, senza job periodici.
-  if (eligible && validation && entitlementDiffers(validation.metafield?.jsonValue, entitlement)) {
-    const write = await writeEntitlement(admin, db, shopDomain, validation, entitlement);
+  if (
+    (eligible || writeEntitlementOutsideEligible) &&
+    validation &&
+    entitlementDiffers(validation.metafield?.jsonValue, entitlement)
+  ) {
+    const write = await writeEntitlement(
+      admin,
+      db,
+      shopDomain,
+      validation,
+      entitlement,
+      entitlementEnableOverride,
+      !eligible,
+    );
 
-    if (write.acquired) {
+    if (write.acquired && write.result !== "country_changed") {
       const readback = await readValidationReadback(admin);
       if (readback !== null) {
         matches = readback;
@@ -571,13 +592,25 @@ function writeEntitlement(
   shopDomain: string,
   validation: Validation,
   entitlement: Entitlement,
+  forceEnabled?: boolean,
+  requireIneligible = false,
 ) {
-  return withValidationLock(db, shopDomain, async () => {
+  return withValidationLock(db, shopDomain, async (heartbeat) => {
+    const context = await queryContext(admin);
+    if (requireIneligible && context.shop.shopAddress.countryCodeV2 === ELIGIBLE_COUNTRY) {
+      return "country_changed";
+    }
+    const current = validationsForApp(context.validations.nodes).find(
+      ({ id }) => id === validation.id,
+    );
+    if (!current) return "entitlement_write_failed";
+    if (!(await heartbeat.isHeld())) return "entitlement_write_failed";
+
     const response = await admin.graphql(UPDATE_VALIDATION, {
       variables: {
-        id: validation.id,
+        id: current.id,
         validation: {
-          enable: validation.enabled,
+          enable: forceEnabled ?? current.enabled,
           blockOnFailure: false,
           metafields: [
             {
@@ -585,7 +618,7 @@ function writeEntitlement(
               key: METAFIELD_KEY,
               type: "json",
               value: JSON.stringify(
-                configWithEntitlement(validation.metafield?.jsonValue, entitlement),
+                configWithEntitlement(current.metafield?.jsonValue, entitlement),
               ),
             },
           ],
