@@ -345,8 +345,9 @@ export async function reconcile(
       admin,
       db,
       shopDomain,
-      eligible ? validation : { ...validation, enabled: false },
+      validation,
       entitlement,
+      eligible ? undefined : false,
     );
 
     if (write.acquired) {
@@ -586,13 +587,17 @@ function writeEntitlement(
   shopDomain: string,
   validation: Validation,
   entitlement: Entitlement,
+  forceEnabled?: boolean,
 ) {
   return withValidationLock(db, shopDomain, async () => {
+    const current = (await readValidationReadback(admin))?.find(({ id }) => id === validation.id);
+    if (!current) return "entitlement_write_failed";
+
     const response = await admin.graphql(UPDATE_VALIDATION, {
       variables: {
-        id: validation.id,
+        id: current.id,
         validation: {
-          enable: validation.enabled,
+          enable: forceEnabled ?? current.enabled,
           blockOnFailure: false,
           metafields: [
             {
@@ -600,7 +605,7 @@ function writeEntitlement(
               key: METAFIELD_KEY,
               type: "json",
               value: JSON.stringify(
-                configWithEntitlement(validation.metafield?.jsonValue, entitlement),
+                configWithEntitlement(current.metafield?.jsonValue, entitlement),
               ),
             },
           ],

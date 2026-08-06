@@ -15,6 +15,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   propagano più un errore `502` quando fallisce soltanto il readback finale;
 - fuori dall'Italia, il fallback azzera ancora l'entitlement se la Validation
   resta attiva, senza riattivarla dopo una disattivazione accettata da Shopify;
+- la scrittura dell'entitlement rilegge le regole sotto la lease e non può più
+  sovrascrivere un salvataggio merchant concorrente;
 - il gate app concede alla compilazione concorrente del pool Workers un budget
   coerente con gli import dinamici, evitando timeout prima delle assertion.
 
