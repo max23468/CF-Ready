@@ -261,15 +261,19 @@ test("un errore billing resta fail-open e produce soltanto timing tecnici", asyn
 
 test("una disattivazione non riuscita resta fail-open e registra un codice errore", async () => {
   const shop = await insertShop("errore.example.myshopify.com");
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
   const admin = adminStub([
-    shopContext("DE", true),
+    shopContext("DE", true, entitlementAttivo),
     { data: { validationUpdate: { userErrors: [{ message: "limite raggiunto" }] } } },
+    shopContext("DE", true, entitlementAttivo),
+    { data: { validationUpdate: { userErrors: [] } } },
     shopContext("DE", true),
   ]);
 
   const state = await reconcile(admin, env.DB, shop);
 
   expect(state.errorCode).toBe("validation_disable_failed");
+  expect(admin.calls).toEqual(["context", "update", "context", "update", "context"]);
   expect(await appState(shop)).toMatchObject({
     installation_status: "blocked_country",
     validation_enabled: 1,
