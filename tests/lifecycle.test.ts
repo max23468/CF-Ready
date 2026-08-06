@@ -347,6 +347,23 @@ test("un errore di trasporto conserva lo stato riletto sotto lease", async () =>
   ]);
 });
 
+test("il fallback non disattiva una Validation se lo store è tornato idoneo", async () => {
+  const shop = await insertShop("paese-cambiato.example.myshopify.com");
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
+  const admin = adminStub([
+    shopContext("DE", true, entitlementAttivo),
+    { data: { validationUpdate: { userErrors: [] } } },
+    shopContext("DE", true, entitlementAttivo),
+    shopContext("IT", true, entitlementAttivo),
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.errorCode).toBe("validation_still_enabled");
+  expect(admin.calls).toEqual(["context", "update", "context", "context"]);
+  expect(admin.updates).toMatchObject([{ validation: { enable: false } }]);
+});
+
 test("un readback geografico non disponibile resta fail-open", async () => {
   const shop = await insertShop("readback-paese.example.myshopify.com");
   const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };

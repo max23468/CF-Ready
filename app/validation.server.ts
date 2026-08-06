@@ -352,9 +352,10 @@ export async function reconcile(
       validation,
       entitlement,
       entitlementEnableOverride,
+      !eligible,
     );
 
-    if (write.acquired) {
+    if (write.acquired && write.result !== "country_changed") {
       const readback = await readValidationReadback(admin);
       if (readback !== null) {
         matches = readback;
@@ -592,9 +593,16 @@ function writeEntitlement(
   validation: Validation,
   entitlement: Entitlement,
   forceEnabled?: boolean,
+  requireIneligible = false,
 ) {
   return withValidationLock(db, shopDomain, async (heartbeat) => {
-    const current = (await readValidationReadback(admin))?.find(({ id }) => id === validation.id);
+    const context = await queryContext(admin);
+    if (requireIneligible && context.shop.shopAddress.countryCodeV2 === ELIGIBLE_COUNTRY) {
+      return "country_changed";
+    }
+    const current = validationsForApp(context.validations.nodes).find(
+      ({ id }) => id === validation.id,
+    );
     if (!current) return "entitlement_write_failed";
     if (!(await heartbeat.isHeld())) return "entitlement_write_failed";
 
