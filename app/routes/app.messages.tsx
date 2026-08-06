@@ -43,20 +43,13 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const validated = validateMessages(form);
   if ("problem" in validated) return { ok: false as const, problem: validated.problem };
 
-  // FR-051: si salvano i messaggi e si conserva tutto il resto, stato della Validation compreso.
-  let current;
-  try {
-    current = readConfig(
-      findValidation((await queryContext(admin)).validations.nodes)?.metafield?.jsonValue,
-    );
-  } catch {
-    return { ok: false as const, errorCode: "validation_write_failed" };
-  }
+  // FR-051: si salvano i messaggi e il percorso condiviso conserva il resto della
+  // configurazione osservata sotto la stessa lease usata per la scrittura.
   const result = await writeValidation(
     admin,
     context.get(databaseContext),
     session.shop,
-    { rules: current.rules, errorDisplay: current.errorDisplay, messages: validated.messages },
+    { messages: validated.messages },
     null,
     (form.configHash as string) || null,
   );

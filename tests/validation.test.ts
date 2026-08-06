@@ -430,6 +430,32 @@ test("il salvataggio conserva lo stato di una Validation già attiva", async () 
   expect(calls[0].config).toMatchObject({ enabled: true });
 });
 
+test("il salvataggio parziale conserva la configurazione osservata sotto la lease", async () => {
+  const shop = "partial-save.example.myshopify.com";
+  await seedShop(shop);
+  const current = structuredClone(DEFAULT_CONFIG);
+  current.errorDisplay = "preventive";
+  current.messages.it.taxCodeRequired = "Messaggio personalizzato";
+  const { admin, calls } = stubAdmin({ existing: { enabled: false, config: current } });
+
+  expect(
+    await writeValidation(
+      admin,
+      env.DB,
+      shop,
+      {
+        rules: { taxCode: "required_validated", pec: "optional_validated" },
+      },
+      null,
+    ),
+  ).toEqual({ ok: true, enabled: false });
+  expect(calls[0].config).toMatchObject({
+    errorDisplay: "preventive",
+    messages: { it: { taxCodeRequired: "Messaggio personalizzato" } },
+    rules: { taxCode: "required_validated", pec: "optional_validated" },
+  });
+});
+
 test.each(["messaggio", "entitlement"] as const)(
   "il readback rifiuta una configurazione con %s diverso",
   async (field) => {

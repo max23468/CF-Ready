@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.12 — 6 agosto 2026
+
+- Regole, Messaggi e onboarding affidano al percorso condiviso di scrittura
+  soltanto i campi modificati: la configurazione corrente viene ora preservata
+  sotto la stessa lease usata per conflitto ottimistico, mutation e readback;
+- ogni salvataggio elimina una lettura preliminare duplicata verso Shopify,
+  senza cambiare attivazione, entitlement, comportamento fail-open o dati
+  persistiti.
+
 ## 0.9.11 — 5 agosto 2026
 
 - la Home avvia la lettura billing Shopify insieme allo stato commerciale D1
