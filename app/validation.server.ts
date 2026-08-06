@@ -331,7 +331,7 @@ export async function reconcile(
 
   // Il diritto commerciale vive nel metafield: la Function lo confronta con la data locale e
   // si spegne da sola alla scadenza, senza job periodici.
-  if (validation && entitlementDiffers(validation.metafield?.jsonValue, entitlement)) {
+  if (eligible && validation && entitlementDiffers(validation.metafield?.jsonValue, entitlement)) {
     const write = await writeEntitlement(admin, db, shopDomain, validation, entitlement);
 
     if (write.acquired) {

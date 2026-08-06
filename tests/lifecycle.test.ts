@@ -279,8 +279,9 @@ test("una disattivazione non riuscita resta fail-open e registra un codice error
 
 test("un readback geografico non disponibile resta fail-open", async () => {
   const shop = await insertShop("readback-paese.example.myshopify.com");
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
   const admin = adminStub([
-    shopContext("DE", true),
+    shopContext("DE", true, entitlementAttivo),
     { data: { validationUpdate: { userErrors: [] } } },
     { errors: [{ message: "servizio non disponibile" }] },
   ]);
