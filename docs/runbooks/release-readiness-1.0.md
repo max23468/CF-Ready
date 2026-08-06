@@ -32,7 +32,7 @@ La navigazione embedded della `0.9.11` è stata verificata in Chrome sullo store
 | Voce | Valore |
 | --- | --- |
 | Versione candidata | `0.9.11` |
-| Commit candidato | `821acd1`, merge della PR [#225](https://github.com/max23468/CF-Ready/pull/225) |
+| Commit candidato | `639b73d`, snapshot Development poi promosso su Production dalla PR [#228](https://github.com/max23468/CF-Ready/pull/228) |
 | Branch | `main`; `0.9.11` promossa con la PR [#226](https://github.com/max23468/CF-Ready/pull/226) e completata con la PR [#228](https://github.com/max23468/CF-Ready/pull/228) |
 | Ultimo snapshot Development provato | `0.9.11`, run [30995275981](https://github.com/max23468/CF-Ready/actions/runs/30995275981) |
 | Submission | inviata a Shopify il 4 agosto 2026 |
