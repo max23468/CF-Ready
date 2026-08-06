@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.13 — 6 agosto 2026
+
+- i readback Shopify successivi alle riparazioni sicure della Validation usano
+  un solo percorso fail-open: se Shopify non risponde, la riconciliazione
+  conserva l'ultima osservazione certa e registra un errore operativo;
+- disattivazione per cambio Paese e aggiornamento dell'entitlement non
+  propagano più un errore `502` quando fallisce soltanto il readback finale, né
+  riscrivono l'entitlement di una Validation appena disattivata fuori dall'Italia;
+- il gate app concede alla compilazione concorrente del pool Workers un budget
+  coerente con gli import dinamici, evitando timeout prima delle assertion.
+
 ## 0.9.12 — 6 agosto 2026
 
 - Regole, Messaggi e onboarding affidano al percorso condiviso di scrittura

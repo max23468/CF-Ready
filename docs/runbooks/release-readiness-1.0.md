@@ -17,11 +17,10 @@ dipende da noi. Materiali e listing ci sono per dichiarazione dell'owner.
 L'accesso del reviewer non è più un gate mancante ma una decisione registrata
 (D-132). Il checkout reale ripetuto resta nel canary M10; gli addebiti reali
 sono invece attivi in Production. Il sito pubblico e la versione Production
-`0.9.11` sono distribuiti. La candidata è stata promossa su `main` dalla PR
-[#226](https://github.com/max23468/CF-Ready/pull/226); dopo il rollback automatico
-del primo tentativo, la PR [#228](https://github.com/max23468/CF-Ready/pull/228)
-ha completato il deploy, verificato dal run
-[#30989878088](https://github.com/max23468/CF-Ready/actions/runs/30989878088).
+`0.9.12` sono distribuiti. La candidata è stata promossa su `main` dalla PR
+[#232](https://github.com/max23468/CF-Ready/pull/232) e il deploy è stato
+verificato dal run
+[#31107867823](https://github.com/max23468/CF-Ready/actions/runs/31107867823).
 La navigazione embedded della `0.9.11` è stata verificata in Chrome sullo store
 `cf-ready-dev`: una sola voce Home e tutti i flussi primari dentro l'Admin.
 
@@ -31,12 +30,38 @@ La navigazione embedded della `0.9.11` è stata verificata in Chrome sullo store
 
 | Voce | Valore |
 | --- | --- |
-| Versione candidata | `0.9.11` |
-| Commit candidato | `639b73d`, snapshot Development poi promosso su Production dalla PR [#228](https://github.com/max23468/CF-Ready/pull/228) |
-| Branch | `main`; `0.9.11` promossa con la PR [#226](https://github.com/max23468/CF-Ready/pull/226) e completata con la PR [#228](https://github.com/max23468/CF-Ready/pull/228) |
-| Ultimo snapshot Development provato | `0.9.11`, run [30995275981](https://github.com/max23468/CF-Ready/actions/runs/30995275981) |
+| Versione candidata | `0.9.12` |
+| Commit candidato | `89e716f`, HEAD di `develop` promosso con la PR [#232](https://github.com/max23468/CF-Ready/pull/232) |
+| Branch | `main`; `0.9.12` promossa con la PR [#232](https://github.com/max23468/CF-Ready/pull/232) |
+| Ultimo snapshot Development provato | `0.9.12`, run [31105952620](https://github.com/max23468/CF-Ready/actions/runs/31105952620) |
 | Submission | inviata a Shopify il 4 agosto 2026 |
 | Tag `v1.0.0` | non creato: si crea alla promozione Production della `1.0.0` |
+
+### Ricevuta del deploy Development `0.9.12`
+
+| Campo | Valore |
+| --- | --- |
+| Ambiente e configurazione | Development: `wrangler.json`, `shopify.app.dev.toml` |
+| Versione repository e commit | `0.9.12`, commit `4d84481` |
+| Worker | deployment `dd31444a-fc17-42e5-b039-b6c0116804e4`, versione `29315905-b24c-48a5-aac3-392cfc698eef`, 100% del traffico |
+| Migrazioni | nessuna pendente, confermato dal readback remoto |
+| Run | [31105952620](https://github.com/max23468/CF-Ready/actions/runs/31105952620) |
+| Smoke e capacità | Worker raggiungibile; 120 richieste, CPU p95 2 ms, massimo 29 ms, 0 errori |
+| Shopify | versione `0.9.12` attiva (`gid://shopify/Version/1078843441153`), commit verificato |
+| Rollback | snapshot coordinato `0.9.11`, verificato prima del deploy |
+
+### Ricevuta del deploy Production `0.9.12`
+
+| Campo | Valore |
+| --- | --- |
+| Ambiente e configurazione | Production: `wrangler.json` env `production`, `shopify.app.toml` |
+| Versione repository e commit | `0.9.12`, commit `008a4a7` |
+| Worker | `cf-ready-prod`, deployment `c0f16832-21e6-4f92-84c1-843ac661ef94`, versione `970e2a2f-92de-4f9e-8d62-2728276b449d`, 100% del traffico |
+| Migrazioni | nessuna pendente, confermato dal readback remoto |
+| Run | [31107867823](https://github.com/max23468/CF-Ready/actions/runs/31107867823) |
+| Smoke e readback | Worker raggiungibile; Shopify `0.9.12` attiva (`gid://shopify/Version/1078876569601`); commit verificato |
+| Code e trigger | producer e consumer `cf-ready-webhooks-prod`, consumer failure queue, cron `0 * * * *` |
+| Rollback | snapshot coordinato Worker e Shopify `0.9.11`, registrato prima delle scritture |
 
 ### Ricevuta del deploy Development `0.9.11`
 
