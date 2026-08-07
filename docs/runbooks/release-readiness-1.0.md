@@ -17,11 +17,9 @@ dipende da noi. Materiali e listing ci sono per dichiarazione dell'owner.
 L'accesso del reviewer non è più un gate mancante ma una decisione registrata
 (D-132). Il checkout reale ripetuto resta nel canary M10; gli addebiti reali
 sono invece attivi in Production. Il sito pubblico e la versione Production
-`0.9.11` sono distribuiti. La candidata è stata promossa su `main` dalla PR
-[#226](https://github.com/max23468/CF-Ready/pull/226); dopo il rollback automatico
-del primo tentativo, la PR [#228](https://github.com/max23468/CF-Ready/pull/228)
-ha completato il deploy, verificato dal run
-[#30989878088](https://github.com/max23468/CF-Ready/actions/runs/30989878088).
+`0.9.12` sono distribuiti. L'ultimo candidato verificato in Development è la
+`0.9.18` al commit `2af7843`; il prossimo candidato Production è in
+preparazione sulla `0.9.19`.
 La navigazione embedded della `0.9.11` è stata verificata in Chrome sullo store
 `cf-ready-dev`: una sola voce Home e tutti i flussi primari dentro l'Admin.
 
@@ -31,12 +29,121 @@ La navigazione embedded della `0.9.11` è stata verificata in Chrome sullo store
 
 | Voce | Valore |
 | --- | --- |
-| Versione candidata | `0.9.11` |
-| Commit candidato | `639b73d`, snapshot Development poi promosso su Production dalla PR [#228](https://github.com/max23468/CF-Ready/pull/228) |
-| Branch | `main`; `0.9.11` promossa con la PR [#226](https://github.com/max23468/CF-Ready/pull/226) e completata con la PR [#228](https://github.com/max23468/CF-Ready/pull/228) |
-| Ultimo snapshot Development provato | `0.9.11`, run [30995275981](https://github.com/max23468/CF-Ready/actions/runs/30995275981) |
+| Versione candidata verificata | `0.9.18` |
+| Commit candidato | `2af7843`, HEAD di `develop` dopo la PR [#243](https://github.com/max23468/CF-Ready/pull/243) |
+| Branch | `develop`; promozione Production sospesa fino alla verifica della `0.9.19` |
+| Ultimo snapshot Development provato | `0.9.18`, run [31166490429](https://github.com/max23468/CF-Ready/actions/runs/31166490429) |
 | Submission | inviata a Shopify il 4 agosto 2026 |
 | Tag `v1.0.0` | non creato: si crea alla promozione Production della `1.0.0` |
+
+### Ricevuta del deploy Development `0.9.18`
+
+| Campo | Valore |
+| --- | --- |
+| Ambiente e configurazione | Development: `wrangler.json`, `shopify.app.dev.toml` |
+| Versione repository e commit | `0.9.18`, commit `2af7843` |
+| Worker | deployment `3862505e-262d-4d92-aafc-5dd7c6eb7020`, versione `22c91218-1aee-42eb-a67d-809c105ffbf1`, 100% del traffico |
+| Migrazioni | nessuna pendente, confermato dal readback remoto |
+| Run | [31166490429](https://github.com/max23468/CF-Ready/actions/runs/31166490429) |
+| Smoke e capacità | Worker raggiungibile; 120 richieste, CPU p95 1 ms, massimo 17 ms, 0 errori |
+| Shopify | versione `0.9.18` attiva (`gid://shopify/Version/1079963516929`), commit verificato |
+| Rollback | snapshot coordinato `0.9.17`, commit `0d83c47`, verificato prima del deploy |
+
+### Ricevuta del deploy Development `0.9.17`
+
+| Campo | Valore |
+| --- | --- |
+| Ambiente e configurazione | Development: `wrangler.json`, `shopify.app.dev.toml` |
+| Versione repository e commit | `0.9.17`, commit `0d83c47` |
+| Worker | deployment `51d2a9bb-64ae-462b-b094-0e7dc9db7bdf`, versione `ac215315-85b7-4cdd-b84b-8393af494292`, 100% del traffico |
+| Migrazioni | nessuna pendente, confermato dal readback remoto |
+| Run | [31164473236](https://github.com/max23468/CF-Ready/actions/runs/31164473236) |
+| Smoke e capacità | Worker raggiungibile; 115 richieste, CPU p95 2 ms, massimo 4 ms, 0 errori |
+| Shopify | versione `0.9.17` attiva (`gid://shopify/Version/1079922720769`), commit verificato |
+| Rollback | snapshot coordinato `0.9.16`, commit `1d9f001`, verificato prima del deploy |
+
+### Ricevuta del deploy Development `0.9.16`
+
+| Campo | Valore |
+| --- | --- |
+| Ambiente e configurazione | Development: `wrangler.json`, `shopify.app.dev.toml` |
+| Versione repository e commit | `0.9.16`, commit `1d9f001` |
+| Worker | deployment `012bf36e-b2b1-473c-ad91-e5c637fd4a86`, versione `c8ade09b-0846-46c3-8cd7-b31d1e04ec3d`, 100% del traffico |
+| Migrazioni | nessuna pendente, confermato dal readback remoto |
+| Run | [31163570208](https://github.com/max23468/CF-Ready/actions/runs/31163570208) |
+| Smoke e capacità | Worker raggiungibile; 120 richieste, CPU p95 1 ms, massimo 2 ms, 0 errori |
+| Shopify | versione `0.9.16` attiva (`gid://shopify/Version/1079908040705`), commit verificato |
+| Rollback | snapshot coordinato `0.9.15`, commit `b82c3b9`, verificato prima del deploy |
+
+Il primo tentativo, run
+[31163291264](https://github.com/max23468/CF-Ready/actions/runs/31163291264),
+si è fermato prima di Shopify perché il tail Cloudflare non era pronto entro 60
+secondi e ha ripristinato con successo lo snapshot coordinato `0.9.15`.
+
+### Ricevuta del deploy Development `0.9.15`
+
+| Campo | Valore |
+| --- | --- |
+| Ambiente e configurazione | Development: `wrangler.json`, `shopify.app.dev.toml` |
+| Versione repository e commit | `0.9.15`, commit `b82c3b9` |
+| Worker | deployment `07fcf015-561a-4da0-8f75-9703fb1e8f83`, versione `cfab7a67-786d-4332-b6fb-ef3782a69140`, 100% del traffico |
+| Migrazioni | nessuna pendente, confermato dal readback remoto |
+| Run | [31162391439](https://github.com/max23468/CF-Ready/actions/runs/31162391439) |
+| Smoke e capacità | Worker raggiungibile; 120 richieste, CPU p95 2 ms, massimo 3 ms, 0 errori |
+| Shopify | versione `0.9.15` attiva (`gid://shopify/Version/1079886086145`), commit verificato |
+| Rollback | snapshot coordinato `0.9.14`, commit `f81093c`, verificato prima del deploy |
+
+### Ricevuta del deploy Development `0.9.14`
+
+| Campo | Valore |
+| --- | --- |
+| Ambiente e configurazione | Development: `wrangler.json`, `shopify.app.dev.toml` |
+| Versione repository e commit | `0.9.14`, commit `f81093c` |
+| Worker | deployment `8f2008c1-d151-4032-9b81-87d71dee1880`, versione `4dd3e54e-22f7-49de-95de-fd55156667f8`, 100% del traffico |
+| Migrazioni | nessuna pendente, confermato dal readback remoto |
+| Run | [31160317539](https://github.com/max23468/CF-Ready/actions/runs/31160317539) |
+| Smoke e capacità | Worker raggiungibile; 120 richieste, CPU p95 1 ms, massimo 3 ms, 0 errori |
+| Shopify | versione `0.9.14` attiva (`gid://shopify/Version/1079846797313`), commit verificato |
+| Rollback | snapshot coordinato `0.9.13`, commit `f16d25b`, verificato prima del deploy |
+
+### Ricevuta del deploy Development `0.9.13`
+
+| Campo | Valore |
+| --- | --- |
+| Ambiente e configurazione | Development: `wrangler.json`, `shopify.app.dev.toml` |
+| Versione repository e commit | `0.9.13`, commit `f16d25b` |
+| Worker | deployment `0d236209-fcb6-41c7-8ebe-b73a051ef571`, versione `1e736d48-4b62-4729-9689-0f0784c5a9bb`, 100% del traffico |
+| Migrazioni | nessuna pendente, confermato dal readback remoto |
+| Run | [31112000908](https://github.com/max23468/CF-Ready/actions/runs/31112000908) |
+| Smoke e capacità | Worker raggiungibile; 120 richieste, CPU p95 1 ms, massimo 20 ms, 0 errori |
+| Shopify | versione `0.9.13` attiva (`gid://shopify/Version/1078945447937`), commit verificato |
+| Rollback | snapshot coordinato `0.9.12`, commit `4d84481`, verificato prima del deploy |
+
+### Ricevuta del deploy Development `0.9.12`
+
+| Campo | Valore |
+| --- | --- |
+| Ambiente e configurazione | Development: `wrangler.json`, `shopify.app.dev.toml` |
+| Versione repository e commit | `0.9.12`, commit `4d84481` |
+| Worker | deployment `dd31444a-fc17-42e5-b039-b6c0116804e4`, versione `29315905-b24c-48a5-aac3-392cfc698eef`, 100% del traffico |
+| Migrazioni | nessuna pendente, confermato dal readback remoto |
+| Run | [31105952620](https://github.com/max23468/CF-Ready/actions/runs/31105952620) |
+| Smoke e capacità | Worker raggiungibile; 120 richieste, CPU p95 2 ms, massimo 29 ms, 0 errori |
+| Shopify | versione `0.9.12` attiva (`gid://shopify/Version/1078843441153`), commit verificato |
+| Rollback | snapshot coordinato `0.9.11`, verificato prima del deploy |
+
+### Ricevuta del deploy Production `0.9.12`
+
+| Campo | Valore |
+| --- | --- |
+| Ambiente e configurazione | Production: `wrangler.json` env `production`, `shopify.app.toml` |
+| Versione repository e commit | `0.9.12`, commit `008a4a7` |
+| Worker | `cf-ready-prod`, deployment `c0f16832-21e6-4f92-84c1-843ac661ef94`, versione `970e2a2f-92de-4f9e-8d62-2728276b449d`, 100% del traffico |
+| Migrazioni | nessuna pendente, confermato dal readback remoto |
+| Run | [31107867823](https://github.com/max23468/CF-Ready/actions/runs/31107867823) |
+| Smoke e readback | Worker raggiungibile; Shopify `0.9.12` attiva (`gid://shopify/Version/1078876569601`); commit verificato |
+| Code e trigger | producer e consumer `cf-ready-webhooks-prod`, consumer failure queue, cron `0 * * * *` |
+| Rollback | snapshot coordinato Worker e Shopify `0.9.11`, registrato prima delle scritture |
 
 ### Ricevuta del deploy Development `0.9.11`
 

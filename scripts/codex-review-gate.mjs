@@ -8,6 +8,14 @@ const timestamp = (value) => new Date(value ?? 0).getTime();
 const reviewedCommit = (body = "") =>
   body.match(/\*\*Reviewed commit:\*\*\s*`([0-9a-f]{10,40})`/i)?.[1];
 
+export const latestCodexReviewRequest = (comments) =>
+  comments
+    .filter(
+      (comment) =>
+        comment.user?.login !== CODEX_BOT && /(?:^|\s)@codex\s+review\b/i.test(comment.body),
+    )
+    .reduce((latest, comment) => Math.max(latest, timestamp(comment.created_at)), 0);
+
 export function classifyCodexReview({
   headSha,
   requestedAt,
@@ -226,9 +234,12 @@ async function main() {
   }
 
   const freshReview = ["opened", "ready_for_review"].includes(event.action);
-  const requestedAt = reusesExistingReview ? 0 : pullRequest.updated_at;
+  const initialRequestedAt = reusesExistingReview ? 0 : pullRequest.updated_at;
   for (let attempt = 0; attempt < 600; attempt += 1) {
     const [comments, reactions, reviews, reviewComments] = await reviewSignals(repository, number);
+    const requestedAt = reusesExistingReview
+      ? latestCodexReviewRequest(comments)
+      : initialRequestedAt;
     const result = classifyCodexReview({
       headSha,
       requestedAt,

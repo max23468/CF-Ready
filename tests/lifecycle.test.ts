@@ -10,7 +10,13 @@ import {
   refuseInstall,
 } from "../app/shop.server";
 import { localDate, startTrial, trialEnd } from "../app/billing.server";
-import { readOnboarding, reconcile, saveOnboarding } from "../app/validation.server";
+import {
+  acquireValidationLock,
+  readOnboarding,
+  reconcile,
+  releaseValidationLockBestEffort,
+  saveOnboarding,
+} from "../app/validation.server";
 import {
   claimWebhook,
   consumeWebhookMessage,
@@ -121,7 +127,9 @@ function shopContext(
                   enabled,
                   blockOnFailure: false,
                   shopifyFunction: { handle: "cf-ready-validation" },
-                  metafield: { jsonValue: { ...CONFIG, entitlement } },
+                  metafield: {
+                    jsonValue: { ...CONFIG, rules: { ...CONFIG.rules }, entitlement },
+                  },
                 },
               ],
         pageInfo: { hasNextPage: false, endCursor: null },
@@ -143,19 +151,65 @@ const SENZA_ADDEBITI = {
   },
 };
 
+const CONVERSIONE_UNA_TANTUM = {
+  data: {
+    currentAppInstallation: {
+      activeSubscriptions: [
+        {
+          id: "gid://shopify/AppSubscription/1",
+          name: "launch-monthly",
+          status: "ACTIVE",
+          test: true,
+          currentPeriodEnd: "2026-08-31T21:59:59Z",
+          lineItems: [
+            {
+              plan: {
+                pricingDetails: {
+                  interval: "EVERY_30_DAYS",
+                  price: { amount: "2.99", currencyCode: "EUR" },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      oneTimePurchases: {
+        nodes: [
+          {
+            id: "gid://shopify/AppPurchaseOneTime/1",
+            name: "CF Ready",
+            status: "ACTIVE",
+            test: true,
+            createdAt: "2026-08-07T08:00:00Z",
+            price: { amount: "89.90", currencyCode: "EUR" },
+          },
+        ],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      },
+    },
+  },
+};
+
 function adminStub(responses: unknown[]) {
   const calls: string[] = [];
+  const updates: unknown[] = [];
   return {
     calls,
-    graphql: async (query: string) => {
+    updates,
+    graphql: async (query: string, options?: { variables?: unknown }) => {
+      if (query.includes("validationUpdate")) updates.push(options?.variables);
       calls.push(
         query.includes("validationUpdate")
           ? "update"
-          : query.includes("currentAppInstallation")
-            ? "billing"
-            : "context",
+          : query.includes("appSubscriptionCancel")
+            ? "cancel"
+            : query.includes("currentAppInstallation")
+              ? "billing"
+              : "context",
       );
-      return Response.json(responses.shift());
+      const response = responses.shift();
+      if (response instanceof Error) throw response;
+      return Response.json(response);
     },
   };
 }
@@ -169,6 +223,14 @@ async function appState(shopDomain: string) {
   )
     .bind(shopDomain)
     .first<Record<string, unknown>>();
+}
+
+async function clearBillingEvents(shopDomain: string) {
+  await env.DB.prepare(
+    "DELETE FROM billing_events WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)",
+  )
+    .bind(shopDomain)
+    .run();
 }
 
 test("uno store non italiano viene bloccato e la Validation disattivata", async () => {
@@ -214,6 +276,7 @@ test("il rientro in Italia sblocca lo store senza riattivare la Validation", asy
   const admin = adminStub([
     shopContext("IT", false),
     SENZA_ADDEBITI,
+    shopContext("IT", false),
     { data: { validationUpdate: { userErrors: [] } } },
     shopContext("IT", false, inProva),
   ]);
@@ -222,7 +285,7 @@ test("il rientro in Italia sblocca lo store senza riattivare la Validation", asy
   expect(state.eligible).toBe(true);
   expect(state.entitlement).toEqual(inProva);
   expect(state.errorCode).toBeNull();
-  expect(admin.calls).toEqual(["context", "billing", "update", "context"]);
+  expect(admin.calls).toEqual(["context", "billing", "context", "update", "context"]);
   expect(await appState(shop)).toMatchObject({
     installation_status: "active",
     country_code: "IT",
@@ -261,19 +324,414 @@ test("un errore billing resta fail-open e produce soltanto timing tecnici", asyn
 
 test("una disattivazione non riuscita resta fail-open e registra un codice errore", async () => {
   const shop = await insertShop("errore.example.myshopify.com");
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
+  const configurazioneCorrente = shopContext("DE", true, entitlementAttivo);
+  configurazioneCorrente.data.validations.nodes[0].metafield.jsonValue.rules.taxCode = "optional";
   const admin = adminStub([
-    shopContext("DE", true),
+    shopContext("DE", true, entitlementAttivo),
     { data: { validationUpdate: { userErrors: [{ message: "limite raggiunto" }] } } },
+    shopContext("DE", true, entitlementAttivo),
+    configurazioneCorrente,
+    { data: { validationUpdate: { userErrors: [] } } },
     shopContext("DE", true),
   ]);
 
   const state = await reconcile(admin, env.DB, shop);
 
   expect(state.errorCode).toBe("validation_disable_failed");
+  expect(admin.calls).toEqual(["context", "update", "context", "context", "update", "context"]);
+  expect(admin.updates).toMatchObject([
+    { validation: { enable: false } },
+    { validation: { enable: true } },
+  ]);
+  const fallbackUpdate = admin.updates[1] as {
+    validation: { metafields: { value: string }[] };
+  };
+  expect(JSON.parse(fallbackUpdate.validation.metafields[0].value)).toMatchObject({
+    rules: { taxCode: "optional" },
+    entitlement: SENZA_DIRITTO,
+  });
   expect(await appState(shop)).toMatchObject({
     installation_status: "blocked_country",
     validation_enabled: 1,
     last_error_code: "validation_disable_failed",
+  });
+});
+
+test("una disattivazione geografica bloccata resta ritentabile con entitlement già fail-open", async () => {
+  const shop = await insertShop("disattivazione-bloccata.example.myshopify.com");
+  const lockToken = await acquireValidationLock(env.DB, shop);
+  expect(lockToken).not.toBeNull();
+  const admin = adminStub([shopContext("DE", true), shopContext("DE", true)]);
+
+  try {
+    const state = await reconcile(admin, env.DB, shop);
+
+    expect(state.errorCode).toBe("validation_locked");
+    expect(state.retryable).toBe(true);
+    expect(admin.calls).toEqual(["context", "context"]);
+    expect(admin.updates).toEqual([]);
+  } finally {
+    await releaseValidationLockBestEffort(env.DB, shop, lockToken!);
+  }
+});
+
+test("un readback geografico obsoleto non riattiva una disattivazione accettata", async () => {
+  const shop = await insertShop("readback-paese-obsoleto.example.myshopify.com");
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
+  const admin = adminStub([
+    shopContext("DE", true, entitlementAttivo),
+    { data: { validationUpdate: { userErrors: [] } } },
+    shopContext("DE", true, entitlementAttivo),
+    shopContext("DE", true, entitlementAttivo),
+    { data: { validationUpdate: { userErrors: [] } } },
+    shopContext("DE", false),
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.validationEnabled).toBe(false);
+  expect(state.errorCode).toBe("validation_still_enabled");
+  expect(admin.updates).toMatchObject([
+    { validation: { enable: false } },
+    { validation: { enable: false } },
+  ]);
+});
+
+test("un errore di trasporto conserva lo stato riletto sotto lease", async () => {
+  const shop = await insertShop("disattivazione-incerta.example.myshopify.com");
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
+  const admin = adminStub([
+    shopContext("DE", true, entitlementAttivo),
+    new Error("risposta persa"),
+    shopContext("DE", true, entitlementAttivo),
+    shopContext("DE", false, entitlementAttivo),
+    { data: { validationUpdate: { userErrors: [] } } },
+    shopContext("DE", false),
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.validationEnabled).toBe(false);
+  expect(state.errorCode).toBe("validation_disable_failed");
+  expect(admin.updates).toMatchObject([
+    { validation: { enable: false } },
+    { validation: { enable: false } },
+  ]);
+});
+
+test("il fallback ritenta se lo store torna idoneo durante la lease", async () => {
+  const shop = await insertShop("paese-cambiato.example.myshopify.com");
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
+  const admin = adminStub([
+    shopContext("DE", true, entitlementAttivo),
+    { data: { validationUpdate: { userErrors: [] } } },
+    shopContext("DE", true, entitlementAttivo),
+    shopContext("IT", true, entitlementAttivo),
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.errorCode).toBe("validation_locked");
+  expect(admin.calls).toEqual(["context", "update", "context", "context"]);
+  expect(admin.updates).toMatchObject([{ validation: { enable: false } }]);
+});
+
+test("un readback geografico non disponibile resta fail-open", async () => {
+  const shop = await insertShop("readback-paese.example.myshopify.com");
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
+  const admin = adminStub([
+    shopContext("DE", true, entitlementAttivo),
+    { data: { validationUpdate: { userErrors: [] } } },
+    { errors: [{ message: "servizio non disponibile" }] },
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.validationEnabled).toBe(true);
+  expect(state.errorCode).toBe("validation_disable_failed");
+  expect(admin.calls).toEqual(["context", "update", "context"]);
+  expect(await appState(shop)).toMatchObject({
+    installation_status: "blocked_country",
+    validation_enabled: 1,
+    last_error_code: "validation_disable_failed",
+  });
+});
+
+test("un readback entitlement non disponibile resta fail-open", async () => {
+  const shop = await insertShop("readback-entitlement.example.myshopify.com");
+  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  const admin = adminStub([
+    shopContext("IT", true),
+    SENZA_ADDEBITI,
+    shopContext("IT", true),
+    { data: { validationUpdate: { userErrors: [] } } },
+    { errors: [{ message: "servizio non disponibile" }] },
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.validationEnabled).toBe(true);
+  expect(state.errorCode).toBe("entitlement_readback_failed");
+  expect(admin.calls).toEqual(["context", "billing", "context", "update", "context"]);
+  expect(await appState(shop)).toMatchObject({
+    validation_enabled: 1,
+    last_error_code: "entitlement_readback_failed",
+  });
+});
+
+test("una scrittura entitlement bloccata espone il retry al webhook", async () => {
+  const shop = await insertShop("entitlement-occupato.example.myshopify.com");
+  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  const lockToken = await acquireValidationLock(env.DB, shop);
+  expect(lockToken).not.toBeNull();
+  const admin = adminStub([shopContext("IT", true), SENZA_ADDEBITI]);
+
+  try {
+    const state = await reconcile(admin, env.DB, shop);
+
+    expect(state.errorCode).toBe("validation_locked");
+    expect(admin.calls).toEqual(["context", "billing"]);
+  } finally {
+    await releaseValidationLockBestEffort(env.DB, shop, lockToken!);
+  }
+});
+
+test("una lease entitlement persa preserva i duplicati attivi del readback", async () => {
+  vi.useFakeTimers();
+  const shop = await insertShop("entitlement-lease-persa.example.myshopify.com");
+  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
+  const readback = shopContext("IT", true, entitlementAttivo);
+  readback.data.validations.nodes.push({
+    ...readback.data.validations.nodes[0],
+    id: "gid://shopify/Validation/2",
+    enabled: false,
+  });
+  const admin = adminStub([
+    shopContext("IT", true, entitlementAttivo),
+    { errors: [{ message: "servizio billing non disponibile" }] },
+    shopContext("IT", true, entitlementAttivo),
+    readback,
+  ]);
+  const graphql = admin.graphql;
+  admin.graphql = async (query, options) => {
+    const response = await graphql(query, options);
+    if (admin.calls.length === 3) {
+      await env.DB.prepare(
+        `UPDATE validation_operation_locks
+         SET owner_token = 'intruso', expires_at = ?
+         WHERE shop_domain = ?`,
+      )
+        .bind(Date.now() + 60_000, shop)
+        .run();
+      await vi.advanceTimersByTimeAsync(20_000);
+    }
+    return response;
+  };
+
+  try {
+    const state = await reconcile(admin, env.DB, shop);
+
+    expect(state.errorCode).toBe("duplicate_validations_active");
+    expect(state.retryable).toBe(true);
+    expect(admin.calls).toEqual(["context", "billing", "context", "context"]);
+    expect(admin.updates).toEqual([]);
+  } finally {
+    await env.DB.prepare("DELETE FROM validation_operation_locks WHERE shop_domain = ?")
+      .bind(shop)
+      .run();
+    vi.useRealTimers();
+  }
+});
+
+test("una cancellazione subscription fallita resta ritentabile", async () => {
+  const shop = await insertShop("conversione-fallita.example.myshopify.com");
+  const entitlement = { kind: "one_time", validThrough: null };
+  const admin = adminStub([
+    shopContext("IT", true, entitlement),
+    CONVERSIONE_UNA_TANTUM,
+    CONVERSIONE_UNA_TANTUM,
+    { data: { appSubscriptionCancel: { userErrors: [{ message: "temporaneo" }] } } },
+  ]);
+
+  try {
+    const state = await reconcile(admin, env.DB, shop);
+
+    expect(state.errorCode).toBe("subscription_cancel_failed");
+    expect(state.retryable).toBe(true);
+    expect(admin.calls).toEqual(["context", "billing", "billing", "cancel"]);
+  } finally {
+    await clearBillingEvents(shop);
+  }
+});
+
+test("i duplicati attivi restano visibili se fallisce anche la conversione billing", async () => {
+  const shop = await insertShop("duplicati-conversione-fallita.example.myshopify.com");
+  const context = shopContext("IT", true);
+  context.data.validations.nodes.push({
+    ...context.data.validations.nodes[0],
+    id: "gid://shopify/Validation/2",
+  });
+  const admin = adminStub([
+    context,
+    { data: { validationUpdate: { userErrors: [] } } },
+    { data: { validationUpdate: { userErrors: [] } } },
+    context,
+    CONVERSIONE_UNA_TANTUM,
+    CONVERSIONE_UNA_TANTUM,
+    { data: { appSubscriptionCancel: { userErrors: [{ message: "temporaneo" }] } } },
+  ]);
+
+  try {
+    const state = await reconcile(admin, env.DB, shop);
+
+    expect(state.validation).toBeUndefined();
+    expect(state.errorCode).toBe("duplicate_validations_active");
+    expect(state.retryable).toBe(true);
+    expect(admin.calls).toEqual([
+      "context",
+      "update",
+      "update",
+      "context",
+      "billing",
+      "billing",
+      "cancel",
+    ]);
+  } finally {
+    await clearBillingEvents(shop);
+  }
+});
+
+test("un errore durante il refresh della conversione billing resta ritentabile", async () => {
+  const shop = await insertShop("conversione-refresh-fallito.example.myshopify.com");
+  const admin = adminStub([
+    shopContext("IT", true),
+    CONVERSIONE_UNA_TANTUM,
+    new Error("Shopify non disponibile"),
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.errorCode).toBe("billing_read_failed");
+  expect(state.retryable).toBe(true);
+  expect(admin.calls).toEqual(["context", "billing", "billing"]);
+});
+
+test("una conversione billing bloccata resta ritentabile", async () => {
+  const shop = await insertShop("conversione-bloccata.example.myshopify.com");
+  const lockToken = await acquireValidationLock(env.DB, shop);
+  expect(lockToken).not.toBeNull();
+  const entitlement = { kind: "one_time", validThrough: null };
+  const admin = adminStub([shopContext("IT", true, entitlement), CONVERSIONE_UNA_TANTUM]);
+
+  try {
+    const state = await reconcile(admin, env.DB, shop);
+
+    expect(state.errorCode).toBe("validation_locked");
+    expect(state.retryable).toBe(true);
+    expect(admin.calls).toEqual(["context", "billing"]);
+  } finally {
+    await releaseValidationLockBestEffort(env.DB, shop, lockToken!);
+    await clearBillingEvents(shop);
+  }
+});
+
+test("una conversione billing che perde la lease non cancella e resta ritentabile", async () => {
+  vi.useFakeTimers();
+  const shop = await insertShop("conversione-lease-persa.example.myshopify.com");
+  const entitlement = { kind: "one_time", validThrough: null };
+  const admin = adminStub([
+    shopContext("IT", true, entitlement),
+    CONVERSIONE_UNA_TANTUM,
+    CONVERSIONE_UNA_TANTUM,
+  ]);
+  const graphql = admin.graphql;
+  admin.graphql = async (query, options) => {
+    const response = await graphql(query, options);
+    if (admin.calls.length === 3) {
+      await env.DB.prepare(
+        `UPDATE validation_operation_locks
+         SET owner_token = 'intruso', expires_at = ?
+         WHERE shop_domain = ?`,
+      )
+        .bind(Date.now() + 60_000, shop)
+        .run();
+      await vi.advanceTimersByTimeAsync(20_000);
+    }
+    return response;
+  };
+
+  try {
+    const state = await reconcile(admin, env.DB, shop);
+
+    expect(state.errorCode).toBe("validation_locked");
+    expect(state.retryable).toBe(true);
+    expect(admin.calls).toEqual(["context", "billing", "billing"]);
+  } finally {
+    await env.DB.prepare("DELETE FROM validation_operation_locks WHERE shop_domain = ?")
+      .bind(shop)
+      .run();
+    await clearBillingEvents(shop);
+    vi.useRealTimers();
+  }
+});
+
+test("il readback entitlement conserva lo stato attivo dei duplicati concorrenti", async () => {
+  const shop = await insertShop("readback-entitlement-duplicato.example.myshopify.com");
+  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  const entitlement = { kind: "trial", validThrough: trialEnd(localDate(FUSO)) };
+  const readback = shopContext("IT", true, entitlement);
+  readback.data.validations.nodes.push({
+    ...readback.data.validations.nodes[0],
+    id: "gid://shopify/Validation/2",
+    enabled: false,
+  });
+  const admin = adminStub([
+    shopContext("IT", true),
+    SENZA_ADDEBITI,
+    shopContext("IT", true),
+    { data: { validationUpdate: { userErrors: [] } } },
+    readback,
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.validation).toBeUndefined();
+  expect(state.validationEnabled).toBe(true);
+  expect(state.errorCode).toBe("duplicate_validations_active");
+  expect(state.retryable).toBe(true);
+  expect(await appState(shop)).toMatchObject({
+    validation_enabled: 1,
+    last_error_code: "duplicate_validations_active",
+  });
+});
+
+test("un duplicato attivo al readback prevale su un errore operativo precedente", async () => {
+  const shop = await insertShop("readback-duplicato-con-errore.example.myshopify.com");
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
+  const readback = shopContext("IT", true);
+  readback.data.validations.nodes.push({
+    ...readback.data.validations.nodes[0],
+    id: "gid://shopify/Validation/2",
+    enabled: false,
+  });
+  const admin = adminStub([
+    shopContext("IT", true, entitlementAttivo),
+    { errors: [{ message: "servizio billing non disponibile" }] },
+    shopContext("IT", true, entitlementAttivo),
+    { data: { validationUpdate: { userErrors: [] } } },
+    readback,
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.validation).toBeUndefined();
+  expect(state.validationEnabled).toBe(true);
+  expect(state.errorCode).toBe("duplicate_validations_active");
+  expect(await appState(shop)).toMatchObject({
+    validation_enabled: 1,
+    last_error_code: "duplicate_validations_active",
   });
 });
 
@@ -284,6 +742,7 @@ test("un readback senza Validation non conserva lo stato attivo precedente", asy
   const admin = adminStub([
     shopContext("IT", true),
     SENZA_ADDEBITI,
+    shopContext("IT", true),
     { data: { validationUpdate: { userErrors: [] } } },
     shopContext("IT", null),
   ]);
@@ -321,6 +780,7 @@ test("Validation CF Ready duplicate restano intatte e producono un errore operat
 
   expect(state.validation).toBeUndefined();
   expect(state.errorCode).toBe("duplicate_validations");
+  expect(state.retryable).toBe(false);
   expect(admin.calls).toEqual(["context", "update", "update", "context", "billing"]);
   expect(await appState(shop)).toMatchObject({
     validation_gid: null,
@@ -562,7 +1022,7 @@ test("la finalizzazione in DLQ non perde il webhook se D1 è indisponibile", asy
   );
   const ack = vi.fn();
   const retry = vi.fn();
-  const message = { body: job!, ack, retry } as unknown as Message<WebhookJob>;
+  const message = { body: job!, attempts: 3, ack, retry } as unknown as Message<WebhookJob>;
   const unavailable = new Proxy(env.DB, {
     get() {
       throw new Error("d1_unavailable");
@@ -580,6 +1040,34 @@ test("la finalizzazione in DLQ non perde il webhook se D1 è indisponibile", asy
       .bind("wh-dlq")
       .first(),
   ).toMatchObject({ status: "failed", error_code: "queue_retries_exhausted" });
+});
+
+test("la DLQ prolunga il retry oltre la durata della lease Validation", async () => {
+  const process = vi
+    .fn<(db: D1Database, job: WebhookJob) => Promise<void>>()
+    .mockRejectedValueOnce(new Error("validation_locked"))
+    .mockResolvedValueOnce();
+  const job = { webhookId: "wh-lease", claimToken: "claim", shop: "shop.example" };
+  const ack = vi.fn();
+  const retry = vi.fn();
+
+  await consumeWebhookMessage(
+    env.DB,
+    { body: job, attempts: 1, ack, retry } as unknown as Message<WebhookJob>,
+    true,
+    process,
+  );
+  expect(retry).toHaveBeenCalledWith({ delaySeconds: 60 });
+  expect(ack).not.toHaveBeenCalled();
+
+  await consumeWebhookMessage(
+    env.DB,
+    { body: job, attempts: 2, ack, retry } as unknown as Message<WebhookJob>,
+    true,
+    process,
+  );
+  expect(process).toHaveBeenCalledTimes(2);
+  expect(ack).toHaveBeenCalledOnce();
 });
 
 test("il replay dello stesso webhook non duplica i suoi eventi", async () => {

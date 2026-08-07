@@ -83,6 +83,9 @@ async function reconcileWebhook(
 
   const { admin } = await unauthenticated.admin(shop);
   const state = await reconcile(admin, db, shop);
+  if (state.retryable) {
+    throw new Error(state.errorCode ?? "reconciliation_retryable");
+  }
   await recordEvent(db, {
     shopDomain: shop,
     webhookId,

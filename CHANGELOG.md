@@ -6,6 +6,56 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.19 — 7 agosto 2026
+
+- la riconciliazione espone il retry separatamente dal codice operativo, così
+  lock, duplicati attivi e cancellazioni subscription fallite non vengono
+  mascherati da altri errori;
+- la conversione a pagamento unico ricontrolla la lease prima di cancellare
+  l'abbonamento e resta ritentabile se la lease non è disponibile o viene persa.
+
+## 0.9.18 — 7 agosto 2026
+
+- un duplicato Validation attivo osservato nel readback prevale sugli errori
+  operativi precedenti, così il webhook ritenta la bonifica condivisa;
+- la perdita della lease durante il refresh dell'entitlement resta un conflitto
+  ritentabile invece di essere classificata come errore definitivo.
+
+## 0.9.17 — 7 agosto 2026
+
+- i webhook ritentano anche quando compare una Validation CF Ready duplicata e
+  attiva durante il readback, riusando la bonifica condivisa al tentativo
+  successivo invece di completare con un controllo ancora attivo.
+
+## 0.9.16 — 7 agosto 2026
+
+- se il Paese cambia durante la lease, la riconciliazione webhook ritenta sul
+  contesto Shopify fresco invece di completare persistendo lo stato iniziale.
+
+## 0.9.15 — 7 agosto 2026
+
+- i webhook propagano anche il lock fallito della scrittura entitlement e
+  ritentano la riconciliazione nella failure queue oltre il TTL della lease,
+  invece di completare il job lasciando attivo un diritto scaduto.
+
+## 0.9.14 — 6 agosto 2026
+
+- fuori dall'Italia, il fallback azzera ancora l'entitlement se la Validation
+  resta attiva, senza riattivarla dopo una disattivazione accettata da Shopify;
+- la scrittura dell'entitlement rilegge Paese, regole e stato sotto la lease,
+  ricontrolla la lease prima della mutation e non sovrascrive salvataggi merchant
+  o attivazioni concorrenti.
+
+## 0.9.13 — 6 agosto 2026
+
+- i readback Shopify successivi alle riparazioni sicure della Validation usano
+  un solo percorso fail-open: se Shopify non risponde, la riconciliazione
+  conserva l'ultima osservazione certa e registra un errore operativo;
+- disattivazione per cambio Paese e aggiornamento dell'entitlement non
+  propagano più un errore `502` quando fallisce soltanto il readback finale;
+- il gate app concede alla compilazione concorrente del pool Workers un budget
+  coerente con gli import dinamici, evitando timeout prima delle assertion.
+
 ## 0.9.12 — 6 agosto 2026
 
 - Regole, Messaggi e onboarding affidano al percorso condiviso di scrittura
