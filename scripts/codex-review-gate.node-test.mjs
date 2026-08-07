@@ -1,12 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
-import {
-  classifyCodexReview,
-  hasSuccessfulCodexStatus,
-  latestCodexReviewRequest,
-  pullRequestNumber,
-} from "./codex-review-gate.mjs";
+import { classifyCodexReview, latestCodexReviewStart } from "./codex-review-gate.mjs";
 
 const headSha = "0123456789abcdef0123456789abcdef01234567";
 const requestedAt = "2026-08-04T12:00:00Z";
@@ -27,63 +22,36 @@ test("resta pending senza un esito Codex", () => {
   assert.equal(classify().state, "pending");
 });
 
-test("il pollice sulla PR approva la review automatica iniziale", () => {
+test("il pollice approva soltanto la review avviata dopo l'evento corrente", () => {
   assert.equal(
     classify({
+      reviewStartedAt: new Date("2026-08-04T12:00:02Z").getTime(),
       reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:03Z" }],
     }).state,
     "success",
   );
-});
-
-test("un pollice tardivo non approva una review del commit precedente", () => {
   assert.equal(
     classify({
-      reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:02Z" }],
-      requiresReviewedCommit: true,
-      reviews: [
-        {
-          user: bot,
-          submitted_at: "2026-08-04T12:00:01Z",
-          body: "**Reviewed commit:** `abcdef0123`",
-        },
-      ],
+      progressReactions: [{ user: bot, content: "eyes", created_at: "2026-08-04T11:59:59Z" }],
+      reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:03Z" }],
     }).state,
     "pending",
   );
 });
 
-test("un vecchio pollice non approva una review successiva dello stesso commit", () => {
+test("ricorda l'avvio della review dopo che GitHub rimuove eyes", () => {
   assert.equal(
-    classify({
-      reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:01Z" }],
-      requiresReviewedCommit: true,
-      reviews: [
-        {
-          user: bot,
-          submitted_at: "2026-08-04T12:00:02Z",
-          body: `**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
-        },
-      ],
-    }).state,
-    "pending",
+    latestCodexReviewStart(
+      [{ user: bot, content: "eyes", created_at: "2026-08-04T12:00:02Z" }],
+      requestedAt,
+    ),
+    new Date("2026-08-04T12:00:02Z").getTime(),
   );
 });
 
-test("il pollice senza Reviewed commit non approva", () => {
+test("il verdetto pulito Codex approva soltanto l'HEAD dichiarato", () => {
   assert.equal(
     classify({
-      requiresReviewedCommit: true,
-      reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:01Z" }],
-    }).state,
-    "pending",
-  );
-});
-
-test("il verdetto pulito del task agent approva soltanto l'HEAD dichiarato", () => {
-  assert.equal(
-    classify({
-      requiresReviewedCommit: true,
       comments: [
         {
           user: bot,
@@ -96,7 +64,6 @@ test("il verdetto pulito del task agent approva soltanto l'HEAD dichiarato", () 
   );
   assert.equal(
     classify({
-      requiresReviewedCommit: true,
       comments: [
         {
           user: bot,
@@ -109,7 +76,6 @@ test("il verdetto pulito del task agent approva soltanto l'HEAD dichiarato", () 
   );
   assert.equal(
     classify({
-      requiresReviewedCommit: true,
       comments: [
         {
           user: bot,
@@ -158,7 +124,6 @@ test("un finding del tentativo corrente prevale sul pollice", () => {
 test("un finding top-level sull'HEAD prevale sul riepilogo pulito", () => {
   assert.equal(
     classify({
-      requiresReviewedCommit: true,
       comments: [
         {
           user: bot,
@@ -196,31 +161,25 @@ test("un finding top-level senza marker prevale nella review iniziale", () => {
   );
 });
 
-test("un finding senza marker del tentativo precedente non blocca il nuovo HEAD", () => {
+test("un finding top-level senza SHA non migra alla review successiva", () => {
   assert.equal(
     classify({
-      requiresReviewedCommit: true,
+      allowUnmarkedComments: false,
       comments: [
         {
           user: bot,
           created_at: "2026-08-04T12:00:01Z",
-          body: "**P2** Finding del tentativo precedente.",
-        },
-        {
-          user: bot,
-          created_at: "2026-08-04T12:00:02Z",
-          body: `Codex Review: Didn't find any major issues.\n\n**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
+          body: "**P2** Finding della review precedente.",
         },
       ],
     }).state,
-    "success",
+    "pending",
   );
 });
 
 test("un finding top-level marcato su un altro SHA non blocca l'HEAD", () => {
   assert.equal(
     classify({
-      requiresReviewedCommit: true,
       comments: [
         {
           user: bot,
@@ -290,7 +249,10 @@ test("un finding precedente non chiude un nuovo tentativo sullo stesso HEAD", ()
           body: `**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
         },
       ],
-      reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:03Z" }],
+      reactions: [
+        { user: bot, content: "eyes", created_at: "2026-08-04T12:00:01Z" },
+        { user: bot, content: "+1", created_at: "2026-08-04T12:00:03Z" },
+      ],
     }).state,
     "success",
   );
@@ -311,10 +273,9 @@ test("un limite Codex chiude il gate senza lasciare il workflow appeso", () => {
   );
 });
 
-test("un retry pulito supera un errore operativo precedente sullo stesso HEAD", () => {
+test("un esito pulito più recente supera un errore operativo precedente", () => {
   assert.equal(
     classify({
-      requiresReviewedCommit: true,
       requestedAt: 0,
       comments: [
         {
@@ -333,62 +294,30 @@ test("un retry pulito supera un errore operativo precedente sullo stesso HEAD", 
   );
 });
 
-test("un retry manuale ignora i finding precedenti all'ultima richiesta", () => {
-  const comments = [
-    {
-      user: { login: "max23468" },
-      created_at: "2026-08-04T12:00:02Z",
-      body: "@codex review",
-    },
-    {
-      user: bot,
-      created_at: "2026-08-04T12:00:03Z",
-      body: `Codex Review: Didn't find any major issues.\n\n**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
-    },
-  ];
-
-  assert.equal(
-    classify({
-      comments,
-      requestedAt: latestCodexReviewRequest(comments),
-      requiresReviewedCommit: true,
-      reviewComments: [
-        {
-          user: bot,
-          commit_id: headSha,
-          created_at: "2026-08-04T12:00:01Z",
-          body: "**P1** Finding del tentativo precedente",
-        },
-      ],
-    }).state,
-    "success",
-  );
-});
-
-test("un errore operativo senza SHA non migra sul tentativo successivo", () => {
-  assert.equal(
-    classify({
-      requiresReviewedCommit: true,
-      comments: [
-        {
-          user: bot,
-          created_at: "2026-08-04T12:00:01Z",
-          body: "Codex could not complete the review",
-        },
-      ],
-    }).state,
-    "pending",
-  );
-});
-
 test("un errore operativo marcato sullo SHA corrente chiude il gate", () => {
   assert.equal(
     classify({
-      requiresReviewedCommit: true,
       comments: [
         {
           user: bot,
           created_at: "2026-08-04T12:00:01Z",
+          body: `Codex could not complete the review\n\n**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
+        },
+      ],
+    }).state,
+    "failure",
+  );
+});
+
+test("un errore chiude la review dopo che GitHub rimuove eyes", () => {
+  assert.equal(
+    classify({
+      allowUnmarkedComments: false,
+      reviewStartedAt: new Date("2026-08-04T12:00:01Z").getTime(),
+      comments: [
+        {
+          user: bot,
+          created_at: "2026-08-04T12:00:02Z",
           body: `Codex could not complete the review\n\n**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
         },
       ],
@@ -410,29 +339,6 @@ test("un errore tardivo non chiude una review corrente ancora in corso", () => {
       progressReactions: [{ user: bot, content: "eyes", created_at: "2026-08-04T12:00:02Z" }],
     }).state,
     "pending",
-  );
-});
-
-test("il bootstrap accetta soltanto un numero PR", () => {
-  assert.equal(pullRequestNumber({ pull_request: { number: 42 } }), "42");
-  assert.equal(pullRequestNumber({}, "208"), "208");
-  assert.throws(() => pullRequestNumber({}, "208/merge"), /Numero PR non valido/);
-});
-
-test("un rerun riusa soltanto l'ultimo status Codex riuscito dello stesso SHA", () => {
-  assert.equal(
-    hasSuccessfulCodexStatus([
-      { context: "codex-review", state: "success" },
-      { context: "codex-review", state: "pending" },
-    ]),
-    true,
-  );
-  assert.equal(
-    hasSuccessfulCodexStatus([
-      { context: "codex-review", state: "failure" },
-      { context: "codex-review", state: "success" },
-    ]),
-    false,
   );
 });
 
