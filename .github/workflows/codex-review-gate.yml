@@ -2,13 +2,7 @@ name: Codex review gate
 
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review]
-  workflow_dispatch:
-    inputs:
-      pull_request:
-        description: Numero della PR da verificare
-        required: true
-        type: number
+    types: [opened, ready_for_review]
 
 permissions:
   contents: read
@@ -17,7 +11,7 @@ permissions:
   statuses: write
 
 concurrency:
-  group: codex-review-${{ github.event.pull_request.number || inputs.pull_request }}
+  group: codex-review-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
@@ -34,5 +28,4 @@ jobs:
       - name: Attendi la review Codex
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PULL_REQUEST_NUMBER: ${{ inputs.pull_request }}
         run: node scripts/codex-review-gate.mjs
