@@ -9,8 +9,9 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 ## 0.9.15 — 7 agosto 2026
 
 - i webhook ritentano la riconciliazione quando la lease della Validation è
-  occupata, invece di marcare il job come completato lasciando attivo un
-  entitlement che doveva diventare fail-open.
+  occupata e usano la failure queue per superarne il TTL, invece di marcare il
+  job come completato lasciando attivo un entitlement che doveva diventare
+  fail-open.
 
 ## 0.9.14 — 6 agosto 2026
 

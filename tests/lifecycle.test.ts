@@ -722,7 +722,7 @@ test("la finalizzazione in DLQ non perde il webhook se D1 è indisponibile", asy
   );
   const ack = vi.fn();
   const retry = vi.fn();
-  const message = { body: job!, ack, retry } as unknown as Message<WebhookJob>;
+  const message = { body: job!, attempts: 3, ack, retry } as unknown as Message<WebhookJob>;
   const unavailable = new Proxy(env.DB, {
     get() {
       throw new Error("d1_unavailable");
@@ -740,6 +740,34 @@ test("la finalizzazione in DLQ non perde il webhook se D1 è indisponibile", asy
       .bind("wh-dlq")
       .first(),
   ).toMatchObject({ status: "failed", error_code: "queue_retries_exhausted" });
+});
+
+test("la DLQ prolunga il retry oltre la durata della lease Validation", async () => {
+  const process = vi
+    .fn<(db: D1Database, job: WebhookJob) => Promise<void>>()
+    .mockRejectedValueOnce(new Error("validation_locked"))
+    .mockResolvedValueOnce();
+  const job = { webhookId: "wh-lease", claimToken: "claim", shop: "shop.example" };
+  const ack = vi.fn();
+  const retry = vi.fn();
+
+  await consumeWebhookMessage(
+    env.DB,
+    { body: job, attempts: 1, ack, retry } as unknown as Message<WebhookJob>,
+    true,
+    process,
+  );
+  expect(retry).toHaveBeenCalledWith({ delaySeconds: 60 });
+  expect(ack).not.toHaveBeenCalled();
+
+  await consumeWebhookMessage(
+    env.DB,
+    { body: job, attempts: 2, ack, retry } as unknown as Message<WebhookJob>,
+    true,
+    process,
+  );
+  expect(process).toHaveBeenCalledTimes(2);
+  expect(ack).toHaveBeenCalledOnce();
 });
 
 test("il replay dello stesso webhook non duplica i suoi eventi", async () => {
