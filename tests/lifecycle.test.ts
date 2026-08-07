@@ -10,7 +10,13 @@ import {
   refuseInstall,
 } from "../app/shop.server";
 import { localDate, startTrial, trialEnd } from "../app/billing.server";
-import { readOnboarding, reconcile, saveOnboarding } from "../app/validation.server";
+import {
+  acquireValidationLock,
+  readOnboarding,
+  reconcile,
+  releaseValidationLockBestEffort,
+  saveOnboarding,
+} from "../app/validation.server";
 import {
   claimWebhook,
   consumeWebhookMessage,
@@ -405,6 +411,23 @@ test("un readback entitlement non disponibile resta fail-open", async () => {
     validation_enabled: 1,
     last_error_code: "entitlement_readback_failed",
   });
+});
+
+test("una scrittura entitlement bloccata espone il retry al webhook", async () => {
+  const shop = await insertShop("entitlement-occupato.example.myshopify.com");
+  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  const lockToken = await acquireValidationLock(env.DB, shop);
+  expect(lockToken).not.toBeNull();
+  const admin = adminStub([shopContext("IT", true), SENZA_ADDEBITI]);
+
+  try {
+    const state = await reconcile(admin, env.DB, shop);
+
+    expect(state.errorCode).toBe("validation_locked");
+    expect(admin.calls).toEqual(["context", "billing"]);
+  } finally {
+    await releaseValidationLockBestEffort(env.DB, shop, lockToken!);
+  }
 });
 
 test("il readback entitlement conserva lo stato attivo dei duplicati concorrenti", async () => {
