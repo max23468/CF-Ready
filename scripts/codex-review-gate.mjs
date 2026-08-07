@@ -133,7 +133,11 @@ export function classifyCodexReview({
 
   if (thumbsUpAt) {
     if (allowUnmarkedComments || (startedAt && thumbsUpAt >= startedAt)) {
-      cleanComments.push(thumbsUpAt);
+      completions.push({
+        state: "success",
+        at: thumbsUpAt,
+        description: "Codex ha approvato l'ultimo commit",
+      });
     }
     for (const commentAt of cleanComments) {
       if (thumbsUpAt < commentAt) continue;

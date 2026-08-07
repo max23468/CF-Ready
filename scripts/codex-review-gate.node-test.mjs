@@ -26,9 +26,10 @@ test("resta pending senza un esito Codex", () => {
   assert.equal(classify().state, "pending");
 });
 
-test("il pollice approva soltanto la review avviata dopo l'evento corrente", () => {
+test("nei retry il pollice approva soltanto dopo l'avvio della review corrente", () => {
   assert.equal(
     classify({
+      allowUnmarkedComments: false,
       reviewStartedAt: new Date("2026-08-04T12:00:02Z").getTime(),
       reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:03Z" }],
     }).state,
