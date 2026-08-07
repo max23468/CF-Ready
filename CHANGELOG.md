@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.19 — 7 agosto 2026
+
+- la riconciliazione espone il retry separatamente dal codice operativo, così
+  lock, duplicati attivi e cancellazioni subscription fallite non vengono
+  mascherati da altri errori;
+- la conversione a pagamento unico ricontrolla la lease prima di cancellare
+  l'abbonamento e resta ritentabile se la lease non è disponibile o viene persa.
+
 ## 0.9.18 — 7 agosto 2026
 
 - un duplicato Validation attivo osservato nel readback prevale sugli errori

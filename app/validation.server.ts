@@ -226,12 +226,14 @@ export async function reconcile(
   }
   let validation = matches.length === 1 ? matches[0] : undefined;
   let errorCode: string | null = duplicateValidationError(matches);
+  let retryable = false;
   let writeEntitlementOutsideEligible = false;
   let entitlementEnableOverride: boolean | undefined;
 
   if (!eligible && validation?.enabled) {
     const disableError = await disableForCountry(admin, db, shopDomain, validation.id);
     errorCode = disableError;
+    retryable ||= disableError === "validation_locked";
     const readback = await readValidationReadback(admin);
     if (readback === null) {
       errorCode ??= "validation_disable_failed";
@@ -269,6 +271,7 @@ export async function reconcile(
   let account = storedAccount;
   let creditEstimate: number | null = null;
   let billingConfirmed = false;
+  let conversionRequired = false;
 
   if (eligible) {
     try {
@@ -280,10 +283,14 @@ export async function reconcile(
       // cancellare l'abbonamento con proratazione. Mai prima: un acquisto abbandonato deve
       // lasciare l'abbonamento intatto.
       if (state.oneTime && state.subscription) {
-        const conversion = await withValidationLock(db, shopDomain, async () => {
+        conversionRequired = true;
+        const conversion = await withValidationLock(db, shopDomain, async (heartbeat) => {
           const current = await readBilling(admin, BILLING_IS_TEST);
           if (!current.oneTime || !current.subscription) {
             return { state: current, error: null, converted: false };
+          }
+          if (!(await heartbeat.isHeld())) {
+            return { state: current, error: "validation_locked", converted: false };
           }
           const error = await cancelSubscription(admin, current.subscription.id, { prorate: true });
           return {
@@ -293,10 +300,15 @@ export async function reconcile(
           };
         });
 
-        if (conversion.acquired) {
+        if (!conversion.acquired) {
+          errorCode ??= "validation_locked";
+          retryable = true;
+        } else {
           state = conversion.result.state;
-          if (conversion.result.error) errorCode ??= conversion.result.error;
-          else if (conversion.result.converted) {
+          if (conversion.result.error) {
+            errorCode ??= conversion.result.error;
+            retryable = true;
+          } else if (conversion.result.converted) {
             await recordEvent(db, {
               shopDomain,
               name: "subscription_converted",
@@ -331,6 +343,7 @@ export async function reconcile(
       // il metafield deve diventare fail-open invece di trattare D1 come verità alternativa.
       account = await readBillingAccount(db, shopDomain);
       errorCode ??= "billing_read_failed";
+      retryable ||= conversionRequired;
     }
   }
 
@@ -357,8 +370,10 @@ export async function reconcile(
 
     if (!write.acquired) {
       errorCode = "validation_locked";
+      retryable = true;
     } else if (write.result === "country_changed") {
       errorCode = "validation_locked";
+      retryable = true;
     } else {
       const readback = await readValidationReadback(admin);
       if (readback !== null) {
@@ -366,8 +381,10 @@ export async function reconcile(
         validation = readback.length === 1 ? readback[0] : undefined;
         errorCode = duplicateValidationError(readback) ?? errorCode;
       }
-      if (write.result === "validation_locked") errorCode = write.result;
-      else if (write.result) errorCode ??= write.result;
+      if (write.result === "validation_locked") {
+        errorCode ??= write.result;
+        retryable = true;
+      } else if (write.result) errorCode ??= write.result;
       else if (
         readback === null ||
         entitlementDiffers(validation?.metafield?.jsonValue, entitlement)
@@ -379,6 +396,7 @@ export async function reconcile(
 
   const validationEnabled =
     validation?.enabled ?? (matches.length > 1 && matches.some(({ enabled }) => enabled));
+  retryable ||= duplicateValidationError(matches) === "duplicate_validations_active";
   const persistenceStartedAt = performance.now();
   await persistValidationState(db, shopDomain, {
     countryCode,
@@ -401,6 +419,7 @@ export async function reconcile(
     entitlement,
     creditEstimate,
     errorCode,
+    retryable,
   };
 }
 
@@ -641,20 +660,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 // Fail-open: uno store non idoneo perde la Validation, non le vendite. Nessun errore propagato.
 async function disableForCountry(admin: Admin, db: D1Database, shopDomain: string, id: string) {
-  const lockToken = await acquireValidationLock(db, shopDomain);
-  if (!lockToken) return "validation_locked";
-
-  try {
-    const response = await admin.graphql(UPDATE_VALIDATION, {
-      variables: { id, validation: { enable: false, blockOnFailure: false } },
-    });
-    const result = (await response.json()) as MutationResult;
-    return mutationError(result, "validationUpdate") ? "validation_disable_failed" : null;
-  } catch {
-    return "validation_disable_failed";
-  } finally {
-    await releaseValidationLockBestEffort(db, shopDomain, lockToken);
-  }
+  const write = await withValidationLock(db, shopDomain, async (heartbeat) => {
+    if (!(await heartbeat.isHeld())) return "validation_locked";
+    try {
+      const response = await admin.graphql(UPDATE_VALIDATION, {
+        variables: { id, validation: { enable: false, blockOnFailure: false } },
+      });
+      const result = (await response.json()) as MutationResult;
+      return mutationError(result, "validationUpdate") ? "validation_disable_failed" : null;
+    } catch {
+      return "validation_disable_failed";
+    }
+  });
+  return write.acquired ? write.result : "validation_locked";
 }
 
 async function disableDuplicateValidations(

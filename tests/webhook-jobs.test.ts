@@ -27,7 +27,7 @@ test.each(["validation_locked", "duplicate_validations_active"])(
       .run();
     const claim = await claimWebhook(env.DB, webhookId, "SHOP_UPDATE", shop);
     if (!claim.acquired) throw new Error("claim non acquisito");
-    mocks.reconcile.mockResolvedValue({ errorCode });
+    mocks.reconcile.mockResolvedValue({ errorCode, retryable: true });
 
     await expect(
       processWebhookJob(env.DB, { webhookId, claimToken: claim.token, shop }),
@@ -39,3 +39,26 @@ test.each(["validation_locked", "duplicate_validations_active"])(
     ).toMatchObject({ status: "processing" });
   },
 );
+
+test("un errore operativo non ritentabile completa il webhook", async () => {
+  const shop = "webhook-operativo.example.myshopify.com";
+  const webhookId = "wh-operativo";
+  await env.DB.prepare(
+    `INSERT INTO shops (shop_domain, installation_status, installed_at, created_at, updated_at)
+     VALUES (?, 'active', '2026-08-01', '2026-08-01', '2026-08-01')`,
+  )
+    .bind(shop)
+    .run();
+  const claim = await claimWebhook(env.DB, webhookId, "SHOP_UPDATE", shop);
+  if (!claim.acquired) throw new Error("claim non acquisito");
+  mocks.reconcile.mockResolvedValue({ errorCode: "billing_read_failed", retryable: false });
+
+  await expect(
+    processWebhookJob(env.DB, { webhookId, claimToken: claim.token, shop }),
+  ).resolves.toBeUndefined();
+  expect(
+    await env.DB.prepare("SELECT status FROM webhook_events WHERE webhook_id = ?")
+      .bind(webhookId)
+      .first(),
+  ).toMatchObject({ status: "processed" });
+});

@@ -157,3 +157,9 @@ conferma la disattivazione, il codice resta `duplicate_validations_active` e
 l'azione di riparazione la ritenta. Finché restano duplicati, nessuna loro
 configurazione viene scelta: la pagina Regole mostra l'anomalia invece di
 presentare i default come configurazione attiva.
+
+L'esito `retryable` della riconciliazione è separato da `errorCode`: il primo
+governa esclusivamente il consumer webhook, il secondo resta il codice sicuro
+persistito e mostrato alla UI. In questo modo lock, duplicati attivi e mancata
+cancellazione dell'abbonamento dopo un acquisto una tantum restano ritentabili
+anche quando la stessa esecuzione osserva un altro errore operativo.
