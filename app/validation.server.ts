@@ -301,12 +301,12 @@ export async function reconcile(
         });
 
         if (!conversion.acquired) {
-          errorCode = "validation_locked";
+          errorCode ??= "validation_locked";
           retryable = true;
         } else {
           state = conversion.result.state;
           if (conversion.result.error) {
-            errorCode = conversion.result.error;
+            errorCode ??= conversion.result.error;
             retryable = true;
           } else if (conversion.result.converted) {
             await recordEvent(db, {
@@ -382,7 +382,7 @@ export async function reconcile(
         errorCode = duplicateValidationError(readback) ?? errorCode;
       }
       if (write.result === "validation_locked") {
-        errorCode = write.result;
+        errorCode ??= write.result;
         retryable = true;
       } else if (write.result) errorCode ??= write.result;
       else if (

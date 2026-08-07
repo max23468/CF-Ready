@@ -497,15 +497,22 @@ test("una scrittura entitlement bloccata espone il retry al webhook", async () =
   }
 });
 
-test("una lease entitlement persa durante il refresh espone il retry al webhook", async () => {
+test("una lease entitlement persa preserva i duplicati attivi del readback", async () => {
   vi.useFakeTimers();
   const shop = await insertShop("entitlement-lease-persa.example.myshopify.com");
   await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
   const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
+  const readback = shopContext("IT", true, entitlementAttivo);
+  readback.data.validations.nodes.push({
+    ...readback.data.validations.nodes[0],
+    id: "gid://shopify/Validation/2",
+    enabled: false,
+  });
   const admin = adminStub([
     shopContext("IT", true, entitlementAttivo),
     { errors: [{ message: "servizio billing non disponibile" }] },
     shopContext("IT", true, entitlementAttivo),
+    readback,
   ]);
   const graphql = admin.graphql;
   admin.graphql = async (query, options) => {
@@ -526,7 +533,8 @@ test("una lease entitlement persa durante il refresh espone il retry al webhook"
   try {
     const state = await reconcile(admin, env.DB, shop);
 
-    expect(state.errorCode).toBe("validation_locked");
+    expect(state.errorCode).toBe("duplicate_validations_active");
+    expect(state.retryable).toBe(true);
     expect(admin.calls).toEqual(["context", "billing", "context", "context"]);
     expect(admin.updates).toEqual([]);
   } finally {
@@ -553,6 +561,43 @@ test("una cancellazione subscription fallita resta ritentabile", async () => {
     expect(state.errorCode).toBe("subscription_cancel_failed");
     expect(state.retryable).toBe(true);
     expect(admin.calls).toEqual(["context", "billing", "billing", "cancel"]);
+  } finally {
+    await clearBillingEvents(shop);
+  }
+});
+
+test("i duplicati attivi restano visibili se fallisce anche la conversione billing", async () => {
+  const shop = await insertShop("duplicati-conversione-fallita.example.myshopify.com");
+  const context = shopContext("IT", true);
+  context.data.validations.nodes.push({
+    ...context.data.validations.nodes[0],
+    id: "gid://shopify/Validation/2",
+  });
+  const admin = adminStub([
+    context,
+    { data: { validationUpdate: { userErrors: [] } } },
+    { data: { validationUpdate: { userErrors: [] } } },
+    context,
+    CONVERSIONE_UNA_TANTUM,
+    CONVERSIONE_UNA_TANTUM,
+    { data: { appSubscriptionCancel: { userErrors: [{ message: "temporaneo" }] } } },
+  ]);
+
+  try {
+    const state = await reconcile(admin, env.DB, shop);
+
+    expect(state.validation).toBeUndefined();
+    expect(state.errorCode).toBe("duplicate_validations_active");
+    expect(state.retryable).toBe(true);
+    expect(admin.calls).toEqual([
+      "context",
+      "update",
+      "update",
+      "context",
+      "billing",
+      "billing",
+      "cancel",
+    ]);
   } finally {
     await clearBillingEvents(shop);
   }
