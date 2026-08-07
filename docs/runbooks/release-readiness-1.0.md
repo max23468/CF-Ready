@@ -18,8 +18,8 @@ L'accesso del reviewer non è più un gate mancante ma una decisione registrata
 (D-132). Il checkout reale ripetuto resta nel canary M10; gli addebiti reali
 sono invece attivi in Production. Il sito pubblico e la versione Production
 `0.9.12` sono distribuiti. L'ultimo candidato verificato in Development è la
-`0.9.14` al commit `f81093c`; il prossimo candidato Production è in
-preparazione sulla `0.9.15`.
+`0.9.15` al commit `b82c3b9`; il prossimo candidato Production è in
+preparazione sulla `0.9.16`.
 La navigazione embedded della `0.9.11` è stata verificata in Chrome sullo store
 `cf-ready-dev`: una sola voce Home e tutti i flussi primari dentro l'Admin.
 
@@ -29,12 +29,25 @@ La navigazione embedded della `0.9.11` è stata verificata in Chrome sullo store
 
 | Voce | Valore |
 | --- | --- |
-| Versione candidata verificata | `0.9.14` |
-| Commit candidato | `f81093c`, HEAD di `develop` dopo la PR [#239](https://github.com/max23468/CF-Ready/pull/239) |
-| Branch | `develop`; promozione Production sospesa fino alla verifica della `0.9.15` |
-| Ultimo snapshot Development provato | `0.9.14`, run [31160317539](https://github.com/max23468/CF-Ready/actions/runs/31160317539) |
+| Versione candidata verificata | `0.9.15` |
+| Commit candidato | `b82c3b9`, HEAD di `develop` dopo la PR [#240](https://github.com/max23468/CF-Ready/pull/240) |
+| Branch | `develop`; promozione Production sospesa fino alla verifica della `0.9.16` |
+| Ultimo snapshot Development provato | `0.9.15`, run [31162391439](https://github.com/max23468/CF-Ready/actions/runs/31162391439) |
 | Submission | inviata a Shopify il 4 agosto 2026 |
 | Tag `v1.0.0` | non creato: si crea alla promozione Production della `1.0.0` |
+
+### Ricevuta del deploy Development `0.9.15`
+
+| Campo | Valore |
+| --- | --- |
+| Ambiente e configurazione | Development: `wrangler.json`, `shopify.app.dev.toml` |
+| Versione repository e commit | `0.9.15`, commit `b82c3b9` |
+| Worker | deployment `07fcf015-561a-4da0-8f75-9703fb1e8f83`, versione `cfab7a67-786d-4332-b6fb-ef3782a69140`, 100% del traffico |
+| Migrazioni | nessuna pendente, confermato dal readback remoto |
+| Run | [31162391439](https://github.com/max23468/CF-Ready/actions/runs/31162391439) |
+| Smoke e capacità | Worker raggiungibile; 120 richieste, CPU p95 2 ms, massimo 3 ms, 0 errori |
+| Shopify | versione `0.9.15` attiva (`gid://shopify/Version/1079886086145`), commit verificato |
+| Rollback | snapshot coordinato `0.9.14`, commit `f81093c`, verificato prima del deploy |
 
 ### Ricevuta del deploy Development `0.9.14`
 

@@ -6,6 +6,11 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.16 — 7 agosto 2026
+
+- se il Paese cambia durante la lease, la riconciliazione webhook ritenta sul
+  contesto Shopify fresco invece di completare persistendo lo stato iniziale.
+
 ## 0.9.15 — 7 agosto 2026
 
 - i webhook propagano anche il lock fallito della scrittura entitlement e
