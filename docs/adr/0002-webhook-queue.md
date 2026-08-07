@@ -11,10 +11,11 @@ a Shopify solo dopo che la coda ha accettato il messaggio.
 
 Il consumer ricostruisce da D1 store, topic e ciclo di installazione, rinnova il
 claim durante il lavoro e usa i retry nativi della coda. Dopo cinque retry il
-messaggio passa a una DLQ che porta la ricevuta a `failed` e registra il solo
-codice errore stabile. La DLQ ritenta la finalizzazione; se D1 resta
-indisponibile per cento tentativi, rimanda il messaggio alla coda primaria
-invece di eliminarlo.
+messaggio passa a una failure queue: le prime due consegne rieseguono il lavoro
+con 60 secondi di attesa, superando la durata della lease Validation; dalla
+terza consegna la ricevuta passa a `failed` con il solo codice errore stabile.
+Se D1 non accetta la finalizzazione, la failure queue ritenta e, dopo cento
+tentativi, rimanda il messaggio alla coda primaria invece di eliminarlo.
 
 `waitUntil` non basta: accelera la risposta ma non garantisce la riconsegna dopo
 un'interruzione del Worker. Non vengono introdotti payload webhook, sessioni
