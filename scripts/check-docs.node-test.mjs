@@ -441,7 +441,7 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
   assert.doesNotMatch(workflow, /github\.event\.pull_request\.head/);
   const gate = readFileSync(new URL("./codex-review-gate.mjs", import.meta.url), "utf8");
   assert.match(gate, /currentPullRequest\.head\.sha !== headSha/);
-  assert.match(gate, /allowUnmarkedComments: event\.action === "opened"/);
+  assert.match(gate, /isInitialCodexReview\(event\.action, events\)/);
   assert.match(gate, /latestCodexReviewStart\(reactions, pullRequest\.updated_at\)/);
   assert.doesNotMatch(gate, new RegExp(["@codex", "review"].join(" ")));
   assert.doesNotMatch(gate, /issues\/\$\{number\}\/comments[\s\S]*method: "POST"/);
