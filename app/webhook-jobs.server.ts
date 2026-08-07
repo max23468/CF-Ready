@@ -83,7 +83,12 @@ async function reconcileWebhook(
 
   const { admin } = await unauthenticated.admin(shop);
   const state = await reconcile(admin, db, shop);
-  if (state.errorCode === "validation_locked") throw new Error("validation_locked");
+  if (
+    state.errorCode === "validation_locked" ||
+    state.errorCode === "duplicate_validations_active"
+  ) {
+    throw new Error(state.errorCode);
+  }
   await recordEvent(db, {
     shopDomain: shop,
     webhookId,

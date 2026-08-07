@@ -6,6 +6,12 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.17 — 7 agosto 2026
+
+- i webhook ritentano anche quando compare una Validation CF Ready duplicata e
+  attiva durante il readback, riusando la bonifica condivisa al tentativo
+  successivo invece di completare con un controllo ancora attivo.
+
 ## 0.9.16 — 7 agosto 2026
 
 - se il Paese cambia durante la lease, la riconciliazione webhook ritenta sul
