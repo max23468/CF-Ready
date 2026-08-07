@@ -434,7 +434,12 @@ test("una lease entitlement persa durante il refresh espone il retry al webhook"
   vi.useFakeTimers();
   const shop = await insertShop("entitlement-lease-persa.example.myshopify.com");
   await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
-  const admin = adminStub([shopContext("IT", true), SENZA_ADDEBITI, shopContext("IT", true)]);
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
+  const admin = adminStub([
+    shopContext("IT", true, entitlementAttivo),
+    { errors: [{ message: "servizio billing non disponibile" }] },
+    shopContext("IT", true, entitlementAttivo),
+  ]);
   const graphql = admin.graphql;
   admin.graphql = async (query, options) => {
     const response = await graphql(query, options);

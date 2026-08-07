@@ -366,7 +366,8 @@ export async function reconcile(
         validation = readback.length === 1 ? readback[0] : undefined;
         errorCode = duplicateValidationError(readback) ?? errorCode;
       }
-      if (write.result) errorCode ??= write.result;
+      if (write.result === "validation_locked") errorCode = write.result;
+      else if (write.result) errorCode ??= write.result;
       else if (
         readback === null ||
         entitlementDiffers(validation?.metafield?.jsonValue, entitlement)
