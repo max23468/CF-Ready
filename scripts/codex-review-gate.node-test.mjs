@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   classifyCodexReview,
   hasSuccessfulCodexStatus,
+  latestCodexReviewRequest,
   pullRequestNumber,
 } from "./codex-review-gate.mjs";
 
@@ -325,6 +326,38 @@ test("un retry pulito supera un errore operativo precedente sullo stesso HEAD", 
           user: bot,
           created_at: "2026-08-04T12:00:02Z",
           body: `Codex Review: Didn't find any major issues.\n\n**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
+        },
+      ],
+    }).state,
+    "success",
+  );
+});
+
+test("un retry manuale ignora i finding precedenti all'ultima richiesta", () => {
+  const comments = [
+    {
+      user: { login: "max23468" },
+      created_at: "2026-08-04T12:00:02Z",
+      body: "@codex review",
+    },
+    {
+      user: bot,
+      created_at: "2026-08-04T12:00:03Z",
+      body: `Codex Review: Didn't find any major issues.\n\n**Reviewed commit:** \`${headSha.slice(0, 10)}\``,
+    },
+  ];
+
+  assert.equal(
+    classify({
+      comments,
+      requestedAt: latestCodexReviewRequest(comments),
+      requiresReviewedCommit: true,
+      reviewComments: [
+        {
+          user: bot,
+          commit_id: headSha,
+          created_at: "2026-08-04T12:00:01Z",
+          body: "**P1** Finding del tentativo precedente",
         },
       ],
     }).state,
