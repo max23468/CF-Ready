@@ -239,7 +239,7 @@ export async function reconcile(
     } else {
       matches = readback;
       validation = readback.length === 1 ? readback[0] : undefined;
-      errorCode ??= duplicateValidationError(readback);
+      errorCode = duplicateValidationError(readback) ?? errorCode;
       if (validation?.enabled) errorCode ??= "validation_still_enabled";
       writeEntitlementOutsideEligible = validation?.enabled === true;
     }
@@ -364,7 +364,7 @@ export async function reconcile(
       if (readback !== null) {
         matches = readback;
         validation = readback.length === 1 ? readback[0] : undefined;
-        errorCode ??= duplicateValidationError(readback);
+        errorCode = duplicateValidationError(readback) ?? errorCode;
       }
       if (write.result) errorCode ??= write.result;
       else if (
@@ -608,7 +608,7 @@ function writeEntitlement(
       ({ id }) => id === validation.id,
     );
     if (!current) return "entitlement_write_failed";
-    if (!(await heartbeat.isHeld())) return "entitlement_write_failed";
+    if (!(await heartbeat.isHeld())) return "validation_locked";
 
     const response = await admin.graphql(UPDATE_VALIDATION, {
       variables: {
