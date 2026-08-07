@@ -14,25 +14,28 @@ vi.mock("../app/shopify.server", () => ({
 
 vi.mock("../app/validation.server", () => ({ reconcile: mocks.reconcile }));
 
-test("una lease Validation occupata lascia il webhook ritentabile", async () => {
-  const shop = "webhook-validation-locked.example.myshopify.com";
-  const webhookId = "wh-validation-locked";
-  await env.DB.prepare(
-    `INSERT INTO shops (shop_domain, installation_status, installed_at, created_at, updated_at)
+test.each(["validation_locked", "duplicate_validations_active"])(
+  "l'errore transitorio %s lascia il webhook ritentabile",
+  async (errorCode) => {
+    const shop = `webhook-${errorCode}.example.myshopify.com`;
+    const webhookId = `wh-${errorCode}`;
+    await env.DB.prepare(
+      `INSERT INTO shops (shop_domain, installation_status, installed_at, created_at, updated_at)
      VALUES (?, 'active', '2026-08-01', '2026-08-01', '2026-08-01')`,
-  )
-    .bind(shop)
-    .run();
-  const claim = await claimWebhook(env.DB, webhookId, "SHOP_UPDATE", shop);
-  if (!claim.acquired) throw new Error("claim non acquisito");
-  mocks.reconcile.mockResolvedValue({ errorCode: "validation_locked" });
+    )
+      .bind(shop)
+      .run();
+    const claim = await claimWebhook(env.DB, webhookId, "SHOP_UPDATE", shop);
+    if (!claim.acquired) throw new Error("claim non acquisito");
+    mocks.reconcile.mockResolvedValue({ errorCode });
 
-  await expect(
-    processWebhookJob(env.DB, { webhookId, claimToken: claim.token, shop }),
-  ).rejects.toThrow("validation_locked");
-  expect(
-    await env.DB.prepare("SELECT status FROM webhook_events WHERE webhook_id = ?")
-      .bind(webhookId)
-      .first(),
-  ).toMatchObject({ status: "processing" });
-});
+    await expect(
+      processWebhookJob(env.DB, { webhookId, claimToken: claim.token, shop }),
+    ).rejects.toThrow(errorCode);
+    expect(
+      await env.DB.prepare("SELECT status FROM webhook_events WHERE webhook_id = ?")
+        .bind(webhookId)
+        .first(),
+    ).toMatchObject({ status: "processing" });
+  },
+);
