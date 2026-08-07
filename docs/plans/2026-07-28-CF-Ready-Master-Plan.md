@@ -426,7 +426,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-112 | Tipografia: grottesco geometrico di sistema per sito e materiali, nessun webfont, nessun font dichiarato dentro l’Admin. Sigla e wordmark in tracciati derivati da Jost (SIL OFL), peso 500. | Zero richieste di rete e nessuna dipendenza da font installati. Jost al posto del Futura per licenza: il Futura è commerciale e distribuito in bundle con macOS. |
 | D-113 | Nessuna dark mode del sito pubblico nella 1.0. | Una superficie in meno da mantenere e verificare. Decisione indipendente da Shopify: al 28 luglio 2026 l’Admin non ha dark mode nativa e, usando solo token Polaris, l’app la seguirebbe comunque da sola. |
 | D-114 | Presentare l’icona della listing con la sigla `CF`, accettando la raccomandazione Shopify di evitare il testo nell’icona. | Raccomandazione nelle best practice, non criterio di rifiuto nei requisiti; i monogrammi di due lettere sono diffusi fra le app approvate. Variante senza sigla pronta come rimedio, attivabile senza nuova approvazione (§24.5). |
-| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate `verify`, `react-doctor`, `dependency-review`, `e2e` e `codex-review` richiesti su `develop` e `main`; `codex-review` osserva soltanto il reviewer Codex, si riattiva a ogni nuovo HEAD, rileva finding inline e top-level P0-P3, lega l'esito positivo allo SHA esatto, riusa uno status riuscito dello stesso SHA, non pubblica commenti e ha permessi Issues in sola lettura; abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate già eseguiti, invalida l'evidenza di review dopo ogni nuovo commit, impedisce il merge in presenza di finding Codex e impedisce all'automazione del repository di avviare il task agent tramite commenti, indirizza le security update nella corsia ordinaria, offre un canale privato per le vulnerabilità e conserva la promozione separata `develop` → `main`. |
+| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate `verify`, `react-doctor`, `dependency-review`, `e2e` e `codex-review` richiesti su `develop` e `main`; `codex-review` osserva soltanto il reviewer Codex all'apertura o al passaggio da draft a ready, rileva finding inline e top-level P0-P3, lega l'esito positivo allo SHA esatto, non espone dispatch manuali, non pubblica commenti e ha permessi Issues in sola lettura; abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate già eseguiti, invalida naturalmente l'evidenza dopo ogni nuovo commit perché gli status appartengono allo SHA, impedisce il merge finché il nuovo HEAD non passa da draft a ready, blocca i finding Codex e impedisce all'automazione del repository di avviare il task agent tramite commenti, indirizza le security update nella corsia ordinaria, offre un canale privato per le vulnerabilità e conserva la promozione separata `develop` → `main`. |
 | D-116 | Usare React Router `8.3.0` con npm 12 e correggere nel manifest root, tramite `packageExtensions`, la sola peer dependency troppo restrittiva di `@shopify/shopify-app-react-router@1.2.1`. | Elimina `GHSA-qwww-vcr4-c8h2` senza fork o installazioni forzate; il gate completo prova la compatibilità effettiva mentre l'estensione resta rimovibile appena Shopify pubblica metadati compatibili. |
 | D-117 | Usare React Doctor stabile con pin esatto: scansione completa bloccante nel gate locale e Action ufficiale advisory sulle modifiche delle PR. Tenere attivi score e share URL, disabilitare il controllo supply-chain esterno. | Aggiunge controlli React deterministici e feedback inline senza duplicare i controlli dipendenze già coperti da npm e GitHub. Il gate resta locale: lo score è indicativo e non decide l’esito, che dipende da `blocking: warning`. |
 | D-118 | Le PR ordinarie puntano a `develop` e usano squash; `main` accetta soltanto promozioni autorizzate da `develop`, unite con merge commit. La cancellazione automatica dei branch resta disattivata e i soli branch temporanei vengono eliminati esplicitamente. | Preserva l’ascendenza tra integrazione e Production, evita il drift strutturale causato da squash indipendenti sui due rami e impedisce che una promozione elimini `develop`. |
@@ -2789,10 +2789,15 @@ per la review iniziale, mentre nei tentativi successivi deve dichiarare lo SHA
 corrente. Un finding top-level marcato con uno SHA precedente non migra sul nuovo
 HEAD. L'esito positivo iniziale richiede una reaction Codex successiva
 all'apertura o al passaggio a ready, dopo la verifica che l'HEAD sia rimasto
-stabile. I tentativi successivi richiedono un verdetto esplicito
+stabile. Nei tentativi successivi la reaction positiva deve seguire la reaction
+`eyes` osservata dopo lo stesso evento; lo script conserva quel timestamp anche
+quando GitHub rimuove `eyes`. In alternativa accetta un verdetto esplicito
 `Codex Review: Didn't find any major issues` con `Reviewed commit` coincidente
 con l'HEAD, oppure una review nativa riferita allo stesso commit seguita dalla
-reaction positiva. Autore, forma, timestamp e SHA devono coincidere; una
+reaction positiva. Quando non trova problemi, il reviewer nativo può pubblicare
+soltanto la reaction: la coppia temporale `eyes` e reaction positiva è quindi
+il suo esito correlato al tentativo corrente. Autore, forma, timestamp e SHA
+devono coincidere; una
 spiegazione testuale generica del task agent, una reaction precedente all'evento
 o una review di uno SHA precedente non sbloccano il merge. Dopo il tentativo
 iniziale anche un errore operativo Codex deve dichiarare lo SHA corrente e resta
@@ -2801,12 +2806,12 @@ Il workflow ha
 `issues: read`, non `issues: write`, così una regressione nello script non può
 creare il commento che avvia il task agent.
 
-La review nativa parte all'apertura della PR, al passaggio da draft a ready e
-dopo ogni aggiornamento dell'HEAD. Ogni nuovo commit riattiva il gate tramite
-`synchronize`, invalida l'evidenza precedente e richiede un esito riferito allo
-SHA corrente. `workflow_dispatch` e `reopened` non generano una review: riusano
-uno status riuscito oppure classificano l'esito Codex già completo dello stesso
-SHA, senza applicare reaction o commenti di commit precedenti.
+La review nativa parte all'apertura della PR o al passaggio da draft a ready;
+il primo ready di una PR aperta come draft vale ancora come review iniziale.
+Ogni nuovo commit invalida l'evidenza precedente perché lo status appartiene al
+vecchio SHA; per revisionare il nuovo HEAD si porta la PR in draft e subito di
+nuovo in ready. Il gate non reagisce a `synchronize` o `reopened` e non espone
+`workflow_dispatch`, input PR o percorsi basati su commenti manuali.
 
 ### 19.7 Documentazione repository
 

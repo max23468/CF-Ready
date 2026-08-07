@@ -8,33 +8,38 @@ const timestamp = (value) => new Date(value ?? 0).getTime();
 const reviewedCommit = (body = "") =>
   body.match(/\*\*Reviewed commit:\*\*\s*`([0-9a-f]{10,40})`/i)?.[1];
 
-export const latestCodexReviewRequest = (comments) =>
-  comments
+export const latestCodexReviewStart = (reactions, requestedAt) =>
+  reactions
     .filter(
-      (comment) =>
-        comment.user?.login !== CODEX_BOT && /(?:^|\s)@codex\s+review\b/i.test(comment.body),
+      (reaction) =>
+        reaction.user?.login === CODEX_BOT &&
+        reaction.content === "eyes" &&
+        timestamp(reaction.created_at) >= timestamp(requestedAt),
     )
-    .reduce((latest, comment) => Math.max(latest, timestamp(comment.created_at)), 0);
+    .reduce((latest, reaction) => Math.max(latest, timestamp(reaction.created_at)), 0);
+
+export const isInitialCodexReview = (action, events = []) =>
+  action === "opened" ||
+  (action === "ready_for_review" &&
+    !events.some((event) => event.event === "convert_to_draft") &&
+    events.filter((event) => event.event === "ready_for_review").length <= 1);
 
 export function classifyCodexReview({
+  allowUnmarkedComments = true,
   headSha,
   requestedAt,
   now = Date.now(),
   comments,
   reactions,
   progressReactions = reactions,
-  requiresReviewedCommit = false,
+  reviewStartedAt = 0,
   reviews = [],
   reviewComments,
 }) {
   const completions = [];
   const cleanComments = [];
-  const inProgress = progressReactions.some(
-    (reaction) =>
-      reaction.user?.login === CODEX_BOT &&
-      reaction.content === "eyes" &&
-      timestamp(reaction.created_at) >= timestamp(requestedAt),
-  );
+  const activeStartedAt = latestCodexReviewStart(progressReactions, requestedAt);
+  const startedAt = Math.max(reviewStartedAt, activeStartedAt);
 
   for (const comment of reviewComments) {
     if (
@@ -59,7 +64,7 @@ export function classifyCodexReview({
     if (comment.user?.login !== CODEX_BOT) continue;
 
     const commit = reviewedCommit(comment.body);
-    const belongsToCurrentReview = commit ? headSha.startsWith(commit) : !requiresReviewedCommit;
+    const belongsToCurrentReview = commit ? headSha.startsWith(commit) : allowUnmarkedComments;
     if (
       belongsToCurrentReview &&
       timestamp(comment.created_at) >= timestamp(requestedAt) &&
@@ -89,7 +94,7 @@ export function classifyCodexReview({
     if (
       timestamp(comment.created_at) >= timestamp(requestedAt) &&
       now - timestamp(requestedAt) >= 30_000 &&
-      !inProgress &&
+      !activeStartedAt &&
       belongsToCurrentReview &&
       /reached your Codex usage limits|could not complete|unable to review/i.test(comment.body)
     ) {
@@ -110,8 +115,7 @@ export function classifyCodexReview({
     const commit = reviewedCommit(review.body);
     if (
       review.user?.login === CODEX_BOT &&
-      commit &&
-      headSha.startsWith(commit) &&
+      (review.commit_id === headSha || (commit && headSha.startsWith(commit))) &&
       timestamp(review.submitted_at) >= timestamp(requestedAt)
     ) {
       cleanComments.push(timestamp(review.submitted_at));
@@ -128,7 +132,13 @@ export function classifyCodexReview({
     .reduce((latest, reaction) => Math.max(latest, timestamp(reaction.created_at)), 0);
 
   if (thumbsUpAt) {
-    if (!requiresReviewedCommit) cleanComments.push(thumbsUpAt);
+    if (allowUnmarkedComments || (startedAt && thumbsUpAt >= startedAt)) {
+      completions.push({
+        state: "success",
+        at: thumbsUpAt,
+        description: "Codex ha approvato l'ultimo commit",
+      });
+    }
     for (const commentAt of cleanComments) {
       if (thumbsUpAt < commentAt) continue;
       completions.push({
@@ -145,15 +155,6 @@ export function classifyCodexReview({
       description: "In attesa della review Codex sull'ultimo commit",
     }
   );
-}
-
-export const hasSuccessfulCodexStatus = (statuses) =>
-  statuses.find((status) => status.context === "codex-review")?.state === "success";
-
-export function pullRequestNumber(event, input) {
-  const number = String(event.pull_request?.number ?? input);
-  if (!/^\d+$/.test(number)) throw new Error("Numero PR non valido");
-  return number;
 }
 
 async function request(path, options = {}) {
@@ -206,18 +207,10 @@ async function main() {
     await (await import("node:fs/promises")).readFile(process.env.GITHUB_EVENT_PATH),
   );
   const repository = process.env.GITHUB_REPOSITORY;
-  const requestedNumber = pullRequestNumber(event, process.env.PULL_REQUEST_NUMBER);
-  const pullRequest =
-    event.pull_request ?? (await request(`/repos/${repository}/pulls/${requestedNumber}`));
+  const pullRequest = event.pull_request;
+  if (!pullRequest) throw new Error("Evento pull request non valido");
   const number = pullRequest.number;
   const headSha = pullRequest.head.sha;
-  const reusesExistingReview =
-    process.env.GITHUB_EVENT_NAME === "workflow_dispatch" || event.action === "reopened";
-
-  if (reusesExistingReview) {
-    const statuses = await all(`/repos/${repository}/commits/${headSha}/statuses`);
-    if (hasSuccessfulCodexStatus(statuses)) return;
-  }
 
   await setStatus(
     repository,
@@ -227,25 +220,28 @@ async function main() {
   );
   if (pullRequest.draft) return;
 
-  if (["opened", "ready_for_review"].includes(event.action)) {
-    await new Promise((resolve) => setTimeout(resolve, 30_000));
-    const currentPullRequest = await request(`/repos/${repository}/pulls/${number}`);
-    if (currentPullRequest.head.sha !== headSha) return;
-  }
+  const currentPullRequest = await request(`/repos/${repository}/pulls/${number}`);
+  if (currentPullRequest.head.sha !== headSha) return;
+  const events =
+    event.action === "ready_for_review"
+      ? await all(`/repos/${repository}/issues/${number}/events`)
+      : [];
+  const allowUnmarkedComments = isInitialCodexReview(event.action, events);
 
-  const freshReview = ["opened", "ready_for_review"].includes(event.action);
-  const initialRequestedAt = reusesExistingReview ? 0 : pullRequest.updated_at;
+  let reviewStartedAt = 0;
   for (let attempt = 0; attempt < 600; attempt += 1) {
     const [comments, reactions, reviews, reviewComments] = await reviewSignals(repository, number);
-    const requestedAt = reusesExistingReview
-      ? latestCodexReviewRequest(comments)
-      : initialRequestedAt;
+    reviewStartedAt = Math.max(
+      reviewStartedAt,
+      latestCodexReviewStart(reactions, pullRequest.updated_at),
+    );
     const result = classifyCodexReview({
+      allowUnmarkedComments,
       headSha,
-      requestedAt,
+      requestedAt: pullRequest.updated_at,
       comments,
       reactions,
-      requiresReviewedCommit: !freshReview,
+      reviewStartedAt,
       reviews,
       reviewComments,
     });
@@ -265,17 +261,7 @@ if (process.env.GITHUB_ACTIONS === "true" && isDirectExecution) {
     const event = JSON.parse(
       await (await import("node:fs/promises")).readFile(process.env.GITHUB_EVENT_PATH),
     );
-    let requestedNumber;
-    try {
-      requestedNumber = pullRequestNumber(event, process.env.PULL_REQUEST_NUMBER);
-    } catch {
-      return;
-    }
-    const pullRequest =
-      event.pull_request ??
-      (await request(`/repos/${process.env.GITHUB_REPOSITORY}/pulls/${requestedNumber}`).catch(
-        () => null,
-      ));
+    const pullRequest = event.pull_request;
     if (!pullRequest) return;
     await setStatus(
       process.env.GITHUB_REPOSITORY,
