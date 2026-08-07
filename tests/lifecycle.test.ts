@@ -430,6 +430,46 @@ test("una scrittura entitlement bloccata espone il retry al webhook", async () =
   }
 });
 
+test("una lease entitlement persa durante il refresh espone il retry al webhook", async () => {
+  vi.useFakeTimers();
+  const shop = await insertShop("entitlement-lease-persa.example.myshopify.com");
+  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
+  const admin = adminStub([
+    shopContext("IT", true, entitlementAttivo),
+    { errors: [{ message: "servizio billing non disponibile" }] },
+    shopContext("IT", true, entitlementAttivo),
+  ]);
+  const graphql = admin.graphql;
+  admin.graphql = async (query, options) => {
+    const response = await graphql(query, options);
+    if (admin.calls.length === 3) {
+      await env.DB.prepare(
+        `UPDATE validation_operation_locks
+         SET owner_token = 'intruso', expires_at = ?
+         WHERE shop_domain = ?`,
+      )
+        .bind(Date.now() + 60_000, shop)
+        .run();
+      await vi.advanceTimersByTimeAsync(20_000);
+    }
+    return response;
+  };
+
+  try {
+    const state = await reconcile(admin, env.DB, shop);
+
+    expect(state.errorCode).toBe("validation_locked");
+    expect(admin.calls).toEqual(["context", "billing", "context", "context"]);
+    expect(admin.updates).toEqual([]);
+  } finally {
+    await env.DB.prepare("DELETE FROM validation_operation_locks WHERE shop_domain = ?")
+      .bind(shop)
+      .run();
+    vi.useRealTimers();
+  }
+});
+
 test("il readback entitlement conserva lo stato attivo dei duplicati concorrenti", async () => {
   const shop = await insertShop("readback-entitlement-duplicato.example.myshopify.com");
   await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
@@ -444,6 +484,34 @@ test("il readback entitlement conserva lo stato attivo dei duplicati concorrenti
     shopContext("IT", true),
     SENZA_ADDEBITI,
     shopContext("IT", true),
+    { data: { validationUpdate: { userErrors: [] } } },
+    readback,
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.validation).toBeUndefined();
+  expect(state.validationEnabled).toBe(true);
+  expect(state.errorCode).toBe("duplicate_validations_active");
+  expect(await appState(shop)).toMatchObject({
+    validation_enabled: 1,
+    last_error_code: "duplicate_validations_active",
+  });
+});
+
+test("un duplicato attivo al readback prevale su un errore operativo precedente", async () => {
+  const shop = await insertShop("readback-duplicato-con-errore.example.myshopify.com");
+  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
+  const readback = shopContext("IT", true);
+  readback.data.validations.nodes.push({
+    ...readback.data.validations.nodes[0],
+    id: "gid://shopify/Validation/2",
+    enabled: false,
+  });
+  const admin = adminStub([
+    shopContext("IT", true, entitlementAttivo),
+    { errors: [{ message: "servizio billing non disponibile" }] },
+    shopContext("IT", true, entitlementAttivo),
     { data: { validationUpdate: { userErrors: [] } } },
     readback,
   ]);
