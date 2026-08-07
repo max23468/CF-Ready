@@ -10,7 +10,13 @@ import {
   refuseInstall,
 } from "../app/shop.server";
 import { localDate, startTrial, trialEnd } from "../app/billing.server";
-import { readOnboarding, reconcile, saveOnboarding } from "../app/validation.server";
+import {
+  acquireValidationLock,
+  readOnboarding,
+  reconcile,
+  releaseValidationLockBestEffort,
+  saveOnboarding,
+} from "../app/validation.server";
 import {
   claimWebhook,
   consumeWebhookMessage,
@@ -407,6 +413,23 @@ test("un readback entitlement non disponibile resta fail-open", async () => {
   });
 });
 
+test("una scrittura entitlement bloccata espone il retry al webhook", async () => {
+  const shop = await insertShop("entitlement-occupato.example.myshopify.com");
+  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  const lockToken = await acquireValidationLock(env.DB, shop);
+  expect(lockToken).not.toBeNull();
+  const admin = adminStub([shopContext("IT", true), SENZA_ADDEBITI]);
+
+  try {
+    const state = await reconcile(admin, env.DB, shop);
+
+    expect(state.errorCode).toBe("validation_locked");
+    expect(admin.calls).toEqual(["context", "billing"]);
+  } finally {
+    await releaseValidationLockBestEffort(env.DB, shop, lockToken!);
+  }
+});
+
 test("il readback entitlement conserva lo stato attivo dei duplicati concorrenti", async () => {
   const shop = await insertShop("readback-entitlement-duplicato.example.myshopify.com");
   await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
@@ -722,7 +745,7 @@ test("la finalizzazione in DLQ non perde il webhook se D1 è indisponibile", asy
   );
   const ack = vi.fn();
   const retry = vi.fn();
-  const message = { body: job!, ack, retry } as unknown as Message<WebhookJob>;
+  const message = { body: job!, attempts: 3, ack, retry } as unknown as Message<WebhookJob>;
   const unavailable = new Proxy(env.DB, {
     get() {
       throw new Error("d1_unavailable");
@@ -740,6 +763,34 @@ test("la finalizzazione in DLQ non perde il webhook se D1 è indisponibile", asy
       .bind("wh-dlq")
       .first(),
   ).toMatchObject({ status: "failed", error_code: "queue_retries_exhausted" });
+});
+
+test("la DLQ prolunga il retry oltre la durata della lease Validation", async () => {
+  const process = vi
+    .fn<(db: D1Database, job: WebhookJob) => Promise<void>>()
+    .mockRejectedValueOnce(new Error("validation_locked"))
+    .mockResolvedValueOnce();
+  const job = { webhookId: "wh-lease", claimToken: "claim", shop: "shop.example" };
+  const ack = vi.fn();
+  const retry = vi.fn();
+
+  await consumeWebhookMessage(
+    env.DB,
+    { body: job, attempts: 1, ack, retry } as unknown as Message<WebhookJob>,
+    true,
+    process,
+  );
+  expect(retry).toHaveBeenCalledWith({ delaySeconds: 60 });
+  expect(ack).not.toHaveBeenCalled();
+
+  await consumeWebhookMessage(
+    env.DB,
+    { body: job, attempts: 2, ack, retry } as unknown as Message<WebhookJob>,
+    true,
+    process,
+  );
+  expect(process).toHaveBeenCalledTimes(2);
+  expect(ack).toHaveBeenCalledOnce();
 });
 
 test("il replay dello stesso webhook non duplica i suoi eventi", async () => {

@@ -1,6 +1,7 @@
 import { recordEvent } from "./events.server";
 
 const PROCESSING_TIMEOUT_MS = 5 * 60 * 1000;
+const FAILURE_QUEUE_PROCESS_ATTEMPTS = 2;
 
 export type WebhookJob = {
   webhookId: string;
@@ -16,7 +17,7 @@ export async function consumeWebhookMessage(
   process: (db: D1Database, job: WebhookJob) => Promise<void>,
 ) {
   try {
-    if (finalizing) {
+    if (finalizing && message.attempts > FAILURE_QUEUE_PROCESS_ATTEMPTS) {
       await failClaimedWebhook(db, message.body, new Error("queue_retries_exhausted"));
     } else {
       await process(db, message.body);
