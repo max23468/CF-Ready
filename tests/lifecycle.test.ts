@@ -353,7 +353,7 @@ test("un errore di trasporto conserva lo stato riletto sotto lease", async () =>
   ]);
 });
 
-test("il fallback non disattiva una Validation se lo store è tornato idoneo", async () => {
+test("il fallback ritenta se lo store torna idoneo durante la lease", async () => {
   const shop = await insertShop("paese-cambiato.example.myshopify.com");
   const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
   const admin = adminStub([
@@ -365,7 +365,7 @@ test("il fallback non disattiva una Validation se lo store è tornato idoneo", a
 
   const state = await reconcile(admin, env.DB, shop);
 
-  expect(state.errorCode).toBe("validation_still_enabled");
+  expect(state.errorCode).toBe("validation_locked");
   expect(admin.calls).toEqual(["context", "update", "context", "context"]);
   expect(admin.updates).toMatchObject([{ validation: { enable: false } }]);
 });
