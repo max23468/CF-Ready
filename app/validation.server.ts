@@ -357,7 +357,9 @@ export async function reconcile(
 
     if (!write.acquired) {
       errorCode = "validation_locked";
-    } else if (write.result !== "country_changed") {
+    } else if (write.result === "country_changed") {
+      errorCode = "validation_locked";
+    } else {
       const readback = await readValidationReadback(admin);
       if (readback !== null) {
         matches = readback;
