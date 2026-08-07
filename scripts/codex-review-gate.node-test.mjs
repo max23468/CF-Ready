@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
-import { classifyCodexReview, latestCodexReviewStart } from "./codex-review-gate.mjs";
+import {
+  classifyCodexReview,
+  isInitialCodexReview,
+  latestCodexReviewStart,
+} from "./codex-review-gate.mjs";
 
 const headSha = "0123456789abcdef0123456789abcdef01234567";
 const requestedAt = "2026-08-04T12:00:00Z";
@@ -32,10 +36,57 @@ test("il pollice approva soltanto la review avviata dopo l'evento corrente", () 
   );
   assert.equal(
     classify({
+      allowUnmarkedComments: false,
       progressReactions: [{ user: bot, content: "eyes", created_at: "2026-08-04T11:59:59Z" }],
       reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:03Z" }],
     }).state,
     "pending",
+  );
+});
+
+test("il primo ready di una PR nata draft è ancora la review iniziale", () => {
+  assert.equal(isInitialCodexReview("opened"), true);
+  assert.equal(isInitialCodexReview("ready_for_review", [{ event: "ready_for_review" }]), true);
+  assert.equal(
+    isInitialCodexReview("ready_for_review", [
+      { event: "convert_to_draft" },
+      { event: "ready_for_review" },
+    ]),
+    false,
+  );
+  assert.equal(
+    isInitialCodexReview("ready_for_review", [
+      { event: "ready_for_review" },
+      { event: "ready_for_review" },
+    ]),
+    false,
+  );
+});
+
+test("la review iniziale accetta il pollice anche se il polling perde eyes", () => {
+  assert.equal(
+    classify({
+      reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:03Z" }],
+    }).state,
+    "success",
+  );
+});
+
+test("una review exact-HEAD correla il pollice anche se il polling perde eyes", () => {
+  assert.equal(
+    classify({
+      allowUnmarkedComments: false,
+      reactions: [{ user: bot, content: "+1", created_at: "2026-08-04T12:00:03Z" }],
+      reviews: [
+        {
+          user: bot,
+          commit_id: headSha,
+          submitted_at: "2026-08-04T12:00:02Z",
+          body: "",
+        },
+      ],
+    }).state,
+    "success",
   );
 });
 

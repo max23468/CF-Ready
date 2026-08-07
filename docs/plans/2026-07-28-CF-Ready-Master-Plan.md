@@ -2801,7 +2801,8 @@ Il workflow ha
 `issues: read`, non `issues: write`, così una regressione nello script non può
 creare il commento che avvia il task agent.
 
-La review nativa parte all'apertura della PR o al passaggio da draft a ready.
+La review nativa parte all'apertura della PR o al passaggio da draft a ready;
+il primo ready di una PR aperta come draft vale ancora come review iniziale.
 Ogni nuovo commit invalida l'evidenza precedente perché lo status appartiene al
 vecchio SHA; per revisionare il nuovo HEAD si porta la PR in draft e subito di
 nuovo in ready. Il gate non reagisce a `synchronize` o `reopened` e non espone

@@ -18,6 +18,12 @@ export const latestCodexReviewStart = (reactions, requestedAt) =>
     )
     .reduce((latest, reaction) => Math.max(latest, timestamp(reaction.created_at)), 0);
 
+export const isInitialCodexReview = (action, events = []) =>
+  action === "opened" ||
+  (action === "ready_for_review" &&
+    !events.some((event) => event.event === "convert_to_draft") &&
+    events.filter((event) => event.event === "ready_for_review").length <= 1);
+
 export function classifyCodexReview({
   allowUnmarkedComments = true,
   headSha,
@@ -109,8 +115,7 @@ export function classifyCodexReview({
     const commit = reviewedCommit(review.body);
     if (
       review.user?.login === CODEX_BOT &&
-      commit &&
-      headSha.startsWith(commit) &&
+      (review.commit_id === headSha || (commit && headSha.startsWith(commit))) &&
       timestamp(review.submitted_at) >= timestamp(requestedAt)
     ) {
       cleanComments.push(timestamp(review.submitted_at));
@@ -126,8 +131,10 @@ export function classifyCodexReview({
     )
     .reduce((latest, reaction) => Math.max(latest, timestamp(reaction.created_at)), 0);
 
-  if (thumbsUpAt >= startedAt && startedAt) {
-    cleanComments.push(thumbsUpAt);
+  if (thumbsUpAt) {
+    if (allowUnmarkedComments || (startedAt && thumbsUpAt >= startedAt)) {
+      cleanComments.push(thumbsUpAt);
+    }
     for (const commentAt of cleanComments) {
       if (thumbsUpAt < commentAt) continue;
       completions.push({
@@ -211,6 +218,11 @@ async function main() {
 
   const currentPullRequest = await request(`/repos/${repository}/pulls/${number}`);
   if (currentPullRequest.head.sha !== headSha) return;
+  const events =
+    event.action === "ready_for_review"
+      ? await all(`/repos/${repository}/issues/${number}/events`)
+      : [];
+  const allowUnmarkedComments = isInitialCodexReview(event.action, events);
 
   let reviewStartedAt = 0;
   for (let attempt = 0; attempt < 600; attempt += 1) {
@@ -220,7 +232,7 @@ async function main() {
       latestCodexReviewStart(reactions, pullRequest.updated_at),
     );
     const result = classifyCodexReview({
-      allowUnmarkedComments: event.action === "opened",
+      allowUnmarkedComments,
       headSha,
       requestedAt: pullRequest.updated_at,
       comments,
