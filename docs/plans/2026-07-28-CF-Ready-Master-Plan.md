@@ -2789,10 +2789,15 @@ per la review iniziale, mentre nei tentativi successivi deve dichiarare lo SHA
 corrente. Un finding top-level marcato con uno SHA precedente non migra sul nuovo
 HEAD. L'esito positivo iniziale richiede una reaction Codex successiva
 all'apertura o al passaggio a ready, dopo la verifica che l'HEAD sia rimasto
-stabile. I tentativi successivi richiedono un verdetto esplicito
+stabile. Nei tentativi successivi la reaction positiva deve seguire la reaction
+`eyes` osservata dopo lo stesso evento; lo script conserva quel timestamp anche
+quando GitHub rimuove `eyes`. In alternativa accetta un verdetto esplicito
 `Codex Review: Didn't find any major issues` con `Reviewed commit` coincidente
 con l'HEAD, oppure una review nativa riferita allo stesso commit seguita dalla
-reaction positiva. Autore, forma, timestamp e SHA devono coincidere; una
+reaction positiva. Quando non trova problemi, il reviewer nativo può pubblicare
+soltanto la reaction: la coppia temporale `eyes` e reaction positiva è quindi
+il suo esito correlato al tentativo corrente. Autore, forma, timestamp e SHA
+devono coincidere; una
 spiegazione testuale generica del task agent, una reaction precedente all'evento
 o una review di uno SHA precedente non sbloccano il merge. Dopo il tentativo
 iniziale anche un errore operativo Codex deve dichiarare lo SHA corrente e resta
