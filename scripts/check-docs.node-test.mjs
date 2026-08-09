@@ -429,33 +429,31 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
     "utf8",
   );
   assert.match(workflow, /pull_request_target:/);
-  assert.match(workflow, /types: \[opened, ready_for_review\]/);
-  assert.doesNotMatch(workflow, /synchronize|reopened/);
-  assert.doesNotMatch(workflow, /workflow_dispatch:|PULL_REQUEST_NUMBER|inputs\.pull_request/);
-  assert.match(workflow, /group: codex-review-\$\{\{ github\.event\.pull_request\.number \}\}/);
-  assert.match(workflow, /ref: \$\{\{ github\.event\.repository\.default_branch \}\}/);
+  assert.match(workflow, /types: \[opened, synchronize, reopened, ready_for_review\]/);
+  assert.match(workflow, /issue_comment:/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /group: codex-review-\$\{\{ github\.event\.pull_request\.number \|\| github\.event\.issue\.number \|\| inputs\.pull_request \}\}/);
+  assert.match(workflow, /github\.event\.repository\.default_branch/);
   assert.match(workflow, /issues: read/);
   assert.doesNotMatch(workflow, /issues: write/);
   assert.match(workflow, /statuses: write/);
+  assert.match(workflow, /node --test scripts\/codex-review-gate\.test\.mjs/);
   assert.match(workflow, /node scripts\/codex-review-gate\.mjs/);
   assert.doesNotMatch(workflow, /github\.event\.pull_request\.head/);
   const gate = readFileSync(new URL("./codex-review-gate.mjs", import.meta.url), "utf8");
-  assert.match(gate, /currentPullRequest\.head\.sha !== headSha/);
-  assert.match(gate, /isInitialCodexReview\(event\.action, events\)/);
-  assert.match(gate, /latestCodexReviewStart\(reactions, pullRequest\.updated_at\)/);
-  assert.doesNotMatch(gate, new RegExp(["@codex", "review"].join(" ")));
+  assert.match(gate, /isAutomaticFirstReview/);
+  assert.match(gate, /latestCodexInvocation/);
+  assert.match(gate, /\["P0", "P1"\]/);
   assert.doesNotMatch(gate, /issues\/\$\{number\}\/comments[\s\S]*method: "POST"/);
   assert.match(gate, /Didn't find any major issues/);
   assert.match(gate, /pulls\/\$\{number\}\/reviews/);
-  assert.doesNotMatch(gate, /workflow_dispatch|PULL_REQUEST_NUMBER|latestCodexReviewRequest/);
   assert.match(gate, /Review Codex non conclusa entro cinque ore/);
   const plan = readFileSync(
     new URL("../docs/plans/2026-07-28-CF-Ready-Master-Plan.md", import.meta.url),
     "utf8",
   );
-  assert.match(plan, /Il gate `codex-review` non chiede review e non pubblica mai commenti/);
-  assert.match(plan, /Ogni nuovo commit invalida l'evidenza precedente/);
-  assert.doesNotMatch(plan, /commento marker|può essere avviato manualmente indicando la PR/);
+  assert.match(plan, /il\s+primo giro non richiede `@codex review`/);
+  assert.match(plan, /P2\/P3 restano advisory/);
   const maintenance = readFileSync(
     new URL("../.github/workflows/security-maintenance.yml", import.meta.url),
     "utf8",
