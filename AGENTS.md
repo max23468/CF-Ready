@@ -141,8 +141,9 @@ rilettura finale di PR, check, deploy, release e stato Git non sono completi.
 - Prima di usare il connettore Shopify, leggi sempre l’identità dello store.
   Durante sviluppo e test consenti scritture CF Ready solo su
   `cf-ready-dev.myshopify.com`; se il connettore punta a un altro store,
-  fermati e cambia store. Production richiede comunque l’autorizzazione
-  separata prevista sotto.
+  fermati e cambia store. In Production serve l’autorizzazione prevista sotto:
+  una richiesta affermativa di pubblicazione la soddisfa per il ciclo tecnico
+  applicabile.
 - Prima di una scrittura remota identifica ambiente, account Cloudflare,
   organizzazione/app/store Shopify e stato target; verifica presenza delle
   credenziali, autorizzazione, backup e rollback senza esporre segreti.
