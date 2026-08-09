@@ -92,6 +92,27 @@ dimostra da solo lo stato live. Dichiara sempre i controlli non eseguiti.
 Prima della `1.0.0`, riconferma nelle fonti Shopify correnti la Function API
 `2026-07`, rigenera con la CLI supportata e ripeti fixture e checkout reali.
 
+## Significato di `Pubblica`
+
+Quando il proprietario dice `Pubblica`, `pubblica`, parla di `pubblicare` o usa
+espressioni equivalenti, autorizza l'intero ciclo tecnico applicabile alla
+repository. L'agente non si ferma a stati intermedi: prepara e verifica la
+modifica; crea branch e commit; esegue push; apre o aggiorna la PR; attende e
+soddisfa i soli gate bloccanti; esegue il merge; completa deploy o promozione
+tecnica e verifica live quando applicabili; crea versione, tag e GitHub Release
+quando previsti dalla policy; infine aggiorna e verifica la branch di base,
+elimina branch e worktree temporanei locali e remoti già assorbiti e controlla
+stash e altri residui.
+
+Se un passaggio non è applicabile, lo dichiara e prosegue con gli altri. La
+richiesta di pubblicazione vale come autorizzazione a PR, merge, deploy tecnico
+e release previsti dal ciclo, senza una seconda conferma. Non autorizza
+pubblicazione di temi Shopify live, submission Shopify App Store, billing o
+nuove attivazioni produttive, TestFlight o App Store, invii Aruba, email o
+scansioni reali, né aggiornamenti Notion: queste azioni richiedono una richiesta
+esplicita separata. Non dichiarare `pubblicato` finché il ciclo applicabile e la
+rilettura finale di PR, check, deploy, release e stato Git non sono completi.
+
 ## Ambienti, Git e operazioni remote
 
 | Ambiente | ID | Branch | Uso |
@@ -105,12 +126,6 @@ Prima della `1.0.0`, riconferma nelle fonti Shopify correnti la Function API
   non eliminare mai `develop` dopo una promozione.
 - Commit e titoli PR seguono Conventional Commits. Non fare push diretti
   intenzionali su `main` o `develop`.
-- “Pubblica” è **una sola PR** portata fino in fondo. Il branch contiene già
-  tutto ciò che la modifica comporta: codice, test, documentazione, bump di
-  versione e voce di changelog quando è deployabile. Poi merge, e subito il
-  deploy pertinente con verifica live. Non aprire PR che esistono solo per
-  alzare una versione o solo per depositare una ricevuta: se ti accorgi che
-  manca un pezzo, aggiungilo al branch prima del merge.
 - La ricevuta di deploy è l’unico dato che nasce dopo il merge, e non ha mai una
   PR propria. Quella di uno snapshot intermedio viaggia con la prima PR utile
   successiva; quella dell’ultimo snapshot va nella PR di chiusura della
@@ -129,9 +144,9 @@ Prima della `1.0.0`, riconferma nelle fonti Shopify correnti la Function API
   credenziali, autorizzazione, backup e rollback senza esporre segreti.
 - Dopo un deploy registra ambiente, commit, deployment ID, migrazioni, smoke,
   readback e versione di rollback.
-- Deploy Production, release, submission App Store, attivazione billing e altre
-  operazioni esterne difficili da annullare richiedono autorizzazione separata
-  ed esplicita dell’owner.
+- Al di fuori di una richiesta di pubblicazione, Deploy Production e release
+  richiedono autorizzazione separata. Submission App Store, attivazione billing
+  e altre operazioni esterne escluse sopra la richiedono sempre.
 
 ## Autonomia e comunicazione
 
