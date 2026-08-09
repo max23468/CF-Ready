@@ -334,11 +334,12 @@ segnaposto. Deploy eseguito il 3 agosto 2026 e verificato live.
 | Generazioni ricorrenti degli abbonamenti non coperte | limite della piattaforma, dichiarato in listing, termini e reviewer instructions |
 | Wallet non tutti disponibili in ambiente di test | matrice completa rimandata a M10 su store reale |
 
-## 6. Autorizzazioni separate
+## 6. Autorizzazioni operative
 
-Nessuna di queste azioni è coperta dall'avanzamento di M9. Ognuna richiede
-un'autorizzazione esplicita e distinta dell'owner, al momento in cui viene
-eseguita.
+L'avanzamento di M9, da solo, non autorizza azioni remote. Una richiesta
+affermativa di pubblicazione autorizza deploy e promozione tecnici applicabili;
+submission App Store e attivazione billing richiedono sempre un'autorizzazione
+esplicita e distinta dell'owner al momento dell'esecuzione.
 
 | Azione | Stato |
 | --- | --- |
