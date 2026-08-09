@@ -213,6 +213,28 @@ test("un finding P2 top-level senza marker resta advisory", () => {
   );
 });
 
+test("una review nativa con soli advisory completa il gate dopo l'assestamento", () => {
+  const input = {
+    reviewComments: [
+      {
+        user: bot,
+        original_commit_id: headSha,
+        created_at: "2026-08-04T12:00:02Z",
+        body: "**P2** Suggerimento advisory",
+      },
+    ],
+    reviews: [{ user: bot, commit_id: headSha, submitted_at: "2026-08-04T12:00:01Z" }],
+  };
+  assert.equal(
+    classify({ ...input, now: new Date("2026-08-04T12:00:20Z").getTime() }).state,
+    "pending",
+  );
+  assert.equal(
+    classify({ ...input, now: new Date("2026-08-04T12:00:33Z").getTime() }).state,
+    "success",
+  );
+});
+
 test("un finding top-level senza SHA non migra alla review successiva", () => {
   assert.equal(
     classify({

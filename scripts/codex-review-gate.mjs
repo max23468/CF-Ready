@@ -38,10 +38,19 @@ export function classifyCodexReview({
 }) {
   const completions = [];
   const cleanComments = [];
+  const reviewActivity = [];
   const activeStartedAt = latestCodexReviewStart(progressReactions, requestedAt);
   const startedAt = Math.max(reviewStartedAt, activeStartedAt);
 
   for (const comment of reviewComments) {
+    if (
+      comment.user?.login === CODEX_BOT &&
+      (comment.original_commit_id ?? comment.commit_id) === headSha &&
+      timestamp(comment.created_at) >= timestamp(requestedAt) &&
+      /\bP[0-3]\b/.test(comment.body)
+    ) {
+      reviewActivity.push(timestamp(comment.created_at));
+    }
     if (
       comment.user?.login === CODEX_BOT &&
       (comment.original_commit_id ?? comment.commit_id) === headSha &&
@@ -120,6 +129,15 @@ export function classifyCodexReview({
     ) {
       cleanComments.push(timestamp(review.submitted_at));
     }
+  }
+
+  const reviewSettledAt = Math.max(...cleanComments, ...reviewActivity, 0);
+  if (reviewSettledAt && now - reviewSettledAt >= 30_000) {
+    completions.push({
+      state: "success",
+      at: reviewSettledAt,
+      description: "Codex ha completato la review senza finding P0/P1",
+    });
   }
 
   const thumbsUpAt = reactions
