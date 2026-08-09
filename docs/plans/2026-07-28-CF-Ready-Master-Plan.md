@@ -2608,10 +2608,10 @@ Lo store standard dell’attività:
 - Production solo con merge esplicito;
 - nessuna cancellazione automatica di estensioni Shopify.
 
-“Pubblica” richiede commit, push, PR, gate, merge e, quando la modifica è
-deployabile, il deploy pertinente con verifica live. La release SemVer,
-submission App Store e attivazioni commerciali restano azioni separate e
-richiedono autorizzazione esplicita.
+Una richiesta affermativa e inequivocabile di “Pubblica” richiede commit, push,
+PR, gate, merge e, quando applicabili, release SemVer, deploy pertinente e
+verifica live. Submission App Store e attivazioni commerciali restano azioni
+separate e richiedono autorizzazione esplicita.
 
 ### 19.5 Versionamento
 
@@ -2638,7 +2638,8 @@ richiedono bump, tag o GitHub Release.
 
 `CHANGELOG.md` è mantenuto dalla `0.1.0`: ogni snapshot rilasciato, anche in
 Development, ha una voce con versione, data, milestone e sintesi. Note pubbliche
-IT/EN e tag restano requisiti delle sole release Production.
+IT/EN e tag restano requisiti delle sole release Production e vengono pubblicati
+soltanto dopo deploy, smoke e readback riusciti sul medesimo commit.
 
 Ogni snapshot Shopify rilasciato deve ricevere un identificatore esplicito con
 `shopify app deploy --version`:
@@ -2668,7 +2669,7 @@ Numero assegnato a ogni milestone fino alla `1.0.0`:
 | M8 — Hardening | `0.6.0` → `0.8.0` | consegnata in tre layer, un minor ciascuno: `0.6.0` durabilità e osservabilità, `0.7.0` sicurezza e dipendenze, `0.8.0` capacità e prove operative, che chiude feature complete |
 | M9 — Release candidate e review | `0.9.0` | |
 | M10 — Canary store reale | `0.9.x` | nessun minor: il canary usa la build della release candidate |
-| M11 — `1.0.0` e Controlled Launch | `1.0.0` | tag `v1.0.0` alla promozione Production |
+| M11 — `1.0.0` e Controlled Launch | `1.0.0` | tag `v1.0.0` dopo deploy, smoke e readback Production riusciti |
 | M12 — Visibilità completa | nessuna | sola visibilità; i fix successivi sono `1.0.x` |
 
 Dentro una milestone, ogni ulteriore snapshot rilasciato incrementa la **patch**
@@ -2682,7 +2683,8 @@ stessa PR**, non in PR separate. La ricevuta di deploy, che esiste solo dopo il
 rilascio, non ha mai una PR propria: quella di uno snapshot intermedio viaggia
 con la prima PR utile successiva, quella dell'ultimo snapshot viene registrata
 nella PR di chiusura della milestone insieme all'esito dei gate. Il tag
-`vX.Y.Z` viene creato alla promozione Production.
+`vX.Y.Z` e la GitHub Release vengono creati soltanto dopo il completamento
+riuscito del workflow Production, dello smoke e del readback sul medesimo commit.
 
 La ricevuta di deploy registra ambiente, configurazione, versione Shopify,
 commit, ID della versione rilasciata e versione di rollback. Gli identificatori
@@ -2746,7 +2748,9 @@ documentazione entra in M1. Codice e workflow provano sempre lo stato corrente.
 - smoke Production;
 - registra versione.
 
-Il deploy Production e le release richiedono autorizzazione esplicita dell’owner.
+La richiesta affermativa di pubblicazione costituisce l’autorizzazione esplicita
+dell’owner al deploy Production e alla release applicabili; fuori da tale
+richiesta serve conferma separata.
 
 Configurazione minima GitHub:
 
@@ -2780,7 +2784,8 @@ rottura di integrazione entro il minuto successivo. Restano applicabili:
 - i controlli locali sui secret restano obbligatori;
 - i secret Production non vengono spostati in un repository secret privo di
   separazione per ambiente senza un preflight specifico;
-- deploy Production e release restano azioni owner-triggered;
+- deploy Production e release sono owner-triggered dalla richiesta affermativa
+  di pubblicazione oppure da un’autorizzazione separata;
 - il piano si rivaluta solo con nuovi collaboratori o rischio materiale.
 
 Il gate `codex-review` non pubblica commenti. La review nativa parte
@@ -3581,7 +3586,8 @@ fresche per ogni gate bloccante e registra:
 - risultati CI, smoke, E2E, backup/restore e security audit;
 - URL, documenti pubblici e canale di segnalazione vulnerabilità;
 - rischi non bloccanti esplicitamente accettati;
-- autorizzazione separata a deploy Production e release.
+- richiesta affermativa di pubblicazione o autorizzazione separata a deploy
+  Production e release.
 
 Una checklist compilata senza link, ID o risultati osservati non costituisce
 readiness.
@@ -4447,7 +4453,8 @@ Codex prende ownership di:
 7. implementare motore e billing con test;
 8. integrare la UI senza sovrascrivere decisioni Claude;
 9. consegnare prove per ogni gate;
-10. non fare deploy/release Production senza autorizzazione esplicita.
+10. non fare deploy/release Production senza una richiesta affermativa di
+    pubblicazione o un’autorizzazione esplicita separata.
 
 ### 31.3 Regole tecniche
 

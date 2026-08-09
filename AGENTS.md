@@ -92,6 +92,31 @@ dimostra da solo lo stato live. Dichiara sempre i controlli non eseguiti.
 Prima della `1.0.0`, riconferma nelle fonti Shopify correnti la Function API
 `2026-07`, rigenera con la CLI supportata e ripeti fixture e checkout reali.
 
+## Significato di `Pubblica`
+
+Quando il proprietario, riferendosi alla repository o alla modifica corrente,
+dice `Pubblica` o chiede in modo affermativo e inequivocabile di pubblicare,
+autorizza l'intero ciclo tecnico applicabile. Domande, ipotesi, pianificazioni e
+negazioni non costituiscono autorizzazione. L'agente non si ferma a stati
+intermedi e completa tutti i passaggi applicabili: preparazione e verifiche,
+branch e commit, versione e changelog quando richiesti, push, PR, soli gate
+bloccanti, merge, tag e GitHub Release quando previsti, deploy o promozione
+tecnica e verifica live. La sequenza concreta, in particolare tra versionamento,
+merge, deploy e release, è quella definita dalla policy della repository.
+
+La pulizia finale rimuove soltanto branch e worktree temporanei creati nel ciclo
+corrente e già assorbiti; controlla stash e altri residui senza alterare elementi
+preesistenti o estranei alla pubblicazione. Se un passaggio non è applicabile, lo
+dichiara e prosegue con gli altri. La richiesta affermativa di pubblicazione
+vale come autorizzazione a PR, merge, deploy tecnico e release previsti dal
+ciclo, senza una seconda conferma. Non autorizza pubblicazione di temi Shopify
+live, submission Shopify App Store, billing o nuove attivazioni produttive,
+TestFlight o App Store, invii Aruba, email o scansioni reali, né aggiornamenti
+Notion: queste azioni richiedono una richiesta esplicita separata. Una richiesta
+riferita soltanto a una di queste azioni non avvia la pubblicazione della
+repository. Non dichiarare `pubblicato` finché il ciclo applicabile e la
+rilettura finale di PR, check, deploy, release e stato Git non sono completi.
+
 ## Ambienti, Git e operazioni remote
 
 | Ambiente | ID | Branch | Uso |
@@ -105,12 +130,6 @@ Prima della `1.0.0`, riconferma nelle fonti Shopify correnti la Function API
   non eliminare mai `develop` dopo una promozione.
 - Commit e titoli PR seguono Conventional Commits. Non fare push diretti
   intenzionali su `main` o `develop`.
-- “Pubblica” è **una sola PR** portata fino in fondo. Il branch contiene già
-  tutto ciò che la modifica comporta: codice, test, documentazione, bump di
-  versione e voce di changelog quando è deployabile. Poi merge, e subito il
-  deploy pertinente con verifica live. Non aprire PR che esistono solo per
-  alzare una versione o solo per depositare una ricevuta: se ti accorgi che
-  manca un pezzo, aggiungilo al branch prima del merge.
 - La ricevuta di deploy è l’unico dato che nasce dopo il merge, e non ha mai una
   PR propria. Quella di uno snapshot intermedio viaggia con la prima PR utile
   successiva; quella dell’ultimo snapshot va nella PR di chiusura della
@@ -122,16 +141,19 @@ Prima della `1.0.0`, riconferma nelle fonti Shopify correnti la Function API
 - Prima di usare il connettore Shopify, leggi sempre l’identità dello store.
   Durante sviluppo e test consenti scritture CF Ready solo su
   `cf-ready-dev.myshopify.com`; se il connettore punta a un altro store,
-  fermati e cambia store. Production richiede comunque l’autorizzazione
-  separata prevista sotto.
+  fermati e cambia store. In Production serve l’autorizzazione prevista sotto:
+  una richiesta affermativa di pubblicazione la soddisfa per il ciclo tecnico
+  applicabile.
 - Prima di una scrittura remota identifica ambiente, account Cloudflare,
   organizzazione/app/store Shopify e stato target; verifica presenza delle
   credenziali, autorizzazione, backup e rollback senza esporre segreti.
 - Dopo un deploy registra ambiente, commit, deployment ID, migrazioni, smoke,
   readback e versione di rollback.
-- Deploy Production, release, submission App Store, attivazione billing e altre
-  operazioni esterne difficili da annullare richiedono autorizzazione separata
-  ed esplicita dell’owner.
+- In CF Ready crea tag e GitHub Release soltanto dopo che il workflow Production,
+  lo smoke e il readback del medesimo commit sono riusciti.
+- Al di fuori di una richiesta di pubblicazione, Deploy Production e release
+  richiedono autorizzazione separata. Submission App Store, attivazione billing
+  e altre operazioni esterne escluse sopra la richiedono sempre.
 
 ## Autonomia e comunicazione
 
