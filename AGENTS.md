@@ -149,6 +149,8 @@ rilettura finale di PR, check, deploy, release e stato Git non sono completi.
   credenziali, autorizzazione, backup e rollback senza esporre segreti.
 - Dopo un deploy registra ambiente, commit, deployment ID, migrazioni, smoke,
   readback e versione di rollback.
+- In CF Ready crea tag e GitHub Release soltanto dopo che il workflow Production,
+  lo smoke e il readback del medesimo commit sono riusciti.
 - Al di fuori di una richiesta di pubblicazione, Deploy Production e release
   richiedono autorizzazione separata. Submission App Store, attivazione billing
   e altre operazioni esterne escluse sopra la richiedono sempre.
