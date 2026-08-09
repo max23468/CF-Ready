@@ -4,11 +4,12 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   push:
-    branches: [main, develop]
+    branches: [main]
 
 permissions:
   contents: read
   pull-requests: write
+  statuses: write
 
 concurrency:
   group: react-doctor-${{ github.event.pull_request.number || github.ref }}
@@ -23,10 +24,10 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: millionco/react-doctor@736abc183ac491b4e954fc6bedec3a9a1b73d38b # v2
+      - uses: millionco/react-doctor@01820bb4fd4d0a4aebcd8df2b2a143a098649cb2 # v2
         with:
-          version: 0.9.11
-          scope: changed
+          version: 0.9.3
+          scope: ${{ github.event_name == 'pull_request' && 'changed' || 'full' }}
           blocking: warning
           comment: "false"
           review-comments: "true"

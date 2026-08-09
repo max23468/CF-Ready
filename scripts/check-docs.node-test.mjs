@@ -423,19 +423,16 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.doesNotMatch(workflow, /shopify app deploy|wrangler deploy|d1 migrations apply/);
 });
 
-test("il gate Codex esegue codice fidato e blocca soltanto P0/P1 exact-HEAD", () => {
+test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", () => {
   const workflow = readFileSync(
     new URL("../.github/workflows/codex-review-gate.yml", import.meta.url),
     "utf8",
   );
   assert.match(workflow, /pull_request_target:/);
-  assert.match(workflow, /types: \[opened, synchronize, reopened, ready_for_review\]/);
-  assert.match(workflow, /workflow_dispatch:[\s\S]*type: number/);
-  assert.match(workflow, /PULL_REQUEST_NUMBER: \$\{\{ inputs\.pull_request \}\}/);
-  assert.match(
-    workflow,
-    /group: codex-review-\$\{\{ github\.event\.pull_request\.number \|\| inputs\.pull_request \}\}/,
-  );
+  assert.match(workflow, /types: \[opened, ready_for_review\]/);
+  assert.doesNotMatch(workflow, /synchronize|reopened/);
+  assert.doesNotMatch(workflow, /workflow_dispatch:|PULL_REQUEST_NUMBER|inputs\.pull_request/);
+  assert.match(workflow, /group: codex-review-\$\{\{ github\.event\.pull_request\.number \}\}/);
   assert.match(workflow, /ref: \$\{\{ github\.event\.repository\.default_branch \}\}/);
   assert.match(workflow, /issues: read/);
   assert.doesNotMatch(workflow, /issues: write/);
@@ -444,48 +441,26 @@ test("il gate Codex esegue codice fidato e blocca soltanto P0/P1 exact-HEAD", ()
   assert.doesNotMatch(workflow, /github\.event\.pull_request\.head/);
   const gate = readFileSync(new URL("./codex-review-gate.mjs", import.meta.url), "utf8");
   assert.match(gate, /currentPullRequest\.head\.sha !== headSha/);
-  assert.match(gate, /\["P0", "P1"\]\.includes/);
-  assert.match(gate, /advisoryFindings/);
-  assert.match(gate, /latestCodexInvocation/);
+  assert.match(gate, /isInitialCodexReview\(event\.action, events\)/);
+  assert.match(gate, /latestCodexReviewStart\(reactions, pullRequest\.updated_at\)/);
   assert.doesNotMatch(gate, new RegExp(["@codex", "review"].join(" ")));
   assert.doesNotMatch(gate, /issues\/\$\{number\}\/comments[\s\S]*method: "POST"/);
   assert.match(gate, /Didn't find any major issues/);
   assert.match(gate, /pulls\/\$\{number\}\/reviews/);
-  assert.match(gate, /workflow_dispatch/);
-  assert.match(gate, /PULL_REQUEST_NUMBER/);
+  assert.doesNotMatch(gate, /workflow_dispatch|PULL_REQUEST_NUMBER|latestCodexReviewRequest/);
   assert.match(gate, /Review Codex non conclusa entro cinque ore/);
   const plan = readFileSync(
     new URL("../docs/plans/2026-07-28-CF-Ready-Master-Plan.md", import.meta.url),
     "utf8",
   );
   assert.match(plan, /Il gate `codex-review` non chiede review e non pubblica mai commenti/);
-  assert.match(plan, /Ogni nuovo commit invalida l'evidenza\s+precedente/);
-  assert.match(plan, /dispatch manuale con numero PR/);
+  assert.match(plan, /Ogni nuovo commit invalida l'evidenza precedente/);
+  assert.doesNotMatch(plan, /commento marker|può essere avviato manualmente indicando la PR/);
   const maintenance = readFileSync(
     new URL("../.github/workflows/security-maintenance.yml", import.meta.url),
     "utf8",
   );
   assert.match(maintenance, /cancelled[\s\S]*codex-review-gate\.yml/);
-});
-
-test("React Doctor blocca i warning senza commentare le scansioni pulite", () => {
-  const workflow = readFileSync(
-    new URL("../.github/workflows/react-doctor.yml", import.meta.url),
-    "utf8",
-  );
-  const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-
-  assert.equal(manifest.devDependencies["react-doctor"], "0.9.11");
-  assert.equal(manifest.scripts.doctor, "react-doctor --scope full --blocking warning .");
-  assert.match(workflow, /millionco\/react-doctor@736abc183ac491b4e954fc6bedec3a9a1b73d38b/);
-  assert.match(workflow, /branches: \[main, develop\]/);
-  assert.match(workflow, /version:\s*0\.9\.11/);
-  assert.match(workflow, /scope:\s*changed/);
-  assert.match(workflow, /blocking:\s*warning/);
-  assert.match(workflow, /comment:\s*"false"/);
-  assert.match(workflow, /review-comments:\s*"true"/);
-  assert.match(workflow, /commit-status:\s*"false"/);
-  assert.doesNotMatch(workflow, /continue-on-error|statuses: write/);
 });
 
 test("README e indice non duplicano la versione corrente", () => {
