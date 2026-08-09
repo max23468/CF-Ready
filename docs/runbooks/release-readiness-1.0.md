@@ -34,7 +34,7 @@ La navigazione embedded della `0.9.11` è stata verificata in Chrome sullo store
 | Branch | `develop`; promozione Production sospesa fino alla verifica della `0.9.19` |
 | Ultimo snapshot Development provato | `0.9.18`, run [31166490429](https://github.com/max23468/CF-Ready/actions/runs/31166490429) |
 | Submission | inviata a Shopify il 4 agosto 2026 |
-| Tag `v1.0.0` | non creato: si crea alla promozione Production della `1.0.0` |
+| Tag `v1.0.0` | non creato: si crea dopo deploy, smoke e readback Production riusciti della `1.0.0` |
 
 ### Ricevuta del deploy Development `0.9.18`
 

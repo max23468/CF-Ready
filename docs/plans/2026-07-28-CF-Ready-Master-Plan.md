@@ -2638,7 +2638,8 @@ richiedono bump, tag o GitHub Release.
 
 `CHANGELOG.md` è mantenuto dalla `0.1.0`: ogni snapshot rilasciato, anche in
 Development, ha una voce con versione, data, milestone e sintesi. Note pubbliche
-IT/EN e tag restano requisiti delle sole release Production.
+IT/EN e tag restano requisiti delle sole release Production e vengono pubblicati
+soltanto dopo deploy, smoke e readback riusciti sul medesimo commit.
 
 Ogni snapshot Shopify rilasciato deve ricevere un identificatore esplicito con
 `shopify app deploy --version`:
@@ -2668,7 +2669,7 @@ Numero assegnato a ogni milestone fino alla `1.0.0`:
 | M8 — Hardening | `0.6.0` → `0.8.0` | consegnata in tre layer, un minor ciascuno: `0.6.0` durabilità e osservabilità, `0.7.0` sicurezza e dipendenze, `0.8.0` capacità e prove operative, che chiude feature complete |
 | M9 — Release candidate e review | `0.9.0` | |
 | M10 — Canary store reale | `0.9.x` | nessun minor: il canary usa la build della release candidate |
-| M11 — `1.0.0` e Controlled Launch | `1.0.0` | tag `v1.0.0` alla promozione Production |
+| M11 — `1.0.0` e Controlled Launch | `1.0.0` | tag `v1.0.0` dopo deploy, smoke e readback Production riusciti |
 | M12 — Visibilità completa | nessuna | sola visibilità; i fix successivi sono `1.0.x` |
 
 Dentro una milestone, ogni ulteriore snapshot rilasciato incrementa la **patch**
@@ -2682,7 +2683,8 @@ stessa PR**, non in PR separate. La ricevuta di deploy, che esiste solo dopo il
 rilascio, non ha mai una PR propria: quella di uno snapshot intermedio viaggia
 con la prima PR utile successiva, quella dell'ultimo snapshot viene registrata
 nella PR di chiusura della milestone insieme all'esito dei gate. Il tag
-`vX.Y.Z` viene creato alla promozione Production.
+`vX.Y.Z` e la GitHub Release vengono creati soltanto dopo il completamento
+riuscito del workflow Production, dello smoke e del readback sul medesimo commit.
 
 La ricevuta di deploy registra ambiente, configurazione, versione Shopify,
 commit, ID della versione rilasciata e versione di rollback. Gli identificatori
