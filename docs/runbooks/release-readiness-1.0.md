@@ -34,7 +34,7 @@ La navigazione embedded della `0.9.11` è stata verificata in Chrome sullo store
 | Branch | `develop`; promozione Production sospesa fino alla verifica della `0.9.19` |
 | Ultimo snapshot Development provato | `0.9.18`, run [31166490429](https://github.com/max23468/CF-Ready/actions/runs/31166490429) |
 | Submission | inviata a Shopify il 4 agosto 2026 |
-| Tag `v1.0.0` | non creato: si crea alla promozione Production della `1.0.0` |
+| Tag `v1.0.0` | non creato: si crea dopo deploy, smoke e readback Production riusciti della `1.0.0` |
 
 ### Ricevuta del deploy Development `0.9.18`
 
@@ -334,11 +334,12 @@ segnaposto. Deploy eseguito il 3 agosto 2026 e verificato live.
 | Generazioni ricorrenti degli abbonamenti non coperte | limite della piattaforma, dichiarato in listing, termini e reviewer instructions |
 | Wallet non tutti disponibili in ambiente di test | matrice completa rimandata a M10 su store reale |
 
-## 6. Autorizzazioni separate
+## 6. Autorizzazioni operative
 
-Nessuna di queste azioni è coperta dall'avanzamento di M9. Ognuna richiede
-un'autorizzazione esplicita e distinta dell'owner, al momento in cui viene
-eseguita.
+L'avanzamento di M9, da solo, non autorizza azioni remote. Una richiesta
+affermativa di pubblicazione autorizza deploy e promozione tecnici applicabili;
+submission App Store e attivazione billing richiedono sempre un'autorizzazione
+esplicita e distinta dell'owner al momento dell'esecuzione.
 
 | Azione | Stato |
 | --- | --- |

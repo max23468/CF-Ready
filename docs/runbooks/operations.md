@@ -1,7 +1,9 @@
 # Operazioni — capacità, backup, osservabilità e verifiche
 
-Le operazioni Production restano vincolate all'autorizzazione separata
-dell'owner; i workflow non rendono implicita tale autorizzazione.
+Le operazioni Production richiedono l'autorizzazione dell'owner: una richiesta
+affermativa di pubblicazione la concede per il ciclo tecnico applicabile; fuori
+da tale richiesta serve una conferma separata. I workflow, da soli, non
+costituiscono autorizzazione.
 
 ## Capacità Development
 
