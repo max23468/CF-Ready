@@ -2608,10 +2608,10 @@ Lo store standard dell’attività:
 - Production solo con merge esplicito;
 - nessuna cancellazione automatica di estensioni Shopify.
 
-“Pubblica” richiede commit, push, PR, gate, merge e, quando la modifica è
-deployabile, il deploy pertinente con verifica live. La release SemVer,
-submission App Store e attivazioni commerciali restano azioni separate e
-richiedono autorizzazione esplicita.
+Una richiesta affermativa e inequivocabile di “Pubblica” richiede commit, push,
+PR, gate, merge e, quando applicabili, release SemVer, deploy pertinente e
+verifica live. Submission App Store e attivazioni commerciali restano azioni
+separate e richiedono autorizzazione esplicita.
 
 ### 19.5 Versionamento
 
@@ -2746,7 +2746,9 @@ documentazione entra in M1. Codice e workflow provano sempre lo stato corrente.
 - smoke Production;
 - registra versione.
 
-Il deploy Production e le release richiedono autorizzazione esplicita dell’owner.
+La richiesta affermativa di pubblicazione costituisce l’autorizzazione esplicita
+dell’owner al deploy Production e alla release applicabili; fuori da tale
+richiesta serve conferma separata.
 
 Configurazione minima GitHub:
 
@@ -2780,7 +2782,8 @@ rottura di integrazione entro il minuto successivo. Restano applicabili:
 - i controlli locali sui secret restano obbligatori;
 - i secret Production non vengono spostati in un repository secret privo di
   separazione per ambiente senza un preflight specifico;
-- deploy Production e release restano azioni owner-triggered;
+- deploy Production e release sono owner-triggered dalla richiesta affermativa
+  di pubblicazione oppure da un’autorizzazione separata;
 - il piano si rivaluta solo con nuovi collaboratori o rischio materiale.
 
 Il gate `codex-review` non pubblica commenti. La review nativa parte
@@ -3581,7 +3584,8 @@ fresche per ogni gate bloccante e registra:
 - risultati CI, smoke, E2E, backup/restore e security audit;
 - URL, documenti pubblici e canale di segnalazione vulnerabilità;
 - rischi non bloccanti esplicitamente accettati;
-- autorizzazione separata a deploy Production e release.
+- richiesta affermativa di pubblicazione o autorizzazione separata a deploy
+  Production e release.
 
 Una checklist compilata senza link, ID o risultati osservati non costituisce
 readiness.
@@ -4447,7 +4451,8 @@ Codex prende ownership di:
 7. implementare motore e billing con test;
 8. integrare la UI senza sovrascrivere decisioni Claude;
 9. consegnare prove per ogni gate;
-10. non fare deploy/release Production senza autorizzazione esplicita.
+10. non fare deploy/release Production senza una richiesta affermativa di
+    pubblicazione o un’autorizzazione esplicita separata.
 
 ### 31.3 Regole tecniche
 
