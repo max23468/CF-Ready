@@ -432,7 +432,10 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
   assert.match(workflow, /types: \[opened, synchronize, reopened, ready_for_review\]/);
   assert.match(workflow, /issue_comment:/);
   assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /group: codex-review-\$\{\{ github\.event\.pull_request\.number \|\| github\.event\.issue\.number \|\| inputs\.pull_request \}\}/);
+  assert.match(
+    workflow,
+    /group: codex-review-\$\{\{ github\.event\.pull_request\.number \|\| github\.event\.issue\.number \|\| inputs\.pull_request \}\}/,
+  );
   assert.match(workflow, /github\.event\.repository\.default_branch/);
   assert.match(workflow, /issues: read/);
   assert.doesNotMatch(workflow, /issues: write/);
