@@ -12,9 +12,7 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   attivi anche quando l'ambiente di review marca la transazione come test;
 - Production continua a creare addebiti reali, mentre le istruzioni reviewer
   verificano ora il piano attivo e l'abilitazione del controllo dopo
-  l'approvazione Shopify;
-- il gate Codex pubblica uno stato terminale `error` se il polling remoto
-  fallisce, evitando di lasciare una PR indefinitamente in attesa.
+  l'approvazione Shopify.
 
 ## 0.9.19 — 7 agosto 2026
 

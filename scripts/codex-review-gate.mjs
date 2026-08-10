@@ -178,50 +178,43 @@ async function main() {
   await setStatus(repository, headSha, "pending", "In attesa della review Codex");
   if (pullRequest.draft) return;
 
-  try {
-    for (let attempt = 0; attempt < CODEX_REVIEW_POLLING.attempts; attempt += 1) {
-      const [comments, prReactions, reviews, reviewComments] = await Promise.all([
-        all(`/repos/${repository}/issues/${number}/comments`),
-        all(`/repos/${repository}/issues/${number}/reactions`),
-        all(`/repos/${repository}/pulls/${number}/reviews`),
-        all(`/repos/${repository}/pulls/${number}/comments`),
-      ]);
-      const latestInvocation = latestCodexInvocation(comments, headAvailableAt);
-      const invocation =
-        process.env.GITHUB_EVENT_NAME !== "issue_comment" ||
-        latestInvocation?.id === event.comment?.id
-          ? latestInvocation
-          : undefined;
-      const invocationReactions = invocation
-        ? await all(`/repos/${repository}/issues/comments/${invocation.id}/reactions`)
-        : [];
-      const requestedAt = automatic
-        ? (event.pull_request?.updated_at ?? pullRequest.created_at)
-        : (invocation?.created_at ?? headAvailableAt);
-      const result = classifyCodexReview({
-        automatic,
-        comments,
-        headSha,
-        invocationReactions,
-        prReactions,
-        requestedAt,
-        reviewComments,
-        reviews,
-      });
-      if (result.state !== "pending") {
-        await setStatus(repository, headSha, result.state, result.description);
-        return;
-      }
-      await new Promise((resolve) => setTimeout(resolve, CODEX_REVIEW_POLLING.intervalMs));
+  for (let attempt = 0; attempt < CODEX_REVIEW_POLLING.attempts; attempt += 1) {
+    const [comments, prReactions, reviews, reviewComments] = await Promise.all([
+      all(`/repos/${repository}/issues/${number}/comments`),
+      all(`/repos/${repository}/issues/${number}/reactions`),
+      all(`/repos/${repository}/pulls/${number}/reviews`),
+      all(`/repos/${repository}/pulls/${number}/comments`),
+    ]);
+    const latestInvocation = latestCodexInvocation(comments, headAvailableAt);
+    const invocation =
+      process.env.GITHUB_EVENT_NAME !== "issue_comment" ||
+      latestInvocation?.id === event.comment?.id
+        ? latestInvocation
+        : undefined;
+    const invocationReactions = invocation
+      ? await all(`/repos/${repository}/issues/comments/${invocation.id}/reactions`)
+      : [];
+    const requestedAt = automatic
+      ? (event.pull_request?.updated_at ?? pullRequest.created_at)
+      : (invocation?.created_at ?? headAvailableAt);
+    const result = classifyCodexReview({
+      automatic,
+      comments,
+      headSha,
+      invocationReactions,
+      prReactions,
+      requestedAt,
+      reviewComments,
+      reviews,
+    });
+    if (result.state !== "pending") {
+      await setStatus(repository, headSha, result.state, result.description);
+      return;
     }
-
-    await setStatus(repository, headSha, "error", "Review Codex non conclusa entro cinque ore");
-  } catch (error) {
-    await setStatus(repository, headSha, "error", "Errore durante la review Codex").catch(
-      console.error,
-    );
-    throw error;
+    await new Promise((resolve) => setTimeout(resolve, CODEX_REVIEW_POLLING.intervalMs));
   }
+
+  await setStatus(repository, headSha, "error", "Review Codex non conclusa entro cinque ore");
 }
 
 const isDirectExecution =

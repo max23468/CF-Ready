@@ -186,11 +186,3 @@ test("il workflow usa codice trusted e non richiede commenti al primo giro", asy
   assert.doesNotMatch(workflow, /github\.ref_name/);
   assert.match(workflow, /jobs:\s*\n  gate:[\s\S]*?    concurrency:/);
 });
-
-test("un errore dopo lo status pending tenta un esito terminale", async () => {
-  const gate = await readFile(new URL("./codex-review-gate.mjs", import.meta.url), "utf8");
-  assert.match(
-    gate,
-    /catch \(error\) \{[\s\S]*setStatus\(repository, headSha, "error", "Errore durante la review Codex"\)/,
-  );
-});
