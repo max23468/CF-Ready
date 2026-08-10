@@ -87,7 +87,7 @@ Each step is independent; run them in order the first time.
 | 7 | Enter `RSSMRA85T10A562S` | Checkout completes |
 | 8 | Checkout with a non-Italian address | The Italian fields are not shown and checkout completes — a foreign customer is never blocked |
 | 9 | Set PEC to **Required** as well, repeat with `mario.rossi@pec` then `mario.rossi@example.com` | Blocked, then allowed. The two rules are independent |
-| 10 | On the Home, choose a paid mode, inspect Shopify's approval screen, then cancel without approving | The amount and billing interval match the selected mode. Production charges are real; the free trial already provides the entitlement needed for this walkthrough (D-129) |
+| 10 | On the Home, choose a paid mode and approve it on Shopify's approval screen | The amount and billing interval match the selected mode. After Shopify redirects back to the app, the Home shows the active plan and the **Turn on in checkout** action is available. Shopify may mark the transaction as a test during review; ordinary Production stores are still charged normally (D-129) |
 | 11 | Turn the check off | The checkout stops being affected and the configuration is kept, so nothing has to be reconfigured |
 
 ## 6. Deliberate behaviours that may look like bugs
