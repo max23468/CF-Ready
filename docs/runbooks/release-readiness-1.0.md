@@ -270,10 +270,10 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 
 | Gate | Prova | Stato |
 | --- | --- | --- |
-| Gate locale completo `npm run check` | run Production [30989878088](https://github.com/max23468/CF-Ready/actions/runs/30989878088), commit `117ecb6` | ✅ |
+| Gate locale completo `npm run check` | run Production [31169684315](https://github.com/max23468/CF-Ready/actions/runs/31169684315), commit `645733d` | ✅ |
 | Test della Validation Function | `npm run test:function`, 109 test | ✅ |
 | E2E pubblici | job `e2e` della PR [#216](https://github.com/max23468/CF-Ready/pull/216), run `30952011063`: WebKit e Chromium verdi | ✅ |
-| Snapshot Development verificato | run `30995275981`: gate, capacità, Worker, Shopify e readback verdi; 120 richieste, CPU p95 1 ms, massimo 20 ms, 0 errori | ✅ |
+| Snapshot Development verificato | run [31166490429](https://github.com/max23468/CF-Ready/actions/runs/31166490429): `0.9.18`, gate, capacità, Worker, Shopify e readback verdi; 120 richieste, CPU p95 1 ms, massimo 17 ms, 0 errori | ✅ |
 | Deploy Pages Production e smoke | run `30743184121`, otto URL e header di sicurezza | ✅ |
 | Rollback Pages esercitato e letto | run `30741094451` | ✅ |
 | Backup D1 Production e restore | run `30769584725`: export cifrato, restore locale di 32 comandi, `integrity_check=ok`, readback dello slot R2 | ✅ |
@@ -285,11 +285,11 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | `noindex` sui documenti legali | verificato **live** dopo il deploy del 3 agosto 2026: i quattro percorsi rispondono `X-Robots-Tag: noindex`, la Home, l'assistenza e la Home inglese no | ✅ |
 | Iniezione dell'identità del titolare | verificata **live**: Privacy e Termini, IT ed EN, dichiarano il nome della persona fisica titolare e nessuna pagina pubblica contiene ancora il segnaposto. Il segnaposto nei sorgenti è protetto da un test in `scripts/check-docs.node-test.mjs` | ✅ |
 | Configurazione Worker Production | `wrangler.json` env `production`: Worker `cf-ready-prod`, D1 `cf-ready-db-prod`, `ALLOWED_SHOP` vuota, addebiti reali | ✅ |
-| Worker Production distribuito | versione `0.9.11`, run `30989878088`, commit `117ecb6`; `https://cf-ready-prod.tmsf.workers.dev` risponde | ✅ |
+| Worker Production distribuito | versione `0.9.19`, run [31169684315](https://github.com/max23468/CF-Ready/actions/runs/31169684315), commit `645733d`; `https://cf-ready-prod.tmsf.workers.dev` risponde | ✅ |
 | URL Production nel manifest Shopify | `shopify.app.toml` punta a `https://cf-ready-prod.tmsf.workers.dev`, con aggiornamento automatico degli URL vietato | ✅ |
 | **`BILLING_TEST=false` in Production** | `wrangler.json` env `production` la definisce a `"false"` ed è effettiva sul Worker dalla `0.9.6` (D-129): gli addebiti dei merchant sono reali | ✅ |
 | Secret Production separati | tre secret runtime caricati sul Worker `cf-ready-prod` il 4 agosto 2026; il preflight li verifica a ogni deploy | ✅ |
-| Versione attiva dell'app CF Ready | Development `0.9.11`, readback del run `30995275981`; Production `0.9.11`, readback del run `30989878088` | ✅ |
+| Versione attiva dell'app CF Ready | Development `0.9.18`, readback del run [31166490429](https://github.com/max23468/CF-Ready/actions/runs/31166490429); Production `0.9.19`, readback del run [31169684315](https://github.com/max23468/CF-Ready/actions/runs/31169684315) | ✅ |
 | Navigazione embedded D-130 | verificata in Chrome il 5 agosto 2026 sullo store `cf-ready-dev` con la Production `0.9.11`: una sola Home e route primarie dentro l'Admin | ✅ |
 | Function API `2026-07` stabile e rigenerata | fonte Shopify del 3 agosto 2026: stabile dal 1º luglio 2026, accessibile fino al 16 luglio 2027. Schema rigenerato con CLI 4.6.0, identico al committato a meno della formattazione | ✅ |
 | **Checkout reali ripetuti sulla Function** | nessuno in questa sessione; è anche il gate di M10 | ❌ assente |
