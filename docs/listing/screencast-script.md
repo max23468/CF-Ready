@@ -40,7 +40,7 @@ trasmettere, non un copione da leggere parola per parola.
 | 8 | Checkout bloccato | Checkout con indirizzo italiano, campo vuoto, poi `RSSMRA85T10A562X` | Prima manca, poi è formalmente sbagliato: in entrambi i casi l'ordine non passa |
 | 9 | Checkout consentito | `RSSMRA85T10A562S`, ordine completato | Il controllo è formale: correttezza del codice, non appartenenza a una persona |
 | 10 | Cliente estero | Checkout con indirizzo non italiano | I campi italiani non compaiono e il cliente non viene mai bloccato |
-| 11 | Billing | Scelta di una modalità a pagamento, ispezione della schermata di approvazione Shopify, poi annullamento senza approvare | In Production l'addebito è reale; il walkthrough usa già la prova gratuita e non completa il pagamento |
+| 11 | Billing | Scelta di una modalità a pagamento e ispezione della schermata di approvazione Shopify. Nella ripresa interna annulla una charge reale; il reviewer segue invece il passo 10 delle istruzioni e approva la propria transazione | Dopo l'approvazione reviewer, il ritorno alla Home mostra il piano attivo e rende disponibile l'azione checkout. Shopify può marcare quella transazione come test; gli store Production ordinari ricevono addebiti reali |
 | 12 | Disattivazione | Disattivazione dalla Home | Il checkout torna libero e la configurazione resta salvata |
 
 ## Da dire esplicitamente nel video
