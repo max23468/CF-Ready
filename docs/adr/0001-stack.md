@@ -11,5 +11,6 @@ sull’API `2026-07`, da riconfermare prima della release `1.0.0`.
 Non vengono introdotti server Node separati, ORM o servizi infrastrutturali
 aggiuntivi finché un requisito verificato non li rende necessari.
 
-Deploy e release Production richiedono sempre l’autorizzazione esplicita
-dell’owner.
+Una richiesta affermativa e inequivocabile di pubblicazione costituisce
+l’autorizzazione esplicita dell’owner a deploy e release Production applicabili.
+Fuori da tale richiesta, deploy e release richiedono conferma separata.

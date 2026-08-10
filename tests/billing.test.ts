@@ -393,7 +393,7 @@ test("la conversione a una tantum registra il prezzo dell'acquisto", async () =>
   });
 });
 
-test("gli addebiti della modalità sbagliata vengono ignorati", async () => {
+test("una sottoscrizione attiva Shopify vale anche quando la review la marca come test", async () => {
   const risposta = (test: boolean) => ({
     json: async () => ({
       data: {
@@ -427,9 +427,7 @@ test("gli addebiti della modalità sbagliata vengono ignorati", async () => {
   });
   const admin = (test: boolean) => ({ graphql: async () => risposta(test) as unknown as Response });
 
-  // Un addebito di prova non concede il diritto quando l'app addebita davvero.
-  expect((await readBilling(admin(true), false)).subscription).toBeNull();
-  expect((await readBilling(admin(true), true)).subscription).toMatchObject({
+  expect((await readBilling(admin(true))).subscription).toMatchObject({
     id: "gid://shopify/AppSubscription/99",
   });
 });
@@ -476,7 +474,7 @@ test("la lettura pagina tutti gli acquisti e riconosce quelli pendenti", async (
     },
   };
 
-  expect(await readBilling(admin, true)).toMatchObject({
+  expect(await readBilling(admin)).toMatchObject({
     oneTime: { id: "gid://shopify/AppPurchaseOneTime/active" },
     pendingOneTime: true,
   });
