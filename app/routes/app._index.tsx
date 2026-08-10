@@ -182,7 +182,7 @@ async function subscribe(
         return { ok: false, errorCode: "country_not_eligible" };
       }
 
-      const billing = await readBilling(admin, BILLING_IS_TEST);
+      const billing = await readBilling(admin);
       // Un pagamento unico copre lo store per sempre: nessun altro addebito va creato sopra.
       if (billing.oneTime) {
         return { ok: false, errorCode: "one_time_already_active" };
@@ -234,7 +234,7 @@ async function subscribe(
 async function cancelPlan(admin: Admin, db: D1Database, shopDomain: string) {
   try {
     const mutation = await withValidationLock(db, shopDomain, async () => {
-      const state = await readBilling(admin, BILLING_IS_TEST);
+      const state = await readBilling(admin);
       if (state.oneTime) return { ok: false, errorCode: "one_time_already_active" };
       if (state.pendingOneTime) return { ok: false, errorCode: "charge_pending" };
       if (!state.subscription) return { ok: false, errorCode: "no_subscription" };

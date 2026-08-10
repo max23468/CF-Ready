@@ -351,7 +351,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-126 | La prova parte su richiesta esplicita del merchant, non all’apertura dell’app. | Deciso il 4 agosto 2026 provando l’app installata: trovarsi una prova già in corso senza averla chiesta toglie al merchant la scelta di quando cominciare a consumarla. |
 | D-127 | Nell’interfaccia merchant si dice «controllo nel checkout», mai «Validation» né «validazione». | Il termine tecnico non dice niente a chi vende: conta se le regole valgono per i suoi clienti. |
 | D-128 | Nessuna pagina di accesso con il dominio dello store: l’URL dell’app porta sempre all’autenticazione. | I requisiti 2.3.1 e 2.3.2 vietano di chiedere manualmente un dominio `myshopify.com` e di rendere interagibile una UI prima di OAuth. Il form era il residuo del template Shopify per la distribuzione custom: con la public app il merchant arriva sempre da Shopify con `shop`, quindi non serviva a nessuno. È la violazione trovata il 4 agosto 2026, quando la pre-submission ha bocciato il check automatico «Immediately authenticates after install»: che fosse quella la causa lo conferma la riesecuzione del check, non il codice. La rotta `/auth/login` non torna 404 ma inoltra a `/app`, perché `authPathPrefix` continua a derivarne un `loginPath` che la libreria riconosce. |
-| D-129 | In Production gli addebiti sono reali dalla pubblicazione, non dal canary: `BILLING_TEST` vale `"false"`. | Con Manual pricing una charge è gratuita soltanto quando l’app invia `test: true`; Production invia `false` perché i merchant devono essere addebitati. Il reviewer usa la prova gratuita per il walkthrough e verifica importo e intervallo aprendo la conferma Shopify senza approvarla. Development mantiene le charge di test per il collaudo interno. Deciso il 4 agosto 2026 e corretto lo stesso giorno dopo aver eliminato l’assunzione errata che qualsiasi development store rendesse gratuita una charge Production. |
+| D-129 | In Production gli addebiti sono reali dalla pubblicazione, non dal canary: `BILLING_TEST` vale `"false"`. | Con Manual pricing Production invia `test: false` perché i merchant devono essere addebitati, mentre Development mantiene le charge di test per il collaudo interno. La lettura non filtra però i diritti per quel flag: Shopify è autorevole e una risorsa restituita tra `activeSubscriptions`, o un acquisto in stato `ACTIVE`, resta valida anche quando l'ambiente di review la marca come test. Il reviewer approva quindi il piano e verifica il diritto dopo il redirect. Deciso il 4 agosto 2026 e corretto il 10 agosto 2026 dopo che la review Shopify ha dimostrato che filtrare una sottoscrizione attiva sul flag usato per crearla lasciava il piano inattivo. |
 | D-130 | Una sola voce visibile per rotta: Home compare una volta come `/app`, senza `rel="home"`. | Con `/app` dichiarata due volte — una voce visibile e una nascosta con `rel="home"` — arrivando alla Home da un link dentro una pagina l’Admin restava senza menu finché non si ricaricava. `rel="home"` non può conservare la voce perché App Bridge lo nasconde per contratto; non serve più dopo D-128, perché il titolo dell’app usa la radice predefinita `/` e quella radice inoltra già a `/app`. La prima correzione, pubblicata il 4 agosto 2026 senza riprodurre il difetto in un ambiente di prova, aveva rimosso la voce visibile invece del solo doppione. |
 | D-131 | Addebiti sempre in euro, senza adeguarsi alla valuta di fatturazione del merchant. | La valuta dell’addebito è quella inviata nel `currencyCode` e EUR è pienamente supportato: seguire `shopBillingPreferences` significherebbe costruire un listino per valuta per servire la coda dei merchant italiani non fatturati in euro, e rinunciare al prezzo unico che paga tutto il resto del pubblico. Per quella coda Shopify converte in fattura, come farebbe comunque visto che la vetrina della listing è in USD per limitazione della piattaforma. Deciso il 4 agosto 2026 sulle risposte del supporto Shopify riportate in §14.2. |
 | D-132 | Nessuno store né credenziali forniti al reviewer: l’app dichiara di non richiedere un account. | L’app è embedded e non ha login propri, e il requisito 4.5.5 è condizionale — «If your app requires login credentials». Fornire uno store con l’app preinstallata è un requisito delle Payment app (5.2.1), non delle app ordinarie, e il campo *Test account* del form vieta esplicitamente credenziali di store Shopify. Le istruzioni chiedono quindi al reviewer di installare su un proprio development store italiano, condizione messa in testa perché senza di essa l’app si dichiara non idonea e sembrerebbe rotta. Deciso il 4 agosto 2026, sostituendo il piano precedente di creare uno staff account e comunicare la password della vetrina. |
@@ -426,9 +426,9 @@ Rispetto alle alternative più ampie o invasive:
 | D-112 | Tipografia: grottesco geometrico di sistema per sito e materiali, nessun webfont, nessun font dichiarato dentro l’Admin. Sigla e wordmark in tracciati derivati da Jost (SIL OFL), peso 500. | Zero richieste di rete e nessuna dipendenza da font installati. Jost al posto del Futura per licenza: il Futura è commerciale e distribuito in bundle con macOS. |
 | D-113 | Nessuna dark mode del sito pubblico nella 1.0. | Una superficie in meno da mantenere e verificare. Decisione indipendente da Shopify: al 28 luglio 2026 l’Admin non ha dark mode nativa e, usando solo token Polaris, l’app la seguirebbe comunque da sola. |
 | D-114 | Presentare l’icona della listing con la sigla `CF`, accettando la raccomandazione Shopify di evitare il testo nell’icona. | Raccomandazione nelle best practice, non criterio di rifiuto nei requisiti; i monogrammi di due lettere sono diffusi fra le app approvate. Variante senza sigla pronta come rimedio, attivabile senza nuova approvazione (§24.5). |
-| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate `verify`, `react-doctor`, `dependency-review`, `e2e` e `codex-review` richiesti su `develop` e `main`; `codex-review` osserva soltanto il reviewer Codex all'apertura o al passaggio da draft a ready, rileva finding inline e top-level P0-P3, lega l'esito positivo allo SHA esatto, non espone dispatch manuali, non pubblica commenti e ha permessi Issues in sola lettura; abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate già eseguiti, invalida naturalmente l'evidenza dopo ogni nuovo commit perché gli status appartengono allo SHA, impedisce il merge finché il nuovo HEAD non passa da draft a ready, blocca i finding Codex e impedisce all'automazione del repository di avviare il task agent tramite commenti, indirizza le security update nella corsia ordinaria, offre un canale privato per le vulnerabilità e conserva la promozione separata `develop` → `main`. |
+| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate `verify`, `react-doctor`, `dependency-review`, `e2e` e `codex-review` richiesti su `develop` e `main`; `codex-review` usa la review automatica all'apertura o al passaggio da draft a ready, richiede una nuova invocazione solo dopo un nuovo commit o per un retry, blocca finding P0/P1 e lascia P2/P3 advisory, lega l'esito allo SHA esatto, non pubblica commenti e ha permessi Issues in sola lettura; abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate già eseguiti, invalida naturalmente l'evidenza dopo ogni nuovo commit, blocca i finding gravi Codex senza trasformare P2/P3 in lavoro obbligatorio, impedisce all'automazione del repository di avviare il task agent tramite commenti, indirizza le security update nella corsia ordinaria, offre un canale privato per le vulnerabilità e conserva la promozione separata `develop` → `main`. |
 | D-116 | Usare React Router `8.3.0` con npm 12 e correggere nel manifest root, tramite `packageExtensions`, la sola peer dependency troppo restrittiva di `@shopify/shopify-app-react-router@1.2.1`. | Elimina `GHSA-qwww-vcr4-c8h2` senza fork o installazioni forzate; il gate completo prova la compatibilità effettiva mentre l'estensione resta rimovibile appena Shopify pubblica metadati compatibili. |
-| D-117 | Usare React Doctor stabile con pin esatto: scansione completa bloccante nel gate locale e Action ufficiale advisory sulle modifiche delle PR. Tenere attivi score e share URL, disabilitare il controllo supply-chain esterno. | Aggiunge controlli React deterministici e feedback inline senza duplicare i controlli dipendenze già coperti da npm e GitHub. Il gate resta locale: lo score è indicativo e non decide l’esito, che dipende da `blocking: warning`. |
+| D-117 | Usare React Doctor con dipendenza locale fissata nel lockfile e workflow GitHub sempre sulla versione `latest`: scansione completa bloccante nel gate locale e Action ufficiale bloccante dai warning sulle modifiche delle PR. Le PR pulite restano silenziose; un falso positivo viene notificato, soppresso nel modo nativo più stretto con motivazione committata e rieseguito senza bypass. Tenere attivi score e share URL, disabilitare il controllo supply-chain esterno. | Mantiene riproducibile la verifica locale e applica al gate remoto le correzioni più recenti di React Doctor, con feedback inline senza duplicare i controlli dipendenze già coperti da npm e GitHub. Lo score è indicativo e non decide l’esito, che dipende da `blocking: warning`. |
 | D-118 | Le PR ordinarie puntano a `develop` e usano squash; `main` accetta soltanto promozioni autorizzate da `develop`, unite con merge commit. La cancellazione automatica dei branch resta disattivata e i soli branch temporanei vengono eliminati esplicitamente. | Preserva l’ascendenza tra integrazione e Production, evita il drift strutturale causato da squash indipendenti sui due rami e impedisce che una promozione elimini `develop`. |
 | D-119 | Abilitare l’auto-merge nativo in `develop` per le sole PR Dependabot minor/patch dopo `CI` e `React Doctor` verdi. Eliminare dopo il merge soltanto i branch `dependabot/*`; major e promozioni `develop` → `main` restano manuali. | Allinea CF Ready a SyncBay e Pratix, rende atomico il vincolo sullo SHA verificato, preserva gli eventi post-merge e non espone `develop` alla cancellazione globale dei branch. |
 | D-120 | La visibilità pubblica non rende il progetto open-source: nessuna licenza viene concessa finché l’owner non sceglie esplicitamente e aggiunge un file `LICENSE`. | Una licenza attribuisce diritti di riuso e distribuzione e non va dedotta dalla sola pubblicazione del codice. |
@@ -2608,10 +2608,10 @@ Lo store standard dell’attività:
 - Production solo con merge esplicito;
 - nessuna cancellazione automatica di estensioni Shopify.
 
-“Pubblica” richiede commit, push, PR, gate, merge e, quando la modifica è
-deployabile, il deploy pertinente con verifica live. La release SemVer,
-submission App Store e attivazioni commerciali restano azioni separate e
-richiedono autorizzazione esplicita.
+Una richiesta affermativa e inequivocabile di “Pubblica” richiede commit, push,
+PR, gate, merge e, quando applicabili, release SemVer, deploy pertinente e
+verifica live. Submission App Store e attivazioni commerciali restano azioni
+separate e richiedono autorizzazione esplicita.
 
 ### 19.5 Versionamento
 
@@ -2638,7 +2638,8 @@ richiedono bump, tag o GitHub Release.
 
 `CHANGELOG.md` è mantenuto dalla `0.1.0`: ogni snapshot rilasciato, anche in
 Development, ha una voce con versione, data, milestone e sintesi. Note pubbliche
-IT/EN e tag restano requisiti delle sole release Production.
+IT/EN e tag restano requisiti delle sole release Production e vengono pubblicati
+soltanto dopo deploy, smoke e readback riusciti sul medesimo commit.
 
 Ogni snapshot Shopify rilasciato deve ricevere un identificatore esplicito con
 `shopify app deploy --version`:
@@ -2668,7 +2669,7 @@ Numero assegnato a ogni milestone fino alla `1.0.0`:
 | M8 — Hardening | `0.6.0` → `0.8.0` | consegnata in tre layer, un minor ciascuno: `0.6.0` durabilità e osservabilità, `0.7.0` sicurezza e dipendenze, `0.8.0` capacità e prove operative, che chiude feature complete |
 | M9 — Release candidate e review | `0.9.0` | |
 | M10 — Canary store reale | `0.9.x` | nessun minor: il canary usa la build della release candidate |
-| M11 — `1.0.0` e Controlled Launch | `1.0.0` | tag `v1.0.0` alla promozione Production |
+| M11 — `1.0.0` e Controlled Launch | `1.0.0` | tag `v1.0.0` dopo deploy, smoke e readback Production riusciti |
 | M12 — Visibilità completa | nessuna | sola visibilità; i fix successivi sono `1.0.x` |
 
 Dentro una milestone, ogni ulteriore snapshot rilasciato incrementa la **patch**
@@ -2682,7 +2683,8 @@ stessa PR**, non in PR separate. La ricevuta di deploy, che esiste solo dopo il
 rilascio, non ha mai una PR propria: quella di uno snapshot intermedio viaggia
 con la prima PR utile successiva, quella dell'ultimo snapshot viene registrata
 nella PR di chiusura della milestone insieme all'esito dei gate. Il tag
-`vX.Y.Z` viene creato alla promozione Production.
+`vX.Y.Z` e la GitHub Release vengono creati soltanto dopo il completamento
+riuscito del workflow Production, dello smoke e del readback sul medesimo commit.
 
 La ricevuta di deploy registra ambiente, configurazione, versione Shopify,
 commit, ID della versione rilasciata e versione di rollback. Gli identificatori
@@ -2701,9 +2703,10 @@ GitHub Actions resta l’unico sistema CI/CD.
 
 In M0 il workflow `CI` esegue `npm ci` e `npm run check` su PR e push verso
 `main` o `develop`; `npm run check` include React Doctor con blocco sui warning.
-Il workflow separato `React Doctor` analizza in modalità advisory le modifiche
-delle PR, pubblica annotazioni inline solo quando trova problemi e registra il
-risultato sui push verso `main`. Il workflow `Promotion guard` verifica che
+Il workflow separato `React Doctor` blocca warning ed errori nelle modifiche
+delle PR usando sempre la versione `latest`, pubblica annotazioni inline solo
+quando trova problemi e ripete la
+scansione completa sui push verso `main`. Il workflow `Promotion guard` verifica che
 `main` accetti solo promozioni da `develop`: è separato da `CI` perché deve
 ascoltare anche `edited`, l’unico evento che scatta quando cambia il base branch
 di una PR, e su `edited` `CI` rifarebbe l’intera verifica a ogni ritocco di
@@ -2745,7 +2748,9 @@ documentazione entra in M1. Codice e workflow provano sempre lo stato corrente.
 - smoke Production;
 - registra versione.
 
-Il deploy Production e le release richiedono autorizzazione esplicita dell’owner.
+La richiesta affermativa di pubblicazione costituisce l’autorizzazione esplicita
+dell’owner al deploy Production e alla release applicabili; fuori da tale
+richiesta serve conferma separata.
 
 Configurazione minima GitHub:
 
@@ -2779,39 +2784,20 @@ rottura di integrazione entro il minuto successivo. Restano applicabili:
 - i controlli locali sui secret restano obbligatori;
 - i secret Production non vengono spostati in un repository secret privo di
   separazione per ambiente senza un preflight specifico;
-- deploy Production e release restano azioni owner-triggered;
+- deploy Production e release sono owner-triggered dalla richiesta affermativa
+  di pubblicazione oppure da un’autorizzazione separata;
 - il piano si rivaluta solo con nuovi collaboratori o rischio materiale.
 
-Il gate `codex-review` non chiede review e non pubblica mai commenti. Osserva
-soltanto i segnali del reviewer Codex: un finding inline riferito all'HEAD
-corrente fallisce il gate; un finding top-level P0-P3 senza marker vale soltanto
-per la review iniziale, mentre nei tentativi successivi deve dichiarare lo SHA
-corrente. Un finding top-level marcato con uno SHA precedente non migra sul nuovo
-HEAD. L'esito positivo iniziale richiede una reaction Codex successiva
-all'apertura o al passaggio a ready, dopo la verifica che l'HEAD sia rimasto
-stabile. Nei tentativi successivi la reaction positiva deve seguire la reaction
-`eyes` osservata dopo lo stesso evento; lo script conserva quel timestamp anche
-quando GitHub rimuove `eyes`. In alternativa accetta un verdetto esplicito
-`Codex Review: Didn't find any major issues` con `Reviewed commit` coincidente
-con l'HEAD, oppure una review nativa riferita allo stesso commit seguita dalla
-reaction positiva. Quando non trova problemi, il reviewer nativo può pubblicare
-soltanto la reaction: la coppia temporale `eyes` e reaction positiva è quindi
-il suo esito correlato al tentativo corrente. Autore, forma, timestamp e SHA
-devono coincidere; una
-spiegazione testuale generica del task agent, una reaction precedente all'evento
-o una review di uno SHA precedente non sbloccano il merge. Dopo il tentativo
-iniziale anche un errore operativo Codex deve dichiarare lo SHA corrente e resta
-bloccante solo finché non arriva un esito completo più recente sullo stesso SHA.
-Il workflow ha
-`issues: read`, non `issues: write`, così una regressione nello script non può
-creare il commento che avvia il task agent.
-
-La review nativa parte all'apertura della PR o al passaggio da draft a ready;
-il primo ready di una PR aperta come draft vale ancora come review iniziale.
-Ogni nuovo commit invalida l'evidenza precedente perché lo status appartiene al
-vecchio SHA; per revisionare il nuovo HEAD si porta la PR in draft e subito di
-nuovo in ready. Il gate non reagisce a `synchronize` o `reopened` e non espone
-`workflow_dispatch`, input PR o percorsi basati su commenti manuali.
+Il gate `codex-review` non pubblica commenti. La review nativa parte
+automaticamente all'apertura della PR o al passaggio da draft a ready, quindi il
+primo giro non richiede `@codex review`. Dopo un nuovo commit o per un retry
+l'agente pubblica una sola invocazione esatta e fidata; il workflow la osserva
+con permessi Issues in sola lettura. Finding P0/P1 dell'HEAD corrente bloccano,
+P2/P3 restano advisory dopo un breve assestamento, e segnali di SHA o tentativi
+precedenti non vengono riutilizzati. Un verdetto pulito con marker exact-HEAD,
+una review nativa sul commit o la reaction positiva associata al giro corrente
+completano lo status. `workflow_dispatch` serve al bootstrap e ai retry
+manutentore senza eseguire codice non fidato della PR.
 
 ### 19.7 Documentazione repository
 
@@ -3600,7 +3586,8 @@ fresche per ogni gate bloccante e registra:
 - risultati CI, smoke, E2E, backup/restore e security audit;
 - URL, documenti pubblici e canale di segnalazione vulnerabilità;
 - rischi non bloccanti esplicitamente accettati;
-- autorizzazione separata a deploy Production e release.
+- richiesta affermativa di pubblicazione o autorizzazione separata a deploy
+  Production e release.
 
 Una checklist compilata senza link, ID o risultati osservati non costituisce
 readiness.
@@ -4466,7 +4453,8 @@ Codex prende ownership di:
 7. implementare motore e billing con test;
 8. integrare la UI senza sovrascrivere decisioni Claude;
 9. consegnare prove per ogni gate;
-10. non fare deploy/release Production senza autorizzazione esplicita.
+10. non fare deploy/release Production senza una richiesta affermativa di
+    pubblicazione o un’autorizzazione esplicita separata.
 
 ### 31.3 Regole tecniche
 
