@@ -2,7 +2,9 @@
 
 Written for the Shopify App Store reviewer, in English, to be pasted into the
 submission form. The functional walkthrough is reproducible on any Italian
-development store; paid Production charges are shown but never approved.
+development store. During App Store review, approve the paid plan in step 10:
+Shopify may mark the reviewer transaction as a test, while ordinary Production
+stores are still charged normally.
 
 The Italian-facing copy lives in [`listing-it.md`](listing-it.md); this document
 is not translated.
@@ -37,7 +39,7 @@ test store is a requirement of Payment apps (5.2.1), not of a regular app.
 | Store country | Italy — the app declares a non-Italian store ineligible and starts neither a trial nor a charge |
 | Plan | Basic — the app requires no Shopify Plus and no plan-specific feature |
 | Product | any published product with stock; the app does not read the catalogue |
-| Billing | Use the 14-day trial for the walkthrough. Production uses real manual-pricing charges: open the approval screen in step 10, then cancel without approving |
+| Billing | Use the 14-day trial for steps 1–9. In step 10, choose and approve a paid plan; Shopify may mark the reviewer transaction as a test, while ordinary Production stores receive real manual-pricing charges |
 
 The instruction pasted in the submission form leads with the Italian store
 requirement, because that is the one condition without which none of the steps
