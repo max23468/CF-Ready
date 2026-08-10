@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.20 — 10 agosto 2026
+
+- il billing riconosce le sottoscrizioni e gli acquisti che Shopify dichiara
+  attivi anche quando l'ambiente di review marca la transazione come test;
+- Production continua a creare addebiti reali, mentre le istruzioni reviewer
+  verificano ora il piano attivo e l'abilitazione del controllo dopo
+  l'approvazione Shopify.
+
 ## 0.9.19 — 7 agosto 2026
 
 - la riconciliazione espone il retry separatamente dal codice operativo, così

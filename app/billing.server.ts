@@ -227,7 +227,6 @@ export const BILLING_QUERY = `#graphql
         id
         name
         status
-        test
         currentPeriodEnd
         lineItems {
           plan {
@@ -248,7 +247,6 @@ export const BILLING_QUERY = `#graphql
           id
           name
           status
-          test
           createdAt
           price {
             amount
@@ -271,7 +269,6 @@ type BillingResponse = {
         id: string;
         name: string;
         status: string;
-        test: boolean;
         currentPeriodEnd: string | null;
         lineItems: {
           plan: {
@@ -286,7 +283,6 @@ type BillingResponse = {
         nodes: {
           id: string;
           status: string;
-          test: boolean;
           createdAt: string;
           price: { amount: string; currencyCode: string } | null;
         }[];
@@ -300,17 +296,12 @@ type BillingResponse = {
 type BillingInstallation = NonNullable<BillingResponse["data"]>["currentAppInstallation"];
 
 // Shopify è la fonte autorevole: lo stato commerciale si legge sempre da qui, mai dal
-// ritorno di un redirect di approvazione. Gli addebiti della modalità sbagliata vengono
-// ignorati, altrimenti un addebito di prova concederebbe il diritto in Production.
-export async function readBilling(
-  admin: {
-    graphql: (
-      query: string,
-      options?: { variables?: Record<string, unknown> },
-    ) => Promise<Response>;
-  },
-  isTest: boolean,
-): Promise<ShopifyBilling> {
+// ritorno di un redirect di approvazione. `activeSubscriptions` e gli acquisti `ACTIVE`
+// sono già limitati all'installazione corrente; il flag `test` riguarda la transazione,
+// non il suo stato, e Shopify può usarlo anche durante la review della Production.
+export async function readBilling(admin: {
+  graphql: (query: string, options?: { variables?: Record<string, unknown> }) => Promise<Response>;
+}): Promise<ShopifyBilling> {
   let after: string | null = null;
   let subscription: BillingInstallation["activeSubscriptions"][number] | undefined;
   let oneTime: BillingInstallation["oneTimePurchases"]["nodes"][number] | undefined;
@@ -324,16 +315,10 @@ export async function readBilling(
       throw new Response("Lettura billing Shopify non riuscita", { status: 502 });
     }
 
-    subscription ??= body.data.currentAppInstallation.activeSubscriptions.find(
-      (candidate) => candidate.test === isTest,
-    );
+    subscription ??= body.data.currentAppInstallation.activeSubscriptions[0];
     const purchases = body.data.currentAppInstallation.oneTimePurchases;
-    oneTime = purchases.nodes.find(
-      (purchase) => purchase.status === "ACTIVE" && purchase.test === isTest,
-    );
-    pendingOneTime ||= purchases.nodes.some(
-      (purchase) => purchase.status === "PENDING" && purchase.test === isTest,
-    );
+    oneTime = purchases.nodes.find((purchase) => purchase.status === "ACTIVE");
+    pendingOneTime ||= purchases.nodes.some((purchase) => purchase.status === "PENDING");
 
     const { hasNextPage, endCursor } = purchases.pageInfo;
     if (!oneTime && hasNextPage) {
