@@ -76,6 +76,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     address2Declared: address2Declaration !== null,
     trialEndsAt: state.trial?.ends_at ?? null,
     remaining,
+    entitlement: state.entitlement,
     firstChargeAt: remaining > 0 ? addDays(state.today, remaining) : null,
     trialStatus: state.trial?.status ?? null,
     plan: planPrices(currentPricingGeneration(state.trial, state.account, state.today)),

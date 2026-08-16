@@ -15,7 +15,7 @@ jobs:
   apply:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -36,6 +36,8 @@ jobs:
           rm scripts/refactor_structural.py
       - run: npm run format
       - run: npm run check
+      - run: npx playwright install --with-deps chromium webkit
+      - run: npm run test:e2e
       - run: git diff --check
       - name: Registra il refactor verificato
         run: |
