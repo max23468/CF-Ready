@@ -58,7 +58,7 @@ export function SetupGuide({
               {t.home.activate}
             </s-button>
           </s-stack>
-        ) : null,
+        ),
     },
     ...(data.address2Declared
       ? [
