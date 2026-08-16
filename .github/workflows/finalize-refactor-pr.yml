@@ -32,15 +32,16 @@ jobs:
           marker = '## 0.9.20 — 10 agosto 2026'
           entry = '''## 0.9.21 — 16 agosto 2026
 
-- Validation e billing sono separati in moduli per dominio, accesso Shopify,
-  persistenza e orchestrazione, mantenendo invariati gli export pubblici e il
-  comportamento applicativo;
-- la Home separa loader e action server-side dai componenti UI, mentre i
-  cataloghi i18n e le suite monolitiche sono suddivisi per responsabilità;
-- la fixture Validation usa la data locale corrente invece di una data fissa,
-  evitando che la prova di 14 giorni renda i test dipendenti dal calendario.
+          - Validation e billing sono separati in moduli per dominio, accesso Shopify,
+            persistenza e orchestrazione, mantenendo invariati gli export pubblici e il
+            comportamento applicativo;
+          - la Home separa loader e action server-side dai componenti UI, mentre i
+            cataloghi i18n e le suite monolitiche sono suddivisi per responsabilità;
+          - la fixture Validation usa la data locale corrente invece di una data fissa,
+            evitando che la prova di 14 giorni renda i test dipendenti dal calendario.
 
-'''
+          '''
+          entry = entry.replace('\n          ', '\n')
           if marker not in text:
               raise SystemExit('Intestazione changelog inattesa')
           p.write_text(text.replace(marker, entry + marker, 1))
