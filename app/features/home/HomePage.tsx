@@ -1,10 +1,6 @@
 import { useEffect } from "react";
 import { useFetcher, useLoaderData } from "react-router";
-import {
-  ELIGIBLE_COUNTRY,
-  pendingFetcherIntent,
-  pendingFetcherSource,
-} from "../../config";
+import { ELIGIBLE_COUNTRY, pendingFetcherIntent, pendingFetcherSource } from "../../config";
 import {
   formatDate,
   homeCheckoutSummary,

@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
 import { expect, test, vi } from "vitest";
-import { startTrial, syncBillingAccount } from "../app/billing.server";
+import { localDate, startTrial, syncBillingAccount } from "../app/billing.server";
 import {
   acquireValidationLock,
   configHash,
@@ -258,7 +258,7 @@ async function seedShop(shop: string, { trial = true }: { trial?: boolean } = {}
   )
     .bind(shop, timestamp, timestamp, timestamp)
     .run();
-  if (trial) await startTrial(env.DB, shop, { eligible: true, today: "2026-07-31" });
+  if (trial) await startTrial(env.DB, shop, { eligible: true, today: localDate("Europe/Rome") });
 }
 
 function stubAdmin({

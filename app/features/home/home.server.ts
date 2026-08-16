@@ -1,6 +1,5 @@
-import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { data } from "react-router";
-import { boundary } from "@shopify/shopify-app-react-router/server";
 import {
   addDays,
   cancelSubscription,
@@ -16,19 +15,13 @@ import {
   syncBillingAccount,
   syncTrial,
 } from "../../billing.server";
-import {
-  ELIGIBLE_COUNTRY,
-  messagesAreDefault,
-  readConfig,
-  reviewIsDue,
-} from "../../config";
+import { ELIGIBLE_COUNTRY, messagesAreDefault, readConfig, reviewIsDue } from "../../config";
 import { databaseContext } from "../../context.server";
 import { APP_VERSION, BILLING_IS_TEST } from "../../env.server";
 import { recordEvent } from "../../events.server";
 import { resolveLocale } from "../../i18n";
 import { planFor, planPrices } from "../../plans.server";
 import type { PlanKind } from "../../plans.server";
-import { skipRevalidationWhenLeaving } from "../../revalidation";
 import { authenticate } from "../../shopify.server";
 import {
   queryContext,
@@ -101,8 +94,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 };
 
 export type HomeData = Awaited<ReturnType<typeof loader>>["data"];
-
-export const headers: HeadersFunction = (headersArgs) => boundary.headers(headersArgs);
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
@@ -225,5 +216,3 @@ async function cancelPlan(admin: Admin, db: D1Database, shopDomain: string) {
     return { ok: false, errorCode: "cancel_failed" };
   }
 }
-
-export const shouldRevalidate = skipRevalidationWhenLeaving;

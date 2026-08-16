@@ -1,9 +1,4 @@
-import {
-  FUNCTION_HANDLE,
-  type Admin,
-  type MutationResult,
-  type Validation,
-} from "./types";
+import { FUNCTION_HANDLE, type Admin, type MutationResult, type Validation } from "./types";
 
 type Context = {
   shop: { name: string; ianaTimezone: string; shopAddress: { countryCodeV2: string } };

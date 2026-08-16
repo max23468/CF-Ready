@@ -1,0 +1,369 @@
+import type { it } from "./it";
+
+export const en: typeof it = {
+  nav: {
+    home: "Home",
+    rules: "Checkout rules",
+    messages: "Customer messages",
+    guide: "Help and FAQ",
+  },
+  common: {
+    save: "Save",
+    cancel: "Cancel",
+  },
+  errors: {
+    validation_locked: "Another operation on this validation is running. Try again shortly.",
+    validation_write_failed:
+      "Couldn’t save. Shopify didn’t accept the write. Try again; if it keeps failing, contact us.",
+    validation_readback_failed:
+      "Couldn’t save. Shopify didn’t confirm the write. Reload the page to see the real state.",
+    validation_limit_reached:
+      "This store already has the maximum number of active validations Shopify allows. Your rules are still saved. Turn off another app’s validation in Settings → Checkout, then try again: CF Ready never touches other apps’ resources.",
+    country_not_eligible:
+      "CF Ready only works with stores based in Italy. Your rules are still saved.",
+    entitlement_required:
+      "Start a trial or plan first. Without a valid entitlement, the validation would have no effect.",
+    config_conflict:
+      "The rules changed in another tab or from another staff member while you were editing. Reload the page to see the current ones, then redo your change: we don’t overwrite someone else’s work.",
+    duplicate_validations:
+      "Shopify returned more than one CF Ready validation. They were turned off to keep checkout fail-open, but we can’t choose which one to keep without risking your configuration: none is deleted automatically.",
+    duplicate_validations_active:
+      "Shopify returned more than one CF Ready validation and didn’t confirm that they were turned off. Try the repair again: no validation is deleted automatically.",
+    billing_read_failed:
+      "Plan information isn’t up to date. Checkout isn’t blocked: reload the page in a few minutes.",
+    one_time_already_active:
+      "This store already has the one-time payment: another charge wouldn’t add anything.",
+    charge_pending:
+      "A one-time payment is already waiting for approval. Complete it or wait for it to expire before trying again.",
+    charge_failed: "Couldn’t start the payment. Try again shortly.",
+    trial_unavailable:
+      "This store has already used its trial. Choose how to pay to apply the checkout rules again.",
+    no_subscription: "There’s no subscription to cancel.",
+    cancel_failed: "The cancellation didn’t go through. Try again shortly.",
+    generic: "Something went wrong. Try again; if it keeps failing, contact us.",
+  },
+  home: {
+    heading: "CF Ready",
+    howHeading: "How the rules apply",
+    nextHeading: "Next step",
+    badgeActive: "Active",
+    badgeInactive: "Turned off",
+    titleActive: "Check active at checkout",
+    titleDisabled: "Check not active",
+    titleLapsed: "Check on, plan not active",
+    unsupported: "Store not supported",
+    unsupportedBody:
+      "CF Ready only works with stores based in Italy. No trial has started, no validation has been created and no payment has been requested.",
+    unsupportedCheckAddress:
+      "If your store is Italian, check the address in Settings → Store details: that’s where CF Ready reads the country from.",
+    unsupportedGuide: "The Help page explains what the app does and where its limits are.",
+    noEntitlement:
+      "Without an active plan, checkout no longer blocks anything. Rules and messages stay saved and apply again once you pay.",
+    syncNeeded:
+      "What you see here may not match Shopify. Checkout isn’t blocked. Reload the page in a few minutes.",
+    repair: "Repair configuration",
+    messagesLabel: "Customer messages",
+    messagesDefault: "Default",
+    messagesCustom: "Edited",
+    editRules: "Edit rules",
+    activate: "Turn on in checkout",
+    deactivate: "Turn off in checkout",
+    deactivateConfirm:
+      "From now on checkout stops checking the fields. Rules and messages stay saved and you can turn them back on whenever you want.",
+    nextConfigure: "Choose which fields to check in checkout.",
+    nextActivate: "Your rules are ready. Turn them on to apply them in checkout.",
+    nextTestOrder: "Place a test order to see the rules at work.",
+    nextChoosePlan: "Choose a plan to apply your rules in checkout again.",
+    helpHeading: "Help and support",
+    helpBody: "What CF Ready checks, what it doesn’t, and what happens in the edge cases.",
+    nextAddress2:
+      "Stop using the “Apartment, suite, etc.” field for the tax code: right now customers see two fields for the same value. The steps are on Checkout rules.",
+  },
+  messages: {
+    heading: "Customer messages",
+    saved: "Messages saved.",
+    intro:
+      "These are the texts customers read at checkout when a field is missing or not formally valid. Customers checking out in Italian see the Italian ones, everyone else sees the English ones.",
+    italian: "Italiano",
+    english: "English",
+    taxCodeRequired: "Tax code required",
+    taxCodeInvalid: "Tax code invalid",
+    pecRequired: "PEC required",
+    pecInvalid: "PEC invalid",
+    counter: (used: number) => `${used}/200 characters`,
+    tooLong: "200 characters maximum.",
+    empty: "The message can’t be empty.",
+    reset: "Restore default texts",
+    resetConfirm: (language: string) =>
+      `The four ${language} messages go back to their default texts. The others don’t change, and it only takes effect once you save.`,
+    appearHeading: "Which messages appear",
+    appearIntro:
+      "It depends on your active rules: nobody reads the messages of a field you don’t manage.",
+    appears: "Shown",
+    appearsNot: "Not shown",
+  },
+  setup: {
+    heading: "Get CF Ready ready",
+    welcome:
+      "Welcome. From here you decide which details to ask your Italian customers at checkout, and when the rules start applying. It takes a few minutes and you can stop halfway: whatever you save stays saved.",
+    progress: (done: number, total: number) => `${done} of ${total} done`,
+    rulesTitle: "Choose what to check",
+    rulesBody: "Decide whether the tax code and PEC are not managed, optional or required.",
+    activateTitle: "Turn on in checkout",
+    activateBody: "Until you turn it on, your rules are saved but don’t apply to customers.",
+    planTitle: "Start the trial or choose how to pay",
+    planBody:
+      "The trial lasts 14 days, is free and asks for no card: until you start it, none of it is spent. Without a trial or payment your rules stay saved but don't apply at checkout.",
+    planBodyEntitled:
+      "When the trial ends you need a payment mode, otherwise checkout stops checking.",
+    startTrial: "Start the trial",
+    address2Title: "Stop using the “Apartment, suite, etc.” field",
+    guided: "Open the guided setup",
+  },
+  onboarding: {
+    heading: "Set up CF Ready",
+    stepOf: (current: number, total: number) => `Step ${current} of ${total}`,
+    stepNames: ["Introduction", "Rules", "Checkout", "Summary"],
+    back: "Back",
+    next: "Continue",
+    welcomeHeading: "Welcome to CF Ready",
+    welcomeBody:
+      "Four steps, five minutes. At the end you decide whether to start the trial or pay right away: nothing starts on its own.",
+    step1Heading: "What it does and doesn’t do",
+    step1Body:
+      "CF Ready checks the Italian tax code (Codice Fiscale) and the certified email address (PEC) in the native Italian checkout field. It doesn’t change your theme, doesn’t add fields and doesn’t issue invoices.",
+    step1Limits: [
+      "The check is formal: it verifies how the value is composed, not who it belongs to.",
+      "Rules only apply when delivery and billing are both in Italy.",
+      "If Shopify shows an Italian delivery but omits a required field, CF Ready blocks checkout with a global warning; without an observable delivery, it remains fail-open.",
+    ],
+    step2Heading: "Choose what to check",
+    step2Body: "You can change these choices whenever you want from Checkout rules.",
+    step3Heading: "What happens at checkout",
+    step3Messages: "The texts customers read",
+    step3MessagesBody:
+      "They’re ready in Italian and English. You can rewrite them whenever you want from Customer messages.",
+    step4Heading: "Summary",
+    step4Body: "From here you can turn the rules on now, or save them and turn them on later.",
+    step4TrialHeading: "Trial or payment",
+    step4TrialBody:
+      "Rules only apply at checkout with an active trial or payment. The trial lasts 14 days, is free and asks for no card: until you start it, none of it is spent.",
+    step4StartTrial: "Start the 14-day trial",
+    step4SeePlans: "See how to pay",
+    step4TrialActive: "Trial already active: nothing else to do here.",
+    reviewStep4Body: "The check is already active at checkout. Complete the review to return Home.",
+    activate: "Turn on in checkout",
+    finishWithout: "Finish without turning on",
+    completeReview: "Complete review",
+    doneHeading: "Setup complete",
+    doneBody:
+      "Your rules are saved. You can change them whenever you want, and these steps stay available from the Help page.",
+    reopen: "Review your initial setup",
+  },
+  support: {
+    heading: "Support",
+    body: "Requests reach whoever builds the app and get an answer written by hand. The link opens your mail app with a message already filled in: you can read it and edit it before sending.",
+    privacyNote:
+      "The message only carries your store domain, app version, language and technical status. Don’t attach tax codes, PEC addresses, orders or your customers’ data: they aren’t needed to understand a problem.",
+    subject: "CF Ready support",
+    chooseCategory: "Choose a topic:",
+    categories: {
+      checkout: "Checkout and rules",
+      billing: "Plan and payment",
+      other: "Other",
+    },
+    technicalHeading: "--- Technical details, you can delete them ---",
+    fieldShop: "Store",
+    fieldVersion: "App version",
+    fieldLanguage: "Language",
+    fieldCountry: "Detected country",
+    fieldEntitlement: "Trial or plan active",
+    fieldValidation: "Check active at checkout",
+    fieldErrorCode: "Last error code",
+    yes: "yes",
+    no: "no",
+  },
+  guide: {
+    heading: "Help and FAQ",
+    intro:
+      "How CF Ready behaves at checkout, what it checks and what it doesn’t. If you can’t find your answer, contact us.",
+    faqHeading: "Frequently asked",
+    expandAll: "Expand all",
+    collapseAll: "Collapse all",
+    asideHeading: "What CF Ready does and doesn’t do",
+    asideLinks: "Where to set it up",
+    asideBody:
+      "CF Ready exists so you stop receiving Italian orders to invoice without a tax code: it makes the field required in the native checkout field and checks its shape. It doesn’t verify that the code belongs to whoever entered it, doesn’t issue invoices and doesn’t handle VAT numbers or SDI codes.",
+    entries: [
+      {
+        q: "What CF Ready does",
+        a: "CF Ready checks the Italian tax code (Codice Fiscale) and the certified email address (PEC) in the native Italian checkout field. It doesn’t change your theme, doesn’t add fields and doesn’t issue invoices: it only decides whether an order can be completed with the values entered.",
+      },
+      {
+        q: "When the tax code is required",
+        a: "When you set it as required and the customer has both delivery and billing in Italy. You decide whether you need it: CF Ready doesn’t determine when your business has to collect it.",
+      },
+      {
+        q: "Why an order went through without the required fields",
+        a: "Rules don’t apply with foreign billing or only foreign deliveries. In express checkout, if Shopify exposes an Italian delivery but omits a required field, CF Ready shows a global error and blocks completion; without an observable delivery, an absent field remains fail-open because the customer might have nothing to fill in.",
+      },
+      {
+        q: "What gets checked on the tax code",
+        a: "Its composition: length, structure, date, town code and check character. Both the ordinary 16-character form, including omocodia variants, and the provisional 11-digit form are accepted. A formally valid tax code may still not belong to the person entering it, and it isn’t verified with the Italian tax authority.",
+      },
+      {
+        q: "How PEC is validated",
+        a: "As an email address: the format is checked. We don’t verify that the mailbox exists, nor that it’s really a certified mailbox.",
+      },
+      {
+        q: "When customers see errors",
+        a: "Normally when they try to continue. If you turn on early warnings, errors can appear as soon as checkout loads: that’s the recommended mode if you keep Shopify’s order confirmation step, because it stops customers reaching the review page blocked and without a message. CF Ready can’t read that setting on your store: the choice is yours.",
+      },
+      {
+        q: "I use the “Apartment, suite, etc.” field for the tax code",
+        a: "The tax code belongs in the native Italian checkout field. If you also collect it in the second address line, customers see two fields for the same value: open Settings → Checkout and set that line to “Optional” or “Don’t include”, then restore the original label from “Manage checkout language”. CF Ready can’t read or change that setting: the warning you see in the app is based on what you told us.",
+      },
+      {
+        q: "Trial and payments",
+        a: "The trial lasts fourteen days, one per store, with no payment method required. If you choose a plan during the trial you don’t lose the days you have left: Shopify receives them as trial days on the subscription.",
+      },
+      {
+        q: "Limitations and supported channels",
+        a: "CF Ready works on Shopify’s web checkout and needs a store based in Italy. The check is only formal, not against any registry, and orders created outside the checkout, for example from the admin, don’t go through it. Later generations of recurring subscription orders aren’t covered.",
+      },
+      {
+        q: "Electronic invoicing, VAT number and SDI code",
+        a: "CF Ready doesn’t issue, transmit or store invoices, and it doesn’t connect to the Italian exchange system. VAT numbers and SDI codes follow different validation rules and flows from the two fields we handle, and the checkout’s localized fields don’t expose them the same way: they aren’t part of what we’re working on today.",
+      },
+      {
+        q: "Privacy and data",
+        a: "CF Ready doesn’t store tax codes, PEC addresses, orders or any of your customers’ data. The check happens during checkout and leaves no trace of the values entered.",
+      },
+      {
+        q: "What happens if I turn the app off",
+        a: "Checkout goes back to how it was and no order is blocked any more. Your rules and messages stay saved and apply again when you turn it back on.",
+      },
+      {
+        q: "Something doesn’t look right",
+        a: "Reload the page: on opening, the app re-reads its state from Shopify and repairs safe divergences. If a sync warning stays, checkout isn’t blocked, and if the problem persists contact us quoting the code shown.",
+      },
+      {
+        q: "Reviewing your initial setup",
+        a: "You can change rules and messages whenever you want from their own pages. The guided steps stay available and going through them again resets nothing: your saved choices stay as they are.",
+      },
+      {
+        q: "Contacting the developer",
+        a: "Write to cfready@icloud.com, or use the link in the side column: it prepares the message with your store’s technical details already filled in. We answer by hand, usually within one or two business days. If the problem is blocking your checkout, say so in the subject line.",
+      },
+    ],
+  },
+  plan: {
+    heading: "Plan",
+    trial: (date: string) => `Trial active until ${date}.`,
+    oneTime: "One payment active, no renewals.",
+    subscription: (date: string) => `Subscription active until ${date}.`,
+    trialOver: "Trial over: choose a plan to apply your rules again.",
+    trialEndsSoon: (date: string) =>
+      `Your trial ends on ${date}. After that date checkout no longer blocks orders missing the required fields, and your rules and messages stay saved.`,
+    trialLastDay: (date: string) =>
+      `Today is the last day of your trial: it ends on ${date}. From tomorrow checkout blocks nothing, and your rules and messages stay saved.`,
+    none: "No active plan.",
+    notStartedHeading: "Before turning the check on",
+    notStartedBody:
+      "Rules only apply at checkout with an active trial or payment. The trial lasts 14 days, is free and asks for no card: start it now or later — until you do, none of it is spent.",
+    startTrial: "Start the 14-day trial",
+    startTrialDone: "Trial started.",
+    orChoose: "Or choose how to pay right away, skipping the trial.",
+    monthlyStart: "Start monthly",
+    monthlySwitch: "Switch to monthly",
+    annualStart: "Start annual",
+    annualSwitch: "Switch to annual",
+    oneTimeSwitch: "Switch to one payment",
+    cancelRenewal: "Cancel renewal",
+    cancelBody:
+      "Access stays until the end of the period you already paid for, with no partial refund. Your rules and messages stay saved.",
+    firstCharge: (date: string) =>
+      `If you start today, the first charge is on ${date}: you keep the trial days you have left.`,
+    firstChargeNow: "The charge starts as soon as you approve it on Shopify.",
+    oneTimeCharge:
+      "One charge as soon as you approve it on Shopify. Any remaining trial days are given up.",
+    chooseHeading: "How you want to continue",
+    chooseBody:
+      "All three have the same features: only when and how much you pay changes. Shopify handles the payments and they land on your store invoice, not on a card left with us.",
+    oneTimeSettled:
+      "One payment for this store, with no renewals. It includes app updates and support, at no extra cost. There’s nothing else to choose.",
+    recommended: "Recommended",
+    generationLaunch: "Launch price, locked in for this store.",
+    generationStandard: "Standard price, locked in for this store.",
+    nextCharge: (date: string) => `Next charge on ${date}.`,
+    periodEnds: (date: string) => `The paid period ends on ${date}.`,
+    lastAttempt:
+      "The last read of your billing status failed. Checkout isn’t blocked: reload the page in a few minutes.",
+    netCost: (amount: string) => `Estimated net cost today: ${amount}.`,
+    endingAlready:
+      "The renewal is already cancelled: access stays until the end of the period you paid for.",
+    monthlyName: "Monthly",
+    annualName: "Annual",
+    oneTimeName: "One payment",
+    creditEstimate: (amount: string) =>
+      `Estimated credit for the unused period: ${amount}. It’s an estimate: on the Shopify invoice the purchase can appear at full price with the credit listed separately, and the actual amount is the one Shopify calculates.`,
+  },
+  rules: {
+    heading: "Checkout rules",
+    saved: "Rules saved.",
+    taxCodeLabel: "Italian tax code (Codice Fiscale)",
+    pecLabel: "Certified email address (PEC)",
+    taxCode: {
+      unmanaged: "Not managed",
+      unmanagedHelp: "CF Ready doesn’t check the field. Checkout stays as it is today.",
+      optional_validated: "Optional and validated",
+      optional_validatedHelp:
+        "Customers can leave it empty. If they fill it in, it must be formally valid.",
+      required_validated: "Required and validated",
+      required_validatedHelp:
+        "Customers can’t complete the order without a formally valid tax code.",
+    },
+    pec: {
+      unmanaged: "Not managed",
+      unmanagedHelp: "CF Ready doesn’t check the field. Checkout stays as it is today.",
+      optional_validated: "Optional and validated",
+      optional_validatedHelp:
+        "Customers can leave it empty. If they fill it in, it must be a valid email format.",
+      required_validated: "Required and validated",
+      required_validatedHelp:
+        "Customers can’t complete the order without an address in a valid email format.",
+    },
+    exceptionsHeading: "Automatic exceptions",
+    exceptions: [
+      "Rules only apply when both delivery and billing are in Italy.",
+      "A customer billing outside Italy completes the order with no checks.",
+      "If Shopify shows an Italian delivery but omits a required field, CF Ready blocks checkout with a global warning; without an observable delivery, it remains fail-open.",
+    ],
+    preventiveLabel: "Show warnings early in checkout",
+    preventiveHelp:
+      "Errors can appear as soon as checkout loads, before the customer has filled the fields in. Recommended if you use Shopify’s order confirmation step, because it stops customers reaching the review page blocked without a message.",
+    previewHeading: "What customers will see",
+    address2Heading: "Don’t use the “Apartment, suite, etc.” field for the tax code",
+    address2Body:
+      "The tax code belongs in the native Italian checkout field. If you also collect it in “Apartment, suite, etc.”, customers see two fields for the same value. CF Ready can’t read or change that setting: this relies on what you tell us.",
+    address2Checkbox: "I use the “Apartment, suite, etc.” field for the tax code",
+    address2Instructions:
+      "Two steps. In Settings → Checkout, under “Form options”, set the second address line to “Optional” or “Don’t include”; then, if you changed its label, restore it from “Manage checkout language”, or from Settings → Languages, “Checkout and system” tab, for a translated language.",
+  },
+  checkout: {
+    nothing: "No rules active: checkout behaves exactly as it does today.",
+    taxCodeRequired:
+      "A customer with delivery and billing in Italy can’t complete the order without a formally valid tax code.",
+    taxCodeOptional:
+      "A customer with delivery and billing in Italy can leave the tax code empty, but if they fill it in it must be formally valid.",
+    pecRequired: "The same customer must enter a PEC address in a valid email format.",
+    pecOptional: "PEC can stay empty, but if filled in it must be a valid email format.",
+    summaryBlocking: "An Italian customer can’t complete the order without the required fields.",
+    summaryChecking: "What Italian customers enter is checked, but nothing is required.",
+    preventive:
+      "Warnings appear as soon as checkout loads, not only when the customer tries to continue.",
+    disabled: "The validation is turned off: these rules don’t apply to customers yet.",
+    lapsed:
+      "The validation is on but your plan isn’t: while that’s the case, checkout blocks nothing.",
+  },
+};
