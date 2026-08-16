@@ -1,0 +1,47 @@
+name: Apply structural refactor
+
+on:
+  push:
+    branches: [agent/refactor-structural-decomposition]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: structural-refactor-apply
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26.5.1
+          cache: npm
+      - run: npm install --global npm@12.0.2
+      - run: npm install --global @shopify/cli@4.6.0
+      - run: npm ci
+      - name: Applica la decomposizione strutturale
+        run: python3 scripts/refactor_structural.py
+      - name: Rimuovi scaffolding temporaneo
+        run: |
+          rm .github/workflows/refactor-workspace-export.yml
+          rm .github/workflows/apply-structural-refactor.yml
+          rm scripts/refactor_structural.py
+      - run: npm run format
+      - run: npm run check
+      - run: git diff --check
+      - name: Registra il refactor verificato
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 1
+          git commit -m "refactor: completa la decomposizione strutturale"
+          git push origin HEAD:agent/refactor-structural-decomposition
