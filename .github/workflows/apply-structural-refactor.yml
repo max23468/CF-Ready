@@ -29,6 +29,37 @@ jobs:
       - run: npm ci
       - name: Applica la decomposizione strutturale
         run: python3 scripts/refactor_structural.py
+      - name: Stabilizza fixture e import generati
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          validation = Path("tests/validation.test.ts")
+          text = validation.read_text()
+          old_import = 'import { startTrial, syncBillingAccount } from "../app/billing.server";'
+          new_import = 'import { localDate, startTrial, syncBillingAccount } from "../app/billing.server";'
+          old_seed = 'if (trial) await startTrial(env.DB, shop, { eligible: true, today: "2026-07-31" });'
+          new_seed = 'if (trial) await startTrial(env.DB, shop, { eligible: true, today: localDate("Europe/Rome") });'
+          if old_import not in text or old_seed not in text:
+              raise SystemExit("Fixture Validation inattesa")
+          validation.write_text(text.replace(old_import, new_import).replace(old_seed, new_seed))
+
+          shopify_read = Path("tests/billing/shopify-read.test.ts")
+          text = shopify_read.read_text()
+          text = text.replace(
+              'import { currentPricingGeneration, pricingGeneration, proratedCredit, readBilling, syncBillingAccount } from "../../app/billing.server";',
+              'import { currentPricingGeneration, proratedCredit, readBilling, syncBillingAccount } from "../../app/billing.server";',
+          )
+          shopify_read.write_text(text)
+
+          charges = Path("tests/billing/charges.test.ts")
+          text = charges.read_text()
+          text = text.replace(
+              'import { insertShop, NESSUN_ADDEBITO, opzioni, abbonamento } from "../support/billing";',
+              'import { insertShop, NESSUN_ADDEBITO, opzioni } from "../support/billing";',
+          )
+          charges.write_text(text)
+          PY
       - name: Rimuovi scaffolding temporaneo
         run: |
           rm .github/workflows/refactor-workspace-export.yml
