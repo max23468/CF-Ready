@@ -29,7 +29,7 @@ jobs:
       - run: npm ci
       - name: Applica la decomposizione strutturale
         run: python3 scripts/refactor_structural.py
-      - name: Stabilizza fixture e import generati
+      - name: Stabilizza fixture e confini generati
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -59,6 +59,21 @@ jobs:
               'import { insertShop, NESSUN_ADDEBITO, opzioni } from "../support/billing";',
           )
           charges.write_text(text)
+
+          home_server = Path("app/features/home/home.server.ts")
+          text = home_server.read_text()
+          text = text.replace(
+              'import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";',
+              'import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";',
+          )
+          text = text.replace('import { boundary } from "@shopify/shopify-app-react-router/server";\n', '')
+          text = text.replace('import { skipRevalidationWhenLeaving } from "../../revalidation";\n', '')
+          text = text.replace(
+              '\nexport const headers: HeadersFunction = (headersArgs) => boundary.headers(headersArgs);\n',
+              '\n',
+          )
+          text = text.replace('\nexport const shouldRevalidate = skipRevalidationWhenLeaving;\n', '\n')
+          home_server.write_text(text)
           PY
       - name: Rimuovi scaffolding temporaneo
         run: |
