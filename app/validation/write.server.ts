@@ -83,6 +83,7 @@ export async function writeValidation(
         today,
         timeZone: data.shop.ianaTimezone,
         pricingGeneration: currentPricingGeneration(trial, account, today),
+        storedAccount: account,
       });
       if (account.entitlement_status === "active") await markTrialConverted(db, shopDomain);
     }
