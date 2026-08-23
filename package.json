@@ -1,10 +1,10 @@
 {
   "name": "cf-ready",
-  "version": "0.9.22",
+  "version": "0.9.23",
   "private": true,
   "packageManager": "npm@12.0.2",
   "packageExtensions": {
-    "@shopify/shopify-app-react-router@1.2.1": {
+    "@shopify/shopify-app-react-router@2.0.0": {
       "peerDependencies": {
         "react-router": "^7.18.2 || ^8.3.0"
       }
@@ -48,16 +48,16 @@
     "node": ">=26.5.1 <27"
   },
   "dependencies": {
-    "@shopify/shopify-api": "13.1.0",
-    "@shopify/shopify-app-react-router": "1.2.1",
-    "@shopify/shopify-app-session-storage": "5.0.1",
+    "@shopify/shopify-api": "14.0.0",
+    "@shopify/shopify-app-react-router": "2.0.0",
+    "@shopify/shopify-app-session-storage": "6.0.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-router": "8.3.0"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.52.1",
-    "@cloudflare/vitest-pool-workers": "0.21.3",
+    "@cloudflare/vite-plugin": "1.53.1",
+    "@cloudflare/vitest-pool-workers": "0.22.0",
     "@playwright/test": "1.62.1",
     "@react-router/dev": "8.3.0",
     "@shopify/polaris-types": "1.0.7",
@@ -65,13 +65,13 @@
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "mdast-util-from-markdown": "2.0.3",
-    "oxfmt": "0.63.0",
-    "oxlint": "1.78.0",
+    "oxfmt": "0.64.0",
+    "oxlint": "1.79.0",
     "react-doctor": "0.9.12",
     "typescript": "7.0.2",
-    "vite": "8.2.1",
-    "vitest": "4.1.10",
-    "wrangler": "4.123.0"
+    "vite": "8.2.2",
+    "vitest": "4.1.11",
+    "wrangler": "4.125.0"
   },
   "workspaces": [
     "extensions/*"
@@ -84,7 +84,8 @@
     "esbuild@0.28.1": true,
     "fsevents@2.3.2": false,
     "fsevents@2.3.3": true,
-    "workerd@1.20260811.1": true
+    "workerd@1.20260815.1": true,
+    "workerd@1.20260820.1": true
   },
   "overrides": {
     "graphql-config": "5.1.6",

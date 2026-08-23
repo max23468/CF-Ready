@@ -195,7 +195,7 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   assert.equal(packageJson.devDependencies["@typescript/typescript6"], undefined);
   assert.equal(packageJson.allowScripts["fsevents@2.3.2"], false);
   assert.equal(
-    packageJson.packageExtensions["@shopify/shopify-app-react-router@1.2.1"].peerDependencies[
+    packageJson.packageExtensions["@shopify/shopify-app-react-router@2.0.0"].peerDependencies[
       "react-router"
     ],
     "^7.18.2 || ^8.3.0",

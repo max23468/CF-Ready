@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.23 — 23 agosto 2026
+
+- lo stack Shopify passa ad API 14, App React Router 2 e Session Storage 6,
+  mantenendo React Router 8 e TypeScript 7 con il peer riproducibile già
+  verificato dal repository;
+- `AppProvider` usa il contratto embedded della v2, che carica App Bridge tramite
+  la chiave dell'app senza la precedente prop `embedded`;
+- Wrangler, Cloudflare Vite/Vitest, Vite, Vitest, Oxlint e Oxfmt sono aggiornati
+  alle patch e minor correnti, senza dipendenze residue o vulnerabilità note.
+
 ## 0.9.22 — 23 agosto 2026
 
 - i partner development store, riconosciuti dal piano autorevole di Shopify,
