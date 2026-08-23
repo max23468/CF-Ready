@@ -6,6 +6,12 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.22 — 23 agosto 2026
+
+- i partner development store, riconosciuti dal piano autorevole di Shopify,
+  non richiedono più una recensione impossibile da inviare, evitando che la
+  modale si riapra a ogni caricamento della Home embedded.
+
 ## 0.9.21 — 23 agosto 2026
 
 - Validation e billing sono separati in moduli per dominio, accesso Shopify,

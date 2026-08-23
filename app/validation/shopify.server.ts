@@ -1,7 +1,12 @@
 import { FUNCTION_HANDLE, type Admin, type MutationResult, type Validation } from "./types";
 
 type Context = {
-  shop: { name: string; ianaTimezone: string; shopAddress: { countryCodeV2: string } };
+  shop: {
+    name: string;
+    ianaTimezone: string;
+    plan: { partnerDevelopment: boolean };
+    shopAddress: { countryCodeV2: string };
+  };
   validations: {
     nodes: Validation[];
     pageInfo: { hasNextPage: boolean; endCursor: string | null };
@@ -13,6 +18,9 @@ const CONTEXT_QUERY = `#graphql
     shop {
       name
       ianaTimezone
+      plan {
+        partnerDevelopment
+      }
       shopAddress {
         countryCodeV2
       }

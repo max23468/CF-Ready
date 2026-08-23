@@ -172,18 +172,20 @@ export function messageAppears(rules: Rules, key: (typeof MESSAGE_KEYS)[number])
 export const REVIEW_MIN_DAYS = 7;
 
 // §15.10 e FR-093: si chiede una recensione solo a onboarding concluso, con la validazione
-// attiva da almeno sette giorni e nessun errore tecnico aperto. Shopify decide poi da sé se
-// mostrarla davvero: idoneità, frequenza e rifiuti sono gestiti dalla sua modale.
+// attiva da almeno sette giorni, nessun errore tecnico aperto e uno store reale. Shopify espone
+// il tipo di store nel piano: sui partner development store la modale non può inviare recensioni.
 export function reviewIsDue(
   state: {
     onboarding: string;
     validationEnabled: boolean;
     errorCode: string | null;
     enabledSince: string | null;
+    partnerDevelopment: boolean;
   },
   now: number,
 ) {
-  if (state.onboarding !== "completed" || !state.validationEnabled) return false;
+  if (state.partnerDevelopment || state.onboarding !== "completed" || !state.validationEnabled)
+    return false;
   if (state.errorCode || !state.enabledSince) return false;
   return now - Date.parse(state.enabledSince) >= REVIEW_MIN_DAYS * 86_400_000;
 }

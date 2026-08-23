@@ -37,6 +37,7 @@ export function shopContext(
       shop: {
         name: "Store di prova",
         ianaTimezone: FUSO,
+        plan: { partnerDevelopment: true },
         shopAddress: { countryCodeV2: countryCode },
       },
       validations: {

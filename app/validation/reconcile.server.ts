@@ -232,6 +232,7 @@ export async function reconcile(
   return {
     shopName: shop.name,
     countryCode,
+    partnerDevelopment: shop.plan.partnerDevelopment,
     today,
     eligible,
     validation,
