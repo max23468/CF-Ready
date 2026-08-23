@@ -84,7 +84,7 @@
     "esbuild@0.28.1": true,
     "fsevents@2.3.2": false,
     "fsevents@2.3.3": true,
-    "workerd@1.20260730.1": true
+    "workerd@1.20260811.1": true
   },
   "overrides": {
     "graphql-config": "5.1.6",
