@@ -53,7 +53,11 @@ test("pagina tutte le Validation e usa il Function handle come identità", async
   const pages = [
     {
       data: {
-        shop: { name: "CF Ready Dev", shopAddress: { countryCodeV2: "IT" } },
+        shop: {
+          name: "CF Ready Dev",
+          plan: { partnerDevelopment: true },
+          shopAddress: { countryCodeV2: "IT" },
+        },
         validations: {
           nodes: [],
           pageInfo: { hasNextPage: true, endCursor: "page-2" },
@@ -62,7 +66,11 @@ test("pagina tutte le Validation e usa il Function handle come identità", async
     },
     {
       data: {
-        shop: { name: "CF Ready Dev", shopAddress: { countryCodeV2: "IT" } },
+        shop: {
+          name: "CF Ready Dev",
+          plan: { partnerDevelopment: true },
+          shopAddress: { countryCodeV2: "IT" },
+        },
         validations: {
           nodes: [validation],
           pageInfo: { hasNextPage: false, endCursor: null },
@@ -78,6 +86,7 @@ test("pagina tutte le Validation e usa il Function handle come identità", async
   });
 
   expect(cursors).toEqual([null, "page-2"]);
+  expect(data.shop.plan.partnerDevelopment).toBe(true);
   expect(findValidation(data.validations.nodes)?.id).toBe(validation.id);
 });
 
@@ -85,7 +94,11 @@ test("interrompe la paginazione Shopify se il cursore non avanza", async () => {
   let calls = 0;
   const page = {
     data: {
-      shop: { name: "CF Ready Dev", shopAddress: { countryCodeV2: "IT" } },
+      shop: {
+        name: "CF Ready Dev",
+        plan: { partnerDevelopment: true },
+        shopAddress: { countryCodeV2: "IT" },
+      },
       validations: {
         nodes: [],
         pageInfo: { hasNextPage: true, endCursor: "stalled" },

@@ -85,6 +85,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
         validationEnabled: state.validationEnabled,
         errorCode: state.errorCode,
         enabledSince,
+        partnerDevelopment: state.partnerDevelopment,
       },
       Date.now(),
     ),

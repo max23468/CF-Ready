@@ -708,7 +708,7 @@ richiesta, che senza un sistema ricevente non avrebbe riscontro.
 
 **FR-092** — Nessun CF, PEC, ordine o dato buyer negli allegati o log.
 
-**FR-093** — Prompt recensione nativo dopo almeno 7 giorni di Validation attiva, onboarding completato e nessun errore aperto.
+**FR-093** — Prompt recensione nativo su store non partner-development dopo almeno 7 giorni di Validation attiva, onboarding completato e nessun errore aperto. Il tipo di store deriva da `Shop.plan.partnerDevelopment`, fonte autorevole Shopify; sul development store la modale non può inviare recensioni e non viene richiesta.
 
 **FR-094** — Azioni: “Lascia un feedback”, “Non ora”, “Non chiedermelo più”.
 
