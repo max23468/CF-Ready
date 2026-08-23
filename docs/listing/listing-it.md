@@ -4,6 +4,9 @@ Testi pronti da incollare nella listing. La versione inglese è
 [`listing-en.md`](listing-en.md) e le due devono restare allineate: se cambia un
 fatto, cambialo in entrambe nella stessa modifica.
 
+Il Partner Dashboard mostra questa lingua primaria e l'inglese entrambe `Live`
+dal 23 agosto 2026; non resta alcuna lingua non pubblicata.
+
 I limiti di caratteri dei campi vanno **riconfermati nel Partner Dashboard al
 momento della compilazione**: cambiano senza preavviso e non sono una costante
 di questo documento. Sotto ogni testo è indicata la lunghezza effettiva, così
@@ -20,82 +23,63 @@ checkout.
 
 | Campo | Valore |
 | --- | --- |
-| Nome app | CF Ready — Codice Fiscale nel Checkout |
+| Nome app | CF Ready - Codice Fiscale |
 | Nome breve in Admin | CF Ready |
 | Handle | `cf-ready` |
-| Categoria proposta | Store management → Tassazione e conformità — **da confrontare con l'elenco reale** del Partner Dashboard: è un'ipotesi, non una categoria verificata |
-| Disponibilità | solo merchant in Italia |
+| Categoria primaria | Gestione del negozio → Finanze → Imposte |
+| Categoria secondaria | Marketing e conversione → Checkout → Checkout - Altro |
+| Requisito geografico | il merchant deve spedire in Italia |
 | Icona | `docs/brand/assets/png/icon-app-1200.png` |
 | Feature image | `docs/brand/assets/png/feature-image-it-1600.png` |
 
 L'alt text della feature image è richiesto insieme all'immagine:
 
-> Il campo Codice Fiscale e il campo PEC del checkout italiano, con l'esito
-> «Formato valido».
+> CF Ready - Codice Fiscale nel checkout
 
 Descrive quello che si vede, non quello che vorremmo far capire: un alt text che
 ripete lo slogan è inutile a chi non vede l'immagine.
 
-## Tagline
+## Sottotitolo della scheda app
 
-> Codice Fiscale e PEC obbligatori e validati nel checkout italiano.
+> Codice Fiscale e PEC obbligatori e validati nel checkout.
 
-**66 caratteri.**
+**57/62 caratteri.**
 
 ## Introduzione
 
-> CF Ready rende obbligatorio il Codice Fiscale nel checkout e ne verifica la
-> correttezza formale prima che l'ordine venga completato, usando il campo
-> fiscale che Shopify espone già per l'Italia.
+> Rende obbligatorio il Codice Fiscale nel checkout italiano e ne verifica la
+> correttezza formale.
 
-**193 caratteri.**
+**96/100 caratteri.**
 
-## Descrizione
+## Dettagli app
 
-> **Il problema.** Se emetti fattura per gli ordini B2C, un ordine senza Codice
-> Fiscale è un ordine da rincorrere: email al cliente, attesa, fattura in
-> ritardo. Shopify espone i campi fiscali italiani nel checkout, ma non permette
-> di renderli obbligatori né di controllarli.
->
-> **Cosa fa CF Ready.** Rende il Codice Fiscale facoltativo o obbligatorio, e ne
-> verifica la correttezza formale — lunghezza, alfabeto, mese, giorno e carattere
-> di controllo — prima che l'ordine venga completato. Lo stesso vale per
-> l'indirizzo PEC, che puoi lasciare fuori o richiedere insieme al Codice
-> Fiscale. Le due regole sono indipendenti.
->
-> **Usa il campo che c'è già.** CF Ready non aggiunge campi al checkout: agisce
-> sui campi fiscali localizzati che Shopify mostra da sé quando la consegna è in
-> Italia. Non tocca il tema, non chiede di incollare codice, non richiede
-> Shopify Plus e funziona sui piani standard.
->
-> **Non blocca le vendite legittime.** Se la configurazione non è leggibile, se
-> il diritto d'uso è scaduto o se qualcosa va storto, il checkout resta aperto.
-> Un cliente estero, che non vede nemmeno i campi italiani, non viene mai
-> bloccato.
->
-> **Cosa non fa.** La validazione è formale, non anagrafica: CF Ready non
-> verifica presso l'Agenzia delle Entrate che un codice esista o appartenga a
-> chi lo scrive, e non attesta che un indirizzo formalmente valido corrisponda a
-> una casella PEC realmente attiva. Non emette fatture e non gestisce la
-> fatturazione elettronica, la Partita IVA o il Codice Destinatario SDI. Non
-> opera nel POS. Le generazioni successive degli ordini ricorrenti in
-> abbonamento non sono coperte: la validazione interviene sul checkout, non sui
-> rinnovi automatici che ne derivano.
+> Shopify mostra i campi fiscali italiani nel checkout, ma non può renderli
+> obbligatori né controllarli. CF Ready lo fa: Codice Fiscale e PEC diventano
+> facoltativi o obbligatori, con verifica della correttezza formale prima che
+> l'ordine sia completato. Non aggiunge campi, non tocca il tema, non richiede
+> Plus. Se l'app non è disponibile il checkout resta aperto, e i clienti esteri
+> non sono mai bloccati. La validazione è formale, non anagrafica: non attesta
+> che un codice appartenga a chi lo scrive.
 
-**1 666 caratteri**, formattazione esclusa.
+**499/500 caratteri.**
 
 ## Punti in evidenza
 
-1. **Codice Fiscale obbligatorio e validato** — correttezza formale verificata
-   prima che l'ordine sia completato.
-2. **PEC come regola indipendente** — richiedila insieme al Codice Fiscale o
-   lasciala fuori.
-3. **Nessuna modifica al tema** — usa i campi fiscali che Shopify espone già per
-   l'Italia.
-4. **Clienti esteri esclusi** — la regola vale solo quando la consegna è
-   italiana.
-5. **Non blocca in caso di errore** — se l'app non è disponibile, il checkout
-   resta aperto.
+1. `Codice Fiscale obbligatorio e validato prima che l'ordine sia completato.`
+2. `PEC come regola indipendente: richiedila insieme o lasciala fuori.`
+3. `Nessuna modifica al tema: usa i campi che Shopify espone già per l'Italia.`
+4. `Clienti esteri esclusi: la regola vale solo con consegna italiana.`
+5. `Non blocca in caso di errore: il checkout resta sempre aperto.`
+
+## Ricerca e SEO
+
+- termini di ricerca: `Codice Fiscale`, `PEC`, `Fatturazione`, `Campi fiscali`,
+  `Checkout`;
+- title tag: `CF Ready - Codice Fiscale obbligatorio nel checkout`;
+- meta description: `Rendi obbligatorio il Codice Fiscale nel checkout
+  italiano e verificane la correttezza formale, senza toccare il tema. PEC come
+  regola indipendente.`
 
 ## Canali e limitazioni dichiarate
 
@@ -152,6 +136,7 @@ il codice devono dire la stessa cifra.
 | Voce | URL |
 | --- | --- |
 | Assistenza | `https://cf-ready.pages.dev/support` |
+| Sito sviluppatore | `https://cf-ready.pages.dev` |
 | Privacy | `https://cf-ready.pages.dev/privacy` |
 | Termini | `https://cf-ready.pages.dev/terms` |
 | Contatto | `cfready@icloud.com` |
