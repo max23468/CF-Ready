@@ -7,7 +7,8 @@ corrente si leggono da `package.json`, `CHANGELOG.md`, codice, configurazioni e
 ricevute operative.
 **Documenti vincolanti collegati:** `docs/brand/brand-foundation.md` (identità visiva, tono, materiali pubblici)  
 **Brand:** CF Ready  
-**Nome pubblico:** CF Ready — Codice Fiscale nel Checkout  
+**Nome esteso pubblico:** CF Ready — Codice Fiscale nel Checkout
+**Nome App Store pubblicato:** CF Ready - Codice Fiscale
 **Abbreviazione interna:** CFR  
 **Versione obiettivo:** `1.0.0`  
 **Distribuzione:** public app Shopify App Store, disponibile solo ai merchant in Italia  
@@ -49,7 +50,9 @@ Questa revisione integra inoltre:
 
 Quando due passaggi storici risultano in tensione, vale la decisione approvata più recente. In particolare:
 
-- il nome definitivo è **CF Ready — Codice Fiscale nel Checkout**, non “Codice Fiscale Checkout”;
+- il nome esteso definitivo è **CF Ready — Codice Fiscale nel Checkout**, non
+  “Codice Fiscale Checkout”; il campo App Store, limitato a 30 caratteri, usa
+  **CF Ready - Codice Fiscale**;
 - l’unica abbreviazione interna ammessa è `CFR`; ogni abbreviazione precedente è eliminata;
 - l’app ha quattro pagine permanenti; stato e scelta del piano sono nella Home e l’onboarding si apre in una finestra;
 - non esiste un selettore manuale della lingua;
@@ -2274,7 +2277,8 @@ microcopy completa.
 | Elemento | Valore |
 |---|---|
 | Brand | CF Ready |
-| Nome pubblico | CF Ready — Codice Fiscale nel Checkout |
+| Nome esteso pubblico | CF Ready — Codice Fiscale nel Checkout |
+| Nome App Store pubblicato | CF Ready - Codice Fiscale |
 | Nome breve Admin | CF Ready |
 | Abbreviazione interna | CFR |
 | Handle | `cf-ready` |
@@ -3459,7 +3463,8 @@ Il controllo interno del Paese resta obbligatorio anche con filtro geografico de
 
 ### 24.2 Identità listing
 
-- nome: **CF Ready — Codice Fiscale nel Checkout**;
+- nome pubblicato: **CF Ready - Codice Fiscale** (`25/30` caratteri nel
+  Partner Dashboard);
 - identificatore distintivo iniziale: CF Ready;
 - handle: `cf-ready`;
 - disponibilità da verificare e riservare nel Partner Dashboard;
@@ -4148,7 +4153,7 @@ Gate:
   Git Cloudflare disattivata e target Production verificato;
 - restore drill e soglie operative documentati.
 
-### M9 — Release candidate e review · approvazione Shopify ottenuta · inglese aperto
+### M9 — Release candidate e review · chiusa il 23 agosto 2026
 
 Versione `0.9.x`.
 
@@ -4199,12 +4204,18 @@ Decisioni prese durante la milestone:
 La submission, inviata il 4 agosto 2026 e sospesa il 10 agosto sui requisiti
 1.2.2 e 2.1.1, è stata corretta con la `0.9.20`. La promozione Production, il
 deploy, lo smoke, il readback e la release del candidato sono riusciti il
-10 agosto 2026. Il 23 agosto 2026 il Partner Dashboard mostra l'app e la
-listing in stato `Published`, quindi il gate «approvazione Shopify» è chiuso.
-La listing resta a visibilità limitata; l'italiano è pubblicato come lingua
-primaria, mentre l'inglese è incompleto e non pubblicato. M9 non è quindi
-formalmente chiusa finché la lingua inglese non viene completata. Il canary
-reale, `v1.0.0` e la piena visibilità restano rispettivamente M10, M11 e M12.
+10 agosto 2026; l'ultimo snapshot M9, `0.9.22`, è stato distribuito e riletto
+il 23 agosto 2026. Nello stesso giorno il Partner Dashboard mostra l'app e la
+listing in stato `Published`: italiano primario e inglese risultano entrambi
+`Live` sotto «Lingue pubblicate», non resta alcuna lingua non pubblicata e le
+due listing espongono feature media e cinque screenshot desktop con alt text
+localizzati. L'email ufficiale dello Shopify App Store Team ricevuta dall'owner
+conferma inoltre approvazione, pubblicazione come applicazione listata, stato
+`Published`, visibilità limitata, URL `https://apps.shopify.com/cf-ready` e
+riferimento `128156`. Il gate «approvazione Shopify» e la listing bilingue sono
+quindi chiusi e M9 è formalmente completata. La visibilità resta limitata come
+previsto; il canary reale, `v1.0.0` e la piena visibilità appartengono
+rispettivamente a M10, M11 e M12.
 
 ### M10 — Canary store reale
 
