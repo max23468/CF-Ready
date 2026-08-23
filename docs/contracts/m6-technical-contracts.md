@@ -132,8 +132,10 @@ idoneità, frequenza e rifiuti: le tre risposte di FR-094 sono sue. L'app scegli
 soltanto il momento, e la scelta è espressa da `reviewIsDue`: onboarding
 concluso, Validation attiva, nessun codice errore aperto e almeno sette giorni
 dall'ultimo evento `validation_enabled`, che è già nel registro e rende inutile
-una colonna dedicata. La chiamata non parte mai da un'azione del merchant, come
-la documentazione Shopify richiede.
+una colonna dedicata. `Shop.plan.partnerDevelopment` sopprime la richiesta nei
+development store, dove la modale non può inviare recensioni e verrebbe
+riproposta a ogni Home. La chiamata non parte mai da un'azione del merchant,
+come la documentazione Shopify richiede.
 
 `onboarding_completed` si aggiunge agli eventi, di classe `onboarding`, con
 `enabled` a dire se la procedura si è chiusa attivando o no.
