@@ -48,9 +48,13 @@ test("la Home legge lo stato D1 in parallelo ed espone timing senza dati merchan
       _admin: unknown,
       _db: D1Database,
       _shop: string,
-      reportTiming: (name: "shopify_context", durationMs: number) => void,
+      options: {
+        prefetchBilling?: boolean;
+        reportTiming: (name: "shopify_context", durationMs: number) => void;
+      },
     ) => {
-      reportTiming("shopify_context", 12.34);
+      expect(options.prefetchBilling).toBe(true);
+      options.reportTiming("shopify_context", 12.34);
       return {
         shopName: "Negozio di prova",
         countryCode: "IT",

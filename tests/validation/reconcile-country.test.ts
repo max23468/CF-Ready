@@ -16,6 +16,37 @@ import {
   appState,
 } from "../support/lifecycle";
 
+test("la Home avvia il billing mentre attende il contesto Shopify", async () => {
+  const shop = await insertShop("prefetch-billing.example.myshopify.com");
+  const calls: string[] = [];
+  let resolveContext!: (response: Response) => void;
+  const contextResponse = new Promise<Response>((resolve) => {
+    resolveContext = resolve;
+  });
+  const admin = {
+    graphql: async (query: string) => {
+      if (query.includes("currentAppInstallation")) {
+        calls.push("billing");
+        return Response.json(SENZA_ADDEBITI);
+      }
+      calls.push("context");
+      return contextResponse;
+    },
+  };
+
+  const pending = reconcile(admin, env.DB, shop, { prefetchBilling: true });
+  await Promise.resolve();
+  await Promise.resolve();
+  const billingStartedBeforeContextResolved = calls.includes("billing");
+
+  resolveContext(Response.json(shopContext("IT", false)));
+  const state = await pending;
+
+  expect(billingStartedBeforeContextResolved).toBe(true);
+  expect(calls.slice(0, 2)).toEqual(["context", "billing"]);
+  expect(state.errorCode).toBeNull();
+});
+
 test("uno store non italiano viene bloccato e la Validation disattivata", async () => {
   const shop = await insertShop("francia.example.myshopify.com");
   const admin = adminStub([
@@ -84,8 +115,10 @@ test("un errore billing resta fail-open e produce soltanto timing tecnici", asyn
   ]);
   const timings: { name: string; durationMs: number }[] = [];
 
-  const state = await reconcile(admin, env.DB, shop, (name, durationMs) => {
-    timings.push({ name, durationMs });
+  const state = await reconcile(admin, env.DB, shop, {
+    reportTiming: (name, durationMs) => {
+      timings.push({ name, durationMs });
+    },
   });
 
   expect(state.entitlement).toEqual(SENZA_DIRITTO);

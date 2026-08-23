@@ -31,10 +31,25 @@ export async function reconcile(
   admin: Admin,
   db: D1Database,
   shopDomain: string,
-  reportTiming?: ReconcileTiming,
+  options?: { prefetchBilling?: boolean; reportTiming?: ReconcileTiming },
 ) {
+  const reportTiming = options?.reportTiming;
+  const readBillingTimed = async () => {
+    const startedAt = performance.now();
+    try {
+      return { state: await readBilling(admin), error: null };
+    } catch (error) {
+      return { state: null, error };
+    } finally {
+      reportTiming?.("shopify_billing", performance.now() - startedAt);
+    }
+  };
   const contextStartedAt = performance.now();
-  const { shop, validations } = await queryContext(admin);
+  const contextPromise = queryContext(admin);
+  // La Home usa questo prefetch per sovrapporre le due letture Shopify indipendenti.
+  // Gli altri percorsi mantengono l'avvio condizionale dopo la verifica del Paese.
+  const prefetchedBilling = options?.prefetchBilling ? readBillingTimed() : null;
+  const { shop, validations } = await contextPromise;
   reportTiming?.("shopify_context", performance.now() - contextStartedAt);
   const countryCode = shop.shopAddress.countryCodeV2;
   const eligible = countryCode === ELIGIBLE_COUNTRY;
@@ -77,18 +92,7 @@ export async function reconcile(
   }
 
   const commercialStartedAt = performance.now();
-  const billingPromise = eligible
-    ? (async () => {
-        const startedAt = performance.now();
-        try {
-          return { state: await readBilling(admin), error: null };
-        } catch (error) {
-          return { state: null, error };
-        } finally {
-          reportTiming?.("shopify_billing", performance.now() - startedAt);
-        }
-      })()
-    : null;
+  const billingPromise = eligible ? (prefetchedBilling ?? readBillingTimed()) : null;
   const [trial, storedAccount] = await Promise.all([
     syncTrial(db, shopDomain, { today }),
     readBillingAccount(db, shopDomain),
