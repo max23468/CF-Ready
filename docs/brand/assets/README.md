@@ -179,7 +179,9 @@ Il controllo è stato fatto su ricostruzioni fedeli dei fondi dell'Admin, non de
 - Esistono solo tre versioni: positiva, negativa, mono. Non ricolorare, non creare varianti.
 - Nessun gradiente, nessuna ombra, nessuna rotazione, nessun contorno aggiunto, nessuna deformazione.
 - Il wordmark non si compone dentro la tessera.
-- Il nome lungo `CF Ready — Codice Fiscale nel Checkout` è un nome di listing, non una lockup: si compone accanto al marchio.
+- Il nome esteso `CF Ready — Codice Fiscale nel Checkout` è copy editoriale,
+  non una lockup: si compone accanto al marchio. Il nome App Store pubblicato è
+  `CF Ready - Codice Fiscale`.
 - L'arancio non è mai un colore di stato. Dentro l'app non entra nessun colore di brand.
 
 ---

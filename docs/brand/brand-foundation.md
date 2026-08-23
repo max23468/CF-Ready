@@ -41,7 +41,8 @@ Solo i vincoli che governano identità visiva, tono, logo/icona, UI embedded, si
 | Elemento | Valore | Fonte |
 |---|---|---|
 | Brand | CF Ready | §17.1, D-076 |
-| Nome pubblico / listing | CF Ready — Codice Fiscale nel Checkout | §17.1, §24.2, §1.2 |
+| Nome esteso pubblico | CF Ready — Codice Fiscale nel Checkout | §17.1, §1.2 |
+| Nome App Store pubblicato | CF Ready - Codice Fiscale | §17.1, §24.2 |
 | Nome breve in Admin | CF Ready | §17.1 |
 | Abbreviazione | `CFR`, **solo interna** | §17.1, §1.2 |
 | Handle | `cf-ready` | §17.1, D-076 |
@@ -421,7 +422,10 @@ CF Ready
 - **Peso uniforme** sulle due parole: differenziarle suggerirebbe che `Ready` sia un suffisso e non parte del nome.
 - Tracking `0,045em`; crenatura aperta fra `C` e `F`, spazio-parola leggermente ridotto.
 - Colore: Verde bottiglia su chiaro, Panna su scuro. Mai bicolore, mai arancio.
-- Nessun payoff bloccato nel logo. Il nome lungo `CF Ready — Codice Fiscale nel Checkout` è un **nome di listing**: si compone accanto al marchio, non dentro.
+- Nessun payoff bloccato nel logo. Il nome esteso
+  `CF Ready — Codice Fiscale nel Checkout` è copy editoriale: si compone accanto
+  al marchio, non dentro. Il campo nome dell'App Store usa la variante breve
+  `CF Ready - Codice Fiscale`.
 
 ### 6.7 Lockup
 
