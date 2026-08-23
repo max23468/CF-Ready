@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.25 — 23 agosto 2026
+
+- la Home riunisce contesto, Validation e billing nella stessa chiamata GraphQL
+  iniziale, mantenendo paginazione e fail-open senza ripetere la prima pagina;
+- la riconciliazione riusa l'account billing D1 già letto invece di interrogarlo
+  nuovamente durante la sincronizzazione o il fallback;
+- onboarding, dichiarazione del campo Interno e ultima attivazione arrivano da un
+  unico snapshot D1, eseguito in parallelo alla riconciliazione Shopify.
+
 ## 0.9.24 — 23 agosto 2026
 
 - la Home avvia in parallelo le letture indipendenti del contesto e del billing

@@ -21,6 +21,7 @@ import {
   duplicateValidationError,
   mutationError,
   queryContext,
+  queryHomeSnapshot,
   readValidationReadback,
   validationsForApp,
 } from "./shopify.server";
@@ -45,12 +46,12 @@ export async function reconcile(
     }
   };
   const contextStartedAt = performance.now();
-  const contextPromise = queryContext(admin);
-  // La Home usa questo prefetch per sovrapporre le due letture Shopify indipendenti.
-  // Gli altri percorsi mantengono l'avvio condizionale dopo la verifica del Paese.
-  const prefetchedBilling = options?.prefetchBilling ? readBillingTimed() : null;
-  const { shop, validations } = await contextPromise;
-  reportTiming?.("shopify_context", performance.now() - contextStartedAt);
+  const snapshot = options?.prefetchBilling ? await queryHomeSnapshot(admin) : null;
+  const { shop, validations } = snapshot ?? (await queryContext(admin));
+  reportTiming?.(
+    snapshot ? "shopify_snapshot" : "shopify_context",
+    performance.now() - contextStartedAt,
+  );
   const countryCode = shop.shopAddress.countryCodeV2;
   const eligible = countryCode === ELIGIBLE_COUNTRY;
   const today = localDate(shop.ianaTimezone);
@@ -92,7 +93,11 @@ export async function reconcile(
   }
 
   const commercialStartedAt = performance.now();
-  const billingPromise = eligible ? (prefetchedBilling ?? readBillingTimed()) : null;
+  const billingPromise = eligible
+    ? snapshot
+      ? Promise.resolve(snapshot.billing)
+      : readBillingTimed()
+    : null;
   const [trial, storedAccount] = await Promise.all([
     syncTrial(db, shopDomain, { today }),
     readBillingAccount(db, shopDomain),
@@ -160,6 +165,7 @@ export async function reconcile(
         today,
         timeZone: shop.ianaTimezone,
         pricingGeneration: currentPricingGeneration(trial, account, today),
+        storedAccount: account,
       });
       billingConfirmed = true;
 
@@ -168,7 +174,7 @@ export async function reconcile(
       }
     } catch {
       // La cache resta disponibile alla UI, ma non concede diritti quando Shopify è incerto.
-      account = await readBillingAccount(db, shopDomain);
+      account = storedAccount;
       errorCode ??= "billing_read_failed";
       retryable ||= conversionRequired;
     }

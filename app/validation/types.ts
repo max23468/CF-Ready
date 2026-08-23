@@ -25,6 +25,11 @@ export type Admin = {
 };
 
 export type ReconcileTiming = (
-  name: "shopify_context" | "d1_commercial" | "shopify_billing" | "d1_validation_state",
+  name:
+    | "shopify_context"
+    | "shopify_snapshot"
+    | "d1_commercial"
+    | "shopify_billing"
+    | "d1_validation_state",
   durationMs: number,
 ) => void;
