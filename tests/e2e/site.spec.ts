@@ -14,7 +14,10 @@ test("sito pubblico bilingue e percorsi essenziali", async ({ page }) => {
   await expect(skipLink).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.locator("#content")).toBeFocused();
-  await expect(page.getByRole("button", { name: /Presto su/ }).first()).toBeDisabled();
+  await expect(page.getByRole("link", { name: /Installa da Shopify/ }).first()).toHaveAttribute(
+    "href",
+    "https://apps.shopify.com/cf-ready",
+  );
 
   await page.getByRole("link", { name: "EN", exact: true }).click();
   await expect(page).toHaveURL(/\/en\/$/);

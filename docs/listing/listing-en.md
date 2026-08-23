@@ -4,8 +4,9 @@ Ready-to-paste listing copy. The Italian version is
 [`listing-it.md`](listing-it.md); the two must stay aligned — if a fact changes,
 change it in both within the same edit.
 
-This is the primary listing language: the Shopify reviewer reads this one. The
-Italian version is the translation merchants in Italy will see.
+Italian is the primary published listing language. This English copy remains
+the aligned source for the additional language, which the Partner Dashboard
+still marks as incomplete and unpublished as of 23 August 2026.
 
 Field character limits must be **reconfirmed in the Partner Dashboard when
 filling the listing in**. Actual lengths are stated below each text so a tighter
