@@ -12,7 +12,6 @@ import {
 } from "./billing.server";
 import { DEFAULT_CONFIG, ELIGIBLE_COUNTRY, readConfig } from "./config";
 import type { CheckoutConfig, Entitlement } from "./config";
-import { BILLING_IS_TEST } from "./env.server";
 import { recordEvent } from "./events.server";
 
 export {
@@ -255,7 +254,7 @@ export async function reconcile(
     ? (async () => {
         const startedAt = performance.now();
         try {
-          return { state: await readBilling(admin, BILLING_IS_TEST), error: null };
+          return { state: await readBilling(admin), error: null };
         } catch (error) {
           return { state: null, error };
         } finally {
@@ -285,7 +284,7 @@ export async function reconcile(
       if (state.oneTime && state.subscription) {
         conversionRequired = true;
         const conversion = await withValidationLock(db, shopDomain, async (heartbeat) => {
-          const current = await readBilling(admin, BILLING_IS_TEST);
+          const current = await readBilling(admin);
           if (!current.oneTime || !current.subscription) {
             return { state: current, error: null, converted: false };
           }
@@ -294,7 +293,7 @@ export async function reconcile(
           }
           const error = await cancelSubscription(admin, current.subscription.id, { prorate: true });
           return {
-            state: error ? current : await readBilling(admin, BILLING_IS_TEST),
+            state: error ? current : await readBilling(admin),
             error,
             converted: !error,
           };
@@ -486,7 +485,7 @@ export async function writeValidation(
     let account = await readBillingAccount(db, shopDomain);
     let billing: Awaited<ReturnType<typeof readBilling>> | null = null;
     try {
-      billing = await readBilling(admin, BILLING_IS_TEST);
+      billing = await readBilling(admin);
     } catch {
       // Shopify non raggiungibile: come in `reconcile`, si conserva lo stato operativo noto.
     }
@@ -603,7 +602,7 @@ export async function observedConfigHash(validation: Validation | undefined) {
 // FR-098: lo store ha già 25 Validation Function attive. Shopify lo comunica solo nel testo
 // dello userError, quindi il codice stabile si ricava da lì; se il testo cambia si ricade sul
 // codice generico, che resta corretto ma meno utile.
-// ponytail: match sul messaggio, unico segnale disponibile. Da rivedere se Shopify espone un
+// Match sul messaggio, unico segnale disponibile. Da rivedere se Shopify espone un
 // codice tipizzato su ValidationUserError.
 function validationLimitReached(message: string) {
   const text = message.toLowerCase();

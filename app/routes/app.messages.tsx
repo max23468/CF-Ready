@@ -63,7 +63,7 @@ const SAVE_BAR = "cf-ready-messages";
 // resto finisce in uno scroll interno. Le righe si calcolano quindi dal testo, così il campo
 // cresce e nulla resta nascosto — nemmeno oltre i 200 caratteri, che è proprio il momento in
 // cui il merchant deve vedere tutto per decidere cosa tagliare.
-// ponytail: stima a 45 caratteri per riga, prudente per le colonne strette. Se Polaris
+// Stima a 45 caratteri per riga, prudente per le colonne strette. Se Polaris
 // introduce l'auto-ridimensionamento, questa funzione sparisce.
 function rowsFor(text: string) {
   return Math.max(2, Math.ceil((text.length + 1) / 45));

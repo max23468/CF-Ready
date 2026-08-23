@@ -59,8 +59,9 @@ annuale usano `STANDARD`, il comportamento nativo Shopify: nessuna proratazione
 calcolata dall'app.
 
 Gli addebiti sono di prova finché `BILLING_TEST` non vale `"false"`. La lettura
-scarta gli addebiti della modalità diversa da quella corrente: un addebito di
-prova non concede il diritto quando l'app addebita davvero.
+riconosce invece ogni sottoscrizione restituita da Shopify fra le
+`activeSubscriptions` e ogni acquisto in stato `ACTIVE`: il flag `test`
+descrive la transazione, non il diritto autorevole dell'installazione corrente.
 
 ## Stato commerciale normalizzato
 
