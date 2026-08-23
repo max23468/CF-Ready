@@ -107,7 +107,10 @@ merge, deploy e release, è quella definita dalla policy della repository.
 I finding P2/P3 della review restano advisory e non autorizzano modifiche:
 l'agente li implementa soltanto su richiesta esplicita del proprietario. Quando
 la review è conclusa e l'evidenza si riferisce all'HEAD esatto, li riepiloga e
-prosegue con la pubblicazione; i finding P0/P1 restano bloccanti.
+prosegue con la pubblicazione; i finding P0/P1 validi restano bloccanti. Il gate
+può scartare soltanto un falso finding riconoscibile in modo univoco e smentito
+dallo stato autorevole di GitHub, con condizioni strette e regressioni dedicate;
+non può riclassificare o ignorare un P0/P1 reale.
 
 La pulizia finale rimuove soltanto branch e worktree temporanei creati nel ciclo
 corrente e già assorbiti; controlla stash e altri residui senza alterare elementi
@@ -136,6 +139,10 @@ rilettura finale di PR, check, deploy, release e stato Git non sono completi.
   la PR con metodo `MERGE`, mai simulando o preparando uno squash. Dopo uno
   squash elimina il branch temporaneo; non eliminare mai `develop` dopo una
   promozione.
+- Dopo l'autorizzazione dell'owner, una promozione usa l'auto-merge nativo con
+  metodo `MERGE`: il metodo registrato da GitHub diventa evidenza autorevole per
+  i gate prima che il merge avvenga. Non abilitare auto-merge `SQUASH` o `REBASE`
+  sulle promozioni.
 - Commit e titoli PR seguono Conventional Commits. Non fare push diretti
   intenzionali su `main` o `develop`.
 - La ricevuta di deploy è l’unico dato che nasce dopo il merge, e non ha mai una

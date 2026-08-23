@@ -426,11 +426,11 @@ Rispetto alle alternative più ampie o invasive:
 | D-112 | Tipografia: grottesco geometrico di sistema per sito e materiali, nessun webfont, nessun font dichiarato dentro l’Admin. Sigla e wordmark in tracciati derivati da Jost (SIL OFL), peso 500. | Zero richieste di rete e nessuna dipendenza da font installati. Jost al posto del Futura per licenza: il Futura è commerciale e distribuito in bundle con macOS. |
 | D-113 | Nessuna dark mode del sito pubblico nella 1.0. | Una superficie in meno da mantenere e verificare. Decisione indipendente da Shopify: al 28 luglio 2026 l’Admin non ha dark mode nativa e, usando solo token Polaris, l’app la seguirebbe comunque da sola. |
 | D-114 | Presentare l’icona della listing con la sigla `CF`, accettando la raccomandazione Shopify di evitare il testo nell’icona. | Raccomandazione nelle best practice, non criterio di rifiuto nei requisiti; i monogrammi di due lettere sono diffusi fra le app approvate. Variante senza sigla pronta come rimedio, attivabile senza nuova approvazione (§24.5). |
-| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate `verify`, `react-doctor`, `dependency-review`, `e2e` e `codex-review` richiesti su `develop` e `main`; `codex-review` usa la review automatica all'apertura o al passaggio da draft a ready, richiede una nuova invocazione solo dopo un nuovo commit o per un retry, blocca finding P0/P1 e lascia P2/P3 advisory, lega l'esito allo SHA esatto, non pubblica commenti e ha permessi Issues in sola lettura; abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate già eseguiti, invalida naturalmente l'evidenza dopo ogni nuovo commit, blocca i finding gravi Codex senza trasformare P2/P3 in lavoro obbligatorio, impedisce all'automazione del repository di avviare il task agent tramite commenti, indirizza le security update nella corsia ordinaria, offre un canale privato per le vulnerabilità e conserva la promozione separata `develop` → `main`. |
+| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate `verify`, `react-doctor`, `dependency-review`, `e2e` e `codex-review` richiesti su `develop` e `main`; `codex-review` usa la review automatica all'apertura o al passaggio da draft a ready, richiede una nuova invocazione solo dopo un nuovo commit o per un retry, blocca finding P0/P1 validi e lascia P2/P3 advisory, lega l'esito allo SHA esatto, non pubblica commenti e ha permessi Issues in sola lettura. Il gate può scartare soltanto un falso finding riconoscibile in modo univoco e smentito dallo stato autorevole di GitHub, con condizioni strette e regressioni dedicate; non può riclassificare o ignorare un P0/P1 reale. Abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate già eseguiti, invalida naturalmente l'evidenza dopo ogni nuovo commit, blocca i finding gravi Codex senza trasformare P2/P3 in lavoro obbligatorio, impedisce all'automazione del repository di avviare il task agent tramite commenti, indirizza le security update nella corsia ordinaria, offre un canale privato per le vulnerabilità e conserva la promozione separata `develop` → `main`. |
 | D-116 | Usare React Router `8.3.0` con npm 12 e correggere nel manifest root, tramite `packageExtensions`, la sola peer dependency troppo restrittiva di `@shopify/shopify-app-react-router@1.2.1`. | Elimina `GHSA-qwww-vcr4-c8h2` senza fork o installazioni forzate; il gate completo prova la compatibilità effettiva mentre l'estensione resta rimovibile appena Shopify pubblica metadati compatibili. |
 | D-117 | Usare React Doctor con dipendenza locale fissata nel lockfile e workflow GitHub sempre sulla versione `latest`: scansione completa bloccante nel gate locale e Action ufficiale bloccante dai warning sulle modifiche delle PR. Le PR pulite restano silenziose; un falso positivo viene notificato, soppresso nel modo nativo più stretto con motivazione committata e rieseguito senza bypass. Tenere attivi score e share URL, disabilitare il controllo supply-chain esterno. | Mantiene riproducibile la verifica locale e applica al gate remoto le correzioni più recenti di React Doctor, con feedback inline senza duplicare i controlli dipendenze già coperti da npm e GitHub. Lo score è indicativo e non decide l’esito, che dipende da `blocking: warning`. |
 | D-118 | Le PR ordinarie puntano a `develop` e usano squash; `main` accetta soltanto promozioni autorizzate da `develop`, unite con merge commit. La cancellazione automatica dei branch resta disattivata e i soli branch temporanei vengono eliminati esplicitamente. | Preserva l’ascendenza tra integrazione e Production, evita il drift strutturale causato da squash indipendenti sui due rami e impedisce che una promozione elimini `develop`. |
-| D-119 | Abilitare l’auto-merge nativo in `develop` per le sole PR Dependabot minor/patch dopo `CI` e `React Doctor` verdi. Eliminare dopo il merge soltanto i branch `dependabot/*`; major e promozioni `develop` → `main` restano manuali. | Allinea CF Ready a SyncBay e Pratix, rende atomico il vincolo sullo SHA verificato, preserva gli eventi post-merge e non espone `develop` alla cancellazione globale dei branch. |
+| D-119 | Abilitare l’auto-merge nativo in `develop` per le sole PR Dependabot minor/patch dopo `CI` e `React Doctor` verdi. Eliminare dopo il merge soltanto i branch `dependabot/*`; le major restano manuali. Dopo l'autorizzazione dell'owner, le promozioni `develop` → `main` usano l'auto-merge nativo esclusivamente con metodo `MERGE`, così GitHub registra il metodo prima che i gate terminino. | Allinea CF Ready a SyncBay e Pratix, rende atomico il vincolo sullo SHA verificato, consente ai gate di verificare il metodo della promozione prima del merge, preserva gli eventi post-merge e non espone `develop` alla cancellazione globale dei branch. |
 | D-120 | La visibilità pubblica non rende il progetto open-source: nessuna licenza viene concessa finché l’owner non sceglie esplicitamente e aggiunge un file `LICENSE`. | Una licenza attribuisce diritti di riuso e distribuzione e non va dedotta dalla sola pubblicazione del codice. |
 | D-121 | `package.json#version` è la fonte canonica della versione Shopify. Ogni `shopify app deploy` rilasciato passa dal workflow GitHub Actions dell’ambiente e usa quella versione esatta con `--version`; una versione già rilasciata non viene riutilizzata e prima del successivo snapshot si incrementa il SemVer, usando un prerelease in Development quando opportuno. Il primo snapshot fisso Development è `0.1.0`. | Collega ogni snapshot al codice verificato, evita identificatori automatici come `cf-ready-1` e mantiene nomi leggibili senza collisioni. |
 | D-122 | Offrire `inline` come visualizzazione errori predefinita e `preventive` come opzione merchant; la Guida la consiglia quando è attiva la conferma ordine Shopify. | La prova live mostra che i box globali a Interaction impediscono la review silenziosa, ma possono apparire già al caricamento e richiedono una scelta informata. |
@@ -2767,7 +2767,9 @@ Configurazione minima GitHub:
 - tutti i risultati CI applicabili verificati verdi prima di ogni merge;
 - auto-merge verso `develop` per le sole PR Dependabot minor/patch, dopo `CI`
   e `React Doctor` verdi; pulizia dei soli branch `dependabot/*` già uniti;
-  major e promozioni verso `main` restano manuali.
+  le major restano manuali, mentre le promozioni verso `main`, dopo
+  l'autorizzazione dell'owner, usano l'auto-merge nativo solo con metodo
+  `MERGE`, registrato da GitHub prima del completamento dei gate.
 
 Il repository pubblico su GitHub Free usa branch protection su `develop` e
 `main`, con `develop` come branch predefinito, conversazioni
@@ -2792,9 +2794,12 @@ Il gate `codex-review` non pubblica commenti. La review nativa parte
 automaticamente all'apertura della PR o al passaggio da draft a ready, quindi il
 primo giro non richiede `@codex review`. Dopo un nuovo commit o per un retry
 l'agente pubblica una sola invocazione esatta e fidata; il workflow la osserva
-con permessi Issues in sola lettura. Finding P0/P1 dell'HEAD corrente bloccano,
-P2/P3 restano advisory dopo un breve assestamento, e segnali di SHA o tentativi
-precedenti non vengono riutilizzati. Un verdetto pulito con marker exact-HEAD,
+con permessi Issues in sola lettura. Finding P0/P1 validi dell'HEAD corrente
+bloccano, P2/P3 restano advisory dopo un breve assestamento, e segnali di SHA o
+tentativi precedenti non vengono riutilizzati. Il gate può scartare soltanto un
+falso finding riconoscibile in modo univoco e smentito dallo stato autorevole di
+GitHub, con condizioni strette e regressioni dedicate; non può riclassificare o
+ignorare un P0/P1 reale. Un verdetto pulito con marker exact-HEAD,
 una review nativa sul commit o la reaction positiva associata al giro corrente
 completano lo status. `workflow_dispatch` serve al bootstrap e ai retry
 manutentore senza eseguire codice non fidato della PR.
@@ -2860,7 +2865,8 @@ Usare la più recente versione stabile compatibile dell’intera matrice Shopify
 - revisione trimestrale allineata alle API Shopify;
 - Dependabot settimanale;
 - auto-merge verso `develop` delle sole PR Dependabot minor/patch dopo i gate
-  verdi; major e promozioni verso `main` restano manuali.
+  verdi; le major restano manuali e le promozioni autorizzate verso `main`
+  usano l'auto-merge nativo esclusivamente con metodo `MERGE`.
 
 Un alert senza percorso vulnerabile attivo può essere chiuso solo con motivazione
 verificabile e va rivalutato se cambia la superficie usata. Non forzare major

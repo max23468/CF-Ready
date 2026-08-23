@@ -15,8 +15,57 @@ export const reviewedCommit = (body = "") =>
 export const findingPriority = (body = "") =>
   body.match(/^(?:\*\*|<sub>)*(?:!?\[)?(P[0-3])(?: Badge)?(?:\]\([^)]*\)|\]\s*|\*\*)/m)?.[1];
 
+export const findingTitle = (body = "") =>
+  body
+    .split(/\r?\n/, 1)[0]
+    .trim()
+    .replace(/^\*\*|\*\*$/g, "")
+    .replace(/<\/?sub>/gi, "")
+    .replace(/!\[P[0-3] Badge\]\([^)]*\)/i, "")
+    .replace(/^P[0-3]\*\*\s*/i, "")
+    .trim();
+
+export const isVerifiedPromotionMergeFinding = (signal, pullRequest) =>
+  findingPriority(signal.body) === "P1" &&
+  findingTitle(signal.body).toLocaleLowerCase("it") ===
+    "preserva l’ascendenza di develop nella promozione" &&
+  pullRequest?.base?.ref === "main" &&
+  pullRequest?.head?.ref === "develop" &&
+  pullRequest.head.repo?.full_name === pullRequest.base.repo?.full_name &&
+  pullRequest.auto_merge?.merge_method === "merge" &&
+  pullRequest.merge_commit?.sha === pullRequest.merge_commit_sha &&
+  pullRequest.merge_commit?.parents?.length === 2 &&
+  pullRequest.merge_commit.parents[0]?.sha === pullRequest.base.sha &&
+  pullRequest.merge_commit.parents[1]?.sha === pullRequest.head.sha;
+
 export const isAutomaticFirstReview = (eventName, action) =>
   eventName === "pull_request_target" && ["opened", "ready_for_review"].includes(action);
+
+export const isAutoMergeRevalidation = (eventName, action) =>
+  eventName === "pull_request_target" &&
+  ["auto_merge_enabled", "auto_merge_disabled"].includes(action);
+
+export const reviewSignalContext = ({
+  action,
+  eventName,
+  headAvailableAt,
+  invocationCreatedAt,
+  pullRequestCreatedAt,
+  pullRequestUpdatedAt,
+}) => {
+  const automatic = isAutomaticFirstReview(eventName, action);
+  const autoMergeRevalidation = isAutoMergeRevalidation(eventName, action);
+  const revalidatesInvocation = autoMergeRevalidation && Boolean(invocationCreatedAt);
+  return {
+    includeInvocationReactions: !automatic && (!autoMergeRevalidation || revalidatesInvocation),
+    includePullRequestReactions: automatic || (autoMergeRevalidation && !revalidatesInvocation),
+    requestedAt: automatic
+      ? (pullRequestUpdatedAt ?? pullRequestCreatedAt)
+      : autoMergeRevalidation
+        ? (invocationCreatedAt ?? headAvailableAt)
+        : (invocationCreatedAt ?? headAvailableAt),
+  };
+};
 
 export const latestCodexInvocation = (comments, headAvailableAt) =>
   comments
@@ -33,8 +82,11 @@ export function classifyCodexReview({
   automatic = false,
   comments = [],
   headSha,
+  includeInvocationReactions = !automatic,
+  includePullRequestReactions = automatic,
   invocationReactions = [],
   now = Date.now(),
+  pullRequest,
   prReactions = [],
   requestedAt,
   reviewComments = [],
@@ -56,8 +108,15 @@ export function classifyCodexReview({
   );
   const exactSignals = [...exactInline, ...exactTopLevel, ...exactReviews];
 
+  const invalidatedPromotionFinding = exactSignals.some((signal) =>
+    isVerifiedPromotionMergeFinding(signal, pullRequest),
+  );
   const blockingFinding = exactSignals
-    .filter((signal) => ["P0", "P1"].includes(findingPriority(signal.body)))
+    .filter(
+      (signal) =>
+        ["P0", "P1"].includes(findingPriority(signal.body)) &&
+        !isVerifiedPromotionMergeFinding(signal, pullRequest),
+    )
     .sort((left, right) => signalTimestamp(right) - signalTimestamp(left))[0];
   if (blockingFinding) {
     return {
@@ -77,7 +136,10 @@ export function classifyCodexReview({
     }
   }
 
-  const reactions = automatic ? prReactions : invocationReactions;
+  const reactions = [
+    ...(includePullRequestReactions ? prReactions : []),
+    ...(includeInvocationReactions ? invocationReactions : []),
+  ];
   for (const reaction of reactions) {
     if (
       reaction.user?.login === CODEX_BOT &&
@@ -110,9 +172,11 @@ export function classifyCodexReview({
     );
     return {
       state: "success",
-      description: advisory
-        ? "Codex: solo finding P2/P3 advisory"
-        : "Codex ha approvato l'ultimo commit",
+      description: invalidatedPromotionFinding
+        ? "Codex: finding merge invalidato dallo stato GitHub"
+        : advisory
+          ? "Codex: solo finding P2/P3 advisory"
+          : "Codex ha approvato l'ultimo commit",
     };
   }
 
@@ -167,9 +231,11 @@ async function main() {
   const repository = process.env.GITHUB_REPOSITORY;
   const number = pullRequestNumber(event, process.env.PULL_REQUEST_NUMBER);
   const pullRequest = await request(`/repos/${repository}/pulls/${number}`);
+  pullRequest.merge_commit = pullRequest.merge_commit_sha
+    ? await request(`/repos/${repository}/commits/${pullRequest.merge_commit_sha}`)
+    : undefined;
   const headSha = pullRequest.head.sha;
   const headCommit = await request(`/repos/${repository}/commits/${headSha}`);
-  const automatic = isAutomaticFirstReview(process.env.GITHUB_EVENT_NAME, event.action);
   const headAvailableAt =
     event.action === "synchronize"
       ? event.pull_request.updated_at
@@ -194,14 +260,22 @@ async function main() {
     const invocationReactions = invocation
       ? await all(`/repos/${repository}/issues/comments/${invocation.id}/reactions`)
       : [];
-    const requestedAt = automatic
-      ? (event.pull_request?.updated_at ?? pullRequest.created_at)
-      : (invocation?.created_at ?? headAvailableAt);
+    const { includeInvocationReactions, includePullRequestReactions, requestedAt } =
+      reviewSignalContext({
+        action: event.action,
+        eventName: process.env.GITHUB_EVENT_NAME,
+        headAvailableAt,
+        invocationCreatedAt: invocation?.created_at,
+        pullRequestCreatedAt: pullRequest.created_at,
+        pullRequestUpdatedAt: event.pull_request?.updated_at,
+      });
     const result = classifyCodexReview({
-      automatic,
       comments,
       headSha,
+      includeInvocationReactions,
+      includePullRequestReactions,
       invocationReactions,
+      pullRequest,
       prReactions,
       requestedAt,
       reviewComments,

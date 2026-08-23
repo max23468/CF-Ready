@@ -5,9 +5,13 @@ import {
   CODEX_REVIEW_POLLING,
   classifyCodexReview,
   findingPriority,
+  findingTitle,
+  isAutoMergeRevalidation,
   isAutomaticFirstReview,
+  isVerifiedPromotionMergeFinding,
   latestCodexInvocation,
   pullRequestNumber,
+  reviewSignalContext,
 } from "./codex-review-gate.mjs";
 
 const headSha = "0123456789abcdef0123456789abcdef01234567";
@@ -25,6 +29,12 @@ const classify = (overrides = {}) =>
 test("legge la priorità solo dall'intestazione del finding", () => {
   assert.equal(findingPriority("**P2** Advisory che cita P0 e P1"), "P2");
   assert.equal(findingPriority("testo che cita P1"), undefined);
+  assert.equal(
+    findingTitle(
+      "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserva l’ascendenza di develop nella promozione**",
+    ),
+    "Preserva l’ascendenza di develop nella promozione",
+  );
 });
 
 test("blocca soltanto P0/P1 dell'HEAD corrente", () => {
@@ -53,6 +63,88 @@ test("blocca soltanto P0/P1 dell'HEAD corrente", () => {
       ],
     }).state,
     "pending",
+  );
+});
+
+test("invalida solo il falso P1 di ascendenza quando GitHub prova il merge corretto", () => {
+  const finding = {
+    user: bot,
+    original_commit_id: headSha,
+    created_at: "2026-08-09T12:00:02Z",
+    body: "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Preserva l’ascendenza di develop nella promozione**",
+  };
+  const review = {
+    user: bot,
+    commit_id: headSha,
+    submitted_at: "2026-08-09T12:00:03Z",
+    body: "",
+  };
+  const pullRequest = {
+    auto_merge: { merge_method: "merge" },
+    base: {
+      ref: "main",
+      sha: oldSha,
+      repo: { full_name: "max23468/CF-Ready" },
+    },
+    head: {
+      ref: "develop",
+      sha: headSha,
+      repo: { full_name: "max23468/CF-Ready" },
+    },
+    merge_commit_sha: "1111111111111111111111111111111111111111",
+    merge_commit: {
+      sha: "1111111111111111111111111111111111111111",
+      parents: [{ sha: oldSha }, { sha: headSha }],
+    },
+  };
+
+  assert.equal(isVerifiedPromotionMergeFinding(finding, pullRequest), true);
+  assert.deepEqual(classify({ pullRequest, reviewComments: [finding], reviews: [review] }), {
+    state: "success",
+    description: "Codex: finding merge invalidato dallo stato GitHub",
+  });
+  assert.equal(
+    classify({
+      pullRequest: { ...pullRequest, auto_merge: { merge_method: "squash" } },
+      reviewComments: [finding],
+      reviews: [review],
+    }).state,
+    "failure",
+  );
+  assert.equal(
+    classify({
+      pullRequest: { ...pullRequest, auto_merge: null },
+      reviewComments: [finding],
+      reviews: [review],
+    }).state,
+    "failure",
+  );
+  assert.equal(
+    classify({
+      pullRequest: {
+        ...pullRequest,
+        merge_commit: {
+          ...pullRequest.merge_commit,
+          parents: [{ sha: oldSha }, { sha: oldSha }],
+        },
+      },
+      reviewComments: [finding],
+      reviews: [review],
+    }).state,
+    "failure",
+  );
+  assert.equal(
+    classify({
+      pullRequest,
+      reviewComments: [
+        {
+          ...finding,
+          body: "**P1** Correggi un difetto reale\n\nNon basta dire: Preserva l’ascendenza di develop nella promozione",
+        },
+      ],
+      reviews: [review],
+    }).state,
+    "failure",
   );
 });
 
@@ -107,6 +199,34 @@ test("i giri successivi usano la reaction dell'invocazione corrente", () => {
   );
 });
 
+test("la rivalidazione auto-merge conserva la reaction del retry esplicito", () => {
+  const context = reviewSignalContext({
+    action: "auto_merge_enabled",
+    eventName: "pull_request_target",
+    headAvailableAt: requestedAt,
+    invocationCreatedAt: "2026-08-09T12:00:05Z",
+  });
+  assert.deepEqual(context, {
+    includeInvocationReactions: true,
+    includePullRequestReactions: false,
+    requestedAt: "2026-08-09T12:00:05Z",
+  });
+  assert.equal(
+    classify({
+      ...context,
+      prReactions: [{ user: bot, content: "+1", created_at: "2026-08-09T12:00:01Z" }],
+    }).state,
+    "pending",
+  );
+  assert.equal(
+    classify({
+      ...context,
+      invocationReactions: [{ user: bot, content: "+1", created_at: "2026-08-09T12:00:06Z" }],
+    }).state,
+    "success",
+  );
+});
+
 test("seleziona solo un'invocazione esatta, fidata e successiva all'HEAD", () => {
   const comments = [
     {
@@ -145,7 +265,27 @@ test("il primo giro è automatico solo su apertura o ready", () => {
   assert.equal(isAutomaticFirstReview("pull_request_target", "opened"), true);
   assert.equal(isAutomaticFirstReview("pull_request_target", "ready_for_review"), true);
   assert.equal(isAutomaticFirstReview("pull_request_target", "synchronize"), false);
+  assert.equal(isAutomaticFirstReview("pull_request_target", "auto_merge_enabled"), false);
   assert.equal(isAutomaticFirstReview("workflow_dispatch", undefined), false);
+});
+
+test("la rivalidazione auto-merge riusa i segnali automatici dalla data dell'HEAD", () => {
+  assert.equal(isAutoMergeRevalidation("pull_request_target", "auto_merge_enabled"), true);
+  assert.equal(isAutoMergeRevalidation("pull_request_target", "auto_merge_disabled"), true);
+  assert.deepEqual(
+    reviewSignalContext({
+      action: "auto_merge_enabled",
+      eventName: "pull_request_target",
+      headAvailableAt: requestedAt,
+      pullRequestCreatedAt: "2026-08-09T11:00:00Z",
+      pullRequestUpdatedAt: "2026-08-09T12:00:10Z",
+    }),
+    {
+      includeInvocationReactions: false,
+      includePullRequestReactions: true,
+      requestedAt,
+    },
+  );
 });
 
 test("gli errori operativi bloccano in assenza di una review conclusa più recente", () => {
@@ -175,6 +315,8 @@ test("il workflow usa codice trusted e non richiede commenti al primo giro", asy
     "utf8",
   );
   assert.match(workflow, /pull_request_target:/);
+  assert.match(workflow, /auto_merge_enabled/);
+  assert.match(workflow, /auto_merge_disabled/);
   assert.match(workflow, /issue_comment:/);
   assert.match(workflow, /github\.event\.comment\.body == '@codex review'/);
   assert.match(workflow, /github\.event\.comment\.author_association == 'OWNER'/);

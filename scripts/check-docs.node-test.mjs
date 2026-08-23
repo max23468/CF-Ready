@@ -429,7 +429,10 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
     "utf8",
   );
   assert.match(workflow, /pull_request_target:/);
-  assert.match(workflow, /types: \[opened, synchronize, reopened, ready_for_review\]/);
+  assert.match(
+    workflow,
+    /types: \[opened, synchronize, reopened, ready_for_review, auto_merge_enabled, auto_merge_disabled\]/,
+  );
   assert.match(workflow, /issue_comment:/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(
