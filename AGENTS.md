@@ -131,8 +131,16 @@ rilettura finale di PR, check, deploy, release e stato Git non sono completi.
 
 - Le PR ordinarie puntano a `develop` e usano squash. `main` accetta soltanto
   promozioni autorizzate da `develop`, unite con merge commit per preservare
-  l’ascendenza tra i due rami. Dopo uno squash elimina il branch temporaneo;
-  non eliminare mai `develop` dopo una promozione.
+  l’ascendenza tra i due rami. Prima del merge l’head della PR resta quindi il
+  tip di `develop`: il commit di promozione a due parent nasce soltanto unendo
+  la PR con metodo `MERGE`, mai simulando o preparando uno squash. Dopo uno
+  squash elimina il branch temporaneo; non eliminare mai `develop` dopo una
+  promozione.
+- Nella review di una promozione, identifica l’head dalla PR GitHub
+  (`head.ref=develop` e relativo SHA), non dal commit sintetico costruito
+  nell’ambiente di review. Verifica il metodo `MERGE` e i due parent tramite il
+  candidato restituito da GitHub; un commit sintetico locale a parent singolo
+  non è il commit che verrà unito e non prova una perdita di ascendenza.
 - Commit e titoli PR seguono Conventional Commits. Non fare push diretti
   intenzionali su `main` o `develop`.
 - La ricevuta di deploy è l’unico dato che nasce dopo il merge, e non ha mai una
