@@ -100,9 +100,16 @@ export async function syncBillingAccount(
     today,
     timeZone,
     pricingGeneration,
-  }: { today: string; timeZone: string; pricingGeneration: PricingGeneration },
+    storedAccount,
+  }: {
+    today: string;
+    timeZone: string;
+    pricingGeneration: PricingGeneration;
+    storedAccount?: BillingAccount | null;
+  },
 ): Promise<BillingAccount> {
-  const stored = await readBillingAccount(db, shopDomain);
+  const stored =
+    storedAccount === undefined ? await readBillingAccount(db, shopDomain) : storedAccount;
 
   const next = nextAccount(stored, billing, { today, timeZone, pricingGeneration });
   const now = new Date().toISOString();
