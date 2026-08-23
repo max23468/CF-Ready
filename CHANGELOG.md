@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.24 — 23 agosto 2026
+
+- la Home avvia in parallelo le letture indipendenti del contesto e del billing
+  Shopify, eliminando un round trip seriale dal percorso che precede il primo
+  contenuto senza cambiare autorità Shopify, sincronizzazione o fail-open;
+- i timing tecnici della riconciliazione restano disponibili e una regressione
+  verifica che il billing inizi prima della risposta del contesto Shopify.
+
 ## 0.9.23 — 23 agosto 2026
 
 - lo stack Shopify passa ad API 14, App React Router 2 e Session Storage 6,
