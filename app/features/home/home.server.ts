@@ -42,8 +42,11 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   timings.push(`auth;dur=${(performance.now() - authenticationStartedAt).toFixed(1)}`);
   const db = context.get(databaseContext);
 
-  const state = await reconcile(admin, db, session.shop, (name, durationMs) => {
-    timings.push(`${name};dur=${durationMs.toFixed(1)}`);
+  const state = await reconcile(admin, db, session.shop, {
+    prefetchBilling: true,
+    reportTiming: (name, durationMs) => {
+      timings.push(`${name};dur=${durationMs.toFixed(1)}`);
+    },
   });
   const config = readConfig(state.validation?.metafield?.jsonValue);
   const localStateStartedAt = performance.now();
