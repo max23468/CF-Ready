@@ -45,7 +45,7 @@ export default function App() {
   }, [navigation.state]);
 
   return (
-    <AppProvider embedded apiKey={apiKey}>
+    <AppProvider apiKey={apiKey}>
       <s-app-nav>
         {NAV.map((item) => (
           <s-link key={item.href} href={item.href}>
