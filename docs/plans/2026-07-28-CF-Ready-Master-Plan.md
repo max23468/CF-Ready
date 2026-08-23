@@ -4086,7 +4086,7 @@ Segnaposto lasciati nel sito, da sostituire nelle milestone indicate:
 
 | Segnaposto | Dove | Sostituzione |
 | --- | --- | --- |
-| Pulsante disabilitato «Presto sullo Shopify App Store» | richiami all’installazione su tutte le pagine | pulsante attivo verso la listing, quando esiste (M11) |
+| ~~Pulsante disabilitato «Presto sullo Shopify App Store»~~ | richiami all’installazione su tutte le pagine | chiuso dopo l'approvazione Shopify: CTA IT/EN attivi verso `https://apps.shopify.com/cf-ready` |
 | Nessuno screenshot dell’app | Home | screenshot reali prodotti da M9 (§24.5, §9.3 del brand) |
 | ~~Identità del titolare limitata al nome~~ | Privacy e Termini | chiuso in M9: nome della persona fisica titolare, iniettato al deploy dal secret `OWNER_LEGAL_NAME`. Nessun indirizzo geografico, rischio accettato dall'owner |
 
@@ -4148,7 +4148,7 @@ Gate:
   Git Cloudflare disattivata e target Production verificato;
 - restore drill e soglie operative documentati.
 
-### M9 — Release candidate e review
+### M9 — Release candidate e review · approvazione Shopify ottenuta · inglese aperto
 
 Versione `0.9.x`.
 
@@ -4196,10 +4196,15 @@ Decisioni prese durante la milestone:
   alla sessione staff del dev store; la feature image è generata dal sistema
   brand.
 
-Il gate «approvazione Shopify» non dipende da noi e resta aperto finché la
-submission non viene autorizzata ed eseguita. La milestone si porta fino a
-submission-ready: i quattro punti che la separano dalla submission sono elencati
-nell'audit e ripresi nel record di readiness.
+La submission, inviata il 4 agosto 2026 e sospesa il 10 agosto sui requisiti
+1.2.2 e 2.1.1, è stata corretta con la `0.9.20`. La promozione Production, il
+deploy, lo smoke, il readback e la release del candidato sono riusciti il
+10 agosto 2026. Il 23 agosto 2026 il Partner Dashboard mostra l'app e la
+listing in stato `Published`, quindi il gate «approvazione Shopify» è chiuso.
+La listing resta a visibilità limitata; l'italiano è pubblicato come lingua
+primaria, mentre l'inglese è incompleto e non pubblicato. M9 non è quindi
+formalmente chiusa finché la lingua inglese non viene completata. Il canary
+reale, `v1.0.0` e la piena visibilità restano rispettivamente M10, M11 e M12.
 
 ### M10 — Canary store reale
 
@@ -4608,15 +4613,18 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
    nell'Admin reale, compreso il collaudo successivo alla correzione responsive
    `0.4.31`; la UI embedded non richiede illustrazioni aggiuntive.
 4. **Pacchetto visivo pubblico** — testi del sito completati in M7 secondo la
-   direzione fissata in `docs/brand/brand-foundation.md` §9. Listing completa,
-   screenshot e didascalie restano da produrre in M9.
+   direzione fissata in `docs/brand/brand-foundation.md` §9. Listing italiana,
+   screenshot e materiali di review sono stati accettati da Shopify; resta da
+   completare e pubblicare la lingua inglese della listing.
 5. **Rifiniture di brand non bloccanti**
    - ~~correzione ottica della crenatura del wordmark~~ — **chiusa il 28 luglio 2026**, valori in `docs/brand/brand-foundation.md` §4.4;
    - ~~conferma delle dimensioni richieste dai requisiti App Store~~ — **chiusa il 28 luglio 2026**, specifiche in §24.5;
    - ~~decisione sulla sigla nell’icona della listing~~ — **chiusa il 28 luglio 2026**: rischio accettato, si presenta l’icona con la sigla (D-114);
    - ✅ riverifica del marchio dentro l’Admin reale completata in M1; resta la
      verifica sullo store reale in M10;
-   - feature image 1600 × 900, da produrre in M9 insieme agli screenshot — richiede contenuto reale.
+   - ~~feature image 1600 × 900~~ — consegnata con i materiali di review
+     accettati da Shopify; sorgenti SVG e PNG IT/EN riutilizzabili sono in
+     `docs/brand/assets/`.
 6. **Licenza del repository** — la repo è pubblica ma non open-source. La scelta
    tra una licenza permissiva, copyleft o nessuna concessione resta
    esplicitamente all’owner; fino ad allora non si aggiunge `LICENSE` e vale
