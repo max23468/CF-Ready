@@ -4,9 +4,9 @@ Ready-to-paste listing copy. The Italian version is
 [`listing-it.md`](listing-it.md); the two must stay aligned — if a fact changes,
 change it in both within the same edit.
 
-Italian is the primary published listing language. This English copy remains
-the aligned source for the additional language, which the Partner Dashboard
-still marks as incomplete and unpublished as of 23 August 2026.
+Italian is the primary published listing language. The Partner Dashboard
+marked this aligned English listing `Live` on 23 August 2026; both languages
+now appear under published languages and no unpublished language remains.
 
 Field character limits must be **reconfirmed in the Partner Dashboard when
 filling the listing in**. Actual lengths are stated below each text so a tighter
@@ -22,79 +22,61 @@ for amounts, `extensions/cf-ready-validation/` for checkout behaviour.
 
 | Field | Value |
 | --- | --- |
-| App name | CF Ready — Codice Fiscale nel Checkout |
+| App name | CF Ready - Codice Fiscale |
 | Short name in Admin | CF Ready |
 | Handle | `cf-ready` |
-| Proposed category | Store management → Tax and compliance — **to be checked against the real list** in the Partner Dashboard: this is a guess, not a verified category |
-| Availability | merchants in Italy only |
+| Primary category | Store management → Finances → Taxes |
+| Secondary category | Marketing and conversion → Checkout → Checkout - Other |
+| Geographic requirement | merchant must ship to Italy |
 | Icon | `docs/brand/assets/png/icon-app-1200.png` |
 | Feature image | `docs/brand/assets/png/feature-image-en-1600.png` |
 
 The feature image needs alt text alongside it:
 
-> The Codice Fiscale and PEC fields of the Italian checkout, showing the
-> "Valid format" result.
+> CF Ready - Codice Fiscale (Italian tax code) at checkout
 
 It describes what is visible, not what we would like the reader to conclude: alt
 text that repeats the tagline is useless to someone who cannot see the image.
 
-## Tagline
+## App card subtitle
 
-> Codice Fiscale and PEC, required and validated at Italian checkout.
+> Codice Fiscale (Italian tax code) and PEC validation.
 
-**67 characters.**
+**53/62 characters.**
 
 ## Introduction
 
-> CF Ready makes the Italian tax code required at checkout and checks that it is
-> formally correct before the order is completed, using the tax field Shopify
-> already exposes for Italy.
+> Makes Codice Fiscale, the Italian tax code, required at checkout and formally
+> validates it.
 
-**181 characters.**
+**91/100 characters.**
 
-## Description
+## App details
 
-> **The problem.** Italian merchants who invoice their B2C orders need the
-> customer's Codice Fiscale — the Italian tax code. An order without it means
-> chasing the customer by email and issuing the invoice late. Shopify shows the
-> Italian tax fields at checkout, but offers no way to make them required or to
-> check what was typed.
->
-> **What CF Ready does.** It makes the Codice Fiscale optional or required, and
-> verifies that it is formally correct — length, alphabet, month, day and check
-> character — before the order is completed. The same applies to the PEC address,
-> Italy's certified email, which you can leave out or require alongside the tax
-> code. The two rules are independent.
->
-> **It uses the field that is already there.** CF Ready adds no checkout fields:
-> it acts on the localized tax fields Shopify itself shows when delivery is in
-> Italy. No theme changes, no code to paste, no Shopify Plus — it works on
-> standard plans.
->
-> **It does not block legitimate sales.** If the configuration cannot be read, if
-> the entitlement has lapsed or if anything goes wrong, checkout stays open. A
-> foreign customer, who never even sees the Italian fields, is never blocked.
->
-> **What it does not do.** Validation is formal, not registry-based: CF Ready
-> does not check with the Italian Revenue Agency that a code exists or belongs to
-> whoever typed it, and does not certify that a formally valid address is a
-> genuinely active PEC mailbox. It does not issue invoices and does not handle
-> Italian e-invoicing, VAT numbers or SDI recipient codes. It does not operate in
-> POS. Later generations of recurring subscription orders are not covered:
-> validation runs at checkout, not on the automatic renewals that follow.
+> Shopify shows Italian tax fields at checkout but cannot make them required or
+> validate them. CF Ready does: Codice Fiscale, the Italian tax code, and PEC can
+> be optional or required, with formal validation before order completion. It
+> adds no fields, changes no theme, and does not require Plus. If the app is
+> unavailable, checkout stays open, and foreign customers are never blocked.
+> Validation is formal, not identity-based: it does not certify that a tax code
+> belongs to the person entering it.
 
-**1 671 characters**, formatting excluded.
+**496/500 characters.**
 
 ## Key features
 
-1. **Codice Fiscale required and validated** — formal correctness checked before
-   the order is completed.
-2. **PEC as an independent rule** — require it alongside the tax code, or leave
-   it out.
-3. **No theme changes** — uses the tax fields Shopify already exposes for Italy.
-4. **Foreign customers excluded** — the rule applies only when delivery is
-   Italian.
-5. **Never blocks on failure** — if the app is unavailable, checkout stays open.
+1. `Codice Fiscale (Italian tax code) required and formally validated at checkout.`
+2. `PEC as an independent rule: require it with Codice Fiscale or leave it out.`
+3. `No theme changes: uses the tax fields Shopify already provides for Italy.`
+4. `Foreign customers excluded: the rule applies only to Italian deliveries.`
+5. `Never blocks on errors: checkout always stays open.`
+
+## Search terms
+
+`Codice Fiscale`, `PEC`, `Invoice`, `Tax`, `Checkout`.
+
+The web-search title and meta description are shared with the primary listing
+and can only be edited there.
 
 ## Channels and declared limitations
 
@@ -147,7 +129,8 @@ must state the same figure.
 
 | Item | URL |
 | --- | --- |
-| Support | `https://cf-ready.pages.dev/en/support` |
+| Support | `https://cf-ready.pages.dev/support` (inherited from the primary listing) |
+| Developer website | `https://cf-ready.pages.dev/en/` |
 | Privacy | `https://cf-ready.pages.dev/en/privacy` |
 | Terms | `https://cf-ready.pages.dev/en/terms` |
 | Contact | `cfready@icloud.com` |

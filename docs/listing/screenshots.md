@@ -6,8 +6,11 @@ del [brand](../brand/brand-foundation.md) e da §24.5 del
 ridiscutono, si applicano.
 
 **Chi li produce:** Codex, dal dev store `cf-ready-dev.myshopify.com`.
-Servono **due serie complete**, una con Admin in italiano e una in inglese: non
-si mescolano lingue dentro la stessa serie.
+La serie pubblicata in M9 è unica, con Admin e didascalie in italiano, e viene
+riutilizzata nelle listing italiana e inglese. Nella listing inglese gli alt
+text sono localizzati: è la scelta finale dell'owner del 23 agosto 2026. Una
+futura serie con Admin inglese dovrà essere completa; non si mescolano lingue
+dentro la stessa serie.
 
 ## Regole valide per tutta la serie
 
@@ -47,16 +50,16 @@ nell'immagine marchi Shopify.
 
 ## Didascalie
 
-Una frase per schermata, 8–10 parole. Le due lingue dicono la stessa cosa: se
-una cambia, cambia anche l'altra.
+La didascalia visibile è in italiano. La listing inglese usa gli stessi file e
+descrive ogni immagine con un alt text inglese coerente.
 
-| # | Italiano | English |
+| # | Didascalia visibile | Alt text inglese |
 | --- | --- | --- |
-| 1 | Tre modalità per ogni campo, indipendenti fra loro. | Three modes per field, each one independent. |
-| 2 | Validazione attiva: una sola per store, sempre. | Validation active: one per store, always. |
-| 3 | I messaggi al cliente, in italiano e in inglese. | The messages your customer sees, in both languages. |
-| 4 | Configurazione guidata, senza toccare il tema. | Guided setup, without touching your theme. |
-| 5 | Codice Fiscale sbagliato: l'ordine non passa. | Wrong tax code: the order does not go through. |
+| 1 | Tre modalità per ogni campo, indipendenti fra loro. | Rules page: Codice Fiscale required, PEC optional. |
+| 2 | Validazione attiva: una sola per store, sempre. | App Home with active validation and plan status. |
+| 3 | I messaggi al cliente, in italiano e in inglese. | Messages page with customer-facing text in Italian and English. |
+| 4 | Configurazione guidata, senza toccare il tema. | A guided setup step showing the available choices. |
+| 5 | Codice Fiscale sbagliato: l'ordine non passa. | Codice Fiscale field at checkout showing a format error. |
 
 ## Consegna
 
@@ -66,8 +69,9 @@ Il repository conserva questo piano di cattura e le didascalie, che sono la
 parte che deve restare coerente con il prodotto; i file vivono dove servono.
 
 Ne consegue che la prova della loro esistenza non è un file in Git ma la
-listing stessa: chi aggiorna la readiness registra chi li ha caricati e quando,
-senza spacciare la dichiarazione per una verifica.
+listing stessa. Il readback live del 23 agosto 2026 ha verificato feature media,
+cinque screenshot desktop e alt text nelle due lingue; la ricevuta è nel
+[`release-readiness-1.0`](../runbooks/release-readiness-1.0.md).
 
 ## Sito pubblico
 
