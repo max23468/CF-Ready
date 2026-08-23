@@ -16,35 +16,69 @@ import {
   appState,
 } from "../support/lifecycle";
 
-test("la Home avvia il billing mentre attende il contesto Shopify", async () => {
+test("la Home legge contesto e billing con una sola chiamata Shopify iniziale", async () => {
   const shop = await insertShop("prefetch-billing.example.myshopify.com");
-  const calls: string[] = [];
-  let resolveContext!: (response: Response) => void;
-  const contextResponse = new Promise<Response>((resolve) => {
-    resolveContext = resolve;
-  });
+  const queries: string[] = [];
+  const context = shopContext("IT", false);
   const admin = {
     graphql: async (query: string) => {
-      if (query.includes("currentAppInstallation")) {
-        calls.push("billing");
-        return Response.json(SENZA_ADDEBITI);
-      }
-      calls.push("context");
-      return contextResponse;
+      queries.push(query);
+      return Response.json({
+        data: { ...context.data, ...SENZA_ADDEBITI.data },
+      });
     },
   };
 
-  const pending = reconcile(admin, env.DB, shop, { prefetchBilling: true });
-  await Promise.resolve();
-  await Promise.resolve();
-  const billingStartedBeforeContextResolved = calls.includes("billing");
+  const state = await reconcile(admin, env.DB, shop, { prefetchBilling: true });
 
-  resolveContext(Response.json(shopContext("IT", false)));
-  const state = await pending;
-
-  expect(billingStartedBeforeContextResolved).toBe(true);
-  expect(calls.slice(0, 2)).toEqual(["context", "billing"]);
+  expect(queries).toHaveLength(1);
+  expect(queries[0]).toContain("validations(first: 100");
+  expect(queries[0]).toContain("currentAppInstallation");
   expect(state.errorCode).toBeNull();
+});
+
+test("un errore billing nello snapshot Home resta fail-open senza perdere il contesto", async () => {
+  const shop = await insertShop("snapshot-billing-fallito.example.myshopify.com");
+  const context = shopContext("IT", false);
+  const admin = {
+    graphql: async () =>
+      Response.json({
+        data: { ...context.data, currentAppInstallation: null },
+        errors: [
+          {
+            message: "billing non disponibile",
+            path: ["currentAppInstallation"],
+          },
+        ],
+      }),
+  };
+
+  const state = await reconcile(admin, env.DB, shop, { prefetchBilling: true });
+
+  expect(state.shopName).toBe("Store di prova");
+  expect(state.entitlement).toEqual(SENZA_DIRITTO);
+  expect(state.errorCode).toBe("billing_read_failed");
+});
+
+test("la riconciliazione riusa la lettura iniziale dell'account billing D1", async () => {
+  const shop = await insertShop("billing-d1-unica.example.myshopify.com");
+  let billingAccountReads = 0;
+  const db = new Proxy(env.DB, {
+    get(target, property) {
+      if (property === "prepare") {
+        return (sql: string) => {
+          if (sql.includes("FROM billing_accounts b JOIN shops s")) billingAccountReads += 1;
+          return target.prepare(sql);
+        };
+      }
+      const value = target[property as keyof D1Database];
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+
+  await reconcile(adminStub([shopContext("IT", false), SENZA_ADDEBITI]), db, shop);
+
+  expect(billingAccountReads).toBe(1);
 });
 
 test("uno store non italiano viene bloccato e la Validation disattivata", async () => {

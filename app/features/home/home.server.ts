@@ -25,10 +25,8 @@ import type { PlanKind } from "../../plans.server";
 import { authenticate } from "../../shopify.server";
 import {
   queryContext,
-  readAddress2Declaration,
-  readOnboarding,
+  readHomeState,
   reconcile,
-  validationEnabledSince,
   withValidationLock,
   writeValidation,
 } from "../../validation.server";
@@ -42,20 +40,22 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   timings.push(`auth;dur=${(performance.now() - authenticationStartedAt).toFixed(1)}`);
   const db = context.get(databaseContext);
 
-  const state = await reconcile(admin, db, session.shop, {
+  const statePromise = reconcile(admin, db, session.shop, {
     prefetchBilling: true,
     reportTiming: (name, durationMs) => {
       timings.push(`${name};dur=${durationMs.toFixed(1)}`);
     },
   });
-  const config = readConfig(state.validation?.metafield?.jsonValue);
   const localStateStartedAt = performance.now();
-  const [onboarding, address2Declaration, enabledSince] = await Promise.all([
-    readOnboarding(db, session.shop),
-    readAddress2Declaration(db, session.shop),
-    validationEnabledSince(db, session.shop),
+  const localStatePromise = readHomeState(db, session.shop).then((localState) => {
+    timings.push(`d1_home;dur=${(performance.now() - localStateStartedAt).toFixed(1)}`);
+    return localState;
+  });
+  const [state, { onboarding, address2Declaration, enabledSince }] = await Promise.all([
+    statePromise,
+    localStatePromise,
   ]);
-  timings.push(`d1_home;dur=${(performance.now() - localStateStartedAt).toFixed(1)}`);
+  const config = readConfig(state.validation?.metafield?.jsonValue);
 
   const remaining = remainingTrialDays(state.trial, state.today);
   const payload = {
@@ -176,6 +176,7 @@ async function subscribe(
         today,
         timeZone: shop.ianaTimezone,
         pricingGeneration: currentPricingGeneration(trial, storedAccount, today),
+        storedAccount,
       });
       const plan = planFor(currentPricingGeneration(trial, account, today), kind);
       if (!plan) return { ok: false, errorCode: "generic" };

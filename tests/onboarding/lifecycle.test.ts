@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
-import { readOnboarding, saveOnboarding } from "../../app/validation.server";
+import { readHomeState, readOnboarding, saveOnboarding } from "../../app/validation.server";
 import { insertShop } from "../support/lifecycle";
 
 test("riaprire l'onboarding non lo riporta a in corso", async () => {
@@ -28,4 +28,33 @@ test("riaprire l'onboarding non lo riporta a in corso", async () => {
   // torna indietro, altrimenti la checklist della Home ricomparirebbe (D-063).
   const state = await readOnboarding(env.DB, shop);
   expect(state.status).toBe("completed");
+});
+
+test("la Home ricostruisce onboarding, dichiarazione e ultima attivazione con una sola lettura", async () => {
+  const shop = await insertShop("home-state.example.myshopify.com");
+  await env.DB.prepare(
+    `INSERT INTO app_state (
+       shop_id, onboarding_status, onboarding_step, validation_enabled,
+       address2_conflict_declared_at, updated_at
+     ) VALUES ((SELECT id FROM shops WHERE shop_domain = ?), 'in_progress', 3, 1, ?, ?)`,
+  )
+    .bind(shop, "2026-08-01T10:00:00.000Z", "2026-08-01T10:00:00.000Z")
+    .run();
+  await env.DB.prepare(
+    `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
+     SELECT id, 'validation_enabled', 'validation', ? FROM shops WHERE shop_domain = ?`,
+  )
+    .bind("2026-08-02T11:00:00.000Z", shop)
+    .run();
+
+  expect(await readHomeState(env.DB, shop)).toEqual({
+    onboarding: {
+      status: "in_progress",
+      step: 3,
+      errorCode: null,
+      validationEnabled: true,
+    },
+    address2Declaration: "2026-08-01T10:00:00.000Z",
+    enabledSince: "2026-08-02T11:00:00.000Z",
+  });
 });
