@@ -29,6 +29,7 @@ test("la recensione si chiede solo alle condizioni di §15.10", () => {
     validationEnabled: true,
     errorCode: null,
     enabledSince: new Date(now - 8 * day).toISOString(),
+    partnerDevelopment: false,
   };
 
   expect(reviewIsDue(ready, now)).toBe(true);
@@ -43,6 +44,9 @@ test("la recensione si chiede solo alle condizioni di §15.10", () => {
   expect(reviewIsDue({ ...ready, onboarding: "in_progress" }, now)).toBe(false);
   expect(reviewIsDue({ ...ready, validationEnabled: false }, now)).toBe(false);
   expect(reviewIsDue({ ...ready, errorCode: "validation_readback_failed" }, now)).toBe(false);
+  // Nei partner development store Shopify mostra una modale che non può inviare la recensione
+  // e la ripropone a ogni Home: il tipo autorevole dello store la sopprime alla radice.
+  expect(reviewIsDue({ ...ready, partnerDevelopment: true }, now)).toBe(false);
   // Mai attivata: non c'è un momento da cui contare.
   expect(reviewIsDue({ ...ready, enabledSince: null }, now)).toBe(false);
 });
