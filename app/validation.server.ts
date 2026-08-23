@@ -32,6 +32,7 @@ export {
 export {
   persistValidationState,
   readAddress2Declaration,
+  readHomeState,
   readOnboarding,
   saveAddress2Declaration,
   saveOnboarding,
@@ -45,6 +46,7 @@ export {
   findValidation,
   mutationError,
   queryContext,
+  queryHomeSnapshot,
 } from "./validation/shopify.server";
 export {
   FUNCTION_HANDLE,

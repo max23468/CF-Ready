@@ -97,6 +97,43 @@ export async function saveAddress2Declaration(
 
 export type OnboardingStatus = "not_started" | "in_progress" | "completed";
 
+export async function readHomeState(db: D1Database, shopDomain: string) {
+  const row = await db
+    .prepare(
+      `SELECT a.onboarding_status, a.onboarding_step, a.last_error_code,
+              a.validation_enabled, a.address2_conflict_declared_at,
+              (SELECT event.occurred_at
+                 FROM app_events event
+                WHERE event.shop_id = shop.id
+                  AND event.event_name = 'validation_enabled'
+                ORDER BY event.occurred_at DESC
+                LIMIT 1) AS validation_enabled_since
+         FROM shops shop
+         LEFT JOIN app_state a ON a.shop_id = shop.id
+        WHERE shop.shop_domain = ?`,
+    )
+    .bind(shopDomain)
+    .first<{
+      onboarding_status: OnboardingStatus | null;
+      onboarding_step: number | null;
+      last_error_code: string | null;
+      validation_enabled: number | null;
+      address2_conflict_declared_at: string | null;
+      validation_enabled_since: string | null;
+    }>();
+
+  return {
+    onboarding: {
+      status: row?.onboarding_status ?? "not_started",
+      step: Math.min(4, Math.max(1, row?.onboarding_step ?? 1)),
+      errorCode: row?.last_error_code ?? null,
+      validationEnabled: Boolean(row?.validation_enabled),
+    },
+    address2Declaration: row?.address2_conflict_declared_at ?? null,
+    enabledSince: row?.validation_enabled_since ?? null,
+  };
+}
+
 export async function readOnboarding(db: D1Database, shopDomain: string) {
   const row = await db
     .prepare(

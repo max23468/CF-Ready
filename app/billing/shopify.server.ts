@@ -75,7 +75,7 @@ type BillingResponse = {
   errors?: { message: string }[];
 };
 
-type BillingInstallation = NonNullable<BillingResponse["data"]>["currentAppInstallation"];
+export type BillingInstallation = NonNullable<BillingResponse["data"]>["currentAppInstallation"];
 
 type Admin = {
   graphql: (query: string, options?: { variables?: Record<string, unknown> }) => Promise<Response>;
@@ -83,22 +83,29 @@ type Admin = {
 
 // Shopify è la fonte autorevole: lo stato commerciale si legge sempre da qui, mai dal
 // ritorno di un redirect di approvazione.
-export async function readBilling(admin: Admin): Promise<ShopifyBilling> {
+export async function readBilling(
+  admin: Admin,
+  initialInstallation?: BillingInstallation,
+): Promise<ShopifyBilling> {
   let after: string | null = null;
+  let installation = initialInstallation;
   let subscription: BillingInstallation["activeSubscriptions"][number] | undefined;
   let oneTime: BillingInstallation["oneTimePurchases"]["nodes"][number] | undefined;
   let pendingOneTime = false;
   const cursors = new Set<string>();
 
   do {
-    const response = await admin.graphql(BILLING_QUERY, { variables: { after } });
-    const body = (await response.json()) as BillingResponse;
-    if (!body.data || body.errors?.length) {
-      throw new Response("Lettura billing Shopify non riuscita", { status: 502 });
+    if (!installation) {
+      const response = await admin.graphql(BILLING_QUERY, { variables: { after } });
+      const body = (await response.json()) as BillingResponse;
+      if (!body.data || body.errors?.length) {
+        throw new Response("Lettura billing Shopify non riuscita", { status: 502 });
+      }
+      installation = body.data.currentAppInstallation;
     }
 
-    subscription ??= body.data.currentAppInstallation.activeSubscriptions[0];
-    const purchases = body.data.currentAppInstallation.oneTimePurchases;
+    subscription ??= installation.activeSubscriptions[0];
+    const purchases = installation.oneTimePurchases;
     oneTime = purchases.nodes.find((purchase) => purchase.status === "ACTIVE");
     pendingOneTime ||= purchases.nodes.some((purchase) => purchase.status === "PENDING");
 
@@ -112,6 +119,7 @@ export async function readBilling(admin: Admin): Promise<ShopifyBilling> {
     } else {
       after = null;
     }
+    installation = undefined;
   } while (after);
 
   const pricing = subscription?.lineItems[0]?.plan.pricingDetails;
