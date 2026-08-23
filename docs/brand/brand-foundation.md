@@ -827,12 +827,14 @@ Fonte verificata: [Polaris — Color](https://polaris-react.shopify.com/design/c
 
 ### 11.3 Nessuna decisione di brand resta aperta
 
-Tutte le decisioni di identità visiva sono chiuse. Restano solo due attività che dipendono da milestone successive e non sono scelte di brand:
+Tutte le decisioni di identità visiva sono chiuse. La feature image è stata
+prodotta in M9; resta solo la riverifica sullo store reale, che dipende da M10 e
+non è una scelta di brand:
 
 | Attività | Quando | Perché non ora |
 |---|---|---|
 | Riverifica del marchio dentro l'Admin reale | M1 e M10 | Richiede l'app installata su uno store |
-| Feature image 1600 × 900 | M9 | Richiede contenuto reale, insieme agli screenshot |
+| Feature image 1600 × 900 | M9 ✅ | SVG e PNG IT/EN prodotti sotto `docs/brand/assets/` |
 
 **Piano di rimedio già pronto (A-15).** Se la review App Store contestasse la sigla dentro l'icona: sostituire l'icona della listing con `icon-app-notext.svg` e rigenerare il PNG a 1200 px. Non richiede modifiche al resto dell'identità né una nuova approvazione. Non rimuovere la sigla altrove.
 
@@ -882,7 +884,7 @@ Registrate per evitare che vengano riproposte senza una nuova decisione dell'own
 | Angoli dell'icona | quadrati: è Shopify ad arrotondarli | ✅ conforme |
 | Padding | il logo non deve toccare i bordi | ✅ il marchio occupa il 70% del lato |
 | Testo nell'icona | da evitare | ⚠️ rischio accettato, A-15 |
-| Feature image | 1600 × 900 px, 16:9, fondo pieno, contrasto ≥ 4,5:1, alt text | ⏳ da produrre in M9 |
+| Feature image | 1600 × 900 px, 16:9, fondo pieno, contrasto ≥ 4,5:1, alt text | ✅ SVG e PNG IT/EN prodotti in M9 |
 | Marchi Shopify | vietati in icona, banner e screenshot | ✅ nessuno |
 
 Fonti: [App Store requirements](https://shopify.dev/docs/apps/launch/shopify-app-store/app-store-requirements), [Best practices](https://shopify.dev/docs/apps/launch/shopify-app-store/best-practices), [Visual design](https://shopify.dev/docs/apps/design/visual-design). Da riverificare alla submission.

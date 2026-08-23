@@ -521,7 +521,7 @@ test("il sito italiano e inglese mantiene il contratto pubblico essenziale", () 
     for (const page of [italian, english]) {
       assert.match(page, /<a class="skip-link" href="#content">/);
       assert.match(page, /<main id="content" tabindex="-1">/);
-      assert.match(page, /<button class="button" type="button" disabled>/);
+      assert.match(page, /<a class="button" href="https:\/\/apps\.shopify\.com\/cf-ready">/);
       assert.doesNotMatch(page, /href="[^"]*\.html/);
     }
     assert.equal((italian.match(/<h2>/g) ?? []).length, (english.match(/<h2>/g) ?? []).length);

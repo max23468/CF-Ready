@@ -56,22 +56,22 @@
     "react-router": "8.3.0"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.50.0",
-    "@cloudflare/vitest-pool-workers": "0.20.1",
+    "@cloudflare/vite-plugin": "1.52.1",
+    "@cloudflare/vitest-pool-workers": "0.21.3",
     "@playwright/test": "1.62.1",
     "@react-router/dev": "8.3.0",
     "@shopify/polaris-types": "1.0.7",
-    "@types/node": "26.1.2",
+    "@types/node": "26.2.0",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "mdast-util-from-markdown": "2.0.3",
-    "oxfmt": "0.61.0",
-    "oxlint": "1.76.0",
-    "react-doctor": "0.9.11",
+    "oxfmt": "0.63.0",
+    "oxlint": "1.78.0",
+    "react-doctor": "0.9.12",
     "typescript": "7.0.2",
-    "vite": "8.2.0",
+    "vite": "8.2.1",
     "vitest": "4.1.10",
-    "wrangler": "4.118.0"
+    "wrangler": "4.123.0"
   },
   "workspaces": [
     "extensions/*"
@@ -84,7 +84,7 @@
     "esbuild@0.28.1": true,
     "fsevents@2.3.2": false,
     "fsevents@2.3.3": true,
-    "workerd@1.20260730.1": true
+    "workerd@1.20260811.1": true
   },
   "overrides": {
     "graphql-config": "5.1.6",

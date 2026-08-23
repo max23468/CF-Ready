@@ -602,7 +602,7 @@ export async function observedConfigHash(validation: Validation | undefined) {
 // FR-098: lo store ha già 25 Validation Function attive. Shopify lo comunica solo nel testo
 // dello userError, quindi il codice stabile si ricava da lì; se il testo cambia si ricade sul
 // codice generico, che resta corretto ma meno utile.
-// ponytail: match sul messaggio, unico segnale disponibile. Da rivedere se Shopify espone un
+// Match sul messaggio, unico segnale disponibile. Da rivedere se Shopify espone un
 // codice tipizzato su ValidationUserError.
 function validationLimitReached(message: string) {
   const text = message.toLowerCase();
