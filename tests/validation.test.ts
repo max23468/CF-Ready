@@ -258,7 +258,9 @@ async function seedShop(shop: string, { trial = true }: { trial?: boolean } = {}
   )
     .bind(shop, timestamp, timestamp, timestamp)
     .run();
-  if (trial) await startTrial(env.DB, shop, { eligible: true, today: localDate("Europe/Rome") });
+  if (trial) {
+    await startTrial(env.DB, shop, { eligible: true, today: localDate("Europe/Rome") });
+  }
 }
 
 function stubAdmin({

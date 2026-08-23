@@ -6,7 +6,7 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
-## 0.9.21 — 16 agosto 2026
+## 0.9.21 — 23 agosto 2026
 
 - Validation e billing sono separati in moduli per dominio, accesso Shopify,
   persistenza e orchestrazione, mantenendo invariati gli export pubblici e il
@@ -14,7 +14,9 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 - la Home separa loader e action server-side dai componenti UI, mentre i
   cataloghi i18n e le suite monolitiche sono suddivisi per responsabilità;
 - la fixture Validation usa la data locale corrente invece di una data fissa,
-  evitando che la prova di 14 giorni renda i test dipendenti dal calendario.
+  evitando che la prova di 14 giorni renda i test dipendenti dal calendario;
+- il gate app esegue serialmente i file che avviano Workers e D1, eliminando la
+  contesa del cold start locale senza allargare il timeout delle assertion.
 
 ## 0.9.20 — 10 agosto 2026
 
