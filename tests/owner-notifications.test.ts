@@ -1,6 +1,7 @@
 import { env } from "cloudflare:test";
 import { beforeEach, expect, test, vi } from "vitest";
 import { readBillingAccount, syncBillingAccount } from "../app/billing.server";
+import { trialLedgerHash } from "../app/hash.server";
 import {
   deliverOwnerNotifications,
   pollPartnerEvents,
@@ -19,6 +20,7 @@ beforeEach(async () => {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM owner_notifications"),
     env.DB.prepare("DELETE FROM owner_notification_state"),
+    env.DB.prepare("DELETE FROM owner_notification_redactions"),
   ]);
 });
 
@@ -199,6 +201,28 @@ test("paginazione Partner e checkpoint restano idempotenti", async () => {
     await pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher: fetcher as typeof fetch }),
   ).toMatchObject({ inserted: 2, pages: 2 });
   expect(JSON.parse(String(requests[1].init?.body)).variables.after).toBe("cursor-09:58");
+});
+
+test("shop/redact blocca eventi Partner precedenti ma consente una reinstallazione successiva", async () => {
+  const shop = "redatto.myshopify.com";
+  await env.DB.prepare(
+    "INSERT INTO owner_notification_redactions (shop_hash, redacted_at) VALUES (?, ?)",
+  )
+    .bind(await trialLedgerHash(shop), "2026-08-24T09:55:00.000Z")
+    .run();
+  const fetcher = vi.fn(async () =>
+    partnerResponse([
+      relationship("RELATIONSHIP_UNINSTALLED", shop, "09:54"),
+      relationship("RELATIONSHIP_REACTIVATED", shop, "09:56"),
+    ]),
+  );
+
+  expect(
+    await pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher: fetcher as typeof fetch }),
+  ).toMatchObject({ inserted: 1 });
+  expect(await env.DB.prepare("SELECT subject FROM owner_notifications").first()).toMatchObject({
+    subject: "CF Ready: reinstallazione",
+  });
 });
 
 test("un errore Partner non avanza il checkpoint", async () => {

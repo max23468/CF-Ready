@@ -1,4 +1,5 @@
 import { recordEvent } from "./events.server";
+import { trialLedgerHash } from "./hash.server";
 
 const PARTNER_API_VERSION = "2026-07";
 const FIRST_POLL_LOOKBACK_MS = 15 * 60 * 1000;
@@ -43,7 +44,6 @@ type PartnerEventType = (typeof PARTNER_EVENT_TYPES)[number];
 type PartnerCharge = {
   id?: string;
   name?: string;
-  amount?: { amount?: string; currencyCode?: string };
   billingOn?: string | null;
   test?: boolean;
 };
@@ -124,7 +124,6 @@ const PARTNER_EVENTS_QUERY = `#graphql
               charge {
                 id
                 name
-                amount { amount currencyCode }
                 billingOn
                 test
               }
@@ -133,7 +132,6 @@ const PARTNER_EVENTS_QUERY = `#graphql
               charge {
                 id
                 name
-                amount { amount currencyCode }
                 test
               }
             }
@@ -333,6 +331,7 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode)
       dedupeKey,
       kind: "lifecycle",
       shopDomain,
+      shopHash: await trialLedgerHash(shopDomain),
       subject: lifecycle.subject,
       body: `${lifecycle.description}\n\nStore: ${shopDomain}\nPiano: ${localPlan}\nData: ${formatDate(occurredAt)}`,
       occurredAt,
@@ -349,12 +348,10 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode)
   ]);
   const billing = billingCopy(type, previousKind !== null);
   const plan = safePlanName(charge.name) ?? planLabel(currentKind) ?? localPlan;
-  const amount = formatPartnerAmount(charge.amount);
   const details = [
     `Store: ${shopDomain}`,
     ...(previousKind ? [`Da: ${planLabel(previousKind)}`] : []),
     `${previousKind ? "A" : "Piano"}: ${plan}`,
-    `Importo: ${amount}`,
     ...(validIsoDate(charge.billingOn ?? undefined)
       ? [`Prossimo addebito: ${formatDate(charge.billingOn!)}`]
       : []),
@@ -365,6 +362,7 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode)
     dedupeKey,
     kind: "billing",
     shopDomain,
+    shopHash: await trialLedgerHash(shopDomain),
     subject: billing.subject,
     body: `${billing.description}\n\n${details.join("\n")}`,
     occurredAt,
@@ -411,6 +409,7 @@ async function trialNotification(
     dedupeKey: await notificationKey("trial", String(event.id)),
     kind: "trial",
     shopDomain: normalizeShopDomain(event.shop_domain),
+    shopHash: await trialLedgerHash(normalizeShopDomain(event.shop_domain)),
     subject: copy.subject,
     body: `${copy.description}\n\n${details.join("\n")}`,
     occurredAt: event.occurred_at,
@@ -423,6 +422,7 @@ function notificationStatement(
     dedupeKey: string;
     kind: "lifecycle" | "billing" | "trial";
     shopDomain: string;
+    shopHash: string;
     subject: string;
     body: string;
     occurredAt: string;
@@ -433,7 +433,11 @@ function notificationStatement(
       `INSERT INTO owner_notifications (
          dedupe_key, notification_kind, shop_domain, subject, body_text, source_occurred_at,
          status, available_at, created_at, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)
+       ) SELECT ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?
+       WHERE NOT EXISTS (
+         SELECT 1 FROM owner_notification_redactions
+         WHERE shop_hash = ? AND redacted_at >= ?
+       )
        ON CONFLICT(dedupe_key) DO NOTHING`,
     )
     .bind(
@@ -445,6 +449,8 @@ function notificationStatement(
       notification.occurredAt,
       notification.occurredAt,
       notification.occurredAt,
+      notification.occurredAt,
+      notification.shopHash,
       notification.occurredAt,
     );
 }
@@ -713,22 +719,6 @@ function formatDate(value: string) {
   return OWNER_NOTIFICATION_DATE_FORMATTER.format(new Date(value));
 }
 
-function formatPartnerAmount(amount: PartnerCharge["amount"]) {
-  if (!amount?.amount || !amount.currencyCode || !/^[A-Z]{3}$/.test(amount.currencyCode)) {
-    return "non disponibile";
-  }
-  const numeric = Number(amount.amount);
-  if (!Number.isFinite(numeric)) return "non disponibile";
-  try {
-    return new Intl.NumberFormat("it-IT", {
-      style: "currency",
-      currency: amount.currencyCode,
-    }).format(numeric);
-  } catch {
-    return "non disponibile";
-  }
-}
-
 function planKindFromCharge(type: PartnerEventType, name: string | undefined) {
   if (type.startsWith("ONE_TIME_")) return "one_time" as const;
   const normalized = name?.toLocaleLowerCase("it-IT") ?? "";
@@ -785,9 +775,7 @@ function validPartnerEvent(node: PartnerEventNode | undefined): node is PartnerE
     return false;
   }
   if ((node.type ?? "").startsWith("RELATIONSHIP_")) return true;
-  return Boolean(
-    node.charge?.id && safePlanName(node.charge.name) && node.charge.amount?.currencyCode,
-  );
+  return Boolean(node.charge?.id && safePlanName(node.charge.name));
 }
 
 function validIsoDate(value: string | undefined): value is string {

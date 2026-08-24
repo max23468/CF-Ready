@@ -1,4 +1,5 @@
 import { recordTrialLedger } from "./billing.server";
+import { trialLedgerHash } from "./hash.server";
 import { logEvent, recordEvent } from "./events.server";
 
 // Installazione da uno store non ammesso: si cancella tutto ciò che l'autenticazione ha
@@ -117,14 +118,19 @@ export async function redactShop(
 ) {
   const alreadyRedacted = await db
     .prepare(
-      `SELECT id FROM app_events
+      `SELECT id, occurred_at FROM app_events
        WHERE webhook_id = ? AND event_name = 'shop_redacted'`,
     )
     .bind(webhookId)
-    .first<{ id: number }>();
+    .first<{ id: number; occurred_at: string }>();
   if (alreadyRedacted) {
     await db.batch([
       db.prepare("DELETE FROM owner_notifications WHERE shop_domain = ?").bind(shopDomain),
+      ownerNotificationRedactionStatement(
+        db,
+        await trialLedgerHash(shopDomain),
+        alreadyRedacted.occurred_at,
+      ),
       db
         .prepare("UPDATE webhook_events SET shop_domain = NULL WHERE webhook_id = ?")
         .bind(webhookId),
@@ -141,6 +147,7 @@ export async function redactShop(
   // anonimizzare la ricevuta. Il dominio non deve restare nella riga ormai priva di owner.
   if (!shop) {
     const now = new Date().toISOString();
+    const shopHash = await trialLedgerHash(shopDomain);
     const results = await db.batch([
       db
         .prepare(
@@ -154,6 +161,7 @@ export async function redactShop(
         .prepare("UPDATE webhook_events SET shop_domain = NULL WHERE shop_domain = ?")
         .bind(shopDomain),
       db.prepare("DELETE FROM owner_notifications WHERE shop_domain = ?").bind(shopDomain),
+      ownerNotificationRedactionStatement(db, shopHash, now),
     ]);
     if (results[0].meta.changes === 1) {
       logEvent(
@@ -176,6 +184,7 @@ export async function redactShop(
   await recordTrialLedger(db, shopDomain);
 
   const now = new Date().toISOString();
+  const shopHash = await trialLedgerHash(shopDomain);
   const results = await db.batch([
     db
       .prepare(
@@ -194,6 +203,7 @@ export async function redactShop(
       .prepare(`DELETE FROM shops WHERE shop_domain = ? AND installation_status = 'uninstalled'`)
       .bind(shopDomain),
     db.prepare("DELETE FROM owner_notifications WHERE shop_domain = ?").bind(shopDomain),
+    ownerNotificationRedactionStatement(db, shopHash, now),
     db
       .prepare(
         `UPDATE webhook_events SET shop_domain = NULL
@@ -226,6 +236,17 @@ export async function redactShop(
       .bind(webhookId)
       .first()) !== null
   );
+}
+
+function ownerNotificationRedactionStatement(db: D1Database, shopHash: string, redactedAt: string) {
+  return db
+    .prepare(
+      `INSERT INTO owner_notification_redactions (shop_hash, redacted_at)
+       VALUES (?, ?)
+       ON CONFLICT(shop_hash) DO UPDATE SET
+         redacted_at = MAX(owner_notification_redactions.redacted_at, excluded.redacted_at)`,
+    )
+    .bind(shopHash, redactedAt);
 }
 
 export async function redactExpiredShops(db: D1Database, now = new Date()) {
@@ -303,6 +324,14 @@ export async function applyRetention(db: D1Database, now = new Date()) {
          )`,
       )
       .bind(ninetyDaysAgo),
+    db
+      .prepare(
+        `DELETE FROM owner_notification_redactions WHERE shop_hash IN (
+           SELECT shop_hash FROM owner_notification_redactions WHERE redacted_at <= ?
+           ORDER BY redacted_at LIMIT 1000
+         )`,
+      )
+      .bind(oneYearAgo),
   ]);
   return {
     events: deleted.reduce((total, result) => total + result.meta.changes, 0),

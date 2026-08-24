@@ -1439,8 +1439,10 @@ seconda prova: la cancellazione dei dati porta via anche `trials`.
 | `recorded_at` | text |
 
 Non contiene dominio, identificatori Shopify o dati riferibili in chiaro, ed è
-l’unica traccia che sopravvive a `shop/redact`, come consentito da §21.5 e
-§21.6. Viene consultato solo quando manca la riga in `trials`. La chiave non è
+la sola traccia commerciale che sopravvive a `shop/redact`; la barriera HMAC
+antireplay delle notifiche descritta sotto è l'unica altra traccia tecnica, per
+massimo 12 mesi, come consentito da §21.5 e §21.6. Il ledger viene consultato
+solo quando manca la riga in `trials`. La chiave non è
 soggetta alla rotazione ordinaria delle sessioni: va custodita e sottoposta a
 backup nello stesso secret store, perché senza le versioni storiche non è
 possibile riconoscere gli hash già registrati.
@@ -1499,7 +1501,9 @@ ripetuta. `billing_events` conserva anche piano e stato precedenti per distingue
 un nuovo acquisto da un passaggio tra piani.
 
 Le righe dello store vengono eliminate durante `shop/redact`, anche se già
-consegnate; la retention di 90 giorni resta soltanto il limite massimo. La
+consegnate; una barriera con HMAC del dominio e istante di redazione impedisce
+che un evento Partner precedente le ricrei, senza impedire una reinstallazione
+successiva. La retention di 90 giorni resta soltanto il limite massimo. La
 consegna è at-least-once, con massimo cinque tentativi e backoff. Un arresto
 dopo l’invio ma prima del commit D1 può produrre una rara notifica duplicata; non
 può perdere la riga sorgente. Il contenuto comunica soltanto evento, piano e
@@ -3058,6 +3062,7 @@ La Function riceve i valori necessari in Shopify, li valuta localmente e restitu
 | Richieste di supporto | 12 mesi, salvo necessità diversa documentata |
 | Errori tecnici dettagliati | 90 giorni |
 | Outbox notifiche owner | 90 giorni |
+| Barriera HMAC antireplay notifiche | 12 mesi da `shop/redact` |
 | Telemetria essenziale `app_events` | 12 mesi |
 | Ricevute webhook | periodo minimo utile, target 90 giorni |
 | Prova e pricing generation pseudonimizzati | a lungo termine per prevenire abuso e preservare condizioni |
@@ -3088,6 +3093,8 @@ Applicare:
 - eliminazione di sessioni, token, configurazione, onboarding e log riferibili non necessari;
 - eventuale conservazione della sola prova già fruita e della relativa pricing
   generation nel `trial_ledger` pseudonimizzato descritto in §12.2;
+- conservazione per massimo 12 mesi della sola coppia HMAC del dominio e istante
+  di redazione, per impedire che replay Partner anteriori ricreino notifiche;
 - nessuna copia D1 del diritto una tantum o dei riferimenti billing: dopo una
   reinstallazione vengono riletti dalla fonte autorevole Shopify;
 - nessun contenuto libero del merchant oltre obblighi applicabili.
@@ -3119,7 +3126,8 @@ Partner API o dallo stato applicativo. Includono soltanto il dominio tecnico
 `.myshopify.com`, il piano e l’istante dell’evento; non includono nome, email,
 shop ID, GID Shopify o dati checkout. Esito, tentativi e codici d’errore
 sanitizzati restano nell’outbox D1 per il tempo indicato in §21.5 e vengono
-eliminati prima se arriva `shop/redact`.
+eliminati prima se arriva `shop/redact`; sopravvive soltanto la barriera HMAC
+necessaria a non reinviare eventi antecedenti alla cancellazione.
 
 Il solo sito pubblico usa inoltre Cloudflare Web Analytics per visite aggregate
 e prestazioni reali. Il beacon non usa cookie o archiviazione locale, non crea

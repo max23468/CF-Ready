@@ -198,7 +198,9 @@ cinque volte con backoff; una riga `failed` richiede diagnosi del codice
 sanitizzato e una decisione esplicita prima del replay.
 `shop/redact` elimina immediatamente tutte le righe dell'outbox associate al
 dominio tecnico, comprese quelle già inviate, così nessuna notifica pendente può
-partire dopo la cancellazione dei dati dello store.
+partire dopo la cancellazione dei dati dello store. Una barriera HMAC conserva
+soltanto l'istante di redazione e scarta replay Partner anteriori; un evento di
+reinstallazione con istante successivo resta notificabile.
 
 ## Traces Development temporanee
 

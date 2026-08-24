@@ -30,6 +30,14 @@ CREATE INDEX owner_notifications_created_at_idx
 CREATE INDEX owner_notifications_shop_domain_idx
   ON owner_notifications(shop_domain);
 
+CREATE TABLE owner_notification_redactions (
+  shop_hash TEXT PRIMARY KEY,
+  redacted_at TEXT NOT NULL
+) STRICT;
+
+CREATE INDEX owner_notification_redactions_retention_idx
+  ON owner_notification_redactions(redacted_at);
+
 CREATE TABLE owner_notification_state (
   state_key TEXT PRIMARY KEY,
   state_value TEXT NOT NULL,
