@@ -320,3 +320,43 @@ test("la concessione omaggio resta non operativa se la cancellazione fallisce", 
   expect(state.retryable).toBe(true);
   expect(admin.calls).toEqual(["context", "billing", "billing", "cancel"]);
 });
+
+test("una concessione revocata durante la riconciliazione non cancella l'abbonamento", async () => {
+  const shop = await insertShop("omaggio-revocato-in-corsa.example.myshopify.com");
+  const now = "2026-08-24T00:00:00.000Z";
+  await env.DB.prepare(
+    `INSERT INTO complimentary_entitlements
+       (shop_id, status, granted_at, revoked_at, created_at, updated_at)
+     SELECT id, 'active', ?, NULL, ?, ? FROM shops WHERE shop_domain = ?`,
+  )
+    .bind(now, now, now, shop)
+    .run();
+  const subscriptionOnly = structuredClone(CONVERSIONE_UNA_TANTUM);
+  subscriptionOnly.data.currentAppInstallation.oneTimePurchases.nodes = [];
+  const subscriptionEntitlement = { kind: "subscription", validThrough: "2026-08-31" };
+  const admin = adminStub([
+    shopContext("IT", true, subscriptionEntitlement),
+    subscriptionOnly,
+    subscriptionOnly,
+  ]);
+  const graphql = admin.graphql;
+  admin.graphql = async (query, options) => {
+    const response = await graphql(query, options);
+    if (admin.calls.length === 3) {
+      await env.DB.prepare(
+        `UPDATE complimentary_entitlements
+         SET status = 'revoked', revoked_at = ?, updated_at = ?
+         WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+      )
+        .bind(now, now, shop)
+        .run();
+    }
+    return response;
+  };
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.entitlement).toEqual(subscriptionEntitlement);
+  expect(state.errorCode).toBeNull();
+  expect(admin.calls).toEqual(["context", "billing", "billing"]);
+});

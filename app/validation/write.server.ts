@@ -72,10 +72,11 @@ export async function writeValidation(
 
     const enabled = enable ?? existing?.enabled ?? false;
     const today = localDate(data.shop.ianaTimezone);
-    const [trial, complimentary] = await Promise.all([
+    const [trial, initialComplimentary] = await Promise.all([
       syncTrial(db, shopDomain, { today }),
       readComplimentaryEntitlement(db, shopDomain),
     ]);
+    let complimentary = initialComplimentary;
     let account = await readBillingAccount(db, shopDomain);
     let billing: Awaited<ReturnType<typeof readBilling>> | null = null;
     try {
@@ -88,13 +89,16 @@ export async function writeValidation(
     }
     if (billing?.subscription && complimentary?.status === "active") {
       if (!(await heartbeat.isHeld())) return { ok: false, errorCode: "validation_locked" };
-      const cancellationError = await cancelSubscription(admin, billing.subscription.id, {
-        prorate: true,
-      });
-      if (cancellationError) return { ok: false, errorCode: cancellationError };
-      billing = await readBilling(admin);
-      if (billing.subscription) {
-        return { ok: false, errorCode: "subscription_cancel_failed" };
+      complimentary = await readComplimentaryEntitlement(db, shopDomain);
+      if (complimentary?.status === "active") {
+        const cancellationError = await cancelSubscription(admin, billing.subscription.id, {
+          prorate: true,
+        });
+        if (cancellationError) return { ok: false, errorCode: cancellationError };
+        billing = await readBilling(admin);
+        if (billing.subscription) {
+          return { ok: false, errorCode: "subscription_cancel_failed" };
+        }
       }
     }
     if (billing) {

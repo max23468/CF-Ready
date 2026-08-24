@@ -130,7 +130,7 @@ export async function reconcile(
           const replacementStillActive =
             conversionReason === "one_time_purchased"
               ? Boolean(current.oneTime)
-              : complimentary?.status === "active";
+              : (await readComplimentaryEntitlement(db, shopDomain))?.status === "active";
           if (!replacementStillActive || !current.subscription) {
             return { state: current, error: null, converted: false };
           }
