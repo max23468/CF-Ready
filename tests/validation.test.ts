@@ -33,9 +33,17 @@ test("la configurazione scritta è accettata dalla Function", () => {
 });
 
 test("l'hash di configurazione ignora l'ordine dei campi ma non i valori", async () => {
-  const hash = await configHash({ schemaVersion: 2, rules: { pec: "optional_validated" } });
+  const hash = await configHash({
+    schemaVersion: 2,
+    rules: { pec: "optional_validated" },
+  });
 
-  expect(await configHash({ rules: { pec: "optional_validated" }, schemaVersion: 2 })).toBe(hash);
+  expect(
+    await configHash({
+      rules: { pec: "optional_validated" },
+      schemaVersion: 2,
+    }),
+  ).toBe(hash);
   expect(await configHash({ schemaVersion: 2, rules: { pec: "unmanaged" } })).not.toBe(hash);
 });
 
@@ -129,7 +137,9 @@ test("un errore di trasporto Validation resta nel risultato tipizzato", async ()
 
   expect(
     await writeValidation(
-      { graphql: async () => Promise.reject(new Error("Shopify non disponibile")) },
+      {
+        graphql: async () => Promise.reject(new Error("Shopify non disponibile")),
+      },
       env.DB,
       shop,
       {
@@ -246,12 +256,18 @@ test("una configurazione illeggibile o fuori contratto torna ai default senza la
     errorDisplay: "urlato",
     rules: { taxCode: "required_validated", pec: "chissà" },
     messages: {
-      it: { taxCodeRequired: "  Inserisci il Codice Fiscale.  ", pecRequired: "x".repeat(201) },
+      it: {
+        taxCodeRequired: "  Inserisci il Codice Fiscale.  ",
+        pecRequired: "x".repeat(201),
+      },
       en: {},
     },
   });
 
-  expect(config.rules).toEqual({ taxCode: "required_validated", pec: "unmanaged" });
+  expect(config.rules).toEqual({
+    taxCode: "required_validated",
+    pec: "unmanaged",
+  });
   expect(config.errorDisplay).toBe("inline");
   expect(config.messages.it.taxCodeRequired).toBe("Inserisci il Codice Fiscale.");
   // FR-061: un messaggio vuoto o oltre i 200 caratteri non può restare nell'editor.
@@ -272,7 +288,10 @@ async function seedShop(shop: string, { trial = true }: { trial?: boolean } = {}
     .bind(shop, timestamp, timestamp, timestamp)
     .run();
   if (trial) {
-    await startTrial(env.DB, shop, { eligible: true, today: localDate("Europe/Rome") });
+    await startTrial(env.DB, shop, {
+      eligible: true,
+      today: localDate("Europe/Rome"),
+    });
   }
 }
 
@@ -282,6 +301,7 @@ function stubAdmin({
   billing = { subscription: null, oneTime: null, pendingOneTime: false },
   billingError = false,
   cancelErrors = [],
+  onBillingRead,
   readback,
 }: {
   existing?: { enabled: boolean; config?: CheckoutConfig };
@@ -289,9 +309,14 @@ function stubAdmin({
   billing?: ShopifyBilling;
   billingError?: boolean;
   cancelErrors?: { message: string }[];
+  onBillingRead?: () => Promise<void>;
   readback?: (config: CheckoutConfig) => CheckoutConfig;
 }) {
-  const calls: { operation: string; enable?: boolean; config?: CheckoutConfig }[] = [];
+  const calls: {
+    operation: string;
+    enable?: boolean;
+    config?: CheckoutConfig;
+  }[] = [];
   const shopifyCalls: string[] = [];
   let node = existing
     ? {
@@ -327,6 +352,7 @@ function stubAdmin({
         if (query.includes("CfReadyBilling")) {
           shopifyCalls.push("billing");
           if (billingError) throw new Error("Shopify non disponibile");
+          await onBillingRead?.();
           return Response.json({
             data: {
               currentAppInstallation: {
@@ -463,7 +489,9 @@ test("il salvataggio parziale conserva la configurazione osservata sotto la leas
   const current = structuredClone(DEFAULT_CONFIG);
   current.errorDisplay = "preventive";
   current.messages.it.taxCodeRequired = "Messaggio personalizzato";
-  const { admin, calls } = stubAdmin({ existing: { enabled: false, config: current } });
+  const { admin, calls } = stubAdmin({
+    existing: { enabled: false, config: current },
+  });
 
   expect(
     await writeValidation(
@@ -538,7 +566,10 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
     oneTime: null,
     pendingOneTime: false,
   };
-  const active = stubAdmin({ existing: { enabled: false }, billing: subscription });
+  const active = stubAdmin({
+    existing: { enabled: false },
+    billing: subscription,
+  });
 
   await writeValidation(
     active.admin,
@@ -580,7 +611,11 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
       },
       pendingOneTime: false,
     },
-    { today: "2026-01-01", timeZone: "Europe/Rome", pricingGeneration: "launch" },
+    {
+      today: "2026-01-01",
+      timeZone: "Europe/Rome",
+      pricingGeneration: "launch",
+    },
   );
   const refunded = stubAdmin({ existing: { enabled: false } });
 
@@ -595,7 +630,10 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
     },
     null,
   );
-  expect(refunded.calls[0].config?.entitlement).toEqual({ kind: "none", validThrough: null });
+  expect(refunded.calls[0].config?.entitlement).toEqual({
+    kind: "none",
+    validThrough: null,
+  });
 
   const cachedShop = "write-billing-cache.example.myshopify.com";
   await seedShop(cachedShop);
@@ -604,7 +642,10 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
     timeZone: "Europe/Rome",
     pricingGeneration: "launch",
   });
-  const cached = stubAdmin({ existing: { enabled: false }, billingError: true });
+  const cached = stubAdmin({
+    existing: { enabled: false },
+    billingError: true,
+  });
   await writeValidation(
     cached.admin,
     env.DB,
@@ -616,7 +657,10 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
     },
     null,
   );
-  expect(cached.calls[0].config?.entitlement).toEqual({ kind: "none", validThrough: null });
+  expect(cached.calls[0].config?.entitlement).toEqual({
+    kind: "none",
+    validThrough: null,
+  });
 
   const syncFailureShop = "write-billing-sync-failure.example.myshopify.com";
   await seedShop(syncFailureShop);
@@ -633,7 +677,11 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
       },
       pendingOneTime: false,
     },
-    { today: "2026-01-01", timeZone: "Europe/Rome", pricingGeneration: "launch" },
+    {
+      today: "2026-01-01",
+      timeZone: "Europe/Rome",
+      pricingGeneration: "launch",
+    },
   );
   await env.DB.prepare(
     `CREATE TRIGGER fail_validation_billing_sync BEFORE UPDATE ON billing_accounts
@@ -664,7 +712,7 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
   }
 });
 
-test("la scrittura rende operativo l'omaggio solo dopo aver cancellato e riletto l'abbonamento", async () => {
+test("la scrittura non cancella né sostituisce un abbonamento attivo con l'omaggio", async () => {
   const shop = "write-complimentary.example.myshopify.com";
   await seedShop(shop);
   const now = "2026-08-24T00:00:00.000Z";
@@ -702,8 +750,11 @@ test("la scrittura rende operativo l'omaggio solo dopo aver cancellato e riletto
       null,
     ),
   ).toEqual({ ok: true, enabled: true });
-  expect(stub.shopifyCalls).toEqual(["billing", "cancel", "billing"]);
-  expect(stub.calls[0].config?.entitlement).toEqual({ kind: "one_time", validThrough: null });
+  expect(stub.shopifyCalls).toEqual(["billing"]);
+  expect(stub.calls[0].config?.entitlement).toEqual({
+    kind: "subscription",
+    validThrough: "2026-08-31",
+  });
 });
 
 test("un errore billing non impedisce di disattivare il controllo con un omaggio assegnato", async () => {
@@ -878,7 +929,9 @@ test("l'attivazione conserva la configurazione letta dentro la lease", async () 
   const current = structuredClone(DEFAULT_CONFIG);
   current.rules = { taxCode: "optional_validated", pec: "required_validated" };
   current.messages.it.taxCodeRequired = "Messaggio corrente";
-  const { admin, calls } = stubAdmin({ existing: { enabled: false, config: current } });
+  const { admin, calls } = stubAdmin({
+    existing: { enabled: false, config: current },
+  });
 
   const result = await writeValidation(admin, env.DB, shop, null, true);
 
