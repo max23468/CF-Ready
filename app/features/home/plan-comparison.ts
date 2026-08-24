@@ -3,8 +3,16 @@ export const PLAN_COMPARISON_LOCATION_STATE = "cf-ready:show-plans";
 
 type MessageTarget = Pick<Window, "postMessage">;
 type PlanComparisonMessage = Pick<MessageEvent, "data" | "origin">;
-type PlanComparisonActions = { hideWindow(): void; showPlans(): void };
-type PlanComparisonFrame = Pick<Window, "location" | "parent">;
+type PlanComparisonActions = { hideWindow(): Promise<void>; showPlans(): void };
+type PlanComparisonFrame = Pick<Window, "location" | "opener">;
+type AppWindowElement = HTMLElement & { hide(): Promise<void> };
+
+export async function hideAppWindow(document: Pick<Document, "getElementById">, id: string) {
+  const appWindow = document.getElementById(id) as AppWindowElement | null;
+  if (!appWindow) return false;
+  await appWindow.hide();
+  return true;
+}
 
 export function planComparisonLocationState() {
   return { cfReady: PLAN_COMPARISON_LOCATION_STATE };
@@ -26,14 +34,14 @@ export function requestPlanComparison(target: MessageTarget | null, targetOrigin
 }
 
 export function requestPlanComparisonFromFrame(frame: PlanComparisonFrame, fallback: () => void) {
-  try {
-    if (frame.parent !== frame && frame.parent.location.origin === frame.location.origin) {
-      requestPlanComparison(frame.parent, frame.location.origin);
-      return "parent" as const;
-    }
-  } catch {
-    // L'onboarding aperto direttamente vive nel frame Shopify: il parent è cross-origin.
+  // Shopify carica il contenuto di `s-app-window` in un iframe fratello della Home:
+  // il parent è l'Admin, mentre `opener` è la pagina che ha aperto la finestra.
+  if (frame.opener) {
+    requestPlanComparison(frame.opener, frame.location.origin);
+    return "opener" as const;
   }
+
+  // Aperto direttamente dalla Guida, l'onboarding vive nel normale frame dell'app.
   fallback();
   return "fallback" as const;
 }
@@ -48,13 +56,13 @@ export function isPlanComparisonRequest(event: PlanComparisonMessage, expectedOr
   );
 }
 
-export function handlePlanComparisonRequest(
+export async function handlePlanComparisonRequest(
   event: PlanComparisonMessage,
   expectedOrigin: string,
   actions: PlanComparisonActions,
 ) {
   if (!isPlanComparisonRequest(event, expectedOrigin)) return false;
-  actions.hideWindow();
+  await actions.hideWindow();
   actions.showPlans();
   return true;
 }

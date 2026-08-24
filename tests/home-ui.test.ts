@@ -5,6 +5,7 @@ import { texts } from "../app/i18n";
 import { commercialState } from "../app/features/home/commercial-state";
 import {
   handlePlanComparisonRequest,
+  hideAppWindow,
   isPlanComparisonLocationState,
   isPlanComparisonRequest,
   PLAN_COMPARISON_MESSAGE_TYPE,
@@ -16,7 +17,7 @@ import { PlanStatus } from "../app/features/home/PlanStatus";
 import { onboardingCheckoutPreview } from "../app/features/onboarding/checkout-preview";
 import { onboardingStep4State } from "../app/features/onboarding/step4-state";
 import { openBillingApproval } from "../app/revalidation";
-import { OnboardingWindowCloseControl, PlanChoice, SetupGuide } from "../app/routes/app._index";
+import { PlanChoice, SetupGuide } from "../app/routes/app._index";
 import {
   Address2DeclarationPrompt,
   OnboardingListBlock,
@@ -146,17 +147,19 @@ test("gli elenchi onboarding restano vicini al testo che li introduce", () => {
   });
 });
 
-test("la Home chiude la finestra onboarding tramite il comando Shopify supportato", () => {
-  const rendered = elements(OnboardingWindowCloseControl({ label: "Chiudi" }));
-  const hiddenContainer = rendered.find((element) => element.type === "div");
-  const closeCommand = rendered.find((element) => element.type === "s-button");
+test("la Home chiude l'App Window con il metodo Shopify prima di mostrare i piani", async () => {
+  const hide = vi.fn(async () => undefined);
+  const document = {
+    getElementById: vi.fn(() => ({ hide })),
+  } as unknown as Pick<Document, "getElementById">;
 
-  expect(hiddenContainer?.props).toMatchObject({ hidden: true });
-  expect(closeCommand?.props).toMatchObject({
-    id: "onboarding-window-close",
-    commandFor: "onboarding-window",
-    command: "--hide",
-  });
+  expect(await hideAppWindow(document, "onboarding-window")).toBe(true);
+  expect(document.getElementById).toHaveBeenCalledWith("onboarding-window");
+  expect(hide).toHaveBeenCalledOnce();
+
+  expect(await hideAppWindow({ getElementById: vi.fn(() => null) }, "onboarding-window")).toBe(
+    false,
+  );
 });
 
 // La card è la prima cosa che si vede dopo l'installazione: deve accogliere, e deve
@@ -365,7 +368,7 @@ test("il riepilogo onboarding distingue primo avvio, prova e piano", () => {
   ).toEqual({ summary: "ready", access: "plan", canActivate: true });
 });
 
-test("il confronto piani comunica con la Home senza navigare il frame della modale", () => {
+test("il confronto piani comunica con la Home senza navigare il frame della modale", async () => {
   const showPlans = vi.fn();
   const rendered = elements(
     OnboardingStep4Content({
@@ -402,21 +405,18 @@ test("il confronto piani comunica con la Home senza navigare il frame della moda
     "https://app.example",
   );
   expect(requestPlanComparison(null, "https://app.example")).toBe(false);
-  const parentPostMessage = vi.fn();
+  const openerPostMessage = vi.fn();
   const fallback = vi.fn();
   expect(
     requestPlanComparisonFromFrame(
       {
         location: { origin: "https://app.example" },
-        parent: {
-          location: { origin: "https://app.example" },
-          postMessage: parentPostMessage,
-        },
-      } as unknown as Pick<Window, "location" | "parent">,
+        opener: { postMessage: openerPostMessage },
+      } as unknown as Pick<Window, "location" | "opener">,
       fallback,
     ),
-  ).toBe("parent");
-  expect(parentPostMessage).toHaveBeenCalledWith(
+  ).toBe("opener");
+  expect(openerPostMessage).toHaveBeenCalledWith(
     { type: PLAN_COMPARISON_MESSAGE_TYPE },
     "https://app.example",
   );
@@ -427,13 +427,8 @@ test("il confronto piani comunica con la Home senza navigare il frame della moda
     requestPlanComparisonFromFrame(
       {
         location: { origin: "https://app.example" },
-        parent: {
-          get location() {
-            throw new DOMException("Blocked a frame with origin", "SecurityError");
-          },
-          postMessage: vi.fn(),
-        },
-      } as unknown as Pick<Window, "location" | "parent">,
+        opener: null,
+      } as unknown as Pick<Window, "location" | "opener">,
       directFallback,
     ),
   ).toBe("fallback");
@@ -459,20 +454,30 @@ test("il confronto piani comunica con la Home senza navigare il frame della moda
     ),
   ).toBe(false);
 
-  const hideWindow = vi.fn();
+  const order: string[] = [];
+  const hideWindow = vi.fn(async () => {
+    order.push("hide");
+  });
   const showPlanSection = vi.fn();
   expect(
-    handlePlanComparisonRequest(
+    await handlePlanComparisonRequest(
       {
         origin: "https://app.example",
         data: { type: PLAN_COMPARISON_MESSAGE_TYPE },
       } as MessageEvent,
       "https://app.example",
-      { hideWindow, showPlans: showPlanSection },
+      {
+        hideWindow,
+        showPlans: () => {
+          order.push("show");
+          showPlanSection();
+        },
+      },
     ),
   ).toBe(true);
   expect(hideWindow).toHaveBeenCalledOnce();
   expect(showPlanSection).toHaveBeenCalledOnce();
+  expect(order).toEqual(["hide", "show"]);
 
   const renderedPlanChoice = elements(
     PlanChoice({
