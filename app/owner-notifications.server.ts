@@ -14,6 +14,10 @@ const OWNER_NOTIFICATION_DATE_FORMATTER = new Intl.DateTimeFormat("it-IT", {
   timeStyle: "short",
   timeZone: "Europe/Rome",
 });
+const OWNER_NOTIFICATION_DAY_FORMATTER = new Intl.DateTimeFormat("it-IT", {
+  dateStyle: "medium",
+  timeZone: "UTC",
+});
 
 type PartnerInstallConfig = {
   organizationId: string;
@@ -400,8 +404,8 @@ async function trialNotification(
   const details = [
     `Store: ${normalizeShopDomain(event.shop_domain)}`,
     `Piano: ${copy.plan}`,
-    ...(event.event_name === "trial_started" && validIsoDate(event.ends_at ?? undefined)
-      ? [`Termine prova: ${formatDate(event.ends_at!)}`]
+    ...(event.event_name === "trial_started" && validCalendarDate(event.ends_at ?? undefined)
+      ? [`Termine prova: ${formatCalendarDate(event.ends_at!)}`]
       : []),
     `Data: ${formatDate(event.occurred_at)}`,
   ];
@@ -719,6 +723,10 @@ function formatDate(value: string) {
   return OWNER_NOTIFICATION_DATE_FORMATTER.format(new Date(value));
 }
 
+function formatCalendarDate(value: string) {
+  return OWNER_NOTIFICATION_DAY_FORMATTER.format(new Date(`${value}T00:00:00.000Z`));
+}
+
 function planKindFromCharge(type: PartnerEventType, name: string | undefined) {
   if (type.startsWith("ONE_TIME_")) return "one_time" as const;
   const normalized = name?.toLocaleLowerCase("it-IT") ?? "";
@@ -780,6 +788,12 @@ function validPartnerEvent(node: PartnerEventNode | undefined): node is PartnerE
 
 function validIsoDate(value: string | undefined): value is string {
   return Boolean(value && !Number.isNaN(Date.parse(value)));
+}
+
+function validCalendarDate(value: string | undefined): value is string {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
 }
 
 function stableErrorCode(error: unknown) {
