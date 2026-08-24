@@ -39,22 +39,8 @@ test("la lease impedisce che due riconciliazioni facciano la stessa operazione",
   });
 });
 
-test("l'URL di ritorno riporta il merchant dentro l'admin", () => {
-  const host = btoa("admin.shopify.com/store/negozio");
-  const dentroAdmin = returnUrlFor(
-    new Request(`https://app.example/app?shop=intruso.myshopify.com&host=${host}`),
-    "negozio.myshopify.com",
+test("l'URL di ritorno riporta il merchant nella cornice dell'Admin", () => {
+  expect(returnUrlFor("negozio.myshopify.com", "client-id-cf-ready")).toBe(
+    "https://admin.shopify.com/store/negozio/apps/client-id-cf-ready",
   );
-
-  expect(dentroAdmin).toContain("shop=negozio.myshopify.com");
-  expect(dentroAdmin).not.toContain("intruso");
-  expect(dentroAdmin).toContain(`host=${encodeURIComponent(host)}`);
-
-  // Un `host` non coerente viene scartato; lo shop autenticato permette comunque il rientro.
-  const senzaHost = returnUrlFor(
-    new Request(`https://app.example/app?host=${btoa("admin.shopify.com/store/altro")}`),
-    "negozio.myshopify.com",
-  );
-  expect(senzaHost).toContain("shop=negozio.myshopify.com");
-  expect(senzaHost).not.toContain("host=");
 });

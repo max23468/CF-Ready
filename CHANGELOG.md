@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.37 — 24 agosto 2026
+
+- i ritorni dall'approvazione di abbonamenti e pagamenti unici riaprono CF
+  Ready dentro Shopify Admin anziché mostrare il Worker come pagina autonoma;
+- una guardia comune ripristina la cornice dell'Admin per Home, regole,
+  messaggi, guida e onboarding, conservando la rotta corrente;
+- l'avvio della prova e la chiusura dell'onboarding restano azioni interne e
+  non producono redirect esterni.
+
 ## 0.9.36 — 24 agosto 2026
 
 - le notifiche Telegram delle prove gratuite mostrano la scadenza come giorno
