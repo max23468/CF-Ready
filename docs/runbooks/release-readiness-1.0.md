@@ -13,8 +13,11 @@ manuale live è invece marcata ✅ soltanto quando registra data, target esatto 
 risultato osservato. Le righe si aggiornano nella stessa modifica che produce la
 prova.
 
-**Stato complessivo: M9 chiusa; review approvata e listing bilingue pubblicata
-con visibilità limitata. M10 resta aperta.** La submission è partita il 4 agosto
+**Stato complessivo: M10 in chiusura sul canary reale Numisleo.** La `0.9.39`
+ha tutti i gate tecnici verdi ma la Home invita ancora a creare un ordine di
+prova; la `0.9.40` deve rimuovere quel copy ed essere riletta live prima di
+aprire M11. La review è approvata e la listing bilingue è
+pubblicata con visibilità limitata. La submission è partita il 4 agosto
 2026; il 10 agosto Shopify l'ha sospesa sui requisiti 1.2.2 e 2.1.1 perché il
 piano approvato non risultava attivo e l'azione checkout restava disabilitata
 (riferimento `128156`). La `0.9.20` ha corretto la lettura billing che causava
@@ -37,8 +40,13 @@ Store Team ricevuta dall'owner conferma approvazione e pubblicazione come
 applicazione listata, stato `Published`, visibilità limitata, lo stesso URL e il
 riferimento `128156`; i link di tracciamento dell'email non sono conservati nel
 repository. L'accesso del reviewer non è più un gate mancante ma una decisione
-registrata (D-132). Il checkout reale ripetuto resta nel canary M10; gli
-addebiti reali sono attivi in Production.
+registrata (D-132). La `0.9.39`, commit `15655a6`, è attiva in Production e
+sullo store dell'owner; il readback del 25 agosto conferma concessione omaggio
+D-135 attiva, assenza di charge e rinnovi, onboarding completato e Validation
+attiva. M10 non crea ordini, clienti o pagamenti artificiali sullo store reale:
+usa prove automatiche, ricognizione non transazionale e osservazione passiva
+dei soli ordini autentici, come registrato nella
+[ricevuta M10](../evidence/2026-08-25-m10-canary-numisleo.md).
 La navigazione embedded della `0.9.11` è stata verificata in Chrome sullo store
 `cf-ready-dev`: una sola voce Home e tutti i flussi primari dentro l'Admin.
 
@@ -48,12 +56,24 @@ La navigazione embedded della `0.9.11` è stata verificata in Chrome sullo store
 
 | Voce | Valore |
 | --- | --- |
-| Versione candidata verificata | `0.9.22` |
-| Commit candidato | `f338f63`, HEAD esatto di `develop` promosso dalla PR [#272](https://github.com/max23468/CF-Ready/pull/272) |
-| Branch | `main`; promozione Production completata con merge commit `2c5bc8f` |
-| Ultimo snapshot Development provato | `0.9.22`, commit applicativo `d872bd3`, run [32640077331](https://github.com/max23468/CF-Ready/actions/runs/32640077331); i commit successivi del candidato modificano solo governance e ascendenza, senza cambiare il codice applicativo provato; il tree finale `f338f63` è quello promosso |
+| Versione candidata verificata | `0.9.39` |
+| Commit candidato | `15655a60642c33b755900c41d2228696a7044cb1`, commit Production verificato dal run [32781055852](https://github.com/max23468/CF-Ready/actions/runs/32781055852) |
+| Branch | `main`; deploy Production completato sul commit candidato |
+| Ultimo snapshot Development provato | `0.9.39`, commit `542f32bee25ce2c62edd4e1d393fdb2f05616b28`, run [32779854802](https://github.com/max23468/CF-Ready/actions/runs/32779854802); gate, migrazione, capacità, Worker e Shopify verificati prima della promozione |
 | Submission | approvata: il Partner Dashboard mostra app e listing `Published`, con italiano e inglese `Live`, il 23 agosto 2026 |
 | Tag `v1.0.0` | non creato: si crea dopo deploy, smoke e readback Production riusciti della `1.0.0` |
+
+### Ricevuta del deploy Production `0.9.39`
+
+| Campo | Valore |
+| --- | --- |
+| Ambiente e configurazione | Production: `wrangler.json` env `production`, `shopify.app.toml` |
+| Versione repository e commit | `0.9.39`, commit `15655a60642c33b755900c41d2228696a7044cb1` |
+| Migrazioni | `0012_complimentary_entitlements.sql` applicata; nessuna migrazione pendente al readback |
+| Run | [32781055852](https://github.com/max23468/CF-Ready/actions/runs/32781055852) |
+| Gate, smoke e readback | `npm run check`, preflight, Worker, smoke e readback Shopify riusciti |
+| Shopify | versione `0.9.39` attiva (`1101646659585`), commit verificato |
+| Release | [`v0.9.39`](https://github.com/max23468/CF-Ready/releases/tag/v0.9.39), pubblicata dopo deploy e readback riusciti |
 
 ### Ricevuta del deploy Production `0.9.22`
 
@@ -313,36 +333,36 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 
 | Gate | Prova | Stato |
 | --- | --- | --- |
-| Gate locale completo `npm run check` | run Production [32648669434](https://github.com/max23468/CF-Ready/actions/runs/32648669434), commit `2c5bc8f` | ✅ |
+| Gate locale completo `npm run check` | run Production [32781055852](https://github.com/max23468/CF-Ready/actions/runs/32781055852), commit `15655a6` | ✅ |
 | Test della Validation Function | `npm run test:function`, 109 test | ✅ |
 | E2E pubblici | job `e2e` della PR [#216](https://github.com/max23468/CF-Ready/pull/216), run `30952011063`: WebKit e Chromium verdi | ✅ |
-| Snapshot Development verificato | run [32640077331](https://github.com/max23468/CF-Ready/actions/runs/32640077331): `0.9.22`, commit `d872bd3`; gate completo, migrazioni, Worker, capacità, Shopify e readback verdi | ✅ |
+| Snapshot Development verificato | run [32779854802](https://github.com/max23468/CF-Ready/actions/runs/32779854802): `0.9.39`, commit `542f32b`; gate completo, migrazione, Worker, capacità, Shopify e readback verdi | ✅ |
 | Deploy Pages Production e smoke | run `30743184121`, otto URL e header di sicurezza | ✅ |
 | Rollback Pages esercitato e letto | run `30741094451` | ✅ |
 | Backup D1 Production e restore | run `30769584725`: export cifrato, restore locale di 32 comandi, `integrity_check=ok`, readback dello slot R2 | ✅ |
 | Security audit e manutenzione provider | run `30749648119`, entrambi i job verdi | ✅ |
 | Audit pre-submission App Store | [audit aggiornato il 4 agosto 2026](../audits/2026-08-03-app-store-pre-submission.md), 31 requisiti locali probabilmente conformi | ✅ |
 | Audit Built for Shopify | [audit del 5 agosto 2026](../audits/2026-08-05-built-for-shopify-readiness.md): integrazione, UI, accessibilità, materiali e matrice checkout | ⚠️ metriche differite separate |
-| Migrazioni D1 Development | nessuna pendente al readback del run `30943459841` | ✅ |
-| Migrazioni D1 Production | dieci migrazioni versionate applicate, readback senza pendenti, 11 tabelle | ✅ |
+| Migrazioni D1 Development | migrazione `0012_complimentary_entitlements.sql` applicata e nessuna pendente al readback del run [32779854802](https://github.com/max23468/CF-Ready/actions/runs/32779854802) | ✅ |
+| Migrazioni D1 Production | dodici migrazioni versionate applicate; `0012_complimentary_entitlements.sql` applicata e readback senza pendenti nel run [32781055852](https://github.com/max23468/CF-Ready/actions/runs/32781055852) | ✅ |
 | `noindex` sui documenti legali | verificato **live** dopo il deploy del 3 agosto 2026: i quattro percorsi rispondono `X-Robots-Tag: noindex`, la Home, l'assistenza e la Home inglese no | ✅ |
 | Iniezione dell'identità del titolare | verificata **live**: Privacy e Termini, IT ed EN, dichiarano il nome della persona fisica titolare e nessuna pagina pubblica contiene ancora il segnaposto. Il segnaposto nei sorgenti è protetto da un test in `scripts/check-docs.node-test.mjs` | ✅ |
 | Configurazione Worker Production | `wrangler.json` env `production`: Worker `cf-ready-prod`, D1 `cf-ready-db-prod`, `ALLOWED_SHOP` vuota, addebiti reali | ✅ |
-| Worker Production distribuito | versione `0.9.22`, run [32648669434](https://github.com/max23468/CF-Ready/actions/runs/32648669434), commit `2c5bc8f`; `https://cf-ready-prod.tmsf.workers.dev` risponde | ✅ |
+| Worker Production distribuito | versione `0.9.39`, run [32781055852](https://github.com/max23468/CF-Ready/actions/runs/32781055852), commit `15655a6`; smoke e readback riusciti | ✅ |
 | URL Production nel manifest Shopify | `shopify.app.toml` punta a `https://cf-ready-prod.tmsf.workers.dev`, con aggiornamento automatico degli URL vietato | ✅ |
 | **`BILLING_TEST=false` in Production** | `wrangler.json` env `production` la definisce a `"false"` ed è effettiva sul Worker dalla `0.9.6` (D-129): gli addebiti dei merchant sono reali | ✅ |
 | Secret Production separati | tre secret runtime caricati sul Worker `cf-ready-prod` il 4 agosto 2026; il preflight li verifica a ogni deploy | ✅ |
-| Versione attiva dell'app CF Ready | Development `0.9.22`, readback del run [32640077331](https://github.com/max23468/CF-Ready/actions/runs/32640077331); Production `0.9.22`, readback del run [32648669434](https://github.com/max23468/CF-Ready/actions/runs/32648669434) | ✅ |
+| Versione attiva dell'app CF Ready | Production `0.9.39`, ID `1101646659585`, commit `15655a6`, readback del run [32781055852](https://github.com/max23468/CF-Ready/actions/runs/32781055852) | ✅ |
 | Navigazione embedded D-130 | verificata in Chrome il 5 agosto 2026 sullo store `cf-ready-dev` con la Production `0.9.11`: una sola Home e route primarie dentro l'Admin | ✅ |
 | Function API `2026-07` stabile e rigenerata | fonte Shopify del 3 agosto 2026: stabile dal 1º luglio 2026, accessibile fino al 16 luglio 2027. Schema rigenerato con CLI 4.6.0, identico al committato a meno della formattazione | ✅ |
-| **Checkout reali ripetuti sulla Function** | nessuno in questa sessione; è anche il gate di M10 | ❌ assente |
+| **Matrice server-side della Function** | `npm run test:function` sull'HEAD Production `0.9.39`: 109 test verdi; casi geografici, senza spedizione, ritiro, misto ed entitlement in abbonamento nella [ricevuta M10](../evidence/2026-08-25-m10-canary-numisleo.md) | ✅ |
 | Listing nel Partner Dashboard | readback manuale live del 23 agosto 2026 sull'app Production CF Ready (`403321946113`): stato `Published`, visibilità limitata e URL diretto `https://apps.shopify.com/cf-ready`; italiano primario e inglese entrambi `Live` sotto «Lingue pubblicate», nessuna lingua non pubblicata | ✅ M9 chiusa |
 | Conferma Shopify App Store | email ufficiale dello Shopify App Store Team ricevuta dall'owner il 23 agosto 2026: app approvata e pubblicata come applicazione listata; nome `CF Ready - Codice Fiscale`, stato `Published`, visibilità limitata, URL `https://apps.shopify.com/cf-ready`, riferimento `128156` | ✅ |
 | Screenshot della listing | readback manuale live del 23 agosto 2026: feature media e cinque screenshot desktop presenti nelle listing italiana e inglese; la serie italiana è riutilizzata in inglese con cinque alt text localizzati. File esclusi dal repository per decisione dell'owner; piano e testi in [`screenshots.md`](../listing/screenshots.md) | ✅ |
 | Demo screencast | registrato, **dichiarato dall'owner il 4 agosto 2026**. Non entra nel repository: il copione resta in [`screencast-script.md`](../listing/screencast-script.md), aggiornato all'avvio esplicito della prova | ⚠️ dichiarato, non verificato da qui |
 | Contatto tecnico d'emergenza | requisito 4.5.6: registrato dall'owner nelle impostazioni dell'account Partner il 4 agosto 2026 | ✅ |
 | Accesso del reviewer | nessuno store né credenziali forniti: l'app dichiara di non richiedere un account e le istruzioni chiedono l'installazione su un development store italiano (D-132). Il 4.5.5 è condizionale e non si applica; lo store preinstallato è un requisito delle sole Payment app (5.2.1) | ✅ deciso |
-| **Canary su store reale** | milestone M10, non ancora iniziata | ❌ assente |
+| **Canary su store reale** | [ricevuta M10](../evidence/2026-08-25-m10-canary-numisleo.md): installazione, piano Basic, Validation, omaggio, matrice automatica, ricognizione non transazionale e monitoraggio verificati; resta il readback live `0.9.40` senza invito all'ordine di prova | 🟡 in chiusura |
 
 ## 3. Configurazioni e API validate
 
@@ -380,7 +400,7 @@ segnaposto. Deploy eseguito il 3 agosto 2026 e verificato live.
 | Nessun indirizzo geografico nei documenti legali | accettato dall'owner il 3 agosto 2026: titolare persona fisica senza Partita IVA, identificato con nome e recapito email. La review potrebbe chiedere un indirizzo |
 | Nessun dominio proprio | deciso in M7: il sito resta su `pages.dev` per la 1.0; ne consegue il `mailto:` al posto del modulo con invio |
 | Generazioni ricorrenti degli abbonamenti non coperte | limite della piattaforma, dichiarato in listing, termini e reviewer instructions |
-| Wallet non tutti disponibili in ambiente di test | matrice completa rimandata a M10 su store reale |
+| Wallet non tutti disponibili nello stesso browser | M10 chiusa con matrice server-side automatica e ricognizione delle superfici disponibili; Apple Pay resta un'osservazione non bloccante su Safari/dispositivo compatibile |
 
 ## 6. Autorizzazioni operative
 
@@ -391,8 +411,8 @@ esplicita e distinta dell'owner al momento dell'esecuzione.
 
 | Azione | Stato |
 | --- | --- |
-| Deploy Worker Production | ultimo snapshot M9 `0.9.22`, eseguito e verificato dal run [32648669434](https://github.com/max23468/CF-Ready/actions/runs/32648669434) |
-| Promozione `develop` → `main` | `0.9.22` unita con [#272](https://github.com/max23468/CF-Ready/pull/272), merge commit `2c5bc8f` |
+| Deploy Worker Production | `0.9.39`, eseguito e verificato dal run [32781055852](https://github.com/max23468/CF-Ready/actions/runs/32781055852) |
+| Promozione `develop` → `main` | `0.9.39` unita con [#312](https://github.com/max23468/CF-Ready/pull/312), merge commit `15655a6` a due parent |
 | Submission App Store | autorizzata ed eseguita il 4 agosto 2026; review approvata e listing bilingue `Published` verificata il 23 agosto 2026 |
 | Attivazione billing reale | autorizzata e attiva in Production dalla `0.9.6` |
 | Passaggio della listing a visibilità completa | M12, non autorizzato |

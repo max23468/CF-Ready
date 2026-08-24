@@ -74,7 +74,7 @@ export const en: typeof it = {
       "From now on checkout stops checking the fields. Rules and messages stay saved and you can turn them back on whenever you want.",
     nextConfigure: "Choose which fields to check in checkout.",
     nextActivate: "Your rules are ready. Turn them on to apply them in checkout.",
-    nextTestOrder: "Place a test order to see the rules at work.",
+    nextTestOrder: "Review your next orders to confirm that the rules are applied as expected.",
     nextStartTrial:
       "Your rules are ready. Start the free trial whenever you want, or choose a plan now.",
     nextChoosePlan: "Choose a plan to apply your rules in checkout again.",
