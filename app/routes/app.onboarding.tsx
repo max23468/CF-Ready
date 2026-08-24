@@ -13,6 +13,7 @@ import {
 } from "../config";
 import { databaseContext } from "../context.server";
 import { recordEvent } from "../events.server";
+import { onboardingStep4State } from "../features/onboarding/step4-state";
 import { describeCheckout, resolveLocale, texts, validationStatus } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { authenticate } from "../shopify.server";
@@ -50,6 +51,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     errorDisplay: config.errorDisplay,
     messages: config.messages,
     enabled: state.validationEnabled,
+    entitlementKind: state.entitlement.kind,
     entitled: state.entitlement.kind !== "none",
     trialStatus: state.trial?.status ?? null,
     address2Declared: address2Declaration !== null,
@@ -158,6 +160,7 @@ export default function Onboarding() {
   const busy = fetcher.state !== "idle";
   const pendingIntent = pendingFetcherIntent(fetcher.formData);
   const esito = fetcher.data as { ok: boolean; errorCode?: string } | undefined;
+  const step4State = onboardingStep4State(saved);
 
   const go = (intent: string, extra: Record<string, string> = {}) =>
     fetcher.submit({ intent, step: String(step), ...extra }, { method: "post" });
@@ -326,55 +329,15 @@ export default function Onboarding() {
             ) : null}
 
             {step === 4 ? (
-              <>
-                <s-heading>{t.onboarding.step4Heading}</s-heading>
-                <s-stack direction="block" gap="small-100">
-                  <s-stack direction="inline" gap="small-100" alignItems="center">
-                    <s-text>{t.rules.taxCodeLabel}</s-text>
-                    <s-badge>{t.rules.taxCode[saved.rules.taxCode]}</s-badge>
-                  </s-stack>
-                  <s-stack direction="inline" gap="small-100" alignItems="center">
-                    <s-text>{t.rules.pecLabel}</s-text>
-                    <s-badge>{t.rules.pec[saved.rules.pec]}</s-badge>
-                  </s-stack>
-                </s-stack>
-                {/* FR-058: l'avviso sul campo “Interno” compare prima dell'attivazione. */}
-                {saved.rules.taxCode === "unmanaged" ? null : (
-                  <Address2DeclarationPrompt declared={declared} t={t} />
-                )}
-                <s-paragraph>
-                  {saved.enabled ? t.onboarding.reviewStep4Body : t.onboarding.step4Body}
-                </s-paragraph>
-
-                {/* La prova non è mai partita da sola: qui il merchant decide se cominciarla
-                    o passare direttamente ai piani. Chi ha già un diritto valido non vede
-                    nulla di tutto questo. */}
-                <s-divider />
-                <s-heading>{t.onboarding.step4TrialHeading}</s-heading>
-                {saved.entitled ? (
-                  <s-paragraph>{t.onboarding.step4TrialActive}</s-paragraph>
-                ) : saved.trialStatus === null ? (
-                  <>
-                    <s-paragraph>{t.onboarding.step4TrialBody}</s-paragraph>
-                    <s-stack direction="inline" gap="base">
-                      <s-button
-                        variant="primary"
-                        disabled={busy}
-                        loading={pendingIntent === "start_trial"}
-                        onClick={() => go("start_trial")}
-                      >
-                        {t.onboarding.step4StartTrial}
-                      </s-button>
-                      <s-link href="/app">{t.onboarding.step4SeePlans}</s-link>
-                    </s-stack>
-                  </>
-                ) : (
-                  <>
-                    <s-paragraph>{t.plan.trialOver}</s-paragraph>
-                    <s-link href="/app">{t.onboarding.step4SeePlans}</s-link>
-                  </>
-                )}
-              </>
+              <OnboardingStep4Content
+                saved={saved}
+                declared={declared}
+                t={t}
+                state={step4State}
+                busy={busy}
+                pendingIntent={pendingIntent}
+                startTrial={() => go("start_trial")}
+              />
             ) : null}
 
             <s-stack direction="inline" gap="base">
@@ -384,34 +347,13 @@ export default function Onboarding() {
                 </s-button>
               ) : null}
               {step === 4 ? (
-                saved.enabled ? (
-                  <s-button
-                    variant="primary"
-                    disabled={busy}
-                    loading={pendingIntent === "finish"}
-                    onClick={() => close("finish")}
-                  >
-                    {t.onboarding.completeReview}
-                  </s-button>
-                ) : (
-                  <>
-                    <s-button
-                      variant="primary"
-                      disabled={busy || !saved.entitled}
-                      loading={pendingIntent === "activate"}
-                      onClick={() => close("activate")}
-                    >
-                      {t.onboarding.activate}
-                    </s-button>
-                    <s-button
-                      disabled={busy}
-                      loading={pendingIntent === "finish"}
-                      onClick={() => close("finish")}
-                    >
-                      {t.onboarding.finishWithout}
-                    </s-button>
-                  </>
-                )
+                <OnboardingStep4Actions
+                  t={t}
+                  state={step4State}
+                  busy={busy}
+                  pendingIntent={pendingIntent}
+                  close={close}
+                />
               ) : (
                 <s-button
                   variant="primary"
@@ -442,6 +384,126 @@ export default function Onboarding() {
         </s-section>
       </s-page>
     </form>
+  );
+}
+
+function OnboardingStep4Content({
+  saved,
+  declared,
+  t,
+  state,
+  busy,
+  pendingIntent,
+  startTrial,
+}: {
+  saved: Awaited<ReturnType<typeof loader>>;
+  declared: boolean;
+  t: ReturnType<typeof texts>;
+  state: ReturnType<typeof onboardingStep4State>;
+  busy: boolean;
+  pendingIntent: string | null;
+  startTrial: () => void;
+}) {
+  return (
+    <>
+      <s-heading>{t.onboarding.step4Heading}</s-heading>
+      <s-stack direction="block" gap="small-100">
+        <s-stack direction="inline" gap="small-100" alignItems="center">
+          <s-text>{t.rules.taxCodeLabel}</s-text>
+          <s-badge>{t.rules.taxCode[saved.rules.taxCode]}</s-badge>
+        </s-stack>
+        <s-stack direction="inline" gap="small-100" alignItems="center">
+          <s-text>{t.rules.pecLabel}</s-text>
+          <s-badge>{t.rules.pec[saved.rules.pec]}</s-badge>
+        </s-stack>
+      </s-stack>
+      {saved.rules.taxCode === "unmanaged" ? null : (
+        <Address2DeclarationPrompt declared={declared} t={t} />
+      )}
+      <s-paragraph>
+        {state.summary === "review"
+          ? t.onboarding.reviewStep4Body
+          : state.summary === "ready"
+            ? t.onboarding.step4BodyReady
+            : t.onboarding.step4BodyNeedsEntitlement}
+      </s-paragraph>
+      <s-divider />
+      <s-heading>{t.onboarding.step4TrialHeading}</s-heading>
+      {state.access === "trial" ? (
+        <s-paragraph>{t.onboarding.step4TrialActive}</s-paragraph>
+      ) : state.access === "plan" ? (
+        <s-paragraph>{t.onboarding.step4PlanActive}</s-paragraph>
+      ) : state.access === "first_run" ? (
+        <>
+          <s-paragraph>{t.onboarding.step4TrialBody}</s-paragraph>
+          <s-stack direction="inline" gap="base">
+            <s-button
+              variant="primary"
+              disabled={busy}
+              loading={pendingIntent === "start_trial"}
+              onClick={startTrial}
+            >
+              {t.onboarding.step4StartTrial}
+            </s-button>
+            <s-link href="/app">{t.onboarding.step4SeePlans}</s-link>
+          </s-stack>
+        </>
+      ) : (
+        <>
+          <s-paragraph>{t.plan.trialOver}</s-paragraph>
+          <s-link href="/app">{t.onboarding.step4SeePlans}</s-link>
+        </>
+      )}
+    </>
+  );
+}
+
+function OnboardingStep4Actions({
+  t,
+  state,
+  busy,
+  pendingIntent,
+  close,
+}: {
+  t: ReturnType<typeof texts>;
+  state: ReturnType<typeof onboardingStep4State>;
+  busy: boolean;
+  pendingIntent: string | null;
+  close: (intent: "activate" | "finish") => void;
+}) {
+  if (state.summary === "review") {
+    return (
+      <s-button
+        variant="primary"
+        disabled={busy}
+        loading={pendingIntent === "finish"}
+        onClick={() => close("finish")}
+      >
+        {t.onboarding.completeReview}
+      </s-button>
+    );
+  }
+
+  return (
+    <>
+      {state.canActivate ? (
+        <s-button
+          variant="primary"
+          disabled={busy}
+          loading={pendingIntent === "activate"}
+          onClick={() => close("activate")}
+        >
+          {t.onboarding.activate}
+        </s-button>
+      ) : null}
+      <s-button
+        disabled={busy}
+        loading={pendingIntent === "finish"}
+        onClick={() => close("finish")}
+      >
+        {t.onboarding.finishWithout}
+      </s-button>
+    </>
   );
 }
 

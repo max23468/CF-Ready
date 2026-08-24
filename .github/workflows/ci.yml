@@ -33,7 +33,7 @@ jobs:
           node-version: 26.5.1
           cache: npm
       - run: npm install --global npm@12.0.2
-      - run: npm install --global @shopify/cli@4.6.0
+      - run: npm install --global @shopify/cli@4.7.0
       - run: npm ci
       - run: npm run check
 

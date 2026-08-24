@@ -46,8 +46,10 @@ export const it = {
     nextHeading: "Prossimo passo",
     badgeActive: "Attiva",
     badgeInactive: "Disattivata",
+    badgeNotStarted: "Non ancora attiva",
     titleActive: "Validazione attiva nel checkout",
     titleDisabled: "Validazione disattivata",
+    titleNotStarted: "Controllo non ancora attivo",
     titleLapsed: "Validazione attiva, piano non attivo",
     unsupported: "Store non supportato",
     unsupportedBody:
@@ -55,6 +57,8 @@ export const it = {
     unsupportedCheckAddress:
       "Se lo store è italiano, controlla l’indirizzo in Impostazioni → Dettagli negozio: CF Ready legge il Paese da lì.",
     unsupportedGuide: "La Guida spiega cosa fa l’app e quali sono i suoi limiti.",
+    firstRun:
+      "CF Ready è appena stata installata. Nessuna prova è iniziata e nessuna regola è attiva nel checkout: puoi configurare tutto prima di decidere quando iniziare.",
     noEntitlement:
       "Senza un piano attivo il checkout non blocca più nulla. Regole e messaggi restano salvati e tornano validi con il pagamento.",
     syncNeeded:
@@ -71,6 +75,8 @@ export const it = {
     nextConfigure: "Scegli quali campi controllare nel checkout.",
     nextActivate: "Le regole sono pronte. Attivale per farle valere nel checkout.",
     nextTestOrder: "Fai un ordine di prova per vedere le regole all’opera.",
+    nextStartTrial:
+      "Le regole sono pronte. Avvia la prova gratuita quando vuoi oppure scegli subito un piano.",
     nextChoosePlan: "Scegli una modalità per riattivare le regole nel checkout.",
     helpHeading: "Guida e assistenza",
     helpBody: "Cosa controlla CF Ready, cosa non controlla e cosa succede nei casi particolari.",
@@ -81,7 +87,7 @@ export const it = {
     heading: "Messaggi al cliente",
     saved: "Messaggi salvati.",
     intro:
-      "Sono i testi che il cliente legge nel checkout quando un campo manca o non è formalmente valido. Chi ha il checkout in italiano vede quelli italiani, tutti gli altri vedono quelli inglesi.",
+      "Sono i testi che il cliente leggerà quando il controllo è attivo e un campo manca o non è formalmente valido. Chi ha il checkout in italiano vede quelli italiani, tutti gli altri vedono quelli inglesi.",
     italian: "Italiano",
     english: "English",
     taxCodeRequired: "Codice Fiscale obbligatorio",
@@ -94,11 +100,11 @@ export const it = {
     reset: "Ripristina testi predefiniti",
     resetConfirm: (language: string) =>
       `I quattro messaggi in ${language} tornano ai testi predefiniti. Gli altri non cambiano, e la modifica vale solo dopo il salvataggio.`,
-    appearHeading: "Quali messaggi compaiono",
+    appearHeading: "Messaggi collegati alle regole",
     appearIntro:
-      "Dipende dalle regole attive: i messaggi di un campo non gestito non li legge nessuno.",
-    appears: "Compare",
-    appearsNot: "Non compare",
+      "Questi indicatori dipendono dalle regole scelte, non dallo stato del controllo. Un messaggio può comparire nel checkout solo quando il controllo è attivo.",
+    appears: "Previsto",
+    appearsNot: "Non previsto",
   },
   setup: {
     heading: "Prepara CF Ready",
@@ -111,12 +117,12 @@ export const it = {
     rulesBody: "Decidi se Codice Fiscale e PEC sono non gestiti, facoltativi o obbligatori.",
     activateTitle: "Attiva nel checkout",
     activateBody: "Finché non attivi, le regole restano salvate ma non valgono per i clienti.",
-    planTitle: "Inizia la prova o scegli come pagare",
+    planTitle: "Abilita il controllo",
     planBody:
-      "La prova dura 14 giorni, è gratuita e non chiede una carta: finché non la inizi non si consuma. Senza prova né pagamento le regole restano salvate ma non valgono nel checkout.",
-    planBodyEntitled:
-      "Quando la prova finisce serve una modalità di pagamento, altrimenti il checkout smette di controllare.",
-    startTrial: "Inizia la prova",
+      "La prova gratuita dura 14 giorni, non chiede una carta e parte solo quando la avvii. Finché non la inizi, le regole restano salvate e il checkout non cambia.",
+    planBodyLapsed:
+      "La prova è terminata. Scegli un piano per far valere di nuovo le regole nel checkout; configurazione e messaggi restano salvati.",
+    startTrial: "Avvia la prova gratuita",
     address2Title: "Smetti di usare il campo “Interno”",
     guided: "Apri la procedura guidata",
   },
@@ -128,7 +134,7 @@ export const it = {
     next: "Continua",
     welcomeHeading: "Benvenuto in CF Ready",
     welcomeBody:
-      "Quattro passi, cinque minuti. Alla fine decidi tu se iniziare la prova o pagare subito: niente parte da solo.",
+      "Quattro passi, cinque minuti. Scegli quali dati controllare, verifica cosa vedrà il cliente e decidi tu quando attivare: niente parte da solo.",
     step1Heading: "Cosa fa e cosa non fa",
     step1Body:
       "CF Ready controlla il Codice Fiscale e la PEC nel campo fiscale nativo del checkout italiano. Non modifica il tema, non aggiunge campi e non emette fatture.",
@@ -144,13 +150,17 @@ export const it = {
     step3MessagesBody:
       "Sono già pronti in italiano e inglese. Puoi riscriverli quando vuoi da Messaggi al cliente.",
     step4Heading: "Riepilogo",
-    step4Body: "Da qui puoi attivare subito le regole oppure salvarle e attivarle più tardi.",
-    step4TrialHeading: "Prova o pagamento",
+    step4BodyReady:
+      "Le regole sono pronte. Puoi attivarle adesso oppure completare senza attivare e tornare quando vuoi.",
+    step4BodyNeedsEntitlement:
+      "Le regole sono pronte. Per attivarle, avvia prima la prova gratuita o scegli un piano; puoi anche completare senza attivare e tornare quando vuoi.",
+    step4TrialHeading: "Prova e piano",
     step4TrialBody:
       "Le regole valgono nel checkout solo con una prova o un pagamento attivo. La prova dura 14 giorni, è gratuita e non chiede una carta: finché non la inizi, non si consuma.",
     step4StartTrial: "Inizia la prova di 14 giorni",
-    step4SeePlans: "Vedi come pagare",
-    step4TrialActive: "Prova già attiva: non serve fare altro.",
+    step4SeePlans: "Confronta i piani",
+    step4TrialActive: "La prova è attiva: puoi attivare il controllo.",
+    step4PlanActive: "Il piano è attivo: puoi attivare il controllo senza avviare la prova.",
     reviewStep4Body:
       "Il controllo è già attivo nel checkout. Completa la revisione per tornare alla Home.",
     activate: "Attiva nel checkout",
@@ -241,7 +251,7 @@ export const it = {
         a: "CF Ready non conserva Codici Fiscali, indirizzi PEC, ordini o dati dei tuoi clienti. Il controllo avviene durante il checkout e non lascia traccia dei valori inseriti.",
       },
       {
-        q: "Cosa succede se disattivo l’app",
+        q: "Cosa succede se disattivo il controllo",
         a: "Il checkout torna a comportarsi come prima e nessun ordine viene più bloccato. Regole e messaggi restano salvati e tornano validi quando riattivi.",
       },
       {
@@ -269,6 +279,7 @@ export const it = {
     trialLastDay: (date: string) =>
       `Oggi è l’ultimo giorno di prova: finisce il ${date}. Da domani il checkout non blocca più nulla, e regole e messaggi restano salvati.`,
     none: "Nessun piano attivo.",
+    notStartedStatus: "La prova gratuita non è ancora iniziata.",
     // Prima scelta: la prova non parte da sola, la avvia il merchant quando vuole.
     notStartedHeading: "Prima di attivare il controllo",
     notStartedBody:
@@ -281,6 +292,7 @@ export const it = {
     annualStart: "Attiva l’annuale",
     annualSwitch: "Passa all’annuale",
     oneTimeSwitch: "Passa a un solo pagamento",
+    oneTimeStart: "Scegli un solo pagamento",
     cancelRenewal: "Cancella il rinnovo",
     cancelBody:
       "L’accesso resta fino alla fine del periodo già pagato, senza rimborsi parziali. Regole e messaggi restano salvati.",
@@ -289,6 +301,9 @@ export const it = {
     firstChargeNow: "L’addebito parte alla tua approvazione su Shopify.",
     oneTimeCharge:
       "Addebito unico alla tua approvazione su Shopify. I giorni di prova residui decadono.",
+    oneTimeChargeNotStarted:
+      "Addebito unico alla tua approvazione su Shopify. La prova gratuita non verrà avviata.",
+    chooseNowHeading: "Scegli subito un piano",
     chooseHeading: "Come vuoi continuare",
     chooseBody:
       "Le tre modalità hanno le stesse funzioni: cambia solo quando e quanto paghi. I pagamenti li gestisce Shopify e finiscono sulla fattura del tuo store, non su una carta lasciata a noi.",
@@ -297,8 +312,8 @@ export const it = {
     oneTimeSettled:
       "Un solo pagamento per questo store, senza rinnovi. Include gli aggiornamenti dell’app e l’assistenza, senza costi aggiuntivi. Non c’è altro da scegliere.",
     recommended: "Consigliato",
-    generationLaunch: "Prezzo di lancio, acquisito da questo store.",
-    generationStandard: "Prezzo standard, acquisito da questo store.",
+    generationLaunch: "A questo store sono riservati i prezzi di lancio.",
+    generationStandard: "A questo store si applicano i prezzi standard.",
     nextCharge: (date: string) => `Prossimo addebito il ${date}.`,
     periodEnds: (date: string) => `Il periodo pagato finisce il ${date}.`,
     lastAttempt:
@@ -355,7 +370,7 @@ export const it = {
       "Servono due passaggi. In Impostazioni → Checkout, sezione “Opzioni del modulo”, porta la seconda riga dell’indirizzo su “Facoltativo” o “Non includere”; poi, se ne hai cambiato l’etichetta, rimettila com’era da “Gestisci la lingua del checkout”, o da Impostazioni → Lingue, scheda “Checkout e sistema”, se la lingua è tradotta.",
   },
   checkout: {
-    nothing: "Nessuna regola attiva: il checkout si comporta come oggi.",
+    nothing: "Nessun campo è configurato: il checkout resta invariato.",
     taxCodeRequired:
       "Un cliente con consegna e fatturazione in Italia non completa l’ordine senza un Codice Fiscale formalmente valido.",
     taxCodeOptional:
