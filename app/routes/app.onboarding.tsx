@@ -15,6 +15,7 @@ import { databaseContext } from "../context.server";
 import { recordEvent } from "../events.server";
 import { onboardingCheckoutPreview } from "../features/onboarding/checkout-preview";
 import { onboardingStep4State } from "../features/onboarding/step4-state";
+import { markPlanComparison } from "../features/home/plan-comparison";
 import { resolveLocale, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { authenticate } from "../shopify.server";
@@ -427,13 +428,17 @@ export function OnboardingStep4Content({
             >
               {t.onboarding.step4StartTrial}
             </s-button>
-            <s-button href="/app?view=plans">{t.onboarding.step4SeePlans}</s-button>
+            <s-button href="/app" onClick={() => markPlanComparison(window.sessionStorage)}>
+              {t.onboarding.step4SeePlans}
+            </s-button>
           </s-stack>
         </>
       ) : (
         <>
           <s-paragraph>{t.plan.trialOver}</s-paragraph>
-          <s-button href="/app?view=plans">{t.onboarding.step4SeePlans}</s-button>
+          <s-button href="/app" onClick={() => markPlanComparison(window.sessionStorage)}>
+            {t.onboarding.step4SeePlans}
+          </s-button>
         </>
       )}
     </>
