@@ -427,13 +427,13 @@ export function OnboardingStep4Content({
             >
               {t.onboarding.step4StartTrial}
             </s-button>
-            <s-button href="/app#plans">{t.onboarding.step4SeePlans}</s-button>
+            <s-button href="/app?view=plans">{t.onboarding.step4SeePlans}</s-button>
           </s-stack>
         </>
       ) : (
         <>
           <s-paragraph>{t.plan.trialOver}</s-paragraph>
-          <s-button href="/app#plans">{t.onboarding.step4SeePlans}</s-button>
+          <s-button href="/app?view=plans">{t.onboarding.step4SeePlans}</s-button>
         </>
       )}
     </>
