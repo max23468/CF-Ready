@@ -6,6 +6,11 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.30 — 24 agosto 2026
+
+- il confronto piani dall’onboarding usa un segnale di sessione tra il modal e
+  la Home, senza dipendere dai frammenti o dai parametri rimossi da Shopify.
+
 ## 0.9.29 — 24 agosto 2026
 
 - il confronto piani dall’onboarding usa una destinazione preservata da Shopify
