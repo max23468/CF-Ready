@@ -73,8 +73,9 @@ dal preflight e dal deploy della `0.9.8`.
 
 Il Master Plan chiede quattro verifiche tecniche prima della `1.0.0`. Tre sono
 state fatte il 3 agosto 2026; M10 ha chiuso il criterio non transazionale della
-quarta il 25 agosto. L'osservazione di almeno un checkout reale resta un gate
-distinto di M11 prima del tag `v1.0.0`.
+quarta il 25 agosto. L'osservazione di almeno un checkout reale organico idoneo
+a una regola italiana attiva, con esecuzione ed esito della Function confermati,
+resta un gate distinto di M11 prima del tag `v1.0.0`.
 
 | Richiesta | Esito |
 | --- | --- |
@@ -84,8 +85,9 @@ distinto di M11 prima del tag `v1.0.0`.
 | Applicazione sul canary reale | ✅ `0.9.40`: fixture server-side verdi, checkout standard e wallet disponibili ricogniti senza completare transazioni, monitoraggio e readback live registrati nella [ricevuta M10](../evidence/2026-08-25-m10-canary-numisleo.md) |
 
 L'osservazione di almeno un checkout reale su un prossimo ordine nato
-organicamente resta un gate aperto di M11; non autorizza la creazione di ordini
-artificiali sullo store reale.
+organicamente, idoneo a una regola italiana attiva e con evidenza di esecuzione
+ed esito della Function, resta un gate aperto di M11; non autorizza la creazione
+di ordini artificiali sullo store reale.
 
 ### 4. Contatto tecnico d'emergenza — chiuso il 4 agosto 2026 ✅
 

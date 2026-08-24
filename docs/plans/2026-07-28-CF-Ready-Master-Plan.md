@@ -4334,9 +4334,11 @@ Deliverable:
 Gate:
 
 - prima del tag `v1.0.0`, osservazione riuscita di almeno un checkout reale su
-  un ordine nato organicamente sul canary, senza generare ordini, clienti,
-  prodotti o pagamenti artificiali; i casi non disponibili restano coperti
-  dalla matrice server-side e dai limiti ambientali documentati;
+  un ordine nato organicamente sul canary, idoneo a una regola italiana attiva;
+  l'evidenza deve confermare l'esecuzione della Function e l'esito atteso, senza
+  generare ordini, clienti, prodotti o pagamenti artificiali. I casi non
+  disponibili restano coperti dalla matrice server-side e dai limiti ambientali
+  documentati;
 - riconferma dello schema Function API `2026-07` con la CLI supportata corrente.
 
 ### M12 — Visibilità completa
