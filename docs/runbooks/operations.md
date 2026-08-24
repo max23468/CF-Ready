@@ -196,6 +196,9 @@ Un fallimento Partner non avanza il checkpoint. La risposta Telegram è valida
 soltanto con HTTP riuscito e `ok: true`. La consegna tenta al massimo
 cinque volte con backoff; una riga `failed` richiede diagnosi del codice
 sanitizzato e una decisione esplicita prima del replay.
+`shop/redact` elimina immediatamente tutte le righe dell'outbox associate al
+dominio tecnico, comprese quelle già inviate, così nessuna notifica pendente può
+partire dopo la cancellazione dei dati dello store.
 
 ## Traces Development temporanee
 

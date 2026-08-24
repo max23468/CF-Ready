@@ -103,7 +103,6 @@ test("0011 crea l'outbox owner e conserva la transizione billing precedente", as
   }>();
 
   expect(columns.results.map(({ name }) => name)).not.toContain("shop_id");
-  expect(columns.results.map(({ name }) => name)).not.toContain("shop_domain");
   const billingColumns = await env.DB.prepare("PRAGMA table_info(billing_events)").all<{
     name: string;
   }>();
@@ -111,6 +110,13 @@ test("0011 crea l'outbox owner e conserva la transizione billing precedente", as
     expect.arrayContaining(["previous_entitlement_status", "previous_plan_kind"]),
   );
   expect(columns.results.map(({ name }) => name)).toEqual(
-    expect.arrayContaining(["dedupe_key", "notification_kind", "body_text", "status", "attempts"]),
+    expect.arrayContaining([
+      "dedupe_key",
+      "notification_kind",
+      "shop_domain",
+      "body_text",
+      "status",
+      "attempts",
+    ]),
   );
 });

@@ -1488,8 +1488,9 @@ Vincolo univoco su identificatore Shopify + tipo evento per l’idempotenza.
 #### `owner_notifications` e `owner_notification_state`
 
 Outbox tecnica per le sole notifiche all’owner. `owner_notifications` conserva
-tipo, oggetto, corpo minimale, istante sorgente, stato di consegna, tentativi e
-claim; il corpo include dominio tecnico `.myshopify.com` e piano, mentre
+tipo, dominio tecnico dello store, oggetto, corpo minimale, istante sorgente,
+stato di consegna, tentativi e claim; il corpo include dominio tecnico
+`.myshopify.com` e piano, mentre
 `dedupe_key` è un hash SHA-256 univoco della sorgente e non contiene in chiaro
 shop ID o GID Shopify. `owner_notification_state` conserva i checkpoint dei poll
 Partner e prova gratuita. Il checkpoint avanza soltanto dopo una pagina completa;
@@ -1497,10 +1498,12 @@ i poll sovrappongono cinque minuti e l’unicità rende innocui replay e paginaz
 ripetuta. `billing_events` conserva anche piano e stato precedenti per distinguere
 un nuovo acquisto da un passaggio tra piani.
 
-La consegna è at-least-once, con massimo cinque tentativi e backoff. Un arresto
+Le righe dello store vengono eliminate durante `shop/redact`, anche se già
+consegnate; la retention di 90 giorni resta soltanto il limite massimo. La
+consegna è at-least-once, con massimo cinque tentativi e backoff. Un arresto
 dopo l’invio ma prima del commit D1 può produrre una rara notifica duplicata; non
 può perdere la riga sorgente. Il contenuto comunica soltanto evento, piano e
-timestamp, mai l’identità del merchant.
+timestamp, mai nome, email o dati personali del merchant.
 
 #### `app_state`
 
@@ -3110,10 +3113,13 @@ Eventi permessi:
 
 Sempre attiva perché necessaria a funzionamento, sicurezza e valutazione del lancio. Descritta nella Privacy Policy. Nessun cookie analytics, fingerprint o comportamento di clienti.
 
-Le notifiche all’owner non sono telemetria merchant: vengono create soltanto
-per una nuova installazione Partner o un piano diventato attivo e non includono
-identificativi dello store. Esito, tentativi e codici d’errore sanitizzati
-restano nell’outbox D1 per il tempo indicato in §21.5.
+Le notifiche all’owner non sono telemetria merchant: coprono installazione,
+riattivazione, disinstallazione, prova e transizioni commerciali osservate dalla
+Partner API o dallo stato applicativo. Includono soltanto il dominio tecnico
+`.myshopify.com`, il piano e l’istante dell’evento; non includono nome, email,
+shop ID, GID Shopify o dati checkout. Esito, tentativi e codici d’errore
+sanitizzati restano nell’outbox D1 per il tempo indicato in §21.5 e vengono
+eliminati prima se arriva `shop/redact`.
 
 Il solo sito pubblico usa inoltre Cloudflare Web Analytics per visite aggregate
 e prestazioni reali. Il beacon non usa cookie o archiviazione locale, non crea

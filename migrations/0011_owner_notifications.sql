@@ -5,6 +5,7 @@ CREATE TABLE owner_notifications (
   id INTEGER PRIMARY KEY,
   dedupe_key TEXT NOT NULL UNIQUE,
   notification_kind TEXT NOT NULL CHECK (notification_kind IN ('lifecycle', 'billing', 'trial')),
+  shop_domain TEXT NOT NULL,
   subject TEXT NOT NULL,
   body_text TEXT NOT NULL,
   source_occurred_at TEXT NOT NULL,
@@ -25,6 +26,9 @@ CREATE INDEX owner_notifications_delivery_idx
 
 CREATE INDEX owner_notifications_created_at_idx
   ON owner_notifications(created_at);
+
+CREATE INDEX owner_notifications_shop_domain_idx
+  ON owner_notifications(shop_domain);
 
 CREATE TABLE owner_notification_state (
   state_key TEXT PRIMARY KEY,

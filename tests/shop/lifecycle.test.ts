@@ -239,11 +239,31 @@ test("disinstallazione e redact ripuliscono i dati dello store", async () => {
   ).toMatchObject({ installation_status: "uninstalled" });
   expect(await appState(shop)).toMatchObject({ validation_enabled: 0, validation_gid: null });
 
+  await env.DB.prepare(
+    `INSERT INTO owner_notifications (
+       dedupe_key, notification_kind, shop_domain, subject, body_text, source_occurred_at,
+       available_at, created_at, updated_at
+     ) VALUES ('notification-redact', 'lifecycle', ?, 'subject', 'body', ?, ?, ?, ?)`,
+  )
+    .bind(
+      shop,
+      "2026-07-30T00:00:00.000Z",
+      "2026-07-30T00:00:00.000Z",
+      "2026-07-30T00:00:00.000Z",
+      "2026-07-30T00:00:00.000Z",
+    )
+    .run();
+
   expect(await redactShop(env.DB, shop, "wh-redact")).toBe(true);
   expect(await redactShop(env.DB, shop, "wh-redact")).toBe(true);
 
   expect(
     await env.DB.prepare("SELECT id FROM shops WHERE shop_domain = ?").bind(shop).first(),
+  ).toBeNull();
+  expect(
+    await env.DB.prepare("SELECT id FROM owner_notifications WHERE shop_domain = ?")
+      .bind(shop)
+      .first(),
   ).toBeNull();
   expect(
     await env.DB.prepare("SELECT COUNT(*) AS total FROM app_events WHERE shop_id = ?")
@@ -351,9 +371,9 @@ test("la retention rispetta le soglie pubblicate per eventi e ricevute", async (
     ).bind(shopId, "2025-08-02T00:00:00.001Z", "2025-08-02T00:00:00.001Z"),
     env.DB.prepare(
       `INSERT INTO owner_notifications (
-         dedupe_key, notification_kind, subject, body_text, source_occurred_at,
+         dedupe_key, notification_kind, shop_domain, subject, body_text, source_occurred_at,
          available_at, created_at, updated_at
-       ) VALUES ('notification-expired', 'lifecycle', 'subject', 'body', ?, ?, ?, ?)`,
+       ) VALUES ('notification-expired', 'lifecycle', 'expired.myshopify.com', 'subject', 'body', ?, ?, ?, ?)`,
     ).bind(
       "2026-05-04T00:00:00.000Z",
       "2026-05-04T00:00:00.000Z",
@@ -362,9 +382,9 @@ test("la retention rispetta le soglie pubblicate per eventi e ricevute", async (
     ),
     env.DB.prepare(
       `INSERT INTO owner_notifications (
-         dedupe_key, notification_kind, subject, body_text, source_occurred_at,
+         dedupe_key, notification_kind, shop_domain, subject, body_text, source_occurred_at,
          available_at, created_at, updated_at
-       ) VALUES ('notification-current', 'lifecycle', 'subject', 'body', ?, ?, ?, ?)`,
+       ) VALUES ('notification-current', 'lifecycle', 'current.myshopify.com', 'subject', 'body', ?, ?, ?, ?)`,
     ).bind(
       "2026-05-04T00:00:00.001Z",
       "2026-05-04T00:00:00.001Z",

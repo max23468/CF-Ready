@@ -255,10 +255,10 @@ test("Telegram ritenta senza duplicare e consegna il dominio tecnico dello store
 test("un claim interrotto al quinto tentativo diventa terminale senza un sesto invio", async () => {
   await env.DB.prepare(
     `INSERT INTO owner_notifications (
-       dedupe_key, notification_kind, subject, body_text, source_occurred_at, status,
+       dedupe_key, notification_kind, shop_domain, subject, body_text, source_occurred_at, status,
        attempts, available_at, claim_token, claimed_at, created_at, updated_at
      ) VALUES (
-       'claim-esaurito', 'lifecycle', 'oggetto', 'corpo', ?, 'processing', 5, ?,
+       'claim-esaurito', 'lifecycle', 'claim-test.myshopify.com', 'oggetto', 'corpo', ?, 'processing', 5, ?,
        'claim-precedente', ?, ?, ?
      )`,
   )

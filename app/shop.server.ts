@@ -123,10 +123,12 @@ export async function redactShop(
     .bind(webhookId)
     .first<{ id: number }>();
   if (alreadyRedacted) {
-    await db
-      .prepare("UPDATE webhook_events SET shop_domain = NULL WHERE webhook_id = ?")
-      .bind(webhookId)
-      .run();
+    await db.batch([
+      db.prepare("DELETE FROM owner_notifications WHERE shop_domain = ?").bind(shopDomain),
+      db
+        .prepare("UPDATE webhook_events SET shop_domain = NULL WHERE webhook_id = ?")
+        .bind(webhookId),
+    ]);
     return true;
   }
 
@@ -151,6 +153,7 @@ export async function redactShop(
       db
         .prepare("UPDATE webhook_events SET shop_domain = NULL WHERE shop_domain = ?")
         .bind(shopDomain),
+      db.prepare("DELETE FROM owner_notifications WHERE shop_domain = ?").bind(shopDomain),
     ]);
     if (results[0].meta.changes === 1) {
       logEvent(
@@ -190,6 +193,7 @@ export async function redactShop(
     db
       .prepare(`DELETE FROM shops WHERE shop_domain = ? AND installation_status = 'uninstalled'`)
       .bind(shopDomain),
+    db.prepare("DELETE FROM owner_notifications WHERE shop_domain = ?").bind(shopDomain),
     db
       .prepare(
         `UPDATE webhook_events SET shop_domain = NULL

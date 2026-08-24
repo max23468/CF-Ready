@@ -332,6 +332,7 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode)
     return notificationStatement(db, {
       dedupeKey,
       kind: "lifecycle",
+      shopDomain,
       subject: lifecycle.subject,
       body: `${lifecycle.description}\n\nStore: ${shopDomain}\nPiano: ${localPlan}\nData: ${formatDate(occurredAt)}`,
       occurredAt,
@@ -363,6 +364,7 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode)
   return notificationStatement(db, {
     dedupeKey,
     kind: "billing",
+    shopDomain,
     subject: billing.subject,
     body: `${billing.description}\n\n${details.join("\n")}`,
     occurredAt,
@@ -408,6 +410,7 @@ async function trialNotification(
   return notificationStatement(db, {
     dedupeKey: await notificationKey("trial", String(event.id)),
     kind: "trial",
+    shopDomain: normalizeShopDomain(event.shop_domain),
     subject: copy.subject,
     body: `${copy.description}\n\n${details.join("\n")}`,
     occurredAt: event.occurred_at,
@@ -419,6 +422,7 @@ function notificationStatement(
   notification: {
     dedupeKey: string;
     kind: "lifecycle" | "billing" | "trial";
+    shopDomain: string;
     subject: string;
     body: string;
     occurredAt: string;
@@ -427,14 +431,15 @@ function notificationStatement(
   return db
     .prepare(
       `INSERT INTO owner_notifications (
-         dedupe_key, notification_kind, subject, body_text, source_occurred_at,
+         dedupe_key, notification_kind, shop_domain, subject, body_text, source_occurred_at,
          status, available_at, created_at, updated_at
-       ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)
+       ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)
        ON CONFLICT(dedupe_key) DO NOTHING`,
     )
     .bind(
       notification.dedupeKey,
       notification.kind,
+      notification.shopDomain,
       notification.subject,
       notification.body,
       notification.occurredAt,
