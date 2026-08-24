@@ -33,6 +33,10 @@ api_version = "2026-07"
   uri = "/webhooks/compliance"
   compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
 
+[events]
+api_version = "unstable"
+subscription = []
+
 [auth]
 redirect_urls = [ "https://cf-ready-prod.tmsf.workers.dev/auth/callback" ]
 

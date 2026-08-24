@@ -57,6 +57,14 @@ test("il preflight rifiuta un manifest che non è quello Production", () => {
     ],
     ["URL non aggiornato", shopify.replace(/cf-ready-prod\.tmsf\.workers\.dev/g, "example.com")],
     ["scope più ampio", shopify.replace("write_validations", "read_orders")],
+    [
+      "sezione Events assente",
+      shopify.replace(/\n\[events\]\napi_version = "unstable"\nsubscription = \[\]\n/, "\n"),
+    ],
+    [
+      "sottoscrizione Events non prevista",
+      shopify.replace("subscription = []", '[[events.subscription]]\nhandle = "non-prevista"'),
+    ],
   ];
   for (const [name, config] of cases) {
     assert.throws(() => verifyProductionConfig(config), /target Production/, name);
