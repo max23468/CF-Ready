@@ -6,6 +6,13 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.34 — 24 agosto 2026
+
+- l'ultimo riquadro dei piani mantiene la stessa separazione verticale delle
+  altre sezioni della Home;
+- nell'onboarding il testo introduttivo e i relativi elenchi puntati usano un
+  layout compatto, senza ereditare la spaziatura della pagina.
+
 ## 0.9.33 — 24 agosto 2026
 
 - il confronto piani usa il canale `window.opener` previsto da Shopify per il
