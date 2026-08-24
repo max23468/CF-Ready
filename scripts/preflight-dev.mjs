@@ -30,12 +30,18 @@ export function verifyDevelopmentConfig(shopifyConfig, wranglerConfig) {
   const shopifyScopes = shopifyConfig.match(
     /^\[access_scopes\]\s*$[\s\S]*?^scopes\s*=\s*"([^"]*)"\s*$/m,
   )?.[1];
+  const emptyEvents =
+    /^\[events\]\s*\napi_version\s*=\s*"unstable"\s*\nsubscription\s*=\s*\[\s*\]\s*$/m.test(
+      shopifyConfig,
+    );
   if (
     shopifyTargets.some(([config, pattern]) => !pattern.test(config)) ||
     wrangler.name !== expected.workerName ||
     wrangler.vars?.SHOPIFY_API_KEY !== expected.clientId ||
     wrangler.vars?.SHOPIFY_APP_URL !== expected.appUrl ||
     shopifyScopes !== "write_validations" ||
+    !emptyEvents ||
+    /^\[\[events\.subscription\]\]/m.test(shopifyConfig) ||
     wrangler.vars?.SCOPES !== shopifyScopes ||
     wrangler.vars?.ALLOWED_SHOP !== "cf-ready-dev.myshopify.com" ||
     database?.database_name !== expected.databaseName ||

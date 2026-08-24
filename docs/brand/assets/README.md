@@ -17,7 +17,7 @@ Se modifichi un asset, aggiorna anche il documento e la tavola. Sono tre facce d
 | `icon-app.svg` | `0 0 512 512` | Icona quadrata per App Store e listing. Marchio centrato su fondo panna, largo il 70% della tela. |
 | `icon-app-notext.svg` | `0 0 512 512` | Stessa icona **senza la sigla**. Variante di riserva, vedi «Testo dentro l'icona» più sotto. |
 | `favicon.svg` | `0 0 32 32` | Favicon. Marchio ingrandito e margini ridotti per restare leggibile a 16 px. |
-| `nav-icon.svg` | `0 0 16 16` | Icona di navigazione dell'Admin. Riduzione monocromatica del marchio: tessera a contorno, fascia superiore e sigla `CF`, senza `mask` o `clipPath`. |
+| `nav-icon.svg` | `0 0 16 16` | Icona di navigazione dell'Admin. Riduzione monocromatica del marchio: tessera a contorno nelle proporzioni canoniche e fascia superiore, senza sigla, `mask` o `clipPath`. |
 | `wordmark.svg` | tight | Solo wordmark, in tracciati. Colore da `currentColor`. |
 | `lockup-horizontal.svg` | `0 0 129,05 24` | Lockup primaria. Header del sito, materiali, firma dei documenti. |
 | `lockup-vertical.svg` | `0 0 71,88 50,72` | Lockup verticale. Copertine e formati quadrati. |
@@ -74,9 +74,9 @@ Voce separata dall'icona dell'App Store: si carica in **App setup → Embedded a
 | Angoli | ritaglio a 4 px applicato da Shopify | ✅ la tessera resta dentro l'area sicura |
 | Coerenza | deve somigliare all'icona dell'App Store | ✅ stesso concetto di tessera, adattato alla leggibilità a 16 px |
 
-Il file usa una tessera più orizzontale (`14 × 7,5`) a contorno e conserva i due elementi distintivi del marchio: fascia piena in alto e sigla `CF` centrata sotto. La sigla occupa `y=7,10–10,20` dentro l'apertura `y=6,80–10,55`, senza fondersi con fascia o bordo. È un adattamento ottico per la griglia a 16 px, non un marchio alternativo.
+Il file usa una tessera `14 × 8,8`, equivalente alla geometria canonica dimezzata e quindi vicina al rapporto ISO ID-1 del marchio. Rispetto alla precedente riduzione `14 × 7,5`, recupera il 17% di altezza e non appare schiacciata nella barra laterale. Conserva il contorno e la fascia superiore, mentre omette la sigla `CF`: a 16 px le lettere sottraevano spazio alla forma senza restare davvero leggibili.
 
-La costruzione resta compatibile con il caricamento: la sigla è un tracciato, non testo; non usa `mask`, `clipPath`, `defs`, `currentColor` o `<title>` che un sanitizer possa rimuovere o rifiutare. Il colore lo applica Shopify — grigio se inattiva, verde se attiva — quindi il nero è solo l'inchiostro sorgente.
+La costruzione resta compatibile con il caricamento: usa due soli tracciati pieni e non contiene testo, `mask`, `clipPath`, `defs`, `currentColor` o `<title>` che un sanitizer possa rimuovere o rifiutare. Il colore lo applica Shopify — grigio se inattiva, verde se attiva — quindi il nero è solo l'inchiostro sorgente.
 
 Fonte: [Navigation](https://shopify.dev/docs/apps/design/navigation) · verificato il 28 luglio 2026. La pagina non dichiara nessuna dimensione: l'unico valore disponibile è il 16 × 16 scritto nel campo di caricamento.
 

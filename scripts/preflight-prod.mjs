@@ -23,6 +23,10 @@ export function verifyProductionConfig(shopifyConfig) {
   const scopes = shopifyConfig.match(
     /^\[access_scopes\]\s*$[\s\S]*?^scopes\s*=\s*"([^"]*)"\s*$/m,
   )?.[1];
+  const emptyEvents =
+    /^\[events\]\s*\napi_version\s*=\s*"unstable"\s*\nsubscription\s*=\s*\[\s*\]\s*$/m.test(
+      shopifyConfig,
+    );
   if (
     !new RegExp(`^client_id\\s*=\\s*"${expected.clientId}"\\s*$`, "m").test(shopifyConfig) ||
     !new RegExp(`^application_url\\s*=\\s*"${escapeUrl(expected.appUrl)}"\\s*$`, "m").test(
@@ -32,7 +36,9 @@ export function verifyProductionConfig(shopifyConfig) {
       `^redirect_urls\\s*=\\s*\\[\\s*"${escapeUrl(expected.appUrl)}/auth/callback"\\s*\\]\\s*$`,
       "m",
     ).test(shopifyConfig) ||
-    scopes !== "write_validations"
+    scopes !== "write_validations" ||
+    !emptyEvents ||
+    /^\[\[events\.subscription\]\]/m.test(shopifyConfig)
   ) {
     throw new Error("Il target Production non coincide con la configurazione attesa.");
   }

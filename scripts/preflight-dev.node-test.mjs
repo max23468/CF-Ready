@@ -16,6 +16,9 @@ client_id = "adff48d4fe4ceb0dadb4734520701dd7"
 application_url = "https://cf-ready-dev.tmsf.workers.dev"
 [access_scopes]
 scopes = "write_validations"
+[events]
+api_version = "unstable"
+subscription = []
 `;
 const wrangler = `{
   "name": "cf-ready-dev",
@@ -55,6 +58,14 @@ test("il preflight lega il nome Worker alla chiave corretta", () => {
   );
   assert.throws(
     () => verifyDevelopmentConfig(shopify.replace("write_validations", "read_orders"), wrangler),
+    /target Development/,
+  );
+  assert.throws(
+    () => verifyDevelopmentConfig(shopify.replace("unstable", "2026-07"), wrangler),
+    /target Development/,
+  );
+  assert.throws(
+    () => verifyDevelopmentConfig(shopify.replace("subscription = []", ""), wrangler),
     /target Development/,
   );
   assert.throws(
