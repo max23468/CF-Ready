@@ -8,9 +8,9 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
 ## 0.9.39 — 24 agosto 2026
 
-- la cancellazione di un abbonamento rilegge la concessione omaggio dentro la
-  lease prima della mutation Shopify, così una revoca concorrente non può
-  annullare un rinnovo valido.
+- una concessione omaggio non cancella né rimborsa automaticamente un
+  abbonamento Shopify: diventa operativa soltanto quando non esiste un
+  abbonamento attivo, eliminando la finestra concorrente con una revoca.
 
 ## 0.9.38 — 24 agosto 2026
 
