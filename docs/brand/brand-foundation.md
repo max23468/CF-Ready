@@ -833,13 +833,19 @@ Fonte verificata: [Polaris — Color](https://polaris-react.shopify.com/design/c
 ### 11.3 Nessuna decisione di brand resta aperta
 
 Tutte le decisioni di identità visiva sono chiuse. La feature image è stata
-prodotta in M9; resta solo la riverifica sullo store reale, che dipende da M10 e
-non è una scelta di brand:
+prodotta in M9 e la riverifica sullo store reale è stata completata in M10:
 
 | Attività | Quando | Perché non ora |
 |---|---|---|
-| Riverifica del marchio dentro l'Admin reale | M1 e M10 | Richiede l'app installata su uno store |
+| Riverifica del marchio dentro l'Admin reale | M1 e M10 ✅ | Completata il 25 agosto 2026 sul canary Production; misure e rapporti nella ricevuta M10 |
 | Feature image 1600 × 900 | M9 ✅ | SVG e PNG IT/EN prodotti sotto `docs/brand/assets/` |
+
+Nel readback M10 in Chrome, l'Admin reale ha esposto un fondo `#F1F1F1`: la
+riduzione monocromatica `#4A4A4A` a 16 px raggiunge `7,85:1`, l'icona app è resa
+a 20 px e il lockup `128 × 24` usa la variante positiva corretta. Verde su fondo
+Admin `9,05:1`, panna su verde `9,37:1` e fascia arancio su verde `3,09:1`;
+nessun asset risulta ritagliato o deformato. Evidenza completa in
+`docs/evidence/2026-08-25-m10-canary-numisleo.md`.
 
 **Piano di rimedio già pronto (A-15).** Se la review App Store contestasse la sigla dentro l'icona: sostituire l'icona della listing con `icon-app-notext.svg` e rigenerare il PNG a 1200 px. Non richiede modifiche al resto dell'identità né una nuova approvazione. Non rimuovere la sigla altrove.
 

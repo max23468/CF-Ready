@@ -167,7 +167,11 @@ Marchio renderizzato alle dimensioni reali sui fondi effettivi dell'Admin e in u
 
 **Regola che ne deriva:** su qualunque superficie più scura di circa `#6B6A5C` si usa la versione negativa. Non è una preferenza estetica, è un requisito di contrasto.
 
-Il controllo è stato fatto su ricostruzioni fedeli dei fondi dell'Admin, non dentro l'Admin reale: la verifica definitiva va rifatta con l'app installata sul dev store (M1) e sullo store reale (M10).
+Il controllo definitivo è stato ripetuto dentro l'Admin reale: M1 sul dev store
+e M10 sul canary Production. Il 25 agosto 2026 Chrome ha osservato il fondo
+Admin `#F1F1F1`, la riduzione monocromatica `#4A4A4A` a 16 px (`7,85:1`),
+l'icona app a 20 px e il lockup positivo `128 × 24` senza clipping o
+deformazioni. I rapporti completi sono nella ricevuta M10.
 
 ---
 
@@ -188,5 +192,7 @@ Il controllo è stato fatto su ricostruzioni fedeli dei fondi dell'Admin, non de
 
 ## Verifiche residue
 
-1. **Verifica dentro l'Admin reale.** Il controllo di contrasto qui sopra è su ricostruzioni dei fondi: va rifatto sullo store reale in M10.
+1. ~~**Verifica dentro l'Admin reale.**~~ Completata sullo store reale in M10 il
+   25 agosto 2026; evidenza in
+   `docs/evidence/2026-08-25-m10-canary-numisleo.md`.
 2. **Testo nell'icona.** L'owner ha approvato la variante con sigla; quella senza testo resta il rimedio se Shopify la contesta.
