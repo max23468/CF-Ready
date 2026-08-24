@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.28 — 24 agosto 2026
+
+- la prima installazione usa testi più brevi e coerenti tra Home, onboarding e
+  piani, senza ripetere lo stato del checkout o presupporre attività precedenti;
+- la procedura guidata resta riapribile, il confronto piani raggiunge la sezione
+  corretta anche nell'app embedded e l'avanzamento non si spezza su mobile;
+- l'avviso sul campo “Interno” indica chiaramente quando mostrare le istruzioni
+  e, prima dell'avvio della prova, una sola azione mantiene la gerarchia primaria.
+
 ## 0.9.27 — 24 agosto 2026
 
 - il titolare riceve su Telegram notifiche minimizzate per installazioni,

@@ -84,7 +84,7 @@ export function PlanChoice({
             {data.planKind === "annual" ? null : (
               <s-stack direction="inline" gap="base">
                 <s-button
-                  variant="primary"
+                  variant={trialNeverStarted ? undefined : "primary"}
                   disabled={busy}
                   loading={pendingIntent === "annual"}
                   onClick={() => submit("annual")}
@@ -157,8 +157,10 @@ export function PlanChoice({
 
   return (
     <>
-      {startTrialSection}
-      {choice}
+      <s-box id="plans">
+        {startTrialSection}
+        {choice}
+      </s-box>
       <s-modal
         id="cancel-renewal"
         heading={t.plan.cancelRenewal}
