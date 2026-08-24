@@ -132,9 +132,7 @@ export default function HomePage() {
             </s-button>
           </s-stack>
         </s-banner>
-      ) : firstRun ? (
-        <s-banner tone="info">{t.home.firstRun}</s-banner>
-      ) : !entitled ? (
+      ) : !firstRun && !entitled ? (
         <s-banner tone="warning">{t.home.noEntitlement}</s-banner>
       ) : notice ? (
         <s-banner tone={notice.tone}>{notice.text}</s-banner>
@@ -175,9 +173,11 @@ export default function HomePage() {
                   ? t.home.titleNotStarted
                   : t.home.titleDisabled}
           </s-heading>
-          <s-paragraph>
-            {homeCheckoutSummary({ rules: data.rules, status }, data.locale)}
-          </s-paragraph>
+          {firstRun ? null : (
+            <s-paragraph>
+              {homeCheckoutSummary({ rules: data.rules, status }, data.locale)}
+            </s-paragraph>
+          )}
 
           <s-divider />
 

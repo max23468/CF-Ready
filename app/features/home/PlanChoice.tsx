@@ -84,7 +84,7 @@ export function PlanChoice({
             {data.planKind === "annual" ? null : (
               <s-stack direction="inline" gap="base">
                 <s-button
-                  variant="primary"
+                  variant={trialNeverStarted ? undefined : "primary"}
                   disabled={busy}
                   loading={pendingIntent === "annual"}
                   onClick={() => submit("annual")}

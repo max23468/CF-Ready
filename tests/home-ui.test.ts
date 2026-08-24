@@ -9,7 +9,11 @@ import { onboardingCheckoutPreview } from "../app/features/onboarding/checkout-p
 import { onboardingStep4State } from "../app/features/onboarding/step4-state";
 import { openBillingApproval } from "../app/revalidation";
 import { PlanChoice, SetupGuide } from "../app/routes/app._index";
-import { Address2DeclarationPrompt, OnboardingStep4Content } from "../app/routes/app.onboarding";
+import {
+  Address2DeclarationPrompt,
+  OnboardingProgress,
+  OnboardingStep4Content,
+} from "../app/routes/app.onboarding";
 
 vi.mock("../app/shopify.server", () => ({ authenticate: {} }));
 
@@ -219,6 +223,14 @@ test("la prima installazione non viene presentata come un piano da riattivare", 
   const buttons = rendered
     .filter((element) => element.type === "s-button")
     .map((element) => (element.props as { children?: ReactNode }).children);
+  const primaryButtons = rendered
+    .filter(
+      (element) =>
+        element.type === "s-button" &&
+        (element.props as { variant?: string; slot?: string }).variant === "primary" &&
+        !(element.props as { slot?: string }).slot,
+    )
+    .map((element) => (element.props as { children?: ReactNode }).children);
   const planStatus = elements(PlanStatus({ data: firstRunData }));
 
   expect(commercialState(firstRunData)).toBe("first_run");
@@ -228,6 +240,7 @@ test("la prima installazione non viene presentata come un piano da riattivare", 
   expect(paragraphs).not.toContain(texts("it").plan.oneTimeCharge);
   expect(buttons).toContain(texts("it").plan.oneTimeStart);
   expect(buttons).not.toContain(texts("it").plan.oneTimeSwitch);
+  expect(primaryButtons).toEqual([texts("it").plan.startTrial]);
   expect(
     planStatus.some(
       (element) =>
@@ -235,14 +248,22 @@ test("la prima installazione non viene presentata come un piano da riattivare", 
         (element.props as { children?: ReactNode }).children === texts("it").plan.notStartedStatus,
     ),
   ).toBe(true);
-  expect(texts("it").home.firstRun).not.toMatch(/riattiv|pagamento|più nulla/i);
-
   expect(
     commercialState({
       ...firstRunData,
       trialStatus: "expired",
     }),
   ).toBe("lapsed");
+});
+
+test("l’avanzamento onboarding resta compatto anche al quarto passo", () => {
+  const rendered = elements(OnboardingProgress({ step: 4, t: texts("it") }));
+  const labels = rendered
+    .filter((element) => element.type === "s-text")
+    .map((element) => (element.props as { children?: ReactNode }).children);
+
+  expect(labels).toEqual(["Passo 4 di 4"]);
+  expect(labels).not.toContain(texts("it").onboarding.step4Heading);
 });
 
 test("il riepilogo onboarding distingue primo avvio, prova e piano", () => {
@@ -336,7 +357,6 @@ test("i testi iniziali non presuppongono una configurazione precedente", () => {
   const it = texts("it");
   const en = texts("en");
   const initialItalian = [
-    it.home.firstRun,
     it.home.badgeNotStarted,
     it.home.titleNotStarted,
     it.setup.welcome,
@@ -349,7 +369,6 @@ test("i testi iniziali non presuppongono una configurazione precedente", () => {
     it.messages.appearIntro,
   ].join(" ");
   const initialEnglish = [
-    en.home.firstRun,
     en.home.badgeNotStarted,
     en.home.titleNotStarted,
     en.setup.welcome,
@@ -378,9 +397,15 @@ test("checkbox e istruzioni della dichiarazione condividono lo stesso stato", ()
         (element.props as { children?: ReactNode }).children ===
           texts("it").rules.address2Instructions,
     );
+  const unchecked = checkbox(false);
+  const checked = checkbox(true);
+  if (!unchecked || !checked) throw new Error("dichiarazione del campo Interno assente");
 
-  expect(checkbox(false)?.props).toMatchObject({ checked: false });
+  expect(texts("it").rules.address2Body).toMatch(/seleziona la casella/i);
+  expect((unchecked.props as { label?: string }).label).toMatch(/^Sì,/);
+
+  expect(unchecked.props).toMatchObject({ checked: false });
   expect(instructions(false)).toBe(false);
-  expect(checkbox(true)?.props).toMatchObject({ checked: true });
+  expect(checked.props).toMatchObject({ checked: true });
   expect(instructions(true)).toBe(true);
 });
