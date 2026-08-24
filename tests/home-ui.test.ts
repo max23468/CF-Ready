@@ -5,9 +5,12 @@ import { texts } from "../app/i18n";
 import { commercialState } from "../app/features/home/commercial-state";
 import {
   handlePlanComparisonRequest,
+  isPlanComparisonLocationState,
   isPlanComparisonRequest,
   PLAN_COMPARISON_MESSAGE_TYPE,
+  planComparisonLocationState,
   requestPlanComparison,
+  requestPlanComparisonFromFrame,
 } from "../app/features/home/plan-comparison";
 import { PlanStatus } from "../app/features/home/PlanStatus";
 import { onboardingCheckoutPreview } from "../app/features/onboarding/checkout-preview";
@@ -373,6 +376,44 @@ test("il confronto piani comunica con la Home senza navigare il frame della moda
     "https://app.example",
   );
   expect(requestPlanComparison(null, "https://app.example")).toBe(false);
+  const parentPostMessage = vi.fn();
+  const fallback = vi.fn();
+  expect(
+    requestPlanComparisonFromFrame(
+      {
+        location: { origin: "https://app.example" },
+        parent: {
+          location: { origin: "https://app.example" },
+          postMessage: parentPostMessage,
+        },
+      } as unknown as Pick<Window, "location" | "parent">,
+      fallback,
+    ),
+  ).toBe("parent");
+  expect(parentPostMessage).toHaveBeenCalledWith(
+    { type: PLAN_COMPARISON_MESSAGE_TYPE },
+    "https://app.example",
+  );
+  expect(fallback).not.toHaveBeenCalled();
+
+  const directFallback = vi.fn();
+  expect(
+    requestPlanComparisonFromFrame(
+      {
+        location: { origin: "https://app.example" },
+        parent: {
+          get location() {
+            throw new DOMException("Blocked a frame with origin", "SecurityError");
+          },
+          postMessage: vi.fn(),
+        },
+      } as unknown as Pick<Window, "location" | "parent">,
+      directFallback,
+    ),
+  ).toBe("fallback");
+  expect(directFallback).toHaveBeenCalledOnce();
+  expect(isPlanComparisonLocationState(planComparisonLocationState())).toBe(true);
+  expect(isPlanComparisonLocationState(null)).toBe(false);
   expect(
     isPlanComparisonRequest(
       {

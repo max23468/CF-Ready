@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useFetcher, useLoaderData } from "react-router";
+import { useFetcher, useLoaderData, useLocation } from "react-router";
 import { ELIGIBLE_COUNTRY, pendingFetcherIntent, pendingFetcherSource } from "../../config";
 import {
   formatDate,
@@ -15,12 +15,13 @@ import { PlanChoice } from "./PlanChoice";
 import { PlanStatus } from "./PlanStatus";
 import { SetupGuide } from "./SetupGuide";
 import type { HomeData, action } from "./home.server";
-import { handlePlanComparisonRequest } from "./plan-comparison";
+import { handlePlanComparisonRequest, isPlanComparisonLocationState } from "./plan-comparison";
 
 type AppWindowElement = HTMLElement & { hide(): void };
 
 export default function HomePage() {
   const data = useLoaderData<HomeData>();
+  const location = useLocation();
   const fetcher = useFetcher<typeof action>();
   const t = texts(data.locale);
   const result = fetcher.data as
@@ -53,6 +54,13 @@ export default function HomePage() {
     window.addEventListener("message", showPlans);
     return () => window.removeEventListener("message", showPlans);
   }, []);
+
+  useEffect(() => {
+    if (!isPlanComparisonLocationState(location.state)) return;
+    requestAnimationFrame(() =>
+      document.getElementById("plans")?.scrollIntoView({ block: "start" }),
+    );
+  }, [location.state]);
 
   if (!data.eligible) {
     return (

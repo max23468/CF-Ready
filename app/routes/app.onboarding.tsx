@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { useFetcher, useLoaderData } from "react-router";
+import { useFetcher, useLoaderData, useNavigate } from "react-router";
 import { localDate, startTrial } from "../billing.server";
 import {
   address2Declaration,
@@ -16,7 +16,10 @@ import { databaseContext } from "../context.server";
 import { recordEvent } from "../events.server";
 import { onboardingCheckoutPreview } from "../features/onboarding/checkout-preview";
 import { onboardingStep4State } from "../features/onboarding/step4-state";
-import { requestPlanComparison } from "../features/home/plan-comparison";
+import {
+  planComparisonLocationState,
+  requestPlanComparisonFromFrame,
+} from "../features/home/plan-comparison";
 import { resolveLocale, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { authenticate } from "../shopify.server";
@@ -151,6 +154,7 @@ export const shouldRevalidate = skipRevalidationWhenLeaving;
 
 export default function Onboarding() {
   const saved = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
   const fetcher = useFetcher<typeof action>();
   const t = texts(saved.locale);
   const [step, setStepState] = useState(saved.step);
@@ -315,7 +319,11 @@ export default function Onboarding() {
                 busy={busy}
                 pendingIntent={pendingIntent}
                 startTrial={() => go("start_trial")}
-                showPlans={() => requestPlanComparison(window.opener, window.location.origin)}
+                showPlans={() =>
+                  requestPlanComparisonFromFrame(window, () =>
+                    navigate("/app", { state: planComparisonLocationState() }),
+                  )
+                }
               />
             ) : null}
 
