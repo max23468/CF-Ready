@@ -6,6 +6,12 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.39 — 24 agosto 2026
+
+- una concessione omaggio non cancella né rimborsa automaticamente un
+  abbonamento Shopify: diventa operativa soltanto quando non esiste un
+  abbonamento attivo, eliminando la finestra concorrente con una revoca.
+
 ## 0.9.38 — 24 agosto 2026
 
 - gli store autorizzati possono ricevere un piano omaggio permanente senza

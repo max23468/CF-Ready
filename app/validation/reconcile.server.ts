@@ -118,24 +118,21 @@ export async function reconcile(
       let state = initialBilling.state!;
 
       // Il diritto sostitutivo deve esistere prima di cancellare l'abbonamento.
-      const conversionReason = state.oneTime
-        ? "one_time_purchased"
-        : complimentary?.status === "active"
-          ? "complimentary_granted"
-          : null;
+      const conversionReason = state.oneTime ? "one_time_purchased" : null;
       if (conversionReason && state.subscription) {
         conversionRequired = true;
         const conversion = await withValidationLock(db, shopDomain, async (heartbeat) => {
           const current = await readBilling(admin);
-          const replacementStillActive =
-            conversionReason === "one_time_purchased"
-              ? Boolean(current.oneTime)
-              : complimentary?.status === "active";
+          const replacementStillActive = Boolean(current.oneTime);
           if (!replacementStillActive || !current.subscription) {
             return { state: current, error: null, converted: false };
           }
           if (!(await heartbeat.isHeld())) {
-            return { state: current, error: "validation_locked", converted: false };
+            return {
+              state: current,
+              error: "validation_locked",
+              converted: false,
+            };
           }
           const cancellationError = await cancelSubscription(admin, current.subscription.id, {
             prorate: true,
@@ -192,7 +189,7 @@ export async function reconcile(
       }
     } catch {
       // La cache resta disponibile alla UI, ma non concede diritti quando Shopify è incerto.
-      // Anche l'omaggio attende il readback: potrebbe esserci un rinnovo da cancellare.
+      // Anche l'omaggio attende il readback: non deve mascherare un abbonamento attivo.
       account = storedAccount;
       errorCode ??= "billing_read_failed";
       retryable ||= conversionRequired || complimentary?.status === "active";
@@ -268,7 +265,7 @@ export async function reconcile(
     validationEnabled,
     trial,
     account,
-    complimentary,
+    complimentary: complimentaryOperational ? complimentary : null,
     entitlement,
     creditEstimate,
     errorCode,
@@ -317,7 +314,10 @@ function writeEntitlement(
     });
     const result = (await response.json()) as MutationResult;
     return mutationError(result, "validationUpdate") ? "entitlement_write_failed" : null;
-  }).catch(() => ({ acquired: true as const, result: "entitlement_write_failed" }));
+  }).catch(() => ({
+    acquired: true as const,
+    result: "entitlement_write_failed",
+  }));
 }
 
 // Fail-open: uno store non idoneo perde la Validation, non le vendite.
@@ -351,7 +351,10 @@ async function disableDuplicateValidations(
       if (!(await heartbeat.isHeld())) throw new Error("Validation lock persa");
       try {
         const response = await admin.graphql(UPDATE_VALIDATION, {
-          variables: { id, validation: { enable: false, blockOnFailure: false } },
+          variables: {
+            id,
+            validation: { enable: false, blockOnFailure: false },
+          },
         });
         await response.json();
       } catch {

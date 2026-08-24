@@ -1,5 +1,4 @@
 import {
-  cancelSubscription,
   currentPricingGeneration,
   entitlementFor,
   localDate,
@@ -86,17 +85,8 @@ export async function writeValidation(
     if (!billing && complimentary?.status === "active" && enable === true) {
       return { ok: false, errorCode: "billing_read_failed" };
     }
-    if (billing?.subscription && complimentary?.status === "active") {
-      if (!(await heartbeat.isHeld())) return { ok: false, errorCode: "validation_locked" };
-      const cancellationError = await cancelSubscription(admin, billing.subscription.id, {
-        prorate: true,
-      });
-      if (cancellationError) return { ok: false, errorCode: cancellationError };
-      billing = await readBilling(admin);
-      if (billing.subscription) {
-        return { ok: false, errorCode: "subscription_cancel_failed" };
-      }
-    }
+    const complimentaryOperational =
+      complimentary?.status === "active" && billing?.subscription == null;
     if (billing) {
       account = await syncBillingAccount(db, shopDomain, billing, {
         today,
@@ -104,12 +94,12 @@ export async function writeValidation(
         pricingGeneration: currentPricingGeneration(trial, account, today),
         storedAccount: account,
       });
-      if (account.entitlement_status === "active" || complimentary?.status === "active") {
+      if (account.entitlement_status === "active" || complimentaryOperational) {
         await markTrialConverted(db, shopDomain);
       }
     }
     const entitlement: Entitlement = billing
-      ? entitlementFor(trial, today, account, complimentary)
+      ? entitlementFor(trial, today, account, complimentaryOperational ? complimentary : null)
       : { kind: "none", validThrough: null };
     if (enable === true && !existing?.enabled && entitlement.kind === "none") {
       return { ok: false, errorCode: "entitlement_required" };
