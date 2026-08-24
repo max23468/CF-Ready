@@ -18,7 +18,7 @@ test("l'anteprima dice la conseguenza per il cliente, non lo stato dei campi", (
     "it",
   );
 
-  expect(lines[0]).toContain("non completa l’ordine senza un Codice Fiscale");
+  expect(lines[0]).toBe("Il Codice Fiscale è obbligatorio e deve essere formalmente valido.");
   expect(lines).not.toContain(texts("it").checkout.disabled);
 });
 
