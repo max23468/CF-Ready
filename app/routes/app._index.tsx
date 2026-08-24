@@ -17,4 +17,5 @@ export const shouldRevalidate = skipRevalidationWhenLeaving;
 
 export { PlanChoice } from "../features/home/PlanChoice";
 export { SetupGuide } from "../features/home/SetupGuide";
+export { OnboardingWindowCloseControl } from "../features/home/HomePage";
 export { default } from "../features/home/HomePage";
