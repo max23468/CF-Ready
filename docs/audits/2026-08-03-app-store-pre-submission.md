@@ -31,10 +31,12 @@ nella fonte corrente.
 | Non applicabile, gruppo saltato | 10 gruppi |
 
 Nessun requisito locale risulta violato dal comportamento dell'app. Restano
-separati i controlli che Shopify esegue sulla submission e il checkout reale
-della Function, pianificato nel canary M10: non sono sostituiti da questo audit.
+separati i controlli che Shopify esegue sulla submission. Il canary M10 è stato
+poi chiuso il 25 agosto 2026 con fixture server-side, ricognizione non
+transazionale e monitoraggio registrati nella ricevuta dedicata: questo audit
+preparatorio non li sostituisce.
 
-## Punti preparatori chiusi e limite M10
+## Punti preparatori chiusi e chiusura M10
 
 ### 1. URL Production nel manifest — chiuso il 4 agosto 2026 ✅
 
@@ -67,20 +69,21 @@ Vedi D-129 nel Master Plan.
 Il valore è effettivo sul Worker Production dalla `0.9.6` ed è stato riconfermato
 dal preflight e dal deploy della `0.9.8`.
 
-### 3. Function API `2026-07` — riconfermata, tranne il checkout reale
+### 3. Function API `2026-07` — riconfermata; canary M10 chiuso
 
 Il Master Plan chiede quattro cose prima della `1.0.0`. Tre sono state fatte il
-3 agosto 2026, la quarta no.
+3 agosto 2026; la quarta è stata chiusa in M10 il 25 agosto con il criterio
+non transazionale approvato.
 
 | Richiesta | Esito |
 | --- | --- |
 | Versione stabile secondo le fonti Shopify correnti | ✅ la tabella di [About Shopify API versioning](https://shopify.dev/docs/api/usage/versioning) dà `2026-07` rilasciata il 1º luglio 2026 e accessibile fino al 16 luglio 2027; la Cart and Checkout Validation Function API è pubblicata sotto `/docs/api/functions/2026-07/` e la ricerca CLI del 4 agosto conferma gli express checkout supportati |
 | Schema rigenerato con la CLI supportata | ✅ `shopify app function schema --config dev --stdout` con CLI 4.6.0: il risultato è identico a `extensions/cf-ready-validation/schema.graphql` a meno di tre a-capo di direttiva e della riga finale, cioè della formattazione applicata da `oxfmt`. Nessuna differenza di contenuto |
 | Fixture ripetute | ✅ `npm run test:function`, 109 test verdi |
-| Checkout reali ripetuti | ❌ **non eseguito**: richiede il dev store e una sessione di acquisto vera |
+| Applicazione sul canary reale | ✅ `0.9.40`: fixture server-side verdi, checkout standard e wallet disponibili ricogniti senza completare transazioni, monitoraggio e readback live registrati nella [ricevuta M10](../evidence/2026-08-25-m10-canary-numisleo.md) |
 
-Resta quindi aperto il checkout reale, che il piano assegna al canary M10 e non
-alla submission M9.
+L'osservazione dei primi ordini autentici idonei resta evidenza aggiuntiva, non
+un gate aperto e non autorizza la creazione di ordini di prova sullo store reale.
 
 ### 4. Contatto tecnico d'emergenza — chiuso il 4 agosto 2026 ✅
 

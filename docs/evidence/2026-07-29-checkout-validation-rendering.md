@@ -70,7 +70,7 @@ ordini reali.
 | Dominio sintetico `test@pec.example` | respinto prima dalla validazione nativa del campo Shopify |
 | Cliente autenticato, PEC formalmente invalida | messaggio configurato visibile; checkout bloccato |
 | Cliente autenticato, PEC formalmente valida | accettata; ordine di test completato |
-| Checkout accelerati | non esposti dal dev store con Test Payment Gateway; prova rinviata al canary M10 |
+| Checkout accelerati | non esposti dal dev store con Test Payment Gateway; M10 li ha chiusi con fixture server-side e ricognizione non transazionale delle superfici canary disponibili |
 | Focus e scroll su PEC invalida | ritorno automatico al campo, bordo di focus e cursore visibili |
 | Lingua italiana | messaggio italiano inline |
 | Lingua inglese | messaggio inglese inline |
@@ -283,14 +283,15 @@ segnale di consegna avrebbe potuto fermare una vendita senza campo compilabile.
 Il 1º agosto 2026 l’owner ha autorizzato la chiusura del finding con la regola
 ristretta già definita: solo una consegna italiana osservabile autorizza
 l’errore per un campo obbligatorio assente; senza consegna il fail-open resta
-invariato. La matrice wallet di M10 verifica la correzione e non decide più se
-scriverla.
+invariato. M10 ha verificato la correzione con la matrice server-side e ha
+ricognito senza transazioni le superfici wallet disponibili sul canary.
 
-Resta aperta una verifica minore: Shopify afferma che con la chiave presente
+Resta come osservazione non bloccante una verifica minore: Shopify afferma che con la chiave presente
 l’errore non può comparire su un checkout appena caricato, mentre la prova live
 ha visto i box della modalità preventiva comparire al caricamento. La
-spiegazione probabile è che in quel test la consegna fosse già risolta. Va
-riverificato durante la matrice wallet, non prima, e oggi non cambia il motore.
+spiegazione probabile è che in quel test la consegna fosse già risolta. Si
+riverifica soltanto quando il traffico reale offre il caso, senza creare un
+checkout artificiale, e non cambia il motore né il gate M10.
 
 ## Superfici non disponibili
 
@@ -339,9 +340,11 @@ rendering se trova più di una Validation con handle `cf-ready-validation`;
 l’esito osservato conferma quindi una sola Validation CF Ready attiva.
 
 Il test del checkout iniziale con un prodotto in abbonamento non appartiene al
-motore M3: richiede un prodotto con selling plan e un checkout reale. È
-assegnato esplicitamente alla matrice canary M10, senza estendere l’esito alle
-generazioni ricorrenti successive.
+motore M3. La regola è coperta da fixture server-side; sul canary M10 non esiste
+un selling plan e non ne viene creato uno solo per il test. Un'osservazione live
+resta aggiuntiva quando lo store introduce un abbonamento per esigenze
+commerciali reali, senza estendere l’esito alle generazioni ricorrenti
+successive.
 
 ## Stato operativo corrente
 
@@ -426,21 +429,20 @@ intento. L’identificativo di tracciamento non è ottenibile e il punto è chiu
 La correzione del campo assente è ora implementata: quando Shopify espone una
 consegna italiana, ogni campo configurato come obbligatorio ma assente genera
 un errore globale `$.cart`; senza consegna osservabile il motore resta
-fail-open. Un test di regressione copre entrambi i rami. La matrice wallet M10
-verifica il comportamento sulle superfici reali e non decide più se adottarlo.
+fail-open. Un test di regressione copre entrambi i rami. M10 ha chiuso la matrice
+con le fixture server-side e la ricognizione non transazionale delle superfici
+reali disponibili, senza decidere più se adottare il fix.
 
-Restano aperti, senza riaprire la matrice già completata:
+Restano follow-up non bloccanti, senza riaprire la matrice già completata:
 
 1. riconfermare il target sulla reference pubblicata quando esce la correzione
    documentale annunciata, prima della `1.0.0`;
-2. matrice wallet sul canary reale dell’owner con dati e importi controllati,
-   come gate bloccante prima del lancio: Apple Pay, Google Pay, Shop Pay e
-   PayPal, avviati da pagina prodotto, carrello e checkout. Verifica la
-   correzione già applicata; un flusso che si completi comunque senza Codice
-   Fiscale va segnalato a Shopify con gli identificativi di esecuzione;
-3. nella stessa matrice, verificare se i box della modalità preventiva compaiano
-   su un checkout appena caricato, dato che Shopify lo esclude e la prova live
-   li aveva osservati;
+2. osservare sui primi ordini autentici idonei l'applicazione ai wallet; un
+   bypass senza Codice Fiscale resta bloccante e va segnalato a Shopify, ma
+   l'assenza del caso nel periodo non blocca M10 né richiede ordini artificiali;
+3. verificare, quando il traffico reale offre il caso, se i box della modalità
+   preventiva compaiano su un checkout appena caricato, dato che Shopify lo
+   esclude e una prova live precedente li aveva osservati;
 4. chiarire con Shopify se `TAX_CREDENTIAL_IT` richieda un accesso a livello
    negozio come risulta per il campo spagnolo. In caso affermativo un negozio
    italiano senza accesso verrebbe bloccato senza campo compilabile e la regola
