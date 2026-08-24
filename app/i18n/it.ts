@@ -57,8 +57,6 @@ export const it = {
     unsupportedCheckAddress:
       "Se lo store è italiano, controlla l’indirizzo in Impostazioni → Dettagli negozio: CF Ready legge il Paese da lì.",
     unsupportedGuide: "La Guida spiega cosa fa l’app e quali sono i suoi limiti.",
-    firstRun:
-      "CF Ready è appena stata installata. Nessuna prova è iniziata e nessuna regola è attiva nel checkout: puoi configurare tutto prima di decidere quando iniziare.",
     noEntitlement:
       "Senza un piano attivo il checkout non blocca più nulla. Regole e messaggi restano salvati e tornano validi con il pagamento.",
     syncNeeded:
@@ -108,10 +106,7 @@ export const it = {
   },
   setup: {
     heading: "Prepara CF Ready",
-    // Il merchant ha appena installato: la prima cosa che legge dice dove si trova e
-    // quanto ci vuole, non un contatore di passi.
-    welcome:
-      "Benvenuto. Da qui decidi quali dati chiedere ai tuoi clienti italiani nel checkout e quando far valere le regole. Bastano pochi minuti e puoi fermarti a metà: quello che salvi resta.",
+    welcome: "Scegli cosa controllare e quando attivare le regole nel checkout.",
     progress: (done: number, total: number) => `${done} di ${total} completati`,
     rulesTitle: "Scegli cosa controllare",
     rulesBody: "Decidi se Codice Fiscale e PEC sono non gestiti, facoltativi o obbligatori.",
@@ -129,34 +124,33 @@ export const it = {
   onboarding: {
     heading: "Configura CF Ready",
     stepOf: (current: number, total: number) => `Passo ${current} di ${total}`,
-    stepNames: ["Introduzione", "Regole", "Checkout", "Riepilogo"],
     back: "Indietro",
     next: "Continua",
     welcomeHeading: "Benvenuto in CF Ready",
     welcomeBody:
-      "Quattro passi, cinque minuti. Scegli quali dati controllare, verifica cosa vedrà il cliente e decidi tu quando attivare: niente parte da solo.",
+      "Configura Codice Fiscale e PEC, controlla i messaggi mostrati al cliente e scegli quando attivare le regole.",
     step1Heading: "Cosa fa e cosa non fa",
     step1Body:
       "CF Ready controlla il Codice Fiscale e la PEC nel campo fiscale nativo del checkout italiano. Non modifica il tema, non aggiunge campi e non emette fatture.",
     step1Limits: [
       "Il controllo è formale: verifica la composizione del dato, non a chi appartiene.",
       "Le regole valgono solo con consegna e fatturazione in Italia.",
-      "Se Shopify mostra una consegna italiana ma omette un campo obbligatorio, CF Ready blocca con un avviso generale; senza consegna osservabile resta fail-open.",
+      "Se Shopify non rende disponibile la consegna, CF Ready lascia proseguire l’ordine.",
     ],
     step2Heading: "Scegli cosa controllare",
     step2Body: "Puoi cambiare queste scelte quando vuoi da Regole checkout.",
-    step3Heading: "Cosa succede nel checkout",
-    step3Messages: "I testi che il cliente legge",
+    step3Heading: "Anteprima delle regole",
+    step3Body: "Quando il controllo sarà attivo, con le impostazioni attuali:",
+    step3Messages: "Messaggi configurati",
     step3MessagesBody:
-      "Sono già pronti in italiano e inglese. Puoi riscriverli quando vuoi da Messaggi al cliente.",
+      "Questi sono i quattro messaggi già configurati. Sono disponibili in italiano e inglese e puoi modificarli da Messaggi al cliente.",
     step4Heading: "Riepilogo",
-    step4BodyReady:
-      "Le regole sono pronte. Puoi attivarle adesso oppure completare senza attivare e tornare quando vuoi.",
+    step4BodyReady: "Le regole sono pronte. Puoi attivarle ora oppure tornare più tardi.",
     step4BodyNeedsEntitlement:
-      "Le regole sono pronte. Per attivarle, avvia prima la prova gratuita o scegli un piano; puoi anche completare senza attivare e tornare quando vuoi.",
+      "Le regole sono pronte. Puoi completare ora oppure attivarle dopo aver avviato la prova o scelto un piano.",
     step4TrialHeading: "Prova e piano",
     step4TrialBody:
-      "Le regole valgono nel checkout solo con una prova o un pagamento attivo. La prova dura 14 giorni, è gratuita e non chiede una carta: finché non la inizi, non si consuma.",
+      "Per attivare le regole, avvia la prova gratuita di 14 giorni o scegli un piano. La prova inizia solo quando la avvii.",
     step4StartTrial: "Inizia la prova di 14 giorni",
     step4SeePlans: "Confronta i piani",
     step4TrialActive: "La prova è attiva: puoi attivare il controllo.",
@@ -283,10 +277,10 @@ export const it = {
     // Prima scelta: la prova non parte da sola, la avvia il merchant quando vuole.
     notStartedHeading: "Prima di attivare il controllo",
     notStartedBody:
-      "Per far valere le regole nel checkout serve una prova o un pagamento attivo. La prova dura 14 giorni, è gratuita e non chiede una carta: puoi iniziarla adesso o più tardi, e finché non lo fai non si consuma.",
+      "Avvia la prova gratuita di 14 giorni per attivare le regole. Non richiede una carta e inizia solo quando la avvii.",
     startTrial: "Inizia la prova di 14 giorni",
     startTrialDone: "Prova avviata.",
-    orChoose: "Oppure scegli subito come pagare, saltando la prova.",
+    orChoose: "Oppure scegli direttamente un piano.",
     monthlyStart: "Attiva il mensile",
     monthlySwitch: "Passa al mensile",
     annualStart: "Attiva l’annuale",
@@ -306,7 +300,7 @@ export const it = {
     chooseNowHeading: "Scegli subito un piano",
     chooseHeading: "Come vuoi continuare",
     chooseBody:
-      "Le tre modalità hanno le stesse funzioni: cambia solo quando e quanto paghi. I pagamenti li gestisce Shopify e finiscono sulla fattura del tuo store, non su una carta lasciata a noi.",
+      "Le funzioni sono le stesse per ogni piano. Shopify gestisce gli addebiti nella fattura dello store.",
     // §14.11: formulazione approvata. §7.2 vieta “a vita”, “per sempre”, “illimitato” e
     // “senza limiti di tempo”: si dice cosa il pagamento include, senza promettere una durata.
     oneTimeSettled:
@@ -356,7 +350,7 @@ export const it = {
     exceptions: [
       "Le regole valgono solo quando consegna e fatturazione sono in Italia.",
       "Un cliente con fatturazione estera completa l’ordine senza controlli.",
-      "Se Shopify mostra una consegna italiana ma omette un campo obbligatorio, CF Ready blocca con un avviso generale; senza consegna osservabile resta fail-open.",
+      "Se Shopify non rende disponibile la consegna, CF Ready lascia proseguire l’ordine.",
     ],
     preventiveLabel: "Mostra avvisi preventivi nel checkout",
     preventiveHelp:
@@ -364,8 +358,8 @@ export const it = {
     previewHeading: "Come funzionerà il checkout",
     address2Heading: "Il campo “Interno” non va usato per il Codice Fiscale",
     address2Body:
-      "Il Codice Fiscale va raccolto nel campo fiscale nativo del checkout italiano. Se lo raccogli anche in “Interno”, il cliente vede due campi per lo stesso dato. CF Ready non legge e non modifica quell’impostazione: qui contiamo sulla tua dichiarazione.",
-    address2Checkbox: "Uso il campo “Interno” per il Codice Fiscale",
+      "Usi anche il campo “Interno” per il Codice Fiscale? Il cliente vedrà due campi. Seleziona la casella per vedere come rimuoverlo.",
+    address2Checkbox: "Sì, uso “Interno” per il Codice Fiscale",
     address2Instructions:
       "Servono due passaggi. In Impostazioni → Checkout, sezione “Opzioni del modulo”, porta la seconda riga dell’indirizzo su “Facoltativo” o “Non includere”; poi, se ne hai cambiato l’etichetta, rimettila com’era da “Gestisci la lingua del checkout”, o da Impostazioni → Lingue, scheda “Checkout e sistema”, se la lingua è tradotta.",
   },
