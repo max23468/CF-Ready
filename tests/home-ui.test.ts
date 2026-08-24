@@ -2,6 +2,7 @@ import type { ReactElement, ReactNode } from "react";
 import { isValidElement } from "react";
 import { expect, test, vi } from "vitest";
 import { texts } from "../app/i18n";
+import { commercialState } from "../app/features/home/commercial-state";
 import { openBillingApproval } from "../app/revalidation";
 import { PlanChoice, SetupGuide } from "../app/routes/app._index";
 import { Address2DeclarationPrompt } from "../app/routes/app.onboarding";
@@ -159,6 +160,54 @@ test("la Setup guide accoglie alla prima apertura e offre di iniziare la prova",
         (element.props as { children?: ReactNode }).children === texts("it").setup.startTrial,
     ),
   ).toBe(false);
+
+  // Un piano assegnato prima di usare la prova è comunque uno stato attivo, non un
+  // primo avvio commerciale: non deve invitare ad avviare anche la prova.
+  const conPiano = render({
+    ...base,
+    trialStatus: null,
+    entitlement: { kind: "subscription", validThrough: "2027-08-18" },
+  });
+  expect(
+    conPiano.some(
+      (element) =>
+        element.type === "s-button" &&
+        (element.props as { children?: ReactNode }).children === texts("it").setup.startTrial,
+    ),
+  ).toBe(false);
+});
+
+test("la prima installazione non viene presentata come un piano da riattivare", () => {
+  const firstRunData = {
+    ...data,
+    entitlement: { kind: "none", validThrough: null },
+    trialStatus: null,
+    planKind: "none",
+  } as Parameters<typeof PlanChoice>[0]["data"];
+  const rendered = elements(
+    PlanChoice({
+      data: firstRunData,
+      busy: false,
+      pendingIntent: null,
+      submit: vi.fn(),
+      firstCharge: "oggi",
+    }),
+  );
+  const headings = rendered
+    .filter((element) => element.type === "s-section")
+    .map((element) => (element.props as { heading?: string }).heading);
+
+  expect(commercialState(firstRunData)).toBe("first_run");
+  expect(headings).toContain(texts("it").plan.chooseNowHeading);
+  expect(headings).not.toContain(texts("it").plan.chooseHeading);
+  expect(texts("it").home.firstRun).not.toMatch(/riattiv|pagamento|più nulla/i);
+
+  expect(
+    commercialState({
+      ...firstRunData,
+      trialStatus: "expired",
+    }),
+  ).toBe("lapsed");
 });
 
 test("checkbox e istruzioni della dichiarazione condividono lo stesso stato", () => {

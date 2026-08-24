@@ -55,6 +55,8 @@ export const it = {
     unsupportedCheckAddress:
       "Se lo store è italiano, controlla l’indirizzo in Impostazioni → Dettagli negozio: CF Ready legge il Paese da lì.",
     unsupportedGuide: "La Guida spiega cosa fa l’app e quali sono i suoi limiti.",
+    firstRun:
+      "CF Ready è appena stata installata. Nessuna prova è iniziata e nessuna regola è attiva nel checkout: puoi configurare tutto prima di decidere quando iniziare.",
     noEntitlement:
       "Senza un piano attivo il checkout non blocca più nulla. Regole e messaggi restano salvati e tornano validi con il pagamento.",
     syncNeeded:
@@ -71,6 +73,8 @@ export const it = {
     nextConfigure: "Scegli quali campi controllare nel checkout.",
     nextActivate: "Le regole sono pronte. Attivale per farle valere nel checkout.",
     nextTestOrder: "Fai un ordine di prova per vedere le regole all’opera.",
+    nextStartTrial:
+      "Le regole sono pronte. Avvia la prova gratuita quando vuoi oppure scegli subito un piano.",
     nextChoosePlan: "Scegli una modalità per riattivare le regole nel checkout.",
     helpHeading: "Guida e assistenza",
     helpBody: "Cosa controlla CF Ready, cosa non controlla e cosa succede nei casi particolari.",
@@ -289,6 +293,7 @@ export const it = {
     firstChargeNow: "L’addebito parte alla tua approvazione su Shopify.",
     oneTimeCharge:
       "Addebito unico alla tua approvazione su Shopify. I giorni di prova residui decadono.",
+    chooseNowHeading: "Scegli subito un piano",
     chooseHeading: "Come vuoi continuare",
     chooseBody:
       "Le tre modalità hanno le stesse funzioni: cambia solo quando e quanto paghi. I pagamenti li gestisce Shopify e finiscono sulla fattura del tuo store, non su una carta lasciata a noi.",

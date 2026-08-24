@@ -57,6 +57,8 @@ export const en: typeof it = {
     unsupportedCheckAddress:
       "If your store is Italian, check the address in Settings → Store details: that’s where CF Ready reads the country from.",
     unsupportedGuide: "The Help page explains what the app does and where its limits are.",
+    firstRun:
+      "CF Ready was just installed. No trial has started and no rules are active at checkout: you can configure everything before deciding when to begin.",
     noEntitlement:
       "Without an active plan, checkout no longer blocks anything. Rules and messages stay saved and apply again once you pay.",
     syncNeeded:
@@ -73,6 +75,8 @@ export const en: typeof it = {
     nextConfigure: "Choose which fields to check in checkout.",
     nextActivate: "Your rules are ready. Turn them on to apply them in checkout.",
     nextTestOrder: "Place a test order to see the rules at work.",
+    nextStartTrial:
+      "Your rules are ready. Start the free trial whenever you want, or choose a plan now.",
     nextChoosePlan: "Choose a plan to apply your rules in checkout again.",
     helpHeading: "Help and support",
     helpBody: "What CF Ready checks, what it doesn’t, and what happens in the edge cases.",
@@ -287,6 +291,7 @@ export const en: typeof it = {
     firstChargeNow: "The charge starts as soon as you approve it on Shopify.",
     oneTimeCharge:
       "One charge as soon as you approve it on Shopify. Any remaining trial days are given up.",
+    chooseNowHeading: "Choose a plan now",
     chooseHeading: "How you want to continue",
     chooseBody:
       "All three have the same features: only when and how much you pay changes. Shopify handles the payments and they land on your store invoice, not on a card left with us.",
