@@ -127,8 +127,8 @@ test("gli elenchi onboarding restano vicini al testo che li introduce", () => {
       items: ["Primo punto", "Secondo punto"],
     }),
   );
-  const stacks = rendered.filter((element) => element.type === "s-stack");
-  const list = stacks.find(
+  const grids = rendered.filter((element) => element.type === "s-grid");
+  const list = grids.find(
     (element) =>
       (element.props as { accessibilityRole?: string }).accessibilityRole === "unordered-list",
   );
@@ -138,8 +138,8 @@ test("gli elenchi onboarding restano vicini al testo che li introduce", () => {
       (element.props as { accessibilityRole?: string }).accessibilityRole === "list-item",
   );
 
-  expect(stacks[0]?.props).toMatchObject({ direction: "block", gap: "none" });
-  expect(list?.props).toMatchObject({ direction: "block", gap: "small-100" });
+  expect(grids[0]?.props).toMatchObject({ gridTemplateColumns: "1fr", gap: "small-100" });
+  expect(list?.props).toMatchObject({ gridTemplateColumns: "1fr", gap: "small-100" });
   expect(items).toHaveLength(2);
   expect(items[0]?.props).toMatchObject({
     gridTemplateColumns: "auto 1fr",
@@ -489,7 +489,7 @@ test("il confronto piani comunica con la Home senza navigare il frame della moda
     }),
   );
   const planAnchor = renderedPlanChoice.find(
-    (element) => element.type === "div" && (element.props as { id?: string }).id === "plans",
+    (element) => element.type === "s-box" && (element.props as { id?: string }).id === "plans",
   );
   const planStack = renderedPlanChoice.find(
     (element) =>
@@ -497,7 +497,7 @@ test("il confronto piani comunica con la Home senza navigare il frame della moda
       (element.props as { direction?: string; gap?: string }).direction === "block" &&
       (element.props as { direction?: string; gap?: string }).gap === "base",
   );
-  expect(planAnchor).toBeDefined();
+  expect(planAnchor?.props).toMatchObject({ paddingBlockEnd: "base" });
   expect(planStack).toBeDefined();
 });
 
