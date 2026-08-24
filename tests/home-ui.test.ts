@@ -126,13 +126,24 @@ test("gli elenchi onboarding restano vicini al testo che li introduce", () => {
       items: ["Primo punto", "Secondo punto"],
     }),
   );
-  const list = rendered.find((element) => element.type === "ul");
+  const stacks = rendered.filter((element) => element.type === "s-stack");
+  const list = stacks.find(
+    (element) =>
+      (element.props as { accessibilityRole?: string }).accessibilityRole === "unordered-list",
+  );
+  const items = rendered.filter(
+    (element) =>
+      element.type === "s-grid" &&
+      (element.props as { accessibilityRole?: string }).accessibilityRole === "list-item",
+  );
 
-  expect(list?.props).toMatchObject({
-    style: { marginBlock: "4px 0", paddingInlineStart: "20px" },
+  expect(stacks[0]?.props).toMatchObject({ direction: "block", gap: "none" });
+  expect(list?.props).toMatchObject({ direction: "block", gap: "small-100" });
+  expect(items).toHaveLength(2);
+  expect(items[0]?.props).toMatchObject({
+    gridTemplateColumns: "auto 1fr",
+    gap: "small-100",
   });
-  expect(rendered.filter((element) => element.type === "ul")).toHaveLength(1);
-  expect(rendered.filter((element) => element.type === "li")).toHaveLength(2);
 });
 
 test("la Home chiude la finestra onboarding tramite il comando Shopify supportato", () => {
