@@ -1,56 +1,32 @@
-export const PLAN_COMPARISON_STORAGE_KEY = "cf-ready:plan-comparison";
+export const PLAN_COMPARISON_MESSAGE_TYPE = "cf-ready:show-plans";
 
-type PlanComparisonStorage = Pick<Storage, "getItem" | "removeItem" | "setItem">;
-type PlanComparisonEvents = Pick<Window, "addEventListener" | "removeEventListener">;
+type MessageTarget = Pick<Window, "postMessage">;
+type PlanComparisonMessage = Pick<MessageEvent, "data" | "origin">;
+type PlanComparisonActions = { hideWindow(): void; showPlans(): void };
 
-export function markPlanComparison(storage: PlanComparisonStorage) {
-  storage.setItem(PLAN_COMPARISON_STORAGE_KEY, "requested");
+export function requestPlanComparison(target: MessageTarget | null, targetOrigin: string) {
+  if (!target) return false;
+  target.postMessage({ type: PLAN_COMPARISON_MESSAGE_TYPE }, targetOrigin);
+  return true;
 }
 
-export function hasPlanComparison(storage: PlanComparisonStorage) {
-  return storage.getItem(PLAN_COMPARISON_STORAGE_KEY) === "requested";
+export function isPlanComparisonRequest(event: PlanComparisonMessage, expectedOrigin: string) {
+  return (
+    event.origin === expectedOrigin &&
+    typeof event.data === "object" &&
+    event.data !== null &&
+    "type" in event.data &&
+    event.data.type === PLAN_COMPARISON_MESSAGE_TYPE
+  );
 }
 
-export function clearPlanComparison(storage: PlanComparisonStorage) {
-  storage.removeItem(PLAN_COMPARISON_STORAGE_KEY);
-}
-
-export function createPlanComparisonStore(
-  storage: PlanComparisonStorage,
-  events: PlanComparisonEvents,
+export function handlePlanComparisonRequest(
+  event: PlanComparisonMessage,
+  expectedOrigin: string,
+  actions: PlanComparisonActions,
 ) {
-  let requested = hasPlanComparison(storage);
-  if (requested) clearPlanComparison(storage);
-  const listeners = new Set<() => void>();
-  const onStorage = (event: StorageEvent) => {
-    if (
-      event.key !== PLAN_COMPARISON_STORAGE_KEY ||
-      event.newValue !== "requested" ||
-      !hasPlanComparison(storage)
-    ) {
-      return;
-    }
-    clearPlanComparison(storage);
-    requested = true;
-    listeners.forEach((listener) => listener());
-  };
-
-  return {
-    getSnapshot: () => requested,
-    reset: () => {
-      requested = false;
-    },
-    subscribe: (listener: () => void) => {
-      if (listeners.size === 0) events.addEventListener("storage", onStorage);
-      listeners.add(listener);
-      return () => {
-        listeners.delete(listener);
-        if (listeners.size === 0) events.removeEventListener("storage", onStorage);
-      };
-    },
-  };
-}
-
-export function showSetupGuide(onboarding: string, planComparison: boolean) {
-  return onboarding !== "completed" && !planComparison;
+  if (!isPlanComparisonRequest(event, expectedOrigin)) return false;
+  actions.hideWindow();
+  actions.showPlans();
+  return true;
 }

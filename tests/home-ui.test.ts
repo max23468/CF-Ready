@@ -4,11 +4,10 @@ import { expect, test, vi } from "vitest";
 import { texts } from "../app/i18n";
 import { commercialState } from "../app/features/home/commercial-state";
 import {
-  createPlanComparisonStore,
-  hasPlanComparison,
-  markPlanComparison,
-  PLAN_COMPARISON_STORAGE_KEY,
-  showSetupGuide,
+  handlePlanComparisonRequest,
+  isPlanComparisonRequest,
+  PLAN_COMPARISON_MESSAGE_TYPE,
+  requestPlanComparison,
 } from "../app/features/home/plan-comparison";
 import { PlanStatus } from "../app/features/home/PlanStatus";
 import { onboardingCheckoutPreview } from "../app/features/onboarding/checkout-preview";
@@ -17,6 +16,7 @@ import { openBillingApproval } from "../app/revalidation";
 import { PlanChoice, SetupGuide } from "../app/routes/app._index";
 import {
   Address2DeclarationPrompt,
+  OnboardingListBlock,
   OnboardingProgress,
   OnboardingStep4Content,
 } from "../app/routes/app.onboarding";
@@ -99,8 +99,10 @@ test("la Setup guide non marca come completati i passi aperti e usa la griglia r
 
   const grid = rendered.find((element) => element.type === "s-grid");
   expect(grid?.props).toMatchObject({
-    gridTemplateColumns: "repeat(auto-fit, minmax(12rem, 1fr))",
+    gridTemplateColumns: "@container (inline-size > 640px) 'repeat(3, minmax(0, 1fr))', 1fr",
+    gap: "small-100",
   });
+  expect(rendered.some((element) => element.type === "s-query-container")).toBe(true);
 
   // Ogni passo ha la sua icona, ma la spunta appartiene solo a quelli conclusi: qui
   // nessuno lo è, quindi nessun `check-circle` e nessun tono di successo.
@@ -112,6 +114,20 @@ test("la Setup guide non marca come completati i passi aperti e usa la griglia r
   expect(icons.filter((icon) => (icon.props as { tone?: string }).tone === "success")).toHaveLength(
     0,
   );
+});
+
+test("gli elenchi onboarding restano vicini al testo che li introduce", () => {
+  const rendered = elements(
+    OnboardingListBlock({
+      lead: "Testo introduttivo",
+      items: ["Primo punto", "Secondo punto"],
+    }),
+  );
+  const stack = rendered.find((element) => element.type === "s-stack");
+
+  expect(stack?.props).toMatchObject({ direction: "block", gap: "small-100" });
+  expect(rendered.filter((element) => element.type === "s-unordered-list")).toHaveLength(1);
+  expect(rendered.filter((element) => element.type === "s-list-item")).toHaveLength(2);
 });
 
 // La card è la prima cosa che si vede dopo l'installazione: deve accogliere, e deve
@@ -145,6 +161,13 @@ test("la Setup guide accoglie alla prima apertura e offre di iniziare la prova",
     ...base,
     rules: { taxCode: "required_validated", pec: "unmanaged" },
   } as Parameters<typeof SetupGuide>[0]["data"]);
+  expect(
+    alPassoProva.some(
+      (element) =>
+        element.type === "s-text" &&
+        (element.props as { children?: ReactNode }).children === texts("it").setup.planTitle,
+    ),
+  ).toBe(true);
   const avvia = alPassoProva.find(
     (element) =>
       element.type === "s-button" &&
@@ -189,6 +212,13 @@ test("la Setup guide accoglie alla prima apertura e offre di iniziare la prova",
         (element.props as { children?: ReactNode }).children === texts("it").setup.startTrial,
     ),
   ).toBe(false);
+  expect(
+    conPiano.some(
+      (element) =>
+        element.type === "s-text" &&
+        (element.props as { children?: ReactNode }).children === texts("it").setup.planTitleActive,
+    ),
+  ).toBe(true);
 
   const dopoLaProva = render({
     ...base,
@@ -200,6 +230,13 @@ test("la Setup guide accoglie alla prima apertura e offre di iniziare la prova",
       (element) =>
         element.type === "s-paragraph" &&
         (element.props as { children?: ReactNode }).children === texts("it").setup.planBodyLapsed,
+    ),
+  ).toBe(true);
+  expect(
+    dopoLaProva.some(
+      (element) =>
+        element.type === "s-text" &&
+        (element.props as { children?: ReactNode }).children === texts("it").setup.planTitleLapsed,
     ),
   ).toBe(true);
 });
@@ -299,7 +336,8 @@ test("il riepilogo onboarding distingue primo avvio, prova e piano", () => {
   ).toEqual({ summary: "ready", access: "plan", canActivate: true });
 });
 
-test("il confronto piani apre la sezione corretta senza riproporre la guida", () => {
+test("il confronto piani comunica con la Home senza navigare il frame della modale", () => {
+  const showPlans = vi.fn();
   const rendered = elements(
     OnboardingStep4Content({
       saved: {
@@ -312,6 +350,7 @@ test("il confronto piani apre la sezione corretta senza riproporre la guida", ()
       busy: false,
       pendingIntent: null,
       startTrial: vi.fn(),
+      showPlans,
     }),
   );
   const actions = rendered.filter(
@@ -323,40 +362,50 @@ test("il confronto piani apre la sezione corretta senza riproporre la guida", ()
   );
 
   expect(actions).toHaveLength(2);
-  expect(actions[1].props).toMatchObject({ href: "/app" });
+  expect(actions[1].props).not.toHaveProperty("href");
+  (actions[1].props as { onClick: () => void }).onClick();
+  expect(showPlans).toHaveBeenCalledOnce();
 
-  const values = new Map<string, string>();
-  const storage = {
-    getItem: (key: string) => values.get(key) ?? null,
-    setItem: (key: string, value: string) => values.set(key, value),
-    removeItem: (key: string) => values.delete(key),
-  };
-  let storageListener: ((event: StorageEvent) => void) | undefined;
-  const store = createPlanComparisonStore(storage, {
-    addEventListener: ((type: string, listener: (event: StorageEvent) => void) => {
-      if (type === "storage") storageListener = listener;
-    }) as Window["addEventListener"],
-    removeEventListener: ((type: string) => {
-      if (type === "storage") storageListener = undefined;
-    }) as Window["removeEventListener"],
-  });
-  const notify = vi.fn();
-  const unsubscribe = store.subscribe(notify);
+  const postMessage = vi.fn();
+  expect(requestPlanComparison({ postMessage }, "https://app.example")).toBe(true);
+  expect(postMessage).toHaveBeenCalledWith(
+    { type: PLAN_COMPARISON_MESSAGE_TYPE },
+    "https://app.example",
+  );
+  expect(requestPlanComparison(null, "https://app.example")).toBe(false);
+  expect(
+    isPlanComparisonRequest(
+      {
+        origin: "https://app.example",
+        data: { type: PLAN_COMPARISON_MESSAGE_TYPE },
+      } as MessageEvent,
+      "https://app.example",
+    ),
+  ).toBe(true);
+  expect(
+    isPlanComparisonRequest(
+      {
+        origin: "https://other.example",
+        data: { type: PLAN_COMPARISON_MESSAGE_TYPE },
+      } as MessageEvent,
+      "https://app.example",
+    ),
+  ).toBe(false);
 
-  markPlanComparison(storage);
-  storageListener?.({
-    key: PLAN_COMPARISON_STORAGE_KEY,
-    newValue: "requested",
-  } as StorageEvent);
-  expect(notify).toHaveBeenCalledOnce();
-  expect(store.getSnapshot()).toBe(true);
-  expect(hasPlanComparison(storage)).toBe(false);
-  store.reset();
-  expect(store.getSnapshot()).toBe(false);
-  unsubscribe();
-  expect(storageListener).toBeUndefined();
-  expect(showSetupGuide("in_progress", true)).toBe(false);
-  expect(showSetupGuide("in_progress", false)).toBe(true);
+  const hideWindow = vi.fn();
+  const showPlanSection = vi.fn();
+  expect(
+    handlePlanComparisonRequest(
+      {
+        origin: "https://app.example",
+        data: { type: PLAN_COMPARISON_MESSAGE_TYPE },
+      } as MessageEvent,
+      "https://app.example",
+      { hideWindow, showPlans: showPlanSection },
+    ),
+  ).toBe(true);
+  expect(hideWindow).toHaveBeenCalledOnce();
+  expect(showPlanSection).toHaveBeenCalledOnce();
 
   const planAnchor = elements(
     PlanChoice({
@@ -384,8 +433,13 @@ test("l’anteprima onboarding descrive le regole attive senza contraddire lo st
   expect(preview).not.toContain(it.checkout.disabled);
   expect(it.onboarding.step3MessagesBody).toMatch(/quattro messaggi già configurati/i);
   expect(`${it.onboarding.welcomeBody} ${it.onboarding.step1Limits.join(" ")}`).not.toMatch(
-    /fail-open|cinque minuti|niente parte/i,
+    /fail-open|cinque minuti|niente parte|Shopify|campo mancante/i,
   );
+  expect(it.rules.exceptions.join(" ")).not.toMatch(/Shopify|campo mancante/i);
+  expect(it.rules.exceptions).toEqual([
+    "Queste regole si applicano solo agli ordini con consegna e fatturazione in Italia.",
+  ]);
+  expect(it.onboarding.step4StartTrial).toBe(it.setup.startTrial);
 });
 
 test("i testi iniziali non presuppongono una configurazione precedente", () => {
