@@ -229,7 +229,7 @@ test("un readback senza Validation non conserva lo stato attivo precedente", asy
   });
 });
 
-test("la concessione omaggio resta autorevole anche se il billing Shopify non risponde", async () => {
+test("la concessione omaggio non nasconde un rinnovo quando il billing Shopify non risponde", async () => {
   const shop = await insertShop("omaggio.example.myshopify.com");
   const now = "2026-08-24T00:00:00.000Z";
   await env.DB.prepare(
@@ -239,10 +239,39 @@ test("la concessione omaggio resta autorevole anche se il billing Shopify non ri
   )
     .bind(now, now, now, shop)
     .run();
+  const admin = adminStub([
+    shopContext("IT", true, { kind: "none", validThrough: null }),
+    new Error("billing non disponibile"),
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.entitlement).toEqual({ kind: "none", validThrough: null });
+  expect(state.complimentary).toMatchObject({ status: "active" });
+  expect(state.errorCode).toBe("billing_read_failed");
+  expect(state.retryable).toBe(true);
+  expect(admin.calls).toEqual(["context", "billing"]);
+});
+
+test("la concessione omaggio cancella e rilegge l'abbonamento prima di diventare operativa", async () => {
+  const shop = await insertShop("omaggio-con-abbonamento.example.myshopify.com");
+  const now = "2026-08-24T00:00:00.000Z";
+  await env.DB.prepare(
+    `INSERT INTO complimentary_entitlements
+       (shop_id, status, granted_at, revoked_at, created_at, updated_at)
+     SELECT id, 'active', ?, NULL, ?, ? FROM shops WHERE shop_domain = ?`,
+  )
+    .bind(now, now, now, shop)
+    .run();
+  const subscriptionOnly = structuredClone(CONVERSIONE_UNA_TANTUM);
+  subscriptionOnly.data.currentAppInstallation.oneTimePurchases.nodes = [];
   const activeEntitlement = { kind: "one_time", validThrough: null };
   const admin = adminStub([
     shopContext("IT", true),
-    new Error("billing non disponibile"),
+    subscriptionOnly,
+    subscriptionOnly,
+    { data: { appSubscriptionCancel: { userErrors: [] } } },
+    SENZA_ADDEBITI,
     shopContext("IT", true),
     { data: { validationUpdate: { userErrors: [] } } },
     shopContext("IT", true, activeEntitlement),
@@ -251,7 +280,43 @@ test("la concessione omaggio resta autorevole anche se il billing Shopify non ri
   const state = await reconcile(admin, env.DB, shop);
 
   expect(state.entitlement).toEqual(activeEntitlement);
-  expect(state.complimentary).toMatchObject({ status: "active" });
   expect(state.errorCode).toBeNull();
-  expect(admin.calls).toEqual(["context", "billing", "context", "update", "context"]);
+  expect(admin.calls).toEqual([
+    "context",
+    "billing",
+    "billing",
+    "cancel",
+    "billing",
+    "context",
+    "update",
+    "context",
+  ]);
+});
+
+test("la concessione omaggio resta non operativa se la cancellazione fallisce", async () => {
+  const shop = await insertShop("omaggio-cancellazione-fallita.example.myshopify.com");
+  const now = "2026-08-24T00:00:00.000Z";
+  await env.DB.prepare(
+    `INSERT INTO complimentary_entitlements
+       (shop_id, status, granted_at, revoked_at, created_at, updated_at)
+     SELECT id, 'active', ?, NULL, ?, ? FROM shops WHERE shop_domain = ?`,
+  )
+    .bind(now, now, now, shop)
+    .run();
+  const subscriptionOnly = structuredClone(CONVERSIONE_UNA_TANTUM);
+  subscriptionOnly.data.currentAppInstallation.oneTimePurchases.nodes = [];
+  const subscriptionEntitlement = { kind: "subscription", validThrough: "2026-08-31" };
+  const admin = adminStub([
+    shopContext("IT", true, subscriptionEntitlement),
+    subscriptionOnly,
+    subscriptionOnly,
+    { data: { appSubscriptionCancel: { userErrors: [{ message: "temporaneo" }] } } },
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.entitlement).toEqual(subscriptionEntitlement);
+  expect(state.errorCode).toBe("subscription_cancel_failed");
+  expect(state.retryable).toBe(true);
+  expect(admin.calls).toEqual(["context", "billing", "billing", "cancel"]);
 });

@@ -109,6 +109,7 @@ export async function reconcile(
   let creditEstimate: number | null = null;
   let billingConfirmed = false;
   let conversionRequired = false;
+  let complimentaryOperational = false;
 
   if (eligible) {
     try {
@@ -116,20 +117,34 @@ export async function reconcile(
       if (initialBilling.error) throw initialBilling.error;
       let state = initialBilling.state!;
 
-      // L'acquisto una tantum deve essere già attivo prima di cancellare l'abbonamento.
-      if (state.oneTime && state.subscription) {
+      // Il diritto sostitutivo deve esistere prima di cancellare l'abbonamento.
+      const conversionReason = state.oneTime
+        ? "one_time_purchased"
+        : complimentary?.status === "active"
+          ? "complimentary_granted"
+          : null;
+      if (conversionReason && state.subscription) {
         conversionRequired = true;
         const conversion = await withValidationLock(db, shopDomain, async (heartbeat) => {
           const current = await readBilling(admin);
-          if (!current.oneTime || !current.subscription) {
+          const replacementStillActive =
+            conversionReason === "one_time_purchased"
+              ? Boolean(current.oneTime)
+              : complimentary?.status === "active";
+          if (!replacementStillActive || !current.subscription) {
             return { state: current, error: null, converted: false };
           }
           if (!(await heartbeat.isHeld())) {
             return { state: current, error: "validation_locked", converted: false };
           }
-          const error = await cancelSubscription(admin, current.subscription.id, { prorate: true });
+          const cancellationError = await cancelSubscription(admin, current.subscription.id, {
+            prorate: true,
+          });
+          const readback = cancellationError ? current : await readBilling(admin);
+          const error =
+            cancellationError ?? (readback.subscription ? "subscription_cancel_failed" : null);
           return {
-            state: error ? current : await readBilling(admin),
+            state: readback,
             error,
             converted: !error,
           };
@@ -148,7 +163,7 @@ export async function reconcile(
               shopDomain,
               name: "subscription_converted",
               class: "billing",
-              metadata: { reason: "one_time_purchased" },
+              metadata: { reason: conversionReason },
             });
           }
         }
@@ -170,27 +185,23 @@ export async function reconcile(
         storedAccount: account,
       });
       billingConfirmed = true;
+      complimentaryOperational = complimentary?.status === "active" && state.subscription === null;
 
-      if (account.entitlement_status === "active") {
+      if (account.entitlement_status === "active" || complimentaryOperational) {
         await markTrialConverted(db, shopDomain);
       }
     } catch {
-      // La cache billing resta disponibile alla UI, ma non concede diritti quando Shopify è
-      // incerto. Una concessione omaggio è invece autorevole in D1 e non dipende dal billing.
+      // La cache resta disponibile alla UI, ma non concede diritti quando Shopify è incerto.
+      // Anche l'omaggio attende il readback: potrebbe esserci un rinnovo da cancellare.
       account = storedAccount;
-      if (complimentary?.status !== "active") {
-        errorCode ??= "billing_read_failed";
-        retryable ||= conversionRequired;
-      }
+      errorCode ??= "billing_read_failed";
+      retryable ||= conversionRequired || complimentary?.status === "active";
     }
   }
 
-  if (complimentary?.status === "active") await markTrialConverted(db, shopDomain);
-
-  const entitlement: Entitlement =
-    billingConfirmed || complimentary?.status === "active"
-      ? entitlementFor(trial, today, account, complimentary)
-      : { kind: "none", validThrough: null };
+  const entitlement: Entitlement = billingConfirmed
+    ? entitlementFor(trial, today, account, complimentaryOperational ? complimentary : null)
+    : { kind: "none", validThrough: null };
 
   if (
     (eligible || writeEntitlementOutsideEligible) &&

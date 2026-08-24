@@ -1,4 +1,5 @@
 import {
+  cancelSubscription,
   currentPricingGeneration,
   entitlementFor,
   localDate,
@@ -82,6 +83,20 @@ export async function writeValidation(
     } catch {
       // Shopify non raggiungibile: conserva lo stato operativo noto senza concedere diritti.
     }
+    if (!billing && complimentary?.status === "active") {
+      return { ok: false, errorCode: "billing_read_failed" };
+    }
+    if (billing?.subscription && complimentary?.status === "active") {
+      if (!(await heartbeat.isHeld())) return { ok: false, errorCode: "validation_locked" };
+      const cancellationError = await cancelSubscription(admin, billing.subscription.id, {
+        prorate: true,
+      });
+      if (cancellationError) return { ok: false, errorCode: cancellationError };
+      billing = await readBilling(admin);
+      if (billing.subscription) {
+        return { ok: false, errorCode: "subscription_cancel_failed" };
+      }
+    }
     if (billing) {
       account = await syncBillingAccount(db, shopDomain, billing, {
         today,
@@ -93,13 +108,9 @@ export async function writeValidation(
         await markTrialConverted(db, shopDomain);
       }
     }
-    if (!billing && complimentary?.status === "active") {
-      await markTrialConverted(db, shopDomain);
-    }
-    const entitlement: Entitlement =
-      billing || complimentary?.status === "active"
-        ? entitlementFor(trial, today, account, complimentary)
-        : { kind: "none", validThrough: null };
+    const entitlement: Entitlement = billing
+      ? entitlementFor(trial, today, account, complimentary)
+      : { kind: "none", validThrough: null };
     if (enable === true && !existing?.enabled && entitlement.kind === "none") {
       return { ok: false, errorCode: "entitlement_required" };
     }
