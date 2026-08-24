@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.27 — 24 agosto 2026
+
+- il titolare riceve su Telegram notifiche minimizzate per installazioni,
+  riattivazioni, disinstallazioni, prove, acquisti, cambi piano e cessazioni,
+  indicando sempre dominio tecnico dello store e piano;
+- una coda D1 idempotente con retry, deduplicazione e conservazione di 90 giorni
+  separa il rilevamento degli eventi Shopify dall'invio protetto al bot.
+
 ## 0.9.26 — 24 agosto 2026
 
 - la prima installazione ha uno stato commerciale distinto da prova o piano

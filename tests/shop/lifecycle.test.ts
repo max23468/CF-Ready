@@ -239,11 +239,31 @@ test("disinstallazione e redact ripuliscono i dati dello store", async () => {
   ).toMatchObject({ installation_status: "uninstalled" });
   expect(await appState(shop)).toMatchObject({ validation_enabled: 0, validation_gid: null });
 
+  await env.DB.prepare(
+    `INSERT INTO owner_notifications (
+       dedupe_key, notification_kind, shop_domain, subject, body_text, source_occurred_at,
+       available_at, created_at, updated_at
+     ) VALUES ('notification-redact', 'lifecycle', ?, 'subject', 'body', ?, ?, ?, ?)`,
+  )
+    .bind(
+      shop,
+      "2026-07-30T00:00:00.000Z",
+      "2026-07-30T00:00:00.000Z",
+      "2026-07-30T00:00:00.000Z",
+      "2026-07-30T00:00:00.000Z",
+    )
+    .run();
+
   expect(await redactShop(env.DB, shop, "wh-redact")).toBe(true);
   expect(await redactShop(env.DB, shop, "wh-redact")).toBe(true);
 
   expect(
     await env.DB.prepare("SELECT id FROM shops WHERE shop_domain = ?").bind(shop).first(),
+  ).toBeNull();
+  expect(
+    await env.DB.prepare("SELECT id FROM owner_notifications WHERE shop_domain = ?")
+      .bind(shop)
+      .first(),
   ).toBeNull();
   expect(
     await env.DB.prepare("SELECT COUNT(*) AS total FROM app_events WHERE shop_id = ?")
@@ -349,6 +369,28 @@ test("la retention rispetta le soglie pubblicate per eventi e ricevute", async (
            shop_id, shopify_resource_gid, event_type, status, occurred_at, created_at
          ) VALUES (?, 'gid://current', 'subscription', 'active', ?, ?)`,
     ).bind(shopId, "2025-08-02T00:00:00.001Z", "2025-08-02T00:00:00.001Z"),
+    env.DB.prepare(
+      `INSERT INTO owner_notifications (
+         dedupe_key, notification_kind, shop_domain, subject, body_text, source_occurred_at,
+         available_at, created_at, updated_at
+       ) VALUES ('notification-expired', 'lifecycle', 'expired.myshopify.com', 'subject', 'body', ?, ?, ?, ?)`,
+    ).bind(
+      "2026-05-04T00:00:00.000Z",
+      "2026-05-04T00:00:00.000Z",
+      "2026-05-04T00:00:00.000Z",
+      "2026-05-04T00:00:00.000Z",
+    ),
+    env.DB.prepare(
+      `INSERT INTO owner_notifications (
+         dedupe_key, notification_kind, shop_domain, subject, body_text, source_occurred_at,
+         available_at, created_at, updated_at
+       ) VALUES ('notification-current', 'lifecycle', 'current.myshopify.com', 'subject', 'body', ?, ?, ?, ?)`,
+    ).bind(
+      "2026-05-04T00:00:00.001Z",
+      "2026-05-04T00:00:00.001Z",
+      "2026-05-04T00:00:00.001Z",
+      "2026-05-04T00:00:00.001Z",
+    ),
   ]);
 
   expect((await applyRetention(env.DB, new Date("2026-08-02T00:00:00.000Z"))).shops).toBe(0);
@@ -358,10 +400,17 @@ test("la retention rispetta le soglie pubblicate per eventi e ricevute", async (
         `SELECT webhook_id AS value FROM webhook_events WHERE webhook_id LIKE 'receipt-%'
          UNION ALL SELECT event_name FROM app_events WHERE event_name LIKE 'error-%' OR event_name LIKE 'event-%'
          UNION ALL SELECT shopify_resource_gid FROM billing_events WHERE shopify_resource_gid LIKE 'gid://%'
+         UNION ALL SELECT dedupe_key FROM owner_notifications WHERE dedupe_key LIKE 'notification-%'
          ORDER BY value`,
       ).all<{ value: string }>()
     ).results.map(({ value }) => value),
-  ).toEqual(["error-current", "event-current", "gid://current", "receipt-current"]);
+  ).toEqual([
+    "error-current",
+    "event-current",
+    "gid://current",
+    "notification-current",
+    "receipt-current",
+  ]);
 });
 
 test("la retention limita ogni esecuzione a 25 store", async () => {
