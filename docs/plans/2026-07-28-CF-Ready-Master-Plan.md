@@ -970,8 +970,11 @@ sequenceDiagram
 - Linguaggio: TypeScript.
 - Target corrente: `cart.validations.generate.run`.
 - Function API: pin `2026-07`, stabile dal 1º luglio 2026. Non pubblicare
-  `1.0.0` finché schema generato, build, fixture e checkout reali non sono stati
-  riconfermati con la CLI supportata corrente.
+  `1.0.0` finché schema generato, build, fixture server-side e almeno un
+  checkout reale non sono stati riconfermati con la CLI supportata corrente.
+  M10 copre le superfici non transazionali; il checkout reale resta un gate M11
+  da osservare su un ordine che si verifichi organicamente, senza creare ordini
+  artificiali.
 - Admin GraphQL API: pin `2026-07`, già stabile.
 - Trigger logico: `CHECKOUT_COMPLETION`; anche `CHECKOUT_INTERACTION` quando `errorDisplay` è `preventive`.
 - Configurazione: un metafield JSON sulla Validation.
@@ -1114,8 +1117,9 @@ Restituiscono zero errori:
 Nei flussi express `cart.localizedFields` può arrivare vuoto. Se Shopify espone
 almeno una consegna italiana, un campo configurato come obbligatorio e assente
 genera quindi un errore globale; senza consegna osservabile il motore resta
-fail-open, perché il cliente potrebbe non avere alcun campo da compilare. La
-matrice wallet di M10 verifica questa correzione sulle superfici reali.
+fail-open, perché il cliente potrebbe non avere alcun campo da compilare. M10
+chiude questa correzione con la matrice server-side automatica e la ricognizione
+non transazionale delle superfici wallet disponibili sul canary.
 Motivazione ed esito sono in
 `docs/evidence/2026-07-29-checkout-validation-rendering.md`.
 
@@ -1160,16 +1164,17 @@ evidenza, rollback e quesiti aperti sono in
 - build Wasm riuscita;
 - `shopify app function run` conforme;
 - target errori verificato su dev store;
-- checkout accelerati assegnati al canary M10 e verificati prima della
-  `1.0.0`;
+- checkout accelerati coperti dalla matrice server-side e ricogniti senza
+  transazioni sul canary M10 prima della `1.0.0`;
 - input/output senza dati nei log;
 - costo istruzioni ampiamente sotto i limiti;
 - config corrotta non blocca;
 - trial scaduto non blocca;
 - eccezione runtime verificata con `blockOnFailure: false`;
 - limite di 25 Validation gestito senza toccare quelle di altre app;
-- checkout iniziale con prodotto in abbonamento assegnato alla matrice canary
-  M10 e verificato separatamente prima della `1.0.0`;
+- checkout iniziale con prodotto in abbonamento coperto da fixture server-side;
+  la prova live è aggiuntiva e si esegue soltanto quando un selling plan esiste
+  per esigenze commerciali reali dello store;
 - nessuna pretesa di copertura delle ricorrenze successive.
 - build `1.0.0` rifiutata se la Function API `2026-07` non è validata dallo
   schema generato dalla CLI corrente.
@@ -3485,8 +3490,8 @@ non è materialmente disponibile sullo store dell'owner, documentare il limite e
 verificare nei test automatici almeno il blocco server-side e il percorso di
 correzione offerto da Shopify. Non si creano prodotti, selling plan, ordini o
 identità cliente fittizi solo per soddisfare la matrice. Un ordine autentico
-idoneo eventualmente ricevuto fornisce evidenza live aggiuntiva; la sua assenza
-nel periodo di osservazione non blocca M10 né `1.0.0`.
+idoneo eventualmente ricevuto fornisce l'evidenza checkout reale: la sua
+assenza non blocca M10, ma mantiene chiuso il gate di pubblicazione `1.0.0`.
 
 ### 23.12 Browser
 
@@ -3884,7 +3889,7 @@ Gate:
 
 Rifiniture non bloccanti tracciate in Open items §34.5.
 
-### M3 — Motore di validazione Development ✅ completata · gate M10 in chiusura
+### M3 — Motore di validazione Development ✅ completata · gate M10 chiuso
 
 **Completata il 29 luglio 2026.** Query, motore e matrice
 automatizzata sono nel workspace `cf-ready-validation`; build Function, test e
@@ -3903,17 +3908,18 @@ evita la review silenziosa. Il motore e il contratto config v2 sono implementati
 in M3; il controllo merchant sarà consegnato con la UI completa in M6.
 La superficie autenticata standard è verificata. Il bypass dovuto a
 `localizedFields` vuoto è corretto nel motore con errore globale quando esiste
-una consegna italiana; i wallet non esposti dal dev store con Test Payment
-Gateway vengono verificati in M10 sul canary store reale dell’owner.
+una consegna italiana. M10 ha coperto i wallet non esposti dal dev store con la
+stessa matrice server-side e ha ricognito sul canary le superfici effettivamente
+disponibili senza completare transazioni.
 
 L’evidenza completa è in
 `docs/evidence/2026-07-29-checkout-validation-rendering.md`. Shopify ha
 confermato la sintassi del target e riconosciuto il bug della review il
-30 luglio 2026. Restano gate pre-Production tracciati nell’evidenza: la
-riconferma del target sulla reference corretta, il percorso supportato per campo
-vuoto con conferma ordine attiva e l’applicazione lato server della validazione
-sulle superfici accelerate. Non impediscono la chiusura della matrice
-Development disponibile. Il deploy fisso Development è completato con lo snapshot Shopify
+30 luglio 2026. I gate pre-Production tracciati nell’evidenza sono stati chiusi
+riconfermando la Function API `2026-07`, mantenendo il percorso supportato per
+campo vuoto con conferma ordine attiva e verificando nelle fixture automatiche
+l’applicazione lato server sulle superfici accelerate. La ricognizione canary
+non transazionale è registrata nella ricevuta M10. Il deploy fisso Development è completato con lo snapshot Shopify
 `0.1.0` e il Worker `cf-ready-dev`. Poiché Shopify distribuisce configurazione
 app e Function nello stesso snapshot, M3 ha anticipato soltanto il backend
 Development minimo necessario all’URL persistente
@@ -3925,8 +3931,9 @@ L’audit di chiusura ha misurato l’artefatto corrente con
 memoria, modulo Wasm da 15 KiB, output conforme e nessun log. Il readback della
 Home embedded, alimentato dalla query paginata delle Validation Shopify, ha
 confermato una sola Validation CF Ready attiva. Il checkout iniziale con
-prodotto in abbonamento è assegnato alla matrice canary M10, che dispone del
-prodotto con selling plan necessario.
+prodotto in abbonamento è coperto dalla matrice server-side; il canary M10 non
+dispone di selling plan e, per decisione non transazionale, non ne crea uno solo
+per il test.
 
 Deliverable:
 
@@ -3946,8 +3953,8 @@ Gate:
 - test dev store;
 - snapshot Shopify Function Development `0.1.0` versionato, con smoke, readback
   e rollback registrati;
-- checkout accelerati rinviati al canary M10, dove sono disponibili metodi reali
-  controllati.
+- checkout accelerati chiusi in M10 con fixture server-side e ricognizione non
+  transazionale dei metodi reali disponibili.
 
 ### M4 — Dati, auth e lifecycle ✅ completata
 
@@ -4028,8 +4035,10 @@ applicativo.
 I gate hanno prodotto otto correzioni, fra cui il flusso di approvazione che non
 sopravviveva all'iframe embedded, un rifiuto di Shopify invisibile, il webhook
 degli acquisti mancante e la conversione eseguita due volte per concorrenza. La
-cancellazione ordinaria resta l'unico gate non eseguito, con residuo dichiarato
-negli Open items §34.9.
+cancellazione ordinaria non era esercitabile sul dev store. Dopo D-135 non è
+applicabile al canary omaggio M10: credito, proratazione e rimborso restano
+coperti automaticamente e la prima osservazione live appartiene al primo
+merchant pagante di M11, come dichiarato negli Open items §34.9.
 
 Deliverable:
 
@@ -4043,7 +4052,8 @@ Deliverable:
 - entitlement metafield;
 - scadenza fail-open.
 
-Gate: verdi, salvo la cancellazione ordinaria spostata al canary M10.
+Gate: verdi. La cancellazione live è un'osservazione M11 non applicabile al
+canary omaggio, non un gate M5 o M10 ancora aperto.
 
 - matrice billing test completa;
 - nessun entitlement basato su redirect;
@@ -4267,12 +4277,16 @@ quindi chiusi e M9 è formalmente completata. La visibilità resta limitata come
 previsto; il canary reale, `v1.0.0` e la piena visibilità appartengono
 rispettivamente a M10, M11 e M12.
 
-### M10 — Canary store reale · in chiusura
+### M10 — Canary store reale ✅ completata
 
-Le prove acquisite e il gap live della `0.9.39` sono registrati in
-`docs/evidence/2026-08-25-m10-canary-numisleo.md`. La chiusura richiede la
-pubblicazione e il readback della `0.9.40`, che rimuove l'invito a generare un
-ordine di prova sullo store reale.
+**Completata il 25 agosto 2026.** Le prove sono registrate in
+`docs/evidence/2026-08-25-m10-canary-numisleo.md`: snapshot Development
+`0.9.40`, promozione [#314](https://github.com/max23468/CF-Ready/pull/314),
+deploy Production [32786987670](https://github.com/max23468/CF-Ready/actions/runs/32786987670),
+release `v0.9.40`, readback D1 e verifica manuale live in Chrome. Il gate è
+stato chiuso senza creare ordini, clienti, prodotti o pagamenti artificiali
+sullo store reale. La stessa verifica Chrome ha chiuso la riverifica M10 del
+marchio e del contrasto sulle superfici effettive dell'Admin.
 
 Deliverable:
 
@@ -4316,6 +4330,16 @@ Deliverable:
 - primi merchant;
 - monitoraggio metriche;
 - feedback.
+
+Gate:
+
+- prima del tag `v1.0.0`, osservazione riuscita di almeno un checkout reale su
+  un ordine nato organicamente sul canary, idoneo a una regola italiana attiva;
+  l'evidenza deve confermare l'esecuzione della Function e l'esito atteso, senza
+  generare ordini, clienti, prodotti o pagamenti artificiali. I casi non
+  disponibili restano coperti dalla matrice server-side e dai limiti ambientali
+  documentati;
+- riconferma dello schema Function API `2026-07` con la CLI supportata corrente.
 
 ### M12 — Visibilità completa
 
@@ -4694,8 +4718,10 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
    - ~~correzione ottica della crenatura del wordmark~~ — **chiusa il 28 luglio 2026**, valori in `docs/brand/brand-foundation.md` §4.4;
    - ~~conferma delle dimensioni richieste dai requisiti App Store~~ — **chiusa il 28 luglio 2026**, specifiche in §24.5;
    - ~~decisione sulla sigla nell’icona della listing~~ — **chiusa il 28 luglio 2026**: rischio accettato, si presenta l’icona con la sigla (D-114);
-   - ✅ riverifica del marchio dentro l’Admin reale completata in M1; resta la
-     verifica sullo store reale in M10;
+   - ~~riverifica del marchio dentro l’Admin reale~~ — **chiusa il 25 agosto
+     2026**: completata in M1 e ripetuta sullo store reale in M10; icona app,
+     riduzione monocromatica e lockup sono leggibili, non deformati e conformi
+     ai rapporti di contrasto registrati nella ricevuta M10;
    - ~~feature image 1600 × 900~~ — consegnata con i materiali di review
      accettati da Shopify; sorgenti SVG e PNG IT/EN riutilizzabili sono in
      `docs/brand/assets/`.

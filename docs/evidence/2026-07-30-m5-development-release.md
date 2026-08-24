@@ -57,7 +57,7 @@ ogni passaggio.
 | Cambio mensile → annuale | verde. Approvazione con dicitura di sostituzione dell'abbonamento precedente e nessun giorno di prova; dopo: `annual` con nuovo addebito fino al 30 luglio 2027 e seconda riga distinta in `billing_events` |
 | Acquisto abbandonato | verde. Premuto Annulla, abbonamento annuale intatto: addebito, periodo ed eventi invariati |
 | Passaggio a una tantum | verde. Acquisto attivo, diritto `one_time` senza scadenza, annuale cancellato solo dopo l'acquisto, terza riga da 8990 centesimi |
-| Cancellazione ordinaria | **non eseguito**, residuo dichiarato |
+| Cancellazione ordinaria | non esercitabile sul dev store; coperta dai test e assegnata come prima osservazione live al primo merchant pagante M11, non al canary omaggio M10 |
 
 Il diritto non è mai stato concesso dal ritorno del redirect: nel primo gate il
 merchant non è nemmeno rientrato nell'app, e lo stato era già corretto perché
@@ -73,7 +73,7 @@ piattaforma. La deduzione del rimborso resta corretta, perché scatta solo quand
 l'acquisto sparisce davvero. Dopo la reinstallazione la Validation è stata
 riattivata senza riconfigurare nulla, come previsto da FR-076.
 
-### Cancellazione ordinaria: residuo
+### Cancellazione ordinaria: osservazione M11
 
 Il gate non è eseguibile sul dev store: con il pagamento unico attivo non si può
 creare un abbonamento, e la guardia che lo impedisce protegge il merchant da un
@@ -82,8 +82,9 @@ addebito inutile. L'acquisto non è rimborsabile perché in modalità di prova n
 sottoscrivibile senza un secondo store.
 
 Il comportamento resta coperto dai test automatici: periodo di grazia `ending`,
-accesso fino a fine periodo, scadenza successiva, nessuna proratazione. La
-verifica live si sposta al canary M10, dove esiste un abbonamento reale.
+accesso fino a fine periodo, scadenza successiva, nessuna proratazione. Dopo
+D-135 il canary M10 usa una concessione omaggio e non ha charge o rinnovi da
+cancellare; la prima verifica live appartiene al primo merchant pagante M11.
 
 ### Credito pro rata: verificato a metà
 
@@ -96,10 +97,11 @@ attivato lo stesso giorno, quindi il ciclo era interamente non usufruito e la
 stima corrispondeva all'intero canone. Su addebiti di prova il credito potrebbe
 non essere materializzato, dato che nessun importo è stato mosso.
 
-Resta quindi da confrontare, sul canary M10 insieme alla cancellazione
-ordinaria, la stima mostrata con l'importo che Shopify calcola davvero. Il
-Master Plan §14.8 già dichiara la stima come tale, quindi il rischio è di
-comunicazione, non di diritto: un credito diverso non toglie nulla al merchant.
+Resta quindi da confrontare, sul primo merchant pagante M11 insieme alla
+cancellazione ordinaria, la stima mostrata con l'importo che Shopify calcola
+davvero. Il canary omaggio M10 non genera un credito. Il Master Plan §14.8 già
+dichiara la stima come tale, quindi il rischio è di comunicazione, non di
+diritto: un credito diverso non toglie nulla al merchant.
 
 ### Revoca per rimborso: non esercitata
 
@@ -107,7 +109,8 @@ Un rimborso totale revoca il diritto e uno parziale lo conserva, ma il percorso
 non è stato provato live: un addebito di prova non è mai stato pagato, quindi
 non è rimborsabile. Il comportamento resta coperto dai test, dove un acquisto
 che sparisce dagli attivi porta lo stato a `refunded`. La prova reale richiede
-un addebito pagato davvero e si sposta con gli altri residui.
+un addebito pagato davvero e si sposta con gli altri residui al primo merchant
+pagante M11.
 
 ### Avvisi di prova
 
