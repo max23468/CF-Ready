@@ -1,4 +1,5 @@
 import { formatMoney, texts } from "../../i18n";
+import { commercialState } from "./commercial-state";
 import type { HomeData } from "./home.server";
 
 export function PlanChoice({
@@ -16,7 +17,7 @@ export function PlanChoice({
 }) {
   const t = texts(data.locale);
   const onOneTime = data.entitlement.kind === "one_time";
-  const trialNeverStarted = data.trialStatus === null && data.entitlement.kind === "none";
+  const trialNeverStarted = commercialState(data) === "first_run";
 
   const startTrialSection = trialNeverStarted ? (
     <s-section heading={t.plan.notStartedHeading}>
@@ -38,7 +39,15 @@ export function PlanChoice({
   ) : null;
 
   const choice = (
-    <s-section heading={onOneTime ? t.plan.oneTimeName : t.plan.chooseHeading}>
+    <s-section
+      heading={
+        onOneTime
+          ? t.plan.oneTimeName
+          : trialNeverStarted
+            ? t.plan.chooseNowHeading
+            : t.plan.chooseHeading
+      }
+    >
       {onOneTime || !data.plan ? (
         <s-paragraph>{onOneTime ? t.plan.oneTimeSettled : t.plan.none}</s-paragraph>
       ) : (
@@ -93,7 +102,9 @@ export function PlanChoice({
               <s-text type="strong">{t.plan.oneTimeName}</s-text>
               <s-text>{formatMoney(data.plan.one_time, data.locale)}</s-text>
             </s-stack>
-            <s-paragraph>{t.plan.oneTimeCharge}</s-paragraph>
+            <s-paragraph>
+              {trialNeverStarted ? t.plan.oneTimeChargeNotStarted : t.plan.oneTimeCharge}
+            </s-paragraph>
             {data.entitlement.kind === "subscription" && data.creditEstimate ? (
               <>
                 <s-paragraph>
@@ -112,7 +123,7 @@ export function PlanChoice({
                 loading={pendingIntent === "one_time"}
                 onClick={() => submit("one_time")}
               >
-                {t.plan.oneTimeSwitch}
+                {data.entitlement.kind === "none" ? t.plan.oneTimeStart : t.plan.oneTimeSwitch}
               </s-button>
             </s-stack>
           </s-stack>
