@@ -138,8 +138,8 @@ test("gli elenchi onboarding restano vicini al testo che li introduce", () => {
       (element.props as { accessibilityRole?: string }).accessibilityRole === "list-item",
   );
 
-  expect(grids[0]?.props).toMatchObject({ gridTemplateColumns: "1fr", gap: "small-100" });
-  expect(list?.props).toMatchObject({ gridTemplateColumns: "1fr", gap: "small-100" });
+  expect(grids[0]?.props).toMatchObject({ gridTemplateColumns: "1fr", gap: "none" });
+  expect(list?.props).toMatchObject({ gridTemplateColumns: "1fr", gap: "none" });
   expect(items).toHaveLength(2);
   expect(items[0]?.props).toMatchObject({
     gridTemplateColumns: "auto 1fr",
