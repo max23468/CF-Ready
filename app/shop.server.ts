@@ -291,6 +291,14 @@ export async function applyRetention(db: D1Database, now = new Date()) {
          )`,
       )
       .bind(oneYearAgo),
+    db
+      .prepare(
+        `DELETE FROM owner_notifications WHERE id IN (
+           SELECT id FROM owner_notifications WHERE created_at <= ?
+           ORDER BY created_at LIMIT 1000
+         )`,
+      )
+      .bind(ninetyDaysAgo),
   ]);
   return {
     events: deleted.reduce((total, result) => total + result.meta.changes, 0),

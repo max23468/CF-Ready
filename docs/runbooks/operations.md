@@ -158,6 +158,45 @@ La retention nativa del piano corrente è breve: il correlation ID va copiato
 nella ricevuta dell'incidente, non i log completi. Query e retention vanno
 riverificate trimestralmente sulle fonti Cloudflare correnti.
 
+## Notifiche owner
+
+Il cron Production ogni cinque minuti acquisisce dalla Shopify Partner API gli
+eventi di installazione, riattivazione, disattivazione e disinstallazione, oltre
+all'intero ciclo degli abbonamenti e dei pagamenti unici: accettazione,
+attivazione, disdetta, rifiuto, scadenza, sospensione e riattivazione. Gli eventi
+locali completano la copertura con avvio, scadenza e conversione della prova
+gratuita. Il passaggio tra piani usa il precedente stato billing riconciliato per
+produrre una notifica esplicita `Da`/`A`.
+
+L'outbox viene consegnato tramite la Telegram Bot API. Development non configura
+i secret e non invia notifiche. Il destinatario è la sola chat privata
+identificata dal secret `TELEGRAM_CHAT_ID`; ogni messaggio riporta il dominio
+tecnico `.myshopify.com`, il piano e l'istante dell'evento, ma non nome del
+merchant, email, Codice Fiscale, PEC, shop ID o GID Shopify.
+
+La configurazione distribuita resta disattivata. Per attivarla:
+
+1. ottenere l’autorizzazione Production e identificare account Cloudflare,
+   app e organizzazione Shopify Partner;
+2. creare un bot Telegram dedicato, aprire la sua chat privata, premere
+   **Avvia** e ricavare il relativo identificatore numerico senza registrare il
+   token in file o cronologia shell;
+3. scrivere nel secret store Worker `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`,
+   `SHOPIFY_PARTNER_ORGANIZATION_ID`, `SHOPIFY_PARTNER_APP_ID` e
+   `SHOPIFY_PARTNER_ACCESS_TOKEN`, senza stamparne i valori;
+4. impostare `OWNER_NOTIFICATIONS_ENABLED=true`, eseguire preflight e gate
+   completi, poi distribuire con il workflow Production autorizzato;
+5. verificare che fixture controllate per lifecycle, prova e billing producano
+   una sola riga `sent` per evento, che un secondo poll non le duplichi e che i
+   messaggi contengano dominio `.myshopify.com` e piano senza shop ID o GID;
+6. in rollback, riportare il flag a `false` e ridistribuire: le righe già
+   acquisite restano in D1 e non vengono consegnate finché il flag è spento.
+
+Un fallimento Partner non avanza il checkpoint. La risposta Telegram è valida
+soltanto con HTTP riuscito e `ok: true`. La consegna tenta al massimo
+cinque volte con backoff; una riga `failed` richiede diagnosi del codice
+sanitizzato e una decisione esplicita prima del replay.
+
 ## Traces Development temporanee
 
 Traces resta `enabled: false`. Si usa solo per riprodurre un difetto con dati

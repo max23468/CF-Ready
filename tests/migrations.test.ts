@@ -88,3 +88,29 @@ test("0007 e 0008 aggiornano lo schema precedente conservando i dati", async () 
       .run(),
   ).rejects.toThrow();
 });
+
+test("0011 crea l'outbox owner e conserva la transizione billing precedente", async () => {
+  const { TEST_MIGRATIONS: migrations } = env as Env & {
+    TEST_MIGRATIONS: D1Migration[];
+  };
+  const notificationIndex = migrations.findIndex(
+    ({ name }) => name === "0011_owner_notifications.sql",
+  );
+  expect(notificationIndex).toBeGreaterThan(0);
+
+  const columns = await env.DB.prepare("PRAGMA table_info(owner_notifications)").all<{
+    name: string;
+  }>();
+
+  expect(columns.results.map(({ name }) => name)).not.toContain("shop_id");
+  expect(columns.results.map(({ name }) => name)).not.toContain("shop_domain");
+  const billingColumns = await env.DB.prepare("PRAGMA table_info(billing_events)").all<{
+    name: string;
+  }>();
+  expect(billingColumns.results.map(({ name }) => name)).toEqual(
+    expect.arrayContaining(["previous_entitlement_status", "previous_plan_kind"]),
+  );
+  expect(columns.results.map(({ name }) => name)).toEqual(
+    expect.arrayContaining(["dedupe_key", "notification_kind", "body_text", "status", "attempts"]),
+  );
+});
