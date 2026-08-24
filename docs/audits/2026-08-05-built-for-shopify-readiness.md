@@ -80,7 +80,7 @@ Le fixture sintetiche canoniche restano quelle delle
 | Consegna italiana osservabile, campo obbligatorio non esposto | campo assente | blocco globale | fixture server-side M10 completata |
 | Nessuna consegna osservabile | campo assente | fail-open | fixture server-side M10 completata |
 | Errore config, entitlement o runtime | qualsiasi valore | fail-open | coperto da test automatici |
-| Checkout standard e wallet disponibili | casi precedenti | stesso esito della Function | superfici non transazionali ricognite in M10; osservazione futura non bloccante |
+| Checkout standard e wallet disponibili | casi precedenti | stesso esito della Function | superfici non transazionali ricognite in M10; almeno un checkout reale organico resta gate M11 per `1.0.0` |
 
 Nel tentativo live del 5 agosto i localized fields sono comparsi dopo un
 indirizzo italiano, ma la validazione nativa dei dati di pagamento è intervenuta
@@ -97,5 +97,6 @@ ricognizione delle superfici non transazionali, senza generare transazioni.
 - Categoria Built for Shopify: il Partner Dashboard non ne ha ancora assegnata
   una.
 - Checkout end-to-end e wallet: l'osservazione passiva prosegue sui prossimi
-  ordini che li renderanno disponibili; non blocca M10 né richiede ordini
-  artificiali.
+  ordini che li renderanno disponibili; non blocca M10 e non richiede ordini
+  artificiali, ma almeno un checkout reale riuscito resta obbligatorio prima
+  della `1.0.0` in M11.

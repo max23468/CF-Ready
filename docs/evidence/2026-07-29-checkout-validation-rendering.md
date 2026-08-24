@@ -440,6 +440,7 @@ Restano follow-up non bloccanti, senza riaprire la matrice già completata:
 2. osservare sui primi ordini autentici idonei l'applicazione ai wallet; un
    bypass senza Codice Fiscale resta bloccante e va segnalato a Shopify, ma
    l'assenza del caso nel periodo non blocca M10 né richiede ordini artificiali;
+   almeno un checkout reale riuscito resta però gate M11 prima della `1.0.0`;
 3. verificare, quando il traffico reale offre il caso, se i box della modalità
    preventiva compaiano su un checkout appena caricato, dato che Shopify lo
    esclude e una prova live precedente li aveva osservati;

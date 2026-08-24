@@ -970,10 +970,11 @@ sequenceDiagram
 - Linguaggio: TypeScript.
 - Target corrente: `cart.validations.generate.run`.
 - Function API: pin `2026-07`, stabile dal 1º luglio 2026. Non pubblicare
-  `1.0.0` finché schema generato, build, fixture server-side e superfici checkout
-  non transazionali non sono stati riconfermati con la CLI supportata corrente.
-  L'osservazione passiva di ordini futuri resta una verifica post-lancio e non
-  richiede la creazione di ordini artificiali.
+  `1.0.0` finché schema generato, build, fixture server-side e almeno un
+  checkout reale non sono stati riconfermati con la CLI supportata corrente.
+  M10 copre le superfici non transazionali; il checkout reale resta un gate M11
+  da osservare su un ordine che si verifichi organicamente, senza creare ordini
+  artificiali.
 - Admin GraphQL API: pin `2026-07`, già stabile.
 - Trigger logico: `CHECKOUT_COMPLETION`; anche `CHECKOUT_INTERACTION` quando `errorDisplay` è `preventive`.
 - Configurazione: un metafield JSON sulla Validation.
@@ -3489,8 +3490,8 @@ non è materialmente disponibile sullo store dell'owner, documentare il limite e
 verificare nei test automatici almeno il blocco server-side e il percorso di
 correzione offerto da Shopify. Non si creano prodotti, selling plan, ordini o
 identità cliente fittizi solo per soddisfare la matrice. Un ordine autentico
-idoneo eventualmente ricevuto fornisce evidenza live aggiuntiva; la sua assenza
-nel periodo di osservazione non blocca M10 né `1.0.0`.
+idoneo eventualmente ricevuto fornisce l'evidenza checkout reale: la sua
+assenza non blocca M10, ma mantiene chiuso il gate di pubblicazione `1.0.0`.
 
 ### 23.12 Browser
 
@@ -4329,6 +4330,14 @@ Deliverable:
 - primi merchant;
 - monitoraggio metriche;
 - feedback.
+
+Gate:
+
+- prima del tag `v1.0.0`, osservazione riuscita di almeno un checkout reale su
+  un ordine nato organicamente sul canary, senza generare ordini, clienti,
+  prodotti o pagamenti artificiali; i casi non disponibili restano coperti
+  dalla matrice server-side e dai limiti ambientali documentati;
+- riconferma dello schema Function API `2026-07` con la CLI supportata corrente.
 
 ### M12 — Visibilità completa
 
