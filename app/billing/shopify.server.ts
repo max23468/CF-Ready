@@ -1,4 +1,5 @@
-import { APP_URL } from "../env.server";
+import { embeddedAdminUrl } from "../embedded-admin";
+import { APP_API_KEY } from "../env.server";
 import { logEvent } from "../events.server";
 import type { ShopifyBilling } from "./types";
 
@@ -260,21 +261,8 @@ export async function createCharge(
   }
 }
 
-export function returnUrlFor(request: Request, shopDomain: string) {
-  const incoming = new URL(request.url).searchParams;
-  const target = new URL("/app", APP_URL);
-  target.searchParams.set("shop", shopDomain);
-  const host = incoming.get("host");
-  if (host) {
-    try {
-      const decoded = atob(host.replaceAll("-", "+").replaceAll("_", "/"));
-      const shopName = shopDomain.replace(/\.myshopify\.com$/, "");
-      if (decoded === `admin.shopify.com/store/${shopName}`) target.searchParams.set("host", host);
-    } catch {
-      // Un host manipolato non serve al rientro: lo shop autenticato resta sufficiente.
-    }
-  }
-  return target.toString();
+export function returnUrlFor(shopDomain: string, apiKey = APP_API_KEY) {
+  return embeddedAdminUrl(shopDomain, apiKey);
 }
 
 export const CANCEL_SUBSCRIPTION = `#graphql
