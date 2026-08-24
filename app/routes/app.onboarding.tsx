@@ -50,6 +50,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     errorDisplay: config.errorDisplay,
     messages: config.messages,
     enabled: state.validationEnabled,
+    entitlementKind: state.entitlement.kind,
     entitled: state.entitlement.kind !== "none",
     trialStatus: state.trial?.status ?? null,
     address2Declared: address2Declaration !== null,
@@ -158,6 +159,7 @@ export default function Onboarding() {
   const busy = fetcher.state !== "idle";
   const pendingIntent = pendingFetcherIntent(fetcher.formData);
   const esito = fetcher.data as { ok: boolean; errorCode?: string } | undefined;
+  const step4State = onboardingStep4State(saved);
 
   const go = (intent: string, extra: Record<string, string> = {}) =>
     fetcher.submit({ intent, step: String(step), ...extra }, { method: "post" });
@@ -343,7 +345,11 @@ export default function Onboarding() {
                   <Address2DeclarationPrompt declared={declared} t={t} />
                 )}
                 <s-paragraph>
-                  {saved.enabled ? t.onboarding.reviewStep4Body : t.onboarding.step4Body}
+                  {step4State.summary === "review"
+                    ? t.onboarding.reviewStep4Body
+                    : step4State.summary === "ready"
+                      ? t.onboarding.step4BodyReady
+                      : t.onboarding.step4BodyNeedsEntitlement}
                 </s-paragraph>
 
                 {/* La prova non è mai partita da sola: qui il merchant decide se cominciarla
@@ -351,9 +357,11 @@ export default function Onboarding() {
                     nulla di tutto questo. */}
                 <s-divider />
                 <s-heading>{t.onboarding.step4TrialHeading}</s-heading>
-                {saved.entitled ? (
+                {step4State.access === "trial" ? (
                   <s-paragraph>{t.onboarding.step4TrialActive}</s-paragraph>
-                ) : saved.trialStatus === null ? (
+                ) : step4State.access === "plan" ? (
+                  <s-paragraph>{t.onboarding.step4PlanActive}</s-paragraph>
+                ) : step4State.access === "first_run" ? (
                   <>
                     <s-paragraph>{t.onboarding.step4TrialBody}</s-paragraph>
                     <s-stack direction="inline" gap="base">
@@ -393,11 +401,11 @@ export default function Onboarding() {
                   >
                     {t.onboarding.completeReview}
                   </s-button>
-                ) : (
+                ) : step4State.canActivate ? (
                   <>
                     <s-button
                       variant="primary"
-                      disabled={busy || !saved.entitled}
+                      disabled={busy}
                       loading={pendingIntent === "activate"}
                       onClick={() => close("activate")}
                     >
@@ -411,6 +419,14 @@ export default function Onboarding() {
                       {t.onboarding.finishWithout}
                     </s-button>
                   </>
+                ) : (
+                  <s-button
+                    disabled={busy}
+                    loading={pendingIntent === "finish"}
+                    onClick={() => close("finish")}
+                  >
+                    {t.onboarding.finishWithout}
+                  </s-button>
                 )
               ) : (
                 <s-button
@@ -443,6 +459,30 @@ export default function Onboarding() {
       </s-page>
     </form>
   );
+}
+
+export function onboardingStep4State({
+  enabled,
+  entitled,
+  entitlementKind,
+  trialStatus,
+}: {
+  enabled: boolean;
+  entitled: boolean;
+  entitlementKind: "none" | "trial" | "subscription" | "one_time";
+  trialStatus: string | null;
+}) {
+  return {
+    summary: enabled ? ("review" as const) : entitled ? ("ready" as const) : ("needs" as const),
+    access: entitled
+      ? entitlementKind === "trial"
+        ? ("trial" as const)
+        : ("plan" as const)
+      : trialStatus === null
+        ? ("first_run" as const)
+        : ("lapsed" as const),
+    canActivate: !enabled && entitled,
+  };
 }
 
 export function Address2DeclarationPrompt({

@@ -3,9 +3,10 @@ import { isValidElement } from "react";
 import { expect, test, vi } from "vitest";
 import { texts } from "../app/i18n";
 import { commercialState } from "../app/features/home/commercial-state";
+import { PlanStatus } from "../app/features/home/PlanStatus";
 import { openBillingApproval } from "../app/revalidation";
 import { PlanChoice, SetupGuide } from "../app/routes/app._index";
-import { Address2DeclarationPrompt } from "../app/routes/app.onboarding";
+import { Address2DeclarationPrompt, onboardingStep4State } from "../app/routes/app.onboarding";
 
 vi.mock("../app/shopify.server", () => ({ authenticate: {} }));
 
@@ -175,6 +176,19 @@ test("la Setup guide accoglie alla prima apertura e offre di iniziare la prova",
         (element.props as { children?: ReactNode }).children === texts("it").setup.startTrial,
     ),
   ).toBe(false);
+
+  const dopoLaProva = render({
+    ...base,
+    rules: { taxCode: "required_validated", pec: "unmanaged" },
+    trialStatus: "expired",
+  });
+  expect(
+    dopoLaProva.some(
+      (element) =>
+        element.type === "s-paragraph" &&
+        (element.props as { children?: ReactNode }).children === texts("it").setup.planBodyLapsed,
+    ),
+  ).toBe(true);
 });
 
 test("la prima installazione non viene presentata come un piano da riattivare", () => {
@@ -196,10 +210,28 @@ test("la prima installazione non viene presentata come un piano da riattivare", 
   const headings = rendered
     .filter((element) => element.type === "s-section")
     .map((element) => (element.props as { heading?: string }).heading);
+  const paragraphs = rendered
+    .filter((element) => element.type === "s-paragraph")
+    .map((element) => (element.props as { children?: ReactNode }).children);
+  const buttons = rendered
+    .filter((element) => element.type === "s-button")
+    .map((element) => (element.props as { children?: ReactNode }).children);
+  const planStatus = elements(PlanStatus({ data: firstRunData }));
 
   expect(commercialState(firstRunData)).toBe("first_run");
   expect(headings).toContain(texts("it").plan.chooseNowHeading);
   expect(headings).not.toContain(texts("it").plan.chooseHeading);
+  expect(paragraphs).toContain(texts("it").plan.oneTimeChargeNotStarted);
+  expect(paragraphs).not.toContain(texts("it").plan.oneTimeCharge);
+  expect(buttons).toContain(texts("it").plan.oneTimeStart);
+  expect(buttons).not.toContain(texts("it").plan.oneTimeSwitch);
+  expect(
+    planStatus.some(
+      (element) =>
+        element.type === "s-paragraph" &&
+        (element.props as { children?: ReactNode }).children === texts("it").plan.notStartedStatus,
+    ),
+  ).toBe(true);
   expect(texts("it").home.firstRun).not.toMatch(/riattiv|pagamento|più nulla/i);
 
   expect(
@@ -208,6 +240,67 @@ test("la prima installazione non viene presentata come un piano da riattivare", 
       trialStatus: "expired",
     }),
   ).toBe("lapsed");
+});
+
+test("il riepilogo onboarding distingue primo avvio, prova e piano", () => {
+  expect(
+    onboardingStep4State({
+      enabled: false,
+      entitled: false,
+      entitlementKind: "none",
+      trialStatus: null,
+    }),
+  ).toEqual({ summary: "needs", access: "first_run", canActivate: false });
+  expect(
+    onboardingStep4State({
+      enabled: false,
+      entitled: true,
+      entitlementKind: "trial",
+      trialStatus: "active",
+    }),
+  ).toEqual({ summary: "ready", access: "trial", canActivate: true });
+  expect(
+    onboardingStep4State({
+      enabled: false,
+      entitled: true,
+      entitlementKind: "subscription",
+      trialStatus: null,
+    }),
+  ).toEqual({ summary: "ready", access: "plan", canActivate: true });
+});
+
+test("i testi iniziali non presuppongono una configurazione precedente", () => {
+  const it = texts("it");
+  const en = texts("en");
+  const initialItalian = [
+    it.home.firstRun,
+    it.home.badgeNotStarted,
+    it.home.titleNotStarted,
+    it.setup.welcome,
+    it.setup.planBody,
+    it.onboarding.welcomeBody,
+    it.onboarding.step4BodyNeedsEntitlement,
+    it.plan.notStartedStatus,
+    it.plan.oneTimeChargeNotStarted,
+    it.messages.intro,
+    it.messages.appearIntro,
+  ].join(" ");
+  const initialEnglish = [
+    en.home.firstRun,
+    en.home.badgeNotStarted,
+    en.home.titleNotStarted,
+    en.setup.welcome,
+    en.setup.planBody,
+    en.onboarding.welcomeBody,
+    en.onboarding.step4BodyNeedsEntitlement,
+    en.plan.notStartedStatus,
+    en.plan.oneTimeChargeNotStarted,
+    en.messages.intro,
+    en.messages.appearIntro,
+  ].join(" ");
+
+  expect(initialItalian).not.toMatch(/riattiv|disattivat|già attiv|tornano validi/i);
+  expect(initialEnglish).not.toMatch(/reactiv|turned off|already active|apply again/i);
 });
 
 test("checkbox e istruzioni della dichiarazione condividono lo stesso stato", () => {

@@ -102,7 +102,9 @@ export function PlanChoice({
               <s-text type="strong">{t.plan.oneTimeName}</s-text>
               <s-text>{formatMoney(data.plan.one_time, data.locale)}</s-text>
             </s-stack>
-            <s-paragraph>{t.plan.oneTimeCharge}</s-paragraph>
+            <s-paragraph>
+              {trialNeverStarted ? t.plan.oneTimeChargeNotStarted : t.plan.oneTimeCharge}
+            </s-paragraph>
             {data.entitlement.kind === "subscription" && data.creditEstimate ? (
               <>
                 <s-paragraph>
@@ -121,7 +123,7 @@ export function PlanChoice({
                 loading={pendingIntent === "one_time"}
                 onClick={() => submit("one_time")}
               >
-                {t.plan.oneTimeSwitch}
+                {data.entitlement.kind === "none" ? t.plan.oneTimeStart : t.plan.oneTimeSwitch}
               </s-button>
             </s-stack>
           </s-stack>

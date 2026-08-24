@@ -151,14 +151,20 @@ export default function HomePage() {
           <s-badge
             tone={status === "active" ? "success" : status === "lapsed" ? "warning" : "neutral"}
           >
-            {data.validationEnabled ? t.home.badgeActive : t.home.badgeInactive}
+            {data.validationEnabled
+              ? t.home.badgeActive
+              : firstRun
+                ? t.home.badgeNotStarted
+                : t.home.badgeInactive}
           </s-badge>
           <s-heading>
             {status === "active"
               ? t.home.titleActive
               : status === "lapsed"
                 ? t.home.titleLapsed
-                : t.home.titleDisabled}
+                : firstRun
+                  ? t.home.titleNotStarted
+                  : t.home.titleDisabled}
           </s-heading>
           <s-paragraph>
             {homeCheckoutSummary({ rules: data.rules, status }, data.locale)}

@@ -48,8 +48,10 @@ export const en: typeof it = {
     nextHeading: "Next step",
     badgeActive: "Active",
     badgeInactive: "Turned off",
+    badgeNotStarted: "Not active yet",
     titleActive: "Check active at checkout",
     titleDisabled: "Check not active",
+    titleNotStarted: "Checkout check not active yet",
     titleLapsed: "Check on, plan not active",
     unsupported: "Store not supported",
     unsupportedBody:
@@ -87,7 +89,7 @@ export const en: typeof it = {
     heading: "Customer messages",
     saved: "Messages saved.",
     intro:
-      "These are the texts customers read at checkout when a field is missing or not formally valid. Customers checking out in Italian see the Italian ones, everyone else sees the English ones.",
+      "These are the texts customers will read when the check is active and a field is missing or not formally valid. Customers checking out in Italian see the Italian ones, everyone else sees the English ones.",
     italian: "Italiano",
     english: "English",
     taxCodeRequired: "Tax code required",
@@ -100,11 +102,11 @@ export const en: typeof it = {
     reset: "Restore default texts",
     resetConfirm: (language: string) =>
       `The four ${language} messages go back to their default texts. The others don’t change, and it only takes effect once you save.`,
-    appearHeading: "Which messages appear",
+    appearHeading: "Messages linked to your rules",
     appearIntro:
-      "It depends on your active rules: nobody reads the messages of a field you don’t manage.",
-    appears: "Shown",
-    appearsNot: "Not shown",
+      "These indicators depend on the rules you chose, not on whether the check is active. A message can appear at checkout only while the check is active.",
+    appears: "Expected",
+    appearsNot: "Not expected",
   },
   setup: {
     heading: "Get CF Ready ready",
@@ -115,12 +117,12 @@ export const en: typeof it = {
     rulesBody: "Decide whether the tax code and PEC are not managed, optional or required.",
     activateTitle: "Turn on in checkout",
     activateBody: "Until you turn it on, your rules are saved but don’t apply to customers.",
-    planTitle: "Start the trial or choose how to pay",
+    planTitle: "Enable the checkout check",
     planBody:
-      "The trial lasts 14 days, is free and asks for no card: until you start it, none of it is spent. Without a trial or payment your rules stay saved but don't apply at checkout.",
-    planBodyEntitled:
-      "When the trial ends you need a payment mode, otherwise checkout stops checking.",
-    startTrial: "Start the trial",
+      "The free trial lasts 14 days, asks for no card and starts only when you launch it. Until then, your rules stay saved and checkout does not change.",
+    planBodyLapsed:
+      "The trial has ended. Choose a plan to apply your rules at checkout again; your configuration and messages stay saved.",
+    startTrial: "Start the free trial",
     address2Title: "Stop using the “Apartment, suite, etc.” field",
     guided: "Open the guided setup",
   },
@@ -132,7 +134,7 @@ export const en: typeof it = {
     next: "Continue",
     welcomeHeading: "Welcome to CF Ready",
     welcomeBody:
-      "Four steps, five minutes. At the end you decide whether to start the trial or pay right away: nothing starts on its own.",
+      "Four steps, five minutes. Choose what to check, review what customers will see and decide when to turn it on: nothing starts on its own.",
     step1Heading: "What it does and doesn’t do",
     step1Body:
       "CF Ready checks the Italian tax code (Codice Fiscale) and the certified email address (PEC) in the native Italian checkout field. It doesn’t change your theme, doesn’t add fields and doesn’t issue invoices.",
@@ -148,13 +150,18 @@ export const en: typeof it = {
     step3MessagesBody:
       "They’re ready in Italian and English. You can rewrite them whenever you want from Customer messages.",
     step4Heading: "Summary",
-    step4Body: "From here you can turn the rules on now, or save them and turn them on later.",
-    step4TrialHeading: "Trial or payment",
+    step4BodyReady:
+      "Your rules are ready. Turn them on now, or finish without turning them on and come back whenever you want.",
+    step4BodyNeedsEntitlement:
+      "Your rules are ready. Start the free trial or choose a plan before turning them on; you can also finish without turning them on and come back whenever you want.",
+    step4TrialHeading: "Trial and plan",
     step4TrialBody:
       "Rules only apply at checkout with an active trial or payment. The trial lasts 14 days, is free and asks for no card: until you start it, none of it is spent.",
     step4StartTrial: "Start the 14-day trial",
-    step4SeePlans: "See how to pay",
-    step4TrialActive: "Trial already active: nothing else to do here.",
+    step4SeePlans: "Compare plans",
+    step4TrialActive: "The trial is active: you can turn on the checkout check.",
+    step4PlanActive:
+      "Your plan is active: you can turn on the checkout check without starting the trial.",
     reviewStep4Body: "The check is already active at checkout. Complete the review to return Home.",
     activate: "Turn on in checkout",
     finishWithout: "Finish without turning on",
@@ -244,7 +251,7 @@ export const en: typeof it = {
         a: "CF Ready doesn’t store tax codes, PEC addresses, orders or any of your customers’ data. The check happens during checkout and leaves no trace of the values entered.",
       },
       {
-        q: "What happens if I turn the app off",
+        q: "What happens if I turn the checkout check off",
         a: "Checkout goes back to how it was and no order is blocked any more. Your rules and messages stay saved and apply again when you turn it back on.",
       },
       {
@@ -272,6 +279,7 @@ export const en: typeof it = {
     trialLastDay: (date: string) =>
       `Today is the last day of your trial: it ends on ${date}. From tomorrow checkout blocks nothing, and your rules and messages stay saved.`,
     none: "No active plan.",
+    notStartedStatus: "The free trial has not started yet.",
     notStartedHeading: "Before turning the check on",
     notStartedBody:
       "Rules only apply at checkout with an active trial or payment. The trial lasts 14 days, is free and asks for no card: start it now or later — until you do, none of it is spent.",
@@ -283,6 +291,7 @@ export const en: typeof it = {
     annualStart: "Start annual",
     annualSwitch: "Switch to annual",
     oneTimeSwitch: "Switch to one payment",
+    oneTimeStart: "Choose one payment",
     cancelRenewal: "Cancel renewal",
     cancelBody:
       "Access stays until the end of the period you already paid for, with no partial refund. Your rules and messages stay saved.",
@@ -291,6 +300,8 @@ export const en: typeof it = {
     firstChargeNow: "The charge starts as soon as you approve it on Shopify.",
     oneTimeCharge:
       "One charge as soon as you approve it on Shopify. Any remaining trial days are given up.",
+    oneTimeChargeNotStarted:
+      "One charge as soon as you approve it on Shopify. The free trial will not be started.",
     chooseNowHeading: "Choose a plan now",
     chooseHeading: "How you want to continue",
     chooseBody:
@@ -298,8 +309,8 @@ export const en: typeof it = {
     oneTimeSettled:
       "One payment for this store, with no renewals. It includes app updates and support, at no extra cost. There’s nothing else to choose.",
     recommended: "Recommended",
-    generationLaunch: "Launch price, locked in for this store.",
-    generationStandard: "Standard price, locked in for this store.",
+    generationLaunch: "Launch prices are reserved for this store.",
+    generationStandard: "Standard prices apply to this store.",
     nextCharge: (date: string) => `Next charge on ${date}.`,
     periodEnds: (date: string) => `The paid period ends on ${date}.`,
     lastAttempt:
@@ -356,7 +367,7 @@ export const en: typeof it = {
       "Two steps. In Settings → Checkout, under “Form options”, set the second address line to “Optional” or “Don’t include”; then, if you changed its label, restore it from “Manage checkout language”, or from Settings → Languages, “Checkout and system” tab, for a translated language.",
   },
   checkout: {
-    nothing: "No rules active: checkout behaves exactly as it does today.",
+    nothing: "No fields are configured: checkout stays unchanged.",
     taxCodeRequired:
       "A customer with delivery and billing in Italy can’t complete the order without a formally valid tax code.",
     taxCodeOptional:

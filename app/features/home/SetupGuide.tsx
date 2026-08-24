@@ -16,7 +16,8 @@ export function SetupGuide({
   submit: (intent: string, source?: string) => void;
 }) {
   const t = texts(data.locale);
-  const firstRun = commercialState(data) === "first_run";
+  const currentCommercialState = commercialState(data);
+  const firstRun = currentCommercialState === "first_run";
   const configured = data.rules.taxCode !== "unmanaged" || data.rules.pec !== "unmanaged";
   const steps = [
     {
@@ -30,7 +31,7 @@ export function SetupGuide({
       done: data.entitlement.kind !== "none",
       icon: "credit-card" as const,
       title: t.setup.planTitle,
-      body: firstRun ? t.setup.planBody : t.setup.planBodyEntitled,
+      body: firstRun ? t.setup.planBody : t.setup.planBodyLapsed,
       action: firstRun ? (
         <s-stack direction="inline" gap="base">
           <s-button
