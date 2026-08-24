@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.40 — 25 agosto 2026
+
+- M10 usa test automatici, ricognizione non transazionale e osservazione
+  passiva degli ordini autentici, senza creare ordini o identità fittizie sullo
+  store reale;
+- la Home non invita più a fare un ordine di prova quando la Validation è
+  attiva e propone lo stesso passo corretto in italiano e inglese;
+- il canary Numisleo accetta la concessione omaggio permanente come diritto
+  commerciale reale quando il readback conferma assenza di charge e rinnovi.
+
 ## 0.9.39 — 24 agosto 2026
 
 - una concessione omaggio non cancella né rimborsa automaticamente un

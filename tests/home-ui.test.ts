@@ -74,6 +74,16 @@ test("il piano omaggio non viene presentato come un pagamento", () => {
   ).toBe(true);
 });
 
+test("il prossimo passo usa un testo generico sui prossimi ordini", () => {
+  const it = texts("it").home.nextTestOrder;
+  const en = texts("en").home.nextTestOrder;
+
+  expect(it).toMatch(/prossimi ordini/i);
+  expect(it).not.toMatch(/autentici|prova|fake|lingua/i);
+  expect(en).toMatch(/next orders/i);
+  expect(en).not.toMatch(/authentic|genuine|test|fake|language/i);
+});
+
 test("l'approvazione billing si apre fuori dall'iframe", () => {
   const opener = vi.fn();
 
