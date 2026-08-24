@@ -3884,7 +3884,7 @@ Gate:
 
 Rifiniture non bloccanti tracciate in Open items §34.5.
 
-### M3 — Motore di validazione Development ✅ completata · gate M10 in chiusura
+### M3 — Motore di validazione Development ✅ completata · gate M10 chiuso
 
 **Completata il 29 luglio 2026.** Query, motore e matrice
 automatizzata sono nel workspace `cf-ready-validation`; build Function, test e
@@ -4267,12 +4267,15 @@ quindi chiusi e M9 è formalmente completata. La visibilità resta limitata come
 previsto; il canary reale, `v1.0.0` e la piena visibilità appartengono
 rispettivamente a M10, M11 e M12.
 
-### M10 — Canary store reale · in chiusura
+### M10 — Canary store reale ✅ completata
 
-Le prove acquisite e il gap live della `0.9.39` sono registrati in
-`docs/evidence/2026-08-25-m10-canary-numisleo.md`. La chiusura richiede la
-pubblicazione e il readback della `0.9.40`, che rimuove l'invito a generare un
-ordine di prova sullo store reale.
+**Completata il 25 agosto 2026.** Le prove sono registrate in
+`docs/evidence/2026-08-25-m10-canary-numisleo.md`: snapshot Development
+`0.9.40`, promozione [#314](https://github.com/max23468/CF-Ready/pull/314),
+deploy Production [32786987670](https://github.com/max23468/CF-Ready/actions/runs/32786987670),
+release `v0.9.40`, readback D1 e verifica manuale live in Chrome. Il gate è
+stato chiuso senza creare ordini, clienti, prodotti o pagamenti artificiali
+sullo store reale.
 
 Deliverable:
 

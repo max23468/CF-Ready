@@ -3,23 +3,24 @@
 Data: 25 agosto 2026.
 
 Target: app CF Ready Production installata su `numisleo.myshopify.com`, store
-italiano dell'owner su piano Shopify Basic. Questa ricevuta registra solo gli
-esiti osservati e il gap che la `0.9.40` deve correggere prima della chiusura.
+italiano dell'owner su piano Shopify Basic. Questa ricevuta registra gli esiti
+osservati che chiudono M10.
 
 ## Candidato Production
 
 | Voce | Evidenza |
 | --- | --- |
-| Versione | `0.9.39` |
-| Commit | `15655a60642c33b755900c41d2228696a7044cb1` |
-| Deploy | run Production [32781055852](https://github.com/max23468/CF-Ready/actions/runs/32781055852), concluso con successo; gate completo, migrazione `0012_complimentary_entitlements.sql`, Worker, smoke, Shopify e readback verdi |
-| Shopify | versione `0.9.39` attiva, ID `1101646659585`, associata allo stesso commit |
-| Release | [`v0.9.39`](https://github.com/max23468/CF-Ready/releases/tag/v0.9.39), pubblicata dopo il deploy riuscito |
+| Versione | `0.9.40` |
+| Commit | `bd80fb745c1bfab83dfbf730142e83e3b7da3777`, merge commit a due parent della promozione [#314](https://github.com/max23468/CF-Ready/pull/314) |
+| Deploy | run Production [32786987670](https://github.com/max23468/CF-Ready/actions/runs/32786987670), concluso con successo; gate completo, preflight, D1, Worker, smoke, Shopify e readback verdi |
+| Worker | deployment `21f591be-4d20-4722-98b7-e66ed9b74755`, versione `dbc15dfb-3d8c-4d73-961b-8de3e6601094`, 100% del traffico e commit verificato |
+| Shopify | versione `0.9.40` attiva, ID `1101700857857`, associata allo stesso commit |
+| Release | [`v0.9.40`](https://github.com/max23468/CF-Ready/releases/tag/v0.9.40), pubblicata sul commit candidato dopo deploy, smoke e readback riusciti |
 
 ## Installazione, configurazione e diritto commerciale
 
-Il readback D1 Production ha restituito una sola riga per lo store target, senza
-scritture:
+Il readback D1 Production successivo al deploy ha restituito una sola riga per
+lo store target, senza scritture:
 
 | Voce | Esito |
 | --- | --- |
@@ -36,9 +37,10 @@ permanente esplicitamente indicato come privo di rinnovi e addebiti. Questo
 chiude il criterio commerciale del canary dell'owner; cancellazione, credito pro
 rata e rimborso live restano attribuiti al primo merchant pagante di M11.
 
-La stessa Home `0.9.39` invita però ancora a fare un ordine di prova. Il testo è
-incompatibile con il criterio non transazionale approvato dall'owner e impedisce
-la chiusura al 100% finché la `0.9.40` non viene pubblicata e riletta live.
+Il readback manuale finale in Chrome, dopo il deploy della `0.9.40`, ha ricaricato
+la Home Production nell'Admin reale e ha osservato il testo «Controlla i prossimi
+ordini per verificare che le regole siano applicate come previsto.». Non resta
+alcun invito a creare una transazione appositamente per il test.
 
 ## Ricognizione checkout in Chrome
 
@@ -98,23 +100,24 @@ esplicite:
 
 ## Prova server-side e monitoraggio
 
-`npm run test:function` sull'HEAD Production `0.9.39` ha concluso con 109 test
+`npm run test:function` sull'HEAD Production `0.9.40` ha concluso con 109 test
 verdi. Le fixture coprono consegna italiana, fatturazione e destinazioni estere,
 checkout senza spedizione, ritiro senza indirizzo, ordine misto ed entitlement
 in abbonamento. La Function non distingue il provider di pagamento: Shopify la
 applica al checkout standard e agli express checkout, perciò la stessa regola
 server-side copre i wallet.
 
-Il readback D1 dal 24 agosto 2026 ha restituito, per Numisleo:
+Il readback D1 ripetuto dopo il deploy della `0.9.40` ha restituito, per
+Numisleo:
 
 - zero eventi applicativi di classe `error`;
 - zero webhook falliti;
 - zero notifiche owner fallite;
 - nessun `last_error_code` nello stato dell'app.
 
-## Esito del gate prima della `0.9.40`
+## Esito finale del gate
 
-Sono già verdi:
+Sono verdi:
 
 - installazione, piano Shopify Basic, Validation e configurazione sono state
   verificate live;
@@ -122,10 +125,12 @@ Sono già verdi:
   rinnovi;
 - la matrice server-side è verde sull'HEAD Production;
 - le superfici storefront disponibili sono state ricognite senza transazioni;
-- il monitoraggio non mostra errori critici.
+- il monitoraggio non mostra errori critici;
+- deploy e release `0.9.40` sono associati allo stesso commit;
+- il readback live in Chrome conferma il testo generico sui prossimi ordini.
 
-Resta bloccante il readback live della Home `0.9.40` senza invito a creare un
-ordine di prova. Fino ad allora M10 è in chiusura, non completata.
+M10 è completata il 25 agosto 2026. Non sono stati creati ordini, clienti,
+prodotti, selling plan o pagamenti per chiudere il gate.
 
 Restano osservazioni non bloccanti, da acquisire solo quando l'ambiente o il
 traffico reale le rende disponibili:
