@@ -23,6 +23,24 @@ test("il diritto pagato prevale sulla prova ancora attiva", () => {
   });
 });
 
+test("il diritto omaggio permanente prevale su prova e billing assenti", () => {
+  expect(
+    entitlementFor(null, "2026-08-24", null, {
+      status: "active",
+      granted_at: "2026-08-24T00:00:00.000Z",
+      revoked_at: null,
+    }),
+  ).toEqual({ kind: "one_time", validThrough: null });
+
+  expect(
+    entitlementFor(null, "2026-08-24", null, {
+      status: "revoked",
+      granted_at: "2026-08-24T00:00:00.000Z",
+      revoked_at: "2026-08-25T00:00:00.000Z",
+    }),
+  ).toEqual({ kind: "none", validThrough: null });
+});
+
 test("i giorni di prova residui includono oggi e non vanno sotto zero", () => {
   const prova = {
     status: "active" as const,

@@ -8,6 +8,7 @@ import {
   localDate,
   readBilling,
   readBillingAccount,
+  readComplimentaryEntitlement,
   requestedRecurringPlanIsActive,
   remainingTrialDays,
   returnUrlFor,
@@ -73,6 +74,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     trialEndsAt: state.trial?.ends_at ?? null,
     remaining,
     entitlement: state.entitlement,
+    complimentary: state.complimentary?.status === "active",
     firstChargeAt: remaining > 0 ? addDays(state.today, remaining) : null,
     trialStatus: state.trial?.status ?? null,
     plan: planPrices(currentPricingGeneration(state.trial, state.account, state.today)),
@@ -114,6 +116,9 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   }
 
   if (intent === "start_trial") {
+    if ((await readComplimentaryEntitlement(db, session.shop))?.status === "active") {
+      return { ok: false, errorCode: "one_time_already_active" };
+    }
     const { shop } = await queryContext(admin);
     const trial = await startTrial(db, session.shop, {
       eligible: shop.shopAddress.countryCodeV2 === ELIGIBLE_COUNTRY,
@@ -147,6 +152,9 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 async function subscribe(admin: Admin, db: D1Database, shopDomain: string, kind: PlanKind) {
   try {
     const mutation = await withValidationLock(db, shopDomain, async () => {
+      if ((await readComplimentaryEntitlement(db, shopDomain))?.status === "active") {
+        return { ok: false, errorCode: "one_time_already_active" };
+      }
       const { shop } = await queryContext(admin);
       if (shop.shopAddress.countryCodeV2 !== ELIGIBLE_COUNTRY) {
         return { ok: false, errorCode: "country_not_eligible" };

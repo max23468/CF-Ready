@@ -49,7 +49,13 @@ export function PlanChoice({
       }
     >
       {onOneTime || !data.plan ? (
-        <s-paragraph>{onOneTime ? t.plan.oneTimeSettled : t.plan.none}</s-paragraph>
+        <s-paragraph>
+          {onOneTime
+            ? data.complimentary
+              ? t.plan.complimentarySettled
+              : t.plan.oneTimeSettled
+            : t.plan.none}
+        </s-paragraph>
       ) : (
         <s-stack direction="block" gap="base">
           <s-paragraph>{t.plan.chooseBody}</s-paragraph>
