@@ -706,6 +706,45 @@ test("la scrittura rende operativo l'omaggio solo dopo aver cancellato e riletto
   expect(stub.calls[0].config?.entitlement).toEqual({ kind: "one_time", validThrough: null });
 });
 
+test("un errore billing non impedisce di disattivare il controllo con un omaggio assegnato", async () => {
+  const shop = "disable-complimentary-offline.example.myshopify.com";
+  await seedShop(shop);
+  const now = "2026-08-24T00:00:00.000Z";
+  await env.DB.prepare(
+    `INSERT INTO complimentary_entitlements
+       (shop_id, status, granted_at, revoked_at, created_at, updated_at)
+     SELECT id, 'active', ?, NULL, ?, ? FROM shops WHERE shop_domain = ?`,
+  )
+    .bind(now, now, now, shop)
+    .run();
+  const stub = stubAdmin({ existing: { enabled: true }, billingError: true });
+
+  expect(await writeValidation(stub.admin, env.DB, shop, null, false)).toEqual({
+    ok: true,
+    enabled: false,
+  });
+  expect(stub.calls[0]).toMatchObject({
+    operation: "validationUpdate",
+    enable: false,
+    config: { entitlement: { kind: "none", validThrough: null } },
+  });
+
+  expect(
+    await writeValidation(
+      stub.admin,
+      env.DB,
+      shop,
+      {
+        rules: DEFAULT_CONFIG.rules,
+        errorDisplay: DEFAULT_CONFIG.errorDisplay,
+        messages: DEFAULT_CONFIG.messages,
+      },
+      null,
+    ),
+  ).toEqual({ ok: true, enabled: false });
+  expect(stub.calls).toHaveLength(2);
+});
+
 test("il limite di Validation attive ha un codice stabile e non perde la configurazione", async () => {
   const shop = "limit.example.myshopify.com";
   await seedShop(shop);

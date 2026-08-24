@@ -83,7 +83,7 @@ export async function writeValidation(
     } catch {
       // Shopify non raggiungibile: conserva lo stato operativo noto senza concedere diritti.
     }
-    if (!billing && complimentary?.status === "active") {
+    if (!billing && complimentary?.status === "active" && enable === true) {
       return { ok: false, errorCode: "billing_read_failed" };
     }
     if (billing?.subscription && complimentary?.status === "active") {
