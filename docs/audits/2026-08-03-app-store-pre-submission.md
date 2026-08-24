@@ -71,9 +71,10 @@ dal preflight e dal deploy della `0.9.8`.
 
 ### 3. Function API `2026-07` — riconfermata; canary M10 chiuso
 
-Il Master Plan chiede quattro cose prima della `1.0.0`. Tre sono state fatte il
-3 agosto 2026; la quarta è stata chiusa in M10 il 25 agosto con il criterio
-non transazionale approvato.
+Il Master Plan chiede quattro verifiche tecniche prima della `1.0.0`. Tre sono
+state fatte il 3 agosto 2026; M10 ha chiuso il criterio non transazionale della
+quarta il 25 agosto. L'osservazione di almeno un checkout reale resta un gate
+distinto di M11 prima del tag `v1.0.0`.
 
 | Richiesta | Esito |
 | --- | --- |
@@ -82,8 +83,9 @@ non transazionale approvato.
 | Fixture ripetute | ✅ `npm run test:function`, 109 test verdi |
 | Applicazione sul canary reale | ✅ `0.9.40`: fixture server-side verdi, checkout standard e wallet disponibili ricogniti senza completare transazioni, monitoraggio e readback live registrati nella [ricevuta M10](../evidence/2026-08-25-m10-canary-numisleo.md) |
 
-L'osservazione dei primi ordini autentici idonei resta evidenza aggiuntiva, non
-un gate aperto e non autorizza la creazione di ordini di prova sullo store reale.
+L'osservazione di almeno un checkout reale su un prossimo ordine nato
+organicamente resta un gate aperto di M11; non autorizza la creazione di ordini
+artificiali sullo store reale.
 
 ### 4. Contatto tecnico d'emergenza — chiuso il 4 agosto 2026 ✅
 

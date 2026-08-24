@@ -125,8 +125,8 @@ prima chiusura documentale.
 Restano non verificabili su questo store, per stato commerciale: gli avvisi di
 prova a sette, tre e ultimo giorno, la data del primo addebito, l'etichetta
 `Consigliato` sull'annuale e la cancellazione del rinnovo. Lo store ha un
-entitlement omaggio senza addebiti o rinnovi. Sono coperti dai test automatici;
-la prima verifica reale applicabile appartiene al primo merchant pagante di M11.
+pagamento unico attivo. Sono coperti dai test automatici; la prima verifica
+reale applicabile appartiene al primo merchant pagante di M11.
 
 ## Navigazione a quattro voci
 
