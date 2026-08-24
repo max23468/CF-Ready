@@ -81,6 +81,26 @@ Riferimenti Shopify:
 - [accelerated checkout buttons](https://help.shopify.com/en/manual/online-store/dynamic-checkout), la cui disponibilità dipende anche da browser e configurazione pagamenti;
 - [Apple Pay](https://help.shopify.com/en/manual/payments/accelerated-checkouts/apple-pay), disponibile su Safari e dispositivi compatibili.
 
+## Riverifica del marchio e del contrasto in Chrome
+
+La Home Production è stata riletta a pagina intera nell'Admin reale, su viewport
+desktop `1440 × 640`. La superficie Admin effettiva dietro l'app è
+`rgb(241, 241, 241)` (`#F1F1F1`). Sono stati osservati:
+
+- icona app positiva nella testata, caricata dal CDN Shopify a `20 × 20` px,
+  sopra la dimensione minima di 16 px e senza ritagli o deformazioni;
+- riduzione monocromatica nella navigazione a `16 × 16` px: tessera e fascia
+  superiore restano distinguibili, senza sigla come previsto da A-17; Shopify
+  la rende `#4A4A4A` sul fondo `#F1F1F1`, con contrasto `7,85:1`;
+- lockup positivo nel piede della colonna laterale, caricato completamente e
+  reso alle dimensioni native `128 × 24` px, senza clipping né deformazioni.
+
+Sul fondo Admin osservato il verde `#20492F` del lockup ha contrasto `9,05:1`;
+il panna `#F7F5EE` sul verde ha `9,37:1` e la fascia arancio `#C97B2E` sul verde
+ha `3,09:1`. La variante positiva è quindi corretta sulla superficie chiara
+effettiva. Non è stata osservata una superficie Admin scura: resta vincolante la
+versione negativa prevista da D-111 qualora Shopify ne introduca una.
+
 ## Prodotti e selling plan disponibili
 
 Una query Admin GraphQL validata sullo schema corrente ha restituito zero
@@ -127,7 +147,9 @@ Sono verdi:
 - le superfici storefront disponibili sono state ricognite senza transazioni;
 - il monitoraggio non mostra errori critici;
 - deploy e release `0.9.40` sono associati allo stesso commit;
-- il readback live in Chrome conferma il testo generico sui prossimi ordini.
+- il readback live in Chrome conferma il testo generico sui prossimi ordini;
+- marchio, icona di navigazione e lockup rispettano dimensioni, geometria e
+  contrasto sulle superfici reali dell'Admin.
 
 M10 è completata il 25 agosto 2026. Non sono stati creati ordini, clienti,
 prodotti, selling plan o pagamenti per chiudere il gate.

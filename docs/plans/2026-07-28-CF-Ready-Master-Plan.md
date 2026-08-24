@@ -4275,7 +4275,8 @@ rispettivamente a M10, M11 e M12.
 deploy Production [32786987670](https://github.com/max23468/CF-Ready/actions/runs/32786987670),
 release `v0.9.40`, readback D1 e verifica manuale live in Chrome. Il gate è
 stato chiuso senza creare ordini, clienti, prodotti o pagamenti artificiali
-sullo store reale.
+sullo store reale. La stessa verifica Chrome ha chiuso la riverifica M10 del
+marchio e del contrasto sulle superfici effettive dell'Admin.
 
 Deliverable:
 
@@ -4697,8 +4698,10 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
    - ~~correzione ottica della crenatura del wordmark~~ — **chiusa il 28 luglio 2026**, valori in `docs/brand/brand-foundation.md` §4.4;
    - ~~conferma delle dimensioni richieste dai requisiti App Store~~ — **chiusa il 28 luglio 2026**, specifiche in §24.5;
    - ~~decisione sulla sigla nell’icona della listing~~ — **chiusa il 28 luglio 2026**: rischio accettato, si presenta l’icona con la sigla (D-114);
-   - ✅ riverifica del marchio dentro l’Admin reale completata in M1; resta la
-     verifica sullo store reale in M10;
+   - ~~riverifica del marchio dentro l’Admin reale~~ — **chiusa il 25 agosto
+     2026**: completata in M1 e ripetuta sullo store reale in M10; icona app,
+     riduzione monocromatica e lockup sono leggibili, non deformati e conformi
+     ai rapporti di contrasto registrati nella ricevuta M10;
    - ~~feature image 1600 × 900~~ — consegnata con i materiali di review
      accettati da Shopify; sorgenti SVG e PNG IT/EN riutilizzabili sono in
      `docs/brand/assets/`.

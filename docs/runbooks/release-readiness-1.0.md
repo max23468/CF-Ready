@@ -376,7 +376,7 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | Demo screencast | registrato, **dichiarato dall'owner il 4 agosto 2026**. Non entra nel repository: il copione resta in [`screencast-script.md`](../listing/screencast-script.md), aggiornato all'avvio esplicito della prova | ⚠️ dichiarato, non verificato da qui |
 | Contatto tecnico d'emergenza | requisito 4.5.6: registrato dall'owner nelle impostazioni dell'account Partner il 4 agosto 2026 | ✅ |
 | Accesso del reviewer | nessuno store né credenziali forniti: l'app dichiara di non richiedere un account e le istruzioni chiedono l'installazione su un development store italiano (D-132). Il 4.5.5 è condizionale e non si applica; lo store preinstallato è un requisito delle sole Payment app (5.2.1) | ✅ deciso |
-| **Canary su store reale** | [ricevuta M10](../evidence/2026-08-25-m10-canary-numisleo.md): installazione, piano Basic, Validation, omaggio, matrice automatica, ricognizione non transazionale, monitoraggio e Home `0.9.40` verificati live in Chrome senza creare ordini | ✅ M10 chiusa |
+| **Canary su store reale** | [ricevuta M10](../evidence/2026-08-25-m10-canary-numisleo.md): installazione, piano Basic, Validation, omaggio, matrice automatica, ricognizione non transazionale, monitoraggio, Home `0.9.40`, marchio e contrasto verificati live in Chrome senza creare ordini | ✅ M10 chiusa |
 
 ## 3. Configurazioni e API validate
 
