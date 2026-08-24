@@ -265,6 +265,7 @@ export const en: typeof it = {
     heading: "Plan",
     trial: (date: string) => `Trial active until ${date}.`,
     oneTime: "One payment active, no renewals.",
+    complimentary: "Complimentary permanent plan active, with no renewals.",
     subscription: (date: string) => `Subscription active until ${date}.`,
     trialOver: "Trial over: choose a plan to apply your rules again.",
     trialEndsSoon: (date: string) =>
@@ -301,6 +302,8 @@ export const en: typeof it = {
       "Every plan has the same features. Shopify handles the charges on your store invoice.",
     oneTimeSettled:
       "One payment for this store, with no renewals. It includes app updates and support, at no extra cost. There’s nothing else to choose.",
+    complimentarySettled:
+      "The complimentary plan is active for this store. It includes app updates and support, with no charges.",
     recommended: "Recommended",
     generationLaunch: "Launch prices are reserved for this store.",
     generationStandard: "Standard prices apply to this store.",

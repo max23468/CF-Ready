@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.38 — 24 agosto 2026
+
+- gli store autorizzati possono ricevere un piano omaggio permanente senza
+  creare addebiti Shopify;
+- il piano omaggio mantiene attivi il controllo checkout, gli aggiornamenti e
+  l'assistenza, e sostituisce l'eventuale prova in corso;
+- Home e billing distinguono esplicitamente il piano omaggio dai piani a
+  pagamento e non propongono nuove attivazioni finché resta attivo.
+
 ## 0.9.37 — 24 agosto 2026
 
 - i ritorni dall'approvazione di abbonamenti e pagamenti unici riaprono CF

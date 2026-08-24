@@ -7,6 +7,7 @@ import {
   proratedCredit,
   readBilling,
   readBillingAccount,
+  readComplimentaryEntitlement,
   syncBillingAccount,
   syncTrial,
 } from "../billing.server";
@@ -98,9 +99,10 @@ export async function reconcile(
       ? Promise.resolve(snapshot.billing)
       : readBillingTimed()
     : null;
-  const [trial, storedAccount] = await Promise.all([
+  const [trial, storedAccount, complimentary] = await Promise.all([
     syncTrial(db, shopDomain, { today }),
     readBillingAccount(db, shopDomain),
+    readComplimentaryEntitlement(db, shopDomain),
   ]);
   reportTiming?.("d1_commercial", performance.now() - commercialStartedAt);
   let account = storedAccount;
@@ -173,16 +175,22 @@ export async function reconcile(
         await markTrialConverted(db, shopDomain);
       }
     } catch {
-      // La cache resta disponibile alla UI, ma non concede diritti quando Shopify è incerto.
+      // La cache billing resta disponibile alla UI, ma non concede diritti quando Shopify è
+      // incerto. Una concessione omaggio è invece autorevole in D1 e non dipende dal billing.
       account = storedAccount;
-      errorCode ??= "billing_read_failed";
-      retryable ||= conversionRequired;
+      if (complimentary?.status !== "active") {
+        errorCode ??= "billing_read_failed";
+        retryable ||= conversionRequired;
+      }
     }
   }
 
-  const entitlement: Entitlement = billingConfirmed
-    ? entitlementFor(trial, today, account)
-    : { kind: "none", validThrough: null };
+  if (complimentary?.status === "active") await markTrialConverted(db, shopDomain);
+
+  const entitlement: Entitlement =
+    billingConfirmed || complimentary?.status === "active"
+      ? entitlementFor(trial, today, account, complimentary)
+      : { kind: "none", validThrough: null };
 
   if (
     (eligible || writeEntitlementOutsideEligible) &&
@@ -249,6 +257,7 @@ export async function reconcile(
     validationEnabled,
     trial,
     account,
+    complimentary,
     entitlement,
     creditEstimate,
     errorCode,

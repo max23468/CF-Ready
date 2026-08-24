@@ -5,6 +5,7 @@ import {
   markTrialConverted,
   readBilling,
   readBillingAccount,
+  readComplimentaryEntitlement,
   syncBillingAccount,
   syncTrial,
 } from "../billing.server";
@@ -70,7 +71,10 @@ export async function writeValidation(
 
     const enabled = enable ?? existing?.enabled ?? false;
     const today = localDate(data.shop.ianaTimezone);
-    const trial = await syncTrial(db, shopDomain, { today });
+    const [trial, complimentary] = await Promise.all([
+      syncTrial(db, shopDomain, { today }),
+      readComplimentaryEntitlement(db, shopDomain),
+    ]);
     let account = await readBillingAccount(db, shopDomain);
     let billing: Awaited<ReturnType<typeof readBilling>> | null = null;
     try {
@@ -85,11 +89,17 @@ export async function writeValidation(
         pricingGeneration: currentPricingGeneration(trial, account, today),
         storedAccount: account,
       });
-      if (account.entitlement_status === "active") await markTrialConverted(db, shopDomain);
+      if (account.entitlement_status === "active" || complimentary?.status === "active") {
+        await markTrialConverted(db, shopDomain);
+      }
     }
-    const entitlement: Entitlement = billing
-      ? entitlementFor(trial, today, account)
-      : { kind: "none", validThrough: null };
+    if (!billing && complimentary?.status === "active") {
+      await markTrialConverted(db, shopDomain);
+    }
+    const entitlement: Entitlement =
+      billing || complimentary?.status === "active"
+        ? entitlementFor(trial, today, account, complimentary)
+        : { kind: "none", validThrough: null };
     if (enable === true && !existing?.enabled && entitlement.kind === "none") {
       return { ok: false, errorCode: "entitlement_required" };
     }

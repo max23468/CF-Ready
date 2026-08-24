@@ -228,3 +228,30 @@ test("un readback senza Validation non conserva lo stato attivo precedente", asy
     validation_enabled: 0,
   });
 });
+
+test("la concessione omaggio resta autorevole anche se il billing Shopify non risponde", async () => {
+  const shop = await insertShop("omaggio.example.myshopify.com");
+  const now = "2026-08-24T00:00:00.000Z";
+  await env.DB.prepare(
+    `INSERT INTO complimentary_entitlements
+       (shop_id, status, granted_at, revoked_at, created_at, updated_at)
+     SELECT id, 'active', ?, NULL, ?, ? FROM shops WHERE shop_domain = ?`,
+  )
+    .bind(now, now, now, shop)
+    .run();
+  const activeEntitlement = { kind: "one_time", validThrough: null };
+  const admin = adminStub([
+    shopContext("IT", true),
+    new Error("billing non disponibile"),
+    shopContext("IT", true),
+    { data: { validationUpdate: { userErrors: [] } } },
+    shopContext("IT", true, activeEntitlement),
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.entitlement).toEqual(activeEntitlement);
+  expect(state.complimentary).toMatchObject({ status: "active" });
+  expect(state.errorCode).toBeNull();
+  expect(admin.calls).toEqual(["context", "billing", "context", "update", "context"]);
+});
