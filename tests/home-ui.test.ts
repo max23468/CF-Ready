@@ -4,9 +4,10 @@ import { expect, test, vi } from "vitest";
 import { texts } from "../app/i18n";
 import { commercialState } from "../app/features/home/commercial-state";
 import { PlanStatus } from "../app/features/home/PlanStatus";
+import { onboardingStep4State } from "../app/features/onboarding/step4-state";
 import { openBillingApproval } from "../app/revalidation";
 import { PlanChoice, SetupGuide } from "../app/routes/app._index";
-import { Address2DeclarationPrompt, onboardingStep4State } from "../app/routes/app.onboarding";
+import { Address2DeclarationPrompt } from "../app/routes/app.onboarding";
 
 vi.mock("../app/shopify.server", () => ({ authenticate: {} }));
 
