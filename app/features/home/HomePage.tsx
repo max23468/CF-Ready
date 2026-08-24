@@ -39,11 +39,11 @@ export default function HomePage() {
   }, [confirmationUrl]);
 
   useEffect(() => {
-    if (!isPlanComparisonView(location.hash)) return;
+    if (!isPlanComparisonView(location.search)) return;
     requestAnimationFrame(() =>
       document.getElementById("plans")?.scrollIntoView({ block: "start" }),
     );
-  }, [location.hash]);
+  }, [location.search]);
 
   if (!data.eligible) {
     return (
@@ -143,7 +143,7 @@ export default function HomePage() {
         </s-banner>
       ) : null}
 
-      {showSetupGuide(data.onboarding, location.hash) ? (
+      {showSetupGuide(data.onboarding, location.search) ? (
         <SetupGuide
           data={data}
           busy={busy}
