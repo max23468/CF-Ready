@@ -3,7 +3,13 @@ import { isValidElement } from "react";
 import { expect, test, vi } from "vitest";
 import { texts } from "../app/i18n";
 import { commercialState } from "../app/features/home/commercial-state";
-import { isPlanComparisonView, showSetupGuide } from "../app/features/home/plan-comparison";
+import {
+  createPlanComparisonStore,
+  hasPlanComparison,
+  markPlanComparison,
+  PLAN_COMPARISON_STORAGE_KEY,
+  showSetupGuide,
+} from "../app/features/home/plan-comparison";
 import { PlanStatus } from "../app/features/home/PlanStatus";
 import { onboardingCheckoutPreview } from "../app/features/onboarding/checkout-preview";
 import { onboardingStep4State } from "../app/features/onboarding/step4-state";
@@ -317,13 +323,40 @@ test("il confronto piani apre la sezione corretta senza riproporre la guida", ()
   );
 
   expect(actions).toHaveLength(2);
-  expect(actions[1].props).toMatchObject({ href: "/app?view=plans" });
-  expect(isPlanComparisonView("?view=plans")).toBe(true);
-  expect(isPlanComparisonView("?host=shopify&view=plans")).toBe(true);
-  expect(isPlanComparisonView("")).toBe(false);
-  expect(isPlanComparisonView("#plans")).toBe(false);
-  expect(showSetupGuide("in_progress", "?view=plans")).toBe(false);
-  expect(showSetupGuide("in_progress", "")).toBe(true);
+  expect(actions[1].props).toMatchObject({ href: "/app" });
+
+  const values = new Map<string, string>();
+  const storage = {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => values.set(key, value),
+    removeItem: (key: string) => values.delete(key),
+  };
+  let storageListener: ((event: StorageEvent) => void) | undefined;
+  const store = createPlanComparisonStore(storage, {
+    addEventListener: ((type: string, listener: (event: StorageEvent) => void) => {
+      if (type === "storage") storageListener = listener;
+    }) as Window["addEventListener"],
+    removeEventListener: ((type: string) => {
+      if (type === "storage") storageListener = undefined;
+    }) as Window["removeEventListener"],
+  });
+  const notify = vi.fn();
+  const unsubscribe = store.subscribe(notify);
+
+  markPlanComparison(storage);
+  storageListener?.({
+    key: PLAN_COMPARISON_STORAGE_KEY,
+    newValue: "requested",
+  } as StorageEvent);
+  expect(notify).toHaveBeenCalledOnce();
+  expect(store.getSnapshot()).toBe(true);
+  expect(hasPlanComparison(storage)).toBe(false);
+  store.reset();
+  expect(store.getSnapshot()).toBe(false);
+  unsubscribe();
+  expect(storageListener).toBeUndefined();
+  expect(showSetupGuide("in_progress", true)).toBe(false);
+  expect(showSetupGuide("in_progress", false)).toBe(true);
 
   const planAnchor = elements(
     PlanChoice({
