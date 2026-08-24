@@ -15,20 +15,13 @@ import { PlanChoice } from "./PlanChoice";
 import { PlanStatus } from "./PlanStatus";
 import { SetupGuide } from "./SetupGuide";
 import type { HomeData, action } from "./home.server";
-import { handlePlanComparisonRequest, isPlanComparisonLocationState } from "./plan-comparison";
+import {
+  handlePlanComparisonRequest,
+  hideAppWindow,
+  isPlanComparisonLocationState,
+} from "./plan-comparison";
 
 const ONBOARDING_WINDOW_ID = "onboarding-window";
-const ONBOARDING_WINDOW_CLOSE_ID = "onboarding-window-close";
-
-export function OnboardingWindowCloseControl({ label }: { label: string }) {
-  return (
-    <div hidden>
-      <s-button id={ONBOARDING_WINDOW_CLOSE_ID} commandFor={ONBOARDING_WINDOW_ID} command="--hide">
-        {label}
-      </s-button>
-    </div>
-  );
-}
 
 export default function HomePage() {
   const data = useLoaderData<HomeData>();
@@ -53,8 +46,8 @@ export default function HomePage() {
 
   useEffect(() => {
     const showPlans = (event: MessageEvent) => {
-      handlePlanComparisonRequest(event, window.location.origin, {
-        hideWindow: () => document.getElementById(ONBOARDING_WINDOW_CLOSE_ID)?.click(),
+      void handlePlanComparisonRequest(event, window.location.origin, {
+        hideWindow: async () => void (await hideAppWindow(document, ONBOARDING_WINDOW_ID)),
         showPlans: () =>
           requestAnimationFrame(() =>
             document.getElementById("plans")?.scrollIntoView({ block: "start" }),
@@ -297,7 +290,6 @@ export default function HomePage() {
       </s-stack>
 
       <s-app-window id={ONBOARDING_WINDOW_ID} src="/app/onboarding" />
-      <OnboardingWindowCloseControl label={t.common.cancel} />
 
       <s-modal
         id="deactivate"

@@ -6,10 +6,18 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.33 — 24 agosto 2026
+
+- il confronto piani usa il canale `window.opener` previsto da Shopify per il
+  contenuto di `s-app-window` e attende la chiusura dell'overlay prima di
+  scorrere la Home, mantenendo visibile la barra laterale;
+- l'onboarding aperto direttamente dalla Guida conserva il proprio ritorno alla
+  Home, senza dipendere dalla finestra Shopify.
+
 ## 0.9.32 — 24 agosto 2026
 
-- il confronto piani chiude davvero la finestra Shopify prima di mostrare la
-  Home, preservando la barra laterale e permettendo di riaprire la procedura;
+- il confronto piani introduce un primo coordinamento tra onboarding e Home,
+  risultato insufficiente nella successiva verifica live della finestra Shopify;
 - la sezione piani usa un'ancora reale e riquadri separati, così l'atterraggio è
   visibile e le card mantengono la stessa spaziatura del resto della Home.
 - i tre passaggi restano su una riga quando c'è spazio e gli elenchi iniziano
