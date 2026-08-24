@@ -112,9 +112,11 @@ export const it = {
     rulesBody: "Decidi se Codice Fiscale e PEC sono non gestiti, facoltativi o obbligatori.",
     activateTitle: "Attiva nel checkout",
     activateBody: "Finché non attivi, le regole restano salvate ma non valgono per i clienti.",
-    planTitle: "Abilita il controllo",
+    planTitle: "Avvia la prova",
+    planTitleLapsed: "Scegli un piano",
+    planTitleActive: "Accesso attivo",
     planBody:
-      "La prova gratuita dura 14 giorni, non chiede una carta e parte solo quando la avvii. Finché non la inizi, le regole restano salvate e il checkout non cambia.",
+      "La prova gratuita dura 14 giorni, non richiede una carta e inizia solo quando la avvii.",
     planBodyLapsed:
       "La prova è terminata. Scegli un piano per far valere di nuovo le regole nel checkout; configurazione e messaggi restano salvati.",
     startTrial: "Avvia la prova gratuita",
@@ -131,34 +133,31 @@ export const it = {
       "Configura Codice Fiscale e PEC, controlla i messaggi mostrati al cliente e scegli quando attivare le regole.",
     step1Heading: "Cosa fa e cosa non fa",
     step1Body:
-      "CF Ready controlla il Codice Fiscale e la PEC nel campo fiscale nativo del checkout italiano. Non modifica il tema, non aggiunge campi e non emette fatture.",
+      "CF Ready controlla Codice Fiscale e PEC nel checkout Shopify. Non modifica il tema, non aggiunge campi e non emette fatture.",
     step1Limits: [
-      "Il controllo è formale: verifica la composizione del dato, non a chi appartiene.",
+      "Verifica solo il formato dei dati: non conferma l’identità del cliente né che un indirizzo sia davvero una PEC.",
       "Le regole valgono solo con consegna e fatturazione in Italia.",
-      "Se Shopify non rende disponibile la consegna, CF Ready lascia proseguire l’ordine.",
     ],
     step2Heading: "Scegli cosa controllare",
     step2Body: "Puoi cambiare queste scelte quando vuoi da Regole checkout.",
     step3Heading: "Anteprima delle regole",
-    step3Body: "Quando il controllo sarà attivo, con le impostazioni attuali:",
+    step3Body: "Con le regole che hai scelto:",
     step3Messages: "Messaggi configurati",
     step3MessagesBody:
       "Questi sono i quattro messaggi già configurati. Sono disponibili in italiano e inglese e puoi modificarli da Messaggi al cliente.",
     step4Heading: "Riepilogo",
-    step4BodyReady: "Le regole sono pronte. Puoi attivarle ora oppure tornare più tardi.",
-    step4BodyNeedsEntitlement:
-      "Le regole sono pronte. Puoi completare ora oppure attivarle dopo aver avviato la prova o scelto un piano.",
+    step4BodyReady: "Le regole sono salvate ma non ancora attive.",
+    step4BodyNeedsEntitlement: "Le regole sono salvate ma non ancora attive.",
     step4TrialHeading: "Prova e piano",
-    step4TrialBody:
-      "Per attivare le regole, avvia la prova gratuita di 14 giorni o scegli un piano. La prova inizia solo quando la avvii.",
-    step4StartTrial: "Inizia la prova di 14 giorni",
+    step4TrialBody: "Avvia la prova gratuita o scegli un piano per poterle attivare.",
+    step4StartTrial: "Avvia la prova gratuita",
     step4SeePlans: "Confronta i piani",
     step4TrialActive: "La prova è attiva: puoi attivare il controllo.",
-    step4PlanActive: "Il piano è attivo: puoi attivare il controllo senza avviare la prova.",
+    step4PlanActive: "Il piano è attivo: puoi attivare il controllo.",
     reviewStep4Body:
       "Il controllo è già attivo nel checkout. Completa la revisione per tornare alla Home.",
     activate: "Attiva nel checkout",
-    finishWithout: "Completa senza attivare",
+    finishWithout: "Torna alla Home senza attivare",
     completeReview: "Completa revisione",
     doneHeading: "Configurazione completata",
     doneBody:
@@ -346,11 +345,9 @@ export const it = {
       required_validatedHelp:
         "Il cliente non completa l’ordine senza un indirizzo con formato email valido.",
     },
-    exceptionsHeading: "Eccezioni automatiche",
+    exceptionsHeading: "Quando si applicano",
     exceptions: [
-      "Le regole valgono solo quando consegna e fatturazione sono in Italia.",
-      "Un cliente con fatturazione estera completa l’ordine senza controlli.",
-      "Se Shopify non rende disponibile la consegna, CF Ready lascia proseguire l’ordine.",
+      "Queste regole si applicano solo agli ordini con consegna e fatturazione in Italia.",
     ],
     preventiveLabel: "Mostra avvisi preventivi nel checkout",
     preventiveHelp:
@@ -365,12 +362,11 @@ export const it = {
   },
   checkout: {
     nothing: "Nessun campo è configurato: il checkout resta invariato.",
-    taxCodeRequired:
-      "Un cliente con consegna e fatturazione in Italia non completa l’ordine senza un Codice Fiscale formalmente valido.",
+    taxCodeRequired: "Il Codice Fiscale è obbligatorio e deve essere formalmente valido.",
     taxCodeOptional:
-      "Un cliente con consegna e fatturazione in Italia può lasciare vuoto il Codice Fiscale, ma se lo compila deve essere formalmente valido.",
-    pecRequired: "Lo stesso cliente deve inserire una PEC con formato email valido.",
-    pecOptional: "La PEC può restare vuota, ma se compilata deve avere un formato email valido.",
+      "Il Codice Fiscale può restare vuoto; se inserito, deve essere formalmente valido.",
+    pecRequired: "La PEC è obbligatoria e deve avere un formato email valido.",
+    pecOptional: "La PEC può restare vuota; se inserita, deve avere un formato email valido.",
     summaryBlocking: "Un cliente italiano non completa l’ordine senza i dati richiesti.",
     summaryChecking:
       "I dati che i clienti italiani inseriscono vengono controllati, ma nessuno è obbligatorio.",
