@@ -317,10 +317,12 @@ test("il confronto piani apre la sezione corretta senza riproporre la guida", ()
   );
 
   expect(actions).toHaveLength(2);
-  expect(actions[1].props).toMatchObject({ href: "/app#plans" });
-  expect(isPlanComparisonView("#plans")).toBe(true);
+  expect(actions[1].props).toMatchObject({ href: "/app?view=plans" });
+  expect(isPlanComparisonView("?view=plans")).toBe(true);
+  expect(isPlanComparisonView("?host=shopify&view=plans")).toBe(true);
   expect(isPlanComparisonView("")).toBe(false);
-  expect(showSetupGuide("in_progress", "#plans")).toBe(false);
+  expect(isPlanComparisonView("#plans")).toBe(false);
+  expect(showSetupGuide("in_progress", "?view=plans")).toBe(false);
   expect(showSetupGuide("in_progress", "")).toBe(true);
 
   const planAnchor = elements(

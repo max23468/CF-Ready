@@ -1,7 +1,7 @@
-export function isPlanComparisonView(hash: string) {
-  return hash === "#plans";
+export function isPlanComparisonView(search: string) {
+  return new URLSearchParams(search).get("view") === "plans";
 }
 
-export function showSetupGuide(onboarding: string, hash: string) {
-  return onboarding !== "completed" && !isPlanComparisonView(hash);
+export function showSetupGuide(onboarding: string, search: string) {
+  return onboarding !== "completed" && !isPlanComparisonView(search);
 }
