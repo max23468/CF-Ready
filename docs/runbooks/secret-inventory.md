@@ -19,6 +19,11 @@ dei rispettivi provider e non devono comparire nel repository o nei log.
 | `SHOPIFY_APP_AUTOMATION_TOKEN` | CI Production | GitHub Actions | creato il 4 agosto 2026 dal Dev Dashboard dell'app CF Ready, environment `Production`. **Scade il 4 febbraio 2027**, vedi «Scadenze» |
 | `CLOUDFLARE_API_TOKEN` | CI Production | GitHub Actions | creato il 4 agosto 2026 con Workers Scripts Edit e D1 Edit sul solo account, environment `Production`; senza scadenza |
 | `OWNER_LEGAL_NAME` | Pages Production | GitHub Actions | configurato il 3 agosto 2026 nell'environment `Pages Production`, iniettato dal workflow e verificato dallo smoke |
+| `TELEGRAM_BOT_TOKEN` | Production | Cloudflare Workers | configurato il 24 agosto 2026 direttamente dagli appunti; valore mai letto, scritto nel repository o mostrato nei log |
+| `TELEGRAM_CHAT_ID` | Production | Cloudflare Workers | configurato il 24 agosto 2026 dalla sola chat privata dell’owner; valore non mostrato né scritto nel repository |
+| `SHOPIFY_PARTNER_ORGANIZATION_ID` | Production | Cloudflare Workers | configurato il 24 agosto 2026 per l'organizzazione Partner proprietaria di CF Ready |
+| `SHOPIFY_PARTNER_APP_ID` | Production | Cloudflare Workers | configurato il 24 agosto 2026 e verificato tramite readback dell'app CF Ready Production |
+| `SHOPIFY_PARTNER_ACCESS_TOKEN` | Production | Cloudflare Workers | configurato il 24 agosto 2026 con client dedicato `CF Ready Owner Notifications` e solo autorizzazione `Gestisci app`; valore non mostrato né scritto nel repository |
 
 `SHOPIFY_API_KEY`, ID account, ID database e nomi delle risorse non sono
 segreti, ma non autorizzano alcun accesso.
@@ -26,7 +31,8 @@ segreti, ma non autorizzano alcun accesso.
 Il reviewer non riceve credenziali: D-132 stabilisce l'installazione su un suo
 development store italiano, perché CF Ready non ha un login proprio.
 
-`cfready@icloud.com` resta la casella dell'assistenza e dei documenti legali.
+`cfready@icloud.com` resta la casella dell'assistenza e dei documenti legali. Le
+notifiche owner usano invece una chat Telegram privata dedicata.
 
 `OWNER_LEGAL_NAME` non protegge un accesso: è il nome della persona fisica che
 Privacy e Termini devono dichiarare come titolare. Sta nel secret store per non

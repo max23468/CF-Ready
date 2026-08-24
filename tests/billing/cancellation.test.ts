@@ -36,6 +36,7 @@ test("la prova risulta convertita quando il merchant paga", async () => {
   await startTrial(env.DB, shop, { eligible: true, today: "2026-07-30" });
 
   await markTrialConverted(env.DB, shop);
+  await markTrialConverted(env.DB, shop);
 
   expect(
     await env.DB.prepare(
@@ -44,4 +45,13 @@ test("la prova risulta convertita quando il merchant paga", async () => {
       .bind(shop)
       .first(),
   ).toMatchObject({ status: "converted" });
+  expect(
+    await env.DB.prepare(
+      `SELECT COUNT(*) AS total FROM app_events
+       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
+         AND event_name = 'trial_converted'`,
+    )
+      .bind(shop)
+      .first(),
+  ).toMatchObject({ total: 1 });
 });

@@ -153,6 +153,23 @@ test("il preflight richiede tutti i secret runtime Worker", () => {
   ];
   assert.doesNotThrow(() => verifyWorkerSecrets(all));
   assert.throws(() => verifyWorkerSecrets(all.slice(0, 2)), /Mancano secret runtime/);
+  assert.throws(
+    () => verifyWorkerSecrets(all, { ownerNotifications: true }),
+    /secret delle notifiche owner/,
+  );
+  assert.doesNotThrow(() =>
+    verifyWorkerSecrets(
+      [
+        ...all,
+        { name: "TELEGRAM_BOT_TOKEN" },
+        { name: "TELEGRAM_CHAT_ID" },
+        { name: "SHOPIFY_PARTNER_ORGANIZATION_ID" },
+        { name: "SHOPIFY_PARTNER_APP_ID" },
+        { name: "SHOPIFY_PARTNER_ACCESS_TOKEN" },
+      ],
+      { ownerNotifications: true },
+    ),
+  );
 });
 
 test("il rollback richiede Worker e Shopify sullo stesso commit", () => {
