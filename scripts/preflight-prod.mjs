@@ -73,7 +73,11 @@ export function verifyBuiltConfig(builtConfig) {
     queueConsumer?.dead_letter_queue !== expected.failureQueueName ||
     failureQueueConsumer?.max_batch_size !== 1 ||
     failureQueueConsumer?.max_retries !== 100 ||
-    failureQueueConsumer?.dead_letter_queue !== expected.queueName
+    failureQueueConsumer?.dead_letter_queue !== expected.queueName ||
+    built.send_email?.length ||
+    !built.triggers?.crons?.includes("0 * * * *") ||
+    !built.triggers?.crons?.includes("*/5 * * * *") ||
+    !["true", "false"].includes(built.vars?.OWNER_NOTIFICATIONS_ENABLED)
   ) {
     throw new Error(
       "Il bundle non è quello Production: ricostruisci con CLOUDFLARE_ENV=production.",
@@ -152,7 +156,11 @@ async function main() {
         "lo crea il primo secret: npx wrangler secret put SHOPIFY_API_SECRET --env production",
     );
   }
-  verifyWorkerSecrets(JSON.parse(listed.stdout));
+  verifyWorkerSecrets(JSON.parse(listed.stdout), {
+    ownerNotifications:
+      JSON.parse(await readFile("build/server/wrangler.json", "utf8")).vars
+        ?.OWNER_NOTIFICATIONS_ENABLED === "true",
+  });
 
   console.log("Preflight Production superato: Shopify, bundle, D1 e secret Worker verificati.");
 }

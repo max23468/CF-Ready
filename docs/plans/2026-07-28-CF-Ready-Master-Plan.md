@@ -359,6 +359,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-131 | Addebiti sempre in euro, senza adeguarsi alla valuta di fatturazione del merchant. | La valuta dell’addebito è quella inviata nel `currencyCode` e EUR è pienamente supportato: seguire `shopBillingPreferences` significherebbe costruire un listino per valuta per servire la coda dei merchant italiani non fatturati in euro, e rinunciare al prezzo unico che paga tutto il resto del pubblico. Per quella coda Shopify converte in fattura, come farebbe comunque visto che la vetrina della listing è in USD per limitazione della piattaforma. Deciso il 4 agosto 2026 sulle risposte del supporto Shopify riportate in §14.2. |
 | D-132 | Nessuno store né credenziali forniti al reviewer: l’app dichiara di non richiedere un account. | L’app è embedded e non ha login propri, e il requisito 4.5.5 è condizionale — «If your app requires login credentials». Fornire uno store con l’app preinstallata è un requisito delle Payment app (5.2.1), non delle app ordinarie, e il campo *Test account* del form vieta esplicitamente credenziali di store Shopify. Le istruzioni chiedono quindi al reviewer di installare su un proprio development store italiano, condizione messa in testa perché senza di essa l’app si dichiara non idonea e sembrerebbe rotta. Deciso il 4 agosto 2026, sostituendo il piano precedente di creare uno staff account e comunicare la password della vetrina. |
 | D-133 | Consegnare il lavoro webhook a Cloudflare Queues dopo il claim D1 e prima dell'ACK. | Shopify richiede risposte rapide, ma `waitUntil` non garantisce retry durevoli: una coda nativa conserva disinstallazioni, redazioni e riconciliazioni fallite senza introdurre un secondo stato applicativo o un provider. Una DLQ finalizza gli errori e rimanda il messaggio alla coda primaria se D1 resta indisponibile, evitando eliminazioni silenziose. |
+| D-134 | Notificare all’owner tramite outbox D1 e bot Telegram dedicato l’intero ciclo merchant e commerciale: installazione, reinstallazione, disattivazione, disinstallazione, prova gratuita, accettazione e attivazione del piano, cambio, disdetta, rifiuto, scadenza, sospensione e riattivazione. Ogni messaggio indica il dominio tecnico `.myshopify.com` e il piano interessato. | La Partner API è autorevole per relazioni e charge Shopify; gli eventi applicativi completano la prova gratuita e lo stato billing riconciliato identifica il piano precedente nei cambi. Poll con sovrapposizione, chiavi hash univoche e retry separano acquisizione e consegna. Il dominio tecnico è l’unico identificativo merchant inviato alla chat privata: nome, email, dati checkout, shop ID e GID restano esclusi. Il cron Production gira ogni cinque minuti e la feature resta disattivata finché bot, chat e secret Partner non sono configurati. Development, checkout e merchant non ricevono notifiche. |
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
@@ -1438,8 +1439,10 @@ seconda prova: la cancellazione dei dati porta via anche `trials`.
 | `recorded_at` | text |
 
 Non contiene dominio, identificatori Shopify o dati riferibili in chiaro, ed è
-l’unica traccia che sopravvive a `shop/redact`, come consentito da §21.5 e
-§21.6. Viene consultato solo quando manca la riga in `trials`. La chiave non è
+la sola traccia commerciale che sopravvive a `shop/redact`; la barriera HMAC
+antireplay delle notifiche descritta sotto è l'unica altra traccia tecnica, per
+massimo 12 mesi, come consentito da §21.5 e §21.6. Il ledger viene consultato
+solo quando manca la riga in `trials`. La chiave non è
 soggetta alla rotazione ordinaria delle sessioni: va custodita e sottoposta a
 backup nello stesso secret store, perché senza le versioni storiche non è
 possibile riconoscere gli hash già registrati.
@@ -1483,6 +1486,28 @@ Registro minimale e append-only degli eventi rilevanti.
 | `created_at` | text |
 
 Vincolo univoco su identificatore Shopify + tipo evento per l’idempotenza.
+
+#### `owner_notifications` e `owner_notification_state`
+
+Outbox tecnica per le sole notifiche all’owner. `owner_notifications` conserva
+tipo, dominio tecnico dello store, oggetto, corpo minimale, istante sorgente,
+stato di consegna, tentativi e claim; il corpo include dominio tecnico
+`.myshopify.com` e piano, mentre
+`dedupe_key` è un hash SHA-256 univoco della sorgente e non contiene in chiaro
+shop ID o GID Shopify. `owner_notification_state` conserva i checkpoint dei poll
+Partner e prova gratuita. Il checkpoint avanza soltanto dopo una pagina completa;
+i poll sovrappongono cinque minuti e l’unicità rende innocui replay e paginazione
+ripetuta. `billing_events` conserva anche piano e stato precedenti per distinguere
+un nuovo acquisto da un passaggio tra piani.
+
+Le righe dello store vengono eliminate durante `shop/redact`, anche se già
+consegnate; una barriera con HMAC del dominio e istante di redazione impedisce
+che un evento Partner precedente le ricrei, senza impedire una reinstallazione
+successiva. La retention di 90 giorni resta soltanto il limite massimo. La
+consegna è at-least-once, con massimo cinque tentativi e backoff. Un arresto
+dopo l’invio ma prima del commit D1 può produrre una rara notifica duplicata; non
+può perdere la riga sorgente. Il contenuto comunica soltanto evento, piano e
+timestamp, mai nome, email o dati personali del merchant.
 
 #### `app_state`
 
@@ -2358,7 +2383,7 @@ supportato.
 - R2: backup cifrati;
 - Workers Logs: osservabilità;
 - Pages: sito pubblico statico con Web Analytics nativa;
-- Email binding: invio supporto al destinatario verificato, previa verifica nel proof of concept.
+- Telegram Bot API: notifiche tecniche in una chat privata dell’owner; il supporto merchant resta un link `mailto:` verso iCloud.
 
 ### 18.2 Nomi risorse
 
@@ -3036,6 +3061,8 @@ La Function riceve i valori necessari in Shopify, li valuta localmente e restitu
 | Configurazione/onboarding dopo disinstallazione | 90 giorni |
 | Richieste di supporto | 12 mesi, salvo necessità diversa documentata |
 | Errori tecnici dettagliati | 90 giorni |
+| Outbox notifiche owner | 90 giorni |
+| Barriera HMAC antireplay notifiche | 12 mesi da `shop/redact` |
 | Telemetria essenziale `app_events` | 12 mesi |
 | Ricevute webhook | periodo minimo utile, target 90 giorni |
 | Prova e pricing generation pseudonimizzati | a lungo termine per prevenire abuso e preservare condizioni |
@@ -3055,8 +3082,9 @@ I 90 giorni sono il limite massimo residuale. Shopify invia `shop/redact` circa
 la finestra non viene consumata. Un trigger orario del Worker cancella gli
 store ancora disinstallati che raggiungono i 90 giorni, in batch deterministici
 da 25, come fallback quando il webhook non arriva. Lo stesso trigger elimina
-ricevute webhook ed errori dettagliati dopo 90 giorni, e gli altri eventi
-tecnici e di billing dopo 12 mesi, tramite indici sulle relative date.
+ricevute webhook, errori dettagliati e notifiche owner dopo 90 giorni, e gli
+altri eventi tecnici e di billing dopo 12 mesi, tramite indici sulle relative
+date.
 
 ### 21.6 `shop/redact`
 
@@ -3065,6 +3093,8 @@ Applicare:
 - eliminazione di sessioni, token, configurazione, onboarding e log riferibili non necessari;
 - eventuale conservazione della sola prova già fruita e della relativa pricing
   generation nel `trial_ledger` pseudonimizzato descritto in §12.2;
+- conservazione per massimo 12 mesi della sola coppia HMAC del dominio e istante
+  di redazione, per impedire che replay Partner anteriori ricreino notifiche;
 - nessuna copia D1 del diritto una tantum o dei riferimenti billing: dopo una
   reinstallazione vengono riletti dalla fonte autorevole Shopify;
 - nessun contenuto libero del merchant oltre obblighi applicabili.
@@ -3089,6 +3119,15 @@ Eventi permessi:
 - pricing generation.
 
 Sempre attiva perché necessaria a funzionamento, sicurezza e valutazione del lancio. Descritta nella Privacy Policy. Nessun cookie analytics, fingerprint o comportamento di clienti.
+
+Le notifiche all’owner non sono telemetria merchant: coprono installazione,
+riattivazione, disinstallazione, prova e transizioni commerciali osservate dalla
+Partner API o dallo stato applicativo. Includono soltanto il dominio tecnico
+`.myshopify.com`, il piano e l’istante dell’evento; non includono nome, email,
+shop ID, GID Shopify o dati checkout. Esito, tentativi e codici d’errore
+sanitizzati restano nell’outbox D1 per il tempo indicato in §21.5 e vengono
+eliminati prima se arriva `shop/redact`; sopravvive soltanto la barriera HMAC
+necessaria a non reinviare eventi antecedenti alla cancellazione.
 
 Il solo sito pubblico usa inoltre Cloudflare Web Analytics per visite aggregate
 e prestazioni reali. Il beacon non usa cookie o archiviazione locale, non crea
