@@ -125,8 +125,8 @@ prima chiusura documentale.
 Restano non verificabili su questo store, per stato commerciale: gli avvisi di
 prova a sette, tre e ultimo giorno, la data del primo addebito, l'etichetta
 `Consigliato` sull'annuale e la cancellazione del rinnovo. Lo store ha un
-pagamento unico attivo. Sono coperti dai test automatici e la verifica reale
-appartiene a M10, sul canary.
+entitlement omaggio senza addebiti o rinnovi. Sono coperti dai test automatici;
+la prima verifica reale applicabile appartiene al primo merchant pagante di M11.
 
 ## Navigazione a quattro voci
 
@@ -158,4 +158,4 @@ negli Open items §34.7.
 | Link alla gestione nativa Shopify nel blocco del piano: percorso non documentato | quando Shopify lo documenta |
 | Nomi dei piani in italiano nella fattura Shopify | decisione commerciale dell'owner |
 | Automazione degli E2E di §23.10 | M8, dove la decisione è stata registrata |
-| Stati commerciali non riproducibili sul dev store | M10, canary |
+| Stati commerciali non riproducibili sul dev store | M11, primo merchant pagante |

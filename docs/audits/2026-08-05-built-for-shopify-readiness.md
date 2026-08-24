@@ -70,22 +70,23 @@ Le fixture sintetiche canoniche restano quelle delle
 
 | Contesto | Regola/dato | Risultato atteso | Stato prova |
 | --- | --- | --- | --- |
-| Consegna e fatturazione italiane | CF obbligatorio, vuoto | blocco con messaggio configurato | da completare nel checkout reale |
-| Consegna e fatturazione italiane | CF obbligatorio, fixture non valida | blocco formale | da completare nel checkout reale |
-| Consegna e fatturazione italiane | CF obbligatorio, fixture valida | la Function non blocca | da completare nel checkout reale |
-| Consegna e fatturazione italiane | PEC facoltativa, vuota | la Function non blocca | da completare nel checkout reale |
-| Consegna e fatturazione italiane | PEC compilata, fixture non valida | blocco formale | da completare nel checkout reale |
-| Consegna e fatturazione italiane | PEC compilata, fixture valida | la Function non blocca | da completare nel checkout reale |
-| Fatturazione o sole consegne estere | qualsiasi valore | regole italiane non applicate | coperto da test automatici; live aperto |
-| Consegna italiana osservabile, campo obbligatorio non esposto | campo assente | blocco globale | coperto da fixture; live dipende dal percorso Shopify |
-| Nessuna consegna osservabile | campo assente | fail-open | coperto da fixture; live dipende dal percorso Shopify |
+| Consegna e fatturazione italiane | CF obbligatorio, vuoto | blocco con messaggio configurato | fixture server-side M10 completata |
+| Consegna e fatturazione italiane | CF obbligatorio, fixture non valida | blocco formale | fixture server-side M10 completata |
+| Consegna e fatturazione italiane | CF obbligatorio, fixture valida | la Function non blocca | fixture server-side M10 completata |
+| Consegna e fatturazione italiane | PEC facoltativa, vuota | la Function non blocca | fixture server-side M10 completata |
+| Consegna e fatturazione italiane | PEC compilata, fixture non valida | blocco formale | fixture server-side M10 completata |
+| Consegna e fatturazione italiane | PEC compilata, fixture valida | la Function non blocca | fixture server-side M10 completata |
+| Fatturazione o sole consegne estere | qualsiasi valore | regole italiane non applicate | fixture server-side M10 completata |
+| Consegna italiana osservabile, campo obbligatorio non esposto | campo assente | blocco globale | fixture server-side M10 completata |
+| Nessuna consegna osservabile | campo assente | fail-open | fixture server-side M10 completata |
 | Errore config, entitlement o runtime | qualsiasi valore | fail-open | coperto da test automatici |
-| Checkout standard e wallet disponibili | casi precedenti | stesso esito della Function | matrice live M10; nessun ordine creato in questo audit |
+| Checkout standard e wallet disponibili | casi precedenti | stesso esito della Function | superfici non transazionali ricognite in M10; osservazione futura non bloccante |
 
 Nel tentativo live del 5 agosto i localized fields sono comparsi dopo un
 indirizzo italiano, ma la validazione nativa dei dati di pagamento è intervenuta
 prima della Function. Non è stato creato alcun ordine e il carrello è stato
-svuotato. Completare un ordine di prova resta un'azione separata.
+svuotato. M10 è stata poi chiusa il 25 agosto con fixture server-side e
+ricognizione delle superfici non transazionali, senza generare transazioni.
 
 ## Residui differiti
 
@@ -95,5 +96,6 @@ svuotato. Completare un ordine di prova resta un'azione separata.
   dati raccolti da Shopify.
 - Categoria Built for Shopify: il Partner Dashboard non ne ha ancora assegnata
   una.
-- Checkout end-to-end e wallet: differiti dall'owner finché sarà possibile
-  completarli; la matrice e le fixture sono già pronte.
+- Checkout end-to-end e wallet: l'osservazione passiva prosegue sui prossimi
+  ordini che li renderanno disponibili; non blocca M10 né richiede ordini
+  artificiali.

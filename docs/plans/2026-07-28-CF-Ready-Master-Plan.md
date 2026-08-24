@@ -970,8 +970,10 @@ sequenceDiagram
 - Linguaggio: TypeScript.
 - Target corrente: `cart.validations.generate.run`.
 - Function API: pin `2026-07`, stabile dal 1º luglio 2026. Non pubblicare
-  `1.0.0` finché schema generato, build, fixture e checkout reali non sono stati
-  riconfermati con la CLI supportata corrente.
+  `1.0.0` finché schema generato, build, fixture server-side e superfici checkout
+  non transazionali non sono stati riconfermati con la CLI supportata corrente.
+  L'osservazione passiva di ordini futuri resta una verifica post-lancio e non
+  richiede la creazione di ordini artificiali.
 - Admin GraphQL API: pin `2026-07`, già stabile.
 - Trigger logico: `CHECKOUT_COMPLETION`; anche `CHECKOUT_INTERACTION` quando `errorDisplay` è `preventive`.
 - Configurazione: un metafield JSON sulla Validation.
