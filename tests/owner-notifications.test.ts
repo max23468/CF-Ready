@@ -171,7 +171,12 @@ test("attivazione, scadenza e conversione della prova includono store e piano", 
     {
       notification_kind: "trial",
       subject: "CF Ready: prova gratuita attivata",
-      body_text: expect.stringContaining(`Store: ${started.shop}\nPiano: Prova gratuita`),
+      body_text:
+        `Il merchant ha attivato la prova gratuita.\n\n` +
+        `Store: ${started.shop}\n` +
+        `Piano: Prova gratuita\n` +
+        `Termine prova: 7 set 2026\n` +
+        `Data: 24 ago 2026, 11:57`,
     },
     {
       subject: "CF Ready: prova gratuita terminata",
