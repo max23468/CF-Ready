@@ -16,6 +16,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   inglese;
 - il pagamento unico non viene presentato come un passaggio da un piano
   inesistente e non dichiara la perdita di giorni di prova mai avviati.
+- il preflight Shopify tollera un codice d'uscita spurio soltanto dopo avere
+  verificato l'identità completa e l'accesso remoto autenticato all'app.
 
 ## 0.9.25 — 23 agosto 2026
 
