@@ -23,7 +23,7 @@
     "audit:security": "node --test scripts/security-audit.node-test.mjs && node scripts/security-audit.mjs",
     "preflight:dev": "node scripts/preflight-dev.mjs",
     "readback:dev": "node scripts/preflight-dev.mjs --readback-only",
-    "test:preflight": "node --test scripts/preflight-dev.node-test.mjs scripts/preflight-prod.node-test.mjs",
+    "test:preflight": "node --test scripts/preflight-dev.node-test.mjs scripts/preflight-prod.node-test.mjs scripts/shopify-info-safe.node-test.mjs",
     "test:operations": "node --test scripts/backup-crypto.node-test.mjs scripts/capacity-check.node-test.mjs scripts/codex-review-gate.test.mjs scripts/credential-expiry.node-test.mjs",
     "capacity:dev": "node scripts/capacity-check.mjs",
     "test:e2e": "playwright test --config tests/playwright.config.ts",
