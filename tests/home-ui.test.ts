@@ -102,7 +102,7 @@ test("la Setup guide non marca come completati i passi aperti e usa la griglia r
 
   const grid = rendered.find((element) => element.type === "s-grid");
   expect(grid?.props).toMatchObject({
-    gridTemplateColumns: "@container (inline-size > 640px) 'repeat(3, minmax(0, 1fr))', 1fr",
+    gridTemplateColumns: "@container (inline-size > 560px) 1fr 1fr 1fr, 1fr",
     gap: "small-100",
   });
   expect(rendered.some((element) => element.type === "s-query-container")).toBe(true);
@@ -126,11 +126,13 @@ test("gli elenchi onboarding restano vicini al testo che li introduce", () => {
       items: ["Primo punto", "Secondo punto"],
     }),
   );
-  const stack = rendered.find((element) => element.type === "s-stack");
+  const list = rendered.find((element) => element.type === "ul");
 
-  expect(stack?.props).toMatchObject({ direction: "block", gap: "small-100" });
-  expect(rendered.filter((element) => element.type === "s-unordered-list")).toHaveLength(1);
-  expect(rendered.filter((element) => element.type === "s-list-item")).toHaveLength(2);
+  expect(list?.props).toMatchObject({
+    style: { marginBlock: "4px 0", paddingInlineStart: "20px" },
+  });
+  expect(rendered.filter((element) => element.type === "ul")).toHaveLength(1);
+  expect(rendered.filter((element) => element.type === "li")).toHaveLength(2);
 });
 
 test("la Home chiude la finestra onboarding tramite il comando Shopify supportato", () => {

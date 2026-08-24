@@ -382,14 +382,14 @@ export function OnboardingListBlock({
   items: readonly string[];
 }) {
   return (
-    <s-stack direction="block" gap="small-100">
+    <div>
       {lead}
-      <s-unordered-list>
+      <ul style={{ marginBlock: "4px 0", paddingInlineStart: "20px" }}>
         {items.map((line) => (
-          <s-list-item key={line}>{line}</s-list-item>
+          <li key={line}>{line}</li>
         ))}
-      </s-unordered-list>
-    </s-stack>
+      </ul>
+    </div>
   );
 }
 
