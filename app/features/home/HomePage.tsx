@@ -10,6 +10,7 @@ import {
   validationStatus,
 } from "../../i18n";
 import { openBillingApproval } from "../../revalidation";
+import { commercialState } from "./commercial-state";
 import { PlanChoice } from "./PlanChoice";
 import { PlanStatus } from "./PlanStatus";
 import { SetupGuide } from "./SetupGuide";
@@ -76,7 +77,9 @@ export default function HomePage() {
     );
   }
 
-  const entitled = data.entitlement.kind !== "none";
+  const currentCommercialState = commercialState(data);
+  const entitled = currentCommercialState === "entitled";
+  const firstRun = currentCommercialState === "first_run";
   const notice = trialNotice({ remaining: data.remaining, endsAt: data.trialEndsAt }, data.locale);
   const busy = fetcher.state !== "idle";
   const pendingIntent = pendingFetcherIntent(fetcher.formData);
@@ -86,13 +89,17 @@ export default function HomePage() {
     : t.plan.firstChargeNow;
   const status = validationStatus(data.validationEnabled, entitled);
   const configured = data.rules.taxCode !== "unmanaged" || data.rules.pec !== "unmanaged";
-  const nextStep = !entitled
-    ? { text: t.home.nextChoosePlan, href: null }
-    : !configured
+  const nextStep = firstRun
+    ? !configured
       ? { text: t.home.nextConfigure, href: "/app/rules" }
-      : !data.validationEnabled
-        ? { text: t.home.nextActivate, href: null }
-        : { text: t.home.nextTestOrder, href: null };
+      : { text: t.home.nextStartTrial, href: null }
+    : !entitled
+      ? { text: t.home.nextChoosePlan, href: null }
+      : !configured
+        ? { text: t.home.nextConfigure, href: "/app/rules" }
+        : !data.validationEnabled
+          ? { text: t.home.nextActivate, href: null }
+          : { text: t.home.nextTestOrder, href: null };
 
   return (
     <s-page heading={t.home.heading}>
@@ -116,6 +123,8 @@ export default function HomePage() {
             </s-button>
           </s-stack>
         </s-banner>
+      ) : firstRun ? (
+        <s-banner tone="info">{t.home.firstRun}</s-banner>
       ) : !entitled ? (
         <s-banner tone="warning">{t.home.noEntitlement}</s-banner>
       ) : notice ? (
@@ -142,14 +151,20 @@ export default function HomePage() {
           <s-badge
             tone={status === "active" ? "success" : status === "lapsed" ? "warning" : "neutral"}
           >
-            {data.validationEnabled ? t.home.badgeActive : t.home.badgeInactive}
+            {data.validationEnabled
+              ? t.home.badgeActive
+              : firstRun
+                ? t.home.badgeNotStarted
+                : t.home.badgeInactive}
           </s-badge>
           <s-heading>
             {status === "active"
               ? t.home.titleActive
               : status === "lapsed"
                 ? t.home.titleLapsed
-                : t.home.titleDisabled}
+                : firstRun
+                  ? t.home.titleNotStarted
+                  : t.home.titleDisabled}
           </s-heading>
           <s-paragraph>
             {homeCheckoutSummary({ rules: data.rules, status }, data.locale)}

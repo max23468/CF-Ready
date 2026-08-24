@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.26 — 24 agosto 2026
+
+- la prima installazione ha uno stato commerciale distinto da prova o piano
+  terminati, senza testi che presuppongono riattivazioni o configurazioni
+  precedenti;
+- Home, procedura guidata, piano e messaggi distinguono prova non iniziata,
+  prova attiva, piano attivo e checkout non ancora configurato, in italiano e
+  inglese;
+- il pagamento unico non viene presentato come un passaggio da un piano
+  inesistente e non dichiara la perdita di giorni di prova mai avviati.
+
 ## 0.9.25 — 23 agosto 2026
 
 - la Home riunisce contesto, Validation e billing nella stessa chiamata GraphQL

@@ -1,9 +1,11 @@
 import { formatDate, texts } from "../../i18n";
+import { commercialState } from "./commercial-state";
 import type { HomeData } from "./home.server";
 
 export function PlanStatus({ data }: { data: HomeData }) {
   const t = texts(data.locale);
   const onOneTime = data.entitlement.kind === "one_time";
+  const firstRun = commercialState(data) === "first_run";
 
   return (
     <s-section slot="aside" heading={t.plan.heading}>
@@ -17,7 +19,9 @@ export function PlanStatus({ data }: { data: HomeData }) {
                 ? t.plan.subscription(formatDate(data.entitlement.validThrough, data.locale))
                 : data.trialStatus === "expired"
                   ? t.plan.trialOver
-                  : t.plan.none}
+                  : firstRun
+                    ? t.plan.notStartedStatus
+                    : t.plan.none}
         </s-paragraph>
         {data.periodEnd && data.planKind !== "one_time" ? (
           <s-paragraph>

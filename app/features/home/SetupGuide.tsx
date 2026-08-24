@@ -1,4 +1,5 @@
 import { texts } from "../../i18n";
+import { commercialState } from "./commercial-state";
 import type { HomeData } from "./home.server";
 
 export function SetupGuide({
@@ -15,6 +16,8 @@ export function SetupGuide({
   submit: (intent: string, source?: string) => void;
 }) {
   const t = texts(data.locale);
+  const currentCommercialState = commercialState(data);
+  const firstRun = currentCommercialState === "first_run";
   const configured = data.rules.taxCode !== "unmanaged" || data.rules.pec !== "unmanaged";
   const steps = [
     {
@@ -28,19 +31,18 @@ export function SetupGuide({
       done: data.entitlement.kind !== "none",
       icon: "credit-card" as const,
       title: t.setup.planTitle,
-      body: data.trialStatus === null ? t.setup.planBody : t.setup.planBodyEntitled,
-      action:
-        data.trialStatus === null && data.entitlement.kind === "none" ? (
-          <s-stack direction="inline" gap="base">
-            <s-button
-              disabled={busy || !data.eligible}
-              loading={pendingIntent === "start_trial"}
-              onClick={() => submit("start_trial", "setup")}
-            >
-              {t.setup.startTrial}
-            </s-button>
-          </s-stack>
-        ) : null,
+      body: firstRun ? t.setup.planBody : t.setup.planBodyLapsed,
+      action: firstRun ? (
+        <s-stack direction="inline" gap="base">
+          <s-button
+            disabled={busy || !data.eligible}
+            loading={pendingIntent === "start_trial"}
+            onClick={() => submit("start_trial", "setup")}
+          >
+            {t.setup.startTrial}
+          </s-button>
+        </s-stack>
+      ) : null,
     },
     {
       done: data.validationEnabled,
