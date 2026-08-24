@@ -818,6 +818,7 @@ Parte della direzione, non un controllo finale. Vale per app embedded, sito, lis
 | **A-14** | Formati App Store | Icona 1200 × 1200 PNG, angoli quadrati, padding. Requisiti verificati sulle fonti ufficiali (§12.1) | 28/07/2026 |
 | **A-15** | Sigla dentro l'icona della listing | Si presenta l'icona **con** la sigla, accettando la raccomandazione Shopify di evitarne il testo. Rimedio pronto se la review contesta (§11.3) | 28/07/2026 |
 | **A-16** | Colore di brand dentro l'app, per illustrazione | Deroga unica ad A-03: verde bottiglia e arancio cotto sono ammessi **dentro un'illustrazione**, mai su un controllo o su uno stato, e solo su onboarding (primo passo e riepilogo), testata di Guida e FAQ, schermata Store non supportato e piede della colonna laterale in Home (§2.6, §8.13) | 31/07/2026 |
+| **A-17** | Riduzione per la nav dell'Admin | A 16 px usa una tessera monocromatica `14 × 8,8` nelle proporzioni canoniche, con contorno e fascia superiore ma senza sigla. La semplificazione mantiene leggibile il segno ed evita la resa schiacciata della precedente variante `14 × 7,5` | 24/08/2026 |
 
 ### 11.2 Nota sulla dark mode
 
@@ -872,7 +873,7 @@ Registrate per evitare che vengano riproposte senza una nuova decisione dell'own
 | `icon-app.svg` | Icona quadrata 512 per App Store e listing, marchio su fondo panna |
 | `icon-app-notext.svg` | Variante di riserva senza sigla, vedi A-15 |
 | `favicon.svg` | Favicon, marchio ingrandito con margini ridotti |
-| `nav-icon.svg` | Icona di navigazione dell'Admin: riduzione monocromatica del marchio con tessera, fascia superiore e sigla `CF` sulla griglia a 16, colorata da Shopify |
+| `nav-icon.svg` | Icona di navigazione dell'Admin: riduzione monocromatica del marchio con tessera nelle proporzioni canoniche e fascia superiore, senza sigla sulla griglia a 16, colorata da Shopify |
 | `wordmark.svg` | Solo wordmark in tracciati, colore da `currentColor` |
 | `lockup-horizontal.svg` | Lockup orizzontale, marchio + wordmark |
 | `lockup-vertical.svg` | Lockup verticale |
