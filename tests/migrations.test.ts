@@ -124,3 +124,12 @@ test("0011 crea l'outbox owner e conserva la transizione billing precedente", as
     ]),
   );
 });
+
+test("0012 crea le concessioni omaggio senza fingere una charge Shopify", async () => {
+  const columns = await env.DB.prepare("PRAGMA table_info(complimentary_entitlements)").all<{
+    name: string;
+  }>();
+  expect(columns.results.map(({ name }) => name)).toEqual(
+    expect.arrayContaining(["shop_id", "status", "granted_at", "revoked_at"]),
+  );
+});

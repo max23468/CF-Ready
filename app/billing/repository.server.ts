@@ -2,7 +2,13 @@ import { recordEvent } from "../events.server";
 import { trialLedgerHash } from "../hash.server";
 import { planFor } from "../plans.server";
 import { localDate, pricingGeneration, trialEnd } from "./domain";
-import type { BillingAccount, PricingGeneration, ShopifyBilling, Trial } from "./types";
+import type {
+  BillingAccount,
+  ComplimentaryEntitlement,
+  PricingGeneration,
+  ShopifyBilling,
+  Trial,
+} from "./types";
 
 // La prova nasce solo su richiesta esplicita del merchant. Uno store non idoneo non la consuma.
 export async function startTrial(
@@ -306,6 +312,17 @@ export function readBillingAccount(db: D1Database, shopDomain: string) {
     )
     .bind(shopDomain)
     .first<BillingAccount>();
+}
+
+export function readComplimentaryEntitlement(db: D1Database, shopDomain: string) {
+  return db
+    .prepare(
+      `SELECT c.status, c.granted_at, c.revoked_at
+       FROM complimentary_entitlements c JOIN shops s ON s.id = c.shop_id
+       WHERE s.shop_domain = ?`,
+    )
+    .bind(shopDomain)
+    .first<ComplimentaryEntitlement>();
 }
 
 function readTrial(db: D1Database, shopDomain: string) {

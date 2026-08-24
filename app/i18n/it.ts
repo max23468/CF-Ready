@@ -265,6 +265,7 @@ export const it = {
     heading: "Piano",
     trial: (date: string) => `Prova attiva fino al ${date}.`,
     oneTime: "Pagamento unico attivo, senza rinnovi.",
+    complimentary: "Piano omaggio permanente attivo, senza rinnovi.",
     subscription: (date: string) => `Abbonamento attivo fino al ${date}.`,
     trialOver: "Prova terminata: scegli come continuare per riattivare le regole.",
     trialEndsSoon: (date: string) =>
@@ -304,6 +305,8 @@ export const it = {
     // “senza limiti di tempo”: si dice cosa il pagamento include, senza promettere una durata.
     oneTimeSettled:
       "Un solo pagamento per questo store, senza rinnovi. Include gli aggiornamenti dell’app e l’assistenza, senza costi aggiuntivi. Non c’è altro da scegliere.",
+    complimentarySettled:
+      "Il piano omaggio è attivo per questo store. Include gli aggiornamenti dell’app e l’assistenza, senza addebiti.",
     recommended: "Consigliato",
     generationLaunch: "A questo store sono riservati i prezzi di lancio.",
     generationStandard: "A questo store si applicano i prezzi standard.",
