@@ -382,9 +382,9 @@ export function OnboardingListBlock({
   items: readonly string[];
 }) {
   return (
-    <s-stack direction="block" gap="none">
+    <s-grid gridTemplateColumns="1fr" gap="small-100">
       {lead}
-      <s-stack direction="block" gap="small-100" accessibilityRole="unordered-list">
+      <s-grid gridTemplateColumns="1fr" gap="small-100" accessibilityRole="unordered-list">
         {items.map((line) => (
           <s-grid
             key={line}
@@ -396,8 +396,8 @@ export function OnboardingListBlock({
             <s-text>{line}</s-text>
           </s-grid>
         ))}
-      </s-stack>
-    </s-stack>
+      </s-grid>
+    </s-grid>
   );
 }
 
