@@ -59,6 +59,15 @@ export function verifyAuthenticatedVersionsResult({ output, status }) {
   }
 }
 
+export function readAuthenticatedVersions({ configName, projectRoot, spawn = spawnSync }) {
+  const result = spawn(
+    "shopify",
+    ["app", "versions", "list", "--config", configName, "--no-color", "--json"],
+    { cwd: projectRoot, encoding: "utf8" },
+  );
+  verifyAuthenticatedVersionsResult({ output: result.stdout ?? "", status: result.status });
+}
+
 async function main() {
   const configName = process.argv[2] ?? "shopify.app.dev.toml";
   if (basename(configName) !== configName || !allowedConfigs.has(configName)) {
@@ -92,12 +101,7 @@ async function main() {
     });
 
     if (requiresRemoteReadback) {
-      const versions = spawnSync(
-        "shopify",
-        ["app", "versions", "list", "--config", configName, "--no-color", "--json"],
-        { cwd: auditRoot, encoding: "utf8" },
-      );
-      verifyAuthenticatedVersionsResult({ output: versions.stdout ?? "", status: versions.status });
+      readAuthenticatedVersions({ configName, projectRoot: root });
       process.stdout.write(
         `Shopify CLI ha restituito ${result.status}; identità e accesso remoto verificati.\n`,
       );

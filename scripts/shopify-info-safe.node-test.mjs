@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  readAuthenticatedVersions,
   verifyAuthenticatedVersionsResult,
   verifyShopifyInfoResult,
 } from "./shopify-info-safe.mjs";
@@ -89,4 +90,28 @@ test("il percorso degradato richiede un readback remoto autenticato", () => {
     () => verifyAuthenticatedVersionsResult({ output: "{}", status: 0 }),
     /readback remoto non valido/,
   );
+});
+
+test("il readback remoto usa il progetto completo e non la copia temporanea", () => {
+  let invocation;
+  readAuthenticatedVersions({
+    configName: "shopify.app.dev.toml",
+    projectRoot: "/repo-completa",
+    spawn: (command, args, options) => {
+      invocation = { command, args, options };
+      return { status: 0, stdout: "[]" };
+    },
+  });
+
+  assert.equal(invocation.command, "shopify");
+  assert.deepEqual(invocation.args, [
+    "app",
+    "versions",
+    "list",
+    "--config",
+    "shopify.app.dev.toml",
+    "--no-color",
+    "--json",
+  ]);
+  assert.equal(invocation.options.cwd, "/repo-completa");
 });
