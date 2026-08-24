@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.32 — 24 agosto 2026
+
+- il confronto piani chiude davvero la finestra Shopify prima di mostrare la
+  Home, preservando la barra laterale e permettendo di riaprire la procedura;
+- la sezione piani usa un'ancora reale e riquadri separati, così l'atterraggio è
+  visibile e le card mantengono la stessa spaziatura del resto della Home.
+- i tre passaggi restano su una riga quando c'è spazio e gli elenchi iniziano
+  subito sotto il testo che li introduce, senza margini imposti dai componenti.
+
 ## 0.9.31 — 24 agosto 2026
 
 - il confronto piani chiude la procedura guidata e porta la Home alla sezione
