@@ -126,7 +126,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
   if (intent === "cancel") return cancelPlan(admin, db, session.shop);
   if (intent === "monthly" || intent === "annual" || intent === "one_time") {
-    return subscribe(admin, db, session.shop, request, intent);
+    return subscribe(admin, db, session.shop, intent);
   }
   if (intent !== "enable" && intent !== "disable") {
     return { ok: false, errorCode: "generic" };
@@ -144,13 +144,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   return { ok: true };
 };
 
-async function subscribe(
-  admin: Admin,
-  db: D1Database,
-  shopDomain: string,
-  request: Request,
-  kind: PlanKind,
-) {
+async function subscribe(admin: Admin, db: D1Database, shopDomain: string, kind: PlanKind) {
   try {
     const mutation = await withValidationLock(db, shopDomain, async () => {
       const { shop } = await queryContext(admin);
@@ -188,7 +182,7 @@ async function subscribe(
         interval: plan.interval,
         trialDays: kind === "one_time" ? 0 : remainingTrialDays(trial, today),
         test: BILLING_IS_TEST,
-        returnUrl: returnUrlFor(request, shopDomain),
+        returnUrl: returnUrlFor(shopDomain),
       });
 
       if (error || !confirmationUrl) return { ok: false, errorCode: "charge_failed" };

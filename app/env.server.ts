@@ -3,7 +3,7 @@ import { version } from "../package.json";
 
 const bindings = env as Env & {
   BILLING_TEST?: string;
-  SHOPIFY_APP_URL?: string;
+  SHOPIFY_API_KEY?: string;
   ALLOWED_SHOP?: string;
   TRIAL_LEDGER_HMAC_KEY?: string;
 };
@@ -14,8 +14,9 @@ const bindings = env as Env & {
 // allarga il tipo letterale che `wrangler types` deduce dal valore oggi configurato: il
 // confronto deve continuare a valere anche quando quel valore cambia.
 const billingTest: string | undefined = bindings.BILLING_TEST;
+const apiKey: string | undefined = bindings.SHOPIFY_API_KEY;
 export const BILLING_IS_TEST = billingTest !== "false";
-export const APP_URL = bindings.SHOPIFY_APP_URL || "";
+export const APP_API_KEY = apiKey || "";
 // L'app Development ha distribuzione pubblica per poter usare la Billing API: il suo
 // `client_id` è nel repository pubblico, quindi l'installazione resta ammessa solo sul dev
 // store. Vuota in Production, dove installa chi vuole.
