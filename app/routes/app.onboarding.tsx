@@ -382,13 +382,21 @@ export function OnboardingListBlock({
   items: readonly string[];
 }) {
   return (
-    <s-stack direction="block" gap="small-100">
+    <s-stack direction="block" gap="none">
       {lead}
-      <s-unordered-list>
+      <s-stack direction="block" gap="small-100" accessibilityRole="unordered-list">
         {items.map((line) => (
-          <s-list-item key={line}>{line}</s-list-item>
+          <s-grid
+            key={line}
+            gridTemplateColumns="auto 1fr"
+            gap="small-100"
+            accessibilityRole="list-item"
+          >
+            <s-text>•</s-text>
+            <s-text>{line}</s-text>
+          </s-grid>
         ))}
-      </s-unordered-list>
+      </s-stack>
     </s-stack>
   );
 }

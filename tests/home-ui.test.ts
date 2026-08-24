@@ -16,7 +16,7 @@ import { PlanStatus } from "../app/features/home/PlanStatus";
 import { onboardingCheckoutPreview } from "../app/features/onboarding/checkout-preview";
 import { onboardingStep4State } from "../app/features/onboarding/step4-state";
 import { openBillingApproval } from "../app/revalidation";
-import { PlanChoice, SetupGuide } from "../app/routes/app._index";
+import { OnboardingWindowCloseControl, PlanChoice, SetupGuide } from "../app/routes/app._index";
 import {
   Address2DeclarationPrompt,
   OnboardingListBlock,
@@ -102,7 +102,7 @@ test("la Setup guide non marca come completati i passi aperti e usa la griglia r
 
   const grid = rendered.find((element) => element.type === "s-grid");
   expect(grid?.props).toMatchObject({
-    gridTemplateColumns: "@container (inline-size > 640px) 'repeat(3, minmax(0, 1fr))', 1fr",
+    gridTemplateColumns: "@container (inline-size > 560px) 1fr 1fr 1fr, 1fr",
     gap: "small-100",
   });
   expect(rendered.some((element) => element.type === "s-query-container")).toBe(true);
@@ -126,11 +126,37 @@ test("gli elenchi onboarding restano vicini al testo che li introduce", () => {
       items: ["Primo punto", "Secondo punto"],
     }),
   );
-  const stack = rendered.find((element) => element.type === "s-stack");
+  const stacks = rendered.filter((element) => element.type === "s-stack");
+  const list = stacks.find(
+    (element) =>
+      (element.props as { accessibilityRole?: string }).accessibilityRole === "unordered-list",
+  );
+  const items = rendered.filter(
+    (element) =>
+      element.type === "s-grid" &&
+      (element.props as { accessibilityRole?: string }).accessibilityRole === "list-item",
+  );
 
-  expect(stack?.props).toMatchObject({ direction: "block", gap: "small-100" });
-  expect(rendered.filter((element) => element.type === "s-unordered-list")).toHaveLength(1);
-  expect(rendered.filter((element) => element.type === "s-list-item")).toHaveLength(2);
+  expect(stacks[0]?.props).toMatchObject({ direction: "block", gap: "none" });
+  expect(list?.props).toMatchObject({ direction: "block", gap: "small-100" });
+  expect(items).toHaveLength(2);
+  expect(items[0]?.props).toMatchObject({
+    gridTemplateColumns: "auto 1fr",
+    gap: "small-100",
+  });
+});
+
+test("la Home chiude la finestra onboarding tramite il comando Shopify supportato", () => {
+  const rendered = elements(OnboardingWindowCloseControl({ label: "Chiudi" }));
+  const hiddenContainer = rendered.find((element) => element.type === "div");
+  const closeCommand = rendered.find((element) => element.type === "s-button");
+
+  expect(hiddenContainer?.props).toMatchObject({ hidden: true });
+  expect(closeCommand?.props).toMatchObject({
+    id: "onboarding-window-close",
+    commandFor: "onboarding-window",
+    command: "--hide",
+  });
 });
 
 // La card è la prima cosa che si vede dopo l'installazione: deve accogliere, e deve
@@ -448,7 +474,7 @@ test("il confronto piani comunica con la Home senza navigare il frame della moda
   expect(hideWindow).toHaveBeenCalledOnce();
   expect(showPlanSection).toHaveBeenCalledOnce();
 
-  const planAnchor = elements(
+  const renderedPlanChoice = elements(
     PlanChoice({
       data,
       busy: false,
@@ -456,10 +482,18 @@ test("il confronto piani comunica con la Home senza navigare il frame della moda
       submit: vi.fn(),
       firstCharge: "oggi",
     }),
-  ).find(
-    (element) => element.type === "s-box" && (element.props as { id?: string }).id === "plans",
+  );
+  const planAnchor = renderedPlanChoice.find(
+    (element) => element.type === "div" && (element.props as { id?: string }).id === "plans",
+  );
+  const planStack = renderedPlanChoice.find(
+    (element) =>
+      element.type === "s-stack" &&
+      (element.props as { direction?: string; gap?: string }).direction === "block" &&
+      (element.props as { direction?: string; gap?: string }).gap === "base",
   );
   expect(planAnchor).toBeDefined();
+  expect(planStack).toBeDefined();
 });
 
 test("l’anteprima onboarding descrive le regole attive senza contraddire lo stato corrente", () => {

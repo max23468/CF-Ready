@@ -157,10 +157,12 @@ export function PlanChoice({
 
   return (
     <>
-      <s-box id="plans">
-        {startTrialSection}
-        {choice}
-      </s-box>
+      <div id="plans">
+        <s-stack direction="block" gap="base">
+          {startTrialSection}
+          {choice}
+        </s-stack>
+      </div>
       <s-modal
         id="cancel-renewal"
         heading={t.plan.cancelRenewal}
