@@ -134,21 +134,22 @@ export const it = {
     next: "Continua",
     welcomeHeading: "Benvenuto in CF Ready",
     welcomeBody:
-      "Quattro passi, cinque minuti. Scegli quali dati controllare, verifica cosa vedrà il cliente e decidi tu quando attivare: niente parte da solo.",
+      "Configura Codice Fiscale e PEC, controlla i messaggi mostrati al cliente e scegli quando attivare le regole.",
     step1Heading: "Cosa fa e cosa non fa",
     step1Body:
       "CF Ready controlla il Codice Fiscale e la PEC nel campo fiscale nativo del checkout italiano. Non modifica il tema, non aggiunge campi e non emette fatture.",
     step1Limits: [
       "Il controllo è formale: verifica la composizione del dato, non a chi appartiene.",
       "Le regole valgono solo con consegna e fatturazione in Italia.",
-      "Se Shopify mostra una consegna italiana ma omette un campo obbligatorio, CF Ready blocca con un avviso generale; senza consegna osservabile resta fail-open.",
+      "Se Shopify non rende disponibile la consegna, CF Ready lascia proseguire l’ordine.",
     ],
     step2Heading: "Scegli cosa controllare",
     step2Body: "Puoi cambiare queste scelte quando vuoi da Regole checkout.",
-    step3Heading: "Cosa succede nel checkout",
-    step3Messages: "I testi che il cliente legge",
+    step3Heading: "Anteprima delle regole",
+    step3Body: "Quando il controllo sarà attivo, con le impostazioni attuali:",
+    step3Messages: "Messaggi configurati",
     step3MessagesBody:
-      "Sono già pronti in italiano e inglese. Puoi riscriverli quando vuoi da Messaggi al cliente.",
+      "Questi sono i quattro messaggi già configurati. Sono disponibili in italiano e inglese e puoi modificarli da Messaggi al cliente.",
     step4Heading: "Riepilogo",
     step4BodyReady:
       "Le regole sono pronte. Puoi attivarle adesso oppure completare senza attivare e tornare quando vuoi.",
@@ -356,7 +357,7 @@ export const it = {
     exceptions: [
       "Le regole valgono solo quando consegna e fatturazione sono in Italia.",
       "Un cliente con fatturazione estera completa l’ordine senza controlli.",
-      "Se Shopify mostra una consegna italiana ma omette un campo obbligatorio, CF Ready blocca con un avviso generale; senza consegna osservabile resta fail-open.",
+      "Se Shopify non rende disponibile la consegna, CF Ready lascia proseguire l’ordine.",
     ],
     preventiveLabel: "Mostra avvisi preventivi nel checkout",
     preventiveHelp:

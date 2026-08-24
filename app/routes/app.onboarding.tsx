@@ -13,8 +13,9 @@ import {
 } from "../config";
 import { databaseContext } from "../context.server";
 import { recordEvent } from "../events.server";
+import { onboardingCheckoutPreview } from "../features/onboarding/checkout-preview";
 import { onboardingStep4State } from "../features/onboarding/step4-state";
-import { describeCheckout, resolveLocale, texts, validationStatus } from "../i18n";
+import { resolveLocale, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { authenticate } from "../shopify.server";
 import {
@@ -302,14 +303,8 @@ export default function Onboarding() {
             {step === 3 ? (
               <>
                 <s-heading>{t.onboarding.step3Heading}</s-heading>
-                {describeCheckout(
-                  {
-                    rules: saved.rules,
-                    errorDisplay: saved.errorDisplay,
-                    status: validationStatus(saved.enabled, saved.entitled),
-                  },
-                  saved.locale,
-                ).map((line) => (
+                <s-paragraph>{t.onboarding.step3Body}</s-paragraph>
+                {onboardingCheckoutPreview(saved).map((line) => (
                   <s-paragraph key={line}>{line}</s-paragraph>
                 ))}
                 <s-heading>{t.rules.exceptionsHeading}</s-heading>
@@ -387,7 +382,7 @@ export default function Onboarding() {
   );
 }
 
-function OnboardingStep4Content({
+export function OnboardingStep4Content({
   saved,
   declared,
   t,
@@ -445,13 +440,13 @@ function OnboardingStep4Content({
             >
               {t.onboarding.step4StartTrial}
             </s-button>
-            <s-link href="/app">{t.onboarding.step4SeePlans}</s-link>
+            <s-button href="/app#plans">{t.onboarding.step4SeePlans}</s-button>
           </s-stack>
         </>
       ) : (
         <>
           <s-paragraph>{t.plan.trialOver}</s-paragraph>
-          <s-link href="/app">{t.onboarding.step4SeePlans}</s-link>
+          <s-button href="/app#plans">{t.onboarding.step4SeePlans}</s-button>
         </>
       )}
     </>

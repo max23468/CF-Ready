@@ -3,11 +3,13 @@ import { isValidElement } from "react";
 import { expect, test, vi } from "vitest";
 import { texts } from "../app/i18n";
 import { commercialState } from "../app/features/home/commercial-state";
+import { isPlanComparisonView, showSetupGuide } from "../app/features/home/plan-comparison";
 import { PlanStatus } from "../app/features/home/PlanStatus";
+import { onboardingCheckoutPreview } from "../app/features/onboarding/checkout-preview";
 import { onboardingStep4State } from "../app/features/onboarding/step4-state";
 import { openBillingApproval } from "../app/revalidation";
 import { PlanChoice, SetupGuide } from "../app/routes/app._index";
-import { Address2DeclarationPrompt } from "../app/routes/app.onboarding";
+import { Address2DeclarationPrompt, OnboardingStep4Content } from "../app/routes/app.onboarding";
 
 vi.mock("../app/shopify.server", () => ({ authenticate: {} }));
 
@@ -268,6 +270,66 @@ test("il riepilogo onboarding distingue primo avvio, prova e piano", () => {
       trialStatus: null,
     }),
   ).toEqual({ summary: "ready", access: "plan", canActivate: true });
+});
+
+test("il confronto piani apre la sezione corretta senza riproporre la guida", () => {
+  const rendered = elements(
+    OnboardingStep4Content({
+      saved: {
+        locale: "it",
+        rules: { taxCode: "required_validated", pec: "unmanaged" },
+      } as Awaited<ReturnType<typeof import("../app/routes/app.onboarding").loader>>,
+      declared: false,
+      t: texts("it"),
+      state: { summary: "needs", access: "first_run", canActivate: false },
+      busy: false,
+      pendingIntent: null,
+      startTrial: vi.fn(),
+    }),
+  );
+  const actions = rendered.filter(
+    (element) =>
+      element.type === "s-button" &&
+      [texts("it").onboarding.step4StartTrial, texts("it").onboarding.step4SeePlans].includes(
+        (element.props as { children?: string }).children ?? "",
+      ),
+  );
+
+  expect(actions).toHaveLength(2);
+  expect(actions[1].props).toMatchObject({ href: "/app#plans" });
+  expect(isPlanComparisonView("#plans")).toBe(true);
+  expect(isPlanComparisonView("")).toBe(false);
+  expect(showSetupGuide("in_progress", "#plans")).toBe(false);
+  expect(showSetupGuide("in_progress", "")).toBe(true);
+
+  const planAnchor = elements(
+    PlanChoice({
+      data,
+      busy: false,
+      pendingIntent: null,
+      submit: vi.fn(),
+      firstCharge: "oggi",
+    }),
+  ).find(
+    (element) => element.type === "s-box" && (element.props as { id?: string }).id === "plans",
+  );
+  expect(planAnchor).toBeDefined();
+});
+
+test("l’anteprima onboarding descrive le regole attive senza contraddire lo stato corrente", () => {
+  const it = texts("it");
+  const preview = onboardingCheckoutPreview({
+    rules: { taxCode: "required_validated", pec: "unmanaged" },
+    errorDisplay: "inline",
+    locale: "it",
+  });
+
+  expect(preview).toContain(it.checkout.taxCodeRequired);
+  expect(preview).not.toContain(it.checkout.disabled);
+  expect(it.onboarding.step3MessagesBody).toMatch(/quattro messaggi già configurati/i);
+  expect(`${it.onboarding.welcomeBody} ${it.onboarding.step1Limits.join(" ")}`).not.toMatch(
+    /fail-open|cinque minuti|niente parte/i,
+  );
 });
 
 test("i testi iniziali non presuppongono una configurazione precedente", () => {

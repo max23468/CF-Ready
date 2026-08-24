@@ -157,8 +157,10 @@ export function PlanChoice({
 
   return (
     <>
-      {startTrialSection}
-      {choice}
+      <s-box id="plans">
+        {startTrialSection}
+        {choice}
+      </s-box>
       <s-modal
         id="cancel-renewal"
         heading={t.plan.cancelRenewal}

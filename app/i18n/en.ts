@@ -134,21 +134,22 @@ export const en: typeof it = {
     next: "Continue",
     welcomeHeading: "Welcome to CF Ready",
     welcomeBody:
-      "Four steps, five minutes. Choose what to check, review what customers will see and decide when to turn it on: nothing starts on its own.",
+      "Set up the tax code and PEC checks, review customer messages, and choose when to turn on the rules.",
     step1Heading: "What it does and doesn’t do",
     step1Body:
       "CF Ready checks the Italian tax code (Codice Fiscale) and the certified email address (PEC) in the native Italian checkout field. It doesn’t change your theme, doesn’t add fields and doesn’t issue invoices.",
     step1Limits: [
       "The check is formal: it verifies how the value is composed, not who it belongs to.",
       "Rules only apply when delivery and billing are both in Italy.",
-      "If Shopify shows an Italian delivery but omits a required field, CF Ready blocks checkout with a global warning; without an observable delivery, it remains fail-open.",
+      "If Shopify doesn’t make delivery details available, CF Ready lets the order continue.",
     ],
     step2Heading: "Choose what to check",
     step2Body: "You can change these choices whenever you want from Checkout rules.",
-    step3Heading: "What happens at checkout",
-    step3Messages: "The texts customers read",
+    step3Heading: "Rules preview",
+    step3Body: "With the current settings, once the check is active:",
+    step3Messages: "Configured messages",
     step3MessagesBody:
-      "They’re ready in Italian and English. You can rewrite them whenever you want from Customer messages.",
+      "These are the four messages already configured. They’re available in Italian and English and can be edited from Customer messages.",
     step4Heading: "Summary",
     step4BodyReady:
       "Your rules are ready. Turn them on now, or finish without turning them on and come back whenever you want.",
@@ -353,7 +354,7 @@ export const en: typeof it = {
     exceptions: [
       "Rules only apply when both delivery and billing are in Italy.",
       "A customer billing outside Italy completes the order with no checks.",
-      "If Shopify shows an Italian delivery but omits a required field, CF Ready blocks checkout with a global warning; without an observable delivery, it remains fail-open.",
+      "If Shopify doesn’t make delivery details available, CF Ready lets the order continue.",
     ],
     preventiveLabel: "Show warnings early in checkout",
     preventiveHelp:

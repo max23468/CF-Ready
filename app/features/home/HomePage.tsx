@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useFetcher, useLoaderData } from "react-router";
+import { useFetcher, useLoaderData, useLocation } from "react-router";
 import { ELIGIBLE_COUNTRY, pendingFetcherIntent, pendingFetcherSource } from "../../config";
 import {
   formatDate,
@@ -15,9 +15,11 @@ import { PlanChoice } from "./PlanChoice";
 import { PlanStatus } from "./PlanStatus";
 import { SetupGuide } from "./SetupGuide";
 import type { HomeData, action } from "./home.server";
+import { isPlanComparisonView, showSetupGuide } from "./plan-comparison";
 
 export default function HomePage() {
   const data = useLoaderData<HomeData>();
+  const location = useLocation();
   const fetcher = useFetcher<typeof action>();
   const t = texts(data.locale);
   const result = fetcher.data as
@@ -35,6 +37,13 @@ export default function HomePage() {
   useEffect(() => {
     openBillingApproval(confirmationUrl);
   }, [confirmationUrl]);
+
+  useEffect(() => {
+    if (!isPlanComparisonView(location.hash)) return;
+    requestAnimationFrame(() =>
+      document.getElementById("plans")?.scrollIntoView({ block: "start" }),
+    );
+  }, [location.hash]);
 
   if (!data.eligible) {
     return (
@@ -136,7 +145,7 @@ export default function HomePage() {
         </s-banner>
       ) : null}
 
-      {data.onboarding === "completed" ? null : (
+      {showSetupGuide(data.onboarding, location.hash) ? (
         <SetupGuide
           data={data}
           busy={busy}
@@ -144,7 +153,7 @@ export default function HomePage() {
           pendingSource={pendingSource}
           submit={submit}
         />
-      )}
+      ) : null}
 
       <s-section>
         <s-stack direction="block" gap="base">
