@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { useFetcher, useLoaderData, useLocation } from "react-router";
+import { useEffect, useSyncExternalStore } from "react";
+import { useFetcher, useLoaderData } from "react-router";
 import { ELIGIBLE_COUNTRY, pendingFetcherIntent, pendingFetcherSource } from "../../config";
 import {
   formatDate,
@@ -15,12 +15,20 @@ import { PlanChoice } from "./PlanChoice";
 import { PlanStatus } from "./PlanStatus";
 import { SetupGuide } from "./SetupGuide";
 import type { HomeData, action } from "./home.server";
-import { isPlanComparisonView, showSetupGuide } from "./plan-comparison";
+import { clearPlanComparison, hasPlanComparison, showSetupGuide } from "./plan-comparison";
+
+const noPlanComparisonSubscription = () => () => undefined;
+const browserPlanComparisonSnapshot = () => hasPlanComparison(window.sessionStorage);
+const serverPlanComparisonSnapshot = () => false;
 
 export default function HomePage() {
   const data = useLoaderData<HomeData>();
-  const location = useLocation();
   const fetcher = useFetcher<typeof action>();
+  const planComparison = useSyncExternalStore(
+    noPlanComparisonSubscription,
+    browserPlanComparisonSnapshot,
+    serverPlanComparisonSnapshot,
+  );
   const t = texts(data.locale);
   const result = fetcher.data as
     | { ok: boolean; errorCode?: string; confirmationUrl?: string }
@@ -39,11 +47,12 @@ export default function HomePage() {
   }, [confirmationUrl]);
 
   useEffect(() => {
-    if (!isPlanComparisonView(location.search)) return;
+    if (!planComparison) return;
     requestAnimationFrame(() =>
       document.getElementById("plans")?.scrollIntoView({ block: "start" }),
     );
-  }, [location.search]);
+    return () => clearPlanComparison(window.sessionStorage);
+  }, [planComparison]);
 
   if (!data.eligible) {
     return (
@@ -143,7 +152,7 @@ export default function HomePage() {
         </s-banner>
       ) : null}
 
-      {showSetupGuide(data.onboarding, location.search) ? (
+      {showSetupGuide(data.onboarding, planComparison) ? (
         <SetupGuide
           data={data}
           busy={busy}
