@@ -72,7 +72,8 @@ export const it = {
       "Da questo momento il checkout smette di controllare i campi. Regole e messaggi restano salvati e puoi riattivarli quando vuoi.",
     nextConfigure: "Scegli quali campi controllare nel checkout.",
     nextActivate: "Le regole sono pronte. Attivale per farle valere nel checkout.",
-    nextTestOrder: "Fai un ordine di prova per vedere le regole all’opera.",
+    nextTestOrder:
+      "Controlla i prossimi ordini per verificare che le regole siano applicate come previsto.",
     nextStartTrial:
       "Le regole sono pronte. Avvia la prova gratuita quando vuoi oppure scegli subito un piano.",
     nextChoosePlan: "Scegli una modalità per riattivare le regole nel checkout.",
