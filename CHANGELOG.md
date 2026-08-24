@@ -18,6 +18,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   inesistente e non dichiara la perdita di giorni di prova mai avviati.
 - il preflight Shopify tollera un codice d'uscita spurio soltanto dopo avere
   verificato l'identità completa e l'accesso remoto autenticato all'app.
+- workflow e manifest usano Shopify CLI 4.7.0; la sezione `[events]` richiesta
+  dalla CLI resta esplicitamente vuota, mentre le sottoscrizioni restano webhook.
 
 ## 0.9.25 — 23 agosto 2026
 
