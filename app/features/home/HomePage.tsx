@@ -15,17 +15,20 @@ import { PlanChoice } from "./PlanChoice";
 import { PlanStatus } from "./PlanStatus";
 import { SetupGuide } from "./SetupGuide";
 import type { HomeData, action } from "./home.server";
-import { clearPlanComparison, hasPlanComparison, showSetupGuide } from "./plan-comparison";
+import { createPlanComparisonStore, showSetupGuide } from "./plan-comparison";
 
-const noPlanComparisonSubscription = () => () => undefined;
-const browserPlanComparisonSnapshot = () => hasPlanComparison(window.sessionStorage);
+let browserPlanComparisonStore: ReturnType<typeof createPlanComparisonStore> | undefined;
+const planComparisonStore = () =>
+  (browserPlanComparisonStore ??= createPlanComparisonStore(window.sessionStorage, window));
+const subscribePlanComparison = (listener: () => void) => planComparisonStore().subscribe(listener);
+const browserPlanComparisonSnapshot = () => planComparisonStore().getSnapshot();
 const serverPlanComparisonSnapshot = () => false;
 
 export default function HomePage() {
   const data = useLoaderData<HomeData>();
   const fetcher = useFetcher<typeof action>();
   const planComparison = useSyncExternalStore(
-    noPlanComparisonSubscription,
+    subscribePlanComparison,
     browserPlanComparisonSnapshot,
     serverPlanComparisonSnapshot,
   );
@@ -51,7 +54,7 @@ export default function HomePage() {
     requestAnimationFrame(() =>
       document.getElementById("plans")?.scrollIntoView({ block: "start" }),
     );
-    return () => clearPlanComparison(window.sessionStorage);
+    return () => planComparisonStore().reset();
   }, [planComparison]);
 
   if (!data.eligible) {
