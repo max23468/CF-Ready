@@ -2034,7 +2034,7 @@ Ordine dei contenuti:
 4. **Prossimo passo consigliato**
    - completare onboarding;
    - attivare;
-   - fare ordine di prova;
+   - osservare passivamente i prossimi ordini autentici;
    - scegliere piano;
    - risolvere sincronizzazione.
 5. **Guida e assistenza**.
@@ -3456,9 +3456,14 @@ Testare tutte le nove combinazioni CF × PEC e due errori simultanei.
 - tastiera, focus, screen reader basics;
 - viewport stretto/largo.
 
-### 23.11 Checkout reali
+### 23.11 Checkout su store reale
 
-Obbligatori prima di `1.0.0`:
+La matrice seguente è obbligatoria prima di `1.0.0`, ma non richiede la
+creazione di ordini, clienti o pagamenti artificiali sullo store reale. La
+prova server-side usa fixture sintetiche nei test automatici della Function; il
+canary verifica senza transazione che le superfici effettivamente disponibili
+siano raggiungibili e osserva passivamente soltanto ordini autentici ricevuti
+dal merchant:
 
 - checkout standard;
 - Shop Pay;
@@ -3475,9 +3480,13 @@ Obbligatori prima di `1.0.0`:
 - ordine misto;
 - checkout iniziale con prodotto in abbonamento, senza estrapolare il risultato alle ricorrenze successive.
 
-Se un wallet non è materialmente disponibile nell’ambiente di test, documentare il limite e verificare almeno il blocco server-side e il percorso di correzione offerto da Shopify.
-La prova con prodotto in abbonamento è eseguita in M10 sul canary store reale,
-dove prodotto e selling plan sono controllati.
+Se un wallet, una modalità di consegna, un prodotto digitale o un selling plan
+non è materialmente disponibile sullo store dell'owner, documentare il limite e
+verificare nei test automatici almeno il blocco server-side e il percorso di
+correzione offerto da Shopify. Non si creano prodotti, selling plan, ordini o
+identità cliente fittizi solo per soddisfare la matrice. Un ordine autentico
+idoneo eventualmente ricevuto fornisce evidenza live aggiuntiva; la sua assenza
+nel periodo di osservazione non blocca M10 né `1.0.0`.
 
 ### 23.12 Browser
 
@@ -3875,7 +3884,7 @@ Gate:
 
 Rifiniture non bloccanti tracciate in Open items §34.5.
 
-### M3 — Motore di validazione Development ✅ completata · gate M10 aperto
+### M3 — Motore di validazione Development ✅ completata · gate M10 in chiusura
 
 **Completata il 29 luglio 2026.** Query, motore e matrice
 automatizzata sono nel workspace `cf-ready-validation`; build Function, test e
@@ -4258,31 +4267,44 @@ quindi chiusi e M9 è formalmente completata. La visibilità resta limitata come
 previsto; il canary reale, `v1.0.0` e la piena visibilità appartengono
 rispettivamente a M10, M11 e M12.
 
-### M10 — Canary store reale
+### M10 — Canary store reale · in chiusura
+
+Le prove acquisite e il gap live della `0.9.39` sono registrati in
+`docs/evidence/2026-08-25-m10-canary-numisleo.md`. La chiusura richiede la
+pubblicazione e il readback della `0.9.40`, che rimuove l'invito a generare un
+ordine di prova sullo store reale.
 
 Deliverable:
 
 - installazione Production sullo store dell’owner;
-- billing reale controllato;
+- diritto commerciale reale controllato: charge Shopify per un merchant
+  pagante oppure concessione omaggio permanente D-135 per lo store dell’owner;
+  nel secondo caso il readback deve confermare assenza di charge e rinnovi;
 - attivazione a basso traffico;
-- ordini reali controllati;
-- checkout standard e wallet accelerati disponibili verificati con importi e
-  dati controllati;
-- matrice wallet completa: Apple Pay, Google Pay, Shop Pay e PayPal avviati da
-  pagina prodotto, carrello e checkout;
-- checkout iniziale con prodotto in abbonamento verificato con selling plan
-  controllato, senza estendere l’esito alle generazioni ricorrenti;
+- ricognizione non transazionale del checkout standard e dei wallet accelerati
+  effettivamente disponibili, senza creare ordini, clienti o pagamenti fittizi;
+- matrice server-side di checkout standard, Apple Pay, Google Pay, Shop Pay e
+  PayPal coperta da fixture automatiche; sul canary si verificano pagina
+  prodotto, carrello e checkout solo fino al punto precedente l'invio o
+  l'autorizzazione;
+- prodotto digitale, ordine misto, ritiro e selling plan verificati live solo
+  se già presenti per esigenze commerciali reali dello store; in caso contrario
+  valgono le fixture automatiche e il limite ambientale documentato;
+- osservazione passiva degli ordini autentici eventualmente ricevuti, senza
+  generare transazioni appositamente per il test;
 - monitoraggio.
 
 Gate:
 
 - nessun errore critico;
 - conferma compatibilità piano standard;
-- nessun flusso wallet completa un ordine senza Codice Fiscale quando la
-  destinazione è italiana. È bloccante e presuppone la correzione del fail-open
-  già applicata; un esito negativo va segnalato a Shopify con gli
-  identificativi di esecuzione. Regola e motivazione in
-  `docs/evidence/2026-07-29-checkout-validation-rendering.md`.
+- i test automatici della Function dimostrano che nessun flusso standard o
+  wallet completa un checkout senza Codice Fiscale quando la destinazione è
+  italiana; il canary conferma configurazione, superfici e assenza di errori
+  senza inviare ordini artificiali. Un bypass osservato su un ordine autentico
+  è bloccante e va segnalato a Shopify con gli identificativi di esecuzione;
+  l'assenza di ordini autentici nel periodo non è bloccante. Regola e
+  motivazione in `docs/evidence/2026-07-29-checkout-validation-rendering.md`.
 
 ### M11 — `1.0.0` e Controlled Launch
 
@@ -4699,15 +4721,15 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
    checkout: da ricontrollare insieme alla riverifica della Function API
    `2026-07` prevista in §35.
 I punti residui di brand sono verifiche e produzione di materiali che dipendono da milestone successive. **La Brand Foundation è chiusa.**
-9. **Cancellazione ordinaria e credito pro rata** — spostati al canary M10 il
-   30 luglio 2026. Sul dev store il pagamento unico attivo impedisce di creare
-   un abbonamento da cancellare, e un addebito di prova non è rimborsabile
-   perché non è mai stato pagato. Restano coperti dai test automatici il periodo
-   di grazia `ending`, l'accesso fino a fine periodo e l'assenza di
-   proratazione; resta da confrontare la stima del credito mostrata al merchant
-   con l'importo calcolato da Shopify. Rischio di comunicazione, non di
-   diritto. Nello stesso gruppo rientra la revoca per rimborso di FR-084, non
-   esercitabile su un addebito di prova mai pagato.
+9. **Cancellazione ordinaria e credito pro rata** — non bloccano il canary M10
+   dello store dell’owner dopo D-135, perché la concessione omaggio non crea
+   charge, rinnovi, crediti o rimborsi da esercitare. M10 verifica invece con
+   readback che non esistano charge Shopify attive e che la UI distingua
+   l’omaggio da un pagamento. Periodo di grazia `ending`, accesso fino a fine
+   periodo, proratazione e revoca per rimborso FR-084 restano coperti dai test
+   automatici; la prima osservazione live di cancellazione, credito e rimborso
+   appartiene al primo merchant pagante del Controlled Launch M11 e non viene
+   attribuita al canary omaggio.
 
 I punti 1 e 2 erano da decidere presto in M2 e sono stati chiusi lì.
 
