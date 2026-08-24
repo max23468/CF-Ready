@@ -18,7 +18,9 @@ const builtProduction = JSON.stringify({
     SHOPIFY_APP_URL: "https://cf-ready-prod.tmsf.workers.dev",
     SCOPES: "write_validations",
     BILLING_TEST: "true",
+    OWNER_NOTIFICATIONS_ENABLED: "false",
   },
+  triggers: { crons: ["0 * * * *", "*/5 * * * *"] },
   d1_databases: [
     {
       binding: "DB",

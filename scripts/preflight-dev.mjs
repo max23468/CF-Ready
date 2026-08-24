@@ -92,7 +92,7 @@ export function verifyMigrationSafety(migrations) {
   }
 }
 
-export function verifyWorkerSecrets(secrets) {
+export function verifyWorkerSecrets(secrets, { ownerNotifications = false } = {}) {
   const names = new Set(secrets.map(({ name }) => name));
   if (
     !["SHOPIFY_API_SECRET", "SESSION_ENCRYPTION_KEY", "TRIAL_LEDGER_HMAC_KEY"].every((name) =>
@@ -100,6 +100,18 @@ export function verifyWorkerSecrets(secrets) {
     )
   ) {
     throw new Error("Mancano secret runtime sul Worker.");
+  }
+  if (
+    ownerNotifications &&
+    ![
+      "TELEGRAM_BOT_TOKEN",
+      "TELEGRAM_CHAT_ID",
+      "SHOPIFY_PARTNER_ORGANIZATION_ID",
+      "SHOPIFY_PARTNER_APP_ID",
+      "SHOPIFY_PARTNER_ACCESS_TOKEN",
+    ].every((name) => names.has(name))
+  ) {
+    throw new Error("Mancano i secret delle notifiche owner sul Worker.");
   }
 }
 

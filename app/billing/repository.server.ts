@@ -158,9 +158,10 @@ export async function syncBillingAccount(
         .prepare(
           `INSERT INTO billing_events (
              shop_id, shopify_resource_gid, event_type, status, amount_minor, currency,
-             period_start, period_end, occurred_at, created_at
+             period_start, period_end, occurred_at, created_at,
+             previous_entitlement_status, previous_plan_kind
            )
-           SELECT id, ?, ?, ?, ?, ?, NULL, ?, ?, ? FROM shops WHERE shop_domain = ?
+           SELECT id, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ? FROM shops WHERE shop_domain = ?
            ON CONFLICT (shopify_resource_gid, event_type) DO NOTHING`,
         )
         .bind(
@@ -174,6 +175,8 @@ export async function syncBillingAccount(
           next.current_period_end,
           now,
           now,
+          stored?.entitlement_status ?? "none",
+          stored?.plan_kind ?? "none",
           shopDomain,
         ),
     );
@@ -279,13 +282,18 @@ export async function recordTrialLedger(db: D1Database, shopDomain: string) {
 }
 
 export async function markTrialConverted(db: D1Database, shopDomain: string) {
-  await db
+  const now = new Date().toISOString();
+  const converted = await db
     .prepare(
       `UPDATE trials SET status = 'converted', updated_at = ?
-       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?) AND status = 'active'`,
+       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?) AND status = 'active'
+       RETURNING shop_id`,
     )
-    .bind(new Date().toISOString(), shopDomain)
-    .run();
+    .bind(now, shopDomain)
+    .first<{ shop_id: number }>();
+  if (converted) {
+    await recordEvent(db, { shopDomain, name: "trial_converted", class: "billing" });
+  }
 }
 
 export function readBillingAccount(db: D1Database, shopDomain: string) {
