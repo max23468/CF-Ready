@@ -30,7 +30,12 @@ export function SetupGuide({
     {
       done: data.entitlement.kind !== "none",
       icon: "credit-card" as const,
-      title: t.setup.planTitle,
+      title:
+        currentCommercialState === "first_run"
+          ? t.setup.planTitle
+          : currentCommercialState === "lapsed"
+            ? t.setup.planTitleLapsed
+            : t.setup.planTitleActive,
       body: firstRun ? t.setup.planBody : t.setup.planBodyLapsed,
       action: firstRun ? (
         <s-stack direction="inline" gap="base">
@@ -90,23 +95,28 @@ export function SetupGuide({
           {done === 0 ? <s-paragraph>{t.setup.welcome}</s-paragraph> : null}
         </s-stack>
 
-        <s-grid gridTemplateColumns="repeat(auto-fit, minmax(12rem, 1fr))" gap="base">
-          {steps.map((step, index) => (
-            <s-stack key={step.title} direction="inline" gap="small-100" alignItems="center">
-              {step.done ? (
-                <s-icon type="check-circle" tone="success" />
-              ) : (
-                <s-icon type={step.icon} color={index === active ? "base" : "subdued"} />
-              )}
-              <s-text
-                type={index === active ? "strong" : undefined}
-                color={step.done ? "subdued" : "base"}
-              >
-                {step.title}
-              </s-text>
-            </s-stack>
-          ))}
-        </s-grid>
+        <s-query-container>
+          <s-grid
+            gridTemplateColumns="@container (inline-size > 640px) 'repeat(3, minmax(0, 1fr))', 1fr"
+            gap="small-100"
+          >
+            {steps.map((step, index) => (
+              <s-stack key={step.title} direction="inline" gap="small-100" alignItems="center">
+                {step.done ? (
+                  <s-icon type="check-circle" tone="success" />
+                ) : (
+                  <s-icon type={step.icon} color={index === active ? "base" : "subdued"} />
+                )}
+                <s-text
+                  type={index === active ? "strong" : undefined}
+                  color={step.done ? "subdued" : "base"}
+                >
+                  {step.title}
+                </s-text>
+              </s-stack>
+            ))}
+          </s-grid>
+        </s-query-container>
 
         {active >= 0 ? (
           <s-box background="subdued" borderRadius="base" padding="base">

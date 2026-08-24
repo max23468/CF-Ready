@@ -1,6 +1,7 @@
+import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { useFetcher, useLoaderData } from "react-router";
+import { useFetcher, useLoaderData, useNavigate } from "react-router";
 import { localDate, startTrial } from "../billing.server";
 import {
   address2Declaration,
@@ -15,7 +16,10 @@ import { databaseContext } from "../context.server";
 import { recordEvent } from "../events.server";
 import { onboardingCheckoutPreview } from "../features/onboarding/checkout-preview";
 import { onboardingStep4State } from "../features/onboarding/step4-state";
-import { markPlanComparison } from "../features/home/plan-comparison";
+import {
+  planComparisonLocationState,
+  requestPlanComparisonFromFrame,
+} from "../features/home/plan-comparison";
 import { resolveLocale, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { authenticate } from "../shopify.server";
@@ -150,6 +154,7 @@ export const shouldRevalidate = skipRevalidationWhenLeaving;
 
 export default function Onboarding() {
   const saved = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
   const fetcher = useFetcher<typeof action>();
   const t = texts(saved.locale);
   const [step, setStepState] = useState(saved.step);
@@ -255,12 +260,10 @@ export default function Onboarding() {
                 <s-paragraph>{t.onboarding.welcomeBody}</s-paragraph>
                 <s-divider />
                 <s-heading>{t.onboarding.step1Heading}</s-heading>
-                <s-paragraph>{t.onboarding.step1Body}</s-paragraph>
-                <s-unordered-list>
-                  {t.onboarding.step1Limits.map((line) => (
-                    <s-list-item key={line}>{line}</s-list-item>
-                  ))}
-                </s-unordered-list>
+                <OnboardingListBlock
+                  lead={<s-paragraph>{t.onboarding.step1Body}</s-paragraph>}
+                  items={t.onboarding.step1Limits}
+                />
               </>
             ) : null}
 
@@ -295,19 +298,15 @@ export default function Onboarding() {
                 {onboardingCheckoutPreview(saved).map((line) => (
                   <s-paragraph key={line}>{line}</s-paragraph>
                 ))}
-                <s-heading>{t.rules.exceptionsHeading}</s-heading>
-                <s-unordered-list>
-                  {t.rules.exceptions.map((line) => (
-                    <s-list-item key={line}>{line}</s-list-item>
-                  ))}
-                </s-unordered-list>
+                <OnboardingListBlock
+                  lead={<s-heading>{t.rules.exceptionsHeading}</s-heading>}
+                  items={t.rules.exceptions}
+                />
                 <s-heading>{t.onboarding.step3Messages}</s-heading>
-                <s-paragraph>{t.onboarding.step3MessagesBody}</s-paragraph>
-                <s-unordered-list>
-                  {Object.values(saved.messages[saved.locale]).map((line) => (
-                    <s-list-item key={line}>{line}</s-list-item>
-                  ))}
-                </s-unordered-list>
+                <OnboardingListBlock
+                  lead={<s-paragraph>{t.onboarding.step3MessagesBody}</s-paragraph>}
+                  items={Object.values(saved.messages[saved.locale])}
+                />
               </>
             ) : null}
 
@@ -320,6 +319,11 @@ export default function Onboarding() {
                 busy={busy}
                 pendingIntent={pendingIntent}
                 startTrial={() => go("start_trial")}
+                showPlans={() =>
+                  requestPlanComparisonFromFrame(window, () =>
+                    navigate("/app", { state: planComparisonLocationState() }),
+                  )
+                }
               />
             ) : null}
 
@@ -370,6 +374,25 @@ export default function Onboarding() {
   );
 }
 
+export function OnboardingListBlock({
+  lead,
+  items,
+}: {
+  lead: ReactNode;
+  items: readonly string[];
+}) {
+  return (
+    <s-stack direction="block" gap="small-100">
+      {lead}
+      <s-unordered-list>
+        {items.map((line) => (
+          <s-list-item key={line}>{line}</s-list-item>
+        ))}
+      </s-unordered-list>
+    </s-stack>
+  );
+}
+
 export function OnboardingStep4Content({
   saved,
   declared,
@@ -378,6 +401,7 @@ export function OnboardingStep4Content({
   busy,
   pendingIntent,
   startTrial,
+  showPlans,
 }: {
   saved: Awaited<ReturnType<typeof loader>>;
   declared: boolean;
@@ -386,6 +410,7 @@ export function OnboardingStep4Content({
   busy: boolean;
   pendingIntent: string | null;
   startTrial: () => void;
+  showPlans: () => void;
 }) {
   return (
     <>
@@ -428,17 +453,13 @@ export function OnboardingStep4Content({
             >
               {t.onboarding.step4StartTrial}
             </s-button>
-            <s-button href="/app" onClick={() => markPlanComparison(window.sessionStorage)}>
-              {t.onboarding.step4SeePlans}
-            </s-button>
+            <s-button onClick={showPlans}>{t.onboarding.step4SeePlans}</s-button>
           </s-stack>
         </>
       ) : (
         <>
           <s-paragraph>{t.plan.trialOver}</s-paragraph>
-          <s-button href="/app" onClick={() => markPlanComparison(window.sessionStorage)}>
-            {t.onboarding.step4SeePlans}
-          </s-button>
+          <s-button onClick={showPlans}>{t.onboarding.step4SeePlans}</s-button>
         </>
       )}
     </>

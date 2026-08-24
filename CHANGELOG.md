@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.31 — 24 agosto 2026
+
+- il confronto piani chiude la procedura guidata e porta la Home alla sezione
+  corretta senza navigare il frame della modale o nascondere Shopify Admin;
+- la guida iniziale usa passaggi compatti e responsive, resta riapribile e
+  mantiene gli elenchi vicini al testo che li introduce;
+- onboarding e anteprime usano copy più brevi e coerenti in italiano e inglese,
+  distinguendo prova, piano e accesso attivo senza spiegazioni tecniche interne.
+
 ## 0.9.30 — 24 agosto 2026
 
 - il confronto piani dall’onboarding usa un segnale di sessione tra il modal e

@@ -114,9 +114,10 @@ export const en: typeof it = {
     rulesBody: "Decide whether the tax code and PEC are not managed, optional or required.",
     activateTitle: "Turn on in checkout",
     activateBody: "Until you turn it on, your rules are saved but don’t apply to customers.",
-    planTitle: "Enable the checkout check",
-    planBody:
-      "The free trial lasts 14 days, asks for no card and starts only when you launch it. Until then, your rules stay saved and checkout does not change.",
+    planTitle: "Start the free trial",
+    planTitleLapsed: "Choose a plan",
+    planTitleActive: "Access active",
+    planBody: "The free trial lasts 14 days, requires no card, and starts only when you launch it.",
     planBodyLapsed:
       "The trial has ended. Choose a plan to apply your rules at checkout again; your configuration and messages stay saved.",
     startTrial: "Start the free trial",
@@ -133,34 +134,30 @@ export const en: typeof it = {
       "Set up the tax code and PEC checks, review customer messages, and choose when to turn on the rules.",
     step1Heading: "What it does and doesn’t do",
     step1Body:
-      "CF Ready checks the Italian tax code (Codice Fiscale) and the certified email address (PEC) in the native Italian checkout field. It doesn’t change your theme, doesn’t add fields and doesn’t issue invoices.",
+      "CF Ready checks the Italian tax code (Codice Fiscale) and certified email address (PEC) in Shopify checkout. It doesn’t change your theme, add fields or issue invoices.",
     step1Limits: [
-      "The check is formal: it verifies how the value is composed, not who it belongs to.",
+      "It only checks data format: it doesn’t confirm the customer’s identity or that an address is actually a certified PEC address.",
       "Rules only apply when delivery and billing are both in Italy.",
-      "If Shopify doesn’t make delivery details available, CF Ready lets the order continue.",
     ],
     step2Heading: "Choose what to check",
     step2Body: "You can change these choices whenever you want from Checkout rules.",
     step3Heading: "Rules preview",
-    step3Body: "With the current settings, once the check is active:",
+    step3Body: "With the rules you selected:",
     step3Messages: "Configured messages",
     step3MessagesBody:
       "These are the four messages already configured. They’re available in Italian and English and can be edited from Customer messages.",
     step4Heading: "Summary",
-    step4BodyReady: "Your rules are ready. Turn them on now or come back later.",
-    step4BodyNeedsEntitlement:
-      "Your rules are ready. Finish now, or turn them on after starting the trial or choosing a plan.",
+    step4BodyReady: "Your rules are saved but not active yet.",
+    step4BodyNeedsEntitlement: "Your rules are saved but not active yet.",
     step4TrialHeading: "Trial and plan",
-    step4TrialBody:
-      "To turn on the rules, start the free 14-day trial or choose a plan. The trial starts only when you launch it.",
-    step4StartTrial: "Start the 14-day trial",
+    step4TrialBody: "Start the free trial or choose a plan before turning them on.",
+    step4StartTrial: "Start the free trial",
     step4SeePlans: "Compare plans",
     step4TrialActive: "The trial is active: you can turn on the checkout check.",
-    step4PlanActive:
-      "Your plan is active: you can turn on the checkout check without starting the trial.",
+    step4PlanActive: "Your plan is active: you can turn on the checkout check.",
     reviewStep4Body: "The check is already active at checkout. Complete the review to return Home.",
     activate: "Turn on in checkout",
-    finishWithout: "Finish without turning on",
+    finishWithout: "Return Home without turning on",
     completeReview: "Complete review",
     doneHeading: "Setup complete",
     doneBody:
@@ -345,12 +342,8 @@ export const en: typeof it = {
       required_validatedHelp:
         "Customers can’t complete the order without an address in a valid email format.",
     },
-    exceptionsHeading: "Automatic exceptions",
-    exceptions: [
-      "Rules only apply when both delivery and billing are in Italy.",
-      "A customer billing outside Italy completes the order with no checks.",
-      "If Shopify doesn’t make delivery details available, CF Ready lets the order continue.",
-    ],
+    exceptionsHeading: "When rules apply",
+    exceptions: ["These rules only apply to orders with delivery and billing in Italy."],
     preventiveLabel: "Show warnings early in checkout",
     preventiveHelp:
       "Errors can appear as soon as checkout loads, before the customer has filled the fields in. Recommended if you use Shopify’s order confirmation step, because it stops customers reaching the review page blocked without a message.",
@@ -364,12 +357,10 @@ export const en: typeof it = {
   },
   checkout: {
     nothing: "No fields are configured: checkout stays unchanged.",
-    taxCodeRequired:
-      "A customer with delivery and billing in Italy can’t complete the order without a formally valid tax code.",
-    taxCodeOptional:
-      "A customer with delivery and billing in Italy can leave the tax code empty, but if they fill it in it must be formally valid.",
-    pecRequired: "The same customer must enter a PEC address in a valid email format.",
-    pecOptional: "PEC can stay empty, but if filled in it must be a valid email format.",
+    taxCodeRequired: "The tax code is required and must be formally valid.",
+    taxCodeOptional: "The tax code can be left empty; if entered, it must be formally valid.",
+    pecRequired: "PEC is required and must use a valid email format.",
+    pecOptional: "PEC can be left empty; if entered, it must use a valid email format.",
     summaryBlocking: "An Italian customer can’t complete the order without the required fields.",
     summaryChecking: "What Italian customers enter is checked, but nothing is required.",
     preventive:
