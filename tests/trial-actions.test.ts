@@ -4,6 +4,7 @@ import { createAppContext } from "../app/context.server";
 const mocks = vi.hoisted(() => ({
   authenticate: vi.fn(),
   queryContext: vi.fn(),
+  readComplimentaryEntitlement: vi.fn(),
   startTrial: vi.fn(),
 }));
 
@@ -13,6 +14,7 @@ vi.mock("../app/shopify.server", () => ({
 
 vi.mock("../app/billing.server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../app/billing.server")>()),
+  readComplimentaryEntitlement: mocks.readComplimentaryEntitlement,
   startTrial: mocks.startTrial,
 }));
 
@@ -30,6 +32,7 @@ beforeEach(() => {
   mocks.queryContext.mockResolvedValue({
     shop: { shopAddress: { countryCodeV2: "IT" }, ianaTimezone: "Europe/Rome" },
   });
+  mocks.readComplimentaryEntitlement.mockResolvedValue(null);
   mocks.startTrial.mockResolvedValue({ status: "expired" });
 });
 

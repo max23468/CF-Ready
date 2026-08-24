@@ -1,5 +1,11 @@
 import type { Entitlement } from "../config";
-import type { BillingAccount, PricingGeneration, ShopifyBilling, Trial } from "./types";
+import type {
+  BillingAccount,
+  ComplimentaryEntitlement,
+  PricingGeneration,
+  ShopifyBilling,
+  Trial,
+} from "./types";
 
 // Data di lancio provvisoria: la generazione Launch copre i primi 90 giorni. Finché il lancio
 // non è avvenuto la finestra non è ancora aperta, quindi vale comunque il prezzo di lancio.
@@ -63,7 +69,11 @@ export function entitlementFor(
   trial: Trial | null,
   today: string,
   account?: BillingAccount | null,
+  complimentary?: ComplimentaryEntitlement | null,
 ): Entitlement {
+  if (complimentary?.status === "active") {
+    return { kind: "one_time", validThrough: null };
+  }
   if (account?.plan_kind === "one_time" && account.entitlement_status === "active") {
     return { kind: "one_time", validThrough: null };
   }

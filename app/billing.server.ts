@@ -15,6 +15,7 @@ export {
 export {
   markTrialConverted,
   readBillingAccount,
+  readComplimentaryEntitlement,
   recordTrialLedger,
   startTrial,
   syncBillingAccount,
@@ -30,6 +31,7 @@ export {
 } from "./billing/shopify.server";
 export type {
   BillingAccount,
+  ComplimentaryEntitlement,
   EntitlementStatus,
   PricingGeneration,
   ShopifyBilling,
