@@ -13,8 +13,9 @@ import {
 } from "../config";
 import { databaseContext } from "../context.server";
 import { recordEvent } from "../events.server";
+import { onboardingCheckoutPreview } from "../features/onboarding/checkout-preview";
 import { onboardingStep4State } from "../features/onboarding/step4-state";
-import { describeCheckout, resolveLocale, texts, validationStatus } from "../i18n";
+import { resolveLocale, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { authenticate } from "../shopify.server";
 import {
@@ -236,20 +237,7 @@ export default function Onboarding() {
 
         <s-section>
           <s-stack direction="block" gap="base">
-            {/* Avanzamento con le spunte dei passi già fatti, come nella guida di configurazione. */}
-            <s-stack direction="block" gap="small-100">
-              <s-text color="subdued">{t.onboarding.stepOf(step, STEPS)}</s-text>
-              <s-stack direction="inline" gap="base">
-                {t.onboarding.stepNames.map((name, index) => (
-                  <s-stack key={name} direction="inline" gap="small-100" alignItems="center">
-                    {index + 1 < step ? <s-icon type="check-circle" tone="success" /> : null}
-                    <s-text type={index + 1 === step ? "strong" : undefined} color="subdued">
-                      {name}
-                    </s-text>
-                  </s-stack>
-                ))}
-              </s-stack>
-            </s-stack>
+            <OnboardingProgress step={step} t={t} />
 
             {step === 1 ? (
               <>
@@ -302,14 +290,8 @@ export default function Onboarding() {
             {step === 3 ? (
               <>
                 <s-heading>{t.onboarding.step3Heading}</s-heading>
-                {describeCheckout(
-                  {
-                    rules: saved.rules,
-                    errorDisplay: saved.errorDisplay,
-                    status: validationStatus(saved.enabled, saved.entitled),
-                  },
-                  saved.locale,
-                ).map((line) => (
+                <s-paragraph>{t.onboarding.step3Body}</s-paragraph>
+                {onboardingCheckoutPreview(saved).map((line) => (
                   <s-paragraph key={line}>{line}</s-paragraph>
                 ))}
                 <s-heading>{t.rules.exceptionsHeading}</s-heading>
@@ -387,7 +369,7 @@ export default function Onboarding() {
   );
 }
 
-function OnboardingStep4Content({
+export function OnboardingStep4Content({
   saved,
   declared,
   t,
@@ -445,17 +427,21 @@ function OnboardingStep4Content({
             >
               {t.onboarding.step4StartTrial}
             </s-button>
-            <s-link href="/app">{t.onboarding.step4SeePlans}</s-link>
+            <s-button href="/app#plans">{t.onboarding.step4SeePlans}</s-button>
           </s-stack>
         </>
       ) : (
         <>
           <s-paragraph>{t.plan.trialOver}</s-paragraph>
-          <s-link href="/app">{t.onboarding.step4SeePlans}</s-link>
+          <s-button href="/app#plans">{t.onboarding.step4SeePlans}</s-button>
         </>
       )}
     </>
   );
+}
+
+export function OnboardingProgress({ step, t }: { step: number; t: ReturnType<typeof texts> }) {
+  return <s-text color="subdued">{t.onboarding.stepOf(step, STEPS)}</s-text>;
 }
 
 function OnboardingStep4Actions({

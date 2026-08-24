@@ -59,8 +59,6 @@ export const en: typeof it = {
     unsupportedCheckAddress:
       "If your store is Italian, check the address in Settings → Store details: that’s where CF Ready reads the country from.",
     unsupportedGuide: "The Help page explains what the app does and where its limits are.",
-    firstRun:
-      "CF Ready was just installed. No trial has started and no rules are active at checkout: you can configure everything before deciding when to begin.",
     noEntitlement:
       "Without an active plan, checkout no longer blocks anything. Rules and messages stay saved and apply again once you pay.",
     syncNeeded:
@@ -110,8 +108,7 @@ export const en: typeof it = {
   },
   setup: {
     heading: "Get CF Ready ready",
-    welcome:
-      "Welcome. From here you decide which details to ask your Italian customers at checkout, and when the rules start applying. It takes a few minutes and you can stop halfway: whatever you save stays saved.",
+    welcome: "Choose what to check and when to turn the checkout rules on.",
     progress: (done: number, total: number) => `${done} of ${total} done`,
     rulesTitle: "Choose what to check",
     rulesBody: "Decide whether the tax code and PEC are not managed, optional or required.",
@@ -129,34 +126,33 @@ export const en: typeof it = {
   onboarding: {
     heading: "Set up CF Ready",
     stepOf: (current: number, total: number) => `Step ${current} of ${total}`,
-    stepNames: ["Introduction", "Rules", "Checkout", "Summary"],
     back: "Back",
     next: "Continue",
     welcomeHeading: "Welcome to CF Ready",
     welcomeBody:
-      "Four steps, five minutes. Choose what to check, review what customers will see and decide when to turn it on: nothing starts on its own.",
+      "Set up the tax code and PEC checks, review customer messages, and choose when to turn on the rules.",
     step1Heading: "What it does and doesn’t do",
     step1Body:
       "CF Ready checks the Italian tax code (Codice Fiscale) and the certified email address (PEC) in the native Italian checkout field. It doesn’t change your theme, doesn’t add fields and doesn’t issue invoices.",
     step1Limits: [
       "The check is formal: it verifies how the value is composed, not who it belongs to.",
       "Rules only apply when delivery and billing are both in Italy.",
-      "If Shopify shows an Italian delivery but omits a required field, CF Ready blocks checkout with a global warning; without an observable delivery, it remains fail-open.",
+      "If Shopify doesn’t make delivery details available, CF Ready lets the order continue.",
     ],
     step2Heading: "Choose what to check",
     step2Body: "You can change these choices whenever you want from Checkout rules.",
-    step3Heading: "What happens at checkout",
-    step3Messages: "The texts customers read",
+    step3Heading: "Rules preview",
+    step3Body: "With the current settings, once the check is active:",
+    step3Messages: "Configured messages",
     step3MessagesBody:
-      "They’re ready in Italian and English. You can rewrite them whenever you want from Customer messages.",
+      "These are the four messages already configured. They’re available in Italian and English and can be edited from Customer messages.",
     step4Heading: "Summary",
-    step4BodyReady:
-      "Your rules are ready. Turn them on now, or finish without turning them on and come back whenever you want.",
+    step4BodyReady: "Your rules are ready. Turn them on now or come back later.",
     step4BodyNeedsEntitlement:
-      "Your rules are ready. Start the free trial or choose a plan before turning them on; you can also finish without turning them on and come back whenever you want.",
+      "Your rules are ready. Finish now, or turn them on after starting the trial or choosing a plan.",
     step4TrialHeading: "Trial and plan",
     step4TrialBody:
-      "Rules only apply at checkout with an active trial or payment. The trial lasts 14 days, is free and asks for no card: until you start it, none of it is spent.",
+      "To turn on the rules, start the free 14-day trial or choose a plan. The trial starts only when you launch it.",
     step4StartTrial: "Start the 14-day trial",
     step4SeePlans: "Compare plans",
     step4TrialActive: "The trial is active: you can turn on the checkout check.",
@@ -282,10 +278,10 @@ export const en: typeof it = {
     notStartedStatus: "The free trial has not started yet.",
     notStartedHeading: "Before turning the check on",
     notStartedBody:
-      "Rules only apply at checkout with an active trial or payment. The trial lasts 14 days, is free and asks for no card: start it now or later — until you do, none of it is spent.",
+      "Start the free 14-day trial to turn on the rules. It requires no card and starts only when you launch it.",
     startTrial: "Start the 14-day trial",
     startTrialDone: "Trial started.",
-    orChoose: "Or choose how to pay right away, skipping the trial.",
+    orChoose: "Or choose a plan directly.",
     monthlyStart: "Start monthly",
     monthlySwitch: "Switch to monthly",
     annualStart: "Start annual",
@@ -305,7 +301,7 @@ export const en: typeof it = {
     chooseNowHeading: "Choose a plan now",
     chooseHeading: "How you want to continue",
     chooseBody:
-      "All three have the same features: only when and how much you pay changes. Shopify handles the payments and they land on your store invoice, not on a card left with us.",
+      "Every plan has the same features. Shopify handles the charges on your store invoice.",
     oneTimeSettled:
       "One payment for this store, with no renewals. It includes app updates and support, at no extra cost. There’s nothing else to choose.",
     recommended: "Recommended",
@@ -353,7 +349,7 @@ export const en: typeof it = {
     exceptions: [
       "Rules only apply when both delivery and billing are in Italy.",
       "A customer billing outside Italy completes the order with no checks.",
-      "If Shopify shows an Italian delivery but omits a required field, CF Ready blocks checkout with a global warning; without an observable delivery, it remains fail-open.",
+      "If Shopify doesn’t make delivery details available, CF Ready lets the order continue.",
     ],
     preventiveLabel: "Show warnings early in checkout",
     preventiveHelp:
@@ -361,8 +357,8 @@ export const en: typeof it = {
     previewHeading: "What customers will see",
     address2Heading: "Don’t use the “Apartment, suite, etc.” field for the tax code",
     address2Body:
-      "The tax code belongs in the native Italian checkout field. If you also collect it in “Apartment, suite, etc.”, customers see two fields for the same value. CF Ready can’t read or change that setting: this relies on what you tell us.",
-    address2Checkbox: "I use the “Apartment, suite, etc.” field for the tax code",
+      "Do you also use “Apartment, suite, etc.” for the tax code? Customers will see two fields. Select the checkbox to see how to remove it.",
+    address2Checkbox: "Yes, I use “Apartment, suite, etc.” for the tax code",
     address2Instructions:
       "Two steps. In Settings → Checkout, under “Form options”, set the second address line to “Optional” or “Don’t include”; then, if you changed its label, restore it from “Manage checkout language”, or from Settings → Languages, “Checkout and system” tab, for a translated language.",
   },
