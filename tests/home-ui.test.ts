@@ -3,11 +3,17 @@ import { isValidElement } from "react";
 import { expect, test, vi } from "vitest";
 import { texts } from "../app/i18n";
 import { commercialState } from "../app/features/home/commercial-state";
+import { isPlanComparisonView, showSetupGuide } from "../app/features/home/plan-comparison";
 import { PlanStatus } from "../app/features/home/PlanStatus";
+import { onboardingCheckoutPreview } from "../app/features/onboarding/checkout-preview";
 import { onboardingStep4State } from "../app/features/onboarding/step4-state";
 import { openBillingApproval } from "../app/revalidation";
 import { PlanChoice, SetupGuide } from "../app/routes/app._index";
-import { Address2DeclarationPrompt } from "../app/routes/app.onboarding";
+import {
+  Address2DeclarationPrompt,
+  OnboardingProgress,
+  OnboardingStep4Content,
+} from "../app/routes/app.onboarding";
 
 vi.mock("../app/shopify.server", () => ({ authenticate: {} }));
 
@@ -217,6 +223,14 @@ test("la prima installazione non viene presentata come un piano da riattivare", 
   const buttons = rendered
     .filter((element) => element.type === "s-button")
     .map((element) => (element.props as { children?: ReactNode }).children);
+  const primaryButtons = rendered
+    .filter(
+      (element) =>
+        element.type === "s-button" &&
+        (element.props as { variant?: string; slot?: string }).variant === "primary" &&
+        !(element.props as { slot?: string }).slot,
+    )
+    .map((element) => (element.props as { children?: ReactNode }).children);
   const planStatus = elements(PlanStatus({ data: firstRunData }));
 
   expect(commercialState(firstRunData)).toBe("first_run");
@@ -226,6 +240,7 @@ test("la prima installazione non viene presentata come un piano da riattivare", 
   expect(paragraphs).not.toContain(texts("it").plan.oneTimeCharge);
   expect(buttons).toContain(texts("it").plan.oneTimeStart);
   expect(buttons).not.toContain(texts("it").plan.oneTimeSwitch);
+  expect(primaryButtons).toEqual([texts("it").plan.startTrial]);
   expect(
     planStatus.some(
       (element) =>
@@ -233,14 +248,22 @@ test("la prima installazione non viene presentata come un piano da riattivare", 
         (element.props as { children?: ReactNode }).children === texts("it").plan.notStartedStatus,
     ),
   ).toBe(true);
-  expect(texts("it").home.firstRun).not.toMatch(/riattiv|pagamento|più nulla/i);
-
   expect(
     commercialState({
       ...firstRunData,
       trialStatus: "expired",
     }),
   ).toBe("lapsed");
+});
+
+test("l’avanzamento onboarding resta compatto anche al quarto passo", () => {
+  const rendered = elements(OnboardingProgress({ step: 4, t: texts("it") }));
+  const labels = rendered
+    .filter((element) => element.type === "s-text")
+    .map((element) => (element.props as { children?: ReactNode }).children);
+
+  expect(labels).toEqual(["Passo 4 di 4"]);
+  expect(labels).not.toContain(texts("it").onboarding.step4Heading);
 });
 
 test("il riepilogo onboarding distingue primo avvio, prova e piano", () => {
@@ -270,11 +293,70 @@ test("il riepilogo onboarding distingue primo avvio, prova e piano", () => {
   ).toEqual({ summary: "ready", access: "plan", canActivate: true });
 });
 
+test("il confronto piani apre la sezione corretta senza riproporre la guida", () => {
+  const rendered = elements(
+    OnboardingStep4Content({
+      saved: {
+        locale: "it",
+        rules: { taxCode: "required_validated", pec: "unmanaged" },
+      } as Awaited<ReturnType<typeof import("../app/routes/app.onboarding").loader>>,
+      declared: false,
+      t: texts("it"),
+      state: { summary: "needs", access: "first_run", canActivate: false },
+      busy: false,
+      pendingIntent: null,
+      startTrial: vi.fn(),
+    }),
+  );
+  const actions = rendered.filter(
+    (element) =>
+      element.type === "s-button" &&
+      [texts("it").onboarding.step4StartTrial, texts("it").onboarding.step4SeePlans].includes(
+        (element.props as { children?: string }).children ?? "",
+      ),
+  );
+
+  expect(actions).toHaveLength(2);
+  expect(actions[1].props).toMatchObject({ href: "/app#plans" });
+  expect(isPlanComparisonView("#plans")).toBe(true);
+  expect(isPlanComparisonView("")).toBe(false);
+  expect(showSetupGuide("in_progress", "#plans")).toBe(false);
+  expect(showSetupGuide("in_progress", "")).toBe(true);
+
+  const planAnchor = elements(
+    PlanChoice({
+      data,
+      busy: false,
+      pendingIntent: null,
+      submit: vi.fn(),
+      firstCharge: "oggi",
+    }),
+  ).find(
+    (element) => element.type === "s-box" && (element.props as { id?: string }).id === "plans",
+  );
+  expect(planAnchor).toBeDefined();
+});
+
+test("l’anteprima onboarding descrive le regole attive senza contraddire lo stato corrente", () => {
+  const it = texts("it");
+  const preview = onboardingCheckoutPreview({
+    rules: { taxCode: "required_validated", pec: "unmanaged" },
+    errorDisplay: "inline",
+    locale: "it",
+  });
+
+  expect(preview).toContain(it.checkout.taxCodeRequired);
+  expect(preview).not.toContain(it.checkout.disabled);
+  expect(it.onboarding.step3MessagesBody).toMatch(/quattro messaggi già configurati/i);
+  expect(`${it.onboarding.welcomeBody} ${it.onboarding.step1Limits.join(" ")}`).not.toMatch(
+    /fail-open|cinque minuti|niente parte/i,
+  );
+});
+
 test("i testi iniziali non presuppongono una configurazione precedente", () => {
   const it = texts("it");
   const en = texts("en");
   const initialItalian = [
-    it.home.firstRun,
     it.home.badgeNotStarted,
     it.home.titleNotStarted,
     it.setup.welcome,
@@ -287,7 +369,6 @@ test("i testi iniziali non presuppongono una configurazione precedente", () => {
     it.messages.appearIntro,
   ].join(" ");
   const initialEnglish = [
-    en.home.firstRun,
     en.home.badgeNotStarted,
     en.home.titleNotStarted,
     en.setup.welcome,
@@ -316,9 +397,15 @@ test("checkbox e istruzioni della dichiarazione condividono lo stesso stato", ()
         (element.props as { children?: ReactNode }).children ===
           texts("it").rules.address2Instructions,
     );
+  const unchecked = checkbox(false);
+  const checked = checkbox(true);
+  if (!unchecked || !checked) throw new Error("dichiarazione del campo Interno assente");
 
-  expect(checkbox(false)?.props).toMatchObject({ checked: false });
+  expect(texts("it").rules.address2Body).toMatch(/seleziona la casella/i);
+  expect((unchecked.props as { label?: string }).label).toMatch(/^Sì,/);
+
+  expect(unchecked.props).toMatchObject({ checked: false });
   expect(instructions(false)).toBe(false);
-  expect(checkbox(true)?.props).toMatchObject({ checked: true });
+  expect(checked.props).toMatchObject({ checked: true });
   expect(instructions(true)).toBe(true);
 });
