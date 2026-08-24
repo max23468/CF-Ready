@@ -281,15 +281,18 @@ function stubAdmin({
   userErrors = [],
   billing = { subscription: null, oneTime: null, pendingOneTime: false },
   billingError = false,
+  cancelErrors = [],
   readback,
 }: {
   existing?: { enabled: boolean; config?: CheckoutConfig };
   userErrors?: { message: string }[];
   billing?: ShopifyBilling;
   billingError?: boolean;
+  cancelErrors?: { message: string }[];
   readback?: (config: CheckoutConfig) => CheckoutConfig;
 }) {
   const calls: { operation: string; enable?: boolean; config?: CheckoutConfig }[] = [];
+  const shopifyCalls: string[] = [];
   let node = existing
     ? {
         id: "gid://shopify/Validation/1",
@@ -303,6 +306,7 @@ function stubAdmin({
 
   return {
     calls,
+    shopifyCalls,
     admin: {
       graphql: async (query: string, options?: { variables?: Record<string, any> }) => {
         if (query.includes("CfReadyContext")) {
@@ -321,6 +325,7 @@ function stubAdmin({
           });
         }
         if (query.includes("CfReadyBilling")) {
+          shopifyCalls.push("billing");
           if (billingError) throw new Error("Shopify non disponibile");
           return Response.json({
             data: {
@@ -366,6 +371,13 @@ function stubAdmin({
                 },
               },
             },
+          });
+        }
+        if (query.includes("CfReadySubscriptionCancel")) {
+          shopifyCalls.push("cancel");
+          if (!cancelErrors.length) billing.subscription = null;
+          return Response.json({
+            data: { appSubscriptionCancel: { userErrors: cancelErrors } },
           });
         }
 
@@ -650,6 +662,87 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
   } finally {
     await env.DB.prepare("DROP TRIGGER fail_validation_billing_sync").run();
   }
+});
+
+test("la scrittura rende operativo l'omaggio solo dopo aver cancellato e riletto l'abbonamento", async () => {
+  const shop = "write-complimentary.example.myshopify.com";
+  await seedShop(shop);
+  const now = "2026-08-24T00:00:00.000Z";
+  await env.DB.prepare(
+    `INSERT INTO complimentary_entitlements
+       (shop_id, status, granted_at, revoked_at, created_at, updated_at)
+     SELECT id, 'active', ?, NULL, ?, ? FROM shops WHERE shop_domain = ?`,
+  )
+    .bind(now, now, now, shop)
+    .run();
+  const billing: ShopifyBilling = {
+    subscription: {
+      id: "gid://shopify/AppSubscription/write-complimentary",
+      name: "launch-monthly",
+      currentPeriodEnd: "2026-08-31T21:59:59Z",
+      interval: "EVERY_30_DAYS",
+      amount: "2.99",
+      currency: "EUR",
+    },
+    oneTime: null,
+    pendingOneTime: false,
+  };
+  const stub = stubAdmin({ existing: { enabled: true }, billing });
+
+  expect(
+    await writeValidation(
+      stub.admin,
+      env.DB,
+      shop,
+      {
+        rules: DEFAULT_CONFIG.rules,
+        errorDisplay: DEFAULT_CONFIG.errorDisplay,
+        messages: DEFAULT_CONFIG.messages,
+      },
+      null,
+    ),
+  ).toEqual({ ok: true, enabled: true });
+  expect(stub.shopifyCalls).toEqual(["billing", "cancel", "billing"]);
+  expect(stub.calls[0].config?.entitlement).toEqual({ kind: "one_time", validThrough: null });
+});
+
+test("un errore billing non impedisce di disattivare il controllo con un omaggio assegnato", async () => {
+  const shop = "disable-complimentary-offline.example.myshopify.com";
+  await seedShop(shop);
+  const now = "2026-08-24T00:00:00.000Z";
+  await env.DB.prepare(
+    `INSERT INTO complimentary_entitlements
+       (shop_id, status, granted_at, revoked_at, created_at, updated_at)
+     SELECT id, 'active', ?, NULL, ?, ? FROM shops WHERE shop_domain = ?`,
+  )
+    .bind(now, now, now, shop)
+    .run();
+  const stub = stubAdmin({ existing: { enabled: true }, billingError: true });
+
+  expect(await writeValidation(stub.admin, env.DB, shop, null, false)).toEqual({
+    ok: true,
+    enabled: false,
+  });
+  expect(stub.calls[0]).toMatchObject({
+    operation: "validationUpdate",
+    enable: false,
+    config: { entitlement: { kind: "none", validThrough: null } },
+  });
+
+  expect(
+    await writeValidation(
+      stub.admin,
+      env.DB,
+      shop,
+      {
+        rules: DEFAULT_CONFIG.rules,
+        errorDisplay: DEFAULT_CONFIG.errorDisplay,
+        messages: DEFAULT_CONFIG.messages,
+      },
+      null,
+    ),
+  ).toEqual({ ok: true, enabled: false });
+  expect(stub.calls).toHaveLength(2);
 });
 
 test("il limite di Validation attive ha un codice stabile e non perde la configurazione", async () => {

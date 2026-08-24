@@ -18,6 +18,12 @@ export type BillingAccount = {
   current_period_end: string | null;
 };
 
+export type ComplimentaryEntitlement = {
+  status: "active" | "revoked";
+  granted_at: string;
+  revoked_at: string | null;
+};
+
 export type ShopifyBilling = {
   subscription: {
     id: string;

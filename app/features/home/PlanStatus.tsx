@@ -14,7 +14,9 @@ export function PlanStatus({ data }: { data: HomeData }) {
           {data.entitlement.kind === "trial"
             ? t.plan.trial(formatDate(data.trialEndsAt, data.locale))
             : onOneTime
-              ? t.plan.oneTime
+              ? data.complimentary
+                ? t.plan.complimentary
+                : t.plan.oneTime
               : data.entitlement.kind === "subscription"
                 ? t.plan.subscription(formatDate(data.entitlement.validThrough, data.locale))
                 : data.trialStatus === "expired"
@@ -30,7 +32,7 @@ export function PlanStatus({ data }: { data: HomeData }) {
               : t.plan.nextCharge(formatDate(data.periodEnd, data.locale))}
           </s-paragraph>
         ) : null}
-        {data.plan ? (
+        {data.plan && !data.complimentary ? (
           <s-paragraph>
             {data.plan.generation === "launch"
               ? t.plan.generationLaunch

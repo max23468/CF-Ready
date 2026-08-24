@@ -1,10 +1,12 @@
 import {
+  cancelSubscription,
   currentPricingGeneration,
   entitlementFor,
   localDate,
   markTrialConverted,
   readBilling,
   readBillingAccount,
+  readComplimentaryEntitlement,
   syncBillingAccount,
   syncTrial,
 } from "../billing.server";
@@ -70,13 +72,30 @@ export async function writeValidation(
 
     const enabled = enable ?? existing?.enabled ?? false;
     const today = localDate(data.shop.ianaTimezone);
-    const trial = await syncTrial(db, shopDomain, { today });
+    const [trial, complimentary] = await Promise.all([
+      syncTrial(db, shopDomain, { today }),
+      readComplimentaryEntitlement(db, shopDomain),
+    ]);
     let account = await readBillingAccount(db, shopDomain);
     let billing: Awaited<ReturnType<typeof readBilling>> | null = null;
     try {
       billing = await readBilling(admin);
     } catch {
       // Shopify non raggiungibile: conserva lo stato operativo noto senza concedere diritti.
+    }
+    if (!billing && complimentary?.status === "active" && enable === true) {
+      return { ok: false, errorCode: "billing_read_failed" };
+    }
+    if (billing?.subscription && complimentary?.status === "active") {
+      if (!(await heartbeat.isHeld())) return { ok: false, errorCode: "validation_locked" };
+      const cancellationError = await cancelSubscription(admin, billing.subscription.id, {
+        prorate: true,
+      });
+      if (cancellationError) return { ok: false, errorCode: cancellationError };
+      billing = await readBilling(admin);
+      if (billing.subscription) {
+        return { ok: false, errorCode: "subscription_cancel_failed" };
+      }
     }
     if (billing) {
       account = await syncBillingAccount(db, shopDomain, billing, {
@@ -85,10 +104,12 @@ export async function writeValidation(
         pricingGeneration: currentPricingGeneration(trial, account, today),
         storedAccount: account,
       });
-      if (account.entitlement_status === "active") await markTrialConverted(db, shopDomain);
+      if (account.entitlement_status === "active" || complimentary?.status === "active") {
+        await markTrialConverted(db, shopDomain);
+      }
     }
     const entitlement: Entitlement = billing
-      ? entitlementFor(trial, today, account)
+      ? entitlementFor(trial, today, account, complimentary)
       : { kind: "none", validThrough: null };
     if (enable === true && !existing?.enabled && entitlement.kind === "none") {
       return { ok: false, errorCode: "entitlement_required" };

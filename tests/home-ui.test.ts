@@ -42,6 +42,38 @@ const data = {
   creditEstimate: null,
 } as Parameters<typeof PlanChoice>[0]["data"];
 
+test("il piano omaggio non viene presentato come un pagamento", () => {
+  const complimentary = {
+    ...data,
+    entitlement: { kind: "one_time", validThrough: null },
+    complimentary: true,
+  } as Parameters<typeof PlanChoice>[0]["data"];
+  const choice = elements(
+    PlanChoice({
+      data: complimentary,
+      busy: false,
+      pendingIntent: null,
+      submit: vi.fn(),
+      firstCharge: "oggi",
+    }),
+  );
+  const status = elements(PlanStatus({ data: complimentary }));
+
+  expect(
+    choice.some(
+      (element) =>
+        (element.props as { children?: ReactNode }).children ===
+        texts("it").plan.complimentarySettled,
+    ),
+  ).toBe(true);
+  expect(
+    status.some(
+      (element) =>
+        (element.props as { children?: ReactNode }).children === texts("it").plan.complimentary,
+    ),
+  ).toBe(true);
+});
+
 test("l'approvazione billing si apre fuori dall'iframe", () => {
   const opener = vi.fn();
 
