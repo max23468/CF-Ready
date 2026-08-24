@@ -3,17 +3,19 @@ import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { Outlet, useLoaderData, useNavigation, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
-import { env } from "cloudflare:workers";
 
+import { restoreEmbeddedAdmin } from "../embedded-admin";
+import { APP_API_KEY } from "../env.server";
 import { resolveLocale, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
 
   return {
-    apiKey: (env as Env & { SHOPIFY_API_KEY?: string }).SHOPIFY_API_KEY || "",
+    apiKey: APP_API_KEY,
+    shopDomain: session.shop,
     locale: resolveLocale(request),
   };
 };
@@ -32,7 +34,7 @@ type Nav = ReturnType<typeof texts>["nav"];
 export const shouldRevalidate = skipRevalidationWhenLeaving;
 
 export default function App() {
-  const { apiKey, locale } = useLoaderData<typeof loader>();
+  const { apiKey, shopDomain, locale } = useLoaderData<typeof loader>();
   const t = texts(locale).nav;
   const navigation = useNavigation();
 
@@ -43,6 +45,19 @@ export default function App() {
     if (typeof shopify === "undefined") return;
     shopify.loading(navigation.state !== "idle");
   }, [navigation.state]);
+
+  // Billing, ricariche o link esterni non devono mai lasciare CF Ready come pagina
+  // autonoma: se manca la cornice, riapri la stessa rotta nell'Admin dello shop
+  // autenticato. La guardia è sull'App root, quindi copre tutte le route e le azioni.
+  useEffect(() => {
+    restoreEmbeddedAdmin({
+      embedded: window.self !== window.top,
+      shopDomain,
+      apiKey,
+      appPath: window.location.pathname,
+      replace: (url) => window.location.replace(url),
+    });
+  }, [apiKey, shopDomain]);
 
   return (
     <AppProvider apiKey={apiKey}>
