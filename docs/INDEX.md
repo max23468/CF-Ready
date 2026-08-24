@@ -17,7 +17,7 @@ corrente si legge da codice, configurazioni e `package.json`.
 - [Evidenze M1](evidence/2026-07-28-m1-proof-of-concept.md) — target, prove sul
   dev store, CPU e confini operativi.
 - [Rendering errori checkout](evidence/2026-07-29-checkout-validation-rendering.md)
-  — target verificato, limite della review e gate Shopify/M10 residui.
+  — target verificato, limite della review, chiusura M10 e gate checkout M11.
 - [Operazioni Development M4](evidence/2026-07-30-m4-development-migration.md)
   — migrazione D1, deploy, snapshot Shopify e verifiche live.
 - [Rilascio Development M5](evidence/2026-07-30-m5-development-release.md)
