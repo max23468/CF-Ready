@@ -52,3 +52,19 @@ test.each([
 
   expect(result).toEqual({ ok: false, errorCode: "trial_unavailable" });
 });
+
+test.each([
+  ["Home", () => import("../app/routes/app._index")],
+  ["onboarding", () => import("../app/routes/app.onboarding")],
+])("%s avvia la prova senza restituire un redirect esterno", async (_name, route) => {
+  mocks.startTrial.mockResolvedValueOnce({ status: "active" });
+  const { action } = await route();
+  const result = await action({
+    request: request(),
+    context: createAppContext({} as D1Database),
+    params: {},
+  } as never);
+
+  expect(result).toEqual({ ok: true });
+  expect(result).not.toHaveProperty("confirmationUrl");
+});

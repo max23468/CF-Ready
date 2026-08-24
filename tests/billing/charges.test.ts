@@ -64,6 +64,7 @@ test("l'addebito restituisce l'URL di conferma e distingue i due tipi", async ()
   expect(chiamate[0].variables).toMatchObject({
     trialDays: 6,
     test: true,
+    returnUrl: "https://app.example/app",
     replacementBehavior: "STANDARD",
   });
 
@@ -86,6 +87,7 @@ test("l'addebito restituisce l'URL di conferma e distingue i due tipi", async ()
 
   expect(unaTantum.confirmationUrl).toBe("https://shopify/unica");
   expect(chiamate[1].query).toContain("appPurchaseOneTimeCreate");
+  expect(chiamate[1].variables).toMatchObject({ returnUrl: "https://app.example/app" });
 
   // Un rifiuto di Shopify non deve passare per successo con un URL mancante.
   const rifiutato = await createCharge(
