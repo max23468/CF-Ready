@@ -6,6 +6,12 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.36 — 24 agosto 2026
+
+- le notifiche Telegram delle prove gratuite mostrano la scadenza come giorno
+  civile, senza aggiungere un orario artificiale dovuto al fuso italiano;
+- l'orario dell'attivazione continua a essere mostrato nel fuso Europe/Rome.
+
 ## 0.9.35 — 24 agosto 2026
 
 - gli elenchi dell'onboarding non aggiungono spazi verticali tra il testo
