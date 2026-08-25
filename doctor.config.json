@@ -10,6 +10,13 @@
       {
         "files": ["app/routes/app.tsx"],
         "rules": ["react-doctor/only-export-components"]
+      },
+      {
+        "files": ["app/root.tsx"],
+        "rules": [
+          "react-doctor/no-undeferred-third-party",
+          "react-doctor/rendering-script-defer-async"
+        ]
       }
     ]
   }

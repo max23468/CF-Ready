@@ -1,10 +1,10 @@
 import { useEffect } from "react";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Outlet, useLoaderData, useNavigation, useRouteError } from "react-router";
+import { Outlet, useLoaderData, useNavigate, useNavigation, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { AppProvider } from "@shopify/shopify-app-react-router/react";
 
-import { restoreEmbeddedAdmin } from "../embedded-admin";
+import { requestAppWindowNavigation } from "../app-window-navigation";
+import { navigateFromShopifyEvent, restoreEmbeddedAdmin } from "../embedded-admin";
 import { APP_API_KEY } from "../env.server";
 import { resolveLocale, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
@@ -36,7 +36,18 @@ export const shouldRevalidate = skipRevalidationWhenLeaving;
 export default function App() {
   const { apiKey, shopDomain, locale } = useLoaderData<typeof loader>();
   const t = texts(locale).nav;
+  const navigate = useNavigate();
   const navigation = useNavigation();
+
+  // App Bridge inoltra questi eventi per i link interni dei Web Components. Prima lo faceva
+  // AppProvider, rimosso perché caricava gli script nel body anziché nel head richiesto da BFS.
+  useEffect(() => {
+    const handleNavigate = (event: Event) =>
+      navigateFromShopifyEvent(event, (href) => requestAppWindowNavigation(window, href, navigate));
+
+    document.addEventListener("shopify:navigate", handleNavigate);
+    return () => document.removeEventListener("shopify:navigate", handleNavigate);
+  }, [navigate]);
 
   // App Bridge cambia l'URL appena si clicca, mentre React Router aspetta il loader della
   // pagina nuova: senza un segnale il clic sembra ignorato e il merchant preme di nuovo.
@@ -60,7 +71,7 @@ export default function App() {
   }, [apiKey, shopDomain]);
 
   return (
-    <AppProvider apiKey={apiKey}>
+    <>
       <s-app-nav>
         {NAV.map((item) => (
           <s-link key={item.href} href={item.href}>
@@ -69,7 +80,7 @@ export default function App() {
         ))}
       </s-app-nav>
       <Outlet />
-    </AppProvider>
+    </>
   );
 }
 

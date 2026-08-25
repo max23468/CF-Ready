@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useFetcher, useLoaderData, useLocation } from "react-router";
+import { useFetcher, useLoaderData, useLocation, useNavigate } from "react-router";
 import { ELIGIBLE_COUNTRY, pendingFetcherIntent, pendingFetcherSource } from "../../config";
 import {
   formatDate,
@@ -20,12 +20,14 @@ import {
   hideAppWindow,
   isPlanComparisonLocationState,
 } from "./plan-comparison";
+import { useOnboardingWindowNavigation } from "./use-onboarding-window-navigation";
 
 const ONBOARDING_WINDOW_ID = "onboarding-window";
 
 export default function HomePage() {
   const data = useLoaderData<HomeData>();
   const location = useLocation();
+  const navigate = useNavigate();
   const fetcher = useFetcher<typeof action>();
   const t = texts(data.locale);
   const result = fetcher.data as
@@ -57,6 +59,8 @@ export default function HomePage() {
     window.addEventListener("message", showPlans);
     return () => window.removeEventListener("message", showPlans);
   }, []);
+
+  useOnboardingWindowNavigation(navigate);
 
   useEffect(() => {
     if (!isPlanComparisonLocationState(location.state)) return;
