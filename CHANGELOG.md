@@ -6,6 +6,11 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.45 — 25 agosto 2026
+
+- la ricevuta M11 conserva i conteggi operativi senza versionare domini o alias
+  merchant identificabili.
+
 ## 0.9.44 — 25 agosto 2026
 
 - i webhook firmati vengono validati senza caricare o rinnovare sessioni già
