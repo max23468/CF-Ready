@@ -3,7 +3,7 @@
   "name": "cf-ready-dev",
   "account_id": "98195e505f42abaaeb4827f71a924b1a",
   "main": "./workers/app.ts",
-  "compatibility_date": "2026-07-28",
+  "compatibility_date": "2026-08-22",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "preview_urls": false,
