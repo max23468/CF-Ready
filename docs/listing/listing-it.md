@@ -74,7 +74,7 @@ ripete lo slogan è inutile a chi non vede l'immagine.
 
 ## Ricerca e SEO
 
-- termini di ricerca: `Codice Fiscale`, `PEC`, `Fatturazione`, `Campi fiscali`,
+- termini di ricerca: `Codice Fiscale`, `PEC`, `Checkout italiano`, `Campi fiscali`,
   `Checkout`;
 - title tag: `CF Ready - Codice Fiscale obbligatorio nel checkout`;
 - meta description: `Rendi obbligatorio il Codice Fiscale nel checkout
@@ -110,6 +110,22 @@ Le tre modalità hanno **identiche funzionalità**: nessun tier artificiale. I
 prezzi di lancio valgono i primi 90 giorni; chi sottoscrive mantiene il prezzo
 acquisito anche dopo. Tutti i pagamenti passano dal sistema di fatturazione
 delle app di Shopify.
+
+Funzionalità mostrate nel piano mensile/annuale:
+
+- `€2,99/mese o €29,90/anno`
+- `Codice Fiscale e PEC`
+- `Validazione nel checkout`
+- `Nessuna modifica al tema`
+- `Tutti gli aggiornamenti inclusi`
+
+Funzionalità mostrate nel piano a pagamento unico:
+
+- `Un pagamento, nessun rinnovo`
+- `€89,90 per un singolo store`
+- `Codice Fiscale e PEC`
+- `Validazione nel checkout`
+- `Tutti gli aggiornamenti inclusi`
 
 **La vetrina della listing è in dollari e l'addebito è in euro.** L'editor dei
 piani del Partner Dashboard non ha un campo valuta: gli importi vanno inseriti

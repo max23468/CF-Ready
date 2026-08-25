@@ -1,10 +1,12 @@
 import { env } from "cloudflare:workers";
+import { shopifyApi } from "@shopify/shopify-api";
 import { ApiVersion, AppDistribution, shopifyApp } from "@shopify/shopify-app-react-router/server";
 import { recordEvent } from "./events.server";
 import { D1SessionStorage } from "./session-storage.server";
 import { ALLOWED_SHOP } from "./env.server";
 import { recordInstallOnce, refuseInstall } from "./shop.server";
 import { reconcile } from "./validation.server";
+import { authenticateWebhookRequest } from "./webhook-auth.server";
 
 type ShopifyBindings = Env & {
   SCOPES?: string;
@@ -16,6 +18,7 @@ type ShopifyBindings = Env & {
 };
 
 const bindings = env as ShopifyBindings;
+const appUrl = new URL(bindings.SHOPIFY_APP_URL || "http://localhost");
 const d1SessionStorage = new D1SessionStorage(bindings.DB, bindings.SESSION_ENCRYPTION_KEY || "");
 const shopify = shopifyApp({
   apiKey: bindings.SHOPIFY_API_KEY,
@@ -57,9 +60,21 @@ const shopify = shopifyApp({
   ...(bindings.SHOP_CUSTOM_DOMAIN ? { customShopDomains: [bindings.SHOP_CUSTOM_DOMAIN] } : {}),
 });
 
+const webhookApi = shopifyApi({
+  apiKey: bindings.SHOPIFY_API_KEY || "",
+  apiSecretKey: bindings.SHOPIFY_API_SECRET || "",
+  apiVersion: ApiVersion.July26,
+  scopes: bindings.SCOPES?.split(",") ?? [],
+  hostName: appUrl.host,
+  hostScheme: appUrl.protocol === "http:" ? "http" : "https",
+  isEmbeddedApp: true,
+});
+
 export const apiVersion = ApiVersion.July26;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
 export const authenticate = shopify.authenticate;
+export const authenticateWebhook = (request: Request) =>
+  authenticateWebhookRequest(request, (input) => webhookApi.webhooks.validate(input));
 export const unauthenticated = shopify.unauthenticated;
 export const registerWebhooks = shopify.registerWebhooks;
 export const sessionStorage = d1SessionStorage;

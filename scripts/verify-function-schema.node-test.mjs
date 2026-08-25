@@ -25,6 +25,37 @@ type Query {
   assert.doesNotThrow(() => verifyFunctionSchema(schema, formatted));
 });
 
+test("ignora l'ordine degli elementi SDL semanticamente equivalenti", () => {
+  const ordered = `
+    schema { query: Query }
+    directive @only(label: String, values: [String!]!) on FIELD_DEFINITION | ARGUMENT_DEFINITION
+    input Filter { code: String, active: Boolean }
+    enum Status { ACTIVE INACTIVE }
+    union Result = Match | Miss
+    type Match { value: String }
+    type Miss { reason: String }
+    type Query {
+      search(filter: Filter, limit: Int): Result @only(label: "x", values: ["a", "b"])
+      status: Status
+    }
+  `;
+  const reordered = `
+    type Query {
+      status: Status
+      search(limit: Int, filter: Filter): Result @only(values: ["a", "b"], label: "x")
+    }
+    union Result = Miss | Match
+    type Miss { reason: String }
+    enum Status { INACTIVE ACTIVE }
+    input Filter { active: Boolean, code: String }
+    directive @only(values: [String!]!, label: String) on ARGUMENT_DEFINITION | FIELD_DEFINITION
+    type Match { value: String }
+    schema { query: Query }
+  `;
+
+  assert.doesNotThrow(() => verifyFunctionSchema(ordered, reordered));
+});
+
 test("blocca una differenza semantica o uno schema non valido", () => {
   assert.throws(
     () => verifyFunctionSchema(schema, schema.replace("value: String", "changed: String")),
