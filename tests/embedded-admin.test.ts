@@ -1,5 +1,29 @@
 import { expect, test, vi } from "vitest";
-import { embeddedAdminUrl, restoreEmbeddedAdmin } from "../app/embedded-admin";
+import {
+  embeddedAdminUrl,
+  navigateFromShopifyEvent,
+  restoreEmbeddedAdmin,
+} from "../app/embedded-admin";
+
+test("la navigazione App Bridge resta client-side dentro la cornice Shopify", () => {
+  const navigate = vi.fn();
+  const link = { getAttribute: (name: string) => (name === "href" ? "/app/messages" : null) };
+
+  expect(navigateFromShopifyEvent({ target: link } as unknown as Event, navigate)).toBe(true);
+  expect(navigate).toHaveBeenCalledWith("/app/messages");
+});
+
+test("un evento App Bridge senza destinazione non forza una navigazione", () => {
+  const navigate = vi.fn();
+
+  expect(
+    navigateFromShopifyEvent(
+      { target: { getAttribute: () => null } } as unknown as Event,
+      navigate,
+    ),
+  ).toBe(false);
+  expect(navigate).not.toHaveBeenCalled();
+});
 
 test.each(["/app", "/app/rules", "/app/messages", "/app/guide", "/app/onboarding"])(
   "la rotta autonoma %s viene riaperta dentro l'Admin Shopify",

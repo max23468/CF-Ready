@@ -28,10 +28,14 @@ corrente si legge da codice, configurazioni e `package.json`.
   del sito, snapshot Development, gate della milestone e residui.
 - [Hardening M8](evidence/2026-08-02-m8-hardening.md) — matrice delle prove,
   ricevute operative e limiti dichiarati della milestone.
+- [Controlled Launch M11](evidence/2026-08-25-m11-controlled-launch.md) —
+  prerequisito M10, precheck Function API e gate ancora aperti per `1.0.0`.
 - [Audit pre-submission App Store](audits/2026-08-03-app-store-pre-submission.md)
   — requisiti scaricati dalla fonte, esiti e punti da chiudere.
 - [Readiness Built for Shopify](audits/2026-08-05-built-for-shopify-readiness.md)
   — integrazione, UI embedded, accessibilità verificabile e matrice checkout.
+- [Progresso tecnico Built for Shopify](audits/2026-08-25-built-for-shopify-technical-progress.md)
+  — stato recente, bootstrap App Bridge, budget client e gate live residui.
 - [Listing italiana](listing/listing-it.md) e
   [inglese](listing/listing-en.md) — testi della listing App Store.
 - [Reviewer instructions](listing/reviewer-instructions.md) — store di prova,
@@ -42,6 +46,8 @@ corrente si legge da codice, configurazioni e `package.json`.
   didascalie IT/EN.
 - [Release readiness 1.0](runbooks/release-readiness-1.0.md) — ogni gate con la
   sua prova, o la dichiarazione che manca.
+- [Outreach Controlled Launch](runbooks/controlled-launch-outreach.md) — target,
+  messaggi, feedback e stop condition per il lavoro umano M11.
 - [ADR 0001](adr/0001-stack.md) — stack applicativo e provider.
 - [ADR 0002](adr/0002-webhook-queue.md) — ACK webhook rapido con retry durevoli.
 - [Brand Foundation](brand/brand-foundation.md) — identità e tono.

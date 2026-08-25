@@ -368,9 +368,9 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | Secret Production separati | tre secret runtime caricati sul Worker `cf-ready-prod` il 4 agosto 2026; il preflight li verifica a ogni deploy | ✅ |
 | Versione attiva dell'app CF Ready | Production `0.9.40`, ID `1101700857857`, commit `bd80fb7`, readback del run [32786987670](https://github.com/max23468/CF-Ready/actions/runs/32786987670) | ✅ |
 | Navigazione embedded D-130 | verificata in Chrome il 5 agosto 2026 sullo store `cf-ready-dev` con la Production `0.9.11`: una sola Home e route primarie dentro l'Admin | ✅ |
-| Function API `2026-07` stabile e rigenerata | fonte Shopify del 3 agosto 2026: stabile dal 1º luglio 2026, accessibile fino al 16 luglio 2027. Schema rigenerato con CLI 4.6.0, identico al committato a meno della formattazione | ✅ |
+| Function API `2026-07` stabile e rigenerata | fonti Shopify rilette il 25 agosto 2026: stabile dal 1º luglio 2026, accessibile fino al 16 luglio 2027. Precheck M11 con CLI 4.7.0 e `npm run verify:function-schema`: schema semanticamente identico al committato | ✅ precheck M11 |
 | **Matrice server-side della Function** | `npm run test:function` sull'HEAD Production `0.9.40`: 109 test verdi; casi geografici, senza spedizione, ritiro, misto ed entitlement in abbonamento nella [ricevuta M10](../evidence/2026-08-25-m10-canary-numisleo.md) | ✅ |
-| **Riconferma schema sul candidato `1.0.0`** | da ripetere sull'HEAD esatto del candidato M11 con la CLI supportata corrente | ⛔ M11 bloccante, non eseguita |
+| **Riconferma schema sul candidato `1.0.0`** | ripetere `npm run verify:function-schema`, typegen, fixture e build sull'HEAD esatto del candidato M11; il [precheck di avvio](../evidence/2026-08-25-m11-controlled-launch.md) non sostituisce questa prova | ⛔ M11 bloccante, non eseguita sul candidato |
 | **Checkout reale prima di `1.0.0`** | osservare un ordine nato organicamente sul canary, idoneo a una regola italiana attiva, e confermare esecuzione ed esito atteso della Function; non creare ordini, clienti, prodotti o pagamenti artificiali | ⛔ M11 bloccante, in attesa di un ordine organico idoneo |
 | Listing nel Partner Dashboard | readback manuale live del 23 agosto 2026 sull'app Production CF Ready (`403321946113`): stato `Published`, visibilità limitata e URL diretto `https://apps.shopify.com/cf-ready`; italiano primario e inglese entrambi `Live` sotto «Lingue pubblicate», nessuna lingua non pubblicata | ✅ M9 chiusa |
 | Conferma Shopify App Store | email ufficiale dello Shopify App Store Team ricevuta dall'owner il 23 agosto 2026: app approvata e pubblicata come applicazione listata; nome `CF Ready - Codice Fiscale`, stato `Published`, visibilità limitata, URL `https://apps.shopify.com/cf-ready`, riferimento `128156` | ✅ |
@@ -384,13 +384,13 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 
 | Voce | Valore verificato |
 | --- | --- |
-| Function API | `2026-07`, pinnata in `extensions/cf-ready-validation/shopify.extension.toml`, riconfermata stabile il 3 agosto 2026 |
+| Function API | `2026-07`, pinnata in `extensions/cf-ready-validation/shopify.extension.toml`, riconfermata stabile il 25 agosto 2026 |
 | Admin GraphQL API | `2026-07` |
 | Webhook API version | `2026-07` |
 | Access scope | `write_validations`, unico |
 | Target Function | `cart.validations.generate.run` |
 | `blockOnFailure` | `false`, verificato dopo ogni update |
-| Compatibility date Worker | `2026-07-28` |
+| Compatibility date Worker | `2026-08-22`, massima data supportata dal `workerd` incluso nella toolchain Cloudflare latest; migrazione runtime M11 da verificare in Development prima della promozione Production |
 
 ## 4. Superfici pubbliche
 

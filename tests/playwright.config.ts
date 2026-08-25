@@ -2,6 +2,8 @@ import { defineConfig } from "@playwright/test";
 import { fileURLToPath } from "node:url";
 
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
+const appPort = process.env.CF_READY_E2E_APP_PORT ?? "4173";
+const sitePort = process.env.CF_READY_E2E_SITE_PORT ?? "4174";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -16,16 +18,15 @@ export default defineConfig({
   },
   webServer: [
     {
-      command:
-        "npm run build && npx wrangler dev --config build/server/wrangler.json --var SHOPIFY_API_SECRET:e2e-test-secret --port 4173",
+      command: `npm run build && npx wrangler dev --config build/server/wrangler.json --var SHOPIFY_API_SECRET:e2e-test-secret --port ${appPort}`,
       cwd: repositoryRoot,
-      url: "http://localhost:4173/favicon.svg",
+      url: `http://localhost:${appPort}/favicon.svg`,
       timeout: 120_000,
     },
     {
-      command: "npm run site:dev -- --port 4174",
+      command: `npm run site:dev -- --port ${sitePort}`,
       cwd: repositoryRoot,
-      url: "http://localhost:4174",
+      url: `http://localhost:${sitePort}`,
       timeout: 120_000,
     },
   ],
@@ -37,7 +38,7 @@ export default defineConfig({
       testMatch: /install\.spec\.ts/,
       use: {
         browserName: "chromium",
-        baseURL: "http://localhost:4173",
+        baseURL: `http://localhost:${appPort}`,
       },
     },
     {
@@ -45,7 +46,7 @@ export default defineConfig({
       testMatch: /site\.spec\.ts/,
       use: {
         browserName: "webkit",
-        baseURL: "http://localhost:4174",
+        baseURL: `http://localhost:${sitePort}`,
         viewport: { width: 390, height: 844 },
       },
     },
@@ -54,7 +55,7 @@ export default defineConfig({
       testMatch: /site\.spec\.ts/,
       use: {
         browserName: "webkit",
-        baseURL: "http://localhost:4174",
+        baseURL: `http://localhost:${sitePort}`,
         viewport: { width: 1440, height: 900 },
       },
     },
