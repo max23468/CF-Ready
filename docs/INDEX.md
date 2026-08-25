@@ -34,6 +34,8 @@ corrente si legge da codice, configurazioni e `package.json`.
   — requisiti scaricati dalla fonte, esiti e punti da chiudere.
 - [Readiness Built for Shopify](audits/2026-08-05-built-for-shopify-readiness.md)
   — integrazione, UI embedded, accessibilità verificabile e matrice checkout.
+- [Progresso tecnico Built for Shopify](audits/2026-08-25-built-for-shopify-technical-progress.md)
+  — stato recente, bootstrap App Bridge, budget client e gate live residui.
 - [Listing italiana](listing/listing-it.md) e
   [inglese](listing/listing-en.md) — testi della listing App Store.
 - [Reviewer instructions](listing/reviewer-instructions.md) — store di prova,

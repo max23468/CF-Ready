@@ -1,6 +1,13 @@
 const SHOP_DOMAIN = /^([a-z0-9][a-z0-9-]*)\.myshopify\.com$/i;
 const APP_ROUTE = /^\/app(?:\/|$)/;
 
+export function navigateFromShopifyEvent(event: Event, navigate: (href: string) => void) {
+  const href = (event.target as Element | null)?.getAttribute?.("href");
+  if (!href) return false;
+  navigate(href);
+  return true;
+}
+
 export function embeddedAdminUrl(shopDomain: string, apiKey: string, appPath = "") {
   const shopName = SHOP_DOMAIN.exec(shopDomain)?.[1];
   if (!shopName || !apiKey) throw new Error("invalid_embedded_admin_target");
