@@ -33,8 +33,11 @@ riscrittura dei campi da parte di Shopify non deve sembrare un conflitto.
 
 ## Ciclo di vita di un webhook
 
-Ogni endpoint segue lo stesso percorso: `authenticate.webhook` valida l'HMAC
-sui byte originali, poi `handleWebhook` gestisce ricevuta ed esito.
+Ogni endpoint segue lo stesso percorso: `authenticateWebhook` valida con la
+Shopify API l'HMAC sui byte originali, senza caricare o rinnovare la sessione
+offline dello store, poi `handleWebhook` gestisce ricevuta ed esito. Questo
+confine è necessario soprattutto dopo `app/uninstalled`: Shopify ha già
+revocato il token, ma la consegna firmata deve continuare a essere accettata.
 
 1. `claimWebhook` inserisce la ricevuta in `webhook_events` con stato
    `processing`. Se l'ID esiste già, la ricevuta viene riacquisita se era

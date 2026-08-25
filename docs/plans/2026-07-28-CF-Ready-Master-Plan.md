@@ -161,7 +161,7 @@ L’app:
 
 Il backend amministrativo è ospitato su Cloudflare Workers. D1 conserva solo sessioni, stato installazione, prova, billing, telemetria tecnica e metadati. La configurazione necessaria alla Function vive in un singolo metafield JSON della Validation, così il checkout non chiama Cloudflare.
 
-La 1.0 viene sviluppata per milestone `0.x`, sottoposta a Shopify quando è production-ready, installata sullo store reale del proprietario solo dopo l’approvazione come public app e poi distribuita con listing a visibilità limitata durante un Controlled Launch. Esternamente viene presentata come una nuova app completa, non come beta o pilot, senza affermazioni false su diffusione o risultati.
+La 1.0 viene sviluppata per milestone `0.x`, sottoposta a Shopify quando è production-ready, installata sullo store reale del proprietario solo dopo l’approvazione come public app e distribuita con listing a visibilità completa dal 25 agosto 2026. Il Controlled Launch resta una modalità interna di acquisizione e supporto graduali. Esternamente l'app viene presentata come un prodotto completo, non come beta o pilot, senza affermazioni false su diffusione o risultati.
 
 ---
 
@@ -408,9 +408,9 @@ Rispetto alle alternative più ampie o invasive:
 | D-089 | Versioni di sviluppo `0.x`; `1.0.0` prima dei merchant esterni. | Non vendere una prerelease. |
 | D-090 | Un solo dev store Basic permanente. | Semplicità operativa. |
 | D-091 | Utility CLI di reset solo `dev`, impossibile in `prod`. | Ripetere flussi puliti con un solo dev store. |
-| D-092 | Controlled Launch con listing a visibilità limitata. | Test operativo reale di una 1.0 completa. |
+| D-092 | Controlled Launch con listing a visibilità completa dal 25 agosto 2026; il controllo resta nell'acquisizione e nel supporto graduali, non nella reperibilità. | Rende l'app trovabile nella ricerca App Store senza fingere che i criteri di maturità M11 siano già raggiunti. |
 | D-093 | Controlled Launch non comunicato come beta/pilot. | Comunicazione normale di lancio, senza nascondere limitazioni materiali o inventare trazione. |
-| D-094 | Criteri di uscita: 10 installazioni, 5 Validation attive, 2 settimane, nessun bug critico e flussi chiave verificati. | Gate oggettivo per piena visibilità. |
+| D-094 | Criteri di uscita: 10 installazioni, 5 Validation attive, 2 settimane, nessun bug critico e flussi chiave verificati. | Gate oggettivo per chiudere il Controlled Launch, indipendente dalla visibilità già attiva. |
 | D-095 | Strategia incidenti fail-open. | Preservare vendite e configurazioni. |
 | D-096 | SemVer, tag Git e migrazioni immutabili. | Rilasci riproducibili e rollback. |
 | D-097 | Oxlint e Oxfmt al posto di ESLint e Prettier. | Meno dipendenze e tooling più rapido. |
@@ -3511,8 +3511,9 @@ assenza non blocca M10, ma mantiene chiuso il gate di pubblicazione `1.0.0`.
 - disponibile solo ai merchant in Italia;
 - nessuna custom distribution;
 - nessun requisito Plus;
-- listing inizialmente a visibilità limitata dopo approvazione;
-- passaggio a visibilità completa solo dopo i criteri Controlled Launch.
+- listing pubblicata inizialmente con visibilità limitata dopo approvazione;
+- visibilità completa attivata dall'owner il 25 agosto 2026, senza anticipare la
+  chiusura dei criteri Controlled Launch.
 
 Il controllo interno del Paese resta obbligatorio anche con filtro geografico della listing.
 
@@ -3673,7 +3674,7 @@ Non dichiarare:
 - adozione inesistente;
 - recensioni inventate;
 - maturità o risultati non verificati;
-- disponibilità nelle ricerche se la listing è limitata.
+- trazione o risultati non ancora osservati.
 
 ### 25.2 Acquisizione merchant
 
@@ -4273,9 +4274,9 @@ localizzati. L'email ufficiale dello Shopify App Store Team ricevuta dall'owner
 conferma inoltre approvazione, pubblicazione come applicazione listata, stato
 `Published`, visibilità limitata, URL `https://apps.shopify.com/cf-ready` e
 riferimento `128156`. Il gate «approvazione Shopify» e la listing bilingue sono
-quindi chiusi e M9 è formalmente completata. La visibilità resta limitata come
-previsto; il canary reale, `v1.0.0` e la piena visibilità appartengono
-rispettivamente a M10, M11 e M12.
+quindi chiusi e M9 è formalmente completata. La visibilità completa è stata poi
+attivata dall'owner il 25 agosto 2026; il canary reale e `v1.0.0` appartengono
+rispettivamente a M10 e M11, mentre i criteri di consolidamento restano in M12.
 
 ### M10 — Canary store reale ✅ completata
 
@@ -4325,7 +4326,7 @@ Gate:
 Deliverable:
 
 - tag `v1.0.0`;
-- visibilità limitata;
+- visibilità completa già attiva;
 - outreach mirato;
 - primi merchant;
 - monitoraggio metriche;
@@ -4341,14 +4342,14 @@ Gate:
   documentati;
 - riconferma dello schema Function API `2026-07` con la CLI supportata corrente.
 
-### M12 — Visibilità completa
+### M12 — Consolidamento dopo la visibilità completa
 
 Gate:
 
 - criteri Controlled Launch;
 - nessun rischio aperto non accettato;
-- approvazione owner;
-- listing Italia pienamente visibile.
+- listing Italia pienamente visibile, già verificata dal 25 agosto 2026;
+- conferma owner alla chiusura del Controlled Launch.
 
 ---
 

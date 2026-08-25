@@ -107,6 +107,22 @@ All three modes have **identical functionality**: no artificial tiers. Launch
 prices apply for the first 90 days; whoever subscribes keeps the price they
 acquired. All payments go through Shopify's app billing.
 
+Features shown for the monthly/annual plan:
+
+- `€2.99/month or €29.90/year`
+- `Codice Fiscale and PEC`
+- `Checkout validation`
+- `No theme changes`
+- `All updates included`
+
+Features shown for the one-time plan:
+
+- `One payment, no renewal`
+- `€89.90 for one store`
+- `Checkout validation`
+- `All updates included`
+- `Codice Fiscale and PEC`
+
 **The listing shows USD while the charge is in EUR.** The Partner Dashboard plan
 editor has no currency field, so the amounts are entered as a USD equivalent,
 rounded up so the listing never promises less than the invoice asks. The euro
