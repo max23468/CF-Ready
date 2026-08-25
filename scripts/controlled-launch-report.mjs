@@ -4,20 +4,26 @@ const QUERY = `
 SELECT
   datetime('now') AS generated_at,
   COUNT(*) AS stores_total,
-  SUM(CASE WHEN shops.installation_status = 'active' THEN 1 ELSE 0 END) AS stores_active,
-  SUM(CASE WHEN shops.installed_at >= datetime('now', '-7 days') THEN 1 ELSE 0 END) AS installs_7d,
-  SUM(CASE WHEN shops.installed_at >= datetime('now', '-30 days') THEN 1 ELSE 0 END) AS installs_30d,
-  SUM(CASE WHEN app_state.onboarding_status = 'completed' THEN 1 ELSE 0 END) AS onboarding_completed,
-  SUM(CASE WHEN app_state.validation_enabled = 1 THEN 1 ELSE 0 END) AS validations_enabled,
-  SUM(CASE WHEN app_state.last_error_code IS NOT NULL THEN 1 ELSE 0 END) AS stores_with_open_error,
-  SUM(CASE
-    WHEN trials.status = 'active' AND trials.ends_at >= date('now')
-    THEN 1 ELSE 0 END) AS trials_active,
-  SUM(CASE
-    WHEN billing_accounts.entitlement_status IN ('active', 'ending')
+  COALESCE(SUM(CASE WHEN shops.installation_status = 'active' THEN 1 ELSE 0 END), 0) AS stores_active,
+  COALESCE(SUM(CASE WHEN shops.installed_at >= datetime('now', '-7 days') THEN 1 ELSE 0 END), 0) AS installs_7d,
+  COALESCE(SUM(CASE WHEN shops.installed_at >= datetime('now', '-30 days') THEN 1 ELSE 0 END), 0) AS installs_30d,
+  COALESCE(SUM(CASE WHEN shops.installation_status = 'active'
+    AND app_state.onboarding_status = 'completed' THEN 1 ELSE 0 END), 0) AS onboarding_completed,
+  COALESCE(SUM(CASE WHEN shops.installation_status = 'active'
+    AND app_state.validation_enabled = 1 THEN 1 ELSE 0 END), 0) AS validations_enabled,
+  COALESCE(SUM(CASE WHEN shops.installation_status = 'active'
+    AND app_state.last_error_code IS NOT NULL THEN 1 ELSE 0 END), 0) AS stores_with_open_error,
+  COALESCE(SUM(CASE
+    WHEN shops.installation_status = 'active'
+      AND trials.status = 'active' AND trials.ends_at >= date('now')
+    THEN 1 ELSE 0 END), 0) AS trials_active,
+  COALESCE(SUM(CASE
+    WHEN shops.installation_status = 'active'
+      AND billing_accounts.entitlement_status IN ('active', 'ending')
       AND billing_accounts.plan_kind IN ('monthly', 'annual', 'one_time')
-    THEN 1 ELSE 0 END) AS paying_or_paid_stores,
-  SUM(CASE WHEN complimentary_entitlements.status = 'active' THEN 1 ELSE 0 END) AS complimentary_stores,
+    THEN 1 ELSE 0 END), 0) AS paying_or_paid_stores,
+  COALESCE(SUM(CASE WHEN shops.installation_status = 'active'
+    AND complimentary_entitlements.status = 'active' THEN 1 ELSE 0 END), 0) AS complimentary_stores,
   (SELECT COUNT(*) FROM app_events
     WHERE event_class = 'error' AND occurred_at >= datetime('now', '-7 days')) AS error_events_7d,
   (SELECT COUNT(*) FROM webhook_events
