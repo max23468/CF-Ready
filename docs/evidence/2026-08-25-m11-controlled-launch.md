@@ -7,7 +7,7 @@ chiusi i gate che dipendono dal candidato finale o dal traffico reale.
 
 ## Prerequisito M10
 
-M10 è chiusa dalla [ricevuta canary](2026-08-25-m10-canary-numisleo.md): la
+M10 è chiusa dalla ricevuta canary del 25 agosto 2026: la
 promozione Production #314, il deploy `32786987670`, la release `v0.9.40`, il
 readback D1 e la verifica live appartengono allo stesso commit `bd80fb7`. Le PR
 #315 e #316 hanno poi pubblicato la ricevuta su `develop` e `main` con i gate
@@ -89,10 +89,10 @@ aveva scritto zero righe, ma non costituiva una prova corretta dello stato
 corrente: dopo la disinstallazione dello store di sviluppo restavano inoltre
 nel conteggio gli stati collegati a installazioni non più attive.
 
-La successiva verifica incrociata tra Partner Dashboard e D1 ha individuato uno
-store fantasma, `dnu1dk-yp.myshopify.com`: Shopify aveva consegnato
-`app/uninstalled` il 20 agosto e `shop/redact` il 22 agosto, ma tutte le nove
-consegne di ciascun topic avevano ricevuto HTTP 500. Nei sette giorni osservati
+La successiva verifica incrociata tra Partner Dashboard e D1 ha individuato
+un'installazione fantasma: Shopify aveva consegnato `app/uninstalled` il 20
+agosto e `shop/redact` il 22 agosto, ma tutte le nove consegne di ciascun topic
+avevano ricevuto HTTP 500. Nei sette giorni osservati
 il Partner Dashboard mostrava 18 fallimenti su 26 consegne (69,2%), mentre D1
 mostrava zero webhook falliti perché l'errore avveniva prima dell'ingresso nel
 nostro handler. La causa era il rinnovo della sessione offline eseguito da
@@ -103,8 +103,8 @@ disinstallazione; il comportamento corrisponde al problema upstream
 Il percorso webhook ora valida firma e header con la Shopify API senza caricare
 la sessione merchant. Il report limita onboarding, Validation, errori aperti,
 trial ed entitlement agli store attivi. Il readback corretto deve quindi
-distinguere due installazioni realmente attive (`asa5ve-kz` e `numisleo`) da
-stati storici; una sola Validation risulta attiva. I fallimenti che avvengono
+distinguere due installazioni realmente attive dagli stati storici; una sola
+Validation risulta attiva. I fallimenti che avvengono
 prima di D1 restano osservabili soltanto dal monitoraggio Shopify, che fa parte
 del readback operativo e non può essere sostituito dal solo report interno.
 
