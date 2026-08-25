@@ -50,11 +50,8 @@ test("interroga la CLI dalla directory della Function senza scrivere lo schema",
   });
 
   assert.equal(output, schema);
-  assert.equal(invocation.command, "npm");
+  assert.equal(invocation.command, "shopify");
   assert.deepEqual(invocation.args, [
-    "exec",
-    "--",
-    "shopify",
     "app",
     "function",
     "schema",

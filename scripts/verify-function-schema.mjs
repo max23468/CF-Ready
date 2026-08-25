@@ -37,19 +37,8 @@ export function verifyFunctionApiVersion(manifest) {
 
 export function fetchFunctionSchema({ spawn = spawnSync, cwd = functionRoot } = {}) {
   const result = spawn(
-    "npm",
-    [
-      "exec",
-      "--",
-      "shopify",
-      "app",
-      "function",
-      "schema",
-      "--config",
-      "dev",
-      "--stdout",
-      "--no-color",
-    ],
+    "shopify",
+    ["app", "function", "schema", "--config", "dev", "--stdout", "--no-color"],
     { cwd, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 },
   );
 

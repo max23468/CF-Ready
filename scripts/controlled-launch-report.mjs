@@ -10,7 +10,9 @@ SELECT
   SUM(CASE WHEN app_state.onboarding_status = 'completed' THEN 1 ELSE 0 END) AS onboarding_completed,
   SUM(CASE WHEN app_state.validation_enabled = 1 THEN 1 ELSE 0 END) AS validations_enabled,
   SUM(CASE WHEN app_state.last_error_code IS NOT NULL THEN 1 ELSE 0 END) AS stores_with_open_error,
-  SUM(CASE WHEN billing_accounts.entitlement_status = 'trial' THEN 1 ELSE 0 END) AS trials_active,
+  SUM(CASE
+    WHEN trials.status = 'active' AND trials.ends_at >= date('now')
+    THEN 1 ELSE 0 END) AS trials_active,
   SUM(CASE
     WHEN billing_accounts.entitlement_status IN ('active', 'ending')
       AND billing_accounts.plan_kind IN ('monthly', 'annual', 'one_time')
@@ -22,6 +24,7 @@ SELECT
     WHERE status = 'failed' AND received_at >= datetime('now', '-7 days')) AS failed_webhooks_7d
 FROM shops
 LEFT JOIN app_state ON app_state.shop_id = shops.id
+LEFT JOIN trials ON trials.shop_id = shops.id
 LEFT JOIN billing_accounts ON billing_accounts.shop_id = shops.id
 LEFT JOIN complimentary_entitlements ON complimentary_entitlements.shop_id = shops.id;
 `;

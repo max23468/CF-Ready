@@ -50,6 +50,9 @@ test("esegue soltanto una SELECT aggregata sul database remoto scelto", () => {
   assert.doesNotMatch(development.join(" "), /\b(?:INSERT|UPDATE|DELETE|ALTER|DROP)\b/i);
   assert.doesNotMatch(development.join(" "), /shop_domain|metadata_json/);
   assert.doesNotMatch(development.join(" "), /SELECT[\s\S]*last_error_code\s+AS/i);
+  assert.match(development.join(" "), /trials\.status = 'active'/);
+  assert.match(development.join(" "), /trials\.ends_at >= date\('now'\)/);
+  assert.match(development.join(" "), /LEFT JOIN trials ON trials\.shop_id = shops\.id/);
   assert.deepEqual(production.slice(-2), ["--env", "production"]);
 });
 

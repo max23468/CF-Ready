@@ -14,7 +14,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 - il gate M11 confronta semanticamente lo schema Shopify Function API `2026-07`
   rigenerato dalla CLI con lo schema committato;
 - un report interno in sola lettura aggrega i segnali tecnici del Controlled
-  Launch senza esporre domini, identificatori Shopify, Codice Fiscale o PEC;
+  Launch, incluse le prove attive non scadute, senza esporre domini,
+  identificatori Shopify, Codice Fiscale o PEC;
 - il runbook di outreach delimita target, messaggi, feedback e condizioni di
   stop, lasciando invii e crescita organica al titolare;
 - le porte dei server E2E sono configurabili per evitare collisioni con test di
