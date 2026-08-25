@@ -41,36 +41,34 @@ contenuti che risolvono un problema preciso:
 
 ## Messaggio per un merchant
 
-> Ciao [nome], sono Matteo, il creatore di CF Ready. Ho visto che per il tuo
-> store Shopify italiano ti serve rendere facoltativi o obbligatori Codice
-> Fiscale e PEC nei campi locali del checkout. L'app fa una validazione formale
-> di questi due campi e lascia separate configurazione e attivazione. Non
-> gestisce Partita IVA, SDI o fatturazione elettronica. Sto seguendo un piccolo
-> gruppo iniziale di merchant: se il caso coincide con il tuo, ti mando
-> volentieri la listing e resto disponibile durante la configurazione. Nessun
-> problema se non è una priorità.
+> Ciao [nome], ho visto il problema che hai segnalato con Codice Fiscale e PEC
+> nel checkout Shopify. Sono Matteo e ho creato CF Ready proprio per rendere
+> questi campi facoltativi oppure obbligatori e controllarne il formato prima
+> che l'ordine venga completato. Se ti va di provarla, ti mando volentieri la
+> pagina dell'app e resto disponibile per la configurazione.
 
 ## Messaggio per agenzia o freelance
 
-> Ciao [nome], sono Matteo, sviluppatore di CF Ready. È una public app Shopify
-> focalizzata sui localized fields italiani: Codice Fiscale e PEC, ciascuno
-> disattivabile, facoltativo o obbligatorio. La validazione è formale e
-> fail-open sugli errori dell'app; non copre Partita IVA, SDI o fatturazione
-> elettronica. Sto cercando pochi casi reali per il Controlled Launch. Se segui
-> uno store italiano con questa esigenza, posso condividere listing, limiti e
-> assistenza iniziale; non chiedo accesso a ordini o dati cliente.
+> Ciao [nome], sono Matteo e ho sviluppato CF Ready, un'app Shopify per gestire
+> Codice Fiscale e PEC nei campi italiani del checkout. Ogni campo può essere
+> disattivato, facoltativo oppure obbligatorio. Se tra i vostri clienti c'è uno
+> store con questa esigenza, posso mandarvi la pagina dell'app e seguire io la
+> prima configurazione.
 
-## Risposta pubblica trasparente
+## Risposta pubblica
 
 Da usare solo quando risponde davvero alla domanda, adattandola al contesto:
 
-> Dichiarazione: sono lo sviluppatore di CF Ready. Per il solo caso Codice
-> Fiscale/PEC nei localized fields italiani, l'app consente di impostare ogni
-> campo come disattivato, facoltativo o obbligatorio e applica una validazione
-> formale al checkout. Non risolve Partita IVA, SDI o fatturazione elettronica e
-> non verifica che il dato appartenga davvero alla persona. Se può essere utile,
-> posso indicare la listing; altrimenti provo volentieri a chiarire il limite
-> tecnico anche senza installazione.
+> Ciao, sono Matteo e ho creato CF Ready proprio per questo problema. Permette
+> di impostare Codice Fiscale e PEC come facoltativi oppure obbligatori e ne
+> controlla il formato direttamente nel checkout. Se sei su Shopify Community
+> puoi cercare CF Ready nell'App Store; se vuoi ti aiuto anche a capire come
+> configurarla per il tuo caso.
+
+Su Shopify Community citare il nome dell'app senza inserire il link. Su altri
+forum aggiungere il link soltanto se è utile alla risposta e consentito dalle
+regole della community. I testi vanno adattati alla domanda: niente invii
+automatici e nessuna pubblicazione senza approvazione dell'owner.
 
 ## Feedback dei primi merchant
 

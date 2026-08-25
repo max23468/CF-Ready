@@ -82,13 +82,31 @@ gate CI né eseguita automaticamente. Il report copre i segnali tecnici e di
 adozione disponibili; feedback qualitativo, efficacia dell'outreach ed esito
 del checkout organico richiedono invece osservazione e lavoro umano.
 
-La prima lettura Production del 25 agosto 2026 alle 07:37 UTC ha restituito
+La prima lettura Production del 25 agosto 2026 alle 07:37 UTC aveva restituito
 quattro store attivi e quattro onboarding completati, tre Validation abilitate,
-due store paganti o con acquisto concluso e una concessione omaggio. Non erano
-presenti store con errore aperto, eventi di errore o webhook falliti negli
-ultimi sette giorni. Sono riportati soltanto conteggi aggregati; la lettura ha
-scritto zero righe. Questi dati provano il funzionamento del report, non
-l'esecuzione della Function su un checkout organico.
+due store paganti o con acquisto concluso e una concessione omaggio. La lettura
+aveva scritto zero righe, ma non costituiva una prova corretta dello stato
+corrente: dopo la disinstallazione dello store di sviluppo restavano inoltre
+nel conteggio gli stati collegati a installazioni non più attive.
+
+La successiva verifica incrociata tra Partner Dashboard e D1 ha individuato uno
+store fantasma, `dnu1dk-yp.myshopify.com`: Shopify aveva consegnato
+`app/uninstalled` il 20 agosto e `shop/redact` il 22 agosto, ma tutte le nove
+consegne di ciascun topic avevano ricevuto HTTP 500. Nei sette giorni osservati
+il Partner Dashboard mostrava 18 fallimenti su 26 consegne (69,2%), mentre D1
+mostrava zero webhook falliti perché l'errore avveniva prima dell'ingresso nel
+nostro handler. La causa era il rinnovo della sessione offline eseguito da
+`authenticate.webhook` dopo che Shopify aveva già revocato il token con la
+disinstallazione; il comportamento corrisponde al problema upstream
+[shopify-app-js #3360](https://github.com/Shopify/shopify-app-js/issues/3360).
+
+Il percorso webhook ora valida firma e header con la Shopify API senza caricare
+la sessione merchant. Il report limita onboarding, Validation, errori aperti,
+trial ed entitlement agli store attivi. Il readback corretto deve quindi
+distinguere due installazioni realmente attive (`asa5ve-kz` e `numisleo`) da
+stati storici; una sola Validation risulta attiva. I fallimenti che avvengono
+prima di D1 restano osservabili soltanto dal monitoraggio Shopify, che fa parte
+del readback operativo e non può essere sostituito dal solo report interno.
 
 ## Preparazione outreach e feedback
 

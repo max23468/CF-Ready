@@ -19,9 +19,9 @@ corrente è in `app/validation.server.ts`.
 - `D1SessionStorage` conserva access token, refresh token e payload della
   sessione cifrati AES-256-GCM. La chiave è il secret
   `SESSION_ENCRYPTION_KEY`, 32 byte codificati in base64.
-- I webhook `app/uninstalled` e `app/scopes_update` passano sempre da
-  `authenticate.webhook`; il primo elimina le sessioni dello store, il secondo
-  aggiorna gli scope della sessione.
+- I webhook passano da una validazione HMAC condivisa che non legge né rinnova
+  sessioni. `app/uninstalled` elimina le sessioni dello store; il job di
+  `app/scopes_update` conserva soltanto l'elenco minimizzato degli scope.
 
 ## Home embedded
 
