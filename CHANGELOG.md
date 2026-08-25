@@ -6,6 +6,32 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.42 — 25 agosto 2026
+
+- App Bridge e Polaris vengono caricati una sola volta nel `head`, con la chiave
+  pubblica nel meta Shopify richiesto per il riconoscimento Built for Shopify;
+- la navigazione dalla finestra dell'onboarding chiude l'App Window prima di
+  aprire Home o le altre route, mantenendo visibile la sidebar Shopify;
+- il build blocca regressioni oltre un budget complessivo di 350 KiB gzip per
+  il JavaScript client e il candidato corrente resta a 126 KiB;
+- regressioni mirate coprono bootstrap SSR, navigazione embedded, origine dei
+  messaggi e ripristino della cornice dell'Admin.
+
+## 0.9.41 — 25 agosto 2026
+
+- Node.js, tipi React e Node, Oxfmt e Oxlint avanzano alle ultime versioni
+  compatibili; la compatibility date Worker usa la massima data verificabile
+  con la toolchain Cloudflare pubblicata;
+- il gate M11 confronta semanticamente lo schema Shopify Function API `2026-07`
+  rigenerato dalla CLI con lo schema committato;
+- un report interno in sola lettura aggrega i segnali tecnici del Controlled
+  Launch, incluse le prove attive non scadute, senza esporre domini,
+  identificatori Shopify, Codice Fiscale o PEC;
+- il runbook di outreach delimita target, messaggi, feedback e condizioni di
+  stop, lasciando invii e crescita organica al titolare;
+- le porte dei server E2E sono configurabili per evitare collisioni con test di
+  altri repository concorrenti, mantenendo invariati i default CI.
+
 ## 0.9.40 — 25 agosto 2026
 
 - M10 usa test automatici, ricognizione non transazionale e osservazione
