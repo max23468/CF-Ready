@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.42 — 25 agosto 2026
+
+- App Bridge e Polaris vengono caricati una sola volta nel `head`, con la chiave
+  pubblica nel meta Shopify richiesto per il riconoscimento Built for Shopify;
+- la navigazione dalla finestra dell'onboarding chiude l'App Window prima di
+  aprire Home o le altre route, mantenendo visibile la sidebar Shopify;
+- il build blocca regressioni oltre un budget complessivo di 350 KiB gzip per
+  il JavaScript client e il candidato corrente resta a 126 KiB;
+- regressioni mirate coprono bootstrap SSR, navigazione embedded, origine dei
+  messaggi e ripristino della cornice dell'Admin.
+
 ## 0.9.41 — 25 agosto 2026
 
 - Node.js, tipi React e Node, Oxfmt e Oxlint avanzano alle ultime versioni
