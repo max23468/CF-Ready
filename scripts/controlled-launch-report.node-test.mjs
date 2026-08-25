@@ -53,7 +53,19 @@ test("esegue soltanto una SELECT aggregata sul database remoto scelto", () => {
   assert.match(development.join(" "), /trials\.status = 'active'/);
   assert.match(development.join(" "), /trials\.ends_at >= date\('now'\)/);
   assert.match(development.join(" "), /LEFT JOIN trials ON trials\.shop_id = shops\.id/);
+  assert.equal(development.join(" ").match(/COALESCE\(SUM\(/g)?.length, 9);
   assert.deepEqual(production.slice(-2), ["--env", "production"]);
+});
+
+test("produce conteggi a zero quando il database non contiene store", () => {
+  const empty = Object.fromEntries(
+    Object.entries(row).map(([key, value]) => [key, key === "generated_at" ? value : 0]),
+  );
+
+  assert.deepEqual(
+    parseWranglerResult(JSON.stringify([{ success: true, results: [empty] }])),
+    empty,
+  );
 });
 
 test("accetta soltanto il risultato aggregato completo", () => {
