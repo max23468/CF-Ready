@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 0.9.44 — 25 agosto 2026
+
+- i webhook firmati vengono validati senza caricare o rinnovare sessioni già
+  revocate, così disinstallazione e cancellazione dati arrivano al lifecycle;
+- il report Controlled Launch limita gli stati correnti agli store realmente
+  attivi e documenta il confine con i fallimenti osservabili solo da Shopify;
+- listing e documentazione riflettono la visibilità completa, i benefici dei
+  piani e il termine di ricerca `Checkout italiano`.
+
 ## 0.9.43 — 25 agosto 2026
 
 - il confronto dello schema Shopify Function ignora l'ordine degli elementi SDL

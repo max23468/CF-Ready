@@ -16,8 +16,8 @@ prova.
 **Stato complessivo: M10 chiusa sul canary reale Numisleo.** La `0.9.40` è
 stata distribuita e riletta live in Chrome: la Home usa un testo generico sui
 prossimi ordini, senza richiedere transazioni create appositamente per il test.
-La review è approvata e la listing bilingue è
-pubblicata con visibilità limitata. La submission è partita il 4 agosto
+La review è approvata e la listing bilingue è pubblicata con visibilità
+completa dal 25 agosto 2026. La submission è partita il 4 agosto
 2026; il 10 agosto Shopify l'ha sospesa sui requisiti 1.2.2 e 2.1.1 perché il
 piano approvato non risultava attivo e l'azione checkout restava disabilitata
 (riferimento `128156`). La `0.9.20` ha corretto la lettura billing che causava
@@ -30,8 +30,8 @@ snapshot M9 è la `0.9.22`: candidato `f338f63`, promozione Production
 [#272](https://github.com/max23468/CF-Ready/pull/272), merge commit `2c5bc8f`,
 deploy [32648669434](https://github.com/max23468/CF-Ready/actions/runs/32648669434)
 e release [`v0.9.22`](https://github.com/max23468/CF-Ready/releases/tag/v0.9.22).
-Il 23 agosto 2026 il Partner Dashboard mostra l'app e la listing in stato
-`Published`, con visibilità limitata e URL diretto
+Il 23 agosto 2026 il Partner Dashboard mostrava l'app e la listing in stato
+`Published`, allora con visibilità limitata e URL diretto
 `https://apps.shopify.com/cf-ready`; italiano primario e inglese sono entrambi
 `Live` sotto «Lingue pubblicate» e non resta alcuna lingua non pubblicata. Il
 readback ha verificato anche feature media, cinque screenshot desktop e alt
@@ -372,8 +372,8 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | **Matrice server-side della Function** | `npm run test:function` sull'HEAD Production `0.9.40`: 109 test verdi; casi geografici, senza spedizione, ritiro, misto ed entitlement in abbonamento nella [ricevuta M10](../evidence/2026-08-25-m10-canary-numisleo.md) | ✅ |
 | **Riconferma schema sul candidato `1.0.0`** | ripetere `npm run verify:function-schema`, typegen, fixture e build sull'HEAD esatto del candidato M11; il [precheck di avvio](../evidence/2026-08-25-m11-controlled-launch.md) non sostituisce questa prova | ⛔ M11 bloccante, non eseguita sul candidato |
 | **Checkout reale prima di `1.0.0`** | osservare un ordine nato organicamente sul canary, idoneo a una regola italiana attiva, e confermare esecuzione ed esito atteso della Function; non creare ordini, clienti, prodotti o pagamenti artificiali | ⛔ M11 bloccante, in attesa di un ordine organico idoneo |
-| Listing nel Partner Dashboard | readback manuale live del 23 agosto 2026 sull'app Production CF Ready (`403321946113`): stato `Published`, visibilità limitata e URL diretto `https://apps.shopify.com/cf-ready`; italiano primario e inglese entrambi `Live` sotto «Lingue pubblicate», nessuna lingua non pubblicata | ✅ M9 chiusa |
-| Conferma Shopify App Store | email ufficiale dello Shopify App Store Team ricevuta dall'owner il 23 agosto 2026: app approvata e pubblicata come applicazione listata; nome `CF Ready - Codice Fiscale`, stato `Published`, visibilità limitata, URL `https://apps.shopify.com/cf-ready`, riferimento `128156` | ✅ |
+| Listing nel Partner Dashboard | readback manuale live del 23 agosto 2026 sull'app Production CF Ready (`403321946113`): stato `Published`, allora con visibilità limitata e URL diretto `https://apps.shopify.com/cf-ready`; visibilità completa attivata dall'owner il 25 agosto; italiano primario e inglese entrambi `Live` | ✅ M9 chiusa |
+| Conferma Shopify App Store | email ufficiale dello Shopify App Store Team ricevuta dall'owner il 23 agosto 2026: app approvata e pubblicata come applicazione listata; nome `CF Ready - Codice Fiscale`, stato `Published`, URL `https://apps.shopify.com/cf-ready`, riferimento `128156`; la visibilità limitata indicata nell'email è lo stato storico precedente alla modifica del 25 agosto | ✅ |
 | Screenshot della listing | readback manuale live del 23 agosto 2026: feature media e cinque screenshot desktop presenti nelle listing italiana e inglese; la serie italiana è riutilizzata in inglese con cinque alt text localizzati. File esclusi dal repository per decisione dell'owner; piano e testi in [`screenshots.md`](../listing/screenshots.md) | ✅ |
 | Demo screencast | registrato, **dichiarato dall'owner il 4 agosto 2026**. Non entra nel repository: il copione resta in [`screencast-script.md`](../listing/screencast-script.md), aggiornato all'avvio esplicito della prova | ⚠️ dichiarato, non verificato da qui |
 | Contatto tecnico d'emergenza | requisito 4.5.6: registrato dall'owner nelle impostazioni dell'account Partner il 4 agosto 2026 | ✅ |
@@ -431,4 +431,4 @@ esplicita e distinta dell'owner al momento dell'esecuzione.
 | Promozione `develop` → `main` | `0.9.40` unita con [#314](https://github.com/max23468/CF-Ready/pull/314), merge commit `bd80fb7` a due parent |
 | Submission App Store | autorizzata ed eseguita il 4 agosto 2026; review approvata e listing bilingue `Published` verificata il 23 agosto 2026 |
 | Attivazione billing reale | autorizzata e attiva in Production dalla `0.9.6` |
-| Passaggio della listing a visibilità completa | M12, non autorizzato |
+| Passaggio della listing a visibilità completa | eseguito dall'owner e verificato il 25 agosto 2026; non chiude da solo i criteri Controlled Launch |
