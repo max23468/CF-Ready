@@ -4342,6 +4342,12 @@ Gate:
   documentati;
 - riconferma dello schema Function API `2026-07` con la CLI supportata corrente.
 
+Il gate checkout reale è stato chiuso il 26 agosto 2026: un ordine Online Store
+pagato, non di prova e con consegna italiana è stato creato cinque secondi dopo
+una chiamata `cart.validations.generate.run` conclusa `OK` sul canary. La
+ricevuta M11 conserva soltanto metadati tecnici sanitizzati; schema, typegen,
+fixture e build restano da riconfermare sull'HEAD esatto del candidato `1.0.0`.
+
 ### M12 — Consolidamento dopo la visibilità completa
 
 Gate:

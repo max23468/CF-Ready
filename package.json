@@ -1,6 +1,6 @@
 {
   "name": "cf-ready",
-  "version": "0.9.45",
+  "version": "1.0.0",
   "private": true,
   "packageManager": "npm@12.0.2",
   "packageExtensions": {
@@ -58,7 +58,7 @@
     "react-router": "8.3.0"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.53.1",
+    "@cloudflare/vite-plugin": "1.54.0",
     "@cloudflare/vitest-pool-workers": "0.22.0",
     "@playwright/test": "1.62.1",
     "@react-router/dev": "8.3.0",
@@ -74,7 +74,7 @@
     "typescript": "7.0.2",
     "vite": "8.2.2",
     "vitest": "4.1.11",
-    "wrangler": "4.125.0"
+    "wrangler": "4.126.0"
   },
   "workspaces": [
     "extensions/*"
@@ -88,7 +88,7 @@
     "fsevents@2.3.2": false,
     "fsevents@2.3.3": true,
     "workerd@1.20260815.1": true,
-    "workerd@1.20260820.1": true
+    "workerd@1.20260825.1": true
   },
   "overrides": {
     "graphql-config": "5.1.6",

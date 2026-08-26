@@ -2,8 +2,9 @@
 
 Data di avvio: 25 agosto 2026.
 
-Stato: **in corso**. Questa ricevuta registra le prove M11 senza presentare come
-chiusi i gate che dipendono dal candidato finale o dal traffico reale.
+Stato: **in corso**. Il gate del checkout organico è chiuso; restano la verifica
+dell'HEAD esatto del candidato `1.0.0`, la pubblicazione autorizzata e il lavoro
+umano del Controlled Launch.
 
 ## Prerequisito M10
 
@@ -13,12 +14,11 @@ readback D1 e la verifica live appartengono allo stesso commit `bd80fb7`. Le PR
 #315 e #316 hanno poi pubblicato la ricevuta su `develop` e `main` con i gate
 bloccanti verdi.
 
-## Precheck Function API `2026-07`
+## Gate Function API `2026-07`
 
-Le fonti Shopify rilette il 25 agosto 2026 confermano che `2026-07` è una
-versione stabile delle Function API, accessibile fino al 16 luglio 2027, e che
-Cart and Checkout Validation usa ancora il target
-`cart.validations.generate.run`.
+Le fonti Shopify rilette il 26 agosto 2026 confermano che `2026-07` è la
+versione corrente delle Function API e che Cart and Checkout Validation usa il
+target `cart.validations.generate.run`.
 
 Shopify CLI `4.7.0` ha rigenerato lo schema dichiarato in
 `extensions/cf-ready-validation/shopify.extension.toml`. Il confronto con
@@ -33,9 +33,11 @@ Il comando analizza entrambi gli SDL GraphQL prima del confronto, così una
 differenza di soli spazi o a-capo non produce un falso positivo e una modifica
 di tipi, campi o direttive resta bloccante.
 
-Questo è un precheck sull'HEAD di avvio M11 e **non chiude** il gate: il comando,
-la generazione dei tipi, le fixture e la build della Function vanno ripetuti
-sull'HEAD esatto del candidato `1.0.0`.
+Sul candidato locale `1.0.0` del 26 agosto sono riusciti
+`npm run verify:function-schema`, `npm run typegen`, le 109 fixture di
+`npm run test:function` e `npm run build:function`. Lo schema rigenerato dalla
+CLI `4.7.0` è semanticamente identico al file committato. La PR di chiusura deve
+legare questi stessi gate all'HEAD remoto esatto prima della promozione.
 
 ## Toolchain e dipendenze
 
@@ -48,17 +50,18 @@ CLI, Wrangler e le GitHub Actions pinnate. Sono stati aggiornati Node.js a
 GraphQL resta a `16.14.2`: la `17.0.2` è la latest assoluta, ma non è compatibile
 con i peer di `@graphql-codegen/cli`, `graphql-request` e `graphql-ws` portati
 dalla toolchain Shopify Function. Shopify CLI `4.7.0`, npm `12.0.2`, Wrangler
-`4.125.0` e tutte le dipendenze applicative risultano già sulle ultime versioni
-stabili compatibili. Le Action sono già sulle release correnti e fissate ai
-relativi commit immutabili.
+`4.126.0`, il Vite plugin Cloudflare `1.54.0` e tutte le dipendenze applicative
+risultano sulle ultime versioni stabili compatibili. Le Action sono già sulle
+release correnti e fissate ai relativi commit immutabili.
 
-La compatibility date è la massima supportata dal `workerd` incluso nelle
-versioni latest di Wrangler, Vite plugin e Vitest pool: `2026-08-25` è stata
-provata e scartata perché il runtime dei test supporta al massimo `2026-08-22`.
-Non viene forzato un `workerd` transitorio fuori dalla combinazione pubblicata
-da Cloudflare. Il gate locale verifica tipi, test, build Function e dry-run
-Worker; resta comunque da distribuire e leggere in Development prima di
-promuovere il candidato in Production.
+La compatibility date è la massima supportata da tutti i runtime pubblicati
+nella toolchain: Wrangler e Vite plugin includono `workerd@1.20260825.1`, ma il
+Vitest pool `0.22.0` più recente include ancora un runtime che supporta al
+massimo `2026-08-22`. Entrambi i binari sono autorizzati in modo puntuale nella
+allowlist degli script npm; non viene forzato un runtime transitorio fuori
+dalle combinazioni pubblicate da Cloudflare. Il gate locale verifica tipi,
+test, build Function e dry-run Worker; resta comunque da distribuire e leggere
+in Development prima di promuovere il candidato in Production.
 
 ## Monitoraggio Controlled Launch
 
@@ -121,36 +124,55 @@ contatti, l'invio, le conversazioni, l'installazione dei primi merchant e la
 crescita organica restano azioni dell'owner: in questa sessione non è stato
 contattato nessuno.
 
-## Verifiche locali dell'HEAD di lavoro
+## Verifiche locali del candidato `1.0.0`
 
-Il 25 agosto 2026, con Node.js `26.7.0`:
+Il 26 agosto 2026, con Node.js `26.7.0`, npm `12.0.2` e Shopify CLI `4.7.0`:
 
-- `npm run check`: verde, inclusi 191 test applicativi, 109 test Function,
+- `npm run check`: verde, inclusi 200 test applicativi, 109 test Function,
   React Doctor `100/100`, build Worker e Function e dry-run Wrangler;
-- `npm run test:e2e`: 7 scenari verdi in Chromium e WebKit stretto/largo;
-- `npm audit`: zero vulnerabilità; 704 firme registry e 206 attestazioni
-  verificate;
-- albero npm valido; nessuna dipendenza diretta aggiornabile resta, salvo
-  GraphQL `17.0.2`, intenzionalmente esclusa per i peer incompatibili descritti
-  sopra;
+- `npm run test:e2e`: 7 scenari verdi in Chromium e WebKit stretto/largo, su
+  porte locali isolate `4273` e `4274`;
 - `npm run verify:function-schema`: schema Shopify Function API `2026-07`
   semanticamente identico al file committato;
-- `npm run report:launch -- production`: lettura aggregata riuscita, zero righe
-  scritte.
+- `npm run typegen`, `npm run test:function` e `npm run build:function`:
+  riusciti anche come gate mirati prima del controllo completo;
+- `npm run report:launch -- production`: una sola `SELECT` aggregata riuscita,
+  zero righe scritte, uno store attivo, una Validation abilitata e nessun
+  errore aperto.
 
-Queste prove sono locali sull'HEAD di lavoro non ancora pubblicato. La nuova
-compatibility date non è stata distribuita in Development e nessun check remoto
-GitHub o deploy è stato eseguito.
+Queste prove sono locali sul candidato non ancora pubblicato. La PR, i check
+remoti e il deploy/readback Development dell'HEAD esatto restano necessari
+prima della promozione Production.
 
 ## Gate checkout reale
 
-Resta aperta l'osservazione di almeno un ordine nato organicamente sul canary,
-idoneo a una regola italiana attiva. La prova deve confermare esecuzione ed
-esito atteso della Function senza creare ordini, clienti, prodotti o pagamenti
-per il test e senza registrare Codice Fiscale, PEC o altri dati personali.
+Il 26 agosto 2026 una verifica in sola lettura ha correlato un ordine ordinario
+già presente sul canary con l'esecuzione della Function, senza creare o
+modificare ordini, clienti, prodotti o pagamenti:
+
+- il connettore Shopify ha confermato store italiano, fuso `CEST` e un ordine
+  Online Store pagato, non di prova, non bozza e non annullato, creato il 25
+  agosto 2026 alle 17:53:16 CEST con consegna italiana;
+- la configurazione canary verificata in M10 aveva una sola Validation attiva,
+  Codice Fiscale richiesto e PEC opzionale; il report Production del 26 agosto
+  ha riconfermato uno store attivo e una Validation abilitata;
+- il Partner Dashboard ha registrato alle 17:53:11 CEST, cinque secondi prima
+  della creazione dell'ordine, una chiamata
+  `cart.validations.generate.run` conclusa `OK` con Function API `2026-07`;
+- l'ordine è stato completato con destinazione italiana sotto una configurazione
+  che richiedeva il Codice Fiscale: l'esito osservato è quello atteso per dati
+  formalmente validi sotto la regola attiva.
+
+Il Partner Dashboard nasconde correttamente input e output completi perché
+l'app non possiede `read_customer_address`. La prova conserva soltanto
+timestamp, stato e target tecnici: nessun Codice Fiscale, PEC, indirizzo, dato
+cliente, ID ordine o valore commerciale è stato copiato nel repository.
+
+Il gate checkout reale richiesto prima di `v1.0.0` è quindi **chiuso**.
 
 ## Stato di pubblicazione
 
 Nessun tag `v1.0.0`, deploy, release, outreach o attivazione commerciale è stato
-eseguito in questo avvio. Queste fasi restano successive ai due gate bloccanti e
-alle autorizzazioni operative previste dal repository.
+eseguito in questo avvio. La pubblicazione resta successiva alla verifica
+dell'HEAD esatto del candidato e alle autorizzazioni operative previste dal
+repository.
