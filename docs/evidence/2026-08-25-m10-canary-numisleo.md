@@ -35,7 +35,8 @@ Il readback manuale in Chrome dell'Admin embedded conferma la stessa semantica:
 Validation attiva, Codice Fiscale richiesto, PEC opzionale e piano omaggio
 permanente esplicitamente indicato come privo di rinnovi e addebiti. Questo
 chiude il criterio commerciale del canary dell'owner; cancellazione, credito pro
-rata e rimborso live restano attribuiti al primo merchant pagante di M11.
+rata e rimborso live restano attribuiti al primo merchant pagante disponibile
+organicamente, senza bloccare M11.
 
 Il readback manuale finale in Chrome, dopo il deploy della `0.9.40`, ha ricaricato
 la Home Production nell'Admin reale e ha osservato il testo «Controlla i prossimi

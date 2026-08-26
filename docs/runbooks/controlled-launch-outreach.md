@@ -1,8 +1,9 @@
-# Outreach M11 — Controlled Launch
+# Outreach opzionale — Controlled Launch
 
-Questo runbook prepara il lavoro umano del Controlled Launch. Non autorizza
-messaggi, email, post, advertising o modifiche alla listing: ogni contatto viene
-scelto e inviato dall'owner.
+Questo runbook conserva materiale opzionale per un'eventuale attività futura.
+Non è un requisito o un gate di M11 e non autorizza messaggi, email, post,
+advertising o modifiche alla listing: si usa soltanto su una nuova richiesta
+esplicita dell'owner e ogni contatto viene scelto e inviato dall'owner.
 
 ## Target iniziale
 
