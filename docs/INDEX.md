@@ -47,7 +47,8 @@ corrente si legge da codice, configurazioni e `package.json`.
 - [Release readiness 1.0](runbooks/release-readiness-1.0.md) — ogni gate con la
   sua prova, o la dichiarazione che manca.
 - [Outreach Controlled Launch](runbooks/controlled-launch-outreach.md) — target,
-  messaggi, feedback e stop condition per il lavoro umano M11.
+  messaggi, feedback e stop condition per un'eventuale attività futura,
+  opzionale e fuori dai gate M11.
 - [ADR 0001](adr/0001-stack.md) — stack applicativo e provider.
 - [ADR 0002](adr/0002-webhook-queue.md) — ACK webhook rapido con retry durevoli.
 - [Brand Foundation](brand/brand-foundation.md) — identità e tono.

@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.0.0 — candidato
+
+- il checkout organico sul canary chiude il gate M11 senza conservare dati
+  fiscali, cliente, ordine o valori commerciali;
+- schema, tipi, fixture e build riconfermano la Shopify Function API `2026-07`;
+- la toolchain Cloudflare avanza alla coppia coordinata Wrangler `4.126.0` e
+  Vite plugin `1.54.0`; la compatibility date resta alla massima data coperta
+  anche dal runtime dei test;
+- la ricevuta di readiness distingue i gate locali verdi dai check, deploy e
+  readback ancora richiesti sull'HEAD remoto esatto.
+
 ## 0.9.45 — 25 agosto 2026
 
 - la ricevuta M11 conserva i conteggi operativi senza versionare domini o alias
