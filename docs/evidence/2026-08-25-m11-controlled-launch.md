@@ -2,9 +2,9 @@
 
 Data di avvio: 25 agosto 2026.
 
-Stato: **in corso**. Il gate del checkout organico è chiuso; restano la verifica
-dell'HEAD esatto del candidato `1.0.0`, la pubblicazione autorizzata e il lavoro
-umano del Controlled Launch.
+Stato: **pubblicazione in corso**. Il gate del checkout organico è chiuso e il
+candidato `1.0.0` è verificato in Development; restano promozione, deploy e
+readback Production, tag/release e il lavoro umano del Controlled Launch.
 
 ## Prerequisito M10
 
@@ -33,11 +33,12 @@ Il comando analizza entrambi gli SDL GraphQL prima del confronto, così una
 differenza di soli spazi o a-capo non produce un falso positivo e una modifica
 di tipi, campi o direttive resta bloccante.
 
-Sul candidato locale `1.0.0` del 26 agosto sono riusciti
+Sul candidato `1.0.0` del 26 agosto sono riusciti
 `npm run verify:function-schema`, `npm run typegen`, le 109 fixture di
 `npm run test:function` e `npm run build:function`. Lo schema rigenerato dalla
-CLI `4.7.0` è semanticamente identico al file committato. La PR di chiusura deve
-legare questi stessi gate all'HEAD remoto esatto prima della promozione.
+CLI `4.7.0` è semanticamente identico al file committato. Gli stessi gate sono
+riusciti in CI e nel deploy Development sul commit `345c27d` prima della
+promozione.
 
 ## Toolchain e dipendenze
 
@@ -59,9 +60,41 @@ nella toolchain: Wrangler e Vite plugin includono `workerd@1.20260825.1`, ma il
 Vitest pool `0.22.0` più recente include ancora un runtime che supporta al
 massimo `2026-08-22`. Entrambi i binari sono autorizzati in modo puntuale nella
 allowlist degli script npm; non viene forzato un runtime transitorio fuori
-dalle combinazioni pubblicate da Cloudflare. Il gate locale verifica tipi,
-test, build Function e dry-run Worker; resta comunque da distribuire e leggere
-in Development prima di promuovere il candidato in Production.
+dalle combinazioni pubblicate da Cloudflare. Il gate verifica tipi, test, build
+Function e dry-run Worker; distribuzione e readback Development sono riusciti
+sul commit `345c27d`.
+
+## Ricevuta deploy Development `1.0.0`
+
+Il workflow [32964683280](https://github.com/max23468/CF-Ready/actions/runs/32964683280)
+ha distribuito e riletto il commit `345c27d1cad960fb7a47e4e17c874201c2c21e2f`:
+
+- `npm run check`, preflight provider e snapshot di rollback coordinato verdi;
+- nessuna migrazione D1 Development pendente dopo il readback;
+- Worker deployment `bdebefee-daf6-413b-bf68-e7249c0a4c32`, versione
+  `b6df46e4-4d7a-40e0-9d89-5917cc14e6c9`, 100% del traffico;
+- smoke e verifica capacità Worker riusciti;
+- versione Shopify Development `1.0.0` attiva
+  (`gid://shopify/Version/1104073752577`) e legata allo stesso commit;
+- rollback coordinato precedente: commit `bd7165c`, versione `0.9.45`.
+
+## Allineamento delle componenti alla `1.0.0`
+
+La verifica richiesta prima della promozione non ha rilevato componenti CF
+Ready con una versione applicativa inferiore alla `1.0.0`:
+
+- `package.json` e la radice del lockfile coincidono su `1.0.0`, fonte canonica
+  prevista dal Master Plan;
+- il Worker importa quella versione come `APP_VERSION` e il workflow ha
+  distribuito il medesimo commit `345c27d`;
+- lo snapshot Shopify Development attivo è `1.0.0` e include configurazione app
+  e Function `cf-ready-validation`; la Function non mantiene un secondo SemVer
+  indipendente che possa divergere;
+- il sito statico Pages è identificato dal commit e dal deployment verificato,
+  non da una versione applicativa separata.
+
+Le versioni `0.x` ancora presenti nel lockfile appartengono a dipendenze esterne
+e non sono componenti versionate di CF Ready.
 
 ## Monitoraggio Controlled Launch
 
@@ -140,9 +173,9 @@ Il 26 agosto 2026, con Node.js `26.7.0`, npm `12.0.2` e Shopify CLI `4.7.0`:
   zero righe scritte, uno store attivo, una Validation abilitata e nessun
   errore aperto.
 
-Queste prove sono locali sul candidato non ancora pubblicato. La PR, i check
-remoti e il deploy/readback Development dell'HEAD esatto restano necessari
-prima della promozione Production.
+Le prove locali sono state riconfermate dalla CI della PR #327 e dal workflow
+Development sul commit unito `345c27d`. La promozione Production deve partire
+dal tip di `develop` dopo l'assorbimento di questa ricevuta.
 
 ## Gate checkout reale
 
@@ -172,7 +205,6 @@ Il gate checkout reale richiesto prima di `v1.0.0` è quindi **chiuso**.
 
 ## Stato di pubblicazione
 
-Nessun tag `v1.0.0`, deploy, release, outreach o attivazione commerciale è stato
-eseguito in questo avvio. La pubblicazione resta successiva alla verifica
-dell'HEAD esatto del candidato e alle autorizzazioni operative previste dal
-repository.
+Il deploy Development `1.0.0` è riuscito. Tag `v1.0.0`, deploy/release
+Production, outreach e nuove attivazioni commerciali non sono ancora stati
+eseguiti; la pubblicazione tecnica autorizzata è in corso.

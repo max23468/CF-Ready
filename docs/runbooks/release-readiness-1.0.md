@@ -56,12 +56,25 @@ La navigazione embedded della `0.9.11` è stata verificata in Chrome sullo store
 
 | Voce | Valore |
 | --- | --- |
-| Versione candidata verificata | `1.0.0`, gate locali verdi il 26 agosto 2026 |
-| Commit candidato | da assegnare all'HEAD esatto della PR di chiusura M11; nessuna promozione eseguita |
-| Branch | `codex/m11-1-0-candidate`, candidato locale non ancora pubblicato |
-| Ultimo snapshot Development provato | `0.9.45`, commit `bd7165cae0e2151984961452bbf107ac63a3c893`, run [32844877499](https://github.com/max23468/CF-Ready/actions/runs/32844877499); gate, Worker e Shopify verificati prima della promozione Production `0.9.45` |
+| Versione candidata verificata | `1.0.0`, gate locali, CI e Development verdi il 26 agosto 2026 |
+| Commit candidato | `345c27d1cad960fb7a47e4e17c874201c2c21e2f`, snapshot Development verificato |
+| Branch | `develop`; PR candidata [#327](https://github.com/max23468/CF-Ready/pull/327) unita con squash |
+| Ultimo snapshot Development provato | `1.0.0`, commit `345c27d1cad960fb7a47e4e17c874201c2c21e2f`, run [32964683280](https://github.com/max23468/CF-Ready/actions/runs/32964683280) |
+| Allineamento componenti | root e Worker `1.0.0`; snapshot Shopify `1.0.0` comprensivo della Function; Pages versionato per commit/deployment, senza SemVer separato |
 | Submission | approvata: il Partner Dashboard mostra app e listing `Published`, con italiano e inglese `Live`, il 23 agosto 2026 |
 | Tag `v1.0.0` | non creato: si crea dopo deploy, smoke e readback Production riusciti della `1.0.0` |
+
+### Ultimo snapshot Development `1.0.0`
+
+| Campo | Valore |
+| --- | --- |
+| Versione repository e commit | `1.0.0`, commit `345c27d1cad960fb7a47e4e17c874201c2c21e2f` |
+| Worker | deployment `bdebefee-daf6-413b-bf68-e7249c0a4c32`, versione `b6df46e4-4d7a-40e0-9d89-5917cc14e6c9`, 100% del traffico |
+| Migrazioni | nessuna migrazione pendente al readback |
+| Run | [32964683280](https://github.com/max23468/CF-Ready/actions/runs/32964683280) |
+| Gate, smoke e readback | `npm run check`, preflight, Worker, capacità e readback Shopify riusciti |
+| Shopify | versione `1.0.0` attiva (`1104073752577`), stesso commit |
+| Rollback | snapshot coordinato `0.9.45`, commit `bd7165c` |
 
 ### Ultimo snapshot Production `0.9.45`
 
@@ -383,7 +396,7 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | Navigazione embedded D-130 | verificata in Chrome il 5 agosto 2026 sullo store `cf-ready-dev` con la Production `0.9.11`: una sola Home e route primarie dentro l'Admin | ✅ |
 | Function API `2026-07` stabile e rigenerata | fonti Shopify rilette il 25 agosto 2026: stabile dal 1º luglio 2026, accessibile fino al 16 luglio 2027. Precheck M11 con CLI 4.7.0 e `npm run verify:function-schema`: schema semanticamente identico al committato | ✅ precheck M11 |
 | **Matrice server-side della Function** | `npm run test:function` sull'HEAD Production `0.9.40`: 109 test verdi; casi geografici, senza spedizione, ritiro, misto ed entitlement in abbonamento nella [ricevuta M10](../evidence/2026-08-25-m10-canary-numisleo.md) | ✅ |
-| **Riconferma schema sul candidato `1.0.0`** | fonti ufficiali rilette il 26 agosto; `npm run verify:function-schema`, typegen, 109 fixture e build Function riusciti sul candidato locale. La PR deve riconfermare gli stessi gate sull'HEAD remoto esatto | ⚠️ locale verde, HEAD remoto e CI pendenti |
+| **Riconferma schema sul candidato `1.0.0`** | fonti ufficiali rilette il 26 agosto; `npm run verify:function-schema`, typegen, 109 fixture e build Function riusciti in locale, CI e deploy Development sul commit `345c27d` | ✅ M11 |
 | **Checkout reale prima di `1.0.0`** | verifica in sola lettura del 26 agosto 2026: ordine Online Store pagato e non di prova con consegna italiana, creato alle 17:53:16 CEST; chiamata `cart.validations.generate.run` `OK` alle 17:53:11 CEST, API `2026-07`, sotto la regola canary attiva. Nessun dato cliente o fiscale conservato; dettagli completi correttamente nascosti senza `read_customer_address` | ✅ M11, [ricevuta](../evidence/2026-08-25-m11-controlled-launch.md#gate-checkout-reale) |
 | Listing nel Partner Dashboard | readback manuale live del 23 agosto 2026 sull'app Production CF Ready (`403321946113`): stato `Published`, allora con visibilità limitata e URL diretto `https://apps.shopify.com/cf-ready`; visibilità completa attivata dall'owner il 25 agosto; italiano primario e inglese entrambi `Live` | ✅ M9 chiusa |
 | Conferma Shopify App Store | email ufficiale dello Shopify App Store Team ricevuta dall'owner il 23 agosto 2026: app approvata e pubblicata come applicazione listata; nome `CF Ready - Codice Fiscale`, stato `Published`, URL `https://apps.shopify.com/cf-ready`, riferimento `128156`; la visibilità limitata indicata nell'email è lo stato storico precedente alla modifica del 25 agosto | ✅ |
