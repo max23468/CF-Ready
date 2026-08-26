@@ -85,7 +85,9 @@ jobs:
           files="$(grep --recursive --files-with-matches '__OWNER_NAME__' site)"
           test -n "$files"
           printf '%s\n' "$files" | xargs sed -i "s|__OWNER_NAME__|$OWNER_LEGAL_NAME|g"
-          ! grep --recursive --quiet '__OWNER_NAME__' site
+          if grep --recursive --quiet '__OWNER_NAME__' site; then
+            exit 1
+          fi
           echo "- Identità del titolare iniettata in $(printf '%s\n' "$files" | wc -l | tr -d ' ') pagine" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Arma rollback Pages Production
