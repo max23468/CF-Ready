@@ -144,6 +144,29 @@ Validation risulta attiva. I fallimenti che avvengono
 prima di D1 restano osservabili soltanto dal monitoraggio Shopify, che fa parte
 del readback operativo e non può essere sostituito dal solo report interno.
 
+### Audit di chiusura M11 del 26 agosto
+
+La verifica eseguita prima della PR di chiusura conferma che M11 **non è ancora
+chiusa al 100%**. La lettura Production delle 11:49 CEST ha scritto zero righe e
+ha restituito un solo store attivo, un onboarding completato, una Validation
+abilitata, nessun errore aperto, nessun evento errore o webhook fallito, zero
+store paganti e una concessione omaggio.
+
+| Deliverable M11 | Stato osservato |
+| --- | --- |
+| Tag e release `v1.0.0` | in corso, successivi al deploy/readback Production |
+| Visibilità completa | chiusa il 25 agosto 2026 |
+| Outreach mirato | non eseguito |
+| Primi merchant | non chiuso: un solo store attivo, quello omaggio dell'owner |
+| Monitoraggio metriche | operativo e riletto senza errori tecnici aperti |
+| Feedback | non raccolto |
+| Checkout organico e schema Function | gate chiusi |
+
+La prima osservazione live di cancellazione ordinaria, credito pro rata e
+rimborso resta inoltre legata al primo merchant pagante, come previsto dalle
+ricevute M5 e M10. La PR #328 registra quindi uno snapshot intermedio; non è la
+PR di chiusura M11.
+
 ## Preparazione outreach e feedback
 
 Il [runbook di outreach](../runbooks/controlled-launch-outreach.md) delimita il
