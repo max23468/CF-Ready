@@ -258,12 +258,9 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /wrangler pages deploy site/);
   assert.match(workflow, /--branch main/);
   assert.match(workflow, /--commit-hash "\$GITHUB_SHA"/);
-  const shopifyCliInstall =
-    "npm install --global --allow-scripts=esbuild @shopify/cli@4.7.0";
+  const shopifyCliInstall = "npm install --global --allow-scripts=esbuild @shopify/cli@4.7.0";
   assert.match(workflow, new RegExp(shopifyCliInstall.replaceAll(".", "\\.")));
-  assert(
-    workflow.indexOf(shopifyCliInstall) < workflow.indexOf("npm run check"),
-  );
+  assert(workflow.indexOf(shopifyCliInstall) < workflow.indexOf("npm run check"));
   assert.match(workflow, /canonical_deployment\.deployment_trigger\.metadata\.commit_hash/);
   assert.match(workflow, /deployments\/\$ROLLBACK_ID\/rollback/);
   assert.match(workflow, /--header "Cache-Control: no-cache"/);
