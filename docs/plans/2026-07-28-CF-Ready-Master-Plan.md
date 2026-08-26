@@ -361,6 +361,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-133 | Consegnare il lavoro webhook a Cloudflare Queues dopo il claim D1 e prima dell'ACK. | Shopify richiede risposte rapide, ma `waitUntil` non garantisce retry durevoli: una coda nativa conserva disinstallazioni, redazioni e riconciliazioni fallite senza introdurre un secondo stato applicativo o un provider. Una DLQ finalizza gli errori e rimanda il messaggio alla coda primaria se D1 resta indisponibile, evitando eliminazioni silenziose. |
 | D-134 | Notificare all’owner tramite outbox D1 e bot Telegram dedicato l’intero ciclo merchant e commerciale: installazione, reinstallazione, disattivazione, disinstallazione, prova gratuita, accettazione e attivazione del piano, cambio, disdetta, rifiuto, scadenza, sospensione e riattivazione. Ogni messaggio indica il dominio tecnico `.myshopify.com` e il piano interessato. | La Partner API è autorevole per relazioni e charge Shopify; gli eventi applicativi completano la prova gratuita e lo stato billing riconciliato identifica il piano precedente nei cambi. Poll con sovrapposizione, chiavi hash univoche e retry separano acquisizione e consegna. Il dominio tecnico è l’unico identificativo merchant inviato alla chat privata: nome, email, dati checkout, shop ID e GID restano esclusi. Il cron Production gira ogni cinque minuti e la feature resta disattivata finché bot, chat e secret Partner non sono configurati. Development, checkout e merchant non ricevono notifiche. |
 | D-135 | Supportare concessioni omaggio permanenti assegnate manualmente dall’owner, inizialmente solo a `numisleo.myshopify.com`, senza creare o simulare una charge Shopify. | Lo store reale dell’owner deve poter eseguire il canary senza pagare la propria app. La concessione vive in una tabella D1 dedicata, è auditabile e revocabile, prevale sulla prova e viene copiata nel metafield come diritto `one_time`; la UI la distingue da un pagamento e non propone altri addebiti. Per evitare cancellazioni o rimborsi automatici, diventa operativa soltanto in assenza di un abbonamento Shopify attivo: l’eventuale abbonamento va prima disdetto tramite il normale flusso merchant. Deciso il 24 agosto 2026. |
+| D-136 | M11 chiude la release tecnica `1.0.0`: outreach, primi merchant esterni e feedback non sono requisiti della milestone. | L’owner non ha richiesto comunicazioni outbound; acquisizione organica e criteri di maturità restano attività successive e non bloccano la release. L’assenza di segnalazioni è non bloccante, ma non viene presentata come prova di soddisfazione. Deciso il 26 agosto 2026. |
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
@@ -408,7 +409,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-089 | Versioni di sviluppo `0.x`; `1.0.0` prima dei merchant esterni. | Non vendere una prerelease. |
 | D-090 | Un solo dev store Basic permanente. | Semplicità operativa. |
 | D-091 | Utility CLI di reset solo `dev`, impossibile in `prod`. | Ripetere flussi puliti con un solo dev store. |
-| D-092 | Controlled Launch con listing a visibilità completa dal 25 agosto 2026; il controllo resta nell'acquisizione e nel supporto graduali, non nella reperibilità. | Rende l'app trovabile nella ricerca App Store senza fingere che i criteri di maturità M11 siano già raggiunti. |
+| D-092 | Controlled Launch con listing a visibilità completa dal 25 agosto 2026; il controllo resta nell'acquisizione e nel supporto graduali, non nella reperibilità. | Rende l'app trovabile nella ricerca App Store senza fingere che i criteri di maturità successivi alla release siano già raggiunti. |
 | D-093 | Controlled Launch non comunicato come beta/pilot. | Comunicazione normale di lancio, senza nascondere limitazioni materiali o inventare trazione. |
 | D-094 | Criteri di uscita: 10 installazioni, 5 Validation attive, 2 settimane, nessun bug critico e flussi chiave verificati. | Gate oggettivo per chiudere il Controlled Launch, indipendente dalla visibilità già attiva. |
 | D-095 | Strategia incidenti fail-open. | Preservare vendite e configurazioni. |
@@ -3676,7 +3677,11 @@ Non dichiarare:
 - maturità o risultati non verificati;
 - trazione o risultati non ancora osservati.
 
-### 25.2 Acquisizione merchant
+### 25.2 Acquisizione merchant opzionale
+
+Questa attività non è un gate di M11 e si esegue soltanto su una nuova richiesta
+esplicita dell'owner. Nessun messaggio, post o contatto è necessario per
+pubblicare la `1.0.0`.
 
 Ricercare thread recenti e pertinenti su:
 
@@ -3707,7 +3712,7 @@ Durante Controlled Launch:
 - 14 giorni;
 - pricing generation Launch mantenuta secondo regole.
 
-### 25.4 Criteri di uscita
+### 25.4 Criteri di maturità successivi a M11
 
 - almeno 10 merchant reali installati;
 - almeno 5 con Validation attiva;
@@ -3720,7 +3725,9 @@ Durante Controlled Launch:
 - supporto operativo;
 - backup e rollback provati.
 
-Questi sono minimi, non automatismi: l’owner può prolungare la fase se i segnali qualitativi sono insufficienti.
+Questi criteri misurano la maturità operativa successiva alla release e non
+bloccano M11. Sono minimi, non automatismi: l’owner può prolungare la fase se i
+segnali qualitativi sono insufficienti.
 
 ### 25.5 Metriche
 
@@ -4038,8 +4045,9 @@ sopravviveva all'iframe embedded, un rifiuto di Shopify invisibile, il webhook
 degli acquisti mancante e la conversione eseguita due volte per concorrenza. La
 cancellazione ordinaria non era esercitabile sul dev store. Dopo D-135 non è
 applicabile al canary omaggio M10: credito, proratazione e rimborso restano
-coperti automaticamente e la prima osservazione live appartiene al primo
-merchant pagante di M11, come dichiarato negli Open items §34.9.
+coperti automaticamente e la prima osservazione live verrà registrata quando
+sarà disponibile organicamente con un merchant pagante, come dichiarato negli
+Open items §34.9, senza bloccare M11.
 
 Deliverable:
 
@@ -4053,8 +4061,8 @@ Deliverable:
 - entitlement metafield;
 - scadenza fail-open.
 
-Gate: verdi. La cancellazione live è un'osservazione M11 non applicabile al
-canary omaggio, non un gate M5 o M10 ancora aperto.
+Gate: verdi. La cancellazione live è un'osservazione opportunistica successiva,
+non applicabile al canary omaggio e non è un gate M5, M10 o M11 ancora aperto.
 
 - matrice billing test completa;
 - nessun entitlement basato su redirect;
@@ -4327,10 +4335,11 @@ Deliverable:
 
 - tag `v1.0.0`;
 - visibilità completa già attiva;
-- outreach mirato;
-- primi merchant;
-- monitoraggio metriche;
-- feedback.
+- monitoraggio metriche, smoke e readback Production senza errori critici.
+
+Per D-136 outreach, primi merchant esterni e feedback non sono deliverable né
+gate di M11. Restano attività opzionali successive, eseguibili soltanto su una
+nuova richiesta dell'owner.
 
 Gate:
 
@@ -4341,6 +4350,13 @@ Gate:
   disponibili restano coperti dalla matrice server-side e dai limiti ambientali
   documentati;
 - riconferma dello schema Function API `2026-07` con la CLI supportata corrente.
+
+Il gate checkout reale è stato chiuso il 26 agosto 2026: un ordine Online Store
+pagato, non di prova e con consegna italiana è stato creato cinque secondi dopo
+una chiamata `cart.validations.generate.run` conclusa `OK` sul canary. La
+ricevuta M11 conserva soltanto metadati tecnici sanitizzati. Schema, typegen,
+109 fixture, build e deploy/readback Development sono riusciti il 26 agosto sul
+commit candidato `345c27d`.
 
 ### M12 — Consolidamento dopo la visibilità completa
 
@@ -4755,8 +4771,8 @@ I punti residui di brand sono verifiche e produzione di materiali che dipendono 
    l’omaggio da un pagamento. Periodo di grazia `ending`, accesso fino a fine
    periodo, proratazione e revoca per rimborso FR-084 restano coperti dai test
    automatici; la prima osservazione live di cancellazione, credito e rimborso
-   appartiene al primo merchant pagante del Controlled Launch M11 e non viene
-   attribuita al canary omaggio.
+   verrà registrata quando sarà disponibile organicamente con un merchant
+   pagante, senza bloccare M11 e senza essere attribuita al canary omaggio.
 
 I punti 1 e 2 erano da decidere presto in M2 e sono stati chiusi lì.
 

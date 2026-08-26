@@ -234,6 +234,27 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
       assert.doesNotMatch(workflow, /@shopify\/cli@(?!4\.7\.0)/, path);
     }
   }
+
+  for (const path of ["deploy-development.yml", "deploy-production.yml"]) {
+    const workflow = readFileSync(new URL(`../.github/workflows/${path}`, import.meta.url), "utf8");
+    const credentials = workflow.indexOf("Verifica credenziali provider");
+    const schema = workflow.indexOf("Verifica schema Function API");
+    assert(credentials >= 0 && schema > credentials, path);
+    assert.match(
+      workflow.slice(schema, schema + 240),
+      /SHOPIFY_APP_AUTOMATION_TOKEN:[\s\S]*npm run verify:function-schema/,
+      path,
+    );
+  }
+
+  const production = readFileSync(
+    new URL("../.github/workflows/deploy-production.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    production,
+    /Verifica schema Function API[\s\S]*SHOPIFY_FUNCTION_SCHEMA_CONFIG: production/,
+  );
 });
 
 test("il workflow Pages Production resta manuale, vincolato e verificabile", () => {
@@ -246,10 +267,9 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /wrangler pages deploy site/);
   assert.match(workflow, /--branch main/);
   assert.match(workflow, /--commit-hash "\$GITHUB_SHA"/);
-  assert.match(workflow, /npm install --global @shopify\/cli@4\.7\.0/);
-  assert(
-    workflow.indexOf("npm install --global @shopify/cli@4.7.0") < workflow.indexOf("npm run check"),
-  );
+  const shopifyCliInstall = "npm install --global --allow-scripts=esbuild @shopify/cli@4.7.0";
+  assert.match(workflow, new RegExp(shopifyCliInstall.replaceAll(".", "\\.")));
+  assert(workflow.indexOf(shopifyCliInstall) < workflow.indexOf("npm run check"));
   assert.match(workflow, /canonical_deployment\.deployment_trigger\.metadata\.commit_hash/);
   assert.match(workflow, /deployments\/\$ROLLBACK_ID\/rollback/);
   assert.match(workflow, /--header "Cache-Control: no-cache"/);
