@@ -1,12 +1,27 @@
 {
   "name": "cf-ready",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "packageManager": "npm@12.0.2",
   "packageExtensions": {
     "@shopify/shopify-app-react-router@2.0.0": {
       "peerDependencies": {
         "react-router": "^7.18.2 || ^8.3.0"
+      }
+    },
+    "graphql-config@5.1.6": {
+      "peerDependencies": {
+        "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0"
+      }
+    },
+    "graphql-request@6.1.0": {
+      "peerDependencies": {
+        "graphql": "14 - 17"
+      }
+    },
+    "graphql-ws@5.16.2": {
+      "peerDependencies": {
+        "graphql": ">=0.11 <=17"
       }
     }
   },
@@ -67,7 +82,7 @@
     "@types/node": "26.3.0",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
-    "graphql": "^16.14.2",
+    "graphql": "17.0.2",
     "mdast-util-from-markdown": "2.0.3",
     "oxfmt": "0.65.0",
     "oxlint": "1.80.0",
