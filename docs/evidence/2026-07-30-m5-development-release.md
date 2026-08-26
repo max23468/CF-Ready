@@ -110,8 +110,8 @@ Un rimborso totale revoca il diritto e uno parziale lo conserva, ma il percorso
 non è stato provato live: un addebito di prova non è mai stato pagato, quindi
 non è rimborsabile. Il comportamento resta coperto dai test, dove un acquisto
 che sparisce dagli attivi porta lo stato a `refunded`. La prova reale richiede
-un addebito pagato davvero e si sposta con gli altri residui al primo merchant
-pagante M11.
+un addebito pagato davvero e verrà registrata con il primo merchant pagante
+disponibile organicamente, senza bloccare M11.
 
 ### Avvisi di prova
 

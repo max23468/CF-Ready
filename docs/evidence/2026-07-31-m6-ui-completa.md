@@ -159,4 +159,4 @@ negli Open items §34.7.
 | Link alla gestione nativa Shopify nel blocco del piano: percorso non documentato | quando Shopify lo documenta |
 | Nomi dei piani in italiano nella fattura Shopify | decisione commerciale dell'owner |
 | Automazione degli E2E di §23.10 | M8, dove la decisione è stata registrata |
-| Stati commerciali non riproducibili sul dev store | M11, primo merchant pagante |
+| Stati commerciali non riproducibili sul dev store | osservazione opportunistica sul primo merchant pagante disponibile; non blocca M11 |
