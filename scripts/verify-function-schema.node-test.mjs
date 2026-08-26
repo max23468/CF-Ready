@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   fetchFunctionSchema,
+  functionSchemaConfigArgs,
   verifyFunctionApiVersion,
   verifyFunctionSchema,
 } from "./verify-function-schema.mjs";
@@ -92,6 +93,22 @@ test("interroga la CLI dalla directory della Function senza scrivere lo schema",
     "--no-color",
   ]);
   assert.equal(invocation.options.cwd, "/repo/extensions/function");
+});
+
+test("usa la configurazione Shopify corretta per ambiente", () => {
+  assert.deepEqual(functionSchemaConfigArgs("dev"), ["--config", "dev"]);
+  assert.deepEqual(functionSchemaConfigArgs("production"), []);
+  assert.throws(() => functionSchemaConfigArgs("staging"), /dev o production/);
+
+  let args;
+  fetchFunctionSchema({
+    config: "production",
+    spawn: (_command, invocationArgs) => {
+      args = invocationArgs;
+      return { status: 0, stdout: schema };
+    },
+  });
+  assert.deepEqual(args, ["app", "function", "schema", "--stdout", "--no-color"]);
 });
 
 test("non accetta un fallimento o un'uscita vuota della CLI", () => {

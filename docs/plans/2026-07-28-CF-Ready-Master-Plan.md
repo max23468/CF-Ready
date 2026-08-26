@@ -4354,8 +4354,9 @@ Gate:
 Il gate checkout reale è stato chiuso il 26 agosto 2026: un ordine Online Store
 pagato, non di prova e con consegna italiana è stato creato cinque secondi dopo
 una chiamata `cart.validations.generate.run` conclusa `OK` sul canary. La
-ricevuta M11 conserva soltanto metadati tecnici sanitizzati; schema, typegen,
-fixture e build restano da riconfermare sull'HEAD esatto del candidato `1.0.0`.
+ricevuta M11 conserva soltanto metadati tecnici sanitizzati. Schema, typegen,
+109 fixture, build e deploy/readback Development sono riusciti il 26 agosto sul
+commit candidato `345c27d`.
 
 ### M12 — Consolidamento dopo la visibilità completa
 
