@@ -2,9 +2,11 @@
 
 Data di avvio: 25 agosto 2026.
 
-Stato: **pubblicazione tecnica in corso**. Il gate del checkout organico è
-chiuso e il runtime `1.0.0` è verificato in Development; restano promozione,
-deploy e readback Production, tag e release.
+Data di chiusura: 26 agosto 2026.
+
+Stato: **M11 completata**. Il gate del checkout organico, la promozione, il
+backup, il deploy e readback Production, il tag e la release `v1.0.0` sono
+chiusi sullo stesso commit `eb0b910`.
 Per D-136, outreach, primi merchant esterni e feedback non sono requisiti di
 M11 e nessuna comunicazione è stata eseguita.
 
@@ -212,7 +214,26 @@ Il gate checkout reale richiesto prima di `v1.0.0` è quindi **chiuso**.
 
 ## Stato di pubblicazione
 
-Il deploy Development `1.0.0` è riuscito. Tag `v1.0.0`, deploy e release
-Production non sono ancora stati eseguiti; la pubblicazione tecnica autorizzata
-è in corso. Per D-136 nessuna attività di outreach o feedback è richiesta o
-stata eseguita.
+La promozione [#331](https://github.com/max23468/CF-Ready/pull/331) ha unito
+`develop` in `main` con merge commit a due parent
+`eb0b91047f29f7dd61ea2d90237a9ec1b8e2fdef`. Prima del deploy è riuscito il
+backup Production con restore drill
+[32973581095](https://github.com/max23468/CF-Ready/actions/runs/32973581095).
+
+Il workflow Production
+[32973695210](https://github.com/max23468/CF-Ready/actions/runs/32973695210)
+ha completato sul medesimo commit:
+
+- verifica autenticata dello schema Function API `2026-07` e `npm run check`;
+- preflight, nessuna migrazione D1 pendente e readback riuscito;
+- Worker deployment `a7953a21-09c4-4fdc-b7cc-e497d1efa37f`, versione
+  `b9dafed1-798f-4282-becd-d2792cd0874a`, al 100% del traffico;
+- smoke Worker riuscito;
+- versione Shopify Production `1.0.0` attiva (`1104219602945`) e legata allo
+  stesso commit;
+- rollback coordinato precedente `0.9.45` registrato.
+
+Il tag e la [release `v1.0.0`](https://github.com/max23468/CF-Ready/releases/tag/v1.0.0)
+sono stati pubblicati dopo deploy, smoke e readback riusciti e puntano a
+`eb0b910`. M11 è quindi chiusa. Per D-136 nessuna attività di outreach o
+feedback è richiesta o stata eseguita; il consolidamento prosegue in M12.

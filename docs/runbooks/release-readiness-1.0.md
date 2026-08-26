@@ -13,9 +13,16 @@ manuale live è invece marcata ✅ soltanto quando registra data, target esatto 
 risultato osservato. Le righe si aggiornano nella stessa modifica che produce la
 prova.
 
-**Stato complessivo: M10 chiusa sul canary reale Numisleo.** La `0.9.40` è
-stata distribuita e riletta live in Chrome: la Home usa un testo generico sui
-prossimi ordini, senza richiedere transazioni create appositamente per il test.
+**Stato complessivo: M11 chiusa e `v1.0.0` pubblicata.** La promozione
+Production [#331](https://github.com/max23468/CF-Ready/pull/331), il backup
+[32973581095](https://github.com/max23468/CF-Ready/actions/runs/32973581095),
+il deploy con smoke e readback
+[32973695210](https://github.com/max23468/CF-Ready/actions/runs/32973695210)
+e la [release `v1.0.0`](https://github.com/max23468/CF-Ready/releases/tag/v1.0.0)
+appartengono al commit `eb0b91047f29f7dd61ea2d90237a9ec1b8e2fdef`.
+Il canary reale Numisleo era già stato distribuito e riletto live in Chrome: la
+Home usa un testo generico sui prossimi ordini, senza richiedere transazioni
+create appositamente per il test.
 La review è approvata e la listing bilingue è pubblicata con visibilità
 completa dal 25 agosto 2026. La submission è partita il 4 agosto
 2026; il 10 agosto Shopify l'ha sospesa sui requisiti 1.2.2 e 2.1.1 perché il
@@ -62,7 +69,7 @@ La navigazione embedded della `0.9.11` è stata verificata in Chrome sullo store
 | Ultimo snapshot Development provato | `1.0.0`, commit `345c27d1cad960fb7a47e4e17c874201c2c21e2f`, run [32964683280](https://github.com/max23468/CF-Ready/actions/runs/32964683280) |
 | Allineamento componenti | root e Worker `1.0.0`; snapshot Shopify `1.0.0` comprensivo della Function; Pages versionato per commit/deployment, senza SemVer separato |
 | Submission | approvata: il Partner Dashboard mostra app e listing `Published`, con italiano e inglese `Live`, il 23 agosto 2026 |
-| Tag `v1.0.0` | non creato: si crea dopo deploy, smoke e readback Production riusciti della `1.0.0` |
+| Tag `v1.0.0` | pubblicato sul commit `eb0b91047f29f7dd61ea2d90237a9ec1b8e2fdef` dopo deploy, smoke e readback Production riusciti; [release](https://github.com/max23468/CF-Ready/releases/tag/v1.0.0) |
 
 ### Ultimo snapshot Development `1.0.0`
 
@@ -76,18 +83,19 @@ La navigazione embedded della `0.9.11` è stata verificata in Chrome sullo store
 | Shopify | versione `1.0.0` attiva (`1104073752577`), stesso commit |
 | Rollback | snapshot coordinato `0.9.45`, commit `bd7165c` |
 
-### Ultimo snapshot Production `0.9.45`
+### Ultimo snapshot Production `1.0.0`
 
 | Campo | Valore |
 | --- | --- |
-| Versione repository e commit | `0.9.45`, commit `390975d8573756f9eca0b7a36d4f8955e7425e69` |
-| Worker | deployment `783cbae6-6bb7-45fe-923b-99a22a60ee00`, versione `63558bb5-8a5b-4f69-b9c9-edaa04dd168e`, 100% del traffico |
+| Versione repository e commit | `1.0.0`, commit `eb0b91047f29f7dd61ea2d90237a9ec1b8e2fdef` |
+| Promozione | [#331](https://github.com/max23468/CF-Ready/pull/331), merge commit a due parent `eb0b910` |
+| Worker | deployment `a7953a21-09c4-4fdc-b7cc-e497d1efa37f`, versione `b9dafed1-798f-4282-becd-d2792cd0874a`, 100% del traffico |
 | Migrazioni | nessuna migrazione pendente al readback |
-| Run | [32845800340](https://github.com/max23468/CF-Ready/actions/runs/32845800340) |
+| Run | [32973695210](https://github.com/max23468/CF-Ready/actions/runs/32973695210) |
 | Gate, smoke e readback | `npm run check`, preflight, Worker, smoke e readback Shopify riusciti |
-| Shopify | versione `0.9.45` attiva (`1102551646209`), commit verificato |
-| Release | [`v0.9.45`](https://github.com/max23468/CF-Ready/releases/tag/v0.9.45), pubblicata dopo deploy e readback riusciti |
-| Rollback e backup | snapshot coordinato registrato; backup D1 Production [32845782520](https://github.com/max23468/CF-Ready/actions/runs/32845782520) riuscito prima del deploy |
+| Shopify | versione `1.0.0` attiva (`1104219602945`), commit verificato |
+| Release | [`v1.0.0`](https://github.com/max23468/CF-Ready/releases/tag/v1.0.0), pubblicata dopo deploy e readback riusciti |
+| Rollback e backup | rollback coordinato `0.9.45` registrato; backup D1 Production [32973581095](https://github.com/max23468/CF-Ready/actions/runs/32973581095) riuscito prima del deploy |
 
 ### Ricevuta del deploy Production `0.9.40`
 
@@ -453,8 +461,8 @@ esplicita e distinta dell'owner al momento dell'esecuzione.
 
 | Azione | Stato |
 | --- | --- |
-| Deploy Worker Production | `0.9.40`, eseguito e verificato dal run [32786987670](https://github.com/max23468/CF-Ready/actions/runs/32786987670) |
-| Promozione `develop` → `main` | `0.9.40` unita con [#314](https://github.com/max23468/CF-Ready/pull/314), merge commit `bd80fb7` a due parent |
+| Deploy Worker Production | `1.0.0`, eseguito e verificato dal run [32973695210](https://github.com/max23468/CF-Ready/actions/runs/32973695210) |
+| Promozione `develop` → `main` | `1.0.0` unita con [#331](https://github.com/max23468/CF-Ready/pull/331), merge commit `eb0b910` a due parent |
 | Submission App Store | autorizzata ed eseguita il 4 agosto 2026; review approvata e listing bilingue `Published` verificata il 23 agosto 2026 |
 | Attivazione billing reale | autorizzata e attiva in Production dalla `0.9.6` |
 | Passaggio della listing a visibilità completa | eseguito dall'owner e verificato il 25 agosto 2026; non chiude da solo i criteri Controlled Launch |
