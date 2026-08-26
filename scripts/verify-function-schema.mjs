@@ -97,10 +97,20 @@ export function verifyFunctionApiVersion(manifest) {
   }
 }
 
-export function fetchFunctionSchema({ spawn = spawnSync, cwd = functionRoot } = {}) {
+export function functionSchemaConfigArgs(config = "dev") {
+  if (config === "dev") return ["--config", "dev"];
+  if (config === "production") return [];
+  throw new Error("Configurazione schema Function non valida: usare dev o production.");
+}
+
+export function fetchFunctionSchema({
+  spawn = spawnSync,
+  cwd = functionRoot,
+  config = process.env.SHOPIFY_FUNCTION_SCHEMA_CONFIG ?? "dev",
+} = {}) {
   const result = spawn(
     "shopify",
-    ["app", "function", "schema", "--config", "dev", "--stdout", "--no-color"],
+    ["app", "function", "schema", ...functionSchemaConfigArgs(config), "--stdout", "--no-color"],
     { cwd, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 },
   );
 
