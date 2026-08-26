@@ -56,12 +56,25 @@ La navigazione embedded della `0.9.11` è stata verificata in Chrome sullo store
 
 | Voce | Valore |
 | --- | --- |
-| Versione candidata verificata | `0.9.40` |
-| Commit candidato | `bd80fb745c1bfab83dfbf730142e83e3b7da3777`, commit Production verificato dal run [32786987670](https://github.com/max23468/CF-Ready/actions/runs/32786987670) |
-| Branch | `main`; promozione [#314](https://github.com/max23468/CF-Ready/pull/314) unita con merge commit a due parent e deploy Production completato sul commit candidato |
-| Ultimo snapshot Development provato | `0.9.40`, commit `018d188a568c185ef31295eb4b84b6d1232f5030`, run [32786444195](https://github.com/max23468/CF-Ready/actions/runs/32786444195); gate, migrazioni, capacità, Worker e Shopify verificati prima della promozione |
+| Versione candidata verificata | `1.0.0`, gate locali verdi il 26 agosto 2026 |
+| Commit candidato | da assegnare all'HEAD esatto della PR di chiusura M11; nessuna promozione eseguita |
+| Branch | `codex/m11-1-0-candidate`, candidato locale non ancora pubblicato |
+| Ultimo snapshot Development provato | `0.9.45`, commit `bd7165cae0e2151984961452bbf107ac63a3c893`, run [32844877499](https://github.com/max23468/CF-Ready/actions/runs/32844877499); gate, Worker e Shopify verificati prima della promozione Production `0.9.45` |
 | Submission | approvata: il Partner Dashboard mostra app e listing `Published`, con italiano e inglese `Live`, il 23 agosto 2026 |
 | Tag `v1.0.0` | non creato: si crea dopo deploy, smoke e readback Production riusciti della `1.0.0` |
+
+### Ultimo snapshot Production `0.9.45`
+
+| Campo | Valore |
+| --- | --- |
+| Versione repository e commit | `0.9.45`, commit `390975d8573756f9eca0b7a36d4f8955e7425e69` |
+| Worker | deployment `783cbae6-6bb7-45fe-923b-99a22a60ee00`, versione `63558bb5-8a5b-4f69-b9c9-edaa04dd168e`, 100% del traffico |
+| Migrazioni | nessuna migrazione pendente al readback |
+| Run | [32845800340](https://github.com/max23468/CF-Ready/actions/runs/32845800340) |
+| Gate, smoke e readback | `npm run check`, preflight, Worker, smoke e readback Shopify riusciti |
+| Shopify | versione `0.9.45` attiva (`1102551646209`), commit verificato |
+| Release | [`v0.9.45`](https://github.com/max23468/CF-Ready/releases/tag/v0.9.45), pubblicata dopo deploy e readback riusciti |
+| Rollback e backup | snapshot coordinato registrato; backup D1 Production [32845782520](https://github.com/max23468/CF-Ready/actions/runs/32845782520) riuscito prima del deploy |
 
 ### Ricevuta del deploy Production `0.9.40`
 
@@ -370,8 +383,8 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | Navigazione embedded D-130 | verificata in Chrome il 5 agosto 2026 sullo store `cf-ready-dev` con la Production `0.9.11`: una sola Home e route primarie dentro l'Admin | ✅ |
 | Function API `2026-07` stabile e rigenerata | fonti Shopify rilette il 25 agosto 2026: stabile dal 1º luglio 2026, accessibile fino al 16 luglio 2027. Precheck M11 con CLI 4.7.0 e `npm run verify:function-schema`: schema semanticamente identico al committato | ✅ precheck M11 |
 | **Matrice server-side della Function** | `npm run test:function` sull'HEAD Production `0.9.40`: 109 test verdi; casi geografici, senza spedizione, ritiro, misto ed entitlement in abbonamento nella [ricevuta M10](../evidence/2026-08-25-m10-canary-numisleo.md) | ✅ |
-| **Riconferma schema sul candidato `1.0.0`** | ripetere `npm run verify:function-schema`, typegen, fixture e build sull'HEAD esatto del candidato M11; il [precheck di avvio](../evidence/2026-08-25-m11-controlled-launch.md) non sostituisce questa prova | ⛔ M11 bloccante, non eseguita sul candidato |
-| **Checkout reale prima di `1.0.0`** | osservare un ordine nato organicamente sul canary, idoneo a una regola italiana attiva, e confermare esecuzione ed esito atteso della Function; non creare ordini, clienti, prodotti o pagamenti artificiali | ⛔ M11 bloccante, in attesa di un ordine organico idoneo |
+| **Riconferma schema sul candidato `1.0.0`** | fonti ufficiali rilette il 26 agosto; `npm run verify:function-schema`, typegen, 109 fixture e build Function riusciti sul candidato locale. La PR deve riconfermare gli stessi gate sull'HEAD remoto esatto | ⚠️ locale verde, HEAD remoto e CI pendenti |
+| **Checkout reale prima di `1.0.0`** | verifica in sola lettura del 26 agosto 2026: ordine Online Store pagato e non di prova con consegna italiana, creato alle 17:53:16 CEST; chiamata `cart.validations.generate.run` `OK` alle 17:53:11 CEST, API `2026-07`, sotto la regola canary attiva. Nessun dato cliente o fiscale conservato; dettagli completi correttamente nascosti senza `read_customer_address` | ✅ M11, [ricevuta](../evidence/2026-08-25-m11-controlled-launch.md#gate-checkout-reale) |
 | Listing nel Partner Dashboard | readback manuale live del 23 agosto 2026 sull'app Production CF Ready (`403321946113`): stato `Published`, allora con visibilità limitata e URL diretto `https://apps.shopify.com/cf-ready`; visibilità completa attivata dall'owner il 25 agosto; italiano primario e inglese entrambi `Live` | ✅ M9 chiusa |
 | Conferma Shopify App Store | email ufficiale dello Shopify App Store Team ricevuta dall'owner il 23 agosto 2026: app approvata e pubblicata come applicazione listata; nome `CF Ready - Codice Fiscale`, stato `Published`, URL `https://apps.shopify.com/cf-ready`, riferimento `128156`; la visibilità limitata indicata nell'email è lo stato storico precedente alla modifica del 25 agosto | ✅ |
 | Screenshot della listing | readback manuale live del 23 agosto 2026: feature media e cinque screenshot desktop presenti nelle listing italiana e inglese; la serie italiana è riutilizzata in inglese con cinque alt text localizzati. File esclusi dal repository per decisione dell'owner; piano e testi in [`screenshots.md`](../listing/screenshots.md) | ✅ |
@@ -390,7 +403,7 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | Access scope | `write_validations`, unico |
 | Target Function | `cart.validations.generate.run` |
 | `blockOnFailure` | `false`, verificato dopo ogni update |
-| Compatibility date Worker | `2026-08-22`, massima data supportata dal `workerd` incluso nella toolchain Cloudflare latest; migrazione runtime M11 da verificare in Development prima della promozione Production |
+| Compatibility date Worker | `2026-08-22`, massima data supportata anche dal runtime incluso nel Vitest pool `0.22.0`; Wrangler `4.126.0` e Vite plugin `1.54.0` includono già `workerd@1.20260825.1`, senza forzare il runtime dei test fuori dalla combinazione pubblicata |
 
 ## 4. Superfici pubbliche
 
