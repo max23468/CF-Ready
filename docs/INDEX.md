@@ -29,7 +29,9 @@ corrente si legge da codice, configurazioni e `package.json`.
 - [Hardening M8](evidence/2026-08-02-m8-hardening.md) — matrice delle prove,
   ricevute operative e limiti dichiarati della milestone.
 - [Controlled Launch M11](evidence/2026-08-25-m11-controlled-launch.md) —
-  prerequisito M10, precheck Function API e gate ancora aperti per `1.0.0`.
+  prerequisito M10, gate checkout, deploy Production e chiusura `v1.0.0`.
+- [Built for Shopify M12](evidence/2026-08-26-m12-built-for-shopify.md) —
+  criteri combinati, fonti Shopify correnti e baseline iniziale.
 - [Audit pre-submission App Store](audits/2026-08-03-app-store-pre-submission.md)
   — requisiti scaricati dalla fonte, esiti e punti da chiudere.
 - [Readiness Built for Shopify](audits/2026-08-05-built-for-shopify-readiness.md)

@@ -21,13 +21,12 @@ export default function App() {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <meta name="shopify-api-key" content={apiKey} />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="preconnect" href="https://cdn.shopify.com/" />
         {/* Shopify richiede il bootstrap CDN sincrono nel head. L'ordine definisce App Bridge
             prima dei Web Components Polaris e impedisce che l'app si idrati con componenti
             ancora non registrati; doctor.config.json limita l'eccezione a queste due righe. */}
-        <script src={APP_BRIDGE_URL} />
+        <script src={APP_BRIDGE_URL} data-api-key={apiKey} />
         <script src={POLARIS_URL} />
         <Meta />
         <Links />
