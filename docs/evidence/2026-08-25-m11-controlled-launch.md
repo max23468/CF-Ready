@@ -3,9 +3,8 @@
 Data di avvio: 25 agosto 2026.
 
 Stato: **pubblicazione tecnica in corso**. Il gate del checkout organico è
-chiuso e il runtime `1.0.0` è verificato in Development; restano il nuovo gate
-remoto autenticato dello schema, promozione, deploy e readback Production, tag
-e release.
+chiuso e il runtime `1.0.0` è verificato in Development; restano promozione,
+deploy e readback Production, tag e release.
 Per D-136, outreach, primi merchant esterni e feedback non sono requisiti di
 M11 e nessuna comunicazione è stata eseguita.
 
@@ -42,12 +41,11 @@ Sul candidato `1.0.0` del 26 agosto sono riusciti
 CLI `4.7.0` è semanticamente identico al file committato. Il controllo remoto
 richiede il token Shopify e viene eseguito esplicitamente dai workflow
 Development e Production dopo la verifica credenziali e prima del deploy,
-senza esporre segreti alla CI delle PR. Una corsia Development manuale di sola
-verifica schema/readback consente inoltre di chiudere il gate senza ripubblicare
-la versione Shopify immutabile. Il deploy Development sul commit `345c27d`
-aveva già verificato typegen, fixture e build Function, oltre a Worker e
-Shopify; un run della corsia di sola lettura deve confermare il gate schema
-prima della promozione.
+senza esporre segreti alla CI delle PR. Il deploy Development sul commit
+`345c27d` ha già verificato typegen, fixture e build Function, oltre a Worker e
+Shopify. Poiché la versione Shopify `1.0.0` è immutabile, non viene ripubblicata
+per duplicare la verifica locale autenticata dello schema; il medesimo gate è
+bloccante nel deploy Production prima di qualsiasi scrittura provider.
 
 ## Toolchain e dipendenze
 
@@ -182,9 +180,9 @@ Il 26 agosto 2026, con Node.js `26.7.0`, npm `12.0.2` e Shopify CLI `4.7.0`:
   zero righe scritte, uno store attivo, una Validation abilitata e nessun
   errore aperto.
 
-Queste prove locali sono state riconfermate dalla CI dell'HEAD remoto. Prima
-della promozione resta necessario un run della corsia schema/readback
-Development, che non ripubblica la versione `1.0.0` e ne conserva la ricevuta.
+Le prove prive di credenziali sono state riconfermate dalla CI dell'HEAD remoto;
+la verifica schema autenticata è riuscita localmente ed è un gate bloccante del
+deploy Production.
 
 ## Gate checkout reale
 
