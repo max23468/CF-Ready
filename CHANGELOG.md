@@ -6,6 +6,11 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.0.2 — 26 agosto 2026
+
+- GraphQL passa alla major 17; le estensioni dei peer documentano le
+  combinazioni già verificate con la toolchain GraphQL e Shopify corrente.
+
 ## 1.0.1 — 26 agosto 2026
 
 - App Bridge riceve la chiave pubblica tramite `data-api-key` sullo script CDN
