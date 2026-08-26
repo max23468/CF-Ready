@@ -362,6 +362,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-134 | Notificare all’owner tramite outbox D1 e bot Telegram dedicato l’intero ciclo merchant e commerciale: installazione, reinstallazione, disattivazione, disinstallazione, prova gratuita, accettazione e attivazione del piano, cambio, disdetta, rifiuto, scadenza, sospensione e riattivazione. Ogni messaggio indica il dominio tecnico `.myshopify.com` e il piano interessato. | La Partner API è autorevole per relazioni e charge Shopify; gli eventi applicativi completano la prova gratuita e lo stato billing riconciliato identifica il piano precedente nei cambi. Poll con sovrapposizione, chiavi hash univoche e retry separano acquisizione e consegna. Il dominio tecnico è l’unico identificativo merchant inviato alla chat privata: nome, email, dati checkout, shop ID e GID restano esclusi. Il cron Production gira ogni cinque minuti e la feature resta disattivata finché bot, chat e secret Partner non sono configurati. Development, checkout e merchant non ricevono notifiche. |
 | D-135 | Supportare concessioni omaggio permanenti assegnate manualmente dall’owner, inizialmente solo a `numisleo.myshopify.com`, senza creare o simulare una charge Shopify. | Lo store reale dell’owner deve poter eseguire il canary senza pagare la propria app. La concessione vive in una tabella D1 dedicata, è auditabile e revocabile, prevale sulla prova e viene copiata nel metafield come diritto `one_time`; la UI la distingue da un pagamento e non propone altri addebiti. Per evitare cancellazioni o rimborsi automatici, diventa operativa soltanto in assenza di un abbonamento Shopify attivo: l’eventuale abbonamento va prima disdetto tramite il normale flusso merchant. Deciso il 24 agosto 2026. |
 | D-136 | M11 chiude la release tecnica `1.0.0`: outreach, primi merchant esterni e feedback non sono requisiti della milestone. | L’owner non ha richiesto comunicazioni outbound; acquisizione organica e criteri di maturità restano attività successive e non bloccano la release. L’assenza di segnalazioni è non bloccante, ma non viene presentata come prova di soddisfazione. Deciso il 26 agosto 2026. |
+| D-137 | M12 combina il consolidamento Controlled Launch con i requisiti Built for Shopify e si chiude quando Shopify assegna effettivamente lo status. | Idoneità automatica, pulsante di candidatura, invio o review in corso non chiudono la milestone. I requisiti correnti si rileggono nelle fonti Shopify e nella pagina Distribution prima della candidatura; le soglie Shopify sostituiscono i minimi locali più deboli. I criteri operativi specifici di CF Ready restano segnali da osservare, non una seconda certificazione né gate autonomi; soltanto bug critici e rischi non accettati impediscono la chiusura. Deciso il 26 agosto 2026. |
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
@@ -2707,7 +2708,7 @@ Numero assegnato a ogni milestone fino alla `1.0.0`:
 | M9 — Release candidate e review | `0.9.0` | |
 | M10 — Canary store reale | `0.9.x` | nessun minor: il canary usa la build della release candidate |
 | M11 — `1.0.0` e Controlled Launch | `1.0.0` | tag `v1.0.0` dopo deploy, smoke e readback Production riusciti |
-| M12 — Visibilità completa | nessuna | sola visibilità; i fix successivi sono `1.0.x` |
+| M12 — Built for Shopify | nessuna | consolidamento e ottenimento dello status; gli eventuali fix sono `1.0.x` |
 
 Dentro una milestone, ogni ulteriore snapshot rilasciato incrementa la **patch**
 (`0.2.1`, `0.2.2`). Un **prerelease numerato**, `0.3.0-dev.1`, si usa solo per
@@ -3712,22 +3713,50 @@ Durante Controlled Launch:
 - 14 giorni;
 - pricing generation Launch mantenuta secondo regole.
 
-### 25.4 Criteri di maturità successivi a M11
+### 25.4 Criteri combinati M12 e Built for Shopify
 
-- almeno 10 merchant reali installati;
-- almeno 5 con Validation attiva;
-- almeno 2 settimane;
-- nessun bug critico aperto;
-- billing verificato;
-- disinstallazione/reinstallazione verificata;
-- checkout standard e accelerato verificati;
-- cliente italiano e fatturazione estera verificati;
-- supporto operativo;
-- backup e rollback provati.
+M12 usa i requisiti Built for Shopify come soglia di chiusura e conserva i
+criteri operativi specifici di CF Ready come segnali di consolidamento. La fonte
+autorevole per applicabilità e stato è la pagina Distribution dell'app nel
+Partner Dashboard; prima della candidatura si rileggono anche i
+[requisiti ufficiali](https://shopify.dev/docs/apps/launch/built-for-shopify/requirements)
+e il relativo changelog. La fotografia verificata il 26 agosto 2026 richiede:
 
-Questi criteri misurano la maturità operativa successiva alla release e non
-bloccano M11. Sono minimi, non automatismi: l’owner può prolungare la fase se i
-segnali qualitativi sono insufficienti.
+- conformità continuativa ai requisiti App Store e Partner account senza
+  infrazioni attive o pendenti;
+- almeno 50 installazioni nette da store attivi su piani Shopify a pagamento;
+- almeno 5 recensioni autentiche e rating di almeno 4 stelle, soglia mostrata
+  dalla checklist assegnata a CF Ready il 26 agosto 2026;
+- App Bridge nella versione corrente e Web Vitals dell'Admin entro soglia al
+  75º percentile: LCP ≤ 2,5 s, CLS ≤ 0,1 e INP ≤ 200 ms, ciascuno con almeno
+  100 chiamate negli ultimi 28 giorni;
+- app embedded, flussi primari e configurazione dentro Shopify, accesso senza
+  registrazione aggiuntiva, navigazione nativa, Home utile, UI familiare e
+  mobile secondo i criteri di design Built for Shopify;
+- disinstallazione pulita e nessun uso della Asset API. Il criterio di impatto
+  storefront compare nella checklist ed è valutato manualmente: CF Ready prova
+  di non distribuire codice storefront. Carrier rate e categorie
+  specialistiche restano non applicabili finché lo scope non cambia; la pagina
+  Distribution può imporre una lettura diversa e in quel caso prevale;
+- assenza di bug critici e di rischi aperti non accettati.
+
+Restano segnali operativi da monitorare, ma non gate autonomi di chiusura:
+
+- almeno 5 store con Validation attiva;
+- billing reale verificato e disinstallazione/reinstallazione osservata;
+- checkout standard e accelerato, cliente italiano ed esenzione per
+  fatturazione estera verificati senza creare ordini, clienti, recensioni o
+  pagamenti artificiali;
+- supporto operativo, backup e rollback provati e listing italiana pienamente
+  visibile.
+
+Le soglie precedenti di 10 merchant e due settimane sono superate: il minimo
+Shopify di 50 installazioni qualificate e la finestra Web Vitals di 28 giorni
+sono i riferimenti correnti. Outreach, installazioni, uso e recensioni devono
+restare autentici; nessuna recensione viene incentivata o generata per chiudere
+un gate. Le lacune nei segnali operativi non tengono aperta M12 dopo
+l'assegnazione dello status; bug critici e rischi non accettati restano invece
+bloccanti. Questi criteri non bloccano M11, già chiusa con `v1.0.0`.
 
 ### 25.5 Metriche
 
@@ -4358,14 +4387,30 @@ ricevuta M11 conserva soltanto metadati tecnici sanitizzati. Schema, typegen,
 109 fixture, build e deploy/readback Development sono riusciti il 26 agosto sul
 commit candidato `345c27d`.
 
-### M12 — Consolidamento dopo la visibilità completa
+### M12 — Built for Shopify ⏳ avviata
+
+**Avviata il 26 agosto 2026.** M12 combina i criteri Built for Shopify correnti
+con i segnali Controlled Launch specifici di CF Ready descritti in §25.4.
 
 Gate:
 
-- criteri Controlled Launch;
+- tutti i prerequisiti automatici Built for Shopify risultano soddisfatti nella
+  pagina Distribution del Partner Dashboard;
+- tutti i criteri applicabili di performance, integrazione e design superano la
+  valutazione Shopify;
 - nessun rischio aperto non accettato;
-- listing Italia pienamente visibile, già verificata dal 25 agosto 2026;
-- conferma owner alla chiusura del Controlled Launch.
+- candidatura eseguita solo dopo una nuova autorizzazione esplicita dell'owner;
+- status **Built for Shopify assegnato** e riletto nel Partner Dashboard e sulla
+  listing. Idoneità, candidatura inviata o review in corso non bastano.
+
+I segnali Controlled Launch di §25.4 restano monitorati e documentati, ma una
+loro lacuna non è un gate aggiuntivo dopo l'assegnazione dello status. Soltanto
+un bug critico o un rischio non accettato impedisce la chiusura di M12.
+
+La ricevuta iniziale e gli avanzamenti sono registrati in
+`docs/evidence/2026-08-26-m12-built-for-shopify.md`. Gli eventuali fix emersi
+durante il consolidamento sono release `1.0.x` e richiedono il normale ciclo di
+pubblicazione.
 
 ---
 
@@ -4841,7 +4886,9 @@ Il progetto è realmente concluso solo quando:
 - App Store review è superata;
 - store reale standard supera il canary;
 - `v1.0.0` è taggata e deployata con autorizzazione;
-- Controlled Launch raggiunge i criteri;
+- i segnali Controlled Launch sono monitorati e documentati;
+- Shopify ha assegnato lo status Built for Shopify, riletto nel Partner
+  Dashboard e sulla listing;
 - nessun bug critico resta aperto;
 - i merchant non sono esposti a blocchi checkout in condizioni non supportate;
 - `AGENTS.md`, README, ADR, runbook e documentazione tecnica descrivono il
