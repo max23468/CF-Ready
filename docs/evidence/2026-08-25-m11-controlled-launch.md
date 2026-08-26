@@ -3,8 +3,9 @@
 Data di avvio: 25 agosto 2026.
 
 Stato: **pubblicazione tecnica in corso**. Il gate del checkout organico è
-chiuso e il candidato `1.0.0` è verificato in Development; restano promozione,
-deploy e readback Production, tag e release.
+chiuso e il runtime `1.0.0` è verificato in Development; restano il nuovo gate
+remoto autenticato dello schema, promozione, deploy e readback Production, tag
+e release.
 Per D-136, outreach, primi merchant esterni e feedback non sono requisiti di
 M11 e nessuna comunicazione è stata eseguita.
 
@@ -179,9 +180,9 @@ Il 26 agosto 2026, con Node.js `26.7.0`, npm `12.0.2` e Shopify CLI `4.7.0`:
   zero righe scritte, uno store attivo, una Validation abilitata e nessun
   errore aperto.
 
-Queste prove sono locali sul candidato non ancora pubblicato. La PR, i check
-remoti e il deploy/readback Development dell'HEAD esatto restano necessari
-prima della promozione Production.
+Queste prove locali sono state riconfermate dalla CI dell'HEAD remoto. Prima
+della promozione resta necessario un nuovo run Development, che esegua il gate
+schema autenticato aggiunto al workflow e ne conservi la ricevuta.
 
 ## Gate checkout reale
 

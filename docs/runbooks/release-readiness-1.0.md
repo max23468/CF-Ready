@@ -56,8 +56,8 @@ La navigazione embedded della `0.9.11` è stata verificata in Chrome sullo store
 
 | Voce | Valore |
 | --- | --- |
-| Versione candidata verificata | `1.0.0`, gate locali, CI e Development verdi il 26 agosto 2026 |
-| Commit candidato | `345c27d1cad960fb7a47e4e17c874201c2c21e2f`, snapshot Development verificato |
+| Versione candidata verificata | `1.0.0`, gate locali e CI verdi; runtime Development verificato il 26 agosto 2026, nuovo gate schema remoto pendente |
+| Commit snapshot Development | `345c27d1cad960fb7a47e4e17c874201c2c21e2f`, runtime Development verificato prima dell'introduzione del gate schema autenticato |
 | Branch | `develop`; PR candidata [#327](https://github.com/max23468/CF-Ready/pull/327) unita con squash |
 | Ultimo snapshot Development provato | `1.0.0`, commit `345c27d1cad960fb7a47e4e17c874201c2c21e2f`, run [32964683280](https://github.com/max23468/CF-Ready/actions/runs/32964683280) |
 | Allineamento componenti | root e Worker `1.0.0`; snapshot Shopify `1.0.0` comprensivo della Function; Pages versionato per commit/deployment, senza SemVer separato |
