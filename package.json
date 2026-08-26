@@ -35,7 +35,7 @@
     "doctor": "react-doctor --scope full --blocking warning .",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "site:dev": "rm -f .wrangler/deploy/config.json && wrangler pages dev site",
-    "check": "npm run docs:check && npm run audit:security && npm run lint && npm run format:check && npm run typecheck && npm run test:preflight && npm run test:operations && npm test && npm run test:function && npm run doctor && npm run build && npm run build:function && wrangler deploy --dry-run",
+    "check": "npm run docs:check && npm run verify:function-schema && npm run audit:security && npm run lint && npm run format:check && npm run typecheck && npm run test:preflight && npm run test:operations && npm test && npm run test:function && npm run doctor && npm run build && npm run build:function && wrangler deploy --dry-run",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",
     "config:use": "shopify app config use",

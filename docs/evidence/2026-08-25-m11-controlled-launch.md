@@ -39,8 +39,10 @@ Sul candidato `1.0.0` del 26 agosto sono riusciti
 `npm run verify:function-schema`, `npm run typegen`, le 109 fixture di
 `npm run test:function` e `npm run build:function`. Lo schema rigenerato dalla
 CLI `4.7.0` è semanticamente identico al file committato. Gli stessi gate sono
-riusciti in CI e nel deploy Development sul commit `345c27d` prima della
-promozione.
+riusciti localmente; `verify:function-schema` fa ora parte di `npm run check` e
+viene quindi rieseguito dalla CI sull'HEAD remoto prima della promozione. Il
+deploy Development sul commit `345c27d` aveva già verificato typegen, fixture e
+build Function, oltre a Worker e Shopify.
 
 ## Toolchain e dipendenze
 
