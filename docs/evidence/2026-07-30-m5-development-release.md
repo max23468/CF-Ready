@@ -57,7 +57,7 @@ ogni passaggio.
 | Cambio mensile → annuale | verde. Approvazione con dicitura di sostituzione dell'abbonamento precedente e nessun giorno di prova; dopo: `annual` con nuovo addebito fino al 30 luglio 2027 e seconda riga distinta in `billing_events` |
 | Acquisto abbandonato | verde. Premuto Annulla, abbonamento annuale intatto: addebito, periodo ed eventi invariati |
 | Passaggio a una tantum | verde. Acquisto attivo, diritto `one_time` senza scadenza, annuale cancellato solo dopo l'acquisto, terza riga da 8990 centesimi |
-| Cancellazione ordinaria | non esercitabile sul dev store; coperta dai test e assegnata come prima osservazione live al primo merchant pagante M11, non al canary omaggio M10 |
+| Cancellazione ordinaria | non esercitabile sul dev store; coperta dai test e assegnata come prima osservazione live al primo merchant pagante disponibile organicamente, senza bloccare M11 e non al canary omaggio M10 |
 
 Il diritto non è mai stato concesso dal ritorno del redirect: nel primo gate il
 merchant non è nemmeno rientrato nell'app, e lo stato era già corretto perché
@@ -73,7 +73,7 @@ piattaforma. La deduzione del rimborso resta corretta, perché scatta solo quand
 l'acquisto sparisce davvero. Dopo la reinstallazione la Validation è stata
 riattivata senza riconfigurare nulla, come previsto da FR-076.
 
-### Cancellazione ordinaria: osservazione M11
+### Cancellazione ordinaria: osservazione live opportunistica
 
 Il gate non è eseguibile sul dev store: con il pagamento unico attivo non si può
 creare un abbonamento, e la guardia che lo impedisce protegge il merchant da un
@@ -84,7 +84,8 @@ sottoscrivibile senza un secondo store.
 Il comportamento resta coperto dai test automatici: periodo di grazia `ending`,
 accesso fino a fine periodo, scadenza successiva, nessuna proratazione. Dopo
 D-135 il canary M10 usa una concessione omaggio e non ha charge o rinnovi da
-cancellare; la prima verifica live appartiene al primo merchant pagante M11.
+cancellare; la prima verifica live verrà registrata con il primo merchant
+pagante disponibile organicamente, senza bloccare M11.
 
 ### Credito pro rata: verificato a metà
 
@@ -97,7 +98,7 @@ attivato lo stesso giorno, quindi il ciclo era interamente non usufruito e la
 stima corrispondeva all'intero canone. Su addebiti di prova il credito potrebbe
 non essere materializzato, dato che nessun importo è stato mosso.
 
-Resta quindi da confrontare, sul primo merchant pagante M11 insieme alla
+Resta quindi da confrontare, sul primo merchant pagante disponibile insieme alla
 cancellazione ordinaria, la stima mostrata con l'importo che Shopify calcola
 davvero. Il canary omaggio M10 non genera un credito. Il Master Plan §14.8 già
 dichiara la stima come tale, quindi il rischio è di comunicazione, non di

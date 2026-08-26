@@ -409,7 +409,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-089 | Versioni di sviluppo `0.x`; `1.0.0` prima dei merchant esterni. | Non vendere una prerelease. |
 | D-090 | Un solo dev store Basic permanente. | Semplicità operativa. |
 | D-091 | Utility CLI di reset solo `dev`, impossibile in `prod`. | Ripetere flussi puliti con un solo dev store. |
-| D-092 | Controlled Launch con listing a visibilità completa dal 25 agosto 2026; il controllo resta nell'acquisizione e nel supporto graduali, non nella reperibilità. | Rende l'app trovabile nella ricerca App Store senza fingere che i criteri di maturità M11 siano già raggiunti. |
+| D-092 | Controlled Launch con listing a visibilità completa dal 25 agosto 2026; il controllo resta nell'acquisizione e nel supporto graduali, non nella reperibilità. | Rende l'app trovabile nella ricerca App Store senza fingere che i criteri di maturità successivi alla release siano già raggiunti. |
 | D-093 | Controlled Launch non comunicato come beta/pilot. | Comunicazione normale di lancio, senza nascondere limitazioni materiali o inventare trazione. |
 | D-094 | Criteri di uscita: 10 installazioni, 5 Validation attive, 2 settimane, nessun bug critico e flussi chiave verificati. | Gate oggettivo per chiudere il Controlled Launch, indipendente dalla visibilità già attiva. |
 | D-095 | Strategia incidenti fail-open. | Preservare vendite e configurazioni. |
@@ -4045,8 +4045,9 @@ sopravviveva all'iframe embedded, un rifiuto di Shopify invisibile, il webhook
 degli acquisti mancante e la conversione eseguita due volte per concorrenza. La
 cancellazione ordinaria non era esercitabile sul dev store. Dopo D-135 non è
 applicabile al canary omaggio M10: credito, proratazione e rimborso restano
-coperti automaticamente e la prima osservazione live appartiene al primo
-merchant pagante di M11, come dichiarato negli Open items §34.9.
+coperti automaticamente e la prima osservazione live verrà registrata quando
+sarà disponibile organicamente con un merchant pagante, come dichiarato negli
+Open items §34.9, senza bloccare M11.
 
 Deliverable:
 
@@ -4060,8 +4061,8 @@ Deliverable:
 - entitlement metafield;
 - scadenza fail-open.
 
-Gate: verdi. La cancellazione live è un'osservazione M11 non applicabile al
-canary omaggio, non un gate M5 o M10 ancora aperto.
+Gate: verdi. La cancellazione live è un'osservazione opportunistica successiva,
+non applicabile al canary omaggio e non è un gate M5, M10 o M11 ancora aperto.
 
 - matrice billing test completa;
 - nessun entitlement basato su redirect;
