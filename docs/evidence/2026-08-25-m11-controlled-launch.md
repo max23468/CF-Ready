@@ -2,8 +2,9 @@
 
 Data di avvio: 25 agosto 2026.
 
-Stato: **in corso**. Il gate del checkout organico è chiuso; restano la verifica
-dell'HEAD esatto del candidato `1.0.0` e la pubblicazione tecnica autorizzata.
+Stato: **pubblicazione tecnica in corso**. Il gate del checkout organico è
+chiuso e il candidato `1.0.0` è verificato in Development; restano promozione,
+deploy e readback Production, tag e release.
 Per D-136, outreach, primi merchant esterni e feedback non sono requisiti di
 M11 e nessuna comunicazione è stata eseguita.
 
@@ -34,11 +35,12 @@ Il comando analizza entrambi gli SDL GraphQL prima del confronto, così una
 differenza di soli spazi o a-capo non produce un falso positivo e una modifica
 di tipi, campi o direttive resta bloccante.
 
-Sul candidato locale `1.0.0` del 26 agosto sono riusciti
+Sul candidato `1.0.0` del 26 agosto sono riusciti
 `npm run verify:function-schema`, `npm run typegen`, le 109 fixture di
 `npm run test:function` e `npm run build:function`. Lo schema rigenerato dalla
-CLI `4.7.0` è semanticamente identico al file committato. La PR di chiusura deve
-legare questi stessi gate all'HEAD remoto esatto prima della promozione.
+CLI `4.7.0` è semanticamente identico al file committato. Gli stessi gate sono
+riusciti in CI e nel deploy Development sul commit `345c27d` prima della
+promozione.
 
 ## Toolchain e dipendenze
 
@@ -60,9 +62,41 @@ nella toolchain: Wrangler e Vite plugin includono `workerd@1.20260825.1`, ma il
 Vitest pool `0.22.0` più recente include ancora un runtime che supporta al
 massimo `2026-08-22`. Entrambi i binari sono autorizzati in modo puntuale nella
 allowlist degli script npm; non viene forzato un runtime transitorio fuori
-dalle combinazioni pubblicate da Cloudflare. Il gate locale verifica tipi,
-test, build Function e dry-run Worker; resta comunque da distribuire e leggere
-in Development prima di promuovere il candidato in Production.
+dalle combinazioni pubblicate da Cloudflare. Il gate verifica tipi, test, build
+Function e dry-run Worker; distribuzione e readback Development sono riusciti
+sul commit `345c27d`.
+
+## Ricevuta deploy Development `1.0.0`
+
+Il workflow [32964683280](https://github.com/max23468/CF-Ready/actions/runs/32964683280)
+ha distribuito e riletto il commit `345c27d1cad960fb7a47e4e17c874201c2c21e2f`:
+
+- `npm run check`, preflight provider e snapshot di rollback coordinato verdi;
+- nessuna migrazione D1 Development pendente dopo il readback;
+- Worker deployment `bdebefee-daf6-413b-bf68-e7249c0a4c32`, versione
+  `b6df46e4-4d7a-40e0-9d89-5917cc14e6c9`, 100% del traffico;
+- smoke e verifica capacità Worker riusciti;
+- versione Shopify Development `1.0.0` attiva
+  (`gid://shopify/Version/1104073752577`) e legata allo stesso commit;
+- rollback coordinato precedente: commit `bd7165c`, versione `0.9.45`.
+
+## Allineamento delle componenti alla `1.0.0`
+
+La verifica richiesta prima della promozione non ha rilevato componenti CF
+Ready con una versione applicativa inferiore alla `1.0.0`:
+
+- `package.json` e la radice del lockfile coincidono su `1.0.0`, fonte canonica
+  prevista dal Master Plan;
+- il Worker importa quella versione come `APP_VERSION` e il workflow ha
+  distribuito il medesimo commit `345c27d`;
+- lo snapshot Shopify Development attivo è `1.0.0` e include configurazione app
+  e Function `cf-ready-validation`; la Function non mantiene un secondo SemVer
+  indipendente che possa divergere;
+- il sito statico Pages è identificato dal commit e dal deployment verificato,
+  non da una versione applicativa separata.
+
+Le versioni `0.x` ancora presenti nel lockfile appartengono a dipendenze esterne
+e non sono componenti versionate di CF Ready.
 
 ## Monitoraggio Controlled Launch
 
@@ -173,7 +207,7 @@ Il gate checkout reale richiesto prima di `v1.0.0` è quindi **chiuso**.
 
 ## Stato di pubblicazione
 
-Nessun tag `v1.0.0`, deploy, release, outreach o attivazione commerciale è stato
-eseguito in questo avvio. La pubblicazione resta successiva alla verifica
-dell'HEAD esatto del candidato e alle autorizzazioni operative previste dal
-repository.
+Il deploy Development `1.0.0` è riuscito. Tag `v1.0.0`, deploy e release
+Production non sono ancora stati eseguiti; la pubblicazione tecnica autorizzata
+è in corso. Per D-136 nessuna attività di outreach o feedback è richiesta o
+stata eseguita.
