@@ -3,8 +3,9 @@
 Data di avvio: 25 agosto 2026.
 
 Stato: **in corso**. Il gate del checkout organico è chiuso; restano la verifica
-dell'HEAD esatto del candidato `1.0.0`, la pubblicazione autorizzata e il lavoro
-umano del Controlled Launch.
+dell'HEAD esatto del candidato `1.0.0` e la pubblicazione tecnica autorizzata.
+Per D-136, outreach, primi merchant esterni e feedback non sono requisiti di
+M11 e nessuna comunicazione è stata eseguita.
 
 ## Prerequisito M10
 
