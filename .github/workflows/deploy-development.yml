@@ -48,6 +48,11 @@ jobs:
           SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
         run: test -n "$CLOUDFLARE_API_TOKEN" && test -n "$SHOPIFY_APP_AUTOMATION_TOKEN"
 
+      - name: Verifica schema Function API
+        env:
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+        run: npm run verify:function-schema
+
       - name: Preflight Development
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

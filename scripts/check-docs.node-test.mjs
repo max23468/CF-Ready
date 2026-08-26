@@ -234,6 +234,18 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
       assert.doesNotMatch(workflow, /@shopify\/cli@(?!4\.7\.0)/, path);
     }
   }
+
+  for (const path of ["deploy-development.yml", "deploy-production.yml"]) {
+    const workflow = readFileSync(new URL(`../.github/workflows/${path}`, import.meta.url), "utf8");
+    const credentials = workflow.indexOf("Verifica credenziali provider");
+    const schema = workflow.indexOf("Verifica schema Function API");
+    assert(credentials >= 0 && schema > credentials, path);
+    assert.match(
+      workflow.slice(schema, schema + 240),
+      /SHOPIFY_APP_AUTOMATION_TOKEN:[\s\S]*npm run verify:function-schema/,
+      path,
+    );
+  }
 });
 
 test("il workflow Pages Production resta manuale, vincolato e verificabile", () => {

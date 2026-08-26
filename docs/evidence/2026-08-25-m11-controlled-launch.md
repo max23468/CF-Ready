@@ -38,11 +38,13 @@ di tipi, campi o direttive resta bloccante.
 Sul candidato `1.0.0` del 26 agosto sono riusciti
 `npm run verify:function-schema`, `npm run typegen`, le 109 fixture di
 `npm run test:function` e `npm run build:function`. Lo schema rigenerato dalla
-CLI `4.7.0` è semanticamente identico al file committato. Gli stessi gate sono
-riusciti localmente; `verify:function-schema` fa ora parte di `npm run check` e
-viene quindi rieseguito dalla CI sull'HEAD remoto prima della promozione. Il
-deploy Development sul commit `345c27d` aveva già verificato typegen, fixture e
-build Function, oltre a Worker e Shopify.
+CLI `4.7.0` è semanticamente identico al file committato. Il controllo remoto
+richiede il token Shopify e viene eseguito esplicitamente dai workflow
+Development e Production dopo la verifica credenziali e prima del deploy,
+senza esporre segreti alla CI delle PR. Il deploy Development sul commit
+`345c27d` aveva già verificato typegen, fixture e build Function, oltre a Worker
+e Shopify; un nuovo run Development deve confermare il gate schema prima della
+promozione.
 
 ## Toolchain e dipendenze
 
