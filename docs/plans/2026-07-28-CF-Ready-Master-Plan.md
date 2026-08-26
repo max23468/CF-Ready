@@ -4536,8 +4536,12 @@ La `1.0.0` è accettabile quando:
 ### Scaffold
 
 - [x] Generare dal template Shopify React Router corrente.
-- [ ] Eseguire baseline locale prima di modificare dipendenze.
-- [ ] Committare baseline identificabile.
+- Baseline locale prima di modificare dipendenze: non eseguita all'epoca e non
+  ricostruibile retroattivamente; è un'omissione storica, non un'attività
+  pendente sul prodotto corrente.
+- Commit baseline identificabile: non creato all'epoca e non ricostruibile
+  retroattivamente; la cronologia successiva conserva gli snapshot versionati e
+  le relative ricevute.
 - [x] Integrare Cloudflare Vite plugin.
 - [x] Rimuovere server Node.
 - [x] Rimuovere Prisma/SQLite.
@@ -4566,22 +4570,22 @@ La `1.0.0` è accettabile quando:
 
 ### Prima di Production
 
-- [ ] App Store audit.
-- [ ] Function API `2026-07` stabile e validata con la CLI corrente.
-- [ ] `test: false`.
-- [ ] URL prod.
+- [x] App Store audit.
+- [x] Function API `2026-07` stabile e validata con la CLI corrente.
+- [x] `test: false`.
+- [x] URL prod.
 - [x] D1/R2 prod; bucket R2 con jurisdiction `eu`.
-- [ ] secret separati.
-- [ ] documenti legali.
+- [x] secret separati.
+- [x] documenti legali.
 - [x] `SECURITY.md` e canale vulnerabilità.
-- [ ] support email.
-- [ ] backup/restore.
+- [x] support email.
+- [x] backup/restore.
 - [x] soglie Free tier documentate.
-- [ ] record `release-readiness-1.0` completo.
-- [ ] preflight Production e target di rollback verificati.
-- [ ] video reviewer.
-- [ ] reviewer instructions.
-- [ ] approvazione owner al deploy.
+- [x] record `release-readiness-1.0` completo.
+- [x] preflight Production e target di rollback verificati.
+- [x] video reviewer.
+- [x] reviewer instructions.
+- [x] approvazione owner al deploy.
 
 ---
 
@@ -4772,10 +4776,11 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
    spaziature, accenti e responsive fine sono stati verificati dall'owner
    nell'Admin reale, compreso il collaudo successivo alla correzione responsive
    `0.4.31`; la UI embedded non richiede illustrazioni aggiuntive.
-4. **Pacchetto visivo pubblico** — testi del sito completati in M7 secondo la
-   direzione fissata in `docs/brand/brand-foundation.md` §9. Listing italiana,
-   screenshot e materiali di review sono stati accettati da Shopify; resta da
-   completare e pubblicare la lingua inglese della listing.
+4. ~~**Pacchetto visivo pubblico**~~ — **chiuso il 23 agosto 2026.** Testi del
+   sito completati in M7 secondo la direzione fissata in
+   `docs/brand/brand-foundation.md` §9; listing italiana e inglese entrambe
+   `Live`, feature media e cinque screenshot desktop con alt text localizzati
+   riletti nel Partner Dashboard alla chiusura di M9.
 5. **Rifiniture di brand non bloccanti**
    - ~~correzione ottica della crenatura del wordmark~~ — **chiusa il 28 luglio 2026**, valori in `docs/brand/brand-foundation.md` §4.4;
    - ~~conferma delle dimensioni richieste dai requisiti App Store~~ — **chiusa il 28 luglio 2026**, specifiche in §24.5;
