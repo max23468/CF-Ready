@@ -6,7 +6,18 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
-## 1.0.0 — candidato
+## 1.0.1 — 26 agosto 2026
+
+- App Bridge riceve la chiave pubblica tramite `data-api-key` sullo script CDN
+  nel `head`, nella forma canonica dello scaffold Shopify corrente; il meta
+  equivalente viene rimosso per eliminare l'unica divergenza plausibile dal
+  rilevatore automatico Built for Shopify;
+- M12 combina i requisiti Built for Shopify correnti con i segnali operativi di
+  CF Ready e si chiude soltanto quando Shopify assegna effettivamente lo status;
+- la ricevuta iniziale M12 registra separatamente prove tecniche, checklist
+  Shopify, soglie organiche e limiti dei campioni prestazionali osservati.
+
+## 1.0.0 — 26 agosto 2026
 
 - il checkout organico sul canary chiude il gate M11 senza conservare dati
   fiscali, cliente, ordine o valori commerciali;

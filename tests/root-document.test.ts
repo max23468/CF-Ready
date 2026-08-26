@@ -24,10 +24,6 @@ test("App Bridge e Polaris vengono caricati una sola volta nel head", () => {
   if (!head) throw new Error("head del documento assente");
 
   const headElements = elements(head);
-  const apiKey = headElements.filter(
-    (element) =>
-      element.type === "meta" && (element.props as { name?: string }).name === "shopify-api-key",
-  );
   const appBridge = headElements.filter(
     (element) =>
       element.type === "script" &&
@@ -40,10 +36,14 @@ test("App Bridge e Polaris vengono caricati una sola volta nel head", () => {
       (element.props as { src?: string }).src === "https://cdn.shopify.com/shopifycloud/polaris.js",
   );
 
-  expect(apiKey).toHaveLength(1);
-  expect(apiKey[0].props).toMatchObject({ content: "test-api-key" });
   expect(appBridge).toHaveLength(1);
-  expect(appBridge[0].props).not.toHaveProperty("data-api-key");
+  expect(appBridge[0].props).toMatchObject({ "data-api-key": "test-api-key" });
+  expect(
+    headElements.filter(
+      (element) =>
+        element.type === "meta" && (element.props as { name?: string }).name === "shopify-api-key",
+    ),
+  ).toHaveLength(0);
   expect(polaris).toHaveLength(1);
   expect(document.filter((element) => element.type === "script")).toHaveLength(2);
 });

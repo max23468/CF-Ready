@@ -1,5 +1,9 @@
 # Progresso tecnico Built for Shopify
 
+> Ricevuta storica del 25 agosto. Lo stato corrente e la checklist assegnata a
+> CF Ready sono registrati nella
+> [ricevuta M12](../evidence/2026-08-26-m12-built-for-shopify.md).
+
 **Data:** 25 agosto 2026
 
 **Baseline Production osservata:** `0.9.40`
@@ -35,7 +39,8 @@ Shopify; non è emerso un secondo meccanismo di autenticazione da aggiungere.
 
 ## Correzioni locali
 
-- La chiave pubblica è dichiarata nel meta `shopify-api-key`; App Bridge e
+- La chiave pubblica è dichiarata come `data-api-key` sullo script App Bridge,
+  nella stessa forma usata dall'`AppProvider` Shopify corrente; App Bridge e
   Polaris vengono caricati una sola volta nel `head` del documento, prima del
   bundle React, anziché dal wrapper di route nel `body`.
 - La navigazione `shopify:navigate` resta intercettata da React Router, così i
