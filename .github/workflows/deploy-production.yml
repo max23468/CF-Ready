@@ -56,6 +56,7 @@ jobs:
       - name: Verifica schema Function API
         env:
           SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+          SHOPIFY_FUNCTION_SCHEMA_CONFIG: production
         run: npm run verify:function-schema
 
       - run: npm run check

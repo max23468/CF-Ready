@@ -42,10 +42,12 @@ Sul candidato `1.0.0` del 26 agosto sono riusciti
 CLI `4.7.0` è semanticamente identico al file committato. Il controllo remoto
 richiede il token Shopify e viene eseguito esplicitamente dai workflow
 Development e Production dopo la verifica credenziali e prima del deploy,
-senza esporre segreti alla CI delle PR. Il deploy Development sul commit
-`345c27d` aveva già verificato typegen, fixture e build Function, oltre a Worker
-e Shopify; un nuovo run Development deve confermare il gate schema prima della
-promozione.
+senza esporre segreti alla CI delle PR. Una corsia Development manuale di sola
+verifica schema/readback consente inoltre di chiudere il gate senza ripubblicare
+la versione Shopify immutabile. Il deploy Development sul commit `345c27d`
+aveva già verificato typegen, fixture e build Function, oltre a Worker e
+Shopify; un run della corsia di sola lettura deve confermare il gate schema
+prima della promozione.
 
 ## Toolchain e dipendenze
 
@@ -181,8 +183,8 @@ Il 26 agosto 2026, con Node.js `26.7.0`, npm `12.0.2` e Shopify CLI `4.7.0`:
   errore aperto.
 
 Queste prove locali sono state riconfermate dalla CI dell'HEAD remoto. Prima
-della promozione resta necessario un nuovo run Development, che esegua il gate
-schema autenticato aggiunto al workflow e ne conservi la ricevuta.
+della promozione resta necessario un run della corsia schema/readback
+Development, che non ripubblica la versione `1.0.0` e ne conserva la ricevuta.
 
 ## Gate checkout reale
 

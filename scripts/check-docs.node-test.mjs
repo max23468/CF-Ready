@@ -218,6 +218,7 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
     "backup-production.yml",
     "deploy-development.yml",
     "deploy-pages-production.yml",
+    "verify-function-schema-development.yml",
   ]) {
     const workflow = readFileSync(new URL(`../.github/workflows/${path}`, import.meta.url), "utf8");
     const nodeVersions = [...workflow.matchAll(/node-version:\s*([^\s]+)/g)].map(
@@ -246,6 +247,26 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
       path,
     );
   }
+
+  const production = readFileSync(
+    new URL("../.github/workflows/deploy-production.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    production,
+    /Verifica schema Function API[\s\S]*SHOPIFY_FUNCTION_SCHEMA_CONFIG: production/,
+  );
+
+  const schemaReadback = readFileSync(
+    new URL("../.github/workflows/verify-function-schema-development.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(schemaReadback, /workflow_dispatch:/);
+  assert.match(schemaReadback, /environment: Development/);
+  assert.match(schemaReadback, /test "\$GITHUB_REF" = "refs\/heads\/develop"/);
+  assert.match(schemaReadback, /npm run verify:function-schema/);
+  assert.match(schemaReadback, /shopify app versions list --config dev/);
+  assert.doesNotMatch(schemaReadback, /shopify app deploy|wrangler deploy/);
 });
 
 test("il workflow Pages Production resta manuale, vincolato e verificabile", () => {
