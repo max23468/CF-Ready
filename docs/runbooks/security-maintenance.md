@@ -21,26 +21,33 @@ su `develop`; il job dichiara `deployment: false`, quindi non crea notifiche o
 ricevute di deploy. Il token è un PAT fine-grained senza scadenza, limitato a
 `CF-Ready` e in sola lettura su metadati, Actions e alert Dependabot, CodeQL e
 Secret Scanning: non può scrivere sul repository e non va rinnovato
-periodicamente. Il token di audit in sola lettura non riceve la bypass list dei
-ruleset. Il workflow `Reconcile develop` la verifica invece a ogni esecuzione
-con il proprio token GitHub App e fallisce prima della scrittura se l'app non è
-l'unico actor dedicato configurato per il fast-forward.
+periodicamente. I token ordinari dei workflow non ricevono la bypass list dei
+ruleset. Il token effimero della GitHub App dispone invece di Administration in
+scrittura, requisito imposto da GitHub per osservare gli attori, ma il workflow
+lo usa soltanto in lettura per il preflight del ruleset e per le operazioni Git
+autorizzate. `Reconcile develop` richiede un solo bypass `Integration` con actor
+ID e modalità attesi prima di verificare slug, parent, tree e provenienza del
+deploy; una deriva della lista ferma quindi il run prima della scrittura.
 
 ## GitHub App di riallineamento
 
 Il fast-forward post-Production usa una GitHub App dedicata, installata soltanto
-su `CF-Ready`, con permesso Contents in scrittura e Administration in lettura.
+su `CF-Ready`, con permessi Contents e Administration in scrittura.
+Administration è concesso perché GitHub redige `bypass_actors` a chi non può
+scrivere il ruleset; il codice non invoca endpoint di mutazione della governance.
 L'environment `Repository Governance` conserva `RECONCILIATION_APP_ID` e
 `RECONCILIATION_APP_PRIVATE_KEY`; la chiave privata genera un token effimero per
 ogni run e non viene usata dagli altri workflow. Il ruleset `develop governance`
 ammette l'Integration ID dell'app in modalità `always`. Nessun utente, ruolo o
 GitHub Actions generico entra nella bypass list.
 
-Prima del fast-forward lo script verifica app, ruleset, branch remoti, due
-parent del merge Production, secondo parent uguale all'HEAD corrente di
-`develop` e tree identici. La scrittura è non forzata e seguita da readback. Una
-concorrenza su `develop`, un merge anomalo o una configurazione incompleta
-fermano il riallineamento senza influire sul deploy Production già concluso.
+Prima del fast-forward un preflight separato verifica ruleset e unicità del
+bypass; lo script di riconciliazione verifica poi app, branch remoti, due parent
+del merge Production, secondo parent uguale all'HEAD corrente di `develop` e
+tree identici. La scrittura è non forzata, soggetta al ruleset e seguita da
+readback. Una concorrenza su `develop`, un merge anomalo o una configurazione
+incompleta fermano il riallineamento senza influire sul deploy Production già
+concluso.
 
 ## Dipendenze npm
 

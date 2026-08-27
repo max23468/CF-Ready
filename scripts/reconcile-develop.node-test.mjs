@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   expectedMainSha,
-  hasReconciliationBypass,
+  verifyReconciliationApp,
   verifyProductionDeployment,
+  verifyRecoveryReconciliation,
   verifyReconciliation,
 } from "./reconcile-develop.mjs";
 
@@ -70,23 +71,53 @@ test("consente soltanto il merge di promozione con tree invariato", () => {
   );
 });
 
-test("lega il bypass all'app dell'installation token", () => {
-  const ruleset = {
-    bypass_actors: [{ actor_id: 4735849, actor_type: "Integration", bypass_mode: "always" }],
+test("recupera solo un develop avanzato linearmente dal candidato già promosso", () => {
+  const promotedDevelop = "c".repeat(40);
+  const comparison = {
+    status: "ahead",
+    ahead_by: 2,
+    merge_base_commit: { sha: promotedDevelop },
   };
-  assert.equal(hasReconciliationBypass(ruleset, 4735849), true);
-  assert.equal(hasReconciliationBypass(ruleset, 15368), false);
-  assert.equal(
-    hasReconciliationBypass(
-      {
-        bypass_actors: [
-          ...ruleset.bypass_actors,
-          { actor_id: 5, actor_type: "RepositoryRole", bypass_mode: "always" },
-        ],
-      },
-      4735849,
-    ),
-    false,
+  const input = {
+    main,
+    develop,
+    parents: ["d".repeat(40), promotedDevelop],
+    mainTree: "promoted-tree",
+    promotedDevelop,
+    promotedDevelopTree: "promoted-tree",
+    comparison,
+    expectedMain: main,
+  };
+  assert.doesNotThrow(() => verifyRecoveryReconciliation(input));
+  assert.throws(
+    () =>
+      verifyRecoveryReconciliation({ ...input, comparison: { ...comparison, status: "diverged" } }),
+    /recupero non può riallineare/,
+  );
+  assert.throws(
+    () => verifyRecoveryReconciliation({ ...input, promotedDevelopTree: "changed-tree" }),
+    /recupero non può riallineare/,
+  );
+  assert.throws(
+    () => verifyRecoveryReconciliation({ ...input, develop: promotedDevelop }),
+    /recupero non può riallineare/,
+  );
+});
+
+test("lega il token allo slug restituito dalla GitHub App", () => {
+  assert.doesNotThrow(() =>
+    verifyReconciliationApp({
+      actualSlug: "cf-ready-develop-reconciler",
+      expectedSlug: "cf-ready-develop-reconciler",
+    }),
+  );
+  assert.throws(
+    () =>
+      verifyReconciliationApp({
+        actualSlug: "another-app",
+        expectedSlug: "cf-ready-develop-reconciler",
+      }),
+    /GitHub App di riallineamento attesa/,
   );
 });
 
