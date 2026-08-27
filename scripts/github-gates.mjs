@@ -3,15 +3,25 @@ import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
 export function missingSuccessfulChecks(checkRuns, required, currentRunId = "") {
-  return required.filter(
-    (name) =>
-      !checkRuns.some(
-        (check) =>
-          check.name === name &&
-          check.conclusion === "success" &&
-          !String(check.details_url ?? "").includes(`/runs/${currentRunId}/`),
-      ),
-  );
+  const requiredNames = new Set(required);
+  const suites = new Map();
+  for (const check of checkRuns) {
+    if (!requiredNames.has(check.name)) continue;
+    const workflowRunId = String(check.details_url ?? "").match(
+      /\/actions\/runs\/(\d+)(?:\/|$)/,
+    )?.[1];
+    if (currentRunId && workflowRunId === String(currentRunId)) continue;
+    const suiteId = check.check_suite?.id ?? workflowRunId ?? "unknown";
+    const suite = suites.get(suiteId) ?? { id: Number(suiteId) || 0, checks: new Map() };
+    const previous = suite.checks.get(check.name);
+    if (!previous || Number(check.id ?? 0) > Number(previous.id ?? 0)) {
+      suite.checks.set(check.name, check);
+    }
+    suites.set(suiteId, suite);
+  }
+  const latestSuite = [...suites.values()].sort((left, right) => right.id - left.id)[0];
+  if (!latestSuite) return required;
+  return required.filter((name) => latestSuite.checks.get(name)?.conclusion !== "success");
 }
 
 export function verifyPromotionHistory(commits) {
