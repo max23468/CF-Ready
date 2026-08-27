@@ -11,6 +11,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 - la riconciliazione lega il token allo slug restituito dalla GitHub App e il
   bypass all'actor ID Integration del ruleset, senza confondere i due namespace
   né invocare endpoint che richiedono un JWT App;
+- la configurazione del ruleset viene letta dal token di governance, mentre
+  l'installation token resta limitato alle operazioni Git autorizzate dal bypass;
 - una regressione copre valori mancanti, non numerici, non positivi e fuori
   dall'intervallo sicuro prima del fast-forward protetto di `develop`;
 - le nuove notifiche Telegram dell'owner possono essere copiate e inoltrate,
