@@ -26,10 +26,13 @@ type NotificationBindings = Omit<Env, "OWNER_NOTIFICATIONS_ENABLED"> & {
 };
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const limited = await limitFormBody(request);
     if (limited instanceof Response) return limited;
-    return requestHandler(limited, createAppContext(env.DB, env.WEBHOOK_QUEUE));
+    return requestHandler(
+      limited,
+      createAppContext(env.DB, env.WEBHOOK_QUEUE, (promise) => ctx.waitUntil(promise)),
+    );
   },
   async queue(batch, env) {
     const message = batch.messages[0];

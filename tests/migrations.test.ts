@@ -133,3 +133,30 @@ test("0012 crea le concessioni omaggio senza fingere una charge Shopify", async 
     expect.arrayContaining(["shop_id", "status", "granted_at", "revoked_at"]),
   );
 });
+
+test("0013 crea campioni performance minimizzati e idempotenti", async () => {
+  const columns = await env.DB.prepare("PRAGMA table_info(performance_samples)").all<{
+    name: string;
+  }>();
+  expect(columns.results.map(({ name }) => name)).toEqual([
+    "id",
+    "shop_id",
+    "metric_id",
+    "metric_name",
+    "metric_value",
+    "country_code",
+    "app_version",
+    "app_route",
+    "server_timing_json",
+    "observed_at",
+  ]);
+  const indexes = await env.DB.prepare("PRAGMA index_list(performance_samples)").all<{
+    name: string;
+  }>();
+  expect(indexes.results.map(({ name }) => name)).toEqual(
+    expect.arrayContaining([
+      "performance_samples_metric_observed_idx",
+      "performance_samples_version_route_metric_idx",
+    ]),
+  );
+});

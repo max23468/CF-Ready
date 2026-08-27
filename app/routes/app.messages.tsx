@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useActionData, useLoaderData, useSubmit } from "react-router";
+import { authenticateAdmin } from "../admin-auth.server";
 import {
   DEFAULT_CONFIG,
   MESSAGE_KEYS,
@@ -24,8 +25,8 @@ import {
   writeValidation,
 } from "../validation.server";
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
+export const loader = async ({ request, context }: LoaderFunctionArgs) => {
+  const { admin } = await authenticateAdmin(request, context);
   const validation = findValidation((await queryContext(admin)).validations.nodes);
   const config = readConfig(validation?.metafield?.jsonValue);
 
@@ -78,6 +79,7 @@ export default function CustomerMessages() {
   const t = texts(saved.locale);
   const [changedSinceResult, setChangedSinceResult] = useState(false);
   const [draft, setDraft] = useState<CheckoutConfig["messages"]>(saved.messages);
+  const [, startDraftTransition] = useTransition();
   // I campi non sono controllati: React che riscrive `value` a ogni tasto farebbe saltare il
   // cursore dentro un testo lungo. Il ripristino li rimonta cambiando chiave, così ripartono
   // dal nuovo valore predefinito senza che React possieda il contenuto.
@@ -98,18 +100,22 @@ export default function CustomerMessages() {
 
   useEffect(() => setSaveBarVisibility(SAVE_BAR, dirty), [dirty]);
 
-  // Un solo ascoltatore per la pagina: gli eventi dei componenti Polaris risalgono fino al
-  // modulo, come già in Regole checkout.
+  // `input` copre ogni battuta; ascoltare anche `change` ripeteva lo stesso lavoro al commit.
+  // Il campo è uncontrolled, quindi contatore e altezza possono aggiornarsi in background
+  // senza ritardare l'eco visiva della digitazione.
   const readDraft = (event: { target: EventTarget | null }) => {
     const field = event.target as { name?: string; value?: string } | null;
     const [locale, key] = (field?.name ?? "").split(".");
     if (locale !== "it" && locale !== "en") return;
     if (!(MESSAGE_KEYS as readonly string[]).includes(key)) return;
-    setChangedSinceResult(true);
-    setDraft((current) => ({
-      ...current,
-      [locale]: { ...current[locale], [key]: field?.value ?? "" },
-    }));
+    const value = field?.value ?? "";
+    startDraftTransition(() => {
+      setChangedSinceResult(true);
+      setDraft((current) => ({
+        ...current,
+        [locale]: { ...current[locale], [key]: value },
+      }));
+    });
   };
 
   const discard = () => {
@@ -139,7 +145,7 @@ export default function CustomerMessages() {
   };
 
   return (
-    <form onInput={readDraft} onChange={readDraft}>
+    <form onInput={readDraft}>
       <s-page heading={t.messages.heading}>
         {showSavedBanner(result, dirty, changedSinceResult) ? (
           <s-banner tone="success">{t.messages.saved}</s-banner>

@@ -33,7 +33,11 @@ export async function reconcile(
   admin: Admin,
   db: D1Database,
   shopDomain: string,
-  options?: { prefetchBilling?: boolean; reportTiming?: ReconcileTiming },
+  options?: {
+    prefetchBilling?: boolean;
+    reportTiming?: ReconcileTiming;
+    waitUntil?: (promise: Promise<unknown>) => void;
+  },
 ) {
   const reportTiming = options?.reportTiming;
   const readBillingTimed = async () => {
@@ -246,14 +250,29 @@ export async function reconcile(
     validation?.enabled ?? (matches.length > 1 && matches.some(({ enabled }) => enabled));
   retryable ||= duplicateValidationError(matches) === "duplicate_validations_active";
   const persistenceStartedAt = performance.now();
-  await persistValidationState(db, shopDomain, {
+  const persistence = persistValidationState(db, shopDomain, {
     countryCode,
     eligible,
     validation,
     validationEnabled,
     errorCode,
   });
-  reportTiming?.("d1_validation_state", performance.now() - persistenceStartedAt);
+  if (options?.waitUntil) {
+    options.waitUntil(
+      persistence.catch(() =>
+        recordEvent(db, {
+          shopDomain,
+          name: "validation_state_persist_failed",
+          class: "error",
+          metadata: { error_code: "validation_state_persist_failed" },
+        }),
+      ),
+    );
+    reportTiming?.("d1_validation_schedule", performance.now() - persistenceStartedAt);
+  } else {
+    await persistence;
+    reportTiming?.("d1_validation_state", performance.now() - persistenceStartedAt);
+  }
 
   return {
     shopName: shop.name,

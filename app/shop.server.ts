@@ -310,6 +310,14 @@ export async function applyRetention(db: D1Database, now = new Date()) {
       .bind(oneYearAgo),
     db
       .prepare(
+        `DELETE FROM performance_samples WHERE id IN (
+           SELECT id FROM performance_samples WHERE observed_at <= ?
+           ORDER BY observed_at LIMIT 1000
+         )`,
+      )
+      .bind(ninetyDaysAgo),
+    db
+      .prepare(
         `DELETE FROM billing_events WHERE id IN (
            SELECT id FROM billing_events WHERE occurred_at <= ?
            ORDER BY occurred_at LIMIT 1000

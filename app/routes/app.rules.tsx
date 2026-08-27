@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useActionData, useLoaderData, useSubmit } from "react-router";
+import { authenticateAdmin } from "../admin-auth.server";
 import { describeCheckout, resolveLocale, texts, validationStatus } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { authenticate } from "../shopify.server";
@@ -22,7 +23,7 @@ import {
 } from "../validation.server";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
-  const { admin, session } = await authenticate.admin(request);
+  const { admin, session } = await authenticateAdmin(request, context);
   const db = context.get(databaseContext);
   const state = await reconcile(admin, db, session.shop);
   const validation = state.validation;

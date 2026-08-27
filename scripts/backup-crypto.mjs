@@ -12,6 +12,7 @@ const REQUIRED_TABLES = [
   "app_state",
   "billing_accounts",
   "billing_events",
+  "performance_samples",
   "shopify_sessions",
   "shops",
   "trial_ledger",
