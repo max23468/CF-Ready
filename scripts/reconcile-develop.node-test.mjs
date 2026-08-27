@@ -3,7 +3,8 @@ import test from "node:test";
 import {
   expectedMainSha,
   hasReconciliationBypass,
-  reconciliationAppId,
+  reconciliationActorId,
+  verifyReconciliationApp,
   verifyProductionDeployment,
   verifyRecoveryReconciliation,
   verifyReconciliation,
@@ -105,7 +106,7 @@ test("recupera solo un develop avanzato linearmente dal candidato già promosso"
   );
 });
 
-test("lega il bypass all'App ID usato per generare l'installation token", () => {
+test("lega il bypass all'actor ID Integration esposto dal ruleset", () => {
   const ruleset = {
     bypass_actors: [{ actor_id: 4735849, actor_type: "Integration", bypass_mode: "always" }],
   };
@@ -125,11 +126,28 @@ test("lega il bypass all'App ID usato per generare l'installation token", () => 
   );
 });
 
-test("accetta soltanto un App ID numerico positivo e sicuro", () => {
-  assert.equal(reconciliationAppId("4735849"), 4735849);
+test("accetta soltanto un actor ID numerico positivo e sicuro", () => {
+  assert.equal(reconciliationActorId("4735849"), 4735849);
   for (const value of [undefined, "", "app-4735849", "0", "-1", "9007199254740992"]) {
-    assert.throws(() => reconciliationAppId(value), /App ID valido/);
+    assert.throws(() => reconciliationActorId(value), /actor ID valido/);
   }
+});
+
+test("lega il token allo slug restituito dalla GitHub App", () => {
+  assert.doesNotThrow(() =>
+    verifyReconciliationApp({
+      actualSlug: "cf-ready-develop-reconciler",
+      expectedSlug: "cf-ready-develop-reconciler",
+    }),
+  );
+  assert.throws(
+    () =>
+      verifyReconciliationApp({
+        actualSlug: "another-app",
+        expectedSlug: "cf-ready-develop-reconciler",
+      }),
+    /GitHub App di riallineamento attesa/,
+  );
 });
 
 test("richiede un deploy Production verde e la relativa ricevuta per lo stesso main", () => {

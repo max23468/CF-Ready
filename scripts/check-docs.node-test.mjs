@@ -498,6 +498,11 @@ test("il riallineamento develop è separato dal deploy e fallisce chiuso", () =>
   assert.match(workflow, /actions: read/);
   assert.match(workflow, /SOURCE_DEPLOY_SHA: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
   assert.match(workflow, /actions\/create-github-app-token@[0-9a-f]{40}/);
+  assert.match(
+    workflow,
+    /RECONCILIATION_APP_SLUG: \$\{\{ steps\.app-token\.outputs\.app-slug \}\}/,
+  );
+  assert.match(workflow, /RECONCILIATION_ACTOR_ID: "4735849"/);
   assert.match(workflow, /persist-credentials: false/);
   assert.match(workflow, /github\.event_name == 'workflow_dispatch' && github\.ref_name/);
   assert.match(script, /parents\[1\] !== develop/);
