@@ -492,6 +492,10 @@ test("il riallineamento develop è separato dal deploy e fallisce chiuso", () =>
     "utf8",
   );
   const script = readFileSync(new URL("./reconcile-develop.mjs", import.meta.url), "utf8");
+  const rulesetVerifier = readFileSync(
+    new URL("./verify-reconciliation-ruleset.mjs", import.meta.url),
+    "utf8",
+  );
   assert.match(workflow, /workflow_run:/);
   assert.match(workflow, /workflows: \[Deploy Production\]/);
   assert.match(workflow, /environment: Repository Governance/);
@@ -503,12 +507,15 @@ test("il riallineamento develop è separato dal deploy e fallisce chiuso", () =>
     /RECONCILIATION_APP_SLUG: \$\{\{ steps\.app-token\.outputs\.app-slug \}\}/,
   );
   assert.match(workflow, /persist-credentials: false/);
+  assert.match(workflow, /Verifica bypass unico del ruleset develop/);
+  assert.match(workflow, /RECONCILIATION_ACTOR_ID: "4735849"/);
   assert.match(workflow, /github\.event_name == 'workflow_dispatch' && github\.ref_name/);
   assert.match(script, /parents\[1\] !== develop/);
   assert.match(script, /mainTree !== developTree/);
   assert.match(script, /deploy-receipt-production-/);
   assert.match(script, /actions\/workflows\/deploy-production\.yml\/runs/);
   assert.match(script, /force: false/);
+  assert.match(rulesetVerifier, /bypass_actors/);
   assert.match(script, /recover develop ancestry after Production reconciliation/);
   assert.match(script, /comparison\.merge_base_commit\?\.sha !== promotedDevelop/);
   assert.match(script, /readback\.object\.sha/);

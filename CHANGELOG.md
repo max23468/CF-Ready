@@ -10,10 +10,9 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
 - la riconciliazione lega il token allo slug restituito dalla GitHub App senza
   invocare endpoint che richiedono un JWT App;
-- poiché GitHub redige la bypass list ai token dei workflow, la verifica
-  autorevole resta la scrittura non forzata del ref: il ruleset la accetta solo
-  per la GitHub App configurata e ogni altra identità fallisce senza modificare
-  `develop`;
+- un preflight separato usa il token effimero con accesso Administration per
+  verificare che la GitHub App dedicata sia l'unico bypass del ruleset prima
+  della scrittura non forzata di `develop`;
 - le nuove notifiche Telegram dell'owner possono essere copiate e inoltrate,
   mantenendo invariata la minimizzazione dei dati contenuti.
 

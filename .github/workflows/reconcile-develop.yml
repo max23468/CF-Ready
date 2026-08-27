@@ -33,6 +33,11 @@ jobs:
         with:
           app-id: ${{ secrets.RECONCILIATION_APP_ID }}
           private-key: ${{ secrets.RECONCILIATION_APP_PRIVATE_KEY }}
+      - name: Verifica bypass unico del ruleset develop
+        env:
+          RECONCILIATION_TOKEN: ${{ steps.app-token.outputs.token }}
+          RECONCILIATION_ACTOR_ID: "4735849"
+        run: node scripts/verify-reconciliation-ruleset.mjs
       - name: Fast-forward protetto di develop
         env:
           GITHUB_TOKEN: ${{ github.token }}
