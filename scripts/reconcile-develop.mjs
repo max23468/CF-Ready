@@ -44,12 +44,13 @@ export function verifyRecoveryReconciliation({
 
 export function hasReconciliationBypass(ruleset, appId) {
   const actors = ruleset.bypass_actors;
+  const actor = actors?.[0];
   return (
     Array.isArray(actors) &&
     actors.length === 1 &&
-    actors[0].actor_type === "Integration" &&
-    actors[0].actor_id === appId &&
-    actors[0].bypass_mode === "always"
+    actor.actor_type === "Integration" &&
+    (actor.actor_id == null || actor.actor_id === appId) &&
+    actor.bypass_mode === "always"
   );
 }
 
@@ -190,7 +191,16 @@ async function main() {
     requestFn: request,
   });
   if (!hasReconciliationBypass(ruleset, actorId)) {
-    throw new Error("La GitHub App di riallineamento non è nella bypass list del ruleset develop.");
+    const observedActors = (ruleset.bypass_actors ?? []).map(
+      ({ actor_id: observedActorId, actor_type: actorType, bypass_mode: bypassMode }) => ({
+        actorId: observedActorId ?? "redacted",
+        actorType,
+        bypassMode,
+      }),
+    );
+    throw new Error(
+      `La GitHub App di riallineamento non è nella bypass list del ruleset develop: ${JSON.stringify(observedActors)}.`,
+    );
   }
   const main = await request(
     `/repos/${repository}/git/commits/${mainRef.object.sha}`,
