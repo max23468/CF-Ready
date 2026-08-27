@@ -38,4 +38,5 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           RECONCILIATION_TOKEN: ${{ steps.app-token.outputs.token }}
           SOURCE_DEPLOY_RUN_ID: ${{ github.event.workflow_run.id }}
+          SOURCE_DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
         run: node scripts/reconcile-develop.mjs

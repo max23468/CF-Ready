@@ -29,6 +29,17 @@ export function hasReconciliationBypass(ruleset, appId) {
   );
 }
 
+export function expectedMainSha({ eventName, sourceDeploySha, mainRefSha }) {
+  const expected = eventName === "workflow_run" ? sourceDeploySha : mainRefSha;
+  if (
+    !["workflow_run", "workflow_dispatch"].includes(eventName) ||
+    !/^[0-9a-f]{40}$/.test(expected ?? "")
+  ) {
+    throw new Error("Evento o commit main atteso non valido per il riallineamento.");
+  }
+  return expected;
+}
+
 export function verifyProductionDeployment({ run, artifacts, expectedMain }) {
   if (
     run?.path !== ".github/workflows/deploy-production.yml" ||
@@ -64,13 +75,19 @@ async function request(path, token, options = {}) {
 }
 
 async function main() {
-  const { GITHUB_EVENT_NAME: eventName, GITHUB_SHA: expectedMain } = process.env;
+  const eventName = process.env.GITHUB_EVENT_NAME;
   const githubToken = process.env.GITHUB_TOKEN;
   const reconciliationToken = process.env.RECONCILIATION_TOKEN;
-  if (!githubToken || !reconciliationToken || !expectedMain) {
-    throw new Error("Mancano token o commit atteso per il riallineamento.");
+  if (!githubToken || !reconciliationToken) {
+    throw new Error("Mancano i token per il riallineamento.");
   }
   const repository = process.env.GITHUB_REPOSITORY;
+  const observedMainRef = await request(`/repos/${repository}/git/ref/heads/main`, githubToken);
+  const expectedMain = expectedMainSha({
+    eventName,
+    sourceDeploySha: process.env.SOURCE_DEPLOY_SHA,
+    mainRefSha: observedMainRef.object.sha,
+  });
   let sourceRun;
   if (eventName === "workflow_run") {
     if (!/^\d+$/.test(process.env.SOURCE_DEPLOY_RUN_ID ?? "")) {

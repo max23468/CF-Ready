@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  expectedMainSha,
   hasReconciliationBypass,
   verifyProductionDeployment,
   verifyReconciliation,
@@ -8,6 +9,29 @@ import {
 
 const main = "a".repeat(40);
 const develop = "b".repeat(40);
+
+test("usa lo SHA del deploy per workflow_run e main per il retry manuale", () => {
+  assert.equal(
+    expectedMainSha({
+      eventName: "workflow_run",
+      sourceDeploySha: main,
+      mainRefSha: develop,
+    }),
+    main,
+  );
+  assert.equal(
+    expectedMainSha({
+      eventName: "workflow_dispatch",
+      sourceDeploySha: develop,
+      mainRefSha: main,
+    }),
+    main,
+  );
+  assert.throws(
+    () => expectedMainSha({ eventName: "push", sourceDeploySha: main, mainRefSha: main }),
+    /Evento o commit main atteso non valido/,
+  );
+});
 
 test("consente soltanto il merge di promozione con tree invariato", () => {
   assert.doesNotThrow(() =>
