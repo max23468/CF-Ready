@@ -235,6 +235,7 @@ test("il workflow usa codice trusted e non richiede commenti al primo giro", asy
   assert.match(workflow, /github\.event\.comment\.author_association == 'OWNER'/);
   assert.doesNotMatch(workflow, /contains\(github\.event\.comment\.body/);
   assert.match(workflow, /statuses: write/);
+  assert.match(workflow, /checks: read/);
   assert.match(workflow, /pull-requests: write/);
   assert.doesNotMatch(workflow, /issues: write/);
   assert.match(workflow, /node --test scripts\/codex-review-gate\.test\.mjs/);

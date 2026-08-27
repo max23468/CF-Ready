@@ -527,6 +527,10 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
     new URL("../.github/workflows/codex-review-gate.yml", import.meta.url),
     "utf8",
   );
+  const promotionGuard = readFileSync(
+    new URL("../.github/workflows/promotion-guard.yml", import.meta.url),
+    "utf8",
+  );
   assert.match(workflow, /pull_request_target:/);
   assert.match(workflow, /types: \[opened, synchronize, reopened, ready_for_review\]/);
   assert.match(workflow, /issue_comment:/);
@@ -537,9 +541,11 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
   );
   assert.match(workflow, /github\.event\.repository\.default_branch/);
   assert.match(workflow, /issues: read/);
+  assert.match(workflow, /checks: read/);
   assert.doesNotMatch(workflow, /issues: write/);
   assert.match(workflow, /pull-requests: write/);
   assert.match(workflow, /statuses: write/);
+  assert.match(promotionGuard, /checks: read/);
   assert.match(workflow, /node --test scripts\/codex-review-gate\.test\.mjs/);
   assert.match(workflow, /node scripts\/codex-review-gate\.mjs/);
   assert.doesNotMatch(workflow, /github\.event\.pull_request\.head/);
