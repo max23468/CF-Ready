@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { changedFiles, classifyCiLane } from "./ci-lane.mjs";
+import { changedFiles, classifyCiLane, parseChangedFiles } from "./ci-lane.mjs";
 
 test("la documentazione di contenuto usa la corsia docs", () => {
   assert.equal(classifyCiLane(["docs/listing/listing-it.md"]).lane, "docs");
@@ -29,11 +29,27 @@ test("il diff include anche i file eliminati", () => {
   const files = changedFiles(base, head, {
     execute: (_command, receivedArgs) => {
       args = receivedArgs;
-      return ".github/workflows/obsolete.yml\nREADME.md\n";
+      return "D\0.github/workflows/obsolete.yml\0M\0README.md\0";
     },
   });
   assert.deepEqual(files, [".github/workflows/obsolete.yml", "README.md"]);
+  assert.ok(args.includes("--name-status"));
+  assert.ok(args.includes("-z"));
   assert.ok(args.includes("--diff-filter=ACMRD"));
+});
+
+test("il diff conserva entrambi i percorsi di rinomine e copie", () => {
+  const files = parseChangedFiles(
+    "R100\0.github/workflows/obsolete.yml\0docs/obsolete.md\0" +
+      "C087\0scripts/source.mjs\0docs/source.md\0",
+  );
+  assert.deepEqual(files, [
+    ".github/workflows/obsolete.yml",
+    "docs/obsolete.md",
+    "scripts/source.mjs",
+    "docs/source.md",
+  ]);
+  assert.equal(classifyCiLane(files).lane, "full");
 });
 
 test("il runtime ordinario usa standard con E2E", () => {

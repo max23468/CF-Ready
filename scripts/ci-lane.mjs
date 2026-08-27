@@ -70,19 +70,41 @@ export function classifyCiLane(files, { base = "", head = "" } = {}) {
   };
 }
 
+export function parseChangedFiles(output) {
+  const fields = output.split("\0");
+  const files = [];
+  for (let index = 0; index < fields.length;) {
+    const status = fields[index++];
+    if (!status) continue;
+    const source = fields[index++];
+    if (source) files.push(source);
+    if (status.startsWith("R") || status.startsWith("C")) {
+      const destination = fields[index++];
+      if (destination) files.push(destination);
+    }
+  }
+  return files;
+}
+
 export function changedFiles(
   baseSha,
   headSha,
   { cwd = process.cwd(), execute = execFileSync } = {},
 ) {
   if (!/^[0-9a-f]{40}$/.test(baseSha) || !/^[0-9a-f]{40}$/.test(headSha)) return [];
-  return execute("git", ["diff", "--name-only", "--diff-filter=ACMRD", `${baseSha}...${headSha}`], {
-    cwd,
-    encoding: "utf8",
-  })
-    .trim()
-    .split("\n")
-    .filter(Boolean);
+  const output = execute(
+    "git",
+    [
+      "diff",
+      "--name-status",
+      "-z",
+      "--find-renames",
+      "--diff-filter=ACMRD",
+      `${baseSha}...${headSha}`,
+    ],
+    { cwd, encoding: "utf8" },
+  );
+  return parseChangedFiles(output);
 }
 
 function argument(name) {
