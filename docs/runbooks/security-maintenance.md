@@ -21,15 +21,10 @@ su `develop`; il job dichiara `deployment: false`, quindi non crea notifiche o
 ricevute di deploy. Il token è un PAT fine-grained senza scadenza, limitato a
 `CF-Ready` e in sola lettura su metadati, Actions e alert Dependabot, CodeQL e
 Secret Scanning: non può scrivere sul repository e non va rinnovato
-periodicamente. Il token di audit in sola lettura non riceve la bypass list dei
-ruleset. Il workflow `Reconcile develop` la verifica invece a ogni esecuzione
-con il `GITHUB_TOKEN` di governance dotato dell'accesso necessario a osservare
-gli attori e fallisce prima della scrittura se l'app non è l'unico actor
-dedicato configurato per il fast-forward. Lo slug lega separatamente il token
-effimero alla GitHub App attesa; soltanto quel token esegue le mutazioni Git.
-Se GitHub redige l'ID numerico dell'actor al token di workflow, restano
-obbligatori un solo actor `Integration` in modalità `always`, lo slug esatto e
-la scrittura non forzata autenticata dalla stessa app.
+periodicamente. I token dei workflow non ricevono la bypass list dei ruleset.
+`Reconcile develop` verifica invece lo slug del token effimero, parent, tree e
+provenienza del deploy; GitHub applica il ruleset sulla scrittura non forzata e
+rifiuta il riallineamento se quella App non è il bypass autorizzato.
 
 ## GitHub App di riallineamento
 
@@ -41,9 +36,9 @@ ogni run e non viene usata dagli altri workflow. Il ruleset `develop governance`
 ammette l'Integration ID dell'app in modalità `always`. Nessun utente, ruolo o
 GitHub Actions generico entra nella bypass list.
 
-Prima del fast-forward lo script verifica app, ruleset, branch remoti, due
-parent del merge Production, secondo parent uguale all'HEAD corrente di
-`develop` e tree identici. La scrittura è non forzata e seguita da readback. Una
+Prima del fast-forward lo script verifica app, branch remoti, due parent del
+merge Production, secondo parent uguale all'HEAD corrente di `develop` e tree
+identici. La scrittura è non forzata, soggetta al ruleset e seguita da readback. Una
 concorrenza su `develop`, un merge anomalo o una configurazione incompleta
 fermano il riallineamento senza influire sul deploy Production già concluso.
 
