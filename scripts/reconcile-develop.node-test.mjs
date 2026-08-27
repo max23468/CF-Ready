@@ -5,6 +5,7 @@ import {
   hasReconciliationBypass,
   reconciliationAppId,
   verifyProductionDeployment,
+  verifyRecoveryReconciliation,
   verifyReconciliation,
 } from "./reconcile-develop.mjs";
 
@@ -68,6 +69,39 @@ test("consente soltanto il merge di promozione con tree invariato", () => {
         expectedMain: main,
       }),
     /fast-forward sicuro/,
+  );
+});
+
+test("recupera solo un develop avanzato linearmente dal candidato già promosso", () => {
+  const promotedDevelop = "c".repeat(40);
+  const comparison = {
+    status: "ahead",
+    ahead_by: 2,
+    merge_base_commit: { sha: promotedDevelop },
+  };
+  const input = {
+    main,
+    develop,
+    parents: ["d".repeat(40), promotedDevelop],
+    mainTree: "promoted-tree",
+    promotedDevelop,
+    promotedDevelopTree: "promoted-tree",
+    comparison,
+    expectedMain: main,
+  };
+  assert.doesNotThrow(() => verifyRecoveryReconciliation(input));
+  assert.throws(
+    () =>
+      verifyRecoveryReconciliation({ ...input, comparison: { ...comparison, status: "diverged" } }),
+    /recupero non può riallineare/,
+  );
+  assert.throws(
+    () => verifyRecoveryReconciliation({ ...input, promotedDevelopTree: "changed-tree" }),
+    /recupero non può riallineare/,
+  );
+  assert.throws(
+    () => verifyRecoveryReconciliation({ ...input, develop: promotedDevelop }),
+    /recupero non può riallineare/,
   );
 });
 

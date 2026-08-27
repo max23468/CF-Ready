@@ -499,12 +499,15 @@ test("il riallineamento develop è separato dal deploy e fallisce chiuso", () =>
   assert.match(workflow, /SOURCE_DEPLOY_SHA: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
   assert.match(workflow, /actions\/create-github-app-token@[0-9a-f]{40}/);
   assert.match(workflow, /persist-credentials: false/);
+  assert.match(workflow, /github\.event_name == 'workflow_dispatch' && github\.ref_name/);
   assert.match(script, /parents\[1\] !== develop/);
   assert.match(script, /mainTree !== developTree/);
   assert.match(script, /bypass_actors/);
   assert.match(script, /deploy-receipt-production-/);
   assert.match(script, /actions\/workflows\/deploy-production\.yml\/runs/);
   assert.match(script, /force: false/);
+  assert.match(script, /recover develop ancestry after Production reconciliation/);
+  assert.match(script, /comparison\.merge_base_commit\?\.sha !== promotedDevelop/);
   assert.match(script, /readback\.object\.sha/);
 });
 
@@ -574,6 +577,7 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
   assert.match(workflow, /checks: read/);
   assert.doesNotMatch(workflow, /issues: write/);
   assert.match(workflow, /pull-requests: write/);
+  assert.match(workflow, /contents: write/);
   assert.match(workflow, /statuses: write/);
   assert.match(promotionGuard, /checks: read/);
   assert.match(promotionGuard, /statuses: read/);

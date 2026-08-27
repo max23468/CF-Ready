@@ -2642,6 +2642,10 @@ Lo store standard dell’attività:
 - squash merge per le PR ordinarie;
 - merge commit per le sole promozioni `develop` → `main`, seguito dal
   fast-forward automatico verificato di `develop` allo stesso commit;
+- se quel fast-forward fallisce e `develop` avanza prima del retry, il solo
+  recupero manuale ammesso aggiunge tramite la GitHub App un merge di sola
+  ascendenza con tree `develop` invariato, senza forzare il ref e soltanto dopo
+  aver provato ricevuta Production, parent promosso e discendenza lineare;
 - cancellazione esplicita dei branch temporanei dopo lo squash; non eliminare
   `develop` dopo una promozione;
 - Production solo con merge esplicito;
@@ -2833,7 +2837,10 @@ rottura di integrazione entro il minuto successivo. Restano applicabili:
 
 - niente push diretti intenzionali su `main` o `develop`, eccetto il
   fast-forward automatico di `develop` eseguito dalla sola GitHub App dedicata
-  dopo Production verde e con parent e tree verificati;
+  dopo Production verde e con parent e tree verificati; il retry manuale della
+  stessa App può aggiungere un merge di sola ascendenza con tree invariato solo
+  quando `develop` è già avanzato linearmente dal parent promosso e il ref resta
+  aggiornabile senza force;
 - ogni merge passa da PR e CI verde osservata; squash per le PR ordinarie e
   merge commit per le sole promozioni `develop` → `main`;
 - i controlli locali sui secret restano obbligatori;

@@ -18,6 +18,30 @@ export function verifyReconciliation({
   }
 }
 
+export function verifyRecoveryReconciliation({
+  main,
+  develop,
+  parents,
+  mainTree,
+  promotedDevelop,
+  promotedDevelopTree,
+  comparison,
+  expectedMain,
+}) {
+  if (
+    main !== expectedMain ||
+    parents.length !== 2 ||
+    parents[1] !== promotedDevelop ||
+    mainTree !== promotedDevelopTree ||
+    develop === promotedDevelop ||
+    comparison?.status !== "ahead" ||
+    comparison.ahead_by < 1 ||
+    comparison.merge_base_commit?.sha !== promotedDevelop
+  ) {
+    throw new Error("Il recupero non può riallineare in sicurezza l'ascendenza di develop.");
+  }
+}
+
 export function hasReconciliationBypass(ruleset, appId) {
   const actors = ruleset.bypass_actors;
   return (
@@ -151,23 +175,58 @@ async function main() {
     `/repos/${repository}/git/commits/${developRef.object.sha}`,
     reconciliationToken,
   );
-  verifyReconciliation({
-    main: mainRef.object.sha,
-    develop: developRef.object.sha,
-    parents: main.parents.map(({ sha }) => sha),
-    mainTree: main.tree.sha,
-    developTree: develop.tree.sha,
-    expectedMain,
-  });
+  let targetSha = mainRef.object.sha;
+  try {
+    verifyReconciliation({
+      main: mainRef.object.sha,
+      develop: developRef.object.sha,
+      parents: main.parents.map(({ sha }) => sha),
+      mainTree: main.tree.sha,
+      developTree: develop.tree.sha,
+      expectedMain,
+    });
+  } catch (error) {
+    if (eventName !== "workflow_dispatch") throw error;
+    const promotedDevelopSha = main.parents[1]?.sha;
+    if (!/^[0-9a-f]{40}$/.test(promotedDevelopSha ?? "")) {
+      throw new Error("Il merge Production non espone il parent develop promosso.");
+    }
+    const [promotedDevelop, comparison] = await Promise.all([
+      request(`/repos/${repository}/git/commits/${promotedDevelopSha}`, reconciliationToken),
+      request(
+        `/repos/${repository}/compare/${promotedDevelopSha}...${developRef.object.sha}`,
+        reconciliationToken,
+      ),
+    ]);
+    verifyRecoveryReconciliation({
+      main: mainRef.object.sha,
+      develop: developRef.object.sha,
+      parents: main.parents.map(({ sha }) => sha),
+      mainTree: main.tree.sha,
+      promotedDevelop: promotedDevelopSha,
+      promotedDevelopTree: promotedDevelop.tree.sha,
+      comparison,
+      expectedMain,
+    });
+    const recoveryCommit = await request(`/repos/${repository}/git/commits`, reconciliationToken, {
+      method: "POST",
+      body: JSON.stringify({
+        message: "chore: recover develop ancestry after Production reconciliation",
+        tree: develop.tree.sha,
+        parents: [developRef.object.sha, mainRef.object.sha],
+      }),
+    });
+    targetSha = recoveryCommit.sha;
+  }
   await request(`/repos/${repository}/git/refs/heads/develop`, reconciliationToken, {
     method: "PATCH",
-    body: JSON.stringify({ sha: mainRef.object.sha, force: false }),
+    body: JSON.stringify({ sha: targetSha, force: false }),
   });
   const readback = await request(`/repos/${repository}/git/ref/heads/develop`, reconciliationToken);
-  if (readback.object.sha !== mainRef.object.sha) {
+  if (readback.object.sha !== targetSha) {
     throw new Error("Il readback non conferma il riallineamento di develop.");
   }
-  console.log(`develop riallineato in fast-forward a ${mainRef.object.sha}.`);
+  console.log(`develop riallineato in fast-forward a ${targetSha}.`);
 }
 
 const isDirectExecution =
