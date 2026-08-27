@@ -412,6 +412,7 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   );
   const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   assert.match(ci, /node scripts\/ci-lane\.mjs/);
+  assert.match(ci, /statuses: read/);
   assert.match(ci, /needs\.lane\.outputs\.lane == 'docs'[\s\S]*npm run check:docs/);
   assert.match(ci, /needs\.lane\.outputs\.lane == 'standard'[\s\S]*npm run check:standard/);
   assert.match(ci, /needs\.lane\.outputs\.lane == 'full'[\s\S]*npm run check/);
@@ -546,6 +547,7 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
   assert.match(workflow, /pull-requests: write/);
   assert.match(workflow, /statuses: write/);
   assert.match(promotionGuard, /checks: read/);
+  assert.match(promotionGuard, /statuses: read/);
   assert.match(workflow, /node --test scripts\/codex-review-gate\.test\.mjs/);
   assert.match(workflow, /node scripts\/codex-review-gate\.mjs/);
   assert.doesNotMatch(workflow, /github\.event\.pull_request\.head/);
