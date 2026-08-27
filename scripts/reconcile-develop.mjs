@@ -70,6 +70,25 @@ export function verifyReconciliationApp({ actualSlug, expectedSlug }) {
   }
 }
 
+export async function readReconciliationState({
+  repository,
+  governanceToken,
+  reconciliationToken,
+  requestFn,
+}) {
+  const [rulesets, mainRef, developRef] = await Promise.all([
+    requestFn(`/repos/${repository}/rulesets`, governanceToken),
+    requestFn(`/repos/${repository}/git/ref/heads/main`, reconciliationToken),
+    requestFn(`/repos/${repository}/git/ref/heads/develop`, reconciliationToken),
+  ]);
+  const developRuleset = rulesets.find(({ name }) => name === "develop governance");
+  const ruleset = await requestFn(
+    `/repos/${repository}/rulesets/${developRuleset?.id}`,
+    governanceToken,
+  );
+  return { ruleset, mainRef, developRef };
+}
+
 export function expectedMainSha({ eventName, sourceDeploySha, mainRefSha }) {
   const expected = eventName === "workflow_run" ? sourceDeploySha : mainRefSha;
   if (
@@ -164,16 +183,12 @@ async function main() {
     artifacts: artifactResponse.artifacts,
     expectedMain,
   });
-  const [rulesets, mainRef, developRef] = await Promise.all([
-    request(`/repos/${repository}/rulesets`, reconciliationToken),
-    request(`/repos/${repository}/git/ref/heads/main`, reconciliationToken),
-    request(`/repos/${repository}/git/ref/heads/develop`, reconciliationToken),
-  ]);
-  const developRuleset = rulesets.find(({ name }) => name === "develop governance");
-  const ruleset = await request(
-    `/repos/${repository}/rulesets/${developRuleset?.id}`,
+  const { ruleset, mainRef, developRef } = await readReconciliationState({
+    repository,
+    governanceToken: githubToken,
     reconciliationToken,
-  );
+    requestFn: request,
+  });
   if (!hasReconciliationBypass(ruleset, actorId)) {
     throw new Error("La GitHub App di riallineamento non è nella bypass list del ruleset develop.");
   }

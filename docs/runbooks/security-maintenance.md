@@ -23,8 +23,10 @@ ricevute di deploy. Il token è un PAT fine-grained senza scadenza, limitato a
 Secret Scanning: non può scrivere sul repository e non va rinnovato
 periodicamente. Il token di audit in sola lettura non riceve la bypass list dei
 ruleset. Il workflow `Reconcile develop` la verifica invece a ogni esecuzione
-con il proprio token GitHub App e fallisce prima della scrittura se l'app non è
-l'unico actor dedicato configurato per il fast-forward.
+con il `GITHUB_TOKEN` di governance dotato dell'accesso necessario a osservare
+gli attori e fallisce prima della scrittura se l'app non è l'unico actor
+dedicato configurato per il fast-forward. Lo slug lega separatamente il token
+effimero alla GitHub App attesa; soltanto quel token esegue le operazioni Git.
 
 ## GitHub App di riallineamento
 
