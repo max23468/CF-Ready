@@ -80,9 +80,9 @@ percorso o sezione; la cronologia resta in Git.
 
 | Corsia | Quando | Gate minimo |
 | --- | --- | --- |
-| Docs | documentazione o governance | riferimenti e comandi citati, formato, `git diff --check` |
+| Docs | contenuti senza effetto operativo | riferimenti e comandi citati, formato, `git diff --check` |
 | Standard | TypeScript, route, config o test | test mirati e `npm run check` |
-| Sicurezza | auth, webhook, cifratura o dipendenze | Standard, audit/lockfile applicabile e regressione mirata |
+| Sicurezza/governance | auth, webhook, workflow, runbook operativo, cifratura o dipendenze | Standard, audit/lockfile applicabile e regressione mirata |
 | Deploy | provider, migrazioni, Worker o Function | gate completo, preflight, backup se serve, smoke, readback e rollback |
 
 `npm run check` è il gate locale completo dello scaffold corrente. Provider,
@@ -105,9 +105,12 @@ tecnica e verifica live. La sequenza concreta, in particolare tra versionamento,
 merge, deploy e release, è quella definita dalla policy della repository.
 
 I finding P2/P3 della review restano advisory e non autorizzano modifiche:
-l'agente li implementa soltanto su richiesta esplicita del proprietario. Quando
-la review è conclusa e l'evidenza si riferisce all'HEAD esatto, li riepiloga e
-prosegue con la pubblicazione; i finding P0/P1 restano bloccanti.
+l'agente li implementa soltanto su richiesta esplicita del proprietario. Il gate
+li registra in un artifact e risolve automaticamente i relativi thread GitHub,
+così il vincolo generale sulle conversazioni non li trasforma in blocchi. Quando
+la review è conclusa e l'evidenza si riferisce all'HEAD esatto, l'agente li
+riepiloga e prosegue con la pubblicazione; finding e thread P0/P1 restano
+bloccanti.
 
 La pulizia finale rimuove soltanto branch e worktree temporanei creati nel ciclo
 corrente e già assorbiti; controlla stash e altri residui senza alterare elementi
@@ -142,12 +145,19 @@ rilettura finale di PR, check, deploy, release e stato Git non sono completi.
   candidato restituito da GitHub; un commit sintetico locale a parent singolo
   non è il commit che verrà unito e non prova una perdita di ascendenza.
 - Commit e titoli PR seguono Conventional Commits. Non fare push diretti
-  intenzionali su `main` o `develop`.
-- La ricevuta di deploy è l’unico dato che nasce dopo il merge, e non ha mai una
-  PR propria. Quella di uno snapshot intermedio viaggia con la prima PR utile
-  successiva; quella dell’ultimo snapshot va nella PR di chiusura della
-  milestone, insieme all’esito dei gate live. Una milestone ha quindi le PR del
-  lavoro e, alla fine, quella di chiusura.
+  intenzionali su `main` o `develop`. Fa eccezione soltanto il fast-forward
+  automatico di `develop` al merge commit Production già verificato: lo esegue
+  una GitHub App dedicata, ammessa dal ruleset esclusivamente dopo deploy e
+  readback verdi, solo se il secondo parent è l'HEAD corrente di `develop` e i
+  tree sono identici.
+- La ricevuta di deploy è l'unico dato che nasce dopo il merge e non apre PR:
+  il workflow la conserva come artifact JSON legato a commit e tree; quella
+  Production è anche attestata. Le PR di chiusura collegano queste prove senza
+  ricopiarle nel repository.
+- Development usa `X.Y.Z-dev.<tree>` come versione Shopify immutabile del
+  contenuto. Un commit diverso con lo stesso tree riusa lo snapshot e ripete
+  soltanto readback, smoke e controlli provider freschi. Production continua a
+  usare la SemVer esatta di `package.json`.
 - Submission App Store e attivazioni commerciali restano azioni separate.
 - Per operazioni remote preferisci l’integrazione ufficiale del provider
   disponibile; usa CLI, API raw o browser solo per la parte non coperta.

@@ -363,6 +363,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-135 | Supportare concessioni omaggio permanenti assegnate manualmente dall’owner, inizialmente solo a `numisleo.myshopify.com`, senza creare o simulare una charge Shopify. | Lo store reale dell’owner deve poter eseguire il canary senza pagare la propria app. La concessione vive in una tabella D1 dedicata, è auditabile e revocabile, prevale sulla prova e viene copiata nel metafield come diritto `one_time`; la UI la distingue da un pagamento e non propone altri addebiti. Per evitare cancellazioni o rimborsi automatici, diventa operativa soltanto in assenza di un abbonamento Shopify attivo: l’eventuale abbonamento va prima disdetto tramite il normale flusso merchant. Deciso il 24 agosto 2026. |
 | D-136 | M11 chiude la release tecnica `1.0.0`: outreach, primi merchant esterni e feedback non sono requisiti della milestone. | L’owner non ha richiesto comunicazioni outbound; acquisizione organica e criteri di maturità restano attività successive e non bloccano la release. L’assenza di segnalazioni è non bloccante, ma non viene presentata come prova di soddisfazione. Deciso il 26 agosto 2026. |
 | D-137 | M12 combina il consolidamento Controlled Launch con i requisiti Built for Shopify e si chiude quando Shopify assegna effettivamente lo status. | Idoneità automatica, pulsante di candidatura, invio o review in corso non chiudono la milestone. I requisiti correnti si rileggono nelle fonti Shopify e nella pagina Distribution prima della candidatura; le soglie Shopify sostituiscono i minimi locali più deboli. I criteri operativi specifici di CF Ready restano segnali da osservare, non una seconda certificazione né gate autonomi; soltanto bug critici e rischi non accettati impediscono la chiusura. Deciso il 26 agosto 2026. |
+| D-138 | La pubblicazione verifica una volta ogni contenuto immutabile e ripete soltanto i gate dipendenti dallo stato remoto. La CI instrada corsie `docs`, `standard`, `full` e `promotion`; la promozione riusa provenienza, review e gate di `develop`; Development identifica lo snapshot con `X.Y.Z-dev.<tree>`; Production conserva una ricevuta JSON attestata; una GitHub App dedicata riallinea `develop` al merge commit Production solo con fast-forward e tree identico. I thread Codex P2/P3 vengono registrati e risolti automaticamente, mentre P0/P1 restano aperti e bloccanti. | Riduce installazioni browser, review duplicate, collisioni SemVer e PR prive di differenze senza riutilizzare prove provider: identità, schema Shopify, migrazioni, rollback, smoke e readback restano freschi. Il bypass del ruleset è limitato alla GitHub App di riallineamento e il workflow fallisce chiuso se parent, branch, tree o identità non coincidono. Deciso il 27 agosto 2026. |
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
@@ -433,13 +434,13 @@ Rispetto alle alternative più ampie o invasive:
 | D-112 | Tipografia: grottesco geometrico di sistema per sito e materiali, nessun webfont, nessun font dichiarato dentro l’Admin. Sigla e wordmark in tracciati derivati da Jost (SIL OFL), peso 500. | Zero richieste di rete e nessuna dipendenza da font installati. Jost al posto del Futura per licenza: il Futura è commerciale e distribuito in bundle con macOS. |
 | D-113 | Nessuna dark mode del sito pubblico nella 1.0. | Una superficie in meno da mantenere e verificare. Decisione indipendente da Shopify: al 28 luglio 2026 l’Admin non ha dark mode nativa e, usando solo token Polaris, l’app la seguirebbe comunque da sola. |
 | D-114 | Presentare l’icona della listing con la sigla `CF`, accettando la raccomandazione Shopify di evitare il testo nell’icona. | Raccomandazione nelle best practice, non criterio di rifiuto nei requisiti; i monogrammi di due lettere sono diffusi fra le app approvate. Variante senza sigla pronta come rimedio, attivabile senza nuova approvazione (§24.5). |
-| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate `verify`, `react-doctor`, `dependency-review`, `e2e` e `codex-review` richiesti su `develop` e `main`; `codex-review` usa la review automatica all'apertura o al passaggio da draft a ready, richiede una nuova invocazione solo dopo un nuovo commit o per un retry, blocca finding P0/P1 e lascia P2/P3 advisory, lega l'esito allo SHA esatto, non pubblica commenti e ha permessi Issues in sola lettura; abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate già eseguiti, invalida naturalmente l'evidenza dopo ogni nuovo commit, blocca i finding gravi Codex senza trasformare P2/P3 in lavoro obbligatorio, impedisce all'automazione del repository di avviare il task agent tramite commenti, indirizza le security update nella corsia ordinaria, offre un canale privato per le vulnerabilità e conserva la promozione separata `develop` → `main`. |
+| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate stabili `verify`, `react-doctor`, `dependency-review`, `e2e` e `codex-review` richiesti su `develop` e `main`; i gate attestano esplicitamente quando una corsia non è applicabile. `codex-review` usa la review automatica all'apertura o al passaggio da draft a ready, richiede una nuova invocazione solo dopo un nuovo commit o per un retry, blocca finding P0/P1 e registra e risolve automaticamente i thread P2/P3 advisory dell'HEAD. La sola GitHub App di riallineamento può oltrepassare il ruleset `develop` per il fast-forward provato da D-138. Abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate applicabili, invalida naturalmente l'evidenza dopo ogni nuovo contenuto, impedisce al vincolo generale sulle conversazioni di rendere bloccanti i P2/P3 e limita l'unico bypass automatico a un'identità e a un'operazione deterministica verificati. |
 | D-116 | Usare React Router `8.3.0` con npm 12 e correggere nel manifest root, tramite `packageExtensions`, la sola peer dependency troppo restrittiva di `@shopify/shopify-app-react-router@1.2.1`. | Elimina `GHSA-qwww-vcr4-c8h2` senza fork o installazioni forzate; il gate completo prova la compatibilità effettiva mentre l'estensione resta rimovibile appena Shopify pubblica metadati compatibili. |
 | D-117 | Usare React Doctor con dipendenza locale fissata nel lockfile e workflow GitHub sempre sulla versione `latest`: scansione completa bloccante nel gate locale e Action ufficiale bloccante dai warning sulle modifiche delle PR. Le PR pulite restano silenziose; un falso positivo viene notificato, soppresso nel modo nativo più stretto con motivazione committata e rieseguito senza bypass. Tenere attivi score e share URL, disabilitare il controllo supply-chain esterno. | Mantiene riproducibile la verifica locale e applica al gate remoto le correzioni più recenti di React Doctor, con feedback inline senza duplicare i controlli dipendenze già coperti da npm e GitHub. Lo score è indicativo e non decide l’esito, che dipende da `blocking: warning`. |
 | D-118 | Le PR ordinarie puntano a `develop` e usano squash; `main` accetta soltanto promozioni autorizzate da `develop`, unite con merge commit. La cancellazione automatica dei branch resta disattivata e i soli branch temporanei vengono eliminati esplicitamente. | Preserva l’ascendenza tra integrazione e Production, evita il drift strutturale causato da squash indipendenti sui due rami e impedisce che una promozione elimini `develop`. |
 | D-119 | Abilitare l’auto-merge nativo in `develop` per le sole PR Dependabot minor/patch dopo `CI` e `React Doctor` verdi. Eliminare dopo il merge soltanto i branch `dependabot/*`; major e promozioni `develop` → `main` restano manuali. | Allinea CF Ready a SyncBay e Pratix, rende atomico il vincolo sullo SHA verificato, preserva gli eventi post-merge e non espone `develop` alla cancellazione globale dei branch. |
 | D-120 | La visibilità pubblica non rende il progetto open-source: nessuna licenza viene concessa finché l’owner non sceglie esplicitamente e aggiunge un file `LICENSE`. | Una licenza attribuisce diritti di riuso e distribuzione e non va dedotta dalla sola pubblicazione del codice. |
-| D-121 | `package.json#version` è la fonte canonica della versione Shopify. Ogni `shopify app deploy` rilasciato passa dal workflow GitHub Actions dell’ambiente e usa quella versione esatta con `--version`; una versione già rilasciata non viene riutilizzata e prima del successivo snapshot si incrementa il SemVer, usando un prerelease in Development quando opportuno. Il primo snapshot fisso Development è `0.1.0`. | Collega ogni snapshot al codice verificato, evita identificatori automatici come `cf-ready-1` e mantiene nomi leggibili senza collisioni. |
+| D-121 | `package.json#version` è la fonte canonica della SemVer Production. Ogni `shopify app deploy` passa dal workflow dell’ambiente: Production usa la versione esatta, Development usa `<version>-dev.<tree Git abbreviato>`. Uno snapshot Development già attivo per lo stesso tree viene riusato in solo readback anche se il commit è cambiato senza modificare contenuto; una nuova Production richiede il normale bump SemVer. | Collega Production alla release commerciale e Development al contenuto effettivo, evita collisioni dopo merge senza diff e conserva identificatori leggibili e riproducibili. |
 | D-122 | Offrire `inline` come visualizzazione errori predefinita e `preventive` come opzione merchant; la Guida la consiglia quando è attiva la conferma ordine Shopify. | La prova live mostra che i box globali a Interaction impediscono la review silenziosa, ma possono apparire già al caricamento e richiedono una scelta informata. |
 | D-123 | Abilitare metriche e Workers Logs nativi, ma disabilitare gli invocation log automatici. Traces resta disattivato per default e può essere acceso solo temporaneamente in Development, con traffico sintetico e finestra di diagnosi delimitata. | Invocation log e trace automatici includono URL e query string; i trace includono anche il testo SQL D1. Il campionamento riduce volume e costo, non il rischio di raccogliere parametri tecnici sensibili. |
 | D-124 | Non collegare il repository a Workers Builds finché GitHub Actions è il CI/CD canonico. Logpush, OpenTelemetry, Tail Workers e servizi esterni restano differiti finché il monitoraggio Cloudflare nativo non risulta insufficiente. | Evita una seconda corsia di deploy e nuovi destinatari della telemetria senza un bisogno operativo misurato. |
@@ -2639,8 +2640,8 @@ Lo store standard dell’attività:
 - promozioni Production esclusivamente da `develop` a `main`;
 - commit e titoli PR in formato Conventional Commit;
 - squash merge per le PR ordinarie;
-- merge commit per le sole promozioni `develop` → `main`, così `develop` resta
-  antenato di `main`;
+- merge commit per le sole promozioni `develop` → `main`, seguito dal
+  fast-forward automatico verificato di `develop` allo stesso commit;
 - cancellazione esplicita dei branch temporanei dopo lo squash; non eliminare
   `develop` dopo una promozione;
 - Production solo con merge esplicito;
@@ -2682,17 +2683,16 @@ soltanto dopo deploy, smoke e readback riusciti sul medesimo commit.
 Ogni snapshot Shopify rilasciato deve ricevere un identificatore esplicito con
 `shopify app deploy --version`:
 
-- Development: versione esatta di `package.json`, con prerelease SemVer quando
-  opportuno;
+- Development: `<versione package.json>-dev.<prime 12 cifre del tree Git>`;
 - Production: versione esatta di `package.json`, identica alla release SemVer.
 
 `package.json#version`, inizialmente `0.1.0`, è la fonte canonica di `<X.Y.Z>` e
 deve coincidere con il lockfile e, in Production, con il tag `vX.Y.Z`. Tutti i
-deploy Shopify rilasciati, inclusi quelli avviati manualmente dall’owner,
-passano dal workflow GitHub Actions dell’ambiente. Una versione già rilasciata
-non viene riutilizzata: prima di un nuovo snapshot si incrementa il SemVer nel
-manifest e nel lockfile. Un deploy locale diretto può essere usato solo come
-preview non rilasciata.
+deploy Shopify rilasciati passano dal workflow GitHub Actions dell’ambiente. In
+Development la versione derivata dal tree rende idempotente lo stesso contenuto;
+in Production una versione già rilasciata non viene riutilizzata e il nuovo
+snapshot richiede il bump nel manifest e nel lockfile. Un deploy locale diretto
+può essere usato solo come preview non rilasciata.
 
 Numero assegnato a ogni milestone fino alla `1.0.0`:
 
@@ -2710,17 +2710,16 @@ Numero assegnato a ogni milestone fino alla `1.0.0`:
 | M11 — `1.0.0` e Controlled Launch | `1.0.0` | tag `v1.0.0` dopo deploy, smoke e readback Production riusciti |
 | M12 — Built for Shopify | nessuna | consolidamento e ottenimento dello status; gli eventuali fix sono `1.0.x` |
 
-Dentro una milestone, ogni ulteriore snapshot rilasciato incrementa la **patch**
-(`0.2.1`, `0.2.2`). Un **prerelease numerato**, `0.3.0-dev.1`, si usa solo per
-provare in Development un candidato prima della chiusura della milestone: non è
-il caso ordinario e non sostituisce il bump.
+Dentro una milestone, ogni ulteriore release Production incrementa la **patch**
+(`0.2.1`, `0.2.2`). Gli snapshot Development non consumano versioni commerciali:
+il suffisso `dev.<tree>` cambia soltanto quando cambia il contenuto.
 
 Una modifica si legge e si revisiona intera: codice, bump di manifest e
 lockfile, changelog e documentazione della stessa modifica stanno **nella
 stessa PR**, non in PR separate. La ricevuta di deploy, che esiste solo dopo il
-rilascio, non ha mai una PR propria: quella di uno snapshot intermedio viaggia
-con la prima PR utile successiva, quella dell'ultimo snapshot viene registrata
-nella PR di chiusura della milestone insieme all'esito dei gate. Il tag
+rilascio, non ha una PR propria: il workflow conserva un artifact JSON legato a
+commit e tree e attesta quello Production. La chiusura collega il run o la
+GitHub Release senza ricopiare la ricevuta nel repository. Il tag
 `vX.Y.Z` e la GitHub Release vengono creati soltanto dopo il completamento
 riuscito del workflow Production, dello smoke e del readback sul medesimo commit.
 
@@ -2739,8 +2738,12 @@ manifest e nella ricevuta del workflow o della milestone corrente.
 
 GitHub Actions resta l’unico sistema CI/CD.
 
-In M0 il workflow `CI` esegue `npm ci` e `npm run check` su PR e push verso
-`main` o `develop`; `npm run check` include React Doctor con blocco sui warning.
+Il workflow `CI` calcola una corsia conservativa dal diff e mantiene stabili i
+required check: `docs` esegue documentazione e formato, `standard` aggiunge
+lint, tipi, test e build, `full` usa `npm run check`, `promotion` verifica la
+provenienza dei commit e riusa i gate già verdi di `develop`. Governance,
+workflow, dipendenze, migrazioni e confini di sicurezza ricadono sempre in
+`full`. I browser Playwright sono conservati in cache per versione.
 Il workflow separato `React Doctor` blocca warning ed errori nelle modifiche
 delle PR usando sempre la versione `latest`, pubblica annotazioni inline solo
 quando trova problemi e ripete la
@@ -2771,7 +2774,7 @@ documentazione entra in M1. Codice e workflow provano sempre lo stato corrente.
 
 **Merge su `develop`**
 
-- ripete i gate;
+- esegue i gate applicabili sul commit integrato;
 - non esegue scritture remote;
 - conserva su `develop` il candidato integrato da verificare con l’app
   Development e il dev store prima della promozione.
@@ -2779,12 +2782,15 @@ documentazione entra in M1. Codice e workflow provano sempre lo stato corrente.
 **Merge su `main`**
 
 - approvazione esplicita;
-- ripete tutti i gate;
+- verifica sull'HEAD esatto le ricevute CI richieste senza ricostruire la stessa
+  prova;
 - backup pre-migrazione se necessario;
 - applica migrazioni `prod`;
 - deploy coordinato Shopify + Cloudflare;
 - smoke Production;
 - registra versione.
+- genera e attesta la ricevuta JSON, quindi il workflow separato riallinea
+  `develop` in fast-forward se parent e tree coincidono.
 
 La richiesta affermativa di pubblicazione costituisce l’autorizzazione esplicita
 dell’owner al deploy Production e alla release applicabili; fuori da tale
@@ -2816,7 +2822,9 @@ risolte, protezioni applicate agli admin e `verify`, `react-doctor`,
 gate dopo ogni merge, mentre `CI` sul push a `develop` intercetta comunque una
 rottura di integrazione entro il minuto successivo. Restano applicabili:
 
-- niente push diretti intenzionali su `main` o `develop`;
+- niente push diretti intenzionali su `main` o `develop`, eccetto il
+  fast-forward automatico di `develop` eseguito dalla sola GitHub App dedicata
+  dopo Production verde e con parent e tree verificati;
 - ogni merge passa da PR e CI verde osservata; squash per le PR ordinarie e
   merge commit per le sole promozioni `develop` → `main`;
 - i controlli locali sui secret restano obbligatori;
@@ -2828,11 +2836,13 @@ rottura di integrazione entro il minuto successivo. Restano applicabili:
 
 Il gate `codex-review` non pubblica commenti. La review nativa parte
 automaticamente all'apertura della PR o al passaggio da draft a ready, quindi il
-primo giro non richiede `@codex review`. Dopo un nuovo commit o per un retry
+primo giro non richiede `@codex review`; le PR limitate alla documentazione di
+contenuto completano direttamente il gate senza avviare la review. Dopo un nuovo commit o per un retry
 l'agente pubblica una sola invocazione esatta e fidata; il workflow la osserva
-con permessi Issues in sola lettura. Finding P0/P1 dell'HEAD corrente bloccano,
-P2/P3 restano advisory dopo un breve assestamento, e segnali di SHA o tentativi
-precedenti non vengono riutilizzati. Un verdetto pulito con marker exact-HEAD,
+con permessi Issues in sola lettura e Pull Requests in scrittura soltanto per
+risolvere i thread advisory. Finding P0/P1 dell'HEAD corrente bloccano; P2/P3
+vengono registrati nell'artifact del gate e i relativi thread vengono risolti
+automaticamente dopo l'assestamento. Un verdetto pulito con marker exact-HEAD,
 una review nativa sul commit o la reaction positiva associata al giro corrente
 completano lo status. `workflow_dispatch` serve al bootstrap e ai retry
 manutentore senza eseguire codice non fidato della PR.
@@ -3292,15 +3302,17 @@ Non imporre una percentuale di coverage globale. La logica fiscale, geografica, 
 
 | Corsia | Quando | Gate minimo |
 |---|---|---|
-| `docs` | documentazione e governance senza runtime | controllo documentazione, formato, `git diff --check` |
+| `docs` | contenuto documentale senza effetto operativo | controllo documentazione, formato, `git diff --check` |
 | `standard` | TypeScript, route, config o test ordinari | docs gate, lint, typecheck, test mirati, build |
-| `security/dependency` | auth, webhook, cifratura, manifest o lockfile | standard, audit, lockfile, test di regressione mirato |
+| `full` | governance, workflow, auth, webhook, cifratura, migrazioni, manifest o lockfile | standard, audit, lockfile, test operativi e regressione mirata |
+| `promotion` | PR `develop` → `main` con ascendenza valida | provenienza PR/review, tree e gate esatti di `develop`, `promotion-guard` |
 | `deploy` | provider, migrazioni, Worker, Function o Pages | gate completo, preflight provider, backup se applicabile, smoke, readback e rollback |
 
-Il comando canonico locale resta uno solo e può instradare queste corsie. Non
-costruire classificatori o cache di verifica finché il costo reale dei gate non
-lo giustifica. Provider, database, browser e deploy richiedono sempre prove
-fresche.
+Il costo osservato dei browser e delle prove duplicate giustifica il router
+deterministico per percorsi, coperto da test e fail-closed verso `full` quando il
+diff non è classificabile. `npm run check` resta il gate locale completo;
+`check:docs` e `check:standard` sono corsie esplicite. Provider, database, smoke,
+readback e deploy richiedono sempre prove fresche.
 
 ### 23.2 Fixture Codice Fiscale
 
