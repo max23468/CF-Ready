@@ -28,7 +28,10 @@ export const isPromotion = (pullRequest, repository) =>
 
 export const codexReviewLane = (files, pullRequest) =>
   classifyCiLane(
-    files.map((file) => file.filename),
+    files.flatMap(({ filename, previous_filename: previousFilename }) => [
+      filename,
+      previousFilename,
+    ]),
     { base: pullRequest.base?.ref, head: pullRequest.head?.ref },
   ).lane;
 

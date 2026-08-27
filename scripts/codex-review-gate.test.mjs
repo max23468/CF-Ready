@@ -123,6 +123,18 @@ test("salta la review soltanto per documentazione di contenuto", () => {
   assert.equal(codexReviewLane([{ filename: "docs/listing/listing-it.md" }], pullRequest), "docs");
   assert.equal(codexReviewLane([{ filename: "site/index.html" }], pullRequest), "standard");
   assert.equal(codexReviewLane([{ filename: "AGENTS.md" }], pullRequest), "full");
+  assert.equal(
+    codexReviewLane(
+      [
+        {
+          filename: "docs/deploy.md",
+          previous_filename: ".github/workflows/deploy.yml",
+        },
+      ],
+      pullRequest,
+    ),
+    "full",
+  );
 });
 
 test("un advisory top-level richiede il marker dell'HEAD", () => {
