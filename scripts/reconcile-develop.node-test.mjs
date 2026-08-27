@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   expectedMainSha,
   hasReconciliationBypass,
+  readReconciliationState,
   reconciliationActorId,
   verifyReconciliationApp,
   verifyProductionDeployment,
@@ -148,6 +149,34 @@ test("lega il token allo slug restituito dalla GitHub App", () => {
       }),
     /GitHub App di riallineamento attesa/,
   );
+});
+
+test("legge la governance con GITHUB_TOKEN e usa l'App token soltanto per Git", async () => {
+  const calls = [];
+  const responses = new Map([
+    ["/repos/max23468/CF-Ready/rulesets", [{ id: 19912801, name: "develop governance" }]],
+    ["/repos/max23468/CF-Ready/rulesets/19912801", { bypass_actors: [] }],
+    ["/repos/max23468/CF-Ready/git/ref/heads/main", { object: { sha: "main" } }],
+    ["/repos/max23468/CF-Ready/git/ref/heads/develop", { object: { sha: "develop" } }],
+  ]);
+  const requestFn = async (path, token) => {
+    calls.push({ path, token });
+    return responses.get(path);
+  };
+
+  await readReconciliationState({
+    repository: "max23468/CF-Ready",
+    governanceToken: "github-token",
+    reconciliationToken: "app-token",
+    requestFn,
+  });
+
+  assert.deepEqual(calls, [
+    { path: "/repos/max23468/CF-Ready/rulesets", token: "github-token" },
+    { path: "/repos/max23468/CF-Ready/git/ref/heads/main", token: "app-token" },
+    { path: "/repos/max23468/CF-Ready/git/ref/heads/develop", token: "app-token" },
+    { path: "/repos/max23468/CF-Ready/rulesets/19912801", token: "github-token" },
+  ]);
 });
 
 test("richiede un deploy Production verde e la relativa ricevuta per lo stesso main", () => {
