@@ -26,7 +26,10 @@ ruleset. Il workflow `Reconcile develop` la verifica invece a ogni esecuzione
 con il `GITHUB_TOKEN` di governance dotato dell'accesso necessario a osservare
 gli attori e fallisce prima della scrittura se l'app non è l'unico actor
 dedicato configurato per il fast-forward. Lo slug lega separatamente il token
-effimero alla GitHub App attesa; soltanto quel token esegue le operazioni Git.
+effimero alla GitHub App attesa; soltanto quel token esegue le mutazioni Git.
+Se GitHub redige l'ID numerico dell'actor al token di workflow, restano
+obbligatori un solo actor `Integration` in modalità `always`, lo slug esatto e
+la scrittura non forzata autenticata dalla stessa app.
 
 ## GitHub App di riallineamento
 
