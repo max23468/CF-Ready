@@ -11,6 +11,7 @@ test("il fence corrente consente la prima persistenza Validation", async () => {
   const revision = await readValidationStateRevision(env.DB, shop);
 
   await persistValidationState(env.DB, shop, {
+    displayName: "Prima revisione",
     countryCode: "IT",
     eligible: true,
     validation: undefined,
@@ -21,13 +22,17 @@ test("il fence corrente consente la prima persistenza Validation", async () => {
 
   expect(
     await env.DB.prepare(
-      `SELECT state.validation_state_revision, shop.country_code
+      `SELECT state.validation_state_revision, shop.country_code, shop.display_name
          FROM app_state state JOIN shops shop ON shop.id = state.shop_id
         WHERE shop.shop_domain = ?`,
     )
       .bind(shop)
       .first(),
-  ).toMatchObject({ validation_state_revision: 1, country_code: "IT" });
+  ).toMatchObject({
+    validation_state_revision: 1,
+    country_code: "IT",
+    display_name: "Prima revisione",
+  });
 });
 
 test("una persistenza Home tardiva non sovrascrive una scrittura Validation successiva", async () => {
@@ -35,6 +40,7 @@ test("una persistenza Home tardiva non sovrascrive una scrittura Validation succ
   const homeRevision = await readValidationStateRevision(env.DB, shop);
 
   await persistValidationState(env.DB, shop, {
+    displayName: "Nome recente",
     countryCode: "IT",
     eligible: true,
     validation: {
@@ -48,6 +54,7 @@ test("una persistenza Home tardiva non sovrascrive una scrittura Validation succ
     errorCode: null,
   });
   await persistValidationState(env.DB, shop, {
+    displayName: "Nome obsoleto",
     countryCode: "FR",
     eligible: false,
     validation: undefined,
@@ -59,7 +66,7 @@ test("una persistenza Home tardiva non sovrascrive una scrittura Validation succ
   expect(
     await env.DB.prepare(
       `SELECT state.validation_gid, state.validation_enabled, state.last_error_code,
-              state.validation_state_revision, shop.country_code
+              state.validation_state_revision, shop.country_code, shop.display_name
          FROM app_state state JOIN shops shop ON shop.id = state.shop_id
         WHERE shop.shop_domain = ?`,
     )
@@ -71,5 +78,6 @@ test("una persistenza Home tardiva non sovrascrive una scrittura Validation succ
     last_error_code: null,
     validation_state_revision: 1,
     country_code: "IT",
+    display_name: "Nome recente",
   });
 });

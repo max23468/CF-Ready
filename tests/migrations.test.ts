@@ -170,3 +170,17 @@ test("0014 aggiunge il fence monotono allo stato Validation", async () => {
     expect.objectContaining({ name: "validation_state_revision", dflt_value: "0" }),
   );
 });
+
+test("0015 aggiunge il nome pubblico dello store senza ricostruire l'outbox", async () => {
+  const { TEST_MIGRATIONS: migrations } = env as Env & {
+    TEST_MIGRATIONS: D1Migration[];
+  };
+  const detailsIndex = migrations.findIndex(
+    ({ name }) => name === "0015_owner_notification_details.sql",
+  );
+  expect(detailsIndex).toBeGreaterThan(0);
+  expect(migrations[detailsIndex - 1].name).toBe("0014_validation_state_revision.sql");
+
+  const shopColumns = await env.DB.prepare("PRAGMA table_info(shops)").all<{ name: string }>();
+  expect(shopColumns.results.map(({ name }) => name)).toContain("display_name");
+});

@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.0.6 — 27 agosto 2026
+
+- le notifiche Telegram dell'owner includono nome pubblico e URL dello store,
+  stato operativo, onboarding, Validation, prova e dettagli economici disponibili,
+  continuando a escludere owner, identificatori Shopify e dati checkout;
+- la Telegram Bot API usa `sendRichMessage` con tabelle native compatte e
+  pulsanti per aprire o copiare l'URL dello store;
+- copia, salvataggio e inoltro restano consentiti perché `protect_content` non
+  viene impostato; il rilevamento automatico delle entità è disattivato per
+  evitare anteprime URL indesiderate.
+
 ## 1.0.5 — 27 agosto 2026
 
 - App Bridge raccoglie campioni Web Vitals minimizzati per versione e rotta,

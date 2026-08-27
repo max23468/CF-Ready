@@ -1,5 +1,6 @@
 import { configHash } from "./domain";
 import type { Validation } from "./types";
+import { safeStoreDisplayName } from "../shop-profile.server";
 
 type Config = { schemaVersion?: number; rules?: unknown; messages?: unknown };
 
@@ -7,6 +8,7 @@ export async function persistValidationState(
   db: D1Database,
   shopDomain: string,
   state: {
+    displayName: string;
     countryCode: string;
     eligible: boolean;
     validation: Validation | undefined;
@@ -26,6 +28,7 @@ export async function persistValidationState(
     db
       .prepare(
         `UPDATE shops SET
+           display_name = ?,
            country_code = ?,
            installation_status = CASE
              WHEN ? = 0 AND installation_status = 'active' THEN 'blocked_country'
@@ -39,6 +42,7 @@ export async function persistValidationState(
            ), 0) = ?)`,
       )
       .bind(
+        safeStoreDisplayName(state.displayName),
         state.countryCode,
         Number(state.eligible),
         Number(state.eligible),

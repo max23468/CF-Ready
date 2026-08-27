@@ -3,8 +3,8 @@ import { createAppContext } from "../app/context.server";
 import { recordEvent } from "../app/events.server";
 import {
   deliverOwnerNotifications,
+  pollLocalNotifications,
   pollPartnerEvents,
-  pollTrialNotifications,
 } from "../app/owner-notifications.server";
 import { applyRetention } from "../app/shop.server";
 import { processWebhookJob } from "../app/webhook-jobs.server";
@@ -62,7 +62,7 @@ async function runOwnerNotificationCycle(env: NotificationBindings) {
         appId: env.SHOPIFY_PARTNER_APP_ID ?? "",
         accessToken: env.SHOPIFY_PARTNER_ACCESS_TOKEN ?? "",
       }),
-    () => pollTrialNotifications(env.DB),
+    () => pollLocalNotifications(env.DB),
     () => {
       if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
         throw new Error("owner_notification_configuration_incomplete");

@@ -256,6 +256,7 @@ export async function reconcile(
   retryable ||= duplicateValidationError(matches) === "duplicate_validations_active";
   const persistenceStartedAt = performance.now();
   const persistence = persistValidationState(db, shopDomain, {
+    displayName: shop.name,
     countryCode,
     eligible,
     validation,

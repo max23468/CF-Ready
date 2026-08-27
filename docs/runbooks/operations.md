@@ -164,17 +164,27 @@ Il cron Production ogni cinque minuti acquisisce dalla Shopify Partner API gli
 eventi di installazione, riattivazione, disattivazione e disinstallazione, oltre
 all'intero ciclo degli abbonamenti e dei pagamenti unici: accettazione,
 attivazione, disdetta, rifiuto, scadenza, sospensione e riattivazione. Gli eventi
-locali completano la copertura con avvio, scadenza e conversione della prova
-gratuita. Il passaggio tra piani usa il precedente stato billing riconciliato per
-produrre una notifica esplicita `Da`/`A`.
+locali completano la copertura con avvio, scadenza e conversione della prova,
+completamento dell'onboarding e attivazione/disattivazione della Validation. Il
+passaggio tra piani usa il precedente stato billing riconciliato per produrre una
+notifica esplicita `Da`/`A`.
 
 L'outbox viene consegnato tramite la Telegram Bot API. Development non configura
 i secret e non invia notifiche. Il destinatario è la sola chat privata
-identificata dal secret `TELEGRAM_CHAT_ID`; ogni messaggio riporta il dominio
-tecnico `.myshopify.com`, il piano e l'istante dell'evento, ma non nome del
-merchant, email, Codice Fiscale, PEC, shop ID o GID Shopify.
+identificata dal secret `TELEGRAM_CHAT_ID`; ogni messaggio riporta nome pubblico e
+dominio tecnico `.myshopify.com` dello store, piano, stato operativo e istante
+dell'evento. Le transizioni billing includono importo, cadenza e prossimo addebito
+quando Shopify li espone. Il contenuto viene inviato con `sendRichMessage` in
+tabelle native compatte e offre pulsanti
+per aprire o copiare l'URL dello store. Il rilevamento automatico delle entità è
+disattivato per evitare anteprime e `protect_content` non viene impostato, quindi
+copia, salvataggio e inoltro restano consentiti. I valori dinamici sono campi di
+testo strutturati e non markup interpretabile. La notifica non include nome
+dell'owner, email, Codice Fiscale, PEC, shop ID o GID Shopify.
 
-La configurazione distribuita resta disattivata. Per attivarla:
+La configurazione distribuita è attiva soltanto in Production; Development non
+configura i secret e non invia. Per configurare un nuovo ambiente o ruotare le
+credenziali:
 
 1. ottenere l’autorizzazione Production e identificare account Cloudflare,
    app e organizzazione Shopify Partner;
@@ -188,7 +198,9 @@ La configurazione distribuita resta disattivata. Per attivarla:
    completi, poi distribuire con il workflow Production autorizzato;
 5. verificare che fixture controllate per lifecycle, prova e billing producano
    una sola riga `sent` per evento, che un secondo poll non le duplichi e che i
-   messaggi contengano dominio `.myshopify.com` e piano senza shop ID o GID;
+   messaggi contengano nome pubblico, dominio `.myshopify.com`, stato e piano senza
+   shop ID o GID, che il nome resti testo letterale e che i pulsanti aprano e
+   copino l'URL atteso senza bloccare l'inoltro del messaggio;
 6. in rollback, riportare il flag a `false` e ridistribuire: le righe già
    acquisite restano in D1 e non vengono consegnate finché il flag è spento.
 
