@@ -149,7 +149,10 @@ rilettura finale di PR, check, deploy, release e stato Git non sono completi.
   automatico di `develop` al merge commit Production già verificato: lo esegue
   una GitHub App dedicata, ammessa dal ruleset esclusivamente dopo deploy e
   readback verdi, solo se il secondo parent è l'HEAD corrente di `develop` e i
-  tree sono identici.
+  tree sono identici. Se quel fast-forward fallisce e `develop` avanza prima del
+  retry, la stessa App può aggiungere in modo manuale un merge di sola ascendenza
+  con tree `develop` invariato e senza force, soltanto dopo aver verificato la
+  ricevuta Production, il parent promosso e la discendenza lineare.
 - La ricevuta di deploy è l'unico dato che nasce dopo il merge e non apre PR:
   il workflow la conserva come artifact JSON legato a commit e tree; quella
   Production è anche attestata. Le PR di chiusura collegano queste prove senza

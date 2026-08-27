@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.0.4 — 27 agosto 2026
+
+- la riconciliazione lega il token allo slug restituito dalla GitHub App senza
+  invocare endpoint che richiedono un JWT App;
+- un preflight separato usa il token effimero con accesso Administration per
+  verificare che la GitHub App dedicata sia l'unico bypass del ruleset prima
+  della scrittura non forzata di `develop`;
+- le nuove notifiche Telegram dell'owner possono essere copiate e inoltrate,
+  mantenendo invariata la minimizzazione dei dati contenuti.
+
 ## 1.0.3 — 27 agosto 2026
 
 - la CI seleziona corsie proporzionate al rischio mantenendo stabili i required

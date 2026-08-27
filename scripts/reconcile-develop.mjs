@@ -18,15 +18,34 @@ export function verifyReconciliation({
   }
 }
 
-export function hasReconciliationBypass(ruleset, appId) {
-  const actors = ruleset.bypass_actors;
-  return (
-    Array.isArray(actors) &&
-    actors.length === 1 &&
-    actors[0].actor_type === "Integration" &&
-    actors[0].actor_id === appId &&
-    actors[0].bypass_mode === "always"
-  );
+export function verifyRecoveryReconciliation({
+  main,
+  develop,
+  parents,
+  mainTree,
+  promotedDevelop,
+  promotedDevelopTree,
+  comparison,
+  expectedMain,
+}) {
+  if (
+    main !== expectedMain ||
+    parents.length !== 2 ||
+    parents[1] !== promotedDevelop ||
+    mainTree !== promotedDevelopTree ||
+    develop === promotedDevelop ||
+    comparison?.status !== "ahead" ||
+    comparison.ahead_by < 1 ||
+    comparison.merge_base_commit?.sha !== promotedDevelop
+  ) {
+    throw new Error("Il recupero non può riallineare in sicurezza l'ascendenza di develop.");
+  }
+}
+
+export function verifyReconciliationApp({ actualSlug, expectedSlug }) {
+  if (!expectedSlug || actualSlug !== expectedSlug) {
+    throw new Error("Il token non appartiene alla GitHub App di riallineamento attesa.");
+  }
 }
 
 export function expectedMainSha({ eventName, sourceDeploySha, mainRefSha }) {
@@ -78,6 +97,10 @@ async function main() {
   const eventName = process.env.GITHUB_EVENT_NAME;
   const githubToken = process.env.GITHUB_TOKEN;
   const reconciliationToken = process.env.RECONCILIATION_TOKEN;
+  verifyReconciliationApp({
+    actualSlug: process.env.RECONCILIATION_APP_SLUG,
+    expectedSlug: process.env.EXPECTED_RECONCILIATION_APP_SLUG,
+  });
   if (!githubToken || !reconciliationToken) {
     throw new Error("Mancano i token per il riallineamento.");
   }
@@ -118,20 +141,10 @@ async function main() {
     artifacts: artifactResponse.artifacts,
     expectedMain,
   });
-  const [installation, rulesets, mainRef, developRef] = await Promise.all([
-    request("/installation", reconciliationToken),
-    request(`/repos/${repository}/rulesets`, reconciliationToken),
+  const [mainRef, developRef] = await Promise.all([
     request(`/repos/${repository}/git/ref/heads/main`, reconciliationToken),
     request(`/repos/${repository}/git/ref/heads/develop`, reconciliationToken),
   ]);
-  const developRuleset = rulesets.find(({ name }) => name === "develop governance");
-  const ruleset = await request(
-    `/repos/${repository}/rulesets/${developRuleset?.id}`,
-    reconciliationToken,
-  );
-  if (!hasReconciliationBypass(ruleset, installation.app_id)) {
-    throw new Error("La GitHub App di riallineamento non è nella bypass list del ruleset develop.");
-  }
   const main = await request(
     `/repos/${repository}/git/commits/${mainRef.object.sha}`,
     reconciliationToken,
@@ -140,23 +153,58 @@ async function main() {
     `/repos/${repository}/git/commits/${developRef.object.sha}`,
     reconciliationToken,
   );
-  verifyReconciliation({
-    main: mainRef.object.sha,
-    develop: developRef.object.sha,
-    parents: main.parents.map(({ sha }) => sha),
-    mainTree: main.tree.sha,
-    developTree: develop.tree.sha,
-    expectedMain,
-  });
+  let targetSha = mainRef.object.sha;
+  try {
+    verifyReconciliation({
+      main: mainRef.object.sha,
+      develop: developRef.object.sha,
+      parents: main.parents.map(({ sha }) => sha),
+      mainTree: main.tree.sha,
+      developTree: develop.tree.sha,
+      expectedMain,
+    });
+  } catch (error) {
+    if (eventName !== "workflow_dispatch") throw error;
+    const promotedDevelopSha = main.parents[1]?.sha;
+    if (!/^[0-9a-f]{40}$/.test(promotedDevelopSha ?? "")) {
+      throw new Error("Il merge Production non espone il parent develop promosso.");
+    }
+    const [promotedDevelop, comparison] = await Promise.all([
+      request(`/repos/${repository}/git/commits/${promotedDevelopSha}`, reconciliationToken),
+      request(
+        `/repos/${repository}/compare/${promotedDevelopSha}...${developRef.object.sha}`,
+        reconciliationToken,
+      ),
+    ]);
+    verifyRecoveryReconciliation({
+      main: mainRef.object.sha,
+      develop: developRef.object.sha,
+      parents: main.parents.map(({ sha }) => sha),
+      mainTree: main.tree.sha,
+      promotedDevelop: promotedDevelopSha,
+      promotedDevelopTree: promotedDevelop.tree.sha,
+      comparison,
+      expectedMain,
+    });
+    const recoveryCommit = await request(`/repos/${repository}/git/commits`, reconciliationToken, {
+      method: "POST",
+      body: JSON.stringify({
+        message: "chore: recover develop ancestry after Production reconciliation",
+        tree: develop.tree.sha,
+        parents: [developRef.object.sha, mainRef.object.sha],
+      }),
+    });
+    targetSha = recoveryCommit.sha;
+  }
   await request(`/repos/${repository}/git/refs/heads/develop`, reconciliationToken, {
     method: "PATCH",
-    body: JSON.stringify({ sha: mainRef.object.sha, force: false }),
+    body: JSON.stringify({ sha: targetSha, force: false }),
   });
   const readback = await request(`/repos/${repository}/git/ref/heads/develop`, reconciliationToken);
-  if (readback.object.sha !== mainRef.object.sha) {
+  if (readback.object.sha !== targetSha) {
     throw new Error("Il readback non conferma il riallineamento di develop.");
   }
-  console.log(`develop riallineato in fast-forward a ${mainRef.object.sha}.`);
+  console.log(`develop riallineato in fast-forward a ${targetSha}.`);
 }
 
 const isDirectExecution =

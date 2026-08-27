@@ -251,6 +251,7 @@ test("il workflow usa codice trusted e non richiede commenti al primo giro", asy
   assert.match(workflow, /statuses: write/);
   assert.match(workflow, /checks: read/);
   assert.match(workflow, /pull-requests: write/);
+  assert.match(workflow, /contents: write/);
   assert.doesNotMatch(workflow, /issues: write/);
   assert.match(workflow, /node --test scripts\/codex-review-gate\.test\.mjs/);
   assert.match(workflow, /ref:\s*\$\{\{ github\.event\.repository\.default_branch \}\}/);
