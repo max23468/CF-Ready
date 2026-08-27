@@ -7,6 +7,7 @@ import {
   classifyCodexReview,
   codexReviewLane,
   findingPriority,
+  isCodexBot,
   isAutomaticFirstReview,
   isPromotion,
   latestCodexInvocation,
@@ -17,6 +18,7 @@ const headSha = "0123456789abcdef0123456789abcdef01234567";
 const oldSha = "abcdef0123456789abcdef0123456789abcdef01";
 const requestedAt = "2026-08-09T12:00:00Z";
 const bot = { login: "chatgpt-codex-connector[bot]" };
+const graphqlBot = { login: "chatgpt-codex-connector" };
 const classify = (overrides = {}) =>
   classifyCodexReview({
     headSha,
@@ -28,6 +30,12 @@ const classify = (overrides = {}) =>
 test("legge la priorità solo dall'intestazione del finding", () => {
   assert.equal(findingPriority("**P2** Advisory che cita P0 e P1"), "P2");
   assert.equal(findingPriority("testo che cita P1"), undefined);
+});
+
+test("riconosce l'identità Codex restituita da REST e GraphQL", () => {
+  assert.equal(isCodexBot(bot.login), true);
+  assert.equal(isCodexBot(graphqlBot.login), true);
+  assert.equal(isCodexBot("utente"), false);
 });
 
 test("blocca soltanto P0/P1 dell'HEAD corrente", () => {
@@ -86,13 +94,13 @@ test("P2/P3 sono advisory e completano il gate dopo l'assestamento", () => {
 });
 
 test("seleziona per la risoluzione automatica solo thread P2/P3 Codex dell'HEAD", () => {
-  const thread = (priority, commit = headSha, isResolved = false) => ({
+  const thread = (priority, commit = headSha, isResolved = false, author = graphqlBot) => ({
     id: priority,
     isResolved,
     comments: {
       nodes: [
         {
-          author: bot,
+          author,
           originalCommit: { oid: commit },
           body: `**${priority}** Finding`,
           url: `https://example.test/${priority}`,
@@ -102,7 +110,13 @@ test("seleziona per la risoluzione automatica solo thread P2/P3 Codex dell'HEAD"
   });
   assert.deepEqual(
     advisoryReviewThreads(
-      [thread("P2"), thread("P3"), thread("P1"), thread("P2", oldSha), thread("P3", headSha, true)],
+      [
+        thread("P2"),
+        thread("P3", headSha, false, bot),
+        thread("P1"),
+        thread("P2", oldSha),
+        thread("P3", headSha, true),
+      ],
       headSha,
     ).map(({ id }) => id),
     ["P2", "P3"],

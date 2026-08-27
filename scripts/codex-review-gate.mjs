@@ -4,13 +4,14 @@ import { pathToFileURL } from "node:url";
 import { classifyCiLane } from "./ci-lane.mjs";
 import { verifyPromotion } from "./github-gates.mjs";
 
-const CODEX_BOT = "chatgpt-codex-connector[bot]";
+const CODEX_BOT = "chatgpt-codex-connector";
 const TRUSTED_ASSOCIATIONS = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
 export const CODEX_REVIEW_POLLING = { attempts: 100, intervalMs: 180_000 };
 
 const timestamp = (value) => new Date(value ?? 0).getTime();
 const signalTimestamp = (signal) => timestamp(signal.submitted_at ?? signal.created_at);
 const matchesHead = (candidate, headSha) => Boolean(candidate && headSha.startsWith(candidate));
+export const isCodexBot = (login) => login?.replace(/\[bot\]$/, "") === CODEX_BOT;
 
 export const reviewedCommit = (body = "") =>
   body.match(/\*\*Reviewed commit:\*\*\s*`([0-9a-f]{10,40})`/i)?.[1];
@@ -39,7 +40,7 @@ export function advisoryReviewThreads(threads, headSha) {
   return threads.filter((thread) => {
     if (thread.isResolved) return false;
     const exactCodexComments = thread.comments.nodes.filter(
-      (comment) => comment.author?.login === CODEX_BOT && comment.originalCommit?.oid === headSha,
+      (comment) => isCodexBot(comment.author?.login) && comment.originalCommit?.oid === headSha,
     );
     return (
       exactCodexComments.some((comment) => ["P2", "P3"].includes(findingPriority(comment.body))) &&
@@ -52,7 +53,7 @@ export const latestCodexInvocation = (comments, headAvailableAt) =>
   comments
     .filter(
       (comment) =>
-        comment.user?.login !== CODEX_BOT &&
+        !isCodexBot(comment.user?.login) &&
         TRUSTED_ASSOCIATIONS.has(comment.author_association) &&
         /^\s*@codex\s+review\s*$/i.test(comment.body) &&
         timestamp(comment.created_at) >= timestamp(headAvailableAt),
@@ -72,15 +73,15 @@ export function classifyCodexReview({
 }) {
   const afterRequest = (signal) => signalTimestamp(signal) >= timestamp(requestedAt);
   const exactInline = reviewComments.filter(
-    (comment) => comment.user?.login === CODEX_BOT && comment.original_commit_id === headSha,
+    (comment) => isCodexBot(comment.user?.login) && comment.original_commit_id === headSha,
   );
   const exactTopLevel = comments.filter(
     (comment) =>
-      comment.user?.login === CODEX_BOT && matchesHead(reviewedCommit(comment.body), headSha),
+      isCodexBot(comment.user?.login) && matchesHead(reviewedCommit(comment.body), headSha),
   );
   const exactReviews = reviews.filter(
     (review) =>
-      review.user?.login === CODEX_BOT &&
+      isCodexBot(review.user?.login) &&
       (review.commit_id === headSha || matchesHead(reviewedCommit(review.body), headSha)) &&
       afterRequest(review),
   );
@@ -110,7 +111,7 @@ export function classifyCodexReview({
   const reactions = automatic ? prReactions : invocationReactions;
   for (const reaction of reactions) {
     if (
-      reaction.user?.login === CODEX_BOT &&
+      isCodexBot(reaction.user?.login) &&
       reaction.content === "+1" &&
       timestamp(reaction.created_at) >= timestamp(requestedAt)
     ) {
@@ -121,7 +122,7 @@ export function classifyCodexReview({
   const operationalErrorAt = comments
     .filter(
       (comment) =>
-        comment.user?.login === CODEX_BOT &&
+        isCodexBot(comment.user?.login) &&
         afterRequest(comment) &&
         /reached your Codex usage limits|could not complete|unable to review|something went wrong|unknown error/i.test(
           comment.body,
@@ -236,7 +237,7 @@ async function resolveAdvisoryThreads(repository, number, headSha) {
     thread.comments.nodes
       .filter(
         (comment) =>
-          comment.author?.login === CODEX_BOT &&
+          isCodexBot(comment.author?.login) &&
           comment.originalCommit?.oid === headSha &&
           ["P2", "P3"].includes(findingPriority(comment.body)),
       )
