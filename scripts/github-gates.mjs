@@ -46,6 +46,11 @@ export function verifyPromotionHistory(commits) {
   }
 }
 
+export function verifyPromotionBase({ baseSha, baseTree, mergeBaseSha, mergeBaseTree }) {
+  if (mergeBaseSha === baseSha || baseTree === mergeBaseTree) return;
+  throw new Error("main contiene modifiche non presenti nell'HEAD di develop.");
+}
+
 async function request(path) {
   const response = await fetch(`https://api.github.com${path}`, {
     headers: {
@@ -123,7 +128,14 @@ export async function verifyPromotion({ event, repository }) {
   const mergeBase = execFileSync("git", ["merge-base", baseSha, headSha], {
     encoding: "utf8",
   }).trim();
-  if (mergeBase !== baseSha) throw new Error("main non è antenato dell'HEAD di develop.");
+  verifyPromotionBase({
+    baseSha,
+    mergeBaseSha: mergeBase,
+    baseTree: execFileSync("git", ["rev-parse", `${baseSha}^{tree}`], { encoding: "utf8" }).trim(),
+    mergeBaseTree: execFileSync("git", ["rev-parse", `${mergeBase}^{tree}`], {
+      encoding: "utf8",
+    }).trim(),
+  });
   await waitForChecks(repository, headSha, ["verify", "e2e"]);
   verifyPromotionHistory(await promotionCommitEvidence(repository, baseSha, headSha));
   return { baseSha, headSha };

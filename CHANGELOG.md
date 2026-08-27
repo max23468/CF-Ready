@@ -13,6 +13,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   richiede invece autenticazione come GitHub App;
 - una regressione copre valori mancanti, non numerici, non positivi e fuori
   dall'intervallo sicuro prima del fast-forward protetto di `develop`;
+- dopo un riallineamento fallito, una promozione può ricongiungere i rami solo
+  se `main` non contiene modifiche assenti dal punto di divergenza;
 - le nuove notifiche Telegram dell'owner possono essere copiate e inoltrate,
   mantenendo invariata la minimizzazione dei dati contenuti.
 

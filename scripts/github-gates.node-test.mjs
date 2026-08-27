@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { missingSuccessfulChecks, verifyPromotionHistory } from "./github-gates.mjs";
+import {
+  missingSuccessfulChecks,
+  verifyPromotionBase,
+  verifyPromotionHistory,
+} from "./github-gates.mjs";
 
 test("riusa soltanto la suite più recente conclusa fuori dal run corrente", () => {
   const checks = [
@@ -103,6 +107,35 @@ test("accetta commit da PR develop revisionata e merge senza nuovo tree", () => 
         pullRequests: [],
       },
     ]),
+  );
+});
+
+test("recupera una riconciliazione fallita solo se main non aggiunge contenuto", () => {
+  assert.doesNotThrow(() =>
+    verifyPromotionBase({
+      baseSha: "a".repeat(40),
+      mergeBaseSha: "b".repeat(40),
+      baseTree: "tree-production",
+      mergeBaseTree: "tree-production",
+    }),
+  );
+  assert.doesNotThrow(() =>
+    verifyPromotionBase({
+      baseSha: "a".repeat(40),
+      mergeBaseSha: "a".repeat(40),
+      baseTree: "tree-current",
+      mergeBaseTree: "tree-base",
+    }),
+  );
+  assert.throws(
+    () =>
+      verifyPromotionBase({
+        baseSha: "a".repeat(40),
+        mergeBaseSha: "b".repeat(40),
+        baseTree: "tree-production",
+        mergeBaseTree: "tree-base",
+      }),
+    /modifiche non presenti/,
   );
 });
 
