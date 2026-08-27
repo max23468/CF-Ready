@@ -46,4 +46,12 @@ test("App Bridge e Polaris vengono caricati una sola volta nel head", () => {
   ).toHaveLength(0);
   expect(polaris).toHaveLength(1);
   expect(document.filter((element) => element.type === "script")).toHaveLength(2);
+  expect(
+    headElements.filter(
+      (element) =>
+        element.type === "meta" &&
+        (element.props as { name?: string; content?: string }).name === "shopify-debug" &&
+        (element.props as { content?: string }).content === "web-vitals",
+    ),
+  ).toHaveLength(1);
 });

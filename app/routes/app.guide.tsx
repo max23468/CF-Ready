@@ -1,13 +1,13 @@
 import { useState } from "react";
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
+import { authenticateAdmin } from "../admin-auth.server";
 import { APP_VERSION } from "../env.server";
 import { resolveLocale, supportMailto, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
-import { authenticate } from "../shopify.server";
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+export const loader = async ({ request, context }: LoaderFunctionArgs) => {
+  const { session } = await authenticateAdmin(request, context);
   // La Guida non rilegge Shopify: allega i soli dati già disponibili qui (§22).
   return { locale: resolveLocale(request), shopDomain: session.shop, version: APP_VERSION };
 };

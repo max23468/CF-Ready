@@ -16,7 +16,7 @@ import type { Entitlement } from "../config";
 import { recordEvent } from "../events.server";
 import { configWithEntitlement, entitlementDiffers } from "./domain";
 import { withValidationLock } from "./lock.server";
-import { persistValidationState } from "./repository.server";
+import { persistValidationState, readValidationStateRevision } from "./repository.server";
 import {
   UPDATE_VALIDATION,
   duplicateValidationError,
@@ -33,9 +33,18 @@ export async function reconcile(
   admin: Admin,
   db: D1Database,
   shopDomain: string,
-  options?: { prefetchBilling?: boolean; reportTiming?: ReconcileTiming },
+  options?: {
+    prefetchBilling?: boolean;
+    reportTiming?: ReconcileTiming;
+    waitUntil?: (promise: Promise<unknown>) => void;
+  },
 ) {
   const reportTiming = options?.reportTiming;
+  // Il fence nasce prima della lettura Shopify: una scrittura successiva rende innocuo
+  // l'eventuale completamento tardivo della persistenza affidata a waitUntil.
+  const expectedRevision = options?.waitUntil
+    ? await readValidationStateRevision(db, shopDomain)
+    : undefined;
   const readBillingTimed = async () => {
     const startedAt = performance.now();
     try {
@@ -246,14 +255,30 @@ export async function reconcile(
     validation?.enabled ?? (matches.length > 1 && matches.some(({ enabled }) => enabled));
   retryable ||= duplicateValidationError(matches) === "duplicate_validations_active";
   const persistenceStartedAt = performance.now();
-  await persistValidationState(db, shopDomain, {
+  const persistence = persistValidationState(db, shopDomain, {
     countryCode,
     eligible,
     validation,
     validationEnabled,
     errorCode,
+    expectedRevision,
   });
-  reportTiming?.("d1_validation_state", performance.now() - persistenceStartedAt);
+  if (options?.waitUntil) {
+    options.waitUntil(
+      persistence.catch(() =>
+        recordEvent(db, {
+          shopDomain,
+          name: "validation_state_persist_failed",
+          class: "error",
+          metadata: { error_code: "validation_state_persist_failed" },
+        }),
+      ),
+    );
+    reportTiming?.("d1_validation_schedule", performance.now() - persistenceStartedAt);
+  } else {
+    await persistence;
+    reportTiming?.("d1_validation_state", performance.now() - persistenceStartedAt);
+  }
 
   return {
     shopName: shop.name,
