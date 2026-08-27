@@ -1,13 +1,17 @@
 import { readFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
+import { classifyCiLane } from "./ci-lane.mjs";
+import { verifyPromotion } from "./github-gates.mjs";
 
-const CODEX_BOT = "chatgpt-codex-connector[bot]";
+const CODEX_BOT = "chatgpt-codex-connector";
 const TRUSTED_ASSOCIATIONS = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
 export const CODEX_REVIEW_POLLING = { attempts: 100, intervalMs: 180_000 };
 
 const timestamp = (value) => new Date(value ?? 0).getTime();
 const signalTimestamp = (signal) => timestamp(signal.submitted_at ?? signal.created_at);
 const matchesHead = (candidate, headSha) => Boolean(candidate && headSha.startsWith(candidate));
+export const isCodexBot = (login) => login?.replace(/\[bot\]$/, "") === CODEX_BOT;
 
 export const reviewedCommit = (body = "") =>
   body.match(/\*\*Reviewed commit:\*\*\s*`([0-9a-f]{10,40})`/i)?.[1];
@@ -18,11 +22,38 @@ export const findingPriority = (body = "") =>
 export const isAutomaticFirstReview = (eventName, action) =>
   eventName === "pull_request_target" && ["opened", "ready_for_review"].includes(action);
 
+export const isPromotion = (pullRequest, repository) =>
+  pullRequest.base?.ref === "main" &&
+  pullRequest.head?.ref === "develop" &&
+  pullRequest.head?.repo?.full_name === repository;
+
+export const codexReviewLane = (files, pullRequest) =>
+  classifyCiLane(
+    files.flatMap(({ filename, previous_filename: previousFilename }) => [
+      filename,
+      previousFilename,
+    ]),
+    { base: pullRequest.base?.ref, head: pullRequest.head?.ref },
+  ).lane;
+
+export function advisoryReviewThreads(threads, headSha) {
+  return threads.filter((thread) => {
+    if (thread.isResolved) return false;
+    const exactCodexComments = thread.comments.nodes.filter(
+      (comment) => isCodexBot(comment.author?.login) && comment.originalCommit?.oid === headSha,
+    );
+    return (
+      exactCodexComments.some((comment) => ["P2", "P3"].includes(findingPriority(comment.body))) &&
+      !exactCodexComments.some((comment) => ["P0", "P1"].includes(findingPriority(comment.body)))
+    );
+  });
+}
+
 export const latestCodexInvocation = (comments, headAvailableAt) =>
   comments
     .filter(
       (comment) =>
-        comment.user?.login !== CODEX_BOT &&
+        !isCodexBot(comment.user?.login) &&
         TRUSTED_ASSOCIATIONS.has(comment.author_association) &&
         /^\s*@codex\s+review\s*$/i.test(comment.body) &&
         timestamp(comment.created_at) >= timestamp(headAvailableAt),
@@ -42,15 +73,15 @@ export function classifyCodexReview({
 }) {
   const afterRequest = (signal) => signalTimestamp(signal) >= timestamp(requestedAt);
   const exactInline = reviewComments.filter(
-    (comment) => comment.user?.login === CODEX_BOT && comment.original_commit_id === headSha,
+    (comment) => isCodexBot(comment.user?.login) && comment.original_commit_id === headSha,
   );
   const exactTopLevel = comments.filter(
     (comment) =>
-      comment.user?.login === CODEX_BOT && matchesHead(reviewedCommit(comment.body), headSha),
+      isCodexBot(comment.user?.login) && matchesHead(reviewedCommit(comment.body), headSha),
   );
   const exactReviews = reviews.filter(
     (review) =>
-      review.user?.login === CODEX_BOT &&
+      isCodexBot(review.user?.login) &&
       (review.commit_id === headSha || matchesHead(reviewedCommit(review.body), headSha)) &&
       afterRequest(review),
   );
@@ -80,7 +111,7 @@ export function classifyCodexReview({
   const reactions = automatic ? prReactions : invocationReactions;
   for (const reaction of reactions) {
     if (
-      reaction.user?.login === CODEX_BOT &&
+      isCodexBot(reaction.user?.login) &&
       reaction.content === "+1" &&
       timestamp(reaction.created_at) >= timestamp(requestedAt)
     ) {
@@ -91,7 +122,7 @@ export function classifyCodexReview({
   const operationalErrorAt = comments
     .filter(
       (comment) =>
-        comment.user?.login === CODEX_BOT &&
+        isCodexBot(comment.user?.login) &&
         afterRequest(comment) &&
         /reached your Codex usage limits|could not complete|unable to review|something went wrong|unknown error/i.test(
           comment.body,
@@ -139,6 +170,99 @@ async function request(path, options = {}) {
   return response.json();
 }
 
+async function graphql(query, variables) {
+  const response = await fetch("https://api.github.com/graphql", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+  if (!response.ok) throw new Error(`POST /graphql: ${response.status}`);
+  const result = await response.json();
+  if (result.errors?.length)
+    throw new Error(result.errors.map(({ message }) => message).join("; "));
+  return result.data;
+}
+
+async function resolveAdvisoryThreads(repository, number, headSha) {
+  const [owner, name] = repository.split("/");
+  const data = await graphql(
+    `
+      query AdvisoryThreads($owner: String!, $name: String!, $number: Int!) {
+        repository(owner: $owner, name: $name) {
+          pullRequest(number: $number) {
+            reviewThreads(first: 100) {
+              nodes {
+                id
+                isResolved
+                comments(first: 100) {
+                  nodes {
+                    body
+                    url
+                    author {
+                      login
+                    }
+                    originalCommit {
+                      oid
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `,
+    { owner, name, number: Number(number) },
+  );
+  const advisory = advisoryReviewThreads(data.repository.pullRequest.reviewThreads.nodes, headSha);
+  for (const thread of advisory) {
+    await graphql(
+      `
+        mutation ResolveAdvisory($threadId: ID!) {
+          resolveReviewThread(input: { threadId: $threadId }) {
+            thread {
+              id
+              isResolved
+            }
+          }
+        }
+      `,
+      { threadId: thread.id },
+    );
+  }
+  const report = advisory.flatMap((thread) =>
+    thread.comments.nodes
+      .filter(
+        (comment) =>
+          isCodexBot(comment.author?.login) &&
+          comment.originalCommit?.oid === headSha &&
+          ["P2", "P3"].includes(findingPriority(comment.body)),
+      )
+      .map((comment) => ({
+        priority: findingPriority(comment.body),
+        url: comment.url,
+        body: comment.body,
+      })),
+  );
+  if (process.env.ADVISORY_REPORT_PATH) {
+    await writeFile(
+      process.env.ADVISORY_REPORT_PATH,
+      `${JSON.stringify({ pullRequest: Number(number), headSha, findings: report }, null, 2)}\n`,
+    );
+  }
+  if (process.env.GITHUB_STEP_SUMMARY && report.length > 0) {
+    await writeFile(
+      process.env.GITHUB_STEP_SUMMARY,
+      `\n### Finding Codex advisory registrati\n\n${report.map(({ priority, url }) => `- ${priority}: ${url}`).join("\n")}\n`,
+      { flag: "a" },
+    );
+  }
+  return report;
+}
+
 async function all(path) {
   const items = [];
   for (let page = 1; ; page += 1) {
@@ -175,6 +299,23 @@ async function main() {
       ? event.pull_request.updated_at
       : headCommit.commit.committer.date;
 
+  if (isPromotion(pullRequest, repository)) {
+    await verifyPromotion({ event: { pull_request: pullRequest }, repository });
+    await setStatus(repository, headSha, "success", "Codex: review del contenuto già verificata");
+    return;
+  }
+
+  const files = await all(`/repos/${repository}/pulls/${number}/files`);
+  if (codexReviewLane(files, pullRequest) === "docs") {
+    await setStatus(
+      repository,
+      headSha,
+      "success",
+      "Codex: review non applicabile alla documentazione di contenuto",
+    );
+    return;
+  }
+
   await setStatus(repository, headSha, "pending", "In attesa della review Codex");
   if (pullRequest.draft) return;
 
@@ -208,6 +349,7 @@ async function main() {
       reviews,
     });
     if (result.state !== "pending") {
+      if (result.state === "success") await resolveAdvisoryThreads(repository, number, headSha);
       await setStatus(repository, headSha, result.state, result.description);
       return;
     }

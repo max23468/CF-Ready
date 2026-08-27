@@ -233,8 +233,10 @@ la superficie non li possiede:
 - smoke e readback osservati;
 - target di rollback verificato.
 
-La ricevuta dell'ultimo snapshot della milestone entra nella PR di chiusura;
-non apre una PR autonoma.
+Il workflow genera anche una ricevuta JSON con commit, tree e identificatori di
+readback. L'artifact resta legato al run per 90 giorni; in Production viene
+attestato con la provenienza GitHub Actions. La chiusura collega run, artifact o
+GitHub Release e non apre una PR per copiare la ricevuta nel repository.
 
 ## Deploy Production
 
@@ -248,10 +250,9 @@ terzo passaggio sullo stesso intento, dato che il lancio è già manuale.
 Cloudflare appiattisce la configurazione nel bundle, quindi
 `CLOUDFLARE_ENV=production npm run build` è ciò che decide dove si va a finire;
 `wrangler deploy --env production` dopo una build ordinaria pubblicherebbe le
-variabili Development sotto il nome sbagliato senza dirlo. Per questo il
-workflow ricostruisce dopo `npm run check` — che termina con una build
-Development — e il preflight legge `build/server/wrangler.json` prima di
-lasciar proseguire.
+variabili Development sotto il nome sbagliato senza dirlo. Il workflow riusa i
+gate verdi dell'HEAD, costruisce una sola volta con `CLOUDFLARE_ENV=production`
+e il preflight legge `build/server/wrangler.json` prima di lasciar proseguire.
 
 I comandi che leggono la configurazione sorgente, migrazioni e secret, usano
 `--config wrangler.json --env production`; il deploy del Worker non passa

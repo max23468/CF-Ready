@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -391,6 +391,8 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
     "playwright test --config tests/playwright.config.ts",
   );
   assert.match(ci, /playwright install --with-deps chromium webkit/);
+  assert.match(ci, /actions\/cache@[0-9a-f]{40}/);
+  assert.match(ci, /key: playwright-\$\{\{ runner\.os \}\}/);
   assert.match(ci, /npm run test:e2e/);
   assert.match(readme, /playwright install chromium webkit/);
   assert.match(playwright, /fileURLToPath\(new URL\("\.\."/);
@@ -400,6 +402,110 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
   assert.match(playwright, /wrangler dev --config build\/server\/wrangler\.json/);
   assert.match(playwright, /npm run site:dev/);
   assert.doesNotMatch(playwright, /cf-ready-dev|cf-ready\.pages\.dev/);
+});
+
+test("la CI applica corsie proporzionate con required check stabili", () => {
+  const ci = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
+  const doctor = readFileSync(
+    new URL("../.github/workflows/react-doctor.yml", import.meta.url),
+    "utf8",
+  );
+  const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  assert.match(ci, /node scripts\/ci-lane\.mjs/);
+  assert.match(ci, /checks: read/);
+  assert.match(ci, /statuses: read/);
+  assert.match(ci, /needs\.lane\.outputs\.lane == 'docs'[\s\S]*npm run check:docs/);
+  assert.match(ci, /needs\.lane\.outputs\.lane == 'standard'[\s\S]*npm run check:standard/);
+  assert.match(ci, /needs\.lane\.outputs\.lane == 'full'[\s\S]*npm run check/);
+  assert.match(ci, /lane == 'promotion'[\s\S]*node scripts\/github-gates\.mjs/);
+  assert.match(doctor, /steps\.lane\.outputs\.react_doctor == 'true'/);
+  assert.match(packageJson.scripts["check:docs"], /docs:check/);
+  assert.match(packageJson.scripts["check:standard"], /typecheck/);
+});
+
+test("gli entrypoint operativi usano un rilevamento di esecuzione portabile", () => {
+  const scripts = readdirSync(new URL(".", import.meta.url)).filter((file) =>
+    file.endsWith(".mjs"),
+  );
+  for (const script of scripts) {
+    const source = readFileSync(new URL(script, import.meta.url), "utf8");
+    assert.doesNotMatch(source, /import\.meta\.main/, script);
+  }
+  for (const script of ["ci-lane.mjs", "reconcile-develop.mjs"]) {
+    const source = readFileSync(new URL(script, import.meta.url), "utf8");
+    assert.match(source, /pathToFileURL\(process\.argv\[1\]\)\.href/, script);
+  }
+});
+
+test("i deploy riusano i gate e conservano ricevute fuori dalle PR", () => {
+  const development = readFileSync(
+    new URL("../.github/workflows/deploy-development.yml", import.meta.url),
+    "utf8",
+  );
+  const production = readFileSync(
+    new URL("../.github/workflows/deploy-production.yml", import.meta.url),
+    "utf8",
+  );
+  for (const workflow of [development, production]) {
+    assert.match(workflow, /REQUIRED_CHECKS:/);
+    assert.match(workflow, /node scripts\/github-gates\.mjs/);
+    assert.doesNotMatch(workflow, /run: npm run check\s/);
+    assert.match(workflow, /node scripts\/deploy-receipt\.mjs/);
+    assert.match(workflow, /deploy-receipt-[a-z]+-\$\{\{ github\.sha \}\}/);
+  }
+  assert.match(development, /developmentVersion/);
+  assert.match(development, /git rev-parse 'HEAD\^\{tree\}'/);
+  const developmentPreflight = development.indexOf("name: Preflight Development");
+  const developmentBuild = development.indexOf("name: Costruisci Worker Development");
+  const developmentDeploy = development.indexOf("name: Deploy Worker Development");
+  assert.ok(
+    developmentPreflight >= 0 &&
+      developmentBuild > developmentPreflight &&
+      developmentDeploy > developmentBuild,
+  );
+  assert.match(
+    development.slice(developmentBuild, developmentDeploy),
+    /if: env\.DEPLOY_READBACK_ONLY != 'true'[\s\S]*run: npm run build/,
+  );
+  assert.match(production, /actions\/attest@[0-9a-f]{40}/);
+  assert.match(production, /attestations: write/);
+  assert.match(production, /id-token: write/);
+});
+
+test("la preparazione tardiva della release resta un forward-fix verificato", () => {
+  const plan = readFileSync(
+    new URL("../docs/plans/2026-07-28-CF-Ready-Master-Plan.md", import.meta.url),
+    "utf8",
+  );
+  assert.match(plan, /autorizza Production soltanto dopo l'integrazione/);
+  assert.match(
+    plan,
+    /PR preparatoria che modifica esclusivamente manifest, lockfile, changelog,[\s\S]*regressioni mirate della relativa policy/,
+  );
+  assert.match(plan, /gate completo e il deploy\s+Development exact-HEAD/);
+  assert.match(plan, /non è una PR di ricevuta o di\s+chiusura/);
+});
+
+test("il riallineamento develop è separato dal deploy e fallisce chiuso", () => {
+  const workflow = readFileSync(
+    new URL("../.github/workflows/reconcile-develop.yml", import.meta.url),
+    "utf8",
+  );
+  const script = readFileSync(new URL("./reconcile-develop.mjs", import.meta.url), "utf8");
+  assert.match(workflow, /workflow_run:/);
+  assert.match(workflow, /workflows: \[Deploy Production\]/);
+  assert.match(workflow, /environment: Repository Governance/);
+  assert.match(workflow, /actions: read/);
+  assert.match(workflow, /SOURCE_DEPLOY_SHA: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
+  assert.match(workflow, /actions\/create-github-app-token@[0-9a-f]{40}/);
+  assert.match(workflow, /persist-credentials: false/);
+  assert.match(script, /parents\[1\] !== develop/);
+  assert.match(script, /mainTree !== developTree/);
+  assert.match(script, /bypass_actors/);
+  assert.match(script, /deploy-receipt-production-/);
+  assert.match(script, /actions\/workflows\/deploy-production\.yml\/runs/);
+  assert.match(script, /force: false/);
+  assert.match(script, /readback\.object\.sha/);
 });
 
 test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
@@ -451,6 +557,10 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
     new URL("../.github/workflows/codex-review-gate.yml", import.meta.url),
     "utf8",
   );
+  const promotionGuard = readFileSync(
+    new URL("../.github/workflows/promotion-guard.yml", import.meta.url),
+    "utf8",
+  );
   assert.match(workflow, /pull_request_target:/);
   assert.match(workflow, /types: \[opened, synchronize, reopened, ready_for_review\]/);
   assert.match(workflow, /issue_comment:/);
@@ -461,8 +571,12 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
   );
   assert.match(workflow, /github\.event\.repository\.default_branch/);
   assert.match(workflow, /issues: read/);
+  assert.match(workflow, /checks: read/);
   assert.doesNotMatch(workflow, /issues: write/);
+  assert.match(workflow, /pull-requests: write/);
   assert.match(workflow, /statuses: write/);
+  assert.match(promotionGuard, /checks: read/);
+  assert.match(promotionGuard, /statuses: read/);
   assert.match(workflow, /node --test scripts\/codex-review-gate\.test\.mjs/);
   assert.match(workflow, /node scripts\/codex-review-gate\.mjs/);
   assert.doesNotMatch(workflow, /github\.event\.pull_request\.head/);
@@ -470,6 +584,8 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
   assert.match(gate, /isAutomaticFirstReview/);
   assert.match(gate, /latestCodexInvocation/);
   assert.match(gate, /\["P0", "P1"\]/);
+  assert.match(gate, /resolveReviewThread/);
+  assert.match(gate, /ADVISORY_REPORT_PATH/);
   assert.doesNotMatch(gate, /issues\/\$\{number\}\/comments[\s\S]*method: "POST"/);
   assert.match(gate, /Didn't find any major issues/);
   assert.match(gate, /pulls\/\$\{number\}\/reviews/);
@@ -479,7 +595,7 @@ test("il gate Codex esegue soltanto codice fidato e non fallisce sui finding", (
     "utf8",
   );
   assert.match(plan, /il\s+primo giro non richiede `@codex review`/);
-  assert.match(plan, /P2\/P3 restano advisory/);
+  assert.match(plan, /P2\/P3[\s\S]*thread vengono risolti\s+automaticamente/);
   const maintenance = readFileSync(
     new URL("../.github/workflows/security-maintenance.yml", import.meta.url),
     "utf8",

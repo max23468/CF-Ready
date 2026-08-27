@@ -4,7 +4,10 @@ on:
   workflow_dispatch:
 
 permissions:
+  attestations: write
+  checks: read
   contents: read
+  id-token: write
 
 concurrency:
   group: deploy-production
@@ -59,12 +62,15 @@ jobs:
           SHOPIFY_FUNCTION_SCHEMA_CONFIG: production
         run: npm run verify:function-schema
 
-      - run: npm run check
+      - name: Riusa i gate dell'HEAD Production
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUIRED_CHECKS: verify,e2e,react-doctor
+        run: node scripts/github-gates.mjs
 
-      # `npm run check` termina con una build Development. Il Vite plugin appiattisce
-      # l'ambiente al momento della build, quindi il bundle va rifatto qui e il preflight
-      # subito dopo verifica che sia davvero quello Production.
-      - name: Ricostruisci per Production
+      # Il Vite plugin appiattisce l'ambiente al momento della build: il bundle
+      # Production nasce qui e viene poi distribuito senza ricostruzioni.
+      - name: Costruisci per Production
         env:
           CLOUDFLARE_ENV: production
         run: |
@@ -91,7 +97,12 @@ jobs:
       - name: Prepara versione
         run: |
           version="$(node -p "require('./package.json').version")"
-          echo "DEPLOY_VERSION=$version" >> "$GITHUB_ENV"
+          tree="$(git rev-parse 'HEAD^{tree}')"
+          {
+            echo "DEPLOY_VERSION=$version"
+            echo "REPOSITORY_VERSION=$version"
+            echo "GIT_TREE=$tree"
+          } >> "$GITHUB_ENV"
           # `require()` non carica un modulo ESM con top-level await: serve l'import.
           # shellcheck disable=SC2016
           billing="$(node --input-type=module -e '
@@ -106,6 +117,7 @@ jobs:
             echo "- Worker: \`$WORKER_NAME\`, URL $WORKER_URL"
             echo "- Versione repository/Shopify: \`$version\`"
             echo "- Commit: \`$GITHUB_SHA\`"
+            echo "- Tree Git: \`$tree\`"
             echo "- Addebiti: **$billing**"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -229,6 +241,28 @@ jobs:
             appendFileSync(process.env.GITHUB_STEP_SUMMARY,
               `- Shopify attivo: versione \`${active.versionTag}\` (\`${active.versionId}\`)\n`);
           ' "$RUNNER_TEMP/shopify-versions.json"
+
+      - name: Genera ricevuta immutabile
+        env:
+          DEPLOY_ENVIRONMENT: Production
+          DEPLOY_RECEIPT_PATH: ${{ runner.temp }}/deploy-receipt-production.json
+          ROLLBACK_SHOPIFY_VERSION_TAG: ${{ steps.rollback_snapshot.outputs.shopify_version_tag }}
+          ROLLBACK_WORKER_VERSION_ID: ${{ steps.rollback_snapshot.outputs.worker_version_id }}
+          SHOPIFY_RECEIPT_PATH: ${{ runner.temp }}/shopify-versions.json
+          WORKER_RECEIPT_PATH: ${{ runner.temp }}/worker-deployment.json
+        run: node scripts/deploy-receipt.mjs
+
+      - name: Attesta la ricevuta Production
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: ${{ runner.temp }}/deploy-receipt-production.json
+
+      - name: Conserva la ricevuta Production
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: deploy-receipt-production-${{ github.sha }}
+          path: ${{ runner.temp }}/deploy-receipt-production.json
+          retention-days: 90
 
   rollback:
     name: Ripristina Production se il deploy non termina

@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
 
 export function verifySecurityAudit(report) {
   if (
@@ -20,4 +21,6 @@ function main() {
   console.log("Security audit superato: nessuna vulnerabilità rilevata.");
 }
 
-if (import.meta.main) main();
+const isDirectExecution =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isDirectExecution) main();

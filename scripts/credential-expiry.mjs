@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { pathToFileURL } from "node:url";
 
 const MONTHS = [
   "gennaio",
@@ -77,4 +78,6 @@ async function main() {
   if (missing.length) process.exitCode = 1;
 }
 
-if (import.meta.main) await main();
+const isDirectExecution =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isDirectExecution) await main();

@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { readFile, readdir } from "node:fs/promises";
+import { pathToFileURL } from "node:url";
 
 import {
   verifyMigrationSafety,
@@ -176,4 +177,6 @@ function run(command, args, inherit = true) {
   return result.stdout;
 }
 
-if (import.meta.main) await main();
+const isDirectExecution =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isDirectExecution) await main();

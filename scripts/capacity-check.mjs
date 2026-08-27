@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { appendFile } from "node:fs/promises";
+import { pathToFileURL } from "node:url";
 
 const REQUESTS = 120;
 const MIN_EVENTS = 100;
@@ -205,4 +206,6 @@ async function stop(child) {
   await closed;
 }
 
-if (import.meta.main) await main();
+const isDirectExecution =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isDirectExecution) await main();
