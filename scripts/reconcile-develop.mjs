@@ -10,6 +10,13 @@ export function verifyReconciliation({ main, develop, parents, mainTree, develop
   }
 }
 
+export function hasReconciliationBypass(ruleset, appId) {
+  return ruleset.bypass_actors?.some(
+    ({ actor_id: actorId, actor_type: actorType, bypass_mode: bypassMode }) =>
+      actorType === "Integration" && actorId === appId && bypassMode === "always",
+  );
+}
+
 async function request(path, options = {}) {
   const response = await fetch(`https://api.github.com${path}`, {
     ...options,
@@ -30,20 +37,15 @@ async function main() {
     throw new Error("Manca il token della GitHub App dedicata al riallineamento.");
   }
   const repository = process.env.GITHUB_REPOSITORY;
-  const [app, rulesets, mainRef, developRef] = await Promise.all([
-    request("/app"),
+  const [installation, rulesets, mainRef, developRef] = await Promise.all([
+    request("/installation"),
     request(`/repos/${repository}/rulesets`),
     request(`/repos/${repository}/git/ref/heads/main`),
     request(`/repos/${repository}/git/ref/heads/develop`),
   ]);
   const developRuleset = rulesets.find(({ name }) => name === "develop governance");
   const ruleset = await request(`/repos/${repository}/rulesets/${developRuleset?.id}`);
-  if (
-    !ruleset.bypass_actors?.some(
-      ({ actor_id: actorId, actor_type: actorType, bypass_mode: bypassMode }) =>
-        actorType === "Integration" && actorId === app.id && bypassMode === "always",
-    )
-  ) {
+  if (!hasReconciliationBypass(ruleset, installation.app_id)) {
     throw new Error("La GitHub App di riallineamento non è nella bypass list del ruleset develop.");
   }
   const main = await request(`/repos/${repository}/git/commits/${mainRef.object.sha}`);

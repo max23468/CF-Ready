@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { classifyCiLane } from "./ci-lane.mjs";
+import { changedFiles, classifyCiLane } from "./ci-lane.mjs";
 
 test("la documentazione di contenuto usa la corsia docs", () => {
   assert.equal(classifyCiLane(["docs/listing/listing-it.md"]).lane, "docs");
@@ -19,6 +19,21 @@ test("governance, workflow e dipendenze restano full", () => {
   const dependency = classifyCiLane(["package-lock.json"]);
   assert.equal(dependency.lane, "full");
   assert.equal(dependency.dependencyReview, true);
+  assert.equal(classifyCiLane(["scripts/reconcile-develop.mjs"]).lane, "full");
+});
+
+test("il diff include anche i file eliminati", () => {
+  const base = "a".repeat(40);
+  const head = "b".repeat(40);
+  let args;
+  const files = changedFiles(base, head, {
+    execute: (_command, receivedArgs) => {
+      args = receivedArgs;
+      return ".github/workflows/obsolete.yml\nREADME.md\n";
+    },
+  });
+  assert.deepEqual(files, [".github/workflows/obsolete.yml", "README.md"]);
+  assert.ok(args.includes("--diff-filter=ACMRD"));
 });
 
 test("il runtime ordinario usa standard con E2E", () => {

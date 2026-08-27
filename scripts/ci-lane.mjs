@@ -25,8 +25,8 @@ const isSecuritySensitive = (path) =>
   path.startsWith(".github/") ||
   path.startsWith("migrations/") ||
   path.startsWith("config/") ||
+  path.startsWith("scripts/") ||
   path === "wrangler.json" ||
-  path.startsWith("scripts/security-") ||
   /(?:auth|billing|crypto|privacy|session|webhook)/i.test(path);
 
 export function classifyCiLane(files, { base = "", head = "" } = {}) {
@@ -70,16 +70,16 @@ export function classifyCiLane(files, { base = "", head = "" } = {}) {
   };
 }
 
-export function changedFiles(baseSha, headSha, cwd = process.cwd()) {
+export function changedFiles(
+  baseSha,
+  headSha,
+  { cwd = process.cwd(), execute = execFileSync } = {},
+) {
   if (!/^[0-9a-f]{40}$/.test(baseSha) || !/^[0-9a-f]{40}$/.test(headSha)) return [];
-  return execFileSync(
-    "git",
-    ["diff", "--name-only", "--diff-filter=ACMR", `${baseSha}...${headSha}`],
-    {
-      cwd,
-      encoding: "utf8",
-    },
-  )
+  return execute("git", ["diff", "--name-only", "--diff-filter=ACMRD", `${baseSha}...${headSha}`], {
+    cwd,
+    encoding: "utf8",
+  })
     .trim()
     .split("\n")
     .filter(Boolean);
