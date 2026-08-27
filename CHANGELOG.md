@@ -14,6 +14,9 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 - la configurazione del ruleset viene letta dal token di governance dotato
   dell'accesso necessario a osservare i bypass, mentre l'installation token
   resta limitato alle operazioni Git autorizzate dalla GitHub App;
+- l'identità resta verificabile anche quando GitHub redige l'actor ID al token
+  di workflow: unico bypass Integration, slug App esatto e mutazione non forzata
+  continuano a essere obbligatori;
 - una regressione copre valori mancanti, non numerici, non positivi e fuori
   dall'intervallo sicuro prima del fast-forward protetto di `develop`;
 - le nuove notifiche Telegram dell'owner possono essere copiate e inoltrate,
