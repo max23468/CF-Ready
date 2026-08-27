@@ -21,7 +21,7 @@ test("riusa soltanto la suite più recente conclusa fuori dal run corrente", () 
     {
       id: 3,
       name: "verify",
-      conclusion: "failure",
+      conclusion: "success",
       details_url: "https://github.test/actions/runs/11/job/3",
       check_suite: { id: 21 },
     },
@@ -30,6 +30,13 @@ test("riusa soltanto la suite più recente conclusa fuori dal run corrente", () 
       name: "e2e",
       conclusion: "success",
       details_url: "https://github.test/actions/runs/11/job/4",
+      check_suite: { id: 21 },
+    },
+    {
+      id: 5,
+      name: "verify",
+      conclusion: "failure",
+      details_url: "https://github.test/actions/runs/11/job/5",
       check_suite: { id: 21 },
     },
   ];
@@ -41,7 +48,7 @@ test("riusa soltanto la suite più recente conclusa fuori dal run corrente", () 
   );
 });
 
-test("attende i check non ancora creati della suite più recente", () => {
+test("seleziona il check più recente per nome tra workflow distinti", () => {
   const checks = [
     {
       id: 1,
@@ -62,7 +69,22 @@ test("attende i check non ancora creati della suite più recente", () => {
       check_suite: { id: 21 },
     },
   ];
-  assert.deepEqual(missingSuccessfulChecks(checks, ["verify", "e2e"]), ["verify", "e2e"]);
+  assert.deepEqual(missingSuccessfulChecks(checks, ["verify", "e2e"]), ["verify"]);
+  assert.deepEqual(
+    missingSuccessfulChecks(
+      [
+        ...checks,
+        {
+          id: 4,
+          name: "react-doctor",
+          conclusion: "success",
+          check_suite: { id: 22 },
+        },
+      ],
+      ["verify", "e2e", "react-doctor"],
+    ),
+    ["verify"],
+  );
 });
 
 test("accetta commit da PR develop revisionata e merge senza nuovo tree", () => {

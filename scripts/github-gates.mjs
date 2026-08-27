@@ -4,24 +4,28 @@ import { pathToFileURL } from "node:url";
 
 export function missingSuccessfulChecks(checkRuns, required, currentRunId = "") {
   const requiredNames = new Set(required);
-  const suites = new Map();
+  const latestChecks = new Map();
   for (const check of checkRuns) {
     if (!requiredNames.has(check.name)) continue;
     const workflowRunId = String(check.details_url ?? "").match(
       /\/actions\/runs\/(\d+)(?:\/|$)/,
     )?.[1];
     if (currentRunId && workflowRunId === String(currentRunId)) continue;
-    const suiteId = check.check_suite?.id ?? workflowRunId ?? "unknown";
-    const suite = suites.get(suiteId) ?? { id: Number(suiteId) || 0, checks: new Map() };
-    const previous = suite.checks.get(check.name);
-    if (!previous || Number(check.id ?? 0) > Number(previous.id ?? 0)) {
-      suite.checks.set(check.name, check);
+    const candidate = {
+      check,
+      suiteId: Number(check.check_suite?.id ?? workflowRunId ?? 0),
+    };
+    const previous = latestChecks.get(check.name);
+    if (
+      !previous ||
+      candidate.suiteId > previous.suiteId ||
+      (candidate.suiteId === previous.suiteId &&
+        Number(check.id ?? 0) > Number(previous.check.id ?? 0))
+    ) {
+      latestChecks.set(check.name, candidate);
     }
-    suites.set(suiteId, suite);
   }
-  const latestSuite = [...suites.values()].sort((left, right) => right.id - left.id)[0];
-  if (!latestSuite) return required;
-  return required.filter((name) => latestSuite.checks.get(name)?.conclusion !== "success");
+  return required.filter((name) => latestChecks.get(name)?.check.conclusion !== "success");
 }
 
 export function verifyPromotionHistory(commits) {
