@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
 const operationalDocs = new Set([
   "AGENTS.md",
@@ -130,4 +131,6 @@ function main() {
   console.log(JSON.stringify(result, null, 2));
 }
 
-if (import.meta.main) main();
+const isDirectExecution =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isDirectExecution) main();

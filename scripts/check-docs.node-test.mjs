@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -421,6 +421,20 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   assert.match(doctor, /steps\.lane\.outputs\.react_doctor == 'true'/);
   assert.match(packageJson.scripts["check:docs"], /docs:check/);
   assert.match(packageJson.scripts["check:standard"], /typecheck/);
+});
+
+test("gli entrypoint operativi usano un rilevamento di esecuzione portabile", () => {
+  const scripts = readdirSync(new URL(".", import.meta.url)).filter((file) =>
+    file.endsWith(".mjs"),
+  );
+  for (const script of scripts) {
+    const source = readFileSync(new URL(script, import.meta.url), "utf8");
+    assert.doesNotMatch(source, /import\.meta\.main/, script);
+  }
+  for (const script of ["ci-lane.mjs", "reconcile-develop.mjs"]) {
+    const source = readFileSync(new URL(script, import.meta.url), "utf8");
+    assert.match(source, /pathToFileURL\(process\.argv\[1\]\)\.href/, script);
+  }
 });
 
 test("i deploy riusano i gate e conservano ricevute fuori dalle PR", () => {

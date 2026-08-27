@@ -159,9 +159,12 @@ async function main() {
   console.log(`develop riallineato in fast-forward a ${mainRef.object.sha}.`);
 }
 
-if (process.env.GITHUB_ACTIONS === "true" && import.meta.main) {
+const isDirectExecution =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (process.env.GITHUB_ACTIONS === "true" && isDirectExecution) {
   await main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
   });
 }
+import { pathToFileURL } from "node:url";

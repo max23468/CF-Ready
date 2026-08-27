@@ -1,4 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
+import { pathToFileURL } from "node:url";
 
 export function createDeployReceipt({
   environment,
@@ -82,4 +83,6 @@ async function main() {
   console.log(`Ricevuta ${receipt.environment} creata per ${receipt.commit}.`);
 }
 
-if (import.meta.main) await main();
+const isDirectExecution =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isDirectExecution) await main();
