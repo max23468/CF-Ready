@@ -28,6 +28,7 @@ function deferred<T>() {
 
 test("la Home legge lo stato D1 in parallelo ed espone timing senza dati merchant", async () => {
   const db = {} as D1Database;
+  const waitUntil = vi.fn();
   const shop = "timing.example.myshopify.com";
   const homeState = deferred<{
     onboarding: {
@@ -62,9 +63,11 @@ test("la Home legge lo stato D1 in parallelo ed espone timing senza dati merchan
       options: {
         prefetchBilling?: boolean;
         reportTiming: (name: "shopify_snapshot", durationMs: number) => void;
+        waitUntil?: (promise: Promise<unknown>) => void;
       },
     ) => {
       expect(options.prefetchBilling).toBe(true);
+      expect(options.waitUntil).toBe(waitUntil);
       options.reportTiming("shopify_snapshot", 12.34);
       return reconciliation.promise;
     },
@@ -74,7 +77,7 @@ test("la Home legge lo stato D1 in parallelo ed espone timing senza dati merchan
   const { headers, loader } = await import("../app/routes/app._index");
   const pending = loader({
     request: new Request("https://example.test/app?locale=it"),
-    context: createAppContext(db),
+    context: createAppContext(db, undefined, waitUntil),
     params: {},
   } as never);
 
