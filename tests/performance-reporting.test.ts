@@ -157,3 +157,33 @@ test("la route rifiuta body non JSON o sovradimensionati prima dell'autenticazio
   expect(oversized.status).toBe(413);
   expect(mocks.authenticate).not.toHaveBeenCalled();
 });
+
+test("la route interrompe un body JSON chunked appena supera il limite", async () => {
+  const { action } = await import("../app/routes/app.performance");
+  let chunksRead = 0;
+  let cancelled = false;
+  const stream = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      chunksRead += 1;
+      controller.enqueue(new Uint8Array(8_192));
+      if (chunksRead === 10) controller.close();
+    },
+    cancel() {
+      cancelled = true;
+    },
+  });
+  const response = await action({
+    request: new Request("https://example.test/app/performance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stream,
+    }),
+    context: createAppContext(env.DB),
+    params: {},
+  } as never);
+
+  expect(response.status).toBe(413);
+  expect(chunksRead).toBe(3);
+  expect(cancelled).toBe(true);
+  expect(mocks.authenticate).not.toHaveBeenCalled();
+});
