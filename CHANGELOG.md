@@ -12,7 +12,9 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   generare l'installation token, senza invocare con quel token un endpoint che
   richiede invece autenticazione come GitHub App;
 - una regressione copre valori mancanti, non numerici, non positivi e fuori
-  dall'intervallo sicuro prima del fast-forward protetto di `develop`.
+  dall'intervallo sicuro prima del fast-forward protetto di `develop`;
+- le nuove notifiche Telegram dell'owner possono essere copiate e inoltrate,
+  mantenendo invariata la minimizzazione dei dati contenuti.
 
 ## 1.0.3 — 27 agosto 2026
 

@@ -275,7 +275,8 @@ test("Telegram ritenta senza duplicare e consegna il dominio tecnico dello store
   ).toEqual({ sent: 1, failed: 0 });
 
   const message = JSON.parse(String(send.mock.calls[1][1]?.body));
-  expect(message).toMatchObject({ chat_id: telegram.chatId, protect_content: true });
+  expect(message).toMatchObject({ chat_id: telegram.chatId });
+  expect(message).not.toHaveProperty("protect_content");
   expect(message.text).toContain(`Store: ${shop}`);
   expect(message.text).toContain("Piano: Nessun piano attivo");
   expect(JSON.stringify(message)).not.toContain("gid://partners/Shop/");
