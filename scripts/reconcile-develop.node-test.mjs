@@ -2,9 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   expectedMainSha,
-  hasReconciliationBypass,
-  readReconciliationState,
-  reconciliationActorId,
   verifyReconciliationApp,
   verifyProductionDeployment,
   verifyRecoveryReconciliation,
@@ -107,33 +104,6 @@ test("recupera solo un develop avanzato linearmente dal candidato già promosso"
   );
 });
 
-test("lega il bypass all'actor ID Integration esposto dal ruleset", () => {
-  const ruleset = {
-    bypass_actors: [{ actor_id: 4735849, actor_type: "Integration", bypass_mode: "always" }],
-  };
-  assert.equal(hasReconciliationBypass(ruleset, 4735849), true);
-  assert.equal(hasReconciliationBypass(ruleset, 15368), false);
-  assert.equal(
-    hasReconciliationBypass(
-      {
-        bypass_actors: [
-          ...ruleset.bypass_actors,
-          { actor_id: 5, actor_type: "RepositoryRole", bypass_mode: "always" },
-        ],
-      },
-      4735849,
-    ),
-    false,
-  );
-});
-
-test("accetta soltanto un actor ID numerico positivo e sicuro", () => {
-  assert.equal(reconciliationActorId("4735849"), 4735849);
-  for (const value of [undefined, "", "app-4735849", "0", "-1", "9007199254740992"]) {
-    assert.throws(() => reconciliationActorId(value), /actor ID valido/);
-  }
-});
-
 test("lega il token allo slug restituito dalla GitHub App", () => {
   assert.doesNotThrow(() =>
     verifyReconciliationApp({
@@ -149,34 +119,6 @@ test("lega il token allo slug restituito dalla GitHub App", () => {
       }),
     /GitHub App di riallineamento attesa/,
   );
-});
-
-test("legge la governance con GITHUB_TOKEN e usa l'App token soltanto per Git", async () => {
-  const calls = [];
-  const responses = new Map([
-    ["/repos/max23468/CF-Ready/rulesets", [{ id: 19912801, name: "develop governance" }]],
-    ["/repos/max23468/CF-Ready/rulesets/19912801", { bypass_actors: [] }],
-    ["/repos/max23468/CF-Ready/git/ref/heads/main", { object: { sha: "main" } }],
-    ["/repos/max23468/CF-Ready/git/ref/heads/develop", { object: { sha: "develop" } }],
-  ]);
-  const requestFn = async (path, token) => {
-    calls.push({ path, token });
-    return responses.get(path);
-  };
-
-  await readReconciliationState({
-    repository: "max23468/CF-Ready",
-    governanceToken: "github-token",
-    reconciliationToken: "app-token",
-    requestFn,
-  });
-
-  assert.deepEqual(calls, [
-    { path: "/repos/max23468/CF-Ready/rulesets", token: "github-token" },
-    { path: "/repos/max23468/CF-Ready/git/ref/heads/main", token: "app-token" },
-    { path: "/repos/max23468/CF-Ready/git/ref/heads/develop", token: "app-token" },
-    { path: "/repos/max23468/CF-Ready/rulesets/19912801", token: "github-token" },
-  ]);
 });
 
 test("richiede un deploy Production verde e la relativa ricevuta per lo stesso main", () => {

@@ -42,52 +42,10 @@ export function verifyRecoveryReconciliation({
   }
 }
 
-export function hasReconciliationBypass(ruleset, appId) {
-  const actors = ruleset.bypass_actors;
-  const actor = actors?.[0];
-  return (
-    Array.isArray(actors) &&
-    actors.length === 1 &&
-    actor.actor_type === "Integration" &&
-    (actor.actor_id == null || actor.actor_id === appId) &&
-    actor.bypass_mode === "always"
-  );
-}
-
-export function reconciliationActorId(value) {
-  if (!/^\d+$/.test(value ?? "")) {
-    throw new Error("Manca l'actor ID valido per il riallineamento.");
-  }
-  const actorId = Number(value);
-  if (!Number.isSafeInteger(actorId) || actorId <= 0) {
-    throw new Error("Manca l'actor ID valido per il riallineamento.");
-  }
-  return actorId;
-}
-
 export function verifyReconciliationApp({ actualSlug, expectedSlug }) {
   if (!expectedSlug || actualSlug !== expectedSlug) {
     throw new Error("Il token non appartiene alla GitHub App di riallineamento attesa.");
   }
-}
-
-export async function readReconciliationState({
-  repository,
-  governanceToken,
-  reconciliationToken,
-  requestFn,
-}) {
-  const [rulesets, mainRef, developRef] = await Promise.all([
-    requestFn(`/repos/${repository}/rulesets`, governanceToken),
-    requestFn(`/repos/${repository}/git/ref/heads/main`, reconciliationToken),
-    requestFn(`/repos/${repository}/git/ref/heads/develop`, reconciliationToken),
-  ]);
-  const developRuleset = rulesets.find(({ name }) => name === "develop governance");
-  const ruleset = await requestFn(
-    `/repos/${repository}/rulesets/${developRuleset?.id}`,
-    governanceToken,
-  );
-  return { ruleset, mainRef, developRef };
 }
 
 export function expectedMainSha({ eventName, sourceDeploySha, mainRefSha }) {
@@ -139,7 +97,6 @@ async function main() {
   const eventName = process.env.GITHUB_EVENT_NAME;
   const githubToken = process.env.GITHUB_TOKEN;
   const reconciliationToken = process.env.RECONCILIATION_TOKEN;
-  const actorId = reconciliationActorId(process.env.RECONCILIATION_ACTOR_ID);
   verifyReconciliationApp({
     actualSlug: process.env.RECONCILIATION_APP_SLUG,
     expectedSlug: process.env.EXPECTED_RECONCILIATION_APP_SLUG,
@@ -184,24 +141,10 @@ async function main() {
     artifacts: artifactResponse.artifacts,
     expectedMain,
   });
-  const { ruleset, mainRef, developRef } = await readReconciliationState({
-    repository,
-    governanceToken: githubToken,
-    reconciliationToken,
-    requestFn: request,
-  });
-  if (!hasReconciliationBypass(ruleset, actorId)) {
-    const observedActors = (ruleset.bypass_actors ?? []).map(
-      ({ actor_id: observedActorId, actor_type: actorType, bypass_mode: bypassMode }) => ({
-        actorId: observedActorId ?? "redacted",
-        actorType,
-        bypassMode,
-      }),
-    );
-    throw new Error(
-      `La GitHub App di riallineamento non è nella bypass list del ruleset develop: ${JSON.stringify(observedActors)}.`,
-    );
-  }
+  const [mainRef, developRef] = await Promise.all([
+    request(`/repos/${repository}/git/ref/heads/main`, reconciliationToken),
+    request(`/repos/${repository}/git/ref/heads/develop`, reconciliationToken),
+  ]);
   const main = await request(
     `/repos/${repository}/git/commits/${mainRef.object.sha}`,
     reconciliationToken,
