@@ -439,6 +439,18 @@ test("i deploy riusano i gate e conservano ricevute fuori dalle PR", () => {
   }
   assert.match(development, /developmentVersion/);
   assert.match(development, /git rev-parse 'HEAD\^\{tree\}'/);
+  const developmentPreflight = development.indexOf("name: Preflight Development");
+  const developmentBuild = development.indexOf("name: Costruisci Worker Development");
+  const developmentDeploy = development.indexOf("name: Deploy Worker Development");
+  assert.ok(
+    developmentPreflight >= 0 &&
+      developmentBuild > developmentPreflight &&
+      developmentDeploy > developmentBuild,
+  );
+  assert.match(
+    development.slice(developmentBuild, developmentDeploy),
+    /if: env\.DEPLOY_READBACK_ONLY != 'true'[\s\S]*run: npm run build/,
+  );
   assert.match(production, /actions\/attest@[0-9a-f]{40}/);
   assert.match(production, /attestations: write/);
   assert.match(production, /id-token: write/);

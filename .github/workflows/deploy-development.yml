@@ -80,6 +80,10 @@ jobs:
           SHOPIFY_PROJECT_FILE: config/shopify-project.dev.json
         run: npm run preflight:dev
 
+      - name: Costruisci Worker Development
+        if: env.DEPLOY_READBACK_ONLY != 'true'
+        run: npm run build
+
       - name: Inizializza ricevuta
         run: |
           version="$(node -p "require('./package.json').version")"
