@@ -23,6 +23,7 @@ import {
 } from "../features/home/plan-comparison";
 import { resolveLocale, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
+import { persistShopDisplayName } from "../shop-profile.server";
 import { authenticate } from "../shopify.server";
 import {
   queryContext,
@@ -107,6 +108,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   // finché il merchant non la chiede.
   if (intent === "start_trial") {
     const { shop } = await queryContext(admin);
+    await persistShopDisplayName(db, session.shop, shop.name);
     const trial = await startTrial(db, session.shop, {
       eligible: shop.shopAddress.countryCodeV2 === ELIGIBLE_COUNTRY,
       today: localDate(shop.ianaTimezone),

@@ -24,6 +24,7 @@ import { recordEvent } from "../../events.server";
 import { resolveLocale } from "../../i18n";
 import { planFor, planPrices } from "../../plans.server";
 import type { PlanKind } from "../../plans.server";
+import { persistShopDisplayName } from "../../shop-profile.server";
 import { authenticate } from "../../shopify.server";
 import {
   queryContext,
@@ -122,6 +123,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       return { ok: false, errorCode: "one_time_already_active" };
     }
     const { shop } = await queryContext(admin);
+    await persistShopDisplayName(db, session.shop, shop.name);
     const trial = await startTrial(db, session.shop, {
       eligible: shop.shopAddress.countryCodeV2 === ELIGIBLE_COUNTRY,
       today: localDate(shop.ianaTimezone),

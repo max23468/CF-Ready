@@ -359,7 +359,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-131 | Addebiti sempre in euro, senza adeguarsi alla valuta di fatturazione del merchant. | La valuta dell’addebito è quella inviata nel `currencyCode` e EUR è pienamente supportato: seguire `shopBillingPreferences` significherebbe costruire un listino per valuta per servire la coda dei merchant italiani non fatturati in euro, e rinunciare al prezzo unico che paga tutto il resto del pubblico. Per quella coda Shopify converte in fattura, come farebbe comunque visto che la vetrina della listing è in USD per limitazione della piattaforma. Deciso il 4 agosto 2026 sulle risposte del supporto Shopify riportate in §14.2. |
 | D-132 | Nessuno store né credenziali forniti al reviewer: l’app dichiara di non richiedere un account. | L’app è embedded e non ha login propri, e il requisito 4.5.5 è condizionale — «If your app requires login credentials». Fornire uno store con l’app preinstallata è un requisito delle Payment app (5.2.1), non delle app ordinarie, e il campo *Test account* del form vieta esplicitamente credenziali di store Shopify. Le istruzioni chiedono quindi al reviewer di installare su un proprio development store italiano, condizione messa in testa perché senza di essa l’app si dichiara non idonea e sembrerebbe rotta. Deciso il 4 agosto 2026, sostituendo il piano precedente di creare uno staff account e comunicare la password della vetrina. |
 | D-133 | Consegnare il lavoro webhook a Cloudflare Queues dopo il claim D1 e prima dell'ACK. | Shopify richiede risposte rapide, ma `waitUntil` non garantisce retry durevoli: una coda nativa conserva disinstallazioni, redazioni e riconciliazioni fallite senza introdurre un secondo stato applicativo o un provider. Una DLQ finalizza gli errori e rimanda il messaggio alla coda primaria se D1 resta indisponibile, evitando eliminazioni silenziose. |
-| D-134 | Notificare all’owner tramite outbox D1 e bot Telegram dedicato l’intero ciclo merchant e commerciale: installazione, reinstallazione, disattivazione, disinstallazione, prova gratuita, accettazione e attivazione del piano, cambio, disdetta, rifiuto, scadenza, sospensione e riattivazione. Ogni messaggio indica il dominio tecnico `.myshopify.com` e il piano interessato. | La Partner API è autorevole per relazioni e charge Shopify; gli eventi applicativi completano la prova gratuita e lo stato billing riconciliato identifica il piano precedente nei cambi. Poll con sovrapposizione, chiavi hash univoche e retry separano acquisizione e consegna. Il dominio tecnico è l’unico identificativo merchant inviato alla chat privata: nome, email, dati checkout, shop ID e GID restano esclusi. Il cron Production gira ogni cinque minuti e la feature resta disattivata finché bot, chat e secret Partner non sono configurati. Development, checkout e merchant non ricevono notifiche. |
+| D-134 | Notificare all’owner tramite outbox D1 e bot Telegram dedicato l’intero ciclo merchant, commerciale e operativo: installazione, reinstallazione, disattivazione, disinstallazione, prova gratuita, onboarding completato, Validation attivata/disattivata, accettazione e attivazione del piano, cambio, disdetta, rifiuto, scadenza, sospensione e riattivazione. Ogni messaggio indica nome pubblico e dominio tecnico `.myshopify.com` dello store, stato operativo e piano interessato; le charge includono importo e cadenza. | La Partner API è autorevole per relazioni, nome pubblico dello store e charge Shopify; gli eventi applicativi completano prova, onboarding e Validation, mentre lo stato billing riconciliato identifica il piano precedente nei cambi. Poll con sovrapposizione, chiavi hash univoche e retry separano acquisizione e consegna. Nella chat privata sono ammessi soltanto nome pubblico e dominio dello store: nome dell’owner, email, dati checkout, shop ID e GID restano esclusi. Telegram riceve una Rich Message strutturata con tabelle compatte e pulsanti per aprire o copiare l’URL; i valori dinamici restano testo letterale, il rilevamento automatico delle entità è disattivato e `protect_content` è omesso, così copia, salvataggio e inoltro restano consentiti senza anteprime automatiche. Il cron Production gira ogni cinque minuti e la feature resta disattivata finché bot, chat e secret Partner non sono configurati. Development, checkout e merchant non ricevono notifiche. |
 | D-135 | Supportare concessioni omaggio permanenti assegnate manualmente dall’owner, inizialmente solo a `numisleo.myshopify.com`, senza creare o simulare una charge Shopify. | Lo store reale dell’owner deve poter eseguire il canary senza pagare la propria app. La concessione vive in una tabella D1 dedicata, è auditabile e revocabile, prevale sulla prova e viene copiata nel metafield come diritto `one_time`; la UI la distingue da un pagamento e non propone altri addebiti. Per evitare cancellazioni o rimborsi automatici, diventa operativa soltanto in assenza di un abbonamento Shopify attivo: l’eventuale abbonamento va prima disdetto tramite il normale flusso merchant. Deciso il 24 agosto 2026. |
 | D-136 | M11 chiude la release tecnica `1.0.0`: outreach, primi merchant esterni e feedback non sono requisiti della milestone. | L’owner non ha richiesto comunicazioni outbound; acquisizione organica e criteri di maturità restano attività successive e non bloccano la release. L’assenza di segnalazioni è non bloccante, ma non viene presentata come prova di soddisfazione. Deciso il 26 agosto 2026. |
 | D-137 | M12 combina il consolidamento Controlled Launch con i requisiti Built for Shopify e si chiude quando Shopify assegna effettivamente lo status. | Idoneità automatica, pulsante di candidatura, invio o review in corso non chiudono la milestone. I requisiti correnti si rileggono nelle fonti Shopify e nella pagina Distribution prima della candidatura; le soglie Shopify sostituiscono i minimi locali più deboli. I criteri operativi specifici di CF Ready restano segnali da osservare, non una seconda certificazione né gate autonomi; soltanto bug critici e rischi non accettati impediscono la chiusura. Deciso il 26 agosto 2026. |
@@ -1386,6 +1386,7 @@ Una riga per store conosciuto.
 |---|---|
 | `id` | integer primary key |
 | `shop_domain` | text unique, normalizzato |
+| `display_name` | text nullable, nome pubblico dello store limitato e normalizzato |
 | `shopify_installation_gid` | text nullable |
 | `country_code` | text |
 | `shop_currency` | text nullable |
@@ -1500,12 +1501,13 @@ Vincolo univoco su identificatore Shopify + tipo evento per l’idempotenza.
 #### `owner_notifications` e `owner_notification_state`
 
 Outbox tecnica per le sole notifiche all’owner. `owner_notifications` conserva
-tipo, dominio tecnico dello store, oggetto, corpo minimale, istante sorgente,
-stato di consegna, tentativi e claim; il corpo include dominio tecnico
-`.myshopify.com` e piano, mentre
+tipo, nome pubblico e dominio tecnico dello store, oggetto, corpo minimale,
+istante sorgente, stato di consegna, tentativi e claim; il corpo include dominio
+`.myshopify.com`, stato operativo e piano, mentre
 `dedupe_key` è un hash SHA-256 univoco della sorgente e non contiene in chiaro
 shop ID o GID Shopify. `owner_notification_state` conserva i checkpoint dei poll
-Partner e prova gratuita. Il checkpoint avanza soltanto dopo una pagina completa;
+Partner e degli eventi applicativi locali. Il checkpoint avanza soltanto dopo una
+pagina completa;
 i poll sovrappongono cinque minuti e l’unicità rende innocui replay e paginazione
 ripetuta. `billing_events` conserva anche piano e stato precedenti per distinguere
 un nuovo acquisto da un passaggio tra piani.
@@ -1514,10 +1516,14 @@ Le righe dello store vengono eliminate durante `shop/redact`, anche se già
 consegnate; una barriera con HMAC del dominio e istante di redazione impedisce
 che un evento Partner precedente le ricrei, senza impedire una reinstallazione
 successiva. La retention di 90 giorni resta soltanto il limite massimo. La
-consegna è at-least-once, con massimo cinque tentativi e backoff. Un arresto
+consegna è at-least-once, con massimo cinque tentativi e backoff. Importo e
+cadenza arrivano dalla charge Partner; onboarding e Validation dalla tabella
+`app_events`. Il rendering Telegram usa blocchi strutturati, tabelle compatte e
+pulsanti nativi; i valori dinamici restano testo letterale, il rilevamento delle
+entità è disattivato e `protect_content` resta assente. Un arresto
 dopo l’invio ma prima del commit D1 può produrre una rara notifica duplicata; non
-può perdere la riga sorgente. Il contenuto comunica soltanto evento, piano e
-timestamp, mai nome, email o dati personali del merchant.
+può perdere la riga sorgente. Il contenuto non comunica mai nome dell’owner,
+email, identificatori Shopify, Codice Fiscale, PEC o dati checkout.
 
 #### `app_state`
 
@@ -3179,10 +3185,11 @@ Eventi permessi:
 Sempre attiva perché necessaria a funzionamento, sicurezza e valutazione del lancio. Descritta nella Privacy Policy. Nessun cookie analytics, fingerprint o comportamento di clienti.
 
 Le notifiche all’owner non sono telemetria merchant: coprono installazione,
-riattivazione, disinstallazione, prova e transizioni commerciali osservate dalla
-Partner API o dallo stato applicativo. Includono soltanto il dominio tecnico
-`.myshopify.com`, il piano e l’istante dell’evento; non includono nome, email,
-shop ID, GID Shopify o dati checkout. Esito, tentativi e codici d’errore
+riattivazione, disinstallazione, prova, onboarding, Validation e transizioni
+commerciali osservate dalla Partner API o dallo stato applicativo. Includono
+nome pubblico e dominio tecnico `.myshopify.com` dello store, stato operativo,
+piano, dettagli della charge e istante dell’evento; non includono nome dell’owner,
+email, shop ID, GID Shopify, Codice Fiscale, PEC o dati checkout. Esito, tentativi e codici d’errore
 sanitizzati restano nell’outbox D1 per il tempo indicato in §21.5 e vengono
 eliminati prima se arriva `shop/redact`; sopravvive soltanto la barriera HMAC
 necessaria a non reinviare eventi antecedenti alla cancellazione.

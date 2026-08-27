@@ -52,8 +52,11 @@ percorso o sezione; la cronologia resta in Git.
   ritentabili devono essere idempotenti.
 - Mantieni lo scope Shopify minimo: non leggere ordini, clienti, prodotti o
   inventario senza un requisito approvato.
-- Non inviare Codice Fiscale, PEC o dati merchant a log, telemetria o provider
-  esterni; usa identificatori tecnici minimizzati.
+- Non inviare Codice Fiscale, PEC, dati checkout, nome o email dell'owner e altri
+  dati merchant a log, telemetria o provider esterni; usa identificatori tecnici
+  minimizzati. Fa eccezione soltanto la notifica Telegram privata dell'owner
+  definita in D-134, che può includere nome pubblico e dominio tecnico dello store
+  senza dati personali di owner o clienti né identificatori Shopify.
 - Le migrazioni applicate sono immutabili. Preferisci forward-fix e non unire
   migrazioni distruttive a una release non verificata.
 
