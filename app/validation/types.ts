@@ -30,6 +30,7 @@ export type ReconcileTiming = (
     | "shopify_snapshot"
     | "d1_commercial"
     | "shopify_billing"
-    | "d1_validation_state",
+    | "d1_validation_state"
+    | "d1_validation_schedule",
   durationMs: number,
 ) => void;

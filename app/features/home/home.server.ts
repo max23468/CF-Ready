@@ -1,5 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { data } from "react-router";
+import { authenticateAdmin } from "../../admin-auth.server";
 import {
   addDays,
   cancelSubscription,
@@ -17,7 +18,7 @@ import {
   syncTrial,
 } from "../../billing.server";
 import { ELIGIBLE_COUNTRY, messagesAreDefault, readConfig, reviewIsDue } from "../../config";
-import { databaseContext } from "../../context.server";
+import { databaseContext, waitUntilContext } from "../../context.server";
 import { APP_VERSION, BILLING_IS_TEST } from "../../env.server";
 import { recordEvent } from "../../events.server";
 import { resolveLocale } from "../../i18n";
@@ -37,12 +38,13 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const startedAt = performance.now();
   const timings: string[] = [];
   const authenticationStartedAt = performance.now();
-  const { admin, session } = await authenticate.admin(request);
+  const { admin, session } = await authenticateAdmin(request, context);
   timings.push(`auth;dur=${(performance.now() - authenticationStartedAt).toFixed(1)}`);
   const db = context.get(databaseContext);
 
   const statePromise = reconcile(admin, db, session.shop, {
     prefetchBilling: true,
+    waitUntil: context.get(waitUntilContext) ?? undefined,
     reportTiming: (name, durationMs) => {
       timings.push(`${name};dur=${durationMs.toFixed(1)}`);
     },

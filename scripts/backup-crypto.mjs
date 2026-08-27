@@ -19,6 +19,9 @@ const REQUIRED_TABLES = [
   "validation_operation_locks",
   "webhook_events",
 ];
+const MIGRATION_TABLE_REQUIREMENTS = [
+  { migration: "0013_performance_samples.sql", table: "performance_samples" },
+];
 
 export function backupKey(cadence, date = new Date()) {
   if (cadence === "weekly") {
@@ -79,7 +82,12 @@ export function verifySqlBackup(sql, databasePath = ":memory:", requiredTables =
         .all()
         .map(({ name }) => name),
     );
-    const missing = requiredTables.filter((table) => !tables.has(table));
+    const conditionalTables = tables.has("d1_migrations")
+      ? MIGRATION_TABLE_REQUIREMENTS.filter(({ migration }) =>
+          database.prepare("SELECT 1 FROM d1_migrations WHERE name = ?").get(migration),
+        ).map(({ table }) => table)
+      : [];
+    const missing = [...requiredTables, ...conditionalTables].filter((table) => !tables.has(table));
     if (missing.length) throw new Error(`Tabelle mancanti nel backup: ${missing.join(", ")}.`);
   } finally {
     database.close();

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData, useNavigate } from "react-router";
+import { authenticateAdmin } from "../admin-auth.server";
 import { localDate, startTrial } from "../billing.server";
 import {
   address2Declaration,
@@ -36,7 +37,7 @@ import {
 const STEPS = 4;
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
-  const { admin, session } = await authenticate.admin(request);
+  const { admin, session } = await authenticateAdmin(request, context);
   const db = context.get(databaseContext);
   const state = await reconcile(admin, db, session.shop);
   const validation = state.validation;

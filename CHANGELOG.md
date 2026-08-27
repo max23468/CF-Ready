@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.0.5 — 27 agosto 2026
+
+- App Bridge raccoglie campioni Web Vitals minimizzati per versione e rotta,
+  correlati alle sole durate server allowlistate e conservati per 90 giorni;
+- i loader annidati condividono l'autenticazione della singola richiesta e la
+  Home sposta fuori dal percorso critico la persistenza dello stato Validation;
+- l'editor dei messaggi elimina il doppio aggiornamento per battuta e mantiene
+  non bloccanti contatori e stato della barra di salvataggio;
+- il flag diagnostico Web Vitals resta disponibile soltanto nella build di
+  sviluppo ed è escluso dal bundle Production.
+
 ## 1.0.4 — 27 agosto 2026
 
 - la riconciliazione lega il token allo slug restituito dalla GitHub App senza

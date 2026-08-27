@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useActionData, useLoaderData, useSubmit } from "react-router";
+import { authenticateAdmin } from "../admin-auth.server";
 import {
   DEFAULT_CONFIG,
   MESSAGE_KEYS,
@@ -14,6 +15,7 @@ import type { CheckoutConfig } from "../config";
 import { databaseContext } from "../context.server";
 import { resolveLocale, texts } from "../i18n";
 import type { Locale } from "../i18n";
+import { messageSubmission, updateMessageDraft } from "../messages-draft";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { setSaveBarVisibility } from "../save-bar";
 import { authenticate } from "../shopify.server";
@@ -24,8 +26,8 @@ import {
   writeValidation,
 } from "../validation.server";
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { admin } = await authenticate.admin(request);
+export const loader = async ({ request, context }: LoaderFunctionArgs) => {
+  const { admin } = await authenticateAdmin(request, context);
   const validation = findValidation((await queryContext(admin)).validations.nodes);
   const config = readConfig(validation?.metafield?.jsonValue);
 
@@ -78,6 +80,8 @@ export default function CustomerMessages() {
   const t = texts(saved.locale);
   const [changedSinceResult, setChangedSinceResult] = useState(false);
   const [draft, setDraft] = useState<CheckoutConfig["messages"]>(saved.messages);
+  const draftRef = useRef(draft);
+  const [, startDraftTransition] = useTransition();
   // I campi non sono controllati: React che riscrive `value` a ogni tasto farebbe saltare il
   // cursore dentro un testo lungo. Il ripristino li rimonta cambiando chiave, così ripartono
   // dal nuovo valore predefinito senza che React possieda il contenuto.
@@ -88,6 +92,7 @@ export default function CustomerMessages() {
   useEffect(() => {
     if (!result?.ok) return;
     setChangedSinceResult(false);
+    draftRef.current = saved.messages;
     setDraft(saved.messages);
     setMounted((current) => ({ it: current.it + 1, en: current.en + 1 }));
   }, [result, saved.messages]);
@@ -98,48 +103,53 @@ export default function CustomerMessages() {
 
   useEffect(() => setSaveBarVisibility(SAVE_BAR, dirty), [dirty]);
 
-  // Un solo ascoltatore per la pagina: gli eventi dei componenti Polaris risalgono fino al
-  // modulo, come già in Regole checkout.
+  // `input` copre ogni battuta; ascoltare anche `change` ripeteva lo stesso lavoro al commit.
+  // Il campo è uncontrolled: la ref conserva subito la sorgente usata da Salva, mentre
+  // contatore, altezza e Save Bar possono aggiornarsi in background senza ritardare l'eco
+  // visiva della digitazione.
   const readDraft = (event: { target: EventTarget | null }) => {
     const field = event.target as { name?: string; value?: string } | null;
     const [locale, key] = (field?.name ?? "").split(".");
     if (locale !== "it" && locale !== "en") return;
     if (!(MESSAGE_KEYS as readonly string[]).includes(key)) return;
+    const value = field?.value ?? "";
+    draftRef.current = updateMessageDraft(
+      draftRef.current,
+      locale,
+      key as (typeof MESSAGE_KEYS)[number],
+      value,
+    );
     setChangedSinceResult(true);
-    setDraft((current) => ({
-      ...current,
-      [locale]: { ...current[locale], [key]: field?.value ?? "" },
-    }));
+    startDraftTransition(() => {
+      // Leggere la ref nell'updater impedisce a una transition già accodata di ripristinare
+      // una battuta precedente dopo Salva o Annulla.
+      setDraft(() => draftRef.current);
+    });
   };
 
   const discard = () => {
+    draftRef.current = saved.messages;
     setDraft(saved.messages);
     setMounted((current) => ({ it: current.it + 1, en: current.en + 1 }));
   };
 
   const save = () =>
-    send(
-      {
-        configHash: saved.configHash ?? "",
-        ...Object.fromEntries(
-          (["it", "en"] as const).flatMap((locale) =>
-            MESSAGE_KEYS.map((key) => [`${locale}.${key}`, draft[locale][key]] as const),
-          ),
-        ),
-      },
-      { method: "post" },
-    );
+    send(messageSubmission(saved.configHash ?? "", draftRef.current), { method: "post" });
 
   // FR-063: il ripristino agisce su una lingua sola e lo dichiara nella conferma. Non salva da
   // sé: rimette i testi predefiniti nei campi e il salvataggio resta un gesto esplicito.
   const restore = (locale: Locale) => {
+    draftRef.current = {
+      ...draftRef.current,
+      [locale]: { ...DEFAULT_CONFIG.messages[locale] },
+    };
     setChangedSinceResult(true);
-    setDraft((current) => ({ ...current, [locale]: { ...DEFAULT_CONFIG.messages[locale] } }));
+    setDraft(draftRef.current);
     setMounted((current) => ({ ...current, [locale]: current[locale] + 1 }));
   };
 
   return (
-    <form onInput={readDraft} onChange={readDraft}>
+    <form onInput={readDraft}>
       <s-page heading={t.messages.heading}>
         {showSavedBanner(result, dirty, changedSinceResult) ? (
           <s-banner tone="success">{t.messages.saved}</s-banner>

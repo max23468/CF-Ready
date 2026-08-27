@@ -360,6 +360,18 @@ test("la retention rispetta le soglie pubblicate per eventi e ricevute", async (
        VALUES ('event-current', 'lifecycle', '2025-08-02T00:00:00.001Z')`,
     ),
     env.DB.prepare(
+      `INSERT INTO performance_samples (
+         shop_id, metric_id, metric_name, metric_value, country_code,
+         app_version, app_route, observed_at
+       ) VALUES (?, 'performance-expired', 'LCP', 3273, 'IT', '1.0.4', 'home', ?)`,
+    ).bind(shopId, "2026-05-04T00:00:00.000Z"),
+    env.DB.prepare(
+      `INSERT INTO performance_samples (
+         shop_id, metric_id, metric_name, metric_value, country_code,
+         app_version, app_route, observed_at
+       ) VALUES (?, 'performance-current', 'INP', 942, 'IT', '1.0.4', 'messages', ?)`,
+    ).bind(shopId, "2026-05-04T00:00:00.001Z"),
+    env.DB.prepare(
       `INSERT INTO billing_events (
            shop_id, shopify_resource_gid, event_type, status, occurred_at, created_at
          ) VALUES (?, 'gid://expired', 'subscription', 'active', ?, ?)`,
@@ -399,6 +411,7 @@ test("la retention rispetta le soglie pubblicate per eventi e ricevute", async (
       await env.DB.prepare(
         `SELECT webhook_id AS value FROM webhook_events WHERE webhook_id LIKE 'receipt-%'
          UNION ALL SELECT event_name FROM app_events WHERE event_name LIKE 'error-%' OR event_name LIKE 'event-%'
+         UNION ALL SELECT metric_id FROM performance_samples WHERE metric_id LIKE 'performance-%'
          UNION ALL SELECT shopify_resource_gid FROM billing_events WHERE shopify_resource_gid LIKE 'gid://%'
          UNION ALL SELECT dedupe_key FROM owner_notifications WHERE dedupe_key LIKE 'notification-%'
          ORDER BY value`,
@@ -409,8 +422,35 @@ test("la retention rispetta le soglie pubblicate per eventi e ricevute", async (
     "event-current",
     "gid://current",
     "notification-current",
+    "performance-current",
     "receipt-current",
   ]);
+});
+
+test("la retention svuota tutti i batch di campioni performance scaduti", async () => {
+  const shop = await insertShop("retention-performance.example.myshopify.com");
+  const shopId = (await env.DB.prepare("SELECT id FROM shops WHERE shop_domain = ?")
+    .bind(shop)
+    .first<{ id: number }>())!.id;
+  await env.DB.prepare(
+    `INSERT INTO performance_samples (
+       shop_id, metric_id, metric_name, metric_value, app_version, app_route, observed_at
+     )
+     WITH RECURSIVE samples(id) AS (
+       SELECT 1 UNION ALL SELECT id + 1 FROM samples WHERE id < 1001
+     )
+     SELECT ?, 'expired-' || id, 'LCP', id, '1.0.5', 'home', '2026-05-04T00:00:00.000Z'
+     FROM samples`,
+  )
+    .bind(shopId)
+    .run();
+
+  expect((await applyRetention(env.DB, new Date("2026-08-02T00:00:00.000Z"))).events).toBe(1001);
+  expect(
+    await env.DB.prepare(
+      "SELECT COUNT(*) AS total FROM performance_samples WHERE metric_id LIKE 'expired-%'",
+    ).first(),
+  ).toEqual({ total: 0 });
 });
 
 test("la retention limita ogni esecuzione a 25 store", async () => {

@@ -4,14 +4,15 @@ import { Outlet, useLoaderData, useNavigate, useNavigation, useRouteError } from
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import { requestAppWindowNavigation } from "../app-window-navigation";
+import { authenticateAdmin } from "../admin-auth.server";
 import { navigateFromShopifyEvent, restoreEmbeddedAdmin } from "../embedded-admin";
 import { APP_API_KEY } from "../env.server";
 import { resolveLocale, texts } from "../i18n";
+import { PerformanceReporter } from "../PerformanceReporter";
 import { skipRevalidationWhenLeaving } from "../revalidation";
-import { authenticate } from "../shopify.server";
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+export const loader = async ({ request, context }: LoaderFunctionArgs) => {
+  const { session } = await authenticateAdmin(request, context);
 
   return {
     apiKey: APP_API_KEY,
@@ -79,6 +80,7 @@ export default function App() {
           </s-link>
         ))}
       </s-app-nav>
+      <PerformanceReporter />
       <Outlet />
     </>
   );

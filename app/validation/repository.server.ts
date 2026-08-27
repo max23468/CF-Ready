@@ -12,6 +12,7 @@ export async function persistValidationState(
     validation: Validation | undefined;
     validationEnabled?: boolean;
     errorCode: string | null;
+    expectedRevision?: number;
   },
 ) {
   const now = new Date().toISOString();
@@ -32,15 +33,26 @@ export async function persistValidationState(
              ELSE installation_status
            END,
            updated_at = ?
-         WHERE shop_domain = ?`,
+         WHERE shop_domain = ?
+           AND (? IS NULL OR COALESCE((
+             SELECT validation_state_revision FROM app_state WHERE shop_id = shops.id
+           ), 0) = ?)`,
       )
-      .bind(state.countryCode, Number(state.eligible), Number(state.eligible), now, shopDomain),
+      .bind(
+        state.countryCode,
+        Number(state.eligible),
+        Number(state.eligible),
+        now,
+        shopDomain,
+        state.expectedRevision ?? null,
+        state.expectedRevision ?? null,
+      ),
     db
       .prepare(
         `INSERT INTO app_state (
            shop_id, validation_gid, validation_enabled, config_schema_version,
-           config_hash, last_sync_at, last_error_code, updated_at
-         ) VALUES ((SELECT id FROM shops WHERE shop_domain = ?), ?, ?, ?, ?, ?, ?, ?)
+           config_hash, last_sync_at, last_error_code, updated_at, validation_state_revision
+         ) VALUES ((SELECT id FROM shops WHERE shop_domain = ?), ?, ?, ?, ?, ?, ?, ?, 1)
          ON CONFLICT(shop_id) DO UPDATE SET
            validation_gid = excluded.validation_gid,
            validation_enabled = excluded.validation_enabled,
@@ -48,7 +60,9 @@ export async function persistValidationState(
            config_hash = excluded.config_hash,
            last_sync_at = excluded.last_sync_at,
            last_error_code = excluded.last_error_code,
-           updated_at = excluded.updated_at`,
+           updated_at = excluded.updated_at,
+           validation_state_revision = app_state.validation_state_revision + 1
+         WHERE ? IS NULL OR app_state.validation_state_revision = ?`,
       )
       .bind(
         shopDomain,
@@ -59,8 +73,21 @@ export async function persistValidationState(
         now,
         state.errorCode,
         now,
+        state.expectedRevision ?? null,
+        state.expectedRevision ?? null,
       ),
   ]);
+}
+
+export async function readValidationStateRevision(db: D1Database, shopDomain: string) {
+  const row = await db
+    .prepare(
+      `SELECT validation_state_revision FROM app_state
+       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    )
+    .bind(shopDomain)
+    .first<{ validation_state_revision: number }>();
+  return row?.validation_state_revision ?? 0;
 }
 
 export async function readAddress2Declaration(db: D1Database, shopDomain: string) {

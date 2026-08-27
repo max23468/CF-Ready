@@ -18,8 +18,24 @@ declare module "react" {
 }
 
 declare global {
+  type ShopifyWebVitalsMetric = {
+    country?: string;
+    id: string;
+    name: string;
+    value: number;
+  };
+
+  type ShopifyWebVitalsReport = {
+    metrics: ShopifyWebVitalsMetric[];
+  };
+
   const shopify: {
     loading(isLoading: boolean): void;
+    webVitals: {
+      onReport(
+        callback: ((report: ShopifyWebVitalsReport) => void | Promise<void>) | null,
+      ): Promise<void>;
+    };
     reviews: { request(): Promise<{ success: boolean; code: string; message: string }> };
     saveBar: {
       show(id: string): Promise<void>;
