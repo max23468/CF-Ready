@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   expectedMainSha,
   hasReconciliationBypass,
+  reconciliationAppId,
   verifyProductionDeployment,
   verifyReconciliation,
 } from "./reconcile-develop.mjs";
@@ -70,7 +71,7 @@ test("consente soltanto il merge di promozione con tree invariato", () => {
   );
 });
 
-test("lega il bypass all'app dell'installation token", () => {
+test("lega il bypass all'App ID usato per generare l'installation token", () => {
   const ruleset = {
     bypass_actors: [{ actor_id: 4735849, actor_type: "Integration", bypass_mode: "always" }],
   };
@@ -88,6 +89,13 @@ test("lega il bypass all'app dell'installation token", () => {
     ),
     false,
   );
+});
+
+test("accetta soltanto un App ID numerico positivo e sicuro", () => {
+  assert.equal(reconciliationAppId("4735849"), 4735849);
+  for (const value of [undefined, "", "app-4735849", "0", "-1", "9007199254740992"]) {
+    assert.throws(() => reconciliationAppId(value), /App ID valido/);
+  }
 });
 
 test("richiede un deploy Production verde e la relativa ricevuta per lo stesso main", () => {
