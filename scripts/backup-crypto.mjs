@@ -1,6 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { DatabaseSync } from "node:sqlite";
+import { pathToFileURL } from "node:url";
 
 const MAGIC = Buffer.from("CFRDYB01");
 const IV_BYTES = 12;
@@ -122,4 +123,6 @@ async function main([command, input, output]) {
   );
 }
 
-if (import.meta.main) await main(process.argv.slice(2));
+const isDirectExecution =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isDirectExecution) await main(process.argv.slice(2));

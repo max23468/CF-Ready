@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { cp, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const allowedConfigs = new Set(["shopify.app.toml", "shopify.app.dev.toml"]);
@@ -123,4 +123,6 @@ async function main() {
   }
 }
 
-if (import.meta.main) await main();
+const isDirectExecution =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isDirectExecution) await main();
