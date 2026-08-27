@@ -16,7 +16,7 @@ import type { Entitlement } from "../config";
 import { recordEvent } from "../events.server";
 import { configWithEntitlement, entitlementDiffers } from "./domain";
 import { withValidationLock } from "./lock.server";
-import { persistValidationState } from "./repository.server";
+import { persistValidationState, readValidationStateRevision } from "./repository.server";
 import {
   UPDATE_VALIDATION,
   duplicateValidationError,
@@ -40,6 +40,11 @@ export async function reconcile(
   },
 ) {
   const reportTiming = options?.reportTiming;
+  // Il fence nasce prima della lettura Shopify: una scrittura successiva rende innocuo
+  // l'eventuale completamento tardivo della persistenza affidata a waitUntil.
+  const expectedRevision = options?.waitUntil
+    ? await readValidationStateRevision(db, shopDomain)
+    : undefined;
   const readBillingTimed = async () => {
     const startedAt = performance.now();
     try {
@@ -256,6 +261,7 @@ export async function reconcile(
     validation,
     validationEnabled,
     errorCode,
+    expectedRevision,
   });
   if (options?.waitUntil) {
     options.waitUntil(

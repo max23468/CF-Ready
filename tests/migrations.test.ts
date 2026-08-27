@@ -160,3 +160,13 @@ test("0013 crea campioni performance minimizzati e idempotenti", async () => {
     ]),
   );
 });
+
+test("0014 aggiunge il fence monotono allo stato Validation", async () => {
+  const columns = await env.DB.prepare("PRAGMA table_info(app_state)").all<{
+    name: string;
+    dflt_value: string | null;
+  }>();
+  expect(columns.results).toContainEqual(
+    expect.objectContaining({ name: "validation_state_revision", dflt_value: "0" }),
+  );
+});
