@@ -79,15 +79,19 @@ mise exec -- npm run shopify:info -- shopify.app.dev.toml
 Production può inviare a una chat Telegram privata una notifica per installazione,
 reinstallazione, disinstallazione, prova gratuita e per l'intero ciclo dei piani:
 accettazione, attivazione, cambio, disdetta, sospensione, riattivazione, rifiuto e
-scadenza. Ogni messaggio contiene il solo dominio tecnico `.myshopify.com` dello
-store e il piano interessato; non contiene nome del merchant, email o dati checkout.
+scadenza, oltre a completamento dell'onboarding e attivazione/disattivazione della
+Validation. Ogni notifica usa una Rich Message Telegram con tabelle compatte,
+nome pubblico e URL tecnico dello store, stato operativo, piano, dettagli
+economici disponibili e pulsanti per aprire o copiare l'URL. Copia e inoltro del
+messaggio restano consentiti; non contiene nome dell'owner, email, identificatori
+Shopify o dati checkout.
 
-La funzione è intenzionalmente disattivata con
-`OWNER_NOTIFICATIONS_ENABLED=false`. Per attivarla servono un bot dedicato, una
-chat privata avviata e i secret Production `TELEGRAM_BOT_TOKEN`,
+La funzione è attiva soltanto in Production con
+`OWNER_NOTIFICATIONS_ENABLED=true`; Development non invia notifiche. Servono un
+bot dedicato, una chat privata avviata e i secret Production `TELEGRAM_BOT_TOKEN`,
 `TELEGRAM_CHAT_ID`, `SHOPIFY_PARTNER_ORGANIZATION_ID`,
 `SHOPIFY_PARTNER_APP_ID` e `SHOPIFY_PARTNER_ACCESS_TOKEN`; seguire il runbook
-operativo e pubblicare il Worker con la normale procedura Production.
+operativo per configurazione, verifica e rollback.
 
 ## Documentazione e contributi
 
