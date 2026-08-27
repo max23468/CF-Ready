@@ -412,6 +412,7 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   );
   const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   assert.match(ci, /node scripts\/ci-lane\.mjs/);
+  assert.match(ci, /checks: read/);
   assert.match(ci, /statuses: read/);
   assert.match(ci, /needs\.lane\.outputs\.lane == 'docs'[\s\S]*npm run check:docs/);
   assert.match(ci, /needs\.lane\.outputs\.lane == 'standard'[\s\S]*npm run check:standard/);
