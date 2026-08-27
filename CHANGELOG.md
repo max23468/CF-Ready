@@ -8,9 +8,9 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
 ## 1.0.4 — 27 agosto 2026
 
-- la riconciliazione valida il bypass tramite lo stesso App ID usato per
-  generare l'installation token, senza invocare con quel token un endpoint che
-  richiede invece autenticazione come GitHub App;
+- la riconciliazione lega il token allo slug restituito dalla GitHub App e il
+  bypass all'actor ID Integration del ruleset, senza confondere i due namespace
+  né invocare endpoint che richiedono un JWT App;
 - una regressione copre valori mancanti, non numerici, non positivi e fuori
   dall'intervallo sicuro prima del fast-forward protetto di `develop`;
 - le nuove notifiche Telegram dell'owner possono essere copiate e inoltrate,

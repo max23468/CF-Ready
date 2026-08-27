@@ -53,15 +53,21 @@ export function hasReconciliationBypass(ruleset, appId) {
   );
 }
 
-export function reconciliationAppId(value) {
+export function reconciliationActorId(value) {
   if (!/^\d+$/.test(value ?? "")) {
-    throw new Error("Manca l'App ID valido per il riallineamento.");
+    throw new Error("Manca l'actor ID valido per il riallineamento.");
   }
-  const appId = Number(value);
-  if (!Number.isSafeInteger(appId) || appId <= 0) {
-    throw new Error("Manca l'App ID valido per il riallineamento.");
+  const actorId = Number(value);
+  if (!Number.isSafeInteger(actorId) || actorId <= 0) {
+    throw new Error("Manca l'actor ID valido per il riallineamento.");
   }
-  return appId;
+  return actorId;
+}
+
+export function verifyReconciliationApp({ actualSlug, expectedSlug }) {
+  if (!expectedSlug || actualSlug !== expectedSlug) {
+    throw new Error("Il token non appartiene alla GitHub App di riallineamento attesa.");
+  }
 }
 
 export function expectedMainSha({ eventName, sourceDeploySha, mainRefSha }) {
@@ -113,7 +119,11 @@ async function main() {
   const eventName = process.env.GITHUB_EVENT_NAME;
   const githubToken = process.env.GITHUB_TOKEN;
   const reconciliationToken = process.env.RECONCILIATION_TOKEN;
-  const appId = reconciliationAppId(process.env.RECONCILIATION_APP_ID);
+  const actorId = reconciliationActorId(process.env.RECONCILIATION_ACTOR_ID);
+  verifyReconciliationApp({
+    actualSlug: process.env.RECONCILIATION_APP_SLUG,
+    expectedSlug: process.env.EXPECTED_RECONCILIATION_APP_SLUG,
+  });
   if (!githubToken || !reconciliationToken) {
     throw new Error("Mancano i token per il riallineamento.");
   }
@@ -164,7 +174,7 @@ async function main() {
     `/repos/${repository}/rulesets/${developRuleset?.id}`,
     reconciliationToken,
   );
-  if (!hasReconciliationBypass(ruleset, appId)) {
+  if (!hasReconciliationBypass(ruleset, actorId)) {
     throw new Error("La GitHub App di riallineamento non è nella bypass list del ruleset develop.");
   }
   const main = await request(
