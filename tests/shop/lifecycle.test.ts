@@ -427,6 +427,32 @@ test("la retention rispetta le soglie pubblicate per eventi e ricevute", async (
   ]);
 });
 
+test("la retention svuota tutti i batch di campioni performance scaduti", async () => {
+  const shop = await insertShop("retention-performance.example.myshopify.com");
+  const shopId = (await env.DB.prepare("SELECT id FROM shops WHERE shop_domain = ?")
+    .bind(shop)
+    .first<{ id: number }>())!.id;
+  await env.DB.prepare(
+    `INSERT INTO performance_samples (
+       shop_id, metric_id, metric_name, metric_value, app_version, app_route, observed_at
+     )
+     WITH RECURSIVE samples(id) AS (
+       SELECT 1 UNION ALL SELECT id + 1 FROM samples WHERE id < 1001
+     )
+     SELECT ?, 'expired-' || id, 'LCP', id, '1.0.5', 'home', '2026-05-04T00:00:00.000Z'
+     FROM samples`,
+  )
+    .bind(shopId)
+    .run();
+
+  expect((await applyRetention(env.DB, new Date("2026-08-02T00:00:00.000Z"))).events).toBe(1001);
+  expect(
+    await env.DB.prepare(
+      "SELECT COUNT(*) AS total FROM performance_samples WHERE metric_id LIKE 'expired-%'",
+    ).first(),
+  ).toEqual({ total: 0 });
+});
+
 test("la retention limita ogni esecuzione a 25 store", async () => {
   for (let index = 0; index < 26; index += 1) {
     const shop = await insertShop(`retention-batch-${index}.example.myshopify.com`);

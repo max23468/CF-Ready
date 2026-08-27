@@ -49,3 +49,32 @@ test("verifica un export SQL ripristinabile", () => {
   );
   assert.throws(() => verifySqlBackup("SQL non valido"));
 });
+
+test("richiede le tabelle soltanto dalle migrazioni già applicate", () => {
+  const migrations = "CREATE TABLE d1_migrations (id INTEGER PRIMARY KEY, name TEXT);";
+  assert.doesNotThrow(() =>
+    verifySqlBackup(
+      `${migrations} INSERT INTO d1_migrations (name) VALUES ('0012_complimentary_entitlements.sql');`,
+      ":memory:",
+      [],
+    ),
+  );
+  assert.throws(
+    () =>
+      verifySqlBackup(
+        `${migrations} INSERT INTO d1_migrations (name) VALUES ('0013_performance_samples.sql');`,
+        ":memory:",
+        [],
+      ),
+    /performance_samples/,
+  );
+  assert.doesNotThrow(() =>
+    verifySqlBackup(
+      `${migrations}
+       INSERT INTO d1_migrations (name) VALUES ('0013_performance_samples.sql');
+       CREATE TABLE performance_samples (id INTEGER PRIMARY KEY);`,
+      ":memory:",
+      [],
+    ),
+  );
+});
