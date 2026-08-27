@@ -159,6 +159,7 @@ export async function writeValidation(
         ? "validation_limit_reached"
         : "validation_write_failed";
       await persistValidationState(db, shopDomain, {
+        displayName: data.shop.name,
         countryCode,
         eligible,
         validation: existing,
@@ -176,6 +177,7 @@ export async function writeValidation(
     );
 
     await persistValidationState(db, shopDomain, {
+      displayName: data.shop.name,
       countryCode,
       eligible,
       validation: readback,
