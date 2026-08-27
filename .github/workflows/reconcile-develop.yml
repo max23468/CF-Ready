@@ -7,6 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -34,5 +35,7 @@ jobs:
           private-key: ${{ secrets.RECONCILIATION_APP_PRIVATE_KEY }}
       - name: Fast-forward protetto di develop
         env:
+          GITHUB_TOKEN: ${{ github.token }}
           RECONCILIATION_TOKEN: ${{ steps.app-token.outputs.token }}
+          SOURCE_DEPLOY_RUN_ID: ${{ github.event.workflow_run.id }}
         run: node scripts/reconcile-develop.mjs

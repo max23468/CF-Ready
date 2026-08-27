@@ -453,11 +453,14 @@ test("il riallineamento develop è separato dal deploy e fallisce chiuso", () =>
   assert.match(workflow, /workflow_run:/);
   assert.match(workflow, /workflows: \[Deploy Production\]/);
   assert.match(workflow, /environment: Repository Governance/);
+  assert.match(workflow, /actions: read/);
   assert.match(workflow, /actions\/create-github-app-token@[0-9a-f]{40}/);
   assert.match(workflow, /persist-credentials: false/);
   assert.match(script, /parents\[1\] !== develop/);
   assert.match(script, /mainTree !== developTree/);
   assert.match(script, /bypass_actors/);
+  assert.match(script, /deploy-receipt-production-/);
+  assert.match(script, /actions\/workflows\/deploy-production\.yml\/runs/);
   assert.match(script, /force: false/);
   assert.match(script, /readback\.object\.sha/);
 });
