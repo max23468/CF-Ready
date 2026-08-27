@@ -1570,6 +1570,28 @@ Telemetria essenziale e audit operativo sono consolidati in una sola tabella.
 
 Non registrare URL completi, form body, Codice Fiscale, PEC, indirizzi o payload GraphQL.
 
+#### `performance_samples`
+
+Campioni tecnici Web Vitals ricevuti dall'API App Bridge per correlare le regressioni a una
+versione e a una rotta senza conservare contenuti o identificatori dell'interazione.
+
+| Campo | Tipo/logica |
+|---|---|
+| `id` | integer primary key |
+| `shop_id` | foreign key non nullable, cancellazione in cascata |
+| `metric_id` | identificatore tecnico App Bridge, univoco per metrica e store |
+| `metric_name` | `LCP`, `INP`, `CLS`, `FCP`, `TTFB` |
+| `metric_value` | valore numerico non negativo |
+| `country_code` | codice paese a due caratteri, nullable |
+| `app_version` | versione server autorevole che riceve il campione |
+| `app_route` | allowlist `home`, `rules`, `messages`, `guide`, `onboarding`, `other` |
+| `server_timing_json` | sole durate allowlistate del percorso server, nullable |
+| `observed_at` | timestamp server |
+
+Il client inoltra soltanto `id`, nome, valore e paese restituiti da App Bridge. Target DOM,
+attribution, URL completi, query string, testi e valori dei form vengono scartati. L'invio è
+best effort e non modifica la raccolta autorevole che Shopify usa per BFS.
+
 #### `support_requests`
 
 Struttura prevista, **non implementata nella 1.0**: con il recapito via
@@ -3099,6 +3121,7 @@ La Function riceve i valori necessari in Shopify, li valuta localmente e restitu
 | Outbox notifiche owner | 90 giorni |
 | Barriera HMAC antireplay notifiche | 12 mesi da `shop/redact` |
 | Telemetria essenziale `app_events` | 12 mesi |
+| Campioni tecnici `performance_samples` | 90 giorni |
 | Ricevute webhook | periodo minimo utile, target 90 giorni |
 | Prova e pricing generation pseudonimizzati | a lungo termine per prevenire abuso e preservare condizioni |
 | Stato billing operativo D1 e riferimenti Shopify | fino a `shop/redact`; Shopify resta autorevole per acquisti e obblighi amministrativi |

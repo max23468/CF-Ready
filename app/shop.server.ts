@@ -280,61 +280,85 @@ export async function redactExpiredShops(db: D1Database, now = new Date()) {
   return redacted;
 }
 
+async function deleteExpiredPerformanceSamples(db: D1Database, cutoff: string) {
+  let deleted = 0;
+  for (;;) {
+    const result =
+      // I batch sono seriali: ogni iterazione deve osservare quanto resta dopo la precedente.
+      // react-doctor-disable-next-line react-doctor/async-await-in-loop
+      await db
+        .prepare(
+          `DELETE FROM performance_samples WHERE id IN (
+             SELECT id FROM performance_samples WHERE observed_at <= ?
+             ORDER BY observed_at LIMIT 1000
+           )`,
+        )
+        .bind(cutoff)
+        .run();
+    deleted += result.meta.changes;
+    if (result.meta.changes < 1000) return deleted;
+  }
+}
+
 export async function applyRetention(db: D1Database, now = new Date()) {
   const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1_000).toISOString();
   const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1_000).toISOString();
-  const deleted = await db.batch([
-    db
-      .prepare(
-        `DELETE FROM webhook_events WHERE webhook_id IN (
-           SELECT webhook_id FROM webhook_events WHERE received_at <= ?
-           ORDER BY received_at LIMIT 1000
-         )`,
-      )
-      .bind(ninetyDaysAgo),
-    db
-      .prepare(
-        `DELETE FROM app_events WHERE id IN (
-           SELECT id FROM app_events WHERE event_class = 'error' AND occurred_at <= ?
-           ORDER BY occurred_at LIMIT 1000
-         )`,
-      )
-      .bind(ninetyDaysAgo),
-    db
-      .prepare(
-        `DELETE FROM app_events WHERE id IN (
-           SELECT id FROM app_events WHERE event_class != 'error' AND occurred_at <= ?
-           ORDER BY occurred_at LIMIT 1000
-         )`,
-      )
-      .bind(oneYearAgo),
-    db
-      .prepare(
-        `DELETE FROM billing_events WHERE id IN (
-           SELECT id FROM billing_events WHERE occurred_at <= ?
-           ORDER BY occurred_at LIMIT 1000
-         )`,
-      )
-      .bind(oneYearAgo),
-    db
-      .prepare(
-        `DELETE FROM owner_notifications WHERE id IN (
-           SELECT id FROM owner_notifications WHERE created_at <= ?
-           ORDER BY created_at LIMIT 1000
-         )`,
-      )
-      .bind(ninetyDaysAgo),
-    db
-      .prepare(
-        `DELETE FROM owner_notification_redactions WHERE shop_hash IN (
-           SELECT shop_hash FROM owner_notification_redactions WHERE redacted_at <= ?
-           ORDER BY redacted_at LIMIT 1000
-         )`,
-      )
-      .bind(oneYearAgo),
+  const [deleted, performanceSamples, shops] = await Promise.all([
+    db.batch([
+      db
+        .prepare(
+          `DELETE FROM webhook_events WHERE webhook_id IN (
+             SELECT webhook_id FROM webhook_events WHERE received_at <= ?
+             ORDER BY received_at LIMIT 1000
+           )`,
+        )
+        .bind(ninetyDaysAgo),
+      db
+        .prepare(
+          `DELETE FROM app_events WHERE id IN (
+             SELECT id FROM app_events WHERE event_class = 'error' AND occurred_at <= ?
+             ORDER BY occurred_at LIMIT 1000
+           )`,
+        )
+        .bind(ninetyDaysAgo),
+      db
+        .prepare(
+          `DELETE FROM app_events WHERE id IN (
+             SELECT id FROM app_events WHERE event_class != 'error' AND occurred_at <= ?
+             ORDER BY occurred_at LIMIT 1000
+           )`,
+        )
+        .bind(oneYearAgo),
+      db
+        .prepare(
+          `DELETE FROM billing_events WHERE id IN (
+             SELECT id FROM billing_events WHERE occurred_at <= ?
+             ORDER BY occurred_at LIMIT 1000
+           )`,
+        )
+        .bind(oneYearAgo),
+      db
+        .prepare(
+          `DELETE FROM owner_notifications WHERE id IN (
+             SELECT id FROM owner_notifications WHERE created_at <= ?
+             ORDER BY created_at LIMIT 1000
+           )`,
+        )
+        .bind(ninetyDaysAgo),
+      db
+        .prepare(
+          `DELETE FROM owner_notification_redactions WHERE shop_hash IN (
+             SELECT shop_hash FROM owner_notification_redactions WHERE redacted_at <= ?
+             ORDER BY redacted_at LIMIT 1000
+           )`,
+        )
+        .bind(oneYearAgo),
+    ]),
+    deleteExpiredPerformanceSamples(db, ninetyDaysAgo),
+    redactExpiredShops(db, now),
   ]);
   return {
-    events: deleted.reduce((total, result) => total + result.meta.changes, 0),
-    shops: await redactExpiredShops(db, now),
+    events: deleted.reduce((total, result) => total + result.meta.changes, performanceSamples),
+    shops,
   };
 }
