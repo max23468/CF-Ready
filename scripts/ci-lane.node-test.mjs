@@ -16,6 +16,8 @@ test("il sito distribuibile non viene trattato come sola documentazione", () => 
 test("governance, workflow e dipendenze restano full", () => {
   assert.equal(classifyCiLane(["AGENTS.md"]).lane, "full");
   assert.equal(classifyCiLane([".github/workflows/ci.yml"]).lane, "full");
+  assert.equal(classifyCiLane(["docs/runbooks/secret-inventory.md"]).lane, "full");
+  assert.equal(classifyCiLane(["docs/runbooks/future-operation.md"]).lane, "full");
   const dependency = classifyCiLane(["package-lock.json"]);
   assert.equal(dependency.lane, "full");
   assert.equal(dependency.dependencyReview, true);

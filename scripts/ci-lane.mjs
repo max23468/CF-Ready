@@ -13,9 +13,11 @@ const operationalDocs = new Set([
 ]);
 
 const dependencyFiles = new Set(["package.json", "package-lock.json", ".npmrc"]);
+const isOperationalGovernance = (path) =>
+  operationalDocs.has(path) || path.startsWith("docs/runbooks/");
 
 const isContentDocumentation = (path) =>
-  !operationalDocs.has(path) &&
+  !isOperationalGovernance(path) &&
   (path === "README.md" ||
     path === "CONTRIBUTING.md" ||
     path === "LICENSE" ||
@@ -59,7 +61,9 @@ export function classifyCiLane(files, { base = "", head = "" } = {}) {
       files: normalized,
     };
   }
-  const full = normalized.some((path) => operationalDocs.has(path) || isSecuritySensitive(path));
+  const full = normalized.some(
+    (path) => isOperationalGovernance(path) || isSecuritySensitive(path),
+  );
   return {
     lane: full ? "full" : "standard",
     dependencyReview: normalized.some((path) => dependencyFiles.has(path)),
