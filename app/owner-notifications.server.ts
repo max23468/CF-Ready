@@ -289,7 +289,6 @@ export async function deliverOwnerNotifications(
         body: JSON.stringify({
           chat_id: config.chatId,
           text: `${notification.subject}\n\n${notification.body_text}`,
-          protect_content: true,
         }),
       });
       // Telegram può rispondere HTTP 200 con `ok: false`: entrambi i livelli sono necessari.
