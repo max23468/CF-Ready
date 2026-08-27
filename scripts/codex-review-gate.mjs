@@ -1,5 +1,8 @@
 import { readFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
+import { classifyCiLane } from "./ci-lane.mjs";
+import { verifyPromotion } from "./github-gates.mjs";
 
 const CODEX_BOT = "chatgpt-codex-connector[bot]";
 const TRUSTED_ASSOCIATIONS = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
@@ -17,6 +20,30 @@ export const findingPriority = (body = "") =>
 
 export const isAutomaticFirstReview = (eventName, action) =>
   eventName === "pull_request_target" && ["opened", "ready_for_review"].includes(action);
+
+export const isPromotion = (pullRequest, repository) =>
+  pullRequest.base?.ref === "main" &&
+  pullRequest.head?.ref === "develop" &&
+  pullRequest.head?.repo?.full_name === repository;
+
+export const codexReviewLane = (files, pullRequest) =>
+  classifyCiLane(
+    files.map((file) => file.filename),
+    { base: pullRequest.base?.ref, head: pullRequest.head?.ref },
+  ).lane;
+
+export function advisoryReviewThreads(threads, headSha) {
+  return threads.filter((thread) => {
+    if (thread.isResolved) return false;
+    const exactCodexComments = thread.comments.nodes.filter(
+      (comment) => comment.author?.login === CODEX_BOT && comment.originalCommit?.oid === headSha,
+    );
+    return (
+      exactCodexComments.some((comment) => ["P2", "P3"].includes(findingPriority(comment.body))) &&
+      !exactCodexComments.some((comment) => ["P0", "P1"].includes(findingPriority(comment.body)))
+    );
+  });
+}
 
 export const latestCodexInvocation = (comments, headAvailableAt) =>
   comments
@@ -139,6 +166,99 @@ async function request(path, options = {}) {
   return response.json();
 }
 
+async function graphql(query, variables) {
+  const response = await fetch("https://api.github.com/graphql", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+  if (!response.ok) throw new Error(`POST /graphql: ${response.status}`);
+  const result = await response.json();
+  if (result.errors?.length)
+    throw new Error(result.errors.map(({ message }) => message).join("; "));
+  return result.data;
+}
+
+async function resolveAdvisoryThreads(repository, number, headSha) {
+  const [owner, name] = repository.split("/");
+  const data = await graphql(
+    `
+      query AdvisoryThreads($owner: String!, $name: String!, $number: Int!) {
+        repository(owner: $owner, name: $name) {
+          pullRequest(number: $number) {
+            reviewThreads(first: 100) {
+              nodes {
+                id
+                isResolved
+                comments(first: 100) {
+                  nodes {
+                    body
+                    url
+                    author {
+                      login
+                    }
+                    originalCommit {
+                      oid
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `,
+    { owner, name, number: Number(number) },
+  );
+  const advisory = advisoryReviewThreads(data.repository.pullRequest.reviewThreads.nodes, headSha);
+  for (const thread of advisory) {
+    await graphql(
+      `
+        mutation ResolveAdvisory($threadId: ID!) {
+          resolveReviewThread(input: { threadId: $threadId }) {
+            thread {
+              id
+              isResolved
+            }
+          }
+        }
+      `,
+      { threadId: thread.id },
+    );
+  }
+  const report = advisory.flatMap((thread) =>
+    thread.comments.nodes
+      .filter(
+        (comment) =>
+          comment.author?.login === CODEX_BOT &&
+          comment.originalCommit?.oid === headSha &&
+          ["P2", "P3"].includes(findingPriority(comment.body)),
+      )
+      .map((comment) => ({
+        priority: findingPriority(comment.body),
+        url: comment.url,
+        body: comment.body,
+      })),
+  );
+  if (process.env.ADVISORY_REPORT_PATH) {
+    await writeFile(
+      process.env.ADVISORY_REPORT_PATH,
+      `${JSON.stringify({ pullRequest: Number(number), headSha, findings: report }, null, 2)}\n`,
+    );
+  }
+  if (process.env.GITHUB_STEP_SUMMARY && report.length > 0) {
+    await writeFile(
+      process.env.GITHUB_STEP_SUMMARY,
+      `\n### Finding Codex advisory registrati\n\n${report.map(({ priority, url }) => `- ${priority}: ${url}`).join("\n")}\n`,
+      { flag: "a" },
+    );
+  }
+  return report;
+}
+
 async function all(path) {
   const items = [];
   for (let page = 1; ; page += 1) {
@@ -175,6 +295,23 @@ async function main() {
       ? event.pull_request.updated_at
       : headCommit.commit.committer.date;
 
+  if (isPromotion(pullRequest, repository)) {
+    await verifyPromotion({ event: { pull_request: pullRequest }, repository });
+    await setStatus(repository, headSha, "success", "Codex: review del contenuto già verificata");
+    return;
+  }
+
+  const files = await all(`/repos/${repository}/pulls/${number}/files`);
+  if (codexReviewLane(files, pullRequest) === "docs") {
+    await setStatus(
+      repository,
+      headSha,
+      "success",
+      "Codex: review non applicabile alla documentazione di contenuto",
+    );
+    return;
+  }
+
   await setStatus(repository, headSha, "pending", "In attesa della review Codex");
   if (pullRequest.draft) return;
 
@@ -208,6 +345,7 @@ async function main() {
       reviews,
     });
     if (result.state !== "pending") {
+      if (result.state === "success") await resolveAdvisoryThreads(repository, number, headSha);
       await setStatus(repository, headSha, result.state, result.description);
       return;
     }

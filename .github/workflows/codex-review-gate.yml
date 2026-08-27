@@ -15,7 +15,7 @@ on:
 permissions:
   contents: read
   issues: read
-  pull-requests: read
+  pull-requests: write
   statuses: write
 
 jobs:
@@ -37,11 +37,21 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
           persist-credentials: false
       - name: Verifica il gate
         run: node --test scripts/codex-review-gate.test.mjs
       - name: Attendi la review Codex
         env:
+          ADVISORY_REPORT_PATH: ${{ runner.temp }}/codex-advisory.json
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PULL_REQUEST_NUMBER: ${{ inputs.pull_request }}
         run: node scripts/codex-review-gate.mjs
+      - name: Conserva i finding advisory
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: advisory-codex-${{ github.event.pull_request.number || github.event.issue.number || inputs.pull_request }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/codex-advisory.json
+          if-no-files-found: ignore
+          retention-days: 90

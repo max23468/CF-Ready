@@ -58,19 +58,32 @@ export function verifyDevelopmentConfig(shopifyConfig, wranglerConfig) {
   }
 }
 
-export function verifyVersionAvailable(versions, version, deployment, commit) {
-  if (!versions.some(({ versionTag }) => versionTag === version)) return false;
+export function developmentVersion(version, tree) {
+  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version) || !/^[0-9a-f]{40}$/.test(tree)) {
+    throw new Error("Versione repository o tree Git non validi per Development.");
+  }
+  return `${version}-dev.${tree.slice(0, 12)}`;
+}
+
+export function verifyVersionAvailable(versions, version, deployment, commit, tree) {
+  if (!versions.some(({ versionTag }) => versionTag === version)) {
+    return { readbackOnly: false, deployedCommit: undefined };
+  }
 
   const active = versions.find(({ status }) => status === "active");
+  const deployedCommit = active?.message?.match(/^Development ([0-9a-f]{40})$/)?.[1];
+  const baseVersion = version.slice(0, version.lastIndexOf("-dev."));
   if (
     commit &&
+    tree &&
+    version === developmentVersion(baseVersion, tree) &&
     active?.versionTag === version &&
-    active.message === `Development ${commit}` &&
-    deployment.annotations?.["workers/message"] === `Development ${commit}` &&
+    deployedCommit &&
+    deployment.annotations?.["workers/message"] === `Development ${deployedCommit}` &&
     deployment.versions?.length === 1 &&
     deployment.versions[0].percentage === 100
   ) {
-    return true;
+    return { readbackOnly: true, deployedCommit };
   }
   throw new Error(`La versione Shopify ${version} è già stata pubblicata.`);
 }
@@ -164,14 +177,21 @@ async function main() {
   );
   if (!readbackOnly) {
     const { version } = JSON.parse(await readFile("package.json", "utf8"));
-    const deployReadbackOnly = verifyVersionAvailable(
+    const tree = process.env.GIT_TREE;
+    const deployVersion = process.env.DEPLOY_VERSION ?? developmentVersion(version, tree);
+    const availability = verifyVersionAvailable(
       versions,
-      version,
+      deployVersion,
       deployment,
       process.env.GITHUB_SHA,
+      tree,
     );
     if (process.env.GITHUB_ENV) {
-      await appendFile(process.env.GITHUB_ENV, `DEPLOY_READBACK_ONLY=${deployReadbackOnly}\n`);
+      await appendFile(
+        process.env.GITHUB_ENV,
+        `DEPLOY_READBACK_ONLY=${availability.readbackOnly}\n` +
+          `DEPLOY_SOURCE_COMMIT=${availability.deployedCommit ?? process.env.GITHUB_SHA}\n`,
+      );
     }
   }
   verifyCoordinatedRollback(deployment, versions);

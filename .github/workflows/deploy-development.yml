@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: read
+  checks: read
 
 concurrency:
   group: deploy-development
@@ -40,7 +41,26 @@ jobs:
       - run: npm install --global npm@12.0.2
       - run: npm install --global --allow-scripts=esbuild @shopify/cli@4.7.0
       - run: npm ci
-      - run: npm run check
+
+      - name: Riusa i gate dell'HEAD Development
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUIRED_CHECKS: verify,e2e
+        run: node scripts/github-gates.mjs
+
+      - name: Prepara versione Development per tree
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          tree="$(git rev-parse 'HEAD^{tree}')"
+          deploy_version="$(node --input-type=module -e '
+            import { developmentVersion } from "./scripts/preflight-dev.mjs";
+            process.stdout.write(developmentVersion(process.argv[1], process.argv[2]));
+          ' "$version" "$tree")"
+          {
+            echo "DEPLOY_VERSION=$deploy_version"
+            echo "GIT_TREE=$tree"
+            echo "REPOSITORY_VERSION=$version"
+          } >> "$GITHUB_ENV"
 
       - name: Verifica credenziali provider
         env:
@@ -60,21 +80,20 @@ jobs:
           SHOPIFY_PROJECT_FILE: config/shopify-project.dev.json
         run: npm run preflight:dev
 
-      # Lo snapshot prende la versione esatta del manifest: un nome già rilasciato fa
-      # fallire il deploy, ed è il segnale che manca il bump SemVer della release.
-      - name: Prepara versione
+      - name: Inizializza ricevuta
         run: |
           version="$(node -p "require('./package.json').version")"
-          echo "DEPLOY_VERSION=$version" >> "$GITHUB_ENV"
           {
             echo "## Ricevuta deploy Development"
             echo "- Ambiente: Development"
             echo "- Configurazione: \`wrangler.json\`, \`shopify.app.dev.toml\`"
-            echo "- Versione repository/Shopify: \`$version\`"
+            echo "- Versione repository: \`$version\`"
+            echo "- Snapshot Shopify: \`$DEPLOY_VERSION\`"
             echo "- Commit: \`$GITHUB_SHA\`"
+            echo "- Tree Git: \`$GIT_TREE\`"
           } >> "$GITHUB_STEP_SUMMARY"
           if [ "$DEPLOY_READBACK_ONLY" = "true" ]; then
-            echo "- Retry dello snapshot già coordinato: eseguito solo readback" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Contenuto già distribuito dal commit \`$DEPLOY_SOURCE_COMMIT\`: eseguito solo readback" >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Registra rollback Worker Development
@@ -140,7 +159,7 @@ jobs:
             import { appendFileSync, readFileSync } from "node:fs";
             const deployment = JSON.parse(readFileSync(process.argv[1], "utf8"));
             if (!deployment.id ||
-                deployment.annotations?.["workers/message"] !== `Development ${process.env.GITHUB_SHA}` ||
+                deployment.annotations?.["workers/message"] !== `Development ${process.env.DEPLOY_SOURCE_COMMIT}` ||
                 deployment.versions?.length !== 1 || deployment.versions[0].percentage !== 100) {
               throw new Error("Readback Worker Development non riuscito.");
             }
@@ -185,14 +204,31 @@ jobs:
             const versions = JSON.parse(readFileSync(process.argv[1], "utf8"));
             const active = versions.find(({ status }) => status === "active");
             if (active?.versionTag !== process.env.DEPLOY_VERSION ||
-                active.message !== `Development ${process.env.GITHUB_SHA}`) {
+                active.message !== `Development ${process.env.DEPLOY_SOURCE_COMMIT}`) {
               throw new Error("Readback Shopify Development non riuscito.");
             }
             appendFileSync(process.env.GITHUB_STEP_SUMMARY,
               `- Shopify attivo: versione \`${active.versionTag}\` (\`${active.versionId}\`), ` +
-              `commit \`${process.env.GITHUB_SHA}\`\n`);
+              `commit sorgente \`${process.env.DEPLOY_SOURCE_COMMIT}\`\n`);
             console.log(`Versione attiva verificata: ${active.versionTag} (${active.versionId})`);
           ' "$RUNNER_TEMP/shopify-versions.json"
+
+      - name: Genera ricevuta Development
+        env:
+          DEPLOY_ENVIRONMENT: Development
+          DEPLOY_RECEIPT_PATH: ${{ runner.temp }}/deploy-receipt-development.json
+          ROLLBACK_SHOPIFY_VERSION_TAG: ${{ steps.rollback_snapshot.outputs.shopify_version_tag }}
+          ROLLBACK_WORKER_VERSION_ID: ${{ steps.rollback_snapshot.outputs.worker_version_id }}
+          SHOPIFY_RECEIPT_PATH: ${{ runner.temp }}/shopify-versions.json
+          WORKER_RECEIPT_PATH: ${{ runner.temp }}/worker-deployment.json
+        run: node scripts/deploy-receipt.mjs
+
+      - name: Conserva la ricevuta Development
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: deploy-receipt-development-${{ github.sha }}
+          path: ${{ runner.temp }}/deploy-receipt-development.json
+          retention-days: 90
 
   rollback:
     name: Ripristina Development se il deploy non termina

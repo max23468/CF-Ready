@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import {
+  developmentVersion,
   verifyCoordinatedRollback,
   verifyDevelopmentConfig,
   verifyMigrationSafety,
@@ -92,26 +93,32 @@ test("il preflight lega il nome Worker alla chiave corretta", () => {
 });
 
 test("il preflight rifiuta una versione Shopify già pubblicata", () => {
+  const tree = "b".repeat(40);
+  const version = developmentVersion("0.4.22", tree);
   assert.throws(
-    () => verifyVersionAvailable([{ versionTag: "0.4.22" }], "0.4.22", {}, undefined),
+    () => verifyVersionAvailable([{ versionTag: version }], version, {}, undefined, tree),
     /già stata pubblicata/,
   );
-  assert.doesNotThrow(() => verifyVersionAvailable([{ versionTag: "0.4.21" }], "0.4.22"));
+  assert.deepEqual(verifyVersionAvailable([{ versionTag: "0.4.21" }], version), {
+    readbackOnly: false,
+    deployedCommit: undefined,
+  });
 });
 
-test("il retry dello stesso commit coordinato procede in solo readback", () => {
+test("il retry dello stesso tree coordinato procede in solo readback", () => {
   const commit = "d49717985a93a40f0b0958d19fa8bb012f24b701";
+  const tree = "b".repeat(40);
+  const version = developmentVersion("0.4.22", tree);
   const deployment = {
     annotations: { "workers/message": `Development ${commit}` },
     versions: [{ version_id: "worker-version-uno", percentage: 100 }],
   };
-  const versions = [{ status: "active", versionTag: "0.4.22", message: `Development ${commit}` }];
+  const versions = [{ status: "active", versionTag: version, message: `Development ${commit}` }];
 
-  assert.equal(verifyVersionAvailable(versions, "0.4.22", deployment, commit), true);
-  assert.throws(
-    () => verifyVersionAvailable(versions, "0.4.22", deployment, "a".repeat(40)),
-    /già stata pubblicata/,
-  );
+  assert.deepEqual(verifyVersionAvailable(versions, version, deployment, "a".repeat(40), tree), {
+    readbackOnly: true,
+    deployedCommit: commit,
+  });
 });
 
 test("il readback D1 richiede zero migrazioni pendenti", () => {

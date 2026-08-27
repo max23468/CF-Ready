@@ -21,9 +21,26 @@ su `develop`; il job dichiara `deployment: false`, quindi non crea notifiche o
 ricevute di deploy. Il token è un PAT fine-grained senza scadenza, limitato a
 `CF-Ready` e in sola lettura su metadati, Actions e alert Dependabot, CodeQL e
 Secret Scanning: non può scrivere sul repository e non va rinnovato
-periodicamente. L'API pubblica non espone bypass actor, auto-merge e
-cancellazione automatica dei branch: l'owner li verifica nelle impostazioni del
-repository soltanto quando modifica la governance.
+periodicamente. Il token di audit in sola lettura non riceve la bypass list dei
+ruleset. Il workflow `Reconcile develop` la verifica invece a ogni esecuzione
+con il proprio token GitHub App e fallisce prima della scrittura se l'app non è
+l'unico actor dedicato configurato per il fast-forward.
+
+## GitHub App di riallineamento
+
+Il fast-forward post-Production usa una GitHub App dedicata, installata soltanto
+su `CF-Ready`, con permesso Contents in scrittura e Administration in lettura.
+L'environment `Repository Governance` conserva `RECONCILIATION_APP_ID` e
+`RECONCILIATION_APP_PRIVATE_KEY`; la chiave privata genera un token effimero per
+ogni run e non viene usata dagli altri workflow. Il ruleset `develop governance`
+ammette l'Integration ID dell'app in modalità `always`. Nessun utente, ruolo o
+GitHub Actions generico entra nella bypass list.
+
+Prima del fast-forward lo script verifica app, ruleset, branch remoti, due
+parent del merge Production, secondo parent uguale all'HEAD corrente di
+`develop` e tree identici. La scrittura è non forzata e seguita da readback. Una
+concorrenza su `develop`, un merge anomalo o una configurazione incompleta
+fermano il riallineamento senza influire sul deploy Production già concluso.
 
 ## Dipendenze npm
 

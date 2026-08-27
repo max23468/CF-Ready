@@ -3,9 +3,12 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   CODEX_REVIEW_POLLING,
+  advisoryReviewThreads,
   classifyCodexReview,
+  codexReviewLane,
   findingPriority,
   isAutomaticFirstReview,
+  isPromotion,
   latestCodexInvocation,
   pullRequestNumber,
 } from "./codex-review-gate.mjs";
@@ -80,6 +83,46 @@ test("P2/P3 sono advisory e completano il gate dopo l'assestamento", () => {
     "pending",
   );
   assert.equal(classify(input).state, "success");
+});
+
+test("seleziona per la risoluzione automatica solo thread P2/P3 Codex dell'HEAD", () => {
+  const thread = (priority, commit = headSha, isResolved = false) => ({
+    id: priority,
+    isResolved,
+    comments: {
+      nodes: [
+        {
+          author: bot,
+          originalCommit: { oid: commit },
+          body: `**${priority}** Finding`,
+          url: `https://example.test/${priority}`,
+        },
+      ],
+    },
+  });
+  assert.deepEqual(
+    advisoryReviewThreads(
+      [thread("P2"), thread("P3"), thread("P1"), thread("P2", oldSha), thread("P3", headSha, true)],
+      headSha,
+    ).map(({ id }) => id),
+    ["P2", "P3"],
+  );
+});
+
+test("riconosce soltanto la promozione develop verso main della stessa repository", () => {
+  const promotion = {
+    base: { ref: "main" },
+    head: { ref: "develop", repo: { full_name: "owner/repo" } },
+  };
+  assert.equal(isPromotion(promotion, "owner/repo"), true);
+  assert.equal(isPromotion(promotion, "fork/repo"), false);
+});
+
+test("salta la review soltanto per documentazione di contenuto", () => {
+  const pullRequest = { base: { ref: "develop" }, head: { ref: "docs-copy" } };
+  assert.equal(codexReviewLane([{ filename: "docs/listing/listing-it.md" }], pullRequest), "docs");
+  assert.equal(codexReviewLane([{ filename: "site/index.html" }], pullRequest), "standard");
+  assert.equal(codexReviewLane([{ filename: "AGENTS.md" }], pullRequest), "full");
 });
 
 test("un advisory top-level richiede il marker dell'HEAD", () => {
@@ -180,9 +223,11 @@ test("il workflow usa codice trusted e non richiede commenti al primo giro", asy
   assert.match(workflow, /github\.event\.comment\.author_association == 'OWNER'/);
   assert.doesNotMatch(workflow, /contains\(github\.event\.comment\.body/);
   assert.match(workflow, /statuses: write/);
+  assert.match(workflow, /pull-requests: write/);
   assert.doesNotMatch(workflow, /issues: write/);
   assert.match(workflow, /node --test scripts\/codex-review-gate\.test\.mjs/);
   assert.match(workflow, /ref:\s*\$\{\{ github\.event\.repository\.default_branch \}\}/);
   assert.doesNotMatch(workflow, /github\.ref_name/);
   assert.match(workflow, /jobs:\s*\n  gate:[\s\S]*?    concurrency:/);
+  assert.match(workflow, /advisory-codex-/);
 });
