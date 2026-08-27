@@ -8,17 +8,11 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
 ## 1.0.4 — 27 agosto 2026
 
-- la riconciliazione lega il token allo slug restituito dalla GitHub App e il
-  bypass all'actor ID Integration del ruleset, senza confondere i due namespace
-  né invocare endpoint che richiedono un JWT App;
-- la configurazione del ruleset viene letta dal token di governance dotato
-  dell'accesso necessario a osservare i bypass, mentre l'installation token
-  resta limitato alle operazioni Git autorizzate dalla GitHub App;
-- l'identità resta verificabile anche quando GitHub redige l'actor ID al token
-  di workflow: unico bypass Integration, slug App esatto e mutazione non forzata
-  continuano a essere obbligatori;
-- una regressione copre valori mancanti, non numerici, non positivi e fuori
-  dall'intervallo sicuro prima del fast-forward protetto di `develop`;
+- la riconciliazione lega il token allo slug restituito dalla GitHub App senza
+  invocare endpoint che richiedono un JWT App;
+- un preflight separato usa il token effimero con accesso Administration per
+  verificare che la GitHub App dedicata sia l'unico bypass del ruleset prima
+  della scrittura non forzata di `develop`;
 - le nuove notifiche Telegram dell'owner possono essere copiate e inoltrate,
   mantenendo invariata la minimizzazione dei dati contenuti.
 
