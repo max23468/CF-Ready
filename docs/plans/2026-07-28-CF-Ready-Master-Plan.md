@@ -2714,12 +2714,21 @@ Dentro una milestone, ogni ulteriore release Production incrementa la **patch**
 (`0.2.1`, `0.2.2`). Gli snapshot Development non consumano versioni commerciali:
 il suffisso `dev.<tree>` cambia soltanto quando cambia il contenuto.
 
-Una modifica si legge e si revisiona intera: codice, bump di manifest e
-lockfile, changelog e documentazione della stessa modifica stanno **nella
-stessa PR**, non in PR separate. La ricevuta di deploy, che esiste solo dopo il
-rilascio, non ha una PR propria: il workflow conserva un artifact JSON legato a
-commit e tree e attesta quello Production. La chiusura collega il run o la
-GitHub Release senza ricopiare la ricevuta nel repository. Il tag
+Quando la destinazione Production è già prevista, una modifica si legge e si
+revisiona intera: codice, bump di manifest e lockfile, changelog e documentazione
+della stessa modifica stanno **nella stessa PR**, non in PR separate. Se invece
+l'owner autorizza Production soltanto dopo l'integrazione e il deploy
+Development di un tree privo di bump commerciale, il solo forward-fix ammesso è
+una PR preparatoria che modifica esclusivamente manifest, lockfile, changelog,
+documentazione di release e regressioni mirate della relativa policy. Questa PR
+ripete il gate completo e il deploy Development exact-HEAD prima della
+promozione; non è una PR di ricevuta o di chiusura e non si usa quando la
+destinazione Production era già nota.
+
+La ricevuta di deploy, che esiste solo dopo il rilascio, non ha una PR propria:
+il workflow conserva un artifact JSON legato a commit e tree e attesta quello
+Production. La chiusura collega il run o la GitHub Release senza ricopiare la
+ricevuta nel repository. Il tag
 `vX.Y.Z` e la GitHub Release vengono creati soltanto dopo il completamento
 riuscito del workflow Production, dello smoke e del readback sul medesimo commit.
 

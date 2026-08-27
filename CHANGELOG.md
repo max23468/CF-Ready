@@ -6,6 +6,19 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.0.3 — 27 agosto 2026
+
+- la CI seleziona corsie proporzionate al rischio mantenendo stabili i required
+  check e riusando le prove exact-HEAD nelle promozioni e nei deploy;
+- Development identifica gli snapshot dal tree Git e conserva le ricevute di
+  deploy come artifact immutabili, senza aprire PR di sola chiusura;
+- i finding P2/P3 della review restano advisory, vengono registrati e hanno i
+  thread risolti automaticamente, mentre P0/P1 continuano a bloccare il merge;
+- una GitHub App dedicata riallinea `develop` al merge Production soltanto dopo
+  deploy e readback verdi, con controlli fail-closed su parent, tree e ruleset;
+- il Master Plan distingue lo stato storico di M11, le prove correnti di M12 e
+  il lavoro successivo senza trasformare checklist future in stato runtime.
+
 ## 1.0.2 — 26 agosto 2026
 
 - GraphQL passa alla major 17; le estensioni dei peer documentano le
