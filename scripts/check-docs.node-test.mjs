@@ -478,7 +478,10 @@ test("la preparazione tardiva della release resta un forward-fix verificato", ()
     "utf8",
   );
   assert.match(plan, /autorizza Production soltanto dopo l'integrazione/);
-  assert.match(plan, /PR preparatoria che modifica esclusivamente manifest, lockfile, changelog/);
+  assert.match(
+    plan,
+    /PR preparatoria che modifica esclusivamente manifest, lockfile, changelog,[\s\S]*regressioni mirate della relativa policy/,
+  );
   assert.match(plan, /gate completo e il deploy\s+Development exact-HEAD/);
   assert.match(plan, /non è una PR di ricevuta o di\s+chiusura/);
 });
