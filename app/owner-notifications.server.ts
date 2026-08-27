@@ -352,6 +352,7 @@ export async function deliverOwnerNotifications(
 
     try {
       // react-doctor-disable-next-line react-doctor/async-await-in-loop
+      // Bot API 10.3: https://core.telegram.org/bots/api#sendrichmessage
       const response = await fetcher(
         `https://api.telegram.org/bot${config.botToken}/sendRichMessage`,
         {
