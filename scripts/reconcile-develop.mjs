@@ -29,6 +29,17 @@ export function hasReconciliationBypass(ruleset, appId) {
   );
 }
 
+export function reconciliationAppId(value) {
+  if (!/^\d+$/.test(value ?? "")) {
+    throw new Error("Manca l'App ID valido per il riallineamento.");
+  }
+  const appId = Number(value);
+  if (!Number.isSafeInteger(appId) || appId <= 0) {
+    throw new Error("Manca l'App ID valido per il riallineamento.");
+  }
+  return appId;
+}
+
 export function expectedMainSha({ eventName, sourceDeploySha, mainRefSha }) {
   const expected = eventName === "workflow_run" ? sourceDeploySha : mainRefSha;
   if (
@@ -78,6 +89,7 @@ async function main() {
   const eventName = process.env.GITHUB_EVENT_NAME;
   const githubToken = process.env.GITHUB_TOKEN;
   const reconciliationToken = process.env.RECONCILIATION_TOKEN;
+  const appId = reconciliationAppId(process.env.RECONCILIATION_APP_ID);
   if (!githubToken || !reconciliationToken) {
     throw new Error("Mancano i token per il riallineamento.");
   }
@@ -118,8 +130,7 @@ async function main() {
     artifacts: artifactResponse.artifacts,
     expectedMain,
   });
-  const [installation, rulesets, mainRef, developRef] = await Promise.all([
-    request("/installation", reconciliationToken),
+  const [rulesets, mainRef, developRef] = await Promise.all([
     request(`/repos/${repository}/rulesets`, reconciliationToken),
     request(`/repos/${repository}/git/ref/heads/main`, reconciliationToken),
     request(`/repos/${repository}/git/ref/heads/develop`, reconciliationToken),
@@ -129,7 +140,7 @@ async function main() {
     `/repos/${repository}/rulesets/${developRuleset?.id}`,
     reconciliationToken,
   );
-  if (!hasReconciliationBypass(ruleset, installation.app_id)) {
+  if (!hasReconciliationBypass(ruleset, appId)) {
     throw new Error("La GitHub App di riallineamento non è nella bypass list del ruleset develop.");
   }
   const main = await request(

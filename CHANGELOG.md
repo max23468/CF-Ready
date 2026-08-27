@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.0.4 — 27 agosto 2026
+
+- la riconciliazione valida il bypass tramite lo stesso App ID usato per
+  generare l'installation token, senza invocare con quel token un endpoint che
+  richiede invece autenticazione come GitHub App;
+- una regressione copre valori mancanti, non numerici, non positivi e fuori
+  dall'intervallo sicuro prima del fast-forward protetto di `develop`.
+
 ## 1.0.3 — 27 agosto 2026
 
 - la CI seleziona corsie proporzionate al rischio mantenendo stabili i required
