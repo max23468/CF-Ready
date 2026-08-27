@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
 
 const QUERY = `
 SELECT
@@ -119,4 +120,6 @@ function main() {
   process.stdout.write(`${JSON.stringify({ environment, ...report }, null, 2)}\n`);
 }
 
-if (import.meta.main) main();
+const isDirectExecution =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isDirectExecution) main();

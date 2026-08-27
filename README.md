@@ -4,8 +4,9 @@ Public app Shopify per validare formalmente Codice Fiscale e PEC nei campi
 nativi del checkout italiano.
 
 Versione e stato corrente si leggono da `package.json`, `CHANGELOG.md`, codice e
-configurazioni. Le ricevute puntuali delle operazioni remote sono in
-`docs/evidence/`. Il sito pubblico è
+configurazioni. Le ricevute storiche chiuse sono in `docs/evidence/`; i deploy
+correnti producono artifact JSON del workflow legati a commit e tree, attestati
+in Production. Il sito pubblico è
 [cf-ready.pages.dev](https://cf-ready.pages.dev/).
 
 ## Sviluppo locale
@@ -61,6 +62,8 @@ mise exec -- npm run test:function
 mise exec -- npm run test:e2e
 mise exec -- npm run preflight:dev
 mise exec -- npm run docs:check
+mise exec -- npm run check:docs
+mise exec -- npm run check:standard
 mise exec -- npm run check
 ```
 

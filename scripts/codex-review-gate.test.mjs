@@ -3,9 +3,13 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   CODEX_REVIEW_POLLING,
+  advisoryReviewThreads,
   classifyCodexReview,
+  codexReviewLane,
   findingPriority,
+  isCodexBot,
   isAutomaticFirstReview,
+  isPromotion,
   latestCodexInvocation,
   pullRequestNumber,
 } from "./codex-review-gate.mjs";
@@ -14,6 +18,7 @@ const headSha = "0123456789abcdef0123456789abcdef01234567";
 const oldSha = "abcdef0123456789abcdef0123456789abcdef01";
 const requestedAt = "2026-08-09T12:00:00Z";
 const bot = { login: "chatgpt-codex-connector[bot]" };
+const graphqlBot = { login: "chatgpt-codex-connector" };
 const classify = (overrides = {}) =>
   classifyCodexReview({
     headSha,
@@ -25,6 +30,12 @@ const classify = (overrides = {}) =>
 test("legge la priorità solo dall'intestazione del finding", () => {
   assert.equal(findingPriority("**P2** Advisory che cita P0 e P1"), "P2");
   assert.equal(findingPriority("testo che cita P1"), undefined);
+});
+
+test("riconosce l'identità Codex restituita da REST e GraphQL", () => {
+  assert.equal(isCodexBot(bot.login), true);
+  assert.equal(isCodexBot(graphqlBot.login), true);
+  assert.equal(isCodexBot("utente"), false);
 });
 
 test("blocca soltanto P0/P1 dell'HEAD corrente", () => {
@@ -80,6 +91,64 @@ test("P2/P3 sono advisory e completano il gate dopo l'assestamento", () => {
     "pending",
   );
   assert.equal(classify(input).state, "success");
+});
+
+test("seleziona per la risoluzione automatica solo thread P2/P3 Codex dell'HEAD", () => {
+  const thread = (priority, commit = headSha, isResolved = false, author = graphqlBot) => ({
+    id: priority,
+    isResolved,
+    comments: {
+      nodes: [
+        {
+          author,
+          originalCommit: { oid: commit },
+          body: `**${priority}** Finding`,
+          url: `https://example.test/${priority}`,
+        },
+      ],
+    },
+  });
+  assert.deepEqual(
+    advisoryReviewThreads(
+      [
+        thread("P2"),
+        thread("P3", headSha, false, bot),
+        thread("P1"),
+        thread("P2", oldSha),
+        thread("P3", headSha, true),
+      ],
+      headSha,
+    ).map(({ id }) => id),
+    ["P2", "P3"],
+  );
+});
+
+test("riconosce soltanto la promozione develop verso main della stessa repository", () => {
+  const promotion = {
+    base: { ref: "main" },
+    head: { ref: "develop", repo: { full_name: "owner/repo" } },
+  };
+  assert.equal(isPromotion(promotion, "owner/repo"), true);
+  assert.equal(isPromotion(promotion, "fork/repo"), false);
+});
+
+test("salta la review soltanto per documentazione di contenuto", () => {
+  const pullRequest = { base: { ref: "develop" }, head: { ref: "docs-copy" } };
+  assert.equal(codexReviewLane([{ filename: "docs/listing/listing-it.md" }], pullRequest), "docs");
+  assert.equal(codexReviewLane([{ filename: "site/index.html" }], pullRequest), "standard");
+  assert.equal(codexReviewLane([{ filename: "AGENTS.md" }], pullRequest), "full");
+  assert.equal(
+    codexReviewLane(
+      [
+        {
+          filename: "docs/deploy.md",
+          previous_filename: ".github/workflows/deploy.yml",
+        },
+      ],
+      pullRequest,
+    ),
+    "full",
+  );
 });
 
 test("un advisory top-level richiede il marker dell'HEAD", () => {
@@ -180,9 +249,12 @@ test("il workflow usa codice trusted e non richiede commenti al primo giro", asy
   assert.match(workflow, /github\.event\.comment\.author_association == 'OWNER'/);
   assert.doesNotMatch(workflow, /contains\(github\.event\.comment\.body/);
   assert.match(workflow, /statuses: write/);
+  assert.match(workflow, /checks: read/);
+  assert.match(workflow, /pull-requests: write/);
   assert.doesNotMatch(workflow, /issues: write/);
   assert.match(workflow, /node --test scripts\/codex-review-gate\.test\.mjs/);
   assert.match(workflow, /ref:\s*\$\{\{ github\.event\.repository\.default_branch \}\}/);
   assert.doesNotMatch(workflow, /github\.ref_name/);
   assert.match(workflow, /jobs:\s*\n  gate:[\s\S]*?    concurrency:/);
+  assert.match(workflow, /advisory-codex-/);
 });

@@ -1,0 +1,42 @@
+name: Reconcile develop
+
+on:
+  workflow_run:
+    workflows: [Deploy Production]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: reconcile-develop
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: Repository Governance
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+          persist-credentials: false
+      - id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ secrets.RECONCILIATION_APP_ID }}
+          private-key: ${{ secrets.RECONCILIATION_APP_PRIVATE_KEY }}
+      - name: Fast-forward protetto di develop
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RECONCILIATION_TOKEN: ${{ steps.app-token.outputs.token }}
+          SOURCE_DEPLOY_RUN_ID: ${{ github.event.workflow_run.id }}
+          SOURCE_DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: node scripts/reconcile-develop.mjs
