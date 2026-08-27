@@ -4,8 +4,8 @@ import { readBillingAccount, syncBillingAccount } from "../app/billing.server";
 import { trialLedgerHash } from "../app/hash.server";
 import {
   deliverOwnerNotifications,
+  pollLocalNotifications,
   pollPartnerEvents,
-  pollTrialNotifications,
 } from "../app/owner-notifications.server";
 import { insertShop } from "./support/lifecycle";
 
@@ -24,7 +24,7 @@ beforeEach(async () => {
   ]);
 });
 
-test("il poll Partner copre lifecycle e billing indicando sempre store e piano", async () => {
+test("il poll Partner copre lifecycle e billing con nome store, stato e importo", async () => {
   const shop = await insertShop("ciclo-completo.myshopify.com");
   const events = [
     relationship("RELATIONSHIP_INSTALLED", shop, "09:50"),
@@ -63,25 +63,27 @@ test("il poll Partner copre lifecycle e billing indicando sempre store e piano",
     dedupe_key: string;
   }>();
   expect(results.map(({ subject }) => subject)).toEqual([
-    "CF Ready: nuova installazione",
-    "CF Ready: reinstallazione",
-    "CF Ready: app disattivata",
-    "CF Ready: disinstallazione",
-    "CF Ready: acquisto piano accettato",
-    "CF Ready: piano attivato",
-    "CF Ready: abbonamento disdetto",
-    "CF Ready: acquisto piano rifiutato",
-    "CF Ready: richiesta piano scaduta",
-    "CF Ready: abbonamento sospeso",
-    "CF Ready: abbonamento riattivato",
-    "CF Ready: pagamento unico accettato",
-    "CF Ready: pagamento unico attivato",
-    "CF Ready: pagamento unico rifiutato",
-    "CF Ready: pagamento unico scaduto",
+    "🟢 CF Ready · Nuova installazione",
+    "🟢 CF Ready · Reinstallazione",
+    "🟡 CF Ready · App disattivata",
+    "🔴 CF Ready · Disinstallazione",
+    "💳 CF Ready · Acquisto piano accettato",
+    "🟢 CF Ready · Piano attivato",
+    "🔴 CF Ready · Abbonamento disdetto",
+    "🔴 CF Ready · Acquisto piano rifiutato",
+    "🟡 CF Ready · Richiesta piano scaduta",
+    "🔴 CF Ready · Abbonamento sospeso",
+    "🟢 CF Ready · Abbonamento riattivato",
+    "💳 CF Ready · Pagamento unico accettato",
+    "🟢 CF Ready · Pagamento unico attivato",
+    "🔴 CF Ready · Pagamento unico rifiutato",
+    "🟡 CF Ready · Pagamento unico scaduto",
   ]);
   for (const notification of results) {
-    expect(notification.body_text).toContain(`Store: ${shop}`);
+    expect(notification.body_text).toContain("Nome: Negozio CF Ready");
+    expect(notification.body_text).toContain(`URL: https://${shop}`);
     expect(notification.body_text).toMatch(/(?:Piano|A): /);
+    expect(notification.body_text).toContain("⚙️ Stato operativo");
     expect(notification.body_text).not.toContain("gid://partners/Shop/");
     expect(notification.dedupe_key).toMatch(/^[0-9a-f]{64}$/);
   }
@@ -97,11 +99,16 @@ test("il poll Partner copre lifecycle e billing indicando sempre store e piano",
   expect(request.query).toContain("SUBSCRIPTION_CHARGE_FROZEN");
   expect(request.query).toContain("ONE_TIME_CHARGE_ACTIVATED");
   expect(request.query).toContain("myshopifyDomain");
+  expect(request.query).toContain("shop { id myshopifyDomain name }");
+  expect(request.query).toContain("amount { amount currencyCode }");
   expect(request.query).toContain("... on AppSubscriptionEvent");
   expect(request.variables).toMatchObject({
     appId: PARTNER_CONFIG.appId,
     occurredAtMin: "2026-08-24T09:45:00.000Z",
   });
+  expect(
+    await env.DB.prepare("SELECT display_name FROM shops WHERE shop_domain = ?").bind(shop).first(),
+  ).toMatchObject({ display_name: "Negozio CF Ready" });
 });
 
 test("un piano attivato dopo un altro viene notificato come passaggio esplicito", async () => {
@@ -129,7 +136,11 @@ test("un piano attivato dopo un altro viene notificato come passaggio esplicito"
         node: {
           type: "SUBSCRIPTION_CHARGE_ACTIVATED",
           occurredAt: "2026-08-24T09:59:00.000Z",
-          shop: { id: "gid://partners/Shop/cambio", myshopifyDomain: shop },
+          shop: {
+            id: "gid://partners/Shop/cambio",
+            myshopifyDomain: shop,
+            name: "Cambio Piano",
+          },
           charge: {
             id: "gid://shopify/AppSubscription/annuale",
             name: "CF Ready — abbonamento annuale",
@@ -146,12 +157,14 @@ test("un piano attivato dopo un altro viene notificato come passaggio esplicito"
   expect(
     await env.DB.prepare("SELECT subject, body_text FROM owner_notifications").first(),
   ).toMatchObject({
-    subject: "CF Ready: piano cambiato",
-    body_text: expect.stringContaining("Da: Mensile\nA: CF Ready — abbonamento annuale"),
+    subject: "🔄 CF Ready · Piano cambiato",
+    body_text: expect.stringContaining(
+      "Da: Mensile\nA: CF Ready — abbonamento annuale\nImporto: 29,90 € / anno",
+    ),
   });
 });
 
-test("attivazione, scadenza e conversione della prova includono store e piano", async () => {
+test("attivazione, scadenza e conversione della prova includono nome store e durata", async () => {
   const started = await insertTrialShop("prova-avviata.myshopify.com", "active");
   const expired = await insertTrialShop("prova-scaduta.myshopify.com", "expired");
   const converted = await insertTrialShop("prova-convertita.myshopify.com", "converted");
@@ -162,33 +175,80 @@ test("attivazione, scadenza e conversione della prova includono store e piano", 
     trialEvent(converted.shopId, "trial_converted", "2026-08-24T09:59:00.000Z"),
   ]);
 
-  expect(await pollTrialNotifications(env.DB, NOW)).toMatchObject({ inserted: 3 });
-  expect(await pollTrialNotifications(env.DB, NOW)).toMatchObject({ inserted: 0 });
+  expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 3 });
+  expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 0 });
   const { results } = await env.DB.prepare(
     "SELECT notification_kind, subject, body_text FROM owner_notifications ORDER BY id",
   ).all<Record<string, string>>();
   expect(results).toMatchObject([
     {
       notification_kind: "trial",
-      subject: "CF Ready: prova gratuita attivata",
-      body_text:
-        `Il merchant ha attivato la prova gratuita.\n\n` +
-        `Store: ${started.shop}\n` +
-        `Piano: Prova gratuita\n` +
-        `Termine prova: 7 set 2026\n` +
-        `Data: 24 ago 2026, 11:57`,
-    },
-    {
-      subject: "CF Ready: prova gratuita terminata",
+      subject: "🧪 CF Ready · Prova gratuita attivata",
       body_text: expect.stringContaining(
-        `Store: ${expired.shop}\nPiano: Prova gratuita (terminata)`,
+        `Nome: Prova avviata\nURL: https://${started.shop}\n\n` +
+          `🧪 Prova\nStato: Attiva\nPiano: Prova gratuita\n` +
+          `Termine prova: 7 set 2026\nGiorni disponibili: 14`,
       ),
     },
     {
-      subject: "CF Ready: prova convertita",
-      body_text: expect.stringContaining(`Store: ${converted.shop}\nPiano: Annuale`),
+      subject: "🟡 CF Ready · Prova gratuita terminata",
+      body_text: expect.stringContaining(
+        `Nome: Prova scaduta\nURL: https://${expired.shop}\n\n` +
+          `🧪 Prova\nStato: Terminata\nPiano: Prova gratuita (terminata)`,
+      ),
+    },
+    {
+      subject: "🟢 CF Ready · Prova convertita",
+      body_text: expect.stringContaining(
+        `Nome: Prova convertita\nURL: https://${converted.shop}\n\n` +
+          `🧪 Prova\nStato: Convertita\nPiano: Annuale`,
+      ),
     },
   ]);
+});
+
+test("onboarding e attivazione Validation generano notifiche operative dedicate", async () => {
+  const shop = await insertShop("operativo.myshopify.com");
+  const shopRow = await env.DB.prepare("SELECT id FROM shops WHERE shop_domain = ?")
+    .bind(shop)
+    .first<{ id: number }>();
+  const at = "2026-08-24T10:20:00.000Z";
+  await env.DB.batch([
+    env.DB.prepare("UPDATE shops SET display_name = 'Atelier <CF & Ready>' WHERE id = ?").bind(
+      shopRow!.id,
+    ),
+    env.DB.prepare(
+      `INSERT INTO app_state (
+         shop_id, validation_enabled, onboarding_status, onboarding_step, updated_at
+       ) VALUES (?, 0, 'completed', 1, ?)`,
+    ).bind(shopRow!.id, at),
+    trialEvent(shopRow!.id, "onboarding_completed", "2026-08-24T10:20:00.000Z", "onboarding"),
+    trialEvent(shopRow!.id, "validation_enabled", "2026-08-24T10:21:00.000Z", "validation"),
+    trialEvent(shopRow!.id, "validation_disabled", "2026-08-24T10:22:00.000Z", "validation"),
+  ]);
+
+  expect(await pollLocalNotifications(env.DB, new Date("2026-08-24T10:30:00.000Z"))).toMatchObject({
+    inserted: 3,
+  });
+  const { results } = await env.DB.prepare(
+    `SELECT notification_kind, subject, body_text FROM owner_notifications ORDER BY id`,
+  ).all<Record<string, string>>();
+  expect(results.map(({ notification_kind }) => notification_kind)).toEqual([
+    "lifecycle",
+    "lifecycle",
+    "lifecycle",
+  ]);
+  expect(results.map(({ subject }) => subject)).toEqual([
+    "✅ CF Ready · Onboarding completato",
+    "🟢 CF Ready · Validation attivata",
+    "🟡 CF Ready · Validation disattivata",
+  ]);
+  expect(results[0].body_text).toContain("Onboarding: Completato");
+  expect(results[1].body_text).toContain("Validation: Attiva");
+  expect(results[2].body_text).toContain("Validation: Non attiva");
+  expect(results.every(({ body_text }) => body_text.includes("Nome: Atelier <CF & Ready>"))).toBe(
+    true,
+  );
 });
 
 test("paginazione Partner e checkpoint restano idempotenti", async () => {
@@ -226,7 +286,7 @@ test("shop/redact blocca eventi Partner precedenti ma consente una reinstallazio
     await pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher: fetcher as typeof fetch }),
   ).toMatchObject({ inserted: 1 });
   expect(await env.DB.prepare("SELECT subject FROM owner_notifications").first()).toMatchObject({
-    subject: "CF Ready: reinstallazione",
+    subject: "🟢 CF Ready · Reinstallazione",
   });
 });
 
@@ -244,12 +304,14 @@ test("un errore Partner non avanza il checkpoint", async () => {
   ).toBeNull();
 });
 
-test("Telegram ritenta senza duplicare e consegna il dominio tecnico dello store", async () => {
+test("Telegram ritenta senza duplicare e invia una Rich Message strutturata", async () => {
   const shop = "telegram.myshopify.com";
   await pollPartnerEvents(env.DB, PARTNER_CONFIG, {
     now: NOW,
     fetcher: vi.fn(async () =>
-      partnerResponse([relationship("RELATIONSHIP_INSTALLED", shop, "09:58")]),
+      partnerResponse([
+        relationship("RELATIONSHIP_INSTALLED", shop, "09:58", "Atelier <CF & Ready>"),
+      ]),
     ) as unknown as typeof fetch,
   });
   const telegram = {
@@ -274,11 +336,47 @@ test("Telegram ritenta senza duplicare e consegna il dominio tecnico dello store
     }),
   ).toEqual({ sent: 1, failed: 0 });
 
+  expect(send.mock.calls[1][0]).toBe(
+    `https://api.telegram.org/bot${telegram.botToken}/sendRichMessage`,
+  );
   const message = JSON.parse(String(send.mock.calls[1][1]?.body));
-  expect(message).toMatchObject({ chat_id: telegram.chatId });
+  expect(message).toMatchObject({
+    chat_id: telegram.chatId,
+    rich_message: { skip_entity_detection: true },
+  });
   expect(message).not.toHaveProperty("protect_content");
-  expect(message.text).toContain(`Store: ${shop}`);
-  expect(message.text).toContain("Piano: Nessun piano attivo");
+  expect(message).not.toHaveProperty("parse_mode");
+  expect(message).not.toHaveProperty("link_preview_options");
+  const blocks = message.rich_message.blocks as Array<Record<string, unknown>>;
+  expect(blocks[0]).toEqual({
+    type: "heading",
+    text: "🟢 CF Ready · Nuova installazione",
+    size: 2,
+  });
+  expect(blocks).toContainEqual({
+    type: "table",
+    cells: [
+      [{ text: { type: "bold", text: "Nome" }, is_header: true }, { text: "Atelier <CF & Ready>" }],
+      [{ text: { type: "bold", text: "URL" }, is_header: true }, { text: `https://${shop}` }],
+    ],
+    is_bordered: true,
+    is_striped: true,
+    is_compact: true,
+    caption: "🏪 Store",
+  });
+  expect(blocks).toContainEqual({
+    type: "buttons",
+    buttons: [
+      { text: "Apri store", style: "primary", url: `https://${shop}` },
+      { text: "Copia URL", copy_text: { text: `https://${shop}` } },
+    ],
+    align: "center",
+  });
+  expect(blocks).toContainEqual({
+    type: "footer",
+    text: expect.stringContaining("🕒 Evento:"),
+  });
+  expect(JSON.stringify(blocks)).toContain("Nessun piano attivo");
   expect(JSON.stringify(message)).not.toContain("gid://partners/Shop/");
 });
 
@@ -324,13 +422,13 @@ function partnerResponse(edges: unknown[], hasNextPage = false) {
   return Response.json({ data: { app: { events: { edges, pageInfo: { hasNextPage } } } } });
 }
 
-function relationship(type: string, shop: string, time: string) {
+function relationship(type: string, shop: string, time: string, name = "Negozio CF Ready") {
   return {
     cursor: `cursor-${time}`,
     node: {
       type,
       occurredAt: `2026-08-24T${time.length === 5 ? `${time}:00` : time}.000Z`,
-      shop: { id: `gid://partners/Shop/${time}`, myshopifyDomain: shop },
+      shop: { id: `gid://partners/Shop/${time}`, myshopifyDomain: shop, name },
     },
   };
 }
@@ -388,21 +486,27 @@ async function insertTrialShop(shop: string, status: "active" | "expired" | "con
     .bind(shop)
     .first<{ id: number }>();
   const at = "2026-08-24T09:00:00.000Z";
-  await env.DB.prepare(
-    `INSERT INTO trials (
-       shop_id, status, eligible_at, started_at, ends_at, pricing_generation, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, '2026-09-07', 'launch', ?, ?)`,
-  )
-    .bind(shopRow!.id, status, at, at, at, at)
-    .run();
+  const displayName = {
+    active: "Prova avviata",
+    expired: "Prova scaduta",
+    converted: "Prova convertita",
+  }[status];
+  await env.DB.batch([
+    env.DB.prepare("UPDATE shops SET display_name = ? WHERE id = ?").bind(displayName, shopRow!.id),
+    env.DB.prepare(
+      `INSERT INTO trials (
+         shop_id, status, eligible_at, started_at, ends_at, pricing_generation, created_at, updated_at
+       ) VALUES (?, ?, ?, ?, '2026-09-07', 'launch', ?, ?)`,
+    ).bind(shopRow!.id, status, at, at, at, at),
+  ]);
   return { shop, shopId: shopRow!.id };
 }
 
-function trialEvent(shopId: number, eventName: string, occurredAt: string) {
+function trialEvent(shopId: number, eventName: string, occurredAt: string, eventClass = "billing") {
   return env.DB.prepare(
     `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
-     VALUES (?, ?, 'billing', ?)`,
-  ).bind(shopId, eventName, occurredAt);
+     VALUES (?, ?, ?, ?)`,
+  ).bind(shopId, eventName, eventClass, occurredAt);
 }
 
 async function seedBillingAccount(shopId: number, planKind: "monthly" | "annual") {

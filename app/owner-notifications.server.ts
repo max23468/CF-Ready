@@ -1,5 +1,6 @@
 import { recordEvent } from "./events.server";
 import { trialLedgerHash } from "./hash.server";
+import { persistShopDisplayName, safeStoreDisplayName } from "./shop-profile.server";
 
 const PARTNER_API_VERSION = "2026-07";
 const FIRST_POLL_LOOKBACK_MS = 15 * 60 * 1000;
@@ -17,6 +18,12 @@ const OWNER_NOTIFICATION_DATE_FORMATTER = new Intl.DateTimeFormat("it-IT", {
 const OWNER_NOTIFICATION_DAY_FORMATTER = new Intl.DateTimeFormat("it-IT", {
   dateStyle: "medium",
   timeZone: "UTC",
+});
+const OWNER_NOTIFICATION_CALENDAR_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Europe/Rome",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
 });
 
 type PartnerInstallConfig = {
@@ -48,6 +55,7 @@ type PartnerEventType = (typeof PARTNER_EVENT_TYPES)[number];
 type PartnerCharge = {
   id?: string;
   name?: string;
+  amount?: { amount?: string; currencyCode?: string };
   billingOn?: string | null;
   test?: boolean;
 };
@@ -55,7 +63,7 @@ type PartnerCharge = {
 type PartnerEventNode = {
   type?: string;
   occurredAt?: string;
-  shop?: { id?: string; myshopifyDomain?: string };
+  shop?: { id?: string; myshopifyDomain?: string; name?: string };
   charge?: PartnerCharge;
 };
 
@@ -86,6 +94,66 @@ type NotificationRow = {
 type TelegramConfig = {
   botToken: string;
   chatId: string;
+};
+
+type TelegramRichText = string | { type: "bold"; text: string };
+
+type TelegramRichTableCell = {
+  text: TelegramRichText;
+  is_header?: true;
+  colspan?: number;
+};
+
+type TelegramRichBlock =
+  | { type: "heading"; text: string; size: number }
+  | { type: "paragraph"; text: string }
+  | { type: "divider" }
+  | {
+      type: "table";
+      cells: TelegramRichTableCell[][];
+      is_bordered: true;
+      is_striped: true;
+      is_compact: true;
+      caption: string;
+    }
+  | {
+      type: "buttons";
+      buttons: Array<
+        | { text: string; style: "primary"; url: string }
+        | { text: string; copy_text: { text: string } }
+      >;
+      align: "center";
+    }
+  | { type: "footer"; text: string };
+
+type OperationalSnapshot = {
+  display_name: string | null;
+  installation_status: string;
+  country_code: string | null;
+  shop_currency: string | null;
+  billing_currency: string | null;
+  installed_at: string;
+  onboarding_status: string | null;
+  onboarding_step: number | null;
+  validation_enabled: number | null;
+  trial_status: string | null;
+  trial_ends_at: string | null;
+  plan_kind: "monthly" | "annual" | "one_time" | "none" | null;
+  entitlement_status: string | null;
+};
+
+type LocalNotificationEvent = Omit<OperationalSnapshot, "trial_ends_at"> & {
+  id: number;
+  event_name:
+    | "trial_started"
+    | "trial_expired"
+    | "trial_converted"
+    | "onboarding_completed"
+    | "validation_enabled"
+    | "validation_disabled";
+  shop_domain: string;
+  ends_at: string | null;
+  occurred_at: string;
 };
 
 const PARTNER_EVENTS_QUERY = `#graphql
@@ -123,11 +191,12 @@ const PARTNER_EVENTS_QUERY = `#graphql
           node {
             type
             occurredAt
-            shop { id myshopifyDomain }
+            shop { id myshopifyDomain name }
             ... on AppSubscriptionEvent {
               charge {
                 id
                 name
+                amount { amount currencyCode }
                 billingOn
                 test
               }
@@ -136,6 +205,7 @@ const PARTNER_EVENTS_QUERY = `#graphql
               charge {
                 id
                 name
+                amount { amount currencyCode }
                 test
               }
             }
@@ -211,40 +281,39 @@ export async function pollPartnerEvents(
   throw new Error("partner_api_page_limit");
 }
 
-export async function pollTrialNotifications(db: D1Database, now = new Date()) {
+export async function pollLocalNotifications(db: D1Database, now = new Date()) {
   const cycleStartedAt = now.toISOString();
-  const occurredAtMin = await pollStart(db, "trial_notifications_polled_at", now);
+  const occurredAtMin = await pollStart(db, "local_notifications_polled_at", now);
   let afterId = 0;
   let inserted = 0;
 
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const { results } = await db
       .prepare(
-        `SELECT e.id, e.event_name, e.occurred_at, s.shop_domain, t.ends_at,
-                b.plan_kind
+        `SELECT e.id, e.event_name, e.occurred_at, s.shop_domain, s.display_name,
+                s.installation_status, s.country_code, s.shop_currency, s.billing_currency,
+                s.installed_at, a.onboarding_status, a.onboarding_step, a.validation_enabled,
+                t.status AS trial_status, t.ends_at, b.plan_kind, b.entitlement_status
          FROM app_events e
          JOIN shops s ON s.id = e.shop_id
+         LEFT JOIN app_state a ON a.shop_id = s.id
          LEFT JOIN trials t ON t.shop_id = s.id
          LEFT JOIN billing_accounts b ON b.shop_id = s.id
-         WHERE e.event_name IN ('trial_started', 'trial_expired', 'trial_converted')
+         WHERE e.event_name IN (
+           'trial_started', 'trial_expired', 'trial_converted',
+           'onboarding_completed', 'validation_enabled', 'validation_disabled'
+         )
            AND e.occurred_at >= ? AND e.id > ?
          ORDER BY e.id
          LIMIT ?`,
       )
       .bind(occurredAtMin, afterId, PAGE_SIZE)
-      .all<{
-        id: number;
-        event_name: "trial_started" | "trial_expired" | "trial_converted";
-        shop_domain: string;
-        ends_at: string | null;
-        plan_kind: "monthly" | "annual" | "one_time" | "none" | null;
-        occurred_at: string;
-      }>();
+      .all<LocalNotificationEvent>();
 
     const statements = await Promise.all(
       results.map((event) => {
         if (!validIsoDate(event.occurred_at)) throw new Error("billing_event_invalid_timestamp");
-        return trialNotification(db, event);
+        return localEventNotification(db, event);
       }),
     );
     if (statements.length) {
@@ -253,13 +322,13 @@ export async function pollTrialNotifications(db: D1Database, now = new Date()) {
     }
 
     if (results.length < PAGE_SIZE) {
-      await writeState(db, "trial_notifications_polled_at", cycleStartedAt);
+      await writeState(db, "local_notifications_polled_at", cycleStartedAt);
       return { inserted, occurredAtMin, pages: page + 1 };
     }
     afterId = results.at(-1)!.id;
   }
 
-  throw new Error("trial_notification_page_limit");
+  throw new Error("local_notification_page_limit");
 }
 
 export async function deliverOwnerNotifications(
@@ -283,14 +352,18 @@ export async function deliverOwnerNotifications(
 
     try {
       // react-doctor-disable-next-line react-doctor/async-await-in-loop
-      const response = await fetcher(`https://api.telegram.org/bot${config.botToken}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: config.chatId,
-          text: `${notification.subject}\n\n${notification.body_text}`,
-        }),
-      });
+      // Bot API 10.3: https://core.telegram.org/bots/api#sendrichmessage
+      const response = await fetcher(
+        `https://api.telegram.org/bot${config.botToken}/sendRichMessage`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: config.chatId,
+            rich_message: telegramRichMessage(notification.subject, notification.body_text),
+          }),
+        },
+      );
       // Telegram può rispondere HTTP 200 con `ok: false`: entrambi i livelli sono necessari.
       // react-doctor-disable-next-line react-doctor/async-await-in-loop
       const result = await readTelegramResult(response);
@@ -324,42 +397,53 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode)
   const type = event.type as PartnerEventType;
   const occurredAt = event.occurredAt!;
   const shopDomain = normalizeShopDomain(event.shop!.myshopifyDomain!);
+  const [displayName, snapshot] = await Promise.all([
+    persistShopDisplayName(db, shopDomain, event.shop!.name),
+    readOperationalSnapshot(db, shopDomain),
+  ]);
   const source = `${type}:${event.shop!.id}:${event.charge?.id ?? "relationship"}:${occurredAt}`;
   const dedupeKey = await notificationKey("partner", source);
 
   if (type.startsWith("RELATIONSHIP_")) {
     const lifecycle = relationshipCopy(type);
-    const localPlan = await localPlanForShop(db, shopDomain);
+    const appStatus = relationshipStatus(type);
+    const installationDuration =
+      type === "RELATIONSHIP_UNINSTALLED"
+        ? formatDuration(snapshot?.installed_at, occurredAt)
+        : null;
     return notificationStatement(db, {
       dedupeKey,
       kind: "lifecycle",
       shopDomain,
       shopHash: await trialLedgerHash(shopDomain),
       subject: lifecycle.subject,
-      body: `${lifecycle.description}\n\nStore: ${shopDomain}\nPiano: ${localPlan}\nData: ${formatDate(occurredAt)}`,
+      body: notificationBody(lifecycle.description, occurredAt, [
+        storeSection(displayName, shopDomain, snapshot),
+        operationalSection(snapshot, {
+          appStatus,
+          plan: operationalPlan(snapshot),
+          installationDuration,
+        }),
+      ]),
       occurredAt,
     });
   }
 
   const charge = event.charge!;
   const currentKind = planKindFromCharge(type, charge.name);
-  const [localPlan, previousKind] = await Promise.all([
-    localPlanForShop(db, shopDomain),
-    type.endsWith("_ACTIVATED")
-      ? previousPlanKind(db, shopDomain, charge.id!, currentKind)
-      : Promise.resolve(null),
-  ]);
+  const previousKind = type.endsWith("_ACTIVATED")
+    ? await previousPlanKind(db, shopDomain, charge.id!, currentKind)
+    : null;
   const billing = billingCopy(type, previousKind !== null);
-  const plan = safePlanName(charge.name) ?? planLabel(currentKind) ?? localPlan;
-  const details = [
-    `Store: ${shopDomain}`,
+  const plan = safePlanName(charge.name) ?? planLabel(currentKind) ?? operationalPlan(snapshot);
+  const billingDetails = [
     ...(previousKind ? [`Da: ${planLabel(previousKind)}`] : []),
     `${previousKind ? "A" : "Piano"}: ${plan}`,
+    `Importo: ${formatMoney(charge.amount!, currentKind)}`,
     ...(validIsoDate(charge.billingOn ?? undefined)
       ? [`Prossimo addebito: ${formatDate(charge.billingOn!)}`]
       : []),
     ...(charge.test ? ["Modalità: test"] : []),
-    `Data: ${formatDate(occurredAt)}`,
   ];
   return notificationStatement(db, {
     dedupeKey,
@@ -367,54 +451,104 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode)
     shopDomain,
     shopHash: await trialLedgerHash(shopDomain),
     subject: billing.subject,
-    body: `${billing.description}\n\n${details.join("\n")}`,
+    body: notificationBody(billing.description, occurredAt, [
+      storeSection(displayName, shopDomain, snapshot),
+      { title: "💳 Billing", lines: billingDetails },
+      operationalSection(snapshot, { plan: null }),
+    ]),
     occurredAt,
   });
 }
 
-async function trialNotification(
-  db: D1Database,
-  event: {
-    id: number;
-    event_name: "trial_started" | "trial_expired" | "trial_converted";
-    shop_domain: string;
-    ends_at: string | null;
-    plan_kind: "monthly" | "annual" | "one_time" | "none" | null;
-    occurred_at: string;
-  },
-) {
+async function localEventNotification(db: D1Database, event: LocalNotificationEvent) {
+  if (event.event_name.startsWith("trial_")) return trialNotification(db, event);
+
+  const shopDomain = normalizeShopDomain(event.shop_domain);
+  const eventName = event.event_name as
+    | "onboarding_completed"
+    | "validation_enabled"
+    | "validation_disabled";
+  const copy = {
+    onboarding_completed: {
+      subject: "✅ CF Ready · Onboarding completato",
+      description: "Il merchant ha completato la configurazione iniziale.",
+    },
+    validation_enabled: {
+      subject: "🟢 CF Ready · Validation attivata",
+      description: "La Validation di CF Ready è stata attivata.",
+    },
+    validation_disabled: {
+      subject: "🟡 CF Ready · Validation disattivata",
+      description: "La Validation di CF Ready è stata disattivata.",
+    },
+  }[eventName];
+  const validationStatus = eventName.startsWith("validation_")
+    ? eventName === "validation_enabled"
+      ? "Attiva"
+      : "Non attiva"
+    : undefined;
+  return notificationStatement(db, {
+    dedupeKey: await notificationKey("local", String(event.id)),
+    kind: "lifecycle",
+    shopDomain,
+    shopHash: await trialLedgerHash(shopDomain),
+    subject: copy.subject,
+    body: notificationBody(copy.description, event.occurred_at, [
+      storeSection(event.display_name, shopDomain, event),
+      operationalSection(event, {
+        onboardingStatus: eventName === "onboarding_completed" ? "Completato" : undefined,
+        validationStatus,
+        plan: operationalPlan(event),
+      }),
+    ]),
+    occurredAt: event.occurred_at,
+  });
+}
+
+async function trialNotification(db: D1Database, event: LocalNotificationEvent) {
   const copy = {
     trial_started: {
-      subject: "CF Ready: prova gratuita attivata",
+      subject: "🧪 CF Ready · Prova gratuita attivata",
       description: "Il merchant ha attivato la prova gratuita.",
+      status: "Attiva",
       plan: "Prova gratuita",
     },
     trial_expired: {
-      subject: "CF Ready: prova gratuita terminata",
+      subject: "🟡 CF Ready · Prova gratuita terminata",
       description: "La prova gratuita è terminata.",
+      status: "Terminata",
       plan: "Prova gratuita (terminata)",
     },
     trial_converted: {
-      subject: "CF Ready: prova convertita",
+      subject: "🟢 CF Ready · Prova convertita",
       description: "La prova gratuita è stata convertita in un piano a pagamento.",
+      status: "Convertita",
       plan: planLabel(event.plan_kind) ?? "Piano a pagamento",
     },
-  }[event.event_name];
-  const details = [
-    `Store: ${normalizeShopDomain(event.shop_domain)}`,
+  }[event.event_name as "trial_started" | "trial_expired" | "trial_converted"];
+  const shopDomain = normalizeShopDomain(event.shop_domain);
+  const remainingDays = trialDaysRemaining(event.occurred_at, event.ends_at);
+  const trialDetails = [
+    `Stato: ${copy.status}`,
     `Piano: ${copy.plan}`,
     ...(event.event_name === "trial_started" && validCalendarDate(event.ends_at ?? undefined)
       ? [`Termine prova: ${formatCalendarDate(event.ends_at!)}`]
       : []),
-    `Data: ${formatDate(event.occurred_at)}`,
+    ...(event.event_name === "trial_started" && remainingDays !== null
+      ? [`Giorni disponibili: ${remainingDays}`]
+      : []),
   ];
   return notificationStatement(db, {
     dedupeKey: await notificationKey("trial", String(event.id)),
     kind: "trial",
-    shopDomain: normalizeShopDomain(event.shop_domain),
-    shopHash: await trialLedgerHash(normalizeShopDomain(event.shop_domain)),
+    shopDomain,
+    shopHash: await trialLedgerHash(shopDomain),
     subject: copy.subject,
-    body: `${copy.description}\n\n${details.join("\n")}`,
+    body: notificationBody(copy.description, event.occurred_at, [
+      storeSection(event.display_name, shopDomain, event),
+      { title: "🧪 Prova", lines: trialDetails },
+      operationalSection(event, { plan: null }),
+    ]),
     occurredAt: event.occurred_at,
   });
 }
@@ -458,21 +592,151 @@ function notificationStatement(
     );
 }
 
-async function localPlanForShop(db: D1Database, shopDomain: string) {
-  const state = await db
+async function readOperationalSnapshot(db: D1Database, shopDomain: string) {
+  return db
     .prepare(
-      `SELECT b.plan_kind, t.status AS trial_status
+      `SELECT s.display_name, s.installation_status, s.country_code, s.shop_currency,
+              s.billing_currency, s.installed_at, a.onboarding_status, a.onboarding_step,
+              a.validation_enabled, t.status AS trial_status, t.ends_at AS trial_ends_at,
+              b.plan_kind, b.entitlement_status
        FROM shops s
+       LEFT JOIN app_state a ON a.shop_id = s.id
        LEFT JOIN billing_accounts b ON b.shop_id = s.id
        LEFT JOIN trials t ON t.shop_id = s.id
        WHERE s.shop_domain = ?`,
     )
     .bind(shopDomain)
-    .first<{ plan_kind: string | null; trial_status: string | null }>();
+    .first<OperationalSnapshot>();
+}
+
+function notificationBody(
+  description: string,
+  occurredAt: string,
+  sections: Array<{ title: string; lines: string[] }>,
+) {
+  const content = [description];
+  for (const section of sections) {
+    if (!section.lines.length) continue;
+    content.push("", section.title, ...section.lines);
+  }
+  content.push("", `🕒 Evento: ${formatDate(occurredAt)}`);
+  return content.join("\n");
+}
+
+function storeSection(
+  displayName: string | null | undefined,
+  shopDomain: string,
+  snapshot: Pick<OperationalSnapshot, "country_code" | "shop_currency" | "billing_currency"> | null,
+) {
+  const name = safeStoreDisplayName(displayName);
+  const country = safeCode(snapshot?.country_code, 2);
+  const currency = safeCode(snapshot?.billing_currency ?? snapshot?.shop_currency, 3);
+  return {
+    title: "🏪 Store",
+    lines: [
+      ...(name ? [`Nome: ${name}`] : []),
+      `URL: https://${shopDomain}`,
+      ...(country ? [`Paese: ${country}`] : []),
+      ...(currency ? [`Valuta: ${currency}`] : []),
+    ],
+  };
+}
+
+function operationalSection(
+  snapshot: OperationalSnapshot | LocalNotificationEvent | null,
+  overrides: {
+    appStatus?: string;
+    onboardingStatus?: string;
+    validationStatus?: string;
+    plan?: string | null;
+    installationDuration?: string | null;
+  } = {},
+) {
+  const appStatus = overrides.appStatus ?? installationStatusLabel(snapshot?.installation_status);
+  const onboardingStatus =
+    overrides.onboardingStatus ??
+    onboardingLabel(snapshot?.onboarding_status, snapshot?.onboarding_step);
+  const validationStatus =
+    overrides.validationStatus ?? validationLabel(snapshot?.validation_enabled);
+  const plan = overrides.plan === undefined ? operationalPlan(snapshot) : overrides.plan;
+  const entitlement = entitlementLabel(snapshot?.entitlement_status);
+  return {
+    title: "⚙️ Stato operativo",
+    lines: [
+      ...(appStatus ? [`App: ${appStatus}`] : []),
+      ...(onboardingStatus ? [`Onboarding: ${onboardingStatus}`] : []),
+      ...(validationStatus ? [`Validation: ${validationStatus}`] : []),
+      ...(plan ? [`Piano: ${plan}`] : []),
+      ...(entitlement ? [`Diritto: ${entitlement}`] : []),
+      ...(overrides.installationDuration
+        ? [`Durata installazione: ${overrides.installationDuration}`]
+        : []),
+    ],
+  };
+}
+
+function operationalPlan(snapshot: OperationalSnapshot | LocalNotificationEvent | null) {
   return (
-    planLabel(state?.plan_kind) ??
-    (state?.trial_status === "active" ? "Prova gratuita" : "Nessun piano attivo")
+    planLabel(snapshot?.plan_kind) ??
+    (snapshot?.trial_status === "active" ? "Prova gratuita" : "Nessun piano attivo")
   );
+}
+
+function relationshipStatus(type: PartnerEventType) {
+  return {
+    RELATIONSHIP_INSTALLED: "Attiva",
+    RELATIONSHIP_REACTIVATED: "Attiva",
+    RELATIONSHIP_DEACTIVATED: "Disattivata da Shopify",
+    RELATIONSHIP_UNINSTALLED: "Disinstallata",
+  }[type as Extract<PartnerEventType, `RELATIONSHIP_${string}`>];
+}
+
+function installationStatusLabel(value: string | null | undefined) {
+  return {
+    active: "Attiva",
+    uninstalled: "Disinstallata",
+    blocked_country: "Paese non supportato",
+    suspended: "Sospesa",
+  }[value ?? ""];
+}
+
+function onboardingLabel(status: string | null | undefined, step: number | null | undefined) {
+  if (status === "completed") return "Completato";
+  if (status === "not_started") return "Non iniziato";
+  if (status === "in_progress") return step && step > 0 ? `In corso · step ${step}` : "In corso";
+  return null;
+}
+
+function validationLabel(value: number | null | undefined) {
+  if (value === 1) return "Attiva";
+  if (value === 0) return "Non attiva";
+  return null;
+}
+
+function entitlementLabel(value: string | null | undefined) {
+  return {
+    trial: "Prova",
+    active: "Attivo",
+    ending: "In scadenza",
+    expired: "Scaduto",
+    refunded: "Rimborsato",
+    none: "Nessuno",
+  }[value ?? ""];
+}
+
+function safeCode(value: string | null | undefined, length: number) {
+  const normalized = value?.trim().toLocaleUpperCase("en-US");
+  return normalized && new RegExp(`^[A-Z]{${length}}$`).test(normalized) ? normalized : null;
+}
+
+function formatDuration(start: string | null | undefined, end: string) {
+  if (!validIsoDate(start ?? undefined) || !validIsoDate(end)) return null;
+  const duration = Date.parse(end) - Date.parse(start!);
+  if (duration < 0) return null;
+  const hours = Math.floor(duration / (60 * 60 * 1000));
+  if (hours < 24) return `${Math.max(1, hours)} ${hours === 1 ? "ora" : "ore"}`;
+  const days = Math.floor(hours / 24);
+  return `${days} ${days === 1 ? "giorno" : "giorni"}`;
 }
 
 async function previousPlanKind(
@@ -511,19 +775,19 @@ async function previousPlanKind(
 function relationshipCopy(type: PartnerEventType) {
   return {
     RELATIONSHIP_INSTALLED: {
-      subject: "CF Ready: nuova installazione",
+      subject: "🟢 CF Ready · Nuova installazione",
       description: "Shopify ha registrato una nuova installazione di CF Ready.",
     },
     RELATIONSHIP_REACTIVATED: {
-      subject: "CF Ready: reinstallazione",
+      subject: "🟢 CF Ready · Reinstallazione",
       description: "Shopify ha registrato una reinstallazione o riattivazione di CF Ready.",
     },
     RELATIONSHIP_DEACTIVATED: {
-      subject: "CF Ready: app disattivata",
+      subject: "🟡 CF Ready · App disattivata",
       description: "Shopify ha disattivato la relazione con CF Ready.",
     },
     RELATIONSHIP_UNINSTALLED: {
-      subject: "CF Ready: disinstallazione",
+      subject: "🔴 CF Ready · Disinstallazione",
       description: "Shopify ha registrato la disinstallazione di CF Ready.",
     },
   }[type as Extract<PartnerEventType, `RELATIONSHIP_${string}`>];
@@ -532,53 +796,53 @@ function relationshipCopy(type: PartnerEventType) {
 function billingCopy(type: PartnerEventType, changed: boolean) {
   if (changed) {
     return {
-      subject: "CF Ready: piano cambiato",
+      subject: "🔄 CF Ready · Piano cambiato",
       description: "Shopify ha attivato il passaggio a un altro piano.",
     };
   }
   return {
     SUBSCRIPTION_CHARGE_ACCEPTED: {
-      subject: "CF Ready: acquisto piano accettato",
+      subject: "💳 CF Ready · Acquisto piano accettato",
       description: "Il merchant ha accettato l'acquisto del piano.",
     },
     SUBSCRIPTION_CHARGE_ACTIVATED: {
-      subject: "CF Ready: piano attivato",
+      subject: "🟢 CF Ready · Piano attivato",
       description: "Shopify ha attivato il nuovo piano.",
     },
     SUBSCRIPTION_CHARGE_CANCELED: {
-      subject: "CF Ready: abbonamento disdetto",
+      subject: "🔴 CF Ready · Abbonamento disdetto",
       description: "L'abbonamento è stato disdetto.",
     },
     SUBSCRIPTION_CHARGE_DECLINED: {
-      subject: "CF Ready: acquisto piano rifiutato",
+      subject: "🔴 CF Ready · Acquisto piano rifiutato",
       description: "Il merchant ha rifiutato l'acquisto del piano.",
     },
     SUBSCRIPTION_CHARGE_EXPIRED: {
-      subject: "CF Ready: richiesta piano scaduta",
+      subject: "🟡 CF Ready · Richiesta piano scaduta",
       description: "La richiesta di attivazione del piano è scaduta.",
     },
     SUBSCRIPTION_CHARGE_FROZEN: {
-      subject: "CF Ready: abbonamento sospeso",
+      subject: "🔴 CF Ready · Abbonamento sospeso",
       description: "Shopify ha sospeso l'abbonamento per un problema di fatturazione dello store.",
     },
     SUBSCRIPTION_CHARGE_UNFROZEN: {
-      subject: "CF Ready: abbonamento riattivato",
+      subject: "🟢 CF Ready · Abbonamento riattivato",
       description: "Shopify ha riattivato l'abbonamento precedentemente sospeso.",
     },
     ONE_TIME_CHARGE_ACCEPTED: {
-      subject: "CF Ready: pagamento unico accettato",
+      subject: "💳 CF Ready · Pagamento unico accettato",
       description: "Il merchant ha accettato il piano con pagamento unico.",
     },
     ONE_TIME_CHARGE_ACTIVATED: {
-      subject: "CF Ready: pagamento unico attivato",
+      subject: "🟢 CF Ready · Pagamento unico attivato",
       description: "Shopify ha attivato il piano con pagamento unico.",
     },
     ONE_TIME_CHARGE_DECLINED: {
-      subject: "CF Ready: pagamento unico rifiutato",
+      subject: "🔴 CF Ready · Pagamento unico rifiutato",
       description: "Il merchant ha rifiutato il piano con pagamento unico.",
     },
     ONE_TIME_CHARGE_EXPIRED: {
-      subject: "CF Ready: pagamento unico scaduto",
+      subject: "🟡 CF Ready · Pagamento unico scaduto",
       description: "La richiesta del piano con pagamento unico è scaduta.",
     },
   }[type as Exclude<PartnerEventType, `RELATIONSHIP_${string}`>];
@@ -676,7 +940,7 @@ async function markFailed(db: D1Database, notification: NotificationRow, now: Da
     .run();
 }
 
-async function notificationKey(kind: "partner" | "trial", source: string) {
+async function notificationKey(kind: "partner" | "trial" | "local", source: string) {
   const digest = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(`${kind}:${source}`),
@@ -726,6 +990,138 @@ function formatCalendarDate(value: string) {
   return OWNER_NOTIFICATION_DAY_FORMATTER.format(new Date(`${value}T00:00:00.000Z`));
 }
 
+function formatMoney(
+  money: NonNullable<PartnerCharge["amount"]>,
+  kind: "monthly" | "annual" | "one_time" | null,
+) {
+  const amount = Number(money.amount);
+  const currency = money.currencyCode!;
+  const formatted = new Intl.NumberFormat("it-IT", {
+    style: "currency",
+    currency,
+  }).format(amount);
+  const cadence =
+    kind === "monthly"
+      ? " / mese"
+      : kind === "annual"
+        ? " / anno"
+        : kind === "one_time"
+          ? " · una tantum"
+          : "";
+  return `${formatted}${cadence ?? ""}`;
+}
+
+function trialDaysRemaining(occurredAt: string, endsAt: string | null) {
+  if (!validIsoDate(occurredAt) || !validCalendarDate(endsAt ?? undefined)) return null;
+  const start = calendarDateInRome(occurredAt);
+  const duration = Date.parse(`${endsAt}T00:00:00.000Z`) - Date.parse(`${start}T00:00:00.000Z`);
+  return Math.max(0, Math.ceil(duration / (24 * 60 * 60 * 1000)));
+}
+
+function calendarDateInRome(value: string) {
+  const fields: Partial<Record<Intl.DateTimeFormatPartTypes, string>> = {};
+  for (const part of OWNER_NOTIFICATION_CALENDAR_FORMATTER.formatToParts(new Date(value))) {
+    fields[part.type] = part.value;
+  }
+  if (!fields.year || !fields.month || !fields.day) {
+    throw new Error("owner_notification_date_format_failed");
+  }
+  return `${fields.year}-${fields.month}-${fields.day}`;
+}
+
+function telegramRichMessage(subject: string, body: string) {
+  const { description, sections, footer } = parseNotificationBody(body);
+  const blocks: TelegramRichBlock[] = [
+    { type: "heading", text: subject, size: 2 },
+    ...(description ? [{ type: "paragraph" as const, text: description }] : []),
+    { type: "divider" },
+  ];
+
+  let storeUrl: string | null = null;
+  for (const section of sections) {
+    const cells = section.lines.map(({ label, value }) =>
+      label
+        ? [
+            { text: { type: "bold" as const, text: label }, is_header: true as const },
+            { text: value },
+          ]
+        : [{ text: value, colspan: 2 }],
+    );
+    blocks.push({
+      type: "table",
+      cells,
+      is_bordered: true,
+      is_striped: true,
+      is_compact: true,
+      caption: section.title,
+    });
+
+    if (section.title === "🏪 Store") {
+      storeUrl = safeNotificationStoreUrl(
+        section.lines.find(({ label }) => label === "URL")?.value,
+      );
+    }
+  }
+
+  if (storeUrl) {
+    blocks.push({
+      type: "buttons",
+      buttons: [
+        { text: "Apri store", style: "primary", url: storeUrl },
+        { text: "Copia URL", copy_text: { text: storeUrl } },
+      ],
+      align: "center",
+    });
+  }
+  if (footer) blocks.push({ type: "footer", text: footer });
+
+  return {
+    blocks,
+    // Il dominio resta testo semplice e non genera anteprime; i due pulsanti sono espliciti.
+    skip_entity_detection: true,
+  };
+}
+
+function parseNotificationBody(body: string) {
+  const description: string[] = [];
+  const sections: Array<{
+    title: string;
+    lines: Array<{ label: string; value: string }>;
+  }> = [];
+  let footer = "";
+
+  for (const line of body.split("\n")) {
+    if (!line) continue;
+    if (line.startsWith("🕒 ")) {
+      footer = line;
+      continue;
+    }
+    if (/^(🏪|⚙️|💳|🧪) /.test(line)) {
+      sections.push({ title: line, lines: [] });
+      continue;
+    }
+
+    const section = sections.at(-1);
+    if (!section) {
+      description.push(line);
+      continue;
+    }
+    const separator = line.indexOf(":");
+    section.lines.push(
+      separator > 0
+        ? { label: line.slice(0, separator), value: line.slice(separator + 1).trimStart() }
+        : { label: "", value: line },
+    );
+  }
+
+  return { description: description.join("\n"), sections, footer };
+}
+
+function safeNotificationStoreUrl(value: string | undefined) {
+  if (!value || !/^https:\/\/[a-z0-9][a-z0-9-]*\.myshopify\.com$/.test(value)) return null;
+  return value;
+}
+
 function planKindFromCharge(type: PartnerEventType, name: string | undefined) {
   if (type.startsWith("ONE_TIME_")) return "one_time" as const;
   const normalized = name?.toLocaleLowerCase("it-IT") ?? "";
@@ -772,6 +1168,7 @@ function validPartnerEvent(node: PartnerEventNode | undefined): node is PartnerE
     !PARTNER_EVENT_TYPES.includes(node.type as PartnerEventType) ||
     !node.shop?.id ||
     !node.shop.myshopifyDomain ||
+    !safeStoreDisplayName(node.shop.name) ||
     !validIsoDate(node.occurredAt)
   ) {
     return false;
@@ -782,7 +1179,26 @@ function validPartnerEvent(node: PartnerEventNode | undefined): node is PartnerE
     return false;
   }
   if ((node.type ?? "").startsWith("RELATIONSHIP_")) return true;
-  return Boolean(node.charge?.id && safePlanName(node.charge.name));
+  return Boolean(
+    node.charge?.id &&
+    safePlanName(node.charge.name) &&
+    validMoney(node.charge.amount) &&
+    typeof node.charge.test === "boolean",
+  );
+}
+
+function validMoney(value: PartnerCharge["amount"]): value is NonNullable<PartnerCharge["amount"]> {
+  if (!value?.amount || !/^[A-Z]{3}$/.test(value.currencyCode ?? "")) return false;
+  const amount = Number(value.amount);
+  if (!Number.isFinite(amount) || amount < 0) return false;
+  try {
+    new Intl.NumberFormat("it-IT", { style: "currency", currency: value.currencyCode }).format(
+      amount,
+    );
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function validIsoDate(value: string | undefined): value is string {
