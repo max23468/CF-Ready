@@ -8,7 +8,8 @@ on:
 
 permissions:
   actions: read
-  contents: read
+  # GitHub espone bypass_actors soltanto a token con accesso write al repository.
+  contents: write
 
 concurrency:
   group: reconcile-develop
