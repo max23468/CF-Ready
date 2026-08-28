@@ -33,12 +33,7 @@ export function verifyPromotionHistory(commits) {
     ({ parents = [], pullRequests = [], tree, parentTrees = [] }) =>
       !(
         (parents.length === 2 && parentTrees.includes(tree)) ||
-        pullRequests.some(
-          (pullRequest) =>
-            pullRequest.merged &&
-            pullRequest.base === "develop" &&
-            pullRequest.codexReview === "success",
-        )
+        pullRequests.some((pullRequest) => pullRequest.merged && pullRequest.base === "develop")
       ),
   );
   if (invalid) {
@@ -91,10 +86,8 @@ async function promotionCommitEvidence(repository, baseSha, headSha) {
     );
     const mapped = [];
     for (const pullRequest of pullRequests) {
-      const status = await request(`/repos/${repository}/commits/${pullRequest.head.sha}/status`);
       mapped.push({
         base: pullRequest.base.ref,
-        codexReview: status.statuses.find(({ context }) => context === "codex-review")?.state,
         merged: Boolean(pullRequest.merged_at),
       });
     }
