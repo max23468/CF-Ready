@@ -107,14 +107,6 @@ bloccanti, merge, tag e GitHub Release quando previsti, deploy o promozione
 tecnica e verifica live. La sequenza concreta, in particolare tra versionamento,
 merge, deploy e release, è quella definita dalla policy della repository.
 
-I finding P2/P3 della review restano advisory e non autorizzano modifiche:
-l'agente li implementa soltanto su richiesta esplicita del proprietario. Il gate
-li registra in un artifact e risolve automaticamente i relativi thread GitHub,
-così il vincolo generale sulle conversazioni non li trasforma in blocchi. Quando
-la review è conclusa e l'evidenza si riferisce all'HEAD esatto, l'agente li
-riepiloga e prosegue con la pubblicazione; finding e thread P0/P1 restano
-bloccanti.
-
 La pulizia finale rimuove soltanto branch e worktree temporanei creati nel ciclo
 corrente e già assorbiti; controlla stash e altri residui senza alterare elementi
 preesistenti o estranei alla pubblicazione. Se un passaggio non è applicabile, lo
