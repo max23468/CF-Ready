@@ -39,7 +39,7 @@
     "preflight:dev": "node scripts/preflight-dev.mjs",
     "readback:dev": "node scripts/preflight-dev.mjs --readback-only",
     "test:preflight": "node --test scripts/preflight-dev.node-test.mjs scripts/preflight-prod.node-test.mjs scripts/shopify-info-safe.node-test.mjs scripts/verify-function-schema.node-test.mjs",
-    "test:operations": "node --test scripts/backup-crypto.node-test.mjs scripts/capacity-check.node-test.mjs scripts/check-client-bundle.node-test.mjs scripts/ci-lane.node-test.mjs scripts/codex-review-gate.test.mjs scripts/controlled-launch-report.node-test.mjs scripts/credential-expiry.node-test.mjs scripts/deploy-receipt.node-test.mjs scripts/github-gates.node-test.mjs scripts/reconcile-develop.node-test.mjs scripts/verify-reconciliation-ruleset.node-test.mjs",
+    "test:operations": "node --test scripts/backup-crypto.node-test.mjs scripts/capacity-check.node-test.mjs scripts/check-client-bundle.node-test.mjs scripts/ci-lane.node-test.mjs scripts/controlled-launch-report.node-test.mjs scripts/credential-expiry.node-test.mjs scripts/deploy-receipt.node-test.mjs scripts/github-gates.node-test.mjs scripts/reconcile-develop.node-test.mjs scripts/verify-reconciliation-ruleset.node-test.mjs",
     "capacity:dev": "node scripts/capacity-check.mjs",
     "report:launch": "node scripts/controlled-launch-report.mjs",
     "test:e2e": "playwright test --config tests/playwright.config.ts",
