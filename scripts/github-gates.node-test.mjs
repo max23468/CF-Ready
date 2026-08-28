@@ -93,7 +93,7 @@ test("accetta commit da PR develop revisionata e merge senza nuovo tree", () => 
       {
         sha: "a".repeat(40),
         parents: [{}],
-        pullRequests: [{ base: "develop", merged: true, codexReview: "success" }],
+        pullRequests: [{ base: "develop", merged: true }],
       },
       {
         sha: "b".repeat(40),
@@ -106,14 +106,14 @@ test("accetta commit da PR develop revisionata e merge senza nuovo tree", () => 
   );
 });
 
-test("rifiuta commit senza provenienza Codex", () => {
+test("rifiuta commit senza una PR merged verso develop", () => {
   assert.throws(
     () =>
       verifyPromotionHistory([
         {
           sha: "c".repeat(40),
           parents: [{}],
-          pullRequests: [{ base: "develop", merged: true, codexReview: "failure" }],
+          pullRequests: [{ base: "main", merged: true }],
         },
       ]),
     /provenienza review/,
