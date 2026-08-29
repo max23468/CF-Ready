@@ -223,6 +223,12 @@ export default function HomePage() {
                 {data.messagesDefault ? t.home.messagesDefault : t.home.messagesCustom}
               </s-badge>
             </s-stack>
+            <s-box background="subdued" borderRadius="base" padding="small-200">
+              <s-stack direction="inline" gap="small-100" alignItems="center">
+                <s-icon type="location" color="subdued" />
+                <s-text color="subdued">{t.rules.exceptions[0]}</s-text>
+              </s-stack>
+            </s-box>
           </s-stack>
 
           <s-stack direction="inline" gap="base">
@@ -253,14 +259,6 @@ export default function HomePage() {
         submit={submit}
         firstCharge={firstCharge}
       />
-
-      <s-section heading={t.home.howHeading}>
-        <s-unordered-list>
-          {t.rules.exceptions.map((line) => (
-            <s-list-item key={line}>{line}</s-list-item>
-          ))}
-        </s-unordered-list>
-      </s-section>
 
       <PlanStatus data={data} />
 
