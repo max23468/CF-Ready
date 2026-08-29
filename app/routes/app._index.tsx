@@ -16,5 +16,6 @@ export const headers: HeadersFunction = (args) => boundary.headers(args);
 export const shouldRevalidate = skipRevalidationWhenLeaving;
 
 export { PlanChoice } from "../features/home/PlanChoice";
+export { MerchantCheckIn } from "../features/home/MerchantCheckIn";
 export { SetupGuide } from "../features/home/SetupGuide";
 export { default } from "../features/home/HomePage";

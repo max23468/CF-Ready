@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.0.8 — 29 agosto 2026
+
+- l'onboarding si completa automaticamente appena almeno una regola gestita,
+  un accesso valido, la Validation attiva e l'assenza di errori dimostrano che
+  lo setup operativo è concluso, senza chiudersi alla sola apertura dei piani;
+- la Home mostra una sola volta ai merchant paganti con controllo attivo un
+  check-in Polaris dismissibile, con accesso diretto all'assistenza e senza
+  cercare o raccogliere recapiti esterni;
+- la telemetria distingue il completamento automatico da quello manuale e la
+  documentazione M12 registra in forma minimizzata il primo merchant pagante.
+
 ## 1.0.7 — 29 agosto 2026
 
 - le notifiche owner recuperano gli eventi Partner arrivati in ritardo entro 24

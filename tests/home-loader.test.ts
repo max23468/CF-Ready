@@ -39,6 +39,7 @@ test("la Home legge lo stato D1 in parallelo ed espone timing senza dati merchan
     };
     address2Declaration: string | null;
     enabledSince: string | null;
+    merchantCheckInDismissed: boolean;
   }>();
   const reconciliation = deferred<{
     shopName: string;
@@ -110,6 +111,7 @@ test("la Home legge lo stato D1 in parallelo ed espone timing senza dati merchan
     },
     address2Declaration: null,
     enabledSince: null,
+    merchantCheckInDismissed: false,
   });
 
   const result = await pending;
@@ -119,7 +121,11 @@ test("la Home legge lo stato D1 in parallelo ed espone timing senza dati merchan
     headers({ loaderHeaders: new Headers(result.init?.headers), parentHeaders } as never),
   );
 
-  expect(result.data).toMatchObject({ onboarding: "not_started", address2Declared: false });
+  expect(result.data).toMatchObject({
+    onboarding: "not_started",
+    address2Declared: false,
+    showMerchantCheckIn: false,
+  });
   expect(serverTiming).toContain("shopify_snapshot;dur=12.3");
   expect(serverTiming).toContain("d1_home;dur=");
   expect(serverTiming).toContain("total;dur=");
