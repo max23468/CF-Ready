@@ -1,0 +1,86 @@
+.checkout-simulator__eyebrow {
+  white-space: nowrap;
+}
+
+.checkout-simulator__actions {
+  display: grid;
+  gap: 8px;
+}
+
+.checkout-simulator__secondary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.checkout-simulator__scenario-copy {
+  display: grid;
+  flex: 1 0 100%;
+  gap: 2px;
+}
+
+.checkout-simulator__scenario {
+  min-width: min(190px, 100%);
+  flex: 1 1 190px;
+}
+
+.checkout-simulator__button {
+  min-height: 34px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 20px;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 100ms ease;
+}
+
+.checkout-simulator__button:hover {
+  transform: translateY(-1px);
+}
+
+.checkout-simulator__button:active {
+  transform: translateY(0);
+}
+
+.checkout-simulator__button:focus-visible {
+  outline: 3px solid rgb(201 123 46 / 32%);
+  outline-offset: 2px;
+}
+
+.checkout-simulator__button--clear {
+  border-color: #c9cccf;
+  background: #f1f2f3;
+  color: #303338;
+}
+
+.checkout-simulator__button--clear:hover {
+  border-color: #a7abaf;
+  background: #e5e7e8;
+}
+
+.checkout-simulator__button--primary {
+  width: 100%;
+  border-color: #20492f;
+  background: #20492f;
+  box-shadow: 0 1px 2px rgb(32 73 47 / 22%);
+  color: #fff;
+}
+
+.checkout-simulator__button--primary:hover {
+  border-color: #173824;
+  background: #173824;
+  box-shadow: 0 3px 8px rgb(32 73 47 / 24%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkout-simulator__button {
+    transition: none;
+  }
+}

@@ -1,0 +1,52 @@
+.rules-layout-container {
+  container-type: inline-size;
+}
+
+.rules-layout {
+  display: grid;
+  grid-template-areas:
+    "fields"
+    "preview"
+    "address";
+  gap: 16px;
+  align-items: start;
+}
+
+.rules-layout__form {
+  display: contents;
+}
+
+.rules-layout__fields {
+  grid-area: fields;
+  min-width: 0;
+}
+
+.rules-layout__preview {
+  grid-area: preview;
+  min-width: 0;
+}
+
+.rules-layout__address {
+  grid-area: address;
+  min-width: 0;
+}
+
+@container (inline-size > 720px) {
+  .rules-layout {
+    grid-template-areas: "form preview";
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .rules-layout__form {
+    grid-area: form;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .rules-layout__fields,
+  .rules-layout__address {
+    grid-area: auto;
+  }
+}

@@ -30,6 +30,7 @@ import { dismissMerchantCheckIn, recordEvent } from "../../events.server";
 import { resolveLocale } from "../../i18n";
 import { planFor, planPrices } from "../../plans.server";
 import type { PlanKind } from "../../plans.server";
+import { normalizeReviewRequestCode } from "../../reviews";
 import { persistShopDisplayName } from "../../shop-profile.server";
 import { authenticate } from "../../shopify.server";
 import {
@@ -143,7 +144,18 @@ export type HomeData = Awaited<ReturnType<typeof loader>>["data"];
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
   const db = context.get(databaseContext);
-  const intent = (await request.formData()).get("intent");
+  const form = await request.formData();
+  const intent = form.get("intent");
+
+  if (intent === "review_prompt_result") {
+    await recordEvent(db, {
+      shopDomain: session.shop,
+      name: "review_prompt_result",
+      class: "support",
+      metadata: { reason: normalizeReviewRequestCode(form.get("code")) },
+    });
+    return { ok: true };
+  }
 
   if (intent === "dismiss_checkin") {
     try {

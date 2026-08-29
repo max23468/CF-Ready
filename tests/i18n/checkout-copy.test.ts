@@ -93,8 +93,13 @@ test("la dichiarazione sul campo “Interno” cambia solo quando il blocco è s
     ]),
   ).toBe(true);
   expect(submitted([["address2Shown", "1"]])).toBe(false);
-  // Codice Fiscale non gestito: il blocco non è sullo schermo e la dichiarazione resta com'è.
+  // `null` resta il contratto per eventuali chiamanti che non hanno mostrato il controllo.
   expect(submitted([])).toBeNull();
+});
+
+test("gli avvisi preventivi sono consigliati solo nel caso dichiarato", () => {
+  expect(texts("it").rules.preventiveHelp).toContain("Consigliato solo se");
+  expect(texts("en").rules.preventiveHelp).toContain("Recommended only if");
 });
 
 // §7.7: massimo tre frasi per blocco. È il caso più affollato possibile: due campi gestiti,
