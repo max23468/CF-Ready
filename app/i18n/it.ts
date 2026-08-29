@@ -108,6 +108,9 @@ export const it = {
     appearsNot: "Non previsto",
     languageSelector: "Lingua dei messaggi",
     previewHeading: "Anteprima nel checkout",
+    previewContext: "Quando il cliente prova a completare l’ordine",
+    previewErrorHeading: "Ordine non completato",
+    previewSelected: "Messaggio selezionato",
   },
   setup: {
     heading: "Prepara CF Ready",
