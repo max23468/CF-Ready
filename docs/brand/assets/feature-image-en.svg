@@ -22,8 +22,8 @@
     <text x="112" y="416" font-size="84" font-weight="500" fill="#F7F5EE">Codice Fiscale</text>
     <text x="112" y="512" font-size="84" font-weight="500" fill="#F7F5EE">at checkout</text>
     <text x="112" y="606" font-size="32" fill="#F7F5EE" opacity=".88">Native field, required, validated.</text>
-    <text x="112" y="652" font-size="32" fill="#F7F5EE" opacity=".88">No theme changes.</text>
-    <text x="112" y="698" font-size="32" fill="#F7F5EE" opacity=".88">Works on standard plans.</text>
+    <text x="112" y="652" font-size="32" fill="#F7F5EE" opacity=".88">Simple setup, preview before activation.</text>
+    <text x="112" y="698" font-size="32" fill="#F7F5EE" opacity=".88">No access to orders or customers.</text>
 
     <!-- Il pannello è la tessera del marchio ingrandita: fascia arancio e i due campi dentro. -->
     <g clip-path="url(#fi-panel)">
