@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.0.7 — 29 agosto 2026
+
+- le notifiche owner recuperano gli eventi Partner arrivati in ritardo entro 24
+  ore e usano cursori D1 monotoni per non perdere eventi locali concorrenti;
+- gli eventi billing locali diventano una seconda fonte affidabile per
+  attivazioni, cambi piano, scadenze, terminazioni e rimborsi, con deduplica
+  semantica condivisa con la Partner API;
+- il bootstrap esclude gli acquisti precedenti all'outbox e recupera l'unica
+  attivazione mensile successiva rimasta senza notifica.
+
 ## 1.0.6 — 27 agosto 2026
 
 - le notifiche Telegram dell'owner includono nome pubblico e URL dello store,
