@@ -42,7 +42,6 @@ export const it = {
   },
   home: {
     heading: "CF Ready",
-    howHeading: "Come si applicano le regole",
     nextHeading: "Prossimo passo",
     badgeActive: "Attiva",
     badgeInactive: "Disattivata",
@@ -107,6 +106,8 @@ export const it = {
       "Questi indicatori dipendono dalle regole scelte, non dallo stato del controllo. Un messaggio può comparire nel checkout solo quando il controllo è attivo.",
     appears: "Previsto",
     appearsNot: "Non previsto",
+    languageSelector: "Lingua dei messaggi",
+    previewHeading: "Anteprima nel checkout",
   },
   setup: {
     heading: "Prepara CF Ready",
@@ -249,7 +250,7 @@ export const it = {
       },
       {
         q: "Prova e pagamenti",
-        a: "La prova dura quattordici giorni, uno solo per store, senza chiedere un metodo di pagamento. Se scegli un piano durante la prova, i giorni che restano non li perdi: Shopify li riceve come giorni di prova della sottoscrizione.",
+        a: "La prova dura quattordici giorni ed è disponibile una sola volta per store, senza chiedere un metodo di pagamento. Se scegli un piano durante la prova, i giorni che restano non li perdi: Shopify li riceve come giorni di prova della sottoscrizione.",
       },
       {
         q: "Limitazioni e canali supportati",
@@ -385,7 +386,15 @@ export const it = {
       deliveryCountry: "Paese di consegna",
       billingCountry: "Paese di fatturazione",
       countries: { IT: "Italia", FR: "Francia", DE: "Germania" },
-      validExamples: "Usa esempi validi",
+      scenarioLabel: "Prova uno scenario",
+      scenarioHelp: "Scegli un esempio: il simulatore compila i campi e mostra il risultato.",
+      scenarioPlaceholder: "Scegli un esempio",
+      scenarios: {
+        valid: "Dati validi",
+        invalidTaxCode: "Codice Fiscale non valido",
+        invalidPec: "PEC non valida",
+        empty: "Campi vuoti",
+      },
       clear: "Svuota",
       continue: "Procedi al pagamento",
       outcomes: {

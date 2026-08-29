@@ -44,7 +44,6 @@ export const en: typeof it = {
   },
   home: {
     heading: "CF Ready",
-    howHeading: "How the rules apply",
     nextHeading: "Next step",
     badgeActive: "Active",
     badgeInactive: "Turned off",
@@ -108,6 +107,8 @@ export const en: typeof it = {
       "These indicators depend on the rules you chose, not on whether the check is active. A message can appear at checkout only while the check is active.",
     appears: "Expected",
     appearsNot: "Not expected",
+    languageSelector: "Message language",
+    previewHeading: "Checkout preview",
   },
   setup: {
     heading: "Get CF Ready ready",
@@ -248,7 +249,7 @@ export const en: typeof it = {
       },
       {
         q: "Trial and payments",
-        a: "The trial lasts fourteen days, one per store, with no payment method required. If you choose a plan during the trial you don’t lose the days you have left: Shopify receives them as trial days on the subscription.",
+        a: "The trial lasts fourteen days and is available only once per store, with no payment method required. If you choose a plan during the trial you don’t lose the days you have left: Shopify receives them as trial days on the subscription.",
       },
       {
         q: "Limitations and supported channels",
@@ -379,7 +380,15 @@ export const en: typeof it = {
       deliveryCountry: "Delivery country",
       billingCountry: "Billing country",
       countries: { IT: "Italy", FR: "France", DE: "Germany" },
-      validExamples: "Use valid examples",
+      scenarioLabel: "Try a scenario",
+      scenarioHelp: "Choose an example: the simulator fills the fields and shows the result.",
+      scenarioPlaceholder: "Choose an example",
+      scenarios: {
+        valid: "Valid details",
+        invalidTaxCode: "Invalid tax code",
+        invalidPec: "Invalid PEC",
+        empty: "Empty fields",
+      },
       clear: "Clear",
       continue: "Continue to payment",
       outcomes: {

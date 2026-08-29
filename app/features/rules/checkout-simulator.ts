@@ -3,6 +3,15 @@ import type { Messages, Rules } from "../../config";
 
 export type SimulatorFieldError = "required" | "invalid" | null;
 export type SimulatorOutcome = "notApplied" | "noChecks" | "checkAtPayment" | "blocked" | "ready";
+export type SimulatorScenario = "valid" | "invalidTaxCode" | "invalidPec" | "empty";
+
+export const simulatorScenarioValues: Record<SimulatorScenario, { taxCode: string; pec: string }> =
+  {
+    valid: { taxCode: "RSSMRA85T10A562S", pec: "mario.rossi@example.com" },
+    invalidTaxCode: { taxCode: "RSSMRA85T10A562A", pec: "mario.rossi@example.com" },
+    invalidPec: { taxCode: "RSSMRA85T10A562S", pec: "mario.rossi@" },
+    empty: { taxCode: "", pec: "" },
+  };
 
 export function simulatorFieldError(
   mode: Rules["taxCode"],

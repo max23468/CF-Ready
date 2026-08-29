@@ -17,6 +17,33 @@ test("Regole mantiene Interno vicino ai campi e usa la larghezza standard", () =
   assert.doesNotMatch(route, /heading=\{t\.rules\.heading\} inlineSize="large"/);
 });
 
+test("il titolo del simulatore non spezza checkout quando ha spazio", () => {
+  const simulator = readFileSync(
+    new URL("../app/features/rules/CheckoutSimulator.tsx", import.meta.url),
+    "utf8",
+  );
+  const styles = readFileSync(
+    new URL("../app/features/rules/CheckoutSimulator.css", import.meta.url),
+    "utf8",
+  ).replaceAll(/\s+/g, " ");
+
+  assert.match(simulator, /className="checkout-simulator__eyebrow"/);
+  assert.match(styles, /\.checkout-simulator__eyebrow \{[^}]*white-space: nowrap;/);
+  assert.doesNotMatch(simulator, /<s-badge[^>]*size="large"/);
+});
+
+test("il simulatore propone scenari pertinenti alle regole configurate", () => {
+  const simulator = readFileSync(
+    new URL("../app/features/rules/CheckoutSimulator.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(simulator, /<s-select[\s\S]*copy\.scenarioLabel/);
+  assert.match(simulator, /rules\.taxCode === "unmanaged" \? null/);
+  assert.match(simulator, /rules\.pec === "unmanaged" \? null/);
+  assert.doesNotMatch(simulator, /checkout-simulator__button--valid/);
+});
+
 test("la Guida espone un pulsante esplicito per richiedere assistenza", () => {
   const route = readFileSync(new URL("../app/routes/app.guide.tsx", import.meta.url), "utf8");
 
@@ -27,5 +54,28 @@ test("le FAQ sono espanse al primo caricamento", () => {
   const route = readFileSync(new URL("../app/routes/app.guide.tsx", import.meta.url), "utf8");
 
   assert.match(route, /const \[expanded, setExpanded\] = useState\(true\)/);
-  assert.match(route, /<details key=\{entry\.q\} open>/);
+  assert.match(route, /<details className="guide-faq__entry" key=\{entry\.q\} open>/);
+});
+
+test("le FAQ espanse restano separate visivamente", () => {
+  const styles = readFileSync(new URL("../app/routes/app.guide.css", import.meta.url), "utf8");
+
+  assert.match(styles, /\.guide-faq__entry \{[^}]*border-block-start:[^}]*padding-block:/s);
+});
+
+test("la Home integra il perimetro Italia nella configurazione corrente", () => {
+  const route = readFileSync(new URL("../app/features/home/HomePage.tsx", import.meta.url), "utf8");
+
+  assert.match(route, /<s-icon type="location" color="subdued" \/>/);
+  assert.match(route, /\{t\.rules\.exceptions\[0\]\}/);
+  assert.doesNotMatch(route, /heading=\{t\.home\.howHeading\}/);
+});
+
+test("Messaggi usa il selettore lingua Polaris e un'anteprima aggiornata", () => {
+  const route = readFileSync(new URL("../app/routes/app.messages.tsx", import.meta.url), "utf8");
+
+  assert.match(route, /<s-button-group[^>]*accessibilityLabel=\{t\.messages\.languageSelector\}/);
+  assert.match(route, /<s-press-button[\s\S]*pressed=\{activeLocale === locale\}/);
+  assert.match(route, /\{draft\[activeLocale\]\[selectedKey\]\}/);
+  assert.match(route, /setActiveLocale\(result\.problem\.locale\)/);
 });

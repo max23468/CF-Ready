@@ -14,6 +14,7 @@ import {
 } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { readSupportDiagnosticState } from "../support.server";
+import "./app.guide.css";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { session } = await authenticateAdmin(request, context);
@@ -97,16 +98,18 @@ export default function Guide() {
               {expanded ? t.guide.collapseAll : t.guide.expandAll}
             </s-button>
           </s-grid>
-          {t.guide.entries.map((entry) => (
-            <details key={entry.q} open>
-              <summary>
-                <strong>{entry.q}</strong>
-              </summary>
-              <s-box paddingBlockStart="small-100">
-                <s-paragraph>{entry.a}</s-paragraph>
-              </s-box>
-            </details>
-          ))}
+          <div className="guide-faq__entries">
+            {t.guide.entries.map((entry) => (
+              <details className="guide-faq__entry" key={entry.q} open>
+                <summary>
+                  <strong>{entry.q}</strong>
+                </summary>
+                <s-box paddingBlockStart="small-100">
+                  <s-paragraph>{entry.a}</s-paragraph>
+                </s-box>
+              </details>
+            ))}
+          </div>
         </s-stack>
       </s-section>
 
