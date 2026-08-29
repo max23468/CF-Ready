@@ -15,6 +15,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   semantica condivisa con la Partner API;
 - il bootstrap esclude gli acquisti precedenti all'outbox e recupera l'unica
   attivazione mensile successiva rimasta senza notifica.
+- il riallineamento Git può recuperare in modo fail-closed anche una promozione
+  `main` di sola governance, preservando il tree `develop` senza toccare provider.
 
 ## 1.0.6 — 27 agosto 2026
 

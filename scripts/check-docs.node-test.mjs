@@ -516,7 +516,9 @@ test("il riallineamento develop è separato dal deploy e fallisce chiuso", () =>
   assert.match(script, /actions\/workflows\/deploy-production\.yml\/runs/);
   assert.match(script, /force: false/);
   assert.match(rulesetVerifier, /bypass_actors/);
-  assert.match(script, /recover develop ancestry after Production reconciliation/);
+  assert.match(script, /recover develop ancestry after main promotion/);
+  assert.match(script, /eventName !== "workflow_dispatch"/);
+  assert.match(script, /tree: develop\.tree\.sha/);
   assert.match(script, /comparison\.merge_base_commit\?\.sha !== promotedDevelop/);
   assert.match(script, /readback\.object\.sha/);
 });
