@@ -67,22 +67,25 @@ descrive ogni immagine con un alt text inglese coerente.
 
 ## Consegna
 
-**Gli screenshot non entrano nel repository**, per decisione dell'owner del
-4 agosto 2026: si caricano direttamente nella listing del Partner Dashboard.
-Il repository conserva questo piano di cattura e le didascalie, che sono la
-parte che deve restare coerente con il prodotto; i file vivono dove servono.
+Dal 29 agosto 2026 gli screenshot pubblicati entrano nel repository, per
+decisione dell'owner, e restano gli stessi file caricati nelle listing italiana
+e inglese:
 
-Ne consegue che la prova della loro esistenza non è un file in Git ma la
-listing stessa. Il readback live del 23 agosto 2026 ha verificato feature media,
-cinque screenshot desktop e alt text nelle due lingue; questa nuova serie li
-sostituisce con cinque schermate più focalizzate. La ricevuta storica è nel
-[`release-readiness-1.0`](../runbooks/release-readiness-1.0.md).
+1. [`01-simulatore-blocco.png`](assets/01-simulatore-blocco.png)
+2. [`02-regole-cf-pec.png`](assets/02-regole-cf-pec.png)
+3. [`03-messaggi-it-en.png`](assets/03-messaggi-it-en.png)
+4. [`04-home-stato.png`](assets/04-home-stato.png)
+5. [`05-guida-assistenza.png`](assets/05-guida-assistenza.png)
+
+Git conserva quindi sia il piano e gli alt text sia gli asset approvati; il
+Partner Dashboard resta autorevole per la serie effettivamente visibile. Il
+readback live del 29 agosto 2026 ha verificato feature media, cinque screenshot
+desktop e alt text nelle due lingue. La ricevuta storica della serie precedente
+è nel [`release-readiness-1.0`](../runbooks/release-readiness-1.0.md).
 
 ## Sito pubblico
 
-Il segnaposto lasciato da M7 sulla Home del sito **resta aperto**: il sito è
-servito da `site/`, che sta nel repository, quindi non può mostrare immagini che
-nel repository non ci sono. Delle tre strade — versionare i soli due screenshot
-che servono alla Home, tenerli su una destinazione esterna raggiungibile dal
-sito, o rinunciare a mostrarli — nessuna è stata scelta, e finché non lo sarà la
-Home continua a descrivere l'app senza mostrarla.
+Il segnaposto lasciato da M7 sulla Home del sito **resta aperto**, ma non è più
+bloccato dalla disponibilità degli asset: i cinque screenshot sono ora
+versionati. La Home continua a descrivere l'app senza mostrarla finché un task
+dedicato non sceglie quali immagini usare e come inserirle nel layout pubblico.
