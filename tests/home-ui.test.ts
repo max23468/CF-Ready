@@ -17,7 +17,7 @@ import { PlanStatus } from "../app/features/home/PlanStatus";
 import { onboardingCheckoutPreview } from "../app/features/onboarding/checkout-preview";
 import { onboardingStep4State } from "../app/features/onboarding/step4-state";
 import { openBillingApproval } from "../app/revalidation";
-import { PlanChoice, SetupGuide } from "../app/routes/app._index";
+import { MerchantCheckIn, PlanChoice, SetupGuide } from "../app/routes/app._index";
 import {
   Address2DeclarationPrompt,
   OnboardingListBlock,
@@ -72,6 +72,44 @@ test("il piano omaggio non viene presentato come un pagamento", () => {
         (element.props as { children?: ReactNode }).children === texts("it").plan.complimentary,
     ),
   ).toBe(true);
+});
+
+test("il check-in pagante resta neutro, apre l'assistenza e può sparire", () => {
+  const submit = vi.fn();
+  const checkInData = {
+    locale: "it",
+    shopDomain: "merchant.example.myshopify.com",
+    version: "1.0.6",
+    countryCode: "IT",
+    entitlement: { kind: "subscription", validThrough: "2026-09-30" },
+    validationEnabled: true,
+    errorCode: null,
+  } as Parameters<typeof MerchantCheckIn>[0]["data"];
+  const rendered = elements(
+    MerchantCheckIn({ data: checkInData, busy: false, pendingIntent: null, submit }),
+  );
+  const banner = rendered.find((element) => element.type === "s-banner");
+  const buttons = rendered.filter((element) => element.type === "s-button");
+  const contact = buttons.find(
+    (button) =>
+      (button.props as { children?: ReactNode }).children === texts("it").home.checkInContact,
+  );
+  const dismiss = buttons.find(
+    (button) =>
+      (button.props as { children?: ReactNode }).children === texts("it").home.checkInDismiss,
+  );
+  if (!banner || !contact || !dismiss) throw new Error("azioni check-in assenti");
+
+  expect((contact.props as { href?: string }).href).toMatch(/^mailto:cfready@icloud\.com/);
+  expect((contact.props as { href?: string }).href).not.toContain("Codice%20Fiscale");
+  expect((contact.props as { slot?: string }).slot).toBe("secondary-actions");
+  expect((dismiss.props as { slot?: string }).slot).toBe("secondary-actions");
+  (dismiss.props as { onClick: () => void }).onClick();
+  expect(submit).toHaveBeenCalledWith("dismiss_checkin", "checkin");
+  submit.mockClear();
+  expect((banner.props as { dismissible?: boolean }).dismissible).toBe(true);
+  (banner.props as { onDismiss: () => void }).onDismiss();
+  expect(submit).toHaveBeenCalledWith("dismiss_checkin", "checkin");
 });
 
 test("il prossimo passo usa un testo generico sui prossimi ordini", () => {

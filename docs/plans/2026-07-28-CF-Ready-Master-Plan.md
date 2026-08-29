@@ -382,7 +382,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-060 | Cambio piano mantiene la pricing generation acquisita. | Il passaggio mensile/annuale/una tantum non penalizza il merchant. |
 | D-061 | Trial iniziato entro fine promozione conserva diritto ai prezzi di lancio fino alla scadenza dei 14 giorni. | Evita che la promozione termini durante il trial. |
 | D-062 | Home come centro operativo guidato, non dashboard. | Una dashboard con KPI sarebbe artificiale per un’app così verticale. |
-| D-063 | Checklist onboarding scompare definitivamente dopo il completamento. | Nessun rumore permanente. |
+| D-063 | Checklist onboarding scompare definitivamente dopo il completamento manuale o non appena lo setup operativo è completo: almeno una regola gestita, accesso attivo, Validation attiva e nessun errore. L'evento automatico resta distinto da quello manuale. | Dallo step finale il confronto piani porta il merchant nella Home; acquisto e attivazione possono quindi concludere correttamente lo setup fuori dalla finestra, senza imporre un ritorno artificiale né lasciare visibile una checklist già superata. La distinzione conserva una telemetria onesta. |
 | D-064 | Home attiva: “Modifica regole” primaria e “Disattiva nel checkout” secondaria con conferma. | Azioni chiare e separate. |
 | D-065 | Save Bar nativa, niente auto-save. | Controllo esplicito delle modifiche. |
 | D-066 | Tre radio sempre visibili per ogni campo. | Più chiare di un select con sole tre opzioni. |
@@ -711,6 +711,11 @@ della verifica registrato in §22, verso `cfready@icloud.com`; Apple/iCloud è
 dichiarata nella Privacy Policy tra i fornitori che trattano indirizzo del
 mittente, contenuto e metadati tecnici delle email. Non esiste quindi un numero
 richiesta, che senza un sistema ricevente non avrebbe riscontro.
+
+Su uno store reale con diritto pagato e Validation attiva, la Home mostra una
+sola volta un check-in neutro: conferma che il controllo è attivo, offre il
+`mailto:` di assistenza e può essere chiuso definitivamente. Non cerca né
+raccoglie recapiti del merchant e non chiede una recensione.
 
 **FR-091** — Nessuna copia automatica al merchant nella 1.0.
 
@@ -2245,7 +2250,13 @@ Regole:
   - `Completa senza attivare`;
 - completamento senza attivazione conserva la configurazione;
 - onboarding riapribile dalla Guida senza reset;
-- checklist iniziale non ricompare.
+- checklist iniziale non ricompare;
+- `Vedi piani` non completa da solo l'onboarding: il merchant può ancora
+  abbandonare l'acquisto;
+- almeno una regola gestita, accesso attivo, Validation attiva e assenza di
+  errori completano invece immediatamente lo stato operativo, anche quando
+  acquisto e attivazione avvengono nella Home; l'evento resta distinto da
+  `onboarding_completed` manuale.
 
 ### 15.10 Recensioni
 

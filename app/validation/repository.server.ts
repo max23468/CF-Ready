@@ -133,6 +133,11 @@ export async function readHomeState(db: D1Database, shopDomain: string) {
     .prepare(
       `SELECT a.onboarding_status, a.onboarding_step, a.last_error_code,
               a.validation_enabled, a.address2_conflict_declared_at,
+              EXISTS (
+                SELECT 1 FROM app_events dismissed
+                 WHERE dismissed.shop_id = shop.id
+                   AND dismissed.event_name = 'merchant_checkin_dismissed'
+              ) AS merchant_checkin_dismissed,
               (SELECT event.occurred_at
                  FROM app_events event
                 WHERE event.shop_id = shop.id
@@ -150,6 +155,7 @@ export async function readHomeState(db: D1Database, shopDomain: string) {
       last_error_code: string | null;
       validation_enabled: number | null;
       address2_conflict_declared_at: string | null;
+      merchant_checkin_dismissed: number;
       validation_enabled_since: string | null;
     }>();
 
@@ -161,6 +167,7 @@ export async function readHomeState(db: D1Database, shopDomain: string) {
       validationEnabled: Boolean(row?.validation_enabled),
     },
     address2Declaration: row?.address2_conflict_declared_at ?? null,
+    merchantCheckInDismissed: Boolean(row?.merchant_checkin_dismissed),
     enabledSince: row?.validation_enabled_since ?? null,
   };
 }
@@ -215,6 +222,22 @@ export async function saveOnboarding(
     )
     .bind(status, step, status, now, now, shopDomain)
     .run();
+}
+
+export async function completeOnboardingAutomatically(db: D1Database, shopDomain: string) {
+  const now = new Date().toISOString();
+  const result = await db
+    .prepare(
+      `UPDATE app_state
+          SET onboarding_status = 'completed', onboarding_step = 1,
+              setup_checklist_dismissed_at = COALESCE(setup_checklist_dismissed_at, ?),
+              updated_at = ?
+        WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
+          AND onboarding_status != 'completed'`,
+    )
+    .bind(now, now, shopDomain)
+    .run();
+  return result.success && result.meta.changes > 0;
 }
 
 // Il momento dell'attivazione è già nel registro eventi, quindi non serve una colonna nuova.

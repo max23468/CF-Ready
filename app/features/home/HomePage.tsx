@@ -21,6 +21,7 @@ import {
   isPlanComparisonLocationState,
 } from "./plan-comparison";
 import { useOnboardingWindowNavigation } from "./use-onboarding-window-navigation";
+import { MerchantCheckIn } from "./MerchantCheckIn";
 
 const ONBOARDING_WINDOW_ID = "onboarding-window";
 
@@ -165,6 +166,10 @@ export default function HomePage() {
         <s-banner tone="critical">
           {t.errors[result.errorCode as keyof typeof t.errors] ?? t.errors.generic}
         </s-banner>
+      ) : null}
+
+      {data.showMerchantCheckIn ? (
+        <MerchantCheckIn data={data} busy={busy} pendingIntent={pendingIntent} submit={submit} />
       ) : null}
 
       {data.onboarding !== "completed" ? (
