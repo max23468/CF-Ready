@@ -158,6 +158,23 @@ La retention nativa del piano corrente è breve: il correlation ID va copiato
 nella ricevuta dell'incidente, non i log completi. Query e retention vanno
 riverificate trimestralmente sulle fonti Cloudflare correnti.
 
+## Report prestazioni Built for Shopify
+
+Il report operativo legge i campioni Web Vitals degli ultimi 28 giorni e
+calcola il p75 con metodo nearest-rank per LCP, INP e CLS. Produce gruppi
+complessivi, per versione e per coppia versione/rotta, senza esporre store,
+sessioni, URL o singoli campioni:
+
+```bash
+npm run report:performance -- development
+npm run report:performance -- production
+```
+
+Le soglie iniziali sono LCP ≤ 2.500 ms, INP ≤ 200 ms e CLS ≤ 0,1. Ogni gruppo
+ha stato `insufficient_samples` finché non raggiunge 100 campioni; dopo quella
+soglia è `pass` o `fail`. Il comando è di sola lettura e non sostituisce lo
+stato Built for Shopify assegnato e riletto da Shopify.
+
 ## Notifiche owner
 
 Il cron Production ogni cinque minuti acquisisce dalla Shopify Partner API gli
