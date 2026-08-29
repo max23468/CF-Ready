@@ -21,6 +21,12 @@ beforeEach(async () => {
     env.DB.prepare("DELETE FROM owner_notifications"),
     env.DB.prepare("DELETE FROM owner_notification_state"),
     env.DB.prepare("DELETE FROM owner_notification_redactions"),
+    env.DB.prepare("DELETE FROM billing_events"),
+    env.DB.prepare("DELETE FROM app_events"),
+    env.DB.prepare("DELETE FROM billing_accounts"),
+    env.DB.prepare("DELETE FROM trials"),
+    env.DB.prepare("DELETE FROM app_state"),
+    env.DB.prepare("DELETE FROM shops"),
   ]);
 });
 
@@ -104,7 +110,7 @@ test("il poll Partner copre lifecycle e billing con nome store, stato e importo"
   expect(request.query).toContain("... on AppSubscriptionEvent");
   expect(request.variables).toMatchObject({
     appId: PARTNER_CONFIG.appId,
-    occurredAtMin: "2026-08-24T09:45:00.000Z",
+    occurredAtMin: "2026-08-23T10:00:00.000Z",
   });
   expect(
     await env.DB.prepare("SELECT display_name FROM shops WHERE shop_domain = ?").bind(shop).first(),
@@ -258,7 +264,13 @@ test("paginazione Partner e checkpoint restano idempotenti", async () => {
     requests.push({ init });
     const after = JSON.parse(String(init?.body)).variables.after as string | null;
     return partnerResponse(
-      [relationship("RELATIONSHIP_INSTALLED", shop, after ? "09:59" : "09:58")],
+      [
+        relationship(
+          after ? "RELATIONSHIP_REACTIVATED" : "RELATIONSHIP_INSTALLED",
+          shop,
+          after ? "09:59" : "09:58",
+        ),
+      ],
       !after,
     );
   });
@@ -302,6 +314,218 @@ test("un errore Partner non avanza il checkpoint", async () => {
       "SELECT state_value FROM owner_notification_state WHERE state_key = 'partner_events_polled_at'",
     ).first(),
   ).toBeNull();
+});
+
+test("il replay Partner recupera un evento pubblicato con quasi un giorno di ritardo", async () => {
+  const shop = await insertShop("partner-in-ritardo.myshopify.com");
+  await env.DB.prepare(
+    `INSERT INTO owner_notification_state (state_key, state_value, updated_at)
+     VALUES ('partner_events_polled_at', ?, ?)`,
+  )
+    .bind("2026-08-24T09:55:00.000Z", "2026-08-24T09:55:00.000Z")
+    .run();
+  const delayed = relationship("RELATIONSHIP_INSTALLED", shop, "09:00");
+  delayed.node.occurredAt = "2026-08-23T10:00:00.000Z";
+  const fetcher = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+    partnerResponse([delayed]),
+  );
+
+  expect(await pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher })).toMatchObject({
+    inserted: 1,
+  });
+  const request = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
+  expect(request.variables.occurredAtMin).toBe("2026-08-23T09:55:00.000Z");
+});
+
+test("il billing locale recupera un'attivazione assente dagli eventi Partner", async () => {
+  const shop = await insertShop("billing-fallback.myshopify.com");
+  const shopId = await shopIdFor(shop);
+  await seedBillingAccount(shopId, "monthly");
+  await insertBillingEvent({
+    shopId,
+    resourceId: "gid://shopify/AppSubscription/fallback",
+    eventType: "active",
+    planKind: "monthly",
+    occurredAt: "2026-08-24T09:58:00.000Z",
+    previousPlanKind: "none",
+  });
+
+  expect(
+    await pollPartnerEvents(env.DB, PARTNER_CONFIG, {
+      now: NOW,
+      fetcher: vi.fn(async () => partnerResponse([])),
+    }),
+  ).toMatchObject({ inserted: 0 });
+  expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 1 });
+  expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 0 });
+  expect(
+    await env.DB.prepare(
+      "SELECT notification_kind, subject, body_text FROM owner_notifications",
+    ).first(),
+  ).toMatchObject({
+    notification_kind: "billing",
+    subject: "🟢 CF Ready · Piano attivato",
+    body_text: expect.stringContaining("Piano: Mensile\nImporto: 2,99 € / mese"),
+  });
+});
+
+test("il primo cursore billing recupera solo i gap nati dopo l'attivazione dell'outbox", async () => {
+  const shop = await insertShop("billing-bootstrap.myshopify.com");
+  const shopId = await shopIdFor(shop);
+  await seedBillingAccount(shopId, "monthly");
+  await insertBillingEvent({
+    shopId,
+    resourceId: "gid://shopify/AppPurchaseOneTime/prima-outbox",
+    eventType: "active",
+    planKind: "one_time",
+    occurredAt: "2026-08-20T09:00:00.000Z",
+    previousPlanKind: "none",
+  });
+  await env.DB.prepare(
+    `INSERT INTO owner_notifications (
+       dedupe_key, notification_kind, shop_domain, subject, body_text, source_occurred_at,
+       status, available_at, sent_at, created_at, updated_at
+     ) VALUES ('outbox-attiva', 'lifecycle', ?, 'evento esistente', 'corpo', ?,
+               'sent', ?, ?, ?, ?)`,
+  )
+    .bind(
+      shop,
+      "2026-08-24T09:00:00.000Z",
+      "2026-08-24T09:00:00.000Z",
+      "2026-08-24T09:00:00.000Z",
+      "2026-08-24T09:00:00.000Z",
+      "2026-08-24T09:00:00.000Z",
+    )
+    .run();
+  await insertBillingEvent({
+    shopId,
+    resourceId: "gid://shopify/AppSubscription/dopo-outbox",
+    eventType: "active",
+    planKind: "monthly",
+    occurredAt: "2026-08-24T09:30:00.000Z",
+    previousPlanKind: "none",
+  });
+
+  expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 1 });
+  const { results } = await env.DB.prepare(
+    "SELECT subject FROM owner_notifications WHERE notification_kind = 'billing'",
+  ).all<{ subject: string }>();
+  expect(results).toEqual([{ subject: "🟢 CF Ready · Piano attivato" }]);
+});
+
+test("Partner e riconciliazione locale producono una sola notifica di attivazione", async () => {
+  const shop = await insertShop("billing-doppia-fonte.myshopify.com");
+  const shopId = await shopIdFor(shop);
+  await seedBillingAccount(shopId, "monthly");
+  const resourceId = "gid://shopify/AppSubscription/doppia-fonte";
+  await insertBillingEvent({
+    shopId,
+    resourceId,
+    eventType: "active",
+    planKind: "monthly",
+    occurredAt: "2026-08-24T09:58:00.000Z",
+    previousPlanKind: "none",
+  });
+  const partner = subscription("SUBSCRIPTION_CHARGE_ACTIVATED", shop, "09:59");
+  partner.node.charge.id = resourceId;
+
+  expect(
+    await pollPartnerEvents(env.DB, PARTNER_CONFIG, {
+      now: NOW,
+      fetcher: vi.fn(async () => partnerResponse([partner])),
+    }),
+  ).toMatchObject({ inserted: 1 });
+  expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 0 });
+  expect(
+    await env.DB.prepare("SELECT COUNT(*) AS count FROM owner_notifications").first(),
+  ).toMatchObject({ count: 1 });
+});
+
+test("il cursore locale per ID non perde eventi inseriti con un timestamp arretrato", async () => {
+  const shop = await insertTrialShop("cursore-id.myshopify.com", "active");
+  await trialEvent(shop.shopId, "trial_started", "2026-08-24T09:58:00.000Z").run();
+  expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 1 });
+
+  await trialEvent(
+    shop.shopId,
+    "validation_enabled",
+    "2026-08-20T09:58:00.000Z",
+    "validation",
+  ).run();
+  expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 1 });
+  expect(
+    await env.DB.prepare(
+      "SELECT subject FROM owner_notifications WHERE subject LIKE '%Validation%'",
+    ).first(),
+  ).toMatchObject({ subject: "🟢 CF Ready · Validation attivata" });
+});
+
+test("il fallback locale copre l'intero ciclo commerciale osservabile da Shopify Admin", async () => {
+  const cases = [
+    ["attivo", "active", "monthly", "none", "🟢 CF Ready · Piano attivato"],
+    ["cambio", "active", "annual", "monthly", "🔄 CF Ready · Piano cambiato"],
+    ["disdetto", "ending", "monthly", "monthly", "🟡 CF Ready · Abbonamento in scadenza"],
+    ["terminato", "expired", "none", "monthly", "🟡 CF Ready · Abbonamento terminato"],
+    ["rimborsato", "refunded", "one_time", "one_time", "🔴 CF Ready · Pagamento unico rimborsato"],
+  ] as const;
+
+  for (const [slug, eventType, planKind, previousPlanKind] of cases) {
+    const shop = await insertShop(`${slug}.myshopify.com`);
+    const shopId = await shopIdFor(shop);
+    await seedBillingAccount(shopId, planKind === "annual" ? "annual" : "monthly");
+    await insertBillingEvent({
+      shopId,
+      resourceId: `gid://shopify/AppSubscription/${slug}`,
+      eventType,
+      planKind,
+      occurredAt: "2026-08-24T09:58:00.000Z",
+      previousPlanKind,
+    });
+  }
+
+  expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: cases.length });
+  const { results } = await env.DB.prepare(
+    "SELECT subject FROM owner_notifications ORDER BY id",
+  ).all<{ subject: string }>();
+  expect(results.map(({ subject }) => subject)).toEqual(cases.map((entry) => entry[4]));
+});
+
+test("installazione e disinstallazione locali coprono Partner senza duplicare", async () => {
+  const shop = await insertShop("lifecycle-fallback.myshopify.com");
+  const shopId = await shopIdFor(shop);
+  await env.DB.prepare(
+    `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
+     VALUES (?, 'app_installed', 'lifecycle', ?)`,
+  )
+    .bind(shopId, "2026-08-24T09:58:00.000Z")
+    .run();
+  expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 1 });
+  expect(
+    await pollPartnerEvents(env.DB, PARTNER_CONFIG, {
+      now: NOW,
+      fetcher: vi.fn(async () =>
+        partnerResponse([relationship("RELATIONSHIP_INSTALLED", shop, "09:58")]),
+      ),
+    }),
+  ).toMatchObject({ inserted: 0 });
+
+  await env.DB.batch([
+    env.DB.prepare("UPDATE shops SET installation_status = 'uninstalled' WHERE id = ?").bind(
+      shopId,
+    ),
+    env.DB.prepare(
+      `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
+       VALUES (?, 'app_uninstalled', 'lifecycle', ?)`,
+    ).bind(shopId, "2026-08-24T09:59:00.000Z"),
+  ]);
+  expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 1 });
+  const { results } = await env.DB.prepare(
+    "SELECT subject FROM owner_notifications ORDER BY id",
+  ).all<{ subject: string }>();
+  expect(results.map(({ subject }) => subject)).toEqual([
+    "🟢 CF Ready · Nuova installazione",
+    "🔴 CF Ready · Disinstallazione",
+  ]);
 });
 
 test("Telegram ritenta senza duplicare e invia una Rich Message strutturata", async () => {
@@ -507,6 +731,38 @@ function trialEvent(shopId: number, eventName: string, occurredAt: string, event
     `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
      VALUES (?, ?, ?, ?)`,
   ).bind(shopId, eventName, eventClass, occurredAt);
+}
+
+async function shopIdFor(shop: string) {
+  const row = await env.DB.prepare("SELECT id FROM shops WHERE shop_domain = ?")
+    .bind(shop)
+    .first<{ id: number }>();
+  return row!.id;
+}
+
+function insertBillingEvent({
+  shopId,
+  resourceId,
+  eventType,
+  planKind,
+  occurredAt,
+  previousPlanKind,
+}: {
+  shopId: number;
+  resourceId: string;
+  eventType: "active" | "ending" | "expired" | "refunded";
+  planKind: "monthly" | "annual" | "one_time" | "none";
+  occurredAt: string;
+  previousPlanKind: "monthly" | "annual" | "one_time" | "none";
+}) {
+  return env.DB.prepare(
+    `INSERT INTO billing_events (
+       shop_id, shopify_resource_gid, event_type, status, amount_minor, currency,
+       period_end, occurred_at, created_at, previous_entitlement_status, previous_plan_kind
+     ) VALUES (?, ?, ?, ?, 299, 'EUR', '2026-09-24', ?, ?, 'none', ?)`,
+  )
+    .bind(shopId, resourceId, eventType, planKind, occurredAt, occurredAt, previousPlanKind)
+    .run();
 }
 
 async function seedBillingAccount(shopId: number, planKind: "monthly" | "annual") {
