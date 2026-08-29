@@ -169,12 +169,6 @@ export default function CustomerMessages() {
           </button>
         </ui-save-bar>
 
-        {/* L'introduzione non è una sezione, quindi non riceve la spaziatura che `s-page` dà
-            alle card: la distanza dal primo box va dichiarata qui. */}
-        <s-box paddingBlockEnd="base">
-          <s-paragraph>{t.messages.intro}</s-paragraph>
-        </s-box>
-
         {/* D-069 prevedeva due tab, ma Polaris non ha un componente tab e costruirlo a mano
               significherebbe reimplementarne l'accessibilità (§8.1). Le due lingue restano quindi
               entrambe visibili, il che soddisfa anche §8.9: nessun errore può nascondersi dietro

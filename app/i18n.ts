@@ -26,9 +26,9 @@ export function texts(locale: Locale) {
   return dictionaries[locale];
 }
 
-// L'anteprima di §15.4 e lo stato della Home dicono la stessa cosa e devono dirla con le stesse
-// parole: una frase per conseguenza, mai un elenco di stati. Nessuna simulazione grafica del
-// checkout (D-068), solo testo.
+// Il riepilogo di §15.4 e lo stato della Home dicono la stessa cosa e devono dirla con le stesse
+// parole: una frase per conseguenza, mai un elenco di stati. Il simulatore aggiunge soltanto una
+// prova locale e interattiva delle stesse regole (D-068).
 export type CheckoutStatus = "active" | "disabled" | "lapsed";
 
 export const validationStatus = (enabled: boolean, entitled: boolean): CheckoutStatus =>
@@ -54,8 +54,8 @@ export function describeCheckout(
   if (!lines.length) return [t.nothing];
 
   // §7.7: massimo tre frasi per blocco. L'eccezione estera non si ripete qui, perché il
-  // riquadro `Eccezioni automatiche` la dichiara nella stessa schermata; fra le due avvertenze
-  // vince quella che decide se le regole valgono davvero.
+  // simulatore la dichiara accanto ai Paesi di prova; fra le due avvertenze vince quella che
+  // decide se le regole valgono davvero.
   if (status !== "active") lines.push(status === "lapsed" ? t.lapsed : t.disabled);
   else if (errorDisplay === "preventive") lines.push(t.preventive);
   return lines;
@@ -97,17 +97,21 @@ export type SupportDetails = {
   version: string;
   countryCode?: string | null;
   entitlement?: boolean;
+  entitlementKind?: "annual" | "complimentary" | "monthly" | "none" | "one_time" | "trial";
   validationEnabled?: boolean;
   errorCode?: string | null;
+  diagnosticId?: string;
+  configSchemaVersion?: number | null;
+  configHash?: string | null;
+  validationStateRevision?: number;
+  lastSyncAt?: string | null;
 };
 
 export type SupportCategory = keyof typeof it.support.categories;
 
-export function supportMailto(details: SupportDetails, locale: Locale, category: SupportCategory) {
+export function supportDiagnosticText(details: SupportDetails, locale: Locale) {
   const t = texts(locale).support;
   const lines = [
-    "",
-    "",
     t.technicalHeading,
     `${t.fieldShop}: ${details.shopDomain}`,
     `${t.fieldVersion}: ${details.version}`,
@@ -118,10 +122,28 @@ export function supportMailto(details: SupportDetails, locale: Locale, category:
   if (details.entitlement !== undefined) {
     lines.push(`${t.fieldEntitlement}: ${details.entitlement ? t.yes : t.no}`);
   }
+  if (details.entitlementKind) {
+    lines.push(`${t.fieldEntitlementKind}: ${t.entitlementKinds[details.entitlementKind]}`);
+  }
   if (details.validationEnabled !== undefined) {
     lines.push(`${t.fieldValidation}: ${details.validationEnabled ? t.yes : t.no}`);
   }
   if (details.errorCode) lines.push(`${t.fieldErrorCode}: ${details.errorCode}`);
+  if (details.configSchemaVersion !== undefined && details.configSchemaVersion !== null) {
+    lines.push(`${t.fieldConfigSchema}: ${details.configSchemaVersion}`);
+  }
+  if (details.configHash) lines.push(`${t.fieldConfigHash}: ${details.configHash}`);
+  if (details.validationStateRevision !== undefined) {
+    lines.push(`${t.fieldStateRevision}: ${details.validationStateRevision}`);
+  }
+  if (details.lastSyncAt) lines.push(`${t.fieldLastSync}: ${details.lastSyncAt}`);
+  if (details.diagnosticId) lines.push(`${t.fieldDiagnosticId}: ${details.diagnosticId}`);
+  return lines.join("\n");
+}
+
+export function supportMailto(details: SupportDetails, locale: Locale, category: SupportCategory) {
+  const t = texts(locale).support;
+  const lines = ["", "", supportDiagnosticText(details, locale)];
   const query = new URLSearchParams({
     subject: `${t.subject}: ${t.categories[category]}`,
     body: lines.join("\n"),
