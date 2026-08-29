@@ -163,11 +163,16 @@ riverificate trimestralmente sulle fonti Cloudflare correnti.
 Il cron Production ogni cinque minuti acquisisce dalla Shopify Partner API gli
 eventi di installazione, riattivazione, disattivazione e disinstallazione, oltre
 all'intero ciclo degli abbonamenti e dei pagamenti unici: accettazione,
-attivazione, disdetta, rifiuto, scadenza, sospensione e riattivazione. Gli eventi
-locali completano la copertura con avvio, scadenza e conversione della prova,
-completamento dell'onboarding e attivazione/disattivazione della Validation. Il
-passaggio tra piani usa il precedente stato billing riconciliato per produrre una
-notifica esplicita `Da`/`A`.
+attivazione, disdetta, rifiuto, scadenza, sospensione e riattivazione. Ogni poll
+rilegge le ultime 24 ore, così un evento pubblicato in ritardo non resta oltre il
+checkpoint. In parallelo, cursori monotoni sugli ID locali recuperano
+installazione, disinstallazione, prova, onboarding, Validation e tutte le
+transizioni presenti in `billing_events`. Il readback Shopify Admin costituisce
+quindi il fallback dell’attivazione commerciale anche se la Partner API non
+restituisce l’evento; chiavi semantiche comuni impediscono il doppio messaggio
+quando entrambe le fonti osservano la stessa transizione. Il passaggio tra piani
+usa il precedente stato billing riconciliato per produrre una notifica esplicita
+`Da`/`A`.
 
 L'outbox viene consegnato tramite la Telegram Bot API. Development non configura
 i secret e non invia notifiche. Il destinatario è la sola chat privata

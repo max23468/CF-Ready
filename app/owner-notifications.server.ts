@@ -3,13 +3,14 @@ import { trialLedgerHash } from "./hash.server";
 import { persistShopDisplayName, safeStoreDisplayName } from "./shop-profile.server";
 
 const PARTNER_API_VERSION = "2026-07";
-const FIRST_POLL_LOOKBACK_MS = 15 * 60 * 1000;
-const POLL_OVERLAP_MS = 5 * 60 * 1000;
+const PARTNER_POLL_REPLAY_MS = 24 * 60 * 60 * 1000;
 const CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 const MAX_PAGES = 100;
 const PAGE_SIZE = 100;
 const MAX_DELIVERIES_PER_RUN = 10;
 const MAX_DELIVERY_ATTEMPTS = 5;
+const LOCAL_EVENT_CURSOR_KEY = "local_notification_event_id";
+const BILLING_EVENT_CURSOR_KEY = "billing_notification_event_id";
 const OWNER_NOTIFICATION_DATE_FORMATTER = new Intl.DateTimeFormat("it-IT", {
   dateStyle: "medium",
   timeStyle: "short",
@@ -145,6 +146,8 @@ type OperationalSnapshot = {
 type LocalNotificationEvent = Omit<OperationalSnapshot, "trial_ends_at"> & {
   id: number;
   event_name:
+    | "app_installed"
+    | "app_uninstalled"
     | "trial_started"
     | "trial_expired"
     | "trial_converted"
@@ -154,6 +157,20 @@ type LocalNotificationEvent = Omit<OperationalSnapshot, "trial_ends_at"> & {
   shop_domain: string;
   ends_at: string | null;
   occurred_at: string;
+  reinstalled: number;
+};
+
+type LocalBillingEvent = OperationalSnapshot & {
+  id: number;
+  shop_domain: string;
+  shopify_resource_gid: string;
+  event_type: "active" | "ending" | "expired" | "refunded";
+  status: "monthly" | "annual" | "one_time" | "none";
+  amount_minor: number | null;
+  currency: string | null;
+  period_end: string | null;
+  occurred_at: string;
+  previous_plan_kind: "monthly" | "annual" | "one_time" | "none" | null;
 };
 
 const PARTNER_EVENTS_QUERY = `#graphql
@@ -253,14 +270,16 @@ export async function pollPartnerEvents(
       throw new Error("partner_api_invalid_payload");
     }
 
-    const notifications = await Promise.all(
-      events.edges.map(async ({ node }) => {
-        if (!validPartnerEvent(node)) {
-          throw new Error("partner_api_invalid_payload");
-        }
-        return partnerEventNotification(db, node);
-      }),
-    );
+    const notifications = (
+      await Promise.all(
+        events.edges.map(async ({ node }) => {
+          if (!validPartnerEvent(node)) {
+            throw new Error("partner_api_invalid_payload");
+          }
+          return partnerEventNotification(db, node);
+        }),
+      )
+    ).filter((notification) => notification !== null);
     if (notifications.length) {
       const results = await db.batch(notifications);
       inserted += results.reduce((total, result) => total + result.meta.changes, 0);
@@ -282,9 +301,21 @@ export async function pollPartnerEvents(
 }
 
 export async function pollLocalNotifications(db: D1Database, now = new Date()) {
-  const cycleStartedAt = now.toISOString();
-  const occurredAtMin = await pollStart(db, "local_notifications_polled_at", now);
-  let afterId = 0;
+  const local = await pollLocalAppEvents(db, now);
+  // Il bootstrap billing usa l'istante della prima riga outbox, che il poll locale può avere
+  // appena creato: l'ordine evita di escludere transizioni precedenti al primo ciclo completo.
+  // react-doctor-disable-next-line react-doctor/server-sequential-independent-await
+  const billing = await pollLocalBillingEvents(db, now);
+  return {
+    inserted: local.inserted + billing.inserted,
+    pages: local.pages + billing.pages,
+    localAfterId: local.afterId,
+    billingAfterId: billing.afterId,
+  };
+}
+
+async function pollLocalAppEvents(db: D1Database, now: Date) {
+  let afterId = await localEventCursor(db);
   let inserted = 0;
 
   for (let page = 0; page < MAX_PAGES; page += 1) {
@@ -293,42 +324,104 @@ export async function pollLocalNotifications(db: D1Database, now = new Date()) {
         `SELECT e.id, e.event_name, e.occurred_at, s.shop_domain, s.display_name,
                 s.installation_status, s.country_code, s.shop_currency, s.billing_currency,
                 s.installed_at, a.onboarding_status, a.onboarding_step, a.validation_enabled,
-                t.status AS trial_status, t.ends_at, b.plan_kind, b.entitlement_status
+                t.status AS trial_status, t.ends_at, b.plan_kind, b.entitlement_status,
+                EXISTS (
+                  SELECT 1 FROM app_events previous
+                  WHERE previous.shop_id = e.shop_id
+                    AND previous.event_name = 'app_uninstalled'
+                    AND previous.id < e.id
+                ) AS reinstalled
          FROM app_events e
-         JOIN shops s ON s.id = e.shop_id
+         LEFT JOIN shops s ON s.id = e.shop_id
          LEFT JOIN app_state a ON a.shop_id = s.id
          LEFT JOIN trials t ON t.shop_id = s.id
          LEFT JOIN billing_accounts b ON b.shop_id = s.id
-         WHERE e.event_name IN (
-           'trial_started', 'trial_expired', 'trial_converted',
-           'onboarding_completed', 'validation_enabled', 'validation_disabled'
-         )
-           AND e.occurred_at >= ? AND e.id > ?
+         WHERE e.id > ?
          ORDER BY e.id
          LIMIT ?`,
       )
-      .bind(occurredAtMin, afterId, PAGE_SIZE)
+      .bind(afterId, PAGE_SIZE)
       .all<LocalNotificationEvent>();
 
-    const statements = await Promise.all(
-      results.map((event) => {
-        if (!validIsoDate(event.occurred_at)) throw new Error("billing_event_invalid_timestamp");
-        return localEventNotification(db, event);
-      }),
-    );
+    const statements = (
+      await Promise.all(
+        results.map((event) => {
+          if (!localNotificationEvent(event)) return null;
+          if (!event.shop_domain) return null;
+          if (!validIsoDate(event.occurred_at)) throw new Error("billing_event_invalid_timestamp");
+          return localEventNotification(db, event);
+        }),
+      )
+    ).filter((statement) => statement !== null);
     if (statements.length) {
       const writes = await db.batch(statements);
       inserted += writes.reduce((total, result) => total + result.meta.changes, 0);
     }
 
-    if (results.length < PAGE_SIZE) {
-      await writeState(db, "local_notifications_polled_at", cycleStartedAt);
-      return { inserted, occurredAtMin, pages: page + 1 };
+    if (results.length) {
+      afterId = results.at(-1)!.id;
+      await writeState(db, LOCAL_EVENT_CURSOR_KEY, String(afterId), now);
     }
-    afterId = results.at(-1)!.id;
+    if (results.length < PAGE_SIZE) {
+      return { inserted, afterId, pages: page + 1 };
+    }
   }
 
   throw new Error("local_notification_page_limit");
+}
+
+async function pollLocalBillingEvents(db: D1Database, now: Date) {
+  let afterId = await billingEventCursor(db, now);
+  let inserted = 0;
+
+  for (let page = 0; page < MAX_PAGES; page += 1) {
+    const { results } = await db
+      .prepare(
+        `SELECT e.id, e.shopify_resource_gid, e.event_type, e.status, e.amount_minor,
+                e.currency, e.period_end, e.occurred_at, e.previous_plan_kind,
+                s.shop_domain, s.display_name, s.installation_status, s.country_code,
+                s.shop_currency, s.billing_currency, s.installed_at,
+                a.onboarding_status, a.onboarding_step, a.validation_enabled,
+                t.status AS trial_status, t.ends_at AS trial_ends_at,
+                b.plan_kind, b.entitlement_status
+         FROM billing_events e
+         LEFT JOIN shops s ON s.id = e.shop_id
+         LEFT JOIN app_state a ON a.shop_id = s.id
+         LEFT JOIN trials t ON t.shop_id = s.id
+         LEFT JOIN billing_accounts b ON b.shop_id = s.id
+         WHERE e.id > ?
+         ORDER BY e.id
+         LIMIT ?`,
+      )
+      .bind(afterId, PAGE_SIZE)
+      .all<LocalBillingEvent>();
+
+    const statements = (
+      await Promise.all(
+        results.map((event) => {
+          if (!event.shop_domain) return null;
+          if (!validLocalBillingEvent(event)) {
+            throw new Error("billing_event_invalid_payload");
+          }
+          return localBillingNotification(db, event);
+        }),
+      )
+    ).filter((statement) => statement !== null);
+    if (statements.length) {
+      const writes = await db.batch(statements);
+      inserted += writes.reduce((total, result) => total + result.meta.changes, 0);
+    }
+
+    if (results.length) {
+      afterId = results.at(-1)!.id;
+      await writeState(db, BILLING_EVENT_CURSOR_KEY, String(afterId), now);
+    }
+    if (results.length < PAGE_SIZE) {
+      return { inserted, afterId, pages: page + 1 };
+    }
+  }
+
+  throw new Error("billing_notification_page_limit");
 }
 
 export async function deliverOwnerNotifications(
@@ -401,18 +494,22 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode)
     persistShopDisplayName(db, shopDomain, event.shop!.name),
     readOperationalSnapshot(db, shopDomain),
   ]);
-  const source = `${type}:${event.shop!.id}:${event.charge?.id ?? "relationship"}:${occurredAt}`;
-  const dedupeKey = await notificationKey("partner", source);
 
   if (type.startsWith("RELATIONSHIP_")) {
-    const lifecycle = relationshipCopy(type);
-    const appStatus = relationshipStatus(type);
+    const relationshipType = type as Extract<PartnerEventType, `RELATIONSHIP_${string}`>;
+    const lifecycle = relationshipCopy(relationshipType);
+    if (await hasEquivalentNotification(db, shopDomain, lifecycle.subject, occurredAt)) return null;
+    const appStatus = relationshipStatus(relationshipType);
     const installationDuration =
       type === "RELATIONSHIP_UNINSTALLED"
         ? formatDuration(snapshot?.installed_at, occurredAt)
         : null;
     return notificationStatement(db, {
-      dedupeKey,
+      dedupeKey: await relationshipNotificationKey(
+        shopDomain,
+        relationshipType,
+        snapshot?.installed_at ?? occurredAt,
+      ),
       kind: "lifecycle",
       shopDomain,
       shopHash: await trialLedgerHash(shopDomain),
@@ -435,6 +532,7 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode)
     ? await previousPlanKind(db, shopDomain, charge.id!, currentKind)
     : null;
   const billing = billingCopy(type, previousKind !== null);
+  if (await hasEquivalentNotification(db, shopDomain, billing.subject, occurredAt)) return null;
   const plan = safePlanName(charge.name) ?? planLabel(currentKind) ?? operationalPlan(snapshot);
   const billingDetails = [
     ...(previousKind ? [`Da: ${planLabel(previousKind)}`] : []),
@@ -446,7 +544,7 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode)
     ...(charge.test ? ["Modalità: test"] : []),
   ];
   return notificationStatement(db, {
-    dedupeKey,
+    dedupeKey: await billingNotificationKey(charge.id!, partnerBillingState(type)),
     kind: "billing",
     shopDomain,
     shopHash: await trialLedgerHash(shopDomain),
@@ -461,6 +559,9 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode)
 }
 
 async function localEventNotification(db: D1Database, event: LocalNotificationEvent) {
+  if (event.event_name === "app_installed" || event.event_name === "app_uninstalled") {
+    return localRelationshipNotification(db, event);
+  }
   if (event.event_name.startsWith("trial_")) return trialNotification(db, event);
 
   const shopDomain = normalizeShopDomain(event.shop_domain);
@@ -500,6 +601,78 @@ async function localEventNotification(db: D1Database, event: LocalNotificationEv
         validationStatus,
         plan: operationalPlan(event),
       }),
+    ]),
+    occurredAt: event.occurred_at,
+  });
+}
+
+async function localRelationshipNotification(db: D1Database, event: LocalNotificationEvent) {
+  const shopDomain = normalizeShopDomain(event.shop_domain);
+  const type: Extract<PartnerEventType, `RELATIONSHIP_${string}`> =
+    event.event_name === "app_uninstalled"
+      ? "RELATIONSHIP_UNINSTALLED"
+      : event.reinstalled
+        ? "RELATIONSHIP_REACTIVATED"
+        : "RELATIONSHIP_INSTALLED";
+  const copy = relationshipCopy(type);
+  if (await hasEquivalentNotification(db, shopDomain, copy.subject, event.occurred_at)) return null;
+  return notificationStatement(db, {
+    dedupeKey: await relationshipNotificationKey(shopDomain, type, event.installed_at),
+    kind: "lifecycle",
+    shopDomain,
+    shopHash: await trialLedgerHash(shopDomain),
+    subject: copy.subject,
+    body: notificationBody(copy.description, event.occurred_at, [
+      storeSection(event.display_name, shopDomain, event),
+      operationalSection(event, {
+        appStatus: relationshipStatus(type),
+        plan: operationalPlan(event),
+        installationDuration:
+          event.event_name === "app_uninstalled"
+            ? formatDuration(event.installed_at, event.occurred_at)
+            : null,
+      }),
+    ]),
+    occurredAt: event.occurred_at,
+  });
+}
+
+async function localBillingNotification(db: D1Database, event: LocalBillingEvent) {
+  const shopDomain = normalizeShopDomain(event.shop_domain);
+  const planKind = localBillingPlan(event);
+  if (!planKind) throw new Error("billing_event_invalid_payload");
+  const changed =
+    event.event_type === "active" &&
+    event.previous_plan_kind !== null &&
+    event.previous_plan_kind !== "none" &&
+    event.previous_plan_kind !== planKind;
+  const copy = localBillingCopy(event.event_type, planKind, changed);
+  if (await hasEquivalentNotification(db, shopDomain, copy.subject, event.occurred_at)) return null;
+  const details = [
+    ...(changed ? [`Da: ${planLabel(event.previous_plan_kind)}`] : []),
+    `${changed ? "A" : "Piano"}: ${planLabel(planKind)}`,
+    ...(validMinorMoney(event.amount_minor, event.currency)
+      ? [`Importo: ${formatMinorMoney(event.amount_minor!, event.currency!, planKind)}`]
+      : []),
+    ...(validCalendarDate(event.period_end ?? undefined)
+      ? [
+          `${event.event_type === "ending" ? "Accesso fino al" : "Prossimo addebito"}: ${formatCalendarDate(event.period_end!)}`,
+        ]
+      : []),
+  ];
+  return notificationStatement(db, {
+    dedupeKey: await billingNotificationKey(
+      event.shopify_resource_gid,
+      localBillingState(event.event_type),
+    ),
+    kind: "billing",
+    shopDomain,
+    shopHash: await trialLedgerHash(shopDomain),
+    subject: copy.subject,
+    body: notificationBody(copy.description, event.occurred_at, [
+      storeSection(event.display_name, shopDomain, event),
+      { title: "💳 Billing", lines: details },
+      operationalSection(event, { plan: null }),
     ]),
     occurredAt: event.occurred_at,
   });
@@ -848,6 +1021,77 @@ function billingCopy(type: PartnerEventType, changed: boolean) {
   }[type as Exclude<PartnerEventType, `RELATIONSHIP_${string}`>];
 }
 
+function localBillingCopy(
+  eventType: LocalBillingEvent["event_type"],
+  planKind: LocalBillingEvent["status"],
+  changed: boolean,
+) {
+  if (changed) {
+    return {
+      subject: "🔄 CF Ready · Piano cambiato",
+      description: "Shopify Admin ha confermato il passaggio a un altro piano.",
+    };
+  }
+  if (eventType === "active") {
+    return planKind === "one_time"
+      ? {
+          subject: "🟢 CF Ready · Pagamento unico attivato",
+          description: "Shopify Admin ha confermato il piano con pagamento unico.",
+        }
+      : {
+          subject: "🟢 CF Ready · Piano attivato",
+          description: "Shopify Admin ha confermato il nuovo piano.",
+        };
+  }
+  return {
+    ending: {
+      subject: "🟡 CF Ready · Abbonamento in scadenza",
+      description:
+        "Shopify Admin non espone più il piano come attivo, ma il periodo acquistato non è ancora terminato.",
+    },
+    expired: {
+      subject: "🟡 CF Ready · Abbonamento terminato",
+      description: "Shopify Admin ha confermato il termine dell'abbonamento.",
+    },
+    refunded: {
+      subject: "🔴 CF Ready · Pagamento unico rimborsato",
+      description: "Shopify Admin non espone più il pagamento unico come attivo.",
+    },
+  }[eventType];
+}
+
+function partnerBillingState(type: PartnerEventType) {
+  return {
+    SUBSCRIPTION_CHARGE_ACCEPTED: "accepted",
+    SUBSCRIPTION_CHARGE_ACTIVATED: "active",
+    SUBSCRIPTION_CHARGE_CANCELED: "ending",
+    SUBSCRIPTION_CHARGE_DECLINED: "declined",
+    SUBSCRIPTION_CHARGE_EXPIRED: "request_expired",
+    SUBSCRIPTION_CHARGE_FROZEN: "frozen",
+    SUBSCRIPTION_CHARGE_UNFROZEN: "unfrozen",
+    ONE_TIME_CHARGE_ACCEPTED: "accepted",
+    ONE_TIME_CHARGE_ACTIVATED: "active",
+    ONE_TIME_CHARGE_DECLINED: "declined",
+    ONE_TIME_CHARGE_EXPIRED: "request_expired",
+  }[type as Exclude<PartnerEventType, `RELATIONSHIP_${string}`>];
+}
+
+function localBillingState(type: LocalBillingEvent["event_type"]) {
+  return {
+    active: "active",
+    ending: "ending",
+    expired: "entitlement_expired",
+    refunded: "refunded",
+  }[type];
+}
+
+function localBillingPlan(event: LocalBillingEvent) {
+  if (event.status !== "none") return event.status;
+  return event.previous_plan_kind && event.previous_plan_kind !== "none"
+    ? event.previous_plan_kind
+    : null;
+}
+
 async function pollStart(db: D1Database, key: string, now: Date) {
   const state = await db
     .prepare("SELECT state_value FROM owner_notification_state WHERE state_key = ?")
@@ -855,11 +1099,58 @@ async function pollStart(db: D1Database, key: string, now: Date) {
     .first<{ state_value: string }>();
   const previous = state && validIsoDate(state.state_value) ? Date.parse(state.state_value) : null;
   return new Date(
-    previous === null ? now.getTime() - FIRST_POLL_LOOKBACK_MS : previous - POLL_OVERLAP_MS,
+    previous === null ? now.getTime() - PARTNER_POLL_REPLAY_MS : previous - PARTNER_POLL_REPLAY_MS,
   ).toISOString();
 }
 
-async function writeState(db: D1Database, key: string, value: string) {
+async function localEventCursor(db: D1Database) {
+  const existing = await readIntegerState(db, LOCAL_EVENT_CURSOR_KEY);
+  if (existing !== null) return existing;
+
+  const legacy = await db
+    .prepare(
+      "SELECT state_value FROM owner_notification_state WHERE state_key = 'local_notifications_polled_at'",
+    )
+    .first<{ state_value: string }>();
+  if (!legacy || !validIsoDate(legacy.state_value)) return 0;
+  const row = await db
+    .prepare("SELECT COALESCE(MAX(id), 0) AS id FROM app_events WHERE occurred_at <= ?")
+    .bind(legacy.state_value)
+    .first<{ id: number }>();
+  return row?.id ?? 0;
+}
+
+async function billingEventCursor(db: D1Database, now: Date) {
+  const existing = await readIntegerState(db, BILLING_EVENT_CURSOR_KEY);
+  if (existing !== null) return existing;
+
+  // Al primo avvio recupera le transizioni avvenute da quando l'outbox esiste. Questo include
+  // eventi Partner persi, senza rispedire acquisti precedenti all'attivazione delle notifiche.
+  const firstNotification = await db
+    .prepare("SELECT MIN(created_at) AS created_at FROM owner_notifications")
+    .first<{ created_at: string | null }>();
+  const coverageStartedAt = validIsoDate(firstNotification?.created_at ?? undefined)
+    ? firstNotification!.created_at!
+    : new Date(now.getTime() - PARTNER_POLL_REPLAY_MS).toISOString();
+  const row = await db
+    .prepare("SELECT COALESCE(MAX(id), 0) AS id FROM billing_events WHERE occurred_at < ?")
+    .bind(coverageStartedAt)
+    .first<{ id: number }>();
+  return row?.id ?? 0;
+}
+
+async function readIntegerState(db: D1Database, key: string) {
+  const state = await db
+    .prepare("SELECT state_value FROM owner_notification_state WHERE state_key = ?")
+    .bind(key)
+    .first<{ state_value: string }>();
+  if (!state || !/^\d+$/.test(state.state_value)) return null;
+  const value = Number(state.state_value);
+  return Number.isSafeInteger(value) ? value : null;
+}
+
+async function writeState(db: D1Database, key: string, value: string, now = new Date()) {
+  const updatedAt = now.toISOString();
   await db
     .prepare(
       `INSERT INTO owner_notification_state (state_key, state_value, updated_at)
@@ -868,7 +1159,7 @@ async function writeState(db: D1Database, key: string, value: string) {
          state_value = excluded.state_value,
          updated_at = excluded.updated_at`,
     )
-    .bind(key, value, value)
+    .bind(key, value, updatedAt)
     .run();
 }
 
@@ -940,7 +1231,38 @@ async function markFailed(db: D1Database, notification: NotificationRow, now: Da
     .run();
 }
 
-async function notificationKey(kind: "partner" | "trial" | "local", source: string) {
+async function relationshipNotificationKey(
+  shopDomain: string,
+  type: Extract<PartnerEventType, `RELATIONSHIP_${string}`>,
+  installationStartedAt: string,
+) {
+  const transition = type.toLocaleLowerCase("en-US").replace("relationship_", "");
+  return notificationKey("relationship", `${shopDomain}:${installationStartedAt}:${transition}`);
+}
+
+async function hasEquivalentNotification(
+  db: D1Database,
+  shopDomain: string,
+  subject: string,
+  occurredAt: string,
+) {
+  const match = await db
+    .prepare(
+      `SELECT id FROM owner_notifications
+       WHERE shop_domain = ? AND subject = ?
+         AND ABS(unixepoch(source_occurred_at) - unixepoch(?)) <= 300
+       LIMIT 1`,
+    )
+    .bind(shopDomain, subject, occurredAt)
+    .first<{ id: number }>();
+  return match !== null;
+}
+
+function billingNotificationKey(resourceId: string, state: string) {
+  return notificationKey("billing", `${resourceId}:${state}`);
+}
+
+async function notificationKey(kind: string, source: string) {
   const digest = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(`${kind}:${source}`),
@@ -1009,6 +1331,14 @@ function formatMoney(
           ? " · una tantum"
           : "";
   return `${formatted}${cadence ?? ""}`;
+}
+
+function formatMinorMoney(
+  amountMinor: number,
+  currency: string,
+  kind: "monthly" | "annual" | "one_time",
+) {
+  return formatMoney({ amount: String(amountMinor / 100), currencyCode: currency }, kind);
 }
 
 function trialDaysRemaining(occurredAt: string, endsAt: string | null) {
@@ -1185,6 +1515,34 @@ function validPartnerEvent(node: PartnerEventNode | undefined): node is PartnerE
     validMoney(node.charge.amount) &&
     typeof node.charge.test === "boolean",
   );
+}
+
+function localNotificationEvent(event: LocalNotificationEvent) {
+  return [
+    "app_installed",
+    "app_uninstalled",
+    "trial_started",
+    "trial_expired",
+    "trial_converted",
+    "onboarding_completed",
+    "validation_enabled",
+    "validation_disabled",
+  ].includes(event.event_name);
+}
+
+function validLocalBillingEvent(event: LocalBillingEvent) {
+  return Boolean(
+    event.shopify_resource_gid &&
+    ["active", "ending", "expired", "refunded"].includes(event.event_type) &&
+    ["monthly", "annual", "one_time", "none"].includes(event.status) &&
+    localBillingPlan(event) &&
+    validIsoDate(event.occurred_at),
+  );
+}
+
+function validMinorMoney(amountMinor: number | null, currency: string | null) {
+  if (!Number.isSafeInteger(amountMinor) || amountMinor === null || amountMinor < 0) return false;
+  return validMoney({ amount: String(amountMinor / 100), currencyCode: currency ?? undefined });
 }
 
 function validMoney(value: PartnerCharge["amount"]): value is NonNullable<PartnerCharge["amount"]> {
