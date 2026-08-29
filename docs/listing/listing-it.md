@@ -23,7 +23,7 @@ checkout.
 
 | Campo | Valore |
 | --- | --- |
-| Nome app | CF Ready - Codice Fiscale |
+| Nome app | CF Ready \| Codice Fiscale |
 | Nome breve in Admin | CF Ready |
 | Handle | `cf-ready` |
 | Categoria primaria | Gestione del negozio → Finanze → Imposte |
@@ -34,52 +34,52 @@ checkout.
 
 L'alt text della feature image è richiesto insieme all'immagine:
 
-> CF Ready - Codice Fiscale nel checkout
+> CF Ready | Codice Fiscale nel checkout
 
 Descrive quello che si vede, non quello che vorremmo far capire: un alt text che
 ripete lo slogan è inutile a chi non vede l'immagine.
 
 ## Sottotitolo della scheda app
 
-> Codice Fiscale e PEC obbligatori e validati nel checkout.
+> Codice Fiscale obbligatorio nel checkout, PEC se ti serve.
 
-**57/62 caratteri.**
+**58/62 caratteri.**
 
 ## Introduzione
 
-> Rende obbligatorio il Codice Fiscale nel checkout italiano e ne verifica la
-> correttezza formale.
+> Evita ordini senza un Codice Fiscale formalmente valido. Configuri tutto senza
+> complessità.
 
-**96/100 caratteri.**
+**91/100 caratteri.**
 
 ## Dettagli app
 
-> Shopify mostra i campi fiscali italiani nel checkout, ma non può renderli
-> obbligatori né controllarli. CF Ready lo fa: Codice Fiscale e PEC diventano
-> facoltativi o obbligatori, con verifica della correttezza formale prima che
-> l'ordine sia completato. Non aggiunge campi, non tocca il tema, non richiede
-> Plus. Se l'app non è disponibile il checkout resta aperto, e i clienti esteri
-> non sono mai bloccati. La validazione è formale, non anagrafica: non attesta
-> che un codice appartenga a chi lo scrive.
+> Evita ordini italiani con Codice Fiscale mancante o formalmente non valido.
+> Scegli separatamente se Codice Fiscale e PEC devono essere non gestiti,
+> facoltativi o obbligatori. CF Ready usa i campi nativi del checkout: configuri
+> le regole e le provi prima di attivarle, senza codice né Shopify Plus. I
+> controlli valgono solo per l’Italia. I dati fiscali non arrivano ai nostri
+> sistemi e, se l’app ha un errore, il checkout resta aperto. La verifica è
+> formale, non anagrafica.
 
-**499/500 caratteri.**
+**473/500 caratteri.**
 
 ## Punti in evidenza
 
-1. `Codice Fiscale obbligatorio e validato prima che l'ordine sia completato.`
-2. `PEC come regola indipendente: richiedila insieme o lasciala fuori.`
-3. `Nessuna modifica al tema: usa i campi che Shopify espone già per l'Italia.`
-4. `Clienti esteri esclusi: la regola vale solo con consegna italiana.`
-5. `Non blocca in caso di errore: il checkout resta sempre aperto.`
+1. `Evita ordini italiani senza un Codice Fiscale formalmente valido.`
+2. `Configura Codice Fiscale e PEC con regole separate.`
+3. `Prova regole e messaggi nel simulatore prima di attivarli.`
+4. `Funziona senza codice, modifiche al tema o Shopify Plus.`
+5. `I dati fiscali non arrivano ai nostri sistemi.`
 
 ## Ricerca e SEO
 
-- termini di ricerca: `Codice Fiscale`, `PEC`, `Checkout italiano`, `Campi fiscali`,
-  `Checkout`;
-- title tag: `CF Ready - Codice Fiscale obbligatorio nel checkout`;
-- meta description: `Rendi obbligatorio il Codice Fiscale nel checkout
-  italiano e verificane la correttezza formale, senza toccare il tema. PEC come
-  regola indipendente.`
+- termini di ricerca: `Codice Fiscale`, `PEC`, `Checkout`, `Checkout italiano`,
+  `CF obbligatorio`;
+- title tag: `CF Ready | Codice Fiscale obbligatorio nel checkout`;
+- meta description: `Codice Fiscale obbligatorio nel checkout italiano, senza
+  complessità. Regole indipendenti per CF e PEC, nessun dato fiscale nei nostri
+  sistemi.`
 
 ## Canali e limitazioni dichiarate
 
@@ -113,18 +113,18 @@ delle app di Shopify.
 
 Funzionalità mostrate nel piano mensile/annuale:
 
-- `€2,99/mese o €29,90/anno`
-- `Codice Fiscale e PEC`
-- `Validazione nel checkout`
-- `Nessuna modifica al tema`
-- `Tutti gli aggiornamenti inclusi`
+- `Addebito: €2,99/mese o €29,90/anno`
+- `Prova completa di 14 giorni`
+- `Nessun addebito automatico dopo la prova`
+- `Stesse funzioni in tutte le modalità`
+- `Codice Fiscale e PEC nel checkout`
 
 Funzionalità mostrate nel piano a pagamento unico:
 
+- `Addebito: €89,90 per un singolo store`
 - `Un pagamento, nessun rinnovo`
-- `€89,90 per un singolo store`
-- `Codice Fiscale e PEC`
-- `Validazione nel checkout`
+- `Stesse funzioni dell'abbonamento`
+- `Codice Fiscale e PEC nel checkout`
 - `Tutti gli aggiornamenti inclusi`
 
 **La vetrina della listing è in dollari e l'addebito è in euro.** L'editor dei
