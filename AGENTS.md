@@ -147,7 +147,11 @@ rilettura finale di PR, check, deploy, release e stato Git non sono completi.
   tree sono identici. Se quel fast-forward fallisce e `develop` avanza prima del
   retry, la stessa App può aggiungere in modo manuale un merge di sola ascendenza
   con tree `develop` invariato e senza force, soltanto dopo aver verificato la
-  ricevuta Production, il parent promosso e la discendenza lineare.
+  ricevuta Production, il parent promosso e la discendenza lineare. Lo stesso
+  recupero manuale è ammesso senza ricevuta per una promozione `main` dichiarata
+  senza deploy, soltanto se il merge non cambia il tree del parent `develop` e
+  il branch corrente ne è un avanzamento lineare; il commit risultante conserva
+  il tree corrente di `develop` e non modifica provider.
 - La ricevuta di deploy è l'unico dato che nasce dopo il merge e non apre PR:
   il workflow la conserva come artifact JSON legato a commit e tree; quella
   Production è anche attestata. Le PR di chiusura collegano queste prove senza
