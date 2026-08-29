@@ -2,8 +2,12 @@ import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useActionData, useLoaderData, useSubmit } from "react-router";
 import { authenticateAdmin } from "../admin-auth.server";
+import { CheckoutSimulator } from "../features/rules/CheckoutSimulator";
+import "../features/rules/RulesLayout.css";
+import { mergeRulesFormDraft } from "../features/rules/rules-form";
 import { describeCheckout, resolveLocale, texts, validationStatus } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
+import { setSaveBarVisibility } from "../save-bar";
 import { authenticate } from "../shopify.server";
 import {
   address2Declaration,
@@ -13,7 +17,6 @@ import {
   RULE_MODES,
   showSavedBanner,
 } from "../config";
-import type { ErrorDisplay, RuleMode } from "../config";
 import { databaseContext } from "../context.server";
 import {
   observedConfigHash,
@@ -21,6 +24,8 @@ import {
   reconcile,
   writeValidation,
 } from "../validation.server";
+
+const SAVE_BAR = "checkout-rules-save-bar";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticateAdmin(request, context);
@@ -91,25 +96,19 @@ export default function CheckoutRules() {
   const t = texts(saved.locale);
   const send = useSubmit();
   const [changedSinceResult, setChangedSinceResult] = useState(false);
+  const [formRevision, setFormRevision] = useState(0);
   const [draft, setDraft] = useState({
     rules: saved.rules,
     errorDisplay: saved.errorDisplay,
     address2: saved.address2Declared,
   });
 
-  // Un solo ascoltatore sul form invece di uno per controllo: gli eventi dei componenti
-  // Polaris risalgono fin qui e l'anteprima legge sempre lo stato reale del modulo.
+  // Un solo ascoltatore sul form delle impostazioni. Il simulatore è deliberatamente fuori:
+  // i suoi valori sono locali e non devono rendere sporca la configurazione del merchant.
   const readDraft = (event: { currentTarget: HTMLFormElement }) => {
     const data = new FormData(event.currentTarget);
     setChangedSinceResult(true);
-    setDraft({
-      rules: {
-        taxCode: (data.get("taxCode") as RuleMode) ?? saved.rules.taxCode,
-        pec: (data.get("pec") as RuleMode) ?? saved.rules.pec,
-      },
-      errorDisplay: (data.get("errorDisplay") ? "preventive" : "inline") as ErrorDisplay,
-      address2: data.get("address2") !== null,
-    });
+    setDraft((current) => mergeRulesFormDraft(current, data));
   };
 
   useEffect(() => setChangedSinceResult(false), [result]);
@@ -120,6 +119,8 @@ export default function CheckoutRules() {
     draft.errorDisplay !== saved.errorDisplay ||
     draft.address2 !== saved.address2Declared;
 
+  useEffect(() => setSaveBarVisibility(SAVE_BAR, dirty), [dirty]);
+
   const save = () =>
     send(
       {
@@ -127,10 +128,10 @@ export default function CheckoutRules() {
         taxCode: draft.rules.taxCode,
         pec: draft.rules.pec,
         ...(draft.errorDisplay === "preventive" ? { errorDisplay: "preventive" } : {}),
-        // La dichiarazione viaggia solo quando il blocco è sullo schermo (FR-058).
-        ...(draft.rules.taxCode === "unmanaged"
-          ? {}
-          : { address2Shown: "1", ...(draft.address2 ? { address2: "declared" } : {}) }),
+        // Il blocco resta sempre visibile: la dichiarazione può quindi essere aggiornata anche
+        // mentre il Codice Fiscale non è gestito.
+        address2Shown: "1",
+        ...(draft.address2 ? { address2: "declared" } : {}),
       },
       { method: "post" },
     );
@@ -141,6 +142,7 @@ export default function CheckoutRules() {
       errorDisplay: saved.errorDisplay,
       address2: saved.address2Declared,
     });
+    setFormRevision((current) => current + 1);
   };
 
   if (saved.duplicateError) {
@@ -152,111 +154,133 @@ export default function CheckoutRules() {
   }
 
   return (
-    // App Bridge gestisce nativamente visibilità, submit e reset della Save Bar. Il form avvolge
-    // la pagina, così anche l'anteprima nell'aside resta parte dello stesso modulo.
-    <form
-      data-save-bar
-      onChange={readDraft}
-      onReset={discard}
-      onSubmit={(event) => {
-        event.preventDefault();
-        save();
-      }}
-    >
-      <s-page heading={t.rules.heading}>
-        {showSavedBanner(result, dirty, changedSinceResult) ? (
-          <s-banner tone="success">{t.rules.saved}</s-banner>
-        ) : null}
-        {result && !result.ok ? (
-          <s-banner tone="critical">
-            {t.errors[result.errorCode as keyof typeof t.errors] ?? t.errors.generic}
-          </s-banner>
-        ) : null}
+    <s-page heading={t.rules.heading} inlineSize="large">
+      {showSavedBanner(result, dirty, changedSinceResult) ? (
+        <s-banner tone="success">{t.rules.saved}</s-banner>
+      ) : null}
+      {result && !result.ok ? (
+        <s-banner tone="critical">
+          {t.errors[result.errorCode as keyof typeof t.errors] ?? t.errors.generic}
+        </s-banner>
+      ) : null}
 
-        {/* Le due decisioni sono la pagina: restano le uniche card operative. */}
-        <s-section heading={t.rules.taxCodeLabel}>
-          <s-choice-list
-            label={t.rules.taxCodeLabel}
-            labelAccessibilityVisibility="exclusive"
-            name="taxCode"
+      <ui-save-bar id={SAVE_BAR}>
+        <button type="button" variant="primary" onClick={save}>
+          {t.common.save}
+        </button>
+        <button type="button" onClick={discard}>
+          {t.common.cancel}
+        </button>
+      </ui-save-bar>
+
+      <div className="rules-layout-container">
+        <div className="rules-layout">
+          <form
+            className="rules-layout__form"
+            key={`${saved.rules.taxCode}-${saved.rules.pec}-${saved.errorDisplay}-${saved.address2Declared}-${formRevision}`}
+            onChange={readDraft}
+            onSubmit={(event) => {
+              event.preventDefault();
+              save();
+            }}
           >
-            {RULE_MODES.map((mode) => (
-              <s-choice key={mode} value={mode} selected={mode === saved.rules.taxCode}>
-                {t.rules.taxCode[mode]}
-                <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
-              </s-choice>
-            ))}
-          </s-choice-list>
-        </s-section>
+            <div className="rules-layout__fields">
+              <s-stack direction="block" gap="base">
+                <s-section heading={t.rules.taxCodeLabel}>
+                  <s-choice-list
+                    label={t.rules.taxCodeLabel}
+                    labelAccessibilityVisibility="exclusive"
+                    name="taxCode"
+                  >
+                    {RULE_MODES.map((mode) => (
+                      <s-choice key={mode} value={mode} selected={mode === saved.rules.taxCode}>
+                        {t.rules.taxCode[mode]}
+                        <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
+                      </s-choice>
+                    ))}
+                  </s-choice-list>
+                </s-section>
 
-        <s-section heading={t.rules.pecLabel}>
-          <s-choice-list
-            label={t.rules.pecLabel}
-            labelAccessibilityVisibility="exclusive"
-            name="pec"
-          >
-            {RULE_MODES.map((mode) => (
-              <s-choice key={mode} value={mode} selected={mode === saved.rules.pec}>
-                {t.rules.pec[mode]}
-                <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
-              </s-choice>
-            ))}
-          </s-choice-list>
-        </s-section>
-
-        {/* FR-058: avviso e dichiarazione, mai un rilevamento. Compare solo quando il Codice
-            Fiscale è gestito, perché è lì che i due campi si sovrappongono. */}
-        {draft.rules.taxCode === "unmanaged" ? null : (
-          <s-section heading={t.rules.address2Heading}>
-            <s-banner tone="warning">{t.rules.address2Body}</s-banner>
-            <s-checkbox
-              label={t.rules.address2Checkbox}
-              name="address2"
-              value="declared"
-              defaultChecked={saved.address2Declared}
-            />
-            {draft.address2 ? <s-paragraph>{t.rules.address2Instructions}</s-paragraph> : null}
-          </s-section>
-        )}
-
-        {/* L'anteprima è ciò che si guarda mentre si decide, quindi sta accanto alle scelte e
-            apre la colonna; le eccezioni la seguono come blocco a sé. */}
-        <s-stack slot="aside" direction="block" gap="base">
-          <s-section heading={t.rules.previewHeading}>
-            <s-stack direction="block" gap="base">
-              <s-checkbox
-                label={t.rules.preventiveLabel}
-                details={t.rules.preventiveHelp}
-                name="errorDisplay"
-                value="preventive"
-                defaultChecked={saved.errorDisplay === "preventive"}
-              />
-              {/* D-068: anteprima testuale, nessuna simulazione grafica del checkout. */}
-              <s-stack direction="block" gap="small-100">
-                {describeCheckout(
-                  {
-                    rules: draft.rules,
-                    errorDisplay: draft.errorDisplay,
-                    status: validationStatus(saved.enabled, saved.entitled),
-                  },
-                  saved.locale,
-                ).map((line) => (
-                  <s-paragraph key={line}>{line}</s-paragraph>
-                ))}
+                <s-section heading={t.rules.pecLabel}>
+                  <s-choice-list
+                    label={t.rules.pecLabel}
+                    labelAccessibilityVisibility="exclusive"
+                    name="pec"
+                  >
+                    {RULE_MODES.map((mode) => (
+                      <s-choice key={mode} value={mode} selected={mode === saved.rules.pec}>
+                        {t.rules.pec[mode]}
+                        <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
+                      </s-choice>
+                    ))}
+                  </s-choice-list>
+                </s-section>
               </s-stack>
-            </s-stack>
-          </s-section>
+            </div>
 
-          {/* D-067: le eccezioni sono sempre visibili e non modificabili. */}
-          <s-section heading={t.rules.exceptionsHeading}>
-            <s-unordered-list>
-              {t.rules.exceptions.map((line) => (
-                <s-list-item key={line}>{line}</s-list-item>
-              ))}
-            </s-unordered-list>
-          </s-section>
-        </s-stack>
-      </s-page>
-    </form>
+            <div className="rules-layout__address">
+              {/* FR-058: resta una dichiarazione del merchant, non un rilevamento. Tenerla sempre
+                visibile evita che sparisca proprio mentre si sta correggendo la configurazione. */}
+              <s-section heading={t.rules.address2Heading}>
+                <s-banner tone="warning">{t.rules.address2Body}</s-banner>
+                <s-checkbox
+                  label={t.rules.address2Checkbox}
+                  name="address2"
+                  value="declared"
+                  defaultChecked={saved.address2Declared}
+                />
+                {draft.address2 ? <s-paragraph>{t.rules.address2Instructions}</s-paragraph> : null}
+              </s-section>
+            </div>
+          </form>
+
+          <div className="rules-layout__preview">
+            <s-section heading={t.rules.previewHeading}>
+              <s-stack direction="block" gap="base">
+                <s-stack direction="block" gap="small-100">
+                  {describeCheckout(
+                    {
+                      rules: draft.rules,
+                      errorDisplay: draft.errorDisplay,
+                      status: validationStatus(saved.enabled, saved.entitled),
+                    },
+                    saved.locale,
+                  ).map((line) => (
+                    <s-paragraph key={line}>{line}</s-paragraph>
+                  ))}
+                </s-stack>
+
+                <CheckoutSimulator
+                  locale={saved.locale}
+                  rules={draft.rules}
+                  errorDisplay={draft.errorDisplay}
+                  messages={saved.messages[saved.locale]}
+                />
+
+                <form
+                  key={`${saved.errorDisplay}-${formRevision}`}
+                  onChange={(event) => {
+                    const data = new FormData(event.currentTarget);
+                    setChangedSinceResult(true);
+                    setDraft((current) => ({
+                      ...current,
+                      errorDisplay: data.get("errorDisplay") ? "preventive" : "inline",
+                    }));
+                  }}
+                >
+                  <s-checkbox
+                    label={t.rules.preventiveLabel}
+                    details={t.rules.preventiveHelp}
+                    name="errorDisplay"
+                    value="preventive"
+                    defaultChecked={saved.errorDisplay === "preventive"}
+                  />
+                </form>
+              </s-stack>
+            </s-section>
+          </div>
+        </div>
+      </div>
+    </s-page>
   );
 }

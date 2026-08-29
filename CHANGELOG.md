@@ -6,6 +6,22 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.1.0 — 29 agosto 2026
+
+- Regole checkout include un simulatore interattivo nativo che usa le regole e
+  i messaggi effettivi, resta locale al browser e non salva i valori di prova;
+- la condizione Italia è integrata accanto ai Paesi simulati, gli avvisi
+  preventivi aggiornano subito l'anteprima e il richiamo sul campo “Interno”
+  resta sempre visibile;
+- l'azione **Richiedi assistenza / Get support** di Shopify apre direttamente
+  la Guida in-app, mantenendo il canale email bilingue già verificato;
+- la Guida prepara e copia una diagnostica minimizzata basata sul solo stato D1
+  riconciliato, con correlation ID e senza dati checkout o personali;
+- un report operativo calcola il p75 di LCP, INP e CLS su 28 giorni, aggregato
+  per versione e rotta e con una soglia minima di 100 campioni;
+- la richiesta recensione nativa registra soltanto il codice di esito
+  allowlistato, senza testo, identità o dati merchant.
+
 ## 1.0.8 — 29 agosto 2026
 
 - l'onboarding si completa automaticamente appena almeno una regola gestita,

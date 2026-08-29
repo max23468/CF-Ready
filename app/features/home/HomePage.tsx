@@ -21,6 +21,7 @@ import {
   isPlanComparisonLocationState,
 } from "./plan-comparison";
 import { useOnboardingWindowNavigation } from "./use-onboarding-window-navigation";
+import { useNativeReviewPrompt } from "./use-native-review-prompt";
 import { MerchantCheckIn } from "./MerchantCheckIn";
 
 const ONBOARDING_WINDOW_ID = "onboarding-window";
@@ -38,10 +39,7 @@ export default function HomePage() {
   const submit = (intent: string, source?: string) =>
     fetcher.submit(source ? { intent, source } : { intent }, { method: "post" });
 
-  useEffect(() => {
-    if (!data.reviewDue || typeof shopify === "undefined") return;
-    void shopify.reviews.request().catch(() => undefined);
-  }, [data.reviewDue]);
+  useNativeReviewPrompt(data.reviewDue);
 
   useEffect(() => {
     openBillingApproval(confirmationUrl);

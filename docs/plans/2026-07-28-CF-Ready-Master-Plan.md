@@ -364,6 +364,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-136 | M11 chiude la release tecnica `1.0.0`: outreach, primi merchant esterni e feedback non sono requisiti della milestone. | L’owner non ha richiesto comunicazioni outbound; acquisizione organica e criteri di maturità restano attività successive e non bloccano la release. L’assenza di segnalazioni è non bloccante, ma non viene presentata come prova di soddisfazione. Deciso il 26 agosto 2026. |
 | D-137 | M12 combina il consolidamento Controlled Launch con i requisiti Built for Shopify e si chiude quando Shopify assegna effettivamente lo status. | Idoneità automatica, pulsante di candidatura, invio o review in corso non chiudono la milestone. I requisiti correnti si rileggono nelle fonti Shopify e nella pagina Distribution prima della candidatura; le soglie Shopify sostituiscono i minimi locali più deboli. I criteri operativi specifici di CF Ready restano segnali da osservare, non una seconda certificazione né gate autonomi; soltanto bug critici e rischi non accettati impediscono la chiusura. Deciso il 26 agosto 2026. |
 | D-138 | La pubblicazione verifica una volta ogni contenuto immutabile e ripete soltanto i gate dipendenti dallo stato remoto. La CI instrada corsie `docs`, `standard`, `full` e `promotion`; la promozione riusa provenienza e gate di `develop`; Development identifica lo snapshot con `X.Y.Z-dev.<tree>`; Production conserva una ricevuta JSON attestata; una GitHub App dedicata riallinea `develop` al merge commit Production solo con fast-forward e tree identico. Una promozione `main` esplicitamente priva di deploy può essere recuperata manualmente senza ricevuta soltanto con tree identico al parent `develop`, discendenza lineare del branch corrente e nuovo merge che ne conserva il tree. | Riduce installazioni browser, collisioni SemVer e PR prive di differenze senza riutilizzare prove provider: identità, schema Shopify, migrazioni, rollback, smoke e readback restano freschi. Il bypass del ruleset è limitato alla GitHub App di riallineamento e il workflow fallisce chiuso se parent, branch, tree o identità non coincidono; il recupero di sola ascendenza non modifica provider. Deciso il 27 agosto 2026, esteso il 29 agosto 2026. |
+| D-139 | La `1.1.0` unisce Support Link nativo verso la Guida, diagnostica D1 copiabile e minimizzata, report p75 aggregato su 28 giorni, telemetria allowlistata dell'esito Reviews API e simulatore locale in Regole checkout. | Migliora supporto, osservabilità e comprensione delle regole senza introdurre nuove fonti autorevoli o raccogliere contenuti merchant. Il simulatore usa gli stessi controlli formali e messaggi configurati, ma resta un'anteprima dichiarata e non un checkout Shopify reale. Deciso il 29 agosto 2026 e ampliato lo stesso giorno su richiesta dell'owner. |
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
@@ -386,8 +387,8 @@ Rispetto alle alternative più ampie o invasive:
 | D-064 | Home attiva: “Modifica regole” primaria e “Disattiva nel checkout” secondaria con conferma. | Azioni chiare e separate. |
 | D-065 | Save Bar nativa, niente auto-save. | Controllo esplicito delle modifiche. |
 | D-066 | Tre radio sempre visibili per ogni campo. | Più chiare di un select con sole tre opzioni. |
-| D-067 | Eccezioni automatiche sempre visibili e non modificabili. | Il merchant deve capire gli automatismi nel punto di configurazione. |
-| D-068 | Anteprima testuale dinamica delle regole. | Chiarezza senza simulare graficamente il checkout. |
+| D-067 | Condizione Italia sempre visibile e non modificabile, integrata accanto ai Paesi del simulatore invece che in un riquadro separato. | Il merchant deve capire l'automatismo nel punto esatto in cui ne vede l'effetto. |
+| D-068 | Riepilogo testuale dinamico seguito da un simulatore checkout interattivo, locale al browser e chiaramente dichiarato come anteprima. | Permette di provare regole, Paesi e messaggi effettivi senza salvare dati di prova né confondere la simulazione con il checkout Shopify reale. |
 | D-069 | Messaggi in tab Italiano/English, reset separato per lingua. | Evita di sovrascrivere entrambe le lingue. |
 | D-070 | Annuale evidenziato come “Consigliato”; una tantum come “Un solo pagamento”. | Evitare il titolo “Lifetime”. |
 | D-071 | Lingua UI automatica da Shopify; nessun selettore. | Ogni staff member vede la propria lingua, fallback inglese. |
@@ -699,14 +700,15 @@ English:
 
 ### 7.9 Supporto e recensioni
 
-**FR-090** — Percorso di assistenza minimale dentro l’app, che prepara un
+**FR-090** — Percorso di assistenza minimale dentro l’app, raggiungibile anche
+dal Support Link nativo **Richiedi assistenza / Get support**, che prepara un
 messaggio già compilato verso la casella sviluppatore con:
 
 - categoria scelta dal merchant, riportata nell’oggetto;
 - corpo modificabile prima dell’invio;
 - metadati tecnici non sensibili dell’allowlist di §22, visibili nel messaggio.
 
-Nella 1.0 il recapito avviene tramite un collegamento `mailto:`, per l’esito
+Nella 1.1 il recapito avviene tramite un collegamento `mailto:`, per l’esito
 della verifica registrato in §22, verso `cfready@icloud.com`; Apple/iCloud è
 dichiarata nella Privacy Policy tra i fornitori che trattano indirizzo del
 mittente, contenuto e metadati tecnici delle email. Non esiste quindi un numero
@@ -721,9 +723,9 @@ raccoglie recapiti del merchant e non chiede una recensione.
 
 **FR-092** — Nessun CF, PEC, ordine o dato buyer negli allegati o log.
 
-**FR-093** — Prompt recensione nativo su store non partner-development dopo almeno 7 giorni di Validation attiva, onboarding completato e nessun errore aperto. Il tipo di store deriva da `Shop.plan.partnerDevelopment`, fonte autorevole Shopify; sul development store la modale non può inviare recensioni e non viene richiesta.
+**FR-093** — Prompt recensione nativo su store non partner-development dopo almeno 7 giorni di Validation attiva, onboarding completato e nessun errore aperto. Il tipo di store deriva da `Shop.plan.partnerDevelopment`, fonte autorevole Shopify; sul development store la modale non può inviare recensioni e non viene richiesta. CF Ready registra soltanto il codice di esito allowlistato restituito dalla Reviews API, senza testo o identificatori merchant.
 
-**FR-094** — Azioni: “Lascia un feedback”, “Non ora”, “Non chiedermelo più”.
+**FR-094** — Azioni, frequenza e idoneità della modale restano controllate dalla Reviews API nativa Shopify; CF Ready non costruisce controlli paralleli né aggira cooldown e limiti della piattaforma.
 
 **FR-095** — Nessun incentivo o richiesta di recensione positiva.
 
@@ -1607,6 +1609,11 @@ Il client inoltra soltanto `id`, nome, valore e paese restituiti da App Bridge. 
 attribution, URL completi, query string, testi e valori dei form vengono scartati. L'invio è
 best effort e non modifica la raccolta autorevole che Shopify usa per BFS.
 
+Il report operativo `report:performance` legge gli ultimi 28 giorni e calcola il p75
+nearest-rank di LCP, INP e CLS in forma complessiva, per versione e per rotta. I gruppi con
+meno di 100 campioni sono dichiarati insufficienti; il report non emette store, metric ID,
+paese o singoli campioni e non sostituisce lo stato Built for Shopify autorevole di Shopify.
+
 #### `support_requests`
 
 Struttura prevista, **non implementata nella 1.0**: con il recapito via
@@ -2027,7 +2034,8 @@ Conclusioni operative:
 - niente dashboard artificiale;
 - Home come centro operativo guidato;
 - niente design system esterno;
-- niente simulazione grafica del checkout;
+- il simulatore checkout usa soltanto Polaris Web Components, resta locale al
+  browser e dichiara esplicitamente che non salva i valori di prova;
 - CSS custom minimo;
 - accessibile, responsive e coerente con Shopify Admin;
 - azioni ad alto impatto con conferma;
@@ -2114,12 +2122,14 @@ Due sezioni con tre radio sempre visibili.
 
 Ogni opzione ha una spiegazione concreta. Dopo le regole:
 
-- riquadro non modificabile `Eccezioni automatiche`;
-- controllo `Mostra avvisi preventivi nel checkout`, disattivato per default,
-  con avviso che gli errori possono apparire già al caricamento e indicazione
-  “Consigliato se usi la conferma ordine Shopify”;
-- anteprima dinamica `Come funzionerà il checkout`;
-- banner `warning` sul campo “Interno” quando il CF non è `unmanaged`, con
+- riepilogo dinamico `Come funzionerà il checkout`, seguito dal simulatore
+  interattivo che usa gli stessi controlli formali e messaggi configurati;
+- condizione non modificabile su consegna e fatturazione italiane, integrata
+  accanto ai due selettori Paese del simulatore;
+- controllo `Mostra avvisi preventivi nel checkout`, disattivato per default e
+  posto sotto il simulatore, con avviso che gli errori possono apparire già al
+  caricamento e indicazione “Consigliato solo se usi la conferma ordine Shopify”;
+- banner `warning` sul campo “Interno” sempre visibile, con
   checkbox `Uso il campo Interno per il Codice Fiscale` e, se selezionata, le
   istruzioni per rimuovere quell’uso (FR-058);
 - Save Bar `Salva` / `Annulla`;
@@ -2270,9 +2280,9 @@ Usare Reviews API nativa Shopify solo quando:
 
 Azioni:
 
-- `Lascia un feedback`;
-- `Non ora`;
-- `Non chiedermelo più`.
+- usare la sola modale della Reviews API;
+- rispettare esito, cooldown, frequenza e idoneità restituiti da Shopify;
+- registrare soltanto il codice di esito allowlistato o `unknown`.
 
 Nessun incentivo e nessuna richiesta di recensione positiva.
 
@@ -2755,7 +2765,7 @@ Numero assegnato a ogni milestone fino alla `1.0.0`:
 | M9 — Release candidate e review | `0.9.0` | |
 | M10 — Canary store reale | `0.9.x` | nessun minor: il canary usa la build della release candidate |
 | M11 — `1.0.0` e Controlled Launch | `1.0.0` | tag `v1.0.0` dopo deploy, smoke e readback Production riusciti |
-| M12 — Built for Shopify | nessuna | consolidamento e ottenimento dello status; gli eventuali fix sono `1.0.x` |
+| M12 — Built for Shopify | `1.1.0` | consolidamento e ottenimento dello status; la 1.1 raccoglie supporto nativo, diagnostica e osservabilità prestazioni |
 
 Dentro una milestone, ogni ulteriore release Production incrementa la **patch**
 (`0.2.1`, `0.2.2`). Gli snapshot Development non consumano versioni commerciali:
@@ -3250,12 +3260,13 @@ Vulnerability Reporting restano disponibili a chi raggiunge il repository.
 
 ## 22. Assistenza
 
-La 1.0 implementa solo il minimo:
+La 1.1 mantiene un percorso minimale:
 
 - supporto nativo Shopify;
-- Support link verso `/support` del sito pubblico (§18.3);
+- Support Link nativo verso `/app/guide`;
 - pagina FAQ dentro l’app, in Guida e FAQ (§15.7);
 - percorso di assistenza in-app che prepara un messaggio precompilato;
+- diagnostica tecnica copiabile, generata dal solo stato D1 riconciliato;
 - recapito a una casella sviluppatore verificata;
 - nessuna copia email automatica al merchant;
 - risposta manuale dello sviluppatore.
@@ -3282,9 +3293,10 @@ La casella è `cfready@icloud.com`, la stessa dichiarata nel sito pubblico e in
 `SECURITY.md`. Il collegamento compare in due punti: nella colonna laterale di
 Guida e FAQ, che è il percorso ordinario, e nella schermata Store non supportato
 (§15.8, D-043), dove il merchant ha bisogno di un chiarimento proprio perché non
-può usare l’app. La Guida non rilegge Shopify per comporre il messaggio: allega i
-dati che ha già, mentre la Home aggiunge il Paese rilevato. L’obiettivo di
-risposta dichiarato al merchant è di uno o due giorni lavorativi; resta un
+può usare l’app. Il Support Link Shopify apre la stessa Guida. La Guida non
+rilegge Shopify per comporre il messaggio: allega il solo stato tecnico D1 già
+riconciliato, mentre la Home aggiunge il Paese rilevato. L’obiettivo di
+risposta dichiarato al merchant è di un giorno lavorativo; resta un
 obiettivo operativo, non uno SLA.
 
 Dati tecnici allegabili tramite allowlist:
@@ -3296,7 +3308,9 @@ Dati tecnici allegabili tramite allowlist:
 - stato prova/licenza;
 - stato Validation;
 - ultimo error code;
-- data/ora.
+- versione schema e hash configurazione;
+- revisione e ultimo allineamento dello stato Validation;
+- correlation ID diagnostico.
 
 Mai allegare:
 
