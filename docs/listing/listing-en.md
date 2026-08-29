@@ -22,7 +22,7 @@ for amounts, `extensions/cf-ready-validation/` for checkout behaviour.
 
 | Field | Value |
 | --- | --- |
-| App name | CF Ready - Codice Fiscale |
+| App name | CF Ready \| Codice Fiscale |
 | Short name in Admin | CF Ready |
 | Handle | `cf-ready` |
 | Primary category | Store management → Finances → Taxes |
@@ -33,47 +33,46 @@ for amounts, `extensions/cf-ready-validation/` for checkout behaviour.
 
 The feature image needs alt text alongside it:
 
-> CF Ready - Codice Fiscale (Italian tax code) at checkout
+> CF Ready | Codice Fiscale (Italian tax code) at checkout
 
 It describes what is visible, not what we would like the reader to conclude: alt
 text that repeats the tagline is useless to someone who cannot see the image.
 
 ## App card subtitle
 
-> Codice Fiscale (Italian tax code) and PEC validation.
+> Required Codice Fiscale at checkout, add PEC when needed.
 
-**53/62 characters.**
+**57/62 characters.**
 
 ## Introduction
 
-> Makes Codice Fiscale, the Italian tax code, required at checkout and formally
-> validates it.
+> Prevent orders without a formally valid Codice Fiscale. Set everything up
+> without complexity.
 
-**91/100 characters.**
+**93/100 characters.**
 
 ## App details
 
-> Shopify shows Italian tax fields at checkout but cannot make them required or
-> validate them. CF Ready does: Codice Fiscale, the Italian tax code, and PEC can
-> be optional or required, with formal validation before order completion. It
-> adds no fields, changes no theme, and does not require Plus. If the app is
-> unavailable, checkout stays open, and foreign customers are never blocked.
-> Validation is formal, not identity-based: it does not certify that a tax code
-> belongs to the person entering it.
+> Prevent Italian orders with missing or formally invalid Codice Fiscale. Choose
+> separately whether Codice Fiscale and PEC are unmanaged, optional, or required.
+> CF Ready uses Shopify's native checkout fields: configure and preview rules
+> before activation, with no code or Shopify Plus. Checks apply only to Italy.
+> Tax data never reaches our systems and, if the app fails, checkout stays open.
+> Validation is formal, not identity-based.
 
-**496/500 characters.**
+**432/500 characters.**
 
 ## Key features
 
-1. `Codice Fiscale (Italian tax code) required and formally validated at checkout.`
-2. `PEC as an independent rule: require it with Codice Fiscale or leave it out.`
-3. `No theme changes: uses the tax fields Shopify already provides for Italy.`
-4. `Foreign customers excluded: the rule applies only to Italian deliveries.`
-5. `Never blocks on errors: checkout always stays open.`
+1. `Prevent Italian orders without a formally valid Codice Fiscale.`
+2. `Configure Codice Fiscale and PEC with separate rules.`
+3. `Preview rules and messages in the simulator before activation.`
+4. `Works with no code, theme changes, or Shopify Plus.`
+5. `Tax data never reaches our systems.`
 
 ## Search terms
 
-`Codice Fiscale`, `PEC`, `Invoice`, `Tax`, `Checkout`.
+`Codice Fiscale`, `PEC`, `Checkout`, `Italian checkout`, `Required tax code`.
 
 The web-search title and meta description are shared with the primary listing
 and can only be edited there.
@@ -109,19 +108,19 @@ acquired. All payments go through Shopify's app billing.
 
 Features shown for the monthly/annual plan:
 
-- `€2.99/month or €29.90/year`
-- `Codice Fiscale and PEC`
-- `Checkout validation`
-- `No theme changes`
-- `All updates included`
+- `Charge: €2.99/mo or €29.90/year`
+- `Full 14-day free trial`
+- `No automatic charge after the trial`
+- `Same features with every payment option`
+- `Codice Fiscale and PEC at checkout`
 
 Features shown for the one-time plan:
 
+- `Charge: €89.90 for one store`
 - `One payment, no renewal`
-- `€89.90 for one store`
-- `Checkout validation`
+- `Same features as the subscription`
+- `Codice Fiscale and PEC at checkout`
 - `All updates included`
-- `Codice Fiscale and PEC`
 
 **The listing shows USD while the charge is in EUR.** The Partner Dashboard plan
 editor has no currency field, so the amounts are entered as a USD equivalent,
