@@ -73,9 +73,20 @@ test("la Home integra il perimetro Italia nella configurazione corrente", () => 
 
 test("Messaggi usa il selettore lingua Polaris e un'anteprima aggiornata", () => {
   const route = readFileSync(new URL("../app/routes/app.messages.tsx", import.meta.url), "utf8");
+  const preview = readFileSync(
+    new URL("../app/features/messages/CustomerMessagesPreview.tsx", import.meta.url),
+    "utf8",
+  );
 
-  assert.match(route, /<s-button-group[^>]*accessibilityLabel=\{t\.messages\.languageSelector\}/);
-  assert.match(route, /<s-press-button[\s\S]*pressed=\{activeLocale === locale\}/);
-  assert.match(route, /\{draft\[activeLocale\]\[selectedKey\]\}/);
+  assert.match(preview, /<s-select[\s\S]*label=\{languageLabel\}[\s\S]*value=\{activeLocale\}/);
+  assert.match(preview, /<s-option value="it">\{languages\.it\}<\/s-option>/);
+  assert.match(preview, /<s-option value="en">\{languages\.en\}<\/s-option>/);
+  assert.doesNotMatch(preview, /s-press-button/);
+  assert.match(
+    preview,
+    /\{context\}[\s\S]*<s-banner tone="critical" heading=\{errorHeading\}>[\s\S]*\{message\}/,
+  );
+  assert.match(preview, /\{selectedHeading\}[\s\S]*\{selectedLabel\}/);
+  assert.match(route, /message=\{draft\[activeLocale\]\[selectedKey\]\}/);
   assert.match(route, /setActiveLocale\(result\.problem\.locale\)/);
 });
