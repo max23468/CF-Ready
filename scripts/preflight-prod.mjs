@@ -1,14 +1,13 @@
 import { spawnSync } from "node:child_process";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
 import {
+  readMigrations,
+  run,
   verifyMigrationSafety,
-  verifyNoPendingMigrations,
   verifyWorkerSecrets,
-} from "./preflight-dev.mjs";
-
-export { verifyNoPendingMigrations };
+} from "./preflight-common.mjs";
 
 const expected = {
   clientId: "3640fb39bcf605de0537d6dfc0d01c8a",
@@ -113,15 +112,7 @@ async function main() {
   verifyProductionConfig(shopifyConfig);
   verifyBuiltConfig(await readFile("build/server/wrangler.json", "utf8"));
 
-  const migrationNames = (await readdir("migrations")).filter((name) => name.endsWith(".sql"));
-  verifyMigrationSafety(
-    await Promise.all(
-      migrationNames.map(async (name) => ({
-        name,
-        sql: await readFile(`migrations/${name}`, "utf8"),
-      })),
-    ),
-  );
+  verifyMigrationSafety(await readMigrations());
 
   run("node", ["scripts/shopify-info-safe.mjs", "shopify.app.toml"]);
 
@@ -164,17 +155,6 @@ async function main() {
   });
 
   console.log("Preflight Production superato: Shopify, bundle, D1 e secret Worker verificati.");
-}
-
-function run(command, args, inherit = true) {
-  const result = spawnSync(command, args, {
-    encoding: "utf8",
-    stdio: inherit ? "inherit" : "pipe",
-  });
-  if (result.status !== 0) {
-    throw new Error(`Preflight fallito: ${command} ${args.slice(0, 2).join(" ")}`);
-  }
-  return result.stdout;
 }
 
 const isDirectExecution =
