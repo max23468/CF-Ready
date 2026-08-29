@@ -9,10 +9,24 @@ import {
   htmlAnchors,
   htmlTargets,
   ignoredTrackedFiles,
+  localMachinePaths,
   markdownAnchors,
   markdownTargets,
   xmlAnchors,
 } from "./check-docs.mjs";
+
+test("rifiuta percorsi assoluti legati alla macchina locale", () => {
+  assert.deepEqual(
+    localMachinePaths(
+      "`/Users/example/project/evidence.png` /home/example/report.json C:\\Users\\example\\report.json",
+    ),
+    [
+      "/Users/example/project/evidence.png",
+      "/home/example/report.json",
+      "C:\\Users\\example\\report.json",
+    ],
+  );
+});
 
 test("rileva link Markdown reference-style", () => {
   assert.deepEqual(markdownTargets("[Guida][setup]\n\n[setup]: docs/missing.md"), [

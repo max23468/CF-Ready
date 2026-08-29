@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.1.1 — 29 agosto 2026
+
+- il runtime delle notifiche owner separa modello, presentazione e delivery,
+  preservando il fallback temporale del cursore locale per gli schemi D1 già
+  attivi;
+- preflight e report D1 condividono primitive operative canoniche usate anche
+  dai workflow Development e Production, senza re-export di compatibilità;
+- i controlli documentali rifiutano percorsi assoluti legati alla macchina e
+  il runbook descrive i confini correnti del runtime notifiche.
+
 ## 1.1.0 — 29 agosto 2026
 
 - Regole checkout include un simulatore interattivo nativo che usa le regole e

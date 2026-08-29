@@ -1,6 +1,12 @@
-import { spawnSync } from "node:child_process";
-import { appendFile, readFile, readdir } from "node:fs/promises";
+import { appendFile, readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
+
+import {
+  readMigrations,
+  run,
+  verifyMigrationSafety,
+  verifyWorkerSecrets,
+} from "./preflight-common.mjs";
 
 const expected = {
   clientId: "adff48d4fe4ceb0dadb4734520701dd7",
@@ -89,46 +95,6 @@ export function verifyVersionAvailable(versions, version, deployment, commit, tr
   throw new Error(`La versione Shopify ${version} è già stata pubblicata.`);
 }
 
-export function verifyNoPendingMigrations(output) {
-  if (!output.includes("No migrations to apply!")) {
-    throw new Error("Il readback D1 segnala migrazioni ancora pendenti.");
-  }
-}
-
-export function verifyMigrationSafety(migrations) {
-  const unsafe = migrations.find(
-    ({ name, sql }) =>
-      name > "0010_privacy_hardening.sql" &&
-      /\bDROP\s+(?:TABLE|COLUMN)\b|\bALTER\s+TABLE\b[\s\S]*\bRENAME\b|\bDELETE\s+FROM\b/i.test(sql),
-  );
-  if (unsafe) {
-    throw new Error(`La migrazione ${unsafe.name} richiede un deploy in due fasi.`);
-  }
-}
-
-export function verifyWorkerSecrets(secrets, { ownerNotifications = false } = {}) {
-  const names = new Set(secrets.map(({ name }) => name));
-  if (
-    !["SHOPIFY_API_SECRET", "SESSION_ENCRYPTION_KEY", "TRIAL_LEDGER_HMAC_KEY"].every((name) =>
-      names.has(name),
-    )
-  ) {
-    throw new Error("Mancano secret runtime sul Worker.");
-  }
-  if (
-    ownerNotifications &&
-    ![
-      "TELEGRAM_BOT_TOKEN",
-      "TELEGRAM_CHAT_ID",
-      "SHOPIFY_PARTNER_ORGANIZATION_ID",
-      "SHOPIFY_PARTNER_APP_ID",
-      "SHOPIFY_PARTNER_ACCESS_TOKEN",
-    ].every((name) => names.has(name))
-  ) {
-    throw new Error("Mancano i secret delle notifiche owner sul Worker.");
-  }
-}
-
 export function verifyCoordinatedRollback(deployment, versions) {
   const active = versions.find(({ status }) => status === "active");
   const commit = active?.message?.match(/^Development ([0-9a-f]{40})$/)?.[1];
@@ -159,15 +125,7 @@ async function main() {
   const shopifyConfig = await readFile("shopify.app.dev.toml", "utf8");
   const wranglerConfig = await readFile("wrangler.json", "utf8");
   verifyDevelopmentConfig(shopifyConfig, wranglerConfig);
-  const migrationNames = (await readdir("migrations")).filter((name) => name.endsWith(".sql"));
-  verifyMigrationSafety(
-    await Promise.all(
-      migrationNames.map(async (name) => ({
-        name,
-        sql: await readFile(`migrations/${name}`, "utf8"),
-      })),
-    ),
-  );
+  verifyMigrationSafety(await readMigrations());
 
   run("node", ["scripts/shopify-info-safe.mjs", "shopify.app.dev.toml"]);
   const versions = JSON.parse(
@@ -210,17 +168,6 @@ async function main() {
   console.log(
     `${readbackOnly ? "Readback" : "Preflight"} Development superato: Shopify, D1 e secret Worker verificati.`,
   );
-}
-
-function run(command, args, inherit = true) {
-  const result = spawnSync(command, args, {
-    encoding: "utf8",
-    stdio: inherit ? "inherit" : "pipe",
-  });
-  if (result.status !== 0) {
-    throw new Error(`Preflight fallito: ${command} ${args.slice(0, 2).join(" ")}`);
-  }
-  return result.stdout;
 }
 
 const isDirectExecution =
