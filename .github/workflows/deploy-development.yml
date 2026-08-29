@@ -140,7 +140,7 @@ jobs:
           # shellcheck disable=SC2016
           node --input-type=module -e '
             import { appendFileSync, readFileSync } from "node:fs";
-            import { verifyNoPendingMigrations } from "./scripts/preflight-dev.mjs";
+            import { verifyNoPendingMigrations } from "./scripts/preflight-common.mjs";
             verifyNoPendingMigrations(readFileSync(process.argv[1], "utf8"));
             appendFileSync(process.env.GITHUB_STEP_SUMMARY,
               "- D1 Development: nessuna migrazione pendente dopo il readback remoto\n");
