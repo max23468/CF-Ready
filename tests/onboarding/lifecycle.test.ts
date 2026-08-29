@@ -1,6 +1,12 @@
 import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
-import { readHomeState, readOnboarding, saveOnboarding } from "../../app/validation.server";
+import { dismissMerchantCheckIn } from "../../app/events.server";
+import {
+  completeOnboardingAutomatically,
+  readHomeState,
+  readOnboarding,
+  saveOnboarding,
+} from "../../app/validation.server";
 import { insertShop } from "../support/lifecycle";
 
 test("riaprire l'onboarding non lo riporta a in corso", async () => {
@@ -55,6 +61,34 @@ test("la Home ricostruisce onboarding, dichiarazione e ultima attivazione con un
       validationEnabled: true,
     },
     address2Declaration: "2026-08-01T10:00:00.000Z",
+    merchantCheckInDismissed: false,
     enabledSince: "2026-08-02T11:00:00.000Z",
   });
+});
+
+test("autocompletamento onboarding e chiusura check-in sono persistenti e idempotenti", async () => {
+  const shop = await insertShop("automatic-setup.example.myshopify.com");
+  await env.DB.prepare(
+    `INSERT INTO app_state (shop_id, onboarding_status, onboarding_step, updated_at)
+     VALUES ((SELECT id FROM shops WHERE shop_domain = ?), 'in_progress', 4, ?)`,
+  )
+    .bind(shop, "2026-08-29T10:00:00.000Z")
+    .run();
+
+  expect(await completeOnboardingAutomatically(env.DB, shop)).toBe(true);
+  expect(await completeOnboardingAutomatically(env.DB, shop)).toBe(false);
+  expect(await readOnboarding(env.DB, shop)).toMatchObject({ status: "completed", step: 1 });
+
+  expect(await dismissMerchantCheckIn(env.DB, shop)).toBe(true);
+  expect(await dismissMerchantCheckIn(env.DB, shop)).toBe(true);
+  expect((await readHomeState(env.DB, shop)).merchantCheckInDismissed).toBe(true);
+
+  const event = await env.DB.prepare(
+    `SELECT COUNT(*) AS count FROM app_events
+      WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
+        AND event_name = 'merchant_checkin_dismissed'`,
+  )
+    .bind(shop)
+    .first<{ count: number }>();
+  expect(event?.count).toBe(1);
 });

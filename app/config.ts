@@ -171,6 +171,22 @@ export function messageAppears(rules: Rules, key: (typeof MESSAGE_KEYS)[number])
 
 export const REVIEW_MIN_DAYS = 7;
 
+// Un merchant che ha già configurato almeno una regola, acquisito un diritto valido e acceso
+// davvero la Validation ha concluso il setup operativo anche se non ha premuto il pulsante
+// finale della procedura guidata. L'attivazione è il risultato conclusivo: ritardare la chiusura
+// lascerebbe visibile una checklist già superata. L'evento automatico resta distinto da quello
+// manuale.
+export function onboardingCanAutoComplete(state: {
+  onboarding: string;
+  configured: boolean;
+  entitled: boolean;
+  validationEnabled: boolean;
+  errorCode: string | null;
+}) {
+  if (state.onboarding === "completed") return false;
+  return state.configured && state.entitled && state.validationEnabled && !state.errorCode;
+}
+
 // §15.10 e FR-093: si chiede una recensione solo a onboarding concluso, con la validazione
 // attiva da almeno sette giorni, nessun errore tecnico aperto e uno store reale. Shopify espone
 // il tipo di store nel piano: sui partner development store la modale non può inviare recensioni.

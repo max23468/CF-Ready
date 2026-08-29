@@ -80,6 +80,11 @@ export const en: typeof it = {
     nextChoosePlan: "Choose a plan to apply your rules in checkout again.",
     helpHeading: "Help and support",
     helpBody: "What CF Ready checks, what it doesn’t, and what happens in the edge cases.",
+    checkInHeading: "Thank you for choosing CF Ready",
+    checkInBody:
+      "The checkout check is active. If you have feedback on the setup or need help, message the developer directly.",
+    checkInContact: "Message me",
+    checkInDismiss: "Don’t show this again",
     nextAddress2:
       "Stop using the “Apartment, suite, etc.” field for the tax code: right now customers see two fields for the same value. The steps are on Checkout rules.",
   },

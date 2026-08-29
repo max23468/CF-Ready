@@ -4,6 +4,7 @@ import { createAppContext } from "../app/context.server";
 const mocks = vi.hoisted(() => ({
   authenticate: vi.fn(),
   cancelSubscription: vi.fn(),
+  dismissMerchantCheckIn: vi.fn(),
   readBilling: vi.fn(),
   reconcile: vi.fn(),
   recordEvent: vi.fn(),
@@ -22,6 +23,7 @@ vi.mock("../app/billing.server", async (importOriginal) => ({
 
 vi.mock("../app/events.server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../app/events.server")>()),
+  dismissMerchantCheckIn: mocks.dismissMerchantCheckIn,
   recordEvent: mocks.recordEvent,
 }));
 
@@ -52,6 +54,32 @@ test("la riparazione ripete la riconciliazione autorevole", async () => {
 
   expect(result).toEqual({ ok: true });
   expect(mocks.reconcile).toHaveBeenCalledWith(admin, db, "repair.example.myshopify.com");
+});
+
+test("il check-in viene chiuso senza modificare onboarding o stato Shopify", async () => {
+  mocks.reconcile.mockClear();
+  mocks.recordEvent.mockClear();
+  const db = {} as D1Database;
+  mocks.authenticate.mockResolvedValue({
+    admin: {},
+    session: { shop: "checkin.example.myshopify.com" },
+  });
+  mocks.dismissMerchantCheckIn.mockResolvedValue(true);
+
+  const { action } = await import("../app/routes/app._index");
+  const result = await action({
+    request: new Request("https://example.test/app", {
+      method: "POST",
+      body: new URLSearchParams({ intent: "dismiss_checkin" }),
+    }),
+    context: createAppContext(db),
+    params: {},
+  } as never);
+
+  expect(result).toEqual({ ok: true });
+  expect(mocks.dismissMerchantCheckIn).toHaveBeenCalledWith(db, "checkin.example.myshopify.com");
+  expect(mocks.reconcile).not.toHaveBeenCalled();
+  expect(mocks.recordEvent).not.toHaveBeenCalled();
 });
 
 test("la cancellazione non compete con un acquisto una tantum pendente", async () => {
