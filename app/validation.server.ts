@@ -30,6 +30,7 @@ export {
   withValidationLock,
 } from "./validation/lock.server";
 export {
+  completeOnboardingAutomatically,
   persistValidationState,
   readAddress2Declaration,
   readHomeState,

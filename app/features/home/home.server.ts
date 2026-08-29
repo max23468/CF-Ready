@@ -17,10 +17,16 @@ import {
   syncBillingAccount,
   syncTrial,
 } from "../../billing.server";
-import { ELIGIBLE_COUNTRY, messagesAreDefault, readConfig, reviewIsDue } from "../../config";
+import {
+  ELIGIBLE_COUNTRY,
+  messagesAreDefault,
+  onboardingCanAutoComplete,
+  readConfig,
+  reviewIsDue,
+} from "../../config";
 import { databaseContext, waitUntilContext } from "../../context.server";
 import { APP_VERSION, BILLING_IS_TEST } from "../../env.server";
-import { recordEvent } from "../../events.server";
+import { dismissMerchantCheckIn, recordEvent } from "../../events.server";
 import { resolveLocale } from "../../i18n";
 import { planFor, planPrices } from "../../plans.server";
 import type { PlanKind } from "../../plans.server";
@@ -28,6 +34,7 @@ import { persistShopDisplayName } from "../../shop-profile.server";
 import { authenticate } from "../../shopify.server";
 import {
   queryContext,
+  completeOnboardingAutomatically,
   readHomeState,
   reconcile,
   withValidationLock,
@@ -55,11 +62,33 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     timings.push(`d1_home;dur=${(performance.now() - localStateStartedAt).toFixed(1)}`);
     return localState;
   });
-  const [state, { onboarding, address2Declaration, enabledSince }] = await Promise.all([
-    statePromise,
-    localStatePromise,
-  ]);
+  const [state, { onboarding, address2Declaration, enabledSince, merchantCheckInDismissed }] =
+    await Promise.all([statePromise, localStatePromise]);
   const config = readConfig(state.validation?.metafield?.jsonValue);
+  const configured = config.rules.taxCode !== "unmanaged" || config.rules.pec !== "unmanaged";
+  let onboardingStatus = onboarding.status;
+  if (
+    onboardingCanAutoComplete({
+      onboarding: onboardingStatus,
+      configured,
+      entitled: state.entitlement.kind !== "none",
+      validationEnabled: state.validationEnabled,
+      errorCode: state.errorCode,
+    }) &&
+    (await completeOnboardingAutomatically(db, session.shop))
+  ) {
+    onboardingStatus = "completed";
+    await recordEvent(db, {
+      shopDomain: session.shop,
+      name: "onboarding_auto_completed",
+      class: "onboarding",
+      metadata: { reason: "effective_configuration" },
+    });
+  }
+  const paidAccount =
+    state.account?.plan_kind !== "none" &&
+    (state.account?.entitlement_status === "active" ||
+      state.account?.entitlement_status === "ending");
 
   const remaining = remainingTrialDays(state.trial, state.today);
   const payload = {
@@ -86,10 +115,17 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     accountStatus: state.account?.entitlement_status ?? "none",
     creditEstimate: state.creditEstimate,
     errorCode: state.errorCode,
-    onboarding: onboarding.status,
+    onboarding: onboardingStatus,
+    showMerchantCheckIn: Boolean(
+      !state.partnerDevelopment &&
+      paidAccount &&
+      state.validationEnabled &&
+      !state.errorCode &&
+      !merchantCheckInDismissed,
+    ),
     reviewDue: reviewIsDue(
       {
-        onboarding: onboarding.status,
+        onboarding: onboardingStatus,
         validationEnabled: state.validationEnabled,
         errorCode: state.errorCode,
         enabledSince,
@@ -108,6 +144,16 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
   const db = context.get(databaseContext);
   const intent = (await request.formData()).get("intent");
+
+  if (intent === "dismiss_checkin") {
+    try {
+      return (await dismissMerchantCheckIn(db, session.shop))
+        ? { ok: true }
+        : { ok: false, errorCode: "generic" };
+    } catch {
+      return { ok: false, errorCode: "generic" };
+    }
+  }
 
   if (intent === "repair") {
     try {

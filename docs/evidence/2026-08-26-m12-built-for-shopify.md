@@ -159,3 +159,67 @@ del controllo. Rimane quindi una sola divergenza plausibile dal percorso
 canonico del rilevatore: lo scaffold Shopify corrente configura App Bridge con
 `data-api-key` sullo script, mentre la `1.0.0` live usa il meta equivalente. Il
 candidato locale adotta la forma canonica; nessun deploy è stato eseguito.
+
+## Primo merchant pagante — 29 agosto 2026
+
+Alle `12:50:35 UTC` il comando `npm run report:launch -- production` ha eseguito
+una sola lettura aggregata D1, senza scritture, e ha restituito:
+
+| Segnale interno | Valore |
+| --- | ---: |
+| Store registrati | 4 |
+| Store attivi | 2 |
+| Installazioni negli ultimi 7 giorni | 2 |
+| Installazioni negli ultimi 30 giorni | 4 |
+| Onboarding completati | 1 |
+| Validation attive | 2 |
+| Store paganti o con acquisto concluso | 1 |
+| Concessioni omaggio | 1 |
+| Errori aperti | 0 |
+| Eventi di errore negli ultimi 7 giorni | 0 |
+| Webhook falliti visibili in D1 negli ultimi 7 giorni | 0 |
+
+Una seconda `SELECT` mirata, eseguita alle `12:54:41 UTC` senza riportare
+dominio, identificativi Shopify o condizioni economiche, ha verificato per
+l'unico store pagante attivo:
+
+- installazione ed entitlement attivi, con riferimento della charge Shopify
+  presente;
+- Validation attiva, riferimento della risorsa e configurazione versionata
+  presenti;
+- nessun errore applicativo aperto, evento di errore o webhook fallito visibile
+  negli ultimi 7 giorni;
+- riconciliazione billing e Validation registrata il 28 agosto 2026 alle
+  `08:33:18 UTC`;
+- evento billing attivo registrato il 27 agosto alle `13:23:06 UTC` e
+  attivazione della Validation 35 secondi dopo;
+- onboarding formale non completato.
+
+L'onboarding incompleto non prova un malfunzionamento: l'implementazione
+consente intenzionalmente di acquistare e attivare il controllo direttamente
+dalla Home. Resta un segnale di customer success da osservare per capire se il
+percorso guidato è stato saltato per scelta o perché poco visibile.
+
+Questa evidenza porta da zero a uno il segnale operativo «billing reale
+verificato» e da uno a due le Validation attive. Non prova installazioni nette
+qualificate, recensioni, Web Vitals o idoneità Built for Shopify e non modifica
+il contratto di chiusura di M12. Il readback odierno nel Partner Dashboard non è
+stato completato perché il browser richiedeva la selezione dell'account Shopify;
+non sono stati eseguiti accesso, candidatura o altre modifiche remote.
+
+Il merchant non ha fornito volontariamente recapiti. Non vengono quindi
+ricercati contatti personali né usati il dominio del negozio o superfici
+pubbliche per un messaggio non richiesto; il supporto resta disponibile sui
+canali pubblicati e un eventuale ringraziamento seguirà soltanto un contatto
+diretto o un altro canale legittimo già esistente.
+
+Come follow-up locale è stato scelto un check-in in-app, senza invio esterno:
+compare una sola volta ai merchant paganti con Validation attiva, apre il
+`mailto:` di assistenza già previsto e può essere chiuso definitivamente. Il
+testo ringrazia il merchant, conferma lo stato operativo e offre feedback o
+assistenza diretta senza chiedere una recensione. Il candidato riconosce inoltre
+come completato, senza attese artificiali, lo setup operativo concluso nella
+Home quando esistono regole gestite, accesso attivo, Validation attiva e nessun
+errore; aprire il confronto piani non basta da solo e l'evento automatico resta
+distinto dal completamento manuale. Questa modifica è evidenza locale e non è
+stato eseguito alcun deploy Production.
