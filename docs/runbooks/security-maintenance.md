@@ -43,11 +43,14 @@ GitHub Actions generico entra nella bypass list.
 
 Prima del fast-forward un preflight separato verifica ruleset e unicità del
 bypass; lo script di riconciliazione verifica poi app, branch remoti, due parent
-del merge Production, secondo parent uguale all'HEAD corrente di `develop` e
-tree identici. La scrittura è non forzata, soggetta al ruleset e seguita da
-readback. Una concorrenza su `develop`, un merge anomalo o una configurazione
-incompleta fermano il riallineamento senza influire sul deploy Production già
-concluso.
+del merge Production, secondo parent uguale all'HEAD corrente di `develop`, tree
+identici e ricevuta Production. Un avvio manuale può anche recuperare una
+promozione `main` di sola governance senza deploy: il tree del merge deve essere
+identico al suo parent `develop`, il `develop` corrente deve esserne un avanzamento
+lineare e il nuovo merge conserva esattamente il tree corrente di `develop`.
+La scrittura è non forzata, soggetta al ruleset e seguita da readback. Una
+concorrenza, un merge anomalo o una configurazione incompleta fermano il
+riallineamento senza modificare provider o contenuto del branch.
 
 ## Dipendenze npm
 
