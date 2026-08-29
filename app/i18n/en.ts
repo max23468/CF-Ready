@@ -109,6 +109,9 @@ export const en: typeof it = {
     appearsNot: "Not expected",
     languageSelector: "Message language",
     previewHeading: "Checkout preview",
+    previewContext: "When the customer tries to complete the order",
+    previewErrorHeading: "Order can’t be completed",
+    previewSelected: "Selected message",
   },
   setup: {
     heading: "Get CF Ready ready",

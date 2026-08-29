@@ -13,6 +13,7 @@ import {
 import { validateMessages } from "../config";
 import type { CheckoutConfig } from "../config";
 import { databaseContext } from "../context.server";
+import { CustomerMessagesPreview } from "../features/messages/CustomerMessagesPreview";
 import { resolveLocale, texts } from "../i18n";
 import type { Locale } from "../i18n";
 import { messageSubmission, shouldShowMessageCounter, updateMessageDraft } from "../messages-draft";
@@ -184,28 +185,18 @@ export default function CustomerMessages() {
 
         <s-section>
           <s-stack direction="block" gap="base">
-            <s-button-group gap="none" accessibilityLabel={t.messages.languageSelector}>
-              {(["it", "en"] as const).map((locale) => (
-                <s-press-button
-                  key={locale}
-                  pressed={activeLocale === locale}
-                  onClick={() => setActiveLocale(locale)}
-                >
-                  {locale === "it" ? t.messages.italian : t.messages.english}
-                </s-press-button>
-              ))}
-            </s-button-group>
-
-            <s-box background="subdued" borderRadius="base" padding="base">
-              <s-stack direction="block" gap="small-100">
-                <s-stack direction="inline" gap="small-100" alignItems="center">
-                  <s-icon type="alert-circle" tone="critical" />
-                  <s-text type="strong">{t.messages.previewHeading}</s-text>
-                  <s-badge>{t.messages[selectedKey]}</s-badge>
-                </s-stack>
-                <s-text tone="critical">{draft[activeLocale][selectedKey]}</s-text>
-              </s-stack>
-            </s-box>
+            <CustomerMessagesPreview
+              activeLocale={activeLocale}
+              context={t.messages.previewContext}
+              errorHeading={t.messages.previewErrorHeading}
+              heading={t.messages.previewHeading}
+              languageLabel={t.messages.languageSelector}
+              languages={{ it: t.messages.italian, en: t.messages.english }}
+              message={draft[activeLocale][selectedKey]}
+              onLocaleChange={setActiveLocale}
+              selectedHeading={t.messages.previewSelected}
+              selectedLabel={t.messages[selectedKey]}
+            />
 
             {MESSAGE_KEYS.map((key) => {
               const value = draft[activeLocale][key];
