@@ -191,6 +191,15 @@ quando entrambe le fonti osservano la stessa transizione. Il passaggio tra piani
 usa il precedente stato billing riconciliato per produrre una notifica esplicita
 `Da`/`A`.
 
+Il runtime mantiene separati i confini: `app/owner-notifications.server.ts`
+orchestra polling, outbox e deduplicazione;
+`app/owner-notifications/model.ts` valida payload e tipi di evento;
+`app/owner-notifications/presentation.ts` costruisce copy e sezioni operative;
+`app/owner-notifications/delivery.server.ts` gestisce claim, retry e trasporto
+Telegram. Il bootstrap del cursore locale conserva il fallback dal checkpoint
+temporale storico finché la chiave numerica non è stata materializzata, evitando
+di ripartire dall’inizio o di perdere eventi durante il passaggio.
+
 L'outbox viene consegnato tramite la Telegram Bot API. Development non configura
 i secret e non invia notifiche. Il destinatario è la sola chat privata
 identificata dal secret `TELEGRAM_CHAT_ID`; ogni messaggio riporta nome pubblico e
