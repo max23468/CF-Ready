@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   expectedMainSha,
+  verifyManualAncestryRecovery,
   verifyReconciliationApp,
   verifyProductionDeployment,
   verifyRecoveryReconciliation,
@@ -89,6 +90,13 @@ test("recupera solo un develop avanzato linearmente dal candidato già promosso"
     expectedMain: main,
   };
   assert.doesNotThrow(() => verifyRecoveryReconciliation(input));
+  assert.doesNotThrow(() =>
+    verifyManualAncestryRecovery({ eventName: "workflow_dispatch", ...input }),
+  );
+  assert.throws(
+    () => verifyManualAncestryRecovery({ eventName: "workflow_run", ...input }),
+    /richiede un avvio manuale/,
+  );
   assert.throws(
     () =>
       verifyRecoveryReconciliation({ ...input, comparison: { ...comparison, status: "diverged" } }),

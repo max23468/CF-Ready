@@ -42,6 +42,13 @@ export function verifyRecoveryReconciliation({
   }
 }
 
+export function verifyManualAncestryRecovery({ eventName, ...recovery }) {
+  if (eventName !== "workflow_dispatch") {
+    throw new Error("Il recupero di sola ascendenza richiede un avvio manuale.");
+  }
+  verifyRecoveryReconciliation(recovery);
+}
+
 export function verifyReconciliationApp({ actualSlug, expectedSlug }) {
   if (!expectedSlug || actualSlug !== expectedSlug) {
     throw new Error("Il token non appartiene alla GitHub App di riallineamento attesa.");
@@ -111,36 +118,6 @@ async function main() {
     sourceDeploySha: process.env.SOURCE_DEPLOY_SHA,
     mainRefSha: observedMainRef.object.sha,
   });
-  let sourceRun;
-  if (eventName === "workflow_run") {
-    if (!/^\d+$/.test(process.env.SOURCE_DEPLOY_RUN_ID ?? "")) {
-      throw new Error("Manca l'identificativo del deploy Production sorgente.");
-    }
-    sourceRun = await request(
-      `/repos/${repository}/actions/runs/${process.env.SOURCE_DEPLOY_RUN_ID}`,
-      githubToken,
-    );
-  } else if (eventName === "workflow_dispatch") {
-    const runs = await request(
-      `/repos/${repository}/actions/workflows/deploy-production.yml/runs?branch=main&status=success&per_page=100`,
-      githubToken,
-    );
-    sourceRun = runs.workflow_runs.find(({ head_sha: headSha }) => headSha === expectedMain);
-  } else {
-    throw new Error("Evento non autorizzato per il riallineamento.");
-  }
-  if (!sourceRun) {
-    throw new Error("Nessun deploy Production verde trovato per il commit main corrente.");
-  }
-  const artifactResponse = await request(
-    `/repos/${repository}/actions/runs/${sourceRun.id}/artifacts?per_page=100`,
-    githubToken,
-  );
-  verifyProductionDeployment({
-    run: sourceRun,
-    artifacts: artifactResponse.artifacts,
-    expectedMain,
-  });
   const [mainRef, developRef] = await Promise.all([
     request(`/repos/${repository}/git/ref/heads/main`, reconciliationToken),
     request(`/repos/${repository}/git/ref/heads/develop`, reconciliationToken),
@@ -154,6 +131,7 @@ async function main() {
     reconciliationToken,
   );
   let targetSha = mainRef.object.sha;
+  let directReconciliation = true;
   try {
     verifyReconciliation({
       main: mainRef.object.sha,
@@ -163,11 +141,43 @@ async function main() {
       developTree: develop.tree.sha,
       expectedMain,
     });
-  } catch (error) {
-    if (eventName !== "workflow_dispatch") throw error;
+  } catch {
+    directReconciliation = false;
+  }
+
+  if (directReconciliation) {
+    let sourceRun;
+    if (eventName === "workflow_run") {
+      if (!/^\d+$/.test(process.env.SOURCE_DEPLOY_RUN_ID ?? "")) {
+        throw new Error("Manca l'identificativo del deploy Production sorgente.");
+      }
+      sourceRun = await request(
+        `/repos/${repository}/actions/runs/${process.env.SOURCE_DEPLOY_RUN_ID}`,
+        githubToken,
+      );
+    } else if (eventName === "workflow_dispatch") {
+      const runs = await request(
+        `/repos/${repository}/actions/workflows/deploy-production.yml/runs?branch=main&status=success&per_page=100`,
+        githubToken,
+      );
+      sourceRun = runs.workflow_runs.find(({ head_sha: headSha }) => headSha === expectedMain);
+    }
+    if (!sourceRun) {
+      throw new Error("Nessun deploy Production verde trovato per il commit main corrente.");
+    }
+    const artifactResponse = await request(
+      `/repos/${repository}/actions/runs/${sourceRun.id}/artifacts?per_page=100`,
+      githubToken,
+    );
+    verifyProductionDeployment({
+      run: sourceRun,
+      artifacts: artifactResponse.artifacts,
+      expectedMain,
+    });
+  } else {
     const promotedDevelopSha = main.parents[1]?.sha;
     if (!/^[0-9a-f]{40}$/.test(promotedDevelopSha ?? "")) {
-      throw new Error("Il merge Production non espone il parent develop promosso.");
+      throw new Error("Il merge main non espone il parent develop promosso.");
     }
     const [promotedDevelop, comparison] = await Promise.all([
       request(`/repos/${repository}/git/commits/${promotedDevelopSha}`, reconciliationToken),
@@ -176,7 +186,8 @@ async function main() {
         reconciliationToken,
       ),
     ]);
-    verifyRecoveryReconciliation({
+    verifyManualAncestryRecovery({
+      eventName,
       main: mainRef.object.sha,
       develop: developRef.object.sha,
       parents: main.parents.map(({ sha }) => sha),
@@ -189,7 +200,7 @@ async function main() {
     const recoveryCommit = await request(`/repos/${repository}/git/commits`, reconciliationToken, {
       method: "POST",
       body: JSON.stringify({
-        message: "chore: recover develop ancestry after Production reconciliation",
+        message: "chore: recover develop ancestry after main promotion",
         tree: develop.tree.sha,
         parents: [developRef.object.sha, mainRef.object.sha],
       }),
