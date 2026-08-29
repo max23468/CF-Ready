@@ -13,6 +13,11 @@ import {
   trialNotice,
 } from "../../app/i18n";
 
+test("l'azione di assistenza è esplicita in italiano e inglese", () => {
+  expect(texts("it").support.requestSupport).toBe("Richiedi assistenza");
+  expect(texts("en").support.requestSupport).toBe("Get support");
+});
+
 test("gli avvisi di prova scattano a sette, tre e all'ultimo giorno", () => {
   const at = (remaining: number) => trialNotice({ remaining, endsAt: "2026-08-10" }, "it");
 

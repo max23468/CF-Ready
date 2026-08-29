@@ -7,4 +7,4 @@ type = "admin_link"
 
 [[extensions.targeting]]
 target = "admin.app.support.link"
-url = "app://guide"
+url = "app://app/guide"

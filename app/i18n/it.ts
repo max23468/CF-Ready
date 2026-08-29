@@ -175,6 +175,7 @@ export const it = {
       "Nel messaggio finiscono solo dominio dello store, versione, lingua e stato tecnico dell’app. Non allegare Codici Fiscali, PEC, ordini o dati dei tuoi clienti: per capire un problema non servono.",
     subject: "Assistenza CF Ready",
     chooseCategory: "Scegli l’argomento:",
+    requestSupport: "Richiedi assistenza",
     categories: {
       checkout: "Checkout e regole",
       billing: "Piano e pagamento",

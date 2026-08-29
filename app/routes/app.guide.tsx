@@ -5,7 +5,13 @@ import { authenticateAdmin } from "../admin-auth.server";
 import { databaseContext } from "../context.server";
 import { APP_VERSION } from "../env.server";
 import { recordEvent } from "../events.server";
-import { resolveLocale, supportDiagnosticText, supportMailto, texts } from "../i18n";
+import {
+  resolveLocale,
+  supportDiagnosticText,
+  supportMailto,
+  texts,
+  type SupportCategory,
+} from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { readSupportDiagnosticState } from "../support.server";
 
@@ -49,8 +55,9 @@ export const shouldRevalidate = skipRevalidationWhenLeaving;
 export default function Guide() {
   const { locale, shopDomain, version, diagnosticId, diagnostics } = useLoaderData<typeof loader>();
   const t = texts(locale);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [copyState, setCopyState] = useState<"copied" | "failed" | null>(null);
+  const [supportCategory, setSupportCategory] = useState<SupportCategory>("checkout");
   const diagnosticsFetcher = useFetcher<typeof action>();
   const supportDetails = { shopDomain, version, diagnosticId, ...diagnostics };
 
@@ -91,7 +98,7 @@ export default function Guide() {
             </s-button>
           </s-grid>
           {t.guide.entries.map((entry) => (
-            <details key={entry.q}>
+            <details key={entry.q} open>
               <summary>
                 <strong>{entry.q}</strong>
               </summary>
@@ -129,19 +136,20 @@ export default function Guide() {
       <s-section slot="aside" heading={t.support.heading}>
         <s-stack direction="block" gap="base">
           <s-paragraph>{t.support.body}</s-paragraph>
-          <s-paragraph>{t.support.chooseCategory}</s-paragraph>
-          {Object.entries(t.support.categories).map(([category, label]) => (
-            <s-link
-              key={category}
-              href={supportMailto(
-                supportDetails,
-                locale,
-                category as keyof typeof t.support.categories,
-              )}
-            >
-              {label}
-            </s-link>
-          ))}
+          <s-select
+            label={t.support.chooseCategory}
+            value={supportCategory}
+            onChange={(event) => setSupportCategory(event.currentTarget.value as SupportCategory)}
+          >
+            {Object.entries(t.support.categories).map(([category, label]) => (
+              <s-option key={category} value={category}>
+                {label}
+              </s-option>
+            ))}
+          </s-select>
+          <s-button variant="primary" href={supportMailto(supportDetails, locale, supportCategory)}>
+            {t.support.requestSupport}
+          </s-button>
           <s-button onClick={copyDiagnostics}>{t.support.copyDiagnostics}</s-button>
           {copyState ? (
             <s-text tone={copyState === "copied" ? "success" : "critical"}>
