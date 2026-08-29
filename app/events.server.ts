@@ -95,3 +95,22 @@ export async function recordEvent(db: D1Database, event: AppEvent) {
     );
   }
 }
+
+export async function dismissMerchantCheckIn(db: D1Database, shopDomain: string) {
+  const occurredAt = new Date().toISOString();
+  const result = await db
+    .prepare(
+      `INSERT INTO app_events (shop_id, event_name, event_class, metadata_json, occurred_at)
+       SELECT shop.id, 'merchant_checkin_dismissed', 'support', NULL, ?
+         FROM shops shop
+        WHERE shop.shop_domain = ?
+          AND NOT EXISTS (
+            SELECT 1 FROM app_events event
+             WHERE event.shop_id = shop.id
+               AND event.event_name = 'merchant_checkin_dismissed'
+          )`,
+    )
+    .bind(occurredAt, shopDomain)
+    .run();
+  return result.success;
+}

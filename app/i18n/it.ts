@@ -79,6 +79,11 @@ export const it = {
     nextChoosePlan: "Scegli una modalità per riattivare le regole nel checkout.",
     helpHeading: "Guida e assistenza",
     helpBody: "Cosa controlla CF Ready, cosa non controlla e cosa succede nei casi particolari.",
+    checkInHeading: "Grazie per aver scelto CF Ready",
+    checkInBody:
+      "Il controllo nel checkout è attivo. Se hai feedback sulla configurazione o hai bisogno di aiuto, scrivi direttamente allo sviluppatore.",
+    checkInContact: "Scrivimi",
+    checkInDismiss: "Non mostrare più",
     nextAddress2:
       "Smetti di usare il campo “Interno” per il Codice Fiscale: oggi il cliente vede due campi per lo stesso dato. Le istruzioni sono in Regole checkout.",
   },

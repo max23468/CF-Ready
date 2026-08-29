@@ -1,5 +1,10 @@
 import { expect, test } from "vitest";
-import { DEFAULT_CONFIG, messagesAreDefault, reviewIsDue } from "../../app/config";
+import {
+  DEFAULT_CONFIG,
+  messagesAreDefault,
+  onboardingCanAutoComplete,
+  reviewIsDue,
+} from "../../app/config";
 import { SUPPORT_EMAIL, supportMailto, texts, trialNotice } from "../../app/i18n";
 
 test("gli avvisi di prova scattano a sette, tre e all'ultimo giorno", () => {
@@ -49,6 +54,25 @@ test("la recensione si chiede solo alle condizioni di §15.10", () => {
   expect(reviewIsDue({ ...ready, partnerDevelopment: true }, now)).toBe(false);
   // Mai attivata: non c'è un momento da cui contare.
   expect(reviewIsDue({ ...ready, enabledSince: null }, now)).toBe(false);
+});
+
+test("l'onboarding si completa appena lo setup operativo è effettivo", () => {
+  const ready = {
+    onboarding: "in_progress",
+    configured: true,
+    entitled: true,
+    validationEnabled: true,
+    errorCode: null,
+  };
+
+  expect(onboardingCanAutoComplete(ready)).toBe(true);
+  expect(onboardingCanAutoComplete({ ...ready, configured: false })).toBe(false);
+  expect(onboardingCanAutoComplete({ ...ready, entitled: false })).toBe(false);
+  expect(onboardingCanAutoComplete({ ...ready, validationEnabled: false })).toBe(false);
+  expect(onboardingCanAutoComplete({ ...ready, errorCode: "validation_readback_failed" })).toBe(
+    false,
+  );
+  expect(onboardingCanAutoComplete({ ...ready, onboarding: "completed" })).toBe(false);
 });
 
 test("il messaggio di assistenza porta solo i dati dell'allowlist e nulla del cliente", () => {
