@@ -31,11 +31,22 @@
   min-width: 0;
 }
 
-@container (inline-size > 600px) {
+@container (inline-size > 720px) {
   .rules-layout {
-    grid-template-areas:
-      "fields preview"
-      "address preview";
+    grid-template-areas: "form preview";
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .rules-layout__form {
+    grid-area: form;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .rules-layout__fields,
+  .rules-layout__address {
+    grid-area: auto;
   }
 }

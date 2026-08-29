@@ -154,7 +154,7 @@ export default function CheckoutRules() {
   }
 
   return (
-    <s-page heading={t.rules.heading} inlineSize="large">
+    <s-page heading={t.rules.heading}>
       {showSavedBanner(result, dirty, changedSinceResult) ? (
         <s-banner tone="success">{t.rules.saved}</s-banner>
       ) : null}

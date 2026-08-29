@@ -174,6 +174,7 @@ export const en: typeof it = {
       "The message only carries your store domain, app version, language and technical status. Don’t attach tax codes, PEC addresses, orders or your customers’ data: they aren’t needed to understand a problem.",
     subject: "CF Ready support",
     chooseCategory: "Choose a topic:",
+    requestSupport: "Get support",
     categories: {
       checkout: "Checkout and rules",
       billing: "Plan and payment",
