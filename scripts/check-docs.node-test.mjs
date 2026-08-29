@@ -309,7 +309,9 @@ test("il link assistenza rispetta il manifest corrente delle Admin Link extensio
   assert.match(manifest, /^name = "t:name"$/m);
   assert.match(manifest, /^type = "admin_link"$/m);
   assert.match(manifest, /^target = "admin\.app\.support\.link"$/m);
-  assert.match(manifest, /^url = "app:\/\/guide"$/m);
+  assert.match(manifest, /^url = "app:\/\/app\/guide"$/m);
+  const routes = readFileSync(new URL("../app/routes.ts", import.meta.url), "utf8");
+  assert.match(routes, /route\("app"[\s\S]*route\("guide", "routes\/app\.guide\.tsx"\)/);
   // Il template support-link corrente espone il testo tramite `extensions.name`: né la radice
   // né il target accettano i campi delle UI extension. La CLI bloccherebbe altrimenti anche i
   // comandi della Function prima di poter verificare o distribuire lo schema.
