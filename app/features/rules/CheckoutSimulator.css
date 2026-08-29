@@ -1,3 +1,7 @@
+.checkout-simulator__eyebrow {
+  white-space: nowrap;
+}
+
 .checkout-simulator__actions {
   display: grid;
   gap: 8px;
@@ -7,6 +11,17 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.checkout-simulator__scenario-copy {
+  display: grid;
+  flex: 1 0 100%;
+  gap: 2px;
+}
+
+.checkout-simulator__scenario {
+  min-width: min(190px, 100%);
+  flex: 1 1 190px;
 }
 
 .checkout-simulator__button {
@@ -37,17 +52,6 @@
 .checkout-simulator__button:focus-visible {
   outline: 3px solid rgb(201 123 46 / 32%);
   outline-offset: 2px;
-}
-
-.checkout-simulator__button--valid {
-  border-color: #b8cbb9;
-  background: #e9f1e8;
-  color: #20492f;
-}
-
-.checkout-simulator__button--valid:hover {
-  border-color: #8eaa92;
-  background: #dfeadd;
 }
 
 .checkout-simulator__button--clear {

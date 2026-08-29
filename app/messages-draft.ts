@@ -4,6 +4,11 @@ import type { CheckoutConfig } from "./config";
 type Messages = CheckoutConfig["messages"];
 type MessageLocale = keyof Messages;
 type MessageKey = (typeof MESSAGE_KEYS)[number];
+const MESSAGE_COUNTER_THRESHOLD = 160;
+
+export function shouldShowMessageCounter(length: number, focused: boolean) {
+  return focused || length >= MESSAGE_COUNTER_THRESHOLD;
+}
 
 export function updateMessageDraft(
   current: Messages,

@@ -4,8 +4,11 @@ import {
   simulatorErrorMessage,
   simulatorFieldError,
   simulatorOutcome,
+  simulatorScenarioValues,
 } from "../app/features/rules/checkout-simulator";
+import { isValidPec, isValidTaxCode } from "../app/checkout-field-validation";
 import { mergeRulesFormDraft } from "../app/features/rules/rules-form";
+import { texts } from "../app/i18n";
 
 const requiredTaxCode = { taxCode: "required_validated", pec: "unmanaged" } as const;
 
@@ -53,6 +56,19 @@ test("il simulatore mostra i messaggi configurati effettivi", () => {
     "Messaggio merchant corrente",
   );
   expect(simulatorErrorMessage(messages, "taxCode", "required", false)).toBeUndefined();
+});
+
+test("gli scenari pronti coprono valori validi, non validi e campi vuoti", () => {
+  expect(isValidTaxCode(simulatorScenarioValues.valid.taxCode)).toBe(true);
+  expect(isValidPec(simulatorScenarioValues.valid.pec)).toBe(true);
+  expect(isValidTaxCode(simulatorScenarioValues.invalidTaxCode.taxCode)).toBe(false);
+  expect(isValidPec(simulatorScenarioValues.invalidPec.pec)).toBe(false);
+  expect(simulatorScenarioValues.empty).toEqual({ taxCode: "", pec: "" });
+});
+
+test("il selettore spiega che ogni scenario compila i campi e mostra il risultato", () => {
+  expect(texts("it").rules.simulator.scenarioHelp).toMatch(/compila i campi/i);
+  expect(texts("en").rules.simulator.scenarioHelp).toMatch(/fills the fields/i);
 });
 
 test("cambiare una regola non disattiva gli avvisi preventivi", () => {

@@ -9,18 +9,26 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 ## 1.1.0 — 29 agosto 2026
 
 - Regole checkout include un simulatore interattivo nativo che usa le regole e
-  i messaggi effettivi, resta locale al browser e non salva i valori di prova;
+  i messaggi effettivi, resta locale al browser, non salva i valori di prova e
+  mantiene compatta l'intestazione anche nelle colonne più strette;
 - la condizione Italia è integrata accanto ai Paesi simulati, gli avvisi
   preventivi aggiornano subito l'anteprima e il richiamo sul campo “Interno”
   resta sempre visibile, subito dopo le regole su desktop e in fondo su mobile;
+- il simulatore offre scenari pronti per dati validi, valori non validi e campi
+  vuoti, ne spiega l'effetto e mostra soltanto quelli pertinenti alle regole
+  configurate;
 - Regole checkout torna alla larghezza standard delle altre pagine dell'app,
   mantenendo due colonne soltanto quando hanno spazio sufficiente;
+- Messaggi al cliente usa un selettore lingua accessibile, mostra l'anteprima
+  aggiornata del messaggio selezionato e riduce il rumore dei contatori;
 - l'azione **Richiedi assistenza / Get support** di Shopify apre direttamente
   la Guida in-app; la stessa Guida offre un pulsante primario visibile con
   scelta dell'argomento, mantenendo il canale email bilingue già verificato;
 - la Guida prepara e copia una diagnostica minimizzata basata sul solo stato D1
   riconciliato, con correlation ID e senza dati checkout o personali, e mostra
-  le FAQ già espanse al primo caricamento;
+  le FAQ già espanse e meglio separate al primo caricamento;
+- la condizione Italia è integrata nello stato principale della Home invece di
+  occupare una card separata;
 - un report operativo calcola il p75 di LCP, INP e CLS su 28 giorni, aggregato
   per versione e rotta e con una soglia minima di 100 campioni;
 - la richiesta recensione nativa registra soltanto il codice di esito

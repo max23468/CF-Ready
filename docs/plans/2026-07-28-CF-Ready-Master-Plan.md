@@ -2079,8 +2079,9 @@ Ordine dei contenuti:
 2. **Configurazione corrente**
    - Codice Fiscale;
    - PEC.
-3. **Come si applicano le regole**
-   - consegna e fatturazione italiane;
+3. **Ambito delle regole nella configurazione corrente**
+   - la condizione su consegna e fatturazione italiane è integrata nella card
+     principale, accanto a Codice Fiscale, PEC e messaggi;
    - fatturazione estera esclusa;
    - campi obbligatori assenti bloccati solo con consegna italiana osservabile;
    - campi assenti senza consegna osservabile fail-open.
@@ -2124,6 +2125,10 @@ Ogni opzione ha una spiegazione concreta. Dopo le regole:
 
 - riepilogo dinamico `Come funzionerà il checkout`, seguito dal simulatore
   interattivo che usa gli stessi controlli formali e messaggi configurati;
+- menu `Prova uno scenario` con esempi validi, Codice Fiscale non valido, PEC non
+  valida e campi vuoti; le opzioni non pertinenti a campi non gestiti non sono
+  mostrate; una breve istruzione chiarisce che la scelta compila i campi e
+  aggiorna il risultato del simulatore;
 - condizione non modificabile su consegna e fatturazione italiane, integrata
   accanto ai due selettori Paese del simulatore;
 - controllo `Mostra avvisi preventivi nel checkout`, disattivato per default e
@@ -2137,16 +2142,15 @@ Ogni opzione ha una spiegazione concreta. Dopo le regole:
 
 ### 15.5 Messaggi al cliente
 
-Due sezioni, una per lingua:
+Un selettore segmentato Polaris cambia la lingua modificata:
 
 - Italiano
 - English
 
-Polaris Web Components non espone un componente tab e costruirne uno a mano
-significherebbe reimplementarne l’accessibilità, che §8.1 della Brand
-Foundation vieta. Le due lingue restano quindi entrambe visibili: la regola
-per cui un errore non può nascondersi dietro una scheda chiusa è così
-soddisfatta per costruzione, e il ripristino resta separato per lingua.
+Il selettore usa `s-press-button`, conserva uno stato premuto accessibile e non
+reimplementa la semantica dei controlli Polaris. Se il salvataggio trova un
+errore nella lingua non visibile, quella lingua e il messaggio coinvolto vengono
+selezionati automaticamente. Il ripristino resta separato per lingua.
 
 Quattro campi per lingua:
 
@@ -2160,8 +2164,9 @@ Comportamenti:
 - massimo 200 caratteri;
 - trim;
 - nessun valore vuoto;
-- contatore;
-- esempio testuale Polaris, non mockup checkout;
+- contatore visibile durante la modifica o da 160 caratteri in poi;
+- anteprima testuale Polaris del messaggio selezionato, aggiornata durante la
+  scrittura e senza simulare l’intero checkout;
 - Save Bar comune;
 - `Ripristina testi predefiniti` separato per lingua;
 - conferma prima del ripristino.
@@ -2192,7 +2197,8 @@ Dopo l’acquisto:
 
 ### 15.7 Guida e FAQ
 
-Pagina unica con sezioni espandibili:
+Pagina unica con sezioni espandibili, aperte per default, separate visivamente
+e accompagnate dal comando unico `Comprimi tutte` / `Espandi tutte`:
 
 - Cos’è CF Ready;
 - quando viene richiesto il Codice Fiscale;
