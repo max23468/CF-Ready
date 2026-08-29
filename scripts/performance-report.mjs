@@ -1,5 +1,11 @@
-import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
+
+import {
+  d1ReportCommand,
+  fetchD1Report,
+  parseReportEnvironment,
+  parseWranglerJson,
+} from "./d1-report.mjs";
 
 const WINDOW_DAYS = 28;
 const MINIMUM_SAMPLES = 100;
@@ -37,40 +43,15 @@ SELECT metric_name, app_version, app_route, sample_count, metric_value AS p75
 `;
 
 export function parseEnvironment(args) {
-  const value = args.at(0);
-  if (!value || args.length !== 1 || !["development", "production"].includes(value)) {
-    throw new Error("Uso: npm run report:performance -- development|production");
-  }
-  return value;
+  return parseReportEnvironment(args, "Uso: npm run report:performance -- development|production");
 }
 
 export function commandFor(environment) {
-  const args = [
-    "exec",
-    "--",
-    "wrangler",
-    "d1",
-    "execute",
-    "DB",
-    "--remote",
-    "--json",
-    "--config",
-    "wrangler.json",
-    "--command",
-    QUERY,
-  ];
-  if (environment === "production") args.push("--env", "production");
-  return args;
+  return d1ReportCommand(environment, QUERY);
 }
 
 export function parseWranglerResult(stdout) {
-  let payload;
-  try {
-    payload = JSON.parse(stdout);
-  } catch {
-    throw new Error("Wrangler non ha restituito JSON valido.");
-  }
-
+  const payload = parseWranglerJson(stdout);
   const result = payload?.[0];
   if (!result?.success || !Array.isArray(result.results)) {
     throw new Error("Wrangler non ha restituito il report prestazioni atteso.");
@@ -106,14 +87,8 @@ export function parseWranglerResult(stdout) {
   });
 }
 
-export function fetchReport(environment, { spawn = spawnSync } = {}) {
-  const result = spawn("npm", commandFor(environment), {
-    cwd: new URL("..", import.meta.url),
-    encoding: "utf8",
-    maxBuffer: 1024 * 1024,
-  });
-  if (result.status !== 0) throw new Error("La lettura aggregata D1 non è riuscita.");
-  return parseWranglerResult(result.stdout);
+export function fetchReport(environment, options = {}) {
+  return fetchD1Report(environment, QUERY, parseWranglerResult, options);
 }
 
 function main() {

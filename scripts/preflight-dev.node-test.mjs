@@ -6,11 +6,13 @@ import {
   developmentVersion,
   verifyCoordinatedRollback,
   verifyDevelopmentConfig,
+  verifyVersionAvailable,
+} from "./preflight-dev.mjs";
+import {
   verifyMigrationSafety,
   verifyNoPendingMigrations,
-  verifyVersionAvailable,
   verifyWorkerSecrets,
-} from "./preflight-dev.mjs";
+} from "./preflight-common.mjs";
 
 const shopify = `
 client_id = "adff48d4fe4ceb0dadb4734520701dd7"

@@ -37,6 +37,10 @@ export function checkDocs(repositoryRoot = root) {
       ? htmlTargets(content)
       : markdownTargets(content, undefinedReferences);
 
+    for (const localPath of localMachinePaths(content)) {
+      errors.push(`${file}: percorso locale non riproducibile: ${localPath}`);
+    }
+
     for (const reference of undefinedReferences) {
       errors.push(`${file}: riferimento Markdown senza definizione: ${reference}`);
     }
@@ -83,6 +87,14 @@ export function checkDocs(repositoryRoot = root) {
   }
 
   return { errors, files };
+}
+
+export function localMachinePaths(content) {
+  return [
+    ...content.matchAll(
+      /(?:\/Users\/[^\s`"'<>]+|\/home\/[^\s`"'<>]+|[A-Za-z]:\\Users\\[^\s`"'<>]+)/g,
+    ),
+  ].map((match) => match[0]);
 }
 
 export function markdownTargets(content, undefinedReferences = []) {
