@@ -1,4 +1,3 @@
-api_version = "2026-07"
 uid = "41cb6172-11a6-4820-b43f-e2a9ed709b62"
 
 [[extensions]]
@@ -8,5 +7,4 @@ type = "admin_link"
 
 [[extensions.targeting]]
 target = "admin.app.support.link"
-text = "t:text"
 url = "app://guide"
