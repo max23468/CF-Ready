@@ -5,7 +5,18 @@ import {
   onboardingCanAutoComplete,
   reviewIsDue,
 } from "../../app/config";
-import { SUPPORT_EMAIL, supportMailto, texts, trialNotice } from "../../app/i18n";
+import {
+  SUPPORT_EMAIL,
+  supportDiagnosticText,
+  supportMailto,
+  texts,
+  trialNotice,
+} from "../../app/i18n";
+
+test("l'azione di assistenza è esplicita in italiano e inglese", () => {
+  expect(texts("it").support.requestSupport).toBe("Richiedi assistenza");
+  expect(texts("en").support.requestSupport).toBe("Get support");
+});
 
 test("gli avvisi di prova scattano a sette, tre e all'ultimo giorno", () => {
   const at = (remaining: number) => trialNotice({ remaining, endsAt: "2026-08-10" }, "it");
@@ -112,6 +123,30 @@ test("il messaggio di assistenza porta solo i dati dell'allowlist e nulla del cl
   expect(minimalBody).not.toContain(texts("en").support.fieldCountry);
   expect(minimalBody).toContain("a.myshopify.com");
   expect(minimalBody).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
+});
+
+test("la diagnostica copiabile usa gli stessi campi tecnici del messaggio", () => {
+  const details = {
+    shopDomain: "cf-ready-dev.myshopify.com",
+    version: "1.1.0",
+    diagnosticId: "e9763a7e-f334-4121-8ad8-78f85c47b878",
+    entitlementKind: "annual" as const,
+    validationEnabled: true,
+    errorCode: "validation_readback_failed",
+    configSchemaVersion: 2,
+    configHash: "sha256-tecnico",
+    validationStateRevision: 7,
+    lastSyncAt: "2026-08-29T10:00:00.000Z",
+  };
+  const diagnostic = supportDiagnosticText(details, "it");
+  const mailBody = new URL(supportMailto(details, "it", "other")).searchParams.get("body");
+
+  expect(mailBody).toContain(diagnostic);
+  expect(diagnostic).toContain("1.1.0");
+  expect(diagnostic).toContain("sha256-tecnico");
+  expect(diagnostic).toContain("e9763a7e-f334-4121-8ad8-78f85c47b878");
+  expect(diagnostic).not.toContain("Codice Fiscale");
+  expect(diagnostic).not.toContain("PEC acquirente");
 });
 
 test("la Home distingue i messaggi predefiniti da quelli riscritti", () => {

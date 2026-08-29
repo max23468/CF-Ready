@@ -614,7 +614,6 @@ test("i testi iniziali non presuppongono una configurazione precedente", () => {
     it.onboarding.step4BodyNeedsEntitlement,
     it.plan.notStartedStatus,
     it.plan.oneTimeChargeNotStarted,
-    it.messages.intro,
     it.messages.appearIntro,
   ].join(" ");
   const initialEnglish = [
@@ -626,7 +625,6 @@ test("i testi iniziali non presuppongono una configurazione precedente", () => {
     en.onboarding.step4BodyNeedsEntitlement,
     en.plan.notStartedStatus,
     en.plan.oneTimeChargeNotStarted,
-    en.messages.intro,
     en.messages.appearIntro,
   ].join(" ");
 

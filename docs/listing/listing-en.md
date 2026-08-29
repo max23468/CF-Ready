@@ -145,7 +145,7 @@ must state the same figure.
 
 | Item | URL |
 | --- | --- |
-| Support | `https://cf-ready.pages.dev/support` (inherited from the primary listing) |
+| Support | `https://cf-ready.pages.dev/en/support` (English support, localized override) |
 | Developer website | `https://cf-ready.pages.dev/en/` |
 | Privacy | `https://cf-ready.pages.dev/en/privacy` |
 | Terms | `https://cf-ready.pages.dev/en/terms` |

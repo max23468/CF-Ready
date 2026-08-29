@@ -1,0 +1,10 @@
+uid = "41cb6172-11a6-4820-b43f-e2a9ed709b62"
+
+[[extensions]]
+name = "t:name"
+handle = "support-link"
+type = "admin_link"
+
+[[extensions.targeting]]
+target = "admin.app.support.link"
+url = "app://app/guide"

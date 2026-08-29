@@ -13,9 +13,10 @@ import {
 import { validateMessages } from "../config";
 import type { CheckoutConfig } from "../config";
 import { databaseContext } from "../context.server";
+import { CustomerMessagesPreview } from "../features/messages/CustomerMessagesPreview";
 import { resolveLocale, texts } from "../i18n";
 import type { Locale } from "../i18n";
-import { messageSubmission, updateMessageDraft } from "../messages-draft";
+import { messageSubmission, shouldShowMessageCounter, updateMessageDraft } from "../messages-draft";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { setSaveBarVisibility } from "../save-bar";
 import { authenticate } from "../shopify.server";
@@ -60,6 +61,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 };
 
 const SAVE_BAR = "cf-ready-messages";
+type MessageKey = (typeof MESSAGE_KEYS)[number];
 
 // Polaris non ha un campo che si ridimensiona da solo: `rows` fissa le righe visibili e il
 // resto finisce in uno scroll interno. Le righe si calcolano quindi dal testo, così il campo
@@ -82,6 +84,11 @@ export default function CustomerMessages() {
   const [draft, setDraft] = useState<CheckoutConfig["messages"]>(saved.messages);
   const draftRef = useRef(draft);
   const [, startDraftTransition] = useTransition();
+  const [activeLocale, setActiveLocale] = useState<Locale>(saved.locale);
+  const [selectedKey, setSelectedKey] = useState<MessageKey>("taxCodeRequired");
+  const [focusedMessage, setFocusedMessage] = useState<
+    { locale: Locale; key: MessageKey } | undefined
+  >();
   // I campi non sono controllati: React che riscrive `value` a ogni tasto farebbe saltare il
   // cursore dentro un testo lungo. Il ripristino li rimonta cambiando chiave, così ripartono
   // dal nuovo valore predefinito senza che React possieda il contenuto.
@@ -96,6 +103,12 @@ export default function CustomerMessages() {
     setDraft(saved.messages);
     setMounted((current) => ({ it: current.it + 1, en: current.en + 1 }));
   }, [result, saved.messages]);
+
+  useEffect(() => {
+    if (!result || result.ok || !("problem" in result) || !result.problem) return;
+    setActiveLocale(result.problem.locale);
+    setSelectedKey(result.problem.key);
+  }, [result]);
 
   const dirty = (["it", "en"] as const).some((locale) =>
     MESSAGE_KEYS.some((key) => draft[locale][key] !== saved.messages[locale][key]),
@@ -113,6 +126,7 @@ export default function CustomerMessages() {
     if (locale !== "it" && locale !== "en") return;
     if (!(MESSAGE_KEYS as readonly string[]).includes(key)) return;
     const value = field?.value ?? "";
+    setSelectedKey(key as MessageKey);
     draftRef.current = updateMessageDraft(
       draftRef.current,
       locale,
@@ -169,59 +183,66 @@ export default function CustomerMessages() {
           </button>
         </ui-save-bar>
 
-        {/* L'introduzione non è una sezione, quindi non riceve la spaziatura che `s-page` dà
-            alle card: la distanza dal primo box va dichiarata qui. */}
-        <s-box paddingBlockEnd="base">
-          <s-paragraph>{t.messages.intro}</s-paragraph>
-        </s-box>
+        <s-section>
+          <s-stack direction="block" gap="base">
+            <CustomerMessagesPreview
+              activeLocale={activeLocale}
+              context={t.messages.previewContext}
+              errorHeading={t.messages.previewErrorHeading}
+              heading={t.messages.previewHeading}
+              languageLabel={t.messages.languageSelector}
+              languages={{ it: t.messages.italian, en: t.messages.english }}
+              message={draft[activeLocale][selectedKey]}
+              onLocaleChange={setActiveLocale}
+              selectedHeading={t.messages.previewSelected}
+              selectedLabel={t.messages[selectedKey]}
+            />
 
-        {/* D-069 prevedeva due tab, ma Polaris non ha un componente tab e costruirlo a mano
-              significherebbe reimplementarne l'accessibilità (§8.1). Le due lingue restano quindi
-              entrambe visibili, il che soddisfa anche §8.9: nessun errore può nascondersi dietro
-              una scheda chiusa. */}
-        {(["it", "en"] as const).map((locale) => (
-          <s-section
-            key={locale}
-            heading={locale === "it" ? t.messages.italian : t.messages.english}
-          >
-            <s-stack direction="block" gap="base">
-              {MESSAGE_KEYS.map((key) => {
-                const value = draft[locale][key];
-                const problem =
-                  result && !result.ok && "problem" in result ? result.problem : undefined;
-                // §8.7: il contatore non è punitivo prima del limite. Il campo vuoto viene
-                // segnalato solo dopo un salvataggio rifiutato, non mentre si cancella per
-                // riscrivere.
-                const invalid =
-                  value.length > MESSAGE_MAX_LENGTH
-                    ? t.messages.tooLong
-                    : problem?.locale === locale && problem.key === key
-                      ? t.messages.empty
-                      : undefined;
+            {MESSAGE_KEYS.map((key) => {
+              const value = draft[activeLocale][key];
+              const problem =
+                result && !result.ok && "problem" in result ? result.problem : undefined;
+              // Il contatore compare mentre si lavora sul campo o quando il limite si avvicina.
+              // Il campo vuoto viene segnalato solo dopo un salvataggio rifiutato, non mentre
+              // il merchant cancella il testo per riscriverlo.
+              const invalid =
+                value.length > MESSAGE_MAX_LENGTH
+                  ? t.messages.tooLong
+                  : problem?.locale === activeLocale && problem.key === key
+                    ? t.messages.empty
+                    : undefined;
+              const focused = focusedMessage?.locale === activeLocale && focusedMessage.key === key;
 
-                return (
-                  <s-text-area
-                    key={`${key}-${mounted[locale]}`}
-                    label={t.messages[key]}
-                    name={`${locale}.${key}`}
-                    rows={rowsFor(value)}
-                    defaultValue={value}
-                    details={t.messages.counter(value.length)}
-                    error={invalid}
-                  />
-                );
-              })}
-              <s-button commandFor={`restore-${locale}`} command="--show">
-                {t.messages.reset}
-              </s-button>
-            </s-stack>
-          </s-section>
-        ))}
+              return (
+                <s-text-area
+                  key={`${activeLocale}-${key}-${mounted[activeLocale]}`}
+                  label={t.messages[key]}
+                  name={`${activeLocale}.${key}`}
+                  rows={rowsFor(value)}
+                  defaultValue={value}
+                  details={
+                    shouldShowMessageCounter(value.length, focused)
+                      ? t.messages.counter(value.length)
+                      : undefined
+                  }
+                  error={invalid}
+                  onFocus={() => {
+                    setSelectedKey(key);
+                    setFocusedMessage({ locale: activeLocale, key });
+                  }}
+                  onBlur={() => setFocusedMessage(undefined)}
+                />
+              );
+            })}
+            <s-button commandFor={`restore-${activeLocale}`} command="--show">
+              {t.messages.reset}
+            </s-button>
+          </s-stack>
+        </s-section>
 
-        {/* §15.5 chiede un esempio testuale, non un mockup. Ripetere qui le stesse frasi che
-            stanno nei campi a sinistra non aggiungeva nulla: questo riquadro dice invece quali
-            messaggi il cliente può davvero incontrare con le regole attive, che da questa pagina
-            non si potrebbe sapere. */}
+        {/* L'anteprima sopra mostra il testo selezionato; questo riquadro aggiunge invece
+            l'informazione che manca all'editor: quali messaggi sono pertinenti alle regole
+            correnti e possono quindi comparire quando il controllo è attivo. */}
         <s-section slot="aside" heading={t.messages.appearHeading}>
           <s-stack direction="block" gap="small-100">
             <s-paragraph>{t.messages.appearIntro}</s-paragraph>

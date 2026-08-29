@@ -1,4 +1,4 @@
-import { expect, test, vi } from "vitest";
+import { beforeEach, expect, test, vi } from "vitest";
 import { createAppContext } from "../app/context.server";
 
 const mocks = vi.hoisted(() => ({
@@ -32,6 +32,8 @@ vi.mock("../app/validation.server", async (importOriginal) => ({
   reconcile: mocks.reconcile,
   withValidationLock: mocks.withValidationLock,
 }));
+
+beforeEach(() => vi.clearAllMocks());
 
 test("la riparazione ripete la riconciliazione autorevole", async () => {
   const admin = {};
@@ -80,6 +82,62 @@ test("il check-in viene chiuso senza modificare onboarding o stato Shopify", asy
   expect(mocks.dismissMerchantCheckIn).toHaveBeenCalledWith(db, "checkin.example.myshopify.com");
   expect(mocks.reconcile).not.toHaveBeenCalled();
   expect(mocks.recordEvent).not.toHaveBeenCalled();
+});
+
+test("l’esito del prompt recensione conserva soltanto il codice allowlistato", async () => {
+  mocks.recordEvent.mockClear();
+  const db = {} as D1Database;
+  mocks.authenticate.mockResolvedValue({
+    admin: {},
+    session: { shop: "review.example.myshopify.com" },
+  });
+
+  const { action } = await import("../app/routes/app._index");
+  const result = await action({
+    request: new Request("https://example.test/app", {
+      method: "POST",
+      body: new URLSearchParams({
+        intent: "review_prompt_result",
+        code: "cooldown-period",
+        message: "testo che non deve essere registrato",
+      }),
+    }),
+    context: createAppContext(db),
+    params: {},
+  } as never);
+
+  expect(result).toEqual({ ok: true });
+  expect(mocks.recordEvent).toHaveBeenCalledWith(db, {
+    shopDomain: "review.example.myshopify.com",
+    name: "review_prompt_result",
+    class: "support",
+    metadata: { reason: "cooldown-period" },
+  });
+  expect(JSON.stringify(mocks.recordEvent.mock.calls)).not.toContain("testo che non deve");
+});
+
+test("un codice recensione futuro viene ridotto a unknown", async () => {
+  mocks.recordEvent.mockClear();
+  const db = {} as D1Database;
+  mocks.authenticate.mockResolvedValue({
+    admin: {},
+    session: { shop: "review-unknown.example.myshopify.com" },
+  });
+
+  const { action } = await import("../app/routes/app._index");
+  await action({
+    request: new Request("https://example.test/app", {
+      method: "POST",
+      body: new URLSearchParams({ intent: "review_prompt_result", code: "future-code" }),
+    }),
+    context: createAppContext(db),
+    params: {},
+  } as never);
+
+  expect(mocks.recordEvent).toHaveBeenCalledWith(
+    db,
+    expect.objectContaining({ metadata: { reason: "unknown" } }),
+  );
 });
 
 test("la cancellazione non compete con un acquisto una tantum pendente", async () => {

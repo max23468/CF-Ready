@@ -291,6 +291,36 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /## Ricevuta deploy Pages Production/);
 });
 
+test("il link assistenza rispetta il manifest corrente delle Admin Link extension", () => {
+  const manifest = readFileSync(
+    new URL("../extensions/support-link/shopify.extension.toml", import.meta.url),
+    "utf8",
+  );
+  const english = JSON.parse(
+    readFileSync(
+      new URL("../extensions/support-link/locales/en.default.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  const italian = JSON.parse(
+    readFileSync(new URL("../extensions/support-link/locales/it.json", import.meta.url), "utf8"),
+  );
+
+  assert.match(manifest, /^name = "t:name"$/m);
+  assert.match(manifest, /^type = "admin_link"$/m);
+  assert.match(manifest, /^target = "admin\.app\.support\.link"$/m);
+  assert.match(manifest, /^url = "app:\/\/app\/guide"$/m);
+  const routes = readFileSync(new URL("../app/routes.ts", import.meta.url), "utf8");
+  assert.match(routes, /route\("app"[\s\S]*route\("guide", "routes\/app\.guide\.tsx"\)/);
+  // Il template support-link corrente espone il testo tramite `extensions.name`: né la radice
+  // né il target accettano i campi delle UI extension. La CLI bloccherebbe altrimenti anche i
+  // comandi della Function prima di poter verificare o distribuire lo schema.
+  assert.doesNotMatch(manifest, /^api_version\s*=/m);
+  assert.doesNotMatch(manifest, /^text\s*=/m);
+  assert.deepEqual(english, { name: "Get support" });
+  assert.deepEqual(italian, { name: "Richiedi assistenza" });
+});
+
 test("il rollback Production richiede uno snapshot Shopify e verifica il ripristino", () => {
   const workflow = readFileSync(
     new URL("../.github/workflows/deploy-production.yml", import.meta.url),

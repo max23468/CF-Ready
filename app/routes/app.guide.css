@@ -1,0 +1,21 @@
+.guide-faq__entries {
+  display: grid;
+}
+
+.guide-faq__entry {
+  border-block-start: 1px solid #e1e3e5;
+  padding-block: 12px;
+}
+
+.guide-faq__entry:first-child {
+  border-block-start: 0;
+  padding-block-start: 4px;
+}
+
+.guide-faq__entry:last-child {
+  padding-block-end: 4px;
+}
+
+.guide-faq__entry summary {
+  cursor: pointer;
+}

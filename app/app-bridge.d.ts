@@ -36,7 +36,23 @@ declare global {
         callback: ((report: ShopifyWebVitalsReport) => void | Promise<void>) | null,
       ): Promise<void>;
     };
-    reviews: { request(): Promise<{ success: boolean; code: string; message: string }> };
+    reviews: {
+      request(): Promise<{
+        success: boolean;
+        code:
+          | "success"
+          | "mobile-app"
+          | "already-reviewed"
+          | "annual-limit-reached"
+          | "cooldown-period"
+          | "merchant-ineligible"
+          | "recently-installed"
+          | "already-open"
+          | "open-in-progress"
+          | "cancelled";
+        message: string;
+      }>;
+    };
     saveBar: {
       show(id: string): Promise<void>;
       hide(id: string): Promise<void>;
