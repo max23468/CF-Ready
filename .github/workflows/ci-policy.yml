@@ -1,0 +1,32 @@
+name: Attesta policy CI
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+  statuses: write
+
+concurrency:
+  group: ci-policy-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  attest:
+    name: Pubblica attestazione attendibile
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # pull_request_target usa il branch predefinito attendibile. Non fare checkout,
+      # fetch, installazioni o esecuzioni dell'HEAD della PR in questo workflow.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26.7.0
+      - env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/ci-policy-check.mjs

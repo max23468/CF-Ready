@@ -63,8 +63,8 @@ jobs:
             test "$(jq -r '.rules[] | select(.type == "required_status_checks") | .parameters.strict_required_status_checks_policy' <<< "$ruleset")" = "$strict"
             test "$(jq -r '[.rules[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | sort | join(",")' <<< "$ruleset")" = "$expected_checks"
           }
-          verify_ruleset develop false dependency-review,e2e,react-doctor,verify
-          verify_ruleset main true dependency-review,e2e,promotion-guard,react-doctor,verify
+          verify_ruleset develop false ci-policy,dependency-review,e2e,react-doctor,verify
+          verify_ruleset main true ci-policy,dependency-review,e2e,promotion-guard,react-doctor,verify
           workflows="$(gh workflow list --all --json path,state \
             --jq '.[] | select(.state == "active" and (.path | startswith(".github/workflows/")) and .path != ".github/workflows/security-maintenance.yml") | .path')"
           test -n "$workflows"

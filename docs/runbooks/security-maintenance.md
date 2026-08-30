@@ -15,7 +15,22 @@ provider senza introdurre una seconda corsia di deploy.
 
 Il workflow trimestrale è in sola lettura. Non applica migrazioni, non pubblica
 versioni e non accede a Production. L'esecuzione manuale lancia entrambi i job.
-I required checks vivono anche nei ruleset pubblici. Gli alert usano il secret
+I required checks vivono anche nei ruleset pubblici. `ci-policy` è pubblicato
+da `pull_request_target` sullo SHA candidato, ma esegue soltanto il workflow e
+lo script del branch predefinito attendibile: non fa checkout, fetch,
+installazioni o esecuzioni dell'HEAD della PR. Il control plane comprende tutti
+i workflow, `scripts/**`, manifest e lockfile npm, configurazioni dei runner e
+setup test. Rinomine e cancellazioni controllano anche il percorso precedente.
+Le modifiche a questa superficie passano soltanto se il proprietario applica
+l'etichetta `ci-policy-approved`: il relativo evento pubblica lo stato sullo SHA
+candidato esatto e ogni commit successivo lo invalida. Dependabot resta ammesso
+soltanto quando mittente, ID e tipo coincidono con il bot autorevole letto da
+GitHub. In questo modo una PR non può modificare i propri selettori, comandi o
+gate e poi dichiararli verdi. Il bootstrap della prima attivazione
+richiede la verifica manuale dell'esatto SHA prima del merge; dopo il merge
+`ci-policy` deve essere required nei ruleset di `develop` e `main`.
+
+Gli alert usano il secret
 `SECURITY_AUDIT_TOKEN` dell'environment `Security Maintenance`, ammesso soltanto
 su `develop`; il job dichiara `deployment: false`, quindi non crea notifiche o
 ricevute di deploy. Il token è un PAT fine-grained senza scadenza, limitato a
@@ -72,6 +87,13 @@ repository. Non usare `--force` o `--legacy-peer-deps`.
 3. correggere tramite PR ordinaria verso `develop` con test e audit completi;
 4. ruotare subito le credenziali soltanto se risultano compromesse;
 5. pubblicare Development e ripetere il workflow manuale.
+
+Se `ci-policy` fallisce su una modifica intenzionale al control plane, il
+proprietario deve ispezionare l'intero diff, rimuovere l'eventuale etichetta
+stale e applicare personalmente `ci-policy-approved` all'HEAD corrente. Non si
+riavvia né si forza il check generato da un evento di terzi. La rimozione del
+required check richiede una modifica esplicita del ruleset e va trattata come
+incidente di governance.
 
 I controlli locali equivalenti sono `npm run audit:security`,
 `npm audit signatures`, `npm run docs:check` e `npm run readback:dev`. Il

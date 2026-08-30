@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.1.2 — 31 agosto 2026
+
+- i webhook limitano il raw body a 2 MiB prima della verifica HMAC, contano i
+  byte effettivi anche senza un `Content-Length` attendibile e interrompono lo
+  stream oltre soglia senza alterare il contenuto firmato;
+- un'attestazione attendibile separa il control plane CI dal codice candidato,
+  lega le modifiche a workflow, comandi e configurazioni dei gate allo SHA
+  approvato dal proprietario e mantiene l'eccezione verificata per Dependabot;
+- regressioni mirate coprono lunghezze dichiarate false, stream chunked, UTF-8
+  diviso tra chunk e tentativi di rendere no-op i required check.
+
 ## 1.1.1 — 29 agosto 2026
 
 - il runtime delle notifiche owner separa modello, presentazione e delivery,

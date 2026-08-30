@@ -2888,8 +2888,12 @@ Configurazione minima GitHub:
 Il repository pubblico su GitHub Free usa branch protection su `develop` e
 `main`, con `develop` come branch predefinito, conversazioni
 risolte, protezioni applicate agli admin e `verify`, `react-doctor`,
-`dependency-review` ed `e2e` come required checks; su `main` è required anche
-`promotion-guard`. La base aggiornata prima del merge resta richiesta solo su
+`dependency-review`, `e2e` e `ci-policy` come required checks; su `main` è
+required anche `promotion-guard`. `ci-policy` viene attestato sullo SHA candidato
+da un workflow `pull_request_target` caricato dal branch predefinito attendibile,
+senza eseguire codice della PR, e riserva al proprietario le modifiche a workflow
+e alla superficie che seleziona, configura o riusa i gate tramite un'attestazione
+esplicita legata allo SHA. La base aggiornata prima del merge resta richiesta solo su
 `main`: su `develop` obbliga ogni PR già aperta a risincronizzare e rieseguire i
 gate dopo ogni merge, mentre `CI` sul push a `develop` intercetta comunque una
 rottura di integrazione entro il minuto successivo. Restano applicabili:
