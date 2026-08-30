@@ -450,6 +450,10 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
 
 test("la CI applica corsie proporzionate con required check stabili", () => {
   const ci = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
+  const policy = readFileSync(
+    new URL("../.github/workflows/ci-policy.yml", import.meta.url),
+    "utf8",
+  );
   const doctor = readFileSync(
     new URL("../.github/workflows/react-doctor.yml", import.meta.url),
     "utf8",
@@ -463,6 +467,12 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   assert.match(ci, /needs\.lane\.outputs\.lane == 'full'[\s\S]*npm run check/);
   assert.match(ci, /lane == 'promotion'[\s\S]*node scripts\/github-gates\.mjs/);
   assert.match(doctor, /steps\.lane\.outputs\.react_doctor == 'true'/);
+  assert.match(policy, /pull_request_target:/);
+  assert.match(policy, /labeled, unlabeled/);
+  assert.match(policy, /statuses: write/);
+  assert.match(policy, /node scripts\/ci-policy-check\.mjs/);
+  assert.match(policy, /persist-credentials: false/);
+  assert.doesNotMatch(policy, /pull_request\.head|gh pr checkout|git fetch|npm (?:ci|install)/);
   assert.match(packageJson.scripts["check:docs"], /docs:check/);
   assert.match(packageJson.scripts["check:standard"], /typecheck/);
 });
@@ -582,7 +592,7 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.match(workflow, /required_status_checks/);
   assert.match(workflow, /rulesets="\$\(gh api/);
   assert.match(workflow, /ruleset="\$\(gh api/);
-  assert.match(workflow, /dependency-review,e2e,promotion-guard,react-doctor,verify/);
+  assert.match(workflow, /ci-policy,dependency-review,e2e,promotion-guard,react-doctor,verify/);
   assert.match(workflow, /gh workflow list --all/);
   assert.match(workflow, /workflows="\$\(gh workflow list/);
   assert.match(workflow, /test -n "\$workflows"/);
