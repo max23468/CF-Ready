@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.1.4 — 31 agosto 2026
+
+- le pagine, gli stati condizionali, i passi dell’onboarding e le anteprime
+  cambiano con transizioni brevi e progressive, rispettando la preferenza di
+  movimento ridotto e mantenendo un fallback nei browser senza View Transition;
+- Home, Messaggi e riepilogo onboarding allineano etichette e stato per rendere
+  immediata la lettura, mentre le FAQ espongono indicatore, focus visibile e
+  apertura fluida;
+- il simulatore comunica il risultato con una regione live e le textarea dei
+  messaggi restano non controllate senza divergenze durante l’idratazione.
+
 ## 1.1.3 — 31 agosto 2026
 
 - Regole e Onboarding leggono contesto, Validation e billing Shopify con un

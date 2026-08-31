@@ -100,9 +100,17 @@ export function CheckoutSimulator({
                   <s-text color="subdued">{copy.privatePreview}</s-text>
                 </s-stack>
               </s-grid>
-              <s-badge tone={outcomeTone[outcome]} icon={outcomeIcon[outcome]}>
-                {copy.outcomes[outcome]}
-              </s-badge>
+              <span
+                aria-atomic="true"
+                aria-live="polite"
+                className="checkout-simulator__outcome cf-motion-swap"
+                key={outcome}
+                role="status"
+              >
+                <s-badge tone={outcomeTone[outcome]} icon={outcomeIcon[outcome]}>
+                  {copy.outcomes[outcome]}
+                </s-badge>
+              </span>
             </s-grid>
           </s-box>
 

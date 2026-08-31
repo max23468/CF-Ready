@@ -32,6 +32,23 @@ test("il titolo del simulatore non spezza checkout quando ha spazio", () => {
   assert.doesNotMatch(simulator, /<s-badge[^>]*size="large"/);
 });
 
+test("il risultato del simulatore comunica e anima soltanto il cambio di stato", () => {
+  const simulator = readFileSync(
+    new URL("../app/features/rules/CheckoutSimulator.tsx", import.meta.url),
+    "utf8",
+  );
+  const styles = readFileSync(
+    new URL("../app/features/rules/CheckoutSimulator.css", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(simulator, /aria-live="polite"/);
+  assert.match(simulator, /className="checkout-simulator__outcome cf-motion-swap"/);
+  assert.match(simulator, /key=\{outcome\}/);
+  assert.match(simulator, /role="status"/);
+  assert.match(styles, /\.checkout-simulator__outcome \{/);
+});
+
 test("il simulatore propone scenari pertinenti alle regole configurate", () => {
   const simulator = readFileSync(
     new URL("../app/features/rules/CheckoutSimulator.tsx", import.meta.url),
@@ -63,6 +80,29 @@ test("le FAQ espanse restano separate visivamente", () => {
   assert.match(styles, /\.guide-faq__entry \{[^}]*border-block-start:[^}]*padding-block:/s);
 });
 
+test("le FAQ espongono focus, indicatore e apertura progressiva accessibile", () => {
+  const styles = readFileSync(new URL("../app/routes/app.guide.css", import.meta.url), "utf8");
+
+  assert.match(styles, /summary:focus-visible/);
+  assert.match(styles, /summary::after/);
+  assert.match(styles, /::details-content/);
+  assert.match(styles, /prefers-reduced-motion: no-preference/);
+});
+
+test("le transizioni di pagina sono rapide e rispettano il movimento ridotto", () => {
+  const app = readFileSync(new URL("../app/routes/app.tsx", import.meta.url), "utf8");
+  const styles = readFileSync(new URL("../app/ui-motion.css", import.meta.url), "utf8");
+
+  assert.match(app, /navigate\(target, \{ viewTransition: true \}\)/);
+  assert.match(app, /className="app-route-surface" key=\{location\.pathname\}/);
+  assert.match(styles, /--cf-motion-duration-fast: 120ms/);
+  assert.match(styles, /--cf-motion-duration-base: 180ms/);
+  assert.match(styles, /prefers-reduced-motion: no-preference/);
+  assert.match(styles, /::view-transition-old\(root\)/);
+  assert.match(styles, /::view-transition-new\(root\)/);
+  assert.match(styles, /\.app-route-surface,/);
+});
+
 test("la Home integra il perimetro Italia nella configurazione corrente", () => {
   const route = readFileSync(new URL("../app/features/home/HomePage.tsx", import.meta.url), "utf8");
 
@@ -89,4 +129,17 @@ test("Messaggi usa il selettore lingua Polaris e un'anteprima aggiornata", () =>
   assert.match(preview, /\{selectedHeading\}[\s\S]*\{selectedLabel\}/);
   assert.match(route, /message=\{draft\[activeLocale\]\[selectedKey\]\}/);
   assert.match(route, /setActiveLocale\(result\.problem\.locale\)/);
+});
+
+test("le textarea dei messaggi restano non controllate senza divergere durante l'idratazione", () => {
+  const route = readFileSync(new URL("../app/routes/app.messages.tsx", import.meta.url), "utf8");
+  const field = readFileSync(
+    new URL("../app/features/messages/UncontrolledMessageTextArea.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(route, /<UncontrolledMessageTextArea/);
+  assert.doesNotMatch(route, /defaultValue=\{value\}/);
+  assert.match(field, /field\.value = initialValueRef\.current/);
+  assert.doesNotMatch(field, /value=\{/);
 });
