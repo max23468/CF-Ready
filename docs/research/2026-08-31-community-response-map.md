@@ -7,42 +7,50 @@ specialistici e blog pubblici; LinkedIn escluso.
 
 **Account attribuiti a Matteo:** `max23468` (attuale) e `max2348` (precedente).
 
-**Stato operativo:** dossier decisionale; nessun messaggio è stato inviato.
+**Stato operativo:** dossier decisionale. Il post 12 di `max2348` e il
+successivo post 13 di `max23468` sul topic 554855 risultano temporaneamente
+nascosti; Matteo ha ricevuto la notifica di silenziamento del nuovo account.
+Nessun ulteriore invio Shopify Community è autorizzato finché la moderazione
+non ripristina esplicitamente l'account.
 
 ## Esito in breve
 
 La ricerca ha censito 52 discussioni Shopify potenzialmente intercettate dalle
-query, oltre a 15 risultati esterni pertinenti. La coda realmente utilizzabile è
-molto più stretta:
+query e 16 risultati esterni: **68 risultati complessivi**. Dopo la decisione
+sui 31 thread inizialmente sconsigliati, il quadro è:
 
-- 3 elementi sono già attribuiti a Matteo: un topic proprio e due risposte;
-- una delle due risposte è nascosta e va riproposta con l'account corretto;
-- 19 ulteriori risultati hanno una bozza utilizzabile, quasi sempre con
-  prudenza perché vecchi o riattivati da messaggi promozionali;
-- tutti gli altri risultati sono fuori perimetro, troppo vecchi, già risolti,
-  non rispondibili pubblicamente o esporrebbero CF Ready come risposta
-  promozionale a una domanda fiscale o legale.
+- 31 thread Shopify sono in archivio definitivo e fuori dalla coda operativa;
+- restano censiti 37 risultati: 21 Shopify e 16 esterni;
+- dei 21 Shopify rimasti, 3 sono già attribuiti a Matteo e 18 hanno una bozza;
+- il topic proprio e la risposta visibile di `max23468` sono già gestiti e
+  restano in standby fino a una nuova risposta autentica;
+- la risposta di `max2348` e il nuovo tentativo di `max23468` sul topic 554855
+  sono entrambi nascosti: non effettuare altri tentativi;
+- fra i 16 risultati esterni, un articolo IFG ha una bozza da valutare e 15 sono
+  fuori perimetro, non rispondibili pubblicamente o inopportuni;
+- la shortlist sotto contiene 11 elementi: 2 presenze già gestite in standby,
+  il topic 554855 chiuso a ulteriori tentativi, 7 opportunità Shopify Community
+  sospese dal silenziamento e un commento esterno ancora da decidere.
 
-La scelta più prudente è non fare una raffica di risposte. Se si procede, il
-primo intervento è la nuova risposta al topic 554855 con `max23468`; poi conviene
-osservare la moderazione prima di passare al successivo.
+La scelta operativa è fermare ogni nuovo topic o risposta Shopify Community. Un
+eventuale chiarimento con la moderazione è un'azione separata e non autorizza
+altri account o nuovi tentativi di pubblicazione.
 
 ### Prime opportunità da valutare
 
 | Ordine | Ultima attività | Titolo | Sito | Stato | Priorità | Rischio spam/moderazione | Verdetto |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 2026-08-31 | [Codice Fiscale obbligatorio e PEC nel checkout Shopify con CF Ready](https://community.shopify.com/t/675015) | Shopify Community | Topic proprio | Bassa | Basso | Risposta facoltativa al commento ricevuto |
-| 2 | 2026-08-25 | [Problema fatturazione italiana. Mancanza CF e Partita IVA obbligatoria](https://community.shopify.com/t/554855) | Shopify Community | **Già risposto con `max2348`; post nascosto** | Alta | Alto | **Da rimandare con `max23468`**, usando la nuova bozza senza link |
-| 3 | 2026-08-25 | [Codice fiscale campo obbligatorio](https://community.shopify.com/t/116602) | Shopify Community | **Già risposto con `max23468`** | — | Medio | Non duplicare |
+| 1 | 2026-08-31 | [Codice Fiscale obbligatorio e PEC nel checkout Shopify con CF Ready](https://community.shopify.com/t/675015) | Shopify Community | Topic proprio già gestito | — | Basso | Standby; intervenire soltanto dopo una nuova risposta autentica |
+| 2 | 2026-08-31 | [Problema fatturazione italiana. Mancanza CF e Partita IVA obbligatoria](https://community.shopify.com/t/554855) | Shopify Community | **Post 12 di `max2348` e post 13 di `max23468` entrambi nascosti** | — | Alto | **Non ritentare; account `max23468` silenziato** |
+| 3 | 2026-08-25 | [Codice fiscale campo obbligatorio](https://community.shopify.com/t/116602) | Shopify Community | **Già risposto con `max23468`** | — | Medio | Standby; non duplicare e attendere nuove risposte |
 | 4 | 2026-08-13 | [Fatturazione Elettronica Shopify: Flussi e Campi Fiscali](https://ifgecommerce.com/blogs/articoli-shopify/fatturazione-elettronica-shopify-campi-fiscali-sdi) | IFG eCommerce | Commenti moderati aperti | Alta | Alto | Valutare un solo commento tecnico, senza link all'app |
 | 5 | 2026-06-23 | [Fatturazione elettronica come fate](https://community.shopify.com/t/296817) | Shopify Community | Aperto; revival promozionale | Media | Alto | Valutare solo se si accetta il rischio di sembrare un'altra app in coda |
-| 6 | 2026-04-02 | [Expose localizedFields on webhooks and downstream payloads](https://community.shopify.dev/t/expose-localizedfields-localized-fields-on-webhooks-and-downstream-integration-payloads/32780) | Shopify Developer Community | Feature request già presa in carico | Bassa | Basso | Non aggiungere rumore senza dati tecnici nuovi |
-| 7 | 2025-11-24 | [Partita IVA, SDI e codice fiscale al checkout 2025](https://community.shopify.com/t/385865) | Shopify Community | Aperto; ultimo post promozionale | Media | Alto | Valutare una risposta che delimiti esplicitamente lo scope |
-| 8 | 2025-09-16 | [Aggiungere al checkout Campo obbligatorio P.Iva/C.F](https://community.shopify.com/t/103834) | Shopify Community | Aperto; thread molto affollato | Media | Alto | Valutare, ma non come primo intervento |
-| 9 | 2025-09-05 | [Get Italian Codice Fiscale and PEC field values through API](https://community.shopify.com/t/268392) | Shopify Community | Aperto; risposta tecnica superata | Alta | Basso | Rispondere con l'API corrente, senza promuovere l'app |
-| 10 | 2025-06-10 | [Rinominare Codice Fiscale in Informazioni aggiuntive o renderlo obbligatorio](https://community.shopify.com/t/418587) | Shopify Community | Aperto e senza risposte | Alta | Medio | Miglior opportunità merchant, ma il topic ha più di un anno |
-| 11 | 2025-04-24 | [Codice Fiscale per regimi forfettari](https://community.shopify.com/t/410701) | Shopify Community | Aperto e senza risposte | Alta | Medio | Buon fit; evitare conclusioni fiscali |
-| 12 | 2025-03-25 | [P.IVA / Codice Fiscale al checkout](https://community.shopify.com/t/166243) | Shopify Community | Aperto | Media | Medio-alto | Valutare per la sola domanda sul CF |
+| 6 | 2025-11-24 | [Partita IVA, SDI e codice fiscale al checkout 2025](https://community.shopify.com/t/385865) | Shopify Community | Aperto; ultimo post promozionale | Media | Alto | Valutare una risposta che delimiti esplicitamente lo scope |
+| 7 | 2025-09-16 | [Aggiungere al checkout Campo obbligatorio P.Iva/C.F](https://community.shopify.com/t/103834) | Shopify Community | Aperto; thread molto affollato | Media | Alto | Valutare, ma non come primo intervento |
+| 8 | 2025-09-05 | [Get Italian Codice Fiscale and PEC field values through API](https://community.shopify.com/t/268392) | Shopify Community | Aperto; risposta tecnica superata | Alta | Basso | Rispondere con l'API corrente, senza promuovere l'app |
+| 9 | 2025-06-10 | [Rinominare Codice Fiscale in Informazioni aggiuntive o renderlo obbligatorio](https://community.shopify.com/t/418587) | Shopify Community | Aperto e senza risposte | Alta | Medio | Miglior opportunità merchant, ma il topic ha più di un anno |
+| 10 | 2025-04-24 | [Codice Fiscale per regimi forfettari](https://community.shopify.com/t/410701) | Shopify Community | Aperto e senza risposte | Alta | Medio | Buon fit; evitare conclusioni fiscali |
+| 11 | 2025-03-25 | [P.IVA / Codice Fiscale al checkout](https://community.shopify.com/t/166243) | Shopify Community | Aperto | Media | Medio-alto | Valutare per la sola domanda sul CF |
 
 La data è l'ultima attività pubblica registrata, non sempre l'ultima risposta
 utile. In particolare, diversi topic del 23 giugno 2026 sono stati riattivati in
@@ -77,63 +85,51 @@ Riferimenti correnti usati per controllare le bozze:
 
 ## Presenza pubblica già attribuita
 
-### 1. Topic proprio — risposta facoltativa
+### 1. Topic proprio — già gestito, in standby
 
 - **Titolo:** [Codice Fiscale obbligatorio e PEC nel checkout Shopify con CF Ready](https://community.shopify.com/t/675015)
 - **Sito e lingua:** Shopify Community, italiano.
 - **Autore:** `max23468`.
 - **Pubblicato:** 2026-08-31.
 - **Ultima risposta:** 2026-08-31, di `Mustafa_Ali`.
-- **Stato:** topic proprio, visibile e aperto; 2 post.
+- **Stato:** topic proprio, visibile e aperto; 2 post; **già gestito e in
+  standby**.
 - **Valutazione:** la risposta ricevuta è un apprezzamento generico, non una
-  domanda. Rispondere è cortese ma non necessario.
+  domanda. Non aggiungere una risposta di cortesia; rivalutare soltanto davanti
+  a una nuova risposta autentica.
 - **Rischio:** basso.
 
-**Bozza facoltativa, in inglese:**
-
-> Thanks, Mustafa. That conflict is exactly what pushed me to use Shopify's
-> native Italian fields instead of repurposing Address 2. If you come across a
-> merchant with a specific edge case, I'm happy to compare notes here.
-
-### 2. Risposta del vecchio account nascosta — da rimandare
+### 2. Due risposte nascoste — non ritentare
 
 - **Titolo:** [Problema fatturazione italiana. Mancanza CF e Partita IVA obbligatoria](https://community.shopify.com/t/554855)
 - **Sito e lingua:** Shopify Community, italiano.
-- **Autore della risposta:** `max2348`.
+- **Autori delle risposte:** `max2348` e `max23468`, entrambi attribuiti a
+  Matteo.
 - **Topic pubblicato:** 2025-08-08.
-- **Ultima attività tecnica:** 2026-08-25.
+- **Primo tentativo:** 2026-08-25, post 12 di `max2348`.
+- **Secondo tentativo:** 2026-08-31, post 13 di `max23468`.
 - **Ultima risposta visibile:** 2025-11-24.
-- **Stato:** **già risposto il 2026-08-25; il post 12 è attualmente nascosto
-  perché segnalato dalla community**.
-- **Valutazione:** il bisogno sul CF dei privati è un fit molto forte, ma il
-  thread contiene già numerose proposte di app. Matteo ha confermato che
-  `max2348` era il suo vecchio account e ha deciso di riproporre l'intervento
-  con `max23468`.
-- **Priorità / rischio:** alta / alto.
-- **Verdetto:** **da rimandare con l'account corretto**, senza copiare il testo
-  nascosto, senza link e rispondendo direttamente al problema del merchant.
+- **Stato pubblico:** entrambi i post risultano `hidden: true`; il contenuto è
+  sostituito dal segnaposto della moderazione.
+- **Stato account:** Matteo riferisce di aver ricevuto la notifica automatica
+  che il nuovo account è stato silenziato e non può creare risposte o topic.
+- **Valutazione:** il bisogno resta pertinente, ma il secondo tentativo ha
+  confermato che un'altra risposta non è accettata dalla moderazione.
+- **Priorità / rischio:** nessuna azione / alto.
+- **Verdetto:** **non ritentare, non usare un altro account e non preparare una
+  nuova bozza**. Un eventuale messaggio ai moderatori è un percorso separato.
 
-**Nuova bozza:**
-
-> Ciao, per il problema specifico dei privati che arrivano all'ordine senza
-> Codice Fiscale oggi non è necessario spostare il dato nel carrello o rendere
-> obbligatoria la registrazione. Shopify espone già il campo fiscale nativo
-> italiano e una Cart and Checkout Validation può renderlo obbligatorio e
-> controllarne formalmente il formato. Sono Matteo, sviluppo CF Ready proprio
-> per questo caso, anche sui piani non-Plus. Preciso il limite: non raccoglie
-> Partita IVA o SDI e non emette fatture; gestisce soltanto Codice Fiscale e PEC
-> nei campi nativi. Per il problema dei CF mancanti dei clienti privati evita di
-> doverli ricontattare dopo l'ordine.
-
-### 3. Risposta già inviata e visibile
+### 3. Risposta già inviata e visibile — in standby
 
 - **Titolo:** [Codice fiscale campo obbligatorio](https://community.shopify.com/t/116602)
 - **Sito e lingua:** Shopify Community, italiano.
 - **Autore della risposta:** `max23468`.
 - **Topic pubblicato:** 2022-04-25.
 - **Risposta di Matteo:** 2026-08-25, post 28.
-- **Stato:** **già risposto**, visibile; il messaggio include il link App Store.
-- **Verdetto:** non aggiungere una seconda risposta.
+- **Stato:** **già risposto**, visibile; il messaggio include il link App Store;
+  thread in standby.
+- **Verdetto:** non aggiungere una seconda risposta; rivalutare soltanto davanti
+  a una nuova risposta autentica.
 
 ## Shopify Community — opportunità merchant con bozza
 
@@ -492,28 +488,34 @@ Le voci sono ordinate per ultima attività del topic.
 > server-side and copies only the needed value to a destination supported by the
 > template, after checking privacy and orders-scope requirements.
 
-## Shopify Community — censiti ma da non contattare
+## Decisione sui 31 thread inizialmente sconsigliati
 
-Questi risultati completano il perimetro delle query, ma non hanno una bozza
-perché una risposta di CF Ready sarebbe fuori scope, ridondante o
-verosimilmente promozionale. Sono ordinati per ultima attività.
+Decisione del 31 agosto 2026, aggiornata il 1 settembre 2026:
 
-| Ultima attività | Titolo e URL | Motivo per non rispondere |
+- **31 in archivio definitivo:** restano nel dossier come prova della ricerca,
+  ma escono dalla coda operativa; niente risposta e niente monitoraggio.
+
+“Archivio definitivo” riguarda soltanto la gestione interna di questa mappa:
+non modifica, chiude o archivia i thread sulle piattaforme esterne.
+
+### Archivio definitivo — 29 thread Shopify Community
+
+| Ultima attività | Titolo e URL | Motivo dell'archiviazione |
 | --- | --- | --- |
+| 2026-06-23 | [Fatturazione elettronica](https://community.shopify.com/t/301166) | Domanda prevalentemente fiscale e sull'emissione delle fatture; ultimo intervento promozionale. |
+| 2026-06-23 | [Form per richiesta dati fatturazione](https://community.shopify.com/t/137158) | Flusso B2B completo, affollato da promozioni; l'ultima domanda autentica sul CF risale al 2025. |
+| 2026-06-23 | [Fattura](https://community.shopify.com/t/158536) | Topic del 2022 riattivato soltanto da una promozione, senza una nuova domanda del merchant. |
 | 2026-06-23 | [Scontrini e fatturazione](https://community.shopify.com/t/304458) | Fiscalità e corrispettivi; nessun problema CF/PEC risolvibile dall'app. |
-| 2026-06-23 | [Fatturazione elettronica](https://community.shopify.com/t/301166) | Domanda legale sull'obbligo del CF; ultimo post promozionale. |
-| 2026-06-23 | [Form per richiesta dati fatturazione](https://community.shopify.com/t/137158) | Flusso B2B completo P.IVA/PEC/SDI; revival promozionale. |
 | 2026-06-23 | [Aggiungere flag per la richiesta della fattura](https://community.shopify.com/t/253891) | Richiede un selettore condizionale fattura e campi B2B che CF Ready non offre. |
 | 2026-06-23 | [richiesta fattura](https://community.shopify.com/t/371417) | Richiede checkbox e form completo di fatturazione. |
 | 2026-06-23 | [Emissione fattura per acquisti su Shopify](https://community.shopify.com/t/345018) | Emissione della fattura, non raccolta/validazione CF e PEC. |
-| 2026-06-23 | [Fattura](https://community.shopify.com/t/158536) | Thread del 2022 riattivato da una promozione; valore aggiunto insufficiente. |
 | 2026-06-23 | [Emettere fattura su richiesta dell'acquirente](https://community.shopify.com/t/212958) | CF Ready non copre il flusso condizionale né invia la fattura. |
 | 2025-11-24 | [Fatture in Cloud e invio automatico](https://community.shopify.com/t/375221) | Automazione contabile e documentale fuori scope. |
 | 2025-11-24 | [Situazione campi aziendali P.IVA / SDI](https://community.shopify.com/t/336604) | Il bisogno centrale è B2B P.IVA/SDI. |
 | 2025-11-24 | [Emissione documenti fiscali](https://community.shopify.com/t/10346) | Topic del 2020 riattivato da un'app concorrente; fuori scope. |
 | 2025-08-27 | [Can I create a B2B ecommerce on my existing B2C Shopify?](https://community.shopify.com/t/319876) | Falso positivo: il CF compare solo in una risposta laterale. |
 | 2025-04-11 | [Partita IVA e SDI al checkout](https://community.shopify.com/t/205021) | Non chiede CF o PEC nativi. |
-| 2025-02-17 | [How to Extract Codice Fiscale and PEC Fields in Liquid](https://community.shopify.com/t/394967) | Manca una variabile Liquid documentata e verificata; non speculare. |
+| 2025-02-17 | [How to Extract Codice Fiscale and PEC Fields in Liquid](https://community.shopify.com/t/394967) | La stampa tramite Order Printer è fuori scope e una soluzione richiederebbe accesso e trattamento dei dati ordine che CF Ready evita. |
 | 2024-03-22 | [Immettere nome azienda, P.IVA e SDI durante il checkout](https://community.shopify.com/t/10653) | Solo dati B2B fuori scope. |
 | 2024-01-23 | [È possibile togliere i campi delle informazioni aggiuntive](https://community.shopify.com/t/45635) | Chiede di rimuovere CF/PEC, non di gestirli. |
 | 2024-01-23 | [Campi Checkout](https://community.shopify.com/t/255716) | Vuole rinominare CF/PEC in P.IVA/SDI; incompatibile col prodotto. |
@@ -521,20 +523,20 @@ verosimilmente promozionale. Sono ordinati per ultima attività.
 | 2023-07-25 | [Fatturare ai clienti del mio e-commerce](https://community.shopify.com/t/234686) | Richiesta generale P.IVA/CF/PEC/SDI e fatturazione; troppo ampia e vecchia. |
 | 2023-06-22 | [Togliere tasto PayPal checkout rapido](https://community.shopify.com/t/225923) | Falso positivo: problema di pagamento rapido, non di campi fiscali. |
 | 2023-03-30 | [How can I hide additional information on the checkout page?](https://community.shopify.com/t/203473) | Vuole nascondere i campi. |
-| 2022-08-23 | [Codice Fiscale / Partita IVA obbligatori in Italia](https://community.shopify.com/t/143630) | Premessa legale da verificare e topic molto vecchio. |
-| 2022-06-14 | [“Indirizzo 2” non obbligatorio per clienti non italiani](https://community.shopify.com/t/127710) | Il prodotto risolve il problema, ma il topic è troppo vecchio per riaprirlo senza apparire promozionali. |
+| 2022-08-23 | [Codice Fiscale / Partita IVA obbligatori in Italia](https://community.shopify.com/t/143630) | Fit solo parziale: mescola CF, P.IVA, PEC e una premessa legale da non convalidare. |
+| 2022-06-14 | [“Indirizzo 2” non obbligatorio per clienti non italiani](https://community.shopify.com/t/127710) | Fit alto ma topic inattivo dal 2022; riaprirlo oggi sembrerebbe outreach commerciale tardivo. |
 | 2022-05-27 | [Dati azienda per fattura](https://community.shopify.com/t/40329) | Flusso aziendale completo e API contabile, non solo CF/PEC. |
-| 2022-05-12 | [Codice Fiscale or P.IVA must be mandatory](https://community.shopify.com/t/120752) | Fit parziale ma topic senza attività da oltre quattro anni. |
+| 2022-05-12 | [Codice Fiscale or P.IVA must be mandatory](https://community.shopify.com/t/120752) | Topic inattivo dal 2022 e fit parziale perché include la P.IVA, fuori scope. |
 | 2022-05-05 | [Partita IVA modulo checkout](https://community.shopify.com/t/118482) | Partita IVA soltanto. |
 | 2021-12-02 | [Partita IVA obbligatoria per checkout](https://community.shopify.com/t/6683) | Partita IVA soltanto. |
-| 2021-11-30 | [Shopify Checkout mandatory field](https://community.shopify.com/t/81841) | Fit storico, ma senza attività dal 2021. |
-| 2021-11-01 | [Campi indesiderati PEC e Codice Fiscale](https://community.shopify.com/t/16520) | Il merchant vuole rimuoverli; thread molto vecchio. |
+| 2021-11-30 | [Shopify Checkout mandatory field](https://community.shopify.com/t/81841) | Fit alto ma nessuna attività dal 2021; non vale una riapertura commerciale tardiva. |
+| 2021-11-01 | [Campi indesiderati PEC e Codice Fiscale](https://community.shopify.com/t/16520) | Il merchant vuole rimuoverli; obiettivo opposto a CF Ready. |
 
-### Shopify Developer Community — censiti ma da non contattare
+### Archivio definitivo — 2 thread Shopify Developer Community
 
-| Ultima attività | Titolo e URL | Motivo |
+| Ultima attività | Titolo e URL | Motivo dell'archiviazione |
 | --- | --- | --- |
-| 2026-04-02 | [Expose localizedFields on webhooks and downstream integration payloads](https://community.shopify.dev/t/expose-localizedfields-localized-fields-on-webhooks-and-downstream-integration-payloads/32780) | Richiesta completa e già inoltrata internamente da Shopify; rispondere ha senso solo con dati nuovi su volumi, latenza o failure mode. |
+| 2026-04-02 | [Expose localizedFields on webhooks and downstream integration payloads](https://community.shopify.dev/t/expose-localizedfields-localized-fields-on-webhooks-and-downstream-integration-payloads/32780) | Feature request già presa in carico da Shopify; CF Ready non consuma webhook ordine e non ha evidenze operative nuove da aggiungere. |
 | 2024-11-06 | [Refining the “Additional Information” Section Text](https://community.shopify.dev/t/832) | Vuole trasformare CF e PEC in P.IVA e SDI; CF Ready non lo fa. |
 
 ## Blog e siti editoriali
