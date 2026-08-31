@@ -30,7 +30,7 @@ const SAVE_BAR = "checkout-rules-save-bar";
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticateAdmin(request, context);
   const db = context.get(databaseContext);
-  const state = await reconcile(admin, db, session.shop);
+  const state = await reconcile(admin, db, session.shop, { prefetchBilling: true });
   const validation = state.validation;
   const config = readConfig(validation?.metafield?.jsonValue);
   const duplicateError: "duplicate_validations" | "duplicate_validations_active" | null =

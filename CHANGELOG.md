@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.1.3 — 31 agosto 2026
+
+- Regole e Onboarding leggono contesto, Validation e billing Shopify con un
+  singolo snapshot, eliminando un round trip seriale dal percorso critico;
+- un benchmark riproducibile confronta le due strategie con la stessa latenza
+  Shopify controllata e misura un tempo medio inferiore di circa il 50%;
+- il benchmark entra nei controlli di formato e regressioni mirate impediscono
+  alle due route di tornare alla lettura Shopify sequenziale.
+
 ## 1.1.2 — 31 agosto 2026
 
 - i webhook limitano il raw body a 2 MiB prima della verifica HMAC, contano i
