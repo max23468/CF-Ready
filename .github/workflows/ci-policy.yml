@@ -29,4 +29,6 @@ jobs:
           node-version: 26.7.0
       - env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Un diniego previsto resta uno status ci-policy bloccante; soltanto un
+        # errore inatteso dello script deve rendere rossa la run di attestazione.
         run: node scripts/ci-policy-check.mjs

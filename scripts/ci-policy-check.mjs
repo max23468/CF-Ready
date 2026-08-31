@@ -142,7 +142,6 @@ async function main() {
       ? result.description
       : `${result.description} File: ${result.changedPolicyFiles.join(", ")}.`,
   );
-  if (result.state !== "success") process.exitCode = 1;
 }
 
 const isDirectExecution =
