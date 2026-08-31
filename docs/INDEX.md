@@ -51,6 +51,9 @@ corrente si legge da codice, configurazioni e `package.json`.
 - [Outreach Controlled Launch](runbooks/controlled-launch-outreach.md) — target,
   messaggi, feedback e stop condition per un'eventuale attività futura,
   opzionale e fuori dai gate M11.
+- [Mappa pubblica delle opportunità di risposta](research/2026-08-31-community-response-map.md)
+  — thread, blog e forum pertinenti, interventi già attribuiti e bozze
+  sottoposte a valutazione manuale.
 - [ADR 0001](adr/0001-stack.md) — stack applicativo e provider.
 - [ADR 0002](adr/0002-webhook-queue.md) — ACK webhook rapido con retry durevoli.
 - [Brand Foundation](brand/brand-foundation.md) — identità e tono.
