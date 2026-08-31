@@ -3,6 +3,7 @@ import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "
 
 import { APP_API_KEY } from "./env.server";
 import { resolveLocale } from "./i18n";
+import "./ui-motion.css";
 
 const APP_BRIDGE_URL = "https://cdn.shopify.com/shopifycloud/app-bridge.js";
 const POLARIS_URL = "https://cdn.shopify.com/shopifycloud/polaris.js";

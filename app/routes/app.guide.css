@@ -3,7 +3,7 @@
 }
 
 .guide-faq__entry {
-  border-block-start: 1px solid #e1e3e5;
+  border-block-start: 1px solid var(--p-color-border-secondary);
   padding-block: 12px;
 }
 
@@ -17,5 +17,74 @@
 }
 
 .guide-faq__entry summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin-inline: -6px;
+  padding: 4px 6px;
+  border-radius: var(--p-border-radius-200);
   cursor: pointer;
+  list-style: none;
+}
+
+.guide-faq__entry summary::-webkit-details-marker {
+  display: none;
+}
+
+.guide-faq__entry summary::after {
+  width: 7px;
+  height: 7px;
+  border-inline-end: 1.5px solid currentColor;
+  border-block-end: 1.5px solid currentColor;
+  content: "";
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.guide-faq__entry[open] summary::after {
+  transform: rotate(225deg) translate(-1px, -1px);
+}
+
+.guide-faq__entry summary:focus-visible {
+  outline: 2px solid var(--p-color-border-focus);
+  outline-offset: 2px;
+}
+
+@supports (interpolate-size: allow-keywords) {
+  :root {
+    interpolate-size: allow-keywords;
+  }
+
+  .guide-faq__entry::details-content {
+    block-size: 0;
+    overflow: clip;
+    opacity: 0;
+  }
+
+  .guide-faq__entry[open]::details-content {
+    block-size: auto;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .guide-faq__entry summary {
+    transition: background-color var(--cf-motion-duration-fast) ease;
+  }
+
+  .guide-faq__entry summary:hover {
+    background: var(--p-color-bg-surface-secondary);
+  }
+
+  .guide-faq__entry summary::after {
+    transition: transform var(--cf-motion-duration-base) var(--cf-motion-ease-out);
+  }
+
+  @supports (interpolate-size: allow-keywords) {
+    .guide-faq__entry::details-content {
+      transition:
+        block-size var(--cf-motion-duration-base) var(--cf-motion-ease-out),
+        opacity var(--cf-motion-duration-fast) ease;
+    }
+  }
 }

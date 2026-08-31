@@ -34,6 +34,7 @@ import {
   saveOnboarding,
   writeValidation,
 } from "../validation.server";
+import "./app.onboarding.css";
 
 const STEPS = 4;
 
@@ -239,96 +240,103 @@ export default function Onboarding() {
     <form ref={form} onChange={readDeclaration}>
       <s-page heading={t.onboarding.heading}>
         {esito && !esito.ok ? (
-          <s-banner tone="critical">
-            {t.errors[esito.errorCode as keyof typeof t.errors] ?? t.errors.generic}
-          </s-banner>
+          <div className="cf-motion-reveal">
+            <s-banner tone="critical">
+              {t.errors[esito.errorCode as keyof typeof t.errors] ?? t.errors.generic}
+            </s-banner>
+          </div>
         ) : null}
 
         <s-section>
           <s-stack direction="block" gap="base">
             <OnboardingProgress step={step} t={t} />
 
-            {step === 1 ? (
-              <>
-                {/* A-16: il primo passo è il momento in cui il merchant incontra il prodotto. */}
-                <s-box maxInlineSize="150px">
-                  <s-image
-                    src="/cf-ready-lockup.svg"
-                    alt="CF Ready"
-                    aspectRatio="16/3"
-                    objectFit="contain"
+            <div className="onboarding-step" key={step}>
+              {step === 1 ? (
+                <>
+                  {/* A-16: il primo passo è il momento in cui il merchant incontra il prodotto. */}
+                  <s-box maxInlineSize="150px">
+                    <s-image
+                      src="/cf-ready-lockup.svg"
+                      alt="CF Ready"
+                      aspectRatio="16/3"
+                      objectFit="contain"
+                    />
+                  </s-box>
+                  <s-heading>{t.onboarding.welcomeHeading}</s-heading>
+                  <s-paragraph>{t.onboarding.welcomeBody}</s-paragraph>
+                  <s-divider />
+                  <s-heading>{t.onboarding.step1Heading}</s-heading>
+                  <OnboardingListBlock
+                    lead={<s-paragraph>{t.onboarding.step1Body}</s-paragraph>}
+                    items={t.onboarding.step1Limits}
                   />
-                </s-box>
-                <s-heading>{t.onboarding.welcomeHeading}</s-heading>
-                <s-paragraph>{t.onboarding.welcomeBody}</s-paragraph>
-                <s-divider />
-                <s-heading>{t.onboarding.step1Heading}</s-heading>
-                <OnboardingListBlock
-                  lead={<s-paragraph>{t.onboarding.step1Body}</s-paragraph>}
-                  items={t.onboarding.step1Limits}
-                />
-              </>
-            ) : null}
+                </>
+              ) : null}
 
-            {step === 2 ? (
-              <>
-                <s-heading>{t.onboarding.step2Heading}</s-heading>
-                <s-paragraph>{t.onboarding.step2Body}</s-paragraph>
-                {/* Non controllati, come in Regole checkout: i valori appartengono al modulo e
+              {step === 2 ? (
+                <>
+                  <s-heading>{t.onboarding.step2Heading}</s-heading>
+                  <s-paragraph>{t.onboarding.step2Body}</s-paragraph>
+                  {/* Non controllati, come in Regole checkout: i valori appartengono al modulo e
                     si leggono al salvataggio. Riscriverli a ogni render li faceva sfarfallare e
                     poteva far fallire il gestore dell'evento. */}
-                {(["taxCode", "pec"] as const).map((field) => (
-                  <s-choice-list
-                    key={field}
-                    label={field === "taxCode" ? t.rules.taxCodeLabel : t.rules.pecLabel}
-                    name={field}
-                  >
-                    {RULE_MODES.map((mode) => (
-                      <s-choice key={mode} value={mode} selected={mode === saved.rules[field]}>
-                        {t.rules[field][mode]}
-                        <s-text slot="details">{t.rules[field][`${mode}Help`]}</s-text>
-                      </s-choice>
-                    ))}
-                  </s-choice-list>
-                ))}
-              </>
-            ) : null}
+                  {(["taxCode", "pec"] as const).map((field) => (
+                    <s-choice-list
+                      key={field}
+                      label={field === "taxCode" ? t.rules.taxCodeLabel : t.rules.pecLabel}
+                      name={field}
+                    >
+                      {RULE_MODES.map((mode) => (
+                        <s-choice key={mode} value={mode} selected={mode === saved.rules[field]}>
+                          {t.rules[field][mode]}
+                          <s-text slot="details">{t.rules[field][`${mode}Help`]}</s-text>
+                        </s-choice>
+                      ))}
+                    </s-choice-list>
+                  ))}
+                </>
+              ) : null}
 
-            {step === 3 ? (
-              <>
-                <s-heading>{t.onboarding.step3Heading}</s-heading>
-                <s-paragraph>{t.onboarding.step3Body}</s-paragraph>
-                {onboardingCheckoutPreview(saved).map((line) => (
-                  <s-paragraph key={line}>{line}</s-paragraph>
-                ))}
-                <OnboardingListBlock
-                  lead={<s-heading>{t.rules.exceptionsHeading}</s-heading>}
-                  items={t.rules.exceptions}
-                />
-                <s-heading>{t.onboarding.step3Messages}</s-heading>
-                <OnboardingListBlock
-                  lead={<s-paragraph>{t.onboarding.step3MessagesBody}</s-paragraph>}
-                  items={Object.values(saved.messages[saved.locale])}
-                />
-              </>
-            ) : null}
+              {step === 3 ? (
+                <>
+                  <s-heading>{t.onboarding.step3Heading}</s-heading>
+                  <s-paragraph>{t.onboarding.step3Body}</s-paragraph>
+                  {onboardingCheckoutPreview(saved).map((line) => (
+                    <s-paragraph key={line}>{line}</s-paragraph>
+                  ))}
+                  <OnboardingListBlock
+                    lead={<s-heading>{t.rules.exceptionsHeading}</s-heading>}
+                    items={t.rules.exceptions}
+                  />
+                  <s-heading>{t.onboarding.step3Messages}</s-heading>
+                  <OnboardingListBlock
+                    lead={<s-paragraph>{t.onboarding.step3MessagesBody}</s-paragraph>}
+                    items={Object.values(saved.messages[saved.locale])}
+                  />
+                </>
+              ) : null}
 
-            {step === 4 ? (
-              <OnboardingStep4Content
-                saved={saved}
-                declared={declared}
-                t={t}
-                state={step4State}
-                busy={busy}
-                pendingIntent={pendingIntent}
-                startTrial={() => go("start_trial")}
-                showPlans={() =>
-                  requestPlanComparisonFromFrame(window, () =>
-                    navigate("/app", { state: planComparisonLocationState() }),
-                  )
-                }
-              />
-            ) : null}
+              {step === 4 ? (
+                <OnboardingStep4Content
+                  saved={saved}
+                  declared={declared}
+                  t={t}
+                  state={step4State}
+                  busy={busy}
+                  pendingIntent={pendingIntent}
+                  startTrial={() => go("start_trial")}
+                  showPlans={() =>
+                    requestPlanComparisonFromFrame(window, () =>
+                      navigate("/app", {
+                        state: planComparisonLocationState(),
+                        viewTransition: true,
+                      }),
+                    )
+                  }
+                />
+              ) : null}
+            </div>
 
             <s-stack direction="inline" gap="base">
               {step > 1 ? (
@@ -426,16 +434,16 @@ export function OnboardingStep4Content({
   return (
     <>
       <s-heading>{t.onboarding.step4Heading}</s-heading>
-      <s-stack direction="block" gap="small-100">
-        <s-stack direction="inline" gap="small-100" alignItems="center">
+      <div className="cf-data-list">
+        <div className="cf-data-row">
           <s-text>{t.rules.taxCodeLabel}</s-text>
           <s-badge>{t.rules.taxCode[saved.rules.taxCode]}</s-badge>
-        </s-stack>
-        <s-stack direction="inline" gap="small-100" alignItems="center">
+        </div>
+        <div className="cf-data-row">
           <s-text>{t.rules.pecLabel}</s-text>
           <s-badge>{t.rules.pec[saved.rules.pec]}</s-badge>
-        </s-stack>
-      </s-stack>
+        </div>
+      </div>
       {saved.rules.taxCode === "unmanaged" ? null : (
         <Address2DeclarationPrompt declared={declared} t={t} />
       )}
@@ -547,7 +555,11 @@ export function Address2DeclarationPrompt({
         value="declared"
         checked={declared}
       />
-      {declared ? <s-paragraph>{t.rules.address2Instructions}</s-paragraph> : null}
+      {declared ? (
+        <div className="cf-motion-reveal">
+          <s-paragraph>{t.rules.address2Instructions}</s-paragraph>
+        </div>
+      ) : null}
     </>
   );
 }
