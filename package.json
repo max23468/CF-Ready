@@ -1,6 +1,6 @@
 {
   "name": "cf-ready",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "private": true,
   "packageManager": "npm@12.0.2",
   "packageExtensions": {
@@ -32,8 +32,8 @@
     "typegen": "mkdir -p .wrangler/types && wrangler types .wrangler/types/worker-configuration.d.ts && react-router typegen",
     "typecheck": "npm run typegen && tsc --noEmit",
     "lint": "oxlint .",
-    "format": "oxfmt --write app extensions scripts workers tests react-router.config.ts vite.config.ts vitest.config.ts",
-    "format:check": "oxfmt --check app extensions scripts workers tests react-router.config.ts vite.config.ts vitest.config.ts",
+    "format": "oxfmt --write app benchmarks extensions scripts workers tests react-router.config.ts vite.config.ts vitest.config.ts",
+    "format:check": "oxfmt --check app benchmarks extensions scripts workers tests react-router.config.ts vite.config.ts vitest.config.ts",
     "docs:check": "node --test scripts/check-docs.node-test.mjs && node scripts/check-docs.mjs",
     "audit:security": "node --test scripts/security-audit.node-test.mjs && node scripts/security-audit.mjs",
     "preflight:dev": "node scripts/preflight-dev.mjs",
@@ -43,6 +43,7 @@
     "capacity:dev": "node scripts/capacity-check.mjs",
     "report:launch": "node scripts/controlled-launch-report.mjs",
     "report:performance": "node scripts/performance-report.mjs",
+    "benchmark:performance": "vitest bench benchmarks/reconcile.bench.ts --run",
     "test:e2e": "playwright test --config tests/playwright.config.ts",
     "test": "vitest run",
     "test:function": "npm test --workspace cf-ready-validation -- --run",

@@ -47,7 +47,9 @@ test("la pagina Regole carica l’entitlement autorevole per l’anteprima", asy
   } as never);
 
   expect(result).toMatchObject({ enabled: true, entitled: false });
-  expect(mocks.reconcile).toHaveBeenCalledWith(admin, db, "example.myshopify.com");
+  expect(mocks.reconcile).toHaveBeenCalledWith(admin, db, "example.myshopify.com", {
+    prefetchBilling: true,
+  });
 });
 
 test("la pagina Regole segnala la configurazione indeterminata dei duplicati", async () => {

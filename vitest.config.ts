@@ -42,5 +42,8 @@ export default defineConfig({
     // tra file contende il cold start locale e può consumare il timeout prima delle assertion.
     fileParallelism: false,
     testTimeout: 10_000,
+    benchmark: {
+      include: ["benchmarks/**/*.bench.ts"],
+    },
   },
 });
