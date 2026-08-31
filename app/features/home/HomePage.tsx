@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { useFetcher, useLoaderData, useLocation, useNavigate } from "react-router";
 import { ELIGIBLE_COUNTRY, pendingFetcherIntent, pendingFetcherSource } from "../../config";
@@ -23,8 +24,23 @@ import {
 import { useOnboardingWindowNavigation } from "./use-onboarding-window-navigation";
 import { useNativeReviewPrompt } from "./use-native-review-prompt";
 import { MerchantCheckIn } from "./MerchantCheckIn";
+import "./HomePage.css";
 
 const ONBOARDING_WINDOW_ID = "onboarding-window";
+
+function MotionBanner({
+  children,
+  tone,
+}: {
+  children: ReactNode;
+  tone: "critical" | "info" | "warning";
+}) {
+  return (
+    <div className="cf-motion-reveal">
+      <s-banner tone={tone}>{children}</s-banner>
+    </div>
+  );
+}
 
 export default function HomePage() {
   const data = useLoaderData<HomeData>();
@@ -136,7 +152,7 @@ export default function HomePage() {
   return (
     <s-page heading={t.home.heading}>
       {data.errorCode ? (
-        <s-banner tone="warning">
+        <MotionBanner tone="warning">
           <s-stack direction="block" gap="small-100">
             <s-paragraph>
               {data.errorCode === "billing_read_failed"
@@ -154,16 +170,16 @@ export default function HomePage() {
               {t.home.repair}
             </s-button>
           </s-stack>
-        </s-banner>
+        </MotionBanner>
       ) : !firstRun && !entitled ? (
-        <s-banner tone="warning">{t.home.noEntitlement}</s-banner>
+        <MotionBanner tone="warning">{t.home.noEntitlement}</MotionBanner>
       ) : notice ? (
-        <s-banner tone={notice.tone}>{notice.text}</s-banner>
+        <MotionBanner tone={notice.tone}>{notice.text}</MotionBanner>
       ) : null}
       {result && !result.ok ? (
-        <s-banner tone="critical">
+        <MotionBanner tone="critical">
           {t.errors[result.errorCode as keyof typeof t.errors] ?? t.errors.generic}
-        </s-banner>
+        </MotionBanner>
       ) : null}
 
       {data.showMerchantCheckIn ? (
@@ -208,28 +224,28 @@ export default function HomePage() {
 
           <s-divider />
 
-          <s-stack direction="block" gap="small-100">
-            <s-stack direction="inline" gap="small-100" alignItems="center">
+          <div className="cf-data-list">
+            <div className="cf-data-row">
               <s-text>{t.rules.taxCodeLabel}</s-text>
               <s-badge>{t.rules.taxCode[data.rules.taxCode]}</s-badge>
-            </s-stack>
-            <s-stack direction="inline" gap="small-100" alignItems="center">
+            </div>
+            <div className="cf-data-row">
               <s-text>{t.rules.pecLabel}</s-text>
               <s-badge>{t.rules.pec[data.rules.pec]}</s-badge>
-            </s-stack>
-            <s-stack direction="inline" gap="small-100" alignItems="center">
+            </div>
+            <div className="cf-data-row">
               <s-text>{t.home.messagesLabel}</s-text>
               <s-badge>
                 {data.messagesDefault ? t.home.messagesDefault : t.home.messagesCustom}
               </s-badge>
-            </s-stack>
+            </div>
             <s-box background="subdued" borderRadius="base" padding="small-200">
               <s-stack direction="inline" gap="small-100" alignItems="center">
                 <s-icon type="location" color="subdued" />
                 <s-text color="subdued">{t.rules.exceptions[0]}</s-text>
               </s-stack>
             </s-box>
-          </s-stack>
+          </div>
 
           <s-stack direction="inline" gap="base">
             <s-button href="/app/rules" variant="primary">

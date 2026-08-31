@@ -101,7 +101,12 @@ export function SetupGuide({
             gap="small-100"
           >
             {steps.map((step, index) => (
-              <s-stack key={step.title} direction="inline" gap="small-100" alignItems="center">
+              <div
+                className={`setup-guide__step${
+                  index === active ? " setup-guide__step--active" : ""
+                }`}
+                key={step.title}
+              >
                 {step.done ? (
                   <s-icon type="check-circle" tone="success" />
                 ) : (
@@ -113,7 +118,7 @@ export function SetupGuide({
                 >
                   {step.title}
                 </s-text>
-              </s-stack>
+              </div>
             ))}
           </s-grid>
         </s-query-container>
