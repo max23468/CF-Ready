@@ -10,7 +10,7 @@ export function useOnboardingWindowNavigation(navigate: NavigateFunction) {
     const navigateFromWindow = (event: MessageEvent) => {
       void handleAppWindowNavigation(event, window.location.origin, {
         hideWindow: async () => void (await hideAppWindow(document, ONBOARDING_WINDOW_ID)),
-        navigate,
+        navigate: (href) => navigate(href, { viewTransition: true }),
       });
     };
     window.addEventListener("message", navigateFromWindow);

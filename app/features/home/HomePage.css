@@ -1,0 +1,25 @@
+.setup-guide__step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-block-size: 36px;
+  padding: 6px 8px;
+  border-radius: var(--p-border-radius-200);
+}
+
+.setup-guide__step--active {
+  background: var(--p-color-bg-surface-secondary);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .setup-guide__step {
+    transition:
+      color var(--cf-motion-duration-fast) ease,
+      background-color var(--cf-motion-duration-base) ease;
+  }
+
+  .setup-guide__step--active {
+    animation: cf-content-enter var(--cf-motion-duration-base) var(--cf-motion-ease-out) both;
+  }
+}

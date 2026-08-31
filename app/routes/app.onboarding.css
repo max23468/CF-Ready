@@ -1,0 +1,10 @@
+.onboarding-step {
+  display: grid;
+  gap: 16px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .onboarding-step {
+    animation: cf-content-enter var(--cf-motion-duration-base) var(--cf-motion-ease-out) both;
+  }
+}
