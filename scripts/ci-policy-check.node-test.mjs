@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { evaluateCiPolicy, isCiPolicyFile } from "./ci-policy-check.mjs";
 
@@ -71,6 +72,12 @@ test("nega eventi generici e accetta soltanto l'etichetta del proprietario", () 
     evaluateCiPolicy({ ...input, action: "reopened", label: "ci-policy-approved" }).state,
     "failure",
   );
+});
+
+test("un diniego atteso blocca lo SHA senza far fallire la run di attestazione", async () => {
+  const source = await readFile(new URL("./ci-policy-check.mjs", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /result\.state !== "success"[^\n]+process\.exitCode/);
+  assert.match(source, /main\(\)\.catch\([\s\S]+process\.exitCode = 1/);
 });
 
 test("mantiene funzionanti gli aggiornamenti Dependabot attendibili", () => {

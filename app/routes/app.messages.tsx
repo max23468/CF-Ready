@@ -14,6 +14,7 @@ import { validateMessages } from "../config";
 import type { CheckoutConfig } from "../config";
 import { databaseContext } from "../context.server";
 import { CustomerMessagesPreview } from "../features/messages/CustomerMessagesPreview";
+import { UncontrolledMessageTextArea } from "../features/messages/UncontrolledMessageTextArea";
 import { resolveLocale, texts } from "../i18n";
 import type { Locale } from "../i18n";
 import { messageSubmission, shouldShowMessageCounter, updateMessageDraft } from "../messages-draft";
@@ -166,12 +167,16 @@ export default function CustomerMessages() {
     <form onInput={readDraft}>
       <s-page heading={t.messages.heading}>
         {showSavedBanner(result, dirty, changedSinceResult) ? (
-          <s-banner tone="success">{t.messages.saved}</s-banner>
+          <div className="cf-motion-reveal">
+            <s-banner tone="success">{t.messages.saved}</s-banner>
+          </div>
         ) : null}
         {result && !result.ok && "errorCode" in result ? (
-          <s-banner tone="critical">
-            {t.errors[result.errorCode as keyof typeof t.errors] ?? t.errors.generic}
-          </s-banner>
+          <div className="cf-motion-reveal">
+            <s-banner tone="critical">
+              {t.errors[result.errorCode as keyof typeof t.errors] ?? t.errors.generic}
+            </s-banner>
+          </div>
         ) : null}
 
         <ui-save-bar id={SAVE_BAR}>
@@ -198,42 +203,45 @@ export default function CustomerMessages() {
               selectedLabel={t.messages[selectedKey]}
             />
 
-            {MESSAGE_KEYS.map((key) => {
-              const value = draft[activeLocale][key];
-              const problem =
-                result && !result.ok && "problem" in result ? result.problem : undefined;
-              // Il contatore compare mentre si lavora sul campo o quando il limite si avvicina.
-              // Il campo vuoto viene segnalato solo dopo un salvataggio rifiutato, non mentre
-              // il merchant cancella il testo per riscriverlo.
-              const invalid =
-                value.length > MESSAGE_MAX_LENGTH
-                  ? t.messages.tooLong
-                  : problem?.locale === activeLocale && problem.key === key
-                    ? t.messages.empty
-                    : undefined;
-              const focused = focusedMessage?.locale === activeLocale && focusedMessage.key === key;
+            <s-stack direction="block" gap="base">
+              {MESSAGE_KEYS.map((key) => {
+                const value = draft[activeLocale][key];
+                const problem =
+                  result && !result.ok && "problem" in result ? result.problem : undefined;
+                // Il contatore compare mentre si lavora sul campo o quando il limite si avvicina.
+                // Il campo vuoto viene segnalato solo dopo un salvataggio rifiutato, non mentre
+                // il merchant cancella il testo per riscriverlo.
+                const invalid =
+                  value.length > MESSAGE_MAX_LENGTH
+                    ? t.messages.tooLong
+                    : problem?.locale === activeLocale && problem.key === key
+                      ? t.messages.empty
+                      : undefined;
+                const focused =
+                  focusedMessage?.locale === activeLocale && focusedMessage.key === key;
 
-              return (
-                <s-text-area
-                  key={`${activeLocale}-${key}-${mounted[activeLocale]}`}
-                  label={t.messages[key]}
-                  name={`${activeLocale}.${key}`}
-                  rows={rowsFor(value)}
-                  defaultValue={value}
-                  details={
-                    shouldShowMessageCounter(value.length, focused)
-                      ? t.messages.counter(value.length)
-                      : undefined
-                  }
-                  error={invalid}
-                  onFocus={() => {
-                    setSelectedKey(key);
-                    setFocusedMessage({ locale: activeLocale, key });
-                  }}
-                  onBlur={() => setFocusedMessage(undefined)}
-                />
-              );
-            })}
+                return (
+                  <UncontrolledMessageTextArea
+                    key={`${activeLocale}-${key}-${mounted[activeLocale]}`}
+                    initialValue={value}
+                    label={t.messages[key]}
+                    name={`${activeLocale}.${key}`}
+                    rows={rowsFor(value)}
+                    details={
+                      shouldShowMessageCounter(value.length, focused)
+                        ? t.messages.counter(value.length)
+                        : undefined
+                    }
+                    error={invalid}
+                    onFocus={() => {
+                      setSelectedKey(key);
+                      setFocusedMessage({ locale: activeLocale, key });
+                    }}
+                    onBlur={() => setFocusedMessage(undefined)}
+                  />
+                );
+              })}
+            </s-stack>
             <s-button commandFor={`restore-${activeLocale}`} command="--show">
               {t.messages.reset}
             </s-button>
@@ -246,14 +254,16 @@ export default function CustomerMessages() {
         <s-section slot="aside" heading={t.messages.appearHeading}>
           <s-stack direction="block" gap="small-100">
             <s-paragraph>{t.messages.appearIntro}</s-paragraph>
-            {MESSAGE_KEYS.map((key) => (
-              <s-stack key={key} direction="inline" gap="small-100" alignItems="center">
-                <s-text>{t.messages[key]}</s-text>
-                <s-badge>
-                  {messageAppears(saved.rules, key) ? t.messages.appears : t.messages.appearsNot}
-                </s-badge>
-              </s-stack>
-            ))}
+            <div className="cf-data-list">
+              {MESSAGE_KEYS.map((key) => (
+                <div className="cf-data-row" key={key}>
+                  <s-text>{t.messages[key]}</s-text>
+                  <s-badge>
+                    {messageAppears(saved.rules, key) ? t.messages.appears : t.messages.appearsNot}
+                  </s-badge>
+                </div>
+              ))}
+            </div>
             <s-link href="/app/rules">{t.nav.rules}</s-link>
           </s-stack>
         </s-section>

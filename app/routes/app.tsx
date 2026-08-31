@@ -1,6 +1,13 @@
 import { useEffect } from "react";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { Outlet, useLoaderData, useNavigate, useNavigation, useRouteError } from "react-router";
+import {
+  Outlet,
+  useLoaderData,
+  useLocation,
+  useNavigate,
+  useNavigation,
+  useRouteError,
+} from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import { requestAppWindowNavigation } from "../app-window-navigation";
@@ -37,6 +44,7 @@ export const shouldRevalidate = skipRevalidationWhenLeaving;
 export default function App() {
   const { apiKey, shopDomain, locale } = useLoaderData<typeof loader>();
   const t = texts(locale).nav;
+  const location = useLocation();
   const navigate = useNavigate();
   const navigation = useNavigation();
 
@@ -44,7 +52,11 @@ export default function App() {
   // AppProvider, rimosso perché caricava gli script nel body anziché nel head richiesto da BFS.
   useEffect(() => {
     const handleNavigate = (event: Event) =>
-      navigateFromShopifyEvent(event, (href) => requestAppWindowNavigation(window, href, navigate));
+      navigateFromShopifyEvent(event, (href) =>
+        requestAppWindowNavigation(window, href, (target) =>
+          navigate(target, { viewTransition: true }),
+        ),
+      );
 
     document.addEventListener("shopify:navigate", handleNavigate);
     return () => document.removeEventListener("shopify:navigate", handleNavigate);
@@ -81,7 +93,9 @@ export default function App() {
         ))}
       </s-app-nav>
       <PerformanceReporter />
-      <Outlet />
+      <div className="app-route-surface" key={location.pathname}>
+        <Outlet />
+      </div>
     </>
   );
 }

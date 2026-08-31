@@ -156,12 +156,16 @@ export default function CheckoutRules() {
   return (
     <s-page heading={t.rules.heading}>
       {showSavedBanner(result, dirty, changedSinceResult) ? (
-        <s-banner tone="success">{t.rules.saved}</s-banner>
+        <div className="cf-motion-reveal">
+          <s-banner tone="success">{t.rules.saved}</s-banner>
+        </div>
       ) : null}
       {result && !result.ok ? (
-        <s-banner tone="critical">
-          {t.errors[result.errorCode as keyof typeof t.errors] ?? t.errors.generic}
-        </s-banner>
+        <div className="cf-motion-reveal">
+          <s-banner tone="critical">
+            {t.errors[result.errorCode as keyof typeof t.errors] ?? t.errors.generic}
+          </s-banner>
+        </div>
       ) : null}
 
       <ui-save-bar id={SAVE_BAR}>
@@ -229,7 +233,11 @@ export default function CheckoutRules() {
                   value="declared"
                   defaultChecked={saved.address2Declared}
                 />
-                {draft.address2 ? <s-paragraph>{t.rules.address2Instructions}</s-paragraph> : null}
+                {draft.address2 ? (
+                  <div className="cf-motion-reveal">
+                    <s-paragraph>{t.rules.address2Instructions}</s-paragraph>
+                  </div>
+                ) : null}
               </s-section>
             </div>
           </form>

@@ -155,11 +155,13 @@ export default function Guide() {
           </s-button>
           <s-button onClick={copyDiagnostics}>{t.support.copyDiagnostics}</s-button>
           {copyState ? (
-            <s-text tone={copyState === "copied" ? "success" : "critical"}>
-              {copyState === "copied"
-                ? t.support.diagnosticsCopied
-                : t.support.diagnosticsCopyFailed}
-            </s-text>
+            <span className="cf-motion-reveal" key={copyState}>
+              <s-text tone={copyState === "copied" ? "success" : "critical"}>
+                {copyState === "copied"
+                  ? t.support.diagnosticsCopied
+                  : t.support.diagnosticsCopyFailed}
+              </s-text>
+            </span>
           ) : null}
           <s-text color="subdued">{t.support.privacyNote}</s-text>
         </s-stack>

@@ -1,0 +1,65 @@
+:root {
+  --cf-motion-duration-fast: 120ms;
+  --cf-motion-duration-base: 180ms;
+  --cf-motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.app-route-surface {
+  min-block-size: 100%;
+}
+
+.cf-data-list {
+  display: grid;
+  gap: 8px;
+}
+
+.cf-data-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+@keyframes cf-page-exit {
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes cf-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes cf-content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.995);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: cf-page-exit var(--cf-motion-duration-fast) ease-in both;
+  }
+
+  ::view-transition-new(root) {
+    animation: cf-page-enter var(--cf-motion-duration-base) var(--cf-motion-ease-out) both;
+  }
+
+  .app-route-surface,
+  .cf-motion-reveal,
+  .cf-motion-swap {
+    animation: cf-content-enter var(--cf-motion-duration-base) var(--cf-motion-ease-out) both;
+  }
+}
+
+@media (max-width: 360px) {
+  .cf-data-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
