@@ -744,6 +744,9 @@ test("il riallineamento develop è separato dal deploy e fallisce chiuso", () =>
   assert.match(workflow, /environment: Repository Governance/);
   assert.match(workflow, /actions: read/);
   assert.match(workflow, /SOURCE_DEPLOY_SHA: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
+  assert.match(workflow, /RECONCILIATION_MODE: \$\{\{ inputs\.mode \}\}/);
+  assert.match(workflow, /deploy-retry/);
+  assert.match(workflow, /no-deploy-promotion/);
   assert.match(workflow, /actions\/create-github-app-token@[0-9a-f]{40}/);
   assert.match(
     workflow,
@@ -762,6 +765,8 @@ test("il riallineamento develop è separato dal deploy e fallisce chiuso", () =>
   assert.match(rulesetVerifier, /bypass_actors/);
   assert.match(script, /recover develop ancestry after main promotion/);
   assert.match(script, /eventName !== "workflow_dispatch"/);
+  assert.match(script, /requiresDeploymentEvidence\(mode\)/);
+  assert.match(script, /shouldDeferNoDeployReconciliation/);
   assert.match(script, /tree: develop\.tree\.sha/);
   assert.match(script, /comparison\.merge_base_commit\?\.sha !== promotedDevelop/);
   assert.match(script, /readback\.object\.sha/);

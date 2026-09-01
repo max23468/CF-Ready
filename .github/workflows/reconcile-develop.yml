@@ -5,6 +5,14 @@ on:
     workflows: [Deploy Production, Deploy Pages Production]
     types: [completed]
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Provenienza autorizzata del riallineamento
+        required: true
+        type: choice
+        options:
+          - deploy-retry
+          - no-deploy-promotion
 
 permissions:
   actions: read
@@ -38,12 +46,13 @@ jobs:
           RECONCILIATION_TOKEN: ${{ steps.app-token.outputs.token }}
           RECONCILIATION_ACTOR_ID: "4735849"
         run: node scripts/verify-reconciliation-ruleset.mjs
-      - name: Fast-forward protetto di develop
+      - name: Riallineamento protetto di develop
         env:
           GITHUB_TOKEN: ${{ github.token }}
           RECONCILIATION_TOKEN: ${{ steps.app-token.outputs.token }}
           RECONCILIATION_APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
           EXPECTED_RECONCILIATION_APP_SLUG: cf-ready-develop-reconciler
+          RECONCILIATION_MODE: ${{ inputs.mode }}
           SOURCE_DEPLOY_RUN_ID: ${{ github.event.workflow_run.id }}
           SOURCE_DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
         run: node scripts/reconcile-develop.mjs
