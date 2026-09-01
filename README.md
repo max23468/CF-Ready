@@ -78,6 +78,8 @@ baseline committata. Dopo una modifica che cambia la misura, esegui
 `npm run coverage:update`, controlla il report in `.coverage/global/` e committa
 anche `config/coverage-baseline.json`; la CI impedisce di abbassare la baseline
 rispetto al branch di partenza.
+Il bundle first-party della Shopify Validation Function è inoltre bloccato al
+100% di statement, branch, funzioni e linee per ciascun file.
 
 Per ispezionare il collegamento Shopify senza permettere alla CLI di
 normalizzare i file TOML del repository:
