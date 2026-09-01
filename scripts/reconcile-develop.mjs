@@ -1,3 +1,29 @@
+const RECONCILIATION_MODES = new Set(["automatic-deploy", "deploy-retry", "no-deploy-promotion"]);
+
+export function reconciliationMode({ eventName, manualMode }) {
+  if (eventName === "workflow_run") return "automatic-deploy";
+  if (
+    eventName === "workflow_dispatch" &&
+    ["deploy-retry", "no-deploy-promotion"].includes(manualMode)
+  ) {
+    return manualMode;
+  }
+  throw new Error(
+    "Il riallineamento manuale richiede una modalità manuale esplicita e riconosciuta.",
+  );
+}
+
+export function requiresDeploymentEvidence(mode) {
+  if (!RECONCILIATION_MODES.has(mode)) {
+    throw new Error("Modalità di riallineamento non riconosciuta.");
+  }
+  return mode !== "no-deploy-promotion";
+}
+
+export function shouldDeferNoDeployReconciliation({ mode, directReconciliation }) {
+  return mode === "no-deploy-promotion" && directReconciliation;
+}
+
 export function verifyReconciliation({
   main,
   develop,
@@ -42,10 +68,11 @@ export function verifyRecoveryReconciliation({
   }
 }
 
-export function verifyManualAncestryRecovery({ eventName, ...recovery }) {
+export function verifyManualAncestryRecovery({ eventName, mode, ...recovery }) {
   if (eventName !== "workflow_dispatch") {
     throw new Error("Il recupero di sola ascendenza richiede un avvio manuale.");
   }
+  reconciliationMode({ eventName, manualMode: mode });
   verifyRecoveryReconciliation(recovery);
 }
 
@@ -129,6 +156,10 @@ async function request(path, token, options = {}) {
 
 async function main() {
   const eventName = process.env.GITHUB_EVENT_NAME;
+  const mode = reconciliationMode({
+    eventName,
+    manualMode: process.env.RECONCILIATION_MODE,
+  });
   const githubToken = process.env.GITHUB_TOKEN;
   const reconciliationToken = process.env.RECONCILIATION_TOKEN;
   verifyReconciliationApp({
@@ -172,7 +203,14 @@ async function main() {
     directReconciliation = false;
   }
 
-  if (directReconciliation) {
+  if (shouldDeferNoDeployReconciliation({ mode, directReconciliation })) {
+    console.log(
+      "Promozione main senza deploy già collegata a develop: nessuna scrittura necessaria.",
+    );
+    return;
+  }
+
+  if (requiresDeploymentEvidence(mode)) {
     let sourceRun;
     if (eventName === "workflow_run") {
       if (!/^\d+$/.test(process.env.SOURCE_DEPLOY_RUN_ID ?? "")) {
@@ -182,7 +220,7 @@ async function main() {
         `/repos/${repository}/actions/runs/${process.env.SOURCE_DEPLOY_RUN_ID}`,
         githubToken,
       );
-    } else if (eventName === "workflow_dispatch") {
+    } else if (mode === "deploy-retry") {
       const [productionRuns, pagesRuns] = await Promise.all([
         request(
           `/repos/${repository}/actions/workflows/deploy-production.yml/runs?branch=main&status=success&per_page=100`,
@@ -214,7 +252,9 @@ async function main() {
       artifacts,
       expectedMain,
     });
-  } else {
+  }
+
+  if (!directReconciliation) {
     const promotedDevelopSha = main.parents[1]?.sha;
     if (!/^[0-9a-f]{40}$/.test(promotedDevelopSha ?? "")) {
       throw new Error("Il merge main non espone il parent develop promosso.");
@@ -228,6 +268,7 @@ async function main() {
     ]);
     verifyManualAncestryRecovery({
       eventName,
+      mode,
       main: mainRef.object.sha,
       develop: developRef.object.sha,
       parents: main.parents.map(({ sha }) => sha),
@@ -255,7 +296,11 @@ async function main() {
   if (readback.object.sha !== targetSha) {
     throw new Error("Il readback non conferma il riallineamento di develop.");
   }
-  console.log(`develop riallineato in fast-forward a ${targetSha}.`);
+  console.log(
+    directReconciliation
+      ? `develop riallineato in fast-forward a ${targetSha}.`
+      : `ascendenza di develop riallineata a ${targetSha} senza modificarne il tree.`,
+  );
 }
 
 const isDirectExecution =
