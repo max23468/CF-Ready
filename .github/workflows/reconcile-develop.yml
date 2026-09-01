@@ -2,7 +2,7 @@ name: Reconcile develop
 
 on:
   workflow_run:
-    workflows: [Deploy Production]
+    workflows: [Deploy Production, Deploy Pages Production]
     types: [completed]
   workflow_dispatch:
 
