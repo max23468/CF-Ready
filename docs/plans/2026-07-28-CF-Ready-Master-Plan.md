@@ -1645,6 +1645,36 @@ implementato, e in quel caso nasce con la propria migrazione.
 - backup e procedura di rollback prima di una migrazione irreversibile;
 - CI verifica che tutti i file siano applicabili in ordine.
 
+`config/migration-policy.json` è il registro canonico append-only delle
+migrazioni applicate: ordine, SHA-256 e comportamenti protetti devono coincidere
+con i file SQL. Una correzione aggiunge una nuova migrazione e una nuova voce;
+non aggiorna checksum o contenuto di una voce esistente.
+
+| Migrazione | Comportamento protetto |
+|---|---|
+| `0001_initial.sql` | identità store, sessioni Shopify cifrate, vincoli e cascade |
+| `0002_validation_operation_locks.sql` | lease esclusiva delle operazioni Validation |
+| `0003_app_state_webhooks_events.sql` | stato operativo Validation, webhook ed eventi applicativi |
+| `0004_trials.sql` | ciclo di vita della prova |
+| `0005_trial_ledger.sql` | ledger minimizzato contro il riuso della prova |
+| `0006_billing.sql` | readback billing Shopify e deduplicazione eventi |
+| `0007_onboarding.sql` | avanzamento onboarding e dichiarazione conflitto indirizzo |
+| `0008_webhook_claim_ownership.sql` | ownership del claim e idempotenza webhook |
+| `0009_shop_retention.sql` | scansione indicizzata degli store disinstallati |
+| `0010_privacy_hardening.sql` | purge ledger, rimozione user ID e indici retention |
+| `0011_owner_notifications.sql` | outbox owner, redazioni e stato billing precedente |
+| `0012_complimentary_entitlements.sql` | concessioni omaggio senza charge Shopify fittizie |
+| `0013_performance_samples.sql` | campioni Web Vitals minimizzati e deduplicati |
+| `0014_validation_state_revision.sql` | fence monotono dello stato Validation |
+| `0015_owner_notification_details.sql` | nome pubblico dello store nelle notifiche owner |
+
+Il gate migrazioni usa binding D1 isolati per gli snapshot intermedi, applica
+la sequenza completa con Wrangler locale, verifica schema, vincoli, indici,
+preservazione o cancellazione intenzionale dei dati e richiede che un secondo
+passaggio non abbia migrazioni pendenti. L'integrità SQLite e le foreign key sono
+lette dal database locale chiuso da Wrangler; nessun database remoto partecipa
+al test.
+
 ### 12.4 Dati deliberatamente non memorizzati
 
 - Codice Fiscale;
@@ -3405,6 +3435,10 @@ entitlement incerto, geografia e readback Shopify/D1. Per tutti questi domini la
 CI richiede anche un mutation score minimo dell'80% quando il dominio o i suoi
 test cambiano. I tre gate mutation girano come job paralleli indipendenti e
 pubblicano un report per dominio; le altre soglie assolute restano progressive.
+La quinta PR rende inoltre bloccante il registro append-only delle quindici
+migrazioni e la relativa matrice D1: snapshot intermedi, dati preservati, purge
+privacy intenzionale, vincoli, indici, sequenza completa e secondo passaggio
+idempotente sono provati senza includere SQL nel denominatore della coverage.
 
 ### 23.1.1 Gate per tipo di modifica
 

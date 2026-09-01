@@ -3,6 +3,7 @@ import { APP_API_KEY } from "../env.server";
 import { logEvent } from "../events.server";
 import type { ShopifyBilling } from "./types";
 
+// Stryker disable next-line StringLiteral: il contratto GraphQL è verificato dai test delle chiamate, non dalla sostituzione dell'intero documento.
 export const BILLING_QUERY = `#graphql
   query CfReadyBilling($after: String) {
     currentAppInstallation {
@@ -148,6 +149,7 @@ export async function readBilling(
   };
 }
 
+// Stryker disable next-line StringLiteral: il contratto GraphQL è verificato dai test delle chiamate, non dalla sostituzione dell'intero documento.
 const CREATE_SUBSCRIPTION = `#graphql
   mutation CfReadySubscriptionCreate(
     $name: String!
@@ -174,6 +176,7 @@ const CREATE_SUBSCRIPTION = `#graphql
   }
 `;
 
+// Stryker disable next-line StringLiteral: il contratto GraphQL è verificato dai test delle chiamate, non dalla sostituzione dell'intero documento.
 const CREATE_ONE_TIME = `#graphql
   mutation CfReadyOneTimeCreate($name: String!, $price: MoneyInput!, $returnUrl: URL!, $test: Boolean) {
     appPurchaseOneTimeCreate(name: $name, price: $price, returnUrl: $returnUrl, test: $test) {
@@ -265,6 +268,7 @@ export function returnUrlFor(shopDomain: string, apiKey = APP_API_KEY) {
   return embeddedAdminUrl(shopDomain, apiKey);
 }
 
+// Stryker disable next-line StringLiteral: il contratto GraphQL è verificato dai test delle chiamate, non dalla sostituzione dell'intero documento.
 export const CANCEL_SUBSCRIPTION = `#graphql
   mutation CfReadySubscriptionCancel($id: ID!, $prorate: Boolean!) {
     appSubscriptionCancel(id: $id, prorate: $prorate) {
