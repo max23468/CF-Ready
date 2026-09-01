@@ -22,7 +22,7 @@
       },
       "operations": {
         "minimum": 90,
-        "active": false
+        "active": true
       },
       "public-site": {
         "minimum": 90,
