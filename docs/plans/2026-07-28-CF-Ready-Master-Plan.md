@@ -3876,11 +3876,11 @@ offerte e rating non presenti nella pagina. `Organization`, `WebSite` e
 `BreadcrumbList` sono ammessi quando il contenuto visibile li sostiene.
 
 Prima della pubblicazione si registra la baseline disponibile; dopo la
-pubblicazione si verificano indicizzazione e query tramite Google Search Console
-e Bing Webmaster Tools, mentre Shopify resta autorevole per installazioni,
-attivazioni e disinstallazioni. Cloudflare Web Analytics fornisce soltanto
-aggregati del sito: nessun identificatore viene usato per attribuire una singola
-installazione a una visita.
+pubblicazione si verificano indicizzazione e query tramite Google Search Console,
+mentre Shopify resta autorevole per installazioni, attivazioni e
+disinstallazioni. Cloudflare Web Analytics fornisce soltanto aggregati del sito:
+nessun identificatore viene usato per attribuire una singola installazione a una
+visita.
 
 Gli obiettivi direzionali dei primi 90 giorni sono almeno 50 clic organici
 qualificati non-brand e almeno 10 installazioni nette qualificate aggiuntive,
@@ -3889,8 +3889,8 @@ attiva e retention restano guardrail contro traffico o installazioni di bassa
 qualità. Questi valori aiutano M12, ma non sostituiscono né aggiungono un gate ai
 requisiti Built for Shopify di §25.4. Il dominio `pages.dev` resta in uso finché
 la trazione non giustifica un dominio dedicato; la strategia iniziale usa solo
-sito, listing e console webmaster ufficiali, senza pubblicazioni community o
-contatti diretti.
+sito, listing e Google Search Console, senza pubblicazioni community o contatti
+diretti.
 
 ---
 

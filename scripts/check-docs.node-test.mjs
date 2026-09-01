@@ -292,6 +292,14 @@ test("le pagine indicizzabili dichiarano canonical, lingue e metadati sociali", 
   }
 });
 
+test("la Home espone il token di verifica Google Search Console", () => {
+  const html = readFileSync(new URL("../site/index.html", import.meta.url), "utf8");
+  const verificationTag =
+    '<meta name="google-site-verification" content="pomXU4nkD8bOvThHT5IssaCXE9geVRjGa8N2xH4CkBk">';
+  assert.equal(html.split(verificationTag).length - 1, 1);
+  assert.ok(html.indexOf(verificationTag) < html.indexOf("</head>"));
+});
+
 test("l’anteprima sociale è un PNG pubblico nelle dimensioni dichiarate", () => {
   const image = readFileSync(new URL("../site/assets/cf-ready-app-preview.png", import.meta.url));
   assert.equal(image.subarray(1, 4).toString("ascii"), "PNG");
