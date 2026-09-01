@@ -3398,7 +3398,9 @@ in un denominatore artificiale e restano coperti dai relativi test di contratto,
 build, smoke e readback.
 
 La seconda PR del programma ha chiuso e attivato il 100% per file del bundle
-Shopify Validation Function; le altre soglie assolute restano progressive.
+Shopify Validation Function. La terza ha chiuso il dominio webhook sopra il 95%
+in tutte le metriche e ha attivato un mutation score minimo dell'80% quando il
+dominio o i suoi test cambiano; le altre soglie assolute restano progressive.
 
 ### 23.1.1 Gate per tipo di modifica
 
@@ -3553,6 +3555,34 @@ Testare tutte le nove combinazioni CF × PEC e due errori simultanei.
 - SQL injection;
 - log privi di valori fiscali;
 - reset CLI rifiutato in `prod`.
+
+La matrice canonica degli esiti webhook è la seguente. Le risposte ritentabili
+non nascondono un errore operativo con un `200`; gli errori applicativi non
+ritentabili e i contesti amministrativi assenti restano invece fail-open per non
+bloccare vendite legittime.
+
+| Confine o stato | Risposta/azione | Stato canonico | Retry o effetto |
+|---|---|---|---|
+| metodo diverso da `POST` | `405` prima di leggere il corpo | nessun claim | nessuno |
+| HMAC non valido | `401` | nessun claim | Shopify può ritentare |
+| header o JSON incompleto | `400` | nessun claim | consegna rifiutata |
+| corpo oltre 2 MiB dichiarati o reali | `413`, stream cancellato | nessun claim | consegna rifiutata |
+| nuova consegna valida | enqueue e `200` | `processing`, claim univoco | consumer asincrono |
+| coda assente o enqueue fallito | `500` | nessun claim o `failed` con codice stabile | Shopify ritenta |
+| duplicato `processing` non scaduto | `500` senza secondo job | claim originale invariato | Shopify ritenta |
+| duplicato `processed` | `200` senza secondo job | `processed` invariato | nessuno |
+| claim `processing` scaduto | nuovo token | `processing` | un solo consumer torna proprietario |
+| consumer con errore transitorio | retry coda a 10 secondi | `processing` | DLQ a 60 secondi |
+| DLQ oltre due tentativi | evento `webhook_failed` e ack | `failed`, `queue_retries_exhausted` | nessuno; D1 indisponibile ritenta |
+| claim perso durante handler/finalizzazione | eccezione `webhook_claim_lost` | non sovrascritto | coda ritenta |
+| `APP_UNINSTALLED` senza timestamp valido | `500` prima del claim | nessun claim | Shopify ritenta |
+| disinstallazione di installazione precedente | nessuna mutazione della reinstallazione | `processed` | fail-open |
+| scope senza sessione offline o payload scope assente | nessuna scrittura sessione | `processed` | fail-open |
+| redazione shop con installazione attiva | evento `shop_redact_skipped` | `processed` | nessuna cancellazione |
+| richiesta o redazione customer | evento `compliance_acknowledged` | `processed` | nessun dato cliente conservato |
+| update shop/billing senza contesto admin | evento `*_update_skipped` | `processed` | fail-open |
+| riconciliazione shop/billing ritentabile | eccezione con codice stabile | `processing` | coda ritenta |
+| riconciliazione non ritentabile | evento `shop_updated`/`billing_updated` | `processed` | fail-open controllato |
 
 ### 23.10 UI/E2E
 

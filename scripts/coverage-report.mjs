@@ -79,6 +79,12 @@ export function coverageState({ globalMap, functionMap, sources, policy, reposit
   }
 
   const functionFiles = policy.functionBundle.map(normalizeCoveragePath);
+  const domainMaps = Object.fromEntries(
+    Object.entries(policy.targets.criticalDomains.domains ?? {}).map(([domain, target]) => [
+      domain,
+      selectCoverageMap(globalMap, target.files.map(normalizeCoveragePath), repositoryRoot),
+    ]),
+  );
   const groupMaps = Object.fromEntries(
     COVERAGE_GROUPS.map((group) => [
       group,
@@ -98,6 +104,9 @@ export function coverageState({ globalMap, functionMap, sources, policy, reposit
     global: coverageSummary(globalMap),
     groups: Object.fromEntries(
       COVERAGE_GROUPS.map((group) => [group, coverageSummary(groupMaps[group])]),
+    ),
+    domains: Object.fromEntries(
+      Object.entries(domainMaps).map(([domain, map]) => [domain, coverageSummary(map)]),
     ),
     functionFiles: Object.fromEntries(
       functionFiles.map((file) => [
@@ -128,6 +137,18 @@ export function targetFailures(state, policy) {
       }
     }
   }
+  if (policy.targets.criticalDomains.active) {
+    for (const [domain, target] of Object.entries(policy.targets.criticalDomains.domains ?? {})) {
+      if (target.coverageActive === false) continue;
+      failures.push(
+        ...metricFailures(
+          state.domains[domain],
+          target.minimum ?? policy.targets.criticalDomains.minimum,
+          `domain.${domain}`,
+        ),
+      );
+    }
+  }
   return failures;
 }
 
@@ -150,6 +171,11 @@ export function baselineFailures(current, committed, previous) {
   compare(current.global, previous.global, "global");
   for (const group of COVERAGE_GROUPS) {
     compare(current.groups[group], previous.groups[group], group);
+  }
+  for (const domain of Object.keys(current.domains ?? {})) {
+    if (previous.domains?.[domain]) {
+      compare(current.domains[domain], previous.domains[domain], `domain.${domain}`);
+    }
   }
   return failures;
 }
