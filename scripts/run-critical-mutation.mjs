@@ -20,12 +20,23 @@ export async function runCriticalMutation(
   return results;
 }
 
+export function selectCriticalMutationDomains(domainName, domains = CRITICAL_MUTATION_DOMAINS) {
+  if (!domainName) return domains;
+  if (!domains.includes(domainName)) {
+    throw new Error(`Dominio mutation non configurato: ${domainName}`);
+  }
+  return [domainName];
+}
+
 export async function runCriticalMutationIfDirect(
   moduleUrl,
   executablePath,
   runner = runCriticalMutation,
+  domainName = process.env.CRITICAL_MUTATION_DOMAIN,
 ) {
-  if (executablePath && moduleUrl === pathToFileURL(executablePath).href) await runner();
+  if (executablePath && moduleUrl === pathToFileURL(executablePath).href) {
+    await runner(undefined, undefined, selectCriticalMutationDomains(domainName));
+  }
 }
 
 await runCriticalMutationIfDirect(import.meta.url, process.argv[1]);

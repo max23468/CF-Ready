@@ -22,7 +22,11 @@ import {
   trackedCoverageSources,
 } from "./coverage-scope.mjs";
 import { runWebhookMutation } from "./run-webhook-mutation.mjs";
-import { runCriticalMutation, runCriticalMutationIfDirect } from "./run-critical-mutation.mjs";
+import {
+  runCriticalMutation,
+  runCriticalMutationIfDirect,
+  selectCriticalMutationDomains,
+} from "./run-critical-mutation.mjs";
 
 const { createCoverageMap, createFileCoverage } = coverageLibrary;
 
@@ -147,7 +151,7 @@ test("il launcher mutation carica esplicitamente core e runner Vitest", async ()
 
 test("il launcher mutation esegue soltanto il proprio entrypoint", async () => {
   const calls = [];
-  const runner = async () => calls.push("eseguito");
+  const runner = async (_StrykerClass, _plugins, domains) => calls.push(domains);
   await runCriticalMutationIfDirect(
     "file:///workspace/scripts/run-critical-mutation.mjs",
     "/workspace/scripts/altro.mjs",
@@ -157,13 +161,24 @@ test("il launcher mutation esegue soltanto il proprio entrypoint", async () => {
     "file:///workspace/scripts/run-critical-mutation.mjs",
     "/workspace/scripts/run-critical-mutation.mjs",
     runner,
+    "validation",
   );
   await runCriticalMutationIfDirect(
     "file:///workspace/scripts/run-critical-mutation.mjs",
     undefined,
     runner,
   );
-  assert.deepEqual(calls, ["eseguito"]);
+  assert.deepEqual(calls, [["validation"]]);
+  assert.deepEqual(selectCriticalMutationDomains(undefined), [
+    "billing",
+    "validation",
+    "ownerNotifications",
+  ]);
+  assert.deepEqual(selectCriticalMutationDomains("billing"), ["billing"]);
+  assert.throws(
+    () => selectCriticalMutationDomains("inesistente"),
+    /Dominio mutation non configurato/,
+  );
 });
 
 test("billing, Validation e notifiche mantengono gate coverage e mutation separati", async () => {

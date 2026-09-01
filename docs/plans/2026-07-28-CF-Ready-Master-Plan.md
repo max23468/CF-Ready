@@ -3403,7 +3403,8 @@ in tutte le metriche. La quarta ha applicato lo stesso gate separatamente a
 billing, Validation e notifiche owner, includendo trial, pagamento unico,
 entitlement incerto, geografia e readback Shopify/D1. Per tutti questi domini la
 CI richiede anche un mutation score minimo dell'80% quando il dominio o i suoi
-test cambiano; le altre soglie assolute restano progressive.
+test cambiano. I tre gate mutation girano come job paralleli indipendenti e
+pubblicano un report per dominio; le altre soglie assolute restano progressive.
 
 ### 23.1.1 Gate per tipo di modifica
 
