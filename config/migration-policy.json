@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "migrations": [
+    {
+      "name": "0001_initial.sql",
+      "sha256": "4648c22de53a06cec5a304ac9e52f88012bada8769a93e8656a1e66c1f0faabe",
+      "protects": ["shop identity", "encrypted Shopify sessions", "foreign-key cascade"]
+    },
+    {
+      "name": "0002_validation_operation_locks.sql",
+      "sha256": "a8309b098f3f53ae49fe0e3652c090586b6b035142f25a986c9fcde1aaad47e6",
+      "protects": ["single Validation operation lease"]
+    },
+    {
+      "name": "0003_app_state_webhooks_events.sql",
+      "sha256": "8be8029f533ec9b8762cdd583fe366974db37d24fa0268a4b5dd930b71ca99db",
+      "protects": ["Validation operational state", "webhook outcome", "application event chronology"]
+    },
+    {
+      "name": "0004_trials.sql",
+      "sha256": "bc2f58ed7db63e87853e7352bd07d7b3ff792d637a5e48e74aeb28aed0664662",
+      "protects": ["trial lifecycle"]
+    },
+    {
+      "name": "0005_trial_ledger.sql",
+      "sha256": "c19e6ad6a89329ae3b921a0bba53cb6fa07dc313c3e9eedfb1455b024773dd3f",
+      "protects": ["minimized trial reuse ledger"]
+    },
+    {
+      "name": "0006_billing.sql",
+      "sha256": "61dcb0be43280d4b199701f06d7fe32e8abac5f76de5f0dbbfa62ccc746606f5",
+      "protects": ["Shopify billing readback", "billing event deduplication"]
+    },
+    {
+      "name": "0007_onboarding.sql",
+      "sha256": "bd72cc730a37729b9752ec6438810dd67fa4e4f5c2a462d3f1f71b463b66bd68",
+      "protects": ["onboarding progress", "merchant address conflict declaration"]
+    },
+    {
+      "name": "0008_webhook_claim_ownership.sql",
+      "sha256": "0c2f77c56add5372e5ba215e70338f8c6af65150a086ed27abe7d10d0024c26a",
+      "protects": ["webhook claim ownership", "webhook event idempotency"]
+    },
+    {
+      "name": "0009_shop_retention.sql",
+      "sha256": "96743d14da6e504c7bb975bb4654aa27f9a39963d67c9c958d4ddcc4dc9a6af3",
+      "protects": ["uninstalled shop retention scan"]
+    },
+    {
+      "name": "0010_privacy_hardening.sql",
+      "sha256": "841539e0926689829f8f66f4b8d88768c4fa9c2c0c37869d267cb6c7003bbb00",
+      "protects": ["trial ledger purge", "online user identifier removal", "retention indexes"]
+    },
+    {
+      "name": "0011_owner_notifications.sql",
+      "sha256": "8e15762f27c0c3b9b1dd997ef26a5759611ee556d1557fd52da943cf3e24cd21",
+      "protects": ["owner notification outbox", "notification redaction", "previous billing state"]
+    },
+    {
+      "name": "0012_complimentary_entitlements.sql",
+      "sha256": "7cf0911fe3aad02b620372008d7efa6e7cdeaff69a4137721428e15ccf473e0a",
+      "protects": ["complimentary entitlement audit"]
+    },
+    {
+      "name": "0013_performance_samples.sql",
+      "sha256": "1659ca5e24f946eed571f14cc510463b35b14a9e70e13585b17bfbc309e64b6d",
+      "protects": ["minimized Web Vitals samples", "performance sample deduplication"]
+    },
+    {
+      "name": "0014_validation_state_revision.sql",
+      "sha256": "c378f39c4469c12b24cef0f7c828b74764a7701a0bfbabfca72a62dcede16171",
+      "protects": ["monotonic Validation fence"]
+    },
+    {
+      "name": "0015_owner_notification_details.sql",
+      "sha256": "8ad25af6c1a8807376d9f9f6f1d65e125b462f8493cac96063531336ba9bb833",
+      "protects": ["public shop name for owner notifications"]
+    }
+  ]
+}
