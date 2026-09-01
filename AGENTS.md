@@ -151,7 +151,11 @@ rilettura finale di PR, check, deploy, release e stato Git non sono completi.
   recupero manuale è ammesso senza ricevuta per una promozione `main` dichiarata
   senza deploy, soltanto se il merge non cambia il tree del parent `develop` e
   il branch corrente ne è un avanzamento lineare; il commit risultante conserva
-  il tree corrente di `develop` e non modifica provider.
+  il tree corrente di `develop` e non modifica provider. L'avvio manuale del
+  workflow dichiara obbligatoriamente `deploy-retry` oppure
+  `no-deploy-promotion`: la prima modalità verifica sempre la ricevuta, anche
+  nel recupero avanzato; la seconda termina senza scrivere se il parent promosso
+  è ancora l'HEAD di `develop`.
 - La ricevuta di deploy è l'unico dato che nasce dopo il merge e non apre PR:
   il workflow la conserva come artifact JSON legato a commit e tree; quella
   Production è anche attestata. Le PR di chiusura collegano queste prove senza
