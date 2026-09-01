@@ -113,6 +113,16 @@ test("il target canonico della Validation Function resta attivo al 100% per file
   ]);
 });
 
+test("il gruppo operativo mantiene il gate canonico al 90%", () => {
+  const repositoryPolicy = JSON.parse(
+    readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),
+  );
+  assert.deepEqual(repositoryPolicy.targets.groups.operations, {
+    minimum: 90,
+    active: true,
+  });
+});
+
 test("il dominio webhook mantiene coverage e mutation gate canonici", async () => {
   const repositoryPolicy = JSON.parse(
     readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),

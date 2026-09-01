@@ -3439,6 +3439,12 @@ La quinta PR rende inoltre bloccante il registro append-only delle quindici
 migrazioni e la relativa matrice D1: snapshot intermedi, dati preservati, purge
 privacy intenzionale, vincoli, indici, sequenza completa e secondo passaggio
 idempotente sono provati senza includere SQL nel denominatore della coverage.
+La sesta PR porta inoltre il gruppo operativo sopra il 90% in tutte le metriche
+e ne attiva il gate. I test attraversano i veri entrypoint in subprocess con
+filesystem, tempo, ambiente, comandi CLI e API provider sintetici: coprono
+successi e fallimenti di preflight, backup, ricevute, riconciliazione e policy
+CI senza contattare Shopify, Cloudflare o GitHub. Smoke e readback Development
+restano prove provider separate e non vengono sostituiti dalla coverage locale.
 
 ### 23.1.1 Gate per tipo di modifica
 
