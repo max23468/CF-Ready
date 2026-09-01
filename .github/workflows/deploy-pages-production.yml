@@ -148,7 +148,15 @@ jobs:
             sleep 3
           done
           test "$published" = true
-          for route in / /privacy /terms /support /en/ /en/privacy /en/terms /en/support; do
+          for route in / /privacy /terms /support /en/ /en/privacy /en/terms /en/support \
+            /guide/codice-fiscale-obbligatorio-shopify \
+            /guide/campi-fiscali-shopify-codice-fiscale-pec \
+            /guide/indirizzo-2-codice-fiscale-shopify \
+            /guide/validazione-codice-fiscale-shopify \
+            /en/guides/required-codice-fiscale-shopify-checkout \
+            /en/guides/shopify-italian-tax-fields-codice-fiscale-pec \
+            /en/guides/address-2-codice-fiscale-shopify \
+            /en/guides/validate-codice-fiscale-shopify; do
             effective_url="$(curl --fail --silent --show-error --location --max-redirs 5 --max-time 15 \
               --header "Cache-Control: no-cache" \
               --output /dev/null --write-out '%{url_effective}' \
@@ -158,11 +166,57 @@ jobs:
           curl --fail --silent --show-error --location --max-redirs 5 --max-time 15 \
             --header "Cache-Control: no-cache" \
             --dump-header "$RUNNER_TEMP/pages-headers.txt" \
-            --output /dev/null "https://$PAGES_DOMAIN/?commit=$GITHUB_SHA"
+            --output "$RUNNER_TEMP/home.html" "https://$PAGES_DOMAIN/?commit=$GITHUB_SHA"
           for header in content-security-policy referrer-policy x-content-type-options permissions-policy; do
             grep --ignore-case --quiet "^$header:" "$RUNNER_TEMP/pages-headers.txt"
           done
-          echo "- Smoke pubblico: otto URL e header di sicurezza verificati" >> "$GITHUB_STEP_SUMMARY"
+          grep -Fq '<link rel="canonical" href="https://cf-ready.pages.dev/">' "$RUNNER_TEMP/home.html"
+          grep -Fq '<link rel="alternate" hreflang="x-default" href="https://cf-ready.pages.dev/">' "$RUNNER_TEMP/home.html"
+          grep -Fq '<meta property="og:image" content="https://cf-ready.pages.dev/assets/cf-ready-app-preview.png">' "$RUNNER_TEMP/home.html"
+          grep -Fq '"@type":"WebSite"' "$RUNNER_TEMP/home.html"
+          curl --fail --silent --show-error --location --max-redirs 5 --max-time 15 \
+            --header "Cache-Control: no-cache" \
+            --output "$RUNNER_TEMP/guide-it.html" \
+            "https://$PAGES_DOMAIN/guide/codice-fiscale-obbligatorio-shopify?commit=$GITHUB_SHA"
+          grep -Fq '<link rel="canonical" href="https://cf-ready.pages.dev/guide/codice-fiscale-obbligatorio-shopify">' "$RUNNER_TEMP/guide-it.html"
+          grep -Fq '<link rel="alternate" hreflang="en" href="https://cf-ready.pages.dev/en/guides/required-codice-fiscale-shopify-checkout">' "$RUNNER_TEMP/guide-it.html"
+          grep -Fq '"@type":"BreadcrumbList"' "$RUNNER_TEMP/guide-it.html"
+          curl --fail --silent --show-error --location --max-redirs 5 --max-time 15 \
+            --header "Cache-Control: no-cache" \
+            --output "$RUNNER_TEMP/guide-en.html" \
+            "https://$PAGES_DOMAIN/en/guides/required-codice-fiscale-shopify-checkout?commit=$GITHUB_SHA"
+          grep -Fq '<link rel="canonical" href="https://cf-ready.pages.dev/en/guides/required-codice-fiscale-shopify-checkout">' "$RUNNER_TEMP/guide-en.html"
+          grep -Fq '<link rel="alternate" hreflang="it" href="https://cf-ready.pages.dev/guide/codice-fiscale-obbligatorio-shopify">' "$RUNNER_TEMP/guide-en.html"
+          grep -Fq '"@type":"BreadcrumbList"' "$RUNNER_TEMP/guide-en.html"
+          curl --fail --silent --show-error --max-time 15 \
+            --header "Cache-Control: no-cache" \
+            --dump-header "$RUNNER_TEMP/social-image-headers.txt" \
+            --output /dev/null \
+            "https://$PAGES_DOMAIN/assets/cf-ready-app-preview.png?commit=$GITHUB_SHA"
+          grep --ignore-case --quiet '^content-type:.*image/png' "$RUNNER_TEMP/social-image-headers.txt"
+          curl --fail --silent --show-error --max-time 15 \
+            --header "Cache-Control: no-cache" \
+            --dump-header "$RUNNER_TEMP/robots-headers.txt" \
+            --output "$RUNNER_TEMP/robots.txt" \
+            "https://$PAGES_DOMAIN/robots.txt?commit=$GITHUB_SHA"
+          grep --ignore-case --quiet '^content-type:.*text/plain' "$RUNNER_TEMP/robots-headers.txt"
+          grep -Fxq 'Sitemap: https://cf-ready.pages.dev/sitemap.xml' "$RUNNER_TEMP/robots.txt"
+          cmp --silent site/robots.txt "$RUNNER_TEMP/robots.txt"
+          curl --fail --silent --show-error --max-time 15 \
+            --header "Cache-Control: no-cache" \
+            --dump-header "$RUNNER_TEMP/sitemap-headers.txt" \
+            --output "$RUNNER_TEMP/sitemap.xml" \
+            "https://$PAGES_DOMAIN/sitemap.xml?commit=$GITHUB_SHA"
+          grep --ignore-case --quiet '^content-type:.*application/xml' "$RUNNER_TEMP/sitemap-headers.txt"
+          grep --quiet '<loc>https://cf-ready.pages.dev/</loc>' "$RUNNER_TEMP/sitemap.xml"
+          cmp --silent site/sitemap.xml "$RUNNER_TEMP/sitemap.xml"
+          not_found_status="$(curl --silent --show-error --max-time 15 \
+            --header "Cache-Control: no-cache" \
+            --output "$RUNNER_TEMP/not-found.html" --write-out '%{http_code}' \
+            "https://$PAGES_DOMAIN/this-page-must-not-exist-$GITHUB_SHA")"
+          test "$not_found_status" = "404"
+          grep --quiet '<meta name="robots" content="noindex">' "$RUNNER_TEMP/not-found.html"
+          echo "- Smoke pubblico: sedici URL, canonical e lingue, dati strutturati, anteprima social, sitemap, robots, 404 e header di sicurezza verificati" >> "$GITHUB_STEP_SUMMARY"
           # Le regole di _headers diventano effettive all'edge con un ritardo proprio,
           # indipendente dalla propagazione del contenuto già attesa sopra: il primo
           # documento si aspetta, gli altri tre sono verificati subito dopo.

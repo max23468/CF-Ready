@@ -125,6 +125,38 @@ test("valida i link nei file HTML senza distinzione di maiuscole", () => {
   }
 });
 
+test("risolve gli URL di directory HTML sul relativo index", () => {
+  const repository = mkdtempSync(join(tmpdir(), "cf-ready-docs-"));
+  try {
+    execFileSync("git", ["init", "-q"], { cwd: repository });
+    mkdirSync(join(repository, "site/guide"), { recursive: true });
+    writeFileSync(join(repository, "package.json"), '{"scripts":{}}');
+    writeFileSync(join(repository, "site/index.html"), '<section id="guide"></section>');
+    writeFileSync(join(repository, "site/guide/example.html"), '<a href="../#guide">Guide</a>');
+    execFileSync("git", ["add", "."], { cwd: repository });
+
+    assert.deepEqual(checkDocs(repository).errors, []);
+  } finally {
+    rmSync(repository, { force: true, recursive: true });
+  }
+});
+
+test("risolve gli URL root-relative HTML dalla radice del sito statico", () => {
+  const repository = mkdtempSync(join(tmpdir(), "cf-ready-docs-"));
+  try {
+    execFileSync("git", ["init", "-q"], { cwd: repository });
+    mkdirSync(join(repository, "site/assets"), { recursive: true });
+    writeFileSync(join(repository, "package.json"), '{"scripts":{}}');
+    writeFileSync(join(repository, "site/assets/icon.svg"), '<svg id="icon"></svg>');
+    writeFileSync(join(repository, "site/404.html"), '<img src="/assets/icon.svg#icon">');
+    execFileSync("git", ["add", "."], { cwd: repository });
+
+    assert.deepEqual(checkDocs(repository).errors, []);
+  } finally {
+    rmSync(repository, { force: true, recursive: true });
+  }
+});
+
 test("ignora il vecchio percorso di un documento rinominato ma non staged", () => {
   const repository = mkdtempSync(join(tmpdir(), "cf-ready-docs-"));
   try {
@@ -188,6 +220,147 @@ test("la CSP consente beacon e raccolta Cloudflare Web Analytics", () => {
   const headers = readFileSync(new URL("../site/_headers", import.meta.url), "utf8");
   assert.match(headers, /script-src .*https:\/\/static\.cloudflareinsights\.com/);
   assert.match(headers, /connect-src .*https:\/\/cloudflareinsights\.com/);
+});
+
+const indexableSitePages = new Map([
+  ["site/index.html", "https://cf-ready.pages.dev/"],
+  ["site/en/index.html", "https://cf-ready.pages.dev/en/"],
+  ["site/support.html", "https://cf-ready.pages.dev/support"],
+  ["site/en/support.html", "https://cf-ready.pages.dev/en/support"],
+  [
+    "site/guide/codice-fiscale-obbligatorio-shopify.html",
+    "https://cf-ready.pages.dev/guide/codice-fiscale-obbligatorio-shopify",
+  ],
+  [
+    "site/en/guides/required-codice-fiscale-shopify-checkout.html",
+    "https://cf-ready.pages.dev/en/guides/required-codice-fiscale-shopify-checkout",
+  ],
+  [
+    "site/guide/campi-fiscali-shopify-codice-fiscale-pec.html",
+    "https://cf-ready.pages.dev/guide/campi-fiscali-shopify-codice-fiscale-pec",
+  ],
+  [
+    "site/en/guides/shopify-italian-tax-fields-codice-fiscale-pec.html",
+    "https://cf-ready.pages.dev/en/guides/shopify-italian-tax-fields-codice-fiscale-pec",
+  ],
+  [
+    "site/guide/indirizzo-2-codice-fiscale-shopify.html",
+    "https://cf-ready.pages.dev/guide/indirizzo-2-codice-fiscale-shopify",
+  ],
+  [
+    "site/en/guides/address-2-codice-fiscale-shopify.html",
+    "https://cf-ready.pages.dev/en/guides/address-2-codice-fiscale-shopify",
+  ],
+  [
+    "site/guide/validazione-codice-fiscale-shopify.html",
+    "https://cf-ready.pages.dev/guide/validazione-codice-fiscale-shopify",
+  ],
+  [
+    "site/en/guides/validate-codice-fiscale-shopify.html",
+    "https://cf-ready.pages.dev/en/guides/validate-codice-fiscale-shopify",
+  ],
+]);
+
+test("le pagine indicizzabili dichiarano canonical, lingue e metadati sociali", () => {
+  for (const [path, canonical] of indexableSitePages) {
+    const html = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+    assert.match(html, /<title>[^<]+<\/title>/, path);
+    assert.match(html, /<meta name="description" content="[^"]+">/, path);
+    assert.match(html, /<h1(?: class="[^"]+")?>[^<]+<\/h1>/, path);
+    assert.match(html, new RegExp(`<link rel="canonical" href="${canonical}">`), path);
+    for (const language of ["it", "en", "x-default"]) {
+      assert.match(html, new RegExp(`<link rel="alternate" hreflang="${language}"`), path);
+    }
+    assert.match(html, /<meta property="og:title"/, path);
+    assert.match(html, /<meta property="og:url"/, path);
+    assert.match(
+      html,
+      /<meta property="og:image" content="https:\/\/cf-ready\.pages\.dev\/assets\/cf-ready-app-preview\.png">/,
+      path,
+    );
+    assert.match(html, /<meta property="og:image:type" content="image\/png">/, path);
+    assert.match(html, /<meta property="og:image:width" content="1600">/, path);
+    assert.match(html, /<meta property="og:image:height" content="900">/, path);
+    assert.match(html, /<meta property="og:image:alt" content="[^"]+">/, path);
+    assert.match(html, /<meta name="twitter:card" content="summary_large_image">/, path);
+    assert.match(
+      html,
+      /<meta name="twitter:image" content="https:\/\/cf-ready\.pages\.dev\/assets\/cf-ready-app-preview\.png">/,
+      path,
+    );
+    assert.equal([...html.matchAll(/<h1(?:\s|>)/g)].length, 1, path);
+  }
+});
+
+test("l’anteprima sociale è un PNG pubblico nelle dimensioni dichiarate", () => {
+  const image = readFileSync(new URL("../site/assets/cf-ready-app-preview.png", import.meta.url));
+  assert.equal(image.subarray(1, 4).toString("ascii"), "PNG");
+  assert.equal(image.readUInt32BE(16), 1600);
+  assert.equal(image.readUInt32BE(20), 900);
+});
+
+test("le schermate prodotto riservano lo spazio prima del caricamento", () => {
+  for (const path of ["site/index.html", "site/en/index.html"]) {
+    const html = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+    const screenshots = [...html.matchAll(/<img class="product-shot"[^>]+>/g)];
+    assert.equal(screenshots.length, 3, path);
+    for (const [tag] of screenshots) {
+      assert.match(tag, /width="1600"/, path);
+      assert.match(tag, /height="900"/, path);
+      assert.match(tag, /alt="[^"]+"/, path);
+    }
+  }
+});
+
+test("il menu calcola la sezione attiva nell’ordine del documento", () => {
+  const menu = readFileSync(new URL("../site/menu.js", import.meta.url), "utf8");
+  assert.match(menu, /compareDocumentPosition/);
+  assert.match(menu, /Node\.DOCUMENT_POSITION_FOLLOWING/);
+});
+
+test("le fasce senza titolo e il corpo delle guide usano contenitori non sezionanti", () => {
+  for (const path of ["site/index.html", "site/en/index.html"]) {
+    const html = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+    assert.match(html, /<div class="facts">/, path);
+    assert.doesNotMatch(html, /<section class="facts">/, path);
+  }
+
+  for (const path of [...indexableSitePages.keys()].filter((path) => path.includes("guide"))) {
+    const html = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+    assert.match(html, /<div class="divided article-section"><article/, path);
+    assert.doesNotMatch(html, /<section class="divided"><article/, path);
+  }
+});
+
+test("sitemap e robots espongono solo URL indicizzabili canonici", () => {
+  const sitemap = readFileSync(new URL("../site/sitemap.xml", import.meta.url), "utf8");
+  const robots = readFileSync(new URL("../site/robots.txt", import.meta.url), "utf8");
+  const locations = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
+  assert.deepEqual(locations, [...indexableSitePages.values()]);
+  assert.doesNotMatch(sitemap, /\/privacy|\/terms|\/404/);
+  assert.match(robots, /^User-agent: \*$/m);
+  assert.match(robots, /^Allow: \/$/m);
+  assert.match(robots, /^Sitemap: https:\/\/cf-ready\.pages\.dev\/sitemap\.xml$/m);
+});
+
+test("i dati strutturati restano verificabili e non inventano prezzo o recensioni", () => {
+  const home = readFileSync(new URL("../site/index.html", import.meta.url), "utf8");
+  assert.match(home, /"@type":"Organization"/);
+  assert.match(home, /"@type":"WebSite"/);
+  assert.doesNotMatch(home, /SoftwareApplication|aggregateRating|"offers"/);
+
+  for (const path of [...indexableSitePages.keys()].filter((path) => path.includes("guide"))) {
+    const html = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+    assert.match(html, /"@type":"BreadcrumbList"/, path);
+    assert.doesNotMatch(html, /SoftwareApplication|aggregateRating|"offers"/, path);
+  }
+});
+
+test("la pagina 404 è dedicata e fuori dall’indice", () => {
+  const notFound = readFileSync(new URL("../site/404.html", import.meta.url), "utf8");
+  assert.match(notFound, /<meta name="robots" content="noindex">/);
+  assert.match(notFound, /<title>Pagina non trovata — CF Ready<\/title>/);
+  assert.doesNotMatch(notFound, /rel="canonical"/);
 });
 
 test("non espone un comando locale per il deploy Pages Production", () => {
@@ -294,6 +467,14 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /grep -Fxq "\$GITHUB_SHA"/);
   assert.match(workflow, /--write-out '%\{url_effective\}'/);
   assert.match(workflow, /test "\$published" = true/);
+  assert.match(workflow, /robots\.txt/);
+  assert.match(workflow, /sitemap\.xml/);
+  assert.match(workflow, /cmp --silent site\/robots\.txt/);
+  assert.match(workflow, /cmp --silent site\/sitemap\.xml/);
+  assert.match(workflow, /og:image/);
+  assert.match(workflow, /BreadcrumbList/);
+  assert.match(workflow, /social-image-headers\.txt/);
+  assert.match(workflow, /test "\$not_found_status" = "404"/);
   assert(
     workflow.indexOf("Arma rollback Pages Production") <
       workflow.indexOf("wrangler pages deploy site"),
@@ -657,10 +838,11 @@ test("l'identità del titolare resta un segnaposto e i documenti legali non sono
     assert.equal(lines[index + 1], "X-Robots-Tag: noindex", `manca il noindex per ${route}`);
   }
 
-  // Il noindex vale solo dove compare il nome: la Home e l'assistenza restano indicizzabili.
+  // Il noindex vale sui documenti con l'identità e sulla risposta 404: Home,
+  // assistenza e guide restano indicizzabili.
   assert.deepEqual(
     lines.filter((line) => line.startsWith("/") && !line.startsWith("/*")),
-    ["/privacy*", "/terms*", "/en/privacy*", "/en/terms*"],
+    ["/privacy*", "/terms*", "/en/privacy*", "/en/terms*", "/404*"],
   );
 });
 
