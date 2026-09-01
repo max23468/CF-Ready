@@ -376,6 +376,13 @@ test("non espone un comando locale per il deploy Pages Production", () => {
   assert.equal(packageJson.scripts["site:deploy"], undefined);
 });
 
+test("la coverage Function non dipende dalla Shopify CLI del runner", () => {
+  const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  assert.match(packageJson.scripts["coverage:function"], /tests\/validation\.test\.ts/);
+  assert.doesNotMatch(packageJson.scripts["coverage:function"], /default\.test\.js/);
+  assert.match(packageJson.scripts["coverage:operations"], /^GITHUB_ACTIONS=true c8 /);
+});
+
 test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow", () => {
   const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const lockfile = JSON.parse(
@@ -655,6 +662,10 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   assert.match(ci, /needs\.lane\.outputs\.lane == 'standard'[\s\S]*npm run check:standard/);
   assert.match(ci, /needs\.lane\.outputs\.lane == 'full'[\s\S]*npm run check/);
   assert.match(ci, /lane == 'promotion'[\s\S]*node scripts\/github-gates\.mjs/);
+  assert.match(ci, /^  coverage:\n[\s\S]*timeout-minutes: 15/m);
+  assert.match(ci, /npm run coverage:check -- --base-sha/);
+  assert.match(ci, /name: coverage-\$\{\{ github\.sha \}\}/);
+  assert.match(ci, /include-hidden-files: true/);
   assert.match(doctor, /steps\.lane\.outputs\.react_doctor == 'true'/);
   assert.match(policy, /pull_request_target:/);
   assert.match(policy, /labeled, unlabeled/);
@@ -691,6 +702,7 @@ test("i deploy riusano i gate e conservano ricevute fuori dalle PR", () => {
   );
   for (const workflow of [development, production]) {
     assert.match(workflow, /REQUIRED_CHECKS:/);
+    assert.match(workflow, /REQUIRED_CHECKS: [^\n]*coverage/);
     assert.match(workflow, /node scripts\/github-gates\.mjs/);
     assert.doesNotMatch(workflow, /run: npm run check\s/);
     assert.match(workflow, /node scripts\/deploy-receipt\.mjs/);
@@ -787,7 +799,10 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.match(workflow, /required_status_checks/);
   assert.match(workflow, /rulesets="\$\(gh api/);
   assert.match(workflow, /ruleset="\$\(gh api/);
-  assert.match(workflow, /ci-policy,dependency-review,e2e,promotion-guard,react-doctor,verify/);
+  assert.match(
+    workflow,
+    /ci-policy,coverage,dependency-review,e2e,promotion-guard,react-doctor,verify/,
+  );
   assert.match(workflow, /gh workflow list --all/);
   assert.match(workflow, /workflows="\$\(gh workflow list/);
   assert.match(workflow, /test -n "\$workflows"/);

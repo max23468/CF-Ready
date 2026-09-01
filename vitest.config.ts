@@ -38,6 +38,11 @@ export default defineConfig({
   test: {
     include: ["tests/**/*.test.ts"],
     setupFiles: ["./tests/apply-migrations.ts"],
+    coverage: {
+      provider: "istanbul",
+      include: ["app/**/*.{ts,tsx}", "workers/**/*.ts"],
+      exclude: ["app/**/*.d.ts", "app/billing/types.ts", "app/i18n/types.ts"],
+    },
     // Ogni file avvia un pool Workers con D1 e compila gli import dinamici. Il parallelismo
     // tra file contende il cold start locale e può consumare il timeout prima delle assertion.
     fileParallelism: false,

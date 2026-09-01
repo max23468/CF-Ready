@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "metrics": ["statements", "branches", "functions", "lines"],
+  "targets": {
+    "global": {
+      "minimum": 95,
+      "active": false
+    },
+    "groups": {
+      "server-worker": {
+        "minimum": 90,
+        "active": false
+      },
+      "ui-routes": {
+        "minimum": 90,
+        "active": false
+      },
+      "function": {
+        "minimum": 100,
+        "perFile": true,
+        "active": false
+      },
+      "operations": {
+        "minimum": 90,
+        "active": false
+      },
+      "public-site": {
+        "minimum": 90,
+        "active": false
+      }
+    },
+    "criticalDomains": {
+      "minimum": 95,
+      "mutationScore": 80,
+      "active": false
+    }
+  },
+  "ratchet": {
+    "active": true,
+    "changedExecutableLines": 95
+  },
+  "nonExecutableSources": {
+    "app/app-bridge.d.ts": "Dichiarazioni TypeScript per App Bridge",
+    "app/billing/types.ts": "Sole dichiarazioni TypeScript del dominio billing",
+    "app/i18n/types.ts": "Sole dichiarazioni TypeScript dei messaggi",
+    "app/billing.server.ts": "Barrel di sole riesportazioni billing",
+    "app/validation.server.ts": "Barrel di sole riesportazioni Validation",
+    "extensions/cf-ready-validation/src/index.ts": "Barrel di sola riesportazione della Function"
+  },
+  "functionBundle": [
+    "extensions/cf-ready-validation/src/cart_validations_generate_run.ts",
+    "app/checkout-field-validation.ts"
+  ]
+}

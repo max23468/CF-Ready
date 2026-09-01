@@ -6,6 +6,7 @@ export const CI_POLICY_STATUS_CONTEXT = "ci-policy";
 const protectedPolicyFiles = new Set([
   ".npmrc",
   "doctor.config.json",
+  "config/coverage-policy.json",
   "react-router.config.ts",
   "tests/apply-migrations.ts",
   "tests/playwright.config.ts",
