@@ -3397,6 +3397,9 @@ la sostituisce. Le migrazioni SQL, i manifest, i workflow, HTML e CSS non entran
 in un denominatore artificiale e restano coperti dai relativi test di contratto,
 build, smoke e readback.
 
+La seconda PR del programma ha chiuso e attivato il 100% per file del bundle
+Shopify Validation Function; le altre soglie assolute restano progressive.
+
 ### 23.1.1 Gate per tipo di modifica
 
 | Corsia | Quando | Gate minimo |

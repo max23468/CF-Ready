@@ -81,6 +81,21 @@ function mapFor(repositoryRoot, files, hits = 1) {
   return map;
 }
 
+test("il target canonico della Validation Function resta attivo al 100% per file", () => {
+  const repositoryPolicy = JSON.parse(
+    readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),
+  );
+  assert.deepEqual(repositoryPolicy.targets.groups.function, {
+    minimum: 100,
+    perFile: true,
+    active: true,
+  });
+  assert.deepEqual(repositoryPolicy.functionBundle, [
+    "extensions/cf-ready-validation/src/cart_validations_generate_run.ts",
+    "app/checkout-field-validation.ts",
+  ]);
+});
+
 test("classifica ogni sorgente first-party in un solo gruppo canonico", () => {
   const files = [
     "app/shop.server.ts",
