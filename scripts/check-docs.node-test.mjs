@@ -380,6 +380,7 @@ test("la coverage Function non dipende dalla Shopify CLI del runner", () => {
   const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   assert.match(packageJson.scripts["coverage:function"], /tests\/validation\.test\.ts/);
   assert.doesNotMatch(packageJson.scripts["coverage:function"], /default\.test\.js/);
+  assert.match(packageJson.scripts["coverage:operations"], /^GITHUB_ACTIONS=true c8 /);
 });
 
 test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow", () => {
