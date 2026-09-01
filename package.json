@@ -48,7 +48,7 @@
     "test": "vitest run",
     "test:function": "npm test --workspace cf-ready-validation -- --run",
     "coverage:app": "vitest run --coverage --coverage.reporter=json --coverage.reportsDirectory=.coverage/app",
-    "coverage:function": "npm test --workspace cf-ready-validation -- --run --coverage --coverage.reporter=json --coverage.reportsDirectory=../../.coverage/function",
+    "coverage:function": "npm test --workspace cf-ready-validation -- --run tests/validation.test.ts --coverage --coverage.reporter=json --coverage.reportsDirectory=../../.coverage/function",
     "coverage:operations": "c8 --all --include 'app/routes.ts' --include 'scripts/**/*.mjs' --include 'site/**/*.js' --exclude 'scripts/*.node-test.mjs' --reporter=json --reports-dir=.coverage/operations node --test scripts/*.node-test.mjs",
     "coverage:collect": "npm run coverage:app && npm run coverage:function && npm run coverage:operations",
     "coverage:update": "npm run coverage:collect && node scripts/coverage-report.mjs --update-baseline",

@@ -376,6 +376,12 @@ test("non espone un comando locale per il deploy Pages Production", () => {
   assert.equal(packageJson.scripts["site:deploy"], undefined);
 });
 
+test("la coverage Function non dipende dalla Shopify CLI del runner", () => {
+  const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  assert.match(packageJson.scripts["coverage:function"], /tests\/validation\.test\.ts/);
+  assert.doesNotMatch(packageJson.scripts["coverage:function"], /default\.test\.js/);
+});
+
 test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow", () => {
   const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const lockfile = JSON.parse(
