@@ -57,12 +57,19 @@ export function checkDocs(repositoryRoot = root) {
       const rawLinkedFile = !path
         ? resolve(repositoryRoot, file)
         : path.startsWith("/")
-          ? resolve(repositoryRoot, `.${path}`)
+          ? resolve(
+              repositoryRoot,
+              extension === ".html" && file.startsWith("site/") ? `./site${path}` : `.${path}`,
+            )
           : resolve(repositoryRoot, dirname(file), path);
       const linkedFile =
-        extension === ".html" && !existsSync(rawLinkedFile) && existsSync(`${rawLinkedFile}.html`)
-          ? `${rawLinkedFile}.html`
-          : rawLinkedFile;
+        extension === ".html" && existsSync(resolve(rawLinkedFile, "index.html"))
+          ? resolve(rawLinkedFile, "index.html")
+          : extension === ".html" &&
+              !existsSync(rawLinkedFile) &&
+              existsSync(`${rawLinkedFile}.html`)
+            ? `${rawLinkedFile}.html`
+            : rawLinkedFile;
       if (relative(repositoryRoot, linkedFile).split(/[\\/]/)[0] === "..") {
         errors.push(`${file}: link locale fuori repository: ${path}`);
       } else if (!existsSync(linkedFile)) {
