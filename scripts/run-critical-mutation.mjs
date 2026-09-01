@@ -20,6 +20,12 @@ export async function runCriticalMutation(
   return results;
 }
 
-const isDirectExecution =
-  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
-if (isDirectExecution) await runCriticalMutation();
+export async function runCriticalMutationIfDirect(
+  moduleUrl,
+  executablePath,
+  runner = runCriticalMutation,
+) {
+  if (executablePath && moduleUrl === pathToFileURL(executablePath).href) await runner();
+}
+
+await runCriticalMutationIfDirect(import.meta.url, process.argv[1]);

@@ -22,7 +22,7 @@ import {
   trackedCoverageSources,
 } from "./coverage-scope.mjs";
 import { runWebhookMutation } from "./run-webhook-mutation.mjs";
-import { runCriticalMutation } from "./run-critical-mutation.mjs";
+import { runCriticalMutation, runCriticalMutationIfDirect } from "./run-critical-mutation.mjs";
 
 const { createCoverageMap, createFileCoverage } = coverageLibrary;
 
@@ -143,6 +143,27 @@ test("il launcher mutation carica esplicitamente core e runner Vitest", async ()
     runWebhookMutation(FakeStryker, []),
     /Plugin Vitest Stryker non disponibile/,
   );
+});
+
+test("il launcher mutation esegue soltanto il proprio entrypoint", async () => {
+  const calls = [];
+  const runner = async () => calls.push("eseguito");
+  await runCriticalMutationIfDirect(
+    "file:///workspace/scripts/run-critical-mutation.mjs",
+    "/workspace/scripts/altro.mjs",
+    runner,
+  );
+  await runCriticalMutationIfDirect(
+    "file:///workspace/scripts/run-critical-mutation.mjs",
+    "/workspace/scripts/run-critical-mutation.mjs",
+    runner,
+  );
+  await runCriticalMutationIfDirect(
+    "file:///workspace/scripts/run-critical-mutation.mjs",
+    undefined,
+    runner,
+  );
+  assert.deepEqual(calls, ["eseguito"]);
 });
 
 test("billing, Validation e notifiche mantengono gate coverage e mutation separati", async () => {
