@@ -740,7 +740,7 @@ test("il riallineamento develop è separato dal deploy e fallisce chiuso", () =>
     "utf8",
   );
   assert.match(workflow, /workflow_run:/);
-  assert.match(workflow, /workflows: \[Deploy Production\]/);
+  assert.match(workflow, /workflows: \[Deploy Production, Deploy Pages Production\]/);
   assert.match(workflow, /environment: Repository Governance/);
   assert.match(workflow, /actions: read/);
   assert.match(workflow, /SOURCE_DEPLOY_SHA: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
@@ -757,6 +757,7 @@ test("il riallineamento develop è separato dal deploy e fallisce chiuso", () =>
   assert.match(script, /mainTree !== developTree/);
   assert.match(script, /deploy-receipt-production-/);
   assert.match(script, /actions\/workflows\/deploy-production\.yml\/runs/);
+  assert.match(script, /actions\/workflows\/deploy-pages-production\.yml\/runs/);
   assert.match(script, /force: false/);
   assert.match(rulesetVerifier, /bypass_actors/);
   assert.match(script, /recover develop ancestry after main promotion/);

@@ -85,6 +85,33 @@ export function verifyProductionDeployment({ run, artifacts, expectedMain }) {
   }
 }
 
+export function verifyPagesDeployment({ run, expectedMain }) {
+  if (
+    run?.path !== ".github/workflows/deploy-pages-production.yml" ||
+    run.event !== "workflow_dispatch" ||
+    run.status !== "completed" ||
+    run.conclusion !== "success" ||
+    run.head_branch !== "main" ||
+    run.head_sha !== expectedMain
+  ) {
+    throw new Error(
+      "Il riallineamento richiede un deploy Pages Production verde dello stesso commit main.",
+    );
+  }
+}
+
+export function verifyReconciliationDeployment({ run, artifacts = [], expectedMain }) {
+  if (run?.path === ".github/workflows/deploy-production.yml") {
+    verifyProductionDeployment({ run, artifacts, expectedMain });
+    return;
+  }
+  if (run?.path === ".github/workflows/deploy-pages-production.yml") {
+    verifyPagesDeployment({ run, expectedMain });
+    return;
+  }
+  throw new Error("Il workflow sorgente non è un deploy riconosciuto.");
+}
+
 async function request(path, token, options = {}) {
   const response = await fetch(`https://api.github.com${path}`, {
     ...options,
@@ -156,22 +183,35 @@ async function main() {
         githubToken,
       );
     } else if (eventName === "workflow_dispatch") {
-      const runs = await request(
-        `/repos/${repository}/actions/workflows/deploy-production.yml/runs?branch=main&status=success&per_page=100`,
-        githubToken,
+      const [productionRuns, pagesRuns] = await Promise.all([
+        request(
+          `/repos/${repository}/actions/workflows/deploy-production.yml/runs?branch=main&status=success&per_page=100`,
+          githubToken,
+        ),
+        request(
+          `/repos/${repository}/actions/workflows/deploy-pages-production.yml/runs?branch=main&status=success&per_page=100`,
+          githubToken,
+        ),
+      ]);
+      sourceRun = [...productionRuns.workflow_runs, ...pagesRuns.workflow_runs].find(
+        ({ head_sha: headSha }) => headSha === expectedMain,
       );
-      sourceRun = runs.workflow_runs.find(({ head_sha: headSha }) => headSha === expectedMain);
     }
     if (!sourceRun) {
-      throw new Error("Nessun deploy Production verde trovato per il commit main corrente.");
+      throw new Error("Nessun deploy verde trovato per il commit main corrente.");
     }
-    const artifactResponse = await request(
-      `/repos/${repository}/actions/runs/${sourceRun.id}/artifacts?per_page=100`,
-      githubToken,
-    );
-    verifyProductionDeployment({
+    const artifacts =
+      sourceRun.path === ".github/workflows/deploy-production.yml"
+        ? (
+            await request(
+              `/repos/${repository}/actions/runs/${sourceRun.id}/artifacts?per_page=100`,
+              githubToken,
+            )
+          ).artifacts
+        : [];
+    verifyReconciliationDeployment({
       run: sourceRun,
-      artifacts: artifactResponse.artifacts,
+      artifacts,
       expectedMain,
     });
   } else {
