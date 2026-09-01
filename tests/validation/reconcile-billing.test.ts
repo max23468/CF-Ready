@@ -98,6 +98,57 @@ test("un errore durante il refresh della conversione billing resta ritentabile",
   expect(admin.calls).toEqual(["context", "billing", "billing"]);
 });
 
+test("una conversione scomparsa al readback non cancella risorse obsolete", async () => {
+  const shop = await insertShop("conversione-gia-risolta.example.myshopify.com");
+  const admin = adminStub([shopContext("IT", true), CONVERSIONE_UNA_TANTUM, SENZA_ADDEBITI]);
+  const state = await reconcile(admin, env.DB, shop);
+  expect(state.errorCode).toBeNull();
+  expect(state.retryable).toBe(false);
+  expect(admin.calls).toEqual(["context", "billing", "billing"]);
+});
+
+test("una conversione riuscita registra l'esito e rilegge il billing autorevole", async () => {
+  const shop = await insertShop("conversione-riuscita.example.myshopify.com");
+  const admin = adminStub([
+    shopContext("IT", true),
+    CONVERSIONE_UNA_TANTUM,
+    CONVERSIONE_UNA_TANTUM,
+    { data: { appSubscriptionCancel: { userErrors: [] } } },
+    SENZA_ADDEBITI,
+  ]);
+  try {
+    const state = await reconcile(admin, env.DB, shop);
+    expect(state.errorCode).toBeNull();
+    expect(state.retryable).toBe(false);
+    expect(admin.calls).toEqual(["context", "billing", "billing", "cancel", "billing"]);
+    expect(
+      await env.DB.prepare(
+        "SELECT event_name FROM app_events WHERE event_name = 'subscription_converted'",
+      ).first(),
+    ).toMatchObject({ event_name: "subscription_converted" });
+  } finally {
+    await clearBillingEvents(shop);
+  }
+});
+
+test("una cancellazione accettata ma ancora attiva al readback resta ritentabile", async () => {
+  const shop = await insertShop("conversione-readback-attivo.example.myshopify.com");
+  const admin = adminStub([
+    shopContext("IT", true),
+    CONVERSIONE_UNA_TANTUM,
+    CONVERSIONE_UNA_TANTUM,
+    { data: { appSubscriptionCancel: { userErrors: [] } } },
+    CONVERSIONE_UNA_TANTUM,
+  ]);
+  try {
+    const state = await reconcile(admin, env.DB, shop);
+    expect(state.errorCode).toBe("subscription_cancel_failed");
+    expect(state.retryable).toBe(true);
+  } finally {
+    await clearBillingEvents(shop);
+  }
+});
+
 test("una conversione billing bloccata resta ritentabile", async () => {
   const shop = await insertShop("conversione-bloccata.example.myshopify.com");
   const lockToken = await acquireValidationLock(env.DB, shop);

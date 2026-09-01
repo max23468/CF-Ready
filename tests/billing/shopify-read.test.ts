@@ -96,6 +96,32 @@ test("la lettura pagina tutti gli acquisti e riconosce quelli pendenti", async (
   expect(after).toEqual([null, "pagina-2"]);
 });
 
+test("una sottoscrizione senza pricing leggibile resta autorevole ma non inventa importi", async () => {
+  const billing = await readBilling(
+    { graphql: async () => Promise.reject(new Error("non deve interrogare Shopify")) },
+    {
+      activeSubscriptions: [
+        {
+          id: "gid://shopify/AppSubscription/senza-pricing",
+          name: "Piano storico",
+          status: "ACTIVE",
+          currentPeriodEnd: null,
+          lineItems: [],
+        },
+      ],
+      oneTimePurchases: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
+    },
+  );
+  expect(billing.subscription).toEqual({
+    id: "gid://shopify/AppSubscription/senza-pricing",
+    name: "Piano storico",
+    currentPeriodEnd: null,
+    interval: null,
+    amount: null,
+    currency: null,
+  });
+});
+
 test("la generazione cambia solo dopo una cessazione commerciale completa", async () => {
   const trial = {
     status: "expired" as const,
