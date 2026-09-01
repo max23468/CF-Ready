@@ -714,47 +714,54 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
 
 test("la scrittura non cancella né sostituisce un abbonamento attivo con l'omaggio", async () => {
   const shop = "write-complimentary.example.myshopify.com";
-  await seedShop(shop);
   const now = "2026-08-24T00:00:00.000Z";
-  await env.DB.prepare(
-    `INSERT INTO complimentary_entitlements
-       (shop_id, status, granted_at, revoked_at, created_at, updated_at)
-     SELECT id, 'active', ?, NULL, ?, ? FROM shops WHERE shop_domain = ?`,
-  )
-    .bind(now, now, now, shop)
-    .run();
-  const billing: ShopifyBilling = {
-    subscription: {
-      id: "gid://shopify/AppSubscription/write-complimentary",
-      name: "launch-monthly",
-      currentPeriodEnd: "2026-08-31T21:59:59Z",
-      interval: "EVERY_30_DAYS",
-      amount: "2.99",
-      currency: "EUR",
-    },
-    oneTime: null,
-    pendingOneTime: false,
-  };
-  const stub = stubAdmin({ existing: { enabled: true }, billing });
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date(now));
 
-  expect(
-    await writeValidation(
-      stub.admin,
-      env.DB,
-      shop,
-      {
-        rules: DEFAULT_CONFIG.rules,
-        errorDisplay: DEFAULT_CONFIG.errorDisplay,
-        messages: DEFAULT_CONFIG.messages,
+  try {
+    await seedShop(shop);
+    await env.DB.prepare(
+      `INSERT INTO complimentary_entitlements
+         (shop_id, status, granted_at, revoked_at, created_at, updated_at)
+       SELECT id, 'active', ?, NULL, ?, ? FROM shops WHERE shop_domain = ?`,
+    )
+      .bind(now, now, now, shop)
+      .run();
+    const billing: ShopifyBilling = {
+      subscription: {
+        id: "gid://shopify/AppSubscription/write-complimentary",
+        name: "launch-monthly",
+        currentPeriodEnd: "2026-08-31T21:59:59Z",
+        interval: "EVERY_30_DAYS",
+        amount: "2.99",
+        currency: "EUR",
       },
-      null,
-    ),
-  ).toEqual({ ok: true, enabled: true });
-  expect(stub.shopifyCalls).toEqual(["billing"]);
-  expect(stub.calls[0].config?.entitlement).toEqual({
-    kind: "subscription",
-    validThrough: "2026-08-31",
-  });
+      oneTime: null,
+      pendingOneTime: false,
+    };
+    const stub = stubAdmin({ existing: { enabled: true }, billing });
+
+    expect(
+      await writeValidation(
+        stub.admin,
+        env.DB,
+        shop,
+        {
+          rules: DEFAULT_CONFIG.rules,
+          errorDisplay: DEFAULT_CONFIG.errorDisplay,
+          messages: DEFAULT_CONFIG.messages,
+        },
+        null,
+      ),
+    ).toEqual({ ok: true, enabled: true });
+    expect(stub.shopifyCalls).toEqual(["billing"]);
+    expect(stub.calls[0].config?.entitlement).toEqual({
+      kind: "subscription",
+      validThrough: "2026-08-31",
+    });
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 test("un errore billing non impedisce di disattivare il controllo con un omaggio assegnato", async () => {

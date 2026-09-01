@@ -7,8 +7,25 @@
 <meta name="description" content="CF Ready rende obbligatorio il Codice Fiscale nel campo che Shopify già mostra nel checkout italiano, e ne controlla la forma prima che l’ordine si chiuda. Nessuna modifica al tema, 14 giorni di prova.">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
+<link rel="canonical" href="https://cf-ready.pages.dev/">
 <link rel="alternate" hreflang="it" href="https://cf-ready.pages.dev/">
 <link rel="alternate" hreflang="en" href="https://cf-ready.pages.dev/en/">
+<link rel="alternate" hreflang="x-default" href="https://cf-ready.pages.dev/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="it_IT">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:title" content="CF Ready — Codice Fiscale nel checkout Shopify">
+<meta property="og:description" content="Rendi obbligatori e controlla formalmente Codice Fiscale e PEC nei campi nativi del checkout italiano Shopify.">
+<meta property="og:url" content="https://cf-ready.pages.dev/">
+<meta property="og:site_name" content="CF Ready">
+<meta property="og:image" content="https://cf-ready.pages.dev/assets/cf-ready-app-preview.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1600">
+<meta property="og:image:height" content="900">
+<meta property="og:image:alt" content="La schermata Home di CF Ready con lo stato della configurazione Shopify">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://cf-ready.pages.dev/assets/cf-ready-app-preview.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://cf-ready.pages.dev/#organization","name":"Temisfera","url":"https://cf-ready.pages.dev/","brand":{"@type":"Brand","name":"CF Ready"}},{"@type":"WebSite","@id":"https://cf-ready.pages.dev/#website","url":"https://cf-ready.pages.dev/","name":"CF Ready","inLanguage":["it","en"],"publisher":{"@id":"https://cf-ready.pages.dev/#organization"}}]}</script>
 </head>
 <body id="top">
 
@@ -21,6 +38,7 @@
       <ul>
         <li><a href="#top">Home</a></li>
         <li><a href="#come-funziona">Come funziona</a></li>
+        <li><a href="#guide">Guide</a></li>
         <li><a href="#limiti">Limiti</a></li>
         <li><a href="#prezzo">Prova e prezzo</a></li>
         <li><a href="support">Assistenza</a></li>
@@ -68,13 +86,13 @@
     </div>
   </section>
 
-  <section class="facts">
+  <div class="facts">
     <div class="wrap">
       <p><strong>Il campo è quello di Shopify.</strong> Quello che il checkout italiano mostra già, non uno aggiunto da noi.</p>
       <p><strong>Il tema resta com’è.</strong> Nessun codice da incollare, nessuna estensione da installare.</p>
       <p><strong>Funziona sui piani standard.</strong> Basic, Grow, Advanced e Plus.</p>
     </div>
-  </section>
+  </div>
 
   <section>
     <div class="wrap column">
@@ -105,6 +123,32 @@
           <p>Da quel momento è Shopify a eseguire il controllo, a ogni checkout italiano. Non c’è niente da pubblicare e niente da toccare nel negozio.</p>
         </li>
       </ol>
+    </div>
+  </section>
+
+  <section class="divided" id="anteprima">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="label">Dentro l’app</span>
+        <h2>Guarda CF Ready prima di installarla</h2>
+        <p>Schermate reali dell’app nell’Admin Shopify: nessuna ricostruzione e nessun dato cliente.</p>
+      </div>
+      <div class="proof-grid">
+        <figure>
+          <img class="product-shot" src="assets/simulatore-checkout.webp" width="1600" height="900" loading="lazy" decoding="async" alt="Il simulatore di CF Ready mostra un checkout italiano bloccato da un Codice Fiscale non valido">
+          <figcaption>Prova le regole nel simulatore locale prima di attivarle nel checkout.</figcaption>
+        </figure>
+        <div class="proof-stack">
+          <figure>
+            <img class="product-shot" src="assets/regole-cf-pec.webp" width="1600" height="900" loading="lazy" decoding="async" alt="La pagina Regole checkout di CF Ready con impostazioni separate per Codice Fiscale e PEC">
+            <figcaption>Codice Fiscale e PEC hanno regole indipendenti: ignorato, facoltativo o obbligatorio.</figcaption>
+          </figure>
+          <figure>
+            <img class="product-shot" src="assets/home-stato.webp" width="1600" height="900" loading="lazy" decoding="async" alt="La Home di CF Ready mostra lo stato della validazione checkout e il prossimo passo">
+            <figcaption>La Home rende visibili stato, copertura e prossimo passo operativo.</figcaption>
+          </figure>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -239,6 +283,22 @@
     </div>
   </section>
 
+  <section class="divided" id="guide">
+    <div class="wrap wide-column">
+      <div class="section-head">
+        <span class="label">Guide pratiche</span>
+        <h2>Capire i campi fiscali del checkout Shopify</h2>
+        <p>Risposte dirette ai problemi più comuni, con i limiti formali e tecnici dichiarati.</p>
+      </div>
+      <ol class="guide-list">
+        <li><div><a href="guide/codice-fiscale-obbligatorio-shopify">Come rendere obbligatorio il Codice Fiscale nel checkout Shopify</a><p>Campo nativo, regola separata e comportamento in caso di errore.</p></div><span class="arrow" aria-hidden="true">→</span></li>
+        <li><div><a href="guide/campi-fiscali-shopify-codice-fiscale-pec">Quali sono i campi fiscali nativi italiani di Shopify</a><p>Codice Fiscale e PEC, senza aggiungere campi al tema.</p></div><span class="arrow" aria-hidden="true">→</span></li>
+        <li><div><a href="guide/indirizzo-2-codice-fiscale-shopify">Perché non usare “Interno” o “Indirizzo 2” per il Codice Fiscale</a><p>Duplicazioni, manutenzione e confusione nel checkout.</p></div><span class="arrow" aria-hidden="true">→</span></li>
+        <li><div><a href="guide/validazione-codice-fiscale-shopify">Cosa significa validare formalmente un Codice Fiscale</a><p>Formato, omocodia, date e confine con la verifica anagrafica.</p></div><span class="arrow" aria-hidden="true">→</span></li>
+      </ol>
+    </div>
+  </section>
+
   <section class="divided">
     <div class="wrap column faq">
       <span class="label">Domande</span>
@@ -296,6 +356,7 @@
       <li><a href="privacy">Privacy Policy</a></li>
       <li><a href="terms">Termini e condizioni</a></li>
       <li><a href="support">Assistenza</a></li>
+      <li><a href="#guide">Guide</a></li>
       <li><a class="lang" href="en/" lang="en">English</a></li>
     </ul>
     <p class="small">CF Ready è un’app di Temisfera. Shopify è un marchio di Shopify Inc., che non è affiliata a CF Ready né la sponsorizza.</p>
