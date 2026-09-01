@@ -45,7 +45,7 @@ jobs:
       - name: Riusa i gate dell'HEAD Development
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REQUIRED_CHECKS: verify,e2e
+          REQUIRED_CHECKS: verify,e2e,coverage
         run: node scripts/github-gates.mjs
 
       - name: Prepara versione Development per tree

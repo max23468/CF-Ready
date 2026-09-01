@@ -366,6 +366,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-138 | La pubblicazione verifica una volta ogni contenuto immutabile e ripete soltanto i gate dipendenti dallo stato remoto. La CI instrada corsie `docs`, `standard`, `full` e `promotion`; la promozione riusa provenienza e gate di `develop`; Development identifica lo snapshot con `X.Y.Z-dev.<tree>`; Production conserva una ricevuta JSON attestata; una GitHub App dedicata riallinea `develop` al merge commit Production solo con fast-forward e tree identico. Lo stesso riallineamento segue un deploy Pages Production verde dello stesso commit, dopo readback e smoke del workflow Pages. L'avvio manuale dichiara obbligatoriamente se è un retry con deploy, che verifica sempre la ricevuta anche nel recupero avanzato, oppure una promozione `main` esplicitamente priva di deploy. Quest'ultima termina senza scrivere se il parent promosso è ancora l'HEAD di `develop`; altrimenti può essere recuperata senza ricevuta soltanto con tree identico al parent, discendenza lineare del branch corrente e nuovo merge che ne conserva il tree. | Riduce installazioni browser, collisioni SemVer e PR prive di differenze senza riutilizzare prove provider: identità, schema Shopify, migrazioni, rollback, smoke e readback restano freschi. Il bypass del ruleset è limitato alla GitHub App di riallineamento e il workflow fallisce chiuso se parent, branch, tree, modalità o identità non coincidono; il recupero di sola ascendenza non modifica provider. Deciso il 27 agosto 2026, esteso il 29 agosto e il 1 settembre 2026. |
 | D-139 | La `1.1.0` unisce Support Link nativo verso la Guida, diagnostica D1 copiabile e minimizzata, report p75 aggregato su 28 giorni, telemetria allowlistata dell'esito Reviews API e simulatore locale in Regole checkout. | Migliora supporto, osservabilità e comprensione delle regole senza introdurre nuove fonti autorevoli o raccogliere contenuti merchant. Il simulatore usa gli stessi controlli formali e messaggi configurati, ma resta un'anteprima dichiarata e non un checkout Shopify reale. Deciso il 29 agosto 2026 e ampliato lo stesso giorno su richiesta dell'owner. |
 | D-140 | M12 include una corsia organica coordinata fra sito pubblico e listing: il sito intercetta ricerche informative con quattro guide bilingui e prove visive reali, la listing resta la superficie di installazione. Si misurano soltanto aggregati privacy-first; nessun tracker custom, contenuto ricorrente o outreach. | L'acquisizione contribuisce alle 50 installazioni nette richieste da Built for Shopify senza trasformare KPI locali in gate paralleli. Canonical, hreflang, sitemap, 404 reale e readback automatici rendono la superficie verificabile; dominio personalizzato e nuove pagine arrivano solo dopo trazione misurata. Deciso il 1º settembre 2026. |
+| D-141 | Portare progressivamente al 95% statement, rami, funzioni e linee dell'intero codice eseguibile first-party, con pavimento del 90% per server/Worker, UI/route, script operativi e JavaScript pubblico; il bundle first-party della Shopify Validation Function arriva al 100% per file. Il gate parte con inventario canonico, diff coverage al 95% e ratchet senza regressioni; le soglie assolute diventano bloccanti solo quando ciascuna corsia le raggiunge. | Un singolo dato sui soli moduli importati nasconde sorgenti mai caricati e permette compensazioni fra runtime. I report separati confluiscono per percorso senza doppio conteggio, mentre SQL, configurazioni e contenuti non eseguibili mantengono prove di contratto dedicate. Deciso il 1º settembre 2026. |
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
@@ -436,7 +437,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-112 | Tipografia: grottesco geometrico di sistema per sito e materiali, nessun webfont, nessun font dichiarato dentro l’Admin. Sigla e wordmark in tracciati derivati da Jost (SIL OFL), peso 500. | Zero richieste di rete e nessuna dipendenza da font installati. Jost al posto del Futura per licenza: il Futura è commerciale e distribuito in bundle con macOS. |
 | D-113 | Nessuna dark mode del sito pubblico nella 1.0. | Una superficie in meno da mantenere e verificare. Decisione indipendente da Shopify: al 28 luglio 2026 l’Admin non ha dark mode nativa e, usando solo token Polaris, l’app la seguirebbe comunque da sola. |
 | D-114 | Presentare l’icona della listing con la sigla `CF`, accettando la raccomandazione Shopify di evitare il testo nell’icona. | Raccomandazione nelle best practice, non criterio di rifiuto nei requisiti; i monogrammi di due lettere sono diffusi fra le app approvate. Variante senza sigla pronta come rimedio, attivabile senza nuova approvazione (§24.5). |
-| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate stabili `verify`, `react-doctor`, `dependency-review` ed `e2e` richiesti su `develop` e `main`; i gate attestano esplicitamente quando una corsia non è applicabile. La sola GitHub App di riallineamento può oltrepassare il ruleset `develop` per il fast-forward provato da D-138. Abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate applicabili e limita l'unico bypass automatico a un'identità e a un'operazione deterministica verificati. |
+| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate stabili `verify`, `coverage`, `react-doctor`, `dependency-review` ed `e2e` richiesti su `develop` e `main`; i gate attestano esplicitamente quando una corsia non è applicabile. La sola GitHub App di riallineamento può oltrepassare il ruleset `develop` per il fast-forward provato da D-138. Abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate applicabili e limita l'unico bypass automatico a un'identità e a un'operazione deterministica verificati. |
 | D-116 | Usare React Router `8.3.0` con npm 12 e correggere nel manifest root, tramite `packageExtensions`, la sola peer dependency troppo restrittiva di `@shopify/shopify-app-react-router@1.2.1`. | Elimina `GHSA-qwww-vcr4-c8h2` senza fork o installazioni forzate; il gate completo prova la compatibilità effettiva mentre l'estensione resta rimovibile appena Shopify pubblica metadati compatibili. |
 | D-117 | Usare React Doctor con dipendenza locale fissata nel lockfile e workflow GitHub sempre sulla versione `latest`: scansione completa bloccante nel gate locale e Action ufficiale bloccante dai warning sulle modifiche delle PR. Le PR pulite restano silenziose; un falso positivo viene notificato, soppresso nel modo nativo più stretto con motivazione committata e rieseguito senza bypass. Tenere attivi score e share URL, disabilitare il controllo supply-chain esterno. | Mantiene riproducibile la verifica locale e applica al gate remoto le correzioni più recenti di React Doctor, con feedback inline senza duplicare i controlli dipendenze già coperti da npm e GitHub. Lo score è indicativo e non decide l’esito, che dipende da `blocking: warning`. |
 | D-118 | Le PR ordinarie puntano a `develop` e usano squash; `main` accetta soltanto promozioni autorizzate da `develop`, unite con merge commit. La cancellazione automatica dei branch resta disattivata e i soli branch temporanei vengono eliminati esplicitamente. | Preserva l’ascendenza tra integrazione e Production, evita il drift strutturale causato da squash indipendenti sui due rami e impedisce che una promozione elimini `develop`. |
@@ -3009,6 +3010,11 @@ react-doctor
 vitest
 @cloudflare/vitest-pool-workers
 @playwright/test
+@vitest/coverage-istanbul
+c8
+istanbul-lib-coverage
+istanbul-lib-report
+istanbul-reports
 ```
 
 `@types/node` resta: serve al typecheck dei file di configurazione build-time
@@ -3369,15 +3375,35 @@ sbloccare il binding, non il piano Cloudflare.
    - App Store review;
    - store reale canary.
 
-Non imporre una percentuale di coverage globale. La logica fiscale, geografica, billing, entitlement, webhook e migrazioni deve avere copertura esplicita completa dei rami.
+La baseline canonica vive in `config/coverage-baseline.json`; la policy e il
+perimetro sono definiti da `config/coverage-policy.json` e dallo script
+`scripts/coverage-scope.mjs`. Ogni sorgente eseguibile first-party deve comparire
+esattamente una volta nell'aggregato globale. Il bundle Function usa inoltre un
+overlay separato, così le dipendenze condivise non vengono contate due volte nel
+totale ma restano soggette al gate specifico.
+
+Il programma D-141 procede in nove PR implementative. Dalla prima PR la CI:
+
+- richiede almeno il 95% delle linee eseguibili aggiunte;
+- rifiuta regressioni rispetto alla baseline committata precedente;
+- richiede che la baseline committata coincida con la misura corrente;
+- pubblica JSON, LCOV e HTML legati allo SHA.
+
+Le soglie finali del 95% globale, del 90% per gruppo e del 100% per file del
+bundle Function sono già dichiarate ma si attivano soltanto nelle rispettive PR
+di chiusura. Fiscalità, geografia, billing, entitlement, webhook, notifiche e
+migrazioni conservano anche una matrice esplicita degli esiti: la percentuale non
+la sostituisce. Le migrazioni SQL, i manifest, i workflow, HTML e CSS non entrano
+in un denominatore artificiale e restano coperti dai relativi test di contratto,
+build, smoke e readback.
 
 ### 23.1.1 Gate per tipo di modifica
 
 | Corsia | Quando | Gate minimo |
 |---|---|---|
 | `docs` | contenuto documentale senza effetto operativo | controllo documentazione, formato, `git diff --check` |
-| `standard` | TypeScript, route, config o test ordinari | docs gate, lint, typecheck, test mirati, build |
-| `full` | governance, workflow, auth, webhook, cifratura, migrazioni, manifest o lockfile | standard, audit, lockfile, test operativi e regressione mirata |
+| `standard` | TypeScript, route, config o test ordinari | docs gate, lint, typecheck, test mirati, build, coverage ratchet |
+| `full` | governance, workflow, auth, webhook, cifratura, migrazioni, manifest o lockfile | standard, audit, lockfile, test operativi, coverage ratchet e regressione mirata |
 | `promotion` | PR `develop` → `main` con ascendenza valida | provenienza PR/review, tree e gate esatti di `develop`, `promotion-guard` |
 | `deploy` | provider, migrazioni, Worker, Function o Pages | gate completo, preflight provider, backup se applicabile, smoke, readback e rollback |
 
