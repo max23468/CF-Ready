@@ -3,7 +3,9 @@ import test from "node:test";
 import {
   expectedMainSha,
   verifyManualAncestryRecovery,
+  verifyPagesDeployment,
   verifyReconciliationApp,
+  verifyReconciliationDeployment,
   verifyProductionDeployment,
   verifyRecoveryReconciliation,
   verifyReconciliation,
@@ -153,5 +155,31 @@ test("richiede un deploy Production verde e la relativa ricevuta per lo stesso m
   assert.throws(
     () => verifyProductionDeployment({ run, artifacts: [], expectedMain: main }),
     /ricevuta non scaduta/,
+  );
+});
+
+test("accetta il deploy Pages Production verde dello stesso main senza ricevuta Worker", () => {
+  const run = {
+    id: 43,
+    path: ".github/workflows/deploy-pages-production.yml",
+    event: "workflow_dispatch",
+    status: "completed",
+    conclusion: "success",
+    head_branch: "main",
+    head_sha: main,
+  };
+  assert.doesNotThrow(() => verifyPagesDeployment({ run, expectedMain: main }));
+  assert.doesNotThrow(() => verifyReconciliationDeployment({ run, expectedMain: main }));
+  assert.throws(
+    () => verifyPagesDeployment({ run: { ...run, head_sha: develop }, expectedMain: main }),
+    /stesso commit main/,
+  );
+  assert.throws(
+    () =>
+      verifyReconciliationDeployment({
+        run: { ...run, path: ".github/workflows/unknown.yml" },
+        expectedMain: main,
+      }),
+    /non è un deploy riconosciuto/,
   );
 });
