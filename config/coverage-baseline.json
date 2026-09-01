@@ -5,13 +5,13 @@
   "global": {
     "statements": {
       "total": 5658,
-      "covered": 3976,
-      "pct": 70.27
+      "covered": 3978,
+      "pct": 70.3
     },
     "branches": {
       "total": 3052,
-      "covered": 2258,
-      "pct": 73.98
+      "covered": 2265,
+      "pct": 74.21
     },
     "functions": {
       "total": 696,
@@ -72,13 +72,13 @@
     "function": {
       "statements": {
         "total": 97,
-        "covered": 95,
-        "pct": 97.93
+        "covered": 97,
+        "pct": 100
       },
       "branches": {
         "total": 144,
-        "covered": 137,
-        "pct": 95.13
+        "covered": 144,
+        "pct": 100
       },
       "functions": {
         "total": 16,
@@ -140,13 +140,13 @@
     "extensions/cf-ready-validation/src/cart_validations_generate_run.ts": {
       "statements": {
         "total": 65,
-        "covered": 63,
-        "pct": 96.92
+        "covered": 65,
+        "pct": 100
       },
       "branches": {
         "total": 102,
-        "covered": 95,
-        "pct": 93.13
+        "covered": 102,
+        "pct": 100
       },
       "functions": {
         "total": 11,

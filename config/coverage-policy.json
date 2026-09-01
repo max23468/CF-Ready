@@ -18,7 +18,7 @@
       "function": {
         "minimum": 100,
         "perFile": true,
-        "active": false
+        "active": true
       },
       "operations": {
         "minimum": 90,

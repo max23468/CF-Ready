@@ -37,7 +37,7 @@ function input(
   options: {
     config?: unknown;
     step?: string;
-    date?: string;
+    date?: unknown;
     language?: string;
     billing?: string | null;
     deliveries?: (string | null)[];
@@ -57,7 +57,7 @@ function input(
       ],
     },
     localization: { language: { isoCode: options.language ?? "IT" } },
-    shop: { localTime: { date: options.date ?? "2026-07-29" } },
+    shop: { localTime: { date: "date" in options ? options.date : "2026-07-29" } },
     validation: {
       metafield: {
         jsonValue: "config" in options ? options.config : structuredClone(baseConfig),
@@ -194,6 +194,16 @@ describe("applicabilità e fail-open", () => {
       },
     ],
     ["data locale invalida", { date: "29/07/2026" }],
+    ["data locale non stringa", { date: null }],
+    [
+      "messaggi non strutturati",
+      {
+        config: {
+          ...baseConfig,
+          messages: null,
+        },
+      },
+    ],
     [
       "trial scaduto",
       {
@@ -266,6 +276,8 @@ describe("applicabilità e fail-open", () => {
 
   it.each([
     ["ultimo giorno trial", {}],
+    ["anno bisestile ordinario", { date: "2024-02-29" }],
+    ["anno bisestile secolare", { date: "2000-02-29" }],
     [
       "abbonamento attivo",
       {
@@ -316,6 +328,25 @@ describe("applicabilità e fail-open", () => {
         ({ target }) => target,
       ),
     ).toEqual(["$.cart.localizedField.TAX_CREDENTIAL_IT", "$.cart"]);
+  });
+
+  it("ignora il localized field assente quando non osserva una consegna italiana", () => {
+    expect(
+      errors(
+        input({
+          deliveries: [],
+          fields: [{ key: "TAX_EMAIL_IT", value: "nome@example.com" }],
+        }),
+      ),
+    ).toEqual([]);
+    expect(
+      errors(
+        input({
+          deliveries: [],
+          fields: [{ key: "TAX_CREDENTIAL_IT", value: "RSSMRA80A01H501U" }],
+        }),
+      ),
+    ).toEqual([]);
   });
 
   it("usa box globali solo a Interaction nella modalità preventiva", () => {
