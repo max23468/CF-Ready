@@ -1,0 +1,349 @@
+import assert from "node:assert/strict";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, resolve } from "node:path";
+import test from "node:test";
+import coverageLibrary from "istanbul-lib-coverage";
+import {
+  baselineFailures,
+  changedExecutableLineCoverage,
+  coverageState,
+  indexCoverageMap,
+  parseChangedLines,
+  runCoverageReport,
+  selectCoverageMap,
+  targetFailures,
+} from "./coverage-report.mjs";
+import {
+  classifyCoverageSources,
+  coverageGroup,
+  isCoverageSource,
+  normalizeCoveragePath,
+  trackedCoverageSources,
+} from "./coverage-scope.mjs";
+
+const { createCoverageMap, createFileCoverage } = coverageLibrary;
+
+const policy = {
+  schemaVersion: 1,
+  metrics: ["statements", "branches", "functions", "lines"],
+  targets: {
+    global: { minimum: 95, active: false },
+    groups: {
+      "server-worker": { minimum: 90, active: false },
+      "ui-routes": { minimum: 90, active: false },
+      function: { minimum: 100, perFile: true, active: false },
+      operations: { minimum: 90, active: false },
+      "public-site": { minimum: 90, active: false },
+    },
+    criticalDomains: { minimum: 95, mutationScore: 80, active: false },
+  },
+  ratchet: { active: true, changedExecutableLines: 95 },
+  nonExecutableSources: {
+    "app/app-bridge.d.ts": "Dichiarazioni",
+    "app/billing/types.ts": "Sole dichiarazioni",
+  },
+  functionBundle: [
+    "extensions/cf-ready-validation/src/index.ts",
+    "app/checkout-field-validation.ts",
+  ],
+};
+
+function coverage(file, hits = 1) {
+  return createFileCoverage({
+    path: file,
+    statementMap: { 0: { start: { line: 1, column: 0 }, end: { line: 1, column: 1 } } },
+    fnMap: {
+      0: {
+        name: "run",
+        decl: { start: { line: 1, column: 0 }, end: { line: 1, column: 1 } },
+        loc: { start: { line: 1, column: 0 }, end: { line: 1, column: 1 } },
+        line: 1,
+      },
+    },
+    branchMap: {
+      0: {
+        type: "if",
+        line: 1,
+        loc: { start: { line: 1, column: 0 }, end: { line: 1, column: 1 } },
+        locations: [{ start: { line: 1, column: 0 }, end: { line: 1, column: 1 } }],
+      },
+    },
+    s: { 0: hits },
+    f: { 0: hits },
+    b: { 0: [hits] },
+  });
+}
+
+function mapFor(repositoryRoot, files, hits = 1) {
+  const map = createCoverageMap({});
+  for (const file of files) map.addFileCoverage(coverage(resolve(repositoryRoot, file), hits));
+  return map;
+}
+
+test("classifica ogni sorgente first-party in un solo gruppo canonico", () => {
+  const files = [
+    "app/shop.server.ts",
+    "app/root.tsx",
+    "app/features/home/home.server.ts",
+    "app/features/home/HomePage.tsx",
+    "app/routes/webhooks.app.uninstalled.tsx",
+    "workers/app.ts",
+    "extensions/cf-ready-validation/src/index.ts",
+    "scripts/preflight-prod.mjs",
+    "site/menu.js",
+  ];
+  assert.deepEqual(classifyCoverageSources(files, policy), {
+    "server-worker": [
+      "app/features/home/home.server.ts",
+      "app/routes/webhooks.app.uninstalled.tsx",
+      "app/shop.server.ts",
+      "workers/app.ts",
+    ],
+    "ui-routes": ["app/features/home/HomePage.tsx", "app/root.tsx"],
+    function: ["extensions/cf-ready-validation/src/index.ts"],
+    operations: ["scripts/preflight-prod.mjs"],
+    "public-site": ["site/menu.js"],
+  });
+  assert.equal(coverageGroup("app/routes/auth.$.tsx", policy), "server-worker");
+  assert.equal(coverageGroup("app/i18n/it.ts", policy), "ui-routes");
+  assert.equal(coverageGroup("app/save-bar.ts", policy), "ui-routes");
+});
+
+test("esclude test, dichiarazioni, file generati e asset non eseguibili", () => {
+  for (const file of [
+    "app/app-bridge.d.ts",
+    "app/billing/types.ts",
+    "scripts/preflight-prod.node-test.mjs",
+    "site/index.html",
+    "extensions/cf-ready-validation/src/query.graphql",
+    "extensions/cf-ready-validation/generated/api.ts",
+  ]) {
+    assert.equal(isCoverageSource(file, policy), false, file);
+    assert.equal(coverageGroup(file, policy), null, file);
+  }
+  assert.equal(normalizeCoveragePath(".\\app\\root.tsx"), "app/root.tsx");
+});
+
+test("legge l'inventario Git includendo file nuovi ma non ignorati", () => {
+  const execute = (_command, args) => {
+    assert.deepEqual(args.slice(0, 4), ["ls-files", "--cached", "--others", "--exclude-standard"]);
+    return "app/root.tsx\0scripts/task.node-test.mjs\0site/menu.js\0";
+  };
+  assert.deepEqual(trackedCoverageSources("/repo", policy, execute), [
+    "app/root.tsx",
+    "site/menu.js",
+  ]);
+});
+
+test("costruisce aggregato, gruppi e overlay Function senza duplicare il globale", () => {
+  const repositoryRoot = "/repo";
+  const sources = [
+    "app/checkout-field-validation.ts",
+    "app/root.tsx",
+    "extensions/cf-ready-validation/src/index.ts",
+    "scripts/task.mjs",
+    "site/menu.js",
+  ];
+  const globalMap = mapFor(repositoryRoot, sources);
+  const functionMap = mapFor(repositoryRoot, policy.functionBundle);
+  const state = coverageState({ globalMap, functionMap, sources, policy, repositoryRoot });
+  assert.equal(state.sourceCount, 5);
+  assert.equal(state.global.lines.total, 5);
+  assert.equal(state.groups.function.lines.total, 2);
+  assert.equal(state.groups["server-worker"].lines.total, 1);
+  assert.equal(Object.keys(state.functionFiles).length, 2);
+
+  assert.throws(
+    () =>
+      coverageState({
+        globalMap: mapFor(repositoryRoot, sources.slice(1)),
+        functionMap,
+        sources,
+        policy,
+        repositoryRoot,
+      }),
+    /manca app\/checkout-field-validation\.ts/,
+  );
+  assert.throws(
+    () => selectCoverageMap(globalMap, ["app/assente.ts"], repositoryRoot),
+    /Sorgente senza coverage/,
+  );
+  assert.throws(
+    () => indexCoverageMap(mapFor("/fuori", ["file.ts"]), repositoryRoot),
+    /Coverage fuori repository/,
+  );
+});
+
+test("applica target disattivati, soglie attive e ratchet senza arrotondare regressioni", () => {
+  const repositoryRoot = "/repo";
+  const sources = [
+    "app/checkout-field-validation.ts",
+    "app/root.tsx",
+    "extensions/cf-ready-validation/src/index.ts",
+    "scripts/task.mjs",
+    "site/menu.js",
+  ];
+  const full = coverageState({
+    globalMap: mapFor(repositoryRoot, sources),
+    functionMap: mapFor(repositoryRoot, policy.functionBundle),
+    sources,
+    policy,
+    repositoryRoot,
+  });
+  assert.deepEqual(targetFailures(full, policy), []);
+  assert.deepEqual(baselineFailures(full, full, full), []);
+
+  const active = structuredClone(policy);
+  active.targets.global.active = true;
+  active.targets.groups.function.active = true;
+  const uncovered = coverageState({
+    globalMap: mapFor(repositoryRoot, sources, 0),
+    functionMap: mapFor(repositoryRoot, policy.functionBundle, 0),
+    sources,
+    policy,
+    repositoryRoot,
+  });
+  assert.ok(
+    targetFailures(uncovered, active).some((failure) => failure.startsWith("global.lines")),
+  );
+  assert.ok(
+    baselineFailures(uncovered, uncovered, full).some((failure) =>
+      failure.includes("global.lines regredisce"),
+    ),
+  );
+  assert.deepEqual(baselineFailures(full, structuredClone(uncovered), null), [
+    "La baseline committata non corrisponde alla misura corrente",
+  ]);
+});
+
+test("misura soltanto le linee eseguibili aggiunte dal diff", () => {
+  const repositoryRoot = "/repo";
+  const map = mapFor(repositoryRoot, ["app/root.tsx"]);
+  const changed = parseChangedLines(
+    [
+      "diff --git a/app/root.tsx b/app/root.tsx",
+      "+++ b/app/root.tsx",
+      "@@ -0,0 +1,2 @@",
+      "+eseguibile",
+      "+commento",
+      "diff --git a/docs/note.md b/docs/note.md",
+      "+++ b/docs/note.md",
+      "@@ -0,0 +1 @@",
+      "+documentazione",
+    ].join("\n"),
+  );
+  assert.deepEqual(changedExecutableLineCoverage(map, changed, ["app/root.tsx"], repositoryRoot), {
+    total: 1,
+    covered: 1,
+    pct: 100,
+  });
+  const uncovered = mapFor(repositoryRoot, ["app/root.tsx"], 0);
+  assert.deepEqual(
+    changedExecutableLineCoverage(uncovered, changed, ["app/root.tsx"], repositoryRoot),
+    { total: 1, covered: 0, pct: 0 },
+  );
+  assert.throws(
+    () =>
+      changedExecutableLineCoverage(
+        createCoverageMap({}),
+        changed,
+        ["app/root.tsx"],
+        repositoryRoot,
+      ),
+    /File modificato senza coverage/,
+  );
+});
+
+test("genera e verifica una baseline deterministica con report aggregati", () => {
+  const repositoryRoot = mkdtempSync(resolve(tmpdir(), "cf-ready-coverage-"));
+  const sources = [
+    "app/checkout-field-validation.ts",
+    "app/root.tsx",
+    "extensions/cf-ready-validation/src/index.ts",
+    "scripts/task.mjs",
+    "site/menu.js",
+  ];
+  for (const file of [...sources, "config/coverage-policy.json"]) {
+    mkdirSync(dirname(resolve(repositoryRoot, file)), { recursive: true });
+    writeFileSync(
+      resolve(repositoryRoot, file),
+      file.endsWith("coverage-policy.json") ? `${JSON.stringify(policy)}\n` : "export {};\n",
+    );
+  }
+  const operations = mapFor(repositoryRoot, ["scripts/task.mjs"]);
+  operations.addFileCoverage(coverage(resolve(repositoryRoot, "site/menu.js"), 0));
+  const reportsByName = {
+    app: mapFor(repositoryRoot, sources.slice(0, 2)),
+    function: mapFor(repositoryRoot, policy.functionBundle),
+    operations,
+  };
+  for (const [name, map] of Object.entries(reportsByName)) {
+    const file = resolve(repositoryRoot, `.coverage/${name}/coverage-final.json`);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, JSON.stringify(map.toJSON()));
+  }
+  let baseline;
+  const execute = (command, args) => {
+    assert.equal(command, "git");
+    if (args[0] === "ls-files") return `${sources.join("\0")}\0`;
+    if (args[0] === "show") return baseline;
+    if (args[0] === "diff") {
+      return [
+        "diff --git a/app/root.tsx b/app/root.tsx",
+        "+++ b/app/root.tsx",
+        "@@ -0,0 +1 @@",
+        "+export {};",
+      ].join("\n");
+    }
+    throw new Error(`Comando Git inatteso: ${args.join(" ")}`);
+  };
+
+  const updated = runCoverageReport({ repositoryRoot, args: ["--update-baseline"], execute });
+  baseline = readFileSync(resolve(repositoryRoot, "config/coverage-baseline.json"), "utf8");
+  const checked = runCoverageReport({ repositoryRoot, args: [], execute });
+  const sha = "a".repeat(40);
+  assert.doesNotThrow(() =>
+    runCoverageReport({
+      repositoryRoot,
+      args: ["--base-sha", sha, "--head-sha", sha],
+      execute,
+    }),
+  );
+  assert.doesNotThrow(() =>
+    runCoverageReport({
+      repositoryRoot,
+      args: ["--base-sha", sha, "--head-sha", "non-valido"],
+      execute: (command, args) => {
+        if (args[0] === "show") throw new Error("baseline assente");
+        return execute(command, args);
+      },
+    }),
+  );
+  assert.throws(
+    () =>
+      runCoverageReport({
+        repositoryRoot,
+        args: ["--base-sha", sha, "--head-sha", sha],
+        execute: (command, args) => {
+          if (args[0] !== "diff") return execute(command, args);
+          return [
+            "diff --git a/site/menu.js b/site/menu.js",
+            "+++ b/site/menu.js",
+            "@@ -0,0 +1 @@",
+            "+void 0;",
+          ].join("\n");
+        },
+      }),
+    /Diff coverage linee eseguibili: 0% < 95%/,
+  );
+  assert.deepEqual(checked.state, updated.state);
+  assert.equal(
+    readFileSync(resolve(repositoryRoot, "config/coverage-baseline.json"), "utf8").endsWith("\n"),
+    true,
+  );
+  assert.equal(
+    readFileSync(resolve(repositoryRoot, ".coverage/global/lcov.info"), "utf8").length > 0,
+    true,
+  );
+});

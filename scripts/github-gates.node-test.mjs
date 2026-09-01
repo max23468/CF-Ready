@@ -87,6 +87,13 @@ test("seleziona il check più recente per nome tra workflow distinti", () => {
   );
 });
 
+test("la promozione include il gate coverage dell'HEAD develop", async () => {
+  const source = await import("node:fs/promises").then(({ readFile }) =>
+    readFile(new URL("./github-gates.mjs", import.meta.url), "utf8"),
+  );
+  assert.match(source, /\["verify", "e2e", "coverage"\]/);
+});
+
 test("accetta commit da PR develop revisionata e merge senza nuovo tree", () => {
   assert.doesNotThrow(() =>
     verifyPromotionHistory([
