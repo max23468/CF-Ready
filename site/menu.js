@@ -50,7 +50,15 @@
     .map(function (a) {
       return document.getElementById(a.hash.slice(1));
     })
-    .filter(Boolean);
+    .filter(Boolean)
+    // L'ordine del menu è editoriale e può differire da quello delle sezioni.
+    // La sezione corrente va quindi calcolata nell'ordine reale del documento.
+    .sort(function (a, b) {
+      if (a === b) return 0;
+      return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING
+        ? -1
+        : 1;
+    });
 
   function segna(hash) {
     links.forEach(function (a) {

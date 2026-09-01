@@ -365,6 +365,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-137 | M12 combina il consolidamento Controlled Launch con i requisiti Built for Shopify e si chiude quando Shopify assegna effettivamente lo status. | Idoneità automatica, pulsante di candidatura, invio o review in corso non chiudono la milestone. I requisiti correnti si rileggono nelle fonti Shopify e nella pagina Distribution prima della candidatura; le soglie Shopify sostituiscono i minimi locali più deboli. I criteri operativi specifici di CF Ready restano segnali da osservare, non una seconda certificazione né gate autonomi; soltanto bug critici e rischi non accettati impediscono la chiusura. Deciso il 26 agosto 2026. |
 | D-138 | La pubblicazione verifica una volta ogni contenuto immutabile e ripete soltanto i gate dipendenti dallo stato remoto. La CI instrada corsie `docs`, `standard`, `full` e `promotion`; la promozione riusa provenienza e gate di `develop`; Development identifica lo snapshot con `X.Y.Z-dev.<tree>`; Production conserva una ricevuta JSON attestata; una GitHub App dedicata riallinea `develop` al merge commit Production solo con fast-forward e tree identico. Una promozione `main` esplicitamente priva di deploy può essere recuperata manualmente senza ricevuta soltanto con tree identico al parent `develop`, discendenza lineare del branch corrente e nuovo merge che ne conserva il tree. | Riduce installazioni browser, collisioni SemVer e PR prive di differenze senza riutilizzare prove provider: identità, schema Shopify, migrazioni, rollback, smoke e readback restano freschi. Il bypass del ruleset è limitato alla GitHub App di riallineamento e il workflow fallisce chiuso se parent, branch, tree o identità non coincidono; il recupero di sola ascendenza non modifica provider. Deciso il 27 agosto 2026, esteso il 29 agosto 2026. |
 | D-139 | La `1.1.0` unisce Support Link nativo verso la Guida, diagnostica D1 copiabile e minimizzata, report p75 aggregato su 28 giorni, telemetria allowlistata dell'esito Reviews API e simulatore locale in Regole checkout. | Migliora supporto, osservabilità e comprensione delle regole senza introdurre nuove fonti autorevoli o raccogliere contenuti merchant. Il simulatore usa gli stessi controlli formali e messaggi configurati, ma resta un'anteprima dichiarata e non un checkout Shopify reale. Deciso il 29 agosto 2026 e ampliato lo stesso giorno su richiesta dell'owner. |
+| D-140 | M12 include una corsia organica coordinata fra sito pubblico e listing: il sito intercetta ricerche informative con quattro guide bilingui e prove visive reali, la listing resta la superficie di installazione. Si misurano soltanto aggregati privacy-first; nessun tracker custom, contenuto ricorrente o outreach. | L'acquisizione contribuisce alle 50 installazioni nette richieste da Built for Shopify senza trasformare KPI locali in gate paralleli. Canonical, hreflang, sitemap, 404 reale e readback automatici rendono la superficie verificabile; dominio personalizzato e nuove pagine arrivano solo dopo trazione misurata. Deciso il 1º settembre 2026. |
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
@@ -3857,6 +3858,40 @@ bloccanti. Questi criteri non bloccano M11, già chiusa con `v1.0.0`.
 
 Nessuna analytics sugli acquirenti.
 
+### 25.6 Acquisizione organica coordinata con M12
+
+Il sito pubblico e la Shopify App Store listing hanno responsabilità diverse e
+complementari: il sito risponde alle ricerche informative dei merchant italiani;
+la listing conserva prezzo autorevole, recensioni e installazione. Il primo
+intervento organico comprende, in italiano e inglese:
+
+- Codice Fiscale obbligatorio nel checkout Shopify;
+- campi fiscali nativi Codice Fiscale e PEC;
+- perché non riutilizzare “Interno” / “Indirizzo 2”;
+- cosa copre e cosa non copre la validazione formale del Codice Fiscale.
+
+La Home usa soltanto schermate reali M9 dell'app e collega queste guide. Non
+introduce testimonianze, contatori, prezzi duplicati o markup strutturato per
+offerte e rating non presenti nella pagina. `Organization`, `WebSite` e
+`BreadcrumbList` sono ammessi quando il contenuto visibile li sostiene.
+
+Prima della pubblicazione si registra la baseline disponibile; dopo la
+pubblicazione si verificano indicizzazione e query tramite Google Search Console
+e Bing Webmaster Tools, mentre Shopify resta autorevole per installazioni,
+attivazioni e disinstallazioni. Cloudflare Web Analytics fornisce soltanto
+aggregati del sito: nessun identificatore viene usato per attribuire una singola
+installazione a una visita.
+
+Gli obiettivi direzionali dei primi 90 giorni sono almeno 50 clic organici
+qualificati non-brand e almeno 10 installazioni nette qualificate aggiuntive,
+con checkpoint a 14, 30, 60 e 90 giorni. Onboarding completato, Validation
+attiva e retention restano guardrail contro traffico o installazioni di bassa
+qualità. Questi valori aiutano M12, ma non sostituiscono né aggiungono un gate ai
+requisiti Built for Shopify di §25.4. Il dominio `pages.dev` resta in uso finché
+la trazione non giustifica un dominio dedicato; la strategia iniziale usa solo
+sito, listing e console webmaster ufficiali, senza pubblicazioni community o
+contatti diretti.
+
 ---
 
 ## 26. Operazioni, incidenti, backup e rollback
@@ -4490,6 +4525,11 @@ Gate:
 I segnali Controlled Launch di §25.4 restano monitorati e documentati, ma una
 loro lacuna non è un gate aggiuntivo dopo l'assegnazione dello status. Soltanto
 un bug critico o un rischio non accettato impedisce la chiusura di M12.
+
+La corsia di acquisizione organica di §25.6 sostiene il raggiungimento delle
+installazioni qualificate richieste da Shopify. I suoi obiettivi a 90 giorni
+sono diagnostici e non chiudono M12: lo status assegnato e riletto resta l'unico
+esito conclusivo della milestone.
 
 La ricevuta iniziale e gli avanzamenti sono registrati in
 `docs/evidence/2026-08-26-m12-built-for-shopify.md`. Gli eventuali fix emersi

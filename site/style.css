@@ -37,6 +37,10 @@ svg {
   max-width: 100%;
 }
 
+img {
+  height: auto;
+}
+
 /* ---- Struttura ---- */
 
 .wrap {
@@ -47,6 +51,10 @@ svg {
 
 .column {
   max-width: var(--cf-measure);
+}
+
+.wide-column {
+  max-width: 58rem;
 }
 
 /* Ritmo verticale unico: ogni sezione porta la stessa mezza distanza sopra e
@@ -360,6 +368,127 @@ button.button[disabled] {
   max-width: 34rem;
 }
 
+/* ---- Prove reali e guide ---- */
+
+.proof-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: var(--cf-space-8);
+  align-items: start;
+}
+
+.proof-stack {
+  display: grid;
+  gap: var(--cf-space-8);
+}
+
+figure {
+  margin: 0;
+}
+
+.product-shot {
+  display: block;
+  inline-size: 100%;
+  border: var(--cf-border-subtle);
+  border-radius: var(--cf-radius-lg);
+  box-shadow: var(--cf-shadow-card);
+  background: var(--cf-color-surface);
+}
+
+figcaption {
+  margin-top: var(--cf-space-3);
+  color: var(--cf-color-ink-muted);
+  font-size: var(--cf-text-small);
+  line-height: var(--cf-leading-small);
+}
+
+.guide-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: var(--cf-border-subtle);
+}
+
+.guide-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--cf-space-4);
+  padding-block: var(--cf-space-5);
+  border-bottom: var(--cf-border-subtle);
+}
+
+.guide-list a {
+  font-size: var(--cf-text-h3);
+  line-height: var(--cf-leading-h3);
+  font-weight: var(--cf-weight-medium);
+}
+
+.guide-list p {
+  margin: var(--cf-space-2) 0 0;
+}
+
+.guide-list .arrow {
+  font-size: var(--cf-text-h3);
+  color: var(--cf-color-primary);
+}
+
+.breadcrumbs {
+  margin: 0 0 var(--cf-space-8);
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cf-space-2);
+  list-style: none;
+  color: var(--cf-color-ink-muted);
+  font-size: var(--cf-text-small);
+}
+
+.breadcrumbs li:not(:last-child)::after {
+  content: "/";
+  margin-left: var(--cf-space-2);
+}
+
+.article-header {
+  max-width: 52rem;
+}
+
+.article-body {
+  max-width: var(--cf-measure);
+}
+
+.article-section {
+  padding-block: var(--cf-space-12);
+}
+
+.article-body h2 {
+  margin-top: var(--cf-space-12);
+}
+
+.article-body h3 {
+  margin-top: var(--cf-space-8);
+}
+
+.article-body > :first-child {
+  margin-top: 0;
+}
+
+.callout {
+  margin-block: var(--cf-space-8);
+  padding: var(--cf-space-6);
+  border-left: 4px solid var(--cf-color-accent);
+  background: var(--cf-color-surface);
+}
+
+.callout > :last-child {
+  margin-bottom: 0;
+}
+
+.source-note {
+  margin-top: var(--cf-space-12);
+  padding-top: var(--cf-space-6);
+  border-top: var(--cf-border-subtle);
+}
+
 /* ---- Griglie ---- */
 
 /* Le colonne sono fissate per scaglioni invece che con `auto-fit`: sei schede in
@@ -414,18 +543,18 @@ section > .wrap > :last-child,
 
 /* Fascia dei tre punti fermi sotto il primo schermo: una riga di respiro breve
    fra l'hero e il corpo, non una sezione a sé. */
-section.facts {
+.facts {
   padding-block: var(--cf-space-8);
   border-block: var(--cf-border-subtle);
 }
 
-section.facts .wrap {
+.facts .wrap {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   gap: var(--cf-space-6);
 }
 
-section.facts p {
+.facts p {
   margin: 0;
 }
 
@@ -595,7 +724,15 @@ footer ul {
     gap: var(--cf-space-12);
   }
 
+  .proof-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   section {
+    padding-block: var(--cf-space-8);
+  }
+
+  .article-section {
     padding-block: var(--cf-space-8);
   }
 

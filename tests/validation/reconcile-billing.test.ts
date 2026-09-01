@@ -265,27 +265,34 @@ test("la concessione omaggio non nasconde un rinnovo quando il billing Shopify n
 });
 
 test("la concessione omaggio non cancella né sostituisce un abbonamento attivo", async () => {
-  const shop = await insertShop("omaggio-con-abbonamento.example.myshopify.com");
   const now = "2026-08-24T00:00:00.000Z";
-  await env.DB.prepare(
-    `INSERT INTO complimentary_entitlements
-       (shop_id, status, granted_at, revoked_at, created_at, updated_at)
-     SELECT id, 'active', ?, NULL, ?, ? FROM shops WHERE shop_domain = ?`,
-  )
-    .bind(now, now, now, shop)
-    .run();
-  const subscriptionOnly = structuredClone(CONVERSIONE_UNA_TANTUM);
-  subscriptionOnly.data.currentAppInstallation.oneTimePurchases.nodes = [];
-  const subscriptionEntitlement = {
-    kind: "subscription",
-    validThrough: "2026-08-31",
-  };
-  const admin = adminStub([shopContext("IT", true, subscriptionEntitlement), subscriptionOnly]);
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date(now));
 
-  const state = await reconcile(admin, env.DB, shop);
+  try {
+    const shop = await insertShop("omaggio-con-abbonamento.example.myshopify.com");
+    await env.DB.prepare(
+      `INSERT INTO complimentary_entitlements
+         (shop_id, status, granted_at, revoked_at, created_at, updated_at)
+       SELECT id, 'active', ?, NULL, ?, ? FROM shops WHERE shop_domain = ?`,
+    )
+      .bind(now, now, now, shop)
+      .run();
+    const subscriptionOnly = structuredClone(CONVERSIONE_UNA_TANTUM);
+    subscriptionOnly.data.currentAppInstallation.oneTimePurchases.nodes = [];
+    const subscriptionEntitlement = {
+      kind: "subscription",
+      validThrough: "2026-08-31",
+    };
+    const admin = adminStub([shopContext("IT", true, subscriptionEntitlement), subscriptionOnly]);
 
-  expect(state.entitlement).toEqual(subscriptionEntitlement);
-  expect(state.complimentary).toBeNull();
-  expect(state.errorCode).toBeNull();
-  expect(admin.calls).toEqual(["context", "billing"]);
+    const state = await reconcile(admin, env.DB, shop);
+
+    expect(state.entitlement).toEqual(subscriptionEntitlement);
+    expect(state.complimentary).toBeNull();
+    expect(state.errorCode).toBeNull();
+    expect(admin.calls).toEqual(["context", "billing"]);
+  } finally {
+    vi.useRealTimers();
+  }
 });
