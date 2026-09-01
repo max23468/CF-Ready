@@ -59,10 +59,15 @@ GitHub Actions generico entra nella bypass list.
 Prima del fast-forward un preflight separato verifica ruleset e unicità del
 bypass; lo script di riconciliazione verifica poi app, branch remoti, due parent
 del merge Production, secondo parent uguale all'HEAD corrente di `develop`, tree
-identici e ricevuta Production. Un avvio manuale può anche recuperare una
-promozione `main` di sola governance senza deploy: il tree del merge deve essere
-identico al suo parent `develop`, il `develop` corrente deve esserne un avanzamento
-lineare e il nuovo merge conserva esattamente il tree corrente di `develop`.
+identici e ricevuta Production. L'avvio manuale richiede sempre di scegliere la
+provenienza: `deploy-retry` cerca e verifica il deploy verde dello stesso commit
+anche quando serve un recupero di sola ascendenza; `no-deploy-promotion` non
+cerca ricevute e vale soltanto per una promozione `main` dichiarata senza deploy.
+In quest'ultimo caso il workflow termina verde senza scrivere se il parent
+`develop` promosso è ancora l'HEAD; se `develop` è avanzato, il tree del merge
+deve essere identico al parent promosso, il branch corrente deve esserne un
+avanzamento lineare e il nuovo merge conserva esattamente il tree corrente di
+`develop`.
 La scrittura è non forzata, soggetta al ruleset e seguita da readback. Una
 concorrenza, un merge anomalo o una configurazione incompleta fermano il
 riallineamento senza modificare provider o contenuto del branch.
