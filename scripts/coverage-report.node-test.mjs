@@ -22,6 +22,7 @@ import {
   trackedCoverageSources,
 } from "./coverage-scope.mjs";
 import { runWebhookMutation } from "./run-webhook-mutation.mjs";
+import { runCriticalMutation } from "./run-critical-mutation.mjs";
 
 const { createCoverageMap, createFileCoverage } = coverageLibrary;
 
@@ -142,6 +143,44 @@ test("il launcher mutation carica esplicitamente core e runner Vitest", async ()
     runWebhookMutation(FakeStryker, []),
     /Plugin Vitest Stryker non disponibile/,
   );
+});
+
+test("billing, Validation e notifiche mantengono gate coverage e mutation separati", async () => {
+  const repositoryPolicy = JSON.parse(
+    readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),
+  );
+  const { CRITICAL_MUTATION_DOMAINS, criticalMutationConfig } =
+    await import("../stryker.critical.config.mjs");
+  assert.deepEqual(CRITICAL_MUTATION_DOMAINS, ["billing", "validation", "ownerNotifications"]);
+  for (const domainName of CRITICAL_MUTATION_DOMAINS) {
+    const domain = repositoryPolicy.targets.criticalDomains.domains[domainName];
+    const mutationConfig = criticalMutationConfig(domainName);
+    assert.equal(domain.coverageActive, true);
+    assert.equal(domain.mutationActive, true);
+    assert.deepEqual(mutationConfig.mutate, domain.mutationFiles ?? domain.files);
+    assert.equal(mutationConfig.thresholds.break, 80);
+  }
+
+  const received = [];
+  class FakeStryker {
+    constructor(options) {
+      received.push(options);
+    }
+    async runMutationTest() {
+      return "verde";
+    }
+  }
+  assert.deepEqual(
+    await runCriticalMutation(FakeStryker, ["plugin"], ["billing", "ownerNotifications"]),
+    [
+      { domain: "billing", result: "verde" },
+      { domain: "ownerNotifications", result: "verde" },
+    ],
+  );
+  assert.equal(received.length, 2);
+  assert.deepEqual(received[0].plugins, ["@stryker-mutator/vitest-runner"]);
+  await assert.rejects(runCriticalMutation(FakeStryker, []), /Plugin Vitest/);
+  assert.throws(() => criticalMutationConfig("inesistente"), /non configurato/);
 });
 
 test("classifica ogni sorgente first-party in un solo gruppo canonico", () => {
