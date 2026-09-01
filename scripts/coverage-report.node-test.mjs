@@ -21,6 +21,7 @@ import {
   normalizeCoveragePath,
   trackedCoverageSources,
 } from "./coverage-scope.mjs";
+import { runWebhookMutation } from "./run-webhook-mutation.mjs";
 
 const { createCoverageMap, createFileCoverage } = coverageLibrary;
 
@@ -36,7 +37,18 @@ const policy = {
       operations: { minimum: 90, active: false },
       "public-site": { minimum: 90, active: false },
     },
-    criticalDomains: { minimum: 95, mutationScore: 80, active: false },
+    criticalDomains: {
+      minimum: 95,
+      mutationScore: 80,
+      active: false,
+      domains: {
+        webhooks: {
+          coverageActive: true,
+          mutationActive: true,
+          files: ["app/root.tsx"],
+        },
+      },
+    },
   },
   ratchet: { active: true, changedExecutableLines: 95 },
   nonExecutableSources: {
@@ -94,6 +106,42 @@ test("il target canonico della Validation Function resta attivo al 100% per file
     "extensions/cf-ready-validation/src/cart_validations_generate_run.ts",
     "app/checkout-field-validation.ts",
   ]);
+});
+
+test("il dominio webhook mantiene coverage e mutation gate canonici", async () => {
+  const repositoryPolicy = JSON.parse(
+    readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),
+  );
+  const domain = repositoryPolicy.targets.criticalDomains.domains.webhooks;
+  const mutationConfig = (await import("../stryker.webhooks.config.mjs")).default;
+
+  assert.equal(repositoryPolicy.targets.criticalDomains.active, true);
+  assert.equal(domain.coverageActive, true);
+  assert.equal(domain.mutationActive, true);
+  assert.equal(repositoryPolicy.targets.criticalDomains.minimum, 95);
+  assert.equal(repositoryPolicy.targets.criticalDomains.mutationScore, 80);
+  assert.deepEqual(mutationConfig.mutate, domain.files);
+  assert.equal(mutationConfig.thresholds.break, 80);
+});
+
+test("il launcher mutation carica esplicitamente core e runner Vitest", async () => {
+  let received;
+  class FakeStryker {
+    constructor(options) {
+      received = options;
+    }
+
+    async runMutationTest() {
+      return ["mutant-killed"];
+    }
+  }
+
+  assert.deepEqual(await runWebhookMutation(FakeStryker), ["mutant-killed"]);
+  assert.deepEqual(received.plugins, ["@stryker-mutator/vitest-runner"]);
+  await assert.rejects(
+    runWebhookMutation(FakeStryker, []),
+    /Plugin Vitest Stryker non disponibile/,
+  );
 });
 
 test("classifica ogni sorgente first-party in un solo gruppo canonico", () => {
@@ -167,7 +215,21 @@ test("costruisce aggregato, gruppi e overlay Function senza duplicare il globale
   assert.equal(state.global.lines.total, 5);
   assert.equal(state.groups.function.lines.total, 2);
   assert.equal(state.groups["server-worker"].lines.total, 1);
+  assert.equal(state.domains.webhooks.lines.total, 1);
   assert.equal(Object.keys(state.functionFiles).length, 2);
+
+  const policyWithoutDomains = structuredClone(policy);
+  delete policyWithoutDomains.targets.criticalDomains.domains;
+  assert.deepEqual(
+    coverageState({
+      globalMap,
+      functionMap,
+      sources,
+      policy: policyWithoutDomains,
+      repositoryRoot,
+    }).domains,
+    {},
+  );
 
   assert.throws(
     () =>
@@ -212,6 +274,7 @@ test("applica target disattivati, soglie attive e ratchet senza arrotondare regr
   const active = structuredClone(policy);
   active.targets.global.active = true;
   active.targets.groups.function.active = true;
+  active.targets.criticalDomains.active = true;
   const uncovered = coverageState({
     globalMap: mapFor(repositoryRoot, sources, 0),
     functionMap: mapFor(repositoryRoot, policy.functionBundle, 0),
@@ -223,13 +286,41 @@ test("applica target disattivati, soglie attive e ratchet senza arrotondare regr
     targetFailures(uncovered, active).some((failure) => failure.startsWith("global.lines")),
   );
   assert.ok(
+    targetFailures(uncovered, active).some((failure) =>
+      failure.startsWith("domain.webhooks.lines"),
+    ),
+  );
+  const inactiveDomain = structuredClone(active);
+  inactiveDomain.targets.criticalDomains.domains.webhooks.coverageActive = false;
+  assert.equal(
+    targetFailures(uncovered, inactiveDomain).some((failure) =>
+      failure.startsWith("domain.webhooks"),
+    ),
+    false,
+  );
+  const stricterDomain = structuredClone(active);
+  stricterDomain.targets.criticalDomains.domains.webhooks.minimum = 101;
+  assert.ok(
+    targetFailures(full, stricterDomain).some((failure) =>
+      failure.startsWith("domain.webhooks.lines"),
+    ),
+  );
+  assert.ok(
     baselineFailures(uncovered, uncovered, full).some((failure) =>
       failure.includes("global.lines regredisce"),
+    ),
+  );
+  assert.ok(
+    baselineFailures(uncovered, uncovered, full).some((failure) =>
+      failure.includes("domain.webhooks.lines regredisce"),
     ),
   );
   assert.deepEqual(baselineFailures(full, structuredClone(uncovered), null), [
     "La baseline committata non corrisponde alla misura corrente",
   ]);
+  const withoutDomains = structuredClone(full);
+  delete withoutDomains.domains;
+  assert.deepEqual(baselineFailures(withoutDomains, withoutDomains, withoutDomains), []);
 });
 
 test("misura soltanto le linee eseguibili aggiunte dal diff", () => {
@@ -267,6 +358,10 @@ test("misura soltanto le linee eseguibili aggiunte dal diff", () => {
         repositoryRoot,
       ),
     /File modificato senza coverage/,
+  );
+  assert.deepEqual(
+    changedExecutableLineCoverage(map, new Map(), ["app/root.tsx"], repositoryRoot),
+    { total: 0, covered: 0, pct: 100 },
   );
 });
 

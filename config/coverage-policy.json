@@ -32,7 +32,23 @@
     "criticalDomains": {
       "minimum": 95,
       "mutationScore": 80,
-      "active": false
+      "active": true,
+      "domains": {
+        "webhooks": {
+          "coverageActive": true,
+          "mutationActive": true,
+          "files": [
+            "app/routes/webhooks.app.billing.tsx",
+            "app/routes/webhooks.app.scopes_update.tsx",
+            "app/routes/webhooks.app.uninstalled.tsx",
+            "app/routes/webhooks.compliance.tsx",
+            "app/routes/webhooks.shop.update.tsx",
+            "app/webhook-auth.server.ts",
+            "app/webhook-jobs.server.ts",
+            "app/webhooks.server.ts"
+          ]
+        }
+      }
     }
   },
   "ratchet": {
