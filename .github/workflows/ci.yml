@@ -111,6 +111,32 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: npm run coverage:check -- --base-sha "$BASE_SHA" --head-sha "$HEAD_SHA"
+      - name: Mutation gate webhook
+        if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if git diff --quiet "$BASE_SHA...$HEAD_SHA" -- \
+            app/routes/webhooks.app.billing.tsx \
+            app/routes/webhooks.app.scopes_update.tsx \
+            app/routes/webhooks.app.uninstalled.tsx \
+            app/routes/webhooks.compliance.tsx \
+            app/routes/webhooks.shop.update.tsx \
+            app/webhook-auth.server.ts \
+            app/webhook-jobs.server.ts \
+            app/webhooks.server.ts \
+            tests/webhook-jobs.test.ts \
+            tests/webhooks \
+            config/coverage-policy.json \
+            package.json \
+            package-lock.json \
+            scripts/run-webhook-mutation.mjs \
+            stryker.webhooks.config.mjs; then
+            echo "Mutation webhook non applicabile al diff."
+          else
+            npm run mutation:webhooks
+          fi
       - name: Carica report coverage
         if: always() && (needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full')
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -119,6 +145,7 @@ jobs:
           path: |
             .coverage/coverage-summary.json
             .coverage/global
+            .coverage/mutation/webhooks.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
