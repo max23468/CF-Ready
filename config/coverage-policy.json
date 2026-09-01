@@ -47,6 +47,46 @@
             "app/webhook-jobs.server.ts",
             "app/webhooks.server.ts"
           ]
+        },
+        "billing": {
+          "coverageActive": true,
+          "mutationActive": true,
+          "files": [
+            "app/billing/domain.ts",
+            "app/billing/repository.server.ts",
+            "app/billing/shopify.server.ts"
+          ]
+        },
+        "validation": {
+          "coverageActive": true,
+          "mutationActive": true,
+          "files": [
+            "app/checkout-field-validation.ts",
+            "app/validation/domain.ts",
+            "app/validation/lock.server.ts",
+            "app/validation/reconcile.server.ts",
+            "app/validation/repository.server.ts",
+            "app/validation/shopify.server.ts",
+            "app/validation/write.server.ts"
+          ],
+          "mutationFiles": [
+            "app/validation/domain.ts",
+            "app/validation/lock.server.ts",
+            "app/validation/reconcile.server.ts",
+            "app/validation/repository.server.ts",
+            "app/validation/shopify.server.ts",
+            "app/validation/write.server.ts"
+          ]
+        },
+        "ownerNotifications": {
+          "coverageActive": true,
+          "mutationActive": true,
+          "files": [
+            "app/owner-notifications.server.ts",
+            "app/owner-notifications/delivery.server.ts",
+            "app/owner-notifications/model.ts",
+            "app/owner-notifications/presentation.ts"
+          ]
         }
       }
     }

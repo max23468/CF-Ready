@@ -112,6 +112,16 @@ test("il poll Partner copre lifecycle e billing con nome store, stato e importo"
     appId: PARTNER_CONFIG.appId,
     occurredAtMin: "2026-08-23T10:00:00.000Z",
   });
+  expect(fetcher.mock.calls[0][0]).toBe(
+    `https://partners.shopify.com/${PARTNER_CONFIG.organizationId}/api/2026-07/graphql.json`,
+  );
+  expect(fetcher.mock.calls[0][1]).toMatchObject({
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Shopify-Access-Token": PARTNER_CONFIG.accessToken,
+    },
+  });
   expect(
     await env.DB.prepare("SELECT display_name FROM shops WHERE shop_domain = ?").bind(shop).first(),
   ).toMatchObject({ display_name: "Negozio CF Ready" });
@@ -554,6 +564,13 @@ test("Telegram ritenta senza duplicare e invia una Rich Message strutturata", as
     }),
   ).toEqual({ sent: 0, failed: 1 });
   expect(
+    await env.DB.prepare("SELECT status, attempts, available_at FROM owner_notifications").first(),
+  ).toMatchObject({
+    status: "pending",
+    attempts: 1,
+    available_at: "2026-08-24T10:06:00.000Z",
+  });
+  expect(
     await deliverOwnerNotifications(env.DB, telegram, {
       now: new Date("2026-08-24T10:06:00.000Z"),
       fetcher: send as typeof fetch,
@@ -563,6 +580,10 @@ test("Telegram ritenta senza duplicare e invia una Rich Message strutturata", as
   expect(send.mock.calls[1][0]).toBe(
     `https://api.telegram.org/bot${telegram.botToken}/sendRichMessage`,
   );
+  expect(send.mock.calls[1][1]).toMatchObject({
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
   const message = JSON.parse(String(send.mock.calls[1][1]?.body));
   expect(message).toMatchObject({
     chat_id: telegram.chatId,
@@ -640,6 +661,377 @@ test("un claim interrotto al quinto tentativo diventa terminale senza un sesto i
     attempts: 5,
     last_error_code: "telegram_send_interrupted",
   });
+});
+
+test("i confini Partner rifiutano configurazione, trasporto, JSON, payload ed eventi invalidi", async () => {
+  for (const config of [
+    { ...PARTNER_CONFIG, organizationId: " " },
+    { ...PARTNER_CONFIG, appId: " " },
+    { ...PARTNER_CONFIG, accessToken: " " },
+  ]) {
+    await expect(pollPartnerEvents(env.DB, config, { now: NOW })).rejects.toThrow(
+      "partner_api_configuration_incomplete",
+    );
+  }
+
+  const cases: Array<[string, Response]> = [
+    ["partner_api_request_failed", new Response("errore", { status: 503 })],
+    ["partner_api_invalid_json", new Response("non-json")],
+    ["partner_api_invalid_payload", Response.json({ data: { app: { events: null } } })],
+    ["partner_api_invalid_payload", partnerResponse([{ cursor: "x", node: { type: "IGNORED" } }])],
+  ];
+  for (const [code, response] of cases) {
+    await expect(
+      pollPartnerEvents(env.DB, PARTNER_CONFIG, {
+        now: NOW,
+        fetcher: vi.fn(async () => response.clone()),
+      }),
+    ).rejects.toThrow(code);
+  }
+
+  const repeatedCursor = vi.fn(async () =>
+    partnerResponse(
+      [relationship("RELATIONSHIP_INSTALLED", "cursor.myshopify.com", "09:58")],
+      true,
+    ),
+  );
+  await expect(
+    pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher: repeatedCursor }),
+  ).rejects.toThrow("partner_api_invalid_cursor");
+});
+
+test("le opzioni predefinite di poll usano orologio e fetch globali senza effetti esterni", async () => {
+  const fetcher = vi.fn(async () => partnerResponse([]));
+  vi.stubGlobal("fetch", fetcher);
+  try {
+    expect(await pollPartnerEvents(env.DB, PARTNER_CONFIG)).toMatchObject({
+      inserted: 0,
+      pages: 1,
+    });
+    expect(await pollLocalNotifications(env.DB)).toMatchObject({ inserted: 0, pages: 2 });
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+test("il poll locale rifiuta timestamp ed eventi billing fuori contratto", async () => {
+  const shop = await insertShop("payload-locale.myshopify.com");
+  const shopId = await shopIdFor(shop);
+  await env.DB.prepare(
+    `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
+     VALUES (?, 'trial_started', 'billing', 'non-data')`,
+  )
+    .bind(shopId)
+    .run();
+  await expect(pollLocalNotifications(env.DB, NOW)).rejects.toThrow(
+    "billing_event_invalid_timestamp",
+  );
+
+  await env.DB.prepare("DELETE FROM app_events").run();
+  await insertBillingEvent({
+    shopId,
+    resourceId: "gid://shopify/AppSubscription/invalido",
+    eventType: "active",
+    planKind: "monthly",
+    occurredAt: "2026-08-24T09:58:00.000Z",
+    previousPlanKind: "none",
+  });
+  await env.DB.prepare("UPDATE billing_events SET shopify_resource_gid = ''").run();
+  await expect(pollLocalNotifications(env.DB, NOW)).rejects.toThrow(
+    "billing_event_invalid_payload",
+  );
+});
+
+test("Telegram copre config invalide, risposta non JSON, claim perso e tentativo terminale", async () => {
+  await expect(
+    deliverOwnerNotifications(env.DB, { botToken: "invalido", chatId: "1" }),
+  ).rejects.toThrow("telegram_bot_token_invalid");
+  await expect(
+    deliverOwnerNotifications(env.DB, {
+      botToken: "123456789:abcdefghijklmnopqrstuvwxyz_ABCD",
+      chatId: "chat",
+    }),
+  ).rejects.toThrow("telegram_chat_id_invalid");
+
+  const insert = async (dedupeKey: string, attempts = 0, body = "corpo") => {
+    await env.DB.prepare(
+      `INSERT INTO owner_notifications (
+         dedupe_key, notification_kind, shop_domain, subject, body_text, source_occurred_at,
+         status, attempts, available_at, created_at, updated_at
+       ) VALUES (?, 'lifecycle', 'errori.myshopify.com', 'Oggetto', ?, ?, 'pending', ?, ?, ?, ?)`,
+    )
+      .bind(
+        dedupeKey,
+        body,
+        "2026-08-24T09:00:00.000Z",
+        attempts,
+        "2026-08-24T09:00:00.000Z",
+        "2026-08-24T09:00:00.000Z",
+        "2026-08-24T09:00:00.000Z",
+      )
+      .run();
+  };
+  const telegram = {
+    botToken: "123456789:abcdefghijklmnopqrstuvwxyz_ABCD",
+    chatId: "987654321",
+  };
+
+  await insert("json-invalido");
+  expect(
+    await deliverOwnerNotifications(env.DB, telegram, {
+      now: NOW,
+      fetcher: vi.fn(async () => new Response("non-json")),
+    }),
+  ).toEqual({ sent: 0, failed: 1 });
+
+  await env.DB.prepare("DELETE FROM owner_notifications").run();
+  await insert("claim-perso");
+  expect(
+    await deliverOwnerNotifications(env.DB, telegram, {
+      now: NOW,
+      fetcher: vi.fn(async () => {
+        await env.DB.prepare("UPDATE owner_notifications SET claim_token = 'sostituito'").run();
+        return Response.json({ ok: true });
+      }),
+    }),
+  ).toEqual({ sent: 0, failed: 1 });
+
+  await env.DB.prepare("DELETE FROM owner_notifications").run();
+  await insert("terminale", 4);
+  expect(
+    await deliverOwnerNotifications(env.DB, telegram, {
+      now: NOW,
+      fetcher: vi.fn(async () => Response.json({ ok: false })),
+    }),
+  ).toEqual({ sent: 0, failed: 1 });
+  expect(
+    await env.DB.prepare("SELECT status, attempts, available_at FROM owner_notifications").first(),
+  ).toMatchObject({
+    status: "failed",
+    attempts: 5,
+    available_at: "2026-08-24T11:20:00.000Z",
+  });
+});
+
+test("delivery rispetta il limite massimo di invii per ciclo", async () => {
+  const at = "2026-08-24T09:00:00.000Z";
+  await env.DB.batch(
+    ["limite-1", "limite-2"].map((key) =>
+      env.DB.prepare(
+        `INSERT INTO owner_notifications (
+           dedupe_key, notification_kind, shop_domain, subject, body_text, source_occurred_at,
+           status, available_at, created_at, updated_at
+         ) VALUES (?, 'lifecycle', 'limite.myshopify.com', 'Oggetto', 'corpo', ?, 'pending', ?, ?, ?)`,
+      ).bind(key, at, at, at, at),
+    ),
+  );
+  const send = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+    Response.json({ ok: true }),
+  );
+  expect(
+    await deliverOwnerNotifications(
+      env.DB,
+      { botToken: "123456789:abcdefghijklmnopqrstuvwxyz_ABCD", chatId: "987654321" },
+      { now: NOW, max: 1, fetcher: send },
+    ),
+  ).toEqual({ sent: 1, failed: 0 });
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(
+    await env.DB.prepare(
+      "SELECT COUNT(*) AS count FROM owner_notifications WHERE status = 'pending'",
+    ).first(),
+  ).toMatchObject({ count: 1 });
+});
+
+test("la Rich Message degrada in sicurezza senza URL, etichette, descrizione o footer", async () => {
+  await env.DB.prepare(
+    `INSERT INTO owner_notifications (
+       dedupe_key, notification_kind, shop_domain, subject, body_text, source_occurred_at,
+       status, available_at, created_at, updated_at
+     ) VALUES ('rich-minimale', 'lifecycle', 'rich.myshopify.com', 'Oggetto', ?, ?, 'pending', ?, ?, ?)`,
+  )
+    .bind(
+      "🏪 Store\nURL: http://non-sicuro.example\nRiga senza etichetta\n⚙️ Stato operativo\nValore libero",
+      "2026-08-24T09:00:00.000Z",
+      "2026-08-24T09:00:00.000Z",
+      "2026-08-24T09:00:00.000Z",
+      "2026-08-24T09:00:00.000Z",
+    )
+    .run();
+  const send = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+    Response.json({ ok: true }),
+  );
+  expect(
+    await deliverOwnerNotifications(
+      env.DB,
+      { botToken: "123456789:abcdefghijklmnopqrstuvwxyz_ABCD", chatId: "987654321" },
+      { now: NOW, max: 1, fetcher: send },
+    ),
+  ).toEqual({ sent: 1, failed: 0 });
+  const blocks = JSON.parse(String(send.mock.calls[0][1]?.body)).rich_message.blocks;
+  expect(blocks.some((block: { type: string }) => block.type === "paragraph")).toBe(false);
+  expect(blocks.some((block: { type: string }) => block.type === "buttons")).toBe(false);
+  expect(blocks.some((block: { type: string }) => block.type === "footer")).toBe(false);
+  expect(JSON.stringify(blocks)).toContain("Riga senza etichetta");
+});
+
+test("fallback locali coprono reinstallazione, equivalenza, dettagli assenti e prova incompleta", async () => {
+  const lifecycleShop = await insertShop("reinstallata-locale.myshopify.com");
+  const lifecycleId = await shopIdFor(lifecycleShop);
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
+       VALUES (?, 'app_uninstalled', 'lifecycle', '2026-08-24T09:55:00.000Z')`,
+    ).bind(lifecycleId),
+    env.DB.prepare(
+      `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
+       VALUES (?, 'app_installed', 'lifecycle', '2026-08-24T09:58:00.000Z')`,
+    ).bind(lifecycleId),
+    env.DB.prepare(
+      `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
+       VALUES (?, 'app_installed', 'lifecycle', '2026-08-24T09:59:00.000Z')`,
+    ).bind(lifecycleId),
+  ]);
+
+  const billingShop = await insertShop("dettagli-assenti.myshopify.com");
+  const billingId = await shopIdFor(billingShop);
+  await insertBillingEvent({
+    shopId: billingId,
+    resourceId: "gid://shopify/AppSubscription/dettagli-1",
+    eventType: "active",
+    planKind: "monthly",
+    occurredAt: "2026-08-24T09:58:00.000Z",
+    previousPlanKind: "none",
+  });
+  await env.DB.prepare(
+    "UPDATE billing_events SET amount_minor = NULL, currency = NULL, period_end = 'non-data' WHERE shop_id = ?",
+  )
+    .bind(billingId)
+    .run();
+
+  const trial = await insertTrialShop("prova-incompleta.myshopify.com", "active");
+  await env.DB.prepare("UPDATE trials SET ends_at = NULL WHERE shop_id = ?")
+    .bind(trial.shopId)
+    .run();
+  await trialEvent(trial.shopId, "trial_started", "2026-08-24T09:58:00.000Z").run();
+
+  expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 4 });
+  const { results } = await env.DB.prepare(
+    "SELECT subject, body_text FROM owner_notifications ORDER BY id",
+  ).all<{ subject: string; body_text: string }>();
+  expect(results.map(({ subject }) => subject)).toEqual([
+    "🔴 CF Ready · Disinstallazione",
+    "🟢 CF Ready · Reinstallazione",
+    "🧪 CF Ready · Prova gratuita attivata",
+    "🟢 CF Ready · Piano attivato",
+  ]);
+  expect(results[2].body_text).not.toContain("Termine prova:");
+  expect(results[2].body_text).not.toContain("Giorni disponibili:");
+  expect(results[3].body_text).not.toContain("Importo:");
+  expect(results[3].body_text).not.toContain("Prossimo addebito:");
+
+  await insertBillingEvent({
+    shopId: billingId,
+    resourceId: "gid://shopify/AppSubscription/dettagli-2",
+    eventType: "active",
+    planKind: "monthly",
+    occurredAt: "2026-08-24T09:59:00.000Z",
+    previousPlanKind: "none",
+  });
+  await env.DB.prepare(
+    "UPDATE billing_events SET amount_minor = NULL, currency = NULL, period_end = 'non-data' WHERE shopify_resource_gid = ?",
+  )
+    .bind("gid://shopify/AppSubscription/dettagli-2")
+    .run();
+  expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 0 });
+});
+
+test("un nome piano non classificabile usa il fallback senza inventare un entitlement", async () => {
+  const shop = await insertShop("piano-speciale.myshopify.com");
+  const event = subscription("SUBSCRIPTION_CHARGE_ACTIVATED", shop, "09:59");
+  event.node.charge.name = "CF Ready — offerta speciale";
+  expect(
+    await pollPartnerEvents(env.DB, PARTNER_CONFIG, {
+      now: NOW,
+      fetcher: vi.fn(async () => partnerResponse([event])),
+    }),
+  ).toMatchObject({ inserted: 1 });
+  expect(await env.DB.prepare("SELECT body_text FROM owner_notifications").first()).toMatchObject({
+    body_text: expect.stringContaining("Piano: CF Ready — offerta speciale"),
+  });
+});
+
+test("delivery usa i default in assenza di notifiche e stabilizza errori non canonici", async () => {
+  const telegram = {
+    botToken: "123456789:abcdefghijklmnopqrstuvwxyz_ABCD",
+    chatId: "987654321",
+  };
+  vi.stubGlobal("fetch", vi.fn());
+  try {
+    expect(await deliverOwnerNotifications(env.DB, telegram)).toEqual({ sent: 0, failed: 0 });
+  } finally {
+    vi.unstubAllGlobals();
+  }
+
+  for (const [key, thrown] of [
+    ["errore-stringa", "boom"],
+    ["errore-non-canonico", new Error("Errore non canonico!")],
+  ] as const) {
+    await env.DB.prepare(
+      `INSERT INTO owner_notifications (
+         dedupe_key, notification_kind, shop_domain, subject, body_text, source_occurred_at,
+         status, available_at, created_at, updated_at
+       ) VALUES (?, 'trial', 'error-code.myshopify.com', 'Oggetto', 'corpo', ?, 'pending', ?, ?, ?)`,
+    )
+      .bind(
+        key,
+        "2026-08-24T09:00:00.000Z",
+        "2026-08-24T09:00:00.000Z",
+        "2026-08-24T09:00:00.000Z",
+        "2026-08-24T09:00:00.000Z",
+      )
+      .run();
+    await deliverOwnerNotifications(env.DB, telegram, {
+      now: NOW,
+      max: 1,
+      fetcher: vi.fn(async () => {
+        throw thrown;
+      }),
+    });
+  }
+  const { results } = await env.DB.prepare(
+    "SELECT metadata_json FROM app_events WHERE event_name = 'owner_notification_send_failed' ORDER BY id",
+  ).all<{ metadata_json: string }>();
+  expect(results.map(({ metadata_json }) => JSON.parse(metadata_json).error_code)).toEqual([
+    "owner_notification_send_failed",
+    "owner_notification_send_failed",
+  ]);
+});
+
+test("il cursore legacy e uno stato numerico fuori range non saltano eventi nuovi", async () => {
+  const shop = await insertShop("cursore-legacy.myshopify.com");
+  const shopId = await shopIdFor(shop);
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
+       VALUES (?, 'app_installed', 'lifecycle', '2026-08-24T09:00:00.000Z')`,
+    ).bind(shopId),
+    env.DB.prepare(
+      `INSERT INTO owner_notification_state (state_key, state_value, updated_at)
+       VALUES ('local_notifications_polled_at', '2026-08-24T09:30:00.000Z', '2026-08-24T09:30:00.000Z')`,
+    ),
+    env.DB.prepare(
+      `INSERT INTO owner_notification_state (state_key, state_value, updated_at)
+       VALUES ('local_app_events_after_id', '999999999999999999999999', '2026-08-24T09:30:00.000Z')`,
+    ),
+  ]);
+  await env.DB.prepare(
+    `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
+     VALUES (?, 'ignored_event', 'lifecycle', '2026-08-24T09:58:00.000Z')`,
+  )
+    .bind(shopId)
+    .run();
+  expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 0 });
 });
 
 function partnerResponse(edges: unknown[], hasNextPage = false) {

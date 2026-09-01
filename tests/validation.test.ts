@@ -969,3 +969,96 @@ test("una Validation spenta non si attiva senza diritto valido", async () => {
   });
   expect(calls).toHaveLength(0);
 });
+
+test("la scrittura espone lock occupato, paese non idoneo e richiesta vuota", async () => {
+  const lockedShop = "write-locked.example.myshopify.com";
+  await seedShop(lockedShop);
+  await acquireValidationLock(env.DB, lockedShop, Date.now(), "altro-owner");
+  expect(
+    await writeValidation(
+      stubAdmin({}).admin,
+      env.DB,
+      lockedShop,
+      { rules: DEFAULT_CONFIG.rules },
+      null,
+    ),
+  ).toEqual({ ok: false, errorCode: "validation_locked" });
+
+  const foreignShop = "write-fr.example.myshopify.com";
+  await seedShop(foreignShop);
+  const foreignAdmin = {
+    graphql: vi.fn(async () =>
+      Response.json({
+        data: {
+          shop: {
+            name: "Store francese",
+            ianaTimezone: "Europe/Paris",
+            plan: { partnerDevelopment: false },
+            shopAddress: { countryCodeV2: "FR" },
+          },
+          validations: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
+        },
+      }),
+    ),
+  };
+  expect(await writeValidation(foreignAdmin, env.DB, foreignShop, null, true)).toEqual({
+    ok: false,
+    errorCode: "country_not_eligible",
+  });
+
+  const emptyShop = "write-empty.example.myshopify.com";
+  await seedShop(emptyShop);
+  expect(await writeValidation(stubAdmin({}).admin, env.DB, emptyShop, null, null)).toEqual({
+    ok: false,
+    errorCode: "validation_write_failed",
+  });
+});
+
+test("un omaggio non concede attivazione se Shopify billing è incerto", async () => {
+  const shop = "write-complimentary-uncertain.example.myshopify.com";
+  await seedShop(shop);
+  const now = "2026-08-24T00:00:00.000Z";
+  await env.DB.prepare(
+    `INSERT INTO complimentary_entitlements
+       (shop_id, status, granted_at, revoked_at, created_at, updated_at)
+     SELECT id, 'active', ?, NULL, ?, ? FROM shops WHERE shop_domain = ?`,
+  )
+    .bind(now, now, now, shop)
+    .run();
+  const stub = stubAdmin({ existing: { enabled: false }, billingError: true });
+  expect(await writeValidation(stub.admin, env.DB, shop, null, true)).toEqual({
+    ok: false,
+    errorCode: "billing_read_failed",
+  });
+  expect(stub.calls).toHaveLength(0);
+});
+
+test("un omaggio confermato senza subscription entra nel metafield", async () => {
+  const shop = "write-complimentary-confirmed.example.myshopify.com";
+  await seedShop(shop);
+  const now = "2026-08-24T00:00:00.000Z";
+  await env.DB.prepare(
+    `INSERT INTO complimentary_entitlements
+       (shop_id, status, granted_at, revoked_at, created_at, updated_at)
+     SELECT id, 'active', ?, NULL, ?, ? FROM shops WHERE shop_domain = ?`,
+  )
+    .bind(now, now, now, shop)
+    .run();
+  const stub = stubAdmin({ existing: { enabled: false } });
+  expect(
+    await writeValidation(stub.admin, env.DB, shop, { rules: DEFAULT_CONFIG.rules }, null),
+  ).toEqual({ ok: true, enabled: false });
+  expect(stub.calls[0].config?.entitlement).toEqual({ kind: "one_time", validThrough: null });
+});
+
+test.each([
+  ["errore generico", "validation_write_failed"],
+  ["active validation limit reached", "validation_limit_reached"],
+] as const)("stabilizza lo userError Shopify %s", async (message, errorCode) => {
+  const shop = `write-user-error-${errorCode}.example.myshopify.com`;
+  await seedShop(shop);
+  const stub = stubAdmin({ userErrors: [{ message }] });
+  expect(
+    await writeValidation(stub.admin, env.DB, shop, { rules: DEFAULT_CONFIG.rules }, null),
+  ).toEqual({ ok: false, errorCode });
+});

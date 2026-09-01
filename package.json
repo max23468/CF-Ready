@@ -54,6 +54,7 @@
     "coverage:update": "npm run coverage:collect && node scripts/coverage-report.mjs --update-baseline",
     "coverage:check": "npm run coverage:collect && node scripts/coverage-report.mjs",
     "mutation:webhooks": "node scripts/run-webhook-mutation.mjs",
+    "mutation:critical": "node scripts/run-critical-mutation.mjs",
     "build:function": "npm run build --workspace cf-ready-validation",
     "verify:function-schema": "node scripts/verify-function-schema.mjs",
     "doctor": "react-doctor --scope full --blocking warning .",

@@ -29,12 +29,57 @@ test("la Home legge contesto e billing con una sola chiamata Shopify iniziale", 
     },
   };
 
-  const state = await reconcile(admin, env.DB, shop, { prefetchBilling: true });
+  const timings: string[] = [];
+  const state = await reconcile(admin, env.DB, shop, {
+    prefetchBilling: true,
+    reportTiming: (name) => timings.push(name),
+  });
 
   expect(queries).toHaveLength(1);
   expect(queries[0]).toContain("validations(first: 100");
   expect(queries[0]).toContain("currentAppInstallation");
+  expect(timings).toContain("shopify_snapshot");
   expect(state.errorCode).toBeNull();
+});
+
+test("un readback duplicati non disponibile conserva la lettura iniziale", async () => {
+  const shop = await insertShop("duplicati-readback-fallito.example.myshopify.com");
+  const context = shopContext("IT", true);
+  context.data.validations.nodes.push({
+    ...context.data.validations.nodes[0],
+    id: "gid://shopify/Validation/2",
+    enabled: false,
+  });
+  const admin = adminStub([
+    context,
+    { data: { validationUpdate: { userErrors: [] } } },
+    { errors: [{ message: "readback non disponibile" }] },
+    SENZA_ADDEBITI,
+  ]);
+  const state = await reconcile(admin, env.DB, shop);
+  expect(state.validation).toBeUndefined();
+  expect(state.errorCode).toBe("duplicate_validations_active");
+  expect(state.retryable).toBe(true);
+});
+
+test("un omaggio confermato da Shopify concede solo il diritto complementare", async () => {
+  const shop = await insertShop("omaggio-confermato.example.myshopify.com");
+  const now = "2026-08-24T00:00:00.000Z";
+  await env.DB.prepare(
+    `INSERT INTO complimentary_entitlements
+       (shop_id, status, granted_at, revoked_at, created_at, updated_at)
+     SELECT id, 'active', ?, NULL, ?, ? FROM shops WHERE shop_domain = ?`,
+  )
+    .bind(now, now, now, shop)
+    .run();
+  const entitlement = { kind: "one_time", validThrough: null };
+  const state = await reconcile(
+    adminStub([shopContext("IT", true, entitlement), SENZA_ADDEBITI]),
+    env.DB,
+    shop,
+  );
+  expect(state.entitlement).toEqual(entitlement);
+  expect(state.complimentary).toMatchObject({ status: "active" });
 });
 
 test("un errore billing nello snapshot Home resta fail-open senza perdere il contesto", async () => {
@@ -170,6 +215,75 @@ test("un errore billing resta fail-open e produce soltanto timing tecnici", asyn
     true,
   );
   expect(JSON.stringify(timings)).not.toContain(shop);
+});
+
+test("la persistenza differita è recintata e rende il timing di scheduling", async () => {
+  const shop = await insertShop("persistenza-differita.example.myshopify.com");
+  const pending: Promise<unknown>[] = [];
+  const timings: string[] = [];
+  const state = await reconcile(
+    adminStub([shopContext("IT", false), SENZA_ADDEBITI]),
+    env.DB,
+    shop,
+    {
+      waitUntil: (promise) => pending.push(promise),
+      reportTiming: (name) => timings.push(name),
+    },
+  );
+  expect(state.errorCode).toBeNull();
+  expect(pending).toHaveLength(1);
+  await Promise.all(pending);
+  expect(timings).toContain("d1_validation_schedule");
+  expect(timings).not.toContain("d1_validation_state");
+});
+
+test("i duplicati misti disattivano solo la risorsa attiva", async () => {
+  const shop = await insertShop("duplicati-misti.example.myshopify.com");
+  const initial = shopContext("IT", true);
+  initial.data.validations.nodes.push({
+    ...initial.data.validations.nodes[0],
+    id: "gid://shopify/Validation/2",
+    enabled: false,
+  });
+  const readback = shopContext("IT", false);
+  readback.data.validations.nodes.push({
+    ...readback.data.validations.nodes[0],
+    id: "gid://shopify/Validation/2",
+    enabled: false,
+  });
+  const admin = adminStub([
+    initial,
+    { data: { validationUpdate: { userErrors: [] } } },
+    readback,
+    SENZA_ADDEBITI,
+  ]);
+  const state = await reconcile(admin, env.DB, shop);
+  expect(state.validation).toBeUndefined();
+  expect(state.errorCode).toBe("duplicate_validations");
+  expect(admin.updates).toHaveLength(1);
+});
+
+test("una Validation rimossa prima della scrittura entitlement resta fail-open", async () => {
+  const shop = await insertShop("entitlement-rimosso-prima-write.example.myshopify.com");
+  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  const admin = adminStub([shopContext("IT", true), SENZA_ADDEBITI, shopContext("IT", null)]);
+  const state = await reconcile(admin, env.DB, shop);
+  expect(state.errorCode).toBe("entitlement_write_failed");
+  expect(state.retryable).toBe(false);
+  expect(admin.updates).toEqual([]);
+});
+
+test("un errore nel contesto sotto lease diventa errore entitlement stabile", async () => {
+  const shop = await insertShop("entitlement-context-error.example.myshopify.com");
+  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  const admin = adminStub([
+    shopContext("IT", true),
+    SENZA_ADDEBITI,
+    new Error("contesto non disponibile"),
+  ]);
+  const state = await reconcile(admin, env.DB, shop);
+  expect(state.errorCode).toBe("entitlement_write_failed");
+  expect(state.retryable).toBe(false);
 });
 
 test("una disattivazione non riuscita resta fail-open e registra un codice errore", async () => {
