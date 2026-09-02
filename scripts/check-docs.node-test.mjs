@@ -735,6 +735,10 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
 
 test("la CI applica corsie proporzionate con required check stabili", () => {
   const ci = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
+  const promotionGuard = readFileSync(
+    new URL("../.github/workflows/promotion-guard.yml", import.meta.url),
+    "utf8",
+  );
   const policy = readFileSync(
     new URL("../.github/workflows/ci-policy.yml", import.meta.url),
     "utf8",
@@ -752,6 +756,8 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   assert.match(ci, /needs\.lane\.outputs\.lane == 'full'[\s\S]*npm run check/);
   assert.match(ci, /lane == 'promotion'[\s\S]*node scripts\/github-gates\.mjs/);
   assert.match(ci, /^  coverage:\n[\s\S]*timeout-minutes: 15/m);
+  assert.match(ci, /^  e2e:\n[\s\S]*timeout-minutes: 20/m);
+  assert.match(promotionGuard, /^  promotion-guard:\n[\s\S]*timeout-minutes: 15/m);
   assert.match(ci, /npm run coverage:check -- --base-sha/);
   assert.match(ci, /name: coverage-\$\{\{ github\.sha \}\}/);
   assert.match(ci, /include-hidden-files: true/);
