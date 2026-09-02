@@ -1,4 +1,5 @@
 import { readBilling, type BillingInstallation } from "../billing/shopify.server";
+import type { AppErrorCode } from "../app-error";
 import type { ShopifyBilling } from "../billing/types";
 import { FUNCTION_HANDLE, type Admin, type MutationResult, type Validation } from "./types";
 
@@ -239,7 +240,7 @@ export function findValidation(validations: Validation[]) {
   return matches[0];
 }
 
-export function duplicateValidationError(validations: Validation[]) {
+export function duplicateValidationError(validations: Validation[]): AppErrorCode | null {
   if (validations.length < 2) return null;
   return validations.some(({ enabled }) => enabled)
     ? "duplicate_validations_active"

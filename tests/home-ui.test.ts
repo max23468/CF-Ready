@@ -30,6 +30,11 @@ vi.mock("../app/shopify.server", () => ({ authenticate: {} }));
 function elements(node: ReactNode): ReactElement[] {
   if (Array.isArray(node)) return node.flatMap(elements);
   if (!isValidElement(node)) return [];
+  if (typeof node.type === "function" && !("isReactComponent" in (node.type.prototype ?? {}))) {
+    const render = node.type as (props: unknown) => ReactNode;
+    const rendered = render(node.props);
+    return [node, ...elements(rendered)];
+  }
   return [node, ...elements((node.props as { children?: ReactNode }).children)];
 }
 

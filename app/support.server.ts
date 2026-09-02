@@ -1,8 +1,10 @@
+import { parseStoredAppErrorCode, type AppErrorCode } from "./app-error";
+
 export type SupportDiagnosticState = {
   configHash: string | null;
   configSchemaVersion: number | null;
   entitlementKind: "annual" | "complimentary" | "monthly" | "none" | "one_time" | "trial";
-  errorCode: string | null;
+  errorCode: AppErrorCode | null;
   lastSyncAt: string | null;
   validationEnabled: boolean;
   validationStateRevision: number;
@@ -54,7 +56,7 @@ export async function readSupportDiagnosticState(
     configHash: row?.config_hash ?? null,
     configSchemaVersion: row?.config_schema_version ?? null,
     entitlementKind,
-    errorCode: row?.last_error_code ?? null,
+    errorCode: parseStoredAppErrorCode(row?.last_error_code),
     lastSyncAt: row?.last_sync_at ?? null,
     validationEnabled: Boolean(row?.validation_enabled),
     validationStateRevision: row?.validation_state_revision ?? 0,

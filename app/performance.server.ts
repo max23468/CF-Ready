@@ -1,31 +1,23 @@
-const METRIC_NAMES = ["LCP", "INP", "CLS", "FCP", "TTFB"] as const;
-const ROUTES = ["home", "rules", "messages", "guide", "onboarding", "other"] as const;
-const SERVER_TIMING_NAMES = [
-  "auth",
-  "shopify_snapshot",
-  "shopify_context",
-  "shopify_billing",
-  "d1_commercial",
-  "d1_home",
-  "d1_validation_schedule",
-  "total",
-] as const;
-
-type MetricName = (typeof METRIC_NAMES)[number];
-type AppRoute = (typeof ROUTES)[number];
-type ServerTimingName = (typeof SERVER_TIMING_NAMES)[number];
+import {
+  PERFORMANCE_METRIC_NAMES,
+  PERFORMANCE_ROUTES,
+  PERFORMANCE_SERVER_TIMING_NAMES,
+  type PerformanceMetricName,
+  type PerformanceRoute,
+  type PerformanceServerTimingName,
+} from "./performance-contract";
 
 export type PerformanceSample = {
   id: string;
-  name: MetricName;
+  name: PerformanceMetricName;
   value: number;
   countryCode: string | null;
 };
 
 export type PerformanceReport = {
-  route: AppRoute;
+  route: PerformanceRoute;
   metrics: PerformanceSample[];
-  serverTimings: Partial<Record<ServerTimingName, number>>;
+  serverTimings: Partial<Record<PerformanceServerTimingName, number>>;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -34,11 +26,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function normalizePerformanceReport(value: unknown): PerformanceReport | null {
   if (!isRecord(value) || !Array.isArray(value.metrics) || value.metrics.length > 10) return null;
-  const route = ROUTES.includes(value.route as AppRoute) ? (value.route as AppRoute) : "other";
+  const route = PERFORMANCE_ROUTES.includes(value.route as PerformanceRoute)
+    ? (value.route as PerformanceRoute)
+    : "other";
   const rawServerTimings = value.serverTimings;
   const serverTimings = isRecord(rawServerTimings)
     ? Object.fromEntries(
-        SERVER_TIMING_NAMES.flatMap((name) => {
+        PERFORMANCE_SERVER_TIMING_NAMES.flatMap((name) => {
           const duration = rawServerTimings[name];
           return typeof duration === "number" &&
             Number.isFinite(duration) &&
@@ -51,11 +45,11 @@ export function normalizePerformanceReport(value: unknown): PerformanceReport | 
     : {};
   const metrics = value.metrics.flatMap((metric): PerformanceSample[] => {
     if (!isRecord(metric)) return [];
-    const name = metric.name as MetricName;
+    const name = metric.name as PerformanceMetricName;
     const id = typeof metric.id === "string" ? metric.id : "";
     const value = metric.value;
     if (
-      !METRIC_NAMES.includes(name) ||
+      !PERFORMANCE_METRIC_NAMES.includes(name) ||
       !/^[A-Za-z0-9._:-]{1,128}$/.test(id) ||
       typeof value !== "number" ||
       !Number.isFinite(value) ||
