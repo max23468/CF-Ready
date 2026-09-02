@@ -127,10 +127,15 @@ test("il gruppo UI e route mantiene il gate canonico al 90%", () => {
   const repositoryPolicy = JSON.parse(
     readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),
   );
+  const browserConfig = readFileSync(
+    new URL("../vitest.browser.config.ts", import.meta.url),
+    "utf8",
+  );
   assert.deepEqual(repositoryPolicy.targets.groups["ui-routes"], {
     minimum: 90,
     active: true,
   });
+  assert.match(browserConfig, /"app\/\*\*\/\*\.server\.\{ts,tsx\}"/);
 });
 
 test("il dominio webhook mantiene coverage e mutation gate canonici", async () => {
