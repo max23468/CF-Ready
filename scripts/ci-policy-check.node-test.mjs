@@ -8,6 +8,7 @@ test("riconosce tutto il control plane CI senza ampliare la superficie", () => {
     ".github/workflows/ci.yml",
     ".github/workflows/nested/check.yml",
     ".npmrc",
+    "config/coverage-policy.json",
     "doctor.config.json",
     "extensions/cf-ready-validation/package.json",
     "extensions/cf-ready-validation/vitest.config.js",

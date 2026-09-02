@@ -6,6 +6,8 @@ import {
   reviewIsDue,
 } from "../../app/config";
 import {
+  describeCheckout,
+  summariseCheckout,
   SUPPORT_EMAIL,
   supportDiagnosticText,
   supportMailto,
@@ -147,6 +149,34 @@ test("la diagnostica copiabile usa gli stessi campi tecnici del messaggio", () =
   expect(diagnostic).toContain("e9763a7e-f334-4121-8ad8-78f85c47b878");
   expect(diagnostic).not.toContain("Codice Fiscale");
   expect(diagnostic).not.toContain("PEC acquirente");
+});
+
+test("i riepiloghi coprono PEC facoltativa e stati disattivato o scaduto", () => {
+  expect(
+    describeCheckout(
+      {
+        rules: { taxCode: "unmanaged", pec: "optional_validated" },
+        errorDisplay: "inline",
+        status: "active",
+      },
+      "it",
+    ),
+  ).toContain(texts("it").checkout.pecOptional);
+  expect(
+    summariseCheckout(
+      {
+        rules: { taxCode: "required_validated", pec: "unmanaged" },
+        status: "lapsed",
+      },
+      "it",
+    ),
+  ).toContain(texts("it").checkout.lapsed);
+  expect(
+    supportDiagnosticText(
+      { shopDomain: "demo.myshopify.com", version: "1.1.4", entitlement: false },
+      "it",
+    ),
+  ).toContain(`${texts("it").support.fieldEntitlement}: ${texts("it").support.no}`);
 });
 
 test("la Home distingue i messaggi predefiniti da quelli riscritti", () => {

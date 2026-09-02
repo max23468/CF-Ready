@@ -6,10 +6,21 @@ import { insertShop, abbonamento } from "../support/billing";
 
 test("il confine billing riconosce il piano ricorrente già attivo", () => {
   const mensile = abbonamento("gid://shopify/AppSubscription/attivo", "2026-08-31");
+  const annuale = {
+    ...mensile,
+    subscription: { ...mensile.subscription!, interval: "ANNUAL" as const },
+  };
 
   expect(requestedRecurringPlanIsActive(mensile, "monthly")).toBe(true);
   expect(requestedRecurringPlanIsActive(mensile, "annual")).toBe(false);
   expect(requestedRecurringPlanIsActive(mensile, "one_time")).toBe(false);
+  expect(requestedRecurringPlanIsActive(annuale, "one_time")).toBe(false);
+  expect(
+    requestedRecurringPlanIsActive(
+      { subscription: null, oneTime: null, pendingOneTime: false },
+      "monthly",
+    ),
+  ).toBe(false);
 });
 
 test("la lease impedisce che due riconciliazioni facciano la stessa operazione", async () => {

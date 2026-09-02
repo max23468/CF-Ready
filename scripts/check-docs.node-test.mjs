@@ -88,6 +88,90 @@ test("usa soltanto id per i frammenti SVG e XML", () => {
   assert(xmlAnchors('<symbol id="marchio"/>').has("marchio"));
 });
 
+test("copre sintassi HTML, entità e reference Markdown ai margini del contratto", () => {
+  assert.deepEqual(
+    htmlTargets(
+      `<1 non-tag><a disabled href='first&amp;second.html' data-unquoted=value>` +
+        `<img src=asset.svg><path fill="url(&#35;decimal)" stroke="url(&#x23;hex)" ` +
+        `cursor="url(&#x110000;)"/><broken title="senza chiusura>`,
+    ),
+    ["first&second.html", "asset.svg", "#decimal", "#hex", "&#x110000;"],
+  );
+  assert.deepEqual(
+    [...markdownAnchors("# Immagine ![Alt testo](asset.svg)\n# Solo **figli**")],
+    ["immagine-alt-testo", "solo-figli"],
+  );
+
+  for (const source of ["testo [aperto", "[testo]x", "[testo][aperto", "testo normale"]) {
+    const undefinedReferences = [];
+    markdownTargets(source, undefinedReferences);
+    assert.deepEqual(undefinedReferences, []);
+  }
+
+  const compactReferences = [];
+  markdownTargets("[Etichetta][]\n[Testo [annidato]][missing]", compactReferences);
+  assert.deepEqual(compactReferences, ["etichetta", "missing"]);
+
+  const escapedBracket = [];
+  markdownTargets(String.raw`[Testo \] ancora][missing]`, escapedBracket);
+  assert.deepEqual(escapedBracket, ["missing"]);
+});
+
+test("il controllo integrato segnala ogni classe di riferimento locale non valido", () => {
+  const repository = mkdtempSync(join(tmpdir(), "cf-ready-docs-errors-"));
+  try {
+    execFileSync("git", ["init", "-q"], { cwd: repository });
+    mkdirSync(join(repository, "docs"), { recursive: true });
+    writeFileSync(join(repository, "package.json"), '{"scripts":{"known":"true"}}');
+    writeFileSync(join(repository, "plain.txt"), "nessun anchor");
+    writeFileSync(
+      join(repository, "docs", "source.md"),
+      [
+        "[Fuori](../../outside.md)",
+        "[Manca](missing.md)",
+        "[Senza parser](../plain.txt#fragment)",
+        "[README uno](../README.md#first)",
+        "[README due](../README.md#missing)",
+        "[Reference][undefined]",
+        "`/Users/example/segreto`",
+        "npm run absent",
+      ].join("\n"),
+    );
+    writeFileSync(join(repository, "README.md"), "# First\n");
+    execFileSync("git", ["add", "."], { cwd: repository });
+
+    const errors = checkDocs(repository).errors.join("\n");
+    assert.match(errors, /percorso locale non riproducibile/);
+    assert.match(errors, /riferimento Markdown senza definizione: undefined/);
+    assert.match(errors, /link locale fuori repository/);
+    assert.match(errors, /link locale inesistente: missing.md/);
+    assert.match(errors, /anchor locale inesistente: \.\.\/README\.md#missing/);
+    assert.match(errors, /script npm inesistente: absent/);
+  } finally {
+    rmSync(repository, { force: true, recursive: true });
+  }
+});
+
+test("il controllo integrato risolve URL HTML senza estensione e rileva file ignorati", () => {
+  const repository = mkdtempSync(join(tmpdir(), "cf-ready-docs-html-fallback-"));
+  try {
+    execFileSync("git", ["init", "-q"], { cwd: repository });
+    writeFileSync(join(repository, ".gitignore"), "generated/\n");
+    writeFileSync(join(repository, "package.json"), '{"scripts":{}}');
+    mkdirSync(join(repository, "site"), { recursive: true });
+    mkdirSync(join(repository, "generated"), { recursive: true });
+    writeFileSync(join(repository, "site", "index.html"), '<a href="support">Supporto</a>');
+    writeFileSync(join(repository, "site", "support.html"), "<h1>Supporto</h1>");
+    writeFileSync(join(repository, "generated", "proof.md"), "# Generato");
+    execFileSync("git", ["add", ".gitignore", "package.json", "site"], { cwd: repository });
+    execFileSync("git", ["add", "-f", "generated/proof.md"], { cwd: repository });
+
+    assert.deepEqual(checkDocs(repository).errors, ["generated/proof.md: file ignorato tracciato"]);
+  } finally {
+    rmSync(repository, { force: true, recursive: true });
+  }
+});
+
 test("gestisce link root-relative, URI esterni e frammenti SVG", () => {
   const repository = mkdtempSync(join(tmpdir(), "cf-ready-docs-"));
   try {
@@ -323,7 +407,7 @@ test("le schermate prodotto riservano lo spazio prima del caricamento", () => {
 test("il menu calcola la sezione attiva nell’ordine del documento", () => {
   const menu = readFileSync(new URL("../site/menu.js", import.meta.url), "utf8");
   assert.match(menu, /compareDocumentPosition/);
-  assert.match(menu, /Node\.DOCUMENT_POSITION_FOLLOWING/);
+  assert.match(menu, /export function initializeMenu/);
 });
 
 test("le fasce senza titolo e il corpo delle guide usano contenitori non sezionanti", () => {
@@ -374,6 +458,13 @@ test("la pagina 404 è dedicata e fuori dall’indice", () => {
 test("non espone un comando locale per il deploy Pages Production", () => {
   const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   assert.equal(packageJson.scripts["site:deploy"], undefined);
+});
+
+test("la coverage Function non dipende dalla Shopify CLI del runner", () => {
+  const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  assert.match(packageJson.scripts["coverage:function"], /tests\/validation\.test\.ts/);
+  assert.doesNotMatch(packageJson.scripts["coverage:function"], /default\.test\.js/);
+  assert.match(packageJson.scripts["coverage:operations"], /^GITHUB_ACTIONS=true c8 /);
 });
 
 test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow", () => {
@@ -427,6 +518,11 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
     );
     if (/shopify app|npm run check/.test(workflow)) {
       assert.doesNotMatch(workflow, /@shopify\/cli@(?!4\.7\.0)/, path);
+    }
+    if (/npm run check/.test(workflow)) {
+      const browserInstall = workflow.indexOf("playwright install --with-deps chromium");
+      assert(browserInstall >= 0, path);
+      assert(browserInstall < workflow.indexOf("npm run check"), path);
     }
   }
 
@@ -655,6 +751,10 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   assert.match(ci, /needs\.lane\.outputs\.lane == 'standard'[\s\S]*npm run check:standard/);
   assert.match(ci, /needs\.lane\.outputs\.lane == 'full'[\s\S]*npm run check/);
   assert.match(ci, /lane == 'promotion'[\s\S]*node scripts\/github-gates\.mjs/);
+  assert.match(ci, /^  coverage:\n[\s\S]*timeout-minutes: 15/m);
+  assert.match(ci, /npm run coverage:check -- --base-sha/);
+  assert.match(ci, /name: coverage-\$\{\{ github\.sha \}\}/);
+  assert.match(ci, /include-hidden-files: true/);
   assert.match(doctor, /steps\.lane\.outputs\.react_doctor == 'true'/);
   assert.match(policy, /pull_request_target:/);
   assert.match(policy, /labeled, unlabeled/);
@@ -691,6 +791,7 @@ test("i deploy riusano i gate e conservano ricevute fuori dalle PR", () => {
   );
   for (const workflow of [development, production]) {
     assert.match(workflow, /REQUIRED_CHECKS:/);
+    assert.match(workflow, /REQUIRED_CHECKS: [^\n]*coverage/);
     assert.match(workflow, /node scripts\/github-gates\.mjs/);
     assert.doesNotMatch(workflow, /run: npm run check\s/);
     assert.match(workflow, /node scripts\/deploy-receipt\.mjs/);
@@ -787,7 +888,10 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.match(workflow, /required_status_checks/);
   assert.match(workflow, /rulesets="\$\(gh api/);
   assert.match(workflow, /ruleset="\$\(gh api/);
-  assert.match(workflow, /ci-policy,dependency-review,e2e,promotion-guard,react-doctor,verify/);
+  assert.match(
+    workflow,
+    /ci-policy,coverage,dependency-review,e2e,promotion-guard,react-doctor,verify/,
+  );
   assert.match(workflow, /gh workflow list --all/);
   assert.match(workflow, /workflows="\$\(gh workflow list/);
   assert.match(workflow, /test -n "\$workflows"/);

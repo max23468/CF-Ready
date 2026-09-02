@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "metrics": ["statements", "branches", "functions", "lines"],
+  "targets": {
+    "global": {
+      "minimum": 95,
+      "active": true
+    },
+    "groups": {
+      "server-worker": {
+        "minimum": 90,
+        "active": true
+      },
+      "ui-routes": {
+        "minimum": 90,
+        "active": true
+      },
+      "function": {
+        "minimum": 100,
+        "perFile": true,
+        "active": true
+      },
+      "operations": {
+        "minimum": 90,
+        "active": true
+      },
+      "public-site": {
+        "minimum": 90,
+        "active": true
+      }
+    },
+    "criticalDomains": {
+      "minimum": 95,
+      "mutationScore": 80,
+      "active": true,
+      "domains": {
+        "webhooks": {
+          "coverageActive": true,
+          "mutationActive": true,
+          "sourcePrefixes": ["app/routes/webhooks.", "app/webhook"],
+          "files": [
+            "app/routes/webhooks.app.billing.tsx",
+            "app/routes/webhooks.app.scopes_update.tsx",
+            "app/routes/webhooks.app.uninstalled.tsx",
+            "app/routes/webhooks.compliance.tsx",
+            "app/routes/webhooks.shop.update.tsx",
+            "app/webhook-auth.server.ts",
+            "app/webhook-jobs.server.ts",
+            "app/webhooks.server.ts"
+          ]
+        },
+        "billing": {
+          "coverageActive": true,
+          "mutationActive": true,
+          "sourcePrefixes": ["app/billing/"],
+          "files": [
+            "app/billing/domain.ts",
+            "app/billing/repository.server.ts",
+            "app/billing/shopify.server.ts"
+          ]
+        },
+        "validation": {
+          "coverageActive": true,
+          "mutationActive": true,
+          "sourcePrefixes": ["app/validation/"],
+          "files": [
+            "app/checkout-field-validation.ts",
+            "app/validation/domain.ts",
+            "app/validation/lock.server.ts",
+            "app/validation/reconcile.server.ts",
+            "app/validation/repository.server.ts",
+            "app/validation/shopify.server.ts",
+            "app/validation/types.ts",
+            "app/validation/write.server.ts"
+          ],
+          "mutationFiles": [
+            "app/validation/domain.ts",
+            "app/validation/lock.server.ts",
+            "app/validation/reconcile.server.ts",
+            "app/validation/repository.server.ts",
+            "app/validation/shopify.server.ts",
+            "app/validation/write.server.ts"
+          ],
+          "mutationExclusions": {
+            "app/checkout-field-validation.ts": "Il codice condiviso gira nel Vitest dedicato della Function, non nel pool Workers del dominio Validation; resta bloccato al 100% per file.",
+            "app/validation/types.ts": "Le costanti di modulo producono static mutants non attivabili dal pool Cloudflare copiato da Stryker; un contratto indipendente ne fissa i valori Shopify canonici."
+          }
+        },
+        "ownerNotifications": {
+          "coverageActive": true,
+          "mutationActive": true,
+          "sourcePrefixes": ["app/owner-notifications.server.ts", "app/owner-notifications/"],
+          "files": [
+            "app/owner-notifications.server.ts",
+            "app/owner-notifications/delivery.server.ts",
+            "app/owner-notifications/model.ts",
+            "app/owner-notifications/presentation.ts"
+          ]
+        }
+      }
+    }
+  },
+  "ratchet": {
+    "active": true,
+    "changedExecutableLines": 95
+  },
+  "nonExecutableSources": {
+    "app/app-bridge.d.ts": "Dichiarazioni TypeScript per App Bridge",
+    "app/billing/types.ts": "Sole dichiarazioni TypeScript del dominio billing",
+    "app/i18n/types.ts": "Sole dichiarazioni TypeScript dei messaggi",
+    "app/billing.server.ts": "Barrel di sole riesportazioni billing",
+    "app/validation.server.ts": "Barrel di sole riesportazioni Validation",
+    "extensions/cf-ready-validation/src/index.ts": "Barrel di sola riesportazione della Function"
+  },
+  "functionBundle": [
+    "extensions/cf-ready-validation/src/cart_validations_generate_run.ts",
+    "app/checkout-field-validation.ts"
+  ]
+}

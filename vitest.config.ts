@@ -27,7 +27,15 @@ export default defineConfig({
       main: "./tests/worker.ts",
       wrangler: { configPath: "./wrangler.json" },
       miniflare: {
-        d1Databases: ["MIGRATION_DB"],
+        d1Databases: [
+          "MIGRATION_DB",
+          "MIGRATION_CORE_DB",
+          "MIGRATION_PRIVACY_DB",
+          "MIGRATION_NOTIFICATION_DB",
+          "MIGRATION_ENTITLEMENT_DB",
+          "MIGRATION_REVISION_DB",
+          "MIGRATION_FULL_DB",
+        ],
         bindings: {
           TEST_MIGRATIONS: await readD1Migrations(path.join(root, "migrations")),
           TRIAL_LEDGER_HMAC_KEY: btoa(String.fromCharCode(...new Uint8Array(32).fill(4))),
@@ -38,6 +46,11 @@ export default defineConfig({
   test: {
     include: ["tests/**/*.test.ts"],
     setupFiles: ["./tests/apply-migrations.ts"],
+    coverage: {
+      provider: "istanbul",
+      include: ["app/**/*.{ts,tsx}", "workers/**/*.ts"],
+      exclude: ["app/**/*.d.ts", "app/billing/types.ts", "app/i18n/types.ts"],
+    },
     // Ogni file avvia un pool Workers con D1 e compila gli import dinamici. Il parallelismo
     // tra file contende il cold start locale e può consumare il timeout prima delle assertion.
     fileParallelism: false,

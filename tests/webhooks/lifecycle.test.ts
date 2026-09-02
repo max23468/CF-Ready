@@ -5,6 +5,8 @@ import { markUninstalled } from "../../app/shop.server";
 import {
   claimWebhook,
   consumeWebhookMessage,
+  errorCode,
+  failClaimedWebhook,
   finishWebhook,
   handleWebhook,
   renewWebhookClaim,
@@ -398,4 +400,154 @@ test("il replay della disinstallazione non tocca una reinstallazione successiva"
       "SELECT id FROM shopify_sessions WHERE id = 'offline_reinstallato'",
     ).first(),
   ).not.toBeNull();
+});
+
+test("rifiuta in modo ritentabile un webhook quando la coda non è configurata", async () => {
+  const response = await handleWebhook(
+    env.DB,
+    { webhookId: "wh-no-queue", topic: "SHOP_UPDATE", shop: "no-queue.myshopify.com" },
+    undefined,
+  );
+
+  expect(response.status).toBe(500);
+  expect(
+    await env.DB.prepare("SELECT webhook_id FROM webhook_events WHERE webhook_id = ?")
+      .bind("wh-no-queue")
+      .first(),
+  ).toBeNull();
+});
+
+test("marca il claim fallito quando la coda rifiuta l'enqueue", async () => {
+  const shop = await insertShop("webhook-enqueue-fallito.example.myshopify.com");
+  const response = await handleWebhook(
+    env.DB,
+    { webhookId: "wh-enqueue-fallito", topic: "SHOP_UPDATE", shop },
+    {
+      send: vi.fn(async () => {
+        throw new Error("queue_unavailable");
+      }),
+    } as unknown as Queue<WebhookJob>,
+  );
+
+  expect(response.status).toBe(500);
+  expect(
+    await env.DB.prepare("SELECT status, error_code FROM webhook_events WHERE webhook_id = ?")
+      .bind("wh-enqueue-fallito")
+      .first(),
+  ).toMatchObject({ status: "failed", error_code: "queue_enqueue_failed" });
+  expect(
+    await env.DB.prepare(
+      `SELECT event_name FROM app_events
+       WHERE webhook_id = ? AND event_name = 'webhook_failed'`,
+    )
+      .bind("wh-enqueue-fallito")
+      .first(),
+  ).toMatchObject({ event_name: "webhook_failed" });
+});
+
+test("rifiuta una disinstallazione senza timestamp prima di creare il claim", async () => {
+  const result = await claimWebhook(
+    env.DB,
+    "wh-uninstall-senza-timestamp",
+    "APP_UNINSTALLED",
+    "uninstall-senza-timestamp.myshopify.com",
+  );
+
+  expect(result).toEqual({ acquired: false, retry: true });
+  expect(
+    await env.DB.prepare("SELECT webhook_id FROM webhook_events WHERE webhook_id = ?")
+      .bind("wh-uninstall-senza-timestamp")
+      .first(),
+  ).toBeNull();
+});
+
+test("un handler che perde il claim non sovrascrive il nuovo proprietario", async () => {
+  const shop = await insertShop("webhook-claim-perso.example.myshopify.com");
+  const claim = await claimWebhook(env.DB, "wh-claim-perso", "SHOP_UPDATE", shop);
+  if (!claim.acquired) throw new Error("claim non acquisito");
+
+  await expect(
+    runClaimedWebhook(
+      env.DB,
+      { webhookId: "wh-claim-perso", claimToken: claim.token, shop },
+      async () => {
+        await env.DB.prepare("UPDATE webhook_events SET claim_token = ? WHERE webhook_id = ?")
+          .bind("claim-nuovo-proprietario", "wh-claim-perso")
+          .run();
+      },
+    ),
+  ).rejects.toThrow("webhook_claim_lost");
+  expect(
+    await env.DB.prepare("SELECT status, claim_token FROM webhook_events WHERE webhook_id = ?")
+      .bind("wh-claim-perso")
+      .first(),
+  ).toMatchObject({ status: "processing", claim_token: "claim-nuovo-proprietario" });
+});
+
+test("un errore nella coda primaria usa il retry breve", async () => {
+  const retry = vi.fn();
+  const ack = vi.fn();
+  const process = vi.fn(async () => {
+    throw new Error("transient_queue_error");
+  });
+
+  await consumeWebhookMessage(
+    env.DB,
+    {
+      body: { webhookId: "wh-primary", claimToken: "claim", shop: "primary.myshopify.com" },
+      attempts: 1,
+      ack,
+      retry,
+    } as unknown as Message<WebhookJob>,
+    false,
+    process,
+  );
+
+  expect(retry).toHaveBeenCalledWith({ delaySeconds: 10 });
+  expect(ack).not.toHaveBeenCalled();
+});
+
+test("un job con claim non più posseduto non esegue né handler né finalizzazione", async () => {
+  const job = {
+    webhookId: "wh-claim-assente",
+    claimToken: "claim-assente",
+    shop: "claim-assente.myshopify.com",
+  };
+  const handler = vi.fn();
+
+  await expect(runClaimedWebhook(env.DB, job, handler)).resolves.toBeUndefined();
+  await expect(failClaimedWebhook(env.DB, job, new Error("ignored"))).resolves.toBeUndefined();
+  expect(handler).not.toHaveBeenCalled();
+});
+
+test("usa lo shop del job per un evento legacy privo di dominio", async () => {
+  await env.DB.prepare(
+    `INSERT INTO webhook_events (
+       webhook_id, shop_domain, topic, status, received_at, claim_token
+     ) VALUES (?, NULL, 'SHOP_UPDATE', 'processing', ?, ?)`,
+  )
+    .bind("wh-shop-fallback", "2026-08-01T10:00:00.000Z", "claim-shop-fallback")
+    .run();
+  const handler = vi.fn();
+
+  await runClaimedWebhook(
+    env.DB,
+    {
+      webhookId: "wh-shop-fallback",
+      claimToken: "claim-shop-fallback",
+      shop: "fallback.myshopify.com",
+    },
+    handler,
+  );
+
+  expect(handler).toHaveBeenCalledWith(expect.objectContaining({ shop: "fallback.myshopify.com" }));
+});
+
+test.each([
+  [new Response(null, { status: 503 }), "response_503"],
+  [new Error("validation_locked"), "validation_locked"],
+  [new Error("Messaggio non stabile"), "unhandled_error"],
+  [{ message: "private_value" }, "unhandled_error"],
+] as const)("normalizza gli errori webhook senza esporre dati: %s", (error, expected) => {
+  expect(errorCode(error)).toBe(expected);
 });

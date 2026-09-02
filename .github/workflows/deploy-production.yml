@@ -65,7 +65,7 @@ jobs:
       - name: Riusa i gate dell'HEAD Production
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REQUIRED_CHECKS: verify,e2e,react-doctor
+          REQUIRED_CHECKS: verify,e2e,react-doctor,coverage
         run: node scripts/github-gates.mjs
 
       # Il Vite plugin appiattisce l'ambiente al momento della build: il bundle

@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
 import { expect, test, vi } from "vitest";
-import { logEvent } from "../../app/events.server";
+import { logEvent, recordEvent } from "../../app/events.server";
 import { markUninstalled, redactShop } from "../../app/shop.server";
 import { insertShop } from "../support/lifecycle";
 
@@ -52,5 +52,61 @@ test("gli eventi lifecycle inseriti direttamente raggiungono i log una volta sol
     { event: "app_uninstalled", correlation_id: "wh-log-uninstall", webhook: true },
     { event: "shop_redacted", correlation_id: "wh-log-redact", webhook: true },
   ]);
+  info.mockRestore();
+});
+
+test("un errore di persistenza produce soltanto un evento tecnico sanitizzato", async () => {
+  const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  const database = {
+    prepare() {
+      throw new Error("dettaglio database riservato");
+    },
+  };
+
+  await recordEvent(database as unknown as D1Database, {
+    name: "evento_non_persistito",
+    class: "support",
+  });
+  const unsuccessfulStatement = {
+    bind() {
+      return this;
+    },
+    async run() {
+      return { success: false, meta: { changes: 0 } };
+    },
+  };
+  await recordEvent({ prepare: () => unsuccessfulStatement } as unknown as D1Database, {
+    name: "evento_rifiutato",
+    class: "support",
+  });
+
+  expect(error).toHaveBeenCalledTimes(2);
+  expect(error.mock.calls[0][0]).toMatchObject({
+    event: "app_event_write_failed",
+    class: "error",
+  });
+  expect(JSON.stringify(error.mock.calls)).not.toContain("dettaglio database riservato");
+  error.mockRestore();
+});
+
+test("un evento idempotente già presente non viene registrato di nuovo", async () => {
+  const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+  const statement = {
+    bind() {
+      return this;
+    },
+    async run() {
+      return { success: true, meta: { changes: 0 } };
+    },
+  };
+  const database = { prepare: () => statement };
+
+  await recordEvent(database as unknown as D1Database, {
+    webhookId: "wh-duplicato",
+    name: "evento_idempotente",
+    class: "lifecycle",
+  });
+
+  expect(info).not.toHaveBeenCalled();
   info.mockRestore();
 });

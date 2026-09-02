@@ -59,3 +59,30 @@ test("la diagnostica fallisce aperta su uno store senza stato operativo", async 
     validationStateRevision: 0,
   });
 });
+
+test("la diagnostica distingue trial e account in chiusura anche senza piano", async () => {
+  const now = "2026-09-02T10:00:00.000Z";
+  const trialShop = await insertShop("support-trial.example.myshopify.com");
+  await env.DB.prepare(
+    `INSERT INTO trials (
+       shop_id, status, eligible_at, started_at, ends_at, pricing_generation,
+       created_at, updated_at
+     ) SELECT id, 'active', ?, ?, '2026-09-10', 'value', ?, ?
+         FROM shops WHERE shop_domain = ?`,
+  )
+    .bind(now, now, now, now, trialShop)
+    .run();
+  expect((await readSupportDiagnosticState(env.DB, trialShop)).entitlementKind).toBe("trial");
+
+  const endingShop = await insertShop("support-ending.example.myshopify.com");
+  await env.DB.prepare(
+    `INSERT INTO billing_accounts (
+       shop_id, entitlement_status, plan_kind, pricing_generation,
+       last_reconciled_at, created_at, updated_at
+     ) SELECT id, 'ending', 'none', 'value', ?, ?, ?
+         FROM shops WHERE shop_domain = ?`,
+  )
+    .bind(now, now, now, endingShop)
+    .run();
+  expect((await readSupportDiagnosticState(env.DB, endingShop)).entitlementKind).toBe("none");
+});
