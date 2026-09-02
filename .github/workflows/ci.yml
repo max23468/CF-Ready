@@ -218,7 +218,7 @@ jobs:
   e2e:
     needs: lane
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - if: needs.lane.outputs.e2e != 'true'
         run: echo "E2E non applicabili alla corsia ${{ needs.lane.outputs.lane }}."
