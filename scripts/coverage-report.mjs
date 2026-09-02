@@ -253,11 +253,11 @@ export function runCoverageReport({
   const policyFile = resolve(repositoryRoot, "config/coverage-policy.json");
   const baselineFile = resolve(repositoryRoot, "config/coverage-baseline.json");
   const policy = readJson(policyFile);
-  const reportFiles = ["app", "function", "operations"].map((name) =>
+  const reportFiles = ["app", "ui", "function", "operations"].map((name) =>
     resolve(repositoryRoot, `.coverage/${name}/coverage-final.json`),
   );
   const globalMap = mergeCoverageFiles(reportFiles);
-  const functionMap = mergeCoverageFiles([reportFiles[1]]);
+  const functionMap = mergeCoverageFiles([reportFiles[2]]);
   const sources = trackedCoverageSources(repositoryRoot, policy, execute);
   const state = coverageState({ globalMap, functionMap, sources, policy, repositoryRoot });
 

@@ -123,6 +123,16 @@ test("il gruppo operativo mantiene il gate canonico al 90%", () => {
   });
 });
 
+test("il gruppo UI e route mantiene il gate canonico al 90%", () => {
+  const repositoryPolicy = JSON.parse(
+    readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),
+  );
+  assert.deepEqual(repositoryPolicy.targets.groups["ui-routes"], {
+    minimum: 90,
+    active: true,
+  });
+});
+
 test("il dominio webhook mantiene coverage e mutation gate canonici", async () => {
   const repositoryPolicy = JSON.parse(
     readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),
@@ -470,6 +480,7 @@ test("genera e verifica una baseline deterministica con report aggregati", () =>
   operations.addFileCoverage(coverage(resolve(repositoryRoot, "site/menu.js"), 0));
   const reportsByName = {
     app: mapFor(repositoryRoot, sources.slice(0, 2)),
+    ui: mapFor(repositoryRoot, ["app/root.tsx"]),
     function: mapFor(repositoryRoot, policy.functionBundle),
     operations,
   };

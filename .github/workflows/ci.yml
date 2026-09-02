@@ -78,6 +78,8 @@ jobs:
         run: npm install --global --allow-scripts=esbuild @shopify/cli@4.7.0
       - if: needs.lane.outputs.lane != 'promotion'
         run: npm ci
+      - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
+        run: npx playwright install --with-deps chromium
       - if: needs.lane.outputs.lane == 'docs'
         run: npm run check:docs
       - if: needs.lane.outputs.lane == 'standard'
@@ -106,6 +108,8 @@ jobs:
         run: npm install --global npm@12.0.2
       - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
         run: npm ci
+      - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
+        run: npx playwright install --with-deps chromium
       - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}

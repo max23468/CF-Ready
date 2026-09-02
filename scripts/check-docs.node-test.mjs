@@ -435,6 +435,11 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
     if (/shopify app|npm run check/.test(workflow)) {
       assert.doesNotMatch(workflow, /@shopify\/cli@(?!4\.7\.0)/, path);
     }
+    if (/npm run check/.test(workflow)) {
+      const browserInstall = workflow.indexOf("playwright install --with-deps chromium");
+      assert(browserInstall >= 0, path);
+      assert(browserInstall < workflow.indexOf("npm run check"), path);
+    }
   }
 
   for (const path of ["deploy-development.yml", "deploy-production.yml"]) {

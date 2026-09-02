@@ -40,6 +40,28 @@ test("la modalità preventiva aggiorna subito l'esito del simulatore", () => {
   expect(simulatorOutcome({ ...input, revealErrors: true })).toBe("blocked");
 });
 
+test("il simulatore distingue nessun controllo, valori pronti ed errore PEC", () => {
+  const base = {
+    deliveryCountry: "IT",
+    billingCountry: "IT",
+    taxCode: "RSSMRA85T10A562S",
+    pec: "mario.rossi@example.com",
+    revealErrors: true,
+  };
+
+  expect(simulatorOutcome({ ...base, rules: { taxCode: "unmanaged", pec: "unmanaged" } })).toBe(
+    "noChecks",
+  );
+  expect(simulatorOutcome({ ...base, rules: requiredTaxCode })).toBe("ready");
+  expect(
+    simulatorOutcome({
+      ...base,
+      rules: { taxCode: "unmanaged", pec: "required_validated" },
+      pec: "mario@",
+    }),
+  ).toBe("blocked");
+});
+
 test("campi facoltativi vuoti passano, mentre valori compilati male vengono bloccati", () => {
   expect(simulatorFieldError("optional_validated", "", () => false)).toBeNull();
   expect(simulatorFieldError("optional_validated", "non valido", () => false)).toBe("invalid");
@@ -56,6 +78,10 @@ test("il simulatore mostra i messaggi configurati effettivi", () => {
     "Messaggio merchant corrente",
   );
   expect(simulatorErrorMessage(messages, "taxCode", "required", false)).toBeUndefined();
+  expect(simulatorErrorMessage(messages, "taxCode", "invalid", true)).toBe(messages.taxCodeInvalid);
+  expect(simulatorErrorMessage(messages, "pec", "required", true)).toBe(messages.pecRequired);
+  expect(simulatorErrorMessage(messages, "pec", "invalid", true)).toBe(messages.pecInvalid);
+  expect(simulatorErrorMessage(messages, "pec", null, true)).toBeUndefined();
 });
 
 test("gli scenari pronti coprono valori validi, non validi e campi vuoti", () => {
@@ -90,4 +116,18 @@ test("cambiare una regola non disattiva gli avvisi preventivi", () => {
     errorDisplay: "preventive",
     address2: false,
   });
+});
+
+test("una bozza incompleta conserva i valori precedenti e legge la dichiarazione", () => {
+  const current = {
+    rules: { taxCode: "required_validated", pec: "optional_validated" },
+    errorDisplay: "inline",
+    address2: false,
+  } as const;
+  const missing = new FormData();
+  expect(mergeRulesFormDraft(current, missing)).toEqual(current);
+
+  const declared = new FormData();
+  declared.set("address2", "declared");
+  expect(mergeRulesFormDraft(current, declared).address2).toBe(true);
 });

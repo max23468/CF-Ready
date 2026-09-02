@@ -5,23 +5,23 @@
   "global": {
     "statements": {
       "total": 5743,
-      "covered": 4727,
-      "pct": 82.3
+      "covered": 5131,
+      "pct": 89.34
     },
     "branches": {
       "total": 3225,
-      "covered": 2590,
-      "pct": 80.31
+      "covered": 2888,
+      "pct": 89.55
     },
     "functions": {
       "total": 699,
-      "covered": 506,
-      "pct": 72.38
+      "covered": 638,
+      "pct": 91.27
     },
     "lines": {
       "total": 5497,
-      "covered": 4563,
-      "pct": 83
+      "covered": 4931,
+      "pct": 89.7
     }
   },
   "groups": {
@@ -50,23 +50,23 @@
     "ui-routes": {
       "statements": {
         "total": 748,
-        "covered": 306,
-        "pct": 40.9
+        "covered": 710,
+        "pct": 94.91
       },
       "branches": {
         "total": 643,
-        "covered": 281,
-        "pct": 43.7
+        "covered": 579,
+        "pct": 90.04
       },
       "functions": {
         "total": 220,
-        "covered": 69,
-        "pct": 31.36
+        "covered": 201,
+        "pct": 91.36
       },
       "lines": {
         "total": 668,
-        "covered": 271,
-        "pct": 40.56
+        "covered": 639,
+        "pct": 95.65
       }
     },
     "function": {

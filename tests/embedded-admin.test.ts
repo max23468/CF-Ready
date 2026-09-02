@@ -62,6 +62,12 @@ test("un percorso esterno non viene copiato nel rientro embedded", () => {
   expect(replace).toHaveBeenCalledWith("https://admin.shopify.com/store/negozio/apps/client-id");
 });
 
+test("il rientro rifiuta un target senza API key", () => {
+  expect(() => embeddedAdminUrl("negozio.myshopify.com", "", "/app")).toThrow(
+    "invalid_embedded_admin_target",
+  );
+});
+
 test("una rotta già embedded non cambia pagina", () => {
   const replace = vi.fn();
   expect(

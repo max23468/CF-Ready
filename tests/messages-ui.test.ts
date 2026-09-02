@@ -7,6 +7,7 @@ import {
   updateMessageDraft,
 } from "../app/messages-draft";
 import { setSaveBarVisibility } from "../app/save-bar";
+import { skipRevalidationWhenLeaving } from "../app/revalidation";
 
 test("la Save Bar programmatica segue lo stato custom dei messaggi", () => {
   const show = vi.fn(() => Promise.resolve());
@@ -18,6 +19,27 @@ test("la Save Bar programmatica segue lo stato custom dei messaggi", () => {
 
   expect(show).toHaveBeenCalledWith("messages");
   expect(hide).toHaveBeenCalledWith("messages");
+});
+
+test("Save Bar assente e navigazioni verso billing restano fail-safe", () => {
+  vi.stubGlobal("shopify", undefined);
+  expect(() => setSaveBarVisibility("messages", true)).not.toThrow();
+
+  expect(
+    skipRevalidationWhenLeaving({
+      actionResult: { confirmationUrl: "https://shopify.example/approve" },
+      defaultShouldRevalidate: true,
+    } as never),
+  ).toBe(false);
+  expect(
+    skipRevalidationWhenLeaving({ actionResult: null, defaultShouldRevalidate: true } as never),
+  ).toBe(true);
+  expect(
+    skipRevalidationWhenLeaving({
+      actionResult: { ok: true },
+      defaultShouldRevalidate: false,
+    } as never),
+  ).toBe(false);
 });
 
 test("Salva serializza anche l'ultima battuta mentre la vista derivata è ancora precedente", () => {
