@@ -175,6 +175,12 @@ ha stato `insufficient_samples` finché non raggiunge 100 campioni; dopo quella
 soglia è `pass` o `fail`. Il comando è di sola lettura e non sostituisce lo
 stato Built for Shopify assegnato e riletto da Shopify.
 
+La rotta del campione è quella che ha avviato il documento e condivide la
+stessa origine temporale dei valori `Server-Timing`. Per un'analisi causale
+separare sempre la shell Shopify Admin dall'iframe CF Ready: un LCP il cui
+elemento appartiene alla shell non prova una regressione del bundle o del
+loader dell'app.
+
 ## Notifiche owner
 
 Il cron Production ogni cinque minuti acquisisce dalla Shopify Partner API gli

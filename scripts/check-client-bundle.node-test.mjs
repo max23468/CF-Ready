@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -12,6 +12,11 @@ import {
 
 test("il bundle client resta entro il budget", () => {
   assert.doesNotThrow(() => assertWithinClientBundleBudget(CLIENT_BUNDLE_BUDGET));
+});
+
+test("gli asset fingerprinted hanno una cache browser immutabile", async () => {
+  const headers = await readFile("public/_headers", "utf8");
+  assert.match(headers, /^\/assets\/\*\n  Cache-Control: public, max-age=31556952, immutable\n$/);
 });
 
 test("il gate blocca un bundle client oltre il budget", () => {

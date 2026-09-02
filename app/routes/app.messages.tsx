@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { useActionData, useLoaderData, useSubmit } from "react-router";
+import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
+import { data, useActionData, useLoaderData, useSubmit } from "react-router";
+import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError } from "../app-error";
 import { authenticateAdmin } from "../admin-auth.server";
 import {
@@ -21,6 +22,7 @@ import type { Locale } from "../i18n";
 import { messageSubmission, shouldShowMessageCounter, updateMessageDraft } from "../messages-draft";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { setSaveBarVisibility } from "../save-bar";
+import { createServerTiming } from "../server-timing.server";
 import { authenticate } from "../shopify.server";
 import {
   findValidation,
@@ -30,17 +32,25 @@ import {
 } from "../validation.server";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
-  const { admin } = await authenticateAdmin(request, context);
-  const validation = findValidation((await queryContext(admin)).validations.nodes);
+  const timing = createServerTiming();
+  const { admin } = await timing.measure("auth", () => authenticateAdmin(request, context));
+  const validation = findValidation(
+    (await timing.measure("shopify_context", () => queryContext(admin))).validations.nodes,
+  );
   const config = readConfig(validation?.metafield?.jsonValue);
 
-  return {
-    locale: resolveLocale(request),
-    configHash: await observedConfigHash(validation),
-    messages: config.messages,
-    rules: config.rules,
-  };
+  return data(
+    {
+      locale: resolveLocale(request),
+      configHash: await observedConfigHash(validation),
+      messages: config.messages,
+      rules: config.rules,
+    },
+    { headers: { "Server-Timing": timing.header() } },
+  );
 };
+
+export const headers: HeadersFunction = (args) => boundary.headers(args);
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);

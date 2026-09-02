@@ -105,14 +105,25 @@ beforeEach(() => {
 
 test("Guida carica diagnostica e accetta solo ricevute di copia valide", async () => {
   mocks.readSupportDiagnosticState.mockResolvedValue({ validationStatus: "inactive" });
-  const { action, loader } = await import("../app/routes/app.guide");
+  const { action, headers, loader } = await import("../app/routes/app.guide");
   const loaded = await loader(args(new Request("https://example.test/app/guide?locale=en")));
-  expect(loaded).toMatchObject({
+  expect(loaded.data).toMatchObject({
     locale: "en",
     shopDomain: session.shop,
     diagnostics: { validationStatus: "inactive" },
   });
-  expect(loaded.diagnosticId).toMatch(/^[0-9a-f-]{36}$/i);
+  expect(loaded.data.diagnosticId).toMatch(/^[0-9a-f-]{36}$/i);
+  expect(new Headers(loaded.init?.headers).get("Server-Timing")).toMatch(
+    /auth;dur=.*d1_support;dur=.*total;dur=/,
+  );
+  expect(
+    new Headers(
+      headers({
+        loaderHeaders: new Headers(loaded.init?.headers),
+        parentHeaders: new Headers(),
+      } as never),
+    ).get("Server-Timing"),
+  ).toBe(new Headers(loaded.init?.headers).get("Server-Timing"));
 
   expect(await action(args(post("/app/guide", { intent: "altro", diagnostic_id: "x" })))).toEqual({
     ok: false,
@@ -142,13 +153,25 @@ test("Guida carica diagnostica e accetta solo ricevute di copia valide", async (
 test("Messaggi legge Shopify e copre rifiuto, salvataggio e conflitto", async () => {
   const validation = { metafield: { jsonValue: DEFAULT_CONFIG } };
   mocks.findValidation.mockReturnValue(validation);
-  const { action, loader } = await import("../app/routes/app.messages");
-  expect(await loader(args(new Request("https://example.test/app/messages?locale=it")))).toEqual({
+  const { action, headers, loader } = await import("../app/routes/app.messages");
+  const loaded = await loader(args(new Request("https://example.test/app/messages?locale=it")));
+  expect(loaded.data).toEqual({
     locale: "it",
     configHash: "hash",
     messages: DEFAULT_CONFIG.messages,
     rules: DEFAULT_CONFIG.rules,
   });
+  expect(new Headers(loaded.init?.headers).get("Server-Timing")).toMatch(
+    /auth;dur=.*shopify_context;dur=.*total;dur=/,
+  );
+  expect(
+    new Headers(
+      headers({
+        loaderHeaders: new Headers(loaded.init?.headers),
+        parentHeaders: new Headers(),
+      } as never),
+    ).get("Server-Timing"),
+  ).toBe(new Headers(loaded.init?.headers).get("Server-Timing"));
 
   const invalid = messageForm({ "it.taxCodeRequired": "" });
   expect(await action(args(post("/app/messages", invalid)))).toMatchObject({
@@ -177,7 +200,7 @@ test("Messaggi legge Shopify e copre rifiuto, salvataggio e conflitto", async ()
 test("Onboarding carica gli stati autorevoli con e senza accesso", async () => {
   const { loader } = await import("../app/routes/app.onboarding");
   const request = new Request("https://example.test/app/onboarding?locale=it");
-  expect(await loader(args(request))).toMatchObject({
+  expect((await loader(args(request))).data).toMatchObject({
     step: 2,
     completed: false,
     entitled: false,
@@ -193,7 +216,7 @@ test("Onboarding carica gli stati autorevoli con e senza accesso", async () => {
   });
   mocks.readOnboarding.mockResolvedValueOnce({ status: "completed", step: 4 });
   mocks.readAddress2Declaration.mockResolvedValueOnce(true);
-  expect(await loader(args(request))).toMatchObject({
+  expect((await loader(args(request))).data).toMatchObject({
     step: 4,
     completed: true,
     enabled: true,
@@ -285,6 +308,11 @@ test("Onboarding tratta prova, intent sconosciuti e chiusura senza attivazione",
     ),
   ).toEqual({ ok: true });
   expect(mocks.saveAddress2Declaration).toHaveBeenCalledWith(db, session.shop, true);
+
+  mocks.readOnboarding.mockResolvedValueOnce({ validationEnabled: false });
+  await expect(action(args(post("/app/onboarding", { intent: "finish" })))).resolves.toEqual({
+    ok: true,
+  });
   expect(mocks.recordEvent).toHaveBeenCalledWith(
     db,
     expect.objectContaining({ name: "onboarding_completed", metadata: { enabled: false } }),
@@ -318,7 +346,7 @@ test("Onboarding attiva solo dopo una scrittura confermata", async () => {
 test("Regole espone duplicati, accesso e dichiarazione osservati", async () => {
   const { loader } = await import("../app/routes/app.rules");
   const request = new Request("https://example.test/app/rules?locale=en");
-  expect(await loader(args(request))).toMatchObject({
+  expect((await loader(args(request))).data).toMatchObject({
     locale: "en",
     duplicateError: null,
     entitled: false,
@@ -333,7 +361,7 @@ test("Regole espone duplicati, accesso e dichiarazione osservati", async () => {
       errorCode,
     });
     mocks.readAddress2Declaration.mockResolvedValueOnce(true);
-    expect(await loader(args(request))).toMatchObject({
+    expect((await loader(args(request))).data).toMatchObject({
       duplicateError: errorCode === "other" ? null : errorCode,
       entitled: true,
       address2Declared: true,
