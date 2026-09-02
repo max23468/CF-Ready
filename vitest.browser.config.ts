@@ -38,9 +38,10 @@ export default defineConfig({
         "app/**/*.d.ts",
         "app/billing/types.ts",
         "app/i18n/types.ts",
-        // Questi moduli sono già completi nella corsia Workers; Vite Browser li trasforma
-        // due volte attraverso i mock hoistati e produrrebbe un secondo denominatore.
+        // Questi moduli sono già coperti nella corsia Workers; Vite Browser può trasformarli
+        // con mappe diverse tra piattaforme e produrrebbe un secondo denominatore.
         "app/embedded-admin.ts",
+        "app/env.server.ts",
         "app/routes/app._index.tsx",
       ],
     },
