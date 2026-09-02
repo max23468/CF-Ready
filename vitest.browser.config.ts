@@ -36,12 +36,12 @@ export default defineConfig({
       include: ["app/**/*.{ts,tsx}"],
       exclude: [
         "app/**/*.d.ts",
+        "app/**/*.server.{ts,tsx}",
         "app/billing/types.ts",
         "app/i18n/types.ts",
         // Questi moduli sono già coperti nella corsia Workers; Vite Browser può trasformarli
         // con mappe diverse tra piattaforme e produrrebbe un secondo denominatore.
         "app/embedded-admin.ts",
-        "app/env.server.ts",
         "app/routes/app._index.tsx",
       ],
     },
