@@ -39,7 +39,7 @@ test("la pagina Regole carica l’entitlement autorevole per l’anteprima", asy
   mocks.observedConfigHash.mockResolvedValue("hash");
   mocks.readAddress2Declaration.mockResolvedValue(null);
 
-  const { loader } = await import("../app/routes/app.rules");
+  const { headers, loader } = await import("../app/routes/app.rules");
   const result = await loader({
     request: new Request("https://example.test/app/rules?locale=it"),
     context: createAppContext(db as D1Database),
@@ -50,6 +50,14 @@ test("la pagina Regole carica l’entitlement autorevole per l’anteprima", asy
   expect(new Headers(result.init?.headers).get("Server-Timing")).toMatch(
     /auth;dur=.*d1_address;dur=.*total;dur=/,
   );
+  expect(
+    new Headers(
+      headers({
+        loaderHeaders: new Headers(result.init?.headers),
+        parentHeaders: new Headers(),
+      } as never),
+    ).get("Server-Timing"),
+  ).toBe(new Headers(result.init?.headers).get("Server-Timing"));
   expect(mocks.reconcile).toHaveBeenCalledWith(
     admin,
     db,

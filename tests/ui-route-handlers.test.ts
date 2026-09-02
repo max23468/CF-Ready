@@ -105,7 +105,7 @@ beforeEach(() => {
 
 test("Guida carica diagnostica e accetta solo ricevute di copia valide", async () => {
   mocks.readSupportDiagnosticState.mockResolvedValue({ validationStatus: "inactive" });
-  const { action, loader } = await import("../app/routes/app.guide");
+  const { action, headers, loader } = await import("../app/routes/app.guide");
   const loaded = await loader(args(new Request("https://example.test/app/guide?locale=en")));
   expect(loaded.data).toMatchObject({
     locale: "en",
@@ -116,6 +116,14 @@ test("Guida carica diagnostica e accetta solo ricevute di copia valide", async (
   expect(new Headers(loaded.init?.headers).get("Server-Timing")).toMatch(
     /auth;dur=.*d1_support;dur=.*total;dur=/,
   );
+  expect(
+    new Headers(
+      headers({
+        loaderHeaders: new Headers(loaded.init?.headers),
+        parentHeaders: new Headers(),
+      } as never),
+    ).get("Server-Timing"),
+  ).toBe(new Headers(loaded.init?.headers).get("Server-Timing"));
 
   expect(await action(args(post("/app/guide", { intent: "altro", diagnostic_id: "x" })))).toEqual({
     ok: false,
@@ -145,7 +153,7 @@ test("Guida carica diagnostica e accetta solo ricevute di copia valide", async (
 test("Messaggi legge Shopify e copre rifiuto, salvataggio e conflitto", async () => {
   const validation = { metafield: { jsonValue: DEFAULT_CONFIG } };
   mocks.findValidation.mockReturnValue(validation);
-  const { action, loader } = await import("../app/routes/app.messages");
+  const { action, headers, loader } = await import("../app/routes/app.messages");
   const loaded = await loader(args(new Request("https://example.test/app/messages?locale=it")));
   expect(loaded.data).toEqual({
     locale: "it",
@@ -156,6 +164,14 @@ test("Messaggi legge Shopify e copre rifiuto, salvataggio e conflitto", async ()
   expect(new Headers(loaded.init?.headers).get("Server-Timing")).toMatch(
     /auth;dur=.*shopify_context;dur=.*total;dur=/,
   );
+  expect(
+    new Headers(
+      headers({
+        loaderHeaders: new Headers(loaded.init?.headers),
+        parentHeaders: new Headers(),
+      } as never),
+    ).get("Server-Timing"),
+  ).toBe(new Headers(loaded.init?.headers).get("Server-Timing"));
 
   const invalid = messageForm({ "it.taxCodeRequired": "" });
   expect(await action(args(post("/app/messages", invalid)))).toMatchObject({
@@ -292,6 +308,11 @@ test("Onboarding tratta prova, intent sconosciuti e chiusura senza attivazione",
     ),
   ).toEqual({ ok: true });
   expect(mocks.saveAddress2Declaration).toHaveBeenCalledWith(db, session.shop, true);
+
+  mocks.readOnboarding.mockResolvedValueOnce({ validationEnabled: false });
+  await expect(action(args(post("/app/onboarding", { intent: "finish" })))).resolves.toEqual({
+    ok: true,
+  });
   expect(mocks.recordEvent).toHaveBeenCalledWith(
     db,
     expect.objectContaining({ name: "onboarding_completed", metadata: { enabled: false } }),

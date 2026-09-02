@@ -41,7 +41,7 @@ test("l’Onboarding riusa lo snapshot Shopify combinato", async () => {
   mocks.readOnboarding.mockResolvedValue({ status: "in_progress", step: 2 });
   mocks.readAddress2Declaration.mockResolvedValue(null);
 
-  const { loader } = await import("../app/routes/app.onboarding");
+  const { headers, loader } = await import("../app/routes/app.onboarding");
   const result = await loader({
     request: new Request("https://example.test/app/onboarding?locale=it"),
     context: createAppContext(db),
@@ -52,6 +52,14 @@ test("l’Onboarding riusa lo snapshot Shopify combinato", async () => {
   expect(new Headers(result.init?.headers).get("Server-Timing")).toMatch(
     /auth;dur=.*d1_onboarding;dur=.*d1_address;dur=.*total;dur=/,
   );
+  expect(
+    new Headers(
+      headers({
+        loaderHeaders: new Headers(result.init?.headers),
+        parentHeaders: new Headers(),
+      } as never),
+    ).get("Server-Timing"),
+  ).toBe(new Headers(result.init?.headers).get("Server-Timing"));
   expect(mocks.reconcile).toHaveBeenCalledWith(
     admin,
     db,
