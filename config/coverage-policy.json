@@ -13,7 +13,7 @@
       },
       "ui-routes": {
         "minimum": 90,
-        "active": false
+        "active": true
       },
       "function": {
         "minimum": 100,
