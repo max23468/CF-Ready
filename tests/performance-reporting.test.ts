@@ -1,6 +1,7 @@
 import { env } from "cloudflare:test";
 import { beforeEach, expect, test, vi } from "vitest";
 import { createAppContext } from "../app/context.server";
+import { APP_VERSION } from "../app/env.server";
 import {
   normalizePerformanceRoute,
   readNavigationServerTimings,
@@ -144,7 +145,7 @@ test("la route autenticata registra versione e campioni idempotenti senza payloa
       metric_name: "INP",
       metric_value: 942,
       country_code: "IT",
-      app_version: "1.1.4",
+      app_version: APP_VERSION,
       app_route: "messages",
       server_timing_json: '{"auth":48,"shopify_snapshot":2090,"total":2150}',
     },
@@ -153,7 +154,7 @@ test("la route autenticata registra versione e campioni idempotenti senza payloa
       metric_name: "LCP",
       metric_value: 3273,
       country_code: "IT",
-      app_version: "1.1.4",
+      app_version: APP_VERSION,
       app_route: "messages",
       server_timing_json: '{"auth":48,"shopify_snapshot":2090,"total":2150}',
     },

@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.1.5 — 2 settembre 2026
+
+- la coverage globale verificata supera il 95% per statement, branch, funzioni
+  e linee, con gate progressivi per domini critici, UI, persistenza, Worker e
+  sito pubblico;
+- la Shopify Validation Function raggiunge e mantiene il 100% su tutte le
+  metriche, includendo nel perimetro ogni dipendenza first-party del bundle;
+- campagne di mutation testing separate proteggono billing, notifiche owner,
+  Validation e webhook, mentre CI, CodeQL ed E2E applicano soglie e controlli
+  riproducibili prima della promozione.
+
 ## 1.1.4 — 31 agosto 2026
 
 - le pagine, gli stati condizionali, i passi dell’onboarding e le anteprime
