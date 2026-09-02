@@ -45,6 +45,9 @@ test("il client invia soltanto campi tecnici allowlistati e normalizza la route"
 
   expect(normalizePerformanceRoute("/app")).toBe("home");
   expect(normalizePerformanceRoute("/app/rules/")).toBe("rules");
+  expect(normalizePerformanceRoute("/app/guide")).toBe("guide");
+  expect(normalizePerformanceRoute("/app/onboarding")).toBe("onboarding");
+  expect(normalizePerformanceRoute("////")).toBe("other");
   expect(normalizePerformanceRoute("/app/non-prevista")).toBe("other");
   expect(fetcher).toHaveBeenCalledOnce();
   expect(captured?.url).toBe("/app/performance");
@@ -54,6 +57,32 @@ test("il client invia soltanto campi tecnici allowlistati e normalizza la route"
     serverTimings: { auth: 42.3 },
     metrics: [{ id: "v4-1", name: "INP", value: 942, country: "IT" }],
   });
+});
+
+test("i timing di navigazione ammettono solo nomi e durate validi", () => {
+  expect(
+    readNavigationServerTimings([
+      { name: "total", duration: 10.04 },
+      { name: "d1_home", duration: 0 },
+      { name: "auth", duration: -1 },
+      { name: "shopify_context", duration: Number.NaN },
+      { name: "riservato", duration: 12 },
+    ]),
+  ).toEqual({ total: 10, d1_home: 0 });
+  expect(readNavigationServerTimings()).toEqual({});
+});
+
+test("il reporter client resta best effort se il trasporto fallisce", async () => {
+  await expect(
+    sendPerformanceReport(
+      { metrics: [] },
+      "/app",
+      vi.fn(async () => {
+        throw new Error("offline");
+      }),
+      {},
+    ),
+  ).resolves.toBeUndefined();
 });
 
 test("il server scarta metriche e campi non ammessi", () => {

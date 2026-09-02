@@ -138,6 +138,18 @@ test("il gruppo UI e route mantiene il gate canonico al 90%", () => {
   assert.match(browserConfig, /"app\/\*\*\/\*\.server\.\{ts,tsx\}"/);
 });
 
+test("Worker e sito pubblico mantengono gate canonici separati al 90%", () => {
+  const repositoryPolicy = JSON.parse(
+    readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),
+  );
+  for (const group of ["server-worker", "public-site"]) {
+    assert.deepEqual(repositoryPolicy.targets.groups[group], {
+      minimum: 90,
+      active: true,
+    });
+  }
+});
+
 test("il dominio webhook mantiene coverage e mutation gate canonici", async () => {
   const repositoryPolicy = JSON.parse(
     readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),
