@@ -519,6 +519,24 @@ test("installazione e disinstallazione locali coprono Partner senza duplicare", 
     }),
   ).toMatchObject({ inserted: 0 });
 
+  const reverseShop = await insertShop("lifecycle-partner-prima.myshopify.com");
+  const reverseShopId = await shopIdFor(reverseShop);
+  expect(
+    await pollPartnerEvents(env.DB, PARTNER_CONFIG, {
+      now: NOW,
+      fetcher: vi.fn(async () =>
+        partnerResponse([relationship("RELATIONSHIP_INSTALLED", reverseShop, "09:58")]),
+      ),
+    }),
+  ).toMatchObject({ inserted: 1 });
+  await env.DB.prepare(
+    `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
+     VALUES (?, 'app_installed', 'lifecycle', ?)`,
+  )
+    .bind(reverseShopId, "2026-08-24T09:58:00.000Z")
+    .run();
+  expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 0 });
+
   await env.DB.batch([
     env.DB.prepare("UPDATE shops SET installation_status = 'uninstalled' WHERE id = ?").bind(
       shopId,
@@ -533,6 +551,7 @@ test("installazione e disinstallazione locali coprono Partner senza duplicare", 
     "SELECT subject FROM owner_notifications ORDER BY id",
   ).all<{ subject: string }>();
   expect(results.map(({ subject }) => subject)).toEqual([
+    "🟢 CF Ready · Nuova installazione",
     "🟢 CF Ready · Nuova installazione",
     "🔴 CF Ready · Disinstallazione",
   ]);

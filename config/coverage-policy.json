@@ -54,6 +54,7 @@
           "mutationActive": true,
           "sourcePrefixes": ["app/billing/"],
           "files": [
+            "app/billing/commercial-entitlement.server.ts",
             "app/billing/domain.ts",
             "app/billing/repository.server.ts",
             "app/billing/shopify.server.ts"
@@ -68,6 +69,7 @@
             "app/validation/domain.ts",
             "app/validation/lock.server.ts",
             "app/validation/reconcile.server.ts",
+            "app/validation/reconcile-validation.server.ts",
             "app/validation/repository.server.ts",
             "app/validation/shopify.server.ts",
             "app/validation/types.ts",
@@ -77,6 +79,7 @@
             "app/validation/domain.ts",
             "app/validation/lock.server.ts",
             "app/validation/reconcile.server.ts",
+            "app/validation/reconcile-validation.server.ts",
             "app/validation/repository.server.ts",
             "app/validation/shopify.server.ts",
             "app/validation/write.server.ts"
@@ -93,8 +96,12 @@
           "files": [
             "app/owner-notifications.server.ts",
             "app/owner-notifications/delivery.server.ts",
+            "app/owner-notifications/local-app-source.server.ts",
+            "app/owner-notifications/local-billing-source.server.ts",
             "app/owner-notifications/model.ts",
-            "app/owner-notifications/presentation.ts"
+            "app/owner-notifications/partner-source.server.ts",
+            "app/owner-notifications/presentation.ts",
+            "app/owner-notifications/repository.server.ts"
           ]
         }
       }

@@ -134,7 +134,7 @@ test("la diagnostica copiabile usa gli stessi campi tecnici del messaggio", () =
     diagnosticId: "e9763a7e-f334-4121-8ad8-78f85c47b878",
     entitlementKind: "annual" as const,
     validationEnabled: true,
-    errorCode: "validation_readback_failed",
+    errorCode: "validation_readback_failed" as const,
     configSchemaVersion: 2,
     configHash: "sha256-tecnico",
     validationStateRevision: 7,

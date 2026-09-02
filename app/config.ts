@@ -1,3 +1,5 @@
+import type { AppErrorCode } from "./app-error";
+
 // Contratto di configurazione di §11.1: forma, valori ammessi e default. Vive fuori da un
 // modulo `.server` perché regole, limiti e testi predefiniti servono anche alla UI, che deve
 // mostrare le stesse opzioni che il server accetta.
@@ -181,7 +183,7 @@ export function onboardingCanAutoComplete(state: {
   configured: boolean;
   entitled: boolean;
   validationEnabled: boolean;
-  errorCode: string | null;
+  errorCode: AppErrorCode | null;
 }) {
   if (state.onboarding === "completed") return false;
   return state.configured && state.entitled && state.validationEnabled && !state.errorCode;
@@ -194,7 +196,7 @@ export function reviewIsDue(
   state: {
     onboarding: string;
     validationEnabled: boolean;
-    errorCode: string | null;
+    errorCode: AppErrorCode | null;
     enabledSince: string | null;
     partnerDevelopment: boolean;
   },

@@ -1,3 +1,4 @@
+import type { AppErrorCode } from "./app-error";
 import type { ErrorDisplay, Rules } from "./config";
 import { en } from "./i18n/en";
 import { formatDate, formatMoney } from "./i18n/format";
@@ -99,7 +100,7 @@ export type SupportDetails = {
   entitlement?: boolean;
   entitlementKind?: "annual" | "complimentary" | "monthly" | "none" | "one_time" | "trial";
   validationEnabled?: boolean;
-  errorCode?: string | null;
+  errorCode?: AppErrorCode | null;
   diagnosticId?: string;
   configSchemaVersion?: number | null;
   configHash?: string | null;

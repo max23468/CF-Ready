@@ -60,6 +60,18 @@ test("la diagnostica fallisce aperta su uno store senza stato operativo", async 
   });
 });
 
+test("la diagnostica conserva come generico un errore persistito non ancora conosciuto", async () => {
+  const shop = await insertShop("support-future-error.example.myshopify.com");
+  await env.DB.prepare(
+    `INSERT INTO app_state (shop_id, last_error_code, updated_at)
+     SELECT id, 'future_validation_error', ? FROM shops WHERE shop_domain = ?`,
+  )
+    .bind("2026-09-02T10:00:00.000Z", shop)
+    .run();
+
+  expect((await readSupportDiagnosticState(env.DB, shop)).errorCode).toBe("generic");
+});
+
 test("la diagnostica distingue trial e account in chiusura anche senza piano", async () => {
   const now = "2026-09-02T10:00:00.000Z";
   const trialShop = await insertShop("support-trial.example.myshopify.com");

@@ -60,7 +60,7 @@ describe("entrypoint Worker", () => {
     expect(await response.text()).toBe("app");
     expect(mocks.requestHandler).toHaveBeenCalledOnce();
     const [limited, appContext] = mocks.requestHandler.mock.calls[0];
-    expect(await limited.text()).toBe("intent=enable");
+    expect(Object.fromEntries(await limited.formData())).toEqual({ intent: "enable" });
     expect(appContext).toBeDefined();
     const background = Promise.resolve();
     appContext.get(waitUntilContext)?.(background);

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import {
   localBillingPlan,
   localNotificationEvent,
@@ -179,6 +179,11 @@ describe("contratti dei dati delle notifiche owner", () => {
     expect(validMoney({ amount: "x", currencyCode: "EUR" })).toBe(false);
     expect(validMoney({ amount: "1", currencyCode: "EU" })).toBe(false);
     expect(validMoney({ amount: "1", currencyCode: "ZZZ" })).toBe(true);
+    const numberFormat = vi.spyOn(Intl, "NumberFormat").mockImplementationOnce(() => {
+      throw new RangeError("valuta non supportata");
+    });
+    expect(validMoney({ amount: "1", currencyCode: "EUR" })).toBe(false);
+    numberFormat.mockRestore();
     expect(validIsoDate("2026-08-01T10:00:00.000Z")).toBe(true);
     expect(validIsoDate(undefined)).toBe(false);
     expect(validCalendarDate("2024-02-29")).toBe(true);
