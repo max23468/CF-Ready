@@ -38,6 +38,7 @@ jobs:
 
       - run: npm install --global npm@12.0.2
       - run: npm ci
+      - run: npx playwright install --with-deps chromium
 
       - run: npm install --global --allow-scripts=esbuild @shopify/cli@4.7.0
 
