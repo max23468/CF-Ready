@@ -70,18 +70,30 @@ export function assessCapacity(events, marker, minimum = MIN_EVENTS) {
   return { requests: measured.length, p95, maximum };
 }
 
-async function main() {
-  const target = process.argv[2] ?? "https://cf-ready-dev.tmsf.workers.dev";
-  const worker = process.argv[3] ?? "cf-ready-dev";
+export async function runCapacityCheck({
+  argv = process.argv,
+  environment = process.env,
+  processId = process.pid,
+  clock = Date.now,
+  spawnProcess = spawn,
+  waitForTailReady = waitForTail,
+  runRequestBatch = requestBatch,
+  waitForMeasuredEvents = waitForEvents,
+  stopProcess = stop,
+  appendSummary = appendFile,
+  log = console.log,
+} = {}) {
+  const target = argv[2] ?? "https://cf-ready-dev.tmsf.workers.dev";
+  const worker = argv[3] ?? "cf-ready-dev";
   const marker = [
     "cf-ready",
-    process.env.GITHUB_RUN_ID ?? "local",
-    process.env.GITHUB_RUN_ATTEMPT ?? process.pid,
-    Date.now(),
+    environment.GITHUB_RUN_ID ?? "local",
+    environment.GITHUB_RUN_ATTEMPT ?? processId,
+    clock(),
   ].join("-");
   let output = "";
   let errors = "";
-  const tail = spawn(
+  const tail = spawnProcess(
     "./node_modules/.bin/wrangler",
     [
       "tail",
@@ -99,28 +111,29 @@ async function main() {
   tail.stderr.setEncoding("utf8").on("data", (chunk) => (errors += chunk));
 
   try {
-    await waitForTail(
+    await waitForTailReady(
       tail,
       target,
       marker,
       () => output,
       () => errors,
     );
-    await requestBatch(target, 10, 1, marker, "warmup");
-    await requestBatch(target, REQUESTS, 5, marker, "measure");
-    await waitForEvents(() => output, marker);
+    await runRequestBatch(target, 10, 1, marker, "warmup");
+    await runRequestBatch(target, REQUESTS, 5, marker, "measure");
+    await waitForMeasuredEvents(() => output, marker);
   } finally {
-    await stop(tail);
+    await stopProcess(tail);
   }
 
   const result = assessCapacity(parseJsonObjects(output), marker);
   const summary =
     `Capacità Development: ${result.requests} richieste, CPU p95 ${result.p95} ms, ` +
     `massimo ${result.maximum} ms, errori 0.`;
-  console.log(summary);
-  if (process.env.GITHUB_STEP_SUMMARY) {
-    await appendFile(process.env.GITHUB_STEP_SUMMARY, `- ${summary}\n`);
+  log(summary);
+  if (environment.GITHUB_STEP_SUMMARY) {
+    await appendSummary(environment.GITHUB_STEP_SUMMARY, `- ${summary}\n`);
   }
+  return result;
 }
 
 export async function waitForTail(
@@ -208,4 +221,4 @@ async function stop(child) {
 
 const isDirectExecution =
   process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
-if (isDirectExecution) await main();
+if (isDirectExecution) await runCapacityCheck();
