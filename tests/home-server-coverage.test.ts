@@ -238,6 +238,16 @@ test("l'attivazione e la disattivazione registrano soltanto scritture riuscite",
     metadata: { enabled: false, schema_version: 2 },
   });
 
+  mocks.writeValidation.mockResolvedValueOnce({ ok: true, enabled: true });
+  await expect(action(actionRequest("enable"))).resolves.toEqual({ ok: true });
+  expect(mocks.recordEvent).toHaveBeenLastCalledWith(
+    db,
+    expect.objectContaining({
+      name: "validation_enabled",
+      metadata: { enabled: true, schema_version: 2 },
+    }),
+  );
+
   await expect(action(actionRequest("intent_sconosciuto"))).resolves.toEqual({
     ok: false,
     errorCode: "generic",

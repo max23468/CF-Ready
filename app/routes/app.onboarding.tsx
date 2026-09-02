@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import type { HeadersFunction } from "react-router";
 import { useFetcher, useLoaderData, useNavigate } from "react-router";
+import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError, type AppErrorCode } from "../app-error";
 import { oneOf, pendingFetcherIntent, RULE_MODES } from "../config";
 import { onboardingCheckoutPreview } from "../features/onboarding/checkout-preview";
@@ -21,6 +23,7 @@ import { action, loader } from "../features/onboarding/onboarding.server";
 import "./app.onboarding.css";
 
 export { action, loader };
+export const headers: HeadersFunction = (args) => boundary.headers(args);
 export {
   Address2DeclarationPrompt,
   OnboardingListBlock,

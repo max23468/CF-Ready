@@ -1,6 +1,7 @@
 import { useState } from "react";
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { useFetcher, useLoaderData } from "react-router";
+import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
+import { data, useFetcher, useLoaderData } from "react-router";
+import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticateAdmin } from "../admin-auth.server";
 import { databaseContext } from "../context.server";
 import { APP_VERSION } from "../env.server";
@@ -13,21 +14,30 @@ import {
   type SupportCategory,
 } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
+import { createServerTiming } from "../server-timing.server";
 import { readSupportDiagnosticState } from "../support.server";
 import "./app.guide.css";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
-  const { session } = await authenticateAdmin(request, context);
+  const timing = createServerTiming();
+  const { session } = await timing.measure("auth", () => authenticateAdmin(request, context));
   // La Guida non rilegge Shopify: usa solo lo stato tecnico D1 già riconciliato (§22).
-  const diagnostics = await readSupportDiagnosticState(context.get(databaseContext), session.shop);
-  return {
-    locale: resolveLocale(request),
-    shopDomain: session.shop,
-    version: APP_VERSION,
-    diagnosticId: crypto.randomUUID(),
-    diagnostics,
-  };
+  const diagnostics = await timing.measure("d1_support", () =>
+    readSupportDiagnosticState(context.get(databaseContext), session.shop),
+  );
+  return data(
+    {
+      locale: resolveLocale(request),
+      shopDomain: session.shop,
+      version: APP_VERSION,
+      diagnosticId: crypto.randomUUID(),
+      diagnostics,
+    },
+    { headers: { "Server-Timing": timing.header() } },
+  );
 };
+
+export const headers: HeadersFunction = (args) => boundary.headers(args);
 
 const DIAGNOSTIC_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 

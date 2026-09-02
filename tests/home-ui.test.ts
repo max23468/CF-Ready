@@ -515,7 +515,7 @@ test("il confronto piani comunica con la Home senza navigare il frame della moda
       saved: {
         locale: "it",
         rules: { taxCode: "required_validated", pec: "unmanaged" },
-      } as Awaited<ReturnType<typeof import("../app/routes/app.onboarding").loader>>,
+      } as Awaited<ReturnType<typeof import("../app/routes/app.onboarding").loader>>["data"],
       declared: false,
       t: texts("it"),
       state: { summary: "needs", access: "first_run", canActivate: false },

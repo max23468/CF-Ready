@@ -39,17 +39,31 @@ test("la pagina Regole carica l’entitlement autorevole per l’anteprima", asy
   mocks.observedConfigHash.mockResolvedValue("hash");
   mocks.readAddress2Declaration.mockResolvedValue(null);
 
-  const { loader } = await import("../app/routes/app.rules");
+  const { headers, loader } = await import("../app/routes/app.rules");
   const result = await loader({
     request: new Request("https://example.test/app/rules?locale=it"),
     context: createAppContext(db as D1Database),
     params: {},
   } as never);
 
-  expect(result).toMatchObject({ enabled: true, entitled: false });
-  expect(mocks.reconcile).toHaveBeenCalledWith(admin, db, "example.myshopify.com", {
-    prefetchBilling: true,
-  });
+  expect(result.data).toMatchObject({ enabled: true, entitled: false });
+  expect(new Headers(result.init?.headers).get("Server-Timing")).toMatch(
+    /auth;dur=.*d1_address;dur=.*total;dur=/,
+  );
+  expect(
+    new Headers(
+      headers({
+        loaderHeaders: new Headers(result.init?.headers),
+        parentHeaders: new Headers(),
+      } as never),
+    ).get("Server-Timing"),
+  ).toBe(new Headers(result.init?.headers).get("Server-Timing"));
+  expect(mocks.reconcile).toHaveBeenCalledWith(
+    admin,
+    db,
+    "example.myshopify.com",
+    expect.objectContaining({ prefetchBilling: true, reportTiming: expect.any(Function) }),
+  );
 });
 
 test("la pagina Regole segnala la configurazione indeterminata dei duplicati", async () => {
@@ -69,5 +83,5 @@ test("la pagina Regole segnala la configurazione indeterminata dei duplicati", a
     params: {},
   } as never);
 
-  expect(result.duplicateError).toBe("duplicate_validations_active");
+  expect(result.data.duplicateError).toBe("duplicate_validations_active");
 });
