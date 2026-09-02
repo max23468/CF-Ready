@@ -1,3 +1,4 @@
+import { parseStoredAppErrorCode, type AppErrorCode } from "../app-error";
 import { configHash } from "./domain";
 import type { Validation } from "./types";
 import { safeStoreDisplayName } from "../shop-profile.server";
@@ -13,7 +14,7 @@ export async function persistValidationState(
     eligible: boolean;
     validation: Validation | undefined;
     validationEnabled?: boolean;
-    errorCode: string | null;
+    errorCode: AppErrorCode | null;
     expectedRevision?: number;
   },
 ) {
@@ -163,7 +164,7 @@ export async function readHomeState(db: D1Database, shopDomain: string) {
     onboarding: {
       status: row?.onboarding_status ?? "not_started",
       step: Math.min(4, Math.max(1, row?.onboarding_step ?? 1)),
-      errorCode: row?.last_error_code ?? null,
+      errorCode: parseStoredAppErrorCode(row?.last_error_code),
       validationEnabled: Boolean(row?.validation_enabled),
     },
     address2Declaration: row?.address2_conflict_declared_at ?? null,
@@ -191,7 +192,7 @@ export async function readOnboarding(db: D1Database, shopDomain: string) {
     // La colonna nasce a zero: `?? 1` non scatta su una riga che esiste già, e un passo zero
     // produce una schermata vuota. Il valore viene quindi riportato dentro l'intervallo.
     step: Math.min(4, Math.max(1, row?.onboarding_step ?? 1)),
-    errorCode: row?.last_error_code ?? null,
+    errorCode: parseStoredAppErrorCode(row?.last_error_code),
     validationEnabled: Boolean(row?.validation_enabled),
   };
 }

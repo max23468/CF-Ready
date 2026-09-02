@@ -2,7 +2,7 @@ import { formatMoney, texts } from "../../i18n";
 import { commercialState } from "./commercial-state";
 import type { HomeData } from "./home.server";
 
-type PlanChoiceProps = {
+type PlanProps = {
   data: HomeData;
   busy: boolean;
   pendingIntent: string | null;
@@ -10,7 +10,43 @@ type PlanChoiceProps = {
   firstCharge: string;
 };
 
-function StartTrialSection({ data, busy, pendingIntent, submit }: PlanChoiceProps) {
+export function PlanChoice(props: PlanProps) {
+  const { data, pendingIntent, submit } = props;
+  const t = texts(data.locale);
+  const trialNeverStarted = commercialState(data) === "first_run";
+  return (
+    <>
+      <s-box id="plans" paddingBlockEnd="base">
+        <s-stack direction="block" gap="base">
+          {trialNeverStarted ? <StartTrialSection {...props} /> : null}
+          <PlanSelection {...props} trialNeverStarted={trialNeverStarted} />
+        </s-stack>
+      </s-box>
+      <s-modal
+        id="cancel-renewal"
+        heading={t.plan.cancelRenewal}
+        accessibilityLabel={t.plan.cancelBody}
+      >
+        <s-paragraph>{t.plan.cancelBody}</s-paragraph>
+        <s-button slot="secondary-actions" commandFor="cancel-renewal" command="--hide">
+          {t.common.cancel}
+        </s-button>
+        <s-button
+          slot="primary-action"
+          variant="primary"
+          loading={pendingIntent === "cancel"}
+          commandFor="cancel-renewal"
+          command="--hide"
+          onClick={() => submit("cancel")}
+        >
+          {t.plan.cancelRenewal}
+        </s-button>
+      </s-modal>
+    </>
+  );
+}
+
+function StartTrialSection({ data, busy, pendingIntent, submit }: PlanProps) {
   const t = texts(data.locale);
   return (
     <s-section heading={t.plan.notStartedHeading}>
@@ -32,23 +68,80 @@ function StartTrialSection({ data, busy, pendingIntent, submit }: PlanChoiceProp
   );
 }
 
-function MonthlyPlan({ data, busy, pendingIntent, submit, firstCharge }: PlanChoiceProps) {
+function PlanSelection(props: PlanProps & { trialNeverStarted: boolean }) {
+  const { data, trialNeverStarted } = props;
   const t = texts(data.locale);
+  const onOneTime = data.entitlement.kind === "one_time";
+  const heading = onOneTime
+    ? t.plan.oneTimeName
+    : trialNeverStarted
+      ? t.plan.chooseNowHeading
+      : t.plan.chooseHeading;
+  if (onOneTime || !data.plan) {
+    return (
+      <s-section heading={heading}>
+        <s-paragraph>
+          {onOneTime
+            ? data.complimentary
+              ? t.plan.complimentarySettled
+              : t.plan.oneTimeSettled
+            : t.plan.none}
+        </s-paragraph>
+      </s-section>
+    );
+  }
+  return (
+    <s-section heading={heading}>
+      <s-stack direction="block" gap="base">
+        <s-paragraph>{t.plan.chooseBody}</s-paragraph>
+        <RecurringPlanOption {...props} kind="monthly" />
+        <s-divider />
+        <RecurringPlanOption {...props} kind="annual" />
+        <s-divider />
+        <OneTimePlanOption {...props} />
+        <SubscriptionCancellation {...props} />
+      </s-stack>
+    </s-section>
+  );
+}
+
+function RecurringPlanOption({
+  data,
+  busy,
+  pendingIntent,
+  submit,
+  firstCharge,
+  trialNeverStarted,
+  kind,
+}: PlanProps & { trialNeverStarted: boolean; kind: "monthly" | "annual" }) {
+  const t = texts(data.locale);
+  const annual = kind === "annual";
+  const active = data.planKind === kind;
+  const label = annual ? t.plan.annualName : t.plan.monthlyName;
+  const actionLabel = annual
+    ? data.planKind === "monthly"
+      ? t.plan.annualSwitch
+      : t.plan.annualStart
+    : data.planKind === "annual"
+      ? t.plan.monthlySwitch
+      : t.plan.monthlyStart;
   return (
     <s-stack direction="block" gap="small-100">
       <s-stack direction="inline" gap="small-100" alignItems="center">
-        <s-text type="strong">{t.plan.monthlyName}</s-text>
-        <s-text>{formatMoney(data.plan!.monthly, data.locale)}</s-text>
+        <s-text type="strong">{label}</s-text>
+        <s-text>{formatMoney(data.plan![kind], data.locale)}</s-text>
+        {annual ? <s-badge>{t.plan.recommended}</s-badge> : null}
       </s-stack>
       <s-paragraph>{firstCharge}</s-paragraph>
-      {data.planKind === "monthly" ? null : (
+      {active ? null : (
         <s-stack direction="inline" gap="base">
           <s-button
+            variant={annual && !trialNeverStarted ? "primary" : undefined}
             disabled={busy}
-            loading={pendingIntent === "monthly"}
-            onClick={() => submit("monthly")}
+            loading={pendingIntent === kind}
+            onClick={() => submit(kind)}
           >
-            {data.planKind === "annual" ? t.plan.monthlySwitch : t.plan.monthlyStart}
+            {actionLabel}
           </s-button>
         </s-stack>
       )}
@@ -56,36 +149,23 @@ function MonthlyPlan({ data, busy, pendingIntent, submit, firstCharge }: PlanCho
   );
 }
 
-function AnnualPlan(props: PlanChoiceProps & { trialNeverStarted: boolean }) {
-  const { data, busy, pendingIntent, submit, firstCharge, trialNeverStarted } = props;
+function OneTimePlanOption({
+  data,
+  busy,
+  pendingIntent,
+  submit,
+  trialNeverStarted,
+}: PlanProps & {
+  trialNeverStarted: boolean;
+}) {
   const t = texts(data.locale);
-  return (
-    <s-stack direction="block" gap="small-100">
-      <s-stack direction="inline" gap="small-100" alignItems="center">
-        <s-text type="strong">{t.plan.annualName}</s-text>
-        <s-text>{formatMoney(data.plan!.annual, data.locale)}</s-text>
-        <s-badge>{t.plan.recommended}</s-badge>
-      </s-stack>
-      <s-paragraph>{firstCharge}</s-paragraph>
-      {data.planKind === "annual" ? null : (
-        <s-stack direction="inline" gap="base">
-          <s-button
-            variant={trialNeverStarted ? undefined : "primary"}
-            disabled={busy}
-            loading={pendingIntent === "annual"}
-            onClick={() => submit("annual")}
-          >
-            {data.planKind === "monthly" ? t.plan.annualSwitch : t.plan.annualStart}
-          </s-button>
-        </s-stack>
-      )}
-    </s-stack>
-  );
-}
-
-function OneTimePlan(props: PlanChoiceProps & { trialNeverStarted: boolean }) {
-  const { data, busy, pendingIntent, submit, trialNeverStarted } = props;
-  const t = texts(data.locale);
+  const credit =
+    data.entitlement.kind === "subscription" && data.creditEstimate
+      ? {
+          net: formatMoney(Math.max(0, data.plan!.one_time - data.creditEstimate), data.locale),
+          value: formatMoney(data.creditEstimate, data.locale),
+        }
+      : null;
   return (
     <s-stack direction="block" gap="small-100">
       <s-stack direction="inline" gap="small-100" alignItems="center">
@@ -95,16 +175,10 @@ function OneTimePlan(props: PlanChoiceProps & { trialNeverStarted: boolean }) {
       <s-paragraph>
         {trialNeverStarted ? t.plan.oneTimeChargeNotStarted : t.plan.oneTimeCharge}
       </s-paragraph>
-      {data.entitlement.kind === "subscription" && data.creditEstimate ? (
+      {credit ? (
         <>
-          <s-paragraph>
-            {t.plan.netCost(
-              formatMoney(Math.max(0, data.plan!.one_time - data.creditEstimate), data.locale),
-            )}
-          </s-paragraph>
-          <s-paragraph>
-            {t.plan.creditEstimate(formatMoney(data.creditEstimate, data.locale))}
-          </s-paragraph>
+          <s-paragraph>{t.plan.netCost(credit.net)}</s-paragraph>
+          <s-paragraph>{t.plan.creditEstimate(credit.value)}</s-paragraph>
         </>
       ) : null}
       <s-stack direction="inline" gap="base">
@@ -120,18 +194,16 @@ function OneTimePlan(props: PlanChoiceProps & { trialNeverStarted: boolean }) {
   );
 }
 
-function CancellationChoice({ data, busy, pendingIntent }: PlanChoiceProps) {
-  if (data.entitlement.kind !== "subscription") return null;
-
+function SubscriptionCancellation({ data, busy, pendingIntent }: PlanProps) {
   const t = texts(data.locale);
+  if (data.entitlement.kind !== "subscription") return null;
+  const ending = data.accountStatus === "ending";
   return (
     <>
       <s-divider />
       <s-stack direction="block" gap="small-100">
-        <s-paragraph>
-          {data.accountStatus === "ending" ? t.plan.endingAlready : t.plan.cancelBody}
-        </s-paragraph>
-        {data.accountStatus === "ending" ? null : (
+        <s-paragraph>{ending ? t.plan.endingAlready : t.plan.cancelBody}</s-paragraph>
+        {ending ? null : (
           <s-stack direction="inline" gap="base">
             <s-button
               disabled={busy}
@@ -144,91 +216,6 @@ function CancellationChoice({ data, busy, pendingIntent }: PlanChoiceProps) {
           </s-stack>
         )}
       </s-stack>
-    </>
-  );
-}
-
-function PlanOptions(props: PlanChoiceProps & { trialNeverStarted: boolean }) {
-  const t = texts(props.data.locale);
-  return (
-    <s-stack direction="block" gap="base">
-      <s-paragraph>{t.plan.chooseBody}</s-paragraph>
-      <MonthlyPlan {...props} />
-      <s-divider />
-      <AnnualPlan {...props} />
-      <s-divider />
-      <OneTimePlan {...props} />
-      <CancellationChoice {...props} />
-    </s-stack>
-  );
-}
-
-function choiceHeading(data: HomeData, trialNeverStarted: boolean) {
-  const t = texts(data.locale);
-  if (data.entitlement.kind === "one_time") return t.plan.oneTimeName;
-  return trialNeverStarted ? t.plan.chooseNowHeading : t.plan.chooseHeading;
-}
-
-function PlanSelection(props: PlanChoiceProps & { trialNeverStarted: boolean }) {
-  const { data, trialNeverStarted } = props;
-  const t = texts(data.locale);
-  const onOneTime = data.entitlement.kind === "one_time";
-  return (
-    <s-section heading={choiceHeading(data, trialNeverStarted)}>
-      {onOneTime || !data.plan ? (
-        <s-paragraph>
-          {onOneTime
-            ? data.complimentary
-              ? t.plan.complimentarySettled
-              : t.plan.oneTimeSettled
-            : t.plan.none}
-        </s-paragraph>
-      ) : (
-        <PlanOptions {...props} />
-      )}
-    </s-section>
-  );
-}
-
-function CancellationModal({ data, pendingIntent, submit }: PlanChoiceProps) {
-  const t = texts(data.locale);
-  return (
-    <s-modal
-      id="cancel-renewal"
-      heading={t.plan.cancelRenewal}
-      accessibilityLabel={t.plan.cancelBody}
-    >
-      <s-paragraph>{t.plan.cancelBody}</s-paragraph>
-      <s-button slot="secondary-actions" commandFor="cancel-renewal" command="--hide">
-        {t.common.cancel}
-      </s-button>
-      <s-button
-        slot="primary-action"
-        variant="primary"
-        loading={pendingIntent === "cancel"}
-        commandFor="cancel-renewal"
-        command="--hide"
-        onClick={() => submit("cancel")}
-      >
-        {t.plan.cancelRenewal}
-      </s-button>
-    </s-modal>
-  );
-}
-
-export function PlanChoice(props: PlanChoiceProps) {
-  const trialNeverStarted = commercialState(props.data) === "first_run";
-  const sharedProps = { ...props, trialNeverStarted };
-
-  return (
-    <>
-      <s-box id="plans" paddingBlockEnd="base">
-        <s-stack direction="block" gap="base">
-          {trialNeverStarted ? <StartTrialSection {...props} /> : null}
-          <PlanSelection {...sharedProps} />
-        </s-stack>
-      </s-box>
-      <CancellationModal {...props} />
     </>
   );
 }
