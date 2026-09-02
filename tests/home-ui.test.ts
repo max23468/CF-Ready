@@ -33,6 +33,16 @@ function elements(node: ReactNode): ReactElement[] {
   return [node, ...elements((node.props as { children?: ReactNode }).children)];
 }
 
+function renderedElements(node: ReactNode): ReactElement[] {
+  if (Array.isArray(node)) return node.flatMap(renderedElements);
+  if (!isValidElement(node)) return [];
+  if (typeof node.type === "function") {
+    const Component = node.type as (props: Record<string, unknown>) => ReactNode;
+    return [node, ...renderedElements(Component(node.props as Record<string, unknown>))];
+  }
+  return [node, ...renderedElements((node.props as { children?: ReactNode }).children)];
+}
+
 const data = {
   locale: "it",
   entitlement: { kind: "subscription", validThrough: "2026-08-31" },
@@ -48,7 +58,7 @@ test("il piano omaggio non viene presentato come un pagamento", () => {
     entitlement: { kind: "one_time", validThrough: null },
     complimentary: true,
   } as Parameters<typeof PlanChoice>[0]["data"];
-  const choice = elements(
+  const choice = renderedElements(
     PlanChoice({
       data: complimentary,
       busy: false,
@@ -57,7 +67,7 @@ test("il piano omaggio non viene presentato come un pagamento", () => {
       firstCharge: "oggi",
     }),
   );
-  const status = elements(PlanStatus({ data: complimentary }));
+  const status = renderedElements(PlanStatus({ data: complimentary }));
 
   expect(
     choice.some(
@@ -133,7 +143,7 @@ test("l'approvazione billing si apre fuori dall'iframe", () => {
 test("la cancellazione apre la conferma e invia l'intent soltanto dall'azione primaria", () => {
   const submit = vi.fn();
   const render = (pendingIntent: string | null) =>
-    elements(
+    renderedElements(
       PlanChoice({
         data,
         busy: pendingIntent !== null,
@@ -374,7 +384,7 @@ test("la prima installazione non viene presentata come un piano da riattivare", 
     trialStatus: null,
     planKind: "none",
   } as Parameters<typeof PlanChoice>[0]["data"];
-  const rendered = elements(
+  const rendered = renderedElements(
     PlanChoice({
       data: firstRunData,
       busy: false,
@@ -400,7 +410,7 @@ test("la prima installazione non viene presentata come un piano da riattivare", 
         !(element.props as { slot?: string }).slot,
     )
     .map((element) => (element.props as { children?: ReactNode }).children);
-  const planStatus = elements(PlanStatus({ data: firstRunData }));
+  const planStatus = renderedElements(PlanStatus({ data: firstRunData }));
 
   expect(commercialState(firstRunData)).toBe("first_run");
   expect(headings).toContain(texts("it").plan.chooseNowHeading);
