@@ -179,6 +179,22 @@ describe("componenti merchant nel browser", () => {
     expect(onReport).toHaveBeenLastCalledWith(null);
   });
 
+  test("il reporter attribuisce le metriche alla rotta di lancio anche dopo una navigazione", async () => {
+    window.history.replaceState(null, "", "/app");
+    const onReport = vi.fn(async () => undefined);
+    const fetcher = vi.fn(async () => new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetcher);
+    vi.stubGlobal("shopify", { webVitals: { onReport } });
+    const view = await render(<PerformanceReporter />);
+    mounted.push(view);
+
+    window.history.replaceState(null, "", "/app/guide");
+    const callback = onReport.mock.calls[0][0];
+    await callback({ metrics: [{ id: "v4-route", name: "LCP", value: 1200 }] });
+
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toMatchObject({ route: "home" });
+  });
+
   test("il reporter non fa nulla quando Web Vitals non è disponibile", async () => {
     vi.stubGlobal("shopify", {});
     const view = await render(<PerformanceReporter />);
