@@ -42,6 +42,15 @@ export default defineConfig({
       },
     },
     {
+      name: "site-chromium-stretto",
+      testMatch: /site\.spec\.ts/,
+      use: {
+        browserName: "chromium",
+        baseURL: `http://localhost:${sitePort}`,
+        viewport: { width: 390, height: 844 },
+      },
+    },
+    {
       name: "site-webkit-stretto",
       testMatch: /site\.spec\.ts/,
       use: {

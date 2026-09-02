@@ -3451,6 +3451,13 @@ richieste e dipendenze sintetiche; una corsia Vitest Browser separata verifica
 in Chromium rendering, stato, eventi e navigazione delle superfici embedded
 Home, Regole, Messaggi, Onboarding e Guida. I due report Istanbul confluiscono
 nella baseline canonica senza sostituire gli E2E o le verifiche geometriche.
+L’ottava PR porta inoltre sopra il 90% e rende bloccanti i gruppi Worker/server e
+sito pubblico. Richieste, code, cron, bootstrap SSR e reporter prestazioni sono
+attraversati nei rispettivi runtime con dipendenze sintetiche. Il menu pubblico
+separa decisioni pure e adapter DOM: la prima parte confluisce nella coverage
+canonica, mentre Chromium misura il comportamento reale e WebKit conserva le
+prove di accessibilità, navigazione e layout. Non sono emersi rami realmente
+irraggiungibili da registrare come eccezioni con prova sostitutiva.
 
 ### 23.1.1 Gate per tipo di modifica
 

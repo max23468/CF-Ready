@@ -323,7 +323,7 @@ test("le schermate prodotto riservano lo spazio prima del caricamento", () => {
 test("il menu calcola la sezione attiva nell’ordine del documento", () => {
   const menu = readFileSync(new URL("../site/menu.js", import.meta.url), "utf8");
   assert.match(menu, /compareDocumentPosition/);
-  assert.match(menu, /Node\.DOCUMENT_POSITION_FOLLOWING/);
+  assert.match(menu, /export function initializeMenu/);
 });
 
 test("le fasce senza titolo e il corpo delle guide usano contenitori non sezionanti", () => {
