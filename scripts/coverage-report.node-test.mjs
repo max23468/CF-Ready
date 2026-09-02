@@ -113,6 +113,32 @@ test("il target canonico della Validation Function resta attivo al 100% per file
   ]);
 });
 
+test("il target globale resta attivo al 95% su tutte le metriche", () => {
+  const repositoryPolicy = JSON.parse(
+    readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),
+  );
+  assert.deepEqual(repositoryPolicy.targets.global, {
+    minimum: 95,
+    active: true,
+  });
+  assert.deepEqual(repositoryPolicy.metrics, ["statements", "branches", "functions", "lines"]);
+});
+
+test("la campagna mutation completa è schedulata e avviabile sul candidato develop", () => {
+  const workflow = readFileSync(
+    new URL("../.github/workflows/mutation-campaign.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(workflow, /schedule:/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /github\.ref == 'refs\/heads\/develop'/);
+  assert.match(workflow, /timeout-minutes: 15/);
+  for (const domain of ["webhooks", "billing", "validation", "ownerNotifications"]) {
+    assert.match(workflow, new RegExp(`domain: \\[.*\\b${domain}\\b`));
+  }
+  assert.match(workflow, /mutation-campaign-\$\{\{ matrix\.domain \}\}-\$\{\{ github\.sha \}\}/);
+});
+
 test("il gruppo operativo mantiene il gate canonico al 90%", () => {
   const repositoryPolicy = JSON.parse(
     readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),

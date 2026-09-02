@@ -273,6 +273,13 @@ test("una configurazione illeggibile o fuori contratto torna ai default senza la
   // FR-061: un messaggio vuoto o oltre i 200 caratteri non può restare nell'editor.
   expect(config.messages.it.pecRequired).toBe(DEFAULT_CONFIG.messages.it.pecRequired);
   expect(config.messages.en).toEqual(DEFAULT_CONFIG.messages.en);
+
+  expect(readConfig({ schemaVersion: 2, rules: null, messages: null })).toMatchObject(
+    DEFAULT_CONFIG,
+  );
+  expect(
+    readConfig({ schemaVersion: 2, rules: {}, messages: { it: null, en: null } }),
+  ).toMatchObject(DEFAULT_CONFIG);
 });
 
 // La prova non parte più all'installazione: la avvia il merchant. Questi test descrivono

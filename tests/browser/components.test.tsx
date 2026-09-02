@@ -126,6 +126,40 @@ describe("componenti merchant nel browser", () => {
     expect(view.container.querySelector('[role="status"]')?.textContent).toBeTruthy();
   });
 
+  test("il simulatore gestisce singoli campi e configurazione non gestita", async () => {
+    const unmanaged = await render(
+      <CheckoutSimulator
+        locale="en"
+        rules={{ taxCode: "unmanaged", pec: "unmanaged" }}
+        errorDisplay="inline"
+        messages={DEFAULT_CONFIG.messages.en}
+      />,
+    );
+    mounted.push(unmanaged);
+    expect(unmanaged.container.querySelectorAll("s-text-field")).toHaveLength(0);
+    expect(unmanaged.container.textContent).toContain(en.checkout.nothing);
+
+    const pecOnly = await render(
+      <CheckoutSimulator
+        locale="it"
+        rules={{ taxCode: "unmanaged", pec: "optional_validated" }}
+        errorDisplay="preventive"
+        messages={DEFAULT_CONFIG.messages.it}
+      />,
+    );
+    mounted.push(pecOnly);
+    const selects = [...pecOnly.container.querySelectorAll("s-select")];
+    const field = pecOnly.container.querySelector("s-text-field") as HTMLElement & {
+      value: string;
+    };
+    expect(field).not.toBeNull();
+    (selects[1] as HTMLElement & { value: string }).value = "DE";
+    await dispatch(selects[1], new Event("change", { bubbles: true }));
+    field.value = "cliente@example.com";
+    await dispatch(field, new Event("input", { bubbles: true }));
+    expect(pecOnly.container.querySelector('[role="status"]')?.textContent).toBeTruthy();
+  });
+
   test("il reporter registra e rimuove il callback Web Vitals", async () => {
     const onReport = vi.fn(async () => undefined);
     const fetcher = vi.fn(async () => new Response(null, { status: 204 }));
