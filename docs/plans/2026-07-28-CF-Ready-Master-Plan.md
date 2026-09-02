@@ -3441,7 +3441,10 @@ statiche dell'identità Shopify hanno un contratto indipendente perché il pool
 Cloudflare non rende attivabili i relativi static mutant. Le altre soglie
 assolute restano progressive. Ogni campagna mutation parte senza riuso
 incrementale: il report attesta soltanto i mutanti instrumentati sullo SHA
-corrente e non può conservare risultati di file usciti dal perimetro.
+corrente e non può conservare risultati di file usciti dal perimetro. Il bundle
+Function viene inoltre ricostruito dalla dipendenza reale dell'entrypoint: ogni
+sorgente first-party transitiva deve comparire nell'inventario al 100% e ogni
+voce inventariata deve essere davvero inclusa nel bundle.
 La quinta PR rende inoltre bloccante il registro append-only delle quindici
 migrazioni e la relativa matrice D1: snapshot intermedi, dati preservati, purge
 privacy intenzionale, vincoli, indici, sequenza completa e secondo passaggio
