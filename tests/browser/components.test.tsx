@@ -128,10 +128,18 @@ describe("componenti merchant nel browser", () => {
 
   test("il reporter registra e rimuove il callback Web Vitals", async () => {
     const onReport = vi.fn(async () => undefined);
+    const fetcher = vi.fn(async () => new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetcher);
     vi.stubGlobal("shopify", { webVitals: { onReport } });
     const view = await render(<PerformanceReporter />);
     mounted.push(view);
     expect(onReport).toHaveBeenCalledOnce();
+    const callback = onReport.mock.calls[0][0];
+    await callback({ metrics: [{ id: "v4-1", name: "LCP", value: 1200 }] });
+    expect(fetcher).toHaveBeenCalledWith(
+      "/app/performance",
+      expect.objectContaining({ method: "POST" }),
+    );
     await view.unmount();
     mounted.pop();
     expect(onReport).toHaveBeenLastCalledWith(null);

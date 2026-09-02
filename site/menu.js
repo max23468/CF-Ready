@@ -1,38 +1,52 @@
-// CF Ready — comportamento del menu.
-// Due sole cose: la testata che si ritira su telefono, e la voce che segna dove
-// ci si trova. Senza questo file il sito resta usabile: la testata è agganciata
-// via CSS e i collegamenti funzionano lo stesso.
+// CF Ready — comportamento progressivo del menu pubblico.
+// Senza JavaScript la testata resta visibile e tutti i collegamenti funzionano.
 
-(function () {
-  var masthead = document.querySelector(".masthead");
+export function shouldHideMasthead({ mobile, scrollingDown, scrollY, focusInside }) {
+  return mobile && scrollingDown && scrollY > 240 && !focusInside;
+}
+
+export function orderSections(sections) {
+  return [...sections].sort(function (a, b) {
+    if (a === b) return 0;
+    return a.compareDocumentPosition(b) & 4 ? -1 : 1;
+  });
+}
+
+export function activeSection(sections, threshold) {
+  var current = sections[0];
+  sections.forEach(function (section) {
+    if (section.getBoundingClientRect().top <= threshold + 1) current = section;
+  });
+  return current;
+}
+
+export function initializeMenu(doc = document, win = window) {
+  var masthead = doc.querySelector(".masthead");
   if (!masthead) return;
 
-  // --- La testata si ritira scendendo, torna risalendo. Solo su telefono: su
-  // schermo largo resta ferma, perché lo spazio non manca.
-  var mobile = window.matchMedia("(max-width: 52rem)");
-  var lastY = window.scrollY;
+  var mobile = win.matchMedia("(max-width: 52rem)");
+  var lastY = win.scrollY;
 
   function onScroll() {
-    var y = window.scrollY;
-    var scendendo = y > lastY;
-
-    // La soglia evita che la testata sparisca al primo pixel, e che tremi
-    // durante il rimbalzo elastico in cima alla pagina.
+    var y = win.scrollY;
+    if (y === lastY) return;
+    var scrollingDown = y > lastY;
     if (
-      mobile.matches &&
-      scendendo &&
-      y > 240 &&
-      !masthead.contains(document.activeElement)
+      shouldHideMasthead({
+        mobile: mobile.matches,
+        scrollingDown,
+        scrollY: y,
+        focusInside: masthead.contains(doc.activeElement),
+      })
     ) {
       masthead.classList.add("is-hidden");
-    } else if (!scendendo || !mobile.matches) {
+    } else if (!scrollingDown || !mobile.matches) {
       masthead.classList.remove("is-hidden");
     }
-
     lastY = y;
   }
 
-  window.addEventListener("scroll", onScroll, { passive: true });
+  win.addEventListener("scroll", onScroll, { passive: true });
   masthead.addEventListener("focusin", function () {
     masthead.classList.remove("is-hidden");
   });
@@ -40,53 +54,38 @@
     masthead.classList.remove("is-hidden");
   });
 
-  // --- Segna la voce di menu della sezione che si sta guardando.
-  var links = [...masthead.querySelectorAll('nav a[href^="#"]')].filter(function (a) {
-    return a.hash.length > 1;
+  var links = [...masthead.querySelectorAll('nav a[href^="#"]')].filter(function (link) {
+    return link.hash.length > 1;
   });
   if (!links.length) return;
 
-  var sections = links
-    .map(function (a) {
-      return document.getElementById(a.hash.slice(1));
-    })
-    .filter(Boolean)
-    // L'ordine del menu è editoriale e può differire da quello delle sezioni.
-    // La sezione corrente va quindi calcolata nell'ordine reale del documento.
-    .sort(function (a, b) {
-      if (a === b) return 0;
-      return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING
-        ? -1
-        : 1;
-    });
+  var sections = orderSections(
+    links
+      .map(function (link) {
+        return doc.getElementById(link.hash.slice(1));
+      })
+      .filter(Boolean),
+  );
 
-  function segna(hash) {
-    links.forEach(function (a) {
-      var corrente = a.hash === hash;
-      a.classList.toggle("is-active", corrente);
-      if (corrente) a.setAttribute("aria-current", "location");
-      else a.removeAttribute("aria-current");
+  function mark(hash) {
+    links.forEach(function (link) {
+      var current = link.hash === hash;
+      link.classList.toggle("is-active", current);
+      if (current) link.setAttribute("aria-current", "location");
+      else link.removeAttribute("aria-current");
     });
   }
 
-  // È corrente l'ultima sezione che ha raggiunto la testata. Funziona anche
-  // aprendo direttamente un'ancora e con sezioni più corte del viewport.
-  function segnaSezione() {
-    var corrente = sections[0];
-    var scrollPadding = parseFloat(
-      getComputedStyle(document.documentElement).scrollPaddingTop,
-    );
-    var soglia = Math.max(
-      masthead.getBoundingClientRect().bottom,
-      scrollPadding || 0,
-    );
-    sections.forEach(function (section) {
-      if (section.getBoundingClientRect().top <= soglia + 1) corrente = section;
-    });
-    if (corrente) segna("#" + corrente.id);
+  function markSection() {
+    var scrollPadding = parseFloat(win.getComputedStyle(doc.documentElement).scrollPaddingTop);
+    var threshold = Math.max(masthead.getBoundingClientRect().bottom, scrollPadding || 0);
+    var current = activeSection(sections, threshold);
+    if (current) mark("#" + current.id);
   }
 
-  window.addEventListener("scroll", segnaSezione, { passive: true });
-  window.addEventListener("hashchange", segnaSezione);
-  segnaSezione();
-})();
+  win.addEventListener("scroll", markSection, { passive: true });
+  win.addEventListener("hashchange", markSection);
+  markSection();
+}
+
+if (typeof document !== "undefined") initializeMenu();
