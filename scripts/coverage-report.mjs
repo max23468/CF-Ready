@@ -24,7 +24,24 @@ export function readJson(file) {
 
 export function mergeCoverageFiles(files) {
   const map = createCoverageMap({});
-  for (const file of files) map.merge(readJson(file));
+  const shapes = new Map();
+  for (const file of files) {
+    const incoming = createCoverageMap(readJson(file));
+    for (const coveragePath of incoming.files()) {
+      const value = incoming.fileCoverageFor(coveragePath).toJSON();
+      const shape = JSON.stringify({
+        statementMap: value.statementMap,
+        fnMap: value.fnMap,
+        branchMap: value.branchMap,
+      });
+      const previous = shapes.get(coveragePath);
+      if (previous && previous !== shape) {
+        throw new Error(`Mappe coverage incompatibili per ${coveragePath}`);
+      }
+      shapes.set(coveragePath, shape);
+    }
+    map.merge(incoming);
+  }
   return map;
 }
 
@@ -79,6 +96,85 @@ export function coverageState({ globalMap, functionMap, sources, policy, reposit
   }
 
   const functionFiles = policy.functionBundle.map(normalizeCoveragePath);
+  const duplicateFunctionFiles = functionFiles.filter(
+    (file, index) => functionFiles.indexOf(file) !== index,
+  );
+  const functionSources = groups.function;
+  const configuredFunctionSources = functionFiles.filter((file) =>
+    file.startsWith("extensions/cf-ready-validation/src/"),
+  );
+  const missingFunctionFiles = functionSources.filter(
+    (file) => !configuredFunctionSources.includes(file),
+  );
+  const unexpectedFunctionFiles = configuredFunctionSources.filter(
+    (file) => !functionSources.includes(file),
+  );
+  const unknownFunctionFiles = functionFiles.filter((file) => !sources.includes(file));
+  if (
+    duplicateFunctionFiles.length ||
+    missingFunctionFiles.length ||
+    unexpectedFunctionFiles.length ||
+    unknownFunctionFiles.length
+  ) {
+    const details = [
+      ...duplicateFunctionFiles.map((file) => `duplicato ${file}`),
+      ...missingFunctionFiles.map((file) => `manca ${file}`),
+      ...unexpectedFunctionFiles.map((file) => `fuori sorgenti Function ${file}`),
+      ...unknownFunctionFiles.map((file) => `sorgente sconosciuta ${file}`),
+    ];
+    throw new Error(`Bundle Function incompleto: ${details.join(", ")}`);
+  }
+
+  const functionIndex = indexCoverageMap(functionMap, repositoryRoot);
+  const missingFunctionCoverage = functionFiles.filter((file) => !functionIndex.has(file));
+  const unexpectedFunctionCoverage = [...functionIndex.keys()].filter(
+    (file) => !functionFiles.includes(file),
+  );
+  if (missingFunctionCoverage.length || unexpectedFunctionCoverage.length) {
+    const details = [
+      ...missingFunctionCoverage.map((file) => `manca ${file}`),
+      ...unexpectedFunctionCoverage.map((file) => `fuori bundle ${file}`),
+    ];
+    throw new Error(`Inventario coverage Function non canonico: ${details.join(", ")}`);
+  }
+
+  for (const [domain, target] of Object.entries(policy.targets.criticalDomains.domains ?? {})) {
+    const files = target.files.map(normalizeCoveragePath);
+    const unknown = files.filter((file) => !sources.includes(file));
+    const omitted = sources.filter(
+      (file) =>
+        (target.sourcePrefixes ?? []).some((prefix) => file.startsWith(prefix)) &&
+        !files.includes(file),
+    );
+    const mutationFiles = (target.mutationFiles ?? files).map(normalizeCoveragePath);
+    const unknownMutationFiles = mutationFiles.filter((file) => !files.includes(file));
+    const mutationExclusions = target.mutationExclusions ?? {};
+    const unjustifiedMutationExclusions = files.filter(
+      (file) =>
+        target.mutationActive &&
+        !mutationFiles.includes(file) &&
+        typeof mutationExclusions[file] !== "string",
+    );
+    const staleMutationExclusions = Object.keys(mutationExclusions).filter(
+      (file) => !files.includes(file) || mutationFiles.includes(file),
+    );
+    if (
+      unknown.length ||
+      omitted.length ||
+      unknownMutationFiles.length ||
+      unjustifiedMutationExclusions.length ||
+      staleMutationExclusions.length
+    ) {
+      const details = [
+        ...unknown.map((file) => `sorgente sconosciuta ${file}`),
+        ...omitted.map((file) => `omette ${file}`),
+        ...unknownMutationFiles.map((file) => `mutation fuori dominio ${file}`),
+        ...unjustifiedMutationExclusions.map((file) => `esclusione mutation non motivata ${file}`),
+        ...staleMutationExclusions.map((file) => `motivazione mutation obsoleta ${file}`),
+      ];
+      throw new Error(`Inventario dominio ${domain} non canonico: ${details.join(", ")}`);
+    }
+  }
   const domainMaps = Object.fromEntries(
     Object.entries(policy.targets.criticalDomains.domains ?? {}).map(([domain, target]) => [
       domain,
@@ -161,9 +257,22 @@ export function baselineFailures(current, committed, previous) {
 
   const compare = (currentSummary, previousSummary, label) => {
     for (const metric of METRICS) {
-      if (currentSummary[metric].pct < previousSummary[metric].pct) {
+      const currentMetric = currentSummary[metric];
+      const previousMetric = previousSummary[metric];
+      const currentRatio =
+        currentMetric.total === 0
+          ? { covered: 1, total: 1 }
+          : { covered: currentMetric.covered, total: currentMetric.total };
+      const previousRatio =
+        previousMetric.total === 0
+          ? { covered: 1, total: 1 }
+          : { covered: previousMetric.covered, total: previousMetric.total };
+      if (
+        BigInt(currentRatio.covered) * BigInt(previousRatio.total) <
+        BigInt(previousRatio.covered) * BigInt(currentRatio.total)
+      ) {
         failures.push(
-          `${label}.${metric} regredisce: ${previousSummary[metric].pct}% -> ${currentSummary[metric].pct}%`,
+          `${label}.${metric} regredisce: ${previousMetric.pct}% -> ${currentMetric.pct}%`,
         );
       }
     }

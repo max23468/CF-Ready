@@ -17,8 +17,7 @@ export default {
   // il tsconfig reale, copiato integralmente nella sandbox isolata.
   tsconfigFile: "tsconfig.stryker-not-required.json",
   concurrency: 4,
-  incremental: true,
-  incrementalFile: ".coverage/mutation/webhooks-incremental.json",
+  incremental: false,
   reporters: ["clear-text", "progress", "json"],
   jsonReporter: { fileName: ".coverage/mutation/webhooks.json" },
   thresholds: {

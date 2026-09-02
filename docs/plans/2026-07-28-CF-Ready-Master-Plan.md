@@ -3434,7 +3434,14 @@ billing, Validation e notifiche owner, includendo trial, pagamento unico,
 entitlement incerto, geografia e readback Shopify/D1. Per tutti questi domini la
 CI richiede anche un mutation score minimo dell'80% quando il dominio o i suoi
 test cambiano. I tre gate mutation girano come job paralleli indipendenti e
-pubblicano un report per dominio; le altre soglie assolute restano progressive.
+pubblicano un report per dominio; ogni file del dominio escluso dal runner deve
+avere una motivazione esplicita nella policy. Il validatore condiviso della
+Function usa il proprio Vitest e resta al 100% per file, mentre le costanti
+statiche dell'identità Shopify hanno un contratto indipendente perché il pool
+Cloudflare non rende attivabili i relativi static mutant. Le altre soglie
+assolute restano progressive. Ogni campagna mutation parte senza riuso
+incrementale: il report attesta soltanto i mutanti instrumentati sullo SHA
+corrente e non può conservare risultati di file usciti dal perimetro.
 La quinta PR rende inoltre bloccante il registro append-only delle quindici
 migrazioni e la relativa matrice D1: snapshot intermedi, dati preservati, purge
 privacy intenzionale, vincoli, indici, sequenza completa e secondo passaggio

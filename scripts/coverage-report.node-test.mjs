@@ -9,6 +9,7 @@ import {
   changedExecutableLineCoverage,
   coverageState,
   indexCoverageMap,
+  mergeCoverageFiles,
   parseChangedLines,
   runCoverageReport,
   selectCoverageMap,
@@ -191,6 +192,7 @@ test("il dominio webhook mantiene coverage e mutation gate canonici", async () =
   assert.equal(repositoryPolicy.targets.criticalDomains.minimum, 95);
   assert.equal(repositoryPolicy.targets.criticalDomains.mutationScore, 80);
   assert.deepEqual(mutationConfig.mutate, domain.files);
+  assert.equal(mutationConfig.incremental, false);
   assert.equal(mutationConfig.thresholds.break, 80);
 });
 
@@ -259,8 +261,13 @@ test("billing, Validation e notifiche mantengono gate coverage e mutation separa
     assert.equal(domain.coverageActive, true);
     assert.equal(domain.mutationActive, true);
     assert.deepEqual(mutationConfig.mutate, domain.mutationFiles ?? domain.files);
+    assert.equal(mutationConfig.incremental, false);
     assert.equal(mutationConfig.thresholds.break, 80);
   }
+  assert.deepEqual(
+    Object.keys(repositoryPolicy.targets.criticalDomains.domains.validation.mutationExclusions),
+    ["app/checkout-field-validation.ts", "app/validation/types.ts"],
+  );
 
   const received = [];
   class FakeStryker {
@@ -392,6 +399,167 @@ test("costruisce aggregato, gruppi e overlay Function senza duplicare il globale
   );
 });
 
+test("rifiuta mappe Istanbul incompatibili per la stessa sorgente", () => {
+  const repositoryRoot = mkdtempSync(resolve(tmpdir(), "cf-ready-coverage-maps-"));
+  const first = mapFor(repositoryRoot, ["app/root.tsx"]);
+  const second = mapFor(repositoryRoot, ["app/root.tsx"]);
+  second.fileCoverageFor(resolve(repositoryRoot, "app/root.tsx")).data.statementMap[0].start.line =
+    2;
+  const firstFile = resolve(repositoryRoot, "first.json");
+  const secondFile = resolve(repositoryRoot, "second.json");
+  writeFileSync(firstFile, JSON.stringify(first.toJSON()));
+  writeFileSync(secondFile, JSON.stringify(second.toJSON()));
+  assert.throws(
+    () => mergeCoverageFiles([firstFile, secondFile]),
+    /Mappe coverage incompatibili.*app\/root\.tsx/,
+  );
+});
+
+test("rifiuta sorgenti Function e domini critici omessi dalla policy", () => {
+  const repositoryRoot = "/repo";
+  const sources = [
+    "app/checkout-field-validation.ts",
+    "app/root.tsx",
+    "extensions/cf-ready-validation/src/helper.ts",
+    "extensions/cf-ready-validation/src/index.ts",
+    "scripts/task.mjs",
+    "site/menu.js",
+  ];
+  assert.throws(
+    () =>
+      coverageState({
+        globalMap: mapFor(repositoryRoot, sources),
+        functionMap: mapFor(repositoryRoot, policy.functionBundle),
+        sources,
+        policy,
+        repositoryRoot,
+      }),
+    /Bundle Function incompleto: manca extensions\/cf-ready-validation\/src\/helper\.ts/,
+  );
+
+  const canonicalSources = sources.filter((file) => !file.endsWith("helper.ts"));
+  const globalMap = mapFor(repositoryRoot, canonicalSources);
+  const functionMap = mapFor(repositoryRoot, policy.functionBundle);
+  for (const [mutate, expected] of [
+    [
+      (candidate) => candidate.functionBundle.push(candidate.functionBundle[0]),
+      /Bundle Function incompleto: duplicato/,
+    ],
+    [
+      (candidate) => candidate.functionBundle.push("extensions/cf-ready-validation/src/ghost.ts"),
+      /Bundle Function incompleto: fuori sorgenti Function.*ghost\.ts/,
+    ],
+    [
+      (candidate) => candidate.functionBundle.push("app/unknown.ts"),
+      /Bundle Function incompleto: sorgente sconosciuta app\/unknown\.ts/,
+    ],
+  ]) {
+    const candidate = structuredClone(policy);
+    mutate(candidate);
+    assert.throws(
+      () =>
+        coverageState({
+          globalMap,
+          functionMap,
+          sources: canonicalSources,
+          policy: candidate,
+          repositoryRoot,
+        }),
+      expected,
+    );
+  }
+  assert.throws(
+    () =>
+      coverageState({
+        globalMap,
+        functionMap: mapFor(repositoryRoot, [policy.functionBundle[0]]),
+        sources: canonicalSources,
+        policy,
+        repositoryRoot,
+      }),
+    /Inventario coverage Function non canonico: manca app\/checkout-field-validation\.ts/,
+  );
+  assert.throws(
+    () =>
+      coverageState({
+        globalMap,
+        functionMap: mapFor(repositoryRoot, [...policy.functionBundle, "app/root.tsx"]),
+        sources: canonicalSources,
+        policy,
+        repositoryRoot,
+      }),
+    /Inventario coverage Function non canonico: fuori bundle app\/root\.tsx/,
+  );
+
+  const domainPolicy = structuredClone(policy);
+  domainPolicy.targets.criticalDomains.domains.webhooks.sourcePrefixes = ["app/validation/"];
+  const domainSources = [...canonicalSources, "app/validation/types.ts"];
+  assert.throws(
+    () =>
+      coverageState({
+        globalMap: mapFor(repositoryRoot, domainSources),
+        functionMap: mapFor(repositoryRoot, policy.functionBundle),
+        sources: domainSources,
+        policy: domainPolicy,
+        repositoryRoot,
+      }),
+    /Inventario dominio webhooks non canonico: omette app\/validation\/types\.ts/,
+  );
+  domainPolicy.targets.criticalDomains.domains.webhooks.files.push("app/unknown.ts");
+  assert.throws(
+    () =>
+      coverageState({
+        globalMap: mapFor(repositoryRoot, domainSources),
+        functionMap,
+        sources: domainSources,
+        policy: domainPolicy,
+        repositoryRoot,
+      }),
+    /Inventario dominio webhooks non canonico: sorgente sconosciuta app\/unknown\.ts/,
+  );
+
+  const mutationPolicy = structuredClone(policy);
+  mutationPolicy.targets.criticalDomains.domains.webhooks.mutationFiles = [];
+  assert.throws(
+    () =>
+      coverageState({
+        globalMap,
+        functionMap,
+        sources: canonicalSources,
+        policy: mutationPolicy,
+        repositoryRoot,
+      }),
+    /esclusione mutation non motivata app\/root\.tsx/,
+  );
+  mutationPolicy.targets.criticalDomains.domains.webhooks.mutationExclusions = {
+    "app/root.tsx": "Runner distinto",
+  };
+  assert.doesNotThrow(() =>
+    coverageState({
+      globalMap,
+      functionMap,
+      sources: canonicalSources,
+      policy: mutationPolicy,
+      repositoryRoot,
+    }),
+  );
+  mutationPolicy.targets.criticalDomains.domains.webhooks.mutationFiles = [
+    "app/root.tsx",
+    "app/unknown.ts",
+  ];
+  assert.throws(
+    () =>
+      coverageState({
+        globalMap,
+        functionMap,
+        sources: canonicalSources,
+        policy: mutationPolicy,
+        repositoryRoot,
+      }),
+    /mutation fuori dominio app\/unknown\.ts.*motivazione mutation obsoleta app\/root\.tsx/,
+  );
+});
+
 test("applica target disattivati, soglie attive e ratchet senza arrotondare regressioni", () => {
   const repositoryRoot = "/repo";
   const sources = [
@@ -453,6 +621,15 @@ test("applica target disattivati, soglie attive e ratchet senza arrotondare regr
   assert.ok(
     baselineFailures(uncovered, uncovered, full).some((failure) =>
       failure.includes("domain.webhooks.lines regredisce"),
+    ),
+  );
+  const subtlyLower = structuredClone(full);
+  const subtlyHigher = structuredClone(full);
+  subtlyLower.global.lines = { total: 100_000, covered: 95_001, pct: 95 };
+  subtlyHigher.global.lines = { total: 100_000, covered: 95_009, pct: 95 };
+  assert.ok(
+    baselineFailures(subtlyLower, subtlyLower, subtlyHigher).some((failure) =>
+      failure.includes("global.lines regredisce: 95% -> 95%"),
     ),
   );
   assert.deepEqual(baselineFailures(full, structuredClone(uncovered), null), [

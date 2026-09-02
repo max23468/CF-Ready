@@ -37,6 +37,7 @@
         "webhooks": {
           "coverageActive": true,
           "mutationActive": true,
+          "sourcePrefixes": ["app/routes/webhooks.", "app/webhook"],
           "files": [
             "app/routes/webhooks.app.billing.tsx",
             "app/routes/webhooks.app.scopes_update.tsx",
@@ -51,6 +52,7 @@
         "billing": {
           "coverageActive": true,
           "mutationActive": true,
+          "sourcePrefixes": ["app/billing/"],
           "files": [
             "app/billing/domain.ts",
             "app/billing/repository.server.ts",
@@ -60,6 +62,7 @@
         "validation": {
           "coverageActive": true,
           "mutationActive": true,
+          "sourcePrefixes": ["app/validation/"],
           "files": [
             "app/checkout-field-validation.ts",
             "app/validation/domain.ts",
@@ -67,6 +70,7 @@
             "app/validation/reconcile.server.ts",
             "app/validation/repository.server.ts",
             "app/validation/shopify.server.ts",
+            "app/validation/types.ts",
             "app/validation/write.server.ts"
           ],
           "mutationFiles": [
@@ -76,11 +80,16 @@
             "app/validation/repository.server.ts",
             "app/validation/shopify.server.ts",
             "app/validation/write.server.ts"
-          ]
+          ],
+          "mutationExclusions": {
+            "app/checkout-field-validation.ts": "Il codice condiviso gira nel Vitest dedicato della Function, non nel pool Workers del dominio Validation; resta bloccato al 100% per file.",
+            "app/validation/types.ts": "Le costanti di modulo producono static mutants non attivabili dal pool Cloudflare copiato da Stryker; un contratto indipendente ne fissa i valori Shopify canonici."
+          }
         },
         "ownerNotifications": {
           "coverageActive": true,
           "mutationActive": true,
+          "sourcePrefixes": ["app/owner-notifications.server.ts", "app/owner-notifications/"],
           "files": [
             "app/owner-notifications.server.ts",
             "app/owner-notifications/delivery.server.ts",

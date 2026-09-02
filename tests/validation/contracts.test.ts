@@ -26,6 +26,12 @@ import {
   readValidationReadback,
   validationsForApp,
 } from "../../app/validation/shopify.server";
+import {
+  FUNCTION_HANDLE,
+  METAFIELD_KEY,
+  METAFIELD_NAMESPACE,
+  VALIDATION_TITLE,
+} from "../../app/validation/types";
 import { insertShop, shopContext } from "../support/lifecycle";
 
 const ENTITLEMENT = { kind: "subscription" as const, validThrough: "2026-09-01" };
@@ -48,6 +54,20 @@ beforeEach(async () => {
 });
 
 describe("contratti puri Validation", () => {
+  test("fissa l’identità Shopify della Validation CF Ready", () => {
+    expect({
+      functionHandle: FUNCTION_HANDLE,
+      title: VALIDATION_TITLE,
+      metafieldNamespace: METAFIELD_NAMESPACE,
+      metafieldKey: METAFIELD_KEY,
+    }).toEqual({
+      functionHandle: "cf-ready-validation",
+      title: "CF Ready",
+      metafieldNamespace: "$app:cf-ready-validation",
+      metafieldKey: "function-configuration",
+    });
+  });
+
   test("normalizza configurazioni ed hash ai bordi", async () => {
     expect(entitlementDiffers(null, ENTITLEMENT)).toBe(true);
     expect(entitlementDiffers({ entitlement: null }, ENTITLEMENT)).toBe(true);
