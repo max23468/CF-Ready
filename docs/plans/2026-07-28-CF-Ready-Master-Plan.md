@@ -3474,7 +3474,7 @@ Shopify, decisioni commerciali della Home, session storage, UI embedded e
 orchestrazione degli script con dipendenze sintetiche. La campagna mutation
 completa gira inoltre ogni lunedì e può essere avviata manualmente sull’HEAD di
 `develop` prima della promozione: i quattro domini partono in parallelo, ciascuno
-con timeout di 15 minuti e artifact JSON nominato con lo SHA esatto. Il run
+con timeout di 20 minuti e artifact JSON nominato con lo SHA esatto. Il run
 manuale pre-release resta una prova sul candidato `develop`, non un deploy né
 un’autorizzazione alla promozione. Una modifica al workflow sul default branch
 `develop` avvia inoltre la stessa campagna, così la sua prima registrazione e le

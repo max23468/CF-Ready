@@ -131,12 +131,14 @@ test("la campagna mutation completa è schedulata e avviabile sul candidato deve
     new URL("../.github/workflows/mutation-campaign.yml", import.meta.url),
     "utf8",
   );
+  const ciWorkflow = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
   assert.match(workflow, /push:\n\s+branches: \[develop\]/);
   assert.match(workflow, /paths: \[\.github\/workflows\/mutation-campaign\.yml\]/);
   assert.match(workflow, /schedule:/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /github\.ref == 'refs\/heads\/develop'/);
-  assert.match(workflow, /timeout-minutes: 15/);
+  assert.match(workflow, /timeout-minutes: 20/);
+  assert.match(ciWorkflow, /^  critical-mutation:\n[\s\S]*?^    timeout-minutes: 20$/m);
   for (const domain of ["webhooks", "billing", "validation", "ownerNotifications"]) {
     assert.match(workflow, new RegExp(`domain: \\[.*\\b${domain}\\b`));
   }
