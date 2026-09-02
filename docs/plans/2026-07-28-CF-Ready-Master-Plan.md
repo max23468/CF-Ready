@@ -3445,6 +3445,12 @@ filesystem, tempo, ambiente, comandi CLI e API provider sintetici: coprono
 successi e fallimenti di preflight, backup, ricevute, riconciliazione e policy
 CI senza contattare Shopify, Cloudflare o GitHub. Smoke e readback Development
 restano prove provider separate e non vengono sostituiti dalla coverage locale.
+La settima PR porta inoltre il gruppo UI e route sopra il 90% in tutte le
+metriche e ne attiva il gate. I test Workers attraversano loader e action con
+richieste e dipendenze sintetiche; una corsia Vitest Browser separata verifica
+in Chromium rendering, stato, eventi e navigazione delle superfici embedded
+Home, Regole, Messaggi, Onboarding e Guida. I due report Istanbul confluiscono
+nella baseline canonica senza sostituire gli E2E o le verifiche geometriche.
 
 ### 23.1.1 Gate per tipo di modifica
 
