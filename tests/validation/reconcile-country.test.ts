@@ -150,6 +150,24 @@ test("uno store non italiano viene bloccato e la Validation disattivata", async 
   });
 });
 
+test("un readback geografico senza Validation non conserva una risorsa rimossa", async () => {
+  const shop = await insertShop("francia-validation-rimossa.example.myshopify.com");
+  const readback = shopContext("FR", false);
+  readback.data.validations.nodes = [];
+  const admin = adminStub([
+    shopContext("FR", true),
+    { data: { validationUpdate: { userErrors: [] } } },
+    readback,
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.validation).toBeUndefined();
+  expect(state.validationEnabled).toBe(false);
+  expect(state.errorCode).toBeNull();
+  expect(admin.calls).toEqual(["context", "update", "context"]);
+});
+
 test("il rientro in Italia sblocca lo store senza riattivare la Validation", async () => {
   const shop = await insertShop("rientro.example.myshopify.com");
   await reconcile(
@@ -284,6 +302,24 @@ test("un errore nel contesto sotto lease diventa errore entitlement stabile", as
   const state = await reconcile(admin, env.DB, shop);
   expect(state.errorCode).toBe("entitlement_write_failed");
   expect(state.retryable).toBe(false);
+});
+
+test("gli user error Shopify nella scrittura entitlement restano fail-open", async () => {
+  const shop = await insertShop("entitlement-user-error.example.myshopify.com");
+  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  const admin = adminStub([
+    shopContext("IT", true),
+    SENZA_ADDEBITI,
+    shopContext("IT", true),
+    { data: { validationUpdate: { userErrors: [{ message: "metafield non valido" }] } } },
+    shopContext("IT", true),
+  ]);
+
+  const state = await reconcile(admin, env.DB, shop);
+
+  expect(state.errorCode).toBe("entitlement_write_failed");
+  expect(state.retryable).toBe(false);
+  expect(admin.calls).toEqual(["context", "billing", "context", "update", "context"]);
 });
 
 test("una disattivazione non riuscita resta fail-open e registra un codice errore", async () => {

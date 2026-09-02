@@ -13,6 +13,7 @@ import {
   requestPlanComparison,
   requestPlanComparisonFromFrame,
 } from "../app/features/home/plan-comparison";
+import { DeactivateModal } from "../app/features/home/HomeSections";
 import { PlanStatus } from "../app/features/home/PlanStatus";
 import { onboardingCheckoutPreview } from "../app/features/onboarding/checkout-preview";
 import { onboardingStep4State } from "../app/features/onboarding/step4-state";
@@ -87,6 +88,36 @@ test("il piano omaggio non viene presentato come un pagamento", () => {
         (element.props as { children?: ReactNode }).children === texts("it").plan.complimentary,
     ),
   ).toBe(true);
+
+  const purchased = renderedElements(
+    PlanChoice({
+      data: { ...complimentary, complimentary: false },
+      busy: false,
+      pendingIntent: null,
+      submit: vi.fn(),
+      firstCharge: "oggi",
+    }),
+  );
+  expect(
+    purchased.some(
+      (element) =>
+        (element.props as { children?: ReactNode }).children === texts("it").plan.oneTimeSettled,
+    ),
+  ).toBe(true);
+});
+
+test("la disattivazione invia l'intent soltanto dall'azione primaria", () => {
+  const submit = vi.fn();
+  const rendered = elements(DeactivateModal({ pendingIntent: null, submit, t: texts("it") }));
+  const confirmation = rendered.find(
+    (element) =>
+      element.type === "s-button" && (element.props as { slot?: string }).slot === "primary-action",
+  );
+  if (!confirmation) throw new Error("azione primaria di disattivazione assente");
+
+  (confirmation.props as { onClick: () => void }).onClick();
+
+  expect(submit).toHaveBeenCalledWith("disable");
 });
 
 test("il check-in pagante resta neutro, apre l'assistenza e può sparire", () => {
