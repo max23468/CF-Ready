@@ -88,6 +88,90 @@ test("usa soltanto id per i frammenti SVG e XML", () => {
   assert(xmlAnchors('<symbol id="marchio"/>').has("marchio"));
 });
 
+test("copre sintassi HTML, entità e reference Markdown ai margini del contratto", () => {
+  assert.deepEqual(
+    htmlTargets(
+      `<1 non-tag><a disabled href='first&amp;second.html' data-unquoted=value>` +
+        `<img src=asset.svg><path fill="url(&#35;decimal)" stroke="url(&#x23;hex)" ` +
+        `cursor="url(&#x110000;)"/><broken title="senza chiusura>`,
+    ),
+    ["first&second.html", "asset.svg", "#decimal", "#hex", "&#x110000;"],
+  );
+  assert.deepEqual(
+    [...markdownAnchors("# Immagine ![Alt testo](asset.svg)\n# Solo **figli**")],
+    ["immagine-alt-testo", "solo-figli"],
+  );
+
+  for (const source of ["testo [aperto", "[testo]x", "[testo][aperto", "testo normale"]) {
+    const undefinedReferences = [];
+    markdownTargets(source, undefinedReferences);
+    assert.deepEqual(undefinedReferences, []);
+  }
+
+  const compactReferences = [];
+  markdownTargets("[Etichetta][]\n[Testo [annidato]][missing]", compactReferences);
+  assert.deepEqual(compactReferences, ["etichetta", "missing"]);
+
+  const escapedBracket = [];
+  markdownTargets(String.raw`[Testo \] ancora][missing]`, escapedBracket);
+  assert.deepEqual(escapedBracket, ["missing"]);
+});
+
+test("il controllo integrato segnala ogni classe di riferimento locale non valido", () => {
+  const repository = mkdtempSync(join(tmpdir(), "cf-ready-docs-errors-"));
+  try {
+    execFileSync("git", ["init", "-q"], { cwd: repository });
+    mkdirSync(join(repository, "docs"), { recursive: true });
+    writeFileSync(join(repository, "package.json"), '{"scripts":{"known":"true"}}');
+    writeFileSync(join(repository, "plain.txt"), "nessun anchor");
+    writeFileSync(
+      join(repository, "docs", "source.md"),
+      [
+        "[Fuori](../../outside.md)",
+        "[Manca](missing.md)",
+        "[Senza parser](../plain.txt#fragment)",
+        "[README uno](../README.md#first)",
+        "[README due](../README.md#missing)",
+        "[Reference][undefined]",
+        "`/Users/example/segreto`",
+        "npm run absent",
+      ].join("\n"),
+    );
+    writeFileSync(join(repository, "README.md"), "# First\n");
+    execFileSync("git", ["add", "."], { cwd: repository });
+
+    const errors = checkDocs(repository).errors.join("\n");
+    assert.match(errors, /percorso locale non riproducibile/);
+    assert.match(errors, /riferimento Markdown senza definizione: undefined/);
+    assert.match(errors, /link locale fuori repository/);
+    assert.match(errors, /link locale inesistente: missing.md/);
+    assert.match(errors, /anchor locale inesistente: \.\.\/README\.md#missing/);
+    assert.match(errors, /script npm inesistente: absent/);
+  } finally {
+    rmSync(repository, { force: true, recursive: true });
+  }
+});
+
+test("il controllo integrato risolve URL HTML senza estensione e rileva file ignorati", () => {
+  const repository = mkdtempSync(join(tmpdir(), "cf-ready-docs-html-fallback-"));
+  try {
+    execFileSync("git", ["init", "-q"], { cwd: repository });
+    writeFileSync(join(repository, ".gitignore"), "generated/\n");
+    writeFileSync(join(repository, "package.json"), '{"scripts":{}}');
+    mkdirSync(join(repository, "site"), { recursive: true });
+    mkdirSync(join(repository, "generated"), { recursive: true });
+    writeFileSync(join(repository, "site", "index.html"), '<a href="support">Supporto</a>');
+    writeFileSync(join(repository, "site", "support.html"), "<h1>Supporto</h1>");
+    writeFileSync(join(repository, "generated", "proof.md"), "# Generato");
+    execFileSync("git", ["add", ".gitignore", "package.json", "site"], { cwd: repository });
+    execFileSync("git", ["add", "-f", "generated/proof.md"], { cwd: repository });
+
+    assert.deepEqual(checkDocs(repository).errors, ["generated/proof.md: file ignorato tracciato"]);
+  } finally {
+    rmSync(repository, { force: true, recursive: true });
+  }
+});
+
 test("gestisce link root-relative, URI esterni e frammenti SVG", () => {
   const repository = mkdtempSync(join(tmpdir(), "cf-ready-docs-"));
   try {

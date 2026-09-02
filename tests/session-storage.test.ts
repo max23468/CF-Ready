@@ -248,3 +248,49 @@ test("una chiave ruotata invalida le sessioni invece di rompere l'app", async ()
   expect(await after.storeSession(session)).toBe(true);
   expect((await after.loadSession(session.id))?.accessToken).toBe("token");
 });
+
+test("gestisce sessioni assenti, senza token e tutte le operazioni di eliminazione", async () => {
+  const key = btoa(String.fromCharCode(...new Uint8Array(32).fill(4)));
+  const storage = new D1SessionStorage(env.DB, key);
+  const shop = "delete-sessions.example.myshopify.com";
+  const first = new Session({
+    id: `offline_${shop}`,
+    shop,
+    state: "state",
+    isOnline: false,
+  });
+  const second = new Session({
+    id: `online_${shop}_1`,
+    shop,
+    state: "state",
+    isOnline: true,
+  });
+
+  await expect(storage.loadSession("sessione-assente")).resolves.toBeUndefined();
+  expect(await storage.storeSession(first)).toBe(true);
+  expect(await storage.storeSession(second)).toBe(true);
+  expect((await storage.loadSession(first.id))?.accessToken).toBeUndefined();
+  expect(await storage.deleteSessions([])).toBe(true);
+  expect(await storage.deleteSession(first.id)).toBe(true);
+  expect(await storage.loadSession(first.id)).toBeUndefined();
+  expect(await storage.deleteSessions([second.id])).toBe(true);
+  expect(await storage.findSessionsByShop(shop)).toEqual([]);
+
+  await storage.storeSession(first);
+  expect(await storage.deleteSessionsByShop(shop)).toBe(true);
+  expect(await storage.findSessionsByShop(shop)).toEqual([]);
+});
+
+test("rifiuta una chiave che non contiene esattamente 32 byte", async () => {
+  const storage = new D1SessionStorage(env.DB, btoa("troppo-corta"));
+  const session = new Session({
+    id: "offline_invalid-key.myshopify.com",
+    shop: "invalid-key.myshopify.com",
+    state: "state",
+    isOnline: false,
+  });
+
+  await expect(storage.storeSession(session)).rejects.toThrow(
+    /SESSION_ENCRYPTION_KEY deve contenere 32 byte/,
+  );
+});

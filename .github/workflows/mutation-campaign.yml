@@ -1,0 +1,52 @@
+name: Campagna mutation completa
+
+on:
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mutation-campaign-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  mutation:
+    name: Mutation ${{ matrix.domain }}
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        domain: [webhooks, billing, validation, ownerNotifications]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 26.7.0
+          cache: npm
+      - run: npm install --global npm@12.0.2
+      - run: npm ci
+      - name: Esegui mutation ${{ matrix.domain }}
+        env:
+          CRITICAL_MUTATION_DOMAIN: ${{ matrix.domain }}
+        run: |
+          if test "$CRITICAL_MUTATION_DOMAIN" = webhooks; then
+            npm run mutation:webhooks
+          else
+            npm run mutation:critical
+          fi
+      - name: Carica report mutation ${{ matrix.domain }}
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mutation-campaign-${{ matrix.domain }}-${{ github.sha }}
+          path: .coverage/mutation/${{ matrix.domain }}.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14

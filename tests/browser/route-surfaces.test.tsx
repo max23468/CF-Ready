@@ -400,6 +400,58 @@ describe("Home merchant", () => {
     );
   });
 
+  test("copre confronto piani e attivazione da uno stato avente diritto", async () => {
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
+    router.location = {
+      pathname: "/app",
+      state: { cfReady: "cf-ready:show-plans" },
+    };
+    const entitledData = {
+      ...homeData,
+      entitlement: { kind: "subscription", validThrough: "2026-10-01" },
+      planKind: "monthly",
+      accountStatus: "active",
+      onboarding: "completed",
+    };
+    router.loaderData = entitledData;
+    const view = await mount(<HomePage />);
+    await act(
+      async () => void (await new Promise((resolve) => requestAnimationFrame(() => resolve(true)))),
+    );
+    expect(scrollIntoView).toHaveBeenCalled();
+    expect(view.container.textContent).toContain(texts("it").home.nextConfigure);
+
+    router.location = { pathname: "/app", state: null };
+    router.loaderData = {
+      ...entitledData,
+      rules: { taxCode: "required_validated", pec: "unmanaged" },
+    };
+    await view.rerender(<HomePage />);
+    expect(view.container.textContent).toContain(texts("it").home.nextActivate);
+    const activate = [...view.container.querySelectorAll("s-button")].find((button) =>
+      button.textContent?.includes(texts("it").home.activate),
+    );
+    if (!activate) throw new Error("attivazione Home assente");
+    await click(activate);
+    expect(router.fetcher.submit).toHaveBeenCalledWith(
+      { intent: "enable", source: "status" },
+      { method: "post" },
+    );
+
+    const pending = new FormData();
+    pending.set("intent", "enable");
+    pending.set("source", "status");
+    router.fetcher.formData = pending;
+    router.fetcher.state = "submitting";
+    router.fetcher.data = { ok: false, errorCode: "future_error" };
+    await view.rerender(<HomePage />);
+    expect(view.container.textContent).toContain(texts("it").errors.generic);
+  });
+
   test("PlanStatus distingue tutte le forme di accesso e rinnovo", async () => {
     const variants = [
       {
@@ -662,6 +714,89 @@ describe("Onboarding", () => {
     await view.rerender(<Onboarding />);
     expect(view.container.textContent).toContain(texts("it").onboarding.doneBody);
   });
+
+  test("legge la dichiarazione dal form e gestisce il riepilogo senza Codice Fiscale", async () => {
+    router.loaderData = { ...onboardingData, step: 4 };
+    const view = await mount(<Onboarding />);
+    expect(view.container.querySelector('s-checkbox[name="address2"]')).toBeNull();
+    const startTrial = [...view.container.querySelectorAll("s-button")].find((button) =>
+      button.textContent?.includes(texts("it").onboarding.step4StartTrial),
+    );
+    if (!startTrial) throw new Error("avvio prova onboarding assente");
+    await click(startTrial);
+    expect(router.fetcher.submit).toHaveBeenCalledWith(
+      expect.objectContaining({ intent: "start_trial" }),
+      { method: "post" },
+    );
+
+    const originalFormData = FormData;
+    class DeclaredFormData {
+      has(name: string) {
+        return name === "address2Shown";
+      }
+      get(name: string) {
+        return name === "address2" ? "declared" : null;
+      }
+    }
+    vi.stubGlobal("FormData", DeclaredFormData as unknown as typeof originalFormData);
+    router.loaderData = {
+      ...onboardingData,
+      step: 4,
+      rules: { taxCode: "required_validated", pec: "unmanaged" },
+    };
+    await view.rerender(<Onboarding key="declared-step-4" />);
+    const form = view.container.querySelector("form");
+    if (!form) throw new Error("form onboarding assente");
+    await dispatch(form, new Event("change", { bubbles: true }));
+    const finish = [...view.container.querySelectorAll("s-button")].find((button) =>
+      button.textContent?.includes(texts("it").onboarding.finishWithout),
+    );
+    if (!finish) throw new Error("completamento onboarding assente");
+    await click(finish);
+    expect(router.fetcher.submit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        intent: "finish",
+        address2Shown: "1",
+        address2: "declared",
+      }),
+      { method: "post" },
+    );
+    vi.stubGlobal("FormData", originalFormData);
+  });
+
+  test("un errore onboarding sconosciuto usa il fallback generico", async () => {
+    router.loaderData = onboardingData;
+    router.fetcher.data = { ok: false, errorCode: "future_error" };
+    const view = await mount(<Onboarding />);
+    expect(view.container.textContent).toContain(texts("it").errors.generic);
+  });
+
+  test("la revisione già salvata avanza senza riscrivere regole o progresso", async () => {
+    router.loaderData = {
+      ...onboardingData,
+      step: 2,
+      completed: true,
+      rules: { taxCode: "optional_validated", pec: "unmanaged" },
+    };
+    const originalFormData = FormData;
+    class UnchangedRulesFormData {
+      get(name: string) {
+        if (name === "taxCode") return "optional_validated";
+        if (name === "pec") return "unmanaged";
+        return null;
+      }
+    }
+    vi.stubGlobal("FormData", UnchangedRulesFormData as unknown as typeof originalFormData);
+    const view = await mount(<Onboarding />);
+    const next = [...view.container.querySelectorAll("s-button")].find((button) =>
+      button.textContent?.includes(texts("it").onboarding.next),
+    );
+    if (!next) throw new Error("avanzamento onboarding assente");
+    await click(next);
+    expect(view.container.textContent).toContain(texts("it").onboarding.step3Heading);
+    expect(router.fetcher.submit).not.toHaveBeenCalled();
+    vi.stubGlobal("FormData", originalFormData);
+  });
 });
 
 describe("Regole", () => {
@@ -719,5 +854,30 @@ describe("Regole", () => {
     router.actionData = { ok: true };
     await view.rerender(<CheckoutRules />);
     expect(view.container.textContent).toContain(texts("it").rules.saved);
+  });
+
+  test("salva hash assente, modalità preventiva e dichiarazione attiva", async () => {
+    router.loaderData = {
+      ...rulesData,
+      configHash: null,
+      errorDisplay: "preventive",
+      address2Declared: true,
+    };
+    router.actionData = { ok: false, errorCode: "future_error" };
+    const view = await mount(<CheckoutRules />);
+    expect(view.container.textContent).toContain(texts("it").errors.generic);
+    expect(view.container.textContent).toContain(texts("it").rules.address2Instructions);
+
+    const save = view.container.querySelector('ui-save-bar button[variant="primary"]');
+    if (!save) throw new Error("salvataggio Regole assente");
+    await click(save);
+    expect(router.submit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        configHash: "",
+        errorDisplay: "preventive",
+        address2: "declared",
+      }),
+      { method: "post" },
+    );
   });
 });

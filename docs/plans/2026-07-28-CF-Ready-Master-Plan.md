@@ -3458,6 +3458,15 @@ separa decisioni pure e adapter DOM: la prima parte confluisce nella coverage
 canonica, mentre Chromium misura il comportamento reale e WebKit conserva le
 prove di accessibilità, navigazione e layout. Non sono emersi rami realmente
 irraggiungibili da registrare come eccezioni con prova sostitutiva.
+La nona PR chiude il programma e rende bloccante anche il 95% globale su
+statement, branch, funzioni e linee. I test aggiunti attraversano bootstrap
+Shopify, decisioni commerciali della Home, session storage, UI embedded e
+orchestrazione degli script con dipendenze sintetiche. La campagna mutation
+completa gira inoltre ogni lunedì e può essere avviata manualmente sull’HEAD di
+`develop` prima della promozione: i quattro domini partono in parallelo, ciascuno
+con timeout di 15 minuti e artifact JSON nominato con lo SHA esatto. Il run
+manuale pre-release resta una prova sul candidato `develop`, non un deploy né
+un’autorizzazione alla promozione.
 
 ### 23.1.1 Gate per tipo di modifica
 
