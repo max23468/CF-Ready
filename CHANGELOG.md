@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.1.7 — 2 settembre 2026
+
+- i Web Vitals restano associati alla rotta e ai timing del documento che li ha
+  avviati, senza mescolare una callback tardiva con la navigazione successiva;
+- Home, Regole, Messaggi, Guida e onboarding espongono timing server tecnici e
+  allowlistati per distinguere autenticazione, Shopify, D1 e durata totale;
+- gli asset frontend fingerprinted usano una cache browser immutabile di un
+  anno, evitando riconvalide del bundle senza rendere stale HTML o loader.
+
 ## 1.1.6 — 2 settembre 2026
 
 - Home e onboarding sono stati separati in componenti e servizi focalizzati,

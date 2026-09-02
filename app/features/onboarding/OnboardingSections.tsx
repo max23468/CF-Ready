@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { texts } from "../../i18n";
-import type { loader } from "./onboarding.server";
+import type { OnboardingData } from "./onboarding.server";
 import type { onboardingStep4State } from "./step4-state";
 
 const STEPS = 4;
@@ -42,7 +42,7 @@ export function OnboardingStep4Content({
   startTrial,
   showPlans,
 }: {
-  saved: Awaited<ReturnType<typeof loader>>;
+  saved: OnboardingData;
   declared: boolean;
   t: ReturnType<typeof texts>;
   state: ReturnType<typeof onboardingStep4State>;

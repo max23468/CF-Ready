@@ -16,7 +16,11 @@ export const PERFORMANCE_SERVER_TIMING_NAMES = [
   "shopify_billing",
   "d1_commercial",
   "d1_home",
+  "d1_address",
+  "d1_onboarding",
+  "d1_support",
   "d1_validation_schedule",
+  "d1_validation_state",
   "total",
 ] as const;
 

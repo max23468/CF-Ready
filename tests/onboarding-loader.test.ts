@@ -48,8 +48,14 @@ test("l’Onboarding riusa lo snapshot Shopify combinato", async () => {
     params: {},
   } as never);
 
-  expect(result).toMatchObject({ step: 2, completed: false, entitled: false });
-  expect(mocks.reconcile).toHaveBeenCalledWith(admin, db, shop, {
-    prefetchBilling: true,
-  });
+  expect(result.data).toMatchObject({ step: 2, completed: false, entitled: false });
+  expect(new Headers(result.init?.headers).get("Server-Timing")).toMatch(
+    /auth;dur=.*d1_onboarding;dur=.*d1_address;dur=.*total;dur=/,
+  );
+  expect(mocks.reconcile).toHaveBeenCalledWith(
+    admin,
+    db,
+    shop,
+    expect.objectContaining({ prefetchBilling: true, reportTiming: expect.any(Function) }),
+  );
 });

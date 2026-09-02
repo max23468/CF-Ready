@@ -8,6 +8,7 @@ import {
   sendPerformanceReport,
 } from "../app/performance-report";
 import { normalizePerformanceReport } from "../app/performance.server";
+import { createServerTiming } from "../app/server-timing.server";
 import { insertShop } from "./support/lifecycle";
 
 const mocks = vi.hoisted(() => ({ authenticate: vi.fn() }));
@@ -71,6 +72,22 @@ test("i timing di navigazione ammettono solo nomi e durate validi", () => {
     ]),
   ).toEqual({ total: 10, d1_home: 0 });
   expect(readNavigationServerTimings()).toEqual({});
+});
+
+test("il registratore server misura operazioni allowlistate e il totale", async () => {
+  const clock = vi.spyOn(performance, "now");
+  clock
+    .mockReturnValueOnce(100)
+    .mockReturnValueOnce(110)
+    .mockReturnValueOnce(135)
+    .mockReturnValueOnce(150);
+  const timing = createServerTiming();
+
+  await expect(timing.measure("d1_support", async () => "ok")).resolves.toBe("ok");
+  timing.record("shopify_context", Number.NaN);
+
+  expect(timing.header()).toBe("d1_support;dur=25.0, total;dur=50.0");
+  clock.mockRestore();
 });
 
 test("il reporter client resta best effort se il trasporto fallisce", async () => {

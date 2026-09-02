@@ -46,10 +46,16 @@ test("la pagina Regole carica l’entitlement autorevole per l’anteprima", asy
     params: {},
   } as never);
 
-  expect(result).toMatchObject({ enabled: true, entitled: false });
-  expect(mocks.reconcile).toHaveBeenCalledWith(admin, db, "example.myshopify.com", {
-    prefetchBilling: true,
-  });
+  expect(result.data).toMatchObject({ enabled: true, entitled: false });
+  expect(new Headers(result.init?.headers).get("Server-Timing")).toMatch(
+    /auth;dur=.*d1_address;dur=.*total;dur=/,
+  );
+  expect(mocks.reconcile).toHaveBeenCalledWith(
+    admin,
+    db,
+    "example.myshopify.com",
+    expect.objectContaining({ prefetchBilling: true, reportTiming: expect.any(Function) }),
+  );
 });
 
 test("la pagina Regole segnala la configurazione indeterminata dei duplicati", async () => {
@@ -69,5 +75,5 @@ test("la pagina Regole segnala la configurazione indeterminata dei duplicati", a
     params: {},
   } as never);
 
-  expect(result.duplicateError).toBe("duplicate_validations_active");
+  expect(result.data.duplicateError).toBe("duplicate_validations_active");
 });
