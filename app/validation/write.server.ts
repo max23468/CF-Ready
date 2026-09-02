@@ -1,14 +1,9 @@
+import { localDate, readBilling } from "../billing.server";
+import type { AppErrorCode } from "../app-error";
 import {
-  currentPricingGeneration,
-  entitlementFor,
-  localDate,
-  markTrialConverted,
-  readBilling,
-  readBillingAccount,
-  readComplimentaryEntitlement,
-  syncBillingAccount,
-  syncTrial,
-} from "../billing.server";
+  readCommercialInputs,
+  syncCommercialEntitlement,
+} from "../billing/commercial-entitlement.server";
 import { ELIGIBLE_COUNTRY, readConfig } from "../config";
 import type { CheckoutConfig, Entitlement } from "../config";
 import { configHash, observedConfigHash } from "./domain";
@@ -36,7 +31,7 @@ import {
 
 export type ValidationWriteResult =
   | { ok: true; enabled: boolean }
-  | { ok: false; errorCode: string };
+  | { ok: false; errorCode: AppErrorCode };
 
 type ValidationConfigUpdate = Partial<Pick<CheckoutConfig, "rules" | "errorDisplay" | "messages">>;
 
@@ -71,36 +66,26 @@ export async function writeValidation(
 
     const enabled = enable ?? existing?.enabled ?? false;
     const today = localDate(data.shop.ianaTimezone);
-    const [trial, complimentary] = await Promise.all([
-      syncTrial(db, shopDomain, { today }),
-      readComplimentaryEntitlement(db, shopDomain),
-    ]);
-    let account = await readBillingAccount(db, shopDomain);
+    const commercialInputs = await readCommercialInputs(db, shopDomain, today);
     let billing: Awaited<ReturnType<typeof readBilling>> | null = null;
     try {
       billing = await readBilling(admin);
     } catch {
       // Shopify non raggiungibile: conserva lo stato operativo noto senza concedere diritti.
     }
-    if (!billing && complimentary?.status === "active" && enable === true) {
+    if (!billing && commercialInputs.complimentary?.status === "active" && enable === true) {
       return { ok: false, errorCode: "billing_read_failed" };
     }
-    const complimentaryOperational =
-      complimentary?.status === "active" && billing?.subscription == null;
+    let entitlement: Entitlement = { kind: "none", validThrough: null };
     if (billing) {
-      account = await syncBillingAccount(db, shopDomain, billing, {
-        today,
+      const commercial = await syncCommercialEntitlement(db, shopDomain, {
+        billing,
+        inputs: commercialInputs,
         timeZone: data.shop.ianaTimezone,
-        pricingGeneration: currentPricingGeneration(trial, account, today),
-        storedAccount: account,
+        today,
       });
-      if (account.entitlement_status === "active" || complimentaryOperational) {
-        await markTrialConverted(db, shopDomain);
-      }
+      entitlement = commercial.entitlement;
     }
-    const entitlement: Entitlement = billing
-      ? entitlementFor(trial, today, account, complimentaryOperational ? complimentary : null)
-      : { kind: "none", validThrough: null };
     if (enable === true && !existing?.enabled && entitlement.kind === "none") {
       return { ok: false, errorCode: "entitlement_required" };
     }

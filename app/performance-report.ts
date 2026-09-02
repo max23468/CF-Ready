@@ -1,14 +1,6 @@
-const PERFORMANCE_ENDPOINT = "/app/performance";
-const SERVER_TIMING_NAMES = new Set([
-  "auth",
-  "shopify_snapshot",
-  "shopify_context",
-  "shopify_billing",
-  "d1_commercial",
-  "d1_home",
-  "d1_validation_schedule",
-  "total",
-]);
+import { PERFORMANCE_ENDPOINT, PERFORMANCE_SERVER_TIMING_NAMES } from "./performance-contract";
+
+const SERVER_TIMING_NAMES = new Set<string>(PERFORMANCE_SERVER_TIMING_NAMES);
 
 export function normalizePerformanceRoute(pathname: string) {
   const path = pathname.replace(/\/+$/, "") || "/";

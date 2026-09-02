@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useActionData, useLoaderData, useSubmit } from "react-router";
+import { localizedError } from "../app-error";
 import { authenticateAdmin } from "../admin-auth.server";
 import { CheckoutSimulator } from "../features/rules/CheckoutSimulator";
 import "../features/rules/RulesLayout.css";
@@ -162,9 +163,7 @@ export default function CheckoutRules() {
       ) : null}
       {result && !result.ok ? (
         <div className="cf-motion-reveal">
-          <s-banner tone="critical">
-            {t.errors[result.errorCode as keyof typeof t.errors] ?? t.errors.generic}
-          </s-banner>
+          <s-banner tone="critical">{localizedError(t.errors, result.errorCode)}</s-banner>
         </div>
       ) : null}
 

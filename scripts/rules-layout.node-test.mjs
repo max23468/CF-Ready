@@ -104,7 +104,10 @@ test("le transizioni di pagina sono rapide e rispettano il movimento ridotto", (
 });
 
 test("la Home integra il perimetro Italia nella configurazione corrente", () => {
-  const route = readFileSync(new URL("../app/features/home/HomePage.tsx", import.meta.url), "utf8");
+  const route = readFileSync(
+    new URL("../app/features/home/HomeSections.tsx", import.meta.url),
+    "utf8",
+  );
 
   assert.match(route, /<s-icon type="location" color="subdued" \/>/);
   assert.match(route, /\{t\.rules\.exceptions\[0\]\}/);
