@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { buildSync } from "esbuild";
 import coverageLibrary from "istanbul-lib-coverage";
 import reportLibrary from "istanbul-lib-report";
 import reports from "istanbul-reports";
@@ -45,6 +46,31 @@ export function mergeCoverageFiles(files) {
   return map;
 }
 
+export function bundledFunctionSources({
+  repositoryRoot,
+  entryPoints,
+  sources,
+  build = buildSync,
+}) {
+  const result = build({
+    absWorkingDir: repositoryRoot,
+    entryPoints,
+    bundle: true,
+    write: false,
+    metafile: true,
+    platform: "neutral",
+    packages: "external",
+    logLevel: "silent",
+  });
+  const sourceSet = new Set(sources);
+  const bundled = new Set(
+    Object.keys(result.metafile.inputs)
+      .map(normalizeCoveragePath)
+      .filter((file) => sourceSet.has(file)),
+  );
+  return sources.filter((file) => bundled.has(file));
+}
+
 function relativeFile(repositoryRoot, file) {
   const path = normalizeCoveragePath(relative(repositoryRoot, file));
   if (path === ".." || path.startsWith("../")) {
@@ -82,7 +108,14 @@ export function coverageSummary(map) {
   );
 }
 
-export function coverageState({ globalMap, functionMap, sources, policy, repositoryRoot }) {
+export function coverageState({
+  globalMap,
+  functionMap,
+  functionDependencies,
+  sources,
+  policy,
+  repositoryRoot,
+}) {
   const groups = classifyCoverageSources(sources, policy);
   const globalIndex = indexCoverageMap(globalMap, repositoryRoot);
   const missing = sources.filter((file) => !globalIndex.has(file));
@@ -110,17 +143,30 @@ export function coverageState({ globalMap, functionMap, sources, policy, reposit
     (file) => !functionSources.includes(file),
   );
   const unknownFunctionFiles = functionFiles.filter((file) => !sources.includes(file));
+  const normalizedFunctionDependencies = (functionDependencies ?? functionFiles).map(
+    normalizeCoveragePath,
+  );
+  const missingFunctionDependencies = normalizedFunctionDependencies.filter(
+    (file) => !functionFiles.includes(file),
+  );
+  const staleFunctionFiles = functionFiles.filter(
+    (file) => !normalizedFunctionDependencies.includes(file),
+  );
   if (
     duplicateFunctionFiles.length ||
     missingFunctionFiles.length ||
     unexpectedFunctionFiles.length ||
-    unknownFunctionFiles.length
+    unknownFunctionFiles.length ||
+    missingFunctionDependencies.length ||
+    staleFunctionFiles.length
   ) {
     const details = [
       ...duplicateFunctionFiles.map((file) => `duplicato ${file}`),
       ...missingFunctionFiles.map((file) => `manca ${file}`),
       ...unexpectedFunctionFiles.map((file) => `fuori sorgenti Function ${file}`),
       ...unknownFunctionFiles.map((file) => `sorgente sconosciuta ${file}`),
+      ...missingFunctionDependencies.map((file) => `dipendenza non dichiarata ${file}`),
+      ...staleFunctionFiles.map((file) => `fuori bundle reale ${file}`),
     ];
     throw new Error(`Bundle Function incompleto: ${details.join(", ")}`);
   }
@@ -368,7 +414,20 @@ export function runCoverageReport({
   const globalMap = mergeCoverageFiles(reportFiles);
   const functionMap = mergeCoverageFiles([reportFiles[2]]);
   const sources = trackedCoverageSources(repositoryRoot, policy, execute);
-  const state = coverageState({ globalMap, functionMap, sources, policy, repositoryRoot });
+  const functionEntries = classifyCoverageSources(sources, policy).function;
+  const functionDependencies = bundledFunctionSources({
+    repositoryRoot,
+    entryPoints: functionEntries,
+    sources,
+  });
+  const state = coverageState({
+    globalMap,
+    functionMap,
+    functionDependencies,
+    sources,
+    policy,
+    repositoryRoot,
+  });
 
   writeCoverageReports(globalMap, resolve(repositoryRoot, ".coverage/global"));
   writeFileSync(

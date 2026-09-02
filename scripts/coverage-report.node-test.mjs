@@ -6,6 +6,7 @@ import test from "node:test";
 import coverageLibrary from "istanbul-lib-coverage";
 import {
   baselineFailures,
+  bundledFunctionSources,
   changedExecutableLineCoverage,
   coverageState,
   indexCoverageMap,
@@ -130,12 +131,14 @@ test("la campagna mutation completa è schedulata e avviabile sul candidato deve
     new URL("../.github/workflows/mutation-campaign.yml", import.meta.url),
     "utf8",
   );
+  const ciWorkflow = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
   assert.match(workflow, /push:\n\s+branches: \[develop\]/);
   assert.match(workflow, /paths: \[\.github\/workflows\/mutation-campaign\.yml\]/);
   assert.match(workflow, /schedule:/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /github\.ref == 'refs\/heads\/develop'/);
-  assert.match(workflow, /timeout-minutes: 15/);
+  assert.match(workflow, /timeout-minutes: 20/);
+  assert.match(ciWorkflow, /^  critical-mutation:\n[\s\S]*?^    timeout-minutes: 20$/m);
   for (const domain of ["webhooks", "billing", "validation", "ownerNotifications"]) {
     assert.match(workflow, new RegExp(`domain: \\[.*\\b${domain}\\b`));
   }
@@ -415,6 +418,34 @@ test("rifiuta mappe Istanbul incompatibili per la stessa sorgente", () => {
   );
 });
 
+test("ricava dal bundle le dipendenze first-party effettive della Function", () => {
+  const repositoryRoot = mkdtempSync(resolve(tmpdir(), "cf-ready-function-bundle-"));
+  mkdirSync(resolve(repositoryRoot, "extensions/function/src"), { recursive: true });
+  mkdirSync(resolve(repositoryRoot, "app"), { recursive: true });
+  writeFileSync(
+    resolve(repositoryRoot, "extensions/function/src/run.ts"),
+    'import { validate } from "../../../app/validate"; export const run = validate;\n',
+  );
+  writeFileSync(
+    resolve(repositoryRoot, "app/validate.ts"),
+    'import { normalize } from "./normalize"; export const validate = normalize;\n',
+  );
+  writeFileSync(resolve(repositoryRoot, "app/normalize.ts"), "export const normalize = true;\n");
+  assert.deepEqual(
+    bundledFunctionSources({
+      repositoryRoot,
+      entryPoints: ["extensions/function/src/run.ts"],
+      sources: [
+        "app/normalize.ts",
+        "app/validate.ts",
+        "extensions/function/src/run.ts",
+        "app/unrelated.ts",
+      ],
+    }),
+    ["app/normalize.ts", "app/validate.ts", "extensions/function/src/run.ts"],
+  );
+});
+
 test("rifiuta sorgenti Function e domini critici omessi dalla policy", () => {
   const repositoryRoot = "/repo";
   const sources = [
@@ -468,6 +499,30 @@ test("rifiuta sorgenti Function e domini critici omessi dalla policy", () => {
       expected,
     );
   }
+  assert.throws(
+    () =>
+      coverageState({
+        globalMap,
+        functionMap,
+        functionDependencies: [...policy.functionBundle, "app/root.tsx"],
+        sources: canonicalSources,
+        policy,
+        repositoryRoot,
+      }),
+    /Bundle Function incompleto: dipendenza non dichiarata app\/root\.tsx/,
+  );
+  assert.throws(
+    () =>
+      coverageState({
+        globalMap,
+        functionMap,
+        functionDependencies: [policy.functionBundle[0]],
+        sources: canonicalSources,
+        policy,
+        repositoryRoot,
+      }),
+    /Bundle Function incompleto: fuori bundle reale app\/checkout-field-validation\.ts/,
+  );
   assert.throws(
     () =>
       coverageState({
@@ -693,10 +748,12 @@ test("genera e verifica una baseline deterministica con report aggregati", () =>
   ];
   for (const file of [...sources, "config/coverage-policy.json"]) {
     mkdirSync(dirname(resolve(repositoryRoot, file)), { recursive: true });
-    writeFileSync(
-      resolve(repositoryRoot, file),
-      file.endsWith("coverage-policy.json") ? `${JSON.stringify(policy)}\n` : "export {};\n",
-    );
+    const content = file.endsWith("coverage-policy.json")
+      ? `${JSON.stringify(policy)}\n`
+      : file === "extensions/cf-ready-validation/src/index.ts"
+        ? 'export * from "../../../app/checkout-field-validation";\n'
+        : "export {};\n";
+    writeFileSync(resolve(repositoryRoot, file), content);
   }
   const operations = mapFor(repositoryRoot, ["scripts/task.mjs"]);
   operations.addFileCoverage(coverage(resolve(repositoryRoot, "site/menu.js"), 0));

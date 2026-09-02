@@ -20,7 +20,7 @@ jobs:
     name: Mutation ${{ matrix.domain }}
     if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
