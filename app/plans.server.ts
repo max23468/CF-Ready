@@ -1,4 +1,4 @@
-import type { PricingGeneration } from "./billing.server";
+import type { PricingGeneration } from "./billing/types";
 import { CURRENCY } from "./config";
 
 export type PlanKind = "monthly" | "annual" | "one_time";

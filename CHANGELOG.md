@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.1.6 — 2 settembre 2026
+
+- Home e onboarding sono stati separati in componenti e servizi focalizzati,
+  riducendo la complessità delle route senza cambiare il percorso merchant;
+- riconciliazione Validation, entitlement commerciale, notifiche owner e
+  telemetria condividono ora confini espliciti, errori canonici e accessi ai
+  dati isolati, mantenendo i comportamenti fail-open e idempotenti esistenti;
+- dipendenze, runtime Node/npm, Shopify CLI e GitHub Actions sono aggiornati e
+  protetti dagli stessi gate completi, coverage progressiva e mutation testing.
+
 ## 1.1.5 — 2 settembre 2026
 
 - la coverage globale verificata supera il 95% per statement, branch, funzioni

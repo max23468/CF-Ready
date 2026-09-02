@@ -13,6 +13,7 @@ import {
   requestPlanComparison,
   requestPlanComparisonFromFrame,
 } from "../app/features/home/plan-comparison";
+import { DeactivateModal } from "../app/features/home/HomeSections";
 import { PlanStatus } from "../app/features/home/PlanStatus";
 import { onboardingCheckoutPreview } from "../app/features/onboarding/checkout-preview";
 import { onboardingStep4State } from "../app/features/onboarding/step4-state";
@@ -30,7 +31,22 @@ vi.mock("../app/shopify.server", () => ({ authenticate: {} }));
 function elements(node: ReactNode): ReactElement[] {
   if (Array.isArray(node)) return node.flatMap(elements);
   if (!isValidElement(node)) return [];
+  if (typeof node.type === "function" && !("isReactComponent" in (node.type.prototype ?? {}))) {
+    const render = node.type as (props: unknown) => ReactNode;
+    const rendered = render(node.props);
+    return [node, ...elements(rendered)];
+  }
   return [node, ...elements((node.props as { children?: ReactNode }).children)];
+}
+
+function renderedElements(node: ReactNode): ReactElement[] {
+  if (Array.isArray(node)) return node.flatMap(renderedElements);
+  if (!isValidElement(node)) return [];
+  if (typeof node.type === "function") {
+    const Component = node.type as (props: Record<string, unknown>) => ReactNode;
+    return [node, ...renderedElements(Component(node.props as Record<string, unknown>))];
+  }
+  return [node, ...renderedElements((node.props as { children?: ReactNode }).children)];
 }
 
 const data = {
@@ -48,7 +64,7 @@ test("il piano omaggio non viene presentato come un pagamento", () => {
     entitlement: { kind: "one_time", validThrough: null },
     complimentary: true,
   } as Parameters<typeof PlanChoice>[0]["data"];
-  const choice = elements(
+  const choice = renderedElements(
     PlanChoice({
       data: complimentary,
       busy: false,
@@ -57,7 +73,7 @@ test("il piano omaggio non viene presentato come un pagamento", () => {
       firstCharge: "oggi",
     }),
   );
-  const status = elements(PlanStatus({ data: complimentary }));
+  const status = renderedElements(PlanStatus({ data: complimentary }));
 
   expect(
     choice.some(
@@ -72,6 +88,36 @@ test("il piano omaggio non viene presentato come un pagamento", () => {
         (element.props as { children?: ReactNode }).children === texts("it").plan.complimentary,
     ),
   ).toBe(true);
+
+  const purchased = renderedElements(
+    PlanChoice({
+      data: { ...complimentary, complimentary: false },
+      busy: false,
+      pendingIntent: null,
+      submit: vi.fn(),
+      firstCharge: "oggi",
+    }),
+  );
+  expect(
+    purchased.some(
+      (element) =>
+        (element.props as { children?: ReactNode }).children === texts("it").plan.oneTimeSettled,
+    ),
+  ).toBe(true);
+});
+
+test("la disattivazione invia l'intent soltanto dall'azione primaria", () => {
+  const submit = vi.fn();
+  const rendered = elements(DeactivateModal({ pendingIntent: null, submit, t: texts("it") }));
+  const confirmation = rendered.find(
+    (element) =>
+      element.type === "s-button" && (element.props as { slot?: string }).slot === "primary-action",
+  );
+  if (!confirmation) throw new Error("azione primaria di disattivazione assente");
+
+  (confirmation.props as { onClick: () => void }).onClick();
+
+  expect(submit).toHaveBeenCalledWith("disable");
 });
 
 test("il check-in pagante resta neutro, apre l'assistenza e può sparire", () => {
@@ -133,7 +179,7 @@ test("l'approvazione billing si apre fuori dall'iframe", () => {
 test("la cancellazione apre la conferma e invia l'intent soltanto dall'azione primaria", () => {
   const submit = vi.fn();
   const render = (pendingIntent: string | null) =>
-    elements(
+    renderedElements(
       PlanChoice({
         data,
         busy: pendingIntent !== null,
@@ -374,7 +420,7 @@ test("la prima installazione non viene presentata come un piano da riattivare", 
     trialStatus: null,
     planKind: "none",
   } as Parameters<typeof PlanChoice>[0]["data"];
-  const rendered = elements(
+  const rendered = renderedElements(
     PlanChoice({
       data: firstRunData,
       busy: false,
@@ -400,7 +446,7 @@ test("la prima installazione non viene presentata come un piano da riattivare", 
         !(element.props as { slot?: string }).slot,
     )
     .map((element) => (element.props as { children?: ReactNode }).children);
-  const planStatus = elements(PlanStatus({ data: firstRunData }));
+  const planStatus = renderedElements(PlanStatus({ data: firstRunData }));
 
   expect(commercialState(firstRunData)).toBe("first_run");
   expect(headings).toContain(texts("it").plan.chooseNowHeading);

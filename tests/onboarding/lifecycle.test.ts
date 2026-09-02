@@ -66,6 +66,21 @@ test("la Home ricostruisce onboarding, dichiarazione e ultima attivazione con un
   });
 });
 
+test("un errore D1 futuro resta un errore operativo e non diventa stato sano", async () => {
+  const shop = await insertShop("home-future-error.example.myshopify.com");
+  await env.DB.prepare(
+    `INSERT INTO app_state (
+       shop_id, onboarding_status, onboarding_step, validation_enabled,
+       last_error_code, updated_at
+     ) VALUES ((SELECT id FROM shops WHERE shop_domain = ?), 'in_progress', 4, 1, ?, ?)`,
+  )
+    .bind(shop, "future_validation_error", "2026-09-02T10:00:00.000Z")
+    .run();
+
+  expect((await readHomeState(env.DB, shop)).onboarding.errorCode).toBe("generic");
+  expect((await readOnboarding(env.DB, shop)).errorCode).toBe("generic");
+});
+
 test("autocompletamento onboarding e chiusura check-in sono persistenti e idempotenti", async () => {
   const shop = await insertShop("automatic-setup.example.myshopify.com");
   await env.DB.prepare(

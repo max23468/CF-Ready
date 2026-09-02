@@ -1,157 +1,31 @@
-import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData, useNavigate } from "react-router";
-import { authenticateAdmin } from "../admin-auth.server";
-import { localDate, startTrial } from "../billing.server";
-import {
-  address2Declaration,
-  ELIGIBLE_COUNTRY,
-  oneOf,
-  parseOnboardingStep,
-  pendingFetcherIntent,
-  readConfig,
-  RULE_MODES,
-} from "../config";
-import { databaseContext } from "../context.server";
-import { recordEvent } from "../events.server";
+import { localizedError, type AppErrorCode } from "../app-error";
+import { oneOf, pendingFetcherIntent, RULE_MODES } from "../config";
 import { onboardingCheckoutPreview } from "../features/onboarding/checkout-preview";
 import { onboardingStep4State } from "../features/onboarding/step4-state";
+import {
+  Address2DeclarationPrompt,
+  OnboardingListBlock,
+  OnboardingProgress,
+  OnboardingStep4Actions,
+  OnboardingStep4Content,
+} from "../features/onboarding/OnboardingSections";
 import {
   planComparisonLocationState,
   requestPlanComparisonFromFrame,
 } from "../features/home/plan-comparison";
-import { resolveLocale, texts } from "../i18n";
+import { texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
-import { persistShopDisplayName } from "../shop-profile.server";
-import { authenticate } from "../shopify.server";
-import {
-  queryContext,
-  readAddress2Declaration,
-  readOnboarding,
-  reconcile,
-  saveAddress2Declaration,
-  saveOnboarding,
-  writeValidation,
-} from "../validation.server";
+import { action, loader } from "../features/onboarding/onboarding.server";
 import "./app.onboarding.css";
 
-const STEPS = 4;
-
-export const loader = async ({ request, context }: LoaderFunctionArgs) => {
-  const { admin, session } = await authenticateAdmin(request, context);
-  const db = context.get(databaseContext);
-  const state = await reconcile(admin, db, session.shop, { prefetchBilling: true });
-  const validation = state.validation;
-  const config = readConfig(validation?.metafield?.jsonValue);
-  const [onboarding, address2Declaration] = await Promise.all([
-    readOnboarding(db, session.shop),
-    readAddress2Declaration(db, session.shop),
-  ]);
-
-  return {
-    locale: resolveLocale(request),
-    // Il passo arriva da D1 così la procedura si riprende dove era rimasta. Chiuderla riporta
-    // il contatore a uno: riaprirla dalla Guida riparte dall'inizio, senza azzerare nulla
-    // (§15.9), e senza restare incastrata sul riepilogo.
-    step: onboarding.step,
-    completed: onboarding.status === "completed",
-    rules: config.rules,
-    errorDisplay: config.errorDisplay,
-    messages: config.messages,
-    enabled: state.validationEnabled,
-    entitlementKind: state.entitlement.kind,
-    entitled: state.entitlement.kind !== "none",
-    trialStatus: state.trial?.status ?? null,
-    address2Declared: address2Declaration !== null,
-  };
-};
-
-export const action = async ({ request, context }: ActionFunctionArgs) => {
-  const { admin, session } = await authenticate.admin(request);
-  const db = context.get(databaseContext);
-  const form = await request.formData();
-  const intent = form.get("intent");
-
-  // La sola memoria del passo, senza altri effetti: serve a riprendere la procedura dove era.
-  if (intent === "progress" || intent === "back" || intent === "next") {
-    const step = parseOnboardingStep(form.get("step"));
-    if (step === null) return { ok: false as const, errorCode: "generic" };
-    await saveOnboarding(db, session.shop, {
-      status: "in_progress",
-      step,
-    });
-    return { ok: true as const };
-  }
-
-  // Le regole scelte al passo due si salvano subito, così sopravvivono a una ricarica e la
-  // procedura può essere ripresa. La Validation nasce disattivata: attivare resta il gesto
-  // finale ed esplicito di FR-051.
-  if (intent === "rules") {
-    const taxCode = oneOf(RULE_MODES, form.get("taxCode"));
-    const pec = oneOf(RULE_MODES, form.get("pec"));
-    if (!taxCode || !pec) return { ok: false as const, errorCode: "generic" };
-
-    const result = await writeValidation(
-      admin,
-      db,
-      session.shop,
-      { rules: { taxCode, pec } },
-      null,
-    );
-    if (!result.ok) return { ok: false as const, errorCode: result.errorCode };
-
-    await saveOnboarding(db, session.shop, { status: "in_progress", step: 3 });
-    return { ok: true as const };
-  }
-
-  // La prova parte da una scelta esplicita, qui come in Home: nessun giorno si consuma
-  // finché il merchant non la chiede.
-  if (intent === "start_trial") {
-    const { shop } = await queryContext(admin);
-    await persistShopDisplayName(db, session.shop, shop.name);
-    const trial = await startTrial(db, session.shop, {
-      eligible: shop.shopAddress.countryCodeV2 === ELIGIBLE_COUNTRY,
-      today: localDate(shop.ianaTimezone),
-    });
-    if (!trial) return { ok: false as const, errorCode: "store_not_supported" as const };
-    if (trial.status !== "active") {
-      return { ok: false as const, errorCode: "trial_unavailable" as const };
-    }
-    return { ok: true as const };
-  }
-
-  if (intent !== "finish" && intent !== "activate") {
-    return { ok: false as const, errorCode: "generic" };
-  }
-
-  const declared = address2Declaration(form);
-
-  if (intent === "activate") {
-    const result = await writeValidation(admin, db, session.shop, null, true, undefined, declared);
-    if (!result.ok) return { ok: false as const, errorCode: result.errorCode };
-
-    await recordEvent(db, {
-      shopDomain: session.shop,
-      name: "validation_enabled",
-      class: "validation",
-      metadata: { enabled: true, schema_version: 2 },
-    });
-  } else if (declared !== null) {
-    await saveAddress2Declaration(db, session.shop, declared);
-  }
-
-  // FR-052 resta separato: completare senza attivare conserva la configurazione.
-  const enabled =
-    intent === "activate" ? true : (await readOnboarding(db, session.shop)).validationEnabled;
-  await saveOnboarding(db, session.shop, { status: "completed", step: 1 });
-  await recordEvent(db, {
-    shopDomain: session.shop,
-    name: "onboarding_completed",
-    class: "onboarding",
-    metadata: { enabled },
-  });
-  return { ok: true as const };
+export { action, loader };
+export {
+  Address2DeclarationPrompt,
+  OnboardingListBlock,
+  OnboardingProgress,
+  OnboardingStep4Content,
 };
 
 export const shouldRevalidate = skipRevalidationWhenLeaving;
@@ -170,7 +44,7 @@ export default function Onboarding() {
   const progress = useFetcher();
   const busy = fetcher.state !== "idle";
   const pendingIntent = pendingFetcherIntent(fetcher.formData);
-  const esito = fetcher.data as { ok: boolean; errorCode?: string } | undefined;
+  const esito = fetcher.data as { ok: boolean; errorCode?: AppErrorCode } | undefined;
   const step4State = onboardingStep4State(saved);
 
   const go = (intent: string, extra: Record<string, string> = {}) =>
@@ -241,9 +115,7 @@ export default function Onboarding() {
       <s-page heading={t.onboarding.heading}>
         {esito && !esito.ok ? (
           <div className="cf-motion-reveal">
-            <s-banner tone="critical">
-              {t.errors[esito.errorCode as keyof typeof t.errors] ?? t.errors.generic}
-            </s-banner>
+            <s-banner tone="critical">{localizedError(t.errors, esito.errorCode)}</s-banner>
           </div>
         ) : null}
 
@@ -382,184 +254,5 @@ export default function Onboarding() {
         </s-section>
       </s-page>
     </form>
-  );
-}
-
-export function OnboardingListBlock({
-  lead,
-  items,
-}: {
-  lead: ReactNode;
-  items: readonly string[];
-}) {
-  return (
-    <s-grid gridTemplateColumns="1fr" gap="none">
-      {lead}
-      <s-grid gridTemplateColumns="1fr" gap="none" accessibilityRole="unordered-list">
-        {items.map((line) => (
-          <s-grid
-            key={line}
-            gridTemplateColumns="auto 1fr"
-            gap="small-100"
-            accessibilityRole="list-item"
-          >
-            <s-text>•</s-text>
-            <s-text>{line}</s-text>
-          </s-grid>
-        ))}
-      </s-grid>
-    </s-grid>
-  );
-}
-
-export function OnboardingStep4Content({
-  saved,
-  declared,
-  t,
-  state,
-  busy,
-  pendingIntent,
-  startTrial,
-  showPlans,
-}: {
-  saved: Awaited<ReturnType<typeof loader>>;
-  declared: boolean;
-  t: ReturnType<typeof texts>;
-  state: ReturnType<typeof onboardingStep4State>;
-  busy: boolean;
-  pendingIntent: string | null;
-  startTrial: () => void;
-  showPlans: () => void;
-}) {
-  return (
-    <>
-      <s-heading>{t.onboarding.step4Heading}</s-heading>
-      <div className="cf-data-list">
-        <div className="cf-data-row">
-          <s-text>{t.rules.taxCodeLabel}</s-text>
-          <s-badge>{t.rules.taxCode[saved.rules.taxCode]}</s-badge>
-        </div>
-        <div className="cf-data-row">
-          <s-text>{t.rules.pecLabel}</s-text>
-          <s-badge>{t.rules.pec[saved.rules.pec]}</s-badge>
-        </div>
-      </div>
-      {saved.rules.taxCode === "unmanaged" ? null : (
-        <Address2DeclarationPrompt declared={declared} t={t} />
-      )}
-      <s-paragraph>
-        {state.summary === "review"
-          ? t.onboarding.reviewStep4Body
-          : state.summary === "ready"
-            ? t.onboarding.step4BodyReady
-            : t.onboarding.step4BodyNeedsEntitlement}
-      </s-paragraph>
-      <s-divider />
-      <s-heading>{t.onboarding.step4TrialHeading}</s-heading>
-      {state.access === "trial" ? (
-        <s-paragraph>{t.onboarding.step4TrialActive}</s-paragraph>
-      ) : state.access === "plan" ? (
-        <s-paragraph>{t.onboarding.step4PlanActive}</s-paragraph>
-      ) : state.access === "first_run" ? (
-        <>
-          <s-paragraph>{t.onboarding.step4TrialBody}</s-paragraph>
-          <s-stack direction="inline" gap="base">
-            <s-button
-              variant="primary"
-              disabled={busy}
-              loading={pendingIntent === "start_trial"}
-              onClick={startTrial}
-            >
-              {t.onboarding.step4StartTrial}
-            </s-button>
-            <s-button onClick={showPlans}>{t.onboarding.step4SeePlans}</s-button>
-          </s-stack>
-        </>
-      ) : (
-        <>
-          <s-paragraph>{t.plan.trialOver}</s-paragraph>
-          <s-button onClick={showPlans}>{t.onboarding.step4SeePlans}</s-button>
-        </>
-      )}
-    </>
-  );
-}
-
-export function OnboardingProgress({ step, t }: { step: number; t: ReturnType<typeof texts> }) {
-  return <s-text color="subdued">{t.onboarding.stepOf(step, STEPS)}</s-text>;
-}
-
-function OnboardingStep4Actions({
-  t,
-  state,
-  busy,
-  pendingIntent,
-  close,
-}: {
-  t: ReturnType<typeof texts>;
-  state: ReturnType<typeof onboardingStep4State>;
-  busy: boolean;
-  pendingIntent: string | null;
-  close: (intent: "activate" | "finish") => void;
-}) {
-  if (state.summary === "review") {
-    return (
-      <s-button
-        variant="primary"
-        disabled={busy}
-        loading={pendingIntent === "finish"}
-        onClick={() => close("finish")}
-      >
-        {t.onboarding.completeReview}
-      </s-button>
-    );
-  }
-
-  return (
-    <>
-      {state.canActivate ? (
-        <s-button
-          variant="primary"
-          disabled={busy}
-          loading={pendingIntent === "activate"}
-          onClick={() => close("activate")}
-        >
-          {t.onboarding.activate}
-        </s-button>
-      ) : null}
-      <s-button
-        disabled={busy}
-        loading={pendingIntent === "finish"}
-        onClick={() => close("finish")}
-      >
-        {t.onboarding.finishWithout}
-      </s-button>
-    </>
-  );
-}
-
-export function Address2DeclarationPrompt({
-  declared,
-  t,
-}: {
-  declared: boolean;
-  t: ReturnType<typeof texts>;
-}) {
-  return (
-    <>
-      <input type="hidden" name="address2Shown" value="1" />
-      <s-banner tone="warning">{t.rules.address2Body}</s-banner>
-      <s-checkbox
-        label={t.rules.address2Checkbox}
-        name="address2"
-        value="declared"
-        checked={declared}
-      />
-      {declared ? (
-        <div className="cf-motion-reveal">
-          <s-paragraph>{t.rules.address2Instructions}</s-paragraph>
-        </div>
-      ) : null}
-    </>
   );
 }

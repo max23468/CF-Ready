@@ -1,12 +1,12 @@
 {
   "name": "cf-ready",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "private": true,
   "packageManager": "npm@12.0.2",
   "packageExtensions": {
-    "@shopify/shopify-app-react-router@2.0.0": {
+    "@shopify/shopify-app-react-router@2.1.0": {
       "peerDependencies": {
-        "react-router": "^7.18.2 || ^8.3.0"
+        "react-router": "8.3.1"
       }
     },
     "graphql-config@5.1.6": {
@@ -77,44 +77,45 @@
   },
   "type": "module",
   "engines": {
-    "node": ">=26.7.0 <27"
+    "node": ">=26.8.1 <27"
   },
   "dependencies": {
-    "@shopify/shopify-api": "14.0.0",
-    "@shopify/shopify-app-react-router": "2.0.0",
-    "@shopify/shopify-app-session-storage": "6.0.0",
+    "@shopify/shopify-api": "14.0.1",
+    "@shopify/shopify-app-react-router": "2.1.0",
+    "@shopify/shopify-app-session-storage": "6.0.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "react-router": "8.3.0"
+    "react-router": "8.3.1"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.54.0",
+    "@cloudflare/vite-plugin": "1.54.3",
     "@cloudflare/vitest-pool-workers": "0.22.0",
-    "@graphql-codegen/cli": "7.3.1",
+    "@graphql-codegen/cli": "7.4.0",
     "@playwright/test": "1.62.1",
-    "@react-router/dev": "8.3.0",
+    "@react-router/dev": "8.3.1",
     "@shopify/polaris-types": "1.0.7",
+    "@shopify/cli": "4.7.1",
     "@stryker-mutator/core": "10.0.0",
     "@stryker-mutator/vitest-runner": "10.0.0",
-    "@types/node": "26.3.0",
+    "@types/node": "26.4.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
     "@vitest/browser-playwright": "4.1.11",
     "@vitest/coverage-istanbul": "4.1.11",
     "c8": "12.0.0",
-    "esbuild": "0.28.1",
+    "esbuild": "0.28.2",
     "graphql": "17.0.2",
     "istanbul-lib-coverage": "3.2.2",
     "istanbul-lib-report": "3.0.1",
     "istanbul-reports": "3.2.0",
     "mdast-util-from-markdown": "2.0.3",
-    "oxfmt": "0.65.0",
-    "oxlint": "1.80.0",
-    "react-doctor": "0.9.12",
+    "oxfmt": "0.66.0",
+    "oxlint": "1.81.0",
+    "react-doctor": "0.9.13",
     "typescript": "7.0.2",
     "vite": "8.2.2",
     "vitest": "4.1.11",
-    "wrangler": "4.126.0"
+    "wrangler": "4.128.0"
   },
   "workspaces": [
     "extensions/*"
@@ -125,14 +126,16 @@
   "allowScripts": {
     "core-js": false,
     "esbuild@0.28.1": true,
+    "esbuild@0.28.2": true,
     "fsevents@2.3.2": false,
     "fsevents@2.3.3": true,
     "workerd@1.20260815.1": true,
-    "workerd@1.20260825.1": true
+    "workerd@1.20260831.1": true
   },
   "overrides": {
     "graphql-config": "5.1.6",
     "lodash": "4.18.1",
+    "qs": "6.16.0",
     "undici": "7.29.0"
   },
   "author": "Matteo"
