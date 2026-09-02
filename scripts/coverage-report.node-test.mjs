@@ -129,6 +129,8 @@ test("la campagna mutation completa è schedulata e avviabile sul candidato deve
     new URL("../.github/workflows/mutation-campaign.yml", import.meta.url),
     "utf8",
   );
+  assert.match(workflow, /push:\n\s+branches: \[develop\]/);
+  assert.match(workflow, /paths: \[\.github\/workflows\/mutation-campaign\.yml\]/);
   assert.match(workflow, /schedule:/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /github\.ref == 'refs\/heads\/develop'/);

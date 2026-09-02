@@ -1,6 +1,9 @@
 name: Campagna mutation completa
 
 on:
+  push:
+    branches: [develop]
+    paths: [.github/workflows/mutation-campaign.yml]
   schedule:
     - cron: "23 5 * * 1"
   workflow_dispatch:
