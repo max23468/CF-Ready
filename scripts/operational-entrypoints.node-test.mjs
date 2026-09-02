@@ -546,6 +546,38 @@ test("il riallineamento reale copre no-op e recupero usando API sintetiche", asy
     false,
   );
 
+  const alreadyAlignedProvider = await fetchEnvironment(t, {
+    "GET /repos/owner/repository/git/ref/heads/main": { object: { sha: main } },
+    "GET /repos/owner/repository/git/ref/heads/develop": { object: { sha: main } },
+    [`GET /repos/owner/repository/git/commits/${main}`]: {
+      parents: [{ sha: sha("0") }, { sha: develop }],
+      tree: { sha: "same-tree" },
+    },
+    "GET /repos/owner/repository/actions/runs/43": {
+      path: ".github/workflows/deploy-pages-production.yml",
+      event: "workflow_dispatch",
+      status: "completed",
+      conclusion: "success",
+      head_branch: "main",
+      head_sha: main,
+    },
+  });
+  const alreadyAligned = runEntrypoint("reconcile-develop.mjs", [], {
+    env: {
+      ...alreadyAlignedProvider,
+      ...commonEnvironment,
+      GITHUB_EVENT_NAME: "workflow_run",
+      RECONCILIATION_MODE: "",
+      SOURCE_DEPLOY_RUN_ID: "43",
+      SOURCE_DEPLOY_SHA: main,
+    },
+  });
+  assert.match(alreadyAligned.stdout, /è già allineato/);
+  assert.equal(
+    alreadyAlignedProvider.calls().some(({ key }) => key.startsWith("PATCH ")),
+    false,
+  );
+
   const promoted = sha("c");
   const target = sha("e");
   const recoveryProvider = await fetchEnvironment(t, {
@@ -575,6 +607,18 @@ test("il riallineamento reale copre no-op e recupero usando API sintetiche", asy
   assert.equal(recoveryProvider.calls().filter(({ key }) => key.startsWith("PATCH ")).length, 1);
   runEntrypoint("reconcile-develop.mjs", [], {
     env: { ...commonEnvironment, RECONCILIATION_APP_SLUG: "altra-app" },
+    success: false,
+  });
+  runEntrypoint("reconcile-develop.mjs", [], {
+    env: { ...commonEnvironment, GITHUB_TOKEN: "" },
+    success: false,
+  });
+
+  const unavailableProvider = await fetchEnvironment(t, {
+    "GET /repos/owner/repository/git/ref/heads/main": [{ status: 503, body: {} }],
+  });
+  runEntrypoint("reconcile-develop.mjs", [], {
+    env: { ...unavailableProvider, ...commonEnvironment },
     success: false,
   });
 });

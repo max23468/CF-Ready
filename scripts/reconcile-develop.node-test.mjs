@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   expectedMainSha,
+  isAlreadyReconciled,
   reconciliationMode,
   requiresDeploymentEvidence,
   shouldDeferNoDeployReconciliation,
@@ -36,6 +37,10 @@ test("usa lo SHA del deploy per workflow_run e main per il retry manuale", () =>
   );
   assert.throws(
     () => expectedMainSha({ eventName: "push", sourceDeploySha: main, mainRefSha: main }),
+    /Evento o commit main atteso non valido/,
+  );
+  assert.throws(
+    () => expectedMainSha({ eventName: "workflow_run" }),
     /Evento o commit main atteso non valido/,
   );
 });
@@ -92,6 +97,11 @@ test("una promozione senza deploy già in ascendenza termina senza scrivere", ()
     }),
     false,
   );
+});
+
+test("un secondo deploy dello stesso main non tenta un recupero di ascendenza", () => {
+  assert.equal(isAlreadyReconciled({ main, develop: main }), true);
+  assert.equal(isAlreadyReconciled({ main, develop }), false);
 });
 
 test("consente soltanto il merge di promozione con tree invariato", () => {
@@ -220,6 +230,7 @@ test("richiede un deploy Production verde e la relativa ricevuta per lo stesso m
   };
   const artifacts = [{ name: `deploy-receipt-production-${main}`, expired: false }];
   assert.doesNotThrow(() => verifyProductionDeployment({ run, artifacts, expectedMain: main }));
+  assert.doesNotThrow(() => verifyReconciliationDeployment({ run, artifacts, expectedMain: main }));
   assert.throws(
     () =>
       verifyProductionDeployment({

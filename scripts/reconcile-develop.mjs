@@ -24,6 +24,10 @@ export function shouldDeferNoDeployReconciliation({ mode, directReconciliation }
   return mode === "no-deploy-promotion" && directReconciliation;
 }
 
+export function isAlreadyReconciled({ main, develop }) {
+  return main === develop;
+}
+
 export function verifyReconciliation({
   main,
   develop,
@@ -252,6 +256,16 @@ async function main() {
       artifacts,
       expectedMain,
     });
+  }
+
+  if (
+    isAlreadyReconciled({
+      main: mainRef.object.sha,
+      develop: developRef.object.sha,
+    })
+  ) {
+    console.log(`develop è già allineato a ${targetSha}: nessuna scrittura necessaria.`);
+    return;
   }
 
   if (!directReconciliation) {
