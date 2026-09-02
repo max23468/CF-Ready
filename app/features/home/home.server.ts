@@ -31,6 +31,7 @@ import { resolveLocale } from "../../i18n";
 import { planFor, planPrices } from "../../plans.server";
 import type { PlanKind } from "../../plans.server";
 import { normalizeReviewRequestCode } from "../../reviews";
+import { createServerTiming } from "../../server-timing.server";
 import { persistShopDisplayName } from "../../shop-profile.server";
 import { authenticate } from "../../shopify.server";
 import {
@@ -44,25 +45,18 @@ import {
 import type { Admin } from "../../validation.server";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
-  const startedAt = performance.now();
-  const timings: string[] = [];
-  const authenticationStartedAt = performance.now();
-  const { admin, session } = await authenticateAdmin(request, context);
-  timings.push(`auth;dur=${(performance.now() - authenticationStartedAt).toFixed(1)}`);
+  const timing = createServerTiming();
+  const { admin, session } = await timing.measure("auth", () =>
+    authenticateAdmin(request, context),
+  );
   const db = context.get(databaseContext);
 
   const statePromise = reconcile(admin, db, session.shop, {
     prefetchBilling: true,
     waitUntil: context.get(waitUntilContext) ?? undefined,
-    reportTiming: (name, durationMs) => {
-      timings.push(`${name};dur=${durationMs.toFixed(1)}`);
-    },
+    reportTiming: timing.record,
   });
-  const localStateStartedAt = performance.now();
-  const localStatePromise = readHomeState(db, session.shop).then((localState) => {
-    timings.push(`d1_home;dur=${(performance.now() - localStateStartedAt).toFixed(1)}`);
-    return localState;
-  });
+  const localStatePromise = timing.measure("d1_home", () => readHomeState(db, session.shop));
   const [state, { onboarding, address2Declaration, enabledSince, merchantCheckInDismissed }] =
     await Promise.all([statePromise, localStatePromise]);
   const config = readConfig(state.validation?.metafield?.jsonValue);
@@ -135,8 +129,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       Date.now(),
     ),
   };
-  timings.push(`total;dur=${(performance.now() - startedAt).toFixed(1)}`);
-  return data(payload, { headers: { "Server-Timing": timings.join(", ") } });
+  return data(payload, { headers: { "Server-Timing": timing.header() } });
 };
 
 export type HomeData = Awaited<ReturnType<typeof loader>>["data"];

@@ -367,6 +367,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-139 | La `1.1.0` unisce Support Link nativo verso la Guida, diagnostica D1 copiabile e minimizzata, report p75 aggregato su 28 giorni, telemetria allowlistata dell'esito Reviews API e simulatore locale in Regole checkout. | Migliora supporto, osservabilità e comprensione delle regole senza introdurre nuove fonti autorevoli o raccogliere contenuti merchant. Il simulatore usa gli stessi controlli formali e messaggi configurati, ma resta un'anteprima dichiarata e non un checkout Shopify reale. Deciso il 29 agosto 2026 e ampliato lo stesso giorno su richiesta dell'owner. |
 | D-140 | M12 include una corsia organica coordinata fra sito pubblico e listing: il sito intercetta ricerche informative con quattro guide bilingui e prove visive reali, la listing resta la superficie di installazione. Si misurano soltanto aggregati privacy-first; nessun tracker custom, contenuto ricorrente o outreach. | L'acquisizione contribuisce alle 50 installazioni nette richieste da Built for Shopify senza trasformare KPI locali in gate paralleli. Canonical, hreflang, sitemap, 404 reale e readback automatici rendono la superficie verificabile; dominio personalizzato e nuove pagine arrivano solo dopo trazione misurata. Deciso il 1º settembre 2026. |
 | D-141 | Portare progressivamente al 95% statement, rami, funzioni e linee dell'intero codice eseguibile first-party, con pavimento del 90% per server/Worker, UI/route, script operativi e JavaScript pubblico; il bundle first-party della Shopify Validation Function arriva al 100% per file. Il gate parte con inventario canonico, diff coverage al 95% e ratchet senza regressioni; le soglie assolute diventano bloccanti solo quando ciascuna corsia le raggiunge. | Un singolo dato sui soli moduli importati nasconde sorgenti mai caricati e permette compensazioni fra runtime. I report separati confluiscono per percorso senza doppio conteggio, mentre SQL, configurazioni e contenuti non eseguibili mantengono prove di contratto dedicate. Deciso il 1º settembre 2026. |
+| D-142 | Attribuire ogni report Web Vitals alla rotta che ha avviato il documento e al relativo `Server-Timing`, conservando durate tecniche per tutti i loader merchant; gli asset fingerprinted sono immutabili per un anno. | App Bridge può consegnare il callback dopo una navigazione client: leggere allora la URL mescolava metrica e rotta, mentre il Navigation Timing restava quello iniziale. Congelare entrambi al montaggio rende il campione coerente; timing allowlistati separano Worker, Shopify e D1 senza contenuti merchant. I nomi hashati permettono cache lunga senza servire bundle obsoleti. Deciso il 2 settembre 2026 dopo misure Production separate fra shell Shopify e iframe. |
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
@@ -775,6 +776,9 @@ raccoglie recapiti del merchant e non chiede una recensione.
 **NFR-013** — Query D1 indicizzate e limitate ai record necessari.
 
 **NFR-014** — Function richiede solo i campi GraphQL necessari e deve rimanere ampiamente sotto i limiti di istruzioni, memoria e binary size.
+
+**NFR-015** — Gli asset fingerprinted usano cache immutabile; ogni loader merchant espone
+`Server-Timing` allowlistato per distinguere autenticazione, chiamate Shopify, letture D1 e totale.
 
 ### 8.3 Sicurezza
 
@@ -1609,7 +1613,9 @@ versione e a una rotta senza conservare contenuti o identificatori dell'interazi
 
 Il client inoltra soltanto `id`, nome, valore e paese restituiti da App Bridge. Target DOM,
 attribution, URL completi, query string, testi e valori dei form vengono scartati. L'invio è
-best effort e non modifica la raccolta autorevole che Shopify usa per BFS.
+best effort e non modifica la raccolta autorevole che Shopify usa per BFS. La rotta e il
+`Server-Timing` vengono congelati insieme all'avvio del documento: una callback consegnata
+dopo una navigazione client non viene rietichettata con la destinazione successiva.
 
 Il report operativo `report:performance` legge gli ultimi 28 giorni e calcola il p75
 nearest-rank di LCP, INP e CLS in forma complessiva, per versione e per rotta. I gruppi con

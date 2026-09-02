@@ -1,4 +1,5 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import { data } from "react-router";
 import { authenticateAdmin } from "../../admin-auth.server";
 import { localDate, startTrial } from "../../billing.server";
 import {
@@ -13,6 +14,7 @@ import { databaseContext } from "../../context.server";
 import { recordEvent } from "../../events.server";
 import { resolveLocale } from "../../i18n";
 import { persistShopDisplayName } from "../../shop-profile.server";
+import { createServerTiming } from "../../server-timing.server";
 import { authenticate } from "../../shopify.server";
 import {
   queryContext,
@@ -25,30 +27,41 @@ import {
 } from "../../validation.server";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
-  const { admin, session } = await authenticateAdmin(request, context);
+  const timing = createServerTiming();
+  const { admin, session } = await timing.measure("auth", () =>
+    authenticateAdmin(request, context),
+  );
   const db = context.get(databaseContext);
-  const state = await reconcile(admin, db, session.shop, { prefetchBilling: true });
+  const state = await reconcile(admin, db, session.shop, {
+    prefetchBilling: true,
+    reportTiming: timing.record,
+  });
   const validation = state.validation;
   const config = readConfig(validation?.metafield?.jsonValue);
   const [onboarding, address2Declaration] = await Promise.all([
-    readOnboarding(db, session.shop),
-    readAddress2Declaration(db, session.shop),
+    timing.measure("d1_onboarding", () => readOnboarding(db, session.shop)),
+    timing.measure("d1_address", () => readAddress2Declaration(db, session.shop)),
   ]);
 
-  return {
-    locale: resolveLocale(request),
-    step: onboarding.step,
-    completed: onboarding.status === "completed",
-    rules: config.rules,
-    errorDisplay: config.errorDisplay,
-    messages: config.messages,
-    enabled: state.validationEnabled,
-    entitlementKind: state.entitlement.kind,
-    entitled: state.entitlement.kind !== "none",
-    trialStatus: state.trial?.status ?? null,
-    address2Declared: address2Declaration !== null,
-  };
+  return data(
+    {
+      locale: resolveLocale(request),
+      step: onboarding.step,
+      completed: onboarding.status === "completed",
+      rules: config.rules,
+      errorDisplay: config.errorDisplay,
+      messages: config.messages,
+      enabled: state.validationEnabled,
+      entitlementKind: state.entitlement.kind,
+      entitled: state.entitlement.kind !== "none",
+      trialStatus: state.trial?.status ?? null,
+      address2Declared: address2Declaration !== null,
+    },
+    { headers: { "Server-Timing": timing.header() } },
+  );
 };
+
+export type OnboardingData = Awaited<ReturnType<typeof loader>>["data"];
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);

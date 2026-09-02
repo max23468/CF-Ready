@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { useActionData, useLoaderData, useSubmit } from "react-router";
+import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
+import { data, useActionData, useLoaderData, useSubmit } from "react-router";
+import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError } from "../app-error";
 import { authenticateAdmin } from "../admin-auth.server";
 import { CheckoutSimulator } from "../features/rules/CheckoutSimulator";
@@ -9,6 +10,7 @@ import { mergeRulesFormDraft } from "../features/rules/rules-form";
 import { describeCheckout, resolveLocale, texts, validationStatus } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { setSaveBarVisibility } from "../save-bar";
+import { createServerTiming } from "../server-timing.server";
 import { authenticate } from "../shopify.server";
 import {
   address2Declaration,
@@ -29,9 +31,15 @@ import {
 const SAVE_BAR = "checkout-rules-save-bar";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
-  const { admin, session } = await authenticateAdmin(request, context);
+  const timing = createServerTiming();
+  const { admin, session } = await timing.measure("auth", () =>
+    authenticateAdmin(request, context),
+  );
   const db = context.get(databaseContext);
-  const state = await reconcile(admin, db, session.shop, { prefetchBilling: true });
+  const state = await reconcile(admin, db, session.shop, {
+    prefetchBilling: true,
+    reportTiming: timing.record,
+  });
   const validation = state.validation;
   const config = readConfig(validation?.metafield?.jsonValue);
   const duplicateError: "duplicate_validations" | "duplicate_validations_active" | null =
@@ -41,22 +49,27 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       : null;
   const [configHash, address2Declaration] = await Promise.all([
     observedConfigHash(validation),
-    readAddress2Declaration(db, session.shop),
+    timing.measure("d1_address", () => readAddress2Declaration(db, session.shop)),
   ]);
 
-  return {
-    locale: resolveLocale(request),
-    duplicateError,
-    // §11.4: firma della configurazione osservata, rimandata indietro al salvataggio.
-    configHash,
-    rules: config.rules,
-    errorDisplay: config.errorDisplay,
-    messages: config.messages,
-    enabled: state.validationEnabled,
-    entitled: state.entitlement.kind !== "none",
-    address2Declared: address2Declaration !== null,
-  };
+  return data(
+    {
+      locale: resolveLocale(request),
+      duplicateError,
+      // §11.4: firma della configurazione osservata, rimandata indietro al salvataggio.
+      configHash,
+      rules: config.rules,
+      errorDisplay: config.errorDisplay,
+      messages: config.messages,
+      enabled: state.validationEnabled,
+      entitled: state.entitlement.kind !== "none",
+      address2Declared: address2Declaration !== null,
+    },
+    { headers: { "Server-Timing": timing.header() } },
+  );
 };
+
+export const headers: HeadersFunction = (args) => boundary.headers(args);
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
