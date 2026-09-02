@@ -193,3 +193,70 @@ test("preserva UTF-8 diviso tra chunk e non impone un media type", async () => {
     ),
   ).resolves.toMatchObject({ payload: { name: "caffè" } });
 });
+
+test("rifiuta metodi diversi da POST prima di leggere il corpo", async () => {
+  const validate = vi.fn(async () => validWebhook());
+
+  await expect(
+    authenticateWebhookRequest(new Request("https://example.test/webhooks"), validate),
+  ).rejects.toMatchObject({ status: 405 });
+  expect(validate).not.toHaveBeenCalled();
+});
+
+test("valida anche un corpo assente e poi rifiuta il payload incompleto", async () => {
+  const validate = vi.fn(async () => validWebhook());
+
+  await expect(
+    authenticateWebhookRequest(
+      new Request("https://example.test/webhooks", { method: "POST" }),
+      validate,
+    ),
+  ).rejects.toMatchObject({ status: 400 });
+  expect(validate).toHaveBeenCalledWith(expect.objectContaining({ rawBody: "" }));
+});
+
+test("rifiuta una validazione non HMAC non valida con Bad Request", async () => {
+  const validate = vi.fn(async () => ({
+    valid: false,
+    reason: "missing_header",
+  })) as unknown as Parameters<typeof authenticateWebhookRequest>[1];
+
+  await expect(
+    authenticateWebhookRequest(
+      new Request("https://example.test/webhooks", { method: "POST", body: "{}" }),
+      validate,
+    ),
+  ).rejects.toMatchObject({ status: 400, statusText: "Bad Request" });
+});
+
+test.each(["null", "[]", "42", '"testo"'])(
+  "rifiuta il payload JSON non oggetto %s",
+  async (body) => {
+    await expect(
+      authenticateWebhookRequest(
+        new Request("https://example.test/webhooks", { method: "POST", body }),
+        vi.fn(async () => validWebhook()),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  },
+);
+
+test("ignora in sicurezza un errore durante la cancellazione dello stream sovradimensionato", async () => {
+  const validate = vi.fn(async () => validWebhook());
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new Uint8Array(MAX_WEBHOOK_BODY_BYTES + 1));
+    },
+    cancel() {
+      throw new Error("cancel_failed");
+    },
+  });
+
+  await expect(
+    authenticateWebhookRequest(
+      new Request("https://example.test/webhooks", { method: "POST", body }),
+      validate,
+    ),
+  ).rejects.toMatchObject({ status: 413 });
+  expect(validate).not.toHaveBeenCalled();
+});

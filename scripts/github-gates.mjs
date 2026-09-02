@@ -117,7 +117,7 @@ export async function verifyPromotion({ event, repository }) {
     encoding: "utf8",
   }).trim();
   if (mergeBase !== baseSha) throw new Error("main non è antenato dell'HEAD di develop.");
-  await waitForChecks(repository, headSha, ["verify", "e2e"]);
+  await waitForChecks(repository, headSha, ["verify", "e2e", "coverage"]);
   verifyPromotionHistory(await promotionCommitEvidence(repository, baseSha, headSha));
   return { baseSha, headSha };
 }

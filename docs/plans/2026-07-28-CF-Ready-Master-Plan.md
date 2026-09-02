@@ -366,6 +366,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-138 | La pubblicazione verifica una volta ogni contenuto immutabile e ripete soltanto i gate dipendenti dallo stato remoto. La CI instrada corsie `docs`, `standard`, `full` e `promotion`; la promozione riusa provenienza e gate di `develop`; Development identifica lo snapshot con `X.Y.Z-dev.<tree>`; Production conserva una ricevuta JSON attestata; una GitHub App dedicata riallinea `develop` al merge commit Production solo con fast-forward e tree identico. Lo stesso riallineamento segue un deploy Pages Production verde dello stesso commit, dopo readback e smoke del workflow Pages. L'avvio manuale dichiara obbligatoriamente se è un retry con deploy, che verifica sempre la ricevuta anche nel recupero avanzato, oppure una promozione `main` esplicitamente priva di deploy. Quest'ultima termina senza scrivere se il parent promosso è ancora l'HEAD di `develop`; altrimenti può essere recuperata senza ricevuta soltanto con tree identico al parent, discendenza lineare del branch corrente e nuovo merge che ne conserva il tree. | Riduce installazioni browser, collisioni SemVer e PR prive di differenze senza riutilizzare prove provider: identità, schema Shopify, migrazioni, rollback, smoke e readback restano freschi. Il bypass del ruleset è limitato alla GitHub App di riallineamento e il workflow fallisce chiuso se parent, branch, tree, modalità o identità non coincidono; il recupero di sola ascendenza non modifica provider. Deciso il 27 agosto 2026, esteso il 29 agosto e il 1 settembre 2026. |
 | D-139 | La `1.1.0` unisce Support Link nativo verso la Guida, diagnostica D1 copiabile e minimizzata, report p75 aggregato su 28 giorni, telemetria allowlistata dell'esito Reviews API e simulatore locale in Regole checkout. | Migliora supporto, osservabilità e comprensione delle regole senza introdurre nuove fonti autorevoli o raccogliere contenuti merchant. Il simulatore usa gli stessi controlli formali e messaggi configurati, ma resta un'anteprima dichiarata e non un checkout Shopify reale. Deciso il 29 agosto 2026 e ampliato lo stesso giorno su richiesta dell'owner. |
 | D-140 | M12 include una corsia organica coordinata fra sito pubblico e listing: il sito intercetta ricerche informative con quattro guide bilingui e prove visive reali, la listing resta la superficie di installazione. Si misurano soltanto aggregati privacy-first; nessun tracker custom, contenuto ricorrente o outreach. | L'acquisizione contribuisce alle 50 installazioni nette richieste da Built for Shopify senza trasformare KPI locali in gate paralleli. Canonical, hreflang, sitemap, 404 reale e readback automatici rendono la superficie verificabile; dominio personalizzato e nuove pagine arrivano solo dopo trazione misurata. Deciso il 1º settembre 2026. |
+| D-141 | Portare progressivamente al 95% statement, rami, funzioni e linee dell'intero codice eseguibile first-party, con pavimento del 90% per server/Worker, UI/route, script operativi e JavaScript pubblico; il bundle first-party della Shopify Validation Function arriva al 100% per file. Il gate parte con inventario canonico, diff coverage al 95% e ratchet senza regressioni; le soglie assolute diventano bloccanti solo quando ciascuna corsia le raggiunge. | Un singolo dato sui soli moduli importati nasconde sorgenti mai caricati e permette compensazioni fra runtime. I report separati confluiscono per percorso senza doppio conteggio, mentre SQL, configurazioni e contenuti non eseguibili mantengono prove di contratto dedicate. Deciso il 1º settembre 2026. |
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
@@ -436,7 +437,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-112 | Tipografia: grottesco geometrico di sistema per sito e materiali, nessun webfont, nessun font dichiarato dentro l’Admin. Sigla e wordmark in tracciati derivati da Jost (SIL OFL), peso 500. | Zero richieste di rete e nessuna dipendenza da font installati. Jost al posto del Futura per licenza: il Futura è commerciale e distribuito in bundle con macOS. |
 | D-113 | Nessuna dark mode del sito pubblico nella 1.0. | Una superficie in meno da mantenere e verificare. Decisione indipendente da Shopify: al 28 luglio 2026 l’Admin non ha dark mode nativa e, usando solo token Polaris, l’app la seguirebbe comunque da sola. |
 | D-114 | Presentare l’icona della listing con la sigla `CF`, accettando la raccomandazione Shopify di evitare il testo nell’icona. | Raccomandazione nelle best practice, non criterio di rifiuto nei requisiti; i monogrammi di due lettere sono diffusi fra le app approvate. Variante senza sigla pronta come rimedio, attivabile senza nuova approvazione (§24.5). |
-| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate stabili `verify`, `react-doctor`, `dependency-review` ed `e2e` richiesti su `develop` e `main`; i gate attestano esplicitamente quando una corsia non è applicabile. La sola GitHub App di riallineamento può oltrepassare il ruleset `develop` per il fast-forward provato da D-138. Abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate applicabili e limita l'unico bypass automatico a un'identità e a un'operazione deterministica verificati. |
+| D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate stabili `verify`, `coverage`, `react-doctor`, `dependency-review` ed `e2e` richiesti su `develop` e `main`; i gate attestano esplicitamente quando una corsia non è applicabile. La sola GitHub App di riallineamento può oltrepassare il ruleset `develop` per il fast-forward provato da D-138. Abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate applicabili e limita l'unico bypass automatico a un'identità e a un'operazione deterministica verificati. |
 | D-116 | Usare React Router `8.3.0` con npm 12 e correggere nel manifest root, tramite `packageExtensions`, la sola peer dependency troppo restrittiva di `@shopify/shopify-app-react-router@1.2.1`. | Elimina `GHSA-qwww-vcr4-c8h2` senza fork o installazioni forzate; il gate completo prova la compatibilità effettiva mentre l'estensione resta rimovibile appena Shopify pubblica metadati compatibili. |
 | D-117 | Usare React Doctor con dipendenza locale fissata nel lockfile e workflow GitHub sempre sulla versione `latest`: scansione completa bloccante nel gate locale e Action ufficiale bloccante dai warning sulle modifiche delle PR. Le PR pulite restano silenziose; un falso positivo viene notificato, soppresso nel modo nativo più stretto con motivazione committata e rieseguito senza bypass. Tenere attivi score e share URL, disabilitare il controllo supply-chain esterno. | Mantiene riproducibile la verifica locale e applica al gate remoto le correzioni più recenti di React Doctor, con feedback inline senza duplicare i controlli dipendenze già coperti da npm e GitHub. Lo score è indicativo e non decide l’esito, che dipende da `blocking: warning`. |
 | D-118 | Le PR ordinarie puntano a `develop` e usano squash; `main` accetta soltanto promozioni autorizzate da `develop`, unite con merge commit. La cancellazione automatica dei branch resta disattivata e i soli branch temporanei vengono eliminati esplicitamente. | Preserva l’ascendenza tra integrazione e Production, evita il drift strutturale causato da squash indipendenti sui due rami e impedisce che una promozione elimini `develop`. |
@@ -1643,6 +1644,36 @@ implementato, e in quel caso nasce con la propria migrazione.
 - nessuna migrazione distruttiva automatica in Production;
 - backup e procedura di rollback prima di una migrazione irreversibile;
 - CI verifica che tutti i file siano applicabili in ordine.
+
+`config/migration-policy.json` è il registro canonico append-only delle
+migrazioni applicate: ordine, SHA-256 e comportamenti protetti devono coincidere
+con i file SQL. Una correzione aggiunge una nuova migrazione e una nuova voce;
+non aggiorna checksum o contenuto di una voce esistente.
+
+| Migrazione | Comportamento protetto |
+|---|---|
+| `0001_initial.sql` | identità store, sessioni Shopify cifrate, vincoli e cascade |
+| `0002_validation_operation_locks.sql` | lease esclusiva delle operazioni Validation |
+| `0003_app_state_webhooks_events.sql` | stato operativo Validation, webhook ed eventi applicativi |
+| `0004_trials.sql` | ciclo di vita della prova |
+| `0005_trial_ledger.sql` | ledger minimizzato contro il riuso della prova |
+| `0006_billing.sql` | readback billing Shopify e deduplicazione eventi |
+| `0007_onboarding.sql` | avanzamento onboarding e dichiarazione conflitto indirizzo |
+| `0008_webhook_claim_ownership.sql` | ownership del claim e idempotenza webhook |
+| `0009_shop_retention.sql` | scansione indicizzata degli store disinstallati |
+| `0010_privacy_hardening.sql` | purge ledger, rimozione user ID e indici retention |
+| `0011_owner_notifications.sql` | outbox owner, redazioni e stato billing precedente |
+| `0012_complimentary_entitlements.sql` | concessioni omaggio senza charge Shopify fittizie |
+| `0013_performance_samples.sql` | campioni Web Vitals minimizzati e deduplicati |
+| `0014_validation_state_revision.sql` | fence monotono dello stato Validation |
+| `0015_owner_notification_details.sql` | nome pubblico dello store nelle notifiche owner |
+
+Il gate migrazioni usa binding D1 isolati per gli snapshot intermedi, applica
+la sequenza completa con Wrangler locale, verifica schema, vincoli, indici,
+preservazione o cancellazione intenzionale dei dati e richiede che un secondo
+passaggio non abbia migrazioni pendenti. L'integrità SQLite e le foreign key sono
+lette dal database locale chiuso da Wrangler; nessun database remoto partecipa
+al test.
 
 ### 12.4 Dati deliberatamente non memorizzati
 
@@ -3009,6 +3040,11 @@ react-doctor
 vitest
 @cloudflare/vitest-pool-workers
 @playwright/test
+@vitest/coverage-istanbul
+c8
+istanbul-lib-coverage
+istanbul-lib-report
+istanbul-reports
 ```
 
 `@types/node` resta: serve al typecheck dei file di configurazione build-time
@@ -3369,15 +3405,88 @@ sbloccare il binding, non il piano Cloudflare.
    - App Store review;
    - store reale canary.
 
-Non imporre una percentuale di coverage globale. La logica fiscale, geografica, billing, entitlement, webhook e migrazioni deve avere copertura esplicita completa dei rami.
+La baseline canonica vive in `config/coverage-baseline.json`; la policy e il
+perimetro sono definiti da `config/coverage-policy.json` e dallo script
+`scripts/coverage-scope.mjs`. Ogni sorgente eseguibile first-party deve comparire
+esattamente una volta nell'aggregato globale. Il bundle Function usa inoltre un
+overlay separato, così le dipendenze condivise non vengono contate due volte nel
+totale ma restano soggette al gate specifico.
+
+Il programma D-141 procede in nove PR implementative. Dalla prima PR la CI:
+
+- richiede almeno il 95% delle linee eseguibili aggiunte;
+- rifiuta regressioni rispetto alla baseline committata precedente;
+- richiede che la baseline committata coincida con la misura corrente;
+- pubblica JSON, LCOV e HTML legati allo SHA.
+
+Le soglie finali del 95% globale, del 90% per gruppo e del 100% per file del
+bundle Function sono già dichiarate ma si attivano soltanto nelle rispettive PR
+di chiusura. Fiscalità, geografia, billing, entitlement, webhook, notifiche e
+migrazioni conservano anche una matrice esplicita degli esiti: la percentuale non
+la sostituisce. Le migrazioni SQL, i manifest, i workflow, HTML e CSS non entrano
+in un denominatore artificiale e restano coperti dai relativi test di contratto,
+build, smoke e readback.
+
+La seconda PR del programma ha chiuso e attivato il 100% per file del bundle
+Shopify Validation Function. La terza ha chiuso il dominio webhook sopra il 95%
+in tutte le metriche. La quarta ha applicato lo stesso gate separatamente a
+billing, Validation e notifiche owner, includendo trial, pagamento unico,
+entitlement incerto, geografia e readback Shopify/D1. Per tutti questi domini la
+CI richiede anche un mutation score minimo dell'80% quando il dominio o i suoi
+test cambiano. I tre gate mutation girano come job paralleli indipendenti e
+pubblicano un report per dominio; ogni file del dominio escluso dal runner deve
+avere una motivazione esplicita nella policy. Il validatore condiviso della
+Function usa il proprio Vitest e resta al 100% per file, mentre le costanti
+statiche dell'identità Shopify hanno un contratto indipendente perché il pool
+Cloudflare non rende attivabili i relativi static mutant. Le altre soglie
+assolute restano progressive. Ogni campagna mutation parte senza riuso
+incrementale: il report attesta soltanto i mutanti instrumentati sullo SHA
+corrente e non può conservare risultati di file usciti dal perimetro. Il bundle
+Function viene inoltre ricostruito dalla dipendenza reale dell'entrypoint: ogni
+sorgente first-party transitiva deve comparire nell'inventario al 100% e ogni
+voce inventariata deve essere davvero inclusa nel bundle.
+La quinta PR rende inoltre bloccante il registro append-only delle quindici
+migrazioni e la relativa matrice D1: snapshot intermedi, dati preservati, purge
+privacy intenzionale, vincoli, indici, sequenza completa e secondo passaggio
+idempotente sono provati senza includere SQL nel denominatore della coverage.
+La sesta PR porta inoltre il gruppo operativo sopra il 90% in tutte le metriche
+e ne attiva il gate. I test attraversano i veri entrypoint in subprocess con
+filesystem, tempo, ambiente, comandi CLI e API provider sintetici: coprono
+successi e fallimenti di preflight, backup, ricevute, riconciliazione e policy
+CI senza contattare Shopify, Cloudflare o GitHub. Smoke e readback Development
+restano prove provider separate e non vengono sostituiti dalla coverage locale.
+La settima PR porta inoltre il gruppo UI e route sopra il 90% in tutte le
+metriche e ne attiva il gate. I test Workers attraversano loader e action con
+richieste e dipendenze sintetiche; una corsia Vitest Browser separata verifica
+in Chromium rendering, stato, eventi e navigazione delle superfici embedded
+Home, Regole, Messaggi, Onboarding e Guida. I due report Istanbul confluiscono
+nella baseline canonica senza sostituire gli E2E o le verifiche geometriche.
+L’ottava PR porta inoltre sopra il 90% e rende bloccanti i gruppi Worker/server e
+sito pubblico. Richieste, code, cron, bootstrap SSR e reporter prestazioni sono
+attraversati nei rispettivi runtime con dipendenze sintetiche. Il menu pubblico
+separa decisioni pure e adapter DOM: la prima parte confluisce nella coverage
+canonica, mentre Chromium misura il comportamento reale e WebKit conserva le
+prove di accessibilità, navigazione e layout. Non sono emersi rami realmente
+irraggiungibili da registrare come eccezioni con prova sostitutiva.
+La nona PR chiude il programma e rende bloccante anche il 95% globale su
+statement, branch, funzioni e linee. I test aggiunti attraversano bootstrap
+Shopify, decisioni commerciali della Home, session storage, UI embedded e
+orchestrazione degli script con dipendenze sintetiche. La campagna mutation
+completa gira inoltre ogni lunedì e può essere avviata manualmente sull’HEAD di
+`develop` prima della promozione: i quattro domini partono in parallelo, ciascuno
+con timeout di 20 minuti e artifact JSON nominato con lo SHA esatto. Il run
+manuale pre-release resta una prova sul candidato `develop`, non un deploy né
+un’autorizzazione alla promozione. Una modifica al workflow sul default branch
+`develop` avvia inoltre la stessa campagna, così la sua prima registrazione e le
+revisioni successive sono validate senza dipendere dal solo scheduler.
 
 ### 23.1.1 Gate per tipo di modifica
 
 | Corsia | Quando | Gate minimo |
 |---|---|---|
 | `docs` | contenuto documentale senza effetto operativo | controllo documentazione, formato, `git diff --check` |
-| `standard` | TypeScript, route, config o test ordinari | docs gate, lint, typecheck, test mirati, build |
-| `full` | governance, workflow, auth, webhook, cifratura, migrazioni, manifest o lockfile | standard, audit, lockfile, test operativi e regressione mirata |
+| `standard` | TypeScript, route, config o test ordinari | docs gate, lint, typecheck, test mirati, build, coverage ratchet |
+| `full` | governance, workflow, auth, webhook, cifratura, migrazioni, manifest o lockfile | standard, audit, lockfile, test operativi, coverage ratchet e regressione mirata |
 | `promotion` | PR `develop` → `main` con ascendenza valida | provenienza PR/review, tree e gate esatti di `develop`, `promotion-guard` |
 | `deploy` | provider, migrazioni, Worker, Function o Pages | gate completo, preflight provider, backup se applicabile, smoke, readback e rollback |
 
@@ -3524,6 +3633,34 @@ Testare tutte le nove combinazioni CF × PEC e due errori simultanei.
 - SQL injection;
 - log privi di valori fiscali;
 - reset CLI rifiutato in `prod`.
+
+La matrice canonica degli esiti webhook è la seguente. Le risposte ritentabili
+non nascondono un errore operativo con un `200`; gli errori applicativi non
+ritentabili e i contesti amministrativi assenti restano invece fail-open per non
+bloccare vendite legittime.
+
+| Confine o stato | Risposta/azione | Stato canonico | Retry o effetto |
+|---|---|---|---|
+| metodo diverso da `POST` | `405` prima di leggere il corpo | nessun claim | nessuno |
+| HMAC non valido | `401` | nessun claim | Shopify può ritentare |
+| header o JSON incompleto | `400` | nessun claim | consegna rifiutata |
+| corpo oltre 2 MiB dichiarati o reali | `413`, stream cancellato | nessun claim | consegna rifiutata |
+| nuova consegna valida | enqueue e `200` | `processing`, claim univoco | consumer asincrono |
+| coda assente o enqueue fallito | `500` | nessun claim o `failed` con codice stabile | Shopify ritenta |
+| duplicato `processing` non scaduto | `500` senza secondo job | claim originale invariato | Shopify ritenta |
+| duplicato `processed` | `200` senza secondo job | `processed` invariato | nessuno |
+| claim `processing` scaduto | nuovo token | `processing` | un solo consumer torna proprietario |
+| consumer con errore transitorio | retry coda a 10 secondi | `processing` | DLQ a 60 secondi |
+| DLQ oltre due tentativi | evento `webhook_failed` e ack | `failed`, `queue_retries_exhausted` | nessuno; D1 indisponibile ritenta |
+| claim perso durante handler/finalizzazione | eccezione `webhook_claim_lost` | non sovrascritto | coda ritenta |
+| `APP_UNINSTALLED` senza timestamp valido | `500` prima del claim | nessun claim | Shopify ritenta |
+| disinstallazione di installazione precedente | nessuna mutazione della reinstallazione | `processed` | fail-open |
+| scope senza sessione offline o payload scope assente | nessuna scrittura sessione | `processed` | fail-open |
+| redazione shop con installazione attiva | evento `shop_redact_skipped` | `processed` | nessuna cancellazione |
+| richiesta o redazione customer | evento `compliance_acknowledged` | `processed` | nessun dato cliente conservato |
+| update shop/billing senza contesto admin | evento `*_update_skipped` | `processed` | fail-open |
+| riconciliazione shop/billing ritentabile | eccezione con codice stabile | `processing` | coda ritenta |
+| riconciliazione non ritentabile | evento `shop_updated`/`billing_updated` | `processed` | fail-open controllato |
 
 ### 23.10 UI/E2E
 

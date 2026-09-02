@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import test from "node:test";
-import { missingSuccessfulChecks, verifyPromotionHistory } from "./github-gates.mjs";
+import {
+  missingSuccessfulChecks,
+  verifyPromotion,
+  verifyPromotionHistory,
+  waitForChecks,
+} from "./github-gates.mjs";
 
 test("riusa soltanto la suite più recente conclusa fuori dal run corrente", () => {
   const checks = [
@@ -87,6 +93,13 @@ test("seleziona il check più recente per nome tra workflow distinti", () => {
   );
 });
 
+test("la promozione include il gate coverage dell'HEAD develop", async () => {
+  const source = await import("node:fs/promises").then(({ readFile }) =>
+    readFile(new URL("./github-gates.mjs", import.meta.url), "utf8"),
+  );
+  assert.match(source, /\["verify", "e2e", "coverage"\]/);
+});
+
 test("accetta commit da PR develop revisionata e merge senza nuovo tree", () => {
   assert.doesNotThrow(() =>
     verifyPromotionHistory([
@@ -117,5 +130,102 @@ test("rifiuta commit senza una PR merged verso develop", () => {
         },
       ]),
     /provenienza review/,
+  );
+});
+
+test("attende check GitHub e segnala risposta API o gate mancanti", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          check_runs: [{ id: 1, name: "verify", conclusion: "success", check_suite: { id: 1 } }],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    await assert.doesNotReject(waitForChecks("owner/repo", "a".repeat(40), ["verify"]));
+    await assert.rejects(
+      waitForChecks("owner/repo", "a".repeat(40), ["verify", "coverage"], {
+        attempts: 1,
+        intervalMs: 0,
+      }),
+      /Gate mancanti.*coverage/,
+    );
+
+    globalThis.fetch = async () => new Response("errore", { status: 503 });
+    await assert.rejects(
+      waitForChecks("owner/repo", "a".repeat(40), ["verify"], { attempts: 1 }),
+      /GET .*check-runs.*503/,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("verifica la provenienza completa della promozione tramite prove GitHub sintetiche", async () => {
+  const originalFetch = globalThis.fetch;
+  const headSha = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  const baseSha = execFileSync("git", ["merge-base", "origin/main", headSha], {
+    encoding: "utf8",
+  }).trim();
+  const reviewedSha = "d".repeat(40);
+  const parentSha = "e".repeat(40);
+  try {
+    globalThis.fetch = async (input) => {
+      const url = String(input);
+      let payload;
+      if (url.includes("/check-runs")) {
+        payload = {
+          check_runs: ["verify", "e2e", "coverage"].map((name, id) => ({
+            id,
+            name,
+            conclusion: "success",
+            check_suite: { id: 10 },
+          })),
+        };
+      } else if (url.includes("/compare/")) {
+        payload = { commits: [{ sha: reviewedSha }] };
+      } else if (url.endsWith(`/commits/${reviewedSha}/pulls`)) {
+        payload = [{ base: { ref: "develop" }, merged_at: "2026-09-02T00:00:00Z" }];
+      } else if (url.endsWith(`/git/commits/${reviewedSha}`)) {
+        payload = { parents: [{ sha: parentSha }], tree: { sha: "tree-reviewed" } };
+      } else if (url.endsWith(`/git/commits/${parentSha}`)) {
+        payload = { parents: [], tree: { sha: "tree-parent" } };
+      } else {
+        throw new Error(`richiesta inattesa: ${url}`);
+      }
+      return new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    };
+
+    await assert.doesNotReject(
+      verifyPromotion({
+        repository: "max23468/CF-Ready",
+        event: {
+          pull_request: {
+            base: { ref: "main", sha: baseSha },
+            head: {
+              ref: "develop",
+              sha: headSha,
+              repo: { full_name: "max23468/CF-Ready" },
+            },
+          },
+        },
+      }),
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("rifiuta una promozione che non nasce da develop", async () => {
+  await assert.rejects(
+    verifyPromotion({
+      repository: "max23468/CF-Ready",
+      event: { pull_request: { base: { ref: "main" }, head: { ref: "feature" } } },
+    }),
+    /main accetta solo promozioni/,
   );
 });

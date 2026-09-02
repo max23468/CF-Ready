@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
+import { EventEmitter } from "node:events";
 import test from "node:test";
-import { assessCapacity, parseJsonObjects, waitForEvents, waitForTail } from "./capacity-check.mjs";
+import {
+  assessCapacity,
+  parseJsonObjects,
+  runCapacityCheck,
+  waitForEvents,
+  waitForTail,
+} from "./capacity-check.mjs";
 
 const event = (cpuTime, marker = "target", outcome = "ok", status = 302, phase = "measure") => ({
   cpuTime,
@@ -123,4 +130,123 @@ test("include la durata delle probe nel timeout di readiness", async () => {
 
   assert.equal(probes, 4);
   assert.equal(elapsed, 60_000);
+});
+
+test("rifiuta CPU mancanti e risposte HTTP non riuscite", () => {
+  const events = Array.from({ length: 100 }, () => event(1));
+  assert.throws(
+    () => assessCapacity([...events.slice(0, 99), event(Number.NaN)], "target"),
+    /CPU time validi/,
+  );
+  assert.throws(
+    () => assessCapacity([...events.slice(0, 99), event(1, "target", "ok", 500)], "target"),
+    /contiene errori/,
+  );
+});
+
+test("interrompe subito una tail terminata", async () => {
+  await assert.rejects(
+    waitForTail(
+      { exitCode: 1 },
+      "https://example.invalid",
+      "target",
+      () => "",
+      () => "boom",
+    ),
+    /Tail Cloudflare non avviato: boom/,
+  );
+});
+
+test("conclude l'attesa quando arrivano tutti gli eventi misurati", async () => {
+  let pauses = 0;
+  await waitForEvents(
+    () => Array.from({ length: 120 }, () => JSON.stringify(event(1))).join("\n"),
+    "target",
+    async () => {
+      pauses += 1;
+    },
+  );
+  assert.equal(pauses, 0);
+});
+
+test("orchestra tail, warmup, misura e riepilogo GitHub senza rete", async () => {
+  const stream = () => {
+    const emitter = new EventEmitter();
+    emitter.setEncoding = () => emitter;
+    return emitter;
+  };
+  const tail = { stdout: stream(), stderr: stream(), exitCode: null };
+  const batches = [];
+  const stopped = [];
+  const summaries = [];
+  const logs = [];
+  const measured = Array.from({ length: 120 }, () =>
+    JSON.stringify(event(1, "cf-ready-42-3-123")),
+  ).join("\n");
+
+  const result = await runCapacityCheck({
+    argv: ["node", "capacity-check.mjs", "https://worker.test", "worker-dev"],
+    environment: {
+      GITHUB_RUN_ID: "42",
+      GITHUB_RUN_ATTEMPT: "3",
+      GITHUB_STEP_SUMMARY: "/tmp/summary",
+    },
+    clock: () => 123,
+    spawnProcess: (...args) => {
+      assert.equal(args[1][1], "worker-dev");
+      return tail;
+    },
+    waitForTailReady: async (_tail, target, marker) => {
+      assert.equal(target, "https://worker.test");
+      assert.equal(marker, "cf-ready-42-3-123");
+      tail.stdout.emit("data", measured);
+    },
+    runRequestBatch: async (...args) => batches.push(args),
+    waitForMeasuredEvents: async (output, marker) => {
+      assert.equal(marker, "cf-ready-42-3-123");
+      assert.equal(parseJsonObjects(output()).length, 120);
+    },
+    stopProcess: async (child) => stopped.push(child),
+    appendSummary: async (...args) => summaries.push(args),
+    log: (message) => logs.push(message),
+  });
+
+  assert.deepEqual(result, { requests: 120, p95: 1, maximum: 1 });
+  assert.deepEqual(
+    batches.map((args) => args.slice(0, 5)),
+    [
+      ["https://worker.test", 10, 1, "cf-ready-42-3-123", "warmup"],
+      ["https://worker.test", 120, 5, "cf-ready-42-3-123", "measure"],
+    ],
+  );
+  assert.deepEqual(stopped, [tail]);
+  assert.equal(summaries[0][0], "/tmp/summary");
+  assert.match(summaries[0][1], /120 richieste, CPU p95 1 ms/);
+  assert.match(logs[0], /errori 0/);
+});
+
+test("ferma la tail anche quando il carico fallisce", async () => {
+  const stream = () => {
+    const emitter = new EventEmitter();
+    emitter.setEncoding = () => emitter;
+    return emitter;
+  };
+  const tail = { stdout: stream(), stderr: stream(), exitCode: null };
+  let stopped = false;
+
+  await assert.rejects(
+    runCapacityCheck({
+      environment: {},
+      spawnProcess: () => tail,
+      waitForTailReady: async () => {},
+      runRequestBatch: async () => {
+        throw new Error("carico fallito");
+      },
+      stopProcess: async () => {
+        stopped = true;
+      },
+    }),
+    /carico fallito/,
+  );
+  assert.equal(stopped, true);
 });

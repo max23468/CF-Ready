@@ -113,7 +113,10 @@ export function formatDuration(start: string | null | undefined, end: string) {
   const duration = Date.parse(end) - Date.parse(start!);
   if (duration < 0) return null;
   const hours = Math.floor(duration / (60 * 60 * 1000));
-  if (hours < 24) return `${Math.max(1, hours)} ${hours === 1 ? "ora" : "ore"}`;
+  if (hours < 24) {
+    const displayedHours = Math.max(1, hours);
+    return `${displayedHours} ${displayedHours === 1 ? "ora" : "ore"}`;
+  }
   const days = Math.floor(hours / 24);
   return `${days} ${days === 1 ? "giorno" : "giorni"}`;
 }
