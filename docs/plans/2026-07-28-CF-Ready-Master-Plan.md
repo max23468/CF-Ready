@@ -3441,7 +3441,10 @@ statiche dell'identità Shopify hanno un contratto indipendente perché il pool
 Cloudflare non rende attivabili i relativi static mutant. Le altre soglie
 assolute restano progressive. Ogni campagna mutation parte senza riuso
 incrementale: il report attesta soltanto i mutanti instrumentati sullo SHA
-corrente e non può conservare risultati di file usciti dal perimetro.
+corrente e non può conservare risultati di file usciti dal perimetro. Il bundle
+Function viene inoltre ricostruito dalla dipendenza reale dell'entrypoint: ogni
+sorgente first-party transitiva deve comparire nell'inventario al 100% e ogni
+voce inventariata deve essere davvero inclusa nel bundle.
 La quinta PR rende inoltre bloccante il registro append-only delle quindici
 migrazioni e la relativa matrice D1: snapshot intermedi, dati preservati, purge
 privacy intenzionale, vincoli, indici, sequenza completa e secondo passaggio
@@ -3471,7 +3474,7 @@ Shopify, decisioni commerciali della Home, session storage, UI embedded e
 orchestrazione degli script con dipendenze sintetiche. La campagna mutation
 completa gira inoltre ogni lunedì e può essere avviata manualmente sull’HEAD di
 `develop` prima della promozione: i quattro domini partono in parallelo, ciascuno
-con timeout di 15 minuti e artifact JSON nominato con lo SHA esatto. Il run
+con timeout di 20 minuti e artifact JSON nominato con lo SHA esatto. Il run
 manuale pre-release resta una prova sul candidato `develop`, non un deploy né
 un’autorizzazione alla promozione. Una modifica al workflow sul default branch
 `develop` avvia inoltre la stessa campagna, così la sua prima registrazione e le
