@@ -4,7 +4,6 @@ import { useFetcher, useLoaderData, useNavigate } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError, type AppErrorCode } from "../app-error";
 import { oneOf, pendingFetcherIntent, RULE_MODES } from "../config";
-import { onboardingCheckoutPreview } from "../features/onboarding/checkout-preview";
 import { onboardingStep4State } from "../features/onboarding/step4-state";
 import {
   Address2DeclarationPrompt,
@@ -17,7 +16,7 @@ import {
   planComparisonLocationState,
   requestPlanComparisonFromFrame,
 } from "../features/home/plan-comparison";
-import { texts } from "../i18n";
+import { describeCheckout, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { action, loader } from "../features/onboarding/onboarding.server";
 import "./app.onboarding.css";
@@ -177,7 +176,14 @@ export default function Onboarding() {
                 <>
                   <s-heading>{t.onboarding.step3Heading}</s-heading>
                   <s-paragraph>{t.onboarding.step3Body}</s-paragraph>
-                  {onboardingCheckoutPreview(saved).map((line) => (
+                  {describeCheckout(
+                    {
+                      rules: saved.rules,
+                      errorDisplay: saved.errorDisplay,
+                      status: "active",
+                    },
+                    saved.locale,
+                  ).map((line) => (
                     <s-paragraph key={line}>{line}</s-paragraph>
                   ))}
                   <OnboardingListBlock

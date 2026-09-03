@@ -1,7 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
 import { isValidElement } from "react";
 import { expect, test, vi } from "vitest";
-import { texts } from "../app/i18n";
+import { describeCheckout, texts } from "../app/i18n";
 import { commercialState } from "../app/features/home/commercial-state";
 import {
   handlePlanComparisonRequest,
@@ -15,7 +15,6 @@ import {
 } from "../app/features/home/plan-comparison";
 import { DeactivateModal } from "../app/features/home/HomeSections";
 import { PlanStatus } from "../app/features/home/PlanStatus";
-import { onboardingCheckoutPreview } from "../app/features/onboarding/checkout-preview";
 import { onboardingStep4State } from "../app/features/onboarding/step4-state";
 import { openBillingApproval } from "../app/revalidation";
 import { MerchantCheckIn, PlanChoice, SetupGuide } from "../app/routes/app._index";
@@ -641,13 +640,16 @@ test("il confronto piani comunica con la Home senza navigare il frame della moda
   expect(planStack).toBeDefined();
 });
 
-test("l’anteprima onboarding descrive le regole attive senza contraddire lo stato corrente", () => {
+test("i testi onboarding descrivono le regole attive senza contraddire lo stato corrente", () => {
   const it = texts("it");
-  const preview = onboardingCheckoutPreview({
-    rules: { taxCode: "required_validated", pec: "unmanaged" },
-    errorDisplay: "inline",
-    locale: "it",
-  });
+  const preview = describeCheckout(
+    {
+      rules: { taxCode: "required_validated", pec: "unmanaged" },
+      errorDisplay: "inline",
+      status: "active",
+    },
+    "it",
+  );
 
   expect(preview).toContain(it.checkout.taxCodeRequired);
   expect(preview).not.toContain(it.checkout.disabled);

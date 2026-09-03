@@ -135,11 +135,11 @@ jobs:
             config/coverage-policy.json \
             package.json \
             package-lock.json \
-            scripts/run-webhook-mutation.mjs \
-            stryker.webhooks.config.mjs; then
+            scripts/run-critical-mutation.mjs \
+            stryker.critical.config.mjs; then
             echo "Mutation webhook non applicabile al diff."
           else
-            npm run mutation:webhooks
+            CRITICAL_MUTATION_DOMAIN=webhooks npm run mutation:critical
           fi
       - name: Carica report coverage
         if: always() && (needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full')

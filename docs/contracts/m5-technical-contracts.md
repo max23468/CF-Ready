@@ -47,9 +47,8 @@ Acquisita quando lo store diventa idoneo e mantenuta durante la prova e finché
 esiste continuità commerciale, anche passando fra le modalità. Dopo una
 cessazione completa, una nuova sottoscrizione acquisisce la generazione
 corrente. `launch` vale fino alla fine della finestra di lancio, poi
-`balanced`. `value` è un'ipotesi interna: non ha piani configurati, quindi non
-è acquistabile per errore. Quando Shopify espone un addebito attivo, prezzo e
-valuta ricostruiscono la generazione anche se la cache D1 manca o è obsoleta.
+`balanced`. Quando Shopify espone un addebito attivo, prezzo e valuta
+ricostruiscono la generazione anche se la cache D1 manca o è obsoleta.
 
 ## Piani
 
