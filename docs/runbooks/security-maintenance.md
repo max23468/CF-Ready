@@ -50,9 +50,10 @@ Il fast-forward post-Production usa una GitHub App dedicata, installata soltanto
 su `CF-Ready`, con permessi Contents e Administration in scrittura.
 Administration è concesso perché GitHub redige `bypass_actors` a chi non può
 scrivere il ruleset; il codice non invoca endpoint di mutazione della governance.
-L'environment `Repository Governance` conserva `RECONCILIATION_APP_ID` e
-`RECONCILIATION_APP_PRIVATE_KEY`; la chiave privata genera un token effimero per
-ogni run e non viene usata dagli altri workflow. Il ruleset `develop governance`
+L'environment `Repository Governance` conserva il Client ID pubblico nella
+variabile `RECONCILIATION_APP_CLIENT_ID` e la chiave privata nel secret
+`RECONCILIATION_APP_PRIVATE_KEY`; la chiave genera un token effimero per ogni run
+e non viene usata dagli altri workflow. Il ruleset `develop governance`
 ammette l'Integration ID dell'app in modalità `always`. Nessun utente, ruolo o
 GitHub Actions generico entra nella bypass list.
 

@@ -855,6 +855,9 @@ test("il riallineamento develop è separato dal deploy e fallisce chiuso", () =>
   assert.match(workflow, /deploy-retry/);
   assert.match(workflow, /no-deploy-promotion/);
   assert.match(workflow, /actions\/create-github-app-token@[0-9a-f]{40}/);
+  assert.match(workflow, /client-id: \$\{\{ vars\.RECONCILIATION_APP_CLIENT_ID \}\}/);
+  assert.doesNotMatch(workflow, /(?:^|\n)\s*app-id:/);
+  assert.doesNotMatch(workflow, /RECONCILIATION_APP_ID/);
   assert.match(
     workflow,
     /RECONCILIATION_APP_SLUG: \$\{\{ steps\.app-token\.outputs\.app-slug \}\}/,
