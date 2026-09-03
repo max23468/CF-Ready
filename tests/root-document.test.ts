@@ -10,13 +10,21 @@ vi.mock("react-router", async (importOriginal) => {
   };
 });
 
-import App from "../app/root";
+import App, { loader } from "../app/root";
 
 function elements(node: ReactNode): ReactElement[] {
   if (Array.isArray(node)) return node.flatMap(elements);
   if (!isValidElement(node)) return [];
   return [node, ...elements((node.props as { children?: ReactNode }).children)];
 }
+
+test("il documento espone chiave App Bridge e lingua risolta dalla richiesta", () => {
+  expect(
+    loader({
+      request: new Request("https://cf-ready.test/app?locale=it-IT"),
+    } as never),
+  ).toMatchObject({ locale: "it", apiKey: expect.any(String) });
+});
 
 test("App Bridge e Polaris vengono caricati una sola volta nel head", () => {
   const document = elements(App());

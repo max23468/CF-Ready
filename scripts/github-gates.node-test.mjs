@@ -136,14 +136,31 @@ test("rifiuta commit senza una PR merged verso develop", () => {
 test("attende check GitHub e segnala risposta API o gate mancanti", async () => {
   const originalFetch = globalThis.fetch;
   try {
+    let calls = 0;
     globalThis.fetch = async () =>
       new Response(
         JSON.stringify({
-          check_runs: [{ id: 1, name: "verify", conclusion: "success", check_suite: { id: 1 } }],
+          check_runs:
+            calls++ === 0
+              ? []
+              : [
+                  {
+                    id: 1,
+                    name: "verify",
+                    conclusion: "success",
+                    check_suite: { id: 1 },
+                  },
+                ],
         }),
         { status: 200, headers: { "content-type": "application/json" } },
       );
-    await assert.doesNotReject(waitForChecks("owner/repo", "a".repeat(40), ["verify"]));
+    await assert.doesNotReject(
+      waitForChecks("owner/repo", "a".repeat(40), ["verify"], {
+        attempts: 2,
+        intervalMs: 0,
+      }),
+    );
+    assert.equal(calls, 2);
     await assert.rejects(
       waitForChecks("owner/repo", "a".repeat(40), ["verify", "coverage"], {
         attempts: 1,

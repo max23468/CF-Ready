@@ -23,7 +23,6 @@ import {
   normalizeCoveragePath,
   trackedCoverageSources,
 } from "./coverage-scope.mjs";
-import { runWebhookMutation } from "./run-webhook-mutation.mjs";
 import {
   runCriticalMutation,
   runCriticalMutationIfDirect,
@@ -187,7 +186,8 @@ test("il dominio webhook mantiene coverage e mutation gate canonici", async () =
     readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),
   );
   const domain = repositoryPolicy.targets.criticalDomains.domains.webhooks;
-  const mutationConfig = (await import("../stryker.webhooks.config.mjs")).default;
+  const { criticalMutationConfig } = await import("../stryker.critical.config.mjs");
+  const mutationConfig = criticalMutationConfig("webhooks");
 
   assert.equal(repositoryPolicy.targets.criticalDomains.active, true);
   assert.equal(domain.coverageActive, true);
@@ -199,7 +199,7 @@ test("il dominio webhook mantiene coverage e mutation gate canonici", async () =
   assert.equal(mutationConfig.thresholds.break, 80);
 });
 
-test("il launcher mutation carica esplicitamente core e runner Vitest", async () => {
+test("il launcher mutation condiviso carica esplicitamente core e runner Vitest", async () => {
   let received;
   class FakeStryker {
     constructor(options) {
@@ -211,10 +211,12 @@ test("il launcher mutation carica esplicitamente core e runner Vitest", async ()
     }
   }
 
-  assert.deepEqual(await runWebhookMutation(FakeStryker), ["mutant-killed"]);
+  assert.deepEqual(await runCriticalMutation(FakeStryker, ["plugin"], ["webhooks"]), [
+    { domain: "webhooks", result: ["mutant-killed"] },
+  ]);
   assert.deepEqual(received.plugins, ["@stryker-mutator/vitest-runner"]);
   await assert.rejects(
-    runWebhookMutation(FakeStryker, []),
+    runCriticalMutation(FakeStryker, [], ["webhooks"]),
     /Plugin Vitest Stryker non disponibile/,
   );
 });
@@ -240,6 +242,7 @@ test("il launcher mutation esegue soltanto il proprio entrypoint", async () => {
   );
   assert.deepEqual(calls, [["validation"]]);
   assert.deepEqual(selectCriticalMutationDomains(undefined), [
+    "webhooks",
     "billing",
     "validation",
     "ownerNotifications",
@@ -251,13 +254,18 @@ test("il launcher mutation esegue soltanto il proprio entrypoint", async () => {
   );
 });
 
-test("billing, Validation e notifiche mantengono gate coverage e mutation separati", async () => {
+test("i domini critici mantengono gate coverage e mutation separati", async () => {
   const repositoryPolicy = JSON.parse(
     readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),
   );
   const { CRITICAL_MUTATION_DOMAINS, criticalMutationConfig } =
     await import("../stryker.critical.config.mjs");
-  assert.deepEqual(CRITICAL_MUTATION_DOMAINS, ["billing", "validation", "ownerNotifications"]);
+  assert.deepEqual(CRITICAL_MUTATION_DOMAINS, [
+    "webhooks",
+    "billing",
+    "validation",
+    "ownerNotifications",
+  ]);
   for (const domainName of CRITICAL_MUTATION_DOMAINS) {
     const domain = repositoryPolicy.targets.criticalDomains.domains[domainName];
     const mutationConfig = criticalMutationConfig(domainName);

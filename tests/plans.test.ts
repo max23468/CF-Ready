@@ -1,11 +1,6 @@
 import { expect, test } from "vitest";
 import { planFor, planPrices } from "../app/plans.server";
 
-test("la generazione senza prezzi non costruisce offerte acquistabili", () => {
-  expect(planFor("value", "monthly")).toBeNull();
-  expect(planPrices("value")).toBeNull();
-});
-
 test("le generazioni acquistabili espongono importo, valuta e intervallo", () => {
   expect(planFor("launch", "annual")).toEqual({
     name: "CF Ready — abbonamento annuale",

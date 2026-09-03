@@ -236,7 +236,6 @@ async function subscribe(admin: Admin, db: D1Database, shopDomain: string, kind:
         storedAccount,
       });
       const plan = planFor(currentPricingGeneration(trial, account, today), kind);
-      if (!plan) return { ok: false, errorCode: "generic" };
 
       const { confirmationUrl, error } = await createCharge(admin, {
         name: plan.name,

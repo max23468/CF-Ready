@@ -255,6 +255,38 @@ test("la persistenza differita è recintata e rende il timing di scheduling", as
   expect(timings).not.toContain("d1_validation_state");
 });
 
+test("un errore della persistenza differita viene registrato senza fallire la riconciliazione", async () => {
+  const shop = await insertShop("persistenza-differita-fallita.example.myshopify.com");
+  const pending: Promise<unknown>[] = [];
+  let batchCalls = 0;
+  const db = new Proxy(env.DB, {
+    get(target, property) {
+      if (property === "batch") {
+        return (statements: D1PreparedStatement[]) => {
+          batchCalls += 1;
+          return batchCalls === 2
+            ? Promise.reject(new Error("D1 non disponibile"))
+            : target.batch(statements);
+        };
+      }
+      const value = Reflect.get(target, property, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  }) as D1Database;
+
+  const state = await reconcile(adminStub([shopContext("IT", false), SENZA_ADDEBITI]), db, shop, {
+    waitUntil: (promise) => pending.push(promise),
+  });
+  await Promise.all(pending);
+
+  expect(state.errorCode).toBeNull();
+  expect(
+    await env.DB.prepare(
+      "SELECT event_name FROM app_events WHERE event_name = 'validation_state_persist_failed'",
+    ).first(),
+  ).toMatchObject({ event_name: "validation_state_persist_failed" });
+});
+
 test("i duplicati misti disattivano solo la risorsa attiva", async () => {
   const shop = await insertShop("duplicati-misti.example.myshopify.com");
   const initial = shopContext("IT", true);
