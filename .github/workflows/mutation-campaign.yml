@@ -38,12 +38,7 @@ jobs:
       - name: Esegui mutation ${{ matrix.domain }}
         env:
           CRITICAL_MUTATION_DOMAIN: ${{ matrix.domain }}
-        run: |
-          if test "$CRITICAL_MUTATION_DOMAIN" = webhooks; then
-            npm run mutation:webhooks
-          else
-            npm run mutation:critical
-          fi
+        run: npm run mutation:critical
       - name: Carica report mutation ${{ matrix.domain }}
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

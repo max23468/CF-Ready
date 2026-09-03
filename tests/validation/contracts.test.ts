@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { DEFAULT_CONFIG } from "../../app/config";
 import {
-  DEFAULT_CONFIG,
   completeOnboardingAutomatically,
   configHash,
   configWithEntitlement,
