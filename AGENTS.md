@@ -7,9 +7,10 @@ mantieni qui le regole comuni e non duplicarle altrove.
 
 CF Ready è una public app Shopify per validare Codice Fiscale e PEC nei
 localized fields del checkout italiano. Il target usa React Router e TypeScript
-su Cloudflare Workers, D1 per dati e sessioni, R2 per i backup e una Cart and
-Checkout Validation Function. Non presentare un deliverable pianificato come
-già implementato: codice, test e configurazioni provano lo stato corrente.
+su Cloudflare Workers, Queues per il lavoro webhook durevole, D1 per dati e
+sessioni, R2 per i backup, Pages per il sito pubblico e una Cart and Checkout
+Validation Function. Non presentare un deliverable pianificato come già
+implementato: codice, test e configurazioni provano lo stato corrente.
 
 - `docs/plans/2026-07-28-CF-Ready-Master-Plan.md`: requisiti, decisioni,
   milestone e gate.
@@ -24,7 +25,7 @@ percorso o sezione; la cronologia resta in Git.
 
 ## Invarianti di prodotto
 
-- La 1.0 gestisce solo Codice Fiscale e PEC. Partita IVA, Codice SDI,
+- CF Ready gestisce esclusivamente Codice Fiscale e PEC. Partita IVA, Codice SDI,
   fatturazione elettronica, POS, modifiche al tema, Theme App Extension e
   Checkout UI Extension sono fuori perimetro.
 - Usa `TAX_CREDENTIAL_IT` e `TAX_EMAIL_IT`; non creare campi alternativi e non
@@ -50,6 +51,8 @@ percorso o sezione; la cronologia resta in Git.
   sintetiche.
 - Valida HMAC, firma, stato o nonce ai confini Shopify. Webhook e callback
   ritentabili devono essere idempotenti.
+- Per i webhook conserva l'ordine claim D1, consegna a Cloudflare Queues e ACK;
+  gli errori durevoli passano dalla DLQ senza perdere o duplicare il lavoro.
 - Mantieni lo scope Shopify minimo: non leggere ordini, clienti, prodotti o
   inventario senza un requisito approvato.
 - Non inviare Codice Fiscale, PEC, dati checkout, nome o email dell'owner e altri
@@ -57,6 +60,9 @@ percorso o sezione; la cronologia resta in Git.
   minimizzati. Fa eccezione soltanto la notifica Telegram privata dell'owner
   definita in D-134, che può includere nome pubblico e dominio tecnico dello store
   senza dati personali di owner o clienti né identificatori Shopify.
+- Telemetria e prestazioni conservano soltanto esiti, durate e aggregati
+  allowlistati. Attribuisci Web Vitals alla rotta e al `Server-Timing` acquisiti
+  all'avvio del documento, senza contenuti merchant.
 - Le migrazioni applicate sono immutabili. Preferisci forward-fix e non unire
   migrazioni distruttive a una release non verificata.
 
@@ -83,17 +89,24 @@ percorso o sezione; la cronologia resta in Git.
 
 | Corsia | Quando | Gate minimo |
 | --- | --- | --- |
-| Docs | contenuti senza effetto operativo | riferimenti e comandi citati, formato, `git diff --check` |
-| Standard | TypeScript, route, config o test | test mirati e `npm run check` |
-| Sicurezza/governance | auth, webhook, workflow, runbook operativo, cifratura o dipendenze | Standard, audit/lockfile applicabile e regressione mirata |
-| Deploy | provider, migrazioni, Worker o Function | gate completo, preflight, backup se serve, smoke, readback e rollback |
+| `docs` | contenuti documentali senza effetto operativo | riferimenti e comandi citati, `npm run check:docs` |
+| `standard` | TypeScript, route, config o test ordinari | test mirati, `npm run check:standard`, coverage ratchet e mutation applicabile |
+| `full` | governance, workflow, auth, webhook, cifratura, migrazioni, manifest o lockfile | `npm run check`, coverage ratchet, mutation applicabile e regressione mirata |
+| `promotion` | PR `develop` → `main` con ascendenza valida | provenienza, review, tree e gate esatti di `develop`, `promotion-guard` |
+| `deploy` | provider, migrazioni, Worker, Function o Pages | gate completo, preflight, backup se serve, smoke, readback e rollback |
 
-`npm run check` è il gate locale completo dello scaffold corrente. Provider,
-database remoto, browser e deploy richiedono prove fresche; un exit code `0` non
-dimostra da solo lo stato live. Dichiara sempre i controlli non eseguiti.
+`npm run check` è il gate locale della corsia `full`; `coverage:check`, i gate
+mutation condizionali e gli E2E restano controlli separati applicabili al diff.
+Se una modifica cambia la misura della coverage, esegui
+`npm run coverage:update`, verifica il report in `.coverage/global/` e includi
+`config/coverage-baseline.json` nello stesso diff. Provider, database remoto,
+browser e deploy richiedono prove fresche; un exit code `0` non dimostra da solo
+lo stato live. Dichiara sempre i controlli non eseguiti.
 
-Prima della `1.0.0`, riconferma nelle fonti Shopify correnti la Function API
-`2026-07`, rigenera con la CLI supportata e ripeti fixture e checkout reali.
+Prima di ogni release Shopify verifica con il workflow lo schema Function API
+`2026-07`. Se la modifica tocca Function, versione API, query o CLI, riconferma
+il contratto nelle fonti Shopify correnti, rigenera con la CLI supportata e
+ripeti fixture e checkout reali applicabili.
 
 ## Significato di `Pubblica`
 
