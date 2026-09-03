@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.1.8 — 3 settembre 2026
+
+- i test statici del sorgente sono sostituiti da verifiche comportamentali sui
+  percorsi autenticati, sulla riconciliazione Validation e sul ciclo webhook;
+- billing, piani e onboarding rimuovono riesportazioni, generazione tariffaria e
+  wrapper non usati, mantenendo invariati i confini fail-open e idempotenti;
+- la configurazione mutation webhook confluisce nel profilo critico condiviso,
+  eliminando script e duplicazioni senza ridurre le soglie di qualità.
+
 ## 1.1.7 — 2 settembre 2026
 
 - i Web Vitals restano associati alla rotta e ai timing del documento che li ha
