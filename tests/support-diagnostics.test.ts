@@ -18,14 +18,14 @@ test("la diagnostica legge solo lo stato D1 minimizzato e dà precedenza all'acc
       `INSERT INTO trials (
          shop_id, status, eligible_at, started_at, ends_at, pricing_generation,
          created_at, updated_at
-       ) SELECT id, 'active', ?, ?, '2026-09-10', 'value', ?, ?
+       ) SELECT id, 'active', ?, ?, '2026-09-10', 'launch', ?, ?
            FROM shops WHERE shop_domain = ?`,
     ).bind(now, now, now, now, shop),
     env.DB.prepare(
       `INSERT INTO billing_accounts (
          shop_id, entitlement_status, plan_kind, pricing_generation,
          last_reconciled_at, created_at, updated_at
-       ) SELECT id, 'active', 'annual', 'value', ?, ?, ?
+       ) SELECT id, 'active', 'annual', 'launch', ?, ?, ?
            FROM shops WHERE shop_domain = ?`,
     ).bind(now, now, now, shop),
     env.DB.prepare(
@@ -79,7 +79,7 @@ test("la diagnostica distingue trial e account in chiusura anche senza piano", a
     `INSERT INTO trials (
        shop_id, status, eligible_at, started_at, ends_at, pricing_generation,
        created_at, updated_at
-     ) SELECT id, 'active', ?, ?, '2026-09-10', 'value', ?, ?
+     ) SELECT id, 'active', ?, ?, '2026-09-10', 'balanced', ?, ?
          FROM shops WHERE shop_domain = ?`,
   )
     .bind(now, now, now, now, trialShop)
@@ -91,7 +91,7 @@ test("la diagnostica distingue trial e account in chiusura anche senza piano", a
     `INSERT INTO billing_accounts (
        shop_id, entitlement_status, plan_kind, pricing_generation,
        last_reconciled_at, created_at, updated_at
-     ) SELECT id, 'ending', 'none', 'value', ?, ?, ?
+     ) SELECT id, 'ending', 'none', 'balanced', ?, ?, ?
          FROM shops WHERE shop_domain = ?`,
   )
     .bind(now, now, now, endingShop)

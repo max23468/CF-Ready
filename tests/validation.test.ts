@@ -1,22 +1,21 @@
 import { env } from "cloudflare:test";
 import { expect, test, vi } from "vitest";
 import { localDate, startTrial, syncBillingAccount } from "../app/billing.server";
+import { DEFAULT_CONFIG, readConfig } from "../app/config";
+import type { CheckoutConfig } from "../app/config";
 import {
   acquireValidationLock,
   configHash,
-  DEFAULT_CONFIG,
   findValidation,
   mutationError,
   queryContext,
   readAddress2Declaration,
-  readConfig,
   releaseValidationLockBestEffort,
   renewValidationLock,
   startValidationLockHeartbeat,
   withValidationLock,
   writeValidation,
 } from "../app/validation.server";
-import type { CheckoutConfig } from "../app/validation.server";
 import type { ShopifyBilling } from "../app/billing.server";
 
 test("la configurazione scritta è accettata dalla Function", () => {

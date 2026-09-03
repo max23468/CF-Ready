@@ -137,6 +137,23 @@ test("un claim ancora attivo mantiene la risposta ritentabile", async () => {
   expect(handled).toBe(false);
 });
 
+test("un webhook già elaborato risponde senza accodare un duplicato", async () => {
+  const shop = await insertShop("webhook-completato.example.myshopify.com");
+  const claim = await claimWebhook(env.DB, "wh-completato", "SHOP_UPDATE", shop);
+  if (!claim.acquired) throw new Error("claim non acquisito");
+  await finishWebhook(env.DB, "wh-completato", claim.token, "processed");
+  const send = vi.fn();
+
+  const response = await handleWebhook(
+    env.DB,
+    { webhookId: "wh-completato", topic: "SHOP_UPDATE", shop },
+    { send } as never,
+  );
+
+  expect(response.status).toBe(200);
+  expect(send).not.toHaveBeenCalled();
+});
+
 test("risponde prima che l'elaborazione asincrona del webhook termini", async () => {
   const shop = await insertShop("webhook-ack.example.myshopify.com");
   let release!: () => void;

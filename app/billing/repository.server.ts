@@ -267,7 +267,7 @@ function generationFromActiveCharge(billing: ShopifyBilling): PricingGeneration 
     (["launch", "balanced"] as const).find((generation) => {
       const plan = planFor(generation, kind);
       return (
-        plan?.currency === charge.currency &&
+        plan.currency === charge.currency &&
         Math.round(plan.amount * 100) === Math.round(Number(charge.amount) * 100)
       );
     }) ?? null
