@@ -290,14 +290,8 @@ test("l'acquisto rifiuta gli stati incompatibili prima di creare l'addebito", as
   });
 });
 
-test("l'acquisto gestisce piano assente, risposta Shopify, lock e successo", async () => {
+test("l'acquisto gestisce risposta Shopify, lock e successo", async () => {
   const { action } = await import("../app/features/home/home.server");
-
-  mocks.planFor.mockReturnValueOnce(null);
-  await expect(action(actionRequest("monthly"))).resolves.toEqual({
-    ok: false,
-    errorCode: "generic",
-  });
 
   mocks.createCharge.mockResolvedValueOnce({ confirmationUrl: null, error: "user_error" });
   await expect(action(actionRequest("monthly"))).resolves.toEqual({

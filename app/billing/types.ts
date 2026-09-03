@@ -1,4 +1,4 @@
-export type PricingGeneration = "launch" | "balanced" | "value";
+export type PricingGeneration = "launch" | "balanced";
 export type TrialStatus = "not_started" | "active" | "expired" | "converted";
 
 export type Trial = {

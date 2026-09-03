@@ -1443,7 +1443,7 @@ Una prova per store idoneo.
 | `eligible_at` | text |
 | `started_at` | text nullable |
 | `ends_at` | text nullable |
-| `pricing_generation` | `launch`, `balanced`, `value` |
+| `pricing_generation` | `launch`, `balanced` |
 | `created_at` | text |
 | `updated_at` | text |
 
@@ -1459,7 +1459,7 @@ seconda prova: la cancellazione dei dati porta via anche `trials`.
 |---|---|
 | `shop_hash` | text primary key, HMAC-SHA-256 del dominio con secret dedicato e stabile per tutta la vita del ledger |
 | `trial_ends_at` | text nullable |
-| `pricing_generation` | `launch`, `balanced`, `value` |
+| `pricing_generation` | `launch`, `balanced` |
 | `recorded_at` | text |
 
 Non contiene dominio, identificatori Shopify o dati riferibili in chiaro, ed è
@@ -1480,7 +1480,7 @@ Stato commerciale normalizzato corrente.
 | `shop_id` | primary key e foreign key |
 | `entitlement_status` | `trial`, `active`, `ending`, `expired`, `refunded`, `none` |
 | `plan_kind` | `monthly`, `annual`, `one_time`, `none` |
-| `pricing_generation` | `launch`, `balanced`, `value` |
+| `pricing_generation` | `launch`, `balanced` |
 | `shopify_charge_gid` | text nullable |
 | `current_period_start` | text nullable |
 | `current_period_end` | text nullable |
