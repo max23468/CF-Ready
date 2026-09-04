@@ -1,4 +1,3 @@
-import { trialLedgerHash } from "../hash.server";
 import { validIsoDate, type OperationalSnapshot, type PartnerEventType } from "./model";
 
 const PARTNER_POLL_REPLAY_MS = 24 * 60 * 60 * 1000;
@@ -44,10 +43,6 @@ export function notificationStatement(
       notification.shopHash,
       notification.occurredAt,
     );
-}
-
-export function notificationShopHash(shopDomain: string) {
-  return trialLedgerHash(shopDomain);
 }
 
 export function readOperationalSnapshot(db: D1Database, shopDomain: string) {
@@ -110,19 +105,7 @@ export async function partnerPollStart(db: D1Database, key: string, now: Date) {
 }
 
 export async function localEventCursor(db: D1Database) {
-  const existing = await readIntegerState(db, LOCAL_EVENT_CURSOR_KEY);
-  if (existing !== null) return existing;
-  const legacy = await db
-    .prepare(
-      "SELECT state_value FROM owner_notification_state WHERE state_key = 'local_notifications_polled_at'",
-    )
-    .first<{ state_value: string }>();
-  if (!legacy || !validIsoDate(legacy.state_value)) return 0;
-  const row = await db
-    .prepare("SELECT COALESCE(MAX(id), 0) AS id FROM app_events WHERE occurred_at <= ?")
-    .bind(legacy.state_value)
-    .first<{ id: number }>();
-  return row?.id ?? 0;
+  return (await readIntegerState(db, LOCAL_EVENT_CURSOR_KEY)) ?? 0;
 }
 
 export async function billingEventCursor(db: D1Database, now: Date) {

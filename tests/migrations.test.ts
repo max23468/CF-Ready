@@ -9,6 +9,12 @@ type MigrationEnvironment = Env & {
   MIGRATION_ENTITLEMENT_DB: D1Database;
   MIGRATION_REVISION_DB: D1Database;
   MIGRATION_FULL_DB: D1Database;
+  MIGRATION_CONTRACTS_DB: D1Database;
+  MIGRATION_LEGACY_TRIALS_DB: D1Database;
+  MIGRATION_LEGACY_LEDGER_DB: D1Database;
+  MIGRATION_LEGACY_BILLING_DB: D1Database;
+  MIGRATION_CURSOR_NEW_DB: D1Database;
+  MIGRATION_CURSOR_EXISTING_DB: D1Database;
   TEST_MIGRATIONS: D1Migration[];
 };
 
@@ -517,6 +523,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "0013_performance_samples.sql",
     "0014_validation_state_revision.sql",
     "0015_owner_notification_details.sql",
+    "0016_current_contracts.sql",
   ]);
   await applyD1Migrations(db, migrations);
 
@@ -572,3 +579,108 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "webhook_events_received_at_idx",
   ]);
 });
+
+const pricingRows = {
+  trials: `INSERT INTO trials (shop_id, status, eligible_at, pricing_generation, created_at, updated_at)
+    VALUES (1, 'not_started', '2026-08-01', ?, '2026-08-01', '2026-08-01')`,
+  trial_ledger: `INSERT INTO trial_ledger (shop_hash, pricing_generation, recorded_at)
+    VALUES ('synthetic-hash', ?, '2026-08-01')`,
+  billing_accounts: `INSERT INTO billing_accounts (shop_id, entitlement_status, plan_kind, pricing_generation, created_at, updated_at)
+    VALUES (1, 'none', 'none', ?, '2026-08-01', '2026-08-01')`,
+};
+
+test("0016 preserva righe e cascade, restringe insert e update alle generazioni correnti", async () => {
+  const { MIGRATION_CONTRACTS_DB: db, TEST_MIGRATIONS: migrations } = migrationEnvironment();
+  await applyThrough(db, migrations, "0015_owner_notification_details.sql");
+  await insertShop(db);
+  for (const sql of Object.values(pricingRows)) await db.prepare(sql).bind("launch").run();
+  const before = await Promise.all(
+    Object.keys(pricingRows).map((table) => db.prepare(`SELECT * FROM ${table}`).all()),
+  );
+  await applyD1Migrations(db, [migrationAfter(migrations, "0015_owner_notification_details.sql")]);
+  for (const [index, table] of Object.keys(pricingRows).entries()) {
+    expect((await db.prepare(`SELECT * FROM ${table}`).all()).results).toEqual(
+      before[index].results,
+    );
+    await db.prepare(`UPDATE ${table} SET pricing_generation = 'balanced'`).run();
+    await expect(
+      db.prepare(`UPDATE ${table} SET pricing_generation = 'value'`).run(),
+    ).rejects.toThrow(/unsupported_pricing_generation/);
+    await db.prepare(`DELETE FROM ${table}`).run();
+    await expect(
+      db
+        .prepare(pricingRows[table as keyof typeof pricingRows])
+        .bind("value")
+        .run(),
+    ).rejects.toThrow(/unsupported_pricing_generation/);
+    await db
+      .prepare(pricingRows[table as keyof typeof pricingRows])
+      .bind("balanced")
+      .run();
+  }
+  await db.prepare("DELETE FROM shops WHERE id = 1").run();
+  expect(await db.prepare("SELECT COUNT(*) AS n FROM trials").first("n")).toBe(0);
+  expect(await db.prepare("SELECT COUNT(*) AS n FROM billing_accounts").first("n")).toBe(0);
+  expect((await db.prepare("PRAGMA foreign_key_check").all()).results).toEqual([]);
+});
+
+test.each(Object.entries(pricingRows))(
+  "0016 rifiuta dati legacy in %s senza convertirli",
+  async (table, sql) => {
+    const environment = migrationEnvironment();
+    const migrations = environment.TEST_MIGRATIONS;
+    const db = {
+      trials: environment.MIGRATION_LEGACY_TRIALS_DB,
+      trial_ledger: environment.MIGRATION_LEGACY_LEDGER_DB,
+      billing_accounts: environment.MIGRATION_LEGACY_BILLING_DB,
+    }[table as keyof typeof pricingRows];
+    await applyThrough(db, migrations, "0015_owner_notification_details.sql");
+    await insertShop(db);
+    await db.prepare(sql).bind("value").run();
+    await expect(
+      applyD1Migrations(db, [migrationAfter(migrations, "0015_owner_notification_details.sql")]),
+    ).rejects.toThrow(/unsupported_pricing_generation/);
+    expect(
+      await db.prepare(`SELECT pricing_generation FROM ${table}`).first("pricing_generation"),
+    ).toBe("value");
+  },
+);
+
+test.each([null, "7"])(
+  "0016 trasferisce il vecchio cursore senza sovrascrivere quello corrente: %s",
+  async (current) => {
+    const environment = migrationEnvironment();
+    const migrations = environment.TEST_MIGRATIONS;
+    const db =
+      current === null
+        ? environment.MIGRATION_CURSOR_NEW_DB
+        : environment.MIGRATION_CURSOR_EXISTING_DB;
+    await applyThrough(db, migrations, "0015_owner_notification_details.sql");
+    await insertShop(db);
+    await db
+      .prepare(`INSERT INTO app_events (id, shop_id, event_name, event_class, occurred_at)
+    VALUES (2, 1, 'app_installed', 'lifecycle', '2026-08-01T09:00:00.000Z'),
+           (9, 1, 'validation_enabled', 'validation', '2026-08-01T11:00:00.000Z')`)
+      .run();
+    await db
+      .prepare(`INSERT INTO owner_notification_state (state_key, state_value, updated_at)
+    VALUES ('local_notifications_polled_at', '2026-08-01T10:00:00.000Z', '2026-08-01T10:00:00.000Z')`)
+      .run();
+    if (current !== null)
+      await db
+        .prepare(`INSERT INTO owner_notification_state (state_key, state_value, updated_at)
+    VALUES ('local_notification_event_id', ?, '2026-08-01T10:00:00.000Z')`)
+        .bind(current)
+        .run();
+    await applyD1Migrations(db, [
+      migrationAfter(migrations, "0015_owner_notification_details.sql"),
+    ]);
+    expect(
+      await db
+        .prepare(
+          "SELECT state_value FROM owner_notification_state WHERE state_key = 'local_notification_event_id'",
+        )
+        .first("state_value"),
+    ).toBe(current ?? "2");
+  },
+);

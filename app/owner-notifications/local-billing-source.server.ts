@@ -1,3 +1,4 @@
+import { trialLedgerHash as notificationShopHash } from "../hash.server";
 import {
   localBillingPlan,
   normalizeShopDomain,
@@ -23,7 +24,6 @@ import {
   billingEventCursor,
   billingNotificationKey,
   hasEquivalentNotification,
-  notificationShopHash,
   notificationStatement,
   writeNotificationState,
 } from "./repository.server";

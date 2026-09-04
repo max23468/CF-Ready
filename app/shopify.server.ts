@@ -70,11 +70,9 @@ const webhookApi = shopifyApi({
   isEmbeddedApp: true,
 });
 
-export const apiVersion = ApiVersion.July26;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
 export const authenticate = shopify.authenticate;
 export const authenticateWebhook = (request: Request) =>
   authenticateWebhookRequest(request, (input) => webhookApi.webhooks.validate(input));
 export const unauthenticated = shopify.unauthenticated;
-export const registerWebhooks = shopify.registerWebhooks;
 export const sessionStorage = d1SessionStorage;

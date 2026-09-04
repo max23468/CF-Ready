@@ -1,3 +1,4 @@
+import { trialLedgerHash as notificationShopHash } from "../hash.server";
 import {
   type PartnerEventNode,
   type PartnerEventType,
@@ -27,7 +28,6 @@ import {
   NOTIFICATION_PAGE_SIZE,
   billingNotificationKey,
   hasEquivalentNotification,
-  notificationShopHash,
   notificationStatement,
   partnerPollStart,
   previousPlanKind,
