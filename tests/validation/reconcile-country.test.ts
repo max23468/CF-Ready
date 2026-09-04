@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
 import { expect, test, vi } from "vitest";
-import { localDate, startTrial, trialEnd } from "../../app/billing.server";
+import { localDate, startTrial } from "../../app/billing.server";
 import {
   acquireValidationLock,
   reconcile,
@@ -126,80 +126,62 @@ test("la riconciliazione riusa la lettura iniziale dell'account billing D1", asy
   expect(billingAccountReads).toBe(1);
 });
 
-test("uno store non italiano viene bloccato e la Validation disattivata", async () => {
+test("uno store estero resta operativo e conserva la Validation", async () => {
   const shop = await insertShop("francia.example.myshopify.com");
-  const admin = adminStub([
-    shopContext("FR", true),
-    { data: { validationUpdate: { userErrors: [] } } },
-    shopContext("FR", false),
-  ]);
+  const admin = adminStub([shopContext("FR", true), SENZA_ADDEBITI]);
 
   const state = await reconcile(admin, env.DB, shop);
 
-  expect(state.eligible).toBe(false);
-  expect(state.validation?.enabled).toBe(false);
+  expect(state.validation?.enabled).toBe(true);
   expect(state.errorCode).toBeNull();
-  expect(admin.calls).toEqual(["context", "update", "context"]);
+  expect(admin.calls).toEqual(["context", "billing"]);
   expect(await appState(shop)).toMatchObject({
-    installation_status: "blocked_country",
+    installation_status: "active",
     country_code: "FR",
-    validation_enabled: 0,
+    validation_enabled: 1,
     config_schema_version: 2,
     last_error_code: null,
-    validation_gid: "gid://shopify/Validation/1",
   });
 });
 
-test("un readback geografico senza Validation non conserva una risorsa rimossa", async () => {
-  const shop = await insertShop("francia-validation-rimossa.example.myshopify.com");
-  const readback = shopContext("FR", false);
-  readback.data.validations.nodes = [];
+test("uno store estero ripara una Validation senza metafield", async () => {
+  const shop = await insertShop("francia-metafield-assente.example.myshopify.com");
+  const senzaMetafield = shopContext("FR", true);
+  (senzaMetafield.data.validations.nodes[0] as { metafield: unknown }).metafield = null;
+  const riparata = shopContext("FR", true);
   const admin = adminStub([
-    shopContext("FR", true),
+    senzaMetafield,
+    SENZA_ADDEBITI,
+    senzaMetafield,
     { data: { validationUpdate: { userErrors: [] } } },
-    readback,
+    riparata,
   ]);
 
   const state = await reconcile(admin, env.DB, shop);
 
-  expect(state.validation).toBeUndefined();
-  expect(state.validationEnabled).toBe(false);
+  expect(state.validation?.metafield?.jsonValue).toMatchObject({ entitlement: SENZA_DIRITTO });
   expect(state.errorCode).toBeNull();
-  expect(admin.calls).toEqual(["context", "update", "context"]);
+  expect(admin.calls).toEqual(["context", "billing", "context", "update", "context"]);
 });
 
-test("il rientro in Italia sblocca lo store senza riattivare la Validation", async () => {
-  const shop = await insertShop("rientro.example.myshopify.com");
-  await reconcile(
-    adminStub([
-      shopContext("FR", true),
-      { data: { validationUpdate: { userErrors: [] } } },
-      shopContext("FR", false),
-    ]),
+test("la prima riconciliazione recupera un precedente blocco geografico", async () => {
+  const shop = await insertShop("blocco-precedente.example.myshopify.com");
+  await env.DB.prepare(
+    "UPDATE shops SET installation_status = 'blocked_country' WHERE shop_domain = ?",
+  )
+    .bind(shop)
+    .run();
+
+  const state = await reconcile(
+    adminStub([shopContext("FR", false), SENZA_ADDEBITI]),
     env.DB,
     shop,
   );
 
-  // Tornato idoneo, il merchant avvia la prova: da lì l'entitlement va scritto nel metafield.
-  // La prova non parte più da sola, quindi la richiesta è esplicita anche nel test.
-  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
-  const inProva = { kind: "trial", validThrough: trialEnd(localDate(FUSO)) };
-  const admin = adminStub([
-    shopContext("IT", false),
-    SENZA_ADDEBITI,
-    shopContext("IT", false),
-    { data: { validationUpdate: { userErrors: [] } } },
-    shopContext("IT", false, inProva),
-  ]);
-  const state = await reconcile(admin, env.DB, shop);
-
-  expect(state.eligible).toBe(true);
-  expect(state.entitlement).toEqual(inProva);
   expect(state.errorCode).toBeNull();
-  expect(admin.calls).toEqual(["context", "billing", "context", "update", "context"]);
   expect(await appState(shop)).toMatchObject({
     installation_status: "active",
-    country_code: "IT",
+    country_code: "FR",
     validation_enabled: 0,
   });
 });
@@ -315,7 +297,7 @@ test("i duplicati misti disattivano solo la risorsa attiva", async () => {
 
 test("una Validation rimossa prima della scrittura entitlement resta fail-open", async () => {
   const shop = await insertShop("entitlement-rimosso-prima-write.example.myshopify.com");
-  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  await startTrial(env.DB, shop, { today: localDate(FUSO) });
   const admin = adminStub([shopContext("IT", true), SENZA_ADDEBITI, shopContext("IT", null)]);
   const state = await reconcile(admin, env.DB, shop);
   expect(state.errorCode).toBe("entitlement_write_failed");
@@ -325,7 +307,7 @@ test("una Validation rimossa prima della scrittura entitlement resta fail-open",
 
 test("un errore nel contesto sotto lease diventa errore entitlement stabile", async () => {
   const shop = await insertShop("entitlement-context-error.example.myshopify.com");
-  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  await startTrial(env.DB, shop, { today: localDate(FUSO) });
   const admin = adminStub([
     shopContext("IT", true),
     SENZA_ADDEBITI,
@@ -338,7 +320,7 @@ test("un errore nel contesto sotto lease diventa errore entitlement stabile", as
 
 test("gli user error Shopify nella scrittura entitlement restano fail-open", async () => {
   const shop = await insertShop("entitlement-user-error.example.myshopify.com");
-  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  await startTrial(env.DB, shop, { today: localDate(FUSO) });
   const admin = adminStub([
     shopContext("IT", true),
     SENZA_ADDEBITI,
@@ -354,145 +336,9 @@ test("gli user error Shopify nella scrittura entitlement restano fail-open", asy
   expect(admin.calls).toEqual(["context", "billing", "context", "update", "context"]);
 });
 
-test("una disattivazione non riuscita resta fail-open e registra un codice errore", async () => {
-  const shop = await insertShop("errore.example.myshopify.com");
-  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
-  const configurazioneCorrente = shopContext("DE", true, entitlementAttivo);
-  configurazioneCorrente.data.validations.nodes[0].metafield.jsonValue.rules.taxCode = "optional";
-  const admin = adminStub([
-    shopContext("DE", true, entitlementAttivo),
-    { data: { validationUpdate: { userErrors: [{ message: "limite raggiunto" }] } } },
-    shopContext("DE", true, entitlementAttivo),
-    configurazioneCorrente,
-    { data: { validationUpdate: { userErrors: [] } } },
-    shopContext("DE", true),
-  ]);
-
-  const state = await reconcile(admin, env.DB, shop);
-
-  expect(state.errorCode).toBe("validation_disable_failed");
-  expect(admin.calls).toEqual(["context", "update", "context", "context", "update", "context"]);
-  expect(admin.updates).toMatchObject([
-    { validation: { enable: false } },
-    { validation: { enable: true } },
-  ]);
-  const fallbackUpdate = admin.updates[1] as {
-    validation: { metafields: { value: string }[] };
-  };
-  expect(JSON.parse(fallbackUpdate.validation.metafields[0].value)).toMatchObject({
-    rules: { taxCode: "optional" },
-    entitlement: SENZA_DIRITTO,
-  });
-  expect(await appState(shop)).toMatchObject({
-    installation_status: "blocked_country",
-    validation_enabled: 1,
-    last_error_code: "validation_disable_failed",
-  });
-});
-
-test("una disattivazione geografica bloccata resta ritentabile con entitlement già fail-open", async () => {
-  const shop = await insertShop("disattivazione-bloccata.example.myshopify.com");
-  const lockToken = await acquireValidationLock(env.DB, shop);
-  expect(lockToken).not.toBeNull();
-  const admin = adminStub([shopContext("DE", true), shopContext("DE", true)]);
-
-  try {
-    const state = await reconcile(admin, env.DB, shop);
-
-    expect(state.errorCode).toBe("validation_locked");
-    expect(state.retryable).toBe(true);
-    expect(admin.calls).toEqual(["context", "context"]);
-    expect(admin.updates).toEqual([]);
-  } finally {
-    await releaseValidationLockBestEffort(env.DB, shop, lockToken!);
-  }
-});
-
-test("un readback geografico obsoleto non riattiva una disattivazione accettata", async () => {
-  const shop = await insertShop("readback-paese-obsoleto.example.myshopify.com");
-  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
-  const admin = adminStub([
-    shopContext("DE", true, entitlementAttivo),
-    { data: { validationUpdate: { userErrors: [] } } },
-    shopContext("DE", true, entitlementAttivo),
-    shopContext("DE", true, entitlementAttivo),
-    { data: { validationUpdate: { userErrors: [] } } },
-    shopContext("DE", false),
-  ]);
-
-  const state = await reconcile(admin, env.DB, shop);
-
-  expect(state.validationEnabled).toBe(false);
-  expect(state.errorCode).toBe("validation_still_enabled");
-  expect(admin.updates).toMatchObject([
-    { validation: { enable: false } },
-    { validation: { enable: false } },
-  ]);
-});
-
-test("un errore di trasporto conserva lo stato riletto sotto lease", async () => {
-  const shop = await insertShop("disattivazione-incerta.example.myshopify.com");
-  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
-  const admin = adminStub([
-    shopContext("DE", true, entitlementAttivo),
-    new Error("risposta persa"),
-    shopContext("DE", true, entitlementAttivo),
-    shopContext("DE", false, entitlementAttivo),
-    { data: { validationUpdate: { userErrors: [] } } },
-    shopContext("DE", false),
-  ]);
-
-  const state = await reconcile(admin, env.DB, shop);
-
-  expect(state.validationEnabled).toBe(false);
-  expect(state.errorCode).toBe("validation_disable_failed");
-  expect(admin.updates).toMatchObject([
-    { validation: { enable: false } },
-    { validation: { enable: false } },
-  ]);
-});
-
-test("il fallback ritenta se lo store torna idoneo durante la lease", async () => {
-  const shop = await insertShop("paese-cambiato.example.myshopify.com");
-  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
-  const admin = adminStub([
-    shopContext("DE", true, entitlementAttivo),
-    { data: { validationUpdate: { userErrors: [] } } },
-    shopContext("DE", true, entitlementAttivo),
-    shopContext("IT", true, entitlementAttivo),
-  ]);
-
-  const state = await reconcile(admin, env.DB, shop);
-
-  expect(state.errorCode).toBe("validation_locked");
-  expect(admin.calls).toEqual(["context", "update", "context", "context"]);
-  expect(admin.updates).toMatchObject([{ validation: { enable: false } }]);
-});
-
-test("un readback geografico non disponibile resta fail-open", async () => {
-  const shop = await insertShop("readback-paese.example.myshopify.com");
-  const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
-  const admin = adminStub([
-    shopContext("DE", true, entitlementAttivo),
-    { data: { validationUpdate: { userErrors: [] } } },
-    { errors: [{ message: "servizio non disponibile" }] },
-  ]);
-
-  const state = await reconcile(admin, env.DB, shop);
-
-  expect(state.validationEnabled).toBe(true);
-  expect(state.errorCode).toBe("validation_disable_failed");
-  expect(admin.calls).toEqual(["context", "update", "context"]);
-  expect(await appState(shop)).toMatchObject({
-    installation_status: "blocked_country",
-    validation_enabled: 1,
-    last_error_code: "validation_disable_failed",
-  });
-});
-
 test("un readback entitlement non disponibile resta fail-open", async () => {
   const shop = await insertShop("readback-entitlement.example.myshopify.com");
-  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  await startTrial(env.DB, shop, { today: localDate(FUSO) });
   const admin = adminStub([
     shopContext("IT", true),
     SENZA_ADDEBITI,
@@ -514,7 +360,7 @@ test("un readback entitlement non disponibile resta fail-open", async () => {
 
 test("una scrittura entitlement bloccata espone il retry al webhook", async () => {
   const shop = await insertShop("entitlement-occupato.example.myshopify.com");
-  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  await startTrial(env.DB, shop, { today: localDate(FUSO) });
   const lockToken = await acquireValidationLock(env.DB, shop);
   expect(lockToken).not.toBeNull();
   const admin = adminStub([shopContext("IT", true), SENZA_ADDEBITI]);
@@ -532,7 +378,7 @@ test("una scrittura entitlement bloccata espone il retry al webhook", async () =
 test("una lease entitlement persa preserva i duplicati attivi del readback", async () => {
   vi.useFakeTimers();
   const shop = await insertShop("entitlement-lease-persa.example.myshopify.com");
-  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  await startTrial(env.DB, shop, { today: localDate(FUSO) });
   const entitlementAttivo = { kind: "trial", validThrough: "2026-08-20" };
   const readback = shopContext("IT", true, entitlementAttivo);
   readback.data.validations.nodes.push({

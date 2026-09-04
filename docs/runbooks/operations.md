@@ -64,7 +64,7 @@ reale. Il job `e2e` è un controllo richiesto sui rami protetti.
 | Admin embedded | prima installazione, onboarding, completa senza attivare, riapertura | browser Admin, stretto e largo |
 | Regole e messaggi | Save Bar/Annulla, radio/anteprima, tab lingue, reset separato | browser Admin, tastiera |
 | Validation | attivazione, disattivazione, errore sync e riparazione fail-open | browser Admin |
-| Stato merchant | store non italiano, prova 7/3/1/0, billing e reinstallazione | test automatici; stato reale quando disponibile |
+| Stato merchant | store non italiano operativo, prova 7/3/1/0, billing e reinstallazione | test automatici; stato reale quando disponibile |
 
 Per la chiusura di una release annotare nella ricevuta commit, browser,
 viewport, righe eseguite, esito e limiti non riproducibili. Checkout standard,

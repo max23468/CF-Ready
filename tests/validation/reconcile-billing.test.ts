@@ -210,7 +210,7 @@ test("una conversione billing che perde la lease non cancella e resta ritentabil
 
 test("il readback entitlement conserva lo stato attivo dei duplicati concorrenti", async () => {
   const shop = await insertShop("readback-entitlement-duplicato.example.myshopify.com");
-  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  await startTrial(env.DB, shop, { today: localDate(FUSO) });
   const entitlement = {
     kind: "trial",
     validThrough: trialEnd(localDate(FUSO)),
@@ -272,7 +272,7 @@ test("un duplicato attivo al readback prevale su un errore operativo precedente"
 test("un readback senza Validation non conserva lo stato attivo precedente", async () => {
   const shop = await insertShop("validation-rimossa.example.myshopify.com");
   // Con una prova in corso l'entitlement va riscritto: è la sequenza che porta al readback.
-  await startTrial(env.DB, shop, { eligible: true, today: localDate(FUSO) });
+  await startTrial(env.DB, shop, { today: localDate(FUSO) });
   const admin = adminStub([
     shopContext("IT", true),
     SENZA_ADDEBITI,

@@ -266,7 +266,6 @@ describe("stato D1 Validation", () => {
     await persistValidationState(env.DB, shop, {
       displayName: "Negozio",
       countryCode: "IT",
-      eligible: true,
       validation: VALIDATION,
       errorCode: null,
     });

@@ -277,11 +277,6 @@ test("Onboarding valida e salva avanzamento e regole", async () => {
 
 test("Onboarding tratta prova, intent sconosciuti e chiusura senza attivazione", async () => {
   const { action } = await import("../app/routes/app.onboarding");
-  mocks.startTrial.mockResolvedValueOnce(null);
-  expect(await action(args(post("/app/onboarding", { intent: "start_trial" })))).toEqual({
-    ok: false,
-    errorCode: "store_not_supported",
-  });
   mocks.startTrial.mockResolvedValueOnce({ status: "expired" });
   expect(await action(args(post("/app/onboarding", { intent: "start_trial" })))).toEqual({
     ok: false,

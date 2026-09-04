@@ -96,6 +96,21 @@ test("la lettura pagina tutti gli acquisti e riconosce quelli pendenti", async (
   expect(after).toEqual([null, "pagina-2"]);
 });
 
+test("la lettura rifiuta una paginazione acquisti senza cursore", async () => {
+  await expect(
+    readBilling(
+      { graphql: async () => Promise.reject(new Error("non deve interrogare Shopify")) },
+      {
+        activeSubscriptions: [],
+        oneTimePurchases: {
+          nodes: [],
+          pageInfo: { hasNextPage: true, endCursor: null },
+        },
+      },
+    ),
+  ).rejects.toMatchObject({ status: 502 });
+});
+
 test("una sottoscrizione senza pricing leggibile resta autorevole ma non inventa importi", async () => {
   const billing = await readBilling(
     { graphql: async () => Promise.reject(new Error("non deve interrogare Shopify")) },

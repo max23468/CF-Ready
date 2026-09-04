@@ -86,6 +86,8 @@ Non affermare (§4.4, §16.3):
 - che una PEC formalmente valida sia certamente una casella PEC esistente;
 - che l'app emetta, trasmetta o conservi fatture;
 - che l'app sostituisca consulenza fiscale o legale;
+- che l'app crei o aggiunga localized fields assenti dal checkout;
+- che il Paese dello store o la cittadinanza del cliente determinino da soli l'applicabilità;
 - che l'app sia "la prima", "la migliore" o "l'unica";
 - che l'app abbia merchant, recensioni o risultati non dimostrati.
 
@@ -94,6 +96,7 @@ Formulazioni approvate riutilizzabili come sono (§4.3, §16.3, §14.11):
 - promessa breve: «Mai più ordini da fatturare senza Codice Fiscale.»
 - formulazione prudente: «Per i merchant che devono emettere fattura elettronica per gli ordini B2C, CF Ready impedisce che un cliente completi un ordine italiano senza aver compilato un Codice Fiscale formalmente valido.»
 - una tantum: «Un solo pagamento per questo store, senza rinnovi. Include l'app e i suoi aggiornamenti finché il servizio resta attivo.»
+- disponibilità: «CF Ready è disponibile per gli store di qualunque Paese. Le regole si applicano quando la fatturazione è italiana o non ancora disponibile e almeno una consegna è italiana. Senza un Paese di consegna, si applicano soltanto ai campi fiscali italiani presenti. Non si applicano con fatturazione estera o sole consegne estere.»
 
 Altri vincoli linguistici: evitare "lifetime" come titolo contrattuale, usare `Un solo pagamento` (D-070); annuale etichettato `Consigliato` (D-070); badge `Prezzo di lancio` con data esatta e **niente countdown** (§14.3); IT ed EN semanticamente allineati (§16.4); prevalenza della versione italiana nei documenti legali (D-074); Controlled Launch non comunicato come beta o pilot (D-093); nessun incentivo alle recensioni (D-088, FR-095); listing, FAQ e Termini devono dichiarare che le generazioni successive degli ordini in abbonamento non sono coperte (FR-099).
 
@@ -170,7 +173,7 @@ Regola strutturale: **il brand è riconoscibile ai bordi del prodotto, neutro al
 | Icona app (nav Admin, App Store) | Massima |
 | Sito pubblico | Massima |
 | Listing e screenshot | Alta — cornici, fondi, didascalie |
-| Onboarding, Guida, Store non supportato e piede della colonna laterale in Home | Bassa — l'icona in navigazione e l'illustrazione ammessa da A-16 |
+| Onboarding, Guida e piede della colonna laterale in Home | Bassa — l'icona in navigazione e l'illustrazione ammessa da A-16 |
 | Home, Regole e Messaggi | **Nulla** — solo token Polaris |
 
 Dentro l'app embedded il colore di brand non viene usato sui controlli e sugli stati: nessun bottone verde CF Ready accanto a un bottone Polaris, nessun banner colorato custom, nessuna intestazione brandizzata. La coerenza si ottiene dal tono dei testi e dalla struttura delle pagine, non dal colore. Questo soddisfa §17.3, NFR-040 e NFR-044.
@@ -637,7 +640,7 @@ Valgono le regole di §10: gerarchia heading corretta, focus sempre visibile e m
 - **Zero colore di brand su controlli e stati.** Bottoni, banner, badge, campi e severità restano token Polaris, sempre e ovunque.
 - Nessuna intestazione brandizzata, nessun badge colorato custom, nessun grigio proprietario.
 - L'identità dentro l'Admin passa da coerenza dei testi, ordine delle informazioni, prevedibilità delle azioni.
-- **A-16, eccezione unica e approvata:** il colore di brand è ammesso dentro un'illustrazione, sulle sole superfici senza azioni operative — primo passo dell'onboarding, riepilogo finale dell'onboarding, testata di Guida e FAQ, schermata Store non supportato, e il piede della colonna laterale in Home, dove il marchio chiude la pagina come una firma. Nessuna altra eccezione è aperta: una nuova va approvata a parte.
+- **A-16, eccezione unica e approvata:** il colore di brand è ammesso dentro un'illustrazione, sulle sole superfici senza azioni operative — primo passo dell'onboarding, riepilogo finale dell'onboarding, testata di Guida e FAQ e piede della colonna laterale in Home, dove il marchio chiude la pagina come una firma. Nessuna altra eccezione è aperta: una nuova va approvata a parte.
 
 ---
 
@@ -817,7 +820,7 @@ Parte della direzione, non un controllo finale. Vale per app embedded, sito, lis
 | **A-13** | Crenatura | Correzioni manuali su coppia `C`/`F` e spazio-parola, valori in §4.4 | 28/07/2026 |
 | **A-14** | Formati App Store | Icona 1200 × 1200 PNG, angoli quadrati, padding. Requisiti verificati sulle fonti ufficiali (§12.1) | 28/07/2026 |
 | **A-15** | Sigla dentro l'icona della listing | Si presenta l'icona **con** la sigla, accettando la raccomandazione Shopify di evitarne il testo. Rimedio pronto se la review contesta (§11.3) | 28/07/2026 |
-| **A-16** | Colore di brand dentro l'app, per illustrazione | Deroga unica ad A-03: verde bottiglia e arancio cotto sono ammessi **dentro un'illustrazione**, mai su un controllo o su uno stato, e solo su onboarding (primo passo e riepilogo), testata di Guida e FAQ, schermata Store non supportato e piede della colonna laterale in Home (§2.6, §8.13) | 31/07/2026 |
+| **A-16** | Colore di brand dentro l'app, per illustrazione | Deroga unica ad A-03: verde bottiglia e arancio cotto sono ammessi **dentro un'illustrazione**, mai su un controllo o su uno stato, e solo su onboarding (primo passo e riepilogo), testata di Guida e FAQ e piede della colonna laterale in Home (§2.6, §8.13) | 31/07/2026 |
 | **A-17** | Riduzione per la nav dell'Admin | A 16 px usa una tessera monocromatica `14 × 8,8` nelle proporzioni canoniche, con contorno e fascia superiore ma senza sigla. La semplificazione mantiene leggibile il segno ed evita la resa schiacciata della precedente variante `14 × 7,5` | 24/08/2026 |
 
 ### 11.2 Nota sulla dark mode
