@@ -6,6 +6,13 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.2.1 — 4 settembre 2026
+
+- il contenuto iniziale dell’app resta visibile al primo paint, senza animazioni
+  da opacità zero che possono impedire o ritardare la misurazione del LCP;
+- le transizioni tra pagine restano attive e un test Chromium verifica il LCP
+  in un documento nuovo alle larghezze desktop e mobile.
+
 ## 1.2.0 — 4 settembre 2026
 
 - Home, onboarding, prova, billing e gestione del controllo sono disponibili

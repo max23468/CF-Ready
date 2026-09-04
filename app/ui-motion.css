@@ -36,7 +36,6 @@
 
 @keyframes cf-content-enter {
   from {
-    opacity: 0;
     transform: translateY(4px) scale(0.995);
   }
 }
@@ -50,7 +49,8 @@
     animation: cf-page-enter var(--cf-motion-duration-base) var(--cf-motion-ease-out) both;
   }
 
-  .app-route-surface,
+  /* Il primo paint resta visibile e misurabile come LCP. Le transizioni tra pagine
+     sono già gestite dalle View Transitions, senza nascondere l'intero documento. */
   .cf-motion-reveal,
   .cf-motion-swap {
     animation: cf-content-enter var(--cf-motion-duration-base) var(--cf-motion-ease-out) both;
