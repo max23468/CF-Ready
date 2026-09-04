@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.2.0 — 4 settembre 2026
+
+- Home, onboarding, prova, billing e gestione del controllo sono disponibili
+  agli store di qualunque Paese: la sede non è più un gate operativo;
+- l’applicabilità resta nel singolo checkout Shopify, dove la Function usa
+  consegna, fatturazione e localized fields italiani senza creare campi assenti;
+- le precedenti righe `blocked_country` tornano attive alla prima
+  riconciliazione, senza cambiare autonomamente lo stato della Validation;
+- listing, sito, termini, guide e istruzioni reviewer dichiarano lo stesso
+  perimetro e le condizioni su fatturazione, consegna e campi presenti.
+
 ## 1.1.8 — 3 settembre 2026
 
 - i test statici del sorgente sono sostituiti da verifiche comportamentali sui

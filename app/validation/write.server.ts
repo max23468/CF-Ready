@@ -4,7 +4,7 @@ import {
   readCommercialInputs,
   syncCommercialEntitlement,
 } from "../billing/commercial-entitlement.server";
-import { ELIGIBLE_COUNTRY, readConfig } from "../config";
+import { readConfig } from "../config";
 import type { CheckoutConfig, Entitlement } from "../config";
 import { configHash, observedConfigHash } from "./domain";
 import {
@@ -53,8 +53,6 @@ export async function writeValidation(
   try {
     const data = await queryContext(admin);
     const countryCode = data.shop.shopAddress.countryCodeV2;
-    const eligible = countryCode === ELIGIBLE_COUNTRY;
-    if (enable && !eligible) return { ok: false, errorCode: "country_not_eligible" };
 
     const existing = findValidation(data.validations.nodes);
 
@@ -146,7 +144,6 @@ export async function writeValidation(
       await persistValidationState(db, shopDomain, {
         displayName: data.shop.name,
         countryCode,
-        eligible,
         validation: existing,
         errorCode,
       });
@@ -164,7 +161,6 @@ export async function writeValidation(
     await persistValidationState(db, shopDomain, {
       displayName: data.shop.name,
       countryCode,
-      eligible,
       validation: readback,
       errorCode: consistent ? null : "validation_readback_failed",
     });

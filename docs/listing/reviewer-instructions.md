@@ -1,8 +1,9 @@
 # Reviewer instructions
 
 Written for the Shopify App Store reviewer, in English, to be pasted into the
-submission form. The functional walkthrough is reproducible on any Italian
-development store. During App Store review, approve the paid plan in step 10:
+submission form. The functional walkthrough is reproducible on a development
+store whose checkout shows the Italian localized fields with Italian billing
+and delivery. During App Store review, approve the paid plan in step 10:
 Shopify may mark the reviewer transaction as a test, while ordinary Production
 stores are still charged normally.
 
@@ -13,7 +14,7 @@ is not translated.
 
 ## 1. What the app does, in one paragraph
 
-Italian merchants who invoice their B2C orders need the customer's **Codice
+Merchants who invoice Italian B2C orders may need the customer's **Codice
 Fiscale**, the Italian tax code. Shopify already shows the Italian localized tax
 fields at checkout (`TAX_CREDENTIAL_IT` and `TAX_EMAIL_IT`) but cannot make them
 required or check what was typed. CF Ready configures a single Cart and Checkout
@@ -35,21 +36,19 @@ test store is a requirement of Payment apps (5.2.1), not of a regular app.
 
 | Item | Value |
 | --- | --- |
-| Store | any development store whose country and address are in **Italy** |
-| Store country | Italy — the app declares a non-Italian store ineligible and starts neither a trial nor a charge |
+| Store | any development store whose checkout shows `TAX_CREDENTIAL_IT` and `TAX_EMAIL_IT`; an Italian store with Italian billing and delivery is the known reproducible setup |
+| Store country | unrestricted — it does not gate Home, trial, billing or the Validation |
 | Plan | Basic — the app requires no Shopify Plus and no plan-specific feature |
 | Product | any published product with stock; the app does not read the catalogue |
 | Billing | Use the 14-day trial for steps 1–9. In step 10, choose and approve a paid plan; Shopify may mark the reviewer transaction as a test, while ordinary Production stores receive real manual-pricing charges |
 
-The instruction pasted in the submission form leads with the Italian store
-requirement, because that is the one condition without which none of the steps
-below can be reproduced — and a store that is not Italian would make the app
-look broken rather than ineligible by design.
+The instruction pasted in the submission form leads with a checkout where both
+fields are visible so every test is reproducible. A non-Italian store still has
+full access to the app.
 
 ## 3. Setting the address
 
-The Italian tax fields only appear when Shopify has an **Italian delivery**.
-Use an Italian shipping address at checkout:
+Use Italian billing and shipping addresses at checkout:
 
 ```
 Via Roma 1
@@ -57,8 +56,11 @@ Via Roma 1
 Italy
 ```
 
-With any non-Italian address, Shopify does not show the fields and CF Ready
-never blocks — that behaviour is intentional and is covered in step 5 below.
+The Function applies rules when billing is Italian or not yet available and at
+least one delivery is Italian. If no delivery country is available, as can
+happen with digital products or pickup, it checks only Italian tax fields that
+are present. Foreign billing or only foreign deliveries remain excluded and are
+covered in step 8 below.
 
 ## 4. Test values
 
@@ -87,7 +89,7 @@ Each step is independent; run them in order the first time.
 | 5 | Checkout with an Italian address, leaving the tax code empty | Checkout is blocked with the configured message |
 | 6 | Enter `RSSMRA85T10A562X` | Blocked: the format is wrong |
 | 7 | Enter `RSSMRA85T10A562S` | Checkout completes |
-| 8 | Checkout with a non-Italian address | The Italian fields are not shown and checkout completes — a foreign customer is never blocked |
+| 8 | Checkout with foreign billing or only foreign deliveries | CF Ready returns no errors and checkout completes; Shopify independently controls field visibility |
 | 9 | Set PEC to **Required** as well, repeat with `mario.rossi@pec` then `mario.rossi@example.com` | Blocked, then allowed. The two rules are independent |
 | 10 | On the Home, choose a paid mode and approve it on Shopify's approval screen | The amount and billing interval match the selected mode. After Shopify redirects back to the app, the Home shows the active plan and the **Turn on in checkout** action is available. Shopify may mark the transaction as a test during review; ordinary Production stores are still charged normally (D-129) |
 | 11 | Turn the check off | The checkout stops being affected and the configuration is kept, so nothing has to be reconfigured |
@@ -103,11 +105,13 @@ Each step is independent; run them in order the first time.
   checkouts.
 - **The app never blocks on its own failure.** If the configuration cannot be
   read, if the entitlement has lapsed, or on any runtime error, checkout stays
-  open. A required field that is genuinely missing blocks only when Shopify
-  exposes at least one Italian delivery; with no observable delivery the app
-  stays open.
-- **A non-Italian store is refused up front.** The app says the store is not
-  eligible and starts neither a trial nor a payment.
+  open. With Italian or not-yet-available billing and at least one Italian
+  delivery, a required field that is absent blocks with a global error. If no
+  delivery country is available, only fields that are present are checked and
+  an absent field remains fail-open.
+- **Store country is not an eligibility gate.** Non-Italian stores can use the
+  Home, trial, billing and Validation. Only the checkout context determines
+  whether the rules apply.
 - **The trial runs once per store.** Uninstalling and reinstalling does not
   grant a second trial, and an existing one-time purchase is recognised again.
 

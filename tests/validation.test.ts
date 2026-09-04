@@ -223,6 +223,60 @@ test("il heartbeat ritenta dopo un errore D1 transitorio", async () => {
   }
 });
 
+test("il heartbeat segnala e assorbe una lease non rinnovabile", async () => {
+  vi.useFakeTimers();
+  const unavailableDb = {
+    prepare: () => ({
+      bind: () => ({
+        first: async () => {
+          throw new Error("D1 non disponibile");
+        },
+      }),
+    }),
+  } as unknown as D1Database;
+  const heartbeat = startValidationLockHeartbeat(
+    unavailableDb,
+    "heartbeat-failed.example.myshopify.com",
+    "owner",
+  );
+
+  try {
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(await heartbeat.isHeld()).toBe(false);
+    await expect(heartbeat.stop()).resolves.toBeUndefined();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("il heartbeat fermato ignora un callback timer già accodato", async () => {
+  const renew = vi.fn(async () => ({ owner_token: "owner" }));
+  let tick = () => undefined;
+  const interval = vi.spyOn(globalThis, "setInterval").mockImplementation((handler) => {
+    tick = handler as () => undefined;
+    return 1 as unknown as ReturnType<typeof setInterval>;
+  });
+  const clear = vi.spyOn(globalThis, "clearInterval").mockImplementation(() => undefined);
+  const db = {
+    prepare: () => ({ bind: () => ({ first: renew }) }),
+  } as unknown as D1Database;
+
+  try {
+    const heartbeat = startValidationLockHeartbeat(
+      db,
+      "heartbeat-stopped.example.myshopify.com",
+      "owner",
+    );
+    await heartbeat.stop();
+    tick();
+    expect(await heartbeat.isHeld()).toBe(true);
+    expect(renew).not.toHaveBeenCalled();
+  } finally {
+    interval.mockRestore();
+    clear.mockRestore();
+  }
+});
+
 test("la lease condivisa resta posseduta durante un'operazione lunga", async () => {
   vi.useFakeTimers();
   const shop = "heartbeat-lock.example.myshopify.com";
@@ -295,7 +349,6 @@ async function seedShop(shop: string, { trial = true }: { trial?: boolean } = {}
     .run();
   if (trial) {
     await startTrial(env.DB, shop, {
-      eligible: true,
       today: localDate("Europe/Rome"),
     });
   }
@@ -307,6 +360,7 @@ function stubAdmin({
   billing = { subscription: null, oneTime: null, pendingOneTime: false },
   billingError = false,
   cancelErrors = [],
+  countryCode = "IT",
   onBillingRead,
   readback,
 }: {
@@ -315,6 +369,7 @@ function stubAdmin({
   billing?: ShopifyBilling;
   billingError?: boolean;
   cancelErrors?: { message: string }[];
+  countryCode?: string;
   onBillingRead?: () => Promise<void>;
   readback?: (config: CheckoutConfig) => CheckoutConfig;
 }) {
@@ -346,7 +401,7 @@ function stubAdmin({
               shop: {
                 name: "CF Ready Dev",
                 ianaTimezone: "Europe/Rome",
-                shopAddress: { countryCodeV2: "IT" },
+                shopAddress: { countryCodeV2: countryCode },
               },
               validations: {
                 nodes: node ? [node] : [],
@@ -976,7 +1031,7 @@ test("una Validation spenta non si attiva senza diritto valido", async () => {
   expect(calls).toHaveLength(0);
 });
 
-test("la scrittura espone lock occupato, paese non idoneo e richiesta vuota", async () => {
+test("la scrittura espone lock occupato, supporta store esteri e rifiuta richieste vuote", async () => {
   const lockedShop = "write-locked.example.myshopify.com";
   await seedShop(lockedShop);
   await acquireValidationLock(env.DB, lockedShop, Date.now(), "altro-owner");
@@ -992,24 +1047,10 @@ test("la scrittura espone lock occupato, paese non idoneo e richiesta vuota", as
 
   const foreignShop = "write-fr.example.myshopify.com";
   await seedShop(foreignShop);
-  const foreignAdmin = {
-    graphql: vi.fn(async () =>
-      Response.json({
-        data: {
-          shop: {
-            name: "Store francese",
-            ianaTimezone: "Europe/Paris",
-            plan: { partnerDevelopment: false },
-            shopAddress: { countryCodeV2: "FR" },
-          },
-          validations: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
-        },
-      }),
-    ),
-  };
-  expect(await writeValidation(foreignAdmin, env.DB, foreignShop, null, true)).toEqual({
-    ok: false,
-    errorCode: "country_not_eligible",
+  const foreign = stubAdmin({ countryCode: "FR" });
+  expect(await writeValidation(foreign.admin, env.DB, foreignShop, null, true)).toEqual({
+    ok: true,
+    enabled: true,
   });
 
   const emptyShop = "write-empty.example.myshopify.com";

@@ -40,7 +40,7 @@ export function SetupGuide({
       action: firstRun ? (
         <s-stack direction="inline" gap="base">
           <s-button
-            disabled={busy || !data.eligible}
+            disabled={busy}
             loading={pendingIntent === "start_trial"}
             onClick={() => submit("start_trial", "setup")}
           >

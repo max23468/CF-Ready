@@ -28,7 +28,7 @@ checkout.
 | Handle | `cf-ready` |
 | Categoria primaria | Gestione del negozio → Finanze → Imposte |
 | Categoria secondaria | Marketing e conversione → Checkout → Checkout - Altro |
-| Requisito geografico | il merchant deve spedire in Italia |
+| Requisito geografico | nessun vincolo sul Paese dello store; decide il singolo checkout in base a fatturazione, consegna e campi fiscali italiani presenti |
 | Icona | `docs/brand/assets/png/icon-app-1200.png` |
 | Feature image | `docs/brand/assets/png/feature-image-it-1600.png` |
 
@@ -93,7 +93,7 @@ Da riportare nella listing con lo stesso rilievo dei benefici, non in coda.
 | Ordini misti | inclusi se almeno una consegna è in Italia |
 | Shopify POS | **non supportato** |
 | Generazioni ricorrenti degli abbonamenti | **non coperte** |
-| Store non italiani | l'app dichiara lo store non idoneo e non avvia prova né pagamento |
+| Store non italiani | supportati; regole attive con fatturazione non estera e consegna italiana, oppure sui soli campi presenti se manca un Paese di consegna |
 
 ## Prezzi e prova
 

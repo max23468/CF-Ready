@@ -4,7 +4,6 @@ export const APP_ERROR_CODES = [
   "charge_failed",
   "charge_pending",
   "config_conflict",
-  "country_not_eligible",
   "duplicate_validations",
   "duplicate_validations_active",
   "entitlement_readback_failed",
@@ -13,14 +12,11 @@ export const APP_ERROR_CODES = [
   "generic",
   "no_subscription",
   "one_time_already_active",
-  "store_not_supported",
   "subscription_cancel_failed",
   "trial_unavailable",
-  "validation_disable_failed",
   "validation_limit_reached",
   "validation_locked",
   "validation_readback_failed",
-  "validation_still_enabled",
   "validation_write_failed",
 ] as const;
 

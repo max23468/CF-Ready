@@ -13,7 +13,6 @@ test("il fence corrente consente la prima persistenza Validation", async () => {
   await persistValidationState(env.DB, shop, {
     displayName: "Prima revisione",
     countryCode: "IT",
-    eligible: true,
     validation: undefined,
     validationEnabled: false,
     errorCode: null,
@@ -42,7 +41,6 @@ test("una persistenza Home tardiva non sovrascrive una scrittura Validation succ
   await persistValidationState(env.DB, shop, {
     displayName: "Nome recente",
     countryCode: "IT",
-    eligible: true,
     validation: {
       id: "gid://shopify/Validation/new",
       title: "CF Ready",
@@ -56,7 +54,6 @@ test("una persistenza Home tardiva non sovrascrive una scrittura Validation succ
   await persistValidationState(env.DB, shop, {
     displayName: "Nome obsoleto",
     countryCode: "FR",
-    eligible: false,
     validation: undefined,
     validationEnabled: false,
     errorCode: "validation_write_failed",
