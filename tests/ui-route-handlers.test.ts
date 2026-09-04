@@ -411,3 +411,13 @@ test("Regole rifiuta valori estranei e conserva tutti i dati validi", async () =
     ),
   ).toEqual({ ok: false, errorCode: "config_conflict" });
 });
+
+test("il callback auth inoltra la richiesta a Shopify e propaga il rifiuto", async () => {
+  const { loader } = await import("../app/routes/auth.$");
+  const request = new Request("https://example.test/auth/callback?shop=demo.myshopify.com");
+  expect(await loader(args(request))).toBeNull();
+  expect(mocks.authenticateShopify).toHaveBeenCalledWith(request);
+  const denied = new Response(null, { status: 401 });
+  mocks.authenticateShopify.mockRejectedValueOnce(denied);
+  await expect(loader(args(request))).rejects.toBe(denied);
+});

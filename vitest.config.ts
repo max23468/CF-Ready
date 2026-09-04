@@ -35,6 +35,12 @@ export default defineConfig({
           "MIGRATION_ENTITLEMENT_DB",
           "MIGRATION_REVISION_DB",
           "MIGRATION_FULL_DB",
+          "MIGRATION_CONTRACTS_DB",
+          "MIGRATION_LEGACY_TRIALS_DB",
+          "MIGRATION_LEGACY_LEDGER_DB",
+          "MIGRATION_LEGACY_BILLING_DB",
+          "MIGRATION_CURSOR_NEW_DB",
+          "MIGRATION_CURSOR_EXISTING_DB",
         ],
         bindings: {
           TEST_MIGRATIONS: await readD1Migrations(path.join(root, "migrations")),

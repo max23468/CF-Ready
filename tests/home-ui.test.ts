@@ -657,9 +657,13 @@ test("i testi onboarding descrivono le regole attive senza contraddire lo stato 
     /fail-open|cinque minuti|niente parte|Shopify|campo mancante/i,
   );
   expect(it.rules.exceptions.join(" ")).not.toMatch(/Shopify|campo mancante/i);
-  expect(it.rules.exceptions).toEqual([
-    "Queste regole si applicano solo agli ordini con consegna e fatturazione in Italia.",
-  ]);
+  expect(it.rules.exceptions.join(" ")).toMatch(/fatturazione italiana o non ancora disponibile/i);
+  expect(it.rules.exceptions.join(" ")).toMatch(/senza.*consegna.*campi.*presenti/i);
+  const en = texts("en");
+  expect(en.rules.exceptions.join(" ")).toMatch(/Italian or not-yet-available billing/i);
+  expect(en.rules.exceptions.join(" ")).toMatch(/without.*delivery.*fields.*present/i);
+  expect(it.onboarding.step1Limits[1]).toBe(it.rules.exceptions[0]);
+  expect(en.onboarding.step1Limits[1]).toBe(en.rules.exceptions[0]);
   expect(it.onboarding.step4StartTrial).toBe(it.setup.startTrial);
 });
 

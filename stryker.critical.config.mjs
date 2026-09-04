@@ -1,4 +1,7 @@
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
 
 const policy = JSON.parse(
   readFileSync(new URL("./config/coverage-policy.json", import.meta.url), "utf8"),
@@ -40,6 +43,12 @@ export function criticalMutationConfig(domainName) {
     reporters: ["clear-text", "progress", "json"],
     jsonReporter: { fileName: `.coverage/mutation/${domainName}.json` },
     thresholds: { high: 95, low: threshold, break: threshold },
-    tempDirName: `.stryker-tmp/${domainName}`,
+    tempDirName: resolve(
+      tmpdir(),
+      "cf-ready-mutation",
+      createHash("sha256").update(process.cwd()).digest("hex").slice(0, 12),
+      domainName,
+    ),
+    ignorePatterns: [".stryker-tmp/**"],
   };
 }

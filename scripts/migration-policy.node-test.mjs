@@ -33,7 +33,7 @@ test("il registro rende immutabili e classifica tutte le migrazioni applicate", 
   }
 });
 
-test("Wrangler applica le 15 migrazioni in sequenza e il secondo passaggio è idempotente", () => {
+test("Wrangler applica le migrazioni in sequenza e il secondo passaggio è idempotente", () => {
   const persistenceDirectory = mkdtempSync(path.join(tmpdir(), "cf-ready-d1-migrations-"));
   const wrangler = path.join(root, "node_modules/wrangler/bin/wrangler.js");
   const run = () =>

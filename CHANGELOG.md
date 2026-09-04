@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.2.2 — 4 settembre 2026
+
+- rimossi il fallback runtime del cursore notifiche, wrapper, export e testi non usati;
+- il perimetro descritto in Home, onboarding e simulatore coincide con le condizioni
+  effettive su fatturazione, consegna e campi fiscali presenti;
+- la migrazione incrementale trasferisce una volta il cursore storico e impedisce
+  generazioni tariffarie fuori contratto, senza convertire dati commerciali;
+- lint e mutation escludono i sandbox temporanei; test e coverage proteggono
+  cursori, migrazione e limiti di paginazione.
+
 ## 1.2.1 — 4 settembre 2026
 
 - il contenuto iniziale dell’app resta visibile al primo paint, senza animazioni
