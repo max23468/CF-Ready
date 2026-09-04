@@ -136,7 +136,7 @@ export const it = {
       "CF Ready controlla Codice Fiscale e PEC nel checkout Shopify. Non modifica il tema, non aggiunge campi e non emette fatture.",
     step1Limits: [
       "Verifica solo il formato dei dati: non conferma l’identità del cliente né che un indirizzo sia davvero una PEC.",
-      "Le regole valgono solo con consegna e fatturazione in Italia.",
+      "Le regole valgono con fatturazione italiana o non ancora disponibile e almeno una consegna italiana. Senza un Paese di consegna, vengono controllati solo i campi fiscali italiani presenti.",
     ],
     step2Heading: "Scegli cosa controllare",
     step2Body: "Puoi cambiare queste scelte quando vuoi da Regole checkout.",
@@ -295,7 +295,6 @@ export const it = {
     notStartedBody:
       "Avvia la prova gratuita di 14 giorni per attivare le regole. Non richiede una carta e inizia solo quando la avvii.",
     startTrial: "Inizia la prova di 14 giorni",
-    startTrialDone: "Prova avviata.",
     orChoose: "Oppure scegli direttamente un piano.",
     monthlyStart: "Attiva il mensile",
     monthlySwitch: "Passa al mensile",
@@ -366,7 +365,7 @@ export const it = {
     },
     exceptionsHeading: "Quando si applicano",
     exceptions: [
-      "Queste regole si applicano solo agli ordini con consegna e fatturazione in Italia.",
+      "Le regole valgono con fatturazione italiana o non ancora disponibile e almeno una consegna italiana. Senza un Paese di consegna, vengono controllati solo i campi fiscali italiani presenti.",
     ],
     preventiveLabel: "Mostra avvisi preventivi nel checkout",
     preventiveHelp:

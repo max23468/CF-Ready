@@ -14,7 +14,11 @@
     {
       "name": "0003_app_state_webhooks_events.sql",
       "sha256": "8be8029f533ec9b8762cdd583fe366974db37d24fa0268a4b5dd930b71ca99db",
-      "protects": ["Validation operational state", "webhook outcome", "application event chronology"]
+      "protects": [
+        "Validation operational state",
+        "webhook outcome",
+        "application event chronology"
+      ]
     },
     {
       "name": "0004_trials.sql",
@@ -75,6 +79,11 @@
       "name": "0015_owner_notification_details.sql",
       "sha256": "8ad25af6c1a8807376d9f9f6f1d65e125b462f8493cac96063531336ba9bb833",
       "protects": ["public shop name for owner notifications"]
+    },
+    {
+      "name": "0016_current_contracts.sql",
+      "sha256": "ce7ec11cd2bc0b09f69ae621b2103520c6bc0fb11f1234cd433a8eeb8016ff80",
+      "protects": ["current pricing domain", "one-time notification cursor transition"]
     }
   ]
 }

@@ -1515,6 +1515,14 @@ istante sorgente, stato di consegna, tentativi e claim; il corpo include dominio
 `dedupe_key` è un hash SHA-256 univoco della sorgente e non contiene in chiaro
 shop ID o GID Shopify. `owner_notification_state` conserva il checkpoint temporale
 del poll Partner e cursori monotoni sugli ID di `app_events` e `billing_events`.
+La migrazione `0016_current_contracts.sql` trasferisce una sola volta il precedente
+cursore temporale locale, se manca quello numerico. Il runtime legge soltanto il
+cursore numerico; la vecchia chiave rimane una ricevuta inerte. La stessa migrazione
+rifiuta generazioni pricing diverse da `launch` e `balanced` tramite trigger su
+insert e update, senza ricostruire le tabelle. Se esistono righe con `value`, la
+migrazione si interrompe senza convertirle: prima del deploy vanno riconciliate
+con la fonte commerciale autorevole.
+
 Ogni cursore avanza soltanto dopo una pagina completa; il poll Partner ripete una
 finestra di 24 ore, mentre i cursori locali non possono saltare una riga inserita
 in ritardo o con un timestamp arretrato. Chiavi semantiche condivise fra Partner e
@@ -1668,6 +1676,7 @@ non aggiorna checksum o contenuto di una voce esistente.
 | `0013_performance_samples.sql` | campioni Web Vitals minimizzati e deduplicati |
 | `0014_validation_state_revision.sql` | fence monotono dello stato Validation |
 | `0015_owner_notification_details.sql` | nome pubblico dello store nelle notifiche owner |
+| `0016_current_contracts.sql` | trasferimento una tantum del cursore notifiche e vincoli sulle generazioni pricing correnti |
 
 Il gate migrazioni usa binding D1 isolati per gli snapshot intermedi, applica
 la sequenza completa con Wrangler locale, verifica schema, vincoli, indici,

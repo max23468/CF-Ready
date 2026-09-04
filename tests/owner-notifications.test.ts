@@ -717,6 +717,28 @@ test("i confini Partner rifiutano configurazione, trasporto, JSON, payload ed ev
   await expect(
     pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher: repeatedCursor }),
   ).rejects.toThrow("partner_api_invalid_cursor");
+
+  let page = 0;
+  const endlessPages = vi.fn(async () =>
+    partnerResponse(
+      [
+        {
+          ...relationship("RELATIONSHIP_INSTALLED", "bounded.myshopify.com", "09:58"),
+          cursor: String(++page),
+        },
+      ],
+      true,
+    ),
+  );
+  await expect(
+    pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher: endlessPages }),
+  ).rejects.toThrow("partner_api_page_limit");
+  expect(endlessPages).toHaveBeenCalledTimes(100);
+  expect(
+    await env.DB.prepare(
+      "SELECT state_value FROM owner_notification_state WHERE state_key = 'partner_events_polled_at'",
+    ).first(),
+  ).toBeNull();
 });
 
 test("le opzioni predefinite di poll usano orologio e fetch globali senza effetti esterni", async () => {
@@ -1027,30 +1049,24 @@ test("delivery usa i default in assenza di notifiche e stabilizza errori non can
   ]);
 });
 
-test("il cursore legacy e uno stato numerico fuori range non saltano eventi nuovi", async () => {
-  const shop = await insertShop("cursore-legacy.myshopify.com");
+test("il cursore numerico fuori range riparte senza saltare eventi", async () => {
+  const shop = await insertShop("cursore.myshopify.com");
   const shopId = await shopIdFor(shop);
   await env.DB.batch([
-    env.DB.prepare(
-      `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
-       VALUES (?, 'app_installed', 'lifecycle', '2026-08-24T09:00:00.000Z')`,
-    ).bind(shopId),
-    env.DB.prepare(
-      `INSERT INTO owner_notification_state (state_key, state_value, updated_at)
-       VALUES ('local_notifications_polled_at', '2026-08-24T09:30:00.000Z', '2026-08-24T09:30:00.000Z')`,
-    ),
-    env.DB.prepare(
-      `INSERT INTO owner_notification_state (state_key, state_value, updated_at)
-       VALUES ('local_app_events_after_id', '999999999999999999999999', '2026-08-24T09:30:00.000Z')`,
-    ),
+    env.DB.prepare(`INSERT INTO owner_notification_state (state_key, state_value, updated_at)
+      VALUES ('local_notification_event_id', '999999999999999999999999', '2026-08-24T09:30:00.000Z')`),
+    env.DB.prepare(`INSERT INTO app_events (id, shop_id, event_name, event_class, occurred_at)
+      VALUES (10, ?, 'ignored_event', 'lifecycle', '2026-08-24T09:58:00.000Z')`).bind(shopId),
   ]);
-  await env.DB.prepare(
-    `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
-     VALUES (?, 'ignored_event', 'lifecycle', '2026-08-24T09:58:00.000Z')`,
-  )
-    .bind(shopId)
-    .run();
-  expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 0 });
+  expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({
+    inserted: 0,
+    localAfterId: 10,
+  });
+  expect(
+    await env.DB.prepare(
+      "SELECT state_value FROM owner_notification_state WHERE state_key = 'local_notification_event_id'",
+    ).first("state_value"),
+  ).toBe("10");
 });
 
 function partnerResponse(edges: unknown[], hasNextPage = false) {

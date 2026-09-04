@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, resolve } from "node:path";
+import { basename, dirname, resolve, sep } from "node:path";
 import test from "node:test";
 import coverageLibrary from "istanbul-lib-coverage";
 import {
@@ -269,6 +269,9 @@ test("i domini critici mantengono gate coverage e mutation separati", async () =
   for (const domainName of CRITICAL_MUTATION_DOMAINS) {
     const domain = repositoryPolicy.targets.criticalDomains.domains[domainName];
     const mutationConfig = criticalMutationConfig(domainName);
+    assert.deepEqual(mutationConfig.ignorePatterns, [".stryker-tmp/**"]);
+    assert.equal(mutationConfig.tempDirName.startsWith(`${process.cwd()}${sep}`), false);
+    assert.equal(basename(mutationConfig.tempDirName), domainName);
     assert.equal(domain.coverageActive, true);
     assert.equal(domain.mutationActive, true);
     assert.deepEqual(mutationConfig.mutate, domain.mutationFiles ?? domain.files);
