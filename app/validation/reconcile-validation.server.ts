@@ -1,5 +1,5 @@
 import type { AppErrorCode } from "../app-error";
-import { ELIGIBLE_COUNTRY, type Entitlement } from "../config";
+import type { Entitlement } from "../config";
 import { configWithEntitlement, entitlementDiffers } from "./domain";
 import { withValidationLock } from "./lock.server";
 import {
@@ -19,12 +19,10 @@ import {
 } from "./types";
 
 export type ValidationInventoryPhase = {
-  entitlementEnableOverride: boolean | undefined;
   errorCode: AppErrorCode | null;
   matches: Validation[];
   retryable: boolean;
   validation: Validation | undefined;
-  writeEntitlementOutsideEligible: boolean;
 };
 
 export async function reconcileValidationInventory(
@@ -32,7 +30,6 @@ export async function reconcileValidationInventory(
   db: D1Database,
   shopDomain: string,
   nodes: Validation[],
-  eligible: boolean,
 ): Promise<ValidationInventoryPhase> {
   let matches = validationsForApp(nodes);
 
@@ -45,39 +42,14 @@ export async function reconcileValidationInventory(
     }
   }
 
-  let validation = matches.length === 1 ? matches[0] : undefined;
-  let errorCode = duplicateValidationError(matches);
-  let retryable = false;
-  let writeEntitlementOutsideEligible = false;
-  let entitlementEnableOverride: boolean | undefined;
-
-  if (!eligible && validation?.enabled) {
-    const disableError = await disableForCountry(admin, db, shopDomain, validation.id);
-    errorCode = disableError;
-    retryable ||= disableError === "validation_locked";
-    const readback = await readValidationReadback(admin);
-    if (readback === null) {
-      errorCode ??= "validation_disable_failed";
-      writeEntitlementOutsideEligible = disableError !== null;
-    } else {
-      matches = readback;
-      validation = readback.length === 1 ? readback[0] : undefined;
-      errorCode = duplicateValidationError(readback) ?? errorCode;
-      if (validation?.enabled) errorCode ??= "validation_still_enabled";
-      writeEntitlementOutsideEligible = validation?.enabled === true;
-    }
-    if (writeEntitlementOutsideEligible) {
-      entitlementEnableOverride = disableError === null ? false : undefined;
-    }
-  }
+  const validation = matches.length === 1 ? matches[0] : undefined;
+  const errorCode = duplicateValidationError(matches);
 
   return {
-    entitlementEnableOverride,
     errorCode,
     matches,
-    retryable,
+    retryable: false,
     validation,
-    writeEntitlementOutsideEligible,
   };
 }
 
@@ -87,28 +59,15 @@ export async function reconcileValidationEntitlement(
   shopDomain: string,
   phase: ValidationInventoryPhase,
   entitlement: Entitlement,
-  eligible: boolean,
 ): Promise<ValidationInventoryPhase> {
   let { errorCode, matches, retryable, validation } = phase;
-  if (
-    !(eligible || phase.writeEntitlementOutsideEligible) ||
-    !validation ||
-    !entitlementDiffers(validation.metafield?.jsonValue, entitlement)
-  ) {
+  if (!validation || !entitlementDiffers(validation.metafield?.jsonValue, entitlement)) {
     return phase;
   }
 
-  const write = await writeEntitlement(
-    admin,
-    db,
-    shopDomain,
-    validation,
-    entitlement,
-    phase.entitlementEnableOverride,
-    !eligible,
-  );
+  const write = await writeEntitlement(admin, db, shopDomain, validation, entitlement);
 
-  if (!write.acquired || write.result === "country_changed") {
+  if (!write.acquired) {
     return { ...phase, errorCode: "validation_locked", retryable: true };
   }
 
@@ -133,11 +92,7 @@ export async function reconcileValidationEntitlement(
   return { ...phase, errorCode, matches, retryable, validation };
 }
 
-type EntitlementWriteResult =
-  | "country_changed"
-  | "entitlement_write_failed"
-  | "validation_locked"
-  | null;
+type EntitlementWriteResult = "entitlement_write_failed" | "validation_locked" | null;
 
 function writeEntitlement(
   admin: Admin,
@@ -145,14 +100,9 @@ function writeEntitlement(
   shopDomain: string,
   validation: Validation,
   entitlement: Entitlement,
-  forceEnabled?: boolean,
-  requireIneligible = false,
 ) {
   return withValidationLock<EntitlementWriteResult>(db, shopDomain, async (heartbeat) => {
     const context = await queryContext(admin);
-    if (requireIneligible && context.shop.shopAddress.countryCodeV2 === ELIGIBLE_COUNTRY) {
-      return "country_changed";
-    }
     const current = validationsForApp(context.validations.nodes).find(
       ({ id }) => id === validation.id,
     );
@@ -163,7 +113,7 @@ function writeEntitlement(
       variables: {
         id: current.id,
         validation: {
-          enable: forceEnabled ?? current.enabled,
+          enable: current.enabled,
           blockOnFailure: false,
           metafields: [
             {
@@ -181,28 +131,6 @@ function writeEntitlement(
     const result = (await response.json()) as MutationResult;
     return mutationError(result, "validationUpdate") ? "entitlement_write_failed" : null;
   }).catch(() => ({ acquired: true as const, result: "entitlement_write_failed" as const }));
-}
-
-// Fail-open: uno store non idoneo perde la Validation, non le vendite.
-async function disableForCountry(
-  admin: Admin,
-  db: D1Database,
-  shopDomain: string,
-  id: string,
-): Promise<AppErrorCode | null> {
-  const write = await withValidationLock<AppErrorCode | null>(db, shopDomain, async (heartbeat) => {
-    if (!(await heartbeat.isHeld())) return "validation_locked";
-    try {
-      const response = await admin.graphql(UPDATE_VALIDATION, {
-        variables: { id, validation: { enable: false, blockOnFailure: false } },
-      });
-      const result = (await response.json()) as MutationResult;
-      return mutationError(result, "validationUpdate") ? "validation_disable_failed" : null;
-    } catch {
-      return "validation_disable_failed";
-    }
-  });
-  return write.acquired ? write.result : "validation_locked";
 }
 
 async function disableDuplicateValidations(

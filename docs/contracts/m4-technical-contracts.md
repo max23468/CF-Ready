@@ -148,15 +148,13 @@ contengono testo Shopify né dati dello store.
 | `missing_admin_context` | `shop/update` senza sessione utilizzabile |
 | `reconcile_failed` | riconciliazione fallita in `afterAuth` |
 | `validation_locked` | lease per store non acquisibile |
-| `validation_disable_failed` | disattivazione geografica non riuscita |
-| `validation_still_enabled` | readback dopo disattivazione ancora attivo |
 | `validation_write_failed` | mutazione merchant rifiutata da Shopify |
 | `validation_readback_failed` | readback incoerente dopo una scrittura merchant |
 
 `session_decrypt_failed`, `app_event_write_failed` e `render_failed` esistono
 solo come eventi di log, non come stato persistito.
 
-## Riconciliazione e gate geografico
+## Riconciliazione e disponibilità geografica
 
 `reconcile(admin, db, shopDomain)` è l'unico punto che allinea Shopify e D1.
 Viene invocata a ogni autenticazione completata, all'apertura della Home, su
@@ -170,25 +168,25 @@ per installazione, finché non arriva una disinstallazione — mentre la
 riconciliazione gira a ogni autenticazione, perché è idempotente e costa una
 sola query Shopify.
 
-Effetti:
+Effetti correnti dalla `1.2.0`:
 
-1. legge paese dello store e Validation con il Function handle `cf-ready-validation`;
-2. se il paese non è `IT` e la Validation è attiva, la disattiva con lease e
-   readback; ogni errore resta fail-open e produce un codice stabile;
-3. aggiorna `shops.country_code` e `app_state`.
+1. legge Paese dello store e Validation con il Function handle `cf-ready-validation`;
+2. usa il Paese solo come dato diagnostico e non modifica la Validation in base
+   a sede, mercati o zone di spedizione;
+3. aggiorna `shops.country_code` e `app_state`;
+4. riporta ad `active` le eventuali righe storiche `blocked_country` create
+   prima di D-143, senza riattivare o disattivare la Validation.
 
 Transizioni di `installation_status` gestite da M4:
 
 | Da | A | Causa |
 | --- | --- | --- |
-| `active` | `blocked_country` | paese osservato diverso da `IT` |
-| `blocked_country` | `active` | ritorno a `IT`; la Validation **non** viene riattivata |
+| `blocked_country` | `active` | prima riconciliazione dopo D-143; la Validation resta nello stato Shopify osservato |
 | qualunque | `uninstalled` | `app/uninstalled` |
 | `uninstalled` | `active` | nuova sessione dopo reinstallazione |
 
-Una scrittura di sessione non altera `blocked_country` né `suspended`: solo uno
-store `uninstalled` torna `active`. È la regola che impedisce a un refresh
-token di annullare il blocco geografico.
+Una scrittura di sessione non altera `suspended`: solo uno store `uninstalled`
+torna `active`. `blocked_country` non viene più scritto dal runtime.
 
 ## Sessioni cifrate
 

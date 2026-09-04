@@ -11,7 +11,7 @@ ricevute operative.
 **Nome App Store pubblicato:** CF Ready - Codice Fiscale
 **Abbreviazione interna:** CFR  
 **Versione obiettivo:** `1.0.0`  
-**Distribuzione:** public app Shopify App Store, disponibile solo ai merchant in Italia  
+**Distribuzione:** public app Shopify App Store, disponibile agli store di qualunque Paese; l'applicabilità dipende dal singolo checkout
 **Stack vincolante:** Shopify React Router template, TypeScript, Polaris Web Components, App Bridge Web Components, Shopify Function, Cloudflare Workers, Queues, D1, R2 e GitHub Actions
 
 ---
@@ -141,7 +141,7 @@ Sono state omesse soltanto ripetizioni conversazionali e affermazioni superate d
 
 ## 3. Executive summary
 
-CF Ready risolve un problema circoscritto dei merchant italiani che devono emettere fattura elettronica per tutti o molti ordini B2C: Shopify espone nel checkout italiano i campi nativi **Codice Fiscale** e **PEC**, ma non consente al merchant di renderli obbligatori tramite la configurazione standard.
+CF Ready risolve un problema circoscritto dei merchant che devono raccogliere dati fiscali per gli ordini B2C italiani: Shopify può esporre nel checkout i campi nativi **Codice Fiscale** e **PEC**, ma non consente al merchant di renderli obbligatori tramite la configurazione standard.
 
 L’app:
 
@@ -183,9 +183,10 @@ CF Ready elimina questo attrito usando il campo fiscale nativo e una validazione
 
 Merchant con tutte le seguenti caratteristiche:
 
-- store Shopify con sede in Italia;
+- store Shopify che serve clienti in Italia, indipendentemente dal Paese della sede;
 - piano Basic, Grow, Advanced o Plus;
-- Online Store e checkout in cui Shopify espone i localized fields italiani;
+- Online Store e checkout web Shopify; fatturazione, consegna e campi fiscali
+  italiani presenti determinano l'applicabilità nel singolo checkout;
 - necessità operativa di emettere fattura elettronica per tutti o molti ordini B2C;
 - desiderio di rendere obbligatorio il Codice Fiscale senza modificare tema o carrello.
 
@@ -232,7 +233,8 @@ Rispetto alle alternative più ampie o invasive:
 
 ### 5.1 Incluso nella 1.0
 
-- Public app Shopify App Store per merchant italiani.
+- Public app Shopify App Store per merchant che gestiscono ordini italiani,
+  indipendentemente dal Paese dello store.
 - App embedded nell’Admin Shopify.
 - Cart and Checkout Validation Function in TypeScript.
 - Configurazione indipendente di Codice Fiscale e PEC.
@@ -308,7 +310,7 @@ Rispetto alle alternative più ampie o invasive:
 | ID | Decisione approvata | Motivazione o alternativa scartata |
 |---|---|---|
 | D-001 | Sviluppare direttamente una 1.0 completa per milestone, senza MVP pubblico ridotto. | L’app è verticale; la release esterna deve essere completa e production-ready. |
-| D-002 | Target: store con sede in Italia. | I localized fields e il caso d’uso sono italiani; riduce anomalie. |
+| D-002 | Target iniziale: store con sede in Italia. **Superata da D-143.** | I localized fields e il caso d’uso sono italiani; il vincolo sulla sede è stato poi rimosso perché non descrive il checkout effettivo. |
 | D-003 | Distribuzione come public app Shopify App Store. | Necessaria per usare Functions su tutti i piani. |
 | D-004 | Nessuna differenza per Shopify Plus. | Il prodotto deve offrire la stessa funzione su tutti i piani. |
 | D-005 | Niente Partita IVA. | Campo non affidabile per ordini nazionali e non obbligabile allo stesso modo su tutti i piani. |
@@ -348,8 +350,8 @@ Rispetto alle alternative più ampie o invasive:
 | D-039 | Nessuna pagina Diagnostica. | Solo banner semplici e riparazione automatizzata in Home. |
 | D-040 | Scope minimo iniziale: `write_validations`. | Nessun accesso a ordini, clienti, prodotti o inventario. |
 | D-041 | Autorizzazioni staff native Shopify, senza ruoli app. | Riduce complessità e rispetta le deleghe del merchant. |
-| D-042 | Store non italiano: schermata bloccata, niente prova, billing o Validation. | Il trial parte solo quando lo store diventa idoneo. |
-| D-043 | Assistenza disponibile anche nella schermata store non supportato. | Permette chiarimenti senza sbloccare funzionalità operative. |
+| D-042 | Store non italiano: schermata bloccata, niente prova, billing o Validation. **Superata da D-143.** | Il gate sulla sede è stato rimosso: il Paese dello store non determina l’applicabilità nel singolo checkout. |
+| D-043 | Assistenza disponibile anche nella schermata store non supportato. **Superata da D-143.** | La schermata è stata rimossa con il gate geografico; l’assistenza resta nella Guida. |
 | D-044 | Prova comune di 14 giorni senza scelta preventiva del piano. | Deve coprire anche chi intende acquistare una tantum. |
 | D-126 | La prova parte su richiesta esplicita del merchant, non all’apertura dell’app. | Deciso il 4 agosto 2026 provando l’app installata: trovarsi una prova già in corso senza averla chiesta toglie al merchant la scelta di quando cominciare a consumarla. |
 | D-127 | Nell’interfaccia merchant si dice «controllo nel checkout», mai «Validation» né «validazione». | Il termine tecnico non dice niente a chi vende: conta se le regole valgono per i suoi clienti. |
@@ -357,7 +359,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-129 | In Production gli addebiti sono reali dalla pubblicazione, non dal canary: `BILLING_TEST` vale `"false"`. | Con Manual pricing Production invia `test: false` perché i merchant devono essere addebitati, mentre Development mantiene le charge di test per il collaudo interno. La lettura non filtra però i diritti per quel flag: Shopify è autorevole e una risorsa restituita tra `activeSubscriptions`, o un acquisto in stato `ACTIVE`, resta valida anche quando l'ambiente di review la marca come test. Il reviewer approva quindi il piano e verifica il diritto dopo il redirect. Deciso il 4 agosto 2026 e corretto il 10 agosto 2026 dopo che la review Shopify ha dimostrato che filtrare una sottoscrizione attiva sul flag usato per crearla lasciava il piano inattivo. |
 | D-130 | Una sola voce visibile per rotta: Home compare una volta come `/app`, senza `rel="home"`. | Con `/app` dichiarata due volte — una voce visibile e una nascosta con `rel="home"` — arrivando alla Home da un link dentro una pagina l’Admin restava senza menu finché non si ricaricava. `rel="home"` non può conservare la voce perché App Bridge lo nasconde per contratto; non serve più dopo D-128, perché il titolo dell’app usa la radice predefinita `/` e quella radice inoltra già a `/app`. La prima correzione, pubblicata il 4 agosto 2026 senza riprodurre il difetto in un ambiente di prova, aveva rimosso la voce visibile invece del solo doppione. |
 | D-131 | Addebiti sempre in euro, senza adeguarsi alla valuta di fatturazione del merchant. | La valuta dell’addebito è quella inviata nel `currencyCode` e EUR è pienamente supportato: seguire `shopBillingPreferences` significherebbe costruire un listino per valuta per servire la coda dei merchant italiani non fatturati in euro, e rinunciare al prezzo unico che paga tutto il resto del pubblico. Per quella coda Shopify converte in fattura, come farebbe comunque visto che la vetrina della listing è in USD per limitazione della piattaforma. Deciso il 4 agosto 2026 sulle risposte del supporto Shopify riportate in §14.2. |
-| D-132 | Nessuno store né credenziali forniti al reviewer: l’app dichiara di non richiedere un account. | L’app è embedded e non ha login propri, e il requisito 4.5.5 è condizionale — «If your app requires login credentials». Fornire uno store con l’app preinstallata è un requisito delle Payment app (5.2.1), non delle app ordinarie, e il campo *Test account* del form vieta esplicitamente credenziali di store Shopify. Le istruzioni chiedono quindi al reviewer di installare su un proprio development store italiano, condizione messa in testa perché senza di essa l’app si dichiara non idonea e sembrerebbe rotta. Deciso il 4 agosto 2026, sostituendo il piano precedente di creare uno staff account e comunicare la password della vetrina. |
+| D-132 | Nessuno store né credenziali forniti al reviewer: l’app dichiara di non richiedere un account. | L’app è embedded e non ha login propri, e il requisito 4.5.5 è condizionale — «If your app requires login credentials». Fornire uno store con l’app preinstallata è un requisito delle Payment app (5.2.1), non delle app ordinarie, e il campo *Test account* del form vieta esplicitamente credenziali di store Shopify. Le istruzioni iniziali chiedevano un development store italiano; D-143 ha rimosso quella condizione. Il reviewer usa un checkout con fatturazione e consegna italiane in cui Codice Fiscale e PEC sono visibili. Deciso il 4 agosto 2026, aggiornato il 4 settembre 2026. |
 | D-133 | Consegnare il lavoro webhook a Cloudflare Queues dopo il claim D1 e prima dell'ACK. | Shopify richiede risposte rapide, ma `waitUntil` non garantisce retry durevoli: una coda nativa conserva disinstallazioni, redazioni e riconciliazioni fallite senza introdurre un secondo stato applicativo o un provider. Una DLQ finalizza gli errori e rimanda il messaggio alla coda primaria se D1 resta indisponibile, evitando eliminazioni silenziose. |
 | D-134 | Notificare all’owner tramite outbox D1 e bot Telegram dedicato l’intero ciclo merchant, commerciale e operativo: installazione, reinstallazione, disattivazione, disinstallazione, prova gratuita, onboarding completato, Validation attivata/disattivata, accettazione e attivazione del piano, cambio, disdetta, rifiuto, scadenza, sospensione e riattivazione. Ogni messaggio indica nome pubblico e dominio tecnico `.myshopify.com` dello store, stato operativo e piano interessato; le charge includono importo e cadenza. | La Partner API fornisce relazioni, nome pubblico e dettagli delle charge, ma non è l’unica sorgente di consegna: `app_events` e `billing_events`, derivati dai readback Shopify Admin, costituiscono il fallback durevole per relazioni osservate localmente e transizioni commerciali attive. I cursori locali monotoni per ID non dipendono dai timestamp; il poll Partner ripete le ultime 24 ore per assorbire ritardi di pubblicazione. Chiavi semantiche comuni rendono idempotenti le due fonti e i retry separano acquisizione e consegna. Nella chat privata sono ammessi soltanto nome pubblico e dominio dello store: nome dell’owner, email, dati checkout, shop ID e GID restano esclusi. Telegram riceve una Rich Message strutturata con tabelle compatte e pulsanti per aprire o copiare l’URL; i valori dinamici restano testo letterale, il rilevamento automatico delle entità è disattivato e `protect_content` è omesso, così copia, salvataggio e inoltro restano consentiti senza anteprime automatiche. Il cron Production gira ogni cinque minuti e la feature resta disattivata finché bot, chat e secret Partner non sono configurati. Development, checkout e merchant non ricevono notifiche. |
 | D-135 | Supportare concessioni omaggio permanenti assegnate manualmente dall’owner, inizialmente solo a `numisleo.myshopify.com`, senza creare o simulare una charge Shopify. | Lo store reale dell’owner deve poter eseguire il canary senza pagare la propria app. La concessione vive in una tabella D1 dedicata, è auditabile e revocabile, prevale sulla prova e viene copiata nel metafield come diritto `one_time`; la UI la distingue da un pagamento e non propone altri addebiti. Per evitare cancellazioni o rimborsi automatici, diventa operativa soltanto in assenza di un abbonamento Shopify attivo: l’eventuale abbonamento va prima disdetto tramite il normale flusso merchant. Deciso il 24 agosto 2026. |
@@ -368,6 +370,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-140 | M12 include una corsia organica coordinata fra sito pubblico e listing: il sito intercetta ricerche informative con quattro guide bilingui e prove visive reali, la listing resta la superficie di installazione. Si misurano soltanto aggregati privacy-first; nessun tracker custom, contenuto ricorrente o outreach. | L'acquisizione contribuisce alle 50 installazioni nette richieste da Built for Shopify senza trasformare KPI locali in gate paralleli. Canonical, hreflang, sitemap, 404 reale e readback automatici rendono la superficie verificabile; dominio personalizzato e nuove pagine arrivano solo dopo trazione misurata. Deciso il 1º settembre 2026. |
 | D-141 | Portare progressivamente al 95% statement, rami, funzioni e linee dell'intero codice eseguibile first-party, con pavimento del 90% per server/Worker, UI/route, script operativi e JavaScript pubblico; il bundle first-party della Shopify Validation Function arriva al 100% per file. Il gate parte con inventario canonico, diff coverage al 95% e ratchet senza regressioni; le soglie assolute diventano bloccanti solo quando ciascuna corsia le raggiunge. | Un singolo dato sui soli moduli importati nasconde sorgenti mai caricati e permette compensazioni fra runtime. I report separati confluiscono per percorso senza doppio conteggio, mentre SQL, configurazioni e contenuti non eseguibili mantengono prove di contratto dedicate. Deciso il 1º settembre 2026. |
 | D-142 | Attribuire ogni report Web Vitals alla rotta che ha avviato il documento e al relativo `Server-Timing`, conservando durate tecniche per tutti i loader merchant; gli asset fingerprinted sono immutabili per un anno. | App Bridge può consegnare il callback dopo una navigazione client: leggere allora la URL mescolava metrica e rotta, mentre il Navigation Timing restava quello iniziale. Congelare entrambi al montaggio rende il campione coerente; timing allowlistati separano Worker, Shopify e D1 senza contenuti merchant. I nomi hashati permettono cache lunga senza servire bundle obsoleti. Deciso il 2 settembre 2026 dopo misure Production separate fra shell Shopify e iframe. |
+| D-143 | Rendere CF Ready disponibile agli store di qualunque Paese e decidere l’applicabilità esclusivamente nel singolo checkout, senza gate amministrativo basato su sede, mercati o zone di spedizione. | La Function applica le regole quando la fatturazione è italiana o non ancora disponibile e almeno una consegna è italiana. Se nessuna consegna ha un Paese disponibile, come può accadere per digitali o ritiro, applica soltanto le regole dei localized fields italiani presenti. Non applica regole con fatturazione estera o consegne esclusivamente estere. `Shop.shipsToCountries` descrive solo i Paesi delle zone di spedizione e classificherebbe male digitali e ritiro; Markets richiederebbe più scope e non proverebbe il contesto del checkout. Il Paese dello store resta diagnostico. Le vecchie righe `blocked_country` tornano `active` alla prima riconciliazione. Deciso il 4 settembre 2026 per la `1.2.0`; supera D-002 e D-042 e la condizione geografica di D-132. |
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
@@ -454,11 +457,11 @@ Rispetto alle alternative più ampie o invasive:
 
 ## 7. Requisiti funzionali
 
-### 7.1 Idoneità e installazione
+### 7.1 Disponibilità e installazione
 
-**FR-001** — Al primo accesso l’app deve leggere il Paese dello store tramite GraphQL Admin API.
+**FR-001** — Al primo accesso l’app legge il Paese dello store tramite GraphQL Admin API soltanto per diagnostica, supporto e telemetria minimizzata.
 
-**FR-002** — Solo `IT` può:
+**FR-002** — Uno store di qualunque Paese può:
 
 - iniziare la prova;
 - accedere all’onboarding operativo;
@@ -466,19 +469,13 @@ Rispetto alle alternative più ampie o invasive:
 - creare o attivare la Validation;
 - scegliere un piano.
 
-**FR-003** — Uno store non italiano vede una schermata bilingue “Store non supportato” con:
+**FR-003** — L’app chiarisce che non crea né forza la comparsa dei localized fields. Con fatturazione italiana o non ancora disponibile e almeno una consegna italiana applica le regole anche a un campo obbligatorio assente; senza un Paese di consegna controlla soltanto `TAX_CREDENTIAL_IT` e `TAX_EMAIL_IT` presenti; con fatturazione estera o sole consegne estere non applica regole.
 
-- Paese rilevato;
-- spiegazione del requisito;
-- indicazione di controllare l’indirizzo store in Shopify;
-- link a Guida e FAQ;
-- azione “Contatta lo sviluppatore”.
+**FR-004** — Nessuno store viene bloccato o disinstallato automaticamente in base al Paese della sede, ai mercati o alle zone di spedizione.
 
-**FR-004** — Uno store bloccato non viene disinstallato automaticamente.
+**FR-005** — La prova non parte da sola: la avvia il merchant dalla procedura guidata o dalla Home. Finché non la chiede non si consuma alcun giorno, e chi preferisce può scegliere subito una modalità a pagamento saltandola.
 
-**FR-005** — La prova non parte da sola: la avvia il merchant, dalla procedura guidata o dalla Home, e solo su uno store idoneo. Finché non la chiede non si consuma alcun giorno, e chi preferisce può scegliere subito una modalità a pagamento saltandola.
-
-**FR-006** — Se uno store attivo cambia Paese e non è più italiano, l’app disabilita la Validation, preserva la configurazione e mostra un avviso.
+**FR-006** — Un cambio del Paese dello store aggiorna il dato diagnostico ma non disabilita la Validation né modifica prova, billing o configurazione.
 
 ### 7.2 Regole checkout
 
@@ -585,15 +582,14 @@ osservabile non generare errori per il campo assente.
 
 **FR-052** — “Attiva nel checkout”:
 
-1. verifica idoneità geografica;
-2. verifica trial o entitlement;
-3. valida configurazione e messaggi;
-4. crea la Validation se non esiste;
-5. altrimenti la abilita;
-6. scrive il metafield JSON;
-7. salva ID e hash in D1;
-8. verifica la risposta Shopify;
-9. mostra conferma.
+1. verifica trial o entitlement;
+2. valida configurazione e messaggi;
+3. crea la Validation se non esiste;
+4. altrimenti la abilita;
+5. scrive il metafield JSON;
+6. salva ID e hash in D1;
+7. verifica la risposta Shopify;
+8. mostra conferma.
 
 **FR-053** — “Disattiva nel checkout”:
 
@@ -926,7 +922,7 @@ flowchart LR
 | Trial comune | D1 | scadenza nel metafield |
 | Abbonamento/acquisto | Shopify Billing | stato normalizzato in D1 |
 | Sessioni/token | D1 | nessuna duplicazione |
-| Idoneità Paese | GraphQL Admin API | `shops.country_code` |
+| Paese dello store, solo diagnostico | GraphQL Admin API | `shops.country_code` |
 | Onboarding | D1 | nessuna fonte esterna |
 | Telemetria | D1/Workers Logs | aggregati interni |
 
@@ -1299,16 +1295,15 @@ La UI non deve presentare come certo uno stato locale vecchio: all’apertura de
 `Attiva nel checkout`:
 
 1. autentica la richiesta;
-2. verifica store italiano;
-3. verifica configurazione completa;
-4. verifica prova o licenza valida;
-5. acquisisce una lease D1 per store, rinnovata dal proprietario finché
+2. verifica configurazione completa;
+3. verifica prova o licenza valida;
+4. acquisisce una lease D1 per store, rinnovata dal proprietario finché
    l’operazione resta attiva e rilasciata come cleanup best-effort;
-6. verifica che non esista già la Validation CFR;
-7. crea una sola Validation con `validationCreate`, `blockOnFailure: false` e il metafield JSON nello stesso owner input supportato dalla versione corrente;
-8. verifica tramite readback che Validation e metafield coincidano;
-9. registra l’evento tecnico;
-10. mostra toast di conferma.
+5. verifica che non esista già la Validation CFR;
+6. crea una sola Validation con `validationCreate`, `blockOnFailure: false` e il metafield JSON nello stesso owner input supportato dalla versione corrente;
+7. verifica tramite readback che Validation e metafield coincidano;
+8. registra l’evento tecnico;
+9. mostra toast di conferma.
 
 Nessuna Validation viene creata alla sola installazione.
 
@@ -1404,7 +1399,7 @@ Una riga per store conosciuto.
 | `country_code` | text |
 | `shop_currency` | text nullable |
 | `billing_currency` | text nullable |
-| `installation_status` | `active`, `uninstalled`, `blocked_country`, `suspended` |
+| `installation_status` | `active`, `uninstalled`, `suspended`; `blocked_country` resta leggibile solo per migrare le righe create prima di D-143 |
 | `installed_at` | text |
 | `uninstalled_at` | text nullable |
 | `created_at` | text |
@@ -1434,20 +1429,20 @@ Indice su `shop_id`; eliminazione immediata su disinstallazione.
 
 #### `trials`
 
-Una prova per store idoneo.
+Una prova per store.
 
 | Campo | Tipo/logica |
 |---|---|
 | `shop_id` | primary key e foreign key |
 | `status` | `not_started`, `active`, `expired`, `converted` |
-| `eligible_at` | text |
+| `eligible_at` | text; nome storico della data in cui la prova è stata richiesta |
 | `started_at` | text nullable |
 | `ends_at` | text nullable |
 | `pricing_generation` | `launch`, `balanced` |
 | `created_at` | text |
 | `updated_at` | text |
 
-La riga nasce quando il merchant chiede la prova su uno store idoneo italiano, non all’apertura dell’app. Uno store non italiano non consuma la prova.
+La riga nasce quando il merchant chiede la prova, non all’apertura dell’app. Il Paese dello store non cambia durata, disponibilità o generazione tariffaria.
 
 #### `trial_ledger`
 
@@ -1718,10 +1713,10 @@ Non richiedere scope su:
 
 Ogni eventuale scope futuro richiede una decisione esplicita, motivazione, revisione privacy e nuova verifica App Store.
 
-L’idoneità geografica usa il dato dello store, non la cittadinanza del cliente:
+Il Paese dello store viene letto per diagnostica, supporto e telemetria, non per decidere se l’app può operare:
 
 ```graphql
-query ShopEligibility {
+query ShopDiagnostics {
   shop {
     shopAddress {
       countryCodeV2
@@ -1730,7 +1725,7 @@ query ShopEligibility {
 }
 ```
 
-Registrare il risultato normalizzato in D1, ma ricontrollarlo all’apertura e dopo `shop/update`.
+Registrare il risultato normalizzato in D1 e ricontrollarlo all’apertura e dopo `shop/update`. L’applicabilità geografica appartiene invece alla Function, che valuta il singolo checkout senza inferire la cittadinanza del cliente.
 
 ### 13.2 Autenticazione
 
@@ -1798,8 +1793,7 @@ Per ogni endpoint:
 #### `shop/update`
 
 - aggiorna il Paese osservato;
-- se il Paese non è più `IT`, disabilita la Validation in modo fail-open e marca `blocked_country`;
-- se torna `IT`, non riattiva automaticamente: rende nuovamente disponibile l’app e chiede attivazione esplicita.
+- non modifica Validation, prova, billing o configurazione in base al Paese.
 
 #### Webhook billing
 
@@ -1867,7 +1861,7 @@ Il prezzo in euro va quindi ripetuto nella descrizione dei piani, che è dentro
 Data di lancio provvisoria decisa il 30 luglio 2026: **1 settembre 2026**, con
 finestra Launch fino al **29 novembre 2026**. È il valore implementato in
 `app/billing.server.ts`; va riconfermato quando la data reale di lancio è nota,
-prima della `1.0.0`. Uno store che diventa idoneo prima dell'apertura della
+prima della `1.0.0`. Uno store che richiede la prova prima dell'apertura della
 finestra riceve comunque la generazione `launch`.
 
 Durante i primi 90 giorni:
@@ -1881,7 +1875,7 @@ Durante i primi 90 giorni:
 
 ### 14.4 Pricing generation acquisita
 
-- registrata quando lo store diventa idoneo alla prova;
+- registrata quando il merchant richiede la prova;
 - materializzata al primo acquisto;
 - mantenuta passando tra mensile, annuale e una tantum;
 - mantenuta finché esiste continuità commerciale;
@@ -1896,8 +1890,8 @@ una cancellazione ordinaria concorrente.
 
 ### 14.5 Prova comune
 
-1. Lo store italiano apre per la prima volta l’app.
-2. Parte automaticamente una prova completa di 14 giorni.
+1. Lo store apre per la prima volta l’app.
+2. Il merchant avvia esplicitamente una prova completa di 14 giorni.
 3. Non viene richiesto piano o metodo di pagamento.
 4. Il merchant può configurare e attivare la Validation.
 5. Può scegliere una modalità in qualsiasi momento.
@@ -2112,7 +2106,6 @@ Ordine dei contenuti:
    - prova in corso;
    - prova scaduta;
    - pagamento da approvare;
-   - store non supportato;
    - sincronizzazione necessaria.
 2. **Configurazione corrente**
    - Codice Fiscale;
@@ -2272,19 +2265,14 @@ lo stesso dato e che l’uso va rimosso in Impostazioni → Checkout. Deve dire
 esplicitamente che CF Ready non può leggere quell’impostazione e si basa sulla
 dichiarazione del merchant (D-125).
 
-### 15.8 Store non supportato
+### 15.8 Disponibilità geografica
 
-Schermata bilingue accessibile anche senza onboarding:
-
-- titolo `Store non supportato`;
-- Paese rilevato;
-- requisito `IT`;
-- indicazione di verificare l’indirizzo store in Shopify;
-- nessuna prova iniziata;
-- nessuna Validation;
-- nessun pagamento;
-- accesso a FAQ;
-- `Contatta lo sviluppatore`.
+Non esiste una schermata di blocco basata sul Paese dello store. Home, onboarding,
+prova, billing e gestione della Validation restano disponibili ovunque. La UI
+spiega che CF Ready non crea i campi fiscali. Le regole si applicano con
+fatturazione italiana o non ancora disponibile e almeno una consegna italiana;
+senza un Paese di consegna, soltanto ai campi fiscali italiani presenti. Non si
+applicano con fatturazione estera o sole consegne estere.
 
 ### 15.9 Onboarding
 
@@ -3343,10 +3331,8 @@ Ne discendono tre conseguenze, recepite in FR-090 e §12.2:
   sotto non è una formalità.
 
 La casella è `cfready@icloud.com`, la stessa dichiarata nel sito pubblico e in
-`SECURITY.md`. Il collegamento compare in due punti: nella colonna laterale di
-Guida e FAQ, che è il percorso ordinario, e nella schermata Store non supportato
-(§15.8, D-043), dove il merchant ha bisogno di un chiarimento proprio perché non
-può usare l’app. Il Support Link Shopify apre la stessa Guida. La Guida non
+`SECURITY.md`. Il collegamento compare nella colonna laterale di Guida e FAQ.
+Il Support Link Shopify apre la stessa Guida. La Guida non
 rilegge Shopify per comporre il messaggio: allega il solo stato tecnico D1 già
 riconciliato, mentre la Home aggiunge il Paese rilevato. L’obiettivo di
 risposta dichiarato al merchant è di un giorno lavorativo; resta un
@@ -3680,7 +3666,7 @@ bloccare vendite legittime.
 - tab lingua messaggi;
 - reset separato per lingua;
 - attivazione/disattivazione;
-- store non italiano;
+- store non italiano con Home e onboarding disponibili;
 - prova a 7/3/1/0 giorni;
 - pagina billing;
 - errore di sincronizzazione;
@@ -3738,14 +3724,15 @@ assenza non blocca M10, ma mantiene chiuso il gate di pubblicazione `1.0.0`.
 
 - public app;
 - Shopify App Store;
-- disponibile solo ai merchant in Italia;
+- disponibile ai merchant di qualunque Paese;
 - nessuna custom distribution;
 - nessun requisito Plus;
 - listing pubblicata inizialmente con visibilità limitata dopo approvazione;
 - visibilità completa attivata dall'owner il 25 agosto 2026, senza anticipare la
   chiusura dei criteri Controlled Launch.
 
-Il controllo interno del Paese resta obbligatorio anche con filtro geografico della listing.
+La listing non applica un filtro geografico. Il Paese dello store resta un dato
+diagnostico; l'applicabilità dipende dal singolo checkout secondo D-143.
 
 ### 24.2 Identità listing
 
@@ -3816,7 +3803,7 @@ Durata target: 3–5 minuti. Inglese o sottotitoli inglesi.
 Scaletta:
 
 1. installazione;
-2. store italiano;
+2. disponibilità su store di qualunque Paese;
 3. onboarding;
 4. CF obbligatorio;
 5. PEC;
@@ -3835,7 +3822,8 @@ Il video promozionale pubblico resta facoltativo.
 Fornire:
 
 - nessuno store né credenziali: il reviewer installa l'app su un proprio
-  development store italiano, come stabilito in D-132;
+  development store e configura fatturazione e consegna italiane in un checkout
+  in cui Codice Fiscale e PEC sono visibili;
 - prodotto testabile;
 - come impostare indirizzi;
 - CF sintetici validi/non validi;
@@ -4274,6 +4262,10 @@ chiuso con residuo accettato, §34.7. Resta una sola conferma differita, non
 bloccante: il `shop/redact` reale atteso intorno al 1 agosto 2026, che deve
 lasciare intatto lo store reinstallato.
 
+Questo descrive la chiusura storica M4. D-143 rimuove il country gate nella
+`1.2.0`; la prima riconciliazione recupera le eventuali righe
+`blocked_country` senza modificare la Validation.
+
 Per decisione, restano fuori da M4: i webhook billing e le tabelle `trials`,
 `billing_accounts` e `billing_events` con M5, le colonne di onboarding di
 `app_state` con M6, `support_requests` con il modulo di supporto. Il limite
@@ -4444,8 +4436,8 @@ Decisioni prese durante la milestone:
 - **i testi legali stanno solo in `site/`** (§19.1), per non avere due copie
   dello stesso documento;
 - **le due promesse lasciate aperte da M6 sono chiuse**: la Guida indica la
-  casella di assistenza e offre il collegamento precompilato, e la schermata
-  Store non supportato ha il contatto sviluppatore previsto da §15.8 e D-043.
+  casella di assistenza e offre il collegamento precompilato; la schermata Store
+  non supportato consegnata in M7 è stata poi rimossa da D-143.
 
 Segnaposto lasciati nel sito, da sostituire nelle milestone indicate:
 
@@ -4765,7 +4757,7 @@ La `1.0.0` è accettabile quando:
 19. mensile, annuale e una tantum funzionano;
 20. conversione one-time applica la sequenza sicura;
 21. reinstallazione non genera nuova prova e riconosce one-time;
-22. store non italiano è bloccato senza prova/pagamento;
+22. store non italiano può usare prova, billing e Validation; i checkout non pertinenti restano esclusi;
 23. app e sito sono IT/EN;
 24. nessun dato fiscale raggiunge Cloudflare o log;
 25. webhook sono firmati e idempotenti;
@@ -4988,7 +4980,6 @@ Claude Code prende ownership di:
 - prova 7/3/1/0 giorni;
 - piano attivo;
 - pagamento pending/fallito;
-- store non supportato;
 - config non sincronizzata;
 - errore recuperabile;
 - nessuna connessione;
@@ -5063,15 +5054,13 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
    tra una licenza permissiva, copyleft o nessuna concessione resta
    esplicitamente all’owner; fino ad allora non si aggiunge `LICENSE` e vale
    D-120.
-7. **Conferma live del gate geografico** — rischio accettato il 30 luglio 2026.
-   Il paese dell’indirizzo del dev store è vincolato all’entità commerciale
-   dell’account: cambiarlo creerebbe una nuova entità e scollegherebbe i negozi
-   esistenti, danno sproporzionato rispetto alla prova. Nemmeno il canary M10
-   aiuta, perché lo store reale dell’owner è italiano. Il ramo resta coperto dai
-   test automatici, che verificano disattivazione, marcatura `blocked_country`,
-   fail-open sull’errore e mancata riattivazione al rientro. Il rischio residuo
-   è basso perché ogni errore del percorso è fail-open e non può bloccare
-   vendite. Si riapre solo se un merchant reale non italiano installa l’app.
+7. **Conferma live del gate geografico** — **chiusa il 4 settembre 2026 con
+   D-143**. La `1.2.0` rimuove il gate sul Paese dello store: non resta un ramo
+   geografico amministrativo da certificare. Restano da verificare su checkout
+   reali di uno store estero la comparsa dei localized fields italiani e gli
+   scenari digitali/ritiro. In ogni caso, la Function non crea campi: con una
+   consegna italiana tratta come mancante un campo obbligatorio assente; senza
+   un Paese di consegna controlla soltanto i campi presenti.
 8. **Rilevamento automatico del campo “Interno” usato come Codice Fiscale** —
    rimandato il 30 luglio 2026. Verificato sull’Admin API `2026-04`: né lo
    stato del campo (`Non includere` / `Facoltativo` / `Obbligatorio`) né la sua

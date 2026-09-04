@@ -295,7 +295,6 @@ async function seedShop(shop: string, { trial = true }: { trial?: boolean } = {}
     .run();
   if (trial) {
     await startTrial(env.DB, shop, {
-      eligible: true,
       today: localDate("Europe/Rome"),
     });
   }
@@ -307,6 +306,7 @@ function stubAdmin({
   billing = { subscription: null, oneTime: null, pendingOneTime: false },
   billingError = false,
   cancelErrors = [],
+  countryCode = "IT",
   onBillingRead,
   readback,
 }: {
@@ -315,6 +315,7 @@ function stubAdmin({
   billing?: ShopifyBilling;
   billingError?: boolean;
   cancelErrors?: { message: string }[];
+  countryCode?: string;
   onBillingRead?: () => Promise<void>;
   readback?: (config: CheckoutConfig) => CheckoutConfig;
 }) {
@@ -346,7 +347,7 @@ function stubAdmin({
               shop: {
                 name: "CF Ready Dev",
                 ianaTimezone: "Europe/Rome",
-                shopAddress: { countryCodeV2: "IT" },
+                shopAddress: { countryCodeV2: countryCode },
               },
               validations: {
                 nodes: node ? [node] : [],
@@ -976,7 +977,7 @@ test("una Validation spenta non si attiva senza diritto valido", async () => {
   expect(calls).toHaveLength(0);
 });
 
-test("la scrittura espone lock occupato, paese non idoneo e richiesta vuota", async () => {
+test("la scrittura espone lock occupato, supporta store esteri e rifiuta richieste vuote", async () => {
   const lockedShop = "write-locked.example.myshopify.com";
   await seedShop(lockedShop);
   await acquireValidationLock(env.DB, lockedShop, Date.now(), "altro-owner");
@@ -992,24 +993,10 @@ test("la scrittura espone lock occupato, paese non idoneo e richiesta vuota", as
 
   const foreignShop = "write-fr.example.myshopify.com";
   await seedShop(foreignShop);
-  const foreignAdmin = {
-    graphql: vi.fn(async () =>
-      Response.json({
-        data: {
-          shop: {
-            name: "Store francese",
-            ianaTimezone: "Europe/Paris",
-            plan: { partnerDevelopment: false },
-            shopAddress: { countryCodeV2: "FR" },
-          },
-          validations: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
-        },
-      }),
-    ),
-  };
-  expect(await writeValidation(foreignAdmin, env.DB, foreignShop, null, true)).toEqual({
-    ok: false,
-    errorCode: "country_not_eligible",
+  const foreign = stubAdmin({ countryCode: "FR" });
+  expect(await writeValidation(foreign.admin, env.DB, foreignShop, null, true)).toEqual({
+    ok: true,
+    enabled: true,
   });
 
   const emptyShop = "write-empty.example.myshopify.com";

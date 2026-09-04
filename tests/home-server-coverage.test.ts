@@ -127,7 +127,6 @@ test("la Home completa automaticamente un onboarding già effettivo", async () =
     shopName: "Negozio coverage",
     countryCode: "IT",
     today: "2026-09-02",
-    eligible: true,
     validation: {
       metafield: {
         jsonValue: {
@@ -195,19 +194,13 @@ test.each([
   await expect(action(actionRequest("repair"))).resolves.toEqual(expected);
 });
 
-test("la prova distingue omaggio, store non supportato, indisponibilità e successo", async () => {
+test("la prova distingue omaggio, indisponibilità e successo", async () => {
   const { action } = await import("../app/features/home/home.server");
 
   mocks.readComplimentaryEntitlement.mockResolvedValueOnce({ status: "active" });
   await expect(action(actionRequest("start_trial"))).resolves.toEqual({
     ok: false,
     errorCode: "one_time_already_active",
-  });
-
-  mocks.startTrial.mockResolvedValueOnce(null);
-  await expect(action(actionRequest("start_trial"))).resolves.toEqual({
-    ok: false,
-    errorCode: "store_not_supported",
   });
 
   mocks.startTrial.mockResolvedValueOnce({ status: "expired" });
@@ -263,14 +256,6 @@ test("l'acquisto rifiuta gli stati incompatibili prima di creare l'addebito", as
     errorCode: "one_time_already_active",
   });
 
-  mocks.queryContext.mockResolvedValueOnce({
-    shop: { name: "Fuori Italia", shopAddress: { countryCodeV2: "FR" }, ianaTimezone: "UTC" },
-  });
-  await expect(action(actionRequest("annual"))).resolves.toEqual({
-    ok: false,
-    errorCode: "country_not_eligible",
-  });
-
   mocks.readBilling.mockResolvedValueOnce({ oneTime: { id: "one" }, pendingOneTime: false });
   await expect(action(actionRequest("monthly"))).resolves.toEqual({
     ok: false,
@@ -315,6 +300,23 @@ test("l'acquisto gestisce risposta Shopify, lock e successo", async () => {
     ok: false,
     errorCode: "charge_failed",
   });
+});
+
+test("uno store estero può creare una charge", async () => {
+  mocks.queryContext.mockResolvedValueOnce({
+    shop: {
+      name: "Store francese",
+      shopAddress: { countryCodeV2: "FR" },
+      ianaTimezone: "Europe/Paris",
+    },
+  });
+
+  const { action } = await import("../app/features/home/home.server");
+  await expect(action(actionRequest("monthly"))).resolves.toEqual({
+    ok: true,
+    confirmationUrl: "https://shopify.test/approve",
+  });
+  expect(mocks.createCharge).toHaveBeenCalledOnce();
 });
 
 test("la cancellazione copre gli stati terminali, il lock e gli errori", async () => {

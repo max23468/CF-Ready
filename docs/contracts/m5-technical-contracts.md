@@ -23,8 +23,8 @@ innocuo — conta l'ultimo stato letto, non la sequenza degli avvisi.
 
 ## Prova
 
-Parte da sola quando uno store italiano diventa idoneo, senza piano né metodo di
-pagamento. Dura quattordici giorni contando il primo, e la scadenza è una data
+Parte soltanto quando il merchant la richiede, su store di qualunque Paese e
+senza piano né metodo di pagamento. Dura quattordici giorni contando il primo, e la scadenza è una data
 locale nel fuso dello store: è lo stesso riferimento che la Function confronta
 con `shop.localTime.date`, quindi l'ultimo giorno è incluso da entrambe le parti.
 
@@ -34,8 +34,8 @@ con `shop.localTime.date`, quindi l'ultimo giorno è incluso da entrambe le part
 | `expired` | scaduta senza pagamento |
 | `converted` | il merchant ha pagato prima della scadenza, i giorni residui sono rinunciati |
 
-Uno store non idoneo non crea la riga e quindi non consuma la prova. Una prova
-già fruita sopravvive alla cancellazione dei dati in `trial_ledger`, con
+Aprire l’app non crea la riga e quindi non consuma la prova. Una prova già
+fruita sopravvive alla cancellazione dei dati in `trial_ledger`, con
 l'HMAC-SHA-256 del dominio e un secret dedicato e stabile: dopo un `shop/redact`
 la reinstallazione la ritrova esaurita invece di ottenerne una nuova. La chiave
 non viene ruotata come una credenziale di sessione, perché perdere la versione
@@ -43,7 +43,7 @@ precedente renderebbe irriconoscibili le prove già registrate.
 
 ## Generazione tariffaria
 
-Acquisita quando lo store diventa idoneo e mantenuta durante la prova e finché
+Acquisita quando il merchant richiede la prova e mantenuta durante la prova e finché
 esiste continuità commerciale, anche passando fra le modalità. Dopo una
 cessazione completa, una nuova sottoscrizione acquisisce la generazione
 corrente. `launch` vale fino alla fine della finestra di lancio, poi

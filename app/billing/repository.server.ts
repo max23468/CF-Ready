@@ -10,13 +10,12 @@ import type {
   Trial,
 } from "./types";
 
-// La prova nasce solo su richiesta esplicita del merchant. Uno store non idoneo non la consuma.
+// La prova nasce solo su richiesta esplicita del merchant.
 export async function startTrial(
   db: D1Database,
   shopDomain: string,
-  { eligible, today }: { eligible: boolean; today: string },
+  { today }: { today: string },
 ): Promise<Trial | null> {
-  if (!eligible) return null;
   const existing = await readTrial(db, shopDomain);
   if (existing) return existing;
 

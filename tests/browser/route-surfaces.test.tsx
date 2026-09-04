@@ -81,7 +81,6 @@ const homeData = {
   shopDomain: "demo.myshopify.com",
   version: "1.1.4",
   countryCode: "IT",
-  eligible: true,
   validationEnabled: false,
   rules: { taxCode: "unmanaged", pec: "unmanaged" },
   errorDisplay: "inline",
@@ -284,11 +283,7 @@ describe("Home merchant", () => {
     expect(router.fetcher.submit).toHaveBeenCalledWith({ intent: "repair" }, { method: "post" });
   });
 
-  test("copre store escluso e stato attivo completo", async () => {
-    router.loaderData = { ...homeData, eligible: false, countryCode: "FR" };
-    const view = await mount(<HomePage />);
-    expect(view.container.textContent).toContain(texts("it").home.unsupportedBody);
-
+  test("copre lo stato attivo completo", async () => {
     router.loaderData = {
       ...homeData,
       entitlement: { kind: "subscription", validThrough: "2026-09-30" },
@@ -302,7 +297,7 @@ describe("Home merchant", () => {
       messagesDefault: false,
       firstChargeAt: "2026-09-10",
     };
-    await view.rerender(<HomePage />);
+    const view = await mount(<HomePage />);
     expect(view.container.textContent).toContain(texts("it").home.titleActive);
     const deactivate = [...view.container.querySelectorAll("s-button")].find((button) =>
       button.textContent?.includes(texts("it").home.deactivate),
