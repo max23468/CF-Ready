@@ -223,6 +223,60 @@ test("il heartbeat ritenta dopo un errore D1 transitorio", async () => {
   }
 });
 
+test("il heartbeat segnala e assorbe una lease non rinnovabile", async () => {
+  vi.useFakeTimers();
+  const unavailableDb = {
+    prepare: () => ({
+      bind: () => ({
+        first: async () => {
+          throw new Error("D1 non disponibile");
+        },
+      }),
+    }),
+  } as unknown as D1Database;
+  const heartbeat = startValidationLockHeartbeat(
+    unavailableDb,
+    "heartbeat-failed.example.myshopify.com",
+    "owner",
+  );
+
+  try {
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(await heartbeat.isHeld()).toBe(false);
+    await expect(heartbeat.stop()).resolves.toBeUndefined();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("il heartbeat fermato ignora un callback timer già accodato", async () => {
+  const renew = vi.fn(async () => ({ owner_token: "owner" }));
+  let tick = () => undefined;
+  const interval = vi.spyOn(globalThis, "setInterval").mockImplementation((handler) => {
+    tick = handler as () => undefined;
+    return 1 as unknown as ReturnType<typeof setInterval>;
+  });
+  const clear = vi.spyOn(globalThis, "clearInterval").mockImplementation(() => undefined);
+  const db = {
+    prepare: () => ({ bind: () => ({ first: renew }) }),
+  } as unknown as D1Database;
+
+  try {
+    const heartbeat = startValidationLockHeartbeat(
+      db,
+      "heartbeat-stopped.example.myshopify.com",
+      "owner",
+    );
+    await heartbeat.stop();
+    tick();
+    expect(await heartbeat.isHeld()).toBe(true);
+    expect(renew).not.toHaveBeenCalled();
+  } finally {
+    interval.mockRestore();
+    clear.mockRestore();
+  }
+});
+
 test("la lease condivisa resta posseduta durante un'operazione lunga", async () => {
   vi.useFakeTimers();
   const shop = "heartbeat-lock.example.myshopify.com";

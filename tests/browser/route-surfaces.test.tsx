@@ -572,7 +572,10 @@ describe("Messaggi", () => {
       problem: { locale: "it", key: "pecInvalid", kind: "empty" },
     };
     const view = await mount(<CustomerMessages />);
-    expect(view.container.querySelectorAll("s-text-area")).toHaveLength(4);
+    const fields = [...view.container.querySelectorAll("s-text-area")];
+    expect(fields).toHaveLength(4);
+    await dispatch(fields[0], new FocusEvent("focusin", { bubbles: true }));
+    await dispatch(fields[0], new FocusEvent("focusout", { bubbles: true }));
 
     router.actionData = { ok: false, errorCode: "validation_write_failed" };
     await view.rerender(<CustomerMessages />);
