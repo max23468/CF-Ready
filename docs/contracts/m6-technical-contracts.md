@@ -100,7 +100,6 @@ diretta.
 | Codice | Origine |
 | --- | --- |
 | `validation_limit_reached` | Shopify rifiuta la creazione perché lo store ha già il numero massimo di Validation Function attive (FR-098) |
-| `country_not_eligible` | operazione richiesta su uno store con indirizzo fuori dall'Italia |
 | `config_conflict` | la configurazione è cambiata fra l'apertura della pagina e il salvataggio: la scrittura non parte |
 | `duplicate_validations` | Shopify espone più Validation CF Ready, tutte disattivate |
 | `duplicate_validations_active` | Shopify espone più Validation CF Ready e almeno una è ancora attiva |

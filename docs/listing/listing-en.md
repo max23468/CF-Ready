@@ -27,7 +27,7 @@ for amounts, `extensions/cf-ready-validation/` for checkout behaviour.
 | Handle | `cf-ready` |
 | Primary category | Store management → Finances → Taxes |
 | Secondary category | Marketing and conversion → Checkout → Checkout - Other |
-| Geographic requirement | merchant must ship to Italy |
+| Geographic requirement | no store-country restriction; each checkout is decided from billing, delivery and Italian tax fields that are present |
 | Icon | `docs/brand/assets/png/icon-app-1200.png` |
 | Feature image | `docs/brand/assets/png/feature-image-en-1600.png` |
 
@@ -90,7 +90,7 @@ the end.
 | Mixed orders | included if at least one delivery is in Italy |
 | Shopify POS | **not supported** |
 | Recurring subscription generations | **not covered** |
-| Non-Italian stores | the app declares the store ineligible and starts neither trial nor payment |
+| Non-Italian stores | supported; rules apply with non-foreign billing and an Italian delivery, or only to present fields if no delivery country is available |
 
 ## Pricing and trial
 

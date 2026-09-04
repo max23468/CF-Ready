@@ -31,7 +31,7 @@ trasmettere, non un copione da leggere parola per parola.
 | # | Scena | Cosa si vede | Dice |
 | --- | --- | --- | --- |
 | 1 | Installazione | Installazione dall'Admin, schermata dei permessi, ingresso nell'app | Un solo permesso richiesto: `write_validations`. L'app non legge ordini, clienti o prodotti |
-| 2 | Store italiano | La verifica del Paese dello store | L'app opera sugli store italiani; su uno store non idoneo lo dichiara e non avvia nulla |
+| 2 | Disponibilità globale | La Home accessibile e il Paese dello store usato solo nella diagnostica | Il Paese dello store non blocca app, prova o pagamento. Le regole si applicano con fatturazione non estera e consegna italiana; senza un Paese di consegna, solo ai campi presenti |
 | 3 | Onboarding | La procedura guidata, senza saltarla | Poche scelte, e nessuna tocca il tema |
 | 4 | Codice Fiscale obbligatorio | Regole → Codice Fiscale su Obbligatorio → salva | Salvare la regola **non** attiva ancora il controllo: sono due passi separati apposta |
 | 5 | PEC | La seconda regola, indipendente | La PEC si può richiedere insieme o lasciare fuori |
@@ -39,7 +39,7 @@ trasmettere, non un copione da leggere parola per parola.
 | 7 | Attivazione | Attivazione dalla Home, con l'esito | Da qui in poi la regola vale nel checkout reale. Un solo controllo per store |
 | 8 | Checkout bloccato | Checkout con indirizzo italiano, campo vuoto, poi `RSSMRA85T10A562X` | Prima manca, poi è formalmente sbagliato: in entrambi i casi l'ordine non passa |
 | 9 | Checkout consentito | `RSSMRA85T10A562S`, ordine completato | Il controllo è formale: correttezza del codice, non appartenenza a una persona |
-| 10 | Cliente estero | Checkout con indirizzo non italiano | I campi italiani non compaiono e il cliente non viene mai bloccato |
+| 10 | Cliente estero | Checkout con fatturazione o sole consegne non italiane | CF Ready non produce errori; Shopify decide autonomamente se mostrare i campi italiani |
 | 11 | Billing | Scelta di una modalità a pagamento e ispezione della schermata di approvazione Shopify. Nella ripresa interna annulla una charge reale; il reviewer segue invece il passo 10 delle istruzioni e approva la propria transazione | Dopo l'approvazione reviewer, il ritorno alla Home mostra il piano attivo e rende disponibile l'azione checkout. Shopify può marcare quella transazione come test; gli store Production ordinari ricevono addebiti reali |
 | 12 | Disattivazione | Disattivazione dalla Home | Il checkout torna libero e la configurazione resta salvata |
 

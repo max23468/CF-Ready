@@ -7,10 +7,6 @@ import type { AppErrorCode } from "./app-error";
 // formattare gli importi senza importare un modulo server.
 export const CURRENCY = "EUR";
 
-// Idoneità geografica: è parte del contratto, non dell'I/O Shopify, e la UI deve poterla
-// dichiarare senza importare un modulo server.
-export const ELIGIBLE_COUNTRY = "IT";
-
 export type Entitlement = {
   kind: "trial" | "subscription" | "one_time" | "none";
   validThrough: string | null;

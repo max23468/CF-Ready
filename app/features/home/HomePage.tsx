@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useFetcher, useLoaderData, useLocation, useNavigate } from "react-router";
 import type { AppErrorCode } from "../../app-error";
-import { texts } from "../../i18n";
 import { openBillingApproval } from "../../revalidation";
 import type { HomeData, action } from "./home.server";
 import {
@@ -11,7 +10,6 @@ import {
 } from "./plan-comparison";
 import { useOnboardingWindowNavigation } from "./use-onboarding-window-navigation";
 import { useNativeReviewPrompt } from "./use-native-review-prompt";
-import { UnsupportedHome } from "./HomeSections";
 import { EligibleHome } from "./EligibleHome";
 import "./HomePage.css";
 
@@ -22,7 +20,6 @@ export default function HomePage() {
   const location = useLocation();
   const navigate = useNavigate();
   const fetcher = useFetcher<typeof action>();
-  const t = texts(data.locale);
   const result = fetcher.data as
     | { ok: boolean; errorCode?: AppErrorCode; confirmationUrl?: string }
     | undefined;
@@ -59,7 +56,7 @@ export default function HomePage() {
     );
   }, [location.state]);
 
-  return data.eligible ? (
+  return (
     <EligibleHome
       data={data}
       fetcherState={fetcher.state}
@@ -68,7 +65,5 @@ export default function HomePage() {
       submit={submit}
       onboardingWindowId={ONBOARDING_WINDOW_ID}
     />
-  ) : (
-    <UnsupportedHome data={data} t={t} />
   );
 }

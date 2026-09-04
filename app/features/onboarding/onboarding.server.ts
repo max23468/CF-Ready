@@ -4,7 +4,6 @@ import { authenticateAdmin } from "../../admin-auth.server";
 import { localDate, startTrial } from "../../billing.server";
 import {
   address2Declaration,
-  ELIGIBLE_COUNTRY,
   oneOf,
   parseOnboardingStep,
   readConfig,
@@ -96,10 +95,9 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     const { shop } = await queryContext(admin);
     await persistShopDisplayName(db, session.shop, shop.name);
     const trial = await startTrial(db, session.shop, {
-      eligible: shop.shopAddress.countryCodeV2 === ELIGIBLE_COUNTRY,
       today: localDate(shop.ianaTimezone),
     });
-    if (!trial) return { ok: false as const, errorCode: "store_not_supported" as const };
+    if (!trial) return { ok: false as const, errorCode: "trial_unavailable" as const };
     if (trial.status !== "active") {
       return { ok: false as const, errorCode: "trial_unavailable" as const };
     }

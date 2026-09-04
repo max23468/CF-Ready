@@ -4,7 +4,6 @@ import {
   readCommercialInputs,
   syncCommercialEntitlement,
 } from "../billing/commercial-entitlement.server";
-import { ELIGIBLE_COUNTRY } from "../config";
 import type { Entitlement } from "../config";
 import { recordEvent } from "../events.server";
 import { withValidationLock } from "./lock.server";
@@ -50,23 +49,17 @@ export async function reconcile(
     performance.now() - contextStartedAt,
   );
   const countryCode = shop.shopAddress.countryCodeV2;
-  const eligible = countryCode === ELIGIBLE_COUNTRY;
   const today = localDate(shop.ianaTimezone);
   let validationPhase = await reconcileValidationInventory(
     admin,
     db,
     shopDomain,
     validations.nodes,
-    eligible,
   );
   let { errorCode, retryable } = validationPhase;
 
   const commercialStartedAt = performance.now();
-  const billingPromise = eligible
-    ? snapshot
-      ? Promise.resolve(snapshot.billing)
-      : readBillingTimed()
-    : null;
+  const billingPromise = snapshot ? Promise.resolve(snapshot.billing) : readBillingTimed();
   const commercialInputs = await readCommercialInputs(db, shopDomain, today);
   reportTiming?.("d1_commercial", performance.now() - commercialStartedAt);
   const { trial, complimentary } = commercialInputs;
@@ -77,88 +70,85 @@ export async function reconcile(
   let complimentaryOperational = false;
   let entitlement: Entitlement = { kind: "none", validThrough: null };
 
-  if (eligible) {
-    try {
-      const initialBilling = await billingPromise!;
-      if (initialBilling.error) throw initialBilling.error;
-      let state = initialBilling.state!;
+  try {
+    const initialBilling = await billingPromise;
+    if (initialBilling.error) throw initialBilling.error;
+    let state = initialBilling.state!;
 
-      // Il diritto sostitutivo deve esistere prima di cancellare l'abbonamento.
-      const conversionReason = state.oneTime ? "one_time_purchased" : null;
-      if (conversionReason && state.subscription) {
-        conversionRequired = true;
-        const conversion = await withValidationLock(db, shopDomain, async (heartbeat) => {
-          const current = await readBilling(admin);
-          const replacementStillActive = Boolean(current.oneTime);
-          if (!replacementStillActive || !current.subscription) {
-            return { state: current, error: null, converted: false };
-          }
-          if (!(await heartbeat.isHeld())) {
-            return {
-              state: current,
-              error: "validation_locked",
-              converted: false,
-            };
-          }
-          const cancellationError = await cancelSubscription(admin, current.subscription.id, {
-            prorate: true,
-          });
-          const readback = cancellationError ? current : await readBilling(admin);
-          const error =
-            cancellationError ?? (readback.subscription ? "subscription_cancel_failed" : null);
+    // Il diritto sostitutivo deve esistere prima di cancellare l'abbonamento.
+    const conversionReason = state.oneTime ? "one_time_purchased" : null;
+    if (conversionReason && state.subscription) {
+      conversionRequired = true;
+      const conversion = await withValidationLock(db, shopDomain, async (heartbeat) => {
+        const current = await readBilling(admin);
+        const replacementStillActive = Boolean(current.oneTime);
+        if (!replacementStillActive || !current.subscription) {
+          return { state: current, error: null, converted: false };
+        }
+        if (!(await heartbeat.isHeld())) {
           return {
-            state: readback,
-            error,
-            converted: !error,
+            state: current,
+            error: "validation_locked",
+            converted: false,
           };
+        }
+        const cancellationError = await cancelSubscription(admin, current.subscription.id, {
+          prorate: true,
         });
+        const readback = cancellationError ? current : await readBilling(admin);
+        const error =
+          cancellationError ?? (readback.subscription ? "subscription_cancel_failed" : null);
+        return {
+          state: readback,
+          error,
+          converted: !error,
+        };
+      });
 
-        if (!conversion.acquired) {
-          errorCode ??= "validation_locked";
+      if (!conversion.acquired) {
+        errorCode ??= "validation_locked";
+        retryable = true;
+      } else {
+        state = conversion.result.state;
+        if (conversion.result.error) {
+          errorCode ??= parseAppErrorCode(conversion.result.error) ?? "subscription_cancel_failed";
           retryable = true;
-        } else {
-          state = conversion.result.state;
-          if (conversion.result.error) {
-            errorCode ??=
-              parseAppErrorCode(conversion.result.error) ?? "subscription_cancel_failed";
-            retryable = true;
-          } else if (conversion.result.converted) {
-            await recordEvent(db, {
-              shopDomain,
-              name: "subscription_converted",
-              class: "billing",
-              metadata: { reason: conversionReason },
-            });
-          }
+        } else if (conversion.result.converted) {
+          await recordEvent(db, {
+            shopDomain,
+            name: "subscription_converted",
+            class: "billing",
+            metadata: { reason: conversionReason },
+          });
         }
       }
-
-      creditEstimate = state.subscription
-        ? proratedCredit({
-            amount: state.subscription.amount,
-            interval: state.subscription.interval,
-            periodEnd: state.subscription.currentPeriodEnd,
-            today,
-          })
-        : null;
-
-      const commercial = await syncCommercialEntitlement(db, shopDomain, {
-        billing: state,
-        inputs: commercialInputs,
-        timeZone: shop.ianaTimezone,
-        today,
-      });
-      account = commercial.account;
-      billingConfirmed = true;
-      complimentaryOperational = commercial.complimentaryOperational;
-      entitlement = commercial.entitlement;
-    } catch {
-      // La cache resta disponibile alla UI, ma non concede diritti quando Shopify è incerto.
-      // Anche l'omaggio attende il readback: non deve mascherare un abbonamento attivo.
-      account = commercialInputs.account;
-      errorCode ??= "billing_read_failed";
-      retryable ||= conversionRequired || complimentary?.status === "active";
     }
+
+    creditEstimate = state.subscription
+      ? proratedCredit({
+          amount: state.subscription.amount,
+          interval: state.subscription.interval,
+          periodEnd: state.subscription.currentPeriodEnd,
+          today,
+        })
+      : null;
+
+    const commercial = await syncCommercialEntitlement(db, shopDomain, {
+      billing: state,
+      inputs: commercialInputs,
+      timeZone: shop.ianaTimezone,
+      today,
+    });
+    account = commercial.account;
+    billingConfirmed = true;
+    complimentaryOperational = commercial.complimentaryOperational;
+    entitlement = commercial.entitlement;
+  } catch {
+    // La cache resta disponibile alla UI, ma non concede diritti quando Shopify è incerto.
+    // Anche l'omaggio attende il readback: non deve mascherare un abbonamento attivo.
+    account = commercialInputs.account;
+    errorCode ??= "billing_read_failed";
+    retryable ||= conversionRequired || complimentary?.status === "active";
   }
 
   if (!billingConfirmed) entitlement = { kind: "none", validThrough: null };
@@ -169,7 +159,6 @@ export async function reconcile(
     shopDomain,
     { ...validationPhase, errorCode, retryable },
     entitlement,
-    eligible,
   );
   ({ errorCode, retryable } = validationPhase);
   const { matches, validation } = validationPhase;
@@ -181,7 +170,6 @@ export async function reconcile(
   const persistence = persistValidationState(db, shopDomain, {
     displayName: shop.name,
     countryCode,
-    eligible,
     validation,
     validationEnabled,
     errorCode,
@@ -209,7 +197,6 @@ export async function reconcile(
     countryCode,
     partnerDevelopment: shop.plan.partnerDevelopment,
     today,
-    eligible,
     validation,
     validationEnabled,
     trial,

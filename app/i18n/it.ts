@@ -17,8 +17,6 @@ export const it = {
       "Non è stato possibile salvare. Shopify non ha confermato la scrittura. Riapri la pagina per vedere lo stato reale.",
     validation_limit_reached:
       "Questo store ha già il numero massimo di controlli al checkout consentito da Shopify. Le tue regole restano salvate. Disattiva il controllo di un’altra app da Impostazioni → Checkout, poi riprova: CF Ready non tocca le risorse di altre app.",
-    country_not_eligible:
-      "CF Ready funziona solo con store che hanno l’indirizzo in Italia. Le regole restano salvate.",
     entitlement_required:
       "Inizia prima la prova o scegli come pagare: senza, il controllo resterebbe attivo ma senza effetto nel checkout.",
     config_conflict:
@@ -50,12 +48,6 @@ export const it = {
     titleDisabled: "Validazione disattivata",
     titleNotStarted: "Controllo non ancora attivo",
     titleLapsed: "Validazione attiva, piano non attivo",
-    unsupported: "Store non supportato",
-    unsupportedBody:
-      "CF Ready funziona solo con store che hanno l’indirizzo in Italia. Nessuna prova è iniziata, nessun controllo è stato creato e nessun pagamento è stato richiesto.",
-    unsupportedCheckAddress:
-      "Se lo store è italiano, controlla l’indirizzo in Impostazioni → Dettagli negozio: CF Ready legge il Paese da lì.",
-    unsupportedGuide: "La Guida spiega cosa fa l’app e quali sono i suoi limiti.",
     noEntitlement:
       "Senza un piano attivo il checkout non blocca più nulla. Regole e messaggi restano salvati e tornano validi con il pagamento.",
     syncNeeded:
@@ -229,11 +221,11 @@ export const it = {
       },
       {
         q: "Quando viene richiesto il Codice Fiscale",
-        a: "Quando lo imposti come obbligatorio e il cliente ha consegna e fatturazione in Italia. Sei tu a decidere se serve: CF Ready non stabilisce quando la tua attività deve raccoglierlo.",
+        a: "Quando lo imposti come obbligatorio, la fatturazione è italiana o non ancora disponibile e almeno una consegna è italiana. Se non è disponibile alcun Paese di consegna, come può accadere per prodotti digitali o ritiro, il controllo si applica solo se il campo Codice Fiscale è presente. Sei tu a decidere se serve: CF Ready non stabilisce quando la tua attività deve raccoglierlo.",
       },
       {
         q: "Perché un ordine è passato senza i dati richiesti",
-        a: "Le regole non si applicano con fatturazione estera o con sole consegne estere. Nei pagamenti rapidi, se Shopify espone una consegna italiana ma omette un campo obbligatorio, CF Ready mostra un errore generale e blocca il completamento; senza una consegna osservabile il campo assente resta fail-open, perché il cliente potrebbe non avere nulla da compilare.",
+        a: "Le regole non si applicano con fatturazione estera o con sole consegne estere. Con fatturazione italiana o non ancora disponibile e almeno una consegna italiana, un campo obbligatorio assente produce un errore generale. Se non è disponibile alcun Paese di consegna, vengono controllati soltanto i campi fiscali italiani presenti e un campo assente resta fail-open.",
       },
       {
         q: "Che cosa viene controllato sul Codice Fiscale",
@@ -257,7 +249,7 @@ export const it = {
       },
       {
         q: "Limitazioni e canali supportati",
-        a: "CF Ready funziona sul checkout web di Shopify e richiede uno store con indirizzo in Italia. Il controllo è solo formale, non anagrafico, e gli ordini creati fuori dal checkout, per esempio dal pannello, non ci passano. Le generazioni successive degli ordini ricorrenti in abbonamento non sono coperte.",
+        a: "CF Ready è disponibile per store di qualunque Paese e funziona sul checkout web di Shopify. Le regole si applicano con fatturazione italiana o non ancora disponibile e almeno una consegna italiana; senza un Paese di consegna, solo ai campi fiscali italiani presenti. Non si applicano con fatturazione estera o sole consegne estere. Il controllo è solo formale, non anagrafico, e gli ordini creati fuori dal checkout, per esempio dal pannello, non ci passano. Le generazioni successive degli ordini ricorrenti in abbonamento non sono coperte.",
       },
       {
         q: "Fatturazione elettronica, Partita IVA e Codice SDI",

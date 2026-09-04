@@ -7,7 +7,11 @@ perimetro della 1.0 e non sostituisce il
 M4 ha sostituito il percorso PoC con il lifecycle definitivo: il titolo della
 Validation è `CF Ready`, la guardia sul solo dev store è stata rimpiazzata dal
 gate geografico e il loader della Home passa dalla riconciliazione. Il codice
-corrente è in `app/validation.server.ts`.
+allora corrente era in `app/validation.server.ts`.
+
+D-143 ha poi rimosso il gate geografico amministrativo nella `1.2.0`: il Paese
+dello store è soltanto diagnostico e l'applicabilità viene decisa dalla Function
+nel singolo checkout. La descrizione sotto resta la ricevuta storica del PoC M1.
 
 ## Runtime e autenticazione
 

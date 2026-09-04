@@ -11,7 +11,6 @@ export async function persistValidationState(
   state: {
     displayName: string;
     countryCode: string;
-    eligible: boolean;
     validation: Validation | undefined;
     validationEnabled?: boolean;
     errorCode: AppErrorCode | null;
@@ -32,8 +31,7 @@ export async function persistValidationState(
            display_name = ?,
            country_code = ?,
            installation_status = CASE
-             WHEN ? = 0 AND installation_status = 'active' THEN 'blocked_country'
-             WHEN ? = 1 AND installation_status = 'blocked_country' THEN 'active'
+             WHEN installation_status = 'blocked_country' THEN 'active'
              ELSE installation_status
            END,
            updated_at = ?
@@ -45,8 +43,6 @@ export async function persistValidationState(
       .bind(
         safeStoreDisplayName(state.displayName),
         state.countryCode,
-        Number(state.eligible),
-        Number(state.eligible),
         now,
         shopDomain,
         state.expectedRevision ?? null,

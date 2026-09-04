@@ -18,7 +18,6 @@ import {
   syncTrial,
 } from "../../billing.server";
 import {
-  ELIGIBLE_COUNTRY,
   messagesAreDefault,
   onboardingCanAutoComplete,
   readConfig,
@@ -92,7 +91,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     shopDomain: session.shop,
     version: APP_VERSION,
     countryCode: state.countryCode,
-    eligible: state.eligible,
     validationEnabled: state.validationEnabled,
     rules: config.rules,
     errorDisplay: config.errorDisplay,
@@ -176,10 +174,9 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     const { shop } = await queryContext(admin);
     await persistShopDisplayName(db, session.shop, shop.name);
     const trial = await startTrial(db, session.shop, {
-      eligible: shop.shopAddress.countryCodeV2 === ELIGIBLE_COUNTRY,
       today: localDate(shop.ianaTimezone),
     });
-    if (!trial) return { ok: false, errorCode: "store_not_supported" };
+    if (!trial) return { ok: false, errorCode: "trial_unavailable" };
     if (trial.status !== "active") return { ok: false, errorCode: "trial_unavailable" };
     return { ok: true };
   }
@@ -210,12 +207,7 @@ async function subscribe(admin: Admin, db: D1Database, shopDomain: string, kind:
       if ((await readComplimentaryEntitlement(db, shopDomain))?.status === "active") {
         return { ok: false, errorCode: "one_time_already_active" };
       }
-      const { shop } = await queryContext(admin);
-      if (shop.shopAddress.countryCodeV2 !== ELIGIBLE_COUNTRY) {
-        return { ok: false, errorCode: "country_not_eligible" };
-      }
-
-      const billing = await readBilling(admin);
+      const [{ shop }, billing] = await Promise.all([queryContext(admin), readBilling(admin)]);
       if (billing.oneTime) return { ok: false, errorCode: "one_time_already_active" };
       if (kind === "one_time" && billing.pendingOneTime) {
         return { ok: false, errorCode: "charge_pending" };

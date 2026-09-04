@@ -256,6 +256,7 @@ function parseNotificationBody(body: string) {
   }> = [];
   let footer = "";
 
+  // Stryker disable next-line StringLiteral: split("") fa cadere il pool Worker prima delle asserzioni che verificano il protocollo a righe.
   for (const line of body.split("\n")) {
     if (!line) continue;
     if (line.startsWith("🕒 ")) {
