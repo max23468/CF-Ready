@@ -136,7 +136,7 @@ export const en: typeof it = {
       "CF Ready checks the Italian tax code (Codice Fiscale) and certified email address (PEC) in Shopify checkout. It doesn’t change your theme, add fields or issue invoices.",
     step1Limits: [
       "It only checks data format: it doesn’t confirm the customer’s identity or that an address is actually a certified PEC address.",
-      "Rules only apply when delivery and billing are both in Italy.",
+      "Rules apply with Italian or not-yet-available billing and at least one Italian delivery. Without a delivery country, only Italian tax fields that are present are checked.",
     ],
     step2Heading: "Choose what to check",
     step2Body: "You can change these choices whenever you want from Checkout rules.",
@@ -293,7 +293,6 @@ export const en: typeof it = {
     notStartedBody:
       "Start the free 14-day trial to turn on the rules. It requires no card and starts only when you launch it.",
     startTrial: "Start the 14-day trial",
-    startTrialDone: "Trial started.",
     orChoose: "Or choose a plan directly.",
     monthlyStart: "Start monthly",
     monthlySwitch: "Switch to monthly",
@@ -361,7 +360,9 @@ export const en: typeof it = {
         "Customers can’t complete the order without an address in a valid email format.",
     },
     exceptionsHeading: "When rules apply",
-    exceptions: ["These rules only apply to orders with delivery and billing in Italy."],
+    exceptions: [
+      "Rules apply with Italian or not-yet-available billing and at least one Italian delivery. Without a delivery country, only Italian tax fields that are present are checked.",
+    ],
     preventiveLabel: "Show warnings early in checkout",
     preventiveHelp:
       "Errors can appear as soon as checkout loads, before the customer has filled the fields in. Recommended only if you use Shopify’s order confirmation step, because it stops customers reaching the review page blocked without a message.",
