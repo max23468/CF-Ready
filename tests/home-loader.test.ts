@@ -45,7 +45,6 @@ test("la Home legge lo stato D1 in parallelo ed espone timing senza dati merchan
     shopName: string;
     countryCode: string;
     today: string;
-    eligible: boolean;
     validation: { metafield: { jsonValue: typeof DEFAULT_CONFIG } };
     validationEnabled: boolean;
     trial: null;
@@ -91,7 +90,6 @@ test("la Home legge lo stato D1 in parallelo ed espone timing senza dati merchan
     shopName: "Negozio di prova",
     countryCode: "IT",
     today: "2026-08-05",
-    eligible: true,
     validation: {
       metafield: { jsonValue: DEFAULT_CONFIG },
     },

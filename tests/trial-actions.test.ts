@@ -30,7 +30,10 @@ beforeEach(() => {
     session: { shop: "example.myshopify.com" },
   });
   mocks.queryContext.mockResolvedValue({
-    shop: { shopAddress: { countryCodeV2: "IT" }, ianaTimezone: "Europe/Rome" },
+    shop: {
+      shopAddress: { countryCodeV2: "IT" },
+      ianaTimezone: "Europe/Rome",
+    },
   });
   mocks.readComplimentaryEntitlement.mockResolvedValue(null);
   mocks.startTrial.mockResolvedValue({ status: "expired" });
@@ -59,7 +62,13 @@ test.each([
 test.each([
   ["Home", () => import("../app/routes/app._index")],
   ["onboarding", () => import("../app/routes/app.onboarding")],
-])("%s avvia la prova senza restituire un redirect esterno", async (_name, route) => {
+])("%s avvia la prova per uno store estero senza redirect esterno", async (_name, route) => {
+  mocks.queryContext.mockResolvedValueOnce({
+    shop: {
+      shopAddress: { countryCodeV2: "FR" },
+      ianaTimezone: "Europe/Paris",
+    },
+  });
   mocks.startTrial.mockResolvedValueOnce({ status: "active" });
   const { action } = await route();
   const result = await action({

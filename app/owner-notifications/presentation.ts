@@ -309,7 +309,7 @@ function installationStatusLabel(value: string | null | undefined) {
   return {
     active: "Attiva",
     uninstalled: "Disinstallata",
-    blocked_country: "Paese non supportato",
+    blocked_country: "Blocco geografico precedente",
     suspended: "Sospesa",
   }[value ?? ""];
 }

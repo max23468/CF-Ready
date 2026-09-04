@@ -29,7 +29,9 @@ dei rispettivi provider e non devono comparire nel repository o nei log.
 segreti, ma non autorizzano alcun accesso.
 
 Il reviewer non riceve credenziali: D-132 stabilisce l'installazione su un suo
-development store italiano, perché CF Ready non ha un login proprio.
+development store, perché CF Ready non ha un login proprio. Per il test usa un
+checkout con fatturazione e consegna italiane in cui Codice Fiscale e PEC sono
+visibili.
 
 `cfready@icloud.com` resta la casella dell'assistenza e dei documenti legali. Le
 notifiche owner usano invece una chat Telegram privata dedicata.

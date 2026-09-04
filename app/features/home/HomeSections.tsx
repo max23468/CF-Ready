@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
-import { ELIGIBLE_COUNTRY } from "../../config";
-import { homeCheckoutSummary, supportMailto, type texts, validationStatus } from "../../i18n";
+import { homeCheckoutSummary, type texts, validationStatus } from "../../i18n";
 import type { HomeData } from "./home.server";
 import { homeValidationPresentation } from "./home-next-step";
 
@@ -18,47 +17,6 @@ export function MotionBanner({
     <div className="cf-motion-reveal">
       <s-banner tone={tone}>{children}</s-banner>
     </div>
-  );
-}
-
-export function UnsupportedHome({ data, t }: { data: HomeData; t: Texts }) {
-  return (
-    <s-page heading={t.home.heading}>
-      <s-section heading={t.home.unsupported}>
-        <s-box maxInlineSize="180px">
-          <s-image
-            src="/cf-ready-lockup.svg"
-            alt="CF Ready"
-            aspectRatio="16/3"
-            objectFit="contain"
-          />
-        </s-box>
-        <s-paragraph>{t.home.unsupportedBody}</s-paragraph>
-        <s-paragraph>
-          {data.shopName} · {data.countryCode} → {ELIGIBLE_COUNTRY}
-        </s-paragraph>
-        <s-paragraph>{t.home.unsupportedCheckAddress}</s-paragraph>
-        <s-paragraph>{t.home.unsupportedGuide}</s-paragraph>
-        <s-link href="/app/guide">{t.nav.guide}</s-link>
-        <s-paragraph>{t.support.chooseCategory}</s-paragraph>
-        {Object.entries(t.support.categories).map(([category, label]) => (
-          <s-link
-            key={category}
-            href={supportMailto(
-              {
-                shopDomain: data.shopDomain,
-                version: data.version,
-                countryCode: data.countryCode,
-              },
-              data.locale,
-              category as keyof typeof t.support.categories,
-            )}
-          >
-            {label}
-          </s-link>
-        ))}
-      </s-section>
-    </s-page>
   );
 }
 

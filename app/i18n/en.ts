@@ -19,8 +19,6 @@ export const en: typeof it = {
       "Couldn’t save. Shopify didn’t confirm the write. Reload the page to see the real state.",
     validation_limit_reached:
       "This store already has the maximum number of active validations Shopify allows. Your rules are still saved. Turn off another app’s validation in Settings → Checkout, then try again: CF Ready never touches other apps’ resources.",
-    country_not_eligible:
-      "CF Ready only works with stores based in Italy. Your rules are still saved.",
     entitlement_required:
       "Start a trial or plan first. Without a valid entitlement, the validation would have no effect.",
     config_conflict:
@@ -52,12 +50,6 @@ export const en: typeof it = {
     titleDisabled: "Check not active",
     titleNotStarted: "Checkout check not active yet",
     titleLapsed: "Check on, plan not active",
-    unsupported: "Store not supported",
-    unsupportedBody:
-      "CF Ready only works with stores based in Italy. No trial has started, no validation has been created and no payment has been requested.",
-    unsupportedCheckAddress:
-      "If your store is Italian, check the address in Settings → Store details: that’s where CF Ready reads the country from.",
-    unsupportedGuide: "The Help page explains what the app does and where its limits are.",
     noEntitlement:
       "Without an active plan, checkout no longer blocks anything. Rules and messages stay saved and apply again once you pay.",
     syncNeeded:
@@ -228,11 +220,11 @@ export const en: typeof it = {
       },
       {
         q: "When the tax code is required",
-        a: "When you set it as required and the customer has both delivery and billing in Italy. You decide whether you need it: CF Ready doesn’t determine when your business has to collect it.",
+        a: "When you set it as required, billing is Italian or not yet available and at least one delivery is Italian. If no delivery country is available, as can happen with digital products or pickup, the check applies only if the tax code field is present. You decide whether you need it: CF Ready doesn’t determine when your business has to collect it.",
       },
       {
         q: "Why an order went through without the required fields",
-        a: "Rules don’t apply with foreign billing or only foreign deliveries. In express checkout, if Shopify exposes an Italian delivery but omits a required field, CF Ready shows a global error and blocks completion; without an observable delivery, an absent field remains fail-open because the customer might have nothing to fill in.",
+        a: "Rules don’t apply with foreign billing or only foreign deliveries. With Italian or not-yet-available billing and at least one Italian delivery, a required field that is absent produces a global error. If no delivery country is available, only Italian tax fields that are present are checked and an absent field remains fail-open.",
       },
       {
         q: "What gets checked on the tax code",
@@ -256,7 +248,7 @@ export const en: typeof it = {
       },
       {
         q: "Limitations and supported channels",
-        a: "CF Ready works on Shopify’s web checkout and needs a store based in Italy. The check is only formal, not against any registry, and orders created outside the checkout, for example from the admin, don’t go through it. Later generations of recurring subscription orders aren’t covered.",
+        a: "CF Ready is available to stores based in any country and works on Shopify’s web checkout. Rules apply with Italian or not-yet-available billing and at least one Italian delivery; without a delivery country, only to Italian tax fields that are present. They don’t apply with foreign billing or only foreign deliveries. The check is only formal, not against any registry, and orders created outside checkout, for example from the admin, don’t go through it. Later generations of recurring subscription orders aren’t covered.",
       },
       {
         q: "Electronic invoicing, VAT number and SDI code",

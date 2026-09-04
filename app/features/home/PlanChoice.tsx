@@ -55,7 +55,7 @@ function StartTrialSection({ data, busy, pendingIntent, submit }: PlanProps) {
         <s-stack direction="inline" gap="base">
           <s-button
             variant="primary"
-            disabled={busy || !data.eligible}
+            disabled={busy}
             loading={pendingIntent === "start_trial"}
             onClick={() => submit("start_trial")}
           >

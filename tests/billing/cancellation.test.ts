@@ -33,7 +33,7 @@ test("la cancellazione riporta un errore invece di fingere il successo", async (
 
 test("la prova risulta convertita quando il merchant paga", async () => {
   const shop = await insertShop("convertita.example.myshopify.com");
-  await startTrial(env.DB, shop, { eligible: true, today: "2026-07-30" });
+  await startTrial(env.DB, shop, { today: "2026-07-30" });
 
   await markTrialConverted(env.DB, shop);
   await markTrialConverted(env.DB, shop);

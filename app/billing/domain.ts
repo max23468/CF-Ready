@@ -20,8 +20,8 @@ export function requestedRecurringPlanIsActive(
   return billing.subscription?.interval === (kind === "monthly" ? "EVERY_30_DAYS" : "ANNUAL");
 }
 
-export function pricingGeneration(eligibleOn: string): PricingGeneration {
-  return eligibleOn <= LAUNCH_WINDOW_END ? "launch" : "balanced";
+export function pricingGeneration(requestedOn: string): PricingGeneration {
+  return requestedOn <= LAUNCH_WINDOW_END ? "launch" : "balanced";
 }
 
 export function currentPricingGeneration(

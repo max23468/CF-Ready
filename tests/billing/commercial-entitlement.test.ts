@@ -11,7 +11,7 @@ const TODAY = "2026-08-01";
 const TIME_ZONE = "Europe/Rome";
 
 async function activeTrial(shopDomain: string) {
-  await startTrial(env.DB, shopDomain, { eligible: true, today: TODAY });
+  await startTrial(env.DB, shopDomain, { today: TODAY });
   return readCommercialInputs(env.DB, shopDomain, TODAY);
 }
 
