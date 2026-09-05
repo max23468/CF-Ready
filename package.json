@@ -61,7 +61,7 @@
     "verify:function-schema": "node scripts/verify-function-schema.mjs",
     "doctor": "react-doctor --scope full --blocking warning .",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
-    "site:dev": "rm -f .wrangler/deploy/config.json && wrangler pages dev site",
+    "site:dev": "vite site --config config/vite.site.ts",
     "check:docs": "npm run docs:check && git diff --check",
     "check:standard": "npm run docs:check && npm run lint && npm run format:check && npm run typecheck && npm test && npm run test:ui && npm run test:function && npm run build && npm run build:function && wrangler deploy --dry-run",
     "check": "npm run docs:check && npm run audit:security && npm run lint && npm run format:check && npm run typecheck && npm run test:preflight && npm run test:operations && npm test && npm run test:ui && npm run test:function && npm run doctor && npm run build && npm run build:function && wrangler deploy --dry-run",

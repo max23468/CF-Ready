@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, realpathSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, resolve, sep } from "node:path";
 import test from "node:test";
@@ -272,6 +272,7 @@ test("i domini critici mantengono gate coverage e mutation separati", async () =
     assert.deepEqual(mutationConfig.ignorePatterns, [".stryker-tmp/**"]);
     assert.equal(mutationConfig.tempDirName.startsWith(`${process.cwd()}${sep}`), false);
     assert.equal(basename(mutationConfig.tempDirName), domainName);
+    assert.ok(mutationConfig.tempDirName.startsWith(`${realpathSync(tmpdir())}${sep}`));
     assert.equal(domain.coverageActive, true);
     assert.equal(domain.mutationActive, true);
     assert.deepEqual(mutationConfig.mutate, domain.mutationFiles ?? domain.files);

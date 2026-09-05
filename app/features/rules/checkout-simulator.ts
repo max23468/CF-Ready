@@ -38,7 +38,8 @@ export function simulatorOutcome({
   pec: string;
   revealErrors: boolean;
 }): SimulatorOutcome {
-  if (deliveryCountry !== "IT" || billingCountry !== "IT") return "notApplied";
+  if ((deliveryCountry && deliveryCountry !== "IT") || (billingCountry && billingCountry !== "IT"))
+    return "notApplied";
   if (rules.taxCode === "unmanaged" && rules.pec === "unmanaged") return "noChecks";
 
   const hasErrors =

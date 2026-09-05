@@ -371,6 +371,8 @@ Rispetto alle alternative più ampie o invasive:
 | D-141 | Portare progressivamente al 95% statement, rami, funzioni e linee dell'intero codice eseguibile first-party, con pavimento del 90% per server/Worker, UI/route, script operativi e JavaScript pubblico; il bundle first-party della Shopify Validation Function arriva al 100% per file. Il gate parte con inventario canonico, diff coverage al 95% e ratchet senza regressioni; le soglie assolute diventano bloccanti solo quando ciascuna corsia le raggiunge. | Un singolo dato sui soli moduli importati nasconde sorgenti mai caricati e permette compensazioni fra runtime. I report separati confluiscono per percorso senza doppio conteggio, mentre SQL, configurazioni e contenuti non eseguibili mantengono prove di contratto dedicate. Deciso il 1º settembre 2026. |
 | D-142 | Attribuire ogni report Web Vitals alla rotta che ha avviato il documento e al relativo `Server-Timing`, conservando durate tecniche per tutti i loader merchant; gli asset fingerprinted sono immutabili per un anno. | App Bridge può consegnare il callback dopo una navigazione client: leggere allora la URL mescolava metrica e rotta, mentre il Navigation Timing restava quello iniziale. Congelare entrambi al montaggio rende il campione coerente; timing allowlistati separano Worker, Shopify e D1 senza contenuti merchant. I nomi hashati permettono cache lunga senza servire bundle obsoleti. Deciso il 2 settembre 2026 dopo misure Production separate fra shell Shopify e iframe. |
 | D-143 | Rendere CF Ready disponibile agli store di qualunque Paese e decidere l’applicabilità esclusivamente nel singolo checkout, senza gate amministrativo basato su sede, mercati o zone di spedizione. | La Function applica le regole quando la fatturazione è italiana o non ancora disponibile e almeno una consegna è italiana. Se nessuna consegna ha un Paese disponibile, come può accadere per digitali o ritiro, applica soltanto le regole dei localized fields italiani presenti. Non applica regole con fatturazione estera o consegne esclusivamente estere. `Shop.shipsToCountries` descrive solo i Paesi delle zone di spedizione e classificherebbe male digitali e ritiro; Markets richiederebbe più scope e non proverebbe il contesto del checkout. Il Paese dello store resta diagnostico. Le vecchie righe `blocked_country` tornano `active` alla prima riconciliazione. Deciso il 4 settembre 2026 per la `1.2.0`; supera D-002 e D-042 e la condizione geografica di D-132. |
+| D-144 | Proteggere le bozze durante i salvataggi e consentire il recupero esplicito dei conflitti; allineare il simulatore alla Function e aggiungere diagnosi guidata e report di attivazione/prestazioni. | Richiesta dell’owner del 5 settembre 2026: interventi 1, 2, 3, 5, 6 e 7. La bozza conserva i campi modificati dopo l’invio; un conflitto richiede confronto e riapplicazione esplicita contro l’hash corrente, mai un salvataggio forzato. Il simulatore mantiene l’interfaccia semplice: solo l’opzione indirizzo non ancora disponibile nei menu esistenti e gli errori globali preventivi lo allineano alla Function attuale. La diagnosi usa su richiesta la riconciliazione della Home e separa stato aggiornato, stato memorizzato e verifiche manuali. Report aggregati sulle fonti esistenti, senza nuovi scope, provider o contenuti merchant. Anticipa la diagnosi guidata dal backlog P2. |
+
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
@@ -438,7 +440,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-109 | Nessun colore di brand dentro l’app embedded: solo token semantici Polaris. Il brand vive su icona, sito, listing e screenshot. | Evita divergenza a ogni aggiornamento Polaris e mantiene l’app indistinguibile da una funzione nativa dell’Admin. |
 | D-110 | Marchio «Tessera con fascia»: proporzione ISO ID-1, raggio 12,5% del lato corto, fascia piena in alto, sigla `CF` centrata. | Riferimento concreto al Codice Fiscale senza stemmi, tricolore o documenti fiscali. La fascia in alto legge come intestazione; in basso leggeva come banda magnetica. |
 | D-111 | Su fondi scuri è obbligatoria la versione negativa del marchio. | La positiva su `#1A1A1A` dà 1,7:1, la negativa 16,0:1. Requisito di contrasto verificato, non preferenza estetica. |
-| D-112 | Tipografia: grottesco geometrico di sistema per sito e materiali, nessun webfont, nessun font dichiarato dentro l’Admin. Sigla e wordmark in tracciati derivati da Jost (SIL OFL), peso 500. | Zero richieste di rete e nessuna dipendenza da font installati. Jost al posto del Futura per licenza: il Futura è commerciale e distribuito in bundle con macOS. |
+| D-112 | Tipografia: sans-serif nativo di sistema per sito e materiali (direzione merchant approvata il 5 settembre 2026), nessun webfont, nessun font dichiarato dentro l’Admin. Sigla e wordmark in tracciati derivati da Jost (SIL OFL), peso 500. | Zero richieste di rete e nessuna dipendenza da font installati. Jost al posto del Futura per licenza: il Futura è commerciale e distribuito in bundle con macOS. |
 | D-113 | Nessuna dark mode del sito pubblico nella 1.0. | Una superficie in meno da mantenere e verificare. Decisione indipendente da Shopify: al 28 luglio 2026 l’Admin non ha dark mode nativa e, usando solo token Polaris, l’app la seguirebbe comunque da sola. |
 | D-114 | Presentare l’icona della listing con la sigla `CF`, accettando la raccomandazione Shopify di evitare il testo nell’icona. | Raccomandazione nelle best practice, non criterio di rifiuto nei requisiti; i monogrammi di due lettere sono diffusi fra le app approvate. Variante senza sigla pronta come rimedio, attivabile senza nuova approvazione (§24.5). |
 | D-115 | Mantenere il repository pubblico su GitHub Free con `develop` come branch predefinito, branch protection non aggirabile dagli admin, base aggiornata, conversazioni risolte e gate stabili `verify`, `coverage`, `react-doctor`, `dependency-review` ed `e2e` richiesti su `develop` e `main`; i gate attestano esplicitamente quando una corsia non è applicabile. La sola GitHub App di riallineamento può oltrepassare il ruleset `develop` per il fast-forward provato da D-138. Abilitare Secret Scanning, Push Protection, CodeQL, Dependabot security updates e private vulnerability reporting. | Rende effettivi i gate applicabili e limita l'unico bypass automatico a un'identità e a un'operazione deterministica verificati. |
@@ -1625,6 +1627,25 @@ nearest-rank di LCP, INP e CLS in forma complessiva, per versione e per rotta. I
 meno di 100 campioni sono dichiarati insufficienti; il report non emette store, metric ID,
 paese o singoli campioni e non sostituisce lo stato Built for Shopify autorevole di Shopify.
 
+Il confronto esplicito `report:performance -- production --compare precedente corrente`
+confronta le stesse rotte e metriche tra due versioni scelte dall’operatore, anche in caso
+di rollback. Richiede almeno 100 campioni per versione e segnala soltanto aumenti
+contemporaneamente pari ad almeno il 20% e a 200 ms LCP, 30 ms INP o 0,02 CLS.
+È una soglia operativa descrittiva, non una prova di significatività statistica.
+Le durate Server-Timing allowlistate sono aggregate al p75 sui documenti con LCP,
+con numerosità esplicita: aiutano l’indagine senza attribuire causalità. Gli avvisi
+sono inclusi nell’output del report; nessuna notifica esterna automatica.
+
+Il report `report:launch` aggiunge coorti settimanali delle installazioni degli ultimi
+28 giorni, con prime evidenze `rules_saved`, `trial_started`, `validation_enabled`
+nella stessa installazione e tempi medi in secondi dall’installazione. Gli eventi
+ripetuti non aumentano i conteggi. Il percorso non è necessariamente ordinato:
+una prova può precedere le regole e un accesso omaggio o pagato può saltare la prova.
+Passaggi non osservati non provano abbandono, soprattutto per `rules_saved`, raccolto
+solo dalla pubblicazione di D-144. Le disinstallazioni senza attivazione osservata
+sono distinte; coorti sotto dieci store sono dichiarate indicative. La retention
+rimane quella degli eventi operativi esistenti.
+
 #### `support_requests`
 
 Struttura prevista, **non implementata nella 1.0**: con il recapito via
@@ -2169,10 +2190,11 @@ Ogni opzione ha una spiegazione concreta. Dopo le regole:
   valida e campi vuoti; le opzioni non pertinenti a campi non gestiti non sono
   mostrate; una breve istruzione chiarisce che la scelta compila i campi e
   aggiorna il risultato del simulatore;
-- condizione non modificabile su consegna e fatturazione italiane, integrata
+- condizioni geografiche D-143 non modificabili, spiegate in modo sintetico
   accanto ai due selettori Paese del simulatore;
 - controllo `Mostra avvisi preventivi nel checkout`, disattivato per default e
-  posto sotto il simulatore, con avviso che gli errori possono apparire già al
+  posto in un box autonomo sotto “Interno”, nella stessa colonna delle regole,
+  con avviso che gli errori possono apparire già al
   caricamento e indicazione “Consigliato solo se usi la conferma ordine Shopify”;
 - banner `warning` sul campo “Interno” sempre visibile, con
   checkbox `Uso il campo Interno per il Codice Fiscale` e, se selezionata, le
@@ -2433,7 +2455,7 @@ Sintesi delle decisioni approvate, per esteso in D-107…D-113 e nel registro §
 
 - marchio «Tessera con fascia», proporzione ISO ID-1, fascia in alto, sigla `CF`;
 - Verde bottiglia `#20492F`, Arancio cotto `#C97B2E`, Panna `#F7F5EE`, Inchiostro `#1A211C`, Grigio caldo `#6B6A5C`;
-- grottesco geometrico di sistema, nessun webfont, sigla e wordmark in tracciati;
+- sans-serif nativo di sistema, nessun webfont, sigla e wordmark in tracciati;
 - nessun colore di brand dentro l’app embedded;
 - versione negativa obbligatoria su fondi scuri;
 - nessuna dark mode del sito pubblico.
@@ -3310,13 +3332,14 @@ Vulnerability Reporting restano disponibili a chi raggiunge il repository.
 
 ## 22. Assistenza
 
-La 1.1 mantiene un percorso minimale:
+Il percorso di assistenza mantiene:
 
 - supporto nativo Shopify;
 - Support Link nativo verso `/app/guide`;
 - pagina FAQ dentro l’app, in Guida e FAQ (§15.7);
 - percorso di assistenza in-app che prepara un messaggio precompilato;
 - diagnostica tecnica copiabile, generata dal solo stato D1 riconciliato;
+- diagnosi guidata D-144 su richiesta, usando la stessa riconciliazione della Home;
 - recapito a una casella sviluppatore verificata;
 - nessuna copia email automatica al merchant;
 - risposta manuale dello sviluppatore.
@@ -3346,6 +3369,14 @@ rilegge Shopify per comporre il messaggio: allega il solo stato tecnico D1 già
 riconciliato, mentre la Home aggiunge il Paese rilevato. L’obiettivo di
 risposta dichiarato al merchant è di un giorno lavorativo; resta un
 obiettivo operativo, non uno SLA.
+
+La diagnosi guidata aggiorna su richiesta regole, stato Validation e diritto operativo
+attraverso la riconciliazione condivisa della Home, incluso il suo normale recupero
+delle incoerenze. Non attiva esplicitamente la Validation né avvia prove o acquisti.
+Mostra l’ora del controllo ed eventuali errori; in caso di fallimento non presenta
+una verifica precedente come attuale. Paesi, campi visibili e momento del checkout
+restano verifiche manuali, con collegamento al simulatore. Il loader della Guida
+continua a usare soltanto D1 per la diagnostica copiabile.
 
 Dati tecnici allegabili tramite allowlist:
 
@@ -4717,7 +4748,7 @@ pubblicazione.
 ### P2 — Dopo trazione, non blocca `1.0.0`
 
 - miglioramenti FAQ basati su ticket reali;
-- strumenti diagnostici merchant solo se richiesti ripetutamente;
+- ulteriori strumenti diagnostici oltre alla guida D-144 solo con domanda osservata;
 - ulteriori lingue solo con domanda;
 - dominio personalizzato;
 - servizi osservabilità esterni;

@@ -6,6 +6,21 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## Development — 5 settembre 2026 (base 1.2.2)
+
+Snapshot `1.2.2-dev.<tree>`, identificato esattamente dalla ricevuta del workflow
+Development. Intervento D-144, senza promozione Production.
+
+- le bozze dei messaggi conservano la digitazione successiva al salvataggio;
+  Regole e Messaggi permettono di confrontare e recuperare i conflitti;
+- Home più compatta e avvisi preventivi in un box sotto “Interno”; il simulatore
+  semplice gestisce Paesi non indicati ed errori globali preventivi;
+- diagnosi guidata di regole, attivazione e piano in Guida e FAQ;
+- report aggregati delle coorti di attivazione e delle prestazioni tra versioni;
+- sito bilingue riallineato ad app e listing, con menu mobile compatto e
+  richiudibile, titoli con separatore verticale e anteprime espandibili;
+- anteprima statica con Vite e percorsi mutation canonici su macOS.
+
 ## 1.2.2 — 4 settembre 2026
 
 - rimossi il fallback runtime del cursore notifiche, wrapper, export e testi non usati;

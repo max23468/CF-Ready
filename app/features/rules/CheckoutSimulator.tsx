@@ -48,15 +48,7 @@ export function CheckoutSimulator({
   const [submitted, setSubmitted] = useState(false);
   const [scenario, setScenario] = useState<SimulatorScenario | "">("");
 
-  const applies = deliveryCountry === "IT" && billingCountry === "IT";
-  const revealErrors = applies && (errorDisplay === "preventive" || submitted);
-  const taxCodeProblem =
-    applies && rules.taxCode !== "unmanaged"
-      ? simulatorFieldError(rules.taxCode, taxCode, isValidTaxCode)
-      : null;
-  const pecProblem =
-    applies && rules.pec !== "unmanaged" ? simulatorFieldError(rules.pec, pec, isValidPec) : null;
-  const hasManagedFields = rules.taxCode !== "unmanaged" || rules.pec !== "unmanaged";
+  const revealErrors = errorDisplay === "preventive" || submitted;
   const outcome = simulatorOutcome({
     rules,
     deliveryCountry,
@@ -65,6 +57,30 @@ export function CheckoutSimulator({
     pec,
     revealErrors,
   });
+
+  const applies = outcome !== "notApplied";
+  const taxCodeProblem =
+    applies && rules.taxCode !== "unmanaged"
+      ? simulatorFieldError(rules.taxCode, taxCode, isValidTaxCode)
+      : null;
+  const pecProblem =
+    applies && rules.pec !== "unmanaged" ? simulatorFieldError(rules.pec, pec, isValidPec) : null;
+  const hasManagedFields = Object.values(rules).some((mode) => mode !== "unmanaged");
+
+  const inlineErrors = revealErrors && errorDisplay !== "preventive";
+  const globalErrors =
+    errorDisplay === "preventive"
+      ? [
+          {
+            field: "taxCode",
+            message: simulatorErrorMessage(messages, "taxCode", taxCodeProblem, revealErrors),
+          },
+          {
+            field: "pec",
+            message: simulatorErrorMessage(messages, "pec", pecProblem, revealErrors),
+          },
+        ].filter((error) => error.message)
+      : [];
 
   const applyScenario = (nextScenario: SimulatorScenario) => {
     const values = simulatorScenarioValues[nextScenario];
@@ -129,24 +145,18 @@ export function CheckoutSimulator({
                     gridTemplateColumns="@container (inline-size > 280px) 1fr 1fr, 1fr"
                     gap="small-200"
                   >
-                    <s-select
+                    <SimulatorCountrySelect
                       label={copy.deliveryCountry}
                       value={deliveryCountry}
-                      onChange={(event) => setDeliveryCountry(event.currentTarget.value)}
-                    >
-                      <s-option value="IT">{copy.countries.IT}</s-option>
-                      <s-option value="FR">{copy.countries.FR}</s-option>
-                      <s-option value="DE">{copy.countries.DE}</s-option>
-                    </s-select>
-                    <s-select
+                      onChange={setDeliveryCountry}
+                      copy={copy}
+                    />
+                    <SimulatorCountrySelect
                       label={copy.billingCountry}
                       value={billingCountry}
-                      onChange={(event) => setBillingCountry(event.currentTarget.value)}
-                    >
-                      <s-option value="IT">{copy.countries.IT}</s-option>
-                      <s-option value="FR">{copy.countries.FR}</s-option>
-                      <s-option value="DE">{copy.countries.DE}</s-option>
-                    </s-select>
+                      onChange={setBillingCountry}
+                      copy={copy}
+                    />
                   </s-grid>
                 </s-stack>
               </s-box>
@@ -156,6 +166,13 @@ export function CheckoutSimulator({
                   <s-icon type="identity-card" color="subdued" />
                   <s-text type="strong">{copy.customerData}</s-text>
                 </s-stack>
+                {globalErrors.length ? (
+                  <s-banner tone="critical">
+                    {globalErrors.map(({ field, message }) => (
+                      <s-paragraph key={field}>{message}</s-paragraph>
+                    ))}
+                  </s-banner>
+                ) : null}
                 {hasManagedFields ? (
                   <>
                     {rules.taxCode === "unmanaged" ? null : (
@@ -167,7 +184,7 @@ export function CheckoutSimulator({
                           messages,
                           "taxCode",
                           taxCodeProblem,
-                          revealErrors,
+                          inlineErrors,
                         )}
                         onInput={(event) => {
                           setScenario("");
@@ -180,7 +197,7 @@ export function CheckoutSimulator({
                         label={t.rules.pecLabel}
                         value={pec}
                         required={rules.pec === "required_validated"}
-                        error={simulatorErrorMessage(messages, "pec", pecProblem, revealErrors)}
+                        error={simulatorErrorMessage(messages, "pec", pecProblem, inlineErrors)}
                         onInput={(event) => {
                           setScenario("");
                           setPec(event.currentTarget.value);
@@ -251,5 +268,32 @@ export function CheckoutSimulator({
         </s-box>
       </div>
     </s-query-container>
+  );
+}
+
+function SimulatorCountrySelect({
+  label,
+  value,
+  onChange,
+  copy,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  copy: ReturnType<typeof texts>["rules"]["simulator"];
+}) {
+  return (
+    <s-select
+      label={label}
+      value={value || "unknown"}
+      onChange={(event) =>
+        onChange(event.currentTarget.value === "unknown" ? "" : event.currentTarget.value)
+      }
+    >
+      <s-option value="unknown">{copy.unknownCountry}</s-option>
+      <s-option value="IT">{copy.countries.IT}</s-option>
+      <s-option value="FR">{copy.countries.FR}</s-option>
+      <s-option value="DE">{copy.countries.DE}</s-option>
+    </s-select>
   );
 }

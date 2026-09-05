@@ -1,3 +1,4 @@
+import { recordEvent } from "../events.server";
 import { localDate, readBilling } from "../billing.server";
 import type { AppErrorCode } from "../app-error";
 import {
@@ -169,6 +170,9 @@ export async function writeValidation(
       await saveAddress2Declaration(db, shopDomain, declared);
     }
 
+    if (enable === null && next?.rules) {
+      await recordEvent(db, { shopDomain, name: "rules_saved", class: "onboarding" });
+    }
     return { ok: true, enabled };
   } catch {
     return { ok: false, errorCode: "validation_write_failed" };

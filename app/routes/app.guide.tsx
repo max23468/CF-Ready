@@ -1,3 +1,4 @@
+import { localizedError } from "../app-error";
 import { useState } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { data, useFetcher, useLoaderData } from "react-router";
@@ -12,10 +13,13 @@ import {
   supportMailto,
   texts,
   type SupportCategory,
+  type Locale,
 } from "../i18n";
+import { readConfig } from "../config";
+import { reconcile } from "../validation.server";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { createServerTiming } from "../server-timing.server";
-import { readSupportDiagnosticState } from "../support.server";
+import { readSupportDiagnosticState, type SupportDiagnosticState } from "../support.server";
 import "./app.guide.css";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
@@ -42,8 +46,26 @@ export const headers: HeadersFunction = (args) => boundary.headers(args);
 const DIAGNOSTIC_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
-  const { session } = await authenticateAdmin(request, context);
+  const { admin, session } = await authenticateAdmin(request, context);
   const form = await request.formData();
+  if (form.get("intent") === "check_validation") {
+    try {
+      const state = await reconcile(admin, context.get(databaseContext), session.shop);
+      const config = readConfig(state.validation?.metafield?.jsonValue);
+      return {
+        ok: true as const,
+        check: {
+          checkedAt: new Date().toISOString(),
+          enabled: state.validationEnabled,
+          entitled: state.entitlement.kind !== "none",
+          errorCode: state.errorCode,
+          configured: config.rules.taxCode !== "unmanaged" || config.rules.pec !== "unmanaged",
+        },
+      };
+    } catch {
+      return { ok: false as const };
+    }
+  }
   const diagnosticId = form.get("diagnostic_id");
   if (
     form.get("intent") !== "diagnostics_copied" ||
@@ -123,6 +145,8 @@ export default function Guide() {
         </s-stack>
       </s-section>
 
+      <ValidationDiagnosis locale={locale} diagnostics={diagnostics} />
+
       {/* A-16: il colore di brand è ammesso dentro un'illustrazione, su superfici prive di
           azioni operative. Questa è documentazione, non configurazione. */}
       <s-section slot="aside" heading={t.guide.asideHeading}>
@@ -177,5 +201,68 @@ export default function Guide() {
         </s-stack>
       </s-section>
     </s-page>
+  );
+}
+
+function ValidationDiagnosis({
+  locale,
+  diagnostics,
+}: {
+  locale: Locale;
+  diagnostics: SupportDiagnosticState;
+}) {
+  const t = texts(locale);
+  const checkFetcher = useFetcher<typeof action>();
+  const checkResult = checkFetcher.data;
+  const check = checkResult && "check" in checkResult ? checkResult.check : null;
+  const checkCopy = t.guide.diagnosis;
+  const errorCode = check ? check.errorCode : diagnostics.errorCode;
+  return (
+    <s-section heading={checkCopy.heading}>
+      <s-stack direction="block" gap="base">
+        <s-paragraph>{checkCopy.body}</s-paragraph>
+        <s-button
+          disabled={checkFetcher.state !== "idle"}
+          loading={checkFetcher.state !== "idle"}
+          onClick={() => checkFetcher.submit({ intent: "check_validation" }, { method: "post" })}
+        >
+          {checkCopy.refresh}
+        </s-button>
+        {checkResult?.ok === false ? <s-banner tone="warning">{checkCopy.failed}</s-banner> : null}
+        {check && !check.errorCode ? (
+          <>
+            <s-text color="subdued">
+              {checkCopy.checkedAt}: {new Date(check.checkedAt).toLocaleString(locale)}
+            </s-text>
+            <s-paragraph>
+              {check.enabled ? checkCopy.enabled : checkCopy.disabled}{" "}
+              <s-link href="/app">{t.nav.home}</s-link>
+            </s-paragraph>
+            <s-paragraph>
+              {check.entitled ? checkCopy.entitled : checkCopy.notEntitled}{" "}
+              <s-link href="/app">{checkCopy.openPlan}</s-link>
+            </s-paragraph>
+            <s-paragraph>
+              {check.configured ? checkCopy.configured : checkCopy.unconfigured}{" "}
+              <s-link href="/app/rules">{t.nav.rules}</s-link>
+            </s-paragraph>
+          </>
+        ) : (
+          <s-paragraph>{checkCopy.notChecked}</s-paragraph>
+        )}
+        {errorCode ? (
+          <s-banner tone="warning">{localizedError(t.errors, errorCode)}</s-banner>
+        ) : null}
+        <s-text color="subdued">
+          {checkCopy.lastSync}:{" "}
+          {diagnostics.lastSyncAt
+            ? new Date(diagnostics.lastSyncAt).toLocaleString(locale)
+            : checkCopy.unknown}
+        </s-text>
+        <s-heading>{checkCopy.manualHeading}</s-heading>
+        <s-paragraph>{checkCopy.manualBody}</s-paragraph>
+        <s-link href="/app/rules">{checkCopy.simulate}</s-link>
+      </s-stack>
+    </s-section>
   );
 }

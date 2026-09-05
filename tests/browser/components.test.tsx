@@ -126,6 +126,32 @@ describe("componenti merchant nel browser", () => {
     expect(view.container.querySelector('[role="status"]')?.textContent).toBeTruthy();
   });
 
+  test("il simulatore conserva tre selettori e mostra gli errori preventivi globali", async () => {
+    const view = await render(
+      <CheckoutSimulator
+        locale="it"
+        rules={{ taxCode: "required_validated", pec: "required_validated" }}
+        errorDisplay="preventive"
+        messages={DEFAULT_CONFIG.messages.it}
+      />,
+    );
+    mounted.push(view);
+    const selects = [...view.container.querySelectorAll("s-select")];
+    expect(selects).toHaveLength(3);
+    expect(view.container.querySelectorAll("s-checkbox")).toHaveLength(0);
+    (selects[0] as HTMLElement & { value: string }).value = "unknown";
+    (selects[1] as HTMLElement & { value: string }).value = "unknown";
+    await dispatch(selects[0], new Event("change", { bubbles: true }));
+    await dispatch(selects[1], new Event("change", { bubbles: true }));
+    expect(view.container.querySelector("s-banner")?.textContent).toContain(
+      DEFAULT_CONFIG.messages.it.taxCodeRequired,
+    );
+    expect(view.container.querySelector("s-banner")?.textContent).toContain(
+      DEFAULT_CONFIG.messages.it.pecRequired,
+    );
+    expect(view.container.querySelector("s-text-field")?.getAttribute("error")).toBeNull();
+  });
+
   test("il simulatore gestisce singoli campi e configurazione non gestita", async () => {
     const unmanaged = await render(
       <CheckoutSimulator

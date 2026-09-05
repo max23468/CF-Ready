@@ -6,8 +6,18 @@ export const it = {
     guide: "Guida e FAQ",
   },
   common: {
+    yes: "Sì",
+    no: "No",
     save: "Salva",
     cancel: "Annulla",
+  },
+  conflict: {
+    heading: "La configurazione è cambiata",
+    body: "Confronta la configurazione attuale con la tua bozza. Riapplica conserva solo i campi che hai modificato: controlla il risultato e premi Salva.",
+    current: "Attuale",
+    draft: "La tua bozza",
+    reapply: "Riapplica le mie modifiche",
+    discard: "Usa la configurazione attuale",
   },
   errors: {
     validation_locked: "Un’altra operazione sul controllo è in corso. Riprova fra poco.",
@@ -20,7 +30,7 @@ export const it = {
     entitlement_required:
       "Inizia prima la prova o scegli come pagare: senza, il controllo resterebbe attivo ma senza effetto nel checkout.",
     config_conflict:
-      "Le regole sono cambiate da un’altra scheda o da un altro membro dello staff mentre modificavi. Riapri la pagina per vedere quelle correnti, poi rifai la tua modifica: non sovrascriviamo il lavoro di qualcun altro.",
+      "La configurazione è cambiata in un’altra finestra. Confronta i valori e scegli se riapplicare le tue modifiche o usare la configurazione attuale.",
     duplicate_validations:
       "Shopify restituisce più controlli CF Ready. Sono stati disattivati per lasciare il checkout aperto, ma non possiamo scegliere quale conservare senza rischiare di perdere configurazione: nessuno viene eliminato automaticamente.",
     duplicate_validations_active:
@@ -136,7 +146,7 @@ export const it = {
       "CF Ready controlla Codice Fiscale e PEC nel checkout Shopify. Non modifica il tema, non aggiunge campi e non emette fatture.",
     step1Limits: [
       "Verifica solo il formato dei dati: non conferma l’identità del cliente né che un indirizzo sia davvero una PEC.",
-      "Le regole valgono con fatturazione italiana o non ancora disponibile e almeno una consegna italiana. Senza un Paese di consegna, vengono controllati solo i campi fiscali italiani presenti.",
+      "Le regole si applicano alle consegne in Italia. Non si applicano se l’indirizzo di fatturazione è estero. Se manca il Paese di consegna, i campi obbligatori non mostrati da Shopify non bloccano l’ordine.",
     ],
     step2Heading: "Scegli cosa controllare",
     step2Body: "Puoi cambiare queste scelte quando vuoi da Regole checkout.",
@@ -206,6 +216,28 @@ export const it = {
     no: "no",
   },
   guide: {
+    diagnosis: {
+      heading: "Il controllo non compare?",
+      body: "Aggiorna e verifica regole, attivazione e piano usando la stessa sincronizzazione della Home. Eventuali incoerenze vengono gestite dal normale recupero dell’app. Questa verifica non prova un checkout reale.",
+      refresh: "Aggiorna e verifica",
+      failed:
+        "Shopify non è raggiungibile o lo stato è ambiguo. Riprova dalla Home; nessun esito precedente vale come verifica aggiornata.",
+      checkedAt: "Regole e attivazione verificate il",
+      enabled: "La Validation è attiva su Shopify.",
+      disabled: "La Validation è disattivata o assente. Apri la Home per gestire l’attivazione.",
+      configured: "Almeno un campo è configurato per essere controllato.",
+      unconfigured: "Entrambi i campi sono non gestiti: scegli le regole da applicare.",
+      notChecked: "Regole e attivazione non ancora verificate in questa sessione.",
+      openPlan: "Verifica il piano",
+      lastSync: "Ultima sincronizzazione memorizzata",
+      unknown: "Non disponibile",
+      manualHeading: "Da verificare nel checkout",
+      manualBody:
+        "Conferma Paese di fatturazione e consegna, presenza dei campi fiscali nativi e momento in cui completi il checkout. Il campo “Interno” non è il campo Codice Fiscale. Queste condizioni richiedono una verifica manuale.",
+      simulate: "Riproduci il caso nel simulatore",
+      entitled: "Prova o piano validi nello stato appena sincronizzato.",
+      notEntitled: "Nessuna prova o piano validi nello stato appena sincronizzato.",
+    },
     heading: "Guida e FAQ",
     faqHeading: "Domande frequenti",
     expandAll: "Espandi tutte",
@@ -365,13 +397,14 @@ export const it = {
     },
     exceptionsHeading: "Quando si applicano",
     exceptions: [
-      "Le regole valgono con fatturazione italiana o non ancora disponibile e almeno una consegna italiana. Senza un Paese di consegna, vengono controllati solo i campi fiscali italiani presenti.",
+      "Le regole si applicano alle consegne in Italia. Non si applicano se l’indirizzo di fatturazione è estero. Se manca il Paese di consegna, i campi obbligatori non mostrati da Shopify non bloccano l’ordine.",
     ],
     preventiveLabel: "Mostra avvisi preventivi nel checkout",
     preventiveHelp:
       "Gli errori possono comparire già al caricamento del checkout, prima che il cliente abbia compilato i campi. Consigliato solo se usi la conferma ordine di Shopify, perché evita che il cliente arrivi alla revisione con un blocco senza messaggio.",
     previewHeading: "Come funzionerà il checkout",
     simulator: {
+      unknownCountry: "Non indicato",
       eyebrow: "CF Ready · simulazione checkout",
       heading: "Checkout di prova",
       privatePreview: "Anteprima interattiva",
