@@ -1,12 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { data, useActionData, useLoaderData, useSubmit } from "react-router";
+import { data, useActionData, useLoaderData, useNavigation, useSubmit } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError } from "../app-error";
 import { authenticateAdmin } from "../admin-auth.server";
+import { ConfigConflict } from "../features/ConfigConflict";
 import { CheckoutSimulator } from "../features/rules/CheckoutSimulator";
 import "../features/rules/RulesLayout.css";
-import { mergeRulesFormDraft } from "../features/rules/rules-form";
+import {
+  mergeRulesFormDraft,
+  rebaseRulesDraft,
+  type RulesFormDraft,
+} from "../features/rules/rules-form";
 import { describeCheckout, resolveLocale, texts, validationStatus } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { setSaveBarVisibility } from "../save-bar";
@@ -109,6 +114,18 @@ export default function CheckoutRules() {
 
   const t = texts(saved.locale);
   const send = useSubmit();
+  const busy = useNavigation().state !== "idle";
+  const current = {
+    rules: saved.rules,
+    errorDisplay: saved.errorDisplay,
+    address2: saved.address2Declared,
+  };
+  const baseRef = useRef(current);
+  const sentRef = useRef<RulesFormDraft | null>(null);
+  const baseHash = useRef(saved.configHash);
+  const [resolvedConflict, setResolvedConflict] = useState(false);
+  const errorCode = result?.ok === false ? result.errorCode : null;
+  const conflict = errorCode === "config_conflict" && !resolvedConflict;
   const [changedSinceResult, setChangedSinceResult] = useState(false);
   const [formRevision, setFormRevision] = useState(0);
   const [draft, setDraft] = useState({
@@ -135,10 +152,13 @@ export default function CheckoutRules() {
 
   useEffect(() => setSaveBarVisibility(SAVE_BAR, dirty), [dirty]);
 
-  const save = () =>
+  const save = () => {
+    if (busy || conflict || sentRef.current) return;
+    sentRef.current = draft;
+    setResolvedConflict(false);
     send(
       {
-        configHash: saved.configHash ?? "",
+        configHash: baseHash.current ?? "",
         taxCode: draft.rules.taxCode,
         pec: draft.rules.pec,
         ...(draft.errorDisplay === "preventive" ? { errorDisplay: "preventive" } : {}),
@@ -149,8 +169,33 @@ export default function CheckoutRules() {
       },
       { method: "post" },
     );
+  };
+
+  useEffect(() => {
+    if (!result || !sentRef.current || busy) return;
+    sentRef.current = null;
+    if (result.ok) {
+      baseRef.current = {
+        rules: saved.rules,
+        errorDisplay: saved.errorDisplay,
+        address2: saved.address2Declared,
+      };
+      baseHash.current = saved.configHash;
+    }
+  }, [result, saved.rules, saved.errorDisplay, saved.address2Declared, saved.configHash, busy]);
+
+  const reapply = () => {
+    setDraft(rebaseRulesDraft(baseRef.current, draft, current));
+    baseRef.current = current;
+    baseHash.current = saved.configHash;
+    setResolvedConflict(true);
+    setFormRevision((revision) => revision + 1);
+  };
 
   const discard = () => {
+    baseRef.current = current;
+    baseHash.current = saved.configHash;
+    setResolvedConflict(true);
     setDraft({
       rules: saved.rules,
       errorDisplay: saved.errorDisplay,
@@ -169,22 +214,31 @@ export default function CheckoutRules() {
 
   return (
     <s-page heading={t.rules.heading}>
+      {conflict ? (
+        <ConfigConflict
+          locale={saved.locale}
+          busy={busy}
+          onReapply={reapply}
+          onDiscard={discard}
+          rows={rulesConflictRows(current, draft, t)}
+        />
+      ) : null}
       {showSavedBanner(result, dirty, changedSinceResult) ? (
         <div className="cf-motion-reveal">
           <s-banner tone="success">{t.rules.saved}</s-banner>
         </div>
       ) : null}
-      {result && !result.ok ? (
+      {errorCode && (errorCode !== "config_conflict" || conflict) ? (
         <div className="cf-motion-reveal">
-          <s-banner tone="critical">{localizedError(t.errors, result.errorCode)}</s-banner>
+          <s-banner tone="critical">{localizedError(t.errors, errorCode)}</s-banner>
         </div>
       ) : null}
 
       <ui-save-bar id={SAVE_BAR}>
-        <button type="button" variant="primary" onClick={save}>
+        <button type="button" variant="primary" disabled={busy || Boolean(conflict)} onClick={save}>
           {t.common.save}
         </button>
-        <button type="button" onClick={discard}>
+        <button type="button" disabled={busy} onClick={discard}>
           {t.common.cancel}
         </button>
       </ui-save-bar>
@@ -193,7 +247,7 @@ export default function CheckoutRules() {
         <div className="rules-layout">
           <form
             className="rules-layout__form"
-            key={`${saved.rules.taxCode}-${saved.rules.pec}-${saved.errorDisplay}-${saved.address2Declared}-${formRevision}`}
+            key={formRevision}
             onChange={readDraft}
             onSubmit={(event) => {
               event.preventDefault();
@@ -209,7 +263,7 @@ export default function CheckoutRules() {
                     name="taxCode"
                   >
                     {RULE_MODES.map((mode) => (
-                      <s-choice key={mode} value={mode} selected={mode === saved.rules.taxCode}>
+                      <s-choice key={mode} value={mode} selected={mode === draft.rules.taxCode}>
                         {t.rules.taxCode[mode]}
                         <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
                       </s-choice>
@@ -224,7 +278,7 @@ export default function CheckoutRules() {
                     name="pec"
                   >
                     {RULE_MODES.map((mode) => (
-                      <s-choice key={mode} value={mode} selected={mode === saved.rules.pec}>
+                      <s-choice key={mode} value={mode} selected={mode === draft.rules.pec}>
                         {t.rules.pec[mode]}
                         <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
                       </s-choice>
@@ -237,20 +291,31 @@ export default function CheckoutRules() {
             <div className="rules-layout__address">
               {/* FR-058: resta una dichiarazione del merchant, non un rilevamento. Tenerla sempre
                 visibile evita che sparisca proprio mentre si sta correggendo la configurazione. */}
-              <s-section heading={t.rules.address2Heading}>
-                <s-banner tone="warning">{t.rules.address2Body}</s-banner>
-                <s-checkbox
-                  label={t.rules.address2Checkbox}
-                  name="address2"
-                  value="declared"
-                  defaultChecked={saved.address2Declared}
-                />
-                {draft.address2 ? (
-                  <div className="cf-motion-reveal">
-                    <s-paragraph>{t.rules.address2Instructions}</s-paragraph>
-                  </div>
-                ) : null}
-              </s-section>
+              <s-stack direction="block" gap="base">
+                <s-section heading={t.rules.address2Heading}>
+                  <s-banner tone="warning">{t.rules.address2Body}</s-banner>
+                  <s-checkbox
+                    label={t.rules.address2Checkbox}
+                    name="address2"
+                    value="declared"
+                    defaultChecked={draft.address2}
+                  />
+                  {draft.address2 ? (
+                    <div className="cf-motion-reveal">
+                      <s-paragraph>{t.rules.address2Instructions}</s-paragraph>
+                    </div>
+                  ) : null}
+                </s-section>
+                <s-section>
+                  <s-checkbox
+                    label={t.rules.preventiveLabel}
+                    details={t.rules.preventiveHelp}
+                    name="errorDisplay"
+                    value="preventive"
+                    defaultChecked={draft.errorDisplay === "preventive"}
+                  />
+                </s-section>
+              </s-stack>
             </div>
           </form>
 
@@ -276,26 +341,6 @@ export default function CheckoutRules() {
                   errorDisplay={draft.errorDisplay}
                   messages={saved.messages[saved.locale]}
                 />
-
-                <form
-                  key={`${saved.errorDisplay}-${formRevision}`}
-                  onChange={(event) => {
-                    const data = new FormData(event.currentTarget);
-                    setChangedSinceResult(true);
-                    setDraft((current) => ({
-                      ...current,
-                      errorDisplay: data.get("errorDisplay") ? "preventive" : "inline",
-                    }));
-                  }}
-                >
-                  <s-checkbox
-                    label={t.rules.preventiveLabel}
-                    details={t.rules.preventiveHelp}
-                    name="errorDisplay"
-                    value="preventive"
-                    defaultChecked={saved.errorDisplay === "preventive"}
-                  />
-                </form>
               </s-stack>
             </s-section>
           </div>
@@ -303,4 +348,33 @@ export default function CheckoutRules() {
       </div>
     </s-page>
   );
+}
+
+function rulesConflictRows(
+  current: RulesFormDraft,
+  draft: RulesFormDraft,
+  t: ReturnType<typeof texts>,
+) {
+  return [
+    {
+      label: t.rules.taxCodeLabel,
+      current: t.rules.taxCode[current.rules.taxCode],
+      draft: t.rules.taxCode[draft.rules.taxCode],
+    },
+    {
+      label: t.rules.pecLabel,
+      current: t.rules.pec[current.rules.pec],
+      draft: t.rules.pec[draft.rules.pec],
+    },
+    {
+      label: t.rules.preventiveLabel,
+      current: current.errorDisplay === "preventive" ? t.common.yes : t.common.no,
+      draft: draft.errorDisplay === "preventive" ? t.common.yes : t.common.no,
+    },
+    {
+      label: t.rules.address2Heading,
+      current: current.address2 ? t.common.yes : t.common.no,
+      draft: draft.address2 ? t.common.yes : t.common.no,
+    },
+  ];
 }

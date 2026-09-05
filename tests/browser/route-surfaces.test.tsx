@@ -485,6 +485,59 @@ describe("Home merchant", () => {
 });
 
 describe("Guida", () => {
+  test("la diagnosi distingue stato appena verificato, errore e controlli manuali", async () => {
+    router.loaderData = {
+      locale: "it",
+      shopDomain: "demo.myshopify.com",
+      version: "1.2.2",
+      diagnosticId: "123e4567-e89b-42d3-a456-426614174000",
+      diagnostics: { lastSyncAt: "2026-09-05T00:00:00Z", errorCode: "generic" },
+    };
+    const view = await mount(<Guide />);
+    expect(view.container.textContent).toContain(texts("it").guide.diagnosis.notChecked);
+    await click(
+      [...view.container.querySelectorAll("s-button")].find(
+        (button) => button.textContent === texts("it").guide.diagnosis.refresh,
+      )!,
+    );
+    expect(router.fetcher.submit).toHaveBeenCalledWith(
+      { intent: "check_validation" },
+      { method: "post" },
+    );
+    for (const active of [true, false]) {
+      router.fetcher.data = {
+        ok: true,
+        check: {
+          checkedAt: "2026-09-05T00:01:00Z",
+          enabled: active,
+          entitled: active,
+          configured: active,
+          errorCode: null,
+        },
+      };
+      await view.rerender(<Guide />);
+      expect(view.container.textContent).toContain(
+        active ? texts("it").guide.diagnosis.enabled : texts("it").guide.diagnosis.disabled,
+      );
+    }
+    router.fetcher.data = {
+      ok: true,
+      check: {
+        checkedAt: "2026-09-05T00:01:00Z",
+        enabled: true,
+        entitled: true,
+        configured: true,
+        errorCode: "billing_read_failed",
+      },
+    };
+    await view.rerender(<Guide />);
+    expect(view.container.textContent).not.toContain(texts("it").guide.diagnosis.entitled);
+    router.fetcher.data = { ok: false };
+    await view.rerender(<Guide />);
+    expect(view.container.textContent).toContain(texts("it").guide.diagnosis.failed);
+    expect(view.container.textContent).not.toContain(texts("it").guide.diagnosis.checkedAt);
+  });
+
   test("espande FAQ, cambia categoria e registra copia riuscita o fallita", async () => {
     router.loaderData = {
       locale: "it",
@@ -525,6 +578,131 @@ describe("Guida", () => {
 });
 
 describe("Messaggi", () => {
+  test("il salvataggio normalizzato chiude la bozza senza lasciare spazi nei campi", async () => {
+    router.loaderData = {
+      locale: "it",
+      configHash: "old",
+      messages: DEFAULT_CONFIG.messages,
+      rules: DEFAULT_CONFIG.rules,
+    };
+    const view = await mount(<CustomerMessages />);
+    const field = view.container.querySelector("s-text-area") as HTMLElement & {
+      name: string;
+      value: string;
+    };
+    field.name = "it.taxCodeRequired";
+    field.value = "Messaggio normalizzato ";
+    await dispatch(field, new Event("input", { bubbles: true }));
+    await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
+    router.loaderData = {
+      ...(router.loaderData as object),
+      configHash: "new",
+      messages: {
+        ...DEFAULT_CONFIG.messages,
+        it: { ...DEFAULT_CONFIG.messages.it, taxCodeRequired: "Messaggio normalizzato" },
+      },
+    };
+    router.actionData = { ok: true };
+    await view.rerender(<CustomerMessages />);
+    expect(
+      (view.container.querySelector("s-text-area") as HTMLElement & { value: string }).value,
+    ).toBe("Messaggio normalizzato");
+    expect(view.container.textContent).toContain(texts("it").messages.saved);
+    expect(shopify.saveBar.hide).toHaveBeenCalled();
+  });
+
+  test("un conflitto conserva la bozza e riapplica solo i campi modificati", async () => {
+    router.loaderData = {
+      locale: "it",
+      configHash: "old",
+      messages: DEFAULT_CONFIG.messages,
+      rules: DEFAULT_CONFIG.rules,
+    };
+    const view = await mount(<CustomerMessages />);
+    const field = view.container.querySelector("s-text-area") as HTMLElement & {
+      name: string;
+      value: string;
+    };
+    field.name = "it.taxCodeRequired";
+    field.value = "La mia modifica";
+    await dispatch(field, new Event("input", { bubbles: true }));
+    await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
+    router.loaderData = {
+      ...(router.loaderData as object),
+      configHash: "remote",
+      messages: {
+        ...DEFAULT_CONFIG.messages,
+        it: {
+          ...DEFAULT_CONFIG.messages.it,
+          taxCodeRequired: "Modifica concorrente",
+          pecInvalid: "Nuovo testo remoto",
+        },
+      },
+    };
+    router.actionData = { ok: false, errorCode: "config_conflict" };
+    await view.rerender(<CustomerMessages />);
+    expect(view.container.textContent).toContain("Modifica concorrente");
+    expect(view.container.textContent).toContain("La mia modifica");
+    expect(
+      view.container
+        .querySelector('ui-save-bar button[variant="primary"]')
+        ?.hasAttribute("disabled"),
+    ).toBe(true);
+    await click(
+      [...view.container.querySelectorAll("s-button")].find(
+        (button) => button.textContent === texts("it").conflict.reapply,
+      )!,
+    );
+    await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
+    expect(router.submit).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        configHash: "remote",
+        "it.taxCodeRequired": "La mia modifica",
+        "it.pecInvalid": "Nuovo testo remoto",
+      }),
+      { method: "post" },
+    );
+  });
+
+  test("conserva la digitazione successiva all'invio mentre accetta il testo salvato", async () => {
+    router.loaderData = {
+      locale: "it",
+      configHash: "old",
+      messages: DEFAULT_CONFIG.messages,
+      rules: DEFAULT_CONFIG.rules,
+    };
+    const view = await mount(<CustomerMessages />);
+    const field = view.container.querySelector("s-text-area") as HTMLElement & {
+      name: string;
+      value: string;
+    };
+    field.name = "it.taxCodeRequired";
+    field.value = "Prima versione ";
+    await dispatch(field, new Event("input", { bubbles: true }));
+    await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
+    field.value = "Seconda versione";
+    await dispatch(field, new Event("input", { bubbles: true }));
+    router.loaderData = {
+      ...(router.loaderData as object),
+      configHash: "new",
+      messages: {
+        ...DEFAULT_CONFIG.messages,
+        it: { ...DEFAULT_CONFIG.messages.it, taxCodeRequired: "Prima versione" },
+      },
+    };
+    router.actionData = { ok: true };
+    await view.rerender(<CustomerMessages />);
+    expect(
+      (view.container.querySelector("s-text-area") as HTMLElement & { value: string }).value,
+    ).toBe("Seconda versione");
+    expect(view.container.querySelector("s-text-area")).toBe(field);
+    await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
+    expect(router.submit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ configHash: "new", "it.taxCodeRequired": "Seconda versione" }),
+      { method: "post" },
+    );
+  });
+
   test("modifica, cambia lingua, annulla, ripristina e salva", async () => {
     router.loaderData = {
       locale: "it",
@@ -798,6 +976,52 @@ describe("Onboarding", () => {
 });
 
 describe("Regole", () => {
+  test("riapplica una regola locale conservando le altre impostazioni remote", async () => {
+    router.loaderData = rulesData;
+    const view = await mount(<CheckoutRules />);
+    const original = FormData;
+    class EditedFormData {
+      get(name: string) {
+        return name === "taxCode"
+          ? "required_validated"
+          : name === "pec"
+            ? "required_validated"
+            : null;
+      }
+    }
+    vi.stubGlobal("FormData", EditedFormData as unknown as typeof original);
+    await dispatch(
+      view.container.querySelector("s-choice-list")!,
+      new Event("change", { bubbles: true }),
+    );
+    vi.stubGlobal("FormData", original);
+    await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
+    router.loaderData = {
+      ...rulesData,
+      configHash: "remote",
+      rules: { taxCode: "unmanaged", pec: "optional_validated" },
+      errorDisplay: "preventive",
+    };
+    router.actionData = { ok: false, errorCode: "config_conflict" };
+    await view.rerender(<CheckoutRules />);
+    expect(view.container.textContent).toContain(texts("it").conflict.heading);
+    await click(
+      [...view.container.querySelectorAll("s-button")].find(
+        (button) => button.textContent === texts("it").conflict.reapply,
+      )!,
+    );
+    await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
+    expect(router.submit).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        configHash: "remote",
+        taxCode: "required_validated",
+        pec: "optional_validated",
+        errorDisplay: "preventive",
+      }),
+      { method: "post" },
+    );
+  });
+
   const rulesData = {
     locale: "it",
     duplicateError: null,
@@ -813,28 +1037,32 @@ describe("Regole", () => {
   test("modifica la bozza, salva, annulla e invia il form", async () => {
     router.loaderData = rulesData;
     const view = await mount(<CheckoutRules />);
-    const forms = [...view.container.querySelectorAll("form")];
     const originalFormData = FormData;
     class RulesFormData {
-      private form: HTMLFormElement;
-      constructor(form: HTMLFormElement) {
-        this.form = form;
-      }
       get(name: string) {
         if (name === "taxCode") return "required_validated";
         if (name === "pec") return "unmanaged";
         if (name === "address2") return "declared";
-        if (name === "errorDisplay" && this.form === forms[1]) return "preventive";
+        if (name === "errorDisplay") return "preventive";
         return null;
       }
     }
     vi.stubGlobal("FormData", RulesFormData as unknown as typeof originalFormData);
-    await dispatch(forms[0], new Event("change", { bubbles: true }));
-    await dispatch(forms[1], new Event("change", { bubbles: true }));
+    await dispatch(
+      view.container.querySelector("s-choice-list")!,
+      new Event("change", { bubbles: true }),
+    );
+    await dispatch(
+      view.container.querySelector('s-checkbox[name="errorDisplay"]')!,
+      new Event("change", { bubbles: true }),
+    );
     const buttons = [...view.container.querySelectorAll("button")];
     await click(buttons[1]);
     await click(buttons[0]);
-    await dispatch(forms[0], new Event("submit", { bubbles: true, cancelable: true }));
+    await dispatch(
+      view.container.querySelector("form")!,
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
     expect(router.submit).toHaveBeenCalled();
     vi.stubGlobal("FormData", originalFormData);
   });
@@ -849,6 +1077,8 @@ describe("Regole", () => {
     await view.rerender(<CheckoutRules />);
     expect(view.container.querySelector('s-banner[tone="critical"]')).not.toBeNull();
 
+    await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
+    router.loaderData = { ...rulesData, configHash: "saved-hash" };
     router.actionData = { ok: true };
     await view.rerender(<CheckoutRules />);
     expect(view.container.textContent).toContain(texts("it").rules.saved);

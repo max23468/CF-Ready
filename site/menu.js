@@ -20,12 +20,49 @@ export function activeSection(sections, threshold) {
   return current;
 }
 
+export function readingProgress(scrollY, scrollHeight, viewportHeight) {
+  var distance = scrollHeight - viewportHeight;
+  return distance > 0 ? Math.min(1, Math.max(0, scrollY / distance)) : 0;
+}
+
 export function initializeMenu(doc = document, win = window) {
   var masthead = doc.querySelector(".masthead");
   if (!masthead) return;
 
   var mobile = win.matchMedia("(max-width: 52rem)");
   var lastY = win.scrollY;
+  var progress = doc.querySelector(".reading-progress");
+  var toggle = masthead.querySelector(".menu-toggle");
+  var navigation = masthead.querySelector("nav");
+  var open = false;
+
+  function setOpen(value) {
+    open = value;
+    toggle.setAttribute("aria-expanded", String(open));
+    navigation.classList.toggle("is-open", open);
+    masthead.classList.remove("is-hidden");
+  }
+
+  toggle.hidden = false;
+  masthead.classList.add("has-menu");
+  toggle.addEventListener("click", function () {
+    setOpen(!open);
+  });
+  navigation.addEventListener("click", function (event) {
+    if (event.target.closest("a")) setOpen(false);
+  });
+  doc.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && open) {
+      setOpen(false);
+      toggle.focus();
+    }
+  });
+
+  function closeOutside(event) {
+    if (open && !masthead.contains(event.target)) setOpen(false);
+  }
+  doc.addEventListener("pointerdown", closeOutside);
+  doc.addEventListener("focusin", closeOutside);
 
   function onScroll() {
     var y = win.scrollY;
@@ -36,7 +73,7 @@ export function initializeMenu(doc = document, win = window) {
         mobile: mobile.matches,
         scrollingDown,
         scrollY: y,
-        focusInside: masthead.contains(doc.activeElement),
+        focusInside: open || masthead.contains(doc.activeElement),
       })
     ) {
       masthead.classList.add("is-hidden");
@@ -51,7 +88,7 @@ export function initializeMenu(doc = document, win = window) {
     masthead.classList.remove("is-hidden");
   });
   mobile.addEventListener("change", function () {
-    masthead.classList.remove("is-hidden");
+    setOpen(false);
   });
 
   var links = [...masthead.querySelectorAll('nav a[href^="#"]')].filter(function (link) {
@@ -77,6 +114,13 @@ export function initializeMenu(doc = document, win = window) {
   }
 
   function markSection() {
+    if (progress) {
+      progress.value = readingProgress(
+        win.scrollY,
+        doc.documentElement.scrollHeight,
+        win.innerHeight,
+      );
+    }
     var scrollPadding = parseFloat(win.getComputedStyle(doc.documentElement).scrollPaddingTop);
     var threshold = Math.max(masthead.getBoundingClientRect().bottom, scrollPadding || 0);
     var current = activeSection(sections, threshold);
@@ -85,6 +129,8 @@ export function initializeMenu(doc = document, win = window) {
 
   win.addEventListener("scroll", markSection, { passive: true });
   win.addEventListener("hashchange", markSection);
+  win.addEventListener("resize", markSection);
+  doc.addEventListener("toggle", markSection, true);
   markSection();
 }
 
