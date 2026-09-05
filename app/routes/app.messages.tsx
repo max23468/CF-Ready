@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { data, useActionData, useLoaderData, useSubmit } from "react-router";
+import { data, useActionData, useLoaderData, useNavigation, useSubmit } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError } from "../app-error";
 import { authenticateAdmin } from "../admin-auth.server";
@@ -15,11 +15,17 @@ import {
 import { validateMessages } from "../config";
 import type { CheckoutConfig } from "../config";
 import { databaseContext } from "../context.server";
+import { ConfigConflict } from "../features/ConfigConflict";
 import { CustomerMessagesPreview } from "../features/messages/CustomerMessagesPreview";
 import { UncontrolledMessageTextArea } from "../features/messages/UncontrolledMessageTextArea";
 import { resolveLocale, texts } from "../i18n";
 import type { Locale } from "../i18n";
-import { messageSubmission, shouldShowMessageCounter, updateMessageDraft } from "../messages-draft";
+import {
+  messageSubmission,
+  rebaseMessageDraft,
+  shouldShowMessageCounter,
+  updateMessageDraft,
+} from "../messages-draft";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { setSaveBarVisibility } from "../save-bar";
 import { createServerTiming } from "../server-timing.server";
@@ -72,6 +78,10 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   return result.ok ? { ok: true as const } : { ok: false as const, errorCode: result.errorCode };
 };
 
+const MESSAGE_FIELDS = (["it", "en"] as const).flatMap((locale) =>
+  MESSAGE_KEYS.map((key) => `${locale}.${key}`),
+);
+
 const SAVE_BAR = "cf-ready-messages";
 type MessageKey = (typeof MESSAGE_KEYS)[number];
 
@@ -91,6 +101,18 @@ export default function CustomerMessages() {
   const saved = useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
   const send = useSubmit();
+  const navigation = useNavigation();
+  const busy = navigation.state !== "idle";
+  const baseRef = useRef(saved.messages);
+  const sentRef = useRef<CheckoutConfig["messages"] | null>(null);
+  const baseHash = useRef(saved.configHash);
+  const [resolvedConflict, setResolvedConflict] = useState(false);
+  const conflict =
+    result &&
+    !result.ok &&
+    "errorCode" in result &&
+    result.errorCode === "config_conflict" &&
+    !resolvedConflict;
   const t = texts(saved.locale);
   const [changedSinceResult, setChangedSinceResult] = useState(false);
   const [draft, setDraft] = useState<CheckoutConfig["messages"]>(saved.messages);
@@ -104,17 +126,33 @@ export default function CustomerMessages() {
   // I campi non sono controllati: React che riscrive `value` a ogni tasto farebbe saltare il
   // cursore dentro un testo lungo. Il ripristino li rimonta cambiando chiave, così ripartono
   // dal nuovo valore predefinito senza che React possieda il contenuto.
-  const [mounted, setMounted] = useState({ it: 0, en: 0 });
+  const [mounted, setMounted] = useState<Record<string, number>>({});
+  const remount = useCallback((fields: string[]) => {
+    setMounted((current) => {
+      const next = { ...current };
+      for (const field of fields) next[field] = (next[field] ?? 0) + 1;
+      return next;
+    });
+  }, []);
 
-  // Il server trimma i testi: senza riallineare la bozza dopo un salvataggio riuscito, uno
-  // spazio finale lascerebbe la Save Bar accesa per sempre.
   useEffect(() => {
-    if (!result?.ok) return;
+    if (!result || !sentRef.current || busy) return;
+    const sent = sentRef.current;
+    sentRef.current = null;
+    if (!result.ok) return;
+    const next = rebaseMessageDraft(sent, draftRef.current, saved.messages);
+    const normalizedFields = (["it", "en"] as const).flatMap((locale) =>
+      MESSAGE_KEYS.flatMap((key) =>
+        next[locale][key] !== draftRef.current[locale][key] ? [`${locale}.${key}`] : [],
+      ),
+    );
+    remount(normalizedFields);
+    draftRef.current = next;
+    baseRef.current = saved.messages;
+    baseHash.current = saved.configHash;
     setChangedSinceResult(false);
-    draftRef.current = saved.messages;
-    setDraft(saved.messages);
-    setMounted((current) => ({ it: current.it + 1, en: current.en + 1 }));
-  }, [result, saved.messages]);
+    setDraft(next);
+  }, [result, saved.messages, saved.configHash, busy, remount]);
 
   useEffect(() => {
     if (!result || result.ok || !("problem" in result) || !result.problem) return;
@@ -154,13 +192,30 @@ export default function CustomerMessages() {
   };
 
   const discard = () => {
+    baseRef.current = saved.messages;
+    baseHash.current = saved.configHash;
+    setResolvedConflict(true);
     draftRef.current = saved.messages;
     setDraft(saved.messages);
-    setMounted((current) => ({ it: current.it + 1, en: current.en + 1 }));
+    remount(MESSAGE_FIELDS);
   };
 
-  const save = () =>
-    send(messageSubmission(saved.configHash ?? "", draftRef.current), { method: "post" });
+  const save = () => {
+    if (busy || conflict || sentRef.current) return;
+    sentRef.current = draftRef.current;
+    setResolvedConflict(false);
+    send(messageSubmission(baseHash.current ?? "", draftRef.current), { method: "post" });
+  };
+
+  const reapply = () => {
+    const next = rebaseMessageDraft(baseRef.current, draftRef.current, saved.messages);
+    baseRef.current = saved.messages;
+    draftRef.current = next;
+    baseHash.current = saved.configHash;
+    setDraft(next);
+    setResolvedConflict(true);
+    remount(MESSAGE_FIELDS);
+  };
 
   // FR-063: il ripristino agisce su una lingua sola e lo dichiara nella conferma. Non salva da
   // sé: rimette i testi predefiniti nei campi e il salvataggio resta un gesto esplicito.
@@ -171,28 +226,51 @@ export default function CustomerMessages() {
     };
     setChangedSinceResult(true);
     setDraft(draftRef.current);
-    setMounted((current) => ({ ...current, [locale]: current[locale] + 1 }));
+    remount(MESSAGE_FIELDS.filter((field) => field.startsWith(`${locale}.`)));
   };
 
   return (
     <form onInput={readDraft}>
       <s-page heading={t.messages.heading}>
+        {conflict ? (
+          <ConfigConflict
+            locale={saved.locale}
+            busy={busy}
+            onReapply={reapply}
+            onDiscard={discard}
+            rows={(["it", "en"] as const).flatMap((locale) =>
+              MESSAGE_KEYS.map((key) => ({
+                label: `${locale.toUpperCase()} · ${t.messages[key]}`,
+                current: saved.messages[locale][key],
+                draft: draft[locale][key],
+              })),
+            )}
+          />
+        ) : null}
         {showSavedBanner(result, dirty, changedSinceResult) ? (
           <div className="cf-motion-reveal">
             <s-banner tone="success">{t.messages.saved}</s-banner>
           </div>
         ) : null}
-        {result && !result.ok && "errorCode" in result ? (
+        {result &&
+        !result.ok &&
+        "errorCode" in result &&
+        (result.errorCode !== "config_conflict" || conflict) ? (
           <div className="cf-motion-reveal">
             <s-banner tone="critical">{localizedError(t.errors, result.errorCode)}</s-banner>
           </div>
         ) : null}
 
         <ui-save-bar id={SAVE_BAR}>
-          <button type="button" variant="primary" onClick={save}>
+          <button
+            type="button"
+            variant="primary"
+            disabled={busy || Boolean(conflict)}
+            onClick={save}
+          >
             {t.common.save}
           </button>
-          <button type="button" onClick={discard}>
+          <button type="button" disabled={busy} onClick={discard}>
             {t.common.cancel}
           </button>
         </ui-save-bar>
@@ -231,7 +309,7 @@ export default function CustomerMessages() {
 
                 return (
                   <UncontrolledMessageTextArea
-                    key={`${activeLocale}-${key}-${mounted[activeLocale]}`}
+                    key={`${activeLocale}-${key}-${mounted[`${activeLocale}.${key}`] ?? 0}`}
                     initialValue={value}
                     label={t.messages[key]}
                     name={`${activeLocale}.${key}`}

@@ -7,7 +7,7 @@ import {
   simulatorScenarioValues,
 } from "../app/features/rules/checkout-simulator";
 import { isValidPec, isValidTaxCode } from "../app/checkout-field-validation";
-import { mergeRulesFormDraft } from "../app/features/rules/rules-form";
+import { mergeRulesFormDraft, rebaseRulesDraft } from "../app/features/rules/rules-form";
 import { texts } from "../app/i18n";
 
 const requiredTaxCode = { taxCode: "required_validated", pec: "unmanaged" } as const;
@@ -101,6 +101,7 @@ test("cambiare una regola non disattiva gli avvisi preventivi", () => {
   const data = new FormData();
   data.set("taxCode", "optional_validated");
   data.set("pec", "required_validated");
+  data.set("errorDisplay", "preventive");
 
   expect(
     mergeRulesFormDraft(
@@ -130,4 +131,47 @@ test("una bozza incompleta conserva i valori precedenti e legge la dichiarazione
   const declared = new FormData();
   declared.set("address2", "declared");
   expect(mergeRulesFormDraft(current, declared).address2).toBe(true);
+  expect(
+    mergeRulesFormDraft({ ...current, errorDisplay: "preventive" }, missing).errorDisplay,
+  ).toBe("inline");
+});
+
+test("gli indirizzi non ancora disponibili non escludono i campi fiscali presenti", () => {
+  const input = {
+    rules: requiredTaxCode,
+    deliveryCountry: "IT",
+    billingCountry: "IT",
+    taxCode: "",
+    pec: "",
+    revealErrors: true,
+  };
+  expect(simulatorOutcome({ ...input, billingCountry: "" })).toBe("blocked");
+  expect(simulatorOutcome({ ...input, deliveryCountry: "" })).toBe("blocked");
+  expect(simulatorOutcome({ ...input, deliveryCountry: "", billingCountry: "" })).toBe("blocked");
+  expect(simulatorOutcome({ ...input, deliveryCountry: "", billingCountry: "FR" })).toBe(
+    "notApplied",
+  );
+});
+
+test("la riapplicazione conserva modifiche locali ai flag e regole remote non toccate", () => {
+  const base = {
+    rules: { taxCode: "optional_validated", pec: "unmanaged" },
+    errorDisplay: "inline",
+    address2: false,
+  } as const;
+  const current = {
+    ...base,
+    rules: { taxCode: "required_validated", pec: "optional_validated" },
+  } as const;
+  const local = {
+    ...base,
+    rules: { ...base.rules, pec: "required_validated" },
+    errorDisplay: "preventive",
+    address2: true,
+  } as const;
+  expect(rebaseRulesDraft(base, local, current)).toEqual({
+    rules: { taxCode: "required_validated", pec: "required_validated" },
+    errorDisplay: "preventive",
+    address2: true,
+  });
 });

@@ -6,15 +6,30 @@ export type RulesFormDraft = {
   address2: boolean;
 };
 
-// Il checkbox degli avvisi vive fuori dal form delle regole per non includere il simulatore
-// nella Save Bar. Una modifica a CF, PEC o “Interno” deve quindi conservarne il valore corrente.
 export function mergeRulesFormDraft(current: RulesFormDraft, data: FormData): RulesFormDraft {
   return {
     rules: {
       taxCode: (data.get("taxCode") as RuleMode) ?? current.rules.taxCode,
       pec: (data.get("pec") as RuleMode) ?? current.rules.pec,
     },
-    errorDisplay: current.errorDisplay,
+    errorDisplay: data.get("errorDisplay") ? "preventive" : "inline",
     address2: data.get("address2") !== null,
+  };
+}
+
+export function rebaseRulesDraft(
+  base: RulesFormDraft,
+  draft: RulesFormDraft,
+  current: RulesFormDraft,
+): RulesFormDraft {
+  return {
+    rules: {
+      taxCode:
+        draft.rules.taxCode === base.rules.taxCode ? current.rules.taxCode : draft.rules.taxCode,
+      pec: draft.rules.pec === base.rules.pec ? current.rules.pec : draft.rules.pec,
+    },
+    errorDisplay:
+      draft.errorDisplay === base.errorDisplay ? current.errorDisplay : draft.errorDisplay,
+    address2: draft.address2 === base.address2 ? current.address2 : draft.address2,
   };
 }

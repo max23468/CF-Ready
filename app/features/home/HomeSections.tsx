@@ -52,28 +52,30 @@ export function HomeValidationSection({
           </s-paragraph>
         )}
         <s-divider />
-        <div className="cf-data-list">
-          <div className="cf-data-row">
+        <s-stack direction="block" gap="small-100">
+          <s-grid
+            gridTemplateColumns="auto auto"
+            justifyContent="start"
+            alignItems="center"
+            columnGap="base"
+            rowGap="small-100"
+          >
             <s-text>{t.rules.taxCodeLabel}</s-text>
             <s-badge>{t.rules.taxCode[data.rules.taxCode]}</s-badge>
-          </div>
-          <div className="cf-data-row">
             <s-text>{t.rules.pecLabel}</s-text>
             <s-badge>{t.rules.pec[data.rules.pec]}</s-badge>
-          </div>
-          <div className="cf-data-row">
             <s-text>{t.home.messagesLabel}</s-text>
             <s-badge>
               {data.messagesDefault ? t.home.messagesDefault : t.home.messagesCustom}
             </s-badge>
-          </div>
+          </s-grid>
           <s-box background="subdued" borderRadius="base" padding="small-200">
             <s-stack direction="inline" gap="small-100" alignItems="center">
               <s-icon type="location" color="subdued" />
               <s-text color="subdued">{t.rules.exceptions[0]}</s-text>
             </s-stack>
           </s-box>
-        </div>
+        </s-stack>
         <s-stack direction="inline" gap="base">
           <s-button href="/app/rules" variant="primary">
             {t.home.editRules}

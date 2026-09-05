@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -44,7 +44,8 @@ export function criticalMutationConfig(domainName) {
     jsonReporter: { fileName: `.coverage/mutation/${domainName}.json` },
     thresholds: { high: 95, low: threshold, break: threshold },
     tempDirName: resolve(
-      tmpdir(),
+      // macOS espone /var tramite /private/var: Vitest normalizza i percorsi dei test.
+      realpathSync(tmpdir()),
       "cf-ready-mutation",
       createHash("sha256").update(process.cwd()).digest("hex").slice(0, 12),
       domainName,

@@ -509,6 +509,14 @@ test("il primo salvataggio crea la Validation disattivata e non la attiva", asyn
   );
 
   expect(result).toEqual({ ok: true, enabled: false });
+  expect(
+    await env.DB.prepare(
+      "SELECT event_name, metadata_json FROM app_events WHERE event_name = 'rules_saved' AND shop_id = (SELECT id FROM shops WHERE shop_domain = ?)",
+    )
+      .bind(shop)
+      .all(),
+  ).toMatchObject({ results: [{ event_name: "rules_saved", metadata_json: null }] });
+
   expect(calls).toHaveLength(1);
   expect(calls[0].operation).toBe("validationCreate");
   // FR-051: salvare non attiva. La configurazione esiste comunque, perché vive nel metafield

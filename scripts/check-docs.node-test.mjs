@@ -451,7 +451,7 @@ test("i dati strutturati restano verificabili e non inventano prezzo o recension
 test("la pagina 404 è dedicata e fuori dall’indice", () => {
   const notFound = readFileSync(new URL("../site/404.html", import.meta.url), "utf8");
   assert.match(notFound, /<meta name="robots" content="noindex">/);
-  assert.match(notFound, /<title>Pagina non trovata — CF Ready<\/title>/);
+  assert.match(notFound, /<title>Pagina non trovata \| CF Ready<\/title>/);
   assert.doesNotMatch(notFound, /rel="canonical"/);
 });
 

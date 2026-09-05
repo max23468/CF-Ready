@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { activeSection, initializeMenu, orderSections, shouldHideMasthead } from "../site/menu.js";
+import { readFileSync } from "node:fs";
+import {
+  activeSection,
+  initializeMenu,
+  orderSections,
+  readingProgress,
+  shouldHideMasthead,
+} from "../site/menu.js";
 
 class FakeClassList {
   values = new Set();
@@ -28,8 +35,8 @@ function eventTarget(properties = {}) {
       registered.push(listener);
       listeners.set(name, registered);
     },
-    dispatch(name) {
-      for (const listener of listeners.get(name) ?? []) listener();
+    dispatch(name, event = {}) {
+      for (const listener of listeners.get(name) ?? []) listener(event);
     },
   };
 }
@@ -70,7 +77,18 @@ function menuFixture({ links = true, sectionsPresent = true } = {}) {
         { hash: "#", classList: new FakeClassList() },
       ]
     : [];
+  const toggle = eventTarget({
+    hidden: true,
+    setAttribute(name, value) {
+      this[name] = value;
+    },
+    focus() {
+      this.focused = true;
+    },
+  });
+  const navigation = eventTarget({ classList: new FakeClassList() });
   const masthead = eventTarget({
+    querySelector: (selector) => (selector === "nav" ? navigation : toggle),
     classList: new FakeClassList(),
     contains: (element) => element === "inside",
     querySelectorAll: () => menuLinks,
@@ -79,17 +97,30 @@ function menuFixture({ links = true, sectionsPresent = true } = {}) {
   const mobile = eventTarget({ matches: true });
   const win = eventTarget({
     scrollY: 0,
+    innerHeight: 500,
     matchMedia: () => mobile,
     getComputedStyle: () => ({ scrollPaddingTop: "96px" }),
   });
   const sections = sectionsPresent ? { funzioni: firstSection, prezzi: secondSection } : {};
-  const doc = {
+  const progress = { value: 0 };
+  const doc = eventTarget({
     activeElement: null,
-    documentElement: {},
-    querySelector: () => masthead,
+    documentElement: { scrollHeight: 1500 },
+    querySelector: (selector) => (selector === ".reading-progress" ? progress : masthead),
     getElementById: (id) => sections[id],
+  });
+  return {
+    doc,
+    firstSection,
+    masthead,
+    menuLinks,
+    mobile,
+    navigation,
+    toggle,
+    progress,
+    secondSection,
+    win,
   };
-  return { doc, firstSection, masthead, menuLinks, mobile, secondSection, win };
 }
 
 test("la decisione di nascondere la testata resta una funzione pura", () => {
@@ -165,4 +196,91 @@ test("il modulo inizializza automaticamente l’adapter nel browser", async () =
     delete globalThis.document;
     delete globalThis.window;
   }
+});
+
+test("il menu segue l’ordine delle sezioni in entrambe le lingue", () => {
+  for (const path of ["../site/index.html", "../site/en/index.html"]) {
+    const html = readFileSync(new URL(path, import.meta.url), "utf8");
+    const navigation = html.match(/<nav[^>]*>([\s\S]*?)<\/nav>/)[1];
+    const positions = [...navigation.matchAll(/href="#([^"]+)"/g)].map(([, id]) =>
+      html.indexOf(`id="${id}"`),
+    );
+    assert.ok(positions.every((position) => position >= 0));
+    assert.deepEqual(
+      positions,
+      [...positions].sort((a, b) => a - b),
+    );
+  }
+});
+
+test("l’avanzamento gestisce pagine corte e rimbalzo dello scroll", () => {
+  assert.equal(readingProgress(0, 1500, 500), 0);
+  assert.equal(readingProgress(500, 1500, 500), 0.5);
+  assert.equal(readingProgress(1200, 1500, 500), 1);
+  assert.equal(readingProgress(-50, 1500, 500), 0);
+  assert.equal(readingProgress(0, 500, 500), 0);
+  assert.equal(readingProgress(0, 300, 500), 0);
+});
+
+test("l’indicatore si aggiorna con scroll, resize e apertura dettagli", () => {
+  const fixture = menuFixture();
+  initializeMenu(fixture.doc, fixture.win);
+  fixture.win.scrollY = 500;
+  fixture.win.dispatch("scroll");
+  assert.equal(fixture.progress.value, 0.5);
+  fixture.win.innerHeight = 1000;
+  fixture.win.dispatch("resize");
+  assert.equal(fixture.progress.value, 1);
+  fixture.doc.documentElement.scrollHeight = 3000;
+  fixture.doc.dispatch("toggle");
+  assert.equal(fixture.progress.value, 0.25);
+});
+
+test("le pagine senza indicatore mantengono la navigazione", () => {
+  const fixture = menuFixture();
+  fixture.doc.querySelector = (selector) => (selector === ".masthead" ? fixture.masthead : null);
+  initializeMenu(fixture.doc, fixture.win);
+  assert.equal(fixture.menuLinks[1]["aria-current"], "location");
+});
+
+test("il menu mobile si chiude con Escape, link e cambio breakpoint", () => {
+  const f = menuFixture();
+  initializeMenu(f.doc, f.win);
+  assert.equal(f.toggle.hidden, false);
+  f.doc.dispatch("keydown", { key: "Escape" });
+  f.toggle.dispatch("click");
+  assert.equal(f.toggle["aria-expanded"], "true");
+  f.win.scrollY = 400;
+  f.win.dispatch("scroll");
+  assert.equal(f.masthead.classList.has("is-hidden"), false);
+  f.navigation.dispatch("click", { target: { closest: () => null } });
+  f.doc.dispatch("keydown", { key: "Tab" });
+  assert.equal(f.navigation.classList.has("is-open"), true);
+  f.doc.dispatch("keydown", { key: "Escape" });
+  assert.equal(f.toggle.focused, true);
+  assert.equal(f.toggle["aria-expanded"], "false");
+  f.toggle.dispatch("click");
+  f.navigation.dispatch("click", { target: { closest: () => ({}) } });
+  assert.equal(f.navigation.classList.has("is-open"), false);
+  f.toggle.dispatch("click");
+  f.mobile.dispatch("change");
+  assert.equal(f.toggle["aria-expanded"], "false");
+  f.toggle.dispatch("click");
+  f.toggle.dispatch("click");
+  assert.equal(f.toggle["aria-expanded"], "false");
+});
+
+test("il pannello non copre il contenuto dopo click o focus fuori dalla testata", () => {
+  const f = menuFixture();
+  initializeMenu(f.doc, f.win);
+  f.doc.dispatch("pointerdown", { target: "outside" });
+  f.toggle.dispatch("click");
+  f.doc.dispatch("pointerdown", { target: "inside" });
+  assert.equal(f.toggle["aria-expanded"], "true");
+  f.doc.dispatch("pointerdown", { target: "outside" });
+  assert.equal(f.toggle["aria-expanded"], "false");
+  f.toggle.dispatch("click");
+  f.doc.dispatch("focusin", { target: "outside" });
+  assert.equal(f.toggle["aria-expanded"], "false");
+  assert.equal(f.toggle.focused, undefined);
 });

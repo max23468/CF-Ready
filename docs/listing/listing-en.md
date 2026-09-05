@@ -27,7 +27,7 @@ for amounts, `extensions/cf-ready-validation/` for checkout behaviour.
 | Handle | `cf-ready` |
 | Primary category | Store management → Finances → Taxes |
 | Secondary category | Marketing and conversion → Checkout → Checkout - Other |
-| Geographic requirement | no store-country restriction; each checkout is decided from billing, delivery and Italian tax fields that are present |
+| Geographic requirement | no store-country restriction; rules for deliveries in Italy, with the exceptions below |
 | Icon | `docs/brand/assets/png/icon-app-1200.png` |
 | Feature image | `docs/brand/assets/png/feature-image-en-1600.png` |
 
@@ -40,9 +40,9 @@ text that repeats the tagline is useless to someone who cannot see the image.
 
 ## App card subtitle
 
-> Required Codice Fiscale at checkout, add PEC when needed.
+> Makes Codice Fiscale mandatory at checkout, and validates it
 
-**57/62 characters.**
+**60/62 characters.**
 
 ## Introduction
 

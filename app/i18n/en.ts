@@ -8,8 +8,18 @@ export const en: typeof it = {
     guide: "Help and FAQ",
   },
   common: {
+    yes: "Yes",
+    no: "No",
     save: "Save",
     cancel: "Cancel",
+  },
+  conflict: {
+    heading: "The configuration has changed",
+    body: "Compare the current configuration with your draft. Reapply keeps only fields you edited: review the result, then save.",
+    current: "Current",
+    draft: "Your draft",
+    reapply: "Reapply my changes",
+    discard: "Use current configuration",
   },
   errors: {
     validation_locked: "Another operation on this validation is running. Try again shortly.",
@@ -22,7 +32,7 @@ export const en: typeof it = {
     entitlement_required:
       "Start a trial or plan first. Without a valid entitlement, the validation would have no effect.",
     config_conflict:
-      "The rules changed in another tab or from another staff member while you were editing. Reload the page to see the current ones, then redo your change: we don’t overwrite someone else’s work.",
+      "The configuration changed in another window. Compare the values and choose whether to reapply your changes or use the current configuration.",
     duplicate_validations:
       "Shopify returned more than one CF Ready validation. They were turned off to keep checkout fail-open, but we can’t choose which one to keep without risking your configuration: none is deleted automatically.",
     duplicate_validations_active:
@@ -136,7 +146,7 @@ export const en: typeof it = {
       "CF Ready checks the Italian tax code (Codice Fiscale) and certified email address (PEC) in Shopify checkout. It doesn’t change your theme, add fields or issue invoices.",
     step1Limits: [
       "It only checks data format: it doesn’t confirm the customer’s identity or that an address is actually a certified PEC address.",
-      "Rules apply with Italian or not-yet-available billing and at least one Italian delivery. Without a delivery country, only Italian tax fields that are present are checked.",
+      "Rules apply to deliveries in Italy. They do not apply if the billing address is outside Italy. If the delivery country is missing, required fields that Shopify does not show do not block the order.",
     ],
     step2Heading: "Choose what to check",
     step2Body: "You can change these choices whenever you want from Checkout rules.",
@@ -205,6 +215,28 @@ export const en: typeof it = {
     no: "no",
   },
   guide: {
+    diagnosis: {
+      heading: "Is the check missing?",
+      body: "Refresh and check rules, activation and plan using the same sync as Home. Inconsistencies are handled by the app’s normal recovery. This does not verify a real checkout.",
+      refresh: "Refresh and check",
+      failed:
+        "Shopify is unavailable or the state is ambiguous. Try again from Home; an earlier result is not a fresh verification.",
+      checkedAt: "Rules and activation checked at",
+      enabled: "The validation is enabled on Shopify.",
+      disabled: "The validation is disabled or missing. Open Home to manage activation.",
+      configured: "At least one field is configured for validation.",
+      unconfigured: "Both fields are unmanaged: choose which rules to apply.",
+      notChecked: "Rules and activation have not been checked in this session.",
+      openPlan: "Check plan",
+      lastSync: "Last stored sync",
+      unknown: "Unavailable",
+      manualHeading: "Check manually at checkout",
+      manualBody:
+        "Confirm billing and delivery countries, native tax fields and the checkout completion step. “Apartment, suite, etc.” is not the tax code field. These conditions require a manual check.",
+      simulate: "Reproduce the case in the simulator",
+      entitled: "Trial or plan is valid in the newly synced state.",
+      notEntitled: "No valid trial or plan in the newly synced state.",
+    },
     heading: "Help and FAQ",
     faqHeading: "Frequently asked",
     expandAll: "Expand all",
@@ -361,13 +393,14 @@ export const en: typeof it = {
     },
     exceptionsHeading: "When rules apply",
     exceptions: [
-      "Rules apply with Italian or not-yet-available billing and at least one Italian delivery. Without a delivery country, only Italian tax fields that are present are checked.",
+      "Rules apply to deliveries in Italy. They do not apply if the billing address is outside Italy. If the delivery country is missing, required fields that Shopify does not show do not block the order.",
     ],
     preventiveLabel: "Show warnings early in checkout",
     preventiveHelp:
       "Errors can appear as soon as checkout loads, before the customer has filled the fields in. Recommended only if you use Shopify’s order confirmation step, because it stops customers reaching the review page blocked without a message.",
     previewHeading: "What customers will see",
     simulator: {
+      unknownCountry: "Not provided",
       eyebrow: "CF Ready · checkout simulation",
       heading: "Test checkout",
       privatePreview: "Interactive preview",
