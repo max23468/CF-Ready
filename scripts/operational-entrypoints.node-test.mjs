@@ -773,10 +773,12 @@ test("corsia CI e report D1 attraversano gli entrypoint con input sintetici", as
         },
       ],
     },
+    { success: true, results: [] },
   ]);
   const providerPath = await providerBin(t, {
     npm: `
 case "$*" in
+  *"WITH timing_samples AS"*) printf '%s\\n' '[{"success":true,"results":[]}]' ;;
   *"WITH recent AS"*) printf '%s\\n' '${performance}' ;;
   *"stores_total"*) printf '%s\\n' '${launch}' ;;
   *) exit 3 ;;
@@ -786,6 +788,13 @@ esac`,
     env: { PATH: providerPath },
   });
   assert.equal(JSON.parse(performanceResult.stdout).groups[0].status, "pass");
+  const compared = runEntrypoint(
+    "performance-report.mjs",
+    ["development", "--compare", "1.1.3", "1.1.4"],
+    { env: { PATH: providerPath } },
+  );
+  assert.equal(JSON.parse(compared.stdout).comparison.status, "insufficient_samples");
+
   const launchResult = runEntrypoint("controlled-launch-report.mjs", ["production"], {
     env: { PATH: providerPath },
   });

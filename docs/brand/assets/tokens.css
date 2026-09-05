@@ -17,16 +17,15 @@
   --cf-color-border-subtle:  #DFDBCD;  /* separatori decorativi */
 
   /* ---- Tipografia ---- */
-  --cf-font-sans: Futura, "Avenir Next", "Century Gothic",
-                  ui-sans-serif, system-ui, -apple-system,
-                  "Segoe UI", Roboto, sans-serif;
+  --cf-font-sans: ui-sans-serif, system-ui, -apple-system,
+                  BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --cf-weight-regular:  400;
   --cf-weight-medium:   500;
   --cf-weight-semibold: 600;
 
-  --cf-text-display: 2.5rem;    --cf-leading-display: 1.15;
+  --cf-text-display: 3.75rem;   --cf-leading-display: 1.08;
   --cf-text-h1:      2rem;      --cf-leading-h1:      1.19;
-  --cf-text-h2:      1.5rem;    --cf-leading-h2:      1.25;
+  --cf-text-h2:      2rem;      --cf-leading-h2:      1.2;
   --cf-text-h3:      1.1875rem; --cf-leading-h3:      1.37;
   --cf-text-body:    1.0625rem; --cf-leading-body:    1.59;
   --cf-text-small:   0.9375rem; --cf-leading-small:   1.53;
