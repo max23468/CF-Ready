@@ -449,7 +449,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-118 | Le PR ordinarie puntano a `develop` e usano squash; `main` accetta soltanto promozioni autorizzate da `develop`, unite con merge commit. La cancellazione automatica dei branch resta disattivata e i soli branch temporanei vengono eliminati esplicitamente. | Preserva l’ascendenza tra integrazione e Production, evita il drift strutturale causato da squash indipendenti sui due rami e impedisce che una promozione elimini `develop`. |
 | D-119 | Abilitare l’auto-merge nativo in `develop` per le sole PR Dependabot minor/patch dopo `CI` e `React Doctor` verdi. Eliminare dopo il merge soltanto i branch `dependabot/*`; major e promozioni `develop` → `main` restano manuali. | Allinea CF Ready a SyncBay e Pratix, rende atomico il vincolo sullo SHA verificato, preserva gli eventi post-merge e non espone `develop` alla cancellazione globale dei branch. |
 | D-120 | La visibilità pubblica non rende il progetto open-source: nessuna licenza viene concessa finché l’owner non sceglie esplicitamente e aggiunge un file `LICENSE`. | Una licenza attribuisce diritti di riuso e distribuzione e non va dedotta dalla sola pubblicazione del codice. |
-| D-121 | `package.json#version` è la fonte canonica della SemVer Production. Ogni `shopify app deploy` passa dal workflow dell’ambiente: Production usa la versione esatta, Development usa `<version>-dev.<tree Git abbreviato>`. Uno snapshot Development già attivo per lo stesso tree viene riusato in solo readback anche se il commit è cambiato senza modificare contenuto; una nuova Production richiede il normale bump SemVer. | Collega Production alla release commerciale e Development al contenuto effettivo, evita collisioni dopo merge senza diff e conserva identificatori leggibili e riproducibili. |
+| D-121 | `package.json#version` è la fonte canonica della prossima SemVer, preparata su `develop` insieme a lockfile e changelog anche senza autorizzazione alla promozione. Production adotta la stessa versione già collaudata, senza un altro bump. Ogni `shopify app deploy` passa dal workflow dell’ambiente: Production usa la versione esatta, Development usa `<version>-dev.<tree Git abbreviato>`. Uno snapshot Development già attivo per lo stesso tree viene riusato in solo readback anche se il commit è cambiato senza modificare contenuto; il bump SemVer per una nuova release precede il primo snapshot Development della release. | Collega Production alla release commerciale e Development al contenuto effettivo, evita collisioni dopo merge senza diff e conserva identificatori leggibili e riproducibili. |
 | D-122 | Offrire `inline` come visualizzazione errori predefinita e `preventive` come opzione merchant; la Guida la consiglia quando è attiva la conferma ordine Shopify. | La prova live mostra che i box globali a Interaction impediscono la review silenziosa, ma possono apparire già al caricamento e richiedono una scelta informata. |
 | D-123 | Abilitare metriche e Workers Logs nativi, ma disabilitare gli invocation log automatici. Traces resta disattivato per default e può essere acceso solo temporaneamente in Development, con traffico sintetico e finestra di diagnosi delimitata. | Invocation log e trace automatici includono URL e query string; i trace includono anche il testo SQL D1. Il campionamento riduce volume e costo, non il rischio di raccogliere parametri tecnici sensibili. |
 | D-124 | Non collegare il repository a Workers Builds finché GitHub Actions è il CI/CD canonico. Logpush, OpenTelemetry, Tail Workers e servizi esterni restano differiti finché il monitoraggio Cloudflare nativo non risulta insufficiente. | Evita una seconda corsia di deploy e nuovi destinatari della telemetria senza un bisogno operativo misurato. |
@@ -2811,7 +2811,8 @@ deve coincidere con il lockfile e, in Production, con il tag `vX.Y.Z`. Tutti i
 deploy Shopify rilasciati passano dal workflow GitHub Actions dell’ambiente. In
 Development la versione derivata dal tree rende idempotente lo stesso contenuto;
 in Production una versione già rilasciata non viene riutilizzata e il nuovo
-snapshot richiede il bump nel manifest e nel lockfile. Un deploy locale diretto
+snapshot richiede una versione preparata nel manifest e nel lockfile su `develop`,
+prima del collaudo Development. Un deploy locale diretto
 può essere usato solo come preview non rilasciata.
 
 Numero assegnato a ogni milestone fino alla `1.0.0`:
@@ -2830,20 +2831,30 @@ Numero assegnato a ogni milestone fino alla `1.0.0`:
 | M11 — `1.0.0` e Controlled Launch | `1.0.0` | tag `v1.0.0` dopo deploy, smoke e readback Production riusciti |
 | M12 — Built for Shopify | `1.1.0` | consolidamento e ottenimento dello status; la 1.1 raccoglie supporto nativo, diagnostica e osservabilità prestazioni |
 
-Dentro una milestone, ogni ulteriore release Production incrementa la **patch**
-(`0.2.1`, `0.2.2`). Gli snapshot Development non consumano versioni commerciali:
-il suffisso `dev.<tree>` cambia soltanto quando cambia il contenuto.
+La prossima versione si prepara nella PR verso `develop`: nuove funzionalità
+compatibili incrementano la **minor**, soli fix incrementano la **patch**.
+Codice, bump di manifest e lockfile, changelog e documentazione della modifica
+stanno **nella stessa PR**, anche quando l’owner chiede “pubblica senza
+promuovere”. Il numero identifica la release in preparazione e non dichiara un
+rilascio Production già avvenuto, né lo autorizza.
 
-Quando la destinazione Production è già prevista, una modifica si legge e si
-revisiona intera: codice, bump di manifest e lockfile, changelog e documentazione
-della stessa modifica stanno **nella stessa PR**, non in PR separate. Se invece
-l'owner autorizza Production soltanto dopo l'integrazione e il deploy
-Development di un tree privo di bump commerciale, il solo forward-fix ammesso è
-una PR preparatoria che modifica esclusivamente manifest, lockfile, changelog,
-documentazione di release e regressioni mirate della relativa policy. Questa PR
-ripete il gate completo e il deploy Development exact-HEAD prima della
-promozione; non è una PR di ricevuta o di chiusura e non si usa quando la
-destinazione Production era già nota.
+Durante il collaudo si mantiene la stessa SemVer e si accumulano i fix nella
+relativa voce del changelog; cambia soltanto il suffisso `dev.<tree>`. Se il
+perimetro richiede una minor o major superiore, si aggiorna il candidato su
+`develop` e lo si ricollauda. Dopo la release Production, il successivo
+intervento rilasciabile prepara una nuova versione. Documentazione interna e
+governance agentica da sole restano escluse dal bump.
+
+Esempio: `package.json` e lockfile contengono `1.3.0`; Development rilascia
+`1.3.0-dev.<tree>`; la promozione autorizzata porta lo stesso tree in `main` e
+Production rilascia `1.3.0`. Non si modifica la versione durante la promozione:
+il candidato completo supera i gate e il deploy Development prima del merge.
+
+Se un candidato è già stato integrato con il numero della precedente release,
+si corregge subito su `develop` con una PR preparatoria limitata a manifest,
+lockfile, changelog e policy di release pertinenti, senza attendere il via alla
+Production. Anche questa correzione richiede gate completi e un nuovo deploy
+Development prima della promozione.
 
 La ricevuta di deploy, che esiste solo dopo il rilascio, non ha una PR propria:
 il workflow conserva un artifact JSON legato a commit e tree e attesta quello
