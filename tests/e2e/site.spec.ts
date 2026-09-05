@@ -1,5 +1,19 @@
 import { expect, test } from "@playwright/test";
 
+test("testata desktop con logo, menu e pulsanti allineati", async ({ page }) => {
+  test.skip((page.viewportSize()?.width ?? 0) <= 832);
+  for (const path of ["/", "/en/"]) {
+    await page.goto(path);
+    const centers = await page.locator(".masthead img, .masthead nav a").evaluateAll((elements) =>
+      elements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        return rect.y + rect.height / 2;
+      }),
+    );
+    expect(Math.max(...centers) - Math.min(...centers)).toBeLessThanOrEqual(1);
+  }
+});
+
 test("sito pubblico bilingue e percorsi essenziali", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle("CF Ready | Codice Fiscale obbligatorio nel checkout");
