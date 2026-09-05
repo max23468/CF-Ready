@@ -173,6 +173,14 @@ rilettura finale di PR, check, deploy, release e stato Git non sono completi.
   il workflow la conserva come artifact JSON legato a commit e tree; quella
   Production è anche attestata. Le PR di chiusura collegano queste prove senza
   ricopiarle nel repository.
+- La prossima SemVer si prepara nella PR verso `develop`, insieme a manifest,
+  lockfile e changelog, anche con “pubblica senza promuovere”: minor per nuove
+  funzionalità compatibili, patch per soli fix. Durante il collaudo della stessa
+  release si mantiene quel numero; cambiano soltanto gli snapshot `dev.<tree>`.
+  La promozione porta in `main` la stessa versione e lo stesso tree verificati
+  in Development, senza un ulteriore bump. Preparare una versione non autorizza
+  la promozione Production. Documentazione interna e governance agentica da sole
+  non richiedono un bump.
 - Development usa `X.Y.Z-dev.<tree>` come versione Shopify immutabile del
   contenuto. Un commit diverso con lo stesso tree riusa lo snapshot e ripete
   soltanto readback, smoke e controlli provider freschi. Production continua a
