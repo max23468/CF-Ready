@@ -6,14 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
-## 1.3.0 — in preparazione
+## 1.3.1 — in preparazione
+
+- allineati verticalmente logo, voci del menu, lingua e pulsante di installazione
+  nella testata del sito pubblico, con verifica desktop italiana e inglese.
+
+## 1.3.0 — 5 settembre 2026
 
 - include le funzionalità e i miglioramenti D-144 descritti nello snapshot
   Development del 5 settembre qui sotto;
-- versione preparata su `develop`: gli snapshot useranno `1.3.0-dev.<tree>` e
-  la successiva promozione autorizzata manterrà `1.3.0` in Production;
-- bump e changelog precedono il collaudo Development anche quando la
-  pubblicazione esclude la promozione. Nessun rilascio Production ancora eseguito.
+- versione preparata e collaudata su `develop`, poi promossa in Production
+  come `1.3.0`; la ricevuta è collegata alla release `v1.3.0`.
 
 ## Development — 5 settembre 2026 (base 1.2.2)
 
