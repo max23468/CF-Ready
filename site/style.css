@@ -753,6 +753,10 @@ footer ul {
   max-width: 58rem;
 }
 
+.masthead nav li {
+  margin-bottom: 0;
+}
+
 .masthead nav a:not(.button, .lang) {
   display: inline-flex;
   align-items: center;
@@ -974,10 +978,6 @@ footer {
 
   .masthead nav ul {
     gap: 0 var(--cf-space-3);
-  }
-
-  .masthead nav li {
-    margin-bottom: 0;
   }
 
   .masthead nav {
