@@ -228,16 +228,15 @@ Dentro Shopify Admin l'app **eredita integralmente la tipografia di Polaris**: f
 
 Motivazione: un font diverso da quello dell'Admin è il primo indizio che un'app è esterna. Il vantaggio estetico sarebbe nullo, il costo (peso, FOUT, disallineamento a ogni aggiornamento Polaris, rischio accessibilità) reale.
 
-### 4.2 Sito pubblico e materiali — grottesco geometrico di sistema
+### 4.2 Sito pubblico e materiali — sans-serif di sistema
 
 ```css
 --cf-font-sans:
-  Futura, "Avenir Next", "Century Gothic",
-  ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-  Roboto, sans-serif;
+  ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+  "Segoe UI", Roboto, sans-serif;
 ```
 
-**Nessun webfont.** Zero richieste di rete, nessun layout shift, resa geometrica su macOS e Windows, coerenza con NFR-012 e con il divieto di dipendenze non necessarie (D-099).
+**Nessun webfont.** Zero richieste di rete, nessun layout shift, resa nativa su macOS e Windows, coerenza con NFR-012 e con il divieto di dipendenze non necessarie (D-099).
 
 **Pesi:** 400 testo, 500 etichette e titoli, 600 solo dove serve peso extra. Mai italic per enfasi funzionale, mai `font-weight: 300`.
 
@@ -245,15 +244,15 @@ Motivazione: un font diverso da quello dell'Admin è il primo indizio che un'app
 
 | Livello | Dimensione / interlinea | Peso | Uso |
 |---|---|---|---|
-| Display | 40 / 46 px | 500 | Titolo della sola Home pubblica |
+| Display | 60 / 65 px | 600 | Titolo della sola Home pubblica |
 | H1 | 32 / 38 px | 500 | Titolo di pagina |
-| H2 | 24 / 30 px | 500 | Titolo di sezione |
+| H2 | 32 / 38 px | 500 | Titolo di sezione |
 | H3 | 19 / 26 px | 500 | Sottosezione, domanda FAQ |
 | Body | 17 / 27 px | 400 | Testo corrente |
 | Body small | 15 / 23 px | 400 | Note, didascalie screenshot |
 | Label | 13 / 18 px | 500, `letter-spacing: .06em`, maiuscoletto | Occhielli ed etichette |
 
-Su mobile: Display 32, H1 26, H2 21, H3 18; body invariato.
+Su mobile: Display 36, H1 26, H2 26, H3 18; body invariato. Scala pubblica aggiornata il 5 settembre 2026 nella direzione chiara e raffinata scelta dall’owner; palette e marchio invariati. Lo stack del sito usa il sans-serif di sistema nativo per un carattere più sobrio e vicino agli strumenti di lavoro merchant, senza webfont.
 
 ### 4.4 Wordmark
 
@@ -294,16 +293,15 @@ Applicabili a sito e materiali pubblici. **Non** all'interno dell'app embedded, 
   --cf-color-border-subtle:  #DFDBCD;
 
   /* ---- Tipografia ---- */
-  --cf-font-sans: Futura, "Avenir Next", "Century Gothic",
-                  ui-sans-serif, system-ui, -apple-system,
-                  "Segoe UI", Roboto, sans-serif;
+  --cf-font-sans: ui-sans-serif, system-ui, -apple-system,
+                  BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --cf-weight-regular:  400;
   --cf-weight-medium:   500;
   --cf-weight-semibold: 600;
 
-  --cf-text-display: 2.5rem;    --cf-leading-display: 1.15;
+  --cf-text-display: 3.75rem;   --cf-leading-display: 1.08;
   --cf-text-h1:      2rem;      --cf-leading-h1:      1.19;
-  --cf-text-h2:      1.5rem;    --cf-leading-h2:      1.25;
+  --cf-text-h2:      2rem;      --cf-leading-h2:      1.2;
   --cf-text-h3:      1.1875rem; --cf-leading-h3:      1.37;
   --cf-text-body:    1.0625rem; --cf-leading-body:    1.59;
   --cf-text-small:   0.9375rem; --cf-leading-small:   1.53;
@@ -654,9 +652,9 @@ Direzione, non materiali finali. Testi completi, listing, screenshot definitivi 
 
 **Aggiornamento M7, 1 agosto 2026.** La direzione iniziale prescriveva una sola colonna e un tono da documento. L'owner ha deciso che la Home deve anche convincere chi non conosce il prodotto, quindi ammette griglie di schede, passi numerati, richiami all'installazione e un esempio visivo del comportamento nel checkout. Restano validi tutti i divieti elencati sopra e nei paragrafi seguenti: cambia la densità, non il registro. Le pagine legali e di assistenza restano a colonna singola.
 
-**Palette.** Fondo Panna come default; card e blocchi di esempio su Superficie bianca. Verde bottiglia per titoli, link e bottoni. Una o due sezioni su Verde bottiglia pieno per scandire il ritmo, tipicamente la sezione dei limiti e il piè di pagina. Arancio cotto al massimo una volta per schermata.
+**Palette.** Fondo Superficie bianca come default; Panna per fasce informative, prova e cornice prodotto. Verde bottiglia per titoli, link e bottoni. Una o due sezioni su Verde bottiglia pieno per scandire il ritmo, tipicamente la sezione dei limiti e il piè di pagina. Arancio cotto al massimo una volta per schermata.
 
-**Tipografia.** Stack geometrico di sistema, scala di §4.3, misura massima `--cf-measure`. Titoli in peso 500, mai in maiuscolo. Occhielli in Label maiuscoletto per orientare, non per decorare.
+**Tipografia.** Stack sans-serif nativo di sistema, scala di §4.3, misura massima `--cf-measure` per il testo corrente. Titoli in peso 500, Display in peso 600, mai in maiuscolo. Occhielli in Label maiuscoletto per orientare, non per decorare.
 
 **Sezioni.** Struttura fissa: occhiello → titolo → uno o due paragrafi → eventuale elenco o elemento visivo. Le sezioni previste da §24.4 — beneficio, campo nativo, nessuna modifica al tema, compatibilità piani, validazione, eccezioni estere, canali supportati, **limitazioni**, pricing e prova, privacy, link legali e supporto — hanno tutte lo stesso peso grafico: le limitazioni non stanno in corpo minore né nascoste in fondo.
 

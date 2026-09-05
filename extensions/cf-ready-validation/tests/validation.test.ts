@@ -452,3 +452,46 @@ describe("regole e messaggi", () => {
     ]);
   });
 });
+
+it("il simulatore semplice concorda con la Function quando gli indirizzi non sono ancora disponibili", async () => {
+  const { simulatorOutcome } = await import("../../../app/features/rules/checkout-simulator");
+  for (const deliveryCountry of ["IT", "FR", ""]) {
+    for (const billingCountry of ["IT", "FR", ""]) {
+      const rules = { taxCode: "required_validated", pec: "required_validated" } as const;
+      const actual = cartValidationsGenerateRun({
+        buyerJourney: { step: "CHECKOUT_COMPLETION" },
+        cart: {
+          billingAddress: billingCountry ? { countryCode: billingCountry } : null,
+          deliveryGroups: deliveryCountry
+            ? [{ deliveryAddress: { countryCode: deliveryCountry } }]
+            : [],
+          localizedFields: [
+            { key: "TAX_CREDENTIAL_IT", value: "" },
+            { key: "TAX_EMAIL_IT", value: "" },
+          ],
+        },
+        localization: { language: { isoCode: "IT" } },
+        shop: { localTime: { date: "2026-09-05" } },
+        validation: {
+          metafield: {
+            jsonValue: {
+              ...baseConfig,
+              rules,
+              entitlement: { kind: "one_time", validThrough: null },
+            },
+          },
+        },
+      } as never);
+      expect(
+        simulatorOutcome({
+          rules,
+          deliveryCountry,
+          billingCountry,
+          taxCode: "",
+          pec: "",
+          revealErrors: true,
+        }) === "blocked",
+      ).toBe((actual.operations[0].validationAdd?.errors.length ?? 0) > 0);
+    }
+  }
+});

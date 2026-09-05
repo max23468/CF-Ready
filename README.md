@@ -52,11 +52,10 @@ Pages resta disattivata.
 fonte canonica dei token di brand: se cambiano i token, va aggiornata anche la
 copia.
 
-`site:dev` rimuove prima `.wrangler/deploy/config.json`, l'artefatto che
-`react-router build` lascia per il Worker: finché esiste, Wrangler dirotta anche
-i comandi Pages sulla configurazione dell'app e il sito non parte. Pages
-non accetta un file di configurazione alternativo, quindi si toglie di mezzo
-quello sbagliato; viene rigenerato alla build successiva.
+`site:dev` usa Vite in modalità multipagina per l’anteprima statica e gli E2E,
+senza caricare la configurazione Cloudflare del Worker dell’app né cancellarne
+gli artefatti. Gli header e il comportamento del provider Pages sono verificati
+dal workflow di deploy e dal relativo readback.
 
 ## Verifica
 
@@ -87,6 +86,21 @@ normalizzare i file TOML del repository:
 ```sh
 mise exec -- npm run shopify:info -- shopify.app.dev.toml
 ```
+
+## Report operativi
+
+```sh
+npm run report:launch -- production
+npm run report:performance -- production
+npm run report:performance -- production --compare 1.2.1 1.2.2
+```
+
+Sostituisci `production` con `development` per il database Development. Sono letture
+remote aggregate: le coorti descrivono i passaggi osservati negli ultimi 28 giorni,
+non un abbandono certo. `rules_saved` viene raccolto soltanto dalla pubblicazione
+dell’intervento D-144. Il confronto prestazioni usa versioni esplicite, richiede
+100 campioni per gruppo e restituisce gli avvisi nell’output JSON, senza invii esterni.
+Politiche e limiti sono nel Master Plan, §12 e D-144.
 
 ## Notifiche owner
 

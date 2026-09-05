@@ -28,7 +28,7 @@ checkout.
 | Handle | `cf-ready` |
 | Categoria primaria | Gestione del negozio → Finanze → Imposte |
 | Categoria secondaria | Marketing e conversione → Checkout → Checkout - Altro |
-| Requisito geografico | nessun vincolo sul Paese dello store; decide il singolo checkout in base a fatturazione, consegna e campi fiscali italiani presenti |
+| Requisito geografico | nessun vincolo sul Paese dello store; regole per le consegne in Italia, con le eccezioni dichiarate sotto |
 | Icona | `docs/brand/assets/png/icon-app-1200.png` |
 | Feature image | `docs/brand/assets/png/feature-image-it-1600.png` |
 
@@ -41,9 +41,9 @@ ripete lo slogan è inutile a chi non vede l'immagine.
 
 ## Sottotitolo della scheda app
 
-> Codice Fiscale obbligatorio nel checkout, PEC se ti serve.
+> Rende il Codice Fiscale obbligatorio nel checkout e lo valida
 
-**58/62 caratteri.**
+**61/62 caratteri.**
 
 ## Introduzione
 

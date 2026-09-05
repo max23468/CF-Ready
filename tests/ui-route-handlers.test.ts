@@ -1,5 +1,10 @@
 import { beforeEach, expect, test, vi } from "vitest";
 import { DEFAULT_CONFIG, MESSAGE_KEYS } from "../app/config";
+import * as guideRoute from "../app/routes/app.guide";
+import * as messagesRoute from "../app/routes/app.messages";
+import * as onboardingRoute from "../app/routes/app.onboarding";
+import * as rulesRoute from "../app/routes/app.rules";
+import * as authRoute from "../app/routes/auth.$";
 
 const mocks = vi.hoisted(() => ({
   authenticateAdmin: vi.fn(),
@@ -105,7 +110,7 @@ beforeEach(() => {
 
 test("Guida carica diagnostica e accetta solo ricevute di copia valide", async () => {
   mocks.readSupportDiagnosticState.mockResolvedValue({ validationStatus: "inactive" });
-  const { action, headers, loader } = await import("../app/routes/app.guide");
+  const { action, headers, loader } = guideRoute;
   const loaded = await loader(args(new Request("https://example.test/app/guide?locale=en")));
   expect(loaded.data).toMatchObject({
     locale: "en",
@@ -153,7 +158,7 @@ test("Guida carica diagnostica e accetta solo ricevute di copia valide", async (
 test("Messaggi legge Shopify e copre rifiuto, salvataggio e conflitto", async () => {
   const validation = { metafield: { jsonValue: DEFAULT_CONFIG } };
   mocks.findValidation.mockReturnValue(validation);
-  const { action, headers, loader } = await import("../app/routes/app.messages");
+  const { action, headers, loader } = messagesRoute;
   const loaded = await loader(args(new Request("https://example.test/app/messages?locale=it")));
   expect(loaded.data).toEqual({
     locale: "it",
@@ -198,7 +203,7 @@ test("Messaggi legge Shopify e copre rifiuto, salvataggio e conflitto", async ()
 });
 
 test("Onboarding carica gli stati autorevoli con e senza accesso", async () => {
-  const { loader } = await import("../app/routes/app.onboarding");
+  const { loader } = onboardingRoute;
   const request = new Request("https://example.test/app/onboarding?locale=it");
   expect((await loader(args(request))).data).toMatchObject({
     step: 2,
@@ -227,7 +232,7 @@ test("Onboarding carica gli stati autorevoli con e senza accesso", async () => {
 });
 
 test("Onboarding valida e salva avanzamento e regole", async () => {
-  const { action } = await import("../app/routes/app.onboarding");
+  const { action } = onboardingRoute;
   expect(await action(args(post("/app/onboarding", { intent: "progress", step: "x" })))).toEqual({
     ok: false,
     errorCode: "generic",
@@ -276,7 +281,7 @@ test("Onboarding valida e salva avanzamento e regole", async () => {
 });
 
 test("Onboarding tratta prova, intent sconosciuti e chiusura senza attivazione", async () => {
-  const { action } = await import("../app/routes/app.onboarding");
+  const { action } = onboardingRoute;
   mocks.startTrial.mockResolvedValueOnce({ status: "expired" });
   expect(await action(args(post("/app/onboarding", { intent: "start_trial" })))).toEqual({
     ok: false,
@@ -315,7 +320,7 @@ test("Onboarding tratta prova, intent sconosciuti e chiusura senza attivazione",
 });
 
 test("Onboarding attiva solo dopo una scrittura confermata", async () => {
-  const { action } = await import("../app/routes/app.onboarding");
+  const { action } = onboardingRoute;
   mocks.writeValidation.mockResolvedValueOnce({ ok: false, errorCode: "validation_write_failed" });
   expect(await action(args(post("/app/onboarding", { intent: "activate" })))).toEqual({
     ok: false,
@@ -339,7 +344,7 @@ test("Onboarding attiva solo dopo una scrittura confermata", async () => {
 });
 
 test("Regole espone duplicati, accesso e dichiarazione osservati", async () => {
-  const { loader } = await import("../app/routes/app.rules");
+  const { loader } = rulesRoute;
   const request = new Request("https://example.test/app/rules?locale=en");
   expect((await loader(args(request))).data).toMatchObject({
     locale: "en",
@@ -365,7 +370,7 @@ test("Regole espone duplicati, accesso e dichiarazione osservati", async () => {
 });
 
 test("Regole rifiuta valori estranei e conserva tutti i dati validi", async () => {
-  const { action } = await import("../app/routes/app.rules");
+  const { action } = rulesRoute;
   for (const values of [
     { taxCode: "x", pec: "unmanaged" },
     { taxCode: "unmanaged", pec: "x" },
@@ -413,11 +418,39 @@ test("Regole rifiuta valori estranei e conserva tutti i dati validi", async () =
 });
 
 test("il callback auth inoltra la richiesta a Shopify e propaga il rifiuto", async () => {
-  const { loader } = await import("../app/routes/auth.$");
+  const { loader } = authRoute;
   const request = new Request("https://example.test/auth/callback?shop=demo.myshopify.com");
   expect(await loader(args(request))).toBeNull();
   expect(mocks.authenticateShopify).toHaveBeenCalledWith(request);
   const denied = new Response(null, { status: 401 });
   mocks.authenticateShopify.mockRejectedValueOnce(denied);
   await expect(loader(args(request))).rejects.toBe(denied);
+});
+
+test("la diagnosi aggiorna lo stato attraverso la riconciliazione condivisa senza attivazioni esplicite", async () => {
+  const { action } = guideRoute;
+  mocks.reconcile.mockResolvedValueOnce({
+    validation: {
+      metafield: {
+        jsonValue: {
+          ...DEFAULT_CONFIG,
+          rules: { taxCode: "required_validated", pec: "unmanaged" },
+        },
+      },
+    },
+    validationEnabled: true,
+    entitlement: { kind: "trial" },
+    errorCode: null,
+  });
+  const result = await action(args(post("/app/guide", { intent: "check_validation" })));
+  expect(result).toMatchObject({
+    ok: true,
+    check: { enabled: true, configured: true, entitled: true, errorCode: null },
+  });
+  expect(mocks.reconcile).toHaveBeenCalledWith(admin, db, session.shop);
+  expect(mocks.writeValidation).not.toHaveBeenCalled();
+  mocks.reconcile.mockRejectedValueOnce(new Error("errore privato"));
+  expect(await action(args(post("/app/guide", { intent: "check_validation" })))).toEqual({
+    ok: false,
+  });
 });

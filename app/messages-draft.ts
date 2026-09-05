@@ -32,3 +32,19 @@ export function messageSubmission(configHash: string, current: Messages) {
     ),
   };
 }
+
+// Conserva solo i campi modificati rispetto alla base: vale sia per una risposta
+// di salvataggio tardiva sia per il recupero esplicito di un conflitto.
+export function rebaseMessageDraft(base: Messages, draft: Messages, current: Messages): Messages {
+  return Object.fromEntries(
+    (["it", "en"] as const).map((locale) => [
+      locale,
+      Object.fromEntries(
+        MESSAGE_KEYS.map((key) => [
+          key,
+          draft[locale][key] === base[locale][key] ? current[locale][key] : draft[locale][key],
+        ]),
+      ),
+    ]),
+  ) as Messages;
+}
