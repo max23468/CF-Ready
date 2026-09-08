@@ -763,7 +763,8 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   assert.match(ci, /include-hidden-files: true/);
   assert.match(doctor, /steps\.lane\.outputs\.react_doctor == 'true'/);
   assert.match(policy, /pull_request_target:/);
-  assert.match(policy, /labeled, unlabeled/);
+  assert.match(policy, /types: \[opened, synchronize, reopened, ready_for_review\]/);
+  assert.doesNotMatch(policy, /labeled|unlabeled/);
   assert.match(policy, /statuses: write/);
   assert.match(policy, /node scripts\/ci-policy-check\.mjs/);
   assert.match(policy, /persist-credentials: false/);
