@@ -644,7 +644,6 @@ test("i testi onboarding descrivono le regole attive senza contraddire lo stato 
   const preview = describeCheckout(
     {
       rules: { taxCode: "required_validated", pec: "unmanaged" },
-      errorDisplay: "inline",
       status: "active",
     },
     "it",

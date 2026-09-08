@@ -68,7 +68,6 @@ La Function restituisce consenso se `validation.metafield` è assente oppure se
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Struttura base       | oggetto con `schemaVersion: 2` ed `enabled: true`                                                                                                                                            | La configurazione attiva non era disponibile al run; CF Ready ha lasciato proseguire il checkout. Verificare lo stato della Validation e salvare di nuovo le regole. |
 | Data locale          | `shop.localTime.date` è una data reale nel formato `YYYY-MM-DD`, inclusi anni bisestili corretti                                                                                             | La data locale ricevuta non era utilizzabile; CF Ready ha applicato il comportamento fail-open.                                                                      |
-| Modalità errori      | `errorDisplay` è `inline` oppure `preventive`                                                                                                                                                | La modalità degli errori non era riconosciuta; CF Ready ha lasciato proseguire il checkout. Salvare di nuovo la configurazione corrente.                             |
 | Regole               | `rules` è un oggetto e sia `taxCode` sia `pec` valgono `unmanaged`, `optional_validated` o `required_validated`                                                                              | Una regola non era riconosciuta; CF Ready ha lasciato proseguire il checkout. Salvare di nuovo le regole.                                                            |
 | Messaggi             | `messages.it` e `messages.en` contengono tutte le chiavi `taxCodeRequired`, `taxCodeInvalid`, `pecRequired`, `pecInvalid`; ogni valore è una stringa già trimmata lunga da 1 a 200 caratteri | I messaggi erano incompleti o non validi; CF Ready ha lasciato proseguire il checkout. Ripristinare o salvare di nuovo i messaggi.                                   |
 | Diritto una tantum   | `entitlement.kind` è `one_time` e `validThrough` è `null`                                                                                                                                    | Il diritto una tantum non risultava valido nel run; controllare lo stato commerciale mostrato dall'app.                                                              |
@@ -78,14 +77,17 @@ Qualunque altro `entitlement.kind`, un oggetto `entitlement` assente o una
 scadenza malformata produce lo stesso consenso fail-open. L'ultimo giorno
 indicato da `validThrough` è ancora valido.
 
+Il campo storico `errorDisplay`, se presente, è ignorato dalla Function e non
+decide più alcun ramo. Una scrittura corrente lo normalizza a `inline` soltanto
+per compatibilità fra snapshot.
+
 ## 2. Step del checkout
 
-| Come riconoscerlo nell'input                                     | Esito                                          | Cosa dire al merchant                                                                  |
-| ---------------------------------------------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `buyerJourney.step` è `CHECKOUT_COMPLETION`                      | La diagnosi continua per entrambe le modalità. | Il run apparteneva al completamento del checkout; vanno controllati geografia e campi. |
-| Lo step è `CHECKOUT_INTERACTION` e `errorDisplay` è `preventive` | La diagnosi continua.                          | La modalità preventiva controlla già questo passaggio.                                 |
-| Lo step è `CHECKOUT_INTERACTION` e `errorDisplay` è `inline`     | Consenso anticipato.                           | La modalità inline valida al completamento; questo run intermedio non doveva bloccare. |
-| Qualunque altro step                                             | Consenso anticipato.                           | CF Ready non valida in questo passaggio del percorso checkout.                         |
+| Come riconoscerlo nell'input                 | Esito                | Cosa dire al merchant                                                                                  |
+| -------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------ |
+| `buyerJourney.step` è `CHECKOUT_COMPLETION`  | La diagnosi continua. | Il run apparteneva al completamento del checkout; vanno controllati geografia e campi.                 |
+| `buyerJourney.step` è `CHECKOUT_INTERACTION` | La diagnosi continua. | Il run apparteneva alla compilazione del checkout; vanno controllati geografia, consegna e campi.      |
+| Qualunque altro step                         | Consenso anticipato.  | CF Ready non valida in questo passaggio del percorso checkout.                                         |
 
 ## 3. Paesi osservati
 
@@ -96,7 +98,7 @@ I controlli geografici hanno questa precedenza.
 | `cart.billingAddress.countryCode` è presente e diverso da `IT`         | Consenso anticipato, anche se esiste una consegna italiana.                                                    | La fatturazione osservata era estera; CF Ready non ha applicato i campi fiscali italiani.                   |
 | Almeno un `deliveryAddress.countryCode` è presente e nessuno vale `IT` | Consenso anticipato.                                                                                           | Tutte le consegne osservabili erano estere; CF Ready non doveva bloccare.                                   |
 | Nessun Paese di consegna è osservabile                                 | La diagnosi continua sui soli localized field presenti. Gli indirizzi `null` non contano come Paesi osservati. | Shopify non aveva ancora esposto una consegna italiana; CF Ready può controllare soltanto i campi presenti. |
-| Almeno una consegna vale `IT`, anche insieme a consegne estere         | La diagnosi continua e i campi obbligatori assenti vengono trattati come vuoti.                                | Era presente una consegna italiana; CF Ready ha applicato le regole configurate.                            |
+| Almeno una consegna vale `IT`, anche insieme a consegne estere         | La diagnosi continua. A Completion i campi obbligatori assenti vengono trattati come vuoti.                    | Era presente una consegna italiana; CF Ready ha applicato le regole configurate.                            |
 
 Un indirizzo di fatturazione assente non produce consenso anticipato. Se
 `cart.localizedFields` è vuoto e non esiste una consegna italiana osservabile,
@@ -121,9 +123,16 @@ checkout riceve consenso quando nessuno dei due campi produce un errore.
 | La regola è `optional_validated` o `required_validated` e il valore non vuoto non supera il validatore | Errore con il messaggio `taxCodeInvalid` o `pecInvalid`.   | Il valore non rispettava la validazione formale configurata; CF Ready ha chiesto a Shopify di bloccare.                                 |
 | La regola è `optional_validated` o `required_validated` e il valore non vuoto supera il validatore     | Nessun errore.                                             | Il valore rispettava la validazione formale; CF Ready non attesta che appartenga a una persona o che una casella sia realmente una PEC. |
 
-Con almeno una consegna italiana, un campo assente viene trattato come vuoto:
-`required_validated` produce quindi l'errore obbligatorio, mentre
-`optional_validated` e `unmanaged` non producono errori.
+Con almeno una consegna italiana, a Completion un campo assente viene trattato
+come vuoto: `required_validated` produce quindi l'errore obbligatorio, mentre
+`optional_validated` e `unmanaged` non producono errori. A Interaction un campo
+assente non produce errori.
+
+A Interaction un valore non vuoto segue subito la tabella. Un required vuoto
+viene invece controllato soltanto se il campo è presente, ogni delivery group
+ha un Paese e tutte le delivery group italiane hanno
+`selectedDeliveryOption` valorizzato. Questo segnale descrive un contesto di
+consegna risolto, ma non prova un clic su “Continua”.
 
 ## 5. Lingua e target degli errori
 
@@ -134,7 +143,7 @@ appartenga al ramo ricostruito.
 | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `localization.language.isoCode` è `IT`                        | Messaggi presi da `messages.it`.                                                         |
 | Qualunque altra lingua                                        | Messaggi presi da `messages.en`.                                                         |
-| Step `CHECKOUT_INTERACTION` in modalità preventiva            | Tutti gli errori hanno target `$.cart`.                                                  |
+| Step `CHECKOUT_INTERACTION` e campo presente                  | Target `$.cart.localizedField.TAX_CREDENTIAL_IT` o `$.cart.localizedField.TAX_EMAIL_IT`. |
 | Step `CHECKOUT_COMPLETION` e campo presente                   | Target `$.cart.localizedField.TAX_CREDENTIAL_IT` o `$.cart.localizedField.TAX_EMAIL_IT`. |
 | Step `CHECKOUT_COMPLETION`, consegna italiana e campo assente | Target `$.cart`.                                                                         |
 

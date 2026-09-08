@@ -35,7 +35,6 @@ merchant o clienti.
 | disattivare nel checkout | turn off in checkout | Sospendere le regole conservando la configurazione | spegnere, disabilitare, cancellare |
 | attiva / disattivata | active / turned off | Lo stato della validazione | on/off, inattiva, spenta |
 | eccezioni automatiche | automatic exceptions | I casi in cui le regole non si applicano, non scelti dal merchant | esclusioni, whitelist |
-| avvisi preventivi | early warnings | La modalità che mostra gli errori già al caricamento del checkout | validazione live, controllo immediato |
 | messaggi al cliente | customer messages | I testi mostrati nel checkout quando un campo manca o non è valido | errori, alert |
 
 **Validation** con la maiuscola indica l'oggetto Shopify e resta nella
