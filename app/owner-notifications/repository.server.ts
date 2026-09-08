@@ -93,15 +93,20 @@ export async function previousPlanKind(
     : null;
 }
 
-export async function partnerPollStart(db: D1Database, key: string, now: Date) {
+export async function partnerPollWindow(db: D1Database, key: string, now: Date) {
   const state = await db
     .prepare("SELECT state_value FROM owner_notification_state WHERE state_key = ?")
     .bind(key)
     .first<{ state_value: string }>();
   const previous = state && validIsoDate(state.state_value) ? Date.parse(state.state_value) : null;
-  return new Date(
-    previous === null ? now.getTime() - PARTNER_POLL_REPLAY_MS : previous - PARTNER_POLL_REPLAY_MS,
-  ).toISOString();
+  return {
+    checkpointAt: previous === null ? null : new Date(previous).toISOString(),
+    occurredAtMin: new Date(
+      previous === null
+        ? now.getTime() - PARTNER_POLL_REPLAY_MS
+        : previous - PARTNER_POLL_REPLAY_MS,
+    ).toISOString(),
+  };
 }
 
 export async function localEventCursor(db: D1Database) {

@@ -1,8 +1,10 @@
 import { trialLedgerHash as notificationShopHash } from "../hash.server";
+import { recordEvent } from "../events.server";
 import {
   type PartnerEventNode,
   type PartnerEventType,
   normalizeShopDomain,
+  partnerEventErrorCode,
   planKindFromCharge,
   planLabel,
   safePlanName,
@@ -29,7 +31,7 @@ import {
   billingNotificationKey,
   hasEquivalentNotification,
   notificationStatement,
-  partnerPollStart,
+  partnerPollWindow,
   previousPlanKind,
   readOperationalSnapshot,
   relationshipNotificationKey,
@@ -88,10 +90,16 @@ export async function pollPartnerEvents(
   requirePartnerConfig(config);
   const now = options.now ?? new Date();
   const cycleStartedAt = now.toISOString();
-  const occurredAtMin = await partnerPollStart(db, "partner_events_polled_at", now);
+  const { checkpointAt, occurredAtMin } = await partnerPollWindow(
+    db,
+    "partner_events_polled_at",
+    now,
+  );
   const fetcher = options.fetcher ?? fetch;
   let after: string | null = null;
   let inserted = 0;
+  let skipped = 0;
+  const diagnosticErrorCodes = new Set<string>();
 
   for (let page = 0; page < MAX_NOTIFICATION_PAGES; page += 1) {
     const response = await fetcher(
@@ -122,7 +130,13 @@ export async function pollPartnerEvents(
     const notifications = (
       await Promise.all(
         events.edges.map(async ({ node }) => {
-          if (!validPartnerEvent(node)) throw new Error("partner_api_invalid_payload");
+          if (!validPartnerEvent(node)) {
+            skipped += 1;
+            if (isNewInvalidEvent(node, checkpointAt)) {
+              diagnosticErrorCodes.add(partnerEventErrorCode(node)!);
+            }
+            return null;
+          }
           return partnerEventNotification(db, node);
         }),
       )
@@ -133,13 +147,33 @@ export async function pollPartnerEvents(
     }
     if (!events.pageInfo.hasNextPage) {
       await writeNotificationState(db, "partner_events_polled_at", cycleStartedAt);
-      return { inserted, occurredAtMin, pages: page + 1 };
+      await Promise.all(
+        [...diagnosticErrorCodes].map((errorCode) =>
+          recordEvent(db, {
+            name: "owner_notification_partner_event_skipped",
+            class: "error",
+            metadata: { error_code: errorCode },
+          }),
+        ),
+      );
+      return {
+        inserted,
+        skipped,
+        diagnosticErrorCodes: [...diagnosticErrorCodes],
+        occurredAtMin,
+        pages: page + 1,
+      };
     }
     const endCursor = events.edges.at(-1)?.cursor;
     if (!endCursor || endCursor === after) throw new Error("partner_api_invalid_cursor");
     after = endCursor;
   }
   throw new Error("partner_api_page_limit");
+}
+
+function isNewInvalidEvent(node: PartnerEventNode | undefined, checkpointAt: string | null) {
+  if (checkpointAt === null) return true;
+  return validIsoDate(node?.occurredAt) && Date.parse(node.occurredAt) > Date.parse(checkpointAt);
 }
 
 async function partnerEventNotification(db: D1Database, event: PartnerEventNode) {
