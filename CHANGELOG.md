@@ -8,6 +8,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
 ## 1.5.3 — 8 settembre 2026
 
+- il menu Shopify inoltra la route a React Router senza richiedere una View
+  Transition, così il render non dipende dal ciclo di animazione del WebView;
 - un evento Shopify Partner incompleto non blocca più gli altri eventi della
   pagina né l’avanzamento del checkpoint;
 - la diagnostica distingue il campo Partner invalido senza conservare payload,
