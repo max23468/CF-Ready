@@ -120,7 +120,7 @@ payload o dati merchant.
 | --- | --- | --- |
 | `app_installed` | `lifecycle` | una volta per installazione, fino alla disinstallazione successiva |
 | `app_uninstalled` | `lifecycle` | `app/uninstalled` elaborato |
-| `shop_updated` | `lifecycle` | `shop/update` riconciliato |
+| `shop_updated` | `lifecycle` | `shop/update` con Paese cambiato riconciliato |
 | `shop_update_skipped` | `lifecycle` | `shop/update` senza sessione utilizzabile |
 | `compliance_acknowledged` | `lifecycle` | topic `customers/*` presi in carico |
 | `shop_redacted` | `lifecycle` | dati dello store eliminati |
@@ -158,8 +158,10 @@ solo come eventi di log, non come stato persistito.
 
 `reconcile(admin, db, shopDomain)` è l'unico punto che allinea Shopify e D1.
 Viene invocata a ogni autenticazione completata, all'apertura della Home, su
-`shop/update` e dopo un errore di scrittura. Il job orario si limita alla
-retention locale e non esegue riconciliazioni con Shopify.
+`shop/update` quando il Paese nel payload firmato differisce da D1 e dopo un
+errore di scrittura. Un update con Paese invariato riceve `200` prima della coda.
+Il job orario si limita alla retention locale e non esegue riconciliazioni con
+Shopify.
 
 Con la managed installation Shopify non espone un evento di installazione
 distinto: `afterAuth` scatta anche al rinnovo del token offline, che avviene
