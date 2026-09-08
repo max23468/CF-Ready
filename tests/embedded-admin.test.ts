@@ -1,16 +1,83 @@
 import { expect, test, vi } from "vitest";
 import {
+  appRouteFromShopifyEvent,
   embeddedAdminUrl,
   navigateFromShopifyEvent,
   restoreEmbeddedAdmin,
 } from "../app/embedded-admin";
 
-test("la navigazione App Bridge resta client-side dentro la cornice Shopify", () => {
-  const navigate = vi.fn();
-  const link = { getAttribute: (name: string) => (name === "href" ? "/app/messages" : null) };
+const origin = "https://app.example";
+const link = (href: string) => ({
+  tagName: "S-LINK",
+  getAttribute: (name: string) => (name === "href" ? href : null),
+});
 
-  expect(navigateFromShopifyEvent({ target: link } as unknown as Event, navigate)).toBe(true);
-  expect(navigate).toHaveBeenCalledWith("/app/messages");
+test.each(["/app", "/app/rules", "/app/messages", "/app/guide"])(
+  "la navigazione App Bridge usa la route interna %s esposta dal target",
+  (href) => {
+    const navigate = vi.fn();
+
+    expect(
+      navigateFromShopifyEvent({ target: link(href) } as unknown as Event, origin, navigate),
+    ).toBe(true);
+    expect(navigate).toHaveBeenCalledOnce();
+    expect(navigate).toHaveBeenCalledWith(href);
+  },
+);
+
+test("recupera la destinazione dal composedPath quando il target è retargettizzato", () => {
+  const navigate = vi.fn();
+  const source = link("/app/rules");
+  const event = {
+    target: { tagName: "S-APP-NAV", getAttribute: () => null },
+    composedPath: () => [{ tagName: "SPAN", getAttribute: () => null }, source, {}],
+  } as unknown as Event;
+
+  expect(navigateFromShopifyEvent(event, origin, navigate)).toBe(true);
+  expect(navigate).toHaveBeenCalledOnce();
+  expect(navigate).toHaveBeenCalledWith("/app/rules");
+});
+
+test("recupera la destinazione oltre un target interno allo Shadow DOM", () => {
+  const source = link("/app/guide?host=abc#faq");
+  const shadowTarget = { tagName: "SPAN", getAttribute: () => null };
+  const shadowRoot = { host: source };
+
+  expect(
+    appRouteFromShopifyEvent(
+      {
+        target: shadowTarget,
+        composedPath: () => [shadowTarget, shadowRoot, source, {}],
+      } as unknown as Event,
+      origin,
+    ),
+  ).toBe("/app/guide?host=abc#faq");
+});
+
+test("normalizza un URL assoluto della stessa origin preservando query e hash", () => {
+  expect(
+    appRouteFromShopifyEvent(
+      {
+        target: link("https://app.example/app/messages?host=abc#preview"),
+      } as unknown as Event,
+      origin,
+    ),
+  ).toBe("/app/messages?host=abc#preview");
+});
+
+test.each([
+  "https://external.example/app/rules",
+  "//external.example/app/messages",
+  "/account",
+  "/application",
+  "http://[",
+])("rifiuta la destinazione non interna %s", (href) => {
+  const navigate = vi.fn();
+
+  expect(
+    navigateFromShopifyEvent({ target: link(href) } as unknown as Event, origin, navigate),
+  ).toBe(false);
+  expect(navigate).not.toHaveBeenCalled();
 });
 
 test("un evento App Bridge senza destinazione non forza una navigazione", () => {
@@ -18,7 +85,12 @@ test("un evento App Bridge senza destinazione non forza una navigazione", () => 
 
   expect(
     navigateFromShopifyEvent(
-      { target: { getAttribute: () => null } } as unknown as Event,
+      {
+        target: { getAttribute: () => null },
+        composedPath: () => [{ getAttribute: () => null }],
+        detail: { href: "/app/messages" },
+      } as unknown as Event,
+      origin,
       navigate,
     ),
   ).toBe(false);
