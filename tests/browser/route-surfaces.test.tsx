@@ -144,7 +144,7 @@ async function mount(element: React.ReactElement) {
 }
 
 describe("shell embedded", () => {
-  test("mostra navigazione, outlet, loading e gestisce gli eventi Shopify", async () => {
+  test("gestisce il menu Shopify senza sospendere il render in una View Transition", async () => {
     router.loaderData = {
       apiKey: "api-key",
       shopDomain: "demo.myshopify.com",
@@ -164,7 +164,7 @@ describe("shell embedded", () => {
       new Event("shopify:navigate", { bubbles: true, composed: true }),
     );
     expect(router.navigate).toHaveBeenCalledOnce();
-    expect(router.navigate).toHaveBeenCalledWith("/app/rules", { viewTransition: true });
+    expect(router.navigate).toHaveBeenCalledWith("/app/rules");
     expect(window.location.pathname).toBe("/");
 
     router.navigation = { state: "loading" };
