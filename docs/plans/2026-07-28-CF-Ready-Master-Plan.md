@@ -149,7 +149,8 @@ L’app:
 - valida i campi nativi `TAX_CREDENTIAL_IT` e `TAX_EMAIL_IT`;
 - rende Codice Fiscale e PEC, indipendentemente, non gestiti, facoltativi e validati oppure obbligatori e validati;
 - applica una validazione formale completa del Codice Fiscale ordinario di 16 caratteri;
-- accetta anche i Codici Fiscali provvisori numerici di 11 cifre;
+- accetta anche i Codici Fiscali provvisori numerici di 11 cifre con carattere
+  di controllo formalmente valido;
 - valida la PEC come indirizzo email con regole pragmatiche, senza certificarne l’effettiva natura PEC;
 - applica le regole solo nei contesti italiani pertinenti;
 - esenta automaticamente gli acquirenti con fatturazione estera;
@@ -248,7 +249,7 @@ Rispetto alle alternative più ampie o invasive:
   - carattere di controllo;
   - struttura di data, sesso e codice catastale;
   - rifiuto di date palesemente impossibili;
-  - formato provvisorio numerico di 11 cifre.
+  - formato provvisorio numerico di 11 cifre con carattere di controllo valido.
 - Validazione PEC come email pragmatica.
 - Messaggi personalizzabili in italiano e inglese.
 - Inglese come fallback per il checkout in altre lingue.
@@ -322,10 +323,10 @@ Rispetto alle alternative più ampie o invasive:
 | D-011 | Salvataggio e attivazione restano separati. | Il merchant può preparare la configurazione senza modificarne subito il checkout. |
 | D-012 | Codice Fiscale facoltativo significa “vuoto consentito, ma valido se compilato”. | Evita di accettare dati formalmente errati. |
 | D-013 | PEC facoltativa segue la stessa logica. | Coerenza dei due campi. |
-| D-014 | Accettare CF ordinario a 16 caratteri e provvisorio numerico a 11 cifre. | Non bloccare rari identificativi provvisori legittimi. |
-| D-015 | Nessuna opzione merchant per disabilitare il formato provvisorio. | Entrambi i formati sono sempre considerati validi. |
+| D-014 | Accettare CF ordinario a 16 caratteri e provvisorio numerico a 11 cifre, quando superano i rispettivi controlli formali. | Non bloccare rari identificativi provvisori legittimi. |
+| D-015 | Nessuna opzione merchant per disabilitare il formato provvisorio. | Entrambi i formati restano sempre supportati e soggetti ai rispettivi controlli formali. |
 | D-016 | Validazione formale rafforzata del CF. | Rifiuta date palesemente impossibili senza fingere verifica anagrafica. |
-| D-017 | Non applicare checksum Partita IVA al CF provvisorio. | Evita di certificare erroneamente una sequenza numerica. |
+| D-017 | Non applicare checksum Partita IVA al CF provvisorio. **Superata da D-145.** | La distinzione fra verifica formale ed esistenza consente di rifiutare le sequenze incompatibili con il carattere di controllo senza attestare identità o attribuzione. |
 | D-018 | Normalizzare solo per la validazione, senza riscrivere il dato Shopify. | La Function valida ma non deve mutare l’input cliente. |
 | D-019 | La modalità inline valida solo a `CHECKOUT_COMPLETION`; la modalità preventiva aggiunge `CHECKOUT_INTERACTION` senza rimuovere Completion. | Mantiene il default non invasivo e offre copertura esplicita al bug Shopify della review. |
 | D-020 | Mostrare simultaneamente gli errori CF e PEC. | Il cliente corregge tutto in un solo tentativo. |
@@ -372,6 +373,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-142 | Attribuire ogni report Web Vitals alla rotta che ha avviato il documento e al relativo `Server-Timing`, conservando durate tecniche per tutti i loader merchant; gli asset fingerprinted sono immutabili per un anno. | App Bridge può consegnare il callback dopo una navigazione client: leggere allora la URL mescolava metrica e rotta, mentre il Navigation Timing restava quello iniziale. Congelare entrambi al montaggio rende il campione coerente; timing allowlistati separano Worker, Shopify e D1 senza contenuti merchant. I nomi hashati permettono cache lunga senza servire bundle obsoleti. Deciso il 2 settembre 2026 dopo misure Production separate fra shell Shopify e iframe. |
 | D-143 | Rendere CF Ready disponibile agli store di qualunque Paese e decidere l’applicabilità esclusivamente nel singolo checkout, senza gate amministrativo basato su sede, mercati o zone di spedizione. | La Function applica le regole quando la fatturazione è italiana o non ancora disponibile e almeno una consegna è italiana. Se nessuna consegna ha un Paese disponibile, come può accadere per digitali o ritiro, applica soltanto le regole dei localized fields italiani presenti. Non applica regole con fatturazione estera o consegne esclusivamente estere. `Shop.shipsToCountries` descrive solo i Paesi delle zone di spedizione e classificherebbe male digitali e ritiro; Markets richiederebbe più scope e non proverebbe il contesto del checkout. Il Paese dello store resta diagnostico. Le vecchie righe `blocked_country` tornano `active` alla prima riconciliazione. Deciso il 4 settembre 2026 per la `1.2.0`; supera D-002 e D-042 e la condizione geografica di D-132. |
 | D-144 | Proteggere le bozze durante i salvataggi e consentire il recupero esplicito dei conflitti; allineare il simulatore alla Function e aggiungere diagnosi guidata e report di attivazione/prestazioni. | Richiesta dell’owner del 5 settembre 2026: interventi 1, 2, 3, 5, 6 e 7. La bozza conserva i campi modificati dopo l’invio; un conflitto richiede confronto e riapplicazione esplicita contro l’hash corrente, mai un salvataggio forzato. Il simulatore mantiene l’interfaccia semplice: solo l’opzione indirizzo non ancora disponibile nei menu esistenti e gli errori globali preventivi lo allineano alla Function attuale. La diagnosi usa su richiesta la riconciliazione della Home e separa stato aggiornato, stato memorizzato e verifiche manuali. Report aggregati sulle fonti esistenti, senza nuovi scope, provider o contenuti merchant. Anticipa la diagnosi guidata dal backlog P2. |
+| D-145 | Verificare il carattere di controllo del CF provvisorio numerico a 11 cifre e rifiutare esplicitamente `00000000000`. | Il carattere di controllo non attesta che il codice esista o appartenga a qualcuno: rifiuta soltanto sequenze che non possono rispettare il formato. La validazione resta formale e non anagrafica. Su un campione esplorativo di 200.000 casi il controllo ha rilevato il 100% degli errori di una cifra, il 97,7% delle trasposizioni adiacenti considerate e ha rifiutato l’89,9% delle sequenze casuali prima accettate; i test usano casi deterministici, perché le misure dipendono dal campionamento e Luhn non rileva gli scambi `09`/`90`. Deciso dall’owner l’8 settembre 2026 per la `1.4.0`; supera D-017. |
 
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
@@ -552,7 +554,9 @@ osservabile non generare errori per il campo assente.
 
 - esattamente 11 cifre;
 - nessuna lettera o separatore;
-- nessun algoritmo Partita IVA;
+- carattere di controllo calcolato sulle prime dieci cifre con l’algoritmo Luhn
+  previsto anche per la Partita IVA;
+- rifiuto esplicito di `00000000000`;
 - nessuna affermazione di esistenza o attribuzione.
 
 ### 7.5 PEC
@@ -1095,11 +1099,14 @@ Non creare classi o provider. Una funzione principale e pochi helper puri sono s
 
 ### 10.5 Validazione CF 11 cifre
 
-```text
-/^\d{11}$/
-```
+Verificare prima `/^\d{11}$/`, quindi sommare le cifre nelle posizioni dispari
+1-indexed e raddoppiare quelle nelle posizioni pari, sottraendo 9 ai risultati
+maggiori di 9. L’undicesima cifra deve essere uguale a
+`(10 - somma % 10) % 10`. Rifiutare esplicitamente `00000000000`, senza
+aggiungere controlli sul codice ufficio o altre verifiche di esistenza.
 
-Il controllo indica solo “formato provvisorio accettato”, non validità sostanziale.
+Il controllo scarta soltanto sequenze incompatibili con il carattere di
+controllo; non prova esistenza, titolarità o corrispondenza anagrafica.
 
 ### 10.6 Validazione PEC
 
@@ -3561,7 +3568,10 @@ Usare dati sintetici o pubblicamente documentati, mai CF di clienti reali.
 | checksum errato | invalid |
 | omocodia ammessa | pass |
 | omocodia in posizione illecita | invalid |
-| 11 cifre | pass come provvisorio |
+| 11 cifre con carattere di controllo corretto | pass come provvisorio |
+| 11 cifre con carattere di controllo errato | invalid |
+| `00000000000` | invalid |
+| trasposizione adiacente rilevabile | invalid |
 | 11 caratteri con lettera | invalid |
 
 ### 23.3 Fixture PEC
@@ -4793,7 +4803,7 @@ La `1.0.0` è accettabile quando:
 6. l’attivazione crea/abilita una sola Validation;
 7. un checkout Italia/Italia senza CF è bloccato se richiesto;
 8. un CF ordinario valido passa;
-9. un CF provvisorio 11 cifre passa;
+9. un CF provvisorio a 11 cifre con carattere di controllo valido passa;
 10. un CF invalido è respinto se gestito;
 11. PEC rispetta i tre stati;
 12. gli errori sono associati ai campi;
@@ -5144,6 +5154,7 @@ Le API e i requisiti cambiano: prima di implementare o pubblicare, verificare se
 - [Shopify Functions](https://shopify.dev/docs/apps/build/functions/index)
 - [Cart and Checkout Validation Function API — latest](https://shopify.dev/docs/api/functions/latest/cart-and-checkout-validation)
 - [Cart and Checkout Validation Function API 2026-07](https://shopify.dev/docs/api/functions/2026-07/cart-and-checkout-validation)
+- [Monitoring and handling errors in production](https://shopify.dev/docs/apps/build/functions/monitoring-and-errors) e [Test and debug Shopify Functions](https://shopify.dev/docs/apps/build/functions/test-debug-functions) — riverificare visibilità di input/output, scope richiesti, supporto di `console.log` per JavaScript e limite dei log
 - [Admin GraphQL API 2026-07](https://shopify.dev/docs/api/admin-graphql/2026-07)
 - [`validationCreate`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/validationCreate)
 - [`validationUpdate`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/validationUpdate)
@@ -5168,6 +5179,11 @@ Le API e i requisiti cambiano: prima di implementare o pubblicare, verificare se
 - [Pass app review](https://shopify.dev/docs/apps/launch/app-store-review/pass-app-review)
 - [App review process](https://shopify.dev/docs/apps/launch/app-store-review/review-process)
 - [Unique app name requirement](https://shopify.dev/changelog/updated-app-store-requirements-4-1-2-use-a-unique-name-for-your-app)
+
+### Normativa italiana
+
+- [D.M. 23 dicembre 1976, articolo 9](https://def.finanze.it/DocTribFrontend/executePrintArticolo.do?articolo=Articolo+9&codiceOrdinamento=200000900000000&id=%7B8D93A450-E5FE-47FC-A6F0-F938769051BF%7D) — calcolo del carattere numerico di controllo
+- [D.M. 23 dicembre 1976, articolo 10](https://def.finanze.it/DocTribFrontend/executePrintArticolo.do?articolo=Articolo+10&codiceOrdinamento=200001000000000&id=%7B8D93A450-E5FE-47FC-A6F0-F938769051BF%7D) — applicazione al Codice Fiscale provvisorio
 
 ### Cloudflare
 
