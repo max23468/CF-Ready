@@ -2,6 +2,12 @@ name: Deploy Pages Production
 
 on:
   workflow_dispatch:
+    inputs:
+      force_redeploy:
+        description: Ridistribuisci anche se il contenuto di site non è cambiato
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -30,22 +36,14 @@ jobs:
         run: test "$GITHUB_REF" = "refs/heads/main"
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 26.8.1
-          cache: npm
-
-      - run: npm install --global npm@12.0.2
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-
-      - run: npm install --global --allow-scripts=esbuild @shopify/cli@4.7.1
+          fetch-depth: 0
 
       - name: Preflight Pages Production
         id: preflight
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          FORCE_REDEPLOY: ${{ inputs.force_redeploy }}
         run: |
           test -n "$CLOUDFLARE_API_TOKEN"
           curl --fail --silent --show-error \
@@ -66,19 +64,53 @@ jobs:
           rollback_id="$(jq --raw-output '.result.canonical_deployment.id' "$RUNNER_TEMP/pages-before.json")"
           rollback_commit="$(jq --raw-output '.result.canonical_deployment.deployment_trigger.metadata.commit_hash' "$RUNNER_TEMP/pages-before.json")"
           test -n "$rollback_id" && test "$rollback_id" != "null"
-          {
-            echo "## Ricevuta deploy Pages Production"
-            echo "- Ambiente: Pages Production"
-            echo "- Configurazione: progetto \`$PAGES_PROJECT\`, branch \`main\`"
-            echo "- Versione Shopify e migrazioni: non applicabile"
-            echo "- Commit: \`$GITHUB_SHA\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' "$rollback_commit" | grep --extended-regexp --quiet '^[0-9a-f]{40}$'
+          git cat-file -e "${rollback_commit}^{commit}"
+          current_site_tree="$(git rev-parse "${GITHUB_SHA}:site")"
+          deployed_site_tree="$(git rev-parse "${rollback_commit}:site")"
+          deploy_required=false
+          if [ "$FORCE_REDEPLOY" = "true" ] || [ "$current_site_tree" != "$deployed_site_tree" ]; then
+            deploy_required=true
+          fi
+          echo "deploy_required=$deploy_required" >> "$GITHUB_OUTPUT"
           echo "rollback_id=$rollback_id" >> "$GITHUB_OUTPUT"
-          echo "- Rollback Pages: deployment \`$rollback_id\`, commit \`$rollback_commit\`" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$deploy_required" = "true" ]; then
+            {
+              echo "## Ricevuta deploy Pages Production"
+              echo "- Ambiente: Pages Production"
+              echo "- Configurazione: progetto \`$PAGES_PROJECT\`, branch \`main\`"
+              echo "- Versione Shopify e migrazioni: non applicabile"
+              echo "- Commit: \`$GITHUB_SHA\`"
+              echo "- Rollback Pages: deployment \`$rollback_id\`, commit \`$rollback_commit\`"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## Deploy Pages Production non necessario"
+              echo "- Il tree di \`site/\` coincide con il deployment canonico \`$rollback_id\` del commit \`$rollback_commit\`"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
-      - run: npm run check
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        if: steps.preflight.outputs.deploy_required == 'true'
+        with:
+          node-version: 26.8.1
+          cache: npm
+
+      - if: steps.preflight.outputs.deploy_required == 'true'
+        run: npm install --global npm@12.0.2
+      - if: steps.preflight.outputs.deploy_required == 'true'
+        run: npm ci
+      - if: steps.preflight.outputs.deploy_required == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - if: steps.preflight.outputs.deploy_required == 'true'
+        run: npm install --global --allow-scripts=esbuild @shopify/cli@4.7.1
+
+      - if: steps.preflight.outputs.deploy_required == 'true'
+        run: npm run check
 
       - name: Inietta l'identità del titolare
+        if: steps.preflight.outputs.deploy_required == 'true'
         env:
           OWNER_LEGAL_NAME: ${{ secrets.OWNER_LEGAL_NAME }}
         run: |
@@ -93,9 +125,11 @@ jobs:
 
       - name: Arma rollback Pages Production
         id: rollback_guard
+        if: steps.preflight.outputs.deploy_required == 'true'
         run: echo "armed=true" >> "$GITHUB_OUTPUT"
 
       - name: Deploy Pages Production
+        if: steps.preflight.outputs.deploy_required == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
@@ -109,6 +143,7 @@ jobs:
             --commit-dirty=false
 
       - name: Readback Pages Production
+        if: steps.preflight.outputs.deploy_required == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
@@ -135,6 +170,7 @@ jobs:
           echo "- Pages Production: deployment \`$deployment_id\`, commit \`$GITHUB_SHA\`, URL $deployment_url" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Smoke sito pubblico
+        if: steps.preflight.outputs.deploy_required == 'true'
         run: |
           published=false
           for _ in 1 2 3 4 5 6 7 8 9 10; do

@@ -116,14 +116,27 @@ export function verifyProductionDeployment({ run, artifacts, expectedMain }) {
   }
 }
 
-export function verifyPagesDeployment({ run, expectedMain }) {
+export function pagesDeploymentCompleted(jobs) {
+  return jobs.some(
+    ({ name, status, conclusion, steps }) =>
+      name === "Deploy Pages Production" &&
+      status === "completed" &&
+      conclusion === "success" &&
+      steps?.some(
+        (step) => step.name === "Deploy Pages Production" && step.conclusion === "success",
+      ),
+  );
+}
+
+export function verifyPagesDeployment({ run, jobs, expectedMain }) {
   if (
     run?.path !== ".github/workflows/deploy-pages-production.yml" ||
     run.event !== "workflow_dispatch" ||
     run.status !== "completed" ||
     run.conclusion !== "success" ||
     run.head_branch !== "main" ||
-    run.head_sha !== expectedMain
+    run.head_sha !== expectedMain ||
+    !pagesDeploymentCompleted(jobs)
   ) {
     throw new Error(
       "Il riallineamento richiede un deploy Pages Production verde dello stesso commit main.",
@@ -131,13 +144,13 @@ export function verifyPagesDeployment({ run, expectedMain }) {
   }
 }
 
-export function verifyReconciliationDeployment({ run, artifacts = [], expectedMain }) {
+export function verifyReconciliationDeployment({ run, artifacts = [], jobs = [], expectedMain }) {
   if (run?.path === ".github/workflows/deploy-production.yml") {
     verifyProductionDeployment({ run, artifacts, expectedMain });
     return;
   }
   if (run?.path === ".github/workflows/deploy-pages-production.yml") {
-    verifyPagesDeployment({ run, expectedMain });
+    verifyPagesDeployment({ run, jobs, expectedMain });
     return;
   }
   throw new Error("Il workflow sorgente non è un deploy riconosciuto.");
@@ -251,9 +264,27 @@ async function main() {
             )
           ).artifacts
         : [];
+    const jobs =
+      sourceRun.path === ".github/workflows/deploy-pages-production.yml"
+        ? (
+            await request(
+              `/repos/${repository}/actions/runs/${sourceRun.id}/jobs?per_page=100`,
+              githubToken,
+            )
+          ).jobs
+        : [];
+    if (
+      eventName === "workflow_run" &&
+      sourceRun.path === ".github/workflows/deploy-pages-production.yml" &&
+      !pagesDeploymentCompleted(jobs)
+    ) {
+      console.log("Pages Production non è stato distribuito: nessun riallineamento necessario.");
+      return;
+    }
     verifyReconciliationDeployment({
       run: sourceRun,
       artifacts,
+      jobs,
       expectedMain,
     });
   }

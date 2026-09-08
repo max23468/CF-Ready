@@ -3,6 +3,7 @@ import {
   localBillingPlan,
   localNotificationEvent,
   normalizeShopDomain,
+  partnerEventErrorCode,
   planKindFromCharge,
   planLabel,
   safePlanName,
@@ -126,15 +127,60 @@ describe("contratti dei dati delle notifiche owner", () => {
   test("rifiuta ogni forma incompleta degli eventi Partner", () => {
     expect(validPartnerEvent(partnerEvent())).toBe(true);
     expect(validPartnerEvent(undefined)).toBe(false);
+    expect(partnerEventErrorCode(undefined)).toBe("partner_api_event_missing_node");
     expect(validPartnerEvent(partnerEvent({ type: "IGNORED" }))).toBe(false);
+    expect(partnerEventErrorCode(partnerEvent({ type: "IGNORED" }))).toBe(
+      "partner_api_event_invalid_type",
+    );
     expect(validPartnerEvent(partnerEvent({ occurredAt: "non-data" }))).toBe(false);
+    expect(partnerEventErrorCode(partnerEvent({ occurredAt: "non-data" }))).toBe(
+      "partner_api_event_invalid_occurred_at",
+    );
     expect(
       validPartnerEvent(partnerEvent({ shop: { id: "1", myshopifyDomain: "invalid", name: "X" } })),
     ).toBe(false);
     expect(
       validPartnerEvent(partnerEvent({ shop: { id: "1", myshopifyDomain: "x.myshopify.com" } })),
     ).toBe(false);
+    expect(partnerEventErrorCode(partnerEvent({ shop: undefined }))).toBe(
+      "partner_api_event_missing_shop",
+    );
+    expect(
+      partnerEventErrorCode(
+        partnerEvent({ shop: { id: "1", myshopifyDomain: "", name: "Negozio" } }),
+      ),
+    ).toBe("partner_api_event_missing_shop_domain");
+    expect(
+      partnerEventErrorCode(
+        partnerEvent({ shop: { id: "1", myshopifyDomain: "invalid", name: "Negozio" } }),
+      ),
+    ).toBe("partner_api_event_invalid_shop_domain");
+    expect(
+      partnerEventErrorCode(
+        partnerEvent({ shop: { id: "1", myshopifyDomain: "x.myshopify.com" } }),
+      ),
+    ).toBe("partner_api_event_invalid_shop_name");
     expect(validPartnerEvent(partnerEvent({ charge: undefined }))).toBe(false);
+    expect(partnerEventErrorCode(partnerEvent({ charge: undefined }))).toBe(
+      "partner_api_event_missing_charge",
+    );
+    expect(partnerEventErrorCode(partnerEvent({ charge: { id: "1" } }))).toBe(
+      "partner_api_event_invalid_charge_name",
+    );
+    expect(partnerEventErrorCode(partnerEvent({ charge: { id: "1", name: "Piano" } }))).toBe(
+      "partner_api_event_invalid_charge_amount",
+    );
+    expect(
+      partnerEventErrorCode(
+        partnerEvent({
+          charge: {
+            id: "1",
+            name: "Piano",
+            amount: { amount: "1", currencyCode: "EUR" },
+          },
+        }),
+      ),
+    ).toBe("partner_api_event_invalid_charge_test");
     expect(
       validPartnerEvent(
         partnerEvent({

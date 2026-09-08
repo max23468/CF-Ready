@@ -488,12 +488,23 @@ test("il riallineamento reale copre no-op e recupero usando API sintetiche", asy
       tree: { sha: "same-tree" },
     },
     "GET /repos/owner/repository/actions/runs/43": {
+      id: 43,
       path: ".github/workflows/deploy-pages-production.yml",
       event: "workflow_dispatch",
       status: "completed",
       conclusion: "success",
       head_branch: "main",
       head_sha: main,
+    },
+    "GET /repos/owner/repository/actions/runs/43/jobs?per_page=100": {
+      jobs: [
+        {
+          name: "Deploy Pages Production",
+          status: "completed",
+          conclusion: "success",
+          steps: [{ name: "Deploy Pages Production", conclusion: "success" }],
+        },
+      ],
     },
   });
   const alreadyAligned = runEntrypoint("reconcile-develop.mjs", [], {
@@ -509,6 +520,82 @@ test("il riallineamento reale copre no-op e recupero usando API sintetiche", asy
   assert.match(alreadyAligned.stdout, /è già allineato/);
   assert.equal(
     alreadyAlignedProvider.calls().some(({ key }) => key.startsWith("PATCH ")),
+    false,
+  );
+
+  const productionProvider = await fetchEnvironment(t, {
+    "GET /repos/owner/repository/git/ref/heads/main": { object: { sha: main } },
+    "GET /repos/owner/repository/git/ref/heads/develop": { object: { sha: main } },
+    [`GET /repos/owner/repository/git/commits/${main}`]: {
+      parents: [{ sha: sha("0") }, { sha: develop }],
+      tree: { sha: "same-tree" },
+    },
+    "GET /repos/owner/repository/actions/runs/45": {
+      id: 45,
+      path: ".github/workflows/deploy-production.yml",
+      event: "workflow_dispatch",
+      status: "completed",
+      conclusion: "success",
+      head_branch: "main",
+      head_sha: main,
+    },
+    "GET /repos/owner/repository/actions/runs/45/artifacts?per_page=100": {
+      artifacts: [{ name: `deploy-receipt-production-${main}`, expired: false }],
+    },
+  });
+  const production = runEntrypoint("reconcile-develop.mjs", [], {
+    env: {
+      ...productionProvider,
+      ...commonEnvironment,
+      GITHUB_EVENT_NAME: "workflow_run",
+      RECONCILIATION_MODE: "",
+      SOURCE_DEPLOY_RUN_ID: "45",
+      SOURCE_DEPLOY_SHA: main,
+    },
+  });
+  assert.match(production.stdout, /è già allineato/);
+
+  const skippedPagesProvider = await fetchEnvironment(t, {
+    "GET /repos/owner/repository/git/ref/heads/main": { object: { sha: main } },
+    "GET /repos/owner/repository/git/ref/heads/develop": { object: { sha: develop } },
+    [`GET /repos/owner/repository/git/commits/${main}`]: {
+      parents: [{ sha: sha("0") }, { sha: develop }],
+      tree: { sha: "same-tree" },
+    },
+    [`GET /repos/owner/repository/git/commits/${develop}`]: { tree: { sha: "same-tree" } },
+    "GET /repos/owner/repository/actions/runs/44": {
+      id: 44,
+      path: ".github/workflows/deploy-pages-production.yml",
+      event: "workflow_dispatch",
+      status: "completed",
+      conclusion: "success",
+      head_branch: "main",
+      head_sha: main,
+    },
+    "GET /repos/owner/repository/actions/runs/44/jobs?per_page=100": {
+      jobs: [
+        {
+          name: "Deploy Pages Production",
+          status: "completed",
+          conclusion: "success",
+          steps: [{ name: "Deploy Pages Production", conclusion: "skipped" }],
+        },
+      ],
+    },
+  });
+  const skippedPages = runEntrypoint("reconcile-develop.mjs", [], {
+    env: {
+      ...skippedPagesProvider,
+      ...commonEnvironment,
+      GITHUB_EVENT_NAME: "workflow_run",
+      RECONCILIATION_MODE: "",
+      SOURCE_DEPLOY_RUN_ID: "44",
+      SOURCE_DEPLOY_SHA: main,
+    },
+  });
+  assert.match(skippedPages.stdout, /nessun riallineamento necessario/);
+  assert.equal(
+    skippedPagesProvider.calls().some(({ key }) => key.startsWith("PATCH ")),
     false,
   );
 

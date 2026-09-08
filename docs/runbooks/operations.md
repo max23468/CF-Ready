@@ -241,7 +241,10 @@ credenziali:
 6. in rollback, riportare il flag a `false` e ridistribuire: le righe già
    acquisite restano in D1 e non vengono consegnate finché il flag è spento.
 
-Un fallimento Partner non avanza il checkpoint. La risposta Telegram è valida
+Un errore di trasporto, JSON o struttura della risposta Partner non avanza il
+checkpoint. Un singolo evento incompleto viene escluso senza bloccare gli altri:
+il runtime registra soltanto il codice del campo invalido per gli eventi nuovi,
+senza payload, identificatori o dati dello store. La risposta Telegram è valida
 soltanto con HTTP riuscito e `ok: true`. La consegna tenta al massimo
 cinque volte con backoff; una riga `failed` richiede diagnosi del codice
 sanitizzato e una decisione esplicita prima del replay.
