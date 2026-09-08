@@ -261,7 +261,7 @@ export const it = {
       },
       {
         q: "Che cosa viene controllato sul Codice Fiscale",
-        a: "La composizione: lunghezza, struttura, data, codice catastale e carattere di controllo. Sono accettate la forma ordinaria a 16 caratteri, comprese le varianti da omocodia, e quella provvisoria a 11 cifre. Un Codice Fiscale formalmente valido può comunque non appartenere alla persona che lo inserisce, e non viene verificato presso l’Agenzia delle Entrate.",
+        a: "Per la forma ordinaria a 16 caratteri controlliamo struttura, data, codice catastale, omocodia e carattere finale. Per la forma provvisoria controlliamo le 11 cifre e il relativo carattere di controllo. Un Codice Fiscale formalmente valido può comunque non appartenere alla persona che lo inserisce, e non viene verificato presso l’Agenzia delle Entrate.",
       },
       {
         q: "Come viene validata la PEC",

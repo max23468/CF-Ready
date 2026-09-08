@@ -54,7 +54,20 @@ const oddValues: Record<string, number> = {
 
 export function isValidTaxCode(rawValue: string): boolean {
   const value = rawValue.trim().toUpperCase();
-  if (/^\d{11}$/.test(value)) return true;
+  if (/^\d{11}$/.test(value)) {
+    if (value === "00000000000") return false;
+
+    let sum = 0;
+    for (let index = 0; index < 10; index += 1) {
+      let digit = value.charCodeAt(index) - 48;
+      if (index % 2 === 1) {
+        digit *= 2;
+        if (digit > 9) digit -= 9;
+      }
+      sum += digit;
+    }
+    return value.charCodeAt(10) - 48 === (10 - (sum % 10)) % 10;
+  }
   if (
     !/^[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]$/.test(
       value,
