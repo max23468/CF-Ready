@@ -157,8 +157,15 @@ describe("shell embedded", () => {
 
     const rulesLink = view.container.querySelector('s-link[href="/app/rules"]');
     if (!rulesLink) throw new Error("link Regole assente");
-    await dispatch(rulesLink, new Event("shopify:navigate", { bubbles: true }));
-    expect(router.navigate).toHaveBeenCalled();
+    const retargetedChild = document.createElement("span");
+    rulesLink.append(retargetedChild);
+    await dispatch(
+      retargetedChild,
+      new Event("shopify:navigate", { bubbles: true, composed: true }),
+    );
+    expect(router.navigate).toHaveBeenCalledOnce();
+    expect(router.navigate).toHaveBeenCalledWith("/app/rules", { viewTransition: true });
+    expect(window.location.pathname).toBe("/");
 
     router.navigation = { state: "loading" };
     router.location = { pathname: "/app/rules", state: null };
