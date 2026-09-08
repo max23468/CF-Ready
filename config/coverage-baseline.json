@@ -4,37 +4,37 @@
   "sourceHash": "1bf9204f21d54fbf99e011d97753162523cdf87a4dd49d6b0f00525fcd5df9be",
   "global": {
     "statements": {
-      "total": 6308,
-      "covered": 6111,
-      "pct": 96.87
+      "total": 6279,
+      "covered": 6090,
+      "pct": 96.98
     },
     "branches": {
-      "total": 3533,
-      "covered": 3378,
-      "pct": 95.61
+      "total": 3496,
+      "covered": 3347,
+      "pct": 95.73
     },
     "functions": {
-      "total": 768,
-      "covered": 755,
-      "pct": 98.3
+      "total": 770,
+      "covered": 759,
+      "pct": 98.57
     },
     "lines": {
-      "total": 6046,
-      "covered": 5870,
-      "pct": 97.08
+      "total": 6018,
+      "covered": 5848,
+      "pct": 97.17
     }
   },
   "groups": {
     "server-worker": {
       "statements": {
-        "total": 1675,
-        "covered": 1629,
-        "pct": 97.25
+        "total": 1673,
+        "covered": 1630,
+        "pct": 97.42
       },
       "branches": {
-        "total": 1504,
-        "covered": 1449,
-        "pct": 96.34
+        "total": 1497,
+        "covered": 1445,
+        "pct": 96.52
       },
       "functions": {
         "total": 325,
@@ -42,65 +42,65 @@
         "pct": 98.46
       },
       "lines": {
-        "total": 1510,
-        "covered": 1478,
-        "pct": 97.88
+        "total": 1508,
+        "covered": 1477,
+        "pct": 97.94
       }
     },
     "ui-routes": {
       "statements": {
-        "total": 861,
-        "covered": 848,
-        "pct": 98.49
+        "total": 856,
+        "covered": 846,
+        "pct": 98.83
       },
       "branches": {
-        "total": 703,
-        "covered": 668,
-        "pct": 95.02
+        "total": 686,
+        "covered": 653,
+        "pct": 95.18
       },
       "functions": {
-        "total": 260,
-        "covered": 257,
-        "pct": 98.84
+        "total": 259,
+        "covered": 258,
+        "pct": 99.61
       },
       "lines": {
-        "total": 771,
-        "covered": 765,
-        "pct": 99.22
+        "total": 767,
+        "covered": 764,
+        "pct": 99.6
       }
     },
     "function": {
       "statements": {
-        "total": 108,
-        "covered": 108,
+        "total": 116,
+        "covered": 116,
         "pct": 100
       },
       "branches": {
-        "total": 150,
-        "covered": 150,
+        "total": 152,
+        "covered": 152,
         "pct": 100
       },
       "functions": {
-        "total": 16,
-        "covered": 16,
+        "total": 19,
+        "covered": 19,
         "pct": 100
       },
       "lines": {
-        "total": 95,
-        "covered": 95,
+        "total": 103,
+        "covered": 103,
         "pct": 100
       }
     },
     "operations": {
       "statements": {
-        "total": 3570,
-        "covered": 3434,
-        "pct": 96.19
+        "total": 3540,
+        "covered": 3406,
+        "pct": 96.21
       },
       "branches": {
-        "total": 1173,
-        "covered": 1110,
-        "pct": 94.62
+        "total": 1158,
+        "covered": 1096,
+        "pct": 94.64
       },
       "functions": {
         "total": 162,
@@ -108,9 +108,9 @@
         "pct": 96.91
       },
       "lines": {
-        "total": 3570,
-        "covered": 3434,
-        "pct": 96.19
+        "total": 3540,
+        "covered": 3406,
+        "pct": 96.21
       }
     },
     "public-site": {
@@ -183,14 +183,14 @@
     },
     "validation": {
       "statements": {
-        "total": 364,
-        "covered": 361,
-        "pct": 99.17
+        "total": 363,
+        "covered": 362,
+        "pct": 99.72
       },
       "branches": {
-        "total": 324,
-        "covered": 319,
-        "pct": 98.45
+        "total": 319,
+        "covered": 316,
+        "pct": 99.05
       },
       "functions": {
         "total": 67,
@@ -198,8 +198,8 @@
         "pct": 100
       },
       "lines": {
-        "total": 332,
-        "covered": 332,
+        "total": 331,
+        "covered": 331,
         "pct": 100
       }
     },
@@ -229,23 +229,23 @@
   "functionFiles": {
     "extensions/cf-ready-validation/src/cart_validations_generate_run.ts": {
       "statements": {
-        "total": 65,
-        "covered": 65,
+        "total": 73,
+        "covered": 73,
         "pct": 100
       },
       "branches": {
-        "total": 102,
-        "covered": 102,
+        "total": 104,
+        "covered": 104,
         "pct": 100
       },
       "functions": {
-        "total": 11,
-        "covered": 11,
+        "total": 14,
+        "covered": 14,
         "pct": 100
       },
       "lines": {
-        "total": 58,
-        "covered": 58,
+        "total": 66,
+        "covered": 66,
         "pct": 100
       }
     },

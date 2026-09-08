@@ -19,7 +19,7 @@ test("il simulatore applica le regole soltanto con consegna e fatturazione itali
     billingCountry: "IT",
     taxCode: "",
     pec: "",
-    revealErrors: true,
+    submitted: true,
   };
 
   expect(simulatorOutcome(input)).toBe("blocked");
@@ -27,7 +27,7 @@ test("il simulatore applica le regole soltanto con consegna e fatturazione itali
   expect(simulatorOutcome({ ...input, billingCountry: "DE" })).toBe("notApplied");
 });
 
-test("la modalità preventiva aggiorna subito l'esito del simulatore", () => {
+test("il simulatore attende Continua per un required vuoto ma segnala subito un valore invalido", () => {
   const input = {
     rules: requiredTaxCode,
     deliveryCountry: "IT",
@@ -36,8 +36,9 @@ test("la modalità preventiva aggiorna subito l'esito del simulatore", () => {
     pec: "",
   };
 
-  expect(simulatorOutcome({ ...input, revealErrors: false })).toBe("checkAtPayment");
-  expect(simulatorOutcome({ ...input, revealErrors: true })).toBe("blocked");
+  expect(simulatorOutcome({ ...input, submitted: false })).toBe("editing");
+  expect(simulatorOutcome({ ...input, submitted: true })).toBe("blocked");
+  expect(simulatorOutcome({ ...input, taxCode: "non valido", submitted: false })).toBe("blocked");
 });
 
 test("il simulatore distingue nessun controllo, valori pronti ed errore PEC", () => {
@@ -46,7 +47,7 @@ test("il simulatore distingue nessun controllo, valori pronti ed errore PEC", ()
     billingCountry: "IT",
     taxCode: "RSSMRA85T10A562S",
     pec: "mario.rossi@example.com",
-    revealErrors: true,
+    submitted: true,
   };
 
   expect(simulatorOutcome({ ...base, rules: { taxCode: "unmanaged", pec: "unmanaged" } })).toBe(
@@ -97,24 +98,21 @@ test("il selettore spiega che ogni scenario compila i campi e mostra il risultat
   expect(texts("en").rules.simulator.scenarioHelp).toMatch(/fills the fields/i);
 });
 
-test("cambiare una regola non disattiva gli avvisi preventivi", () => {
+test("cambiare una regola aggiorna la bozza", () => {
   const data = new FormData();
   data.set("taxCode", "optional_validated");
   data.set("pec", "required_validated");
-  data.set("errorDisplay", "preventive");
 
   expect(
     mergeRulesFormDraft(
       {
         rules: { taxCode: "required_validated", pec: "unmanaged" },
-        errorDisplay: "preventive",
         address2: false,
       },
       data,
     ),
   ).toEqual({
     rules: { taxCode: "optional_validated", pec: "required_validated" },
-    errorDisplay: "preventive",
     address2: false,
   });
 });
@@ -122,7 +120,6 @@ test("cambiare una regola non disattiva gli avvisi preventivi", () => {
 test("una bozza incompleta conserva i valori precedenti e legge la dichiarazione", () => {
   const current = {
     rules: { taxCode: "required_validated", pec: "optional_validated" },
-    errorDisplay: "inline",
     address2: false,
   } as const;
   const missing = new FormData();
@@ -131,9 +128,6 @@ test("una bozza incompleta conserva i valori precedenti e legge la dichiarazione
   const declared = new FormData();
   declared.set("address2", "declared");
   expect(mergeRulesFormDraft(current, declared).address2).toBe(true);
-  expect(
-    mergeRulesFormDraft({ ...current, errorDisplay: "preventive" }, missing).errorDisplay,
-  ).toBe("inline");
 });
 
 test("gli indirizzi non ancora disponibili non escludono i campi fiscali presenti", () => {
@@ -143,7 +137,7 @@ test("gli indirizzi non ancora disponibili non escludono i campi fiscali present
     billingCountry: "IT",
     taxCode: "",
     pec: "",
-    revealErrors: true,
+    submitted: true,
   };
   expect(simulatorOutcome({ ...input, billingCountry: "" })).toBe("blocked");
   expect(simulatorOutcome({ ...input, deliveryCountry: "" })).toBe("blocked");
@@ -153,10 +147,9 @@ test("gli indirizzi non ancora disponibili non escludono i campi fiscali present
   );
 });
 
-test("la riapplicazione conserva modifiche locali ai flag e regole remote non toccate", () => {
+test("la riapplicazione conserva modifiche locali e regole remote non toccate", () => {
   const base = {
     rules: { taxCode: "optional_validated", pec: "unmanaged" },
-    errorDisplay: "inline",
     address2: false,
   } as const;
   const current = {
@@ -166,12 +159,10 @@ test("la riapplicazione conserva modifiche locali ai flag e regole remote non to
   const local = {
     ...base,
     rules: { ...base.rules, pec: "required_validated" },
-    errorDisplay: "preventive",
     address2: true,
   } as const;
   expect(rebaseRulesDraft(base, local, current)).toEqual({
     rules: { taxCode: "required_validated", pec: "required_validated" },
-    errorDisplay: "preventive",
     address2: true,
   });
 });

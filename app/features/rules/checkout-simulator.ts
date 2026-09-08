@@ -2,7 +2,7 @@ import { isValidPec, isValidTaxCode } from "../../checkout-field-validation";
 import type { Messages, Rules } from "../../config";
 
 export type SimulatorFieldError = "required" | "invalid" | null;
-export type SimulatorOutcome = "notApplied" | "noChecks" | "checkAtPayment" | "blocked" | "ready";
+export type SimulatorOutcome = "notApplied" | "noChecks" | "editing" | "blocked" | "ready";
 export type SimulatorScenario = "valid" | "invalidTaxCode" | "invalidPec" | "empty";
 
 export const simulatorScenarioValues: Record<SimulatorScenario, { taxCode: string; pec: string }> =
@@ -29,25 +29,29 @@ export function simulatorOutcome({
   billingCountry,
   taxCode,
   pec,
-  revealErrors,
+  submitted,
 }: {
   rules: Rules;
   deliveryCountry: string;
   billingCountry: string;
   taxCode: string;
   pec: string;
-  revealErrors: boolean;
+  submitted: boolean;
 }): SimulatorOutcome {
   if ((deliveryCountry && deliveryCountry !== "IT") || (billingCountry && billingCountry !== "IT"))
     return "notApplied";
   if (rules.taxCode === "unmanaged" && rules.pec === "unmanaged") return "noChecks";
 
-  const hasErrors =
-    (rules.taxCode !== "unmanaged" &&
-      simulatorFieldError(rules.taxCode, taxCode, isValidTaxCode) !== null) ||
-    (rules.pec !== "unmanaged" && simulatorFieldError(rules.pec, pec, isValidPec) !== null);
-  if (!hasErrors) return "ready";
-  return revealErrors ? "blocked" : "checkAtPayment";
+  const problems = [
+    rules.taxCode === "unmanaged"
+      ? null
+      : simulatorFieldError(rules.taxCode, taxCode, isValidTaxCode),
+    rules.pec === "unmanaged" ? null : simulatorFieldError(rules.pec, pec, isValidPec),
+  ];
+  if (problems.some((problem) => problem === "invalid" || (submitted && problem === "required"))) {
+    return "blocked";
+  }
+  return problems.includes("required") ? "editing" : "ready";
 }
 
 export function simulatorErrorMessage(
