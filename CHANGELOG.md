@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.5.3 — 8 settembre 2026
+
+- un evento Shopify Partner incompleto non blocca più gli altri eventi della
+  pagina né l’avanzamento del checkpoint;
+- la diagnostica distingue il campo Partner invalido senza conservare payload,
+  identificatori o dati dello store e viene emessa una sola volta per gli eventi
+  nuovi.
+
 ## 1.5.2 — 8 settembre 2026
 
 - i webhook `shop/update` con Paese invariato vengono riconosciuti prima della
