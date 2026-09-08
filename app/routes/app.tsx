@@ -50,13 +50,14 @@ export default function App() {
 
   // App Bridge inoltra questi eventi per i link interni dei Web Components. Prima lo faceva
   // AppProvider, rimosso perché caricava gli script nel body anziché nel head richiesto da BFS.
+  // Il menu deve aggiornare URL e contenuto nello stesso ciclo anche nei WebView mobili.
   useEffect(() => {
     const handleNavigate = (event: Event) =>
-      navigateFromShopifyEvent(event, window.location.origin, (href) =>
-        requestAppWindowNavigation(window, href, (target) =>
-          navigate(target, { viewTransition: true }),
-        ),
-      );
+      navigateFromShopifyEvent(event, window.location.origin, (href) => {
+        requestAppWindowNavigation(window, href, (target) => {
+          navigate(target);
+        });
+      });
 
     document.addEventListener("shopify:navigate", handleNavigate);
     return () => document.removeEventListener("shopify:navigate", handleNavigate);
