@@ -134,7 +134,7 @@
         </li>
         <li>
           <h3>Decidi cosa chiedere</h3>
-          <p>Codice Fiscale e PEC hanno tre modalità indipendenti: non gestito, facoltativo e validato, obbligatorio e validato. Configura le regole e i messaggi, poi provali nel simulatore.</p>
+          <p>Il Codice Fiscale ha tre modalità indipendenti; per la PEC puoi anche richiederla soltanto quando il cliente compila Azienda. Configura le regole e i messaggi, poi provali nel simulatore.</p>
         </li>
         <li>
           <h3>Attivi nel checkout</h3>
@@ -200,8 +200,8 @@
           <p class="small">Si controlla che l’indirizzo sia scritto in una forma valida, sottodomini compresi.</p>
         </div>
         <div class="card">
-          <h3>Tre modi, per ogni campo</h3>
-          <p class="small">Non gestito, facoltativo e validato, oppure obbligatorio e validato. Codice Fiscale e PEC si configurano separatamente.</p>
+          <h3>Regole separate per ogni campo</h3>
+          <p class="small">Codice Fiscale e PEC possono essere facoltativi o obbligatori. Per la PEC puoi collegare l’obbligo al campo Azienda.</p>
         </div>
       </div>
     </div>
@@ -315,6 +315,11 @@
       <details>
         <summary>Rischio di bloccare ordini buoni?</summary>
         <p>Un errore tecnico dell’app lascia il checkout aperto. Con una consegna in Italia e senza un indirizzo di fatturazione estero, un campo obbligatorio vuoto, non valido o non mostrato da Shopify blocca l’ordine. Se manca il Paese di consegna, i campi non mostrati non bloccano: quelli presenti vengono comunque controllati.</p>
+      </details>
+
+      <details>
+        <summary>Posso richiedere la PEC solo quando il cliente compila Azienda?</summary>
+        <p>Sì. La PEC diventa obbligatoria quando il campo Azienda dell’indirizzo di fatturazione è compilato. Negli altri casi resta facoltativa e CF Ready ne controlla comunque il formato se viene inserita.</p>
       </details>
 
       <details>

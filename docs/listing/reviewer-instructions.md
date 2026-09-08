@@ -20,7 +20,8 @@ fields at checkout (`TAX_CREDENTIAL_IT` and `TAX_EMAIL_IT`) but cannot make them
 required or check what was typed. CF Ready configures a single Cart and Checkout
 Validation Function that does exactly that: it can mark each field as
 `unmanaged`, `optional` or `required`, and it verifies formal correctness — for
-the tax code, its length, alphabet, month, day and check character.
+the tax code, its length, alphabet, month, day and check character. PEC can also
+be required only when the billing address Company field is filled in.
 
 The check is **formal only**. The app does not query the Italian Revenue Agency
 and does not certify that an address is a genuinely active certified mailbox.

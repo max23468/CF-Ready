@@ -20,7 +20,7 @@ import type { ShopifyBilling } from "../app/billing.server";
 
 test("la configurazione scritta è accettata dalla Function", () => {
   expect(DEFAULT_CONFIG).toMatchObject({
-    schemaVersion: 2,
+    schemaVersion: 3,
     enabled: false,
     errorDisplay: "inline",
     entitlement: { kind: "none", validThrough: null },
@@ -388,6 +388,22 @@ test("una configurazione illeggibile o fuori contratto torna ai default senza la
   expect(
     readConfig({ schemaVersion: 2, rules: {}, messages: { it: null, en: null } }),
   ).toMatchObject(DEFAULT_CONFIG);
+
+  expect(
+    readConfig({
+      schemaVersion: 2,
+      rules: { taxCode: "unmanaged", pec: "required_when_company" },
+    }).rules.pec,
+  ).toBe("unmanaged");
+  expect(
+    readConfig({
+      schemaVersion: 3,
+      rules: { taxCode: "unmanaged", pec: "required_when_company" },
+    }),
+  ).toMatchObject({
+    schemaVersion: 3,
+    rules: { taxCode: "unmanaged", pec: "required_when_company" },
+  });
 });
 
 // La prova non parte più all'installazione: la avvia il merchant. Questi test descrivono

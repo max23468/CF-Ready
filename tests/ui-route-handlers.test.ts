@@ -257,7 +257,7 @@ test("Onboarding valida e salva avanzamento e regole", async () => {
         post("/app/onboarding", {
           intent: "rules",
           taxCode: "required_validated",
-          pec: "optional_validated",
+          pec: "required_when_company",
         }),
       ),
     ),
@@ -269,7 +269,7 @@ test("Onboarding valida e salva avanzamento e regole", async () => {
         post("/app/onboarding", {
           intent: "rules",
           taxCode: "required_validated",
-          pec: "optional_validated",
+          pec: "required_when_company",
         }),
       ),
     ),
@@ -387,7 +387,7 @@ test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", asyn
       args(
         post("/app/rules", {
           taxCode: "required_validated",
-          pec: "optional_validated",
+          pec: "required_when_company",
           errorDisplay: "preventive",
           configHash: "hash",
           address2Shown: "1",
@@ -401,7 +401,7 @@ test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", asyn
     db,
     session.shop,
     {
-      rules: { taxCode: "required_validated", pec: "optional_validated" },
+      rules: { taxCode: "required_validated", pec: "required_when_company" },
     },
     null,
     "hash",

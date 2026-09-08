@@ -53,14 +53,14 @@ text that repeats the tagline is useless to someone who cannot see the image.
 
 ## App details
 
-> Prevent Italian orders with missing or formally invalid Codice Fiscale. Choose
-> separately whether Codice Fiscale and PEC are unmanaged, optional, or required.
-> CF Ready uses Shopify's native checkout fields: configure and preview rules
+> Prevent Italian orders without a formally valid Codice Fiscale. Configure
+> Codice Fiscale and PEC separately; PEC can become required when the customer
+> fills in Company. CF Ready uses Shopify's native checkout fields: preview rules
 > before activation, with no code or Shopify Plus. Checks apply only to Italy.
 > Tax data never reaches our systems and, if the app fails, checkout stays open.
 > Validation is formal, not identity-based.
 
-**432/500 characters.**
+**428/500 characters.**
 
 ## Key features
 

@@ -135,7 +135,7 @@
         </li>
         <li>
           <h3>Decide what to ask for</h3>
-          <p>Each field has three independent modes: unmanaged, optional and validated, or required and validated. Configure your rules and messages, then try them in the simulator.</p>
+          <p>Codice Fiscale has three independent modes; for PEC, you can also require it only when the customer fills in Company. Configure your rules and messages, then try them in the simulator.</p>
         </li>
         <li>
           <h3>Activate at checkout</h3>
@@ -201,8 +201,8 @@
           <p class="small">We check the address is written in a valid shape, subdomains included.</p>
         </div>
         <div class="card">
-          <h3>Three modes, per field</h3>
-          <p class="small">Unmanaged, optional and validated, or required and validated. Codice Fiscale and PEC are configured separately.</p>
+          <h3>Separate rules for each field</h3>
+          <p class="small">Codice Fiscale and PEC can be optional or required. For PEC, the requirement can follow the Company field.</p>
         </div>
       </div>
     </div>
@@ -316,6 +316,11 @@
       <details>
         <summary>Could it block good orders?</summary>
         <p>A technical error in the app leaves checkout open. With a delivery in Italy and no foreign billing address, a required field that is empty, invalid or not shown by Shopify blocks the order. If the delivery country is missing, absent fields do not block it; fields that are present are still checked.</p>
+      </details>
+
+      <details>
+        <summary>Can I require PEC only when the customer fills in Company?</summary>
+        <p>Yes. PEC becomes required when the Company field in the billing address is filled in. Otherwise it stays optional, and CF Ready still checks its format when entered.</p>
       </details>
 
       <details>
