@@ -6,7 +6,7 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
-## 1.5.1 — in preparazione
+## 1.5.1 — 8 settembre 2026
 
 - la navigazione embedded recupera la route interna anche quando Shopify
   retargettizza l'evento del menu e conserva query e hash necessari;
