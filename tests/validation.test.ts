@@ -296,6 +296,62 @@ test("la lease condivisa resta posseduta durante un'operazione lunga", async () 
   }
 });
 
+test("il wrapper non avvia l'operazione dopo la perdita immediata della lease", async () => {
+  const shop = "heartbeat-wrapper-lost.example.myshopify.com";
+  await seedShop(shop);
+  const lostLeaseDb = {
+    prepare(query: string) {
+      if (!query.includes("UPDATE validation_operation_locks")) return env.DB.prepare(query);
+      return {
+        bind: () => ({ first: async () => null }),
+      } as unknown as D1PreparedStatement;
+    },
+    batch: env.DB.batch.bind(env.DB),
+  } as unknown as D1Database;
+  const interval = vi.spyOn(globalThis, "setInterval").mockImplementation((handler) => {
+    (handler as () => void)();
+    return 1 as unknown as ReturnType<typeof setInterval>;
+  });
+  const operation = vi.fn();
+
+  try {
+    expect(await withValidationLock(lostLeaseDb, shop, operation)).toEqual({ acquired: false });
+    expect(operation).not.toHaveBeenCalled();
+  } finally {
+    interval.mockRestore();
+  }
+});
+
+test("la scrittura si ferma se perde la lease prima della mutazione Shopify", async () => {
+  const shop = "heartbeat-write-lost.example.myshopify.com";
+  await seedShop(shop);
+  const lostLeaseDb = {
+    prepare(query: string) {
+      if (!query.includes("UPDATE validation_operation_locks")) return env.DB.prepare(query);
+      return {
+        bind: () => ({ first: async () => null }),
+      } as unknown as D1PreparedStatement;
+    },
+    batch: env.DB.batch.bind(env.DB),
+  } as unknown as D1Database;
+  const { admin, calls } = stubAdmin({
+    existing: { enabled: false },
+    onBillingRead: async () => {
+      await vi.advanceTimersByTimeAsync(20_000);
+    },
+  });
+  vi.useFakeTimers();
+
+  try {
+    expect(
+      await writeValidation(admin, lostLeaseDb, shop, { rules: DEFAULT_CONFIG.rules }, null),
+    ).toEqual({ ok: false, errorCode: "validation_locked" });
+    expect(calls).toHaveLength(0);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 test("una configurazione illeggibile o fuori contratto torna ai default senza lanciare", () => {
   expect(readConfig(undefined)).toMatchObject(DEFAULT_CONFIG);
   expect(readConfig({ schemaVersion: 99, rules: { taxCode: "required_validated" } })).toMatchObject(

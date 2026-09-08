@@ -843,6 +843,12 @@ describe("Onboarding", () => {
       );
     await click(next()!);
     expect(view.container.textContent).toContain(texts("it").onboarding.step2Heading);
+    await click(
+      [...view.container.querySelectorAll("s-button")].find((button) =>
+        button.textContent?.includes(texts("it").onboarding.back),
+      )!,
+    );
+    expect(view.container.textContent).toContain(texts("it").onboarding.step1Heading);
 
     router.loaderData = { ...onboardingData, step: 3 };
     await view.rerender(<Onboarding key="step-3" />);
@@ -921,7 +927,9 @@ describe("Onboarding", () => {
     await view.rerender(<Onboarding key="declared-step-4" />);
     const form = view.container.querySelector("form");
     if (!form) throw new Error("form onboarding assente");
-    await dispatch(form, new Event("change", { bubbles: true }));
+    const declaration = form.querySelector('s-checkbox[name="address2"]');
+    if (!declaration) throw new Error("dichiarazione Interno assente");
+    await dispatch(declaration, new Event("change", { bubbles: true }));
     const finish = [...view.container.querySelectorAll("s-button")].find((button) =>
       button.textContent?.includes(texts("it").onboarding.finishWithout),
     );
