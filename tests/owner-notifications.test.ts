@@ -682,7 +682,46 @@ test("un claim interrotto al quinto tentativo diventa terminale senza un sesto i
   });
 });
 
-test("i confini Partner rifiutano configurazione, trasporto, JSON, payload ed eventi invalidi", async () => {
+test("un evento Partner incompleto non blocca pagina, checkpoint o diagnostica sicura", async () => {
+  const invalidEvent = {
+    ...relationship("RELATIONSHIP_UNINSTALLED", "rimosso.myshopify.com", "09:58"),
+    node: {
+      type: "RELATIONSHIP_UNINSTALLED",
+      occurredAt: "2026-08-24T09:58:00.000Z",
+      shop: null,
+    },
+  };
+  const validEvent = relationship("RELATIONSHIP_INSTALLED", "valido.myshopify.com", "09:59");
+  const fetcher = vi.fn(async () => partnerResponse([invalidEvent, validEvent]));
+  await insertShop("valido.myshopify.com");
+
+  await expect(
+    pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher }),
+  ).resolves.toMatchObject({
+    inserted: 1,
+    skipped: 1,
+    diagnosticErrorCodes: ["partner_api_event_missing_shop"],
+  });
+  expect(
+    await env.DB.prepare(
+      `SELECT json_extract(metadata_json, '$.error_code') AS error_code
+         FROM app_events WHERE event_name = 'owner_notification_partner_event_skipped'`,
+    ).first("error_code"),
+  ).toBe("partner_api_event_missing_shop");
+
+  await expect(
+    pollPartnerEvents(env.DB, PARTNER_CONFIG, {
+      now: new Date("2026-08-24T10:05:00.000Z"),
+      fetcher,
+    }),
+  ).resolves.toMatchObject({
+    inserted: 0,
+    skipped: 1,
+    diagnosticErrorCodes: [],
+  });
+});
+
+test("i confini Partner rifiutano configurazione, trasporto, JSON e paginazione invalidi", async () => {
   for (const config of [
     { ...PARTNER_CONFIG, organizationId: " " },
     { ...PARTNER_CONFIG, appId: " " },
@@ -697,7 +736,6 @@ test("i confini Partner rifiutano configurazione, trasporto, JSON, payload ed ev
     ["partner_api_request_failed", new Response("errore", { status: 503 })],
     ["partner_api_invalid_json", new Response("non-json")],
     ["partner_api_invalid_payload", Response.json({ data: { app: { events: null } } })],
-    ["partner_api_invalid_payload", partnerResponse([{ cursor: "x", node: { type: "IGNORED" } }])],
   ];
   for (const [code, response] of cases) {
     await expect(

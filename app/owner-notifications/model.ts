@@ -129,28 +129,29 @@ export function localBillingPlan(event: LocalBillingEvent) {
 }
 
 export function validPartnerEvent(node: PartnerEventNode | undefined): node is PartnerEventNode {
-  if (
-    !node ||
-    !PARTNER_EVENT_TYPES.includes(node.type as PartnerEventType) ||
-    !node.shop?.id ||
-    !node.shop.myshopifyDomain ||
-    !safeStoreDisplayName(node.shop.name) ||
-    !validIsoDate(node.occurredAt)
-  ) {
-    return false;
+  return partnerEventErrorCode(node) === null;
+}
+
+export function partnerEventErrorCode(node: PartnerEventNode | undefined) {
+  if (!node) return "partner_api_event_missing_node";
+  if (!PARTNER_EVENT_TYPES.includes(node.type as PartnerEventType)) {
+    return "partner_api_event_invalid_type";
   }
+  if (!validIsoDate(node.occurredAt)) return "partner_api_event_invalid_occurred_at";
+  if (!node.shop) return "partner_api_event_missing_shop";
+  if (!node.shop.myshopifyDomain) return "partner_api_event_missing_shop_domain";
   try {
     normalizeShopDomain(node.shop.myshopifyDomain);
   } catch {
-    return false;
+    return "partner_api_event_invalid_shop_domain";
   }
-  if ((node.type ?? "").startsWith("RELATIONSHIP_")) return true;
-  return Boolean(
-    node.charge?.id &&
-    safePlanName(node.charge.name) &&
-    validMoney(node.charge.amount) &&
-    typeof node.charge.test === "boolean",
-  );
+  if (!safeStoreDisplayName(node.shop.name)) return "partner_api_event_invalid_shop_name";
+  if ((node.type ?? "").startsWith("RELATIONSHIP_")) return null;
+  if (!node.charge?.id) return "partner_api_event_missing_charge";
+  if (!safePlanName(node.charge.name)) return "partner_api_event_invalid_charge_name";
+  if (!validMoney(node.charge.amount)) return "partner_api_event_invalid_charge_amount";
+  if (typeof node.charge.test !== "boolean") return "partner_api_event_invalid_charge_test";
+  return null;
 }
 
 export function localNotificationEvent(event: LocalNotificationEvent) {
