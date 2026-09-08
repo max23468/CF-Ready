@@ -62,6 +62,8 @@ corrente si legge da codice, configurazioni e `package.json`.
 - [Inventario secret](runbooks/secret-inventory.md) — soli nomi e destinazioni.
 - [Operazioni](runbooks/operations.md) — capacità, matrice browser,
   backup/restore, Workers Logs, Traces Development e ricevute.
+- [Diagnosi dei run della Validation Function](runbooks/function-run-diagnosis.md)
+  — ricostruzione dei rami fail-open da input e output del Dev Dashboard.
 - [Manutenzione sicurezza](runbooks/security-maintenance.md) — audit periodici
   di repository, dipendenze e provider Development.
 - [Changelog](../CHANGELOG.md) — versioni rilasciate e sintesi per milestone.

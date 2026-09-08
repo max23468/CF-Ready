@@ -72,7 +72,10 @@ function errors(value: CartValidationsGenerateRunInput) {
 
 describe("Codice Fiscale", () => {
   it.each([
-    ["11 cifre", "12345678901", true],
+    ["11 cifre con controllo corretto", "12345678903", true],
+    ["11 cifre con controllo errato", "12345678901", false],
+    ["11 cifre tutte zero", "00000000000", false],
+    ["11 cifre con trasposizione", "13245678903", false],
     ["minuscolo", "aaaaaa00a01a000h", true],
     ["spazi esterni", "  AAAAAA00A01A000H  ", true],
     ["omocodia", "AAAAAAL0A01A000K", true],
