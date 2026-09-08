@@ -1,4 +1,4 @@
-import { DEFAULT_CONFIG } from "../config";
+import { readConfig } from "../config";
 import type { Entitlement } from "../config";
 import type { Validation } from "./types";
 
@@ -16,11 +16,7 @@ export function entitlementDiffers(config: unknown, entitlement: Entitlement) {
 }
 
 export function configWithEntitlement(config: unknown, entitlement: Entitlement) {
-  const base =
-    isRecord(config) && config.schemaVersion === 2 && isRecord(config.rules)
-      ? config
-      : DEFAULT_CONFIG;
-  return { ...base, entitlement };
+  return { ...readConfig(config), entitlement };
 }
 
 export async function observedConfigHash(validation: Validation | undefined) {

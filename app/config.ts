@@ -13,7 +13,6 @@ export type Entitlement = {
 };
 
 export const RULE_MODES = ["unmanaged", "optional_validated", "required_validated"] as const;
-export const ERROR_DISPLAYS = ["inline", "preventive"] as const;
 export const MESSAGE_KEYS = [
   "taxCodeRequired",
   "taxCodeInvalid",
@@ -23,13 +22,14 @@ export const MESSAGE_KEYS = [
 export const MESSAGE_MAX_LENGTH = 200;
 
 export type RuleMode = (typeof RULE_MODES)[number];
-export type ErrorDisplay = (typeof ERROR_DISPLAYS)[number];
 export type Messages = Record<(typeof MESSAGE_KEYS)[number], string>;
 export type Rules = { taxCode: RuleMode; pec: RuleMode };
 export type CheckoutConfig = {
   schemaVersion: 2;
   enabled: boolean;
-  errorDisplay: ErrorDisplay;
+  // Proprietà legacy mantenuta fissa durante la transizione fra snapshot Shopify.
+  // La Function corrente la ignora e nessun input merchant può modificarla.
+  errorDisplay: "inline";
   entitlement: Entitlement;
   rules: Rules;
   messages: { it: Messages; en: Messages };
@@ -72,7 +72,7 @@ export function readConfig(value: unknown): CheckoutConfig {
   return {
     schemaVersion: 2,
     enabled: value.enabled === true,
-    errorDisplay: oneOf(ERROR_DISPLAYS, value.errorDisplay) ?? DEFAULT_CONFIG.errorDisplay,
+    errorDisplay: DEFAULT_CONFIG.errorDisplay,
     entitlement: DEFAULT_CONFIG.entitlement,
     rules: {
       taxCode: oneOf(RULE_MODES, rules.taxCode) ?? DEFAULT_CONFIG.rules.taxCode,

@@ -156,7 +156,6 @@ test("i riepiloghi coprono PEC facoltativa e stati disattivato o scaduto", () =>
     describeCheckout(
       {
         rules: { taxCode: "unmanaged", pec: "optional_validated" },
-        errorDisplay: "inline",
         status: "active",
       },
       "it",

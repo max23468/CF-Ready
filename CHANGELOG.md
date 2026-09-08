@@ -6,7 +6,19 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
-## 1.4.0 — in preparazione
+## 1.5.0 — in preparazione
+
+- il checkout usa un solo comportamento automatico: valori invalidi e required
+  sufficientemente avanzati vengono segnalati inline durante la compilazione,
+  mentre il completamento resta sempre protetto;
+- rimossa la scelta degli avvisi preventivi da Regole checkout, onboarding,
+  simulatore e FAQ; le configurazioni precedenti vengono lette e normalizzate
+  senza mantenere due rami runtime;
+- la Function usa la consegna risolta e le opzioni selezionate nelle delivery
+  group italiane come segnale prudente per i required vuoti, incluse le split
+  delivery.
+
+## 1.4.0 — 8 settembre 2026
 
 - il Codice Fiscale provvisorio a 11 cifre deve superare il controllo formale
   dell’undicesima cifra e la sequenza degenere di soli zeri viene rifiutata;

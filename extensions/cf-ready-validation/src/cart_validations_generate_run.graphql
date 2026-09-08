@@ -10,6 +10,9 @@ query CartValidationsGenerateRunInput {
       deliveryAddress {
         countryCode
       }
+      selectedDeliveryOption {
+        handle
+      }
     }
     localizedFields(keys: [TAX_CREDENTIAL_IT, TAX_EMAIL_IT]) {
       key

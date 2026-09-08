@@ -269,7 +269,7 @@ export const it = {
       },
       {
         q: "Quando il cliente vede gli errori",
-        a: "Di norma quando prova a procedere. Se attivi gli avvisi preventivi, gli errori possono comparire già al caricamento del checkout: è la modalità consigliata se tieni attivo il passaggio di conferma dell’ordine di Shopify, perché evita che il cliente arrivi alla revisione bloccato e senza un messaggio. CF Ready non può leggere quell’impostazione del tuo store: la scelta è tua.",
+        a: "CF Ready controlla i dati durante il checkout. Se un dato inserito non è valido, il cliente vede cosa correggere; i campi obbligatori vengono controllati prima che l’ordine possa essere completato.",
       },
       {
         q: "Uso il campo “Interno” per il Codice Fiscale",
@@ -399,9 +399,6 @@ export const it = {
     exceptions: [
       "Le regole si applicano alle consegne in Italia. Non si applicano se l’indirizzo di fatturazione è estero. Se manca il Paese di consegna, i campi obbligatori non mostrati da Shopify non bloccano l’ordine.",
     ],
-    preventiveLabel: "Mostra avvisi preventivi nel checkout",
-    preventiveHelp:
-      "Gli errori possono comparire già al caricamento del checkout, prima che il cliente abbia compilato i campi. Consigliato solo se usi la conferma ordine di Shopify, perché evita che il cliente arrivi alla revisione con un blocco senza messaggio.",
     previewHeading: "Come funzionerà il checkout",
     simulator: {
       unknownCountry: "Non indicato",
@@ -423,11 +420,11 @@ export const it = {
         empty: "Campi vuoti",
       },
       clear: "Svuota",
-      continue: "Procedi al pagamento",
+      continue: "Continua",
       outcomes: {
         notApplied: "Regole non applicate",
         noChecks: "Nessun controllo",
-        checkAtPayment: "Controllo al pagamento",
+        editing: "Compilazione in corso",
         blocked: "Checkout bloccato",
         ready: "Checkout pronto",
       },
@@ -449,8 +446,6 @@ export const it = {
     summaryBlocking: "Un cliente italiano non completa l’ordine senza i dati richiesti.",
     summaryChecking:
       "I dati che i clienti italiani inseriscono vengono controllati, ma nessuno è obbligatorio.",
-    preventive:
-      "Gli avvisi compaiono già al caricamento del checkout, non solo quando il cliente prova a procedere.",
     disabled: "Il controllo non è attivo: queste regole non valgono ancora per i tuoi clienti.",
     lapsed:
       "Il controllo è attivo ma il piano non lo è: finché resta così il checkout non blocca nulla.",

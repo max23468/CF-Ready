@@ -268,7 +268,7 @@ export const en: typeof it = {
       },
       {
         q: "When customers see errors",
-        a: "Normally when they try to continue. If you turn on early warnings, errors can appear as soon as checkout loads: that’s the recommended mode if you keep Shopify’s order confirmation step, because it stops customers reaching the review page blocked and without a message. CF Ready can’t read that setting on your store: the choice is yours.",
+        a: "CF Ready checks the data during checkout. If an entered value is invalid, the customer sees what to correct; required fields are checked before the order can be completed.",
       },
       {
         q: "I use the “Apartment, suite, etc.” field for the tax code",
@@ -395,9 +395,6 @@ export const en: typeof it = {
     exceptions: [
       "Rules apply to deliveries in Italy. They do not apply if the billing address is outside Italy. If the delivery country is missing, required fields that Shopify does not show do not block the order.",
     ],
-    preventiveLabel: "Show warnings early in checkout",
-    preventiveHelp:
-      "Errors can appear as soon as checkout loads, before the customer has filled the fields in. Recommended only if you use Shopify’s order confirmation step, because it stops customers reaching the review page blocked without a message.",
     previewHeading: "What customers will see",
     simulator: {
       unknownCountry: "Not provided",
@@ -419,11 +416,11 @@ export const en: typeof it = {
         empty: "Empty fields",
       },
       clear: "Clear",
-      continue: "Continue to payment",
+      continue: "Continue",
       outcomes: {
         notApplied: "Rules not applied",
         noChecks: "No checks",
-        checkAtPayment: "Check at payment",
+        editing: "Filling in details",
         blocked: "Checkout blocked",
         ready: "Checkout ready",
       },
@@ -443,8 +440,6 @@ export const en: typeof it = {
     pecOptional: "PEC can be left empty; if entered, it must use a valid email format.",
     summaryBlocking: "An Italian customer can’t complete the order without the required fields.",
     summaryChecking: "What Italian customers enter is checked, but nothing is required.",
-    preventive:
-      "Warnings appear as soon as checkout loads, not only when the customer tries to continue.",
     disabled: "The validation is turned off: these rules don’t apply to customers yet.",
     lapsed:
       "The validation is on but your plan isn’t: while that’s the case, checkout blocks nothing.",

@@ -179,7 +179,6 @@ export default function Onboarding() {
                   {describeCheckout(
                     {
                       rules: saved.rules,
-                      errorDisplay: saved.errorDisplay,
                       status: "active",
                     },
                     saved.locale,

@@ -12,7 +12,6 @@ test("l'anteprima dice la conseguenza per il cliente, non lo stato dei campi", (
   const lines = describeCheckout(
     {
       rules: { taxCode: "required_validated", pec: "unmanaged" },
-      errorDisplay: "inline",
       status: "active",
     },
     "it",
@@ -34,7 +33,6 @@ test("senza regole attive l'anteprima non promette nulla", () => {
     describeCheckout(
       {
         rules: { taxCode: "unmanaged", pec: "unmanaged" },
-        errorDisplay: "inline",
         status: "active",
       },
       "it",
@@ -47,7 +45,6 @@ test("una Validation disattivata lo dichiara nell'anteprima", () => {
     describeCheckout(
       {
         rules: { taxCode: "unmanaged", pec: "required_validated" },
-        errorDisplay: "preventive",
         status: "disabled",
       },
       "en",
@@ -59,7 +56,6 @@ test("una Validation attiva senza piano non viene descritta come disattivata", (
   const lines = describeCheckout(
     {
       rules: { taxCode: "required_validated", pec: "unmanaged" },
-      errorDisplay: "inline",
       status: "lapsed",
     },
     "it",
@@ -97,28 +93,20 @@ test("la dichiarazione sul campo “Interno” cambia solo quando il blocco è s
   expect(submitted([])).toBeNull();
 });
 
-test("gli avvisi preventivi sono consigliati solo nel caso dichiarato", () => {
-  expect(texts("it").rules.preventiveHelp).toContain("Consigliato solo se");
-  expect(texts("en").rules.preventiveHelp).toContain("Recommended only if");
-});
-
-// §7.7: massimo tre frasi per blocco. È il caso più affollato possibile: due campi gestiti,
-// avvisi preventivi e Validation disattivata.
+// §7.7: massimo tre frasi per blocco. È il caso più affollato possibile: due campi gestiti
+// e Validation disattivata.
 test("l'anteprima non supera mai le tre frasi", () => {
   for (const status of ["active", "disabled", "lapsed"] as const) {
-    for (const errorDisplay of ["inline", "preventive"] as const) {
-      const lines = describeCheckout(
-        {
-          rules: { taxCode: "required_validated", pec: "required_validated" },
-          errorDisplay,
-          status,
-        },
-        "it",
-      );
+    const lines = describeCheckout(
+      {
+        rules: { taxCode: "required_validated", pec: "required_validated" },
+        status,
+      },
+      "it",
+    );
 
-      expect(lines.length).toBeLessThanOrEqual(3);
-      expect(new Set(lines).size).toBe(lines.length);
-    }
+    expect(lines.length).toBeLessThanOrEqual(3);
+    expect(new Set(lines).size).toBe(lines.length);
   }
 });
 

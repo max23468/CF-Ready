@@ -1,5 +1,5 @@
 import type { AppErrorCode } from "./app-error";
-import type { ErrorDisplay, Rules } from "./config";
+import type { Rules } from "./config";
 import { en } from "./i18n/en";
 import { formatDate, formatMoney } from "./i18n/format";
 import { it } from "./i18n/it";
@@ -36,11 +36,7 @@ export const validationStatus = (enabled: boolean, entitled: boolean): CheckoutS
   !enabled ? "disabled" : entitled ? "active" : "lapsed";
 
 export function describeCheckout(
-  {
-    rules,
-    errorDisplay,
-    status,
-  }: { rules: Rules; errorDisplay: ErrorDisplay; status: CheckoutStatus },
+  { rules, status }: { rules: Rules; status: CheckoutStatus },
   locale: Locale,
 ) {
   const t = texts(locale).checkout;
@@ -58,7 +54,6 @@ export function describeCheckout(
   // simulatore la dichiara accanto ai Paesi di prova; fra le due avvertenze vince quella che
   // decide se le regole valgono davvero.
   if (status !== "active") lines.push(status === "lapsed" ? t.lapsed : t.disabled);
-  else if (errorDisplay === "preventive") lines.push(t.preventive);
   return lines;
 }
 
