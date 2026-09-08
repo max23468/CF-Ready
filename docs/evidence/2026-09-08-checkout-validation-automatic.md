@@ -94,4 +94,6 @@ bancario e PostePay non ha introdotto target o messaggi dedicati.
   Development già distribuito, quindi non costituisce una prova live della
   nuova pagina Regole checkout.
 
-Non sono stati eseguiti merge, deploy Production, transazioni o addebiti.
+Al termine, `shopify app dev clean` ha arrestato il dev preview e ripristinato
+la versione Development attiva precedente. Non sono stati eseguiti merge,
+deploy Production, transazioni o addebiti.
