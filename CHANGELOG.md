@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.5.2 — 8 settembre 2026
+
+- i webhook `shop/update` con Paese invariato vengono riconosciuti prima della
+  coda, evitando che aggiornamenti estranei dello store consumino il limite
+  giornaliero di Cloudflare Queues;
+- un cambio di Paese continua ad avviare la riconciliazione completa e conserva
+  il comportamento fail-open esistente.
+
 ## 1.5.1 — 8 settembre 2026
 
 - la navigazione embedded recupera la route interna anche quando Shopify

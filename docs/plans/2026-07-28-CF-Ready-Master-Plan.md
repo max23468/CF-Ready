@@ -1353,7 +1353,7 @@ Eseguire riconciliazione:
 
 - all’apertura della Home;
 - dopo webhook billing;
-- dopo `shop/update`;
+- dopo `shop/update` quando cambia il Paese osservato;
 - dopo ritorno da una pagina di approvazione Shopify;
 - dopo un errore di scrittura;
 - su reinstallazione.
@@ -1764,7 +1764,11 @@ query ShopDiagnostics {
 }
 ```
 
-Registrare il risultato normalizzato in D1 e ricontrollarlo all’apertura e dopo `shop/update`. L’applicabilità geografica appartiene invece alla Function, che valuta il singolo checkout senza inferire la cittadinanza del cliente.
+Registrare il risultato normalizzato in D1 e ricontrollarlo all’apertura e dopo
+`shop/update` quando il Paese nel payload firmato differisce dal valore
+osservato. Gli update con Paese invariato vengono riconosciuti prima della coda.
+L’applicabilità geografica appartiene invece alla Function, che valuta il
+singolo checkout senza inferire la cittadinanza del cliente.
 
 ### 13.2 Autenticazione
 
@@ -1831,7 +1835,9 @@ Per ogni endpoint:
 
 #### `shop/update`
 
-- aggiorna il Paese osservato;
+- confronta il Paese del payload firmato con D1 e riconosce subito gli update
+  invariati, senza accodarli;
+- riconcilia e aggiorna il Paese osservato quando differisce o non è leggibile;
 - non modifica Validation, prova, billing o configurazione in base al Paese.
 
 #### Webhook billing
@@ -3708,6 +3714,7 @@ bloccare vendite legittime.
 | scope senza sessione offline o payload scope assente | nessuna scrittura sessione | `processed` | fail-open |
 | redazione shop con installazione attiva | evento `shop_redact_skipped` | `processed` | nessuna cancellazione |
 | richiesta o redazione customer | evento `compliance_acknowledged` | `processed` | nessun dato cliente conservato |
+| update shop con Paese invariato | `200` prima dell'enqueue | nessun claim | nessuna operazione Queue |
 | update shop/billing senza contesto admin | evento `*_update_skipped` | `processed` | fail-open |
 | riconciliazione shop/billing ritentabile | eccezione con codice stabile | `processing` | coda ritenta |
 | riconciliazione non ritentabile | evento `shop_updated`/`billing_updated` | `processed` | fail-open controllato |
@@ -5071,7 +5078,7 @@ Codex definisce contratti e dati; Claude definisce presentazione e interazione. 
 | Credito pro rata percepito come sconto immediato | media | media | indicarlo come credito separato/stimato |
 | CF formalmente valido ma inesistente | certo | legale/comunicativo | claim esplicito solo formale |
 | Cliente estero classificato tramite fatturazione | media | fiscale | FAQ e responsabilità merchant |
-| Cambio paese store | bassa | alta | `shop/update`, fail-open, blocco |
+| Cambio paese store | bassa | alta | `shop/update` filtrato sul Paese, fail-open, blocco |
 | Corruzione config/metafield | bassa | alta | schema/versione/readback/fail-open |
 | PII nei log | bassa | alta | allowlist, test log, review |
 | Perdita D1 | bassa | alta | Time Travel + R2 + restore test |
