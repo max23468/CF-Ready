@@ -260,7 +260,7 @@ export const en: typeof it = {
       },
       {
         q: "What gets checked on the tax code",
-        a: "Its composition: length, structure, date, town code and check character. Both the ordinary 16-character form, including omocodia variants, and the provisional 11-digit form are accepted. A formally valid tax code may still not belong to the person entering it, and it isn’t verified with the Italian tax authority.",
+        a: "For the ordinary 16-character form, we check structure, date, town code, omocodia and the final check character. For the provisional form, we check its 11 digits and check digit. A formally valid tax code may still not belong to the person entering it, and it isn’t verified with the Italian tax authority.",
       },
       {
         q: "How PEC is validated",

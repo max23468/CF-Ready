@@ -6,7 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
-## 1.3.1 — in preparazione
+## 1.4.0 — in preparazione
+
+- il Codice Fiscale provvisorio a 11 cifre deve superare il controllo formale
+  dell’undicesima cifra e la sequenza degenere di soli zeri viene rifiutata;
+- il runbook dei Function run ricostruisce da input e output il ramo che ha
+  consentito o bloccato il checkout, con limiti di accesso e replay espliciti.
+
+## 1.3.1 — 5 settembre 2026
 
 - allineati verticalmente logo, voci del menu, lingua e pulsante di installazione
   nella testata del sito pubblico, con verifica desktop italiana e inglese.
