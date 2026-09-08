@@ -275,6 +275,16 @@ test("accetta il deploy Pages Production verde dello stesso main senza ricevuta 
     ]),
     false,
   );
+  assert.equal(
+    pagesDeploymentCompleted([
+      {
+        name: "Deploy Pages Production",
+        status: "completed",
+        conclusion: "success",
+      },
+    ]),
+    false,
+  );
   assert.doesNotThrow(() => verifyPagesDeployment({ run, jobs, expectedMain: main }));
   assert.doesNotThrow(() => verifyReconciliationDeployment({ run, jobs, expectedMain: main }));
   assert.throws(
