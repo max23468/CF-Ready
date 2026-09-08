@@ -3,6 +3,8 @@ import { markUninstalled, redactShop } from "./shop.server";
 import { sessionStorage, unauthenticated } from "./shopify.server";
 import { reconcile } from "./validation.server";
 import { runClaimedWebhook, type WebhookJob } from "./webhooks.server";
+import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "./checkout-labels/service.server";
+import { markCheckoutLabelsScopeRequired } from "./checkout-labels/repository.server";
 
 export async function processWebhookJob(db: D1Database, job: WebhookJob) {
   await runClaimedWebhook(db, job, async (claim) => {
@@ -21,6 +23,9 @@ export async function processWebhookJob(db: D1Database, job: WebhookJob) {
       if (session && job.currentScopes) {
         session.scope = job.currentScopes.join(",");
         await sessionStorage.storeSession(session);
+        if (!CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) => job.currentScopes!.includes(scope))) {
+          await markCheckoutLabelsScopeRequired(db, shop);
+        }
       }
       return;
     }

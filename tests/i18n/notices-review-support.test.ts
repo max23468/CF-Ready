@@ -139,6 +139,16 @@ test("la diagnostica copiabile usa gli stessi campi tecnici del messaggio", () =
     configHash: "sha256-tecnico",
     validationStateRevision: 7,
     lastSyncAt: "2026-08-29T10:00:00.000Z",
+    checkoutLabelsEnabled: true,
+    checkoutLabelsMode: "partial" as const,
+    checkoutLabelsStatus: "action_required" as const,
+    address2Classification: "fiscal_conflict" as const,
+    address2Decision: "pending" as const,
+    address2MarketOverride: true,
+    checkoutLabelLocales: "it-IT,en",
+    checkoutLabelMarketCount: 2,
+    checkoutLabelsLastSyncAt: "2026-09-08T12:00:00.000Z",
+    checkoutLabelsErrorCode: "checkout_labels_partial_sync",
   };
   const diagnostic = supportDiagnosticText(details, "it");
   const mailBody = new URL(supportMailto(details, "it", "other")).searchParams.get("body");
@@ -147,6 +157,9 @@ test("la diagnostica copiabile usa gli stessi campi tecnici del messaggio", () =
   expect(diagnostic).toContain("1.1.0");
   expect(diagnostic).toContain("sha256-tecnico");
   expect(diagnostic).toContain("e9763a7e-f334-4121-8ad8-78f85c47b878");
+  expect(diagnostic).toContain("checkout_labels_mode=partial");
+  expect(diagnostic).toContain("address2_classification=fiscal_conflict");
+  expect(diagnostic).toContain("market_count=2");
   expect(diagnostic).not.toContain("Codice Fiscale");
   expect(diagnostic).not.toContain("PEC acquirente");
 });

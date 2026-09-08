@@ -12,6 +12,11 @@ import {
   TAX_CODE_RULE_MODES,
 } from "../../config";
 import { databaseContext } from "../../context.server";
+import { readCheckoutLabelState } from "../../checkout-labels/repository.server";
+import {
+  CHECKOUT_LABEL_OPTIONAL_SCOPES,
+  loadCheckoutLabels,
+} from "../../checkout-labels/service.server";
 import { recordEvent } from "../../events.server";
 import { resolveLocale } from "../../i18n";
 import { persistShopDisplayName } from "../../shop-profile.server";
@@ -29,7 +34,7 @@ import {
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
-  const { admin, session } = await timing.measure("auth", () =>
+  const { admin, session, scopes } = await timing.measure("auth", () =>
     authenticateAdmin(request, context),
   );
   const db = context.get(databaseContext);
@@ -39,10 +44,18 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   });
   const validation = state.validation;
   const config = readConfig(validation?.metafield?.jsonValue);
-  const [onboarding, address2Declaration] = await Promise.all([
+  const [onboarding, address2Declaration, scopeDetails, storedLabelState] = await Promise.all([
     timing.measure("d1_onboarding", () => readOnboarding(db, session.shop)),
     timing.measure("d1_address", () => readAddress2Declaration(db, session.shop)),
+    timing.measure("shopify_snapshot", () => scopes.query().catch(() => null)),
+    timing.measure("d1_validation_state", () => readCheckoutLabelState(db, session.shop)),
   ]);
+  const labelScopesGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
+    scopeDetails?.granted.includes(scope),
+  );
+  const labels = labelScopesGranted
+    ? await timing.measure("shopify_snapshot", () => loadCheckoutLabels(admin, db, session.shop))
+    : null;
 
   return data(
     {
@@ -56,6 +69,9 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       entitled: state.entitlement.kind !== "none",
       trialStatus: state.trial?.status ?? null,
       address2Declared: address2Declaration !== null,
+      labelScopesGranted,
+      labelState: labels?.state ?? storedLabelState,
+      labelSnapshot: labels?.available ? labels.snapshot : null,
     },
     { headers: { "Server-Timing": timing.header() } },
   );
@@ -64,10 +80,15 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 export type OnboardingData = Awaited<ReturnType<typeof loader>>["data"];
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
-  const { admin, session } = await authenticate.admin(request);
+  const { admin, session, scopes } = await authenticate.admin(request);
   const db = context.get(databaseContext);
   const form = await request.formData();
   const intent = form.get("intent");
+
+  if (intent === "request_label_scopes") {
+    await scopes.request([...CHECKOUT_LABEL_OPTIONAL_SCOPES]);
+    return { ok: true as const };
+  }
 
   if (intent === "progress" || intent === "back" || intent === "next") {
     const step = parseOnboardingStep(form.get("step"));

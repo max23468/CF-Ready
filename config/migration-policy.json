@@ -89,6 +89,15 @@
       "name": "0017_owner_control.sql",
       "sha256": "0a6ae6e35ab0d1d226add4cfcad47152b3134cfa806d7008df873f13f5ceb563",
       "protects": ["Telegram update idempotency", "aggregate owner-control cache"]
+    },
+    {
+      "name": "0017_checkout_labels.sql",
+      "sha256": "bbc9186618f9c9d145674e6b6f4196a117aa7e33d5d6463dcf110a7129929c02",
+      "protects": [
+        "checkout label ownership",
+        "per-slot write capability",
+        "address line review state"
+      ]
     }
   ]
 }

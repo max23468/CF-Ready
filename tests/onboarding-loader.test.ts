@@ -7,6 +7,17 @@ const mocks = vi.hoisted(() => ({
   readAddress2Declaration: vi.fn(),
   readOnboarding: vi.fn(),
   reconcile: vi.fn(),
+  readCheckoutLabelState: vi.fn(),
+  loadCheckoutLabels: vi.fn(),
+}));
+
+vi.mock("../app/checkout-labels/repository.server", () => ({
+  readCheckoutLabelState: mocks.readCheckoutLabelState,
+}));
+
+vi.mock("../app/checkout-labels/service.server", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../app/checkout-labels/service.server")>()),
+  loadCheckoutLabels: mocks.loadCheckoutLabels,
 }));
 
 vi.mock("../app/shopify.server", () => ({
@@ -24,7 +35,11 @@ test("l’Onboarding riusa lo snapshot Shopify combinato", async () => {
   const admin = { graphql: vi.fn() };
   const db = {} as D1Database;
   const shop = "onboarding-snapshot.example.myshopify.com";
-  mocks.authenticate.mockResolvedValue({ admin, session: { shop } });
+  mocks.authenticate.mockResolvedValue({
+    admin,
+    session: { shop },
+    scopes: { query: vi.fn().mockResolvedValue({ granted: [] }) },
+  });
   mocks.reconcile.mockResolvedValue({
     validationEnabled: false,
     validation: {
@@ -40,6 +55,10 @@ test("l’Onboarding riusa lo snapshot Shopify combinato", async () => {
   });
   mocks.readOnboarding.mockResolvedValue({ status: "in_progress", step: 2 });
   mocks.readAddress2Declaration.mockResolvedValue(null);
+  mocks.readCheckoutLabelState.mockResolvedValue({
+    mode: "off",
+    address2Classification: "unknown",
+  });
 
   const { headers, loader } = await import("../app/routes/app.onboarding");
   const result = await loader({

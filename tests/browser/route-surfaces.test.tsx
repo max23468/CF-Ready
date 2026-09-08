@@ -45,9 +45,27 @@ vi.mock("@shopify/shopify-app-react-router/server", () => ({
 vi.mock("../../app/admin-auth.server", () => ({ authenticateAdmin: vi.fn() }));
 vi.mock("../../app/billing.server", () => ({ localDate: vi.fn(), startTrial: vi.fn() }));
 vi.mock("../../app/context.server", () => ({ databaseContext: {}, waitUntilContext: {} }));
-vi.mock("../../app/env.server", () => ({ APP_API_KEY: "api-key", APP_VERSION: "1.1.4" }));
+vi.mock("../../app/checkout-labels/repository.server", () => ({
+  readCheckoutLabelState: vi.fn(),
+}));
+vi.mock("../../app/checkout-labels/service.server", () => ({
+  CHECKOUT_LABEL_OPTIONAL_SCOPES: ["write_translations", "read_locales", "read_markets"],
+  acceptAddress2Customization: vi.fn(),
+  loadCheckoutLabels: vi.fn(),
+  restoreAddress2Translations: vi.fn(),
+  saveRulesAndCheckoutLabels: vi.fn(),
+}));
+vi.mock("../../app/env.server", () => ({
+  APP_API_KEY: "api-key",
+  APP_VERSION: "1.1.4",
+  BILLING_IS_TEST: true,
+  TRIAL_LEDGER_HMAC_KEY: "test-key",
+}));
 vi.mock("../../app/events.server", () => ({ recordEvent: vi.fn() }));
-vi.mock("../../app/shop-profile.server", () => ({ persistShopDisplayName: vi.fn() }));
+vi.mock("../../app/shop-profile.server", () => ({
+  persistShopDisplayName: vi.fn(),
+  safeStoreDisplayName: vi.fn(),
+}));
 vi.mock("../../app/shopify.server", () => ({ authenticate: { admin: vi.fn() } }));
 vi.mock("../../app/support.server", () => ({ readSupportDiagnosticState: vi.fn() }));
 vi.mock("../../app/validation.server", () => ({
@@ -100,6 +118,11 @@ const homeData = {
   onboarding: "not_started",
   showMerchantCheckIn: false,
   reviewDue: false,
+  checkoutLabels: {
+    status: "unknown",
+    mode: "off",
+    address2Classification: "unknown",
+  },
 } as const;
 
 const onboardingData = {
@@ -113,6 +136,9 @@ const onboardingData = {
   entitled: false,
   trialStatus: null,
   address2Declared: false,
+  labelScopesGranted: false,
+  labelState: { mode: "off", address2Classification: "unknown" },
+  labelSnapshot: null,
 } as const;
 
 beforeEach(() => {
@@ -1062,6 +1088,22 @@ describe("Regole", () => {
     enabled: true,
     entitled: true,
     address2Declared: false,
+    labelScopesGranted: false,
+    labelState: {
+      mode: "off",
+      managementEpoch: null,
+      enabledAt: null,
+      lastSyncAt: null,
+      lastErrorCode: null,
+      address2Classification: "unknown",
+      address2HasMarketOverride: false,
+      address2ExternalChangeAt: null,
+      address2Decision: "pending",
+      address2ReviewedAt: null,
+    },
+    labelSnapshot: null,
+    labelLoadError: null,
+    checkoutSettingsUrl: "https://admin.shopify.com/store/demo/settings/checkout",
   } as const;
 
   test("modifica la bozza, salva, annulla e invia il form", async () => {
@@ -1135,4 +1177,126 @@ describe("Regole", () => {
       { method: "post" },
     );
   });
+
+  test("mostra e aziona etichette native, override e ripristino di Interno", async () => {
+    const snapshot = {
+      locales: [
+        { locale: "it", family: "it", name: "Italiano", primary: true, published: true },
+        { locale: "en", family: "en", name: "English", primary: false, published: false },
+      ],
+      markets: [{ id: "gid://shopify/Market/1", name: "Italia" }],
+      issues: [],
+      revision: "labels-r1",
+      address2: { classification: "fiscal_conflict", hasMarketOverride: true },
+      slots: [
+        labelSlot({
+          name: "taxCode",
+          key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
+          capability: "automatic",
+          currentValue: "Codice fiscale (facoltativo)",
+        }),
+        labelSlot({
+          name: "pec",
+          key: "shopify.checkout.localized_fields.additional_information.tax_email_it",
+          locale: "en",
+          family: "en",
+          currentValue: "Certified email address (PEC)",
+        }),
+        labelSlot({ name: "address2", kind: "source", currentValue: "Codice fiscale" }),
+        labelSlot({ name: "address2", currentValue: "Codice fiscale" }),
+        labelSlot({
+          name: "optionalAddress2",
+          key: "shopify.checkout.contact.optional_address2_label",
+          locale: "en",
+          family: "en",
+          kind: "market_translation",
+          marketId: "gid://shopify/Market/1",
+          marketName: "Italia",
+          currentValue: "Tax code",
+        }),
+      ],
+    } as const;
+    router.loaderData = {
+      ...rulesData,
+      labelScopesGranted: true,
+      labelState: {
+        ...rulesData.labelState,
+        mode: "automatic",
+        lastSyncAt: "2026-09-08T12:00:00Z",
+        address2Classification: "fiscal_conflict",
+      },
+      labelSnapshot: snapshot,
+      labelLoadError: "checkout_labels_readback_failed",
+    };
+    router.fetcher.data = { ok: false, errorCode: "checkout_labels_conflict" };
+    vi.stubGlobal(
+      "confirm",
+      vi.fn(() => true),
+    );
+
+    const view = await mount(<CheckoutRules />);
+    expect(view.container.textContent).toContain(texts("it").rules.labels.marketOverride);
+    expect(view.container.querySelectorAll('s-banner[tone="critical"]')).not.toHaveLength(0);
+
+    const restore = [...view.container.querySelectorAll("s-button")].find((button) =>
+      button.textContent?.includes(texts("it").rules.labels.restoreAddress),
+    );
+    const keep = [...view.container.querySelectorAll("s-button")].find((button) =>
+      button.textContent?.includes(texts("it").rules.labels.keepAddress),
+    );
+    if (!restore || !keep) throw new Error("azioni etichette assenti");
+    await click(restore);
+    await click(keep);
+    expect(router.fetcher.submit).toHaveBeenCalledWith(
+      { intent: "restore_address2_labels", labelsRevision: "labels-r1" },
+      { method: "post" },
+    );
+    expect(router.fetcher.submit).toHaveBeenCalledWith(
+      { intent: "accept_address2_labels", labelsRevision: "labels-r1" },
+      { method: "post" },
+    );
+
+    router.fetcher.data = undefined;
+    router.loaderData = {
+      ...rulesData,
+      labelScopesGranted: true,
+      labelState: rulesData.labelState,
+      labelSnapshot: snapshot,
+    };
+    await view.rerender(<CheckoutRules key="first-label-write" />);
+    const management = [...view.container.querySelectorAll("s-checkbox")].find((checkbox) =>
+      checkbox.getAttribute("label")?.includes(texts("it").rules.labels.enable),
+    ) as (HTMLElement & { checked: boolean }) | undefined;
+    if (!management) throw new Error("controllo gestione etichette assente");
+    management.checked = true;
+    await dispatch(management, new Event("change", { bubbles: true }));
+    await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
+    expect(router.submit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ labelsEnabled: "1", labelsConfirmed: "1" }),
+      { method: "post" },
+    );
+
+    router.loaderData = { ...rulesData, labelScopesGranted: true, labelSnapshot: null };
+    await view.rerender(<CheckoutRules key="labels-without-snapshot" />);
+    expect(view.container.textContent).toContain(texts("it").rules.labels.noSnapshot);
+  });
 });
+
+function labelSlot(overrides: Record<string, unknown>) {
+  return {
+    resourceId: "gid://shopify/OnlineStoreThemeLocaleContent/1",
+    key: "shopify.checkout.contact.address2_label",
+    name: "address2",
+    locale: "it",
+    family: "it",
+    marketId: null,
+    marketName: null,
+    kind: "global_translation",
+    capability: "guided",
+    currentValue: "Interno",
+    sourceValue: "Interno",
+    sourceDigest: "digest",
+    outdated: false,
+    ...overrides,
+  };
+}

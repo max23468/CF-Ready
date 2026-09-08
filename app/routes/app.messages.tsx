@@ -3,6 +3,7 @@ import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "re
 import { data, useActionData, useLoaderData, useNavigation, useSubmit } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError } from "../app-error";
+import { checkoutLabelCopy } from "../checkout-labels/domain";
 import { authenticateAdmin } from "../admin-auth.server";
 import {
   DEFAULT_CONFIG,
@@ -277,10 +278,16 @@ export default function CustomerMessages() {
 
         <s-section>
           <s-stack direction="block" gap="base">
+            <s-banner tone="info">
+              <s-paragraph>{t.messages.labelsNote}</s-paragraph>
+              <s-link href="/app/rules">{t.messages.manageLabels}</s-link>
+            </s-banner>
             <CustomerMessagesPreview
               activeLocale={activeLocale}
               context={t.messages.previewContext}
               errorHeading={t.messages.previewErrorHeading}
+              fieldLabel={messageFieldLabel(t, saved.rules, activeLocale, selectedKey)}
+              fieldLabelHeading={t.messages.previewFieldLabel}
               heading={t.messages.previewHeading}
               languageLabel={t.messages.languageSelector}
               languages={{ it: t.messages.italian, en: t.messages.english }}
@@ -384,4 +391,14 @@ export default function CustomerMessages() {
       </s-page>
     </form>
   );
+}
+
+function messageFieldLabel(
+  t: ReturnType<typeof texts>,
+  rules: CheckoutConfig["rules"],
+  locale: Locale,
+  key: MessageKey,
+) {
+  const field = key.startsWith("taxCode") ? "taxCode" : "pec";
+  return checkoutLabelCopy(field, locale, rules[field]) ?? t.rules[`${field}Label`];
 }

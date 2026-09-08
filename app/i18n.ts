@@ -1,5 +1,11 @@
 import type { AppErrorCode } from "./app-error";
 import type { Rules } from "./config";
+import type {
+  Address2Classification,
+  Address2Decision,
+  CheckoutLabelsMode,
+  CheckoutLabelsStatus,
+} from "./checkout-labels/domain";
 import { en } from "./i18n/en";
 import { formatDate, formatMoney } from "./i18n/format";
 import { it } from "./i18n/it";
@@ -105,6 +111,16 @@ export type SupportDetails = {
   configHash?: string | null;
   validationStateRevision?: number;
   lastSyncAt?: string | null;
+  checkoutLabelsEnabled?: boolean;
+  checkoutLabelsMode?: CheckoutLabelsMode;
+  checkoutLabelsStatus?: CheckoutLabelsStatus;
+  address2Classification?: Address2Classification;
+  address2Decision?: Address2Decision;
+  address2MarketOverride?: boolean;
+  checkoutLabelLocales?: string;
+  checkoutLabelMarketCount?: number;
+  checkoutLabelsLastSyncAt?: string | null;
+  checkoutLabelsErrorCode?: string | null;
 };
 
 export type SupportCategory = keyof typeof it.support.categories;
@@ -137,6 +153,30 @@ export function supportDiagnosticText(details: SupportDetails, locale: Locale) {
     lines.push(`${t.fieldStateRevision}: ${details.validationStateRevision}`);
   }
   if (details.lastSyncAt) lines.push(`${t.fieldLastSync}: ${details.lastSyncAt}`);
+  if (details.checkoutLabelsEnabled !== undefined) {
+    lines.push(`checkout_labels_enabled=${details.checkoutLabelsEnabled ? "yes" : "no"}`);
+  }
+  if (details.checkoutLabelsMode) lines.push(`checkout_labels_mode=${details.checkoutLabelsMode}`);
+  if (details.checkoutLabelsStatus) {
+    lines.push(`checkout_labels_status=${details.checkoutLabelsStatus}`);
+  }
+  if (details.address2Classification) {
+    lines.push(`address2_classification=${details.address2Classification}`);
+  }
+  if (details.address2Decision) lines.push(`address2_decision=${details.address2Decision}`);
+  if (details.address2MarketOverride !== undefined) {
+    lines.push(`address2_market_override=${details.address2MarketOverride ? "yes" : "no"}`);
+  }
+  if (details.checkoutLabelLocales) lines.push(`locales=${details.checkoutLabelLocales}`);
+  if (details.checkoutLabelMarketCount !== undefined) {
+    lines.push(`market_count=${details.checkoutLabelMarketCount}`);
+  }
+  if (details.checkoutLabelsLastSyncAt) {
+    lines.push(`last_label_sync=${details.checkoutLabelsLastSyncAt}`);
+  }
+  if (details.checkoutLabelsErrorCode) {
+    lines.push(`label_error_code=${details.checkoutLabelsErrorCode}`);
+  }
   if (details.diagnosticId) lines.push(`${t.fieldDiagnosticId}: ${details.diagnosticId}`);
   return lines.join("\n");
 }

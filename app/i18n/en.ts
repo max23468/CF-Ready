@@ -27,6 +27,25 @@ export const en: typeof it = {
       "Couldn’t save. Shopify didn’t accept the write. Try again; if it keeps failing, contact us.",
     validation_readback_failed:
       "Couldn’t save. Shopify didn’t confirm the write. Reload the page to see the real state.",
+    checkout_labels_scope_required:
+      "Grant the optional Shopify permissions to read and sync checkout labels.",
+    checkout_labels_resource_missing:
+      "Shopify doesn’t expose one of the expected labels. Rules still work; use the guided steps.",
+    checkout_labels_resource_ambiguous:
+      "Shopify exposes more than one resource for the same label. No text was changed.",
+    checkout_labels_locale_missing:
+      "Italian or English isn’t available on this store. Publish it or continue with the available languages.",
+    checkout_labels_conflict:
+      "A label changed after the last read. Reload Shopify before choosing which text to keep.",
+    checkout_labels_confirmation_required:
+      "Confirm the comparison before the first automatic label write.",
+    checkout_labels_stale_digest:
+      "Shopify updated the content during the save. Reload the labels and try again.",
+    checkout_labels_partial_sync: "Rules were saved, but some labels need another attempt.",
+    checkout_labels_readback_failed:
+      "Shopify didn’t confirm every label. Reload their status before making another change.",
+    address2_restore_conflict:
+      "The second address line changed after the comparison. Reload Shopify before restoring it.",
     validation_limit_reached:
       "This store already has the maximum number of active validations Shopify allows. Your rules are still saved. Turn off another app’s validation in Settings → Checkout, then try again: CF Ready never touches other apps’ resources.",
     entitlement_required:
@@ -88,6 +107,11 @@ export const en: typeof it = {
     checkInDismiss: "Don’t show this again",
     nextAddress2:
       "Stop using the “Apartment, suite, etc.” field for the tax code: right now customers see two fields for the same value. The steps are on Checkout rules.",
+    checkoutLabelsScopeRequired:
+      "The permissions used to read and synchronize checkout labels are no longer available.",
+    checkoutLabelsActionRequired:
+      "Checkout labels or the “Apartment, suite, etc.” field need your review.",
+    checkoutLabelsOpen: "Review checkout labels",
   },
   messages: {
     heading: "Customer messages",
@@ -114,6 +138,10 @@ export const en: typeof it = {
     previewContext: "When the customer tries to complete the order",
     previewErrorHeading: "Order can’t be completed",
     previewSelected: "Selected message",
+    previewFieldLabel: "Field label",
+    labelsNote:
+      "Labels identify the fields; these messages explain what the customer needs to correct.",
+    manageLabels: "Manage labels from Checkout rules",
   },
   setup: {
     heading: "Get CF Ready ready",
@@ -131,6 +159,9 @@ export const en: typeof it = {
       "The trial has ended. Choose a plan to apply your rules at checkout again; your configuration and messages stay saved.",
     startTrial: "Start the free trial",
     address2Title: "Stop using the “Apartment, suite, etc.” field",
+    labelsTitle: "Review checkout labels",
+    labelsBody:
+      "Compare the tax code, PEC and second address line in Italian and English, then choose how to manage them.",
     guided: "Open the guided setup",
   },
   onboarding: {
@@ -150,12 +181,18 @@ export const en: typeof it = {
     ],
     step2Heading: "Choose what to check",
     step2Body: "You can change these choices whenever you want from Checkout rules.",
+    labelsPreviewHeading: "Proposed labels in Italian and English",
+    labelsPermissionsGranted: "The permissions used to compare labels are available.",
+    labelsPermissionsOptional:
+      "You can grant permission to compare labels with Shopify now or continue without enabling it.",
     step3Heading: "Rules preview",
     step3Body: "With the rules you selected:",
     step3Messages: "Configured messages",
     step3MessagesBody:
       "These are the four messages already configured. They’re available in Italian and English and can be edited from Customer messages.",
     step4Heading: "Summary",
+    labelsSummary: "Label management",
+    address2Summary: "Second address line check",
     step4BodyReady: "Your rules are saved but not active yet.",
     step4BodyNeedsEntitlement: "Your rules are saved but not active yet.",
     step4TrialHeading: "Trial and plan",
@@ -236,6 +273,8 @@ export const en: typeof it = {
       simulate: "Reproduce the case in the simulator",
       entitled: "Trial or plan is valid in the newly synced state.",
       notEntitled: "No valid trial or plan in the newly synced state.",
+      checkoutLabels: "Checkout labels",
+      address2: "Second address line",
     },
     heading: "Help and FAQ",
     faqHeading: "Frequently asked",
@@ -276,7 +315,31 @@ export const en: typeof it = {
       },
       {
         q: "I use the “Apartment, suite, etc.” field for the tax code",
-        a: "The tax code belongs in the native Italian checkout field. If you also collect it in the second address line, customers see two fields for the same value: open Settings → Checkout and set that line to “Optional” or “Don’t include”, then restore the original label from “Manage checkout language”. CF Ready can’t read or change that setting: the warning you see in the app is based on what you told us.",
+        a: "The tax code belongs in the native Italian checkout field. CF Ready reads the second address line labels and flags a possible tax-code conflict; it can restore translations it manages, while the primary-language source text follows the guided steps on Checkout rules.",
+      },
+      {
+        q: "How automatic labels work",
+        a: "After you consent, CF Ready compares the native tax code and PEC labels in Italian and English and synchronizes only locale, market and key combinations already proven writable. Your saved rules determine whether the label describes an optional or required field.",
+      },
+      {
+        q: "Why I still see “optional”",
+        a: "Review permissions, published languages and market overrides on Checkout rules. A new language, an external edit or a partial synchronization requires another comparison, and a real checkout remains the final check.",
+      },
+      {
+        q: "Can CF Ready tell whether the second address line is optional or hidden?",
+        a: "No. Shopify exposes the second address line texts, but not the form option that makes the field required, optional or hidden. Check that option in Settings → Checkout.",
+      },
+      {
+        q: "What happens if I use Translate & Adapt or another app",
+        a: "CF Ready re-reads labels before writing. If it finds an external change, it preserves it and asks you to decide instead of overwriting it automatically.",
+      },
+      {
+        q: "What happens when I turn label management off",
+        a: "CF Ready restores only translations that still match its last confirmed write. If text changed in the meantime, it leaves it unchanged and shows the action you need to take.",
+      },
+      {
+        q: "What happens to labels when I uninstall CF Ready",
+        a: "Shopify translations may remain after uninstalling. Before removing the app, use Checkout rules to restore managed translations and verify checkout in each published language and market.",
       },
       {
         q: "Trial and payments",
@@ -373,6 +436,7 @@ export const en: typeof it = {
   rules: {
     heading: "Checkout rules",
     saved: "Rules saved.",
+    labelsSaved: "Rules saved. The labels need attention.",
     taxCodeLabel: "Italian tax code (Codice Fiscale)",
     pecLabel: "Certified email address (PEC)",
     taxCode: {
@@ -408,6 +472,11 @@ export const en: typeof it = {
       eyebrow: "CF Ready · checkout simulation",
       heading: "Test checkout",
       privatePreview: "Interactive preview",
+      previewLanguage: "Preview language",
+      italian: "Italiano",
+      english: "English",
+      address2: "Apartment, suite, etc.",
+      realCheckout: "Confirm the final text in a real checkout.",
       orderContext: "Order destination",
       customerData: "Customer tax details",
       company: "Company",
@@ -440,6 +509,66 @@ export const en: typeof it = {
     address2Checkbox: "Yes, I use “Apartment, suite, etc.” for the tax code",
     address2Instructions:
       "Two steps. In Settings → Checkout, under “Form options”, set the second address line to “Optional” or “Don’t include”; then, if you changed its label, restore it from “Manage checkout language”, or from Settings → Languages, “Checkout and system” tab, for a translated language.",
+    labels: {
+      heading: "Checkout fields",
+      intro:
+        "CF Ready keeps the native tax fields consistent and checks whether the second address line duplicates them.",
+      nativeHeading: "Native fields: tax code and PEC",
+      nativeBody:
+        "Rules decide what is checked. Labels explain what customers see and can be managed separately.",
+      permissionsHeading: "Check Shopify labels",
+      permissionsBody:
+        "Grant access only to translations, languages and markets. CF Ready doesn’t read orders, customers or checkout entries.",
+      requestPermissions: "Grant permissions",
+      permissionsGranted: "Permissions granted",
+      enable: "Automatically manage supported labels",
+      enableGuided: "Keep guided label checks active",
+      enableConfirm:
+        "Have you compared the current and proposed texts? CF Ready will write only the slots marked as automatic.",
+      mode: "Mode",
+      modeValues: {
+        off: "Off",
+        guided: "Guided",
+        automatic: "Automatic",
+        partial: "Mixed",
+      },
+      current: "Current",
+      proposed: "After saving",
+      language: "Language",
+      italian: "Italiano",
+      english: "English",
+      unchanged: "Keep the current text",
+      primary: "primary",
+      unpublished: "not published",
+      automatic: "automatic",
+      guided: "needs verification",
+      marketOverride: "market override",
+      refresh: "Reload from Shopify",
+      stop: "Restore and stop managing",
+      lastSync: (value: string) => `Last sync: ${value}`,
+      neverSynced: "Not synced yet",
+      realCheckout:
+        "The API shows registered values. Verify rendered text in a real checkout for the same language and market.",
+      addressHeading: "Second address line check",
+      addressRegular: "Regular variant",
+      addressOptional: "Optional variant",
+      addressBody:
+        "CF Ready reads both labels for the second address line. Shopify doesn’t expose whether the field is hidden, optional or required.",
+      addressStatus: {
+        unknown: "Needs verification",
+        expected: "Expected texts",
+        nonstandard: "Texts differ from the expected copy",
+        fiscal_conflict: "Likely duplicate tax code field",
+      },
+      restoreAddress: "Restore manageable translations",
+      restoreAddressConfirm:
+        "Do you confirm the comparison? CF Ready will restore only the translations and overrides shown, then read Shopify again.",
+      keepAddress: "Keep this customization",
+      openCheckout: "Open checkout settings",
+      sourceManual:
+        "Restore the primary language source text from Shopify’s checkout content editor.",
+      noSnapshot: "Grant permissions to compare this store’s current texts.",
+    },
   },
   checkout: {
     nothing: "No fields are configured: checkout stays unchanged.",

@@ -9,12 +9,15 @@ import * as authRoute from "../app/routes/auth.$";
 const mocks = vi.hoisted(() => ({
   authenticateAdmin: vi.fn(),
   authenticateShopify: vi.fn(),
+  acceptAddress2Customization: vi.fn(),
   findValidation: vi.fn(),
   localDate: vi.fn(),
   observedConfigHash: vi.fn(),
   persistShopDisplayName: vi.fn(),
   queryContext: vi.fn(),
+  loadCheckoutLabels: vi.fn(),
   readAddress2Declaration: vi.fn(),
+  readCheckoutLabelState: vi.fn(),
   readOnboarding: vi.fn(),
   readSupportDiagnosticState: vi.fn(),
   reconcile: vi.fn(),
@@ -23,6 +26,10 @@ const mocks = vi.hoisted(() => ({
   saveOnboarding: vi.fn(),
   startTrial: vi.fn(),
   writeValidation: vi.fn(),
+  scopeQuery: vi.fn(),
+  scopeRequest: vi.fn(),
+  restoreAddress2Translations: vi.fn(),
+  saveRulesAndCheckoutLabels: vi.fn(),
 }));
 
 vi.mock("../app/admin-auth.server", () => ({ authenticateAdmin: mocks.authenticateAdmin }));
@@ -40,6 +47,16 @@ vi.mock("../app/shopify.server", () => ({
 }));
 vi.mock("../app/support.server", () => ({
   readSupportDiagnosticState: mocks.readSupportDiagnosticState,
+}));
+vi.mock("../app/checkout-labels/repository.server", () => ({
+  readCheckoutLabelState: mocks.readCheckoutLabelState,
+}));
+vi.mock("../app/checkout-labels/service.server", () => ({
+  CHECKOUT_LABEL_OPTIONAL_SCOPES: ["write_translations", "read_locales", "read_markets"],
+  acceptAddress2Customization: mocks.acceptAddress2Customization,
+  loadCheckoutLabels: mocks.loadCheckoutLabels,
+  restoreAddress2Translations: mocks.restoreAddress2Translations,
+  saveRulesAndCheckoutLabels: mocks.saveRulesAndCheckoutLabels,
 }));
 vi.mock("../app/validation.server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../app/validation.server")>()),
@@ -83,8 +100,10 @@ function messageForm(overrides: Record<string, string> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   context.get.mockReturnValue(db);
-  mocks.authenticateAdmin.mockResolvedValue({ admin, session });
-  mocks.authenticateShopify.mockResolvedValue({ admin, session });
+  const scopes = { query: mocks.scopeQuery, request: mocks.scopeRequest };
+  mocks.authenticateAdmin.mockResolvedValue({ admin, session, scopes });
+  mocks.authenticateShopify.mockResolvedValue({ admin, session, scopes });
+  mocks.scopeQuery.mockResolvedValue({ granted: [] });
   mocks.localDate.mockReturnValue("2026-09-02");
   mocks.observedConfigHash.mockResolvedValue("hash");
   mocks.queryContext.mockResolvedValue({
@@ -96,6 +115,18 @@ beforeEach(() => {
     validations: { nodes: [] },
   });
   mocks.readAddress2Declaration.mockResolvedValue(null);
+  mocks.readCheckoutLabelState.mockResolvedValue({
+    mode: "off",
+    address2Classification: "unknown",
+  });
+  mocks.acceptAddress2Customization.mockResolvedValue({ ok: true });
+  mocks.loadCheckoutLabels.mockResolvedValue({
+    available: true,
+    state: { mode: "guided" },
+    snapshot: { revision: "labels-r1", slots: [] },
+  });
+  mocks.restoreAddress2Translations.mockResolvedValue({ ok: true });
+  mocks.saveRulesAndCheckoutLabels.mockResolvedValue({ ok: true, labelsErrorCode: null });
   mocks.readOnboarding.mockResolvedValue({ status: "in_progress", step: 2 });
   mocks.reconcile.mockResolvedValue({
     validation: undefined,
@@ -369,6 +400,31 @@ test("Regole espone duplicati, accesso e dichiarazione osservati", async () => {
   }
 });
 
+test("Regole carica etichette disponibili e propaga un readback fallito", async () => {
+  const { loader } = rulesRoute;
+  const request = new Request("https://example.test/app/rules?locale=it");
+  mocks.scopeQuery.mockResolvedValue({
+    granted: ["write_translations", "read_locales", "read_markets"],
+  });
+
+  expect((await loader(args(request))).data).toMatchObject({
+    labelScopesGranted: true,
+    labelState: { mode: "guided" },
+    labelSnapshot: { revision: "labels-r1" },
+    labelLoadError: null,
+  });
+
+  mocks.loadCheckoutLabels.mockResolvedValueOnce({
+    available: false,
+    state: { mode: "partial" },
+    errorCode: "checkout_labels_readback_failed",
+  });
+  expect((await loader(args(request))).data).toMatchObject({
+    labelSnapshot: null,
+    labelLoadError: "checkout_labels_readback_failed",
+  });
+});
+
 test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", async () => {
   const { action } = rulesRoute;
   for (const values of [
@@ -414,6 +470,114 @@ test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", asyn
       args(post("/app/rules", { taxCode: "unmanaged", pec: "unmanaged", configHash: "" })),
     ),
   ).toEqual({ ok: false, errorCode: "config_conflict" });
+});
+
+test("Regole gestisce consenso, ripristino e sincronizzazione delle etichette", async () => {
+  const { action } = rulesRoute;
+  expect(await action(args(post("/app/rules", { intent: "request_label_scopes" })))).toEqual({
+    ok: true,
+  });
+  expect(mocks.scopeRequest).toHaveBeenCalledWith([
+    "write_translations",
+    "read_locales",
+    "read_markets",
+  ]);
+
+  expect(await action(args(post("/app/rules", { intent: "restore_address2_labels" })))).toEqual({
+    ok: false,
+    errorCode: "checkout_labels_scope_required",
+  });
+
+  mocks.scopeQuery.mockResolvedValue({
+    granted: ["write_translations", "read_locales", "read_markets"],
+  });
+  expect(await action(args(post("/app/rules", { intent: "restore_address2_labels" })))).toEqual({
+    ok: false,
+    errorCode: "address2_restore_conflict",
+  });
+  expect(
+    await action(
+      args(post("/app/rules", { intent: "restore_address2_labels", labelsRevision: "r1" })),
+    ),
+  ).toEqual({ ok: true });
+  expect(mocks.restoreAddress2Translations).toHaveBeenCalledWith(admin, db, session.shop, "r1");
+
+  expect(await action(args(post("/app/rules", { intent: "accept_address2_labels" })))).toEqual({
+    ok: false,
+    errorCode: "checkout_labels_conflict",
+  });
+  expect(
+    await action(
+      args(post("/app/rules", { intent: "accept_address2_labels", labelsRevision: "r1" })),
+    ),
+  ).toEqual({ ok: true });
+  expect(mocks.acceptAddress2Customization).toHaveBeenCalledWith(admin, db, session.shop, "r1");
+
+  mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({
+    ok: true,
+    labelsErrorCode: "checkout_labels_partial_sync",
+  });
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          taxCode: "required_validated",
+          pec: "optional_validated",
+          labelsEnabled: "1",
+          labelsConfirmed: "1",
+          labelsRevision: "r1",
+          configHash: "hash",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: true, labelsErrorCode: "checkout_labels_partial_sync" });
+  expect(mocks.saveRulesAndCheckoutLabels).toHaveBeenCalledWith(
+    admin,
+    db,
+    session.shop,
+    expect.objectContaining({
+      labelsEnabled: true,
+      confirmAutomaticWrite: true,
+      expectedLabelsRevision: "r1",
+    }),
+  );
+
+  mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({
+    ok: false,
+    errorCode: "checkout_labels_conflict",
+  });
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          taxCode: "required_validated",
+          pec: "optional_validated",
+          labelsEnabled: "1",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: false, errorCode: "checkout_labels_conflict" });
+});
+
+test("Regole conserva il salvataggio dopo la revoca degli scope", async () => {
+  const { action } = rulesRoute;
+  mocks.readCheckoutLabelState.mockResolvedValueOnce({ mode: "automatic" });
+  mocks.writeValidation.mockResolvedValueOnce({ ok: true });
+  expect(
+    await action(args(post("/app/rules", { taxCode: "unmanaged", pec: "optional_validated" }))),
+  ).toEqual({ ok: true, labelsErrorCode: "checkout_labels_scope_required" });
+
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          taxCode: "required_validated",
+          pec: "optional_validated",
+          labelsEnabled: "1",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: false, errorCode: "checkout_labels_scope_required" });
 });
 
 test("il callback auth inoltra la richiesta a Shopify e propaga il rifiuto", async () => {

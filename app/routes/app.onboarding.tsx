@@ -3,6 +3,7 @@ import type { HeadersFunction } from "react-router";
 import { useFetcher, useLoaderData, useNavigate } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError, type AppErrorCode } from "../app-error";
+import { checkoutLabelCopy } from "../checkout-labels/domain";
 import { oneOf, PEC_RULE_MODES, pendingFetcherIntent, TAX_CODE_RULE_MODES } from "../config";
 import { onboardingStep4State } from "../features/onboarding/step4-state";
 import {
@@ -12,6 +13,7 @@ import {
   OnboardingStep4Actions,
   OnboardingStep4Content,
 } from "../features/onboarding/OnboardingSections";
+import { CheckoutSimulator } from "../features/rules/CheckoutSimulator";
 import {
   planComparisonLocationState,
   requestPlanComparisonFromFrame,
@@ -171,6 +173,35 @@ export default function Onboarding() {
                       </s-choice>
                     ))}
                   </s-choice-list>
+                  <s-box background="subdued" borderRadius="base" padding="base">
+                    <s-stack direction="block" gap="small-100">
+                      <s-heading>{t.onboarding.labelsPreviewHeading}</s-heading>
+                      {(["it", "en"] as const).map((locale) => (
+                        <s-text key={locale}>
+                          {locale.toUpperCase()} ·{" "}
+                          {checkoutLabelCopy("taxCode", locale, saved.rules.taxCode) ??
+                            t.rules.labels.unchanged}
+                          {" · "}
+                          {checkoutLabelCopy("pec", locale, saved.rules.pec) ??
+                            t.rules.labels.unchanged}
+                        </s-text>
+                      ))}
+                    </s-stack>
+                  </s-box>
+                  {saved.labelScopesGranted ? (
+                    <s-text color="subdued">{t.onboarding.labelsPermissionsGranted}</s-text>
+                  ) : (
+                    <s-stack direction="block" gap="small-100">
+                      <s-paragraph>{t.onboarding.labelsPermissionsOptional}</s-paragraph>
+                      <s-button
+                        disabled={busy}
+                        loading={pendingIntent === "request_label_scopes"}
+                        onClick={() => go("request_label_scopes")}
+                      >
+                        {t.rules.labels.requestPermissions}
+                      </s-button>
+                      </s-stack>
+                    )}
                 </>
               ) : null}
 
@@ -187,6 +218,12 @@ export default function Onboarding() {
                   ).map((line) => (
                     <s-paragraph key={line}>{line}</s-paragraph>
                   ))}
+                  <CheckoutSimulator
+                    locale={saved.locale}
+                    rules={saved.rules}
+                    messages={saved.messages}
+                    labelSnapshot={saved.labelSnapshot}
+                  />
                   <OnboardingListBlock
                     lead={<s-heading>{t.rules.exceptionsHeading}</s-heading>}
                     items={t.rules.exceptions}

@@ -102,21 +102,21 @@ describe("componenti merchant nel browser", () => {
     mounted.push(view);
     const selects = [...view.container.querySelectorAll("s-select")];
     const fields = [...view.container.querySelectorAll("s-text-field")];
-    expect(selects).toHaveLength(3);
-    expect(fields).toHaveLength(2);
+    expect(selects).toHaveLength(4);
+    expect(fields).toHaveLength(3);
 
-    (selects[0] as HTMLElement & { value: string }).value = "unknown";
-    await dispatch(selects[0], new Event("change", { bubbles: true }));
-    (selects[0] as HTMLElement & { value: string }).value = "FR";
-    await dispatch(selects[0], new Event("change", { bubbles: true }));
+    (selects[1] as HTMLElement & { value: string }).value = "unknown";
+    await dispatch(selects[1], new Event("change", { bubbles: true }));
+    (selects[1] as HTMLElement & { value: string }).value = "FR";
+    await dispatch(selects[1], new Event("change", { bubbles: true }));
     expect(view.container.querySelector('[role="status"]')?.textContent).toContain(
       "Regole non applicate",
     );
 
-    (selects[0] as HTMLElement & { value: string }).value = "IT";
-    await dispatch(selects[0], new Event("change", { bubbles: true }));
-    (selects[2] as HTMLElement & { value: string }).value = "invalidTaxCode";
-    await dispatch(selects[2], new Event("change", { bubbles: true }));
+    (selects[1] as HTMLElement & { value: string }).value = "IT";
+    await dispatch(selects[1], new Event("change", { bubbles: true }));
+    (selects[3] as HTMLElement & { value: string }).value = "invalidTaxCode";
+    await dispatch(selects[3], new Event("change", { bubbles: true }));
     expect(view.container.querySelector('[role="status"]')?.textContent).toContain("blocca");
 
     (fields[0] as HTMLElement & { value: string }).value = "RSSMRA85T10A562S";
@@ -150,7 +150,7 @@ describe("componenti merchant nel browser", () => {
     );
     mounted.push(view);
     const selects = [...view.container.querySelectorAll("s-select")];
-    expect(selects).toHaveLength(3);
+    expect(selects).toHaveLength(4);
     expect(view.container.querySelectorAll("s-checkbox")).toHaveLength(0);
     const fields = [...view.container.querySelectorAll("s-text-field")];
     expect(fields.every((field) => field.getAttribute("error") === null)).toBe(true);
@@ -171,7 +171,7 @@ describe("componenti merchant nel browser", () => {
       />,
     );
     mounted.push(unmanaged);
-    expect(unmanaged.container.querySelectorAll("s-text-field")).toHaveLength(0);
+    expect(unmanaged.container.querySelectorAll("s-text-field")).toHaveLength(1);
     expect(unmanaged.container.textContent).toContain(en.checkout.nothing);
 
     const pecOnly = await render(
@@ -187,8 +187,8 @@ describe("componenti merchant nel browser", () => {
       value: string;
     };
     expect(field).not.toBeNull();
-    (selects[1] as HTMLElement & { value: string }).value = "DE";
-    await dispatch(selects[1], new Event("change", { bubbles: true }));
+    (selects[2] as HTMLElement & { value: string }).value = "DE";
+    await dispatch(selects[2], new Event("change", { bubbles: true }));
     field.value = "cliente@example.com";
     await dispatch(field, new Event("input", { bubbles: true }));
     expect(pecOnly.container.querySelector('[role="status"]')?.textContent).toBeTruthy();

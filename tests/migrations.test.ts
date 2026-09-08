@@ -525,6 +525,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "0015_owner_notification_details.sql",
     "0016_current_contracts.sql",
     "0017_owner_control.sql",
+    "0017_checkout_labels.sql",
   ]);
   await applyD1Migrations(db, migrations);
 
@@ -544,6 +545,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "app_state",
     "billing_accounts",
     "billing_events",
+    "checkout_label_slots",
     "complimentary_entitlements",
     "owner_control_state",
     "owner_control_updates",
@@ -571,6 +573,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "app_events_webhook_name_idx",
     "billing_events_occurred_at_idx",
     "billing_events_resource_type_idx",
+    "checkout_label_slots_shop_id_idx",
     "owner_control_updates_retention_idx",
     "owner_notification_redactions_retention_idx",
     "owner_notifications_created_at_idx",

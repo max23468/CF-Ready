@@ -16,6 +16,12 @@ import {
   type Locale,
 } from "../i18n";
 import { readConfig } from "../config";
+import { readCheckoutLabelState } from "../checkout-labels/repository.server";
+import { checkoutLabelsStatus } from "../checkout-labels/domain";
+import {
+  CHECKOUT_LABEL_OPTIONAL_SCOPES,
+  loadCheckoutLabels,
+} from "../checkout-labels/service.server";
 import { reconcile } from "../validation.server";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { createServerTiming } from "../server-timing.server";
@@ -46,12 +52,19 @@ export const headers: HeadersFunction = (args) => boundary.headers(args);
 const DIAGNOSTIC_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
-  const { admin, session } = await authenticateAdmin(request, context);
+  const { admin, session, scopes } = await authenticateAdmin(request, context);
   const form = await request.formData();
   if (form.get("intent") === "check_validation") {
     try {
       const state = await reconcile(admin, context.get(databaseContext), session.shop);
       const config = readConfig(state.validation?.metafield?.jsonValue);
+      const db = context.get(databaseContext);
+      const scopeDetails = await scopes.query().catch(() => null);
+      const labelsGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
+        scopeDetails?.granted.includes(scope),
+      );
+      if (labelsGranted) await loadCheckoutLabels(admin, db, session.shop);
+      const labelState = await readCheckoutLabelState(db, session.shop);
       return {
         ok: true as const,
         check: {
@@ -60,6 +73,9 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
           entitled: state.entitlement.kind !== "none",
           errorCode: state.errorCode,
           configured: config.rules.taxCode !== "unmanaged" || config.rules.pec !== "unmanaged",
+          checkoutLabelsStatus: labelsGranted ? checkoutLabelsStatus(labelState) : "scope_required",
+          address2Classification: labelState.address2Classification,
+          address2Decision: labelState.address2Decision,
         },
       };
     } catch {
@@ -245,6 +261,12 @@ function ValidationDiagnosis({
             <s-paragraph>
               {check.configured ? checkCopy.configured : checkCopy.unconfigured}{" "}
               <s-link href="/app/rules">{t.nav.rules}</s-link>
+            </s-paragraph>
+            <s-paragraph>
+              {checkCopy.checkoutLabels}: {check.checkoutLabelsStatus}
+            </s-paragraph>
+            <s-paragraph>
+              {checkCopy.address2}: {check.address2Classification} · {check.address2Decision}
             </s-paragraph>
           </>
         ) : (
