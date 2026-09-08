@@ -52,7 +52,7 @@ export default function App() {
   // AppProvider, rimosso perché caricava gli script nel body anziché nel head richiesto da BFS.
   useEffect(() => {
     const handleNavigate = (event: Event) =>
-      navigateFromShopifyEvent(event, (href) =>
+      navigateFromShopifyEvent(event, window.location.origin, (href) =>
         requestAppWindowNavigation(window, href, (target) =>
           navigate(target, { viewTransition: true }),
         ),

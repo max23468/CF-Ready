@@ -1,10 +1,44 @@
 const SHOP_DOMAIN = /^([a-z0-9][a-z0-9-]*)\.myshopify\.com$/i;
 const APP_ROUTE = /^\/app(?:\/|$)/;
 
-export function navigateFromShopifyEvent(event: Event, navigate: (href: string) => void) {
-  const href = (event.target as Element | null)?.getAttribute?.("href");
-  if (!href) return false;
-  navigate(href);
+function appRoute(href: string, origin: string) {
+  try {
+    const base = new URL(origin);
+    const target = new URL(href, base);
+    return target.origin === base.origin && APP_ROUTE.test(target.pathname)
+      ? `${target.pathname}${target.search}${target.hash}`
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export function appRouteFromShopifyEvent(event: Event, origin: string) {
+  // Polaris emette un evento composed: il target può essere retargettizzato, mentre il link
+  // sorgente resta nel percorso. La lettura sincrona di href mantiene la navigazione client-side.
+  const path = typeof event.composedPath === "function" ? event.composedPath() : [];
+
+  for (const candidate of new Set<unknown>([event.target, ...path])) {
+    const href = (
+      candidate as { getAttribute?: (name: string) => string | null } | null
+    )?.getAttribute?.("href");
+    if (!href) continue;
+
+    const route = appRoute(href, origin);
+    if (route) return route;
+  }
+
+  return null;
+}
+
+export function navigateFromShopifyEvent(
+  event: Event,
+  origin: string,
+  navigate: (href: string) => void,
+) {
+  const route = appRouteFromShopifyEvent(event, origin);
+  if (!route) return false;
+  navigate(route);
   return true;
 }
 
