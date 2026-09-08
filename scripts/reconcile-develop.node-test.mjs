@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   expectedMainSha,
   isAlreadyReconciled,
+  pagesDeploymentCompleted,
   reconciliationMode,
   requiresDeploymentEvidence,
   shouldDeferNoDeployReconciliation,
@@ -256,11 +257,38 @@ test("accetta il deploy Pages Production verde dello stesso main senza ricevuta 
     head_branch: "main",
     head_sha: main,
   };
-  assert.doesNotThrow(() => verifyPagesDeployment({ run, expectedMain: main }));
-  assert.doesNotThrow(() => verifyReconciliationDeployment({ run, expectedMain: main }));
+  const jobs = [
+    {
+      name: "Deploy Pages Production",
+      status: "completed",
+      conclusion: "success",
+      steps: [{ name: "Deploy Pages Production", conclusion: "success" }],
+    },
+  ];
+  assert.equal(pagesDeploymentCompleted(jobs), true);
+  assert.equal(
+    pagesDeploymentCompleted([
+      {
+        ...jobs[0],
+        steps: [{ name: "Deploy Pages Production", conclusion: "skipped" }],
+      },
+    ]),
+    false,
+  );
+  assert.doesNotThrow(() => verifyPagesDeployment({ run, jobs, expectedMain: main }));
+  assert.doesNotThrow(() => verifyReconciliationDeployment({ run, jobs, expectedMain: main }));
   assert.throws(
-    () => verifyPagesDeployment({ run: { ...run, head_sha: develop }, expectedMain: main }),
+    () =>
+      verifyPagesDeployment({
+        run: { ...run, head_sha: develop },
+        jobs,
+        expectedMain: main,
+      }),
     /stesso commit main/,
+  );
+  assert.throws(
+    () => verifyPagesDeployment({ run, jobs: [], expectedMain: main }),
+    /deploy Pages Production verde/,
   );
   assert.throws(
     () =>

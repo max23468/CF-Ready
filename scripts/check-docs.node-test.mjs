@@ -554,7 +554,11 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
     "utf8",
   );
   assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /force_redeploy:/);
   assert.match(workflow, /test "\$GITHUB_REF" = "refs\/heads\/main"/);
+  assert.match(workflow, /git rev-parse "\$\{GITHUB_SHA\}:site"/);
+  assert.match(workflow, /git rev-parse "\$\{rollback_commit\}:site"/);
+  assert.match(workflow, /if: steps\.preflight\.outputs\.deploy_required == 'true'/);
   assert.match(workflow, /wrangler pages deploy site/);
   assert.match(workflow, /--branch main/);
   assert.match(workflow, /--commit-hash "\$GITHUB_SHA"/);
