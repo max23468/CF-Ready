@@ -328,12 +328,12 @@ Rispetto alle alternative più ampie o invasive:
 | D-016 | Validazione formale rafforzata del CF. | Rifiuta date palesemente impossibili senza fingere verifica anagrafica. |
 | D-017 | Non applicare checksum Partita IVA al CF provvisorio. **Superata da D-145.** | La distinzione fra verifica formale ed esistenza consente di rifiutare le sequenze incompatibili con il carattere di controllo senza attestare identità o attribuzione. |
 | D-018 | Normalizzare solo per la validazione, senza riscrivere il dato Shopify. | La Function valida ma non deve mutare l’input cliente. |
-| D-019 | La modalità inline valida solo a `CHECKOUT_COMPLETION`; la modalità preventiva aggiunge `CHECKOUT_INTERACTION` senza rimuovere Completion. | Mantiene il default non invasivo e offre copertura esplicita al bug Shopify della review. |
+| D-019 | La modalità inline valida solo a `CHECKOUT_COMPLETION`; la modalità preventiva aggiunge `CHECKOUT_INTERACTION` senza rimuovere Completion. **Superata da D-146.** | Mantiene il default non invasivo e offre copertura esplicita al bug Shopify della review. |
 | D-020 | Mostrare simultaneamente gli errori CF e PEC. | Il cliente corregge tutto in un solo tentativo. |
 | D-021 | Messaggi IT/EN personalizzabili, otto in totale. | Merchant italiani con checkout multilingua. |
 | D-022 | Inglese fallback per ogni altra lingua checkout. | Copertura semplice e prevedibile della 1.0. |
 | D-023 | Limite 200 caratteri, trim e divieto di messaggi vuoti. | Mantiene messaggi leggibili e validi. |
-| D-024 | In modalità inline gli errori sono collegati ai campi nativi; se un campo obbligatorio è assente con consegna italiana o la modalità è preventiva, sono box globali distinti per CF e PEC. | Il target globale rende l’errore anche quando il relativo campo non è montato o prima della review. |
+| D-024 | In modalità inline gli errori sono collegati ai campi nativi; se un campo obbligatorio è assente con consegna italiana o la modalità è preventiva, sono box globali distinti per CF e PEC. **Superata da D-146.** | Il target globale rende l’errore anche quando il relativo campo non è montato o prima della review. |
 | D-025 | Nessuna regola per destinazione estera. | I campi italiani non sono pertinenti o possono non essere disponibili. |
 | D-026 | Fatturazione estera esenta automaticamente CF e PEC, anche con consegna in Italia. | Shopify non comunica la cittadinanza; il Paese di fatturazione è il proxy disponibile. |
 | D-027 | Se la fatturazione non è ancora disponibile ma il contesto italiano è rilevabile, applicare prudentemente la regola. | Evita aggiramenti dovuti a dato temporaneamente assente. |
@@ -374,6 +374,8 @@ Rispetto alle alternative più ampie o invasive:
 | D-143 | Rendere CF Ready disponibile agli store di qualunque Paese e decidere l’applicabilità esclusivamente nel singolo checkout, senza gate amministrativo basato su sede, mercati o zone di spedizione. | La Function applica le regole quando la fatturazione è italiana o non ancora disponibile e almeno una consegna è italiana. Se nessuna consegna ha un Paese disponibile, come può accadere per digitali o ritiro, applica soltanto le regole dei localized fields italiani presenti. Non applica regole con fatturazione estera o consegne esclusivamente estere. `Shop.shipsToCountries` descrive solo i Paesi delle zone di spedizione e classificherebbe male digitali e ritiro; Markets richiederebbe più scope e non proverebbe il contesto del checkout. Il Paese dello store resta diagnostico. Le vecchie righe `blocked_country` tornano `active` alla prima riconciliazione. Deciso il 4 settembre 2026 per la `1.2.0`; supera D-002 e D-042 e la condizione geografica di D-132. |
 | D-144 | Proteggere le bozze durante i salvataggi e consentire il recupero esplicito dei conflitti; allineare il simulatore alla Function e aggiungere diagnosi guidata e report di attivazione/prestazioni. | Richiesta dell’owner del 5 settembre 2026: interventi 1, 2, 3, 5, 6 e 7. La bozza conserva i campi modificati dopo l’invio; un conflitto richiede confronto e riapplicazione esplicita contro l’hash corrente, mai un salvataggio forzato. Il simulatore mantiene l’interfaccia semplice: solo l’opzione indirizzo non ancora disponibile nei menu esistenti e gli errori globali preventivi lo allineano alla Function attuale. La diagnosi usa su richiesta la riconciliazione della Home e separa stato aggiornato, stato memorizzato e verifiche manuali. Report aggregati sulle fonti esistenti, senza nuovi scope, provider o contenuti merchant. Anticipa la diagnosi guidata dal backlog P2. |
 | D-145 | Verificare il carattere di controllo del CF provvisorio numerico a 11 cifre e rifiutare esplicitamente `00000000000`. | Il carattere di controllo non attesta che il codice esista o appartenga a qualcuno: rifiuta soltanto sequenze che non possono rispettare il formato. La validazione resta formale e non anagrafica. Su un campione esplorativo di 200.000 casi il controllo ha rilevato il 100% degli errori di una cifra, il 97,7% delle trasposizioni adiacenti considerate e ha rifiutato l’89,9% delle sequenze casuali prima accettate; i test usano casi deterministici, perché le misure dipendono dal campionamento e Luhn non rileva gli scambi `09`/`90`. Deciso dall’owner l’8 settembre 2026 per la `1.4.0`; supera D-017. |
+
+| D-146 | Usare un solo comportamento automatico per gli errori checkout: a `CHECKOUT_INTERACTION` segnalare inline i valori presenti ma invalidi e i required vuoti soltanto quando il campo è materializzato e tutte le delivery group italiane, in un contesto di consegna interamente localizzato, hanno un’opzione selezionata; mantenere sempre `CHECKOUT_COMPLETION`. | Il ticket reale ha confermato il blocco finale poco chiaro anche con pagamento manuale, quindi il problema dipende dal percorso checkout e non dal gateway. L’euristica evita i box globali al caricamento, conserva i target di campo e usa `$.cart` soltanto a Completion per un required assente con consegna italiana. `errorDisplay` resta temporaneamente serializzato come `inline` per compatibilità fra snapshot, ma viene ignorato dal runtime e normalizzato a ogni scrittura. Deciso dall’owner l’8 settembre 2026 per la `1.5.0`; supera D-019, D-024 e D-122. |
 
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
@@ -452,7 +454,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-119 | Abilitare l’auto-merge nativo in `develop` per le sole PR Dependabot minor/patch dopo `CI` e `React Doctor` verdi. Eliminare dopo il merge soltanto i branch `dependabot/*`; major e promozioni `develop` → `main` restano manuali. | Allinea CF Ready a SyncBay e Pratix, rende atomico il vincolo sullo SHA verificato, preserva gli eventi post-merge e non espone `develop` alla cancellazione globale dei branch. |
 | D-120 | La visibilità pubblica non rende il progetto open-source: nessuna licenza viene concessa finché l’owner non sceglie esplicitamente e aggiunge un file `LICENSE`. | Una licenza attribuisce diritti di riuso e distribuzione e non va dedotta dalla sola pubblicazione del codice. |
 | D-121 | `package.json#version` è la fonte canonica della prossima SemVer, preparata su `develop` insieme a lockfile e changelog anche senza autorizzazione alla promozione. Production adotta la stessa versione già collaudata, senza un altro bump. Ogni `shopify app deploy` passa dal workflow dell’ambiente: Production usa la versione esatta, Development usa `<version>-dev.<tree Git abbreviato>`. Uno snapshot Development già attivo per lo stesso tree viene riusato in solo readback anche se il commit è cambiato senza modificare contenuto; il bump SemVer per una nuova release precede il primo snapshot Development della release. | Collega Production alla release commerciale e Development al contenuto effettivo, evita collisioni dopo merge senza diff e conserva identificatori leggibili e riproducibili. |
-| D-122 | Offrire `inline` come visualizzazione errori predefinita e `preventive` come opzione merchant; la Guida la consiglia quando è attiva la conferma ordine Shopify. | La prova live mostra che i box globali a Interaction impediscono la review silenziosa, ma possono apparire già al caricamento e richiedono una scelta informata. |
+| D-122 | Offrire `inline` come visualizzazione errori predefinita e `preventive` come opzione merchant; la Guida la consiglia quando è attiva la conferma ordine Shopify. **Superata da D-146.** | La prova live mostra che i box globali a Interaction impediscono la review silenziosa, ma possono apparire già al caricamento e richiedono una scelta informata. |
 | D-123 | Abilitare metriche e Workers Logs nativi, ma disabilitare gli invocation log automatici. Traces resta disattivato per default e può essere acceso solo temporaneamente in Development, con traffico sintetico e finestra di diagnosi delimitata. | Invocation log e trace automatici includono URL e query string; i trace includono anche il testo SQL D1. Il campionamento riduce volume e costo, non il rischio di raccogliere parametri tecnici sensibili. |
 | D-124 | Non collegare il repository a Workers Builds finché GitHub Actions è il CI/CD canonico. Logpush, OpenTelemetry, Tail Workers e servizi esterni restano differiti finché il monitoraggio Cloudflare nativo non risulta insufficiente. | Evita una seconda corsia di deploy e nuovi destinatari della telemetria senza un bisogno operativo misurato. |
 | D-125 | Avvisare il merchant che usa il campo “Interno” / “Indirizzo 2” per raccogliere il Codice Fiscale, tramite dichiarazione esplicita in configurazione e onboarding. Nessun rilevamento automatico e nessuno scope aggiuntivo. | Le impostazioni del modulo checkout non sono esposte dall’Admin API `2026-04`: `CheckoutAndAccountsConfiguration` espone solo `branding`, `overrides`, `isPublished`, `name` e i timestamp, `checkoutProfile` è deprecato e `read_checkout_settings` sblocca esclusivamente gli oggetti di branding. `TranslatableResourceType` non ha una risorsa per il contenuto checkout, quindi nemmeno la rinomina dell’etichetta è leggibile, e una rinomina fatta da una Checkout UI Extension di terzi resta invisibile per costruzione. La Function riceve `address2` ma è pura e non può segnalare nulla; leggere gli ordini richiederebbe `read_orders`, protected customer data e l’analisi di dati fiscali, contro §21.4. Il conflitto degrada l’esperienza con due campi duplicati, non blocca le vendite: non giustifica scope nuovi. |
@@ -497,15 +499,13 @@ required
 
 **FR-013** — `required` blocca vuoto e valore non valido con messaggi distinti.
 
-**FR-014** — In modalità `inline` la Validation viene eseguita solo a `CHECKOUT_COMPLETION`; in modalità `preventive` viene eseguita anche a `CHECKOUT_INTERACTION`.
+**FR-014** — La Validation usa un solo algoritmo a `CHECKOUT_INTERACTION` e `CHECKOUT_COMPLETION`, indipendente dal metodo di pagamento.
 
 **FR-015** — Se entrambi i campi falliscono, vengono restituiti entrambi gli errori.
 
-**FR-016** — A Completion gli errori puntano al localized field corrispondente;
-se il campo obbligatorio è assente con consegna italiana, o a Interaction in
-modalità preventiva, ogni errore usa il target globale `$.cart`.
+**FR-016** — Gli errori puntano al localized field corrispondente quando è presente. A Completion un campo obbligatorio assente con consegna italiana usa il target globale `$.cart`.
 
-**FR-017** — La modalità preventiva è disattivata per default, mantiene Completion come barriera finale e mostra un avviso merchant sugli errori anticipati.
+**FR-017** — A Interaction un valore presente ma invalido produce subito un errore inline. Un required vuoto produce un errore inline solo quando il campo è presente, ogni delivery group ha una destinazione nota e tutte le delivery group italiane hanno un’opzione selezionata. Completion resta sempre la barriera finale.
 
 ### 7.3 Applicabilità geografica
 
@@ -937,13 +937,11 @@ flowchart LR
 1. Shopify esegue la Function a un evento della buyer journey.
 2. Legge JSON configurazione dal metafield.
 3. Se JSON assente, disabilitato, corrotto, non supportato o entitlement scaduto, restituisce zero errori.
-4. Accetta sempre `CHECKOUT_COMPLETION`; accetta `CHECKOUT_INTERACTION` solo in modalità preventiva.
+4. Accetta `CHECKOUT_COMPLETION` e `CHECKOUT_INTERACTION`; per ogni altro step restituisce zero errori.
 5. Determina applicabilità geografica.
 6. Se billing estero o destinazione esclusivamente estera, restituisce zero errori.
-7. Per ogni localized field presente applica la regola; con consegna italiana,
-   applica la modalità `required` anche al campo assente usando un errore
-   globale.
-8. A Completion restituisce errori inline; a Interaction restituisce box globali distinti.
+7. A Interaction valida inline ogni valore presente e non vuoto; controlla anche i required vuoti soltanto quando il campo è materializzato e il contesto di consegna italiano è risolto.
+8. A Completion applica sempre tutte le regole e usa un errore globale soltanto per un required assente con consegna italiana.
 
 ### 9.5 Flusso salvataggio
 
@@ -994,7 +992,7 @@ sequenceDiagram
   da osservare su un ordine che si verifichi organicamente, senza creare ordini
   artificiali.
 - Admin GraphQL API: pin `2026-07`, già stabile.
-- Trigger logico: `CHECKOUT_COMPLETION`; anche `CHECKOUT_INTERACTION` quando `errorDisplay` è `preventive`.
+- Trigger logico: `CHECKOUT_INTERACTION` e `CHECKOUT_COMPLETION`, con un solo algoritmo automatico.
 - Configurazione: un metafield JSON sulla Validation.
 - Output: `validationAdd.errors`.
 - Modalità errore runtime: `blockOnFailure: false`.
@@ -1021,8 +1019,9 @@ query CartValidationsGenerateRunInput {
       deliveryAddress {
         countryCode
       }
-      # Richiedere il minimo campo disponibile per distinguere pickup/local
-      # solo se necessario dopo il proof of concept.
+      selectedDeliveryOption {
+        handle
+      }
     }
     localizedFields(keys: [TAX_CREDENTIAL_IT, TAX_EMAIL_IT]) {
       key
@@ -1060,9 +1059,8 @@ if config invalid or config.enabled != true:
 if entitlement is not active at shop local time:
   allow
 
-if buyerJourney.step != CHECKOUT_COMPLETION:
-  if config.errorDisplay != preventive or buyerJourney.step != CHECKOUT_INTERACTION:
-    allow
+if buyerJourney.step not in [CHECKOUT_INTERACTION, CHECKOUT_COMPLETION]:
+  allow
 
 if billing country exists and billing country != IT:
   allow
@@ -1071,13 +1069,19 @@ if one or more delivery countries exist:
   if no delivery country is IT:
     allow
   else:
-    validate present fields
-    for each required field absent from the input:
-      add a global error
+    validate non-empty present fields
+    if step == CHECKOUT_INTERACTION and every delivery country is known
+       and every Italian delivery group has selectedDeliveryOption:
+      validate empty required fields that are present
+    if step == CHECKOUT_COMPLETION:
+      validate all present fields
+      for each required field absent from the input:
+        add a global error
 else:
   # digital, pickup or no delivery address
   # localized field presence is treated as Shopify's applicability signal
-  validate present fields unless billing is foreign
+  validate non-empty present fields at Interaction
+  validate all present fields at Completion unless billing is foreign
 ```
 
 Questa regola copre la decisione prudenziale per fatturazione non ancora disponibile senza costringere un checkout privo di campi fiscali.
@@ -1258,12 +1262,11 @@ optional_validated
 required_validated
 ```
 
-Valori ammessi per `errorDisplay`:
-
-```text
-inline
-preventive
-```
+`errorDisplay` è una proprietà legacy temporaneamente serializzata con il solo
+valore `inline` per mantenere compatibili gli snapshot Shopify precedenti
+durante un deploy ordinato. La Function corrente ignora qualunque valore
+osservato e ogni scrittura lo normalizza a `inline`; non è una modalità né una
+scelta merchant.
 
 Valori ammessi per `entitlement.kind`:
 
@@ -1279,8 +1282,7 @@ Regole:
 - `validThrough` è una data locale inclusiva per prova e sottoscrizione;
 - per una licenza una tantum valida, `validThrough` è `null`;
 - `enabled` rappresenta la volontà operativa del merchant, non sostituisce l’entitlement;
-- `errorDisplay` è obbligatorio; `inline` è il default applicativo e
-  `preventive` abilita anche Interaction con target globali;
+- `errorDisplay`, se presente in una configurazione storica, non modifica il runtime;
 - la Function valida entrambi: app attiva e diritto commerciale valido;
 - messaggi sempre presenti, non vuoti, trimmati e di massimo 200 caratteri;
 - configurazioni con schema futuro sconosciuto sono fail-open.
@@ -2199,10 +2201,6 @@ Ogni opzione ha una spiegazione concreta. Dopo le regole:
   aggiorna il risultato del simulatore;
 - condizioni geografiche D-143 non modificabili, spiegate in modo sintetico
   accanto ai due selettori Paese del simulatore;
-- controllo `Mostra avvisi preventivi nel checkout`, disattivato per default e
-  posto in un box autonomo sotto “Interno”, nella stessa colonna delle regole,
-  con avviso che gli errori possono apparire già al
-  caricamento e indicazione “Consigliato solo se usi la conferma ordine Shopify”;
 - banner `warning` sul campo “Interno” sempre visibile, con
   checkbox `Uso il campo Interno per il Codice Fiscale` e, se selezionata, le
   istruzioni per rimuovere quell’uso (FR-058);
@@ -2277,7 +2275,7 @@ e accompagnate dal comando unico `Comprimi tutte` / `Espandi tutte`:
 - significato di “formalmente valido”;
 - CF ordinario e provvisorio;
 - validazione PEC;
-- modalità di visualizzazione degli errori e conferma ordine;
+- comportamento automatico degli errori durante il checkout;
 - checkout accelerati;
 - app disattivata;
 - campo “Interno” usato per il Codice Fiscale;
@@ -2291,11 +2289,10 @@ e accompagnate dal comando unico `Comprimi tutte` / `Espandi tutte`:
 - riapertura onboarding;
 - contatto sviluppatore.
 
-La Guida e FAQ deve consigliare la modalità preventiva con box globali ai
-merchant che mantengono attivo il passaggio Shopify di conferma dell’ordine.
-Deve spiegare che i box possono apparire già al caricamento, ma evitano che il
-cliente raggiunga la review con un blocco senza messaggio. Non deve suggerire
-che CF Ready rilevi automaticamente l’impostazione Shopify.
+La Guida e FAQ descrive il risultato per il cliente: i valori invalidi vengono
+segnalati durante la compilazione e i campi obbligatori sono controllati prima
+che l’ordine possa essere completato. Non espone step tecnici, euristiche o
+impostazioni di rendering.
 
 La voce sul campo “Interno” spiega che il Codice Fiscale va raccolto nel campo
 fiscale nativo, che tenerlo anche in “Interno” mostra al cliente due campi per
@@ -4259,6 +4256,10 @@ La superficie autenticata standard è verificata. Il bypass dovuto a
 una consegna italiana. M10 ha coperto i wallet non esposti dal dev store con la
 stessa matrice server-side e ha ricognito sul canary le superfici effettivamente
 disponibili senza completare transazioni.
+
+D-146 supera la scelta consegnata in M3: dalla `1.5.0` il runtime usa la sola
+strategia automatica descritta in §10. L’evidenza M3 resta la ricevuta storica
+delle prove che hanno preceduto questa revisione.
 
 L’evidenza completa è in
 `docs/evidence/2026-07-29-checkout-validation-rendering.md`. Shopify ha

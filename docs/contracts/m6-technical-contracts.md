@@ -39,8 +39,10 @@ merchant la sostituisce intera. Un messaggio vuoto o oltre i 200 caratteri
 osservato sul metafield torna al default della sua lingua, perché FR-061 non
 consente di presentarlo vuoto nell'editor.
 
-FR-050 fissa i default della prima installazione: entrambi i campi
-`unmanaged`, `errorDisplay` `inline`, Validation disattivata.
+FR-050 fissa i default della prima installazione: entrambi i campi `unmanaged`
+e Validation disattivata. D-146 ha rimosso la scelta di rendering: il campo
+legacy `errorDisplay` viene letto senza applicarlo e riscritto sempre come
+`inline` per compatibilità fra snapshot Shopify.
 
 ## Scrittura della configurazione
 

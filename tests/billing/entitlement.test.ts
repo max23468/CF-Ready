@@ -64,7 +64,7 @@ test("l'entitlement viene riscritto solo quando cambia davvero", () => {
   expect(entitlementDiffers(undefined, entitlement)).toBe(true);
 });
 
-test("la riscrittura conserva regole e messaggi del merchant", () => {
+test("la riscrittura conserva regole e messaggi e normalizza la modalità legacy", () => {
   const merchant = {
     schemaVersion: 2,
     enabled: true,
@@ -75,7 +75,7 @@ test("la riscrittura conserva regole e messaggi del merchant", () => {
   };
 
   expect(configWithEntitlement(merchant, { kind: "none", validThrough: null })).toMatchObject({
-    errorDisplay: "preventive",
+    errorDisplay: "inline",
     rules: { taxCode: "optional_validated", pec: "unmanaged" },
     entitlement: { kind: "none", validThrough: null },
   });

@@ -143,7 +143,6 @@ test("un errore di trasporto Validation resta nel risultato tipizzato", async ()
       shop,
       {
         rules: DEFAULT_CONFIG.rules,
-        errorDisplay: DEFAULT_CONFIG.errorDisplay,
         messages: DEFAULT_CONFIG.messages,
       },
       null,
@@ -502,7 +501,6 @@ test("il primo salvataggio crea la Validation disattivata e non la attiva", asyn
     shop,
     {
       rules: { taxCode: "required_validated", pec: "unmanaged" },
-      errorDisplay: "preventive",
       messages: DEFAULT_CONFIG.messages,
     },
     null,
@@ -524,7 +522,7 @@ test("il primo salvataggio crea la Validation disattivata e non la attiva", asyn
   expect(calls[0].enable).toBe(false);
   expect(calls[0].config).toMatchObject({
     enabled: false,
-    errorDisplay: "preventive",
+    errorDisplay: "inline",
     rules: { taxCode: "required_validated", pec: "unmanaged" },
   });
 });
@@ -540,7 +538,6 @@ test("il salvataggio conserva lo stato di una Validation già attiva", async () 
     shop,
     {
       rules: { taxCode: "optional_validated", pec: "optional_validated" },
-      errorDisplay: "inline",
       messages: DEFAULT_CONFIG.messages,
     },
     null,
@@ -552,11 +549,13 @@ test("il salvataggio conserva lo stato di una Validation già attiva", async () 
   expect(calls[0].config).toMatchObject({ enabled: true });
 });
 
-test("il salvataggio parziale conserva la configurazione osservata sotto la lease", async () => {
+test("il salvataggio parziale conserva i messaggi e normalizza la modalità legacy", async () => {
   const shop = "partial-save.example.myshopify.com";
   await seedShop(shop);
-  const current = structuredClone(DEFAULT_CONFIG);
-  current.errorDisplay = "preventive";
+  const current = {
+    ...structuredClone(DEFAULT_CONFIG),
+    errorDisplay: "preventive",
+  } as unknown as CheckoutConfig;
   current.messages.it.taxCodeRequired = "Messaggio personalizzato";
   const { admin, calls } = stubAdmin({
     existing: { enabled: false, config: current },
@@ -574,7 +573,7 @@ test("il salvataggio parziale conserva la configurazione osservata sotto la leas
     ),
   ).toEqual({ ok: true, enabled: false });
   expect(calls[0].config).toMatchObject({
-    errorDisplay: "preventive",
+    errorDisplay: "inline",
     messages: { it: { taxCodeRequired: "Messaggio personalizzato" } },
     rules: { taxCode: "required_validated", pec: "optional_validated" },
   });
@@ -602,7 +601,6 @@ test.each(["messaggio", "entitlement"] as const)(
         shop,
         {
           rules: DEFAULT_CONFIG.rules,
-          errorDisplay: DEFAULT_CONFIG.errorDisplay,
           messages: DEFAULT_CONFIG.messages,
         },
         null,
@@ -646,7 +644,6 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
     activeShop,
     {
       rules: DEFAULT_CONFIG.rules,
-      errorDisplay: DEFAULT_CONFIG.errorDisplay,
       messages: DEFAULT_CONFIG.messages,
     },
     null,
@@ -694,7 +691,6 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
     refundedShop,
     {
       rules: DEFAULT_CONFIG.rules,
-      errorDisplay: DEFAULT_CONFIG.errorDisplay,
       messages: DEFAULT_CONFIG.messages,
     },
     null,
@@ -721,7 +717,6 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
     cachedShop,
     {
       rules: DEFAULT_CONFIG.rules,
-      errorDisplay: DEFAULT_CONFIG.errorDisplay,
       messages: DEFAULT_CONFIG.messages,
     },
     null,
@@ -769,7 +764,6 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
         syncFailureShop,
         {
           rules: DEFAULT_CONFIG.rules,
-          errorDisplay: DEFAULT_CONFIG.errorDisplay,
           messages: DEFAULT_CONFIG.messages,
         },
         null,
@@ -817,7 +811,6 @@ test("la scrittura non cancella né sostituisce un abbonamento attivo con l'omag
         shop,
         {
           rules: DEFAULT_CONFIG.rules,
-          errorDisplay: DEFAULT_CONFIG.errorDisplay,
           messages: DEFAULT_CONFIG.messages,
         },
         null,
@@ -863,7 +856,6 @@ test("un errore billing non impedisce di disattivare il controllo con un omaggio
       shop,
       {
         rules: DEFAULT_CONFIG.rules,
-        errorDisplay: DEFAULT_CONFIG.errorDisplay,
         messages: DEFAULT_CONFIG.messages,
       },
       null,
@@ -885,7 +877,6 @@ test("il limite di Validation attive ha un codice stabile e non perde la configu
     shop,
     {
       rules: { taxCode: "required_validated", pec: "unmanaged" },
-      errorDisplay: "inline",
       messages: DEFAULT_CONFIG.messages,
     },
     true,
@@ -916,7 +907,6 @@ test("il salvataggio non sovrascrive la configurazione cambiata da un'altra sess
     shop,
     {
       rules: { taxCode: "required_validated", pec: "unmanaged" },
-      errorDisplay: "inline",
       messages: DEFAULT_CONFIG.messages,
     },
     null,
@@ -933,7 +923,6 @@ test("il salvataggio non sovrascrive la configurazione cambiata da un'altra sess
     shop,
     {
       rules: { taxCode: "required_validated", pec: "unmanaged" },
-      errorDisplay: "inline",
       messages: DEFAULT_CONFIG.messages,
     },
     null,
@@ -975,7 +964,6 @@ test("la dichiarazione D1 cambia soltanto dopo il successo Shopify", async () =>
   const { admin } = stubAdmin({ existing: { enabled: false } });
   const next = {
     rules: DEFAULT_CONFIG.rules,
-    errorDisplay: DEFAULT_CONFIG.errorDisplay,
     messages: DEFAULT_CONFIG.messages,
   };
 

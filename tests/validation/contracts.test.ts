@@ -90,7 +90,7 @@ describe("contratti puri Validation", () => {
         { schemaVersion: 2, rules: { taxCode: "required" }, marker: true },
         ENTITLEMENT,
       ),
-    ).toMatchObject({ marker: true, entitlement: ENTITLEMENT });
+    ).toMatchObject({ rules: { taxCode: "unmanaged" }, entitlement: ENTITLEMENT });
     expect(
       configWithEntitlement({ schemaVersion: 1, rules: {}, marker: true }, ENTITLEMENT),
     ).not.toHaveProperty("marker");

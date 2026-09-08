@@ -14,7 +14,8 @@
           {
             "deliveryAddress": {
               "countryCode": "IT"
-            }
+            },
+            "selectedDeliveryOption": null
           }
         ],
         "localizedFields": []

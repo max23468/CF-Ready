@@ -369,7 +369,7 @@ test("Regole espone duplicati, accesso e dichiarazione osservati", async () => {
   }
 });
 
-test("Regole rifiuta valori estranei e conserva tutti i dati validi", async () => {
+test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", async () => {
   const { action } = rulesRoute;
   for (const values of [
     { taxCode: "x", pec: "unmanaged" },
@@ -402,7 +402,6 @@ test("Regole rifiuta valori estranei e conserva tutti i dati validi", async () =
     session.shop,
     {
       rules: { taxCode: "required_validated", pec: "optional_validated" },
-      errorDisplay: "preventive",
     },
     null,
     "hash",

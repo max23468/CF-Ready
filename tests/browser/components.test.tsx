@@ -96,7 +96,6 @@ describe("componenti merchant nel browser", () => {
       <CheckoutSimulator
         locale="it"
         rules={{ taxCode: "required_validated", pec: "required_validated" }}
-        errorDisplay="inline"
         messages={DEFAULT_CONFIG.messages.it}
       />,
     );
@@ -126,12 +125,11 @@ describe("componenti merchant nel browser", () => {
     expect(view.container.querySelector('[role="status"]')?.textContent).toBeTruthy();
   });
 
-  test("il simulatore conserva tre selettori e mostra gli errori preventivi globali", async () => {
+  test("il simulatore parte senza errori e mostra i required inline dopo Continua", async () => {
     const view = await render(
       <CheckoutSimulator
         locale="it"
         rules={{ taxCode: "required_validated", pec: "required_validated" }}
-        errorDisplay="preventive"
         messages={DEFAULT_CONFIG.messages.it}
       />,
     );
@@ -139,17 +137,14 @@ describe("componenti merchant nel browser", () => {
     const selects = [...view.container.querySelectorAll("s-select")];
     expect(selects).toHaveLength(3);
     expect(view.container.querySelectorAll("s-checkbox")).toHaveLength(0);
-    (selects[0] as HTMLElement & { value: string }).value = "unknown";
-    (selects[1] as HTMLElement & { value: string }).value = "unknown";
-    await dispatch(selects[0], new Event("change", { bubbles: true }));
-    await dispatch(selects[1], new Event("change", { bubbles: true }));
-    expect(view.container.querySelector("s-banner")?.textContent).toContain(
-      DEFAULT_CONFIG.messages.it.taxCodeRequired,
+    const fields = [...view.container.querySelectorAll("s-text-field")];
+    expect(fields.every((field) => field.getAttribute("error") === null)).toBe(true);
+    await dispatch(
+      view.container.querySelector("button.checkout-simulator__button--primary")!,
+      new MouseEvent("click", { bubbles: true }),
     );
-    expect(view.container.querySelector("s-banner")?.textContent).toContain(
-      DEFAULT_CONFIG.messages.it.pecRequired,
-    );
-    expect(view.container.querySelector("s-text-field")?.getAttribute("error")).toBeNull();
+    expect(fields[0].getAttribute("error")).toBe(DEFAULT_CONFIG.messages.it.taxCodeRequired);
+    expect(fields[1].getAttribute("error")).toBe(DEFAULT_CONFIG.messages.it.pecRequired);
   });
 
   test("il simulatore gestisce singoli campi e configurazione non gestita", async () => {
@@ -157,7 +152,6 @@ describe("componenti merchant nel browser", () => {
       <CheckoutSimulator
         locale="en"
         rules={{ taxCode: "unmanaged", pec: "unmanaged" }}
-        errorDisplay="inline"
         messages={DEFAULT_CONFIG.messages.en}
       />,
     );
@@ -169,7 +163,6 @@ describe("componenti merchant nel browser", () => {
       <CheckoutSimulator
         locale="it"
         rules={{ taxCode: "unmanaged", pec: "optional_validated" }}
-        errorDisplay="preventive"
         messages={DEFAULT_CONFIG.messages.it}
       />,
     );

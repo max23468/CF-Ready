@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { isValidPec, isValidTaxCode } from "../../checkout-field-validation";
-import type { ErrorDisplay, Messages, Rules } from "../../config";
+import type { Messages, Rules } from "../../config";
 import { texts } from "../../i18n";
 import type { Locale } from "../../i18n";
 import "./CheckoutSimulator.css";
@@ -15,7 +15,7 @@ import type { SimulatorOutcome, SimulatorScenario } from "./checkout-simulator";
 const outcomeTone: Record<SimulatorOutcome, "neutral" | "info" | "success" | "critical"> = {
   notApplied: "neutral",
   noChecks: "neutral",
-  checkAtPayment: "info",
+  editing: "info",
   blocked: "critical",
   ready: "success",
 };
@@ -23,7 +23,7 @@ const outcomeTone: Record<SimulatorOutcome, "neutral" | "info" | "success" | "cr
 const outcomeIcon = {
   notApplied: "globe-europe",
   noChecks: "minus-circle",
-  checkAtPayment: "clock",
+  editing: "clock",
   blocked: "alert-circle",
   ready: "check-circle",
 } as const;
@@ -31,12 +31,10 @@ const outcomeIcon = {
 export function CheckoutSimulator({
   locale,
   rules,
-  errorDisplay,
   messages,
 }: {
   locale: Locale;
   rules: Rules;
-  errorDisplay: ErrorDisplay;
   messages: Messages;
 }) {
   const t = texts(locale);
@@ -48,14 +46,13 @@ export function CheckoutSimulator({
   const [submitted, setSubmitted] = useState(false);
   const [scenario, setScenario] = useState<SimulatorScenario | "">("");
 
-  const revealErrors = errorDisplay === "preventive" || submitted;
   const outcome = simulatorOutcome({
     rules,
     deliveryCountry,
     billingCountry,
     taxCode,
     pec,
-    revealErrors,
+    submitted,
   });
 
   const applies = outcome !== "notApplied";
@@ -67,20 +64,8 @@ export function CheckoutSimulator({
     applies && rules.pec !== "unmanaged" ? simulatorFieldError(rules.pec, pec, isValidPec) : null;
   const hasManagedFields = Object.values(rules).some((mode) => mode !== "unmanaged");
 
-  const inlineErrors = revealErrors && errorDisplay !== "preventive";
-  const globalErrors =
-    errorDisplay === "preventive"
-      ? [
-          {
-            field: "taxCode",
-            message: simulatorErrorMessage(messages, "taxCode", taxCodeProblem, revealErrors),
-          },
-          {
-            field: "pec",
-            message: simulatorErrorMessage(messages, "pec", pecProblem, revealErrors),
-          },
-        ].filter((error) => error.message)
-      : [];
+  const showTaxCodeError = taxCodeProblem === "invalid" || submitted;
+  const showPecError = pecProblem === "invalid" || submitted;
 
   const applyScenario = (nextScenario: SimulatorScenario) => {
     const values = simulatorScenarioValues[nextScenario];
@@ -166,13 +151,6 @@ export function CheckoutSimulator({
                   <s-icon type="identity-card" color="subdued" />
                   <s-text type="strong">{copy.customerData}</s-text>
                 </s-stack>
-                {globalErrors.length ? (
-                  <s-banner tone="critical">
-                    {globalErrors.map(({ field, message }) => (
-                      <s-paragraph key={field}>{message}</s-paragraph>
-                    ))}
-                  </s-banner>
-                ) : null}
                 {hasManagedFields ? (
                   <>
                     {rules.taxCode === "unmanaged" ? null : (
@@ -184,7 +162,7 @@ export function CheckoutSimulator({
                           messages,
                           "taxCode",
                           taxCodeProblem,
-                          inlineErrors,
+                          showTaxCodeError,
                         )}
                         onInput={(event) => {
                           setScenario("");
@@ -197,7 +175,7 @@ export function CheckoutSimulator({
                         label={t.rules.pecLabel}
                         value={pec}
                         required={rules.pec === "required_validated"}
-                        error={simulatorErrorMessage(messages, "pec", pecProblem, inlineErrors)}
+                        error={simulatorErrorMessage(messages, "pec", pecProblem, showPecError)}
                         onInput={(event) => {
                           setScenario("");
                           setPec(event.currentTarget.value);

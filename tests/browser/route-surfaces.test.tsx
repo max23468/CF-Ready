@@ -83,7 +83,6 @@ const homeData = {
   countryCode: "IT",
   validationEnabled: false,
   rules: { taxCode: "unmanaged", pec: "unmanaged" },
-  errorDisplay: "inline",
   messagesDefault: true,
   address2Declared: false,
   trialEndsAt: null,
@@ -108,7 +107,6 @@ const onboardingData = {
   step: 1,
   completed: false,
   rules: DEFAULT_CONFIG.rules,
-  errorDisplay: DEFAULT_CONFIG.errorDisplay,
   messages: DEFAULT_CONFIG.messages,
   enabled: false,
   entitlementKind: "none",
@@ -1000,7 +998,6 @@ describe("Regole", () => {
       ...rulesData,
       configHash: "remote",
       rules: { taxCode: "unmanaged", pec: "optional_validated" },
-      errorDisplay: "preventive",
     };
     router.actionData = { ok: false, errorCode: "config_conflict" };
     await view.rerender(<CheckoutRules />);
@@ -1016,7 +1013,6 @@ describe("Regole", () => {
         configHash: "remote",
         taxCode: "required_validated",
         pec: "optional_validated",
-        errorDisplay: "preventive",
       }),
       { method: "post" },
     );
@@ -1027,7 +1023,6 @@ describe("Regole", () => {
     duplicateError: null,
     configHash: "hash",
     rules: { taxCode: "optional_validated", pec: "required_validated" },
-    errorDisplay: "inline",
     messages: DEFAULT_CONFIG.messages,
     enabled: true,
     entitled: true,
@@ -1043,7 +1038,6 @@ describe("Regole", () => {
         if (name === "taxCode") return "required_validated";
         if (name === "pec") return "unmanaged";
         if (name === "address2") return "declared";
-        if (name === "errorDisplay") return "preventive";
         return null;
       }
     }
@@ -1053,7 +1047,7 @@ describe("Regole", () => {
       new Event("change", { bubbles: true }),
     );
     await dispatch(
-      view.container.querySelector('s-checkbox[name="errorDisplay"]')!,
+      view.container.querySelector('s-checkbox[name="address2"]')!,
       new Event("change", { bubbles: true }),
     );
     const buttons = [...view.container.querySelectorAll("button")];
@@ -1084,11 +1078,10 @@ describe("Regole", () => {
     expect(view.container.textContent).toContain(texts("it").rules.saved);
   });
 
-  test("salva hash assente, modalità preventiva e dichiarazione attiva", async () => {
+  test("salva hash assente e dichiarazione attiva", async () => {
     router.loaderData = {
       ...rulesData,
       configHash: null,
-      errorDisplay: "preventive",
       address2Declared: true,
     };
     router.actionData = { ok: false, errorCode: "future_error" };
@@ -1102,7 +1095,6 @@ describe("Regole", () => {
     expect(router.submit).toHaveBeenCalledWith(
       expect.objectContaining({
         configHash: "",
-        errorDisplay: "preventive",
         address2: "declared",
       }),
       { method: "post" },
