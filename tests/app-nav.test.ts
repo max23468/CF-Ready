@@ -34,6 +34,15 @@ test("Home resta una voce visibile del menu", () => {
   expect(NAV.filter((item) => item.href === "/app")).toEqual([{ href: "/app", label: "home" }]);
 });
 
+test("il menu espone esattamente le quattro route principali interne", () => {
+  expect(NAV.map((item) => item.href)).toEqual([
+    "/app",
+    "/app/rules",
+    "/app/messages",
+    "/app/guide",
+  ]);
+});
+
 test("ogni voce del menu ha un'etichetta in entrambe le lingue", () => {
   for (const locale of ["it", "en"] as const) {
     const nav = texts(locale).nav;

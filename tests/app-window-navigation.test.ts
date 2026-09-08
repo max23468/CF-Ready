@@ -26,18 +26,22 @@ test("la Home scelta nell'onboarding viene inoltrata alla pagina che ha aperto l
   expect(fallback).not.toHaveBeenCalled();
 });
 
-test("una route normale senza App Window continua a usare React Router", () => {
-  const navigate = vi.fn();
+test.each(["/app", "/app/rules", "/app/messages", "/app/guide"])(
+  "la route %s senza App Window continua a usare React Router una sola volta",
+  (href) => {
+    const navigate = vi.fn();
 
-  expect(
-    requestAppWindowNavigation(
-      { location: { origin: "https://app.example" } as Location, opener: null },
-      "/app/messages",
-      navigate,
-    ),
-  ).toBe("fallback");
-  expect(navigate).toHaveBeenCalledWith("/app/messages");
-});
+    expect(
+      requestAppWindowNavigation(
+        { location: { origin: "https://app.example" } as Location, opener: null },
+        href,
+        navigate,
+      ),
+    ).toBe("fallback");
+    expect(navigate).toHaveBeenCalledOnce();
+    expect(navigate).toHaveBeenCalledWith(href);
+  },
+);
 
 test("la Home nasconde l'App Window prima di navigare nella cornice Shopify", async () => {
   const calls: string[] = [];
@@ -79,4 +83,23 @@ test("messaggi esterni o destinazioni fuori app non possono pilotare la navigazi
 
   expect(hideWindow).not.toHaveBeenCalled();
   expect(navigate).not.toHaveBeenCalled();
+});
+
+test("il messaggio App Window conserva query e hash nella navigazione principale", async () => {
+  const hideWindow = vi.fn(async () => undefined);
+  const navigate = vi.fn();
+  const event = {
+    origin: "https://app.example",
+    data: {
+      type: APP_WINDOW_NAVIGATION_MESSAGE_TYPE,
+      href: "/app/guide?host=abc#faq",
+    },
+  } as MessageEvent;
+
+  expect(
+    await handleAppWindowNavigation(event, "https://app.example", { hideWindow, navigate }),
+  ).toBe(true);
+  expect(hideWindow).toHaveBeenCalledOnce();
+  expect(navigate).toHaveBeenCalledOnce();
+  expect(navigate).toHaveBeenCalledWith("/app/guide?host=abc#faq");
 });
