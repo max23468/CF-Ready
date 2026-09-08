@@ -120,7 +120,10 @@ async function writePreflightProject(t, environment) {
           SCOPES: "write_validations",
           BILLING_TEST: "false",
           OWNER_NOTIFICATIONS_ENABLED: "false",
+          OWNER_TELEGRAM_CONTROL_ENABLED: "false",
+          APP_ENVIRONMENT: "production",
         },
+        version_metadata: { binding: "CF_VERSION_METADATA" },
         triggers: { crons: ["0 * * * *", "*/5 * * * *"] },
         d1_databases: [
           {

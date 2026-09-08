@@ -1,4 +1,5 @@
 import { recordEvent } from "../events.server";
+import { createTelegramClient, type TelegramClientConfig } from "../telegram/client.server";
 
 const CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 const MAX_DELIVERIES_PER_RUN = 10;
@@ -11,11 +12,6 @@ type NotificationRow = {
   body_text: string;
   claim_token: string;
   attempts: number;
-};
-
-type TelegramConfig = {
-  botToken: string;
-  chatId: string;
 };
 
 type TelegramRichText = string | { type: "bold"; text: string };
@@ -50,13 +46,12 @@ type TelegramRichBlock =
 
 export async function deliverOwnerNotifications(
   db: D1Database,
-  config: TelegramConfig,
+  config: TelegramClientConfig,
   options: { now?: Date; max?: number; fetcher?: typeof fetch } = {},
 ) {
-  requireTelegramConfig(config);
+  const client = createTelegramClient(config, options.fetcher);
   const now = options.now ?? new Date();
   const max = options.max ?? MAX_DELIVERIES_PER_RUN;
-  const fetcher = options.fetcher ?? fetch;
   let sent = 0;
   let failed = 0;
 
@@ -69,24 +64,9 @@ export async function deliverOwnerNotifications(
 
     try {
       // react-doctor-disable-next-line react-doctor/async-await-in-loop
-      // Bot API 10.3: https://core.telegram.org/bots/api#sendrichmessage
-      const response = await fetcher(
-        `https://api.telegram.org/bot${config.botToken}/sendRichMessage`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: config.chatId,
-            rich_message: telegramRichMessage(notification.subject, notification.body_text),
-          }),
-        },
+      await client.sendRichMessage(
+        telegramRichMessage(notification.subject, notification.body_text),
       );
-      // Telegram può rispondere HTTP 200 con `ok: false`: entrambi i livelli sono necessari.
-      // react-doctor-disable-next-line react-doctor/async-await-in-loop
-      const result = await readTelegramResult(response);
-      if (!response.ok || !result.ok) {
-        throw new Error("telegram_send_failed");
-      }
       // react-doctor-disable-next-line react-doctor/async-await-in-loop
       if (!(await markSent(db, notification, now)))
         throw new Error("owner_notification_claim_lost");
@@ -176,23 +156,6 @@ async function markFailed(db: D1Database, notification: NotificationRow, now: Da
       notification.claim_token,
     )
     .run();
-}
-
-function requireTelegramConfig(config: TelegramConfig) {
-  if (!/^\d+:[A-Za-z0-9_-]{20,}$/.test(config.botToken.trim())) {
-    throw new Error("telegram_bot_token_invalid");
-  }
-  if (!/^-?\d+$/.test(config.chatId.trim())) {
-    throw new Error("telegram_chat_id_invalid");
-  }
-}
-
-async function readTelegramResult(response: Response) {
-  try {
-    return (await response.json()) as { ok?: boolean };
-  } catch {
-    throw new Error("telegram_invalid_response");
-  }
 }
 
 function telegramRichMessage(subject: string, body: string) {

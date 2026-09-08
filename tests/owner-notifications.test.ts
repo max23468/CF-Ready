@@ -1082,8 +1082,8 @@ test("delivery usa i default in assenza di notifiche e stabilizza errori non can
     "SELECT metadata_json FROM app_events WHERE event_name = 'owner_notification_send_failed' ORDER BY id",
   ).all<{ metadata_json: string }>();
   expect(results.map(({ metadata_json }) => JSON.parse(metadata_json).error_code)).toEqual([
-    "owner_notification_send_failed",
-    "owner_notification_send_failed",
+    "telegram_request_failed",
+    "telegram_request_failed",
   ]);
 });
 

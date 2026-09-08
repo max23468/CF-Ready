@@ -30,8 +30,11 @@ const wrangler = `{
     "SHOPIFY_API_KEY": "adff48d4fe4ceb0dadb4734520701dd7",
     "SHOPIFY_APP_URL": "https://cf-ready-dev.tmsf.workers.dev",
     "SCOPES": "write_validations",
-    "ALLOWED_SHOP": "cf-ready-dev.myshopify.com"
+    "ALLOWED_SHOP": "cf-ready-dev.myshopify.com",
+    "APP_ENVIRONMENT": "development",
+    "OWNER_TELEGRAM_CONTROL_ENABLED": "false"
   },
+  "version_metadata": {"binding": "CF_VERSION_METADATA"},
   "d1_databases": [{
     "binding": "DB",
     "database_name": "cf-ready-db-dev",
@@ -95,6 +98,10 @@ test("il preflight lega il nome Worker alla chiave corretta", () => {
   );
   assert.throws(
     () => verifyDevelopmentConfig(shopify, wrangler.replaceAll("cf-ready-webhooks-dev", "wrong")),
+    /target Development/,
+  );
+  assert.throws(
+    () => verifyDevelopmentConfig(shopify, wrangler.replace("CF_VERSION_METADATA", "WRONG")),
     /target Development/,
   );
 });
@@ -171,6 +178,10 @@ test("il preflight richiede tutti i secret runtime Worker", () => {
     () => verifyWorkerSecrets(all, { ownerNotifications: true }),
     /secret delle notifiche owner/,
   );
+  assert.throws(
+    () => verifyWorkerSecrets(all, { ownerControl: true }),
+    /secret del Control Center owner/,
+  );
   assert.doesNotThrow(() =>
     verifyWorkerSecrets(
       [
@@ -182,6 +193,21 @@ test("il preflight richiede tutti i secret runtime Worker", () => {
         { name: "SHOPIFY_PARTNER_ACCESS_TOKEN" },
       ],
       { ownerNotifications: true },
+    ),
+  );
+  assert.doesNotThrow(() =>
+    verifyWorkerSecrets(
+      [
+        ...all,
+        { name: "TELEGRAM_BOT_TOKEN" },
+        { name: "TELEGRAM_CHAT_ID" },
+        { name: "TELEGRAM_WEBHOOK_SECRET" },
+        { name: "TELEGRAM_OWNER_USER_ID" },
+        { name: "SHOPIFY_PARTNER_ORGANIZATION_ID" },
+        { name: "SHOPIFY_PARTNER_APP_ID" },
+        { name: "SHOPIFY_PARTNER_ACCESS_TOKEN" },
+      ],
+      { ownerControl: true },
     ),
   );
 });

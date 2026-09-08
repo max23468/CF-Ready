@@ -21,6 +21,8 @@ dei rispettivi provider e non devono comparire nel repository o nei log.
 | `OWNER_LEGAL_NAME` | Pages Production | GitHub Actions | configurato il 3 agosto 2026 nell'environment `Pages Production`, iniettato dal workflow e verificato dallo smoke |
 | `TELEGRAM_BOT_TOKEN` | Production | Cloudflare Workers | configurato il 24 agosto 2026 direttamente dagli appunti; valore mai letto, scritto nel repository o mostrato nei log |
 | `TELEGRAM_CHAT_ID` | Production | Cloudflare Workers | configurato il 24 agosto 2026 dalla sola chat privata dell’owner; valore non mostrato né scritto nel repository |
+| `TELEGRAM_WEBHOOK_SECRET` | Production | Cloudflare Workers | da generare con almeno 32 caratteri casuali ammessi da Telegram prima dell’attivazione del Control Center; il flag distribuito resta `false` |
+| `TELEGRAM_OWNER_USER_ID` | Production | Cloudflare Workers | da configurare prima dell’attivazione; identifica il solo owner ammesso e non viene persistito in D1 |
 | `SHOPIFY_PARTNER_ORGANIZATION_ID` | Production | Cloudflare Workers | configurato il 24 agosto 2026 per l'organizzazione Partner proprietaria di CF Ready |
 | `SHOPIFY_PARTNER_APP_ID` | Production | Cloudflare Workers | configurato il 24 agosto 2026 e verificato tramite readback dell'app CF Ready Production |
 | `SHOPIFY_PARTNER_ACCESS_TOKEN` | Production | Cloudflare Workers | configurato il 24 agosto 2026 con client dedicato `CF Ready Owner Notifications` e solo autorizzazione `Gestisci app`; valore non mostrato né scritto nel repository |
