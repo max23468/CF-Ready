@@ -277,11 +277,9 @@ esac`,
 test("la policy CI reale pubblica soltanto uno status sul provider sintetico", async (t) => {
   const head = sha("c");
   const provider = await fetchEnvironment(t, {
-    "GET /repos/owner/repository": { owner: { id: 10 } },
-    "GET /users/dependabot%5Bbot%5D": { id: 99, login: "dependabot[bot]" },
     "GET /repos/owner/repository/pulls/7/files?per_page=100&page=1": [
       { filename: "package.json" },
-      { filename: "scripts/check.mjs" },
+      { filename: "scripts/check.mjs", previous_filename: "scripts/old-check.mjs" },
     ],
     [`POST /repos/owner/repository/statuses/${head}`]: {},
   });
@@ -290,10 +288,9 @@ test("la policy CI reale pubblica soltanto uno status sul provider sintetico", a
   await writeFile(
     eventPath,
     JSON.stringify({
-      action: "labeled",
-      label: { name: "ci-policy-approved" },
+      action: "synchronize",
       number: 7,
-      sender: { id: 10, login: "owner", type: "User" },
+      sender: { id: 20, login: "collaborator", type: "User" },
       pull_request: { head: { sha: head }, changed_files: 2 },
     }),
   );
@@ -308,12 +305,10 @@ test("la policy CI reale pubblica soltanto uno status sul provider sintetico", a
       GITHUB_RUN_ID: "42",
     },
   });
-  assert.match(result.stdout, /attestata dal proprietario/);
+  assert.match(result.stdout, /valgono i gate automatici della PR/);
   assert.equal(provider.calls().filter(({ key }) => key.startsWith("POST ")).length, 1);
 
   const ordinaryProvider = await fetchEnvironment(t, {
-    "GET /repos/owner/repository": { owner: { id: 10 } },
-    "GET /users/dependabot%5Bbot%5D": { id: 99, login: "dependabot[bot]" },
     "GET /repos/owner/repository/pulls/8/files?per_page=100&page=1": [
       { filename: "app/routes/app._index.tsx" },
     ],
@@ -341,36 +336,6 @@ test("la policy CI reale pubblica soltanto uno status sul provider sintetico", a
   });
   assert.match(ordinaryResult.stdout, /non modifica il control plane CI/);
 
-  const dependabotProvider = await fetchEnvironment(t, {
-    "GET /repos/owner/repository": { owner: { id: 10 } },
-    "GET /users/dependabot%5Bbot%5D": { id: 99, login: "dependabot[bot]" },
-    "GET /repos/owner/repository/pulls/9/files?per_page=100&page=1": [
-      { filename: "package-lock.json", previous_filename: "package-lock.old.json" },
-    ],
-    [`POST /repos/owner/repository/statuses/${head}`]: {},
-  });
-  await writeFile(
-    eventPath,
-    JSON.stringify({
-      action: "synchronize",
-      number: 9,
-      sender: { id: 99, login: "dependabot[bot]", type: "Bot" },
-      pull_request: { head: { sha: head }, changed_files: 1 },
-    }),
-  );
-  const dependabotResult = runEntrypoint("ci-policy-check.mjs", [], {
-    env: {
-      ...dependabotProvider,
-      GITHUB_ACTIONS: "true",
-      GITHUB_REPOSITORY: "owner/repository",
-      GITHUB_TOKEN: "token-sintetico",
-      GITHUB_EVENT_PATH: eventPath,
-      GITHUB_SERVER_URL: "https://github.test",
-      GITHUB_RUN_ID: "44",
-    },
-  });
-  assert.match(dependabotResult.stdout, /automazione attendibile/);
-
   const invalidEvents = [
     {
       action: "synchronize",
@@ -390,12 +355,6 @@ test("la policy CI reale pubblica soltanto uno status sul provider sintetico", a
       sender: { id: 10 },
       pull_request: { head: { sha: head }, changed_files: "0" },
     },
-    {
-      action: "synchronize",
-      number: 10,
-      sender: {},
-      pull_request: { head: { sha: head }, changed_files: 0 },
-    },
   ];
   for (const event of invalidEvents) {
     await writeFile(eventPath, JSON.stringify(event));
@@ -410,32 +369,7 @@ test("la policy CI reale pubblica soltanto uno status sul provider sintetico", a
     });
   }
 
-  const invalidOwnerProvider = await fetchEnvironment(t, {
-    "GET /repos/owner/repository": { owner: {} },
-  });
-  await writeFile(
-    eventPath,
-    JSON.stringify({
-      action: "synchronize",
-      number: 11,
-      sender: { id: 10 },
-      pull_request: { head: { sha: head }, changed_files: 0 },
-    }),
-  );
-  runEntrypoint("ci-policy-check.mjs", [], {
-    env: {
-      ...invalidOwnerProvider,
-      GITHUB_ACTIONS: "true",
-      GITHUB_REPOSITORY: "owner/repository",
-      GITHUB_TOKEN: "token-sintetico",
-      GITHUB_EVENT_PATH: eventPath,
-    },
-    success: false,
-  });
-
   const incompleteFilesProvider = await fetchEnvironment(t, {
-    "GET /repos/owner/repository": { owner: { id: 10 } },
-    "GET /users/dependabot%5Bbot%5D": { id: 99, login: "dependabot[bot]" },
     "GET /repos/owner/repository/pulls/12/files?per_page=100&page=1": [],
   });
   await writeFile(

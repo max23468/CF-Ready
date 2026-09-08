@@ -18,6 +18,8 @@ corrente si legge da codice, configurazioni e `package.json`.
   dev store, CPU e confini operativi.
 - [Rendering errori checkout](evidence/2026-07-29-checkout-validation-rendering.md)
   — target verificato, limite della review, chiusura M10 e gate checkout M11.
+- [Validazione automatica nel checkout](evidence/2026-09-08-checkout-validation-automatic.md)
+  — prova Development di Interaction inline, consegna risolta e pagamenti manuali.
 - [Operazioni Development M4](evidence/2026-07-30-m4-development-migration.md)
   — migrazione D1, deploy, snapshot Shopify e verifiche live.
 - [Rilascio Development M5](evidence/2026-07-30-m5-development-release.md)

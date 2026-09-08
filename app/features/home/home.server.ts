@@ -93,7 +93,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     countryCode: state.countryCode,
     validationEnabled: state.validationEnabled,
     rules: config.rules,
-    errorDisplay: config.errorDisplay,
     messagesDefault: messagesAreDefault(config.messages),
     address2Declared: address2Declaration !== null,
     trialEndsAt: state.trial?.ends_at ?? null,

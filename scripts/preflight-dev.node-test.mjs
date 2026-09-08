@@ -9,6 +9,7 @@ import {
   verifyVersionAvailable,
 } from "./preflight-dev.mjs";
 import {
+  run,
   verifyMigrationSafety,
   verifyNoPendingMigrations,
   verifyWorkerSecrets,
@@ -44,6 +45,10 @@ const wrangler = `{
     ]
   }
 }`;
+
+test("un comando provider fallito interrompe il preflight", () => {
+  assert.throws(() => run(process.execPath, ["-e", "process.exit(1)"], false), /Preflight fallito/);
+});
 
 test("il preflight lega il nome Worker alla chiave corretta", () => {
   assert.doesNotThrow(() => verifyDevelopmentConfig(shopify, wrangler));

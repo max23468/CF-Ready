@@ -5,7 +5,7 @@ import {
   readCommercialInputs,
   syncCommercialEntitlement,
 } from "../billing/commercial-entitlement.server";
-import { readConfig } from "../config";
+import { DEFAULT_CONFIG, readConfig } from "../config";
 import type { CheckoutConfig, Entitlement } from "../config";
 import { configHash, observedConfigHash } from "./domain";
 import {
@@ -34,7 +34,7 @@ export type ValidationWriteResult =
   | { ok: true; enabled: boolean }
   | { ok: false; errorCode: AppErrorCode };
 
-type ValidationConfigUpdate = Partial<Pick<CheckoutConfig, "rules" | "errorDisplay" | "messages">>;
+type ValidationConfigUpdate = Partial<Pick<CheckoutConfig, "rules" | "messages">>;
 
 // Percorso unico di scrittura verso Shopify, condiviso da salvataggio delle regole e
 // attivazione: lease per store, configurazione intera, readback e stato persistito.
@@ -97,7 +97,7 @@ export async function writeValidation(
     const config: CheckoutConfig = {
       schemaVersion: 2,
       enabled,
-      errorDisplay: source.errorDisplay,
+      errorDisplay: DEFAULT_CONFIG.errorDisplay,
       entitlement,
       rules: source.rules,
       messages: source.messages,

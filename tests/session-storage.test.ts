@@ -249,6 +249,23 @@ test("una chiave ruotata invalida le sessioni invece di rompere l'app", async ()
   expect((await after.loadSession(session.id))?.accessToken).toBe("token");
 });
 
+test("un ciphertext con formato non valido richiede una nuova sessione", async () => {
+  const key = btoa(String.fromCharCode(...new Uint8Array(32).fill(2)));
+  const storage = new D1SessionStorage(env.DB, key);
+  const session = new Session({
+    id: "offline_formato-sessione.example.myshopify.com",
+    shop: "formato-sessione.example.myshopify.com",
+    state: "state",
+    isOnline: false,
+  });
+  await storage.storeSession(session);
+  await env.DB.prepare("UPDATE shopify_sessions SET session_payload_ciphertext = ? WHERE id = ?")
+    .bind("formato-non-valido", session.id)
+    .run();
+
+  await expect(storage.loadSession(session.id)).resolves.toBeUndefined();
+});
+
 test("gestisce sessioni assenti, senza token e tutte le operazioni di eliminazione", async () => {
   const key = btoa(String.fromCharCode(...new Uint8Array(32).fill(4)));
   const storage = new D1SessionStorage(env.DB, key);

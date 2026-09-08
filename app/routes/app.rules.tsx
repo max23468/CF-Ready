@@ -17,14 +17,7 @@ import { skipRevalidationWhenLeaving } from "../revalidation";
 import { setSaveBarVisibility } from "../save-bar";
 import { createServerTiming } from "../server-timing.server";
 import { authenticate } from "../shopify.server";
-import {
-  address2Declaration,
-  ERROR_DISPLAYS,
-  oneOf,
-  readConfig,
-  RULE_MODES,
-  showSavedBanner,
-} from "../config";
+import { address2Declaration, oneOf, readConfig, RULE_MODES, showSavedBanner } from "../config";
 import { databaseContext } from "../context.server";
 import {
   observedConfigHash,
@@ -64,7 +57,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       // §11.4: firma della configurazione osservata, rimandata indietro al salvataggio.
       configHash,
       rules: config.rules,
-      errorDisplay: config.errorDisplay,
       messages: config.messages,
       enabled: state.validationEnabled,
       entitled: state.entitlement.kind !== "none",
@@ -85,8 +77,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   // dall'insieme ammesso non viene corretto in silenzio: la scrittura non parte.
   const taxCode = oneOf(RULE_MODES, form.get("taxCode"));
   const pec = oneOf(RULE_MODES, form.get("pec"));
-  const errorDisplay = oneOf(ERROR_DISPLAYS, form.get("errorDisplay") ? "preventive" : "inline");
-  if (!taxCode || !pec || !errorDisplay) return { ok: false as const, errorCode: "generic" };
+  if (!taxCode || !pec) return { ok: false as const, errorCode: "generic" };
 
   const declared = address2Declaration(form);
 
@@ -97,7 +88,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     admin,
     db,
     session.shop,
-    { rules: { taxCode, pec }, errorDisplay },
+    { rules: { taxCode, pec } },
     null,
     (form.get("configHash") as string) || null,
     declared,
@@ -117,7 +108,6 @@ export default function CheckoutRules() {
   const busy = useNavigation().state !== "idle";
   const current = {
     rules: saved.rules,
-    errorDisplay: saved.errorDisplay,
     address2: saved.address2Declared,
   };
   const baseRef = useRef(current);
@@ -130,7 +120,6 @@ export default function CheckoutRules() {
   const [formRevision, setFormRevision] = useState(0);
   const [draft, setDraft] = useState({
     rules: saved.rules,
-    errorDisplay: saved.errorDisplay,
     address2: saved.address2Declared,
   });
 
@@ -147,7 +136,6 @@ export default function CheckoutRules() {
   const dirty =
     draft.rules.taxCode !== saved.rules.taxCode ||
     draft.rules.pec !== saved.rules.pec ||
-    draft.errorDisplay !== saved.errorDisplay ||
     draft.address2 !== saved.address2Declared;
 
   useEffect(() => setSaveBarVisibility(SAVE_BAR, dirty), [dirty]);
@@ -161,7 +149,6 @@ export default function CheckoutRules() {
         configHash: baseHash.current ?? "",
         taxCode: draft.rules.taxCode,
         pec: draft.rules.pec,
-        ...(draft.errorDisplay === "preventive" ? { errorDisplay: "preventive" } : {}),
         // Il blocco resta sempre visibile: la dichiarazione può quindi essere aggiornata anche
         // mentre il Codice Fiscale non è gestito.
         address2Shown: "1",
@@ -177,12 +164,11 @@ export default function CheckoutRules() {
     if (result.ok) {
       baseRef.current = {
         rules: saved.rules,
-        errorDisplay: saved.errorDisplay,
         address2: saved.address2Declared,
       };
       baseHash.current = saved.configHash;
     }
-  }, [result, saved.rules, saved.errorDisplay, saved.address2Declared, saved.configHash, busy]);
+  }, [result, saved.rules, saved.address2Declared, saved.configHash, busy]);
 
   const reapply = () => {
     setDraft(rebaseRulesDraft(baseRef.current, draft, current));
@@ -198,7 +184,6 @@ export default function CheckoutRules() {
     setResolvedConflict(true);
     setDraft({
       rules: saved.rules,
-      errorDisplay: saved.errorDisplay,
       address2: saved.address2Declared,
     });
     setFormRevision((current) => current + 1);
@@ -306,15 +291,6 @@ export default function CheckoutRules() {
                     </div>
                   ) : null}
                 </s-section>
-                <s-section>
-                  <s-checkbox
-                    label={t.rules.preventiveLabel}
-                    details={t.rules.preventiveHelp}
-                    name="errorDisplay"
-                    value="preventive"
-                    defaultChecked={draft.errorDisplay === "preventive"}
-                  />
-                </s-section>
               </s-stack>
             </div>
           </form>
@@ -326,7 +302,6 @@ export default function CheckoutRules() {
                   {describeCheckout(
                     {
                       rules: draft.rules,
-                      errorDisplay: draft.errorDisplay,
                       status: validationStatus(saved.enabled, saved.entitled),
                     },
                     saved.locale,
@@ -338,7 +313,6 @@ export default function CheckoutRules() {
                 <CheckoutSimulator
                   locale={saved.locale}
                   rules={draft.rules}
-                  errorDisplay={draft.errorDisplay}
                   messages={saved.messages[saved.locale]}
                 />
               </s-stack>
@@ -365,11 +339,6 @@ function rulesConflictRows(
       label: t.rules.pecLabel,
       current: t.rules.pec[current.rules.pec],
       draft: t.rules.pec[draft.rules.pec],
-    },
-    {
-      label: t.rules.preventiveLabel,
-      current: current.errorDisplay === "preventive" ? t.common.yes : t.common.no,
-      draft: draft.errorDisplay === "preventive" ? t.common.yes : t.common.no,
     },
     {
       label: t.rules.address2Heading,

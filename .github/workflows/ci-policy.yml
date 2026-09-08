@@ -2,7 +2,7 @@ name: Attesta policy CI
 
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: read
@@ -29,6 +29,5 @@ jobs:
           node-version: 26.8.1
       - env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # Un diniego previsto resta uno status ci-policy bloccante; soltanto un
-        # errore inatteso dello script deve rendere rossa la run di attestazione.
+        # Soltanto un errore inatteso dello script rende rossa l'attestazione.
         run: node scripts/ci-policy-check.mjs

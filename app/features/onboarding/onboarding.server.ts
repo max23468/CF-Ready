@@ -48,7 +48,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       step: onboarding.step,
       completed: onboarding.status === "completed",
       rules: config.rules,
-      errorDisplay: config.errorDisplay,
       messages: config.messages,
       enabled: state.validationEnabled,
       entitlementKind: state.entitlement.kind,

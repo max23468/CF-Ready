@@ -40,7 +40,7 @@ function input(
     date?: unknown;
     language?: string;
     billing?: string | null;
-    deliveries?: (string | null)[];
+    deliveries?: (string | null | { countryCode: string | null; selected?: boolean })[];
     fields?: { key: string; value: string | null }[];
   } = {},
 ): CartValidationsGenerateRunInput {
@@ -48,9 +48,15 @@ function input(
     buyerJourney: { step: options.step ?? "CHECKOUT_COMPLETION" },
     cart: {
       billingAddress: options.billing === null ? null : { countryCode: options.billing ?? "IT" },
-      deliveryGroups: (options.deliveries ?? ["IT"]).map((countryCode) => ({
-        deliveryAddress: countryCode ? { countryCode } : null,
-      })),
+      deliveryGroups: (options.deliveries ?? ["IT"]).map((delivery, index) => {
+        const countryCode =
+          typeof delivery === "object" && delivery ? delivery.countryCode : delivery;
+        const selected = typeof delivery === "object" && delivery?.selected === true;
+        return {
+          deliveryAddress: countryCode ? { countryCode } : null,
+          selectedDeliveryOption: selected ? { handle: `option-${index}` } : null,
+        };
+      }),
       localizedFields: options.fields ?? [
         { key: "TAX_CREDENTIAL_IT", value: "" },
         { key: "TAX_EMAIL_IT", value: "" },
@@ -145,12 +151,11 @@ describe("valori delle reviewer instructions", () => {
 
 describe("applicabilità e fail-open", () => {
   it.each([
-    ["step precedente", { step: "CHECKOUT_INTERACTION" }],
+    ["step precedente", { step: "CART_INTERACTION" }],
     ["config assente", { config: null }],
     ["schema precedente", { config: { ...baseConfig, schemaVersion: 1 } }],
     ["schema futuro", { config: { ...baseConfig, schemaVersion: 3 } }],
     ["disabilitata", { config: { ...baseConfig, enabled: false } }],
-    ["modalità errori sconosciuta", { config: { ...baseConfig, errorDisplay: "other" } }],
     [
       "regola sconosciuta",
       {
@@ -352,23 +357,88 @@ describe("applicabilità e fail-open", () => {
     ).toEqual([]);
   });
 
-  it("usa box globali solo a Interaction nella modalità preventiva", () => {
-    const config = { ...baseConfig, errorDisplay: "preventive" };
+  it.each([undefined, "inline", "preventive", "other"])(
+    "ignora la precedente modalità %s e usa lo stesso comportamento automatico",
+    (errorDisplay) => {
+      const config = { ...baseConfig, errorDisplay };
+      const interaction = input({
+        config,
+        step: "CHECKOUT_INTERACTION",
+        fields: [
+          { key: "TAX_CREDENTIAL_IT", value: "non valido" },
+          { key: "TAX_EMAIL_IT", value: "non valida" },
+        ],
+      });
 
-    expect(errors(input({ config, step: "CHECKOUT_INTERACTION" }))).toEqual([
-      { message: "CF richiesto", target: "$.cart" },
-      { message: "PEC richiesta", target: "$.cart" },
+      expect(errors(interaction)).toEqual([
+        { message: "CF non valido", target: "$.cart.localizedField.TAX_CREDENTIAL_IT" },
+        { message: "PEC non valida", target: "$.cart.localizedField.TAX_EMAIL_IT" },
+      ]);
+    },
+  );
+
+  it("non mostra required vuoti all'apertura e li mostra inline con consegna risolta", () => {
+    const started = { step: "CHECKOUT_INTERACTION", deliveries: ["IT"] };
+    expect(errors(input(started))).toEqual([]);
+
+    expect(
+      errors(
+        input({
+          step: "CHECKOUT_INTERACTION",
+          deliveries: [{ countryCode: "IT", selected: true }],
+        }),
+      ),
+    ).toEqual([
+      { message: "CF richiesto", target: "$.cart.localizedField.TAX_CREDENTIAL_IT" },
+      { message: "PEC richiesta", target: "$.cart.localizedField.TAX_EMAIL_IT" },
     ]);
-    expect(errors(input({ config }))).toEqual([
-      {
-        message: "CF richiesto",
-        target: "$.cart.localizedField.TAX_CREDENTIAL_IT",
-      },
-      {
-        message: "PEC richiesta",
-        target: "$.cart.localizedField.TAX_EMAIL_IT",
-      },
-    ]);
+  });
+
+  it.each([
+    ["nessuna delivery group", []],
+    ["delivery italiana senza opzione", ["IT"]],
+    ["delivery non ancora localizzata", [null]],
+    ["split con una destinazione irrisolta", [{ countryCode: "IT", selected: true }, null]],
+    [
+      "due delivery italiane con una sola opzione selezionata",
+      [{ countryCode: "IT", selected: true }, { countryCode: "IT" }],
+    ],
+  ])("rimanda il required a Completion con %s", (_name, deliveries) => {
+    expect(errors(input({ step: "CHECKOUT_INTERACTION", deliveries }))).toEqual([]);
+  });
+
+  it.each([
+    ["una delivery italiana", [{ countryCode: "IT", selected: true }]],
+    [
+      "due delivery italiane risolte",
+      [
+        { countryCode: "IT", selected: true },
+        { countryCode: "IT", selected: true },
+      ],
+    ],
+    [
+      "split Italia-estero con la delivery italiana risolta",
+      [{ countryCode: "IT", selected: true }, { countryCode: "FR" }],
+    ],
+  ])("anticipa inline i required vuoti con %s", (_name, deliveries) => {
+    expect(errors(input({ step: "CHECKOUT_INTERACTION", deliveries }))).toHaveLength(2);
+    expect(
+      errors(input({ step: "CHECKOUT_INTERACTION", deliveries })).every(({ target }) =>
+        target.startsWith("$.cart.localizedField."),
+      ),
+    ).toBe(true);
+  });
+
+  it("non usa un banner globale a Interaction se il localized field non è materializzato", () => {
+    expect(
+      errors(
+        input({
+          step: "CHECKOUT_INTERACTION",
+          deliveries: [{ countryCode: "IT", selected: true }],
+          fields: [],
+        }),
+      ),
+    ).toEqual([]);
   });
 
   it("resta fail-open se il metafield è assente o il runtime genera un'eccezione", () => {
@@ -382,10 +452,68 @@ describe("applicabilità e fail-open", () => {
 
 describe("regole e messaggi", () => {
   const rules = ["unmanaged", "optional_validated", "required_validated"] as const;
+  const steps = ["CHECKOUT_INTERACTION", "CHECKOUT_COMPLETION"] as const;
   const values = {
     taxCode: { valid: "RSSMRA80A01H501U", invalid: "non valido" },
     pec: { valid: "nome@example.com", invalid: "non valida" },
   };
+
+  it.each(
+    (["taxCode", "pec"] as const).flatMap((field) =>
+      steps.flatMap((step) =>
+        rules.flatMap((rule) =>
+          (["absent", "empty", "invalid", "valid"] as const).map((state) => [
+            field,
+            step,
+            rule,
+            state,
+          ]),
+        ),
+      ),
+    ),
+  )("%s a %s con regola %s e campo %s", (field, step, rule, state) => {
+    const key = field === "taxCode" ? "TAX_CREDENTIAL_IT" : "TAX_EMAIL_IT";
+    const target = `$.cart.localizedField.${key}`;
+    const config = {
+      ...baseConfig,
+      rules: {
+        taxCode: "unmanaged",
+        pec: "unmanaged",
+        [field]: rule,
+      },
+    };
+    const fields =
+      state === "absent" ? [] : [{ key, value: state === "empty" ? "" : values[field][state] }];
+    const result = errors(
+      input({
+        config,
+        step,
+        deliveries: [{ countryCode: "IT", selected: true }],
+        fields,
+      }),
+    );
+    const expectedKind =
+      rule === "unmanaged" ||
+      state === "valid" ||
+      (rule === "optional_validated" && state !== "invalid")
+        ? null
+        : state === "invalid"
+          ? "Invalid"
+          : rule === "required_validated" && (step === "CHECKOUT_COMPLETION" || state === "empty")
+            ? "Required"
+            : null;
+
+    expect(result).toEqual(
+      expectedKind
+        ? [
+            {
+              message: messages.it[`${field}${expectedKind}`],
+              target: state === "absent" ? "$.cart" : target,
+            },
+          ]
+        : [],
+    );
+  });
 
   it.each(rules.flatMap((taxCode) => rules.map((pec) => [taxCode, pec])))(
     "combina CF %s e PEC %s",
@@ -466,7 +594,12 @@ it("il simulatore semplice concorda con la Function quando gli indirizzi non son
         cart: {
           billingAddress: billingCountry ? { countryCode: billingCountry } : null,
           deliveryGroups: deliveryCountry
-            ? [{ deliveryAddress: { countryCode: deliveryCountry } }]
+            ? [
+                {
+                  deliveryAddress: { countryCode: deliveryCountry },
+                  selectedDeliveryOption: null,
+                },
+              ]
             : [],
           localizedFields: [
             { key: "TAX_CREDENTIAL_IT", value: "" },
@@ -492,7 +625,7 @@ it("il simulatore semplice concorda con la Function quando gli indirizzi non son
           billingCountry,
           taxCode: "",
           pec: "",
-          revealErrors: true,
+          submitted: true,
         }) === "blocked",
       ).toBe((actual.operations[0].validationAdd?.errors.length ?? 0) > 0);
     }

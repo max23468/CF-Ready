@@ -8,10 +8,8 @@ export { isValidPec, isValidTaxCode } from "../../../app/checkout-field-validati
 
 type Rule = "unmanaged" | "optional_validated" | "required_validated";
 type MessageKey = "taxCodeRequired" | "taxCodeInvalid" | "pecRequired" | "pecInvalid";
-type ErrorDisplay = "inline" | "preventive";
 
 type Configuration = {
-  errorDisplay: ErrorDisplay;
   rules: { taxCode: Rule; pec: Rule };
   messages: Record<"it" | "en", Record<MessageKey, string>>;
 };
@@ -81,7 +79,6 @@ function readConfiguration(value: unknown, localDate: unknown): Configuration | 
 
   const ruleValues = ["unmanaged", "optional_validated", "required_validated"];
   if (
-    (value.errorDisplay !== "inline" && value.errorDisplay !== "preventive") ||
     typeof rules.taxCode !== "string" ||
     !ruleValues.includes(rules.taxCode) ||
     typeof rules.pec !== "string" ||
@@ -98,7 +95,6 @@ function readConfiguration(value: unknown, localDate: unknown): Configuration | 
 
   return entitled
     ? {
-        errorDisplay: value.errorDisplay,
         rules: {
           taxCode: rules.taxCode as Rule,
           pec: rules.pec as Rule,
@@ -117,11 +113,12 @@ function addFieldError(
   invalidKey: MessageKey,
   target: string,
   validate: (value: string) => boolean,
+  checkRequiredEmpty: boolean,
 ): void {
   if (!field || rule === "unmanaged") return;
   const value = field.value?.trim() ?? "";
   if (!value) {
-    if (rule === "required_validated") {
+    if (rule === "required_validated" && checkRequiredEmpty) {
       errors.push({ message: messages[requiredKey], target });
     }
   } else if (!validate(value)) {
@@ -138,11 +135,7 @@ export function cartValidationsGenerateRun(
       input.shop.localTime.date,
     );
     const step = input.buyerJourney.step;
-    if (
-      !config ||
-      (step !== "CHECKOUT_COMPLETION" &&
-        !(config.errorDisplay === "preventive" && step === "CHECKOUT_INTERACTION"))
-    ) {
+    if (!config || (step !== "CHECKOUT_COMPLETION" && step !== "CHECKOUT_INTERACTION")) {
       return allow;
     }
     if (input.cart.billingAddress?.countryCode && input.cart.billingAddress.countryCode !== "IT") {
@@ -164,29 +157,46 @@ export function cartValidationsGenerateRun(
     );
     if (input.cart.localizedFields.length === 0 && !hasItalianDelivery) return allow;
 
+    const italianDeliveryGroups = input.cart.deliveryGroups.filter(
+      (group) => group.deliveryAddress?.countryCode === "IT",
+    );
+    const deliveryContextResolved =
+      input.cart.deliveryGroups.length > 0 &&
+      input.cart.deliveryGroups.every((group) => Boolean(group.deliveryAddress?.countryCode));
+    const advancedInteraction =
+      step === "CHECKOUT_INTERACTION" &&
+      deliveryContextResolved &&
+      italianDeliveryGroups.length > 0 &&
+      italianDeliveryGroups.every((group) => Boolean(group.selectedDeliveryOption));
+    const checkRequiredEmpty = step === "CHECKOUT_COMPLETION" || advancedInteraction;
+
     const messages = config.messages[input.localization.language.isoCode === "IT" ? "it" : "en"];
     const errors: { message: string; target: string }[] = [];
     const taxCode = input.cart.localizedFields.find(({ key }) => key === "TAX_CREDENTIAL_IT");
     const pec = input.cart.localizedFields.find(({ key }) => key === "TAX_EMAIL_IT");
+    const absentRequiredField =
+      step === "CHECKOUT_COMPLETION" && hasItalianDelivery ? {} : undefined;
     addFieldError(
       errors,
-      taxCode ?? (hasItalianDelivery ? {} : undefined),
+      taxCode ?? absentRequiredField,
       config.rules.taxCode,
       messages,
       "taxCodeRequired",
       "taxCodeInvalid",
-      step === "CHECKOUT_INTERACTION" || !taxCode ? "$.cart" : targets.taxCode,
+      taxCode ? targets.taxCode : "$.cart",
       isValidTaxCode,
+      checkRequiredEmpty,
     );
     addFieldError(
       errors,
-      pec ?? (hasItalianDelivery ? {} : undefined),
+      pec ?? absentRequiredField,
       config.rules.pec,
       messages,
       "pecRequired",
       "pecInvalid",
-      step === "CHECKOUT_INTERACTION" || !pec ? "$.cart" : targets.pec,
+      pec ? targets.pec : "$.cart",
       isValidPec,
+      checkRequiredEmpty,
     );
 
     return { operations: [{ validationAdd: { errors } }] };

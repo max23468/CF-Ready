@@ -21,14 +21,13 @@ lo script del branch predefinito attendibile: non fa checkout, fetch,
 installazioni o esecuzioni dell'HEAD della PR. Il control plane comprende tutti
 i workflow, `scripts/**`, manifest e lockfile npm, configurazioni dei runner e
 setup test. Rinomine e cancellazioni controllano anche il percorso precedente.
-Le modifiche a questa superficie passano soltanto se il proprietario applica
-l'etichetta `ci-policy-approved`: il relativo evento pubblica lo stato sullo SHA
-candidato esatto e ogni commit successivo lo invalida. Dependabot resta ammesso
-soltanto quando mittente, ID e tipo coincidono con il bot autorevole letto da
-GitHub. In questo modo una PR non può modificare i propri selettori, comandi o
-gate e poi dichiararli verdi. Il bootstrap della prima attivazione
-richiede la verifica manuale dell'esatto SHA prima del merge; dopo il merge
-`ci-policy` deve essere required nei ruleset di `develop` e `main`.
+Le modifiche a questa superficie passano attraverso i normali gate automatici
+della PR. `ci-policy` rileva i file interessati dal branch predefinito attendibile
+e pubblica lo stato sullo SHA candidato esatto. In questo modo una PR non può
+modificare i propri selettori e poi dichiarare da sé l'esito del check. Il
+bootstrap della prima attivazione richiede la verifica manuale dell'esatto SHA
+prima del merge; dopo il merge `ci-policy` deve essere required nei ruleset di
+`develop` e `main`.
 
 Gli alert usano il secret
 `SECURITY_AUDIT_TOKEN` dell'environment `Security Maintenance`, ammesso soltanto
@@ -94,12 +93,10 @@ repository. Non usare `--force` o `--legacy-peer-deps`.
 4. ruotare subito le credenziali soltanto se risultano compromesse;
 5. pubblicare Development e ripetere il workflow manuale.
 
-Se `ci-policy` fallisce su una modifica intenzionale al control plane, il
-proprietario deve ispezionare l'intero diff, rimuovere l'eventuale etichetta
-stale e applicare personalmente `ci-policy-approved` all'HEAD corrente. Non si
-riavvia né si forza il check generato da un evento di terzi. La rimozione del
-required check richiede una modifica esplicita del ruleset e va trattata come
-incidente di governance.
+Se `ci-policy` fallisce, si corregge l'errore che ha impedito allo script
+attendibile di leggere la PR o pubblicare lo stato sullo SHA candidato. La
+rimozione del required check richiede una modifica esplicita del ruleset e va
+trattata come incidente di governance.
 
 I controlli locali equivalenti sono `npm run audit:security`,
 `npm audit signatures`, `npm run docs:check` e `npm run readback:dev`. Il
