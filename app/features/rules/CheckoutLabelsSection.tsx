@@ -423,7 +423,7 @@ function nativeLabelsPresentation({
     return { status: copy.statusManualRequired, summary: copy.nativeSummaryNeedsChoice };
   }
   return {
-    status: needsAttention ? copy.statusManualRequired : copy.statusManagedByShopify,
+    status: copy.statusManagedByShopify,
     summary: copy.nativeSummaryReady,
   };
 }

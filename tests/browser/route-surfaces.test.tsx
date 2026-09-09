@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { act } from "react";
 import { DEFAULT_CONFIG } from "../../app/config";
+import { checkoutLabelSlotId } from "../../app/checkout-labels/domain";
 import { texts } from "../../app/i18n";
 import { click, dispatch, render, type Rendered } from "./render";
 
@@ -1629,6 +1630,158 @@ describe("Regole", () => {
     };
     await view.rerender(<CheckoutRules key="labels-partial" />);
     expect(view.container.querySelector('s-banner[tone="warning"]')).not.toBeNull();
+  });
+
+  test("copre la variante facoltativa, i testi conformi e l'interfaccia inglese", async () => {
+    const taxCode = labelSlot({
+      name: "taxCode",
+      key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
+      capability: "guided",
+      currentValue: "Codice fiscale (facoltativo)",
+    });
+    const taxCodeMarket = labelSlot({
+      name: "taxCode",
+      key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
+      capability: "guided",
+      kind: "market_translation",
+      marketId: "gid://shopify/Market/1",
+      marketName: null,
+      currentValue: "Codice fiscale (facoltativo)",
+    });
+    const optionalAddress = labelSlot({
+      name: "optionalAddress2",
+      key: "shopify.checkout.contact.optional_address2_label",
+      currentValue: "Interno, scala, ecc. (facoltativo)",
+      sourceValue: "Interno, scala, ecc. (facoltativo)",
+    });
+    const snapshot = {
+      locales: [{ locale: "it", family: "it", name: "Italiano", primary: false, published: false }],
+      markets: [
+        {
+          id: "gid://shopify/Market/1",
+          name: "Italia",
+          defaultLocale: "it",
+          locales: ["it"],
+          resolution: "direct",
+        },
+      ],
+      issues: [],
+      revision: "labels-optional",
+      address2: { classification: "expected", hasMarketOverride: false },
+      slots: [taxCode, taxCodeMarket, optionalAddress],
+    } as const;
+    router.loaderData = {
+      ...rulesData,
+      labelScopesGranted: true,
+      labelState: {
+        ...rulesData.labelState,
+        mode: "guided",
+        decision: "accepted",
+        address2FormMode: "optional",
+      },
+      labelSnapshot: snapshot,
+      guidedConfirmations: [taxCode, taxCodeMarket].map((slot, index) => ({
+        slotId: checkoutLabelSlotId(slot),
+        confirmedAt: `2026-09-09T12:0${index}:00Z`,
+      })),
+    };
+    const view = await mount(<CheckoutRules />);
+    expect(view.container.textContent).toContain(texts("it").rules.labels.allMarketsSame);
+    expect(view.container.textContent).toContain("Ultima verifica manuale:");
+    expect(view.container.textContent).toContain(texts("it").rules.labels.addressStatus.expected);
+    expect(texts("en").rules.labels.marketException("Italy")).toBe("Exception for Italy");
+    expect(texts("en").rules.labels.lastManualVerification("now")).toBe(
+      "Last manual verification: now",
+    );
+
+    router.loaderData = {
+      ...router.loaderData,
+      labelSnapshot: {
+        ...snapshot,
+        slots: [
+          taxCode,
+          taxCodeMarket,
+          labelSlot({
+            name: "optionalAddress2",
+            key: "shopify.checkout.contact.optional_address2_label",
+            kind: "source",
+            currentValue: "Piano e porta",
+          }),
+          labelSlot({
+            name: "optionalAddress2",
+            key: "shopify.checkout.contact.optional_address2_label",
+            currentValue: "Piano e porta",
+          }),
+        ],
+        address2: { classification: "nonstandard", hasMarketOverride: false },
+      },
+    };
+    await view.rerender(<CheckoutRules key="optional-nonstandard" />);
+    expect(view.container.textContent).toContain(
+      texts("it").rules.labels.addressStatus.nonstandard,
+    );
+    expect(view.container.textContent).toContain(texts("it").rules.labels.sourceManual);
+
+    router.loaderData = {
+      ...rulesData,
+      rules: { ...rulesData.rules, taxCode: "unmanaged" },
+      labelScopesGranted: true,
+      labelState: {
+        ...rulesData.labelState,
+        mode: "guided",
+        address2FormMode: "optional",
+      },
+      labelSnapshot: {
+        ...snapshot,
+        slots: [
+          taxCode,
+          { ...taxCodeMarket, currentValue: "CF Italia", marketName: "Italia" },
+          labelSlot({
+            name: "optionalAddress2",
+            key: "shopify.checkout.contact.optional_address2_label",
+            currentValue: null,
+            inheritedValue: null,
+            sourceValue: null,
+          }),
+          labelSlot({
+            name: "optionalAddress2",
+            key: "shopify.checkout.contact.optional_address2_label",
+            kind: "market_translation",
+            marketId: "gid://shopify/Market/1",
+            marketName: "Italia",
+            currentValue: "Piano e porta",
+          }),
+        ],
+        address2: { classification: "nonstandard", hasMarketOverride: true },
+      },
+      guidedConfirmations: [],
+    };
+    await view.rerender(<CheckoutRules key="optional-market-exceptions" />);
+    expect(view.container.textContent).toContain(texts("it").rules.labels.notAvailable);
+    expect(view.container.textContent).toContain("Italia");
+
+    router.loaderData = {
+      ...rulesData,
+      locale: "en",
+      labelScopesGranted: false,
+      labelState: { ...rulesData.labelState, address2FormMode: "required" },
+      labelSnapshot: snapshot,
+    };
+    await view.rerender(<CheckoutRules key="english-without-scopes" />);
+    expect(view.container.textContent).toContain(texts("en").rules.labels.english);
+    expect(texts("it").rules.labels.lastManualVerification("ora")).toBe(
+      "Ultima verifica manuale: ora",
+    );
+
+    router.navigation = { state: "submitting" };
+    await view.rerender(<CheckoutRules key="busy-label-confirmation" />);
+    const submissions = router.submit.mock.calls.length;
+    await click(
+      view.container.querySelector(
+        's-modal[id="confirm-checkout-label-management"] s-button[slot="primary-action"]',
+      )!,
+    );
+    expect(router.submit).toHaveBeenCalledTimes(submissions);
   });
 
   test("richiede gli scope delle etichette dalle Regole", async () => {
