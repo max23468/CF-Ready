@@ -7,6 +7,7 @@ import {
   classifyAddress2,
   checkoutLabelCopy,
   checkoutLabelSlotId,
+  checkoutLabelValuesMatch,
   observedLabelForSlot,
   proposedLabelForSlot,
   type Address2FormMode,
@@ -221,7 +222,7 @@ function NativeCheckoutLabels({
   });
 
   return (
-    <details className="checkout-labels-disclosure" open={needsAttention || undefined}>
+    <details className="checkout-labels-disclosure">
       <summary className="checkout-labels-disclosure__summary">
         <s-stack direction="inline" alignItems="center" gap="small-200">
           <s-heading>{copy.nativeHeading}</s-heading>
@@ -520,14 +521,7 @@ function Address2CheckoutLabels({
   const restoreModalId = `restore-address2-${activeFamily}`;
 
   return (
-    <details
-      className="checkout-labels-disclosure"
-      open={
-        state.address2FormMode === null ||
-        (scopeGranted && presentation.classification !== "expected") ||
-        undefined
-      }
-    >
+    <details className="checkout-labels-disclosure">
       <summary className="checkout-labels-disclosure__summary">
         <s-stack direction="inline" gap="small-200" alignItems="center">
           <s-heading>{copy.addressHeading}</s-heading>
@@ -781,7 +775,9 @@ function LabelComparison({
         const confirmedAt = latestConfirmation(context.guidedSlotIds, confirmations);
         const matchesProposed = context.entries.every(({ slot }) => {
           const proposed = proposedLabelForSlot(slot, rules);
-          return proposed === null || proposed === observedLabelForSlot(slot);
+          return (
+            proposed === null || checkoutLabelValuesMatch(proposed, observedLabelForSlot(slot))
+          );
         });
         return (
           <div className="checkout-label-context" key={context.key}>
@@ -805,7 +801,10 @@ function LabelComparison({
                       {copy.current}: {observedLabelForSlot(slot) ?? copy.notAvailable}
                     </s-text>
                     {proposedLabelForSlot(slot, rules) &&
-                    proposedLabelForSlot(slot, rules) !== observedLabelForSlot(slot) ? (
+                    !checkoutLabelValuesMatch(
+                      proposedLabelForSlot(slot, rules),
+                      observedLabelForSlot(slot),
+                    ) ? (
                       <s-text>
                         {copy.proposed}: {proposedLabelForSlot(slot, rules)}
                       </s-text>
@@ -984,7 +983,10 @@ function fiscalLabelContexts(snapshot: CheckoutLabelsSnapshot, rules: Rules, loc
         market.resolution === "ambiguous" ||
         market.entries.some(({ name, slot }) => {
           const baseSlot = baseSlots.get(name);
-          return baseSlot && observedLabelForSlot(slot) !== observedLabelForSlot(baseSlot);
+          return (
+            baseSlot &&
+            !checkoutLabelValuesMatch(observedLabelForSlot(slot), observedLabelForSlot(baseSlot))
+          );
         });
       if (!isException) {
         for (const { slot } of market.entries) {

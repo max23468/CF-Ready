@@ -267,6 +267,11 @@ export function checkoutLabelsSetupDone(state: CheckoutLabelState) {
   return checkoutLabelsStatus(state) === "synced" || state.decision === "accepted";
 }
 
+export function checkoutLabelValuesMatch(left: string | null, right: string | null) {
+  if (left === null || right === null) return left === right;
+  return left.toLowerCase() === right.toLowerCase();
+}
+
 export async function checkoutLabelsRevision(snapshot: Omit<CheckoutLabelsSnapshot, "revision">) {
   const value = JSON.stringify({
     locales: snapshot.locales,

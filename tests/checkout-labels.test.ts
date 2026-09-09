@@ -6,6 +6,7 @@ import {
   checkoutLabelCopy,
   checkoutLabelFamily,
   checkoutLabelName,
+  checkoutLabelValuesMatch,
   observedLabelForSlot,
   checkoutLabelsMode,
   checkoutLabelsSetupDone,
@@ -81,6 +82,9 @@ test("mantiene l’allowlist esatta, le copie deterministiche e i codici regiona
     observedLabelForSlot(slot({ currentValue: null, inheritedValue: "Valore ereditato" })),
   ).toBe("Valore ereditato");
   expect(observedLabelForSlot(slot({ currentValue: null, inheritedValue: null }))).toBe("Interno");
+  expect(checkoutLabelValuesMatch("Codice fiscale", "codice fiscale")).toBe(true);
+  expect(checkoutLabelValuesMatch("PEC", "pec")).toBe(true);
+  expect(checkoutLabelValuesMatch("PEC", "PEC ")).toBe(false);
   expect(
     checkoutLabelsMode([
       slot({ name: "taxCode", capability: "automatic" }),
@@ -605,7 +609,7 @@ test("D1 registra esiti, ownership, decisioni e revoca degli scope", async () =>
   });
 });
 
-test("D1 invalida una conferma guidata quando cambia il valore effettivo", async () => {
+test("D1 conserva una conferma guidata se cambia solo la maiuscola", async () => {
   const guided = slot({
     name: "taxCode",
     key: CHECKOUT_LABEL_KEYS.taxCode,
@@ -619,6 +623,17 @@ test("D1 invalida una conferma guidata quando cambia il valore effettivo", async
     hasMarketOverride: false,
   });
   await confirmGuidedCheckoutLabelSlots(env.DB, shop, [guided]);
+  expect((await readStoredCheckoutLabelSlots(env.DB, shop))[0]).toMatchObject({
+    guidedConfirmedValue: "Codice fiscale",
+    guidedConfirmedAt: expect.any(String),
+  });
+
+  await persistCheckoutLabelObservation(
+    env.DB,
+    shop,
+    [{ ...guided, inheritedValue: "codice fiscale" }],
+    { classification: "unknown", hasMarketOverride: false },
+  );
   expect((await readStoredCheckoutLabelSlots(env.DB, shop))[0]).toMatchObject({
     guidedConfirmedValue: "Codice fiscale",
     guidedConfirmedAt: expect.any(String),

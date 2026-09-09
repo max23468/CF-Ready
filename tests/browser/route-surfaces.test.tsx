@@ -1446,9 +1446,15 @@ describe("Regole", () => {
     expect(view.container.textContent).toContain(texts("it").rules.labels.marketAmbiguous);
     expect(view.container.querySelectorAll('s-banner[tone="critical"]')).not.toHaveLength(0);
     const labelsArea = view.container.querySelector(".rules-layout__labels");
+    const fieldsArea = view.container.querySelector(".rules-layout__fields");
     const disclosures = labelsArea?.querySelectorAll("details");
     expect(labelsArea?.parentElement?.lastElementChild).toBe(labelsArea);
+    expect(labelsArea?.parentElement?.classList.contains("rules-layout__main")).toBe(true);
+    expect(
+      labelsArea!.getBoundingClientRect().top - fieldsArea!.getBoundingClientRect().bottom,
+    ).toBe(16);
     expect(disclosures).toHaveLength(2);
+    expect([...disclosures!].every((disclosure) => !disclosure.hasAttribute("open"))).toBe(true);
     expect(disclosures?.[0].textContent).toContain(texts("it").rules.labels.addressHeading);
     expect(disclosures?.[1].textContent).toContain(texts("it").rules.labels.nativeHeading);
     expect(disclosures?.[1].querySelectorAll(".checkout-label-context__row").length).toBeLessThan(
@@ -1868,7 +1874,7 @@ describe("Regole", () => {
       labelSnapshot: {
         ...router.loaderData.labelSnapshot,
         revision: "labels-after-readback",
-        slots: [{ ...mismatched, currentValue: "Codice fiscale (facoltativo)" }],
+        slots: [{ ...mismatched, currentValue: "codice fiscale (facoltativo)" }],
       },
     };
     await view.rerender(<CheckoutRules key="labels-after-readback" />);
@@ -1887,8 +1893,16 @@ describe("Regole", () => {
     const view = await mount(<CheckoutRules />);
     const disclosures = view.container.querySelectorAll(".rules-layout__labels details");
     expect(disclosures).toHaveLength(2);
-    expect(disclosures[0].hasAttribute("open")).toBe(true);
+    expect(disclosures[0].hasAttribute("open")).toBe(false);
+    expect(disclosures[1].hasAttribute("open")).toBe(false);
+    const summary = disclosures[1].querySelector("summary")!;
+    const collapsedSummaryHeight = summary.getBoundingClientRect().height;
+    const collapsedBorder = getComputedStyle(disclosures[1]).borderTopWidth;
+    expect(getComputedStyle(summary, "::after").borderTopWidth).toBe("1px");
+    await click(summary);
     expect(disclosures[1].hasAttribute("open")).toBe(true);
+    expect(summary.getBoundingClientRect().height).toBe(collapsedSummaryHeight);
+    expect(getComputedStyle(disclosures[1]).borderTopWidth).toBe(collapsedBorder);
     const requestScopes = [...view.container.querySelectorAll("s-button")].find((button) =>
       button.textContent?.includes(texts("it").rules.labels.requestPermissions),
     );
