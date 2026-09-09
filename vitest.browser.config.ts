@@ -42,7 +42,9 @@ export default defineConfig({
         // Questi moduli sono già coperti nella corsia Workers; Vite Browser può trasformarli
         // con mappe diverse tra piattaforme e produrrebbe un secondo denominatore.
         "app/embedded-admin.ts",
+        "app/owner-control/*.ts",
         "app/routes/app._index.tsx",
+        "app/reporting/*.ts",
       ],
     },
   },
