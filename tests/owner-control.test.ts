@@ -35,6 +35,8 @@ import {
   findShops,
   readBilling,
   readDashboard,
+  readHealth,
+  readIssues,
   readPerformance,
   readShops,
   readTrials,
@@ -465,19 +467,24 @@ describe("presentazione Telegram", () => {
   });
 
   test("copre funnel, performance e versione con alternative di formato", () => {
-    expect(
-      billingMessage({
-        rows: [
-          { entitlement_status: "ending", plan_kind: "monthly", count: 2 },
-          { entitlement_status: "expired", plan_kind: "annual", count: 3 },
-          { entitlement_status: "refunded", plan_kind: "one_time", count: 4 },
-        ],
-        complimentary: 1,
-        trials: 1,
-        mrr: 10,
-        arr: 120,
-      }).richMessage.blocks,
-    ).toBeTruthy();
+    const billing = billingMessage({
+      rows: [
+        { entitlement_status: "ending", plan_kind: "monthly", count: 2 },
+        { entitlement_status: "expired", plan_kind: "annual", count: 3 },
+        { entitlement_status: "refunded", plan_kind: "one_time", count: 4 },
+      ],
+      complimentary: 1,
+      trials: 1,
+      mrr: 10,
+      arr: 120,
+      netMrr: 9.71,
+      netArr: 116.52,
+      shopifyFees: { revenueShare: 0, processing: 0.029 },
+    });
+    expect(billing.richMessage.blocks).toBeTruthy();
+    expect(JSON.stringify(billing)).toContain("Valore mensile (MRR)");
+    expect(JSON.stringify(billing)).toContain("Mensile dopo fee");
+    expect(JSON.stringify(billing)).toContain("elaborazione 2,9%");
     expect(
       funnelMessage([
         {
@@ -988,10 +995,63 @@ describe("query D1 e run-rate", () => {
     expect(billing.trials).toBe(1);
     expect(billing.mrr).toBeCloseTo(3.99 + 29.9 / 12, 8);
     expect(billing.arr).toBeCloseTo(3.99 * 12 + 29.9, 8);
+    expect(billing.netMrr).toBeCloseTo((3.99 + 29.9 / 12) * 0.971, 8);
+    expect(billing.netArr).toBeCloseTo((3.99 * 12 + 29.9) * 0.971, 8);
+    expect(billing.shopifyFees).toEqual({ revenueShare: 0, processing: 0.029 });
     expect((await readShops(env.DB, "paid", 0)).count).toBe(4);
     expect((await readShops(env.DB, "issues", 0)).shops.map((shop) => shop.id)).toEqual([4]);
     expect((await readTrials(env.DB, 0)).count).toBe(1);
     expect((await findShops(env.DB, "mensile")).map((shop) => shop.id)).toEqual([1]);
+  });
+
+  test("mostra soltanto webhook ancora da verificare", async () => {
+    await insertStore(1, "recuperato.myshopify.com");
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO owner_notification_state (state_key, state_value, updated_at)
+         VALUES ('partner_events_polled_at', datetime('now'), datetime('now'))`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO webhook_events
+           (webhook_id, shop_domain, topic, status, received_at, processed_at, error_code)
+         VALUES ('failed-recovered', 'recuperato.myshopify.com', 'SHOP_UPDATE', 'failed',
+                 datetime('now', '-20 minutes'), datetime('now', '-19 minutes'),
+                 'queue_retries_exhausted')`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO webhook_events
+           (webhook_id, shop_domain, topic, status, received_at, processed_at)
+         VALUES ('recovery', 'recuperato.myshopify.com', 'SHOP_UPDATE', 'processed',
+                 datetime('now', '-10 minutes'), datetime('now', '-9 minutes'))`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO webhook_events
+           (webhook_id, shop_domain, topic, status, received_at, processed_at, error_code)
+         VALUES ('failed-redacted', NULL, 'SHOP_UPDATE', 'failed',
+                 datetime('now', '-20 minutes'), datetime('now', '-19 minutes'),
+                 'queue_retries_exhausted')`,
+      ),
+    ]);
+
+    expect(await readDashboard(env.DB)).toMatchObject({
+      open_issues: 0,
+      unresolved_webhooks: 0,
+    });
+    expect(await readIssues(env.DB)).toMatchObject({ webhooks: { unresolved: 0, stale: 0 } });
+    expect(await readHealth(env.DB)).toMatchObject({ webhooks: { unresolved: 0, stale: 0 } });
+
+    await env.DB.prepare(
+      `INSERT INTO webhook_events
+         (webhook_id, shop_domain, topic, status, received_at, processed_at, error_code)
+       VALUES ('failed-open', 'recuperato.myshopify.com', 'SHOP_UPDATE', 'failed',
+               datetime('now', '-5 minutes'), datetime('now', '-4 minutes'),
+               'queue_retries_exhausted')`,
+    ).run();
+
+    expect(await readDashboard(env.DB)).toMatchObject({
+      open_issues: 1,
+      unresolved_webhooks: 1,
+    });
   });
 
   test("renderizza tutte le viste, apre gli store e confronta le versioni osservate", async () => {
@@ -1025,7 +1085,7 @@ describe("query D1 e run-rate", () => {
           ok: true,
           result: {
             url: "https://cf-ready-prod.test/internal/telegram/webhook",
-            pending_update_count: 0,
+            pending_update_count: 1,
           },
         });
       }
@@ -1051,18 +1111,21 @@ describe("query D1 e run-rate", () => {
       { view: "version" },
       { view: "help" },
     ];
+    let health = "";
     for (const action of actions) {
       // react-doctor-disable-next-line react-doctor/async-await-in-loop
       const message = await renderOwnerControlAction(env.DB, action, controlConfig(), {
         now: NOW,
         fetcher,
       });
+      if (action.view === "health") health = JSON.stringify(message);
       expect(message.richMessage.blocks.length).toBeGreaterThan(1);
       for (const row of message.replyMarkup?.inline_keyboard ?? []) {
         for (const button of row)
           expect(new TextEncoder().encode(button.callback_data).byteLength).toBeLessThanOrEqual(64);
       }
     }
+    expect(health).toContain("Attivo · nessun arretrato");
 
     const shops = await renderOwnerControlAction(
       env.DB,

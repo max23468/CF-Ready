@@ -1,6 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-pool-workers";
+import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
 import { defineConfig } from "vitest/config";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -36,6 +36,7 @@ export default defineConfig({
           "MIGRATION_REVISION_DB",
           "MIGRATION_FULL_DB",
           "MIGRATION_CONTRACTS_DB",
+          "MIGRATION_CHECKOUT_LABELS_DB",
           "MIGRATION_LEGACY_TRIALS_DB",
           "MIGRATION_LEGACY_LEDGER_DB",
           "MIGRATION_LEGACY_BILLING_DB",

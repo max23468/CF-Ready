@@ -135,7 +135,7 @@ Tax codes and PEC addresses typed by customers are **never sent to our
 systems**: the check runs inside Shopify's infrastructure and its only output is
 an error message. Nothing is logged and nothing is stored.
 
-Full policy: `https://cf-ready.pages.dev/en/privacy`.
+Full policy: `https://cfready.it/en/privacy`.
 
 ## 9. Contact
 

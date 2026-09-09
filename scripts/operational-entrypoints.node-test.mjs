@@ -116,7 +116,7 @@ async function writePreflightProject(t, environment) {
         name: "cf-ready-prod",
         vars: {
           SHOPIFY_API_KEY: "3640fb39bcf605de0537d6dfc0d01c8a",
-          SHOPIFY_APP_URL: "https://cf-ready-prod.tmsf.workers.dev",
+          SHOPIFY_APP_URL: "https://app.cfready.it",
           SCOPES: "write_validations",
           BILLING_TEST: "false",
           OWNER_NOTIFICATIONS_ENABLED: "false",

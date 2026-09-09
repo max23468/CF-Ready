@@ -31,7 +31,7 @@
       "node",
       "vite/client",
       "@shopify/polaris-types",
-      "@cloudflare/vitest-pool-workers/types"
+      "@cloudflare/vitest-plugin/types"
     ],
     "rootDirs": [".", "./.react-router/types"]
   }

@@ -1,6 +1,8 @@
 const VALIDATION_LOCK_TTL_MS = 60_000;
 const VALIDATION_LOCK_RENEWAL_MS = 20_000;
 
+export type ValidationLockHeartbeat = ReturnType<typeof startValidationLockHeartbeat>;
+
 export async function withValidationLock<T>(
   db: D1Database,
   shopDomain: string,

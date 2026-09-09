@@ -6,6 +6,57 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.9.0 — 9 settembre 2026
+
+- “Campo Interno” precede “Testi del checkout (impostazioni avanzate)”; il
+  selettore Italiano/Inglese conserva sempre il valore visibile e il confronto
+  distingue il testo predefinito dalle personalizzazioni di mercato;
+- la verifica manuale guida il merchant fino al checkout reale, registra la
+  conferma e la invalida quando cambiano il testo osservato o le regole; i
+  collegamenti e la rilettura indicano il percorso Shopify corretto;
+- gli stati delle etichette restano nella pagina Regole e non producono avvisi
+  nella Home;
+- il campo “Interno” mostra soltanto la variante obbligatoria o facoltativa
+  scelta dal merchant nelle impostazioni del checkout;
+- le scritture automatiche e il ripristino di “Interno” usano modal Polaris con
+  l’elenco dei campi interessati;
+- il sito consente indicizzazione, citazioni e risposte assistite, ma dichiara
+  che i contenuti non possono essere usati per addestrare modelli;
+- test documentali e smoke Pages verificano che i Content Signals pubblicati
+  coincidano con il `robots.txt` versionato.
+
+## 1.8.0 — 9 settembre 2026
+
+- il sito pubblico usa `https://cfready.it` in sitemap, robots, URL canonici,
+  metadati sociali, dati strutturati, listing e documentazione corrente;
+- il Worker Production e il callback OAuth usano `https://app.cfready.it`;
+- il workflow Pages verifica il dominio personalizzato, lo smoke pubblico e il
+  reindirizzamento permanente da `www.cfready.it` alla radice.
+
+## 1.7.1 — 9 settembre 2026
+
+- “Testi del checkout” occupa una sezione autonoma a tutta larghezza e riassume
+  separatamente Codice Fiscale/PEC e il campo Interno;
+- i confronti dei campi fiscali sono raggruppati per lingua e mercato, con una
+  sola verifica per checkout, mentre Interno omette gli override uguali;
+- il consenso alle etichette resta nella pagina corrente e ne rilegge subito lo
+  stato; il controllo automatico di Interno sostituisce la dichiarazione manuale.
+
+## 1.7.0 — 9 settembre 2026
+
+- il Control Center distingue i problemi operativi ancora aperti dagli errori
+  storici e considera recuperati i `SHOP_UPDATE` seguiti da un aggiornamento
+  riuscito o riferiti a uno store già redatto;
+- Health esclude dal backlog Telegram la richiesta corrente e Billing affianca
+  a MRR e ARR l'importo dopo le fee Shopify standard correnti;
+- con consenso Shopify separato, l'app confronta le etichette native di Codice
+  Fiscale e PEC e sincronizza automaticamente la traduzione globale inglese
+  supportata, lasciando fonti primarie, altre lingue e mercati alla verifica
+  guidata;
+- il controllo di “Interno” mostra valori correnti ed ereditati per lingua e
+  mercato, conserva le decisioni già registrate e ripristina soltanto le
+  traduzioni scelte dal merchant.
+
 ## 1.6.2 — 9 settembre 2026
 
 - attivato in Production il Control Center Telegram privato dell’owner dopo la

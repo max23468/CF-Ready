@@ -11,7 +11,7 @@ import {
 
 const expected = {
   clientId: "3640fb39bcf605de0537d6dfc0d01c8a",
-  appUrl: "https://cf-ready-prod.tmsf.workers.dev",
+  appUrl: "https://app.cfready.it",
   databaseId: "6434597c-d683-48d9-a51f-b0d15de6a684",
   databaseName: "cf-ready-db-prod",
   queueName: "cf-ready-webhooks-prod",
@@ -23,6 +23,9 @@ export function verifyProductionConfig(shopifyConfig) {
   const scopes = shopifyConfig.match(
     /^\[access_scopes\]\s*$[\s\S]*?^scopes\s*=\s*"([^"]*)"\s*$/m,
   )?.[1];
+  const optionalScopes = shopifyConfig
+    .match(/^optional_scopes\s*=\s*\[\s*"([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\]\s*$/m)
+    ?.slice(1);
   const emptyEvents =
     /^\[events\]\s*\napi_version\s*=\s*"unstable"\s*\nsubscription\s*=\s*\[\s*\]\s*$/m.test(
       shopifyConfig,
@@ -37,6 +40,7 @@ export function verifyProductionConfig(shopifyConfig) {
       "m",
     ).test(shopifyConfig) ||
     scopes !== "write_validations" ||
+    optionalScopes?.join(",") !== "write_translations,read_locales,read_markets" ||
     !emptyEvents ||
     /^\[\[events\.subscription\]\]/m.test(shopifyConfig)
   ) {

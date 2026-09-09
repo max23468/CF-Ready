@@ -34,7 +34,6 @@ export function OnboardingListBlock({
 
 export function OnboardingStep4Content({
   saved,
-  declared,
   t,
   state,
   busy,
@@ -43,7 +42,6 @@ export function OnboardingStep4Content({
   showPlans,
 }: {
   saved: OnboardingData;
-  declared: boolean;
   t: ReturnType<typeof texts>;
   state: ReturnType<typeof onboardingStep4State>;
   busy: boolean;
@@ -63,10 +61,15 @@ export function OnboardingStep4Content({
           <s-text>{t.rules.pecLabel}</s-text>
           <s-badge>{t.rules.pec[saved.rules.pec]}</s-badge>
         </div>
+        <div className="cf-data-row">
+          <s-text>{t.onboarding.labelsSummary}</s-text>
+          <s-badge>{t.rules.labels.modeValues[saved.labelState.mode]}</s-badge>
+        </div>
+        <div className="cf-data-row">
+          <s-text>{t.onboarding.address2Summary}</s-text>
+          <s-badge>{t.rules.labels.addressStatus[saved.labelState.address2Classification]}</s-badge>
+        </div>
       </div>
-      {saved.rules.taxCode === "unmanaged" ? null : (
-        <Address2DeclarationPrompt declared={declared} t={t} />
-      )}
       <s-paragraph>
         {state.summary === "review"
           ? t.onboarding.reviewStep4Body
@@ -154,32 +157,6 @@ export function OnboardingStep4Actions({
       >
         {t.onboarding.finishWithout}
       </s-button>
-    </>
-  );
-}
-
-export function Address2DeclarationPrompt({
-  declared,
-  t,
-}: {
-  declared: boolean;
-  t: ReturnType<typeof texts>;
-}) {
-  return (
-    <>
-      <input type="hidden" name="address2Shown" value="1" />
-      <s-banner tone="warning">{t.rules.address2Body}</s-banner>
-      <s-checkbox
-        label={t.rules.address2Checkbox}
-        name="address2"
-        value="declared"
-        checked={declared}
-      />
-      {declared ? (
-        <div className="cf-motion-reveal">
-          <s-paragraph>{t.rules.address2Instructions}</s-paragraph>
-        </div>
-      ) : null}
     </>
   );
 }

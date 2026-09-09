@@ -304,6 +304,7 @@ test("il replay dello stesso webhook non duplica i suoi eventi", async () => {
 });
 
 test("un errore transitorio del heartbeat non abbandona un claim ancora posseduto", async () => {
+  vi.useFakeTimers();
   const shop = await insertShop("webhook-heartbeat-transitorio.example.myshopify.com");
   let failRenewal = true;
   const db = new Proxy(env.DB, {
@@ -350,8 +351,14 @@ test("un errore transitorio del heartbeat non abbandona un claim ancora possedut
   );
 
   expect(response.status).toBe(200);
-  await runClaimedWebhook(db, job!, async () => undefined);
-  expect(failRenewal).toBe(false);
+  try {
+    await runClaimedWebhook(db, job!, async () => {
+      await vi.advanceTimersByTimeAsync(100_000);
+    });
+    expect(failRenewal).toBe(false);
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 test("il replay della disinstallazione non tocca una reinstallazione successiva", async () => {
@@ -499,6 +506,51 @@ test("un handler che perde il claim non sovrascrive il nuovo proprietario", asyn
       .bind("wh-claim-perso")
       .first(),
   ).toMatchObject({ status: "processing", claim_token: "claim-nuovo-proprietario" });
+});
+
+test("se la finalizzazione perde il claim segnala l'errore senza sovrascrivere lo stato", async () => {
+  const shop = await insertShop("webhook-finalizzazione-persa.example.myshopify.com");
+  const claim = await claimWebhook(env.DB, "wh-finalizzazione-persa", "SHOP_UPDATE", shop);
+  if (!claim.acquired) throw new Error("claim non acquisito");
+
+  const db = new Proxy(env.DB, {
+    get(target, property) {
+      if (property === "prepare") {
+        return (query: string) => {
+          const statement = target.prepare(query);
+          if (!query.includes("SET status = ?")) return statement;
+
+          const wrap = (current: D1PreparedStatement): D1PreparedStatement =>
+            new Proxy(current, {
+              get(statementTarget, statementProperty) {
+                if (statementProperty === "bind") {
+                  return (...values: unknown[]) => wrap(statementTarget.bind(...values));
+                }
+                if (statementProperty === "first") return async () => null;
+                const value = Reflect.get(statementTarget, statementProperty, statementTarget);
+                return typeof value === "function" ? value.bind(statementTarget) : value;
+              },
+            });
+          return wrap(statement);
+        };
+      }
+      const value = Reflect.get(target, property, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  }) as D1Database;
+
+  await expect(
+    runClaimedWebhook(
+      db,
+      { webhookId: "wh-finalizzazione-persa", claimToken: claim.token, shop },
+      async () => undefined,
+    ),
+  ).rejects.toThrow("webhook_claim_lost");
+  expect(
+    await env.DB.prepare("SELECT status FROM webhook_events WHERE webhook_id = ?")
+      .bind("wh-finalizzazione-persa")
+      .first(),
+  ).toMatchObject({ status: "processing" });
 });
 
 test("un errore nella coda primaria usa il retry breve", async () => {

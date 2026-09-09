@@ -25,6 +25,26 @@ export const it = {
       "Non è stato possibile salvare. Shopify non ha accettato la scrittura. Riprova; se l’errore si ripete, scrivici.",
     validation_readback_failed:
       "Non è stato possibile salvare. Shopify non ha confermato la scrittura. Riapri la pagina per vedere lo stato reale.",
+    checkout_labels_scope_required:
+      "Per leggere e sincronizzare le etichette devi concedere i permessi facoltativi Shopify.",
+    checkout_labels_resource_missing:
+      "Shopify non espone una delle etichette attese. Le regole continuano a funzionare; usa la procedura guidata.",
+    checkout_labels_resource_ambiguous:
+      "Shopify espone più risorse per la stessa etichetta. Nessun testo è stato modificato.",
+    checkout_labels_locale_missing:
+      "Italiano o inglese non sono disponibili nello store. Pubblica la lingua oppure continua con quelle disponibili.",
+    checkout_labels_conflict:
+      "Un’etichetta è cambiata dopo l’ultima lettura. Rileggi Shopify prima di decidere quale testo mantenere.",
+    checkout_labels_confirmation_required:
+      "Conferma il confronto prima della prima scrittura automatica delle etichette.",
+    checkout_labels_stale_digest:
+      "Shopify ha aggiornato il contenuto durante il salvataggio. Rileggi le etichette e riprova.",
+    checkout_labels_partial_sync:
+      "Le regole sono salvate, ma alcune etichette richiedono un nuovo tentativo.",
+    checkout_labels_readback_failed:
+      "Shopify non ha confermato tutte le etichette. Rileggi lo stato prima di modificarle ancora.",
+    address2_restore_conflict:
+      "Il testo di Interno è cambiato dopo il confronto. Rileggi Shopify prima del ripristino.",
     validation_limit_reached:
       "Questo store ha già il numero massimo di controlli al checkout consentito da Shopify. Le tue regole restano salvate. Disattiva il controllo di un’altra app da Impostazioni → Checkout, poi riprova: CF Ready non tocca le risorse di altre app.",
     entitlement_required:
@@ -85,8 +105,6 @@ export const it = {
       "Il controllo nel checkout è attivo. Se hai feedback sulla configurazione o hai bisogno di aiuto, scrivi direttamente allo sviluppatore.",
     checkInContact: "Scrivimi",
     checkInDismiss: "Non mostrare più",
-    nextAddress2:
-      "Smetti di usare il campo “Interno” per il Codice Fiscale: oggi il cliente vede due campi per lo stesso dato. Le istruzioni sono in Regole checkout.",
   },
   messages: {
     heading: "Messaggi al cliente",
@@ -113,6 +131,12 @@ export const it = {
     previewContext: "Quando il cliente prova a completare l’ordine",
     previewErrorHeading: "Ordine non completato",
     previewSelected: "Messaggio selezionato",
+    previewFieldLabel: "Etichetta del campo",
+    previewCurrentFieldLabel: "Etichetta attuale Shopify",
+    previewProposedFieldLabel: "Etichetta proposta",
+    labelsNote:
+      "Le etichette identificano i campi; questi messaggi spiegano al cliente cosa correggere.",
+    manageLabels: "Gestisci le etichette da Regole checkout",
   },
   setup: {
     heading: "Prepara CF Ready",
@@ -130,7 +154,9 @@ export const it = {
     planBodyLapsed:
       "La prova è terminata. Scegli un piano per far valere di nuovo le regole nel checkout; configurazione e messaggi restano salvati.",
     startTrial: "Avvia la prova gratuita",
-    address2Title: "Smetti di usare il campo “Interno”",
+    labelsTitle: "Controlla le etichette del checkout",
+    labelsBody:
+      "Confronta le etichette di Codice Fiscale e PEC in italiano e inglese; il campo “Interno” ha un controllo separato.",
     guided: "Apri la procedura guidata",
   },
   onboarding: {
@@ -150,12 +176,18 @@ export const it = {
     ],
     step2Heading: "Scegli cosa controllare",
     step2Body: "Puoi cambiare queste scelte quando vuoi da Regole checkout.",
+    labelsPreviewHeading: "Etichette proposte in italiano e inglese",
+    labelsPermissionsGranted: "I permessi per confrontare le etichette sono disponibili.",
+    labelsPermissionsOptional:
+      "Puoi concedere ora i permessi per confrontare le etichette con Shopify oppure continuare senza attivarli.",
     step3Heading: "Anteprima delle regole",
     step3Body: "Con le regole che hai scelto:",
     step3Messages: "Messaggi configurati",
     step3MessagesBody:
       "Questi sono i quattro messaggi già configurati. Sono disponibili in italiano e inglese e puoi modificarli da Messaggi al cliente.",
     step4Heading: "Riepilogo",
+    labelsSummary: "Gestione etichette",
+    address2Summary: "Controllo di “Interno”",
     step4BodyReady: "Le regole sono salvate ma non ancora attive.",
     step4BodyNeedsEntitlement: "Le regole sono salvate ma non ancora attive.",
     step4TrialHeading: "Prova e piano",
@@ -237,6 +269,8 @@ export const it = {
       simulate: "Riproduci il caso nel simulatore",
       entitled: "Prova o piano validi nello stato appena sincronizzato.",
       notEntitled: "Nessuna prova o piano validi nello stato appena sincronizzato.",
+      checkoutLabels: "Etichette del checkout",
+      address2: "Campo “Interno”",
     },
     heading: "Guida e FAQ",
     faqHeading: "Domande frequenti",
@@ -277,7 +311,31 @@ export const it = {
       },
       {
         q: "Uso il campo “Interno” per il Codice Fiscale",
-        a: "Il Codice Fiscale va raccolto nel campo fiscale nativo del checkout italiano. Se lo raccogli anche nella seconda riga dell’indirizzo, il cliente vede due campi per lo stesso dato: apri Impostazioni → Checkout e porta quella riga su “Facoltativo” o “Non includere”, poi rimetti l’etichetta originale da “Gestisci la lingua del checkout”. CF Ready non legge e non modifica quell’impostazione: l’avviso che vedi in app si basa sulla tua dichiarazione.",
+        a: "Il Codice Fiscale va raccolto nel campo fiscale nativo del checkout italiano. CF Ready legge le etichette di “Interno” e segnala un possibile conflitto fiscale; può ripristinare le traduzioni che gestisce, mentre il testo sorgente della lingua primaria richiede la procedura mostrata in Regole checkout.",
+      },
+      {
+        q: "Come funzionano le etichette automatiche",
+        a: "Dopo il tuo consenso, CF Ready confronta le etichette native di Codice Fiscale e PEC in italiano e inglese e sincronizza soltanto locale, mercato e chiave già provati come scrivibili. Le regole salvate determinano se il testo indica un campo facoltativo o obbligatorio.",
+      },
+      {
+        q: "Perché vedo ancora “facoltativo”",
+        a: "Controlla i permessi, le lingue pubblicate e gli eventuali override di mercato da Regole checkout. Una nuova lingua, una modifica esterna o una sincronizzazione parziale richiedono un nuovo confronto e un checkout reale resta la verifica conclusiva.",
+      },
+      {
+        q: "CF Ready può sapere se “Interno” è facoltativo o nascosto?",
+        a: "No. Shopify espone i testi della seconda riga dell’indirizzo, ma non l’opzione del modulo che la rende obbligatoria, facoltativa o nascosta. Controlla quell’opzione in Impostazioni → Checkout.",
+      },
+      {
+        q: "Cosa succede se uso Translate & Adapt o un’altra app",
+        a: "CF Ready rilegge le etichette prima di scrivere. Se trova una modifica esterna, la conserva e chiede una decisione invece di sovrascriverla automaticamente.",
+      },
+      {
+        q: "Cosa succede quando disattivo la gestione delle etichette",
+        a: "CF Ready ripristina soltanto traduzioni ancora uguali all’ultima propria scrittura. Se un testo è cambiato nel frattempo, lo lascia invariato e mostra l’azione necessaria.",
+      },
+      {
+        q: "Cosa succede alle etichette quando disinstallo CF Ready",
+        a: "Le traduzioni Shopify possono restare dopo la disinstallazione. Prima di rimuovere l’app, usa Regole checkout per ripristinare le traduzioni gestite e verifica il checkout nelle lingue e nei mercati pubblicati.",
       },
       {
         q: "Prova e pagamenti",
@@ -377,6 +435,7 @@ export const it = {
   rules: {
     heading: "Regole checkout",
     saved: "Regole salvate.",
+    labelsSaved: "Regole salvate. Le etichette richiedono attenzione.",
     taxCodeLabel: "Codice Fiscale",
     pecLabel: "PEC",
     taxCode: {
@@ -412,6 +471,12 @@ export const it = {
       eyebrow: "CF Ready · simulazione checkout",
       heading: "Checkout di prova",
       privatePreview: "Anteprima interattiva",
+      previewLanguage: "Lingua dell’anteprima",
+      labelsAfterSave: "Etichette mostrate dopo il salvataggio delle regole",
+      italian: "Italiano",
+      english: "English",
+      address2: "Interno",
+      realCheckout: "Conferma il testo finale in un checkout reale.",
       orderContext: "Destinazione dell’ordine",
       customerData: "Dati fiscali del cliente",
       company: "Azienda",
@@ -438,12 +503,112 @@ export const it = {
         ready: "Checkout pronto",
       },
     },
-    address2Heading: "Il campo “Interno” non va usato per il Codice Fiscale",
-    address2Body:
-      "Usi anche il campo “Interno” per il Codice Fiscale? Il cliente vedrà due campi. Seleziona la casella per vedere come rimuoverlo.",
-    address2Checkbox: "Sì, uso “Interno” per il Codice Fiscale",
-    address2Instructions:
-      "Servono due passaggi. In Impostazioni → Checkout, sezione “Opzioni del modulo”, porta la seconda riga dell’indirizzo su “Facoltativo” o “Non includere”; poi, se ne hai cambiato l’etichetta, rimettila com’era da “Gestisci la lingua del checkout”, o da Impostazioni → Lingue, scheda “Checkout e sistema”, se la lingua è tradotta.",
+    labels: {
+      heading: "Etichette del checkout",
+      nativeHeading: "Testi del checkout (impostazioni avanzate)",
+      permissionsHeading: "Controlla le etichette Shopify",
+      permissionsBody:
+        "Concedi accesso soltanto a traduzioni, lingue e mercati. CF Ready non legge ordini, clienti o dati inseriti nel checkout.",
+      requestPermissions: "Concedi i permessi",
+      statusManagedByShopify: "Gestito da Shopify",
+      statusManualRequired: "Verifica manuale richiesta",
+      nativeSummaryNeedsAccess: "Concedi l’accesso per controllare i testi del checkout.",
+      nativeSummaryNeedsReview: (count: number) =>
+        `${count === 1 ? "Un checkout richiede" : `${count} checkout richiedono`} una verifica.`,
+      nativeSummaryNeedsChoice: "Scegli se CF Ready deve gestire questi testi.",
+      nativeSummaryError: "CF Ready non ha completato l’ultimo controllo.",
+      nativeSummaryKept: "Hai scelto di mantenere i testi attuali.",
+      nativeSummaryReady: "I testi sono coerenti con le regole salvate.",
+      enable: "Gestisci automaticamente le etichette supportate da Shopify",
+      enableGuided: "Mantieni attivo il controllo guidato delle etichette",
+      enableConfirm: "Ho confrontato i campi attuali con quelli proposti",
+      enableConfirmHeading: "Conferma gestione automatica",
+      enableConfirmBody: "CF Ready aggiornerà questi campi tramite Shopify:",
+      enableConfirmAction: "Conferma e salva",
+      mode: "Modalità",
+      modeValues: {
+        off: "Disattivata",
+        guided: "Guidata",
+        automatic: "Automatica",
+        partial: "Mista",
+      },
+      current: "Campo attuale",
+      proposed: "Campo dopo il salvataggio",
+      language: "Lingua",
+      italian: "Italiano",
+      english: "Inglese",
+      unchanged: "Mantieni il testo attuale",
+      noChange: "Nessuna modifica",
+      generalText: "Predefinito per questa lingua",
+      marketException: (market: string) => `Personalizzazione per il mercato ${market}`,
+      unknownMarket: "mercato non identificato",
+      allMarketsSame: "Tutti i mercati usano questo testo",
+      primary: "primaria",
+      unpublished: "non pubblicata",
+      marketAmbiguous:
+        "Shopify non indica una sola configurazione per uno o più mercati, per esempio quando le impostazioni vengono ereditate. Nei riquadri “Personalizzazione per il mercato…” apri il checkout del mercato indicato e controlla direttamente le etichette mostrate.",
+      refresh: "Rileggi i campi da Shopify",
+      stop: "Ripristina e interrompi la gestione",
+      lastSync: (value: string) => `Ultimo aggiornamento: ${value}`,
+      neverSynced: "Campi non ancora aggiornati",
+      operationalSummary: (automatic: number, manual: number) =>
+        `${automatic} ${automatic === 1 ? "etichetta gestita" : "etichette gestite"} da Shopify · ${manual} ${manual === 1 ? "verifica manuale richiesta" : "verifiche manuali richieste"}`,
+      manualHeading: "Come completare la verifica manuale",
+      manualSteps: (language: string, market: string | null, primary: boolean) => [
+        market
+          ? `Apri il negozio e seleziona ${market} come paese o area geografica e ${language} come lingua.`
+          : `Apri il negozio nel mercato predefinito e seleziona ${language} come lingua.`,
+        "Aggiungi un prodotto al carrello e raggiungi il checkout.",
+        "Confronta le etichette di Codice Fiscale e PEC con “Campo dopo il salvataggio” mostrato qui.",
+        primary && !market
+          ? "Se differiscono, in Shopify vai su Impostazioni → Checkout. Nella sezione Lingua del checkout scegli Modifica contenuto del checkout, cerca il testo indicato come “Campo attuale”, sostituiscilo con “Campo dopo il salvataggio” e salva."
+          : `Se differiscono, apri Shopify Translate & Adapt, ${market ? `seleziona il mercato ${market} e ` : ""}seleziona la lingua ${language}. Apri Checkout e sistema, cerca il testo indicato come “Campo attuale”, sostituiscilo con “Campo dopo il salvataggio” e salva.`,
+        "Torna in CF Ready e premi “Rileggi i campi da Shopify”. Quando i due valori coincidono, il pulsante di conferma si attiva.",
+      ],
+      manualMismatch:
+        "Shopify restituisce ancora un testo diverso. Modificalo e salvalo con la procedura qui sopra, quindi premi “Rileggi i campi da Shopify”.",
+      openStorefront: "Apri il negozio",
+      openCheckoutContentEditor: "Apri le impostazioni checkout",
+      openTranslations: "Apri lingue e traduzioni Shopify",
+      confirmGuided: "Conferma verifica manuale",
+      lastManualVerification: (value: string) => `Ultima verifica manuale: ${value}`,
+      checkoutCheckRequired: "verifica manuale nel checkout richiesta",
+      keepNative: "Mantieni le mie etichette",
+      keepNativeAccepted: "Scelta registrata: mantieni le etichette attuali",
+      addressHeading: "Campo Interno",
+      addressModeLabel: "Configurazione del campo Interno",
+      addressModePlaceholder: "Seleziona la configurazione attiva",
+      addressModeHelp:
+        "Indica l’opzione attiva in Impostazioni → Checkout. Shopify non la espone automaticamente a CF Ready.",
+      addressModeSummary: "Indica se il campo Interno è obbligatorio o facoltativo.",
+      addressRequired: "Obbligatorio",
+      addressOptional: "Facoltativo",
+      addressStatus: {
+        unknown: "Da controllare",
+        expected: "Nessuna etichetta fiscale rilevata",
+        nonstandard: "Testo personalizzato",
+        fiscal_conflict: "Possibile doppione",
+      },
+      addressSummary: {
+        unknown: "Concedi l’accesso per controllare il testo del campo Interno.",
+        expected: "Nel campo Interno non è stata rilevata un’etichetta fiscale.",
+        nonstandard: "Il campo Interno usa un testo personalizzato che non sembra fiscale.",
+        fiscal_conflict:
+          "Il campo Interno è etichettato come Codice Fiscale e può creare un doppione.",
+      },
+      addressLimit:
+        "CF Ready controlla il testo. Visibilità e obbligatorietà restano nelle impostazioni checkout di Shopify.",
+      notAvailable: "Non disponibile",
+      standardLabel: "Testo Shopify",
+      restoreAddress: "Ripristina le traduzioni gestibili",
+      restoreAddressConfirm:
+        "Confermi il confronto? CF Ready ripristinerà soltanto le traduzioni e gli override mostrati, poi rileggerà Shopify.",
+      keepAddress: "Mantieni questa personalizzazione",
+      openCheckout: "Apri le impostazioni checkout",
+      sourceManual:
+        "Il testo sorgente della lingua primaria si ripristina dall’editor del contenuto checkout Shopify.",
+      noSnapshot: "Concedi i permessi per confrontare i testi correnti dello store.",
+    },
   },
   checkout: {
     nothing: "Nessun campo è configurato: il checkout resta invariato.",

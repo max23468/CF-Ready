@@ -3,12 +3,13 @@
 client_id = "3640fb39bcf605de0537d6dfc0d01c8a"
 name = "CF Ready"
 handle = "cf-ready"
-application_url = "https://cf-ready-prod.tmsf.workers.dev"
+application_url = "https://app.cfready.it"
 embedded = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "write_validations"
+optional_scopes = [ "write_translations", "read_locales", "read_markets" ]
 
 [webhooks]
 api_version = "2026-07"
@@ -38,7 +39,7 @@ api_version = "unstable"
 subscription = []
 
 [auth]
-redirect_urls = [ "https://cf-ready-prod.tmsf.workers.dev/auth/callback" ]
+redirect_urls = [ "https://app.cfready.it/auth/callback" ]
 
 [build]
 automatically_update_urls_on_dev = false

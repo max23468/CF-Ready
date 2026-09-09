@@ -129,30 +129,18 @@ test("cambiare una regola aggiorna la bozza", () => {
   data.set("pec", "required_validated");
 
   expect(
-    mergeRulesFormDraft(
-      {
-        rules: { taxCode: "required_validated", pec: "unmanaged" },
-        address2: false,
-      },
-      data,
-    ),
+    mergeRulesFormDraft({ rules: { taxCode: "required_validated", pec: "unmanaged" } }, data),
   ).toEqual({
     rules: { taxCode: "optional_validated", pec: "required_validated" },
-    address2: false,
   });
 });
 
-test("una bozza incompleta conserva i valori precedenti e legge la dichiarazione", () => {
+test("una bozza incompleta conserva i valori precedenti", () => {
   const current = {
     rules: { taxCode: "required_validated", pec: "optional_validated" },
-    address2: false,
   } as const;
   const missing = new FormData();
   expect(mergeRulesFormDraft(current, missing)).toEqual(current);
-
-  const declared = new FormData();
-  declared.set("address2", "declared");
-  expect(mergeRulesFormDraft(current, declared).address2).toBe(true);
 });
 
 test("gli indirizzi non ancora disponibili non escludono i campi fiscali presenti", () => {
@@ -175,7 +163,6 @@ test("gli indirizzi non ancora disponibili non escludono i campi fiscali present
 test("la riapplicazione conserva modifiche locali e regole remote non toccate", () => {
   const base = {
     rules: { taxCode: "optional_validated", pec: "unmanaged" },
-    address2: false,
   } as const;
   const current = {
     ...base,
@@ -184,10 +171,8 @@ test("la riapplicazione conserva modifiche locali e regole remote non toccate", 
   const local = {
     ...base,
     rules: { ...base.rules, pec: "required_validated" },
-    address2: true,
   } as const;
   expect(rebaseRulesDraft(base, local, current)).toEqual({
     rules: { taxCode: "required_validated", pec: "required_validated" },
-    address2: true,
   });
 });

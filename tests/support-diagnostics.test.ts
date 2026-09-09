@@ -43,6 +43,16 @@ test("la diagnostica legge solo lo stato D1 minimizzato e dà precedenza all'acc
     lastSyncAt: now,
     validationEnabled: true,
     validationStateRevision: 7,
+    checkoutLabelsEnabled: false,
+    checkoutLabelsMode: "off",
+    checkoutLabelsStatus: "unknown",
+    address2Classification: "unknown",
+    address2Decision: "pending",
+    address2MarketOverride: false,
+    checkoutLabelLocales: "",
+    checkoutLabelMarketCount: 0,
+    checkoutLabelsLastSyncAt: null,
+    checkoutLabelsErrorCode: null,
   });
 });
 
@@ -57,6 +67,16 @@ test("la diagnostica fallisce aperta su uno store senza stato operativo", async 
     lastSyncAt: null,
     validationEnabled: false,
     validationStateRevision: 0,
+    checkoutLabelsEnabled: false,
+    checkoutLabelsMode: "off",
+    checkoutLabelsStatus: "unknown",
+    address2Classification: "unknown",
+    address2Decision: "pending",
+    address2MarketOverride: false,
+    checkoutLabelLocales: "",
+    checkoutLabelMarketCount: 0,
+    checkoutLabelsLastSyncAt: null,
+    checkoutLabelsErrorCode: null,
   });
 });
 

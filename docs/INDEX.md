@@ -20,6 +20,8 @@ corrente si legge da codice, configurazioni e `package.json`.
   — target verificato, limite della review, chiusura M10 e gate checkout M11.
 - [Validazione automatica nel checkout](evidence/2026-09-08-checkout-validation-automatic.md)
   — prova Development di Interaction inline, consegna risolta e pagamenti manuali.
+- [Matrice etichette checkout 1.7.0](evidence/2026-09-09-checkout-labels-capability-matrix.md)
+  — capacità per lingua e mercato, prove Development e confini live residui.
 - [Operazioni Development M4](evidence/2026-07-30-m4-development-migration.md)
   — migrazione D1, deploy, snapshot Shopify e verifiche live.
 - [Rilascio Development M5](evidence/2026-07-30-m5-development-release.md)
@@ -58,6 +60,7 @@ corrente si legge da codice, configurazioni e `package.json`.
   sottoposte a valutazione manuale.
 - [ADR 0001](adr/0001-stack.md) — stack applicativo e provider.
 - [ADR 0002](adr/0002-webhook-queue.md) — ACK webhook rapido con retry durevoli.
+- [ADR 0003](adr/0003-native-checkout-labels.md) — lettura, gestione e ripristino prudente delle etichette native del checkout.
 - [Brand Foundation](brand/brand-foundation.md) — identità e tono.
 - [Brand board](brand/brand-board.html) — riferimento visuale.
 - [Asset del brand](brand/assets/README.md) — file e modalità d’uso.

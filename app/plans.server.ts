@@ -9,6 +9,12 @@ const AMOUNTS: Record<PricingGeneration, Record<PlanKind, number>> = {
   balanced: { monthly: 3.99, annual: 39.9, one_time: 119.9 },
 };
 
+// Tariffe standard Shopify App Store verificate il 9 settembre 2026.
+export const SHOPIFY_APP_FEES = {
+  revenueShare: 0,
+  processing: 0.029,
+} as const;
+
 // Nome che il merchant legge nella pagina di approvazione e nella fattura Shopify.
 const LABELS: Record<PlanKind, string> = {
   monthly: "CF Ready — abbonamento mensile",
