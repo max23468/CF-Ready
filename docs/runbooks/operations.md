@@ -254,6 +254,57 @@ partire dopo la cancellazione dei dati dello store. Una barriera HMAC conserva
 soltanto l'istante di redazione e scarta replay Partner anteriori; un evento di
 reinstallazione con istante successivo resta notificabile.
 
+## Control Center owner Telegram
+
+Il Control Center usa lo stesso trasporto Telegram delle notifiche, ma ricezione,
+ricevute D1 e risposte interattive restano separate dall’outbox. L’endpoint
+`POST /internal/telegram/webhook` risponde soltanto quando il flag
+`OWNER_TELEGRAM_CONTROL_ENABLED` vale `true`; la configurazione committata lo
+mantiene disattivato in Development e Production.
+
+Prima dell’attivazione Production servono i secret `TELEGRAM_WEBHOOK_SECRET` e
+`TELEGRAM_OWNER_USER_ID`, oltre ai cinque secret già usati da Telegram e Partner.
+Il bot accetta la sola chat privata per cui chat ID e owner user ID coincidono.
+Il webhook secret deve contenere almeno 32 caratteri casuali tra lettere, numeri,
+trattino e underscore.
+Non usare il bot Production per prove Development: un collaudo reale separato
+richiede un secondo bot e secret distinti.
+
+Il tooling legge le variabili dall’ambiente del processo senza stamparne i valori:
+
+```bash
+npm run owner-control:telegram -- --check
+npm run owner-control:telegram -- --apply
+```
+
+`--check` chiama soltanto `getWebhookInfo` e `getMyCommands` e fallisce se URL,
+update ammessi o menu della chat owner divergono. `--apply` esegue
+`setWebhook` con `message` e `callback_query`, imposta gli otto shortcut nella
+sola chat owner e ripete lo stesso readback. L’URL predefinito deriva da
+`SHOPIFY_APP_URL`, così il tooling configura sempre il target dell’ambiente caricato.
+
+La sequenza Production autorizzata è:
+
+1. verificare identità dell’account Cloudflare, Worker `cf-ready-prod`, app e
+   organizzazione Partner;
+2. creare e conservare il webhook secret fuori dal repository, quindi scrivere
+   i due nuovi secret nel Worker senza mostrarli;
+3. applicare la migrazione `0017_owner_control.sql`, distribuire il Worker con
+   il flag ancora `false` ed eseguire smoke e readback del deployment;
+4. eseguire `--apply`, rileggere webhook e menu con `--check` e verificare che
+   gli update pending restino sotto controllo;
+5. impostare il flag a `true` in una nuova release tecnica, distribuire e provare
+   `/help`, `/dashboard`, navigazione, refresh, paginazione e un utente non
+   autorizzato;
+6. rileggere le ricevute D1 aggregate e confermare che nessun payload, testo,
+   chat ID o user ID venga conservato.
+
+Per il rollback, riportare il flag a `false` e ridistribuire. Se serve fermare
+anche la consegna degli update prima del deploy, sostituire o eliminare il
+webhook tramite una procedura Telegram autorizzata e verificarne subito il
+readback. Le ricevute già processate restano tecniche e vengono eliminate dopo
+sette giorni; le notifiche outbound continuano secondo il proprio flag.
+
 ## Traces Development temporanee
 
 Traces resta `enabled: false`. Si usa solo per riprodurre un difetto con dati

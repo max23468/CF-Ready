@@ -93,6 +93,7 @@ mise exec -- npm run shopify:info -- shopify.app.dev.toml
 npm run report:launch -- production
 npm run report:performance -- production
 npm run report:performance -- production --compare 1.2.1 1.2.2
+npm run owner-control:telegram -- --check
 ```
 
 Sostituisci `production` con `development` per il database Development. Sono letture
@@ -120,6 +121,21 @@ bot dedicato, una chat privata avviata e i secret Production `TELEGRAM_BOT_TOKEN
 `TELEGRAM_CHAT_ID`, `SHOPIFY_PARTNER_ORGANIZATION_ID`,
 `SHOPIFY_PARTNER_APP_ID` e `SHOPIFY_PARTNER_ACCESS_TOKEN`; seguire il runbook
 operativo per configurazione, verifica e rollback.
+
+Lo stesso bot può esporre il Control Center privato di sola lettura tramite
+`POST /internal/telegram/webhook`. I comandi disponibili sono `/dashboard`,
+`/shops`, `/shop`, `/growth`, `/billing`, `/trials`, `/funnel`, `/issues`,
+`/errors`, `/notifications`, `/activity`, `/health`, `/performance`, `/version`
+e `/help`. D1 fornisce stato corrente, commerciale e operativo; gli aggregati
+Growth 7/28 giorni arrivano dalla Partner API e usano una cache D1 breve.
+
+Il Control Center richiede anche `TELEGRAM_WEBHOOK_SECRET` e
+`TELEGRAM_OWNER_USER_ID`; il webhook secret contiene almeno 32 caratteri casuali.
+Rimane spento finché
+`OWNER_TELEGRAM_CONTROL_ENABLED` vale `false`. Il comando `--check` sopra legge
+webhook e menu senza modificarli; `npm run owner-control:telegram -- --apply`
+configura webhook e shortcut owner e richiede l’autorizzazione Production
+descritta nel runbook.
 
 ## Documentazione e contributi
 

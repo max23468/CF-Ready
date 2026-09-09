@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   pollLocalNotifications: vi.fn(),
   deliverOwnerNotifications: vi.fn(),
   recordEvent: vi.fn(),
+  handleOwnerControlWebhook: vi.fn(),
 }));
 
 vi.mock("react-router", async (importOriginal) => ({
@@ -29,6 +30,10 @@ vi.mock("../app/owner-notifications.server", () => ({
   deliverOwnerNotifications: mocks.deliverOwnerNotifications,
 }));
 vi.mock("../app/events.server", () => ({ recordEvent: mocks.recordEvent }));
+vi.mock("../app/owner-control/handler.server", () => ({
+  OWNER_CONTROL_PATH: "/internal/telegram/webhook",
+  handleOwnerControlWebhook: mocks.handleOwnerControlWebhook,
+}));
 
 import worker from "../workers/app";
 import { waitUntilContext } from "../app/context.server";
@@ -42,6 +47,7 @@ beforeEach(() => {
   mocks.pollLocalNotifications.mockResolvedValue(undefined);
   mocks.deliverOwnerNotifications.mockResolvedValue(undefined);
   mocks.recordEvent.mockResolvedValue(undefined);
+  mocks.handleOwnerControlWebhook.mockResolvedValue(new Response("control", { status: 202 }));
 });
 
 describe("entrypoint Worker", () => {
@@ -82,6 +88,17 @@ describe("entrypoint Worker", () => {
     );
 
     expect(response.status).toBe(413);
+    expect(mocks.requestHandler).not.toHaveBeenCalled();
+  });
+
+  test("intercetta il webhook Telegram prima del router merchant", async () => {
+    const request = new Request("https://cf-ready.test/internal/telegram/webhook", {
+      method: "POST",
+    });
+    const response = await worker.fetch(request as never, env, { waitUntil() {} } as never);
+
+    expect(response.status).toBe(202);
+    expect(mocks.handleOwnerControlWebhook).toHaveBeenCalledWith(request, env);
     expect(mocks.requestHandler).not.toHaveBeenCalled();
   });
 

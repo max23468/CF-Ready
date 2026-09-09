@@ -6,7 +6,7 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
-## 1.6.0 — 8 settembre 2026
+## 1.6.1 — 9 settembre 2026
 
 - la PEC può essere resa obbligatoria soltanto quando il cliente compila il
   campo Azienda dell’indirizzo di fatturazione;
@@ -15,6 +15,19 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 - configurazione, Function, riepiloghi, onboarding e simulatore distinguono i
   quattro stati PEC dai tre stati del Codice Fiscale e continuano a leggere le
   configurazioni precedenti.
+- aggiunto il Control Center Telegram privato e di sola lettura con quindici
+  comandi, Rich Message, navigazione inline, paginazione e aggiornamento dello
+  stesso messaggio;
+- il webhook inbound verifica secret, chat privata e owner, limita il JSON a
+  64 KiB e usa ricevute D1 idempotenti con retention di sette giorni;
+- dashboard, store, billing, trial, funnel, problemi, errori, notifiche, attività,
+  health e versione leggono fonti operative correnti; Growth usa aggregati
+  Shopify Partner 7/28 giorni con cache e cooldown;
+- il reporting funnel e performance condivide query e policy con i comandi CLI;
+  Performance confronta le due versioni osservate più recenti soltanto con
+  campioni sufficienti;
+- aggiunti Version Metadata Cloudflare, tooling idempotente per setup/readback
+  Telegram e preflight dei nuovi secret quando il Control Center viene abilitato.
 
 ## 1.5.4 — 8 settembre 2026
 
