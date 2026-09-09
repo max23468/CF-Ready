@@ -199,7 +199,6 @@ function NativeCheckoutLabels({
     state,
     scopeGranted,
     keptByMerchant,
-    needsAttention,
     pendingCount: pendingContexts.length,
   });
 
@@ -394,14 +393,12 @@ function nativeLabelsPresentation({
   state,
   scopeGranted,
   keptByMerchant,
-  needsAttention,
   pendingCount,
 }: {
   copy: ReturnType<typeof texts>["rules"]["labels"];
   state: CheckoutLabelState;
   scopeGranted: boolean;
   keptByMerchant: boolean;
-  needsAttention: boolean;
   pendingCount: number;
 }) {
   if (state.lastErrorCode) {
