@@ -11,7 +11,7 @@ import {
 
 const expected = {
   clientId: "3640fb39bcf605de0537d6dfc0d01c8a",
-  appUrl: "https://cf-ready-prod.tmsf.workers.dev",
+  appUrl: "https://app.cfready.it",
   databaseId: "6434597c-d683-48d9-a51f-b0d15de6a684",
   databaseName: "cf-ready-db-prod",
   queueName: "cf-ready-webhooks-prod",
