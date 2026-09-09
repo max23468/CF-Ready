@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   storeSession: vi.fn(),
   admin: vi.fn(),
   reconcile: vi.fn(),
+  markCheckoutLabelsScopeRequired: vi.fn(),
 }));
 
 vi.mock("../../app/webhooks.server", () => ({
@@ -29,6 +30,9 @@ vi.mock("../../app/shopify.server", () => ({
   unauthenticated: { admin: mocks.admin },
 }));
 vi.mock("../../app/validation.server", () => ({ reconcile: mocks.reconcile }));
+vi.mock("../../app/checkout-labels/repository.server", () => ({
+  markCheckoutLabelsScopeRequired: mocks.markCheckoutLabelsScopeRequired,
+}));
 
 import { processWebhookJob } from "../../app/webhook-jobs.server";
 
@@ -95,6 +99,19 @@ test("aggiorna soltanto la sessione offline quando Shopify invia gli scope", asy
   expect(offline.scope).toBe("read_products,write_products");
   expect(mocks.storeSession).toHaveBeenCalledWith(offline);
   expect(online.scope).toBe("online");
+  expect(mocks.markCheckoutLabelsScopeRequired).toHaveBeenCalledWith(db, job.shop);
+});
+
+test("mantiene le etichette quando tutti gli scope opzionali restano concessi", async () => {
+  mocks.topic = "APP_SCOPES_UPDATE";
+  mocks.findSessionsByShop.mockResolvedValue([{ id: "offline", isOnline: false }]);
+
+  await processWebhookJob(db, {
+    ...job,
+    currentScopes: ["write_translations", "read_locales", "read_markets"],
+  });
+
+  expect(mocks.markCheckoutLabelsScopeRequired).not.toHaveBeenCalled();
 });
 
 test.each([

@@ -5,7 +5,12 @@ import { createAppContext } from "../app/context.server";
 const mocks = vi.hoisted(() => ({
   authenticate: vi.fn(),
   readHomeState: vi.fn(),
+  readCheckoutLabelState: vi.fn(),
   reconcile: vi.fn(),
+}));
+
+vi.mock("../app/checkout-labels/repository.server", () => ({
+  readCheckoutLabelState: mocks.readCheckoutLabelState,
 }));
 
 vi.mock("../app/shopify.server", () => ({
@@ -73,6 +78,14 @@ test("la Home legge lo stato D1 in parallelo ed espone timing senza dati merchan
     },
   );
   mocks.readHomeState.mockReturnValue(homeState.promise);
+  mocks.readCheckoutLabelState.mockResolvedValue({
+    mode: "off",
+    lastSyncAt: null,
+    lastErrorCode: null,
+    address2ExternalChangeAt: null,
+    address2Classification: "unknown",
+    address2Decision: "pending",
+  });
 
   const { headers, loader } = await import("../app/routes/app._index");
   const pending = loader({

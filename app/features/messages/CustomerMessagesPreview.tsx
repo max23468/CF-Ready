@@ -4,6 +4,8 @@ type CustomerMessagesPreviewProps = {
   activeLocale: Locale;
   context: string;
   errorHeading: string;
+  fieldLabel: string;
+  fieldLabelHeading: string;
   heading: string;
   languageLabel: string;
   languages: Record<Locale, string>;
@@ -17,6 +19,8 @@ export function CustomerMessagesPreview({
   activeLocale,
   context,
   errorHeading,
+  fieldLabel,
+  fieldLabelHeading,
   heading,
   languageLabel,
   languages,
@@ -54,6 +58,9 @@ export function CustomerMessagesPreview({
 
             <s-stack direction="block" gap="small-100">
               <s-text color="subdued">{context}</s-text>
+              <s-text>
+                {fieldLabelHeading}: <strong>{fieldLabel}</strong>
+              </s-text>
               <s-banner tone="critical" heading={errorHeading}>
                 <s-paragraph>{message}</s-paragraph>
               </s-banner>

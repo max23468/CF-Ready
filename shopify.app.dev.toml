@@ -8,6 +8,7 @@ embedded = true
 
 [access_scopes]
 scopes = "write_validations"
+optional_scopes = [ "write_translations", "read_locales", "read_markets" ]
 
 [webhooks]
 api_version = "2026-07"

@@ -382,6 +382,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-146 | Usare un solo comportamento automatico per gli errori checkout: a `CHECKOUT_INTERACTION` segnalare inline i valori presenti ma invalidi e i required vuoti soltanto quando il campo è materializzato e tutte le delivery group italiane, in un contesto di consegna interamente localizzato, hanno un’opzione selezionata; mantenere sempre `CHECKOUT_COMPLETION`. | Il ticket reale ha confermato il blocco finale poco chiaro anche con pagamento manuale, quindi il problema dipende dal percorso checkout e non dal gateway. L’euristica evita i box globali al caricamento, conserva i target di campo e usa `$.cart` soltanto a Completion per un required assente con consegna italiana. `errorDisplay` resta temporaneamente serializzato come `inline` per compatibilità fra snapshot, ma viene ignorato dal runtime e normalizzato a ogni scrittura. Deciso dall’owner l’8 settembre 2026 per la `1.5.0`; supera D-019, D-024 e D-122. |
 | D-147 | Aggiungere alla sola PEC la modalità `required_when_company`: la PEC è obbligatoria quando `billingAddress.company`, dopo `trim()`, contiene un valore; negli altri casi resta facoltativa e viene validata se presente. | Usa il campo Azienda già esposto alla Function, senza nuovi scope, campi duplicati o interpretazioni fiscali dell’ordine. Il Codice Fiscale conserva i tre stati esistenti. Lo schema 3 distingue i due insiemi di modalità, legge lo schema 2 e richiede di distribuire e rileggere la Function compatibile prima del Worker che può scrivere la nuova configurazione. Deciso dall’owner l’8 settembre 2026 per la `1.6.1`. |
 | D-148 | Aggiungere alla chat Telegram privata dell’owner un Control Center interattivo e di sola lettura, separato dall’outbox delle notifiche e disattivabile con `OWNER_TELEGRAM_CONTROL_ENABLED`. | Il Worker autentica secret webhook, chat privata e singolo owner prima di accettare comandi o callback allowlistati. Rich Message, tastiera inline e modifica dello stesso messaggio presentano stato D1 corrente, aggregati Partner 7/28 giorni, billing, funnel e performance senza leggere ordini, clienti, prodotti, configurazione CF/PEC o nuovi scope Shopify. Le ricevute conservano solo `update_id` e metadata tecnici per sette giorni; le cache contengono soltanto aggregati. L’attivazione Telegram e il deploy restano passaggi Production separati. Deciso dall’owner l’8 settembre 2026 per la `1.6.1`. |
+| D-149 | Gestire facoltativamente le etichette native di Codice Fiscale e PEC tramite copie deterministiche IT/EN e controllare le etichette della seconda riga dell’indirizzo, con consenso Shopify separato, capacità provata per singola chiave, locale e mercato, confronto prima della prima scrittura e ripristino prudente delle sole traduzioni possedute. | `ONLINE_STORE_THEME_LOCALE_CONTENT` espone le quattro chiavi necessarie. Gli scope `write_translations`, `read_locales` e `read_markets` restano opzionali; una revoca sospende le scritture senza fermare la Validation. L’opzione del modulo che rende “Interno” obbligatorio, facoltativo o nascosto resta manuale. Le etichette merchant restano in D1 solo per ownership e ripristino e non entrano in log, telemetria o diagnostica. Deciso dall’owner l’8 settembre 2026 per la `1.7.0`; supera la parte di D-125 che dichiarava illeggibili le etichette. |
 
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
@@ -463,7 +464,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-122 | Offrire `inline` come visualizzazione errori predefinita e `preventive` come opzione merchant; la Guida la consiglia quando è attiva la conferma ordine Shopify. **Superata da D-146.** | La prova live mostra che i box globali a Interaction impediscono la review silenziosa, ma possono apparire già al caricamento e richiedono una scelta informata. |
 | D-123 | Abilitare metriche e Workers Logs nativi, ma disabilitare gli invocation log automatici. Traces resta disattivato per default e può essere acceso solo temporaneamente in Development, con traffico sintetico e finestra di diagnosi delimitata. | Invocation log e trace automatici includono URL e query string; i trace includono anche il testo SQL D1. Il campionamento riduce volume e costo, non il rischio di raccogliere parametri tecnici sensibili. |
 | D-124 | Non collegare il repository a Workers Builds finché GitHub Actions è il CI/CD canonico. Logpush, OpenTelemetry, Tail Workers e servizi esterni restano differiti finché il monitoraggio Cloudflare nativo non risulta insufficiente. | Evita una seconda corsia di deploy e nuovi destinatari della telemetria senza un bisogno operativo misurato. |
-| D-125 | Avvisare il merchant che usa il campo “Interno” / “Indirizzo 2” per raccogliere il Codice Fiscale, tramite dichiarazione esplicita in configurazione e onboarding. Nessun rilevamento automatico e nessuno scope aggiuntivo. | Le impostazioni del modulo checkout non sono esposte dall’Admin API `2026-04`: `CheckoutAndAccountsConfiguration` espone solo `branding`, `overrides`, `isPublished`, `name` e i timestamp, `checkoutProfile` è deprecato e `read_checkout_settings` sblocca esclusivamente gli oggetti di branding. `TranslatableResourceType` non ha una risorsa per il contenuto checkout, quindi nemmeno la rinomina dell’etichetta è leggibile, e una rinomina fatta da una Checkout UI Extension di terzi resta invisibile per costruzione. La Function riceve `address2` ma è pura e non può segnalare nulla; leggere gli ordini richiederebbe `read_orders`, protected customer data e l’analisi di dati fiscali, contro §21.4. Il conflitto degrada l’esperienza con due campi duplicati, non blocca le vendite: non giustifica scope nuovi. |
+| D-125 | Avvisare il merchant che usa il campo “Interno” / “Indirizzo 2” per raccogliere il Codice Fiscale, tramite dichiarazione esplicita in configurazione e onboarding. **Superata in parte da D-149.** | La dichiarazione resta necessaria per l’opzione del modulo, che Shopify non espone. D-149 consente invece di leggere e confrontare le etichette e di ripristinare le traduzioni gestibili dopo conferma. |
 
 ---
 
@@ -626,17 +627,16 @@ osservabile non generare errori per il campo assente.
 
 **FR-057** — Due Validation duplicate non vengono cancellate automaticamente.
 
-**FR-058** — Prima dell’attivazione, CF Ready avverte che il campo nativo
-“Interno” / “Indirizzo 2” non va usato per raccogliere il Codice Fiscale e
-chiede al merchant una dichiarazione esplicita. Se il merchant dichiara di
-usarlo così, l’app mostra le istruzioni per rimuovere quell’uso in
-Impostazioni → Checkout e mantiene un promemoria in Home finché la
-dichiarazione non viene revocata.
+**FR-058** — CF Ready legge e confronta le varianti IT/EN dell’etichetta
+“Interno” / “Indirizzo 2”, segnala un probabile conflitto fiscale e chiede
+comunque al merchant di confermare l’opzione del modulo. Può ripristinare dopo
+conferma le traduzioni e gli override che gestisce; per il contenuto sorgente
+della lingua primaria mostra una procedura guidata.
 
-**FR-059** — L’avviso non è un rilevamento: non blocca l’attivazione, non è
-prerequisito di FR-052 e non deve essere presentato come verifica automatica
-della configurazione dello store. CF Ready non legge, non rinomina e non
-modifica il campo “Interno” (D-125).
+**FR-059** — La classificazione dell’etichetta non prova l’autore della modifica
+e non rivela se il campo è obbligatorio, facoltativo o nascosto. L’avviso non
+blocca l’attivazione e CF Ready non usa la seconda riga per raccogliere o
+validare il Codice Fiscale (D-147).
 
 ### 7.7 Messaggi
 
@@ -764,6 +764,16 @@ raccoglie recapiti del merchant e non chiede una recensione.
 **FR-099** — Listing, FAQ e Termini devono dichiarare che le generazioni successive degli ordini ricorrenti in abbonamento non sono coperte dalla Validation Function corrente.
 
 **FR-100** — Il checkout iniziale contenente un prodotto in abbonamento deve essere testato separatamente; l’esito osservato va documentato senza estenderlo alle ricorrenze successive.
+
+**FR-101** — Le etichette CF/PEC seguono le regole soltanto sugli slot provati
+come scrivibili per la stessa chiave, lingua e mercato. La prima scrittura
+automatica richiede confronto e seconda conferma; conflitti e modifiche esterne
+restano fail-closed per le traduzioni senza fermare la Validation.
+
+**FR-102** — Disattivazione e ripristino modificano soltanto traduzioni ancora
+uguali all’ultima scrittura confermata di CF Ready. Lingue, mercati e risorse
+nuovi richiedono un nuovo readback; nessun testo libero merchant entra in log,
+telemetria o diagnostica.
 
 ---
 
@@ -1786,6 +1796,15 @@ Scope iniziale:
 
 ```text
 write_validations
+```
+
+Scope opzionali richiesti soltanto quando il merchant attiva il confronto delle
+etichette (D-149):
+
+```text
+write_translations
+read_locales
+read_markets
 ```
 
 Non richiedere scope su:
@@ -5180,13 +5199,10 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
    consegna italiana tratta come mancante un campo obbligatorio assente; senza
    un Paese di consegna controlla soltanto i campi presenti.
 8. **Rilevamento automatico del campo “Interno” usato come Codice Fiscale** —
-   rimandato il 30 luglio 2026. Verificato sull’Admin API `2026-04`: né lo
-   stato del campo (`Non includere` / `Facoltativo` / `Obbligatorio`) né la sua
-   etichetta sono leggibili, e nessun altro canale è compatibile con lo scope
-   minimo e con §21.4 (D-125). La 1.0 usa la dichiarazione del merchant
-   (FR-058). Si riapre solo se Shopify espone in lettura le opzioni modulo del
-   checkout: da ricontrollare insieme alla riverifica della Function API
-   `2026-07` prevista in §35.
+   **parzialmente chiuso l’8 settembre 2026 con D-149**. Le etichette IT/EN sono
+   leggibili e vengono classificate; resta aperta soltanto la lettura
+   dell’opzione del modulo (`Non includere` / `Facoltativo` / `Obbligatorio`),
+   che Shopify non espone e che il merchant verifica manualmente.
 I punti residui di brand sono verifiche e produzione di materiali che dipendono da milestone successive. **La Brand Foundation è chiusa.**
 9. **Cancellazione ordinaria e credito pro rata** — non bloccano il canary M10
    dello store dell’owner dopo D-135, perché la concessione omaggio non crea

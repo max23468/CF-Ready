@@ -1,4 +1,11 @@
 import { parseStoredAppErrorCode, type AppErrorCode } from "./app-error";
+import type {
+  Address2Classification,
+  Address2Decision,
+  CheckoutLabelsMode,
+  CheckoutLabelsStatus,
+} from "./checkout-labels/domain";
+import { checkoutLabelsStatus } from "./checkout-labels/domain";
 
 export type SupportDiagnosticState = {
   configHash: string | null;
@@ -8,6 +15,16 @@ export type SupportDiagnosticState = {
   lastSyncAt: string | null;
   validationEnabled: boolean;
   validationStateRevision: number;
+  checkoutLabelsEnabled: boolean;
+  checkoutLabelsMode: CheckoutLabelsMode;
+  checkoutLabelsStatus: CheckoutLabelsStatus;
+  address2Classification: Address2Classification;
+  address2Decision: Address2Decision;
+  address2MarketOverride: boolean;
+  checkoutLabelLocales: string;
+  checkoutLabelMarketCount: number;
+  checkoutLabelsLastSyncAt: string | null;
+  checkoutLabelsErrorCode: string | null;
 };
 
 export async function readSupportDiagnosticState(
@@ -19,6 +36,14 @@ export async function readSupportDiagnosticState(
       `SELECT state.config_schema_version, state.config_hash, state.last_sync_at,
               state.last_error_code, state.validation_enabled,
               state.validation_state_revision,
+              state.checkout_labels_mode, state.checkout_labels_last_sync_at,
+              state.checkout_labels_last_error_code, state.address2_classification,
+              state.address2_decision, state.address2_has_market_override,
+              state.address2_external_change_at,
+              (SELECT GROUP_CONCAT(DISTINCT locale)
+                 FROM checkout_label_slots slots WHERE slots.shop_id = shop.id) AS label_locales,
+              (SELECT COUNT(DISTINCT NULLIF(market_id, ''))
+                 FROM checkout_label_slots slots WHERE slots.shop_id = shop.id) AS label_market_count,
               billing.plan_kind, billing.entitlement_status,
               trial.status AS trial_status,
               complimentary.status AS complimentary_status
@@ -41,6 +66,15 @@ export async function readSupportDiagnosticState(
       entitlement_status: string | null;
       trial_status: string | null;
       complimentary_status: string | null;
+      checkout_labels_mode: CheckoutLabelsMode | null;
+      checkout_labels_last_sync_at: string | null;
+      checkout_labels_last_error_code: string | null;
+      address2_classification: Address2Classification | null;
+      address2_decision: Address2Decision | null;
+      address2_has_market_override: number | null;
+      address2_external_change_at: string | null;
+      label_locales: string | null;
+      label_market_count: number | null;
     }>();
 
   const entitlementKind =
@@ -52,6 +86,19 @@ export async function readSupportDiagnosticState(
           ? "trial"
           : "none";
 
+  const checkoutLabelState = {
+    mode: row?.checkout_labels_mode ?? "off",
+    managementEpoch: null,
+    enabledAt: null,
+    lastSyncAt: row?.checkout_labels_last_sync_at ?? null,
+    lastErrorCode: row?.checkout_labels_last_error_code ?? null,
+    address2Classification: row?.address2_classification ?? "unknown",
+    address2HasMarketOverride: Boolean(row?.address2_has_market_override),
+    address2ExternalChangeAt: row?.address2_external_change_at ?? null,
+    address2Decision: row?.address2_decision ?? "pending",
+    address2ReviewedAt: null,
+  };
+
   return {
     configHash: row?.config_hash ?? null,
     configSchemaVersion: row?.config_schema_version ?? null,
@@ -60,5 +107,15 @@ export async function readSupportDiagnosticState(
     lastSyncAt: row?.last_sync_at ?? null,
     validationEnabled: Boolean(row?.validation_enabled),
     validationStateRevision: row?.validation_state_revision ?? 0,
+    checkoutLabelsEnabled: checkoutLabelState.mode !== "off",
+    checkoutLabelsMode: checkoutLabelState.mode,
+    checkoutLabelsStatus: checkoutLabelsStatus(checkoutLabelState),
+    address2Classification: checkoutLabelState.address2Classification,
+    address2Decision: checkoutLabelState.address2Decision,
+    address2MarketOverride: checkoutLabelState.address2HasMarketOverride,
+    checkoutLabelLocales: row?.label_locales ?? "",
+    checkoutLabelMarketCount: row?.label_market_count ?? 0,
+    checkoutLabelsLastSyncAt: checkoutLabelState.lastSyncAt,
+    checkoutLabelsErrorCode: checkoutLabelState.lastErrorCode,
   };
 }
