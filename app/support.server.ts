@@ -105,6 +105,7 @@ export async function readSupportDiagnosticState(
     address2ExternalChangeAt: row?.address2_external_change_at ?? null,
     address2Decision: row?.address2_decision ?? "pending",
     address2ReviewedAt: null,
+    address2FormMode: null,
   };
 
   return {

@@ -6,6 +6,18 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.9.0 — 9 settembre 2026
+
+- “Testi del checkout” torna nella colonna delle regole e usa un solo selettore
+  Italiano/Inglese, mostrando il testo generale e soltanto le eccezioni di
+  mercato;
+- la verifica manuale guida il merchant fino al checkout reale, registra la
+  conferma e la invalida quando cambiano il testo osservato o le regole;
+- il campo “Interno” mostra soltanto la variante obbligatoria o facoltativa
+  scelta dal merchant nelle impostazioni del checkout;
+- le scritture automatiche e il ripristino di “Interno” usano modal Polaris con
+  l’elenco dei campi interessati.
+
 ## 1.8.0 — 9 settembre 2026
 
 - il sito pubblico usa `https://cfready.it` in sitemap, robots, URL canonici,

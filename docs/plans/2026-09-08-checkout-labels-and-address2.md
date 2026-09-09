@@ -519,10 +519,10 @@ per ownership e ripristino.
 
 La pagina resta il centro della funzione.
 
-Le scelte delle regole e i controlli sulle etichette vivono in un’unica sezione
-madre “Campi del checkout”. La sezione usa una sola introduzione e due blocchi
-impilati anche su desktop; una griglia affiancata renderebbe meno chiara la
-sequenza e comprimerebbe il confronto IT/EN sui viewport intermedi.
+Le scelte delle regole e i controlli sulle etichette vivono nella pagina Regole.
+Su desktop il box “Testi del checkout” occupa la colonna sinistra sotto le
+regole, mentre il simulatore resta nella colonna destra. Un solo selettore mostra
+Italiano o Inglese e conserva la scelta durante la sessione.
 
 Il primo blocco, “Campi nativi: Codice Fiscale e PEC”, contiene:
 
@@ -533,36 +533,40 @@ Il primo blocco, “Campi nativi: Codice Fiscale e PEC”, contiene:
   disponibili sullo store;
 - interruttore di gestione automatica soltanto quando almeno uno slot è
   scrivibile;
-- righe IT/EN con testo attuale e testo dopo il salvataggio;
+- testo generale della lingua selezionata e sole eccezioni di mercato;
+- “Campo attuale”, “Campo dopo il salvataggio” e “Nessuna modifica” quando i
+  valori coincidono;
 - stato pubblicato della lingua;
 - badge per eventuali override di mercato;
+- data dell’ultima verifica manuale valida;
 - ultima sincronizzazione;
-- azione “Rileggi da Shopify”;
+- azione “Aggiorna campi da Shopify”;
 - azione “Ripristina e interrompi la gestione” per gli slot posseduti;
-- procedura “Apri Shopify e verifica” per contenuti sorgente e slot di sola
-  lettura.
+- procedura numerata per aprire il negozio, raggiungere il checkout, confrontare
+  Codice Fiscale e PEC e confermare la verifica manuale.
 
 Il secondo blocco, “Controllo del campo Interno”, contiene:
 
-- variante ordinaria IT/EN;
-- variante facoltativa IT/EN;
+- scelta merchant fra variante obbligatoria e facoltativa, perché Shopify non
+  espone questa impostazione tramite l’Admin API;
+- sola variante attiva nella lingua selezionata;
 - stato automatico;
 - testo personalizzato osservato;
 - azione “Ripristina le traduzioni gestite” quando applicabile;
 - procedura guidata per il contenuto sorgente della lingua primaria;
 - azione “Mantieni questa personalizzazione”;
 - istruzioni per l’opzione del modulo;
-- conferma manuale residua.
+- collegamento alle impostazioni Checkout per cambiare l’opzione dichiarata.
 
 I due blocchi conservano stato, errori e azioni separati. Un errore sulle
 traduzioni di “Interno” non deve apparire come un errore della Validation, e il
 merchant non deve poter dedurre che CF Ready validi il contenuto della seconda
 riga dell’indirizzo.
 
-La Save Bar comprende regole, modalità etichette e decisione su “Interno”. La
-richiesta degli scope e le azioni di ripristino restano pulsanti separati: la
-prima apre un consenso Shopify, le altre possono sovrascrivere contenuti del
-merchant e richiedono confronto e conferma.
+La Save Bar comprende regole e modalità etichette. La prima scrittura automatica
+apre un modal Polaris che elenca i campi realmente modificati. La scelta della
+variante di “Interno”, la richiesta degli scope e le azioni di ripristino usano
+azioni separate; anche il ripristino viene confermato con un modal Polaris.
 
 Un conflitto di configurazione deve mostrare anche le differenze sulle
 etichette. “Riapplica le mie modifiche” ricalcola il piano contro il readback
@@ -575,7 +579,8 @@ dichiararsi anteprima locale.
 
 Modifiche previste:
 
-1. selettore interno `Italiano` / `English`, indipendente dalla lingua
+1. selettore interno `Italiano` / `Inglese` nell’interfaccia italiana e
+   `Italian` / `English` nell’interfaccia inglese, indipendente dalla lingua
    dell’Admin;
 2. etichette CF e PEC derivate dalla bozza delle regole;
 3. indicazione “Testo attuale Shopify” oppure “Testo dopo il salvataggio”;

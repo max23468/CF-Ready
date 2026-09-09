@@ -23,6 +23,7 @@ export type CheckoutLabelsStatus = "synced" | "action_required" | "scope_require
 export type CheckoutLabelsDecision = "pending" | "accepted";
 export type Address2Classification = "unknown" | "expected" | "nonstandard" | "fiscal_conflict";
 export type Address2Decision = "pending" | "accepted" | "restored" | "manual_restore_required";
+export type Address2FormMode = "required" | "optional";
 
 export type CheckoutLabelLocale = {
   locale: string;
@@ -88,6 +89,7 @@ export type CheckoutLabelState = {
   address2ExternalChangeAt: string | null;
   address2Decision: Address2Decision;
   address2ReviewedAt: string | null;
+  address2FormMode: Address2FormMode | null;
 };
 
 export type StoredCheckoutLabelSlot = {

@@ -49,6 +49,7 @@ vi.mock("../../app/billing.server", () => ({ localDate: vi.fn(), startTrial: vi.
 vi.mock("../../app/context.server", () => ({ databaseContext: {}, waitUntilContext: {} }));
 vi.mock("../../app/checkout-labels/repository.server", () => ({
   readCheckoutLabelState: vi.fn(),
+  saveAddress2FormMode: vi.fn(),
 }));
 vi.mock("../../app/checkout-labels/service.server", () => ({
   CHECKOUT_LABEL_OPTIONAL_SCOPES: ["write_translations", "read_locales", "read_markets"],
@@ -1243,11 +1244,13 @@ describe("Regole", () => {
       address2ExternalChangeAt: null,
       address2Decision: "pending",
       address2ReviewedAt: null,
+      address2FormMode: null,
     },
     labelSnapshot: null,
-    confirmedGuidedSlotIds: [],
+    guidedConfirmations: [],
     labelLoadError: null,
     checkoutSettingsUrl: "https://admin.shopify.com/store/demo/settings/checkout",
+    storefrontUrl: "https://demo.myshopify.com",
   } as const;
 
   test("modifica la bozza, salva, annulla e invia il form", async () => {
@@ -1395,7 +1398,7 @@ describe("Regole", () => {
           kind: "market_translation",
           marketId: "gid://shopify/Market/1",
           marketName: "Italia",
-          currentValue: "Codice fiscale Italia",
+          currentValue: "Codice fiscale (facoltativo)",
         }),
         labelSlot({
           name: "pec",
@@ -1427,16 +1430,12 @@ describe("Regole", () => {
         mode: "automatic",
         lastSyncAt: "2026-09-08T12:00:00Z",
         address2Classification: "fiscal_conflict",
+        address2FormMode: "required",
       },
       labelSnapshot: snapshot,
       labelLoadError: "checkout_labels_readback_failed",
     };
     router.fetcher.data = { ok: false, errorCode: "checkout_labels_conflict" };
-    vi.stubGlobal(
-      "confirm",
-      vi.fn(() => true),
-    );
-
     const view = await mount(<CheckoutRules />);
     expect(view.container.textContent).toContain(texts("it").rules.labels.marketAmbiguous);
     expect(view.container.querySelectorAll('s-banner[tone="critical"]')).not.toHaveLength(0);
@@ -1448,27 +1447,14 @@ describe("Regole", () => {
       8,
     );
 
-    const guidedConfirmations = [...view.container.querySelectorAll("s-checkbox")].filter(
-      (checkbox) => checkbox.getAttribute("label") === texts("it").rules.labels.confirmContext,
-    ) as (HTMLElement & { checked: boolean })[];
+    const guidedConfirmations = [...view.container.querySelectorAll("s-button")].filter(
+      (button) => button.textContent === texts("it").rules.labels.confirmGuided,
+    );
     expect(guidedConfirmations.length).toBeGreaterThan(0);
     expect(guidedConfirmations.length).toBeLessThan(snapshot.slots.length);
-    const guided = guidedConfirmations[0];
-    if (!guided) throw new Error("conferma guidata assente");
-    guided.checked = true;
-    await dispatch(guided, new Event("change", { bubbles: true }));
-    await dispatch(guided, new Event("change", { bubbles: true }));
-    guided.checked = false;
-    await dispatch(guided, new Event("change", { bubbles: true }));
-    guided.checked = true;
-    await dispatch(guided, new Event("change", { bubbles: true }));
-    await click(
-      [...view.container.querySelectorAll("s-button")].find(
-        (button) => button.textContent === texts("it").rules.labels.confirmGuided,
-      )!,
-    );
+    await click(guidedConfirmations[0]);
 
-    expect(disclosures?.[1].querySelector("s-checkbox")).toBeNull();
+    expect(disclosures?.[1].querySelector("s-select")).not.toBeNull();
 
     const restore = [...view.container.querySelectorAll("s-button")].find((button) =>
       button.textContent?.includes(texts("it").rules.labels.restoreAddress),
@@ -1477,21 +1463,22 @@ describe("Regole", () => {
       button.textContent?.includes(texts("it").rules.labels.keepAddress),
     );
     if (!restore || !keep) throw new Error("azioni etichette assenti");
-    vi.stubGlobal(
-      "confirm",
-      vi.fn(() => false),
-    );
     await click(restore);
     expect(router.fetcher.submit).not.toHaveBeenCalledWith(
       expect.objectContaining({ intent: "restore_address2_labels" }),
       { method: "post" },
     );
-    vi.stubGlobal(
-      "confirm",
-      vi.fn(() => true),
+    await click(
+      view.container.querySelector(
+        's-modal[id="restore-address2-it"] s-button[slot="primary-action"]',
+      )!,
     );
-    await click(restore);
     await click(keep);
+    const addressMode = disclosures?.[1].querySelector("s-select") as HTMLElement & {
+      value: string;
+    };
+    addressMode.value = "optional";
+    await dispatch(addressMode, new Event("change", { bubbles: true }));
     const submissions = router.fetcher.submit.mock.calls.map(([body]) =>
       body instanceof FormData ? Object.fromEntries(body.entries()) : body,
     );
@@ -1508,8 +1495,21 @@ describe("Regole", () => {
           slotId: expect.any(String),
         }),
         { intent: "accept_address2_labels", labelsRevision: "labels-r1" },
+        expect.objectContaining({
+          intent: "save_address2_form_mode",
+          address2FormMode: "optional",
+        }),
       ]),
     );
+
+    const language = labelsArea?.querySelector("s-select") as HTMLElement & { value: string };
+    expect([...language.querySelectorAll("s-option")].map((option) => option.textContent)).toEqual([
+      "Italiano",
+      "Inglese",
+    ]);
+    language.value = "en";
+    await dispatch(language, new Event("change", { bubbles: true }));
+    expect(language.value).toBe("en");
 
     router.loaderData = {
       ...rulesData,
@@ -1527,6 +1527,7 @@ describe("Regole", () => {
     router.fetcher.data = undefined;
     router.loaderData = {
       ...rulesData,
+      rules: { ...rulesData.rules, taxCode: "required_validated" },
       labelScopesGranted: true,
       labelState: rulesData.labelState,
       labelSnapshot: snapshot,
@@ -1547,17 +1548,13 @@ describe("Regole", () => {
     management.checked = true;
     await dispatch(management, new Event("change", { bubbles: true }));
     const submissionsBeforeConfirmation = router.submit.mock.calls.length;
-    vi.stubGlobal(
-      "confirm",
-      vi.fn(() => false),
-    );
     await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
     expect(router.submit).toHaveBeenCalledTimes(submissionsBeforeConfirmation);
-    vi.stubGlobal(
-      "confirm",
-      vi.fn(() => true),
+    await click(
+      view.container.querySelector(
+        's-modal[id="confirm-checkout-label-management"] s-button[slot="primary-action"]',
+      )!,
     );
-    await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
     expect(router.submit).toHaveBeenLastCalledWith(
       expect.objectContaining({ labelsEnabled: "1", labelsConfirmed: "1" }),
       { method: "post" },
@@ -1595,14 +1592,17 @@ describe("Regole", () => {
           .filter((slot) => slot.marketId === null)
           .map((slot) => ({ ...slot, capability: "guided" as const })),
       },
-      confirmedGuidedSlotIds: [
-        JSON.stringify([
-          "gid://shopify/OnlineStoreThemeLocaleContent/1",
-          "shopify.checkout.localized_fields.additional_information.tax_credential_it",
-          "it",
-          null,
-          "global_translation",
-        ]),
+      guidedConfirmations: [
+        {
+          slotId: JSON.stringify([
+            "gid://shopify/OnlineStoreThemeLocaleContent/1",
+            "shopify.checkout.localized_fields.additional_information.tax_credential_it",
+            "it",
+            null,
+            "global_translation",
+          ]),
+          confirmedAt: "2026-09-08T12:00:00Z",
+        },
       ],
     };
     await view.rerender(<CheckoutRules key="guided-english" />);
@@ -1641,7 +1641,7 @@ describe("Regole", () => {
     const disclosures = view.container.querySelectorAll(".rules-layout__labels details");
     expect(disclosures).toHaveLength(2);
     expect(disclosures[0].hasAttribute("open")).toBe(true);
-    expect(disclosures[1].hasAttribute("open")).toBe(false);
+    expect(disclosures[1].hasAttribute("open")).toBe(true);
     const requestScopes = [...view.container.querySelectorAll("s-button")].find((button) =>
       button.textContent?.includes(texts("it").rules.labels.requestPermissions),
     );
@@ -1679,7 +1679,7 @@ describe("Regole", () => {
     expect(router.revalidator.revalidate).not.toHaveBeenCalled();
 
     const healthySnapshot = {
-      locales: [{ locale: "en", family: "en", name: "English", primary: false, published: true }],
+      locales: [{ locale: "it", family: "it", name: "Italiano", primary: false, published: true }],
       markets: [],
       issues: [],
       revision: "labels-healthy",
@@ -1687,8 +1687,8 @@ describe("Regole", () => {
       slots: [
         labelSlot({
           name: "taxCode",
-          locale: "en",
-          family: "en",
+          locale: "it",
+          family: "it",
           capability: "automatic",
           currentValue: null,
           sourceValue: null,
@@ -1703,7 +1703,7 @@ describe("Regole", () => {
       labelSnapshot: healthySnapshot,
     };
     await view.rerender(<CheckoutRules key="labels-healthy" />);
-    expect(view.container.textContent).toContain(texts("it").rules.labels.statusReady);
+    expect(view.container.textContent).toContain(texts("it").rules.labels.statusManagedByShopify);
     expect(view.container.textContent).toContain(texts("it").rules.labels.notAvailable);
 
     router.loaderData = {
