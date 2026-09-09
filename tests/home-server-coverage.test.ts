@@ -228,7 +228,7 @@ test("l'attivazione e la disattivazione registrano soltanto scritture riuscite",
     shopDomain: shop,
     name: "validation_disabled",
     class: "validation",
-    metadata: { enabled: false, schema_version: 2 },
+    metadata: { enabled: false, schema_version: 3 },
   });
 
   mocks.writeValidation.mockResolvedValueOnce({ ok: true, enabled: true });
@@ -237,7 +237,7 @@ test("l'attivazione e la disattivazione registrano soltanto scritture riuscite",
     db,
     expect.objectContaining({
       name: "validation_enabled",
-      metadata: { enabled: true, schema_version: 2 },
+      metadata: { enabled: true, schema_version: 3 },
     }),
   );
 

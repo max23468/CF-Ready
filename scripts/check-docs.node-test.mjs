@@ -812,17 +812,42 @@ test("i deploy riusano i gate e conservano ricevute fuori dalle PR", () => {
   assert.match(development, /git rev-parse 'HEAD\^\{tree\}'/);
   const developmentPreflight = development.indexOf("name: Preflight Development");
   const developmentBuild = development.indexOf("name: Costruisci Worker Development");
+  const developmentShopifyDeploy = development.indexOf("name: Deploy Shopify Development");
   const developmentDeploy = development.indexOf("name: Deploy Worker Development");
   assert.ok(
     developmentPreflight >= 0 &&
       developmentBuild > developmentPreflight &&
-      developmentDeploy > developmentBuild,
+      developmentShopifyDeploy > developmentBuild &&
+      developmentDeploy > developmentShopifyDeploy,
   );
   assert.match(
     development.slice(developmentBuild, developmentDeploy),
     /if: env\.DEPLOY_READBACK_ONLY != 'true'[\s\S]*run: npm run build/,
   );
+  const developmentRollback = development.slice(
+    development.indexOf("name: Ripristina snapshot Development coordinato"),
+  );
+  const developmentWorkerRollback = developmentRollback.indexOf("wrangler rollback");
+  const developmentShopifyRollback = developmentRollback.indexOf("shopify app release");
+  assert.ok(
+    developmentWorkerRollback >= 0 && developmentShopifyRollback > developmentWorkerRollback,
+  );
+  assert.match(
+    developmentRollback,
+    /if \[ "\$worker_restored" -eq 1 \] && shopify app versions list/,
+  );
   assert.match(production, /actions\/attest@[0-9a-f]{40}/);
+  assert.ok(
+    production.indexOf("name: Deploy Shopify Production") <
+      production.indexOf("name: Deploy Worker Production"),
+  );
+  const productionRollback = production.slice(
+    production.indexOf("name: Ripristina lo snapshot Production precedente"),
+  );
+  const productionWorkerRollback = productionRollback.indexOf("wrangler rollback");
+  const productionShopifyRollback = productionRollback.indexOf("shopify app release");
+  assert.ok(productionWorkerRollback >= 0 && productionShopifyRollback > productionWorkerRollback);
+  assert.match(productionRollback, /elif \[ "\$worker_ready_for_shopify" -ne 1 \]; then/);
   assert.match(production, /attestations: write/);
   assert.match(production, /id-token: write/);
 });

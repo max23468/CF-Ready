@@ -54,15 +54,14 @@ ripete lo slogan è inutile a chi non vede l'immagine.
 
 ## Dettagli app
 
-> Evita ordini italiani con Codice Fiscale mancante o formalmente non valido.
-> Scegli separatamente se Codice Fiscale e PEC devono essere non gestiti,
-> facoltativi o obbligatori. CF Ready usa i campi nativi del checkout: configuri
-> le regole e le provi prima di attivarle, senza codice né Shopify Plus. I
-> controlli valgono solo per l’Italia. I dati fiscali non arrivano ai nostri
-> sistemi e, se l’app ha un errore, il checkout resta aperto. La verifica è
-> formale, non anagrafica.
+> Evita ordini italiani senza un Codice Fiscale formalmente valido. Configura
+> separatamente Codice Fiscale e PEC; la PEC può diventare obbligatoria quando
+> il cliente compila Azienda. CF Ready usa i campi nativi del checkout: provi le
+> regole prima di attivarle, senza codice né Shopify Plus. I controlli valgono
+> solo per l’Italia. I dati fiscali non arrivano ai nostri sistemi e, se l’app ha
+> un errore, il checkout resta aperto. La verifica è formale, non anagrafica.
 
-**473/500 caratteri.**
+**464/500 caratteri.**
 
 ## Punti in evidenza
 

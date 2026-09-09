@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { DEFAULT_CONFIG } from "../../app/config";
+import { CONFIG_SCHEMA_VERSION, DEFAULT_CONFIG } from "../../app/config";
 import {
   completeOnboardingAutomatically,
   configHash,
@@ -82,7 +82,7 @@ describe("contratti puri Validation", () => {
       entitlementDiffers({ entitlement: { ...ENTITLEMENT, validThrough: undefined } }, ENTITLEMENT),
     ).toBe(true);
     expect(configWithEntitlement([], ENTITLEMENT)).toMatchObject({
-      schemaVersion: 2,
+      schemaVersion: CONFIG_SCHEMA_VERSION,
       entitlement: ENTITLEMENT,
     });
     expect(

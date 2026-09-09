@@ -123,7 +123,20 @@ describe("componenti merchant nel browser", () => {
     await dispatch(fields[0], new Event("input", { bubbles: true }));
     const buttons = [...view.container.querySelectorAll("button")];
     await dispatch(buttons.at(-1)!, new MouseEvent("click", { bubbles: true }));
-    await dispatch(buttons[0], new MouseEvent("click", { bubbles: true }));
+    (selects[1] as HTMLElement & { value: string }).value = "DE";
+    await dispatch(selects[1], new Event("change", { bubbles: true }));
+    await dispatch(
+      view.container.querySelector("button.checkout-simulator__button--clear")!,
+      new MouseEvent("click", { bubbles: true }),
+    );
+    expect(
+      (view.container.querySelectorAll("s-select")[1] as HTMLElement & { value: string }).value,
+    ).toBe("DE");
+    expect(
+      [...view.container.querySelectorAll("s-text-field")].map(
+        (field) => (field as HTMLElement & { value?: string }).value ?? "",
+      ),
+    ).toEqual(["", ""]);
     expect(view.container.querySelector('[role="status"]')?.textContent).toBeTruthy();
   });
 
@@ -179,6 +192,32 @@ describe("componenti merchant nel browser", () => {
     field.value = "cliente@example.com";
     await dispatch(field, new Event("input", { bubbles: true }));
     expect(pecOnly.container.querySelector('[role="status"]')?.textContent).toBeTruthy();
+  });
+
+  test("il simulatore rende la PEC required quando Azienda è compilata", async () => {
+    const view = await render(
+      <CheckoutSimulator
+        locale="it"
+        rules={{ taxCode: "unmanaged", pec: "required_when_company" }}
+        messages={DEFAULT_CONFIG.messages.it}
+      />,
+    );
+    mounted.push(view);
+    const fields = [...view.container.querySelectorAll("s-text-field")] as Array<
+      HTMLElement & { value: string }
+    >;
+    expect(fields).toHaveLength(2);
+    expect(fields[0].getAttribute("label")).toBe(it.rules.simulator.company);
+    expect(fields[1].hasAttribute("required")).toBe(false);
+
+    fields[0].value = "Acme S.r.l.";
+    await dispatch(fields[0], new Event("input", { bubbles: true }));
+    expect(fields[1].hasAttribute("required")).toBe(true);
+    await dispatch(
+      view.container.querySelector("button.checkout-simulator__button--primary")!,
+      new MouseEvent("click", { bubbles: true }),
+    );
+    expect(fields[1].getAttribute("error")).toBe(DEFAULT_CONFIG.messages.it.pecRequired);
   });
 
   test("il reporter registra e rimuove il callback Web Vitals", async () => {

@@ -268,6 +268,10 @@ export const it = {
         a: "Come indirizzo email: si controlla il formato. Non verifichiamo che la casella esista, né che sia davvero una casella di posta certificata.",
       },
       {
+        q: "Posso richiedere la PEC solo agli acquisti aziendali",
+        a: "Puoi rendere la PEC obbligatoria quando il cliente compila il campo Azienda dell’indirizzo di fatturazione. Se Azienda resta vuoto, la PEC è facoltativa; quando viene inserita, CF Ready ne controlla comunque il formato. La regola usa il campo Azienda del checkout e non identifica automaticamente la natura fiscale dell’ordine.",
+      },
+      {
         q: "Quando il cliente vede gli errori",
         a: "CF Ready controlla i dati durante il checkout. Se un dato inserito non è valido, il cliente vede cosa correggere; i campi obbligatori vengono controllati prima che l’ordine possa essere completato.",
       },
@@ -394,6 +398,9 @@ export const it = {
       required_validated: "Obbligatoria e validata",
       required_validatedHelp:
         "Il cliente non completa l’ordine senza un indirizzo con formato email valido.",
+      required_when_company: "Obbligatoria quando il campo Azienda è compilato",
+      required_when_companyHelp:
+        "Richiede la PEC quando il campo Azienda dell’indirizzo di fatturazione è compilato. Negli altri casi la PEC resta facoltativa e viene validata se inserita.",
     },
     exceptionsHeading: "Quando si applicano",
     exceptions: [
@@ -407,6 +414,7 @@ export const it = {
       privatePreview: "Anteprima interattiva",
       orderContext: "Destinazione dell’ordine",
       customerData: "Dati fiscali del cliente",
+      company: "Azienda",
       deliveryCountry: "Paese di consegna",
       billingCountry: "Paese di fatturazione",
       countries: { IT: "Italia", FR: "Francia", DE: "Germania" },
@@ -417,6 +425,7 @@ export const it = {
         valid: "Dati validi",
         invalidTaxCode: "Codice Fiscale non valido",
         invalidPec: "PEC non valida",
+        companyWithoutPec: "Azienda compilata senza PEC",
         empty: "Campi vuoti",
       },
       clear: "Svuota",
@@ -442,8 +451,12 @@ export const it = {
     taxCodeOptional:
       "Il Codice Fiscale può restare vuoto; se inserito, deve essere formalmente valido.",
     pecRequired: "La PEC è obbligatoria e deve avere un formato email valido.",
+    pecRequiredWhenCompany:
+      "La PEC è obbligatoria quando è compilato il campo Azienda; negli altri casi resta facoltativa e viene validata se inserita.",
     pecOptional: "La PEC può restare vuota; se inserita, deve avere un formato email valido.",
     summaryBlocking: "Un cliente italiano non completa l’ordine senza i dati richiesti.",
+    summaryConditional:
+      "La PEC è obbligatoria per gli ordini italiani con il campo Azienda compilato.",
     summaryChecking:
       "I dati che i clienti italiani inseriscono vengono controllati, ma nessuno è obbligatorio.",
     disabled: "Il controllo non è attivo: queste regole non valgono ancora per i tuoi clienti.",

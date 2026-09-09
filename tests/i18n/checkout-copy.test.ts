@@ -52,6 +52,27 @@ test("una Validation disattivata lo dichiara nell'anteprima", () => {
   ).toContain(texts("en").checkout.disabled);
 });
 
+test("l'anteprima descrive la PEC condizionata al campo Azienda", () => {
+  expect(
+    describeCheckout(
+      {
+        rules: { taxCode: "unmanaged", pec: "required_when_company" },
+        status: "active",
+      },
+      "it",
+    ),
+  ).toEqual([texts("it").checkout.pecRequiredWhenCompany]);
+  expect(
+    summariseCheckout(
+      {
+        rules: { taxCode: "unmanaged", pec: "required_when_company" },
+        status: "active",
+      },
+      "en",
+    ),
+  ).toEqual([texts("en").checkout.summaryConditional]);
+});
+
 test("una Validation attiva senza piano non viene descritta come disattivata", () => {
   const lines = describeCheckout(
     {

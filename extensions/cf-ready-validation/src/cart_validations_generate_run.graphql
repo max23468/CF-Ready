@@ -4,6 +4,7 @@ query CartValidationsGenerateRunInput {
   }
   cart {
     billingAddress {
+      company
       countryCode
     }
     deliveryGroups {
