@@ -7,10 +7,11 @@ import { isValidPec, isValidTaxCode } from "../../../app/checkout-field-validati
 export { isValidPec, isValidTaxCode } from "../../../app/checkout-field-validation";
 
 type Rule = "unmanaged" | "optional_validated" | "required_validated";
+type PecRule = Rule | "required_when_company";
 type MessageKey = "taxCodeRequired" | "taxCodeInvalid" | "pecRequired" | "pecInvalid";
 
 type Configuration = {
-  rules: { taxCode: Rule; pec: Rule };
+  rules: { taxCode: Rule; pec: PecRule };
   messages: Record<"it" | "en", Record<MessageKey, string>>;
 };
 
@@ -64,7 +65,7 @@ function isMessages(value: unknown): value is Record<"it" | "en", Record<Message
 function readConfiguration(value: unknown, localDate: unknown): Configuration | null {
   if (
     !isRecord(value) ||
-    value.schemaVersion !== 2 ||
+    (value.schemaVersion !== 2 && value.schemaVersion !== 3) ||
     value.enabled !== true ||
     !isDate(localDate)
   ) {
@@ -78,11 +79,13 @@ function readConfiguration(value: unknown, localDate: unknown): Configuration | 
   }
 
   const ruleValues = ["unmanaged", "optional_validated", "required_validated"];
+  const pecRuleValues =
+    value.schemaVersion === 3 ? [...ruleValues, "required_when_company"] : ruleValues;
   if (
     typeof rules.taxCode !== "string" ||
     !ruleValues.includes(rules.taxCode) ||
     typeof rules.pec !== "string" ||
-    !ruleValues.includes(rules.pec)
+    !pecRuleValues.includes(rules.pec)
   ) {
     return null;
   }
@@ -97,7 +100,7 @@ function readConfiguration(value: unknown, localDate: unknown): Configuration | 
     ? {
         rules: {
           taxCode: rules.taxCode as Rule,
-          pec: rules.pec as Rule,
+          pec: rules.pec as PecRule,
         },
         messages: value.messages,
       }
@@ -174,6 +177,12 @@ export function cartValidationsGenerateRun(
     const errors: { message: string; target: string }[] = [];
     const taxCode = input.cart.localizedFields.find(({ key }) => key === "TAX_CREDENTIAL_IT");
     const pec = input.cart.localizedFields.find(({ key }) => key === "TAX_EMAIL_IT");
+    const pecRule: Rule =
+      config.rules.pec === "required_when_company"
+        ? input.cart.billingAddress?.company?.trim()
+          ? "required_validated"
+          : "optional_validated"
+        : config.rules.pec;
     const absentRequiredField =
       step === "CHECKOUT_COMPLETION" && hasItalianDelivery ? {} : undefined;
     addFieldError(
@@ -190,7 +199,7 @@ export function cartValidationsGenerateRun(
     addFieldError(
       errors,
       pec ?? absentRequiredField,
-      config.rules.pec,
+      pecRule,
       messages,
       "pecRequired",
       "pecInvalid",

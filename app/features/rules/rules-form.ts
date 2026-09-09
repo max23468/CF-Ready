@@ -1,4 +1,4 @@
-import type { RuleMode, Rules } from "../../config";
+import type { PecRuleMode, Rules, TaxCodeRuleMode } from "../../config";
 
 export type RulesFormDraft = {
   rules: Rules;
@@ -8,8 +8,8 @@ export type RulesFormDraft = {
 export function mergeRulesFormDraft(current: RulesFormDraft, data: FormData): RulesFormDraft {
   return {
     rules: {
-      taxCode: (data.get("taxCode") as RuleMode) ?? current.rules.taxCode,
-      pec: (data.get("pec") as RuleMode) ?? current.rules.pec,
+      taxCode: (data.get("taxCode") as TaxCodeRuleMode) ?? current.rules.taxCode,
+      pec: (data.get("pec") as PecRuleMode) ?? current.rules.pec,
     },
     address2: data.get("address2") !== null,
   };

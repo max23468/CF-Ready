@@ -3,7 +3,7 @@ import type { HeadersFunction } from "react-router";
 import { useFetcher, useLoaderData, useNavigate } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError, type AppErrorCode } from "../app-error";
-import { oneOf, pendingFetcherIntent, RULE_MODES } from "../config";
+import { oneOf, PEC_RULE_MODES, pendingFetcherIntent, TAX_CODE_RULE_MODES } from "../config";
 import { onboardingStep4State } from "../features/onboarding/step4-state";
 import {
   Address2DeclarationPrompt,
@@ -155,20 +155,22 @@ export default function Onboarding() {
                   {/* Non controllati, come in Regole checkout: i valori appartengono al modulo e
                     si leggono al salvataggio. Riscriverli a ogni render li faceva sfarfallare e
                     poteva far fallire il gestore dell'evento. */}
-                  {(["taxCode", "pec"] as const).map((field) => (
-                    <s-choice-list
-                      key={field}
-                      label={field === "taxCode" ? t.rules.taxCodeLabel : t.rules.pecLabel}
-                      name={field}
-                    >
-                      {RULE_MODES.map((mode) => (
-                        <s-choice key={mode} value={mode} selected={mode === saved.rules[field]}>
-                          {t.rules[field][mode]}
-                          <s-text slot="details">{t.rules[field][`${mode}Help`]}</s-text>
-                        </s-choice>
-                      ))}
-                    </s-choice-list>
-                  ))}
+                  <s-choice-list label={t.rules.taxCodeLabel} name="taxCode">
+                    {TAX_CODE_RULE_MODES.map((mode) => (
+                      <s-choice key={mode} value={mode} selected={mode === saved.rules.taxCode}>
+                        {t.rules.taxCode[mode]}
+                        <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
+                      </s-choice>
+                    ))}
+                  </s-choice-list>
+                  <s-choice-list label={t.rules.pecLabel} name="pec">
+                    {PEC_RULE_MODES.map((mode) => (
+                      <s-choice key={mode} value={mode} selected={mode === saved.rules.pec}>
+                        {t.rules.pec[mode]}
+                        <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
+                      </s-choice>
+                    ))}
+                  </s-choice-list>
                 </>
               ) : null}
 
@@ -240,8 +242,8 @@ export default function Onboarding() {
                   onClick={() => {
                     if (step !== 2) return setStep(step + 1);
                     const data = form.current ? new FormData(form.current) : null;
-                    const taxCode = oneOf(RULE_MODES, data?.get("taxCode"));
-                    const pec = oneOf(RULE_MODES, data?.get("pec"));
+                    const taxCode = oneOf(TAX_CODE_RULE_MODES, data?.get("taxCode"));
+                    const pec = oneOf(PEC_RULE_MODES, data?.get("pec"));
                     if (!taxCode || !pec) return;
                     if (
                       saved.completed &&

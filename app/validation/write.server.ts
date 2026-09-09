@@ -5,7 +5,7 @@ import {
   readCommercialInputs,
   syncCommercialEntitlement,
 } from "../billing/commercial-entitlement.server";
-import { DEFAULT_CONFIG, readConfig } from "../config";
+import { CONFIG_SCHEMA_VERSION, DEFAULT_CONFIG, readConfig } from "../config";
 import type { CheckoutConfig, Entitlement } from "../config";
 import { configHash, observedConfigHash } from "./domain";
 import {
@@ -95,7 +95,7 @@ export async function writeValidation(
       ...(enable === null ? next : null),
     };
     const config: CheckoutConfig = {
-      schemaVersion: 2,
+      schemaVersion: CONFIG_SCHEMA_VERSION,
       enabled,
       errorDisplay: DEFAULT_CONFIG.errorDisplay,
       entitlement,
