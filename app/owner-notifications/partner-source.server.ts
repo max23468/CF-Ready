@@ -38,9 +38,9 @@ import {
   writeNotificationState,
 } from "./repository.server";
 
-const PARTNER_API_VERSION = "2026-07";
+export const PARTNER_API_VERSION = "2026-07";
 
-type PartnerInstallConfig = { organizationId: string; appId: string; accessToken: string };
+export type PartnerInstallConfig = { organizationId: string; appId: string; accessToken: string };
 type PartnerEventPage = {
   data?: {
     app?: {
@@ -102,28 +102,14 @@ export async function pollPartnerEvents(
   const diagnosticErrorCodes = new Set<string>();
 
   for (let page = 0; page < MAX_NOTIFICATION_PAGES; page += 1) {
-    const response = await fetcher(
-      `https://partners.shopify.com/${encodeURIComponent(config.organizationId)}/api/${PARTNER_API_VERSION}/graphql.json`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Shopify-Access-Token": config.accessToken,
-        },
-        body: JSON.stringify({
-          query: PARTNER_EVENTS_QUERY,
-          variables: {
-            appId: config.appId,
-            after,
-            occurredAtMin,
-            first: NOTIFICATION_PAGE_SIZE,
-          },
-        }),
-      },
+    const payload: PartnerEventPage = await requestPartnerApi<PartnerEventPage>(
+      config,
+      PARTNER_EVENTS_QUERY,
+      { appId: config.appId, after, occurredAtMin, first: NOTIFICATION_PAGE_SIZE },
+      fetcher,
     );
-    if (!response.ok) throw new Error("partner_api_request_failed");
-    const payload = await readPartnerPayload(response);
-    const events = payload.data?.app?.events;
+    const events: NonNullable<NonNullable<PartnerEventPage["data"]>["app"]>["events"] =
+      payload.data?.app?.events;
     if (!events || !Array.isArray(events.edges) || !events.pageInfo) {
       throw new Error("partner_api_invalid_payload");
     }
@@ -164,7 +150,7 @@ export async function pollPartnerEvents(
         pages: page + 1,
       };
     }
-    const endCursor = events.edges.at(-1)?.cursor;
+    const endCursor: string | undefined = events.edges.at(-1)?.cursor;
     if (!endCursor || endCursor === after) throw new Error("partner_api_invalid_cursor");
     after = endCursor;
   }
@@ -244,10 +230,33 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode)
   });
 }
 
-async function readPartnerPayload(response: Response) {
-  let payload: PartnerEventPage;
+export async function requestPartnerApi<T>(
+  config: PartnerInstallConfig,
+  query: string,
+  variables: Record<string, unknown>,
+  fetcher: typeof fetch = fetch,
+): Promise<T> {
+  requirePartnerConfig(config);
+  let response: Response;
   try {
-    payload = (await response.json()) as PartnerEventPage;
+    response = await fetcher(
+      `https://partners.shopify.com/${encodeURIComponent(config.organizationId)}/api/${PARTNER_API_VERSION}/graphql.json`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": config.accessToken,
+        },
+        body: JSON.stringify({ query, variables }),
+      },
+    );
+  } catch {
+    throw new Error("partner_api_request_failed");
+  }
+  if (!response.ok) throw new Error("partner_api_request_failed");
+  let payload: T & { errors?: Array<{ message?: string }> };
+  try {
+    payload = (await response.json()) as T & { errors?: Array<{ message?: string }> };
   } catch {
     throw new Error("partner_api_invalid_json");
   }

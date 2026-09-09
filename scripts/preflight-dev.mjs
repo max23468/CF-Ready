@@ -51,6 +51,9 @@ export function verifyDevelopmentConfig(shopifyConfig, wranglerConfig) {
     /^\[\[events\.subscription\]\]/m.test(shopifyConfig) ||
     wrangler.vars?.SCOPES !== shopifyScopes ||
     wrangler.vars?.ALLOWED_SHOP !== "cf-ready-dev.myshopify.com" ||
+    wrangler.vars?.APP_ENVIRONMENT !== "development" ||
+    !["true", "false"].includes(wrangler.vars?.OWNER_TELEGRAM_CONTROL_ENABLED) ||
+    wrangler.version_metadata?.binding !== "CF_VERSION_METADATA" ||
     database?.database_name !== expected.databaseName ||
     database?.database_id !== expected.databaseId ||
     queueProducer?.queue !== expected.queueName ||
@@ -163,7 +166,9 @@ async function main() {
   const secrets = JSON.parse(
     run("npm", ["exec", "--", "wrangler", "secret", "list", "--format", "json"], false),
   );
-  verifyWorkerSecrets(secrets);
+  verifyWorkerSecrets(secrets, {
+    ownerControl: JSON.parse(wranglerConfig).vars?.OWNER_TELEGRAM_CONTROL_ENABLED === "true",
+  });
 
   console.log(
     `${readbackOnly ? "Readback" : "Preflight"} Development superato: Shopify, D1 e secret Worker verificati.`,

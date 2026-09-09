@@ -120,7 +120,10 @@ async function writePreflightProject(t, environment) {
           SCOPES: "write_validations",
           BILLING_TEST: "false",
           OWNER_NOTIFICATIONS_ENABLED: "false",
+          OWNER_TELEGRAM_CONTROL_ENABLED: "false",
+          APP_ENVIRONMENT: "production",
         },
+        version_metadata: { binding: "CF_VERSION_METADATA" },
         triggers: { crons: ["0 * * * *", "*/5 * * * *"] },
         d1_databases: [
           {
@@ -820,4 +823,43 @@ esac`,
     env: { PATH: providerPath },
   });
   assert.equal(JSON.parse(launchResult.stdout).environment, "production");
+});
+
+test("l'entrypoint Telegram esegue il readback con provider sintetico", async (t) => {
+  const token = "123456789:abcdefghijklmnopqrstuvwxyz_ABCD";
+  const appUrl = "https://cf-ready-prod.test";
+  const provider = await fetchEnvironment(t, {
+    [`POST /bot${token}/getWebhookInfo`]: {
+      ok: true,
+      result: {
+        url: `${appUrl}/internal/telegram/webhook`,
+        allowed_updates: ["message", "callback_query"],
+        pending_update_count: 0,
+      },
+    },
+    [`POST /bot${token}/getMyCommands`]: {
+      ok: true,
+      result: [
+        { command: "dashboard", description: "Dashboard" },
+        { command: "shops", description: "Store" },
+        { command: "growth", description: "Growth" },
+        { command: "billing", description: "Billing" },
+        { command: "funnel", description: "Funnel" },
+        { command: "issues", description: "Problemi" },
+        { command: "health", description: "Health" },
+        { command: "help", description: "Help" },
+      ],
+    },
+  });
+  const result = runEntrypoint("telegram-owner-control.mjs", ["--check"], {
+    env: {
+      ...provider,
+      TELEGRAM_BOT_TOKEN: token,
+      TELEGRAM_CHAT_ID: "10001",
+      TELEGRAM_OWNER_USER_ID: "10001",
+      TELEGRAM_WEBHOOK_SECRET: "owner-control-secret-with-32-chars",
+      SHOPIFY_APP_URL: appUrl,
+    },
+  });
+  assert.equal(JSON.parse(result.stdout).commandsMatch, true);
 });

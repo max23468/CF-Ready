@@ -11,7 +11,12 @@
     "SHOPIFY_API_KEY": "adff48d4fe4ceb0dadb4734520701dd7",
     "SHOPIFY_APP_URL": "https://cf-ready-dev.tmsf.workers.dev",
     "SCOPES": "write_validations",
-    "ALLOWED_SHOP": "cf-ready-dev.myshopify.com"
+    "ALLOWED_SHOP": "cf-ready-dev.myshopify.com",
+    "APP_ENVIRONMENT": "development",
+    "OWNER_TELEGRAM_CONTROL_ENABLED": "false"
+  },
+  "version_metadata": {
+    "binding": "CF_VERSION_METADATA"
   },
   "observability": {
     "enabled": true,
@@ -74,7 +79,12 @@
         "SCOPES": "write_validations",
         "BILLING_TEST": "false",
         "ALLOWED_SHOP": "",
-        "OWNER_NOTIFICATIONS_ENABLED": "true"
+        "OWNER_NOTIFICATIONS_ENABLED": "true",
+        "APP_ENVIRONMENT": "production",
+        "OWNER_TELEGRAM_CONTROL_ENABLED": "false"
+      },
+      "version_metadata": {
+        "binding": "CF_VERSION_METADATA"
       },
       "observability": {
         "enabled": true,

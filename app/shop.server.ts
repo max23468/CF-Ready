@@ -301,6 +301,7 @@ async function deleteExpiredPerformanceSamples(db: D1Database, cutoff: string) {
 }
 
 export async function applyRetention(db: D1Database, now = new Date()) {
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1_000).toISOString();
   const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1_000).toISOString();
   const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1_000).toISOString();
   const [deleted, performanceSamples, shops] = await Promise.all([
@@ -353,6 +354,14 @@ export async function applyRetention(db: D1Database, now = new Date()) {
            )`,
         )
         .bind(oneYearAgo),
+      db
+        .prepare(
+          `DELETE FROM owner_control_updates WHERE update_id IN (
+             SELECT update_id FROM owner_control_updates WHERE updated_at <= ?
+             ORDER BY updated_at LIMIT 1000
+           )`,
+        )
+        .bind(sevenDaysAgo),
     ]),
     deleteExpiredPerformanceSamples(db, ninetyDaysAgo),
     redactExpiredShops(db, now),

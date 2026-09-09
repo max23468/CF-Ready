@@ -403,6 +403,16 @@ test("la retention rispetta le soglie pubblicate per eventi e ricevute", async (
       "2026-05-04T00:00:00.001Z",
       "2026-05-04T00:00:00.001Z",
     ),
+    env.DB.prepare(
+      `INSERT INTO owner_control_updates
+         (update_id, update_kind, status, received_at, processed_at, updated_at)
+       VALUES (7001, 'message', 'processed', ?, ?, ?)`,
+    ).bind("2026-07-26T00:00:00.000Z", "2026-07-26T00:00:00.000Z", "2026-07-26T00:00:00.000Z"),
+    env.DB.prepare(
+      `INSERT INTO owner_control_updates
+         (update_id, update_kind, status, received_at, processed_at, updated_at)
+       VALUES (7002, 'callback_query', 'processed', ?, ?, ?)`,
+    ).bind("2026-07-26T00:00:00.001Z", "2026-07-26T00:00:00.001Z", "2026-07-26T00:00:00.001Z"),
   ]);
 
   expect((await applyRetention(env.DB, new Date("2026-08-02T00:00:00.000Z"))).shops).toBe(0);
@@ -425,6 +435,13 @@ test("la retention rispetta le soglie pubblicate per eventi e ricevute", async (
     "performance-current",
     "receipt-current",
   ]);
+  expect(
+    (
+      await env.DB.prepare(
+        "SELECT update_id FROM owner_control_updates WHERE update_id BETWEEN 7001 AND 7002",
+      ).all<{ update_id: number }>()
+    ).results,
+  ).toEqual([{ update_id: 7002 }]);
 });
 
 test("la retention svuota tutti i batch di campioni performance scaduti", async () => {

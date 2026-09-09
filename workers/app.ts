@@ -2,6 +2,11 @@ import { createRequestHandler } from "react-router";
 import { createAppContext } from "../app/context.server";
 import { recordEvent } from "../app/events.server";
 import {
+  handleOwnerControlWebhook,
+  OWNER_CONTROL_PATH,
+  type OwnerControlBindings,
+} from "../app/owner-control/handler.server";
+import {
   deliverOwnerNotifications,
   pollLocalNotifications,
   pollPartnerEvents,
@@ -27,6 +32,9 @@ type NotificationBindings = Omit<Env, "OWNER_NOTIFICATIONS_ENABLED"> & {
 
 export default {
   async fetch(request, env, ctx) {
+    if (new URL(request.url).pathname === OWNER_CONTROL_PATH) {
+      return handleOwnerControlWebhook(request, env as OwnerControlBindings);
+    }
     const limited = await limitFormBody(request);
     if (limited instanceof Response) return limited;
     return requestHandler(

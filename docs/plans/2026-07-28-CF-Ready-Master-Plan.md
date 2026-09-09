@@ -380,7 +380,8 @@ Rispetto alle alternative più ampie o invasive:
 | D-145 | Verificare il carattere di controllo del CF provvisorio numerico a 11 cifre e rifiutare esplicitamente `00000000000`. | Il carattere di controllo non attesta che il codice esista o appartenga a qualcuno: rifiuta soltanto sequenze che non possono rispettare il formato. La validazione resta formale e non anagrafica. Su un campione esplorativo di 200.000 casi il controllo ha rilevato il 100% degli errori di una cifra, il 97,7% delle trasposizioni adiacenti considerate e ha rifiutato l’89,9% delle sequenze casuali prima accettate; i test usano casi deterministici, perché le misure dipendono dal campionamento e Luhn non rileva gli scambi `09`/`90`. Deciso dall’owner l’8 settembre 2026 per la `1.4.0`; supera D-017. |
 
 | D-146 | Usare un solo comportamento automatico per gli errori checkout: a `CHECKOUT_INTERACTION` segnalare inline i valori presenti ma invalidi e i required vuoti soltanto quando il campo è materializzato e tutte le delivery group italiane, in un contesto di consegna interamente localizzato, hanno un’opzione selezionata; mantenere sempre `CHECKOUT_COMPLETION`. | Il ticket reale ha confermato il blocco finale poco chiaro anche con pagamento manuale, quindi il problema dipende dal percorso checkout e non dal gateway. L’euristica evita i box globali al caricamento, conserva i target di campo e usa `$.cart` soltanto a Completion per un required assente con consegna italiana. `errorDisplay` resta temporaneamente serializzato come `inline` per compatibilità fra snapshot, ma viene ignorato dal runtime e normalizzato a ogni scrittura. Deciso dall’owner l’8 settembre 2026 per la `1.5.0`; supera D-019, D-024 e D-122. |
-| D-147 | Aggiungere alla sola PEC la modalità `required_when_company`: la PEC è obbligatoria quando `billingAddress.company`, dopo `trim()`, contiene un valore; negli altri casi resta facoltativa e viene validata se presente. | Usa il campo Azienda già esposto alla Function, senza nuovi scope, campi duplicati o interpretazioni fiscali dell’ordine. Il Codice Fiscale conserva i tre stati esistenti. Lo schema 3 distingue i due insiemi di modalità, legge lo schema 2 e richiede di distribuire e rileggere la Function compatibile prima del Worker che può scrivere la nuova configurazione. Deciso dall’owner l’8 settembre 2026 per la `1.6.0`. |
+| D-147 | Aggiungere alla sola PEC la modalità `required_when_company`: la PEC è obbligatoria quando `billingAddress.company`, dopo `trim()`, contiene un valore; negli altri casi resta facoltativa e viene validata se presente. | Usa il campo Azienda già esposto alla Function, senza nuovi scope, campi duplicati o interpretazioni fiscali dell’ordine. Il Codice Fiscale conserva i tre stati esistenti. Lo schema 3 distingue i due insiemi di modalità, legge lo schema 2 e richiede di distribuire e rileggere la Function compatibile prima del Worker che può scrivere la nuova configurazione. Deciso dall’owner l’8 settembre 2026 per la `1.6.1`. |
+| D-148 | Aggiungere alla chat Telegram privata dell’owner un Control Center interattivo e di sola lettura, separato dall’outbox delle notifiche e disattivabile con `OWNER_TELEGRAM_CONTROL_ENABLED`. | Il Worker autentica secret webhook, chat privata e singolo owner prima di accettare comandi o callback allowlistati. Rich Message, tastiera inline e modifica dello stesso messaggio presentano stato D1 corrente, aggregati Partner 7/28 giorni, billing, funnel e performance senza leggere ordini, clienti, prodotti, configurazione CF/PEC o nuovi scope Shopify. Le ricevute conservano solo `update_id` e metadata tecnici per sette giorni; le cache contengono soltanto aggregati. L’attivazione Telegram e il deploy restano passaggi Production separati. Deciso dall’owner l’8 settembre 2026 per la `1.6.1`. |
 
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
@@ -1580,6 +1581,28 @@ entità è disattivato e `protect_content` resta assente. Un arresto
 dopo l’invio ma prima del commit D1 può produrre una rara notifica duplicata; non
 può perdere la riga sorgente. Il contenuto non comunica mai nome dell’owner,
 email, identificatori Shopify, Codice Fiscale, PEC o dati checkout.
+
+#### `owner_control_updates` e `owner_control_state`
+
+Il Control Center Telegram usa `owner_control_updates` come ricevuta idempotente
+degli update inbound. Conserva soltanto identificatore numerico Telegram, tipo,
+stato, tentativi, claim, timestamp e codice errore stabile; il payload, il testo
+del comando, chat e user ID non vengono persistiti. `applyRetention()` elimina
+le ricevute dopo sette giorni.
+
+`owner_control_state` conserva cache JSON aggregate e sovrascrivibili per Growth
+Partner e stato del webhook Telegram. Growth conta separatamente installazioni,
+riattivazioni, disattivazioni e disinstallazioni negli ultimi 7 e 28 giorni; non
+ricostruisce store già redatti e non calcola una crescita netta. La cache ordinaria
+dura quindici minuti e un refresh esplicito rispetta cinque minuti di cooldown.
+
+L’endpoint `POST /internal/telegram/webhook` viene intercettato dal Worker prima
+del router merchant. Accetta soltanto JSON entro 64 KiB, `message` e
+`callback_query`, dopo verifica del secret Telegram, della chat privata e del
+singolo owner. I quindici comandi sono di sola lettura; callback compatte e
+versionate aggiornano lo stesso messaggio quando Telegram lo consente. Trasporto
+Telegram e logica Control Center restano moduli separati, mentre le notifiche
+outbound continuano a usare la propria outbox e i propri retry.
 
 #### `app_state`
 
