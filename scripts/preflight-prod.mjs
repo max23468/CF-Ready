@@ -77,7 +77,10 @@ export function verifyBuiltConfig(builtConfig) {
     built.send_email?.length ||
     !built.triggers?.crons?.includes("0 * * * *") ||
     !built.triggers?.crons?.includes("*/5 * * * *") ||
-    !["true", "false"].includes(built.vars?.OWNER_NOTIFICATIONS_ENABLED)
+    !["true", "false"].includes(built.vars?.OWNER_NOTIFICATIONS_ENABLED) ||
+    !["true", "false"].includes(built.vars?.OWNER_TELEGRAM_CONTROL_ENABLED) ||
+    built.vars?.APP_ENVIRONMENT !== "production" ||
+    built.version_metadata?.binding !== "CF_VERSION_METADATA"
   ) {
     throw new Error(
       "Il bundle non è quello Production: ricostruisci con CLOUDFLARE_ENV=production.",
@@ -152,6 +155,9 @@ async function main() {
     ownerNotifications:
       JSON.parse(await readFile("build/server/wrangler.json", "utf8")).vars
         ?.OWNER_NOTIFICATIONS_ENABLED === "true",
+    ownerControl:
+      JSON.parse(await readFile("build/server/wrangler.json", "utf8")).vars
+        ?.OWNER_TELEGRAM_CONTROL_ENABLED === "true",
   });
 
   console.log("Preflight Production superato: Shopify, bundle, D1 e secret Worker verificati.");

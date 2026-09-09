@@ -84,6 +84,11 @@
       "name": "0016_current_contracts.sql",
       "sha256": "ce7ec11cd2bc0b09f69ae621b2103520c6bc0fb11f1234cd433a8eeb8016ff80",
       "protects": ["current pricing domain", "one-time notification cursor transition"]
+    },
+    {
+      "name": "0017_owner_control.sql",
+      "sha256": "0a6ae6e35ab0d1d226add4cfcad47152b3134cfa806d7008df873f13f5ceb563",
+      "protects": ["Telegram update idempotency", "aggregate owner-control cache"]
     }
   ]
 }
