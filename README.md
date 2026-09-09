@@ -7,7 +7,7 @@ Versione e stato corrente si leggono da `package.json`, `CHANGELOG.md`, codice e
 configurazioni. Le ricevute storiche chiuse sono in `docs/evidence/`; i deploy
 correnti producono artifact JSON del workflow legati a commit e tree, attestati
 in Production. Il sito pubblico è
-[cf-ready.pages.dev](https://cf-ready.pages.dev/).
+[cfready.it](https://cfready.it/).
 
 ## Sviluppo locale
 

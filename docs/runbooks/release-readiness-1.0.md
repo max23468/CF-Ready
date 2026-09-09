@@ -397,7 +397,8 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 | Iniezione dell'identità del titolare | verificata **live**: Privacy e Termini, IT ed EN, dichiarano il nome della persona fisica titolare e nessuna pagina pubblica contiene ancora il segnaposto. Il segnaposto nei sorgenti è protetto da un test in `scripts/check-docs.node-test.mjs` | ✅ |
 | Configurazione Worker Production | `wrangler.json` env `production`: Worker `cf-ready-prod`, D1 `cf-ready-db-prod`, `ALLOWED_SHOP` vuota, addebiti reali | ✅ |
 | Worker Production distribuito | versione `0.9.40`, run [32786987670](https://github.com/max23468/CF-Ready/actions/runs/32786987670), commit `bd80fb7`; deployment `21f591be-4d20-4722-98b7-e66ed9b74755`, smoke e readback riusciti | ✅ |
-| URL Production nel manifest Shopify | `shopify.app.toml` punta a `https://cf-ready-prod.tmsf.workers.dev`, con aggiornamento automatico degli URL vietato | ✅ |
+| URL Production nel manifest Shopify | `shopify.app.toml` punta a `https://app.cfready.it`, con aggiornamento automatico degli URL vietato | ✅ |
+| Domini pubblici e DNSSEC | `cfready.it` e `www.cfready.it` attivi su Pages; `app.cfready.it` instradato al Worker; record DS pubblicato dal registro `.it` e catena DNSSEC validata il 9 settembre 2026 | ✅ configurazione provider, pubblicazione dei riferimenti canonici ancora da eseguire |
 | **`BILLING_TEST=false` in Production** | `wrangler.json` env `production` la definisce a `"false"` ed è effettiva sul Worker dalla `0.9.6` (D-129): gli addebiti dei merchant sono reali | ✅ |
 | Secret Production separati | tre secret runtime caricati sul Worker `cf-ready-prod` il 4 agosto 2026; il preflight li verifica a ogni deploy | ✅ |
 | Versione attiva dell'app CF Ready | Production `0.9.40`, ID `1101700857857`, commit `bd80fb7`, readback del run [32786987670](https://github.com/max23468/CF-Ready/actions/runs/32786987670) | ✅ |
@@ -430,10 +431,10 @@ quale URL ha fallito invece di uscire in silenzio ([#187](https://github.com/max
 
 | Voce | URL | Stato |
 | --- | --- | --- |
-| Sito | `https://cf-ready.pages.dev/` | pubblicato |
-| Privacy | `https://cf-ready.pages.dev/privacy` e `/en/privacy` | pubblicata; identità del titolare completata in M9 |
-| Termini | `https://cf-ready.pages.dev/terms` e `/en/terms` | pubblicati; identità del titolare completata in M9 |
-| Assistenza | `https://cf-ready.pages.dev/support` e `/en/support` | pubblicata, `mailto:` verificato |
+| Sito | `https://cfready.it/` | pubblicato; riferimenti canonici al nuovo dominio preparati localmente |
+| Privacy | `https://cfready.it/privacy` e `/en/privacy` | pubblicata; identità del titolare completata in M9 |
+| Termini | `https://cfready.it/terms` e `/en/terms` | pubblicati; identità del titolare completata in M9 |
+| Assistenza | `https://cfready.it/support` e `/en/support` | pubblicata, `mailto:` verificato |
 | Segnalazione vulnerabilità | `SECURITY.md` e canale privato del repository | operativo, verificato in M7 |
 
 I quattro documenti legali sono serviti con `X-Robots-Tag: noindex`: restano
@@ -448,7 +449,6 @@ segnaposto. Deploy eseguito il 3 agosto 2026 e verificato live.
 | --- | --- |
 | Sigla `CF` dentro l'icona, contro la raccomandazione Shopify | accettato dall'owner il 28 luglio 2026 (D-114). Rimedio pronto: `icon-app-notext.svg`, si sostituisce solo l'icona della listing |
 | Nessun indirizzo geografico nei documenti legali | accettato dall'owner il 3 agosto 2026: titolare persona fisica senza Partita IVA, identificato con nome e recapito email. La review potrebbe chiedere un indirizzo |
-| Nessun dominio proprio | deciso in M7: il sito resta su `pages.dev` per la 1.0; ne consegue il `mailto:` al posto del modulo con invio |
 | Generazioni ricorrenti degli abbonamenti non coperte | limite della piattaforma, dichiarato in listing, termini e reviewer instructions |
 | Wallet non tutti disponibili nello stesso browser | M10 chiusa con matrice server-side automatica e ricognizione delle superfici disponibili; Apple Pay resta un'osservazione non bloccante su Safari/dispositivo compatibile |
 
