@@ -1662,6 +1662,25 @@ describe("Regole", () => {
       marketName: null,
       currentValue: "Codice fiscale (facoltativo)",
     });
+    const taxCodeEnglish = labelSlot({
+      name: "taxCode",
+      key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
+      locale: "en",
+      family: "en",
+      capability: "guided",
+      currentValue: "Tax code (optional)",
+    });
+    const taxCodeEnglishMarket = labelSlot({
+      name: "taxCode",
+      key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
+      locale: "en",
+      family: "en",
+      capability: "guided",
+      kind: "market_translation",
+      marketId: "gid://shopify/Market/1",
+      marketName: "Italia",
+      currentValue: "Italian tax code (optional)",
+    });
     const optionalAddress = labelSlot({
       name: "optionalAddress2",
       key: "shopify.checkout.contact.optional_address2_label",
@@ -1669,20 +1688,23 @@ describe("Regole", () => {
       sourceValue: "Interno, scala, ecc. (facoltativo)",
     });
     const snapshot = {
-      locales: [{ locale: "it", family: "it", name: "Italiano", primary: false, published: false }],
+      locales: [
+        { locale: "it", family: "it", name: "Italiano", primary: false, published: false },
+        { locale: "en", family: "en", name: "English", primary: true, published: true },
+      ],
       markets: [
         {
           id: "gid://shopify/Market/1",
           name: "Italia",
           defaultLocale: "it",
-          locales: ["it"],
+          locales: ["it", "en"],
           resolution: "direct",
         },
       ],
       issues: [],
       revision: "labels-optional",
       address2: { classification: "expected", hasMarketOverride: false },
-      slots: [taxCode, taxCodeMarket, optionalAddress],
+      slots: [taxCode, taxCodeMarket, taxCodeEnglish, taxCodeEnglishMarket, optionalAddress],
     } as const;
     router.loaderData = {
       ...rulesData,
