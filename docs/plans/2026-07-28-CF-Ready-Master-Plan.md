@@ -385,6 +385,8 @@ Rispetto alle alternative più ampie o invasive:
 | D-149 | Gestire facoltativamente le etichette native di Codice Fiscale e PEC tramite copie deterministiche IT/EN e controllare le etichette della seconda riga dell’indirizzo, con consenso Shopify separato, capacità provata per singola chiave, locale e mercato, confronto prima della prima scrittura e ripristino prudente delle sole traduzioni possedute. | `ONLINE_STORE_THEME_LOCALE_CONTENT` espone le quattro chiavi necessarie. Gli scope `write_translations`, `read_locales` e `read_markets` restano opzionali; una revoca sospende le scritture senza fermare la Validation. Il merchant può scegliere di conservare le proprie etichette senza concederli; la scelta viene legata alla revisione Shopify quando disponibile e un nuovo snapshot la invalida. I mercati usano `Market.webPresences`: contesti ereditati o non univoci restano guidati e richiedono verifica nel checkout. CF Ready classifica automaticamente il testo di “Interno”; la dichiarazione manuale storica resta nei dati ma non guida più Regole o onboarding. L’opzione del modulo che rende “Interno” obbligatorio, facoltativo o nascosto resta manuale. Le etichette merchant restano in D1 solo per ownership e ripristino e non entrano in log, telemetria o diagnostica. Deciso dall’owner l’8 settembre 2026 per la `1.7.0`; precisato il 9 settembre 2026 dopo il primo rollout Development e il ridisegno della `1.7.1`; supera la parte di D-125 che dichiarava illeggibili le etichette. |
 | D-150 | Nel Control Center distinguere i problemi operativi aperti dagli errori storici e mostrare MRR e ARR sia lordi sia dopo le fee Shopify standard applicabili. | I `SHOP_UPDATE` falliti non restano aperti quando un aggiornamento successivo dello stesso store è riuscito o lo store è già stato redatto; gli altri errori restano consultabili in `/errors`. Il pending Telegram esclude l'update che sta eseguendo `/health`. Il netto applica i tassi nominati e verificati della fascia ordinaria corrente: revenue share 0% e commissione di elaborazione 2,9%, senza includere imposte od oneri regionali. Deciso dall'owner il 9 settembre 2026 per la `1.7.0`. |
 
+| D-151 | Usare `cfready.it` come origine canonica del sito pubblico e `app.cfready.it` per il Worker Production; `www.cfready.it` reindirizza con 301 alla radice, mentre i sottodomini Cloudflare restano endpoint tecnici. | Sitemap, robots, canonical, hreflang, metadati sociali e dati strutturati devono dichiarare il dominio pubblico. La zona usa i nameserver Cloudflare e una catena DNSSEC validata dal record DS pubblicato nel registro `.it`. Deciso dall'owner il 9 settembre 2026 per la `1.8.0`. |
+
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
@@ -2606,23 +2608,27 @@ target Development nello stesso account Cloudflare.
 
 ### 18.3 URL
 
-Sito pubblico, da riservare:
+Sito pubblico canonico:
 
 ```text
-https://cf-ready.pages.dev/
-https://cf-ready.pages.dev/privacy
-https://cf-ready.pages.dev/terms
-https://cf-ready.pages.dev/support
+https://cfready.it/
+https://cfready.it/privacy
+https://cfready.it/terms
+https://cfready.it/support
 ```
 
 Le versioni inglesi vivono sotto `/en/`, con gli stessi percorsi:
 
 ```text
-https://cf-ready.pages.dev/en/
-https://cf-ready.pages.dev/en/privacy
-https://cf-ready.pages.dev/en/terms
-https://cf-ready.pages.dev/en/support
+https://cfready.it/en/
+https://cfready.it/en/privacy
+https://cfready.it/en/terms
+https://cfready.it/en/support
 ```
+
+`cf-ready.pages.dev` resta il sottodominio tecnico del progetto Pages. Il
+dominio `www.cfready.it` reindirizza permanentemente alla radice conservando
+percorso e query string.
 
 L’italiano sta nella radice perché è la lingua principale del prodotto (§16.4) e
 perché la versione italiana dei documenti legali è quella che prevale (§21.8).
@@ -2643,12 +2649,12 @@ https://cf-ready-dev.tmsf.workers.dev
 Worker Production:
 
 ```text
-https://cf-ready-prod.tmsf.workers.dev
+https://app.cfready.it
 ```
 
-Il sottodominio account osservato è `tmsf`. Non cambiarlo senza verificare
-l’impatto sugli altri Worker. La disponibilità dei nomi Worker va riconfermata
-nel preflight del primo deploy.
+Il dominio personalizzato instrada il traffico al Worker `cf-ready-prod`. L’URL
+generato dal provider non fa parte del contratto pubblico né dei callback OAuth
+dell’app.
 
 L’utente nell’app vede normalmente:
 
@@ -3442,9 +3448,10 @@ Il percorso di assistenza mantiene:
 più sotto è stata eseguita: l’Email binding di Cloudflare invia gratuitamente
 verso indirizzi di destinazione verificati, su qualunque piano e con il solo
 Email Routing configurato, **ma soltanto da un dominio proprio onboardato**.
-`pages.dev` e `workers.dev` non sono zone del progetto, e l’owner ha deciso di
-non registrare un dominio per la 1.0. Il binding non è quindi utilizzabile e
-vale il fallback previsto: un collegamento `mailto:` precompilato.
+`pages.dev` e `workers.dev` non sono zone del progetto e, durante la 1.0,
+l’owner non aveva ancora registrato un dominio. Il fallback scelto allora resta
+il collegamento `mailto:` precompilato; l’onboarding successivo di `cfready.it`
+non introduce da solo un nuovo flusso di assistenza via Email binding.
 
 Ne discendono tre conseguenze, recepite in FR-090 e §12.2:
 
@@ -4156,10 +4163,9 @@ qualificati non-brand e almeno 10 installazioni nette qualificate aggiuntive,
 con checkpoint a 14, 30, 60 e 90 giorni. Onboarding completato, Validation
 attiva e retention restano guardrail contro traffico o installazioni di bassa
 qualità. Questi valori aiutano M12, ma non sostituiscono né aggiungono un gate ai
-requisiti Built for Shopify di §25.4. Il dominio `pages.dev` resta in uso finché
-la trazione non giustifica un dominio dedicato; la strategia iniziale usa solo
-sito, listing e Google Search Console, senza pubblicazioni community o contatti
-diretti.
+requisiti Built for Shopify di §25.4. Il sito usa il dominio dedicato
+`cfready.it`; la strategia iniziale usa solo sito, listing e Google Search
+Console, senza pubblicazioni community o contatti diretti.
 
 ---
 
@@ -4549,10 +4555,10 @@ Gate:
 
 Decisioni prese durante la milestone:
 
-- **nessun dominio proprio nella 1.0.** Il sito resta sui percorsi `pages.dev`
-  di §18.3. La conseguenza operativa non è estetica: senza un dominio
-  onboardato l’Email binding di Cloudflare non può inviare, quindi cade il
-  modulo con invio e resta il `mailto:`;
+- **nessun dominio proprio nella 1.0.** Questa decisione storica è stata
+  superata da D-151: il sito usa ora `cfready.it`. Il fallback `mailto:` resta
+  invariato perché l’onboarding del dominio non introduce da solo un nuovo
+  flusso di assistenza;
 - **un solo script sul sito, servito dal sito stesso.** Il menu che si ritira
   scorrendo su telefono e l'evidenziazione della sezione in vista non si
   ottengono con i soli fogli di stile: servirebbe conoscere la direzione dello

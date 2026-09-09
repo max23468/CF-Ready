@@ -41,7 +41,7 @@ preparatorio non li sostituisce.
 ### 1. URL Production nel manifest — chiuso il 4 agosto 2026 ✅
 
 `shopify.app.toml` dichiarava i valori dello scaffold, `https://example.com`.
-Ora punta a `https://cf-ready-prod.tmsf.workers.dev` e vieta
+Ora punta a `https://app.cfready.it` e vieta
 `automatically_update_urls_on_dev`, così un `shopify app dev` distratto non può
 riscrivere gli URL dell'app pubblica con un tunnel.
 

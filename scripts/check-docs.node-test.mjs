@@ -307,41 +307,41 @@ test("la CSP consente beacon e raccolta Cloudflare Web Analytics", () => {
 });
 
 const indexableSitePages = new Map([
-  ["site/index.html", "https://cf-ready.pages.dev/"],
-  ["site/en/index.html", "https://cf-ready.pages.dev/en/"],
-  ["site/support.html", "https://cf-ready.pages.dev/support"],
-  ["site/en/support.html", "https://cf-ready.pages.dev/en/support"],
+  ["site/index.html", "https://cfready.it/"],
+  ["site/en/index.html", "https://cfready.it/en/"],
+  ["site/support.html", "https://cfready.it/support"],
+  ["site/en/support.html", "https://cfready.it/en/support"],
   [
     "site/guide/codice-fiscale-obbligatorio-shopify.html",
-    "https://cf-ready.pages.dev/guide/codice-fiscale-obbligatorio-shopify",
+    "https://cfready.it/guide/codice-fiscale-obbligatorio-shopify",
   ],
   [
     "site/en/guides/required-codice-fiscale-shopify-checkout.html",
-    "https://cf-ready.pages.dev/en/guides/required-codice-fiscale-shopify-checkout",
+    "https://cfready.it/en/guides/required-codice-fiscale-shopify-checkout",
   ],
   [
     "site/guide/campi-fiscali-shopify-codice-fiscale-pec.html",
-    "https://cf-ready.pages.dev/guide/campi-fiscali-shopify-codice-fiscale-pec",
+    "https://cfready.it/guide/campi-fiscali-shopify-codice-fiscale-pec",
   ],
   [
     "site/en/guides/shopify-italian-tax-fields-codice-fiscale-pec.html",
-    "https://cf-ready.pages.dev/en/guides/shopify-italian-tax-fields-codice-fiscale-pec",
+    "https://cfready.it/en/guides/shopify-italian-tax-fields-codice-fiscale-pec",
   ],
   [
     "site/guide/indirizzo-2-codice-fiscale-shopify.html",
-    "https://cf-ready.pages.dev/guide/indirizzo-2-codice-fiscale-shopify",
+    "https://cfready.it/guide/indirizzo-2-codice-fiscale-shopify",
   ],
   [
     "site/en/guides/address-2-codice-fiscale-shopify.html",
-    "https://cf-ready.pages.dev/en/guides/address-2-codice-fiscale-shopify",
+    "https://cfready.it/en/guides/address-2-codice-fiscale-shopify",
   ],
   [
     "site/guide/validazione-codice-fiscale-shopify.html",
-    "https://cf-ready.pages.dev/guide/validazione-codice-fiscale-shopify",
+    "https://cfready.it/guide/validazione-codice-fiscale-shopify",
   ],
   [
     "site/en/guides/validate-codice-fiscale-shopify.html",
-    "https://cf-ready.pages.dev/en/guides/validate-codice-fiscale-shopify",
+    "https://cfready.it/en/guides/validate-codice-fiscale-shopify",
   ],
 ]);
 
@@ -359,7 +359,7 @@ test("le pagine indicizzabili dichiarano canonical, lingue e metadati sociali", 
     assert.match(html, /<meta property="og:url"/, path);
     assert.match(
       html,
-      /<meta property="og:image" content="https:\/\/cf-ready\.pages\.dev\/assets\/cf-ready-app-preview\.png">/,
+      /<meta property="og:image" content="https:\/\/cfready\.it\/assets\/cf-ready-app-preview\.png">/,
       path,
     );
     assert.match(html, /<meta property="og:image:type" content="image\/png">/, path);
@@ -369,7 +369,7 @@ test("le pagine indicizzabili dichiarano canonical, lingue e metadati sociali", 
     assert.match(html, /<meta name="twitter:card" content="summary_large_image">/, path);
     assert.match(
       html,
-      /<meta name="twitter:image" content="https:\/\/cf-ready\.pages\.dev\/assets\/cf-ready-app-preview\.png">/,
+      /<meta name="twitter:image" content="https:\/\/cfready\.it\/assets\/cf-ready-app-preview\.png">/,
       path,
     );
     assert.equal([...html.matchAll(/<h1(?:\s|>)/g)].length, 1, path);
@@ -432,7 +432,7 @@ test("sitemap e robots espongono solo URL indicizzabili canonici", () => {
   assert.doesNotMatch(sitemap, /\/privacy|\/terms|\/404/);
   assert.match(robots, /^User-agent: \*$/m);
   assert.match(robots, /^Allow: \/$/m);
-  assert.match(robots, /^Sitemap: https:\/\/cf-ready\.pages\.dev\/sitemap\.xml$/m);
+  assert.match(robots, /^Sitemap: https:\/\/cfready\.it\/sitemap\.xml$/m);
 });
 
 test("i dati strutturati restano verificabili e non inventano prezzo o recensioni", () => {
@@ -571,7 +571,11 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /printf '%s\\n' "\$GITHUB_SHA" > site\/deployment\.txt/);
   assert.match(workflow, /if curl --fail/);
   assert.match(workflow, /--location --max-redirs 5/);
-  assert.match(workflow, /PAGES_DOMAIN\/deployment\.txt/);
+  assert.match(workflow, /PUBLIC_DOMAIN\/deployment\.txt/);
+  assert.match(workflow, /pages\/projects\/\$PAGES_PROJECT\/domains\/\$PUBLIC_DOMAIN/);
+  assert.match(workflow, /\.result\.status == "active"/);
+  assert.match(workflow, /https:\/\/www\.\$PUBLIC_DOMAIN/);
+  assert.match(workflow, /www_effective_url/);
   assert.match(workflow, /grep -Fxq "\$GITHUB_SHA"/);
   assert.match(workflow, /--write-out '%\{url_effective\}'/);
   assert.match(workflow, /test "\$published" = true/);

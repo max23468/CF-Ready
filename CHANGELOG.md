@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.8.0 — 9 settembre 2026
+
+- il sito pubblico usa `https://cfready.it` in sitemap, robots, URL canonici,
+  metadati sociali, dati strutturati, listing e documentazione corrente;
+- il Worker Production e il callback OAuth usano `https://app.cfready.it`;
+- il workflow Pages verifica il dominio personalizzato, lo smoke pubblico e il
+  reindirizzamento permanente da `www.cfready.it` alla radice.
+
 ## 1.7.1 — 9 settembre 2026
 
 - “Testi del checkout” occupa una sezione autonoma a tutta larghezza e riassume

@@ -15,7 +15,7 @@ concurrency:
 
 env:
   WORKER_NAME: cf-ready-prod
-  WORKER_URL: https://cf-ready-prod.tmsf.workers.dev
+  WORKER_URL: https://app.cfready.it
 
 jobs:
   deploy:
@@ -38,8 +38,8 @@ jobs:
 
       - name: Verifica URL Production persistenti
         run: |
-          grep -Fxq 'application_url = "https://cf-ready-prod.tmsf.workers.dev"' shopify.app.toml
-          grep -Fxq 'redirect_urls = [ "https://cf-ready-prod.tmsf.workers.dev/auth/callback" ]' shopify.app.toml
+          grep -Fxq 'application_url = "https://app.cfready.it"' shopify.app.toml
+          grep -Fxq 'redirect_urls = [ "https://app.cfready.it/auth/callback" ]' shopify.app.toml
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:

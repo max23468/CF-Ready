@@ -145,10 +145,10 @@ must state the same figure.
 
 | Item | URL |
 | --- | --- |
-| Support | `https://cf-ready.pages.dev/support` (shared from the primary listing) |
-| Developer website | `https://cf-ready.pages.dev/en/` |
-| Privacy | `https://cf-ready.pages.dev/en/privacy` |
-| Terms | `https://cf-ready.pages.dev/en/terms` |
+| Support | `https://cfready.it/support` (shared from the primary listing) |
+| Developer website | `https://cfready.it/en/` |
+| Privacy | `https://cfready.it/en/privacy` |
+| Terms | `https://cfready.it/en/terms` |
 | Contact | `cfready@icloud.com` |
 
 ## What must not be written
