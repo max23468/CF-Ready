@@ -53,6 +53,11 @@ declare global {
         message: string;
       }>;
     };
+    scopes: {
+      request(scopes: string[]): Promise<{
+        result: "granted-all" | "declined-all";
+      }>;
+    };
     saveBar: {
       show(id: string): Promise<void>;
       hide(id: string): Promise<void>;

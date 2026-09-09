@@ -174,7 +174,6 @@ test("la Home completa automaticamente un onboarding già effettivo", async () =
 
   expect(result.data).toMatchObject({
     onboarding: "completed",
-    address2Declared: true,
     complimentary: true,
     showMerchantCheckIn: true,
   });
@@ -214,6 +213,12 @@ test("la prova distingue omaggio, indisponibilità e successo", async () => {
   await expect(action(actionRequest("start_trial"))).resolves.toEqual({
     ok: false,
     errorCode: "one_time_already_active",
+  });
+
+  mocks.startTrial.mockResolvedValueOnce(null);
+  await expect(action(actionRequest("start_trial"))).resolves.toEqual({
+    ok: false,
+    errorCode: "trial_unavailable",
   });
 
   mocks.startTrial.mockResolvedValueOnce({ status: "expired" });

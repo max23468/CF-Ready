@@ -134,7 +134,6 @@ test("la Home legge lo stato D1 in parallelo ed espone timing senza dati merchan
 
   expect(result.data).toMatchObject({
     onboarding: "not_started",
-    address2Declared: false,
     showMerchantCheckIn: false,
   });
   expect(serverTiming).toContain("shopify_snapshot;dur=12.3");

@@ -45,7 +45,6 @@ test("la pagina Regole carica l’entitlement autorevole per l’anteprima", asy
     entitlement: { kind: "none", validThrough: null },
   });
   mocks.observedConfigHash.mockResolvedValue("hash");
-  mocks.readAddress2Declaration.mockResolvedValue(null);
   mocks.readCheckoutLabelState.mockResolvedValue({
     mode: "off",
     address2Classification: "unknown",
@@ -60,7 +59,7 @@ test("la pagina Regole carica l’entitlement autorevole per l’anteprima", asy
 
   expect(result.data).toMatchObject({ enabled: true, entitled: false });
   expect(new Headers(result.init?.headers).get("Server-Timing")).toMatch(
-    /auth;dur=.*d1_address;dur=.*total;dur=/,
+    /auth;dur=.*d1_validation_state;dur=.*total;dur=/,
   );
   expect(
     new Headers(

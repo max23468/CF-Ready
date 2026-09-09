@@ -12,13 +12,13 @@ senza assimilare il readback Admin al rendering nel checkout.
 
 | Prova | Esito |
 | --- | --- |
-| Commit `develop` | `957fb0b4d1a99b23b42ab9946026ab9a3069409e` |
-| Tree | `066bbf281ba6ea5fd30c1cf171e1734aa79e3ba5` |
-| Snapshot Shopify | `1.7.0-dev.066bbf281ba6` |
-| Workflow Development | [run `34348227431`](https://github.com/max23468/CF-Ready/actions/runs/34348227431), verde |
-| D1 | migrazione `0018_checkout_labels.sql` applicata e riletta |
+| Commit `develop` | `33b42296895bc30905340fed265c675c093cec25` |
+| Tree | `6e73b066c5cd8cace1cbc8e0b3de63eebf5a8548` |
+| Snapshot Shopify | `1.7.0-dev.6e73b066c5cd` |
+| Workflow Development | [run `34359242062`](https://github.com/max23468/CF-Ready/actions/runs/34359242062), verde |
+| D1 | migrazioni `0018_checkout_labels.sql` e `0019_checkout_label_decision.sql` applicate e rilette |
 | Worker | deploy, smoke e capacità verdi |
-| Admin reale | sezione “Campi nativi: Codice Fiscale e PEC” caricata correttamente |
+| Admin reale | sezione caricata; azioni “Concedi i permessi” e “Mantieni le mie etichette” visibili |
 
 ## Capacità per tipo di slot
 
@@ -48,7 +48,7 @@ non abilita scritture automatiche.
 | invalidazione della scelta dopo un nuovo snapshot | verde | revisione persistita e test servizio |
 | ownership, ripristino e modifica esterna | verde | test repository e servizio |
 | informative Privacy e Supporto IT/EN | aggiornate | descrivono testi osservati, copie per ownership e ripristino, permessi e assenza di dati cliente |
-| deploy Development integrato | verde | run `34348227431` sul tree indicato sopra |
+| deploy Development integrato | verde | run `34359242062` sul tree indicato sopra |
 | consenso agli scope opzionali | da eseguire dall’owner | il piano richiede che l’owner completi personalmente il consenso Shopify |
 | confronto API IT/EN e override sullo store condiviso | in attesa del consenso | nessuna scrittura parte prima del consenso e della conferma |
 | checkout reale desktop e mobile per locale e mercato | in attesa del consenso | il readback Admin non costituisce questa prova |
