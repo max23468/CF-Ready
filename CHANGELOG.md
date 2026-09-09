@@ -8,6 +8,11 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
 ## 1.7.0 — 9 settembre 2026
 
+- il Control Center distingue i problemi operativi ancora aperti dagli errori
+  storici e considera recuperati i `SHOP_UPDATE` seguiti da un aggiornamento
+  riuscito o riferiti a uno store già redatto;
+- Health esclude dal backlog Telegram la richiesta corrente e Billing affianca
+  a MRR e ARR l'importo dopo le fee Shopify standard correnti;
 - con consenso Shopify separato, l'app confronta le etichette native di Codice
   Fiscale e PEC e sincronizza automaticamente la traduzione globale inglese
   supportata, lasciando fonti primarie, altre lingue e mercati alla verifica

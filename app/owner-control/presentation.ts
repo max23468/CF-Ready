@@ -40,8 +40,8 @@ export function dashboardMessage(
       ]),
       section("📈 Growth", growthRows(growth)),
       section("⚙️ Operatività", [
-        ["Errori · 7 gg", value(data.errors_7d)],
-        ["Webhook falliti", value(data.failed_webhooks)],
+        ["Problemi aperti", value(data.open_issues)],
+        ["Webhook da verificare", value(data.unresolved_webhooks)],
         ["Notifiche fallite", value(data.failed_notifications)],
         ["Partner sync", formatDate(data.partner_synced_at)],
       ]),
@@ -152,6 +152,9 @@ export function billingMessage(data: {
   trials: number;
   mrr: number;
   arr: number;
+  netMrr: number;
+  netArr: number;
+  shopifyFees: { revenueShare: number; processing: number };
 }): OwnerControlMessage {
   const count = (kind: string, status = "active") =>
     data.rows
@@ -192,11 +195,14 @@ export function billingMessage(data: {
         ],
       ]),
       section("📐 Run-rate", [
-        ["MRR run-rate", MONEY.format(data.mrr)],
-        ["ARR run-rate", MONEY.format(data.arr)],
+        ["Valore mensile (MRR)", MONEY.format(data.mrr)],
+        ["Mensile dopo fee", MONEY.format(data.netMrr)],
+        ["Valore annuale (ARR)", MONEY.format(data.arr)],
+        ["Annuale dopo fee", MONEY.format(data.netArr)],
       ]),
     ],
     back(),
+    `Fee applicate: revenue share ${percent(data.shopifyFees.revenueShare)} · elaborazione ${percent(data.shopifyFees.processing)}`,
   );
 }
 
@@ -251,20 +257,17 @@ export function funnelMessage(rows: Array<Record<string, unknown>>): OwnerContro
 export function issuesMessage(
   data: Record<string, Record<string, unknown> | undefined>,
 ): OwnerControlMessage {
-  const partnerAt = data.partner?.synced_at;
-  const partnerStale =
-    typeof partnerAt !== "string" || Date.now() - Date.parse(partnerAt) > 15 * 60 * 1000;
   return panel(
     "Problemi",
     [
       section("⚠️ Anomalie azionabili", [
         ["Store con errore", value(data.stores?.count)],
-        ["Webhook falliti", value(data.webhooks?.failed)],
+        ["Webhook da verificare", value(data.webhooks?.unresolved)],
         ["Webhook stale", value(data.webhooks?.stale)],
         ["Notifiche fallite", value(data.notifications?.failed)],
         ["Notifiche stale", value(data.notifications?.stale)],
         ["Control Center fallito", value(data.control?.failed)],
-        ["Partner sync", partnerStale ? "Stale" : "Regolare"],
+        ["Partner sync", data.partner?.stale ? "Stale" : "Regolare"],
         ["Regressioni performance", value(data.performance?.regressions)],
       ]),
     ],
@@ -346,8 +349,7 @@ export function healthMessage(
   },
 ): OwnerControlMessage {
   const partnerAt = (data.partner as Record<string, unknown> | undefined)?.synced_at;
-  const partnerOk =
-    typeof partnerAt === "string" && Date.now() - Date.parse(partnerAt) <= 15 * 60 * 1000;
+  const partnerOk = (data.partner as Record<string, unknown> | undefined)?.stale === 0;
   const notifications = data.notifications as Record<string, unknown> | undefined;
   const inbound = data.inbound as Record<string, unknown> | undefined;
   return panel(
@@ -357,12 +359,14 @@ export function healthMessage(
         ["Worker", "Operativo"],
         ["D1", data.d1 ? "OK" : "Errore"],
         ["Partner sync", partnerOk ? formatDate(partnerAt) : "Stale o assente"],
-        ["Telegram inbound", formatDate(inbound?.last_processed_at)],
+        ["Ultimo comando Telegram", formatDate(inbound?.last_processed_at)],
         ["Telegram inbound falliti", value(inbound?.failed)],
         [
-          "Telegram webhook",
+          "Telegram inbound",
           webhook?.configured && webhook.matchesExpectedUrl
-            ? `Attivo · ${webhook.pendingUpdateCount} pending`
+            ? webhook.pendingUpdateCount
+              ? `Attivo · ${webhook.pendingUpdateCount} in coda`
+              : "Attivo · nessun arretrato"
             : webhook
               ? "Configurazione non corrispondente"
               : "Non verificato",
@@ -375,8 +379,8 @@ export function healthMessage(
         ["Pending più vecchia", formatDate(notifications?.oldest_pending_at)],
         ["Ultimo fallimento", formatDate(notifications?.last_failed_at)],
         [
-          "Webhook app falliti",
-          value((data.webhooks as Record<string, unknown> | undefined)?.failed),
+          "Webhook app da verificare",
+          value((data.webhooks as Record<string, unknown> | undefined)?.unresolved),
         ],
         ["Webhook app stale", value((data.webhooks as Record<string, unknown> | undefined)?.stale)],
       ]),
@@ -574,6 +578,14 @@ function growthRows(data?: {
 }
 function value(input: unknown) {
   return input === null || input === undefined ? "—" : String(input);
+}
+
+function percent(input: number) {
+  return new Intl.NumberFormat("it-IT", {
+    style: "percent",
+    minimumFractionDigits: input ? 1 : 0,
+    maximumFractionDigits: 1,
+  }).format(input);
 }
 function formatDate(input: unknown) {
   if (typeof input !== "string" || !Number.isFinite(Date.parse(input))) return "—";

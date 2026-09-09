@@ -1,4 +1,4 @@
-import { planPrices } from "../plans.server";
+import { planPrices, SHOPIFY_APP_FEES } from "../plans.server";
 import { FUNNEL_QUERY, parseFunnel } from "../reporting/funnel";
 import {
   PERFORMANCE_QUERY,
@@ -11,6 +11,33 @@ import {
 import type { ShopsFilter } from "./model";
 
 export const SHOPS_PAGE_SIZE = 8;
+
+const UNRESOLVED_WEBHOOK_FILTER = `
+  w.status = 'failed' AND NOT (
+    w.topic = 'SHOP_UPDATE' AND (
+      w.shop_domain IS NULL
+      OR NOT EXISTS (
+        SELECT 1 FROM shops current_shop
+         WHERE current_shop.shop_domain = w.shop_domain
+           AND current_shop.installation_status = 'active'
+      )
+      OR EXISTS (
+        SELECT 1 FROM webhook_events recovered
+         WHERE recovered.topic = w.topic
+           AND recovered.shop_domain = w.shop_domain
+           AND recovered.status = 'processed'
+           AND recovered.received_at > w.received_at
+      )
+    )
+  )`;
+
+const WEBHOOK_ISSUES_QUERY = `
+  SELECT
+    COUNT(*) FILTER (WHERE ${UNRESOLVED_WEBHOOK_FILTER}) AS unresolved,
+    COUNT(*) FILTER (
+      WHERE w.status = 'processing' AND w.received_at <= datetime('now', '-5 minutes')
+    ) AS stale
+  FROM webhook_events w`;
 
 export type ShopRow = {
   id: number;
@@ -49,7 +76,7 @@ const SHOP_SELECT = `
   LEFT JOIN complimentary_entitlements c ON c.shop_id = s.id`;
 
 export async function readDashboard(db: D1Database) {
-  const [commercial, operations] = await Promise.all([
+  const [commercial, issues] = await Promise.all([
     db
       .prepare(
         `SELECT
@@ -70,17 +97,16 @@ export async function readDashboard(db: D1Database) {
         LEFT JOIN complimentary_entitlements c ON c.shop_id = s.id`,
       )
       .first<Record<string, number>>(),
-    db
-      .prepare(
-        `SELECT
-          (SELECT COUNT(*) FROM app_events WHERE event_class = 'error' AND occurred_at >= datetime('now', '-7 days')) AS errors_7d,
-          (SELECT COUNT(*) FROM webhook_events WHERE status = 'failed') AS failed_webhooks,
-          (SELECT COUNT(*) FROM owner_notifications WHERE status = 'failed') AS failed_notifications,
-          (SELECT state_value FROM owner_notification_state WHERE state_key = 'partner_events_polled_at') AS partner_synced_at`,
-      )
-      .first<Record<string, number | string | null>>(),
+    readIssues(db),
   ]);
-  return { ...commercial, ...operations };
+  return {
+    ...commercial,
+    open_issues: countOpenIssues(issues),
+    unresolved_webhooks: Number(issues.webhooks?.unresolved),
+    failed_notifications: Number(issues.notifications?.failed),
+    partner_synced_at:
+      typeof issues.partner?.synced_at === "string" ? issues.partner.synced_at : null,
+  };
 }
 
 const FILTER_SQL: Record<ShopsFilter, string> = {
@@ -193,6 +219,9 @@ export async function readBilling(db: D1Database) {
     trials: trials?.count ?? 0,
     mrr,
     arr,
+    netMrr: mrr * (1 - SHOPIFY_APP_FEES.revenueShare - SHOPIFY_APP_FEES.processing),
+    netArr: arr * (1 - SHOPIFY_APP_FEES.revenueShare - SHOPIFY_APP_FEES.processing),
+    shopifyFees: SHOPIFY_APP_FEES,
   };
 }
 
@@ -309,15 +338,20 @@ export async function readIssues(db: D1Database) {
       db.prepare(
         `SELECT COUNT(*) AS count FROM app_state a JOIN shops s ON s.id = a.shop_id WHERE s.installation_status = 'active' AND a.last_error_code IS NOT NULL`,
       ),
-      db.prepare(
-        `SELECT COUNT(*) FILTER (WHERE status = 'failed') AS failed, COUNT(*) FILTER (WHERE status = 'processing' AND received_at <= datetime('now', '-5 minutes')) AS stale FROM webhook_events`,
-      ),
+      db.prepare(WEBHOOK_ISSUES_QUERY),
       db.prepare(
         `SELECT COUNT(*) FILTER (WHERE status = 'failed') AS failed, COUNT(*) FILTER (WHERE status = 'pending' AND created_at <= datetime('now', '-15 minutes')) AS stale FROM owner_notifications`,
       ),
       db.prepare(`SELECT COUNT(*) AS failed FROM owner_control_updates WHERE status = 'failed'`),
       db.prepare(
-        `SELECT state_value AS synced_at FROM owner_notification_state WHERE state_key = 'partner_events_polled_at'`,
+        `SELECT state_value AS synced_at,
+                CASE WHEN state_value IS NULL
+                       OR datetime(state_value) < datetime('now', '-15 minutes')
+                     THEN 1 ELSE 0 END AS stale
+           FROM (SELECT (
+             SELECT state_value FROM owner_notification_state
+              WHERE state_key = 'partner_events_polled_at'
+           ) AS state_value)`,
       ),
     ]),
     readPerformance(db),
@@ -387,11 +421,16 @@ export async function readHealth(db: D1Database) {
   const [d1, partner, webhooks, notifications, inbound] = await db.batch([
     db.prepare("SELECT 1 AS ok"),
     db.prepare(
-      `SELECT state_value AS synced_at FROM owner_notification_state WHERE state_key = 'partner_events_polled_at'`,
+      `SELECT state_value AS synced_at,
+              CASE WHEN state_value IS NULL
+                     OR datetime(state_value) < datetime('now', '-15 minutes')
+                   THEN 1 ELSE 0 END AS stale
+         FROM (SELECT (
+           SELECT state_value FROM owner_notification_state
+            WHERE state_key = 'partner_events_polled_at'
+         ) AS state_value)`,
     ),
-    db.prepare(
-      `SELECT COUNT(*) FILTER (WHERE status = 'failed') AS failed, COUNT(*) FILTER (WHERE status = 'processing' AND received_at <= datetime('now', '-5 minutes')) AS stale FROM webhook_events`,
-    ),
+    db.prepare(WEBHOOK_ISSUES_QUERY),
     db.prepare(`SELECT COUNT(*) FILTER (WHERE status = 'pending') AS pending,
       COUNT(*) FILTER (WHERE status = 'processing') AS processing,
       COUNT(*) FILTER (WHERE status = 'failed') AS failed,
@@ -410,4 +449,17 @@ export async function readHealth(db: D1Database) {
     notifications: notifications.results[0] as Record<string, unknown> | undefined,
     inbound: inbound.results[0] as Record<string, unknown> | undefined,
   };
+}
+
+function countOpenIssues(data: Record<string, Record<string, unknown> | undefined>) {
+  return (
+    Number(data.stores?.count) +
+    Number(data.webhooks?.unresolved) +
+    Number(data.webhooks?.stale) +
+    Number(data.notifications?.failed) +
+    Number(data.notifications?.stale) +
+    Number(data.control?.failed) +
+    Number(data.partner?.stale) +
+    Number(data.performance?.regressions)
+  );
 }

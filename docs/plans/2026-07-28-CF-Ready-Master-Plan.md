@@ -383,6 +383,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-147 | Aggiungere alla sola PEC la modalità `required_when_company`: la PEC è obbligatoria quando `billingAddress.company`, dopo `trim()`, contiene un valore; negli altri casi resta facoltativa e viene validata se presente. | Usa il campo Azienda già esposto alla Function, senza nuovi scope, campi duplicati o interpretazioni fiscali dell’ordine. Il Codice Fiscale conserva i tre stati esistenti. Lo schema 3 distingue i due insiemi di modalità, legge lo schema 2 e richiede di distribuire e rileggere la Function compatibile prima del Worker che può scrivere la nuova configurazione. Deciso dall’owner l’8 settembre 2026 per la `1.6.1`. |
 | D-148 | Aggiungere alla chat Telegram privata dell’owner un Control Center interattivo e di sola lettura, separato dall’outbox delle notifiche e disattivabile con `OWNER_TELEGRAM_CONTROL_ENABLED`. | Il Worker autentica secret webhook, chat privata e singolo owner prima di accettare comandi o callback allowlistati. Rich Message, tastiera inline e modifica dello stesso messaggio presentano stato D1 corrente, aggregati Partner 7/28 giorni, billing, funnel e performance senza leggere ordini, clienti, prodotti, configurazione CF/PEC o nuovi scope Shopify. Le ricevute conservano solo `update_id` e metadata tecnici per sette giorni; le cache contengono soltanto aggregati. L’attivazione Telegram e il deploy restano passaggi Production separati. Deciso dall’owner l’8 settembre 2026 per la `1.6.1`. |
 | D-149 | Gestire facoltativamente le etichette native di Codice Fiscale e PEC tramite copie deterministiche IT/EN e controllare le etichette della seconda riga dell’indirizzo, con consenso Shopify separato, capacità provata per singola chiave, locale e mercato, confronto prima della prima scrittura e ripristino prudente delle sole traduzioni possedute. | `ONLINE_STORE_THEME_LOCALE_CONTENT` espone le quattro chiavi necessarie. Gli scope `write_translations`, `read_locales` e `read_markets` restano opzionali; una revoca sospende le scritture senza fermare la Validation. L’opzione del modulo che rende “Interno” obbligatorio, facoltativo o nascosto resta manuale. Le etichette merchant restano in D1 solo per ownership e ripristino e non entrano in log, telemetria o diagnostica. Deciso dall’owner l’8 settembre 2026 per la `1.7.0`; supera la parte di D-125 che dichiarava illeggibili le etichette. |
+| D-150 | Nel Control Center distinguere i problemi operativi aperti dagli errori storici e mostrare MRR e ARR sia lordi sia dopo le fee Shopify standard applicabili. | I `SHOP_UPDATE` falliti non restano aperti quando un aggiornamento successivo dello stesso store è riuscito o lo store è già stato redatto; gli altri errori restano consultabili in `/errors`. Il pending Telegram esclude l'update che sta eseguendo `/health`. Il netto applica i tassi nominati e verificati della fascia ordinaria corrente: revenue share 0% e commissione di elaborazione 2,9%, senza includere imposte od oneri regionali. Deciso dall'owner il 9 settembre 2026 per la `1.7.0`. |
 
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
@@ -2134,7 +2135,7 @@ Regole interne:
 
 ### 14.13 Costi e trattenute Shopify
 
-Snapshot ufficiale verificato il 27 luglio 2026:
+Snapshot ufficiale verificato il 9 settembre 2026:
 
 - registrazione Shopify App Store: **19 USD una tantum per Partner account**;
 - revenue share ordinaria: **0% sui primi 1.000.000 USD** di ricavi lordi app conteggiati secondo le regole Shopify vigenti dal 1° gennaio 2025;
@@ -2142,7 +2143,11 @@ Snapshot ufficiale verificato il 27 luglio 2026:
 - commissione di elaborazione: **2,9%** su tutti gli addebiti;
 - imposte ed eventuali oneri regolamentari restano separati.
 
-Questi valori non sono costanti di business da codificare nell’app: vanno ricontrollati prima della submission e considerati nelle proiezioni economiche. Fonte: [Revenue share for Shopify App Store developers](https://shopify.dev/docs/apps/launch/distribution/revenue-share).
+Il Control Center usa questi tassi come snapshot nominato per mostrare il valore
+dopo le fee Shopify dei soli abbonamenti ricorrenti attivi. I tassi vanno
+ricontrollati prima di ogni loro modifica e quando cambia la fascia applicabile
+al Partner account; imposte, rimborsi e oneri regionali restano separati. Fonte:
+[Revenue share for Shopify App Store developers](https://shopify.dev/docs/apps/launch/distribution/revenue-share).
 
 ### 14.14 Benchmark pubblico e razionale del pricing
 
