@@ -91,7 +91,7 @@
       "protects": ["Telegram update idempotency", "aggregate owner-control cache"]
     },
     {
-      "name": "0017_checkout_labels.sql",
+      "name": "0018_checkout_labels.sql",
       "sha256": "aaa9019b0247b62f96231e81f6c0eaf03c083288b57182cdb79a227c8a361bf9",
       "protects": [
         "checkout label ownership",

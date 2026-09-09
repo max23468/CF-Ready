@@ -526,7 +526,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "0015_owner_notification_details.sql",
     "0016_current_contracts.sql",
     "0017_owner_control.sql",
-    "0017_checkout_labels.sql",
+    "0018_checkout_labels.sql",
   ]);
   await applyD1Migrations(db, migrations);
 
@@ -693,7 +693,7 @@ test.each([null, "7"])(
   },
 );
 
-test("0017 conserva la dichiarazione storica sul campo Interno", async () => {
+test("0018 conserva la dichiarazione storica sul campo Interno", async () => {
   const { MIGRATION_CHECKOUT_LABELS_DB: db, TEST_MIGRATIONS: migrations } = migrationEnvironment();
   await applyThrough(db, migrations, "0016_current_contracts.sql");
   await insertShop(db);
@@ -704,7 +704,7 @@ test("0017 conserva la dichiarazione storica sul campo Interno", async () => {
     )
     .run();
 
-  await applyD1Migrations(db, [migrationAfter(migrations, "0016_current_contracts.sql")]);
+  await applyD1Migrations(db, [migrationAfter(migrations, "0017_owner_control.sql")]);
 
   expect(
     await db

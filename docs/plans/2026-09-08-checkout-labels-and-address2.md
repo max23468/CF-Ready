@@ -785,7 +785,7 @@ la retention già definita.
 
 ## 13. Aggiornamenti al Master Plan
 
-L’implementazione è registrata come decisione `D-148`, che:
+L’implementazione è registrata come decisione `D-149`, che:
 
 - consenta gli scope opzionali per traduzioni, lingue e mercati;
 - sostituisca l'editor libero inizialmente ipotizzato con copie automatiche

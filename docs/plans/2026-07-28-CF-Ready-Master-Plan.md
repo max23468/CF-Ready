@@ -464,7 +464,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-122 | Offrire `inline` come visualizzazione errori predefinita e `preventive` come opzione merchant; la Guida la consiglia quando è attiva la conferma ordine Shopify. **Superata da D-146.** | La prova live mostra che i box globali a Interaction impediscono la review silenziosa, ma possono apparire già al caricamento e richiedono una scelta informata. |
 | D-123 | Abilitare metriche e Workers Logs nativi, ma disabilitare gli invocation log automatici. Traces resta disattivato per default e può essere acceso solo temporaneamente in Development, con traffico sintetico e finestra di diagnosi delimitata. | Invocation log e trace automatici includono URL e query string; i trace includono anche il testo SQL D1. Il campionamento riduce volume e costo, non il rischio di raccogliere parametri tecnici sensibili. |
 | D-124 | Non collegare il repository a Workers Builds finché GitHub Actions è il CI/CD canonico. Logpush, OpenTelemetry, Tail Workers e servizi esterni restano differiti finché il monitoraggio Cloudflare nativo non risulta insufficiente. | Evita una seconda corsia di deploy e nuovi destinatari della telemetria senza un bisogno operativo misurato. |
-| D-125 | Avvisare il merchant che usa il campo “Interno” / “Indirizzo 2” per raccogliere il Codice Fiscale, tramite dichiarazione esplicita in configurazione e onboarding. **Superata in parte da D-148.** | La dichiarazione resta necessaria per l’opzione del modulo, che Shopify non espone. D-148 consente invece di leggere e confrontare le etichette e di ripristinare le traduzioni gestibili dopo conferma. |
+| D-125 | Avvisare il merchant che usa il campo “Interno” / “Indirizzo 2” per raccogliere il Codice Fiscale, tramite dichiarazione esplicita in configurazione e onboarding. **Superata in parte da D-149.** | La dichiarazione resta necessaria per l’opzione del modulo, che Shopify non espone. D-149 consente invece di leggere e confrontare le etichette e di ripristinare le traduzioni gestibili dopo conferma. |
 
 ---
 
@@ -1799,7 +1799,7 @@ write_validations
 ```
 
 Scope opzionali richiesti soltanto quando il merchant attiva il confronto delle
-etichette (D-148):
+etichette (D-149):
 
 ```text
 write_translations
@@ -5199,7 +5199,7 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
    consegna italiana tratta come mancante un campo obbligatorio assente; senza
    un Paese di consegna controlla soltanto i campi presenti.
 8. **Rilevamento automatico del campo “Interno” usato come Codice Fiscale** —
-   **parzialmente chiuso l’8 settembre 2026 con D-148**. Le etichette IT/EN sono
+   **parzialmente chiuso l’8 settembre 2026 con D-149**. Le etichette IT/EN sono
    leggibili e vengono classificate; resta aperta soltanto la lettura
    dell’opzione del modulo (`Non includere` / `Facoltativo` / `Obbligatorio`),
    che Shopify non espone e che il merchant verifica manualmente.
