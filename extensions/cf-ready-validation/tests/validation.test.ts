@@ -22,7 +22,7 @@ const messages = {
 };
 
 const baseConfig = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   enabled: true,
   errorDisplay: "inline",
   entitlement: { kind: "trial", validThrough: "2026-07-29" },
@@ -40,6 +40,7 @@ function input(
     date?: unknown;
     language?: string;
     billing?: string | null;
+    company?: string | null;
     deliveries?: (string | null | { countryCode: string | null; selected?: boolean })[];
     fields?: { key: string; value: string | null }[];
   } = {},
@@ -47,7 +48,10 @@ function input(
   return {
     buyerJourney: { step: options.step ?? "CHECKOUT_COMPLETION" },
     cart: {
-      billingAddress: options.billing === null ? null : { countryCode: options.billing ?? "IT" },
+      billingAddress:
+        options.billing === null
+          ? null
+          : { company: options.company ?? null, countryCode: options.billing ?? "IT" },
       deliveryGroups: (options.deliveries ?? ["IT"]).map((delivery, index) => {
         const countryCode =
           typeof delivery === "object" && delivery ? delivery.countryCode : delivery;
@@ -154,7 +158,17 @@ describe("applicabilità e fail-open", () => {
     ["step precedente", { step: "CART_INTERACTION" }],
     ["config assente", { config: null }],
     ["schema precedente", { config: { ...baseConfig, schemaVersion: 1 } }],
-    ["schema futuro", { config: { ...baseConfig, schemaVersion: 3 } }],
+    ["schema futuro", { config: { ...baseConfig, schemaVersion: 4 } }],
+    [
+      "regola condizionale nello schema precedente",
+      {
+        config: {
+          ...baseConfig,
+          schemaVersion: 2,
+          rules: { taxCode: "unmanaged", pec: "required_when_company" },
+        },
+      },
+    ],
     ["disabilitata", { config: { ...baseConfig, enabled: false } }],
     [
       "regola sconosciuta",
@@ -582,6 +596,91 @@ describe("regole e messaggi", () => {
       "PEC required",
     ]);
   });
+
+  describe("PEC obbligatoria con Azienda", () => {
+    const config = {
+      ...baseConfig,
+      rules: { taxCode: "unmanaged", pec: "required_when_company" },
+    };
+
+    it.each([
+      ["null", null],
+      ["vuota", ""],
+      ["solo spazi", "   "],
+    ])("lascia la PEC facoltativa con Azienda %s", (_name, company) => {
+      expect(
+        errors(input({ config, company, fields: [{ key: "TAX_EMAIL_IT", value: "" }] })),
+      ).toEqual([]);
+    });
+
+    it("lascia la PEC facoltativa quando Azienda non è presente nell'input", () => {
+      const value = input({ config, fields: [{ key: "TAX_EMAIL_IT", value: "" }] });
+      delete (value.cart.billingAddress as { company?: string | null }).company;
+      expect(errors(value)).toEqual([]);
+    });
+
+    it("richiede la PEC quando Azienda è compilata", () => {
+      expect(
+        errors(
+          input({ config, company: "Acme S.r.l.", fields: [{ key: "TAX_EMAIL_IT", value: "" }] }),
+        ),
+      ).toEqual([{ message: "PEC richiesta", target: "$.cart.localizedField.TAX_EMAIL_IT" }]);
+    });
+
+    it("usa il target globale a Completion quando Shopify non espone la PEC", () => {
+      expect(errors(input({ config, company: "Acme S.r.l.", fields: [] }))).toEqual([
+        { message: "PEC richiesta", target: "$.cart" },
+      ]);
+    });
+
+    it("mantiene i gate preventivi a Interaction", () => {
+      const interaction = {
+        config,
+        company: "Acme S.r.l.",
+        step: "CHECKOUT_INTERACTION" as const,
+        fields: [{ key: "TAX_EMAIL_IT", value: "" }],
+      };
+
+      expect(errors(input({ ...interaction, deliveries: ["IT"] }))).toEqual([]);
+      expect(
+        errors(input({ ...interaction, deliveries: [{ countryCode: "IT", selected: true }] })),
+      ).toEqual([{ message: "PEC richiesta", target: "$.cart.localizedField.TAX_EMAIL_IT" }]);
+      expect(
+        errors(
+          input({
+            ...interaction,
+            deliveries: [{ countryCode: "IT", selected: true }],
+            fields: [],
+          }),
+        ),
+      ).toEqual([]);
+    });
+
+    it.each([
+      ["Azienda vuota", ""],
+      ["Azienda compilata", "Acme S.r.l."],
+    ])("valida una PEC presente con %s", (_name, company) => {
+      expect(
+        errors(input({ config, company, fields: [{ key: "TAX_EMAIL_IT", value: "non valida" }] })),
+      ).toEqual([{ message: "PEC non valida", target: "$.cart.localizedField.TAX_EMAIL_IT" }]);
+      expect(
+        errors(
+          input({ config, company, fields: [{ key: "TAX_EMAIL_IT", value: "nome@example.com" }] }),
+        ),
+      ).toEqual([]);
+    });
+
+    it("mantiene il comportamento dello schema 2 per le regole esistenti", () => {
+      expect(
+        errors(
+          input({
+            config: { ...baseConfig, schemaVersion: 2 },
+            company: "Acme S.r.l.",
+          }),
+        ),
+      ).toHaveLength(2);
+    });
+  });
 });
 
 it("il simulatore semplice concorda con la Function quando gli indirizzi non sono ancora disponibili", async () => {
@@ -592,7 +691,7 @@ it("il simulatore semplice concorda con la Function quando gli indirizzi non son
       const actual = cartValidationsGenerateRun({
         buyerJourney: { step: "CHECKOUT_COMPLETION" },
         cart: {
-          billingAddress: billingCountry ? { countryCode: billingCountry } : null,
+          billingAddress: billingCountry ? { company: null, countryCode: billingCountry } : null,
           deliveryGroups: deliveryCountry
             ? [
                 {

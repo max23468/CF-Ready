@@ -147,7 +147,9 @@ L’app:
 
 - usa una **Cart and Checkout Validation Function** lato Shopify;
 - valida i campi nativi `TAX_CREDENTIAL_IT` e `TAX_EMAIL_IT`;
-- rende Codice Fiscale e PEC, indipendentemente, non gestiti, facoltativi e validati oppure obbligatori e validati;
+- rende Codice Fiscale e PEC, indipendentemente, non gestiti, facoltativi e
+  validati oppure obbligatori e validati; per la PEC può legare l’obbligo al
+  campo Azienda dell’indirizzo di fatturazione;
 - applica una validazione formale completa del Codice Fiscale ordinario di 16 caratteri;
 - accetta anche i Codici Fiscali provvisori numerici di 11 cifre con carattere
   di controllo formalmente valido;
@@ -239,10 +241,12 @@ Rispetto alle alternative più ampie o invasive:
 - App embedded nell’Admin Shopify.
 - Cart and Checkout Validation Function in TypeScript.
 - Configurazione indipendente di Codice Fiscale e PEC.
-- Tre modalità per campo:
+- Tre modalità per entrambi i campi:
   - `unmanaged`: Non gestito;
   - `optional`: Facoltativo e validato;
   - `required`: Obbligatorio e validato.
+- Una quarta modalità per la sola PEC:
+  - `required_when_company`: Obbligatoria quando il campo Azienda è compilato.
 - Validazione Codice Fiscale:
   - formato ordinario di 16 caratteri;
   - omocodia;
@@ -318,7 +322,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-006 | Niente Codice SDI. | Richiederebbe un campo personalizzato, quindi tema/carrello o estensione Plus. |
 | D-007 | Niente Theme App Extension o Checkout UI Extension. | Evitare fragilità, differenze Plus e problemi con checkout accelerati. |
 | D-008 | Usare `TAX_CREDENTIAL_IT` e `TAX_EMAIL_IT`. | Sono i localized fields nativi italiani esposti alla Validation Function. |
-| D-009 | Tre modalità indipendenti per CF e PEC. | Consentono disattivazione selettiva e configurazione chiara. |
+| D-009 | Tre modalità indipendenti per CF e PEC. **Superata da D-147.** | Consentono disattivazione selettiva e configurazione chiara; D-147 aggiunge una quarta modalità alla sola PEC. |
 | D-010 | Stato iniziale `unmanaged` per entrambi e Validation disattivata. | Nessun blocco accidentale subito dopo l’installazione. |
 | D-011 | Salvataggio e attivazione restano separati. | Il merchant può preparare la configurazione senza modificarne subito il checkout. |
 | D-012 | Codice Fiscale facoltativo significa “vuoto consentito, ma valido se compilato”. | Evita di accettare dati formalmente errati. |
@@ -376,6 +380,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-145 | Verificare il carattere di controllo del CF provvisorio numerico a 11 cifre e rifiutare esplicitamente `00000000000`. | Il carattere di controllo non attesta che il codice esista o appartenga a qualcuno: rifiuta soltanto sequenze che non possono rispettare il formato. La validazione resta formale e non anagrafica. Su un campione esplorativo di 200.000 casi il controllo ha rilevato il 100% degli errori di una cifra, il 97,7% delle trasposizioni adiacenti considerate e ha rifiutato l’89,9% delle sequenze casuali prima accettate; i test usano casi deterministici, perché le misure dipendono dal campionamento e Luhn non rileva gli scambi `09`/`90`. Deciso dall’owner l’8 settembre 2026 per la `1.4.0`; supera D-017. |
 
 | D-146 | Usare un solo comportamento automatico per gli errori checkout: a `CHECKOUT_INTERACTION` segnalare inline i valori presenti ma invalidi e i required vuoti soltanto quando il campo è materializzato e tutte le delivery group italiane, in un contesto di consegna interamente localizzato, hanno un’opzione selezionata; mantenere sempre `CHECKOUT_COMPLETION`. | Il ticket reale ha confermato il blocco finale poco chiaro anche con pagamento manuale, quindi il problema dipende dal percorso checkout e non dal gateway. L’euristica evita i box globali al caricamento, conserva i target di campo e usa `$.cart` soltanto a Completion per un required assente con consegna italiana. `errorDisplay` resta temporaneamente serializzato come `inline` per compatibilità fra snapshot, ma viene ignorato dal runtime e normalizzato a ogni scrittura. Deciso dall’owner l’8 settembre 2026 per la `1.5.0`; supera D-019, D-024 e D-122. |
+| D-147 | Aggiungere alla sola PEC la modalità `required_when_company`: la PEC è obbligatoria quando `billingAddress.company`, dopo `trim()`, contiene un valore; negli altri casi resta facoltativa e viene validata se presente. | Usa il campo Azienda già esposto alla Function, senza nuovi scope, campi duplicati o interpretazioni fiscali dell’ordine. Il Codice Fiscale conserva i tre stati esistenti. Lo schema 3 distingue i due insiemi di modalità, legge lo schema 2 e richiede di distribuire e rileggere la Function compatibile prima del Worker che può scrivere la nuova configurazione. Deciso dall’owner l’8 settembre 2026 per la `1.6.0`. |
 
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
@@ -398,7 +403,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-063 | Checklist onboarding scompare definitivamente dopo il completamento manuale o non appena lo setup operativo è completo: almeno una regola gestita, accesso attivo, Validation attiva e nessun errore. L'evento automatico resta distinto da quello manuale. | Dallo step finale il confronto piani porta il merchant nella Home; acquisto e attivazione possono quindi concludere correttamente lo setup fuori dalla finestra, senza imporre un ritorno artificiale né lasciare visibile una checklist già superata. La distinzione conserva una telemetria onesta. |
 | D-064 | Home attiva: “Modifica regole” primaria e “Disattiva nel checkout” secondaria con conferma. | Azioni chiare e separate. |
 | D-065 | Save Bar nativa, niente auto-save. | Controllo esplicito delle modifiche. |
-| D-066 | Tre radio sempre visibili per ogni campo. | Più chiare di un select con sole tre opzioni. |
+| D-066 | Tre radio sempre visibili per ogni campo. **Superata da D-147.** | Più chiare di un select; D-147 conserva le tre alternative per il Codice Fiscale e aggiunge la quarta alla PEC. |
 | D-067 | Condizione Italia sempre visibile e non modificabile, integrata accanto ai Paesi del simulatore invece che in un riquadro separato. | Il merchant deve capire l'automatismo nel punto esatto in cui ne vede l'effetto. |
 | D-068 | Riepilogo testuale dinamico seguito da un simulatore checkout interattivo, locale al browser e chiaramente dichiarato come anteprima. | Permette di provare regole, Paesi e messaggi effettivi senza salvare dati di prova né confondere la simulazione con il checkout Shopify reale. |
 | D-069 | Messaggi in tab Italiano/English, reset separato per lingua. | Evita di sovrascrivere entrambe le lingue. |
@@ -485,12 +490,14 @@ Rispetto alle alternative più ampie o invasive:
 
 ### 7.2 Regole checkout
 
-**FR-010** — Codice Fiscale e PEC hanno tre stati indipendenti:
+**FR-010** — Il Codice Fiscale ha tre stati e la PEC ne ha quattro, tutti
+indipendenti:
 
 ```text
 unmanaged
 optional
 required
+required_when_company (solo PEC)
 ```
 
 **FR-011** — `unmanaged` non genera alcun errore per quel campo.
@@ -506,6 +513,12 @@ required
 **FR-016** — Gli errori puntano al localized field corrispondente quando è presente. A Completion un campo obbligatorio assente con consegna italiana usa il target globale `$.cart`.
 
 **FR-017** — A Interaction un valore presente ma invalido produce subito un errore inline. Un required vuoto produce un errore inline solo quando il campo è presente, ogni delivery group ha una destinazione nota e tutte le delivery group italiane hanno un’opzione selezionata. Completion resta sempre la barriera finale.
+
+**FR-018** — Con `required_when_company`, la PEC vuota è obbligatoria soltanto
+quando il campo Azienda dell’indirizzo di fatturazione contiene un valore dopo
+`trim()`. Una PEC presente viene sempre validata formalmente. Gli altri gate di
+applicabilità restano invariati e CF Ready non deduce il trattamento fiscale
+dell’ordine.
 
 ### 7.3 Applicabilità geografica
 
@@ -1226,7 +1239,7 @@ La forma logica del valore è:
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "enabled": true,
   "errorDisplay": "inline",
   "entitlement": {
@@ -1254,13 +1267,25 @@ La forma logica del valore è:
 }
 ```
 
-Valori ammessi per ogni regola:
+Valori ammessi per il Codice Fiscale:
 
 ```text
 unmanaged
 optional_validated
 required_validated
 ```
+
+La PEC ammette inoltre:
+
+```text
+required_when_company
+```
+
+La lettura dello schema 3 accetta anche le configurazioni schema 2 e le
+normalizza senza perdere regole o messaggi. Il deploy distribuisce e verifica
+prima la Function capace di leggere entrambi gli schemi, poi il Worker che può
+scrivere lo schema 3; così una configurazione nuova non raggiunge una Function
+che non sa interpretarla.
 
 `errorDisplay` è una proprietà legacy temporaneamente serializzata con il solo
 valore `inline` per mantenere compatibili gli snapshot Shopify precedenti
@@ -2183,7 +2208,7 @@ La checklist iniziale scompare definitivamente dopo il completamento dell’onbo
 
 ### 15.4 Regole checkout
 
-Due sezioni con tre radio sempre visibili.
+Due sezioni con tutte le alternative sempre visibili.
 
 **Codice Fiscale**
 
@@ -2196,15 +2221,16 @@ Due sezioni con tre radio sempre visibili.
 - Non gestita
 - Facoltativa e validata
 - Obbligatoria e validata
+- Obbligatoria quando il campo Azienda è compilato
 
 Ogni opzione ha una spiegazione concreta. Dopo le regole:
 
 - riepilogo dinamico `Come funzionerà il checkout`, seguito dal simulatore
   interattivo che usa gli stessi controlli formali e messaggi configurati;
 - menu `Prova uno scenario` con esempi validi, Codice Fiscale non valido, PEC non
-  valida e campi vuoti; le opzioni non pertinenti a campi non gestiti non sono
-  mostrate; una breve istruzione chiarisce che la scelta compila i campi e
-  aggiorna il risultato del simulatore;
+  valida, Azienda compilata senza PEC e campi vuoti; le opzioni non pertinenti
+  alle regole correnti non sono mostrate; una breve istruzione chiarisce che la
+  scelta compila i campi e aggiorna il risultato del simulatore;
 - condizioni geografiche D-143 non modificabili, spiegate in modo sintetico
   accanto ai due selettori Paese del simulatore;
 - banner `warning` sul campo “Interno” sempre visibile, con
@@ -4813,7 +4839,7 @@ La `1.0.0` è accettabile quando:
 8. un CF ordinario valido passa;
 9. un CF provvisorio a 11 cifre con carattere di controllo valido passa;
 10. un CF invalido è respinto se gestito;
-11. PEC rispetta i tre stati;
+11. PEC rispetta i quattro stati e il Codice Fiscale conserva i tre stati;
 12. gli errori sono associati ai campi;
 13. fatturazione estera è esclusa;
 14. destinazione estera è esclusa;

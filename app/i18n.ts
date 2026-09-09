@@ -46,6 +46,7 @@ export function describeCheckout(
   else if (rules.taxCode === "optional_validated") lines.push(t.taxCodeOptional);
 
   if (rules.pec === "required_validated") lines.push(t.pecRequired);
+  else if (rules.pec === "required_when_company") lines.push(t.pecRequiredWhenCompany);
   else if (rules.pec === "optional_validated") lines.push(t.pecOptional);
 
   if (!lines.length) return [t.nothing];
@@ -64,12 +65,15 @@ export function summariseCheckout(
   locale: Locale,
 ) {
   const t = texts(locale).checkout;
-  const modes = [rules.taxCode, rules.pec];
   const lines: string[] = [];
 
-  if (modes.includes("required_validated")) lines.push(t.summaryBlocking);
-  else if (modes.includes("optional_validated")) lines.push(t.summaryChecking);
-  else return [t.nothing];
+  if (rules.taxCode === "required_validated" || rules.pec === "required_validated") {
+    lines.push(t.summaryBlocking);
+  } else if (rules.pec === "required_when_company") {
+    lines.push(t.summaryConditional);
+  } else if (rules.taxCode === "optional_validated" || rules.pec === "optional_validated") {
+    lines.push(t.summaryChecking);
+  } else return [t.nothing];
 
   if (status !== "active") lines.push(status === "lapsed" ? t.lapsed : t.disabled);
   return lines;

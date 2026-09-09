@@ -27,10 +27,11 @@ merchant o clienti.
 
 | Italiano | English | Significato | Da non usare |
 | --- | --- | --- | --- |
-| regole | rules | Le tre modalità scelte dal merchant per ciascun campo | impostazioni, configurazione, settings |
+| regole | rules | Le modalità scelte dal merchant separatamente per Codice Fiscale e PEC | impostazioni, configurazione, settings |
 | Non gestito / Non gestita | Not managed | CF Ready non controlla il campo | disattivato, off, ignorato |
 | Facoltativo e validato | Optional and validated | Il campo può restare vuoto, ma se compilato deve essere formalmente valido | opzionale |
 | Obbligatorio e validato | Required and validated | Il campo va compilato e deve essere formalmente valido | mandatorio, richiesto per legge |
+| Obbligatoria quando il campo Azienda è compilato | Required when Company is filled in | La PEC è obbligatoria soltanto se il campo Azienda dell’indirizzo di fatturazione è compilato | acquisto B2B, azienda verificata |
 | attivare nel checkout | turn on in checkout | Rendere operative le regole per i clienti | abilitare, accendere, pubblicare, deployare |
 | disattivare nel checkout | turn off in checkout | Sospendere le regole conservando la configurazione | spegnere, disabilitare, cancellare |
 | attiva / disattivata | active / turned off | Lo stato della validazione | on/off, inattiva, spenta |

@@ -18,6 +18,7 @@ import {
   syncTrial,
 } from "../../billing.server";
 import {
+  CONFIG_SCHEMA_VERSION,
   messagesAreDefault,
   onboardingCanAutoComplete,
   readConfig,
@@ -195,7 +196,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     shopDomain: session.shop,
     name: result.enabled ? "validation_enabled" : "validation_disabled",
     class: "validation",
-    metadata: { enabled: result.enabled, schema_version: 2 },
+    metadata: { enabled: result.enabled, schema_version: CONFIG_SCHEMA_VERSION },
   });
   return { ok: true };
 };

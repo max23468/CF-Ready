@@ -6,13 +6,19 @@ import type { AppErrorCode } from "./app-error";
 // La valuta dei piani è parte del contratto commerciale e serve anche alla UI, che deve
 // formattare gli importi senza importare un modulo server.
 export const CURRENCY = "EUR";
+export const CONFIG_SCHEMA_VERSION = 3 as const;
 
 export type Entitlement = {
   kind: "trial" | "subscription" | "one_time" | "none";
   validThrough: string | null;
 };
 
-export const RULE_MODES = ["unmanaged", "optional_validated", "required_validated"] as const;
+export const TAX_CODE_RULE_MODES = [
+  "unmanaged",
+  "optional_validated",
+  "required_validated",
+] as const;
+export const PEC_RULE_MODES = [...TAX_CODE_RULE_MODES, "required_when_company"] as const;
 export const MESSAGE_KEYS = [
   "taxCodeRequired",
   "taxCodeInvalid",
@@ -21,11 +27,12 @@ export const MESSAGE_KEYS = [
 ] as const;
 export const MESSAGE_MAX_LENGTH = 200;
 
-export type RuleMode = (typeof RULE_MODES)[number];
+export type TaxCodeRuleMode = (typeof TAX_CODE_RULE_MODES)[number];
+export type PecRuleMode = (typeof PEC_RULE_MODES)[number];
 export type Messages = Record<(typeof MESSAGE_KEYS)[number], string>;
-export type Rules = { taxCode: RuleMode; pec: RuleMode };
+export type Rules = { taxCode: TaxCodeRuleMode; pec: PecRuleMode };
 export type CheckoutConfig = {
-  schemaVersion: 2;
+  schemaVersion: typeof CONFIG_SCHEMA_VERSION;
   enabled: boolean;
   // Proprietà legacy mantenuta fissa durante la transizione fra snapshot Shopify.
   // La Function corrente la ignora e nessun input merchant può modificarla.
@@ -38,7 +45,7 @@ export type CheckoutConfig = {
 // FR-050: alla prima installazione nessuno dei due campi è gestito. Il diritto qui è solo un
 // segnaposto: ogni scrittura lo sostituisce con quello calcolato da prova e billing.
 export const DEFAULT_CONFIG: CheckoutConfig = {
-  schemaVersion: 2,
+  schemaVersion: CONFIG_SCHEMA_VERSION,
   enabled: false,
   errorDisplay: "inline",
   entitlement: { kind: "none", validThrough: null },
@@ -65,18 +72,22 @@ export const DEFAULT_CONFIG: CheckoutConfig = {
 // malformata o di uno schema che non conosciamo torna ai default, e la prima scrittura del
 // merchant la sostituisce intera.
 export function readConfig(value: unknown): CheckoutConfig {
-  if (!isRecord(value) || value.schemaVersion !== 2) return DEFAULT_CONFIG;
+  if (!isRecord(value) || (value.schemaVersion !== 2 && value.schemaVersion !== 3)) {
+    return DEFAULT_CONFIG;
+  }
   const rules = isRecord(value.rules) ? value.rules : {};
   const messages = isRecord(value.messages) ? value.messages : {};
 
   return {
-    schemaVersion: 2,
+    schemaVersion: CONFIG_SCHEMA_VERSION,
     enabled: value.enabled === true,
     errorDisplay: DEFAULT_CONFIG.errorDisplay,
     entitlement: DEFAULT_CONFIG.entitlement,
     rules: {
-      taxCode: oneOf(RULE_MODES, rules.taxCode) ?? DEFAULT_CONFIG.rules.taxCode,
-      pec: oneOf(RULE_MODES, rules.pec) ?? DEFAULT_CONFIG.rules.pec,
+      taxCode: oneOf(TAX_CODE_RULE_MODES, rules.taxCode) ?? DEFAULT_CONFIG.rules.taxCode,
+      pec:
+        oneOf(value.schemaVersion === 2 ? TAX_CODE_RULE_MODES : PEC_RULE_MODES, rules.pec) ??
+        DEFAULT_CONFIG.rules.pec,
     },
     messages: {
       it: readMessages(messages.it, DEFAULT_CONFIG.messages.it),
@@ -164,7 +175,9 @@ export function validateMessages(
 // per un campo facoltativo, perché scatta su ciò che il cliente ha scritto.
 export function messageAppears(rules: Rules, key: (typeof MESSAGE_KEYS)[number]) {
   const mode = key.startsWith("taxCode") ? rules.taxCode : rules.pec;
-  return key.endsWith("Required") ? mode === "required_validated" : mode !== "unmanaged";
+  return key.endsWith("Required")
+    ? mode === "required_validated" || mode === "required_when_company"
+    : mode !== "unmanaged";
 }
 
 export const REVIEW_MIN_DAYS = 7;

@@ -267,6 +267,10 @@ export const en: typeof it = {
         a: "As an email address: the format is checked. We don’t verify that the mailbox exists, nor that it’s really a certified mailbox.",
       },
       {
+        q: "Can I require PEC only for business purchases",
+        a: "You can make PEC required when the customer fills in the Company field in the billing address. If Company is empty, PEC stays optional; when entered, CF Ready still checks its format. The rule uses the checkout Company field and does not automatically determine the order’s tax treatment.",
+      },
+      {
         q: "When customers see errors",
         a: "CF Ready checks the data during checkout. If an entered value is invalid, the customer sees what to correct; required fields are checked before the order can be completed.",
       },
@@ -390,6 +394,9 @@ export const en: typeof it = {
       required_validated: "Required and validated",
       required_validatedHelp:
         "Customers can’t complete the order without an address in a valid email format.",
+      required_when_company: "Required when Company is filled in",
+      required_when_companyHelp:
+        "Requires PEC when the Company field in the billing address is filled in. Otherwise PEC stays optional and is validated when entered.",
     },
     exceptionsHeading: "When rules apply",
     exceptions: [
@@ -403,6 +410,7 @@ export const en: typeof it = {
       privatePreview: "Interactive preview",
       orderContext: "Order destination",
       customerData: "Customer tax details",
+      company: "Company",
       deliveryCountry: "Delivery country",
       billingCountry: "Billing country",
       countries: { IT: "Italy", FR: "France", DE: "Germany" },
@@ -413,6 +421,7 @@ export const en: typeof it = {
         valid: "Valid details",
         invalidTaxCode: "Invalid tax code",
         invalidPec: "Invalid PEC",
+        companyWithoutPec: "Company filled in without PEC",
         empty: "Empty fields",
       },
       clear: "Clear",
@@ -437,8 +446,11 @@ export const en: typeof it = {
     taxCodeRequired: "The tax code is required and must be formally valid.",
     taxCodeOptional: "The tax code can be left empty; if entered, it must be formally valid.",
     pecRequired: "PEC is required and must use a valid email format.",
+    pecRequiredWhenCompany:
+      "PEC is required when the Company field is filled in; otherwise it stays optional and is validated when entered.",
     pecOptional: "PEC can be left empty; if entered, it must use a valid email format.",
     summaryBlocking: "An Italian customer can’t complete the order without the required fields.",
+    summaryConditional: "PEC is required for Italian orders when the Company field is filled in.",
     summaryChecking: "What Italian customers enter is checked, but nothing is required.",
     disabled: "The validation is turned off: these rules don’t apply to customers yet.",
     lapsed:

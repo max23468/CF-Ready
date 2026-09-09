@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.6.0 — 8 settembre 2026
+
+- la PEC può essere resa obbligatoria soltanto quando il cliente compila il
+  campo Azienda dell’indirizzo di fatturazione;
+- negli altri casi la PEC resta facoltativa e, se inserita, viene comunque
+  controllata formalmente;
+- configurazione, Function, riepiloghi, onboarding e simulatore distinguono i
+  quattro stati PEC dai tre stati del Codice Fiscale e continuano a leggere le
+  configurazioni precedenti.
+
 ## 1.5.4 — 8 settembre 2026
 
 - il menu Shopify inoltra la route a React Router senza richiedere una View
