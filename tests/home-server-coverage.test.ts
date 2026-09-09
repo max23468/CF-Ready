@@ -215,6 +215,12 @@ test("la prova distingue omaggio, indisponibilità e successo", async () => {
     errorCode: "one_time_already_active",
   });
 
+  mocks.startTrial.mockResolvedValueOnce(null);
+  await expect(action(actionRequest("start_trial"))).resolves.toEqual({
+    ok: false,
+    errorCode: "trial_unavailable",
+  });
+
   mocks.startTrial.mockResolvedValueOnce({ status: "expired" });
   await expect(action(actionRequest("start_trial"))).resolves.toEqual({
     ok: false,

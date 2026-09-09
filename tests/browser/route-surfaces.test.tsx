@@ -875,6 +875,25 @@ describe("Onboarding", () => {
     vi.stubGlobal("FormData", originalFormData);
   });
 
+  test("mostra l'errore se Shopify non completa la richiesta dei permessi", async () => {
+    router.loaderData = { ...onboardingData, step: 2, labelScopesGranted: false };
+    vi.mocked(shopify.scopes.request).mockRejectedValueOnce(new Error("scope_request_failed"));
+    const view = await mount(<Onboarding />);
+    const requestScopes = [...view.container.querySelectorAll("s-button")].find((button) =>
+      button.textContent?.includes(texts("it").rules.labels.requestPermissions),
+    );
+    if (!requestScopes) throw new Error("richiesta permessi onboarding assente");
+
+    await click(requestScopes);
+
+    expect(view.container.querySelector('s-banner[tone="critical"]')).not.toBeNull();
+    expect(router.revalidator.revalidate).not.toHaveBeenCalled();
+
+    vi.mocked(shopify.scopes.request).mockResolvedValueOnce({ result: "declined-all" });
+    await click(requestScopes);
+    expect(router.revalidator.revalidate).not.toHaveBeenCalled();
+  });
+
   test("configura la sincronizzazione automatica delle etichette dal secondo passo", async () => {
     router.loaderData = {
       ...onboardingData,
@@ -1636,6 +1655,67 @@ describe("Regole", () => {
     expect(router.revalidator.revalidate).toHaveBeenCalledOnce();
     expect(router.fetcher.submit).not.toHaveBeenCalled();
     expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  test("gestisce l'errore dei permessi e gli stati sintetici delle etichette", async () => {
+    router.loaderData = {
+      ...rulesData,
+      rules: { taxCode: "unmanaged", pec: "unmanaged" },
+      labelScopesGranted: false,
+    };
+    vi.mocked(shopify.scopes.request).mockRejectedValueOnce(new Error("scope_request_failed"));
+    const view = await mount(<CheckoutRules />);
+    const requestScopes = [...view.container.querySelectorAll("s-button")].find((button) =>
+      button.textContent?.includes(texts("it").rules.labels.requestPermissions),
+    );
+    if (!requestScopes) throw new Error("richiesta permessi Regole assente");
+
+    await click(requestScopes);
+    expect(view.container.querySelector('s-banner[tone="critical"]')).not.toBeNull();
+    expect(router.revalidator.revalidate).not.toHaveBeenCalled();
+
+    vi.mocked(shopify.scopes.request).mockResolvedValueOnce({ result: "declined-all" });
+    await click(requestScopes);
+    expect(router.revalidator.revalidate).not.toHaveBeenCalled();
+
+    const healthySnapshot = {
+      locales: [{ locale: "en", family: "en", name: "English", primary: false, published: true }],
+      markets: [],
+      issues: [],
+      revision: "labels-healthy",
+      address2: { classification: "expected", hasMarketOverride: false },
+      slots: [
+        labelSlot({
+          name: "taxCode",
+          locale: "en",
+          family: "en",
+          capability: "automatic",
+          currentValue: null,
+          sourceValue: null,
+        }),
+      ],
+    } as const;
+    router.loaderData = {
+      ...rulesData,
+      rules: { taxCode: "optional_validated", pec: "unmanaged" },
+      labelScopesGranted: true,
+      labelState: { ...rulesData.labelState, mode: "automatic" },
+      labelSnapshot: healthySnapshot,
+    };
+    await view.rerender(<CheckoutRules key="labels-healthy" />);
+    expect(view.container.textContent).toContain(texts("it").rules.labels.statusReady);
+    expect(view.container.textContent).toContain(texts("it").rules.labels.notAvailable);
+
+    router.loaderData = {
+      ...router.loaderData,
+      labelState: {
+        ...rulesData.labelState,
+        mode: "automatic",
+        lastErrorCode: "checkout_labels_partial_sync",
+      },
+    };
+    await view.rerender(<CheckoutRules key="labels-error" />);
+    expect(view.container.textContent).toContain(texts("it").rules.labels.nativeSummaryError);
   });
 });
 
