@@ -28,6 +28,7 @@ import {
   readCheckoutLabelState,
   readStoredCheckoutLabelSlots,
   saveAddress2Decision,
+  saveAddress2FormMode,
   saveCheckoutLabelsDecision,
   saveCheckoutLabelWrite,
   stopCheckoutLabelManagement,
@@ -106,6 +107,7 @@ test("riduce lo stato D1 ai quattro esiti usati da Home e diagnostica", () => {
     address2ExternalChangeAt: null,
     address2Decision: "pending" as const,
     address2ReviewedAt: null,
+    address2FormMode: null,
   };
 
   expect(checkoutLabelsStatus(state)).toBe("unknown");
@@ -560,9 +562,11 @@ test("D1 registra esiti, ownership, decisioni e revoca degli scope", async () =>
   });
 
   await saveAddress2Decision(env.DB, shop, "accepted");
+  await saveAddress2FormMode(env.DB, shop, "required");
   expect(await readCheckoutLabelState(env.DB, shop)).toMatchObject({
     address2Decision: "accepted",
     address2ExternalChangeAt: null,
+    address2FormMode: "required",
   });
 
   await saveCheckoutLabelsDecision(env.DB, shop, "accepted", "revision-1");

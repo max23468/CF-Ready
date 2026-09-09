@@ -88,7 +88,7 @@
   .rules-layout {
     grid-template-areas:
       "form preview"
-      "labels labels";
+      "labels preview";
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 

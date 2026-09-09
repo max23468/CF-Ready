@@ -103,6 +103,11 @@
       "name": "0019_checkout_label_decision.sql",
       "sha256": "2388dc42c23e7c8b569bd6b74d54555ca9220d6c7625f043e2ab5209e1f412c8",
       "protects": ["merchant checkout-label choice", "accepted snapshot revision"]
+    },
+    {
+      "name": "0020_address2_form_mode.sql",
+      "sha256": "c0bc4532c7f5489c416b327edd5f4b8216f82e8ba9addeafdb96b8f774535438",
+      "protects": ["merchant second-address-line mode"]
     }
   ]
 }

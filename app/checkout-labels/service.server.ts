@@ -43,7 +43,7 @@ export type CheckoutLabelsLoadResult =
       snapshot: CheckoutLabelsSnapshot;
       state: Awaited<ReturnType<typeof readCheckoutLabelState>>;
       externalChange: boolean;
-      confirmedGuidedSlotIds: string[];
+      guidedConfirmations: Array<{ slotId: string; confirmedAt: string }>;
     }
   | {
       available: false;
@@ -93,11 +93,10 @@ export async function loadCheckoutLabels(
       snapshot,
       state: await readCheckoutLabelState(db, shopDomain),
       externalChange,
-      confirmedGuidedSlotIds: snapshot.slots.flatMap((slot) => {
+      guidedConfirmations: snapshot.slots.flatMap((slot) => {
         const previous = findStoredSlot(stored, slot);
-        return previous?.guidedConfirmedAt &&
-          previous.guidedConfirmedValue === observedLabelForSlot(slot)
-          ? [checkoutLabelSlotId(slot)]
+        return guidedConfirmationIsValid(previous, slot, rules)
+          ? [{ slotId: checkoutLabelSlotId(slot), confirmedAt: previous.guidedConfirmedAt }]
           : [];
       }),
     };
@@ -170,7 +169,7 @@ export async function saveRulesAndCheckoutLabels(
       input.labelsEnabled &&
       !wasEnabled &&
       snapshot &&
-      automaticFiscalSlots(snapshot.slots).length > 0 &&
+      automaticFiscalWrites(snapshot, input.rules).length > 0 &&
       !input.confirmAutomaticWrite
     ) {
       return {
@@ -405,6 +404,9 @@ export async function confirmGuidedCheckoutLabels(
       if (selected.size === 0 || slots.length !== selected.size) {
         return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
       }
+      if (slots.some((slot) => proposedLabelForSlot(slot, rules) !== observedLabelForSlot(slot))) {
+        return { ok: false as const, errorCode: "checkout_labels_partial_sync" as const };
+      }
       await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots, snapshot.address2);
       await confirmGuidedCheckoutLabelSlots(db, shopDomain, slots);
       const [stored, state] = await Promise.all([
@@ -544,6 +546,13 @@ function automaticFiscalSlots(slots: CheckoutLabelSlot[]) {
   ) as Array<CheckoutLabelSlot & { name: "taxCode" | "pec" }>;
 }
 
+function automaticFiscalWrites(snapshot: CheckoutLabelsSnapshot, rules: Rules) {
+  return automaticFiscalSlots(snapshot.slots).filter((slot) => {
+    const proposed = proposedLabelForSlot(slot, rules);
+    return proposed !== null && slot.currentValue !== proposed;
+  });
+}
+
 function managedFiscalValuesMatch(snapshot: CheckoutLabelsSnapshot, rules: Rules) {
   return automaticFiscalSlots(snapshot.slots).every((slot) => {
     const mode = slot.name === "taxCode" ? rules.taxCode : rules.pec;
@@ -569,11 +578,21 @@ function checkoutLabelsReady(
     })
     .every((slot) => {
       const previous = findStoredSlot(stored, slot);
-      return (
-        previous?.guidedConfirmedAt !== null &&
-        previous?.guidedConfirmedValue === observedLabelForSlot(slot)
-      );
+      return guidedConfirmationIsValid(previous, slot, rules);
     });
+}
+
+function guidedConfirmationIsValid(
+  previous: StoredCheckoutLabelSlot | undefined,
+  slot: CheckoutLabelSlot,
+  rules: Rules,
+): previous is StoredCheckoutLabelSlot & { guidedConfirmedAt: string } {
+  const observed = observedLabelForSlot(slot);
+  return (
+    Boolean(previous?.guidedConfirmedAt) &&
+    previous?.guidedConfirmedValue === observed &&
+    proposedLabelForSlot(slot, rules) === observed
+  );
 }
 
 function fiscalSnapshotIssue(snapshot: CheckoutLabelsSnapshot, rules: Rules): AppErrorCode | null {

@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
   reconcile: vi.fn(),
   recordEvent: vi.fn(),
   saveAddress2Declaration: vi.fn(),
+  saveAddress2FormMode: vi.fn(),
   saveOnboarding: vi.fn(),
   startTrial: vi.fn(),
   writeValidation: vi.fn(),
@@ -51,6 +52,7 @@ vi.mock("../app/support.server", () => ({
 }));
 vi.mock("../app/checkout-labels/repository.server", () => ({
   readCheckoutLabelState: mocks.readCheckoutLabelState,
+  saveAddress2FormMode: mocks.saveAddress2FormMode,
 }));
 vi.mock("../app/checkout-labels/service.server", () => ({
   CHECKOUT_LABEL_OPTIONAL_SCOPES: ["write_translations", "read_locales", "read_markets"],
@@ -129,7 +131,7 @@ beforeEach(() => {
     available: true,
     state: { mode: "guided" },
     snapshot: { revision: "labels-r1", slots: [] },
-    confirmedGuidedSlotIds: [],
+    guidedConfirmations: [],
   });
   mocks.restoreAddress2Translations.mockResolvedValue({ ok: true });
   mocks.saveRulesAndCheckoutLabels.mockResolvedValue({ ok: true, labelsErrorCode: null });
@@ -615,6 +617,28 @@ test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", asyn
 
 test("Regole gestisce ripristino e sincronizzazione delle etichette", async () => {
   const { action } = rulesRoute;
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          intent: "save_address2_form_mode",
+          address2FormMode: "required",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: true });
+  expect(mocks.saveAddress2FormMode).toHaveBeenCalledWith(db, session.shop, "required");
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          intent: "save_address2_form_mode",
+          address2FormMode: "hidden",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: false, errorCode: "generic" });
+
   expect(await action(args(post("/app/rules", { intent: "restore_address2_labels" })))).toEqual({
     ok: false,
     errorCode: "checkout_labels_scope_required",
