@@ -49,24 +49,24 @@
     },
     "ui-routes": {
       "statements": {
-        "total": 1029,
-        "covered": 1006,
-        "pct": 97.76
+        "total": 1124,
+        "covered": 1096,
+        "pct": 97.5
       },
       "branches": {
-        "total": 933,
-        "covered": 870,
-        "pct": 93.24
+        "total": 1019,
+        "covered": 951,
+        "pct": 93.32
       },
       "functions": {
-        "total": 319,
-        "covered": 310,
-        "pct": 97.17
+        "total": 357,
+        "covered": 344,
+        "pct": 96.35
       },
       "lines": {
-        "total": 919,
-        "covered": 910,
-        "pct": 99.02
+        "total": 1004,
+        "covered": 990,
+        "pct": 98.6
       }
     },
     "function": {

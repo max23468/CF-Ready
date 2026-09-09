@@ -292,6 +292,7 @@ function SimulatorCustomerFields({
         <s-icon type="identity-card" color="subdued" />
         <s-text type="strong">{copy.customerData}</s-text>
       </s-stack>
+      <s-text color="subdued">{copy.labelsAfterSave}</s-text>
       {hasManagedFields ? (
         <>
           <SimulatorCompanyField

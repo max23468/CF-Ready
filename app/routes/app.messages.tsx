@@ -3,7 +3,12 @@ import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "re
 import { data, useActionData, useLoaderData, useNavigation, useSubmit } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError } from "../app-error";
-import { checkoutLabelCopy } from "../checkout-labels/domain";
+import { checkoutLabelCopy, observedLabelForSlot } from "../checkout-labels/domain";
+import type { CheckoutLabelsSnapshot } from "../checkout-labels/domain";
+import {
+  CHECKOUT_LABEL_OPTIONAL_SCOPES,
+  loadCheckoutLabels,
+} from "../checkout-labels/service.server";
 import { authenticateAdmin } from "../admin-auth.server";
 import {
   DEFAULT_CONFIG,
@@ -40,11 +45,25 @@ import {
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
-  const { admin } = await timing.measure("auth", () => authenticateAdmin(request, context));
+  const { admin, session, scopes } = await timing.measure("auth", () =>
+    authenticateAdmin(request, context),
+  );
   const validation = findValidation(
     (await timing.measure("shopify_context", () => queryContext(admin))).validations.nodes,
   );
   const config = readConfig(validation?.metafield?.jsonValue);
+  const db = context.get(databaseContext);
+  const scopeDetails = await timing.measure("shopify_snapshot", () =>
+    scopes.query().catch(() => null),
+  );
+  const labelScopesGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
+    scopeDetails?.granted.includes(scope),
+  );
+  const labels = labelScopesGranted
+    ? await timing.measure("shopify_snapshot", () =>
+        loadCheckoutLabels(admin, db, session.shop, config.rules),
+      )
+    : null;
 
   return data(
     {
@@ -52,6 +71,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       configHash: await observedConfigHash(validation),
       messages: config.messages,
       rules: config.rules,
+      labelSnapshot: labels?.available ? labels.snapshot : null,
     },
     { headers: { "Server-Timing": timing.header() } },
   );
@@ -218,6 +238,14 @@ export default function CustomerMessages() {
     remount(MESSAGE_FIELDS);
   };
 
+  const previewField = messageFieldLabel(
+    t,
+    saved.rules,
+    activeLocale,
+    selectedKey,
+    saved.labelSnapshot,
+  );
+
   // FR-063: il ripristino agisce su una lingua sola e lo dichiara nella conferma. Non salva da
   // sé: rimette i testi predefiniti nei campi e il salvataggio resta un gesto esplicito.
   const restore = (locale: Locale) => {
@@ -276,121 +304,178 @@ export default function CustomerMessages() {
           </button>
         </ui-save-bar>
 
-        <s-section>
-          <s-stack direction="block" gap="base">
-            <s-banner tone="info">
-              <s-paragraph>{t.messages.labelsNote}</s-paragraph>
-              <s-link href="/app/rules">{t.messages.manageLabels}</s-link>
-            </s-banner>
-            <CustomerMessagesPreview
-              activeLocale={activeLocale}
-              context={t.messages.previewContext}
-              errorHeading={t.messages.previewErrorHeading}
-              fieldLabel={messageFieldLabel(t, saved.rules, activeLocale, selectedKey)}
-              fieldLabelHeading={t.messages.previewFieldLabel}
-              heading={t.messages.previewHeading}
-              languageLabel={t.messages.languageSelector}
-              languages={{ it: t.messages.italian, en: t.messages.english }}
-              message={draft[activeLocale][selectedKey]}
-              onLocaleChange={setActiveLocale}
-              selectedHeading={t.messages.previewSelected}
-              selectedLabel={t.messages[selectedKey]}
-            />
-
-            <s-stack direction="block" gap="base">
-              {MESSAGE_KEYS.map((key) => {
-                const value = draft[activeLocale][key];
-                const problem =
-                  result && !result.ok && "problem" in result ? result.problem : undefined;
-                // Il contatore compare mentre si lavora sul campo o quando il limite si avvicina.
-                // Il campo vuoto viene segnalato solo dopo un salvataggio rifiutato, non mentre
-                // il merchant cancella il testo per riscriverlo.
-                const invalid =
-                  value.length > MESSAGE_MAX_LENGTH
-                    ? t.messages.tooLong
-                    : problem?.locale === activeLocale && problem.key === key
-                      ? t.messages.empty
-                      : undefined;
-                const focused =
-                  focusedMessage?.locale === activeLocale && focusedMessage.key === key;
-
-                return (
-                  <UncontrolledMessageTextArea
-                    key={`${activeLocale}-${key}-${mounted[`${activeLocale}.${key}`] ?? 0}`}
-                    initialValue={value}
-                    label={t.messages[key]}
-                    name={`${activeLocale}.${key}`}
-                    rows={rowsFor(value)}
-                    details={
-                      shouldShowMessageCounter(value.length, focused)
-                        ? t.messages.counter(value.length)
-                        : undefined
-                    }
-                    error={invalid}
-                    onFocus={() => {
-                      setSelectedKey(key);
-                      setFocusedMessage({ locale: activeLocale, key });
-                    }}
-                    onBlur={() => setFocusedMessage(undefined)}
-                  />
-                );
-              })}
-            </s-stack>
-            <s-button commandFor={`restore-${activeLocale}`} command="--show">
-              {t.messages.reset}
-            </s-button>
-          </s-stack>
-        </s-section>
+        <MessagesEditor
+          t={t}
+          activeLocale={activeLocale}
+          setActiveLocale={setActiveLocale}
+          previewField={previewField}
+          draft={draft}
+          selectedKey={selectedKey}
+          setSelectedKey={setSelectedKey}
+          focusedMessage={focusedMessage}
+          setFocusedMessage={setFocusedMessage}
+          mounted={mounted}
+          result={result}
+        />
 
         {/* L'anteprima sopra mostra il testo selezionato; questo riquadro aggiunge invece
             l'informazione che manca all'editor: quali messaggi sono pertinenti alle regole
             correnti e possono quindi comparire quando il controllo è attivo. */}
-        <s-section slot="aside" heading={t.messages.appearHeading}>
-          <s-stack direction="block" gap="small-100">
-            <s-paragraph>{t.messages.appearIntro}</s-paragraph>
-            <div className="cf-data-list">
-              {MESSAGE_KEYS.map((key) => (
-                <div className="cf-data-row" key={key}>
-                  <s-text>{t.messages[key]}</s-text>
-                  <s-badge>
-                    {messageAppears(saved.rules, key) ? t.messages.appears : t.messages.appearsNot}
-                  </s-badge>
-                </div>
-              ))}
-            </div>
-            <s-link href="/app/rules">{t.nav.rules}</s-link>
-          </s-stack>
-        </s-section>
-
-        {(["it", "en"] as const).map((locale) => (
-          <s-modal
-            key={locale}
-            id={`restore-${locale}`}
-            heading={t.messages.reset}
-            accessibilityLabel={t.messages.resetConfirm(
-              locale === "it" ? t.messages.italian : t.messages.english,
-            )}
-          >
-            <s-paragraph>
-              {t.messages.resetConfirm(locale === "it" ? t.messages.italian : t.messages.english)}
-            </s-paragraph>
-            <s-button slot="secondary-actions" commandFor={`restore-${locale}`} command="--hide">
-              {t.common.cancel}
-            </s-button>
-            <s-button
-              slot="primary-action"
-              variant="primary"
-              commandFor={`restore-${locale}`}
-              command="--hide"
-              onClick={() => restore(locale)}
-            >
-              {t.messages.reset}
-            </s-button>
-          </s-modal>
-        ))}
+        <MessageVisibilityAside t={t} rules={saved.rules} />
+        <RestoreMessageModals t={t} restore={restore} />
       </s-page>
     </form>
   );
+}
+
+type MessagesCopy = ReturnType<typeof texts>;
+type MessagesData = ReturnType<typeof useLoaderData<typeof loader>>;
+type MessagesActionResult = ReturnType<typeof useActionData<typeof action>>;
+
+function MessagesEditor({
+  t,
+  activeLocale,
+  setActiveLocale,
+  previewField,
+  draft,
+  selectedKey,
+  setSelectedKey,
+  focusedMessage,
+  setFocusedMessage,
+  mounted,
+  result,
+}: {
+  t: MessagesCopy;
+  activeLocale: Locale;
+  setActiveLocale: (locale: Locale) => void;
+  previewField: { label: string; observed: boolean };
+  draft: CheckoutConfig["messages"];
+  selectedKey: MessageKey;
+  setSelectedKey: (key: MessageKey) => void;
+  focusedMessage: { locale: Locale; key: MessageKey } | undefined;
+  setFocusedMessage: (message: { locale: Locale; key: MessageKey } | undefined) => void;
+  mounted: Record<string, number>;
+  result: MessagesActionResult;
+}) {
+  const problem = result && !result.ok && "problem" in result ? result.problem : undefined;
+  return (
+    <s-section>
+      <s-stack direction="block" gap="base">
+        <s-banner tone="info">
+          <s-paragraph>{t.messages.labelsNote}</s-paragraph>
+          <s-link href="/app/rules">{t.messages.manageLabels}</s-link>
+        </s-banner>
+        <CustomerMessagesPreview
+          activeLocale={activeLocale}
+          context={t.messages.previewContext}
+          errorHeading={t.messages.previewErrorHeading}
+          fieldLabel={previewField.label}
+          fieldLabelHeading={
+            previewField.observed
+              ? t.messages.previewCurrentFieldLabel
+              : t.messages.previewProposedFieldLabel
+          }
+          heading={t.messages.previewHeading}
+          languageLabel={t.messages.languageSelector}
+          languages={{ it: t.messages.italian, en: t.messages.english }}
+          message={draft[activeLocale][selectedKey]}
+          onLocaleChange={setActiveLocale}
+          selectedHeading={t.messages.previewSelected}
+          selectedLabel={t.messages[selectedKey]}
+        />
+        <s-stack direction="block" gap="base">
+          {MESSAGE_KEYS.map((key) => {
+            const value = draft[activeLocale][key];
+            const invalid =
+              value.length > MESSAGE_MAX_LENGTH
+                ? t.messages.tooLong
+                : problem?.locale === activeLocale && problem.key === key
+                  ? t.messages.empty
+                  : undefined;
+            const focused = focusedMessage?.locale === activeLocale && focusedMessage.key === key;
+            return (
+              <UncontrolledMessageTextArea
+                key={`${activeLocale}-${key}-${mounted[`${activeLocale}.${key}`] ?? 0}`}
+                initialValue={value}
+                label={t.messages[key]}
+                name={`${activeLocale}.${key}`}
+                rows={rowsFor(value)}
+                details={
+                  shouldShowMessageCounter(value.length, focused)
+                    ? t.messages.counter(value.length)
+                    : undefined
+                }
+                error={invalid}
+                onFocus={() => {
+                  setSelectedKey(key);
+                  setFocusedMessage({ locale: activeLocale, key });
+                }}
+                onBlur={() => setFocusedMessage(undefined)}
+              />
+            );
+          })}
+        </s-stack>
+        <s-button commandFor={`restore-${activeLocale}`} command="--show">
+          {t.messages.reset}
+        </s-button>
+      </s-stack>
+    </s-section>
+  );
+}
+
+function MessageVisibilityAside({ t, rules }: { t: MessagesCopy; rules: MessagesData["rules"] }) {
+  return (
+    <s-section slot="aside" heading={t.messages.appearHeading}>
+      <s-stack direction="block" gap="small-100">
+        <s-paragraph>{t.messages.appearIntro}</s-paragraph>
+        <div className="cf-data-list">
+          {MESSAGE_KEYS.map((key) => (
+            <div className="cf-data-row" key={key}>
+              <s-text>{t.messages[key]}</s-text>
+              <s-badge>
+                {messageAppears(rules, key) ? t.messages.appears : t.messages.appearsNot}
+              </s-badge>
+            </div>
+          ))}
+        </div>
+        <s-link href="/app/rules">{t.nav.rules}</s-link>
+      </s-stack>
+    </s-section>
+  );
+}
+
+function RestoreMessageModals({
+  t,
+  restore,
+}: {
+  t: MessagesCopy;
+  restore: (locale: Locale) => void;
+}) {
+  return (["it", "en"] as const).map((locale) => {
+    const language = locale === "it" ? t.messages.italian : t.messages.english;
+    return (
+      <s-modal
+        key={locale}
+        id={`restore-${locale}`}
+        heading={t.messages.reset}
+        accessibilityLabel={t.messages.resetConfirm(language)}
+      >
+        <s-paragraph>{t.messages.resetConfirm(language)}</s-paragraph>
+        <s-button slot="secondary-actions" commandFor={`restore-${locale}`} command="--hide">
+          {t.common.cancel}
+        </s-button>
+        <s-button
+          slot="primary-action"
+          variant="primary"
+          commandFor={`restore-${locale}`}
+          command="--hide"
+          onClick={() => restore(locale)}
+        >
+          {t.messages.reset}
+        </s-button>
+      </s-modal>
+    );
+  });
 }
 
 function messageFieldLabel(
@@ -398,7 +483,19 @@ function messageFieldLabel(
   rules: CheckoutConfig["rules"],
   locale: Locale,
   key: MessageKey,
+  snapshot: CheckoutLabelsSnapshot | null,
 ) {
   const field = key.startsWith("taxCode") ? "taxCode" : "pec";
-  return checkoutLabelCopy(field, locale, rules[field]) ?? t.rules[`${field}Label`];
+  const matching = snapshot?.slots.filter(
+    (slot) => slot.name === field && slot.family === locale && slot.marketId === null,
+  );
+  const observed =
+    matching?.find((slot) => slot.kind === "source") ??
+    matching?.find((slot) => slot.kind === "global_translation");
+  return observed
+    ? { label: observedLabelForSlot(observed), observed: true }
+    : {
+        label: checkoutLabelCopy(field, locale, rules[field]) ?? t.rules[`${field}Label`],
+        observed: false,
+      };
 }

@@ -4,8 +4,10 @@ import { withValidationLock, type ValidationLockHeartbeat } from "../validation/
 import { writeValidationUnderLock } from "../validation/write.server";
 import {
   address2Reference,
+  checkoutLabelSlotId,
   checkoutLabelName,
   checkoutLabelsMode,
+  observedLabelForSlot,
   proposedLabelForSlot,
   type CheckoutLabelSlot,
   type CheckoutLabelsSnapshot,
@@ -13,6 +15,7 @@ import {
 } from "./domain";
 import {
   claimCheckoutLabelSlot,
+  confirmGuidedCheckoutLabelSlots,
   enableCheckoutLabels,
   markCheckoutLabelsResult,
   persistCheckoutLabelObservation,
@@ -42,6 +45,7 @@ export type CheckoutLabelsLoadResult =
       snapshot: CheckoutLabelsSnapshot;
       state: Awaited<ReturnType<typeof readCheckoutLabelState>>;
       externalChange: boolean;
+      confirmedGuidedSlotIds: string[];
     }
   | {
       available: false;
@@ -53,6 +57,7 @@ export async function loadCheckoutLabels(
   admin: Admin,
   db: D1Database,
   shopDomain: string,
+  rules: Rules,
 ): Promise<CheckoutLabelsLoadResult> {
   const state = await readCheckoutLabelState(db, shopDomain);
   try {
@@ -60,7 +65,6 @@ export async function loadCheckoutLabels(
       readCheckoutLabels(admin),
       readStoredCheckoutLabelSlots(db, shopDomain),
     ]);
-    applyStoredCapabilities(snapshot, stored);
     const managedExternalChange = hasExternalChange(snapshot.slots, stored, state.managementEpoch);
     const address2ExternalChange = hasAddress2ObservationChange(
       snapshot.slots,
@@ -76,13 +80,25 @@ export async function loadCheckoutLabels(
         externalChange: address2ExternalChange,
       });
     } else if (state.mode !== "off") {
-      await markCheckoutLabelsResult(db, shopDomain, { errorCode: null, synced: true });
+      const issue = fiscalSnapshotIssue(snapshot, rules);
+      const ready = checkoutLabelsReady(snapshot, stored, rules);
+      await markCheckoutLabelsResult(db, shopDomain, {
+        errorCode: issue ?? (ready ? null : "checkout_labels_partial_sync"),
+        synced: !issue && ready,
+      });
     }
     return {
       available: true,
       snapshot,
       state: await readCheckoutLabelState(db, shopDomain),
       externalChange,
+      confirmedGuidedSlotIds: snapshot.slots.flatMap((slot) => {
+        const previous = findStoredSlot(stored, slot);
+        return previous?.guidedConfirmedAt &&
+          previous.guidedConfirmedValue === observedLabelForSlot(slot)
+          ? [checkoutLabelSlotId(slot)]
+          : [];
+      }),
     };
   } catch (error) {
     return { available: false, state, errorCode: checkoutLabelsError(error) };
@@ -111,7 +127,6 @@ export async function saveRulesAndCheckoutLabels(
     if (input.labelsEnabled || wasEnabled) {
       try {
         snapshot = await readCheckoutLabels(admin);
-        applyStoredCapabilities(snapshot, await readStoredCheckoutLabelSlots(db, shopDomain));
       } catch (error) {
         const errorCode = checkoutLabelsError(error);
         await markCheckoutLabelsResult(db, shopDomain, { errorCode, synced: false });
@@ -140,7 +155,8 @@ export async function saveRulesAndCheckoutLabels(
       epoch = await enableCheckoutLabels(db, shopDomain, checkoutLabelsMode(snapshot.slots));
     }
 
-    if (input.labelsEnabled && snapshot && epoch) {
+    const initialIssue = snapshot ? fiscalSnapshotIssue(snapshot, input.rules) : null;
+    if (input.labelsEnabled && snapshot && epoch && !initialIssue) {
       const preflight = await synchronizeFiscalPhase(
         admin,
         db,
@@ -174,17 +190,18 @@ export async function saveRulesAndCheckoutLabels(
 
     if (input.labelsEnabled && snapshot && epoch) {
       snapshot = await readCheckoutLabels(admin);
-      applyStoredCapabilities(snapshot, await readStoredCheckoutLabelSlots(db, shopDomain));
-      const after = await synchronizeFiscalPhase(
-        admin,
-        db,
-        shopDomain,
-        snapshot,
-        input.rules,
-        epoch,
-        "after_validation",
-        heartbeat,
-      );
+      const after = initialIssue
+        ? { ok: false as const, errorCode: initialIssue }
+        : await synchronizeFiscalPhase(
+            admin,
+            db,
+            shopDomain,
+            snapshot,
+            input.rules,
+            epoch,
+            "after_validation",
+            heartbeat,
+          );
       if (!after.ok) {
         await markCheckoutLabelsResult(db, shopDomain, {
           mode: "partial",
@@ -194,16 +211,18 @@ export async function saveRulesAndCheckoutLabels(
         return { ok: true as const, labelsErrorCode: after.errorCode };
       }
       const readback = await readCheckoutLabels(admin);
-      applyStoredCapabilities(readback, await readStoredCheckoutLabelSlots(db, shopDomain));
-      if (!managedFiscalValuesMatch(readback, input.rules)) {
+      const stored = await readStoredCheckoutLabelSlots(db, shopDomain);
+      if (!checkoutLabelsReady(readback, stored, input.rules)) {
+        const errorCode =
+          fiscalSnapshotIssue(readback, input.rules) ?? "checkout_labels_partial_sync";
         await markCheckoutLabelsResult(db, shopDomain, {
           mode: "partial",
-          errorCode: "checkout_labels_readback_failed",
+          errorCode,
           synced: false,
         });
         return {
           ok: true as const,
-          labelsErrorCode: "checkout_labels_readback_failed" as const,
+          labelsErrorCode: errorCode,
         };
       }
       await persistCheckoutLabelObservation(db, shopDomain, readback.slots, readback.address2);
@@ -245,6 +264,7 @@ export async function restoreAddress2Translations(
   db: D1Database,
   shopDomain: string,
   expectedRevision: string,
+  selectedSlotIds: string[],
 ) {
   try {
     const locked = await withValidationLock(db, shopDomain, async (heartbeat) => {
@@ -254,14 +274,18 @@ export async function restoreAddress2Translations(
       }
       const state = await readCheckoutLabelState(db, shopDomain);
       const epoch = state.managementEpoch ?? crypto.randomUUID();
+      const selected = new Set(selectedSlotIds);
       const candidates = snapshot.slots.filter(
         (slot) =>
+          selected.has(checkoutLabelSlotId(slot)) &&
           (slot.name === "address2" || slot.name === "optionalAddress2") &&
           slot.kind !== "source" &&
           slot.currentValue !== null &&
-          (slot.kind === "market_translation" ||
-            slot.currentValue !== address2Reference(slot.name, slot.family)),
+          observedLabelForSlot(slot) !== address2Reference(slot.name, slot.family),
       );
+      if (selected.size === 0 || candidates.length !== selected.size) {
+        return { ok: false as const, errorCode: "address2_restore_conflict" as const };
+      }
 
       for (const slot of candidates) {
         if (slot.name !== "address2" && slot.name !== "optionalAddress2") continue;
@@ -269,25 +293,18 @@ export async function restoreAddress2Translations(
           return { ok: false as const, errorCode: "validation_locked" as const };
         }
         await claimCheckoutLabelSlot(db, shopDomain, slot, epoch);
-        if (slot.kind === "market_translation") {
-          await removeCheckoutLabelTranslation(admin, slot);
-          await saveCheckoutLabelWrite(db, shopDomain, slot, null);
-        } else {
-          const value = address2Reference(slot.name, slot.family);
-          await registerCheckoutLabelTranslations(admin, slot.resourceId, [
-            translationInput(slot, value),
-          ]);
-          await saveCheckoutLabelWrite(db, shopDomain, slot, value);
-        }
+        const value = address2Reference(slot.name, slot.family);
+        await registerCheckoutLabelTranslations(admin, slot.resourceId, [
+          translationInput(slot, value),
+        ]);
+        await saveCheckoutLabelWrite(db, shopDomain, slot, value);
       }
 
       const readback = await readCheckoutLabels(admin);
       const consistent = candidates.every((slot) => {
         if (slot.name !== "address2" && slot.name !== "optionalAddress2") return true;
         const current = matchingSlot(readback.slots, slot);
-        return slot.kind === "market_translation"
-          ? current === undefined
-          : current?.currentValue === address2Reference(slot.name, slot.family);
+        return current?.currentValue === address2Reference(slot.name, slot.family);
       });
       if (!consistent) {
         return { ok: false as const, errorCode: "checkout_labels_readback_failed" as const };
@@ -321,13 +338,65 @@ export async function acceptAddress2Customization(
   shopDomain: string,
   expectedRevision: string,
 ) {
-  const snapshot = await readCheckoutLabels(admin);
-  if (snapshot.revision !== expectedRevision) {
-    return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
+  const locked = await withValidationLock(db, shopDomain, async () => {
+    const snapshot = await readCheckoutLabels(admin);
+    if (snapshot.revision !== expectedRevision) {
+      return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
+    }
+    await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots, snapshot.address2);
+    await saveAddress2Decision(db, shopDomain, "accepted");
+    return { ok: true as const };
+  });
+  return locked.acquired
+    ? locked.result
+    : { ok: false as const, errorCode: "validation_locked" as const };
+}
+
+export async function confirmGuidedCheckoutLabels(
+  admin: Admin,
+  db: D1Database,
+  shopDomain: string,
+  rules: Rules,
+  expectedRevision: string,
+  selectedSlotIds: string[],
+) {
+  try {
+    const locked = await withValidationLock(db, shopDomain, async () => {
+      const snapshot = await readCheckoutLabels(admin);
+      if (snapshot.revision !== expectedRevision) {
+        return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
+      }
+      const selected = new Set(selectedSlotIds);
+      const slots = snapshot.slots.filter(
+        (slot) =>
+          selected.has(checkoutLabelSlotId(slot)) &&
+          slot.capability !== "automatic" &&
+          ((slot.name === "taxCode" && rules.taxCode !== "unmanaged") ||
+            (slot.name === "pec" && rules.pec !== "unmanaged")),
+      );
+      if (selected.size === 0 || slots.length !== selected.size) {
+        return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
+      }
+      await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots, snapshot.address2);
+      await confirmGuidedCheckoutLabelSlots(db, shopDomain, slots);
+      const [stored, state] = await Promise.all([
+        readStoredCheckoutLabelSlots(db, shopDomain),
+        readCheckoutLabelState(db, shopDomain),
+      ]);
+      const ready = checkoutLabelsReady(snapshot, stored, rules);
+      await markCheckoutLabelsResult(db, shopDomain, {
+        mode: state.mode === "off" ? "off" : checkoutLabelsMode(snapshot.slots),
+        errorCode: ready ? null : "checkout_labels_partial_sync",
+        synced: ready,
+      });
+      return { ok: true as const };
+    });
+    return locked.acquired
+      ? locked.result
+      : { ok: false as const, errorCode: "validation_locked" as const };
+  } catch (error) {
+    return { ok: false as const, errorCode: checkoutLabelsError(error) };
   }
-  await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots, snapshot.address2);
-  await saveAddress2Decision(db, shopDomain, "accepted");
-  return { ok: true as const };
 }
 
 async function synchronizeFiscalPhase(
@@ -394,7 +463,6 @@ async function synchronizeFiscalPhase(
         return { ok: false, errorCode };
       }
       snapshot = await readCheckoutLabels(admin);
-      applyStoredCapabilities(snapshot, await readStoredCheckoutLabelSlots(db, shopDomain));
     }
   }
   return { ok: false, errorCode: "checkout_labels_partial_sync" };
@@ -454,6 +522,47 @@ function managedFiscalValuesMatch(snapshot: CheckoutLabelsSnapshot, rules: Rules
     if (mode === "unmanaged") return true;
     return slot.currentValue === proposedLabelForSlot(slot, rules);
   });
+}
+
+function checkoutLabelsReady(
+  snapshot: CheckoutLabelsSnapshot,
+  stored: StoredCheckoutLabelSlot[],
+  rules: Rules,
+) {
+  if (fiscalSnapshotIssue(snapshot, rules) || !managedFiscalValuesMatch(snapshot, rules)) {
+    return false;
+  }
+  return snapshot.slots
+    .filter((slot) => {
+      if (slot.capability === "automatic") return false;
+      if (slot.name === "taxCode") return rules.taxCode !== "unmanaged";
+      if (slot.name === "pec") return rules.pec !== "unmanaged";
+      return false;
+    })
+    .every((slot) => {
+      const previous = findStoredSlot(stored, slot);
+      return (
+        previous?.guidedConfirmedAt !== null &&
+        previous?.guidedConfirmedValue === observedLabelForSlot(slot)
+      );
+    });
+}
+
+function fiscalSnapshotIssue(snapshot: CheckoutLabelsSnapshot, rules: Rules): AppErrorCode | null {
+  const requiredNames = new Set(
+    (["taxCode", "pec"] as const).filter((name) => rules[name] !== "unmanaged"),
+  );
+  const issue = snapshot.issues.find(({ key }) => {
+    const name = checkoutLabelName(key);
+    return name !== null && requiredNames.has(name as "taxCode" | "pec");
+  });
+  if (!issue) {
+    const hasRequiredLocale = snapshot.slots.some((slot) =>
+      requiredNames.has(slot.name as "taxCode" | "pec"),
+    );
+    if (requiredNames.size > 0 && !hasRequiredLocale) return "checkout_labels_locale_missing";
+  }
+  return issue?.code ?? null;
 }
 
 function translationInput(slot: CheckoutLabelSlot, value: string) {
@@ -524,7 +633,7 @@ function hasAddress2ObservationChange(
   return (
     currentAddressSlots.some((slot) => {
       const previous = findStoredSlot(storedAddressSlots, slot);
-      return !previous || previous.lastObservedValue !== slot.currentValue;
+      return !previous || previous.lastObservedValue !== observedLabelForSlot(slot);
     }) ||
     storedAddressSlots.some((previous) => {
       const current = slots.find(
@@ -545,17 +654,6 @@ function matchesLastWrite(currentValue: string | null, stored: StoredCheckoutLab
   return stored.lastWritePresent ? currentValue === stored.lastWrittenValue : currentValue === null;
 }
 
-function applyStoredCapabilities(
-  snapshot: CheckoutLabelsSnapshot,
-  stored: StoredCheckoutLabelSlot[],
-) {
-  for (const slot of snapshot.slots) {
-    if (slot.kind === "source") continue;
-    const previous = findStoredSlot(stored, slot);
-    if (previous?.capability === "automatic") slot.capability = "automatic";
-  }
-}
-
 function checkoutLabelsError(error: unknown): AppErrorCode {
   const message = error instanceof Error ? error.message : "";
   if (
@@ -564,6 +662,7 @@ function checkoutLabelsError(error: unknown): AppErrorCode {
     message === "checkout_labels_partial_sync" ||
     message === "checkout_labels_conflict" ||
     message === "checkout_labels_readback_failed" ||
+    message === "checkout_labels_locale_missing" ||
     message === "validation_locked"
   ) {
     return message;

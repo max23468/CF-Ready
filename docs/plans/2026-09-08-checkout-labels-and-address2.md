@@ -1,8 +1,8 @@
 # Piano — Etichette native checkout e controllo del campo “Interno”
 
-**Stato:** implementazione locale completata; verifica reale Development e rollout non eseguiti  
-**Data:** 8 settembre 2026  
-**Versione candidata:** `1.6.0`  
+**Stato:** implementazione locale completata; verifica reale Development e rollout non eseguiti
+**Data:** 8 settembre 2026
+**Versione candidata:** `1.7.0`
 **Ambiente della prova esplorativa:** Development
 
 ## 1. Decisione proposta
@@ -839,7 +839,7 @@ La regola su “Interno” diventa:
   prima di scrivere.
 
 La nuova capacità è una funzionalità compatibile e giustifica una minor
-`1.6.0`. Il bump viene preparato nella PR verso `develop` prima del primo
+`1.7.0`. Il bump viene preparato nella PR verso `develop` prima del primo
 snapshot Development della release.
 
 ## 15. Piano di verifica automatica
@@ -1007,7 +1007,7 @@ esportata delle traduzioni necessarie al ripristino.
 10. Aggiornare simulatore, onboarding, Home, messaggi, Guida, FAQ, diagnostica
     e privacy.
 11. Eseguire test mirati, coverage, mutation e gate completo.
-12. Distribuire lo snapshot Development `1.6.0-dev.<tree>` e completare la
+12. Distribuire lo snapshot Development `1.7.0-dev.<tree>` e completare la
     matrice end-to-end, inclusi scope revocati, mercati ereditati e test di
     disinstallazione sullo store sacrificabile.
 13. Correggere ogni differenza fra stato Admin e rendering reale, ripetendo i

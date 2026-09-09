@@ -63,7 +63,12 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       const labelsGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
         scopeDetails?.granted.includes(scope),
       );
-      if (labelsGranted) await loadCheckoutLabels(admin, db, session.shop);
+      if (labelsGranted) {
+        const labels = await loadCheckoutLabels(admin, db, session.shop, config.rules);
+        if (!labels.available) {
+          return { ok: false as const, errorCode: labels.errorCode };
+        }
+      }
       const labelState = await readCheckoutLabelState(db, session.shop);
       return {
         ok: true as const,
@@ -73,7 +78,11 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
           entitled: state.entitlement.kind !== "none",
           errorCode: state.errorCode,
           configured: config.rules.taxCode !== "unmanaged" || config.rules.pec !== "unmanaged",
-          checkoutLabelsStatus: labelsGranted ? checkoutLabelsStatus(labelState) : "scope_required",
+          checkoutLabelsStatus: labelsGranted
+            ? checkoutLabelsStatus(labelState)
+            : labelState.mode === "off"
+              ? checkoutLabelsStatus(labelState)
+              : "scope_required",
           address2Classification: labelState.address2Classification,
           address2Decision: labelState.address2Decision,
         },
@@ -232,7 +241,7 @@ function ValidationDiagnosis({
   const checkResult = checkFetcher.data;
   const check = checkResult && "check" in checkResult ? checkResult.check : null;
   const checkCopy = t.guide.diagnosis;
-  const errorCode = check ? check.errorCode : diagnostics.errorCode;
+  const errorCode = diagnosisErrorCode(check, checkResult, diagnostics.errorCode);
   return (
     <s-section heading={checkCopy.heading}>
       <s-stack direction="block" gap="base">
@@ -245,33 +254,7 @@ function ValidationDiagnosis({
           {checkCopy.refresh}
         </s-button>
         {checkResult?.ok === false ? <s-banner tone="warning">{checkCopy.failed}</s-banner> : null}
-        {check && !check.errorCode ? (
-          <>
-            <s-text color="subdued">
-              {checkCopy.checkedAt}: {new Date(check.checkedAt).toLocaleString(locale)}
-            </s-text>
-            <s-paragraph>
-              {check.enabled ? checkCopy.enabled : checkCopy.disabled}{" "}
-              <s-link href="/app">{t.nav.home}</s-link>
-            </s-paragraph>
-            <s-paragraph>
-              {check.entitled ? checkCopy.entitled : checkCopy.notEntitled}{" "}
-              <s-link href="/app">{checkCopy.openPlan}</s-link>
-            </s-paragraph>
-            <s-paragraph>
-              {check.configured ? checkCopy.configured : checkCopy.unconfigured}{" "}
-              <s-link href="/app/rules">{t.nav.rules}</s-link>
-            </s-paragraph>
-            <s-paragraph>
-              {checkCopy.checkoutLabels}: {check.checkoutLabelsStatus}
-            </s-paragraph>
-            <s-paragraph>
-              {checkCopy.address2}: {check.address2Classification} · {check.address2Decision}
-            </s-paragraph>
-          </>
-        ) : (
-          <s-paragraph>{checkCopy.notChecked}</s-paragraph>
-        )}
+        <DiagnosisResult check={check} locale={locale} />
         {errorCode ? (
           <s-banner tone="warning">{localizedError(t.errors, errorCode)}</s-banner>
         ) : null}
@@ -286,5 +269,62 @@ function ValidationDiagnosis({
         <s-link href="/app/rules">{checkCopy.simulate}</s-link>
       </s-stack>
     </s-section>
+  );
+}
+
+function diagnosisErrorCode(
+  check: { errorCode: unknown } | null | undefined,
+  result: { ok: boolean; errorCode?: unknown } | undefined,
+  fallback: unknown,
+) {
+  if (check) return check.errorCode;
+  if (result?.ok === false && "errorCode" in result) return result.errorCode;
+  return fallback;
+}
+
+type DiagnosisCheck = {
+  checkedAt: string;
+  enabled: boolean;
+  entitled: boolean;
+  configured: boolean;
+  errorCode: unknown;
+  checkoutLabelsStatus: string;
+  address2Classification: string;
+  address2Decision: string;
+};
+
+function DiagnosisResult({
+  check,
+  locale,
+}: {
+  check: DiagnosisCheck | null | undefined;
+  locale: Locale;
+}) {
+  const t = texts(locale);
+  const copy = t.guide.diagnosis;
+  if (!check || check.errorCode) return <s-paragraph>{copy.notChecked}</s-paragraph>;
+  return (
+    <>
+      <s-text color="subdued">
+        {copy.checkedAt}: {new Date(check.checkedAt).toLocaleString(locale)}
+      </s-text>
+      <s-paragraph>
+        {check.enabled ? copy.enabled : copy.disabled} <s-link href="/app">{t.nav.home}</s-link>
+      </s-paragraph>
+      <s-paragraph>
+        {check.entitled ? copy.entitled : copy.notEntitled}{" "}
+        <s-link href="/app">{copy.openPlan}</s-link>
+      </s-paragraph>
+      <s-paragraph>
+        {check.configured ? copy.configured : copy.unconfigured}{" "}
+        <s-link href="/app/rules">{t.nav.rules}</s-link>
+      </s-paragraph>
+      <s-paragraph>
+        {copy.checkoutLabels}: {check.checkoutLabelsStatus}
+      </s-paragraph>
+      <s-paragraph>
+        {copy.address2}: {check.address2Classification} · {check.address2Decision}
+      </s-paragraph>
+    </>
   );
 }

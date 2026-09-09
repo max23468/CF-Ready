@@ -92,7 +92,7 @@
     },
     {
       "name": "0017_checkout_labels.sql",
-      "sha256": "bbc9186618f9c9d145674e6b6f4196a117aa7e33d5d6463dcf110a7129929c02",
+      "sha256": "aaa9019b0247b62f96231e81f6c0eaf03c083288b57182cdb79a227c8a361bf9",
       "protects": [
         "checkout label ownership",
         "per-slot write capability",

@@ -1,4 +1,4 @@
-import type { RuleMode, Rules } from "../config";
+import type { PecRuleMode, Rules, TaxCodeRuleMode } from "../config";
 
 export const CHECKOUT_LABEL_KEYS = {
   taxCode: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
@@ -28,6 +28,13 @@ export type CheckoutLabelLocale = {
 export type CheckoutLabelMarket = {
   id: string;
   name: string;
+  defaultLocale: string | null;
+  locales: string[];
+};
+
+export type CheckoutLabelIssue = {
+  code: "checkout_labels_resource_missing" | "checkout_labels_resource_ambiguous";
+  key: CheckoutLabelKey;
 };
 
 export type CheckoutLabelSlot = {
@@ -41,6 +48,7 @@ export type CheckoutLabelSlot = {
   kind: CheckoutLabelSlotKind;
   capability: CheckoutLabelCapability;
   currentValue: string | null;
+  inheritedValue: string | null;
   sourceValue: string;
   sourceDigest: string;
   outdated: boolean;
@@ -50,7 +58,7 @@ export type CheckoutLabelsSnapshot = {
   locales: CheckoutLabelLocale[];
   markets: CheckoutLabelMarket[];
   slots: CheckoutLabelSlot[];
-  issues: Array<"checkout_labels_resource_missing" | "checkout_labels_resource_ambiguous">;
+  issues: CheckoutLabelIssue[];
   revision: string;
   address2: {
     classification: Address2Classification;
@@ -86,6 +94,8 @@ export type StoredCheckoutLabelSlot = {
   sourceDigest: string;
   lastObservedValue: string | null;
   lastObservedAt: string;
+  guidedConfirmedValue: string | null;
+  guidedConfirmedAt: string | null;
 };
 
 const DEFAULT_LABELS = {
@@ -97,6 +107,7 @@ const DEFAULT_LABELS = {
     pec: {
       optional_validated: "PEC (facoltativa)",
       required_validated: "PEC",
+      required_when_company: "PEC (obbligatoria per aziende)",
     },
     address2: "Interno",
     optionalAddress2: "Interno, scala, ecc. (facoltativo)",
@@ -109,6 +120,7 @@ const DEFAULT_LABELS = {
     pec: {
       optional_validated: "Certified email address (PEC) (optional)",
       required_validated: "Certified email address (PEC)",
+      required_when_company: "Certified email address (PEC) (required for companies)",
     },
     address2: "Apartment, suite, etc.",
     optionalAddress2: "Apartment, suite, etc. (optional)",
@@ -131,10 +143,15 @@ export function checkoutLabelFamily(locale: string): CheckoutLabelFamily | null 
 export function checkoutLabelCopy(
   name: "taxCode" | "pec",
   family: CheckoutLabelFamily,
-  mode: RuleMode,
+  mode: TaxCodeRuleMode | PecRuleMode,
 ): string | null {
   if (mode === "unmanaged") return null;
-  return DEFAULT_LABELS[family][name][mode];
+  if (name === "taxCode") {
+    return mode === "required_when_company"
+      ? DEFAULT_LABELS[family].taxCode.required_validated
+      : DEFAULT_LABELS[family].taxCode[mode];
+  }
+  return DEFAULT_LABELS[family].pec[mode];
 }
 
 export function address2Reference(
@@ -148,6 +165,29 @@ export function proposedLabelForSlot(slot: CheckoutLabelSlot, rules: Rules) {
   if (slot.name === "taxCode") return checkoutLabelCopy("taxCode", slot.family, rules.taxCode);
   if (slot.name === "pec") return checkoutLabelCopy("pec", slot.family, rules.pec);
   return address2Reference(slot.name, slot.family);
+}
+
+export function observedLabelForSlot(slot: CheckoutLabelSlot) {
+  return slot.currentValue ?? slot.inheritedValue ?? slot.sourceValue;
+}
+
+export function checkoutLabelSlotId(slot: CheckoutLabelSlot) {
+  return JSON.stringify([slot.resourceId, slot.key, slot.locale, slot.marketId, slot.kind]);
+}
+
+export function automaticCheckoutLabelCapability(
+  name: CheckoutLabelName,
+  kind: CheckoutLabelSlotKind,
+  locale: CheckoutLabelLocale,
+): CheckoutLabelCapability {
+  return (name === "taxCode" || name === "pec") &&
+    kind === "global_translation" &&
+    locale.locale === "en" &&
+    !locale.primary
+    ? "automatic"
+    : kind === "source"
+      ? "read_only"
+      : "guided";
 }
 
 export function classifyAddress2(slots: CheckoutLabelSlot[]) {
@@ -221,7 +261,9 @@ export async function checkoutLabelsRevision(snapshot: Omit<CheckoutLabelsSnapsh
       locale: slot.locale,
       marketId: slot.marketId,
       kind: slot.kind,
+      capability: slot.capability,
       currentValue: slot.currentValue,
+      inheritedValue: slot.inheritedValue,
       sourceDigest: slot.sourceDigest,
       outdated: slot.outdated,
     })),

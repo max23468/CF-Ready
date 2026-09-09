@@ -1,5 +1,6 @@
 import {
   CHECKOUT_LABEL_KEYS,
+  automaticCheckoutLabelCapability,
   checkoutLabelFamily,
   checkoutLabelName,
   checkoutLabelsRevision,
@@ -44,33 +45,59 @@ type TranslationNode = {
   market: { id: string; name: string } | null;
 };
 
-type MarketNode = { id: string; name: string };
+type MarketNode = {
+  id: string;
+  name: string;
+  webPresence: {
+    defaultLocale: { locale: string };
+    alternateLocales: Array<{ locale: string }>;
+  } | null;
+};
 
-type DiscoveryData = {
+type DiscoveryContextData = {
   shopLocales: Array<{
     locale: string;
     name: string;
     primary: boolean;
     published: boolean;
   }>;
-  markets: { nodes: MarketNode[] };
+  markets: {
+    nodes: MarketNode[];
+    pageInfo: { hasNextPage: boolean; endCursor: string | null };
+  };
+};
+
+type DiscoveryResourcesData = {
   translatableResources: {
     nodes: ResourceNode[];
     pageInfo: { hasNextPage: boolean; endCursor: string | null };
   };
 };
 
-const DISCOVER_CHECKOUT_LABELS = `#graphql
-  query DiscoverCheckoutLabels($first: Int!, $after: String) {
+const DISCOVER_CHECKOUT_LABEL_CONTEXT = `#graphql
+  query DiscoverCheckoutLabelContext($after: String) {
     shopLocales {
       locale
       name
       primary
       published
     }
-    markets(first: 250) {
-      nodes { id name }
+    markets(first: 100, after: $after) {
+      nodes {
+        id
+        name
+        webPresence {
+          defaultLocale { locale }
+          alternateLocales { locale }
+        }
+      }
+      pageInfo { hasNextPage endCursor }
     }
+  }
+`;
+
+const DISCOVER_CHECKOUT_LABEL_RESOURCES = `#graphql
+  query DiscoverCheckoutLabelResources($first: Int!, $after: String) {
     translatableResources(
       first: $first
       after: $after
@@ -132,31 +159,11 @@ const REMOVE_CHECKOUT_LABEL_TRANSLATIONS = `#graphql
 `;
 
 export async function readCheckoutLabels(admin: Admin): Promise<CheckoutLabelsSnapshot> {
-  const resources: ResourceNode[] = [];
-  let locales: CheckoutLabelLocale[] = [];
-  let markets: CheckoutLabelMarket[] = [];
-  let after: string | null = null;
-  const cursors = new Set<string | null>();
-
-  do {
-    if (cursors.has(after)) throw new Error("checkout_labels_readback_failed");
-    cursors.add(after);
-    const body: DiscoveryData = await graphqlData<DiscoveryData>(admin, DISCOVER_CHECKOUT_LABELS, {
-      first: 50,
-      after,
-    });
-    if (locales.length === 0) {
-      locales = body.shopLocales.flatMap((locale) => {
-        const family = checkoutLabelFamily(locale.locale);
-        return family ? [{ ...locale, family }] : [];
-      });
-      markets = body.markets.nodes;
-    }
-    resources.push(...body.translatableResources.nodes);
-    after = body.translatableResources.pageInfo.hasNextPage
-      ? body.translatableResources.pageInfo.endCursor
-      : null;
-  } while (after);
+  const [context, resources] = await Promise.all([
+    readCheckoutLabelContext(admin),
+    readCheckoutLabelResources(admin),
+  ]);
+  const { locales, markets } = context;
 
   const candidates = new Map<string, ResourceNode[]>();
   for (const resource of resources) {
@@ -168,12 +175,12 @@ export async function readCheckoutLabels(admin: Admin): Promise<CheckoutLabelsSn
     }
   }
 
-  const issues = new Set<CheckoutLabelsSnapshot["issues"][number]>();
+  const issues: CheckoutLabelsSnapshot["issues"] = [];
   const selected = new Set<ResourceNode>();
   for (const key of Object.values(CHECKOUT_LABEL_KEYS)) {
     const found = candidates.get(key) ?? [];
-    if (found.length === 0) issues.add("checkout_labels_resource_missing");
-    if (found.length > 1) issues.add("checkout_labels_resource_ambiguous");
+    if (found.length === 0) issues.push({ code: "checkout_labels_resource_missing", key });
+    if (found.length > 1) issues.push({ code: "checkout_labels_resource_ambiguous", key });
     if (found.length === 1) selected.add(found[0]);
   }
 
@@ -219,8 +226,9 @@ export async function readCheckoutLabels(admin: Admin): Promise<CheckoutLabelsSn
             marketId: null,
             marketName: null,
             kind: "source",
-            capability: "read_only",
+            capability: automaticCheckoutLabelCapability(name, "source", locale),
             currentValue: content.value,
+            inheritedValue: null,
             sourceValue: content.value,
             sourceDigest: content.digest,
             outdated: false,
@@ -238,30 +246,42 @@ export async function readCheckoutLabels(admin: Admin): Promise<CheckoutLabelsSn
             marketId: null,
             marketName: null,
             kind: "global_translation",
-            // Il readback Admin non prova il rendering. La capacità automatica viene
-            // promossa soltanto da una prova reale conservata per la stessa tupla.
-            capability: "guided",
+            capability: automaticCheckoutLabelCapability(name, "global_translation", locale),
             currentValue: global?.value ?? null,
+            inheritedValue: content.value,
             sourceValue: content.value,
             sourceDigest: content.digest,
             outdated: global?.outdated ?? false,
           });
         }
-        for (const translation of matching.filter((item) => item.market !== null)) {
+
+        const marketContexts = new Map<string, string>();
+        for (const market of markets) {
+          if (market.locales.includes(locale.locale)) {
+            marketContexts.set(market.id, market.name);
+          }
+        }
+        for (const translation of matching) {
+          if (translation.market)
+            marketContexts.set(translation.market.id, translation.market.name);
+        }
+        for (const [marketId, marketName] of marketContexts) {
+          const translation = matching.find((item) => item.market?.id === marketId);
           slots.push({
             resourceId: resource.resourceId,
             key: content.key as CheckoutLabelSlot["key"],
             name,
             locale: locale.locale,
             family: locale.family,
-            marketId: translation.market!.id,
-            marketName: translation.market!.name,
+            marketId,
+            marketName,
             kind: "market_translation",
-            capability: "guided",
-            currentValue: translation.value,
+            capability: automaticCheckoutLabelCapability(name, "market_translation", locale),
+            currentValue: translation?.value ?? null,
+            inheritedValue: global?.value ?? content.value,
             sourceValue: content.value,
             sourceDigest: content.digest,
-            outdated: translation.outdated,
+            outdated: translation?.outdated ?? false,
           });
         }
       }
@@ -269,11 +289,68 @@ export async function readCheckoutLabels(admin: Admin): Promise<CheckoutLabelsSn
   }
 
   const address2 = classifyAddress2(slots);
-  const snapshotWithoutRevision = { locales, markets, slots, issues: [...issues], address2 };
+  const snapshotWithoutRevision = { locales, markets, slots, issues, address2 };
   return {
     ...snapshotWithoutRevision,
     revision: await checkoutLabelsRevision(snapshotWithoutRevision),
   };
+}
+
+async function readCheckoutLabelContext(admin: Admin) {
+  let locales: CheckoutLabelLocale[] = [];
+  const markets: CheckoutLabelMarket[] = [];
+  let after: string | null = null;
+  const cursors = new Set<string | null>();
+
+  do {
+    if (cursors.has(after)) throw new Error("checkout_labels_readback_failed");
+    cursors.add(after);
+    const body: DiscoveryContextData = await graphqlData(admin, DISCOVER_CHECKOUT_LABEL_CONTEXT, {
+      after,
+    });
+    if (locales.length === 0) {
+      locales = body.shopLocales.flatMap((locale) => {
+        const family = checkoutLabelFamily(locale.locale);
+        return family ? [{ ...locale, family }] : [];
+      });
+    }
+    markets.push(
+      ...body.markets.nodes.map((market) => {
+        const defaultLocale = market.webPresence?.defaultLocale.locale ?? null;
+        return {
+          id: market.id,
+          name: market.name,
+          defaultLocale,
+          locales: [
+            ...(defaultLocale ? [defaultLocale] : []),
+            ...(market.webPresence?.alternateLocales.map(({ locale }) => locale) ?? []),
+          ].filter((locale, index, all) => all.indexOf(locale) === index),
+        };
+      }),
+    );
+    after = body.markets.pageInfo.hasNextPage ? body.markets.pageInfo.endCursor : null;
+  } while (after);
+  return { locales, markets };
+}
+
+async function readCheckoutLabelResources(admin: Admin) {
+  const resources: ResourceNode[] = [];
+  let after: string | null = null;
+  const cursors = new Set<string | null>();
+  do {
+    if (cursors.has(after)) throw new Error("checkout_labels_readback_failed");
+    cursors.add(after);
+    const body: DiscoveryResourcesData = await graphqlData(
+      admin,
+      DISCOVER_CHECKOUT_LABEL_RESOURCES,
+      { first: 50, after },
+    );
+    resources.push(...body.translatableResources.nodes);
+    after = body.translatableResources.pageInfo.hasNextPage
+      ? body.translatableResources.pageInfo.endCursor
+      : null;
+  } while (after);
+  return resources;
 }
 
 export async function registerCheckoutLabelTranslations(
@@ -417,7 +494,8 @@ function assertWritableSlot(slot: CheckoutLabelSlot) {
 }
 
 export const checkoutLabelsGraphql = {
-  discover: DISCOVER_CHECKOUT_LABELS,
+  discover: DISCOVER_CHECKOUT_LABEL_CONTEXT,
+  resources: DISCOVER_CHECKOUT_LABEL_RESOURCES,
   translations: READ_CHECKOUT_LABEL_TRANSLATIONS,
   register: REGISTER_CHECKOUT_LABEL_TRANSLATIONS,
   remove: REMOVE_CHECKOUT_LABEL_TRANSLATIONS,

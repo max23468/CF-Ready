@@ -136,7 +136,7 @@ describe("componenti merchant nel browser", () => {
       [...view.container.querySelectorAll("s-text-field")].map(
         (field) => (field as HTMLElement & { value?: string }).value ?? "",
       ),
-    ).toEqual(["", ""]);
+    ).toEqual(["", "", ""]);
     expect(view.container.querySelector('[role="status"]')?.textContent).toBeTruthy();
   });
 
@@ -206,7 +206,7 @@ describe("componenti merchant nel browser", () => {
     const fields = [...view.container.querySelectorAll("s-text-field")] as Array<
       HTMLElement & { value: string }
     >;
-    expect(fields).toHaveLength(2);
+    expect(fields).toHaveLength(3);
     expect(fields[0].getAttribute("label")).toBe(it.rules.simulator.company);
     expect(fields[1].hasAttribute("required")).toBe(false);
 

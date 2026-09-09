@@ -139,6 +139,8 @@ export const en: typeof it = {
     previewErrorHeading: "Order can’t be completed",
     previewSelected: "Selected message",
     previewFieldLabel: "Field label",
+    previewCurrentFieldLabel: "Current Shopify label",
+    previewProposedFieldLabel: "Proposed label",
     labelsNote:
       "Labels identify the fields; these messages explain what the customer needs to correct.",
     manageLabels: "Manage labels from Checkout rules",
@@ -473,6 +475,7 @@ export const en: typeof it = {
       heading: "Test checkout",
       privatePreview: "Interactive preview",
       previewLanguage: "Preview language",
+      labelsAfterSave: "Labels shown after saving the rules",
       italian: "Italiano",
       english: "English",
       address2: "Apartment, suite, etc.",
@@ -549,6 +552,9 @@ export const en: typeof it = {
       neverSynced: "Not synced yet",
       realCheckout:
         "The API shows registered values. Verify rendered text in a real checkout for the same language and market.",
+      confirmRendered: "I verified this text in the real checkout",
+      confirmGuided: "Record selected checks",
+      guidedConfirmed: "Checkout verified",
       addressHeading: "Second address line check",
       addressRegular: "Regular variant",
       addressOptional: "Optional variant",
@@ -561,6 +567,7 @@ export const en: typeof it = {
         fiscal_conflict: "Likely duplicate tax code field",
       },
       restoreAddress: "Restore manageable translations",
+      selectRestore: "Include this text in the restore",
       restoreAddressConfirm:
         "Do you confirm the comparison? CF Ready will restore only the translations and overrides shown, then read Shopify again.",
       keepAddress: "Keep this customization",

@@ -139,6 +139,8 @@ export const it = {
     previewErrorHeading: "Ordine non completato",
     previewSelected: "Messaggio selezionato",
     previewFieldLabel: "Etichetta del campo",
+    previewCurrentFieldLabel: "Etichetta attuale Shopify",
+    previewProposedFieldLabel: "Etichetta proposta",
     labelsNote:
       "Le etichette identificano i campi; questi messaggi spiegano al cliente cosa correggere.",
     manageLabels: "Gestisci le etichette da Regole checkout",
@@ -478,6 +480,7 @@ export const it = {
       heading: "Checkout di prova",
       privatePreview: "Anteprima interattiva",
       previewLanguage: "Lingua dell’anteprima",
+      labelsAfterSave: "Etichette mostrate dopo il salvataggio delle regole",
       italian: "Italiano",
       english: "English",
       address2: "Interno",
@@ -554,6 +557,9 @@ export const it = {
       neverSynced: "Non ancora sincronizzate",
       realCheckout:
         "L’API mostra i valori registrati. Verifica il testo reso con un checkout reale nella stessa lingua e nello stesso mercato.",
+      confirmRendered: "Ho verificato questo testo nel checkout reale",
+      confirmGuided: "Registra le verifiche selezionate",
+      guidedConfirmed: "Checkout verificato",
       addressHeading: "Controllo del campo Interno",
       addressRegular: "Variante ordinaria",
       addressOptional: "Variante facoltativa",
@@ -566,6 +572,7 @@ export const it = {
         fiscal_conflict: "Probabile duplicazione del Codice Fiscale",
       },
       restoreAddress: "Ripristina le traduzioni gestibili",
+      selectRestore: "Includi questo testo nel ripristino",
       restoreAddressConfirm:
         "Confermi il confronto? CF Ready ripristinerà soltanto le traduzioni e gli override mostrati, poi rileggerà Shopify.",
       keepAddress: "Mantieni questa personalizzazione",

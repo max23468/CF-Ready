@@ -6,6 +6,7 @@ import {
   checkoutLabelCopy,
   checkoutLabelFamily,
   checkoutLabelName,
+  observedLabelForSlot,
   checkoutLabelsMode,
   checkoutLabelsStatus,
   classifyAddress2,
@@ -18,6 +19,7 @@ import {
 } from "../app/checkout-labels/shopify.server";
 import {
   claimCheckoutLabelSlot,
+  confirmGuidedCheckoutLabelSlots,
   enableCheckoutLabels,
   markCheckoutLabelsResult,
   markCheckoutLabelsScopeRequired,
@@ -70,6 +72,20 @@ test("mantiene l’allowlist esatta, le copie deterministiche e i codici regiona
   );
   expect(checkoutLabelCopy("pec", "en", "required_validated")).toBe(
     "Certified email address (PEC)",
+  );
+  expect(checkoutLabelCopy("taxCode", "it", "required_when_company")).toBe("Codice fiscale");
+  expect(
+    observedLabelForSlot(slot({ currentValue: null, inheritedValue: "Valore ereditato" })),
+  ).toBe("Valore ereditato");
+  expect(observedLabelForSlot(slot({ currentValue: null, inheritedValue: null }))).toBe("Interno");
+  expect(
+    checkoutLabelsMode([
+      slot({ name: "taxCode", capability: "automatic" }),
+      slot({ name: "pec", capability: "guided" }),
+    ]),
+  ).toBe("partial");
+  expect(checkoutLabelsMode([slot({ name: "taxCode", capability: "automatic" })])).toBe(
+    "automatic",
   );
 });
 
@@ -128,7 +144,14 @@ test("un readback Admin resta guidato finché la stessa tupla non ha una prova c
   const snapshot = await readCheckoutLabels({ graphql });
 
   expect(snapshot.locales.map(({ locale }) => locale)).toEqual(["it", "en-GB"]);
-  expect(snapshot.markets).toEqual([{ id: "gid://shopify/Market/1", name: "Italia" }]);
+  expect(snapshot.markets).toEqual([
+    {
+      id: "gid://shopify/Market/1",
+      name: "Italia",
+      defaultLocale: "it",
+      locales: ["it", "en-GB"],
+    },
+  ]);
   expect(snapshot.issues).toEqual([]);
   expect(snapshot.slots.filter(({ capability }) => capability === "automatic")).toEqual([]);
   expect(checkoutLabelsMode(snapshot.slots)).toBe("guided");
@@ -136,7 +159,7 @@ test("un readback Admin resta guidato finché la stessa tupla non ha una prova c
     classification: "fiscal_conflict",
     hasMarketOverride: true,
   });
-  expect(graphql).toHaveBeenCalledTimes(3);
+  expect(graphql).toHaveBeenCalledTimes(4);
   expect(graphql.mock.calls[0][0]).not.toContain("186856898864");
 });
 
@@ -147,74 +170,112 @@ test("il discovery segnala risorse mancanti, ambigue e paginazione incoerente", 
     digest: "digest-tax-code",
     locale: "it",
   };
-  const ambiguous = vi.fn(async () =>
-    Response.json({
-      data: {
-        shopLocales: [{ locale: "it", name: "Italiano", primary: true, published: true }],
-        markets: { nodes: [] },
-        translatableResources: {
-          nodes: [
-            { resourceId: `${resourceId}-1`, translatableContent: [duplicateContent] },
-            { resourceId: `${resourceId}-2`, translatableContent: [duplicateContent] },
-          ],
-          pageInfo: { hasNextPage: false, endCursor: null },
-        },
-      },
-    }),
+  const ambiguous = vi.fn(async (query: string) =>
+    Response.json(
+      query.includes("DiscoverCheckoutLabelContext")
+        ? {
+            data: {
+              shopLocales: [{ locale: "it", name: "Italiano", primary: true, published: true }],
+              markets: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
+            },
+          }
+        : {
+            data: {
+              translatableResources: {
+                nodes: [
+                  { resourceId: `${resourceId}-1`, translatableContent: [duplicateContent] },
+                  { resourceId: `${resourceId}-2`, translatableContent: [duplicateContent] },
+                ],
+                pageInfo: { hasNextPage: false, endCursor: null },
+              },
+            },
+          },
+    ),
   );
   const snapshot = await readCheckoutLabels({ graphql: ambiguous });
   expect(snapshot.issues).toEqual([
-    "checkout_labels_resource_ambiguous",
-    "checkout_labels_resource_missing",
+    { code: "checkout_labels_resource_ambiguous", key: CHECKOUT_LABEL_KEYS.taxCode },
+    { code: "checkout_labels_resource_missing", key: CHECKOUT_LABEL_KEYS.pec },
+    { code: "checkout_labels_resource_missing", key: CHECKOUT_LABEL_KEYS.address2 },
+    { code: "checkout_labels_resource_missing", key: CHECKOUT_LABEL_KEYS.optionalAddress2 },
   ]);
   expect(snapshot.slots).toEqual([]);
 
-  const page = {
-    data: {
-      shopLocales: [],
-      markets: { nodes: [] },
-      translatableResources: {
-        nodes: [],
-        pageInfo: { hasNextPage: true, endCursor: "same" },
-      },
-    },
-  };
-  const repeatedCursor = vi.fn(async () => Response.json(page));
+  const repeatedCursor = vi.fn(async (query: string) =>
+    Response.json({
+      data: query.includes("DiscoverCheckoutLabelContext")
+        ? {
+            shopLocales: [{ locale: "it", name: "Italiano", primary: true, published: true }],
+            markets: { nodes: [], pageInfo: { hasNextPage: true, endCursor: "same" } },
+          }
+        : {
+            translatableResources: {
+              nodes: [],
+              pageInfo: { hasNextPage: false, endCursor: null },
+            },
+          },
+    }),
+  );
   await expect(readCheckoutLabels({ graphql: repeatedCursor })).rejects.toThrow(
+    "checkout_labels_readback_failed",
+  );
+
+  const repeatedResourceCursor = vi.fn(async (query: string) =>
+    Response.json({
+      data: query.includes("DiscoverCheckoutLabelContext")
+        ? {
+            shopLocales: [],
+            markets: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
+          }
+        : {
+            translatableResources: {
+              nodes: [],
+              pageInfo: { hasNextPage: true, endCursor: "same" },
+            },
+          },
+    }),
+  );
+  await expect(readCheckoutLabels({ graphql: repeatedResourceCursor })).rejects.toThrow(
     "checkout_labels_readback_failed",
   );
 });
 
 test("le query ritentano un throttle e rifiutano risposte non valide", async () => {
   vi.useFakeTimers();
-  const success = {
-    data: {
-      shopLocales: [],
-      markets: { nodes: [] },
-      translatableResources: {
-        nodes: [],
-        pageInfo: { hasNextPage: false, endCursor: null },
-      },
-    },
-  };
-  const throttled = vi
-    .fn()
-    .mockResolvedValueOnce(
-      Response.json({
-        errors: [{ message: "Throttled", extensions: { code: "THROTTLED" } }],
-        extensions: {
-          cost: {
-            requestedQueryCost: 10,
-            throttleStatus: { currentlyAvailable: 0, restoreRate: 100 },
+  let contextCalls = 0;
+  const throttled = vi.fn(async (query: string) => {
+    if (query.includes("DiscoverCheckoutLabelResources")) {
+      return Response.json({
+        data: {
+          translatableResources: {
+            nodes: [],
+            pageInfo: { hasNextPage: false, endCursor: null },
           },
         },
-      }),
-    )
-    .mockResolvedValueOnce(Response.json(success));
+      });
+    }
+    contextCalls += 1;
+    return contextCalls === 1
+      ? Response.json({
+          errors: [{ message: "Throttled", extensions: { code: "THROTTLED" } }],
+          extensions: {
+            cost: {
+              requestedQueryCost: 10,
+              throttleStatus: { currentlyAvailable: 0, restoreRate: 100 },
+            },
+          },
+        })
+      : Response.json({
+          data: {
+            shopLocales: [],
+            markets: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
+          },
+        });
+  });
   const pending = readCheckoutLabels({ graphql: throttled });
   await vi.runAllTimersAsync();
   await expect(pending).resolves.toMatchObject({ slots: [], issues: expect.any(Array) });
-  expect(throttled).toHaveBeenCalledTimes(2);
+  expect(throttled).toHaveBeenCalledTimes(3);
 
   await expect(
     readCheckoutLabels({ graphql: vi.fn(async () => new Response(null, { status: 503 })) }),
@@ -405,19 +466,42 @@ test("D1 registra esiti, ownership, decisioni e revoca degli scope", async () =>
   });
 });
 
-test("la prima scrittura automatica richiede il secondo consenso sotto la stessa lease", async () => {
-  const initial = await readCheckoutLabels({ graphql: discoveryAdmin() });
-  await persistCheckoutLabelObservation(env.DB, shop, initial.slots, initial.address2);
-  await env.DB.prepare(
-    `UPDATE checkout_label_slots
-     SET write_capability = 'automatic'
-     WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
-       AND translation_key = ? AND locale = 'en-GB' AND market_id = ''`,
-  )
-    .bind(shop, CHECKOUT_LABEL_KEYS.taxCode)
-    .run();
+test("D1 invalida una conferma guidata quando cambia il valore effettivo", async () => {
+  const guided = slot({
+    name: "taxCode",
+    key: CHECKOUT_LABEL_KEYS.taxCode,
+    kind: "market_translation",
+    capability: "guided",
+    currentValue: null,
+    inheritedValue: "Codice fiscale",
+  });
+  await persistCheckoutLabelObservation(env.DB, shop, [guided], {
+    classification: "unknown",
+    hasMarketOverride: false,
+  });
+  await confirmGuidedCheckoutLabelSlots(env.DB, shop, [guided]);
+  expect((await readStoredCheckoutLabelSlots(env.DB, shop))[0]).toMatchObject({
+    guidedConfirmedValue: "Codice fiscale",
+    guidedConfirmedAt: expect.any(String),
+  });
 
-  const result = await saveRulesAndCheckoutLabels({ graphql: discoveryAdmin() }, env.DB, shop, {
+  await persistCheckoutLabelObservation(
+    env.DB,
+    shop,
+    [{ ...guided, inheritedValue: "Codice fiscale aggiornato" }],
+    { classification: "unknown", hasMarketOverride: false },
+  );
+  expect((await readStoredCheckoutLabelSlots(env.DB, shop))[0]).toMatchObject({
+    guidedConfirmedValue: null,
+    guidedConfirmedAt: null,
+  });
+});
+
+test("la prima scrittura automatica richiede il secondo consenso sotto la stessa lease", async () => {
+  const initial = await readCheckoutLabels({ graphql: discoveryAdmin("en") });
+  await persistCheckoutLabelObservation(env.DB, shop, initial.slots, initial.address2);
+
+  const result = await saveRulesAndCheckoutLabels({ graphql: discoveryAdmin("en") }, env.DB, shop, {
     rules: { taxCode: "required_validated", pec: "optional_validated" },
     expectedConfigHash: null,
     address2Declared: false,
@@ -456,6 +540,7 @@ function slot(overrides: Partial<CheckoutLabelSlot> = {}): CheckoutLabelSlot {
     kind: "source",
     capability: "read_only",
     currentValue: address2Reference("address2", family),
+    inheritedValue: null,
     sourceValue: address2Reference("address2", family),
     sourceDigest: "digest",
     outdated: false,
@@ -463,7 +548,7 @@ function slot(overrides: Partial<CheckoutLabelSlot> = {}): CheckoutLabelSlot {
   };
 }
 
-function discoveryAdmin() {
+function discoveryAdmin(englishLocale = "en-GB") {
   const content = Object.values(CHECKOUT_LABEL_KEYS).map((key) => ({
     key,
     value:
@@ -482,10 +567,26 @@ function discoveryAdmin() {
       data: {
         shopLocales: [
           { locale: "it", name: "Italiano", primary: true, published: true },
-          { locale: "en-GB", name: "English", primary: false, published: false },
+          { locale: englishLocale, name: "English", primary: false, published: false },
           { locale: "fr", name: "Français", primary: false, published: true },
         ],
-        markets: { nodes: [{ id: "gid://shopify/Market/1", name: "Italia" }] },
+        markets: {
+          nodes: [
+            {
+              id: "gid://shopify/Market/1",
+              name: "Italia",
+              webPresence: {
+                defaultLocale: { locale: "it" },
+                alternateLocales: [{ locale: englishLocale }],
+              },
+            },
+          ],
+          pageInfo: { hasNextPage: false, endCursor: null },
+        },
+      },
+    },
+    {
+      data: {
         translatableResources: {
           nodes: [{ resourceId, translatableContent: content }],
           pageInfo: { hasNextPage: false, endCursor: null },
@@ -516,28 +617,28 @@ function discoveryAdmin() {
             {
               key: CHECKOUT_LABEL_KEYS.taxCode,
               value: "Italian tax code",
-              locale: "en-GB",
+              locale: englishLocale,
               outdated: false,
               market: null,
             },
             {
               key: CHECKOUT_LABEL_KEYS.pec,
               value: "Certified email address (PEC)",
-              locale: "en-GB",
+              locale: englishLocale,
               outdated: true,
               market: null,
             },
             {
               key: CHECKOUT_LABEL_KEYS.address2,
               value: "Apartment, suite, etc.",
-              locale: "en-GB",
+              locale: englishLocale,
               outdated: false,
               market: null,
             },
             {
               key: CHECKOUT_LABEL_KEYS.optionalAddress2,
               value: "Apartment, suite, etc. (optional)",
-              locale: "en-GB",
+              locale: englishLocale,
               outdated: false,
               market: null,
             },

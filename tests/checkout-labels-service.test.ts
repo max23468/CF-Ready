@@ -1,8 +1,13 @@
 import { beforeEach, expect, test, vi } from "vitest";
-import { CHECKOUT_LABEL_KEYS, type CheckoutLabelSlot } from "../app/checkout-labels/domain";
+import {
+  CHECKOUT_LABEL_KEYS,
+  checkoutLabelSlotId,
+  type CheckoutLabelSlot,
+} from "../app/checkout-labels/domain";
 
 const mocks = vi.hoisted(() => ({
   claim: vi.fn(),
+  confirmGuided: vi.fn(),
   enable: vi.fn(),
   mark: vi.fn(),
   persist: vi.fn(),
@@ -26,6 +31,7 @@ vi.mock("../app/validation/write.server", () => ({
 }));
 vi.mock("../app/checkout-labels/repository.server", () => ({
   claimCheckoutLabelSlot: mocks.claim,
+  confirmGuidedCheckoutLabelSlots: mocks.confirmGuided,
   enableCheckoutLabels: mocks.enable,
   markCheckoutLabelsResult: mocks.mark,
   persistCheckoutLabelObservation: mocks.persist,
@@ -43,6 +49,7 @@ vi.mock("../app/checkout-labels/shopify.server", () => ({
 
 import {
   acceptAddress2Customization,
+  confirmGuidedCheckoutLabels,
   loadCheckoutLabels,
   restoreAddress2Translations,
   saveRulesAndCheckoutLabels,
@@ -82,16 +89,24 @@ beforeEach(() => {
 
 test("il caricamento persiste il readback e aggiorna una gestione attiva", async () => {
   const snapshot = snapshotOf([fiscalSlot()]);
+  const fiscal = snapshot.slots[0];
   const active = { ...state, mode: "guided" as const };
   const refreshed = { ...active, lastSyncAt: "2026-09-08T12:00:00Z" };
   mocks.readState.mockResolvedValueOnce(active).mockResolvedValueOnce(refreshed);
   mocks.readLabels.mockResolvedValue(snapshot);
+  mocks.readStored.mockResolvedValue([
+    stored(fiscal, {
+      guidedConfirmedValue: "Codice fiscale",
+      guidedConfirmedAt: "2026-09-08T12:00:00Z",
+    }),
+  ]);
 
-  await expect(loadCheckoutLabels(admin, db, shop)).resolves.toEqual({
+  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toEqual({
     available: true,
     snapshot,
     state: refreshed,
     externalChange: false,
+    confirmedGuidedSlotIds: [checkoutLabelSlotId(fiscal)],
   });
   expect(mocks.persist).toHaveBeenCalledWith(db, shop, snapshot.slots, snapshot.address2);
   expect(mocks.mark).toHaveBeenCalledWith(db, shop, { errorCode: null, synced: true });
@@ -100,11 +115,35 @@ test("il caricamento persiste il readback e aggiorna una gestione attiva", async
 test("il caricamento inattivo osserva senza aggiornare lo stato di gestione", async () => {
   mocks.readLabels.mockResolvedValue(snapshotOf([]));
 
-  await expect(loadCheckoutLabels(admin, db, shop)).resolves.toMatchObject({
+  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
     available: true,
     externalChange: false,
   });
   expect(mocks.mark).not.toHaveBeenCalled();
+});
+
+test("il caricamento conserva l'errore della chiave fiscale incompleta", async () => {
+  const active = { ...state, mode: "guided" as const };
+  const snapshot = {
+    ...snapshotOf([fiscalSlot()]),
+    issues: [
+      {
+        code: "checkout_labels_resource_missing" as const,
+        key: CHECKOUT_LABEL_KEYS.pec,
+      },
+    ],
+  };
+  mocks.readState.mockResolvedValue(active);
+  mocks.readLabels.mockResolvedValue(snapshot);
+
+  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
+    available: true,
+    externalChange: false,
+  });
+  expect(mocks.mark).toHaveBeenCalledWith(db, shop, {
+    errorCode: "checkout_labels_resource_missing",
+    synced: false,
+  });
 });
 
 test("il caricamento ignora slot fuori epoca e riconosce un'assenza già scritta", async () => {
@@ -117,7 +156,7 @@ test("il caricamento ignora slot fuori epoca e riconosce un'assenza già scritta
     stored(fiscal, { managementEpoch: "epoch-1", lastWritePresent: false }),
   ]);
 
-  await expect(loadCheckoutLabels(admin, db, shop)).resolves.toMatchObject({
+  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
     available: true,
     externalChange: false,
   });
@@ -139,7 +178,7 @@ test("il caricamento rileva modifiche gestite e decisioni su Interno", async () 
     stored(address, { lastObservedValue: "Interno" }),
   ]);
 
-  const result = await loadCheckoutLabels(admin, db, shop);
+  const result = await loadCheckoutLabels(admin, db, shop, rules);
   expect(result).toMatchObject({ available: true, externalChange: true });
   expect(mocks.mark).toHaveBeenCalledWith(db, shop, {
     errorCode: "checkout_labels_conflict",
@@ -154,27 +193,45 @@ test("il caricamento rileva varianti di Interno aggiunte o rimosse dopo l'accett
   mocks.readState.mockResolvedValue(accepted);
   mocks.readLabels.mockResolvedValueOnce(snapshotOf([address]));
 
-  await expect(loadCheckoutLabels(admin, db, shop)).resolves.toMatchObject({
+  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
     available: true,
     externalChange: true,
   });
 
   mocks.readLabels.mockResolvedValueOnce(snapshotOf([]));
   mocks.readStored.mockResolvedValueOnce([stored(address)]);
-  await expect(loadCheckoutLabels(admin, db, shop)).resolves.toMatchObject({
+  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
     available: true,
     externalChange: true,
   });
 });
 
+test("un override di mercato assente conserva il valore ereditato accettato", async () => {
+  const accepted = { ...state, address2Decision: "accepted" as const };
+  const address = addressSlot({
+    kind: "market_translation",
+    marketId: "gid://shopify/Market/1",
+    currentValue: null,
+    inheritedValue: "Interno",
+  });
+  mocks.readState.mockResolvedValue(accepted);
+  mocks.readLabels.mockResolvedValue(snapshotOf([address]));
+  mocks.readStored.mockResolvedValue([stored(address, { lastObservedValue: "Interno" })]);
+
+  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
+    available: true,
+    externalChange: false,
+  });
+});
+
 test("il caricamento riduce errori noti e inattesi a codici applicativi", async () => {
   mocks.readLabels.mockRejectedValueOnce(new Error("checkout_labels_stale_digest"));
-  await expect(loadCheckoutLabels(admin, db, shop)).resolves.toMatchObject({
+  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
     available: false,
     errorCode: "checkout_labels_stale_digest",
   });
   mocks.readLabels.mockRejectedValueOnce("offline");
-  await expect(loadCheckoutLabels(admin, db, shop)).resolves.toMatchObject({
+  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
     available: false,
     errorCode: "checkout_labels_readback_failed",
   });
@@ -258,7 +315,10 @@ test("un conflitto posseduto e un digest Shopify scaduto falliscono chiusi", asy
 });
 
 test("il retry su digest scaduto rilegge Shopify e completa la sincronizzazione", async () => {
-  const optional = fiscalSlot({ currentValue: "Codice fiscale (facoltativo)" });
+  const optional = fiscalSlot({
+    capability: "automatic",
+    currentValue: "Codice fiscale (facoltativo)",
+  });
   const required = { ...optional, currentValue: "Codice fiscale" };
   const previous = stored(optional, { capability: "automatic" });
   mocks.readStored.mockResolvedValue([previous]);
@@ -287,19 +347,21 @@ test("una scrittura già allineata e uno slot fuori epoca non generano modifiche
   await expect(save()).resolves.toEqual({ ok: true, labelsErrorCode: null });
   expect(mocks.register).not.toHaveBeenCalled();
 
-  await expect(save(input({ rules: { ...rules, taxCode: "unmanaged" } }))).resolves.toEqual({
-    ok: true,
-    labelsErrorCode: null,
-  });
+  await expect(save(input({ rules: { taxCode: "unmanaged", pec: "unmanaged" } }))).resolves.toEqual(
+    {
+      ok: true,
+      labelsErrorCode: null,
+    },
+  );
   expect(mocks.remove).not.toHaveBeenCalled();
 });
 
 test("la prima capacità automatica richiede conferma e poi sincronizza le due fasi", async () => {
-  const tax = fiscalSlot({ capability: "guided", currentValue: "Codice fiscale (facoltativo)" });
+  const tax = fiscalSlot({ capability: "automatic", currentValue: "Codice fiscale (facoltativo)" });
   const pec = fiscalSlot({
     name: "pec",
     key: CHECKOUT_LABEL_KEYS.pec,
-    capability: "guided",
+    capability: "automatic",
     currentValue: "PEC",
   });
   const storedSlots = [
@@ -314,10 +376,10 @@ test("la prima capacità automatica richiede conferma e poi sincronizza le due f
     errorCode: "checkout_labels_confirmation_required",
   });
 
-  const after = snapshotOf([{ ...tax, capability: "guided", currentValue: "Codice fiscale" }, pec]);
+  const after = snapshotOf([{ ...tax, currentValue: "Codice fiscale" }, pec]);
   const final = snapshotOf([
-    { ...tax, capability: "guided", currentValue: "Codice fiscale" },
-    { ...pec, capability: "guided", currentValue: "PEC (facoltativa)" },
+    { ...tax, currentValue: "Codice fiscale" },
+    { ...pec, currentValue: "PEC (facoltativa)" },
   ]);
   mocks.readLabels.mockReset();
   mocks.readLabels
@@ -340,7 +402,7 @@ test("un errore dopo la Validation produce sincronizzazione parziale", async () 
   const pec = fiscalSlot({
     name: "pec",
     key: CHECKOUT_LABEL_KEYS.pec,
-    capability: "guided",
+    capability: "automatic",
     currentValue: "PEC",
   });
   mocks.readStored.mockResolvedValue([stored(pec, { capability: "automatic" })]);
@@ -359,18 +421,18 @@ test("un errore dopo la Validation produce sincronizzazione parziale", async () 
 });
 
 test("un readback finale divergente resta recuperabile", async () => {
-  const tax = fiscalSlot({ capability: "guided", currentValue: "Testo diverso" });
+  const tax = fiscalSlot({ capability: "automatic", currentValue: "Testo diverso" });
   mocks.readStored.mockResolvedValue([stored(tax, { capability: "automatic" })]);
   mocks.readLabels.mockResolvedValue(snapshotOf([tax]));
 
   await expect(save(input())).resolves.toEqual({
     ok: true,
-    labelsErrorCode: "checkout_labels_readback_failed",
+    labelsErrorCode: "checkout_labels_partial_sync",
   });
 });
 
 test("la disattivazione ripristina solo slot posseduti e invariati", async () => {
-  const fiscal = fiscalSlot({ capability: "guided", currentValue: "Codice fiscale" });
+  const fiscal = fiscalSlot({ capability: "automatic", currentValue: "Codice fiscale" });
   const active = { ...state, mode: "automatic" as const, managementEpoch: "epoch-1" };
   mocks.readState.mockResolvedValue(active);
   mocks.readLabels.mockResolvedValue(snapshotOf([fiscal]));
@@ -427,7 +489,7 @@ test("la disattivazione gestisce epoche assenti, slot estranei e lease scadute",
       lastWrittenValue: "Codice fiscale",
     }),
   ];
-  mocks.readStored.mockResolvedValueOnce(foreign).mockResolvedValueOnce(foreign);
+  mocks.readStored.mockResolvedValueOnce(foreign);
   await expect(save(input({ labelsEnabled: false }))).resolves.toEqual({
     ok: true,
     labelsErrorCode: null,
@@ -440,7 +502,7 @@ test("la disattivazione gestisce epoche assenti, slot estranei e lease scadute",
       lastWrittenValue: "Codice fiscale",
     }),
   ];
-  mocks.readStored.mockResolvedValueOnce(owned).mockResolvedValueOnce(owned);
+  mocks.readStored.mockResolvedValueOnce(owned);
   heartbeat.isHeld.mockResolvedValueOnce(false);
   await expect(save(input({ labelsEnabled: false }))).resolves.toEqual({
     ok: true,
@@ -469,10 +531,12 @@ test("il ripristino automatico conserva il valore originario e il mercato", asyn
     .mockResolvedValueOnce(snapshotOf([fiscal]))
     .mockResolvedValueOnce(snapshotOf([{ ...fiscal, currentValue: "Tax ID" }]));
 
-  await expect(save(input({ rules: { ...rules, taxCode: "unmanaged" } }))).resolves.toEqual({
-    ok: true,
-    labelsErrorCode: null,
-  });
+  await expect(save(input({ rules: { taxCode: "unmanaged", pec: "unmanaged" } }))).resolves.toEqual(
+    {
+      ok: true,
+      labelsErrorCode: null,
+    },
+  );
   expect(mocks.register).toHaveBeenCalledWith(admin, fiscal.resourceId, [
     expect.objectContaining({ value: "Tax ID", marketId: fiscal.marketId }),
   ]);
@@ -488,13 +552,13 @@ test("il ripristino di Interno copre conflitto, lock, traduzione e override", as
   const source = addressSlot({ kind: "source", currentValue: "Codice fiscale" });
 
   mocks.withLock.mockResolvedValueOnce({ acquired: false });
-  await expect(restoreAddress2Translations(admin, db, shop, "r1")).resolves.toEqual({
+  await expect(restoreAddress2Translations(admin, db, shop, "r1", [])).resolves.toEqual({
     ok: false,
     errorCode: "validation_locked",
   });
 
   mocks.readLabels.mockResolvedValueOnce(snapshotOf([], "r2"));
-  await expect(restoreAddress2Translations(admin, db, shop, "r1")).resolves.toEqual({
+  await expect(restoreAddress2Translations(admin, db, shop, "r1", ["missing"])).resolves.toEqual({
     ok: false,
     errorCode: "address2_restore_conflict",
   });
@@ -502,16 +566,33 @@ test("il ripristino di Interno copre conflitto, lock, traduzione e override", as
   mocks.readLabels.mockReset();
   mocks.readLabels
     .mockResolvedValueOnce(snapshotOf([global, market, source], "r1"))
-    .mockResolvedValueOnce(snapshotOf([{ ...global, currentValue: "Interno" }, source]));
-  await expect(restoreAddress2Translations(admin, db, shop, "r1")).resolves.toEqual({ ok: true });
+    .mockResolvedValueOnce(
+      snapshotOf([
+        { ...global, currentValue: "Interno" },
+        { ...market, currentValue: "Interno" },
+        source,
+      ]),
+    );
+  await expect(
+    restoreAddress2Translations(admin, db, shop, "r1", [
+      checkoutLabelSlotId(global),
+      checkoutLabelSlotId(market),
+    ]),
+  ).resolves.toEqual({ ok: true });
   expect(mocks.register).toHaveBeenCalled();
-  expect(mocks.remove).toHaveBeenCalledWith(admin, market);
+  expect(mocks.register).toHaveBeenCalledWith(
+    admin,
+    market.resourceId,
+    expect.arrayContaining([expect.objectContaining({ marketId: market.marketId })]),
+  );
   expect(mocks.saveDecision).toHaveBeenCalledWith(db, shop, "manual_restore_required");
 
   heartbeat.isHeld.mockResolvedValueOnce(false);
   mocks.readLabels.mockReset();
   mocks.readLabels.mockResolvedValue(snapshotOf([global], "r1"));
-  await expect(restoreAddress2Translations(admin, db, shop, "r1")).resolves.toEqual({
+  await expect(
+    restoreAddress2Translations(admin, db, shop, "r1", [checkoutLabelSlotId(global)]),
+  ).resolves.toEqual({
     ok: false,
     errorCode: "validation_locked",
   });
@@ -522,14 +603,18 @@ test("il ripristino rifiuta un readback divergente e normalizza gli errori", asy
   mocks.readLabels
     .mockResolvedValueOnce(snapshotOf([global], "r1"))
     .mockResolvedValueOnce(snapshotOf([global], "r2"));
-  await expect(restoreAddress2Translations(admin, db, shop, "r1")).resolves.toEqual({
+  await expect(
+    restoreAddress2Translations(admin, db, shop, "r1", [checkoutLabelSlotId(global)]),
+  ).resolves.toEqual({
     ok: false,
     errorCode: "checkout_labels_readback_failed",
   });
 
   mocks.readLabels.mockReset();
   mocks.readLabels.mockRejectedValue(new Error("unexpected"));
-  await expect(restoreAddress2Translations(admin, db, shop, "r1")).resolves.toEqual({
+  await expect(
+    restoreAddress2Translations(admin, db, shop, "r1", [checkoutLabelSlotId(global)]),
+  ).resolves.toEqual({
     ok: false,
     errorCode: "checkout_labels_readback_failed",
   });
@@ -546,7 +631,9 @@ test("il ripristino della variante facoltativa registra lo stato ripristinato", 
     .mockResolvedValueOnce(snapshotOf([optional], "r1"))
     .mockResolvedValueOnce(snapshotOf([restored], "r2"));
 
-  await expect(restoreAddress2Translations(admin, db, shop, "r1")).resolves.toEqual({ ok: true });
+  await expect(
+    restoreAddress2Translations(admin, db, shop, "r1", [checkoutLabelSlotId(optional)]),
+  ).resolves.toEqual({ ok: true });
   expect(mocks.saveDecision).toHaveBeenCalledWith(db, shop, "restored");
 });
 
@@ -562,6 +649,35 @@ test("la decisione di mantenere Interno richiede la revisione corrente", async (
   await expect(acceptAddress2Customization(admin, db, shop, "r1")).resolves.toEqual({ ok: true });
   expect(mocks.persist).toHaveBeenCalledWith(db, shop, snapshot.slots, snapshot.address2);
   expect(mocks.saveDecision).toHaveBeenCalledWith(db, shop, "accepted");
+});
+
+test("la conferma guidata è legata a revisione, tuple e valore osservato", async () => {
+  const guided = fiscalSlot();
+  mocks.readLabels.mockResolvedValueOnce(snapshotOf([guided], "r2"));
+  await expect(
+    confirmGuidedCheckoutLabels(admin, db, shop, rules, "r1", [checkoutLabelSlotId(guided)]),
+  ).resolves.toEqual({ ok: false, errorCode: "checkout_labels_conflict" });
+
+  const active = { ...state, mode: "guided" as const };
+  mocks.readLabels.mockResolvedValueOnce(snapshotOf([guided], "r1"));
+  mocks.readState.mockResolvedValue(active);
+  mocks.readStored.mockResolvedValue([
+    stored(guided, {
+      guidedConfirmedValue: "Codice fiscale",
+      guidedConfirmedAt: "2026-09-09T10:00:00Z",
+    }),
+  ]);
+
+  await expect(
+    confirmGuidedCheckoutLabels(admin, db, shop, rules, "r1", [checkoutLabelSlotId(guided)]),
+  ).resolves.toEqual({ ok: true });
+  expect(mocks.persist).toHaveBeenCalledWith(db, shop, [guided], expect.any(Object));
+  expect(mocks.confirmGuided).toHaveBeenCalledWith(db, shop, [guided]);
+  expect(mocks.mark).toHaveBeenLastCalledWith(db, shop, {
+    mode: "guided",
+    errorCode: null,
+    synced: true,
+  });
 });
 
 function save(overrides = {}) {
@@ -603,6 +719,7 @@ function fiscalSlot(overrides: Partial<CheckoutLabelSlot> = {}): CheckoutLabelSl
     kind: "global_translation",
     capability: "guided",
     currentValue: "Codice fiscale",
+    inheritedValue: null,
     sourceValue: "Codice fiscale",
     sourceDigest: "digest",
     outdated: false,
@@ -638,6 +755,8 @@ function stored(slot: CheckoutLabelSlot, overrides = {}) {
     sourceDigest: slot.sourceDigest,
     lastObservedValue: slot.currentValue,
     lastObservedAt: "2026-09-08T12:00:00Z",
+    guidedConfirmedValue: null,
+    guidedConfirmedAt: null,
     ...overrides,
   };
 }

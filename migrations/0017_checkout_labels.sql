@@ -13,6 +13,12 @@ ALTER TABLE app_state ADD COLUMN address2_decision TEXT NOT NULL DEFAULT 'pendin
   CHECK (address2_decision IN ('pending', 'accepted', 'restored', 'manual_restore_required'));
 ALTER TABLE app_state ADD COLUMN address2_reviewed_at TEXT;
 
+UPDATE app_state
+SET address2_classification = 'fiscal_conflict',
+    address2_decision = 'pending',
+    address2_reviewed_at = address2_conflict_declared_at
+WHERE address2_conflict_declared_at IS NOT NULL;
+
 CREATE TABLE checkout_label_slots (
   shop_id INTEGER NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
   resource_id TEXT NOT NULL,
@@ -34,6 +40,8 @@ CREATE TABLE checkout_label_slots (
   source_digest TEXT NOT NULL,
   last_observed_value TEXT,
   last_observed_at TEXT NOT NULL,
+  guided_confirmed_value TEXT,
+  guided_confirmed_at TEXT,
   PRIMARY KEY (shop_id, resource_id, translation_key, locale, market_id, slot_kind)
 ) STRICT;
 

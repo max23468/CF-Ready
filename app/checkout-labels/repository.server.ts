@@ -1,3 +1,4 @@
+import { observedLabelForSlot } from "./domain";
 import type {
   Address2Decision,
   CheckoutLabelSlot,
@@ -66,7 +67,8 @@ export async function readStoredCheckoutLabelSlots(db: D1Database, shopDomain: s
       `SELECT resource_id, translation_key, locale, market_id, slot_kind,
               write_capability, management_epoch, original_present, original_value,
               last_write_present, last_written_value, source_digest,
-              last_observed_value, last_observed_at
+              last_observed_value, last_observed_at,
+              guided_confirmed_value, guided_confirmed_at
        FROM checkout_label_slots
        WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
     )
@@ -86,6 +88,8 @@ export async function readStoredCheckoutLabelSlots(db: D1Database, shopDomain: s
       source_digest: string;
       last_observed_value: string | null;
       last_observed_at: string;
+      guided_confirmed_value: string | null;
+      guided_confirmed_at: string | null;
     }>();
 
   return rows.results.map((row) => ({
@@ -103,6 +107,8 @@ export async function readStoredCheckoutLabelSlots(db: D1Database, shopDomain: s
     sourceDigest: row.source_digest,
     lastObservedValue: row.last_observed_value,
     lastObservedAt: row.last_observed_at,
+    guidedConfirmedValue: row.guided_confirmed_value,
+    guidedConfirmedAt: row.guided_confirmed_at,
   }));
 }
 
@@ -129,14 +135,20 @@ export async function persistCheckoutLabelObservation(
            NULL, NULL, NULL, ?, ?, ?
          )
          ON CONFLICT(shop_id, resource_id, translation_key, locale, market_id, slot_kind)
-         DO UPDATE SET write_capability = CASE
-                         WHEN checkout_label_slots.write_capability = 'automatic'
-                           THEN 'automatic'
-                         ELSE excluded.write_capability
-                       END,
+         DO UPDATE SET write_capability = excluded.write_capability,
                        source_digest = excluded.source_digest,
                        last_observed_value = excluded.last_observed_value,
-                       last_observed_at = excluded.last_observed_at`,
+                       last_observed_at = excluded.last_observed_at,
+                       guided_confirmed_value = CASE
+                         WHEN checkout_label_slots.guided_confirmed_value = excluded.last_observed_value
+                           THEN checkout_label_slots.guided_confirmed_value
+                         ELSE NULL
+                       END,
+                       guided_confirmed_at = CASE
+                         WHEN checkout_label_slots.guided_confirmed_value = excluded.last_observed_value
+                           THEN checkout_label_slots.guided_confirmed_at
+                         ELSE NULL
+                       END`,
       )
       .bind(
         shopDomain,
@@ -147,7 +159,7 @@ export async function persistCheckoutLabelObservation(
         slot.kind,
         slot.capability,
         slot.sourceDigest,
-        slot.currentValue,
+        observedLabelForSlot(slot),
         now,
       ),
   );
@@ -262,7 +274,7 @@ export async function claimCheckoutLabelSlot(
       slot.capability,
       epoch,
       Number(slot.currentValue !== null),
-      slot.currentValue,
+      observedLabelForSlot(slot),
       slot.sourceDigest,
       slot.currentValue,
       now,
@@ -318,11 +330,42 @@ export async function stopCheckoutLabelManagement(db: D1Database, shopDomain: st
       .prepare(
         `UPDATE checkout_label_slots
          SET management_epoch = NULL, original_present = 0, original_value = NULL,
-             last_write_present = NULL, last_written_value = NULL
+             last_write_present = NULL, last_written_value = NULL,
+             guided_confirmed_value = NULL, guided_confirmed_at = NULL
          WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
       )
       .bind(shopDomain),
   ]);
+}
+
+export async function confirmGuidedCheckoutLabelSlots(
+  db: D1Database,
+  shopDomain: string,
+  slots: CheckoutLabelSlot[],
+) {
+  const now = new Date().toISOString();
+  await db.batch(
+    slots.map((slot) =>
+      db
+        .prepare(
+          `UPDATE checkout_label_slots
+           SET guided_confirmed_value = ?, guided_confirmed_at = ?
+           WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
+             AND resource_id = ? AND translation_key = ? AND locale = ?
+             AND market_id = ? AND slot_kind = ?`,
+        )
+        .bind(
+          observedLabelForSlot(slot),
+          now,
+          shopDomain,
+          slot.resourceId,
+          slot.key,
+          slot.locale,
+          slot.marketId ?? "",
+          slot.kind,
+        ),
+    ),
+  );
 }
 
 export async function saveAddress2Decision(

@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   authenticateAdmin: vi.fn(),
   authenticateShopify: vi.fn(),
   acceptAddress2Customization: vi.fn(),
+  confirmGuidedCheckoutLabels: vi.fn(),
   findValidation: vi.fn(),
   localDate: vi.fn(),
   observedConfigHash: vi.fn(),
@@ -54,6 +55,7 @@ vi.mock("../app/checkout-labels/repository.server", () => ({
 vi.mock("../app/checkout-labels/service.server", () => ({
   CHECKOUT_LABEL_OPTIONAL_SCOPES: ["write_translations", "read_locales", "read_markets"],
   acceptAddress2Customization: mocks.acceptAddress2Customization,
+  confirmGuidedCheckoutLabels: mocks.confirmGuidedCheckoutLabels,
   loadCheckoutLabels: mocks.loadCheckoutLabels,
   restoreAddress2Translations: mocks.restoreAddress2Translations,
   saveRulesAndCheckoutLabels: mocks.saveRulesAndCheckoutLabels,
@@ -120,10 +122,12 @@ beforeEach(() => {
     address2Classification: "unknown",
   });
   mocks.acceptAddress2Customization.mockResolvedValue({ ok: true });
+  mocks.confirmGuidedCheckoutLabels.mockResolvedValue({ ok: true });
   mocks.loadCheckoutLabels.mockResolvedValue({
     available: true,
     state: { mode: "guided" },
     snapshot: { revision: "labels-r1", slots: [] },
+    confirmedGuidedSlotIds: [],
   });
   mocks.restoreAddress2Translations.mockResolvedValue({ ok: true });
   mocks.saveRulesAndCheckoutLabels.mockResolvedValue({ ok: true, labelsErrorCode: null });
@@ -196,6 +200,7 @@ test("Messaggi legge Shopify e copre rifiuto, salvataggio e conflitto", async ()
     configHash: "hash",
     messages: DEFAULT_CONFIG.messages,
     rules: DEFAULT_CONFIG.rules,
+    labelSnapshot: null,
   });
   expect(new Headers(loaded.init?.headers).get("Server-Timing")).toMatch(
     /auth;dur=.*shopify_context;dur=.*total;dur=/,
@@ -208,6 +213,28 @@ test("Messaggi legge Shopify e copre rifiuto, salvataggio e conflitto", async ()
       } as never),
     ).get("Server-Timing"),
   ).toBe(new Headers(loaded.init?.headers).get("Server-Timing"));
+
+  mocks.scopeQuery.mockResolvedValueOnce({
+    granted: ["write_translations", "read_locales", "read_markets"],
+  });
+  expect((await loader(args(new Request("https://example.test/app/messages")))).data).toMatchObject(
+    {
+      labelSnapshot: { revision: "labels-r1" },
+    },
+  );
+  mocks.scopeQuery.mockResolvedValueOnce({
+    granted: ["write_translations", "read_locales", "read_markets"],
+  });
+  mocks.loadCheckoutLabels.mockResolvedValueOnce({
+    available: false,
+    state: { mode: "partial" },
+    errorCode: "checkout_labels_readback_failed",
+  });
+  expect((await loader(args(new Request("https://example.test/app/messages")))).data).toMatchObject(
+    {
+      labelSnapshot: null,
+    },
+  );
 
   const invalid = messageForm({ "it.taxCodeRequired": "" });
   expect(await action(args(post("/app/messages", invalid)))).toMatchObject({
@@ -260,10 +287,27 @@ test("Onboarding carica gli stati autorevoli con e senza accesso", async () => {
     trialStatus: "active",
     address2Declared: true,
   });
+
+  mocks.scopeQuery.mockResolvedValueOnce({
+    granted: ["write_translations", "read_locales", "read_markets"],
+  });
+  expect((await loader(args(request))).data).toMatchObject({
+    labelScopesGranted: true,
+    labelState: { mode: "guided" },
+    labelSnapshot: { revision: "labels-r1" },
+  });
 });
 
 test("Onboarding valida e salva avanzamento e regole", async () => {
   const { action } = onboardingRoute;
+  expect(await action(args(post("/app/onboarding", { intent: "request_label_scopes" })))).toEqual({
+    ok: true,
+  });
+  expect(mocks.scopeRequest).toHaveBeenCalledWith([
+    "write_translations",
+    "read_locales",
+    "read_markets",
+  ]);
   expect(await action(args(post("/app/onboarding", { intent: "progress", step: "x" })))).toEqual({
     ok: false,
     errorCode: "generic",
@@ -281,6 +325,18 @@ test("Onboarding valida e salva avanzamento e regole", async () => {
       args(post("/app/onboarding", { intent: "rules", taxCode: "x", pec: "unmanaged" })),
     ),
   ).toEqual({ ok: false, errorCode: "generic" });
+  expect(
+    await action(
+      args(
+        post("/app/onboarding", {
+          intent: "rules",
+          taxCode: "required_validated",
+          pec: "optional_validated",
+          labelsEnabled: "1",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: false, errorCode: "checkout_labels_scope_required" });
   mocks.writeValidation.mockResolvedValueOnce({ ok: false, errorCode: "config_conflict" });
   expect(
     await action(
@@ -309,10 +365,87 @@ test("Onboarding valida e salva avanzamento e regole", async () => {
     status: "in_progress",
     step: 3,
   });
+
+  mocks.scopeQuery.mockResolvedValue({
+    granted: ["write_translations", "read_locales", "read_markets"],
+  });
+  mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({
+    ok: false,
+    errorCode: "checkout_labels_conflict",
+  });
+  expect(
+    await action(
+      args(
+        post("/app/onboarding", {
+          intent: "rules",
+          taxCode: "required_validated",
+          pec: "optional_validated",
+          labelsEnabled: "1",
+          labelsConfirmed: "1",
+          labelsRevision: "labels-r1",
+          configHash: "hash",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: false, errorCode: "checkout_labels_conflict" });
+
+  mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({ ok: true, labelsErrorCode: null });
+  expect(
+    await action(
+      args(
+        post("/app/onboarding", {
+          intent: "rules",
+          taxCode: "required_validated",
+          pec: "optional_validated",
+          labelsEnabled: "1",
+          labelsConfirmed: "1",
+          labelsRevision: "labels-r1",
+          configHash: "hash",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: true });
+  expect(mocks.saveRulesAndCheckoutLabels).toHaveBeenLastCalledWith(admin, db, session.shop, {
+    rules: { taxCode: "required_validated", pec: "optional_validated" },
+    expectedConfigHash: "hash",
+    address2Declared: null,
+    labelsEnabled: true,
+    confirmAutomaticWrite: true,
+    expectedLabelsRevision: "labels-r1",
+  });
+
+  mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({ ok: true, labelsErrorCode: null });
+  expect(
+    await action(
+      args(
+        post("/app/onboarding", {
+          intent: "rules",
+          taxCode: "required_validated",
+          pec: "optional_validated",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: true });
+  expect(mocks.saveRulesAndCheckoutLabels).toHaveBeenLastCalledWith(
+    admin,
+    db,
+    session.shop,
+    expect.objectContaining({
+      expectedConfigHash: null,
+      labelsEnabled: false,
+      confirmAutomaticWrite: false,
+      expectedLabelsRevision: null,
+    }),
+  );
 });
 
 test("Onboarding tratta prova, intent sconosciuti e chiusura senza attivazione", async () => {
   const { action } = onboardingRoute;
+  mocks.startTrial.mockResolvedValueOnce(null);
+  expect(await action(args(post("/app/onboarding", { intent: "start_trial" })))).toEqual({
+    ok: false,
+    errorCode: "trial_unavailable",
+  });
   mocks.startTrial.mockResolvedValueOnce({ status: "expired" });
   expect(await action(args(post("/app/onboarding", { intent: "start_trial" })))).toEqual({
     ok: false,
@@ -500,7 +633,7 @@ test("Regole gestisce consenso, ripristino e sincronizzazione delle etichette", 
       args(post("/app/rules", { intent: "restore_address2_labels", labelsRevision: "r1" })),
     ),
   ).toEqual({ ok: true });
-  expect(mocks.restoreAddress2Translations).toHaveBeenCalledWith(admin, db, session.shop, "r1");
+  expect(mocks.restoreAddress2Translations).toHaveBeenCalledWith(admin, db, session.shop, "r1", []);
 
   expect(await action(args(post("/app/rules", { intent: "accept_address2_labels" })))).toEqual({
     ok: false,
@@ -512,6 +645,20 @@ test("Regole gestisce consenso, ripristino e sincronizzazione delle etichette", 
     ),
   ).toEqual({ ok: true });
   expect(mocks.acceptAddress2Customization).toHaveBeenCalledWith(admin, db, session.shop, "r1");
+
+  expect(
+    await action(
+      args(post("/app/rules", { intent: "confirm_guided_labels", labelsRevision: "r1" })),
+    ),
+  ).toEqual({ ok: true });
+  expect(mocks.confirmGuidedCheckoutLabels).toHaveBeenCalledWith(
+    admin,
+    db,
+    session.shop,
+    DEFAULT_CONFIG.rules,
+    "r1",
+    [],
+  );
 
   mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({
     ok: true,
@@ -615,5 +762,22 @@ test("la diagnosi aggiorna lo stato attraverso la riconciliazione condivisa senz
   mocks.reconcile.mockRejectedValueOnce(new Error("errore privato"));
   expect(await action(args(post("/app/guide", { intent: "check_validation" })))).toEqual({
     ok: false,
+  });
+});
+
+test("la diagnosi espone il fallimento del readback delle etichette", async () => {
+  const { action } = guideRoute;
+  mocks.scopeQuery.mockResolvedValue({
+    granted: ["write_translations", "read_locales", "read_markets"],
+  });
+  mocks.loadCheckoutLabels.mockResolvedValueOnce({
+    available: false,
+    state: { mode: "partial" },
+    errorCode: "checkout_labels_resource_ambiguous",
+  });
+
+  expect(await action(args(post("/app/guide", { intent: "check_validation" })))).toEqual({
+    ok: false,
+    errorCode: "checkout_labels_resource_ambiguous",
   });
 });

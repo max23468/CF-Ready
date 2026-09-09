@@ -1,9 +1,11 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useFetcher } from "react-router";
 import { localizedError } from "../../app-error";
 import type { Rules } from "../../config";
 import {
   checkoutLabelCopy,
+  checkoutLabelSlotId,
+  observedLabelForSlot,
   proposedLabelForSlot,
   type CheckoutLabelSlot,
   type CheckoutLabelsSnapshot,
@@ -19,6 +21,7 @@ type CheckoutLabelsSectionProps = {
   snapshot: CheckoutLabelsSnapshot | null;
   state: CheckoutLabelState;
   loadErrorCode: string | null;
+  confirmedGuidedSlotIds: string[];
   enabled: boolean;
   busy: boolean;
   checkoutSettingsUrl: string;
@@ -34,6 +37,7 @@ export function CheckoutLabelsSection({
   snapshot,
   state,
   loadErrorCode,
+  confirmedGuidedSlotIds,
   enabled,
   busy,
   checkoutSettingsUrl,
@@ -46,14 +50,12 @@ export function CheckoutLabelsSection({
   const fetcher = useFetcher<LabelsAction>();
   const actionBusy = fetcher.state !== "idle";
   const actionError = fetcher.data?.ok === false ? fetcher.data.errorCode : null;
-  const submitIntent = (intent: string) => {
-    fetcher.submit(
-      {
-        intent,
-        labelsRevision: snapshot?.revision ?? "",
-      },
-      { method: "post" },
-    );
+  const submitIntent = (intent: string, slotIds: string[] = []) => {
+    const form = new FormData();
+    form.set("intent", intent);
+    form.set("labelsRevision", snapshot?.revision ?? "");
+    for (const slotId of slotIds) form.append("slotId", slotId);
+    fetcher.submit(form, { method: "post" });
   };
 
   return (
@@ -68,6 +70,7 @@ export function CheckoutLabelsSection({
         ) : null}
 
         <NativeCheckoutLabels
+          key={`native:${snapshot?.revision ?? "none"}`}
           locale={locale}
           rules={rules}
           scopeGranted={scopeGranted}
@@ -77,9 +80,11 @@ export function CheckoutLabelsSection({
           busy={busy || actionBusy}
           onEnabledChange={onEnabledChange}
           ruleControls={ruleControls}
+          confirmedGuidedSlotIds={confirmedGuidedSlotIds}
           submitIntent={submitIntent}
         />
         <Address2CheckoutLabels
+          key={`address2:${snapshot?.revision ?? "none"}`}
           locale={locale}
           rules={rules}
           scopeGranted={scopeGranted}
@@ -104,6 +109,7 @@ function NativeCheckoutLabels({
   busy,
   onEnabledChange,
   ruleControls,
+  confirmedGuidedSlotIds,
   submitIntent,
 }: Pick<
   CheckoutLabelsSectionProps,
@@ -116,8 +122,10 @@ function NativeCheckoutLabels({
   | "busy"
   | "onEnabledChange"
   | "ruleControls"
-> & { submitIntent: (intent: string) => void }) {
+  | "confirmedGuidedSlotIds"
+> & { submitIntent: (intent: string, slotIds?: string[]) => void }) {
   const copy = texts(locale).rules.labels;
+  const [selectedGuided, setSelectedGuided] = useState<string[]>([]);
   const automaticAvailable = Boolean(
     snapshot?.slots.some(
       (slot) => slot.capability === "automatic" && (slot.name === "taxCode" || slot.name === "pec"),
@@ -170,11 +178,28 @@ function NativeCheckoutLabels({
               </s-text>
             </s-stack>
             {snapshot ? (
-              <LabelComparison snapshot={snapshot} rules={rules} locale={locale} />
+              <LabelComparison
+                snapshot={snapshot}
+                rules={rules}
+                locale={locale}
+                confirmedGuidedSlotIds={confirmedGuidedSlotIds}
+                selectedGuidedSlotIds={selectedGuided}
+                onGuidedSelectionChange={(slotId, selected) =>
+                  setSelectedGuided((current) => toggleSelection(current, slotId, selected))
+                }
+              />
             ) : (
               <s-paragraph color="subdued">{copy.noSnapshot}</s-paragraph>
             )}
             <s-paragraph color="subdued">{copy.realCheckout}</s-paragraph>
+            {selectedGuided.length > 0 ? (
+              <s-button
+                disabled={busy}
+                onClick={() => submitIntent("confirm_guided_labels", selectedGuided)}
+              >
+                {copy.confirmGuided}
+              </s-button>
+            ) : null}
             <s-button disabled={busy} onClick={() => window.location.reload()}>
               {copy.refresh}
             </s-button>
@@ -203,8 +228,9 @@ function Address2CheckoutLabels({
   | "busy"
   | "checkoutSettingsUrl"
   | "addressDeclaration"
-> & { submitIntent: (intent: string) => void }) {
+> & { submitIntent: (intent: string, slotIds?: string[]) => void }) {
   const copy = texts(locale).rules.labels;
+  const [selectedAddressSlots, setSelectedAddressSlots] = useState<string[]>([]);
   const classification = snapshot?.address2.classification ?? "unknown";
   const sourceRequiresManualRestore = snapshot?.slots.some(
     (slot) =>
@@ -222,17 +248,26 @@ function Address2CheckoutLabels({
         </s-stack>
         <s-paragraph color="subdued">{copy.addressBody}</s-paragraph>
         {addressDeclaration}
-        {snapshot ? <Address2Comparison snapshot={snapshot} locale={locale} /> : null}
+        {snapshot ? (
+          <Address2Comparison
+            snapshot={snapshot}
+            locale={locale}
+            selectedSlotIds={selectedAddressSlots}
+            onSelectionChange={(slotId, selected) =>
+              setSelectedAddressSlots((current) => toggleSelection(current, slotId, selected))
+            }
+          />
+        ) : null}
         {sourceRequiresManualRestore ? (
           <s-banner tone="warning">{copy.sourceManual}</s-banner>
         ) : null}
         <s-stack direction="inline" gap="small-200">
-          {scopeGranted && snapshot ? (
+          {scopeGranted && snapshot && selectedAddressSlots.length > 0 ? (
             <s-button
               disabled={busy}
               onClick={() => {
                 if (window.confirm(copy.restoreAddressConfirm)) {
-                  submitIntent("restore_address2_labels");
+                  submitIntent("restore_address2_labels", selectedAddressSlots);
                 }
               }}
             >
@@ -257,10 +292,16 @@ function LabelComparison({
   snapshot,
   rules,
   locale,
+  confirmedGuidedSlotIds,
+  selectedGuidedSlotIds,
+  onGuidedSelectionChange,
 }: {
   snapshot: CheckoutLabelsSnapshot;
   rules: Rules;
   locale: Locale;
+  confirmedGuidedSlotIds: string[];
+  selectedGuidedSlotIds: string[];
+  onGuidedSelectionChange: (slotId: string, selected: boolean) => void;
 }) {
   const copy = texts(locale).rules.labels;
   const translated = texts(locale).rules;
@@ -272,6 +313,8 @@ function LabelComparison({
       }));
     }),
   );
+  const confirmedGuidedSlots = new Set(confirmedGuidedSlotIds);
+  const selectedGuidedSlots = new Set(selectedGuidedSlotIds);
 
   return (
     <div className="checkout-labels-table">
@@ -280,33 +323,54 @@ function LabelComparison({
         <s-text type="strong">{copy.current}</s-text>
         <s-text type="strong">{copy.proposed}</s-text>
       </div>
-      {rows.map(({ shopLocale, slot }) => (
-        <div
-          className="checkout-labels-table__row"
-          key={`${slot.key}:${slot.locale}:${slot.marketId ?? "global"}`}
-        >
-          <s-stack direction="block" gap="small-100">
-            <s-text type="strong">
-              {shopLocale.name} ·{" "}
-              {slot.name === "taxCode" ? translated.taxCodeLabel : translated.pecLabel}
-            </s-text>
-            <s-text color="subdued">
-              {[
-                shopLocale.primary ? copy.primary : null,
-                !shopLocale.published ? copy.unpublished : null,
-                slot.capability === "automatic" ? copy.automatic : copy.guided,
-                slot.marketName,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </s-text>
-          </s-stack>
-          <s-text>{slot.currentValue ?? slot.sourceValue}</s-text>
-          <s-text>
-            {proposedLabelForSlot(slot, rules) ?? slot.currentValue ?? slot.sourceValue}
-          </s-text>
-        </div>
-      ))}
+      {rows.map(({ shopLocale, slot }) => {
+        const slotId = checkoutLabelSlotId(slot);
+        const guided =
+          slot.capability !== "automatic" &&
+          ((slot.name === "taxCode" && rules.taxCode !== "unmanaged") ||
+            (slot.name === "pec" && rules.pec !== "unmanaged"));
+        const confirmed = confirmedGuidedSlots.has(slotId);
+        return (
+          <div
+            className="checkout-labels-table__row"
+            key={`${slot.key}:${slot.locale}:${slot.marketId ?? "global"}`}
+          >
+            <s-stack direction="block" gap="small-100">
+              <s-text type="strong">
+                {shopLocale.name} ·{" "}
+                {slot.name === "taxCode" ? translated.taxCodeLabel : translated.pecLabel}
+              </s-text>
+              <s-text color="subdued">
+                {[
+                  shopLocale.primary ? copy.primary : null,
+                  !shopLocale.published ? copy.unpublished : null,
+                  slot.capability === "automatic" ? copy.automatic : copy.guided,
+                  slot.marketName,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </s-text>
+            </s-stack>
+            <s-text>{observedLabelForSlot(slot)}</s-text>
+            <s-stack direction="block" gap="small-100">
+              <s-text>{proposedLabelForSlot(slot, rules) ?? observedLabelForSlot(slot)}</s-text>
+              {guided ? (
+                confirmed ? (
+                  <s-badge tone="success">{copy.guidedConfirmed}</s-badge>
+                ) : (
+                  <s-checkbox
+                    label={copy.confirmRendered}
+                    checked={selectedGuidedSlots.has(slotId)}
+                    onChange={(event) =>
+                      onGuidedSelectionChange(slotId, event.currentTarget.checked)
+                    }
+                  />
+                )
+              ) : null}
+            </s-stack>
+          </div>
+        );
+      })}
       {snapshot.slots.some((slot) => slot.marketId !== null) ? (
         <s-badge tone="warning">{copy.marketOverride}</s-badge>
       ) : null}
@@ -317,9 +381,13 @@ function LabelComparison({
 function Address2Comparison({
   snapshot,
   locale,
+  selectedSlotIds,
+  onSelectionChange,
 }: {
   snapshot: CheckoutLabelsSnapshot;
   locale: Locale;
+  selectedSlotIds: string[];
+  onSelectionChange: (slotId: string, selected: boolean) => void;
 }) {
   const copy = texts(locale).rules.labels;
   const rows = snapshot.locales.flatMap((shopLocale) =>
@@ -330,6 +398,7 @@ function Address2Comparison({
       }));
     }),
   );
+  const selectedSlots = new Set(selectedSlotIds);
   return (
     <div className="checkout-labels-table">
       <div className="checkout-labels-table__header" aria-hidden="true">
@@ -337,22 +406,44 @@ function Address2Comparison({
         <s-text type="strong">{copy.current}</s-text>
         <s-text type="strong">{copy.proposed}</s-text>
       </div>
-      {rows.map(({ shopLocale, slot }) => (
-        <div
-          className="checkout-labels-table__row"
-          key={`${slot.key}:${slot.locale}:${slot.marketId ?? "global"}`}
-        >
-          <s-stack direction="block" gap="small-100">
-            <s-text type="strong">
-              {shopLocale.name} ·{" "}
-              {slot.name === "address2" ? copy.addressRegular : copy.addressOptional}
-            </s-text>
-            {slot.marketName ? <s-text color="subdued">{slot.marketName}</s-text> : null}
-          </s-stack>
-          <s-text>{slot.currentValue ?? slot.sourceValue}</s-text>
-          <s-text>{proposedLabelForSlot(slot, { taxCode: "unmanaged", pec: "unmanaged" })}</s-text>
-        </div>
-      ))}
+      {rows.map(({ shopLocale, slot }) => {
+        const slotId = checkoutLabelSlotId(slot);
+        const restorable =
+          slot.kind !== "source" &&
+          slot.currentValue !== null &&
+          observedLabelForSlot(slot) !==
+            proposedLabelForSlot(slot, {
+              taxCode: "unmanaged",
+              pec: "unmanaged",
+            });
+        return (
+          <div
+            className="checkout-labels-table__row"
+            key={`${slot.key}:${slot.locale}:${slot.marketId ?? "global"}`}
+          >
+            <s-stack direction="block" gap="small-100">
+              <s-text type="strong">
+                {shopLocale.name} ·{" "}
+                {slot.name === "address2" ? copy.addressRegular : copy.addressOptional}
+              </s-text>
+              {slot.marketName ? <s-text color="subdued">{slot.marketName}</s-text> : null}
+            </s-stack>
+            <s-text>{observedLabelForSlot(slot)}</s-text>
+            <s-stack direction="block" gap="small-100">
+              <s-text>
+                {proposedLabelForSlot(slot, { taxCode: "unmanaged", pec: "unmanaged" })}
+              </s-text>
+              {restorable ? (
+                <s-checkbox
+                  label={copy.selectRestore}
+                  checked={selectedSlots.has(slotId)}
+                  onChange={(event) => onSelectionChange(slotId, event.currentTarget.checked)}
+                />
+              ) : null}
+            </s-stack>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -400,4 +491,12 @@ function formatTimestamp(value: string, locale: Locale) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function toggleSelection(current: string[], slotId: string, selected: boolean) {
+  return selected
+    ? current.includes(slotId)
+      ? current
+      : [...current, slotId]
+    : current.filter((candidate) => candidate !== slotId);
 }

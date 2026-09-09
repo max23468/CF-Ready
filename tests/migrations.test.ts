@@ -10,6 +10,7 @@ type MigrationEnvironment = Env & {
   MIGRATION_REVISION_DB: D1Database;
   MIGRATION_FULL_DB: D1Database;
   MIGRATION_CONTRACTS_DB: D1Database;
+  MIGRATION_CHECKOUT_LABELS_DB: D1Database;
   MIGRATION_LEGACY_TRIALS_DB: D1Database;
   MIGRATION_LEGACY_LEDGER_DB: D1Database;
   MIGRATION_LEGACY_BILLING_DB: D1Database;
@@ -691,3 +692,30 @@ test.each([null, "7"])(
     ).toBe(current ?? "2");
   },
 );
+
+test("0017 conserva la dichiarazione storica sul campo Interno", async () => {
+  const { MIGRATION_CHECKOUT_LABELS_DB: db, TEST_MIGRATIONS: migrations } = migrationEnvironment();
+  await applyThrough(db, migrations, "0016_current_contracts.sql");
+  await insertShop(db);
+  await db
+    .prepare(
+      `INSERT INTO app_state (shop_id, address2_conflict_declared_at, updated_at)
+       VALUES (1, '2026-09-01T10:00:00.000Z', '2026-09-01T10:00:00.000Z')`,
+    )
+    .run();
+
+  await applyD1Migrations(db, [migrationAfter(migrations, "0016_current_contracts.sql")]);
+
+  expect(
+    await db
+      .prepare(
+        `SELECT address2_classification, address2_decision, address2_reviewed_at
+         FROM app_state WHERE shop_id = 1`,
+      )
+      .first(),
+  ).toEqual({
+    address2_classification: "fiscal_conflict",
+    address2_decision: "pending",
+    address2_reviewed_at: "2026-09-01T10:00:00.000Z",
+  });
+});

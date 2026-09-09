@@ -31,6 +31,7 @@ import { readCheckoutLabelState } from "../checkout-labels/repository.server";
 import {
   acceptAddress2Customization,
   CHECKOUT_LABEL_OPTIONAL_SCOPES,
+  confirmGuidedCheckoutLabels,
   loadCheckoutLabels,
   restoreAddress2Translations,
   saveRulesAndCheckoutLabels,
@@ -70,7 +71,9 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     scopeDetails?.granted.includes(scope),
   );
   const labels = labelScopesGranted
-    ? await timing.measure("shopify_snapshot", () => loadCheckoutLabels(admin, db, session.shop))
+    ? await timing.measure("shopify_snapshot", () =>
+        loadCheckoutLabels(admin, db, session.shop, config.rules),
+      )
     : null;
   const shopHandle = session.shop.replace(/\.myshopify\.com$/, "");
 
@@ -88,6 +91,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       labelScopesGranted,
       labelState: labels?.state ?? labelState,
       labelSnapshot: labels?.available ? labels.snapshot : null,
+      confirmedGuidedSlotIds: labels?.available ? labels.confirmedGuidedSlotIds : [],
       labelLoadError:
         labels && !labels.available
           ? labels.errorCode
@@ -128,7 +132,13 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     if (typeof revision !== "string" || !revision) {
       return { ok: false as const, errorCode: "address2_restore_conflict" as const };
     }
-    return restoreAddress2Translations(admin, db, session.shop, revision);
+    return restoreAddress2Translations(
+      admin,
+      db,
+      session.shop,
+      revision,
+      form.getAll("slotId").filter((value): value is string => typeof value === "string"),
+    );
   }
 
   if (intent === "accept_address2_labels") {
@@ -140,6 +150,26 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
     }
     return acceptAddress2Customization(admin, db, session.shop, revision);
+  }
+
+  if (intent === "confirm_guided_labels") {
+    if (!labelScopesGranted) {
+      return { ok: false as const, errorCode: "checkout_labels_scope_required" as const };
+    }
+    const revision = form.get("labelsRevision");
+    if (typeof revision !== "string" || !revision) {
+      return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
+    }
+    const current = await reconcile(admin, db, session.shop);
+    const rules = readConfig(current.validation?.metafield?.jsonValue).rules;
+    return confirmGuidedCheckoutLabels(
+      admin,
+      db,
+      session.shop,
+      rules,
+      revision,
+      form.getAll("slotId").filter((value): value is string => typeof value === "string"),
+    );
   }
 
   // NFR-023: la validazione lato client è cortesia, questa è la difesa. Un valore fuori
@@ -357,6 +387,7 @@ export default function CheckoutRules() {
                 snapshot={saved.labelSnapshot}
                 state={saved.labelState}
                 loadErrorCode={saved.labelLoadError}
+                confirmedGuidedSlotIds={saved.confirmedGuidedSlotIds}
                 enabled={labelsEnabled}
                 busy={busy}
                 checkoutSettingsUrl={saved.checkoutSettingsUrl}
@@ -364,8 +395,8 @@ export default function CheckoutRules() {
                   setChangedSinceResult(true);
                   setLabelsEnabled(value);
                 }}
-                 ruleControls={
-                   <s-stack direction="block" gap="base">
+                ruleControls={
+                  <s-stack direction="block" gap="base">
                     <s-choice-list label={t.rules.taxCodeLabel} name="taxCode">
                       {TAX_CODE_RULE_MODES.map((mode) => (
                         <s-choice key={mode} value={mode} selected={mode === draft.rules.taxCode}>
@@ -382,7 +413,7 @@ export default function CheckoutRules() {
                         </s-choice>
                       ))}
                     </s-choice-list>
-                   </s-stack>
+                  </s-stack>
                 }
                 addressDeclaration={
                   <s-stack direction="block" gap="small-200">
@@ -400,7 +431,7 @@ export default function CheckoutRules() {
                     ) : null}
                   </s-stack>
                 }
-               />
+              />
             </div>
           </form>
 
