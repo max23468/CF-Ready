@@ -1,8 +1,10 @@
-import { useReducer } from "react";
+import { useReducer, useState } from "react";
 import { isValidPec, isValidTaxCode } from "../../checkout-field-validation";
 import type { Messages, Rules } from "../../config";
 import { texts } from "../../i18n";
 import type { Locale } from "../../i18n";
+import { address2Reference, checkoutLabelCopy } from "../../checkout-labels/domain";
+import type { CheckoutLabelsSnapshot } from "../../checkout-labels/domain";
 import "./CheckoutSimulator.css";
 import {
   simulatorErrorMessage,
@@ -57,15 +59,20 @@ export function CheckoutSimulator({
   locale,
   rules,
   messages,
+  labelSnapshot,
 }: {
   locale: Locale;
   rules: Rules;
-  messages: Messages;
+  messages: Messages | Record<Locale, Messages>;
+  labelSnapshot?: CheckoutLabelsSnapshot | null;
 }) {
-  const t = texts(locale);
+  const [selectedPreviewLocale, setSelectedPreviewLocale] = useState<Locale | null>(null);
+  const previewLocale = selectedPreviewLocale ?? locale;
+  const t = texts(previewLocale);
   const copy = t.rules.simulator;
   const [state, updateState] = useReducer(updateSimulatorState, initialSimulatorState);
   const { deliveryCountry, billingCountry, company, taxCode, pec, submitted, scenario } = state;
+  const previewMessages = messagesForLocale(messages, previewLocale);
 
   const outcome = simulatorOutcome({
     rules,
@@ -76,20 +83,6 @@ export function CheckoutSimulator({
     pec,
     submitted,
   });
-
-  const applies = outcome !== "notApplied";
-  const taxCodeProblem =
-    applies && rules.taxCode !== "unmanaged"
-      ? simulatorFieldError(rules.taxCode, taxCode, isValidTaxCode)
-      : null;
-  const pecProblem =
-    applies && rules.pec !== "unmanaged"
-      ? simulatorFieldError(rules.pec, pec, isValidPec, pecIsRequired(rules.pec, company))
-      : null;
-  const hasManagedFields = Object.values(rules).some((mode) => mode !== "unmanaged");
-
-  const showTaxCodeError = taxCodeProblem === "invalid" || submitted;
-  const showPecError = pecProblem === "invalid" || submitted;
 
   const applyScenario = (nextScenario: SimulatorScenario) => {
     const values = simulatorScenarioValues[nextScenario];
@@ -134,6 +127,14 @@ export function CheckoutSimulator({
                 </s-badge>
               </span>
             </s-grid>
+            <s-select
+              label={copy.previewLanguage}
+              value={previewLocale}
+              onChange={(event) => setSelectedPreviewLocale(event.currentTarget.value as Locale)}
+            >
+              <s-option value="it">{copy.italian}</s-option>
+              <s-option value="en">{copy.english}</s-option>
+            </s-select>
           </s-box>
 
           <s-divider />
@@ -167,53 +168,24 @@ export function CheckoutSimulator({
                 </s-stack>
               </s-box>
 
-              <s-stack direction="block" gap="small-200">
-                <s-stack direction="inline" gap="small-100" alignItems="center">
-                  <s-icon type="identity-card" color="subdued" />
-                  <s-text type="strong">{copy.customerData}</s-text>
-                </s-stack>
-                {hasManagedFields ? (
-                  <>
-                    <SimulatorCompanyField
-                      mode={rules.pec}
-                      label={copy.company}
-                      value={company}
-                      onInput={(value) => updateState({ scenario: "", company: value })}
-                    />
-                    {rules.taxCode === "unmanaged" ? null : (
-                      <s-text-field
-                        label={t.rules.taxCodeLabel}
-                        value={taxCode}
-                        required={rules.taxCode === "required_validated"}
-                        error={simulatorErrorMessage(
-                          messages,
-                          "taxCode",
-                          taxCodeProblem,
-                          showTaxCodeError,
-                        )}
-                        onInput={(event) => {
-                          updateState({ scenario: "", taxCode: event.currentTarget.value });
-                        }}
-                      />
-                    )}
-                    {rules.pec === "unmanaged" ? null : (
-                      <s-text-field
-                        label={t.rules.pecLabel}
-                        value={pec}
-                        required={pecIsRequired(rules.pec, company)}
-                        error={simulatorErrorMessage(messages, "pec", pecProblem, showPecError)}
-                        onInput={(event) => {
-                          updateState({ scenario: "", pec: event.currentTarget.value });
-                        }}
-                      />
-                    )}
-                  </>
-                ) : (
-                  <s-box background="subdued" borderRadius="base" padding="base">
-                    <s-paragraph color="subdued">{t.checkout.nothing}</s-paragraph>
-                  </s-box>
-                )}
-              </s-stack>
+              <SimulatorCustomerFields
+                locale={previewLocale}
+                rules={rules}
+                messages={previewMessages}
+                outcome={outcome}
+                submitted={submitted}
+                company={company}
+                taxCode={taxCode}
+                pec={pec}
+                labelSnapshot={labelSnapshot}
+                onCompanyChange={(value) => updateState({ scenario: "", company: value })}
+                onTaxCodeChange={(value) => {
+                  updateState({ scenario: "", taxCode: value });
+                }}
+                onPecChange={(value) => {
+                  updateState({ scenario: "", pec: value });
+                }}
+              />
             </s-stack>
           </s-box>
 
@@ -270,6 +242,111 @@ export function CheckoutSimulator({
   );
 }
 
+function messagesForLocale(messages: Messages | Record<Locale, Messages>, locale: Locale) {
+  return "it" in messages ? messages[locale] : messages;
+}
+
+function SimulatorCustomerFields({
+  locale,
+  rules,
+  messages,
+  outcome,
+  submitted,
+  company,
+  taxCode,
+  pec,
+  labelSnapshot,
+  onCompanyChange,
+  onTaxCodeChange,
+  onPecChange,
+}: {
+  locale: Locale;
+  rules: Rules;
+  messages: Messages;
+  outcome: SimulatorOutcome;
+  submitted: boolean;
+  company: string;
+  taxCode: string;
+  pec: string;
+  labelSnapshot?: CheckoutLabelsSnapshot | null;
+  onCompanyChange: (value: string) => void;
+  onTaxCodeChange: (value: string) => void;
+  onPecChange: (value: string) => void;
+}) {
+  const t = texts(locale);
+  const copy = t.rules.simulator;
+  const applies = outcome !== "notApplied";
+  const taxCodeProblem =
+    applies && rules.taxCode !== "unmanaged"
+      ? simulatorFieldError(rules.taxCode, taxCode, isValidTaxCode)
+      : null;
+  const pecProblem =
+    applies && rules.pec !== "unmanaged"
+      ? simulatorFieldError(rules.pec, pec, isValidPec, pecIsRequired(rules.pec, company))
+      : null;
+  const hasManagedFields = Object.values(rules).some((mode) => mode !== "unmanaged");
+
+  return (
+    <s-stack direction="block" gap="small-200">
+      <s-stack direction="inline" gap="small-100" alignItems="center">
+        <s-icon type="identity-card" color="subdued" />
+        <s-text type="strong">{copy.customerData}</s-text>
+      </s-stack>
+      <s-text color="subdued">{copy.labelsAfterSave}</s-text>
+      {hasManagedFields ? (
+        <>
+          <SimulatorCompanyField
+            mode={rules.pec}
+            label={copy.company}
+            value={company}
+            onInput={onCompanyChange}
+          />
+          {rules.taxCode === "unmanaged" ? null : (
+            <s-text-field
+              label={checkoutLabelCopy("taxCode", locale, rules.taxCode) ?? t.rules.taxCodeLabel}
+              value={taxCode}
+              required={rules.taxCode === "required_validated"}
+              error={simulatorErrorMessage(
+                messages,
+                "taxCode",
+                taxCodeProblem,
+                taxCodeProblem === "invalid" || submitted,
+              )}
+              onInput={(event) => onTaxCodeChange(event.currentTarget.value)}
+            />
+          )}
+          {rules.pec === "unmanaged" ? null : (
+            <s-text-field
+              label={checkoutLabelCopy("pec", locale, rules.pec) ?? t.rules.pecLabel}
+              value={pec}
+              required={pecIsRequired(rules.pec, company)}
+              error={simulatorErrorMessage(
+                messages,
+                "pec",
+                pecProblem,
+                pecProblem === "invalid" || submitted,
+              )}
+              onInput={(event) => onPecChange(event.currentTarget.value)}
+            />
+          )}
+        </>
+      ) : (
+        <s-box background="subdued" borderRadius="base" padding="base">
+          <s-paragraph color="subdued">{t.checkout.nothing}</s-paragraph>
+        </s-box>
+      )}
+      <s-text-field
+        label={
+          observedAddress2Label(labelSnapshot, locale) ?? address2Reference("address2", locale)
+        }
+        value=""
+        disabled
+      />
+      <s-text color="subdued">{copy.realCheckout}</s-text>
+    </s-stack>
+  );
+}
+
 function SimulatorCompanyField({
   mode,
   label,
@@ -315,6 +392,16 @@ function SimulatorScenarioOptions({
   );
 }
 
+function observedAddress2Label(
+  snapshot: CheckoutLabelsSnapshot | null | undefined,
+  locale: Locale,
+) {
+  const slots = snapshot?.slots.filter(
+    (slot) => slot.name === "address2" && slot.family === locale && slot.marketId === null,
+  );
+  const slot = slots?.find((candidate) => candidate.kind === "source") ?? slots?.[0];
+  return slot?.currentValue ?? null;
+}
 function SimulatorCountrySelect({
   label,
   value,

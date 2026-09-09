@@ -67,6 +67,13 @@ export function SetupGuide({
           </s-stack>
         ),
     },
+    {
+      done: data.checkoutLabels.status === "synced",
+      icon: "language" as const,
+      title: t.setup.labelsTitle,
+      body: t.setup.labelsBody,
+      action: <s-link href="/app/rules">{t.nav.rules}</s-link>,
+    },
     ...(data.address2Declared
       ? [
           {

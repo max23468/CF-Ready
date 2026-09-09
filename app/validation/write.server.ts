@@ -12,6 +12,7 @@ import {
   acquireValidationLock,
   releaseValidationLockBestEffort,
   startValidationLockHeartbeat,
+  type ValidationLockHeartbeat,
 } from "./lock.server";
 import { persistValidationState, saveAddress2Declaration } from "./repository.server";
 import {
@@ -51,6 +52,35 @@ export async function writeValidation(
   if (!lockToken) return { ok: false, errorCode: "validation_locked" };
   const heartbeat = startValidationLockHeartbeat(db, shopDomain, lockToken);
 
+  try {
+    return await writeValidationUnderLock(
+      admin,
+      db,
+      shopDomain,
+      next,
+      enable,
+      expectedHash,
+      declared,
+      heartbeat,
+    );
+  } finally {
+    await heartbeat.stop();
+    await releaseValidationLockBestEffort(db, shopDomain, lockToken);
+  }
+}
+
+// Primitiva usata dall'orchestratore di regole ed etichette. Il chiamante deve detenere
+// l'unica lease dello store per l'intera sequenza e passarne il heartbeat.
+export async function writeValidationUnderLock(
+  admin: Admin,
+  db: D1Database,
+  shopDomain: string,
+  next: ValidationConfigUpdate | null,
+  enable: boolean | null,
+  expectedHash: string | null | undefined,
+  declared: boolean | null | undefined,
+  heartbeat: ValidationLockHeartbeat,
+): Promise<ValidationWriteResult> {
   try {
     const data = await queryContext(admin);
     const countryCode = data.shop.shopAddress.countryCodeV2;
@@ -176,9 +206,6 @@ export async function writeValidation(
     return { ok: true, enabled };
   } catch {
     return { ok: false, errorCode: "validation_write_failed" };
-  } finally {
-    await heartbeat.stop();
-    await releaseValidationLockBestEffort(db, shopDomain, lockToken);
   }
 }
 

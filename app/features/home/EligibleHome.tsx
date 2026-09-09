@@ -52,6 +52,19 @@ export function EligibleHome({
         pendingIntent={pendingIntent}
         submit={submit}
       />
+      {data.checkoutLabels.status === "action_required" ||
+      data.checkoutLabels.status === "scope_required" ? (
+        <MotionBanner tone="warning">
+          <s-stack direction="block" gap="small-100">
+            <s-paragraph>
+              {data.checkoutLabels.status === "scope_required"
+                ? t.home.checkoutLabelsScopeRequired
+                : t.home.checkoutLabelsActionRequired}
+            </s-paragraph>
+            <s-link href="/app/rules">{t.home.checkoutLabelsOpen}</s-link>
+          </s-stack>
+        </MotionBanner>
+      ) : null}
       {data.showMerchantCheckIn ? (
         <MerchantCheckIn data={data} busy={busy} pendingIntent={pendingIntent} submit={submit} />
       ) : null}

@@ -26,6 +26,8 @@ import {
 } from "../../config";
 import { databaseContext, waitUntilContext } from "../../context.server";
 import { APP_VERSION, BILLING_IS_TEST } from "../../env.server";
+import { readCheckoutLabelState } from "../../checkout-labels/repository.server";
+import { checkoutLabelsStatus } from "../../checkout-labels/domain";
 import { dismissMerchantCheckIn, recordEvent } from "../../events.server";
 import { resolveLocale } from "../../i18n";
 import { planFor, planPrices } from "../../plans.server";
@@ -57,8 +59,14 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     reportTiming: timing.record,
   });
   const localStatePromise = timing.measure("d1_home", () => readHomeState(db, session.shop));
-  const [state, { onboarding, address2Declaration, enabledSince, merchantCheckInDismissed }] =
-    await Promise.all([statePromise, localStatePromise]);
+  const labelStatePromise = timing.measure("d1_validation_state", () =>
+    readCheckoutLabelState(db, session.shop),
+  );
+  const [
+    state,
+    { onboarding, address2Declaration, enabledSince, merchantCheckInDismissed },
+    checkoutLabelState,
+  ] = await Promise.all([statePromise, localStatePromise, labelStatePromise]);
   const config = readConfig(state.validation?.metafield?.jsonValue);
   const configured = config.rules.taxCode !== "unmanaged" || config.rules.pec !== "unmanaged";
   let onboardingStatus = onboarding.status;
@@ -126,6 +134,10 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       },
       Date.now(),
     ),
+    checkoutLabels: {
+      ...checkoutLabelState,
+      status: checkoutLabelsStatus(checkoutLabelState),
+    },
   };
   return data(payload, { headers: { "Server-Timing": timing.header() } });
 };

@@ -20,6 +20,7 @@ client_id = "adff48d4fe4ceb0dadb4734520701dd7"
 application_url = "https://cf-ready-dev.tmsf.workers.dev"
 [access_scopes]
 scopes = "write_validations"
+optional_scopes = [ "write_translations", "read_locales", "read_markets" ]
 [events]
 api_version = "unstable"
 subscription = []
@@ -69,6 +70,10 @@ test("il preflight lega il nome Worker alla chiave corretta", () => {
   );
   assert.throws(
     () => verifyDevelopmentConfig(shopify.replace("write_validations", "read_orders"), wrangler),
+    /target Development/,
+  );
+  assert.throws(
+    () => verifyDevelopmentConfig(shopify.replace(/^optional_scopes.*\n/m, ""), wrangler),
     /target Development/,
   );
   assert.throws(

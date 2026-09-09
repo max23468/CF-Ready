@@ -9,12 +9,16 @@ import * as authRoute from "../app/routes/auth.$";
 const mocks = vi.hoisted(() => ({
   authenticateAdmin: vi.fn(),
   authenticateShopify: vi.fn(),
+  acceptAddress2Customization: vi.fn(),
+  confirmGuidedCheckoutLabels: vi.fn(),
   findValidation: vi.fn(),
   localDate: vi.fn(),
   observedConfigHash: vi.fn(),
   persistShopDisplayName: vi.fn(),
   queryContext: vi.fn(),
+  loadCheckoutLabels: vi.fn(),
   readAddress2Declaration: vi.fn(),
+  readCheckoutLabelState: vi.fn(),
   readOnboarding: vi.fn(),
   readSupportDiagnosticState: vi.fn(),
   reconcile: vi.fn(),
@@ -23,6 +27,10 @@ const mocks = vi.hoisted(() => ({
   saveOnboarding: vi.fn(),
   startTrial: vi.fn(),
   writeValidation: vi.fn(),
+  scopeQuery: vi.fn(),
+  scopeRequest: vi.fn(),
+  restoreAddress2Translations: vi.fn(),
+  saveRulesAndCheckoutLabels: vi.fn(),
 }));
 
 vi.mock("../app/admin-auth.server", () => ({ authenticateAdmin: mocks.authenticateAdmin }));
@@ -40,6 +48,17 @@ vi.mock("../app/shopify.server", () => ({
 }));
 vi.mock("../app/support.server", () => ({
   readSupportDiagnosticState: mocks.readSupportDiagnosticState,
+}));
+vi.mock("../app/checkout-labels/repository.server", () => ({
+  readCheckoutLabelState: mocks.readCheckoutLabelState,
+}));
+vi.mock("../app/checkout-labels/service.server", () => ({
+  CHECKOUT_LABEL_OPTIONAL_SCOPES: ["write_translations", "read_locales", "read_markets"],
+  acceptAddress2Customization: mocks.acceptAddress2Customization,
+  confirmGuidedCheckoutLabels: mocks.confirmGuidedCheckoutLabels,
+  loadCheckoutLabels: mocks.loadCheckoutLabels,
+  restoreAddress2Translations: mocks.restoreAddress2Translations,
+  saveRulesAndCheckoutLabels: mocks.saveRulesAndCheckoutLabels,
 }));
 vi.mock("../app/validation.server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../app/validation.server")>()),
@@ -83,8 +102,10 @@ function messageForm(overrides: Record<string, string> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   context.get.mockReturnValue(db);
-  mocks.authenticateAdmin.mockResolvedValue({ admin, session });
-  mocks.authenticateShopify.mockResolvedValue({ admin, session });
+  const scopes = { query: mocks.scopeQuery, request: mocks.scopeRequest };
+  mocks.authenticateAdmin.mockResolvedValue({ admin, session, scopes });
+  mocks.authenticateShopify.mockResolvedValue({ admin, session, scopes });
+  mocks.scopeQuery.mockResolvedValue({ granted: [] });
   mocks.localDate.mockReturnValue("2026-09-02");
   mocks.observedConfigHash.mockResolvedValue("hash");
   mocks.queryContext.mockResolvedValue({
@@ -96,6 +117,20 @@ beforeEach(() => {
     validations: { nodes: [] },
   });
   mocks.readAddress2Declaration.mockResolvedValue(null);
+  mocks.readCheckoutLabelState.mockResolvedValue({
+    mode: "off",
+    address2Classification: "unknown",
+  });
+  mocks.acceptAddress2Customization.mockResolvedValue({ ok: true });
+  mocks.confirmGuidedCheckoutLabels.mockResolvedValue({ ok: true });
+  mocks.loadCheckoutLabels.mockResolvedValue({
+    available: true,
+    state: { mode: "guided" },
+    snapshot: { revision: "labels-r1", slots: [] },
+    confirmedGuidedSlotIds: [],
+  });
+  mocks.restoreAddress2Translations.mockResolvedValue({ ok: true });
+  mocks.saveRulesAndCheckoutLabels.mockResolvedValue({ ok: true, labelsErrorCode: null });
   mocks.readOnboarding.mockResolvedValue({ status: "in_progress", step: 2 });
   mocks.reconcile.mockResolvedValue({
     validation: undefined,
@@ -155,6 +190,13 @@ test("Guida carica diagnostica e accetta solo ricevute di copia valide", async (
   );
 });
 
+test("Guida continua la diagnosi quando Shopify non restituisce gli scope", async () => {
+  mocks.scopeQuery.mockRejectedValueOnce(new Error("scope non disponibile"));
+  await expect(
+    guideRoute.action(args(post("/app/guide", { intent: "check_validation" }))),
+  ).resolves.toMatchObject({ ok: true });
+});
+
 test("Messaggi legge Shopify e copre rifiuto, salvataggio e conflitto", async () => {
   const validation = { metafield: { jsonValue: DEFAULT_CONFIG } };
   mocks.findValidation.mockReturnValue(validation);
@@ -165,6 +207,7 @@ test("Messaggi legge Shopify e copre rifiuto, salvataggio e conflitto", async ()
     configHash: "hash",
     messages: DEFAULT_CONFIG.messages,
     rules: DEFAULT_CONFIG.rules,
+    labelSnapshot: null,
   });
   expect(new Headers(loaded.init?.headers).get("Server-Timing")).toMatch(
     /auth;dur=.*shopify_context;dur=.*total;dur=/,
@@ -177,6 +220,35 @@ test("Messaggi legge Shopify e copre rifiuto, salvataggio e conflitto", async ()
       } as never),
     ).get("Server-Timing"),
   ).toBe(new Headers(loaded.init?.headers).get("Server-Timing"));
+
+  mocks.scopeQuery.mockResolvedValueOnce({
+    granted: ["write_translations", "read_locales", "read_markets"],
+  });
+  expect((await loader(args(new Request("https://example.test/app/messages")))).data).toMatchObject(
+    {
+      labelSnapshot: { revision: "labels-r1" },
+    },
+  );
+  mocks.scopeQuery.mockResolvedValueOnce({
+    granted: ["write_translations", "read_locales", "read_markets"],
+  });
+  mocks.loadCheckoutLabels.mockResolvedValueOnce({
+    available: false,
+    state: { mode: "partial" },
+    errorCode: "checkout_labels_readback_failed",
+  });
+  expect((await loader(args(new Request("https://example.test/app/messages")))).data).toMatchObject(
+    {
+      labelSnapshot: null,
+    },
+  );
+
+  mocks.scopeQuery.mockRejectedValueOnce(new Error("scope non disponibile"));
+  expect((await loader(args(new Request("https://example.test/app/messages")))).data).toMatchObject(
+    {
+      labelSnapshot: null,
+    },
+  );
 
   const invalid = messageForm({ "it.taxCodeRequired": "" });
   expect(await action(args(post("/app/messages", invalid)))).toMatchObject({
@@ -229,10 +301,30 @@ test("Onboarding carica gli stati autorevoli con e senza accesso", async () => {
     trialStatus: "active",
     address2Declared: true,
   });
+
+  mocks.scopeQuery.mockResolvedValueOnce({
+    granted: ["write_translations", "read_locales", "read_markets"],
+  });
+  expect((await loader(args(request))).data).toMatchObject({
+    labelScopesGranted: true,
+    labelState: { mode: "guided" },
+    labelSnapshot: { revision: "labels-r1" },
+  });
+
+  mocks.scopeQuery.mockRejectedValueOnce(new Error("scope non disponibile"));
+  expect((await loader(args(request))).data).toMatchObject({ labelScopesGranted: false });
 });
 
 test("Onboarding valida e salva avanzamento e regole", async () => {
   const { action } = onboardingRoute;
+  expect(await action(args(post("/app/onboarding", { intent: "request_label_scopes" })))).toEqual({
+    ok: true,
+  });
+  expect(mocks.scopeRequest).toHaveBeenCalledWith([
+    "write_translations",
+    "read_locales",
+    "read_markets",
+  ]);
   expect(await action(args(post("/app/onboarding", { intent: "progress", step: "x" })))).toEqual({
     ok: false,
     errorCode: "generic",
@@ -250,6 +342,31 @@ test("Onboarding valida e salva avanzamento e regole", async () => {
       args(post("/app/onboarding", { intent: "rules", taxCode: "x", pec: "unmanaged" })),
     ),
   ).toEqual({ ok: false, errorCode: "generic" });
+  expect(
+    await action(
+      args(
+        post("/app/onboarding", {
+          intent: "rules",
+          taxCode: "required_validated",
+          pec: "optional_validated",
+          labelsEnabled: "1",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: false, errorCode: "checkout_labels_scope_required" });
+  mocks.scopeQuery.mockRejectedValueOnce(new Error("scope non disponibile"));
+  expect(
+    await action(
+      args(
+        post("/app/onboarding", {
+          intent: "rules",
+          taxCode: "required_validated",
+          pec: "optional_validated",
+          labelsEnabled: "1",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: false, errorCode: "checkout_labels_scope_required" });
   mocks.writeValidation.mockResolvedValueOnce({ ok: false, errorCode: "config_conflict" });
   expect(
     await action(
@@ -278,10 +395,87 @@ test("Onboarding valida e salva avanzamento e regole", async () => {
     status: "in_progress",
     step: 3,
   });
+
+  mocks.scopeQuery.mockResolvedValue({
+    granted: ["write_translations", "read_locales", "read_markets"],
+  });
+  mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({
+    ok: false,
+    errorCode: "checkout_labels_conflict",
+  });
+  expect(
+    await action(
+      args(
+        post("/app/onboarding", {
+          intent: "rules",
+          taxCode: "required_validated",
+          pec: "optional_validated",
+          labelsEnabled: "1",
+          labelsConfirmed: "1",
+          labelsRevision: "labels-r1",
+          configHash: "hash",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: false, errorCode: "checkout_labels_conflict" });
+
+  mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({ ok: true, labelsErrorCode: null });
+  expect(
+    await action(
+      args(
+        post("/app/onboarding", {
+          intent: "rules",
+          taxCode: "required_validated",
+          pec: "optional_validated",
+          labelsEnabled: "1",
+          labelsConfirmed: "1",
+          labelsRevision: "labels-r1",
+          configHash: "hash",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: true });
+  expect(mocks.saveRulesAndCheckoutLabels).toHaveBeenLastCalledWith(admin, db, session.shop, {
+    rules: { taxCode: "required_validated", pec: "optional_validated" },
+    expectedConfigHash: "hash",
+    address2Declared: null,
+    labelsEnabled: true,
+    confirmAutomaticWrite: true,
+    expectedLabelsRevision: "labels-r1",
+  });
+
+  mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({ ok: true, labelsErrorCode: null });
+  expect(
+    await action(
+      args(
+        post("/app/onboarding", {
+          intent: "rules",
+          taxCode: "required_validated",
+          pec: "optional_validated",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: true });
+  expect(mocks.saveRulesAndCheckoutLabels).toHaveBeenLastCalledWith(
+    admin,
+    db,
+    session.shop,
+    expect.objectContaining({
+      expectedConfigHash: null,
+      labelsEnabled: false,
+      confirmAutomaticWrite: false,
+      expectedLabelsRevision: null,
+    }),
+  );
 });
 
 test("Onboarding tratta prova, intent sconosciuti e chiusura senza attivazione", async () => {
   const { action } = onboardingRoute;
+  mocks.startTrial.mockResolvedValueOnce(null);
+  expect(await action(args(post("/app/onboarding", { intent: "start_trial" })))).toEqual({
+    ok: false,
+    errorCode: "trial_unavailable",
+  });
   mocks.startTrial.mockResolvedValueOnce({ status: "expired" });
   expect(await action(args(post("/app/onboarding", { intent: "start_trial" })))).toEqual({
     ok: false,
@@ -367,6 +561,36 @@ test("Regole espone duplicati, accesso e dichiarazione osservati", async () => {
       address2Declared: true,
     });
   }
+
+  mocks.scopeQuery.mockRejectedValueOnce(new Error("scope non disponibile"));
+  expect((await loader(args(request))).data).toMatchObject({
+    labelScopesGranted: false,
+  });
+});
+
+test("Regole carica etichette disponibili e propaga un readback fallito", async () => {
+  const { loader } = rulesRoute;
+  const request = new Request("https://example.test/app/rules?locale=it");
+  mocks.scopeQuery.mockResolvedValue({
+    granted: ["write_translations", "read_locales", "read_markets"],
+  });
+
+  expect((await loader(args(request))).data).toMatchObject({
+    labelScopesGranted: true,
+    labelState: { mode: "guided" },
+    labelSnapshot: { revision: "labels-r1" },
+    labelLoadError: null,
+  });
+
+  mocks.loadCheckoutLabels.mockResolvedValueOnce({
+    available: false,
+    state: { mode: "partial" },
+    errorCode: "checkout_labels_readback_failed",
+  });
+  expect((await loader(args(request))).data).toMatchObject({
+    labelSnapshot: null,
+    labelLoadError: "checkout_labels_readback_failed",
+  });
 });
 
 test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", async () => {
@@ -416,6 +640,172 @@ test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", asyn
   ).toEqual({ ok: false, errorCode: "config_conflict" });
 });
 
+test("Regole gestisce consenso, ripristino e sincronizzazione delle etichette", async () => {
+  const { action } = rulesRoute;
+  expect(await action(args(post("/app/rules", { intent: "request_label_scopes" })))).toEqual({
+    ok: true,
+  });
+  expect(mocks.scopeRequest).toHaveBeenCalledWith([
+    "write_translations",
+    "read_locales",
+    "read_markets",
+  ]);
+
+  expect(await action(args(post("/app/rules", { intent: "restore_address2_labels" })))).toEqual({
+    ok: false,
+    errorCode: "checkout_labels_scope_required",
+  });
+
+  mocks.scopeQuery.mockResolvedValue({
+    granted: ["write_translations", "read_locales", "read_markets"],
+  });
+  expect(await action(args(post("/app/rules", { intent: "restore_address2_labels" })))).toEqual({
+    ok: false,
+    errorCode: "address2_restore_conflict",
+  });
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          intent: "restore_address2_labels",
+          labelsRevision: "r1",
+          slotId: "address2:it",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: true });
+  expect(mocks.restoreAddress2Translations).toHaveBeenCalledWith(admin, db, session.shop, "r1", [
+    "address2:it",
+  ]);
+
+  expect(await action(args(post("/app/rules", { intent: "accept_address2_labels" })))).toEqual({
+    ok: false,
+    errorCode: "checkout_labels_conflict",
+  });
+  expect(
+    await action(
+      args(post("/app/rules", { intent: "accept_address2_labels", labelsRevision: "r1" })),
+    ),
+  ).toEqual({ ok: true });
+  expect(mocks.acceptAddress2Customization).toHaveBeenCalledWith(admin, db, session.shop, "r1");
+
+  mocks.scopeQuery.mockResolvedValueOnce({ granted: [] });
+  expect(
+    await action(
+      args(post("/app/rules", { intent: "accept_address2_labels", labelsRevision: "r1" })),
+    ),
+  ).toEqual({ ok: false, errorCode: "checkout_labels_scope_required" });
+
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          intent: "confirm_guided_labels",
+          labelsRevision: "r1",
+          slotId: "taxCode:it",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: true });
+  expect(mocks.confirmGuidedCheckoutLabels).toHaveBeenCalledWith(
+    admin,
+    db,
+    session.shop,
+    DEFAULT_CONFIG.rules,
+    "r1",
+    ["taxCode:it"],
+  );
+
+  mocks.scopeQuery.mockResolvedValueOnce({ granted: [] });
+  expect(
+    await action(
+      args(post("/app/rules", { intent: "confirm_guided_labels", labelsRevision: "r1" })),
+    ),
+  ).toEqual({ ok: false, errorCode: "checkout_labels_scope_required" });
+
+  expect(await action(args(post("/app/rules", { intent: "confirm_guided_labels" })))).toEqual({
+    ok: false,
+    errorCode: "checkout_labels_conflict",
+  });
+
+  mocks.scopeQuery.mockRejectedValueOnce(new Error("scope non disponibile"));
+  expect(
+    await action(args(post("/app/rules", { taxCode: "unmanaged", pec: "optional_validated" }))),
+  ).toEqual({ ok: true });
+
+  mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({
+    ok: true,
+    labelsErrorCode: "checkout_labels_partial_sync",
+  });
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          taxCode: "required_validated",
+          pec: "optional_validated",
+          labelsEnabled: "1",
+          labelsConfirmed: "1",
+          labelsRevision: "r1",
+          configHash: "hash",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: true, labelsErrorCode: "checkout_labels_partial_sync" });
+  expect(mocks.saveRulesAndCheckoutLabels).toHaveBeenCalledWith(
+    admin,
+    db,
+    session.shop,
+    expect.objectContaining({
+      labelsEnabled: true,
+      confirmAutomaticWrite: true,
+      expectedLabelsRevision: "r1",
+    }),
+  );
+
+  mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({
+    ok: false,
+    errorCode: "checkout_labels_conflict",
+  });
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          taxCode: "required_validated",
+          pec: "optional_validated",
+          labelsEnabled: "1",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: false, errorCode: "checkout_labels_conflict" });
+});
+
+test("Regole conserva il salvataggio dopo la revoca degli scope", async () => {
+  const { action } = rulesRoute;
+  mocks.readCheckoutLabelState.mockResolvedValueOnce({ mode: "automatic" });
+  mocks.writeValidation.mockResolvedValueOnce({ ok: true });
+  expect(
+    await action(args(post("/app/rules", { taxCode: "unmanaged", pec: "optional_validated" }))),
+  ).toEqual({ ok: true, labelsErrorCode: "checkout_labels_scope_required" });
+
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          taxCode: "required_validated",
+          pec: "optional_validated",
+          labelsEnabled: "1",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: false, errorCode: "checkout_labels_scope_required" });
+
+  mocks.readCheckoutLabelState.mockResolvedValueOnce({ mode: "automatic" });
+  mocks.writeValidation.mockResolvedValueOnce({ ok: false, errorCode: "config_conflict" });
+  expect(
+    await action(args(post("/app/rules", { taxCode: "unmanaged", pec: "optional_validated" }))),
+  ).toEqual({ ok: false, errorCode: "config_conflict" });
+});
+
 test("il callback auth inoltra la richiesta a Shopify e propaga il rifiuto", async () => {
   const { loader } = authRoute;
   const request = new Request("https://example.test/auth/callback?shop=demo.myshopify.com");
@@ -451,5 +841,22 @@ test("la diagnosi aggiorna lo stato attraverso la riconciliazione condivisa senz
   mocks.reconcile.mockRejectedValueOnce(new Error("errore privato"));
   expect(await action(args(post("/app/guide", { intent: "check_validation" })))).toEqual({
     ok: false,
+  });
+});
+
+test("la diagnosi espone il fallimento del readback delle etichette", async () => {
+  const { action } = guideRoute;
+  mocks.scopeQuery.mockResolvedValue({
+    granted: ["write_translations", "read_locales", "read_markets"],
+  });
+  mocks.loadCheckoutLabels.mockResolvedValueOnce({
+    available: false,
+    state: { mode: "partial" },
+    errorCode: "checkout_labels_resource_ambiguous",
+  });
+
+  expect(await action(args(post("/app/guide", { intent: "check_validation" })))).toEqual({
+    ok: false,
+    errorCode: "checkout_labels_resource_ambiguous",
   });
 });

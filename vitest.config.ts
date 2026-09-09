@@ -36,6 +36,7 @@ export default defineConfig({
           "MIGRATION_REVISION_DB",
           "MIGRATION_FULL_DB",
           "MIGRATION_CONTRACTS_DB",
+          "MIGRATION_CHECKOUT_LABELS_DB",
           "MIGRATION_LEGACY_TRIALS_DB",
           "MIGRATION_LEGACY_LEDGER_DB",
           "MIGRATION_LEGACY_BILLING_DB",

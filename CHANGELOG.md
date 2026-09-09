@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.7.0 — 9 settembre 2026
+
+- con consenso Shopify separato, l'app confronta le etichette native di Codice
+  Fiscale e PEC e sincronizza automaticamente la traduzione globale inglese
+  supportata, lasciando fonti primarie, altre lingue e mercati alla verifica
+  guidata;
+- il controllo di “Interno” mostra valori correnti ed ereditati per lingua e
+  mercato, conserva le decisioni già registrate e ripristina soltanto le
+  traduzioni scelte dal merchant.
+
 ## 1.6.2 — 9 settembre 2026
 
 - attivato in Production il Control Center Telegram privato dell’owner dopo la

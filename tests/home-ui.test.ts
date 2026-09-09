@@ -221,6 +221,7 @@ test("la Setup guide non marca come completati i passi aperti e usa la griglia r
     entitlement: { kind: "none", validThrough: null },
     planKind: "none",
     address2Declared: false,
+    checkoutLabels: { status: "unknown" },
   } as Parameters<typeof SetupGuide>[0]["data"];
   const rendered = elements(
     SetupGuide({ data, busy: false, pendingIntent: null, pendingSource: null, submit: vi.fn() }),
@@ -238,7 +239,7 @@ test("la Setup guide non marca come completati i passi aperti e usa la griglia r
       element.type === "div" &&
       String((element.props as { className?: string }).className).includes("setup-guide__step"),
   );
-  expect(steps).toHaveLength(3);
+  expect(steps).toHaveLength(4);
   expect(
     steps.filter((step) =>
       String((step.props as { className?: string }).className).includes(
@@ -312,6 +313,7 @@ test("la Setup guide accoglie alla prima apertura e offre di iniziare la prova",
     trialStatus: null,
     planKind: "none",
     address2Declared: false,
+    checkoutLabels: { status: "unknown" },
   } as Parameters<typeof SetupGuide>[0]["data"];
   const submit = vi.fn();
   const render = (data: Parameters<typeof SetupGuide>[0]["data"]) =>
@@ -513,6 +515,7 @@ test("il confronto piani comunica con la Home senza navigare il frame della moda
       saved: {
         locale: "it",
         rules: { taxCode: "required_validated", pec: "unmanaged" },
+        labelState: { mode: "off", address2Classification: "unknown" },
       } as Awaited<ReturnType<typeof import("../app/routes/app.onboarding").loader>>["data"],
       declared: false,
       t: texts("it"),
