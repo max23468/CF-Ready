@@ -22,6 +22,7 @@ vi.mock("../app/validation.server", async (importOriginal) => ({
 }));
 vi.mock("../app/checkout-labels/repository.server", () => ({
   readCheckoutLabelState: mocks.readCheckoutLabelState,
+  saveAddress2FormMode: vi.fn(),
 }));
 
 test("la pagina Regole carica l’entitlement autorevole per l’anteprima", async () => {

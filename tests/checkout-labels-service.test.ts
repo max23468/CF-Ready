@@ -78,6 +78,7 @@ const state = {
   address2ExternalChangeAt: null,
   address2Decision: "pending" as const,
   address2ReviewedAt: null,
+  address2FormMode: null,
 };
 
 beforeEach(() => {
@@ -112,10 +113,31 @@ test("il caricamento persiste il readback e aggiorna una gestione attiva", async
     snapshot,
     state: refreshed,
     externalChange: false,
-    confirmedGuidedSlotIds: [checkoutLabelSlotId(fiscal)],
+    guidedConfirmations: [
+      {
+        slotId: checkoutLabelSlotId(fiscal),
+        confirmedAt: "2026-09-08T12:00:00Z",
+      },
+    ],
   });
   expect(mocks.persist).toHaveBeenCalledWith(db, shop, snapshot.slots, snapshot.address2);
   expect(mocks.mark).toHaveBeenCalledWith(db, shop, { errorCode: null, synced: true });
+});
+
+test("invalida la verifica guidata quando cambiano le regole attese", async () => {
+  const snapshot = snapshotOf([fiscalSlot()]);
+  const fiscal = snapshot.slots[0];
+  mocks.readLabels.mockResolvedValue(snapshot);
+  mocks.readStored.mockResolvedValue([
+    stored(fiscal, {
+      guidedConfirmedValue: "Codice fiscale",
+      guidedConfirmedAt: "2026-09-08T12:00:00Z",
+    }),
+  ]);
+
+  await expect(
+    loadCheckoutLabels(admin, db, shop, { ...rules, taxCode: "optional_validated" }),
+  ).resolves.toMatchObject({ guidedConfirmations: [] });
 });
 
 test("il caricamento inattivo osserva senza aggiornare lo stato di gestione", async () => {
@@ -464,6 +486,18 @@ test("la prima capacità automatica richiede conferma e poi sincronizza le due f
   });
 });
 
+test("non richiede conferma quando l’attivazione non modifica etichette automatiche", async () => {
+  const tax = fiscalSlot({ capability: "automatic", currentValue: "Codice fiscale" });
+  mocks.readStored.mockResolvedValue([stored(tax, { capability: "automatic" })]);
+  mocks.readLabels.mockResolvedValue(snapshotOf([tax]));
+
+  await expect(save(input({ confirmAutomaticWrite: false }))).resolves.toEqual({
+    ok: true,
+    labelsErrorCode: null,
+  });
+  expect(mocks.register).not.toHaveBeenCalled();
+});
+
 test("un errore dopo la Validation produce sincronizzazione parziale", async () => {
   const pec = fiscalSlot({
     name: "pec",
@@ -735,6 +769,12 @@ test("la conferma guidata è legata a revisione, tuple e valore osservato", asyn
   await expect(
     confirmGuidedCheckoutLabels(admin, db, shop, rules, "r1", [checkoutLabelSlotId(guided)]),
   ).resolves.toEqual({ ok: false, errorCode: "checkout_labels_conflict" });
+
+  const mismatched = { ...guided, currentValue: "Codice fiscale (facoltativo)" };
+  mocks.readLabels.mockResolvedValueOnce(snapshotOf([mismatched], "r1"));
+  await expect(
+    confirmGuidedCheckoutLabels(admin, db, shop, rules, "r1", [checkoutLabelSlotId(mismatched)]),
+  ).resolves.toEqual({ ok: false, errorCode: "checkout_labels_partial_sync" });
 
   const active = { ...state, mode: "guided" as const };
   mocks.readLabels.mockResolvedValueOnce(snapshotOf([guided], "r1"));

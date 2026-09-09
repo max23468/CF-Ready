@@ -528,6 +528,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "0017_owner_control.sql",
     "0018_checkout_labels.sql",
     "0019_checkout_label_decision.sql",
+    "0020_address2_form_mode.sql",
   ]);
   await applyD1Migrations(db, migrations);
 
@@ -694,7 +695,7 @@ test.each([null, "7"])(
   },
 );
 
-test("0018 conserva la dichiarazione storica e 0019 aggiunge la scelta sulle etichette", async () => {
+test("0018-0020 conservano lo storico e aggiungono le scelte sulle etichette", async () => {
   const { MIGRATION_CHECKOUT_LABELS_DB: db, TEST_MIGRATIONS: migrations } = migrationEnvironment();
   await applyThrough(db, migrations, "0016_current_contracts.sql");
   await insertShop(db);
@@ -734,4 +735,13 @@ test("0018 conserva la dichiarazione storica e 0019 aggiunge la scelta sulle eti
     checkout_labels_accepted_revision: null,
     checkout_labels_reviewed_at: null,
   });
+
+  await applyD1Migrations(db, [migrationAfter(migrations, "0019_checkout_label_decision.sql")]);
+  expect(
+    await db.prepare("SELECT address2_form_mode FROM app_state WHERE shop_id = 1").first(),
+  ).toEqual({ address2_form_mode: null });
+  await db.prepare("UPDATE app_state SET address2_form_mode = 'required' WHERE shop_id = 1").run();
+  await expect(
+    db.prepare("UPDATE app_state SET address2_form_mode = 'hidden' WHERE shop_id = 1").run(),
+  ).rejects.toThrow();
 });

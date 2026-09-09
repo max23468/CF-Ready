@@ -259,6 +259,7 @@ jobs:
             --output "$RUNNER_TEMP/robots.txt" \
             "https://$PUBLIC_DOMAIN/robots.txt?commit=$GITHUB_SHA"
           grep --ignore-case --quiet '^content-type:.*text/plain' "$RUNNER_TEMP/robots-headers.txt"
+          grep -Fxq 'Content-signal: search=yes, ai-input=yes, ai-train=no, use=reference' "$RUNNER_TEMP/robots.txt"
           grep -Fxq 'Sitemap: https://cfready.it/sitemap.xml' "$RUNNER_TEMP/robots.txt"
           cmp --silent site/robots.txt "$RUNNER_TEMP/robots.txt"
           curl --fail --silent --show-error --max-time 15 \
