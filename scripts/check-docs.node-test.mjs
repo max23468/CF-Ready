@@ -431,6 +431,7 @@ test("sitemap e robots espongono solo URL indicizzabili canonici", () => {
   assert.deepEqual(locations, [...indexableSitePages.values()]);
   assert.doesNotMatch(sitemap, /\/privacy|\/terms|\/404/);
   assert.match(robots, /^User-agent: \*$/m);
+  assert.match(robots, /^Content-signal: search=yes, ai-input=yes, ai-train=no, use=reference$/m);
   assert.match(robots, /^Allow: \/$/m);
   assert.match(robots, /^Sitemap: https:\/\/cfready\.it\/sitemap\.xml$/m);
 });

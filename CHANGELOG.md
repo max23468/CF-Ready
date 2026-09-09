@@ -16,7 +16,11 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 - il campo “Interno” mostra soltanto la variante obbligatoria o facoltativa
   scelta dal merchant nelle impostazioni del checkout;
 - le scritture automatiche e il ripristino di “Interno” usano modal Polaris con
-  l’elenco dei campi interessati.
+  l’elenco dei campi interessati;
+- il sito consente indicizzazione, citazioni e risposte assistite, ma dichiara
+  che i contenuti non possono essere usati per addestrare modelli;
+- test documentali e smoke Pages verificano che i Content Signals pubblicati
+  coincidano con il `robots.txt` versionato.
 
 ## 1.8.0 — 9 settembre 2026
 

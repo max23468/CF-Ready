@@ -386,6 +386,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-150 | Nel Control Center distinguere i problemi operativi aperti dagli errori storici e mostrare MRR e ARR sia lordi sia dopo le fee Shopify standard applicabili. | I `SHOP_UPDATE` falliti non restano aperti quando un aggiornamento successivo dello stesso store è riuscito o lo store è già stato redatto; gli altri errori restano consultabili in `/errors`. Il pending Telegram esclude l'update che sta eseguendo `/health`. Il netto applica i tassi nominati e verificati della fascia ordinaria corrente: revenue share 0% e commissione di elaborazione 2,9%, senza includere imposte od oneri regionali. Deciso dall'owner il 9 settembre 2026 per la `1.7.0`. |
 
 | D-151 | Usare `cfready.it` come origine canonica del sito pubblico e `app.cfready.it` per il Worker Production; `www.cfready.it` reindirizza con 301 alla radice, mentre i sottodomini Cloudflare restano endpoint tecnici. | Sitemap, robots, canonical, hreflang, metadati sociali e dati strutturati devono dichiarare il dominio pubblico. La zona usa i nameserver Cloudflare e una catena DNSSEC validata dal record DS pubblicato nel registro `.it`. Deciso dall'owner il 9 settembre 2026 per la `1.8.0`. |
+| D-152 | Dichiarare nel `robots.txt` del sito pubblico `search=yes`, `ai-input=yes`, `ai-train=no` e `use=reference`. | Motori di ricerca e assistenti possono indicizzare, citare e usare i contenuti per risposte contestuali, mentre l'addestramento resta escluso. Il file versionato è autorevole e lo smoke Pages ne verifica il contenuto effettivo, evitando una seconda configurazione gestita all'edge. Deciso dall'owner il 9 settembre 2026 per la `1.8.1`. |
 
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
@@ -2640,6 +2641,11 @@ Cloudflare Web Analytics è abilitata sul progetto Pages con iniezione
 automatica del beacon. Il token resta nella configurazione Cloudflare, non nel
 repository; la CSP consente lo script da `static.cloudflareinsights.com` e
 l'invio a `cloudflareinsights.com/cdn-cgi/rum`.
+
+Il `robots.txt` consente la scansione pubblica e dichiara Content Signals che
+permettono ricerca, citazioni e uso contestuale nelle risposte assistite, ma non
+l'addestramento dei modelli. Il file versionato resta la fonte autorevole e il
+deploy Pages fallisce se il contenuto servito all'edge è diverso.
 
 Worker Development:
 
