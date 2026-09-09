@@ -7,6 +7,8 @@ import {
   pollLocalNotifications,
   pollPartnerEvents,
 } from "../app/owner-notifications.server";
+import { pollLocalBillingEvents } from "../app/owner-notifications/local-billing-source.server";
+import { operationalSection } from "../app/owner-notifications/presentation";
 import { insertShop } from "./support/lifecycle";
 
 const PARTNER_CONFIG = {
@@ -32,12 +34,14 @@ beforeEach(async () => {
 
 test("il poll Partner copre lifecycle e billing con nome store, stato e importo", async () => {
   const shop = await insertShop("ciclo-completo.myshopify.com");
+  const testModeSubscription = subscription("SUBSCRIPTION_CHARGE_ACCEPTED", shop, "09:54");
+  testModeSubscription.node.charge.test = true;
   const events = [
     relationship("RELATIONSHIP_INSTALLED", shop, "09:50"),
     relationship("RELATIONSHIP_REACTIVATED", shop, "09:51"),
     relationship("RELATIONSHIP_DEACTIVATED", shop, "09:52"),
     relationship("RELATIONSHIP_UNINSTALLED", shop, "09:53"),
-    subscription("SUBSCRIPTION_CHARGE_ACCEPTED", shop, "09:54"),
+    testModeSubscription,
     subscription("SUBSCRIPTION_CHARGE_ACTIVATED", shop, "09:55"),
     subscription("SUBSCRIPTION_CHARGE_CANCELED", shop, "09:56"),
     subscription("SUBSCRIPTION_CHARGE_DECLINED", shop, "09:57"),
@@ -745,6 +749,14 @@ test("i confini Partner rifiutano configurazione, trasporto, JSON e paginazione 
       }),
     ).rejects.toThrow(code);
   }
+  await expect(
+    pollPartnerEvents(env.DB, PARTNER_CONFIG, {
+      now: NOW,
+      fetcher: vi.fn(async () => {
+        throw new Error("rete");
+      }),
+    }),
+  ).rejects.toThrow("partner_api_request_failed");
 
   const repeatedCursor = vi.fn(async () =>
     partnerResponse(
@@ -819,6 +831,49 @@ test("il poll locale rifiuta timestamp ed eventi billing fuori contratto", async
   await expect(pollLocalNotifications(env.DB, NOW)).rejects.toThrow(
     "billing_event_invalid_payload",
   );
+});
+
+test("il poll billing ignora una riga rimasta senza store", async () => {
+  const missingShopEvent = {
+    id: 7,
+    shop_domain: null,
+    shopify_resource_gid: "gid://shopify/AppSubscription/store-assente",
+    event_type: "active",
+    status: "monthly",
+    amount_minor: 299,
+    currency: "EUR",
+    period_end: "2026-09-24",
+    occurred_at: "2026-08-24T09:59:00.000Z",
+    previous_plan_kind: "none",
+  };
+  let billingRows = [missingShopEvent];
+  const db = {
+    prepare(sql: string) {
+      const statement = {
+        bind: () => statement,
+        first: async () => {
+          if (sql.includes("MIN(created_at)")) return { created_at: null };
+          if (sql.includes("MAX(id)")) return { id: 0 };
+          return null;
+        },
+        all: async () => ({ results: billingRows }),
+        run: async () => ({ meta: { changes: 1 } }),
+      };
+      return statement;
+    },
+  } as unknown as D1Database;
+
+  await expect(pollLocalBillingEvents(db, NOW)).resolves.toEqual({
+    inserted: 0,
+    afterId: 7,
+    pages: 1,
+  });
+
+  billingRows = Array.from({ length: 100 }, (_, index) => ({
+    ...missingShopEvent,
+    id: index + 1,
+  }));
+  await expect(pollLocalBillingEvents(db, NOW)).rejects.toThrow("billing_notification_page_limit");
 });
 
 test("Telegram copre config invalide, risposta non JSON, claim perso e tentativo terminale", async () => {
@@ -1037,6 +1092,28 @@ test("un nome piano non classificabile usa il fallback senza inventare un entitl
   ).toMatchObject({ inserted: 1 });
   expect(await env.DB.prepare("SELECT body_text FROM owner_notifications").first()).toMatchObject({
     body_text: expect.stringContaining("Piano: CF Ready — offerta speciale"),
+  });
+});
+
+test("il fallback del piano usa lo stato locale quando manca la transizione", async () => {
+  const shop = await insertShop("fallback-piano.myshopify.com");
+  await seedBillingAccount(await shopIdFor(shop), "monthly");
+  const event = subscription("SUBSCRIPTION_CHARGE_ACTIVATED", shop, "09:59");
+  event.node.charge.name = "CF Ready — abbonamento annuale";
+  await expect(
+    pollPartnerEvents(env.DB, PARTNER_CONFIG, {
+      now: NOW,
+      fetcher: vi.fn(async () => partnerResponse([event])),
+    }),
+  ).resolves.toMatchObject({ inserted: 1 });
+  expect(await env.DB.prepare("SELECT subject FROM owner_notifications").first()).toMatchObject({
+    subject: "🔄 CF Ready · Piano cambiato",
+  });
+});
+
+test("la sezione operativa gestisce uno snapshot assente", () => {
+  expect(operationalSection(null)).toMatchObject({
+    lines: ["Piano: Nessun piano attivo"],
   });
 });
 

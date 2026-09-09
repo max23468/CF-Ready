@@ -19,6 +19,7 @@ import {
 } from "../app/owner-control/model";
 import {
   activityMessage,
+  billingMessage,
   dashboardMessage,
   errorsMessage,
   funnelMessage,
@@ -191,6 +192,7 @@ describe("parser Control Center", () => {
       { update_id: 1, message: null },
       { update_id: 1, callback_query: null },
       { update_id: 1, callback_query: { id: 1 } },
+      { update_id: 1, callback_query: { id: "x", from: null, message: {} } },
       { update_id: 1, callback_query: { id: "x", from: {}, message: {} } },
       {
         update_id: 1,
@@ -464,6 +466,19 @@ describe("presentazione Telegram", () => {
 
   test("copre funnel, performance e versione con alternative di formato", () => {
     expect(
+      billingMessage({
+        rows: [
+          { entitlement_status: "ending", plan_kind: "monthly", count: 2 },
+          { entitlement_status: "expired", plan_kind: "annual", count: 3 },
+          { entitlement_status: "refunded", plan_kind: "one_time", count: 4 },
+        ],
+        complimentary: 1,
+        trials: 1,
+        mrr: 10,
+        arr: 120,
+      }).richMessage.blocks,
+    ).toBeTruthy();
+    expect(
       funnelMessage([
         {
           cohort: "2026-36",
@@ -551,6 +566,18 @@ describe("boundary webhook", () => {
         )
       ).status,
     ).toBe(415);
+    expect(
+      (
+        await handleOwnerControlWebhook(
+          new Request("https://cf-ready-prod.test/internal/telegram/webhook", {
+            method: "POST",
+            headers: { "x-telegram-bot-api-secret-token": SECRET },
+            body: JSON.stringify(messageUpdate("/help")),
+          }),
+          controlEnv(),
+        )
+      ).status,
+    ).toBe(415);
 
     const incomplete = controlEnv();
     delete incomplete.TELEGRAM_WEBHOOK_SECRET;
@@ -631,6 +658,19 @@ describe("boundary webhook", () => {
       ).status,
     ).toBe(200);
     expect(methods(fetcher)).toEqual(["answerCallbackQuery"]);
+    expect(
+      (
+        await handleOwnerControlWebhook(
+          request(callbackUpdate("callback-sconosciuta", { updateId: 4 })),
+          controlEnv(),
+          {
+            fetcher: vi.fn(async () => {
+              throw new Error("rete");
+            }) as unknown as typeof fetch,
+          },
+        )
+      ).status,
+    ).toBe(200);
   });
 
   test("rifiuta ogni configurazione owner incompleta e Content-Length non valido", async () => {
@@ -893,7 +933,11 @@ describe("idempotenza e delivery interattiva", () => {
       retry: false,
     });
 
+    const defaultClaim = await claimOwnerControlUpdate(env.DB, 92, "message");
+    expect(defaultClaim.acquired).toBe(true);
+
     await writeOwnerControlState(env.DB, "test", { count: 1 }, NOW);
+    await writeOwnerControlState(env.DB, "default-time", { count: 2 });
     expect(await readOwnerControlState<{ count: number }>(env.DB, "test")).toMatchObject({
       value: { count: 1 },
     });
@@ -990,6 +1034,7 @@ describe("query D1 e run-rate", () => {
     const actions: OwnerControlAction[] = [
       { view: "dashboard" },
       { view: "shops", filter: "all" },
+      { view: "shops" },
       { view: "shop", shopId: 1 },
       { view: "shop", argument: "dashboard" },
       { view: "shop" },
@@ -1056,7 +1101,9 @@ describe("query D1 e run-rate", () => {
     ).resolves.toBeTruthy();
     const custom = controlConfig();
     custom.environment = "preview";
-    await expect(renderOwnerControlAction(env.DB, { view: "help" }, custom)).resolves.toBeTruthy();
+    await expect(
+      renderOwnerControlAction(env.DB, { view: "version" }, custom),
+    ).resolves.toBeTruthy();
 
     const cachedHealth = vi.fn(() =>
       Promise.reject(new Error("non chiamare")),
@@ -1069,6 +1116,23 @@ describe("query D1 e run-rate", () => {
     ).resolves.toBeTruthy();
     expect(cachedHealth).not.toHaveBeenCalled();
 
+    await env.DB.prepare("DELETE FROM owner_control_state").run();
+    const unavailable = vi.fn(() =>
+      Promise.reject(new Error("provider non disponibile")),
+    ) as unknown as typeof fetch;
+    await expect(
+      renderOwnerControlAction(env.DB, { view: "dashboard" }, controlConfig(), {
+        now: new Date(NOW.getTime() + 20 * 60_000),
+        fetcher: unavailable,
+      }),
+    ).resolves.toBeTruthy();
+    await expect(
+      renderOwnerControlAction(env.DB, { view: "health" }, controlConfig(), {
+        now: new Date(NOW.getTime() + 20 * 60_000),
+        fetcher: unavailable,
+      }),
+    ).resolves.toBeTruthy();
+
     const performance = await readPerformance(env.DB);
     expect(performance.comparison).toMatchObject({
       previous_version: "1.5.3",
@@ -1079,6 +1143,21 @@ describe("query D1 e run-rate", () => {
 });
 
 describe("Growth Partner", () => {
+  test("usa i default runtime con una risposta Partner vuota", async () => {
+    const fetcher = vi.fn(async () => growthResponse([], false));
+    vi.stubGlobal("fetch", fetcher);
+    try {
+      await expect(readGrowthReport(env.DB, PARTNER)).resolves.toMatchObject({
+        days7: { RELATIONSHIP_INSTALLED: 0 },
+      });
+      await expect(fetchGrowthReport(PARTNER)).resolves.toMatchObject({
+        days28: { RELATIONSHIP_UNINSTALLED: 0 },
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   test("pagina eventi, separa 7/28 giorni e riusa cache e cooldown", async () => {
     const responses = [
       growthResponse(

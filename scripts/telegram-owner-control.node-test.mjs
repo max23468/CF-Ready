@@ -18,6 +18,7 @@ const environment = {
 
 test("legge modalità e configurazione senza esporre scorciatoie ambigue", () => {
   assert.deepEqual(parseOptions(["--check"]), { mode: "check" });
+  assert.deepEqual(parseOptions(["--apply"]), { mode: "apply" });
   assert.throws(() => parseOptions([]), /Uso/);
   assert.throws(() => parseOptions(["--check", "--apply"]), /Uso/);
   assert.throws(() => parseOptions(["production", "--apply"]), /Uso/);
@@ -34,6 +35,22 @@ test("legge modalità e configurazione senza esporre scorciatoie ambigue", () =>
     () => readConfig({ ...environment, TELEGRAM_WEBHOOK_SECRET: "troppo-corto" }),
     /WEBHOOK_SECRET/,
   );
+  assert.throws(() => readConfig({}), /BOT_TOKEN/);
+  assert.throws(() => readConfig({ ...environment, TELEGRAM_BOT_TOKEN: "token" }), /BOT_TOKEN/);
+  assert.throws(() => readConfig({ ...environment, TELEGRAM_CHAT_ID: "chat" }), /CHAT_ID/);
+  assert.throws(
+    () => readConfig({ ...environment, TELEGRAM_OWNER_USER_ID: "owner" }),
+    /OWNER_USER_ID/,
+  );
+  for (const SHOPIFY_APP_URL of [
+    "http://cf-ready-prod.test",
+    "https://cf-ready-prod.test/altro",
+    "https://cf-ready-prod.test?query=1",
+    "https://cf-ready-prod.test#fragmento",
+    "url-invalido",
+  ]) {
+    assert.throws(() => readConfig({ ...environment, SHOPIFY_APP_URL }), /URL webhook/);
+  }
   assert.equal(
     readConfig(environment).webhookUrl,
     "https://cf-ready-prod.test/internal/telegram/webhook",
@@ -91,4 +108,35 @@ test("check è read-only e fallisce se il readback non corrisponde", async () =>
     /readback Telegram/,
   );
   assert.deepEqual(methods.sort(), ["getMyCommands", "getWebhookInfo"]);
+});
+
+test("rifiuta risposte Telegram incomplete o fallite", async () => {
+  const config = readConfig(environment);
+  await assert.rejects(
+    runTelegramOwnerControl("check", config, async () => {
+      throw new Error("rete");
+    }),
+    /richiesta fallita/,
+  );
+  await assert.rejects(
+    runTelegramOwnerControl("check", config, async () => new Response("non-json")),
+    /risposta non valida/,
+  );
+  await assert.rejects(
+    runTelegramOwnerControl("check", config, async () =>
+      Response.json({ ok: false }, { status: 403 }),
+    ),
+    /operazione rifiutata/,
+  );
+  await assert.rejects(
+    runTelegramOwnerControl("check", config, async (input) =>
+      String(input).endsWith("/getWebhookInfo")
+        ? Response.json({
+            ok: true,
+            result: { url: config.webhookUrl, pending_update_count: "sconosciuto" },
+          })
+        : Response.json({ ok: true, result: {} }),
+    ),
+    /readback Telegram/,
+  );
 });

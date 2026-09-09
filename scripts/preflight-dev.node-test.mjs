@@ -109,6 +109,8 @@ test("il preflight lega il nome Worker alla chiave corretta", () => {
 test("il preflight rifiuta una versione Shopify già pubblicata", () => {
   const tree = "b".repeat(40);
   const version = developmentVersion("0.4.22", tree);
+  assert.throws(() => developmentVersion("versione-invalida", tree), /tree Git non validi/);
+  assert.throws(() => developmentVersion("0.4.22", "tree-invalido"), /tree Git non validi/);
   assert.throws(
     () => verifyVersionAvailable([{ versionTag: version }], version, {}, undefined, tree),
     /già stata pubblicata/,

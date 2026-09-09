@@ -5,46 +5,46 @@
   "global": {
     "statements": {
       "total": 6861,
-      "covered": 6645,
-      "pct": 96.85
+      "covered": 6675,
+      "pct": 97.28
     },
     "branches": {
-      "total": 4081,
-      "covered": 3885,
-      "pct": 95.19
+      "total": 4105,
+      "covered": 3941,
+      "pct": 96
     },
     "functions": {
       "total": 917,
-      "covered": 898,
-      "pct": 97.92
+      "covered": 905,
+      "pct": 98.69
     },
     "lines": {
       "total": 6539,
-      "covered": 6346,
-      "pct": 97.04
+      "covered": 6374,
+      "pct": 97.47
     }
   },
   "groups": {
     "server-worker": {
       "statements": {
         "total": 2233,
-        "covered": 2177,
-        "pct": 97.49
+        "covered": 2186,
+        "pct": 97.89
       },
       "branches": {
         "total": 2062,
-        "covered": 1977,
-        "pct": 95.87
+        "covered": 1992,
+        "pct": 96.6
       },
       "functions": {
         "total": 459,
-        "covered": 447,
-        "pct": 97.38
+        "covered": 453,
+        "pct": 98.69
       },
       "lines": {
         "total": 2009,
-        "covered": 1969,
-        "pct": 98
+        "covered": 1976,
+        "pct": 98.35
       }
     },
     "ui-routes": {
@@ -94,23 +94,23 @@
     "operations": {
       "statements": {
         "total": 3544,
-        "covered": 3396,
-        "pct": 95.82
+        "covered": 3417,
+        "pct": 96.41
       },
       "branches": {
-        "total": 1145,
-        "covered": 1069,
-        "pct": 93.36
+        "total": 1169,
+        "covered": 1110,
+        "pct": 94.95
       },
       "functions": {
         "total": 165,
-        "covered": 159,
-        "pct": 96.36
+        "covered": 160,
+        "pct": 96.96
       },
       "lines": {
         "total": 3544,
-        "covered": 3396,
-        "pct": 95.82
+        "covered": 3417,
+        "pct": 96.41
       }
     },
     "public-site": {
@@ -206,13 +206,13 @@
     "ownerNotifications": {
       "statements": {
         "total": 413,
-        "covered": 407,
-        "pct": 98.54
+        "covered": 410,
+        "pct": 99.27
       },
       "branches": {
         "total": 392,
-        "covered": 374,
-        "pct": 95.4
+        "covered": 379,
+        "pct": 96.68
       },
       "functions": {
         "total": 81,
@@ -221,8 +221,8 @@
       },
       "lines": {
         "total": 354,
-        "covered": 350,
-        "pct": 98.87
+        "covered": 352,
+        "pct": 99.43
       }
     }
   },
