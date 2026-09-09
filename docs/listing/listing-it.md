@@ -23,7 +23,7 @@ checkout.
 
 | Campo | Valore |
 | --- | --- |
-| Nome app | CF Ready \| Codice Fiscale |
+| Nome app | CF Ready \| Codice Fiscale, PEC |
 | Nome breve in Admin | CF Ready |
 | Handle | `cf-ready` |
 | Categoria primaria | Gestione del negozio → Finanze → Imposte |
@@ -34,7 +34,7 @@ checkout.
 
 L'alt text della feature image è richiesto insieme all'immagine:
 
-> CF Ready | Codice Fiscale nel checkout
+> CF Ready | Codice Fiscale e PEC nel checkout
 
 Descrive quello che si vede, non quello che vorremmo far capire: un alt text che
 ripete lo slogan è inutile a chi non vede l'immagine.
@@ -47,21 +47,22 @@ ripete lo slogan è inutile a chi non vede l'immagine.
 
 ## Introduzione
 
-> Evita ordini senza un Codice Fiscale formalmente valido. Configuri tutto senza
-> complessità.
+> Mai più ordini senza Codice Fiscale: raccoglilo subito e semplifica la
+> fatturazione elettronica.
 
-**91/100 caratteri.**
+**96/100 caratteri.**
 
 ## Dettagli app
 
-> Evita ordini italiani senza un Codice Fiscale formalmente valido. Configura
-> separatamente Codice Fiscale e PEC; la PEC può diventare obbligatoria quando
-> il cliente compila Azienda. CF Ready usa i campi nativi del checkout: provi le
-> regole prima di attivarle, senza codice né Shopify Plus. I controlli valgono
-> solo per l’Italia. I dati fiscali non arrivano ai nostri sistemi e, se l’app ha
-> un errore, il checkout resta aperto. La verifica è formale, non anagrafica.
+> Evita ordini italiani con Codice Fiscale mancante o non valido. Scegli per
+> Codice Fiscale e PEC se non gestirli, renderli facoltativi o obbligatori; puoi
+> richiedere la PEC quando il cliente compila Azienda. CF Ready usa i campi
+> nativi del checkout: configuri e provi le regole prima di attivarle, senza
+> codice né Shopify Plus. I controlli valgono solo per l’Italia. I dati fiscali
+> non arrivano ai nostri sistemi e, se l’app ha errori, il checkout resta aperto.
+> La verifica è formale, non anagrafica.
 
-**464/500 caratteri.**
+**499/500 caratteri.**
 
 ## Punti in evidenza
 
@@ -76,9 +77,9 @@ ripete lo slogan è inutile a chi non vede l'immagine.
 - termini di ricerca: `Codice Fiscale`, `PEC`, `Checkout`, `Checkout italiano`,
   `CF obbligatorio`;
 - title tag: `CF Ready | Codice Fiscale obbligatorio nel checkout`;
-- meta description: `Codice Fiscale obbligatorio nel checkout italiano, senza
-  complessità. Regole indipendenti per CF e PEC, nessun dato fiscale nei nostri
-  sistemi.`
+- meta description: `Rende il Codice Fiscale obbligatorio nel checkout, senza
+  complessità. Regole indipendenti per CF e PEC, nessuna modifica ai temi,
+  nessun piano Plus richiesto.`
 
 ## Canali e limitazioni dichiarate
 
