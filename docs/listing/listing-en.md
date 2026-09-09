@@ -22,7 +22,7 @@ for amounts, `extensions/cf-ready-validation/` for checkout behaviour.
 
 | Field | Value |
 | --- | --- |
-| App name | CF Ready \| Codice Fiscale |
+| App name | CF Ready \| Codice Fiscale, PEC |
 | Short name in Admin | CF Ready |
 | Handle | `cf-ready` |
 | Primary category | Store management → Finances → Taxes |
@@ -33,7 +33,7 @@ for amounts, `extensions/cf-ready-validation/` for checkout behaviour.
 
 The feature image needs alt text alongside it:
 
-> CF Ready | Codice Fiscale (Italian tax code) at checkout
+> CF Ready | Codice Fiscale and PEC at checkout
 
 It describes what is visible, not what we would like the reader to conclude: alt
 text that repeats the tagline is useless to someone who cannot see the image.
@@ -46,21 +46,22 @@ text that repeats the tagline is useless to someone who cannot see the image.
 
 ## Introduction
 
-> Prevent orders without a formally valid Codice Fiscale. Set everything up
-> without complexity.
+> No more orders without a Codice Fiscale: collect it upfront and simplify
+> e-invoicing.
 
-**93/100 characters.**
+**85/100 characters.**
 
 ## App details
 
-> Prevent Italian orders without a formally valid Codice Fiscale. Configure
-> Codice Fiscale and PEC separately; PEC can become required when the customer
-> fills in Company. CF Ready uses Shopify's native checkout fields: preview rules
-> before activation, with no code or Shopify Plus. Checks apply only to Italy.
-> Tax data never reaches our systems and, if the app fails, checkout stays open.
+> Prevent Italian orders with missing or invalid Codice Fiscale. For Codice
+> Fiscale and PEC, choose whether to leave them unmanaged, make them optional or
+> required; you can require PEC when the customer fills in Company. CF Ready
+> uses Shopify's native checkout fields: configure and preview rules before
+> activation, with no code or Shopify Plus. Checks apply only to Italy. Tax data
+> never reaches our systems and, if the app fails, checkout stays open.
 > Validation is formal, not identity-based.
 
-**428/500 characters.**
+**492/500 characters.**
 
 ## Key features
 
@@ -144,7 +145,7 @@ must state the same figure.
 
 | Item | URL |
 | --- | --- |
-| Support | `https://cf-ready.pages.dev/en/support` (English support, localized override) |
+| Support | `https://cf-ready.pages.dev/support` (shared from the primary listing) |
 | Developer website | `https://cf-ready.pages.dev/en/` |
 | Privacy | `https://cf-ready.pages.dev/en/privacy` |
 | Terms | `https://cf-ready.pages.dev/en/terms` |
