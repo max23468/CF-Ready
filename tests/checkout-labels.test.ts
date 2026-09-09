@@ -163,6 +163,60 @@ test("un readback Admin resta guidato finché la stessa tupla non ha una prova c
   expect(graphql.mock.calls[0][0]).not.toContain("186856898864");
 });
 
+test("il discovery ignora contenuti estranei e gestisce contesti Shopify incompleti", async () => {
+  const responses = [
+    {
+      data: {
+        shopLocales: [{ locale: "it", name: "Italiano", primary: true, published: true }],
+        markets: {
+          nodes: [{ id: "gid://shopify/Market/1", name: "Italia", webPresence: null }],
+          pageInfo: { hasNextPage: false, endCursor: null },
+        },
+      },
+    },
+    {
+      data: {
+        translatableResources: {
+          nodes: [
+            {
+              resourceId,
+              translatableContent: [
+                {
+                  key: "shopify.checkout.unrelated",
+                  value: "Altro",
+                  digest: "digest-altro",
+                  locale: "it",
+                },
+                {
+                  key: CHECKOUT_LABEL_KEYS.taxCode,
+                  value: "Codice fiscale",
+                  digest: "digest-tax-code",
+                  locale: "it",
+                },
+              ],
+            },
+          ],
+          pageInfo: { hasNextPage: false, endCursor: null },
+        },
+      },
+    },
+    { data: { translatableResource: null } },
+  ];
+  const graphql = vi.fn(async () => Response.json(responses.shift()));
+
+  const snapshot = await readCheckoutLabels({ graphql });
+
+  expect(snapshot.markets[0]).toMatchObject({ defaultLocale: null, locales: [] });
+  expect(snapshot.slots).toEqual([
+    expect.objectContaining({
+      name: "taxCode",
+      kind: "source",
+      currentValue: "Codice fiscale",
+      outdated: false,
+    }),
+  ]);
+});
+
 test("il discovery segnala risorse mancanti, ambigue e paginazione incoerente", async () => {
   const duplicateContent = {
     key: CHECKOUT_LABEL_KEYS.taxCode,
@@ -320,6 +374,16 @@ test("le mutation accettano soltanto le quattro chiavi e rimuovono una singola t
     ]),
   ).rejects.toThrow("checkout_labels_partial_sync");
   expect(rejected).not.toHaveBeenCalled();
+
+  await removeCheckoutLabelTranslation(
+    { graphql },
+    { ...target, kind: "global_translation", marketId: null },
+  );
+  expect(graphql.mock.calls.at(-1)?.[1]?.variables).toMatchObject({ marketIds: null });
+
+  await expect(
+    registerCheckoutLabelTranslations({ graphql: rejected }, resourceId, []),
+  ).rejects.toThrow("checkout_labels_partial_sync");
 });
 
 test("le mutation distinguono digest superati, errori parziali e throttle", async () => {
@@ -367,6 +431,27 @@ test("le mutation distinguono digest superati, errori parziali e throttle", asyn
   await vi.runAllTimersAsync();
   await expect(pending).resolves.toBeUndefined();
   expect(throttled).toHaveBeenCalledTimes(2);
+
+  const graphqlErrors = vi
+    .fn()
+    .mockResolvedValueOnce(
+      Response.json({
+        errors: [{ message: "Throttled", extensions: { code: "THROTTLED" } }],
+      }),
+    )
+    .mockResolvedValueOnce(Response.json({ data: { translationsRegister: { userErrors: [] } } }));
+  const retried = registerCheckoutLabelTranslations({ graphql: graphqlErrors }, resourceId, [
+    translation,
+  ]);
+  await vi.runAllTimersAsync();
+  await expect(retried).resolves.toBeUndefined();
+
+  const unspecified = vi.fn(async () =>
+    Response.json({ data: { translationsRegister: { userErrors: [{}] } } }),
+  );
+  await expect(
+    registerCheckoutLabelTranslations({ graphql: unspecified }, resourceId, [translation]),
+  ).rejects.toThrow("checkout_labels_partial_sync");
 });
 
 test("D1 conserva baseline e distingue una rimozione da una scrittura mai iniziata", async () => {

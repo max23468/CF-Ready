@@ -200,7 +200,7 @@ function NativeCheckoutLabels({
                 {copy.confirmGuided}
               </s-button>
             ) : null}
-            <s-button disabled={busy} onClick={() => window.location.reload()}>
+            <s-button disabled={busy} href="">
               {copy.refresh}
             </s-button>
           </>

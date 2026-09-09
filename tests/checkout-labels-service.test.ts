@@ -122,6 +122,20 @@ test("il caricamento inattivo osserva senza aggiornare lo stato di gestione", as
   expect(mocks.mark).not.toHaveBeenCalled();
 });
 
+test("il caricamento attivo segnala una conferma guidata ancora assente", async () => {
+  mocks.readState.mockResolvedValue({ ...state, mode: "guided" as const });
+  mocks.readLabels.mockResolvedValue(snapshotOf([fiscalSlot()]));
+
+  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
+    available: true,
+    externalChange: false,
+  });
+  expect(mocks.mark).toHaveBeenCalledWith(db, shop, {
+    errorCode: "checkout_labels_partial_sync",
+    synced: false,
+  });
+});
+
 test("il caricamento conserva l'errore della chiave fiscale incompleta", async () => {
   const active = { ...state, mode: "guided" as const };
   const snapshot = {
@@ -563,6 +577,12 @@ test("il ripristino di Interno copre conflitto, lock, traduzione e override", as
     errorCode: "address2_restore_conflict",
   });
 
+  mocks.readLabels.mockResolvedValueOnce(snapshotOf([], "r1"));
+  await expect(restoreAddress2Translations(admin, db, shop, "r1", [])).resolves.toEqual({
+    ok: false,
+    errorCode: "address2_restore_conflict",
+  });
+
   mocks.readLabels.mockReset();
   mocks.readLabels
     .mockResolvedValueOnce(snapshotOf([global, market, source], "r1"))
@@ -638,6 +658,12 @@ test("il ripristino della variante facoltativa registra lo stato ripristinato", 
 });
 
 test("la decisione di mantenere Interno richiede la revisione corrente", async () => {
+  mocks.withLock.mockResolvedValueOnce({ acquired: false });
+  await expect(acceptAddress2Customization(admin, db, shop, "r1")).resolves.toEqual({
+    ok: false,
+    errorCode: "validation_locked",
+  });
+
   mocks.readLabels.mockResolvedValueOnce(snapshotOf([], "r2"));
   await expect(acceptAddress2Customization(admin, db, shop, "r1")).resolves.toEqual({
     ok: false,
@@ -678,6 +704,22 @@ test("la conferma guidata è legata a revisione, tuple e valore osservato", asyn
     errorCode: null,
     synced: true,
   });
+
+  mocks.readLabels.mockResolvedValueOnce(snapshotOf([guided], "r1"));
+  await expect(confirmGuidedCheckoutLabels(admin, db, shop, rules, "r1", [])).resolves.toEqual({
+    ok: false,
+    errorCode: "checkout_labels_conflict",
+  });
+
+  mocks.withLock.mockResolvedValueOnce({ acquired: false });
+  await expect(
+    confirmGuidedCheckoutLabels(admin, db, shop, rules, "r1", [checkoutLabelSlotId(guided)]),
+  ).resolves.toEqual({ ok: false, errorCode: "validation_locked" });
+
+  mocks.readLabels.mockRejectedValueOnce(new Error("errore inatteso"));
+  await expect(
+    confirmGuidedCheckoutLabels(admin, db, shop, rules, "r1", [checkoutLabelSlotId(guided)]),
+  ).resolves.toEqual({ ok: false, errorCode: "checkout_labels_readback_failed" });
 });
 
 function save(overrides = {}) {

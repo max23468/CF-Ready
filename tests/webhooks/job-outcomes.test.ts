@@ -102,6 +102,18 @@ test("aggiorna soltanto la sessione offline quando Shopify invia gli scope", asy
   expect(mocks.markCheckoutLabelsScopeRequired).toHaveBeenCalledWith(db, job.shop);
 });
 
+test("mantiene le etichette quando tutti gli scope opzionali restano concessi", async () => {
+  mocks.topic = "APP_SCOPES_UPDATE";
+  mocks.findSessionsByShop.mockResolvedValue([{ id: "offline", isOnline: false }]);
+
+  await processWebhookJob(db, {
+    ...job,
+    currentScopes: ["write_translations", "read_locales", "read_markets"],
+  });
+
+  expect(mocks.markCheckoutLabelsScopeRequired).not.toHaveBeenCalled();
+});
+
 test.each([
   [[], ["read_products"]],
   [[{ id: "offline", isOnline: false }], undefined],

@@ -838,6 +838,36 @@ describe("Messaggi", () => {
 });
 
 describe("Onboarding", () => {
+  test("richiede i permessi opzionali e ignora un modulo regole incompleto", async () => {
+    router.loaderData = { ...onboardingData, step: 2, labelScopesGranted: false };
+    const view = await mount(<Onboarding />);
+    const requestScopes = [...view.container.querySelectorAll("s-button")].find((button) =>
+      button.textContent?.includes(texts("it").rules.labels.requestPermissions),
+    );
+    if (!requestScopes) throw new Error("richiesta permessi onboarding assente");
+    await click(requestScopes);
+    expect(router.fetcher.submit).toHaveBeenCalledWith(
+      expect.objectContaining({ intent: "request_label_scopes" }),
+      { method: "post" },
+    );
+
+    const originalFormData = FormData;
+    class IncompleteRulesFormData {
+      get(name: string) {
+        return name === "taxCode" ? "required_validated" : null;
+      }
+    }
+    vi.stubGlobal("FormData", IncompleteRulesFormData as unknown as typeof originalFormData);
+    const next = [...view.container.querySelectorAll("s-button")].find((button) =>
+      button.textContent?.includes(texts("it").onboarding.next),
+    );
+    if (!next) throw new Error("avanzamento onboarding assente");
+    router.fetcher.submit.mockClear();
+    await click(next);
+    expect(router.fetcher.submit).not.toHaveBeenCalled();
+    vi.stubGlobal("FormData", originalFormData);
+  });
+
   test("configura la sincronizzazione automatica delle etichette dal secondo passo", async () => {
     router.loaderData = {
       ...onboardingData,
@@ -1257,6 +1287,13 @@ describe("Regole", () => {
     expect(view.container.textContent).toContain(texts("it").rules.saved);
   });
 
+  test("mostra il conflitto anche quando la dichiarazione di Interno è attiva", async () => {
+    router.loaderData = { ...rulesData, address2Declared: true };
+    router.actionData = { ok: false, errorCode: "config_conflict" };
+    const view = await mount(<CheckoutRules />);
+    expect(view.container.textContent).toContain(texts("it").conflict.heading);
+  });
+
   test("salva hash assente e dichiarazione attiva", async () => {
     router.loaderData = {
       ...rulesData,
@@ -1346,6 +1383,11 @@ describe("Regole", () => {
     if (!guided) throw new Error("conferma guidata assente");
     guided.checked = true;
     await dispatch(guided, new Event("change", { bubbles: true }));
+    await dispatch(guided, new Event("change", { bubbles: true }));
+    guided.checked = false;
+    await dispatch(guided, new Event("change", { bubbles: true }));
+    guided.checked = true;
+    await dispatch(guided, new Event("change", { bubbles: true }));
     await click(
       [...view.container.querySelectorAll("s-button")].find(
         (button) => button.textContent === texts("it").rules.labels.confirmGuided,
@@ -1366,6 +1408,19 @@ describe("Regole", () => {
       button.textContent?.includes(texts("it").rules.labels.keepAddress),
     );
     if (!restore || !keep) throw new Error("azioni etichette assenti");
+    vi.stubGlobal(
+      "confirm",
+      vi.fn(() => false),
+    );
+    await click(restore);
+    expect(router.fetcher.submit).not.toHaveBeenCalledWith(
+      expect.objectContaining({ intent: "restore_address2_labels" }),
+      { method: "post" },
+    );
+    vi.stubGlobal(
+      "confirm",
+      vi.fn(() => true),
+    );
     await click(restore);
     await click(keep);
     const submissions = router.fetcher.submit.mock.calls.map(([body]) =>
@@ -1401,6 +1456,17 @@ describe("Regole", () => {
     if (!management) throw new Error("controllo gestione etichette assente");
     management.checked = true;
     await dispatch(management, new Event("change", { bubbles: true }));
+    const submissionsBeforeConfirmation = router.submit.mock.calls.length;
+    vi.stubGlobal(
+      "confirm",
+      vi.fn(() => false),
+    );
+    await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
+    expect(router.submit).toHaveBeenCalledTimes(submissionsBeforeConfirmation);
+    vi.stubGlobal(
+      "confirm",
+      vi.fn(() => true),
+    );
     await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
     expect(router.submit).toHaveBeenLastCalledWith(
       expect.objectContaining({ labelsEnabled: "1", labelsConfirmed: "1" }),
@@ -1410,6 +1476,87 @@ describe("Regole", () => {
     router.loaderData = { ...rulesData, labelScopesGranted: true, labelSnapshot: null };
     await view.rerender(<CheckoutRules key="labels-without-snapshot" />);
     expect(view.container.textContent).toContain(texts("it").rules.labels.noSnapshot);
+
+    for (const address2Classification of ["nonstandard", "expected"] as const) {
+      router.loaderData = {
+        ...rulesData,
+        labelScopesGranted: true,
+        labelState: { ...rulesData.labelState, address2Classification },
+        labelSnapshot: {
+          ...snapshot,
+          address2: { classification: address2Classification, hasMarketOverride: false },
+        },
+      };
+      await view.rerender(<CheckoutRules key={address2Classification} />);
+    }
+
+    router.loaderData = {
+      ...rulesData,
+      locale: "en",
+      labelScopesGranted: true,
+      labelState: {
+        ...rulesData.labelState,
+        mode: "guided",
+        lastSyncAt: "2026-09-08T12:00:00Z",
+      },
+      labelSnapshot: {
+        ...snapshot,
+        slots: snapshot.slots
+          .filter((slot) => slot.marketId === null)
+          .map((slot) => ({ ...slot, capability: "guided" as const })),
+      },
+      confirmedGuidedSlotIds: [
+        JSON.stringify([
+          "gid://shopify/OnlineStoreThemeLocaleContent/1",
+          "shopify.checkout.localized_fields.additional_information.tax_credential_it",
+          "it",
+          null,
+          "global_translation",
+        ]),
+      ],
+    };
+    await view.rerender(<CheckoutRules key="guided-english" />);
+    const previewLanguage = view.container.querySelector("s-select") as HTMLElement & {
+      value: string;
+    };
+    previewLanguage.value = "it";
+    await dispatch(previewLanguage, new Event("change", { bubbles: true }));
+
+    router.actionData = { ok: true, labelsErrorCode: "checkout_labels_partial_sync" };
+    router.loaderData = {
+      ...rulesData,
+      labelScopesGranted: true,
+      labelSnapshot: {
+        ...snapshot,
+        slots: [
+          labelSlot({
+            name: "address2",
+            kind: "global_translation",
+            capability: "automatic",
+          }),
+        ],
+      },
+    };
+    await view.rerender(<CheckoutRules key="labels-partial" />);
+    expect(view.container.querySelector('s-banner[tone="warning"]')).not.toBeNull();
+  });
+
+  test("richiede gli scope delle etichette dalle Regole", async () => {
+    router.loaderData = {
+      ...rulesData,
+      rules: { taxCode: "unmanaged", pec: "unmanaged" },
+      labelScopesGranted: false,
+    };
+    const view = await mount(<CheckoutRules />);
+    const requestScopes = [...view.container.querySelectorAll("s-button")].find((button) =>
+      button.textContent?.includes(texts("it").rules.labels.requestPermissions),
+    );
+    if (!requestScopes) throw new Error("richiesta permessi Regole assente");
+    await click(requestScopes);
+    const submitted = router.fetcher.submit.mock.calls.at(-1)?.[0];
+    expect(
+      submitted instanceof FormData ? Object.fromEntries(submitted.entries()) : submitted,
+    ).toEqual(expect.objectContaining({ intent: "request_label_scopes" }));
   });
 });
 
