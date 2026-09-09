@@ -1,6 +1,7 @@
 import { observedLabelForSlot } from "./domain";
 import type {
   Address2Decision,
+  CheckoutLabelsDecision,
   CheckoutLabelSlot,
   CheckoutLabelsMode,
   CheckoutLabelState,
@@ -13,6 +14,9 @@ const DEFAULT_STATE: CheckoutLabelState = {
   enabledAt: null,
   lastSyncAt: null,
   lastErrorCode: null,
+  decision: "pending",
+  acceptedRevision: null,
+  reviewedAt: null,
   address2Classification: "unknown",
   address2HasMarketOverride: false,
   address2ExternalChangeAt: null,
@@ -25,7 +29,9 @@ export async function readCheckoutLabelState(db: D1Database, shopDomain: string)
     .prepare(
       `SELECT checkout_labels_mode, checkout_labels_management_epoch,
               checkout_labels_enabled_at, checkout_labels_last_sync_at,
-              checkout_labels_last_error_code, address2_classification,
+              checkout_labels_last_error_code, checkout_labels_decision,
+              checkout_labels_accepted_revision, checkout_labels_reviewed_at,
+              address2_classification,
               address2_has_market_override, address2_external_change_at,
               address2_decision, address2_reviewed_at
        FROM app_state
@@ -38,6 +44,9 @@ export async function readCheckoutLabelState(db: D1Database, shopDomain: string)
       checkout_labels_enabled_at: string | null;
       checkout_labels_last_sync_at: string | null;
       checkout_labels_last_error_code: string | null;
+      checkout_labels_decision: CheckoutLabelsDecision;
+      checkout_labels_accepted_revision: string | null;
+      checkout_labels_reviewed_at: string | null;
       address2_classification: CheckoutLabelState["address2Classification"];
       address2_has_market_override: number;
       address2_external_change_at: string | null;
@@ -52,6 +61,9 @@ export async function readCheckoutLabelState(db: D1Database, shopDomain: string)
         enabledAt: row.checkout_labels_enabled_at,
         lastSyncAt: row.checkout_labels_last_sync_at,
         lastErrorCode: row.checkout_labels_last_error_code,
+        decision: row.checkout_labels_decision,
+        acceptedRevision: row.checkout_labels_accepted_revision,
+        reviewedAt: row.checkout_labels_reviewed_at,
         address2Classification: row.address2_classification,
         address2HasMarketOverride: Boolean(row.address2_has_market_override),
         address2ExternalChangeAt: row.address2_external_change_at,
@@ -187,6 +199,8 @@ export async function enableCheckoutLabels(
       `UPDATE app_state
        SET checkout_labels_mode = ?, checkout_labels_management_epoch = ?,
            checkout_labels_enabled_at = ?, checkout_labels_last_error_code = NULL,
+           checkout_labels_decision = 'pending', checkout_labels_accepted_revision = NULL,
+           checkout_labels_reviewed_at = NULL,
            updated_at = ?
        WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
     )
@@ -382,6 +396,24 @@ export async function saveAddress2Decision(
        WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
     )
     .bind(decision, now, now, shopDomain)
+    .run();
+}
+
+export async function saveCheckoutLabelsDecision(
+  db: D1Database,
+  shopDomain: string,
+  decision: CheckoutLabelsDecision,
+  acceptedRevision: string | null,
+) {
+  const now = new Date().toISOString();
+  await db
+    .prepare(
+      `UPDATE app_state
+       SET checkout_labels_decision = ?, checkout_labels_accepted_revision = ?,
+           checkout_labels_reviewed_at = ?, updated_at = ?
+       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    )
+    .bind(decision, acceptedRevision, decision === "accepted" ? now : null, now, shopDomain)
     .run();
 }
 

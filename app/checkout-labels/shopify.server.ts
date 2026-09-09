@@ -48,10 +48,14 @@ type TranslationNode = {
 type MarketNode = {
   id: string;
   name: string;
-  webPresence: {
-    defaultLocale: { locale: string };
-    alternateLocales: Array<{ locale: string }>;
-  } | null;
+  webPresences: {
+    nodes: Array<{
+      defaultLocale: { locale: string };
+      alternateLocales: Array<{ locale: string }>;
+      markets: { nodes: Array<{ id: string }>; pageInfo: { hasNextPage: boolean } };
+    }>;
+    pageInfo: { hasNextPage: boolean };
+  };
 };
 
 type DiscoveryContextData = {
@@ -82,13 +86,17 @@ const DISCOVER_CHECKOUT_LABEL_CONTEXT = `#graphql
       primary
       published
     }
-    markets(first: 100, after: $after) {
+    markets(first: 10, after: $after) {
       nodes {
         id
         name
-        webPresence {
-          defaultLocale { locale }
-          alternateLocales { locale }
+        webPresences(first: 5) {
+          nodes {
+            defaultLocale { locale }
+            alternateLocales { locale }
+            markets(first: 10) { nodes { id } pageInfo { hasNextPage } }
+          }
+          pageInfo { hasNextPage }
         }
       }
       pageInfo { hasNextPage endCursor }
@@ -316,15 +324,31 @@ async function readCheckoutLabelContext(admin: Admin) {
     }
     markets.push(
       ...body.markets.nodes.map((market) => {
-        const defaultLocale = market.webPresence?.defaultLocale.locale ?? null;
+        const presences = market.webPresences.nodes;
+        const ambiguous =
+          market.webPresences.pageInfo.hasNextPage ||
+          presences.length !== 1 ||
+          presences.some(({ markets }) => markets.pageInfo.hasNextPage);
+        const defaultLocale = ambiguous ? null : presences[0].defaultLocale.locale;
+        const discoveredLocales = presences.flatMap((presence) => [
+          presence.defaultLocale.locale,
+          ...presence.alternateLocales.map(({ locale }) => locale),
+        ]);
+        const fallbackLocales = locales.flatMap(({ locale, published }) =>
+          published ? [locale] : [],
+        );
         return {
           id: market.id,
           name: market.name,
           defaultLocale,
-          locales: [
-            ...(defaultLocale ? [defaultLocale] : []),
-            ...(market.webPresence?.alternateLocales.map(({ locale }) => locale) ?? []),
-          ].filter((locale, index, all) => all.indexOf(locale) === index),
+          locales: (discoveredLocales.length > 0 ? discoveredLocales : fallbackLocales).filter(
+            (locale, index, all) => all.indexOf(locale) === index,
+          ),
+          resolution: ambiguous
+            ? ("ambiguous" as const)
+            : presences[0].markets.nodes.some(({ id }) => id === market.id)
+              ? ("direct" as const)
+              : ("inherited" as const),
         };
       }),
     );

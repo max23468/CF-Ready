@@ -527,6 +527,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "0016_current_contracts.sql",
     "0017_owner_control.sql",
     "0018_checkout_labels.sql",
+    "0019_checkout_label_decision.sql",
   ]);
   await applyD1Migrations(db, migrations);
 
@@ -693,7 +694,7 @@ test.each([null, "7"])(
   },
 );
 
-test("0018 conserva la dichiarazione storica sul campo Interno", async () => {
+test("0018 conserva la dichiarazione storica e 0019 aggiunge la scelta sulle etichette", async () => {
   const { MIGRATION_CHECKOUT_LABELS_DB: db, TEST_MIGRATIONS: migrations } = migrationEnvironment();
   await applyThrough(db, migrations, "0016_current_contracts.sql");
   await insertShop(db);
@@ -717,5 +718,20 @@ test("0018 conserva la dichiarazione storica sul campo Interno", async () => {
     address2_classification: "fiscal_conflict",
     address2_decision: "pending",
     address2_reviewed_at: "2026-09-01T10:00:00.000Z",
+  });
+
+  await applyD1Migrations(db, [migrationAfter(migrations, "0018_checkout_labels.sql")]);
+  expect(
+    await db
+      .prepare(
+        `SELECT checkout_labels_decision, checkout_labels_accepted_revision,
+                checkout_labels_reviewed_at
+         FROM app_state WHERE shop_id = 1`,
+      )
+      .first(),
+  ).toEqual({
+    checkout_labels_decision: "pending",
+    checkout_labels_accepted_revision: null,
+    checkout_labels_reviewed_at: null,
   });
 });

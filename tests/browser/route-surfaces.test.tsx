@@ -50,6 +50,7 @@ vi.mock("../../app/checkout-labels/repository.server", () => ({
 }));
 vi.mock("../../app/checkout-labels/service.server", () => ({
   CHECKOUT_LABEL_OPTIONAL_SCOPES: ["write_translations", "read_locales", "read_markets"],
+  acceptCheckoutLabelsCustomization: vi.fn(),
   acceptAddress2Customization: vi.fn(),
   confirmGuidedCheckoutLabels: vi.fn(),
   loadCheckoutLabels: vi.fn(),
@@ -1226,6 +1227,9 @@ describe("Regole", () => {
       enabledAt: null,
       lastSyncAt: null,
       lastErrorCode: null,
+      decision: "pending",
+      acceptedRevision: null,
+      reviewedAt: null,
       address2Classification: "unknown",
       address2HasMarketOverride: false,
       address2ExternalChangeAt: null,
@@ -1317,13 +1321,54 @@ describe("Regole", () => {
     );
   });
 
+  test("registra la scelta di mantenere le etichette native", async () => {
+    router.loaderData = rulesData;
+
+    const view = await mount(<CheckoutRules />);
+    const keep = [...view.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === texts("it").rules.labels.keepNative,
+    );
+    if (!keep) throw new Error("scelta sulle etichette native assente");
+    await click(keep);
+
+    const [body, options] = router.fetcher.submit.mock.calls.at(-1)!;
+    expect(options).toEqual({ method: "post" });
+    expect(body).toBeInstanceOf(FormData);
+    expect(Object.fromEntries((body as FormData).entries())).toEqual({
+      intent: "accept_checkout_labels",
+      labelsRevision: "",
+    });
+
+    router.loaderData = {
+      ...rulesData,
+      labelState: { ...rulesData.labelState, decision: "accepted" },
+    };
+    await view.rerender(<CheckoutRules key="labels-kept" />);
+    expect(view.container.textContent).toContain(texts("it").rules.labels.keepNativeAccepted);
+  });
+
   test("mostra e aziona etichette native, override e ripristino di Interno", async () => {
     const snapshot = {
       locales: [
         { locale: "it", family: "it", name: "Italiano", primary: true, published: true },
         { locale: "en", family: "en", name: "English", primary: false, published: false },
       ],
-      markets: [{ id: "gid://shopify/Market/1", name: "Italia" }],
+      markets: [
+        {
+          id: "gid://shopify/Market/1",
+          name: "Italia",
+          defaultLocale: "it",
+          locales: ["it", "en"],
+          resolution: "ambiguous",
+        },
+        {
+          id: "gid://shopify/Market/2",
+          name: "Europa",
+          defaultLocale: "it",
+          locales: ["it"],
+          resolution: "inherited",
+        },
+      ],
       issues: [],
       revision: "labels-r1",
       address2: { classification: "fiscal_conflict", hasMarketOverride: true },
@@ -1340,6 +1385,22 @@ describe("Regole", () => {
           locale: "en",
           family: "en",
           currentValue: "Certified email address (PEC)",
+        }),
+        labelSlot({
+          name: "taxCode",
+          key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
+          kind: "market_translation",
+          marketId: "gid://shopify/Market/1",
+          marketName: "Italia",
+          currentValue: "Codice fiscale Italia",
+        }),
+        labelSlot({
+          name: "pec",
+          key: "shopify.checkout.localized_fields.additional_information.tax_email_it",
+          kind: "market_translation",
+          marketId: "gid://shopify/Market/2",
+          marketName: "Europa",
+          currentValue: "PEC Europa",
         }),
         labelSlot({ name: "address2", kind: "source", currentValue: "Codice fiscale" }),
         labelSlot({ name: "address2", currentValue: "Codice fiscale" }),
@@ -1375,6 +1436,7 @@ describe("Regole", () => {
 
     const view = await mount(<CheckoutRules />);
     expect(view.container.textContent).toContain(texts("it").rules.labels.marketOverride);
+    expect(view.container.textContent).toContain(texts("it").rules.labels.marketAmbiguous);
     expect(view.container.querySelectorAll('s-banner[tone="critical"]')).not.toHaveLength(0);
 
     const guided = [...view.container.querySelectorAll("s-checkbox")].find(
@@ -1442,6 +1504,19 @@ describe("Regole", () => {
       ]),
     );
 
+    router.loaderData = {
+      ...rulesData,
+      rules: { taxCode: "unmanaged", pec: "unmanaged" },
+      labelScopesGranted: true,
+      labelState: rulesData.labelState,
+      labelSnapshot: {
+        ...snapshot,
+        markets: snapshot.markets.map((market) => ({ ...market, resolution: "direct" as const })),
+      },
+    };
+    await view.rerender(<CheckoutRules key="direct-unmanaged-labels" />);
+    expect(view.container.textContent).not.toContain(texts("it").rules.labels.marketAmbiguous);
+
     router.fetcher.data = undefined;
     router.loaderData = {
       ...rulesData,
@@ -1450,6 +1525,14 @@ describe("Regole", () => {
       labelSnapshot: snapshot,
     };
     await view.rerender(<CheckoutRules key="first-label-write" />);
+    const keepNative = [...view.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === texts("it").rules.labels.keepNative,
+    );
+    if (!keepNative) throw new Error("scelta sulle etichette native con scope assente");
+    await click(keepNative);
+    expect(router.fetcher.submit).toHaveBeenLastCalledWith(expect.any(FormData), {
+      method: "post",
+    });
     const management = [...view.container.querySelectorAll("s-checkbox")].find((checkbox) =>
       checkbox.getAttribute("label")?.includes(texts("it").rules.labels.enable),
     ) as (HTMLElement & { checked: boolean }) | undefined;
