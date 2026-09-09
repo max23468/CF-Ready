@@ -37,6 +37,9 @@ export function verifyDevelopmentConfig(shopifyConfig, wranglerConfig) {
   const shopifyScopes = shopifyConfig.match(
     /^\[access_scopes\]\s*$[\s\S]*?^scopes\s*=\s*"([^"]*)"\s*$/m,
   )?.[1];
+  const optionalScopes = shopifyConfig
+    .match(/^optional_scopes\s*=\s*\[\s*"([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\]\s*$/m)
+    ?.slice(1);
   const emptyEvents =
     /^\[events\]\s*\napi_version\s*=\s*"unstable"\s*\nsubscription\s*=\s*\[\s*\]\s*$/m.test(
       shopifyConfig,
@@ -47,6 +50,7 @@ export function verifyDevelopmentConfig(shopifyConfig, wranglerConfig) {
     wrangler.vars?.SHOPIFY_API_KEY !== expected.clientId ||
     wrangler.vars?.SHOPIFY_APP_URL !== expected.appUrl ||
     shopifyScopes !== "write_validations" ||
+    optionalScopes?.join(",") !== "write_translations,read_locales,read_markets" ||
     !emptyEvents ||
     /^\[\[events\.subscription\]\]/m.test(shopifyConfig) ||
     wrangler.vars?.SCOPES !== shopifyScopes ||

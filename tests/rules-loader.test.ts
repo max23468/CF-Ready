@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   authenticate: vi.fn(),
   observedConfigHash: vi.fn(),
   readAddress2Declaration: vi.fn(),
+  readCheckoutLabelState: vi.fn(),
   reconcile: vi.fn(),
 }));
 
@@ -19,11 +20,19 @@ vi.mock("../app/validation.server", async (importOriginal) => ({
   readAddress2Declaration: mocks.readAddress2Declaration,
   reconcile: mocks.reconcile,
 }));
+vi.mock("../app/checkout-labels/repository.server", () => ({
+  readCheckoutLabelState: mocks.readCheckoutLabelState,
+  saveAddress2FormMode: vi.fn(),
+}));
 
 test("la pagina Regole carica l’entitlement autorevole per l’anteprima", async () => {
   const admin = { graphql: vi.fn() };
   const db = {};
-  mocks.authenticate.mockResolvedValue({ admin, session: { shop: "example.myshopify.com" } });
+  mocks.authenticate.mockResolvedValue({
+    admin,
+    session: { shop: "example.myshopify.com" },
+    scopes: { query: vi.fn(async () => ({ granted: [] })) },
+  });
   mocks.reconcile.mockResolvedValue({
     validationEnabled: true,
     validation: {
@@ -37,7 +46,10 @@ test("la pagina Regole carica l’entitlement autorevole per l’anteprima", asy
     entitlement: { kind: "none", validThrough: null },
   });
   mocks.observedConfigHash.mockResolvedValue("hash");
-  mocks.readAddress2Declaration.mockResolvedValue(null);
+  mocks.readCheckoutLabelState.mockResolvedValue({
+    mode: "off",
+    address2Classification: "unknown",
+  });
 
   const { headers, loader } = await import("../app/routes/app.rules");
   const result = await loader({
@@ -48,7 +60,7 @@ test("la pagina Regole carica l’entitlement autorevole per l’anteprima", asy
 
   expect(result.data).toMatchObject({ enabled: true, entitled: false });
   expect(new Headers(result.init?.headers).get("Server-Timing")).toMatch(
-    /auth;dur=.*d1_address;dur=.*total;dur=/,
+    /auth;dur=.*d1_validation_state;dur=.*total;dur=/,
   );
   expect(
     new Headers(

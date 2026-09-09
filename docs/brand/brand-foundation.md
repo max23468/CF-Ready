@@ -47,7 +47,7 @@ Solo i vincoli che governano identità visiva, tono, logo/icona, UI embedded, si
 | Abbreviazione | `CFR`, **solo interna** | §17.1, §1.2 |
 | Handle | `cf-ready` | §17.1, D-076 |
 | Function handle | `cf-ready-validation` | §17.1, §11.1 |
-| Sito pubblico | `cf-ready.pages.dev` (+ `/privacy`, `/terms`, `/support`) | §18.3 |
+| Sito pubblico | `cfready.it` (+ `/privacy`, `/terms`, `/support`) | §18.3 |
 
 `CFR` non compare in nessun materiale pubblico — icona, wordmark, sito, listing, screenshot, microcopy. Il brand pubblico è sempre e solo `CF Ready`.
 

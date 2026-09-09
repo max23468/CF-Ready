@@ -174,7 +174,7 @@ async function readTelegramWebhookHealth(
   const state: WebhookHealth = {
     configured: result.configured,
     matchesExpectedUrl: result.url === expectedUrl,
-    pendingUpdateCount: result.pendingUpdateCount,
+    pendingUpdateCount: Math.max(0, result.pendingUpdateCount - 1),
     lastErrorAt: result.lastErrorAt,
     checkedAt: now.toISOString(),
   };

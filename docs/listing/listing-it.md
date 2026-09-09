@@ -151,10 +151,10 @@ il codice devono dire la stessa cifra.
 
 | Voce | URL |
 | --- | --- |
-| Assistenza | `https://cf-ready.pages.dev/support` |
-| Sito sviluppatore | `https://cf-ready.pages.dev` |
-| Privacy | `https://cf-ready.pages.dev/privacy` |
-| Termini | `https://cf-ready.pages.dev/terms` |
+| Assistenza | `https://cfready.it/support` |
+| Sito sviluppatore | `https://cfready.it` |
+| Privacy | `https://cfready.it/privacy` |
+| Termini | `https://cfready.it/terms` |
 | Contatto | `cfready@icloud.com` |
 
 ## Cosa non va scritto

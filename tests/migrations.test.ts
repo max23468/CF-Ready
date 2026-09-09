@@ -10,6 +10,7 @@ type MigrationEnvironment = Env & {
   MIGRATION_REVISION_DB: D1Database;
   MIGRATION_FULL_DB: D1Database;
   MIGRATION_CONTRACTS_DB: D1Database;
+  MIGRATION_CHECKOUT_LABELS_DB: D1Database;
   MIGRATION_LEGACY_TRIALS_DB: D1Database;
   MIGRATION_LEGACY_LEDGER_DB: D1Database;
   MIGRATION_LEGACY_BILLING_DB: D1Database;
@@ -525,6 +526,9 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "0015_owner_notification_details.sql",
     "0016_current_contracts.sql",
     "0017_owner_control.sql",
+    "0018_checkout_labels.sql",
+    "0019_checkout_label_decision.sql",
+    "0020_address2_form_mode.sql",
   ]);
   await applyD1Migrations(db, migrations);
 
@@ -544,6 +548,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "app_state",
     "billing_accounts",
     "billing_events",
+    "checkout_label_slots",
     "complimentary_entitlements",
     "owner_control_state",
     "owner_control_updates",
@@ -571,6 +576,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "app_events_webhook_name_idx",
     "billing_events_occurred_at_idx",
     "billing_events_resource_type_idx",
+    "checkout_label_slots_shop_id_idx",
     "owner_control_updates_retention_idx",
     "owner_notification_redactions_retention_idx",
     "owner_notifications_created_at_idx",
@@ -688,3 +694,54 @@ test.each([null, "7"])(
     ).toBe(current ?? "2");
   },
 );
+
+test("0018-0020 conservano lo storico e aggiungono le scelte sulle etichette", async () => {
+  const { MIGRATION_CHECKOUT_LABELS_DB: db, TEST_MIGRATIONS: migrations } = migrationEnvironment();
+  await applyThrough(db, migrations, "0016_current_contracts.sql");
+  await insertShop(db);
+  await db
+    .prepare(
+      `INSERT INTO app_state (shop_id, address2_conflict_declared_at, updated_at)
+       VALUES (1, '2026-09-01T10:00:00.000Z', '2026-09-01T10:00:00.000Z')`,
+    )
+    .run();
+
+  await applyD1Migrations(db, [migrationAfter(migrations, "0017_owner_control.sql")]);
+
+  expect(
+    await db
+      .prepare(
+        `SELECT address2_classification, address2_decision, address2_reviewed_at
+         FROM app_state WHERE shop_id = 1`,
+      )
+      .first(),
+  ).toEqual({
+    address2_classification: "fiscal_conflict",
+    address2_decision: "pending",
+    address2_reviewed_at: "2026-09-01T10:00:00.000Z",
+  });
+
+  await applyD1Migrations(db, [migrationAfter(migrations, "0018_checkout_labels.sql")]);
+  expect(
+    await db
+      .prepare(
+        `SELECT checkout_labels_decision, checkout_labels_accepted_revision,
+                checkout_labels_reviewed_at
+         FROM app_state WHERE shop_id = 1`,
+      )
+      .first(),
+  ).toEqual({
+    checkout_labels_decision: "pending",
+    checkout_labels_accepted_revision: null,
+    checkout_labels_reviewed_at: null,
+  });
+
+  await applyD1Migrations(db, [migrationAfter(migrations, "0019_checkout_label_decision.sql")]);
+  expect(
+    await db.prepare("SELECT address2_form_mode FROM app_state WHERE shop_id = 1").first(),
+  ).toEqual({ address2_form_mode: null });
+  await db.prepare("UPDATE app_state SET address2_form_mode = 'required' WHERE shop_id = 1").run();
+  await expect(
+    db.prepare("UPDATE app_state SET address2_form_mode = 'hidden' WHERE shop_id = 1").run(),
+  ).rejects.toThrow();
+});

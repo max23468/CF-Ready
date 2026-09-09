@@ -19,7 +19,6 @@ import { onboardingStep4State } from "../app/features/onboarding/step4-state";
 import { openBillingApproval } from "../app/revalidation";
 import { MerchantCheckIn, PlanChoice, SetupGuide } from "../app/routes/app._index";
 import {
-  Address2DeclarationPrompt,
   OnboardingListBlock,
   OnboardingProgress,
   OnboardingStep4Content,
@@ -220,7 +219,7 @@ test("la Setup guide non marca come completati i passi aperti e usa la griglia r
     validationEnabled: false,
     entitlement: { kind: "none", validThrough: null },
     planKind: "none",
-    address2Declared: false,
+    checkoutLabels: { status: "unknown" },
   } as Parameters<typeof SetupGuide>[0]["data"];
   const rendered = elements(
     SetupGuide({ data, busy: false, pendingIntent: null, pendingSource: null, submit: vi.fn() }),
@@ -238,7 +237,7 @@ test("la Setup guide non marca come completati i passi aperti e usa la griglia r
       element.type === "div" &&
       String((element.props as { className?: string }).className).includes("setup-guide__step"),
   );
-  expect(steps).toHaveLength(3);
+  expect(steps).toHaveLength(4);
   expect(
     steps.filter((step) =>
       String((step.props as { className?: string }).className).includes(
@@ -311,7 +310,7 @@ test("la Setup guide accoglie alla prima apertura e offre di iniziare la prova",
     entitlement: { kind: "none", validThrough: null },
     trialStatus: null,
     planKind: "none",
-    address2Declared: false,
+    checkoutLabels: { status: "unknown" },
   } as Parameters<typeof SetupGuide>[0]["data"];
   const submit = vi.fn();
   const render = (data: Parameters<typeof SetupGuide>[0]["data"]) =>
@@ -513,8 +512,8 @@ test("il confronto piani comunica con la Home senza navigare il frame della moda
       saved: {
         locale: "it",
         rules: { taxCode: "required_validated", pec: "unmanaged" },
+        labelState: { mode: "off", address2Classification: "unknown" },
       } as Awaited<ReturnType<typeof import("../app/routes/app.onboarding").loader>>["data"],
-      declared: false,
       t: texts("it"),
       state: { summary: "needs", access: "first_run", canActivate: false },
       busy: false,
@@ -697,29 +696,4 @@ test("i testi iniziali non presuppongono una configurazione precedente", () => {
 
   expect(initialItalian).not.toMatch(/riattiv|disattivat|già attiv|tornano validi/i);
   expect(initialEnglish).not.toMatch(/reactiv|turned off|already active|apply again/i);
-});
-
-test("checkbox e istruzioni della dichiarazione condividono lo stesso stato", () => {
-  const render = (declared: boolean) =>
-    elements(Address2DeclarationPrompt({ declared, t: texts("it") }));
-  const checkbox = (declared: boolean) =>
-    render(declared).find((element) => element.type === "s-checkbox");
-  const instructions = (declared: boolean) =>
-    render(declared).some(
-      (element) =>
-        element.type === "s-paragraph" &&
-        (element.props as { children?: ReactNode }).children ===
-          texts("it").rules.address2Instructions,
-    );
-  const unchecked = checkbox(false);
-  const checked = checkbox(true);
-  if (!unchecked || !checked) throw new Error("dichiarazione del campo Interno assente");
-
-  expect(texts("it").rules.address2Body).toMatch(/seleziona la casella/i);
-  expect((unchecked.props as { label?: string }).label).toMatch(/^Sì,/);
-
-  expect(unchecked.props).toMatchObject({ checked: false });
-  expect(instructions(false)).toBe(false);
-  expect(checked.props).toMatchObject({ checked: true });
-  expect(instructions(true)).toBe(true);
 });

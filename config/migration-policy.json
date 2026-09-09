@@ -89,6 +89,25 @@
       "name": "0017_owner_control.sql",
       "sha256": "0a6ae6e35ab0d1d226add4cfcad47152b3134cfa806d7008df873f13f5ceb563",
       "protects": ["Telegram update idempotency", "aggregate owner-control cache"]
+    },
+    {
+      "name": "0018_checkout_labels.sql",
+      "sha256": "aaa9019b0247b62f96231e81f6c0eaf03c083288b57182cdb79a227c8a361bf9",
+      "protects": [
+        "checkout label ownership",
+        "per-slot write capability",
+        "address line review state"
+      ]
+    },
+    {
+      "name": "0019_checkout_label_decision.sql",
+      "sha256": "2388dc42c23e7c8b569bd6b74d54555ca9220d6c7625f043e2ab5209e1f412c8",
+      "protects": ["merchant checkout-label choice", "accepted snapshot revision"]
+    },
+    {
+      "name": "0020_address2_form_mode.sql",
+      "sha256": "c0bc4532c7f5489c416b327edd5f4b8216f82e8ba9addeafdb96b8f774535438",
+      "protects": ["merchant second-address-line mode"]
     }
   ]
 }

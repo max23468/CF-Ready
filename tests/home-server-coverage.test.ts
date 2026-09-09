@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   readBillingAccount: vi.fn(),
   readComplimentaryEntitlement: vi.fn(),
   readHomeState: vi.fn(),
+  readCheckoutLabelState: vi.fn(),
   reconcile: vi.fn(),
   recordEvent: vi.fn(),
   requestedRecurringPlanIsActive: vi.fn(),
@@ -29,6 +30,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("../app/admin-auth.server", () => ({
   authenticateAdmin: mocks.authenticateAdmin,
+}));
+
+vi.mock("../app/checkout-labels/repository.server", () => ({
+  readCheckoutLabelState: mocks.readCheckoutLabelState,
 }));
 
 vi.mock("../app/shopify.server", () => ({
@@ -94,6 +99,14 @@ beforeEach(() => {
   mocks.authenticate.mockResolvedValue({ admin, session: { shop } });
   mocks.authenticateAdmin.mockResolvedValue({ admin, session: { shop } });
   mocks.readComplimentaryEntitlement.mockResolvedValue(null);
+  mocks.readCheckoutLabelState.mockResolvedValue({
+    mode: "off",
+    lastSyncAt: null,
+    lastErrorCode: null,
+    address2ExternalChangeAt: null,
+    address2Classification: "unknown",
+    address2Decision: "pending",
+  });
   mocks.queryContext.mockResolvedValue({
     shop: {
       name: "Negozio coverage",
@@ -161,7 +174,6 @@ test("la Home completa automaticamente un onboarding già effettivo", async () =
 
   expect(result.data).toMatchObject({
     onboarding: "completed",
-    address2Declared: true,
     complimentary: true,
     showMerchantCheckIn: true,
   });
@@ -201,6 +213,12 @@ test("la prova distingue omaggio, indisponibilità e successo", async () => {
   await expect(action(actionRequest("start_trial"))).resolves.toEqual({
     ok: false,
     errorCode: "one_time_already_active",
+  });
+
+  mocks.startTrial.mockResolvedValueOnce(null);
+  await expect(action(actionRequest("start_trial"))).resolves.toEqual({
+    ok: false,
+    errorCode: "trial_unavailable",
   });
 
   mocks.startTrial.mockResolvedValueOnce({ status: "expired" });
