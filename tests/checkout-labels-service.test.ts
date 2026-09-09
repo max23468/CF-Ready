@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   register: vi.fn(),
   remove: vi.fn(),
   saveDecision: vi.fn(),
+  saveLabelsDecision: vi.fn(),
   saveWrite: vi.fn(),
   stop: vi.fn(),
   withLock: vi.fn(),
@@ -38,6 +39,7 @@ vi.mock("../app/checkout-labels/repository.server", () => ({
   readCheckoutLabelState: mocks.readState,
   readStoredCheckoutLabelSlots: mocks.readStored,
   saveAddress2Decision: mocks.saveDecision,
+  saveCheckoutLabelsDecision: mocks.saveLabelsDecision,
   saveCheckoutLabelWrite: mocks.saveWrite,
   stopCheckoutLabelManagement: mocks.stop,
 }));
@@ -48,6 +50,7 @@ vi.mock("../app/checkout-labels/shopify.server", () => ({
 }));
 
 import {
+  acceptCheckoutLabelsCustomization,
   acceptAddress2Customization,
   confirmGuidedCheckoutLabels,
   loadCheckoutLabels,
@@ -67,6 +70,9 @@ const state = {
   enabledAt: null,
   lastSyncAt: null,
   lastErrorCode: null,
+  decision: "pending" as const,
+  acceptedRevision: null,
+  reviewedAt: null,
   address2Classification: "unknown" as const,
   address2HasMarketOverride: false,
   address2ExternalChangeAt: null,
@@ -120,6 +126,52 @@ test("il caricamento inattivo osserva senza aggiornare lo stato di gestione", as
     externalChange: false,
   });
   expect(mocks.mark).not.toHaveBeenCalled();
+});
+
+test("invalida la scelta di mantenere le etichette quando cambia lo snapshot", async () => {
+  const accepted = { ...state, decision: "accepted" as const, acceptedRevision: "r1" };
+  mocks.readState.mockResolvedValueOnce(accepted).mockResolvedValueOnce(state);
+  mocks.readLabels.mockResolvedValue(snapshotOf([], "r2"));
+
+  await loadCheckoutLabels(admin, db, shop, rules);
+
+  expect(mocks.saveLabelsDecision).toHaveBeenCalledWith(db, shop, "pending", null);
+});
+
+test("registra la scelta di mantenere le etichette sullo snapshot corrente", async () => {
+  const snapshot = snapshotOf([], "r1");
+  mocks.readLabels.mockResolvedValue(snapshot);
+
+  await expect(acceptCheckoutLabelsCustomization(admin, db, shop, "r1")).resolves.toEqual({
+    ok: true,
+  });
+  expect(mocks.persist).toHaveBeenCalledWith(db, shop, snapshot.slots, snapshot.address2);
+  expect(mocks.saveLabelsDecision).toHaveBeenCalledWith(db, shop, "accepted", "r1");
+
+  mocks.readState.mockResolvedValueOnce(state);
+  await expect(acceptCheckoutLabelsCustomization(admin, db, shop, null)).resolves.toEqual({
+    ok: true,
+  });
+  expect(mocks.saveLabelsDecision).toHaveBeenLastCalledWith(db, shop, "accepted", null);
+
+  mocks.readLabels.mockResolvedValueOnce(snapshotOf([], "r2"));
+  await expect(acceptCheckoutLabelsCustomization(admin, db, shop, "r1")).resolves.toEqual({
+    ok: false,
+    errorCode: "checkout_labels_conflict",
+  });
+
+  mocks.readLabels.mockResolvedValueOnce(snapshot);
+  mocks.readState.mockResolvedValueOnce({ ...state, mode: "guided" });
+  await expect(acceptCheckoutLabelsCustomization(admin, db, shop, "r1")).resolves.toEqual({
+    ok: false,
+    errorCode: "checkout_labels_conflict",
+  });
+
+  mocks.withLock.mockResolvedValueOnce({ acquired: false });
+  await expect(acceptCheckoutLabelsCustomization(admin, db, shop, "r1")).resolves.toEqual({
+    ok: false,
+    errorCode: "validation_locked",
+  });
 });
 
 test("il caricamento attivo segnala una conferma guidata ancora assente", async () => {

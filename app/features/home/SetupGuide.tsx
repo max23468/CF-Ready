@@ -1,4 +1,5 @@
 import { texts } from "../../i18n";
+import { checkoutLabelsSetupDone } from "../../checkout-labels/domain";
 import { commercialState } from "./commercial-state";
 import type { HomeData } from "./home.server";
 
@@ -68,7 +69,7 @@ export function SetupGuide({
         ),
     },
     {
-      done: data.checkoutLabels.status === "synced",
+      done: checkoutLabelsSetupDone(data.checkoutLabels),
       icon: "language" as const,
       title: t.setup.labelsTitle,
       body: t.setup.labelsBody,

@@ -156,6 +156,12 @@ function NativeCheckoutLabels({
               >
                 {copy.requestPermissions}
               </s-button>
+              <KeepNativeLabelsChoice
+                accepted={state.decision === "accepted"}
+                busy={busy}
+                copy={copy}
+                onAccept={() => submitIntent("accept_checkout_labels")}
+              />
             </s-stack>
           </s-box>
         ) : (
@@ -178,16 +184,19 @@ function NativeCheckoutLabels({
               </s-text>
             </s-stack>
             {snapshot ? (
-              <LabelComparison
-                snapshot={snapshot}
-                rules={rules}
-                locale={locale}
-                confirmedGuidedSlotIds={confirmedGuidedSlotIds}
-                selectedGuidedSlotIds={selectedGuided}
-                onGuidedSelectionChange={(slotId, selected) =>
-                  setSelectedGuided((current) => toggleSelection(current, slotId, selected))
-                }
-              />
+              <>
+                <MarketResolutionWarning snapshot={snapshot} message={copy.marketAmbiguous} />
+                <LabelComparison
+                  snapshot={snapshot}
+                  rules={rules}
+                  locale={locale}
+                  confirmedGuidedSlotIds={confirmedGuidedSlotIds}
+                  selectedGuidedSlotIds={selectedGuided}
+                  onGuidedSelectionChange={(slotId, selected) =>
+                    setSelectedGuided((current) => toggleSelection(current, slotId, selected))
+                  }
+                />
+              </>
             ) : (
               <s-paragraph color="subdued">{copy.noSnapshot}</s-paragraph>
             )}
@@ -200,6 +209,13 @@ function NativeCheckoutLabels({
                 {copy.confirmGuided}
               </s-button>
             ) : null}
+            <KeepNativeLabelsDecision
+              state={state}
+              snapshot={snapshot}
+              busy={busy}
+              copy={copy}
+              onAccept={() => submitIntent("accept_checkout_labels")}
+            />
             <s-button disabled={busy} href="">
               {copy.refresh}
             </s-button>
@@ -207,6 +223,62 @@ function NativeCheckoutLabels({
         )}
       </s-stack>
     </s-box>
+  );
+}
+
+function MarketResolutionWarning({
+  snapshot,
+  message,
+}: {
+  snapshot: CheckoutLabelsSnapshot;
+  message: string;
+}) {
+  return snapshot.markets.some(({ resolution }) => resolution === "ambiguous") ? (
+    <s-banner tone="warning">{message}</s-banner>
+  ) : null;
+}
+
+function KeepNativeLabelsChoice({
+  accepted,
+  busy,
+  copy,
+  onAccept,
+}: {
+  accepted: boolean;
+  busy: boolean;
+  copy: ReturnType<typeof texts>["rules"]["labels"];
+  onAccept: () => void;
+}) {
+  return accepted ? (
+    <s-badge tone="success">{copy.keepNativeAccepted}</s-badge>
+  ) : (
+    <s-button disabled={busy} onClick={onAccept}>
+      {copy.keepNative}
+    </s-button>
+  );
+}
+
+function KeepNativeLabelsDecision({
+  state,
+  snapshot,
+  busy,
+  copy,
+  onAccept,
+}: {
+  state: CheckoutLabelState;
+  snapshot: CheckoutLabelsSnapshot | null;
+  busy: boolean;
+  copy: ReturnType<typeof texts>["rules"]["labels"];
+  onAccept: () => void;
+}) {
+  if (state.mode !== "off" || !snapshot) return null;
+  return (
+    <KeepNativeLabelsChoice
+      accepted={state.decision === "accepted"}
+      busy={busy}
+      copy={copy}
+      onAccept={onAccept}
+    />
   );
 }
 
@@ -330,6 +402,9 @@ function LabelComparison({
           ((slot.name === "taxCode" && rules.taxCode !== "unmanaged") ||
             (slot.name === "pec" && rules.pec !== "unmanaged"));
         const confirmed = confirmedGuidedSlots.has(slotId);
+        const marketResolution = snapshot.markets.find(
+          ({ id }) => id === slot.marketId,
+        )?.resolution;
         return (
           <div
             className="checkout-labels-table__row"
@@ -346,6 +421,11 @@ function LabelComparison({
                   !shopLocale.published ? copy.unpublished : null,
                   slot.capability === "automatic" ? copy.automatic : copy.guided,
                   slot.marketName,
+                  marketResolution === "inherited"
+                    ? copy.marketInherited
+                    : marketResolution === "ambiguous"
+                      ? copy.marketNeedsVerification
+                      : null,
                 ]
                   .filter(Boolean)
                   .join(" · ")}

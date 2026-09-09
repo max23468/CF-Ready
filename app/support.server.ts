@@ -37,7 +37,9 @@ export async function readSupportDiagnosticState(
               state.last_error_code, state.validation_enabled,
               state.validation_state_revision,
               state.checkout_labels_mode, state.checkout_labels_last_sync_at,
-              state.checkout_labels_last_error_code, state.address2_classification,
+              state.checkout_labels_last_error_code, state.checkout_labels_decision,
+              state.checkout_labels_accepted_revision, state.checkout_labels_reviewed_at,
+              state.address2_classification,
               state.address2_decision, state.address2_has_market_override,
               state.address2_external_change_at,
               (SELECT GROUP_CONCAT(DISTINCT locale)
@@ -69,6 +71,9 @@ export async function readSupportDiagnosticState(
       checkout_labels_mode: CheckoutLabelsMode | null;
       checkout_labels_last_sync_at: string | null;
       checkout_labels_last_error_code: string | null;
+      checkout_labels_decision: "pending" | "accepted" | null;
+      checkout_labels_accepted_revision: string | null;
+      checkout_labels_reviewed_at: string | null;
       address2_classification: Address2Classification | null;
       address2_decision: Address2Decision | null;
       address2_has_market_override: number | null;
@@ -92,6 +97,9 @@ export async function readSupportDiagnosticState(
     enabledAt: null,
     lastSyncAt: row?.checkout_labels_last_sync_at ?? null,
     lastErrorCode: row?.checkout_labels_last_error_code ?? null,
+    decision: row?.checkout_labels_decision ?? "pending",
+    acceptedRevision: row?.checkout_labels_accepted_revision ?? null,
+    reviewedAt: row?.checkout_labels_reviewed_at ?? null,
     address2Classification: row?.address2_classification ?? "unknown",
     address2HasMarketOverride: Boolean(row?.address2_has_market_override),
     address2ExternalChangeAt: row?.address2_external_change_at ?? null,
