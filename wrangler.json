@@ -81,7 +81,7 @@
         "ALLOWED_SHOP": "",
         "OWNER_NOTIFICATIONS_ENABLED": "true",
         "APP_ENVIRONMENT": "production",
-        "OWNER_TELEGRAM_CONTROL_ENABLED": "false"
+        "OWNER_TELEGRAM_CONTROL_ENABLED": "true"
       },
       "version_metadata": {
         "binding": "CF_VERSION_METADATA"

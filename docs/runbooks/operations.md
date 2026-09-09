@@ -260,10 +260,10 @@ Il Control Center usa lo stesso trasporto Telegram delle notifiche, ma ricezione
 ricevute D1 e risposte interattive restano separate dall’outbox. L’endpoint
 `POST /internal/telegram/webhook` risponde soltanto quando il flag
 `OWNER_TELEGRAM_CONTROL_ENABLED` vale `true`; la configurazione committata lo
-mantiene disattivato in Development e Production.
+mantiene disattivato in Development e attivo in Production.
 
-Prima dell’attivazione Production servono i secret `TELEGRAM_WEBHOOK_SECRET` e
-`TELEGRAM_OWNER_USER_ID`, oltre ai cinque secret già usati da Telegram e Partner.
+La configurazione Production richiede i secret `TELEGRAM_WEBHOOK_SECRET` e
+`TELEGRAM_OWNER_USER_ID`, oltre ai cinque secret usati da Telegram e Partner.
 Il bot accetta la sola chat privata per cui chat ID e owner user ID coincidono.
 Il webhook secret deve contenere almeno 32 caratteri casuali tra lettere, numeri,
 trattino e underscore.

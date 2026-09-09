@@ -42,10 +42,10 @@ dentro la stessa serie.
 
 | # | Schermata | Stato da mostrare | Sfondo |
 | --- | --- | --- | --- |
-| 1 | Simulatore | Il campo Codice Fiscale con l'errore formale e lo stato **Checkout bloccato**, ritagliato all'anteprima interattiva della 1.1 | Verde bottiglia |
-| 2 | Regole | Codice Fiscale **obbligatorio** e PEC **facoltativa**, inquadrati sulle due schede indipendenti | Verde bottiglia |
+| 1 | Simulatore | Il campo Azienda, un Codice Fiscale con errore formale e lo stato **Checkout bloccato**, ritagliati dall'anteprima interattiva | Verde bottiglia |
+| 2 | Regole | Codice Fiscale **obbligatorio** e PEC **obbligatoria quando Azienda è compilata**, inquadrati sulle due schede indipendenti | Verde bottiglia |
 | 3 | Messaggi | Testi in italiano e inglese con la nuova anteprima affiancata della 1.1 | Panna |
-| 4 | Home | Controllo **attivo**, con stato delle regole, piano e accesso alla guida visibili | Panna |
+| 4 | Home | Controllo **attivo**, con la nuova regola PEC legata ad Azienda, piano e accesso alla guida visibili | Panna |
 | 5 | Guida | FAQ e azioni di assistenza con diagnostica tecnica copiabile, in due ritagli affiancati e completi | Panna |
 
 Sul numero 1: è il simulatore reale incluso nell'app, non un checkout né una
@@ -57,13 +57,13 @@ di listing ed evita che entrino nell'immagine elementi dell'Admin Shopify.
 La didascalia visibile è in italiano. La listing inglese usa gli stessi file e
 descrive ogni immagine con un alt text inglese coerente.
 
-| # | Didascalia visibile | Alt text inglese |
-| --- | --- | --- |
-| 1 | Vedi subito perché il checkout verrebbe bloccato. | In-app simulator with a formally invalid Codice Fiscale. |
-| 2 | Scegli regole separate per Codice Fiscale e PEC. | Separate controls for Codice Fiscale and PEC. |
-| 3 | Personalizza i messaggi in italiano e inglese. | Italian and English checkout message previews. |
-| 4 | Attiva il controllo solo quando sei pronto. | Home with active checkout control, rules and plan. |
-| 5 | Guida e diagnostica pronte quando serve assistenza. | FAQs, support actions and privacy-safe diagnostics. |
+| # | Didascalia visibile | Alt text italiano | Alt text inglese |
+| --- | --- | --- | --- |
+| 1 | Vedi subito perché il checkout verrebbe bloccato. | Simulatore con Codice Fiscale non valido e checkout bloccato. | In-app simulator with a formally invalid Codice Fiscale. |
+| 2 | Scegli regole separate per Codice Fiscale e PEC. | Regole separate per Codice Fiscale e PEC legata ad Azienda. | Separate Codice Fiscale and PEC rules, with PEC tied to Company. |
+| 3 | Personalizza i messaggi in italiano e inglese. | Messaggi checkout personalizzati in italiano e inglese. | Italian and English checkout message previews. |
+| 4 | Attiva il controllo solo quando sei pronto. | Home con controllo attivo, regole, piano e guida. | Home with active checkout control, rules, plan and guide. |
+| 5 | Guida e diagnostica pronte quando serve assistenza. | FAQ, richiesta assistenza e diagnostica copiabile. | FAQs, support request and copyable diagnostics. |
 
 ## Consegna
 
@@ -80,8 +80,11 @@ e inglese:
 Git conserva quindi sia il piano e gli alt text sia gli asset approvati; il
 Partner Dashboard resta autorevole per la serie effettivamente visibile. Il
 readback live del 29 agosto 2026 ha verificato feature media, cinque screenshot
-desktop e alt text nelle due lingue. La ricevuta storica della serie precedente
-è nel [`release-readiness-1.0`](../runbooks/release-readiness-1.0.md).
+desktop e alt text nelle due lingue. Il 9 settembre 2026 le schermate 1, 2 e 4
+sono state ricatturate dall'app Development per mostrare il campo Azienda e la
+nuova modalità PEC; le schermate 3 e 5 sono rimaste attuali. La ricevuta storica
+della serie precedente è nel
+[`release-readiness-1.0`](../runbooks/release-readiness-1.0.md).
 
 ## Sito pubblico
 
