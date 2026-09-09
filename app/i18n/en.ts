@@ -105,11 +105,6 @@ export const en: typeof it = {
       "The checkout check is active. If you have feedback on the setup or need help, message the developer directly.",
     checkInContact: "Message me",
     checkInDismiss: "Don’t show this again",
-    checkoutLabelsScopeRequired:
-      "The permissions used to read and synchronize checkout labels are no longer available.",
-    checkoutLabelsActionRequired:
-      "Checkout labels or the “Apartment, suite, etc.” field need your review.",
-    checkoutLabelsOpen: "Review checkout labels",
   },
   messages: {
     heading: "Customer messages",
@@ -160,7 +155,7 @@ export const en: typeof it = {
     startTrial: "Start the free trial",
     labelsTitle: "Review checkout labels",
     labelsBody:
-      "Compare the tax code, PEC and second address line in Italian and English, then choose how to manage them.",
+      "Compare the tax code and PEC labels in Italian and English; the second address line has a separate check.",
     guided: "Open the guided setup",
   },
   onboarding: {
@@ -504,9 +499,8 @@ export const en: typeof it = {
       },
     },
     labels: {
-      heading: "Checkout text",
-      intro: "Check the tax code, PEC and second address line text shown to customers.",
-      nativeHeading: "Tax code and PEC",
+      heading: "Checkout labels",
+      nativeHeading: "Checkout text (advanced settings)",
       permissionsHeading: "Check Shopify labels",
       permissionsBody:
         "Grant access only to translations, languages and markets. CF Ready doesn’t read orders, customers or checkout entries.",
@@ -540,30 +534,37 @@ export const en: typeof it = {
       english: "English",
       unchanged: "Keep the current text",
       noChange: "No changes",
-      generalText: "General text",
-      marketException: (market: string) => `Exception for ${market}`,
+      generalText: "Default for this language",
+      marketException: (market: string) => `Customization for the ${market} market`,
       unknownMarket: "unidentified market",
       allMarketsSame: "All markets use this text",
       primary: "primary",
       unpublished: "not published",
       marketAmbiguous:
-        "Shopify can’t determine a unique checkout for some markets. Complete the manual verification for the cases shown.",
-      refresh: "Update fields from Shopify",
+        "Shopify doesn’t identify a single configuration for one or more markets, for example when settings are inherited. In each “Customization for the … market” panel, open checkout for that market and check the labels shown there.",
+      refresh: "Read fields again from Shopify",
       stop: "Restore and stop managing",
       lastSync: (value: string) => `Last updated: ${value}`,
       neverSynced: "Fields not updated yet",
       operationalSummary: (automatic: number, manual: number) =>
         `${automatic} ${automatic === 1 ? "label" : "labels"} managed by Shopify · ${manual} manual ${manual === 1 ? "verification" : "verifications"} required`,
       manualHeading: "How to complete the manual verification",
-      manualSteps: (context: string) => [
-        `Open the storefront for ${context}.`,
+      manualSteps: (language: string, market: string | null, primary: boolean) => [
+        market
+          ? `Open the storefront and select ${market} as the country or region and ${language} as the language.`
+          : `Open the storefront in the default market and select ${language} as the language.`,
         "Add a product to the cart and continue to checkout.",
-        "Compare the tax code and PEC fields with the text shown here.",
-        "If they differ, update the text under Settings → Languages → Checkout and system, then update the fields from Shopify.",
-        "When they match, return to CF Ready and confirm the verification.",
+        "Compare the tax code and PEC labels with the “Field after saving” value shown here.",
+        primary && !market
+          ? "If they differ, in Shopify go to Settings → Checkout. In the Checkout language section choose Edit checkout content, find the text shown as “Current field”, replace it with “Field after saving”, and save."
+          : `If they differ, open Shopify Translate & Adapt, ${market ? `select the ${market} market and ` : ""}select ${language}. Open Checkout and system, find the text shown as “Current field”, replace it with “Field after saving”, and save.`,
+        "Return to CF Ready and select “Read fields again from Shopify”. When the two values match, the confirmation button becomes available.",
       ],
-      manualMismatch: "Update the fields that differ in Shopify before confirming.",
+      manualMismatch:
+        "Shopify is still returning a different text. Change and save it using the steps above, then select “Read fields again from Shopify”.",
       openStorefront: "Open storefront",
+      openCheckoutContentEditor: "Open checkout settings",
+      openTranslations: "Open Shopify languages and translations",
       confirmGuided: "Confirm manual verification",
       lastManualVerification: (value: string) => `Last manual verification: ${value}`,
       checkoutCheckRequired: "manual checkout verification required",

@@ -520,11 +520,25 @@ per ownership e ripristino.
 La pagina resta il centro della funzione.
 
 Le scelte delle regole e i controlli sulle etichette vivono nella pagina Regole.
-Su desktop il box “Testi del checkout” occupa la colonna sinistra sotto le
-regole, mentre il simulatore resta nella colonna destra. Un solo selettore mostra
-Italiano o Inglese e conserva la scelta durante la sessione.
+Su desktop i box “Campo Interno” e “Testi del checkout (impostazioni avanzate)”
+occupano, in questo ordine, la colonna sinistra sotto le regole, mentre il
+simulatore resta nella colonna destra. Un solo selettore mostra Italiano o
+Inglese e conserva la scelta durante la sessione e le riletture Shopify.
 
-Il primo blocco, “Campi nativi: Codice Fiscale e PEC”, contiene:
+Il primo blocco, “Campo Interno”, contiene:
+
+- scelta merchant fra variante obbligatoria e facoltativa, perché Shopify non
+  espone questa impostazione tramite l’Admin API;
+- sola variante attiva nella lingua selezionata;
+- stato automatico;
+- testo personalizzato osservato;
+- azione “Ripristina le traduzioni gestibili” quando applicabile;
+- procedura guidata per il contenuto sorgente della lingua primaria;
+- azione “Mantieni questa personalizzazione”;
+- istruzioni per l’opzione del modulo;
+- collegamento alle impostazioni Checkout per cambiare l’opzione dichiarata.
+
+Il secondo blocco, “Testi del checkout (impostazioni avanzate)”, contiene:
 
 - le tre modalità indipendenti dei due campi;
 - stato dei permessi;
@@ -533,30 +547,20 @@ Il primo blocco, “Campi nativi: Codice Fiscale e PEC”, contiene:
   disponibili sullo store;
 - interruttore di gestione automatica soltanto quando almeno uno slot è
   scrivibile;
-- testo generale della lingua selezionata e sole eccezioni di mercato;
+- valore predefinito della lingua selezionata e sole personalizzazioni di
+  mercato;
 - “Campo attuale”, “Campo dopo il salvataggio” e “Nessuna modifica” quando i
   valori coincidono;
 - stato pubblicato della lingua;
 - badge per eventuali override di mercato;
 - data dell’ultima verifica manuale valida;
 - ultima sincronizzazione;
-- azione “Aggiorna campi da Shopify”;
+- azione “Rileggi i campi da Shopify”, che aggiorna i dati senza ricaricare la
+  pagina;
 - azione “Ripristina e interrompi la gestione” per gli slot posseduti;
-- procedura numerata per aprire il negozio, raggiungere il checkout, confrontare
-  Codice Fiscale e PEC e confermare la verifica manuale.
-
-Il secondo blocco, “Controllo del campo Interno”, contiene:
-
-- scelta merchant fra variante obbligatoria e facoltativa, perché Shopify non
-  espone questa impostazione tramite l’Admin API;
-- sola variante attiva nella lingua selezionata;
-- stato automatico;
-- testo personalizzato osservato;
-- azione “Ripristina le traduzioni gestite” quando applicabile;
-- procedura guidata per il contenuto sorgente della lingua primaria;
-- azione “Mantieni questa personalizzazione”;
-- istruzioni per l’opzione del modulo;
-- collegamento alle impostazioni Checkout per cambiare l’opzione dichiarata.
+- procedura numerata che distingue l’editor del contenuto checkout della lingua
+  primaria da Lingue/Translate & Adapt per lingue secondarie e mercati, quindi
+  richiede una nuova rilettura prima della conferma.
 
 I due blocchi conservano stato, errori e azioni separati. Un errore sulle
 traduzioni di “Interno” non deve apparire come un errore della Validation, e il

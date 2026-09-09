@@ -388,6 +388,14 @@ Rispetto alle alternative più ampie o invasive:
 | D-151 | Usare `cfready.it` come origine canonica del sito pubblico e `app.cfready.it` per il Worker Production; `www.cfready.it` reindirizza con 301 alla radice, mentre i sottodomini Cloudflare restano endpoint tecnici. | Sitemap, robots, canonical, hreflang, metadati sociali e dati strutturati devono dichiarare il dominio pubblico. La zona usa i nameserver Cloudflare e una catena DNSSEC validata dal record DS pubblicato nel registro `.it`. Deciso dall'owner il 9 settembre 2026 per la `1.8.0`. |
 | D-152 | Dichiarare nel `robots.txt` del sito pubblico `search=yes`, `ai-input=yes`, `ai-train=no` e `use=reference`. | Motori di ricerca e assistenti possono indicizzare, citare e usare i contenuti per risposte contestuali, mentre l'addestramento resta escluso. Il file versionato è autorevole e lo smoke Pages ne verifica il contenuto effettivo, evitando una seconda configurazione gestita all'edge. Deciso dall'owner il 9 settembre 2026 per la `1.8.1`. |
 
+Precisazione D-149 del 9 settembre 2026 per la `1.9.0`: nella pagina Regole il
+blocco “Campo Interno” precede “Testi del checkout (impostazioni avanzate)”. Il
+confronto distingue “Predefinito per questa lingua” da “Personalizzazione per il
+mercato …”; per correggere i valori guida all’editor del contenuto checkout
+della lingua primaria oppure a Lingue/Translate & Adapt, quindi rilegge Shopify
+senza ricaricare la pagina. Gli stati di queste etichette non generano avvisi
+nella Home.
+
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
