@@ -246,7 +246,7 @@ Rispetto alle alternative più ampie o invasive:
   - `optional`: Facoltativo e validato;
   - `required`: Obbligatorio e validato.
 - Una quarta modalità per la sola PEC:
-  - `required_when_company`: Obbligatoria quando è compilato Azienda.
+  - `required_when_company`: Obbligatoria quando il campo Azienda è compilato.
 - Validazione Codice Fiscale:
   - formato ordinario di 16 caratteri;
   - omocodia;
@@ -2221,7 +2221,7 @@ Due sezioni con tutte le alternative sempre visibili.
 - Non gestita
 - Facoltativa e validata
 - Obbligatoria e validata
-- Obbligatoria quando è compilato Azienda
+- Obbligatoria quando il campo Azienda è compilato
 
 Ogni opzione ha una spiegazione concreta. Dopo le regole:
 

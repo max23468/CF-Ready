@@ -603,7 +603,7 @@ Solo principi. Wireframe, stati completi e layout definitivi appartengono a M6, 
 
 - Tutte le modalità di ogni campo sempre visibili, mai in un select (D-147).
 - Ogni opzione: etichetta breve + una riga di spiegazione concreta dell'effetto sul checkout.
-- Ordine base invariabile per entrambi i campi: `Non gestito` → `Facoltativo e validato` → `Obbligatorio e validato`; la PEC aggiunge in coda `Obbligatoria quando è compilato Azienda`.
+- Ordine base invariabile per entrambi i campi: `Non gestito` → `Facoltativo e validato` → `Obbligatorio e validato`; la PEC aggiunge in coda `Obbligatoria quando il campo Azienda è compilato`.
 - Nessuna opzione presentata come consigliata: la scelta dipende dall'operatività del merchant.
 - Il blocco `Eccezioni automatiche` è adiacente, visibile e non modificabile (D-067).
 

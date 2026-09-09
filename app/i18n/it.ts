@@ -398,7 +398,7 @@ export const it = {
       required_validated: "Obbligatoria e validata",
       required_validatedHelp:
         "Il cliente non completa l’ordine senza un indirizzo con formato email valido.",
-      required_when_company: "Obbligatoria quando è compilato Azienda",
+      required_when_company: "Obbligatoria quando il campo Azienda è compilato",
       required_when_companyHelp:
         "Richiede la PEC quando il campo Azienda dell’indirizzo di fatturazione è compilato. Negli altri casi la PEC resta facoltativa e viene validata se inserita.",
     },
