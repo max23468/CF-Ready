@@ -14,6 +14,7 @@ export type CheckoutLabelCapability = "read_only" | "guided" | "automatic";
 export type CheckoutLabelSlotKind = "source" | "global_translation" | "market_translation";
 export type CheckoutLabelsMode = "off" | "guided" | "automatic" | "partial";
 export type CheckoutLabelsStatus = "synced" | "action_required" | "scope_required" | "unknown";
+export type CheckoutLabelsDecision = "pending" | "accepted";
 export type Address2Classification = "unknown" | "expected" | "nonstandard" | "fiscal_conflict";
 export type Address2Decision = "pending" | "accepted" | "restored" | "manual_restore_required";
 
@@ -30,6 +31,7 @@ export type CheckoutLabelMarket = {
   name: string;
   defaultLocale: string | null;
   locales: string[];
+  resolution: "direct" | "inherited" | "ambiguous";
 };
 
 export type CheckoutLabelIssue = {
@@ -72,6 +74,9 @@ export type CheckoutLabelState = {
   enabledAt: string | null;
   lastSyncAt: string | null;
   lastErrorCode: string | null;
+  decision: CheckoutLabelsDecision;
+  acceptedRevision: string | null;
+  reviewedAt: string | null;
   address2Classification: Address2Classification;
   address2HasMarketOverride: boolean;
   address2ExternalChangeAt: string | null;
@@ -192,7 +197,8 @@ export function automaticCheckoutLabelCapability(
 
 export function classifyAddress2(slots: CheckoutLabelSlot[]) {
   const addressSlots = slots.filter(
-    (slot) => slot.name === "address2" || slot.name === "optionalAddress2",
+    (slot): slot is CheckoutLabelSlot & { name: "address2" | "optionalAddress2" } =>
+      slot.name === "address2" || slot.name === "optionalAddress2",
   );
   if (addressSlots.length === 0) {
     return { classification: "unknown" as const, hasMarketOverride: false };
@@ -201,7 +207,6 @@ export function classifyAddress2(slots: CheckoutLabelSlot[]) {
   let nonstandard = false;
   let fiscalConflict = false;
   for (const slot of addressSlots) {
-    if (slot.name !== "address2" && slot.name !== "optionalAddress2") continue;
     const value = slot.currentValue;
     if (value === null) continue;
     const reference = address2Reference(slot.name, slot.family);
@@ -248,6 +253,10 @@ export function checkoutLabelsStatus(state: CheckoutLabelState): CheckoutLabelsS
   }
   if (state.mode !== "off" && state.lastSyncAt) return "synced";
   return "unknown";
+}
+
+export function checkoutLabelsSetupDone(state: CheckoutLabelState) {
+  return checkoutLabelsStatus(state) === "synced" || state.decision === "accepted";
 }
 
 export async function checkoutLabelsRevision(snapshot: Omit<CheckoutLabelsSnapshot, "revision">) {

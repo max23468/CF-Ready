@@ -9,6 +9,7 @@ import * as authRoute from "../app/routes/auth.$";
 const mocks = vi.hoisted(() => ({
   authenticateAdmin: vi.fn(),
   authenticateShopify: vi.fn(),
+  acceptCheckoutLabelsCustomization: vi.fn(),
   acceptAddress2Customization: vi.fn(),
   confirmGuidedCheckoutLabels: vi.fn(),
   findValidation: vi.fn(),
@@ -54,6 +55,7 @@ vi.mock("../app/checkout-labels/repository.server", () => ({
 }));
 vi.mock("../app/checkout-labels/service.server", () => ({
   CHECKOUT_LABEL_OPTIONAL_SCOPES: ["write_translations", "read_locales", "read_markets"],
+  acceptCheckoutLabelsCustomization: mocks.acceptCheckoutLabelsCustomization,
   acceptAddress2Customization: mocks.acceptAddress2Customization,
   confirmGuidedCheckoutLabels: mocks.confirmGuidedCheckoutLabels,
   loadCheckoutLabels: mocks.loadCheckoutLabels,
@@ -122,6 +124,7 @@ beforeEach(() => {
     address2Classification: "unknown",
   });
   mocks.acceptAddress2Customization.mockResolvedValue({ ok: true });
+  mocks.acceptCheckoutLabelsCustomization.mockResolvedValue({ ok: true });
   mocks.confirmGuidedCheckoutLabels.mockResolvedValue({ ok: true });
   mocks.loadCheckoutLabels.mockResolvedValue({
     available: true,
@@ -688,6 +691,37 @@ test("Regole gestisce consenso, ripristino e sincronizzazione delle etichette", 
     ),
   ).toEqual({ ok: true });
   expect(mocks.acceptAddress2Customization).toHaveBeenCalledWith(admin, db, session.shop, "r1");
+
+  mocks.scopeQuery.mockResolvedValueOnce({ granted: [] });
+  expect(await action(args(post("/app/rules", { intent: "accept_checkout_labels" })))).toEqual({
+    ok: true,
+  });
+  expect(mocks.acceptCheckoutLabelsCustomization).toHaveBeenCalledWith(
+    admin,
+    db,
+    session.shop,
+    null,
+  );
+  expect(await action(args(post("/app/rules", { intent: "accept_checkout_labels" })))).toEqual({
+    ok: false,
+    errorCode: "checkout_labels_conflict",
+  });
+  expect(
+    await action(
+      args(post("/app/rules", { intent: "accept_checkout_labels", labelsRevision: "" })),
+    ),
+  ).toEqual({ ok: false, errorCode: "checkout_labels_conflict" });
+  expect(
+    await action(
+      args(post("/app/rules", { intent: "accept_checkout_labels", labelsRevision: "r1" })),
+    ),
+  ).toEqual({ ok: true });
+  expect(mocks.acceptCheckoutLabelsCustomization).toHaveBeenCalledWith(
+    admin,
+    db,
+    session.shop,
+    "r1",
+  );
 
   mocks.scopeQuery.mockResolvedValueOnce({ granted: [] });
   expect(

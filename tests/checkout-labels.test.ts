@@ -8,6 +8,7 @@ import {
   checkoutLabelName,
   observedLabelForSlot,
   checkoutLabelsMode,
+  checkoutLabelsSetupDone,
   checkoutLabelsStatus,
   classifyAddress2,
   type CheckoutLabelSlot,
@@ -27,6 +28,7 @@ import {
   readCheckoutLabelState,
   readStoredCheckoutLabelSlots,
   saveAddress2Decision,
+  saveCheckoutLabelsDecision,
   saveCheckoutLabelWrite,
   stopCheckoutLabelManagement,
 } from "../app/checkout-labels/repository.server";
@@ -96,6 +98,9 @@ test("riduce lo stato D1 ai quattro esiti usati da Home e diagnostica", () => {
     enabledAt: null,
     lastSyncAt: null,
     lastErrorCode: null,
+    decision: "pending" as const,
+    acceptedRevision: null,
+    reviewedAt: null,
     address2Classification: "unknown" as const,
     address2HasMarketOverride: false,
     address2ExternalChangeAt: null,
@@ -104,6 +109,8 @@ test("riduce lo stato D1 ai quattro esiti usati da Home e diagnostica", () => {
   };
 
   expect(checkoutLabelsStatus(state)).toBe("unknown");
+  expect(checkoutLabelsSetupDone(state)).toBe(false);
+  expect(checkoutLabelsSetupDone({ ...state, decision: "accepted" })).toBe(true);
   expect(
     checkoutLabelsStatus({ ...state, mode: "automatic", lastSyncAt: "2026-09-08T12:00:00Z" }),
   ).toBe("synced");
@@ -150,6 +157,7 @@ test("un readback Admin resta guidato finché la stessa tupla non ha una prova c
       name: "Italia",
       defaultLocale: "it",
       locales: ["it", "en-GB"],
+      resolution: "direct",
     },
   ]);
   expect(snapshot.issues).toEqual([]);
@@ -163,13 +171,29 @@ test("un readback Admin resta guidato finché la stessa tupla non ha una prova c
   expect(graphql.mock.calls[0][0]).not.toContain("186856898864");
 });
 
+test("distingue una presenza web ereditata dal mercato", async () => {
+  const snapshot = await readCheckoutLabels({ graphql: discoveryAdmin("en-GB", false) });
+
+  expect(snapshot.markets[0]).toMatchObject({
+    defaultLocale: "it",
+    locales: ["it", "en-GB"],
+    resolution: "inherited",
+  });
+});
+
 test("il discovery ignora contenuti estranei e gestisce contesti Shopify incompleti", async () => {
   const responses = [
     {
       data: {
         shopLocales: [{ locale: "it", name: "Italiano", primary: true, published: true }],
         markets: {
-          nodes: [{ id: "gid://shopify/Market/1", name: "Italia", webPresence: null }],
+          nodes: [
+            {
+              id: "gid://shopify/Market/1",
+              name: "Italia",
+              webPresences: { nodes: [], pageInfo: { hasNextPage: false } },
+            },
+          ],
           pageInfo: { hasNextPage: false, endCursor: null },
         },
       },
@@ -206,15 +230,28 @@ test("il discovery ignora contenuti estranei e gestisce contesti Shopify incompl
 
   const snapshot = await readCheckoutLabels({ graphql });
 
-  expect(snapshot.markets[0]).toMatchObject({ defaultLocale: null, locales: [] });
-  expect(snapshot.slots).toEqual([
-    expect.objectContaining({
-      name: "taxCode",
-      kind: "source",
-      currentValue: "Codice fiscale",
-      outdated: false,
-    }),
-  ]);
+  expect(snapshot.markets[0]).toMatchObject({
+    defaultLocale: null,
+    locales: ["it"],
+    resolution: "ambiguous",
+  });
+  expect(snapshot.slots).toHaveLength(2);
+  expect(snapshot.slots).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        name: "taxCode",
+        kind: "source",
+        currentValue: "Codice fiscale",
+        outdated: false,
+      }),
+      expect.objectContaining({
+        name: "taxCode",
+        kind: "market_translation",
+        marketId: "gid://shopify/Market/1",
+        inheritedValue: "Codice fiscale",
+      }),
+    ]),
+  );
 });
 
 test("il discovery segnala risorse mancanti, ambigue e paginazione incoerente", async () => {
@@ -528,6 +565,19 @@ test("D1 registra esiti, ownership, decisioni e revoca degli scope", async () =>
     address2ExternalChangeAt: null,
   });
 
+  await saveCheckoutLabelsDecision(env.DB, shop, "accepted", "revision-1");
+  expect(await readCheckoutLabelState(env.DB, shop)).toMatchObject({
+    decision: "accepted",
+    acceptedRevision: "revision-1",
+    reviewedAt: expect.any(String),
+  });
+  await saveCheckoutLabelsDecision(env.DB, shop, "pending", null);
+  expect(await readCheckoutLabelState(env.DB, shop)).toMatchObject({
+    decision: "pending",
+    acceptedRevision: null,
+    reviewedAt: null,
+  });
+
   await markCheckoutLabelsScopeRequired(env.DB, shop);
   expect(await readCheckoutLabelState(env.DB, shop)).toMatchObject({
     mode: "guided",
@@ -633,7 +683,7 @@ function slot(overrides: Partial<CheckoutLabelSlot> = {}): CheckoutLabelSlot {
   };
 }
 
-function discoveryAdmin(englishLocale = "en-GB") {
+function discoveryAdmin(englishLocale = "en-GB", directlyAssigned = true) {
   const content = Object.values(CHECKOUT_LABEL_KEYS).map((key) => ({
     key,
     value:
@@ -660,9 +710,18 @@ function discoveryAdmin(englishLocale = "en-GB") {
             {
               id: "gid://shopify/Market/1",
               name: "Italia",
-              webPresence: {
-                defaultLocale: { locale: "it" },
-                alternateLocales: [{ locale: englishLocale }],
+              webPresences: {
+                nodes: [
+                  {
+                    defaultLocale: { locale: "it" },
+                    alternateLocales: [{ locale: englishLocale }],
+                    markets: {
+                      nodes: directlyAssigned ? [{ id: "gid://shopify/Market/1" }] : [],
+                      pageInfo: { hasNextPage: false },
+                    },
+                  },
+                ],
+                pageInfo: { hasNextPage: false },
               },
             },
           ],

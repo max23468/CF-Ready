@@ -29,6 +29,7 @@ import {
 import { databaseContext } from "../context.server";
 import { readCheckoutLabelState } from "../checkout-labels/repository.server";
 import {
+  acceptCheckoutLabelsCustomization,
   acceptAddress2Customization,
   CHECKOUT_LABEL_OPTIONAL_SCOPES,
   confirmGuidedCheckoutLabels,
@@ -150,6 +151,19 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
     }
     return acceptAddress2Customization(admin, db, session.shop, revision);
+  }
+
+  if (intent === "accept_checkout_labels") {
+    const revision = form.get("labelsRevision");
+    if (labelScopesGranted && (typeof revision !== "string" || !revision)) {
+      return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
+    }
+    return acceptCheckoutLabelsCustomization(
+      admin,
+      db,
+      session.shop,
+      labelScopesGranted && typeof revision === "string" ? revision : null,
+    );
   }
 
   if (intent === "confirm_guided_labels") {

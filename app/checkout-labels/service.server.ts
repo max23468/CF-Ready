@@ -22,6 +22,7 @@ import {
   readCheckoutLabelState,
   readStoredCheckoutLabelSlots,
   saveAddress2Decision,
+  saveCheckoutLabelsDecision,
   saveCheckoutLabelWrite,
   stopCheckoutLabelManagement,
 } from "./repository.server";
@@ -71,6 +72,9 @@ export async function loadCheckoutLabels(
       stored,
       state.address2Decision,
     );
+    if (state.decision === "accepted" && state.acceptedRevision !== snapshot.revision) {
+      await saveCheckoutLabelsDecision(db, shopDomain, "pending", null);
+    }
     const externalChange = managedExternalChange || address2ExternalChange;
     await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots, snapshot.address2);
     if (externalChange) {
@@ -103,6 +107,34 @@ export async function loadCheckoutLabels(
   } catch (error) {
     return { available: false, state, errorCode: checkoutLabelsError(error) };
   }
+}
+
+export async function acceptCheckoutLabelsCustomization(
+  admin: Admin,
+  db: D1Database,
+  shopDomain: string,
+  expectedRevision: string | null,
+) {
+  const locked = await withValidationLock(db, shopDomain, async () => {
+    const state = await readCheckoutLabelState(db, shopDomain);
+    if (state.mode !== "off") {
+      return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
+    }
+    if (!expectedRevision) {
+      await saveCheckoutLabelsDecision(db, shopDomain, "accepted", null);
+      return { ok: true as const };
+    }
+    const snapshot = await readCheckoutLabels(admin);
+    if (snapshot.revision !== expectedRevision) {
+      return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
+    }
+    await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots, snapshot.address2);
+    await saveCheckoutLabelsDecision(db, shopDomain, "accepted", snapshot.revision);
+    return { ok: true as const };
+  });
+  return locked.acquired
+    ? locked.result
+    : { ok: false as const, errorCode: "validation_locked" as const };
 }
 
 export async function saveRulesAndCheckoutLabels(

@@ -1,6 +1,6 @@
 # Piano — Etichette native checkout e controllo del campo “Interno”
 
-**Stato:** implementazione locale completata; verifica reale Development e rollout non eseguiti
+**Stato:** implementazione distribuita in Development; matrice reale parziale in attesa del consenso agli scope opzionali e di uno store sacrificabile
 **Data:** 8 settembre 2026
 **Versione candidata:** `1.7.0`
 **Ambiente della prova esplorativa:** Development
@@ -74,6 +74,17 @@ proporre qualsiasi scrittura. Chiama “effettivo” un valore soltanto dopo una
 verifica nel checkout reale per quello stesso contesto.
 
 ## 3. Evidenza già raccolta in Development
+
+La versione `1.7.0` è stata integrata in `develop` come `957fb0b` e distribuita
+in Development il 9 settembre 2026. Il workflow `34348227431` ha applicato la
+migrazione `0018`, attivato lo snapshot Shopify
+`1.7.0-dev.066bbf281ba6`, distribuito il Worker ed eseguito smoke, capacità e
+readback sullo stesso tree. La sezione “Campi nativi: Codice Fiscale e PEC” è
+stata poi riletta nell’Admin reale.
+
+La [matrice delle capacità](../evidence/2026-09-09-checkout-labels-capability-matrix.md)
+registra separatamente le prove automatiche, il rilascio Development e i casi
+che richiedono ancora un’azione dell’owner o un ambiente sacrificabile.
 
 Una verifica in sola lettura sull’Admin GraphQL API `2026-07` ha trovato una
 sola risorsa `ONLINE_STORE_THEME_LOCALE_CONTENT` contenente le chiavi fiscali e
@@ -460,6 +471,9 @@ all’esecuzione checkout.
 | `checkout_labels_enabled_at` | istante del consenso alla gestione CF/PEC |
 | `checkout_labels_last_sync_at` | ultimo readback completo |
 | `checkout_labels_last_error_code` | errore tecnico minimizzato |
+| `checkout_labels_decision` | `pending` oppure `accepted` quando il merchant sceglie di conservare le proprie etichette |
+| `checkout_labels_accepted_revision` | revisione dello snapshot Shopify accettato, oppure `NULL` quando gli scope non sono stati concessi |
+| `checkout_labels_reviewed_at` | istante dell’ultima scelta esplicita sulle etichette CF/PEC |
 | `address2_classification` | `unknown`, `expected`, `nonstandard`, `fiscal_conflict` |
 | `address2_has_market_override` | presenza di override osservati |
 | `address2_external_change_at` | modifica successiva alla baseline o decisione precedente |
@@ -627,6 +641,12 @@ La checklist iniziale comprende “Controlla le etichette del checkout”. Il pu
 
 - la gestione automatica è attiva e sincronizzata; oppure
 - il merchant ha scelto consapevolmente di mantenere le proprie etichette.
+
+La seconda scelta resta disponibile anche senza concedere gli scope opzionali.
+Se il merchant li concede in seguito, il primo snapshot Shopify invalida la
+scelta priva di revisione e richiede un nuovo confronto. Anche una lingua, un
+mercato o un testo diverso dalla revisione accettata riporta la scelta a
+`pending`.
 
 La Home mostra un banner con collegamento a “Regole checkout” per:
 
