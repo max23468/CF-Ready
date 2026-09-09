@@ -54,4 +54,8 @@ test("un messaggio compare solo se le regole lo rendono raggiungibile", () => {
   expect(shown({ taxCode: "required_validated", pec: "required_validated" })).toEqual([
     ...MESSAGE_KEYS,
   ]);
+  expect(shown({ taxCode: "unmanaged", pec: "required_when_company" })).toEqual([
+    "pecRequired",
+    "pecInvalid",
+  ]);
 });

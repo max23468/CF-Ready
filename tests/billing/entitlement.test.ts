@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import { addDays, entitlementFor, remainingTrialDays } from "../../app/billing.server";
+import { CONFIG_SCHEMA_VERSION } from "../../app/config";
 import { configWithEntitlement, entitlementDiffers } from "../../app/validation.server";
 
 test("il diritto pagato prevale sulla prova ancora attiva", () => {
@@ -81,7 +82,7 @@ test("la riscrittura conserva regole e messaggi e normalizza la modalità legacy
   });
   // Configurazione illeggibile: si riparte dal default invece di propagare spazzatura.
   expect(configWithEntitlement("rotto", { kind: "none", validThrough: null })).toMatchObject({
-    schemaVersion: 2,
+    schemaVersion: CONFIG_SCHEMA_VERSION,
     rules: { taxCode: "unmanaged" },
   });
 });

@@ -989,6 +989,26 @@ describe("Onboarding", () => {
 });
 
 describe("Regole", () => {
+  test("mostra la modalità Azienda soltanto per la PEC", async () => {
+    router.loaderData = rulesData;
+    const view = await mount(<CheckoutRules />);
+    const taxCodeChoices = view.container.querySelectorAll(
+      's-choice-list[name="taxCode"] s-choice',
+    );
+    const pecChoices = view.container.querySelectorAll('s-choice-list[name="pec"] s-choice');
+
+    expect(taxCodeChoices).toHaveLength(3);
+    expect(pecChoices).toHaveLength(4);
+    expect(
+      [...taxCodeChoices].some(
+        (choice) => choice.getAttribute("value") === "required_when_company",
+      ),
+    ).toBe(false);
+    expect(
+      [...pecChoices].some((choice) => choice.getAttribute("value") === "required_when_company"),
+    ).toBe(true);
+  });
+
   test("riapplica una regola locale conservando le altre impostazioni remote", async () => {
     router.loaderData = rulesData;
     const view = await mount(<CheckoutRules />);

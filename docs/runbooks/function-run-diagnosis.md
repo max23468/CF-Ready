@@ -66,9 +66,9 @@ La Function restituisce consenso se `validation.metafield` è assente oppure se
 
 | Controllo nell'input | Configurazione accettata                                                                                                                                                                     | Cosa dire al merchant se non coincide                                                                                                                                |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Struttura base       | oggetto con `schemaVersion: 2` ed `enabled: true`                                                                                                                                            | La configurazione attiva non era disponibile al run; CF Ready ha lasciato proseguire il checkout. Verificare lo stato della Validation e salvare di nuovo le regole. |
+| Struttura base       | oggetto con `schemaVersion: 2` o `schemaVersion: 3` ed `enabled: true`                                                                                                                        | La configurazione attiva non era disponibile al run; CF Ready ha lasciato proseguire il checkout. Verificare lo stato della Validation e salvare di nuovo le regole. |
 | Data locale          | `shop.localTime.date` è una data reale nel formato `YYYY-MM-DD`, inclusi anni bisestili corretti                                                                                             | La data locale ricevuta non era utilizzabile; CF Ready ha applicato il comportamento fail-open.                                                                      |
-| Regole               | `rules` è un oggetto e sia `taxCode` sia `pec` valgono `unmanaged`, `optional_validated` o `required_validated`                                                                              | Una regola non era riconosciuta; CF Ready ha lasciato proseguire il checkout. Salvare di nuovo le regole.                                                            |
+| Regole               | `rules` è un oggetto; entrambi i campi accettano i tre valori storici e la PEC accetta anche `required_when_company` nello schema 3                                                         | Una regola non era riconosciuta; CF Ready ha lasciato proseguire il checkout. Salvare di nuovo le regole.                                                            |
 | Messaggi             | `messages.it` e `messages.en` contengono tutte le chiavi `taxCodeRequired`, `taxCodeInvalid`, `pecRequired`, `pecInvalid`; ogni valore è una stringa già trimmata lunga da 1 a 200 caratteri | I messaggi erano incompleti o non validi; CF Ready ha lasciato proseguire il checkout. Ripristinare o salvare di nuovo i messaggi.                                   |
 | Diritto una tantum   | `entitlement.kind` è `one_time` e `validThrough` è `null`                                                                                                                                    | Il diritto una tantum non risultava valido nel run; controllare lo stato commerciale mostrato dall'app.                                                              |
 | Prova o abbonamento  | `entitlement.kind` è `trial` o `subscription`, `validThrough` è una data reale e non precede `shop.localTime.date`                                                                           | Il diritto risultava scaduto o non valido nel run; controllare prova o abbonamento mostrati dall'app.                                                                |
@@ -107,7 +107,8 @@ fornito né i campi da controllare né una consegna italiana che rendesse
 significativa la loro assenza.
 
 La query richiede soltanto `TAX_CREDENTIAL_IT` e `TAX_EMAIL_IT`; altri localized
-field non compaiono nell'array usato da questa Function.
+field non compaiono nell'array usato da questa Function. Legge inoltre
+`billingAddress.company` per la regola PEC condizionale.
 
 ## 4. Regole dei singoli campi
 
@@ -119,12 +120,15 @@ checkout riceve consenso quando nessuno dei due campi produce un errore.
 | Il campo è assente, non esiste una consegna italiana e la regola è qualsiasi                           | Nessun errore per il campo.                                | Shopify non ha esposto il campo e non era osservabile una consegna italiana; CF Ready lo ha ignorato in modo fail-open.                 |
 | La regola è `unmanaged`                                                                                | Nessun errore, indipendentemente dal valore.               | Il campo non era gestito dalle regole attive al momento del run.                                                                        |
 | La regola è `optional_validated` e il valore è assente, `null`, vuoto o composto da soli spazi         | Nessun errore.                                             | Il campo era facoltativo e non conteneva un valore da validare.                                                                         |
+| La PEC è `required_when_company`, Azienda è assente o vuota dopo il trim e la PEC è vuota              | Nessun errore.                                             | Azienda non era compilata, quindi la PEC era facoltativa.                                                                               |
+| La PEC è `required_when_company`, Azienda è compilata e la PEC è vuota                                 | Errore con il messaggio `pecRequired`.                     | Azienda era compilata, quindi CF Ready ha chiesto a Shopify di bloccare per la PEC mancante.                                             |
 | La regola è `required_validated` e il valore, dopo il trim, è vuoto                                    | Errore con il messaggio `taxCodeRequired` o `pecRequired`. | Il campo era obbligatorio e vuoto; CF Ready ha chiesto a Shopify di bloccare.                                                           |
-| La regola è `optional_validated` o `required_validated` e il valore non vuoto non supera il validatore | Errore con il messaggio `taxCodeInvalid` o `pecInvalid`.   | Il valore non rispettava la validazione formale configurata; CF Ready ha chiesto a Shopify di bloccare.                                 |
-| La regola è `optional_validated` o `required_validated` e il valore non vuoto supera il validatore     | Nessun errore.                                             | Il valore rispettava la validazione formale; CF Ready non attesta che appartenga a una persona o che una casella sia realmente una PEC. |
+| Una regola gestita e un valore non vuoto non supera il validatore                                      | Errore con il messaggio `taxCodeInvalid` o `pecInvalid`.   | Il valore non rispettava la validazione formale configurata; CF Ready ha chiesto a Shopify di bloccare.                                 |
+| Una regola gestita e un valore non vuoto supera il validatore                                          | Nessun errore.                                             | Il valore rispettava la validazione formale; CF Ready non attesta che appartenga a una persona o che una casella sia realmente una PEC. |
 
 Con almeno una consegna italiana, a Completion un campo assente viene trattato
 come vuoto: `required_validated` produce quindi l'errore obbligatorio, mentre
+`required_when_company` lo produce per la PEC soltanto con Azienda compilata;
 `optional_validated` e `unmanaged` non producono errori. A Interaction un campo
 assente non produce errori.
 

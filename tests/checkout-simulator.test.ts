@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import { DEFAULT_CONFIG } from "../app/config";
 import {
+  pecIsRequired,
   simulatorErrorMessage,
   simulatorFieldError,
   simulatorOutcome,
@@ -85,12 +86,36 @@ test("il simulatore mostra i messaggi configurati effettivi", () => {
   expect(simulatorErrorMessage(messages, "pec", null, true)).toBeUndefined();
 });
 
-test("gli scenari pronti coprono valori validi, non validi e campi vuoti", () => {
+test("gli scenari pronti coprono valori validi, non validi, Azienda e campi vuoti", () => {
   expect(isValidTaxCode(simulatorScenarioValues.valid.taxCode)).toBe(true);
   expect(isValidPec(simulatorScenarioValues.valid.pec)).toBe(true);
   expect(isValidTaxCode(simulatorScenarioValues.invalidTaxCode.taxCode)).toBe(false);
   expect(isValidPec(simulatorScenarioValues.invalidPec.pec)).toBe(false);
-  expect(simulatorScenarioValues.empty).toEqual({ taxCode: "", pec: "" });
+  expect(simulatorScenarioValues.companyWithoutPec).toEqual({
+    company: "Acme S.r.l.",
+    taxCode: "RSSMRA85T10A562S",
+    pec: "",
+  });
+  expect(simulatorScenarioValues.empty).toEqual({ company: "", taxCode: "", pec: "" });
+});
+
+test("la PEC condizionale è richiesta soltanto con Azienda compilata", () => {
+  expect(pecIsRequired("required_when_company", "")).toBe(false);
+  expect(pecIsRequired("required_when_company", "   ")).toBe(false);
+  expect(pecIsRequired("required_when_company", "Acme S.r.l.")).toBe(true);
+
+  const input = {
+    rules: { taxCode: "unmanaged", pec: "required_when_company" } as const,
+    deliveryCountry: "IT",
+    billingCountry: "IT",
+    taxCode: "",
+    pec: "",
+    submitted: true,
+  };
+  expect(simulatorOutcome({ ...input, company: "" })).toBe("ready");
+  expect(simulatorOutcome({ ...input, company: "Acme S.r.l." })).toBe("blocked");
+  expect(simulatorOutcome({ ...input, company: "", pec: "mario@" })).toBe("blocked");
+  expect(simulatorOutcome({ ...input, company: "", pec: "mario@example.com" })).toBe("ready");
 });
 
 test("il selettore spiega che ogni scenario compila i campi e mostra il risultato", () => {

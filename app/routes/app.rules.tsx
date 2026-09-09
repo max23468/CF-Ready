@@ -17,7 +17,14 @@ import { skipRevalidationWhenLeaving } from "../revalidation";
 import { setSaveBarVisibility } from "../save-bar";
 import { createServerTiming } from "../server-timing.server";
 import { authenticate } from "../shopify.server";
-import { address2Declaration, oneOf, readConfig, RULE_MODES, showSavedBanner } from "../config";
+import {
+  address2Declaration,
+  oneOf,
+  PEC_RULE_MODES,
+  readConfig,
+  showSavedBanner,
+  TAX_CODE_RULE_MODES,
+} from "../config";
 import { databaseContext } from "../context.server";
 import {
   observedConfigHash,
@@ -75,8 +82,8 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
   // NFR-023: la validazione lato client è cortesia, questa è la difesa. Un valore fuori
   // dall'insieme ammesso non viene corretto in silenzio: la scrittura non parte.
-  const taxCode = oneOf(RULE_MODES, form.get("taxCode"));
-  const pec = oneOf(RULE_MODES, form.get("pec"));
+  const taxCode = oneOf(TAX_CODE_RULE_MODES, form.get("taxCode"));
+  const pec = oneOf(PEC_RULE_MODES, form.get("pec"));
   if (!taxCode || !pec) return { ok: false as const, errorCode: "generic" };
 
   const declared = address2Declaration(form);
@@ -247,7 +254,7 @@ export default function CheckoutRules() {
                     labelAccessibilityVisibility="exclusive"
                     name="taxCode"
                   >
-                    {RULE_MODES.map((mode) => (
+                    {TAX_CODE_RULE_MODES.map((mode) => (
                       <s-choice key={mode} value={mode} selected={mode === draft.rules.taxCode}>
                         {t.rules.taxCode[mode]}
                         <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
@@ -262,7 +269,7 @@ export default function CheckoutRules() {
                     labelAccessibilityVisibility="exclusive"
                     name="pec"
                   >
-                    {RULE_MODES.map((mode) => (
+                    {PEC_RULE_MODES.map((mode) => (
                       <s-choice key={mode} value={mode} selected={mode === draft.rules.pec}>
                         {t.rules.pec[mode]}
                         <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>

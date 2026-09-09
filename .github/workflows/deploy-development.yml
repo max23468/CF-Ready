@@ -146,6 +146,39 @@ jobs:
               "- D1 Development: nessuna migrazione pendente dopo il readback remoto\n");
           ' "$RUNNER_TEMP/d1-migrations.txt"
 
+      - name: Deploy Shopify Development
+        if: env.DEPLOY_READBACK_ONLY != 'true'
+        env:
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+        run: >-
+          shopify app deploy
+          --config dev
+          --allow-updates
+          --version "$DEPLOY_VERSION"
+          --message "Development ${GITHUB_SHA}"
+          --source-control-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
+          --no-color
+
+      - name: Readback versione attiva
+        env:
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+        run: |
+          shopify app versions list --config dev --no-color --json > "$RUNNER_TEMP/shopify-versions.json"
+          # shellcheck disable=SC2016
+          node --input-type=module -e '
+            import { appendFileSync, readFileSync } from "node:fs";
+            const versions = JSON.parse(readFileSync(process.argv[1], "utf8"));
+            const active = versions.find(({ status }) => status === "active");
+            if (active?.versionTag !== process.env.DEPLOY_VERSION ||
+                active.message !== `Development ${process.env.DEPLOY_SOURCE_COMMIT}`) {
+              throw new Error("Readback Shopify Development non riuscito.");
+            }
+            appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+              `- Shopify attivo: versione \`${active.versionTag}\` (\`${active.versionId}\`), ` +
+              `commit sorgente \`${process.env.DEPLOY_SOURCE_COMMIT}\`\n`);
+            console.log(`Versione attiva verificata: ${active.versionTag} (${active.versionId})`);
+          ' "$RUNNER_TEMP/shopify-versions.json"
+
       - name: Deploy Worker Development
         id: worker_deploy
         if: env.DEPLOY_READBACK_ONLY != 'true'
@@ -183,39 +216,6 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: npm run capacity:dev
-
-      - name: Deploy Shopify Development
-        if: env.DEPLOY_READBACK_ONLY != 'true'
-        env:
-          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
-        run: >-
-          shopify app deploy
-          --config dev
-          --allow-updates
-          --version "$DEPLOY_VERSION"
-          --message "Development ${GITHUB_SHA}"
-          --source-control-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
-          --no-color
-
-      - name: Readback versione attiva
-        env:
-          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
-        run: |
-          shopify app versions list --config dev --no-color --json > "$RUNNER_TEMP/shopify-versions.json"
-          # shellcheck disable=SC2016
-          node --input-type=module -e '
-            import { appendFileSync, readFileSync } from "node:fs";
-            const versions = JSON.parse(readFileSync(process.argv[1], "utf8"));
-            const active = versions.find(({ status }) => status === "active");
-            if (active?.versionTag !== process.env.DEPLOY_VERSION ||
-                active.message !== `Development ${process.env.DEPLOY_SOURCE_COMMIT}`) {
-              throw new Error("Readback Shopify Development non riuscito.");
-            }
-            appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-              `- Shopify attivo: versione \`${active.versionTag}\` (\`${active.versionId}\`), ` +
-              `commit sorgente \`${process.env.DEPLOY_SOURCE_COMMIT}\`\n`);
-            console.log(`Versione attiva verificata: ${active.versionTag} (${active.versionId})`);
-          ' "$RUNNER_TEMP/shopify-versions.json"
 
       - name: Genera ricevuta Development
         env:
@@ -266,7 +266,20 @@ jobs:
           shopify_restored=0
           worker_restored=0
 
-          if shopify app versions list --config dev --no-color --json > "$RUNNER_TEMP/shopify-before-rollback.json"; then
+          if npm exec -- wrangler deployments status --json > "$RUNNER_TEMP/worker-before-rollback.json"; then
+            active_worker_version="$(node -e 'const d=require(process.argv[1]); process.stdout.write(d.versions?.[0]?.version_id??"")' "$RUNNER_TEMP/worker-before-rollback.json")"
+            if [ "$active_worker_version" = "$WORKER_ROLLBACK_VERSION_ID" ]; then
+              worker_restored=1
+            elif npm exec -- wrangler rollback "$WORKER_ROLLBACK_VERSION_ID" --message "Rollback Development ${ROLLBACK_COMMIT}" --yes; then
+              worker_restored=1
+            fi
+          fi
+          if [ "$worker_restored" -ne 1 ]; then
+            echo "::error::Impossibile ripristinare la versione Worker Development precedente."
+            rollback_failed=1
+          fi
+
+          if [ "$worker_restored" -eq 1 ] && shopify app versions list --config dev --no-color --json > "$RUNNER_TEMP/shopify-before-rollback.json"; then
             active_tag="$(node -e 'const v=require(process.argv[1]); process.stdout.write(v.find(x=>x.status==="active")?.versionTag??"")' "$RUNNER_TEMP/shopify-before-rollback.json")"
             if [ "$active_tag" = "$SHOPIFY_ROLLBACK_VERSION_TAG" ]; then
               shopify_restored=1
@@ -280,19 +293,6 @@ jobs:
 
           if [ "$shopify_restored" -ne 1 ]; then
             echo "::error::Impossibile ripristinare la versione Shopify Development precedente."
-            rollback_failed=1
-          fi
-
-          if npm exec -- wrangler deployments status --json > "$RUNNER_TEMP/worker-before-rollback.json"; then
-            active_worker_version="$(node -e 'const d=require(process.argv[1]); process.stdout.write(d.versions?.[0]?.version_id??"")' "$RUNNER_TEMP/worker-before-rollback.json")"
-            if [ "$active_worker_version" = "$WORKER_ROLLBACK_VERSION_ID" ]; then
-              worker_restored=1
-            elif [ "$shopify_restored" -eq 1 ] && npm exec -- wrangler rollback "$WORKER_ROLLBACK_VERSION_ID" --message "Rollback Development ${ROLLBACK_COMMIT}" --yes; then
-              worker_restored=1
-            fi
-          fi
-          if [ "$worker_restored" -ne 1 ]; then
-            echo "::error::Impossibile ripristinare la versione Worker Development precedente."
             rollback_failed=1
           fi
 

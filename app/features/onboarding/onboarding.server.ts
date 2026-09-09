@@ -4,10 +4,12 @@ import { authenticateAdmin } from "../../admin-auth.server";
 import { localDate, startTrial } from "../../billing.server";
 import {
   address2Declaration,
+  CONFIG_SCHEMA_VERSION,
   oneOf,
   parseOnboardingStep,
   readConfig,
-  RULE_MODES,
+  PEC_RULE_MODES,
+  TAX_CODE_RULE_MODES,
 } from "../../config";
 import { databaseContext } from "../../context.server";
 import { recordEvent } from "../../events.server";
@@ -75,8 +77,8 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   }
 
   if (intent === "rules") {
-    const taxCode = oneOf(RULE_MODES, form.get("taxCode"));
-    const pec = oneOf(RULE_MODES, form.get("pec"));
+    const taxCode = oneOf(TAX_CODE_RULE_MODES, form.get("taxCode"));
+    const pec = oneOf(PEC_RULE_MODES, form.get("pec"));
     if (!taxCode || !pec) return { ok: false as const, errorCode: "generic" as const };
     const result = await writeValidation(
       admin,
@@ -115,7 +117,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       shopDomain: session.shop,
       name: "validation_enabled",
       class: "validation",
-      metadata: { enabled: true, schema_version: 2 },
+      metadata: { enabled: true, schema_version: CONFIG_SCHEMA_VERSION },
     });
   } else if (declared !== null) {
     await saveAddress2Declaration(db, session.shop, declared);

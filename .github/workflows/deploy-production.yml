@@ -173,6 +173,39 @@ jobs:
               "- D1 Production: nessuna migrazione pendente dopo il readback remoto\n");
           ' "$RUNNER_TEMP/d1-migrations.txt"
 
+      - name: Arma rollback Shopify Production
+        id: arm_shopify
+        run: echo "started=true" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy Shopify Production
+        env:
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+        run: >-
+          shopify app deploy
+          --allow-updates
+          --version "$DEPLOY_VERSION"
+          --message "Production ${GITHUB_SHA}"
+          --source-control-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
+          --no-color
+
+      - name: Readback versione attiva Shopify
+        env:
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+        run: |
+          shopify app versions list --no-color --json > "$RUNNER_TEMP/shopify-versions.json"
+          # shellcheck disable=SC2016
+          node --input-type=module -e '
+            import { appendFileSync, readFileSync } from "node:fs";
+            const versions = JSON.parse(readFileSync(process.argv[1], "utf8"));
+            const active = versions.find(({ status }) => status === "active");
+            if (active?.versionTag !== process.env.DEPLOY_VERSION ||
+                active.message !== `Production ${process.env.GITHUB_SHA}`) {
+              throw new Error("Readback Shopify Production non riuscito.");
+            }
+            appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+              `- Shopify attivo: versione \`${active.versionTag}\` (\`${active.versionId}\`)\n`);
+          ' "$RUNNER_TEMP/shopify-versions.json"
+
       # Nessun `--env` qui: il bundle appena costruito è già quello Production e wrangler
       # lo legge da .wrangler/deploy/config.json. Passare `--env` cercherebbe un ambiente
       # dentro un file che non ne ha.
@@ -208,39 +241,6 @@ jobs:
         run: |
           curl --fail --silent --show-error --max-time 15 --output /dev/null "$WORKER_URL"
           echo "- Smoke: Worker Production raggiungibile" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Arma rollback Shopify Production
-        id: arm_shopify
-        run: echo "started=true" >> "$GITHUB_OUTPUT"
-
-      - name: Deploy Shopify Production
-        env:
-          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
-        run: >-
-          shopify app deploy
-          --allow-updates
-          --version "$DEPLOY_VERSION"
-          --message "Production ${GITHUB_SHA}"
-          --source-control-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
-          --no-color
-
-      - name: Readback versione attiva Shopify
-        env:
-          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
-        run: |
-          shopify app versions list --no-color --json > "$RUNNER_TEMP/shopify-versions.json"
-          # shellcheck disable=SC2016
-          node --input-type=module -e '
-            import { appendFileSync, readFileSync } from "node:fs";
-            const versions = JSON.parse(readFileSync(process.argv[1], "utf8"));
-            const active = versions.find(({ status }) => status === "active");
-            if (active?.versionTag !== process.env.DEPLOY_VERSION ||
-                active.message !== `Production ${process.env.GITHUB_SHA}`) {
-              throw new Error("Readback Shopify Production non riuscito.");
-            }
-            appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-              `- Shopify attivo: versione \`${active.versionTag}\` (\`${active.versionId}\`)\n`);
-          ' "$RUNNER_TEMP/shopify-versions.json"
 
       - name: Genera ricevuta immutabile
         env:
@@ -299,29 +299,36 @@ jobs:
           SHOPIFY_DEPLOY_STARTED: ${{ needs.deploy.outputs.shopify_deploy_started }}
         run: |
           rollback_failed=0
-
-          if [ "$SHOPIFY_DEPLOY_STARTED" != "true" ]; then
-            echo "- Shopify: invariato, nessun ripristino necessario" >> "$GITHUB_STEP_SUMMARY"
-          elif shopify app release --version "$SHOPIFY_ROLLBACK_VERSION_TAG" --allow-updates --no-color; then
-            echo "- Shopify ripristinato a \`$SHOPIFY_ROLLBACK_VERSION_TAG\`" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "::error::Impossibile ripristinare la versione Shopify Production precedente."
-            rollback_failed=1
-          fi
+          worker_ready_for_shopify=0
 
           if [ "$WORKER_DEPLOY_STARTED" != "true" ]; then
             echo "- Worker: invariato, nessun ripristino necessario" >> "$GITHUB_STEP_SUMMARY"
+            worker_ready_for_shopify=1
           elif [ "$ROLLBACK_ARMED" = "true" ]; then
             if npm exec -- wrangler rollback "$WORKER_ROLLBACK_VERSION_ID" \
               --config wrangler.json --env production \
               --message "Rollback Production ${GITHUB_SHA}" --yes; then
               echo "- Worker ripristinato alla versione \`$WORKER_ROLLBACK_VERSION_ID\`" >> "$GITHUB_STEP_SUMMARY"
+              worker_ready_for_shopify=1
             else
               echo "::error::Impossibile ripristinare la versione Worker Production precedente."
               rollback_failed=1
             fi
           else
-            echo "- Worker: nessun ripristino possibile, era il primo deploy Production" >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::Worker non ripristinabile: era il primo deploy Production."
+            rollback_failed=1
+          fi
+
+          if [ "$SHOPIFY_DEPLOY_STARTED" != "true" ]; then
+            echo "- Shopify: invariato, nessun ripristino necessario" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$worker_ready_for_shopify" -ne 1 ]; then
+            echo "::error::Shopify resta sulla versione compatibile perché il Worker non è stato ripristinato."
+            rollback_failed=1
+          elif shopify app release --version "$SHOPIFY_ROLLBACK_VERSION_TAG" --allow-updates --no-color; then
+            echo "- Shopify ripristinato a \`$SHOPIFY_ROLLBACK_VERSION_TAG\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error::Impossibile ripristinare la versione Shopify Production precedente."
+            rollback_failed=1
           fi
 
           shopify app versions list --no-color --json > "$RUNNER_TEMP/shopify-rollback-readback.json"

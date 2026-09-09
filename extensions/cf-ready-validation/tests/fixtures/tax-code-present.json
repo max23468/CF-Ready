@@ -8,6 +8,7 @@
       },
       "cart": {
         "billingAddress": {
+          "company": null,
           "countryCode": "IT"
         },
         "deliveryGroups": [
