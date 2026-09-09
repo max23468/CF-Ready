@@ -22,6 +22,9 @@ type FiscalLabelContext = {
   key: string;
   label: string;
   note: string | null;
+  language: string;
+  marketName: string | null;
+  primary: boolean;
   entries: { name: "taxCode" | "pec"; slot: CheckoutLabelSlot }[];
   guidedSlotIds: string[];
 };
@@ -36,6 +39,7 @@ type CheckoutLabelsSectionProps = {
   enabled: boolean;
   busy: boolean;
   checkoutSettingsUrl: string;
+  languagesSettingsUrl: string;
   storefrontUrl: string;
   onEnabledChange: (value: boolean) => void;
 };
@@ -51,6 +55,7 @@ export function CheckoutLabelsSection({
   enabled,
   busy,
   checkoutSettingsUrl,
+  languagesSettingsUrl,
   storefrontUrl,
   onEnabledChange,
 }: CheckoutLabelsSectionProps) {
@@ -63,6 +68,7 @@ export function CheckoutLabelsSection({
   const [selectedFamily, setSelectedFamily] = useState<CheckoutLabelFamily | null>(null);
   const activeFamily = selectedFamily ?? locale;
   const actionBusy = fetcher.state !== "idle";
+  const revalidationBusy = revalidator.state !== "idle";
   const actionError = fetcher.data?.ok === false ? fetcher.data.errorCode : null;
   const submitIntent = (
     intent: string,
@@ -92,14 +98,17 @@ export function CheckoutLabelsSection({
   return (
     <s-section heading={copy.heading}>
       <s-stack direction="block" gap="base">
-        <s-paragraph>{copy.intro}</s-paragraph>
         <s-select
           label={copy.language}
           value={activeFamily}
           onChange={(event) => setSelectedFamily(event.currentTarget.value as CheckoutLabelFamily)}
         >
-          <s-option value="it">{copy.italian}</s-option>
-          <s-option value="en">{copy.english}</s-option>
+          <s-option value="it" selected={activeFamily === "it"}>
+            {copy.italian}
+          </s-option>
+          <s-option value="en" selected={activeFamily === "en"}>
+            {copy.english}
+          </s-option>
         </s-select>
         {actionError || scopeRequestError ? (
           <s-banner tone="critical">
@@ -110,6 +119,18 @@ export function CheckoutLabelsSection({
           <s-banner tone="warning">{localizedError(t.errors, loadErrorCode)}</s-banner>
         ) : null}
 
+        <Address2CheckoutLabels
+          key={`address2:${snapshot?.revision ?? "none"}`}
+          locale={locale}
+          rules={rules}
+          scopeGranted={scopeGranted}
+          snapshot={snapshot}
+          state={state}
+          activeFamily={activeFamily}
+          busy={busy || actionBusy || revalidationBusy}
+          checkoutSettingsUrl={checkoutSettingsUrl}
+          submitIntent={submitIntent}
+        />
         <NativeCheckoutLabels
           key={`native:${snapshot?.revision ?? "none"}`}
           locale={locale}
@@ -119,24 +140,15 @@ export function CheckoutLabelsSection({
           state={state}
           activeFamily={activeFamily}
           storefrontUrl={storefrontUrl}
+          checkoutSettingsUrl={checkoutSettingsUrl}
+          languagesSettingsUrl={languagesSettingsUrl}
           enabled={enabled}
-          busy={busy || actionBusy || scopeRequestBusy}
+          busy={busy || actionBusy || scopeRequestBusy || revalidationBusy}
           onEnabledChange={onEnabledChange}
           guidedConfirmations={guidedConfirmations}
           submitIntent={submitIntent}
           requestPermissions={requestPermissions}
-        />
-        <Address2CheckoutLabels
-          key={`address2:${snapshot?.revision ?? "none"}`}
-          locale={locale}
-          rules={rules}
-          scopeGranted={scopeGranted}
-          snapshot={snapshot}
-          state={state}
-          activeFamily={activeFamily}
-          busy={busy || actionBusy}
-          checkoutSettingsUrl={checkoutSettingsUrl}
-          submitIntent={submitIntent}
+          refreshSnapshot={() => revalidator.revalidate()}
         />
       </s-stack>
     </s-section>
@@ -151,12 +163,15 @@ function NativeCheckoutLabels({
   state,
   activeFamily,
   storefrontUrl,
+  checkoutSettingsUrl,
+  languagesSettingsUrl,
   enabled,
   busy,
   onEnabledChange,
   guidedConfirmations,
   submitIntent,
   requestPermissions,
+  refreshSnapshot,
 }: Pick<
   CheckoutLabelsSectionProps,
   | "locale"
@@ -165,6 +180,8 @@ function NativeCheckoutLabels({
   | "snapshot"
   | "state"
   | "storefrontUrl"
+  | "checkoutSettingsUrl"
+  | "languagesSettingsUrl"
   | "enabled"
   | "busy"
   | "onEnabledChange"
@@ -173,6 +190,7 @@ function NativeCheckoutLabels({
   activeFamily: CheckoutLabelFamily;
   submitIntent: (intent: string, slotIds?: string[]) => void;
   requestPermissions: () => Promise<void>;
+  refreshSnapshot: () => void;
 }) {
   const copy = texts(locale).rules.labels;
   const automaticAvailable = Boolean(
@@ -232,11 +250,14 @@ function NativeCheckoutLabels({
             busy={busy}
             activeFamily={activeFamily}
             storefrontUrl={storefrontUrl}
+            checkoutSettingsUrl={checkoutSettingsUrl}
+            languagesSettingsUrl={languagesSettingsUrl}
             automaticAvailable={automaticAvailable}
             displayedContexts={displayedContexts}
             guidedConfirmations={guidedConfirmations}
             onEnabledChange={onEnabledChange}
             submitIntent={submitIntent}
+            refreshSnapshot={refreshSnapshot}
           />
         )}
       </div>
@@ -287,11 +308,14 @@ function NativeLabelsGrantedContent({
   busy,
   activeFamily,
   storefrontUrl,
+  checkoutSettingsUrl,
+  languagesSettingsUrl,
   automaticAvailable,
   displayedContexts,
   guidedConfirmations,
   onEnabledChange,
   submitIntent,
+  refreshSnapshot,
 }: Pick<
   CheckoutLabelsSectionProps,
   | "locale"
@@ -301,6 +325,8 @@ function NativeLabelsGrantedContent({
   | "enabled"
   | "busy"
   | "storefrontUrl"
+  | "checkoutSettingsUrl"
+  | "languagesSettingsUrl"
   | "guidedConfirmations"
   | "onEnabledChange"
 > & {
@@ -308,6 +334,7 @@ function NativeLabelsGrantedContent({
   automaticAvailable: boolean;
   displayedContexts: FiscalLabelContext[];
   submitIntent: (intent: string, slotIds?: string[]) => void;
+  refreshSnapshot: () => void;
 }) {
   const copy = texts(locale).rules.labels;
   const confirmed = new Map(
@@ -356,6 +383,8 @@ function NativeLabelsGrantedContent({
             confirmations={confirmed}
             busy={busy}
             storefrontUrl={storefrontUrl}
+            checkoutSettingsUrl={checkoutSettingsUrl}
+            languagesSettingsUrl={languagesSettingsUrl}
             onConfirm={(slotIds) => submitIntent("confirm_guided_labels", slotIds)}
           />
         </>
@@ -369,7 +398,7 @@ function NativeLabelsGrantedContent({
         copy={copy}
         onAccept={() => submitIntent("accept_checkout_labels")}
       />
-      <s-button disabled={busy} href="">
+      <s-button disabled={busy} onClick={refreshSnapshot}>
         {copy.refresh}
       </s-button>
     </s-stack>
@@ -728,6 +757,8 @@ function LabelComparison({
   confirmations,
   busy,
   storefrontUrl,
+  checkoutSettingsUrl,
+  languagesSettingsUrl,
   onConfirm,
 }: {
   contexts: FiscalLabelContext[];
@@ -736,6 +767,8 @@ function LabelComparison({
   confirmations: Map<string, string>;
   busy: boolean;
   storefrontUrl: string;
+  checkoutSettingsUrl: string;
+  languagesSettingsUrl: string;
   onConfirm: (slotIds: string[]) => void;
 }) {
   const copy = texts(locale).rules.labels;
@@ -788,12 +821,26 @@ function LabelComparison({
                 <s-stack direction="block" gap="small-200">
                   <s-text type="strong">{copy.manualHeading}</s-text>
                   <s-ordered-list>
-                    {copy.manualSteps(context.label).map((step) => (
-                      <s-list-item key={step}>{step}</s-list-item>
-                    ))}
+                    {copy
+                      .manualSteps(context.language, context.marketName, context.primary)
+                      .map((step) => (
+                        <s-list-item key={step}>{step}</s-list-item>
+                      ))}
                   </s-ordered-list>
                   <s-link href={storefrontUrl} target="_blank">
                     {copy.openStorefront}
+                  </s-link>
+                  <s-link
+                    href={
+                      context.primary && !context.marketName
+                        ? checkoutSettingsUrl
+                        : languagesSettingsUrl
+                    }
+                    target="_blank"
+                  >
+                    {context.primary && !context.marketName
+                      ? copy.openCheckoutContentEditor
+                      : copy.openTranslations}
                   </s-link>
                   {!matchesProposed ? (
                     <s-banner tone="warning">{copy.manualMismatch}</s-banner>
@@ -890,6 +937,9 @@ function fiscalLabelContexts(snapshot: CheckoutLabelsSnapshot, rules: Rules, loc
       key: `${shopLocale.locale}:global`,
       label: copy.generalText,
       note: null,
+      language: shopLocale.family === "it" ? copy.italian : copy.english,
+      marketName: null,
+      primary: shopLocale.primary,
       entries: [],
       guidedSlotIds: [],
     };
@@ -948,6 +998,9 @@ function fiscalLabelContexts(snapshot: CheckoutLabelsSnapshot, rules: Rules, loc
         key: `${shopLocale.locale}:${marketId}`,
         label: copy.marketException(market.name),
         note: market.resolution === "ambiguous" ? copy.checkoutCheckRequired : null,
+        language: shopLocale.family === "it" ? copy.italian : copy.english,
+        marketName: market.name,
+        primary: shopLocale.primary,
         entries: market.entries,
         guidedSlotIds: market.entries.flatMap(({ slot }) =>
           needsManualVerification(slot, rules) ? [checkoutLabelSlotId(slot)] : [],
