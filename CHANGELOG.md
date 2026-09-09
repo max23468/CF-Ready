@@ -6,6 +6,13 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.6.2 — 9 settembre 2026
+
+- attivato in Production il Control Center Telegram privato dell’owner dopo la
+  configurazione dei secret, del webhook e degli otto comandi del menu;
+- verificati il readback Telegram, l’assenza di update pendenti e il mantenimento
+  del flag disattivato in Development.
+
 ## 1.6.1 — 9 settembre 2026
 
 - la PEC può essere resa obbligatoria soltanto quando il cliente compila il
