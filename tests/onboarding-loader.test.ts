@@ -54,7 +54,6 @@ test("l’Onboarding riusa lo snapshot Shopify combinato", async () => {
     trial: null,
   });
   mocks.readOnboarding.mockResolvedValue({ status: "in_progress", step: 2 });
-  mocks.readAddress2Declaration.mockResolvedValue(null);
   mocks.readCheckoutLabelState.mockResolvedValue({
     mode: "off",
     address2Classification: "unknown",
@@ -69,7 +68,7 @@ test("l’Onboarding riusa lo snapshot Shopify combinato", async () => {
 
   expect(result.data).toMatchObject({ step: 2, completed: false, entitled: false });
   expect(new Headers(result.init?.headers).get("Server-Timing")).toMatch(
-    /auth;dur=.*d1_onboarding;dur=.*d1_address;dur=.*total;dur=/,
+    /auth;dur=.*d1_onboarding;dur=.*total;dur=/,
   );
   expect(
     new Headers(

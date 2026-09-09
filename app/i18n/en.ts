@@ -105,8 +105,6 @@ export const en: typeof it = {
       "The checkout check is active. If you have feedback on the setup or need help, message the developer directly.",
     checkInContact: "Message me",
     checkInDismiss: "Don’t show this again",
-    nextAddress2:
-      "Stop using the “Apartment, suite, etc.” field for the tax code: right now customers see two fields for the same value. The steps are on Checkout rules.",
     checkoutLabelsScopeRequired:
       "The permissions used to read and synchronize checkout labels are no longer available.",
     checkoutLabelsActionRequired:
@@ -160,7 +158,6 @@ export const en: typeof it = {
     planBodyLapsed:
       "The trial has ended. Choose a plan to apply your rules at checkout again; your configuration and messages stay saved.",
     startTrial: "Start the free trial",
-    address2Title: "Stop using the “Apartment, suite, etc.” field",
     labelsTitle: "Review checkout labels",
     labelsBody:
       "Compare the tax code, PEC and second address line in Italian and English, then choose how to manage them.",
@@ -506,24 +503,25 @@ export const en: typeof it = {
         ready: "Checkout ready",
       },
     },
-    address2Heading: "Don’t use the “Apartment, suite, etc.” field for the tax code",
-    address2Body:
-      "Do you also use “Apartment, suite, etc.” for the tax code? Customers will see two fields. Select the checkbox to see how to remove it.",
-    address2Checkbox: "Yes, I use “Apartment, suite, etc.” for the tax code",
-    address2Instructions:
-      "Two steps. In Settings → Checkout, under “Form options”, set the second address line to “Optional” or “Don’t include”; then, if you changed its label, restore it from “Manage checkout language”, or from Settings → Languages, “Checkout and system” tab, for a translated language.",
     labels: {
-      heading: "Checkout fields",
-      intro:
-        "CF Ready keeps the native tax fields consistent and checks whether the second address line duplicates them.",
-      nativeHeading: "Native fields: tax code and PEC",
-      nativeBody:
-        "Rules decide what is checked. Labels explain what customers see and can be managed separately.",
+      heading: "Checkout text",
+      intro: "Check the tax code, PEC and second address line text shown to customers.",
+      nativeHeading: "Tax code and PEC",
       permissionsHeading: "Check Shopify labels",
       permissionsBody:
         "Grant access only to translations, languages and markets. CF Ready doesn’t read orders, customers or checkout entries.",
       requestPermissions: "Grant permissions",
-      permissionsGranted: "Permissions granted",
+      statusNeedsAccess: "Needs checking",
+      statusNeedsReview: "Needs verification",
+      statusReady: "Up to date",
+      statusKept: "Choice saved",
+      nativeSummaryNeedsAccess: "Grant access to check the checkout text.",
+      nativeSummaryNeedsReview: (count: number) =>
+        `${count === 1 ? "One checkout needs" : `${count} checkouts need`} verification.`,
+      nativeSummaryNeedsChoice: "Choose whether CF Ready should manage this text.",
+      nativeSummaryError: "CF Ready did not complete the latest check.",
+      nativeSummaryKept: "You chose to keep the current text.",
+      nativeSummaryReady: "The text matches the saved rules.",
       enable: "Automatically manage supported labels",
       enableGuided: "Keep guided label checks active",
       enableConfirm:
@@ -543,37 +541,40 @@ export const en: typeof it = {
       unchanged: "Keep the current text",
       primary: "primary",
       unpublished: "not published",
-      automatic: "automatic",
-      guided: "needs verification",
-      marketOverride: "market override",
-      marketInherited: "inherited context",
-      marketNeedsVerification: "market needs verification",
       marketAmbiguous:
-        "Shopify applies multiple web presences or does not expose one unambiguous chain for at least one market. Verify the text in that market’s checkout before confirming it.",
+        "Shopify can’t check every market automatically. Verify the tax code and PEC in the checkouts listed below.",
       refresh: "Reload from Shopify",
       stop: "Restore and stop managing",
       lastSync: (value: string) => `Last sync: ${value}`,
       neverSynced: "Not synced yet",
-      realCheckout:
-        "The API shows registered values. Verify rendered text in a real checkout for the same language and market.",
-      confirmRendered: "I verified this text in the real checkout",
-      confirmGuided: "Record selected checks",
+      realCheckout: "Open a real checkout in the listed language and market.",
+      confirmContext: "I checked the tax code and PEC in this checkout",
+      confirmGuided: "Mark as verified",
       guidedConfirmed: "Checkout verified",
+      checkoutCheckRequired: "checkout check required",
       keepNative: "Keep my labels",
       keepNativeAccepted: "Choice recorded: keep the current labels",
-      addressHeading: "Second address line check",
+      addressHeading: "Second address line",
       addressRegular: "Regular variant",
       addressOptional: "Optional variant",
-      addressBody:
-        "CF Ready reads both labels for the second address line. Shopify doesn’t expose whether the field is hidden, optional or required.",
       addressStatus: {
-        unknown: "Needs verification",
-        expected: "Expected texts",
-        nonstandard: "Texts differ from the expected copy",
-        fiscal_conflict: "Likely duplicate tax code field",
+        unknown: "Needs checking",
+        expected: "No tax label",
+        nonstandard: "Custom text",
+        fiscal_conflict: "Possible duplicate",
       },
+      addressSummary: {
+        unknown: "Grant access to check the second address line text.",
+        expected: "The second address line is not labelled as a tax code.",
+        nonstandard: "The second address line uses custom text that does not look fiscal.",
+        fiscal_conflict:
+          "The second address line is labelled as a tax code and may create a duplicate.",
+      },
+      addressLimit:
+        "CF Ready checks the text. Visibility and requirement settings stay in Shopify checkout settings.",
+      notAvailable: "Not available",
+      standardLabel: "Shopify text",
       restoreAddress: "Restore manageable translations",
-      selectRestore: "Include this text in the restore",
       restoreAddressConfirm:
         "Do you confirm the comparison? CF Ready will restore only the translations and overrides shown, then read Shopify again.",
       keepAddress: "Keep this customization",

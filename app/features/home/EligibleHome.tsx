@@ -95,7 +95,7 @@ export function EligibleHome({
         firstCharge={firstCharge}
       />
       <PlanStatus data={data} />
-      <HomeAside data={data} nextStep={nextStep} t={t} />
+      <HomeAside nextStep={nextStep} t={t} />
       <s-app-window id={onboardingWindowId} src="/app/onboarding" />
       <DeactivateModal pendingIntent={pendingIntent} submit={submit} t={t} />
     </s-page>

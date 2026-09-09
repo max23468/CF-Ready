@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.7.1 — 9 settembre 2026
+
+- “Testi del checkout” occupa una sezione autonoma a tutta larghezza e riassume
+  separatamente Codice Fiscale/PEC e il campo Interno;
+- i confronti dei campi fiscali sono raggruppati per lingua e mercato, con una
+  sola verifica per checkout, mentre Interno omette gli override uguali;
+- il consenso alle etichette resta nella pagina corrente e ne rilegge subito lo
+  stato; il controllo automatico di Interno sostituisce la dichiarazione manuale.
+
 ## 1.7.0 — 9 settembre 2026
 
 - il Control Center distingue i problemi operativi ancora aperti dagli errori

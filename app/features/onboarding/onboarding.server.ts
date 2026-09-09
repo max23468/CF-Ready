@@ -3,7 +3,6 @@ import { data } from "react-router";
 import { authenticateAdmin } from "../../admin-auth.server";
 import { localDate, startTrial } from "../../billing.server";
 import {
-  address2Declaration,
   CONFIG_SCHEMA_VERSION,
   oneOf,
   parseOnboardingStep,
@@ -25,10 +24,8 @@ import { createServerTiming } from "../../server-timing.server";
 import { authenticate } from "../../shopify.server";
 import {
   queryContext,
-  readAddress2Declaration,
   readOnboarding,
   reconcile,
-  saveAddress2Declaration,
   saveOnboarding,
   observedConfigHash,
   writeValidation,
@@ -46,14 +43,12 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   });
   const validation = state.validation;
   const config = readConfig(validation?.metafield?.jsonValue);
-  const [onboarding, address2Declaration, scopeDetails, storedLabelState, configHash] =
-    await Promise.all([
-      timing.measure("d1_onboarding", () => readOnboarding(db, session.shop)),
-      timing.measure("d1_address", () => readAddress2Declaration(db, session.shop)),
-      timing.measure("shopify_snapshot", () => scopes.query().catch(() => null)),
-      timing.measure("d1_validation_state", () => readCheckoutLabelState(db, session.shop)),
-      observedConfigHash(validation),
-    ]);
+  const [onboarding, scopeDetails, storedLabelState, configHash] = await Promise.all([
+    timing.measure("d1_onboarding", () => readOnboarding(db, session.shop)),
+    timing.measure("shopify_snapshot", () => scopes.query().catch(() => null)),
+    timing.measure("d1_validation_state", () => readCheckoutLabelState(db, session.shop)),
+    observedConfigHash(validation),
+  ]);
   const labelScopesGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
     scopeDetails?.granted.includes(scope),
   );
@@ -74,7 +69,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       entitlementKind: state.entitlement.kind,
       entitled: state.entitlement.kind !== "none",
       trialStatus: state.trial?.status ?? null,
-      address2Declared: address2Declaration !== null,
       configHash,
       labelScopesGranted,
       labelState: labels?.state ?? storedLabelState,
@@ -91,11 +85,6 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const db = context.get(databaseContext);
   const form = await request.formData();
   const intent = form.get("intent");
-
-  if (intent === "request_label_scopes") {
-    await scopes.request([...CHECKOUT_LABEL_OPTIONAL_SCOPES]);
-    return { ok: true as const };
-  }
 
   if (intent === "progress" || intent === "back" || intent === "next") {
     const step = parseOnboardingStep(form.get("step"));
@@ -120,7 +109,6 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       ? await saveRulesAndCheckoutLabels(admin, db, session.shop, {
           rules: { taxCode, pec },
           expectedConfigHash: (form.get("configHash") as string) || null,
-          address2Declared: null,
           labelsEnabled,
           confirmAutomaticWrite: form.get("labelsConfirmed") === "1",
           expectedLabelsRevision: (form.get("labelsRevision") as string) || null,
@@ -155,9 +143,8 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     return { ok: false as const, errorCode: "generic" as const };
   }
 
-  const declared = address2Declaration(form);
   if (intent === "activate") {
-    const result = await writeValidation(admin, db, session.shop, null, true, undefined, declared);
+    const result = await writeValidation(admin, db, session.shop, null, true);
     if (!result.ok) return { ok: false as const, errorCode: result.errorCode };
     await recordEvent(db, {
       shopDomain: session.shop,
@@ -165,8 +152,6 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       class: "validation",
       metadata: { enabled: true, schema_version: CONFIG_SCHEMA_VERSION },
     });
-  } else if (declared !== null) {
-    await saveAddress2Declaration(db, session.shop, declared);
   }
 
   const enabled =

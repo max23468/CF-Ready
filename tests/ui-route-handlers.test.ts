@@ -29,7 +29,6 @@ const mocks = vi.hoisted(() => ({
   startTrial: vi.fn(),
   writeValidation: vi.fn(),
   scopeQuery: vi.fn(),
-  scopeRequest: vi.fn(),
   restoreAddress2Translations: vi.fn(),
   saveRulesAndCheckoutLabels: vi.fn(),
 }));
@@ -104,7 +103,7 @@ function messageForm(overrides: Record<string, string> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   context.get.mockReturnValue(db);
-  const scopes = { query: mocks.scopeQuery, request: mocks.scopeRequest };
+  const scopes = { query: mocks.scopeQuery };
   mocks.authenticateAdmin.mockResolvedValue({ admin, session, scopes });
   mocks.authenticateShopify.mockResolvedValue({ admin, session, scopes });
   mocks.scopeQuery.mockResolvedValue({ granted: [] });
@@ -285,7 +284,6 @@ test("Onboarding carica gli stati autorevoli con e senza accesso", async () => {
     completed: false,
     entitled: false,
     trialStatus: null,
-    address2Declared: false,
   });
 
   mocks.reconcile.mockResolvedValueOnce({
@@ -295,14 +293,12 @@ test("Onboarding carica gli stati autorevoli con e senza accesso", async () => {
     trial: { status: "active" },
   });
   mocks.readOnboarding.mockResolvedValueOnce({ status: "completed", step: 4 });
-  mocks.readAddress2Declaration.mockResolvedValueOnce(true);
   expect((await loader(args(request))).data).toMatchObject({
     step: 4,
     completed: true,
     enabled: true,
     entitled: true,
     trialStatus: "active",
-    address2Declared: true,
   });
 
   mocks.scopeQuery.mockResolvedValueOnce({
@@ -320,14 +316,6 @@ test("Onboarding carica gli stati autorevoli con e senza accesso", async () => {
 
 test("Onboarding valida e salva avanzamento e regole", async () => {
   const { action } = onboardingRoute;
-  expect(await action(args(post("/app/onboarding", { intent: "request_label_scopes" })))).toEqual({
-    ok: true,
-  });
-  expect(mocks.scopeRequest).toHaveBeenCalledWith([
-    "write_translations",
-    "read_locales",
-    "read_markets",
-  ]);
   expect(await action(args(post("/app/onboarding", { intent: "progress", step: "x" })))).toEqual({
     ok: false,
     errorCode: "generic",
@@ -441,7 +429,6 @@ test("Onboarding valida e salva avanzamento e regole", async () => {
   expect(mocks.saveRulesAndCheckoutLabels).toHaveBeenLastCalledWith(admin, db, session.shop, {
     rules: { taxCode: "required_validated", pec: "optional_validated" },
     expectedConfigHash: "hash",
-    address2Declared: null,
     labelsEnabled: true,
     confirmAutomaticWrite: true,
     expectedLabelsRevision: "labels-r1",
@@ -493,19 +480,6 @@ test("Onboarding tratta prova, intent sconosciuti e chiusura senza attivazione",
   });
 
   mocks.readOnboarding.mockResolvedValueOnce({ validationEnabled: false });
-  expect(
-    await action(
-      args(
-        post("/app/onboarding", {
-          intent: "finish",
-          address2Shown: "1",
-          address2: "declared",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: true });
-  expect(mocks.saveAddress2Declaration).toHaveBeenCalledWith(db, session.shop, true);
-
   mocks.readOnboarding.mockResolvedValueOnce({ validationEnabled: false });
   await expect(action(args(post("/app/onboarding", { intent: "finish" })))).resolves.toEqual({
     ok: true,
@@ -540,14 +514,13 @@ test("Onboarding attiva solo dopo una scrittura confermata", async () => {
   );
 });
 
-test("Regole espone duplicati, accesso e dichiarazione osservati", async () => {
+test("Regole espone duplicati e accesso osservati", async () => {
   const { loader } = rulesRoute;
   const request = new Request("https://example.test/app/rules?locale=en");
   expect((await loader(args(request))).data).toMatchObject({
     locale: "en",
     duplicateError: null,
     entitled: false,
-    address2Declared: false,
   });
 
   for (const errorCode of ["duplicate_validations", "duplicate_validations_active", "other"]) {
@@ -557,11 +530,9 @@ test("Regole espone duplicati, accesso e dichiarazione osservati", async () => {
       entitlement: { kind: "trial", validThrough: "2026-09-10" },
       errorCode,
     });
-    mocks.readAddress2Declaration.mockResolvedValueOnce(true);
     expect((await loader(args(request))).data).toMatchObject({
       duplicateError: errorCode === "other" ? null : errorCode,
       entitled: true,
-      address2Declared: true,
     });
   }
 
@@ -632,7 +603,6 @@ test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", asyn
     },
     null,
     "hash",
-    true,
   );
 
   mocks.writeValidation.mockResolvedValueOnce({ ok: false, errorCode: "config_conflict" });
@@ -643,17 +613,8 @@ test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", asyn
   ).toEqual({ ok: false, errorCode: "config_conflict" });
 });
 
-test("Regole gestisce consenso, ripristino e sincronizzazione delle etichette", async () => {
+test("Regole gestisce ripristino e sincronizzazione delle etichette", async () => {
   const { action } = rulesRoute;
-  expect(await action(args(post("/app/rules", { intent: "request_label_scopes" })))).toEqual({
-    ok: true,
-  });
-  expect(mocks.scopeRequest).toHaveBeenCalledWith([
-    "write_translations",
-    "read_locales",
-    "read_markets",
-  ]);
-
   expect(await action(args(post("/app/rules", { intent: "restore_address2_labels" })))).toEqual({
     ok: false,
     errorCode: "checkout_labels_scope_required",

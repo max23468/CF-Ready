@@ -782,7 +782,6 @@ function input(overrides = {}) {
   return {
     rules,
     expectedConfigHash: null,
-    address2Declared: false,
     labelsEnabled: true,
     confirmAutomaticWrite: true,
     expectedLabelsRevision: null,

@@ -4,6 +4,7 @@ import { withValidationLock, type ValidationLockHeartbeat } from "../validation/
 import { writeValidationUnderLock } from "../validation/write.server";
 import {
   address2Reference,
+  CHECKOUT_LABEL_OPTIONAL_SCOPES,
   checkoutLabelSlotId,
   checkoutLabelName,
   checkoutLabelsMode,
@@ -34,11 +35,7 @@ import {
 
 type Admin = Parameters<typeof readCheckoutLabels>[0];
 
-export const CHECKOUT_LABEL_OPTIONAL_SCOPES = [
-  "write_translations",
-  "read_locales",
-  "read_markets",
-] as const;
+export { CHECKOUT_LABEL_OPTIONAL_SCOPES };
 
 export type CheckoutLabelsLoadResult =
   | {
@@ -144,7 +141,6 @@ export async function saveRulesAndCheckoutLabels(
   input: {
     rules: Rules;
     expectedConfigHash: string | null;
-    address2Declared: boolean | null;
     labelsEnabled: boolean;
     confirmAutomaticWrite: boolean;
     expectedLabelsRevision: string | null;
@@ -215,7 +211,7 @@ export async function saveRulesAndCheckoutLabels(
       { rules: input.rules },
       null,
       input.expectedConfigHash,
-      input.address2Declared,
+      undefined,
       heartbeat,
     );
     if (!validation.ok) return validation;

@@ -105,8 +105,6 @@ export const it = {
       "Il controllo nel checkout è attivo. Se hai feedback sulla configurazione o hai bisogno di aiuto, scrivi direttamente allo sviluppatore.",
     checkInContact: "Scrivimi",
     checkInDismiss: "Non mostrare più",
-    nextAddress2:
-      "Smetti di usare il campo “Interno” per il Codice Fiscale: oggi il cliente vede due campi per lo stesso dato. Le istruzioni sono in Regole checkout.",
     checkoutLabelsScopeRequired:
       "I permessi per leggere e sincronizzare le etichette del checkout non sono più disponibili.",
     checkoutLabelsActionRequired:
@@ -161,7 +159,6 @@ export const it = {
     planBodyLapsed:
       "La prova è terminata. Scegli un piano per far valere di nuovo le regole nel checkout; configurazione e messaggi restano salvati.",
     startTrial: "Avvia la prova gratuita",
-    address2Title: "Smetti di usare il campo “Interno”",
     labelsTitle: "Controlla le etichette del checkout",
     labelsBody:
       "Confronta Codice Fiscale, PEC e “Interno” in italiano e inglese, poi scegli come gestirli.",
@@ -511,24 +508,25 @@ export const it = {
         ready: "Checkout pronto",
       },
     },
-    address2Heading: "Il campo “Interno” non va usato per il Codice Fiscale",
-    address2Body:
-      "Usi anche il campo “Interno” per il Codice Fiscale? Il cliente vedrà due campi. Seleziona la casella per vedere come rimuoverlo.",
-    address2Checkbox: "Sì, uso “Interno” per il Codice Fiscale",
-    address2Instructions:
-      "Servono due passaggi. In Impostazioni → Checkout, sezione “Opzioni del modulo”, porta la seconda riga dell’indirizzo su “Facoltativo” o “Non includere”; poi, se ne hai cambiato l’etichetta, rimettila com’era da “Gestisci la lingua del checkout”, o da Impostazioni → Lingue, scheda “Checkout e sistema”, se la lingua è tradotta.",
     labels: {
-      heading: "Campi del checkout",
-      intro:
-        "CF Ready mantiene coerenti i campi fiscali nativi e controlla che il campo Interno non li duplichi.",
-      nativeHeading: "Campi nativi: Codice Fiscale e PEC",
-      nativeBody:
-        "Le regole stabiliscono il controllo. Le etichette spiegano al cliente cosa vede e possono essere gestite separatamente.",
+      heading: "Testi del checkout",
+      intro: "Controlla i testi di Codice Fiscale, PEC e Interno mostrati ai clienti.",
+      nativeHeading: "Codice Fiscale e PEC",
       permissionsHeading: "Controlla le etichette Shopify",
       permissionsBody:
         "Concedi accesso soltanto a traduzioni, lingue e mercati. CF Ready non legge ordini, clienti o dati inseriti nel checkout.",
       requestPermissions: "Concedi i permessi",
-      permissionsGranted: "Permessi concessi",
+      statusNeedsAccess: "Da controllare",
+      statusNeedsReview: "Da verificare",
+      statusReady: "Aggiornato",
+      statusKept: "Scelta salvata",
+      nativeSummaryNeedsAccess: "Concedi l’accesso per controllare i testi del checkout.",
+      nativeSummaryNeedsReview: (count: number) =>
+        `${count === 1 ? "Un checkout richiede" : `${count} checkout richiedono`} una verifica.`,
+      nativeSummaryNeedsChoice: "Scegli se CF Ready deve gestire questi testi.",
+      nativeSummaryError: "CF Ready non ha completato l’ultimo controllo.",
+      nativeSummaryKept: "Hai scelto di mantenere i testi attuali.",
+      nativeSummaryReady: "I testi sono coerenti con le regole salvate.",
       enable: "Gestisci automaticamente le etichette supportate",
       enableGuided: "Mantieni attivo il controllo guidato delle etichette",
       enableConfirm:
@@ -548,37 +546,40 @@ export const it = {
       unchanged: "Mantieni il testo attuale",
       primary: "primaria",
       unpublished: "non pubblicata",
-      automatic: "automatica",
-      guided: "da verificare",
-      marketOverride: "override di mercato",
-      marketInherited: "contesto ereditato",
-      marketNeedsVerification: "mercato da verificare",
       marketAmbiguous:
-        "Shopify applica più presenze web o non espone una catena univoca per almeno un mercato. Verifica il testo nel checkout di quel mercato prima di confermarlo.",
+        "Shopify non può controllare automaticamente tutti i mercati. Verifica Codice Fiscale e PEC nei checkout indicati qui sotto.",
       refresh: "Rileggi da Shopify",
       stop: "Ripristina e interrompi la gestione",
       lastSync: (value: string) => `Ultima sincronizzazione: ${value}`,
       neverSynced: "Non ancora sincronizzate",
-      realCheckout:
-        "L’API mostra i valori registrati. Verifica il testo reso con un checkout reale nella stessa lingua e nello stesso mercato.",
-      confirmRendered: "Ho verificato questo testo nel checkout reale",
-      confirmGuided: "Registra le verifiche selezionate",
+      realCheckout: "Apri un checkout reale nella lingua e nel mercato indicati.",
+      confirmContext: "Ho controllato Codice Fiscale e PEC in questo checkout",
+      confirmGuided: "Segna come verificato",
       guidedConfirmed: "Checkout verificato",
+      checkoutCheckRequired: "controllo nel checkout richiesto",
       keepNative: "Mantieni le mie etichette",
       keepNativeAccepted: "Scelta registrata: mantieni le etichette attuali",
-      addressHeading: "Controllo del campo Interno",
+      addressHeading: "Campo Interno",
       addressRegular: "Variante ordinaria",
       addressOptional: "Variante facoltativa",
-      addressBody:
-        "CF Ready legge le due etichette di Interno. Shopify non espone se il campo è nascosto, facoltativo oppure obbligatorio.",
       addressStatus: {
-        unknown: "Da verificare",
-        expected: "Testi attesi",
-        nonstandard: "Testi diversi da quelli attesi",
-        fiscal_conflict: "Probabile duplicazione del Codice Fiscale",
+        unknown: "Da controllare",
+        expected: "Nessuna etichetta fiscale",
+        nonstandard: "Testo personalizzato",
+        fiscal_conflict: "Possibile doppione",
       },
+      addressSummary: {
+        unknown: "Concedi l’accesso per controllare il testo del campo Interno.",
+        expected: "Il campo Interno non è etichettato come Codice Fiscale.",
+        nonstandard: "Il campo Interno usa un testo personalizzato che non sembra fiscale.",
+        fiscal_conflict:
+          "Il campo Interno è etichettato come Codice Fiscale e può creare un doppione.",
+      },
+      addressLimit:
+        "CF Ready controlla il testo. Visibilità e obbligatorietà restano nelle impostazioni checkout di Shopify.",
+      notAvailable: "Non disponibile",
+      standardLabel: "Testo Shopify",
       restoreAddress: "Ripristina le traduzioni gestibili",
-      selectRestore: "Includi questo testo nel ripristino",
       restoreAddressConfirm:
         "Confermi il confronto? CF Ready ripristinerà soltanto le traduzioni e gli override mostrati, poi rileggerà Shopify.",
       keepAddress: "Mantieni questa personalizzazione",

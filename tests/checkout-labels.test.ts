@@ -639,7 +639,6 @@ test("la prima scrittura automatica richiede il secondo consenso sotto la stessa
   const result = await saveRulesAndCheckoutLabels({ graphql: discoveryAdmin("en") }, env.DB, shop, {
     rules: { taxCode: "required_validated", pec: "optional_validated" },
     expectedConfigHash: null,
-    address2Declared: false,
     labelsEnabled: true,
     confirmAutomaticWrite: false,
     expectedLabelsRevision: null,

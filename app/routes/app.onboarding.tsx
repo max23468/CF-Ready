@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { HeadersFunction } from "react-router";
-import { useFetcher, useLoaderData, useNavigate } from "react-router";
+import { useFetcher, useLoaderData, useNavigate, useRevalidator } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError, type AppErrorCode } from "../app-error";
-import { checkoutLabelCopy } from "../checkout-labels/domain";
+import { CHECKOUT_LABEL_OPTIONAL_SCOPES, checkoutLabelCopy } from "../checkout-labels/domain";
 import {
   oneOf,
   PEC_RULE_MODES,
@@ -13,7 +13,6 @@ import {
 } from "../config";
 import { onboardingStep4State } from "../features/onboarding/step4-state";
 import {
-  Address2DeclarationPrompt,
   OnboardingListBlock,
   OnboardingProgress,
   OnboardingStep4Actions,
@@ -31,37 +30,51 @@ import "./app.onboarding.css";
 
 export { action, loader };
 export const headers: HeadersFunction = (args) => boundary.headers(args);
-export {
-  Address2DeclarationPrompt,
-  OnboardingListBlock,
-  OnboardingProgress,
-  OnboardingStep4Content,
-};
+export { OnboardingListBlock, OnboardingProgress, OnboardingStep4Content };
 
 export const shouldRevalidate = skipRevalidationWhenLeaving;
 
 export default function Onboarding() {
   const saved = useLoaderData<typeof loader>();
   const navigate = useNavigate();
+  const revalidator = useRevalidator();
   const fetcher = useFetcher<typeof action>();
   const t = texts(saved.locale);
   const [step, setStepState] = useState(saved.step);
-  const [declared, setDeclared] = useState(saved.address2Declared);
   const [draftRules, setDraftRules] = useState<Rules>(saved.rules);
   const [labelsEnabled, setLabelsEnabled] = useState(saved.labelState.mode !== "off");
   const [labelsConfirmed, setLabelsConfirmed] = useState(false);
   const [finished, setFinished] = useState(false);
+  const [scopeRequestBusy, setScopeRequestBusy] = useState(false);
+  const [scopeRequestError, setScopeRequestError] = useState<AppErrorCode | null>(null);
   const form = useRef<HTMLFormElement>(null);
   // Un secondo canale per la sola memoria del passo: la scrittura non tocca lo stato del
   // pulsante principale e non viene mai riletta, quindi non può far rimbalzare la pagina.
   const progress = useFetcher();
-  const busy = fetcher.state !== "idle";
-  const pendingIntent = pendingFetcherIntent(fetcher.formData);
+  const busy = fetcher.state !== "idle" || scopeRequestBusy;
+  const pendingIntent = scopeRequestBusy
+    ? "request_label_scopes"
+    : pendingFetcherIntent(fetcher.formData);
   const esito = fetcher.data as { ok: boolean; errorCode?: AppErrorCode } | undefined;
   const step4State = onboardingStep4State(saved);
 
-  const go = (intent: string, extra: Record<string, string> = {}) =>
+  const requestLabelScopes = async () => {
+    setScopeRequestBusy(true);
+    setScopeRequestError(null);
+    try {
+      const response = await shopify.scopes.request([...CHECKOUT_LABEL_OPTIONAL_SCOPES]);
+      if (response.result === "granted-all") revalidator.revalidate();
+    } catch {
+      setScopeRequestError("generic");
+    } finally {
+      setScopeRequestBusy(false);
+    }
+  };
+
+  const go = (intent: string, extra: Record<string, string> = {}) => {
+    if (intent === "request_label_scopes") return void requestLabelScopes();
     fetcher.submit({ intent, step: String(step), ...extra }, { method: "post" });
+  };
 
   // §15.9: riaprendo la procedura si torna dove si era rimasti. Il passo si ricorda scrivendolo,
   // mai rileggendolo: il valore letto all'apertura serve solo come punto di partenza.
@@ -106,21 +119,13 @@ export default function Onboarding() {
     );
   }
 
-  // FR-058: la dichiarazione si legge dal modulo, dove i componenti Polaris partecipano
-  // davvero, e non dalla proprietà dell'elemento, che nello shadow DOM può non esserci.
   const close = (intent: "activate" | "finish") => {
     closing.current = true;
-    const data = form.current ? new FormData(form.current) : null;
-    const shown = data?.has("address2Shown") ?? false;
-    go(intent, {
-      ...(shown ? { address2Shown: "1" } : {}),
-      ...(shown && data?.get("address2") ? { address2: "declared" } : {}),
-    });
+    go(intent);
   };
 
   const readForm = () => {
     const data = form.current ? new FormData(form.current) : null;
-    setDeclared(Boolean(data?.get("address2")));
     const taxCode = oneOf(TAX_CODE_RULE_MODES, data?.get("taxCode"));
     const pec = oneOf(PEC_RULE_MODES, data?.get("pec"));
     if (taxCode && pec) setDraftRules({ taxCode, pec });
@@ -135,9 +140,11 @@ export default function Onboarding() {
   return (
     <form ref={form} onChange={readForm}>
       <s-page heading={t.onboarding.heading}>
-        {esito && !esito.ok ? (
+        {(esito && !esito.ok) || scopeRequestError ? (
           <div className="cf-motion-reveal">
-            <s-banner tone="critical">{localizedError(t.errors, esito.errorCode)}</s-banner>
+            <s-banner tone="critical">
+              {localizedError(t.errors, scopeRequestError ?? esito?.errorCode)}
+            </s-banner>
           </div>
         ) : null}
 
@@ -155,7 +162,6 @@ export default function Onboarding() {
               automaticLabelsAvailable={automaticLabelsAvailable}
               setLabelsEnabled={setLabelsEnabled}
               setLabelsConfirmed={setLabelsConfirmed}
-              declared={declared}
               state={step4State}
               busy={busy}
               pendingIntent={pendingIntent}
@@ -238,7 +244,6 @@ type CurrentStepProps = {
   automaticLabelsAvailable: boolean;
   setLabelsEnabled: (enabled: boolean) => void;
   setLabelsConfirmed: (confirmed: boolean) => void;
-  declared: boolean;
   state: ReturnType<typeof onboardingStep4State>;
   busy: boolean;
   pendingIntent: string | null;
@@ -255,7 +260,6 @@ function OnboardingCurrentStep(props: CurrentStepProps) {
     content = (
       <OnboardingStep4Content
         saved={props.saved}
-        declared={props.declared}
         t={props.t}
         state={props.state}
         busy={props.busy}

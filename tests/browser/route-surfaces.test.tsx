@@ -16,6 +16,7 @@ const router = vi.hoisted(() => ({
   location: { pathname: "/app", state: null as unknown },
   navigate: vi.fn(),
   navigation: { state: "idle" },
+  revalidator: { revalidate: vi.fn(), state: "idle" },
   submit: vi.fn(),
 }));
 
@@ -30,6 +31,7 @@ vi.mock("react-router", async (importOriginal) => {
     useLocation: () => router.location,
     useNavigate: () => router.navigate,
     useNavigation: () => router.navigation,
+    useRevalidator: () => router.revalidator,
     useRouteError: () => new Error("errore route"),
     useSubmit: () => router.submit,
   };
@@ -104,7 +106,6 @@ const homeData = {
   validationEnabled: false,
   rules: { taxCode: "unmanaged", pec: "unmanaged" },
   messagesDefault: true,
-  address2Declared: false,
   trialEndsAt: null,
   remaining: 7,
   entitlement: { kind: "none", validThrough: null },
@@ -137,7 +138,6 @@ const onboardingData = {
   entitlementKind: "none",
   entitled: false,
   trialStatus: null,
-  address2Declared: false,
   labelScopesGranted: false,
   labelState: { mode: "off", address2Classification: "unknown" },
   labelSnapshot: null,
@@ -152,9 +152,13 @@ beforeEach(() => {
   router.location = { pathname: "/app", state: null };
   router.navigate.mockReset();
   router.navigation = { state: "idle" };
+  router.revalidator.revalidate.mockReset();
   router.submit.mockReset();
   vi.stubGlobal("shopify", {
     loading: vi.fn(),
+    scopes: {
+      request: vi.fn().mockResolvedValue({ result: "granted-all" }),
+    },
     saveBar: { hide: vi.fn(), show: vi.fn() },
   });
 });
@@ -325,7 +329,6 @@ describe("Home merchant", () => {
       validationEnabled: true,
       rules: { taxCode: "required_validated", pec: "optional_validated" },
       onboarding: "completed",
-      address2Declared: true,
       showMerchantCheckIn: true,
       messagesDefault: false,
       firstChargeAt: "2026-09-10",
@@ -847,10 +850,13 @@ describe("Onboarding", () => {
     );
     if (!requestScopes) throw new Error("richiesta permessi onboarding assente");
     await click(requestScopes);
-    expect(router.fetcher.submit).toHaveBeenCalledWith(
-      expect.objectContaining({ intent: "request_label_scopes" }),
-      { method: "post" },
-    );
+    expect(shopify.scopes.request).toHaveBeenCalledWith([
+      "write_translations",
+      "read_locales",
+      "read_markets",
+    ]);
+    expect(router.revalidator.revalidate).toHaveBeenCalledOnce();
+    expect(router.fetcher.submit).not.toHaveBeenCalled();
 
     const originalFormData = FormData;
     class IncompleteRulesFormData {
@@ -867,6 +873,25 @@ describe("Onboarding", () => {
     await click(next);
     expect(router.fetcher.submit).not.toHaveBeenCalled();
     vi.stubGlobal("FormData", originalFormData);
+  });
+
+  test("mostra l'errore se Shopify non completa la richiesta dei permessi", async () => {
+    router.loaderData = { ...onboardingData, step: 2, labelScopesGranted: false };
+    vi.mocked(shopify.scopes.request).mockRejectedValueOnce(new Error("scope_request_failed"));
+    const view = await mount(<Onboarding />);
+    const requestScopes = [...view.container.querySelectorAll("s-button")].find((button) =>
+      button.textContent?.includes(texts("it").rules.labels.requestPermissions),
+    );
+    if (!requestScopes) throw new Error("richiesta permessi onboarding assente");
+
+    await click(requestScopes);
+
+    expect(view.container.querySelector('s-banner[tone="critical"]')).not.toBeNull();
+    expect(router.revalidator.revalidate).not.toHaveBeenCalled();
+
+    vi.mocked(shopify.scopes.request).mockResolvedValueOnce({ result: "declined-all" });
+    await click(requestScopes);
+    expect(router.revalidator.revalidate).not.toHaveBeenCalled();
   });
 
   test("configura la sincronizzazione automatica delle etichette dal secondo passo", async () => {
@@ -1042,7 +1067,6 @@ describe("Onboarding", () => {
       entitled: true,
       entitlementKind: "subscription",
       enabled: true,
-      address2Declared: true,
     };
     router.fetcher.data = { ok: false, errorCode: "generic" };
     const view = await mount(<Onboarding />);
@@ -1060,7 +1084,7 @@ describe("Onboarding", () => {
     expect(view.container.textContent).toContain(texts("it").onboarding.doneBody);
   });
 
-  test("legge la dichiarazione dal form e gestisce il riepilogo senza Codice Fiscale", async () => {
+  test("chiude l’onboarding senza chiedere una dichiarazione su Interno", async () => {
     router.loaderData = { ...onboardingData, step: 4 };
     const view = await mount(<Onboarding />);
     expect(view.container.querySelector('s-checkbox[name="address2"]')).toBeNull();
@@ -1074,27 +1098,15 @@ describe("Onboarding", () => {
       { method: "post" },
     );
 
-    const originalFormData = FormData;
-    class DeclaredFormData {
-      has(name: string) {
-        return name === "address2Shown";
-      }
-      get(name: string) {
-        return name === "address2" ? "declared" : null;
-      }
-    }
-    vi.stubGlobal("FormData", DeclaredFormData as unknown as typeof originalFormData);
     router.loaderData = {
       ...onboardingData,
       step: 4,
       rules: { taxCode: "required_validated", pec: "unmanaged" },
     };
-    await view.rerender(<Onboarding key="declared-step-4" />);
+    await view.rerender(<Onboarding key="managed-tax-code-step-4" />);
     const form = view.container.querySelector("form");
     if (!form) throw new Error("form onboarding assente");
-    const declaration = form.querySelector('s-checkbox[name="address2"]');
-    if (!declaration) throw new Error("dichiarazione Interno assente");
-    await dispatch(declaration, new Event("change", { bubbles: true }));
+    expect(form.querySelector('s-checkbox[name="address2"]')).toBeNull();
     const finish = [...view.container.querySelectorAll("s-button")].find((button) =>
       button.textContent?.includes(texts("it").onboarding.finishWithout),
     );
@@ -1103,12 +1115,9 @@ describe("Onboarding", () => {
     expect(router.fetcher.submit).toHaveBeenCalledWith(
       expect.objectContaining({
         intent: "finish",
-        address2Shown: "1",
-        address2: "declared",
       }),
       { method: "post" },
     );
-    vi.stubGlobal("FormData", originalFormData);
   });
 
   test("un errore onboarding sconosciuto usa il fallback generico", async () => {
@@ -1219,7 +1228,6 @@ describe("Regole", () => {
     messages: DEFAULT_CONFIG.messages,
     enabled: true,
     entitled: true,
-    address2Declared: false,
     labelScopesGranted: false,
     labelState: {
       mode: "off",
@@ -1250,17 +1258,12 @@ describe("Regole", () => {
       get(name: string) {
         if (name === "taxCode") return "required_validated";
         if (name === "pec") return "unmanaged";
-        if (name === "address2") return "declared";
         return null;
       }
     }
     vi.stubGlobal("FormData", RulesFormData as unknown as typeof originalFormData);
     await dispatch(
       view.container.querySelector("s-choice-list")!,
-      new Event("change", { bubbles: true }),
-    );
-    await dispatch(
-      view.container.querySelector('s-checkbox[name="address2"]')!,
       new Event("change", { bubbles: true }),
     );
     const buttons = [...view.container.querySelectorAll("button")];
@@ -1291,23 +1294,23 @@ describe("Regole", () => {
     expect(view.container.textContent).toContain(texts("it").rules.saved);
   });
 
-  test("mostra il conflitto anche quando la dichiarazione di Interno è attiva", async () => {
-    router.loaderData = { ...rulesData, address2Declared: true };
+  test("mostra il conflitto senza riproporre la vecchia dichiarazione di Interno", async () => {
+    router.loaderData = rulesData;
     router.actionData = { ok: false, errorCode: "config_conflict" };
     const view = await mount(<CheckoutRules />);
     expect(view.container.textContent).toContain(texts("it").conflict.heading);
+    expect(view.container.querySelector('s-checkbox[name="address2"]')).toBeNull();
   });
 
-  test("salva hash assente e dichiarazione attiva", async () => {
+  test("salva con hash assente senza riscrivere la vecchia dichiarazione", async () => {
     router.loaderData = {
       ...rulesData,
       configHash: null,
-      address2Declared: true,
     };
     router.actionData = { ok: false, errorCode: "future_error" };
     const view = await mount(<CheckoutRules />);
     expect(view.container.textContent).toContain(texts("it").errors.generic);
-    expect(view.container.textContent).toContain(texts("it").rules.address2Instructions);
+    expect(view.container.querySelector('s-checkbox[name="address2"]')).toBeNull();
 
     const save = view.container.querySelector('ui-save-bar button[variant="primary"]');
     if (!save) throw new Error("salvataggio Regole assente");
@@ -1315,10 +1318,10 @@ describe("Regole", () => {
     expect(router.submit).toHaveBeenCalledWith(
       expect.objectContaining({
         configHash: "",
-        address2: "declared",
       }),
       { method: "post" },
     );
+    expect(router.submit.mock.calls.at(-1)?.[0]).not.toHaveProperty("address2");
   });
 
   test("registra la scelta di mantenere le etichette native", async () => {
@@ -1435,13 +1438,22 @@ describe("Regole", () => {
     );
 
     const view = await mount(<CheckoutRules />);
-    expect(view.container.textContent).toContain(texts("it").rules.labels.marketOverride);
     expect(view.container.textContent).toContain(texts("it").rules.labels.marketAmbiguous);
     expect(view.container.querySelectorAll('s-banner[tone="critical"]')).not.toHaveLength(0);
+    const labelsArea = view.container.querySelector(".rules-layout__labels");
+    const disclosures = labelsArea?.querySelectorAll("details");
+    expect(labelsArea?.parentElement?.lastElementChild).toBe(labelsArea);
+    expect(disclosures).toHaveLength(2);
+    expect(disclosures?.[1].querySelectorAll(".checkout-label-context__row").length).toBeLessThan(
+      8,
+    );
 
-    const guided = [...view.container.querySelectorAll("s-checkbox")].find(
-      (checkbox) => checkbox.getAttribute("label") === texts("it").rules.labels.confirmRendered,
-    ) as (HTMLElement & { checked: boolean }) | undefined;
+    const guidedConfirmations = [...view.container.querySelectorAll("s-checkbox")].filter(
+      (checkbox) => checkbox.getAttribute("label") === texts("it").rules.labels.confirmContext,
+    ) as (HTMLElement & { checked: boolean })[];
+    expect(guidedConfirmations.length).toBeGreaterThan(0);
+    expect(guidedConfirmations.length).toBeLessThan(snapshot.slots.length);
+    const guided = guidedConfirmations[0];
     if (!guided) throw new Error("conferma guidata assente");
     guided.checked = true;
     await dispatch(guided, new Event("change", { bubbles: true }));
@@ -1456,12 +1468,7 @@ describe("Regole", () => {
       )!,
     );
 
-    const address = [...view.container.querySelectorAll("s-checkbox")].find(
-      (checkbox) => checkbox.getAttribute("label") === texts("it").rules.labels.selectRestore,
-    ) as (HTMLElement & { checked: boolean }) | undefined;
-    if (!address) throw new Error("selezione ripristino assente");
-    address.checked = true;
-    await dispatch(address, new Event("change", { bubbles: true }));
+    expect(disclosures?.[1].querySelector("s-checkbox")).toBeNull();
 
     const restore = [...view.container.querySelectorAll("s-button")].find((button) =>
       button.textContent?.includes(texts("it").rules.labels.restoreAddress),
@@ -1631,15 +1638,84 @@ describe("Regole", () => {
       labelScopesGranted: false,
     };
     const view = await mount(<CheckoutRules />);
+    const disclosures = view.container.querySelectorAll(".rules-layout__labels details");
+    expect(disclosures).toHaveLength(2);
+    expect(disclosures[0].hasAttribute("open")).toBe(true);
+    expect(disclosures[1].hasAttribute("open")).toBe(false);
     const requestScopes = [...view.container.querySelectorAll("s-button")].find((button) =>
       button.textContent?.includes(texts("it").rules.labels.requestPermissions),
     );
     if (!requestScopes) throw new Error("richiesta permessi Regole assente");
     await click(requestScopes);
-    const submitted = router.fetcher.submit.mock.calls.at(-1)?.[0];
-    expect(
-      submitted instanceof FormData ? Object.fromEntries(submitted.entries()) : submitted,
-    ).toEqual(expect.objectContaining({ intent: "request_label_scopes" }));
+    expect(shopify.scopes.request).toHaveBeenCalledWith([
+      "write_translations",
+      "read_locales",
+      "read_markets",
+    ]);
+    expect(router.revalidator.revalidate).toHaveBeenCalledOnce();
+    expect(router.fetcher.submit).not.toHaveBeenCalled();
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  test("gestisce l'errore dei permessi e gli stati sintetici delle etichette", async () => {
+    router.loaderData = {
+      ...rulesData,
+      rules: { taxCode: "unmanaged", pec: "unmanaged" },
+      labelScopesGranted: false,
+    };
+    vi.mocked(shopify.scopes.request).mockRejectedValueOnce(new Error("scope_request_failed"));
+    const view = await mount(<CheckoutRules />);
+    const requestScopes = [...view.container.querySelectorAll("s-button")].find((button) =>
+      button.textContent?.includes(texts("it").rules.labels.requestPermissions),
+    );
+    if (!requestScopes) throw new Error("richiesta permessi Regole assente");
+
+    await click(requestScopes);
+    expect(view.container.querySelector('s-banner[tone="critical"]')).not.toBeNull();
+    expect(router.revalidator.revalidate).not.toHaveBeenCalled();
+
+    vi.mocked(shopify.scopes.request).mockResolvedValueOnce({ result: "declined-all" });
+    await click(requestScopes);
+    expect(router.revalidator.revalidate).not.toHaveBeenCalled();
+
+    const healthySnapshot = {
+      locales: [{ locale: "en", family: "en", name: "English", primary: false, published: true }],
+      markets: [],
+      issues: [],
+      revision: "labels-healthy",
+      address2: { classification: "expected", hasMarketOverride: false },
+      slots: [
+        labelSlot({
+          name: "taxCode",
+          locale: "en",
+          family: "en",
+          capability: "automatic",
+          currentValue: null,
+          sourceValue: null,
+        }),
+      ],
+    } as const;
+    router.loaderData = {
+      ...rulesData,
+      rules: { taxCode: "optional_validated", pec: "unmanaged" },
+      labelScopesGranted: true,
+      labelState: { ...rulesData.labelState, mode: "automatic" },
+      labelSnapshot: healthySnapshot,
+    };
+    await view.rerender(<CheckoutRules key="labels-healthy" />);
+    expect(view.container.textContent).toContain(texts("it").rules.labels.statusReady);
+    expect(view.container.textContent).toContain(texts("it").rules.labels.notAvailable);
+
+    router.loaderData = {
+      ...router.loaderData,
+      labelState: {
+        ...rulesData.labelState,
+        mode: "automatic",
+        lastErrorCode: "checkout_labels_partial_sync",
+      },
+    };
+    await view.rerender(<CheckoutRules key="labels-error" />);
+    expect(view.container.textContent).toContain(texts("it").rules.labels.nativeSummaryError);
   });
 });
 

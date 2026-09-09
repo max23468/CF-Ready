@@ -75,17 +75,6 @@ export function SetupGuide({
       body: t.setup.labelsBody,
       action: <s-link href="/app/rules">{t.nav.rules}</s-link>,
     },
-    ...(data.address2Declared
-      ? [
-          {
-            done: false,
-            icon: "location" as const,
-            title: t.setup.address2Title,
-            body: t.home.nextAddress2,
-            action: <s-link href="/app/rules">{t.nav.rules}</s-link>,
-          },
-        ]
-      : []),
   ];
   const done = steps.filter((step) => step.done).length;
   const active = steps.findIndex((step) => !step.done);
