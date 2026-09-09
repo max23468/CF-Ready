@@ -131,11 +131,9 @@ function HomeValidationAction({
 }
 
 export function HomeAside({
-  data,
   nextStep,
   t,
 }: {
-  data: HomeData;
   nextStep: { text: string; href: string | null };
   t: Texts;
 }) {
@@ -145,12 +143,6 @@ export function HomeAside({
         <s-stack direction="block" gap="small-100">
           <s-paragraph>{nextStep.text}</s-paragraph>
           {nextStep.href ? <s-link href={nextStep.href}>{t.nav.rules}</s-link> : null}
-          {data.address2Declared ? (
-            <>
-              <s-paragraph>{t.home.nextAddress2}</s-paragraph>
-              <s-link href="/app/rules">{t.nav.rules}</s-link>
-            </>
-          ) : null}
         </s-stack>
       </s-section>
       <s-section slot="aside" heading={t.home.helpHeading}>

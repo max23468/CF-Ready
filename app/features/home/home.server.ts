@@ -62,11 +62,8 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const labelStatePromise = timing.measure("d1_validation_state", () =>
     readCheckoutLabelState(db, session.shop),
   );
-  const [
-    state,
-    { onboarding, address2Declaration, enabledSince, merchantCheckInDismissed },
-    checkoutLabelState,
-  ] = await Promise.all([statePromise, localStatePromise, labelStatePromise]);
+  const [state, { onboarding, enabledSince, merchantCheckInDismissed }, checkoutLabelState] =
+    await Promise.all([statePromise, localStatePromise, labelStatePromise]);
   const config = readConfig(state.validation?.metafield?.jsonValue);
   const configured = config.rules.taxCode !== "unmanaged" || config.rules.pec !== "unmanaged";
   let onboardingStatus = onboarding.status;
@@ -103,7 +100,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     validationEnabled: state.validationEnabled,
     rules: config.rules,
     messagesDefault: messagesAreDefault(config.messages),
-    address2Declared: address2Declaration !== null,
     trialEndsAt: state.trial?.ends_at ?? null,
     remaining,
     entitlement: state.entitlement,

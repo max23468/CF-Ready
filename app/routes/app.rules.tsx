@@ -18,14 +18,7 @@ import { skipRevalidationWhenLeaving } from "../revalidation";
 import { setSaveBarVisibility } from "../save-bar";
 import { createServerTiming } from "../server-timing.server";
 import { authenticate } from "../shopify.server";
-import {
-  address2Declaration,
-  oneOf,
-  PEC_RULE_MODES,
-  readConfig,
-  showSavedBanner,
-  TAX_CODE_RULE_MODES,
-} from "../config";
+import { oneOf, PEC_RULE_MODES, readConfig, showSavedBanner, TAX_CODE_RULE_MODES } from "../config";
 import { databaseContext } from "../context.server";
 import { readCheckoutLabelState } from "../checkout-labels/repository.server";
 import {
@@ -37,12 +30,7 @@ import {
   restoreAddress2Translations,
   saveRulesAndCheckoutLabels,
 } from "../checkout-labels/service.server";
-import {
-  observedConfigHash,
-  readAddress2Declaration,
-  reconcile,
-  writeValidation,
-} from "../validation.server";
+import { observedConfigHash, reconcile, writeValidation } from "../validation.server";
 
 const SAVE_BAR = "checkout-rules-save-bar";
 
@@ -62,9 +50,8 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     state.errorCode === "duplicate_validations_active"
       ? state.errorCode
       : null;
-  const [configHash, address2Declaration, scopeDetails, labelState] = await Promise.all([
+  const [configHash, scopeDetails, labelState] = await Promise.all([
     observedConfigHash(validation),
-    timing.measure("d1_address", () => readAddress2Declaration(db, session.shop)),
     timing.measure("shopify_snapshot", () => scopes.query().catch(() => null)),
     timing.measure("d1_validation_state", () => readCheckoutLabelState(db, session.shop)),
   ]);
@@ -88,7 +75,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       messages: config.messages,
       enabled: state.validationEnabled,
       entitled: state.entitlement.kind !== "none",
-      address2Declared: address2Declaration !== null,
       labelScopesGranted,
       labelState: labels?.state ?? labelState,
       labelSnapshot: labels?.available ? labels.snapshot : null,
@@ -114,11 +100,6 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const db = context.get(databaseContext);
   const form = await request.formData();
   const intent = form.get("intent");
-
-  if (intent === "request_label_scopes") {
-    await scopes.request([...CHECKOUT_LABEL_OPTIONAL_SCOPES]);
-    return { ok: true as const };
-  }
 
   const scopeDetails = await scopes.query().catch(() => null);
   const labelScopesGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
@@ -192,8 +173,6 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const pec = oneOf(PEC_RULE_MODES, form.get("pec"));
   if (!taxCode || !pec) return { ok: false as const, errorCode: "generic" };
 
-  const declared = address2Declaration(form);
-
   // FR-051: il salvataggio aggiorna la configurazione e conserva lo stato della Validation.
   // I messaggi non sono editabili da questa pagina: il percorso condiviso conserva quelli
   // osservati sotto la stessa lease usata per la scrittura.
@@ -209,7 +188,6 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     ? await saveRulesAndCheckoutLabels(admin, db, session.shop, {
         rules: { taxCode, pec },
         expectedConfigHash: (form.get("configHash") as string) || null,
-        address2Declared: declared,
         labelsEnabled,
         confirmAutomaticWrite: form.get("labelsConfirmed") === "1",
         expectedLabelsRevision: (form.get("labelsRevision") as string) || null,
@@ -221,7 +199,6 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
         { rules: { taxCode, pec } },
         null,
         (form.get("configHash") as string) || null,
-        declared,
       );
 
   if (!labelScopesGranted && labelsWereEnabled) {
@@ -246,10 +223,7 @@ export default function CheckoutRules() {
   const t = texts(saved.locale);
   const send = useSubmit();
   const busy = useNavigation().state !== "idle";
-  const current = {
-    rules: saved.rules,
-    address2: saved.address2Declared,
-  };
+  const current = { rules: saved.rules };
   const baseRef = useRef(current);
   const sentRef = useRef<RulesFormDraft | null>(null);
   const baseHash = useRef(saved.configHash);
@@ -259,10 +233,7 @@ export default function CheckoutRules() {
   const labelsErrorCode = result?.ok && "labelsErrorCode" in result ? result.labelsErrorCode : null;
   const [changedSinceResult, setChangedSinceResult] = useState(false);
   const [formRevision, setFormRevision] = useState(0);
-  const [draft, setDraft] = useState({
-    rules: saved.rules,
-    address2: saved.address2Declared,
-  });
+  const [draft, setDraft] = useState({ rules: saved.rules });
   const [labelsEnabled, setLabelsEnabled] = useState(saved.labelState.mode !== "off");
 
   // Un solo ascoltatore sul form delle impostazioni. Il simulatore è deliberatamente fuori:
@@ -275,10 +246,7 @@ export default function CheckoutRules() {
 
   useEffect(() => setChangedSinceResult(false), [result]);
 
-  const dirty =
-    draft.rules.taxCode !== saved.rules.taxCode ||
-    draft.rules.pec !== saved.rules.pec ||
-    draft.address2 !== saved.address2Declared;
+  const dirty = draft.rules.taxCode !== saved.rules.taxCode || draft.rules.pec !== saved.rules.pec;
   const labelsDirty = labelsEnabled !== (saved.labelState.mode !== "off");
   const automaticLabelsAvailable = Boolean(
     saved.labelSnapshot?.slots.some(
@@ -303,10 +271,6 @@ export default function CheckoutRules() {
         labelsEnabled: labelsEnabled ? "1" : "0",
         labelsConfirmed: firstAutomaticWrite ? "1" : "0",
         labelsRevision: saved.labelSnapshot?.revision ?? "",
-        // Il blocco resta sempre visibile: la dichiarazione può quindi essere aggiornata anche
-        // mentre il Codice Fiscale non è gestito.
-        address2Shown: "1",
-        ...(draft.address2 ? { address2: "declared" } : {}),
       },
       { method: "post" },
     );
@@ -316,13 +280,10 @@ export default function CheckoutRules() {
     if (!result || !sentRef.current || busy) return;
     sentRef.current = null;
     if (result.ok) {
-      baseRef.current = {
-        rules: saved.rules,
-        address2: saved.address2Declared,
-      };
+      baseRef.current = { rules: saved.rules };
       baseHash.current = saved.configHash;
     }
-  }, [result, saved.rules, saved.address2Declared, saved.configHash, busy]);
+  }, [result, saved.rules, saved.configHash, busy]);
 
   const reapply = () => {
     setDraft(rebaseRulesDraft(baseRef.current, draft, current));
@@ -336,10 +297,7 @@ export default function CheckoutRules() {
     baseRef.current = current;
     baseHash.current = saved.configHash;
     setResolvedConflict(true);
-    setDraft({
-      rules: saved.rules,
-      address2: saved.address2Declared,
-    });
+    setDraft({ rules: saved.rules });
     setLabelsEnabled(saved.labelState.mode !== "off");
     setFormRevision((current) => current + 1);
   };
@@ -394,58 +352,26 @@ export default function CheckoutRules() {
             }}
           >
             <div className="rules-layout__fields">
-              <CheckoutLabelsSection
-                locale={saved.locale}
-                rules={draft.rules}
-                scopeGranted={saved.labelScopesGranted}
-                snapshot={saved.labelSnapshot}
-                state={saved.labelState}
-                loadErrorCode={saved.labelLoadError}
-                confirmedGuidedSlotIds={saved.confirmedGuidedSlotIds}
-                enabled={labelsEnabled}
-                busy={busy}
-                checkoutSettingsUrl={saved.checkoutSettingsUrl}
-                onEnabledChange={(value) => {
-                  setChangedSinceResult(true);
-                  setLabelsEnabled(value);
-                }}
-                ruleControls={
-                  <s-stack direction="block" gap="base">
-                    <s-choice-list label={t.rules.taxCodeLabel} name="taxCode">
-                      {TAX_CODE_RULE_MODES.map((mode) => (
-                        <s-choice key={mode} value={mode} selected={mode === draft.rules.taxCode}>
-                          {t.rules.taxCode[mode]}
-                          <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
-                        </s-choice>
-                      ))}
-                    </s-choice-list>
-                    <s-choice-list label={t.rules.pecLabel} name="pec">
-                      {PEC_RULE_MODES.map((mode) => (
-                        <s-choice key={mode} value={mode} selected={mode === draft.rules.pec}>
-                          {t.rules.pec[mode]}
-                          <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
-                        </s-choice>
-                      ))}
-                    </s-choice-list>
-                  </s-stack>
-                }
-                addressDeclaration={
-                  <s-stack direction="block" gap="small-200">
-                    <s-banner tone="warning">{t.rules.address2Body}</s-banner>
-                    <s-checkbox
-                      label={t.rules.address2Checkbox}
-                      name="address2"
-                      value="declared"
-                      defaultChecked={draft.address2}
-                    />
-                    {draft.address2 ? (
-                      <div className="cf-motion-reveal">
-                        <s-paragraph>{t.rules.address2Instructions}</s-paragraph>
-                      </div>
-                    ) : null}
-                  </s-stack>
-                }
-              />
+              <s-section>
+                <s-stack direction="block" gap="base">
+                  <s-choice-list label={t.rules.taxCodeLabel} name="taxCode">
+                    {TAX_CODE_RULE_MODES.map((mode) => (
+                      <s-choice key={mode} value={mode} selected={mode === draft.rules.taxCode}>
+                        {t.rules.taxCode[mode]}
+                        <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
+                      </s-choice>
+                    ))}
+                  </s-choice-list>
+                  <s-choice-list label={t.rules.pecLabel} name="pec">
+                    {PEC_RULE_MODES.map((mode) => (
+                      <s-choice key={mode} value={mode} selected={mode === draft.rules.pec}>
+                        {t.rules.pec[mode]}
+                        <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
+                      </s-choice>
+                    ))}
+                  </s-choice-list>
+                </s-stack>
+              </s-section>
             </div>
           </form>
 
@@ -472,6 +398,25 @@ export default function CheckoutRules() {
                 />
               </s-stack>
             </s-section>
+          </div>
+
+          <div className="rules-layout__labels">
+            <CheckoutLabelsSection
+              locale={saved.locale}
+              rules={draft.rules}
+              scopeGranted={saved.labelScopesGranted}
+              snapshot={saved.labelSnapshot}
+              state={saved.labelState}
+              loadErrorCode={saved.labelLoadError}
+              confirmedGuidedSlotIds={saved.confirmedGuidedSlotIds}
+              enabled={labelsEnabled}
+              busy={busy}
+              checkoutSettingsUrl={saved.checkoutSettingsUrl}
+              onEnabledChange={(value) => {
+                setChangedSinceResult(true);
+                setLabelsEnabled(value);
+              }}
+            />
           </div>
         </div>
       </div>
@@ -529,11 +474,6 @@ function rulesConflictRows(
       label: t.rules.pecLabel,
       current: t.rules.pec[current.rules.pec],
       draft: t.rules.pec[draft.rules.pec],
-    },
-    {
-      label: t.rules.address2Heading,
-      current: current.address2 ? t.common.yes : t.common.no,
-      draft: draft.address2 ? t.common.yes : t.common.no,
     },
   ];
 }

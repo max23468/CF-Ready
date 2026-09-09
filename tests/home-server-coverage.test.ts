@@ -174,7 +174,6 @@ test("la Home completa automaticamente un onboarding già effettivo", async () =
 
   expect(result.data).toMatchObject({
     onboarding: "completed",
-    address2Declared: true,
     complimentary: true,
     showMerchantCheckIn: true,
   });

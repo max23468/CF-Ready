@@ -1,5 +1,11 @@
 import type { PecRuleMode, Rules, TaxCodeRuleMode } from "../config";
 
+export const CHECKOUT_LABEL_OPTIONAL_SCOPES = [
+  "write_translations",
+  "read_locales",
+  "read_markets",
+] as const;
+
 export const CHECKOUT_LABEL_KEYS = {
   taxCode: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
   pec: "shopify.checkout.localized_fields.additional_information.tax_email_it",
