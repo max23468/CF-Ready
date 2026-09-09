@@ -135,6 +135,7 @@
     "graphql-config": "5.1.6",
     "lodash": "4.18.1",
     "qs": "6.16.0",
+    "sharp": "0.35.4",
     "undici": "7.29.0"
   },
   "author": "Matteo"
