@@ -9,11 +9,18 @@ const AMOUNTS: Record<PricingGeneration, Record<PlanKind, number>> = {
   balanced: { monthly: 3.99, annual: 39.9, one_time: 119.9 },
 };
 
-// Tariffe standard Shopify App Store verificate il 9 settembre 2026.
-export const SHOPIFY_APP_FEES = {
+// Tariffe standard Shopify App Store verificate il 9 settembre 2026. La commissione operativa
+// regolamentare dipende dal Paese del merchant: quella italiana è riletta negli accrediti
+// Partner dell'11 settembre 2026, le altre non sono pubblicate.
+export const SHOPIFY_APP_FEES: {
+  revenueShare: number;
+  processing: number;
+  regulatoryOperating: Readonly<Record<string, number>>;
+} = {
   revenueShare: 0,
   processing: 0.029,
-} as const;
+  regulatoryOperating: { IT: 0.03 },
+};
 
 // Nome che il merchant legge nella pagina di approvazione e nella fattura Shopify.
 const LABELS: Record<PlanKind, string> = {

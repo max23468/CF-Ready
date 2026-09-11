@@ -25,7 +25,7 @@ dei rispettivi provider e non devono comparire nel repository o nei log.
 | `TELEGRAM_OWNER_USER_ID` | Production | Cloudflare Workers | configurato il 9 settembre 2026 dall’update della chat privata, verificato uguale a `TELEGRAM_CHAT_ID` e non persistito in D1 |
 | `SHOPIFY_PARTNER_ORGANIZATION_ID` | Production | Cloudflare Workers | configurato il 24 agosto 2026 per l'organizzazione Partner proprietaria di CF Ready |
 | `SHOPIFY_PARTNER_APP_ID` | Production | Cloudflare Workers | configurato il 24 agosto 2026 e verificato tramite readback dell'app CF Ready Production |
-| `SHOPIFY_PARTNER_ACCESS_TOKEN` | Production | Cloudflare Workers | configurato il 24 agosto 2026 con client dedicato `CF Ready Owner Notifications` e solo autorizzazione `Gestisci app`; valore non mostrato né scritto nel repository |
+| `SHOPIFY_PARTNER_ACCESS_TOKEN` | Production | Cloudflare Workers | configurato il 24 agosto 2026 con client dedicato `CF Ready Owner Notifications` e autorizzazione `Gestisci app`; i ricavi cumulati del Control Center richiedono anche `View financials`, da concedere nel Partner Dashboard; valore non mostrato né scritto nel repository |
 
 `SHOPIFY_API_KEY`, ID account, ID database e nomi delle risorse non sono
 segreti, ma non autorizzano alcun accesso.
