@@ -282,6 +282,14 @@ update ammessi o menu della chat owner divergono. `--apply` esegue
 `setWebhook` con `message` e `callback_query`, imposta gli otto shortcut nella
 sola chat owner e ripete lo stesso readback. L’URL predefinito deriva da
 `SHOPIFY_APP_URL`, così il tooling configura sempre il target dell’ambiente caricato.
+Il deploy non aggiorna il webhook: dopo ogni cambio di `SHOPIFY_APP_URL` Production
+eseguire `--apply` e `--check` prima di disattivare il vecchio host, altrimenti
+Telegram continua a consegnare comandi e callback all’URL registrato.
+
+La sezione dei ricavi cumulati di `/billing` legge la query Partner `transactions`
+e richiede che il client Partner Production abbia anche il permesso
+`View financials`. Senza quel permesso la sezione indica l’accesso mancante e il
+resto del Control Center continua a funzionare.
 
 La sequenza Production autorizzata è:
 

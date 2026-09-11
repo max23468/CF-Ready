@@ -172,15 +172,17 @@ export async function readBilling(db: D1Database) {
   const [{ results }, complimentary, trials] = await Promise.all([
     db
       .prepare(
-        `SELECT b.entitlement_status, b.plan_kind, b.pricing_generation, COUNT(*) AS count
+        `SELECT b.entitlement_status, b.plan_kind, b.pricing_generation, s.country_code,
+                COUNT(*) AS count
          FROM billing_accounts b JOIN shops s ON s.id = b.shop_id
          WHERE s.installation_status = 'active'
-         GROUP BY b.entitlement_status, b.plan_kind, b.pricing_generation`,
+         GROUP BY b.entitlement_status, b.plan_kind, b.pricing_generation, s.country_code`,
       )
       .all<{
         entitlement_status: string;
         plan_kind: string;
         pricing_generation: "launch" | "balanced";
+        country_code: string | null;
         count: number;
       }>(),
     db
@@ -201,26 +203,36 @@ export async function readBilling(db: D1Database) {
       .first<{ count: number }>(),
   ]);
   let mrr = 0;
-  let arr = 0;
+  let netMrr = 0;
+  let regulatoryUnknown = 0;
   for (const row of results) {
     if (row.entitlement_status !== "active") continue;
     const prices = planPrices(row.pricing_generation);
-    if (row.plan_kind === "monthly") {
-      mrr += prices.monthly * row.count;
-      arr += prices.monthly * 12 * row.count;
-    } else if (row.plan_kind === "annual") {
-      mrr += (prices.annual / 12) * row.count;
-      arr += prices.annual * row.count;
-    }
+    const monthly =
+      row.plan_kind === "monthly"
+        ? prices.monthly
+        : row.plan_kind === "annual"
+          ? prices.annual / 12
+          : null;
+    if (monthly === null) continue;
+    const regulatory: number | undefined = row.country_code
+      ? SHOPIFY_APP_FEES.regulatoryOperating[row.country_code]
+      : undefined;
+    if (regulatory === undefined) regulatoryUnknown += row.count;
+    const kept =
+      1 - SHOPIFY_APP_FEES.revenueShare - SHOPIFY_APP_FEES.processing - (regulatory ?? 0);
+    mrr += monthly * row.count;
+    netMrr += monthly * kept * row.count;
   }
   return {
     rows: results,
     complimentary: complimentary?.count ?? 0,
     trials: trials?.count ?? 0,
     mrr,
-    arr,
-    netMrr: mrr * (1 - SHOPIFY_APP_FEES.revenueShare - SHOPIFY_APP_FEES.processing),
-    netArr: arr * (1 - SHOPIFY_APP_FEES.revenueShare - SHOPIFY_APP_FEES.processing),
+    arr: mrr * 12,
+    netMrr,
+    netArr: netMrr * 12,
+    regulatoryUnknown,
     shopifyFees: SHOPIFY_APP_FEES,
   };
 }

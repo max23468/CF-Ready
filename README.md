@@ -127,7 +127,8 @@ Lo stesso bot può esporre il Control Center privato di sola lettura tramite
 `/shops`, `/shop`, `/growth`, `/billing`, `/trials`, `/funnel`, `/issues`,
 `/errors`, `/notifications`, `/activity`, `/health`, `/performance`, `/version`
 e `/help`. D1 fornisce stato corrente, commerciale e operativo; gli aggregati
-Growth 7/28 giorni arrivano dalla Partner API e usano una cache D1 breve.
+Growth 7/28 giorni e i ricavi cumulati di `/billing` arrivano dalla Partner API e
+usano una cache D1 breve. I ricavi richiedono il permesso Partner `View financials`.
 
 Il Control Center richiede anche `TELEGRAM_WEBHOOK_SECRET` e
 `TELEGRAM_OWNER_USER_ID`; il webhook secret contiene almeno 32 caratteri casuali.
