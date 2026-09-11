@@ -275,14 +275,15 @@ jobs:
           grep --ignore-case --quiet '^content-type:.*application/xml' "$RUNNER_TEMP/sitemap-headers.txt"
           grep --quiet '<loc>https://cfready.it/</loc>' "$RUNNER_TEMP/sitemap.xml"
           cmp --silent site/sitemap.xml "$RUNNER_TEMP/sitemap.xml"
-          for llms_file in llms.txt llms-full.txt; do
+          for text_file in llms.txt llms-full.txt .well-known/security.txt; do
+            text_copy="$RUNNER_TEMP/$(basename "$text_file")"
             curl --fail --silent --show-error --max-time 15 \
               --header "Cache-Control: no-cache" \
-              --dump-header "$RUNNER_TEMP/$llms_file-headers.txt" \
-              --output "$RUNNER_TEMP/$llms_file" \
-              "https://$PUBLIC_DOMAIN/$llms_file?commit=$GITHUB_SHA"
-            grep --ignore-case --quiet '^content-type:.*text/plain' "$RUNNER_TEMP/$llms_file-headers.txt"
-            cmp --silent "site/$llms_file" "$RUNNER_TEMP/$llms_file"
+              --dump-header "$text_copy-headers.txt" \
+              --output "$text_copy" \
+              "https://$PUBLIC_DOMAIN/$text_file?commit=$GITHUB_SHA"
+            grep --ignore-case --quiet '^content-type:.*text/plain' "$text_copy-headers.txt"
+            cmp --silent "site/$text_file" "$text_copy"
           done
           not_found_status="$(curl --silent --show-error --max-time 15 \
             --header "Cache-Control: no-cache" \
@@ -290,7 +291,7 @@ jobs:
             "https://$PUBLIC_DOMAIN/this-page-must-not-exist-$GITHUB_SHA")"
           test "$not_found_status" = "404"
           grep --quiet '<meta name="robots" content="noindex">' "$RUNNER_TEMP/not-found.html"
-          echo "- Smoke pubblico: sedici URL, canonical e lingue, dati strutturati, anteprima social, sitemap, robots, llms.txt, 404 e header di sicurezza verificati" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Smoke pubblico: sedici URL, canonical e lingue, dati strutturati, anteprima social, sitemap, robots, llms.txt, security.txt, 404 e header di sicurezza verificati" >> "$GITHUB_STEP_SUMMARY"
           # Le regole di _headers diventano effettive all'edge con un ritardo proprio,
           # indipendente dalla propagazione del contenuto già attesa sopra: il primo
           # documento si aspetta, gli altri tre sono verificati subito dopo.

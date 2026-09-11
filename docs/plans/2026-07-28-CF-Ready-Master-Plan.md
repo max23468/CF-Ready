@@ -412,7 +412,11 @@ Browser Integrity Check è spento soltanto su `cfready.it` e `www`. Rate limitin
 e regole WAF personalizzate restano fuori per non scartare webhook o callback
 Shopify legittimi. Le notifiche Cloudflare per certificati, DDoS HTTP,
 incidenti gravi, deploy Pages Production falliti e Page Shield arrivano a
-`info@cfready.it`. Deciso dall’owner l’11 settembre 2026.
+`info@cfready.it`. I record CAA autorizzano Google Trust Services, Let’s
+Encrypt, SSL.com e Sectigo, più le CA che Cloudflare aggiunge per Universal
+SSL, con `iodef` verso `info@cfready.it`; il certificato dedicato di
+`app.cfready.it` non riceve CAA automatici e ha una notifica propria. Deciso
+dall’owner l’11 settembre 2026.
 
 Precisazione D-152 dell’11 settembre 2026: il sito pubblica anche `llms.txt`,
 indice delle pagine indicizzabili, legali e dei recapiti, e `llms-full.txt`,
@@ -3466,8 +3470,11 @@ dettagli sfruttabili non vengono gestiti tramite issue pubbliche.
 Per decisione dell'owner, il sito Pages non espone riferimenti al repository,
 a `SECURITY.md` o a GitHub. Per la sicurezza la pagina Support pubblica soltanto
 la casella `info@cfready.it` (D-153): il primo messaggio descrive il tipo di
-problema e un recapito, senza dettagli sfruttabili, e serve a concordare un canale sicuro. `SECURITY.md` e Private
-Vulnerability Reporting restano disponibili a chi raggiunge il repository.
+problema e un recapito, senza dettagli sfruttabili, e serve a concordare un
+canale sicuro. Lo stesso recapito è pubblicato in `/.well-known/security.txt`
+(RFC 9116), senza rinvii al repository; la scadenza va rinnovata entro un anno e il test documentale la
+segnala prima che scada. `SECURITY.md` e Private Vulnerability Reporting restano
+disponibili a chi raggiunge il repository.
 
 ---
 
@@ -4192,6 +4199,8 @@ La Home usa soltanto schermate reali M9 dell'app e collega queste guide. Non
 introduce testimonianze, contatori, prezzi duplicati o markup strutturato per
 offerte e rating non presenti nella pagina. `Organization`, `WebSite` e
 `BreadcrumbList` sono ammessi quando il contenuto visibile li sostiene.
+`Organization` collega il profilo sviluppatore Shopify con `sameAs` e dichiara
+`supporto@cfready.it` come `contactPoint` di assistenza in italiano e inglese.
 
 Prima della pubblicazione si registra la baseline disponibile; dopo la
 pubblicazione si verificano indicizzazione e query tramite Google Search Console,
