@@ -222,6 +222,11 @@ jobs:
             --output /dev/null --write-out '%{url_effective}' \
             "https://www.$PUBLIC_DOMAIN/?commit=$GITHUB_SHA")"
           test "$www_effective_url" = "https://$PUBLIC_DOMAIN/?commit=$GITHUB_SHA"
+          pages_dev_effective_url="$(curl --fail --silent --show-error --location --max-redirs 5 --max-time 15 \
+            --header "Cache-Control: no-cache" \
+            --output /dev/null --write-out '%{url_effective}' \
+            "https://$PAGES_DOMAIN/en/support?commit=$GITHUB_SHA")"
+          test "$pages_dev_effective_url" = "https://$PUBLIC_DOMAIN/en/support?commit=$GITHUB_SHA"
           curl --fail --silent --show-error --location --max-redirs 5 --max-time 15 \
             --header "Cache-Control: no-cache" \
             --dump-header "$RUNNER_TEMP/pages-headers.txt" \

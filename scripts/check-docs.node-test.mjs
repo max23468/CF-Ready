@@ -577,6 +577,10 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /\.result\.status == "active"/);
   assert.match(workflow, /https:\/\/www\.\$PUBLIC_DOMAIN/);
   assert.match(workflow, /www_effective_url/);
+  assert.match(
+    workflow,
+    /test "\$pages_dev_effective_url" = "https:\/\/\$PUBLIC_DOMAIN\/en\/support\?commit=\$GITHUB_SHA"/,
+  );
   assert.match(workflow, /grep -Fxq "\$GITHUB_SHA"/);
   assert.match(workflow, /--write-out '%\{url_effective\}'/);
   assert.match(workflow, /test "\$published" = true/);

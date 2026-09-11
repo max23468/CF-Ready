@@ -397,6 +397,13 @@ della lingua primaria oppure a Lingue/Translate & Adapt, quindi rilegge Shopify
 senza ricaricare la pagina. Gli stati di queste etichette non generano avvisi
 nella Home.
 
+Precisazione D-151 dell’11 settembre 2026: `cf-ready.pages.dev` reindirizza con
+301 a `cfready.it` tramite la lista Bulk Redirect di account
+`cf_ready_pages_dev`, conservando percorso e query string. I sottodomini dei
+singoli deployment restano endpoint tecnici non reindirizzati; preflight e
+readback Pages continuano a usare le API Cloudflare, mentre lo smoke verifica il
+redirect. Deciso dall’owner l’11 settembre 2026.
+
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
 | D-047 | Mensile, annuale e una tantum hanno identiche funzionalità. | Nessun tier artificiale. |
@@ -2637,9 +2644,11 @@ https://cfready.it/en/terms
 https://cfready.it/en/support
 ```
 
-`cf-ready.pages.dev` resta il sottodominio tecnico del progetto Pages. Il
-dominio `www.cfready.it` reindirizza permanentemente alla radice conservando
-percorso e query string.
+`cf-ready.pages.dev` resta il sottodominio tecnico del progetto Pages, ma un
+Bulk Redirect di account lo reindirizza con 301 a `cfready.it`; gli URL dei
+singoli deployment non sono reindirizzati. Il dominio `www.cfready.it`
+reindirizza permanentemente alla radice. Entrambi i redirect conservano percorso
+e query string.
 
 L’italiano sta nella radice perché è la lingua principale del prodotto (§16.4) e
 perché la versione italiana dei documenti legali è quella che prevale (§21.8).
