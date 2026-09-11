@@ -39,7 +39,12 @@ import {
   readShops,
   readTrials,
 } from "./queries.server";
-import { readOwnerControlState, writeOwnerControlState } from "./repository.server";
+import {
+  ownerControlErrorCode,
+  readOwnerControlState,
+  writeOwnerControlState,
+} from "./repository.server";
+import { readRevenueReport } from "./revenue.server";
 
 const WEBHOOK_CACHE_KEY = "telegram_webhook_v1";
 const WEBHOOK_CACHE_TTL_MS = 15 * 60 * 1000;
@@ -108,8 +113,17 @@ export async function renderOwnerControlAction(
           fetcher: options.fetcher,
         }),
       );
-    case "billing":
-      return billingMessage(await readBilling(db));
+    case "billing": {
+      const [billing, revenue] = await Promise.all([
+        readBilling(db),
+        readRevenueReport(db, partnerConfig, {
+          now,
+          force: action.refresh,
+          fetcher: options.fetcher,
+        }).catch((error: unknown) => ({ unavailable: ownerControlErrorCode(error) })),
+      ]);
+      return billingMessage(billing, revenue);
+    }
     case "trials":
       return trialsMessage(await readTrials(db, page));
     case "funnel":

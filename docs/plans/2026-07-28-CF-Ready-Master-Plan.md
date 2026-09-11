@@ -383,10 +383,12 @@ Rispetto alle alternative più ampie o invasive:
 | D-147 | Aggiungere alla sola PEC la modalità `required_when_company`: la PEC è obbligatoria quando `billingAddress.company`, dopo `trim()`, contiene un valore; negli altri casi resta facoltativa e viene validata se presente. | Usa il campo Azienda già esposto alla Function, senza nuovi scope, campi duplicati o interpretazioni fiscali dell’ordine. Il Codice Fiscale conserva i tre stati esistenti. Lo schema 3 distingue i due insiemi di modalità, legge lo schema 2 e richiede di distribuire e rileggere la Function compatibile prima del Worker che può scrivere la nuova configurazione. Deciso dall’owner l’8 settembre 2026 per la `1.6.1`. |
 | D-148 | Aggiungere alla chat Telegram privata dell’owner un Control Center interattivo e di sola lettura, separato dall’outbox delle notifiche e disattivabile con `OWNER_TELEGRAM_CONTROL_ENABLED`. | Il Worker autentica secret webhook, chat privata e singolo owner prima di accettare comandi o callback allowlistati. Rich Message, tastiera inline e modifica dello stesso messaggio presentano stato D1 corrente, aggregati Partner 7/28 giorni, billing, funnel e performance senza leggere ordini, clienti, prodotti, configurazione CF/PEC o nuovi scope Shopify. Le ricevute conservano solo `update_id` e metadata tecnici per sette giorni; le cache contengono soltanto aggregati. L’attivazione Telegram e il deploy restano passaggi Production separati. Deciso dall’owner l’8 settembre 2026 per la `1.6.1`. |
 | D-149 | Gestire facoltativamente le etichette native di Codice Fiscale e PEC tramite copie deterministiche IT/EN e controllare le etichette della seconda riga dell’indirizzo, con consenso Shopify separato, capacità provata per singola chiave, locale e mercato, confronto prima della prima scrittura e ripristino prudente delle sole traduzioni possedute. | `ONLINE_STORE_THEME_LOCALE_CONTENT` espone le quattro chiavi necessarie. Gli scope `write_translations`, `read_locales` e `read_markets` restano opzionali; una revoca sospende le scritture senza fermare la Validation. Il merchant può scegliere di conservare le proprie etichette senza concederli; la scelta viene legata alla revisione Shopify quando disponibile e un nuovo snapshot la invalida. I mercati usano `Market.webPresences`: il confronto mostra il testo generale e soltanto le eccezioni; contesti ereditati o non univoci richiedono una verifica manuale guidata, registrata e invalidata quando cambia il testo osservato. La prima scrittura automatica usa un modal Polaris con l’elenco dei campi modificati. CF Ready classifica automaticamente il testo di “Interno”; la dichiarazione manuale storica resta nei dati ma non guida più Regole o onboarding. Poiché Shopify non espone l’opzione attiva del modulo, il merchant dichiara se “Interno” è obbligatorio o facoltativo e l’app mostra e ripristina soltanto la variante scelta. Le etichette merchant restano in D1 solo per ownership e ripristino e non entrano in log, telemetria o diagnostica. Deciso dall’owner l’8 settembre 2026 per la `1.7.0`; precisato il 9 settembre 2026 dopo il primo rollout Development e il ridisegno della `1.7.1`; supera la parte di D-125 che dichiarava illeggibili le etichette. |
-| D-150 | Nel Control Center distinguere i problemi operativi aperti dagli errori storici e mostrare MRR e ARR sia lordi sia dopo le fee Shopify standard applicabili. | I `SHOP_UPDATE` falliti non restano aperti quando un aggiornamento successivo dello stesso store è riuscito o lo store è già stato redatto; gli altri errori restano consultabili in `/errors`. Il pending Telegram esclude l'update che sta eseguendo `/health`. Il netto applica i tassi nominati e verificati della fascia ordinaria corrente: revenue share 0% e commissione di elaborazione 2,9%, senza includere imposte od oneri regionali. Deciso dall'owner il 9 settembre 2026 per la `1.7.0`. |
+| D-150 | Nel Control Center distinguere i problemi operativi aperti dagli errori storici e mostrare MRR e ARR sia lordi sia dopo le fee Shopify standard applicabili. | I `SHOP_UPDATE` falliti non restano aperti quando un aggiornamento successivo dello stesso store è riuscito o lo store è già stato redatto; gli altri errori restano consultabili in `/errors`. Il pending Telegram esclude l'update che sta eseguendo `/health`. Il netto applica i tassi nominati e verificati della fascia ordinaria corrente: revenue share 0% e commissione di elaborazione 2,9%, senza includere imposte od oneri regionali. Deciso dall'owner il 9 settembre 2026 per la `1.7.0`. **Il calcolo delle fee è aggiornato da D-154.** |
 
 | D-151 | Usare `cfready.it` come origine canonica del sito pubblico e `app.cfready.it` per il Worker Production; `www.cfready.it` reindirizza con 301 alla radice, mentre i sottodomini Cloudflare restano endpoint tecnici. | Sitemap, robots, canonical, hreflang, metadati sociali e dati strutturati devono dichiarare il dominio pubblico. La zona usa i nameserver Cloudflare e una catena DNSSEC validata dal record DS pubblicato nel registro `.it`. Deciso dall'owner il 9 settembre 2026 per la `1.8.0`. |
 | D-152 | Dichiarare nel `robots.txt` del sito pubblico `search=yes`, `ai-input=yes`, `ai-train=no` e `use=reference`. | Motori di ricerca e assistenti possono indicizzare, citare e usare i contenuti per risposte contestuali, mentre l'addestramento resta escluso. Il file versionato è autorevole e lo smoke Pages ne verifica il contenuto effettivo, evitando una seconda configurazione gestita all'edge. Deciso dall'owner il 9 settembre 2026 per la `1.8.1`. |
+| D-153 | Usare `supporto@cfready.it` per l’assistenza merchant e `info@cfready.it` per le altre comunicazioni, al posto della casella iCloud usata prima del dominio. | `supporto@` è il destinatario del `mailto:` precompilato dell’app, delle FAQ e della pagina Support. `info@` è il recapito di Privacy Policy, Termini, `SECURITY.md`, primo contatto di sicurezza sul sito e reviewer Shopify. Il flusso resta `mailto:` e non introduce Email binding. Deciso dall’owner l’11 settembre 2026 per la `1.9.1`. |
+| D-154 | Nel Control Center calcolare MRR e ARR netti con revenue share, commissione di elaborazione e commissione operativa regolamentare del Paese dello store; mostrare in `/billing` i ricavi cumulati dalle transazioni Shopify Partner e in `/performance` i requisiti Web Vitals di Built for Shopify e M12. | Gli accrediti Partner dell’11 settembre 2026 mostrano per i negozi italiani il 2,9% di elaborazione e il 3% di commissione operativa regolamentare; Shopify non pubblica la tariffa degli altri Paesi, quindi il run-rate applica loro il solo 2,9% e lo dichiara. I ricavi cumulati sommano abbonamenti, acquisti lifetime, rimborsi e crediti dalla query `transactions`, che richiede il permesso Partner `View financials`, e la cache D1 conserva soltanto totali aggregati. La vista performance stima dai campioni CF Ready il p75 su 28 giorni e i 100 campioni per metrica: lo stato Built for Shopify autorevole resta quello del Partner Dashboard. Deciso dall’owner l’11 settembre 2026 per la `1.9.1`. |
 
 Precisazione D-149 del 9 settembre 2026 per la `1.9.0`: nella pagina Regole il
 blocco “Campo Interno” precede “Testi del checkout (impostazioni avanzate)”. Il
@@ -395,6 +397,33 @@ mercato …”; per correggere i valori guida all’editor del contenuto checkou
 della lingua primaria oppure a Lingue/Translate & Adapt, quindi rilegge Shopify
 senza ricaricare la pagina. Gli stati di queste etichette non generano avvisi
 nella Home.
+
+Precisazione D-151 dell’11 settembre 2026: `cf-ready.pages.dev` reindirizza con
+301 a `cfready.it` tramite la lista Bulk Redirect di account
+`cf_ready_pages_dev`, conservando percorso e query string. I sottodomini dei
+singoli deployment restano endpoint tecnici non reindirizzati; preflight e
+readback Pages continuano a usare le API Cloudflare, mentre lo smoke verifica il
+redirect. Il Worker Production dichiara `app.cfready.it` come custom domain in
+`wrangler.json` e disattiva `workers.dev`; il preflight rifiuta un bundle
+diverso. La zona applica Always Use HTTPS, TLS minimo 1.2, HSTS di sei mesi con
+`includeSubDomains` e `nosniff` senza preload, Page Shield in monitoraggio e un
+unico redirect 301 da `http` e `https` di `www`. Email Obfuscation è spenta,
+perché riscrive l’HTML e nasconde i recapiti ad agenti senza JavaScript; il
+Browser Integrity Check è spento soltanto su `cfready.it` e `www`. Rate limiting
+e regole WAF personalizzate restano fuori per non scartare webhook o callback
+Shopify legittimi. Le notifiche Cloudflare per certificati, DDoS HTTP,
+incidenti gravi, deploy Pages Production falliti e Page Shield arrivano a
+`info@cfready.it`. I record CAA autorizzano Google Trust Services, Let’s
+Encrypt, SSL.com e Sectigo, più le CA che Cloudflare aggiunge per Universal
+SSL, con `iodef` verso `info@cfready.it`; il certificato dedicato di
+`app.cfready.it` non riceve CAA automatici e ha una notifica propria. Deciso
+dall’owner l’11 settembre 2026.
+
+Precisazione D-152 dell’11 settembre 2026: il sito pubblica anche `llms.txt`,
+indice delle pagine indicizzabili, legali e dei recapiti, e `llms-full.txt`,
+sintesi testuale della home inglese senza prezzi. Entrambi sono versionati in
+`site/`; il test documentale ne verifica URL e recapiti e lo smoke Pages li
+confronta con il contenuto servito all’edge.
 
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
@@ -740,7 +769,7 @@ messaggio già compilato verso la casella sviluppatore con:
 - metadati tecnici non sensibili dell’allowlist di §22, visibili nel messaggio.
 
 Nella 1.1 il recapito avviene tramite un collegamento `mailto:`, per l’esito
-della verifica registrato in §22, verso `cfready@icloud.com`; Apple/iCloud è
+della verifica registrato in §22, verso `supporto@cfready.it` (D-153); Apple/iCloud è
 dichiarata nella Privacy Policy tra i fornitori che trattano indirizzo del
 mittente, contenuto e metadati tecnici delle email. Non esiste quindi un numero
 richiesta, che senza un sistema ricevente non avrebbe riscontro.
@@ -2604,7 +2633,7 @@ supportato.
 - R2: backup cifrati;
 - Workers Logs: osservabilità;
 - Pages: sito pubblico statico con Web Analytics nativa;
-- Telegram Bot API: notifiche tecniche in una chat privata dell’owner; il supporto merchant resta un link `mailto:` verso iCloud.
+- Telegram Bot API: notifiche tecniche in una chat privata dell’owner; il supporto merchant resta un link `mailto:` verso `supporto@cfready.it`.
 
 ### 18.2 Nomi risorse
 
@@ -2636,9 +2665,11 @@ https://cfready.it/en/terms
 https://cfready.it/en/support
 ```
 
-`cf-ready.pages.dev` resta il sottodominio tecnico del progetto Pages. Il
-dominio `www.cfready.it` reindirizza permanentemente alla radice conservando
-percorso e query string.
+`cf-ready.pages.dev` resta il sottodominio tecnico del progetto Pages, ma un
+Bulk Redirect di account lo reindirizza con 301 a `cfready.it`; gli URL dei
+singoli deployment non sono reindirizzati. Il dominio `www.cfready.it`
+reindirizza permanentemente alla radice. Entrambi i redirect conservano percorso
+e query string.
 
 L’italiano sta nella radice perché è la lingua principale del prodotto (§16.4) e
 perché la versione italiana dei documenti legali è quella che prevale (§21.8).
@@ -2667,9 +2698,9 @@ Worker Production:
 https://app.cfready.it
 ```
 
-Il dominio personalizzato instrada il traffico al Worker `cf-ready-prod`. L’URL
-generato dal provider non fa parte del contratto pubblico né dei callback OAuth
-dell’app.
+Il dominio personalizzato, dichiarato in `wrangler.json`, instrada il traffico al
+Worker `cf-ready-prod`. L’URL `workers.dev` di Production è disattivato: non fa
+parte del contratto pubblico né dei callback OAuth dell’app.
 
 L’utente nell’app vede normalmente:
 
@@ -3438,10 +3469,13 @@ Questi tempi sono obiettivi operativi, non uno SLA. Vulnerabilità, credenziali 
 dettagli sfruttabili non vengono gestiti tramite issue pubbliche.
 
 Per decisione dell'owner, il sito Pages non espone riferimenti al repository,
-a `SECURITY.md` o a GitHub. La pagina Support pubblica soltanto la casella email:
-il primo messaggio descrive il tipo di problema e un recapito, senza dettagli
-sfruttabili, e serve a concordare un canale sicuro. `SECURITY.md` e Private
-Vulnerability Reporting restano disponibili a chi raggiunge il repository.
+a `SECURITY.md` o a GitHub. Per la sicurezza la pagina Support pubblica soltanto
+la casella `info@cfready.it` (D-153): il primo messaggio descrive il tipo di
+problema e un recapito, senza dettagli sfruttabili, e serve a concordare un
+canale sicuro. Lo stesso recapito è pubblicato in `/.well-known/security.txt`
+(RFC 9116), senza rinvii al repository; la scadenza va rinnovata entro un anno e il test documentale la
+segnala prima che scada. `SECURITY.md` e Private Vulnerability Reporting restano
+disponibili a chi raggiunge il repository.
 
 ---
 
@@ -3478,8 +3512,9 @@ Ne discendono tre conseguenze, recepite in FR-090 e §12.2:
   merchant prima dell’invio, che è anche la ragione per cui l’allowlist qui
   sotto non è una formalità.
 
-La casella è `cfready@icloud.com`, la stessa dichiarata nel sito pubblico e in
-`SECURITY.md`. Il collegamento compare nella colonna laterale di Guida e FAQ.
+La casella è `supporto@cfready.it`, la stessa della pagina Support del sito
+pubblico; Privacy Policy, Termini e `SECURITY.md` usano invece `info@cfready.it`
+(D-153). Il collegamento compare nella colonna laterale di Guida e FAQ.
 Il Support Link Shopify apre la stessa Guida. La Guida non
 rilegge Shopify per comporre il messaggio: allega il solo stato tecnico D1 già
 riconciliato, mentre la Home aggiunge il Paese rilevato. L’obiettivo di
@@ -4165,6 +4200,8 @@ La Home usa soltanto schermate reali M9 dell'app e collega queste guide. Non
 introduce testimonianze, contatori, prezzi duplicati o markup strutturato per
 offerte e rating non presenti nella pagina. `Organization`, `WebSite` e
 `BreadcrumbList` sono ammessi quando il contenuto visibile li sostiene.
+`Organization` collega il profilo sviluppatore Shopify con `sameAs` e dichiara
+`supporto@cfready.it` come `contactPoint` di assistenza in italiano e inglese.
 
 Prima della pubblicazione si registra la baseline disponibile; dopo la
 pubblicazione si verificano indicizzazione e query tramite Google Search Console,

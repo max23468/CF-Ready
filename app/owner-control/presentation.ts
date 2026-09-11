@@ -1,9 +1,17 @@
+import {
+  PERFORMANCE_MINIMUM_SAMPLES,
+  PERFORMANCE_THRESHOLDS,
+  PERFORMANCE_WINDOW_DAYS,
+  type PerformanceMetric,
+} from "../reporting/performance";
 import type { TelegramInlineKeyboard, TelegramRichMessage } from "../telegram/client.server";
 import { callbackData, type OwnerControlAction, type ShopsFilter } from "./model";
 import { SHOPS_PAGE_SIZE, type ShopRow } from "./queries.server";
+import type { RevenueReport } from "./revenue.server";
 
 type Row = [string, string];
 type Section = { title: string; rows: Row[] };
+type RevenueView = (RevenueReport & { cachedAt: string }) | { unavailable: string };
 export type OwnerControlMessage = {
   richMessage: TelegramRichMessage;
   replyMarkup?: TelegramInlineKeyboard;
@@ -146,16 +154,25 @@ export function growthMessage(data: {
   );
 }
 
-export function billingMessage(data: {
-  rows: Array<{ entitlement_status: string; plan_kind: string; count: number }>;
-  complimentary: number;
-  trials: number;
-  mrr: number;
-  arr: number;
-  netMrr: number;
-  netArr: number;
-  shopifyFees: { revenueShare: number; processing: number };
-}): OwnerControlMessage {
+export function billingMessage(
+  data: {
+    rows: Array<{ entitlement_status: string; plan_kind: string; count: number }>;
+    complimentary: number;
+    trials: number;
+    mrr: number;
+    arr: number;
+    netMrr: number;
+    netArr: number;
+    regulatoryUnknown: number;
+    shopifyFees: {
+      revenueShare: number;
+      processing: number;
+      regulatoryOperating: Readonly<Record<string, number>>;
+    };
+  },
+  revenue?: RevenueView,
+): OwnerControlMessage {
+  const fees = data.shopifyFees;
   const count = (kind: string, status = "active") =>
     data.rows
       .filter((row) => row.plan_kind === kind && row.entitlement_status === status)
@@ -200,9 +217,25 @@ export function billingMessage(data: {
         ["Valore annuale (ARR)", MONEY.format(data.arr)],
         ["Annuale dopo fee", MONEY.format(data.netArr)],
       ]),
+      section("💰 Ricavi cumulati · Shopify Partner", revenueRows(revenue)),
     ],
-    back(),
-    `Fee applicate: revenue share ${percent(data.shopifyFees.revenueShare)} · elaborazione ${percent(data.shopifyFees.processing)}`,
+    keyboard([
+      [button("Aggiorna", { view: "billing", refresh: true })],
+      [button("‹ Dashboard", { view: "dashboard" })],
+    ]),
+    [
+      `Fee applicate a MRR e ARR: revenue share ${percent(fees.revenueShare)}`,
+      `elaborazione ${percent(fees.processing)}`,
+      ...Object.entries(fees.regulatoryOperating).map(
+        ([country, rate]) => `regolamentare ${country} ${percent(rate)}`,
+      ),
+      ...(data.regulatoryUnknown
+        ? [`regolamentare non nota per ${data.regulatoryUnknown} abbonamenti`]
+        : []),
+      ...(revenue && "cachedAt" in revenue
+        ? [`ricavi Partner ${formatDate(revenue.cachedAt)}`]
+        : []),
+    ].join(" · "),
   );
 }
 
@@ -408,21 +441,36 @@ export function performanceMessage(data: {
     alerts: Array<{ route: string; metric: string; delta: number | null }>;
   } | null;
 }): OwnerControlMessage {
-  const rows = data.groups;
-  const overall = rows.filter((row) => row.app_version === "all" && row.app_route === "all");
+  const overall = data.groups.filter((row) => row.app_version === "all" && row.app_route === "all");
   const alerts = data.comparison?.alerts ?? [];
+  const metrics = (Object.keys(PERFORMANCE_THRESHOLDS) as PerformanceMetric[]).map((metric) => ({
+    metric,
+    threshold: PERFORMANCE_THRESHOLDS[metric],
+    group: overall.find((row) => row.metric === metric),
+  }));
+  const complete = metrics.every(
+    ({ group }) => (group?.sample_count ?? 0) >= PERFORMANCE_MINIMUM_SAMPLES,
+  );
+  const passing = metrics.every(({ group, threshold }) => group && group.p75 <= threshold);
   return panel(
     "Performance",
     [
-      section(
-        "📊 p75 · 28 giorni",
-        overall.length
-          ? overall.map((row) => [
-              row.metric,
-              `${formatMetric(row.metric, row.p75)} · n=${row.sample_count} · ${statusLabel(row.status)}`,
-            ])
-          : [["Campione", "Nessun dato"]],
-      ),
+      section(`🎯 Built for Shopify · M12 · p75 ${PERFORMANCE_WINDOW_DAYS} giorni`, [
+        ...metrics.map(({ metric, threshold, group }): Row => [
+          metric,
+          group
+            ? `${formatMetric(metric, group.p75)} su ${formatMetric(metric, threshold)} · ${group.sample_count}/${PERFORMANCE_MINIMUM_SAMPLES} campioni · ${thresholdLabel(group.p75, threshold, group.sample_count)}`
+            : `0/${PERFORMANCE_MINIMUM_SAMPLES} campioni · Nessun dato`,
+        ]),
+        [
+          "Esito",
+          !complete
+            ? "In attesa di campioni sufficienti"
+            : passing
+              ? "Requisito soddisfatto"
+              : "Requisito non soddisfatto",
+        ],
+      ]),
       ...(alerts.length
         ? [
             section(
@@ -438,9 +486,11 @@ export function performanceMessage(data: {
         : []),
     ],
     back(),
-    data.comparison
-      ? `Confronto ${data.comparison.previous_version} → ${data.comparison.current_version}. Campioni insufficienti non generano regressioni.`
-      : "Servono due versioni osservate e campioni sufficienti per classificare regressioni.",
+    `${
+      data.comparison
+        ? `Confronto ${data.comparison.previous_version} → ${data.comparison.current_version}. Campioni insufficienti non generano regressioni.`
+        : "Servono due versioni osservate e campioni sufficienti per classificare regressioni."
+    } Stima dai campioni CF Ready: lo stato Built for Shopify autorevole è nel Partner Dashboard.`,
   );
 }
 
@@ -580,12 +630,9 @@ function value(input: unknown) {
   return input === null || input === undefined ? "—" : String(input);
 }
 
+const PERCENT = new Intl.NumberFormat("it-IT", { style: "percent", maximumFractionDigits: 1 });
 function percent(input: number) {
-  return new Intl.NumberFormat("it-IT", {
-    style: "percent",
-    minimumFractionDigits: input ? 1 : 0,
-    maximumFractionDigits: 1,
-  }).format(input);
+  return PERCENT.format(input);
 }
 function formatDate(input: unknown) {
   if (typeof input !== "string" || !Number.isFinite(Date.parse(input))) return "—";
@@ -633,10 +680,41 @@ function formatMetric(metric: string, value: number) {
 function formatDelta(metric: string, value: number | null) {
   return value === null ? "—" : `+${formatMetric(metric, value)}`;
 }
-function statusLabel(status: string) {
-  return (
-    { pass: "OK", fail: "Soglia superata", insufficient_samples: "Campione insufficiente" }[
-      status
-    ] ?? status
-  );
+function thresholdLabel(p75: number, threshold: number, samples: number) {
+  const band =
+    p75 > threshold
+      ? "Sopra soglia"
+      : p75 >= threshold * 0.9
+        ? "Entro soglia, vicino al limite"
+        : "Entro soglia";
+  return samples < PERFORMANCE_MINIMUM_SAMPLES ? `${band} · campioni insufficienti` : band;
+}
+function revenueRows(revenue?: RevenueView): Row[] {
+  if (!revenue || "unavailable" in revenue) {
+    return [
+      [
+        "Stato",
+        revenue?.unavailable === "partner_api_graphql_error"
+          ? "Accesso rifiutato: serve il permesso View financials"
+          : `Partner API non disponibile${revenue ? ` (${revenue.unavailable})` : ""}`,
+      ],
+    ];
+  }
+  if (!revenue.currency) return [["Transazioni", "Nessuna vendita registrata"]];
+  const money = new Intl.NumberFormat("it-IT", { style: "currency", currency: revenue.currency });
+  const amount = (minor: number) => money.format(minor / 100);
+  return [
+    ["Lordo", amount(revenue.totals.grossMinor)],
+    ["Commissioni Shopify", amount(revenue.totals.grossMinor - revenue.totals.netMinor)],
+    ["Netto", amount(revenue.totals.netMinor)],
+    [
+      "Abbonamenti",
+      `${amount(revenue.subscriptions.netMinor)} netti · ${revenue.subscriptions.count} addebiti`,
+    ],
+    ["Lifetime", `${amount(revenue.lifetime.netMinor)} netti · ${revenue.lifetime.count} acquisti`],
+    [
+      "Rimborsi e crediti",
+      `${amount(revenue.adjustments.netMinor)} · ${revenue.adjustments.count} movimenti`,
+    ],
+  ];
 }

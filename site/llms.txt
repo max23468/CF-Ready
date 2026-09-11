@@ -1,0 +1,36 @@
+# CF Ready
+
+> CF Ready is a Shopify app for the Italian checkout. It makes Codice Fiscale (Italian tax code) and PEC (certified email) required or optional in Shopify's native Italian tax fields and checks their format during checkout. It checks how the code is written, not who it belongs to, and it does not handle VAT numbers, SDI codes or electronic invoicing.
+
+The site is published in Italian at the root and in English under `/en/`. Install the app from the Shopify App Store: https://apps.shopify.com/cf-ready
+
+## English
+
+- [Home](https://cfready.it/en/): what CF Ready does, how validation works, edge cases, limits, data handling and trial
+- [Require Codice Fiscale at Shopify checkout](https://cfready.it/en/guides/required-codice-fiscale-shopify-checkout): require and formally validate the native Italian tax field without theme changes
+- [Shopify Italian tax fields: Codice Fiscale and PEC](https://cfready.it/en/guides/shopify-italian-tax-fields-codice-fiscale-pec): where Shopify collects both fields and how to manage them separately
+- [Why not use Address 2 for Codice Fiscale](https://cfready.it/en/guides/address-2-codice-fiscale-shopify): why repurposed address fields create duplicate and ambiguous data
+- [Formal Codice Fiscale validation](https://cfready.it/en/guides/validate-codice-fiscale-shopify): structure, dates, omocodia and check character, without an identity match
+- [Support](https://cfready.it/en/support): how to reach support and what to include
+
+## Italiano
+
+- [Home](https://cfready.it/): cosa fa CF Ready, controlli, casi limite, limiti, dati e prova
+- [Codice Fiscale obbligatorio nel checkout Shopify](https://cfready.it/guide/codice-fiscale-obbligatorio-shopify)
+- [Campi fiscali Shopify: Codice Fiscale e PEC](https://cfready.it/guide/campi-fiscali-shopify-codice-fiscale-pec)
+- [Perché non usare Indirizzo 2 per il Codice Fiscale](https://cfready.it/guide/indirizzo-2-codice-fiscale-shopify)
+- [Validazione formale del Codice Fiscale](https://cfready.it/guide/validazione-codice-fiscale-shopify)
+- [Assistenza](https://cfready.it/support)
+
+## Contact
+
+- Support: supporto@cfready.it
+- General and privacy requests: info@cfready.it
+
+## Optional
+
+- [Full text for language models](https://cfready.it/llms-full.txt)
+- [Privacy Policy (English)](https://cfready.it/en/privacy)
+- [Terms of Service (English)](https://cfready.it/en/terms)
+- [Informativa privacy](https://cfready.it/privacy)
+- [Termini di servizio](https://cfready.it/terms)

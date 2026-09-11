@@ -84,7 +84,13 @@ export function verifyBuiltConfig(builtConfig) {
     !["true", "false"].includes(built.vars?.OWNER_NOTIFICATIONS_ENABLED) ||
     !["true", "false"].includes(built.vars?.OWNER_TELEGRAM_CONTROL_ENABLED) ||
     built.vars?.APP_ENVIRONMENT !== "production" ||
-    built.version_metadata?.binding !== "CF_VERSION_METADATA"
+    built.version_metadata?.binding !== "CF_VERSION_METADATA" ||
+    // D-151: l'app Production risponde solo sul dominio personalizzato dichiarato qui.
+    built.workers_dev !== false ||
+    !built.routes?.some(
+      ({ pattern, custom_domain }) =>
+        pattern === new URL(expected.appUrl).host && custom_domain === true,
+    )
   ) {
     throw new Error(
       "Il bundle non è quello Production: ricostruisci con CLOUDFLARE_ENV=production.",
