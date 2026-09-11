@@ -6,6 +6,30 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.9.1 — 11 settembre 2026
+
+- l’assistenza usa `supporto@cfready.it` nel messaggio precompilato dell’app,
+  nelle FAQ e nella pagina Support;
+- Privacy Policy, Termini, `SECURITY.md`, primo contatto di sicurezza e
+  istruzioni per il reviewer usano `info@cfready.it`;
+- l’indirizzo iCloud usato prima del dominio non compare più nel sito, nell’app
+  e nella documentazione corrente;
+- il sito pubblica `llms.txt`, `llms-full.txt` e `/.well-known/security.txt`,
+  verificati dai test documentali e dallo smoke Pages insieme al redirect da
+  `cf-ready.pages.dev`;
+- i dati strutturati `Organization` collegano il profilo sviluppatore Shopify e
+  il recapito di assistenza;
+- il Worker Production dichiara `app.cfready.it` come custom domain e disattiva
+  l’URL `workers.dev`, con verifica nel preflight;
+- nel Control Center, MRR e ARR netti sottraggono anche la commissione operativa
+  regolamentare del 3% per i negozi italiani e indicano gli abbonamenti di Paesi
+  senza tariffa nota;
+- `/billing` mostra i ricavi cumulati di abbonamenti, acquisti lifetime, rimborsi
+  e crediti dalle transazioni Shopify Partner, con lordo, commissioni e netto
+  nella valuta degli accrediti;
+- `/performance` confronta i p75 degli ultimi 28 giorni con le soglie Built for
+  Shopify e M12 e mostra i campioni raccolti rispetto al minimo di 100 per metrica.
+
 ## 1.9.0 — 9 settembre 2026
 
 - “Campo Interno” precede “Testi del checkout (impostazioni avanzate)”; il

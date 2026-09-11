@@ -50,6 +50,7 @@ import {
   renewOwnerControlClaim,
   writeOwnerControlState,
 } from "../app/owner-control/repository.server";
+import { fetchRevenueReport, readRevenueReport } from "../app/owner-control/revenue.server";
 import { parseOwnerControlUpdate } from "../app/owner-control/update.server";
 import { parseFunnel } from "../app/reporting/funnel";
 import {
@@ -467,7 +468,7 @@ describe("presentazione Telegram", () => {
   });
 
   test("copre funnel, performance e versione con alternative di formato", () => {
-    const billing = billingMessage({
+    const billingData = {
       rows: [
         { entitlement_status: "ending", plan_kind: "monthly", count: 2 },
         { entitlement_status: "expired", plan_kind: "annual", count: 3 },
@@ -477,14 +478,45 @@ describe("presentazione Telegram", () => {
       trials: 1,
       mrr: 10,
       arr: 120,
-      netMrr: 9.71,
-      netArr: 116.52,
-      shopifyFees: { revenueShare: 0, processing: 0.029 },
-    });
+      netMrr: 9.41,
+      netArr: 112.92,
+      regulatoryUnknown: 2,
+      shopifyFees: { revenueShare: 0, processing: 0.029, regulatoryOperating: { IT: 0.03 } },
+    };
+    const revenue = {
+      generatedAt: NOW.toISOString(),
+      cachedAt: NOW.toISOString(),
+      currency: "USD",
+      totals: { count: 3, grossMinor: 10653, netMinor: 10036 },
+      subscriptions: { count: 1, grossMinor: 347, netMinor: 327 },
+      lifetime: { count: 1, grossMinor: 10453, netMinor: 9836 },
+      adjustments: { count: 1, grossMinor: -147, netMinor: -127 },
+    };
+    const billing = billingMessage(billingData, revenue);
+    const billingText = JSON.stringify(billing);
     expect(billing.richMessage.blocks).toBeTruthy();
-    expect(JSON.stringify(billing)).toContain("Valore mensile (MRR)");
-    expect(JSON.stringify(billing)).toContain("Mensile dopo fee");
-    expect(JSON.stringify(billing)).toContain("elaborazione 2,9%");
+    expect(billingText).toContain("Valore mensile (MRR)");
+    expect(billingText).toContain("Mensile dopo fee");
+    expect(billingText).toContain("elaborazione 2,9%");
+    expect(billingText).toContain("regolamentare IT 3%");
+    expect(billingText).toContain("regolamentare non nota per 2 abbonamenti");
+    expect(billingText).toContain("100,36");
+    expect(billingText).toContain("6,17");
+    expect(billingText).toContain("98,36");
+    expect(billingText).toContain("1 acquisti");
+    expect(billingText).toContain("oc1:b:-:0:r");
+    expect(JSON.stringify(billingMessage(billingData))).toContain("Partner API non disponibile");
+    expect(
+      JSON.stringify(billingMessage(billingData, { unavailable: "partner_api_graphql_error" })),
+    ).toContain("serve il permesso View financials");
+    expect(
+      JSON.stringify(billingMessage(billingData, { unavailable: "partner_api_request_failed" })),
+    ).toContain("(partner_api_request_failed)");
+    const emptyRevenue = JSON.stringify(
+      billingMessage({ ...billingData, regulatoryUnknown: 0 }, { ...revenue, currency: null }),
+    );
+    expect(emptyRevenue).toContain("Nessuna vendita registrata");
+    expect(emptyRevenue).not.toContain("regolamentare non nota");
     expect(
       funnelMessage([
         {
@@ -544,9 +576,199 @@ describe("presentazione Telegram", () => {
         },
       }).richMessage.blocks,
     ).toBeTruthy();
+    const bfs = (sampleCount: number, p75: Record<"LCP" | "INP" | "CLS", number>) =>
+      JSON.stringify(
+        performanceMessage({
+          groups: (["LCP", "INP", "CLS"] as const).map((metric) => ({
+            metric,
+            app_version: "all",
+            app_route: "all",
+            sample_count: sampleCount,
+            p75: p75[metric],
+            status: "pass",
+          })),
+          comparison: null,
+        }),
+      );
+    const pending = bfs(33, { LCP: 2460, INP: 48, CLS: 0.006 });
+    expect(pending).toContain(
+      "2460 ms su 2500 ms · 33/100 campioni · Entro soglia, vicino al limite · campioni insufficienti",
+    );
+    expect(pending).toContain("In attesa di campioni sufficienti");
+    expect(pending).toContain("Partner Dashboard");
+    expect(bfs(120, { LCP: 1800, INP: 48, CLS: 0.006 })).toContain("Requisito soddisfatto");
+    const failing = bfs(120, { LCP: 2600, INP: 48, CLS: 0.006 });
+    expect(failing).toContain("2600 ms su 2500 ms · 120/100 campioni · Sopra soglia");
+    expect(failing).toContain("Requisito non soddisfatto");
+    expect(JSON.stringify(performanceMessage({ groups: [], comparison: null }))).toContain(
+      "0/100 campioni · Nessun dato",
+    );
     expect(
       versionMessage({ appVersion: "1", environment: "Test" }).richMessage.blocks,
     ).toBeTruthy();
+  });
+});
+
+describe("Ricavi Partner", () => {
+  test("usa i default runtime con una risposta Partner vuota", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => revenueResponse([], false)),
+    );
+    try {
+      await expect(readRevenueReport(env.DB, PARTNER)).resolves.toMatchObject({
+        currency: null,
+        totals: { count: 0, grossMinor: 0, netMinor: 0 },
+      });
+      await expect(fetchRevenueReport(PARTNER)).resolves.toMatchObject({ currency: null });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  test("somma vendite, lifetime, rimborsi e crediti su più pagine con cache e cooldown", async () => {
+    const responses = [
+      revenueResponse(
+        [
+          { cursor: "t1", node: revenueTransaction("AppSubscriptionSale", "3.47", "3.27") },
+          { cursor: "t2", node: revenueTransaction("AppOneTimeSale", "104.53", "98.36") },
+        ],
+        true,
+      ),
+      revenueResponse(
+        [
+          { cursor: "t3", node: revenueTransaction("AppSaleAdjustment", "-3.47", "-3.27") },
+          { cursor: "t4", node: revenueTransaction("AppSaleCredit", null, "-1.00") },
+        ],
+        false,
+      ),
+    ];
+    const fetcher = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      responses.shift()!,
+    );
+    const report = await readRevenueReport(env.DB, PARTNER, {
+      now: NOW,
+      fetcher: fetcher as unknown as typeof fetch,
+    });
+    expect(report).toMatchObject({
+      currency: "USD",
+      totals: { count: 4, grossMinor: 10353, netMinor: 9736 },
+      subscriptions: { count: 1, grossMinor: 347, netMinor: 327 },
+      lifetime: { count: 1, grossMinor: 10453, netMinor: 9836 },
+      adjustments: { count: 2, grossMinor: -447, netMinor: -427 },
+      cachedAt: NOW.toISOString(),
+    });
+    const secondRequest = JSON.parse(String(fetcher.mock.calls[1][1]?.body));
+    expect(secondRequest.variables).toEqual({ appId: PARTNER.appId, after: "t2", first: 100 });
+    expect(secondRequest.query).toContain("APP_ONE_TIME_SALE");
+
+    const cached = await readRevenueReport(env.DB, PARTNER, {
+      now: new Date(NOW.getTime() + 60_000),
+      force: true,
+      fetcher: vi.fn(() => Promise.reject(new Error("non chiamare"))),
+    });
+    expect(cached.totals).toEqual(report.totals);
+
+    const refreshed = vi.fn(async () => revenueResponse([], false));
+    await expect(
+      readRevenueReport(env.DB, PARTNER, {
+        now: new Date(NOW.getTime() + 6 * 60_000),
+        force: true,
+        fetcher: refreshed,
+      }),
+    ).resolves.toMatchObject({ currency: null, totals: { count: 0 } });
+    expect(refreshed).toHaveBeenCalledTimes(1);
+  });
+
+  test("rifiuta transazioni, valute, cursori e paginazione non validi", async () => {
+    const fetchWith = (...pages: Response[]) =>
+      vi.fn(async () => pages.shift()!) as unknown as typeof fetch;
+    const invalid = { amount: "1.00", currencyCode: "usd" };
+    await expect(
+      fetchRevenueReport(PARTNER, NOW, fetchWith(Response.json({ data: {} }))),
+    ).rejects.toThrow("partner_api_invalid_payload");
+    for (const node of [
+      revenueTransaction("ThemeSale", "1.00", "1.00"),
+      revenueTransaction("AppOneTimeSale", "1.00", "uno"),
+      { ...revenueTransaction("AppOneTimeSale", "1.00", "1.00"), grossAmount: invalid },
+    ]) {
+      // react-doctor-disable-next-line react-doctor/async-await-in-loop
+      await expect(
+        fetchRevenueReport(
+          PARTNER,
+          NOW,
+          fetchWith(revenueResponse([{ cursor: "t1", node }], false)),
+        ),
+      ).rejects.toThrow("partner_api_invalid_transaction");
+    }
+    await expect(
+      fetchRevenueReport(
+        PARTNER,
+        NOW,
+        fetchWith(
+          revenueResponse(
+            [
+              { cursor: "t1", node: revenueTransaction("AppOneTimeSale", "1.00", "0.94") },
+              { cursor: "t2", node: revenueTransaction("AppOneTimeSale", "1.00", "0.94", "EUR") },
+            ],
+            false,
+          ),
+        ),
+      ),
+    ).rejects.toThrow("partner_api_mixed_currency");
+    await expect(
+      fetchRevenueReport(PARTNER, NOW, fetchWith(revenueResponse([], true))),
+    ).rejects.toThrow("partner_api_invalid_cursor");
+    const sale = revenueTransaction("AppSubscriptionSale", "3.47", "3.27");
+    await expect(
+      fetchRevenueReport(
+        PARTNER,
+        NOW,
+        fetchWith(
+          revenueResponse([{ cursor: "t1", node: sale }], true),
+          revenueResponse([{ cursor: "t1", node: sale }], true),
+        ),
+      ),
+    ).rejects.toThrow("partner_api_invalid_cursor");
+    let page = 0;
+    const endless = vi.fn(async () =>
+      revenueResponse([{ cursor: `t${(page += 1)}`, node: sale }], true),
+    ) as unknown as typeof fetch;
+    await expect(fetchRevenueReport(PARTNER, NOW, endless)).rejects.toThrow(
+      "partner_api_page_limit",
+    );
+  });
+
+  test("mostra i ricavi nella vista billing e degrada senza permesso", async () => {
+    const sale = vi.fn(async () =>
+      revenueResponse(
+        [{ cursor: "t1", node: revenueTransaction("AppOneTimeSale", "104.53", "98.36") }],
+        false,
+      ),
+    ) as unknown as typeof fetch;
+    const billing = await renderOwnerControlAction(
+      env.DB,
+      { view: "billing", refresh: true },
+      controlConfig(),
+      { now: NOW, fetcher: sale },
+    );
+    expect(JSON.stringify(billing)).toContain("98,36");
+
+    await env.DB.prepare("DELETE FROM owner_control_state").run();
+    const denied = vi.fn(async () =>
+      Response.json({ errors: [{ message: "Access denied" }] }),
+    ) as unknown as typeof fetch;
+    const withoutAccess = await renderOwnerControlAction(
+      env.DB,
+      { view: "billing" },
+      controlConfig(),
+      {
+        now: NOW,
+        fetcher: denied,
+      },
+    );
+    expect(JSON.stringify(withoutAccess)).toContain("serve il permesso View financials");
+    expect(JSON.stringify(withoutAccess)).toContain("Valore mensile (MRR)");
   });
 });
 
@@ -961,6 +1183,7 @@ describe("query D1 e run-rate", () => {
       onboarding: "completed",
       validation: 1,
       plan: ["active", "monthly", "balanced"],
+      country: "IT",
     });
     await insertStore(2, "annuale.myshopify.com", {
       validation: 1,
@@ -968,6 +1191,7 @@ describe("query D1 e run-rate", () => {
     });
     await insertStore(3, "unico.myshopify.com", {
       plan: ["active", "one_time", "balanced"],
+      country: "IT",
     });
     await insertStore(4, "ending.myshopify.com", {
       error: "sync_failed",
@@ -995,9 +1219,15 @@ describe("query D1 e run-rate", () => {
     expect(billing.trials).toBe(1);
     expect(billing.mrr).toBeCloseTo(3.99 + 29.9 / 12, 8);
     expect(billing.arr).toBeCloseTo(3.99 * 12 + 29.9, 8);
-    expect(billing.netMrr).toBeCloseTo((3.99 + 29.9 / 12) * 0.971, 8);
-    expect(billing.netArr).toBeCloseTo((3.99 * 12 + 29.9) * 0.971, 8);
-    expect(billing.shopifyFees).toEqual({ revenueShare: 0, processing: 0.029 });
+    // Mensile italiano: 2,9% di elaborazione e 3% regolamentare; annuale senza Paese: solo 2,9%.
+    expect(billing.netMrr).toBeCloseTo(3.99 * 0.941 + (29.9 / 12) * 0.971, 8);
+    expect(billing.netArr).toBeCloseTo(3.99 * 12 * 0.941 + 29.9 * 0.971, 8);
+    expect(billing.regulatoryUnknown).toBe(1);
+    expect(billing.shopifyFees).toEqual({
+      revenueShare: 0,
+      processing: 0.029,
+      regulatoryOperating: { IT: 0.03 },
+    });
     expect((await readShops(env.DB, "paid", 0)).count).toBe(4);
     expect((await readShops(env.DB, "issues", 0)).shops.map((shop) => shop.id)).toEqual([4]);
     expect((await readTrials(env.DB, 0)).count).toBe(1);
@@ -1498,15 +1728,17 @@ async function insertStore(
     plan?: [string, string, string];
     trial?: boolean;
     complimentary?: boolean;
+    country?: string;
   } = {},
 ) {
   const timestamp = "2026-09-01T10:00:00.000Z";
   await env.DB.prepare(
     `INSERT INTO shops
-       (id, shop_domain, display_name, installation_status, installed_at, created_at, updated_at)
-     VALUES (?, ?, ?, 'active', ?, ?, ?)`,
+       (id, shop_domain, display_name, installation_status, installed_at, country_code,
+        created_at, updated_at)
+     VALUES (?, ?, ?, 'active', ?, ?, ?, ?)`,
   )
-    .bind(id, domain, `Store ${id}`, timestamp, timestamp, timestamp)
+    .bind(id, domain, `Store ${id}`, timestamp, options.country ?? null, timestamp, timestamp)
     .run();
   await env.DB.prepare(
     `INSERT INTO app_state
@@ -1560,4 +1792,24 @@ function growthResponse(
   hasNextPage: boolean,
 ) {
   return Response.json({ data: { app: { events: { edges, pageInfo: { hasNextPage } } } } });
+}
+
+function revenueTransaction(
+  typename: string,
+  gross: string | null,
+  net: string,
+  currencyCode = "USD",
+) {
+  return {
+    __typename: typename,
+    grossAmount: gross === null ? null : { amount: gross, currencyCode },
+    netAmount: { amount: net, currencyCode },
+  };
+}
+
+function revenueResponse(
+  edges: Array<{ cursor: string; node: ReturnType<typeof revenueTransaction> }>,
+  hasNextPage: boolean,
+) {
+  return Response.json({ data: { transactions: { edges, pageInfo: { hasNextPage } } } });
 }

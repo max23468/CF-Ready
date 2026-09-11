@@ -1,0 +1,5 @@
+Contact: mailto:info@cfready.it
+Expires: 2027-09-01T00:00:00.000Z
+Preferred-Languages: it, en
+Canonical: https://cfready.it/.well-known/security.txt
+Policy: https://cfready.it/en/support

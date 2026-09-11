@@ -124,6 +124,8 @@ async function writePreflightProject(t, environment) {
           APP_ENVIRONMENT: "production",
         },
         version_metadata: { binding: "CF_VERSION_METADATA" },
+        workers_dev: false,
+        routes: [{ pattern: "app.cfready.it", custom_domain: true }],
         triggers: { crons: ["0 * * * *", "*/5 * * * *"] },
         d1_databases: [
           {
