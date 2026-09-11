@@ -144,7 +144,7 @@ test("il check-in pagante resta neutro, apre l'assistenza e può sparire", () =>
   );
   if (!banner || !contact || !dismiss) throw new Error("azioni check-in assenti");
 
-  expect((contact.props as { href?: string }).href).toMatch(/^mailto:cfready@icloud\.com/);
+  expect((contact.props as { href?: string }).href).toMatch(/^mailto:supporto@cfready\.it\?/);
   expect((contact.props as { href?: string }).href).not.toContain("Codice%20Fiscale");
   expect((contact.props as { slot?: string }).slot).toBe("secondary-actions");
   expect((dismiss.props as { slot?: string }).slot).toBe("secondary-actions");

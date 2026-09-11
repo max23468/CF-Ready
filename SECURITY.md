@@ -11,7 +11,7 @@ Non aprire issue pubbliche per vulnerabilità, credenziali o dettagli
 sfruttabili. Usa la
 [segnalazione privata di GitHub](https://github.com/max23468/CF-Ready/security/advisories/new).
 Se non puoi accedere a GitHub, scrivi a
-[cfready@icloud.com](mailto:cfready@icloud.com) indicando nell'oggetto che si
+[info@cfready.it](mailto:info@cfready.it) indicando nell'oggetto che si
 tratta di una segnalazione di sicurezza.
 
 Includi:
