@@ -139,5 +139,5 @@ Full policy: `https://cfready.it/en/privacy`.
 
 ## 9. Contact
 
-`cfready@icloud.com` — monitored during review; we answer within one business
+`info@cfready.it` — monitored during review; we answer within one business
 day.

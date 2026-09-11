@@ -365,7 +365,7 @@ export const en: typeof it = {
       },
       {
         q: "Contacting the developer",
-        a: "Write to cfready@icloud.com, or use the link in the side column: it prepares the message with your store’s technical details already filled in. We answer by hand, usually within one business day. If the problem is blocking your checkout, say so in the subject line.",
+        a: "Write to supporto@cfready.it, or use the link in the side column: it prepares the message with your store’s technical details already filled in. We answer by hand, usually within one business day. If the problem is blocking your checkout, say so in the subject line.",
       },
     ],
   },

@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.9.1 — 11 settembre 2026
+
+- l’assistenza usa `supporto@cfready.it` nel messaggio precompilato dell’app,
+  nelle FAQ e nella pagina Support;
+- Privacy Policy, Termini, `SECURITY.md`, primo contatto di sicurezza e
+  istruzioni per il reviewer usano `info@cfready.it`;
+- l’indirizzo iCloud usato prima del dominio non compare più nel sito, nell’app
+  e nella documentazione corrente.
+
 ## 1.9.0 — 9 settembre 2026
 
 - “Campo Interno” precede “Testi del checkout (impostazioni avanzate)”; il

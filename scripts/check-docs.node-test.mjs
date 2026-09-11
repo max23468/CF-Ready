@@ -1037,6 +1037,6 @@ test("il sito italiano e inglese mantiene il contratto pubblico essenziale", () 
         .flat()
         .flatMap((page) => [...page.matchAll(/mailto:([^?"]+)/g)].map((match) => match[1])),
     ),
-    new Set(["cfready@icloud.com"]),
+    new Set(["supporto@cfready.it", "info@cfready.it"]),
   );
 });

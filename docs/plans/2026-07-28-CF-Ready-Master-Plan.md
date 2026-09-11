@@ -387,6 +387,7 @@ Rispetto alle alternative più ampie o invasive:
 
 | D-151 | Usare `cfready.it` come origine canonica del sito pubblico e `app.cfready.it` per il Worker Production; `www.cfready.it` reindirizza con 301 alla radice, mentre i sottodomini Cloudflare restano endpoint tecnici. | Sitemap, robots, canonical, hreflang, metadati sociali e dati strutturati devono dichiarare il dominio pubblico. La zona usa i nameserver Cloudflare e una catena DNSSEC validata dal record DS pubblicato nel registro `.it`. Deciso dall'owner il 9 settembre 2026 per la `1.8.0`. |
 | D-152 | Dichiarare nel `robots.txt` del sito pubblico `search=yes`, `ai-input=yes`, `ai-train=no` e `use=reference`. | Motori di ricerca e assistenti possono indicizzare, citare e usare i contenuti per risposte contestuali, mentre l'addestramento resta escluso. Il file versionato è autorevole e lo smoke Pages ne verifica il contenuto effettivo, evitando una seconda configurazione gestita all'edge. Deciso dall'owner il 9 settembre 2026 per la `1.8.1`. |
+| D-153 | Usare `supporto@cfready.it` per l’assistenza merchant e `info@cfready.it` per le altre comunicazioni, al posto della casella iCloud usata prima del dominio. | `supporto@` è il destinatario del `mailto:` precompilato dell’app, delle FAQ e della pagina Support. `info@` è il recapito di Privacy Policy, Termini, `SECURITY.md`, primo contatto di sicurezza sul sito e reviewer Shopify. Il flusso resta `mailto:` e non introduce Email binding. Deciso dall’owner l’11 settembre 2026 per la `1.9.1`. |
 
 Precisazione D-149 del 9 settembre 2026 per la `1.9.0`: nella pagina Regole il
 blocco “Campo Interno” precede “Testi del checkout (impostazioni avanzate)”. Il
@@ -740,7 +741,7 @@ messaggio già compilato verso la casella sviluppatore con:
 - metadati tecnici non sensibili dell’allowlist di §22, visibili nel messaggio.
 
 Nella 1.1 il recapito avviene tramite un collegamento `mailto:`, per l’esito
-della verifica registrato in §22, verso `cfready@icloud.com`; Apple/iCloud è
+della verifica registrato in §22, verso `supporto@cfready.it` (D-153); Apple/iCloud è
 dichiarata nella Privacy Policy tra i fornitori che trattano indirizzo del
 mittente, contenuto e metadati tecnici delle email. Non esiste quindi un numero
 richiesta, che senza un sistema ricevente non avrebbe riscontro.
@@ -2604,7 +2605,7 @@ supportato.
 - R2: backup cifrati;
 - Workers Logs: osservabilità;
 - Pages: sito pubblico statico con Web Analytics nativa;
-- Telegram Bot API: notifiche tecniche in una chat privata dell’owner; il supporto merchant resta un link `mailto:` verso iCloud.
+- Telegram Bot API: notifiche tecniche in una chat privata dell’owner; il supporto merchant resta un link `mailto:` verso `supporto@cfready.it`.
 
 ### 18.2 Nomi risorse
 
@@ -3438,9 +3439,9 @@ Questi tempi sono obiettivi operativi, non uno SLA. Vulnerabilità, credenziali 
 dettagli sfruttabili non vengono gestiti tramite issue pubbliche.
 
 Per decisione dell'owner, il sito Pages non espone riferimenti al repository,
-a `SECURITY.md` o a GitHub. La pagina Support pubblica soltanto la casella email:
-il primo messaggio descrive il tipo di problema e un recapito, senza dettagli
-sfruttabili, e serve a concordare un canale sicuro. `SECURITY.md` e Private
+a `SECURITY.md` o a GitHub. Per la sicurezza la pagina Support pubblica soltanto
+la casella `info@cfready.it` (D-153): il primo messaggio descrive il tipo di
+problema e un recapito, senza dettagli sfruttabili, e serve a concordare un canale sicuro. `SECURITY.md` e Private
 Vulnerability Reporting restano disponibili a chi raggiunge il repository.
 
 ---
@@ -3478,8 +3479,9 @@ Ne discendono tre conseguenze, recepite in FR-090 e §12.2:
   merchant prima dell’invio, che è anche la ragione per cui l’allowlist qui
   sotto non è una formalità.
 
-La casella è `cfready@icloud.com`, la stessa dichiarata nel sito pubblico e in
-`SECURITY.md`. Il collegamento compare nella colonna laterale di Guida e FAQ.
+La casella è `supporto@cfready.it`, la stessa della pagina Support del sito
+pubblico; Privacy Policy, Termini e `SECURITY.md` usano invece `info@cfready.it`
+(D-153). Il collegamento compare nella colonna laterale di Guida e FAQ.
 Il Support Link Shopify apre la stessa Guida. La Guida non
 rilegge Shopify per comporre il messaggio: allega il solo stato tecnico D1 già
 riconciliato, mentre la Home aggiunge il Paese rilevato. L’obiettivo di

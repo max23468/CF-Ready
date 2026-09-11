@@ -155,7 +155,8 @@ il codice devono dire la stessa cifra.
 | Sito sviluppatore | `https://cfready.it` |
 | Privacy | `https://cfready.it/privacy` |
 | Termini | `https://cfready.it/terms` |
-| Contatto | `cfready@icloud.com` |
+| Email assistenza | `supporto@cfready.it` |
+| Contatto generale | `info@cfready.it` |
 
 ## Cosa non va scritto
 

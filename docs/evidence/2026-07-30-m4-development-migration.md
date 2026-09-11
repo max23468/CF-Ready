@@ -13,7 +13,7 @@ allora attivo.
 
 | Voce | Valore |
 | --- | --- |
-| Account Cloudflare | OAuth `matteofilisina@icloud.com`, account `98195e505f42abaaeb4827f71a924b1a` |
+| Account Cloudflare | OAuth dell’owner, account `98195e505f42abaaeb4827f71a924b1a` |
 | Database | `cf-ready-db-dev` (`9490eaea-3a12-465d-bb48-e2622b31fc4d`), regione EEUR |
 | Stato pre-migrazione | 4 tabelle, 53.2 kB, `0001` e `0002` già applicate |
 | Migrazione pendente | `0003_app_state_webhooks_events.sql` |
