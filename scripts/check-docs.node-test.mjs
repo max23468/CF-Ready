@@ -436,6 +436,46 @@ test("sitemap e robots espongono solo URL indicizzabili canonici", () => {
   assert.match(robots, /^Sitemap: https:\/\/cfready\.it\/sitemap\.xml$/m);
 });
 
+test("llms.txt indicizza le pagine pubbliche senza prezzi né recapiti diversi", () => {
+  const index = readFileSync(new URL("../site/llms.txt", import.meta.url), "utf8");
+  const full = readFileSync(new URL("../site/llms-full.txt", import.meta.url), "utf8");
+  const legalPages = [
+    "https://cfready.it/privacy",
+    "https://cfready.it/terms",
+    "https://cfready.it/en/privacy",
+    "https://cfready.it/en/terms",
+  ];
+  assert.match(index, /^# CF Ready$/m);
+  assert.match(index, /^> /m);
+  for (const url of [
+    ...indexableSitePages.values(),
+    ...legalPages,
+    "https://cfready.it/llms-full.txt",
+  ]) {
+    assert(index.includes(`(${url})`), `llms.txt non cita ${url}`);
+  }
+  for (const file of [index, full]) {
+    const urls = [...file.matchAll(/https:\/\/cfready\.it[^\s)>]*/g)].map((match) => match[0]);
+    for (const url of urls) {
+      assert(
+        [
+          ...indexableSitePages.values(),
+          ...legalPages,
+          "https://cfready.it/llms-full.txt",
+        ].includes(url),
+        `URL non pubblicato: ${url}`,
+      );
+    }
+    assert.deepEqual(
+      new Set([...file.matchAll(/[\w.+-]+@[\w.-]+/g)].map((match) => match[0])),
+      new Set(["supporto@cfready.it", "info@cfready.it"]),
+    );
+    assert.doesNotMatch(file, /[$€]\s?\d|\d\s?(?:€|EUR|USD)/);
+  }
+  assert.match(full, /not who it belongs to/);
+  assert.match(full, /never reach our systems/);
+});
+
 test("i dati strutturati restano verificabili e non inventano prezzo o recensioni", () => {
   const home = readFileSync(new URL("../site/index.html", import.meta.url), "utf8");
   assert.match(home, /"@type":"Organization"/);
@@ -588,6 +628,7 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /sitemap\.xml/);
   assert.match(workflow, /cmp --silent site\/robots\.txt/);
   assert.match(workflow, /cmp --silent site\/sitemap\.xml/);
+  assert.match(workflow, /cmp --silent "site\/\$llms_file" "\$RUNNER_TEMP\/\$llms_file"/);
   assert.match(workflow, /og:image/);
   assert.match(workflow, /BreadcrumbList/);
   assert.match(workflow, /social-image-headers\.txt/);

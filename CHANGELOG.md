@@ -13,7 +13,11 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 - Privacy Policy, Termini, `SECURITY.md`, primo contatto di sicurezza e
   istruzioni per il reviewer usano `info@cfready.it`;
 - l’indirizzo iCloud usato prima del dominio non compare più nel sito, nell’app
-  e nella documentazione corrente.
+  e nella documentazione corrente;
+- il sito pubblica `llms.txt` e `llms-full.txt`, verificati dai test documentali
+  e dallo smoke Pages insieme al redirect da `cf-ready.pages.dev`;
+- il Worker Production dichiara `app.cfready.it` come custom domain e disattiva
+  l’URL `workers.dev`, con verifica nel preflight.
 
 ## 1.9.0 — 9 settembre 2026
 

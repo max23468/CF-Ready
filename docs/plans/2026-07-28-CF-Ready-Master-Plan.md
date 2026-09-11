@@ -402,7 +402,23 @@ Precisazione D-151 dell’11 settembre 2026: `cf-ready.pages.dev` reindirizza co
 `cf_ready_pages_dev`, conservando percorso e query string. I sottodomini dei
 singoli deployment restano endpoint tecnici non reindirizzati; preflight e
 readback Pages continuano a usare le API Cloudflare, mentre lo smoke verifica il
-redirect. Deciso dall’owner l’11 settembre 2026.
+redirect. Il Worker Production dichiara `app.cfready.it` come custom domain in
+`wrangler.json` e disattiva `workers.dev`; il preflight rifiuta un bundle
+diverso. La zona applica Always Use HTTPS, TLS minimo 1.2, HSTS di sei mesi con
+`includeSubDomains` e `nosniff` senza preload, Page Shield in monitoraggio e un
+unico redirect 301 da `http` e `https` di `www`. Email Obfuscation è spenta,
+perché riscrive l’HTML e nasconde i recapiti ad agenti senza JavaScript; il
+Browser Integrity Check è spento soltanto su `cfready.it` e `www`. Rate limiting
+e regole WAF personalizzate restano fuori per non scartare webhook o callback
+Shopify legittimi. Le notifiche Cloudflare per certificati, DDoS HTTP,
+incidenti gravi, deploy Pages Production falliti e Page Shield arrivano a
+`info@cfready.it`. Deciso dall’owner l’11 settembre 2026.
+
+Precisazione D-152 dell’11 settembre 2026: il sito pubblica anche `llms.txt`,
+indice delle pagine indicizzabili, legali e dei recapiti, e `llms-full.txt`,
+sintesi testuale della home inglese senza prezzi. Entrambi sono versionati in
+`site/`; il test documentale ne verifica URL e recapiti e lo smoke Pages li
+confronta con il contenuto servito all’edge.
 
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
@@ -2677,9 +2693,9 @@ Worker Production:
 https://app.cfready.it
 ```
 
-Il dominio personalizzato instrada il traffico al Worker `cf-ready-prod`. L’URL
-generato dal provider non fa parte del contratto pubblico né dei callback OAuth
-dell’app.
+Il dominio personalizzato, dichiarato in `wrangler.json`, instrada il traffico al
+Worker `cf-ready-prod`. L’URL `workers.dev` di Production è disattivato: non fa
+parte del contratto pubblico né dei callback OAuth dell’app.
 
 L’utente nell’app vede normalmente:
 
