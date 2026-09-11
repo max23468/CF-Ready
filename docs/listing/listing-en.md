@@ -149,7 +149,8 @@ must state the same figure.
 | Developer website | `https://cfready.it/en/` |
 | Privacy | `https://cfready.it/en/privacy` |
 | Terms | `https://cfready.it/en/terms` |
-| Contact | `cfready@icloud.com` |
+| Support email | `supporto@cfready.it` |
+| General contact | `info@cfready.it` |
 
 ## What must not be written
 

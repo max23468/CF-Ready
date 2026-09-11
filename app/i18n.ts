@@ -14,8 +14,8 @@ import type { Locale } from "./i18n/types";
 export type { Locale } from "./i18n/types";
 export { formatDate, formatMoney };
 
-// §22: unica casella di assistenza, la stessa dichiarata nel sito pubblico e in `SECURITY.md`.
-export const SUPPORT_EMAIL = "cfready@icloud.com";
+// §22: casella di assistenza, la stessa della pagina Support del sito pubblico.
+export const SUPPORT_EMAIL = "supporto@cfready.it";
 
 // §16.1: la lingua è quella dell'amministratore Shopify corrente, non quella dello store e non
 // una preferenza salvata. Il caricamento iniziale porta `locale` nell'URL; sulle richieste

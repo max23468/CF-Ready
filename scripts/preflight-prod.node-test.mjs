@@ -23,6 +23,8 @@ const builtProduction = JSON.stringify({
     APP_ENVIRONMENT: "production",
   },
   version_metadata: { binding: "CF_VERSION_METADATA" },
+  workers_dev: false,
+  routes: [{ pattern: "app.cfready.it", custom_domain: true }],
   triggers: { crons: ["0 * * * *", "*/5 * * * *"] },
   d1_databases: [
     {
@@ -112,6 +114,16 @@ test("il preflight riconosce un bundle costruito senza CLOUDFLARE_ENV=production
 
   assert.doesNotThrow(() => verifyBuiltConfig(builtProduction));
   assert.throws(() => verifyBuiltConfig(builtDevelopment), /CLOUDFLARE_ENV=production/);
+});
+
+test("il preflight richiede app.cfready.it come unico ingresso pubblico del Worker", () => {
+  const workersDev = JSON.parse(builtProduction);
+  workersDev.workers_dev = true;
+  assert.throws(() => verifyBuiltConfig(JSON.stringify(workersDev)), /Production/);
+
+  const withoutCustomDomain = JSON.parse(builtProduction);
+  delete withoutCustomDomain.routes;
+  assert.throws(() => verifyBuiltConfig(JSON.stringify(withoutCustomDomain)), /Production/);
 });
 
 test("il preflight vieta ALLOWED_SHOP in Production", () => {

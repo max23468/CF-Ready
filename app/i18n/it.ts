@@ -367,7 +367,7 @@ export const it = {
       },
       {
         q: "Contattare lo sviluppatore",
-        a: "Scrivi a cfready@icloud.com, oppure usa il collegamento nella colonna a fianco: prepara il messaggio con i dati tecnici dello store già compilati. Rispondiamo a mano, di solito entro un giorno lavorativo. Se il problema blocca il checkout, scrivilo nell’oggetto.",
+        a: "Scrivi a supporto@cfready.it, oppure usa il collegamento nella colonna a fianco: prepara il messaggio con i dati tecnici dello store già compilati. Rispondiamo a mano, di solito entro un giorno lavorativo. Se il problema blocca il checkout, scrivilo nell’oggetto.",
       },
     ],
   },

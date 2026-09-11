@@ -222,6 +222,11 @@ jobs:
             --output /dev/null --write-out '%{url_effective}' \
             "https://www.$PUBLIC_DOMAIN/?commit=$GITHUB_SHA")"
           test "$www_effective_url" = "https://$PUBLIC_DOMAIN/?commit=$GITHUB_SHA"
+          pages_dev_effective_url="$(curl --fail --silent --show-error --location --max-redirs 5 --max-time 15 \
+            --header "Cache-Control: no-cache" \
+            --output /dev/null --write-out '%{url_effective}' \
+            "https://$PAGES_DOMAIN/en/support?commit=$GITHUB_SHA")"
+          test "$pages_dev_effective_url" = "https://$PUBLIC_DOMAIN/en/support?commit=$GITHUB_SHA"
           curl --fail --silent --show-error --location --max-redirs 5 --max-time 15 \
             --header "Cache-Control: no-cache" \
             --dump-header "$RUNNER_TEMP/pages-headers.txt" \
@@ -270,13 +275,23 @@ jobs:
           grep --ignore-case --quiet '^content-type:.*application/xml' "$RUNNER_TEMP/sitemap-headers.txt"
           grep --quiet '<loc>https://cfready.it/</loc>' "$RUNNER_TEMP/sitemap.xml"
           cmp --silent site/sitemap.xml "$RUNNER_TEMP/sitemap.xml"
+          for text_file in llms.txt llms-full.txt .well-known/security.txt; do
+            text_copy="$RUNNER_TEMP/$(basename "$text_file")"
+            curl --fail --silent --show-error --max-time 15 \
+              --header "Cache-Control: no-cache" \
+              --dump-header "$text_copy-headers.txt" \
+              --output "$text_copy" \
+              "https://$PUBLIC_DOMAIN/$text_file?commit=$GITHUB_SHA"
+            grep --ignore-case --quiet '^content-type:.*text/plain' "$text_copy-headers.txt"
+            cmp --silent "site/$text_file" "$text_copy"
+          done
           not_found_status="$(curl --silent --show-error --max-time 15 \
             --header "Cache-Control: no-cache" \
             --output "$RUNNER_TEMP/not-found.html" --write-out '%{http_code}' \
             "https://$PUBLIC_DOMAIN/this-page-must-not-exist-$GITHUB_SHA")"
           test "$not_found_status" = "404"
           grep --quiet '<meta name="robots" content="noindex">' "$RUNNER_TEMP/not-found.html"
-          echo "- Smoke pubblico: sedici URL, canonical e lingue, dati strutturati, anteprima social, sitemap, robots, 404 e header di sicurezza verificati" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Smoke pubblico: sedici URL, canonical e lingue, dati strutturati, anteprima social, sitemap, robots, llms.txt, security.txt, 404 e header di sicurezza verificati" >> "$GITHUB_STEP_SUMMARY"
           # Le regole di _headers diventano effettive all'edge con un ritardo proprio,
           # indipendente dalla propagazione del contenuto già attesa sopra: il primo
           # documento si aspetta, gli altri tre sono verificati subito dopo.

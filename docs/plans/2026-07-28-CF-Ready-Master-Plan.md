@@ -387,6 +387,7 @@ Rispetto alle alternative più ampie o invasive:
 
 | D-151 | Usare `cfready.it` come origine canonica del sito pubblico e `app.cfready.it` per il Worker Production; `www.cfready.it` reindirizza con 301 alla radice, mentre i sottodomini Cloudflare restano endpoint tecnici. | Sitemap, robots, canonical, hreflang, metadati sociali e dati strutturati devono dichiarare il dominio pubblico. La zona usa i nameserver Cloudflare e una catena DNSSEC validata dal record DS pubblicato nel registro `.it`. Deciso dall'owner il 9 settembre 2026 per la `1.8.0`. |
 | D-152 | Dichiarare nel `robots.txt` del sito pubblico `search=yes`, `ai-input=yes`, `ai-train=no` e `use=reference`. | Motori di ricerca e assistenti possono indicizzare, citare e usare i contenuti per risposte contestuali, mentre l'addestramento resta escluso. Il file versionato è autorevole e lo smoke Pages ne verifica il contenuto effettivo, evitando una seconda configurazione gestita all'edge. Deciso dall'owner il 9 settembre 2026 per la `1.8.1`. |
+| D-153 | Usare `supporto@cfready.it` per l’assistenza merchant e `info@cfready.it` per le altre comunicazioni, al posto della casella iCloud usata prima del dominio. | `supporto@` è il destinatario del `mailto:` precompilato dell’app, delle FAQ e della pagina Support. `info@` è il recapito di Privacy Policy, Termini, `SECURITY.md`, primo contatto di sicurezza sul sito e reviewer Shopify. Il flusso resta `mailto:` e non introduce Email binding. Deciso dall’owner l’11 settembre 2026 per la `1.9.1`. |
 
 Precisazione D-149 del 9 settembre 2026 per la `1.9.0`: nella pagina Regole il
 blocco “Campo Interno” precede “Testi del checkout (impostazioni avanzate)”. Il
@@ -395,6 +396,33 @@ mercato …”; per correggere i valori guida all’editor del contenuto checkou
 della lingua primaria oppure a Lingue/Translate & Adapt, quindi rilegge Shopify
 senza ricaricare la pagina. Gli stati di queste etichette non generano avvisi
 nella Home.
+
+Precisazione D-151 dell’11 settembre 2026: `cf-ready.pages.dev` reindirizza con
+301 a `cfready.it` tramite la lista Bulk Redirect di account
+`cf_ready_pages_dev`, conservando percorso e query string. I sottodomini dei
+singoli deployment restano endpoint tecnici non reindirizzati; preflight e
+readback Pages continuano a usare le API Cloudflare, mentre lo smoke verifica il
+redirect. Il Worker Production dichiara `app.cfready.it` come custom domain in
+`wrangler.json` e disattiva `workers.dev`; il preflight rifiuta un bundle
+diverso. La zona applica Always Use HTTPS, TLS minimo 1.2, HSTS di sei mesi con
+`includeSubDomains` e `nosniff` senza preload, Page Shield in monitoraggio e un
+unico redirect 301 da `http` e `https` di `www`. Email Obfuscation è spenta,
+perché riscrive l’HTML e nasconde i recapiti ad agenti senza JavaScript; il
+Browser Integrity Check è spento soltanto su `cfready.it` e `www`. Rate limiting
+e regole WAF personalizzate restano fuori per non scartare webhook o callback
+Shopify legittimi. Le notifiche Cloudflare per certificati, DDoS HTTP,
+incidenti gravi, deploy Pages Production falliti e Page Shield arrivano a
+`info@cfready.it`. I record CAA autorizzano Google Trust Services, Let’s
+Encrypt, SSL.com e Sectigo, più le CA che Cloudflare aggiunge per Universal
+SSL, con `iodef` verso `info@cfready.it`; il certificato dedicato di
+`app.cfready.it` non riceve CAA automatici e ha una notifica propria. Deciso
+dall’owner l’11 settembre 2026.
+
+Precisazione D-152 dell’11 settembre 2026: il sito pubblica anche `llms.txt`,
+indice delle pagine indicizzabili, legali e dei recapiti, e `llms-full.txt`,
+sintesi testuale della home inglese senza prezzi. Entrambi sono versionati in
+`site/`; il test documentale ne verifica URL e recapiti e lo smoke Pages li
+confronta con il contenuto servito all’edge.
 
 | D-045 | Prova unica per store e non ripetibile tramite reinstallazione. | Prevenzione abusi. |
 | D-046 | Prova fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Regola semplice, commerciale e non interrompe una giornata operativa. |
@@ -740,7 +768,7 @@ messaggio già compilato verso la casella sviluppatore con:
 - metadati tecnici non sensibili dell’allowlist di §22, visibili nel messaggio.
 
 Nella 1.1 il recapito avviene tramite un collegamento `mailto:`, per l’esito
-della verifica registrato in §22, verso `cfready@icloud.com`; Apple/iCloud è
+della verifica registrato in §22, verso `supporto@cfready.it` (D-153); Apple/iCloud è
 dichiarata nella Privacy Policy tra i fornitori che trattano indirizzo del
 mittente, contenuto e metadati tecnici delle email. Non esiste quindi un numero
 richiesta, che senza un sistema ricevente non avrebbe riscontro.
@@ -2604,7 +2632,7 @@ supportato.
 - R2: backup cifrati;
 - Workers Logs: osservabilità;
 - Pages: sito pubblico statico con Web Analytics nativa;
-- Telegram Bot API: notifiche tecniche in una chat privata dell’owner; il supporto merchant resta un link `mailto:` verso iCloud.
+- Telegram Bot API: notifiche tecniche in una chat privata dell’owner; il supporto merchant resta un link `mailto:` verso `supporto@cfready.it`.
 
 ### 18.2 Nomi risorse
 
@@ -2636,9 +2664,11 @@ https://cfready.it/en/terms
 https://cfready.it/en/support
 ```
 
-`cf-ready.pages.dev` resta il sottodominio tecnico del progetto Pages. Il
-dominio `www.cfready.it` reindirizza permanentemente alla radice conservando
-percorso e query string.
+`cf-ready.pages.dev` resta il sottodominio tecnico del progetto Pages, ma un
+Bulk Redirect di account lo reindirizza con 301 a `cfready.it`; gli URL dei
+singoli deployment non sono reindirizzati. Il dominio `www.cfready.it`
+reindirizza permanentemente alla radice. Entrambi i redirect conservano percorso
+e query string.
 
 L’italiano sta nella radice perché è la lingua principale del prodotto (§16.4) e
 perché la versione italiana dei documenti legali è quella che prevale (§21.8).
@@ -2667,9 +2697,9 @@ Worker Production:
 https://app.cfready.it
 ```
 
-Il dominio personalizzato instrada il traffico al Worker `cf-ready-prod`. L’URL
-generato dal provider non fa parte del contratto pubblico né dei callback OAuth
-dell’app.
+Il dominio personalizzato, dichiarato in `wrangler.json`, instrada il traffico al
+Worker `cf-ready-prod`. L’URL `workers.dev` di Production è disattivato: non fa
+parte del contratto pubblico né dei callback OAuth dell’app.
 
 L’utente nell’app vede normalmente:
 
@@ -3438,10 +3468,13 @@ Questi tempi sono obiettivi operativi, non uno SLA. Vulnerabilità, credenziali 
 dettagli sfruttabili non vengono gestiti tramite issue pubbliche.
 
 Per decisione dell'owner, il sito Pages non espone riferimenti al repository,
-a `SECURITY.md` o a GitHub. La pagina Support pubblica soltanto la casella email:
-il primo messaggio descrive il tipo di problema e un recapito, senza dettagli
-sfruttabili, e serve a concordare un canale sicuro. `SECURITY.md` e Private
-Vulnerability Reporting restano disponibili a chi raggiunge il repository.
+a `SECURITY.md` o a GitHub. Per la sicurezza la pagina Support pubblica soltanto
+la casella `info@cfready.it` (D-153): il primo messaggio descrive il tipo di
+problema e un recapito, senza dettagli sfruttabili, e serve a concordare un
+canale sicuro. Lo stesso recapito è pubblicato in `/.well-known/security.txt`
+(RFC 9116), senza rinvii al repository; la scadenza va rinnovata entro un anno e il test documentale la
+segnala prima che scada. `SECURITY.md` e Private Vulnerability Reporting restano
+disponibili a chi raggiunge il repository.
 
 ---
 
@@ -3478,8 +3511,9 @@ Ne discendono tre conseguenze, recepite in FR-090 e §12.2:
   merchant prima dell’invio, che è anche la ragione per cui l’allowlist qui
   sotto non è una formalità.
 
-La casella è `cfready@icloud.com`, la stessa dichiarata nel sito pubblico e in
-`SECURITY.md`. Il collegamento compare nella colonna laterale di Guida e FAQ.
+La casella è `supporto@cfready.it`, la stessa della pagina Support del sito
+pubblico; Privacy Policy, Termini e `SECURITY.md` usano invece `info@cfready.it`
+(D-153). Il collegamento compare nella colonna laterale di Guida e FAQ.
 Il Support Link Shopify apre la stessa Guida. La Guida non
 rilegge Shopify per comporre il messaggio: allega il solo stato tecnico D1 già
 riconciliato, mentre la Home aggiunge il Paese rilevato. L’obiettivo di
@@ -4165,6 +4199,8 @@ La Home usa soltanto schermate reali M9 dell'app e collega queste guide. Non
 introduce testimonianze, contatori, prezzi duplicati o markup strutturato per
 offerte e rating non presenti nella pagina. `Organization`, `WebSite` e
 `BreadcrumbList` sono ammessi quando il contenuto visibile li sostiene.
+`Organization` collega il profilo sviluppatore Shopify con `sameAs` e dichiara
+`supporto@cfready.it` come `contactPoint` di assistenza in italiano e inglese.
 
 Prima della pubblicazione si registra la baseline disponibile; dopo la
 pubblicazione si verificano indicizzazione e query tramite Google Search Console,

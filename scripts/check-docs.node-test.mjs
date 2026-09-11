@@ -436,11 +436,82 @@ test("sitemap e robots espongono solo URL indicizzabili canonici", () => {
   assert.match(robots, /^Sitemap: https:\/\/cfready\.it\/sitemap\.xml$/m);
 });
 
+test("security.txt segue RFC 9116 senza rinviare al repository", () => {
+  const securityTxt = readFileSync(
+    new URL("../site/.well-known/security.txt", import.meta.url),
+    "utf8",
+  );
+  const field = (name) => securityTxt.match(new RegExp(`^${name}: (.+)$`, "m"))?.[1];
+  assert.equal(field("Contact"), "mailto:info@cfready.it");
+  assert.equal(field("Canonical"), "https://cfready.it/.well-known/security.txt");
+  assert.equal(field("Policy"), "https://cfready.it/en/support");
+  assert.equal(field("Preferred-Languages"), "it, en");
+  // RFC 9116 chiede una scadenza entro un anno: il test la ricorda prima che scada.
+  const expires = Date.parse(field("Expires"));
+  assert(expires > Date.now(), "security.txt è scaduto: aggiorna Expires");
+  assert(expires - Date.now() < 366 * 24 * 60 * 60 * 1000, "Expires oltre un anno");
+  assert.doesNotMatch(securityTxt, /github|SECURITY\.md/i);
+});
+
+test("llms.txt indicizza le pagine pubbliche senza prezzi né recapiti diversi", () => {
+  const index = readFileSync(new URL("../site/llms.txt", import.meta.url), "utf8");
+  const full = readFileSync(new URL("../site/llms-full.txt", import.meta.url), "utf8");
+  const legalPages = [
+    "https://cfready.it/privacy",
+    "https://cfready.it/terms",
+    "https://cfready.it/en/privacy",
+    "https://cfready.it/en/terms",
+  ];
+  assert.match(index, /^# CF Ready$/m);
+  assert.match(index, /^> /m);
+  for (const url of [
+    ...indexableSitePages.values(),
+    ...legalPages,
+    "https://cfready.it/llms-full.txt",
+  ]) {
+    assert(index.includes(`(${url})`), `llms.txt non cita ${url}`);
+  }
+  for (const file of [index, full]) {
+    const urls = [...file.matchAll(/https:\/\/cfready\.it[^\s)>]*/g)].map((match) => match[0]);
+    for (const url of urls) {
+      assert(
+        [
+          ...indexableSitePages.values(),
+          ...legalPages,
+          "https://cfready.it/llms-full.txt",
+        ].includes(url),
+        `URL non pubblicato: ${url}`,
+      );
+    }
+    assert.deepEqual(
+      new Set([...file.matchAll(/[\w.+-]+@[\w.-]+/g)].map((match) => match[0])),
+      new Set(["supporto@cfready.it", "info@cfready.it"]),
+    );
+    assert.doesNotMatch(file, /[$€]\s?\d|\d\s?(?:€|EUR|USD)/);
+  }
+  assert.match(full, /not who it belongs to/);
+  assert.match(full, /never reach our systems/);
+});
+
 test("i dati strutturati restano verificabili e non inventano prezzo o recensioni", () => {
   const home = readFileSync(new URL("../site/index.html", import.meta.url), "utf8");
   assert.match(home, /"@type":"Organization"/);
   assert.match(home, /"@type":"WebSite"/);
   assert.doesNotMatch(home, /SoftwareApplication|aggregateRating|"offers"/);
+  const graph = (html) =>
+    JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1])["@graph"];
+  const organization = graph(home).find((node) => node["@type"] === "Organization");
+  assert.deepEqual(organization.sameAs, ["https://apps.shopify.com/partners/syncbay"]);
+  assert.deepEqual(organization.contactPoint, {
+    "@type": "ContactPoint",
+    contactType: "customer support",
+    email: "supporto@cfready.it",
+    availableLanguage: ["it", "en"],
+  });
+  assert.deepEqual(
+    graph(readFileSync(new URL("../site/en/index.html", import.meta.url), "utf8")),
+    graph(home),
+  );
 
   for (const path of [...indexableSitePages.keys()].filter((path) => path.includes("guide"))) {
     const html = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -577,6 +648,10 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /\.result\.status == "active"/);
   assert.match(workflow, /https:\/\/www\.\$PUBLIC_DOMAIN/);
   assert.match(workflow, /www_effective_url/);
+  assert.match(
+    workflow,
+    /test "\$pages_dev_effective_url" = "https:\/\/\$PUBLIC_DOMAIN\/en\/support\?commit=\$GITHUB_SHA"/,
+  );
   assert.match(workflow, /grep -Fxq "\$GITHUB_SHA"/);
   assert.match(workflow, /--write-out '%\{url_effective\}'/);
   assert.match(workflow, /test "\$published" = true/);
@@ -584,6 +659,11 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /sitemap\.xml/);
   assert.match(workflow, /cmp --silent site\/robots\.txt/);
   assert.match(workflow, /cmp --silent site\/sitemap\.xml/);
+  assert.match(
+    workflow,
+    /for text_file in llms\.txt llms-full\.txt \.well-known\/security\.txt; do/,
+  );
+  assert.match(workflow, /cmp --silent "site\/\$text_file" "\$text_copy"/);
   assert.match(workflow, /og:image/);
   assert.match(workflow, /BreadcrumbList/);
   assert.match(workflow, /social-image-headers\.txt/);
@@ -1037,6 +1117,6 @@ test("il sito italiano e inglese mantiene il contratto pubblico essenziale", () 
         .flat()
         .flatMap((page) => [...page.matchAll(/mailto:([^?"]+)/g)].map((match) => match[1])),
     ),
-    new Set(["cfready@icloud.com"]),
+    new Set(["supporto@cfready.it", "info@cfready.it"]),
   );
 });
