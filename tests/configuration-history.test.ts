@@ -42,3 +42,25 @@ test("la cronologia calcola differenze e viene eliminata con lo store", async ()
   await env.DB.prepare("DELETE FROM shops WHERE shop_domain = ?").bind(shop).run();
   expect(await readConfigurationHistory(env.DB, shop)).toEqual([]);
 });
+
+test("la lettura non espone configurazioni oltre i 90 giorni prima del cron di retention", async () => {
+  const shop = await insertShop("history-expired.example.myshopify.com");
+  await recordConfigurationHistory(env.DB, shop, [
+    {
+      rules: DEFAULT_CONFIG.rules,
+      messages: {
+        ...DEFAULT_CONFIG.messages,
+        it: { ...DEFAULT_CONFIG.messages.it, taxCodeRequired: "Configurazione scaduta" },
+      },
+    },
+  ]);
+  await env.DB.prepare(
+    `UPDATE configuration_history
+        SET created_at = datetime('now', '-90 days')
+      WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+  )
+    .bind(shop)
+    .run();
+
+  expect(await readConfigurationHistory(env.DB, shop)).toEqual([]);
+});

@@ -395,6 +395,36 @@ test("il discovery segnala risorse mancanti, ambigue e paginazione incoerente", 
   await expect(readCheckoutLabels({ graphql: repeatedResourceCursor })).rejects.toThrow(
     "checkout_labels_readback_failed",
   );
+
+  for (const incompleteSurface of ["markets", "resources"] as const) {
+    const missingCursor = vi.fn(async (query: string) =>
+      Response.json({
+        data: query.includes("DiscoverCheckoutLabelContext")
+          ? {
+              shopLocales: [],
+              markets: {
+                nodes: [],
+                pageInfo: {
+                  hasNextPage: incompleteSurface === "markets",
+                  endCursor: null,
+                },
+              },
+            }
+          : {
+              translatableResources: {
+                nodes: [],
+                pageInfo: {
+                  hasNextPage: incompleteSurface === "resources",
+                  endCursor: null,
+                },
+              },
+            },
+      }),
+    );
+    await expect(readCheckoutLabels({ graphql: missingCursor })).rejects.toThrow(
+      "checkout_labels_readback_failed",
+    );
+  }
 });
 
 test("le query ritentano un throttle e rifiutano risposte non valide", async () => {

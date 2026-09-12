@@ -4,8 +4,8 @@
   "sourceHash": "beeb070ea49a4e4b4937d35c4aa93c65c7077a3fd746171ab7456a6808384084",
   "global": {
     "statements": {
-      "total": 8193,
-      "covered": 7971,
+      "total": 8198,
+      "covered": 7976,
       "pct": 97.29
     },
     "branches": {
@@ -14,21 +14,21 @@
       "pct": 95.8
     },
     "functions": {
-      "total": 1271,
-      "covered": 1244,
+      "total": 1272,
+      "covered": 1245,
       "pct": 97.87
     },
     "lines": {
-      "total": 7731,
-      "covered": 7538,
+      "total": 7734,
+      "covered": 7541,
       "pct": 97.5
     }
   },
   "groups": {
     "server-worker": {
       "statements": {
-        "total": 3032,
-        "covered": 2967,
+        "total": 3037,
+        "covered": 2972,
         "pct": 97.85
       },
       "branches": {
@@ -37,14 +37,14 @@
         "pct": 96.28
       },
       "functions": {
-        "total": 652,
-        "covered": 644,
+        "total": 653,
+        "covered": 645,
         "pct": 98.77
       },
       "lines": {
-        "total": 2727,
-        "covered": 2682,
-        "pct": 98.34
+        "total": 2730,
+        "covered": 2685,
+        "pct": 98.35
       }
     },
     "ui-routes": {

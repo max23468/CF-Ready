@@ -367,7 +367,7 @@ async function readCheckoutLabelContext(admin: Admin, limiter: GraphqlReadLimite
         };
       }),
     );
-    after = body.markets.pageInfo.hasNextPage ? body.markets.pageInfo.endCursor : null;
+    after = nextPageCursor(body.markets.pageInfo);
   } while (after);
   return { locales, markets };
 }
@@ -386,9 +386,7 @@ async function readCheckoutLabelResources(admin: Admin, limiter: GraphqlReadLimi
       limiter,
     );
     resources.push(...body.translatableResources.nodes);
-    after = body.translatableResources.pageInfo.hasNextPage
-      ? body.translatableResources.pageInfo.endCursor
-      : null;
+    after = nextPageCursor(body.translatableResources.pageInfo);
   } while (after);
   return resources;
 }
@@ -584,6 +582,12 @@ function assertNoTranslationErrors(errors: Array<{ code?: string; message?: stri
 
 function translationMapKey(resourceId: string, locale: string, marketId: string | null) {
   return `${resourceId}\u0000${locale}\u0000${marketId ?? ""}`;
+}
+
+function nextPageCursor(pageInfo: { hasNextPage: boolean; endCursor: string | null }) {
+  if (!pageInfo.hasNextPage) return null;
+  if (!pageInfo.endCursor) throw new Error("checkout_labels_readback_failed");
+  return pageInfo.endCursor;
 }
 
 function assertTranslationInputs(

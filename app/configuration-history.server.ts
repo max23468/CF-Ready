@@ -69,9 +69,10 @@ export async function readConfigurationHistory(
   const { results } = await db
     .prepare(
       `SELECT history.id, history.rules_json, history.messages_json, history.created_at
-         FROM configuration_history history
+        FROM configuration_history history
          JOIN shops ON shops.id = history.shop_id
         WHERE shops.shop_domain = ?
+          AND datetime(history.created_at) > datetime('now', '-90 days')
         ORDER BY datetime(history.created_at) DESC, history.id DESC
         LIMIT 10`,
     )

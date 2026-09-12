@@ -84,8 +84,9 @@ async function runOwnerNotificationCycle(env: NotificationBindings) {
     },
   ];
 
-  // Le tre fasi restano indipendenti: un errore Partner non deve impedire l'invio delle prove
-  // già registrate, e un errore Telegram non deve perdere i nuovi eventi acquisiti.
+  // Le quattro fasi restano indipendenti: un errore Partner non deve impedire la verifica degli
+  // altri incidenti o l'invio delle prove già registrate; un errore Telegram non deve perdere i
+  // nuovi eventi acquisiti.
   for (const stage of stages) {
     try {
       // react-doctor-disable-next-line react-doctor/async-await-in-loop
