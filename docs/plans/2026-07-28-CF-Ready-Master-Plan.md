@@ -1846,6 +1846,9 @@ implementato, e in quel caso nasce con la propria migrazione.
 migrazioni applicate: ordine, SHA-256 e comportamenti protetti devono coincidere
 con i file SQL. Una correzione aggiunge una nuova migrazione e una nuova voce;
 non aggiorna checksum o contenuto di una voce esistente.
+Una ricostruzione atomica che conserva colonne e righe può dichiarare
+`atomic-compatible-table-rebuild`: il preflight la accetta soltanto se hash,
+rename, copia completa e rimozione della sola tabella precedente coincidono.
 
 | Migrazione | Comportamento protetto |
 |---|---|

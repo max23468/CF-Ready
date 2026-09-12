@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
@@ -171,6 +172,59 @@ test("il preflight richiede due fasi per nuove migrazioni distruttive", () => {
       ]),
     /deploy in due fasi/,
   );
+  const compatibleSql = `
+    ALTER TABLE events RENAME TO events_before_kind;
+    CREATE TABLE events (id INTEGER PRIMARY KEY, kind TEXT);
+    INSERT INTO events SELECT * FROM events_before_kind;
+    DROP TABLE events_before_kind;
+  `;
+  const compatiblePolicy = (sql, overrides = {}) => ({
+    migrations: [
+      {
+        name: "0013_expand_kind.sql",
+        sha256: createHash("sha256").update(sql).digest("hex"),
+        deployStrategy: "atomic-compatible-table-rebuild",
+        ...overrides,
+      },
+    ],
+  });
+  assert.doesNotThrow(() =>
+    verifyMigrationSafety(
+      [{ name: "0013_expand_kind.sql", sql: compatibleSql }],
+      compatiblePolicy(compatibleSql),
+    ),
+  );
+  const unsafeRebuilds = [
+    `${compatibleSql}\nDROP TABLE shops;`,
+    "DROP TABLE events;",
+    compatibleSql.replace("DROP TABLE events_before_kind;", "DROP TABLE shops;"),
+    compatibleSql.replace("CREATE TABLE events", "CREATE TABLE other_events"),
+    compatibleSql.replace("INSERT INTO events", "INSERT INTO other_events"),
+    compatibleSql.replace(
+      "INSERT INTO events SELECT * FROM events_before_kind;",
+      "DELETE FROM events_before_kind;",
+    ),
+    compatibleSql.replace(
+      "INSERT INTO events SELECT * FROM events_before_kind;",
+      "ALTER TABLE events DROP COLUMN kind;",
+    ),
+  ];
+  for (const sql of unsafeRebuilds) {
+    assert.throws(
+      () => verifyMigrationSafety([{ name: "0013_expand_kind.sql", sql }], compatiblePolicy(sql)),
+      /deploy in due fasi/,
+    );
+  }
+  for (const overrides of [{ sha256: "0".repeat(64) }, { deployStrategy: "manual" }]) {
+    assert.throws(
+      () =>
+        verifyMigrationSafety(
+          [{ name: "0013_expand_kind.sql", sql: compatibleSql }],
+          compatiblePolicy(compatibleSql, overrides),
+        ),
+      /deploy in due fasi/,
+    );
+  }
 });
 
 test("il preflight richiede tutti i secret runtime Worker", () => {

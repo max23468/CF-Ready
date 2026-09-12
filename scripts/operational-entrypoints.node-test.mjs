@@ -99,9 +99,14 @@ globalThis.fetch = async (input, init = {}) => {
 async function writePreflightProject(t, environment) {
   const directory = await temporaryDirectory(t);
   await mkdir(path.join(directory, "migrations"));
+  await mkdir(path.join(directory, "config"));
   await writeFile(
     path.join(directory, "migrations", "0015_safe.sql"),
     "CREATE TABLE safe(id INTEGER);",
+  );
+  await writeFile(
+    path.join(directory, "config", "migration-policy.json"),
+    '{"schemaVersion":1,"migrations":[]}',
   );
   await writeFile(path.join(directory, "package.json"), '{"version":"1.1.4"}\n');
   if (environment === "Development") {
