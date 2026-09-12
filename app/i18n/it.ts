@@ -279,22 +279,22 @@ export const it = {
     asideHeading: "Cosa fa e cosa non fa CF Ready",
     asideLinks: "Dove si configura",
     asideBody:
-      "CF Ready serve a non ricevere ordini italiani da fatturare senza Codice Fiscale: lo rende obbligatorio nel campo nativo del checkout e ne controlla la forma. Non verifica che il codice appartenga a chi lo inserisce, non emette fatture e non gestisce Partita IVA e Codice SDI.",
+      "CF Ready controlla il Codice Fiscale e la PEC nei campi nativi del checkout italiano secondo le regole che scegli. Verifica la forma dei valori, senza confermare l’identità di chi li inserisce. Non emette fatture e non gestisce Partita IVA o Codice SDI.",
     groups: [
       {
         heading: "Regole e validazione",
         entries: [
           {
             q: "Che cosa fa CF Ready?",
-            a: "CF Ready controlla il Codice Fiscale e la PEC nei campi fiscali nativi del checkout italiano di Shopify. Può renderli facoltativi o obbligatori, verificarne il formato e allineare le etichette mostrate ai clienti. Non aggiunge campi al tema, non emette fatture e non gestisce Partita IVA o Codice SDI.",
+            a: "CF Ready controlla il Codice Fiscale e la PEC nei campi fiscali nativi del checkout italiano di Shopify. Può lasciarli non gestiti, validarli quando sono facoltativi o renderli obbligatori, anche richiedendo la PEC soltanto quando il campo Azienda è compilato. Può inoltre allineare le etichette mostrate ai clienti. Non aggiunge campi al tema, non emette fatture e non gestisce Partita IVA o Codice SDI.",
           },
           {
-            q: "Quando si applicano le regole e perché un ordine può passare?",
-            a: "Le regole si applicano quando l’indirizzo di fatturazione è italiano o non è ancora disponibile e almeno una consegna è in Italia. Non si applicano con fatturazione estera o quando tutte le consegne indicate sono estere. Se Shopify non fornisce un Paese di consegna, CF Ready controlla soltanto i campi fiscali presenti nel checkout: un campo che Shopify non mostra non può bloccare l’ordine.",
+            q: "In quali checkout si applicano le regole?",
+            a: "Le regole si applicano quando almeno una consegna è in Italia e l’indirizzo di fatturazione è italiano o non ancora disponibile. Non si applicano quando l’indirizzo di fatturazione è estero o tutte le consegne indicate sono estere. Se Shopify non fornisce un Paese di consegna, CF Ready controlla soltanto i campi fiscali presenti nel checkout: un campo che Shopify non mostra non può bloccare l’ordine. Sei tu a decidere quando raccogliere questi dati in base alle esigenze della tua attività.",
           },
           {
             q: "Che cosa viene validato?",
-            a: "Per il Codice Fiscale ordinario a 16 caratteri CF Ready controlla struttura, data, codice catastale, omocodia e carattere di controllo. Per il codice provvisorio controlla le 11 cifre e il relativo carattere di controllo. Per la PEC controlla soltanto che il valore abbia il formato di un indirizzo email. CF Ready non verifica l’identità del titolare, l’esistenza della casella o la sua iscrizione nei registri PEC.",
+            a: "Per il Codice Fiscale ordinario a 16 caratteri CF Ready controlla struttura, data, formato del codice catastale, omocodia e carattere di controllo. Per il codice provvisorio controlla le 11 cifre e la cifra di controllo. Per la PEC controlla soltanto che il valore abbia il formato di un indirizzo email. CF Ready non verifica l’identità del titolare, l’esistenza della casella o la sua iscrizione nei registri PEC.",
           },
           {
             q: "Posso richiedere la PEC soltanto quando il cliente compila Azienda?",
@@ -302,7 +302,7 @@ export const it = {
           },
           {
             q: "Quando compaiono gli errori nel checkout?",
-            a: "Un valore non valido può essere segnalato mentre il cliente procede nel checkout. Un campo obbligatorio vuoto viene bloccato quando Shopify dispone delle informazioni necessarie sulla consegna e, in ogni caso applicabile, prima del completamento dell’ordine. Puoi personalizzare i messaggi dalla pagina “Messaggi al cliente”.",
+            a: "Un valore compilato ma non valido può essere segnalato mentre il cliente procede nel checkout. Un campo obbligatorio vuoto può essere segnalato prima quando Shopify ha già definito la consegna; il tentativo di completare l’ordine esegue comunque il controllo finale. Puoi personalizzare i messaggi dalla pagina “Messaggi al cliente”.",
           },
         ],
       },
@@ -311,7 +311,7 @@ export const it = {
         entries: [
           {
             q: "Come devo gestire il campo “Interno”?",
-            a: "“Interno” è la seconda riga dell’indirizzo e non deve essere usato per raccogliere il Codice Fiscale. In “Regole checkout” apri “Campo Interno” e indica se in Shopify hai attivato la variante obbligatoria o facoltativa. CF Ready può controllarne il testo e ripristinare le traduzioni supportate, ma Shopify non comunica automaticamente all’app quale variante del campo è attiva.",
+            a: "“Interno” è la seconda riga dell’indirizzo e non deve essere usato per raccogliere il Codice Fiscale. In “Regole checkout” apri “Campo Interno” e indica se in Shopify il campo è obbligatorio, facoltativo o non mostrato. Quando è visibile, CF Ready può controllarne il testo e ripristinare le traduzioni supportate, ma Shopify non comunica automaticamente all’app quale configurazione è attiva.",
           },
           {
             q: "Come vengono gestite le etichette del checkout?",
@@ -322,12 +322,12 @@ export const it = {
             a: "In “Regole checkout”, scegli la lingua e apri il caso che richiede attenzione. Segui i passaggi mostrati per controllare il checkout reale e, se necessario, modificare i testi nell’editor Shopify. Dopo aver salvato in Shopify, torna in CF Ready e premi “Rileggi i campi da Shopify”. Quando i valori coincidono, conferma la verifica manuale. “Ultima rilettura riuscita da Shopify” indica quando CF Ready ha riletto i campi; “Ultima conferma manuale nel checkout” indica quando hai confermato il controllo nel checkout reale.",
           },
           {
-            q: "Perché nel checkout vedo ancora un’etichetta diversa?",
+            q: "Perché Codice Fiscale o PEC hanno ancora un’etichetta diversa?",
             a: "Controlla di aver selezionato la lingua corretta e apri tutti i casi indicati in “Testi del checkout”. Un mercato può ereditare il testo generale oppure avere una personalizzazione propria. Dopo ogni modifica in Shopify premi “Rileggi i campi da Shopify” e verifica infine il checkout reale per la lingua e il mercato interessati.",
           },
           {
             q: "Cosa succede se interrompo la gestione o disinstallo CF Ready?",
-            a: "Quando scegli “Ripristina e interrompi la gestione”, CF Ready ripristina soltanto le traduzioni automatiche ancora uguali alla sua ultima scrittura. Le modifiche effettuate successivamente da te o da un’altra app vengono conservate. Prima di disinstallare CF Ready, esegui il ripristino e controlla le lingue e i mercati pubblicati: Shopify può conservare le traduzioni dopo la rimozione dell’app.",
+            a: "Quando scegli “Ripristina e interrompi la gestione”, CF Ready ripristina soltanto le traduzioni automatiche ancora uguali alla sua ultima scrittura. Se trova una modifica successiva effettuata da te o da un’altra app, la conserva e ti chiede di risolvere il conflitto prima di interrompere la gestione. Prima di disinstallare CF Ready, esegui il ripristino e controlla le lingue e i mercati pubblicati: Shopify può conservare le traduzioni dopo la rimozione dell’app.",
           },
         ],
       },
@@ -336,19 +336,19 @@ export const it = {
         entries: [
           {
             q: "Come funzionano la prova e i pagamenti?",
-            a: "La prova gratuita dura 14 giorni, parte soltanto quando la avvii ed è disponibile una sola volta per store. Non richiede un metodo di pagamento. Se durante la prova scegli il piano mensile o annuale, i giorni residui vengono aggiunti come giorni di prova della sottoscrizione Shopify. Se scegli il pagamento unico, l’addebito è immediato e rinunci ai giorni di prova rimasti.",
+            a: "La prova gratuita dura 14 giorni, parte soltanto quando la avvii ed è disponibile una sola volta per negozio. Non richiede un metodo di pagamento. Se durante la prova scegli il piano mensile o annuale, i giorni residui vengono aggiunti come giorni di prova della sottoscrizione Shopify. Se scegli il pagamento unico, l’addebito è immediato e rinunci ai giorni di prova rimasti.",
           },
           {
             q: "Quali ordini e canali non sono coperti?",
-            a: "CF Ready opera nel checkout online di Shopify, compresi i checkout accelerati supportati da Shopify. Non interviene sugli ordini creati e completati direttamente dal pannello di amministrazione né sulle generazioni successive degli ordini ricorrenti in abbonamento. La validazione è formale e non consulta registri anagrafici o fiscali.",
+            a: "CF Ready opera nel checkout online di Shopify, compresi i checkout accelerati supportati da Shopify. Non interviene nel POS, negli ordini creati e completati direttamente dal pannello di amministrazione né nelle generazioni successive degli ordini ricorrenti in abbonamento. La validazione è formale e non consulta registri anagrafici o fiscali.",
           },
           {
             q: "Quali dati conserva CF Ready?",
-            a: "CF Ready non salva né invia ai propri sistemi Codici Fiscali, indirizzi PEC, ordini o dati dei clienti. I valori possono comunque essere conservati da Shopify come parte dell’ordine.",
+            a: "CF Ready non riceve né conserva Codici Fiscali, indirizzi PEC, ordini o dati dei clienti. Conserva la configurazione del negozio, lo stato della prova e del piano, eventi tecnici e i testi delle etichette necessari alla sincronizzazione e al ripristino. Shopify può conservare i valori inseriti dai clienti come parte dell’ordine.",
           },
           {
             q: "Cosa faccio se qualcosa non torna?",
-            a: "Usa “Aggiorna e verifica” nella Home per controllare regole, attivazione e piano; usa “Rileggi i campi da Shopify” in Regole checkout per aggiornare le etichette. Verifica poi il checkout reale per la lingua e il mercato interessati. Se il problema resta, usa il box Assistenza e allega la diagnostica tecnica, senza inserire dati dei clienti.",
+            a: "Usa “Aggiorna e verifica” nella sezione “Il controllo non compare?” di questa pagina per controllare regole, attivazione e piano. Usa “Rileggi i campi da Shopify” in Regole checkout per aggiornare le etichette. Verifica poi un checkout reale nella lingua e nel mercato interessati. Se il problema resta, premi “Copia diagnostica” nel box Assistenza e incolla il risultato nella richiesta, senza aggiungere dati dei clienti.",
           },
         ],
       },
@@ -588,9 +588,12 @@ export const it = {
       addressModePlaceholder: "Seleziona la configurazione attiva",
       addressModeHelp:
         "Indica l’opzione attiva in Impostazioni → Checkout. Shopify non la espone automaticamente a CF Ready.",
-      addressModeSummary: "Indica se il campo Interno è obbligatorio o facoltativo.",
+      addressModeSummary: "Indica se il campo Interno è obbligatorio, facoltativo o non mostrato.",
       addressRequired: "Obbligatorio",
       addressOptional: "Facoltativo",
+      addressHidden: "Non mostrato",
+      addressHiddenSummary: "Il campo Interno non è mostrato nel checkout.",
+      addressHiddenHelp: "Non ci sono etichette da controllare finché il campo resta nascosto.",
       addressStatus: {
         unknown: "Da controllare",
         expected: "Nessuna etichetta fiscale rilevata",

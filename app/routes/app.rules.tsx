@@ -36,13 +36,15 @@ import {
   restoreAddress2Translations,
   saveRulesAndCheckoutLabels,
 } from "../checkout-labels/service.server";
-import { checkoutLabelValuesMatch, proposedLabelForSlot } from "../checkout-labels/domain";
+import {
+  ADDRESS2_FORM_MODES,
+  checkoutLabelValuesMatch,
+  proposedLabelForSlot,
+} from "../checkout-labels/domain";
 import { observedConfigHash, reconcile, writeValidation } from "../validation.server";
 
 const SAVE_BAR = "checkout-rules-save-bar";
 const LABEL_CONFIRM_MODAL = "confirm-checkout-label-management";
-const ADDRESS2_FORM_MODES = ["required", "optional"] as const;
-
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
   const authentication = await timing.measure("auth", () => authenticateAdmin(request, context));

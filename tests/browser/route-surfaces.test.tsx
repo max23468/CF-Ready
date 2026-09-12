@@ -607,6 +607,11 @@ describe("Guida", () => {
     expect(faqEntries.every((entry) => !entry.open)).toBe(true);
     const buttons = [...view.container.querySelectorAll("s-button")];
     expect(buttons[0].textContent).toBe(texts("it").guide.expandAll);
+    for (const entry of faqEntries) entry.open = true;
+    await dispatch(faqEntries.at(-1)!, new Event("toggle"));
+    expect(buttons[0].textContent).toBe(texts("it").guide.collapseAll);
+    await click(buttons[0]);
+    expect(faqEntries.every((entry) => !entry.open)).toBe(true);
     await click(buttons[0]);
     expect(faqEntries.every((entry) => entry.open)).toBe(true);
     expect(buttons[0].textContent).toBe(texts("it").guide.collapseAll);
@@ -1009,13 +1014,16 @@ describe("Onboarding", () => {
     );
     if (!addressMode) throw new Error("configurazione Interno onboarding assente");
 
-    Object.defineProperty(addressMode, "value", { configurable: true, value: "optional" });
+    expect(addressMode.querySelector('s-option[value="hidden"]')?.textContent).toBe(
+      texts("it").rules.labels.addressHidden,
+    );
+    Object.defineProperty(addressMode, "value", { configurable: true, value: "hidden" });
     await dispatch(addressMode, new Event("change", { bubbles: true }));
 
     expect(router.fetcher.submit).toHaveBeenLastCalledWith(
       expect.objectContaining({
         intent: "save_address2_form_mode",
-        address2FormMode: "optional",
+        address2FormMode: "hidden",
       }),
       { method: "post" },
     );
@@ -1783,6 +1791,18 @@ describe("Regole", () => {
     };
     await view.rerender(<CheckoutRules key="labels-partial" />);
     expect(view.container.querySelector('s-banner[tone="warning"]')).not.toBeNull();
+
+    router.actionData = undefined;
+    router.loaderData = {
+      ...rulesData,
+      labelScopesGranted: true,
+      labelState: { ...rulesData.labelState, address2FormMode: "hidden" },
+      labelSnapshot: snapshot,
+    };
+    await view.rerender(<CheckoutRules key="address2-hidden" />);
+    const hiddenAddress = view.container.querySelector("details.checkout-labels-disclosure")!;
+    expect(hiddenAddress.textContent).toContain(texts("it").rules.labels.addressHiddenSummary);
+    expect(hiddenAddress.querySelector(".checkout-label-contexts")).toBeNull();
   });
 
   test("copre la variante facoltativa, i testi conformi e l'interfaccia inglese", async () => {

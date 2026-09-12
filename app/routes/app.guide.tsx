@@ -135,11 +135,17 @@ export default function Guide() {
   // Un solo comando per aprire e chiudere tutto. Agisce sull'attributo nativo di `details`,
   // quindi non serve tenere in stato l'apertura di ogni voce.
   const toggleAll = () => {
-    const open = !expanded;
-    document.querySelectorAll<HTMLDetailsElement>("#faq .guide-faq__entry").forEach((entry) => {
+    const entries = document.querySelectorAll<HTMLDetailsElement>("#faq .guide-faq__entry");
+    const open = [...entries].some((entry) => !entry.open);
+    entries.forEach((entry) => {
       entry.open = open;
     });
     setExpanded(open);
+  };
+
+  const syncExpanded = () => {
+    const entries = [...document.querySelectorAll<HTMLDetailsElement>("#faq .guide-faq__entry")];
+    setExpanded(entries.length > 0 && entries.every((entry) => entry.open));
   };
 
   return (
@@ -161,7 +167,7 @@ export default function Guide() {
                 <s-heading>{group.heading}</s-heading>
                 <div className="guide-faq__entries">
                   {group.entries.map((entry) => (
-                    <details className="guide-faq__entry" key={entry.q}>
+                    <details className="guide-faq__entry" key={entry.q} onToggle={syncExpanded}>
                       <summary>
                         <strong>{entry.q}</strong>
                       </summary>
