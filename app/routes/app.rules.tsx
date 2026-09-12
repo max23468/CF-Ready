@@ -19,7 +19,7 @@ import {
   rebaseRulesDraft,
   type RulesFormDraft,
 } from "../features/rules/rules-form";
-import { describeCheckout, resolveLocale, texts, validationStatus } from "../i18n";
+import { describeCheckout, resolveLocale, texts, validationStatus, type Locale } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { setSaveBarVisibility } from "../save-bar";
 import { createServerTiming } from "../server-timing.server";
@@ -42,14 +42,32 @@ import {
   proposedLabelForSlot,
 } from "../checkout-labels/domain";
 import { observedConfigHash, reconcile, writeValidation } from "../validation.server";
+import { changedConfigurationFields, type ConfigurationSnapshot } from "../configuration-history";
+import {
+  readConfigurationHistory,
+  readConfigurationHistoryEntry,
+} from "../configuration-history.server";
 
 const SAVE_BAR = "checkout-rules-save-bar";
 const LABEL_CONFIRM_MODAL = "confirm-checkout-label-management";
+const configurationHistoryDateFormatters: Record<Locale, Intl.DateTimeFormat> = {
+  it: new Intl.DateTimeFormat("it", { dateStyle: "medium", timeStyle: "short" }),
+  en: new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }),
+};
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
   const authentication = await timing.measure("auth", () => authenticateAdmin(request, context));
   const { admin, session, scopes } = authentication;
   const db = context.get(databaseContext);
+  const scopeDetailsPromise = timing.measure("shopify_scopes", () =>
+    scopes.query().catch(() => null),
+  );
+  const labelStatePromise = timing.measure("d1_validation_state", () =>
+    readCheckoutLabelState(db, session.shop),
+  );
+  const historyPromise = timing.measure("d1_configuration_history", () =>
+    readConfigurationHistory(db, session.shop),
+  );
   const state = await reconcile(admin, db, session.shop, {
     prefetchBilling: true,
     reportTiming: timing.record,
@@ -61,16 +79,17 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     state.errorCode === "duplicate_validations_active"
       ? state.errorCode
       : null;
-  const [configHash, scopeDetails, labelState] = await Promise.all([
+  const [configHash, scopeDetails, labelState, configurationHistory] = await Promise.all([
     observedConfigHash(validation),
-    timing.measure("shopify_snapshot", () => scopes.query().catch(() => null)),
-    timing.measure("d1_validation_state", () => readCheckoutLabelState(db, session.shop)),
+    scopeDetailsPromise,
+    labelStatePromise,
+    historyPromise,
   ]);
   const labelScopesGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
     scopeDetails?.granted.includes(scope),
   );
   const labels = labelScopesGranted
-    ? await timing.measure("shopify_snapshot", () =>
+    ? await timing.measure("shopify_checkout_labels", () =>
         loadCheckoutLabels(admin, db, session.shop, config.rules),
       )
     : null;
@@ -84,6 +103,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       configHash,
       rules: config.rules,
       messages: config.messages,
+      configurationHistory,
       enabled: state.validationEnabled,
       entitled: state.entitlement.kind !== "none",
       labelScopesGranted,
@@ -118,6 +138,46 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     if (!mode) return { ok: false as const, errorCode: "generic" as const };
     await saveAddress2FormMode(db, session.shop, mode);
     return { ok: true as const };
+  }
+
+  if (intent === "restore_configuration") {
+    const historyId = Number(form.get("historyId"));
+    const expectedConfigHash = form.get("configHash");
+    if (
+      !Number.isSafeInteger(historyId) ||
+      historyId <= 0 ||
+      typeof expectedConfigHash !== "string"
+    ) {
+      return { ok: false as const, errorCode: "generic" as const };
+    }
+    const snapshot = await readConfigurationHistoryEntry(db, session.shop, historyId);
+    if (!snapshot) return { ok: false as const, errorCode: "config_conflict" as const };
+    const scopeDetails = await scopes.query().catch(() => null);
+    const labelScopesGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
+      scopeDetails?.granted.includes(scope),
+    );
+    const labelState = await readCheckoutLabelState(db, session.shop);
+    const result = labelScopesGranted
+      ? await saveRulesAndCheckoutLabels(admin, db, session.shop, {
+          rules: snapshot.rules,
+          messages: snapshot.messages,
+          expectedConfigHash,
+          labelsEnabled: labelState.mode !== "off",
+          confirmAutomaticWrite: true,
+          expectedLabelsRevision: (form.get("labelsRevision") as string) || null,
+        })
+      : await writeValidation(
+          admin,
+          db,
+          session.shop,
+          { rules: snapshot.rules, messages: snapshot.messages },
+          null,
+          expectedConfigHash,
+        );
+    if (!labelScopesGranted && labelState.mode !== "off" && result.ok) {
+      return { ok: true as const, labelsErrorCode: "checkout_labels_scope_required" as const };
+    }
+    return result;
   }
 
   const scopeDetails = await scopes.query().catch(() => null);
@@ -480,6 +540,23 @@ export default function CheckoutRules() {
                   setLabelsEnabled(value);
                 }}
               />
+              <ConfigurationHistory
+                locale={saved.locale}
+                current={{ rules: saved.rules, messages: saved.messages }}
+                entries={saved.configurationHistory}
+                busy={busy}
+                onRestore={(historyId) =>
+                  send(
+                    {
+                      intent: "restore_configuration",
+                      historyId: String(historyId),
+                      configHash: saved.configHash ?? "",
+                      labelsRevision: saved.labelSnapshot?.revision ?? "",
+                    },
+                    { method: "post" },
+                  )
+                }
+              />
             </div>
           </div>
 
@@ -509,6 +586,59 @@ export default function CheckoutRules() {
         </div>
       </div>
     </s-page>
+  );
+}
+
+function ConfigurationHistory({
+  locale,
+  current,
+  entries,
+  busy,
+  onRestore,
+}: {
+  locale: Locale;
+  current: ConfigurationSnapshot;
+  entries: Awaited<ReturnType<typeof readConfigurationHistory>>;
+  busy: boolean;
+  onRestore: (id: number) => void;
+}) {
+  const t = texts(locale);
+  const copy = t.rules.history;
+  const visible = entries.flatMap((entry) => {
+    const changed = changedConfigurationFields(current, entry);
+    return changed.length > 0 ? [{ entry, changed }] : [];
+  });
+  if (visible.length === 0) return null;
+
+  return (
+    <s-section heading={copy.heading}>
+      <s-stack direction="block" gap="base">
+        <s-paragraph color="subdued">{copy.body}</s-paragraph>
+        {visible.map(({ entry, changed }) => (
+          <s-box key={entry.id} background="subdued" borderRadius="base" padding="base">
+            <s-stack direction="block" gap="small-100">
+              <s-text type="strong">
+                {configurationHistoryDateFormatters[locale].format(new Date(entry.createdAt))}
+              </s-text>
+              <s-text color="subdued">
+                {copy.changed(
+                  changed.map((field) =>
+                    field === "taxCode"
+                      ? t.rules.taxCodeLabel
+                      : field === "pec"
+                        ? t.rules.pecLabel
+                        : copy.messages,
+                  ),
+                )}
+              </s-text>
+              <s-button disabled={busy} onClick={() => onRestore(entry.id)}>
+                {copy.restore}
+              </s-button>
+            </s-stack>
+          </s-box>
+        ))}
+      </s-stack>
+    </s-section>
   );
 }
 

@@ -17,13 +17,13 @@ export function readNavigationServerTimings(
     performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined
   )?.serverTiming ?? [],
 ) {
-  return Object.fromEntries(
-    entries.flatMap(({ name, duration }) =>
-      SERVER_TIMING_NAMES.has(name) && Number.isFinite(duration) && duration >= 0
-        ? [[name, Number(duration.toFixed(1))] as const]
-        : [],
-    ),
-  );
+  return entries.reduce<Record<string, number>>((timings, { name, duration }) => {
+    if (!SERVER_TIMING_NAMES.has(name) || !Number.isFinite(duration) || duration < 0) {
+      return timings;
+    }
+    timings[name] = Number(((timings[name] ?? 0) + duration).toFixed(1));
+    return timings;
+  }, {});
 }
 
 export async function sendPerformanceReport(

@@ -27,7 +27,7 @@ export const PERFORMANCE_QUERY = `
 WITH recent AS (
   SELECT metric_name, metric_value, app_version, app_route
     FROM performance_samples
-   WHERE observed_at >= datetime('now', '-${PERFORMANCE_WINDOW_DAYS} days')
+   WHERE datetime(observed_at) >= datetime('now', '-${PERFORMANCE_WINDOW_DAYS} days')
      AND metric_name IN ('LCP', 'INP', 'CLS')
 ),
 scoped AS (
@@ -58,7 +58,7 @@ WITH timing_samples AS (
   SELECT app_version, app_route, timing.key AS timing_name,
     CAST(timing.value AS REAL) AS duration
   FROM performance_samples, json_each(COALESCE(server_timing_json, '{}')) timing
-  WHERE observed_at >= datetime('now', '-${PERFORMANCE_WINDOW_DAYS} days')
+  WHERE datetime(observed_at) >= datetime('now', '-${PERFORMANCE_WINDOW_DAYS} days')
     AND metric_name = 'LCP'
     AND timing.key IN (${PERFORMANCE_SERVER_TIMING_NAMES.map((name) => `'${name}'`).join(",")})
 ), ranked AS (

@@ -51,11 +51,15 @@ Cloudflare prima di una decisione commerciale o di capacità.
 ## Verifica browser
 
 Gli E2E non conservano una sessione staff nel repository o in GitHub Actions.
-`npm run test:e2e` prova la superficie pubblica e l'ingresso pre-OAuth;
-i flussi embedded restano una matrice Development eseguita con una sessione
-staff aperta dall'owner. Questo evita una credenziale browser persistente e una
-infrastruttura di autenticazione per percorsi che richiedono comunque Shopify
-reale. Il job `e2e` è un controllo richiesto sui rami protetti.
+`npm run test:e2e` prova la superficie pubblica e l'ingresso pre-OAuth.
+`npm run test:ui` esegue tutte le superfici merchant sintetiche in Chromium e
+ripete in WebKit il solo file critico `tests/browser/route-surfaces.test.tsx`:
+navigazione embedded, apertura e chiusura dell'onboarding, Save Bar, conflitti,
+richiesta permessi ed espansione delle etichette. I flussi embedded reali restano
+una matrice Development eseguita con una sessione staff aperta dall'owner. Questo
+evita una credenziale browser persistente e un'infrastruttura di autenticazione
+per percorsi che richiedono comunque Shopify reale. Il job `e2e` è un controllo
+richiesto sui rami protetti.
 
 | Superficie | Controllo | Browser e viewport |
 | --- | --- | --- |
@@ -65,6 +69,24 @@ reale. Il job `e2e` è un controllo richiesto sui rami protetti.
 | Regole e messaggi | Save Bar/Annulla, radio/anteprima, tab lingue, reset separato | browser Admin, tastiera |
 | Validation | attivazione, disattivazione, errore sync e riparazione fail-open | browser Admin |
 | Stato merchant | store non italiano operativo, prova 7/3/1/0, billing e reinstallazione | test automatici; stato reale quando disponibile |
+
+### Controllo ripetibile su iPhone
+
+1. Eseguire `npm run test:ui` e registrare separatamente gli esiti
+   `merchant-chromium` e `merchant-webkit-critical`; questi test usano DOM e dati
+   sintetici e non provano l'iframe Shopify né Safari su iPhone.
+2. Sullo store Development, aprire Shopify Admin dall'iPhone con una sessione
+   staff dell'owner e caricare CF Ready come app embedded.
+3. Passare dalla Home a Regole e Messaggi; aprire e chiudere l'onboarding;
+   modificare una regola e un messaggio, verificare comparsa e annullamento della
+   Save Bar, quindi provocare un conflitto tramite una seconda sessione senza
+   sovrascriverlo.
+4. In Regole, espandere “Campo Interno” e “Testi del checkout”, richiedere i
+   permessi opzionali soltanto sullo store Development autorizzato e verificare
+   sia concessione sia rifiuto in esecuzioni distinte.
+5. Registrare commit, modello iPhone, versione iOS/Safari, store Development,
+   viewport/orientamento, righe eseguite ed esito. Una prova locale WebKit resta
+   distinta da questa ricevuta embedded su dispositivo reale.
 
 Per la chiusura di una release annotare nella ricevuta commit, browser,
 viewport, righe eseguite, esito e limiti non riproducibili. Checkout standard,

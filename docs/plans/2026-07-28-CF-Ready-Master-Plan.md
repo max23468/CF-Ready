@@ -372,7 +372,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-137 | M12 combina il consolidamento Controlled Launch con i requisiti Built for Shopify e si chiude quando Shopify assegna effettivamente lo status. | Idoneità automatica, pulsante di candidatura, invio o review in corso non chiudono la milestone. I requisiti correnti si rileggono nelle fonti Shopify e nella pagina Distribution prima della candidatura; le soglie Shopify sostituiscono i minimi locali più deboli. I criteri operativi specifici di CF Ready restano segnali da osservare, non una seconda certificazione né gate autonomi; soltanto bug critici e rischi non accettati impediscono la chiusura. Deciso il 26 agosto 2026. |
 | D-138 | La pubblicazione verifica una volta ogni contenuto immutabile e ripete soltanto i gate dipendenti dallo stato remoto. La CI instrada corsie `docs`, `standard`, `full` e `promotion`; la promozione riusa provenienza e gate di `develop`; Development identifica lo snapshot con `X.Y.Z-dev.<tree>`; Production conserva una ricevuta JSON attestata; una GitHub App dedicata riallinea `develop` al merge commit Production solo con fast-forward e tree identico. Lo stesso riallineamento segue un deploy Pages Production verde dello stesso commit, dopo readback e smoke del workflow Pages. L'avvio manuale dichiara obbligatoriamente se è un retry con deploy, che verifica sempre la ricevuta anche nel recupero avanzato, oppure una promozione `main` esplicitamente priva di deploy. Quest'ultima termina senza scrivere se il parent promosso è ancora l'HEAD di `develop`; altrimenti può essere recuperata senza ricevuta soltanto con tree identico al parent, discendenza lineare del branch corrente e nuovo merge che ne conserva il tree. | Riduce installazioni browser, collisioni SemVer e PR prive di differenze senza riutilizzare prove provider: identità, schema Shopify, migrazioni, rollback, smoke e readback restano freschi. Il bypass del ruleset è limitato alla GitHub App di riallineamento e il workflow fallisce chiuso se parent, branch, tree, modalità o identità non coincidono; il recupero di sola ascendenza non modifica provider. Deciso il 27 agosto 2026, esteso il 29 agosto e il 1 settembre 2026. |
 | D-139 | La `1.1.0` unisce Support Link nativo verso la Guida, diagnostica D1 copiabile e minimizzata, report p75 aggregato su 28 giorni, telemetria allowlistata dell'esito Reviews API e simulatore locale in Regole checkout. | Migliora supporto, osservabilità e comprensione delle regole senza introdurre nuove fonti autorevoli o raccogliere contenuti merchant. Il simulatore usa gli stessi controlli formali e messaggi configurati, ma resta un'anteprima dichiarata e non un checkout Shopify reale. Deciso il 29 agosto 2026 e ampliato lo stesso giorno su richiesta dell'owner. |
-| D-140 | M12 include una corsia organica coordinata fra sito pubblico e listing: il sito intercetta ricerche informative con quattro guide bilingui e prove visive reali, la listing resta la superficie di installazione. Si misurano soltanto aggregati privacy-first; nessun tracker custom, contenuto ricorrente o outreach. | L'acquisizione contribuisce alle 50 installazioni nette richieste da Built for Shopify senza trasformare KPI locali in gate paralleli. Canonical, hreflang, sitemap, 404 reale e readback automatici rendono la superficie verificabile; dominio personalizzato e nuove pagine arrivano solo dopo trazione misurata. Deciso il 1º settembre 2026. |
+| D-140 | M12 include una corsia organica coordinata fra sito pubblico e listing: il sito intercetta ricerche informative con quattro guide bilingui e prove visive reali, la listing resta la superficie di installazione. Si misurano soltanto aggregati privacy-first; nessun tracker custom, contenuto ricorrente o outreach. **Il rinvio del dominio personalizzato è superato da D-151.**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | L'acquisizione contribuisce alle 50 installazioni nette richieste da Built for Shopify senza trasformare KPI locali in gate paralleli. Canonical, hreflang, sitemap, 404 reale e readback automatici rendono la superficie verificabile; nuove pagine arrivano solo dopo trazione misurata. Deciso il 1º settembre 2026; aggiornato il 12 settembre 2026 per riflettere D-151.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | D-141 | Portare progressivamente al 95% statement, rami, funzioni e linee dell'intero codice eseguibile first-party, con pavimento del 90% per server/Worker, UI/route, script operativi e JavaScript pubblico; il bundle first-party della Shopify Validation Function arriva al 100% per file. Il gate parte con inventario canonico, diff coverage al 95% e ratchet senza regressioni; le soglie assolute diventano bloccanti solo quando ciascuna corsia le raggiunge. | Un singolo dato sui soli moduli importati nasconde sorgenti mai caricati e permette compensazioni fra runtime. I report separati confluiscono per percorso senza doppio conteggio, mentre SQL, configurazioni e contenuti non eseguibili mantengono prove di contratto dedicate. Deciso il 1º settembre 2026. |
 | D-142 | Attribuire ogni report Web Vitals alla rotta che ha avviato il documento e al relativo `Server-Timing`, conservando durate tecniche per tutti i loader merchant; gli asset fingerprinted sono immutabili per un anno. | App Bridge può consegnare il callback dopo una navigazione client: leggere allora la URL mescolava metrica e rotta, mentre il Navigation Timing restava quello iniziale. Congelare entrambi al montaggio rende il campione coerente; timing allowlistati separano Worker, Shopify e D1 senza contenuti merchant. I nomi hashati permettono cache lunga senza servire bundle obsoleti. Deciso il 2 settembre 2026 dopo misure Production separate fra shell Shopify e iframe. |
 | D-143 | Rendere CF Ready disponibile agli store di qualunque Paese e decidere l’applicabilità esclusivamente nel singolo checkout, senza gate amministrativo basato su sede, mercati o zone di spedizione. | La Function applica le regole quando la fatturazione è italiana o non ancora disponibile e almeno una consegna è italiana. Se nessuna consegna ha un Paese disponibile, come può accadere per digitali o ritiro, applica soltanto le regole dei localized fields italiani presenti. Non applica regole con fatturazione estera o consegne esclusivamente estere. `Shop.shipsToCountries` descrive solo i Paesi delle zone di spedizione e classificherebbe male digitali e ritiro; Markets richiederebbe più scope e non proverebbe il contesto del checkout. Il Paese dello store resta diagnostico. Le vecchie righe `blocked_country` tornano `active` alla prima riconciliazione. Deciso il 4 settembre 2026 per la `1.2.0`; supera D-002 e D-042 e la condizione geografica di D-132. |
@@ -389,6 +389,10 @@ Rispetto alle alternative più ampie o invasive:
 | D-152 | Dichiarare nel `robots.txt` del sito pubblico `search=yes`, `ai-input=yes`, `ai-train=no` e `use=reference`. | Motori di ricerca e assistenti possono indicizzare, citare e usare i contenuti per risposte contestuali, mentre l'addestramento resta escluso. Il file versionato è autorevole e lo smoke Pages ne verifica il contenuto effettivo, evitando una seconda configurazione gestita all'edge. Deciso dall'owner il 9 settembre 2026 per la `1.8.1`. |
 | D-153 | Usare `supporto@cfready.it` per l’assistenza merchant e `info@cfready.it` per le altre comunicazioni, al posto della casella iCloud usata prima del dominio. | `supporto@` è il destinatario del `mailto:` precompilato dell’app, delle FAQ e della pagina Support. `info@` è il recapito di Privacy Policy, Termini, `SECURITY.md`, primo contatto di sicurezza sul sito e reviewer Shopify. Il flusso resta `mailto:` e non introduce Email binding. Deciso dall’owner l’11 settembre 2026 per la `1.9.1`. |
 | D-154 | Nel Control Center calcolare MRR e ARR netti con revenue share, commissione di elaborazione e commissione operativa regolamentare del Paese dello store; mostrare in `/billing` i ricavi cumulati dalle transazioni Shopify Partner e in `/performance` i requisiti Web Vitals di Built for Shopify e M12. | Gli accrediti Partner dell’11 settembre 2026 mostrano per i negozi italiani il 2,9% di elaborazione e il 3% di commissione operativa regolamentare; Shopify non pubblica la tariffa degli altri Paesi, quindi il run-rate applica loro il solo 2,9% e lo dichiara. I ricavi cumulati sommano abbonamenti, acquisti lifetime, rimborsi e crediti dalla query `transactions`, che richiede il permesso Partner `View financials`, e la cache D1 conserva soltanto totali aggregati. La vista performance stima dai campioni CF Ready il p75 su 28 giorni e i 100 campioni per metrica: lo stato Built for Shopify autorevole resta quello del Partner Dashboard. Deciso dall’owner l’11 settembre 2026 per la `1.9.1`. |
+| D-155 | Allineare il simulatore al gate preventivo della Function e spiegare localmente la causa formale dei valori rifiutati. | Le opzioni avanzate rappresentano Interaction, Completion, metodo di spedizione selezionato, gruppi misti e campi assenti; la matrice condivisa confronta gli esiti con la Function. Le diagnosi distinguono lunghezza, caratteri, struttura o data, controllo e formato email, senza cambiare i quattro messaggi checkout, attestare identità o trasmettere i valori. Deciso dall’owner il 12 settembre 2026. |
+| D-156 | Conservare per ogni store al massimo dieci configurazioni differenti degli ultimi 90 giorni e consentire il ripristino tramite la normale scrittura protetta da lease e hash corrente. | Gli snapshot contengono soltanto regole e messaggi bilingui. Escludono attivazione, entitlement, billing, identità staff e dati checkout; il ripristino ricalcola i dati commerciali correnti e sincronizza le etichette quando la relativa gestione è attiva. La retention oraria e `shop/redact` eliminano lo storico. Deciso dall’owner il 12 settembre 2026. |
+| D-157 | Generare avvisi Telegram operativi deduplicati per incidenti persistenti deterministici e per la loro risoluzione. | L’outbox esistente riceve aperture e chiusure per webhook in elaborazione da 5 minuti, webhook falliti ancora aperti da 15 minuti, acquisizione Partner ferma da 15 minuti dall’ultimo ciclo completo valido ed errori deterministici di sincronizzazione etichette osservati almeno tre volte in 10 minuti. Scope, conferme e conflitti merchant delle etichette restano esclusi. Una lettura Partner incompleta non apre né chiude un incidente; gli incidenti risolti restano per 90 giorni. Contenuto, permessi e confini dati restano quelli dell’outbox owner, senza nuovi dati merchant o personali. Deciso dall’owner il 12 settembre 2026. |
+| D-158 | Eseguire in WebKit una selezione mirata dei percorsi merchant sensibili e mantenere una procedura separata per Shopify su iPhone reale. | Navigazione, onboarding, Save Bar, conflitti, permessi ed espansioni etichette usano la suite browser esistente senza duplicarla. WebKit locale individua regressioni del motore; soltanto la verifica embedded sul dispositivo chiude i difetti della cornice nativa Shopify. Deciso dall’owner il 12 settembre 2026. |
 
 Precisazione D-149 del 9 settembre 2026 per la `1.9.0`: nella pagina Regole il
 blocco “Campo Interno” precede “Testi del checkout”. La sezione si chiama
@@ -415,6 +419,23 @@ nel modal Polaris già usato in Regole checkout, senza una checkbox separata. Il
 terzo passo conserva riepilogo, ambito e messaggi configurati; il simulatore
 interattivo resta nella pagina Regole checkout e mostra soltanto i campi gestiti
 da CF Ready, senza il campo “Interno”.
+
+Precisazione D-149 del 12 settembre 2026: classificazione, conflitti e variazioni
+del campo “Interno” considerano soltanto la variante obbligatoria o facoltativa
+che il merchant ha dichiarato visibile; quando il campo non è mostrato, gli
+errori delle etichette fiscali e degli scope restano operativi. La lettura dei
+contesti Shopify usa al massimo tre richieste concorrenti e passa a una richiesta
+alla volta dopo un throttle o quando il budget dichiarato dall’API è insufficiente,
+attendendo il ripristino stimato dal costo restituito da Shopify.
+
+Precisazione D-157 del 12 settembre 2026: un webhook in lavorazione apre un
+incidente dopo 5 minuti e un webhook fallito ancora aperto dopo 15 minuti;
+l’acquisizione Partner usa 15 minuti dall’ultimo ciclo completo valido. Gli
+errori deterministici di sincronizzazione etichette richiedono tre osservazioni
+consecutive distribuite su almeno 10 minuti. Una lettura Partner mancante o non
+interpretabile conserva lo stato precedente. Gli incidenti risolti restano per
+90 giorni; chiavi, fingerprint e notifiche non aggiungono dati merchant o
+personali rispetto ai confini già definiti per l’outbox owner.
 
 Precisazione D-151 dell’11 settembre 2026: `cf-ready.pages.dev` reindirizza con
 301 a `cfready.it` tramite la lista Bulk Redirect di account
@@ -729,6 +750,16 @@ English:
 - CF invalid: “The Italian tax code entered is not formally valid. Check it and try again.”
 - PEC required: “Enter your certified email address (PEC) to complete the order.”
 - PEC invalid: “The certified email address (PEC) does not have a valid email format.”
+
+**FR-065** — La cronologia conserva al massimo dieci configurazioni differenti
+degli ultimi 90 giorni per store. Ogni snapshot include soltanto regole e otto
+messaggi; non include entitlement, billing, attivazione, identità staff o dati
+checkout.
+
+**FR-066** — Un ripristino usa la lease Validation e l’hash della configurazione
+corrente. Regole e messaggi vengono riscritti insieme, mentre diritto commerciale
+e stato di attivazione derivano dalle fonti correnti. Se la gestione etichette è
+attiva, il ripristino segue anche il normale percorso di sincronizzazione.
 
 ### 7.8 Billing
 
@@ -1693,6 +1724,15 @@ Stato tecnico per store.
 | `last_error_code` | text nullable |
 | `updated_at` | text |
 
+#### `configuration_history`
+
+Cronologia merchant minimizzata delle configurazioni confermate da Shopify.
+Ogni riga appartiene allo store, contiene hash, regole JSON, messaggi IT/EN JSON
+e timestamp UTC. Non copia `enabled`, entitlement, billing, dati checkout o
+identità staff. La coppia store e hash evita duplicati; restano al massimo dieci
+snapshot e nessuno oltre 90 giorni. La cancellazione dello store elimina le
+righe in cascata.
+
 #### `webhook_events`
 
 Ricevute idempotenti, non payload.
@@ -1825,6 +1865,13 @@ non aggiorna checksum o contenuto di una voce esistente.
 | `0014_validation_state_revision.sql` | fence monotono dello stato Validation |
 | `0015_owner_notification_details.sql` | nome pubblico dello store nelle notifiche owner |
 | `0016_current_contracts.sql` | trasferimento una tantum del cursore notifiche e vincoli sulle generazioni pricing correnti |
+| `0017_owner_control.sql`               | ricevute e cache aggregate del Control Center Telegram                                      |
+| `0018_checkout_labels.sql`             | ownership e osservazioni minimizzate delle etichette checkout                               |
+| `0019_checkout_label_decision.sql`     | scelta merchant e revisione accettata delle etichette                                       |
+| `0020_address2_form_mode.sql`          | modalità dichiarata della seconda riga indirizzo                                            |
+| `0021_address2_hidden_mode.sql`        | variante nascosta della seconda riga indirizzo                                              |
+| `0022_configuration_history.sql`       | cronologia configurazioni minimizzata e cascade privacy                                     |
+| `0023_owner_operational_incidents.sql` | stato incidenti operativi e tipi outbox apertura/risoluzione                                |
 
 Il gate migrazioni usa binding D1 isolati per gli snapshot intermedi, applica
 la sequenza completa con Wrangler locale, verifica schema, vincoli, indici,
@@ -2334,16 +2381,24 @@ Ogni opzione ha una spiegazione concreta. Dopo le regole:
 - riepilogo dinamico `Come funzionerà il checkout`, seguito dal simulatore
   interattivo che usa gli stessi controlli formali e messaggi configurati;
 - menu `Prova uno scenario` con esempi validi, Codice Fiscale non valido, PEC non
-  valida, Azienda compilata senza PEC e campi vuoti; le opzioni non pertinenti
+  valida, CF provvisorio numerico, omocodia, Azienda compilata senza PEC e campi
+  vuoti; le opzioni non pertinenti
   alle regole correnti non sono mostrate; una breve istruzione chiarisce che la
   scelta compila i campi e aggiorna il risultato del simulatore;
+- spiegazione diagnostica locale per lunghezza, caratteri, struttura o data,
+  carattere di controllo e formato email, mantenendo separati i messaggi che il
+  cliente vede nel checkout;
+- opzioni avanzate richiudibili per fase del checkout, selezione della spedizione,
+  consegne miste e campi Shopify presenti o assenti;
 - condizioni geografiche D-143 non modificabili, spiegate in modo sintetico
   accanto ai due selettori Paese del simulatore;
 - banner `warning` sul campo “Interno” sempre visibile, con
   checkbox `Uso il campo Interno per il Codice Fiscale` e, se selezionata, le
   istruzioni per rimuovere quell’uso (FR-058);
 - Save Bar `Salva` / `Annulla`;
-- salvataggio non attiva implicitamente una Validation disattivata.
+- salvataggio non attiva implicitamente una Validation disattivata;
+- cronologia delle configurazioni precedenti con data, differenze essenziali e
+  ripristino protetto dal controllo di concorrenza corrente.
 
 ### 15.5 Messaggi al cliente
 
@@ -3357,6 +3412,7 @@ La Function riceve i valori necessari in Shopify, li valuta localmente e restitu
 |---|---|
 | Sessioni/token | fino a scadenza o disinstallazione; eliminazione immediata alla disinstallazione |
 | Configurazione/onboarding dopo disinstallazione | 90 giorni |
+| Cronologia configurazioni | ultime 10 configurazioni differenti e massimo 90 giorni |
 | Richieste di supporto | 12 mesi, salvo necessità diversa documentata |
 | Errori tecnici dettagliati | 90 giorni |
 | Outbox notifiche owner | 90 giorni |
@@ -3381,7 +3437,8 @@ I 90 giorni sono il limite massimo residuale. Shopify invia `shop/redact` circa
 la finestra non viene consumata. Un trigger orario del Worker cancella gli
 store ancora disinstallati che raggiungono i 90 giorni, in batch deterministici
 da 25, come fallback quando il webhook non arriva. Lo stesso trigger elimina
-ricevute webhook, errori dettagliati e notifiche owner dopo 90 giorni, e gli
+cronologia configurazioni, ricevute webhook, errori dettagliati e notifiche
+owner dopo 90 giorni, e gli
 altri eventi tecnici e di billing dopo 12 mesi, tramite indici sulle relative
 date.
 
@@ -3586,7 +3643,7 @@ sbloccare il binding, non il piano Cloudflare.
 3. **Playwright mirato**
    - flussi amministrativi e checkout critici;
    - Chromium;
-   - WebKit per i percorsi pubblici prioritari.
+   - WebKit per i percorsi pubblici prioritari e una selezione delle superfici embedded merchant.
 4. **Verifica manuale**
    - pagamenti Shopify;
    - checkout accelerati;
@@ -3633,7 +3690,7 @@ corrente e non può conservare risultati di file usciti dal perimetro. Il bundle
 Function viene inoltre ricostruito dalla dipendenza reale dell'entrypoint: ogni
 sorgente first-party transitiva deve comparire nell'inventario al 100% e ogni
 voce inventariata deve essere davvero inclusa nel bundle.
-La quinta PR rende inoltre bloccante il registro append-only delle quindici
+La quinta PR rende inoltre bloccante il registro append-only delle
 migrazioni e la relativa matrice D1: snapshot intermedi, dati preservati, purge
 privacy intenzionale, vincoli, indici, sequenza completa e secondo passaggio
 idempotente sono provati senza includere SQL nel denominatore della coverage.
@@ -4915,7 +4972,6 @@ pubblicazione.
 - miglioramenti FAQ basati su ticket reali;
 - ulteriori strumenti diagnostici oltre alla guida D-144 solo con domanda osservata;
 - ulteriori lingue solo con domanda;
-- dominio personalizzato;
 - servizi osservabilità esterni;
 - nuove funzioni che giustifichino pricing Value.
 
@@ -5270,7 +5326,7 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
    **parzialmente chiuso l’8 settembre 2026 con D-149**. Le etichette IT/EN sono
    leggibili e vengono classificate; resta aperta soltanto la lettura
    dell’opzione del modulo, che Shopify non espone. Il merchant dichiara in
-   Regole se la variante attiva è `Facoltativo` o `Obbligatorio`; CF Ready usa
+   Regole se la variante attiva è `Facoltativo`, `Obbligatorio` o `Non mostrato`; CF Ready usa
    la scelta per mostrare e ripristinare soltanto il testo pertinente.
 I punti residui di brand sono verifiche e produzione di materiali che dipendono da milestone successive. **La Brand Foundation è chiusa.**
 9. **Cancellazione ordinaria e credito pro rata** — non bloccano il canary M10

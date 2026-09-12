@@ -12,7 +12,7 @@ import type { ShopsFilter } from "./model";
 
 export const SHOPS_PAGE_SIZE = 8;
 
-const UNRESOLVED_WEBHOOK_FILTER = `
+export const UNRESOLVED_WEBHOOK_FILTER = `
   w.status = 'failed' AND NOT (
     w.topic = 'SHOP_UPDATE' AND (
       w.shop_domain IS NULL
@@ -35,7 +35,8 @@ const WEBHOOK_ISSUES_QUERY = `
   SELECT
     COUNT(*) FILTER (WHERE ${UNRESOLVED_WEBHOOK_FILTER}) AS unresolved,
     COUNT(*) FILTER (
-      WHERE w.status = 'processing' AND w.received_at <= datetime('now', '-5 minutes')
+      WHERE w.status = 'processing'
+        AND datetime(w.received_at) <= datetime('now', '-5 minutes')
     ) AS stale
   FROM webhook_events w`;
 
@@ -304,7 +305,7 @@ export async function readPerformance(db: D1Database) {
       .prepare(
         `SELECT app_version, MAX(observed_at) AS last_observed_at
          FROM performance_samples
-         WHERE observed_at >= datetime('now', '-${PERFORMANCE_WINDOW_DAYS} days')
+         WHERE datetime(observed_at) >= datetime('now', '-${PERFORMANCE_WINDOW_DAYS} days')
            AND metric_name IN ('LCP', 'INP', 'CLS')
          GROUP BY app_version
          ORDER BY last_observed_at DESC, app_version DESC
@@ -334,7 +335,9 @@ export async function readNotificationStatus(db: D1Database) {
         COUNT(*) FILTER (WHERE status = 'pending') AS pending,
         COUNT(*) FILTER (WHERE status = 'processing') AS processing,
         COUNT(*) FILTER (WHERE status = 'failed') AS failed,
-        COUNT(*) FILTER (WHERE status = 'sent' AND sent_at >= datetime('now', '-7 days')) AS sent_7d,
+        COUNT(*) FILTER (
+          WHERE status = 'sent' AND datetime(sent_at) >= datetime('now', '-7 days')
+        ) AS sent_7d,
         MIN(CASE WHEN status = 'pending' THEN created_at END) AS oldest_pending_at,
         MAX(CASE WHEN status = 'sent' THEN sent_at END) AS last_sent_at,
         MAX(CASE WHEN status = 'failed' THEN updated_at END) AS last_failed_at,
@@ -352,7 +355,12 @@ export async function readIssues(db: D1Database) {
       ),
       db.prepare(WEBHOOK_ISSUES_QUERY),
       db.prepare(
-        `SELECT COUNT(*) FILTER (WHERE status = 'failed') AS failed, COUNT(*) FILTER (WHERE status = 'pending' AND created_at <= datetime('now', '-15 minutes')) AS stale FROM owner_notifications`,
+        `SELECT COUNT(*) FILTER (WHERE status = 'failed') AS failed,
+                COUNT(*) FILTER (
+                  WHERE status = 'pending'
+                    AND datetime(created_at) <= datetime('now', '-15 minutes')
+                ) AS stale
+           FROM owner_notifications`,
       ),
       db.prepare(`SELECT COUNT(*) AS failed FROM owner_control_updates WHERE status = 'failed'`),
       db.prepare(
@@ -384,7 +392,9 @@ export async function readErrors(db: D1Database) {
       `SELECT error_code, SUM(count) AS count, MAX(last_at) AS last_at FROM (
          SELECT COALESCE(json_extract(metadata_json, '$.error_code'), event_name) AS error_code,
                 COUNT(*) AS count, MAX(occurred_at) AS last_at
-           FROM app_events WHERE event_class = 'error' AND occurred_at >= datetime('now', '-28 days')
+           FROM app_events
+          WHERE event_class = 'error'
+            AND datetime(occurred_at) >= datetime('now', '-28 days')
            GROUP BY error_code
          UNION ALL
          SELECT last_error_code, COUNT(*), MAX(updated_at) FROM app_state

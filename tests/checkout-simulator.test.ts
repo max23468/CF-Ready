@@ -7,7 +7,13 @@ import {
   simulatorOutcome,
   simulatorScenarioValues,
 } from "../app/features/rules/checkout-simulator";
-import { isValidPec, isValidTaxCode } from "../app/checkout-field-validation";
+import {
+  diagnosePec,
+  diagnoseTaxCode,
+  isValidPec,
+  isValidTaxCode,
+  requiredFieldsAreDue,
+} from "../app/checkout-field-validation";
 import { mergeRulesFormDraft, rebaseRulesDraft } from "../app/features/rules/rules-form";
 import { texts } from "../app/i18n";
 
@@ -16,39 +22,47 @@ const requiredTaxCode = { taxCode: "required_validated", pec: "unmanaged" } as c
 test("il simulatore applica le regole soltanto con consegna e fatturazione italiane", () => {
   const input = {
     rules: requiredTaxCode,
-    deliveryCountry: "IT",
     billingCountry: "IT",
+    step: "CHECKOUT_COMPLETION" as const,
+    deliveryGroups: [{ countryCode: "IT" }],
     taxCode: "",
     pec: "",
-    submitted: true,
   };
 
   expect(simulatorOutcome(input)).toBe("blocked");
-  expect(simulatorOutcome({ ...input, deliveryCountry: "FR" })).toBe("notApplied");
+  expect(simulatorOutcome({ ...input, deliveryGroups: [{ countryCode: "FR" }] })).toBe(
+    "notApplied",
+  );
   expect(simulatorOutcome({ ...input, billingCountry: "DE" })).toBe("notApplied");
 });
 
 test("il simulatore attende Continua per un required vuoto ma segnala subito un valore invalido", () => {
   const input = {
     rules: requiredTaxCode,
-    deliveryCountry: "IT",
     billingCountry: "IT",
+    step: "CHECKOUT_INTERACTION" as const,
+    deliveryGroups: [{ countryCode: "IT" }],
     taxCode: "",
     pec: "",
   };
 
-  expect(simulatorOutcome({ ...input, submitted: false })).toBe("editing");
-  expect(simulatorOutcome({ ...input, submitted: true })).toBe("blocked");
-  expect(simulatorOutcome({ ...input, taxCode: "non valido", submitted: false })).toBe("blocked");
+  expect(simulatorOutcome(input)).toBe("editing");
+  expect(
+    simulatorOutcome({
+      ...input,
+      deliveryGroups: [{ countryCode: "IT", selectedDeliveryOption: true }],
+    }),
+  ).toBe("blocked");
+  expect(simulatorOutcome({ ...input, taxCode: "non valido" })).toBe("blocked");
 });
 
 test("il simulatore distingue nessun controllo, valori pronti ed errore PEC", () => {
   const base = {
-    deliveryCountry: "IT",
     billingCountry: "IT",
+    step: "CHECKOUT_COMPLETION" as const,
+    deliveryGroups: [{ countryCode: "IT" }],
     taxCode: "RSSMRA85T10A562S",
     pec: "mario.rossi@example.com",
-    submitted: true,
   };
 
   expect(simulatorOutcome({ ...base, rules: { taxCode: "unmanaged", pec: "unmanaged" } })).toBe(
@@ -91,12 +105,44 @@ test("gli scenari pronti coprono valori validi, non validi, Azienda e campi vuot
   expect(isValidPec(simulatorScenarioValues.valid.pec)).toBe(true);
   expect(isValidTaxCode(simulatorScenarioValues.invalidTaxCode.taxCode)).toBe(false);
   expect(isValidPec(simulatorScenarioValues.invalidPec.pec)).toBe(false);
+  expect(isValidTaxCode(simulatorScenarioValues.numericTaxCode.taxCode)).toBe(true);
+  expect(isValidTaxCode(simulatorScenarioValues.omocodiaTaxCode.taxCode)).toBe(true);
   expect(simulatorScenarioValues.companyWithoutPec).toEqual({
     company: "Acme S.r.l.",
     taxCode: "RSSMRA85T10A562S",
     pec: "",
   });
   expect(simulatorScenarioValues.empty).toEqual({ company: "", taxCode: "", pec: "" });
+});
+
+test("la diagnostica distingue le cause formali senza cambiare il contratto booleano", () => {
+  expect(diagnoseTaxCode("ABC")).toBe("length");
+  expect(diagnoseTaxCode("AAAAAA00A01-A000")).toBe("characters");
+  expect(diagnoseTaxCode("AAAAAA00B30A000K")).toBe("date_structure");
+  expect(diagnoseTaxCode("RSSMRA85T10A562A")).toBe("check_character");
+  expect(diagnoseTaxCode("12345678903")).toBe("valid");
+  expect(diagnoseTaxCode("AAAAAAL0A01A000K")).toBe("valid");
+  expect(diagnosePec("mario@")).toBe("email_format");
+  expect(diagnosePec("mario@example.com")).toBe("valid");
+  expect(isValidTaxCode("RSSMRA85T10A562A")).toBe(false);
+  expect(isValidPec("mario@")).toBe(false);
+});
+
+test("la soglia dei required segue fase, selezione spedizione e consegne miste", () => {
+  expect(requiredFieldsAreDue("CHECKOUT_INTERACTION", [{ countryCode: "IT" }])).toBe(false);
+  expect(
+    requiredFieldsAreDue("CHECKOUT_INTERACTION", [
+      { countryCode: "IT", selectedDeliveryOption: true },
+      { countryCode: "FR" },
+    ]),
+  ).toBe(true);
+  expect(
+    requiredFieldsAreDue("CHECKOUT_INTERACTION", [
+      { countryCode: "IT", selectedDeliveryOption: true },
+      {},
+    ]),
+  ).toBe(false);
+  expect(requiredFieldsAreDue("CHECKOUT_COMPLETION", [])).toBe(true);
 });
 
 test("la PEC condizionale è richiesta soltanto con Azienda compilata", () => {
@@ -106,11 +152,11 @@ test("la PEC condizionale è richiesta soltanto con Azienda compilata", () => {
 
   const input = {
     rules: { taxCode: "unmanaged", pec: "required_when_company" } as const,
-    deliveryCountry: "IT",
     billingCountry: "IT",
+    step: "CHECKOUT_COMPLETION" as const,
+    deliveryGroups: [{ countryCode: "IT" }],
     taxCode: "",
     pec: "",
-    submitted: true,
   };
   expect(simulatorOutcome({ ...input, company: "" })).toBe("ready");
   expect(simulatorOutcome({ ...input, company: "Acme S.r.l." })).toBe("blocked");
@@ -146,18 +192,51 @@ test("una bozza incompleta conserva i valori precedenti", () => {
 test("gli indirizzi non ancora disponibili non escludono i campi fiscali presenti", () => {
   const input = {
     rules: requiredTaxCode,
-    deliveryCountry: "IT",
     billingCountry: "IT",
+    step: "CHECKOUT_COMPLETION" as const,
+    deliveryGroups: [{ countryCode: "IT" }],
     taxCode: "",
     pec: "",
-    submitted: true,
   };
   expect(simulatorOutcome({ ...input, billingCountry: "" })).toBe("blocked");
-  expect(simulatorOutcome({ ...input, deliveryCountry: "" })).toBe("blocked");
-  expect(simulatorOutcome({ ...input, deliveryCountry: "", billingCountry: "" })).toBe("blocked");
-  expect(simulatorOutcome({ ...input, deliveryCountry: "", billingCountry: "FR" })).toBe(
+  expect(simulatorOutcome({ ...input, deliveryGroups: [] })).toBe("blocked");
+  expect(simulatorOutcome({ ...input, deliveryGroups: [], billingCountry: "" })).toBe("blocked");
+  expect(simulatorOutcome({ ...input, deliveryGroups: [], billingCountry: "FR" })).toBe(
     "notApplied",
   );
+});
+
+test("il simulatore distingue campi localized assenti e consegna non osservabile", () => {
+  const input = {
+    rules: { taxCode: "required_validated", pec: "required_validated" } as const,
+    billingCountry: "IT",
+    step: "CHECKOUT_INTERACTION" as const,
+    deliveryGroups: [] as Array<{ countryCode?: string }>,
+    taxCode: "RSSMRA85T10A562S",
+    pec: "mario.rossi@example.com",
+  };
+  expect(simulatorOutcome({ ...input, taxCodePresent: false, pecPresent: false })).toBe(
+    "notApplied",
+  );
+  expect(simulatorOutcome({ ...input, taxCodePresent: false })).toBe("ready");
+  expect(simulatorOutcome({ ...input, pecPresent: false })).toBe("ready");
+  expect(
+    simulatorOutcome({
+      ...input,
+      step: "CHECKOUT_COMPLETION",
+      deliveryGroups: [{ countryCode: "IT" }],
+      taxCodePresent: false,
+    }),
+  ).toBe("blocked");
+  expect(
+    simulatorOutcome({
+      ...input,
+      step: "CHECKOUT_COMPLETION",
+      deliveryGroups: [{ countryCode: "IT" }],
+      pecPresent: false,
+    }),
+  ).toBe("blocked");
+  expect(simulatorOutcome({ ...input, deliveryGroups: [{}] })).toBe("ready");
 });
 
 test("la riapplicazione conserva modifiche locali e regole remote non toccate", () => {

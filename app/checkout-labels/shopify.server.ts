@@ -166,10 +166,13 @@ const REMOVE_CHECKOUT_LABEL_TRANSLATIONS = `#graphql
   }
 `;
 
+const MAX_READ_CONCURRENCY = 3;
+
 export async function readCheckoutLabels(admin: Admin): Promise<CheckoutLabelsSnapshot> {
+  const limiter = new GraphqlReadLimiter();
   const [context, resources] = await Promise.all([
-    readCheckoutLabelContext(admin),
-    readCheckoutLabelResources(admin),
+    readCheckoutLabelContext(admin, limiter),
+    readCheckoutLabelResources(admin, limiter),
   ]);
   const { locales, markets } = context;
 
@@ -203,11 +206,16 @@ export async function readCheckoutLabels(admin: Admin): Promise<CheckoutLabelsSn
                 resourceId: string;
                 translations: TranslationNode[];
               } | null;
-            }>(admin, READ_CHECKOUT_LABEL_TRANSLATIONS, {
-              resourceId: resource.resourceId,
-              locale: locale.locale,
-              marketId,
-            }).then(
+            }>(
+              admin,
+              READ_CHECKOUT_LABEL_TRANSLATIONS,
+              {
+                resourceId: resource.resourceId,
+                locale: locale.locale,
+                marketId,
+              },
+              limiter,
+            ).then(
               (body) =>
                 [
                   translationMapKey(resource.resourceId, locale.locale, marketId),
@@ -308,7 +316,7 @@ export async function readCheckoutLabels(admin: Admin): Promise<CheckoutLabelsSn
   };
 }
 
-async function readCheckoutLabelContext(admin: Admin) {
+async function readCheckoutLabelContext(admin: Admin, limiter: GraphqlReadLimiter) {
   let locales: CheckoutLabelLocale[] = [];
   const markets: CheckoutLabelMarket[] = [];
   let after: string | null = null;
@@ -317,9 +325,12 @@ async function readCheckoutLabelContext(admin: Admin) {
   do {
     if (cursors.has(after)) throw new Error("checkout_labels_readback_failed");
     cursors.add(after);
-    const body: DiscoveryContextData = await graphqlData(admin, DISCOVER_CHECKOUT_LABEL_CONTEXT, {
-      after,
-    });
+    const body: DiscoveryContextData = await graphqlData(
+      admin,
+      DISCOVER_CHECKOUT_LABEL_CONTEXT,
+      { after },
+      limiter,
+    );
     if (locales.length === 0) {
       locales = body.shopLocales.flatMap((locale) => {
         const family = checkoutLabelFamily(locale.locale);
@@ -356,12 +367,12 @@ async function readCheckoutLabelContext(admin: Admin) {
         };
       }),
     );
-    after = body.markets.pageInfo.hasNextPage ? body.markets.pageInfo.endCursor : null;
+    after = nextPageCursor(body.markets.pageInfo);
   } while (after);
   return { locales, markets };
 }
 
-async function readCheckoutLabelResources(admin: Admin) {
+async function readCheckoutLabelResources(admin: Admin, limiter: GraphqlReadLimiter) {
   const resources: ResourceNode[] = [];
   let after: string | null = null;
   const cursors = new Set<string | null>();
@@ -372,11 +383,10 @@ async function readCheckoutLabelResources(admin: Admin) {
       admin,
       DISCOVER_CHECKOUT_LABEL_RESOURCES,
       { first: 50, after },
+      limiter,
     );
     resources.push(...body.translatableResources.nodes);
-    after = body.translatableResources.pageInfo.hasNextPage
-      ? body.translatableResources.pageInfo.endCursor
-      : null;
+    after = nextPageCursor(body.translatableResources.pageInfo);
   } while (after);
   return resources;
 }
@@ -416,12 +426,19 @@ export async function removeCheckoutLabelTranslation(admin: Admin, slot: Checkou
   );
 }
 
-async function graphqlData<T>(admin: Admin, query: string, variables: Record<string, unknown>) {
+async function graphqlData<T>(
+  admin: Admin,
+  query: string,
+  variables: Record<string, unknown>,
+  limiter?: GraphqlReadLimiter,
+) {
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const body = await graphqlRequest<T>(admin, query, variables);
+    const body = limiter
+      ? await limiter.request(() => graphqlRequest<T>(admin, query, variables))
+      : await graphqlRequest<T>(admin, query, variables);
     if (!body.errors?.length && body.data) return body.data;
     if (attempt === 0 && throttled(body.errors)) {
-      await waitForThrottle(body);
+      if (!limiter) await waitForThrottle(body);
       continue;
     }
     throw new Error("checkout_labels_readback_failed");
@@ -472,17 +489,86 @@ function throttled(errors: GraphqlEnvelope<unknown>["errors"]) {
 }
 
 async function waitForThrottle(body: GraphqlEnvelope<unknown>) {
+  await new Promise((resolve) => setTimeout(resolve, throttleWaitMs(body)));
+}
+
+function throttleWaitMs(body: GraphqlEnvelope<unknown>) {
   const cost = body.extensions?.cost;
   const missing = Math.max(
     0,
     (cost?.requestedQueryCost ?? 0) - (cost?.throttleStatus?.currentlyAvailable ?? 0),
   );
   const restoreRate = cost?.throttleStatus?.restoreRate ?? 0;
-  const waitMs = Math.min(
-    2_000,
-    Math.max(100, restoreRate > 0 ? (missing / restoreRate) * 1_000 : 250),
-  );
-  await new Promise((resolve) => setTimeout(resolve, waitMs));
+  return Math.min(2_000, Math.max(100, restoreRate > 0 ? (missing / restoreRate) * 1_000 : 250));
+}
+
+class GraphqlReadLimiter {
+  private active = 0;
+  private concurrency = MAX_READ_CONCURRENCY;
+  private blockedUntil = 0;
+  private timer: ReturnType<typeof setTimeout> | null = null;
+  private readonly queue: Array<{
+    operation: () => Promise<GraphqlEnvelope<unknown>>;
+    resolve: (body: GraphqlEnvelope<unknown>) => void;
+    reject: (error: unknown) => void;
+  }> = [];
+
+  request<T>(operation: () => Promise<GraphqlEnvelope<T>>): Promise<GraphqlEnvelope<T>> {
+    return new Promise((resolve, reject) => {
+      this.queue.push({
+        operation,
+        resolve: resolve as (body: GraphqlEnvelope<unknown>) => void,
+        reject,
+      });
+      this.drain();
+    });
+  }
+
+  private drain() {
+    const remaining = this.blockedUntil - Date.now();
+    if (remaining > 0) {
+      if (!this.timer) {
+        this.timer = setTimeout(() => {
+          this.timer = null;
+          this.drain();
+        }, remaining);
+      }
+      return;
+    }
+    while (this.active < this.concurrency && this.queue.length > 0) {
+      const request = this.queue.shift()!;
+      this.active += 1;
+      void request
+        .operation()
+        .then((body) => {
+          this.observe(body);
+          request.resolve(body);
+        }, request.reject)
+        .finally(() => {
+          this.active -= 1;
+          this.drain();
+        });
+    }
+  }
+
+  private observe(body: GraphqlEnvelope<unknown>) {
+    const cost = body.extensions?.cost;
+    const requested = cost?.requestedQueryCost ?? 0;
+    const available = cost?.throttleStatus?.currentlyAvailable;
+    if (throttled(body.errors)) {
+      this.concurrency = 1;
+      this.blockedUntil = Math.max(this.blockedUntil, Date.now() + throttleWaitMs(body));
+      return;
+    }
+    if (requested <= 0 || available === undefined) return;
+    this.concurrency = Math.max(
+      1,
+      Math.min(MAX_READ_CONCURRENCY, Math.floor(available / requested)),
+    );
+    if (available < requested) {
+      this.blockedUntil = Math.max(this.blockedUntil, Date.now() + throttleWaitMs(body));
+    }
+  }
 }
 
 function assertNoTranslationErrors(errors: Array<{ code?: string; message?: string }>) {
@@ -496,6 +582,12 @@ function assertNoTranslationErrors(errors: Array<{ code?: string; message?: stri
 
 function translationMapKey(resourceId: string, locale: string, marketId: string | null) {
   return `${resourceId}\u0000${locale}\u0000${marketId ?? ""}`;
+}
+
+function nextPageCursor(pageInfo: { hasNextPage: boolean; endCursor: string | null }) {
+  if (!pageInfo.hasNextPage) return null;
+  if (!pageInfo.endCursor) throw new Error("checkout_labels_readback_failed");
+  return pageInfo.endCursor;
 }
 
 function assertTranslationInputs(

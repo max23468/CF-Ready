@@ -506,6 +506,47 @@ test("0014 e 0015 aggiornano snapshot esistenti senza perdere stato", async () =
   });
 });
 
+test("0023 ammette notifiche operative globali e rimuove gli incidenti dello store", async () => {
+  await env.DB.prepare(
+    `INSERT INTO shops
+       (id, shop_domain, installation_status, installed_at, created_at, updated_at)
+     VALUES (2300, 'incident.example.myshopify.com', 'active',
+             '2026-09-12', '2026-09-12', '2026-09-12')`,
+  ).run();
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO owner_notifications
+         (dedupe_key, notification_kind, shop_domain, subject, body_text,
+          source_occurred_at, available_at, created_at, updated_at)
+       VALUES ('operational-global', 'operational', NULL, 'Incidente', 'Aperto',
+               '2026-09-12', '2026-09-12', '2026-09-12', '2026-09-12')`,
+    ),
+    env.DB.prepare(
+      `INSERT INTO owner_operational_incidents
+         (incident_key, incident_kind, shop_id, status, fingerprint,
+          consecutive_observations, first_observed_at, opened_at, updated_at)
+       VALUES ('checkout_labels:2300', 'checkout_labels', 2300, 'active', 'errore',
+               3, '2026-09-12', '2026-09-12', '2026-09-12')`,
+    ),
+  ]);
+
+  await env.DB.prepare("DELETE FROM shops WHERE id = 2300").run();
+
+  expect(
+    await env.DB.prepare(
+      "SELECT notification_kind, shop_domain FROM owner_notifications WHERE dedupe_key = 'operational-global'",
+    ).first(),
+  ).toEqual({ notification_kind: "operational", shop_domain: null });
+  expect(
+    await env.DB.prepare(
+      "SELECT COUNT(*) AS count FROM owner_operational_incidents WHERE incident_key = 'checkout_labels:2300'",
+    ).first("count"),
+  ).toBe(0);
+  await env.DB.prepare(
+    "DELETE FROM owner_notifications WHERE dedupe_key = 'operational-global'",
+  ).run();
+});
+
 test("l'intera sequenza produce uno schema integro con tutti gli indici dichiarati", async () => {
   const { MIGRATION_FULL_DB: db, TEST_MIGRATIONS: migrations } = migrationEnvironment();
   expect(migrations.map(({ name }) => name)).toEqual([
@@ -530,6 +571,8 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "0019_checkout_label_decision.sql",
     "0020_address2_form_mode.sql",
     "0021_address2_hidden_mode.sql",
+    "0022_configuration_history.sql",
+    "0023_owner_operational_incidents.sql",
   ]);
   await applyD1Migrations(db, migrations);
 
@@ -551,11 +594,13 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "billing_events",
     "checkout_label_slots",
     "complimentary_entitlements",
+    "configuration_history",
     "owner_control_state",
     "owner_control_updates",
     "owner_notification_redactions",
     "owner_notification_state",
     "owner_notifications",
+    "owner_operational_incidents",
     "performance_samples",
     "shopify_sessions",
     "shops",
@@ -578,11 +623,13 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "billing_events_occurred_at_idx",
     "billing_events_resource_type_idx",
     "checkout_label_slots_shop_id_idx",
+    "configuration_history_shop_created_idx",
     "owner_control_updates_retention_idx",
     "owner_notification_redactions_retention_idx",
     "owner_notifications_created_at_idx",
     "owner_notifications_delivery_idx",
     "owner_notifications_shop_domain_idx",
+    "owner_operational_incidents_shop_id_idx",
     "performance_samples_metric_observed_idx",
     "performance_samples_version_route_metric_idx",
     "shopify_sessions_shop_id_idx",

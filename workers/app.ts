@@ -10,6 +10,7 @@ import {
   deliverOwnerNotifications,
   pollLocalNotifications,
   pollPartnerEvents,
+  reconcileOwnerIncidents,
 } from "../app/owner-notifications.server";
 import { applyRetention } from "../app/shop.server";
 import { processWebhookJob } from "../app/webhook-jobs.server";
@@ -71,6 +72,7 @@ async function runOwnerNotificationCycle(env: NotificationBindings) {
         accessToken: env.SHOPIFY_PARTNER_ACCESS_TOKEN ?? "",
       }),
     () => pollLocalNotifications(env.DB),
+    () => reconcileOwnerIncidents(env.DB),
     () => {
       if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
         throw new Error("owner_notification_configuration_incomplete");
@@ -82,8 +84,9 @@ async function runOwnerNotificationCycle(env: NotificationBindings) {
     },
   ];
 
-  // Le tre fasi restano indipendenti: un errore Partner non deve impedire l'invio delle prove
-  // già registrate, e un errore Telegram non deve perdere i nuovi eventi acquisiti.
+  // Le quattro fasi restano indipendenti: un errore Partner non deve impedire la verifica degli
+  // altri incidenti o l'invio delle prove già registrate; un errore Telegram non deve perdere i
+  // nuovi eventi acquisiti.
   for (const stage of stages) {
     try {
       // react-doctor-disable-next-line react-doctor/async-await-in-loop

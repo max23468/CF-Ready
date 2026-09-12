@@ -235,6 +235,17 @@ export function classifyAddress2(slots: CheckoutLabelSlot[]) {
   };
 }
 
+export function classifyVisibleAddress2(
+  slots: CheckoutLabelSlot[],
+  formMode: Address2FormMode | null,
+) {
+  if (formMode === null || formMode === "hidden") {
+    return { classification: "unknown" as const, hasMarketOverride: false };
+  }
+  const name = formMode === "required" ? "address2" : "optionalAddress2";
+  return classifyAddress2(slots.filter((slot) => slot.name === name));
+}
+
 export function containsFiscalMeaning(value: string) {
   const normalized = normalizeLabel(value);
   return (
@@ -255,8 +266,10 @@ export function checkoutLabelsStatus(state: CheckoutLabelState): CheckoutLabelsS
   if (state.lastErrorCode === "checkout_labels_scope_required") return "scope_required";
   if (
     state.lastErrorCode ||
-    state.address2ExternalChangeAt ||
-    (state.address2Classification === "fiscal_conflict" && state.address2Decision === "pending")
+    (state.address2FormMode !== "hidden" &&
+      (state.address2ExternalChangeAt ||
+        (state.address2Classification === "fiscal_conflict" &&
+          state.address2Decision === "pending")))
   ) {
     return "action_required";
   }

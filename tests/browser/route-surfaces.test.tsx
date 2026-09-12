@@ -1334,6 +1334,7 @@ describe("Regole", () => {
     configHash: "hash",
     rules: { taxCode: "optional_validated", pec: "required_validated" },
     messages: DEFAULT_CONFIG.messages,
+    configurationHistory: [],
     enabled: true,
     entitled: true,
     labelScopesGranted: false,
@@ -1359,6 +1360,84 @@ describe("Regole", () => {
     checkoutSettingsUrl: "https://admin.shopify.com/store/demo/settings/checkout",
     storefrontUrl: "https://demo.myshopify.com",
   } as const;
+
+  test("mostra e ripristina soltanto configurazioni precedenti differenti", async () => {
+    router.loaderData = {
+      ...rulesData,
+      configHash: null,
+      labelSnapshot: {
+        revision: "labels-r1",
+        locales: [],
+        markets: [],
+        slots: [],
+        issues: [],
+      },
+      configurationHistory: [
+        {
+          id: 1,
+          createdAt: "2026-09-01T10:00:00.000Z",
+          rules: { ...rulesData.rules, taxCode: "required_validated" },
+          messages: rulesData.messages,
+        },
+        {
+          id: 2,
+          createdAt: "2026-09-02T10:00:00.000Z",
+          rules: { ...rulesData.rules, pec: "unmanaged" },
+          messages: rulesData.messages,
+        },
+        {
+          id: 3,
+          createdAt: "2026-09-03T10:00:00.000Z",
+          rules: rulesData.rules,
+          messages: {
+            ...rulesData.messages,
+            it: { ...rulesData.messages.it, pecRequired: "PEC precedente" },
+          },
+        },
+        {
+          id: 4,
+          createdAt: "2026-09-04T10:00:00.000Z",
+          rules: rulesData.rules,
+          messages: rulesData.messages,
+        },
+      ],
+    };
+    const view = await mount(<CheckoutRules />);
+    const restore = [...view.container.querySelectorAll("s-button")].filter(
+      (button) => button.textContent === texts("it").rules.history.restore,
+    );
+    expect(restore).toHaveLength(3);
+    expect(view.container.textContent).toContain(texts("it").rules.taxCodeLabel);
+    expect(view.container.textContent).toContain(texts("it").rules.pecLabel);
+    expect(view.container.textContent).toContain(texts("it").rules.history.messages);
+
+    await click(restore[0]);
+    expect(router.submit).toHaveBeenLastCalledWith(
+      {
+        intent: "restore_configuration",
+        historyId: "1",
+        configHash: "",
+        labelsRevision: "labels-r1",
+      },
+      { method: "post" },
+    );
+
+    router.loaderData = {
+      ...router.loaderData,
+      configHash: "hash-corrente",
+      labelSnapshot: null,
+    };
+    await view.rerender(<CheckoutRules key="history-without-label-snapshot" />);
+    const restoreWithoutLabels = [...view.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === texts("it").rules.history.restore,
+    );
+    if (!restoreWithoutLabels) throw new Error("ripristino configurazione assente");
+    await click(restoreWithoutLabels);
+    expect(router.submit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ configHash: "hash-corrente", labelsRevision: "" }),
+      { method: "post" },
+    );
+  });
 
   test("modifica la bozza, salva, annulla e invia il form", async () => {
     router.loaderData = rulesData;

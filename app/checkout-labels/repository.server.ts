@@ -1,4 +1,4 @@
-import { observedLabelForSlot } from "./domain";
+import { classifyVisibleAddress2, observedLabelForSlot } from "./domain";
 import type {
   Address2Decision,
   CheckoutLabelsDecision,
@@ -136,12 +136,14 @@ export async function persistCheckoutLabelObservation(
   db: D1Database,
   shopDomain: string,
   slots: CheckoutLabelSlot[],
-  address2: {
+  _address2: {
     classification: CheckoutLabelState["address2Classification"];
     hasMarketOverride: boolean;
   },
 ) {
   const now = new Date().toISOString();
+  const requiredAddress2 = classifyVisibleAddress2(slots, "required");
+  const optionalAddress2 = classifyVisibleAddress2(slots, "optional");
   const statements = slots.map((slot) =>
     db
       .prepare(
@@ -187,10 +189,29 @@ export async function persistCheckoutLabelObservation(
     db
       .prepare(
         `UPDATE app_state
-         SET address2_classification = ?, address2_has_market_override = ?, updated_at = ?
+         SET address2_classification = CASE
+               WHEN address2_form_hidden = 1 THEN 'unknown'
+               WHEN address2_form_mode = 'required' THEN ?
+               WHEN address2_form_mode = 'optional' THEN ?
+               ELSE 'unknown'
+             END,
+             address2_has_market_override = CASE
+               WHEN address2_form_hidden = 1 THEN 0
+               WHEN address2_form_mode = 'required' THEN ?
+               WHEN address2_form_mode = 'optional' THEN ?
+               ELSE 0
+             END,
+             updated_at = ?
          WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
       )
-      .bind(address2.classification, Number(address2.hasMarketOverride), now, shopDomain),
+      .bind(
+        requiredAddress2.classification,
+        optionalAddress2.classification,
+        Number(requiredAddress2.hasMarketOverride),
+        Number(optionalAddress2.hasMarketOverride),
+        now,
+        shopDomain,
+      ),
   );
   await db.batch(statements);
 }

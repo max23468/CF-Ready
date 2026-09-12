@@ -362,6 +362,14 @@ export async function applyRetention(db: D1Database, now = new Date()) {
            )`,
         )
         .bind(sevenDaysAgo),
+      db
+        .prepare(
+          `DELETE FROM configuration_history WHERE id IN (
+             SELECT id FROM configuration_history WHERE created_at <= ?
+             ORDER BY created_at LIMIT 1000
+           )`,
+        )
+        .bind(ninetyDaysAgo),
     ]),
     deleteExpiredPerformanceSamples(db, ninetyDaysAgo),
     redactExpiredShops(db, now),

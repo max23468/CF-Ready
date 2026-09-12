@@ -6,6 +6,21 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.10.0 — 12 settembre 2026
+
+- il simulatore riproduce Interaction e Completion della Function, comprese le
+  delivery group, i campi assenti e le diagnosi formali di Codice Fiscale e PEC;
+- lo storico conserva e ripristina fino a dieci configurazioni differenti degli
+  ultimi 90 giorni tramite la lease e l’hash della Validation corrente;
+- la gestione delle etichette considera soltanto la variante visibile del campo
+  “Interno”, limita le letture Shopify concorrenti e rifiuta pagine incomplete;
+- il Control Center genera notifiche owner deduplicate per incidenti webhook,
+  acquisizione Partner ed errori persistenti delle etichette, inclusa la
+  risoluzione;
+- Regole checkout espone durate server dettagliate e la suite browser ripete in
+  WebKit i percorsi merchant sensibili, mantenendo separata la prova su iPhone
+  embedded reale.
+
 ## 1.9.3 — 12 settembre 2026
 
 - la Guida raccoglie quattordici FAQ chiuse all’apertura, organizzate per tema e
