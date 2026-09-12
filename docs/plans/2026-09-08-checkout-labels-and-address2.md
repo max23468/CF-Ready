@@ -158,11 +158,12 @@ quando cambia la lingua predefinita.
 
 ### 4.1 Etichette di Codice Fiscale e PEC
 
-Il merchant vede prima i testi proposti da CF Ready e può scegliere “Controlla
-e sincronizza le etichette native”. Soltanto questa azione apre la richiesta
-degli scope opzionali. Dopo il consenso CF Ready legge Shopify, mostra il
-confronto completo e richiede una seconda conferma prima della prima scrittura.
-Il rifiuto degli scope lascia disponibile la procedura guidata manuale.
+Il merchant può scegliere “Controlla le etichette Shopify”. Il riquadro spiega
+quali dati diventano accessibili, senza anticipare esempi delle etichette.
+Soltanto questa azione apre la richiesta degli scope opzionali. Dopo il consenso
+CF Ready legge Shopify, mostra il confronto completo e richiede una seconda
+conferma prima della prima scrittura. Il rifiuto degli scope lascia disponibile
+la procedura guidata manuale.
 
 Per gli slot che hanno superato il gate automatico:
 
@@ -357,9 +358,9 @@ App Bridge prevista da Shopify. Il rifiuto lascia disponibili regole, messaggi,
 simulatore e Validation. L’app non richiede accesso a ordini, clienti,
 indirizzi, temi o dati protetti.
 
-Prima della richiesta, l'app può mostrare soltanto testi proposti e spiegazione
-dei permessi. Il confronto con lo stato Shopify avviene dopo che tutti e tre gli
-scope sono concessi. `app/scopes_update` aggiorna la sessione offline e marca la
+Prima della richiesta, l'app mostra la spiegazione dei permessi senza esempi dei
+testi proposti. Il confronto con lo stato Shopify avviene dopo che tutti e tre
+gli scope sono concessi. `app/scopes_update` aggiorna la sessione offline e marca la
 funzione `scope_required` quando uno scope viene revocato; conserva baseline e
 ownership per consentire un eventuale ripristino dopo un nuovo consenso, senza
 tentare scritture con un token insufficiente.
@@ -520,10 +521,12 @@ per ownership e ripristino.
 La pagina resta il centro della funzione.
 
 Le scelte delle regole e i controlli sulle etichette vivono nella pagina Regole.
-Su desktop i box “Campo Interno” e “Testi del checkout (impostazioni avanzate)”
+Su desktop i box “Campo Interno” e “Testi del checkout”
 occupano, in questo ordine, la colonna sinistra sotto le regole, mentre il
 simulatore resta nella colonna destra. Un solo selettore mostra Italiano o
-Inglese e conserva la scelta durante la sessione e le riletture Shopify.
+Inglese e conserva la scelta durante la sessione e le riletture Shopify. Se
+mancano i permessi opzionali, il box per richiederli compare subito sotto il
+selettore, prima del blocco “Campo Interno”.
 
 Il primo blocco, “Campo Interno”, contiene:
 
@@ -538,13 +541,15 @@ Il primo blocco, “Campo Interno”, contiene:
 - istruzioni per l’opzione del modulo;
 - collegamento alle impostazioni Checkout per cambiare l’opzione dichiarata.
 
-Il secondo blocco, “Testi del checkout (impostazioni avanzate)”, contiene:
+Il secondo blocco, “Testi del checkout”, contiene:
 
 - le tre modalità indipendenti dei due campi;
 - stato dei permessi;
 - azione per richiedere gli scope opzionali quando assenti;
 - modalità `Automatica`, `Guidata` o `Mista` determinata dal gate e dagli slot
   disponibili sullo store;
+- istruzioni per ogni verifica manuale raccolte in pannelli espandibili, chiusi
+  all’apertura;
 - interruttore di gestione automatica soltanto quando almeno uno slot è
   scrivibile;
 - valore predefinito della lingua selezionata e sole personalizzazioni di
@@ -555,8 +560,9 @@ Il secondo blocco, “Testi del checkout (impostazioni avanzate)”, contiene:
 - badge per eventuali override di mercato;
 - data dell’ultima verifica manuale valida;
 - ultima sincronizzazione;
-- azione “Rileggi i campi da Shopify”, che aggiorna i dati senza ricaricare la
-  pagina;
+- azione “Rileggi i campi da Shopify”, che esegue una nuova lettura server,
+  mostra lo stato di caricamento e applica subito alla pagina snapshot, stati e
+  conferme aggiornati; un esito visibile conferma che la rilettura è terminata;
 - azione “Ripristina e interrompi la gestione” per gli slot posseduti;
 - procedura numerata che distingue l’editor del contenuto checkout della lingua
   primaria da Lingue/Translate & Adapt per lingue secondarie e mercati, quindi
@@ -590,19 +596,12 @@ Modifiche previste:
 3. indicazione “Testo attuale Shopify” oppure “Testo dopo il salvataggio”;
 4. supporto al caso `unmanaged`, nel quale il campo resta assente dal simulatore
    CF Ready;
-5. campo “Interno” sempre visibile nell'anteprima, usando il testo osservato o
-   una copia neutra quando la lettura non è disponibile;
-6. scenario “Interno rinominato come Codice Fiscale” quando il controllo rileva
-   un conflitto, con visualizzazione contemporanea del localized field e della
-   seconda riga per rendere evidente la duplicazione;
-7. nessuna simulazione di un’opzione del modulo che l’API non ha osservato;
-8. testo esplicito che il checkout reale resta il gate conclusivo.
+5. esclusione del campo “Interno”, che CF Ready non gestisce né valida.
 
 Il simulatore usa gli stessi resolver puri impiegati dal server per scegliere
 copy, lingua e stato, ma non invia traduzioni e non conserva i valori digitati.
-È l’unica superficie che riunisce visivamente i campi nativi e “Interno” nello
-stesso modulo: qui l’accostamento serve a mostrare la duplicazione concreta,
-mentre la configurazione mantiene i due contratti separati.
+Il controllo del campo “Interno” resta nella sezione dedicata della pagina
+Regole checkout.
 
 ### 10.3 Onboarding
 
@@ -623,9 +622,8 @@ L’onboarding resta di quattro passi.
 
 **Passo 3 — Anteprima**
 
-- usa il simulatore aggiornato;
-- consente il confronto IT/EN;
-- mostra la duplicazione se “Interno” presenta un probabile conflitto;
+- riepiloga il comportamento delle regole, il loro ambito e i messaggi
+  configurati;
 - presenta il controllo automatico senza affermare che il checkout reale sia
   stato verificato.
 
@@ -913,8 +911,8 @@ snapshot Development della release.
 
 - loader in sola lettura;
 - attivazione degli scope opzionali;
-- anteprima proposta prima degli scope e confronto Shopify soltanto dopo il
-  consenso;
+- spiegazione dei permessi senza esempi prima degli scope e confronto Shopify
+  soltanto dopo il consenso;
 - confronto attuale/proposto;
 - Save Bar e bozze concorrenti;
 - conflitto recuperabile;
@@ -927,10 +925,9 @@ snapshot Development della release.
 
 - selettore IT/EN;
 - etichette derivate da ogni modalità;
-- “Interno” sempre visibile con valore osservato o fallback neutro;
-- scenario con due campi apparentemente fiscali;
+- campo “Interno” assente dal simulatore;
 - nessuna pretesa di checkout reale;
-- onboarding nuovo, riaperto e senza permessi;
+- onboarding nuovo, riaperto, senza permessi e senza simulatore;
 - conclusione possibile senza attivare la funzione etichette.
 
 ### 15.5 Gate repository
@@ -1073,8 +1070,9 @@ reale.
 
 La funzione è pronta quando:
 
-- il merchant vede i testi proposti prima degli scope e, dopo il consenso,
-  confronta IT ed EN con Shopify prima della prima scrittura API;
+- il merchant legge l'ambito dei permessi senza esempi prima degli scope e,
+  dopo il consenso, confronta IT ed EN con Shopify prima della prima scrittura
+  API;
 - nessun GID è hardcoded;
 - gli scope aggiuntivi sono opzionali;
 - ogni scrittura è limitata alle quattro chiavi allowlistate;
@@ -1091,8 +1089,8 @@ La funzione è pronta quando:
   confronto esplicito e riceve una procedura guidata per il sorgente primario;
 - Regole checkout presenta una sezione madre con due blocchi impilati e mantiene
   separati stati, errori e azioni;
-- soltanto il simulatore accosta i campi nativi e “Interno” per rendere visibile
-  la duplicazione;
+- il simulatore mostra soltanto i campi gestiti da CF Ready e mantiene “Interno”
+  nella sezione dedicata;
 - l’app dichiara che lo stato del modulo resta manuale;
 - simulatore, onboarding, Home, Messaggi, Guida, FAQ e diagnostica descrivono lo
   stesso contratto;

@@ -3,8 +3,7 @@ import { isValidPec, isValidTaxCode } from "../../checkout-field-validation";
 import type { Messages, Rules } from "../../config";
 import { texts } from "../../i18n";
 import type { Locale } from "../../i18n";
-import { address2Reference, checkoutLabelCopy } from "../../checkout-labels/domain";
-import type { CheckoutLabelsSnapshot } from "../../checkout-labels/domain";
+import { checkoutLabelCopy } from "../../checkout-labels/domain";
 import "./CheckoutSimulator.css";
 import {
   simulatorErrorMessage,
@@ -59,12 +58,10 @@ export function CheckoutSimulator({
   locale,
   rules,
   messages,
-  labelSnapshot,
 }: {
   locale: Locale;
   rules: Rules;
   messages: Messages | Record<Locale, Messages>;
-  labelSnapshot?: CheckoutLabelsSnapshot | null;
 }) {
   const [selectedPreviewLocale, setSelectedPreviewLocale] = useState<Locale | null>(null);
   const previewLocale = selectedPreviewLocale ?? locale;
@@ -100,41 +97,43 @@ export function CheckoutSimulator({
       >
         <s-box background="transparent" border="base" borderRadius="large" overflow="hidden">
           <s-box padding="small-200">
-            <s-grid
-              gridTemplateColumns="@container (inline-size > 420px) 1fr auto, 1fr"
-              alignItems="center"
-              gap="small-200"
-            >
-              <s-grid gridTemplateColumns="auto 1fr" gap="small-200" alignItems="start">
-                <s-avatar src="/favicon.svg" alt="CF Ready" size="large" />
-                <s-stack direction="block" gap="small-100">
-                  <span className="checkout-simulator__eyebrow">
-                    <s-text color="subdued">{copy.eyebrow}</s-text>
-                  </span>
-                  <s-heading>{copy.heading}</s-heading>
-                  <s-text color="subdued">{copy.privatePreview}</s-text>
-                </s-stack>
-              </s-grid>
-              <span
-                aria-atomic="true"
-                aria-live="polite"
-                className="checkout-simulator__outcome cf-motion-swap"
-                key={outcome}
-                role="status"
+            <s-stack direction="block" gap="small-200">
+              <s-grid
+                gridTemplateColumns="@container (inline-size > 420px) 1fr auto, 1fr"
+                alignItems="center"
+                gap="small-200"
               >
-                <s-badge tone={outcomeTone[outcome]} icon={outcomeIcon[outcome]}>
-                  {copy.outcomes[outcome]}
-                </s-badge>
-              </span>
-            </s-grid>
-            <s-select
-              label={copy.previewLanguage}
-              value={previewLocale}
-              onChange={(event) => setSelectedPreviewLocale(event.currentTarget.value as Locale)}
-            >
-              <s-option value="it">{copy.italian}</s-option>
-              <s-option value="en">{copy.english}</s-option>
-            </s-select>
+                <s-grid gridTemplateColumns="auto 1fr" gap="small-200" alignItems="start">
+                  <s-avatar src="/favicon.svg" alt="CF Ready" size="large" />
+                  <s-stack direction="block" gap="small-100">
+                    <span className="checkout-simulator__eyebrow">
+                      <s-text color="subdued">{copy.eyebrow}</s-text>
+                    </span>
+                    <s-heading>{copy.heading}</s-heading>
+                    <s-text color="subdued">{copy.privatePreview}</s-text>
+                  </s-stack>
+                </s-grid>
+                <span
+                  aria-atomic="true"
+                  aria-live="polite"
+                  className="checkout-simulator__outcome cf-motion-swap"
+                  key={outcome}
+                  role="status"
+                >
+                  <s-badge tone={outcomeTone[outcome]} icon={outcomeIcon[outcome]}>
+                    {copy.outcomes[outcome]}
+                  </s-badge>
+                </span>
+              </s-grid>
+              <s-select
+                label={copy.previewLanguage}
+                value={previewLocale}
+                onChange={(event) => setSelectedPreviewLocale(event.currentTarget.value as Locale)}
+              >
+                <s-option value="it">{copy.italian}</s-option>
+                <s-option value="en">{copy.english}</s-option>
+              </s-select>
+            </s-stack>
           </s-box>
 
           <s-divider />
@@ -177,7 +176,6 @@ export function CheckoutSimulator({
                 company={company}
                 taxCode={taxCode}
                 pec={pec}
-                labelSnapshot={labelSnapshot}
                 onCompanyChange={(value) => updateState({ scenario: "", company: value })}
                 onTaxCodeChange={(value) => {
                   updateState({ scenario: "", taxCode: value });
@@ -255,7 +253,6 @@ function SimulatorCustomerFields({
   company,
   taxCode,
   pec,
-  labelSnapshot,
   onCompanyChange,
   onTaxCodeChange,
   onPecChange,
@@ -268,7 +265,6 @@ function SimulatorCustomerFields({
   company: string;
   taxCode: string;
   pec: string;
-  labelSnapshot?: CheckoutLabelsSnapshot | null;
   onCompanyChange: (value: string) => void;
   onTaxCodeChange: (value: string) => void;
   onPecChange: (value: string) => void;
@@ -303,7 +299,7 @@ function SimulatorCustomerFields({
           />
           {rules.taxCode === "unmanaged" ? null : (
             <s-text-field
-              label={checkoutLabelCopy("taxCode", locale, rules.taxCode) ?? t.rules.taxCodeLabel}
+              label={checkoutLabelCopy("taxCode", locale, rules.taxCode)!}
               value={taxCode}
               required={rules.taxCode === "required_validated"}
               error={simulatorErrorMessage(
@@ -317,7 +313,7 @@ function SimulatorCustomerFields({
           )}
           {rules.pec === "unmanaged" ? null : (
             <s-text-field
-              label={checkoutLabelCopy("pec", locale, rules.pec) ?? t.rules.pecLabel}
+              label={checkoutLabelCopy("pec", locale, rules.pec)!}
               value={pec}
               required={pecIsRequired(rules.pec, company)}
               error={simulatorErrorMessage(
@@ -335,14 +331,6 @@ function SimulatorCustomerFields({
           <s-paragraph color="subdued">{t.checkout.nothing}</s-paragraph>
         </s-box>
       )}
-      <s-text-field
-        label={
-          observedAddress2Label(labelSnapshot, locale) ?? address2Reference("address2", locale)
-        }
-        value=""
-        disabled
-      />
-      <s-text color="subdued">{copy.realCheckout}</s-text>
     </s-stack>
   );
 }
@@ -392,16 +380,6 @@ function SimulatorScenarioOptions({
   );
 }
 
-function observedAddress2Label(
-  snapshot: CheckoutLabelsSnapshot | null | undefined,
-  locale: Locale,
-) {
-  const slots = snapshot?.slots.filter(
-    (slot) => slot.name === "address2" && slot.family === locale && slot.marketId === null,
-  );
-  const slot = slots?.find((candidate) => candidate.kind === "source") ?? slots?.[0];
-  return slot?.currentValue ?? null;
-}
 function SimulatorCountrySelect({
   label,
   value,

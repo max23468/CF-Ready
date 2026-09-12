@@ -5,7 +5,6 @@ import type { Rules } from "../../config";
 import {
   CHECKOUT_LABEL_OPTIONAL_SCOPES,
   classifyAddress2,
-  checkoutLabelCopy,
   checkoutLabelSlotId,
   checkoutLabelValuesMatch,
   observedLabelForSlot,
@@ -18,7 +17,17 @@ import {
 } from "../../checkout-labels/domain";
 import { texts, type Locale } from "../../i18n";
 
-type LabelsAction = { ok: true } | { ok: false; errorCode: string } | undefined;
+type LabelsAction =
+  | {
+      ok: true;
+      refreshed?: {
+        snapshot: CheckoutLabelsSnapshot;
+        state: CheckoutLabelState;
+        guidedConfirmations: Array<{ slotId: string; confirmedAt: string }>;
+      };
+    }
+  | { ok: false; errorCode: string }
+  | undefined;
 type FiscalLabelContext = {
   key: string;
   label: string;
@@ -61,15 +70,96 @@ export function CheckoutLabelsSection({
 }: CheckoutLabelsSectionProps) {
   const t = texts(locale);
   const copy = t.rules.labels;
+  const [selectedFamily, setSelectedFamily] = useState<CheckoutLabelFamily | null>(null);
+  const activeFamily = selectedFamily ?? locale;
+  const controls = useCheckoutLabelsControls(snapshot, state, guidedConfirmations);
+  const controlsBusy = [
+    busy,
+    controls.actionBusy,
+    controls.scopeRequestBusy,
+    controls.revalidationBusy,
+  ].some(Boolean);
+
+  return (
+    <s-section heading={copy.heading}>
+      <s-stack direction="block" gap="base">
+        <s-select
+          label={copy.language}
+          value={activeFamily}
+          onChange={(event) => setSelectedFamily(event.currentTarget.value as CheckoutLabelFamily)}
+        >
+          <s-option value="it" selected={activeFamily === "it"}>
+            {copy.italian}
+          </s-option>
+          <s-option value="en" selected={activeFamily === "en"}>
+            {copy.english}
+          </s-option>
+        </s-select>
+        <CheckoutLabelsPermission
+          locale={locale}
+          state={state}
+          scopeGranted={scopeGranted}
+          busy={controlsBusy}
+          requestPermissions={controls.requestPermissions}
+          onKeep={() => controls.submitIntent("accept_checkout_labels")}
+        />
+        <CheckoutLabelsFeedback
+          locale={locale}
+          actionError={controls.actionError}
+          scopeRequestError={controls.scopeRequestError}
+          loadErrorCode={loadErrorCode}
+          refreshed={Boolean(controls.refreshed)}
+        />
+
+        <Address2CheckoutLabels
+          locale={locale}
+          rules={rules}
+          scopeGranted={scopeGranted}
+          snapshot={controls.visibleSnapshot}
+          state={controls.visibleState}
+          activeFamily={activeFamily}
+          busy={controlsBusy}
+          checkoutSettingsUrl={checkoutSettingsUrl}
+          submitIntent={controls.submitIntent}
+        />
+        <NativeCheckoutLabelsWhenGranted
+          locale={locale}
+          rules={rules}
+          scopeGranted={scopeGranted}
+          snapshot={controls.visibleSnapshot}
+          state={controls.visibleState}
+          activeFamily={activeFamily}
+          storefrontUrl={storefrontUrl}
+          checkoutSettingsUrl={checkoutSettingsUrl}
+          enabled={enabled}
+          busy={controlsBusy}
+          onEnabledChange={onEnabledChange}
+          guidedConfirmations={controls.visibleGuidedConfirmations}
+          submitIntent={controls.submitIntent}
+          refreshing={controls.refreshing}
+        />
+      </s-stack>
+    </s-section>
+  );
+}
+
+function useCheckoutLabelsControls(
+  snapshot: CheckoutLabelsSnapshot | null,
+  state: CheckoutLabelState,
+  guidedConfirmations: Array<{ slotId: string; confirmedAt: string }>,
+) {
   const fetcher = useFetcher<LabelsAction>();
   const revalidator = useRevalidator();
   const [scopeRequestBusy, setScopeRequestBusy] = useState(false);
   const [scopeRequestError, setScopeRequestError] = useState<string | null>(null);
-  const [selectedFamily, setSelectedFamily] = useState<CheckoutLabelFamily | null>(null);
-  const activeFamily = selectedFamily ?? locale;
   const actionBusy = fetcher.state !== "idle";
   const revalidationBusy = revalidator.state !== "idle";
   const actionError = fetcher.data?.ok === false ? fetcher.data.errorCode : null;
+  const refreshed = fetcher.data?.ok ? fetcher.data.refreshed : undefined;
+  const visibleSnapshot = refreshed?.snapshot ?? snapshot;
+  const visibleState = refreshed?.state ?? state;
+  const visibleGuidedConfirmations = refreshed?.guidedConfirmations ?? guidedConfirmations;
+  const refreshing = actionBusy && fetcher.formData?.get("intent") === "refresh_checkout_labels";
   const submitIntent = (
     intent: string,
     slotIds: string[] = [],
@@ -77,7 +167,7 @@ export function CheckoutLabelsSection({
   ) => {
     const form = new FormData();
     form.set("intent", intent);
-    form.set("labelsRevision", snapshot?.revision ?? "");
+    form.set("labelsRevision", visibleSnapshot?.revision ?? "");
     for (const slotId of slotIds) form.append("slotId", slotId);
     for (const [name, value] of Object.entries(values)) form.set(name, value);
     fetcher.submit(form, { method: "post" });
@@ -95,63 +185,74 @@ export function CheckoutLabelsSection({
     }
   };
 
-  return (
-    <s-section heading={copy.heading}>
-      <s-stack direction="block" gap="base">
-        <s-select
-          label={copy.language}
-          value={activeFamily}
-          onChange={(event) => setSelectedFamily(event.currentTarget.value as CheckoutLabelFamily)}
-        >
-          <s-option value="it" selected={activeFamily === "it"}>
-            {copy.italian}
-          </s-option>
-          <s-option value="en" selected={activeFamily === "en"}>
-            {copy.english}
-          </s-option>
-        </s-select>
-        {actionError || scopeRequestError ? (
-          <s-banner tone="critical">
-            {localizedError(t.errors, actionError ?? scopeRequestError)}
-          </s-banner>
-        ) : null}
-        {loadErrorCode ? (
-          <s-banner tone="warning">{localizedError(t.errors, loadErrorCode)}</s-banner>
-        ) : null}
+  return {
+    actionBusy,
+    actionError,
+    refreshed,
+    refreshing,
+    revalidationBusy,
+    scopeRequestBusy,
+    scopeRequestError,
+    visibleGuidedConfirmations,
+    visibleSnapshot,
+    visibleState,
+    requestPermissions,
+    submitIntent,
+  };
+}
 
-        <Address2CheckoutLabels
-          key={`address2:${snapshot?.revision ?? "none"}`}
-          locale={locale}
-          rules={rules}
-          scopeGranted={scopeGranted}
-          snapshot={snapshot}
-          state={state}
-          activeFamily={activeFamily}
-          busy={busy || actionBusy || revalidationBusy}
-          checkoutSettingsUrl={checkoutSettingsUrl}
-          submitIntent={submitIntent}
-        />
-        <NativeCheckoutLabels
-          key={`native:${snapshot?.revision ?? "none"}`}
-          locale={locale}
-          rules={rules}
-          scopeGranted={scopeGranted}
-          snapshot={snapshot}
-          state={state}
-          activeFamily={activeFamily}
-          storefrontUrl={storefrontUrl}
-          checkoutSettingsUrl={checkoutSettingsUrl}
-          enabled={enabled}
-          busy={busy || actionBusy || scopeRequestBusy || revalidationBusy}
-          onEnabledChange={onEnabledChange}
-          guidedConfirmations={guidedConfirmations}
-          submitIntent={submitIntent}
-          requestPermissions={requestPermissions}
-          refreshSnapshot={() => revalidator.revalidate()}
-        />
-      </s-stack>
-    </s-section>
+function CheckoutLabelsPermission({
+  locale,
+  state,
+  scopeGranted,
+  busy,
+  requestPermissions,
+  onKeep,
+}: Pick<CheckoutLabelsSectionProps, "locale" | "state" | "scopeGranted" | "busy"> & {
+  requestPermissions: () => Promise<void>;
+  onKeep: () => void;
+}) {
+  if (scopeGranted) return null;
+  return (
+    <NativeLabelsPermissionPrompt
+      locale={locale}
+      state={state}
+      busy={busy}
+      requestPermissions={requestPermissions}
+      onKeep={onKeep}
+    />
   );
+}
+
+function CheckoutLabelsFeedback({
+  locale,
+  actionError,
+  scopeRequestError,
+  loadErrorCode,
+  refreshed,
+}: {
+  locale: Locale;
+  actionError: string | null;
+  scopeRequestError: string | null;
+  loadErrorCode: string | null;
+  refreshed: boolean;
+}) {
+  const t = texts(locale);
+  const error = actionError ?? scopeRequestError;
+  return (
+    <>
+      {error ? <s-banner tone="critical">{localizedError(t.errors, error)}</s-banner> : null}
+      {loadErrorCode && !refreshed ? (
+        <s-banner tone="warning">{localizedError(t.errors, loadErrorCode)}</s-banner>
+      ) : null}
+      {refreshed ? <s-banner tone="success">{t.rules.labels.refreshComplete}</s-banner> : null}
+    </>
+  );
+}
+
+function NativeCheckoutLabelsWhenGranted(props: Parameters<typeof NativeCheckoutLabels>[0]) {
+  if (!props.scopeGranted) return null;
+  return <NativeCheckoutLabels {...props} />;
 }
 
 function NativeCheckoutLabels({
@@ -168,8 +269,7 @@ function NativeCheckoutLabels({
   onEnabledChange,
   guidedConfirmations,
   submitIntent,
-  requestPermissions,
-  refreshSnapshot,
+  refreshing,
 }: Pick<
   CheckoutLabelsSectionProps,
   | "locale"
@@ -185,9 +285,8 @@ function NativeCheckoutLabels({
   | "guidedConfirmations"
 > & {
   activeFamily: CheckoutLabelFamily;
-  submitIntent: (intent: string, slotIds?: string[]) => void;
-  requestPermissions: () => Promise<void>;
-  refreshSnapshot: () => void;
+  submitIntent: (intent: string, slotIds?: string[], values?: Record<string, string>) => void;
+  refreshing: boolean;
 }) {
   const copy = texts(locale).rules.labels;
   const automaticAvailable = Boolean(
@@ -205,14 +304,12 @@ function NativeCheckoutLabels({
   );
   const keptByMerchant = state.mode === "off" && state.decision === "accepted";
   const needsAttention =
-    (!scopeGranted && !keptByMerchant) ||
     pendingContexts.length > 0 ||
     Boolean(state.lastErrorCode) ||
     (state.mode === "off" && state.decision === "pending");
   const presentation = nativeLabelsPresentation({
     copy,
     state,
-    scopeGranted,
     keptByMerchant,
     pendingCount: pendingContexts.length,
   });
@@ -227,35 +324,23 @@ function NativeCheckoutLabels({
         <s-paragraph color="subdued">{presentation.summary}</s-paragraph>
       </summary>
       <div className="checkout-labels-disclosure__body">
-        {!scopeGranted ? (
-          <NativeLabelsPermissionPrompt
-            locale={locale}
-            rules={rules}
-            state={state}
-            activeFamily={activeFamily}
-            busy={busy}
-            requestPermissions={requestPermissions}
-            onKeep={() => submitIntent("accept_checkout_labels")}
-          />
-        ) : (
-          <NativeLabelsGrantedContent
-            locale={locale}
-            rules={rules}
-            snapshot={snapshot}
-            state={state}
-            enabled={enabled}
-            busy={busy}
-            activeFamily={activeFamily}
-            storefrontUrl={storefrontUrl}
-            checkoutSettingsUrl={checkoutSettingsUrl}
-            automaticAvailable={automaticAvailable}
-            displayedContexts={displayedContexts}
-            guidedConfirmations={guidedConfirmations}
-            onEnabledChange={onEnabledChange}
-            submitIntent={submitIntent}
-            refreshSnapshot={refreshSnapshot}
-          />
-        )}
+        <NativeLabelsGrantedContent
+          locale={locale}
+          rules={rules}
+          snapshot={snapshot}
+          state={state}
+          enabled={enabled}
+          busy={busy}
+          activeFamily={activeFamily}
+          storefrontUrl={storefrontUrl}
+          checkoutSettingsUrl={checkoutSettingsUrl}
+          automaticAvailable={automaticAvailable}
+          displayedContexts={displayedContexts}
+          guidedConfirmations={guidedConfirmations}
+          onEnabledChange={onEnabledChange}
+          submitIntent={submitIntent}
+          refreshing={refreshing}
+        />
       </div>
     </details>
   );
@@ -263,14 +348,11 @@ function NativeCheckoutLabels({
 
 function NativeLabelsPermissionPrompt({
   locale,
-  rules,
   state,
-  activeFamily,
   busy,
   requestPermissions,
   onKeep,
-}: Pick<CheckoutLabelsSectionProps, "locale" | "rules" | "state" | "busy"> & {
-  activeFamily: CheckoutLabelFamily;
+}: Pick<CheckoutLabelsSectionProps, "locale" | "state" | "busy"> & {
   requestPermissions: () => Promise<void>;
   onKeep: () => void;
 }) {
@@ -280,7 +362,6 @@ function NativeLabelsPermissionPrompt({
       <s-stack direction="block" gap="small-200">
         <s-text type="strong">{copy.permissionsHeading}</s-text>
         <s-paragraph>{copy.permissionsBody}</s-paragraph>
-        <ProposedLabels rules={rules} locale={locale} family={activeFamily} />
         <s-button variant="primary" disabled={busy} onClick={requestPermissions}>
           {copy.requestPermissions}
         </s-button>
@@ -310,7 +391,7 @@ function NativeLabelsGrantedContent({
   guidedConfirmations,
   onEnabledChange,
   submitIntent,
-  refreshSnapshot,
+  refreshing,
 }: Pick<
   CheckoutLabelsSectionProps,
   | "locale"
@@ -327,8 +408,8 @@ function NativeLabelsGrantedContent({
   activeFamily: CheckoutLabelFamily;
   automaticAvailable: boolean;
   displayedContexts: FiscalLabelContext[];
-  submitIntent: (intent: string, slotIds?: string[]) => void;
-  refreshSnapshot: () => void;
+  submitIntent: (intent: string, slotIds?: string[], values?: Record<string, string>) => void;
+  refreshing: boolean;
 }) {
   const copy = texts(locale).rules.labels;
   const confirmed = new Map(
@@ -391,7 +472,16 @@ function NativeLabelsGrantedContent({
         copy={copy}
         onAccept={() => submitIntent("accept_checkout_labels")}
       />
-      <s-button disabled={busy} onClick={refreshSnapshot}>
+      <s-button
+        disabled={busy}
+        loading={refreshing}
+        onClick={() =>
+          submitIntent("refresh_checkout_labels", [], {
+            taxCode: rules.taxCode,
+            pec: rules.pec,
+          })
+        }
+      >
         {copy.refresh}
       </s-button>
     </s-stack>
@@ -413,13 +503,11 @@ function MarketResolutionWarning({
 function nativeLabelsPresentation({
   copy,
   state,
-  scopeGranted,
   keptByMerchant,
   pendingCount,
 }: {
   copy: ReturnType<typeof texts>["rules"]["labels"];
   state: CheckoutLabelState;
-  scopeGranted: boolean;
   keptByMerchant: boolean;
   pendingCount: number;
 }) {
@@ -434,9 +522,6 @@ function nativeLabelsPresentation({
   }
   if (keptByMerchant) {
     return { status: copy.statusManagedByShopify, summary: copy.nativeSummaryKept };
-  }
-  if (!scopeGranted) {
-    return { status: copy.statusManualRequired, summary: copy.nativeSummaryNeedsAccess };
   }
   if (state.mode === "off" && state.decision === "pending") {
     return { status: copy.statusManualRequired, summary: copy.nativeSummaryNeedsChoice };
@@ -806,38 +891,42 @@ function LabelComparison({
               ))}
             </div>
             {pendingSlotIds.length > 0 ? (
-              <s-box background="subdued" borderRadius="base" padding="base">
-                <s-stack direction="block" gap="small-200">
+              <details className="checkout-labels-disclosure checkout-label-instructions">
+                <summary className="checkout-labels-disclosure__summary">
                   <s-text type="strong">{copy.manualHeading}</s-text>
-                  <s-ordered-list>
-                    {copy
-                      .manualSteps(
-                        context.language,
-                        context.marketName,
-                        context.primary,
-                        context.verificationMarkets,
-                      )
-                      .map((step) => (
-                        <s-list-item key={step}>{step}</s-list-item>
-                      ))}
-                  </s-ordered-list>
-                  <s-link href={storefrontUrl} target="_blank">
-                    {copy.openStorefront}
-                  </s-link>
-                  <s-link href={checkoutSettingsUrl} target="_blank">
-                    {copy.openCheckoutContentEditor}
-                  </s-link>
-                  {!matchesProposed ? (
-                    <s-banner tone="warning">{copy.manualMismatch}</s-banner>
-                  ) : null}
-                  <s-button
-                    disabled={busy || !matchesProposed}
-                    onClick={() => onConfirm(pendingSlotIds)}
-                  >
-                    {copy.confirmGuided}
-                  </s-button>
-                </s-stack>
-              </s-box>
+                </summary>
+                <div className="checkout-labels-disclosure__body">
+                  <s-stack direction="block" gap="small-200">
+                    <s-ordered-list>
+                      {copy
+                        .manualSteps(
+                          context.language,
+                          context.marketName,
+                          context.primary,
+                          context.verificationMarkets,
+                        )
+                        .map((step) => (
+                          <s-list-item key={step}>{step}</s-list-item>
+                        ))}
+                    </s-ordered-list>
+                    <s-link href={storefrontUrl} target="_blank">
+                      {copy.openStorefront}
+                    </s-link>
+                    <s-link href={checkoutSettingsUrl} target="_blank">
+                      {copy.openCheckoutContentEditor}
+                    </s-link>
+                    {!matchesProposed ? (
+                      <s-banner tone="warning">{copy.manualMismatch}</s-banner>
+                    ) : null}
+                    <s-button
+                      disabled={busy || !matchesProposed}
+                      onClick={() => onConfirm(pendingSlotIds)}
+                    >
+                      {copy.confirmGuided}
+                    </s-button>
+                  </s-stack>
+                </div>
+              </details>
             ) : confirmedAt ? (
               <s-text color="subdued">
                 {copy.lastManualVerification(formatTimestamp(confirmedAt, locale))}
@@ -1071,36 +1160,6 @@ function restorableAddressSlots(
       observedLabelForSlot(slot) !== proposedLabelForSlot(slot, rules)
     );
   });
-}
-
-function ProposedLabels({
-  rules,
-  locale,
-  family,
-}: {
-  rules: Rules;
-  locale: Locale;
-  family: CheckoutLabelFamily;
-}) {
-  const copy = texts(locale).rules.labels;
-  const rulesCopy = texts(locale).rules;
-  return (
-    <div className="checkout-label-contexts">
-      <div className="checkout-label-context">
-        <s-text type="strong">{family === "it" ? copy.italian : copy.english}</s-text>
-        <div className="checkout-label-context__rows">
-          <div className="checkout-label-context__row">
-            <s-text>{rulesCopy.taxCodeLabel}</s-text>
-            <s-text>{checkoutLabelCopy("taxCode", family, rules.taxCode) ?? copy.unchanged}</s-text>
-          </div>
-          <div className="checkout-label-context__row">
-            <s-text>{rulesCopy.pecLabel}</s-text>
-            <s-text>{checkoutLabelCopy("pec", family, rules.pec) ?? copy.unchanged}</s-text>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function addressTone(classification: CheckoutLabelState["address2Classification"]) {
