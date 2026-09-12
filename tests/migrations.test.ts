@@ -574,7 +574,39 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "0022_configuration_history.sql",
     "0023_owner_operational_incidents.sql",
   ]);
-  await applyD1Migrations(db, migrations);
+  await applyThrough(db, migrations, "0022_configuration_history.sql");
+  await insertShop(db);
+  await db
+    .prepare(
+      `INSERT INTO owner_notifications
+         (id, dedupe_key, notification_kind, shop_domain, subject, body_text,
+          source_occurred_at, status, attempts, available_at, created_at, updated_at)
+       VALUES (23, 'before-operational', 'billing', 'migration.example.myshopify.com',
+               'Prima', 'Conservata', '2026-09-11', 'sent', 2,
+               '2026-09-11', '2026-09-11', '2026-09-11')`,
+    )
+    .run();
+  await applyD1Migrations(db, [migrationAfter(migrations, "0022_configuration_history.sql")]);
+
+  expect(await db.prepare("SELECT * FROM owner_notifications WHERE id = 23").first()).toMatchObject(
+    {
+      dedupe_key: "before-operational",
+      notification_kind: "billing",
+      shop_domain: "migration.example.myshopify.com",
+      status: "sent",
+      attempts: 2,
+    },
+  );
+  await db
+    .prepare(
+      `INSERT INTO owner_notifications
+         (dedupe_key, notification_kind, shop_domain, subject, body_text,
+          source_occurred_at, available_at, created_at, updated_at)
+       VALUES ('old-worker-compatible', 'trial', 'migration.example.myshopify.com',
+               'Compatibile', 'Scrittura precedente', '2026-09-12',
+               '2026-09-12', '2026-09-12', '2026-09-12')`,
+    )
+    .run();
 
   expect((await db.prepare("PRAGMA foreign_key_check").all()).results).toEqual([]);
   const tables = await db

@@ -3,6 +3,7 @@ import { pathToFileURL } from "node:url";
 
 import {
   readMigrations,
+  readMigrationPolicy,
   run,
   verifyMigrationSafety,
   verifyWorkerSecrets,
@@ -132,7 +133,7 @@ async function main() {
   const shopifyConfig = await readFile("shopify.app.dev.toml", "utf8");
   const wranglerConfig = await readFile("wrangler.json", "utf8");
   verifyDevelopmentConfig(shopifyConfig, wranglerConfig);
-  verifyMigrationSafety(await readMigrations());
+  verifyMigrationSafety(await readMigrations(), await readMigrationPolicy());
 
   run("node", ["scripts/shopify-info-safe.mjs", "shopify.app.dev.toml"]);
   const versions = JSON.parse(
