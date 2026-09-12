@@ -654,7 +654,7 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
       assert.doesNotMatch(workflow, /@shopify\/cli@(?!4\.7\.1)/, path);
     }
     if (/npm run check/.test(workflow)) {
-      const browserInstall = workflow.indexOf("playwright install --with-deps chromium");
+      const browserInstall = workflow.indexOf("playwright install --with-deps chromium webkit");
       assert(browserInstall >= 0, path);
       assert(browserInstall < workflow.indexOf("npm run check"), path);
     }
@@ -1059,7 +1059,8 @@ test("il riallineamento develop è separato dal deploy e fallisce chiuso", () =>
   assert.match(script, /shouldDeferNoDeployReconciliation/);
   assert.match(script, /tree: develop\.tree\.sha/);
   assert.match(script, /comparison\.merge_base_commit\?\.sha !== promotedDevelop/);
-  assert.match(script, /readback\.object\.sha/);
+  assert.match(script, /verifyRefReadback/);
+  assert.match(script, /"cache-control": "no-cache"/);
 });
 
 test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
