@@ -11,7 +11,10 @@ import {
   TAX_CODE_RULE_MODES,
 } from "../../config";
 import { databaseContext } from "../../context.server";
-import { readCheckoutLabelState } from "../../checkout-labels/repository.server";
+import {
+  readCheckoutLabelState,
+  saveAddress2FormMode,
+} from "../../checkout-labels/repository.server";
 import {
   CHECKOUT_LABEL_OPTIONAL_SCOPES,
   loadCheckoutLabels,
@@ -80,11 +83,20 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 
 export type OnboardingData = Awaited<ReturnType<typeof loader>>["data"];
 
+const ADDRESS2_FORM_MODES = ["required", "optional"] as const;
+
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session, scopes } = await authenticate.admin(request);
   const db = context.get(databaseContext);
   const form = await request.formData();
   const intent = form.get("intent");
+
+  if (intent === "save_address2_form_mode") {
+    const mode = oneOf(ADDRESS2_FORM_MODES, form.get("address2FormMode"));
+    if (!mode) return { ok: false as const, errorCode: "generic" as const };
+    await saveAddress2FormMode(db, session.shop, mode);
+    return { ok: true as const };
+  }
 
   if (intent === "progress" || intent === "back" || intent === "next") {
     const step = parseOnboardingStep(form.get("step"));

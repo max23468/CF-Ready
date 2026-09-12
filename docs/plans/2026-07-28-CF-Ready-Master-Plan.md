@@ -391,15 +391,30 @@ Rispetto alle alternative più ampie o invasive:
 | D-154 | Nel Control Center calcolare MRR e ARR netti con revenue share, commissione di elaborazione e commissione operativa regolamentare del Paese dello store; mostrare in `/billing` i ricavi cumulati dalle transazioni Shopify Partner e in `/performance` i requisiti Web Vitals di Built for Shopify e M12. | Gli accrediti Partner dell’11 settembre 2026 mostrano per i negozi italiani il 2,9% di elaborazione e il 3% di commissione operativa regolamentare; Shopify non pubblica la tariffa degli altri Paesi, quindi il run-rate applica loro il solo 2,9% e lo dichiara. I ricavi cumulati sommano abbonamenti, acquisti lifetime, rimborsi e crediti dalla query `transactions`, che richiede il permesso Partner `View financials`, e la cache D1 conserva soltanto totali aggregati. La vista performance stima dai campioni CF Ready il p75 su 28 giorni e i 100 campioni per metrica: lo stato Built for Shopify autorevole resta quello del Partner Dashboard. Deciso dall’owner l’11 settembre 2026 per la `1.9.1`. |
 
 Precisazione D-149 del 9 settembre 2026 per la `1.9.0`: nella pagina Regole il
-blocco “Campo Interno” precede “Testi del checkout (impostazioni avanzate)”. Il
-confronto distingue “Predefinito per questa lingua” da “Personalizzazione per il
-mercato …”; per correggere i valori guida all’editor del contenuto checkout
-della lingua primaria oppure a Lingue/Translate & Adapt, quindi rilegge Shopify
-senza ricaricare la pagina. Gli stati di queste etichette non generano avvisi
-nella Home. Le sezioni “Campo Interno” e “Testi del checkout (impostazioni
-avanzate)” sono chiuse all’apertura, mostrano un controllo di espansione stabile
-e il confronto di Codice Fiscale e PEC ignora le differenze tra maiuscole e
-minuscole.
+blocco “Campo Interno” precede “Testi del checkout”. La sezione si chiama
+“Etichette del checkout (impostazioni avanzate)”. Il confronto distingue
+“Predefinito per questa lingua” da “Personalizzazione per il mercato …”; per
+correggere i valori guida all’editor del contenuto checkout della lingua primaria
+oppure a Lingue/Translate & Adapt, quindi rilegge Shopify senza ricaricare la
+pagina. La rilettura usa una richiesta server esplicita, mostra l'avanzamento e
+applica subito snapshot, stati e conferme restituiti da Shopify, con un esito
+visibile. Il riquadro di richiesta dei permessi spiega l'accesso richiesto senza
+mostrare esempi delle etichette. Gli stati di queste etichette non generano
+avvisi nella Home. Le sezioni
+“Campo Interno” e “Testi del checkout” sono chiuse all’apertura, mostrano un
+controllo di espansione stabile e il confronto di Codice Fiscale e PEC ignora le
+differenze tra maiuscole e minuscole. Se mancano i permessi opzionali, il box per
+richiederli compare subito sotto il selettore Italiano/Inglese. Le istruzioni di
+ogni verifica manuale sono chiuse all’apertura e hanno un controllo di espansione
+visibile.
+
+Precisazione D-149 del 12 settembre 2026: il secondo passo dell’onboarding
+include la scelta della configurazione obbligatoria o facoltativa del campo
+“Interno”. La conferma della prima scrittura automatica delle etichette avviene
+nel modal Polaris già usato in Regole checkout, senza una checkbox separata. Il
+terzo passo conserva riepilogo, ambito e messaggi configurati; il simulatore
+interattivo resta nella pagina Regole checkout e mostra soltanto i campi gestiti
+da CF Ready, senza il campo “Interno”.
 
 Precisazione D-151 dell’11 settembre 2026: `cf-ready.pages.dev` reindirizza con
 301 a `cfready.it` tramite la lista Bulk Redirect di account
@@ -2437,9 +2452,10 @@ applicano con fatturazione estera o sole consegne estere.
 Quattro passaggi:
 
 1. introduzione, perimetro e limitazioni;
-2. scelta regole CF e PEC;
+2. scelta regole CF e PEC, configurazione obbligatoria o facoltativa del campo
+   “Interno” e gestione delle etichette;
 3. eccezioni automatiche e revisione messaggi;
-4. riepilogo, avviso sul campo “Interno” (FR-058) e attivazione.
+4. riepilogo e attivazione.
 
 Regole:
 

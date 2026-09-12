@@ -322,6 +322,27 @@ test("Onboarding valida e salva avanzamento e regole", async () => {
     ok: false,
     errorCode: "generic",
   });
+  expect(
+    await action(
+      args(
+        post("/app/onboarding", {
+          intent: "save_address2_form_mode",
+          address2FormMode: "hidden",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: false, errorCode: "generic" });
+  expect(
+    await action(
+      args(
+        post("/app/onboarding", {
+          intent: "save_address2_form_mode",
+          address2FormMode: "required",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: true });
+  expect(mocks.saveAddress2FormMode).toHaveBeenCalledWith(db, session.shop, "required");
   expect(await action(args(post("/app/onboarding", { intent: "back", step: "2" })))).toEqual({
     ok: true,
   });
@@ -616,7 +637,7 @@ test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", asyn
 });
 
 test("Regole gestisce ripristino e sincronizzazione delle etichette", async () => {
-  const { action } = rulesRoute;
+  const { action, shouldRevalidate } = rulesRoute;
   expect(
     await action(
       args(
@@ -643,10 +664,81 @@ test("Regole gestisce ripristino e sincronizzazione delle etichette", async () =
     ok: false,
     errorCode: "checkout_labels_scope_required",
   });
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          intent: "refresh_checkout_labels",
+          taxCode: "unmanaged",
+          pec: "unmanaged",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: false, errorCode: "checkout_labels_scope_required" });
 
   mocks.scopeQuery.mockResolvedValue({
     granted: ["write_translations", "read_locales", "read_markets"],
   });
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          intent: "refresh_checkout_labels",
+          taxCode: "non_valido",
+          pec: "unmanaged",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: false, errorCode: "generic" });
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          intent: "refresh_checkout_labels",
+          taxCode: "optional_validated",
+          pec: "unmanaged",
+        }),
+      ),
+    ),
+  ).toEqual({
+    ok: true,
+    refreshed: {
+      state: { mode: "guided" },
+      snapshot: { revision: "labels-r1", slots: [] },
+      guidedConfirmations: [],
+    },
+  });
+  expect(mocks.loadCheckoutLabels).toHaveBeenCalledWith(admin, db, session.shop, {
+    taxCode: "optional_validated",
+    pec: "unmanaged",
+  });
+  expect(
+    shouldRevalidate({
+      actionResult: { ok: true, refreshed: { snapshot: {} } },
+      defaultShouldRevalidate: true,
+    } as never),
+  ).toBe(false);
+  expect(
+    shouldRevalidate({ actionResult: { ok: true }, defaultShouldRevalidate: true } as never),
+  ).toBe(true);
+
+  mocks.loadCheckoutLabels.mockResolvedValueOnce({
+    available: false,
+    state: { mode: "guided" },
+    errorCode: "checkout_labels_readback_failed",
+  });
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          intent: "refresh_checkout_labels",
+          taxCode: "optional_validated",
+          pec: "unmanaged",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: false, errorCode: "checkout_labels_readback_failed" });
+
   expect(await action(args(post("/app/rules", { intent: "restore_address2_labels" })))).toEqual({
     ok: false,
     errorCode: "address2_restore_conflict",
