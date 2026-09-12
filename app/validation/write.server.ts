@@ -7,6 +7,7 @@ import {
 } from "../billing/commercial-entitlement.server";
 import { CONFIG_SCHEMA_VERSION, DEFAULT_CONFIG, readConfig } from "../config";
 import type { CheckoutConfig, Entitlement } from "../config";
+import { configurationSnapshot, recordConfigurationHistory } from "../configuration-history.server";
 import { configHash, observedConfigHash } from "./domain";
 import {
   acquireValidationLock,
@@ -120,8 +121,9 @@ export async function writeValidationUnderLock(
     }
     if (enable === null && !next) return { ok: false, errorCode: "validation_write_failed" };
 
+    const existingConfig = readConfig(existing?.metafield?.jsonValue);
     const source = {
-      ...readConfig(existing?.metafield?.jsonValue),
+      ...existingConfig,
       ...(enable === null ? next : null),
     };
     const config: CheckoutConfig = {
@@ -196,6 +198,12 @@ export async function writeValidationUnderLock(
       errorCode: consistent ? null : "validation_readback_failed",
     });
     if (!consistent) return { ok: false, errorCode: "validation_readback_failed" };
+    if (next) {
+      await recordConfigurationHistory(db, shopDomain, [
+        configurationSnapshot(existingConfig),
+        configurationSnapshot(config),
+      ]).catch(() => undefined);
+    }
     if (declared !== undefined && declared !== null) {
       await saveAddress2Declaration(db, shopDomain, declared);
     }

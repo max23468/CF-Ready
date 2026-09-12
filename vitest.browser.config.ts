@@ -29,7 +29,14 @@ export default defineConfig({
       enabled: true,
       headless: true,
       provider: playwright(),
-      instances: [{ browser: "chromium" }],
+      instances: [
+        { browser: "chromium", name: "merchant-chromium" },
+        {
+          browser: "webkit",
+          name: "merchant-webkit-critical",
+          include: ["tests/browser/route-surfaces.test.tsx"],
+        },
+      ],
     },
     coverage: {
       provider: "istanbul",

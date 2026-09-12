@@ -3,6 +3,7 @@ import { pollLocalBillingEvents } from "./owner-notifications/local-billing-sour
 
 export { deliverOwnerNotifications } from "./owner-notifications/delivery.server";
 export { pollPartnerEvents } from "./owner-notifications/partner-source.server";
+export { reconcileOwnerIncidents } from "./owner-control/incidents.server";
 
 export async function pollLocalNotifications(db: D1Database, now = new Date()) {
   const local = await pollLocalAppEvents(db, now);

@@ -1,5 +1,5 @@
 import type { AppErrorCode } from "../app-error";
-import type { Rules } from "../config";
+import type { CheckoutConfig, Rules } from "../config";
 import { withValidationLock, type ValidationLockHeartbeat } from "../validation/lock.server";
 import { writeValidationUnderLock } from "../validation/write.server";
 import {
@@ -12,6 +12,7 @@ import {
   observedLabelForSlot,
   proposedLabelForSlot,
   type CheckoutLabelSlot,
+  type CheckoutLabelState,
   type CheckoutLabelsSnapshot,
   type StoredCheckoutLabelSlot,
 } from "./domain";
@@ -69,6 +70,7 @@ export async function loadCheckoutLabels(
       snapshot.slots,
       stored,
       state.address2Decision,
+      state.address2FormMode,
     );
     if (state.decision === "accepted" && state.acceptedRevision !== snapshot.revision) {
       await saveCheckoutLabelsDecision(db, shopDomain, "pending", null);
@@ -140,6 +142,7 @@ export async function saveRulesAndCheckoutLabels(
   shopDomain: string,
   input: {
     rules: Rules;
+    messages?: CheckoutConfig["messages"];
     expectedConfigHash: string | null;
     labelsEnabled: boolean;
     confirmAutomaticWrite: boolean;
@@ -208,7 +211,7 @@ export async function saveRulesAndCheckoutLabels(
       admin,
       db,
       shopDomain,
-      { rules: input.rules },
+      { rules: input.rules, ...(input.messages ? { messages: input.messages } : {}) },
       null,
       input.expectedConfigHash,
       undefined,
@@ -677,14 +680,14 @@ function hasAddress2ObservationChange(
   slots: CheckoutLabelSlot[],
   stored: StoredCheckoutLabelSlot[],
   decision: "pending" | "accepted" | "restored" | "manual_restore_required",
+  formMode: CheckoutLabelState["address2FormMode"],
 ) {
-  if (decision !== "accepted") return false;
-  const currentAddressSlots = slots.filter(
-    ({ name }) => name === "address2" || name === "optionalAddress2",
-  );
+  if (decision !== "accepted" || formMode === null || formMode === "hidden") return false;
+  const activeName = formMode === "required" ? "address2" : "optionalAddress2";
+  const currentAddressSlots = slots.filter(({ name }) => name === activeName);
   const storedAddressSlots = stored.filter((slot) => {
     const name = checkoutLabelName(slot.key);
-    return name === "address2" || name === "optionalAddress2";
+    return name === activeName;
   });
   return (
     currentAddressSlots.some((slot) => {

@@ -32,11 +32,17 @@ import {
   versionMessage,
 } from "../app/owner-control/presentation";
 import {
+  CHECKOUT_LABEL_OBSERVATION_MINUTES,
+  reconcileOwnerIncidents,
+} from "../app/owner-control/incidents.server";
+import {
   findShops,
   readBilling,
   readDashboard,
+  readErrors,
   readHealth,
   readIssues,
+  readNotificationStatus,
   readPerformance,
   readShops,
   readTrials,
@@ -105,7 +111,9 @@ beforeEach(async () => {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM owner_control_updates"),
     env.DB.prepare("DELETE FROM owner_control_state"),
+    env.DB.prepare("DELETE FROM owner_operational_incidents"),
     env.DB.prepare("DELETE FROM owner_notifications"),
+    env.DB.prepare("DELETE FROM owner_notification_state"),
     env.DB.prepare("DELETE FROM app_events"),
     env.DB.prepare("DELETE FROM webhook_events"),
     env.DB.prepare("DELETE FROM shops"),
@@ -1178,6 +1186,58 @@ describe("idempotenza e delivery interattiva", () => {
 });
 
 describe("query D1 e run-rate", () => {
+  test("normalizza timestamp ISO nelle soglie e nelle finestre statistiche", async () => {
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO owner_notifications
+           (dedupe_key, notification_kind, shop_domain, subject, body_text,
+            source_occurred_at, status, available_at, sent_at, created_at, updated_at)
+         VALUES
+           ('stale-same-day', 'operational', NULL, 'A', 'A',
+            strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 hour'), 'pending',
+            strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL,
+            strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 hour'),
+            strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+           ('stale-boundary', 'operational', NULL, 'B', 'B',
+            strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-15 minutes'), 'pending',
+            strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL,
+            strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-15 minutes'),
+            strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+           ('stale-midnight', 'operational', NULL, 'C', 'C',
+            strftime('%Y-%m-%dT00:00:00.000Z', 'now', '-1 day'), 'pending',
+            strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL,
+            strftime('%Y-%m-%dT00:00:00.000Z', 'now', '-1 day'),
+            strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+           ('sent-window', 'operational', NULL, 'D', 'D',
+            strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-7 days', '+1 second'), 'sent',
+            strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+            strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-7 days', '+1 second'),
+            strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-7 days', '+1 second'),
+            strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO app_events (event_name, event_class, occurred_at)
+         VALUES ('iso_same_day_error', 'error', strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 hour'))`,
+      ),
+      env.DB.prepare(
+        `INSERT INTO webhook_events (webhook_id, topic, status, received_at)
+         VALUES ('iso-boundary-webhook', 'APP_UNINSTALLED', 'processing',
+                 strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-5 minutes'))`,
+      ),
+    ]);
+
+    expect(await readIssues(env.DB)).toMatchObject({
+      notifications: { stale: 3 },
+      webhooks: { stale: 1 },
+    });
+    expect(await readNotificationStatus(env.DB)).toMatchObject({ sent_7d: 1 });
+    expect(await readErrors(env.DB)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ error_code: "iso_same_day_error", count: 1 }),
+      ]),
+    );
+  });
+
   test("calcola dashboard, filtri e run-rate dal catalogo canonico", async () => {
     await insertStore(1, "mensile.myshopify.com", {
       onboarding: "completed",
@@ -1282,6 +1342,218 @@ describe("query D1 e run-rate", () => {
       open_issues: 1,
       unresolved_webhooks: 1,
     });
+  });
+
+  test("apre, deduplica e risolve gli incidenti webhook e Partner", async () => {
+    const stale = new Date(NOW.getTime() - 20 * 60_000).toISOString();
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO webhook_events (webhook_id, topic, status, received_at)
+         VALUES ('blocked-webhook', 'APP_UNINSTALLED', 'processing', ?)`,
+      ).bind(stale),
+      env.DB.prepare(
+        `INSERT INTO owner_notification_state (state_key, state_value, updated_at)
+         VALUES ('partner_events_polled_at', ?, ?)`,
+      ).bind(stale, stale),
+    ]);
+
+    await reconcileOwnerIncidents(env.DB, NOW);
+    await reconcileOwnerIncidents(env.DB, new Date(NOW.getTime() + 60_000));
+
+    expect(
+      await env.DB.prepare(
+        `SELECT subject FROM owner_notifications
+            WHERE notification_kind = 'operational' ORDER BY id`,
+      ).all(),
+    ).toMatchObject({
+      results: [
+        { subject: "🔴 CF Ready · Webhook bloccati" },
+        { subject: "🔴 CF Ready · Acquisizione Partner ferma" },
+      ],
+    });
+
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM webhook_events WHERE webhook_id = 'blocked-webhook'"),
+      env.DB.prepare(
+        `UPDATE owner_notification_state SET state_value = 'valore-incompleto'
+          WHERE state_key = 'partner_events_polled_at'`,
+      ),
+    ]);
+    await reconcileOwnerIncidents(env.DB, new Date(NOW.getTime() + 2 * 60_000));
+
+    expect(
+      await env.DB.prepare(
+        "SELECT incident_key, status FROM owner_operational_incidents ORDER BY incident_key",
+      ).all(),
+    ).toMatchObject({
+      results: [
+        { incident_key: "partner", status: "active" },
+        { incident_key: "webhooks", status: "resolved" },
+      ],
+    });
+    expect(
+      await env.DB.prepare(
+        "SELECT subject FROM owner_notifications ORDER BY id DESC LIMIT 1",
+      ).first(),
+    ).toMatchObject({ subject: "🟢 CF Ready · Webhook ripristinati" });
+
+    await env.DB.prepare(
+      `UPDATE owner_notification_state SET state_value = ?
+        WHERE state_key = 'partner_events_polled_at'`,
+    )
+      .bind(new Date(NOW.getTime() + 3 * 60_000).toISOString())
+      .run();
+    await reconcileOwnerIncidents(env.DB, new Date(NOW.getTime() + 3 * 60_000));
+    expect(
+      await env.DB.prepare(
+        "SELECT status FROM owner_operational_incidents WHERE incident_key = 'partner'",
+      ).first(),
+    ).toEqual({ status: "resolved" });
+  });
+
+  test("segnala solo errori etichette ripetuti e ne notifica la risoluzione", async () => {
+    await insertStore(1, "labels-alert.myshopify.com");
+    await env.DB.prepare(
+      `UPDATE app_state
+          SET checkout_labels_mode = 'automatic',
+              checkout_labels_last_error_code = 'checkout_labels_partial_sync'
+        WHERE shop_id = 1`,
+    ).run();
+
+    await reconcileOwnerIncidents(env.DB, NOW);
+    await reconcileOwnerIncidents(env.DB, new Date(NOW.getTime() + 5 * 60_000));
+    expect(
+      await env.DB.prepare("SELECT COUNT(*) AS count FROM owner_notifications").first("count"),
+    ).toBe(0);
+
+    const persistentAt = new Date(NOW.getTime() + CHECKOUT_LABEL_OBSERVATION_MINUTES * 60_000);
+    await reconcileOwnerIncidents(env.DB, persistentAt);
+    await reconcileOwnerIncidents(env.DB, new Date(persistentAt.getTime() + 5 * 60_000));
+    expect(
+      await env.DB.prepare(
+        "SELECT subject, shop_domain FROM owner_notifications ORDER BY id",
+      ).all(),
+    ).toMatchObject({
+      results: [
+        {
+          subject: "🔴 CF Ready · Sincronizzazione etichette in errore",
+          shop_domain: "labels-alert.myshopify.com",
+        },
+      ],
+    });
+
+    await env.DB.prepare(
+      "UPDATE app_state SET checkout_labels_last_error_code = NULL WHERE shop_id = 1",
+    ).run();
+    await reconcileOwnerIncidents(env.DB, new Date(persistentAt.getTime() + 10 * 60_000));
+    expect(
+      await env.DB.prepare(
+        "SELECT subject FROM owner_notifications ORDER BY id DESC LIMIT 1",
+      ).first(),
+    ).toMatchObject({ subject: "🟢 CF Ready · Sincronizzazione etichette ripristinata" });
+  });
+
+  test("rimuove un errore etichette ancora in osservazione quando scompare", async () => {
+    await insertStore(1, "labels-observing.myshopify.com");
+    await env.DB.prepare(
+      `UPDATE app_state
+          SET checkout_labels_mode = 'automatic',
+              checkout_labels_last_error_code = 'checkout_labels_partial_sync'
+        WHERE shop_id = 1`,
+    ).run();
+    await reconcileOwnerIncidents(env.DB);
+    expect(
+      await env.DB.prepare(
+        "SELECT status FROM owner_operational_incidents WHERE incident_key = 'checkout_labels:1'",
+      ).first(),
+    ).toEqual({ status: "observing" });
+
+    await env.DB.prepare(
+      "UPDATE app_state SET checkout_labels_last_error_code = NULL WHERE shop_id = 1",
+    ).run();
+    await reconcileOwnerIncidents(env.DB, NOW);
+    expect(
+      await env.DB.prepare(
+        "SELECT status FROM owner_operational_incidents WHERE incident_key = 'checkout_labels:1'",
+      ).first(),
+    ).toBeNull();
+  });
+
+  test("rifiuta letture incidenti incomplete e ignora store già rimossi", async () => {
+    const statement = {
+      bind() {
+        return this;
+      },
+      async first() {
+        return null;
+      },
+    } as unknown as D1PreparedStatement;
+    const database = (firstBatch: Array<{ success: boolean; results: unknown[] }>) => {
+      let calls = 0;
+      return {
+        prepare: () => statement,
+        batch: async () => (calls++ === 0 ? firstBatch : [{ success: true, results: [] }]) as never,
+      } as unknown as D1Database;
+    };
+
+    await expect(
+      reconcileOwnerIncidents(
+        database([
+          { success: false, results: [] },
+          { success: true, results: [] },
+          { success: true, results: [] },
+          { success: true, results: [] },
+        ]),
+        NOW,
+      ),
+    ).rejects.toThrow("owner_incident_read_failed");
+    await expect(
+      reconcileOwnerIncidents(
+        database([
+          { success: true, results: [] },
+          { success: true, results: [] },
+          { success: true, results: [] },
+          { success: true, results: [] },
+        ]),
+        NOW,
+      ),
+    ).rejects.toThrow("owner_incident_read_failed");
+
+    await expect(
+      reconcileOwnerIncidents(
+        database([
+          { success: true, results: [{ failed: 0, processing: 0 }] },
+          { success: true, results: [] },
+          { success: true, results: [] },
+          {
+            success: true,
+            results: [
+              {
+                incident_key: "checkout_labels:99",
+                incident_kind: "checkout_labels",
+                shop_id: 99,
+                status: "active",
+                fingerprint: "checkout_labels_partial_sync",
+                consecutive_observations: 3,
+                first_observed_at: NOW.toISOString(),
+                opened_at: NOW.toISOString(),
+              },
+              {
+                incident_key: "checkout_labels:100",
+                incident_kind: "checkout_labels",
+                shop_id: null,
+                status: "resolved",
+                fingerprint: "checkout_labels_partial_sync",
+                consecutive_observations: 3,
+                first_observed_at: NOW.toISOString(),
+                opened_at: NOW.toISOString(),
+              },
+            ],
+          },
+        ]),
+        NOW,
+      ),
+    ).resolves.toBeUndefined();
   });
 
   test("renderizza tutte le viste, apre gli store e confronta le versioni osservate", async () => {

@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   applyRetention: vi.fn(),
   pollPartnerEvents: vi.fn(),
   pollLocalNotifications: vi.fn(),
+  reconcileOwnerIncidents: vi.fn(),
   deliverOwnerNotifications: vi.fn(),
   recordEvent: vi.fn(),
   handleOwnerControlWebhook: vi.fn(),
@@ -27,6 +28,7 @@ vi.mock("../app/shop.server", () => ({ applyRetention: mocks.applyRetention }));
 vi.mock("../app/owner-notifications.server", () => ({
   pollPartnerEvents: mocks.pollPartnerEvents,
   pollLocalNotifications: mocks.pollLocalNotifications,
+  reconcileOwnerIncidents: mocks.reconcileOwnerIncidents,
   deliverOwnerNotifications: mocks.deliverOwnerNotifications,
 }));
 vi.mock("../app/events.server", () => ({ recordEvent: mocks.recordEvent }));
@@ -45,6 +47,7 @@ beforeEach(() => {
   mocks.applyRetention.mockResolvedValue(undefined);
   mocks.pollPartnerEvents.mockResolvedValue(undefined);
   mocks.pollLocalNotifications.mockResolvedValue(undefined);
+  mocks.reconcileOwnerIncidents.mockResolvedValue(undefined);
   mocks.deliverOwnerNotifications.mockResolvedValue(undefined);
   mocks.recordEvent.mockResolvedValue(undefined);
   mocks.handleOwnerControlWebhook.mockResolvedValue(new Response("control", { status: 202 }));
@@ -133,7 +136,7 @@ describe("entrypoint Worker", () => {
     expect(pending).toHaveLength(1);
   });
 
-  test("esegue separatamente le tre fasi delle notifiche owner", async () => {
+  test("esegue separatamente acquisizione, incidenti e consegna owner", async () => {
     const pending: Promise<unknown>[] = [];
     const context = { waitUntil: (promise: Promise<unknown>) => pending.push(promise) };
     const notificationEnv = {
@@ -155,6 +158,7 @@ describe("entrypoint Worker", () => {
       accessToken: "token",
     });
     expect(mocks.pollLocalNotifications).toHaveBeenCalledOnce();
+    expect(mocks.reconcileOwnerIncidents).toHaveBeenCalledOnce();
     expect(mocks.deliverOwnerNotifications.mock.calls[0][1]).toEqual({
       botToken: "bot",
       chatId: "chat",

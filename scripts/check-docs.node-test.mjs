@@ -871,6 +871,10 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
     "playwright test --config tests/playwright.config.ts",
   );
   assert.match(ci, /playwright install --with-deps chromium webkit/);
+  assert.deepEqual(
+    [...ci.matchAll(/playwright install --with-deps ([^\n]+)/g)].map((match) => match[1].trim()),
+    ["chromium webkit", "chromium webkit", "chromium webkit"],
+  );
   assert.match(ci, /actions\/cache@[0-9a-f]{40}/);
   assert.match(ci, /key: playwright-\$\{\{ runner\.os \}\}/);
   assert.match(ci, /npm run test:e2e/);

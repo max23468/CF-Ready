@@ -80,6 +80,26 @@ test("la diagnostica fallisce aperta su uno store senza stato operativo", async 
   });
 });
 
+test("la diagnostica ignora un conflitto di Interno quando il campo è nascosto", async () => {
+  const shop = await insertShop("support-hidden-address2.example.myshopify.com");
+  const now = "2026-09-08T12:00:00.000Z";
+  await env.DB.prepare(
+    `INSERT INTO app_state (
+       shop_id, checkout_labels_mode, checkout_labels_last_sync_at,
+       address2_classification, address2_decision, address2_external_change_at,
+       address2_form_mode, address2_form_hidden, updated_at
+     ) SELECT id, 'automatic', ?, 'fiscal_conflict', 'pending', ?, 'required', 1, ?
+         FROM shops WHERE shop_domain = ?`,
+  )
+    .bind(now, now, now, shop)
+    .run();
+
+  expect(await readSupportDiagnosticState(env.DB, shop)).toMatchObject({
+    checkoutLabelsStatus: "synced",
+    address2Classification: "fiscal_conflict",
+  });
+});
+
 test("la diagnostica conserva come generico un errore persistito non ancora conosciuto", async () => {
   const shop = await insertShop("support-future-error.example.myshopify.com");
   await env.DB.prepare(
