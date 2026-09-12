@@ -603,6 +603,14 @@ test("D1 registra esiti, ownership, decisioni e revoca degli scope", async () =>
     address2ExternalChangeAt: null,
     address2FormMode: "required",
   });
+  await saveAddress2FormMode(env.DB, shop, "hidden");
+  expect(await readCheckoutLabelState(env.DB, shop)).toMatchObject({
+    address2FormMode: "hidden",
+  });
+  await saveAddress2FormMode(env.DB, shop, "optional");
+  expect(await readCheckoutLabelState(env.DB, shop)).toMatchObject({
+    address2FormMode: "optional",
+  });
 
   await saveCheckoutLabelsDecision(env.DB, shop, "accepted", "revision-1");
   expect(await readCheckoutLabelState(env.DB, shop)).toMatchObject({

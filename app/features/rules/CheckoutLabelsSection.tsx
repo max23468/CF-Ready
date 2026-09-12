@@ -258,7 +258,6 @@ function NativeCheckoutLabelsWhenGranted(props: Parameters<typeof NativeCheckout
 function NativeCheckoutLabels({
   locale,
   rules,
-  scopeGranted,
   snapshot,
   state,
   activeFamily,
@@ -1158,7 +1157,6 @@ function addressLabelContexts(
     shopLocale: CheckoutLabelsSnapshot["locales"][number];
     slots: CheckoutLabelSlot[];
   }[] = [];
-  if (formMode === "hidden") return contexts;
   const name = formMode === "required" ? "address2" : "optionalAddress2";
   for (const shopLocale of snapshot.locales.filter((candidate) => candidate.family === family)) {
     const slots = compactAddressSlots(snapshot.slots, name, shopLocale.locale);
