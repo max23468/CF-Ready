@@ -1817,13 +1817,13 @@ describe("Regole", () => {
     };
     const view = await mount(<CheckoutRules />);
     expect(view.container.textContent).toContain(texts("it").rules.labels.allMarketsSame);
-    expect(view.container.textContent).toContain("Ultima verifica manuale:");
+    expect(view.container.textContent).toContain("Ultima conferma manuale nel checkout:");
     expect(view.container.textContent).toContain(texts("it").rules.labels.addressStatus.expected);
     expect(texts("en").rules.labels.marketException("Italy")).toBe(
       "Customization for the Italy market",
     );
     expect(texts("en").rules.labels.lastManualVerification("now")).toBe(
-      "Last manual verification: now",
+      "Last manual confirmation in checkout: now",
     );
 
     router.loaderData = {
@@ -1902,7 +1902,7 @@ describe("Regole", () => {
     await view.rerender(<CheckoutRules key="english-without-scopes" />);
     expect(view.container.textContent).toContain(texts("en").rules.labels.english);
     expect(texts("it").rules.labels.lastManualVerification("ora")).toBe(
-      "Ultima verifica manuale: ora",
+      "Ultima conferma manuale nel checkout: ora",
     );
 
     router.navigation = { state: "submitting" };
