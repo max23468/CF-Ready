@@ -1,10 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
+import type {
+  ActionFunctionArgs,
+  HeadersFunction,
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction,
+} from "react-router";
 import { data, useActionData, useLoaderData, useNavigation, useSubmit } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError } from "../app-error";
 import { authenticateAdmin } from "../admin-auth.server";
 import { ConfigConflict } from "../features/ConfigConflict";
+import { AutomaticLabelsConfirmModal } from "../features/rules/AutomaticLabelsConfirmModal";
 import { CheckoutSimulator } from "../features/rules/CheckoutSimulator";
 import { CheckoutLabelsSection } from "../features/rules/CheckoutLabelsSection";
 import "../features/rules/RulesLayout.css";
@@ -30,11 +36,7 @@ import {
   restoreAddress2Translations,
   saveRulesAndCheckoutLabels,
 } from "../checkout-labels/service.server";
-import {
-  checkoutLabelValuesMatch,
-  proposedLabelForSlot,
-  type CheckoutLabelSlot,
-} from "../checkout-labels/domain";
+import { checkoutLabelValuesMatch, proposedLabelForSlot } from "../checkout-labels/domain";
 import { observedConfigHash, reconcile, writeValidation } from "../validation.server";
 
 const SAVE_BAR = "checkout-rules-save-bar";
@@ -120,6 +122,28 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const labelScopesGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
     scopeDetails?.granted.includes(scope),
   );
+
+  if (intent === "refresh_checkout_labels") {
+    if (!labelScopesGranted) {
+      return { ok: false as const, errorCode: "checkout_labels_scope_required" as const };
+    }
+    const taxCode = oneOf(TAX_CODE_RULE_MODES, form.get("taxCode"));
+    const pec = oneOf(PEC_RULE_MODES, form.get("pec"));
+    if (!taxCode || !pec) return { ok: false as const, errorCode: "generic" as const };
+
+    const refreshed = await loadCheckoutLabels(admin, db, session.shop, { taxCode, pec });
+    if (!refreshed.available) {
+      return { ok: false as const, errorCode: refreshed.errorCode };
+    }
+    return {
+      ok: true as const,
+      refreshed: {
+        snapshot: refreshed.snapshot,
+        state: refreshed.state,
+        guidedConfirmations: refreshed.guidedConfirmations,
+      },
+    };
+  }
 
   if (intent === "restore_address2_labels") {
     if (!labelScopesGranted) {
@@ -229,7 +253,13 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   return labelsErrorCode ? { ok: true as const, labelsErrorCode } : { ok: true as const };
 };
 
-export const shouldRevalidate = skipRevalidationWhenLeaving;
+export const shouldRevalidate: ShouldRevalidateFunction = (args) => {
+  const actionResult = args.actionResult;
+  if (actionResult && typeof actionResult === "object" && "refreshed" in actionResult) {
+    return false;
+  }
+  return skipRevalidationWhenLeaving(args);
+};
 
 export default function CheckoutRules() {
   const saved = useLoaderData<typeof loader>();
@@ -245,7 +275,8 @@ export default function CheckoutRules() {
   const [resolvedConflict, setResolvedConflict] = useState(false);
   const errorCode = result?.ok === false ? result.errorCode : null;
   const conflict = errorCode === "config_conflict" && !resolvedConflict;
-  const labelsErrorCode = result?.ok && "labelsErrorCode" in result ? result.labelsErrorCode : null;
+  const labelsErrorCode =
+    result?.ok && "labelsErrorCode" in result ? (result.labelsErrorCode ?? null) : null;
   const [changedSinceResult, setChangedSinceResult] = useState(false);
   const [formRevision, setFormRevision] = useState(0);
   const [draft, setDraft] = useState({ rules: saved.rules });
@@ -373,6 +404,7 @@ export default function CheckoutRules() {
       </ui-save-bar>
 
       <AutomaticLabelsConfirmModal
+        id={LABEL_CONFIRM_MODAL}
         locale={saved.locale}
         writes={automaticLabelWrites}
         onConfirm={() => submitSave(true)}
@@ -454,7 +486,6 @@ export default function CheckoutRules() {
                   locale={saved.locale}
                   rules={draft.rules}
                   messages={saved.messages}
-                  labelSnapshot={saved.labelSnapshot}
                 />
               </s-stack>
             </s-section>
@@ -462,53 +493,6 @@ export default function CheckoutRules() {
         </div>
       </div>
     </s-page>
-  );
-}
-
-function AutomaticLabelsConfirmModal({
-  locale,
-  writes,
-  onConfirm,
-}: {
-  locale: "it" | "en";
-  writes: Array<{
-    slot: CheckoutLabelSlot;
-    proposed: string;
-  }>;
-  onConfirm: () => void;
-}) {
-  const t = texts(locale);
-  const copy = t.rules.labels;
-  return (
-    <s-modal
-      id={LABEL_CONFIRM_MODAL}
-      heading={copy.enableConfirmHeading}
-      accessibilityLabel={copy.enableConfirmHeading}
-    >
-      <s-stack direction="block" gap="base">
-        <s-paragraph>{copy.enableConfirmBody}</s-paragraph>
-        <s-unordered-list>
-          {writes.map(({ slot, proposed }) => (
-            <s-list-item key={`${slot.name}:${slot.family}`}>
-              {slot.name === "taxCode" ? t.rules.taxCodeLabel : t.rules.pecLabel} ·{" "}
-              {slot.family === "it" ? copy.italian : copy.english}: {proposed}
-            </s-list-item>
-          ))}
-        </s-unordered-list>
-      </s-stack>
-      <s-button slot="secondary-actions" commandFor={LABEL_CONFIRM_MODAL} command="--hide">
-        {t.common.cancel}
-      </s-button>
-      <s-button
-        slot="primary-action"
-        variant="primary"
-        commandFor={LABEL_CONFIRM_MODAL}
-        command="--hide"
-        onClick={onConfirm}
-      >
-        {copy.enableConfirmAction}
-      </s-button>
-    </s-modal>
   );
 }
 

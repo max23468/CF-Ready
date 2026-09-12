@@ -8,14 +8,22 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
 ## 1.9.2 — 12 settembre 2026
 
-- le sezioni “Campo Interno” e “Testi del checkout (impostazioni avanzate)”
-  partono chiuse, mantengono lo stesso bordo quando vengono aperte e mostrano un
+- la sezione “Etichette del checkout (impostazioni avanzate)” contiene, in
+  quest’ordine, i pannelli “Campo Interno” e “Testi del checkout”; entrambi
+  partono chiusi, mantengono lo stesso bordo quando vengono aperti e mostrano un
   comando esplicito per espandere il contenuto;
 - il confronto di Codice Fiscale e PEC ignora maiuscole e minuscole;
 - la verifica manuale indica i passaggi effettivi dell’editor del checkout e di
-  Shopify Translate & Adapt, compresa la ricerca dei campi e la guida iniziale;
-- la rilettura interroga separatamente i testi globali e le personalizzazioni per
-  mercato, così il pulsante di conferma usa i valori Shopify corretti.
+  Shopify Translate & Adapt, compresa la ricerca dei campi e la guida iniziale,
+  e mantiene le istruzioni chiuse finché il merchant non le espande;
+- il riquadro dei permessi appare sotto il selettore della lingua e descrive
+  l’accesso richiesto senza mostrare esempi delle etichette;
+- “Rileggi i campi da Shopify” esegue una richiesta server esplicita, mostra il
+  caricamento e applica subito testi globali, personalizzazioni di mercato,
+  stati e conferme aggiornati;
+- l’onboarding configura il campo “Interno” nel secondo passo e rimuove la
+  conferma manuale dei testi e il simulatore;
+- il simulatore della pagina Regole mostra soltanto Codice Fiscale e PEC.
 
 ## 1.9.1 — 11 settembre 2026
 

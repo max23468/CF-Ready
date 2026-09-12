@@ -103,7 +103,7 @@ describe("componenti merchant nel browser", () => {
     const selects = [...view.container.querySelectorAll("s-select")];
     const fields = [...view.container.querySelectorAll("s-text-field")];
     expect(selects).toHaveLength(4);
-    expect(fields).toHaveLength(3);
+    expect(fields).toHaveLength(2);
 
     (selects[0] as HTMLElement & { value: string }).value = "en";
     await dispatch(selects[0], new Event("change", { bubbles: true }));
@@ -142,7 +142,7 @@ describe("componenti merchant nel browser", () => {
       [...view.container.querySelectorAll("s-text-field")].map(
         (field) => (field as HTMLElement & { value?: string }).value ?? "",
       ),
-    ).toEqual(["", "", ""]);
+    ).toEqual(["", ""]);
     expect(view.container.querySelector('[role="status"]')?.textContent).toBeTruthy();
   });
 
@@ -177,7 +177,7 @@ describe("componenti merchant nel browser", () => {
       />,
     );
     mounted.push(unmanaged);
-    expect(unmanaged.container.querySelectorAll("s-text-field")).toHaveLength(1);
+    expect(unmanaged.container.querySelectorAll("s-text-field")).toHaveLength(0);
     expect(unmanaged.container.textContent).toContain(en.checkout.nothing);
 
     const pecOnly = await render(
@@ -212,7 +212,7 @@ describe("componenti merchant nel browser", () => {
     const fields = [...view.container.querySelectorAll("s-text-field")] as Array<
       HTMLElement & { value: string }
     >;
-    expect(fields).toHaveLength(3);
+    expect(fields).toHaveLength(2);
     expect(fields[0].getAttribute("label")).toBe(it.rules.simulator.company);
     expect(fields[1].hasAttribute("required")).toBe(false);
 

@@ -905,6 +905,7 @@ describe("Onboarding", () => {
       ...onboardingData,
       step: 2,
       configHash: "hash",
+      rules: { taxCode: "required_validated", pec: "optional_validated" },
       labelScopesGranted: true,
       labelSnapshot: {
         revision: "labels-r1",
@@ -912,10 +913,26 @@ describe("Onboarding", () => {
           labelSlot({
             name: "taxCode",
             key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
+            locale: "it",
+            family: "it",
+            capability: "automatic",
+          }),
+          labelSlot({
+            name: "pec",
+            key: "shopify.checkout.localized_fields.additional_information.tax_email_it",
             locale: "en",
             family: "en",
             capability: "automatic",
           }),
+          labelSlot({
+            name: "taxCode",
+            key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
+            locale: "it",
+            family: "it",
+            capability: "automatic",
+            currentValue: "Codice fiscale",
+          }),
+          labelSlot({ name: "address2", kind: "source" }),
         ],
       },
     };
@@ -926,12 +943,11 @@ describe("Onboarding", () => {
     if (!management) throw new Error("gestione etichette onboarding assente");
     management.checked = true;
     await dispatch(management, new Event("change", { bubbles: true }));
-    const confirmation = [...view.container.querySelectorAll("s-checkbox")].find(
-      (checkbox) => checkbox.getAttribute("label") === texts("it").rules.labels.enableConfirm,
-    ) as (HTMLElement & { checked: boolean }) | undefined;
-    if (!confirmation) throw new Error("conferma etichette onboarding assente");
-    confirmation.checked = true;
-    await dispatch(confirmation, new Event("change", { bubbles: true }));
+    expect(
+      [...view.container.querySelectorAll("s-checkbox")].some(
+        (checkbox) => checkbox.getAttribute("label") === texts("it").rules.labels.enableConfirm,
+      ),
+    ).toBe(false);
 
     const originalFormData = FormData;
     class LabelsFormData {
@@ -942,9 +958,21 @@ describe("Onboarding", () => {
       }
     }
     vi.stubGlobal("FormData", LabelsFormData as unknown as typeof originalFormData);
+    await dispatch(view.container.querySelector("form")!, new Event("change", { bubbles: true }));
     await click(
       [...view.container.querySelectorAll("s-button")].find((button) =>
         button.textContent?.includes(texts("it").onboarding.next),
+      )!,
+    );
+    expect(router.fetcher.submit).not.toHaveBeenCalled();
+    const confirmation = view.container.querySelector(
+      's-modal[id="confirm-onboarding-checkout-label-management"]',
+    );
+    expect(confirmation?.textContent).toContain("Codice Fiscale · Italiano");
+    expect(confirmation?.textContent).toContain("PEC · Inglese");
+    await click(
+      view.container.querySelector(
+        's-modal[id="confirm-onboarding-checkout-label-management"] s-button[slot="primary-action"]',
       )!,
     );
     expect(router.fetcher.submit).toHaveBeenLastCalledWith(
@@ -958,6 +986,26 @@ describe("Onboarding", () => {
       { method: "post" },
     );
     vi.stubGlobal("FormData", originalFormData);
+  });
+
+  test("salva la configurazione del campo Interno dal secondo passo", async () => {
+    router.loaderData = { ...onboardingData, step: 2 };
+    const view = await mount(<Onboarding />);
+    const addressMode = [...view.container.querySelectorAll("s-select")].find(
+      (select) => select.getAttribute("label") === texts("it").rules.labels.addressModeLabel,
+    );
+    if (!addressMode) throw new Error("configurazione Interno onboarding assente");
+
+    Object.defineProperty(addressMode, "value", { configurable: true, value: "optional" });
+    await dispatch(addressMode, new Event("change", { bubbles: true }));
+
+    expect(router.fetcher.submit).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        intent: "save_address2_form_mode",
+        address2FormMode: "optional",
+      }),
+      { method: "post" },
+    );
   });
 
   test("salva le regole nel percorso locale e avanza al riepilogo", async () => {
@@ -1049,6 +1097,7 @@ describe("Onboarding", () => {
     router.loaderData = { ...onboardingData, step: 3 };
     await view.rerender(<Onboarding key="step-3" />);
     expect(view.container.textContent).toContain(texts("it").onboarding.step3Heading);
+    expect(view.container.textContent).not.toContain("Checkout di prova");
 
     router.loaderData = {
       ...onboardingData,
@@ -1356,6 +1405,15 @@ describe("Regole", () => {
     };
     await view.rerender(<CheckoutRules key="labels-kept" />);
     expect(view.container.textContent).toContain(texts("it").rules.labels.keepNativeAccepted);
+
+    router.loaderData = {
+      ...rulesData,
+      labelScopesGranted: true,
+      labelState: { ...rulesData.labelState, mode: "off", decision: "accepted" },
+      labelSnapshot: null,
+    };
+    await view.rerender(<CheckoutRules key="labels-kept-with-scopes" />);
+    expect(view.container.textContent).toContain(texts("it").rules.labels.nativeSummaryKept);
   });
 
   test("mostra e aziona etichette native, override e ripristino di Interno", async () => {
@@ -1446,7 +1504,9 @@ describe("Regole", () => {
     expect(view.container.querySelectorAll('s-banner[tone="critical"]')).not.toHaveLength(0);
     const labelsArea = view.container.querySelector(".rules-layout__labels");
     const fieldsArea = view.container.querySelector(".rules-layout__fields");
-    const disclosures = labelsArea?.querySelectorAll("details");
+    const disclosures = labelsArea?.querySelectorAll(
+      "details.checkout-labels-disclosure:not(.checkout-label-instructions)",
+    );
     expect(labelsArea?.parentElement?.lastElementChild).toBe(labelsArea);
     expect(labelsArea?.parentElement?.classList.contains("rules-layout__main")).toBe(true);
     expect(
@@ -1468,6 +1528,15 @@ describe("Regole", () => {
     expect(disclosures?.[1].textContent).toContain("Cerca e filtra i risultati");
     expect(disclosures?.[1].textContent).toContain("Tax credential it");
     expect(disclosures?.[1].textContent).toContain("Tax email it");
+    const instructions = disclosures?.[1].querySelectorAll(".checkout-label-instructions");
+    if (!instructions?.length) throw new Error("istruzioni guidate assenti");
+    expect([...instructions].every((instruction) => !instruction.hasAttribute("open"))).toBe(true);
+    const firstInstructions = instructions[0];
+    const instructionsSummary = firstInstructions.querySelector("summary");
+    expect(instructionsSummary?.textContent).toContain(texts("it").rules.labels.manualHeading);
+    if (!instructionsSummary) throw new Error("titolo istruzioni guidate assente");
+    await click(instructionsSummary);
+    expect(firstInstructions.hasAttribute("open")).toBe(true);
 
     const guidedConfirmations = [...view.container.querySelectorAll("s-button")].filter(
       (button) => button.textContent === texts("it").rules.labels.confirmGuided,
@@ -1538,7 +1607,18 @@ describe("Regole", () => {
     );
     if (!refresh) throw new Error("rilettura etichette assente");
     await click(refresh);
-    expect(router.revalidator.revalidate).toHaveBeenCalledOnce();
+    const refreshSubmission = router.fetcher.submit.mock.calls
+      .map(([body]) => (body instanceof FormData ? Object.fromEntries(body.entries()) : body))
+      .findLast((body) => body.intent === "refresh_checkout_labels");
+    expect(refreshSubmission).toEqual(
+      expect.objectContaining({
+        intent: "refresh_checkout_labels",
+        labelsRevision: "labels-r1",
+        taxCode: rulesData.rules.taxCode,
+        pec: rulesData.rules.pec,
+      }),
+    );
+    expect(router.revalidator.revalidate).not.toHaveBeenCalled();
 
     router.loaderData = {
       ...rulesData,
@@ -1869,14 +1949,57 @@ describe("Regole", () => {
     expect(confirmation?.hasAttribute("disabled")).toBe(true);
     expect(view.container.textContent).toContain("Cerca e filtra i risultati");
     expect(view.container.textContent).toContain(texts("it").rules.labels.manualMismatch);
+    const nativeDisclosure = view.container.querySelectorAll(
+      "details.checkout-labels-disclosure:not(.checkout-label-instructions)",
+    )[1];
+    await click(nativeDisclosure.querySelector("summary")!);
+    expect(nativeDisclosure.hasAttribute("open")).toBe(true);
 
     const refresh = [...view.container.querySelectorAll("s-button")].find(
       (button) => button.textContent === texts("it").rules.labels.refresh,
     );
     if (!refresh) throw new Error("rilettura Shopify assente");
     await click(refresh);
-    expect(router.revalidator.revalidate).toHaveBeenCalledOnce();
+    const refreshForm = router.fetcher.submit.mock.calls.at(-1)?.[0] as FormData;
+    expect(Object.fromEntries(refreshForm.entries())).toEqual({
+      intent: "refresh_checkout_labels",
+      labelsRevision: "labels-before-readback",
+      taxCode: "optional_validated",
+      pec: "unmanaged",
+    });
+    expect(router.revalidator.revalidate).not.toHaveBeenCalled();
 
+    router.fetcher.formData = refreshForm;
+    router.fetcher.state = "submitting";
+    await view.rerender(<CheckoutRules />);
+    const refreshingButton = [...view.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === texts("it").rules.labels.refresh,
+    );
+    expect(refreshingButton?.hasAttribute("loading")).toBe(true);
+
+    router.fetcher.formData = undefined;
+    router.fetcher.state = "idle";
+    router.fetcher.data = {
+      ok: true,
+      refreshed: {
+        snapshot: {
+          ...router.loaderData.labelSnapshot,
+          revision: "labels-after-readback",
+          slots: [{ ...mismatched, currentValue: "codice fiscale (facoltativo)" }],
+        },
+        state: router.loaderData.labelState,
+        guidedConfirmations: [],
+      },
+    };
+    await view.rerender(<CheckoutRules />);
+    expect(view.container.textContent).toContain(texts("it").rules.labels.refreshComplete);
+    expect(nativeDisclosure.hasAttribute("open")).toBe(true);
+    const enabledConfirmation = [...view.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === texts("it").rules.labels.confirmGuided,
+    );
+    expect(enabledConfirmation?.hasAttribute("disabled")).toBe(false);
+
+    router.fetcher.data = undefined;
     router.loaderData = {
       ...router.loaderData,
       labelSnapshot: {
@@ -1885,11 +2008,6 @@ describe("Regole", () => {
         slots: [{ ...mismatched, currentValue: "codice fiscale (facoltativo)" }],
       },
     };
-    await view.rerender(<CheckoutRules key="labels-after-readback" />);
-    const enabledConfirmation = [...view.container.querySelectorAll("s-button")].find(
-      (button) => button.textContent === texts("it").rules.labels.confirmGuided,
-    );
-    expect(enabledConfirmation?.hasAttribute("disabled")).toBe(false);
 
     const marketMismatch = {
       ...mismatched,
@@ -1925,6 +2043,8 @@ describe("Regole", () => {
     expect(texts("en").rules.labels.marketCheckIncluded(["Italy"])).toContain("Italy");
     expect(texts("en").rules.labels.operationalSummary(1, 1)).toContain("1 label");
     expect(texts("en").rules.labels.operationalSummary(2, 2)).toContain("2 labels");
+    expect(texts("en").rules.labels.nativeSummaryNeedsReview(1)).toContain("One checkout");
+    expect(texts("en").rules.labels.nativeSummaryNeedsReview(2)).toContain("2 checkouts");
     expect(texts("en").rules.labels.manualSteps("English", null, true, []).join(" ")).toContain(
       "Search and filter results",
     );
@@ -1956,18 +2076,24 @@ describe("Regole", () => {
       labelScopesGranted: false,
     };
     const view = await mount(<CheckoutRules />);
-    const disclosures = view.container.querySelectorAll(".rules-layout__labels details");
-    expect(disclosures).toHaveLength(2);
+    const disclosures = view.container.querySelectorAll(
+      ".rules-layout__labels details.checkout-labels-disclosure:not(.checkout-label-instructions)",
+    );
+    expect(disclosures).toHaveLength(1);
     expect(disclosures[0].hasAttribute("open")).toBe(false);
-    expect(disclosures[1].hasAttribute("open")).toBe(false);
-    const summary = disclosures[1].querySelector("summary")!;
+    const language = view.container.querySelector(".rules-layout__labels s-select")!;
+    expect(language.nextElementSibling?.textContent).toContain(
+      texts("it").rules.labels.permissionsHeading,
+    );
+    expect(language.nextElementSibling?.querySelector(".checkout-label-context")).toBeNull();
+    const summary = disclosures[0].querySelector("summary")!;
     const collapsedSummaryHeight = summary.getBoundingClientRect().height;
-    const collapsedBorder = getComputedStyle(disclosures[1]).borderTopWidth;
+    const collapsedBorder = getComputedStyle(disclosures[0]).borderTopWidth;
     expect(getComputedStyle(summary, "::after").borderTopWidth).toBe("1px");
     await click(summary);
-    expect(disclosures[1].hasAttribute("open")).toBe(true);
+    expect(disclosures[0].hasAttribute("open")).toBe(true);
     expect(summary.getBoundingClientRect().height).toBe(collapsedSummaryHeight);
-    expect(getComputedStyle(disclosures[1]).borderTopWidth).toBe(collapsedBorder);
+    expect(getComputedStyle(disclosures[0]).borderTopWidth).toBe(collapsedBorder);
     const requestScopes = [...view.container.querySelectorAll("s-button")].find((button) =>
       button.textContent?.includes(texts("it").rules.labels.requestPermissions),
     );

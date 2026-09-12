@@ -475,8 +475,6 @@ export const it = {
       labelsAfterSave: "Etichette mostrate dopo il salvataggio delle regole",
       italian: "Italiano",
       english: "English",
-      address2: "Interno",
-      realCheckout: "Conferma il testo finale in un checkout reale.",
       orderContext: "Destinazione dell’ordine",
       customerData: "Dati fiscali del cliente",
       company: "Azienda",
@@ -504,8 +502,8 @@ export const it = {
       },
     },
     labels: {
-      heading: "Etichette del checkout",
-      nativeHeading: "Testi del checkout (impostazioni avanzate)",
+      heading: "Etichette del checkout (impostazioni avanzate)",
+      nativeHeading: "Testi del checkout",
       permissionsHeading: "Controlla le etichette Shopify",
       permissionsBody:
         "Concedi accesso soltanto a traduzioni, lingue e mercati. CF Ready non legge ordini, clienti o dati inseriti nel checkout.",
@@ -550,6 +548,7 @@ export const it = {
       marketAmbiguous:
         "Shopify segnala almeno un mercato con una configurazione ereditata o non univoca. CF Ready accorpa i valori uguali e indica quali checkout aggiuntivi controllare.",
       refresh: "Rileggi i campi da Shopify",
+      refreshComplete: "Campi riletti da Shopify.",
       stop: "Ripristina e interrompi la gestione",
       lastSync: (value: string) => `Ultimo aggiornamento: ${value}`,
       neverSynced: "Campi non ancora aggiornati",

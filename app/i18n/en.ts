@@ -470,8 +470,6 @@ export const en: typeof it = {
       labelsAfterSave: "Labels shown after saving the rules",
       italian: "Italiano",
       english: "English",
-      address2: "Apartment, suite, etc.",
-      realCheckout: "Confirm the final text in a real checkout.",
       orderContext: "Order destination",
       customerData: "Customer tax details",
       company: "Company",
@@ -499,8 +497,8 @@ export const en: typeof it = {
       },
     },
     labels: {
-      heading: "Checkout labels",
-      nativeHeading: "Checkout text (advanced settings)",
+      heading: "Checkout labels (advanced settings)",
+      nativeHeading: "Checkout text",
       permissionsHeading: "Check Shopify labels",
       permissionsBody:
         "Grant access only to translations, languages and markets. CF Ready doesn’t read orders, customers or checkout entries.",
@@ -545,6 +543,7 @@ export const en: typeof it = {
       marketAmbiguous:
         "Shopify reports at least one market with an inherited or non-unique configuration. CF Ready groups matching values and identifies the additional checkouts to verify.",
       refresh: "Read fields again from Shopify",
+      refreshComplete: "Fields refreshed from Shopify.",
       stop: "Restore and stop managing",
       lastSync: (value: string) => `Last updated: ${value}`,
       neverSynced: "Fields not updated yet",
