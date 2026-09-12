@@ -327,7 +327,7 @@ export const it = {
           },
           {
             q: "Cosa succede se interrompo la gestione o disinstallo CF Ready?",
-            a: "Quando scegli “Ripristina e interrompi la gestione”, CF Ready ripristina soltanto le traduzioni automatiche ancora uguali alla sua ultima scrittura. Se trova una modifica successiva effettuata da te o da un’altra app, la conserva e ti chiede di risolvere il conflitto prima di interrompere la gestione. Prima di disinstallare CF Ready, esegui il ripristino e controlla le lingue e i mercati pubblicati: Shopify può conservare le traduzioni dopo la rimozione dell’app.",
+            a: "Se interrompi la gestione, CF Ready smette di controllare e aggiornare le etichette del checkout, mentre le regole di validazione di Codice Fiscale e PEC restano attive. Prima di interrompersi, ripristina le traduzioni automatiche ancora uguali alla sua ultima scrittura. Se trova una modifica successiva effettuata da te o da un’altra app, la conserva e ti chiede di risolvere il conflitto. Se disinstalli CF Ready, anche la validazione smette di funzionare e l’app non può più gestire o ripristinare le etichette. Shopify può conservare le traduzioni già presenti: prima di disinstallare, esegui “Ripristina e interrompi la gestione” e controlla le lingue e i mercati pubblicati.",
           },
         ],
       },

@@ -325,7 +325,7 @@ export const en: typeof it = {
           },
           {
             q: "What happens if I stop label management or uninstall CF Ready?",
-            a: "When you choose “Restore and stop managing”, CF Ready restores only automatic translations that still match its last write. If it finds a later change made by you or another app, it preserves it and asks you to resolve the conflict before management stops. Before uninstalling CF Ready, run the restore and check every published language and market: Shopify can retain translations after the app is removed.",
+            a: "If you stop label management, CF Ready stops checking and updating checkout labels, while the tax code and PEC validation rules remain active. Before management stops, it restores automatic translations that still match its last write. If it finds a later change made by you or another app, it preserves it and asks you to resolve the conflict. If you uninstall CF Ready, validation also stops working and the app can no longer manage or restore labels. Shopify can retain existing translations: before uninstalling, run “Restore and stop managing” and check every published language and market.",
           },
         ],
       },
