@@ -95,7 +95,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
               ? null
               : "checkout_labels_scope_required",
       checkoutSettingsUrl: `https://admin.shopify.com/store/${shopHandle}/settings/checkout`,
-      languagesSettingsUrl: `https://admin.shopify.com/store/${shopHandle}/settings/languages`,
       storefrontUrl: `https://${session.shop}`,
     },
     { headers: { "Server-Timing": timing.header() } },
@@ -427,7 +426,6 @@ export default function CheckoutRules() {
                 enabled={labelsEnabled}
                 busy={busy}
                 checkoutSettingsUrl={saved.checkoutSettingsUrl}
-                languagesSettingsUrl={saved.languagesSettingsUrl}
                 storefrontUrl={saved.storefrontUrl}
                 onEnabledChange={(value) => {
                   setChangedSinceResult(true);

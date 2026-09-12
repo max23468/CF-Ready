@@ -1255,7 +1255,6 @@ describe("Regole", () => {
     guidedConfirmations: [],
     labelLoadError: null,
     checkoutSettingsUrl: "https://admin.shopify.com/store/demo/settings/checkout",
-    languagesSettingsUrl: "https://admin.shopify.com/store/demo/settings/languages",
     storefrontUrl: "https://demo.myshopify.com",
   } as const;
 
@@ -1460,6 +1459,15 @@ describe("Regole", () => {
     expect(disclosures?.[1].querySelectorAll(".checkout-label-context__row").length).toBeLessThan(
       8,
     );
+    expect(disclosures?.[1].textContent).toContain(
+      texts("it").rules.labels.marketCheckIncluded(["Italia"]),
+    );
+    expect(disclosures?.[1].textContent).not.toContain(
+      texts("it").rules.labels.marketException("Italia"),
+    );
+    expect(disclosures?.[1].textContent).toContain("Cerca e filtra i risultati");
+    expect(disclosures?.[1].textContent).toContain("Tax credential it");
+    expect(disclosures?.[1].textContent).toContain("Tax email it");
 
     const guidedConfirmations = [...view.container.querySelectorAll("s-button")].filter(
       (button) => button.textContent === texts("it").rules.labels.confirmGuided,
@@ -1859,7 +1867,7 @@ describe("Regole", () => {
       (button) => button.textContent === texts("it").rules.labels.confirmGuided,
     );
     expect(confirmation?.hasAttribute("disabled")).toBe(true);
-    expect(view.container.textContent).toContain("Impostazioni → Checkout");
+    expect(view.container.textContent).toContain("Cerca e filtra i risultati");
     expect(view.container.textContent).toContain(texts("it").rules.labels.manualMismatch);
 
     const refresh = [...view.container.querySelectorAll("s-button")].find(
@@ -1882,6 +1890,60 @@ describe("Regole", () => {
       (button) => button.textContent === texts("it").rules.labels.confirmGuided,
     );
     expect(enabledConfirmation?.hasAttribute("disabled")).toBe(false);
+
+    const marketMismatch = {
+      ...mismatched,
+      kind: "market_translation" as const,
+      marketId: "gid://shopify/Market/1",
+      marketName: "Italia",
+      currentValue: "CF Italia",
+      inheritedValue: "codice fiscale (facoltativo)",
+    };
+    router.loaderData = {
+      ...router.loaderData,
+      labelSnapshot: {
+        ...router.loaderData.labelSnapshot,
+        markets: [
+          {
+            id: "gid://shopify/Market/1",
+            name: "Italia",
+            defaultLocale: "it",
+            locales: ["it"],
+            resolution: "ambiguous" as const,
+          },
+        ],
+        revision: "labels-market-override",
+        slots: [{ ...mismatched, currentValue: "codice fiscale (facoltativo)" }, marketMismatch],
+      },
+      guidedConfirmations: [],
+    };
+    await view.rerender(<CheckoutRules key="labels-market-override" />);
+    expect(view.container.textContent).toContain("Adatta un mercato");
+    expect(view.container.textContent).toContain("Checkout and system");
+    expect(view.container.textContent).toContain("Filtra campi");
+    expect(view.container.textContent).toContain(texts("it").rules.labels.checkoutCheckRequired);
+    expect(texts("en").rules.labels.marketCheckIncluded(["Italy"])).toContain("Italy");
+    expect(texts("en").rules.labels.operationalSummary(1, 1)).toContain("1 label");
+    expect(texts("en").rules.labels.operationalSummary(2, 2)).toContain("2 labels");
+    expect(texts("en").rules.labels.manualSteps("English", null, true, []).join(" ")).toContain(
+      "Search and filter results",
+    );
+    expect(
+      texts("en").rules.labels.manualSteps("English", null, true, ["Italy"]).join(" "),
+    ).toContain("Adapt a market");
+    expect(texts("en").rules.labels.manualSteps("English", "Italy", false, []).join(" ")).toContain(
+      "Italy",
+    );
+    expect(texts("en").rules.labels.manualSteps("English", null, false, []).join(" ")).toContain(
+      "Translate for all markets",
+    );
+    const editorLinks = [...view.container.querySelectorAll("s-link")].filter(
+      (link) => link.textContent === texts("it").rules.labels.openCheckoutContentEditor,
+    );
+    expect(editorLinks.length).toBeGreaterThan(0);
+    expect(
+      editorLinks.every((link) => link.getAttribute("href") === rulesData.checkoutSettingsUrl),
+    ).toBe(true);
   });
 
   test("richiede gli scope delle etichette dalle Regole", async () => {

@@ -25,6 +25,7 @@ type FiscalLabelContext = {
   note: string | null;
   language: string;
   marketName: string | null;
+  verificationMarkets: string[];
   primary: boolean;
   entries: { name: "taxCode" | "pec"; slot: CheckoutLabelSlot }[];
   guidedSlotIds: string[];
@@ -40,7 +41,6 @@ type CheckoutLabelsSectionProps = {
   enabled: boolean;
   busy: boolean;
   checkoutSettingsUrl: string;
-  languagesSettingsUrl: string;
   storefrontUrl: string;
   onEnabledChange: (value: boolean) => void;
 };
@@ -56,7 +56,6 @@ export function CheckoutLabelsSection({
   enabled,
   busy,
   checkoutSettingsUrl,
-  languagesSettingsUrl,
   storefrontUrl,
   onEnabledChange,
 }: CheckoutLabelsSectionProps) {
@@ -142,7 +141,6 @@ export function CheckoutLabelsSection({
           activeFamily={activeFamily}
           storefrontUrl={storefrontUrl}
           checkoutSettingsUrl={checkoutSettingsUrl}
-          languagesSettingsUrl={languagesSettingsUrl}
           enabled={enabled}
           busy={busy || actionBusy || scopeRequestBusy || revalidationBusy}
           onEnabledChange={onEnabledChange}
@@ -165,7 +163,6 @@ function NativeCheckoutLabels({
   activeFamily,
   storefrontUrl,
   checkoutSettingsUrl,
-  languagesSettingsUrl,
   enabled,
   busy,
   onEnabledChange,
@@ -182,7 +179,6 @@ function NativeCheckoutLabels({
   | "state"
   | "storefrontUrl"
   | "checkoutSettingsUrl"
-  | "languagesSettingsUrl"
   | "enabled"
   | "busy"
   | "onEnabledChange"
@@ -252,7 +248,6 @@ function NativeCheckoutLabels({
             activeFamily={activeFamily}
             storefrontUrl={storefrontUrl}
             checkoutSettingsUrl={checkoutSettingsUrl}
-            languagesSettingsUrl={languagesSettingsUrl}
             automaticAvailable={automaticAvailable}
             displayedContexts={displayedContexts}
             guidedConfirmations={guidedConfirmations}
@@ -310,7 +305,6 @@ function NativeLabelsGrantedContent({
   activeFamily,
   storefrontUrl,
   checkoutSettingsUrl,
-  languagesSettingsUrl,
   automaticAvailable,
   displayedContexts,
   guidedConfirmations,
@@ -327,7 +321,6 @@ function NativeLabelsGrantedContent({
   | "busy"
   | "storefrontUrl"
   | "checkoutSettingsUrl"
-  | "languagesSettingsUrl"
   | "guidedConfirmations"
   | "onEnabledChange"
 > & {
@@ -385,7 +378,6 @@ function NativeLabelsGrantedContent({
             busy={busy}
             storefrontUrl={storefrontUrl}
             checkoutSettingsUrl={checkoutSettingsUrl}
-            languagesSettingsUrl={languagesSettingsUrl}
             onConfirm={(slotIds) => submitIntent("confirm_guided_labels", slotIds)}
           />
         </>
@@ -752,7 +744,6 @@ function LabelComparison({
   busy,
   storefrontUrl,
   checkoutSettingsUrl,
-  languagesSettingsUrl,
   onConfirm,
 }: {
   contexts: FiscalLabelContext[];
@@ -762,7 +753,6 @@ function LabelComparison({
   busy: boolean;
   storefrontUrl: string;
   checkoutSettingsUrl: string;
-  languagesSettingsUrl: string;
   onConfirm: (slotIds: string[]) => void;
 }) {
   const copy = texts(locale).rules.labels;
@@ -821,7 +811,12 @@ function LabelComparison({
                   <s-text type="strong">{copy.manualHeading}</s-text>
                   <s-ordered-list>
                     {copy
-                      .manualSteps(context.language, context.marketName, context.primary)
+                      .manualSteps(
+                        context.language,
+                        context.marketName,
+                        context.primary,
+                        context.verificationMarkets,
+                      )
                       .map((step) => (
                         <s-list-item key={step}>{step}</s-list-item>
                       ))}
@@ -829,17 +824,8 @@ function LabelComparison({
                   <s-link href={storefrontUrl} target="_blank">
                     {copy.openStorefront}
                   </s-link>
-                  <s-link
-                    href={
-                      context.primary && !context.marketName
-                        ? checkoutSettingsUrl
-                        : languagesSettingsUrl
-                    }
-                    target="_blank"
-                  >
-                    {context.primary && !context.marketName
-                      ? copy.openCheckoutContentEditor
-                      : copy.openTranslations}
+                  <s-link href={checkoutSettingsUrl} target="_blank">
+                    {copy.openCheckoutContentEditor}
                   </s-link>
                   {!matchesProposed ? (
                     <s-banner tone="warning">{copy.manualMismatch}</s-banner>
@@ -938,6 +924,7 @@ function fiscalLabelContexts(snapshot: CheckoutLabelsSnapshot, rules: Rules, loc
       note: null,
       language: shopLocale.family === "it" ? copy.italian : copy.english,
       marketName: null,
+      verificationMarkets: [],
       primary: shopLocale.primary,
       entries: [],
       guidedSlotIds: [],
@@ -979,16 +966,17 @@ function fiscalLabelContexts(snapshot: CheckoutLabelsSnapshot, rules: Rules, loc
 
     const marketContexts: FiscalLabelContext[] = [];
     for (const [marketId, market] of marketSlots) {
-      const isException =
-        market.resolution === "ambiguous" ||
-        market.entries.some(({ name, slot }) => {
-          const baseSlot = baseSlots.get(name);
-          return (
-            baseSlot &&
-            !checkoutLabelValuesMatch(observedLabelForSlot(slot), observedLabelForSlot(baseSlot))
-          );
-        });
+      const isException = market.entries.some(({ name, slot }) => {
+        const baseSlot = baseSlots.get(name);
+        return (
+          baseSlot &&
+          !checkoutLabelValuesMatch(observedLabelForSlot(slot), observedLabelForSlot(baseSlot))
+        );
+      });
       if (!isException) {
+        if (market.resolution === "ambiguous") {
+          base.verificationMarkets.push(market.name);
+        }
         for (const { slot } of market.entries) {
           if (needsManualVerification(slot, rules)) {
             base.guidedSlotIds.push(checkoutLabelSlotId(slot));
@@ -1002,6 +990,7 @@ function fiscalLabelContexts(snapshot: CheckoutLabelsSnapshot, rules: Rules, loc
         note: market.resolution === "ambiguous" ? copy.checkoutCheckRequired : null,
         language: shopLocale.family === "it" ? copy.italian : copy.english,
         marketName: market.name,
+        verificationMarkets: [],
         primary: shopLocale.primary,
         entries: market.entries,
         guidedSlotIds: market.entries.flatMap(({ slot }) =>
@@ -1014,6 +1003,9 @@ function fiscalLabelContexts(snapshot: CheckoutLabelsSnapshot, rules: Rules, loc
       shopLocale.primary ? copy.primary : null,
       !shopLocale.published ? copy.unpublished : null,
       marketSlots.size > 0 && marketContexts.length === 0 ? copy.allMarketsSame : null,
+      base.verificationMarkets.length > 0
+        ? copy.marketCheckIncluded(base.verificationMarkets)
+        : null,
     ].filter(Boolean);
     base.note = baseNotes.length > 0 ? baseNotes.join(" · ") : null;
     return base.entries.length > 0 ? [base, ...marketContexts] : [];
