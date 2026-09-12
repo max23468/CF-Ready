@@ -384,6 +384,68 @@ test("la Home espone il token di verifica Google Search Console", () => {
   assert.ok(html.indexOf(verificationTag) < html.indexOf("</head>"));
 });
 
+test("ogni pagina pubblica espone il set favicon multipiattaforma", () => {
+  const pages = [
+    ...indexableSitePages.keys(),
+    "site/privacy.html",
+    "site/terms.html",
+    "site/en/privacy.html",
+    "site/en/terms.html",
+    "site/404.html",
+  ];
+  const tags = [
+    '<link rel="icon" href="/favicon-96x96.png" type="image/png" sizes="96x96">',
+    '<link rel="icon" href="/favicon.svg" type="image/svg+xml">',
+    '<link rel="icon" href="/favicon.ico" sizes="any">',
+    '<link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">',
+    '<meta name="apple-mobile-web-app-title" content="CF Ready">',
+    '<link rel="manifest" href="/site.webmanifest">',
+    '<meta name="theme-color" content="#F7F5EE">',
+  ];
+
+  for (const path of pages) {
+    const html = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+    for (const tag of tags) assert.equal(html.split(tag).length - 1, 1, `${path}: ${tag}`);
+  }
+
+  for (const [file, width, height] of [
+    ["favicon-96x96.png", 96, 96],
+    ["apple-touch-icon.png", 180, 180],
+    ["web-app-manifest-192x192.png", 192, 192],
+    ["web-app-manifest-512x512.png", 512, 512],
+  ]) {
+    const image = readFileSync(new URL(`../site/${file}`, import.meta.url));
+    assert.equal(image.subarray(1, 4).toString("ascii"), "PNG", file);
+    assert.equal(image.readUInt32BE(16), width, file);
+    assert.equal(image.readUInt32BE(20), height, file);
+  }
+
+  const icon = readFileSync(new URL("../site/favicon.ico", import.meta.url));
+  assert.equal(icon.readUInt16LE(2), 1);
+  assert.equal(icon.readUInt16LE(4), 3);
+
+  const manifest = JSON.parse(
+    readFileSync(new URL("../site/site.webmanifest", import.meta.url), "utf8"),
+  );
+  assert.deepEqual(
+    manifest.icons.map(({ src, sizes, type, purpose }) => ({ src, sizes, type, purpose })),
+    [
+      {
+        src: "/web-app-manifest-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: undefined,
+      },
+      {
+        src: "/web-app-manifest-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any maskable",
+      },
+    ],
+  );
+});
+
 test("l’anteprima sociale è un PNG pubblico nelle dimensioni dichiarate", () => {
   const image = readFileSync(new URL("../site/assets/cf-ready-app-preview.png", import.meta.url));
   assert.equal(image.subarray(1, 4).toString("ascii"), "PNG");
