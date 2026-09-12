@@ -39,6 +39,7 @@ describe("componenti merchant nel browser", () => {
         expect(typeof formatter).toBe("function");
         expect((formatter as (...values: unknown[]) => string)(...args).trim()).not.toBe("");
       }
+      expect(messages.rules.history.changed(["Codice fiscale", "PEC"])).toContain("PEC");
     }
   });
 
@@ -102,8 +103,14 @@ describe("componenti merchant nel browser", () => {
     mounted.push(view);
     const selects = [...view.container.querySelectorAll("s-select")];
     const fields = [...view.container.querySelectorAll("s-text-field")];
-    expect(selects).toHaveLength(4);
-    expect(fields).toHaveLength(3);
+    expect(selects).toHaveLength(5);
+    expect(fields).toHaveLength(2);
+
+    (selects[0] as HTMLElement & { value: string }).value = "en";
+    await dispatch(selects[0], new Event("change", { bubbles: true }));
+    expect(view.container.textContent).toContain("Interactive preview");
+    (selects[0] as HTMLElement & { value: string }).value = "it";
+    await dispatch(selects[0], new Event("change", { bubbles: true }));
 
     (selects[1] as HTMLElement & { value: string }).value = "unknown";
     await dispatch(selects[1], new Event("change", { bubbles: true }));
@@ -115,8 +122,14 @@ describe("componenti merchant nel browser", () => {
 
     (selects[1] as HTMLElement & { value: string }).value = "IT";
     await dispatch(selects[1], new Event("change", { bubbles: true }));
-    (selects[3] as HTMLElement & { value: string }).value = "invalidTaxCode";
+    (selects[3] as HTMLElement & { value: string }).value = "CHECKOUT_COMPLETION";
     await dispatch(selects[3], new Event("change", { bubbles: true }));
+    for (const checkbox of view.container.querySelectorAll("s-checkbox")) {
+      (checkbox as HTMLElement & { checked: boolean }).checked = true;
+      await dispatch(checkbox, new Event("change", { bubbles: true }));
+    }
+    (selects[4] as HTMLElement & { value: string }).value = "invalidTaxCode";
+    await dispatch(selects[4], new Event("change", { bubbles: true }));
     expect(view.container.querySelector('[role="status"]')?.textContent).toContain("blocca");
 
     (fields[0] as HTMLElement & { value: string }).value = "RSSMRA85T10A562S";
@@ -136,7 +149,7 @@ describe("componenti merchant nel browser", () => {
       [...view.container.querySelectorAll("s-text-field")].map(
         (field) => (field as HTMLElement & { value?: string }).value ?? "",
       ),
-    ).toEqual(["", "", ""]);
+    ).toEqual(["", ""]);
     expect(view.container.querySelector('[role="status"]')?.textContent).toBeTruthy();
   });
 
@@ -150,8 +163,8 @@ describe("componenti merchant nel browser", () => {
     );
     mounted.push(view);
     const selects = [...view.container.querySelectorAll("s-select")];
-    expect(selects).toHaveLength(4);
-    expect(view.container.querySelectorAll("s-checkbox")).toHaveLength(0);
+    expect(selects).toHaveLength(5);
+    expect(view.container.querySelectorAll("s-checkbox")).toHaveLength(4);
     const fields = [...view.container.querySelectorAll("s-text-field")];
     expect(fields.every((field) => field.getAttribute("error") === null)).toBe(true);
     await dispatch(
@@ -171,7 +184,7 @@ describe("componenti merchant nel browser", () => {
       />,
     );
     mounted.push(unmanaged);
-    expect(unmanaged.container.querySelectorAll("s-text-field")).toHaveLength(1);
+    expect(unmanaged.container.querySelectorAll("s-text-field")).toHaveLength(0);
     expect(unmanaged.container.textContent).toContain(en.checkout.nothing);
 
     const pecOnly = await render(
@@ -206,7 +219,7 @@ describe("componenti merchant nel browser", () => {
     const fields = [...view.container.querySelectorAll("s-text-field")] as Array<
       HTMLElement & { value: string }
     >;
-    expect(fields).toHaveLength(3);
+    expect(fields).toHaveLength(2);
     expect(fields[0].getAttribute("label")).toBe(it.rules.simulator.company);
     expect(fields[1].hasAttribute("required")).toBe(false);
 

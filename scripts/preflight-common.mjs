@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 
 export function verifyNoPendingMigrations(output) {
@@ -7,15 +8,50 @@ export function verifyNoPendingMigrations(output) {
   }
 }
 
-export function verifyMigrationSafety(migrations) {
-  const unsafe = migrations.find(
-    ({ name, sql }) =>
-      name > "0010_privacy_hardening.sql" &&
-      /\bDROP\s+(?:TABLE|COLUMN)\b|\bALTER\s+TABLE\b[\s\S]*\bRENAME\b|\bDELETE\s+FROM\b/i.test(sql),
-  );
+export function verifyMigrationSafety(migrations, policy = { migrations: [] }) {
+  const unsafe = migrations.find(({ name, sql }) => {
+    if (name <= "0010_privacy_hardening.sql" || !destructiveMigration(sql)) return false;
+    const registered = policy.migrations.find((entry) => entry.name === name);
+    return !(
+      registered?.deployStrategy === "atomic-compatible-table-rebuild" &&
+      registered.sha256 === createHash("sha256").update(sql).digest("hex") &&
+      isCompatibleTableRebuild(sql)
+    );
+  });
   if (unsafe) {
     throw new Error(`La migrazione ${unsafe.name} richiede un deploy in due fasi.`);
   }
+}
+
+function destructiveMigration(sql) {
+  return /\bDROP\s+(?:TABLE|COLUMN)\b|\bALTER\s+TABLE\b[\s\S]*\bRENAME\b|\bDELETE\s+FROM\b/i.test(
+    sql,
+  );
+}
+
+function isCompatibleTableRebuild(sql) {
+  if (/\bDROP\s+COLUMN\b|\bDELETE\s+FROM\b/i.test(sql)) return false;
+  const rename = sql.match(
+    /\bALTER\s+TABLE\s+([a-z_][a-z0-9_]*)\s+RENAME\s+TO\s+([a-z_][a-z0-9_]*)\s*;/i,
+  );
+  if (!rename) return false;
+  const [, table, previousTable] = rename;
+  const escapedTable = escapeRegex(table);
+  const escapedPrevious = escapeRegex(previousTable);
+  const dropTables = [...sql.matchAll(/\bDROP\s+TABLE\s+([a-z_][a-z0-9_]*)\s*;/gi)];
+  return (
+    dropTables.length === 1 &&
+    dropTables[0][1].toLowerCase() === previousTable.toLowerCase() &&
+    new RegExp(`\\bCREATE\\s+TABLE\\s+${escapedTable}\\s*\\(`, "i").test(sql) &&
+    new RegExp(
+      `\\bINSERT\\s+INTO\\s+${escapedTable}\\s+SELECT\\s+\\*\\s+FROM\\s+${escapedPrevious}\\s*;`,
+      "i",
+    ).test(sql)
+  );
+}
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export function verifyWorkerSecrets(
@@ -66,6 +102,10 @@ export async function readMigrations() {
       sql: await readFile(`migrations/${name}`, "utf8"),
     })),
   );
+}
+
+export async function readMigrationPolicy() {
+  return JSON.parse(await readFile("config/migration-policy.json", "utf8"));
 }
 
 export function run(command, args, inherit = true) {

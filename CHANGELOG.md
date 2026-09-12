@@ -6,6 +6,54 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.10.0 — 12 settembre 2026
+
+- il simulatore riproduce Interaction e Completion della Function, comprese le
+  delivery group, i campi assenti e le diagnosi formali di Codice Fiscale e PEC;
+- lo storico conserva e ripristina fino a dieci configurazioni differenti degli
+  ultimi 90 giorni tramite la lease e l’hash della Validation corrente;
+- la gestione delle etichette considera soltanto la variante visibile del campo
+  “Interno”, limita le letture Shopify concorrenti e rifiuta pagine incomplete;
+- il Control Center genera notifiche owner deduplicate per incidenti webhook,
+  acquisizione Partner ed errori persistenti delle etichette, inclusa la
+  risoluzione;
+- Regole checkout espone durate server dettagliate e la suite browser ripete in
+  WebKit i percorsi merchant sensibili, mantenendo separata la prova su iPhone
+  embedded reale.
+
+## 1.9.3 — 12 settembre 2026
+
+- la Guida raccoglie quattordici FAQ chiuse all’apertura, organizzate per tema e
+  aggiornate in italiano e inglese per descrivere regole, validazione, etichette,
+  privacy, assistenza e conseguenze della disinstallazione;
+- il campo “Interno” può essere dichiarato obbligatorio, facoltativo o non
+  mostrato; quando è nascosto CF Ready non richiede confronti sulle sue etichette;
+- le date distinguono l’ultima rilettura da Shopify dall’ultima conferma manuale
+  nel checkout e il comando di rilettura aggiorna lo stato restituito;
+- titoli, pill e riepilogo dell’onboarding restano leggibili anche sugli schermi
+  stretti;
+- il sito pubblico espone favicon, icona Apple e manifest web coerenti in tutte
+  le pagine italiane e inglesi.
+
+## 1.9.2 — 12 settembre 2026
+
+- la sezione “Etichette del checkout (impostazioni avanzate)” contiene, in
+  quest’ordine, i pannelli “Campo Interno” e “Testi del checkout”; entrambi
+  partono chiusi, mantengono lo stesso bordo quando vengono aperti e mostrano un
+  comando esplicito per espandere il contenuto;
+- il confronto di Codice Fiscale e PEC ignora maiuscole e minuscole;
+- la verifica manuale indica i passaggi effettivi dell’editor del checkout e di
+  Shopify Translate & Adapt, compresa la ricerca dei campi e la guida iniziale,
+  e mantiene le istruzioni chiuse finché il merchant non le espande;
+- il riquadro dei permessi appare sotto il selettore della lingua e descrive
+  l’accesso richiesto senza mostrare esempi delle etichette;
+- “Rileggi i campi da Shopify” esegue una richiesta server esplicita, mostra il
+  caricamento e applica subito testi globali, personalizzazioni di mercato,
+  stati e conferme aggiornati;
+- l’onboarding configura il campo “Interno” nel secondo passo e rimuove la
+  conferma manuale dei testi e il simulatore;
+- il simulatore della pagina Regole mostra soltanto Codice Fiscale e PEC.
+
 ## 1.9.1 — 11 settembre 2026
 
 - l’assistenza usa `supporto@cfready.it` nel messaggio precompilato dell’app,

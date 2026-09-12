@@ -1,16 +1,18 @@
 import type { AppErrorCode } from "../app-error";
-import type { Rules } from "../config";
+import type { CheckoutConfig, Rules } from "../config";
 import { withValidationLock, type ValidationLockHeartbeat } from "../validation/lock.server";
 import { writeValidationUnderLock } from "../validation/write.server";
 import {
   address2Reference,
   CHECKOUT_LABEL_OPTIONAL_SCOPES,
   checkoutLabelSlotId,
+  checkoutLabelValuesMatch,
   checkoutLabelName,
   checkoutLabelsMode,
   observedLabelForSlot,
   proposedLabelForSlot,
   type CheckoutLabelSlot,
+  type CheckoutLabelState,
   type CheckoutLabelsSnapshot,
   type StoredCheckoutLabelSlot,
 } from "./domain";
@@ -68,6 +70,7 @@ export async function loadCheckoutLabels(
       snapshot.slots,
       stored,
       state.address2Decision,
+      state.address2FormMode,
     );
     if (state.decision === "accepted" && state.acceptedRevision !== snapshot.revision) {
       await saveCheckoutLabelsDecision(db, shopDomain, "pending", null);
@@ -139,6 +142,7 @@ export async function saveRulesAndCheckoutLabels(
   shopDomain: string,
   input: {
     rules: Rules;
+    messages?: CheckoutConfig["messages"];
     expectedConfigHash: string | null;
     labelsEnabled: boolean;
     confirmAutomaticWrite: boolean;
@@ -207,7 +211,7 @@ export async function saveRulesAndCheckoutLabels(
       admin,
       db,
       shopDomain,
-      { rules: input.rules },
+      { rules: input.rules, ...(input.messages ? { messages: input.messages } : {}) },
       null,
       input.expectedConfigHash,
       undefined,
@@ -404,7 +408,15 @@ export async function confirmGuidedCheckoutLabels(
       if (selected.size === 0 || slots.length !== selected.size) {
         return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
       }
-      if (slots.some((slot) => proposedLabelForSlot(slot, rules) !== observedLabelForSlot(slot))) {
+      if (
+        slots.some(
+          (slot) =>
+            !checkoutLabelValuesMatch(
+              proposedLabelForSlot(slot, rules),
+              observedLabelForSlot(slot),
+            ),
+        )
+      ) {
         return { ok: false as const, errorCode: "checkout_labels_partial_sync" as const };
       }
       await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots, snapshot.address2);
@@ -467,7 +479,7 @@ async function synchronizeFiscalPhase(
         }
 
         const target = proposedLabelForSlot(slot, rules);
-        if (!target || slot.currentValue === target) continue;
+        if (!target || checkoutLabelValuesMatch(slot.currentValue, target)) continue;
         await claimCheckoutLabelSlot(db, shopDomain, slot, epoch);
         const group = pending.get(slot.resourceId) ?? [];
         group.push({ slot, target });
@@ -549,7 +561,7 @@ function automaticFiscalSlots(slots: CheckoutLabelSlot[]) {
 function automaticFiscalWrites(snapshot: CheckoutLabelsSnapshot, rules: Rules) {
   return automaticFiscalSlots(snapshot.slots).filter((slot) => {
     const proposed = proposedLabelForSlot(slot, rules);
-    return proposed !== null && slot.currentValue !== proposed;
+    return proposed !== null && !checkoutLabelValuesMatch(slot.currentValue, proposed);
   });
 }
 
@@ -557,7 +569,7 @@ function managedFiscalValuesMatch(snapshot: CheckoutLabelsSnapshot, rules: Rules
   return automaticFiscalSlots(snapshot.slots).every((slot) => {
     const mode = slot.name === "taxCode" ? rules.taxCode : rules.pec;
     if (mode === "unmanaged") return true;
-    return slot.currentValue === proposedLabelForSlot(slot, rules);
+    return checkoutLabelValuesMatch(slot.currentValue, proposedLabelForSlot(slot, rules));
   });
 }
 
@@ -590,8 +602,8 @@ function guidedConfirmationIsValid(
   const observed = observedLabelForSlot(slot);
   return (
     Boolean(previous?.guidedConfirmedAt) &&
-    previous?.guidedConfirmedValue === observed &&
-    proposedLabelForSlot(slot, rules) === observed
+    checkoutLabelValuesMatch(previous?.guidedConfirmedValue ?? null, observed) &&
+    checkoutLabelValuesMatch(proposedLabelForSlot(slot, rules), observed)
   );
 }
 
@@ -668,14 +680,14 @@ function hasAddress2ObservationChange(
   slots: CheckoutLabelSlot[],
   stored: StoredCheckoutLabelSlot[],
   decision: "pending" | "accepted" | "restored" | "manual_restore_required",
+  formMode: CheckoutLabelState["address2FormMode"],
 ) {
-  if (decision !== "accepted") return false;
-  const currentAddressSlots = slots.filter(
-    ({ name }) => name === "address2" || name === "optionalAddress2",
-  );
+  if (decision !== "accepted" || formMode === null || formMode === "hidden") return false;
+  const activeName = formMode === "required" ? "address2" : "optionalAddress2";
+  const currentAddressSlots = slots.filter(({ name }) => name === activeName);
   const storedAddressSlots = stored.filter((slot) => {
     const name = checkoutLabelName(slot.key);
-    return name === "address2" || name === "optionalAddress2";
+    return name === activeName;
   });
   return (
     currentAddressSlots.some((slot) => {
@@ -698,7 +710,11 @@ function hasAddress2ObservationChange(
 
 function matchesLastWrite(currentValue: string | null, stored: StoredCheckoutLabelSlot) {
   if (stored.lastWritePresent === null) return true;
-  return stored.lastWritePresent ? currentValue === stored.lastWrittenValue : currentValue === null;
+  if (!stored.lastWritePresent) return currentValue === null;
+  const name = checkoutLabelName(stored.key);
+  return name === "taxCode" || name === "pec"
+    ? checkoutLabelValuesMatch(currentValue, stored.lastWrittenValue)
+    : currentValue === stored.lastWrittenValue;
 }
 
 function checkoutLabelsError(error: unknown): AppErrorCode {

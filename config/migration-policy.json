@@ -108,6 +108,22 @@
       "name": "0020_address2_form_mode.sql",
       "sha256": "c0bc4532c7f5489c416b327edd5f4b8216f82e8ba9addeafdb96b8f774535438",
       "protects": ["merchant second-address-line mode"]
+    },
+    {
+      "name": "0021_address2_hidden_mode.sql",
+      "sha256": "56e079f989df0276e6267aec246ae8f737229c58fbca5119b4c74f4b6c3c9f01",
+      "protects": ["hidden second-address-line mode", "existing second-address-line choices"]
+    },
+    {
+      "name": "0022_configuration_history.sql",
+      "sha256": "1eb10b7c4083ebbfa39f16bab65ebca3e926df566d203d12f033e968e1a02247",
+      "protects": ["minimized configuration history", "configuration-history cascade"]
+    },
+    {
+      "name": "0023_owner_operational_incidents.sql",
+      "sha256": "94b161538c10238d970d4c886e1ddd7b1817104ebbdff7507202a9cb59c7cf09",
+      "deployStrategy": "atomic-compatible-table-rebuild",
+      "protects": ["operational incident lifecycle", "operational notification outbox"]
     }
   ]
 }

@@ -74,6 +74,22 @@ test("i timing di navigazione ammettono solo nomi e durate validi", () => {
   expect(readNavigationServerTimings()).toEqual({});
 });
 
+test("i timing omonimi vengono sommati invece di perdere le fasi precedenti", () => {
+  expect(
+    readNavigationServerTimings([
+      { name: "shopify_snapshot", duration: 450 },
+      { name: "shopify_snapshot", duration: 20 },
+      { name: "shopify_snapshot", duration: 180 },
+      { name: "shopify_scopes", duration: 12.34 },
+      { name: "shopify_checkout_labels", duration: 56.78 },
+    ]),
+  ).toEqual({
+    shopify_snapshot: 650,
+    shopify_scopes: 12.3,
+    shopify_checkout_labels: 56.8,
+  });
+});
+
 test("il registratore server misura operazioni allowlistate e il totale", async () => {
   const clock = vi.spyOn(performance, "now");
   clock

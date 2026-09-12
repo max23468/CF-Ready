@@ -3,6 +3,7 @@ import type { Locale } from "./types";
 
 const moneyFormatters = new Map<Locale, Intl.NumberFormat>();
 const dateFormatters = new Map<Locale, Intl.DateTimeFormat>();
+const dateTimeFormatters = new Map<Locale, Intl.DateTimeFormat>();
 
 export function formatMoney(amount: number, locale: Locale) {
   let formatter = moneyFormatters.get(locale);
@@ -23,4 +24,17 @@ export function formatDate(iso: string | null, locale: Locale) {
     dateFormatters.set(locale, formatter);
   }
   return formatter.format(new Date(`${iso}T00:00:00Z`));
+}
+
+export function formatDateTime(iso: string, locale: Locale) {
+  let formatter = dateTimeFormatters.get(locale);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale === "it" ? "it-IT" : "en-GB", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "UTC",
+    });
+    dateTimeFormatters.set(locale, formatter);
+  }
+  return `${formatter.format(new Date(iso))} UTC`;
 }

@@ -506,6 +506,47 @@ test("0014 e 0015 aggiornano snapshot esistenti senza perdere stato", async () =
   });
 });
 
+test("0023 ammette notifiche operative globali e rimuove gli incidenti dello store", async () => {
+  await env.DB.prepare(
+    `INSERT INTO shops
+       (id, shop_domain, installation_status, installed_at, created_at, updated_at)
+     VALUES (2300, 'incident.example.myshopify.com', 'active',
+             '2026-09-12', '2026-09-12', '2026-09-12')`,
+  ).run();
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO owner_notifications
+         (dedupe_key, notification_kind, shop_domain, subject, body_text,
+          source_occurred_at, available_at, created_at, updated_at)
+       VALUES ('operational-global', 'operational', NULL, 'Incidente', 'Aperto',
+               '2026-09-12', '2026-09-12', '2026-09-12', '2026-09-12')`,
+    ),
+    env.DB.prepare(
+      `INSERT INTO owner_operational_incidents
+         (incident_key, incident_kind, shop_id, status, fingerprint,
+          consecutive_observations, first_observed_at, opened_at, updated_at)
+       VALUES ('checkout_labels:2300', 'checkout_labels', 2300, 'active', 'errore',
+               3, '2026-09-12', '2026-09-12', '2026-09-12')`,
+    ),
+  ]);
+
+  await env.DB.prepare("DELETE FROM shops WHERE id = 2300").run();
+
+  expect(
+    await env.DB.prepare(
+      "SELECT notification_kind, shop_domain FROM owner_notifications WHERE dedupe_key = 'operational-global'",
+    ).first(),
+  ).toEqual({ notification_kind: "operational", shop_domain: null });
+  expect(
+    await env.DB.prepare(
+      "SELECT COUNT(*) AS count FROM owner_operational_incidents WHERE incident_key = 'checkout_labels:2300'",
+    ).first("count"),
+  ).toBe(0);
+  await env.DB.prepare(
+    "DELETE FROM owner_notifications WHERE dedupe_key = 'operational-global'",
+  ).run();
+});
+
 test("l'intera sequenza produce uno schema integro con tutti gli indici dichiarati", async () => {
   const { MIGRATION_FULL_DB: db, TEST_MIGRATIONS: migrations } = migrationEnvironment();
   expect(migrations.map(({ name }) => name)).toEqual([
@@ -529,8 +570,43 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "0018_checkout_labels.sql",
     "0019_checkout_label_decision.sql",
     "0020_address2_form_mode.sql",
+    "0021_address2_hidden_mode.sql",
+    "0022_configuration_history.sql",
+    "0023_owner_operational_incidents.sql",
   ]);
-  await applyD1Migrations(db, migrations);
+  await applyThrough(db, migrations, "0022_configuration_history.sql");
+  await insertShop(db);
+  await db
+    .prepare(
+      `INSERT INTO owner_notifications
+         (id, dedupe_key, notification_kind, shop_domain, subject, body_text,
+          source_occurred_at, status, attempts, available_at, created_at, updated_at)
+       VALUES (23, 'before-operational', 'billing', 'migration.example.myshopify.com',
+               'Prima', 'Conservata', '2026-09-11', 'sent', 2,
+               '2026-09-11', '2026-09-11', '2026-09-11')`,
+    )
+    .run();
+  await applyD1Migrations(db, [migrationAfter(migrations, "0022_configuration_history.sql")]);
+
+  expect(await db.prepare("SELECT * FROM owner_notifications WHERE id = 23").first()).toMatchObject(
+    {
+      dedupe_key: "before-operational",
+      notification_kind: "billing",
+      shop_domain: "migration.example.myshopify.com",
+      status: "sent",
+      attempts: 2,
+    },
+  );
+  await db
+    .prepare(
+      `INSERT INTO owner_notifications
+         (dedupe_key, notification_kind, shop_domain, subject, body_text,
+          source_occurred_at, available_at, created_at, updated_at)
+       VALUES ('old-worker-compatible', 'trial', 'migration.example.myshopify.com',
+               'Compatibile', 'Scrittura precedente', '2026-09-12',
+               '2026-09-12', '2026-09-12', '2026-09-12')`,
+    )
+    .run();
 
   expect((await db.prepare("PRAGMA foreign_key_check").all()).results).toEqual([]);
   const tables = await db
@@ -550,11 +626,13 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "billing_events",
     "checkout_label_slots",
     "complimentary_entitlements",
+    "configuration_history",
     "owner_control_state",
     "owner_control_updates",
     "owner_notification_redactions",
     "owner_notification_state",
     "owner_notifications",
+    "owner_operational_incidents",
     "performance_samples",
     "shopify_sessions",
     "shops",
@@ -577,11 +655,13 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "billing_events_occurred_at_idx",
     "billing_events_resource_type_idx",
     "checkout_label_slots_shop_id_idx",
+    "configuration_history_shop_created_idx",
     "owner_control_updates_retention_idx",
     "owner_notification_redactions_retention_idx",
     "owner_notifications_created_at_idx",
     "owner_notifications_delivery_idx",
     "owner_notifications_shop_domain_idx",
+    "owner_operational_incidents_shop_id_idx",
     "performance_samples_metric_observed_idx",
     "performance_samples_version_route_metric_idx",
     "shopify_sessions_shop_id_idx",
@@ -741,7 +821,14 @@ test("0018-0020 conservano lo storico e aggiungono le scelte sulle etichette", a
     await db.prepare("SELECT address2_form_mode FROM app_state WHERE shop_id = 1").first(),
   ).toEqual({ address2_form_mode: null });
   await db.prepare("UPDATE app_state SET address2_form_mode = 'required' WHERE shop_id = 1").run();
+  await applyD1Migrations(db, [migrationAfter(migrations, "0020_address2_form_mode.sql")]);
+  expect(
+    await db
+      .prepare("SELECT address2_form_mode, address2_form_hidden FROM app_state WHERE shop_id = 1")
+      .first(),
+  ).toEqual({ address2_form_mode: "required", address2_form_hidden: 0 });
+  await db.prepare("UPDATE app_state SET address2_form_hidden = 1 WHERE shop_id = 1").run();
   await expect(
-    db.prepare("UPDATE app_state SET address2_form_mode = 'hidden' WHERE shop_id = 1").run(),
+    db.prepare("UPDATE app_state SET address2_form_hidden = 2 WHERE shop_id = 1").run(),
   ).rejects.toThrow();
 });

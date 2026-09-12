@@ -7,12 +7,12 @@ import type {
   CheckoutLabelsStatus,
 } from "./checkout-labels/domain";
 import { en } from "./i18n/en";
-import { formatDate, formatMoney } from "./i18n/format";
+import { formatDate, formatDateTime, formatMoney } from "./i18n/format";
 import { it } from "./i18n/it";
 import type { Locale } from "./i18n/types";
 
 export type { Locale } from "./i18n/types";
-export { formatDate, formatMoney };
+export { formatDate, formatDateTime, formatMoney };
 
 // §22: casella di assistenza, la stessa della pagina Support del sito pubblico.
 export const SUPPORT_EMAIL = "supporto@cfready.it";
