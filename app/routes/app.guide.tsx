@@ -113,7 +113,7 @@ export const shouldRevalidate = skipRevalidationWhenLeaving;
 export default function Guide() {
   const { locale, shopDomain, version, diagnosticId, diagnostics } = useLoaderData<typeof loader>();
   const t = texts(locale);
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [copyState, setCopyState] = useState<"copied" | "failed" | null>(null);
   const [supportCategory, setSupportCategory] = useState<SupportCategory>("checkout");
   const diagnosticsFetcher = useFetcher<typeof action>();
@@ -136,7 +136,7 @@ export default function Guide() {
   // quindi non serve tenere in stato l'apertura di ogni voce.
   const toggleAll = () => {
     const open = !expanded;
-    document.querySelectorAll<HTMLDetailsElement>("#faq details").forEach((entry) => {
+    document.querySelectorAll<HTMLDetailsElement>("#faq .guide-faq__entry").forEach((entry) => {
       entry.open = open;
     });
     setExpanded(open);
@@ -155,16 +155,23 @@ export default function Guide() {
               {expanded ? t.guide.collapseAll : t.guide.expandAll}
             </s-button>
           </s-grid>
-          <div className="guide-faq__entries">
-            {t.guide.entries.map((entry) => (
-              <details className="guide-faq__entry" key={entry.q} open>
-                <summary>
-                  <strong>{entry.q}</strong>
-                </summary>
-                <s-box paddingBlockStart="small-100">
-                  <s-paragraph>{entry.a}</s-paragraph>
-                </s-box>
-              </details>
+          <div className="guide-faq__groups">
+            {t.guide.groups.map((group) => (
+              <div className="guide-faq__group" key={group.heading}>
+                <s-heading>{group.heading}</s-heading>
+                <div className="guide-faq__entries">
+                  {group.entries.map((entry) => (
+                    <details className="guide-faq__entry" key={entry.q}>
+                      <summary>
+                        <strong>{entry.q}</strong>
+                      </summary>
+                      <s-box paddingBlockStart="small-100">
+                        <s-paragraph>{entry.a}</s-paragraph>
+                      </s-box>
+                    </details>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </s-stack>

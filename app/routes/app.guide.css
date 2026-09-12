@@ -1,3 +1,13 @@
+.guide-faq__groups {
+  display: grid;
+  gap: 24px;
+}
+
+.guide-faq__group {
+  display: grid;
+  gap: 8px;
+}
+
 .guide-faq__entries {
   display: grid;
 }

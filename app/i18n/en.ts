@@ -278,94 +278,77 @@ export const en: typeof it = {
     asideLinks: "Where to set it up",
     asideBody:
       "CF Ready exists so you stop receiving Italian orders to invoice without a tax code: it makes the field required in the native checkout field and checks its shape. It doesn’t verify that the code belongs to whoever entered it, doesn’t issue invoices and doesn’t handle VAT numbers or SDI codes.",
-    entries: [
+    groups: [
       {
-        q: "What CF Ready does",
-        a: "CF Ready checks the Italian tax code (Codice Fiscale) and the certified email address (PEC) in the native Italian checkout field. It doesn’t change your theme, doesn’t add fields and doesn’t issue invoices: it only decides whether an order can be completed with the values entered.",
+        heading: "Rules and validation",
+        entries: [
+          {
+            q: "What does CF Ready do?",
+            a: "CF Ready checks the Italian tax code (Codice Fiscale) and certified email address (PEC) in Shopify’s native Italian checkout fields. It can make them optional or required, validate their format, and align the labels shown to customers. It doesn’t add fields to the theme, issue invoices, or handle VAT numbers or SDI codes.",
+          },
+          {
+            q: "When do the rules apply, and why might an order go through?",
+            a: "Rules apply when the billing address is Italian or not yet available and at least one delivery is in Italy. They don’t apply with foreign billing or when all specified deliveries are abroad. If Shopify doesn’t provide a delivery country, CF Ready checks only the tax fields present in checkout: a field Shopify doesn’t show can’t block the order.",
+          },
+          {
+            q: "What gets validated?",
+            a: "For an ordinary 16-character Italian tax code, CF Ready checks its structure, date, town code, omocodia, and check character. For a provisional code, it checks the 11 digits and check digit. For PEC, it only checks that the value has an email-address format. CF Ready doesn’t verify the holder’s identity, whether the mailbox exists, or whether it is listed in a PEC registry.",
+          },
+          {
+            q: "Can I require PEC only when the customer fills in Company?",
+            a: "Yes. If you choose “Required when the Company field is filled in”, PEC becomes required when the customer enters a value in the billing address Company field. Otherwise it stays optional, but is still validated when entered. The Company field doesn’t automatically determine the order’s tax treatment.",
+          },
+          {
+            q: "When do checkout errors appear?",
+            a: "An invalid value can be reported while the customer proceeds through checkout. An empty required field is blocked when Shopify has the necessary delivery information and, in every applicable case, before the order is completed. You can customize the messages on the “Customer messages” page.",
+          },
+        ],
       },
       {
-        q: "When the tax code is required",
-        a: "When you set it as required, billing is Italian or not yet available and at least one delivery is Italian. If no delivery country is available, as can happen with digital products or pickup, the check applies only if the tax code field is present. You decide whether you need it: CF Ready doesn’t determine when your business has to collect it.",
+        heading: "Labels and second address line",
+        entries: [
+          {
+            q: "How should I manage the second address line?",
+            a: "The second address line (“Apartment, suite, etc.”) must not be used to collect the Italian tax code. On “Checkout rules”, open “Second address line” and indicate whether you enabled Shopify’s required or optional variant. CF Ready can check its text and restore supported translations, but Shopify doesn’t automatically tell the app which field variant is active.",
+          },
+          {
+            q: "How are checkout labels managed?",
+            a: "After you grant permission, CF Ready compares the tax code and PEC labels in Italian and English. It automatically updates only the texts Shopify allows the app to edit; for the others, it shows manual steps. Before writing, it re-reads the current values, so a change made with Translate & Adapt or another app isn’t overwritten without warning.",
+          },
+          {
+            q: "How do I complete a manual label check?",
+            a: "On “Checkout rules”, choose the language and open the case that needs attention. Follow the displayed steps to check a real checkout and, if necessary, edit the texts in Shopify’s editor. After saving in Shopify, return to CF Ready and select “Re-read fields from Shopify”. When the values match, confirm the manual check. “Last successful re-read from Shopify” shows when CF Ready read the fields; “Last manual confirmation in checkout” shows when you confirmed the real-checkout check.",
+          },
+          {
+            q: "Why do I still see a different label in checkout?",
+            a: "Check that you selected the correct language and open every case listed under “Checkout texts”. A market can inherit the general text or have its own customization. After each Shopify edit, select “Re-read fields from Shopify”, then check a real checkout for the affected language and market.",
+          },
+          {
+            q: "What happens if I stop label management or uninstall CF Ready?",
+            a: "When you choose “Restore and stop managing”, CF Ready restores only automatic translations that still match its last write. Later changes made by you or another app are preserved. Before uninstalling CF Ready, run the restore and check every published language and market: Shopify can retain translations after the app is removed.",
+          },
+        ],
       },
       {
-        q: "Why an order went through without the required fields",
-        a: "Rules don’t apply with foreign billing or only foreign deliveries. With Italian or not-yet-available billing and at least one Italian delivery, a required field that is absent produces a global error. If no delivery country is available, only Italian tax fields that are present are checked and an absent field remains fail-open.",
-      },
-      {
-        q: "What gets checked on the tax code",
-        a: "For the ordinary 16-character form, we check structure, date, town code, omocodia and the final check character. For the provisional form, we check its 11 digits and check digit. A formally valid tax code may still not belong to the person entering it, and it isn’t verified with the Italian tax authority.",
-      },
-      {
-        q: "How PEC is validated",
-        a: "As an email address: the format is checked. We don’t verify that the mailbox exists, nor that it’s really a certified mailbox.",
-      },
-      {
-        q: "Can I require PEC only for business purchases",
-        a: "You can make PEC required when the customer fills in the Company field in the billing address. If Company is empty, PEC stays optional; when entered, CF Ready still checks its format. The rule uses the checkout Company field and does not automatically determine the order’s tax treatment.",
-      },
-      {
-        q: "When customers see errors",
-        a: "CF Ready checks the data during checkout. If an entered value is invalid, the customer sees what to correct; required fields are checked before the order can be completed.",
-      },
-      {
-        q: "I use the “Apartment, suite, etc.” field for the tax code",
-        a: "The tax code belongs in the native Italian checkout field. CF Ready reads the second address line labels and flags a possible tax-code conflict; it can restore translations it manages, while the primary-language source text follows the guided steps on Checkout rules.",
-      },
-      {
-        q: "How automatic labels work",
-        a: "After you consent, CF Ready compares the native tax code and PEC labels in Italian and English and synchronizes only locale, market and key combinations already proven writable. Your saved rules determine whether the label describes an optional or required field.",
-      },
-      {
-        q: "Why I still see “optional”",
-        a: "Review permissions, published languages and market overrides on Checkout rules. A new language, an external edit or a partial synchronization requires another comparison, and a real checkout remains the final check.",
-      },
-      {
-        q: "Can CF Ready tell whether the second address line is optional or hidden?",
-        a: "No. Shopify exposes the second address line texts, but not the form option that makes the field required, optional or hidden. Check that option in Settings → Checkout.",
-      },
-      {
-        q: "What happens if I use Translate & Adapt or another app",
-        a: "CF Ready re-reads labels before writing. If it finds an external change, it preserves it and asks you to decide instead of overwriting it automatically.",
-      },
-      {
-        q: "What happens when I turn label management off",
-        a: "CF Ready restores only translations that still match its last confirmed write. If text changed in the meantime, it leaves it unchanged and shows the action you need to take.",
-      },
-      {
-        q: "What happens to labels when I uninstall CF Ready",
-        a: "Shopify translations may remain after uninstalling. Before removing the app, use Checkout rules to restore managed translations and verify checkout in each published language and market.",
-      },
-      {
-        q: "Trial and payments",
-        a: "The trial lasts fourteen days and is available only once per store, with no payment method required. If you choose a plan during the trial you don’t lose the days you have left: Shopify receives them as trial days on the subscription.",
-      },
-      {
-        q: "Limitations and supported channels",
-        a: "CF Ready is available to stores based in any country and works on Shopify’s web checkout. Rules apply with Italian or not-yet-available billing and at least one Italian delivery; without a delivery country, only to Italian tax fields that are present. They don’t apply with foreign billing or only foreign deliveries. The check is only formal, not against any registry, and orders created outside checkout, for example from the admin, don’t go through it. Later generations of recurring subscription orders aren’t covered.",
-      },
-      {
-        q: "Electronic invoicing, VAT number and SDI code",
-        a: "CF Ready doesn’t issue, transmit or store invoices, and it doesn’t connect to the Italian exchange system. VAT numbers and SDI codes follow different validation rules and flows from the two fields we handle, and the checkout’s localized fields don’t expose them the same way: they aren’t part of what we’re working on today.",
-      },
-      {
-        q: "Privacy and data",
-        a: "CF Ready doesn’t store tax codes, PEC addresses, orders or any of your customers’ data. The check happens during checkout and leaves no trace of the values entered.",
-      },
-      {
-        q: "What happens if I turn the checkout check off",
-        a: "Checkout goes back to how it was and no order is blocked any more. Your rules and messages stay saved and apply again when you turn it back on.",
-      },
-      {
-        q: "Something doesn’t look right",
-        a: "Reload the page: on opening, the app re-reads its state from Shopify and repairs safe divergences. If a sync warning stays, checkout isn’t blocked, and if the problem persists contact us quoting the code shown.",
-      },
-      {
-        q: "Reviewing your initial setup",
-        a: "You can change rules and messages whenever you want from their own pages. The guided steps stay available and going through them again resets nothing: your saved choices stay as they are.",
-      },
-      {
-        q: "Contacting the developer",
-        a: "Write to supporto@cfready.it, or use the link in the side column: it prepares the message with your store’s technical details already filled in. We answer by hand, usually within one business day. If the problem is blocking your checkout, say so in the subject line.",
+        heading: "Plan, privacy and support",
+        entries: [
+          {
+            q: "How do the trial and payments work?",
+            a: "The free trial lasts 14 days, starts only when you launch it, and is available once per store. It doesn’t require a payment method. If you choose the monthly or annual plan during the trial, the remaining days are added as Shopify subscription trial days. If you choose the one-time payment, the charge is immediate and you give up the remaining trial days.",
+          },
+          {
+            q: "Which orders and channels aren’t covered?",
+            a: "CF Ready runs in Shopify’s online checkout, including accelerated checkouts supported by Shopify. It doesn’t act on orders created and completed directly in the admin or on later generations of recurring subscription orders. Validation is formal and doesn’t query identity or tax registries.",
+          },
+          {
+            q: "What data does CF Ready store?",
+            a: "CF Ready doesn’t save or send tax codes, PEC addresses, orders, or customer data to its own systems. Shopify can still retain those values as part of the order.",
+          },
+          {
+            q: "What should I do if something doesn’t look right?",
+            a: "Use “Refresh and check” on Home to check rules, activation, and plan; use “Re-read fields from Shopify” on Checkout rules to refresh labels. Then check a real checkout for the affected language and market. If the issue remains, use the Support box and attach the technical diagnostics without adding customer data.",
+          },
+        ],
       },
     ],
   },

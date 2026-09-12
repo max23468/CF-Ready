@@ -599,11 +599,19 @@ describe("Guida", () => {
       value: { writeText },
     });
     const view = await mount(<Guide />);
+    const faqEntries = [
+      ...view.container.querySelectorAll<HTMLDetailsElement>(".guide-faq__entry"),
+    ];
+    expect(faqEntries).toHaveLength(14);
+    expect(texts("en").guide.groups.map((group) => group.entries.length)).toEqual([5, 5, 4]);
+    expect(faqEntries.every((entry) => !entry.open)).toBe(true);
     const buttons = [...view.container.querySelectorAll("s-button")];
+    expect(buttons[0].textContent).toBe(texts("it").guide.expandAll);
     await click(buttons[0]);
-    expect([...view.container.querySelectorAll("details")].every((entry) => !entry.open)).toBe(
-      true,
-    );
+    expect(faqEntries.every((entry) => entry.open)).toBe(true);
+    expect(buttons[0].textContent).toBe(texts("it").guide.collapseAll);
+    await click(buttons[0]);
+    expect(faqEntries.every((entry) => !entry.open)).toBe(true);
 
     const select = view.container.querySelector("s-select") as HTMLElement & { value: string };
     select.value = "billing";

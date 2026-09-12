@@ -2402,30 +2402,17 @@ Dopo l’acquisto:
 
 ### 15.7 Guida e FAQ
 
-Pagina unica con sezioni espandibili, aperte per default, separate visivamente
-e accompagnate dal comando unico `Comprimi tutte` / `Espandi tutte`:
+Pagina unica con 14 sezioni espandibili, chiuse per default e accompagnate dal
+comando unico `Espandi tutte` / `Comprimi tutte`. Le voci sono raccolte in tre
+gruppi visivi:
 
-- Cos’è CF Ready;
-- quando viene richiesto il Codice Fiscale;
-- clienti con fatturazione estera;
-- eccezioni automatiche;
-- ritiro in negozio;
-- significato di “formalmente valido”;
-- CF ordinario e provvisorio;
-- validazione PEC;
-- comportamento automatico degli errori durante il checkout;
-- checkout accelerati;
-- app disattivata;
-- campo “Interno” usato per il Codice Fiscale;
-- prova e pagamenti;
-- privacy e dati non conservati;
-- assenza di fatturazione elettronica;
-- perché non gestisce Partita IVA e SDI;
-- piani e canali supportati;
-- limitazioni;
-- risoluzione problemi;
-- riapertura onboarding;
-- contatto sviluppatore.
+- regole e validazione: perimetro di CF Ready, applicazione delle regole,
+  controlli formali, PEC condizionata al campo Azienda ed errori nel checkout;
+- etichette e campo “Interno”: configurazione della seconda riga dell’indirizzo,
+  gestione automatica, verifica manuale, personalizzazioni di mercato e
+  ripristino prima della disinstallazione;
+- piano, privacy e assistenza: prova e pagamenti, ordini e canali esclusi, dati
+  non conservati e risoluzione dei problemi.
 
 La Guida e FAQ descrive il risultato per il cliente: i valori invalidi vengono
 segnalati durante la compilazione e i campi obbligatori sono controllati prima
@@ -2433,10 +2420,9 @@ che l’ordine possa essere completato. Non espone step tecnici, euristiche o
 impostazioni di rendering.
 
 La voce sul campo “Interno” spiega che il Codice Fiscale va raccolto nel campo
-fiscale nativo, che tenerlo anche in “Interno” mostra al cliente due campi per
-lo stesso dato e che l’uso va rimosso in Impostazioni → Checkout. Deve dire
-esplicitamente che CF Ready non può leggere quell’impostazione e si basa sulla
-dichiarazione del merchant (D-125).
+fiscale nativo e che il merchant deve dichiarare se in Shopify ha attivato la
+variante obbligatoria o facoltativa. CF Ready non può leggere automaticamente
+quell’impostazione e si basa sulla dichiarazione del merchant (D-125).
 
 ### 15.8 Disponibilità geografica
 

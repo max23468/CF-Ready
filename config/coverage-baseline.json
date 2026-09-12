@@ -4,8 +4,8 @@
   "sourceHash": "177c0222020acec8718f521065f676c9ae5110fe2e1b77e092870bbce329a69a",
   "global": {
     "statements": {
-      "total": 7965,
-      "covered": 7777,
+      "total": 7966,
+      "covered": 7778,
       "pct": 97.63
     },
     "branches": {
@@ -14,13 +14,13 @@
       "pct": 96.56
     },
     "functions": {
-      "total": 1208,
-      "covered": 1197,
-      "pct": 99.08
+      "total": 1209,
+      "covered": 1198,
+      "pct": 99.09
     },
     "lines": {
-      "total": 7530,
-      "covered": 7362,
+      "total": 7531,
+      "covered": 7363,
       "pct": 97.76
     }
   },
@@ -49,8 +49,8 @@
     },
     "ui-routes": {
       "statements": {
-        "total": 1327,
-        "covered": 1318,
+        "total": 1328,
+        "covered": 1319,
         "pct": 99.32
       },
       "branches": {
@@ -59,13 +59,13 @@
         "pct": 97.16
       },
       "functions": {
-        "total": 409,
-        "covered": 408,
+        "total": 410,
+        "covered": 409,
         "pct": 99.75
       },
       "lines": {
-        "total": 1187,
-        "covered": 1184,
+        "total": 1188,
+        "covered": 1185,
         "pct": 99.74
       }
     },
