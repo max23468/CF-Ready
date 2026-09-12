@@ -408,7 +408,7 @@ richiederli compare subito sotto il selettore Italiano/Inglese. Le istruzioni di
 ogni verifica manuale sono chiuse all’apertura e hanno un controllo di espansione
 visibile.
 
-Precisazione D-149 del 12 settembre 2026: il secondo passo dell’onboarding
+Precisazione D-149 del 12 settembre 2026 per la `1.9.3`: il secondo passo dell’onboarding
 include la scelta della configurazione obbligatoria, facoltativa o non mostrata del campo
 “Interno”. La conferma della prima scrittura automatica delle etichette avviene
 nel modal Polaris già usato in Regole checkout, senza una checkbox separata. Il
