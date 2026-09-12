@@ -365,6 +365,7 @@ function OnboardingRules(props: CurrentStepProps) {
       >
         <s-option value="required">{t.rules.labels.addressRequired}</s-option>
         <s-option value="optional">{t.rules.labels.addressOptional}</s-option>
+        <s-option value="hidden">{t.rules.labels.addressHidden}</s-option>
       </s-select>
       <s-paragraph color="subdued">{t.rules.labels.addressModeHelp}</s-paragraph>
       <s-box background="subdued" borderRadius="base" padding="base">

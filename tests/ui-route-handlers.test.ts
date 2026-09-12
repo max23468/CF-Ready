@@ -331,6 +331,17 @@ test("Onboarding valida e salva avanzamento e regole", async () => {
         }),
       ),
     ),
+  ).toEqual({ ok: true });
+  expect(mocks.saveAddress2FormMode).toHaveBeenCalledWith(db, session.shop, "hidden");
+  expect(
+    await action(
+      args(
+        post("/app/onboarding", {
+          intent: "save_address2_form_mode",
+          address2FormMode: "unexpected",
+        }),
+      ),
+    ),
   ).toEqual({ ok: false, errorCode: "generic" });
   expect(
     await action(
@@ -655,6 +666,17 @@ test("Regole gestisce ripristino e sincronizzazione delle etichette", async () =
         post("/app/rules", {
           intent: "save_address2_form_mode",
           address2FormMode: "hidden",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: true });
+  expect(mocks.saveAddress2FormMode).toHaveBeenCalledWith(db, session.shop, "hidden");
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          intent: "save_address2_form_mode",
+          address2FormMode: "unexpected",
         }),
       ),
     ),

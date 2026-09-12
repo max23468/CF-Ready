@@ -6,6 +6,20 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.9.3 — 12 settembre 2026
+
+- la Guida raccoglie quattordici FAQ chiuse all’apertura, organizzate per tema e
+  aggiornate in italiano e inglese per descrivere regole, validazione, etichette,
+  privacy, assistenza e conseguenze della disinstallazione;
+- il campo “Interno” può essere dichiarato obbligatorio, facoltativo o non
+  mostrato; quando è nascosto CF Ready non richiede confronti sulle sue etichette;
+- le date distinguono l’ultima rilettura da Shopify dall’ultima conferma manuale
+  nel checkout e il comando di rilettura aggiorna lo stato restituito;
+- titoli, pill e riepilogo dell’onboarding restano leggibili anche sugli schermi
+  stretti;
+- il sito pubblico espone favicon, icona Apple e manifest web coerenti in tutte
+  le pagine italiane e inglesi.
+
 ## 1.9.2 — 12 settembre 2026
 
 - la sezione “Etichette del checkout (impostazioni avanzate)” contiene, in

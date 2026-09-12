@@ -3,6 +3,23 @@
   gap: 16px;
 }
 
+.cf-onboarding-summary-row {
+  grid-template-columns: max-content minmax(0, 1fr);
+}
+
+.cf-onboarding-summary-value {
+  display: flex;
+  justify-content: flex-end;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  overflow: hidden;
+}
+
+.cf-onboarding-summary-value > s-badge {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .onboarding-step {
     animation: cf-content-enter var(--cf-motion-duration-base) var(--cf-motion-ease-out) both;

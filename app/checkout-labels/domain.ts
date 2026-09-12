@@ -23,7 +23,8 @@ export type CheckoutLabelsStatus = "synced" | "action_required" | "scope_require
 export type CheckoutLabelsDecision = "pending" | "accepted";
 export type Address2Classification = "unknown" | "expected" | "nonstandard" | "fiscal_conflict";
 export type Address2Decision = "pending" | "accepted" | "restored" | "manual_restore_required";
-export type Address2FormMode = "required" | "optional";
+export const ADDRESS2_FORM_MODES = ["required", "optional", "hidden"] as const;
+export type Address2FormMode = (typeof ADDRESS2_FORM_MODES)[number];
 
 export type CheckoutLabelLocale = {
   locale: string;

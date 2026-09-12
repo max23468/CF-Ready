@@ -3,6 +3,8 @@ import { act } from "react";
 import { DEFAULT_CONFIG } from "../../app/config";
 import { checkoutLabelSlotId } from "../../app/checkout-labels/domain";
 import { texts } from "../../app/i18n";
+import onboardingCss from "../../app/routes/app.onboarding.css?raw";
+import motionCss from "../../app/ui-motion.css?raw";
 import { click, dispatch, render, type Rendered } from "./render";
 
 const router = vi.hoisted(() => ({
@@ -167,6 +169,9 @@ beforeEach(() => {
 
 afterEach(async () => {
   for (const view of mounted.splice(0)) await view.unmount();
+  document
+    .querySelectorAll("style[data-test-onboarding-summary]")
+    .forEach((style) => style.remove());
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
@@ -594,11 +599,24 @@ describe("Guida", () => {
       value: { writeText },
     });
     const view = await mount(<Guide />);
+    const faqEntries = [
+      ...view.container.querySelectorAll<HTMLDetailsElement>(".guide-faq__entry"),
+    ];
+    expect(faqEntries).toHaveLength(14);
+    expect(texts("en").guide.groups.map((group) => group.entries.length)).toEqual([5, 5, 4]);
+    expect(faqEntries.every((entry) => !entry.open)).toBe(true);
     const buttons = [...view.container.querySelectorAll("s-button")];
+    expect(buttons[0].textContent).toBe(texts("it").guide.expandAll);
+    for (const entry of faqEntries) entry.open = true;
+    await dispatch(faqEntries.at(-1)!, new Event("toggle"));
+    expect(buttons[0].textContent).toBe(texts("it").guide.collapseAll);
     await click(buttons[0]);
-    expect([...view.container.querySelectorAll("details")].every((entry) => !entry.open)).toBe(
-      true,
-    );
+    expect(faqEntries.every((entry) => !entry.open)).toBe(true);
+    await click(buttons[0]);
+    expect(faqEntries.every((entry) => entry.open)).toBe(true);
+    expect(buttons[0].textContent).toBe(texts("it").guide.collapseAll);
+    await click(buttons[0]);
+    expect(faqEntries.every((entry) => !entry.open)).toBe(true);
 
     const select = view.container.querySelector("s-select") as HTMLElement & { value: string };
     select.value = "billing";
@@ -996,13 +1014,16 @@ describe("Onboarding", () => {
     );
     if (!addressMode) throw new Error("configurazione Interno onboarding assente");
 
-    Object.defineProperty(addressMode, "value", { configurable: true, value: "optional" });
+    expect(addressMode.querySelector('s-option[value="hidden"]')?.textContent).toBe(
+      texts("it").rules.labels.addressHidden,
+    );
+    Object.defineProperty(addressMode, "value", { configurable: true, value: "hidden" });
     await dispatch(addressMode, new Event("change", { bubbles: true }));
 
     expect(router.fetcher.submit).toHaveBeenLastCalledWith(
       expect.objectContaining({
         intent: "save_address2_form_mode",
-        address2FormMode: "optional",
+        address2FormMode: "hidden",
       }),
       { method: "post" },
     );
@@ -1076,6 +1097,32 @@ describe("Onboarding", () => {
       expect.objectContaining({ intent: "activate" }),
       { method: "post" },
     );
+  });
+
+  test("mantiene separate etichetta e pill nel riepilogo stretto", async () => {
+    const style = document.createElement("style");
+    style.dataset.testOnboardingSummary = "true";
+    style.textContent = `${motionCss}\n${onboardingCss}`;
+    document.head.append(style);
+    router.loaderData = {
+      ...onboardingData,
+      step: 4,
+      rules: { taxCode: "required_validated", pec: "required_when_company" },
+    };
+    const view = await mount(<Onboarding />);
+    const rows = view.container.querySelectorAll<HTMLElement>(".cf-onboarding-summary-row");
+    const pecRow = rows[1];
+    if (!pecRow) throw new Error("riga PEC del riepilogo assente");
+    pecRow.style.inlineSize = "320px";
+
+    const [label, badge] = [...pecRow.children] as HTMLElement[];
+    const rowRect = pecRow.getBoundingClientRect();
+    const labelRect = label.getBoundingClientRect();
+    const badgeRect = badge.getBoundingClientRect();
+
+    expect(labelRect.right).toBeLessThanOrEqual(badgeRect.left);
+    expect(badgeRect.right - rowRect.right).toBeLessThan(0.1);
+    style.remove();
   });
 
   test("attraversa i quattro passi e completa senza attivare", async () => {
@@ -1218,6 +1265,12 @@ describe("Regole", () => {
       's-choice-list[name="taxCode"] s-choice',
     );
     const pecChoices = view.container.querySelectorAll('s-choice-list[name="pec"] s-choice');
+    const ruleHeadings = [...view.container.querySelectorAll('s-text[type="strong"]')].map(
+      (heading) => heading.textContent,
+    );
+    expect(ruleHeadings).toEqual(
+      expect.arrayContaining([texts("it").rules.taxCodeLabel, texts("it").rules.pecLabel]),
+    );
 
     expect(taxCodeChoices).toHaveLength(3);
     expect(pecChoices).toHaveLength(4);
@@ -1738,6 +1791,18 @@ describe("Regole", () => {
     };
     await view.rerender(<CheckoutRules key="labels-partial" />);
     expect(view.container.querySelector('s-banner[tone="warning"]')).not.toBeNull();
+
+    router.actionData = undefined;
+    router.loaderData = {
+      ...rulesData,
+      labelScopesGranted: true,
+      labelState: { ...rulesData.labelState, address2FormMode: "hidden" },
+      labelSnapshot: snapshot,
+    };
+    await view.rerender(<CheckoutRules key="address2-hidden" />);
+    const hiddenAddress = view.container.querySelector("details.checkout-labels-disclosure")!;
+    expect(hiddenAddress.textContent).toContain(texts("it").rules.labels.addressHiddenSummary);
+    expect(hiddenAddress.querySelector(".checkout-label-contexts")).toBeNull();
   });
 
   test("copre la variante facoltativa, i testi conformi e l'interfaccia inglese", async () => {
@@ -1817,13 +1882,13 @@ describe("Regole", () => {
     };
     const view = await mount(<CheckoutRules />);
     expect(view.container.textContent).toContain(texts("it").rules.labels.allMarketsSame);
-    expect(view.container.textContent).toContain("Ultima verifica manuale:");
+    expect(view.container.textContent).toContain("Ultima conferma manuale nel checkout:");
     expect(view.container.textContent).toContain(texts("it").rules.labels.addressStatus.expected);
     expect(texts("en").rules.labels.marketException("Italy")).toBe(
       "Customization for the Italy market",
     );
     expect(texts("en").rules.labels.lastManualVerification("now")).toBe(
-      "Last manual verification: now",
+      "Last manual confirmation in checkout: now",
     );
 
     router.loaderData = {
@@ -1902,7 +1967,7 @@ describe("Regole", () => {
     await view.rerender(<CheckoutRules key="english-without-scopes" />);
     expect(view.container.textContent).toContain(texts("en").rules.labels.english);
     expect(texts("it").rules.labels.lastManualVerification("ora")).toBe(
-      "Ultima verifica manuale: ora",
+      "Ultima conferma manuale nel checkout: ora",
     );
 
     router.navigation = { state: "submitting" };

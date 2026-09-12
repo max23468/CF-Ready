@@ -258,7 +258,6 @@ function NativeCheckoutLabelsWhenGranted(props: Parameters<typeof NativeCheckout
 function NativeCheckoutLabels({
   locale,
   rules,
-  scopeGranted,
   snapshot,
   state,
   activeFamily,
@@ -596,6 +595,7 @@ function Address2CheckoutLabels({
   const copy = texts(locale).rules.labels;
   const presentation = address2Presentation(snapshot, rules, activeFamily, state.address2FormMode);
   const restoreModalId = `restore-address2-${activeFamily}`;
+  const hidden = state.address2FormMode === "hidden";
 
   return (
     <details className="checkout-labels-disclosure">
@@ -603,17 +603,27 @@ function Address2CheckoutLabels({
         <s-stack direction="inline" gap="small-200" alignItems="center">
           <s-heading>{copy.addressHeading}</s-heading>
           <s-badge
-            tone={state.address2FormMode ? addressTone(presentation.classification) : "warning"}
+            tone={
+              hidden
+                ? "neutral"
+                : state.address2FormMode
+                  ? addressTone(presentation.classification)
+                  : "warning"
+            }
           >
-            {state.address2FormMode
-              ? copy.addressStatus[presentation.classification]
-              : copy.statusManualRequired}
+            {hidden
+              ? copy.addressHidden
+              : state.address2FormMode
+                ? copy.addressStatus[presentation.classification]
+                : copy.statusManualRequired}
           </s-badge>
         </s-stack>
         <s-paragraph color="subdued">
-          {state.address2FormMode
-            ? copy.addressSummary[presentation.classification]
-            : copy.addressModeSummary}
+          {hidden
+            ? copy.addressHiddenSummary
+            : state.address2FormMode
+              ? copy.addressSummary[presentation.classification]
+              : copy.addressModeSummary}
         </s-paragraph>
       </summary>
       <Address2Details
@@ -671,12 +681,17 @@ function Address2Details({
           >
             <s-option value="required">{copy.addressRequired}</s-option>
             <s-option value="optional">{copy.addressOptional}</s-option>
+            <s-option value="hidden">{copy.addressHidden}</s-option>
           </s-select>
           <s-paragraph color="subdued">{copy.addressModeHelp}</s-paragraph>
           <s-paragraph color="subdued">
-            {scopeGranted ? copy.addressLimit : copy.noSnapshot}
+            {formMode === "hidden"
+              ? copy.addressHiddenHelp
+              : scopeGranted
+                ? copy.addressLimit
+                : copy.noSnapshot}
           </s-paragraph>
-          {snapshot && formMode ? (
+          {snapshot && formMode && formMode !== "hidden" ? (
             <Address2Comparison
               snapshot={snapshot}
               locale={locale}
@@ -687,17 +702,23 @@ function Address2Details({
           {presentation.sourceRequiresManualRestore ? (
             <s-banner tone="warning">{copy.sourceManual}</s-banner>
           ) : null}
-          <Address2Actions
-            copy={copy}
-            scopeGranted={scopeGranted}
-            snapshotAvailable={Boolean(snapshot)}
-            busy={busy}
-            checkoutSettingsUrl={checkoutSettingsUrl}
-            restoreModalId={restoreModalId}
-            classification={presentation.classification}
-            hasRestorableSlots={presentation.restorableSlots.length > 0}
-            onKeep={() => submitIntent("accept_address2_labels")}
-          />
+          {formMode !== "hidden" ? (
+            <Address2Actions
+              copy={copy}
+              scopeGranted={scopeGranted}
+              snapshotAvailable={Boolean(snapshot)}
+              busy={busy}
+              checkoutSettingsUrl={checkoutSettingsUrl}
+              restoreModalId={restoreModalId}
+              classification={presentation.classification}
+              hasRestorableSlots={presentation.restorableSlots.length > 0}
+              onKeep={() => submitIntent("accept_address2_labels")}
+            />
+          ) : (
+            <s-link href={checkoutSettingsUrl} target="_top">
+              {copy.openCheckout}
+            </s-link>
+          )}
         </s-stack>
       </div>
       <Address2RestoreModal
@@ -799,9 +820,10 @@ function address2Presentation(
   activeFamily: CheckoutLabelFamily,
   formMode: Address2FormMode | null,
 ) {
-  const activeName = formMode === "required" ? "address2" : "optionalAddress2";
+  const activeName =
+    formMode === "required" ? "address2" : formMode === "optional" ? "optionalAddress2" : null;
   const activeSlots = snapshot?.slots.filter(
-    (slot) => slot.family === activeFamily && slot.name === activeName,
+    (slot) => activeName && slot.family === activeFamily && slot.name === activeName,
   );
   const classification =
     formMode && activeSlots?.length ? classifyAddress2(activeSlots).classification : "unknown";
@@ -1149,6 +1171,7 @@ function restorableAddressSlots(
   family: CheckoutLabelFamily,
   formMode: Address2FormMode | null,
 ) {
+  if (formMode === "hidden") return [];
   const name = formMode === "required" ? "address2" : "optionalAddress2";
   return snapshot.slots.filter((slot) => {
     return (

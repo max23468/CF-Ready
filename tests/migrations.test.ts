@@ -529,6 +529,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "0018_checkout_labels.sql",
     "0019_checkout_label_decision.sql",
     "0020_address2_form_mode.sql",
+    "0021_address2_hidden_mode.sql",
   ]);
   await applyD1Migrations(db, migrations);
 
@@ -741,7 +742,14 @@ test("0018-0020 conservano lo storico e aggiungono le scelte sulle etichette", a
     await db.prepare("SELECT address2_form_mode FROM app_state WHERE shop_id = 1").first(),
   ).toEqual({ address2_form_mode: null });
   await db.prepare("UPDATE app_state SET address2_form_mode = 'required' WHERE shop_id = 1").run();
+  await applyD1Migrations(db, [migrationAfter(migrations, "0020_address2_form_mode.sql")]);
+  expect(
+    await db
+      .prepare("SELECT address2_form_mode, address2_form_hidden FROM app_state WHERE shop_id = 1")
+      .first(),
+  ).toEqual({ address2_form_mode: "required", address2_form_hidden: 0 });
+  await db.prepare("UPDATE app_state SET address2_form_hidden = 1 WHERE shop_id = 1").run();
   await expect(
-    db.prepare("UPDATE app_state SET address2_form_mode = 'hidden' WHERE shop_id = 1").run(),
+    db.prepare("UPDATE app_state SET address2_form_hidden = 2 WHERE shop_id = 1").run(),
   ).rejects.toThrow();
 });
