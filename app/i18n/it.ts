@@ -543,10 +543,12 @@ export const it = {
       marketException: (market: string) => `Personalizzazione per il mercato ${market}`,
       unknownMarket: "mercato non identificato",
       allMarketsSame: "Tutti i mercati usano questo testo",
+      marketCheckIncluded: (markets: string[]) =>
+        `Controlla anche il checkout per ${markets.join(", ")}: Shopify non ne distingue con certezza la configurazione.`,
       primary: "primaria",
       unpublished: "non pubblicata",
       marketAmbiguous:
-        "Shopify non indica una sola configurazione per uno o più mercati, per esempio quando le impostazioni vengono ereditate. Nei riquadri “Personalizzazione per il mercato…” apri il checkout del mercato indicato e controlla direttamente le etichette mostrate.",
+        "Shopify segnala almeno un mercato con una configurazione ereditata o non univoca. CF Ready accorpa i valori uguali e indica quali checkout aggiuntivi controllare.",
       refresh: "Rileggi i campi da Shopify",
       stop: "Ripristina e interrompi la gestione",
       lastSync: (value: string) => `Ultimo aggiornamento: ${value}`,
@@ -554,22 +556,46 @@ export const it = {
       operationalSummary: (automatic: number, manual: number) =>
         `${automatic} ${automatic === 1 ? "etichetta gestita" : "etichette gestite"} da Shopify · ${manual} ${manual === 1 ? "verifica manuale richiesta" : "verifiche manuali richieste"}`,
       manualHeading: "Come completare la verifica manuale",
-      manualSteps: (language: string, market: string | null, primary: boolean) => [
+      manualSteps: (
+        language: string,
+        market: string | null,
+        primary: boolean,
+        verificationMarkets: string[],
+      ) => [
         market
           ? `Apri il negozio e seleziona ${market} come paese o area geografica e ${language} come lingua.`
           : `Apri il negozio nel mercato predefinito e seleziona ${language} come lingua.`,
-        "Aggiungi un prodotto al carrello e raggiungi il checkout.",
+        ...(verificationMarkets.length > 0
+          ? [
+              `Ripeti il controllo selezionando ${verificationMarkets.join(", ")} come paese o area geografica e ${language} come lingua.`,
+            ]
+          : []),
+        "Per ogni caso indicato, aggiungi un prodotto al carrello e raggiungi il checkout.",
         "Confronta le etichette di Codice Fiscale e PEC con “Campo dopo il salvataggio” mostrato qui.",
-        primary && !market
-          ? "Se differiscono, in Shopify vai su Impostazioni → Checkout. Nella sezione Lingua del checkout scegli Modifica contenuto del checkout, cerca il testo indicato come “Campo attuale”, sostituiscilo con “Campo dopo il salvataggio” e salva."
-          : `Se differiscono, apri Shopify Translate & Adapt, ${market ? `seleziona il mercato ${market} e ` : ""}seleziona la lingua ${language}. Apri Checkout e sistema, cerca il testo indicato come “Campo attuale”, sostituiscilo con “Campo dopo il salvataggio” e salva.`,
+        "Se differiscono, premi “Apri l’editor dei testi del checkout”. In Shopify, nella sezione Lingua del check-out, premi “Modifica contenuto del check-out”.",
+        ...(primary && !market
+          ? [
+              "Nell’editor premi “Cerca e filtra i risultati”. Per Codice Fiscale cerca il valore indicato come “Campo attuale” e modifica soltanto Checkout localized fields additional information → Tax credential it; ignora B2B locations → Tax id.",
+              "Per PEC cerca “PEC”, scorri fino a Checkout localized fields additional information e modifica Tax email it. Inserisci per entrambi il relativo “Campo dopo il salvataggio”, poi premi “Salva”.",
+              ...(verificationMarkets.length > 0
+                ? [
+                    `Se un’etichetta differisce soltanto in ${verificationMarkets.join(", ")}, premi “Traduci” nell’editor, apri il selettore “Traduzione in…”, scegli “Adatta un mercato” → ${verificationMarkets.join(", ")} → ${language}, quindi apri Checkout and system. In “Filtra campi” cerca Tax credential it o Tax email it, inserisci il relativo “Campo dopo il salvataggio” e salva.`,
+                  ]
+                : []),
+            ]
+          : [
+              "Nell’editor premi “Traduci”. Se Shopify Translate & Adapt mostra la guida iniziale, premi “Successivo” fino all’ultima schermata, poi “Chiudi”.",
+              market
+                ? `Apri il selettore “Traduzione in…” e scegli “Adatta un mercato” → ${market} → ${language}.`
+                : `Controlla che in alto sia selezionato “Traduzione in ${language}”. Se non lo è, apri il selettore “Traduzione in…” e scegli ${language} sotto “Traduci per tutti i mercati”.`,
+              "Apri Checkout and system. In “Filtra campi” cerca Tax credential it e Tax email it, inserisci per ciascuno il relativo “Campo dopo il salvataggio”, poi premi “Salva”.",
+            ]),
         "Torna in CF Ready e premi “Rileggi i campi da Shopify”. Quando i due valori coincidono, il pulsante di conferma si attiva.",
       ],
       manualMismatch:
         "Shopify restituisce ancora un testo diverso. Modificalo e salvalo con la procedura qui sopra, quindi premi “Rileggi i campi da Shopify”.",
       openStorefront: "Apri il negozio",
-      openCheckoutContentEditor: "Apri le impostazioni checkout",
-      openTranslations: "Apri lingue e traduzioni Shopify",
+      openCheckoutContentEditor: "Apri l’editor dei testi del checkout",
       confirmGuided: "Conferma verifica manuale",
       lastManualVerification: (value: string) => `Ultima verifica manuale: ${value}`,
       checkoutCheckRequired: "verifica manuale nel checkout richiesta",

@@ -30,7 +30,11 @@ import {
   restoreAddress2Translations,
   saveRulesAndCheckoutLabels,
 } from "../checkout-labels/service.server";
-import { proposedLabelForSlot, type CheckoutLabelSlot } from "../checkout-labels/domain";
+import {
+  checkoutLabelValuesMatch,
+  proposedLabelForSlot,
+  type CheckoutLabelSlot,
+} from "../checkout-labels/domain";
 import { observedConfigHash, reconcile, writeValidation } from "../validation.server";
 
 const SAVE_BAR = "checkout-rules-save-bar";
@@ -91,7 +95,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
               ? null
               : "checkout_labels_scope_required",
       checkoutSettingsUrl: `https://admin.shopify.com/store/${shopHandle}/settings/checkout`,
-      languagesSettingsUrl: `https://admin.shopify.com/store/${shopHandle}/settings/languages`,
       storefrontUrl: `https://${session.shop}`,
     },
     { headers: { "Server-Timing": timing.header() } },
@@ -266,7 +269,7 @@ export default function CheckoutRules() {
         return [];
       }
       const proposed = proposedLabelForSlot(slot, draft.rules);
-      if (proposed === null || proposed === slot.currentValue) return [];
+      if (proposed === null || checkoutLabelValuesMatch(proposed, slot.currentValue)) return [];
       return [{ slot, proposed }];
     }) ?? [];
 
@@ -377,38 +380,60 @@ export default function CheckoutRules() {
 
       <div className="rules-layout-container">
         <div className="rules-layout">
-          <form
-            className="rules-layout__form"
-            key={formRevision}
-            onChange={readDraft}
-            onSubmit={(event) => {
-              event.preventDefault();
-              save();
-            }}
-          >
-            <div className="rules-layout__fields">
-              <s-section>
-                <s-stack direction="block" gap="base">
-                  <s-choice-list label={t.rules.taxCodeLabel} name="taxCode">
-                    {TAX_CODE_RULE_MODES.map((mode) => (
-                      <s-choice key={mode} value={mode} selected={mode === draft.rules.taxCode}>
-                        {t.rules.taxCode[mode]}
-                        <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
-                      </s-choice>
-                    ))}
-                  </s-choice-list>
-                  <s-choice-list label={t.rules.pecLabel} name="pec">
-                    {PEC_RULE_MODES.map((mode) => (
-                      <s-choice key={mode} value={mode} selected={mode === draft.rules.pec}>
-                        {t.rules.pec[mode]}
-                        <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
-                      </s-choice>
-                    ))}
-                  </s-choice-list>
-                </s-stack>
-              </s-section>
+          <div className="rules-layout__main">
+            <form
+              className="rules-layout__form"
+              key={formRevision}
+              onChange={readDraft}
+              onSubmit={(event) => {
+                event.preventDefault();
+                save();
+              }}
+            >
+              <div className="rules-layout__fields">
+                <s-section>
+                  <s-stack direction="block" gap="base">
+                    <s-choice-list label={t.rules.taxCodeLabel} name="taxCode">
+                      {TAX_CODE_RULE_MODES.map((mode) => (
+                        <s-choice key={mode} value={mode} selected={mode === draft.rules.taxCode}>
+                          {t.rules.taxCode[mode]}
+                          <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
+                        </s-choice>
+                      ))}
+                    </s-choice-list>
+                    <s-choice-list label={t.rules.pecLabel} name="pec">
+                      {PEC_RULE_MODES.map((mode) => (
+                        <s-choice key={mode} value={mode} selected={mode === draft.rules.pec}>
+                          {t.rules.pec[mode]}
+                          <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
+                        </s-choice>
+                      ))}
+                    </s-choice-list>
+                  </s-stack>
+                </s-section>
+              </div>
+            </form>
+
+            <div className="rules-layout__labels">
+              <CheckoutLabelsSection
+                locale={saved.locale}
+                rules={draft.rules}
+                scopeGranted={saved.labelScopesGranted}
+                snapshot={saved.labelSnapshot}
+                state={saved.labelState}
+                loadErrorCode={saved.labelLoadError}
+                guidedConfirmations={saved.guidedConfirmations}
+                enabled={labelsEnabled}
+                busy={busy}
+                checkoutSettingsUrl={saved.checkoutSettingsUrl}
+                storefrontUrl={saved.storefrontUrl}
+                onEnabledChange={(value) => {
+                  setChangedSinceResult(true);
+                  setLabelsEnabled(value);
+                }}
+              />
             </div>
-          </form>
+          </div>
 
           <div className="rules-layout__preview">
             <s-section heading={t.rules.previewHeading}>
@@ -433,27 +458,6 @@ export default function CheckoutRules() {
                 />
               </s-stack>
             </s-section>
-          </div>
-
-          <div className="rules-layout__labels">
-            <CheckoutLabelsSection
-              locale={saved.locale}
-              rules={draft.rules}
-              scopeGranted={saved.labelScopesGranted}
-              snapshot={saved.labelSnapshot}
-              state={saved.labelState}
-              loadErrorCode={saved.labelLoadError}
-              guidedConfirmations={saved.guidedConfirmations}
-              enabled={labelsEnabled}
-              busy={busy}
-              checkoutSettingsUrl={saved.checkoutSettingsUrl}
-              languagesSettingsUrl={saved.languagesSettingsUrl}
-              storefrontUrl={saved.storefrontUrl}
-              onEnabledChange={(value) => {
-                setChangedSinceResult(true);
-                setLabelsEnabled(value);
-              }}
-            />
           </div>
         </div>
       </div>

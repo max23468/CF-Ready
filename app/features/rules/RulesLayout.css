@@ -8,15 +8,53 @@
 }
 
 .checkout-labels-disclosure__summary {
+  align-items: center;
   cursor: pointer;
   display: grid;
   gap: var(--p-space-200, 0.5rem);
   list-style: none;
-  padding: var(--p-space-400, 1rem);
+  padding: var(--p-space-400, 1rem) calc(var(--p-space-400, 1rem) + 2.25rem)
+    var(--p-space-400, 1rem) var(--p-space-400, 1rem);
+  position: relative;
 }
 
 .checkout-labels-disclosure__summary::-webkit-details-marker {
   display: none;
+}
+
+.checkout-labels-disclosure__summary::after {
+  block-size: 2rem;
+  border: 1px solid var(--p-color-border-secondary, #dfe3e8);
+  border-radius: var(--p-border-radius-200, 0.5rem);
+  box-sizing: border-box;
+  content: "";
+  inline-size: 2rem;
+  inset-inline-end: var(--p-space-400, 1rem);
+  inset-block-start: 50%;
+  position: absolute;
+  transform: translateY(-50%);
+}
+
+.checkout-labels-disclosure__summary::before {
+  block-size: 0.45rem;
+  border-block-end: 1.5px solid currentColor;
+  border-inline-end: 1.5px solid currentColor;
+  content: "";
+  inline-size: 0.45rem;
+  inset-inline-end: calc(var(--p-space-400, 1rem) + 0.78rem);
+  inset-block-start: 50%;
+  position: absolute;
+  transform: translateY(-65%) rotate(45deg);
+  z-index: 1;
+}
+
+.checkout-labels-disclosure[open] > .checkout-labels-disclosure__summary::before {
+  transform: translateY(-35%) rotate(225deg);
+}
+
+.checkout-labels-disclosure__summary:focus-visible {
+  outline: 2px solid var(--p-color-border-focus, #005bd3);
+  outline-offset: 2px;
 }
 
 .checkout-labels-disclosure__body {
@@ -57,50 +95,30 @@
 
 .rules-layout {
   display: grid;
-  grid-template-areas:
-    "fields"
-    "preview"
-    "labels";
   gap: 16px;
   align-items: start;
 }
 
-.rules-layout__form {
-  display: contents;
+.rules-layout__main {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
 }
 
 .rules-layout__fields {
-  grid-area: fields;
   min-width: 0;
 }
 
 .rules-layout__preview {
-  grid-area: preview;
   min-width: 0;
 }
 
 .rules-layout__labels {
-  grid-area: labels;
   min-width: 0;
 }
 
 @container (inline-size > 720px) {
   .rules-layout {
-    grid-template-areas:
-      "form preview"
-      "labels preview";
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
-
-  .rules-layout__form {
-    grid-area: form;
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .rules-layout__fields {
-    grid-area: auto;
   }
 }

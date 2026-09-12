@@ -538,10 +538,12 @@ export const en: typeof it = {
       marketException: (market: string) => `Customization for the ${market} market`,
       unknownMarket: "unidentified market",
       allMarketsSame: "All markets use this text",
+      marketCheckIncluded: (markets: string[]) =>
+        `Also check checkout for ${markets.join(", ")}: Shopify doesn’t identify its configuration with certainty.`,
       primary: "primary",
       unpublished: "not published",
       marketAmbiguous:
-        "Shopify doesn’t identify a single configuration for one or more markets, for example when settings are inherited. In each “Customization for the … market” panel, open checkout for that market and check the labels shown there.",
+        "Shopify reports at least one market with an inherited or non-unique configuration. CF Ready groups matching values and identifies the additional checkouts to verify.",
       refresh: "Read fields again from Shopify",
       stop: "Restore and stop managing",
       lastSync: (value: string) => `Last updated: ${value}`,
@@ -549,22 +551,46 @@ export const en: typeof it = {
       operationalSummary: (automatic: number, manual: number) =>
         `${automatic} ${automatic === 1 ? "label" : "labels"} managed by Shopify · ${manual} manual ${manual === 1 ? "verification" : "verifications"} required`,
       manualHeading: "How to complete the manual verification",
-      manualSteps: (language: string, market: string | null, primary: boolean) => [
+      manualSteps: (
+        language: string,
+        market: string | null,
+        primary: boolean,
+        verificationMarkets: string[],
+      ) => [
         market
           ? `Open the storefront and select ${market} as the country or region and ${language} as the language.`
           : `Open the storefront in the default market and select ${language} as the language.`,
-        "Add a product to the cart and continue to checkout.",
+        ...(verificationMarkets.length > 0
+          ? [
+              `Repeat the check with ${verificationMarkets.join(", ")} selected as the country or region and ${language} as the language.`,
+            ]
+          : []),
+        "For every case listed, add a product to the cart and continue to checkout.",
         "Compare the tax code and PEC labels with the “Field after saving” value shown here.",
-        primary && !market
-          ? "If they differ, in Shopify go to Settings → Checkout. In the Checkout language section choose Edit checkout content, find the text shown as “Current field”, replace it with “Field after saving”, and save."
-          : `If they differ, open Shopify Translate & Adapt, ${market ? `select the ${market} market and ` : ""}select ${language}. Open Checkout and system, find the text shown as “Current field”, replace it with “Field after saving”, and save.`,
+        "If they differ, select “Open the checkout text editor”. In Shopify, under Checkout language, select “Edit checkout content”.",
+        ...(primary && !market
+          ? [
+              "In the editor, select “Search and filter results”. For the tax code, search for the value shown as “Current field” and edit only Checkout localized fields additional information → Tax credential it; ignore B2B locations → Tax id.",
+              "For PEC, search for “PEC”, scroll to Checkout localized fields additional information, and edit Tax email it. Enter the corresponding “Field after saving” for both fields, then select “Save”.",
+              ...(verificationMarkets.length > 0
+                ? [
+                    `If a label differs only in ${verificationMarkets.join(", ")}, select “Translate” in the editor, open the “Translating into…” selector, and choose “Adapt a market” → ${verificationMarkets.join(", ")} → ${language}. Open Checkout and system, use “Filter fields” to find Tax credential it or Tax email it, enter the corresponding “Field after saving”, and save.`,
+                  ]
+                : []),
+            ]
+          : [
+              "In the editor, select “Translate”. If Shopify Translate & Adapt displays its introductory guide, select “Next” through the final screen, then select “Close”.",
+              market
+                ? `Open the “Translating into…” selector and choose “Adapt a market” → ${market} → ${language}.`
+                : `Check that “Translating into ${language}” is selected at the top. If it isn’t, open the “Translating into…” selector and choose ${language} under “Translate for all markets”.`,
+              "Open Checkout and system. Under “Filter fields”, search for Tax credential it and Tax email it, enter the corresponding “Field after saving” for each one, then select “Save”.",
+            ]),
         "Return to CF Ready and select “Read fields again from Shopify”. When the two values match, the confirmation button becomes available.",
       ],
       manualMismatch:
         "Shopify is still returning a different text. Change and save it using the steps above, then select “Read fields again from Shopify”.",
       openStorefront: "Open storefront",
-      openCheckoutContentEditor: "Open checkout settings",
-      openTranslations: "Open Shopify languages and translations",
+      openCheckoutContentEditor: "Open the checkout text editor",
       confirmGuided: "Confirm manual verification",
       lastManualVerification: (value: string) => `Last manual verification: ${value}`,
       checkoutCheckRequired: "manual checkout verification required",
