@@ -8,6 +8,7 @@ import { databaseContext } from "../context.server";
 import { APP_VERSION } from "../env.server";
 import { recordEvent } from "../events.server";
 import {
+  formatDateTime,
   resolveLocale,
   supportDiagnosticText,
   supportMailto,
@@ -274,7 +275,7 @@ function ValidationDiagnosis({
         <s-text color="subdued">
           {checkCopy.lastSync}:{" "}
           {diagnostics.lastSyncAt
-            ? new Date(diagnostics.lastSyncAt).toLocaleString(locale)
+            ? formatDateTime(diagnostics.lastSyncAt, locale)
             : checkCopy.unknown}
         </s-text>
         <s-heading>{checkCopy.manualHeading}</s-heading>
@@ -319,7 +320,7 @@ function DiagnosisResult({
   return (
     <>
       <s-text color="subdued">
-        {copy.checkedAt}: {new Date(check.checkedAt).toLocaleString(locale)}
+        {copy.checkedAt}: {formatDateTime(check.checkedAt, locale)}
       </s-text>
       <s-paragraph>
         {check.enabled ? copy.enabled : copy.disabled} <s-link href="/app">{t.nav.home}</s-link>
