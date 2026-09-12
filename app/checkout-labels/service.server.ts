@@ -6,6 +6,7 @@ import {
   address2Reference,
   CHECKOUT_LABEL_OPTIONAL_SCOPES,
   checkoutLabelSlotId,
+  checkoutLabelValuesMatch,
   checkoutLabelName,
   checkoutLabelsMode,
   observedLabelForSlot,
@@ -404,7 +405,15 @@ export async function confirmGuidedCheckoutLabels(
       if (selected.size === 0 || slots.length !== selected.size) {
         return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
       }
-      if (slots.some((slot) => proposedLabelForSlot(slot, rules) !== observedLabelForSlot(slot))) {
+      if (
+        slots.some(
+          (slot) =>
+            !checkoutLabelValuesMatch(
+              proposedLabelForSlot(slot, rules),
+              observedLabelForSlot(slot),
+            ),
+        )
+      ) {
         return { ok: false as const, errorCode: "checkout_labels_partial_sync" as const };
       }
       await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots, snapshot.address2);
@@ -467,7 +476,7 @@ async function synchronizeFiscalPhase(
         }
 
         const target = proposedLabelForSlot(slot, rules);
-        if (!target || slot.currentValue === target) continue;
+        if (!target || checkoutLabelValuesMatch(slot.currentValue, target)) continue;
         await claimCheckoutLabelSlot(db, shopDomain, slot, epoch);
         const group = pending.get(slot.resourceId) ?? [];
         group.push({ slot, target });
@@ -549,7 +558,7 @@ function automaticFiscalSlots(slots: CheckoutLabelSlot[]) {
 function automaticFiscalWrites(snapshot: CheckoutLabelsSnapshot, rules: Rules) {
   return automaticFiscalSlots(snapshot.slots).filter((slot) => {
     const proposed = proposedLabelForSlot(slot, rules);
-    return proposed !== null && slot.currentValue !== proposed;
+    return proposed !== null && !checkoutLabelValuesMatch(slot.currentValue, proposed);
   });
 }
 
@@ -557,7 +566,7 @@ function managedFiscalValuesMatch(snapshot: CheckoutLabelsSnapshot, rules: Rules
   return automaticFiscalSlots(snapshot.slots).every((slot) => {
     const mode = slot.name === "taxCode" ? rules.taxCode : rules.pec;
     if (mode === "unmanaged") return true;
-    return slot.currentValue === proposedLabelForSlot(slot, rules);
+    return checkoutLabelValuesMatch(slot.currentValue, proposedLabelForSlot(slot, rules));
   });
 }
 
@@ -590,8 +599,8 @@ function guidedConfirmationIsValid(
   const observed = observedLabelForSlot(slot);
   return (
     Boolean(previous?.guidedConfirmedAt) &&
-    previous?.guidedConfirmedValue === observed &&
-    proposedLabelForSlot(slot, rules) === observed
+    checkoutLabelValuesMatch(previous?.guidedConfirmedValue ?? null, observed) &&
+    checkoutLabelValuesMatch(proposedLabelForSlot(slot, rules), observed)
   );
 }
 
@@ -698,7 +707,11 @@ function hasAddress2ObservationChange(
 
 function matchesLastWrite(currentValue: string | null, stored: StoredCheckoutLabelSlot) {
   if (stored.lastWritePresent === null) return true;
-  return stored.lastWritePresent ? currentValue === stored.lastWrittenValue : currentValue === null;
+  if (!stored.lastWritePresent) return currentValue === null;
+  const name = checkoutLabelName(stored.key);
+  return name === "taxCode" || name === "pec"
+    ? checkoutLabelValuesMatch(currentValue, stored.lastWrittenValue)
+    : currentValue === stored.lastWrittenValue;
 }
 
 function checkoutLabelsError(error: unknown): AppErrorCode {

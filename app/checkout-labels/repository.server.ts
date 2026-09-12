@@ -155,12 +155,12 @@ export async function persistCheckoutLabelObservation(
                        last_observed_value = excluded.last_observed_value,
                        last_observed_at = excluded.last_observed_at,
                        guided_confirmed_value = CASE
-                         WHEN checkout_label_slots.guided_confirmed_value = excluded.last_observed_value
+                         WHEN lower(checkout_label_slots.guided_confirmed_value) = lower(excluded.last_observed_value)
                            THEN checkout_label_slots.guided_confirmed_value
                          ELSE NULL
                        END,
                        guided_confirmed_at = CASE
-                         WHEN checkout_label_slots.guided_confirmed_value = excluded.last_observed_value
+                         WHEN lower(checkout_label_slots.guided_confirmed_value) = lower(excluded.last_observed_value)
                            THEN checkout_label_slots.guided_confirmed_at
                          ELSE NULL
                        END`,

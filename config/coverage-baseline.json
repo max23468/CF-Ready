@@ -4,68 +4,68 @@
   "sourceHash": "9193f4b267e9fe36f533fc0c6f818bc7b126a5ea0337c75dc5284b9e474e30a1",
   "global": {
     "statements": {
-      "total": 7911,
-      "covered": 7723,
+      "total": 7921,
+      "covered": 7733,
       "pct": 97.62
     },
     "branches": {
-      "total": 5192,
-      "covered": 5004,
-      "pct": 96.37
+      "total": 5198,
+      "covered": 5016,
+      "pct": 96.49
     },
     "functions": {
-      "total": 1199,
-      "covered": 1188,
+      "total": 1204,
+      "covered": 1193,
       "pct": 99.08
     },
     "lines": {
-      "total": 7481,
-      "covered": 7313,
+      "total": 7490,
+      "covered": 7322,
       "pct": 97.75
     }
   },
   "groups": {
     "server-worker": {
       "statements": {
-        "total": 2855,
-        "covered": 2805,
-        "pct": 98.24
+        "total": 2861,
+        "covered": 2811,
+        "pct": 98.25
       },
       "branches": {
-        "total": 2661,
-        "covered": 2577,
-        "pct": 96.84
+        "total": 2671,
+        "covered": 2587,
+        "pct": 96.85
       },
       "functions": {
-        "total": 607,
-        "covered": 602,
-        "pct": 99.17
+        "total": 610,
+        "covered": 605,
+        "pct": 99.18
       },
       "lines": {
-        "total": 2569,
-        "covered": 2533,
-        "pct": 98.59
+        "total": 2574,
+        "covered": 2538,
+        "pct": 98.6
       }
     },
     "ui-routes": {
       "statements": {
-        "total": 1286,
-        "covered": 1277,
+        "total": 1290,
+        "covered": 1281,
         "pct": 99.3
       },
       "branches": {
-        "total": 1190,
-        "covered": 1147,
-        "pct": 96.38
+        "total": 1186,
+        "covered": 1149,
+        "pct": 96.88
       },
       "functions": {
-        "total": 403,
-        "covered": 402,
+        "total": 405,
+        "covered": 404,
         "pct": 99.75
       },
       "lines": {
-        "total": 1149,
-        "covered": 1146,
+        "total": 1153,
+        "covered": 1150,
         "pct": 99.73
       }
     },

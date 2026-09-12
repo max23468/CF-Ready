@@ -396,7 +396,10 @@ confronto distingue “Predefinito per questa lingua” da “Personalizzazione 
 mercato …”; per correggere i valori guida all’editor del contenuto checkout
 della lingua primaria oppure a Lingue/Translate & Adapt, quindi rilegge Shopify
 senza ricaricare la pagina. Gli stati di queste etichette non generano avvisi
-nella Home.
+nella Home. Le sezioni “Campo Interno” e “Testi del checkout (impostazioni
+avanzate)” sono chiuse all’apertura, mostrano un controllo di espansione stabile
+e il confronto di Codice Fiscale e PEC ignora le differenze tra maiuscole e
+minuscole.
 
 Precisazione D-151 dell’11 settembre 2026: `cf-ready.pages.dev` reindirizza con
 301 a `cfready.it` tramite la lista Bulk Redirect di account

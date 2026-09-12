@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.9.2 — 12 settembre 2026
+
+- le sezioni “Campo Interno” e “Testi del checkout (impostazioni avanzate)”
+  partono chiuse, mantengono lo stesso bordo quando vengono aperte e mostrano un
+  comando esplicito per espandere il contenuto;
+- il confronto di Codice Fiscale e PEC ignora maiuscole e minuscole;
+- la verifica manuale indica i passaggi effettivi dell’editor del checkout e di
+  Shopify Translate & Adapt, compresa la ricerca dei campi e la guida iniziale;
+- la rilettura interroga separatamente i testi globali e le personalizzazioni per
+  mercato, così il pulsante di conferma usa i valori Shopify corretti.
+
 ## 1.9.1 — 11 settembre 2026
 
 - l’assistenza usa `supporto@cfready.it` nel messaggio precompilato dell’app,
