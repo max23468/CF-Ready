@@ -299,7 +299,7 @@ function SimulatorCustomerFields({
           />
           {rules.taxCode === "unmanaged" ? null : (
             <s-text-field
-              label={checkoutLabelCopy("taxCode", locale, rules.taxCode) ?? t.rules.taxCodeLabel}
+              label={checkoutLabelCopy("taxCode", locale, rules.taxCode)!}
               value={taxCode}
               required={rules.taxCode === "required_validated"}
               error={simulatorErrorMessage(
@@ -313,7 +313,7 @@ function SimulatorCustomerFields({
           )}
           {rules.pec === "unmanaged" ? null : (
             <s-text-field
-              label={checkoutLabelCopy("pec", locale, rules.pec) ?? t.rules.pecLabel}
+              label={checkoutLabelCopy("pec", locale, rules.pec)!}
               value={pec}
               required={pecIsRequired(rules.pec, company)}
               error={simulatorErrorMessage(

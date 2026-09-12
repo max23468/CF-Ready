@@ -913,10 +913,26 @@ describe("Onboarding", () => {
           labelSlot({
             name: "taxCode",
             key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
+            locale: "it",
+            family: "it",
+            capability: "automatic",
+          }),
+          labelSlot({
+            name: "pec",
+            key: "shopify.checkout.localized_fields.additional_information.tax_email_it",
             locale: "en",
             family: "en",
             capability: "automatic",
           }),
+          labelSlot({
+            name: "taxCode",
+            key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
+            locale: "it",
+            family: "it",
+            capability: "automatic",
+            currentValue: "Codice fiscale",
+          }),
+          labelSlot({ name: "address2", kind: "source" }),
         ],
       },
     };
@@ -942,12 +958,18 @@ describe("Onboarding", () => {
       }
     }
     vi.stubGlobal("FormData", LabelsFormData as unknown as typeof originalFormData);
+    await dispatch(view.container.querySelector("form")!, new Event("change", { bubbles: true }));
     await click(
       [...view.container.querySelectorAll("s-button")].find((button) =>
         button.textContent?.includes(texts("it").onboarding.next),
       )!,
     );
     expect(router.fetcher.submit).not.toHaveBeenCalled();
+    const confirmation = view.container.querySelector(
+      's-modal[id="confirm-onboarding-checkout-label-management"]',
+    );
+    expect(confirmation?.textContent).toContain("Codice Fiscale · Italiano");
+    expect(confirmation?.textContent).toContain("PEC · Inglese");
     await click(
       view.container.querySelector(
         's-modal[id="confirm-onboarding-checkout-label-management"] s-button[slot="primary-action"]',
@@ -1383,6 +1405,15 @@ describe("Regole", () => {
     };
     await view.rerender(<CheckoutRules key="labels-kept" />);
     expect(view.container.textContent).toContain(texts("it").rules.labels.keepNativeAccepted);
+
+    router.loaderData = {
+      ...rulesData,
+      labelScopesGranted: true,
+      labelState: { ...rulesData.labelState, mode: "off", decision: "accepted" },
+      labelSnapshot: null,
+    };
+    await view.rerender(<CheckoutRules key="labels-kept-with-scopes" />);
+    expect(view.container.textContent).toContain(texts("it").rules.labels.nativeSummaryKept);
   });
 
   test("mostra e aziona etichette native, override e ripristino di Interno", async () => {
@@ -2012,6 +2043,8 @@ describe("Regole", () => {
     expect(texts("en").rules.labels.marketCheckIncluded(["Italy"])).toContain("Italy");
     expect(texts("en").rules.labels.operationalSummary(1, 1)).toContain("1 label");
     expect(texts("en").rules.labels.operationalSummary(2, 2)).toContain("2 labels");
+    expect(texts("en").rules.labels.nativeSummaryNeedsReview(1)).toContain("One checkout");
+    expect(texts("en").rules.labels.nativeSummaryNeedsReview(2)).toContain("2 checkouts");
     expect(texts("en").rules.labels.manualSteps("English", null, true, []).join(" ")).toContain(
       "Search and filter results",
     );

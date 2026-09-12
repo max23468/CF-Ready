@@ -304,14 +304,12 @@ function NativeCheckoutLabels({
   );
   const keptByMerchant = state.mode === "off" && state.decision === "accepted";
   const needsAttention =
-    (!scopeGranted && !keptByMerchant) ||
     pendingContexts.length > 0 ||
     Boolean(state.lastErrorCode) ||
     (state.mode === "off" && state.decision === "pending");
   const presentation = nativeLabelsPresentation({
     copy,
     state,
-    scopeGranted,
     keptByMerchant,
     pendingCount: pendingContexts.length,
   });
@@ -505,13 +503,11 @@ function MarketResolutionWarning({
 function nativeLabelsPresentation({
   copy,
   state,
-  scopeGranted,
   keptByMerchant,
   pendingCount,
 }: {
   copy: ReturnType<typeof texts>["rules"]["labels"];
   state: CheckoutLabelState;
-  scopeGranted: boolean;
   keptByMerchant: boolean;
   pendingCount: number;
 }) {
@@ -526,9 +522,6 @@ function nativeLabelsPresentation({
   }
   if (keptByMerchant) {
     return { status: copy.statusManagedByShopify, summary: copy.nativeSummaryKept };
-  }
-  if (!scopeGranted) {
-    return { status: copy.statusManualRequired, summary: copy.nativeSummaryNeedsAccess };
   }
   if (state.mode === "off" && state.decision === "pending") {
     return { status: copy.statusManualRequired, summary: copy.nativeSummaryNeedsChoice };
