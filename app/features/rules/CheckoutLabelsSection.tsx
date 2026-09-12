@@ -15,7 +15,7 @@ import {
   type CheckoutLabelsSnapshot,
   type CheckoutLabelState,
 } from "../../checkout-labels/domain";
-import { texts, type Locale } from "../../i18n";
+import { formatDateTime, texts, type Locale } from "../../i18n";
 
 type LabelsAction =
   | {
@@ -442,7 +442,7 @@ function NativeLabelsGrantedContent({
         </s-badge>
         <s-text color="subdued">
           {state.lastSyncAt
-            ? copy.lastSync(formatTimestamp(state.lastSyncAt, locale))
+            ? copy.lastSync(formatDateTime(state.lastSyncAt, locale))
             : copy.neverSynced}
         </s-text>
       </s-stack>
@@ -951,7 +951,7 @@ function LabelComparison({
               </details>
             ) : confirmedAt ? (
               <s-text color="subdued">
-                {copy.lastManualVerification(formatTimestamp(confirmedAt, locale))}
+                {copy.lastManualVerification(formatDateTime(confirmedAt, locale))}
               </s-text>
             ) : null}
           </div>
@@ -1190,13 +1190,6 @@ function addressTone(classification: CheckoutLabelState["address2Classification"
   if (classification === "nonstandard") return "warning" as const;
   if (classification === "expected") return "success" as const;
   return "neutral" as const;
-}
-
-function formatTimestamp(value: string, locale: Locale) {
-  return new Intl.DateTimeFormat(locale === "it" ? "it-IT" : "en-GB", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
 }
 
 function latestConfirmation(slotIds: string[], confirmations: Map<string, string>) {

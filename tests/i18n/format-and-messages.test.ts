@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { MESSAGE_KEYS, messageAppears, validateMessages } from "../../app/config";
-import { formatDate, formatMoney } from "../../app/i18n";
+import { formatDate, formatDateTime, formatMoney } from "../../app/i18n";
 
 test("importi e date seguono la lingua di chi guarda", () => {
   // `Intl` separa importo e simbolo con uno spazio unificatore, non con uno spazio normale.
@@ -10,6 +10,11 @@ test("importi e date seguono la lingua di chi guarda", () => {
   expect(formatDate("2026-08-10", "it")).toBe("10 agosto 2026");
   expect(formatDate("2026-08-10", "en")).toBe("August 10, 2026");
   expect(formatDate(null, "en")).toBe("");
+});
+
+test("gli orari sono deterministici tra rendering server e idratazione", () => {
+  expect(formatDateTime("2026-09-12T21:45:00Z", "it")).toBe("12 set 2026, 21:45 UTC");
+  expect(formatDateTime("2026-09-12T21:45:00Z", "en")).toBe("12 Sept 2026, 21:45 UTC");
 });
 
 test("i messaggi rifiutano vuoti e testi oltre il limite, e li trimmano", () => {

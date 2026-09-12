@@ -19,7 +19,14 @@ import {
   rebaseRulesDraft,
   type RulesFormDraft,
 } from "../features/rules/rules-form";
-import { describeCheckout, resolveLocale, texts, validationStatus, type Locale } from "../i18n";
+import {
+  describeCheckout,
+  formatDateTime,
+  resolveLocale,
+  texts,
+  validationStatus,
+  type Locale,
+} from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { setSaveBarVisibility } from "../save-bar";
 import { createServerTiming } from "../server-timing.server";
@@ -50,10 +57,6 @@ import {
 
 const SAVE_BAR = "checkout-rules-save-bar";
 const LABEL_CONFIRM_MODAL = "confirm-checkout-label-management";
-const configurationHistoryDateFormatters: Record<Locale, Intl.DateTimeFormat> = {
-  it: new Intl.DateTimeFormat("it", { dateStyle: "medium", timeStyle: "short" }),
-  en: new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }),
-};
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
   const authentication = await timing.measure("auth", () => authenticateAdmin(request, context));
@@ -617,9 +620,7 @@ function ConfigurationHistory({
         {visible.map(({ entry, changed }) => (
           <s-box key={entry.id} background="subdued" borderRadius="base" padding="base">
             <s-stack direction="block" gap="small-100">
-              <s-text type="strong">
-                {configurationHistoryDateFormatters[locale].format(new Date(entry.createdAt))}
-              </s-text>
+              <s-text type="strong">{formatDateTime(entry.createdAt, locale)}</s-text>
               <s-text color="subdued">
                 {copy.changed(
                   changed.map((field) =>
