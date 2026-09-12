@@ -3,6 +3,7 @@ import type {
   Address2Classification,
   Address2Decision,
   CheckoutLabelsMode,
+  CheckoutLabelState,
   CheckoutLabelsStatus,
 } from "./checkout-labels/domain";
 import { checkoutLabelsStatus } from "./checkout-labels/domain";
@@ -41,7 +42,8 @@ export async function readSupportDiagnosticState(
               state.checkout_labels_accepted_revision, state.checkout_labels_reviewed_at,
               state.address2_classification,
               state.address2_decision, state.address2_has_market_override,
-              state.address2_external_change_at,
+              state.address2_external_change_at, state.address2_form_mode,
+              state.address2_form_hidden,
               (SELECT GROUP_CONCAT(DISTINCT locale)
                  FROM checkout_label_slots slots WHERE slots.shop_id = shop.id) AS label_locales,
               (SELECT COUNT(DISTINCT NULLIF(market_id, ''))
@@ -78,6 +80,8 @@ export async function readSupportDiagnosticState(
       address2_decision: Address2Decision | null;
       address2_has_market_override: number | null;
       address2_external_change_at: string | null;
+      address2_form_mode: "required" | "optional" | null;
+      address2_form_hidden: number | null;
       label_locales: string | null;
       label_market_count: number | null;
     }>();
@@ -91,7 +95,7 @@ export async function readSupportDiagnosticState(
           ? "trial"
           : "none";
 
-  const checkoutLabelState = {
+  const checkoutLabelState: CheckoutLabelState = {
     mode: row?.checkout_labels_mode ?? "off",
     managementEpoch: null,
     enabledAt: null,
@@ -105,7 +109,7 @@ export async function readSupportDiagnosticState(
     address2ExternalChangeAt: row?.address2_external_change_at ?? null,
     address2Decision: row?.address2_decision ?? "pending",
     address2ReviewedAt: null,
-    address2FormMode: null,
+    address2FormMode: row?.address2_form_hidden ? "hidden" : (row?.address2_form_mode ?? null),
   };
 
   return {

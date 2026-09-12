@@ -1334,6 +1334,7 @@ describe("Regole", () => {
     configHash: "hash",
     rules: { taxCode: "optional_validated", pec: "required_validated" },
     messages: DEFAULT_CONFIG.messages,
+    configurationHistory: [],
     enabled: true,
     entitled: true,
     labelScopesGranted: false,

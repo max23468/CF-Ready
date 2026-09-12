@@ -258,6 +258,7 @@ test("il caricamento rileva modifiche gestite e decisioni su Interno", async () 
     mode: "automatic" as const,
     managementEpoch: "epoch-1",
     address2Decision: "accepted" as const,
+    address2FormMode: "required" as const,
   };
   mocks.readState.mockResolvedValue(accepted);
   mocks.readLabels.mockResolvedValue(snapshotOf([fiscal, address]));
@@ -275,8 +276,12 @@ test("il caricamento rileva modifiche gestite e decisioni su Interno", async () 
   });
 });
 
-test("il caricamento rileva varianti di Interno aggiunte o rimosse dopo l'accettazione", async () => {
-  const accepted = { ...state, address2Decision: "accepted" as const };
+test("il caricamento rileva varianti visibili di Interno aggiunte o rimosse dopo l'accettazione", async () => {
+  const accepted = {
+    ...state,
+    address2Decision: "accepted" as const,
+    address2FormMode: "required" as const,
+  };
   const address = addressSlot();
   mocks.readState.mockResolvedValue(accepted);
   mocks.readLabels.mockResolvedValueOnce(snapshotOf([address]));
@@ -295,7 +300,11 @@ test("il caricamento rileva varianti di Interno aggiunte o rimosse dopo l'accett
 });
 
 test("un override di mercato assente conserva il valore ereditato accettato", async () => {
-  const accepted = { ...state, address2Decision: "accepted" as const };
+  const accepted = {
+    ...state,
+    address2Decision: "accepted" as const,
+    address2FormMode: "required" as const,
+  };
   const address = addressSlot({
     kind: "market_translation",
     marketId: "gid://shopify/Market/1",
@@ -309,6 +318,38 @@ test("un override di mercato assente conserva il valore ereditato accettato", as
   await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
     available: true,
     externalChange: false,
+  });
+});
+
+test("il caricamento ignora Interno nascosto e la variante non attiva", async () => {
+  const required = addressSlot({ currentValue: "Codice fiscale" });
+  const optional = addressSlot({
+    name: "optionalAddress2",
+    key: CHECKOUT_LABEL_KEYS.optionalAddress2,
+    currentValue: "Modifica esterna",
+  });
+  mocks.readLabels.mockResolvedValue(snapshotOf([required, optional]));
+  mocks.readStored.mockResolvedValue([
+    stored(required, { lastObservedValue: "Interno" }),
+    stored(optional, { lastObservedValue: "Interno, scala, ecc. (facoltativo)" }),
+  ]);
+
+  mocks.readState.mockResolvedValueOnce({
+    ...state,
+    address2Decision: "accepted",
+    address2FormMode: "hidden",
+  });
+  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
+    externalChange: false,
+  });
+
+  mocks.readState.mockResolvedValueOnce({
+    ...state,
+    address2Decision: "accepted",
+    address2FormMode: "required",
+  });
+  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
+    externalChange: true,
   });
 });
 
@@ -352,6 +393,32 @@ test("il salvataggio senza gestione etichette delega soltanto la Validation", as
     labelsErrorCode: null,
   });
   expect(mocks.readLabels).not.toHaveBeenCalled();
+
+  const messages = {
+    it: {
+      taxCodeRequired: "CF richiesto",
+      taxCodeInvalid: "CF non valido",
+      pecRequired: "PEC richiesta",
+      pecInvalid: "PEC non valida",
+    },
+    en: {
+      taxCodeRequired: "Tax code required",
+      taxCodeInvalid: "Tax code invalid",
+      pecRequired: "PEC required",
+      pecInvalid: "PEC invalid",
+    },
+  };
+  await save(input({ labelsEnabled: false, messages }));
+  expect(mocks.writeValidation).toHaveBeenLastCalledWith(
+    admin,
+    db,
+    shop,
+    { rules, messages },
+    null,
+    null,
+    undefined,
+    heartbeat,
+  );
 
   mocks.writeValidation.mockResolvedValueOnce({ ok: false, errorCode: "config_conflict" });
   await expect(save(input({ labelsEnabled: false }))).resolves.toEqual({

@@ -52,10 +52,40 @@ const oddValues: Record<string, number> = {
   Z: 23,
 };
 
-export function isValidTaxCode(rawValue: string): boolean {
+export type TaxCodeDiagnostic =
+  | "valid"
+  | "length"
+  | "characters"
+  | "date_structure"
+  | "check_character";
+export type PecDiagnostic = "valid" | "email_format";
+
+export type CheckoutDeliveryContext = {
+  countryCode?: string | null;
+  selectedDeliveryOption?: boolean;
+};
+
+export function requiredFieldsAreDue(
+  step: "CHECKOUT_INTERACTION" | "CHECKOUT_COMPLETION",
+  deliveryGroups: readonly CheckoutDeliveryContext[],
+) {
+  if (step === "CHECKOUT_COMPLETION") return true;
+  return (
+    deliveryGroups.length > 0 &&
+    deliveryGroups.every(({ countryCode }) => Boolean(countryCode)) &&
+    deliveryGroups.some(({ countryCode }) => countryCode === "IT") &&
+    deliveryGroups
+      .filter(({ countryCode }) => countryCode === "IT")
+      .every(({ selectedDeliveryOption }) => selectedDeliveryOption === true)
+  );
+}
+
+export function diagnoseTaxCode(rawValue: string): TaxCodeDiagnostic {
   const value = rawValue.trim().toUpperCase();
-  if (/^\d{11}$/.test(value)) {
-    if (value === "00000000000") return false;
+  if (value.length !== 11 && value.length !== 16) return "length";
+  if (value.length === 11) {
+    if (!/^\d+$/.test(value)) return "characters";
+    if (value === "00000000000") return "check_character";
 
     let sum = 0;
     for (let index = 0; index < 10; index += 1) {
@@ -66,14 +96,15 @@ export function isValidTaxCode(rawValue: string): boolean {
       }
       sum += digit;
     }
-    return value.charCodeAt(10) - 48 === (10 - (sum % 10)) % 10;
+    return value.charCodeAt(10) - 48 === (10 - (sum % 10)) % 10 ? "valid" : "check_character";
   }
+  if (!/^[A-Z0-9]+$/.test(value)) return "characters";
   if (
     !/^[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]$/.test(
       value,
     )
   ) {
-    return false;
+    return "date_structure";
   }
 
   const decoded = [...value].map((character, index) =>
@@ -92,7 +123,7 @@ export function isValidTaxCode(rawValue: string): boolean {
     encodedDay > 71 ||
     day > maxDays[month]
   ) {
-    return false;
+    return "date_structure";
   }
 
   const checksum = value
@@ -103,15 +134,19 @@ export function isValidTaxCode(rawValue: string): boolean {
       return sum + (/\d/.test(character) ? Number(character) : character.charCodeAt(0) - 65);
     }, 0);
 
-  return value[15] === String.fromCharCode(65 + (checksum % 26));
+  return value[15] === String.fromCharCode(65 + (checksum % 26)) ? "valid" : "check_character";
 }
 
-export function isValidPec(rawValue: string): boolean {
+export function isValidTaxCode(rawValue: string): boolean {
+  return diagnoseTaxCode(rawValue) === "valid";
+}
+
+export function diagnosePec(rawValue: string): PecDiagnostic {
   const value = rawValue.trim();
-  if (value.length > 254 || /\s/.test(value)) return false;
+  if (value.length > 254 || /\s/.test(value)) return "email_format";
 
   const parts = value.split("@");
-  if (parts.length !== 2) return false;
+  if (parts.length !== 2) return "email_format";
   const [local, domain] = parts;
   if (
     !local ||
@@ -121,16 +156,20 @@ export function isValidPec(rawValue: string): boolean {
     local.endsWith(".") ||
     local.includes("..")
   ) {
-    return false;
+    return "email_format";
   }
 
   const labels = domain.split(".");
-  return (
-    domain.length <= 253 &&
+  return domain.length <= 253 &&
     labels.length >= 2 &&
     labels.every(
       (label) =>
         label.length > 0 && label.length <= 63 && /^[A-Z0-9](?:[A-Z0-9-]*[A-Z0-9])?$/i.test(label),
     )
-  );
+    ? "valid"
+    : "email_format";
+}
+
+export function isValidPec(rawValue: string): boolean {
+  return diagnosePec(rawValue) === "valid";
 }

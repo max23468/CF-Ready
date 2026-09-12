@@ -1,4 +1,4 @@
-import { isValidPec, isValidTaxCode } from "../../checkout-field-validation";
+import { isValidPec, isValidTaxCode, requiredFieldsAreDue } from "../../checkout-field-validation";
 import type { Messages, Rules } from "../../config";
 
 export type SimulatorFieldError = "required" | "invalid" | null;
@@ -7,6 +7,8 @@ export type SimulatorScenario =
   | "valid"
   | "invalidTaxCode"
   | "invalidPec"
+  | "numericTaxCode"
+  | "omocodiaTaxCode"
   | "companyWithoutPec"
   | "empty";
 
@@ -21,6 +23,16 @@ export const simulatorScenarioValues: Record<
     pec: "mario.rossi@example.com",
   },
   invalidPec: { company: "Acme S.r.l.", taxCode: "RSSMRA85T10A562S", pec: "mario.rossi@" },
+  numericTaxCode: {
+    company: "Acme S.r.l.",
+    taxCode: "12345678903",
+    pec: "mario.rossi@example.com",
+  },
+  omocodiaTaxCode: {
+    company: "Acme S.r.l.",
+    taxCode: "AAAAAAL0A01A000K",
+    pec: "mario.rossi@example.com",
+  },
   companyWithoutPec: { company: "Acme S.r.l.", taxCode: "RSSMRA85T10A562S", pec: "" },
   empty: { company: "", taxCode: "", pec: "" },
 };
@@ -44,34 +56,63 @@ export function simulatorFieldError(
 
 export function simulatorOutcome({
   rules,
-  deliveryCountry,
   billingCountry,
   company,
   taxCode,
   pec,
-  submitted,
+  step,
+  deliveryGroups,
+  taxCodePresent = true,
+  pecPresent = true,
 }: {
   rules: Rules;
-  deliveryCountry: string;
   billingCountry: string;
   company?: string;
   taxCode: string;
   pec: string;
-  submitted: boolean;
+  step: "CHECKOUT_INTERACTION" | "CHECKOUT_COMPLETION";
+  deliveryGroups: readonly { countryCode?: string | null; selectedDeliveryOption?: boolean }[];
+  taxCodePresent?: boolean;
+  pecPresent?: boolean;
 }): SimulatorOutcome {
-  if ((deliveryCountry && deliveryCountry !== "IT") || (billingCountry && billingCountry !== "IT"))
-    return "notApplied";
+  if (billingCountry && billingCountry !== "IT") return "notApplied";
+  const deliveryCountries = deliveryGroups.flatMap(({ countryCode }) =>
+    countryCode ? [countryCode] : [],
+  );
+  if (deliveryCountries.length > 0 && !deliveryCountries.includes("IT")) return "notApplied";
+  const hasItalianDelivery = deliveryCountries.includes("IT");
+  if (!taxCodePresent && !pecPresent && !hasItalianDelivery) return "notApplied";
   if (rules.taxCode === "unmanaged" && rules.pec === "unmanaged") return "noChecks";
 
+  const checkRequiredEmpty = requiredFieldsAreDue(step, deliveryGroups);
+  const absentRequiredField = step === "CHECKOUT_COMPLETION" && hasItalianDelivery;
   const problems = [
     rules.taxCode === "unmanaged"
       ? null
-      : simulatorFieldError(rules.taxCode, taxCode, isValidTaxCode),
+      : taxCodePresent || absentRequiredField
+        ? simulatorFieldError(
+            rules.taxCode,
+            taxCodePresent ? taxCode : "",
+            isValidTaxCode,
+            rules.taxCode === "required_validated",
+          )
+        : null,
     rules.pec === "unmanaged"
       ? null
-      : simulatorFieldError(rules.pec, pec, isValidPec, pecIsRequired(rules.pec, company ?? "")),
+      : pecPresent || absentRequiredField
+        ? simulatorFieldError(
+            rules.pec,
+            pecPresent ? pec : "",
+            isValidPec,
+            pecIsRequired(rules.pec, company ?? ""),
+          )
+        : null,
   ];
-  if (problems.some((problem) => problem === "invalid" || (submitted && problem === "required"))) {
+  if (
+    problems.some(
+      (problem) => problem === "invalid" || (problem === "required" && checkRequiredEmpty),
+    )
+  ) {
     return "blocked";
   }
   return problems.includes("required") ? "editing" : "ready";

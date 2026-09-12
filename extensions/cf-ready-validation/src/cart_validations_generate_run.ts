@@ -2,7 +2,11 @@ import type {
   CartValidationsGenerateRunInput,
   CartValidationsGenerateRunResult,
 } from "../generated/api";
-import { isValidPec, isValidTaxCode } from "../../../app/checkout-field-validation";
+import {
+  isValidPec,
+  isValidTaxCode,
+  requiredFieldsAreDue,
+} from "../../../app/checkout-field-validation";
 
 export { isValidPec, isValidTaxCode } from "../../../app/checkout-field-validation";
 
@@ -160,18 +164,13 @@ export function cartValidationsGenerateRun(
     );
     if (input.cart.localizedFields.length === 0 && !hasItalianDelivery) return allow;
 
-    const italianDeliveryGroups = input.cart.deliveryGroups.filter(
-      (group) => group.deliveryAddress?.countryCode === "IT",
+    const checkRequiredEmpty = requiredFieldsAreDue(
+      step,
+      input.cart.deliveryGroups.map((group) => ({
+        countryCode: group.deliveryAddress?.countryCode,
+        selectedDeliveryOption: Boolean(group.selectedDeliveryOption),
+      })),
     );
-    const deliveryContextResolved =
-      input.cart.deliveryGroups.length > 0 &&
-      input.cart.deliveryGroups.every((group) => Boolean(group.deliveryAddress?.countryCode));
-    const advancedInteraction =
-      step === "CHECKOUT_INTERACTION" &&
-      deliveryContextResolved &&
-      italianDeliveryGroups.length > 0 &&
-      italianDeliveryGroups.every((group) => Boolean(group.selectedDeliveryOption));
-    const checkRequiredEmpty = step === "CHECKOUT_COMPLETION" || advancedInteraction;
 
     const messages = config.messages[input.localization.language.isoCode === "IT" ? "it" : "en"];
     const errors: { message: string; target: string }[] = [];

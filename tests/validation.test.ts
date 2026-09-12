@@ -1003,6 +1003,14 @@ test("il salvataggio non sovrascrive la configurazione cambiata da un'altra sess
 
   expect(current).toEqual({ ok: true, enabled: false });
   expect(calls).toHaveLength(1);
+  expect(
+    await env.DB.prepare(
+      `SELECT COUNT(*) AS total FROM configuration_history
+          WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    )
+      .bind(shop)
+      .first("total"),
+  ).toBe(2);
 });
 
 test("la dichiarazione D1 cambia soltanto dopo il successo Shopify", async () => {

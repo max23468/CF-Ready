@@ -1,5 +1,11 @@
 import { useReducer, useState } from "react";
-import { isValidPec, isValidTaxCode } from "../../checkout-field-validation";
+import {
+  diagnosePec,
+  diagnoseTaxCode,
+  isValidPec,
+  isValidTaxCode,
+  requiredFieldsAreDue,
+} from "../../checkout-field-validation";
 import type { Messages, Rules } from "../../config";
 import { texts } from "../../i18n";
 import type { Locale } from "../../i18n";
@@ -36,7 +42,11 @@ type SimulatorState = {
   company: string;
   taxCode: string;
   pec: string;
-  submitted: boolean;
+  step: "CHECKOUT_INTERACTION" | "CHECKOUT_COMPLETION";
+  shippingSelected: boolean;
+  mixedDelivery: boolean;
+  taxCodePresent: boolean;
+  pecPresent: boolean;
   scenario: SimulatorScenario | "";
 };
 
@@ -46,7 +56,11 @@ const initialSimulatorState: SimulatorState = {
   company: "",
   taxCode: "",
   pec: "",
-  submitted: false,
+  step: "CHECKOUT_INTERACTION",
+  shippingSelected: false,
+  mixedDelivery: false,
+  taxCodePresent: true,
+  pecPresent: true,
   scenario: "",
 };
 
@@ -68,22 +82,48 @@ export function CheckoutSimulator({
   const t = texts(previewLocale);
   const copy = t.rules.simulator;
   const [state, updateState] = useReducer(updateSimulatorState, initialSimulatorState);
-  const { deliveryCountry, billingCountry, company, taxCode, pec, submitted, scenario } = state;
-  const previewMessages = messagesForLocale(messages, previewLocale);
-
-  const outcome = simulatorOutcome({
-    rules,
+  const {
     deliveryCountry,
     billingCountry,
     company,
     taxCode,
     pec,
-    submitted,
+    step,
+    shippingSelected,
+    mixedDelivery,
+    taxCodePresent,
+    pecPresent,
+    scenario,
+  } = state;
+  const previewMessages = messagesForLocale(messages, previewLocale);
+  const deliveryGroups = deliveryCountry
+    ? [
+        { countryCode: deliveryCountry, selectedDeliveryOption: shippingSelected },
+        ...(mixedDelivery ? [{ countryCode: "FR", selectedDeliveryOption: shippingSelected }] : []),
+      ]
+    : [];
+
+  const outcome = simulatorOutcome({
+    rules,
+    billingCountry,
+    company,
+    taxCode,
+    pec,
+    step,
+    deliveryGroups,
+    taxCodePresent,
+    pecPresent,
   });
 
   const applyScenario = (nextScenario: SimulatorScenario) => {
     const values = simulatorScenarioValues[nextScenario];
-    updateState({ ...values, scenario: nextScenario, submitted: true });
+    updateState({
+      ...values,
+      scenario: nextScenario,
+      shippingSelected: true,
+      taxCodePresent: true,
+      pecPresent: true,
+    });
   };
 
   return (
@@ -164,6 +204,53 @@ export function CheckoutSimulator({
                       copy={copy}
                     />
                   </s-grid>
+                  <details>
+                    <summary>{copy.advanced}</summary>
+                    <s-box paddingBlockStart="small-200">
+                      <s-stack direction="block" gap="small-200">
+                        <s-select
+                          label={copy.checkoutStep}
+                          value={step}
+                          onChange={(event) =>
+                            updateState({
+                              step: event.currentTarget.value as SimulatorState["step"],
+                            })
+                          }
+                        >
+                          <s-option value="CHECKOUT_INTERACTION">{copy.interaction}</s-option>
+                          <s-option value="CHECKOUT_COMPLETION">{copy.completion}</s-option>
+                        </s-select>
+                        <s-checkbox
+                          label={copy.shippingSelected}
+                          checked={shippingSelected}
+                          onChange={(event) =>
+                            updateState({ shippingSelected: event.currentTarget.checked })
+                          }
+                        />
+                        <s-checkbox
+                          label={copy.mixedDelivery}
+                          checked={mixedDelivery}
+                          onChange={(event) =>
+                            updateState({ mixedDelivery: event.currentTarget.checked })
+                          }
+                        />
+                        <s-checkbox
+                          label={copy.taxCodePresent}
+                          checked={taxCodePresent}
+                          onChange={(event) =>
+                            updateState({ taxCodePresent: event.currentTarget.checked })
+                          }
+                        />
+                        <s-checkbox
+                          label={copy.pecPresent}
+                          checked={pecPresent}
+                          onChange={(event) =>
+                            updateState({ pecPresent: event.currentTarget.checked })
+                          }
+                        />
+                      </s-stack>
+                    </s-box>
+                  </details>
                 </s-stack>
               </s-box>
 
@@ -172,10 +259,12 @@ export function CheckoutSimulator({
                 rules={rules}
                 messages={previewMessages}
                 outcome={outcome}
-                submitted={submitted}
+                requiredErrorsDue={requiredFieldsAreDue(step, deliveryGroups)}
                 company={company}
                 taxCode={taxCode}
                 pec={pec}
+                taxCodePresent={taxCodePresent}
+                pecPresent={pecPresent}
                 onCompanyChange={(value) => updateState({ scenario: "", company: value })}
                 onTaxCodeChange={(value) => {
                   updateState({ scenario: "", taxCode: value });
@@ -217,7 +306,6 @@ export function CheckoutSimulator({
                       company: "",
                       taxCode: "",
                       pec: "",
-                      submitted: false,
                       scenario: "",
                     })
                   }
@@ -228,7 +316,7 @@ export function CheckoutSimulator({
               <button
                 type="button"
                 className="checkout-simulator__button checkout-simulator__button--primary"
-                onClick={() => updateState({ submitted: true })}
+                onClick={() => updateState({ shippingSelected: true })}
               >
                 {copy.continue}
               </button>
@@ -249,10 +337,12 @@ function SimulatorCustomerFields({
   rules,
   messages,
   outcome,
-  submitted,
+  requiredErrorsDue,
   company,
   taxCode,
   pec,
+  taxCodePresent,
+  pecPresent,
   onCompanyChange,
   onTaxCodeChange,
   onPecChange,
@@ -261,10 +351,12 @@ function SimulatorCustomerFields({
   rules: Rules;
   messages: Messages;
   outcome: SimulatorOutcome;
-  submitted: boolean;
+  requiredErrorsDue: boolean;
   company: string;
   taxCode: string;
   pec: string;
+  taxCodePresent: boolean;
+  pecPresent: boolean;
   onCompanyChange: (value: string) => void;
   onTaxCodeChange: (value: string) => void;
   onPecChange: (value: string) => void;
@@ -272,14 +364,6 @@ function SimulatorCustomerFields({
   const t = texts(locale);
   const copy = t.rules.simulator;
   const applies = outcome !== "notApplied";
-  const taxCodeProblem =
-    applies && rules.taxCode !== "unmanaged"
-      ? simulatorFieldError(rules.taxCode, taxCode, isValidTaxCode)
-      : null;
-  const pecProblem =
-    applies && rules.pec !== "unmanaged"
-      ? simulatorFieldError(rules.pec, pec, isValidPec, pecIsRequired(rules.pec, company))
-      : null;
   const hasManagedFields = Object.values(rules).some((mode) => mode !== "unmanaged");
 
   return (
@@ -297,34 +381,27 @@ function SimulatorCustomerFields({
             value={company}
             onInput={onCompanyChange}
           />
-          {rules.taxCode === "unmanaged" ? null : (
-            <s-text-field
-              label={checkoutLabelCopy("taxCode", locale, rules.taxCode)!}
-              value={taxCode}
-              required={rules.taxCode === "required_validated"}
-              error={simulatorErrorMessage(
-                messages,
-                "taxCode",
-                taxCodeProblem,
-                taxCodeProblem === "invalid" || submitted,
-              )}
-              onInput={(event) => onTaxCodeChange(event.currentTarget.value)}
-            />
-          )}
-          {rules.pec === "unmanaged" ? null : (
-            <s-text-field
-              label={checkoutLabelCopy("pec", locale, rules.pec)!}
-              value={pec}
-              required={pecIsRequired(rules.pec, company)}
-              error={simulatorErrorMessage(
-                messages,
-                "pec",
-                pecProblem,
-                pecProblem === "invalid" || submitted,
-              )}
-              onInput={(event) => onPecChange(event.currentTarget.value)}
-            />
-          )}
+          <SimulatorTaxCodeField
+            locale={locale}
+            mode={rules.taxCode}
+            messages={messages}
+            value={taxCode}
+            present={taxCodePresent}
+            applies={applies}
+            requiredErrorsDue={requiredErrorsDue}
+            onInput={onTaxCodeChange}
+          />
+          <SimulatorPecField
+            locale={locale}
+            mode={rules.pec}
+            messages={messages}
+            company={company}
+            value={pec}
+            present={pecPresent}
+            applies={applies}
+            requiredErrorsDue={requiredErrorsDue}
+            onInput={onPecChange}
+          />
         </>
       ) : (
         <s-box background="subdued" borderRadius="base" padding="base">
@@ -332,6 +409,91 @@ function SimulatorCustomerFields({
         </s-box>
       )}
     </s-stack>
+  );
+}
+
+function SimulatorTaxCodeField({
+  locale,
+  mode,
+  messages,
+  value,
+  present,
+  applies,
+  requiredErrorsDue,
+  onInput,
+}: {
+  locale: Locale;
+  mode: Rules["taxCode"];
+  messages: Messages;
+  value: string;
+  present: boolean;
+  applies: boolean;
+  requiredErrorsDue: boolean;
+  onInput: (value: string) => void;
+}) {
+  if (mode === "unmanaged" || !present) return null;
+  const problem = applies ? simulatorFieldError(mode, value, isValidTaxCode) : null;
+  const copy = texts(locale).rules.simulator;
+  return (
+    <s-text-field
+      label={checkoutLabelCopy("taxCode", locale, mode)!}
+      value={value}
+      required={mode === "required_validated"}
+      error={simulatorErrorMessage(
+        messages,
+        "taxCode",
+        problem,
+        problem === "invalid" || requiredErrorsDue,
+      )}
+      details={
+        problem === "invalid"
+          ? copy.diagnostics.taxCode[diagnoseTaxCode(value)]
+          : copy.examples.taxCode
+      }
+      onInput={(event) => onInput(event.currentTarget.value)}
+    />
+  );
+}
+
+function SimulatorPecField({
+  locale,
+  mode,
+  messages,
+  company,
+  value,
+  present,
+  applies,
+  requiredErrorsDue,
+  onInput,
+}: {
+  locale: Locale;
+  mode: Rules["pec"];
+  messages: Messages;
+  company: string;
+  value: string;
+  present: boolean;
+  applies: boolean;
+  requiredErrorsDue: boolean;
+  onInput: (value: string) => void;
+}) {
+  if (mode === "unmanaged" || !present) return null;
+  const required = pecIsRequired(mode, company);
+  const problem = applies ? simulatorFieldError(mode, value, isValidPec, required) : null;
+  const copy = texts(locale).rules.simulator;
+  return (
+    <s-text-field
+      label={checkoutLabelCopy("pec", locale, mode)!}
+      value={value}
+      required={required}
+      error={simulatorErrorMessage(
+        messages,
+        "pec",
+        problem,
+        problem === "invalid" || requiredErrorsDue,
+      )}
+      details={problem === "invalid" ? copy.diagnostics.pec[diagnosePec(value)] : copy.examples.pec}
+      onInput={(event) => onInput(event.currentTarget.value)}
+    />
   );
 }
 
@@ -368,6 +530,12 @@ function SimulatorScenarioOptions({
       <s-option value="valid">{copy.scenarios.valid}</s-option>
       {rules.taxCode === "unmanaged" ? null : (
         <s-option value="invalidTaxCode">{copy.scenarios.invalidTaxCode}</s-option>
+      )}
+      {rules.taxCode === "unmanaged" ? null : (
+        <>
+          <s-option value="numericTaxCode">{copy.scenarios.numericTaxCode}</s-option>
+          <s-option value="omocodiaTaxCode">{copy.scenarios.omocodiaTaxCode}</s-option>
+        </>
       )}
       {rules.pec === "unmanaged" ? null : (
         <s-option value="invalidPec">{copy.scenarios.invalidPec}</s-option>

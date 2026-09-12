@@ -12,6 +12,7 @@ import {
   checkoutLabelsSetupDone,
   checkoutLabelsStatus,
   classifyAddress2,
+  classifyVisibleAddress2,
   type CheckoutLabelSlot,
 } from "../app/checkout-labels/domain";
 import {
@@ -128,6 +129,24 @@ test("riduce lo stato D1 ai quattro esiti usati da Home e diagnostica", () => {
       ...state,
       address2Classification: "fiscal_conflict",
       address2Decision: "pending",
+      address2FormMode: "required",
+    }),
+  ).toBe("action_required");
+  expect(
+    checkoutLabelsStatus({
+      ...state,
+      mode: "automatic",
+      lastSyncAt: "2026-09-08T12:00:00Z",
+      address2Classification: "fiscal_conflict",
+      address2ExternalChangeAt: "2026-09-08T13:00:00Z",
+      address2FormMode: "hidden",
+    }),
+  ).toBe("synced");
+  expect(
+    checkoutLabelsStatus({
+      ...state,
+      lastErrorCode: "checkout_labels_partial_sync",
+      address2FormMode: "hidden",
     }),
   ).toBe("action_required");
 });
@@ -150,6 +169,16 @@ test("classifica Interno senza confondere CF isolato con un riferimento fiscale"
       slot({ marketId: "gid://shopify/Market/1", currentValue: "Tax code" }),
     ]),
   ).toEqual({ classification: "fiscal_conflict", hasMarketOverride: true });
+  const variants = [
+    slot({ name: "address2", currentValue: "Codice fiscale" }),
+    slot({ name: "optionalAddress2", currentValue: "Interno, scala, ecc. (facoltativo)" }),
+  ];
+  expect(classifyVisibleAddress2(variants, "required").classification).toBe("fiscal_conflict");
+  expect(classifyVisibleAddress2(variants, "optional").classification).toBe("expected");
+  expect(classifyVisibleAddress2(variants, "hidden")).toEqual({
+    classification: "unknown",
+    hasMarketOverride: false,
+  });
 });
 
 test("un readback Admin resta guidato finché la stessa tupla non ha una prova checkout", async () => {
@@ -415,6 +444,92 @@ test("le query ritentano un throttle e rifiutano risposte non valide", async () 
   ).rejects.toThrow("checkout_labels_readback_failed");
 });
 
+test("il readback limita il fan-out e serializza il lavoro dopo un throttle", async () => {
+  vi.useFakeTimers();
+  const markets = Array.from({ length: 8 }, (_, index) => ({
+    id: `gid://shopify/Market/${index + 1}`,
+    name: `Mercato ${index + 1}`,
+    webPresences: {
+      nodes: [
+        {
+          defaultLocale: { locale: "it" },
+          alternateLocales: [],
+          markets: {
+            nodes: [{ id: `gid://shopify/Market/${index + 1}` }],
+            pageInfo: { hasNextPage: false },
+          },
+        },
+      ],
+      pageInfo: { hasNextPage: false },
+    },
+  }));
+  let active = 0;
+  let maxActive = 0;
+  let maxAfterThrottle = 0;
+  let translationCalls = 0;
+  let throttleObserved = false;
+  const graphql = vi.fn(async (query: string) => {
+    if (query.includes("DiscoverCheckoutLabelContext")) {
+      return Response.json({
+        data: {
+          shopLocales: [{ locale: "it", name: "Italiano", primary: true, published: true }],
+          markets: { nodes: markets, pageInfo: { hasNextPage: false, endCursor: null } },
+        },
+      });
+    }
+    if (query.includes("DiscoverCheckoutLabelResources")) {
+      return Response.json({
+        data: {
+          translatableResources: {
+            nodes: [
+              {
+                resourceId,
+                translatableContent: [
+                  {
+                    key: CHECKOUT_LABEL_KEYS.taxCode,
+                    value: "Codice fiscale",
+                    digest: "digest-tax-code",
+                    locale: "it",
+                  },
+                ],
+              },
+            ],
+            pageInfo: { hasNextPage: false, endCursor: null },
+          },
+        },
+      });
+    }
+    const call = ++translationCalls;
+    active += 1;
+    maxActive = Math.max(maxActive, active);
+    if (throttleObserved) maxAfterThrottle = Math.max(maxAfterThrottle, active);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    active -= 1;
+    if (call === 1) {
+      throttleObserved = true;
+      return Response.json({
+        errors: [{ message: "Throttled", extensions: { code: "THROTTLED" } }],
+        extensions: {
+          cost: {
+            requestedQueryCost: 10,
+            throttleStatus: { currentlyAvailable: 0, restoreRate: 100 },
+          },
+        },
+      });
+    }
+    return Response.json({
+      data: { translatableResource: { resourceId, translations: [] } },
+    });
+  });
+
+  const pending = readCheckoutLabels({ graphql });
+  await vi.runAllTimersAsync();
+  await expect(pending).resolves.toMatchObject({ markets: expect.any(Array) });
+  expect(translationCalls).toBe(10);
+  expect(maxActive).toBe(3);
+  expect(maxAfterThrottle).toBe(1);
+});
+
 test("le mutation accettano soltanto le quattro chiavi e rimuovono una singola tupla", async () => {
   const graphql = vi.fn(
     async (_query: string, _options?: { variables?: Record<string, unknown> }) =>
@@ -609,6 +724,22 @@ test("D1 registra esiti, ownership, decisioni e revoca degli scope", async () =>
   });
   await saveAddress2FormMode(env.DB, shop, "optional");
   expect(await readCheckoutLabelState(env.DB, shop)).toMatchObject({
+    address2FormMode: "optional",
+  });
+  await persistCheckoutLabelObservation(
+    env.DB,
+    shop,
+    [
+      slot({ name: "address2", currentValue: "Codice fiscale" }),
+      slot({
+        name: "optionalAddress2",
+        currentValue: "Interno, scala, ecc. (facoltativo)",
+      }),
+    ],
+    { classification: "fiscal_conflict", hasMarketOverride: false },
+  );
+  expect(await readCheckoutLabelState(env.DB, shop)).toMatchObject({
+    address2Classification: "expected",
     address2FormMode: "optional",
   });
 
