@@ -1249,6 +1249,12 @@ describe("Regole", () => {
       's-choice-list[name="taxCode"] s-choice',
     );
     const pecChoices = view.container.querySelectorAll('s-choice-list[name="pec"] s-choice');
+    const ruleHeadings = [...view.container.querySelectorAll('s-text[type="strong"]')].map(
+      (heading) => heading.textContent,
+    );
+    expect(ruleHeadings).toEqual(
+      expect.arrayContaining([texts("it").rules.taxCodeLabel, texts("it").rules.pecLabel]),
+    );
 
     expect(taxCodeChoices).toHaveLength(3);
     expect(pecChoices).toHaveLength(4);
