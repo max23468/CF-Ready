@@ -53,21 +53,31 @@ export function OnboardingStep4Content({
     <>
       <s-heading>{t.onboarding.step4Heading}</s-heading>
       <div className="cf-data-list">
-        <div className="cf-data-row">
+        <div className="cf-data-row cf-onboarding-summary-row">
           <s-text>{t.rules.taxCodeLabel}</s-text>
-          <s-badge>{t.rules.taxCode[saved.rules.taxCode]}</s-badge>
+          <div className="cf-onboarding-summary-value">
+            <s-badge>{t.rules.taxCode[saved.rules.taxCode]}</s-badge>
+          </div>
         </div>
-        <div className="cf-data-row">
+        <div className="cf-data-row cf-onboarding-summary-row">
           <s-text>{t.rules.pecLabel}</s-text>
-          <s-badge>{t.rules.pec[saved.rules.pec]}</s-badge>
+          <div className="cf-onboarding-summary-value">
+            <s-badge>{t.rules.pec[saved.rules.pec]}</s-badge>
+          </div>
         </div>
-        <div className="cf-data-row">
+        <div className="cf-data-row cf-onboarding-summary-row">
           <s-text>{t.onboarding.labelsSummary}</s-text>
-          <s-badge>{t.rules.labels.modeValues[saved.labelState.mode]}</s-badge>
+          <div className="cf-onboarding-summary-value">
+            <s-badge>{t.rules.labels.modeValues[saved.labelState.mode]}</s-badge>
+          </div>
         </div>
-        <div className="cf-data-row">
+        <div className="cf-data-row cf-onboarding-summary-row">
           <s-text>{t.onboarding.address2Summary}</s-text>
-          <s-badge>{t.rules.labels.addressStatus[saved.labelState.address2Classification]}</s-badge>
+          <div className="cf-onboarding-summary-value">
+            <s-badge>
+              {t.rules.labels.addressStatus[saved.labelState.address2Classification]}
+            </s-badge>
+          </div>
         </div>
       </div>
       <s-paragraph>

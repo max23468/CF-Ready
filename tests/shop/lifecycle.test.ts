@@ -413,6 +413,16 @@ test("la retention rispetta le soglie pubblicate per eventi e ricevute", async (
          (update_id, update_kind, status, received_at, processed_at, updated_at)
        VALUES (7002, 'callback_query', 'processed', ?, ?, ?)`,
     ).bind("2026-07-26T00:00:00.001Z", "2026-07-26T00:00:00.001Z", "2026-07-26T00:00:00.001Z"),
+    env.DB.prepare(
+      `INSERT INTO configuration_history
+         (shop_id, snapshot_hash, rules_json, messages_json, created_at)
+       VALUES (?, ?, '{}', '{}', ?)`,
+    ).bind(shopId, "a".repeat(64), "2026-05-04T00:00:00.000Z"),
+    env.DB.prepare(
+      `INSERT INTO configuration_history
+         (shop_id, snapshot_hash, rules_json, messages_json, created_at)
+       VALUES (?, ?, '{}', '{}', ?)`,
+    ).bind(shopId, "b".repeat(64), "2026-05-04T00:00:00.001Z"),
   ]);
 
   expect((await applyRetention(env.DB, new Date("2026-08-02T00:00:00.000Z"))).shops).toBe(0);
@@ -435,6 +445,9 @@ test("la retention rispetta le soglie pubblicate per eventi e ricevute", async (
     "performance-current",
     "receipt-current",
   ]);
+  expect(
+    await env.DB.prepare("SELECT snapshot_hash FROM configuration_history").first("snapshot_hash"),
+  ).toBe("b".repeat(64));
   expect(
     (
       await env.DB.prepare(

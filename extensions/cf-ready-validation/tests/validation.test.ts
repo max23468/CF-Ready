@@ -683,50 +683,100 @@ describe("regole e messaggi", () => {
   });
 });
 
-it("il simulatore semplice concorda con la Function quando gli indirizzi non sono ancora disponibili", async () => {
+it("il simulatore concorda con la Function nelle fasi e topologie del checkout", async () => {
   const { simulatorOutcome } = await import("../../../app/features/rules/checkout-simulator");
-  for (const deliveryCountry of ["IT", "FR", ""]) {
-    for (const billingCountry of ["IT", "FR", ""]) {
-      const rules = { taxCode: "required_validated", pec: "required_validated" } as const;
-      const actual = cartValidationsGenerateRun({
-        buyerJourney: { step: "CHECKOUT_COMPLETION" },
-        cart: {
-          billingAddress: billingCountry ? { company: null, countryCode: billingCountry } : null,
-          deliveryGroups: deliveryCountry
-            ? [
-                {
-                  deliveryAddress: { countryCode: deliveryCountry },
-                  selectedDeliveryOption: null,
-                },
-              ]
-            : [],
-          localizedFields: [
-            { key: "TAX_CREDENTIAL_IT", value: "" },
-            { key: "TAX_EMAIL_IT", value: "" },
-          ],
-        },
-        localization: { language: { isoCode: "IT" } },
-        shop: { localTime: { date: "2026-09-05" } },
-        validation: {
-          metafield: {
-            jsonValue: {
-              ...baseConfig,
-              rules,
-              entitlement: { kind: "one_time", validThrough: null },
-            },
+  const scenarios = [
+    { name: "compilazione iniziale", step: "CHECKOUT_INTERACTION", deliveries: ["IT"] },
+    {
+      name: "spedizione italiana selezionata",
+      step: "CHECKOUT_INTERACTION",
+      deliveries: [{ countryCode: "IT", selected: true }],
+    },
+    { name: "completamento", step: "CHECKOUT_COMPLETION", deliveries: ["IT"] },
+    { name: "nessuna consegna", step: "CHECKOUT_COMPLETION", deliveries: [] },
+    {
+      name: "consegne miste",
+      step: "CHECKOUT_INTERACTION",
+      deliveries: [{ countryCode: "IT", selected: true }, "FR"],
+    },
+    {
+      name: "consegna irrisolta",
+      step: "CHECKOUT_INTERACTION",
+      deliveries: [{ countryCode: "IT", selected: true }, null],
+    },
+    { name: "solo estero", step: "CHECKOUT_COMPLETION", deliveries: ["FR"] },
+    {
+      name: "campo assente a Interaction",
+      step: "CHECKOUT_INTERACTION",
+      deliveries: [{ countryCode: "IT", selected: true }],
+      fields: [],
+    },
+    {
+      name: "campo assente a Completion",
+      step: "CHECKOUT_COMPLETION",
+      deliveries: ["IT"],
+      fields: [],
+    },
+    {
+      name: "campo assente senza consegna",
+      step: "CHECKOUT_COMPLETION",
+      deliveries: [],
+      fields: [],
+    },
+    {
+      name: "valore invalido immediato",
+      step: "CHECKOUT_INTERACTION",
+      deliveries: ["IT"],
+      fields: [{ key: "TAX_CREDENTIAL_IT", value: "non valido" }],
+    },
+  ] as const;
+  const rules = { taxCode: "required_validated", pec: "unmanaged" } as const;
+
+  for (const scenario of scenarios) {
+    const fields =
+      "fields" in scenario ? [...scenario.fields] : [{ key: "TAX_CREDENTIAL_IT", value: "" }];
+    const actual = cartValidationsGenerateRun({
+      buyerJourney: { step: scenario.step },
+      cart: {
+        billingAddress: { company: null, countryCode: "IT" },
+        deliveryGroups: scenario.deliveries.map((delivery, index) => {
+          const countryCode =
+            typeof delivery === "object" && delivery ? delivery.countryCode : delivery;
+          const selected = typeof delivery === "object" && delivery?.selected === true;
+          return {
+            deliveryAddress: countryCode ? { countryCode } : null,
+            selectedDeliveryOption: selected ? { handle: `option-${index}` } : null,
+          };
+        }),
+        localizedFields: fields,
+      },
+      localization: { language: { isoCode: "IT" } },
+      shop: { localTime: { date: "2026-09-05" } },
+      validation: {
+        metafield: {
+          jsonValue: {
+            ...baseConfig,
+            rules,
+            entitlement: { kind: "one_time", validThrough: null },
           },
         },
-      } as never);
-      expect(
-        simulatorOutcome({
-          rules,
-          deliveryCountry,
-          billingCountry,
-          taxCode: "",
-          pec: "",
-          submitted: true,
-        }) === "blocked",
-      ).toBe((actual.operations[0].validationAdd?.errors.length ?? 0) > 0);
-    }
+      },
+    } as never);
+    expect(
+      simulatorOutcome({
+        rules,
+        billingCountry: "IT",
+        step: scenario.step,
+        deliveryGroups: scenario.deliveries.map((delivery) => ({
+          countryCode: typeof delivery === "object" && delivery ? delivery.countryCode : delivery,
+          selectedDeliveryOption: typeof delivery === "object" && delivery?.selected === true,
+        })),
+        taxCode: fields.find(({ key }) => key === "TAX_CREDENTIAL_IT")?.value ?? "",
+        pec: "",
+        taxCodePresent: fields.some(({ key }) => key === "TAX_CREDENTIAL_IT"),
+        pecPresent: false,
+      }) === "blocked",
+      scenario.name,
+    ).toBe((actual.operations[0].validationAdd?.errors.length ?? 0) > 0);
   }
 });

@@ -1003,6 +1003,51 @@ test("il salvataggio non sovrascrive la configurazione cambiata da un'altra sess
 
   expect(current).toEqual({ ok: true, enabled: false });
   expect(calls).toHaveLength(1);
+  expect(
+    await env.DB.prepare(
+      `SELECT COUNT(*) AS total FROM configuration_history
+          WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    )
+      .bind(shop)
+      .first("total"),
+  ).toBe(2);
+});
+
+test("un errore nello storico non annulla una scrittura Shopify verificata", async () => {
+  const shop = "history-write-failure.example.myshopify.com";
+  await seedShop(shop);
+  const marker = Symbol("configuration-history");
+  const historyFailureDb = {
+    prepare(query: string) {
+      const statement = env.DB.prepare(query);
+      if (!query.includes("INSERT INTO configuration_history")) return statement;
+      return {
+        bind() {
+          return { [marker]: true };
+        },
+      } as unknown as D1PreparedStatement;
+    },
+    async batch(statements: D1PreparedStatement[]) {
+      if (statements.some((statement) => marker in (statement as object))) {
+        throw new Error("storico non disponibile");
+      }
+      return env.DB.batch(statements);
+    },
+  } as unknown as D1Database;
+  const { admin } = stubAdmin({ existing: { enabled: false } });
+
+  expect(
+    await writeValidation(
+      admin,
+      historyFailureDb,
+      shop,
+      {
+        rules: { taxCode: "optional_validated", pec: "unmanaged" },
+        messages: DEFAULT_CONFIG.messages,
+      },
+      null,
+    ),
+  ).toEqual({ ok: true, enabled: false });
 });
 
 test("la dichiarazione D1 cambia soltanto dopo il successo Shopify", async () => {

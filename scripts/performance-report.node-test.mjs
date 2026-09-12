@@ -25,6 +25,8 @@ test("esegue una sola SELECT aggregata e non espone lo store", () => {
   const command = development.join(" ");
 
   assert.match(command, /WITH recent AS/);
+  assert.match(command, /datetime\(observed_at\) >= datetime\('now'/);
+  assert.match(TIMING_QUERY, /datetime\(observed_at\) >= datetime\('now'/);
   assert.match(command, /ROW_NUMBER\(\) OVER/);
   assert.match(command, /metric_rank = CAST\(\(3 \* sample_count \+ 3\) \/ 4 AS INTEGER\)/);
   assert.doesNotMatch(command, /\b(?:INSERT|UPDATE|DELETE|ALTER|DROP)\b/i);

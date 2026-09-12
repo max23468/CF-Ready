@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 
 import {
   readMigrations,
+  readMigrationPolicy,
   run,
   verifyMigrationSafety,
   verifyWorkerSecrets,
@@ -125,7 +126,7 @@ async function main() {
   verifyProductionConfig(shopifyConfig);
   verifyBuiltConfig(await readFile("build/server/wrangler.json", "utf8"));
 
-  verifyMigrationSafety(await readMigrations());
+  verifyMigrationSafety(await readMigrations(), await readMigrationPolicy());
 
   run("node", ["scripts/shopify-info-safe.mjs", "shopify.app.toml"]);
 

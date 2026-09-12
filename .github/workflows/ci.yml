@@ -79,7 +79,7 @@ jobs:
       - if: needs.lane.outputs.lane != 'promotion'
         run: npm ci
       - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium webkit
       - if: needs.lane.outputs.lane == 'docs'
         run: npm run check:docs
       - if: needs.lane.outputs.lane == 'standard'
@@ -109,7 +109,7 @@ jobs:
       - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
         run: npm ci
       - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium webkit
       - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}

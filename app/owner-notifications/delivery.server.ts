@@ -7,7 +7,7 @@ const MAX_DELIVERY_ATTEMPTS = 5;
 
 type NotificationRow = {
   id: number;
-  notification_kind: "lifecycle" | "billing" | "trial";
+  notification_kind: "lifecycle" | "billing" | "trial" | "operational";
   subject: string;
   body_text: string;
   claim_token: string;

@@ -8,6 +8,7 @@ import { databaseContext } from "../context.server";
 import { APP_VERSION } from "../env.server";
 import { recordEvent } from "../events.server";
 import {
+  formatDateTime,
   resolveLocale,
   supportDiagnosticText,
   supportMailto,
@@ -113,7 +114,7 @@ export const shouldRevalidate = skipRevalidationWhenLeaving;
 export default function Guide() {
   const { locale, shopDomain, version, diagnosticId, diagnostics } = useLoaderData<typeof loader>();
   const t = texts(locale);
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [copyState, setCopyState] = useState<"copied" | "failed" | null>(null);
   const [supportCategory, setSupportCategory] = useState<SupportCategory>("checkout");
   const diagnosticsFetcher = useFetcher<typeof action>();
@@ -135,11 +136,17 @@ export default function Guide() {
   // Un solo comando per aprire e chiudere tutto. Agisce sull'attributo nativo di `details`,
   // quindi non serve tenere in stato l'apertura di ogni voce.
   const toggleAll = () => {
-    const open = !expanded;
-    document.querySelectorAll<HTMLDetailsElement>("#faq details").forEach((entry) => {
+    const entries = document.querySelectorAll<HTMLDetailsElement>("#faq .guide-faq__entry");
+    const open = [...entries].some((entry) => !entry.open);
+    entries.forEach((entry) => {
       entry.open = open;
     });
     setExpanded(open);
+  };
+
+  const syncExpanded = () => {
+    const entries = [...document.querySelectorAll<HTMLDetailsElement>("#faq .guide-faq__entry")];
+    setExpanded(entries.length > 0 && entries.every((entry) => entry.open));
   };
 
   return (
@@ -155,16 +162,23 @@ export default function Guide() {
               {expanded ? t.guide.collapseAll : t.guide.expandAll}
             </s-button>
           </s-grid>
-          <div className="guide-faq__entries">
-            {t.guide.entries.map((entry) => (
-              <details className="guide-faq__entry" key={entry.q} open>
-                <summary>
-                  <strong>{entry.q}</strong>
-                </summary>
-                <s-box paddingBlockStart="small-100">
-                  <s-paragraph>{entry.a}</s-paragraph>
-                </s-box>
-              </details>
+          <div className="guide-faq__groups">
+            {t.guide.groups.map((group) => (
+              <div className="guide-faq__group" key={group.heading}>
+                <s-heading>{group.heading}</s-heading>
+                <div className="guide-faq__entries">
+                  {group.entries.map((entry) => (
+                    <details className="guide-faq__entry" key={entry.q} onToggle={syncExpanded}>
+                      <summary>
+                        <strong>{entry.q}</strong>
+                      </summary>
+                      <s-box paddingBlockStart="small-100">
+                        <s-paragraph>{entry.a}</s-paragraph>
+                      </s-box>
+                    </details>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </s-stack>
@@ -261,7 +275,7 @@ function ValidationDiagnosis({
         <s-text color="subdued">
           {checkCopy.lastSync}:{" "}
           {diagnostics.lastSyncAt
-            ? new Date(diagnostics.lastSyncAt).toLocaleString(locale)
+            ? formatDateTime(diagnostics.lastSyncAt, locale)
             : checkCopy.unknown}
         </s-text>
         <s-heading>{checkCopy.manualHeading}</s-heading>
@@ -306,7 +320,7 @@ function DiagnosisResult({
   return (
     <>
       <s-text color="subdued">
-        {copy.checkedAt}: {new Date(check.checkedAt).toLocaleString(locale)}
+        {copy.checkedAt}: {formatDateTime(check.checkedAt, locale)}
       </s-text>
       <s-paragraph>
         {check.enabled ? copy.enabled : copy.disabled} <s-link href="/app">{t.nav.home}</s-link>
