@@ -584,10 +584,10 @@ export const it = {
                 : []),
             ]
           : [
-              "Nell’editor premi “Traduci”. Se Shopify Translate & Adapt mostra la guida iniziale, completala o chiudila.",
+              "Nell’editor premi “Traduci”. Se Shopify Translate & Adapt mostra la guida iniziale, premi “Successivo” fino all’ultima schermata, poi “Chiudi”.",
               market
                 ? `Apri il selettore “Traduzione in…” e scegli “Adatta un mercato” → ${market} → ${language}.`
-                : `Apri il selettore “Traduzione in…” e scegli ${language} sotto “Traduci per tutti i mercati”.`,
+                : `Controlla che in alto sia selezionato “Traduzione in ${language}”. Se non lo è, apri il selettore “Traduzione in…” e scegli ${language} sotto “Traduci per tutti i mercati”.`,
               "Apri Checkout and system. In “Filtra campi” cerca Tax credential it e Tax email it, inserisci per ciascuno il relativo “Campo dopo il salvataggio”, poi premi “Salva”.",
             ]),
         "Torna in CF Ready e premi “Rileggi i campi da Shopify”. Quando i due valori coincidono, il pulsante di conferma si attiva.",

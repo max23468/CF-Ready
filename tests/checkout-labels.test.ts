@@ -168,12 +168,28 @@ test("un readback Admin resta guidato finché la stessa tupla non ha una prova c
   ]);
   expect(snapshot.issues).toEqual([]);
   expect(snapshot.slots.filter(({ capability }) => capability === "automatic")).toEqual([]);
+  expect(snapshot.slots).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        name: "taxCode",
+        locale: "it",
+        kind: "market_translation",
+        currentValue: "Codice fiscale Italia",
+      }),
+      expect.objectContaining({
+        name: "pec",
+        locale: "en-GB",
+        kind: "market_translation",
+        currentValue: "PEC Italy",
+      }),
+    ]),
+  );
   expect(checkoutLabelsMode(snapshot.slots)).toBe("guided");
   expect(snapshot.address2).toEqual({
     classification: "fiscal_conflict",
     hasMarketOverride: true,
   });
-  expect(graphql).toHaveBeenCalledTimes(4);
+  expect(graphql).toHaveBeenCalledTimes(6);
   expect(graphql.mock.calls[0][0]).not.toContain("186856898864");
 });
 
@@ -230,6 +246,7 @@ test("il discovery ignora contenuti estranei e gestisce contesti Shopify incompl
         },
       },
     },
+    { data: { translatableResource: null } },
     { data: { translatableResource: null } },
   ];
   const graphql = vi.fn(async () => Response.json(responses.shift()));
@@ -759,7 +776,22 @@ function discoveryAdmin(englishLocale = "en-GB", directlyAssigned = true) {
       data: {
         translatableResource: {
           resourceId,
+          translations: [],
+        },
+      },
+    },
+    {
+      data: {
+        translatableResource: {
+          resourceId,
           translations: [
+            {
+              key: CHECKOUT_LABEL_KEYS.taxCode,
+              value: "Codice fiscale Italia",
+              locale: "it",
+              outdated: false,
+              market: { id: "gid://shopify/Market/1", name: "Italia" },
+            },
             {
               key: CHECKOUT_LABEL_KEYS.address2,
               value: "Codice fiscale",
@@ -803,6 +835,22 @@ function discoveryAdmin(englishLocale = "en-GB", directlyAssigned = true) {
               locale: englishLocale,
               outdated: false,
               market: null,
+            },
+          ],
+        },
+      },
+    },
+    {
+      data: {
+        translatableResource: {
+          resourceId,
+          translations: [
+            {
+              key: CHECKOUT_LABEL_KEYS.pec,
+              value: "PEC Italy",
+              locale: englishLocale,
+              outdated: false,
+              market: { id: "gid://shopify/Market/1", name: "Italia" },
             },
           ],
         },

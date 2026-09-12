@@ -1937,6 +1937,9 @@ describe("Regole", () => {
     expect(texts("en").rules.labels.manualSteps("English", null, false, []).join(" ")).toContain(
       "Translate for all markets",
     );
+    expect(texts("it").rules.labels.manualSteps("Inglese", null, false, []).join(" ")).toContain(
+      "Successivo",
+    );
     const editorLinks = [...view.container.querySelectorAll("s-link")].filter(
       (link) => link.textContent === texts("it").rules.labels.openCheckoutContentEditor,
     );

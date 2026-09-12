@@ -121,10 +121,10 @@ const DISCOVER_CHECKOUT_LABEL_RESOURCES = `#graphql
 `;
 
 const READ_CHECKOUT_LABEL_TRANSLATIONS = `#graphql
-  query ReadCheckoutLabelTranslations($resourceId: ID!, $locale: String!) {
+  query ReadCheckoutLabelTranslations($resourceId: ID!, $locale: String!, $marketId: ID) {
     translatableResource(resourceId: $resourceId) {
       resourceId
-      translations(locale: $locale) {
+      translations(locale: $locale, marketId: $marketId) {
         key
         value
         locale
@@ -194,21 +194,27 @@ export async function readCheckoutLabels(admin: Admin): Promise<CheckoutLabelsSn
 
   const translationEntries = await Promise.all(
     [...selected].flatMap((resource) =>
-      locales.map((locale) =>
-        graphqlData<{
-          translatableResource: {
-            resourceId: string;
-            translations: TranslationNode[];
-          } | null;
-        }>(admin, READ_CHECKOUT_LABEL_TRANSLATIONS, {
-          resourceId: resource.resourceId,
-          locale: locale.locale,
-        }).then(
-          (body) =>
-            [
-              translationMapKey(resource.resourceId, locale.locale),
-              body.translatableResource?.translations ?? [],
-            ] as const,
+      locales.flatMap((locale) =>
+        [null, ...markets.filter((market) => market.locales.includes(locale.locale))].map(
+          (market) => {
+            const marketId = market?.id ?? null;
+            return graphqlData<{
+              translatableResource: {
+                resourceId: string;
+                translations: TranslationNode[];
+              } | null;
+            }>(admin, READ_CHECKOUT_LABEL_TRANSLATIONS, {
+              resourceId: resource.resourceId,
+              locale: locale.locale,
+              marketId,
+            }).then(
+              (body) =>
+                [
+                  translationMapKey(resource.resourceId, locale.locale, marketId),
+                  body.translatableResource?.translations ?? [],
+                ] as const,
+            );
+          },
         ),
       ),
     ),
@@ -221,8 +227,8 @@ export async function readCheckoutLabels(admin: Admin): Promise<CheckoutLabelsSn
       const name = checkoutLabelName(content.key);
       if (!name || candidates.get(content.key)?.length !== 1) continue;
       for (const locale of locales) {
-        const matching = (
-          translations.get(translationMapKey(resource.resourceId, locale.locale)) ?? []
+        const globalMatching = (
+          translations.get(translationMapKey(resource.resourceId, locale.locale, null)) ?? []
         ).filter((translation) => translation.key === content.key);
         if (locale.locale === content.locale) {
           slots.push({
@@ -243,7 +249,7 @@ export async function readCheckoutLabels(admin: Admin): Promise<CheckoutLabelsSn
           });
         }
 
-        const global = matching.find((translation) => translation.market === null);
+        const global = globalMatching.find((translation) => translation.market === null);
         if (locale.locale !== content.locale || global) {
           slots.push({
             resourceId: resource.resourceId,
@@ -269,12 +275,10 @@ export async function readCheckoutLabels(admin: Admin): Promise<CheckoutLabelsSn
             marketContexts.set(market.id, market.name);
           }
         }
-        for (const translation of matching) {
-          if (translation.market)
-            marketContexts.set(translation.market.id, translation.market.name);
-        }
         for (const [marketId, marketName] of marketContexts) {
-          const translation = matching.find((item) => item.market?.id === marketId);
+          const translation = (
+            translations.get(translationMapKey(resource.resourceId, locale.locale, marketId)) ?? []
+          ).find((item) => item.key === content.key);
           slots.push({
             resourceId: resource.resourceId,
             key: content.key as CheckoutLabelSlot["key"],
@@ -490,8 +494,8 @@ function assertNoTranslationErrors(errors: Array<{ code?: string; message?: stri
   throw new Error(stale ? "checkout_labels_stale_digest" : "checkout_labels_partial_sync");
 }
 
-function translationMapKey(resourceId: string, locale: string) {
-  return `${resourceId}\u0000${locale}`;
+function translationMapKey(resourceId: string, locale: string, marketId: string | null) {
+  return `${resourceId}\u0000${locale}\u0000${marketId ?? ""}`;
 }
 
 function assertTranslationInputs(

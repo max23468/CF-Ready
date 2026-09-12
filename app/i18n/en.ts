@@ -579,10 +579,10 @@ export const en: typeof it = {
                 : []),
             ]
           : [
-              "In the editor, select “Translate”. If Shopify Translate & Adapt displays its introductory guide, complete or close it.",
+              "In the editor, select “Translate”. If Shopify Translate & Adapt displays its introductory guide, select “Next” through the final screen, then select “Close”.",
               market
                 ? `Open the “Translating into…” selector and choose “Adapt a market” → ${market} → ${language}.`
-                : `Open the “Translating into…” selector and choose ${language} under “Translate for all markets”.`,
+                : `Check that “Translating into ${language}” is selected at the top. If it isn’t, open the “Translating into…” selector and choose ${language} under “Translate for all markets”.`,
               "Open Checkout and system. Under “Filter fields”, search for Tax credential it and Tax email it, enter the corresponding “Field after saving” for each one, then select “Save”.",
             ]),
         "Return to CF Ready and select “Read fields again from Shopify”. When the two values match, the confirmation button becomes available.",
