@@ -457,6 +457,12 @@ test("le query ritentano un throttle e rifiutano risposte non valide", async () 
             shopLocales: [],
             markets: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
           },
+          extensions: {
+            cost: {
+              requestedQueryCost: 10,
+              throttleStatus: { currentlyAvailable: 5, restoreRate: 100 },
+            },
+          },
         });
   });
   const pending = readCheckoutLabels({ graphql: throttled });

@@ -4,6 +4,7 @@ import { DEFAULT_CONFIG } from "../app/config";
 import { changedConfigurationFields } from "../app/configuration-history";
 import {
   readConfigurationHistory,
+  readConfigurationHistoryEntry,
   recordConfigurationHistory,
 } from "../app/configuration-history.server";
 import { insertShop } from "./support/lifecycle";
@@ -63,4 +64,25 @@ test("la lettura non espone configurazioni oltre i 90 giorni prima del cron di r
     .run();
 
   expect(await readConfigurationHistory(env.DB, shop)).toEqual([]);
+});
+
+test("la lettura ignora snapshot corrotti e trova una voce valida per id", async () => {
+  const shop = await insertShop("history-entry.example.myshopify.com");
+  await recordConfigurationHistory(env.DB, shop, [DEFAULT_CONFIG]);
+  const [entry] = await readConfigurationHistory(env.DB, shop);
+  expect(await readConfigurationHistoryEntry(env.DB, shop, entry.id)).toEqual(entry);
+  expect(await readConfigurationHistoryEntry(env.DB, shop, entry.id + 1)).toBeNull();
+
+  const corruptedDb = {
+    prepare: () => ({
+      bind: () => ({
+        all: async () => ({
+          results: [
+            { id: 1, rules_json: "{", messages_json: "{}", created_at: "2026-09-01" },
+          ],
+        }),
+      }),
+    }),
+  } as unknown as D1Database;
+  expect(await readConfigurationHistory(corruptedDb, shop)).toEqual([]);
 });

@@ -39,6 +39,7 @@ describe("componenti merchant nel browser", () => {
         expect(typeof formatter).toBe("function");
         expect((formatter as (...values: unknown[]) => string)(...args).trim()).not.toBe("");
       }
+      expect(messages.rules.history.changed(["Codice fiscale", "PEC"])).toContain("PEC");
     }
   });
 
@@ -121,6 +122,12 @@ describe("componenti merchant nel browser", () => {
 
     (selects[1] as HTMLElement & { value: string }).value = "IT";
     await dispatch(selects[1], new Event("change", { bubbles: true }));
+    (selects[3] as HTMLElement & { value: string }).value = "CHECKOUT_COMPLETION";
+    await dispatch(selects[3], new Event("change", { bubbles: true }));
+    for (const checkbox of view.container.querySelectorAll("s-checkbox")) {
+      (checkbox as HTMLElement & { checked: boolean }).checked = true;
+      await dispatch(checkbox, new Event("change", { bubbles: true }));
+    }
     (selects[4] as HTMLElement & { value: string }).value = "invalidTaxCode";
     await dispatch(selects[4], new Event("change", { bubbles: true }));
     expect(view.container.querySelector('[role="status"]')?.textContent).toContain("blocca");

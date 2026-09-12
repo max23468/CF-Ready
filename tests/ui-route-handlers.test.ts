@@ -188,6 +188,43 @@ test("Regole ripristina uno snapshot tramite hash e scrittura Validation corrent
   );
 });
 
+test("Regole valida l'identità dello snapshot da ripristinare", async () => {
+  expect(
+    await rulesRoute.action(
+      args(
+        post("/app/rules", {
+          intent: "restore_configuration",
+          historyId: "0",
+          configHash: "hash-corrente",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: false, errorCode: "generic" });
+  expect(mocks.readConfigurationHistoryEntry).not.toHaveBeenCalled();
+});
+
+test("Regole segnala che il ripristino non può aggiornare etichette senza scope", async () => {
+  mocks.readCheckoutLabelState.mockResolvedValue({ mode: "automatic" });
+  mocks.readConfigurationHistoryEntry.mockResolvedValue({
+    id: 9,
+    createdAt: "2026-09-01T08:00:00.000Z",
+    rules: DEFAULT_CONFIG.rules,
+    messages: DEFAULT_CONFIG.messages,
+  });
+
+  expect(
+    await rulesRoute.action(
+      args(
+        post("/app/rules", {
+          intent: "restore_configuration",
+          historyId: "9",
+          configHash: "hash-corrente",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: true, labelsErrorCode: "checkout_labels_scope_required" });
+});
+
 test("Regole ripristina messaggi e regole coordinando le etichette gia gestite", async () => {
   mocks.scopeQuery.mockResolvedValue({
     granted: ["write_translations", "read_locales", "read_markets"],
