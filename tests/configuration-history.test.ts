@@ -77,9 +77,7 @@ test("la lettura ignora snapshot corrotti e trova una voce valida per id", async
     prepare: () => ({
       bind: () => ({
         all: async () => ({
-          results: [
-            { id: 1, rules_json: "{", messages_json: "{}", created_at: "2026-09-01" },
-          ],
+          results: [{ id: 1, rules_json: "{", messages_json: "{}", created_at: "2026-09-01" }],
         }),
       }),
     }),
