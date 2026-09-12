@@ -1,3 +1,5 @@
+import { setTimeout as wait } from "node:timers/promises";
+
 const RECONCILIATION_MODES = new Set(["automatic-deploy", "deploy-retry", "no-deploy-promotion"]);
 
 export function reconciliationMode({ eventName, manualMode }) {
@@ -26,6 +28,22 @@ export function shouldDeferNoDeployReconciliation({ mode, directReconciliation }
 
 export function isAlreadyReconciled({ main, develop }) {
   return main === develop;
+}
+
+export async function verifyRefReadback({
+  path,
+  token,
+  targetSha,
+  requester = request,
+  attempts = 3,
+  delayMs = 1_000,
+}) {
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const readback = await requester(path, token, { headers: { "cache-control": "no-cache" } });
+    if (readback.object.sha === targetSha) return;
+    if (attempt < attempts) await wait(delayMs);
+  }
+  throw new Error("Il readback non conferma il riallineamento di develop.");
 }
 
 export function verifyReconciliation({
@@ -337,10 +355,11 @@ async function main() {
     method: "PATCH",
     body: JSON.stringify({ sha: targetSha, force: false }),
   });
-  const readback = await request(`/repos/${repository}/git/ref/heads/develop`, reconciliationToken);
-  if (readback.object.sha !== targetSha) {
-    throw new Error("Il readback non conferma il riallineamento di develop.");
-  }
+  await verifyRefReadback({
+    path: `/repos/${repository}/git/ref/heads/develop`,
+    token: reconciliationToken,
+    targetSha,
+  });
   console.log(
     directReconciliation
       ? `develop riallineato in fast-forward a ${targetSha}.`

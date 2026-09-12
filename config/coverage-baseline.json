@@ -4,24 +4,24 @@
   "sourceHash": "beeb070ea49a4e4b4937d35c4aa93c65c7077a3fd746171ab7456a6808384084",
   "global": {
     "statements": {
-      "total": 8244,
-      "covered": 8055,
-      "pct": 97.7
+      "total": 8263,
+      "covered": 8076,
+      "pct": 97.73
     },
     "branches": {
-      "total": 5432,
-      "covered": 5249,
-      "pct": 96.63
+      "total": 5438,
+      "covered": 5256,
+      "pct": 96.65
     },
     "functions": {
-      "total": 1276,
-      "covered": 1265,
+      "total": 1277,
+      "covered": 1266,
       "pct": 99.13
     },
     "lines": {
-      "total": 7780,
-      "covered": 7612,
-      "pct": 97.84
+      "total": 7799,
+      "covered": 7633,
+      "pct": 97.87
     }
   },
   "groups": {
@@ -93,24 +93,24 @@
     },
     "operations": {
       "statements": {
-        "total": 3600,
-        "covered": 3473,
-        "pct": 96.47
+        "total": 3619,
+        "covered": 3494,
+        "pct": 96.54
       },
       "branches": {
-        "total": 1197,
-        "covered": 1138,
-        "pct": 95.07
+        "total": 1203,
+        "covered": 1145,
+        "pct": 95.17
       },
       "functions": {
-        "total": 169,
-        "covered": 164,
-        "pct": 97.04
+        "total": 170,
+        "covered": 165,
+        "pct": 97.05
       },
       "lines": {
-        "total": 3600,
-        "covered": 3473,
-        "pct": 96.47
+        "total": 3619,
+        "covered": 3494,
+        "pct": 96.54
       }
     },
     "public-site": {
