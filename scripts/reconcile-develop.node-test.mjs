@@ -7,6 +7,7 @@ import {
   reconciliationMode,
   requiresDeploymentEvidence,
   shouldDeferNoDeployReconciliation,
+  verifyRefReadback,
   verifyManualAncestryRecovery,
   verifyPagesDeployment,
   verifyReconciliationApp,
@@ -103,6 +104,30 @@ test("una promozione senza deploy già in ascendenza termina senza scrivere", ()
 test("un secondo deploy dello stesso main non tenta un recupero di ascendenza", () => {
   assert.equal(isAlreadyReconciled({ main, develop: main }), true);
   assert.equal(isAlreadyReconciled({ main, develop }), false);
+});
+
+test("ripete il readback quando GitHub restituisce temporaneamente il vecchio ref", async () => {
+  let reads = 0;
+  await verifyRefReadback({
+    path: "/ref",
+    token: "token",
+    requester: async () => ({ object: { sha: ++reads === 1 ? develop : main } }),
+    targetSha: main,
+    delayMs: 0,
+  });
+  assert.equal(reads, 2);
+
+  await assert.rejects(
+    verifyRefReadback({
+      path: "/ref",
+      token: "token",
+      requester: async () => ({ object: { sha: develop } }),
+      targetSha: main,
+      attempts: 2,
+      delayMs: 0,
+    }),
+    /readback non conferma/,
+  );
 });
 
 test("consente soltanto il merge di promozione con tree invariato", () => {
