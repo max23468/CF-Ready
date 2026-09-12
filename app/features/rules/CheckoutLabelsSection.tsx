@@ -70,12 +70,88 @@ export function CheckoutLabelsSection({
 }: CheckoutLabelsSectionProps) {
   const t = texts(locale);
   const copy = t.rules.labels;
+  const [selectedFamily, setSelectedFamily] = useState<CheckoutLabelFamily | null>(null);
+  const activeFamily = selectedFamily ?? locale;
+  const controls = useCheckoutLabelsControls(snapshot, state, guidedConfirmations);
+  const controlsBusy = [
+    busy,
+    controls.actionBusy,
+    controls.scopeRequestBusy,
+    controls.revalidationBusy,
+  ].some(Boolean);
+
+  return (
+    <s-section heading={copy.heading}>
+      <s-stack direction="block" gap="base">
+        <s-select
+          label={copy.language}
+          value={activeFamily}
+          onChange={(event) => setSelectedFamily(event.currentTarget.value as CheckoutLabelFamily)}
+        >
+          <s-option value="it" selected={activeFamily === "it"}>
+            {copy.italian}
+          </s-option>
+          <s-option value="en" selected={activeFamily === "en"}>
+            {copy.english}
+          </s-option>
+        </s-select>
+        <CheckoutLabelsPermission
+          locale={locale}
+          state={state}
+          scopeGranted={scopeGranted}
+          busy={controlsBusy}
+          requestPermissions={controls.requestPermissions}
+          onKeep={() => controls.submitIntent("accept_checkout_labels")}
+        />
+        <CheckoutLabelsFeedback
+          locale={locale}
+          actionError={controls.actionError}
+          scopeRequestError={controls.scopeRequestError}
+          loadErrorCode={loadErrorCode}
+          refreshed={Boolean(controls.refreshed)}
+        />
+
+        <Address2CheckoutLabels
+          locale={locale}
+          rules={rules}
+          scopeGranted={scopeGranted}
+          snapshot={controls.visibleSnapshot}
+          state={controls.visibleState}
+          activeFamily={activeFamily}
+          busy={controlsBusy}
+          checkoutSettingsUrl={checkoutSettingsUrl}
+          submitIntent={controls.submitIntent}
+        />
+        <NativeCheckoutLabelsWhenGranted
+          locale={locale}
+          rules={rules}
+          scopeGranted={scopeGranted}
+          snapshot={controls.visibleSnapshot}
+          state={controls.visibleState}
+          activeFamily={activeFamily}
+          storefrontUrl={storefrontUrl}
+          checkoutSettingsUrl={checkoutSettingsUrl}
+          enabled={enabled}
+          busy={controlsBusy}
+          onEnabledChange={onEnabledChange}
+          guidedConfirmations={controls.visibleGuidedConfirmations}
+          submitIntent={controls.submitIntent}
+          refreshing={controls.refreshing}
+        />
+      </s-stack>
+    </s-section>
+  );
+}
+
+function useCheckoutLabelsControls(
+  snapshot: CheckoutLabelsSnapshot | null,
+  state: CheckoutLabelState,
+  guidedConfirmations: Array<{ slotId: string; confirmedAt: string }>,
+) {
   const fetcher = useFetcher<LabelsAction>();
   const revalidator = useRevalidator();
   const [scopeRequestBusy, setScopeRequestBusy] = useState(false);
   const [scopeRequestError, setScopeRequestError] = useState<string | null>(null);
-  const [selectedFamily, setSelectedFamily] = useState<CheckoutLabelFamily | null>(null);
-  const activeFamily = selectedFamily ?? locale;
   const actionBusy = fetcher.state !== "idle";
   const revalidationBusy = revalidator.state !== "idle";
   const actionError = fetcher.data?.ok === false ? fetcher.data.errorCode : null;
@@ -83,8 +159,7 @@ export function CheckoutLabelsSection({
   const visibleSnapshot = refreshed?.snapshot ?? snapshot;
   const visibleState = refreshed?.state ?? state;
   const visibleGuidedConfirmations = refreshed?.guidedConfirmations ?? guidedConfirmations;
-  const refreshing =
-    fetcher.state !== "idle" && fetcher.formData?.get("intent") === "refresh_checkout_labels";
+  const refreshing = actionBusy && fetcher.formData?.get("intent") === "refresh_checkout_labels";
   const submitIntent = (
     intent: string,
     slotIds: string[] = [],
@@ -110,72 +185,74 @@ export function CheckoutLabelsSection({
     }
   };
 
-  return (
-    <s-section heading={copy.heading}>
-      <s-stack direction="block" gap="base">
-        <s-select
-          label={copy.language}
-          value={activeFamily}
-          onChange={(event) => setSelectedFamily(event.currentTarget.value as CheckoutLabelFamily)}
-        >
-          <s-option value="it" selected={activeFamily === "it"}>
-            {copy.italian}
-          </s-option>
-          <s-option value="en" selected={activeFamily === "en"}>
-            {copy.english}
-          </s-option>
-        </s-select>
-        {!scopeGranted ? (
-          <NativeLabelsPermissionPrompt
-            locale={locale}
-            state={state}
-            busy={busy || actionBusy || scopeRequestBusy || revalidationBusy}
-            requestPermissions={requestPermissions}
-            onKeep={() => submitIntent("accept_checkout_labels")}
-          />
-        ) : null}
-        {actionError || scopeRequestError ? (
-          <s-banner tone="critical">
-            {localizedError(t.errors, actionError ?? scopeRequestError)}
-          </s-banner>
-        ) : null}
-        {loadErrorCode && !refreshed ? (
-          <s-banner tone="warning">{localizedError(t.errors, loadErrorCode)}</s-banner>
-        ) : null}
-        {refreshed ? <s-banner tone="success">{copy.refreshComplete}</s-banner> : null}
+  return {
+    actionBusy,
+    actionError,
+    refreshed,
+    refreshing,
+    revalidationBusy,
+    scopeRequestBusy,
+    scopeRequestError,
+    visibleGuidedConfirmations,
+    visibleSnapshot,
+    visibleState,
+    requestPermissions,
+    submitIntent,
+  };
+}
 
-        <Address2CheckoutLabels
-          locale={locale}
-          rules={rules}
-          scopeGranted={scopeGranted}
-          snapshot={visibleSnapshot}
-          state={visibleState}
-          activeFamily={activeFamily}
-          busy={busy || actionBusy || revalidationBusy}
-          checkoutSettingsUrl={checkoutSettingsUrl}
-          submitIntent={submitIntent}
-        />
-        {scopeGranted ? (
-          <NativeCheckoutLabels
-            locale={locale}
-            rules={rules}
-            scopeGranted={scopeGranted}
-            snapshot={visibleSnapshot}
-            state={visibleState}
-            activeFamily={activeFamily}
-            storefrontUrl={storefrontUrl}
-            checkoutSettingsUrl={checkoutSettingsUrl}
-            enabled={enabled}
-            busy={busy || actionBusy || scopeRequestBusy || revalidationBusy}
-            onEnabledChange={onEnabledChange}
-            guidedConfirmations={visibleGuidedConfirmations}
-            submitIntent={submitIntent}
-            refreshing={refreshing}
-          />
-        ) : null}
-      </s-stack>
-    </s-section>
+function CheckoutLabelsPermission({
+  locale,
+  state,
+  scopeGranted,
+  busy,
+  requestPermissions,
+  onKeep,
+}: Pick<CheckoutLabelsSectionProps, "locale" | "state" | "scopeGranted" | "busy"> & {
+  requestPermissions: () => Promise<void>;
+  onKeep: () => void;
+}) {
+  if (scopeGranted) return null;
+  return (
+    <NativeLabelsPermissionPrompt
+      locale={locale}
+      state={state}
+      busy={busy}
+      requestPermissions={requestPermissions}
+      onKeep={onKeep}
+    />
   );
+}
+
+function CheckoutLabelsFeedback({
+  locale,
+  actionError,
+  scopeRequestError,
+  loadErrorCode,
+  refreshed,
+}: {
+  locale: Locale;
+  actionError: string | null;
+  scopeRequestError: string | null;
+  loadErrorCode: string | null;
+  refreshed: boolean;
+}) {
+  const t = texts(locale);
+  const error = actionError ?? scopeRequestError;
+  return (
+    <>
+      {error ? <s-banner tone="critical">{localizedError(t.errors, error)}</s-banner> : null}
+      {loadErrorCode && !refreshed ? (
+        <s-banner tone="warning">{localizedError(t.errors, loadErrorCode)}</s-banner>
+      ) : null}
+      {refreshed ? <s-banner tone="success">{t.rules.labels.refreshComplete}</s-banner> : null}
+    </>
+  );
+}
+
+function NativeCheckoutLabelsWhenGranted(props: Parameters<typeof NativeCheckoutLabels>[0]) {
+  if (!props.scopeGranted) return null;
+  return <NativeCheckoutLabels {...props} />;
 }
 
 function NativeCheckoutLabels({
