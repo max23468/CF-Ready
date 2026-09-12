@@ -36,13 +36,15 @@ import {
   restoreAddress2Translations,
   saveRulesAndCheckoutLabels,
 } from "../checkout-labels/service.server";
-import { checkoutLabelValuesMatch, proposedLabelForSlot } from "../checkout-labels/domain";
+import {
+  ADDRESS2_FORM_MODES,
+  checkoutLabelValuesMatch,
+  proposedLabelForSlot,
+} from "../checkout-labels/domain";
 import { observedConfigHash, reconcile, writeValidation } from "../validation.server";
 
 const SAVE_BAR = "checkout-rules-save-bar";
 const LABEL_CONFIRM_MODAL = "confirm-checkout-label-management";
-const ADDRESS2_FORM_MODES = ["required", "optional"] as const;
-
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
   const authentication = await timing.measure("auth", () => authenticateAdmin(request, context));
@@ -425,22 +427,36 @@ export default function CheckoutRules() {
               <div className="rules-layout__fields">
                 <s-section>
                   <s-stack direction="block" gap="base">
-                    <s-choice-list label={t.rules.taxCodeLabel} name="taxCode">
-                      {TAX_CODE_RULE_MODES.map((mode) => (
-                        <s-choice key={mode} value={mode} selected={mode === draft.rules.taxCode}>
-                          {t.rules.taxCode[mode]}
-                          <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
-                        </s-choice>
-                      ))}
-                    </s-choice-list>
-                    <s-choice-list label={t.rules.pecLabel} name="pec">
-                      {PEC_RULE_MODES.map((mode) => (
-                        <s-choice key={mode} value={mode} selected={mode === draft.rules.pec}>
-                          {t.rules.pec[mode]}
-                          <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
-                        </s-choice>
-                      ))}
-                    </s-choice-list>
+                    <s-stack direction="block" gap="small-100">
+                      <s-text type="strong">{t.rules.taxCodeLabel}</s-text>
+                      <s-choice-list
+                        label={t.rules.taxCodeLabel}
+                        labelAccessibilityVisibility="exclusive"
+                        name="taxCode"
+                      >
+                        {TAX_CODE_RULE_MODES.map((mode) => (
+                          <s-choice key={mode} value={mode} selected={mode === draft.rules.taxCode}>
+                            {t.rules.taxCode[mode]}
+                            <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
+                          </s-choice>
+                        ))}
+                      </s-choice-list>
+                    </s-stack>
+                    <s-stack direction="block" gap="small-100">
+                      <s-text type="strong">{t.rules.pecLabel}</s-text>
+                      <s-choice-list
+                        label={t.rules.pecLabel}
+                        labelAccessibilityVisibility="exclusive"
+                        name="pec"
+                      >
+                        {PEC_RULE_MODES.map((mode) => (
+                          <s-choice key={mode} value={mode} selected={mode === draft.rules.pec}>
+                            {t.rules.pec[mode]}
+                            <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
+                          </s-choice>
+                        ))}
+                      </s-choice-list>
+                    </s-stack>
                   </s-stack>
                 </s-section>
               </div>

@@ -108,6 +108,11 @@
       "name": "0020_address2_form_mode.sql",
       "sha256": "c0bc4532c7f5489c416b327edd5f4b8216f82e8ba9addeafdb96b8f774535438",
       "protects": ["merchant second-address-line mode"]
+    },
+    {
+      "name": "0021_address2_hidden_mode.sql",
+      "sha256": "56e079f989df0276e6267aec246ae8f737229c58fbca5119b4c74f4b6c3c9f01",
+      "protects": ["hidden second-address-line mode", "existing second-address-line choices"]
     }
   ]
 }

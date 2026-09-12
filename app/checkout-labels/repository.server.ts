@@ -25,7 +25,10 @@ const DEFAULT_STATE: CheckoutLabelState = {
   address2FormMode: null,
 };
 
-export async function readCheckoutLabelState(db: D1Database, shopDomain: string) {
+export async function readCheckoutLabelState(
+  db: D1Database,
+  shopDomain: string,
+): Promise<CheckoutLabelState> {
   const row = await db
     .prepare(
       `SELECT checkout_labels_mode, checkout_labels_management_epoch,
@@ -34,7 +37,8 @@ export async function readCheckoutLabelState(db: D1Database, shopDomain: string)
               checkout_labels_accepted_revision, checkout_labels_reviewed_at,
               address2_classification,
               address2_has_market_override, address2_external_change_at,
-              address2_decision, address2_reviewed_at, address2_form_mode
+              address2_decision, address2_reviewed_at, address2_form_mode,
+              address2_form_hidden
        FROM app_state
        WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
     )
@@ -53,7 +57,8 @@ export async function readCheckoutLabelState(db: D1Database, shopDomain: string)
       address2_external_change_at: string | null;
       address2_decision: Address2Decision;
       address2_reviewed_at: string | null;
-      address2_form_mode: CheckoutLabelState["address2FormMode"];
+      address2_form_mode: Exclude<CheckoutLabelState["address2FormMode"], "hidden">;
+      address2_form_hidden: number;
     }>();
 
   return row
@@ -71,7 +76,7 @@ export async function readCheckoutLabelState(db: D1Database, shopDomain: string)
         address2ExternalChangeAt: row.address2_external_change_at,
         address2Decision: row.address2_decision,
         address2ReviewedAt: row.address2_reviewed_at,
-        address2FormMode: row.address2_form_mode,
+        address2FormMode: row.address2_form_hidden ? "hidden" : row.address2_form_mode,
       }
     : DEFAULT_STATE;
 }
@@ -411,10 +416,12 @@ export async function saveAddress2FormMode(
   await db
     .prepare(
       `UPDATE app_state
-       SET address2_form_mode = ?, updated_at = ?
+       SET address2_form_mode = CASE WHEN ? = 'hidden' THEN address2_form_mode ELSE ? END,
+           address2_form_hidden = CASE WHEN ? = 'hidden' THEN 1 ELSE 0 END,
+           updated_at = ?
        WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
     )
-    .bind(mode, now, shopDomain)
+    .bind(mode, mode, mode, now, shopDomain)
     .run();
 }
 

@@ -15,6 +15,7 @@ import {
   readCheckoutLabelState,
   saveAddress2FormMode,
 } from "../../checkout-labels/repository.server";
+import { ADDRESS2_FORM_MODES } from "../../checkout-labels/domain";
 import {
   CHECKOUT_LABEL_OPTIONAL_SCOPES,
   loadCheckoutLabels,
@@ -82,8 +83,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 };
 
 export type OnboardingData = Awaited<ReturnType<typeof loader>>["data"];
-
-const ADDRESS2_FORM_MODES = ["required", "optional"] as const;
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session, scopes } = await authenticate.admin(request);
