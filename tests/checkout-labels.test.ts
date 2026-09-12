@@ -193,6 +193,20 @@ test("un readback Admin resta guidato finché la stessa tupla non ha una prova c
   expect(graphql.mock.calls[0][0]).not.toContain("186856898864");
 });
 
+test("mantiene lo slot globale quando una lingua non ha ancora traduzioni", async () => {
+  const snapshot = await readCheckoutLabels({ graphql: discoveryAdmin("en-GB", true, false) });
+
+  expect(snapshot.slots).toContainEqual(
+    expect.objectContaining({
+      name: "taxCode",
+      locale: "en-GB",
+      kind: "global_translation",
+      currentValue: null,
+      outdated: false,
+    }),
+  );
+});
+
 test("distingue una presenza web ereditata dal mercato", async () => {
   const snapshot = await readCheckoutLabels({ graphql: discoveryAdmin("en-GB", false) });
 
@@ -718,7 +732,11 @@ function slot(overrides: Partial<CheckoutLabelSlot> = {}): CheckoutLabelSlot {
   };
 }
 
-function discoveryAdmin(englishLocale = "en-GB", directlyAssigned = true) {
+function discoveryAdmin(
+  englishLocale = "en-GB",
+  directlyAssigned = true,
+  includeEnglishTranslations = true,
+) {
   const content = Object.values(CHECKOUT_LABEL_KEYS).map((key) => ({
     key,
     value:
@@ -807,36 +825,38 @@ function discoveryAdmin(englishLocale = "en-GB", directlyAssigned = true) {
       data: {
         translatableResource: {
           resourceId,
-          translations: [
-            {
-              key: CHECKOUT_LABEL_KEYS.taxCode,
-              value: "Italian tax code",
-              locale: englishLocale,
-              outdated: false,
-              market: null,
-            },
-            {
-              key: CHECKOUT_LABEL_KEYS.pec,
-              value: "Certified email address (PEC)",
-              locale: englishLocale,
-              outdated: true,
-              market: null,
-            },
-            {
-              key: CHECKOUT_LABEL_KEYS.address2,
-              value: "Apartment, suite, etc.",
-              locale: englishLocale,
-              outdated: false,
-              market: null,
-            },
-            {
-              key: CHECKOUT_LABEL_KEYS.optionalAddress2,
-              value: "Apartment, suite, etc. (optional)",
-              locale: englishLocale,
-              outdated: false,
-              market: null,
-            },
-          ],
+          translations: includeEnglishTranslations
+            ? [
+                {
+                  key: CHECKOUT_LABEL_KEYS.taxCode,
+                  value: "Italian tax code",
+                  locale: englishLocale,
+                  outdated: false,
+                  market: null,
+                },
+                {
+                  key: CHECKOUT_LABEL_KEYS.pec,
+                  value: "Certified email address (PEC)",
+                  locale: englishLocale,
+                  outdated: true,
+                  market: null,
+                },
+                {
+                  key: CHECKOUT_LABEL_KEYS.address2,
+                  value: "Apartment, suite, etc.",
+                  locale: englishLocale,
+                  outdated: false,
+                  market: null,
+                },
+                {
+                  key: CHECKOUT_LABEL_KEYS.optionalAddress2,
+                  value: "Apartment, suite, etc. (optional)",
+                  locale: englishLocale,
+                  outdated: false,
+                  market: null,
+                },
+              ]
+            : [],
         },
       },
     },

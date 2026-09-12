@@ -227,9 +227,9 @@ export async function readCheckoutLabels(admin: Admin): Promise<CheckoutLabelsSn
       const name = checkoutLabelName(content.key);
       if (!name || candidates.get(content.key)?.length !== 1) continue;
       for (const locale of locales) {
-        const globalMatching = (
-          translations.get(translationMapKey(resource.resourceId, locale.locale, null)) ?? []
-        ).filter((translation) => translation.key === content.key);
+        const globalMatching = translations
+          .get(translationMapKey(resource.resourceId, locale.locale, null))!
+          .filter((translation) => translation.key === content.key);
         if (locale.locale === content.locale) {
           slots.push({
             resourceId: resource.resourceId,
@@ -276,9 +276,9 @@ export async function readCheckoutLabels(admin: Admin): Promise<CheckoutLabelsSn
           }
         }
         for (const [marketId, marketName] of marketContexts) {
-          const translation = (
-            translations.get(translationMapKey(resource.resourceId, locale.locale, marketId)) ?? []
-          ).find((item) => item.key === content.key);
+          const translation = translations
+            .get(translationMapKey(resource.resourceId, locale.locale, marketId))!
+            .find((item) => item.key === content.key);
           slots.push({
             resourceId: resource.resourceId,
             key: content.key as CheckoutLabelSlot["key"],

@@ -105,6 +105,12 @@ describe("componenti merchant nel browser", () => {
     expect(selects).toHaveLength(4);
     expect(fields).toHaveLength(3);
 
+    (selects[0] as HTMLElement & { value: string }).value = "en";
+    await dispatch(selects[0], new Event("change", { bubbles: true }));
+    expect(view.container.textContent).toContain("Interactive preview");
+    (selects[0] as HTMLElement & { value: string }).value = "it";
+    await dispatch(selects[0], new Event("change", { bubbles: true }));
+
     (selects[1] as HTMLElement & { value: string }).value = "unknown";
     await dispatch(selects[1], new Event("change", { bubbles: true }));
     (selects[1] as HTMLElement & { value: string }).value = "FR";
