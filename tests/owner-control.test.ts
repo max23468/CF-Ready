@@ -1453,6 +1453,109 @@ describe("query D1 e run-rate", () => {
     ).toMatchObject({ subject: "🟢 CF Ready · Sincronizzazione etichette ripristinata" });
   });
 
+  test("rimuove un errore etichette ancora in osservazione quando scompare", async () => {
+    await insertStore(1, "labels-observing.myshopify.com");
+    await env.DB.prepare(
+      `UPDATE app_state
+          SET checkout_labels_mode = 'automatic',
+              checkout_labels_last_error_code = 'checkout_labels_partial_sync'
+        WHERE shop_id = 1`,
+    ).run();
+    await reconcileOwnerIncidents(env.DB);
+    expect(
+      await env.DB.prepare(
+        "SELECT status FROM owner_operational_incidents WHERE incident_key = 'checkout_labels:1'",
+      ).first(),
+    ).toEqual({ status: "observing" });
+
+    await env.DB.prepare(
+      "UPDATE app_state SET checkout_labels_last_error_code = NULL WHERE shop_id = 1",
+    ).run();
+    await reconcileOwnerIncidents(env.DB, NOW);
+    expect(
+      await env.DB.prepare(
+        "SELECT status FROM owner_operational_incidents WHERE incident_key = 'checkout_labels:1'",
+      ).first(),
+    ).toBeNull();
+  });
+
+  test("rifiuta letture incidenti incomplete e ignora store già rimossi", async () => {
+    const statement = {
+      bind() {
+        return this;
+      },
+      async first() {
+        return null;
+      },
+    } as unknown as D1PreparedStatement;
+    const database = (firstBatch: Array<{ success: boolean; results: unknown[] }>) => {
+      let calls = 0;
+      return {
+        prepare: () => statement,
+        batch: async () => (calls++ === 0 ? firstBatch : [{ success: true, results: [] }]) as never,
+      } as unknown as D1Database;
+    };
+
+    await expect(
+      reconcileOwnerIncidents(
+        database([
+          { success: false, results: [] },
+          { success: true, results: [] },
+          { success: true, results: [] },
+          { success: true, results: [] },
+        ]),
+        NOW,
+      ),
+    ).rejects.toThrow("owner_incident_read_failed");
+    await expect(
+      reconcileOwnerIncidents(
+        database([
+          { success: true, results: [] },
+          { success: true, results: [] },
+          { success: true, results: [] },
+          { success: true, results: [] },
+        ]),
+        NOW,
+      ),
+    ).rejects.toThrow("owner_incident_read_failed");
+
+    await expect(
+      reconcileOwnerIncidents(
+        database([
+          { success: true, results: [{ failed: 0, processing: 0 }] },
+          { success: true, results: [] },
+          { success: true, results: [] },
+          {
+            success: true,
+            results: [
+              {
+                incident_key: "checkout_labels:99",
+                incident_kind: "checkout_labels",
+                shop_id: 99,
+                status: "active",
+                fingerprint: "checkout_labels_partial_sync",
+                consecutive_observations: 3,
+                first_observed_at: NOW.toISOString(),
+                opened_at: NOW.toISOString(),
+              },
+              {
+                incident_key: "checkout_labels:100",
+                incident_kind: "checkout_labels",
+                shop_id: null,
+                status: "resolved",
+                fingerprint: "checkout_labels_partial_sync",
+                consecutive_observations: 3,
+                first_observed_at: NOW.toISOString(),
+                opened_at: NOW.toISOString(),
+              },
+            ],
+          },
+        ]),
+        NOW,
+      ),
+    ).resolves.toBeUndefined();
+  });
+
   test("renderizza tutte le viste, apre gli store e confronta le versioni osservate", async () => {
     await insertStore(1, "dashboard.myshopify.com", {
       onboarding: "completed",

@@ -201,6 +201,18 @@ test("Regole valida l'identità dello snapshot da ripristinare", async () => {
     ),
   ).toEqual({ ok: false, errorCode: "generic" });
   expect(mocks.readConfigurationHistoryEntry).not.toHaveBeenCalled();
+
+  expect(
+    await rulesRoute.action(
+      args(
+        post("/app/rules", {
+          intent: "restore_configuration",
+          historyId: "11",
+          configHash: "hash-corrente",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: false, errorCode: "config_conflict" });
 });
 
 test("Regole segnala che il ripristino non può aggiornare etichette senza scope", async () => {
@@ -223,6 +235,29 @@ test("Regole segnala che il ripristino non può aggiornare etichette senza scope
       ),
     ),
   ).toEqual({ ok: true, labelsErrorCode: "checkout_labels_scope_required" });
+});
+
+test("Regole ripristina la Validation anche quando la lettura scope fallisce", async () => {
+  mocks.scopeQuery.mockRejectedValue(new Error("scope non disponibile"));
+  mocks.readConfigurationHistoryEntry.mockResolvedValue({
+    id: 10,
+    createdAt: "2026-09-01T07:00:00.000Z",
+    rules: DEFAULT_CONFIG.rules,
+    messages: DEFAULT_CONFIG.messages,
+  });
+
+  expect(
+    await rulesRoute.action(
+      args(
+        post("/app/rules", {
+          intent: "restore_configuration",
+          historyId: "10",
+          configHash: "hash-corrente",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: true, enabled: true });
+  expect(mocks.writeValidation).toHaveBeenCalledOnce();
 });
 
 test("Regole ripristina messaggi e regole coordinando le etichette gia gestite", async () => {
@@ -258,6 +293,35 @@ test("Regole ripristina messaggi e regole coordinando le etichette gia gestite",
     expectedLabelsRevision: "labels-r1",
   });
   expect(mocks.writeValidation).not.toHaveBeenCalled();
+});
+
+test("Regole accetta il ripristino etichette senza una revisione precedente", async () => {
+  mocks.scopeQuery.mockResolvedValue({
+    granted: ["write_translations", "read_locales", "read_markets"],
+  });
+  mocks.readConfigurationHistoryEntry.mockResolvedValue({
+    id: 12,
+    createdAt: "2026-09-01T06:00:00.000Z",
+    rules: DEFAULT_CONFIG.rules,
+    messages: DEFAULT_CONFIG.messages,
+  });
+
+  await rulesRoute.action(
+    args(
+      post("/app/rules", {
+        intent: "restore_configuration",
+        historyId: "12",
+        configHash: "hash-corrente",
+        labelsRevision: "",
+      }),
+    ),
+  );
+  expect(mocks.saveRulesAndCheckoutLabels).toHaveBeenCalledWith(
+    admin,
+    db,
+    session.shop,
+    expect.objectContaining({ expectedLabelsRevision: null }),
+  );
 });
 
 test("Guida carica diagnostica e accetta solo ricevute di copia valide", async () => {

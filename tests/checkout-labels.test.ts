@@ -246,6 +246,16 @@ test("distingue una presenza web ereditata dal mercato", async () => {
   });
 });
 
+test("non crea override per una lingua non disponibile nel mercato", async () => {
+  const snapshot = await readCheckoutLabels({
+    graphql: discoveryAdmin("en-GB", true, true, false),
+  });
+
+  expect(
+    snapshot.slots.some(({ locale, kind }) => locale === "en-GB" && kind === "market_translation"),
+  ).toBe(false);
+});
+
 test("il discovery ignora contenuti estranei e gestisce contesti Shopify incompleti", async () => {
   const responses = [
     {
@@ -260,6 +270,12 @@ test("il discovery ignora contenuti estranei e gestisce contesti Shopify incompl
             },
           ],
           pageInfo: { hasNextPage: false, endCursor: null },
+        },
+      },
+      extensions: {
+        cost: {
+          requestedQueryCost: 10,
+          throttleStatus: { currentlyAvailable: 100, restoreRate: 100 },
         },
       },
     },
@@ -911,6 +927,7 @@ function discoveryAdmin(
   englishLocale = "en-GB",
   directlyAssigned = true,
   includeEnglishTranslations = true,
+  marketIncludesEnglish = true,
 ) {
   const content = Object.values(CHECKOUT_LABEL_KEYS).map((key) => ({
     key,
@@ -942,7 +959,7 @@ function discoveryAdmin(
                 nodes: [
                   {
                     defaultLocale: { locale: "it" },
-                    alternateLocales: [{ locale: englishLocale }],
+                    alternateLocales: marketIncludesEnglish ? [{ locale: englishLocale }] : [],
                     markets: {
                       nodes: directlyAssigned ? [{ id: "gid://shopify/Market/1" }] : [],
                       pageInfo: { hasNextPage: false },
@@ -1035,22 +1052,26 @@ function discoveryAdmin(
         },
       },
     },
-    {
-      data: {
-        translatableResource: {
-          resourceId,
-          translations: [
-            {
-              key: CHECKOUT_LABEL_KEYS.pec,
-              value: "PEC Italy",
-              locale: englishLocale,
-              outdated: false,
-              market: { id: "gid://shopify/Market/1", name: "Italia" },
+    ...(marketIncludesEnglish
+      ? [
+          {
+            data: {
+              translatableResource: {
+                resourceId,
+                translations: [
+                  {
+                    key: CHECKOUT_LABEL_KEYS.pec,
+                    value: "PEC Italy",
+                    locale: englishLocale,
+                    outdated: false,
+                    market: { id: "gid://shopify/Market/1", name: "Italia" },
+                  },
+                ],
+              },
             },
-          ],
-        },
-      },
-    },
+          },
+        ]
+      : []),
   ];
   return vi.fn(async (_query: string, _options?: { variables?: Record<string, unknown> }) =>
     Response.json(responses.shift()),

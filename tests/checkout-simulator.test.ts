@@ -206,6 +206,39 @@ test("gli indirizzi non ancora disponibili non escludono i campi fiscali present
   );
 });
 
+test("il simulatore distingue campi localized assenti e consegna non osservabile", () => {
+  const input = {
+    rules: { taxCode: "required_validated", pec: "required_validated" } as const,
+    billingCountry: "IT",
+    step: "CHECKOUT_INTERACTION" as const,
+    deliveryGroups: [] as Array<{ countryCode?: string }>,
+    taxCode: "RSSMRA85T10A562S",
+    pec: "mario.rossi@example.com",
+  };
+  expect(simulatorOutcome({ ...input, taxCodePresent: false, pecPresent: false })).toBe(
+    "notApplied",
+  );
+  expect(simulatorOutcome({ ...input, taxCodePresent: false })).toBe("ready");
+  expect(simulatorOutcome({ ...input, pecPresent: false })).toBe("ready");
+  expect(
+    simulatorOutcome({
+      ...input,
+      step: "CHECKOUT_COMPLETION",
+      deliveryGroups: [{ countryCode: "IT" }],
+      taxCodePresent: false,
+    }),
+  ).toBe("blocked");
+  expect(
+    simulatorOutcome({
+      ...input,
+      step: "CHECKOUT_COMPLETION",
+      deliveryGroups: [{ countryCode: "IT" }],
+      pecPresent: false,
+    }),
+  ).toBe("blocked");
+  expect(simulatorOutcome({ ...input, deliveryGroups: [{}] })).toBe("ready");
+});
+
 test("la riapplicazione conserva modifiche locali e regole remote non toccate", () => {
   const base = {
     rules: { taxCode: "optional_validated", pec: "unmanaged" },
