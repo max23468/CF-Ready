@@ -632,21 +632,26 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   assert.match(mise, /^node = "26\.8\.1"$/m);
   assert.match(mise, /^npm = "12\.0\.2"$/m);
 
+  const setupAction = readFileSync(
+    new URL("../.github/actions/setup-node-npm/action.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(setupAction, /node-version:\s*26\.8\.1/);
+  assert.match(setupAction, /cache:\s*npm/);
+  assert.match(setupAction, /npm install --global npm@12\.0\.2/);
+
   for (const path of [
     "ci.yml",
     "security-maintenance.yml",
     "backup-production.yml",
     "deploy-development.yml",
     "deploy-pages-production.yml",
+    "deploy-production.yml",
+    "mutation-campaign.yml",
   ]) {
     const workflow = readFileSync(new URL(`../.github/workflows/${path}`, import.meta.url), "utf8");
-    const nodeVersions = [...workflow.matchAll(/node-version:\s*([^\s]+)/g)].map(
-      (match) => match[1],
-    );
-    assert(nodeVersions.length > 0, path);
-    assert.deepEqual([...new Set(nodeVersions)], ["26.8.1"], path);
     assert.equal(
-      workflow.match(/npm install --global npm@12\.0\.2/g)?.length,
+      workflow.match(/uses: \.\/\.github\/actions\/setup-node-npm/g)?.length,
       workflow.match(/npm ci/g)?.length,
       path,
     );

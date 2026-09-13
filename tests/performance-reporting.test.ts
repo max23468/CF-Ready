@@ -242,6 +242,14 @@ test("la route rifiuta lunghezze dichiarate non valide e report JSON malformati"
     context,
     params: {},
   } as never);
+  const missingBody = await action({
+    request: new Request("https://example.test/app/performance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    }),
+    context,
+    params: {},
+  } as never);
   const emptyReport = await action({
     request: new Request("https://example.test/app/performance", {
       method: "POST",
@@ -254,6 +262,7 @@ test("la route rifiuta lunghezze dichiarate non valide e report JSON malformati"
 
   expect(invalidLength.status).toBe(413);
   expect(malformedJson.status).toBe(400);
+  expect(missingBody.status).toBe(400);
   expect(emptyReport.status).toBe(400);
   expect(mocks.authenticate).not.toHaveBeenCalled();
 });

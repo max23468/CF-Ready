@@ -5,6 +5,7 @@ import { classifyCiPolicyChange, isCiPolicyFile } from "./ci-policy-check.mjs";
 
 test("riconosce tutto il control plane CI senza ampliare la superficie", () => {
   for (const path of [
+    ".github/actions/setup-node-npm/action.yml",
     ".github/workflows/ci.yml",
     ".github/workflows/nested/check.yml",
     ".npmrc",
@@ -32,7 +33,6 @@ test("riconosce tutto il control plane CI senza ampliare la superficie", () => {
 
 test("classifica le modifiche ordinarie senza file di policy", () => {
   assert.deepEqual(classifyCiPolicyChange({ files: ["app/root.tsx"] }), {
-    kind: "ordinary",
     description: "La PR non modifica il control plane CI.",
     changedPolicyFiles: [],
   });
@@ -42,7 +42,6 @@ test("affida anche le modifiche al control plane ai gate automatici della PR", (
   assert.deepEqual(
     classifyCiPolicyChange({ files: ["package.json", ".github/workflows/ci.yml"] }),
     {
-      kind: "control-plane",
       description: "Control plane CI rilevato; valgono i gate automatici della PR.",
       changedPolicyFiles: [".github/workflows/ci.yml", "package.json"],
     },

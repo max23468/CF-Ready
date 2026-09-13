@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { act } from "react";
 import { DEFAULT_CONFIG } from "../../app/config";
-import { checkoutLabelSlotId } from "../../app/checkout-labels/domain";
+import { checkoutLabelCopy, checkoutLabelSlotId } from "../../app/checkout-labels/domain";
 import { texts } from "../../app/i18n";
 import onboardingCss from "../../app/routes/app.onboarding.css?raw";
 import motionCss from "../../app/ui-motion.css?raw";
@@ -912,6 +912,25 @@ describe("Onboarding", () => {
     expect(router.fetcher.submit).not.toHaveBeenCalled();
 
     const originalFormData = FormData;
+    class CompleteRulesFormData {
+      get(name: string) {
+        if (name === "taxCode") return "required_validated";
+        if (name === "pec") return "optional_validated";
+        return null;
+      }
+    }
+    vi.stubGlobal("FormData", CompleteRulesFormData as unknown as typeof originalFormData);
+    await dispatch(
+      view.container.querySelector("s-choice")!,
+      new Event("change", { bubbles: true }),
+    );
+    expect(view.container.textContent).toContain(
+      checkoutLabelCopy("taxCode", "it", "required_validated"),
+    );
+    expect(view.container.textContent).toContain(
+      checkoutLabelCopy("pec", "it", "optional_validated"),
+    );
+
     class IncompleteRulesFormData {
       get(name: string) {
         return name === "taxCode" ? "required_validated" : null;

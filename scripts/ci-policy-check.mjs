@@ -17,6 +17,7 @@ const protectedPolicyFiles = new Set([
 
 export function isCiPolicyFile(path) {
   return (
+    path.startsWith(".github/actions/") ||
     path.startsWith(".github/workflows/") ||
     path.startsWith("scripts/") ||
     protectedPolicyFiles.has(path) ||
@@ -29,13 +30,11 @@ export function classifyCiPolicyChange({ files }) {
   const changedPolicyFiles = [...new Set(files.filter(isCiPolicyFile))].sort();
   if (changedPolicyFiles.length === 0) {
     return {
-      kind: "ordinary",
       description: "La PR non modifica il control plane CI.",
       changedPolicyFiles,
     };
   }
   return {
-    kind: "control-plane",
     description: "Control plane CI rilevato; valgono i gate automatici della PR.",
     changedPolicyFiles,
   };

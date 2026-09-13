@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { useFetcher, useRevalidator } from "react-router";
+import { useFetcher } from "react-router";
 import { localizedError } from "../../app-error";
 import type { Rules } from "../../config";
-import {
-  CHECKOUT_LABEL_OPTIONAL_SCOPES,
-  type CheckoutLabelFamily,
-  type CheckoutLabelsSnapshot,
-  type CheckoutLabelState,
+import type {
+  CheckoutLabelFamily,
+  CheckoutLabelsSnapshot,
+  CheckoutLabelState,
 } from "../../checkout-labels/domain";
 import { texts, type Locale } from "../../i18n";
+import { useCheckoutLabelScopeRequest } from "../use-checkout-label-scopes";
 import { Address2CheckoutLabels } from "./Address2CheckoutLabels";
 import { KeepNativeLabelsChoice, NativeCheckoutLabels } from "./NativeCheckoutLabels";
 import { RULES_INTENTS, type SubmitCheckoutLabelsIntent } from "./rules-intents";
@@ -135,11 +135,9 @@ function useCheckoutLabelsControls(
   guidedConfirmations: Array<{ slotId: string; confirmedAt: string }>,
 ) {
   const fetcher = useFetcher<LabelsAction>();
-  const revalidator = useRevalidator();
-  const [scopeRequestBusy, setScopeRequestBusy] = useState(false);
-  const [scopeRequestError, setScopeRequestError] = useState<string | null>(null);
+  const { requestPermissions, revalidationBusy, scopeRequestBusy, scopeRequestError } =
+    useCheckoutLabelScopeRequest();
   const actionBusy = fetcher.state !== "idle";
-  const revalidationBusy = revalidator.state !== "idle";
   const actionError = fetcher.data?.ok === false ? fetcher.data.errorCode : null;
   const refreshed = fetcher.data?.ok ? fetcher.data.refreshed : undefined;
   const visibleSnapshot = refreshed?.snapshot ?? snapshot;
@@ -155,19 +153,6 @@ function useCheckoutLabelsControls(
     for (const [name, value] of Object.entries(values)) form.set(name, value);
     fetcher.submit(form, { method: "post" });
   };
-  const requestPermissions = async () => {
-    setScopeRequestBusy(true);
-    setScopeRequestError(null);
-    try {
-      const response = await shopify.scopes.request([...CHECKOUT_LABEL_OPTIONAL_SCOPES]);
-      if (response.result === "granted-all") revalidator.revalidate();
-    } catch {
-      setScopeRequestError("generic");
-    } finally {
-      setScopeRequestBusy(false);
-    }
-  };
-
   return {
     actionBusy,
     actionError,
