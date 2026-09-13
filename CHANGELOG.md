@@ -6,13 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.11.2 — 13 settembre 2026
+
+- il deploy Pages assegna a JavaScript e CSS pubblici nomi derivati dal contenuto
+  e verifica che la Home live carichi copie identiche alla sorgente, evitando che
+  la cache del dominio separi il markup dal comportamento appena pubblicato.
+
 ## 1.11.1 — 13 settembre 2026
 
 - il coordinatore di pubblicazione avvia Pages Production soltanto quando il
   tree `site/` differisce dal precedente commit Production e attende readback e
-  smoke prima di creare la release;
-- `menu.js` e `style.css` richiedono sempre la riconvalida del browser, così un
-  nuovo comportamento del sito non resta separato dal markup appena pubblicato.
+  smoke prima di creare la release.
 
 ## 1.11.0 — 13 settembre 2026
 
