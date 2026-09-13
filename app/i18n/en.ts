@@ -468,8 +468,8 @@ export const en: typeof it = {
       taxCodePresent: "Shopify shows the Italian tax code field",
       pecPresent: "Shopify shows the PEC field",
       scenarioLabel: "Try a scenario",
-      scenarioHelp: "Choose an example: the simulator fills the fields and shows the result.",
-      scenarioPlaceholder: "Choose an example",
+      scenarioHelp: "Choose a scenario: the simulator fills the fields and shows the result.",
+      scenarioPlaceholder: "Choose a scenario",
       scenarios: {
         valid: "Valid details",
         invalidTaxCode: "Invalid tax code",
@@ -481,10 +481,6 @@ export const en: typeof it = {
       },
       clear: "Clear",
       continue: "Continue",
-      examples: {
-        taxCode: "Synthetic examples: RSSMRA85T10A562S, 12345678903, AAAAAAL0A01A000K.",
-        pec: "Synthetic example: mario.rossi@example.com.",
-      },
       diagnostics: {
         taxCode: {
           valid: "The format is valid.",
@@ -514,7 +510,7 @@ export const en: typeof it = {
       restore: "Restore this configuration",
     },
     labels: {
-      heading: "Checkout labels (advanced settings)",
+      heading: "Checkout labels",
       nativeHeading: "Checkout text",
       permissionsHeading: "Check Shopify labels",
       permissionsBody:
@@ -574,14 +570,14 @@ export const en: typeof it = {
         verificationMarkets: string[],
       ) => [
         market
-          ? `Open the storefront and select ${market} as the country or region and ${language} as the language.`
+          ? `Open the storefront and, under “Country/region”, choose an available country in the ${market} market. Select ${language} as the language.`
           : `Open the storefront in the default market and select ${language} as the language.`,
         ...(verificationMarkets.length > 0
           ? [
-              `Repeat the check with ${verificationMarkets.join(", ")} selected as the country or region and ${language} as the language.`,
+              `Repeat the check for ${verificationMarkets.join(", ")}: under “Country/region”, choose an available country in each market and keep ${language} as the language.`,
             ]
           : []),
-        "For every case listed, add a product to the cart and continue to checkout.",
+        "For every case listed, add a product to the cart and continue to checkout. Set Italy as the delivery country and select an Italian address recognized by Shopify: the tax code and PEC fields appear after the address is accepted.",
         "Compare the tax code and PEC labels with the “Field after saving” value shown here.",
         "If they differ, select “Open the checkout text editor”. In Shopify, under Checkout language, select “Edit checkout content”.",
         ...(primary && !market
@@ -590,7 +586,7 @@ export const en: typeof it = {
               "For PEC, search for “PEC”, scroll to Checkout localized fields additional information, and edit Tax email it. Enter the corresponding “Field after saving” for both fields, then select “Save”.",
               ...(verificationMarkets.length > 0
                 ? [
-                    `If a label differs only in ${verificationMarkets.join(", ")}, select “Translate” in the editor, open the “Translating into…” selector, and choose “Adapt a market” → ${verificationMarkets.join(", ")} → ${language}. Open Checkout and system, use “Filter fields” to find Tax credential it or Tax email it, enter the corresponding “Field after saving”, and save.`,
+                    `If a label differs only in ${verificationMarkets.join(", ")}, select “Translate” in the editor, open the “Translating into…” selector, and choose “Adapt a market”. Open ${verificationMarkets.join(", ")} one at a time with ${language} selected, then under Checkout and system use “Filter fields” to find Tax credential it or Tax email it, enter the corresponding “Field after saving”, and save.`,
                   ]
                 : []),
             ]
