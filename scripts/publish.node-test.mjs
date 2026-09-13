@@ -176,9 +176,9 @@ if (command === "git") {
   if (joined === "status --porcelain") print(mode === "dirty" ? " M file\\n" : "");
   else if (joined === "branch --show-current") print(mode === "main" ? "main\\n" : "codex/change\\n");
   else if (joined === "rev-parse HEAD") print("${sourceSha}\\n");
-  else if (joined === "ls-remote origin refs/heads/develop") print((mode === "develop-advanced" ? "${sourceSha}" : "${developSha}") + "\\trefs/heads/develop\\n");
+  else if (joined === "ls-remote origin refs/heads/develop") print((["develop-advanced", "workflow-advanced"].includes(mode) ? "${sourceSha}" : "${developSha}") + "\\trefs/heads/develop\\n");
   else if (joined === "ls-remote origin refs/heads/main") print("${mainSha}\\trefs/heads/main\\n");
-  else if (joined === "show -s --format=%P ${mainSha}") print("${oldMainSha} ${developSha}\\n");
+  else if (joined === "show -s --format=%P ${mainSha}") print(mode === "bad-promotion" ? "${oldMainSha}\\n" : "${oldMainSha} ${developSha}\\n");
   else if (joined === "rev-parse ${mainSha}^{tree}" || joined === "rev-parse ${developSha}^{tree}") print("tree\\n");
   else if (joined === "rev-parse origin/main" || joined === "rev-parse origin/develop") print("${mainSha}\\n");
   else if (joined === "merge-base origin/main origin/develop") print("${mainSha}\\n");
@@ -195,7 +195,7 @@ if (command === "git") {
     const viewedMarker = marker("viewed-" + number);
     const merged = existsSync(mergeMarker) && existsSync(viewedMarker);
     if (existsSync(mergeMarker) && !existsSync(viewedMarker)) writeFileSync(viewedMarker, "ok");
-    print({ number, state: merged ? "MERGED" : "OPEN", headRefOid: promotion ? "${developSha}" : "${sourceSha}", mergeCommit: merged ? { oid: promotion ? "${mainSha}" : "${developSha}" } : null, url: "https://github.test/pr/" + number });
+    print({ number, state: mode === "closed-pr" ? "CLOSED" : merged ? "MERGED" : "OPEN", headRefOid: promotion ? "${developSha}" : "${sourceSha}", mergeCommit: merged ? { oid: promotion ? "${mainSha}" : "${developSha}" } : null, url: "https://github.test/pr/" + number });
   } else if (args[0] === "pr" && args[1] === "merge") {
     writeFileSync(marker("merge-" + args[2]), "ok");
   } else if (args[0] === "run" && args[1] === "list") {
@@ -203,11 +203,16 @@ if (command === "git") {
     const sha = workflow === "deploy-development.yml" ? "${developSha}" : "${mainSha}";
     const runMarker = marker("run-" + workflow);
     const polledMarker = marker("polled-" + workflow);
-    if (!existsSync(runMarker)) print([]);
+    if (mode === "workflow-advanced") print([]);
+    else if (mode === "workflow-failed") print([{ databaseId: existsSync(marker("workflow-retried")) ? 21 : 20, status: "completed", conclusion: "failure", headSha: sha, url: "https://github.test/run" }]);
+    else if (mode === "old-failed-run" && !existsSync(marker("old-run-seen"))) { writeFileSync(marker("old-run-seen"), "ok"); print([{ databaseId: 20, status: "completed", conclusion: "failure", headSha: sha, url: "https://github.test/run" }]); }
+    else if (mode === "old-failed-run") print([{ databaseId: 21, status: "completed", conclusion: "success", headSha: sha, url: "https://github.test/run" }]);
+    else if (!existsSync(runMarker)) print([]);
     else if (!existsSync(polledMarker)) { writeFileSync(polledMarker, "ok"); print([{ databaseId: 20, status: "queued", conclusion: "", headSha: sha, url: "https://github.test/run" }]); }
     else print([{ databaseId: 20, status: "completed", conclusion: "success", headSha: sha, url: "https://github.test/run" }]);
   } else if (args[0] === "workflow" && args[1] === "run") {
     writeFileSync(marker("run-" + args[2]), "ok");
+    if (mode === "workflow-failed") writeFileSync(marker("workflow-retried"), "ok");
   } else if (args[0] === "release" && args[1] === "view") {
     if (existsSync(marker("release"))) print({ tagName: "v1.2.3", url: "https://github.test/release" });
     else process.exitCode = 1;
@@ -236,10 +241,29 @@ if (command === "git") {
   assert.match(result.stdout, /deploy-production\.yml: avviato/);
   assert.match(result.stdout, /Pubblicazione Production completata/);
 
+  const retried = spawnSync(
+    process.execPath,
+    [path.join(root, "scripts", "publish.mjs"), "--target", "production"],
+    {
+      cwd: directory,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        FAIL_MODE: "old-failed-run",
+        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+      },
+    },
+  );
+  assert.equal(retried.status, 0, retried.stderr);
+
   for (const [mode, message] of [
     ["dirty", /worktree deve essere pulito/],
     ["main", /branch della modifica/],
+    ["closed-pr", /La PR #10 è CLOSED/],
+    ["workflow-advanced", /develop è avanzato prima dell'avvio/],
+    ["workflow-failed", /deploy-development\.yml concluso con failure/],
     ["develop-advanced", /develop è avanzato/],
+    ["bad-promotion", /merge Production non conserva/],
     ["release-mismatch", /v1\.2\.3 esiste su un commit diverso/],
   ]) {
     const failed = spawnSync(
