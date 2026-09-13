@@ -126,6 +126,10 @@ jobs:
           fi
           echo "- Identità del titolare iniettata in $(printf '%s\n' "$files" | wc -l | tr -d ' ') pagine" >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Prepara asset pubblici versionati
+        if: steps.preflight.outputs.deploy_required == 'true'
+        run: node scripts/prepare-pages-site.mjs site "$RUNNER_TEMP/pages-site"
+
       - name: Arma rollback Pages Production
         id: rollback_guard
         if: steps.preflight.outputs.deploy_required == 'true'
@@ -137,8 +141,8 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           rm -f .wrangler/deploy/config.json
-          printf '%s\n' "$GITHUB_SHA" > site/deployment.txt
-          npm exec -- wrangler pages deploy site \
+          printf '%s\n' "$GITHUB_SHA" > "$RUNNER_TEMP/pages-site/deployment.txt"
+          npm exec -- wrangler pages deploy "$RUNNER_TEMP/pages-site" \
             --project-name "$PAGES_PROJECT" \
             --branch main \
             --commit-hash "$GITHUB_SHA" \
@@ -232,6 +236,19 @@ jobs:
           grep -Fq '<link rel="alternate" hreflang="x-default" href="https://cfready.it/">' "$RUNNER_TEMP/home.html"
           grep -Fq '<meta property="og:image" content="https://cfready.it/assets/cf-ready-app-preview.png">' "$RUNNER_TEMP/home.html"
           grep -Fq '"@type":"WebSite"' "$RUNNER_TEMP/home.html"
+          style_asset="$(grep --only-matching --extended-regexp 'style\.[0-9a-f]{12}\.css' "$RUNNER_TEMP/home.html" | head -n 1)"
+          menu_asset="$(grep --only-matching --extended-regexp 'menu\.[0-9a-f]{12}\.js' "$RUNNER_TEMP/home.html" | head -n 1)"
+          test -n "$style_asset" && test -n "$menu_asset"
+          curl --fail --silent --show-error --max-time 15 \
+            --header "Cache-Control: no-cache" \
+            --output "$RUNNER_TEMP/live-style.css" \
+            "https://$PUBLIC_DOMAIN/$style_asset?commit=$GITHUB_SHA"
+          curl --fail --silent --show-error --max-time 15 \
+            --header "Cache-Control: no-cache" \
+            --output "$RUNNER_TEMP/live-menu.js" \
+            "https://$PUBLIC_DOMAIN/$menu_asset?commit=$GITHUB_SHA"
+          cmp --silent site/style.css "$RUNNER_TEMP/live-style.css"
+          cmp --silent site/menu.js "$RUNNER_TEMP/live-menu.js"
           curl --fail --silent --show-error --location --max-redirs 5 --max-time 15 \
             --header "Cache-Control: no-cache" \
             --output "$RUNNER_TEMP/guide-it.html" \
