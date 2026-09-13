@@ -304,6 +304,14 @@ test("la CSP consente beacon e raccolta Cloudflare Web Analytics", () => {
   const headers = readFileSync(new URL("../site/_headers", import.meta.url), "utf8");
   assert.match(headers, /script-src .*https:\/\/static\.cloudflareinsights\.com/);
   assert.match(headers, /connect-src .*https:\/\/cloudflareinsights\.com/);
+  for (const asset of ["menu.js", "style.css"]) {
+    assert.match(
+      headers,
+      new RegExp(
+        `/${asset.replace(".", "\\.")}\\n  Cache-Control: public, max-age=0, must-revalidate`,
+      ),
+    );
+  }
 });
 
 const indexableSitePages = new Map([
@@ -1170,7 +1178,7 @@ test("l'identità del titolare resta un segnaposto e i documenti legali non sono
   // assistenza e guide restano indicizzabili.
   assert.deepEqual(
     lines.filter((line) => line.startsWith("/") && !line.startsWith("/*")),
-    ["/privacy*", "/terms*", "/en/privacy*", "/en/terms*", "/404*"],
+    ["/menu.js", "/style.css", "/privacy*", "/terms*", "/en/privacy*", "/en/terms*", "/404*"],
   );
 });
 

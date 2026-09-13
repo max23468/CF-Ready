@@ -191,6 +191,10 @@ function gitTree(ref) {
   return output("git", ["rev-parse", `${ref}^{tree}`]);
 }
 
+function gitPathTree(ref, path) {
+  return output("git", ["rev-parse", `${ref}:${path}`]);
+}
+
 async function waitForReconciliation(attempts = 120) {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     execute("git", ["fetch", "--quiet", "origin", "main", "develop"]);
@@ -291,6 +295,15 @@ export async function publish(target) {
     branch: "main",
     sha: mainSha,
   });
+  if (gitPathTree(mainSha, "site") !== gitPathTree(`${mainSha}^1`, "site")) {
+    await ensureWorkflow({
+      workflow: "deploy-pages-production.yml",
+      branch: "main",
+      sha: mainSha,
+    });
+  } else {
+    console.log("Deploy Pages Production non necessario: il tree site/ è invariato.");
+  }
   await waitForReconciliation();
   const release = ensureRelease(repositoryName, version, mainSha);
   console.log(`Pubblicazione Production completata: ${mainSha}, ${release.url}.`);
