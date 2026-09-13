@@ -104,6 +104,7 @@ if (command === "git") {
   if (joined === "status --porcelain") print(mode === "dirty" ? " M file\\n" : "");
   else if (joined === "branch --show-current") print(mode === "main" ? "main\\n" : "codex/change\\n");
   else if (joined === "rev-parse HEAD") print("${sourceSha}\\n");
+  else if (joined === "rev-parse ${mainSha}:site" || joined === "rev-parse ${mainSha}^1:site") print("site-tree\\n");
   else if (joined === "ls-remote origin refs/heads/develop") print((mode === "develop-advanced" ? "${sourceSha}" : "${developSha}") + "\\trefs/heads/develop\\n");
   else if (joined === "show -s --format=%P ${mainSha}") print("${oldMainSha} ${developSha}\\n");
   else if (joined === "rev-parse ${mainSha}^{tree}" || joined === "rev-parse ${developSha}^{tree}") print("tree\\n");
@@ -150,6 +151,10 @@ if (command === "git") {
         `Pubblicazione ${target === "development" ? "Development" : "Production"} completata`,
       ),
     );
+    if (target === "production") {
+      assert.match(result.stdout, /Deploy Pages Production non necessario/);
+      assert.doesNotMatch(result.stdout, /deploy-pages-production\.yml: avviato/);
+    }
   }
 });
 
@@ -176,6 +181,8 @@ if (command === "git") {
   if (joined === "status --porcelain") print(mode === "dirty" ? " M file\\n" : "");
   else if (joined === "branch --show-current") print(mode === "main" ? "main\\n" : "codex/change\\n");
   else if (joined === "rev-parse HEAD") print("${sourceSha}\\n");
+  else if (joined === "rev-parse ${mainSha}:site") print("site-tree-new\\n");
+  else if (joined === "rev-parse ${mainSha}^1:site") print("site-tree-old\\n");
   else if (joined === "ls-remote origin refs/heads/develop") print((["develop-advanced", "workflow-advanced"].includes(mode) ? "${sourceSha}" : "${developSha}") + "\\trefs/heads/develop\\n");
   else if (joined === "ls-remote origin refs/heads/main") print("${mainSha}\\trefs/heads/main\\n");
   else if (joined === "show -s --format=%P ${mainSha}") print(mode === "bad-promotion" ? "${oldMainSha}\\n" : "${oldMainSha} ${developSha}\\n");
@@ -239,6 +246,7 @@ if (command === "git") {
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /deploy-development\.yml: avviato/);
   assert.match(result.stdout, /deploy-production\.yml: avviato/);
+  assert.match(result.stdout, /deploy-pages-production\.yml: avviato/);
   assert.match(result.stdout, /Pubblicazione Production completata/);
 
   const retried = spawnSync(

@@ -384,15 +384,20 @@ npm run publish:production
 Il primo crea o riprende la PR verso `develop`, abilita lo squash merge
 automatico e attende il deploy Development del commit unito. Il secondo completa
 lo stesso percorso, crea o riprende la promozione `develop` → `main`, impone il
-merge commit, attende deploy e readback Production, verifica la riconciliazione
-di `develop` e crea la GitHub Release sul commit distribuito.
+merge commit, attende deploy e readback di Worker e Shopify e confronta il tree
+`site/` con il primo parent del merge. Soltanto quando il sito è cambiato avvia
+anche Pages Production; poi verifica la riconciliazione di `develop` e crea la
+GitHub Release dopo che tutte le superfici applicabili hanno concluso sullo
+stesso commit.
 
 Il coordinatore riusa PR, run e release già riusciti per lo stesso commit. Dopo
 un errore si rilancia quindi lo stesso comando: riparte dal primo passaggio
-incompleto. I workflow provider restano manuali e vincolati al proprio branch;
-il comando li avvia tramite l'identità GitHub dell'operatore. Eseguire questi
-comandi costituisce un'azione remota e richiede l'autorizzazione prevista da
-`AGENTS.md`.
+incompleto. Quando viene avviato, il workflow Pages riconferma a sua volta la
+differenza dal deployment canonico prima di distribuire il sito e completare
+readback e smoke. I workflow provider restano manuali e vincolati al proprio
+branch; il comando li avvia tramite l'identità GitHub dell'operatore. Eseguire
+questi comandi costituisce un'azione remota e richiede l'autorizzazione prevista
+da `AGENTS.md`.
 
 ## Deploy Production
 
