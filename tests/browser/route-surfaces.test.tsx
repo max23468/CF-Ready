@@ -20,6 +20,7 @@ const router = vi.hoisted(() => ({
   navigate: vi.fn(),
   navigation: { state: "idle" },
   revalidator: { revalidate: vi.fn(), state: "idle" },
+  restoreEmbeddedAdmin: vi.fn(),
   submit: vi.fn(),
 }));
 
@@ -46,6 +47,11 @@ vi.mock("@shopify/shopify-app-react-router/server", () => ({
     headers: vi.fn(() => new Headers({ "x-boundary": "ok" })),
   },
 }));
+
+vi.mock("../../app/embedded-admin", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../../app/embedded-admin")>();
+  return { ...original, restoreEmbeddedAdmin: router.restoreEmbeddedAdmin };
+});
 
 vi.mock("../../app/admin-auth.server", () => ({ authenticateAdmin: vi.fn() }));
 vi.mock("../../app/billing.server", () => ({ localDate: vi.fn(), startTrial: vi.fn() }));
@@ -157,6 +163,7 @@ beforeEach(() => {
   router.navigate.mockReset();
   router.navigation = { state: "idle" };
   router.revalidator.revalidate.mockReset();
+  router.restoreEmbeddedAdmin.mockReset().mockReturnValue(false);
   router.submit.mockReset();
   vi.stubGlobal("shopify", {
     loading: vi.fn(),
@@ -215,6 +222,28 @@ describe("shell embedded", () => {
   test("espone boundary e header Shopify", () => {
     expect(ErrorBoundary()).toBeTruthy();
     expect(headers({} as never)).toBeInstanceOf(Headers);
+  });
+
+  test("ripristina la cornice Admin anche quando App Bridge non è disponibile", async () => {
+    router.loaderData = {
+      apiKey: "api-key",
+      shopDomain: "demo.myshopify.com",
+      locale: "it",
+    };
+    vi.stubGlobal("shopify", undefined);
+    let redirect: ((url: string) => void) | undefined;
+    router.restoreEmbeddedAdmin.mockImplementationOnce(
+      ({ replace }: { replace: (url: string) => void }) => {
+        redirect = replace;
+        return false;
+      },
+    );
+
+    await mount(<App />);
+    redirect?.("#embedded-restore");
+
+    expect(window.location.hash).toBe("#embedded-restore");
+    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
   });
 });
 

@@ -29,5 +29,6 @@ jobs:
           node-version: 26.8.1
       - env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # Soltanto un errore inatteso dello script rende rossa l'attestazione.
+        # Lo script classifica il diff e attesta che il controllo attendibile è stato eseguito.
+        # Soltanto un errore inatteso rende rossa l'attestazione; i gate PR applicano la policy.
         run: node scripts/ci-policy-check.mjs

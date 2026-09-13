@@ -31,29 +31,19 @@ import { skipRevalidationWhenLeaving } from "../revalidation";
 import { setSaveBarVisibility } from "../save-bar";
 import { createServerTiming } from "../server-timing.server";
 import { authenticate } from "../shopify.server";
-import { oneOf, PEC_RULE_MODES, readConfig, showSavedBanner, TAX_CODE_RULE_MODES } from "../config";
+import { PEC_RULE_MODES, readConfig, showSavedBanner, TAX_CODE_RULE_MODES } from "../config";
 import { databaseContext } from "../context.server";
-import { readCheckoutLabelState, saveAddress2FormMode } from "../checkout-labels/repository.server";
+import { readCheckoutLabelState } from "../checkout-labels/repository.server";
 import {
-  acceptCheckoutLabelsCustomization,
-  acceptAddress2Customization,
   CHECKOUT_LABEL_OPTIONAL_SCOPES,
-  confirmGuidedCheckoutLabels,
   loadCheckoutLabels,
-  restoreAddress2Translations,
-  saveRulesAndCheckoutLabels,
 } from "../checkout-labels/service.server";
-import {
-  ADDRESS2_FORM_MODES,
-  checkoutLabelValuesMatch,
-  proposedLabelForSlot,
-} from "../checkout-labels/domain";
-import { observedConfigHash, reconcile, writeValidation } from "../validation.server";
+import { checkoutLabelValuesMatch, proposedLabelForSlot } from "../checkout-labels/domain";
+import { observedConfigHash, reconcile } from "../validation.server";
 import { changedConfigurationFields, type ConfigurationSnapshot } from "../configuration-history";
-import {
-  readConfigurationHistory,
-  readConfigurationHistoryEntry,
-} from "../configuration-history.server";
+import { readConfigurationHistory } from "../configuration-history.server";
+import { handleRulesAction, saveAddress2Mode } from "../features/rules/rules-action.server";
+import { parseRulesIntent, RULES_INTENTS } from "../features/rules/rules-intents";
 
 const SAVE_BAR = "checkout-rules-save-bar";
 const LABEL_CONFIRM_MODAL = "confirm-checkout-label-management";
@@ -134,188 +124,18 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session, scopes } = await authenticate.admin(request);
   const db = context.get(databaseContext);
   const form = await request.formData();
-  const intent = form.get("intent");
+  const intent = parseRulesIntent(form.get("intent"));
+  if (!intent) return { ok: false as const, errorCode: "generic" as const };
 
-  if (intent === "save_address2_form_mode") {
-    const mode = oneOf(ADDRESS2_FORM_MODES, form.get("address2FormMode"));
-    if (!mode) return { ok: false as const, errorCode: "generic" as const };
-    await saveAddress2FormMode(db, session.shop, mode);
-    return { ok: true as const };
-  }
-
-  if (intent === "restore_configuration") {
-    const historyId = Number(form.get("historyId"));
-    const expectedConfigHash = form.get("configHash");
-    if (
-      !Number.isSafeInteger(historyId) ||
-      historyId <= 0 ||
-      typeof expectedConfigHash !== "string"
-    ) {
-      return { ok: false as const, errorCode: "generic" as const };
-    }
-    const snapshot = await readConfigurationHistoryEntry(db, session.shop, historyId);
-    if (!snapshot) return { ok: false as const, errorCode: "config_conflict" as const };
-    const scopeDetails = await scopes.query().catch(() => null);
-    const labelScopesGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
-      scopeDetails?.granted.includes(scope),
-    );
-    const labelState = await readCheckoutLabelState(db, session.shop);
-    const result = labelScopesGranted
-      ? await saveRulesAndCheckoutLabels(admin, db, session.shop, {
-          rules: snapshot.rules,
-          messages: snapshot.messages,
-          expectedConfigHash,
-          labelsEnabled: labelState.mode !== "off",
-          confirmAutomaticWrite: true,
-          expectedLabelsRevision: (form.get("labelsRevision") as string) || null,
-        })
-      : await writeValidation(
-          admin,
-          db,
-          session.shop,
-          { rules: snapshot.rules, messages: snapshot.messages },
-          null,
-          expectedConfigHash,
-        );
-    if (!labelScopesGranted && labelState.mode !== "off" && result.ok) {
-      return { ok: true as const, labelsErrorCode: "checkout_labels_scope_required" as const };
-    }
-    return result;
+  if (intent === RULES_INTENTS.saveAddress2FormMode) {
+    return saveAddress2Mode(db, session.shop, form);
   }
 
   const scopeDetails = await scopes.query().catch(() => null);
   const labelScopesGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
     scopeDetails?.granted.includes(scope),
   );
-
-  if (intent === "refresh_checkout_labels") {
-    if (!labelScopesGranted) {
-      return { ok: false as const, errorCode: "checkout_labels_scope_required" as const };
-    }
-    const taxCode = oneOf(TAX_CODE_RULE_MODES, form.get("taxCode"));
-    const pec = oneOf(PEC_RULE_MODES, form.get("pec"));
-    if (!taxCode || !pec) return { ok: false as const, errorCode: "generic" as const };
-
-    const refreshed = await loadCheckoutLabels(admin, db, session.shop, { taxCode, pec });
-    if (!refreshed.available) {
-      return { ok: false as const, errorCode: refreshed.errorCode };
-    }
-    return {
-      ok: true as const,
-      refreshed: {
-        snapshot: refreshed.snapshot,
-        state: refreshed.state,
-        guidedConfirmations: refreshed.guidedConfirmations,
-      },
-    };
-  }
-
-  if (intent === "restore_address2_labels") {
-    if (!labelScopesGranted) {
-      return { ok: false as const, errorCode: "checkout_labels_scope_required" as const };
-    }
-    const revision = form.get("labelsRevision");
-    if (typeof revision !== "string" || !revision) {
-      return { ok: false as const, errorCode: "address2_restore_conflict" as const };
-    }
-    return restoreAddress2Translations(
-      admin,
-      db,
-      session.shop,
-      revision,
-      form.getAll("slotId").filter((value): value is string => typeof value === "string"),
-    );
-  }
-
-  if (intent === "accept_address2_labels") {
-    if (!labelScopesGranted) {
-      return { ok: false as const, errorCode: "checkout_labels_scope_required" as const };
-    }
-    const revision = form.get("labelsRevision");
-    if (typeof revision !== "string" || !revision) {
-      return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
-    }
-    return acceptAddress2Customization(admin, db, session.shop, revision);
-  }
-
-  if (intent === "accept_checkout_labels") {
-    const revision = form.get("labelsRevision");
-    if (labelScopesGranted && (typeof revision !== "string" || !revision)) {
-      return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
-    }
-    return acceptCheckoutLabelsCustomization(
-      admin,
-      db,
-      session.shop,
-      labelScopesGranted && typeof revision === "string" ? revision : null,
-    );
-  }
-
-  if (intent === "confirm_guided_labels") {
-    if (!labelScopesGranted) {
-      return { ok: false as const, errorCode: "checkout_labels_scope_required" as const };
-    }
-    const revision = form.get("labelsRevision");
-    if (typeof revision !== "string" || !revision) {
-      return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
-    }
-    const current = await reconcile(admin, db, session.shop);
-    const rules = readConfig(current.validation?.metafield?.jsonValue).rules;
-    return confirmGuidedCheckoutLabels(
-      admin,
-      db,
-      session.shop,
-      rules,
-      revision,
-      form.getAll("slotId").filter((value): value is string => typeof value === "string"),
-    );
-  }
-
-  // NFR-023: la validazione lato client è cortesia, questa è la difesa. Un valore fuori
-  // dall'insieme ammesso non viene corretto in silenzio: la scrittura non parte.
-  const taxCode = oneOf(TAX_CODE_RULE_MODES, form.get("taxCode"));
-  const pec = oneOf(PEC_RULE_MODES, form.get("pec"));
-  if (!taxCode || !pec) return { ok: false as const, errorCode: "generic" };
-
-  // FR-051: il salvataggio aggiorna la configurazione e conserva lo stato della Validation.
-  // I messaggi non sono editabili da questa pagina: il percorso condiviso conserva quelli
-  // osservati sotto la stessa lease usata per la scrittura.
-  const labelsEnabled = form.get("labelsEnabled") === "1";
-  if (labelsEnabled && !labelScopesGranted) {
-    return { ok: false as const, errorCode: "checkout_labels_scope_required" as const };
-  }
-  const labelsWereEnabled = labelScopesGranted
-    ? false
-    : (await readCheckoutLabelState(db, session.shop)).mode !== "off";
-
-  const result = labelScopesGranted
-    ? await saveRulesAndCheckoutLabels(admin, db, session.shop, {
-        rules: { taxCode, pec },
-        expectedConfigHash: (form.get("configHash") as string) || null,
-        labelsEnabled,
-        confirmAutomaticWrite: form.get("labelsConfirmed") === "1",
-        expectedLabelsRevision: (form.get("labelsRevision") as string) || null,
-      })
-    : await writeValidation(
-        admin,
-        db,
-        session.shop,
-        { rules: { taxCode, pec } },
-        null,
-        (form.get("configHash") as string) || null,
-      );
-
-  if (!labelScopesGranted && labelsWereEnabled) {
-    // Le regole restano salvabili anche dopo una revoca. La gestione delle etichette rimane
-    // sospesa finché il merchant non concede nuovamente gli scope.
-    return result.ok
-      ? { ok: true as const, labelsErrorCode: "checkout_labels_scope_required" as const }
-      : result;
-  }
-
-  if (!result.ok) return { ok: false as const, errorCode: result.errorCode };
-  const labelsErrorCode = "labelsErrorCode" in result ? result.labelsErrorCode : null;
-  return labelsErrorCode ? { ok: true as const, labelsErrorCode } : { ok: true as const };
+  return handleRulesAction(intent, { admin, db, shop: session.shop, form, labelScopesGranted });
 };
 
 export const shouldRevalidate: ShouldRevalidateFunction = (args) => {
@@ -341,7 +161,9 @@ export default function CheckoutRules() {
   const errorCode = result?.ok === false ? result.errorCode : null;
   const conflict = errorCode === "config_conflict" && !resolvedConflict;
   const labelsErrorCode =
-    result?.ok && "labelsErrorCode" in result ? (result.labelsErrorCode ?? null) : null;
+    result?.ok && "labelsErrorCode" in result && typeof result.labelsErrorCode === "string"
+      ? result.labelsErrorCode
+      : null;
   const [changedSinceResult, setChangedSinceResult] = useState(false);
   const [formRevision, setFormRevision] = useState(0);
   const [draft, setDraft] = useState({ rules: saved.rules });
@@ -551,7 +373,7 @@ export default function CheckoutRules() {
                 onRestore={(historyId) =>
                   send(
                     {
-                      intent: "restore_configuration",
+                      intent: RULES_INTENTS.restoreConfiguration,
                       historyId: String(historyId),
                       configHash: saved.configHash ?? "",
                       labelsRevision: saved.labelSnapshot?.revision ?? "",

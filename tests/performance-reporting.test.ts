@@ -221,6 +221,43 @@ test("la route rifiuta body non JSON o sovradimensionati prima dell'autenticazio
   expect(mocks.authenticate).not.toHaveBeenCalled();
 });
 
+test("la route rifiuta lunghezze dichiarate non valide e report JSON malformati", async () => {
+  const { action } = await import("../app/routes/app.performance");
+  const context = createAppContext(env.DB);
+  const invalidLength = await action({
+    request: new Request("https://example.test/app/performance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": "non-numerica" },
+      body: "{}",
+    }),
+    context,
+    params: {},
+  } as never);
+  const malformedJson = await action({
+    request: new Request("https://example.test/app/performance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{",
+    }),
+    context,
+    params: {},
+  } as never);
+  const emptyReport = await action({
+    request: new Request("https://example.test/app/performance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    }),
+    context,
+    params: {},
+  } as never);
+
+  expect(invalidLength.status).toBe(413);
+  expect(malformedJson.status).toBe(400);
+  expect(emptyReport.status).toBe(400);
+  expect(mocks.authenticate).not.toHaveBeenCalled();
+});
+
 test("la route interrompe un body JSON chunked appena supera il limite", async () => {
   const { action } = await import("../app/routes/app.performance");
   let chunksRead = 0;
