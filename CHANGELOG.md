@@ -6,6 +6,23 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.11.0 — 13 settembre 2026
+
+- Regole checkout separa presentazione, azioni server e gestione dei permessi in
+  componenti più piccoli, mantenendo distinti il campo “Interno” e le etichette
+  native di Codice Fiscale e PEC;
+- i workflow condividono il setup Node e npm e verificano i readback dei provider
+  con un unico contratto operativo;
+- la CI riusa sul merge Production i gate verificati di `develop`, esegue i
+  mutation test soltanto per i domini coinvolti ed evita di ripetere le suite già
+  coperte dal job coverage;
+- il coordinatore di pubblicazione riprende PR, deploy, riconciliazione e release
+  dal primo passaggio incompleto;
+- il sito mostra una CTA mobile persistente e mantiene il menu accessibile durante
+  navigazione, ridimensionamento e ritorno alla pagina;
+- i testi italiano e inglese distinguono con chiarezza i messaggi di errore dai
+  nomi dei campi gestiti in Regole checkout.
+
 ## 1.10.1 — 13 settembre 2026
 
 - il simulatore usa scenari senza mostrare esempi di Codice Fiscale o PEC e la

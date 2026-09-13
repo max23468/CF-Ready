@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { changedFiles, classifyCiLane, parseChangedFiles } from "./ci-lane.mjs";
+import {
+  changedFiles,
+  classifyCiLane,
+  parseChangedFiles,
+  selectMutationDomains,
+} from "./ci-lane.mjs";
 
 test("la documentazione di contenuto usa la corsia docs", () => {
   assert.equal(classifyCiLane(["docs/listing/listing-it.md"]).lane, "docs");
@@ -70,6 +75,33 @@ test("la promozione riusa le prove senza browser o React Doctor", () => {
   assert.equal(result.lane, "promotion");
   assert.equal(result.e2e, false);
   assert.equal(result.reactDoctor, false);
+});
+
+test("il merge push su main usa la corsia di promozione", () => {
+  const result = classifyCiLane(["app/routes/app._index.tsx"], {
+    eventName: "push",
+    refName: "main",
+  });
+  assert.equal(result.lane, "promotion");
+  assert.deepEqual(result.mutationDomains, []);
+});
+
+test("seleziona soltanto i domini mutation toccati", () => {
+  assert.deepEqual(selectMutationDomains(["app/billing/domain.ts"]), ["billing"]);
+  assert.deepEqual(
+    selectMutationDomains(["app/validation/domain.ts", "tests/webhooks/x.test.ts"]),
+    ["validation", "webhooks"],
+  );
+  assert.deepEqual(selectMutationDomains(["app/root.tsx"]), []);
+});
+
+test("i file condivisi del mutation harness attivano tutti i domini", () => {
+  assert.deepEqual(selectMutationDomains(["stryker.critical.config.mjs"]), [
+    "billing",
+    "validation",
+    "ownerNotifications",
+    "webhooks",
+  ]);
 });
 
 test("un diff vuoto fallisce verso la corsia completa", () => {

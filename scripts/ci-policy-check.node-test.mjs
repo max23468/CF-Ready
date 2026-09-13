@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { evaluateCiPolicy, isCiPolicyFile } from "./ci-policy-check.mjs";
+import { classifyCiPolicyChange, isCiPolicyFile } from "./ci-policy-check.mjs";
 
 test("riconosce tutto il control plane CI senza ampliare la superficie", () => {
   for (const path of [
+    ".github/actions/setup-node-npm/action.yml",
     ".github/workflows/ci.yml",
     ".github/workflows/nested/check.yml",
     ".npmrc",
@@ -30,20 +31,21 @@ test("riconosce tutto il control plane CI senza ampliare la superficie", () => {
   }
 });
 
-test("consente modifiche ordinarie da qualunque mittente", () => {
-  assert.deepEqual(evaluateCiPolicy({ files: ["app/root.tsx"] }), {
-    state: "success",
+test("classifica le modifiche ordinarie senza file di policy", () => {
+  assert.deepEqual(classifyCiPolicyChange({ files: ["app/root.tsx"] }), {
     description: "La PR non modifica il control plane CI.",
     changedPolicyFiles: [],
   });
 });
 
 test("affida anche le modifiche al control plane ai gate automatici della PR", () => {
-  assert.deepEqual(evaluateCiPolicy({ files: ["package.json", ".github/workflows/ci.yml"] }), {
-    state: "success",
-    description: "Control plane CI rilevato; valgono i gate automatici della PR.",
-    changedPolicyFiles: [".github/workflows/ci.yml", "package.json"],
-  });
+  assert.deepEqual(
+    classifyCiPolicyChange({ files: ["package.json", ".github/workflows/ci.yml"] }),
+    {
+      description: "Control plane CI rilevato; valgono i gate automatici della PR.",
+      changedPolicyFiles: [".github/workflows/ci.yml", "package.json"],
+    },
+  );
 });
 
 test("soltanto un errore inatteso fa fallire la run di attestazione", async () => {

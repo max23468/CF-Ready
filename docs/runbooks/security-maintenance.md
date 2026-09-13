@@ -19,8 +19,9 @@ I required checks vivono anche nei ruleset pubblici. `ci-policy` è pubblicato
 da `pull_request_target` sullo SHA candidato, ma esegue soltanto il workflow e
 lo script del branch predefinito attendibile: non fa checkout, fetch,
 installazioni o esecuzioni dell'HEAD della PR. Il control plane comprende tutti
-i workflow, `scripts/**`, manifest e lockfile npm, configurazioni dei runner e
-setup test. Rinomine e cancellazioni controllano anche il percorso precedente.
+i workflow e le action locali, `scripts/**`, manifest e lockfile npm,
+configurazioni dei runner e setup test. Rinomine e cancellazioni controllano
+anche il percorso precedente.
 Le modifiche a questa superficie passano attraverso i normali gate automatici
 della PR. `ci-policy` rileva i file interessati dal branch predefinito attendibile
 e pubblica lo stato sullo SHA candidato esatto. In questo modo una PR non può
