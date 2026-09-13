@@ -1,6 +1,7 @@
 [mcp_servers.shopify-dev-mcp]
 command = "npx"
 args = [
+    "--ignore-scripts",
     "-y",
     "@shopify/dev-mcp@1.14.4",
 ]
