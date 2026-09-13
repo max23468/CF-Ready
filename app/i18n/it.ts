@@ -473,8 +473,8 @@ export const it = {
       taxCodePresent: "Shopify mostra il campo Codice Fiscale",
       pecPresent: "Shopify mostra il campo PEC",
       scenarioLabel: "Prova uno scenario",
-      scenarioHelp: "Scegli un esempio: il simulatore compila i campi e mostra il risultato.",
-      scenarioPlaceholder: "Scegli un esempio",
+      scenarioHelp: "Scegli uno scenario: il simulatore compila i campi e mostra il risultato.",
+      scenarioPlaceholder: "Scegli uno scenario",
       scenarios: {
         valid: "Dati validi",
         invalidTaxCode: "Codice Fiscale non valido",
@@ -486,10 +486,6 @@ export const it = {
       },
       clear: "Svuota",
       continue: "Continua",
-      examples: {
-        taxCode: "Esempi sintetici: RSSMRA85T10A562S, 12345678903, AAAAAAL0A01A000K.",
-        pec: "Esempio sintetico: mario.rossi@example.com.",
-      },
       diagnostics: {
         taxCode: {
           valid: "Il formato è valido.",
@@ -519,7 +515,7 @@ export const it = {
       restore: "Ripristina questa configurazione",
     },
     labels: {
-      heading: "Etichette del checkout (impostazioni avanzate)",
+      heading: "Etichette del checkout",
       nativeHeading: "Testi del checkout",
       permissionsHeading: "Controlla le etichette Shopify",
       permissionsBody:
@@ -579,14 +575,14 @@ export const it = {
         verificationMarkets: string[],
       ) => [
         market
-          ? `Apri il negozio e seleziona ${market} come paese o area geografica e ${language} come lingua.`
+          ? `Apri il negozio e nel selettore “Paese/area geografica” scegli un paese disponibile del mercato ${market}. Seleziona ${language} come lingua.`
           : `Apri il negozio nel mercato predefinito e seleziona ${language} come lingua.`,
         ...(verificationMarkets.length > 0
           ? [
-              `Ripeti il controllo selezionando ${verificationMarkets.join(", ")} come paese o area geografica e ${language} come lingua.`,
+              `Ripeti il controllo per ${verificationMarkets.join(", ")}: nel selettore “Paese/area geografica” scegli un paese disponibile di ciascun mercato e mantieni ${language} come lingua.`,
             ]
           : []),
-        "Per ogni caso indicato, aggiungi un prodotto al carrello e raggiungi il checkout.",
+        "Per ogni caso indicato, aggiungi un prodotto al carrello e raggiungi il checkout. Imposta Italia come paese di consegna e seleziona un indirizzo italiano riconosciuto da Shopify: Codice Fiscale e PEC compaiono dopo che l’indirizzo è stato acquisito.",
         "Confronta le etichette di Codice Fiscale e PEC con “Campo dopo il salvataggio” mostrato qui.",
         "Se differiscono, premi “Apri l’editor dei testi del checkout”. In Shopify, nella sezione Lingua del check-out, premi “Modifica contenuto del check-out”.",
         ...(primary && !market
@@ -595,7 +591,7 @@ export const it = {
               "Per PEC cerca “PEC”, scorri fino a Checkout localized fields additional information e modifica Tax email it. Inserisci per entrambi il relativo “Campo dopo il salvataggio”, poi premi “Salva”.",
               ...(verificationMarkets.length > 0
                 ? [
-                    `Se un’etichetta differisce soltanto in ${verificationMarkets.join(", ")}, premi “Traduci” nell’editor, apri il selettore “Traduzione in…”, scegli “Adatta un mercato” → ${verificationMarkets.join(", ")} → ${language}, quindi apri Checkout and system. In “Filtra campi” cerca Tax credential it o Tax email it, inserisci il relativo “Campo dopo il salvataggio” e salva.`,
+                    `Se un’etichetta differisce soltanto in ${verificationMarkets.join(", ")}, premi “Traduci” nell’editor, apri il selettore “Traduzione in…” e scegli “Adatta un mercato”. Apri uno alla volta ${verificationMarkets.join(", ")} con lingua ${language}, quindi in Checkout and system usa “Filtra campi” per cercare Tax credential it o Tax email it, inserisci il relativo “Campo dopo il salvataggio” e salva.`,
                   ]
                 : []),
             ]

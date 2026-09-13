@@ -165,8 +165,9 @@ test("la PEC condizionale è richiesta soltanto con Azienda compilata", () => {
 });
 
 test("il selettore spiega che ogni scenario compila i campi e mostra il risultato", () => {
-  expect(texts("it").rules.simulator.scenarioHelp).toMatch(/compila i campi/i);
-  expect(texts("en").rules.simulator.scenarioHelp).toMatch(/fills the fields/i);
+  expect(texts("it").rules.simulator.scenarioHelp).toMatch(/scenario.*compila i campi/i);
+  expect(texts("en").rules.simulator.scenarioHelp).toMatch(/scenario.*fills the fields/i);
+  expect(JSON.stringify([texts("it"), texts("en")])).not.toMatch(/sintetic|synthetic/i);
 });
 
 test("cambiare una regola aggiorna la bozza", () => {
