@@ -216,6 +216,13 @@ compare nell’array solo dopo la risoluzione della consegna, la sua presenza è
 già il proxy cercato: l’euristica su indirizzo e opzione di consegna non serve e
 la query di input resta invariata.
 
+Aggiornamento del 13 settembre 2026: la sintesi sopra omette una riserva del
+testo originale. Shopify ha precisato che la presenza della chiave scatta appena
+indirizzo e consegna sono risolti, quindi prima che il cliente compili il campo,
+e che senza un segnale di intento i tempi dei campi nativi non sono
+raggiungibili. D-146 ha poi adottato la condizione sull’opzione di consegna
+selezionata.
+
 **Fallback a banner nella review.** Nessuna soluzione confermata né in
 lavorazione e nessun tempo indicato. La modalità preventiva resta quindi
 l’unica mitigazione sotto il nostro controllo e l’avviso al merchant previsto
@@ -250,6 +257,14 @@ attiva soltanto su negozi con paese Italia: `app/validation.server.ts` rifiuta
 l’attivazione altrove e disattiva la Validation se il negozio smette di essere
 idoneo. Inoltre la regola implementata non usa la destinazione dichiarata ma una
 consegna italiana osservabile, quindi è già più stretta dell’ipotesi discussa.
+
+Aggiornamento del 13 settembre 2026: le due ragioni non valgono più. D-143
+(`1.2.0`) ha rimosso il gate sul Paese del negozio e una consegna italiana
+osservabile non protegge uno store estero che spedisce in Italia. Se in quello
+store `TAX_CREDENTIAL_IT` non comparisse, un Codice Fiscale obbligatorio
+bloccherebbe il checkout senza un campo da compilare. Shopify aveva raccomandato
+una prova con negozio non italiano e destinazione italiana, non ancora eseguita:
+il rinvio dell’owner è registrato nell’open item 7 del Master Plan.
 
 **Accesso ai campi a livello negozio.** Una risposta Shopify su
 `TAX_CREDENTIAL_ES` in
