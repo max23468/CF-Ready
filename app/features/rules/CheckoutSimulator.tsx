@@ -445,11 +445,7 @@ function SimulatorTaxCodeField({
         problem,
         problem === "invalid" || requiredErrorsDue,
       )}
-      details={
-        problem === "invalid"
-          ? copy.diagnostics.taxCode[diagnoseTaxCode(value)]
-          : copy.examples.taxCode
-      }
+      details={problem === "invalid" ? copy.diagnostics.taxCode[diagnoseTaxCode(value)] : undefined}
       onInput={(event) => onInput(event.currentTarget.value)}
     />
   );
@@ -491,7 +487,7 @@ function SimulatorPecField({
         problem,
         problem === "invalid" || requiredErrorsDue,
       )}
-      details={problem === "invalid" ? copy.diagnostics.pec[diagnosePec(value)] : copy.examples.pec}
+      details={problem === "invalid" ? copy.diagnostics.pec[diagnosePec(value)] : undefined}
       onInput={(event) => onInput(event.currentTarget.value)}
     />
   );

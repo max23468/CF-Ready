@@ -449,7 +449,9 @@ function NativeLabelsGrantedContent({
       <s-paragraph>{copy.operationalSummary(automaticCount, pendingCount)}</s-paragraph>
       {snapshot ? (
         <>
-          <MarketResolutionWarning snapshot={snapshot} message={copy.marketAmbiguous} />
+          {pendingCount > 0 ? (
+            <MarketResolutionWarning snapshot={snapshot} message={copy.marketAmbiguous} />
+          ) : null}
           <LabelComparison
             contexts={displayedContexts}
             rules={rules}
