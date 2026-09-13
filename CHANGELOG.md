@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.10.1 — 13 settembre 2026
+
+- il simulatore usa scenari senza mostrare esempi di Codice Fiscale o PEC e la
+  sezione delle etichette adotta un titolo diretto;
+- la verifica guidata distingue il paese che seleziona il mercato dalla
+  destinazione italiana richiesta per mostrare i campi e apre un mercato alla
+  volta in Translate & Adapt;
+- l’avviso sui mercati con configurazione ambigua scompare dopo la conferma di
+  tutte le verifiche manuali richieste.
+
 ## 1.10.0 — 12 settembre 2026
 
 - il simulatore riproduce Interaction e Completion della Function, comprese le

@@ -1753,6 +1753,23 @@ describe("Regole", () => {
     expect(router.revalidator.revalidate).not.toHaveBeenCalled();
 
     router.loaderData = {
+      ...router.loaderData,
+      guidedConfirmations: snapshot.slots
+        .filter(
+          (slot) =>
+            slot.family === "it" &&
+            slot.capability !== "automatic" &&
+            (slot.name === "taxCode" || slot.name === "pec"),
+        )
+        .map((slot) => ({
+          slotId: checkoutLabelSlotId(slot),
+          confirmedAt: "2026-09-13T01:09:00Z",
+        })),
+    };
+    await view.rerender(<CheckoutRules key="confirmed-ambiguous-markets" />);
+    expect(view.container.textContent).not.toContain(texts("it").rules.labels.marketAmbiguous);
+
+    router.loaderData = {
       ...rulesData,
       rules: { taxCode: "unmanaged", pec: "unmanaged" },
       labelScopesGranted: true,
@@ -2195,6 +2212,12 @@ describe("Regole", () => {
     expect(
       texts("en").rules.labels.manualSteps("English", null, true, ["Italy"]).join(" "),
     ).toContain("Adapt a market");
+    expect(
+      texts("en").rules.labels.manualSteps("English", null, true, ["Italy"]).join(" "),
+    ).toContain("Set Italy as the delivery country");
+    expect(
+      texts("it").rules.labels.manualSteps("Italiano", null, true, ["Italia"]).join(" "),
+    ).toContain("Apri uno alla volta Italia");
     expect(texts("en").rules.labels.manualSteps("English", "Italy", false, []).join(" ")).toContain(
       "Italy",
     );
