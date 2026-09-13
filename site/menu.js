@@ -25,6 +25,43 @@ export function readingProgress(scrollY, scrollHeight, viewportHeight) {
   return distance > 0 ? Math.min(1, Math.max(0, scrollY / distance)) : 0;
 }
 
+export function shouldShowMobileInstallCta({ mobile, startVisible, endVisible }) {
+  return mobile && !startVisible && !endVisible;
+}
+
+export function initializeMobileInstallCta(doc = document, win = window) {
+  var cta = doc.querySelector("[data-mobile-install-cta]");
+  var start = doc.querySelector("[data-install-cta-start]");
+  var end = doc.querySelector("[data-install-cta-end]");
+  if (!cta || !start || !end || typeof win.IntersectionObserver !== "function") return;
+
+  var mobile = win.matchMedia("(max-width: 40rem)");
+  var visibility = new Map([
+    [start, true],
+    [end, false],
+  ]);
+
+  function render() {
+    var visible = shouldShowMobileInstallCta({
+      mobile: mobile.matches,
+      startVisible: visibility.get(start),
+      endVisible: visibility.get(end),
+    });
+    cta.hidden = !visible;
+  }
+
+  var observer = new win.IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      visibility.set(entry.target, entry.isIntersecting);
+    });
+    render();
+  });
+  observer.observe(start);
+  observer.observe(end);
+  mobile.addEventListener("change", render);
+  render();
+}
+
 export function initializeMenu(doc = document, win = window) {
   var masthead = doc.querySelector(".masthead");
   if (!masthead) return;
@@ -134,4 +171,7 @@ export function initializeMenu(doc = document, win = window) {
   markSection();
 }
 
-if (typeof document !== "undefined") initializeMenu();
+if (typeof document !== "undefined") {
+  initializeMenu();
+  initializeMobileInstallCta();
+}

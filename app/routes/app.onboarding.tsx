@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { HeadersFunction } from "react-router";
-import { useFetcher, useLoaderData, useNavigate, useRevalidator } from "react-router";
+import { useFetcher, useLoaderData, useNavigate } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError, type AppErrorCode } from "../app-error";
 import {
-  CHECKOUT_LABEL_OPTIONAL_SCOPES,
   checkoutLabelCopy,
   checkoutLabelValuesMatch,
   proposedLabelForSlot,
@@ -23,6 +22,7 @@ import {
   OnboardingStep4Actions,
   OnboardingStep4Content,
 } from "../features/onboarding/OnboardingSections";
+import { useCheckoutLabelScopeRequest } from "../features/use-checkout-label-scopes";
 import { AutomaticLabelsConfirmModal } from "../features/rules/AutomaticLabelsConfirmModal";
 import {
   planComparisonLocationState,
@@ -44,15 +44,14 @@ const LABEL_CONFIRM_MODAL = "confirm-onboarding-checkout-label-management";
 export default function Onboarding() {
   const saved = useLoaderData<typeof loader>();
   const navigate = useNavigate();
-  const revalidator = useRevalidator();
   const fetcher = useFetcher<typeof action>();
   const t = texts(saved.locale);
   const [step, setStepState] = useState(saved.step);
   const [draftRules, setDraftRules] = useState<Rules>(saved.rules);
   const [labelsEnabled, setLabelsEnabled] = useState(saved.labelState.mode !== "off");
   const [finished, setFinished] = useState(false);
-  const [scopeRequestBusy, setScopeRequestBusy] = useState(false);
-  const [scopeRequestError, setScopeRequestError] = useState<AppErrorCode | null>(null);
+  const { requestPermissions, scopeRequestBusy, scopeRequestError } =
+    useCheckoutLabelScopeRequest();
   const form = useRef<HTMLFormElement>(null);
   // Un secondo canale per la sola memoria del passo: la scrittura non tocca lo stato del
   // pulsante principale e non viene mai riletta, quindi non può far rimbalzare la pagina.
@@ -64,21 +63,8 @@ export default function Onboarding() {
   const esito = fetcher.data as { ok: boolean; errorCode?: AppErrorCode } | undefined;
   const step4State = onboardingStep4State(saved);
 
-  const requestLabelScopes = async () => {
-    setScopeRequestBusy(true);
-    setScopeRequestError(null);
-    try {
-      const response = await shopify.scopes.request([...CHECKOUT_LABEL_OPTIONAL_SCOPES]);
-      if (response.result === "granted-all") revalidator.revalidate();
-    } catch {
-      setScopeRequestError("generic");
-    } finally {
-      setScopeRequestBusy(false);
-    }
-  };
-
   const go = (intent: string, extra: Record<string, string> = {}) => {
-    if (intent === "request_label_scopes") return void requestLabelScopes();
+    if (intent === "request_label_scopes") return void requestPermissions();
     fetcher.submit({ intent, step: String(step), ...extra }, { method: "post" });
   };
 

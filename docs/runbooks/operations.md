@@ -371,6 +371,29 @@ readback. L'artifact resta legato al run per 90 giorni; in Production viene
 attestato con la provenienza GitHub Actions. La chiusura collega run, artifact o
 GitHub Release e non apre una PR per copiare la ricevuta nel repository.
 
+## Coordinatore di pubblicazione
+
+Una richiesta affermativa di pubblicazione può essere eseguita dal worktree
+pulito del branch della modifica con uno dei due comandi:
+
+```sh
+npm run publish:development
+npm run publish:production
+```
+
+Il primo crea o riprende la PR verso `develop`, abilita lo squash merge
+automatico e attende il deploy Development del commit unito. Il secondo completa
+lo stesso percorso, crea o riprende la promozione `develop` → `main`, impone il
+merge commit, attende deploy e readback Production, verifica la riconciliazione
+di `develop` e crea la GitHub Release sul commit distribuito.
+
+Il coordinatore riusa PR, run e release già riusciti per lo stesso commit. Dopo
+un errore si rilancia quindi lo stesso comando: riparte dal primo passaggio
+incompleto. I workflow provider restano manuali e vincolati al proprio branch;
+il comando li avvia tramite l'identità GitHub dell'operatore. Eseguire questi
+comandi costituisce un'azione remota e richiede l'autorizzazione prevista da
+`AGENTS.md`.
+
 ## Deploy Production
 
 Il workflow `deploy-production.yml` è manuale e parte solo da `main`, tramite

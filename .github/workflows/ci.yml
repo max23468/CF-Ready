@@ -24,6 +24,7 @@ jobs:
       dependency_review: ${{ steps.lane.outputs.dependency_review }}
       e2e: ${{ steps.lane.outputs.e2e }}
       react_doctor: ${{ steps.lane.outputs.react_doctor }}
+      mutation_matrix: ${{ steps.lane.outputs.mutation_matrix }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -41,6 +42,8 @@ jobs:
           --head-sha "$HEAD_SHA"
           --base-ref "$BASE_REF"
           --head-ref "$HEAD_REF"
+          --event-name "${{ github.event_name }}"
+          --ref-name "${{ github.ref_name }}"
 
   dependency-review:
     needs: lane
@@ -68,24 +71,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/github-gates.mjs
       - if: needs.lane.outputs.lane != 'promotion'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 26.8.1
-          cache: npm
-      - if: needs.lane.outputs.lane != 'promotion'
-        run: npm install --global npm@12.0.2
-      - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
-        run: npm install --global --allow-scripts=esbuild @shopify/cli@4.7.1
+        uses: ./.github/actions/setup-node-npm
       - if: needs.lane.outputs.lane != 'promotion'
         run: npm ci
-      - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
-        run: npx playwright install --with-deps chromium webkit
       - if: needs.lane.outputs.lane == 'docs'
         run: npm run check:docs
       - if: needs.lane.outputs.lane == 'standard'
-        run: npm run check:standard
+        run: npm run check:ci-standard
       - if: needs.lane.outputs.lane == 'full'
-        run: npm run check
+        run: npm run check:ci-full
 
   coverage:
     needs: lane
@@ -100,14 +94,19 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 26.8.1
-          cache: npm
-      - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
-        run: npm install --global npm@12.0.2
+        uses: ./.github/actions/setup-node-npm
       - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
         run: npm ci
+      - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
+        id: playwright-version
+        run: |
+          version="$(node -p 'require("@playwright/test/package.json").version')"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
       - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
         run: npx playwright install --with-deps chromium webkit
       - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
@@ -115,32 +114,6 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: npm run coverage:check -- --base-sha "$BASE_SHA" --head-sha "$HEAD_SHA"
-      - name: Mutation gate webhook
-        if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: |
-          if git diff --quiet "$BASE_SHA...$HEAD_SHA" -- \
-            app/routes/webhooks.app.billing.tsx \
-            app/routes/webhooks.app.scopes_update.tsx \
-            app/routes/webhooks.app.uninstalled.tsx \
-            app/routes/webhooks.compliance.tsx \
-            app/routes/webhooks.shop.update.tsx \
-            app/webhook-auth.server.ts \
-            app/webhook-jobs.server.ts \
-            app/webhooks.server.ts \
-            tests/webhook-jobs.test.ts \
-            tests/webhooks \
-            config/coverage-policy.json \
-            package.json \
-            package-lock.json \
-            scripts/run-critical-mutation.mjs \
-            stryker.critical.config.mjs; then
-            echo "Mutation webhook non applicabile al diff."
-          else
-            CRITICAL_MUTATION_DOMAIN=webhooks npm run mutation:critical
-          fi
       - name: Carica report coverage
         if: always() && (needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full')
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -149,64 +122,32 @@ jobs:
           path: |
             .coverage/coverage-summary.json
             .coverage/global
-            .coverage/mutation/webhooks.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
 
   critical-mutation:
     needs: lane
-    if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
+    if: needs.lane.outputs.mutation_matrix != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        domain: [billing, validation, ownerNotifications]
+        domain: ${{ fromJSON(needs.lane.outputs.mutation_matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 26.8.1
-          cache: npm
-      - run: npm install --global npm@12.0.2
+      - uses: ./.github/actions/setup-node-npm
       - run: npm ci
-      - id: applicability
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: |
-          if git diff --quiet "$BASE_SHA...$HEAD_SHA" -- \
-            app/billing \
-            app/checkout-field-validation.ts \
-            app/validation \
-            app/owner-notifications.server.ts \
-            app/owner-notifications \
-            tests/billing \
-            tests/validation.test.ts \
-            tests/validation \
-            tests/owner-notifications.test.ts \
-            tests/owner-notification-contracts.test.ts \
-            config/coverage-policy.json \
-            package.json \
-            package-lock.json \
-            scripts/run-critical-mutation.mjs \
-            stryker.critical.config.mjs; then
-            echo "applicable=false" >> "$GITHUB_OUTPUT"
-            echo "Mutation domini commerciali non applicabile al diff."
-          else
-            echo "applicable=true" >> "$GITHUB_OUTPUT"
-          fi
       - name: Mutation ${{ matrix.domain }}
-        if: steps.applicability.outputs.applicable == 'true'
         env:
           CRITICAL_MUTATION_DOMAIN: ${{ matrix.domain }}
         run: npm run mutation:critical
       - name: Carica report mutation ${{ matrix.domain }}
-        if: always() && steps.applicability.outputs.applicable == 'true'
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: critical-mutation-${{ matrix.domain }}-${{ github.sha }}
@@ -227,12 +168,7 @@ jobs:
         with:
           persist-credentials: false
       - if: needs.lane.outputs.e2e == 'true'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 26.8.1
-          cache: npm
-      - if: needs.lane.outputs.e2e == 'true'
-        run: npm install --global npm@12.0.2
+        uses: ./.github/actions/setup-node-npm
       - if: needs.lane.outputs.e2e == 'true'
         run: npm ci
       - if: needs.lane.outputs.e2e == 'true'

@@ -135,8 +135,8 @@ export const it = {
     previewCurrentFieldLabel: "Etichetta attuale Shopify",
     previewProposedFieldLabel: "Etichetta proposta",
     labelsNote:
-      "Le etichette identificano i campi; questi messaggi spiegano al cliente cosa correggere.",
-    manageLabels: "Gestisci le etichette da Regole checkout",
+      "Qui modifichi i messaggi di errore mostrati quando Codice Fiscale o PEC mancano o non sono validi. I nomi dei campi si modificano in Regole checkout.",
+    manageLabels: "Apri Regole checkout",
   },
   setup: {
     heading: "Prepara CF Ready",

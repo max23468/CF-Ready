@@ -457,6 +457,15 @@ test("i gate GitHub reali riusano check sintetici senza rete", async (t) => {
     },
     success: false,
   });
+
+  const missingEvent = path.join(await temporaryDirectory(t), "missing-event.json");
+  runEntrypoint("github-gates.mjs", [], {
+    env: {
+      GITHUB_ACTIONS: "true",
+      GITHUB_EVENT_PATH: missingEvent,
+    },
+    success: false,
+  });
 });
 
 test("il riallineamento reale copre no-op e recupero usando API sintetiche", async (t) => {
