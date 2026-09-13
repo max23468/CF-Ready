@@ -345,6 +345,27 @@ const indexableSitePages = new Map([
   ],
 ]);
 
+const siteHtmlPages = readdirSync(new URL("../site", import.meta.url), { recursive: true })
+  .filter((path) => path.endsWith(".html"))
+  .sort();
+
+test("ogni pagina HTML pubblica mantiene metadati e alternative testuali", () => {
+  for (const file of siteHtmlPages) {
+    const html = readFileSync(new URL(`../site/${file}`, import.meta.url), "utf8");
+    assert.equal([...html.matchAll(/<title>[^<]+<\/title>/g)].length, 1, file);
+    assert.equal([...html.matchAll(/<meta name="description" content="[^"]+">/g)].length, 1, file);
+    assert.equal(
+      [...html.matchAll(/<meta name="viewport" content="width=device-width, initial-scale=1">/g)]
+        .length,
+      1,
+      file,
+    );
+    for (const [tag] of html.matchAll(/<img\b[^>]*>/g)) {
+      assert.match(tag, /\balt=(?:"[^"]*"|'[^']*')/, `${file}: ${tag}`);
+    }
+  }
+});
+
 test("le pagine indicizzabili dichiarano canonical, lingue e metadati sociali", () => {
   for (const [path, canonical] of indexableSitePages) {
     const html = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -385,14 +406,6 @@ test("la Home espone il token di verifica Google Search Console", () => {
 });
 
 test("ogni pagina pubblica espone il set favicon multipiattaforma", () => {
-  const pages = [
-    ...indexableSitePages.keys(),
-    "site/privacy.html",
-    "site/terms.html",
-    "site/en/privacy.html",
-    "site/en/terms.html",
-    "site/404.html",
-  ];
   const tags = [
     '<link rel="icon" href="/favicon-96x96.png" type="image/png" sizes="96x96">',
     '<link rel="icon" href="/favicon.svg" type="image/svg+xml">',
@@ -403,8 +416,8 @@ test("ogni pagina pubblica espone il set favicon multipiattaforma", () => {
     '<meta name="theme-color" content="#F7F5EE">',
   ];
 
-  for (const path of pages) {
-    const html = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+  for (const path of siteHtmlPages) {
+    const html = readFileSync(new URL(`../site/${path}`, import.meta.url), "utf8");
     for (const tag of tags) assert.equal(html.split(tag).length - 1, 1, `${path}: ${tag}`);
   }
 
@@ -632,28 +645,33 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   assert.match(mise, /^node = "26\.8\.1"$/m);
   assert.match(mise, /^npm = "12\.0\.2"$/m);
 
+  const setupAction = readFileSync(
+    new URL("../.github/actions/setup-node-npm/action.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(setupAction, /node-version:\s*26\.8\.1/);
+  assert.match(setupAction, /cache:\s*npm/);
+  assert.match(setupAction, /npm install --global npm@12\.0\.2/);
+
   for (const path of [
     "ci.yml",
     "security-maintenance.yml",
     "backup-production.yml",
     "deploy-development.yml",
     "deploy-pages-production.yml",
+    "deploy-production.yml",
+    "mutation-campaign.yml",
   ]) {
     const workflow = readFileSync(new URL(`../.github/workflows/${path}`, import.meta.url), "utf8");
-    const nodeVersions = [...workflow.matchAll(/node-version:\s*([^\s]+)/g)].map(
-      (match) => match[1],
-    );
-    assert(nodeVersions.length > 0, path);
-    assert.deepEqual([...new Set(nodeVersions)], ["26.8.1"], path);
     assert.equal(
-      workflow.match(/npm install --global npm@12\.0\.2/g)?.length,
+      workflow.match(/uses: \.\/\.github\/actions\/setup-node-npm/g)?.length,
       workflow.match(/npm ci/g)?.length,
       path,
     );
     if (/shopify app|npm run check/.test(workflow)) {
       assert.doesNotMatch(workflow, /@shopify\/cli@(?!4\.7\.1)/, path);
     }
-    if (/npm run check/.test(workflow)) {
+    if (path !== "ci.yml" && /npm run check/.test(workflow)) {
       const browserInstall = workflow.indexOf("playwright install --with-deps chromium webkit");
       assert(browserInstall >= 0, path);
       assert(browserInstall < workflow.indexOf("npm run check"), path);
@@ -873,7 +891,7 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
   assert.match(ci, /playwright install --with-deps chromium webkit/);
   assert.deepEqual(
     [...ci.matchAll(/playwright install --with-deps ([^\n]+)/g)].map((match) => match[1].trim()),
-    ["chromium webkit", "chromium webkit", "chromium webkit"],
+    ["chromium webkit", "chromium webkit"],
   );
   assert.match(ci, /actions\/cache@[0-9a-f]{40}/);
   assert.match(ci, /key: playwright-\$\{\{ runner\.os \}\}/);
@@ -907,8 +925,8 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   assert.match(ci, /checks: read/);
   assert.match(ci, /statuses: read/);
   assert.match(ci, /needs\.lane\.outputs\.lane == 'docs'[\s\S]*npm run check:docs/);
-  assert.match(ci, /needs\.lane\.outputs\.lane == 'standard'[\s\S]*npm run check:standard/);
-  assert.match(ci, /needs\.lane\.outputs\.lane == 'full'[\s\S]*npm run check/);
+  assert.match(ci, /needs\.lane\.outputs\.lane == 'standard'[\s\S]*npm run check:ci-standard/);
+  assert.match(ci, /needs\.lane\.outputs\.lane == 'full'[\s\S]*npm run check:ci-full/);
   assert.match(ci, /lane == 'promotion'[\s\S]*node scripts\/github-gates\.mjs/);
   assert.match(ci, /^  coverage:\n[\s\S]*timeout-minutes: 15/m);
   assert.match(ci, /^  e2e:\n[\s\S]*timeout-minutes: 20/m);
@@ -926,6 +944,8 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   assert.doesNotMatch(policy, /pull_request\.head|gh pr checkout|git fetch|npm (?:ci|install)/);
   assert.match(packageJson.scripts["check:docs"], /docs:check/);
   assert.match(packageJson.scripts["check:standard"], /typecheck/);
+  assert.doesNotMatch(packageJson.scripts["check:ci-standard"], /npm (?:test|run test:ui)/);
+  assert.doesNotMatch(packageJson.scripts["check:ci-full"], /npm (?:test|run test:ui)/);
 });
 
 test("gli entrypoint operativi usano un rilevamento di esecuzione portabile", () => {

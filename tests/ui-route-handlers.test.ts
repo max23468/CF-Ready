@@ -810,6 +810,12 @@ test("Regole carica etichette disponibili e propaga un readback fallito", async 
 
 test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", async () => {
   const { action } = rulesRoute;
+  expect(await action(args(post("/app/rules", { intent: "intent_sconosciuto" })))).toEqual({
+    ok: false,
+    errorCode: "generic",
+  });
+  expect(mocks.scopeQuery).not.toHaveBeenCalled();
+
   for (const values of [
     { taxCode: "x", pec: "unmanaged" },
     { taxCode: "unmanaged", pec: "x" },

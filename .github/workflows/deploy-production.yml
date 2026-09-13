@@ -41,12 +41,7 @@ jobs:
           grep -Fxq 'application_url = "https://app.cfready.it"' shopify.app.toml
           grep -Fxq 'redirect_urls = [ "https://app.cfready.it/auth/callback" ]' shopify.app.toml
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 26.8.1
-          cache: npm
-
-      - run: npm install --global npm@12.0.2
+      - uses: ./.github/actions/setup-node-npm
       - run: npm install --global --allow-scripts=esbuild @shopify/cli@4.7.1
       - run: npm ci
 
@@ -191,20 +186,11 @@ jobs:
       - name: Readback versione attiva Shopify
         env:
           SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+          DEPLOY_ENVIRONMENT: Production
+          DEPLOY_SOURCE_COMMIT: ${{ github.sha }}
         run: |
           shopify app versions list --no-color --json > "$RUNNER_TEMP/shopify-versions.json"
-          # shellcheck disable=SC2016
-          node --input-type=module -e '
-            import { appendFileSync, readFileSync } from "node:fs";
-            const versions = JSON.parse(readFileSync(process.argv[1], "utf8"));
-            const active = versions.find(({ status }) => status === "active");
-            if (active?.versionTag !== process.env.DEPLOY_VERSION ||
-                active.message !== `Production ${process.env.GITHUB_SHA}`) {
-              throw new Error("Readback Shopify Production non riuscito.");
-            }
-            appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-              `- Shopify attivo: versione \`${active.versionTag}\` (\`${active.versionId}\`)\n`);
-          ' "$RUNNER_TEMP/shopify-versions.json"
+          node scripts/provider-readback.mjs shopify "$RUNNER_TEMP/shopify-versions.json"
 
       # Nessun `--env` qui: il bundle appena costruito è già quello Production e wrangler
       # lo legge da .wrangler/deploy/config.json. Passare `--env` cercherebbe un ambiente
@@ -221,21 +207,12 @@ jobs:
       - name: Readback Worker Production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          DEPLOY_ENVIRONMENT: Production
+          DEPLOY_SOURCE_COMMIT: ${{ github.sha }}
         run: |
           npm exec -- wrangler deployments status --config wrangler.json --env production --json \
             > "$RUNNER_TEMP/worker-deployment.json"
-          # shellcheck disable=SC2016
-          node --input-type=module -e '
-            import { appendFileSync, readFileSync } from "node:fs";
-            const deployment = JSON.parse(readFileSync(process.argv[1], "utf8"));
-            if (!deployment.id ||
-                deployment.annotations?.["workers/message"] !== `Production ${process.env.GITHUB_SHA}` ||
-                deployment.versions?.length !== 1 || deployment.versions[0].percentage !== 100) {
-              throw new Error("Readback Worker Production non riuscito.");
-            }
-            appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-              `- Worker pubblicato: deployment \`${deployment.id}\`, versione \`${deployment.versions[0].version_id}\`\n`);
-          ' "$RUNNER_TEMP/worker-deployment.json"
+          node scripts/provider-readback.mjs worker "$RUNNER_TEMP/worker-deployment.json"
 
       - name: Smoke Worker Production
         run: |
@@ -279,12 +256,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 26.8.1
-          cache: npm
-
-      - run: npm install --global npm@12.0.2
+      - uses: ./.github/actions/setup-node-npm
       - run: npm install --global --allow-scripts=esbuild @shopify/cli@4.7.1
       - run: npm ci
 

@@ -58,7 +58,9 @@ test("sito pubblico bilingue e percorsi essenziali", async ({ page }) => {
     document.documentElement.style.scrollBehavior = "auto";
   });
   const menu = masthead.getByRole("button", { name: "Menu", exact: true });
+  const mobileInstallCta = page.locator("[data-mobile-install-cta]");
   const mobile = (page.viewportSize()?.width ?? 1440) <= 832;
+  await expect(mobileInstallCta).toBeHidden();
   if (mobile) {
     await expect(menu).toBeVisible();
     await expect(howLink).not.toBeVisible();
@@ -110,8 +112,12 @@ test("sito pubblico bilingue e percorsi essenziali", async ({ page }) => {
   if (page.viewportSize()?.width === 390) {
     expect(scrollState.mobile).toBe(true);
     await expect(masthead).toHaveClass(/is-hidden/);
+    await expect(mobileInstallCta).toBeVisible();
+    await expect(mobileInstallCta).toHaveCSS("position", "fixed");
     await menu.focus();
     await expect(masthead).not.toHaveClass(/is-hidden/);
+    await page.locator("[data-install-cta-end]").scrollIntoViewIfNeeded();
+    await expect(mobileInstallCta).toBeHidden();
   } else {
     expect(scrollState.mobile).toBe(false);
     await expect(masthead).not.toHaveClass(/is-hidden/);

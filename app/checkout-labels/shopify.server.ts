@@ -612,11 +612,3 @@ function assertWritableSlot(slot: CheckoutLabelSlot) {
     throw new Error("checkout_labels_partial_sync");
   }
 }
-
-export const checkoutLabelsGraphql = {
-  discover: DISCOVER_CHECKOUT_LABEL_CONTEXT,
-  resources: DISCOVER_CHECKOUT_LABEL_RESOURCES,
-  translations: READ_CHECKOUT_LABEL_TRANSLATIONS,
-  register: REGISTER_CHECKOUT_LABEL_TRANSLATIONS,
-  remove: REMOVE_CHECKOUT_LABEL_TRANSLATIONS,
-};

@@ -62,6 +62,18 @@ export async function waitForChecks(repository, sha, required, options = {}) {
     const { check_runs: checkRuns } = await request(
       `/repos/${repository}/commits/${sha}/check-runs?per_page=100`,
     );
+    if (required.includes("ci-policy")) {
+      const { statuses = [] } = await request(`/repos/${repository}/commits/${sha}/status`);
+      checkRuns.push(
+        ...statuses.map((status) => ({
+          id: status.id,
+          name: status.context,
+          conclusion: status.state === "success" ? "success" : status.state,
+          details_url: status.target_url,
+          check_suite: { id: status.id },
+        })),
+      );
+    }
     const missing = missingSuccessfulChecks(checkRuns, required, process.env.GITHUB_RUN_ID);
     if (missing.length === 0) return checkRuns;
     if (attempt === attempts - 1) {
@@ -102,6 +114,48 @@ async function promotionCommitEvidence(repository, baseSha, headSha) {
   return evidence;
 }
 
+export function verifyProductionMergeEvidence({ event, detail, pullRequests, parentTrees }) {
+  const before = event.before;
+  const after = event.after;
+  const parents = detail.parents ?? [];
+  const promotion = pullRequests.find(
+    (pullRequest) =>
+      pullRequest.merged_at &&
+      pullRequest.base?.ref === "main" &&
+      pullRequest.head?.ref === "develop" &&
+      pullRequest.merge_commit_sha === after,
+  );
+  if (
+    event.ref !== "refs/heads/main" ||
+    !/^[0-9a-f]{40}$/.test(before ?? "") ||
+    !/^[0-9a-f]{40}$/.test(after ?? "") ||
+    detail.sha !== after ||
+    parents.length !== 2 ||
+    parents[0]?.sha !== before ||
+    detail.tree?.sha !== parentTrees[1] ||
+    !promotion
+  ) {
+    throw new Error("Il push su main non è un merge verificato da develop con tree invariato.");
+  }
+  return { baseSha: before, headSha: after, sourceSha: parents[1].sha };
+}
+
+export async function verifyProductionMerge({ event, repository }) {
+  const after = event.after;
+  const [detail, pullRequests] = await Promise.all([
+    request(`/repos/${repository}/git/commits/${after}`),
+    request(`/repos/${repository}/commits/${after}/pulls`),
+  ]);
+  const parentTrees = await Promise.all(
+    (detail.parents ?? []).map(
+      async ({ sha }) => (await request(`/repos/${repository}/git/commits/${sha}`)).tree.sha,
+    ),
+  );
+  const proof = verifyProductionMergeEvidence({ event, detail, pullRequests, parentTrees });
+  await waitForChecks(repository, proof.sourceSha, ["verify", "e2e", "coverage", "ci-policy"]);
+  return proof;
+}
+
 export async function verifyPromotion({ event, repository }) {
   const pullRequest = event.pull_request;
   if (
@@ -117,7 +171,7 @@ export async function verifyPromotion({ event, repository }) {
     encoding: "utf8",
   }).trim();
   if (mergeBase !== baseSha) throw new Error("main non è antenato dell'HEAD di develop.");
-  await waitForChecks(repository, headSha, ["verify", "e2e", "coverage"]);
+  await waitForChecks(repository, headSha, ["verify", "e2e", "coverage", "ci-policy"]);
   verifyPromotionHistory(await promotionCommitEvidence(repository, baseSha, headSha));
   return { baseSha, headSha };
 }
@@ -130,6 +184,16 @@ async function main() {
     return;
   }
   const event = JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, "utf8"));
+  if (process.env.GITHUB_EVENT_NAME === "push" && event.ref === "refs/heads/main") {
+    const proof = await verifyProductionMerge({
+      event,
+      repository: process.env.GITHUB_REPOSITORY,
+    });
+    console.log(
+      `Merge Production verificato: ${proof.baseSha} + ${proof.sourceSha} -> ${proof.headSha}.`,
+    );
+    return;
+  }
   const proof = await verifyPromotion({ event, repository: process.env.GITHUB_REPOSITORY });
   console.log(`Promozione verificata: ${proof.baseSha} -> ${proof.headSha}.`);
 }
