@@ -394,10 +394,14 @@ Il coordinatore riusa PR, run e release già riusciti per lo stesso commit. Dopo
 un errore si rilancia quindi lo stesso comando: riparte dal primo passaggio
 incompleto. Quando viene avviato, il workflow Pages riconferma a sua volta la
 differenza dal deployment canonico prima di distribuire il sito e completare
-readback e smoke. I workflow provider restano manuali e vincolati al proprio
-branch; il comando li avvia tramite l'identità GitHub dell'operatore. Eseguire
-questi comandi costituisce un'azione remota e richiede l'autorizzazione prevista
-da `AGENTS.md`.
+readback e smoke. Prima del deploy assegna a `menu.js` e `style.css` un nome
+derivato dal contenuto e aggiorna i riferimenti HTML nella copia preparata: ogni
+modifica produce quindi un URL nuovo anche se una regola cache del dominio
+mantiene gli asset precedenti. Lo smoke scarica entrambi gli asset versionati e
+li confronta con la sorgente. I workflow provider restano manuali e vincolati al
+proprio branch; il comando li avvia tramite l'identità GitHub dell'operatore.
+Eseguire questi comandi costituisce un'azione remota e richiede l'autorizzazione
+prevista da `AGENTS.md`.
 
 ## Deploy Production
 

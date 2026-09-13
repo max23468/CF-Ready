@@ -1,9 +1,18 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import {
   checkDocs,
   htmlAnchors,
@@ -14,6 +23,7 @@ import {
   markdownTargets,
   xmlAnchors,
 } from "./check-docs.mjs";
+import { preparePagesSite } from "./prepare-pages-site.mjs";
 
 test("rifiuta percorsi assoluti legati alla macchina locale", () => {
   assert.deepEqual(
@@ -304,13 +314,61 @@ test("la CSP consente beacon e raccolta Cloudflare Web Analytics", () => {
   const headers = readFileSync(new URL("../site/_headers", import.meta.url), "utf8");
   assert.match(headers, /script-src .*https:\/\/static\.cloudflareinsights\.com/);
   assert.match(headers, /connect-src .*https:\/\/cloudflareinsights\.com/);
-  for (const asset of ["menu.js", "style.css"]) {
-    assert.match(
-      headers,
-      new RegExp(
-        `/${asset.replace(".", "\\.")}\\n  Cache-Control: public, max-age=0, must-revalidate`,
-      ),
+});
+
+test("prepara Pages con nomi asset legati al contenuto", () => {
+  const directory = mkdtempSync(join(tmpdir(), "cf-ready-pages-"));
+  const output = join(directory, "output");
+  try {
+    const assets = preparePagesSite(fileURLToPath(new URL("../site", import.meta.url)), output);
+    assert.match(assets["menu.js"], /^menu\.[0-9a-f]{12}\.js$/);
+    assert.match(assets["style.css"], /^style\.[0-9a-f]{12}\.css$/);
+    assert.equal(existsSync(join(output, "menu.js")), false);
+    assert.equal(existsSync(join(output, "style.css")), false);
+    assert.equal(
+      readFileSync(join(output, assets["menu.js"]), "utf8"),
+      readFileSync(new URL("../site/menu.js", import.meta.url), "utf8"),
     );
+    const home = readFileSync(join(output, "index.html"), "utf8");
+    assert.match(home, new RegExp(`src="${assets["menu.js"].replace(".", "\\.")}"`));
+    assert.match(home, new RegExp(`href="${assets["style.css"].replace(".", "\\.")}"`));
+  } finally {
+    rmSync(directory, { force: true, recursive: true });
+  }
+});
+
+test("il preparatore Pages rifiuta destinazioni ambigue e argomenti incompleti", () => {
+  const site = fileURLToPath(new URL("../site", import.meta.url));
+  const directory = mkdtempSync(join(tmpdir(), "cf-ready-pages-entrypoint-"));
+  const output = join(directory, "output");
+  assert.throws(
+    () => preparePagesSite(site, site),
+    /directory Pages preparata deve essere distinta dalla sorgente/,
+  );
+  assert.throws(
+    () =>
+      execFileSync(
+        process.execPath,
+        [fileURLToPath(new URL("./prepare-pages-site.mjs", import.meta.url))],
+        {
+          encoding: "utf8",
+          stdio: "pipe",
+        },
+      ),
+    /Uso: prepare-pages-site\.mjs/,
+  );
+  try {
+    execFileSync(
+      process.execPath,
+      [fileURLToPath(new URL("./prepare-pages-site.mjs", import.meta.url)), site, output],
+      { stdio: "pipe" },
+    );
+    assert.equal(
+      readdirSync(output).some((name) => /^menu\.[0-9a-f]{12}\.js$/.test(name)),
+      true,
+    );
+  } finally {
+    rmSync(directory, { force: true, recursive: true });
   }
 });
 
@@ -719,7 +777,8 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /git rev-parse "\$\{GITHUB_SHA\}:site"/);
   assert.match(workflow, /git rev-parse "\$\{rollback_commit\}:site"/);
   assert.match(workflow, /if: steps\.preflight\.outputs\.deploy_required == 'true'/);
-  assert.match(workflow, /wrangler pages deploy site/);
+  assert.match(workflow, /node scripts\/prepare-pages-site\.mjs site/);
+  assert.match(workflow, /wrangler pages deploy "\$RUNNER_TEMP\/pages-site"/);
   assert.match(workflow, /--branch main/);
   assert.match(workflow, /--commit-hash "\$GITHUB_SHA"/);
   const shopifyCliInstall = "npm install --global --allow-scripts=esbuild @shopify/cli@4.7.1";
@@ -728,7 +787,10 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /canonical_deployment\.deployment_trigger\.metadata\.commit_hash/);
   assert.match(workflow, /deployments\/\$ROLLBACK_ID\/rollback/);
   assert.match(workflow, /--header "Cache-Control: no-cache"/);
-  assert.match(workflow, /printf '%s\\n' "\$GITHUB_SHA" > site\/deployment\.txt/);
+  assert.match(
+    workflow,
+    /printf '%s\\n' "\$GITHUB_SHA" > "\$RUNNER_TEMP\/pages-site\/deployment\.txt"/,
+  );
   assert.match(workflow, /if curl --fail/);
   assert.match(workflow, /--location --max-redirs 5/);
   assert.match(workflow, /PUBLIC_DOMAIN\/deployment\.txt/);
@@ -754,11 +816,15 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /cmp --silent "site\/\$text_file" "\$text_copy"/);
   assert.match(workflow, /og:image/);
   assert.match(workflow, /BreadcrumbList/);
+  assert.match(workflow, /style\\\.\[0-9a-f\]\{12\}\\\.css/);
+  assert.match(workflow, /menu\\\.\[0-9a-f\]\{12\}\\\.js/);
+  assert.match(workflow, /cmp --silent site\/style\.css/);
+  assert.match(workflow, /cmp --silent site\/menu\.js/);
   assert.match(workflow, /social-image-headers\.txt/);
   assert.match(workflow, /test "\$not_found_status" = "404"/);
   assert(
     workflow.indexOf("Arma rollback Pages Production") <
-      workflow.indexOf("wrangler pages deploy site"),
+      workflow.indexOf('wrangler pages deploy "$RUNNER_TEMP/pages-site"'),
   );
   assert.match(workflow, /needs\.deploy\.outputs\.rollback_armed == 'true'/);
   assert.match(workflow, /needs\.deploy\.result != 'success'/);
@@ -1178,7 +1244,7 @@ test("l'identità del titolare resta un segnaposto e i documenti legali non sono
   // assistenza e guide restano indicizzabili.
   assert.deepEqual(
     lines.filter((line) => line.startsWith("/") && !line.startsWith("/*")),
-    ["/menu.js", "/style.css", "/privacy*", "/terms*", "/en/privacy*", "/en/terms*", "/404*"],
+    ["/privacy*", "/terms*", "/en/privacy*", "/en/terms*", "/404*"],
   );
 });
 
