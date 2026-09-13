@@ -5324,7 +5324,12 @@ Questa sezione contiene esclusivamente temi esplicitamente rimandati, non decisi
    reali di uno store estero la comparsa dei localized fields italiani e gli
    scenari digitali/ritiro. In ogni caso, la Function non crea campi: con una
    consegna italiana tratta come mancante un campo obbligatorio assente; senza
-   un Paese di consegna controlla soltanto i campi presenti.
+   un Paese di consegna controlla soltanto i campi presenti. Se in uno store
+   estero `TAX_CREDENTIAL_IT` non comparisse, un Codice Fiscale obbligatorio
+   bloccherebbe gli ordini con consegna italiana senza un campo da compilare: il
+   3 agosto 2026 Shopify non ha potuto escludere che il campo dipenda dal Paese
+   del negozio. Il 13 settembre 2026 l’owner ha rinviato la verifica perché
+   riguarda soltanto store non italiani.
 8. **Rilevamento automatico del campo “Interno” usato come Codice Fiscale** —
    **parzialmente chiuso l’8 settembre 2026 con D-149**. Le etichette IT/EN sono
    leggibili e vengono classificate; resta aperta soltanto la lettura
