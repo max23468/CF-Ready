@@ -3,6 +3,8 @@ import { execFileSync } from "node:child_process";
 import test from "node:test";
 import {
   missingSuccessfulChecks,
+  verifyProductionMerge,
+  verifyProductionMergeEvidence,
   verifyPromotion,
   verifyPromotionHistory,
   waitForChecks,
@@ -93,11 +95,140 @@ test("seleziona il check più recente per nome tra workflow distinti", () => {
   );
 });
 
-test("la promozione include il gate coverage dell'HEAD develop", async () => {
+test("la promozione include coverage e policy dell'HEAD develop", async () => {
   const source = await import("node:fs/promises").then(({ readFile }) =>
     readFile(new URL("./github-gates.mjs", import.meta.url), "utf8"),
   );
-  assert.match(source, /\["verify", "e2e", "coverage"\]/);
+  assert.match(source, /\["verify", "e2e", "coverage", "ci-policy"\]/);
+});
+
+test("accetta soltanto il merge main a due parent con tree di develop", () => {
+  const before = "a".repeat(40);
+  const after = "b".repeat(40);
+  const source = "c".repeat(40);
+  assert.deepEqual(
+    verifyProductionMergeEvidence({
+      event: { ref: "refs/heads/main", before, after },
+      detail: {
+        sha: after,
+        tree: { sha: "tree-source" },
+        parents: [{ sha: before }, { sha: source }],
+      },
+      parentTrees: ["tree-main", "tree-source"],
+      pullRequests: [
+        {
+          merged_at: "2026-09-13T00:00:00Z",
+          base: { ref: "main" },
+          head: { ref: "develop" },
+          merge_commit_sha: after,
+        },
+      ],
+    }),
+    { baseSha: before, headSha: after, sourceSha: source },
+  );
+});
+
+test("rifiuta squash, tree modificato e PR con provenienza diversa", () => {
+  const before = "a".repeat(40);
+  const after = "b".repeat(40);
+  const source = "c".repeat(40);
+  const evidence = {
+    event: { ref: "refs/heads/main", before, after },
+    detail: {
+      sha: after,
+      tree: { sha: "tree-source" },
+      parents: [{ sha: before }, { sha: source }],
+    },
+    parentTrees: ["tree-main", "tree-source"],
+    pullRequests: [
+      {
+        merged_at: "2026-09-13T00:00:00Z",
+        base: { ref: "main" },
+        head: { ref: "develop" },
+        merge_commit_sha: after,
+      },
+    ],
+  };
+  assert.throws(
+    () =>
+      verifyProductionMergeEvidence({
+        ...evidence,
+        detail: { ...evidence.detail, parents: [{ sha: before }] },
+      }),
+    /merge verificato/,
+  );
+  assert.throws(
+    () => verifyProductionMergeEvidence({ ...evidence, parentTrees: ["tree-main", "other"] }),
+    /merge verificato/,
+  );
+  assert.throws(
+    () =>
+      verifyProductionMergeEvidence({
+        ...evidence,
+        pullRequests: [{ ...evidence.pullRequests[0], head: { ref: "feature" } }],
+      }),
+    /merge verificato/,
+  );
+});
+
+test("il merge Production riusa i gate del parent develop", async () => {
+  const originalFetch = globalThis.fetch;
+  const before = "a".repeat(40);
+  const after = "b".repeat(40);
+  const source = "c".repeat(40);
+  try {
+    globalThis.fetch = async (input) => {
+      const url = String(input);
+      let payload;
+      if (url.endsWith(`/git/commits/${after}`)) {
+        payload = {
+          sha: after,
+          tree: { sha: "tree-source" },
+          parents: [{ sha: before }, { sha: source }],
+        };
+      } else if (url.endsWith(`/commits/${after}/pulls`)) {
+        payload = [
+          {
+            merged_at: "2026-09-13T00:00:00Z",
+            base: { ref: "main" },
+            head: { ref: "develop" },
+            merge_commit_sha: after,
+          },
+        ];
+      } else if (url.endsWith(`/git/commits/${before}`)) {
+        payload = { tree: { sha: "tree-main" } };
+      } else if (url.endsWith(`/git/commits/${source}`)) {
+        payload = { tree: { sha: "tree-source" } };
+      } else if (url.endsWith(`/commits/${source}/check-runs?per_page=100`)) {
+        payload = {
+          check_runs: ["verify", "e2e", "coverage"].map((name, id) => ({
+            id,
+            name,
+            conclusion: "success",
+            check_suite: { id: 10 },
+          })),
+        };
+      } else if (url.endsWith(`/commits/${source}/status`)) {
+        payload = {
+          statuses: [{ id: 20, context: "ci-policy", state: "success" }],
+        };
+      } else {
+        throw new Error(`richiesta inattesa: ${url}`);
+      }
+      return new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    };
+    await assert.doesNotReject(
+      verifyProductionMerge({
+        repository: "max23468/CF-Ready",
+        event: { ref: "refs/heads/main", before, after },
+      }),
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("accetta commit da PR develop revisionata e merge senza nuovo tree", () => {
@@ -200,6 +331,8 @@ test("verifica la provenienza completa della promozione tramite prove GitHub sin
             check_suite: { id: 10 },
           })),
         };
+      } else if (url.endsWith(`/commits/${headSha}/status`)) {
+        payload = { statuses: [{ id: 20, context: "ci-policy", state: "success" }] };
       } else if (url.includes("/compare/")) {
         payload = { commits: [{ sha: reviewedSha }] };
       } else if (url.endsWith(`/commits/${reviewedSha}/pulls`)) {

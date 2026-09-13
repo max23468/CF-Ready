@@ -671,7 +671,7 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
     if (/shopify app|npm run check/.test(workflow)) {
       assert.doesNotMatch(workflow, /@shopify\/cli@(?!4\.7\.1)/, path);
     }
-    if (/npm run check/.test(workflow)) {
+    if (path !== "ci.yml" && /npm run check/.test(workflow)) {
       const browserInstall = workflow.indexOf("playwright install --with-deps chromium webkit");
       assert(browserInstall >= 0, path);
       assert(browserInstall < workflow.indexOf("npm run check"), path);
@@ -891,7 +891,7 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
   assert.match(ci, /playwright install --with-deps chromium webkit/);
   assert.deepEqual(
     [...ci.matchAll(/playwright install --with-deps ([^\n]+)/g)].map((match) => match[1].trim()),
-    ["chromium webkit", "chromium webkit", "chromium webkit"],
+    ["chromium webkit", "chromium webkit"],
   );
   assert.match(ci, /actions\/cache@[0-9a-f]{40}/);
   assert.match(ci, /key: playwright-\$\{\{ runner\.os \}\}/);
@@ -925,8 +925,8 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   assert.match(ci, /checks: read/);
   assert.match(ci, /statuses: read/);
   assert.match(ci, /needs\.lane\.outputs\.lane == 'docs'[\s\S]*npm run check:docs/);
-  assert.match(ci, /needs\.lane\.outputs\.lane == 'standard'[\s\S]*npm run check:standard/);
-  assert.match(ci, /needs\.lane\.outputs\.lane == 'full'[\s\S]*npm run check/);
+  assert.match(ci, /needs\.lane\.outputs\.lane == 'standard'[\s\S]*npm run check:ci-standard/);
+  assert.match(ci, /needs\.lane\.outputs\.lane == 'full'[\s\S]*npm run check:ci-full/);
   assert.match(ci, /lane == 'promotion'[\s\S]*node scripts\/github-gates\.mjs/);
   assert.match(ci, /^  coverage:\n[\s\S]*timeout-minutes: 15/m);
   assert.match(ci, /^  e2e:\n[\s\S]*timeout-minutes: 20/m);
@@ -944,6 +944,8 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   assert.doesNotMatch(policy, /pull_request\.head|gh pr checkout|git fetch|npm (?:ci|install)/);
   assert.match(packageJson.scripts["check:docs"], /docs:check/);
   assert.match(packageJson.scripts["check:standard"], /typecheck/);
+  assert.doesNotMatch(packageJson.scripts["check:ci-standard"], /npm (?:test|run test:ui)/);
+  assert.doesNotMatch(packageJson.scripts["check:ci-full"], /npm (?:test|run test:ui)/);
 });
 
 test("gli entrypoint operativi usano un rilevamento di esecuzione portabile", () => {
