@@ -345,6 +345,27 @@ const indexableSitePages = new Map([
   ],
 ]);
 
+const siteHtmlPages = readdirSync(new URL("../site", import.meta.url), { recursive: true })
+  .filter((path) => path.endsWith(".html"))
+  .sort();
+
+test("ogni pagina HTML pubblica mantiene metadati e alternative testuali", () => {
+  for (const file of siteHtmlPages) {
+    const html = readFileSync(new URL(`../site/${file}`, import.meta.url), "utf8");
+    assert.equal([...html.matchAll(/<title>[^<]+<\/title>/g)].length, 1, file);
+    assert.equal([...html.matchAll(/<meta name="description" content="[^"]+">/g)].length, 1, file);
+    assert.equal(
+      [...html.matchAll(/<meta name="viewport" content="width=device-width, initial-scale=1">/g)]
+        .length,
+      1,
+      file,
+    );
+    for (const [tag] of html.matchAll(/<img\b[^>]*>/g)) {
+      assert.match(tag, /\balt=(?:"[^"]*"|'[^']*')/, `${file}: ${tag}`);
+    }
+  }
+});
+
 test("le pagine indicizzabili dichiarano canonical, lingue e metadati sociali", () => {
   for (const [path, canonical] of indexableSitePages) {
     const html = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -385,14 +406,6 @@ test("la Home espone il token di verifica Google Search Console", () => {
 });
 
 test("ogni pagina pubblica espone il set favicon multipiattaforma", () => {
-  const pages = [
-    ...indexableSitePages.keys(),
-    "site/privacy.html",
-    "site/terms.html",
-    "site/en/privacy.html",
-    "site/en/terms.html",
-    "site/404.html",
-  ];
   const tags = [
     '<link rel="icon" href="/favicon-96x96.png" type="image/png" sizes="96x96">',
     '<link rel="icon" href="/favicon.svg" type="image/svg+xml">',
@@ -403,8 +416,8 @@ test("ogni pagina pubblica espone il set favicon multipiattaforma", () => {
     '<meta name="theme-color" content="#F7F5EE">',
   ];
 
-  for (const path of pages) {
-    const html = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+  for (const path of siteHtmlPages) {
+    const html = readFileSync(new URL(`../site/${path}`, import.meta.url), "utf8");
     for (const tag of tags) assert.equal(html.split(tag).length - 1, 1, `${path}: ${tag}`);
   }
 
