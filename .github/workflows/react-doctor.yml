@@ -35,6 +35,8 @@ jobs:
           --head-sha "$HEAD_SHA"
           --base-ref "$BASE_REF"
           --head-ref "$HEAD_REF"
+          --event-name "${{ github.event_name }}"
+          --ref-name "${{ github.ref_name }}"
       - id: doctor
         if: steps.lane.outputs.react_doctor == 'true'
         uses: millionco/react-doctor@013f7373f91a3b9e68bd1dc7d4d354f4b041b117 # v2.2.9

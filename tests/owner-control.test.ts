@@ -1178,6 +1178,14 @@ describe("idempotenza e delivery interattiva", () => {
     expect(await readOwnerControlState<{ count: number }>(env.DB, "test")).toMatchObject({
       value: { count: 1 },
     });
+    const corruptedStateDb = {
+      prepare: () => ({
+        bind: () => ({
+          first: async () => ({ state_value: "{", updated_at: NOW.toISOString() }),
+        }),
+      }),
+    } as unknown as D1Database;
+    expect(await readOwnerControlState(corruptedStateDb, "test")).toBeNull();
     expect(await readOwnerControlState(env.DB, "missing")).toBeNull();
     expect(ownerControlErrorCode(new Error("known_error"))).toBe("known_error");
     expect(ownerControlErrorCode(new Error("Messaggio libero"))).toBe("owner_control_failed");

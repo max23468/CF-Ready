@@ -17,6 +17,7 @@ const protectedPolicyFiles = new Set([
 
 export function isCiPolicyFile(path) {
   return (
+    path.startsWith(".github/actions/") ||
     path.startsWith(".github/workflows/") ||
     path.startsWith("scripts/") ||
     protectedPolicyFiles.has(path) ||
@@ -25,17 +26,15 @@ export function isCiPolicyFile(path) {
   );
 }
 
-export function evaluateCiPolicy({ files }) {
+export function classifyCiPolicyChange({ files }) {
   const changedPolicyFiles = [...new Set(files.filter(isCiPolicyFile))].sort();
   if (changedPolicyFiles.length === 0) {
     return {
-      state: "success",
       description: "La PR non modifica il control plane CI.",
       changedPolicyFiles,
     };
   }
   return {
-    state: "success",
     description: "Control plane CI rilevato; valgono i gate automatici della PR.",
     changedPolicyFiles,
   };
@@ -97,12 +96,12 @@ async function main() {
   }
 
   const files = await changedFiles(repository, pullRequestNumber, expectedCount, token);
-  const result = evaluateCiPolicy({ files });
+  const result = classifyCiPolicyChange({ files });
   const targetUrl = `${process.env.GITHUB_SERVER_URL}/${repository}/actions/runs/${process.env.GITHUB_RUN_ID}`;
   await request(`/repos/${repository}/statuses/${headSha}`, token, {
     method: "POST",
     body: JSON.stringify({
-      state: result.state,
+      state: "success",
       context: CI_POLICY_STATUS_CONTEXT,
       description: result.description,
       target_url: targetUrl,

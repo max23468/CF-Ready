@@ -4,9 +4,11 @@ import { readFileSync } from "node:fs";
 import {
   activeSection,
   initializeMenu,
+  initializeMobileInstallCta,
   orderSections,
   readingProgress,
   shouldHideMasthead,
+  shouldShowMobileInstallCta,
 } from "../site/menu.js";
 
 class FakeClassList {
@@ -220,6 +222,61 @@ test("l’avanzamento gestisce pagine corte e rimbalzo dello scroll", () => {
   assert.equal(readingProgress(-50, 1500, 500), 0);
   assert.equal(readingProgress(0, 500, 500), 0);
   assert.equal(readingProgress(0, 300, 500), 0);
+});
+
+test("la CTA mobile resta contestuale fra l’hero e la CTA finale", () => {
+  for (const input of [
+    { mobile: false, startVisible: false, endVisible: false },
+    { mobile: true, startVisible: true, endVisible: false },
+    { mobile: true, startVisible: false, endVisible: true },
+  ])
+    assert.equal(shouldShowMobileInstallCta(input), false);
+  assert.equal(
+    shouldShowMobileInstallCta({ mobile: true, startVisible: false, endVisible: false }),
+    true,
+  );
+
+  const start = {};
+  const end = {};
+  const cta = { hidden: true };
+  const mobile = eventTarget({ matches: true });
+  const observed = [];
+  let update;
+  const win = {
+    matchMedia: () => mobile,
+    IntersectionObserver: class {
+      constructor(callback) {
+        update = callback;
+      }
+      observe(target) {
+        observed.push(target);
+      }
+    },
+  };
+  const doc = {
+    querySelector(selector) {
+      return {
+        "[data-mobile-install-cta]": cta,
+        "[data-install-cta-start]": start,
+        "[data-install-cta-end]": end,
+      }[selector];
+    },
+  };
+
+  initializeMobileInstallCta(doc, win);
+  assert.deepEqual(observed, [start, end]);
+  assert.equal(cta.hidden, true);
+  update([{ target: start, isIntersecting: false }]);
+  assert.equal(cta.hidden, false);
+  update([{ target: end, isIntersecting: true }]);
+  assert.equal(cta.hidden, true);
+  mobile.matches = false;
+  mobile.dispatch("change");
+  assert.equal(cta.hidden, true);
+});
+
+test("la CTA mobile resta un miglioramento progressivo", () => {
+  assert.equal(initializeMobileInstallCta({ querySelector: () => null }, {}), undefined);
 });
 
 test("l’indicatore si aggiorna con scroll, resize e apertura dettagli", () => {

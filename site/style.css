@@ -130,6 +130,10 @@ section.inverse {
   transform: none;
 }
 
+.mobile-install-cta {
+  display: none;
+}
+
 /* Su schermo largo la testata resta ferma dov'è. Su telefono si ritira mentre si
    scende e torna appena si risale: la classe la mette `menu.js`, che agisce solo
    sotto la soglia mobile. Senza JavaScript la testata resta comunque agganciata,
@@ -991,6 +995,25 @@ footer {
 }
 
 @media (max-width: 40rem) {
+  .mobile-install-cta {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 9;
+    display: flex;
+    padding: var(--cf-space-3) 20px calc(var(--cf-space-3) + env(safe-area-inset-bottom));
+    border-top: var(--cf-border-subtle);
+    background: color-mix(in srgb, white 96%, transparent);
+    backdrop-filter: blur(8px);
+  }
+
+  .mobile-install-cta[hidden] {
+    display: none;
+  }
+
+  .mobile-install-cta .button {
+    width: 100%;
+  }
+
   .wrap {
     padding-inline: 20px;
   }

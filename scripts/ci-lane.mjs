@@ -13,6 +13,65 @@ const operationalDocs = new Set([
 ]);
 
 const dependencyFiles = new Set(["package.json", "package-lock.json", ".npmrc"]);
+const mutationDomains = {
+  billing: [
+    "app/billing/",
+    "tests/billing/",
+    "tests/home-billing-actions.test.ts",
+    "tests/validation.test.ts",
+    "tests/validation/",
+  ],
+  validation: [
+    "app/checkout-field-validation.ts",
+    "app/validation/",
+    "tests/validation.test.ts",
+    "tests/validation/",
+  ],
+  ownerNotifications: [
+    "app/owner-notifications.server.ts",
+    "app/owner-notifications/",
+    "tests/owner-notifications.test.ts",
+    "tests/owner-notification-contracts.test.ts",
+  ],
+  webhooks: [
+    "app/routes/webhooks.app.billing.tsx",
+    "app/routes/webhooks.app.scopes_update.tsx",
+    "app/routes/webhooks.app.uninstalled.tsx",
+    "app/routes/webhooks.compliance.tsx",
+    "app/routes/webhooks.shop.update.tsx",
+    "app/webhook-auth.server.ts",
+    "app/webhook-jobs.server.ts",
+    "app/webhooks.server.ts",
+    "tests/webhook-jobs.test.ts",
+    "tests/webhooks/",
+  ],
+};
+const sharedMutationFiles = new Set([
+  ".github/workflows/ci.yml",
+  "config/coverage-policy.json",
+  "package.json",
+  "package-lock.json",
+  "scripts/ci-lane.mjs",
+  "scripts/run-critical-mutation.mjs",
+  "stryker.critical.config.mjs",
+  "tsconfig.stryker-not-required.json",
+  "vitest.config.ts",
+]);
+
+const matchesPath = (path, candidate) =>
+  candidate.endsWith("/") ? path.startsWith(candidate) : path === candidate;
+
+export function selectMutationDomains(files) {
+  const normalized = [...new Set(files.filter(Boolean))];
+  if (normalized.some((path) => sharedMutationFiles.has(path))) {
+    return Object.keys(mutationDomains);
+  }
+  return Object.entries(mutationDomains)
+    .filter(([, candidates]) =>
+      normalized.some((path) => candidates.some((candidate) => matchesPath(path, candidate))),
+    )
+    .map(([domain]) => domain);
+}
 const isOperationalGovernance = (path) =>
   operationalDocs.has(path) || path.startsWith("docs/runbooks/");
 
@@ -32,14 +91,15 @@ const isSecuritySensitive = (path) =>
   path === "wrangler.json" ||
   /(?:auth|billing|crypto|privacy|session|webhook)/i.test(path);
 
-export function classifyCiLane(files, { base = "", head = "" } = {}) {
+export function classifyCiLane(files, { base = "", head = "", eventName = "", refName = "" } = {}) {
   const normalized = [...new Set(files.filter(Boolean))].sort();
-  if (base === "main" && head === "develop") {
+  if ((base === "main" && head === "develop") || (eventName === "push" && refName === "main")) {
     return {
       lane: "promotion",
       dependencyReview: false,
       e2e: false,
       reactDoctor: false,
+      mutationDomains: [],
       files: normalized,
     };
   }
@@ -49,6 +109,7 @@ export function classifyCiLane(files, { base = "", head = "" } = {}) {
       dependencyReview: true,
       e2e: true,
       reactDoctor: true,
+      mutationDomains: [],
       files: normalized,
     };
   }
@@ -58,6 +119,7 @@ export function classifyCiLane(files, { base = "", head = "" } = {}) {
       dependencyReview: false,
       e2e: false,
       reactDoctor: false,
+      mutationDomains: [],
       files: normalized,
     };
   }
@@ -71,6 +133,7 @@ export function classifyCiLane(files, { base = "", head = "" } = {}) {
     reactDoctor: normalized.some(
       (path) => path.startsWith("app/") || /\.(?:jsx?|tsx?|css)$/.test(path),
     ),
+    mutationDomains: selectMutationDomains(normalized),
     files: normalized,
   };
 }
@@ -123,12 +186,15 @@ function main() {
   const result = classifyCiLane(changedFiles(baseSha, headSha), {
     base: argument("--base-ref") ?? "",
     head: argument("--head-ref") ?? "",
+    eventName: argument("--event-name") ?? "",
+    refName: argument("--ref-name") ?? "",
   });
   const outputs = [
     `lane=${result.lane}`,
     `dependency_review=${result.dependencyReview}`,
     `e2e=${result.e2e}`,
     `react_doctor=${result.reactDoctor}`,
+    `mutation_matrix=${JSON.stringify(result.mutationDomains)}`,
   ];
   if (process.env.GITHUB_OUTPUT)
     appendFileSync(process.env.GITHUB_OUTPUT, `${outputs.join("\n")}\n`);
