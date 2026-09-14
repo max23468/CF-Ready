@@ -1,0 +1,33 @@
+name: Dispatch Production once
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  dispatch:
+    if: github.head_ref == 'chore/dispatch-production-a3adc74'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Avvia Deploy Production
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run deploy-production.yml --repo "$GITHUB_REPOSITORY" --ref main
+          echo "Deploy Production richiesto per main." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Chiudi la PR temporanea e rimuovi il branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr close "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --delete-branch
