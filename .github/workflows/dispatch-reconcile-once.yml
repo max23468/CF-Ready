@@ -1,0 +1,33 @@
+name: Dispatch Reconcile once
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  dispatch:
+    if: github.head_ref == 'chore/reconcile-develop-9506372'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Avvia Reconcile develop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run reconcile-develop.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=no-deploy-promotion
+          echo "Reconcile develop richiesto in modalità no-deploy-promotion." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Chiudi la PR temporanea e rimuovi il branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr close "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --delete-branch
