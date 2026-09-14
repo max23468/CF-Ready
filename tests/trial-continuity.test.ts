@@ -179,7 +179,7 @@ test.each([
   { entitlementKind: "one_time" },
   { trialEndsAt: null },
   { trialStatus: "expired" },
-] satisfies Partial<CompletionData>[])("nessun invito superfluo a scegliere un piano: %j", (overrides) => {
+] satisfies Partial<CompletionData>[])("onboarding senza invito superfluo: %j", (overrides) => {
   const rendered = elements(
     OnboardingCompletion({
       saved: { ...completed, ...overrides },

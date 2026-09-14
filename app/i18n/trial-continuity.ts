@@ -28,7 +28,8 @@ const en = {
   approvalHelp:
     "You can approve a monthly or annual subscription now: you keep your remaining trial days and the first charge starts after the trial.",
   expired: "Validation is paused. Your settings are saved: choose a plan to restore it.",
-  confirmed: (date: string) => `Subscription confirmed. Your first charge is expected from ${date}.`,
+  confirmed: (date: string) =>
+    `Subscription confirmed. Your first charge is expected from ${date}.`,
   onboardingTrial: (date: string) =>
     `Your trial ends on ${date}. To continue without interruption, you can choose a subscription now and keep your remaining free days.`,
 } satisfies typeof it;

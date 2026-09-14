@@ -85,7 +85,13 @@ export function EligibleHome({
   );
 }
 
-function HomeNotices({ data, result, busy, pendingIntent, submit }: {
+function HomeNotices({
+  data,
+  result,
+  busy,
+  pendingIntent,
+  submit,
+}: {
   data: HomeData;
   result: { ok: boolean; errorCode?: AppErrorCode } | undefined;
   busy: boolean;
@@ -103,7 +109,12 @@ function HomeNotices({ data, result, busy, pendingIntent, submit }: {
   );
 }
 
-function PrimaryNotice({ data, busy, pendingIntent, submit }: {
+function PrimaryNotice({
+  data,
+  busy,
+  pendingIntent,
+  submit,
+}: {
   data: HomeData;
   busy: boolean;
   pendingIntent: string | null;

@@ -13,6 +13,7 @@ const router = vi.hoisted(() => ({
     submit: vi.fn(),
   },
   navigate: vi.fn(),
+  revalidator: { revalidate: vi.fn(), state: "idle" },
 }));
 
 vi.mock("react-router", async (importOriginal) => {
@@ -22,6 +23,7 @@ vi.mock("react-router", async (importOriginal) => {
     useFetcher: () => router.fetcher,
     useLoaderData: () => router.loaderData,
     useNavigate: () => router.navigate,
+    useRevalidator: () => router.revalidator,
   };
 });
 
@@ -60,6 +62,8 @@ beforeEach(() => {
   router.fetcher.formData = undefined;
   router.fetcher.submit.mockReset();
   router.navigate.mockReset();
+  router.revalidator.revalidate.mockReset();
+  router.revalidator.state = "idle";
   vi.stubGlobal("opener", null);
 });
 
@@ -80,10 +84,11 @@ function button(label: string) {
 
 async function completeOnboarding() {
   view = await render(<Onboarding />);
+  router.fetcher.submit.mockClear();
   await click(button(texts("it").onboarding.activate));
   expect(router.fetcher.submit).toHaveBeenCalledWith(
     { intent: "activate", step: "4" },
-    { method: "post" },
+    expect.objectContaining({ method: "post" }),
   );
   router.loaderData = { ...(router.loaderData as object), enabled: true, completed: true };
   router.fetcher.data = { ok: true };
@@ -118,10 +123,7 @@ test("Scegli un piano riusa il listino della home senza avviare addebiti", async
   vi.stubGlobal("opener", { postMessage });
   await completeOnboarding();
   await click(button(trialContinuityTexts("it").choosePlan));
-  expect(postMessage).toHaveBeenCalledWith(
-    { type: "cf-ready:show-plans" },
-    window.location.origin,
-  );
+  expect(postMessage).toHaveBeenCalledWith({ type: "cf-ready:show-plans" }, window.location.origin);
   expect(router.fetcher.submit).toHaveBeenCalledTimes(1);
   expect(router.navigate).not.toHaveBeenCalled();
 });

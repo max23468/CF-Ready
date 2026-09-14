@@ -6,7 +6,7 @@ import type { onboardingStep4State } from "./step4-state";
 
 const STEPS = 4;
 
-export function OnboardingCompletion({ saved, goHome, showPlans }: {
+type CompletionProps = {
   saved: Pick<
     OnboardingData,
     | "locale"
@@ -19,7 +19,9 @@ export function OnboardingCompletion({ saved, goHome, showPlans }: {
   >;
   goHome: () => void;
   showPlans: () => void;
-}) {
+};
+
+export function OnboardingCompletion({ saved, goHome, showPlans }: CompletionProps) {
   const t = texts(saved.locale);
   const continuity = trialContinuityTexts(saved.locale);
   const active = saved.enabled && saved.entitled && !saved.errorCode;
@@ -41,9 +43,7 @@ export function OnboardingCompletion({ saved, goHome, showPlans }: {
             <s-button variant="primary" onClick={goHome}>
               {continuity.goHome}
             </s-button>
-            {trialEndsAt ? (
-              <s-button onClick={showPlans}>{continuity.choosePlan}</s-button>
-            ) : null}
+            {trialEndsAt ? <s-button onClick={showPlans}>{continuity.choosePlan}</s-button> : null}
           </s-stack>
         </s-stack>
       </s-section>
@@ -51,7 +51,10 @@ export function OnboardingCompletion({ saved, goHome, showPlans }: {
   );
 }
 
-export function OnboardingListBlock({ lead, items }: {
+export function OnboardingListBlock({
+  lead,
+  items,
+}: {
   lead: ReactNode;
   items: readonly string[];
 }) {
