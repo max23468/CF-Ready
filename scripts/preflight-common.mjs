@@ -24,8 +24,12 @@ export function verifyMigrationSafety(migrations, policy = { migrations: [] }) {
 }
 
 function destructiveMigration(sql) {
+  const migrationStatements = sql.replace(
+    /^\s*CREATE\s+(?:TEMP(?:ORARY)?\s+)?TRIGGER\b[\s\S]*?^\s*END\s*;\s*$/gim,
+    "",
+  );
   return /\bDROP\s+(?:TABLE|COLUMN)\b|\bALTER\s+TABLE\b[\s\S]*\bRENAME\b|\bDELETE\s+FROM\b/i.test(
-    sql,
+    migrationStatements,
   );
 }
 
