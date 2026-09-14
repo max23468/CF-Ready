@@ -1,0 +1,48 @@
+name: Prepare release 1.11.3 temporary
+
+on:
+  push:
+    branches:
+      - feat/trial-continuity-home-onboarding
+
+permissions:
+  contents: write
+
+concurrency:
+  group: prepare-release-1-11-3-temp
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/feat/trial-continuity-home-onboarding'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: feat/trial-continuity-home-onboarding
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-node-npm
+      - name: Allinea manifest e lockfile a 1.11.3
+        run: npm version 1.11.3 --no-git-tag-version
+      - name: Allinea changelog
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from "node:fs";
+          const path = "CHANGELOG.md";
+          let content = readFileSync(path, "utf8");
+          content = content.replace("## 1.12.0 — 14 settembre 2026", "## 1.11.3 — 14 settembre 2026");
+          writeFileSync(path, content);
+          NODE
+      - name: Rimuovi workflow temporaneo e crea commit
+        shell: bash
+        run: |
+          rm .github/workflows/prepare-release-1-11-3-temp.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json CHANGELOG.md .github/workflows/prepare-release-1-11-3-temp.yml
+          git diff --cached --check
+          git diff --cached --quiet && { echo "Nessuna modifica da registrare."; exit 0; }
+          git commit -m "chore: prepara CF Ready 1.11.3"
+          git push origin HEAD:feat/trial-continuity-home-onboarding
