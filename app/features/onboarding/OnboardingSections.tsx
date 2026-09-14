@@ -1,9 +1,59 @@
 import type { ReactNode } from "react";
-import type { texts } from "../../i18n";
+import { formatDate, texts } from "../../i18n";
+import { trialContinuityTexts } from "../../i18n/trial-continuity";
 import type { OnboardingData } from "./onboarding.server";
 import type { onboardingStep4State } from "./step4-state";
 
 const STEPS = 4;
+
+export function OnboardingCompletion({
+  saved,
+  goHome,
+  showPlans,
+}: {
+  saved: Pick<
+    OnboardingData,
+    | "locale"
+    | "enabled"
+    | "entitled"
+    | "entitlementKind"
+    | "trialStatus"
+    | "trialEndsAt"
+    | "errorCode"
+  >;
+  goHome: () => void;
+  showPlans: () => void;
+}) {
+  const t = texts(saved.locale);
+  const continuity = trialContinuityTexts(saved.locale);
+  const active = saved.enabled && saved.entitled && !saved.errorCode;
+  const trialEndsAt =
+    active && saved.entitlementKind === "trial" && saved.trialStatus === "active"
+      ? saved.trialEndsAt
+      : null;
+
+  return (
+    <s-page heading={t.onboarding.heading}>
+      <s-section heading={active ? continuity.activeHeading : t.onboarding.doneHeading}>
+        <s-stack direction="block" gap="base">
+          <s-paragraph>
+            {trialEndsAt
+              ? continuity.onboardingTrial(formatDate(trialEndsAt, saved.locale))
+              : t.onboarding.doneBody}
+          </s-paragraph>
+          <s-stack direction="inline" gap="base">
+            <s-button variant="primary" onClick={goHome}>
+              {continuity.goHome}
+            </s-button>
+            {trialEndsAt ? (
+              <s-button onClick={showPlans}>{continuity.choosePlan}</s-button>
+            ) : null}
+          </s-stack>
+        </s-stack>
+      </s-section>
+    </s-page>
+  );
+}
 
 export function OnboardingListBlock({
   lead,
