@@ -93,13 +93,21 @@ export async function renderOwnerControlAction(
       if (action.shopId !== undefined) {
         const shop = await readShop(db, action.shopId);
         return shop
-          ? diagnosticShopMessage(db, shop, partnerConfig, { ...options, now, refresh: action.refresh })
+          ? diagnosticShopMessage(db, shop, partnerConfig, {
+              ...options,
+              now,
+              refresh: action.refresh,
+            })
           : noticeMessage("Store", "Store non trovato.");
       }
       if (!action.argument) return noticeMessage("Store", "Usa /shop nome_o_dominio.");
       const shops = await findShops(db, action.argument);
       if (shops.length === 1) {
-        return diagnosticShopMessage(db, shops[0], partnerConfig, { ...options, now, refresh: action.refresh });
+        return diagnosticShopMessage(db, shops[0], partnerConfig, {
+          ...options,
+          now,
+          refresh: action.refresh,
+        });
       }
       if (shops.length > 1) return shopMatchesMessage(shops);
       return noticeMessage("Store", "Store non trovato.");

@@ -75,3 +75,4 @@ corrente si legge da codice, configurazioni e `package.json`.
 - [README](../README.md) — setup e comandi correnti.
 - [Sicurezza](../SECURITY.md) — canale privato e disclosure coordinata.
 - [Contributi](../CONTRIBUTING.md) — issue, pull request e dati vietati.
+- [Diagnosi installazioni](runbooks/installation-diagnostics.md) — aperture app, primo ingresso onboarding e feedback di disinstallazione Shopify.

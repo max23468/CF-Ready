@@ -573,6 +573,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "0021_address2_hidden_mode.sql",
     "0022_configuration_history.sql",
     "0023_owner_operational_incidents.sql",
+    "0024_installation_diagnostics.sql",
   ]);
   await applyThrough(db, migrations, "0022_configuration_history.sql");
   await insertShop(db);
@@ -587,6 +588,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     )
     .run();
   await applyD1Migrations(db, [migrationAfter(migrations, "0022_configuration_history.sql")]);
+  await applyD1Migrations(db, [migrationAfter(migrations, "0023_owner_operational_incidents.sql")]);
 
   expect(await db.prepare("SELECT * FROM owner_notifications WHERE id = 23").first()).toMatchObject(
     {
@@ -627,6 +629,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "checkout_label_slots",
     "complimentary_entitlements",
     "configuration_history",
+    "installation_engagement",
     "owner_control_state",
     "owner_control_updates",
     "owner_notification_redactions",
@@ -638,6 +641,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "shops",
     "trial_ledger",
     "trials",
+    "uninstall_feedback",
     "validation_operation_locks",
     "webhook_events",
   ]);

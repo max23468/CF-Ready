@@ -180,12 +180,18 @@ test("reinstallazione, vecchie schede, disinstallazione e cancellazione sono sep
   )
     .bind(reinstalled, current.id)
     .run();
-  expect(
-    await recordInstallationEngagement(env.DB, SHOP, INSTALLED, "app_opened", NOW),
-  ).toBe(false);
+  expect(await recordInstallationEngagement(env.DB, SHOP, INSTALLED, "app_opened", NOW)).toBe(
+    false,
+  );
   expect(await saveUninstallFeedback(env.DB, feedback(), NOW)).toBe(false);
   expect(await readUninstallFeedback(env.DB, current.id, reinstalled)).toBeNull();
-  await recordInstallationEngagement(env.DB, SHOP, reinstalled, "app_opened", new Date(reinstalled));
+  await recordInstallationEngagement(
+    env.DB,
+    SHOP,
+    reinstalled,
+    "app_opened",
+    new Date(reinstalled),
+  );
   await env.DB.prepare("DELETE FROM shops WHERE id = ?").bind(current.id).run();
   expect(await env.DB.prepare("SELECT * FROM installation_engagement").first()).toBeNull();
   expect(await env.DB.prepare("SELECT * FROM uninstall_feedback").first()).toBeNull();
@@ -311,9 +317,11 @@ test("il poll conserva il feedback anche se la disinstallazione è già stata no
   expect(await readUninstallFeedback(env.DB, current.id, INSTALLED)).toMatchObject({
     description: "Commento aggiornato",
   });
-  expect(await env.DB.prepare("SELECT COUNT(*) AS count FROM owner_notifications").first()).toEqual({
-    count: 1,
-  });
+  expect(await env.DB.prepare("SELECT COUNT(*) AS count FROM owner_notifications").first()).toEqual(
+    {
+      count: 1,
+    },
+  );
   const sent = await env.DB.prepare("SELECT body_text FROM owner_notifications").first();
   expect(sent).toEqual(original);
 });
@@ -349,9 +357,11 @@ test("un feedback tardivo arricchisce la notifica ancora pending senza crearne u
     fetcher: async () => page([{ ...node, reason: undefined, description: undefined }]),
   });
   await pollPartnerEvents(env.DB, PARTNER, { now: NOW, fetcher: async () => page([node]) });
-  expect(await env.DB.prepare("SELECT COUNT(*) AS count FROM owner_notifications").first()).toEqual({
-    count: 1,
-  });
+  expect(await env.DB.prepare("SELECT COUNT(*) AS count FROM owner_notifications").first()).toEqual(
+    {
+      count: 1,
+    },
+  );
   expect(await env.DB.prepare("SELECT body_text FROM owner_notifications").first()).toMatchObject({
     body_text: expect.stringContaining("Cercavo una funzione diversa."),
   });
