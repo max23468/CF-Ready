@@ -1,0 +1,33 @@
+name: Dispatch Development once
+
+on:
+  pull_request:
+    branches:
+      - develop
+    types:
+      - opened
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  dispatch:
+    if: github.head_ref == 'chore/dispatch-development-318484c'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Avvia Deploy Development
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run deploy-development.yml --repo "$GITHUB_REPOSITORY" --ref develop
+          echo "Deploy Development richiesto per develop." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Chiudi la PR temporanea e rimuovi il branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr close "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --delete-branch
