@@ -8,6 +8,10 @@ export function InstallationReporter({ installedAt }: { installedAt: string | nu
   const reported = useRef(new Set<string>());
   const pending = useRef(new Set<string>());
 
+  // È un beacon di visibilità, non un caricamento dati: nessuna risposta aggiorna la UI.
+  // Ref e batch D1 deduplicano StrictMode e retry; keepalive dopo l'uscita è intenzionale.
+  // React documenta questo caso in synchronizing-with-effects#sending-analytics.
+  // react-doctor-disable-next-line react-doctor/no-fetch-in-effect
   useEffect(() => {
     const surface = pathname.replace(/\/$/, "");
     if (!installedAt || !SURFACES.has(surface)) return;
