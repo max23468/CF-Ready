@@ -6,14 +6,10 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
-## 1.12.0 — 14 settembre 2026
+## 1.11.3 — 14 settembre 2026
 
-- il Control Center distingue la prima apertura dell’app e il primo ingresso
-  nell’onboarding, anche senza superare il passo 1;
-- la diagnostica conserva soltanto le prime rilevazioni dell’installazione
-  corrente, distinguendo i dati storici mancanti dai segnali non rilevati;
-- il dettaglio dello store recupera motivo e commento di disinstallazione
-  da Shopify Partner, senza reinviare notifiche già consegnate.
+- Home e completamento onboarding spiegano quando termina la prova e permettono di scegliere facoltativamente un piano senza perdere i giorni gratuiti rimanenti;
+- dopo l’approvazione di un abbonamento durante la prova, Home mostra la continuità del servizio e la data prevista del primo addebito senza riproporre l’invito a scegliere un piano.
 
 ## 1.11.2 — 13 settembre 2026
 
