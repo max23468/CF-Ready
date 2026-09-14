@@ -73,6 +73,8 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       entitlementKind: state.entitlement.kind,
       entitled: state.entitlement.kind !== "none",
       trialStatus: state.trial?.status ?? null,
+      trialEndsAt: state.trial?.ends_at ?? null,
+      errorCode: state.errorCode,
       configHash,
       labelScopesGranted,
       labelState: labels?.state ?? storedLabelState,
