@@ -21,7 +21,9 @@ export type FeedbackEvent = {
   description?: unknown;
 };
 
-export function parseEngagementHeaders(headers: Headers) {
+export function parseEngagementHeaders(
+  headers: Headers,
+): { event: EngagementEvent; installedAt: string } | null {
   const event = headers.get("X-CF-Ready-Event");
   const installedAt = headers.get("X-CF-Ready-Installation");
   if (event !== "app_opened" && event !== "onboarding_started") return null;
