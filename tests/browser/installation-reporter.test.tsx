@@ -85,7 +85,11 @@ test("non segnala una pagina merchant senza riferimento di installazione", async
 });
 
 test("attende App Bridge e ritenta le risposte non riuscite senza log o blocchi della UI", async () => {
-  Object.defineProperty(window, "shopify", { configurable: true, writable: true, value: undefined });
+  Object.defineProperty(window, "shopify", {
+    configurable: true,
+    writable: true,
+    value: undefined,
+  });
   await mount();
   expect(fetcher).not.toHaveBeenCalled();
   Object.defineProperty(window, "shopify", { configurable: true, writable: true, value: {} });
