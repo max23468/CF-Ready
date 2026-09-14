@@ -142,12 +142,14 @@ test("il dettaglio distingue payload Partner invalido, finestra vuota e cache di
 
 test("il recupero conserva il candidato Partner più recente nella stessa pagina", async () => {
   const shop = await currentShop(UNINSTALLED);
-  const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
-    page([
-      feedback({ occurredAt: "2026-09-14T12:03:00.000Z", description: "Più recente" }),
-      feedback({ occurredAt: "2026-09-14T12:01:00.000Z", description: "Più vecchio" }),
-    ]),
-  );
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue(
+      page([
+        feedback({ occurredAt: "2026-09-14T12:03:00.000Z", description: "Più recente" }),
+        feedback({ occurredAt: "2026-09-14T12:01:00.000Z", description: "Più vecchio" }),
+      ]),
+    );
   const result = await readShopFeedback(env.DB, shop, PARTNER, { now: NOW, fetcher });
   expect(result.status).toBe("available");
   expect(result.feedback?.description).toBe("Più recente");
