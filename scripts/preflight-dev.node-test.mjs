@@ -172,6 +172,27 @@ test("il preflight richiede due fasi per nuove migrazioni distruttive", () => {
       ]),
     /deploy in due fasi/,
   );
+  const triggerSql = `
+    CREATE TABLE diagnostics (shop_id INTEGER PRIMARY KEY);
+    CREATE TRIGGER reset_diagnostics
+    AFTER UPDATE OF installed_at ON shops
+    BEGIN
+      DELETE FROM diagnostics WHERE shop_id = NEW.id;
+    END;
+  `;
+  assert.doesNotThrow(() =>
+    verifyMigrationSafety([{ name: "0012_trigger_cleanup.sql", sql: triggerSql }]),
+  );
+  assert.throws(
+    () =>
+      verifyMigrationSafety([
+        {
+          name: "0012_trigger_and_delete.sql",
+          sql: `${triggerSql}\nDELETE FROM trials WHERE trial_ends_at < ?;`,
+        },
+      ]),
+    /deploy in due fasi/,
+  );
   const compatibleSql = `
     ALTER TABLE events RENAME TO events_before_kind;
     CREATE TABLE events (id INTEGER PRIMARY KEY, kind TEXT);
