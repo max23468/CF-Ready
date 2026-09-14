@@ -3,6 +3,7 @@ import type { HeadersFunction } from "react-router";
 import { useFetcher, useLoaderData, useNavigate } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError, type AppErrorCode } from "../app-error";
+import { requestAppWindowNavigation } from "../app-window-navigation";
 import {
   checkoutLabelCopy,
   checkoutLabelValuesMatch,
@@ -17,6 +18,7 @@ import {
 } from "../config";
 import { onboardingStep4State } from "../features/onboarding/step4-state";
 import {
+  OnboardingCompletion,
   OnboardingListBlock,
   OnboardingProgress,
   OnboardingStep4Actions,
@@ -98,16 +100,25 @@ export default function Onboarding() {
     }
   }, [fetcher.state, esito]);
 
+  const showPlans = () =>
+    requestPlanComparisonFromFrame(window, () =>
+      navigate("/app", {
+        state: planComparisonLocationState(),
+        viewTransition: true,
+      }),
+    );
+
   if (finished) {
     return (
-      <s-page heading={t.onboarding.heading}>
-        <s-section heading={t.onboarding.doneHeading}>
-          <s-stack direction="block" gap="base">
-            <s-paragraph>{t.onboarding.doneBody}</s-paragraph>
-            <s-link href="/app">{t.nav.home}</s-link>
-          </s-stack>
-        </s-section>
-      </s-page>
+      <OnboardingCompletion
+        saved={saved}
+        goHome={() =>
+          requestAppWindowNavigation(window, "/app", (href) =>
+            navigate(href, { viewTransition: true }),
+          )
+        }
+        showPlans={showPlans}
+      />
     );
   }
 
@@ -208,14 +219,7 @@ export default function Onboarding() {
               busy={busy}
               pendingIntent={pendingIntent}
               go={go}
-              showPlans={() =>
-                requestPlanComparisonFromFrame(window, () =>
-                  navigate("/app", {
-                    state: planComparisonLocationState(),
-                    viewTransition: true,
-                  }),
-                )
-              }
+              showPlans={showPlans}
             />
 
             <s-stack direction="inline" gap="base">

@@ -2,6 +2,7 @@ import { version as appVersion } from "../../package.json";
 import type { TelegramClientConfig } from "../telegram/client.server";
 import { createTelegramClient } from "../telegram/client.server";
 import { readGrowthReport } from "./growth.server";
+import { diagnosticShopMessage } from "./shop-diagnostics.server";
 import type { OwnerControlAction } from "./model";
 import {
   activityMessage,
@@ -17,7 +18,6 @@ import {
   notificationsMessage,
   performanceMessage,
   shopMatchesMessage,
-  shopMessage,
   shopsMessage,
   trialsMessage,
   versionMessage,
@@ -35,7 +35,6 @@ import {
   readNotificationStatus,
   readPerformance,
   readShop,
-  readShopActivity,
   readShops,
   readTrials,
 } from "./queries.server";
@@ -94,13 +93,21 @@ export async function renderOwnerControlAction(
       if (action.shopId !== undefined) {
         const shop = await readShop(db, action.shopId);
         return shop
-          ? shopMessage(shop, await readShopActivity(db, shop.id))
+          ? diagnosticShopMessage(db, shop, partnerConfig, {
+              ...options,
+              now,
+              refresh: action.refresh,
+            })
           : noticeMessage("Store", "Store non trovato.");
       }
       if (!action.argument) return noticeMessage("Store", "Usa /shop nome_o_dominio.");
       const shops = await findShops(db, action.argument);
       if (shops.length === 1) {
-        return shopMessage(shops[0], await readShopActivity(db, shops[0].id));
+        return diagnosticShopMessage(db, shops[0], partnerConfig, {
+          ...options,
+          now,
+          refresh: action.refresh,
+        });
       }
       if (shops.length > 1) return shopMatchesMessage(shops);
       return noticeMessage("Store", "Store non trovato.");
