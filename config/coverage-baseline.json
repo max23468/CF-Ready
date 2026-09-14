@@ -1,27 +1,27 @@
 {
   "schemaVersion": 1,
-  "sourceCount": 154,
-  "sourceHash": "87f32658de1a07c0396e80b36548db29152858bfc241296e2d4d6ac5a1cdbddd",
+  "sourceCount": 155,
+  "sourceHash": "56900c593b469c7495f277b19827093da22cf5dba5ac606e935a6dd53ed8201d",
   "global": {
     "statements": {
-      "total": 9046,
-      "covered": 8856,
-      "pct": 97.89
+      "total": 9081,
+      "covered": 8891,
+      "pct": 97.9
     },
     "branches": {
-      "total": 5792,
-      "covered": 5611,
-      "pct": 96.87
+      "total": 5832,
+      "covered": 5651,
+      "pct": 96.89
     },
     "functions": {
-      "total": 1349,
-      "covered": 1339,
-      "pct": 99.25
+      "total": 1362,
+      "covered": 1352,
+      "pct": 99.26
     },
     "lines": {
-      "total": 8558,
-      "covered": 8384,
-      "pct": 97.96
+      "total": 8588,
+      "covered": 8414,
+      "pct": 97.97
     }
   },
   "groups": {
@@ -32,8 +32,8 @@
         "pct": 98.45
       },
       "branches": {
-        "total": 3012,
-        "covered": 2926,
+        "total": 3014,
+        "covered": 2928,
         "pct": 97.14
       },
       "functions": {
@@ -49,23 +49,23 @@
     },
     "ui-routes": {
       "statements": {
-        "total": 1370,
-        "covered": 1368,
+        "total": 1405,
+        "covered": 1403,
         "pct": 99.85
       },
       "branches": {
-        "total": 1226,
-        "covered": 1199,
-        "pct": 97.79
+        "total": 1264,
+        "covered": 1237,
+        "pct": 97.86
       },
       "functions": {
-        "total": 434,
-        "covered": 434,
+        "total": 447,
+        "covered": 447,
         "pct": 100
       },
       "lines": {
-        "total": 1222,
-        "covered": 1222,
+        "total": 1252,
+        "covered": 1252,
         "pct": 100
       }
     },
