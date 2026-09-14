@@ -1,0 +1,152 @@
+name: Finalize 1.11.3 once
+
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  finalize:
+    if: >-
+      github.event.pull_request.head.ref == 'chore/finalize-release-1.11.3' &&
+      github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verifica evidenza Production
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN_SHA: a3adc74f0b160442f3b414f1e30b381a54be67bd
+          PRODUCTION_RUN_ID: '34886268193'
+        run: |
+          node --input-type=module <<'NODE'
+          const repo = process.env.GITHUB_REPOSITORY;
+          const token = process.env.GITHUB_TOKEN;
+          const expected = process.env.EXPECTED_MAIN_SHA;
+          const runId = process.env.PRODUCTION_RUN_ID;
+          async function req(path) {
+            const r = await fetch(`https://api.github.com${path}`, {headers:{accept:'application/vnd.github+json',authorization:`Bearer ${token}`,'x-github-api-version':'2022-11-28'}});
+            if (!r.ok) throw new Error(`${path}: ${r.status} ${await r.text()}`);
+            return r.json();
+          }
+          const main = await req(`/repos/${repo}/git/ref/heads/main`);
+          if (main.object.sha !== expected) throw new Error(`main mosso: ${main.object.sha}`);
+          const run = await req(`/repos/${repo}/actions/runs/${runId}`);
+          if (run.status !== 'completed' || run.conclusion !== 'success' || run.head_branch !== 'main' || run.head_sha !== expected || run.path !== '.github/workflows/deploy-production.yml') {
+            throw new Error('Deploy Production atteso non verde o non corrispondente a main.');
+          }
+          const artifacts = await req(`/repos/${repo}/actions/runs/${runId}/artifacts?per_page=100`);
+          const receipt = `deploy-receipt-production-${expected}`;
+          if (!artifacts.artifacts.some(a => a.name === receipt && a.expired === false)) {
+            throw new Error(`Ricevuta Production mancante: ${receipt}`);
+          }
+          console.log('Evidenza Production verificata.');
+          NODE
+
+      - name: Riallinea develop al commit Production
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN_SHA: a3adc74f0b160442f3b414f1e30b381a54be67bd
+        run: |
+          node --input-type=module <<'NODE'
+          import { setTimeout as wait } from 'node:timers/promises';
+          const repo = process.env.GITHUB_REPOSITORY;
+          const token = process.env.GITHUB_TOKEN;
+          const expected = process.env.EXPECTED_MAIN_SHA;
+          async function call(path, options={}) {
+            const r = await fetch(`https://api.github.com${path}`, {
+              ...options,
+              headers:{accept:'application/vnd.github+json',authorization:`Bearer ${token}`,'content-type':'application/json','x-github-api-version':'2022-11-28',...(options.headers||{})}
+            });
+            if (!r.ok) throw new Error(`${options.method||'GET'} ${path}: ${r.status} ${await r.text()}`);
+            if (r.status === 204) return null;
+            return r.json();
+          }
+          const started = Date.now();
+          await call(`/repos/${repo}/actions/workflows/reconcile-develop.yml/dispatches`, {
+            method:'POST', body:JSON.stringify({ref:'main', inputs:{mode:'deploy-retry'}})
+          });
+          let run;
+          for (let i=0;i<30 && !run;i++) {
+            await wait(2000);
+            const runs = await call(`/repos/${repo}/actions/workflows/reconcile-develop.yml/runs?event=workflow_dispatch&branch=main&per_page=20`);
+            run = runs.workflow_runs.find(r => r.head_sha === expected && Date.parse(r.created_at) >= started - 5000);
+          }
+          if (!run) throw new Error('Run Reconcile develop non trovato dopo il dispatch.');
+          for (let i=0;i<90;i++) {
+            const current = await call(`/repos/${repo}/actions/runs/${run.id}`);
+            if (current.status === 'completed') {
+              if (current.conclusion !== 'success') throw new Error(`Reconcile develop fallito: ${current.conclusion}`);
+              break;
+            }
+            if (i === 89) throw new Error('Timeout Reconcile develop.');
+            await wait(2000);
+          }
+          const develop = await call(`/repos/${repo}/git/ref/heads/develop`);
+          if (develop.object.sha !== expected) throw new Error(`develop non riallineato: ${develop.object.sha}`);
+          console.log(`develop riallineato a ${expected}.`);
+          NODE
+
+      - name: Crea tag e GitHub Release v1.11.3
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN_SHA: a3adc74f0b160442f3b414f1e30b381a54be67bd
+        run: |
+          node --input-type=module <<'NODE'
+          const repo = process.env.GITHUB_REPOSITORY;
+          const token = process.env.GITHUB_TOKEN;
+          const expected = process.env.EXPECTED_MAIN_SHA;
+          const tag = 'v1.11.3';
+          async function fetchApi(path, options={}) {
+            return fetch(`https://api.github.com${path}`, {
+              ...options,
+              headers:{accept:'application/vnd.github+json',authorization:`Bearer ${token}`,'content-type':'application/json','x-github-api-version':'2022-11-28',...(options.headers||{})}
+            });
+          }
+          const existing = await fetchApi(`/repos/${repo}/releases/tags/${tag}`);
+          if (existing.ok) {
+            const release = await existing.json();
+            console.log(`Release ${tag} già presente: ${release.html_url}`);
+            process.exit(0);
+          }
+          if (existing.status !== 404) throw new Error(`Verifica release: ${existing.status} ${await existing.text()}`);
+          const created = await fetchApi(`/repos/${repo}/releases`, {
+            method:'POST',
+            body:JSON.stringify({
+              tag_name:tag,
+              target_commitish:expected,
+              name:tag,
+              draft:false,
+              prerelease:false,
+              make_latest:'true',
+              generate_release_notes:true
+            })
+          });
+          if (!created.ok) throw new Error(`Creazione release: ${created.status} ${await created.text()}`);
+          const release = await created.json();
+          console.log(`Release pubblicata: ${release.html_url}`);
+          NODE
+
+      - name: Chiudi la PR temporanea e rimuovi il branch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          node --input-type=module <<'NODE'
+          const repo = process.env.GITHUB_REPOSITORY;
+          const token = process.env.GITHUB_TOKEN;
+          async function req(path, options={}) {
+            const r = await fetch(`https://api.github.com${path}`, {
+              ...options,
+              headers:{accept:'application/vnd.github+json',authorization:`Bearer ${token}`,'content-type':'application/json','x-github-api-version':'2022-11-28'}
+            });
+            if (!r.ok && r.status !== 204) throw new Error(`${options.method||'GET'} ${path}: ${r.status} ${await r.text()}`);
+          }
+          await req(`/repos/${repo}/pulls/${process.env.PR_NUMBER}`, {method:'PATCH', body:JSON.stringify({state:'closed'})});
+          await req(`/repos/${repo}/git/refs/heads/${encodeURIComponent(process.env.HEAD_REF)}`, {method:'DELETE'});
+          NODE
