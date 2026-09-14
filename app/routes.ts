@@ -9,6 +9,7 @@ export default [
     route("guide", "routes/app.guide.tsx"),
     route("onboarding", "routes/app.onboarding.tsx"),
     route("performance", "routes/app.performance.tsx"),
+    route("engagement", "routes/app.engagement.tsx"),
   ]),
   route("auth/*", "routes/auth.$.tsx"),
   route("webhooks/app/uninstalled", "routes/webhooks.app.uninstalled.tsx"),

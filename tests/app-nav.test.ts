@@ -1,10 +1,17 @@
 import { expect, test, vi } from "vitest";
 import { texts } from "../app/i18n";
 
-const mocks = vi.hoisted(() => ({ authenticateAdmin: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  authenticateAdmin: vi.fn(),
+  readInstallationStartedAt: vi.fn(),
+}));
 
 vi.mock("../app/shopify.server", () => ({ authenticate: {} }));
 vi.mock("../app/admin-auth.server", () => ({ authenticateAdmin: mocks.authenticateAdmin }));
+
+vi.mock("../app/installation-diagnostics.server", () => ({
+  readInstallationStartedAt: mocks.readInstallationStartedAt,
+}));
 
 import { loader, NAV } from "../app/routes/app";
 
@@ -14,12 +21,18 @@ test("il layout autentica la richiesta ed espone soltanto il contesto minimo", a
   });
   const request = new Request("https://cf-ready.test/app?locale=it-IT");
 
-  await expect(loader({ request, context: {} } as never)).resolves.toMatchObject({
+  const db = {};
+  const context = { get: vi.fn(() => db) };
+  mocks.readInstallationStartedAt.mockResolvedValueOnce("2026-09-14T12:00:00.000Z");
+
+  await expect(loader({ request, context } as never)).resolves.toMatchObject({
+    installedAt: "2026-09-14T12:00:00.000Z",
     apiKey: expect.any(String),
     shopDomain: "negozio.myshopify.com",
     locale: "it",
   });
-  expect(mocks.authenticateAdmin).toHaveBeenCalledWith(request, {});
+  expect(mocks.authenticateAdmin).toHaveBeenCalledWith(request, context);
+  expect(mocks.readInstallationStartedAt).toHaveBeenCalledWith(db, "negozio.myshopify.com");
 });
 
 // D-130: due voci per `/app` lasciavano l'Admin senza menu quando si tornava alla Home da un
@@ -49,4 +62,12 @@ test("ogni voce del menu ha un'etichetta in entrambe le lingue", () => {
 
     for (const item of NAV) expect(nav[item.label]).toBeTruthy();
   }
+});
+
+test("la diagnostica non impedisce il caricamento se la lettura D1 fallisce", async () => {
+  mocks.authenticateAdmin.mockResolvedValueOnce({ session: { shop: "negozio.myshopify.com" } });
+  mocks.readInstallationStartedAt.mockRejectedValueOnce(new Error("synthetic storage failure"));
+  const request = new Request("https://cf-ready.test/app");
+  const context = { get: () => ({}) };
+  await expect(loader({ request, context } as never)).resolves.toMatchObject({ installedAt: null });
 });

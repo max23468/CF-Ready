@@ -124,6 +124,11 @@
       "sha256": "94b161538c10238d970d4c886e1ddd7b1817104ebbdff7507202a9cb59c7cf09",
       "deployStrategy": "atomic-compatible-table-rebuild",
       "protects": ["operational incident lifecycle", "operational notification outbox"]
+    },
+    {
+      "name": "0024_installation_diagnostics.sql",
+      "sha256": "e7f990ced7201758690368220203bbdc6bad7e911c04aa21736b12782887eae2",
+      "protects": ["installation engagement diagnostics", "uninstall feedback diagnostics"]
     }
   ]
 }
