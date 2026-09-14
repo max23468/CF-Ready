@@ -1,6 +1,10 @@
 import { trialLedgerHash as notificationShopHash } from "../hash.server";
 import { recordEvent } from "../events.server";
 import {
+  saveUninstallFeedback,
+  uninstallFeedbackSection,
+} from "../installation-diagnostics.server";
+import {
   type PartnerEventNode,
   type PartnerEventType,
   normalizeShopDomain,
@@ -68,6 +72,7 @@ const PARTNER_EVENTS_QUERY = `#graphql
           node {
             type occurredAt
             shop { id myshopifyDomain name }
+            ... on RelationshipUninstalled { reason description }
             ... on AppSubscriptionEvent {
               charge { id name amount { amount currencyCode } billingOn test }
             }
@@ -123,7 +128,7 @@ export async function pollPartnerEvents(
             }
             return null;
           }
-          return partnerEventNotification(db, node);
+          return partnerEventNotification(db, node, now);
         }),
       )
     ).filter((notification) => notification !== null);
@@ -162,7 +167,7 @@ function isNewInvalidEvent(node: PartnerEventNode | undefined, checkpointAt: str
   return validIsoDate(node?.occurredAt) && Date.parse(node.occurredAt) > Date.parse(checkpointAt);
 }
 
-async function partnerEventNotification(db: D1Database, event: PartnerEventNode) {
+async function partnerEventNotification(db: D1Database, event: PartnerEventNode, now: Date) {
   const type = event.type as PartnerEventType;
   const occurredAt = event.occurredAt!;
   const shopDomain = normalizeShopDomain(event.shop!.myshopifyDomain!);
@@ -173,7 +178,34 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode)
   if (type.startsWith("RELATIONSHIP_")) {
     const relationshipType = type as Extract<PartnerEventType, `RELATIONSHIP_${string}`>;
     const lifecycle = relationshipCopy(relationshipType);
-    if (await hasEquivalentNotification(db, shopDomain, lifecycle.subject, occurredAt)) return null;
+    const uninstalled = type === "RELATIONSHIP_UNINSTALLED";
+    // Conservare il feedback prima della deduplica: il webhook locale può avere già notificato.
+    if (uninstalled) await saveUninstallFeedback(db, event, now);
+    const body = notificationBody(lifecycle.description, occurredAt, [
+      storeSection(displayName, shopDomain, snapshot),
+      operationalSection(snapshot, {
+        appStatus: relationshipStatus(relationshipType),
+        plan: operationalPlan(snapshot),
+        installationDuration: uninstalled
+          ? formatDuration(snapshot?.installed_at, occurredAt)
+          : null,
+      }),
+      ...(uninstalled ? [uninstallFeedbackSection(event)] : []),
+    ]);
+    if (await hasEquivalentNotification(db, shopDomain, lifecycle.subject, occurredAt)) {
+      if (uninstalled) {
+        // Nessun reinvio o modifica di messaggi già consegnati: /shop legge sempre il feedback.
+        await db
+          .prepare(
+            `UPDATE owner_notifications SET body_text = ?, updated_at = ?
+             WHERE shop_domain = ? AND subject = ? AND status = 'pending'
+               AND ABS(unixepoch(source_occurred_at) - unixepoch(?)) <= 300`,
+          )
+          .bind(body, now.toISOString(), shopDomain, lifecycle.subject, occurredAt)
+          .run();
+      }
+      return null;
+    }
     return notificationStatement(db, {
       dedupeKey: await relationshipNotificationKey(
         shopDomain,
@@ -184,17 +216,7 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode)
       shopDomain,
       shopHash: await notificationShopHash(shopDomain),
       subject: lifecycle.subject,
-      body: notificationBody(lifecycle.description, occurredAt, [
-        storeSection(displayName, shopDomain, snapshot),
-        operationalSection(snapshot, {
-          appStatus: relationshipStatus(relationshipType),
-          plan: operationalPlan(snapshot),
-          installationDuration:
-            type === "RELATIONSHIP_UNINSTALLED"
-              ? formatDuration(snapshot?.installed_at, occurredAt)
-              : null,
-        }),
-      ]),
+      body,
       occurredAt,
     });
   }
