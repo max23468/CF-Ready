@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { homeCheckoutSummary, type texts, validationStatus } from "../../i18n";
 import type { HomeData } from "./home.server";
 import { homeValidationPresentation } from "./home-next-step";
+import { trialContinuityNotice } from "./commercial-state";
 
 type Texts = ReturnType<typeof texts>;
 type Submit = (intent: string, source?: string) => void;
@@ -41,6 +42,7 @@ export function HomeValidationSection({
 }) {
   const status = validationStatus(data.validationEnabled, entitled);
   const presentation = homeValidationPresentation(data, status, firstRun, t);
+  const continuity = trialContinuityNotice(data);
   return (
     <s-section>
       <s-stack direction="block" gap="base">
@@ -51,6 +53,19 @@ export function HomeValidationSection({
             {homeCheckoutSummary({ rules: data.rules, status }, data.locale)}
           </s-paragraph>
         )}
+        {continuity ? (
+          <MotionBanner tone={continuity.tone}>
+            <s-stack direction="block" gap="small-100">
+              <s-paragraph>{continuity.text}</s-paragraph>
+              {continuity.detail ? <s-paragraph>{continuity.detail}</s-paragraph> : null}
+              {continuity.action ? (
+                <s-button href="#plans" disabled={busy}>
+                  {continuity.action}
+                </s-button>
+              ) : null}
+            </s-stack>
+          </MotionBanner>
+        ) : null}
         <s-divider />
         <s-stack direction="block" gap="small-100">
           <s-grid

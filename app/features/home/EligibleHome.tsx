@@ -1,6 +1,6 @@
 import { localizedError, type AppErrorCode } from "../../app-error";
 import { pendingFetcherIntent, pendingFetcherSource } from "../../config";
-import { formatDate, texts, trialNotice } from "../../i18n";
+import { formatDate, texts } from "../../i18n";
 import { commercialState } from "./commercial-state";
 import { DeactivateModal, HomeAside, HomeValidationSection, MotionBanner } from "./HomeSections";
 import { MerchantCheckIn } from "./MerchantCheckIn";
@@ -31,7 +31,6 @@ export function EligibleHome({
   const currentCommercialState = commercialState(data);
   const entitled = currentCommercialState === "entitled";
   const firstRun = currentCommercialState === "first_run";
-  const notice = trialNotice({ remaining: data.remaining, endsAt: data.trialEndsAt }, data.locale);
   const busy = fetcherState !== "idle";
   const pendingIntent = pendingFetcherIntent(formData);
   const pendingSource = pendingFetcherSource(formData);
@@ -44,9 +43,6 @@ export function EligibleHome({
     <s-page heading={t.home.heading}>
       <HomeNotices
         data={data}
-        entitled={entitled}
-        firstRun={firstRun}
-        notice={notice}
         result={result}
         busy={busy}
         pendingIntent={pendingIntent}
@@ -91,18 +87,12 @@ export function EligibleHome({
 
 function HomeNotices({
   data,
-  entitled,
-  firstRun,
-  notice,
   result,
   busy,
   pendingIntent,
   submit,
 }: {
   data: HomeData;
-  entitled: boolean;
-  firstRun: boolean;
-  notice: ReturnType<typeof trialNotice>;
   result: { ok: boolean; errorCode?: AppErrorCode } | undefined;
   busy: boolean;
   pendingIntent: string | null;
@@ -111,15 +101,7 @@ function HomeNotices({
   const t = texts(data.locale);
   return (
     <>
-      <PrimaryNotice
-        data={data}
-        entitled={entitled}
-        firstRun={firstRun}
-        notice={notice}
-        busy={busy}
-        pendingIntent={pendingIntent}
-        submit={submit}
-      />
+      <PrimaryNotice data={data} busy={busy} pendingIntent={pendingIntent} submit={submit} />
       {result && !result.ok ? (
         <MotionBanner tone="critical">{localizedError(t.errors, result.errorCode)}</MotionBanner>
       ) : null}
@@ -129,17 +111,11 @@ function HomeNotices({
 
 function PrimaryNotice({
   data,
-  entitled,
-  firstRun,
-  notice,
   busy,
   pendingIntent,
   submit,
 }: {
   data: HomeData;
-  entitled: boolean;
-  firstRun: boolean;
-  notice: ReturnType<typeof trialNotice>;
   busy: boolean;
   pendingIntent: string | null;
   submit: Submit;
@@ -168,7 +144,5 @@ function PrimaryNotice({
       </MotionBanner>
     );
   }
-  if (!firstRun && !entitled)
-    return <MotionBanner tone="warning">{t.home.noEntitlement}</MotionBanner>;
-  return notice ? <MotionBanner tone={notice.tone}>{notice.text}</MotionBanner> : null;
+  return null;
 }
