@@ -6,11 +6,7 @@ import type { onboardingStep4State } from "./step4-state";
 
 const STEPS = 4;
 
-export function OnboardingCompletion({
-  saved,
-  goHome,
-  showPlans,
-}: {
+export function OnboardingCompletion({ saved, goHome, showPlans }: {
   saved: Pick<
     OnboardingData,
     | "locale"
@@ -55,10 +51,7 @@ export function OnboardingCompletion({
   );
 }
 
-export function OnboardingListBlock({
-  lead,
-  items,
-}: {
+export function OnboardingListBlock({ lead, items }: {
   lead: ReactNode;
   items: readonly string[];
 }) {

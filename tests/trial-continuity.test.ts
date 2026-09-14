@@ -18,6 +18,7 @@ function elements(node: ReactNode): ReactElement[] {
 
 type NoticeData = Parameters<typeof trialContinuityNotice>[0];
 type CompletionData = Parameters<typeof OnboardingCompletion>[0]["saved"];
+type ButtonProps = { variant?: string; children?: ReactNode; onClick: () => void };
 
 const trial: NoticeData = {
   locale: "it",
@@ -42,10 +43,9 @@ const completed: CompletionData = {
 };
 
 for (const locale of ["it", "en"] as const) {
-  test.each([14, 7, 3, 1])(`Home ${locale}: data e azione durante tutta la prova (%i giorni)`, (remaining) => {
+  test.each([14, 7, 3, 1])(`Home ${locale}: avviso durante la prova (%i)`, (remaining) => {
     const t = trialContinuityTexts(locale);
-    const notice = trialContinuityNotice({ ...trial, locale, remaining });
-    expect(notice).toEqual({
+    expect(trialContinuityNotice({ ...trial, locale, remaining })).toEqual({
       tone: remaining <= 3 ? "warning" : "info",
       text: t.trialActive(formatDate("2026-09-28", locale)),
       detail: t.approvalHelp,
@@ -112,14 +112,18 @@ for (const locale of ["it", "en"] as const) {
     ).toBe(true);
     const buttons = rendered.filter((element) => element.type === "s-button");
     expect(buttons).toHaveLength(2);
-    expect(buttons[0]?.props).toMatchObject({ variant: "primary", children: t.goHome });
-    expect(buttons[1]?.props).toMatchObject({ children: t.choosePlan });
-    expect((buttons[1]?.props as { variant?: string }).variant).toBeUndefined();
+    const [homeButton, planButton] = buttons;
+    if (!homeButton || !planButton) throw new Error("Azioni finali mancanti");
+    const homeProps = homeButton.props as ButtonProps;
+    const planProps = planButton.props as ButtonProps;
+    expect(homeProps).toMatchObject({ variant: "primary", children: t.goHome });
+    expect(planProps).toMatchObject({ children: t.choosePlan });
+    expect(planProps.variant).toBeUndefined();
     expect(showPlans).not.toHaveBeenCalled();
-    (buttons[0]?.props as { onClick: () => void }).onClick();
+    homeProps.onClick();
     expect(goHome).toHaveBeenCalledOnce();
     expect(showPlans).not.toHaveBeenCalled();
-    (buttons[1]?.props as { onClick: () => void }).onClick();
+    planProps.onClick();
     expect(showPlans).toHaveBeenCalledOnce();
     expect(rendered.some((element) => element.type === "s-choice-list")).toBe(false);
   });
@@ -132,7 +136,7 @@ test.each([
   { trialStatus: "expired" },
   { remaining: 0 },
   { trialEndsAt: null },
-] satisfies Partial<NoticeData>[])('nessun avviso di prova con stato non applicabile: %j', (overrides) => {
+] satisfies Partial<NoticeData>[])("nessun avviso per stato non applicabile: %j", (overrides) => {
   expect(trialContinuityNotice({ ...trial, ...overrides })).toBeNull();
 });
 
@@ -141,7 +145,7 @@ test.each([
   { accountStatus: "none" },
   { firstChargeAt: null },
   { remaining: 0 },
-] satisfies Partial<NoticeData>[])('non promette un primo addebito senza conferma: %j', (overrides) => {
+] satisfies Partial<NoticeData>[])("nessun primo addebito senza conferma: %j", (overrides) => {
   expect(
     trialContinuityNotice({
       ...trial,
@@ -156,7 +160,7 @@ test.each([
   { enabled: false },
   { entitled: false, entitlementKind: "none" },
   { errorCode: "billing_read_failed" },
-] satisfies Partial<CompletionData>[])('onboarding senza falsa conferma di attivazione: %j', (overrides) => {
+] satisfies Partial<CompletionData>[])("nessuna falsa conferma di attivazione: %j", (overrides) => {
   const rendered = elements(
     OnboardingCompletion({
       saved: { ...completed, ...overrides },
@@ -175,7 +179,7 @@ test.each([
   { entitlementKind: "one_time" },
   { trialEndsAt: null },
   { trialStatus: "expired" },
-] satisfies Partial<CompletionData>[])('onboarding senza invito superfluo a scegliere un piano: %j', (overrides) => {
+] satisfies Partial<CompletionData>[])("nessun invito superfluo a scegliere un piano: %j", (overrides) => {
   const rendered = elements(
     OnboardingCompletion({
       saved: { ...completed, ...overrides },
@@ -208,7 +212,8 @@ test("il richiamo è nello stesso blocco dello stato e punta al listino esistent
   expect(rendered.some((element) => element.type === "s-banner")).toBe(true);
   expect(
     rendered.find(
-      (element) => element.type === "s-button" && (element.props as { href?: string }).href === "#plans",
+      (element) =>
+        element.type === "s-button" && (element.props as { href?: string }).href === "#plans",
     )?.props,
   ).toMatchObject({ children: "Scegli un piano", disabled: false });
   expect(submit).not.toHaveBeenCalled();

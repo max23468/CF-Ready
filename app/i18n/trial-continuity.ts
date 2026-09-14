@@ -12,8 +12,7 @@ const it = {
     "Puoi approvare ora un abbonamento mensile o annuale: conservi i giorni di prova rimanenti e il primo addebito avviene dopo la prova.",
   expired:
     "La validazione è sospesa. Le tue impostazioni sono conservate: scegli un piano per ripristinarla.",
-  confirmed: (date: string) =>
-    `Abbonamento confermato. Il primo addebito è previsto dal ${date}.`,
+  confirmed: (date: string) => `Abbonamento confermato. Il primo addebito è previsto dal ${date}.`,
   onboardingTrial: (date: string) =>
     `La prova termina il ${date}. Per continuare senza interruzioni, puoi scegliere un abbonamento già ora mantenendo i giorni gratuiti rimanenti.`,
 };
@@ -28,10 +27,8 @@ const en = {
     `Your trial ends on ${date}. Validation is disabled. Choose a plan to keep using CF Ready after your trial.`,
   approvalHelp:
     "You can approve a monthly or annual subscription now: you keep your remaining trial days and the first charge starts after the trial.",
-  expired:
-    "Validation is paused. Your settings are saved: choose a plan to restore it.",
-  confirmed: (date: string) =>
-    `Subscription confirmed. Your first charge is expected from ${date}.`,
+  expired: "Validation is paused. Your settings are saved: choose a plan to restore it.",
+  confirmed: (date: string) => `Subscription confirmed. Your first charge is expected from ${date}.`,
   onboardingTrial: (date: string) =>
     `Your trial ends on ${date}. To continue without interruption, you can choose a subscription now and keep your remaining free days.`,
 } satisfies typeof it;

@@ -85,13 +85,7 @@ export function EligibleHome({
   );
 }
 
-function HomeNotices({
-  data,
-  result,
-  busy,
-  pendingIntent,
-  submit,
-}: {
+function HomeNotices({ data, result, busy, pendingIntent, submit }: {
   data: HomeData;
   result: { ok: boolean; errorCode?: AppErrorCode } | undefined;
   busy: boolean;
@@ -101,12 +95,7 @@ function HomeNotices({
   const t = texts(data.locale);
   return (
     <>
-      <PrimaryNotice
-        data={data}
-        busy={busy}
-        pendingIntent={pendingIntent}
-        submit={submit}
-      />
+      <PrimaryNotice data={data} busy={busy} pendingIntent={pendingIntent} submit={submit} />
       {result && !result.ok ? (
         <MotionBanner tone="critical">{localizedError(t.errors, result.errorCode)}</MotionBanner>
       ) : null}
@@ -114,12 +103,7 @@ function HomeNotices({
   );
 }
 
-function PrimaryNotice({
-  data,
-  busy,
-  pendingIntent,
-  submit,
-}: {
+function PrimaryNotice({ data, busy, pendingIntent, submit }: {
   data: HomeData;
   busy: boolean;
   pendingIntent: string | null;
