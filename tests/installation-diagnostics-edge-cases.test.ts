@@ -111,34 +111,37 @@ test("il dettaglio gestisce timestamp di disinstallazione assente usando i defau
   });
 });
 
-test("il dettaglio distingue payload Partner invalido, finestra vuota e cache disponibile", async () => {
-  const shop = await currentShop(UNINSTALLED);
-  const invalidPayload = vi.fn<typeof fetch>().mockResolvedValue(
-    Response.json({
-      data: { app: { events: { edges: null, pageInfo: { hasNextPage: false } } } },
-    }),
-  );
-  expect(
-    (await readShopFeedback(env.DB, shop, PARTNER, { now: NOW, fetcher: invalidPayload })).status,
-  ).toBe("unavailable");
+test(
+  "il dettaglio distingue payload Partner invalido, finestra vuota e cache disponibile",
+  async () => {
+    const shop = await currentShop(UNINSTALLED);
+    const invalidPayload = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        data: { app: { events: { edges: null, pageInfo: { hasNextPage: false } } } },
+      }),
+    );
+    expect(
+      (await readShopFeedback(env.DB, shop, PARTNER, { now: NOW, fetcher: invalidPayload })).status,
+    ).toBe("unavailable");
 
-  const outsideWindow = vi
-    .fn<typeof fetch>()
-    .mockResolvedValue(page([feedback({ occurredAt: "2026-09-14T11:59:00.000Z" })]));
-  expect(
-    (await readShopFeedback(env.DB, shop, PARTNER, { now: NOW, fetcher: outsideWindow })).status,
-  ).toBe("not_found");
+    const outsideWindow = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(page([feedback({ occurredAt: "2026-09-14T11:59:00.000Z" })]));
+    expect(
+      (await readShopFeedback(env.DB, shop, PARTNER, { now: NOW, fetcher: outsideWindow })).status,
+    ).toBe("not_found");
 
-  await saveUninstallFeedback(env.DB, feedback(), NOW);
-  const emptyPage = vi.fn<typeof fetch>().mockResolvedValue(page([]));
-  const cached = await readShopFeedback(env.DB, shop, PARTNER, {
-    now: new Date("2026-09-14T12:10:00.000Z"),
-    fetcher: emptyPage,
-    refresh: true,
-  });
-  expect(cached.status).toBe("available");
-  expect(cached.feedback?.description).toBe("Synthetic feedback");
-});
+    await saveUninstallFeedback(env.DB, feedback(), NOW);
+    const emptyPage = vi.fn<typeof fetch>().mockResolvedValue(page([]));
+    const cached = await readShopFeedback(env.DB, shop, PARTNER, {
+      now: new Date("2026-09-14T12:10:00.000Z"),
+      fetcher: emptyPage,
+      refresh: true,
+    });
+    expect(cached.status).toBe("available");
+    expect(cached.feedback?.description).toBe("Synthetic feedback");
+  },
+);
 
 test("il recupero conserva il candidato Partner più recente nella stessa pagina", async () => {
   const shop = await currentShop(UNINSTALLED);
@@ -188,21 +191,24 @@ test("i blocchi esplicitano un aggiornamento Partner non riuscito con e senza ca
   expect(withoutCache).toContain("Partner API non disponibile");
 });
 
-test("la rotta tratta come body non vuoto anche uno stream che fallisce durante la lettura", async () => {
-  const reader = {
-    read: vi.fn().mockRejectedValue(new Error("synthetic stream failure")),
-    cancel: vi.fn(),
-    releaseLock: vi.fn(),
-  };
-  const request = {
-    method: "POST",
-    headers: new Headers({
-      "X-CF-Ready-Event": "app_opened",
-      "X-CF-Ready-Installation": INSTALLED,
-    }),
-    body: { getReader: () => reader },
-  } as unknown as Request;
-  expect((await action(args(request))).status).toBe(400);
-  expect(authenticateAdmin).not.toHaveBeenCalled();
-  expect(reader.releaseLock).toHaveBeenCalledOnce();
-});
+test(
+  "la rotta tratta come body non vuoto anche uno stream che fallisce durante la lettura",
+  async () => {
+    const reader = {
+      read: vi.fn().mockRejectedValue(new Error("synthetic stream failure")),
+      cancel: vi.fn(),
+      releaseLock: vi.fn(),
+    };
+    const request = {
+      method: "POST",
+      headers: new Headers({
+        "X-CF-Ready-Event": "app_opened",
+        "X-CF-Ready-Installation": INSTALLED,
+      }),
+      body: { getReader: () => reader },
+    } as unknown as Request;
+    expect((await action(args(request))).status).toBe(400);
+    expect(authenticateAdmin).not.toHaveBeenCalled();
+    expect(reader.releaseLock).toHaveBeenCalledOnce();
+  },
+);
