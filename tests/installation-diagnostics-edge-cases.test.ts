@@ -212,3 +212,26 @@ test(
     expect(reader.releaseLock).toHaveBeenCalledOnce();
   },
 );
+
+test("la rotta accetta uno stream vuoto composto da un chunk di zero byte", async () => {
+  const reader = {
+    read: vi
+      .fn()
+      .mockResolvedValueOnce({ done: false, value: new Uint8Array(0) })
+      .mockResolvedValueOnce({ done: true, value: undefined }),
+    cancel: vi.fn(),
+    releaseLock: vi.fn(),
+  };
+  const request = {
+    method: "POST",
+    headers: new Headers({
+      "X-CF-Ready-Event": "app_opened",
+      "X-CF-Ready-Installation": INSTALLED,
+    }),
+    body: { getReader: () => reader },
+  } as unknown as Request;
+  expect((await action(args(request))).status).toBe(204);
+  expect(authenticateAdmin).toHaveBeenCalledOnce();
+  expect(reader.cancel).not.toHaveBeenCalled();
+  expect(reader.releaseLock).toHaveBeenCalledOnce();
+});
