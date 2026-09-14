@@ -12,6 +12,9 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import { requestAppWindowNavigation } from "../app-window-navigation";
 import { authenticateAdmin } from "../admin-auth.server";
+import { databaseContext } from "../context.server";
+import { readInstallationStartedAt } from "../installation-diagnostics.server";
+import { InstallationReporter } from "../InstallationReporter";
 import { navigateFromShopifyEvent, restoreEmbeddedAdmin } from "../embedded-admin";
 import { APP_API_KEY } from "../env.server";
 import { resolveLocale, texts } from "../i18n";
@@ -20,8 +23,13 @@ import { skipRevalidationWhenLeaving } from "../revalidation";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { session } = await authenticateAdmin(request, context);
+  const installedAt = await readInstallationStartedAt(
+    context.get(databaseContext),
+    session.shop,
+  ).catch(() => null);
 
   return {
+    installedAt,
     apiKey: APP_API_KEY,
     shopDomain: session.shop,
     locale: resolveLocale(request),
@@ -42,7 +50,7 @@ type Nav = ReturnType<typeof texts>["nav"];
 export const shouldRevalidate = skipRevalidationWhenLeaving;
 
 export default function App() {
-  const { apiKey, shopDomain, locale } = useLoaderData<typeof loader>();
+  const { apiKey, shopDomain, locale, installedAt } = useLoaderData<typeof loader>();
   const t = texts(locale).nav;
   const location = useLocation();
   const navigate = useNavigate();
@@ -94,6 +102,7 @@ export default function App() {
         ))}
       </s-app-nav>
       <PerformanceReporter />
+      <InstallationReporter installedAt={installedAt} />
       <div className="app-route-surface" key={location.pathname}>
         <Outlet />
       </div>

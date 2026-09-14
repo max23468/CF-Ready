@@ -138,6 +138,12 @@ webhook e menu senza modificarli; `npm run owner-control:telegram -- --apply`
 configura webhook e shortcut owner e richiede l’autorizzazione Production
 descritta nel runbook.
 
+Il dettaglio `/shop` distingue inoltre la prima apertura dell’app e il primo
+ingresso nell’onboarding dai progressi successivi. Per gli store disinstallati
+mostra il motivo e il commento forniti a Shopify e consente una rilettura
+esplicita; i dati storici mancanti non vengono interpretati come mancate visite.
+Contratto e limiti sono in `docs/runbooks/installation-diagnostics.md`.
+
 ## Documentazione e contributi
 
 La documentazione parte da [`docs/INDEX.md`](docs/INDEX.md). Versioni e commit

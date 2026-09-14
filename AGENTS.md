@@ -59,7 +59,10 @@ percorso o sezione; la cronologia resta in Git.
   dati merchant a log, telemetria o provider esterni; usa identificatori tecnici
   minimizzati. Fa eccezione soltanto la notifica Telegram privata dell'owner
   definita in D-134, che può includere nome pubblico e dominio tecnico dello store
-  senza dati personali di owner o clienti né identificatori Shopify.
+  senza dati personali di owner o clienti né identificatori Shopify. D-159
+  aggiunge il solo feedback libero di disinstallazione fornito a Shopify,
+  riservato al dettaglio e alle notifiche private dell’owner: non va copiato
+  in log, analytics, fixture o repository e non è un dato anonimizzato.
 - Telemetria e prestazioni conservano soltanto esiti, durate e aggregati
   allowlistati. Attribuisci Web Vitals alla rotta e al `Server-Timing` acquisiti
   all'avvio del documento, senza contenuti merchant.
