@@ -6,6 +6,11 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.11.4 — 15 settembre 2026
+
+- l’app embedded carica Polaris dal canale stabile della versione 1, che riceve gli aggiornamenti compatibili senza adottare automaticamente una nuova major;
+- Node.js 26.8.2, Shopify CLI 4.8.0, React 19.3, React Router 8.4, Wrangler 4.132 e gli altri strumenti di build e test passano alle ultime versioni compatibili; Vitest resta sulla major 4 finché il plugin Cloudflare non supporta la 5.
+
 ## 1.11.3 — 14 settembre 2026
 
 - Home e completamento onboarding spiegano quando termina la prova e permettono di scegliere facoltativamente un piano senza perdere i giorni gratuiti rimanenti;
