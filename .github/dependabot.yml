@@ -11,6 +11,12 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(deps)"
+    # @cloudflare/vitest-plugin supporta soltanto Vitest 4: resta sulla major 4 finché il peer non cambia.
+    ignore:
+      - dependency-name: "vitest"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@vitest/*"
+        update-types: ["version-update:semver-major"]
     groups:
       npm-minor-patch:
         applies-to: version-updates

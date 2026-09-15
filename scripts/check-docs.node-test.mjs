@@ -689,7 +689,7 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   const npmrc = readFileSync(new URL("../.npmrc", import.meta.url), "utf8");
   const mise = readFileSync(new URL("../mise.toml", import.meta.url), "utf8");
   assert.equal(packageJson.packageManager, "npm@12.0.2");
-  assert.equal(packageJson.engines.node, ">=26.8.1 <27");
+  assert.equal(packageJson.engines.node, ">=26.8.2 <27");
   assert.equal(packageJson.devDependencies.typescript, "7.0.2");
   assert.equal(packageJson.devDependencies["@typescript/typescript6"], undefined);
   assert.equal(packageJson.allowScripts["fsevents@2.3.2"], false);
@@ -697,10 +697,10 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
     packageJson.packageExtensions["@shopify/shopify-app-react-router@2.1.0"].peerDependencies[
       "react-router"
     ],
-    "8.3.1",
+    "8.4.0",
   );
   assert.equal(lockfile.lockfileVersion, 4);
-  assert.equal(lockfile.packages[""].engines.node, ">=26.8.1 <27");
+  assert.equal(lockfile.packages[""].engines.node, ">=26.8.2 <27");
   assert.equal(lockfile.packages[""].devDependencies.typescript, "7.0.2");
   assert.equal(tsconfig.compilerOptions.strict, true);
   assert.equal(tsconfig.compilerOptions.noUncheckedSideEffectImports, true);
@@ -708,14 +708,14 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   assert.equal(tsconfig.compilerOptions.ignoreDeprecations, undefined);
   assert.equal(tsconfig.compilerOptions.stableTypeOrdering, undefined);
   assert.match(npmrc, /^strict-allow-scripts=true$/m);
-  assert.match(mise, /^node = "26\.8\.1"$/m);
+  assert.match(mise, /^node = "26\.8\.2"$/m);
   assert.match(mise, /^npm = "12\.0\.2"$/m);
 
   const setupAction = readFileSync(
     new URL("../.github/actions/setup-node-npm/action.yml", import.meta.url),
     "utf8",
   );
-  assert.match(setupAction, /node-version:\s*26\.8\.1/);
+  assert.match(setupAction, /node-version:\s*26\.8\.2/);
   assert.match(setupAction, /cache:\s*npm/);
   assert.match(setupAction, /npm install --global npm@12\.0\.2/);
 
@@ -735,7 +735,7 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
       path,
     );
     if (/shopify app|npm run check/.test(workflow)) {
-      assert.doesNotMatch(workflow, /@shopify\/cli@(?!4\.7\.1)/, path);
+      assert.doesNotMatch(workflow, /@shopify\/cli@(?!4\.8\.0)/, path);
     }
     if (path !== "ci.yml" && /npm run check/.test(workflow)) {
       const browserInstall = workflow.indexOf("playwright install --with-deps chromium webkit");
@@ -781,7 +781,7 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /wrangler pages deploy "\$RUNNER_TEMP\/pages-site"/);
   assert.match(workflow, /--branch main/);
   assert.match(workflow, /--commit-hash "\$GITHUB_SHA"/);
-  const shopifyCliInstall = "npm install --global --allow-scripts=esbuild @shopify/cli@4.7.1";
+  const shopifyCliInstall = "npm install --global --allow-scripts=esbuild @shopify/cli@4.8.0";
   assert.match(workflow, new RegExp(shopifyCliInstall.replaceAll(".", "\\.")));
   assert(workflow.indexOf(shopifyCliInstall) < workflow.indexOf("npm run check"));
   assert.match(workflow, /canonical_deployment\.deployment_trigger\.metadata\.commit_hash/);

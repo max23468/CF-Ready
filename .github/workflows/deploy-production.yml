@@ -42,7 +42,7 @@ jobs:
           grep -Fxq 'redirect_urls = [ "https://app.cfready.it/auth/callback" ]' shopify.app.toml
 
       - uses: ./.github/actions/setup-node-npm
-      - run: npm install --global --allow-scripts=esbuild @shopify/cli@4.7.1
+      - run: npm install --global --allow-scripts=esbuild @shopify/cli@4.8.0
       - run: npm ci
 
       - name: Verifica credenziali provider
@@ -257,7 +257,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - uses: ./.github/actions/setup-node-npm
-      - run: npm install --global --allow-scripts=esbuild @shopify/cli@4.7.1
+      - run: npm install --global --allow-scripts=esbuild @shopify/cli@4.8.0
       - run: npm ci
 
       - name: Ripristina lo snapshot Production precedente
