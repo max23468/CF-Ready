@@ -54,10 +54,13 @@ export default {
     );
   },
   scheduled(controller, env, ctx) {
-    if (controller.cron === "0 * * * *") ctx.waitUntil(applyRetention(env.DB));
-    if (controller.cron === "* * * * *") {
-      ctx.waitUntil(runOwnerNotificationCycle(env as NotificationBindings));
+    if (controller.cron === "0 * * * *") {
+      ctx.waitUntil(applyRetention(env.DB));
+      return;
     }
+    // Qualsiasi altro cron avvia il ciclo owner: un cambio di frequenza resta attivo anche mentre
+    // Cloudflare propaga ancora il trigger precedente.
+    ctx.waitUntil(runOwnerNotificationCycle(env as NotificationBindings));
   },
 } satisfies ExportedHandler<Env, WebhookJob>;
 
