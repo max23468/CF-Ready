@@ -27,7 +27,7 @@ test("governance, workflow e dipendenze restano full", () => {
   assert.equal(dependency.lane, "full");
   assert.equal(dependency.dependencyReview, true);
   assert.equal(classifyCiLane(["scripts/reconcile-develop.mjs"]).lane, "full");
-  assert.equal(classifyCiLane(["config/coverage-baseline.json"]).lane, "full");
+  assert.equal(classifyCiLane(["config/coverage-policy.json"]).lane, "full");
 });
 
 test("il diff include anche i file eliminati", () => {
@@ -99,7 +99,6 @@ test("i file condivisi del mutation harness attivano tutti i domini", () => {
   assert.deepEqual(selectMutationDomains(["stryker.critical.config.mjs"]), [
     "billing",
     "validation",
-    "ownerNotifications",
     "webhooks",
   ]);
 });

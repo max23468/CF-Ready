@@ -16,17 +16,13 @@ const testFiles = {
     "tests/validation/**/*.test.ts",
   ],
   validation: ["tests/validation.test.ts", "tests/validation/**/*.test.ts"],
-  ownerNotifications: [
-    "tests/owner-notifications.test.ts",
-    "tests/owner-notification-contracts.test.ts",
-  ],
 };
 
 export const CRITICAL_MUTATION_DOMAINS = Object.keys(testFiles);
 
 export function criticalMutationConfig(domainName) {
   const target = policy.targets.criticalDomains.domains[domainName];
-  if (!target?.mutationActive || !testFiles[domainName]) {
+  if (!target || !testFiles[domainName]) {
     throw new Error(`Dominio mutation non configurato: ${domainName}`);
   }
   const threshold = target.mutationScore ?? policy.targets.criticalDomains.mutationScore;

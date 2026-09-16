@@ -107,16 +107,17 @@ senza trattare il messaggio di successo di uno strumento come prova sufficiente.
 | Corsia | Quando | Gate minimo |
 | --- | --- | --- |
 | `docs` | contenuti documentali senza effetto operativo | riferimenti e comandi citati, `npm run check:docs` |
-| `standard` | TypeScript, route, config o test ordinari | test mirati, `npm run check:standard`, coverage ratchet e mutation applicabile |
-| `full` | governance, workflow, auth, webhook, cifratura, migrazioni, manifest o lockfile | `npm run check`, coverage ratchet, mutation applicabile e regressione mirata |
+| `standard` | TypeScript, route, config o test ordinari | test mirati, `npm run check:standard`, coverage e mutation applicabili |
+| `full` | governance, workflow, auth, webhook, cifratura, migrazioni, manifest o lockfile | `npm run check`, coverage e mutation applicabili, regressione mirata |
 | `promotion` | PR `develop` → `main` con ascendenza valida | provenienza, review, tree e gate esatti di `develop`, `promotion-guard` |
 | `deploy` | provider, migrazioni, Worker, Function o Pages | gate completo, preflight, backup se serve, smoke, readback e rollback |
 
 `npm run check` è il gate locale della corsia `full`; `coverage:check`, i gate
 mutation condizionali e gli E2E restano controlli separati applicabili al diff.
-Se una modifica cambia la misura della coverage, esegui
-`npm run coverage:update`, verifica il report in `.coverage/global/` e includi
-`config/coverage-baseline.json` nello stesso diff. Provider, database remoto,
+La coverage chiede righe eseguibili modificate coperte almeno al 95%, totale
+almeno al 90%, bundle Function al 100% per file e domini critici billing,
+webhook e Validation al 95% con mutation all'80%; non esiste una baseline da
+committare. Provider, database remoto,
 browser e deploy richiedono prove fresche; un exit code `0` non dimostra da solo
 lo stato live. Dichiara sempre i controlli non eseguiti.
 
