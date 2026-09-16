@@ -137,7 +137,9 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
     const previous = existing.get(key) ?? null;
     const sameFailure = previous?.fingerprint === row.error_code;
     const firstObservedAt =
-      previous?.status === "observing" && sameFailure ? previous.first_observed_at : nowIso;
+      previous?.status === "active" || (previous?.status === "observing" && sameFailure)
+        ? previous.first_observed_at
+        : nowIso;
     const observations =
       previous?.status === "observing" && sameFailure
         ? previous.consecutive_observations + 1

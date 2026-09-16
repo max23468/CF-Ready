@@ -1449,9 +1449,17 @@ describe("query D1 e run-rate", () => {
         },
       ],
     });
+    expect(
+      await env.DB.prepare(
+        `SELECT first_observed_at FROM owner_operational_incidents
+          WHERE incident_key = 'checkout_labels:1'`,
+      ).first(),
+    ).toEqual({ first_observed_at: NOW.toISOString() });
 
     await env.DB.prepare(
-      "UPDATE app_state SET checkout_labels_last_error_code = NULL WHERE shop_id = 1",
+      `UPDATE app_state
+          SET checkout_labels_last_error_code = 'checkout_labels_confirmation_pending'
+        WHERE shop_id = 1`,
     ).run();
     await reconcileOwnerIncidents(env.DB, new Date(persistentAt.getTime() + 10 * 60_000));
     expect(

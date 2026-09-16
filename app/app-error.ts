@@ -4,6 +4,7 @@ export const APP_ERROR_CODES = [
   "charge_failed",
   "charge_pending",
   "checkout_labels_conflict",
+  "checkout_labels_confirmation_pending",
   "checkout_labels_confirmation_required",
   "checkout_labels_locale_missing",
   "checkout_labels_partial_sync",

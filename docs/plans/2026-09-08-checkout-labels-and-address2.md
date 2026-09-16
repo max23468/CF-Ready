@@ -775,7 +775,8 @@ La proposta introduce codici stabili equivalenti a:
 | `checkout_labels_locale_missing` | lingua richiesta non abilitata |
 | `checkout_labels_conflict` | modifica esterna osservata |
 | `checkout_labels_stale_digest` | contenuto cambiato durante la scrittura |
-| `checkout_labels_partial_sync` | solo alcuni slot confermati |
+| `checkout_labels_partial_sync` | scrittura automatica non allineata dopo il readback |
+| `checkout_labels_confirmation_pending` | etichette guidate da aggiornare in Shopify e confermare; attesa del merchant, esclusa dagli incidenti operativi |
 | `checkout_labels_readback_failed` | Shopify non ha confermato il risultato |
 | `address2_restore_conflict` | “Interno” è cambiato dopo la conferma |
 
