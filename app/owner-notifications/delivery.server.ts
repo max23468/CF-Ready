@@ -168,7 +168,11 @@ function telegramRichMessage(subject: string, body: string) {
 
   let storeUrl: string | null = null;
   for (const section of sections) {
-    const cells = section.lines.map(({ label, value }) =>
+    const store = section.title === "🏪 Store";
+    // Con il nome pubblico il dominio tecnico resta disponibile soltanto nei pulsanti.
+    const named = store && section.lines.some(({ label }) => label === "Nome");
+    const visible = named ? section.lines.filter(({ label }) => label !== "URL") : section.lines;
+    const cells = visible.map(({ label, value }) =>
       label
         ? [
             { text: { type: "bold" as const, text: label }, is_header: true as const },
@@ -185,7 +189,7 @@ function telegramRichMessage(subject: string, body: string) {
       caption: section.title,
     });
 
-    if (section.title === "🏪 Store") {
+    if (store) {
       storeUrl = safeNotificationStoreUrl(
         section.lines.find(({ label }) => label === "URL")?.value,
       );

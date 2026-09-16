@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.11.5 — 16 settembre 2026
+
+- le etichette guidate ancora da confermare non risultano più un errore di sincronizzazione: la pagina Regole indica le verifiche da completare e il monitor operativo non apre allarmi;
+- la Home non ripropone la richiesta di recensione dopo che Shopify ha registrato una recensione;
+- le notifiche owner identificano lo store con il nome pubblico, riconoscono omaggio e prova gratuita, mostrano in minuti le installazioni brevi e il solo giorno del prossimo addebito;
+- il Control Center traduce stati, piani ed eventi in `/shop`, `/shops` e attività recente;
+- il ciclo delle notifiche owner in Production gira ogni minuto.
+
 ## 1.11.4 — 15 settembre 2026
 
 - l’app embedded carica Polaris dal canale stabile della versione 1, che riceve gli aggiornamenti compatibili senza adottare automaticamente una nuova major;

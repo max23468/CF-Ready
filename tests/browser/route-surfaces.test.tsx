@@ -2383,6 +2383,17 @@ describe("Regole", () => {
     };
     await view.rerender(<CheckoutRules key="labels-error" />);
     expect(view.container.textContent).toContain(texts("it").rules.labels.nativeSummaryError);
+
+    router.loaderData = {
+      ...router.loaderData,
+      labelState: {
+        ...rulesData.labelState,
+        mode: "guided",
+        lastErrorCode: "checkout_labels_confirmation_pending",
+      },
+    };
+    await view.rerender(<CheckoutRules key="labels-pending" />);
+    expect(view.container.textContent).not.toContain(texts("it").rules.labels.nativeSummaryError);
   });
 });
 

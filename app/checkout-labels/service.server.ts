@@ -84,12 +84,8 @@ export async function loadCheckoutLabels(
         externalChange: address2ExternalChange,
       });
     } else if (state.mode !== "off") {
-      const issue = fiscalSnapshotIssue(snapshot, rules);
-      const ready = checkoutLabelsReady(snapshot, stored, rules);
-      await markCheckoutLabelsResult(db, shopDomain, {
-        errorCode: issue ?? (ready ? null : "checkout_labels_partial_sync"),
-        synced: !issue && ready,
-      });
+      const errorCode = checkoutLabelsResultError(snapshot, stored, rules);
+      await markCheckoutLabelsResult(db, shopDomain, { errorCode, synced: errorCode === null });
     }
     return {
       available: true,
@@ -243,11 +239,13 @@ export async function saveRulesAndCheckoutLabels(
       }
       const readback = await readCheckoutLabels(admin);
       const stored = await readStoredCheckoutLabelSlots(db, shopDomain);
-      if (!checkoutLabelsReady(readback, stored, input.rules)) {
-        const errorCode =
-          fiscalSnapshotIssue(readback, input.rules) ?? "checkout_labels_partial_sync";
+      const errorCode = checkoutLabelsResultError(readback, stored, input.rules);
+      if (errorCode) {
         await markCheckoutLabelsResult(db, shopDomain, {
-          mode: "partial",
+          mode:
+            errorCode === "checkout_labels_confirmation_pending"
+              ? checkoutLabelsMode(readback.slots)
+              : "partial",
           errorCode,
           synced: false,
         });
@@ -417,7 +415,7 @@ export async function confirmGuidedCheckoutLabels(
             ),
         )
       ) {
-        return { ok: false as const, errorCode: "checkout_labels_partial_sync" as const };
+        return { ok: false as const, errorCode: "checkout_labels_confirmation_pending" as const };
       }
       await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots, snapshot.address2);
       await confirmGuidedCheckoutLabelSlots(db, shopDomain, slots);
@@ -425,11 +423,11 @@ export async function confirmGuidedCheckoutLabels(
         readStoredCheckoutLabelSlots(db, shopDomain),
         readCheckoutLabelState(db, shopDomain),
       ]);
-      const ready = checkoutLabelsReady(snapshot, stored, rules);
+      const errorCode = checkoutLabelsResultError(snapshot, stored, rules);
       await markCheckoutLabelsResult(db, shopDomain, {
         mode: state.mode === "off" ? "off" : checkoutLabelsMode(snapshot.slots),
-        errorCode: ready ? null : "checkout_labels_partial_sync",
-        synced: ready,
+        errorCode,
+        synced: errorCode === null,
       });
       return { ok: true as const };
     });
@@ -573,15 +571,17 @@ function managedFiscalValuesMatch(snapshot: CheckoutLabelsSnapshot, rules: Rules
   });
 }
 
-function checkoutLabelsReady(
+// Le conferme guidate mancanti attendono un'azione del merchant in Shopify: non sono un errore
+// di sincronizzazione e restano fuori dai codici osservati dal monitor operativo.
+function checkoutLabelsResultError(
   snapshot: CheckoutLabelsSnapshot,
   stored: StoredCheckoutLabelSlot[],
   rules: Rules,
-) {
-  if (fiscalSnapshotIssue(snapshot, rules) || !managedFiscalValuesMatch(snapshot, rules)) {
-    return false;
-  }
-  return snapshot.slots
+): AppErrorCode | null {
+  const issue = fiscalSnapshotIssue(snapshot, rules);
+  if (issue) return issue;
+  if (!managedFiscalValuesMatch(snapshot, rules)) return "checkout_labels_partial_sync";
+  const confirmed = snapshot.slots
     .filter((slot) => {
       if (slot.capability === "automatic") return false;
       if (slot.name === "taxCode") return rules.taxCode !== "unmanaged";
@@ -592,6 +592,7 @@ function checkoutLabelsReady(
       const previous = findStoredSlot(stored, slot);
       return guidedConfirmationIsValid(previous, slot, rules);
     });
+  return confirmed ? null : "checkout_labels_confirmation_pending";
 }
 
 function guidedConfirmationIsValid(

@@ -90,12 +90,12 @@ export function shopMessage(
       section("🏪 Store", [
         ["Nome", shop.display_name ?? "—"],
         ["Dominio", shop.shop_domain],
-        ["Installazione", label(shop.installation_status)],
+        ["Installazione", installationLabel(shop.installation_status)],
         ["Installato", formatDate(shop.installed_at)],
         ["Paese", shop.country_code ?? "—"],
       ]),
       section("⚙️ Operatività", [
-        ["Onboarding", label(shop.onboarding_status)],
+        ["Onboarding", onboardingLabel(shop.onboarding_status)],
         ["Validation", shop.validation_enabled ? "Attiva" : "Non attiva"],
         ["Ultimo sync", formatDate(shop.last_sync_at)],
         ["Errore aperto", shop.last_error_code ?? "Nessuno"],
@@ -105,15 +105,18 @@ export function shopMessage(
       ]),
       section("💳 Commerciale", [
         ["Diritto", entitlement(shop)],
-        ["Piano", label(shop.plan_kind)],
-        ["Trial", label(shop.trial_status)],
+        ["Piano", planLabel(shop.plan_kind)],
+        ["Trial", trialLabel(shop.trial_status)],
         ["Scadenza", formatDate(shop.current_period_end ?? shop.trial_ends_at)],
       ]),
       ...(activity.length
         ? [
             section(
               "🕒 Attività recente",
-              activity.map((event) => [label(event.event_name), formatDate(event.occurred_at)]),
+              activity.map((event) => [
+                eventLabel(event.event_name),
+                formatDate(event.occurred_at),
+              ]),
             ),
           ]
         : []),
@@ -361,7 +364,7 @@ export function activityMessage(
         "🕒 Eventi",
         rows.length
           ? rows.map((row) => [
-              label(row.event_name),
+              eventLabel(row.event_name),
               `${row.display_name ?? row.shop_domain ?? "Sistema"} · ${formatDate(row.occurred_at)}`,
             ])
           : [["Stato", "Nessuna attività"]],
@@ -642,7 +645,13 @@ function shopName(shop: Pick<ShopRow, "display_name" | "shop_domain">) {
   return shop.display_name ?? shop.shop_domain;
 }
 function shopSummary(shop: ShopRow) {
-  return `${shop.shop_domain} · ${label(shop.plan_kind ?? shop.trial_status)} · Validation ${shop.validation_enabled ? "attiva" : "non attiva"}${shop.last_error_code ? ` · ${shop.last_error_code}` : ""}`;
+  const plan =
+    shop.plan_kind && shop.plan_kind !== "none"
+      ? planLabel(shop.plan_kind)
+      : shop.trial_status
+        ? `Trial ${trialLabel(shop.trial_status).toLocaleLowerCase("it-IT")}`
+        : planLabel(shop.plan_kind);
+  return `${plan} · Validation ${shop.validation_enabled ? "attiva" : "non attiva"}${shop.last_error_code ? ` · ${shop.last_error_code}` : ""}`;
 }
 function filterLabel(filter: ShopsFilter) {
   return {
@@ -652,6 +661,67 @@ function filterLabel(filter: ShopsFilter) {
     validation_off: "Validation non attiva",
     issues: "Con problemi",
   }[filter];
+}
+function installationLabel(input: string | null) {
+  return (
+    {
+      active: "Attiva",
+      uninstalled: "Disinstallata",
+      blocked_country: "Blocco geografico precedente",
+      suspended: "Sospesa",
+    }[input ?? ""] ?? label(input)
+  );
+}
+function onboardingLabel(input: string | null) {
+  return (
+    { not_started: "Non iniziato", in_progress: "In corso", completed: "Completato" }[
+      input ?? ""
+    ] ?? label(input)
+  );
+}
+function planLabel(input: string | null) {
+  return (
+    {
+      monthly: "Mensile",
+      annual: "Annuale",
+      one_time: "Pagamento unico",
+      none: "Nessun piano",
+    }[input ?? ""] ?? label(input)
+  );
+}
+function trialLabel(input: string | null) {
+  return (
+    { active: "Attiva", expired: "Scaduta", converted: "Convertita" }[input ?? ""] ?? label(input)
+  );
+}
+// I codici tecnici non mappati restano leggibili tramite `label`.
+function eventLabel(input: string) {
+  return (
+    {
+      app_installed: "App installata",
+      app_uninstalled: "App disinstallata",
+      billing_updated: "Billing aggiornato",
+      compliance_acknowledged: "Webhook privacy gestito",
+      install_refused: "Installazione rifiutata",
+      onboarding_auto_completed: "Onboarding completato automaticamente",
+      onboarding_completed: "Onboarding completato",
+      review_prompt_result: "Richiesta recensione",
+      rules_saved: "Regole salvate",
+      shop_redacted: "Dati store cancellati",
+      shop_updated: "Store aggiornato",
+      subscription_cancelled: "Abbonamento annullato",
+      subscription_converted: "Abbonamento convertito",
+      support_diagnostics_copied: "Diagnostica copiata",
+      trial_converted: "Prova convertita",
+      trial_expired: "Prova scaduta",
+      trial_started: "Prova avviata",
+      validation_disabled: "Validation disattivata",
+      validation_enabled: "Validation attivata",
+    }[input] ?? label(input)
+  );
+}
+function countLabel(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`;
 }
 function label(input: unknown) {
   if (typeof input !== "string" || !input) return "—";
@@ -663,8 +733,8 @@ function entitlement(shop: ShopRow) {
     !["active", "ending"].includes(shop.entitlement_status ?? "")
   )
     return "Omaggio";
-  if (shop.entitlement_status === "active" || shop.entitlement_status === "ending")
-    return label(shop.entitlement_status);
+  if (shop.entitlement_status === "active") return "Attivo";
+  if (shop.entitlement_status === "ending") return "In scadenza";
   if (shop.trial_status === "active") return "Trial";
   return "Nessuno";
 }
@@ -709,12 +779,15 @@ function revenueRows(revenue?: RevenueView): Row[] {
     ["Netto", amount(revenue.totals.netMinor)],
     [
       "Abbonamenti",
-      `${amount(revenue.subscriptions.netMinor)} netti · ${revenue.subscriptions.count} addebiti`,
+      `${amount(revenue.subscriptions.netMinor)} netti · ${countLabel(revenue.subscriptions.count, "addebito", "addebiti")}`,
     ],
-    ["Lifetime", `${amount(revenue.lifetime.netMinor)} netti · ${revenue.lifetime.count} acquisti`],
+    [
+      "Lifetime",
+      `${amount(revenue.lifetime.netMinor)} netti · ${countLabel(revenue.lifetime.count, "acquisto", "acquisti")}`,
+    ],
     [
       "Rimborsi e crediti",
-      `${amount(revenue.adjustments.netMinor)} · ${revenue.adjustments.count} movimenti`,
+      `${amount(revenue.adjustments.netMinor)} · ${countLabel(revenue.adjustments.count, "movimento", "movimenti")}`,
     ],
   ];
 }

@@ -5,7 +5,6 @@ import { basename, dirname, resolve, sep } from "node:path";
 import test from "node:test";
 import coverageLibrary from "istanbul-lib-coverage";
 import {
-  baselineFailures,
   bundledFunctionSources,
   changedExecutableLineCoverage,
   coverageState,
@@ -17,9 +16,8 @@ import {
   targetFailures,
 } from "./coverage-report.mjs";
 import {
-  classifyCoverageSources,
-  coverageGroup,
   isCoverageSource,
+  isFunctionSource,
   normalizeCoveragePath,
   trackedCoverageSources,
 } from "./coverage-scope.mjs";
@@ -32,31 +30,20 @@ import {
 const { createCoverageMap, createFileCoverage } = coverageLibrary;
 
 const policy = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   metrics: ["statements", "branches", "functions", "lines"],
   targets: {
-    global: { minimum: 95, active: false },
-    groups: {
-      "server-worker": { minimum: 90, active: false },
-      "ui-routes": { minimum: 90, active: false },
-      function: { minimum: 100, perFile: true, active: false },
-      operations: { minimum: 90, active: false },
-      "public-site": { minimum: 90, active: false },
-    },
+    global: { minimum: 75 },
+    changedExecutableLines: { minimum: 95 },
+    functionFiles: { minimum: 100 },
     criticalDomains: {
       minimum: 95,
       mutationScore: 80,
-      active: false,
       domains: {
-        webhooks: {
-          coverageActive: true,
-          mutationActive: true,
-          files: ["app/root.tsx"],
-        },
+        webhooks: { files: ["app/root.tsx"] },
       },
     },
   },
-  ratchet: { active: true, changedExecutableLines: 95 },
   nonExecutableSources: {
     "app/app-bridge.d.ts": "Dichiarazioni",
     "app/billing/types.ts": "Sole dichiarazioni",
@@ -103,26 +90,26 @@ test("il target canonico della Validation Function resta attivo al 100% per file
   const repositoryPolicy = JSON.parse(
     readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),
   );
-  assert.deepEqual(repositoryPolicy.targets.groups.function, {
-    minimum: 100,
-    perFile: true,
-    active: true,
-  });
+  assert.deepEqual(repositoryPolicy.targets.functionFiles, { minimum: 100 });
   assert.deepEqual(repositoryPolicy.functionBundle, [
     "extensions/cf-ready-validation/src/cart_validations_generate_run.ts",
     "app/checkout-field-validation.ts",
   ]);
 });
 
-test("il target globale resta attivo al 95% su tutte le metriche", () => {
+test("il totale ha una soglia minima del 90% e le righe modificate del 95%", () => {
   const repositoryPolicy = JSON.parse(
     readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),
   );
-  assert.deepEqual(repositoryPolicy.targets.global, {
-    minimum: 95,
-    active: true,
-  });
+  assert.deepEqual(repositoryPolicy.targets.global, { minimum: 90 });
+  assert.deepEqual(repositoryPolicy.targets.changedExecutableLines, { minimum: 95 });
   assert.deepEqual(repositoryPolicy.metrics, ["statements", "branches", "functions", "lines"]);
+  assert.deepEqual(Object.keys(repositoryPolicy.targets), [
+    "global",
+    "changedExecutableLines",
+    "functionFiles",
+    "criticalDomains",
+  ]);
 });
 
 test("la campagna mutation completa è schedulata e avviabile sul candidato develop", () => {
@@ -138,47 +125,16 @@ test("la campagna mutation completa è schedulata e avviabile sul candidato deve
   assert.match(workflow, /github\.ref == 'refs\/heads\/develop'/);
   assert.match(workflow, /timeout-minutes: 20/);
   assert.match(ciWorkflow, /^  critical-mutation:\n[\s\S]*?^    timeout-minutes: 20$/m);
-  for (const domain of ["webhooks", "billing", "validation", "ownerNotifications"]) {
-    assert.match(workflow, new RegExp(`domain: \\[.*\\b${domain}\\b`));
-  }
+  assert.match(workflow, /domain: \[webhooks, billing, validation\]/);
   assert.match(workflow, /mutation-campaign-\$\{\{ matrix\.domain \}\}-\$\{\{ github\.sha \}\}/);
 });
 
-test("il gruppo operativo mantiene il gate canonico al 90%", () => {
-  const repositoryPolicy = JSON.parse(
-    readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),
-  );
-  assert.deepEqual(repositoryPolicy.targets.groups.operations, {
-    minimum: 90,
-    active: true,
-  });
-});
-
-test("il gruppo UI e route mantiene il gate canonico al 90%", () => {
-  const repositoryPolicy = JSON.parse(
-    readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),
-  );
+test("la coverage UI esclude i moduli server dal runner browser", () => {
   const browserConfig = readFileSync(
     new URL("../vitest.browser.config.ts", import.meta.url),
     "utf8",
   );
-  assert.deepEqual(repositoryPolicy.targets.groups["ui-routes"], {
-    minimum: 90,
-    active: true,
-  });
   assert.match(browserConfig, /"app\/\*\*\/\*\.server\.\{ts,tsx\}"/);
-});
-
-test("Worker e sito pubblico mantengono gate canonici separati al 90%", () => {
-  const repositoryPolicy = JSON.parse(
-    readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),
-  );
-  for (const group of ["server-worker", "public-site"]) {
-    assert.deepEqual(repositoryPolicy.targets.groups[group], {
-      minimum: 90,
-      active: true,
-    });
-  }
 });
 
 test("il dominio webhook mantiene coverage e mutation gate canonici", async () => {
@@ -189,9 +145,6 @@ test("il dominio webhook mantiene coverage e mutation gate canonici", async () =
   const { criticalMutationConfig } = await import("../stryker.critical.config.mjs");
   const mutationConfig = criticalMutationConfig("webhooks");
 
-  assert.equal(repositoryPolicy.targets.criticalDomains.active, true);
-  assert.equal(domain.coverageActive, true);
-  assert.equal(domain.mutationActive, true);
   assert.equal(repositoryPolicy.targets.criticalDomains.minimum, 95);
   assert.equal(repositoryPolicy.targets.criticalDomains.mutationScore, 80);
   assert.deepEqual(mutationConfig.mutate, domain.files);
@@ -241,12 +194,7 @@ test("il launcher mutation esegue soltanto il proprio entrypoint", async () => {
     runner,
   );
   assert.deepEqual(calls, [["validation"]]);
-  assert.deepEqual(selectCriticalMutationDomains(undefined), [
-    "webhooks",
-    "billing",
-    "validation",
-    "ownerNotifications",
-  ]);
+  assert.deepEqual(selectCriticalMutationDomains(undefined), ["webhooks", "billing", "validation"]);
   assert.deepEqual(selectCriticalMutationDomains("billing"), ["billing"]);
   assert.throws(
     () => selectCriticalMutationDomains("inesistente"),
@@ -260,12 +208,11 @@ test("i domini critici mantengono gate coverage e mutation separati", async () =
   );
   const { CRITICAL_MUTATION_DOMAINS, criticalMutationConfig } =
     await import("../stryker.critical.config.mjs");
-  assert.deepEqual(CRITICAL_MUTATION_DOMAINS, [
-    "webhooks",
-    "billing",
-    "validation",
-    "ownerNotifications",
-  ]);
+  assert.deepEqual(CRITICAL_MUTATION_DOMAINS, ["webhooks", "billing", "validation"]);
+  assert.deepEqual(
+    Object.keys(repositoryPolicy.targets.criticalDomains.domains),
+    CRITICAL_MUTATION_DOMAINS,
+  );
   for (const domainName of CRITICAL_MUTATION_DOMAINS) {
     const domain = repositoryPolicy.targets.criticalDomains.domains[domainName];
     const mutationConfig = criticalMutationConfig(domainName);
@@ -273,8 +220,6 @@ test("i domini critici mantengono gate coverage e mutation separati", async () =
     assert.equal(mutationConfig.tempDirName.startsWith(`${process.cwd()}${sep}`), false);
     assert.equal(basename(mutationConfig.tempDirName), domainName);
     assert.ok(mutationConfig.tempDirName.startsWith(`${realpathSync(tmpdir())}${sep}`));
-    assert.equal(domain.coverageActive, true);
-    assert.equal(domain.mutationActive, true);
     assert.deepEqual(mutationConfig.mutate, domain.mutationFiles ?? domain.files);
     assert.equal(mutationConfig.incremental, false);
     assert.equal(mutationConfig.thresholds.break, 80);
@@ -293,46 +238,20 @@ test("i domini critici mantengono gate coverage e mutation separati", async () =
       return "verde";
     }
   }
-  assert.deepEqual(
-    await runCriticalMutation(FakeStryker, ["plugin"], ["billing", "ownerNotifications"]),
-    [
-      { domain: "billing", result: "verde" },
-      { domain: "ownerNotifications", result: "verde" },
-    ],
-  );
+  assert.deepEqual(await runCriticalMutation(FakeStryker, ["plugin"], ["billing", "validation"]), [
+    { domain: "billing", result: "verde" },
+    { domain: "validation", result: "verde" },
+  ]);
   assert.equal(received.length, 2);
   assert.deepEqual(received[0].plugins, ["@stryker-mutator/vitest-runner"]);
   await assert.rejects(runCriticalMutation(FakeStryker, []), /Plugin Vitest/);
   assert.throws(() => criticalMutationConfig("inesistente"), /non configurato/);
 });
 
-test("classifica ogni sorgente first-party in un solo gruppo canonico", () => {
-  const files = [
-    "app/shop.server.ts",
-    "app/root.tsx",
-    "app/features/home/home.server.ts",
-    "app/features/home/HomePage.tsx",
-    "app/routes/webhooks.app.uninstalled.tsx",
-    "workers/app.ts",
-    "extensions/cf-ready-validation/src/index.ts",
-    "scripts/preflight-prod.mjs",
-    "site/menu.js",
-  ];
-  assert.deepEqual(classifyCoverageSources(files, policy), {
-    "server-worker": [
-      "app/features/home/home.server.ts",
-      "app/routes/webhooks.app.uninstalled.tsx",
-      "app/shop.server.ts",
-      "workers/app.ts",
-    ],
-    "ui-routes": ["app/features/home/HomePage.tsx", "app/root.tsx"],
-    function: ["extensions/cf-ready-validation/src/index.ts"],
-    operations: ["scripts/preflight-prod.mjs"],
-    "public-site": ["site/menu.js"],
-  });
-  assert.equal(coverageGroup("app/routes/auth.$.tsx", policy), "server-worker");
-  assert.equal(coverageGroup("app/i18n/it.ts", policy), "ui-routes");
-  assert.equal(coverageGroup("app/save-bar.ts", policy), "ui-routes");
+test("riconosce i sorgenti della Validation Function", () => {
+  assert.equal(isFunctionSource("extensions/cf-ready-validation/src/index.ts"), true);
+  assert.equal(isFunctionSource(".\\extensions\\cf-ready-validation\\src\\run.ts"), true);
+  assert.equal(isFunctionSource("app/checkout-field-validation.ts"), false);
 });
 
 test("esclude test, dichiarazioni, file generati e asset non eseguibili", () => {
@@ -345,7 +264,6 @@ test("esclude test, dichiarazioni, file generati e asset non eseguibili", () => 
     "extensions/cf-ready-validation/generated/api.ts",
   ]) {
     assert.equal(isCoverageSource(file, policy), false, file);
-    assert.equal(coverageGroup(file, policy), null, file);
   }
   assert.equal(normalizeCoveragePath(".\\app\\root.tsx"), "app/root.tsx");
 });
@@ -361,7 +279,7 @@ test("legge l'inventario Git includendo file nuovi ma non ignorati", () => {
   ]);
 });
 
-test("costruisce aggregato, gruppi e overlay Function senza duplicare il globale", () => {
+test("costruisce aggregato, domini e overlay Function senza duplicare il globale", () => {
   const repositoryRoot = "/repo";
   const sources = [
     "app/checkout-field-validation.ts",
@@ -375,8 +293,6 @@ test("costruisce aggregato, gruppi e overlay Function senza duplicare il globale
   const state = coverageState({ globalMap, functionMap, sources, policy, repositoryRoot });
   assert.equal(state.sourceCount, 5);
   assert.equal(state.global.lines.total, 5);
-  assert.equal(state.groups.function.lines.total, 2);
-  assert.equal(state.groups["server-worker"].lines.total, 1);
   assert.equal(state.domains.webhooks.lines.total, 1);
   assert.equal(Object.keys(state.functionFiles).length, 2);
 
@@ -627,7 +543,7 @@ test("rifiuta sorgenti Function e domini critici omessi dalla policy", () => {
   );
 });
 
-test("applica target disattivati, soglie attive e ratchet senza arrotondare regressioni", () => {
+test("applica soglia globale, Function per file e domini critici", () => {
   const repositoryRoot = "/repo";
   const sources = [
     "app/checkout-field-validation.ts",
@@ -644,12 +560,7 @@ test("applica target disattivati, soglie attive e ratchet senza arrotondare regr
     repositoryRoot,
   });
   assert.deepEqual(targetFailures(full, policy), []);
-  assert.deepEqual(baselineFailures(full, full, full), []);
 
-  const active = structuredClone(policy);
-  active.targets.global.active = true;
-  active.targets.groups.function.active = true;
-  active.targets.criticalDomains.active = true;
   const uncovered = coverageState({
     globalMap: mapFor(repositoryRoot, sources, 0),
     functionMap: mapFor(repositoryRoot, policy.functionBundle, 0),
@@ -657,54 +568,25 @@ test("applica target disattivati, soglie attive e ratchet senza arrotondare regr
     policy,
     repositoryRoot,
   });
-  assert.ok(
-    targetFailures(uncovered, active).some((failure) => failure.startsWith("global.lines")),
-  );
-  assert.ok(
-    targetFailures(uncovered, active).some((failure) =>
-      failure.startsWith("domain.webhooks.lines"),
-    ),
-  );
-  const inactiveDomain = structuredClone(active);
-  inactiveDomain.targets.criticalDomains.domains.webhooks.coverageActive = false;
-  assert.equal(
-    targetFailures(uncovered, inactiveDomain).some((failure) =>
-      failure.startsWith("domain.webhooks"),
-    ),
-    false,
-  );
-  const stricterDomain = structuredClone(active);
+  const failures = targetFailures(uncovered, policy);
+  for (const prefix of [
+    "global.lines: 0% < 75%",
+    "app/checkout-field-validation.ts.lines: 0% < 100%",
+    "domain.webhooks.lines: 0% < 95%",
+  ]) {
+    assert.ok(
+      failures.some((failure) => failure.startsWith(prefix)),
+      prefix,
+    );
+  }
+  const stricterDomain = structuredClone(policy);
   stricterDomain.targets.criticalDomains.domains.webhooks.minimum = 101;
-  assert.ok(
-    targetFailures(full, stricterDomain).some((failure) =>
-      failure.startsWith("domain.webhooks.lines"),
-    ),
-  );
-  assert.ok(
-    baselineFailures(uncovered, uncovered, full).some((failure) =>
-      failure.includes("global.lines regredisce"),
-    ),
-  );
-  assert.ok(
-    baselineFailures(uncovered, uncovered, full).some((failure) =>
-      failure.includes("domain.webhooks.lines regredisce"),
-    ),
-  );
-  const subtlyLower = structuredClone(full);
-  const subtlyHigher = structuredClone(full);
-  subtlyLower.global.lines = { total: 100_000, covered: 95_001, pct: 95 };
-  subtlyHigher.global.lines = { total: 100_000, covered: 95_009, pct: 95 };
-  assert.ok(
-    baselineFailures(subtlyLower, subtlyLower, subtlyHigher).some((failure) =>
-      failure.includes("global.lines regredisce: 95% -> 95%"),
-    ),
-  );
-  assert.deepEqual(baselineFailures(full, structuredClone(uncovered), null), [
-    "La baseline committata non corrisponde alla misura corrente",
+  assert.deepEqual(targetFailures(full, stricterDomain), [
+    "domain.webhooks.statements: 100% < 101%",
+    "domain.webhooks.branches: 100% < 101%",
+    "domain.webhooks.functions: 100% < 101%",
+    "domain.webhooks.lines: 100% < 101%",
   ]);
-  const withoutDomains = structuredClone(full);
-  delete withoutDomains.domains;
-  assert.deepEqual(baselineFailures(withoutDomains, withoutDomains, withoutDomains), []);
 });
 
 test("misura soltanto le linee eseguibili aggiunte dal diff", () => {
@@ -749,7 +631,7 @@ test("misura soltanto le linee eseguibili aggiunte dal diff", () => {
   );
 });
 
-test("genera e verifica una baseline deterministica con report aggregati", () => {
+test("verifica soglie e righe modificate producendo i report aggregati", () => {
   const repositoryRoot = mkdtempSync(resolve(tmpdir(), "cf-ready-coverage-"));
   const sources = [
     "app/checkout-field-validation.ts",
@@ -780,11 +662,9 @@ test("genera e verifica una baseline deterministica con report aggregati", () =>
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, JSON.stringify(map.toJSON()));
   }
-  let baseline;
   const execute = (command, args) => {
     assert.equal(command, "git");
     if (args[0] === "ls-files") return `${sources.join("\0")}\0`;
-    if (args[0] === "show") return baseline;
     if (args[0] === "diff") {
       return [
         "diff --git a/app/root.tsx b/app/root.tsx",
@@ -796,9 +676,9 @@ test("genera e verifica una baseline deterministica con report aggregati", () =>
     throw new Error(`Comando Git inatteso: ${args.join(" ")}`);
   };
 
-  const updated = runCoverageReport({ repositoryRoot, args: ["--update-baseline"], execute });
-  baseline = readFileSync(resolve(repositoryRoot, "config/coverage-baseline.json"), "utf8");
   const checked = runCoverageReport({ repositoryRoot, args: [], execute });
+  assert.deepEqual(checked.failures, []);
+  assert.equal(checked.state.global.lines.pct, 80);
   const sha = "a".repeat(40);
   assert.doesNotThrow(() =>
     runCoverageReport({
@@ -812,7 +692,7 @@ test("genera e verifica una baseline deterministica con report aggregati", () =>
       repositoryRoot,
       args: ["--base-sha", sha, "--head-sha", "non-valido"],
       execute: (command, args) => {
-        if (args[0] === "show") throw new Error("baseline assente");
+        assert.notEqual(args[0], "diff");
         return execute(command, args);
       },
     }),
@@ -834,10 +714,18 @@ test("genera e verifica una baseline deterministica con report aggregati", () =>
       }),
     /Diff coverage linee eseguibili: 0% < 95%/,
   );
-  assert.deepEqual(checked.state, updated.state);
+  writeFileSync(
+    resolve(repositoryRoot, "config/coverage-policy.json"),
+    `${JSON.stringify({ ...policy, targets: { ...policy.targets, global: { minimum: 90 } } })}\n`,
+  );
+  assert.throws(
+    () => runCoverageReport({ repositoryRoot, args: [], execute }),
+    /global\.lines: 80% < 90%/,
+  );
   assert.equal(
-    readFileSync(resolve(repositoryRoot, "config/coverage-baseline.json"), "utf8").endsWith("\n"),
-    true,
+    JSON.parse(readFileSync(resolve(repositoryRoot, ".coverage/coverage-summary.json"), "utf8"))
+      .schemaVersion,
+    2,
   );
   assert.equal(
     readFileSync(resolve(repositoryRoot, ".coverage/global/lcov.info"), "utf8").length > 0,

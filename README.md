@@ -71,14 +71,14 @@ mise exec -- npm run check:standard
 mise exec -- npm run check
 ```
 
-`coverage:check` misura tutto il codice eseguibile first-party nei cinque gruppi
-canonici, unisce i report senza duplicare i sorgenti condivisi e verifica la
-baseline committata. Dopo una modifica che cambia la misura, esegui
-`npm run coverage:update`, controlla il report in `.coverage/global/` e committa
-anche `config/coverage-baseline.json`; la CI impedisce di abbassare la baseline
-rispetto al branch di partenza.
-Il bundle first-party della Shopify Validation Function è inoltre bloccato al
-100% di statement, branch, funzioni e linee per ciascun file.
+`coverage:check` misura tutto il codice eseguibile first-party, unisce i report
+senza duplicare i sorgenti condivisi e scrive il report in `.coverage/global/`.
+Richiede almeno il 90% sul totale, il 100% per ciascun file del bundle Shopify
+Validation Function e il 95% per i domini critici billing, webhook e Validation,
+sempre su statement, branch, funzioni e linee. In CI, con gli SHA di base e head,
+richiede inoltre che almeno il 95% delle righe eseguibili modificate sia coperto.
+Le soglie vivono in `config/coverage-policy.json`; non c'è una baseline da
+aggiornare o committare.
 
 Per ispezionare il collegamento Shopify senza permettere alla CLI di
 normalizzare i file TOML del repository:

@@ -97,6 +97,9 @@ test("il poll Partner copre lifecycle e billing con nome store, stato e importo"
     expect(notification.body_text).not.toContain("gid://partners/Shop/");
     expect(notification.dedupe_key).toMatch(/^[0-9a-f]{64}$/);
   }
+  expect(results.map(({ body_text }) => body_text).join("\n")).toContain(
+    "Prossimo addebito: 24 set 2026\n",
+  );
   expect(
     results.slice(0, 4).every(({ notification_kind }) => notification_kind === "lifecycle"),
   ).toBe(true);
@@ -625,7 +628,6 @@ test("Telegram ritenta senza duplicare e invia una Rich Message strutturata", as
     type: "table",
     cells: [
       [{ text: { type: "bold", text: "Nome" }, is_header: true }, { text: "Atelier <CF & Ready>" }],
-      [{ text: { type: "bold", text: "URL" }, is_header: true }, { text: `https://${shop}` }],
     ],
     is_bordered: true,
     is_striped: true,
@@ -1007,6 +1009,7 @@ test("la Rich Message degrada in sicurezza senza URL, etichette, descrizione o f
   expect(blocks.some((block: { type: string }) => block.type === "buttons")).toBe(false);
   expect(blocks.some((block: { type: string }) => block.type === "footer")).toBe(false);
   expect(JSON.stringify(blocks)).toContain("Riga senza etichetta");
+  expect(JSON.stringify(blocks)).toContain("http://non-sicuro.example");
 });
 
 test("fallback locali coprono reinstallazione, equivalenza, dettagli assenti e prova incompleta", async () => {
