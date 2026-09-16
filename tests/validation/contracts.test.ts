@@ -249,6 +249,7 @@ describe("stato D1 Validation", () => {
       },
       address2Declaration: null,
       merchantCheckInDismissed: false,
+      reviewCompleted: false,
       enabledSince: null,
     });
     expect(await readOnboarding(env.DB, "assente.myshopify.com")).toEqual({

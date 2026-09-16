@@ -162,6 +162,7 @@ test("la Home completa automaticamente un onboarding già effettivo", async () =
     address2Declaration: "address2",
     enabledSince: "2026-08-01T00:00:00.000Z",
     merchantCheckInDismissed: false,
+    reviewCompleted: false,
   });
   mocks.completeOnboardingAutomatically.mockResolvedValue(true);
 

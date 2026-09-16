@@ -55,7 +55,7 @@ export default {
   },
   scheduled(controller, env, ctx) {
     if (controller.cron === "0 * * * *") ctx.waitUntil(applyRetention(env.DB));
-    if (controller.cron === "*/5 * * * *") {
+    if (controller.cron === "* * * * *") {
       ctx.waitUntil(runOwnerNotificationCycle(env as NotificationBindings));
     }
   },

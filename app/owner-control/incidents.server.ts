@@ -1,4 +1,5 @@
 import { trialLedgerHash } from "../hash.server";
+import { formatDate, notificationBody, storeSection } from "../owner-notifications/presentation";
 import { notificationKey } from "../owner-notifications/repository.server";
 import { UNRESOLVED_WEBHOOK_FILTER } from "./queries.server";
 
@@ -32,6 +33,7 @@ type IncidentRow = {
 type LabelErrorRow = {
   shop_id: number;
   shop_domain: string;
+  display_name: string | null;
   error_code: string;
 };
 
@@ -59,7 +61,7 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
     ),
     db
       .prepare(
-        `SELECT s.id AS shop_id, s.shop_domain,
+        `SELECT s.id AS shop_id, s.shop_domain, s.display_name,
               a.checkout_labels_last_error_code AS error_code
          FROM app_state a
          JOIN shops s ON s.id = a.shop_id
@@ -119,13 +121,16 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
       openedBody: operationalBody(
         "L'acquisizione degli eventi Shopify Partner non avanza entro la soglia prevista.",
         nowIso,
-        [`Ultimo ciclo completo: ${partnerRow!.synced_at}`, `Soglia: ${PARTNER_STALE_MINUTES} min`],
+        [
+          `Ultimo ciclo completo: ${formatDate(partnerRow!.synced_at)}`,
+          `Soglia: ${PARTNER_STALE_MINUTES} min`,
+        ],
       ),
       resolvedSubject: "🟢 CF Ready · Acquisizione Partner ripristinata",
       resolvedBody: operationalBody(
         "L'acquisizione degli eventi Shopify Partner è tornata regolare.",
         nowIso,
-        [`Ultimo ciclo completo: ${partnerRow!.synced_at}`],
+        [`Ultimo ciclo completo: ${formatDate(partnerRow!.synced_at)}`],
       ),
     });
   }
@@ -137,7 +142,9 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
     const previous = existing.get(key) ?? null;
     const sameFailure = previous?.fingerprint === row.error_code;
     const firstObservedAt =
-      previous?.status === "observing" && sameFailure ? previous.first_observed_at : nowIso;
+      previous?.status === "active" || (previous?.status === "observing" && sameFailure)
+        ? previous.first_observed_at
+        : nowIso;
     const observations =
       previous?.status === "observing" && sameFailure
         ? previous.consecutive_observations + 1
@@ -165,7 +172,7 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
         subject: "🔴 CF Ready · Sincronizzazione etichette in errore",
         body: storeOperationalBody(
           "La sincronizzazione delle etichette checkout è ancora in errore dopo controlli consecutivi.",
-          row.shop_domain,
+          row,
           nowIso,
           [`Errore: ${row.error_code}`, `Controlli consecutivi: ${observations}`],
         ),
@@ -197,9 +204,9 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
     }
     if (incident.status === "active" && incident.shop_id !== null) {
       const shop = await db
-        .prepare("SELECT shop_domain FROM shops WHERE id = ?")
+        .prepare("SELECT shop_domain, display_name FROM shops WHERE id = ?")
         .bind(incident.shop_id)
-        .first<{ shop_domain: string }>();
+        .first<{ shop_domain: string; display_name: string | null }>();
       if (!shop) continue;
       await resolveIncident(db, statements, incident, {
         nowIso,
@@ -208,7 +215,7 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
         subject: "🟢 CF Ready · Sincronizzazione etichette ripristinata",
         body: storeOperationalBody(
           "La sincronizzazione delle etichette checkout non presenta più l'errore persistente.",
-          shop.shop_domain,
+          shop,
           nowIso,
           ["Stato: regolare"],
         ),
@@ -458,26 +465,17 @@ async function operationalNotification(
 }
 
 function operationalBody(description: string, occurredAt: string, lines: string[]) {
-  return [description, "", "⚙️ Stato operativo", ...lines, "", `🕒 Evento: ${occurredAt}`].join(
-    "\n",
-  );
+  return notificationBody(description, occurredAt, [{ title: "⚙️ Stato operativo", lines }]);
 }
 
 function storeOperationalBody(
   description: string,
-  shopDomain: string,
+  shop: { shop_domain: string; display_name: string | null },
   occurredAt: string,
   lines: string[],
 ) {
-  return [
-    description,
-    "",
-    "🏪 Store",
-    `URL: https://${shopDomain}`,
-    "",
-    "⚙️ Stato operativo",
-    ...lines,
-    "",
-    `🕒 Evento: ${occurredAt}`,
-  ].join("\n");
+  return notificationBody(description, occurredAt, [
+    storeSection(shop.display_name, shop.shop_domain),
+    { title: "⚙️ Stato operativo", lines },
+  ]);
 }

@@ -45,6 +45,7 @@ test("la Home legge lo stato D1 in parallelo ed espone timing senza dati merchan
     address2Declaration: string | null;
     enabledSince: string | null;
     merchantCheckInDismissed: boolean;
+    reviewCompleted: boolean;
   }>();
   const reconciliation = deferred<{
     shopName: string;
@@ -123,6 +124,7 @@ test("la Home legge lo stato D1 in parallelo ed espone timing senza dati merchan
     address2Declaration: null,
     enabledSince: null,
     merchantCheckInDismissed: false,
+    reviewCompleted: false,
   });
 
   const result = await pending;

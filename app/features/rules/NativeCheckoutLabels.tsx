@@ -217,7 +217,7 @@ function nativeLabelsPresentation({
   keptByMerchant: boolean;
   pendingCount: number;
 }) {
-  if (state.lastErrorCode) {
+  if (state.lastErrorCode && state.lastErrorCode !== "checkout_labels_confirmation_pending") {
     return { status: copy.statusManualRequired, summary: copy.nativeSummaryError };
   }
   if (pendingCount > 0) {

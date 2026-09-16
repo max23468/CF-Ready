@@ -48,9 +48,11 @@ test("la recensione si chiede solo alle condizioni di §15.10", () => {
     errorCode: null,
     enabledSince: new Date(now - 8 * day).toISOString(),
     partnerDevelopment: false,
+    reviewCompleted: false,
   };
 
   expect(reviewIsDue(ready, now)).toBe(true);
+  expect(reviewIsDue({ ...ready, reviewCompleted: true }, now)).toBe(false);
   // Sette giorni esatti bastano, sei no.
   expect(reviewIsDue({ ...ready, enabledSince: new Date(now - 7 * day).toISOString() }, now)).toBe(
     true,
