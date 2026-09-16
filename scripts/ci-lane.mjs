@@ -27,12 +27,6 @@ const mutationDomains = {
     "tests/validation.test.ts",
     "tests/validation/",
   ],
-  ownerNotifications: [
-    "app/owner-notifications.server.ts",
-    "app/owner-notifications/",
-    "tests/owner-notifications.test.ts",
-    "tests/owner-notification-contracts.test.ts",
-  ],
   webhooks: [
     "app/routes/webhooks.app.billing.tsx",
     "app/routes/webhooks.app.scopes_update.tsx",
