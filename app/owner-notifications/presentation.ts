@@ -43,7 +43,10 @@ export function notificationBody(
 export function storeSection(
   displayName: string | null | undefined,
   shopDomain: string,
-  snapshot: Pick<OperationalSnapshot, "country_code" | "shop_currency" | "billing_currency"> | null,
+  snapshot: Pick<
+    OperationalSnapshot,
+    "country_code" | "shop_currency" | "billing_currency"
+  > | null = null,
 ) {
   const name = safeStoreDisplayName(displayName);
   const country = safeCode(snapshot?.country_code, 2);
@@ -76,7 +79,7 @@ export function operationalSection(
   const validationStatus =
     overrides.validationStatus ?? validationLabel(snapshot?.validation_enabled);
   const plan = overrides.plan === undefined ? operationalPlan(snapshot) : overrides.plan;
-  const entitlement = entitlementLabel(snapshot?.entitlement_status);
+  const entitlement = operationalEntitlement(snapshot);
   return {
     title: "⚙️ Stato operativo",
     lines: [
@@ -95,8 +98,21 @@ export function operationalSection(
 export function operationalPlan(snapshot: OperationalSnapshot | LocalNotificationEvent | null) {
   return (
     planLabel(snapshot?.plan_kind) ??
-    (snapshot?.trial_status === "active" ? "Prova gratuita" : "Nessun piano attivo")
+    (snapshot?.complimentary_status === "active"
+      ? "Omaggio"
+      : snapshot?.trial_status === "active"
+        ? "Prova gratuita"
+        : "Nessun piano attivo")
   );
+}
+
+// Stessa precedenza del Control Center: un piano Shopify attivo prevale su omaggio e prova.
+function operationalEntitlement(snapshot: OperationalSnapshot | LocalNotificationEvent | null) {
+  const status = snapshot?.entitlement_status;
+  if (status === "active" || status === "ending") return entitlementLabel(status);
+  if (snapshot?.complimentary_status === "active") return "Omaggio";
+  if (snapshot?.trial_status === "active") return "Prova";
+  return entitlementLabel(status);
 }
 
 export function relationshipStatus(type: PartnerEventType) {
@@ -113,10 +129,11 @@ export function formatDuration(start: string | null | undefined, end: string) {
   const duration = Date.parse(end) - Date.parse(start!);
   if (duration < 0) return null;
   const hours = Math.floor(duration / (60 * 60 * 1000));
-  if (hours < 24) {
-    const displayedHours = Math.max(1, hours);
-    return `${displayedHours} ${displayedHours === 1 ? "ora" : "ore"}`;
+  if (hours < 1) {
+    const minutes = Math.max(1, Math.floor(duration / (60 * 1000)));
+    return `${minutes} ${minutes === 1 ? "minuto" : "minuti"}`;
   }
+  if (hours < 24) return `${hours} ${hours === 1 ? "ora" : "ore"}`;
   const days = Math.floor(hours / 24);
   return `${days} ${days === 1 ? "giorno" : "giorni"}`;
 }

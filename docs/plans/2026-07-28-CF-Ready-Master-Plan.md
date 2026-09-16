@@ -366,14 +366,14 @@ Rispetto alle alternative più ampie o invasive:
 | D-131 | Addebiti sempre in euro, senza adeguarsi alla valuta di fatturazione del merchant. | La valuta dell’addebito è quella inviata nel `currencyCode` e EUR è pienamente supportato: seguire `shopBillingPreferences` significherebbe costruire un listino per valuta per servire la coda dei merchant italiani non fatturati in euro, e rinunciare al prezzo unico che paga tutto il resto del pubblico. Per quella coda Shopify converte in fattura, come farebbe comunque visto che la vetrina della listing è in USD per limitazione della piattaforma. Deciso il 4 agosto 2026 sulle risposte del supporto Shopify riportate in §14.2. |
 | D-132 | Nessuno store né credenziali forniti al reviewer: l’app dichiara di non richiedere un account. | L’app è embedded e non ha login propri, e il requisito 4.5.5 è condizionale — «If your app requires login credentials». Fornire uno store con l’app preinstallata è un requisito delle Payment app (5.2.1), non delle app ordinarie, e il campo *Test account* del form vieta esplicitamente credenziali di store Shopify. Le istruzioni iniziali chiedevano un development store italiano; D-143 ha rimosso quella condizione. Il reviewer usa un checkout con fatturazione e consegna italiane in cui Codice Fiscale e PEC sono visibili. Deciso il 4 agosto 2026, aggiornato il 4 settembre 2026. |
 | D-133 | Consegnare il lavoro webhook a Cloudflare Queues dopo il claim D1 e prima dell'ACK. | Shopify richiede risposte rapide, ma `waitUntil` non garantisce retry durevoli: una coda nativa conserva disinstallazioni, redazioni e riconciliazioni fallite senza introdurre un secondo stato applicativo o un provider. Una DLQ finalizza gli errori e rimanda il messaggio alla coda primaria se D1 resta indisponibile, evitando eliminazioni silenziose. |
-| D-134 | Notificare all’owner tramite outbox D1 e bot Telegram dedicato l’intero ciclo merchant, commerciale e operativo: installazione, reinstallazione, disattivazione, disinstallazione, prova gratuita, onboarding completato, Validation attivata/disattivata, accettazione e attivazione del piano, cambio, disdetta, rifiuto, scadenza, sospensione e riattivazione. Ogni messaggio indica nome pubblico e dominio tecnico `.myshopify.com` dello store, stato operativo e piano interessato; le charge includono importo e cadenza. | La Partner API fornisce relazioni, nome pubblico e dettagli delle charge, ma non è l’unica sorgente di consegna: `app_events` e `billing_events`, derivati dai readback Shopify Admin, costituiscono il fallback durevole per relazioni osservate localmente e transizioni commerciali attive. I cursori locali monotoni per ID non dipendono dai timestamp; il poll Partner ripete le ultime 24 ore per assorbire ritardi di pubblicazione. Un evento Partner incompleto viene escluso senza fermare la pagina o il checkpoint; la diagnostica conserva soltanto il codice del campo invalido per gli eventi nuovi. Errori di trasporto o struttura della risposta continuano invece a fallire senza avanzare. Chiavi semantiche comuni rendono idempotenti le due fonti e i retry separano acquisizione e consegna. Nella chat privata sono ammessi soltanto nome pubblico e dominio dello store: nome dell’owner, email, dati checkout, shop ID e GID restano esclusi. Telegram riceve una Rich Message strutturata con tabelle compatte e pulsanti per aprire o copiare l’URL; i valori dinamici restano testo letterale, il rilevamento automatico delle entità è disattivato e `protect_content` è omesso, così copia, salvataggio e inoltro restano consentiti senza anteprime automatiche. Il cron Production gira ogni cinque minuti e la feature resta disattivata finché bot, chat e secret Partner non sono configurati. Development, checkout e merchant non ricevono notifiche. |
+| D-134 | Notificare all’owner tramite outbox D1 e bot Telegram dedicato l’intero ciclo merchant, commerciale e operativo: installazione, reinstallazione, disattivazione, disinstallazione, prova gratuita, onboarding completato, Validation attivata/disattivata, accettazione e attivazione del piano, cambio, disdetta, rifiuto, scadenza, sospensione e riattivazione. Ogni messaggio identifica lo store con il nome pubblico, usando il dominio tecnico `.myshopify.com` come fallback visibile quando il nome manca, e indica stato operativo e piano interessato; le charge includono importo e cadenza. | La Partner API fornisce relazioni, nome pubblico e dettagli delle charge, ma non è l’unica sorgente di consegna: `app_events` e `billing_events`, derivati dai readback Shopify Admin, costituiscono il fallback durevole per relazioni osservate localmente e transizioni commerciali attive. I cursori locali monotoni per ID non dipendono dai timestamp; il poll Partner ripete le ultime 24 ore per assorbire ritardi di pubblicazione. Un evento Partner incompleto viene escluso senza fermare la pagina o il checkpoint; la diagnostica conserva soltanto il codice del campo invalido per gli eventi nuovi. Errori di trasporto o struttura della risposta continuano invece a fallire senza avanzare. Chiavi semantiche comuni rendono idempotenti le due fonti e i retry separano acquisizione e consegna. Nella chat privata sono ammessi soltanto nome pubblico e dominio dello store: nome dell’owner, email, dati checkout, shop ID e GID restano esclusi. Telegram riceve una Rich Message strutturata con tabelle compatte e pulsanti per aprire o copiare l’URL, che conservano il dominio anche quando la tabella mostra il nome; i valori dinamici restano testo letterale, il rilevamento automatico delle entità è disattivato e `protect_content` è omesso, così copia, salvataggio e inoltro restano consentiti senza anteprime automatiche. Il cron Production gira ogni minuto, aggiornato dall’owner il 16 settembre 2026 per ridurre il ritardo degli avvisi, e la feature resta disattivata finché bot, chat e secret Partner non sono configurati. Development, checkout e merchant non ricevono notifiche. |
 | D-135 | Supportare concessioni omaggio permanenti assegnate manualmente dall’owner, inizialmente solo a `numisleo.myshopify.com`, senza creare o simulare una charge Shopify. | Lo store reale dell’owner deve poter eseguire il canary senza pagare la propria app. La concessione vive in una tabella D1 dedicata, è auditabile e revocabile, prevale sulla prova e viene copiata nel metafield come diritto `one_time`; la UI la distingue da un pagamento e non propone altri addebiti. Per evitare cancellazioni o rimborsi automatici, diventa operativa soltanto in assenza di un abbonamento Shopify attivo: l’eventuale abbonamento va prima disdetto tramite il normale flusso merchant. Deciso il 24 agosto 2026. |
 | D-136 | M11 chiude la release tecnica `1.0.0`: outreach, primi merchant esterni e feedback non sono requisiti della milestone. | L’owner non ha richiesto comunicazioni outbound; acquisizione organica e criteri di maturità restano attività successive e non bloccano la release. L’assenza di segnalazioni è non bloccante, ma non viene presentata come prova di soddisfazione. Deciso il 26 agosto 2026. |
 | D-137 | M12 combina il consolidamento Controlled Launch con i requisiti Built for Shopify e si chiude quando Shopify assegna effettivamente lo status. | Idoneità automatica, pulsante di candidatura, invio o review in corso non chiudono la milestone. I requisiti correnti si rileggono nelle fonti Shopify e nella pagina Distribution prima della candidatura; le soglie Shopify sostituiscono i minimi locali più deboli. I criteri operativi specifici di CF Ready restano segnali da osservare, non una seconda certificazione né gate autonomi; soltanto bug critici e rischi non accettati impediscono la chiusura. Deciso il 26 agosto 2026. |
 | D-138 | La pubblicazione verifica una volta ogni contenuto immutabile e ripete soltanto i gate dipendenti dallo stato remoto. La CI instrada corsie `docs`, `standard`, `full` e `promotion`; la promozione riusa provenienza e gate di `develop`; Development identifica lo snapshot con `X.Y.Z-dev.<tree>`; Production conserva una ricevuta JSON attestata; una GitHub App dedicata riallinea `develop` al merge commit Production solo con fast-forward e tree identico. Lo stesso riallineamento segue un deploy Pages Production verde dello stesso commit, dopo readback e smoke del workflow Pages. L'avvio manuale dichiara obbligatoriamente se è un retry con deploy, che verifica sempre la ricevuta anche nel recupero avanzato, oppure una promozione `main` esplicitamente priva di deploy. Quest'ultima termina senza scrivere se il parent promosso è ancora l'HEAD di `develop`; altrimenti può essere recuperata senza ricevuta soltanto con tree identico al parent, discendenza lineare del branch corrente e nuovo merge che ne conserva il tree. | Riduce installazioni browser, collisioni SemVer e PR prive di differenze senza riutilizzare prove provider: identità, schema Shopify, migrazioni, rollback, smoke e readback restano freschi. Il bypass del ruleset è limitato alla GitHub App di riallineamento e il workflow fallisce chiuso se parent, branch, tree, modalità o identità non coincidono; il recupero di sola ascendenza non modifica provider. Deciso il 27 agosto 2026, esteso il 29 agosto e il 1 settembre 2026. |
 | D-139 | La `1.1.0` unisce Support Link nativo verso la Guida, diagnostica D1 copiabile e minimizzata, report p75 aggregato su 28 giorni, telemetria allowlistata dell'esito Reviews API e simulatore locale in Regole checkout. | Migliora supporto, osservabilità e comprensione delle regole senza introdurre nuove fonti autorevoli o raccogliere contenuti merchant. Il simulatore usa gli stessi controlli formali e messaggi configurati, ma resta un'anteprima dichiarata e non un checkout Shopify reale. Deciso il 29 agosto 2026 e ampliato lo stesso giorno su richiesta dell'owner. |
 | D-140 | M12 include una corsia organica coordinata fra sito pubblico e listing: il sito intercetta ricerche informative con quattro guide bilingui e prove visive reali, la listing resta la superficie di installazione. Si misurano soltanto aggregati privacy-first; nessun tracker custom, contenuto ricorrente o outreach. **Il rinvio del dominio personalizzato è superato da D-151.**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | L'acquisizione contribuisce alle 50 installazioni nette richieste da Built for Shopify senza trasformare KPI locali in gate paralleli. Canonical, hreflang, sitemap, 404 reale e readback automatici rendono la superficie verificabile; nuove pagine arrivano solo dopo trazione misurata. Deciso il 1º settembre 2026; aggiornato il 12 settembre 2026 per riflettere D-151.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| D-141 | Portare progressivamente al 95% statement, rami, funzioni e linee dell'intero codice eseguibile first-party, con pavimento del 90% per server/Worker, UI/route, script operativi e JavaScript pubblico; il bundle first-party della Shopify Validation Function arriva al 100% per file. Il gate parte con inventario canonico, diff coverage al 95% e ratchet senza regressioni; le soglie assolute diventano bloccanti solo quando ciascuna corsia le raggiunge. | Un singolo dato sui soli moduli importati nasconde sorgenti mai caricati e permette compensazioni fra runtime. I report separati confluiscono per percorso senza doppio conteggio, mentre SQL, configurazioni e contenuti non eseguibili mantengono prove di contratto dedicate. Deciso il 1º settembre 2026. |
+| D-141 | Misurare tutto il codice eseguibile first-party e bloccare una PR quando le righe eseguibili modificate sono coperte meno del 95%, il totale scende sotto il 90%, un file del bundle Shopify Validation Function scende sotto il 100% o i domini critici billing, webhook e Validation scendono sotto il 95%; per questi tre domini il mutation score minimo è l’80%. Nessuna baseline committata né ratchet per gruppo. | Un singolo dato sui soli moduli importati nasconde sorgenti mai caricati e permette compensazioni fra runtime: l’inventario canonico resta quindi obbligatorio. Il programma iniziale del 1º settembre 2026 usava baseline, ratchet senza regressioni e soglie per gruppo per salire progressivamente; raggiunto il 97,9% globale, l’owner il 16 settembre 2026 ha rimosso quei vincoli perché obbligavano ogni PR ad aggiornare la baseline, generavano conflitti tra PR parallele e bloccavano anche regressioni dello 0,01% dopo modifiche testate. Il controllo sulle righe modificate impedisce di aggiungere codice non testato; la soglia globale resta una rete di sicurezza. Le notifiche owner escono dai domini critici perché sono strumentazione interna senza effetto su merchant o checkout. |
 | D-142 | Attribuire ogni report Web Vitals alla rotta che ha avviato il documento e al relativo `Server-Timing`, conservando durate tecniche per tutti i loader merchant; gli asset fingerprinted sono immutabili per un anno. | App Bridge può consegnare il callback dopo una navigazione client: leggere allora la URL mescolava metrica e rotta, mentre il Navigation Timing restava quello iniziale. Congelare entrambi al montaggio rende il campione coerente; timing allowlistati separano Worker, Shopify e D1 senza contenuti merchant. I nomi hashati permettono cache lunga senza servire bundle obsoleti. Deciso il 2 settembre 2026 dopo misure Production separate fra shell Shopify e iframe. |
 | D-143 | Rendere CF Ready disponibile agli store di qualunque Paese e decidere l’applicabilità esclusivamente nel singolo checkout, senza gate amministrativo basato su sede, mercati o zone di spedizione. | La Function applica le regole quando la fatturazione è italiana o non ancora disponibile e almeno una consegna è italiana. Se nessuna consegna ha un Paese disponibile, come può accadere per digitali o ritiro, applica soltanto le regole dei localized fields italiani presenti. Non applica regole con fatturazione estera o consegne esclusivamente estere. `Shop.shipsToCountries` descrive solo i Paesi delle zone di spedizione e classificherebbe male digitali e ritiro; Markets richiederebbe più scope e non proverebbe il contesto del checkout. Il Paese dello store resta diagnostico. Le vecchie righe `blocked_country` tornano `active` alla prima riconciliazione. Deciso il 4 settembre 2026 per la `1.2.0`; supera D-002 e D-042 e la condizione geografica di D-132. |
 | D-144 | Proteggere le bozze durante i salvataggi e consentire il recupero esplicito dei conflitti; allineare il simulatore alla Function e aggiungere diagnosi guidata e report di attivazione/prestazioni. | Richiesta dell’owner del 5 settembre 2026: interventi 1, 2, 3, 5, 6 e 7. La bozza conserva i campi modificati dopo l’invio; un conflitto richiede confronto e riapplicazione esplicita contro l’hash corrente, mai un salvataggio forzato. Il simulatore mantiene l’interfaccia semplice: solo l’opzione indirizzo non ancora disponibile nei menu esistenti e gli errori globali preventivi lo allineano alla Function attuale. La diagnosi usa su richiesta la riconciliazione della Home e separa stato aggiornato, stato memorizzato e verifiche manuali. Report aggregati sulle fonti esistenti, senza nuovi scope, provider o contenuti merchant. Anticipa la diagnosi guidata dal backlog P2. |
@@ -3653,88 +3653,51 @@ sbloccare il binding, non il piano Cloudflare.
    - App Store review;
    - store reale canary.
 
-La baseline canonica vive in `config/coverage-baseline.json`; la policy e il
-perimetro sono definiti da `config/coverage-policy.json` e dallo script
-`scripts/coverage-scope.mjs`. Ogni sorgente eseguibile first-party deve comparire
-esattamente una volta nell'aggregato globale. Il bundle Function usa inoltre un
-overlay separato, così le dipendenze condivise non vengono contate due volte nel
-totale ma restano soggette al gate specifico.
+La policy e il perimetro sono definiti da `config/coverage-policy.json` e dallo
+script `scripts/coverage-scope.mjs`. Ogni sorgente eseguibile first-party deve
+comparire esattamente una volta nell'aggregato globale. Il bundle Function usa
+inoltre un overlay separato, così le dipendenze condivise non vengono contate due
+volte nel totale ma restano soggette al gate specifico.
 
-Il programma D-141 procede in nove PR implementative. Dalla prima PR la CI:
+La CI di ogni PR standard o full, secondo D-141:
 
-- richiede almeno il 95% delle linee eseguibili aggiunte;
-- rifiuta regressioni rispetto alla baseline committata precedente;
-- richiede che la baseline committata coincida con la misura corrente;
+- richiede almeno il 95% delle linee eseguibili aggiunte o modificate;
+- richiede almeno il 90% sul totale di statement, branch, funzioni e linee;
+- richiede il 100% per ciascun file del bundle Shopify Validation Function,
+  ricostruito dalla dipendenza reale dell'entrypoint;
+- richiede il 95% per i domini critici billing, webhook e Validation;
 - pubblica JSON, LCOV e HTML legati allo SHA.
 
-Le soglie finali del 95% globale, del 90% per gruppo e del 100% per file del
-bundle Function sono già dichiarate ma si attivano soltanto nelle rispettive PR
-di chiusura. Fiscalità, geografia, billing, entitlement, webhook, notifiche e
+Non esistono baseline committate né confronti per gruppo con il branch di
+partenza. Fiscalità, geografia, billing, entitlement, webhook, notifiche e
 migrazioni conservano anche una matrice esplicita degli esiti: la percentuale non
 la sostituisce. Le migrazioni SQL, i manifest, i workflow, HTML e CSS non entrano
 in un denominatore artificiale e restano coperti dai relativi test di contratto,
-build, smoke e readback.
+build, smoke e readback; il registro append-only delle migrazioni e la relativa
+matrice D1 restano bloccanti.
 
-La seconda PR del programma ha chiuso e attivato il 100% per file del bundle
-Shopify Validation Function. La terza ha chiuso il dominio webhook sopra il 95%
-in tutte le metriche. La quarta ha applicato lo stesso gate separatamente a
-billing, Validation e notifiche owner, includendo trial, pagamento unico,
-entitlement incerto, geografia e readback Shopify/D1. Per tutti questi domini la
-CI richiede anche un mutation score minimo dell'80% quando il dominio o i suoi
-test cambiano. I tre gate mutation girano come job paralleli indipendenti e
-pubblicano un report per dominio; ogni file del dominio escluso dal runner deve
-avere una motivazione esplicita nella policy. Il validatore condiviso della
-Function usa il proprio Vitest e resta al 100% per file, mentre le costanti
-statiche dell'identità Shopify hanno un contratto indipendente perché il pool
-Cloudflare non rende attivabili i relativi static mutant. Le altre soglie
-assolute restano progressive. Ogni campagna mutation parte senza riuso
-incrementale: il report attesta soltanto i mutanti instrumentati sullo SHA
-corrente e non può conservare risultati di file usciti dal perimetro. Il bundle
-Function viene inoltre ricostruito dalla dipendenza reale dell'entrypoint: ogni
-sorgente first-party transitiva deve comparire nell'inventario al 100% e ogni
-voce inventariata deve essere davvero inclusa nel bundle.
-La quinta PR rende inoltre bloccante il registro append-only delle
-migrazioni e la relativa matrice D1: snapshot intermedi, dati preservati, purge
-privacy intenzionale, vincoli, indici, sequenza completa e secondo passaggio
-idempotente sono provati senza includere SQL nel denominatore della coverage.
-La sesta PR porta inoltre il gruppo operativo sopra il 90% in tutte le metriche
-e ne attiva il gate. I test attraversano i veri entrypoint in subprocess con
-filesystem, tempo, ambiente, comandi CLI e API provider sintetici: coprono
-successi e fallimenti di preflight, backup, ricevute, riconciliazione e policy
-CI senza contattare Shopify, Cloudflare o GitHub. Smoke e readback Development
-restano prove provider separate e non vengono sostituiti dalla coverage locale.
-La settima PR porta inoltre il gruppo UI e route sopra il 90% in tutte le
-metriche e ne attiva il gate. I test Workers attraversano loader e action con
-richieste e dipendenze sintetiche; una corsia Vitest Browser separata verifica
-in Chromium rendering, stato, eventi e navigazione delle superfici embedded
-Home, Regole, Messaggi, Onboarding e Guida. I due report Istanbul confluiscono
-nella baseline canonica senza sostituire gli E2E o le verifiche geometriche.
-L’ottava PR porta inoltre sopra il 90% e rende bloccanti i gruppi Worker/server e
-sito pubblico. Richieste, code, cron, bootstrap SSR e reporter prestazioni sono
-attraversati nei rispettivi runtime con dipendenze sintetiche. Il menu pubblico
-separa decisioni pure e adapter DOM: la prima parte confluisce nella coverage
-canonica, mentre Chromium misura il comportamento reale e WebKit conserva le
-prove di accessibilità, navigazione e layout. Non sono emersi rami realmente
-irraggiungibili da registrare come eccezioni con prova sostitutiva.
-La nona PR chiude il programma e rende bloccante anche il 95% globale su
-statement, branch, funzioni e linee. I test aggiunti attraversano bootstrap
-Shopify, decisioni commerciali della Home, session storage, UI embedded e
-orchestrazione degli script con dipendenze sintetiche. La campagna mutation
-completa gira inoltre ogni lunedì e può essere avviata manualmente sull’HEAD di
-`develop` prima della promozione: i quattro domini partono in parallelo, ciascuno
-con timeout di 20 minuti e artifact JSON nominato con lo SHA esatto. Il run
-manuale pre-release resta una prova sul candidato `develop`, non un deploy né
-un’autorizzazione alla promozione. Una modifica al workflow sul default branch
-`develop` avvia inoltre la stessa campagna, così la sua prima registrazione e le
-revisioni successive sono validate senza dipendere dal solo scheduler.
+Billing, webhook e Validation richiedono inoltre un mutation score minimo
+dell'80% quando il dominio o i suoi test cambiano. I gate mutation girano come
+job paralleli indipendenti e pubblicano un report per dominio; ogni file del
+dominio escluso dal runner deve avere una motivazione esplicita nella policy. Il
+validatore condiviso della Function usa il proprio Vitest e resta al 100% per
+file, mentre le costanti statiche dell'identità Shopify hanno un contratto
+indipendente perché il pool Cloudflare non rende attivabili i relativi static
+mutant. Ogni campagna mutation parte senza riuso incrementale. La campagna
+completa dei tre domini gira ogni lunedì, può essere avviata manualmente
+sull'HEAD di `develop` prima della promozione e parte anche quando il suo
+workflow cambia sul default branch; ciascun dominio ha timeout di 20 minuti e
+artifact JSON nominato con lo SHA esatto. Il run manuale pre-release resta una
+prova sul candidato `develop`, non un deploy né un'autorizzazione alla
+promozione.
 
 ### 23.1.1 Gate per tipo di modifica
 
 | Corsia | Quando | Gate minimo |
 |---|---|---|
 | `docs` | contenuto documentale senza effetto operativo | controllo documentazione, formato, `git diff --check` |
-| `standard` | TypeScript, route, config o test ordinari | docs gate, lint, typecheck, test mirati, build, coverage ratchet |
-| `full` | governance, workflow, auth, webhook, cifratura, migrazioni, manifest o lockfile | standard, audit, lockfile, test operativi, coverage ratchet e regressione mirata |
+| `standard` | TypeScript, route, config o test ordinari | docs gate, lint, typecheck, test mirati, build, coverage D-141 |
+| `full` | governance, workflow, auth, webhook, cifratura, migrazioni, manifest o lockfile | standard, audit, lockfile, test operativi, coverage D-141 e regressione mirata |
 | `promotion` | PR `develop` → `main` con ascendenza valida | provenienza PR/review, tree e gate esatti di `develop`, `promotion-guard` |
 | `deploy` | provider, migrazioni, Worker, Function o Pages | gate completo, preflight provider, backup se applicabile, smoke, readback e rollback |
 

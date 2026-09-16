@@ -395,10 +395,49 @@ describe("presentazione Telegram", () => {
       shopFixture({ entitlement_status: null, trial_status: null, config_hash: null }),
     ];
     for (const shop of variants) expect(shopMessage(shop).richMessage.blocks).toBeTruthy();
-    expect(
-      shopMessage(variants[0], [{ event_name: "rules_saved", occurred_at: NOW.toISOString() }])
-        .richMessage.blocks,
-    ).toBeTruthy();
+    const uninstalled = JSON.stringify(
+      shopMessage(
+        shopFixture({
+          installation_status: "uninstalled",
+          onboarding_status: "not_started",
+          plan_kind: "none",
+          trial_status: "converted",
+          entitlement_status: "active",
+        }),
+        [
+          { event_name: "app_uninstalled", occurred_at: NOW.toISOString() },
+          { event_name: "sync_failed", occurred_at: NOW.toISOString() },
+        ],
+      ).richMessage.blocks,
+    );
+    for (const text of [
+      "Disinstallata",
+      "Non iniziato",
+      "Nessun piano",
+      "Convertita",
+      "Attivo",
+      "App disinstallata",
+      "Sync failed",
+    ]) {
+      expect(uninstalled).toContain(text);
+    }
+    expect(uninstalled).not.toMatch(/Uninstalled|None|App uninstalled/);
+    const summaries = JSON.stringify(
+      shopsMessage(
+        {
+          shops: [
+            shopFixture({ plan_kind: "annual" }),
+            shopFixture({ id: 2, plan_kind: "none", trial_status: "active" }),
+          ],
+          count: 2,
+          page: 0,
+        },
+        "all",
+      ).richMessage.blocks,
+    );
+    expect(summaries).toContain("Annuale · Validation attiva");
+    expect(summaries).toContain("Trial attiva · Validation attiva");
+    expect(summaries).not.toContain("atelier.myshopify.com");
     expect(
       shopsMessage(
         {
@@ -511,7 +550,7 @@ describe("presentazione Telegram", () => {
     expect(billingText).toContain("100,36");
     expect(billingText).toContain("6,17");
     expect(billingText).toContain("98,36");
-    expect(billingText).toContain("1 acquisti");
+    expect(billingText).toContain("1 acquisto");
     expect(billingText).toContain("oc1:b:-:0:r");
     expect(JSON.stringify(billingMessage(billingData))).toContain("Partner API non disponibile");
     expect(
@@ -1449,9 +1488,22 @@ describe("query D1 e run-rate", () => {
         },
       ],
     });
+    const alertBody = await env.DB.prepare(
+      "SELECT body_text FROM owner_notifications ORDER BY id LIMIT 1",
+    ).first<string>("body_text");
+    expect(alertBody).toContain("Nome: Store 1");
+    expect(alertBody).toMatch(/🕒 Evento: \d{1,2} set 2026, \d{2}:\d{2}/);
+    expect(
+      await env.DB.prepare(
+        `SELECT first_observed_at FROM owner_operational_incidents
+          WHERE incident_key = 'checkout_labels:1'`,
+      ).first(),
+    ).toEqual({ first_observed_at: NOW.toISOString() });
 
     await env.DB.prepare(
-      "UPDATE app_state SET checkout_labels_last_error_code = NULL WHERE shop_id = 1",
+      `UPDATE app_state
+          SET checkout_labels_last_error_code = 'checkout_labels_confirmation_pending'
+        WHERE shop_id = 1`,
     ).run();
     await reconcileOwnerIncidents(env.DB, new Date(persistentAt.getTime() + 10 * 60_000));
     expect(

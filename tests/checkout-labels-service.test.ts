@@ -205,7 +205,7 @@ test("il caricamento attivo segnala una conferma guidata ancora assente", async 
     externalChange: false,
   });
   expect(mocks.mark).toHaveBeenCalledWith(db, shop, {
-    errorCode: "checkout_labels_partial_sync",
+    errorCode: "checkout_labels_confirmation_pending",
     synced: false,
   });
 });
@@ -598,6 +598,20 @@ test("un readback finale divergente resta recuperabile", async () => {
   });
 });
 
+test("un salvataggio con conferme guidate mancanti non è una sincronizzazione parziale", async () => {
+  mocks.readLabels.mockResolvedValue(snapshotOf([fiscalSlot()]));
+
+  await expect(save(input())).resolves.toEqual({
+    ok: true,
+    labelsErrorCode: "checkout_labels_confirmation_pending",
+  });
+  expect(mocks.mark).toHaveBeenLastCalledWith(db, shop, {
+    mode: "guided",
+    errorCode: "checkout_labels_confirmation_pending",
+    synced: false,
+  });
+});
+
 test("la disattivazione ripristina solo slot posseduti e invariati", async () => {
   const fiscal = fiscalSlot({ capability: "automatic", currentValue: "Codice fiscale" });
   const active = { ...state, mode: "automatic" as const, managementEpoch: "epoch-1" };
@@ -841,7 +855,7 @@ test("la conferma guidata è legata a revisione, tuple e valore osservato", asyn
   mocks.readLabels.mockResolvedValueOnce(snapshotOf([mismatched], "r1"));
   await expect(
     confirmGuidedCheckoutLabels(admin, db, shop, rules, "r1", [checkoutLabelSlotId(mismatched)]),
-  ).resolves.toEqual({ ok: false, errorCode: "checkout_labels_partial_sync" });
+  ).resolves.toEqual({ ok: false, errorCode: "checkout_labels_confirmation_pending" });
 
   const active = { ...state, mode: "guided" as const };
   mocks.readLabels.mockResolvedValueOnce(snapshotOf([guided], "r1"));
