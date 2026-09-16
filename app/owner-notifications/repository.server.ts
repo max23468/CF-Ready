@@ -51,11 +51,12 @@ export function readOperationalSnapshot(db: D1Database, shopDomain: string) {
       `SELECT s.display_name, s.installation_status, s.country_code, s.shop_currency,
               s.billing_currency, s.installed_at, a.onboarding_status, a.onboarding_step,
               a.validation_enabled, t.status AS trial_status, t.ends_at AS trial_ends_at,
-              b.plan_kind, b.entitlement_status
+              b.plan_kind, b.entitlement_status, c.status AS complimentary_status
        FROM shops s
        LEFT JOIN app_state a ON a.shop_id = s.id
        LEFT JOIN billing_accounts b ON b.shop_id = s.id
        LEFT JOIN trials t ON t.shop_id = s.id
+       LEFT JOIN complimentary_entitlements c ON c.shop_id = s.id
        WHERE s.shop_domain = ?`,
     )
     .bind(shopDomain)

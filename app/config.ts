@@ -208,10 +208,17 @@ export function reviewIsDue(
     errorCode: AppErrorCode | null;
     enabledSince: string | null;
     partnerDevelopment: boolean;
+    // Shopify ha già registrato una recensione: ripetere la richiesta produce solo esiti vuoti.
+    reviewCompleted: boolean;
   },
   now: number,
 ) {
-  if (state.partnerDevelopment || state.onboarding !== "completed" || !state.validationEnabled)
+  if (
+    state.partnerDevelopment ||
+    state.reviewCompleted ||
+    state.onboarding !== "completed" ||
+    !state.validationEnabled
+  )
     return false;
   if (state.errorCode || !state.enabledSince) return false;
   return now - Date.parse(state.enabledSince) >= REVIEW_MIN_DAYS * 86_400_000;

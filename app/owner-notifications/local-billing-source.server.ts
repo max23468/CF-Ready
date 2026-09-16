@@ -40,12 +40,13 @@ export async function pollLocalBillingEvents(db: D1Database, now: Date) {
                 s.shop_currency, s.billing_currency, s.installed_at,
                 a.onboarding_status, a.onboarding_step, a.validation_enabled,
                 t.status AS trial_status, t.ends_at AS trial_ends_at,
-                b.plan_kind, b.entitlement_status
+                b.plan_kind, b.entitlement_status, c.status AS complimentary_status
          FROM billing_events e
          LEFT JOIN shops s ON s.id = e.shop_id
          LEFT JOIN app_state a ON a.shop_id = s.id
          LEFT JOIN trials t ON t.shop_id = s.id
          LEFT JOIN billing_accounts b ON b.shop_id = s.id
+         LEFT JOIN complimentary_entitlements c ON c.shop_id = s.id
          WHERE e.id > ? ORDER BY e.id LIMIT ?`,
       )
       .bind(afterId, NOTIFICATION_PAGE_SIZE)

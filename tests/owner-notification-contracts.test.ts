@@ -52,6 +52,7 @@ const SNAPSHOT: OperationalSnapshot = {
   trial_ends_at: null,
   plan_kind: "monthly",
   entitlement_status: "active",
+  complimentary_status: null,
 };
 
 function billingEvent(overrides: Partial<LocalBillingEvent> = {}): LocalBillingEvent {
@@ -300,6 +301,24 @@ describe("presentazione deterministica delle notifiche owner", () => {
       "Prova gratuita",
     );
     expect(operationalPlan(null)).toBe("Nessun piano attivo");
+    const complimentary = {
+      ...SNAPSHOT,
+      plan_kind: "none" as const,
+      entitlement_status: "none",
+      trial_status: "converted",
+      complimentary_status: "active",
+    };
+    expect(operationalSection(complimentary).lines).toEqual(
+      expect.arrayContaining(["Piano: Omaggio", "Diritto: Omaggio"]),
+    );
+    expect(
+      operationalSection({ ...complimentary, complimentary_status: null, trial_status: "active" })
+        .lines,
+    ).toEqual(expect.arrayContaining(["Piano: Prova gratuita", "Diritto: Prova"]));
+    expect(
+      operationalSection({ ...complimentary, trial_status: null, complimentary_status: null })
+        .lines,
+    ).toEqual(expect.arrayContaining(["Piano: Nessun piano attivo", "Diritto: Nessuno"]));
     expect(
       operationalSection({
         ...SNAPSHOT,
@@ -374,7 +393,8 @@ describe("presentazione deterministica delle notifiche owner", () => {
   test("formatta durate, importi e calendario ai bordi", () => {
     expect(formatDuration(undefined, "2026-08-01T10:00:00.000Z")).toBeNull();
     expect(formatDuration("2026-08-02T10:00:00.000Z", "2026-08-01T10:00:00.000Z")).toBeNull();
-    expect(formatDuration("2026-08-01T10:00:00.000Z", "2026-08-01T10:00:00.000Z")).toBe("1 ora");
+    expect(formatDuration("2026-08-01T10:00:00.000Z", "2026-08-01T10:00:00.000Z")).toBe("1 minuto");
+    expect(formatDuration("2026-08-01T09:58:00.000Z", "2026-08-01T10:00:00.000Z")).toBe("2 minuti");
     expect(formatDuration("2026-08-01T09:00:00.000Z", "2026-08-01T10:00:00.000Z")).toBe("1 ora");
     expect(formatDuration("2026-08-01T08:00:00.000Z", "2026-08-01T10:00:00.000Z")).toBe("2 ore");
     expect(formatDuration("2026-07-31T10:00:00.000Z", "2026-08-01T10:00:00.000Z")).toBe("1 giorno");

@@ -135,6 +135,13 @@ export async function readHomeState(db: D1Database, shopDomain: string) {
                  WHERE dismissed.shop_id = shop.id
                    AND dismissed.event_name = 'merchant_checkin_dismissed'
               ) AS merchant_checkin_dismissed,
+              EXISTS (
+                SELECT 1 FROM app_events reviewed
+                 WHERE reviewed.shop_id = shop.id
+                   AND reviewed.event_name = 'review_prompt_result'
+                   AND json_extract(reviewed.metadata_json, '$.reason')
+                       IN ('success', 'already-reviewed')
+              ) AS review_completed,
               (SELECT event.occurred_at
                  FROM app_events event
                 WHERE event.shop_id = shop.id
@@ -153,6 +160,7 @@ export async function readHomeState(db: D1Database, shopDomain: string) {
       validation_enabled: number | null;
       address2_conflict_declared_at: string | null;
       merchant_checkin_dismissed: number;
+      review_completed: number;
       validation_enabled_since: string | null;
     }>();
 
@@ -165,6 +173,7 @@ export async function readHomeState(db: D1Database, shopDomain: string) {
     },
     address2Declaration: row?.address2_conflict_declared_at ?? null,
     merchantCheckInDismissed: Boolean(row?.merchant_checkin_dismissed),
+    reviewCompleted: Boolean(row?.review_completed),
     enabledSince: row?.validation_enabled_since ?? null,
   };
 }
