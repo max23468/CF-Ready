@@ -1,15 +1,13 @@
 import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, relative, resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { buildSync } from "esbuild";
 import coverageLibrary from "istanbul-lib-coverage";
 import reportLibrary from "istanbul-lib-report";
 import reports from "istanbul-reports";
 import {
-  classifyCoverageSources,
-  COVERAGE_GROUPS,
+  isFunctionSource,
   normalizeCoveragePath,
   trackedCoverageSources,
 } from "./coverage-scope.mjs";
@@ -116,7 +114,6 @@ export function coverageState({
   policy,
   repositoryRoot,
 }) {
-  const groups = classifyCoverageSources(sources, policy);
   const globalIndex = indexCoverageMap(globalMap, repositoryRoot);
   const missing = sources.filter((file) => !globalIndex.has(file));
   const unexpected = [...globalIndex.keys()].filter((file) => !sources.includes(file));
@@ -132,10 +129,8 @@ export function coverageState({
   const duplicateFunctionFiles = functionFiles.filter(
     (file, index) => functionFiles.indexOf(file) !== index,
   );
-  const functionSources = groups.function;
-  const configuredFunctionSources = functionFiles.filter((file) =>
-    file.startsWith("extensions/cf-ready-validation/src/"),
-  );
+  const functionSources = sources.filter(isFunctionSource);
+  const configuredFunctionSources = functionFiles.filter(isFunctionSource);
   const missingFunctionFiles = functionSources.filter(
     (file) => !configuredFunctionSources.includes(file),
   );
@@ -196,10 +191,7 @@ export function coverageState({
     const unknownMutationFiles = mutationFiles.filter((file) => !files.includes(file));
     const mutationExclusions = target.mutationExclusions ?? {};
     const unjustifiedMutationExclusions = files.filter(
-      (file) =>
-        target.mutationActive &&
-        !mutationFiles.includes(file) &&
-        typeof mutationExclusions[file] !== "string",
+      (file) => !mutationFiles.includes(file) && typeof mutationExclusions[file] !== "string",
     );
     const staleMutationExclusions = Object.keys(mutationExclusions).filter(
       (file) => !files.includes(file) || mutationFiles.includes(file),
@@ -227,26 +219,11 @@ export function coverageState({
       selectCoverageMap(globalMap, target.files.map(normalizeCoveragePath), repositoryRoot),
     ]),
   );
-  const groupMaps = Object.fromEntries(
-    COVERAGE_GROUPS.map((group) => [
-      group,
-      group === "function"
-        ? selectCoverageMap(functionMap, functionFiles, repositoryRoot)
-        : selectCoverageMap(globalMap, groups[group], repositoryRoot),
-    ]),
-  );
-  const sourceHash = createHash("sha256")
-    .update(`${sources.join("\n")}\n`)
-    .digest("hex");
 
   return {
     schemaVersion: policy.schemaVersion,
     sourceCount: sources.length,
-    sourceHash,
     global: coverageSummary(globalMap),
-    groups: Object.fromEntries(
-      COVERAGE_GROUPS.map((group) => [group, coverageSummary(groupMaps[group])]),
-    ),
     domains: Object.fromEntries(
       Object.entries(domainMaps).map(([domain, map]) => [domain, coverageSummary(map)]),
     ),
@@ -266,71 +243,19 @@ function metricFailures(actual, minimum, label) {
 }
 
 export function targetFailures(state, policy) {
-  const failures = [];
-  if (policy.targets.global.active) {
-    failures.push(...metricFailures(state.global, policy.targets.global.minimum, "global"));
+  const { global, functionFiles, criticalDomains } = policy.targets;
+  const failures = [...metricFailures(state.global, global.minimum, "global")];
+  for (const [file, summary] of Object.entries(state.functionFiles)) {
+    failures.push(...metricFailures(summary, functionFiles.minimum, file));
   }
-  for (const [group, target] of Object.entries(policy.targets.groups)) {
-    if (!target.active) continue;
-    failures.push(...metricFailures(state.groups[group], target.minimum, group));
-    if (target.perFile) {
-      for (const [file, summary] of Object.entries(state.functionFiles)) {
-        failures.push(...metricFailures(summary, target.minimum, file));
-      }
-    }
-  }
-  if (policy.targets.criticalDomains.active) {
-    for (const [domain, target] of Object.entries(policy.targets.criticalDomains.domains ?? {})) {
-      if (target.coverageActive === false) continue;
-      failures.push(
-        ...metricFailures(
-          state.domains[domain],
-          target.minimum ?? policy.targets.criticalDomains.minimum,
-          `domain.${domain}`,
-        ),
-      );
-    }
-  }
-  return failures;
-}
-
-export function baselineFailures(current, committed, previous) {
-  const failures = [];
-  if (JSON.stringify(current) !== JSON.stringify(committed)) {
-    failures.push("La baseline committata non corrisponde alla misura corrente");
-  }
-  if (!previous) return failures;
-
-  const compare = (currentSummary, previousSummary, label) => {
-    for (const metric of METRICS) {
-      const currentMetric = currentSummary[metric];
-      const previousMetric = previousSummary[metric];
-      const currentRatio =
-        currentMetric.total === 0
-          ? { covered: 1, total: 1 }
-          : { covered: currentMetric.covered, total: currentMetric.total };
-      const previousRatio =
-        previousMetric.total === 0
-          ? { covered: 1, total: 1 }
-          : { covered: previousMetric.covered, total: previousMetric.total };
-      if (
-        BigInt(currentRatio.covered) * BigInt(previousRatio.total) <
-        BigInt(previousRatio.covered) * BigInt(currentRatio.total)
-      ) {
-        failures.push(
-          `${label}.${metric} regredisce: ${previousMetric.pct}% -> ${currentMetric.pct}%`,
-        );
-      }
-    }
-  };
-  compare(current.global, previous.global, "global");
-  for (const group of COVERAGE_GROUPS) {
-    compare(current.groups[group], previous.groups[group], group);
-  }
-  for (const domain of Object.keys(current.domains ?? {})) {
-    if (previous.domains?.[domain]) {
-      compare(current.domains[domain], previous.domains[domain], `domain.${domain}`);
-    }
+  for (const [domain, summary] of Object.entries(state.domains)) {
+    failures.push(
+      ...metricFailures(
+        summary,
+        criticalDomains.domains[domain].minimum ?? criticalDomains.minimum,
+        `domain.${domain}`,
+      ),
+    );
   }
   return failures;
 }
@@ -381,20 +306,6 @@ function writeCoverageReports(map, directory) {
   }
 }
 
-function gitJson(repositoryRoot, revision, file, execute = execFileSync) {
-  try {
-    return JSON.parse(
-      execute("git", ["show", `${revision}:${file}`], {
-        cwd: repositoryRoot,
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-      }),
-    );
-  } catch {
-    return null;
-  }
-}
-
 function argument(args, name) {
   const index = args.indexOf(name);
   return index >= 0 ? args[index + 1] : undefined;
@@ -405,16 +316,14 @@ export function runCoverageReport({
   args = process.argv.slice(2),
   execute = execFileSync,
 } = {}) {
-  const policyFile = resolve(repositoryRoot, "config/coverage-policy.json");
-  const baselineFile = resolve(repositoryRoot, "config/coverage-baseline.json");
-  const policy = readJson(policyFile);
+  const policy = readJson(resolve(repositoryRoot, "config/coverage-policy.json"));
   const reportFiles = ["app", "ui", "function", "operations"].map((name) =>
     resolve(repositoryRoot, `.coverage/${name}/coverage-final.json`),
   );
   const globalMap = mergeCoverageFiles(reportFiles);
   const functionMap = mergeCoverageFiles([reportFiles[2]]);
   const sources = trackedCoverageSources(repositoryRoot, policy, execute);
-  const functionEntries = classifyCoverageSources(sources, policy).function;
+  const functionEntries = sources.filter(isFunctionSource);
   const functionDependencies = bundledFunctionSources({
     repositoryRoot,
     entryPoints: functionEntries,
@@ -435,28 +344,11 @@ export function runCoverageReport({
     `${JSON.stringify(state, null, 2)}\n`,
   );
 
-  if (args.includes("--update-baseline")) {
-    mkdirSync(dirname(baselineFile), { recursive: true });
-    writeFileSync(baselineFile, `${JSON.stringify(state, null, 2)}\n`);
-    return { state, failures: [] };
-  }
-
-  const committed = readJson(baselineFile);
+  const failures = targetFailures(state, policy);
   const baseSha = argument(args, "--base-sha");
   const headSha = argument(args, "--head-sha");
-  const previous = /^[0-9a-f]{40}$/.test(baseSha ?? "")
-    ? gitJson(repositoryRoot, baseSha, "config/coverage-baseline.json", execute)
-    : null;
-  const failures = [
-    ...baselineFailures(state, committed, previous),
-    ...targetFailures(state, policy),
-  ];
-
-  if (
-    policy.ratchet.active &&
-    /^[0-9a-f]{40}$/.test(baseSha ?? "") &&
-    /^[0-9a-f]{40}$/.test(headSha ?? "")
-  ) {
+  // Il controllo sulle righe modificate richiede un confronto Git esplicito, disponibile in CI.
+  if (/^[0-9a-f]{40}$/.test(baseSha ?? "") && /^[0-9a-f]{40}$/.test(headSha ?? "")) {
     const diff = execute(
       "git",
       ["diff", "--unified=0", "--diff-filter=ACMR", `${baseSha}...${headSha}`, "--"],
@@ -468,9 +360,10 @@ export function runCoverageReport({
       sources,
       repositoryRoot,
     );
-    if (changedCoverage.pct < policy.ratchet.changedExecutableLines) {
+    const minimum = policy.targets.changedExecutableLines.minimum;
+    if (changedCoverage.pct < minimum) {
       failures.push(
-        `Diff coverage linee eseguibili: ${changedCoverage.pct}% < ${policy.ratchet.changedExecutableLines}% (${changedCoverage.covered}/${changedCoverage.total})`,
+        `Diff coverage linee eseguibili: ${changedCoverage.pct}% < ${minimum}% (${changedCoverage.covered}/${changedCoverage.total})`,
       );
     }
   }

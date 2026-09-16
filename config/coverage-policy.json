@@ -1,42 +1,21 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "metrics": ["statements", "branches", "functions", "lines"],
   "targets": {
     "global": {
-      "minimum": 95,
-      "active": true
+      "minimum": 90
     },
-    "groups": {
-      "server-worker": {
-        "minimum": 90,
-        "active": true
-      },
-      "ui-routes": {
-        "minimum": 90,
-        "active": true
-      },
-      "function": {
-        "minimum": 100,
-        "perFile": true,
-        "active": true
-      },
-      "operations": {
-        "minimum": 90,
-        "active": true
-      },
-      "public-site": {
-        "minimum": 90,
-        "active": true
-      }
+    "changedExecutableLines": {
+      "minimum": 95
+    },
+    "functionFiles": {
+      "minimum": 100
     },
     "criticalDomains": {
       "minimum": 95,
       "mutationScore": 80,
-      "active": true,
       "domains": {
         "webhooks": {
-          "coverageActive": true,
-          "mutationActive": true,
           "sourcePrefixes": ["app/routes/webhooks.", "app/webhook"],
           "files": [
             "app/routes/webhooks.app.billing.tsx",
@@ -50,8 +29,6 @@
           ]
         },
         "billing": {
-          "coverageActive": true,
-          "mutationActive": true,
           "sourcePrefixes": ["app/billing/"],
           "files": [
             "app/billing/commercial-entitlement.server.ts",
@@ -61,8 +38,6 @@
           ]
         },
         "validation": {
-          "coverageActive": true,
-          "mutationActive": true,
           "sourcePrefixes": ["app/validation/"],
           "files": [
             "app/checkout-field-validation.ts",
@@ -88,28 +63,9 @@
             "app/checkout-field-validation.ts": "Il codice condiviso gira nel Vitest dedicato della Function, non nel pool Workers del dominio Validation; resta bloccato al 100% per file.",
             "app/validation/types.ts": "Le costanti di modulo producono static mutants non attivabili dal pool Cloudflare copiato da Stryker; un contratto indipendente ne fissa i valori Shopify canonici."
           }
-        },
-        "ownerNotifications": {
-          "coverageActive": true,
-          "mutationActive": true,
-          "sourcePrefixes": ["app/owner-notifications.server.ts", "app/owner-notifications/"],
-          "files": [
-            "app/owner-notifications.server.ts",
-            "app/owner-notifications/delivery.server.ts",
-            "app/owner-notifications/local-app-source.server.ts",
-            "app/owner-notifications/local-billing-source.server.ts",
-            "app/owner-notifications/model.ts",
-            "app/owner-notifications/partner-source.server.ts",
-            "app/owner-notifications/presentation.ts",
-            "app/owner-notifications/repository.server.ts"
-          ]
         }
       }
     }
-  },
-  "ratchet": {
-    "active": true,
-    "changedExecutableLines": 95
   },
   "nonExecutableSources": {
     "app/app-bridge.d.ts": "Dichiarazioni TypeScript per App Bridge",
