@@ -37,6 +37,8 @@ export const it = {
       "Un’etichetta è cambiata dopo l’ultima lettura. Rileggi Shopify prima di decidere quale testo mantenere.",
     checkout_labels_confirmation_required:
       "Conferma il confronto prima della prima scrittura automatica delle etichette.",
+    checkout_labels_confirmation_pending:
+      "Le regole sono salvate. Aggiorna in Shopify le etichette indicate, poi confermale in CF Ready.",
     checkout_labels_stale_digest:
       "Shopify ha aggiornato il contenuto durante il salvataggio. Rileggi le etichette e riprova.",
     checkout_labels_partial_sync:

@@ -62,8 +62,21 @@ test("la Home ricostruisce onboarding, dichiarazione e ultima attivazione con un
     },
     address2Declaration: "2026-08-01T10:00:00.000Z",
     merchantCheckInDismissed: false,
+    reviewCompleted: false,
     enabledSince: "2026-08-02T11:00:00.000Z",
   });
+
+  const reviewResult = (reason: string) =>
+    env.DB.prepare(
+      `INSERT INTO app_events (shop_id, event_name, event_class, metadata_json, occurred_at)
+       SELECT id, 'review_prompt_result', 'support', ?, ? FROM shops WHERE shop_domain = ?`,
+    )
+      .bind(JSON.stringify({ reason }), "2026-08-10T11:00:00.000Z", shop)
+      .run();
+  await reviewResult("cooldown-period");
+  expect((await readHomeState(env.DB, shop)).reviewCompleted).toBe(false);
+  await reviewResult("already-reviewed");
+  expect((await readHomeState(env.DB, shop)).reviewCompleted).toBe(true);
 });
 
 test("un errore D1 futuro resta un errore operativo e non diventa stato sano", async () => {

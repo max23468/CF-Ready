@@ -49,6 +49,7 @@ export type OperationalSnapshot = {
   trial_ends_at: string | null;
   plan_kind: "monthly" | "annual" | "one_time" | "none" | null;
   entitlement_status: string | null;
+  complimentary_status: string | null;
 };
 
 export type LocalNotificationEvent = Omit<OperationalSnapshot, "trial_ends_at"> & {

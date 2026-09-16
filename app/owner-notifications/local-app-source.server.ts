@@ -41,6 +41,7 @@ export async function pollLocalAppEvents(db: D1Database, now: Date) {
                 s.installation_status, s.country_code, s.shop_currency, s.billing_currency,
                 s.installed_at, a.onboarding_status, a.onboarding_step, a.validation_enabled,
                 t.status AS trial_status, t.ends_at, b.plan_kind, b.entitlement_status,
+                c.status AS complimentary_status,
                 EXISTS (
                   SELECT 1 FROM app_events previous
                   WHERE previous.shop_id = e.shop_id
@@ -52,6 +53,7 @@ export async function pollLocalAppEvents(db: D1Database, now: Date) {
          LEFT JOIN app_state a ON a.shop_id = s.id
          LEFT JOIN trials t ON t.shop_id = s.id
          LEFT JOIN billing_accounts b ON b.shop_id = s.id
+         LEFT JOIN complimentary_entitlements c ON c.shop_id = s.id
          WHERE e.id > ? ORDER BY e.id LIMIT ?`,
       )
       .bind(afterId, NOTIFICATION_PAGE_SIZE)

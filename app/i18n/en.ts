@@ -39,6 +39,8 @@ export const en: typeof it = {
       "A label changed after the last read. Reload Shopify before choosing which text to keep.",
     checkout_labels_confirmation_required:
       "Confirm the comparison before the first automatic label write.",
+    checkout_labels_confirmation_pending:
+      "Rules were saved. Update the listed labels in Shopify, then confirm them in CF Ready.",
     checkout_labels_stale_digest:
       "Shopify updated the content during the save. Reload the labels and try again.",
     checkout_labels_partial_sync: "Rules were saved, but some labels need another attempt.",

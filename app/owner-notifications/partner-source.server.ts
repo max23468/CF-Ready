@@ -17,7 +17,7 @@ import {
 } from "./model";
 import {
   billingCopy,
-  formatDate,
+  formatCalendarDate,
   formatDuration,
   formatMoney,
   notificationBody,
@@ -233,7 +233,7 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode,
     `${previousKind ? "A" : "Piano"}: ${plan}`,
     `Importo: ${formatMoney(charge.amount!, currentKind)}`,
     ...(validIsoDate(charge.billingOn ?? undefined)
-      ? [`Prossimo addebito: ${formatDate(charge.billingOn!)}`]
+      ? [`Prossimo addebito: ${formatCalendarDate(charge.billingOn!.slice(0, 10))}`]
       : []),
     ...(charge.test ? ["Modalità: test"] : []),
   ];

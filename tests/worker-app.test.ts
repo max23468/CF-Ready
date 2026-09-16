@@ -149,7 +149,7 @@ describe("entrypoint Worker", () => {
       TELEGRAM_CHAT_ID: "chat",
     };
 
-    worker.scheduled({ cron: "*/5 * * * *" } as never, notificationEnv as never, context as never);
+    worker.scheduled({ cron: "* * * * *" } as never, notificationEnv as never, context as never);
     await Promise.all(pending);
 
     expect(mocks.pollPartnerEvents.mock.calls[0][1]).toEqual({
@@ -173,7 +173,7 @@ describe("entrypoint Worker", () => {
     const context = { waitUntil: (promise: Promise<unknown>) => pending.push(promise) };
     const notificationEnv = { DB: env.DB, OWNER_NOTIFICATIONS_ENABLED: "true" };
 
-    worker.scheduled({ cron: "*/5 * * * *" } as never, notificationEnv as never, context as never);
+    worker.scheduled({ cron: "* * * * *" } as never, notificationEnv as never, context as never);
     await Promise.all(pending);
 
     expect(mocks.deliverOwnerNotifications).not.toHaveBeenCalled();
@@ -195,7 +195,7 @@ describe("entrypoint Worker", () => {
     };
 
     worker.scheduled(
-      { cron: "*/5 * * * *" } as never,
+      { cron: "* * * * *" } as never,
       notificationEnv as never,
       {
         waitUntil: (promise: Promise<unknown>) => pending.push(promise),
@@ -211,7 +211,7 @@ describe("entrypoint Worker", () => {
 
   test("non avvia il ciclo notifiche quando è disabilitato", async () => {
     const pending: Promise<unknown>[] = [];
-    worker.scheduled({ cron: "*/5 * * * *" } as never, env, {
+    worker.scheduled({ cron: "* * * * *" } as never, env, {
       waitUntil: (promise: Promise<unknown>) => pending.push(promise),
     } as never);
     await Promise.all(pending);
