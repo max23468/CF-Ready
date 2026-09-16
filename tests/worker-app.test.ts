@@ -124,16 +124,33 @@ describe("entrypoint Worker", () => {
     ]);
   });
 
-  test("pianifica retention e lascia inattivi i cron non applicabili", async () => {
+  test("pianifica la retention soltanto con il cron orario", async () => {
     const pending: Promise<unknown>[] = [];
     const context = { waitUntil: (promise: Promise<unknown>) => pending.push(promise) };
 
     worker.scheduled({ cron: "0 * * * *" } as never, env, context as never);
-    worker.scheduled({ cron: "1 1 * * *" } as never, env, context as never);
     await Promise.all(pending);
 
     expect(mocks.applyRetention).toHaveBeenCalledOnce();
+    expect(mocks.pollPartnerEvents).not.toHaveBeenCalled();
     expect(pending).toHaveLength(1);
+  });
+
+  test("un cron notifiche ancora in propagazione avvia comunque il ciclo owner", async () => {
+    const pending: Promise<unknown>[] = [];
+    const notificationEnv = { DB: env.DB, OWNER_NOTIFICATIONS_ENABLED: "true" };
+
+    worker.scheduled(
+      { cron: "*/5 * * * *" } as never,
+      notificationEnv as never,
+      {
+        waitUntil: (promise: Promise<unknown>) => pending.push(promise),
+      } as never,
+    );
+    await Promise.all(pending);
+
+    expect(mocks.applyRetention).not.toHaveBeenCalled();
+    expect(mocks.pollPartnerEvents).toHaveBeenCalledOnce();
   });
 
   test("esegue separatamente acquisizione, incidenti e consegna owner", async () => {
