@@ -1,11 +1,25 @@
+.guide-faq__heading {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
 .guide-faq__groups {
   display: grid;
-  gap: 24px;
+  gap: 32px;
 }
 
 .guide-faq__group {
   display: grid;
-  gap: 8px;
+  gap: 12px;
+}
+
+.guide-faq__group-heading {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
 }
 
 .guide-faq__entries {
@@ -36,6 +50,12 @@
   border-radius: var(--p-border-radius-200);
   cursor: pointer;
   list-style: none;
+}
+
+.guide-faq__question {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
 }
 
 .guide-faq__entry summary::-webkit-details-marker {

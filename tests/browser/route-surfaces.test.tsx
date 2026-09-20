@@ -1313,7 +1313,7 @@ describe("Regole", () => {
       's-choice-list[name="taxCode"] s-choice',
     );
     const pecChoices = view.container.querySelectorAll('s-choice-list[name="pec"] s-choice');
-    const ruleHeadings = [...view.container.querySelectorAll('s-text[type="strong"]')].map(
+    const ruleHeadings = [...view.container.querySelectorAll("s-heading")].map(
       (heading) => heading.textContent,
     );
     expect(ruleHeadings).toEqual(
