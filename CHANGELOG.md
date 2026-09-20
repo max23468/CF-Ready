@@ -9,6 +9,7 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 ## 1.11.7 — 20 settembre 2026
 
 - il monitor operativo dei webhook limita le letture agli eventi falliti o ancora in elaborazione e usa indici dedicati, mantenendo il ciclo owner ogni minuto con un consumo D1 proporzionato agli incidenti aperti.
+- lo schema della Validation Function è riallineato al contratto Shopify API `2026-07` restituito dalla CLI ufficiale.
 
 ## 1.11.6 — 16 settembre 2026
 
