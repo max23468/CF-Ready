@@ -129,6 +129,11 @@
       "name": "0024_installation_diagnostics.sql",
       "sha256": "e7f990ced7201758690368220203bbdc6bad7e911c04aa21736b12782887eae2",
       "protects": ["installation engagement diagnostics", "uninstall feedback diagnostics"]
+    },
+    {
+      "name": "0025_webhook_monitor_indexes.sql",
+      "sha256": "0713dc74e317f8368ae4bb82629fe212c2726fbbcc0355a7069ec665585467e3",
+      "protects": ["bounded webhook incident monitoring"]
     }
   ]
 }

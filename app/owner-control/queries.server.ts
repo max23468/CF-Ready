@@ -38,7 +38,8 @@ const WEBHOOK_ISSUES_QUERY = `
       WHERE w.status = 'processing'
         AND datetime(w.received_at) <= datetime('now', '-5 minutes')
     ) AS stale
-  FROM webhook_events w`;
+  FROM webhook_events w
+  WHERE w.status IN ('failed', 'processing')`;
 
 export type ShopRow = {
   id: number;
