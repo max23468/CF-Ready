@@ -4,17 +4,14 @@ const state = vi.hoisted(() => ({
   allowedShop: "",
   bindings: {} as Record<string, unknown>,
   shopifyOptions: [] as Array<Record<string, unknown>>,
-  webhookValidate: vi.fn(),
 }));
 
 const mocks = vi.hoisted(() => ({
-  authenticateWebhookRequest: vi.fn(),
   recordEvent: vi.fn(),
   recordInstallOnce: vi.fn(),
   reconcile: vi.fn(),
   refuseInstall: vi.fn(),
   sessionStorage: vi.fn(),
-  shopifyApi: vi.fn(),
   shopifyApp: vi.fn(),
 }));
 
@@ -36,9 +33,6 @@ vi.mock("../app/shop.server", () => ({
   refuseInstall: mocks.refuseInstall,
 }));
 vi.mock("../app/validation.server", () => ({ reconcile: mocks.reconcile }));
-vi.mock("../app/webhook-auth.server", () => ({
-  authenticateWebhookRequest: mocks.authenticateWebhookRequest,
-}));
 vi.mock("../app/session-storage.server", () => ({
   D1SessionStorage: class {
     kind = "d1-session-storage";
@@ -47,11 +41,6 @@ vi.mock("../app/session-storage.server", () => ({
       mocks.sessionStorage(...args);
     }
   },
-}));
-
-vi.mock("@shopify/shopify-api", () => ({
-  ApiVersion: { July26: "2026-07" },
-  shopifyApi: mocks.shopifyApi,
 }));
 
 vi.mock("@shopify/shopify-app-react-router/server", () => ({
@@ -75,16 +64,9 @@ beforeEach(() => {
       registerWebhooks: vi.fn(),
     };
   });
-  mocks.shopifyApi.mockReturnValue({
-    webhooks: { validate: state.webhookValidate },
-  });
-  mocks.authenticateWebhookRequest.mockImplementation(
-    async (_request: Request, validate: (input: unknown) => unknown) => validate("input"),
-  );
 });
 
-test("il bootstrap Shopify usa fallback locali e autentica i webhook con l'adapter dedicato", async () => {
-  state.webhookValidate.mockResolvedValue({ valid: true });
+test("il bootstrap Shopify usa fallback locali", async () => {
   const module = await import("../app/shopify.server");
 
   expect(mocks.sessionStorage).toHaveBeenCalledWith(state.bindings.DB, "");
@@ -98,20 +80,6 @@ test("il bootstrap Shopify usa fallback locali e autentica i webhook con l'adapt
     distribution: "app-store",
     future: { expiringOfflineAccessTokens: true },
   });
-  expect(mocks.shopifyApi).toHaveBeenCalledWith(
-    expect.objectContaining({
-      apiKey: "",
-      apiSecretKey: "",
-      scopes: [],
-      hostName: "localhost",
-      hostScheme: "http",
-      isEmbeddedApp: true,
-    }),
-  );
-  await expect(
-    module.authenticateWebhook(new Request("https://example.test/webhook")),
-  ).resolves.toEqual({ valid: true });
-  expect(state.webhookValidate).toHaveBeenCalledWith("input");
   expect(module.sessionStorage).toEqual({ kind: "d1-session-storage" });
 });
 
@@ -136,13 +104,6 @@ test("il bootstrap inoltra binding espliciti e dominio custom", async () => {
     appUrl: "https://app.example.test/path",
     customShopDomains: ["checkout.example.test"],
   });
-  expect(mocks.shopifyApi).toHaveBeenCalledWith(
-    expect.objectContaining({
-      hostName: "app.example.test",
-      hostScheme: "https",
-      scopes: ["write_validations", "read_own_subscription_contracts"],
-    }),
-  );
 });
 
 test("afterAuth rifiuta uno store diverso da quello Development consentito", async () => {

@@ -8,6 +8,7 @@ import type { TelegramInlineKeyboard, TelegramRichMessage } from "../telegram/cl
 import { callbackData, type OwnerControlAction, type ShopsFilter } from "./model";
 import { SHOPS_PAGE_SIZE, type ShopRow } from "./queries.server";
 import type { RevenueReport } from "./revenue.server";
+import type { ShopifyPlanRow } from "./shopify-plans.server";
 
 type Row = [string, string];
 type Section = { title: string; rows: Row[] };
@@ -62,8 +63,13 @@ export function dashboardMessage(
 export function shopsMessage(
   data: { shops: ShopRow[]; count: number; page: number },
   filter: ShopsFilter,
+  shopifyPlans: ShopifyPlanRow[] = [],
 ): OwnerControlMessage {
-  const rows: Row[] = data.shops.map((shop) => [shopName(shop), shopSummary(shop)]);
+  const plans = new Map(shopifyPlans.map(({ shopId, plan }) => [shopId, plan]));
+  const rows: Row[] = data.shops.map((shop) => [
+    shopName(shop),
+    shopSummary(shop, plans.has(shop.id) ? plans.get(shop.id) : undefined),
+  ]);
   if (!rows.length) rows.push(["Risultato", "Nessuno store"]);
   return panel(
     `Store · ${filterLabel(filter)}`,
@@ -83,6 +89,7 @@ export function shopsMessage(
 export function shopMessage(
   shop: ShopRow,
   activity: Array<{ event_name: string; occurred_at: string }> = [],
+  shopifyPlan?: string | null,
 ): OwnerControlMessage {
   return panel(
     "Dettaglio store",
@@ -93,6 +100,12 @@ export function shopMessage(
         ["Installazione", installationLabel(shop.installation_status)],
         ["Installato", formatDate(shop.installed_at)],
         ["Paese", shop.country_code ?? "—"],
+        [
+          "Piano Shopify",
+          shop.installation_status === "active"
+            ? (shopifyPlan ?? "Non disponibile")
+            : "Non applicabile",
+        ],
       ]),
       section("⚙️ Operatività", [
         ["Onboarding", onboardingLabel(shop.onboarding_status)],
@@ -644,14 +657,18 @@ function formatDate(input: unknown) {
 function shopName(shop: Pick<ShopRow, "display_name" | "shop_domain">) {
   return shop.display_name ?? shop.shop_domain;
 }
-function shopSummary(shop: ShopRow) {
+function shopSummary(shop: ShopRow, shopifyPlan?: string | null) {
   const plan =
     shop.plan_kind && shop.plan_kind !== "none"
       ? planLabel(shop.plan_kind)
       : shop.trial_status
         ? `Trial ${trialLabel(shop.trial_status).toLocaleLowerCase("it-IT")}`
         : planLabel(shop.plan_kind);
-  return `${plan} · Validation ${shop.validation_enabled ? "attiva" : "non attiva"}${shop.last_error_code ? ` · ${shop.last_error_code}` : ""}`;
+  const platformPlan =
+    shop.installation_status === "active" && shopifyPlan !== undefined
+      ? ` · Shopify ${shopifyPlan ?? "non disponibile"}`
+      : "";
+  return `${plan}${platformPlan} · Validation ${shop.validation_enabled ? "attiva" : "non attiva"}${shop.last_error_code ? ` · ${shop.last_error_code}` : ""}`;
 }
 function filterLabel(filter: ShopsFilter) {
   return {

@@ -2,17 +2,15 @@ import { env } from "cloudflare:test";
 import { expect, test, vi } from "vitest";
 import { recordEvent } from "../../app/events.server";
 import { markUninstalled } from "../../app/shop.server";
+import { claimWebhook, handleWebhook, type WebhookJob } from "../../app/webhook-ingress.server";
 import {
-  claimWebhook,
   consumeWebhookMessage,
   errorCode,
   failClaimedWebhook,
   finishWebhook,
-  handleWebhook,
   renewWebhookClaim,
   runClaimedWebhook,
 } from "../../app/webhooks.server";
-import type { WebhookJob } from "../../app/webhooks.server";
 import { webhookQueue, insertShop } from "../support/lifecycle";
 
 test("un webhook duplicato viene ignorato e un retry dopo errore viene rielaborato", async () => {

@@ -3,7 +3,7 @@ import { Session } from "@shopify/shopify-api";
 import { expect, test } from "vitest";
 import { D1SessionStorage } from "../app/session-storage.server";
 import { markUninstalled } from "../app/shop.server";
-import { claimWebhook } from "../app/webhooks.server";
+import { claimWebhook } from "../app/webhook-ingress.server";
 
 test("salva la sessione cifrata e la ricarica da D1", async () => {
   const key = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));

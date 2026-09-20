@@ -58,7 +58,12 @@ type FeedbackView = {
   status: "available" | "not_found" | "unavailable" | "not_applicable";
 };
 
-type Options = { now?: Date; fetcher?: typeof fetch; refresh?: boolean };
+type Options = {
+  now?: Date;
+  fetcher?: typeof fetch;
+  refresh?: boolean;
+  shopifyPlan?: string | null;
+};
 
 export async function readShopFeedback(
   db: D1Database,
@@ -166,6 +171,7 @@ export async function diagnosticShopMessage(
           : shop.onboarding_status,
     },
     timeline,
+    options.shopifyPlan,
   );
   const blocks = message.richMessage.blocks;
   return {

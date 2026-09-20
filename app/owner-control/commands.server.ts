@@ -44,6 +44,11 @@ import {
   writeOwnerControlState,
 } from "./repository.server";
 import { readRevenueReport } from "./revenue.server";
+import {
+  readShopifyPlan,
+  readShopifyPlans,
+  type ShopifyAdminForShop,
+} from "./shopify-plans.server";
 
 const WEBHOOK_CACHE_KEY = "telegram_webhook_v1";
 const WEBHOOK_CACHE_TTL_MS = 15 * 60 * 1000;
@@ -58,7 +63,11 @@ export type OwnerControlRuntimeConfig = TelegramClientConfig & {
   versionMetadata?: Pick<WorkerVersionMetadata, "id" | "tag" | "timestamp">;
 };
 
-type RenderOptions = { now?: Date; fetcher?: typeof fetch };
+type RenderOptions = {
+  now?: Date;
+  fetcher?: typeof fetch;
+  adminForShop?: ShopifyAdminForShop;
+};
 
 export async function renderOwnerControlAction(
   db: D1Database,
@@ -84,11 +93,14 @@ export async function renderOwnerControlAction(
       }).catch(() => undefined);
       return dashboardMessage(data, growth, environmentLabel(config.environment));
     }
-    case "shops":
-      return shopsMessage(
-        await readShops(db, action.filter ?? "all", page),
-        action.filter ?? "all",
+    case "shops": {
+      const shops = await readShops(db, action.filter ?? "all", page);
+      const plans = await readShopifyPlans(
+        shops.shops,
+        options.adminForShop ?? (await defaultAdminForShop()),
       );
+      return shopsMessage(shops, action.filter ?? "all", plans);
+    }
     case "shop": {
       if (action.shopId !== undefined) {
         const shop = await readShop(db, action.shopId);
@@ -97,6 +109,13 @@ export async function renderOwnerControlAction(
               ...options,
               now,
               refresh: action.refresh,
+              shopifyPlan:
+                shop.installation_status === "active"
+                  ? await readShopifyPlan(
+                      shop.shop_domain,
+                      options.adminForShop ?? (await defaultAdminForShop()),
+                    )
+                  : null,
             })
           : noticeMessage("Store", "Store non trovato.");
       }
@@ -107,6 +126,13 @@ export async function renderOwnerControlAction(
           ...options,
           now,
           refresh: action.refresh,
+          shopifyPlan:
+            shops[0].installation_status === "active"
+              ? await readShopifyPlan(
+                  shops[0].shop_domain,
+                  options.adminForShop ?? (await defaultAdminForShop()),
+                )
+              : null,
         });
       }
       if (shops.length > 1) return shopMatchesMessage(shops);
@@ -169,6 +195,11 @@ export async function renderOwnerControlAction(
     case "help":
       return helpMessage();
   }
+}
+
+async function defaultAdminForShop(): Promise<ShopifyAdminForShop> {
+  const { unauthenticated } = await import("../shopify.server");
+  return async (shopDomain) => (await unauthenticated.admin(shopDomain)).admin;
 }
 
 type WebhookHealth = {

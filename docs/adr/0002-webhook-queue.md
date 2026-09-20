@@ -20,3 +20,11 @@ tentativi, rimanda il messaggio alla coda primaria invece di eliminarlo.
 `waitUntil` non basta: accelera la risposta ma non garantisce la riconsegna dopo
 un'interruzione del Worker. Non vengono introdotti payload webhook, sessioni
 nella coda o un secondo sistema di stato.
+
+Dal 20 settembre 2026 le route webhook esatte entrano direttamente
+nell'entrypoint Worker prima di React Router. L'ingresso leggero verifica metodo,
+dimensione, HMAC sul corpo grezzo e header Shopify, applica gli early return
+ammessi, registra il medesimo claim D1 e pubblica lo stesso messaggio Queue. Il
+consumer e il codice merchant sono caricati soltanto per il rispettivo evento.
+Questa separazione riduce la CPU comune senza cambiare il confine durevole
+claim, Queue e ACK descritto sopra.
