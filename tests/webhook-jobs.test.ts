@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { expect, test, vi } from "vitest";
 import { processWebhookJob } from "../app/webhook-jobs.server";
-import { claimWebhook } from "../app/webhooks.server";
+import { claimWebhook } from "../app/webhook-ingress.server";
 
 const mocks = vi.hoisted(() => ({
   reconcile: vi.fn(),

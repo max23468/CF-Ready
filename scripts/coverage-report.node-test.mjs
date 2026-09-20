@@ -270,8 +270,9 @@ test("esclude test, dichiarazioni, file generati e asset non eseguibili", () => 
 
 test("legge l'inventario Git includendo file nuovi ma non ignorati", () => {
   const execute = (_command, args) => {
+    if (args.includes("--deleted")) return "app/deleted.ts\0";
     assert.deepEqual(args.slice(0, 4), ["ls-files", "--cached", "--others", "--exclude-standard"]);
-    return "app/root.tsx\0scripts/task.node-test.mjs\0site/menu.js\0";
+    return "app/root.tsx\0app/deleted.ts\0scripts/task.node-test.mjs\0site/menu.js\0";
   };
   assert.deepEqual(trackedCoverageSources("/repo", policy, execute), [
     "app/root.tsx",
@@ -664,6 +665,7 @@ test("verifica soglie e righe modificate producendo i report aggregati", () => {
   }
   const execute = (command, args) => {
     assert.equal(command, "git");
+    if (args[0] === "ls-files" && args.includes("--deleted")) return "";
     if (args[0] === "ls-files") return `${sources.join("\0")}\0`;
     if (args[0] === "diff") {
       return [
