@@ -6,6 +6,10 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.11.7 — 20 settembre 2026
+
+- il monitor operativo dei webhook limita le letture agli eventi falliti o ancora in elaborazione e usa indici dedicati, mantenendo il ciclo owner ogni minuto con un consumo D1 proporzionato agli incidenti aperti.
+
 ## 1.11.6 — 16 settembre 2026
 
 - il ciclo delle notifiche owner parte con qualsiasi trigger pianificato diverso dalla retention oraria, così un cambio di frequenza non interrompe gli avvisi mentre Cloudflare propaga il nuovo cron.
