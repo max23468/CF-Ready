@@ -313,7 +313,7 @@ export default function CheckoutRules() {
                 <s-section>
                   <s-stack direction="block" gap="base">
                     <s-stack direction="block" gap="small-100">
-                      <s-text type="strong">{t.rules.taxCodeLabel}</s-text>
+                      <s-heading>{t.rules.taxCodeLabel}</s-heading>
                       <s-choice-list
                         label={t.rules.taxCodeLabel}
                         labelAccessibilityVisibility="exclusive"
@@ -328,7 +328,7 @@ export default function CheckoutRules() {
                       </s-choice-list>
                     </s-stack>
                     <s-stack direction="block" gap="small-100">
-                      <s-text type="strong">{t.rules.pecLabel}</s-text>
+                      <s-heading>{t.rules.pecLabel}</s-heading>
                       <s-choice-list
                         label={t.rules.pecLabel}
                         labelAccessibilityVisibility="exclusive"
