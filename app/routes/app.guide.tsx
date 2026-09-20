@@ -157,7 +157,7 @@ export default function Guide() {
       <s-section id="faq">
         <s-stack direction="block" gap="small-100">
           <s-grid gridTemplateColumns="1fr auto" alignItems="center" gap="base">
-            <s-heading>{t.guide.faqHeading}</s-heading>
+            <h2 className="guide-faq__heading">{t.guide.faqHeading}</h2>
             <s-button onClick={toggleAll}>
               {expanded ? t.guide.collapseAll : t.guide.expandAll}
             </s-button>
@@ -165,12 +165,12 @@ export default function Guide() {
           <div className="guide-faq__groups">
             {t.guide.groups.map((group) => (
               <div className="guide-faq__group" key={group.heading}>
-                <s-heading>{group.heading}</s-heading>
+                <h3 className="guide-faq__group-heading">{group.heading}</h3>
                 <div className="guide-faq__entries">
                   {group.entries.map((entry) => (
                     <details className="guide-faq__entry" key={entry.q} onToggle={syncExpanded}>
                       <summary>
-                        <strong>{entry.q}</strong>
+                        <span className="guide-faq__question">{entry.q}</span>
                       </summary>
                       <s-box paddingBlockStart="small-100">
                         <s-paragraph>{entry.a}</s-paragraph>

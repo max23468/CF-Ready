@@ -6,6 +6,12 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.12.1 — 20 settembre 2026
+
+- Guida e FAQ distingue con maggiore chiarezza titolo, gruppi e domande;
+- Regole checkout presenta Codice Fiscale e PEC come veri titoli delle rispettive
+  scelte.
+
 ## 1.12.0 — 20 settembre 2026
 
 - i webhook Shopify entrano da un percorso Worker leggero che verifica la firma,
