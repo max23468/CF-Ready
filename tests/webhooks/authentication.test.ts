@@ -1,6 +1,20 @@
 import { expect, test, vi } from "vitest";
 import type { WebhookValidation } from "@shopify/shopify-api";
 import { authenticateWebhookRequest, MAX_WEBHOOK_BODY_BYTES } from "../../app/webhook-auth.server";
+import { authenticateWebhook, validateShopifyWebhook } from "../../app/shopify-webhook.server";
+
+async function signWebhook(rawBody: string, secret: string) {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(rawBody)));
+  return btoa(String.fromCharCode(...signature));
+}
 
 const validWebhook = () =>
   ({
@@ -77,6 +91,149 @@ test("rifiuta HMAC non valido e payload non JSON", async () => {
       valid,
     ),
   ).rejects.toMatchObject({ status: 400 });
+});
+
+test("valida HMAC e header Shopify senza inizializzare il client Admin", async () => {
+  const rawBody = '{"country_code":"IT"}';
+  const secret = "synthetic-secret";
+  const signature = await signWebhook(rawBody, secret);
+  const validation = await validateShopifyWebhook(
+    new Headers({
+      "X-Shopify-Hmac-Sha256": signature,
+      "X-Shopify-Topic": "shop/update",
+      "X-Shopify-Shop-Domain": "synthetic.myshopify.com",
+      "X-Shopify-API-Version": "2026-07",
+      "X-Shopify-Webhook-Id": "synthetic-webhook",
+      "X-Shopify-Triggered-At": "2026-09-20T12:00:00Z",
+    }),
+    rawBody,
+    secret,
+  );
+
+  expect(validation).toEqual({
+    valid: true,
+    webhookId: "synthetic-webhook",
+    topic: "SHOP_UPDATE",
+    domain: "synthetic.myshopify.com",
+    triggeredAt: "2026-09-20T12:00:00Z",
+  });
+});
+
+test("autentica il percorso Worker con il secret sintetico del runtime", async () => {
+  const rawBody = '{"country_code":"IT"}';
+  const signature = await signWebhook(rawBody, "synthetic-test-secret");
+  const webhook = await authenticateWebhook(
+    new Request("https://example.test/webhooks/shop/update", {
+      method: "POST",
+      headers: {
+        "X-Shopify-Hmac-Sha256": signature,
+        "X-Shopify-Topic": "shop/update",
+        "X-Shopify-Shop-Domain": "synthetic.myshopify.com",
+        "X-Shopify-API-Version": "2026-07",
+        "X-Shopify-Webhook-Id": "synthetic-worker-webhook",
+      },
+      body: rawBody,
+    }),
+  );
+
+  expect(webhook).toEqual({
+    webhookId: "synthetic-worker-webhook",
+    topic: "SHOP_UPDATE",
+    shop: "synthetic.myshopify.com",
+    payload: { country_code: "IT" },
+  });
+});
+
+test("valida gli header Shopify Events e richiede l'event ID", async () => {
+  const rawBody = "{}";
+  const secret = "synthetic-secret";
+  const headers = new Headers({
+    "Shopify-Hmac-Sha256": await signWebhook(rawBody, secret),
+    "Shopify-Topic": "app.scopes_update",
+    "Shopify-Shop-Domain": "synthetic.myshopify.com",
+    "Shopify-API-Version": "2026-07",
+    "Shopify-Webhook-Id": "synthetic-events-webhook",
+    "Shopify-Event-Id": "synthetic-event",
+  });
+
+  await expect(validateShopifyWebhook(headers, rawBody, secret)).resolves.toMatchObject({
+    valid: true,
+    topic: "APP_SCOPES_UPDATE",
+  });
+  headers.delete("Shopify-Event-Id");
+  await expect(validateShopifyWebhook(headers, rawBody, secret)).resolves.toEqual({
+    valid: false,
+    reason: "missing_header",
+  });
+});
+
+test("rifiuta corpo, HMAC, Base64 o secret mancanti", async () => {
+  const rawBody = "{}";
+  const complete = new Headers({
+    "X-Shopify-Hmac-Sha256": "Base64 non valido!",
+    "X-Shopify-Topic": "shop/update",
+    "X-Shopify-Shop-Domain": "synthetic.myshopify.com",
+    "X-Shopify-API-Version": "2026-07",
+    "X-Shopify-Webhook-Id": "synthetic-invalid-webhook",
+  });
+
+  await expect(validateShopifyWebhook(complete, "", "secret")).resolves.toEqual({
+    valid: false,
+    reason: "missing_body",
+  });
+  await expect(validateShopifyWebhook(new Headers(), rawBody, "secret")).resolves.toEqual({
+    valid: false,
+    reason: "missing_hmac",
+  });
+  await expect(validateShopifyWebhook(complete, rawBody, "secret")).resolves.toEqual({
+    valid: false,
+    reason: "invalid_hmac",
+  });
+  await expect(validateShopifyWebhook(complete, rawBody, "")).resolves.toEqual({
+    valid: false,
+    reason: "invalid_hmac",
+  });
+});
+
+test("rifiuta firme e header webhook incompleti", async () => {
+  const rawBody = "{}";
+  const secret = "synthetic-secret";
+  const headers = new Headers({
+    "X-Shopify-Hmac-Sha256": await signWebhook(rawBody, secret),
+    "X-Shopify-Topic": "shop/update",
+  });
+
+  await expect(validateShopifyWebhook(headers, rawBody, "wrong-secret")).resolves.toEqual({
+    valid: false,
+    reason: "invalid_hmac",
+  });
+  await expect(validateShopifyWebhook(headers, rawBody, secret)).resolves.toEqual({
+    valid: false,
+    reason: "missing_header",
+  });
+});
+
+test.each([
+  "X-Shopify-Topic",
+  "X-Shopify-Shop-Domain",
+  "X-Shopify-API-Version",
+  "X-Shopify-Webhook-Id",
+])("richiede l'header Shopify %s", async (missingHeader) => {
+  const rawBody = "{}";
+  const secret = "synthetic-secret";
+  const headers = new Headers({
+    "X-Shopify-Hmac-Sha256": await signWebhook(rawBody, secret),
+    "X-Shopify-Topic": "shop/update",
+    "X-Shopify-Shop-Domain": "synthetic.myshopify.com",
+    "X-Shopify-API-Version": "2026-07",
+    "X-Shopify-Webhook-Id": "synthetic-required-header",
+  });
+  headers.delete(missingHeader);
+
+  await expect(validateShopifyWebhook(headers, rawBody, secret)).resolves.toEqual({
+    valid: false,
+    reason: "missing_header",
+  });
 });
 
 test("rifiuta la lunghezza webhook dichiarata oltre il limite prima dell'HMAC", async () => {

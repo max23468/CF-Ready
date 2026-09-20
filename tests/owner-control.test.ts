@@ -57,6 +57,7 @@ import {
   writeOwnerControlState,
 } from "../app/owner-control/repository.server";
 import { fetchRevenueReport, readRevenueReport } from "../app/owner-control/revenue.server";
+import { readShopifyPlans, SHOPIFY_PLAN_QUERY } from "../app/owner-control/shopify-plans.server";
 import { parseOwnerControlUpdate } from "../app/owner-control/update.server";
 import { parseFunnel } from "../app/reporting/funnel";
 import {
@@ -364,6 +365,16 @@ describe("presentazione Telegram", () => {
     expect(paged.replyMarkup?.inline_keyboard.flat().map(({ text }) => text)).toEqual(
       expect.arrayContaining(["‹", "›"]),
     );
+    const plans = JSON.stringify(
+      shopsMessage({ shops: [shop], count: 20, page: 1 }, "all", [
+        { shopId: shop.id, plan: "Basic" },
+      ]),
+    );
+    expect(plans).toContain("Shopify Basic");
+    expect(JSON.stringify(shopMessage(shop, [], null))).toContain("Non disponibile");
+    expect(
+      JSON.stringify(shopMessage(shopFixture({ installation_status: "uninstalled" }), [], null)),
+    ).toContain("Non applicabile");
     expect(
       trialsMessage({ trials: [], count: 0, endingSoon: 0, page: 0 }).richMessage.blocks,
     ).toBeTruthy();
@@ -1233,6 +1244,34 @@ describe("idempotenza e delivery interattiva", () => {
 });
 
 describe("query D1 e run-rate", () => {
+  test("legge i piani Shopify senza bloccare gli altri store per un errore", async () => {
+    const shops = [
+      shopFixture({ id: 1, shop_domain: "store-1.myshopify.com" }),
+      shopFixture({ id: 2, shop_domain: "store-2.myshopify.com" }),
+      shopFixture({ id: 3, shop_domain: "store-3.myshopify.com" }),
+      shopFixture({ id: 4, installation_status: "uninstalled" }),
+    ];
+    const adminForShop = vi.fn(async (shopDomain: string) => {
+      if (shopDomain === "store-2.myshopify.com") throw new Error("sessione non disponibile");
+      return {
+        graphql: vi.fn(async (query: string) => {
+          expect(query).toBe(SHOPIFY_PLAN_QUERY);
+          return shopDomain === "store-3.myshopify.com"
+            ? Response.json({ errors: [{ message: "errore" }] })
+            : Response.json({ data: { shop: { plan: { publicDisplayName: "Plus" } } } });
+        }),
+      };
+    });
+
+    expect(await readShopifyPlans(shops, adminForShop)).toEqual([
+      { shopId: 1, plan: "Plus" },
+      { shopId: 2, plan: null },
+      { shopId: 3, plan: null },
+      { shopId: 4, plan: null },
+    ]);
+    expect(adminForShop).toHaveBeenCalledTimes(3);
+  });
+
   test("normalizza timestamp ISO nelle soglie e nelle finestre statistiche", async () => {
     await env.DB.batch([
       env.DB.prepare(
@@ -1653,6 +1692,12 @@ describe("query D1 e run-rate", () => {
       }
       return growthResponse([], false);
     }) as unknown as typeof fetch;
+    const adminForShop = vi.fn(async () => ({
+      graphql: vi.fn(async (query: string) => {
+        expect(query).toBe(SHOPIFY_PLAN_QUERY);
+        return Response.json({ data: { shop: { plan: { publicDisplayName: "Basic" } } } });
+      }),
+    }));
     const actions: OwnerControlAction[] = [
       { view: "dashboard" },
       { view: "shops", filter: "all" },
@@ -1679,6 +1724,7 @@ describe("query D1 e run-rate", () => {
       const message = await renderOwnerControlAction(env.DB, action, controlConfig(), {
         now: NOW,
         fetcher,
+        adminForShop,
       });
       if (action.view === "health") health = JSON.stringify(message);
       expect(message.richMessage.blocks.length).toBeGreaterThan(1);

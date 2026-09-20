@@ -2,7 +2,8 @@
 
 Data di avvio: 26 agosto 2026.
 
-Stato: **avviata, status non ancora ottenuto**.
+Stato: **avviata, prerequisiti automatici ancora aperti e status non ancora
+ottenuto**. Ultimo readback: 20 settembre 2026.
 
 M12 combina i requisiti Built for Shopify con i segnali di consolidamento
 specifici di CF Ready. Si chiude quando Shopify assegna effettivamente lo status
@@ -13,7 +14,8 @@ corso sono condizioni intermedie e non costituiscono chiusura.
 
 ## Fonti e autorità
 
-I requisiti sono stati riletti il 26 agosto 2026 nelle fonti ufficiali:
+I requisiti sono stati riletti il 26 agosto 2026 e riconfermati il 20 settembre
+2026 nelle fonti ufficiali:
 
 - [Built for Shopify requirements](https://shopify.dev/docs/apps/launch/built-for-shopify/requirements);
 - [About Built for Shopify](https://shopify.dev/docs/apps/launch/built-for-shopify);
@@ -223,3 +225,94 @@ Home quando esistono regole gestite, accesso attivo, Validation attiva e nessun
 errore; aprire il confronto piani non basta da solo e l'evento automatico resta
 distinto dal completamento manuale. Questa modifica è evidenza locale e non è
 stato eseguito alcun deploy Production.
+
+## Readback del 20 settembre 2026
+
+Il readback è stato eseguito senza scritture, candidature o modifiche remote.
+La pagina Distribution nel Partner Dashboard continua a mostrare la sezione
+`Ottieni lo status Built for Shopify per la tua app` con il pulsante
+`Iscriviti oggi` disabilitato. M12 resta quindi aperta e CF Ready non è ancora
+candidabile.
+
+### Stato Shopify autorevole
+
+La listing risulta `Pubblicato`. La panoramica dell'app mostra `12` merchant con
+l'app e, per gli ultimi 30 giorni, `18` installazioni, `7` disinstallazioni e
+`11` installazioni nette cumulative. Questi valori descrivono la crescita
+osservata nel Partner Dashboard, ma non sostituiscono il contatore BFS delle
+installazioni nette da store attivi su piani Shopify a pagamento. Il requisito
+di `50` installazioni qualificate risulta ancora aperto.
+
+La listing pubblica non mostra recensioni: il requisito di almeno `5`
+recensioni autentiche resta aperto. Il rating minimo non è un risultato utile
+finché manca il numero minimo di recensioni.
+
+Nella pagina Distribution:
+
+- LCP, CLS e INP riportano tutti `Dati non sufficienti`;
+- Shopify richiede almeno `100` chiamate per ciascuna metrica negli ultimi 28
+  giorni;
+- il requisito di impatto sulla velocità storefront e i criteri di app
+  incorporata, integrazione, design e assenza di uso della Asset API restano
+  soggetti alla valutazione Shopify;
+- non è assegnata alcuna categoria specifica.
+
+Non è stata osservata una bocciatura dei criteri manuali. Il loro stato aperto
+non equivale però a superamento e sarà valutato da Shopify soltanto nel percorso
+di candidatura.
+
+### Segnali operativi Production
+
+Alle `13:17:17 UTC`, `npm run report:launch -- production` ha restituito:
+
+| Segnale interno | Valore |
+| --- | ---: |
+| Store registrati | 14 |
+| Store attivi | 12 |
+| Installazioni negli ultimi 7 giorni | 5 |
+| Installazioni negli ultimi 30 giorni | 12 |
+| Onboarding completati | 7 |
+| Validation attive | 8 |
+| Store paganti o con acquisto concluso | 5 |
+| Concessioni omaggio | 1 |
+| Errori aperti | 0 |
+| Eventi di errore negli ultimi 7 giorni | 8 |
+| Webhook falliti visibili in D1 negli ultimi 7 giorni | 0 |
+
+Gli `8` eventi di errore non sono errori attualmente aperti. Questo report resta
+una lettura D1 interna: non prova installazioni qualificate, recensioni o stato
+Built for Shopify.
+
+Il report prestazioni Production sugli ultimi 28 giorni aggrega tutte le
+versioni e mostra:
+
+| Metrica | Campioni | p75 interno | Soglia BFS | Esito |
+| --- | ---: | ---: | ---: | --- |
+| CLS | 41 | 0,0072 | ≤ 0,1 | campioni insufficienti |
+| INP | 52 | 48 ms | ≤ 200 ms | campioni insufficienti |
+| LCP | 44 | 2.508 ms | ≤ 2.500 ms | campioni insufficienti |
+
+Il p75 interno non è il dato autorevole Shopify. CLS e INP sono entro soglia
+nel campione disponibile; LCP è marginalmente oltre soglia, ma nessuna metrica
+ha ancora i `100` campioni necessari. La priorità è continuare a osservare LCP
+mentre cresce l'uso reale, senza dichiarare superato o fallito il gate sulla
+base di questo campione.
+
+### Stato tecnico e residui
+
+Production è alla release `v1.11.7`, commit
+`c28ca642bf8d23d1710e66a0e40ae68656d667ba`. Il workflow Deploy Production e la
+GitHub Release dello stesso commit sono riusciti il 20 settembre 2026; `main`,
+`develop` e i rispettivi riferimenti remoti risultavano allineati al readback.
+Questo prova lo stato della release tecnica, non l'idoneità BFS.
+
+Restano quindi tre prerequisiti automatici osservabili da colmare:
+
+1. raggiungere le `50` installazioni nette qualificate;
+2. ottenere almeno `5` recensioni autentiche e il rating richiesto;
+3. accumulare almeno `100` chiamate per LCP, CLS e INP mantenendo i p75 entro
+   soglia.
+
+Dopo questi prerequisiti resteranno la candidatura autorizzata dall'owner e la
+valutazione Shopify dei criteri manuali. Soltanto l'assegnazione dello status e
+il readback nel Partner Dashboard e sulla listing chiuderanno M12.
