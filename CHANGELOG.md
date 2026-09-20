@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.12.2 — 20 settembre 2026
+
+- il ciclo owner in Production passa da ogni minuto a ogni cinque minuti,
+  mantenendo separata la retention oraria e riducendo il consumo periodico su
+  Cloudflare Workers Free;
+- preflight, test e documentazione operativa verificano la nuova cadenza e
+  registrano le misure CPU raccolte sulla release precedente.
+
 ## 1.12.1 — 20 settembre 2026
 
 - Guida e FAQ distingue con maggiore chiarezza titolo, gruppi e domande;

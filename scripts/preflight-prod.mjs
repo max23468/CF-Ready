@@ -81,7 +81,7 @@ export function verifyBuiltConfig(builtConfig) {
     failureQueueConsumer?.dead_letter_queue !== expected.queueName ||
     built.send_email?.length ||
     !built.triggers?.crons?.includes("0 * * * *") ||
-    !built.triggers?.crons?.includes("* * * * *") ||
+    !built.triggers?.crons?.includes("*/5 * * * *") ||
     !["true", "false"].includes(built.vars?.OWNER_NOTIFICATIONS_ENABLED) ||
     !["true", "false"].includes(built.vars?.OWNER_TELEGRAM_CONTROL_ENABLED) ||
     built.vars?.APP_ENVIRONMENT !== "production" ||
