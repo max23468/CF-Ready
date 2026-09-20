@@ -39,21 +39,21 @@ type LabelErrorRow = {
 
 export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) {
   const nowIso = now.toISOString();
+  const failedCutoff = new Date(now.getTime() - WEBHOOK_FAILED_MINUTES * 60 * 1000).toISOString();
+  const processingCutoff = new Date(
+    now.getTime() - WEBHOOK_PROCESSING_MINUTES * 60 * 1000,
+  ).toISOString();
   const [webhooks, partner, labels, incidents] = await db.batch([
     db
       .prepare(
         `SELECT
-         COUNT(*) FILTER (
-           WHERE ${UNRESOLVED_WEBHOOK_FILTER}
-             AND datetime(w.received_at) <= datetime(?, '-${WEBHOOK_FAILED_MINUTES} minutes')
-         ) AS failed,
-         COUNT(*) FILTER (
-           WHERE w.status = 'processing'
-             AND datetime(w.received_at) <= datetime(?, '-${WEBHOOK_PROCESSING_MINUTES} minutes')
-         ) AS processing
-       FROM webhook_events w`,
+         COUNT(*) FILTER (WHERE ${UNRESOLVED_WEBHOOK_FILTER}) AS failed,
+         COUNT(*) FILTER (WHERE w.status = 'processing') AS processing
+       FROM webhook_events w
+       WHERE (w.status = 'failed' AND w.received_at <= ?)
+          OR (w.status = 'processing' AND w.received_at <= ?)`,
       )
-      .bind(nowIso, nowIso),
+      .bind(failedCutoff, processingCutoff),
     db.prepare(
       `SELECT state_value AS synced_at
            FROM owner_notification_state

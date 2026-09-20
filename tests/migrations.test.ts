@@ -574,6 +574,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "0022_configuration_history.sql",
     "0023_owner_operational_incidents.sql",
     "0024_installation_diagnostics.sql",
+    "0025_webhook_monitor_indexes.sql",
   ]);
   await applyThrough(db, migrations, "0022_configuration_history.sql");
   await insertShop(db);
@@ -589,6 +590,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     .run();
   await applyD1Migrations(db, [migrationAfter(migrations, "0022_configuration_history.sql")]);
   await applyD1Migrations(db, [migrationAfter(migrations, "0023_owner_operational_incidents.sql")]);
+  await applyD1Migrations(db, [migrationAfter(migrations, "0024_installation_diagnostics.sql")]);
 
   expect(await db.prepare("SELECT * FROM owner_notifications WHERE id = 23").first()).toMatchObject(
     {
@@ -671,6 +673,8 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "shopify_sessions_shop_id_idx",
     "shops_uninstalled_at_idx",
     "webhook_events_received_at_idx",
+    "webhook_events_recovery_idx",
+    "webhook_events_status_received_at_idx",
   ]);
 });
 
