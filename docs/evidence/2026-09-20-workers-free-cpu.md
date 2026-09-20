@@ -2,8 +2,8 @@
 
 Data: 20 settembre 2026.
 
-Stato: **candidato locale qualificato, compatibilità Production condizionata al
-deploy e al readback Cloudflare**.
+Stato: **release `1.12.0` distribuita, readback immediato compatibile; conferma
+su 24 ore ancora necessaria**.
 
 Questa ricevuta riguarda soltanto CPU Worker. La precedente anomalia D1 della
 query di monitoraggio su `webhook_events` è esclusa dal dimensionamento. Tempo
@@ -48,8 +48,9 @@ Due tail read-only brevi hanno attribuito la coda osservata:
 Tutte le invocazioni osservate avevano esito applicativo positivo. Nei due
 intervalli non sono comparsi consumer Queue né altre route HTTP, quindi non
 esiste una misura Production sufficiente per attribuire loro un percentile.
-Il cron resta ogni minuto: non genera la coda principale e ridurne la frequenza
-abbasserebbe il numero di invocazioni, non la CPU della singola esecuzione.
+Nella baseline il cron girava ogni minuto: non generava la coda principale e
+ridurne la frequenza avrebbe abbassato il numero di invocazioni, non la CPU della
+singola esecuzione.
 
 `SHOP_UPDATE` è il percorso concreto dominante. Quando il Paese non cambia,
 esegue già HMAC, parsing JSON e una sola lettura D1 prima dell'early return. Il
@@ -78,6 +79,13 @@ necessario per raggiungerli:
 Non cambiano UX merchant, checkout, semantica fiscale o dati persistiti. Il
 trade-off è un primo import differito sui percorsi meno frequenti e un bundle
 complessivo più grande per il code splitting.
+
+Il candidato successivo porta l'intero ciclo owner da ogni minuto a ogni cinque
+minuti. Poll Partner, cursori locali, riconciliazione incidenti e consegna outbox
+restano nello stesso ordine e con la stessa idempotenza. Le invocazioni periodiche
+scendono dell'80%; notifiche e risoluzioni operative possono arrivare con circa
+quattro minuti di ritardo aggiuntivo. Webhook, Queue, retention oraria e percorsi
+merchant non cambiano. Questa variazione non è ancora distribuita.
 
 ## Misure locali prima e dopo
 
@@ -112,19 +120,36 @@ percentile Cloudflare. Serve a escludere HMAC e parsing, per payload
 rappresentativi, come spiegazione plausibile di una coda di decine di
 millisecondi.
 
+## Deploy e readback Production
+
+La release `1.12.0`, commit `be88a341bad2121f2f16c9266c98f38b137cc893`, è
+stata distribuita sul Worker Production con deployment
+`e7a34a09-f266-4cc3-97a3-82ee5fb5e525`. Il readback immediato ha osservato:
+
+- 120 richieste HTTP sintetiche: p95 1 ms, massimo 3 ms, nessun errore;
+- 22 invocazioni `/webhooks/shop/update`: CPU p50 2 ms, p90 3 ms, p99 e massimo
+  4 ms, tutte riuscite;
+- due esecuzioni del cron owner: CPU 9 ms, durata complessiva mediana 2.554 ms;
+- una retention oraria: CPU 7 ms, durata complessiva 199 ms.
+
+Le durate complessive includono attese D1 e rete e non sono attribuite alla CPU.
+Il campione webhook rispetta il target prudenziale, mentre il cron owner resta
+vicino al limite per singola invocazione. La riduzione della frequenza a cinque
+minuti riduce volume e consumo aggregato, ma non costituisce una riduzione della
+CPU della singola esecuzione.
+
 ## Esito e blocco residuo
 
-- **Production corrente: BLOCKED per Workers Free.** p90 22,63 ms e p99 36,67
-  ms superano il limite; nessuna modifica di questo ramo è stata distribuita.
-- **Candidato locale: compatibilità condizionata.** La causa comune è rimossa e
-  i test preservano sicurezza e lifecycle, ma mancano percentili Cloudflare del
-  bundle candidato.
-- **Deploy e readback Production: non eseguiti.** Questo lavoro non autorizza
-  pubblicazione, merge o deploy.
+- **Prova locale: PASS strutturale.** Bootstrap comune ridotto e benchmark
+  sintetici escludono HMAC e parsing come cause della vecchia coda.
+- **Release `1.12.0`: PASS sul readback immediato.** I webhook osservati restano
+  sotto il target p90 8 ms e sotto il limite di 10 ms anche al p99.
+- **Workers Free: compatibilità condizionata.** Manca ancora il percentile
+  Cloudflare su una finestra rappresentativa di 24 ore; due soli cron non
+  qualificano la loro distribuzione.
+- **Candidato cron a cinque minuti: non distribuito.** Configurazione, preflight
+  e documentazione sono preparati localmente.
 
-La prossima azione reale, dopo autorizzazione, è distribuire prima in
-Development, generare consegne sintetiche firmate sulle cinque route, osservare
-separatamente webhook, route merchant, cron e Queue, quindi richiedere p90 non
-oltre 8 ms e p99 non oltre 10 ms. Solo dopo un eventuale deploy Production va
-ripetuto il readback su almeno 24 ore. Un p99 sopra 10 ms resta rischio e non è
-un PASS.
+La prossima azione reale è pubblicare il candidato quando autorizzato e leggere
+le metriche Cloudflare su almeno 24 ore, separando HTTP, cron e Queue. Un p99
+sopra 10 ms resta rischio e non è un PASS.
