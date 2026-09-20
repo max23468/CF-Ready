@@ -205,7 +205,7 @@ loader dell'app.
 
 ## Notifiche owner
 
-Il cron Production ogni minuto acquisisce dalla Shopify Partner API gli
+Il cron Production ogni cinque minuti acquisisce dalla Shopify Partner API gli
 eventi di installazione, riattivazione, disattivazione e disinstallazione, oltre
 all'intero ciclo degli abbonamenti e dei pagamenti unici: accettazione,
 attivazione, disdetta, rifiuto, scadenza, sospensione e riattivazione. Ogni poll

@@ -25,7 +25,7 @@ const builtProduction = JSON.stringify({
   version_metadata: { binding: "CF_VERSION_METADATA" },
   workers_dev: false,
   routes: [{ pattern: "app.cfready.it", custom_domain: true }],
-  triggers: { crons: ["0 * * * *", "* * * * *"] },
+  triggers: { crons: ["0 * * * *", "*/5 * * * *"] },
   d1_databases: [
     {
       binding: "DB",
@@ -142,6 +142,12 @@ test("il preflight rifiuta la coda webhook Production sbagliata", () => {
   const wrongQueue = JSON.parse(builtProduction);
   wrongQueue.queues.producers[0].queue = "cf-ready-webhooks-dev";
   assert.throws(() => verifyBuiltConfig(JSON.stringify(wrongQueue)), /Production/);
+});
+
+test("il preflight richiede il ciclo owner ogni cinque minuti", () => {
+  const everyMinute = JSON.parse(builtProduction);
+  everyMinute.triggers.crons = ["0 * * * *", "* * * * *"];
+  assert.throws(() => verifyBuiltConfig(JSON.stringify(everyMinute)), /Production/);
 });
 
 test("la modalità di addebito è dichiarata come la legge il Worker", () => {
