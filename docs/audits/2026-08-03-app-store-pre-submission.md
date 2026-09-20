@@ -162,7 +162,7 @@ verifica il bundle e rifiuta di proseguire; una regressione in
 
 | Voce | Esito |
 | --- | --- |
-| Webhook privacy | i tre topic obbligatori (`customers/data_request`, `customers/redact`, `shop/redact`) sono dichiarati in `shopify.app.toml` e gestiti da `app/routes/webhooks.compliance.tsx` |
+| Webhook privacy | i tre topic obbligatori (`customers/data_request`, `customers/redact`, `shop/redact`) sono dichiarati in `shopify.app.toml` e gestiti dall'ingresso Worker in `app/webhook-request.server.ts` |
 | Nessun dato personale nei log | verificato in M8 e coperto dai test; Codice Fiscale e PEC non lasciano l'infrastruttura Shopify |
 | Installazione pulita, disinstallazione e reinstallazione | coperte da `tests/lifecycle.test.ts`, `tests/session-storage.test.ts` e dal percorso pre-OAuth di `tests/e2e/install.spec.ts` |
 | Store Basic | il dev store è Basic; nessuna funzione richiede Plus |

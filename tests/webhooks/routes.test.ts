@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { databaseContext, webhookQueueContext } from "../../app/context.server";
 
 const mocks = vi.hoisted(() => ({
   authenticateWebhook: vi.fn(),
@@ -7,29 +6,20 @@ const mocks = vi.hoisted(() => ({
   first: vi.fn(),
 }));
 
-vi.mock("../../app/shopify.server", () => ({
+vi.mock("../../app/shopify-webhook.server", () => ({
   authenticateWebhook: mocks.authenticateWebhook,
 }));
-vi.mock("../../app/webhooks.server", () => ({ handleWebhook: mocks.handleWebhook }));
+vi.mock("../../app/webhook-ingress.server", () => ({ handleWebhook: mocks.handleWebhook }));
 
-import { action as billingAction } from "../../app/routes/webhooks.app.billing";
-import { action as scopesAction } from "../../app/routes/webhooks.app.scopes_update";
-import { action as uninstalledAction } from "../../app/routes/webhooks.app.uninstalled";
-import { action as complianceAction } from "../../app/routes/webhooks.compliance";
-import { action as shopUpdateAction } from "../../app/routes/webhooks.shop.update";
+import { handleWebhookRequest } from "../../app/webhook-request.server";
 
 const db = {
   prepare: vi.fn(() => ({ bind: vi.fn(() => ({ first: mocks.first })) })),
 } as unknown as D1Database;
 const queue = {} as Queue;
 const request = new Request("https://example.test/webhooks", { method: "POST" });
-const context = {
-  get: vi.fn((token: unknown) => {
-    if (token === databaseContext) return db;
-    if (token === webhookQueueContext) return queue;
-    return undefined;
-  }),
-};
+
+const callWebhook = (pathname: string) => handleWebhookRequest(pathname, request, db, queue);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -52,7 +42,7 @@ test("non accoda gli aggiornamenti shop che conservano il Paese osservato", asyn
   });
   mocks.first.mockResolvedValue({ 1: 1 });
 
-  const response = await shopUpdateAction({ request, context } as never);
+  const response = await callWebhook("/webhooks/shop/update");
 
   expect(response.status).toBe(200);
   expect(db.prepare).toHaveBeenCalledWith(
@@ -69,7 +59,7 @@ test("accoda gli aggiornamenti shop quando cambia il Paese osservato", async () 
     payload: { country_code: "IT" },
   });
 
-  const response = await shopUpdateAction({ request, context } as never);
+  const response = await callWebhook("/webhooks/shop/update");
 
   expect(response.status).toBe(200);
   expect(mocks.handleWebhook).toHaveBeenCalledWith(
@@ -80,13 +70,13 @@ test("accoda gli aggiornamenti shop quando cambia il Paese osservato", async () 
 });
 
 describe.each([
-  ["billing", billingAction],
-  ["disinstallazione", uninstalledAction],
-  ["compliance", complianceAction],
-  ["aggiornamento shop", shopUpdateAction],
-] as const)("route webhook %s", (_name, action) => {
+  ["billing", "/webhooks/app/billing"],
+  ["disinstallazione", "/webhooks/app/uninstalled"],
+  ["compliance", "/webhooks/compliance"],
+  ["aggiornamento shop", "/webhooks/shop/update"],
+] as const)("route webhook %s", (_name, pathname) => {
   test("autentica e inoltra la consegna alla coda", async () => {
-    const response = await action({ request, context } as never);
+    const response = await callWebhook(pathname);
 
     expect(response.status).toBe(200);
     expect(mocks.authenticateWebhook).toHaveBeenCalledWith(request);
@@ -112,7 +102,7 @@ test.each([
     payload: { current },
   });
 
-  const response = await scopesAction({ request, context } as never);
+  const response = await callWebhook("/webhooks/app/scopes_update");
 
   expect(response.status).toBe(200);
   expect(mocks.handleWebhook).toHaveBeenCalledWith(

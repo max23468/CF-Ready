@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   deliverOwnerNotifications: vi.fn(),
   recordEvent: vi.fn(),
   handleOwnerControlWebhook: vi.fn(),
+  handleWebhookRequest: vi.fn(),
 }));
 
 vi.mock("react-router", async (importOriginal) => ({
@@ -33,8 +34,11 @@ vi.mock("../app/owner-notifications.server", () => ({
 }));
 vi.mock("../app/events.server", () => ({ recordEvent: mocks.recordEvent }));
 vi.mock("../app/owner-control/handler.server", () => ({
-  OWNER_CONTROL_PATH: "/internal/telegram/webhook",
   handleOwnerControlWebhook: mocks.handleOwnerControlWebhook,
+}));
+vi.mock("../app/webhook-request.server", () => ({
+  WEBHOOK_PATHS: new Set(["/webhooks/shop/update"]),
+  handleWebhookRequest: mocks.handleWebhookRequest,
 }));
 
 import worker from "../workers/app";
@@ -51,6 +55,7 @@ beforeEach(() => {
   mocks.deliverOwnerNotifications.mockResolvedValue(undefined);
   mocks.recordEvent.mockResolvedValue(undefined);
   mocks.handleOwnerControlWebhook.mockResolvedValue(new Response("control", { status: 202 }));
+  mocks.handleWebhookRequest.mockResolvedValue(new Response(null, { status: 200 }));
 });
 
 describe("entrypoint Worker", () => {
@@ -102,6 +107,47 @@ describe("entrypoint Worker", () => {
 
     expect(response.status).toBe(202);
     expect(mocks.handleOwnerControlWebhook).toHaveBeenCalledWith(request, env);
+    expect(mocks.requestHandler).not.toHaveBeenCalled();
+  });
+
+  test("intercetta i webhook Shopify dichiarati prima del router merchant", async () => {
+    const request = new Request("https://cf-ready.test/webhooks/shop/update", {
+      method: "POST",
+    });
+    const response = await worker.fetch(request as never, env, { waitUntil() {} } as never);
+
+    expect(response.status).toBe(200);
+    expect(mocks.handleWebhookRequest).toHaveBeenCalledWith(
+      "/webhooks/shop/update",
+      request,
+      env.DB,
+      env.WEBHOOK_QUEUE,
+    );
+    expect(mocks.requestHandler).not.toHaveBeenCalled();
+  });
+
+  test("rifiuta metodi diversi da POST senza caricare il router merchant", async () => {
+    const response = await worker.fetch(
+      new Request("https://cf-ready.test/webhooks/shop/update") as never,
+      env,
+      { waitUntil() {} } as never,
+    );
+
+    expect(response.status).toBe(405);
+    expect(response.headers.get("allow")).toBe("POST");
+    expect(mocks.handleWebhookRequest).not.toHaveBeenCalled();
+    expect(mocks.requestHandler).not.toHaveBeenCalled();
+  });
+
+  test("risponde 404 ai percorsi webhook sconosciuti senza caricare il router merchant", async () => {
+    const response = await worker.fetch(
+      new Request("https://cf-ready.test/webhooks/sconosciuto", { method: "POST" }) as never,
+      env,
+      { waitUntil() {} } as never,
+    );
+
+    expect(response.status).toBe(404);
+    expect(mocks.handleWebhookRequest).not.toHaveBeenCalled();
     expect(mocks.requestHandler).not.toHaveBeenCalled();
   });
 

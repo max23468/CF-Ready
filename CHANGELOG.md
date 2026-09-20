@@ -6,6 +6,18 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.12.0 — 20 settembre 2026
+
+- i webhook Shopify entrano da un percorso Worker leggero che verifica la firma,
+  conserva idempotenza e accodamento e carica React Router soltanto per le route
+  merchant, riducendo il bootstrap CPU comune in vista di Workers Free;
+- il Control Center mostra il piano Shopify corrente degli store attivi nelle
+  viste `/shops` e `/shop`, senza bloccare gli altri risultati quando una
+  sessione Admin non è disponibile;
+- la ricevuta Built for Shopify e il registro operativo descrivono il readback
+  del 20 settembre, mantenendo separati segnali interni e stato autorevole
+  Shopify.
+
 ## 1.11.7 — 20 settembre 2026
 
 - il monitor operativo dei webhook limita le letture agli eventi falliti o ancora in elaborazione e usa indici dedicati, mantenendo il ciclo owner ogni minuto con un consumo D1 proporzionato agli incidenti aperti.

@@ -1,5 +1,3 @@
-import { WebhookValidationErrorReason, type WebhookValidation } from "@shopify/shopify-api";
-
 export type AuthenticatedWebhook = {
   webhookId: string;
   topic: string;
@@ -7,6 +5,16 @@ export type AuthenticatedWebhook = {
   triggeredAt?: string;
   payload: Record<string, unknown>;
 };
+
+type WebhookValidation =
+  | {
+      valid: true;
+      webhookId: string;
+      topic: string;
+      domain: string;
+      triggeredAt?: string;
+    }
+  | { valid: false; reason: string };
 
 type WebhookValidator = (input: {
   rawBody: string;
@@ -68,11 +76,8 @@ export async function authenticateWebhookRequest(
   const validation = await validate({ rawBody, rawRequest: request });
   if (!validation.valid) {
     throw new Response(null, {
-      status: validation.reason === WebhookValidationErrorReason.InvalidHmac ? 401 : 400,
-      statusText:
-        validation.reason === WebhookValidationErrorReason.InvalidHmac
-          ? "Unauthorized"
-          : "Bad Request",
+      status: validation.reason === "invalid_hmac" ? 401 : 400,
+      statusText: validation.reason === "invalid_hmac" ? "Unauthorized" : "Bad Request",
     });
   }
 

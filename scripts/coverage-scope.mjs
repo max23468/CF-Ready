@@ -21,27 +21,26 @@ export function isFunctionSource(file) {
 }
 
 export function trackedCoverageSources(repositoryRoot, policy, execute = execFileSync) {
+  const paths = ["app", "workers", "extensions/cf-ready-validation/src", "scripts", "site"];
   const output = execute(
     "git",
-    [
-      "ls-files",
-      "--cached",
-      "--others",
-      "--exclude-standard",
-      "-z",
-      "--",
-      "app",
-      "workers",
-      "extensions/cf-ready-validation/src",
-      "scripts",
-      "site",
-    ],
+    ["ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", ...paths],
     { cwd: repositoryRoot, encoding: "utf8" },
+  );
+  const deleted = new Set(
+    execute("git", ["ls-files", "--deleted", "-z", "--", ...paths], {
+      cwd: repositoryRoot,
+      encoding: "utf8",
+    })
+      .split("\0")
+      .filter(Boolean)
+      .map(normalizeCoveragePath),
   );
   return output
     .split("\0")
     .filter(Boolean)
     .map(normalizeCoveragePath)
+    .filter((file) => !deleted.has(file))
     .filter((file) => isCoverageSource(file, policy))
     .sort();
 }

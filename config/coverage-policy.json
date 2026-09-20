@@ -16,15 +16,13 @@
       "mutationScore": 80,
       "domains": {
         "webhooks": {
-          "sourcePrefixes": ["app/routes/webhooks.", "app/webhook"],
+          "sourcePrefixes": ["app/shopify-webhook", "app/webhook"],
           "files": [
-            "app/routes/webhooks.app.billing.tsx",
-            "app/routes/webhooks.app.scopes_update.tsx",
-            "app/routes/webhooks.app.uninstalled.tsx",
-            "app/routes/webhooks.compliance.tsx",
-            "app/routes/webhooks.shop.update.tsx",
+            "app/shopify-webhook.server.ts",
             "app/webhook-auth.server.ts",
+            "app/webhook-ingress.server.ts",
             "app/webhook-jobs.server.ts",
+            "app/webhook-request.server.ts",
             "app/webhooks.server.ts"
           ]
         },

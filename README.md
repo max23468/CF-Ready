@@ -129,6 +129,8 @@ Lo stesso bot può esporre il Control Center privato di sola lettura tramite
 e `/help`. D1 fornisce stato corrente, commerciale e operativo; gli aggregati
 Growth 7/28 giorni e i ricavi cumulati di `/billing` arrivano dalla Partner API e
 usano una cache D1 breve. I ricavi richiedono il permesso Partner `View financials`.
+Le viste `/shops` e `/shop` leggono il piano Shopify corrente degli store attivi
+dall'Admin API; un token non disponibile non blocca gli altri risultati.
 
 Il Control Center richiede anche `TELEGRAM_WEBHOOK_SECRET` e
 `TELEGRAM_OWNER_USER_ID`; il webhook secret contiene almeno 32 caratteri casuali.

@@ -2791,6 +2791,18 @@ Il proof of concept deve misurare la CPU reale. Evitare:
 - lavoro sincrono nei webhook;
 - rendering o calcoli non necessari.
 
+**Qualificazione del 20 settembre 2026.** Production non è compatibile con il
+piano Free: su circa 15.990 invocazioni nelle 24 ore, CPU p90 22,63 ms e p99
+36,67 ms. Tail minimizzati hanno attribuito la coda al percorso webhook, in
+particolare `SHOP_UPDATE`, che inizializzava React Router e Shopify Admin anche
+quando terminava dopo HMAC, parsing e una lettura D1. Il candidato locale sposta
+le cinque route webhook nell'ingresso Worker leggero e carica router, consumer,
+cron e controllo owner soltanto sul rispettivo evento. Il cron notifiche resta
+ogni minuto. La compatibilità resta condizionata a deploy Development e
+percentili Cloudflare del candidato; misure locali di startup o wall-clock non
+sostituiscono il readback. Ricevuta e blocco residuo:
+`docs/evidence/2026-09-20-workers-free-cpu.md`.
+
 Il numero di ordini dei merchant non determina il carico del Worker: la Function viene eseguita da Shopify. Il consumo Cloudflare dipende soprattutto da aperture dell’app, OAuth, salvataggi, billing e webhook.
 
 La stima preliminare discussa per il piano Free era **10.000–20.000 store** con ampio margine, assumendo circa 50–100 richieste dinamiche mensili per store. È una stima di capacità non contrattuale, non un claim pubblico: prima di usarla per decisioni operative servono misure CPU, query D1, picchi webhook e prova di carico. La prima soglia commerciale reale sarà molto inferiore e non richiede pre-ottimizzazione.
@@ -4874,6 +4886,16 @@ commit candidato `345c27d`.
 **Avviata il 26 agosto 2026.** M12 combina i criteri Built for Shopify correnti
 con i segnali Controlled Launch specifici di CF Ready descritti in §25.4.
 
+**Readback del 20 settembre 2026:** M12 resta aperta e non candidabile. Il
+Partner Dashboard mostra la listing pubblicata, `12` merchant con l'app e `11`
+installazioni nette cumulative negli ultimi 30 giorni, mentre il requisito BFS
+di `50` installazioni qualificate resta aperto. La listing pubblica non mostra
+recensioni e LCP, CLS e INP riportano tutti `Dati non sufficienti`, con meno di
+`100` chiamate per metrica negli ultimi 28 giorni. Il pulsante `Iscriviti oggi`
+è disabilitato; non è stata eseguita alcuna candidatura. Production è alla
+release tecnica `v1.11.7`, che non prova l'idoneità BFS. La ricevuta M12 conserva
+i conteggi interni, i limiti delle prove e gli altri residui.
+
 Gate:
 
 - tutti i prerequisiti automatici Built for Shopify risultano soddisfatti nella
@@ -4896,8 +4918,9 @@ esito conclusivo della milestone.
 
 La ricevuta iniziale e gli avanzamenti sono registrati in
 `docs/evidence/2026-08-26-m12-built-for-shopify.md`. Gli eventuali fix emersi
-durante il consolidamento sono release `1.0.x` e richiedono il normale ciclo di
-pubblicazione.
+durante il consolidamento richiedono il normale ciclo di pubblicazione; il loro
+numero di versione segue la policy SemVer corrente e non modifica da solo lo
+stato M12.
 
 ---
 

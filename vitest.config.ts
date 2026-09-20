@@ -45,6 +45,7 @@ export default defineConfig({
         ],
         bindings: {
           TEST_MIGRATIONS: await readD1Migrations(path.join(root, "migrations")),
+          SHOPIFY_API_SECRET: "synthetic-test-secret",
           TRIAL_LEDGER_HMAC_KEY: btoa(String.fromCharCode(...new Uint8Array(32).fill(4))),
         },
       },
