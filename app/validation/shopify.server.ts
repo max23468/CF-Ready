@@ -90,6 +90,9 @@ const HOME_SNAPSHOT_QUERY = `#graphql
         id
         name
         status
+        createdAt
+        trialDays
+        test
         currentPeriodEnd
         lineItems {
           plan {
@@ -105,12 +108,35 @@ const HOME_SNAPSHOT_QUERY = `#graphql
           }
         }
       }
+      allSubscriptions(first: 50) {
+        nodes {
+          id
+          name
+          status
+          createdAt
+          trialDays
+          test
+          currentPeriodEnd
+          lineItems {
+            plan {
+              pricingDetails {
+                ... on AppRecurringPricing {
+                  interval
+                  price { amount currencyCode }
+                }
+              }
+            }
+          }
+        }
+        pageInfo { hasNextPage endCursor }
+      }
       oneTimePurchases(first: 50, sortKey: CREATED_AT, reverse: true) {
         nodes {
           id
           name
           status
           createdAt
+          test
           price {
             amount
             currencyCode

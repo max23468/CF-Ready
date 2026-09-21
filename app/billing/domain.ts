@@ -17,7 +17,10 @@ export function requestedRecurringPlanIsActive(
   kind: "monthly" | "annual" | "one_time",
 ) {
   if (kind === "one_time") return false;
-  return billing.subscription?.interval === (kind === "monthly" ? "EVERY_30_DAYS" : "ANNUAL");
+  return (
+    billing.subscription?.status === "ACTIVE" &&
+    billing.subscription.interval === (kind === "monthly" ? "EVERY_30_DAYS" : "ANNUAL")
+  );
 }
 
 export function pricingGeneration(requestedOn: string): PricingGeneration {
@@ -93,21 +96,55 @@ export function entitlementFor(
 export function proratedCredit({
   amount,
   interval,
+  periodStart,
   periodEnd,
   today,
 }: {
   amount: string | null;
   interval: "EVERY_30_DAYS" | "ANNUAL" | null;
+  periodStart?: string | null;
   periodEnd: string | null;
   today: string;
 }) {
-  if (!amount || !interval || !periodEnd) return null;
+  if (!amount || !interval || !periodStart || !periodEnd) return null;
 
-  const cycleDays = interval === "ANNUAL" ? 365 : 30;
+  const cycleDays = Math.round((Date.parse(periodEnd) - Date.parse(periodStart)) / 86_400_000);
+  if (cycleDays <= 0) return null;
   const remaining = Math.round((Date.parse(periodEnd) - Date.parse(today)) / 86_400_000);
   if (remaining <= 0) return 0;
 
-  return Math.round(Number(amount) * Math.min(remaining, cycleDays) * 100) / cycleDays / 100;
+  return Math.round((Number(amount) * Math.min(remaining, cycleDays) * 100) / cycleDays) / 100;
+}
+
+export function billingCycleStart(
+  subscription: NonNullable<ShopifyBilling["subscription"]>,
+  timeZone: string,
+) {
+  if (!subscription.currentPeriodEnd || !subscription.interval) return null;
+  const periodEnd = localDate(timeZone, new Date(subscription.currentPeriodEnd));
+  const created = localDate(timeZone, new Date(subscription.createdAt));
+  const firstPaidDay = addDays(created, subscription.trialDays);
+  if (subscription.trialDays > 0 && periodEnd <= firstPaidDay) return null;
+  if (subscription.interval === "EVERY_30_DAYS") return addDays(periodEnd, -30);
+  const start = new Date(`${periodEnd}T00:00:00Z`);
+  start.setUTCFullYear(start.getUTCFullYear() - 1);
+  return start.toISOString().slice(0, 10);
+}
+
+export function conversionCreditEstimate(
+  subscription: NonNullable<ShopifyBilling["subscription"]>,
+  timeZone: string,
+  today: string,
+) {
+  const periodStart = billingCycleStart(subscription, timeZone);
+  if (periodStart === null && subscription.trialDays > 0) return 0;
+  return proratedCredit({
+    amount: subscription.amount,
+    interval: subscription.interval,
+    periodStart,
+    periodEnd: subscription.currentPeriodEnd,
+    today,
+  });
 }
 
 export function addDays(date: string, days: number) {

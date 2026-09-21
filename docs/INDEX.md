@@ -69,6 +69,9 @@ corrente si legge da codice, configurazioni e `package.json`.
 - [Inventario secret](runbooks/secret-inventory.md) — soli nomi e destinazioni.
 - [Operazioni](runbooks/operations.md) — capacità, matrice browser,
   backup/restore, Workers Logs, Traces Development e ricevute.
+- [Riconciliazione finanziaria billing](runbooks/billing-financial-reconciliation.md)
+  — separazione tra contratto, vendita, incasso e payout; gate manuale per
+  rimborsi, crediti e conversioni storiche.
 - [Diagnosi dei run della Validation Function](runbooks/function-run-diagnosis.md)
   — ricostruzione dei rami fail-open da input e output del Dev Dashboard.
 - [Manutenzione sicurezza](runbooks/security-maintenance.md) — audit periodici

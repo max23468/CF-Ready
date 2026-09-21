@@ -6,6 +6,24 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.13.0 — 22 settembre 2026
+
+- la riconciliazione billing legge anche lo storico Shopify, distingue gli
+  addebiti test e revoca subito il diritto per stati terminali senza ereditare
+  periodi ambigui dalla cache;
+- una cancellazione ordinaria conserva l'accesso fino alla scadenza soltanto
+  quando richiesta dall'app e confermata da Shopify per lo stesso periodo
+  contrattuale;
+- il ciclo periodico riconcilia gli account obsoleti indipendentemente dalle
+  notifiche Telegram e registra gli errori senza inventare entitlement;
+- il Control Center distingue contratto, vendita Partner, incasso della fattura,
+  payout e credito, esclude i test dagli aggregati e apre incidenti sulle
+  osservazioni finanziarie mancanti;
+- Home e scelta piani descrivono il periodo contrattuale e il credito di
+  conversione senza presentare stime o vendite Partner come pagamenti riscossi;
+- il runbook finanziario definisce le verifiche manuali necessarie prima di
+  rimborsi, crediti e chiusura delle conversioni storiche.
+
 ## 1.12.3 — 21 settembre 2026
 
 - il documento embedded e il bootstrap Shopify condividono lo stesso URL

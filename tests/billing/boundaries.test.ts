@@ -17,7 +17,7 @@ test("il confine billing riconosce il piano ricorrente già attivo", () => {
   expect(requestedRecurringPlanIsActive(annuale, "one_time")).toBe(false);
   expect(
     requestedRecurringPlanIsActive(
-      { subscription: null, oneTime: null, pendingOneTime: false },
+      { subscription: null, latestSubscription: null, oneTime: null, pendingOneTime: false },
       "monthly",
     ),
   ).toBe(false);
