@@ -11,6 +11,12 @@ export const PERFORMANCE_ROUTES = [
 ] as const;
 export const PERFORMANCE_SERVER_TIMING_NAMES = [
   "auth",
+  "auth_session_lookup",
+  "auth_session_decrypt",
+  "auth_session_encrypt",
+  "auth_session_store",
+  "auth_token_exchange",
+  "auth_after_hook",
   "shopify_snapshot",
   "shopify_context",
   "shopify_billing",

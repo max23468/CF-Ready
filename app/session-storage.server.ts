@@ -12,6 +12,24 @@ type StoredSession = {
   session_payload_ciphertext: string;
 };
 
+export type SessionTimingName =
+  | "auth_session_lookup"
+  | "auth_session_decrypt"
+  | "auth_session_encrypt"
+  | "auth_session_store"
+  | "auth_after_hook";
+
+const sessionTimings = new WeakMap<object, Partial<Record<SessionTimingName, number>>>();
+
+export function recordSessionTiming(session: object, name: SessionTimingName, durationMs: number) {
+  if (!Number.isFinite(durationMs) || durationMs < 0) return;
+  sessionTimings.set(session, { ...sessionTimings.get(session), [name]: durationMs });
+}
+
+export function readSessionTimings(session: object) {
+  return sessionTimings.get(session) ?? {};
+}
+
 export class D1SessionStorage implements SessionStorage {
   private key?: Promise<CryptoKey>;
 
@@ -28,6 +46,7 @@ export class D1SessionStorage implements SessionStorage {
     const refreshToken = take(properties, "refreshToken");
     const now = new Date().toISOString();
 
+    const encryptionStartedAt = performance.now();
     const [payload, accessTokenCiphertext, refreshTokenCiphertext] = await Promise.all([
       this.encrypt(JSON.stringify(properties), sessionContext(session.id, session.shop, "payload")),
       accessToken === undefined
@@ -43,7 +62,9 @@ export class D1SessionStorage implements SessionStorage {
             sessionContext(session.id, session.shop, "refreshToken"),
           ),
     ]);
+    recordSessionTiming(session, "auth_session_encrypt", performance.now() - encryptionStartedAt);
 
+    const storeStartedAt = performance.now();
     const results = await this.db.batch([
       this.db
         .prepare(
@@ -97,11 +118,13 @@ export class D1SessionStorage implements SessionStorage {
           now,
         ),
     ]);
+    recordSessionTiming(session, "auth_session_store", performance.now() - storeStartedAt);
 
     return results.every((result) => result.success);
   }
 
   async loadSession(id: string): Promise<Session | undefined> {
+    const lookupStartedAt = performance.now();
     const row = await this.db
       .prepare(
         `SELECT s.id, shops.shop_domain, s.access_token_ciphertext,
@@ -113,7 +136,15 @@ export class D1SessionStorage implements SessionStorage {
       .bind(id)
       .first<StoredSession>();
 
-    return row ? this.tryDeserialize(row) : undefined;
+    if (!row) return undefined;
+    const lookupDuration = performance.now() - lookupStartedAt;
+    const decryptStartedAt = performance.now();
+    const session = await this.tryDeserialize(row);
+    if (session) {
+      recordSessionTiming(session, "auth_session_lookup", lookupDuration);
+      recordSessionTiming(session, "auth_session_decrypt", performance.now() - decryptStartedAt);
+    }
+    return session;
   }
 
   async deleteSession(id: string): Promise<boolean> {

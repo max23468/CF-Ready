@@ -7,9 +7,9 @@ const state = vi.hoisted(() => ({
 }));
 
 const mocks = vi.hoisted(() => ({
-  recordEvent: vi.fn(),
+  logEvent: vi.fn(),
   recordInstallOnce: vi.fn(),
-  reconcile: vi.fn(),
+  recordSessionTiming: vi.fn(),
   refuseInstall: vi.fn(),
   sessionStorage: vi.fn(),
   shopifyApp: vi.fn(),
@@ -27,12 +27,11 @@ vi.mock("../app/env.server", () => ({
   },
 }));
 
-vi.mock("../app/events.server", () => ({ recordEvent: mocks.recordEvent }));
+vi.mock("../app/events.server", () => ({ logEvent: mocks.logEvent }));
 vi.mock("../app/shop.server", () => ({
   recordInstallOnce: mocks.recordInstallOnce,
   refuseInstall: mocks.refuseInstall,
 }));
-vi.mock("../app/validation.server", () => ({ reconcile: mocks.reconcile }));
 vi.mock("../app/session-storage.server", () => ({
   D1SessionStorage: class {
     kind = "d1-session-storage";
@@ -41,6 +40,7 @@ vi.mock("../app/session-storage.server", () => ({
       mocks.sessionStorage(...args);
     }
   },
+  recordSessionTiming: mocks.recordSessionTiming,
 }));
 
 vi.mock("@shopify/shopify-app-react-router/server", () => ({
@@ -78,6 +78,7 @@ test("il bootstrap Shopify usa fallback locali", async () => {
     appUrl: "",
     authPathPrefix: "/auth",
     distribution: "app-store",
+    polarisUrl: "https://cdn.shopify.com/shopifycloud/polaris-1.js",
     future: { expiringOfflineAccessTokens: true },
   });
   expect(module.sessionStorage).toEqual({ kind: "d1-session-storage" });
@@ -122,24 +123,28 @@ test("afterAuth rifiuta uno store diverso da quello Development consentito", asy
   expect(mocks.recordInstallOnce).not.toHaveBeenCalled();
 });
 
-test("afterAuth registra l'installazione e riconcilia lo stato autorevole", async () => {
-  const admin = {};
+test("afterAuth registra l'installazione senza duplicare la riconciliazione della rotta", async () => {
   await import("../app/shopify.server");
   const afterAuth = (
     state.shopifyOptions[0].hooks as {
-      afterAuth: (input: { session: { shop: string }; admin: unknown }) => Promise<void>;
+      afterAuth: (input: { session: { shop: string } }) => Promise<void>;
     }
   ).afterAuth;
 
-  await afterAuth({ session: { shop: "merchant.myshopify.com" }, admin });
+  const session = { shop: "merchant.myshopify.com" };
+  await afterAuth({ session });
 
   expect(mocks.recordInstallOnce).toHaveBeenCalledWith(state.bindings.DB, "merchant.myshopify.com");
-  expect(mocks.reconcile).toHaveBeenCalledWith(admin, state.bindings.DB, "merchant.myshopify.com");
-  expect(mocks.recordEvent).not.toHaveBeenCalled();
+  expect(mocks.recordSessionTiming).toHaveBeenCalledWith(
+    session,
+    "auth_after_hook",
+    expect.any(Number),
+  );
+  expect(mocks.logEvent).not.toHaveBeenCalled();
 });
 
 test("afterAuth resta fail-open e registra soltanto il codice tecnico", async () => {
-  mocks.reconcile.mockRejectedValue(new Error("errore Shopify sintetico"));
+  mocks.recordInstallOnce.mockRejectedValue(new Error("errore D1 sintetico"));
   await import("../app/shopify.server");
   const afterAuth = (
     state.shopifyOptions[0].hooks as {
@@ -150,10 +155,12 @@ test("afterAuth resta fail-open e registra soltanto il codice tecnico", async ()
   await expect(
     afterAuth({ session: { shop: "merchant.myshopify.com" }, admin: {} }),
   ).resolves.toBeUndefined();
-  expect(mocks.recordEvent).toHaveBeenCalledWith(state.bindings.DB, {
-    shopDomain: "merchant.myshopify.com",
-    name: "install_reconcile_failed",
-    class: "error",
-    metadata: { error_code: "reconcile_failed" },
-  });
+  expect(mocks.logEvent).toHaveBeenCalledWith(
+    {
+      name: "install_record_failed",
+      class: "error",
+      metadata: { error_code: "install_record_failed" },
+    },
+    expect.any(String),
+  );
 });

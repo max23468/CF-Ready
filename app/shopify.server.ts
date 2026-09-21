@@ -1,10 +1,10 @@
 import { env } from "cloudflare:workers";
 import { ApiVersion, AppDistribution, shopifyApp } from "@shopify/shopify-app-react-router/server";
-import { recordEvent } from "./events.server";
-import { D1SessionStorage } from "./session-storage.server";
+import { logEvent } from "./events.server";
+import { D1SessionStorage, recordSessionTiming } from "./session-storage.server";
 import { ALLOWED_SHOP } from "./env.server";
 import { recordInstallOnce, refuseInstall } from "./shop.server";
-import { reconcile } from "./validation.server";
+import { POLARIS_URL } from "./shopify-ui";
 
 type ShopifyBindings = Env & {
   SCOPES?: string;
@@ -26,13 +26,15 @@ const shopify = shopifyApp({
   authPathPrefix: "/auth",
   sessionStorage: d1SessionStorage,
   distribution: AppDistribution.AppStore,
+  polarisUrl: POLARIS_URL,
   future: {
     expiringOfflineAccessTokens: true,
   },
   hooks: {
-    // Ogni autenticazione completata, installazione o rinnovo del token: paese e stato
-    // tecnico non aspettano la prima Home.
-    afterAuth: async ({ session, admin }) => {
+    // Installazione e rinnovo registrano il lifecycle; la rotta di destinazione riconcilia
+    // lo stato autorevole senza duplicare chiamate Shopify nel percorso critico di auth.
+    afterAuth: async ({ session }) => {
+      const startedAt = performance.now();
       if (ALLOWED_SHOP && session.shop !== ALLOWED_SHOP) {
         await refuseInstall(bindings.DB, session.shop);
         throw new Response("Questa installazione di CF Ready è riservata allo store di sviluppo.", {
@@ -42,15 +44,18 @@ const shopify = shopifyApp({
 
       try {
         await recordInstallOnce(bindings.DB, session.shop);
-        await reconcile(admin, bindings.DB, session.shop);
       } catch {
-        // Fail-open: un errore Shopify non deve far fallire l'autenticazione.
-        await recordEvent(bindings.DB, {
-          shopDomain: session.shop,
-          name: "install_reconcile_failed",
-          class: "error",
-          metadata: { error_code: "reconcile_failed" },
-        });
+        // Fail-open: la Home riconcilia comunque lo stato autorevole dopo l'autenticazione.
+        logEvent(
+          {
+            name: "install_record_failed",
+            class: "error",
+            metadata: { error_code: "install_record_failed" },
+          },
+          new Date().toISOString(),
+        );
+      } finally {
+        recordSessionTiming(session, "auth_after_hook", performance.now() - startedAt);
       }
     },
   },
