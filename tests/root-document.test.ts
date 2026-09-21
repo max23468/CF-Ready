@@ -11,6 +11,7 @@ vi.mock("react-router", async (importOriginal) => {
 });
 
 import App, { loader } from "../app/root";
+import { POLARIS_URL } from "../app/shopify-ui";
 
 function elements(node: ReactNode): ReactElement[] {
   if (Array.isArray(node)) return node.flatMap(elements);
@@ -40,9 +41,7 @@ test("App Bridge e Polaris vengono caricati una sola volta nel head", () => {
   );
   const polaris = headElements.filter(
     (element) =>
-      element.type === "script" &&
-      (element.props as { src?: string }).src ===
-        "https://cdn.shopify.com/shopifycloud/polaris-1.js",
+      element.type === "script" && (element.props as { src?: string }).src === POLARIS_URL,
   );
 
   expect(appBridge).toHaveLength(1);

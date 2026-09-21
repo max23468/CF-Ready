@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { Session } from "@shopify/shopify-api";
 import { expect, test } from "vitest";
-import { D1SessionStorage } from "../app/session-storage.server";
+import { D1SessionStorage, readSessionTimings } from "../app/session-storage.server";
 import { markUninstalled } from "../app/shop.server";
 import { claimWebhook } from "../app/webhook-ingress.server";
 
@@ -21,6 +21,10 @@ test("salva la sessione cifrata e la ricarica da D1", async () => {
   });
 
   expect(await storage.storeSession(session)).toBe(true);
+  expect(readSessionTimings(session)).toMatchObject({
+    auth_session_encrypt: expect.any(Number),
+    auth_session_store: expect.any(Number),
+  });
 
   const row = await env.DB.prepare(
     `SELECT access_token_ciphertext, refresh_token_ciphertext,
@@ -36,9 +40,12 @@ test("salva la sessione cifrata e la ricarica da D1", async () => {
     }>();
   expect(JSON.stringify(row)).not.toMatch(/secret-(?:token|refresh-token)/);
   expect(row?.session_payload_ciphertext).toMatch(/^v2\./);
-  expect((await storage.loadSession(session.id))?.toPropertyArray(true)).toEqual(
-    session.toPropertyArray(false),
-  );
+  const loaded = await storage.loadSession(session.id);
+  expect(loaded?.toPropertyArray(true)).toEqual(session.toPropertyArray(false));
+  expect(readSessionTimings(loaded!)).toMatchObject({
+    auth_session_lookup: expect.any(Number),
+    auth_session_decrypt: expect.any(Number),
+  });
 });
 
 test("non conserva i dati anagrafici dell'utente online", async () => {

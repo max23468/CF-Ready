@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { data, useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { authenticateAdmin } from "../admin-auth.server";
+import { authenticateAdmin, authenticateAdminTimed } from "../admin-auth.server";
 import { databaseContext } from "../context.server";
 import { APP_VERSION } from "../env.server";
 import { recordEvent } from "../events.server";
@@ -31,7 +31,7 @@ import "./app.guide.css";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
-  const { session } = await timing.measure("auth", () => authenticateAdmin(request, context));
+  const { session } = await authenticateAdminTimed(request, context, timing);
   // La Guida non rilegge Shopify: usa solo lo stato tecnico D1 già riconciliato (§22).
   const diagnostics = await timing.measure("d1_support", () =>
     readSupportDiagnosticState(context.get(databaseContext), session.shop),

@@ -53,7 +53,10 @@ vi.mock("../../app/embedded-admin", async (importOriginal) => {
   return { ...original, restoreEmbeddedAdmin: router.restoreEmbeddedAdmin };
 });
 
-vi.mock("../../app/admin-auth.server", () => ({ authenticateAdmin: vi.fn() }));
+vi.mock("../../app/admin-auth.server", () => ({
+  authenticateAdmin: vi.fn(),
+  authenticateAdminTimed: vi.fn(),
+}));
 vi.mock("../../app/billing.server", () => ({ localDate: vi.fn(), startTrial: vi.fn() }));
 vi.mock("../../app/context.server", () => ({ databaseContext: {}, waitUntilContext: {} }));
 vi.mock("../../app/checkout-labels/repository.server", () => ({
