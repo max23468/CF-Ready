@@ -1,16 +1,19 @@
 import { embeddedAdminUrl } from "../embedded-admin";
 import { APP_API_KEY } from "../env.server";
 import { logEvent } from "../events.server";
-import type { ShopifyBilling } from "./types";
+import type { ShopifyBilling, ShopifySubscriptionStatus } from "./types";
 
 // Stryker disable next-line StringLiteral: il contratto GraphQL è verificato dai test delle chiamate, non dalla sostituzione dell'intero documento.
 export const BILLING_QUERY = `#graphql
-  query CfReadyBilling($after: String) {
+  query CfReadyBilling($purchaseAfter: String, $subscriptionAfter: String) {
     currentAppInstallation {
       activeSubscriptions {
         id
         name
         status
+        createdAt
+        trialDays
+        test
         currentPeriodEnd
         lineItems {
           plan {
@@ -26,12 +29,35 @@ export const BILLING_QUERY = `#graphql
           }
         }
       }
-      oneTimePurchases(first: 50, after: $after, sortKey: CREATED_AT, reverse: true) {
+      allSubscriptions(first: 50, after: $subscriptionAfter) {
         nodes {
           id
           name
           status
           createdAt
+          trialDays
+          test
+          currentPeriodEnd
+          lineItems {
+            plan {
+              pricingDetails {
+                ... on AppRecurringPricing {
+                  interval
+                  price { amount currencyCode }
+                }
+              }
+            }
+          }
+        }
+        pageInfo { hasNextPage endCursor }
+      }
+      oneTimePurchases(first: 50, after: $purchaseAfter, sortKey: CREATED_AT, reverse: true) {
+        nodes {
+          id
+          name
+          status
+          createdAt
+          test
           price {
             amount
             currencyCode
@@ -49,25 +75,17 @@ export const BILLING_QUERY = `#graphql
 type BillingResponse = {
   data?: {
     currentAppInstallation: {
-      activeSubscriptions: {
-        id: string;
-        name: string;
-        status: string;
-        currentPeriodEnd: string | null;
-        lineItems: {
-          plan: {
-            pricingDetails: {
-              interval?: "EVERY_30_DAYS" | "ANNUAL";
-              price?: { amount: string; currencyCode: string };
-            };
-          };
-        }[];
-      }[];
+      activeSubscriptions: SubscriptionNode[];
+      allSubscriptions?: {
+        nodes: SubscriptionNode[];
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+      };
       oneTimePurchases: {
         nodes: {
           id: string;
           status: string;
           createdAt: string;
+          test: boolean;
           price: { amount: string; currencyCode: string } | null;
         }[];
         pageInfo: { hasNextPage: boolean; endCursor: string | null };
@@ -75,6 +93,24 @@ type BillingResponse = {
     };
   };
   errors?: { message: string }[];
+};
+
+type SubscriptionNode = {
+  id: string;
+  name: string;
+  status: string;
+  createdAt: string;
+  trialDays: number;
+  test: boolean;
+  currentPeriodEnd: string | null;
+  lineItems: {
+    plan: {
+      pricingDetails: {
+        interval?: "EVERY_30_DAYS" | "ANNUAL";
+        price?: { amount: string; currencyCode: string };
+      };
+    };
+  }[];
 };
 
 export type BillingInstallation = NonNullable<BillingResponse["data"]>["currentAppInstallation"];
@@ -89,16 +125,21 @@ export async function readBilling(
   admin: Admin,
   initialInstallation?: BillingInstallation,
 ): Promise<ShopifyBilling> {
-  let after: string | null = null;
+  let purchaseAfter: string | null = null;
+  let subscriptionAfter: string | null = null;
   let installation = initialInstallation;
-  let subscription: BillingInstallation["activeSubscriptions"][number] | undefined;
+  let subscription: SubscriptionNode | undefined;
+  let latestSubscription: SubscriptionNode | undefined;
   let oneTime: BillingInstallation["oneTimePurchases"]["nodes"][number] | undefined;
   let pendingOneTime = false;
-  const cursors = new Set<string>();
+  const purchaseCursors = new Set<string>();
+  const subscriptionCursors = new Set<string>();
 
   do {
     if (!installation) {
-      const response = await admin.graphql(BILLING_QUERY, { variables: { after } });
+      const response = await admin.graphql(BILLING_QUERY, {
+        variables: { purchaseAfter, subscriptionAfter },
+      });
       const body = (await response.json()) as BillingResponse;
       if (!body.data || body.errors?.length) {
         throw new Response("Lettura billing Shopify non riuscita", { status: 502 });
@@ -107,45 +148,80 @@ export async function readBilling(
     }
 
     subscription ??= installation.activeSubscriptions[0];
+    const subscriptions = installation.allSubscriptions ?? {
+      nodes: installation.activeSubscriptions,
+      pageInfo: { hasNextPage: false, endCursor: null },
+    };
+    for (const candidate of subscriptions.nodes) {
+      if (
+        !latestSubscription ||
+        Date.parse(candidate.createdAt) > Date.parse(latestSubscription.createdAt)
+      ) {
+        latestSubscription = candidate;
+      }
+    }
     const purchases = installation.oneTimePurchases;
-    oneTime = purchases.nodes.find((purchase) => purchase.status === "ACTIVE");
+    oneTime ??= purchases.nodes.find((purchase) => purchase.status === "ACTIVE");
     pendingOneTime ||= purchases.nodes.some((purchase) => purchase.status === "PENDING");
 
-    const { hasNextPage, endCursor } = purchases.pageInfo;
-    if (!oneTime && hasNextPage) {
-      if (!endCursor || cursors.has(endCursor)) {
-        throw new Response("Paginazione billing Shopify non valida", { status: 502 });
-      }
-      cursors.add(endCursor);
-      after = endCursor;
-    } else {
-      after = null;
-    }
+    purchaseAfter = nextCursor(
+      !oneTime && purchases.pageInfo.hasNextPage,
+      purchases.pageInfo.endCursor,
+      purchaseCursors,
+    );
+    subscriptionAfter = nextCursor(
+      subscriptions.pageInfo.hasNextPage,
+      subscriptions.pageInfo.endCursor,
+      subscriptionCursors,
+    );
     installation = undefined;
-  } while (after);
+  } while (purchaseAfter || subscriptionAfter);
 
-  const pricing = subscription?.lineItems[0]?.plan.pricingDetails;
+  const active = subscription ? normalizeSubscription(subscription) : null;
+  const latest = latestSubscription ? normalizeSubscription(latestSubscription) : active;
 
   return {
-    subscription: subscription
-      ? {
-          id: subscription.id,
-          name: subscription.name,
-          currentPeriodEnd: subscription.currentPeriodEnd,
-          interval: pricing?.interval ?? null,
-          amount: pricing?.price?.amount ?? null,
-          currency: pricing?.price?.currencyCode ?? null,
-        }
-      : null,
+    subscription: active,
+    latestSubscription: latest,
     oneTime: oneTime
       ? {
           id: oneTime.id,
           createdAt: oneTime.createdAt,
+          test: oneTime.test,
           amount: oneTime.price?.amount ?? null,
           currency: oneTime.price?.currencyCode ?? null,
         }
       : null,
     pendingOneTime,
+  };
+}
+
+function nextCursor(active: boolean, cursor: string | null, seen: Set<string>) {
+  if (!active) return null;
+  if (!cursor || seen.has(cursor)) {
+    throw new Response("Paginazione billing Shopify non valida", { status: 502 });
+  }
+  seen.add(cursor);
+  return cursor;
+}
+
+function normalizeSubscription(subscription: SubscriptionNode) {
+  const status = subscription.status as ShopifySubscriptionStatus;
+  if (!["ACTIVE", "CANCELLED", "DECLINED", "EXPIRED", "FROZEN", "PENDING"].includes(status)) {
+    throw new Response("Stato billing Shopify non valido", { status: 502 });
+  }
+  const pricing = subscription.lineItems[0]?.plan.pricingDetails;
+  return {
+    id: subscription.id,
+    name: subscription.name,
+    status,
+    createdAt: subscription.createdAt,
+    trialDays: subscription.trialDays,
+    test: subscription.test,
+    currentPeriodEnd: subscription.currentPeriodEnd,
+    interval: pricing?.interval ?? null,
+    amount: pricing?.price?.amount ?? null,
+    currency: pricing?.price?.currencyCode ?? null,
   };
 }
 

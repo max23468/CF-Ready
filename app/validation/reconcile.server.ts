@@ -1,4 +1,12 @@
-import { cancelSubscription, localDate, proratedCredit, readBilling } from "../billing.server";
+import {
+  cancelSubscription,
+  conversionCreditEstimate,
+  localDate,
+  markBillingConversionCancelled,
+  readBilling,
+  recordBillingConversion,
+  readLatestBillingConversion,
+} from "../billing.server";
 import { parseAppErrorCode } from "../app-error";
 import {
   readCommercialInputs,
@@ -74,6 +82,11 @@ export async function reconcile(
     const initialBilling = await billingPromise;
     if (initialBilling.error) throw initialBilling.error;
     let state = initialBilling.state!;
+    const sourceSubscription = state.subscription;
+    const conversionOneTimeGid = state.oneTime?.id ?? null;
+    if (sourceSubscription) {
+      creditEstimate = conversionCreditEstimate(sourceSubscription, shop.ianaTimezone, today);
+    }
 
     // Il diritto sostitutivo deve esistere prima di cancellare l'abbonamento.
     const conversionReason = state.oneTime ? "one_time_purchased" : null;
@@ -92,6 +105,13 @@ export async function reconcile(
             converted: false,
           };
         }
+        await recordBillingConversion(db, shopDomain, {
+          subscriptionGid: current.subscription.id,
+          oneTimeGid: current.oneTime!.id,
+          creditEstimate,
+          currency: current.subscription.currency,
+          isTest: current.subscription.test || current.oneTime!.test,
+        });
         const cancellationError = await cancelSubscription(admin, current.subscription.id, {
           prorate: true,
         });
@@ -114,6 +134,7 @@ export async function reconcile(
           errorCode ??= parseAppErrorCode(conversion.result.error) ?? "subscription_cancel_failed";
           retryable = true;
         } else if (conversion.result.converted) {
+          await markBillingConversionCancelled(db, conversionOneTimeGid!);
           await recordEvent(db, {
             shopDomain,
             name: "subscription_converted",
@@ -123,15 +144,6 @@ export async function reconcile(
         }
       }
     }
-
-    creditEstimate = state.subscription
-      ? proratedCredit({
-          amount: state.subscription.amount,
-          interval: state.subscription.interval,
-          periodEnd: state.subscription.currentPeriodEnd,
-          today,
-        })
-      : null;
 
     const commercial = await syncCommercialEntitlement(db, shopDomain, {
       billing: state,
@@ -192,6 +204,7 @@ export async function reconcile(
     reportTiming?.("d1_validation_state", performance.now() - persistenceStartedAt);
   }
 
+  const conversionCredit = await readLatestBillingConversion(db, shopDomain);
   return {
     shopName: shop.name,
     countryCode,
@@ -204,6 +217,7 @@ export async function reconcile(
     complimentary: complimentaryOperational ? complimentary : null,
     entitlement,
     creditEstimate,
+    conversionCredit,
     errorCode,
     retryable,
   };

@@ -78,6 +78,9 @@ export default {
 } satisfies ExportedHandler<Env, WebhookJob>;
 
 async function runOwnerNotificationCycle(env: NotificationBindings) {
+  const { reconcileNextStaleBilling } =
+    await import("../app/billing/periodic-reconciliation.server");
+  await reconcileNextStaleBilling(env.DB);
   if (env.OWNER_NOTIFICATIONS_ENABLED !== "true") return;
 
   const [notifications, { recordEvent }] = await Promise.all([
@@ -88,6 +91,12 @@ async function runOwnerNotificationCycle(env: NotificationBindings) {
   const stages = [
     () =>
       notifications.pollPartnerEvents(env.DB, {
+        organizationId: env.SHOPIFY_PARTNER_ORGANIZATION_ID ?? "",
+        appId: env.SHOPIFY_PARTNER_APP_ID ?? "",
+        accessToken: env.SHOPIFY_PARTNER_ACCESS_TOKEN ?? "",
+      }),
+    () =>
+      notifications.syncPartnerFinancialObservations(env.DB, {
         organizationId: env.SHOPIFY_PARTNER_ORGANIZATION_ID ?? "",
         appId: env.SHOPIFY_PARTNER_APP_ID ?? "",
         accessToken: env.SHOPIFY_PARTNER_ACCESS_TOKEN ?? "",
@@ -105,7 +114,7 @@ async function runOwnerNotificationCycle(env: NotificationBindings) {
     },
   ];
 
-  // Le quattro fasi restano indipendenti: un errore Partner non deve impedire la verifica degli
+  // Le fasi restano indipendenti: un errore Partner non deve impedire la verifica degli
   // altri incidenti o l'invio delle prove già registrate; un errore Telegram non deve perdere i
   // nuovi eventi acquisiti.
   for (const stage of stages) {

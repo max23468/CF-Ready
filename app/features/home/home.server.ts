@@ -10,12 +10,14 @@ import {
   readBilling,
   readBillingAccount,
   readComplimentaryEntitlement,
+  recordOrdinaryCancellationIntent,
   requestedRecurringPlanIsActive,
   remainingTrialDays,
   returnUrlFor,
   startTrial,
   syncBillingAccount,
   syncTrial,
+  markOrdinaryCancellationConfirmed,
 } from "../../billing.server";
 import {
   CONFIG_SCHEMA_VERSION,
@@ -112,6 +114,20 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     periodEnd: state.account?.current_period_end ?? null,
     accountStatus: state.account?.entitlement_status ?? "none",
     creditEstimate: state.creditEstimate,
+    conversionCredit: state.conversionCredit
+      ? {
+          estimate:
+            state.conversionCredit.credit_estimate_minor === null
+              ? null
+              : state.conversionCredit.credit_estimate_minor / 100,
+          actual:
+            state.conversionCredit.credit_amount_minor === null
+              ? null
+              : Math.abs(state.conversionCredit.credit_amount_minor) / 100,
+          currency: state.conversionCredit.credit_currency ?? state.conversionCredit.currency,
+          status: state.conversionCredit.credit_status,
+        }
+      : null,
     errorCode: state.errorCode,
     onboarding: onboardingStatus,
     showMerchantCheckIn: Boolean(
@@ -262,15 +278,28 @@ async function subscribe(admin: Admin, db: D1Database, shopDomain: string, kind:
 async function cancelPlan(admin: Admin, db: D1Database, shopDomain: string) {
   try {
     const mutation = await withValidationLock(db, shopDomain, async () => {
-      const state = await readBilling(admin);
+      const [{ shop }, state] = await Promise.all([queryContext(admin), readBilling(admin)]);
       if (state.oneTime) return { ok: false, errorCode: "one_time_already_active" };
       if (state.pendingOneTime) return { ok: false, errorCode: "charge_pending" };
       if (!state.subscription) return { ok: false, errorCode: "no_subscription" };
+      const today = localDate(shop.ianaTimezone);
+      if (
+        !(await recordOrdinaryCancellationIntent(
+          db,
+          shopDomain,
+          state.subscription,
+          today,
+          shop.ianaTimezone,
+        ))
+      ) {
+        return { ok: false, errorCode: "cancel_failed" };
+      }
 
       if (await cancelSubscription(admin, state.subscription.id, { prorate: false })) {
         return { ok: false, errorCode: "cancel_failed" };
       }
 
+      await markOrdinaryCancellationConfirmed(db, state.subscription.id);
       await recordEvent(db, { shopDomain, name: "subscription_cancelled", class: "billing" });
       return { ok: true };
     });

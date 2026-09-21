@@ -1,6 +1,8 @@
 export {
   addDays,
+  billingCycleStart,
   currentPricingGeneration,
+  conversionCreditEstimate,
   entitlementFor,
   localDate,
   pricingGeneration,
@@ -11,9 +13,14 @@ export {
 } from "./billing/domain";
 export {
   markTrialConverted,
+  markBillingConversionCancelled,
+  markOrdinaryCancellationConfirmed,
   readBillingAccount,
+  readLatestBillingConversion,
   readComplimentaryEntitlement,
+  recordOrdinaryCancellationIntent,
   recordTrialLedger,
+  recordBillingConversion,
   startTrial,
   syncBillingAccount,
   syncTrial,

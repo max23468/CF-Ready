@@ -2,6 +2,8 @@ import { formatMoney, texts } from "../../i18n";
 import { commercialState } from "./commercial-state";
 import type { HomeData } from "./home.server";
 
+const conversionMoneyFormatters = new Map<string, Intl.NumberFormat>();
+
 type PlanProps = {
   data: HomeData;
   busy: boolean;
@@ -80,13 +82,16 @@ function PlanSelection(props: PlanProps & { trialNeverStarted: boolean }) {
   if (onOneTime || !data.plan) {
     return (
       <s-section heading={heading}>
-        <s-paragraph>
-          {onOneTime
-            ? data.complimentary
-              ? t.plan.complimentarySettled
-              : t.plan.oneTimeSettled
-            : t.plan.none}
-        </s-paragraph>
+        <s-stack direction="block" gap="small-100">
+          <s-paragraph>
+            {onOneTime
+              ? data.complimentary
+                ? t.plan.complimentarySettled
+                : t.plan.oneTimeSettled
+              : t.plan.none}
+          </s-paragraph>
+          {onOneTime && !data.complimentary ? <ConversionCreditNote data={data} /> : null}
+        </s-stack>
       </s-section>
     );
   }
@@ -162,7 +167,6 @@ function OneTimePlanOption({
   const credit =
     data.entitlement.kind === "subscription" && data.creditEstimate
       ? {
-          net: formatMoney(Math.max(0, data.plan!.one_time - data.creditEstimate), data.locale),
           value: formatMoney(data.creditEstimate, data.locale),
         }
       : null;
@@ -177,8 +181,10 @@ function OneTimePlanOption({
       </s-paragraph>
       {credit ? (
         <>
-          <s-paragraph>{t.plan.netCost(credit.net)}</s-paragraph>
-          <s-paragraph>{t.plan.creditEstimate(credit.value)}</s-paragraph>
+          <s-paragraph>
+            {t.plan.oneTimeFullCharge(formatMoney(data.plan!.one_time, data.locale))}
+          </s-paragraph>
+          <s-paragraph>{t.plan.creditPending(credit.value)}</s-paragraph>
         </>
       ) : null}
       <s-stack direction="inline" gap="base">
@@ -192,6 +198,37 @@ function OneTimePlanOption({
       </s-stack>
     </s-stack>
   );
+}
+
+function ConversionCreditNote({ data }: { data: HomeData }) {
+  const t = texts(data.locale);
+  const credit = data.conversionCredit;
+  if (!credit) return null;
+  const amount = credit.actual ?? credit.estimate;
+  const formatted =
+    amount !== null && credit.currency
+      ? formatConversionMoney(amount, credit.currency, data.locale)
+      : null;
+  if (credit.status === "confirmed") {
+    return <s-paragraph>{t.plan.creditConfirmed(formatted)}</s-paragraph>;
+  }
+  if (credit.status === "not_applicable") {
+    return <s-paragraph>{t.plan.creditNotApplicable}</s-paragraph>;
+  }
+  if (credit.status === "needs_review") {
+    return <s-paragraph>{t.plan.creditNeedsReview}</s-paragraph>;
+  }
+  return <s-paragraph>{t.plan.creditPending(formatted)}</s-paragraph>;
+}
+
+function formatConversionMoney(amount: number, currency: string, locale: string) {
+  const key = `${locale}:${currency}`;
+  let formatter = conversionMoneyFormatters.get(key);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, { style: "currency", currency });
+    conversionMoneyFormatters.set(key, formatter);
+  }
+  return formatter.format(amount);
 }
 
 function SubscriptionCancellation({ data, busy, pendingIntent }: PlanProps) {

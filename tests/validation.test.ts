@@ -428,7 +428,12 @@ async function seedShop(shop: string, { trial = true }: { trial?: boolean } = {}
 function stubAdmin({
   existing,
   userErrors = [],
-  billing = { subscription: null, oneTime: null, pendingOneTime: false },
+  billing = {
+    subscription: null,
+    latestSubscription: null,
+    oneTime: null,
+    pendingOneTime: false,
+  },
   billingError = false,
   cancelErrors = [],
   countryCode = "IT",
@@ -697,11 +702,16 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
     subscription: {
       id: "gid://shopify/AppSubscription/write-paid",
       name: "launch-monthly",
+      status: "ACTIVE",
+      createdAt: new Date(Date.now() - 24 * 60 * 60 * 1_000).toISOString(),
+      trialDays: 0,
+      test: true,
       currentPeriodEnd,
       interval: "EVERY_30_DAYS",
       amount: "2.99",
       currency: "EUR",
     },
+    latestSubscription: null,
     oneTime: null,
     pendingOneTime: false,
   };
@@ -741,9 +751,11 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
     refundedShop,
     {
       subscription: null,
+      latestSubscription: null,
       oneTime: {
         id: "gid://shopify/AppPurchaseOneTime/write-refunded",
         createdAt: "2026-01-01T00:00:00Z",
+        test: true,
         amount: "89.90",
         currency: "EUR",
       },
@@ -805,9 +817,11 @@ test("ogni scrittura riconcilia il billing Shopify prima dell'entitlement", asyn
     syncFailureShop,
     {
       subscription: null,
+      latestSubscription: null,
       oneTime: {
         id: "gid://shopify/AppPurchaseOneTime/write-sync-failure",
         createdAt: "2026-01-01T00:00:00Z",
+        test: true,
         amount: "89.90",
         currency: "EUR",
       },
@@ -866,11 +880,16 @@ test("la scrittura non cancella né sostituisce un abbonamento attivo con l'omag
       subscription: {
         id: "gid://shopify/AppSubscription/write-complimentary",
         name: "launch-monthly",
+        status: "ACTIVE",
+        createdAt: "2026-08-01T00:00:00Z",
+        trialDays: 0,
+        test: true,
         currentPeriodEnd: "2026-08-31T21:59:59Z",
         interval: "EVERY_30_DAYS",
         amount: "2.99",
         currency: "EUR",
       },
+      latestSubscription: null,
       oneTime: null,
       pendingOneTime: false,
     };

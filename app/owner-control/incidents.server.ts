@@ -9,6 +9,7 @@ export const WEBHOOK_PROCESSING_MINUTES = 5;
 export const CHECKOUT_LABEL_OBSERVATIONS = 3;
 export const CHECKOUT_LABEL_OBSERVATION_MINUTES = 10;
 const RESOLVED_INCIDENT_RETENTION_DAYS = 90;
+export const FINANCIAL_OBSERVATION_DAYS = 37;
 
 const CHECKOUT_LABEL_SYNC_ERRORS = [
   "checkout_labels_locale_missing",
@@ -21,7 +22,7 @@ const CHECKOUT_LABEL_SYNC_ERRORS = [
 
 type IncidentRow = {
   incident_key: string;
-  incident_kind: "webhooks" | "partner" | "checkout_labels";
+  incident_kind: "webhooks" | "partner" | "checkout_labels" | "billing";
   shop_id: number | null;
   status: "observing" | "active" | "resolved";
   fingerprint: string | null;
@@ -37,13 +38,22 @@ type LabelErrorRow = {
   error_code: string;
 };
 
+type BillingIssueRow = {
+  incident_key: string;
+  shop_id: number;
+  shop_domain: string;
+  display_name: string | null;
+  issue: "sale" | "credit" | "credit_review" | "conversion_sale" | "reconciliation_stale";
+  reference_at: string;
+};
+
 export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) {
   const nowIso = now.toISOString();
   const failedCutoff = new Date(now.getTime() - WEBHOOK_FAILED_MINUTES * 60 * 1000).toISOString();
   const processingCutoff = new Date(
     now.getTime() - WEBHOOK_PROCESSING_MINUTES * 60 * 1000,
   ).toISOString();
-  const [webhooks, partner, labels, incidents] = await db.batch([
+  const [webhooks, partner, labels, billingIssues, incidents] = await db.batch([
     db
       .prepare(
         `SELECT
@@ -70,11 +80,92 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
           AND a.checkout_labels_last_error_code IN (${CHECKOUT_LABEL_SYNC_ERRORS.map(() => "?").join(", ")})`,
       )
       .bind(...CHECKOUT_LABEL_SYNC_ERRORS),
+    db
+      .prepare(
+        `SELECT 'billing_sale:' || s.id AS incident_key, s.id AS shop_id,
+              s.shop_domain, s.display_name, 'sale' AS issue,
+              CASE
+                WHEN b.plan_kind = 'one_time'
+                  THEN COALESCE(b.charge_accepted_at, b.charge_activated_at,
+                                b.one_time_purchased_at, b.created_at)
+                WHEN b.current_period_start IS NOT NULL
+                 AND date(b.current_period_start) > date(COALESCE(b.charge_accepted_at,
+                                                                  b.charge_activated_at,
+                                                                  b.current_period_start))
+                  THEN b.current_period_start
+                ELSE COALESCE(b.charge_accepted_at, b.charge_activated_at,
+                              b.current_period_start, b.created_at)
+              END AS reference_at
+         FROM billing_accounts b
+         JOIN shops s ON s.id = b.shop_id
+        WHERE s.installation_status = 'active'
+          AND b.plan_kind IN ('monthly', 'annual', 'one_time')
+          AND b.entitlement_status IN ('active', 'ending')
+          AND b.is_test = 0
+          AND b.sale_checked_at IS NOT NULL
+          AND (b.sale_observed_at IS NULL
+               OR b.sale_charge_gid IS NOT b.shopify_charge_gid
+               OR (b.plan_kind IN ('monthly', 'annual')
+                   AND b.sale_cycle_start IS NOT b.current_period_start))
+          AND datetime(CASE
+                WHEN b.plan_kind = 'one_time'
+                  THEN COALESCE(b.charge_accepted_at, b.charge_activated_at,
+                                b.one_time_purchased_at, b.created_at)
+                WHEN b.current_period_start IS NOT NULL
+                 AND date(b.current_period_start) > date(COALESCE(b.charge_accepted_at,
+                                                                  b.charge_activated_at,
+                                                                  b.current_period_start))
+                  THEN b.current_period_start
+                ELSE COALESCE(b.charge_accepted_at, b.charge_activated_at,
+                              b.current_period_start, b.created_at)
+              END) <= datetime(?, '-${FINANCIAL_OBSERVATION_DAYS} days')
+       UNION ALL
+       SELECT 'billing_credit:' || c.id AS incident_key, s.id AS shop_id,
+              s.shop_domain, s.display_name, 'credit' AS issue,
+              c.cancelled_at AS reference_at
+         FROM billing_conversions c
+         JOIN shops s ON s.id = c.shop_id
+        WHERE c.credit_status = 'pending' AND c.is_test = 0
+          AND c.cancelled_at IS NOT NULL
+          AND c.last_checked_at IS NOT NULL
+          AND datetime(c.cancelled_at) <= datetime(?, '-${FINANCIAL_OBSERVATION_DAYS} days')
+       UNION ALL
+       SELECT 'billing_credit_review:' || c.id AS incident_key, s.id AS shop_id,
+              s.shop_domain, s.display_name, 'credit_review' AS issue,
+              c.credit_observed_at AS reference_at
+         FROM billing_conversions c
+         JOIN shops s ON s.id = c.shop_id
+        WHERE c.credit_status = 'needs_review' AND c.is_test = 0
+          AND c.credit_transaction_gid IS NOT NULL
+       UNION ALL
+       SELECT 'billing_source_sale:' || c.id AS incident_key, s.id AS shop_id,
+              s.shop_domain, s.display_name, 'conversion_sale' AS issue,
+              COALESCE(c.subscription_accepted_at, c.subscription_activated_at,
+                       c.requested_at) AS reference_at
+         FROM billing_conversions c
+         JOIN shops s ON s.id = c.shop_id
+        WHERE c.credit_status IN ('pending', 'confirmed', 'needs_review')
+          AND c.is_test = 0
+          AND c.subscription_sale_transaction_gid IS NULL
+          AND c.last_checked_at IS NOT NULL
+          AND datetime(COALESCE(c.subscription_accepted_at, c.subscription_activated_at,
+                                c.requested_at))
+              <= datetime(?, '-${FINANCIAL_OBSERVATION_DAYS} days')
+       UNION ALL
+       SELECT 'billing_reconciliation:' || b.shop_id AS incident_key, s.id AS shop_id,
+              s.shop_domain, s.display_name, 'reconciliation_stale' AS issue,
+              COALESCE(b.last_reconciled_at, b.created_at) AS reference_at
+         FROM billing_accounts b
+         JOIN shops s ON s.id = b.shop_id
+        WHERE s.installation_status = 'active'
+          AND datetime(COALESCE(b.last_reconciled_at, b.created_at)) <= datetime(?, '-1 day')`,
+      )
+      .bind(nowIso, nowIso, nowIso, nowIso),
     db.prepare(`SELECT incident_key, incident_kind, shop_id, status, fingerprint,
                        consecutive_observations, first_observed_at, opened_at
                   FROM owner_operational_incidents`),
   ]);
-  if (![webhooks, partner, labels, incidents].every(({ success }) => success)) {
+  if (![webhooks, partner, labels, billingIssues, incidents].every(({ success }) => success)) {
     throw new Error("owner_incident_read_failed");
   }
 
@@ -195,6 +286,58 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
     }
   }
 
+  const currentBillingKeys = new Set<string>();
+  for (const row of billingIssues.results as BillingIssueRow[]) {
+    currentBillingKeys.add(row.incident_key);
+    // L'ordine degli statement definisce l'ordine stabile degli alert per lo stesso ciclo.
+    // react-doctor-disable-next-line react-doctor/async-await-in-loop
+    const shopHash = await trialLedgerHash(row.shop_domain);
+    const copy = billingIssueCopy(row.issue);
+    await openIncident(db, statements, existing.get(row.incident_key) ?? null, {
+      key: row.incident_key,
+      kind: "billing",
+      shopId: row.shop_id,
+      shopDomain: row.shop_domain,
+      shopHash,
+      fingerprint: row.reference_at,
+      observations: 1,
+      firstObservedAt: row.reference_at,
+      nowIso,
+      subject: copy.subject,
+      body: storeOperationalBody(copy.description, row, nowIso, [
+        `Soglia: ${FINANCIAL_OBSERVATION_DAYS} giorni`,
+        `Riferimento: ${formatDate(row.reference_at)}`,
+      ]),
+    });
+  }
+
+  for (const incident of existing.values()) {
+    if (incident.incident_kind !== "billing" || currentBillingKeys.has(incident.incident_key)) {
+      continue;
+    }
+    if (incident.status === "active" && incident.shop_id !== null) {
+      // Le risoluzioni restano nello stesso ordine degli incidenti letti e dei relativi alert.
+      // react-doctor-disable-next-line react-doctor/async-await-in-loop
+      const shop = await db
+        .prepare("SELECT shop_domain, display_name FROM shops WHERE id = ?")
+        .bind(incident.shop_id)
+        .first<{ shop_domain: string; display_name: string | null }>();
+      if (!shop) continue;
+      await resolveIncident(db, statements, incident, {
+        nowIso,
+        shopDomain: shop.shop_domain,
+        shopHash: await trialLedgerHash(shop.shop_domain),
+        subject: "🟢 CF Ready · Anomalia billing risolta",
+        body: storeOperationalBody(
+          "L'osservazione finanziaria non presenta più l'anomalia segnalata.",
+          shop,
+          nowIso,
+          ["Stato: regolare"],
+        ),
+      });
+    }
+  }
+
   for (const incident of existing.values()) {
     if (
       incident.incident_kind !== "checkout_labels" ||
@@ -239,6 +382,42 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
       .bind(nowIso),
   );
   if (statements.length) await db.batch(statements);
+}
+
+function billingIssueCopy(issue: BillingIssueRow["issue"]) {
+  if (issue === "sale") {
+    return {
+      subject: `🔴 CF Ready · Vendita Partner non osservata dopo ${FINANCIAL_OBSERVATION_DAYS} giorni`,
+      description:
+        "Il contratto Shopify risulta attivo, ma la vendita del ciclo corrente non è ancora osservabile nelle transazioni Partner.",
+    };
+  }
+  if (issue === "conversion_sale") {
+    return {
+      subject: `🔴 CF Ready · Vendita del piano sostituito non osservata dopo ${FINANCIAL_OBSERVATION_DAYS} giorni`,
+      description:
+        "La conversione è stata completata, ma non è osservabile alcuna vendita Partner per l'abbonamento sostituito.",
+    };
+  }
+  if (issue === "reconciliation_stale") {
+    return {
+      subject: "🔴 CF Ready · Billing Shopify da riconciliare",
+      description:
+        "Il readback Admin API del billing è obsoleto. Verificare la sessione offline e rieseguire la riconciliazione senza dedurre lo stato dalle transazioni Partner.",
+    };
+  }
+  if (issue === "credit_review") {
+    return {
+      subject: "🔴 CF Ready · Credito pro-rata da verificare",
+      description:
+        "È stata osservata una rettifica finanziaria, ma tipo, importo o valuta non coincidono con il credito pro-rata atteso.",
+    };
+  }
+  return {
+    subject: `🔴 CF Ready · Credito pro-rata non osservato dopo ${FINANCIAL_OBSERVATION_DAYS} giorni`,
+    description:
+      "La conversione è stata completata, ma il credito pro-rata non è ancora osservabile nei dati finanziari Partner.",
+  };
 }
 
 async function reconcileBinaryIncident(
