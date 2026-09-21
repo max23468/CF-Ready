@@ -61,6 +61,18 @@ export type ShopRow = {
   plan_kind: string | null;
   pricing_generation: "launch" | "balanced" | null;
   current_period_end: string | null;
+  current_period_start: string | null;
+  shopify_status: string | null;
+  billing_is_test: number | null;
+  last_reconciled_at: string | null;
+  sale_observed_at: string | null;
+  sale_checked_at: string | null;
+  conversion_credit_status: string | null;
+  conversion_credit_amount_minor: number | null;
+  conversion_credit_currency: string | null;
+  conversion_credit_transaction_type: string | null;
+  conversion_credit_observed_at: string | null;
+  conversion_subscription_sale_observed_at: string | null;
   complimentary_status: string | null;
 };
 
@@ -69,7 +81,22 @@ const SHOP_SELECT = `
     s.country_code, a.onboarding_status, a.validation_enabled, a.config_schema_version,
     a.config_hash, a.validation_state_revision, a.last_sync_at, a.last_error_code,
     t.status AS trial_status, t.ends_at AS trial_ends_at,
-    b.entitlement_status, b.plan_kind, b.pricing_generation, b.current_period_end,
+    b.entitlement_status, b.plan_kind, b.pricing_generation, b.current_period_start,
+    b.current_period_end, b.shopify_status, b.is_test AS billing_is_test,
+    b.last_reconciled_at, b.sale_observed_at, b.sale_checked_at,
+    (SELECT credit_status FROM billing_conversions bc WHERE bc.shop_id = s.id
+      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_credit_status,
+    (SELECT credit_amount_minor FROM billing_conversions bc WHERE bc.shop_id = s.id
+      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_credit_amount_minor,
+    (SELECT credit_currency FROM billing_conversions bc WHERE bc.shop_id = s.id
+      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_credit_currency,
+    (SELECT credit_transaction_type FROM billing_conversions bc WHERE bc.shop_id = s.id
+      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_credit_transaction_type,
+    (SELECT credit_observed_at FROM billing_conversions bc WHERE bc.shop_id = s.id
+      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_credit_observed_at,
+    (SELECT subscription_sale_observed_at FROM billing_conversions bc WHERE bc.shop_id = s.id
+      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1)
+      AS conversion_subscription_sale_observed_at,
     c.status AS complimentary_status
   FROM shops s
   LEFT JOIN app_state a ON a.shop_id = s.id
@@ -87,11 +114,11 @@ export async function readDashboard(db: D1Database) {
           COUNT(*) FILTER (WHERE s.installation_status = 'active' AND a.validation_enabled = 1) AS validation_active,
           COUNT(*) FILTER (WHERE s.installation_status = 'active' AND a.last_error_code IS NOT NULL) AS shops_with_error,
           COUNT(*) FILTER (WHERE s.installation_status = 'active' AND t.status = 'active' AND t.ends_at >= date('now')) AS trials_active,
-          COUNT(*) FILTER (WHERE s.installation_status = 'active' AND b.entitlement_status = 'active' AND b.plan_kind = 'monthly') AS monthly,
-          COUNT(*) FILTER (WHERE s.installation_status = 'active' AND b.entitlement_status = 'active' AND b.plan_kind = 'annual') AS annual,
-          COUNT(*) FILTER (WHERE s.installation_status = 'active' AND b.entitlement_status = 'active' AND b.plan_kind = 'one_time') AS one_time,
+          COUNT(*) FILTER (WHERE s.installation_status = 'active' AND b.entitlement_status = 'active' AND b.plan_kind = 'monthly' AND b.is_test = 0) AS monthly,
+          COUNT(*) FILTER (WHERE s.installation_status = 'active' AND b.entitlement_status = 'active' AND b.plan_kind = 'annual' AND b.is_test = 0) AS annual,
+          COUNT(*) FILTER (WHERE s.installation_status = 'active' AND b.entitlement_status = 'active' AND b.plan_kind = 'one_time' AND b.is_test = 0) AS one_time,
           COUNT(*) FILTER (WHERE s.installation_status = 'active' AND c.status = 'active' AND COALESCE(b.entitlement_status, 'none') NOT IN ('active', 'ending')) AS complimentary,
-          COUNT(*) FILTER (WHERE s.installation_status = 'active' AND b.entitlement_status = 'ending') AS ending
+          COUNT(*) FILTER (WHERE s.installation_status = 'active' AND b.entitlement_status = 'ending' AND b.is_test = 0) AS ending
         FROM shops s
         LEFT JOIN app_state a ON a.shop_id = s.id
         LEFT JOIN trials t ON t.shop_id = s.id
@@ -114,7 +141,7 @@ export async function readDashboard(db: D1Database) {
 const FILTER_SQL: Record<ShopsFilter, string> = {
   all: "1 = 1",
   trial: "t.status = 'active' AND t.ends_at >= date('now')",
-  paid: "b.entitlement_status IN ('active', 'ending') AND b.plan_kind != 'none'",
+  paid: "b.entitlement_status IN ('active', 'ending') AND b.plan_kind != 'none' AND b.is_test = 0",
   validation_off: "s.installation_status = 'active' AND COALESCE(a.validation_enabled, 0) = 0",
   issues: "s.installation_status = 'active' AND a.last_error_code IS NOT NULL",
 };
@@ -177,7 +204,7 @@ export async function readBilling(db: D1Database) {
         `SELECT b.entitlement_status, b.plan_kind, b.pricing_generation, s.country_code,
                 COUNT(*) AS count
          FROM billing_accounts b JOIN shops s ON s.id = b.shop_id
-         WHERE s.installation_status = 'active'
+         WHERE s.installation_status = 'active' AND b.is_test = 0
          GROUP BY b.entitlement_status, b.plan_kind, b.pricing_generation, s.country_code`,
       )
       .all<{

@@ -1,15 +1,23 @@
 import { env } from "cloudflare:test";
 import { expect, test, vi } from "vitest";
-import { createCharge, entitlementFor, syncBillingAccount } from "../../app/billing.server";
+import {
+  createCharge,
+  entitlementFor,
+  markBillingConversionCancelled,
+  recordBillingConversion,
+  syncBillingAccount,
+} from "../../app/billing.server";
 import { insertShop, NESSUN_ADDEBITO, opzioni } from "../support/billing";
 
 test("un acquisto una tantum rimborsato revoca il diritto", async () => {
   const shop = await insertShop("rimborso.example.myshopify.com");
   const acquisto = {
     subscription: null,
+    latestSubscription: null,
     oneTime: {
       id: "gid://shopify/AppPurchaseOneTime/1",
       createdAt: "2026-08-01T10:00:00Z",
+      test: true,
       amount: "89.90",
       currency: "EUR",
     },
@@ -29,6 +37,53 @@ test("un acquisto una tantum rimborsato revoca il diritto", async () => {
   expect(entitlementFor(null, "2026-08-01", rimborsato)).toEqual({
     kind: "none",
     validThrough: null,
+  });
+});
+
+test("la ricevuta di conversione distingue credito nullo, zero e da verificare", async () => {
+  const shop = await insertShop("ricevuta-conversione.example.myshopify.com");
+  await recordBillingConversion(env.DB, shop, {
+    subscriptionGid: "gid://shopify/AppSubscription/senza-stima",
+    oneTimeGid: "gid://shopify/AppPurchaseOneTime/senza-stima",
+    creditEstimate: null,
+    currency: "EUR",
+    isTest: false,
+  });
+  await recordBillingConversion(env.DB, shop, {
+    subscriptionGid: "gid://shopify/AppSubscription/zero",
+    oneTimeGid: "gid://shopify/AppPurchaseOneTime/zero",
+    creditEstimate: 0,
+    currency: "EUR",
+    isTest: false,
+  });
+  await recordBillingConversion(env.DB, shop, {
+    subscriptionGid: "gid://shopify/AppSubscription/positivo",
+    oneTimeGid: "gid://shopify/AppPurchaseOneTime/positivo",
+    creditEstimate: 1.23,
+    currency: "EUR",
+    isTest: false,
+  });
+  await recordBillingConversion(env.DB, shop, {
+    subscriptionGid: "gid://shopify/AppSubscription/negativo",
+    oneTimeGid: "gid://shopify/AppPurchaseOneTime/negativo",
+    creditEstimate: -5,
+    currency: "EUR",
+    isTest: false,
+  });
+  await markBillingConversionCancelled(env.DB, "gid://shopify/AppPurchaseOneTime/positivo");
+
+  expect(
+    await env.DB.prepare(
+      `SELECT credit_estimate_minor, credit_status, cancelled_at IS NOT NULL AS cancelled
+         FROM billing_conversions ORDER BY id`,
+    ).all(),
+  ).toMatchObject({
+    results: [
+      { credit_estimate_minor: null, credit_status: "needs_review", cancelled: 0 },
+      { credit_estimate_minor: 0, credit_status: "not_applicable", cancelled: 0 },
+      { credit_estimate_minor: 123, credit_status: "pending", cancelled: 1 },
+      { credit_estimate_minor: 0, credit_status: "not_applicable", cancelled: 0 },
+    ],
   });
 });
 

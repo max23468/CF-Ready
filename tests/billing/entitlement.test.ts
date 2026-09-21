@@ -1,5 +1,12 @@
 import { expect, test } from "vitest";
-import { addDays, entitlementFor, remainingTrialDays } from "../../app/billing.server";
+import {
+  addDays,
+  billingCycleStart,
+  conversionCreditEstimate,
+  entitlementFor,
+  proratedCredit,
+  remainingTrialDays,
+} from "../../app/billing.server";
 import { CONFIG_SCHEMA_VERSION } from "../../app/config";
 import { configWithEntitlement, entitlementDiffers } from "../../app/validation.server";
 
@@ -15,6 +22,9 @@ test("il diritto pagato prevale sulla prova ancora attiva", () => {
     plan_kind: "one_time" as const,
     pricing_generation: "launch" as const,
     shopify_charge_gid: "gid://shopify/AppPurchaseOneTime/1",
+    shopify_status: "ACTIVE" as const,
+    is_test: 0,
+    current_period_start: null,
     current_period_end: null,
   };
 
@@ -106,4 +116,68 @@ test("la data del primo addebito è il giorno dopo i giorni di prova ceduti a Sh
   expect(addDays("2026-08-11", remainingTrialDays(trial, "2026-08-11"))).toBe("2026-08-12");
   // Prova finita: nessun giorno da cedere, l'addebito parte all'approvazione.
   expect(remainingTrialDays(trial, "2026-08-12")).toBe(0);
+});
+
+test("la stima pro-rata usa il ciclo osservato e non considera la prova gratuita", () => {
+  const annual = {
+    id: "gid://shopify/AppSubscription/annuale",
+    name: "Annuale",
+    status: "ACTIVE" as const,
+    createdAt: "2025-03-01T10:00:00.000Z",
+    trialDays: 0,
+    test: false,
+    currentPeriodEnd: "2026-03-01T10:00:00.000Z",
+    interval: "ANNUAL" as const,
+    amount: "29.90",
+    currency: "EUR",
+  };
+  const start = billingCycleStart(annual, "Europe/Rome");
+  expect(start).toBe("2025-03-01");
+  expect(billingCycleStart({ ...annual, currentPeriodEnd: null }, "Europe/Rome")).toBeNull();
+  expect(
+    proratedCredit({
+      amount: annual.amount,
+      interval: annual.interval,
+      periodStart: start,
+      periodEnd: "2026-03-01",
+      today: "2025-09-01",
+    }),
+  ).toBe(14.83);
+
+  expect(
+    billingCycleStart(
+      {
+        ...annual,
+        createdAt: "2026-08-01T10:00:00.000Z",
+        trialDays: 14,
+        currentPeriodEnd: "2026-08-15T10:00:00.000Z",
+      },
+      "Europe/Rome",
+    ),
+  ).toBeNull();
+
+  for (const interval of ["EVERY_30_DAYS", "ANNUAL"] as const) {
+    expect(
+      conversionCreditEstimate(
+        {
+          ...annual,
+          id: `gid://shopify/AppSubscription/trial-${interval}`,
+          interval,
+          createdAt: "2026-08-01T10:00:00.000Z",
+          trialDays: 14,
+          currentPeriodEnd: "2026-08-15T10:00:00.000Z",
+        },
+        "Europe/Rome",
+        "2026-08-10",
+      ),
+    ).toBe(0);
+  }
+
+  expect(
+    conversionCreditEstimate(
+      { ...annual, currentPeriodEnd: null, trialDays: 0 },
+      "Europe/Rome",
+      "2026-08-10",
+    ),
+  ).toBeNull();
 });

@@ -575,6 +575,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "0023_owner_operational_incidents.sql",
     "0024_installation_diagnostics.sql",
     "0025_webhook_monitor_indexes.sql",
+    "0026_billing_observability.sql",
   ]);
   await applyThrough(db, migrations, "0022_configuration_history.sql");
   await insertShop(db);
@@ -591,6 +592,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
   await applyD1Migrations(db, [migrationAfter(migrations, "0022_configuration_history.sql")]);
   await applyD1Migrations(db, [migrationAfter(migrations, "0023_owner_operational_incidents.sql")]);
   await applyD1Migrations(db, [migrationAfter(migrations, "0024_installation_diagnostics.sql")]);
+  await applyD1Migrations(db, [migrationAfter(migrations, "0025_webhook_monitor_indexes.sql")]);
 
   expect(await db.prepare("SELECT * FROM owner_notifications WHERE id = 23").first()).toMatchObject(
     {
@@ -627,6 +629,8 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "app_events",
     "app_state",
     "billing_accounts",
+    "billing_cancellation_intents",
+    "billing_conversions",
     "billing_events",
     "checkout_label_slots",
     "complimentary_entitlements",
@@ -658,6 +662,9 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "app_events_class_occurred_at_idx",
     "app_events_shop_id_occurred_at_idx",
     "app_events_webhook_name_idx",
+    "billing_cancellation_intents_shop_id_idx",
+    "billing_conversions_shop_id_idx",
+    "billing_conversions_subscription_gid_idx",
     "billing_events_occurred_at_idx",
     "billing_events_resource_type_idx",
     "checkout_label_slots_shop_id_idx",
