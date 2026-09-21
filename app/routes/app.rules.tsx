@@ -8,7 +8,7 @@ import type {
 import { data, useActionData, useLoaderData, useNavigation, useSubmit } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError } from "../app-error";
-import { authenticateAdmin } from "../admin-auth.server";
+import { authenticateAdminTimed } from "../admin-auth.server";
 import { ConfigConflict } from "../features/ConfigConflict";
 import { AutomaticLabelsConfirmModal } from "../features/rules/AutomaticLabelsConfirmModal";
 import { CheckoutSimulator } from "../features/rules/CheckoutSimulator";
@@ -49,7 +49,7 @@ const SAVE_BAR = "checkout-rules-save-bar";
 const LABEL_CONFIRM_MODAL = "confirm-checkout-label-management";
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
-  const authentication = await timing.measure("auth", () => authenticateAdmin(request, context));
+  const authentication = await authenticateAdminTimed(request, context, timing);
   const { admin, session, scopes } = authentication;
   const db = context.get(databaseContext);
   const scopeDetailsPromise = timing.measure("shopify_scopes", () =>
