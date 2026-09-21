@@ -3,11 +3,10 @@ import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "
 
 import { APP_API_KEY } from "./env.server";
 import { resolveLocale } from "./i18n";
+import { POLARIS_URL } from "./shopify-ui";
 import "./ui-motion.css";
 
 const APP_BRIDGE_URL = "https://cdn.shopify.com/shopifycloud/app-bridge.js";
-// Canale stabile di Polaris 1: riceve le minor compatibili, mentre una nuova major resta una scelta esplicita.
-const POLARIS_URL = "https://cdn.shopify.com/shopifycloud/polaris-1.js";
 
 // §10.10: la lingua dichiarata dal documento deve coincidere con quella dei contenuti.
 export const loader = ({ request }: LoaderFunctionArgs) => ({

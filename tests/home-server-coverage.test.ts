@@ -4,6 +4,7 @@ import { createAppContext } from "../app/context.server";
 
 const mocks = vi.hoisted(() => ({
   authenticateAdmin: vi.fn(),
+  authenticateAdminTimed: vi.fn(),
   authenticate: vi.fn(),
   cancelSubscription: vi.fn(),
   completeOnboardingAutomatically: vi.fn(),
@@ -30,6 +31,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("../app/admin-auth.server", () => ({
   authenticateAdmin: mocks.authenticateAdmin,
+  authenticateAdminTimed: mocks.authenticateAdminTimed,
 }));
 
 vi.mock("../app/checkout-labels/repository.server", () => ({
@@ -98,6 +100,12 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.authenticate.mockResolvedValue({ admin, session: { shop } });
   mocks.authenticateAdmin.mockResolvedValue({ admin, session: { shop } });
+  mocks.authenticateAdminTimed.mockImplementation(
+    async (_request, _context, timing: { record: (name: string, duration: number) => void }) => {
+      timing.record("auth", 0);
+      return { admin, session: { shop } };
+    },
+  );
   mocks.readComplimentaryEntitlement.mockResolvedValue(null);
   mocks.readCheckoutLabelState.mockResolvedValue({
     mode: "off",

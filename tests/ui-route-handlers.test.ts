@@ -8,6 +8,7 @@ import * as authRoute from "../app/routes/auth.$";
 
 const mocks = vi.hoisted(() => ({
   authenticateAdmin: vi.fn(),
+  authenticateAdminTimed: vi.fn(),
   authenticateShopify: vi.fn(),
   acceptCheckoutLabelsCustomization: vi.fn(),
   acceptAddress2Customization: vi.fn(),
@@ -36,7 +37,10 @@ const mocks = vi.hoisted(() => ({
   saveRulesAndCheckoutLabels: vi.fn(),
 }));
 
-vi.mock("../app/admin-auth.server", () => ({ authenticateAdmin: mocks.authenticateAdmin }));
+vi.mock("../app/admin-auth.server", () => ({
+  authenticateAdmin: mocks.authenticateAdmin,
+  authenticateAdminTimed: mocks.authenticateAdminTimed,
+}));
 vi.mock("../app/billing.server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../app/billing.server")>()),
   localDate: mocks.localDate,
@@ -114,6 +118,12 @@ beforeEach(() => {
   context.get.mockReturnValue(db);
   const scopes = { query: mocks.scopeQuery };
   mocks.authenticateAdmin.mockResolvedValue({ admin, session, scopes });
+  mocks.authenticateAdminTimed.mockImplementation(
+    async (_request, _context, timing: { record: (name: string, duration: number) => void }) => {
+      timing.record("auth", 0);
+      return { admin, session, scopes };
+    },
+  );
   mocks.authenticateShopify.mockResolvedValue({ admin, session, scopes });
   mocks.scopeQuery.mockResolvedValue({ granted: [] });
   mocks.localDate.mockReturnValue("2026-09-02");

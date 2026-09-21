@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { data } from "react-router";
-import { authenticateAdmin } from "../../admin-auth.server";
+import { authenticateAdminTimed } from "../../admin-auth.server";
 import {
   addDays,
   cancelSubscription,
@@ -48,9 +48,7 @@ import type { Admin } from "../../validation.server";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
-  const { admin, session } = await timing.measure("auth", () =>
-    authenticateAdmin(request, context),
-  );
+  const { admin, session } = await authenticateAdminTimed(request, context, timing);
   const db = context.get(databaseContext);
 
   const statePromise = reconcile(admin, db, session.shop, {
