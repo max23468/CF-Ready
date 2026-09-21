@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   processWebhookJob: vi.fn(),
   applyRetention: vi.fn(),
   pollPartnerEvents: vi.fn(),
+  syncPartnerFinancialObservations: vi.fn(),
   pollLocalNotifications: vi.fn(),
   reconcileOwnerIncidents: vi.fn(),
   deliverOwnerNotifications: vi.fn(),
@@ -28,6 +29,7 @@ vi.mock("../app/webhook-jobs.server", () => ({
 vi.mock("../app/shop.server", () => ({ applyRetention: mocks.applyRetention }));
 vi.mock("../app/owner-notifications.server", () => ({
   pollPartnerEvents: mocks.pollPartnerEvents,
+  syncPartnerFinancialObservations: mocks.syncPartnerFinancialObservations,
   pollLocalNotifications: mocks.pollLocalNotifications,
   reconcileOwnerIncidents: mocks.reconcileOwnerIncidents,
   deliverOwnerNotifications: mocks.deliverOwnerNotifications,
@@ -50,6 +52,7 @@ beforeEach(() => {
   mocks.consumeWebhookMessage.mockResolvedValue(undefined);
   mocks.applyRetention.mockResolvedValue(undefined);
   mocks.pollPartnerEvents.mockResolvedValue(undefined);
+  mocks.syncPartnerFinancialObservations.mockResolvedValue(undefined);
   mocks.pollLocalNotifications.mockResolvedValue(undefined);
   mocks.reconcileOwnerIncidents.mockResolvedValue(undefined);
   mocks.deliverOwnerNotifications.mockResolvedValue(undefined);
@@ -179,6 +182,7 @@ describe("entrypoint Worker", () => {
 
     expect(mocks.applyRetention).toHaveBeenCalledOnce();
     expect(mocks.pollPartnerEvents).not.toHaveBeenCalled();
+    expect(mocks.syncPartnerFinancialObservations).not.toHaveBeenCalled();
     expect(pending).toHaveLength(1);
   });
 
@@ -216,6 +220,11 @@ describe("entrypoint Worker", () => {
     await Promise.all(pending);
 
     expect(mocks.pollPartnerEvents.mock.calls[0][1]).toEqual({
+      organizationId: "org",
+      appId: "app",
+      accessToken: "token",
+    });
+    expect(mocks.syncPartnerFinancialObservations.mock.calls[0][1]).toEqual({
       organizationId: "org",
       appId: "app",
       accessToken: "token",

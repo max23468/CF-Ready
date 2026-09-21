@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   completeOnboardingAutomatically: vi.fn(),
   createCharge: vi.fn(),
   dismissMerchantCheckIn: vi.fn(),
+  markOrdinaryCancellationConfirmed: vi.fn(),
   persistShopDisplayName: vi.fn(),
   planFor: vi.fn(),
   queryContext: vi.fn(),
@@ -20,6 +21,7 @@ const mocks = vi.hoisted(() => ({
   readCheckoutLabelState: vi.fn(),
   reconcile: vi.fn(),
   recordEvent: vi.fn(),
+  recordOrdinaryCancellationIntent: vi.fn(),
   requestedRecurringPlanIsActive: vi.fn(),
   returnUrlFor: vi.fn(),
   startTrial: vi.fn(),
@@ -46,9 +48,11 @@ vi.mock("../app/billing.server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../app/billing.server")>()),
   cancelSubscription: mocks.cancelSubscription,
   createCharge: mocks.createCharge,
+  markOrdinaryCancellationConfirmed: mocks.markOrdinaryCancellationConfirmed,
   readBilling: mocks.readBilling,
   readBillingAccount: mocks.readBillingAccount,
   readComplimentaryEntitlement: mocks.readComplimentaryEntitlement,
+  recordOrdinaryCancellationIntent: mocks.recordOrdinaryCancellationIntent,
   requestedRecurringPlanIsActive: mocks.requestedRecurringPlanIsActive,
   returnUrlFor: mocks.returnUrlFor,
   startTrial: mocks.startTrial,
@@ -107,6 +111,7 @@ beforeEach(() => {
     },
   );
   mocks.readComplimentaryEntitlement.mockResolvedValue(null);
+  mocks.recordOrdinaryCancellationIntent.mockResolvedValue(true);
   mocks.readCheckoutLabelState.mockResolvedValue({
     mode: "off",
     lastSyncAt: null,

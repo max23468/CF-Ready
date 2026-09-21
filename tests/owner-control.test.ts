@@ -425,7 +425,7 @@ describe("presentazione Telegram", () => {
       "Disinstallata",
       "Non iniziato",
       "Nessun piano",
-      "Convertita",
+      "Piano approvato",
       "Attivo",
       "App disinstallata",
       "Sync failed",
@@ -562,6 +562,7 @@ describe("presentazione Telegram", () => {
     expect(billingText).toContain("6,17");
     expect(billingText).toContain("98,36");
     expect(billingText).toContain("1 acquisto");
+    expect(billingText).toContain("non provano che la fattura merchant sia riscossa");
     expect(billingText).toContain("oc1:b:-:0:r");
     expect(JSON.stringify(billingMessage(billingData))).toContain("Partner API non disponibile");
     expect(
@@ -1380,6 +1381,17 @@ describe("query D1 e run-rate", () => {
     expect((await findShops(env.DB, "mensile")).map((shop) => shop.id)).toEqual([1]);
   });
 
+  test("esclude gli addebiti test da dashboard, filtri paid e run-rate", async () => {
+    await insertStore(1, "test-billing.myshopify.com", {
+      plan: ["active", "monthly", "balanced"],
+    });
+    await env.DB.prepare("UPDATE billing_accounts SET is_test = 1 WHERE shop_id = 1").run();
+
+    expect(await readDashboard(env.DB)).toMatchObject({ monthly: 0, annual: 0, one_time: 0 });
+    expect(await readBilling(env.DB)).toMatchObject({ rows: [], mrr: 0, arr: 0 });
+    expect((await readShops(env.DB, "paid", 0)).count).toBe(0);
+  });
+
   test("mostra soltanto webhook ancora da verificare", async () => {
     await insertStore(1, "recuperato.myshopify.com");
     await env.DB.batch([
@@ -1578,6 +1590,67 @@ describe("query D1 e run-rate", () => {
     ).toBeNull();
   });
 
+  test("segnala vendita e credito non osservati dopo 37 giorni e chiude gli alert", async () => {
+    await insertStore(1, "billing-alert.myshopify.com");
+    const old = "2026-07-31T10:00:00.000Z";
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO billing_accounts (
+           shop_id, entitlement_status, plan_kind, pricing_generation, shopify_charge_gid,
+           shopify_status, is_test, current_period_start, last_reconciled_at,
+           sale_checked_at, charge_accepted_at, created_at, updated_at
+         ) VALUES (1, 'active', 'annual', 'balanced', 'gid://shopify/AppSubscription/alert',
+                   'ACTIVE', 0, ?, ?, ?, ?, ?, ?)`,
+      ).bind(old, NOW.toISOString(), NOW.toISOString(), old, old, old),
+      env.DB.prepare(
+        `INSERT INTO billing_conversions (
+           shop_id, subscription_gid, one_time_gid, credit_estimate_minor, currency,
+           credit_status, requested_at, cancelled_at, last_checked_at,
+           subscription_accepted_at, is_test, created_at, updated_at
+         ) VALUES (1, 'gid://shopify/AppSubscription/alert',
+                   'gid://shopify/AppPurchaseOneTime/alert', 2000, 'EUR', 'pending',
+                   ?, ?, ?, ?, 0, ?, ?)`,
+      ).bind(old, old, NOW.toISOString(), old, old, old),
+    ]);
+
+    await reconcileOwnerIncidents(env.DB, NOW);
+    expect(
+      await env.DB.prepare(
+        "SELECT subject FROM owner_notifications WHERE notification_kind = 'operational' ORDER BY id",
+      ).all(),
+    ).toMatchObject({
+      results: [
+        { subject: "🔴 CF Ready · Vendita Partner non osservata dopo 37 giorni" },
+        { subject: "🔴 CF Ready · Credito pro-rata non osservato dopo 37 giorni" },
+        {
+          subject: "🔴 CF Ready · Vendita del piano sostituito non osservata dopo 37 giorni",
+        },
+      ],
+    });
+
+    await env.DB.batch([
+      env.DB.prepare(
+        `UPDATE billing_accounts
+              SET sale_observed_at = ?, sale_charge_gid = shopify_charge_gid,
+                  sale_cycle_start = current_period_start
+            WHERE shop_id = 1`,
+      ).bind(NOW.toISOString()),
+      env.DB.prepare(
+        `UPDATE billing_conversions
+            SET credit_status = 'confirmed',
+                subscription_sale_transaction_gid = 'gid://partners/AppSubscriptionSale/alert',
+                subscription_sale_observed_at = ?
+          WHERE shop_id = 1`,
+      ).bind(NOW.toISOString()),
+    ]);
+    await reconcileOwnerIncidents(env.DB, new Date(NOW.getTime() + 60_000));
+    expect(
+      await env.DB.prepare(
+        "SELECT status, COUNT(*) AS count FROM owner_operational_incidents WHERE incident_kind = 'billing' GROUP BY status",
+      ).all(),
+    ).toMatchObject({ results: [{ status: "resolved", count: 3 }] });
+  });
+
   test("rifiuta letture incidenti incomplete e ignora store già rimossi", async () => {
     const statement = {
       bind() {
@@ -1602,6 +1675,7 @@ describe("query D1 e run-rate", () => {
           { success: true, results: [] },
           { success: true, results: [] },
           { success: true, results: [] },
+          { success: true, results: [] },
         ]),
         NOW,
       ),
@@ -1609,6 +1683,7 @@ describe("query D1 e run-rate", () => {
     await expect(
       reconcileOwnerIncidents(
         database([
+          { success: true, results: [] },
           { success: true, results: [] },
           { success: true, results: [] },
           { success: true, results: [] },
@@ -1622,6 +1697,7 @@ describe("query D1 e run-rate", () => {
       reconcileOwnerIncidents(
         database([
           { success: true, results: [{ failed: 0, processing: 0 }] },
+          { success: true, results: [] },
           { success: true, results: [] },
           { success: true, results: [] },
           {
@@ -2090,7 +2166,19 @@ function shopFixture(overrides: Partial<ShopRow> = {}): ShopRow {
     entitlement_status: null,
     plan_kind: null,
     pricing_generation: null,
+    current_period_start: null,
     current_period_end: null,
+    shopify_status: null,
+    billing_is_test: null,
+    last_reconciled_at: null,
+    sale_observed_at: null,
+    sale_checked_at: null,
+    conversion_credit_status: null,
+    conversion_credit_amount_minor: null,
+    conversion_credit_currency: null,
+    conversion_credit_transaction_type: null,
+    conversion_credit_observed_at: null,
+    conversion_subscription_sale_observed_at: null,
     complimentary_status: null,
     ...overrides,
   };
@@ -2135,8 +2223,8 @@ async function insertStore(
     await env.DB.prepare(
       `INSERT INTO billing_accounts
          (shop_id, entitlement_status, plan_kind, pricing_generation, current_period_end,
-          created_at, updated_at)
-       VALUES (?, ?, ?, ?, '2027-01-01', ?, ?)`,
+          is_test, created_at, updated_at)
+       VALUES (?, ?, ?, ?, '2027-01-01', 0, ?, ?)`,
     )
       .bind(id, ...options.plan, timestamp, timestamp)
       .run();

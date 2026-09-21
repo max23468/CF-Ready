@@ -221,6 +221,7 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode,
     });
   }
   const charge = event.charge!;
+  await observeChargeLifecycle(db, shopDomain, type, charge.id!, occurredAt, now.toISOString());
   const currentKind = planKindFromCharge(type, charge.name);
   const previousKind = type.endsWith("_ACTIVATED")
     ? await previousPlanKind(db, shopDomain, charge.id!, currentKind)
@@ -250,6 +251,42 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode,
     ]),
     occurredAt,
   });
+}
+
+async function observeChargeLifecycle(
+  db: D1Database,
+  shopDomain: string,
+  type: PartnerEventType,
+  chargeId: string,
+  occurredAt: string,
+  updatedAt: string,
+) {
+  const column = type.endsWith("_ACCEPTED")
+    ? "charge_accepted_at"
+    : type.endsWith("_ACTIVATED")
+      ? "charge_activated_at"
+      : null;
+  if (!column) return;
+  const conversionColumn = type.endsWith("_ACCEPTED")
+    ? "subscription_accepted_at"
+    : "subscription_activated_at";
+  await db.batch([
+    db
+      .prepare(
+        `UPDATE billing_accounts SET ${column} = COALESCE(${column}, ?), updated_at = ?
+          WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
+            AND shopify_charge_gid = ?`,
+      )
+      .bind(occurredAt, updatedAt, shopDomain, chargeId),
+    db
+      .prepare(
+        `UPDATE billing_conversions
+            SET ${conversionColumn} = COALESCE(${conversionColumn}, ?), updated_at = ?
+          WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
+            AND subscription_gid = ?`,
+      )
+      .bind(occurredAt, updatedAt, shopDomain, chargeId),
+  ]);
 }
 
 export async function requestPartnerApi<T>(

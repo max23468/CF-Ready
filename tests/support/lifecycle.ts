@@ -67,6 +67,10 @@ export const SENZA_ADDEBITI = {
   data: {
     currentAppInstallation: {
       activeSubscriptions: [],
+      allSubscriptions: {
+        nodes: [],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      },
       oneTimePurchases: {
         nodes: [],
         pageInfo: { hasNextPage: false, endCursor: null },
@@ -83,6 +87,8 @@ export const CONVERSIONE_UNA_TANTUM = {
           id: "gid://shopify/AppSubscription/1",
           name: "launch-monthly",
           status: "ACTIVE",
+          createdAt: "2026-08-01T08:00:00Z",
+          trialDays: 0,
           test: true,
           currentPeriodEnd: "2026-08-31T21:59:59Z",
           lineItems: [
@@ -97,6 +103,30 @@ export const CONVERSIONE_UNA_TANTUM = {
           ],
         },
       ],
+      allSubscriptions: {
+        nodes: [
+          {
+            id: "gid://shopify/AppSubscription/1",
+            name: "launch-monthly",
+            status: "ACTIVE",
+            createdAt: "2026-08-01T08:00:00Z",
+            trialDays: 0,
+            test: true,
+            currentPeriodEnd: "2026-08-31T21:59:59Z",
+            lineItems: [
+              {
+                plan: {
+                  pricingDetails: {
+                    interval: "EVERY_30_DAYS",
+                    price: { amount: "2.99", currencyCode: "EUR" },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      },
       oneTimePurchases: {
         nodes: [
           {

@@ -6,6 +6,7 @@ import {
   deliverOwnerNotifications,
   pollLocalNotifications,
   pollPartnerEvents,
+  syncPartnerFinancialObservations,
 } from "../app/owner-notifications.server";
 import { pollLocalBillingEvents } from "../app/owner-notifications/local-billing-source.server";
 import { operationalSection } from "../app/owner-notifications/presentation";
@@ -134,6 +135,361 @@ test("il poll Partner copre lifecycle e billing con nome store, stato e importo"
   ).toMatchObject({ display_name: "Negozio CF Ready" });
 });
 
+test("le osservazioni finanziarie distinguono contratto, pagamento e credito pro-rata", async () => {
+  const shop = await insertShop("osservazione-finanziaria.myshopify.com");
+  const shopId = await shopIdFor(shop);
+  const annual = billing("gid://shopify/AppSubscription/annuale-finanza", "ANNUAL", "29.90");
+  await syncBillingAccount(env.DB, shop, annual, {
+    today: "2026-08-24",
+    timeZone: "Europe/Rome",
+    pricingGeneration: "launch",
+    storedAccount: null,
+  });
+  await env.DB.prepare(
+    `INSERT INTO billing_conversions (
+       shop_id, subscription_gid, one_time_gid, credit_estimate_minor, currency,
+       credit_status, requested_at, cancelled_at, is_test, created_at, updated_at
+     ) VALUES (?, ?, 'gid://shopify/AppPurchaseOneTime/lifetime-finanza', 2440, 'EUR',
+               'pending', '2026-08-20T10:00:00.000Z', '2026-08-20T10:01:00.000Z', 0,
+               '2026-08-20T10:00:00.000Z', '2026-08-20T10:01:00.000Z')`,
+  )
+    .bind(shopId, annual.subscription.id)
+    .run();
+  const fetcher = vi.fn(async () =>
+    Response.json({
+      data: {
+        transactions: {
+          edges: [
+            {
+              cursor: "sale-old-cycle",
+              node: {
+                __typename: "AppSubscriptionSale",
+                id: "gid://partners/AppSubscriptionSale/old-cycle",
+                chargeId: annual.subscription.id,
+                createdAt: "2025-08-24T10:00:00.000Z",
+                grossAmount: { amount: "29.90", currencyCode: "EUR" },
+                shop: { myshopifyDomain: shop },
+              },
+            },
+            {
+              cursor: "sale-current-earlier",
+              node: {
+                __typename: "AppSubscriptionSale",
+                id: "gid://partners/AppSubscriptionSale/current-earlier",
+                chargeId: annual.subscription.id,
+                createdAt: "2026-08-24T10:00:00.000Z",
+                grossAmount: { amount: "29.90", currencyCode: "EUR" },
+                shop: { myshopifyDomain: shop },
+              },
+            },
+            {
+              cursor: "sale",
+              node: {
+                __typename: "AppSubscriptionSale",
+                id: "gid://partners/AppSubscriptionSale/1",
+                chargeId: annual.subscription.id,
+                createdAt: "2026-08-25T10:00:00.000Z",
+                grossAmount: { amount: "29.90", currencyCode: "EUR" },
+                shop: { myshopifyDomain: shop },
+              },
+            },
+            {
+              cursor: "credit",
+              node: {
+                __typename: "AppSaleAdjustment",
+                id: "gid://partners/AppSaleAdjustment/1",
+                chargeId: annual.subscription.id,
+                createdAt: "2026-08-22T10:00:00.000Z",
+                grossAmount: { amount: "-24.40", currencyCode: "EUR" },
+                shop: { myshopifyDomain: shop },
+              },
+            },
+          ],
+          pageInfo: { hasNextPage: false },
+        },
+      },
+    }),
+  );
+
+  await expect(
+    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
+      now: NOW,
+      fetcher: fetcher as typeof fetch,
+    }),
+  ).resolves.toEqual({ observed: 4, checkedAt: NOW.toISOString() });
+  expect(
+    await env.DB.prepare(
+      `SELECT sale_observed_at, sale_checked_at, sale_transaction_gid,
+              sale_cycle_start
+         FROM billing_accounts WHERE shop_id = ?`,
+    )
+      .bind(shopId)
+      .first(),
+  ).toMatchObject({
+    sale_observed_at: "2026-08-25T10:00:00.000Z",
+    sale_checked_at: NOW.toISOString(),
+    sale_transaction_gid: "gid://partners/AppSubscriptionSale/1",
+    sale_cycle_start: "2026-08-24",
+  });
+  expect(
+    await env.DB.prepare(
+      "SELECT credit_status, credit_observed_at, last_checked_at FROM billing_conversions WHERE shop_id = ?",
+    )
+      .bind(shopId)
+      .first(),
+  ).toMatchObject({
+    credit_status: "confirmed",
+    credit_observed_at: "2026-08-22T10:00:00.000Z",
+    last_checked_at: NOW.toISOString(),
+  });
+});
+
+test("una vendita annuale tardiva resta collegata alla conversione dopo il lifetime", async () => {
+  const shop = await insertShop("vendita-tardiva.myshopify.com");
+  const shopId = await shopIdFor(shop);
+  const annual = billing("gid://shopify/AppSubscription/annuale-tardivo", "ANNUAL", "29.90");
+  await syncBillingAccount(env.DB, shop, annual, {
+    today: "2026-08-24",
+    timeZone: "Europe/Rome",
+    pricingGeneration: "launch",
+    storedAccount: null,
+  });
+  await env.DB.prepare(
+    `INSERT INTO billing_conversions (
+       shop_id, subscription_gid, one_time_gid, credit_estimate_minor, currency,
+       credit_status, requested_at, cancelled_at, is_test, created_at, updated_at
+     ) VALUES (?, ?, 'gid://shopify/AppPurchaseOneTime/tardivo', 2440, 'EUR',
+               'pending', '2026-08-25T10:00:00.000Z', '2026-08-25T10:01:00.000Z', 0,
+               '2026-08-25T10:00:00.000Z', '2026-08-25T10:01:00.000Z')`,
+  )
+    .bind(shopId, annual.subscription.id)
+    .run();
+  await syncBillingAccount(
+    env.DB,
+    shop,
+    {
+      subscription: null,
+      latestSubscription: { ...annual.subscription, status: "CANCELLED" },
+      oneTime: {
+        id: "gid://shopify/AppPurchaseOneTime/tardivo",
+        createdAt: "2026-08-25T10:00:00.000Z",
+        test: false,
+        amount: "89.90",
+        currency: "EUR",
+      },
+      pendingOneTime: false,
+    },
+    {
+      today: "2026-08-25",
+      timeZone: "Europe/Rome",
+      pricingGeneration: "launch",
+      storedAccount: await readBillingAccount(env.DB, shop),
+    },
+  );
+
+  await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
+    now: NOW,
+    fetcher: vi.fn(async () =>
+      financialResponse([
+        financialNode(
+          "AppSubscriptionSale",
+          "gid://partners/AppSubscriptionSale/tardivo",
+          annual.subscription.id,
+          shop,
+          "29.90",
+          "EUR",
+        ),
+      ]),
+    ) as typeof fetch,
+  });
+
+  expect(
+    await env.DB.prepare(
+      `SELECT subscription_sale_transaction_gid, subscription_sale_observed_at,
+              subscription_sale_amount_minor, subscription_sale_currency
+         FROM billing_conversions WHERE shop_id = ?`,
+    )
+      .bind(shopId)
+      .first(),
+  ).toMatchObject({
+    subscription_sale_transaction_gid: "gid://partners/AppSubscriptionSale/tardivo",
+    subscription_sale_amount_minor: 2990,
+    subscription_sale_currency: "EUR",
+  });
+  expect(
+    await env.DB.prepare(
+      "SELECT plan_kind, sale_transaction_gid FROM billing_accounts WHERE shop_id = ?",
+    )
+      .bind(shopId)
+      .first(),
+  ).toMatchObject({ plan_kind: "one_time", sale_transaction_gid: null });
+});
+
+test("il credito richiede tipo, importo e valuta compatibili ed è idempotente", async () => {
+  const cases = [
+    ["corretto", "AppSaleAdjustment", "-10.00", "EUR", "confirmed"],
+    ["valuta", "AppSaleAdjustment", "-10.00", "USD", "needs_review"],
+    ["importo", "AppSaleAdjustment", "-9.00", "EUR", "needs_review"],
+    ["credito", "AppSaleCredit", "-10.00", "EUR", "confirmed"],
+  ] as const;
+  const nodes: ReturnType<typeof financialNode>[] = [];
+  for (const [suffix, type, amount, currency] of cases) {
+    const shop = await insertShop(`credito-${suffix}.myshopify.com`);
+    const shopId = await shopIdFor(shop);
+    await env.DB.prepare(
+      `INSERT INTO billing_conversions (
+         shop_id, subscription_gid, one_time_gid, credit_estimate_minor, currency,
+         credit_status, requested_at, cancelled_at, is_test, created_at, updated_at
+         ) VALUES (?, ?, ?, 1000, 'EUR', 'pending',
+                 '2026-08-20T10:00:00.000Z', '2026-08-20T10:01:00.000Z',
+                 0, '2026-08-20T10:00:00.000Z', '2026-08-20T10:01:00.000Z')`,
+    )
+      .bind(
+        shopId,
+        `gid://shopify/AppSubscription/${suffix}`,
+        `gid://shopify/AppPurchaseOneTime/${suffix}`,
+      )
+      .run();
+    nodes.push(
+      financialNode(
+        type,
+        `gid://partners/${type}/${suffix}`,
+        `gid://shopify/AppSubscription/${suffix}`,
+        shop,
+        amount,
+        currency,
+      ),
+    );
+  }
+  nodes.push(nodes[0]);
+  nodes.push(
+    financialNode(
+      "AppSaleAdjustment",
+      "gid://partners/AppSaleAdjustment/estraneo",
+      "gid://shopify/AppSubscription/estraneo",
+      "credito-corretto.myshopify.com",
+      "-10.00",
+      "EUR",
+    ),
+  );
+
+  await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
+    now: NOW,
+    fetcher: vi.fn(async () => financialResponse(nodes)) as typeof fetch,
+  });
+  const { results } = await env.DB.prepare(
+    `SELECT s.shop_domain, c.credit_status, c.credit_transaction_gid,
+            c.credit_transaction_type, c.credit_amount_minor, c.credit_currency
+       FROM billing_conversions c JOIN shops s ON s.id = c.shop_id
+      ORDER BY s.shop_domain`,
+  ).all<Record<string, unknown>>();
+  expect(results).toEqual(
+    cases
+      .map(([suffix, type, amount, currency, status]) => ({
+        shop_domain: `credito-${suffix}.myshopify.com`,
+        credit_status: status,
+        credit_transaction_gid: `gid://partners/${type}/${suffix}`,
+        credit_transaction_type: type,
+        credit_amount_minor: Math.round(Number(amount) * 100),
+        credit_currency: currency,
+      }))
+      .sort((left, right) => left.shop_domain.localeCompare(right.shop_domain)),
+  );
+});
+
+test("il poll finanziario pagina gli aggiustamenti e rifiuta payload incompleti", async () => {
+  const shop = await insertShop("aggiustamento.myshopify.com");
+  const shopId = await shopIdFor(shop);
+  await env.DB.prepare(
+    `INSERT INTO billing_conversions (
+       shop_id, subscription_gid, one_time_gid, credit_status, requested_at,
+       cancelled_at, is_test, created_at, updated_at
+     ) VALUES (?, 'gid://shopify/AppSubscription/aggiustamento',
+               'gid://shopify/AppPurchaseOneTime/aggiustamento', 'pending',
+               '2026-08-20T10:00:00.000Z', '2026-08-20T10:01:00.000Z', 0,
+               '2026-08-20T10:00:00.000Z', '2026-08-20T10:01:00.000Z')`,
+  )
+    .bind(shopId)
+    .run();
+  const pages = [
+    Response.json({
+      data: {
+        transactions: {
+          edges: [
+            {
+              cursor: "pagina-2",
+              node: {
+                __typename: "AppSaleAdjustment",
+                id: "gid://partners/AppSaleAdjustment/1",
+                chargeId: "gid://shopify/AppSubscription/aggiustamento",
+                createdAt: "2026-08-23T10:00:00.000Z",
+                grossAmount: { amount: "-1.00", currencyCode: "EUR" },
+                shop: { myshopifyDomain: shop },
+              },
+            },
+          ],
+          pageInfo: { hasNextPage: true },
+        },
+      },
+    }),
+    Response.json({
+      data: { transactions: { edges: [], pageInfo: { hasNextPage: false } } },
+    }),
+  ];
+  const pagedFetcher = vi.fn(async () => pages.shift()!);
+  await expect(
+    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
+      fetcher: pagedFetcher as typeof fetch,
+    }),
+  ).resolves.toMatchObject({ observed: 1 });
+  expect(pagedFetcher).toHaveBeenCalledTimes(2);
+  await env.DB.prepare("UPDATE billing_conversions SET credit_status = 'pending' WHERE shop_id = ?")
+    .bind(shopId)
+    .run();
+
+  await expect(
+    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
+      fetcher: vi.fn(async () => Response.json({ data: { transactions: null } })) as typeof fetch,
+    }),
+  ).rejects.toThrow("partner_api_invalid_financial_payload");
+  await expect(
+    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
+      fetcher: vi.fn(async () =>
+        Response.json({
+          data: {
+            transactions: {
+              edges: [{ cursor: "rotto", node: { id: "senza-charge" } }],
+              pageInfo: { hasNextPage: false },
+            },
+          },
+        }),
+      ) as typeof fetch,
+    }),
+  ).rejects.toThrow("partner_api_invalid_financial_transaction");
+});
+
+test("il poll finanziario non interroga Partner senza osservazioni pendenti", async () => {
+  const shop = await insertShop("conversione-in-prova.myshopify.com");
+  await env.DB.prepare(
+    `INSERT INTO billing_conversions (
+       shop_id, subscription_gid, one_time_gid, credit_estimate_minor, currency,
+       credit_status, requested_at, cancelled_at, is_test, created_at, updated_at
+     ) SELECT id, 'gid://shopify/AppSubscription/trial',
+              'gid://shopify/AppPurchaseOneTime/trial', 0, 'EUR', 'not_applicable',
+              ?, ?, 0, ?, ? FROM shops WHERE shop_domain = ?`,
+  )
+    .bind(NOW.toISOString(), NOW.toISOString(), NOW.toISOString(), NOW.toISOString(), shop)
+    .run();
+  const fetcher = vi.fn();
+  await expect(
+    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
+      now: NOW,
+      fetcher: fetcher as typeof fetch,
+    }),
+  ).resolves.toEqual({ observed: 0, checkedAt: NOW.toISOString() });
+  expect(fetcher).not.toHaveBeenCalled();
+});
+
 test("un piano attivato dopo un altro viene notificato come passaggio esplicito", async () => {
   const shop = await insertShop("cambio-piano.myshopify.com");
   const monthly = billing("gid://shopify/AppSubscription/mensile", "EVERY_30_DAYS", "2.99");
@@ -185,6 +541,14 @@ test("un piano attivato dopo un altro viene notificato come passaggio esplicito"
       "Da: Mensile\nA: CF Ready — abbonamento annuale\nImporto: 29,90 € / anno",
     ),
   });
+  expect(
+    await env.DB.prepare(
+      `SELECT charge_activated_at FROM billing_accounts b
+       JOIN shops s ON s.id = b.shop_id WHERE s.shop_domain = ?`,
+    )
+      .bind(shop)
+      .first(),
+  ).toMatchObject({ charge_activated_at: "2026-08-24T09:59:00.000Z" });
 });
 
 test("attivazione, scadenza e conversione della prova includono nome store e durata", async () => {
@@ -221,10 +585,10 @@ test("attivazione, scadenza e conversione della prova includono nome store e dur
       ),
     },
     {
-      subject: "🟢 CF Ready · Prova convertita",
+      subject: "🟢 CF Ready · Piano approvato durante la prova",
       body_text: expect.stringContaining(
         `Nome: Prova convertita\nURL: https://${converted.shop}\n\n` +
-          `🧪 Prova\nStato: Convertita\nPiano: Annuale`,
+          `🧪 Prova\nStato: Piano approvato\nPiano: Annuale`,
       ),
     },
   ]);
@@ -1234,19 +1598,52 @@ function oneTime(type: string, shop: string, time: string) {
 }
 
 function billing(id: string, interval: "EVERY_30_DAYS" | "ANNUAL", amount: string) {
+  const subscription = {
+    id,
+    name:
+      interval === "ANNUAL" ? "CF Ready — abbonamento annuale" : "CF Ready — abbonamento mensile",
+    status: "ACTIVE" as const,
+    createdAt: "2026-08-24T09:59:00.000Z",
+    trialDays: 0,
+    test: false,
+    currentPeriodEnd: "2027-08-24T09:59:00.000Z",
+    interval,
+    amount,
+    currency: "EUR",
+  };
   return {
-    subscription: {
-      id,
-      name:
-        interval === "ANNUAL" ? "CF Ready — abbonamento annuale" : "CF Ready — abbonamento mensile",
-      currentPeriodEnd: "2027-08-24T09:59:00.000Z",
-      interval,
-      amount,
-      currency: "EUR",
-    },
+    subscription,
+    latestSubscription: subscription,
     oneTime: null,
     pendingOneTime: false,
   };
+}
+
+function financialNode(
+  type: "AppSubscriptionSale" | "AppOneTimeSale" | "AppSaleAdjustment" | "AppSaleCredit",
+  id: string,
+  chargeId: string,
+  shop: string,
+  amount: string,
+  currencyCode: string,
+) {
+  return {
+    cursor: id,
+    node: {
+      __typename: type,
+      id,
+      chargeId,
+      createdAt: "2026-08-22T10:00:00.000Z",
+      grossAmount: { amount, currencyCode },
+      shop: { myshopifyDomain: shop },
+    },
+  };
+}
+
+function financialResponse(edges: ReturnType<typeof financialNode>[]) {
+  return Response.json({
+    data: { transactions: { edges, pageInfo: { hasNextPage: false } } },
+  });
 }
 
 async function insertTrialShop(shop: string, status: "active" | "expired" | "converted") {

@@ -470,8 +470,8 @@ confronta con il contenuto servito all’edge.
 | D-048 | Manual Pricing tramite Shopify Billing API. | Shopify App Pricing non supporta acquisti una tantum. |
 | D-049 | Cambio mensile/annuale con comportamento Shopify standard. | Nessun calcolo parallelo. |
 | D-050 | Cancellazione ordinaria a fine periodo, senza credito pro-rata. | Comportamento normale; configurazione conservata. |
-| D-051 | Passaggio a una tantum: prima approvazione acquisto, poi cancellazione con proratazione. | Se l’acquisto fallisce l’abbonamento resta attivo. |
-| D-052 | Credito solo per quota non usata del ciclo corrente. | Nessun credito storico per mesi o anni già consumati. |
+| D-051 | Passaggio a una tantum: prima approvazione acquisto, poi cancellazione con proratazione e ricevuta locale minimizzata della conversione. | Se l’acquisto fallisce l’abbonamento resta attivo. La ricevuta distingue richiesta, cancellazione, vendita dell’abbonamento sostituito e credito Partner osservato; conserva solo ID tecnico, tipo, importo, valuta e timestamp necessari alla riconciliazione. |
+| D-052 | Credito solo per quota non usata del ciclo corrente; stato del contratto, vendita Partner osservata, incasso della fattura, payout e credito osservato sono fatti distinti. | Nessun credito storico per mesi o anni già consumati. `ACTIVE` prova il contratto Shopify, non una vendita Partner, una fattura riscossa o un payout liquidato. Dopo 37 giorni senza vendita o credito osservabile si apre un incidente owner. Per il primo ciclo il riferimento verificabile è l’evento Partner di accettazione o attivazione; per trial e rinnovi è l’inizio del ciclo fatturabile, se successivo. La soglia, confermata da Shopify Support, è solo operativa e non concede né prolunga l’accesso. `FROZEN`, `EXPIRED`, `DECLINED` e l’assenza della risorsa non ereditano periodi contrattuali dalla cache. |
 | D-053 | Rimborso una tantum manuale, non automatico. | Trial già disponibile; eccezioni valutate per duplicati o problemi gravi. |
 | D-054 | Una tantum legata allo store e non trasferibile. | Il diritto sopravvive alla reinstallazione dello stesso store. |
 | D-055 | Una tantum include aggiornamenti della stessa app. | Evita frammentazione; non comunicare roadmap o versioni future. |
@@ -1875,6 +1875,9 @@ rename, copia completa e rimozione della sola tabella precedente coincidono.
 | `0021_address2_hidden_mode.sql`        | variante nascosta della seconda riga indirizzo                                              |
 | `0022_configuration_history.sql`       | cronologia configurazioni minimizzata e cascade privacy                                     |
 | `0023_owner_operational_incidents.sql` | stato incidenti operativi e tipi outbox apertura/risoluzione                                |
+| `0024_installation_diagnostics.sql`     | diagnostica minimizzata installazione e feedback disinstallazione                           |
+| `0025_webhook_monitor_indexes.sql`      | indici per il monitoraggio limitato dei webhook                                              |
+| `0026_billing_observability.sql`        | stato Shopify e test, osservazioni finanziarie, conversioni e incidenti billing              |
 
 Il gate migrazioni usa binding D1 isolati per gli snapshot intermedi, applica
 la sequenza completa con Wrangler locale, verifica schema, vincoli, indici,
@@ -2166,6 +2169,30 @@ Flusso:
 10. aggiorna entitlement;
 11. in caso di acquisto abbandonato, lascia la sottoscrizione invariata.
 
+La riconciliazione legge anche le sottoscrizioni non attive, conserva stato Shopify e
+flag `test`, e nega subito il diritto quando lo stato più recente è `FROZEN`, `EXPIRED`
+o `DECLINED`. Lo stato `ending` richiede inoltre una cancellazione ordinaria richiesta
+dall'app, confermata da Shopify e legata allo stesso `currentPeriodEnd`: una risorsa
+`CANCELLED` esterna o ambigua non inventa accesso residuo. Il Control Center presenta
+separatamente diritto, contratto Shopify, addebito di test, vendita Partner osservata e
+credito della conversione; fattura merchant riscossa e payout liquidato restano prove
+manuali del Partner Dashboard. Il poll finanziario Partner lega ogni vendita al charge
+e al ciclo corrente; per la conversione conserva una
+ricevuta minimizzata con ID tecnico, tipo, importo, valuta e timestamp. Una rettifica
+con charge, importo o valuta incompatibili passa a revisione invece di confermare il
+credito. Dopo 37 giorni senza vendita o credito osservabile apre un alert Telegram owner
+e lo risolve quando l'osservazione arriva. Il riferimento è l'accettazione o attivazione
+Partner e, se successivo, l'inizio del ciclo fatturabile per trial e rinnovi. La prova
+gratuita resta quella comune di 14 giorni definita da D-044 e non usa questa finestra
+finanziaria come estensione.
+
+La riconciliazione Admin API non dipende dalle notifiche Telegram: il ciclo periodico
+seleziona gli account obsoleti, incluse per prime le righe storiche con `is_test` ignoto,
+usa la sessione offline e registra tentativo ed errore senza dedurre lo stato dalle
+transazioni Partner. Le conversioni storiche ricostruibili da acquisto una tantum attivo
+e sottoscrizione cancellata restano `needs_review`; non generano retroattivamente né una
+cancellazione ordinaria né un credito.
+
 Formula informativa:
 
 ```text
@@ -2182,6 +2209,9 @@ Non generano credito:
 - tasse.
 
 Il calcolo visibile è una stima: Shopify resta la fonte dell’importo effettivo.
+L'interfaccia mostra sempre il prezzo integrale del pagamento unico e il credito come
+movimento separato, con stato `in attesa`, `confermato`, `non applicabile` o `da
+verificare`; non presenta il credito stimato come sconto immediato o costo netto.
 
 ### 14.9 Cancellazione ordinaria
 
@@ -2200,6 +2230,12 @@ Il calcolo visibile è una stima: Shopify resta la fonte dell’importo effettiv
 - normalmente nessun rimborso per ripensamento dopo la prova;
 - rimborso totale di una tantum revoca il diritto;
 - rimborso parziale mantiene il diritto salvo accordo diverso;
+- prima di un rimborso parziale verificare nel Partner Dashboard eventuali crediti o
+  rettifiche già applicati, per evitare un doppio beneficio;
+- rimborsare soltanto charge già pagate; una charge non pagata richiede un credito;
+- la commissione di elaborazione Shopify non viene restituita;
+- ogni eccezione segue il runbook di riconciliazione finanziaria e conserva una prova
+  manuale di fattura, rettifiche e payout;
 - policy definitiva approvata dall'owner il 2 agosto 2026.
 
 ### 14.11 Comunicazione “Un solo pagamento”
