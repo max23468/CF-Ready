@@ -383,7 +383,7 @@ export const it = {
     oneTimeStart: "Scegli un solo pagamento",
     cancelRenewal: "Cancella il rinnovo",
     cancelBody:
-      "L’accesso resta fino alla fine del periodo già pagato, senza rimborsi parziali. Regole e messaggi restano salvati.",
+      "Se Shopify conferma la cancellazione ordinaria, l’accesso resta fino alla fine del periodo contrattuale corrente, senza credito pro-rata. Regole e messaggi restano salvati.",
     firstCharge: (date: string) =>
       `Se attivi oggi, il primo addebito è il ${date}: i giorni di prova che restano non li perdi.`,
     firstChargeNow: "L’addebito parte alla tua approvazione su Shopify.",
@@ -405,17 +405,28 @@ export const it = {
     generationLaunch: "A questo store sono riservati i prezzi di lancio.",
     generationStandard: "A questo store si applicano i prezzi standard.",
     nextCharge: (date: string) => `Prossimo addebito il ${date}.`,
-    periodEnds: (date: string) => `Il periodo pagato finisce il ${date}.`,
+    periodEnds: (date: string) => `Il periodo contrattuale corrente finisce il ${date}.`,
     lastAttempt:
       "L’ultima lettura dello stato commerciale non è riuscita. Il checkout non viene bloccato: riapri la pagina fra qualche minuto.",
-    netCost: (amount: string) => `Costo netto stimato oggi: ${amount}.`,
+    oneTimeFullCharge: (amount: string) =>
+      `Shopify addebita per intero il pagamento unico di ${amount}.`,
     endingAlready:
-      "Il rinnovo è già stato cancellato: l’accesso resta fino alla fine del periodo pagato.",
+      "Shopify ha confermato la cancellazione ordinaria: l’accesso resta fino alla fine del periodo contrattuale corrente.",
     monthlyName: "Mensile",
     annualName: "Annuale",
     oneTimeName: "Un solo pagamento",
-    creditEstimate: (amount: string) =>
-      `Credito stimato sul periodo non usufruito: ${amount}. È una stima: nella fattura Shopify l’acquisto può comparire a prezzo pieno e il credito separatamente, e l’importo effettivo è quello calcolato da Shopify.`,
+    creditPending: (amount: string | null) =>
+      amount
+        ? `Credito separato stimato sul periodo non usufruito: ${amount}. La conferma e l’importo effettivo dipendono dalla registrazione finanziaria di Shopify.`
+        : "Il credito separato richiesto a Shopify è in attesa di conferma finanziaria.",
+    creditConfirmed: (amount: string | null) =>
+      amount
+        ? `Credito separato confermato nei dati finanziari Shopify: ${amount}.`
+        : "Credito separato confermato nei dati finanziari Shopify.",
+    creditNotApplicable:
+      "Nessun credito da emettere: il passaggio è avvenuto durante la prova gratuita, prima di un addebito dell’abbonamento.",
+    creditNeedsReview:
+      "Il credito richiede una verifica manuale: i dati finanziari Shopify non coincidono con la stima.",
   },
   rules: {
     heading: "Regole checkout",

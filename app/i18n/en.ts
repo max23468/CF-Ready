@@ -380,7 +380,7 @@ export const en: typeof it = {
     oneTimeStart: "Choose one payment",
     cancelRenewal: "Cancel renewal",
     cancelBody:
-      "Access stays until the end of the period you already paid for, with no partial refund. Your rules and messages stay saved.",
+      "If Shopify confirms the standard cancellation, access stays until the end of the current contract period, with no prorated credit. Your rules and messages stay saved.",
     firstCharge: (date: string) =>
       `If you start today, the first charge is on ${date}: you keep the trial days you have left.`,
     firstChargeNow: "The charge starts as soon as you approve it on Shopify.",
@@ -400,17 +400,28 @@ export const en: typeof it = {
     generationLaunch: "Launch prices are reserved for this store.",
     generationStandard: "Standard prices apply to this store.",
     nextCharge: (date: string) => `Next charge on ${date}.`,
-    periodEnds: (date: string) => `The paid period ends on ${date}.`,
+    periodEnds: (date: string) => `The current contract period ends on ${date}.`,
     lastAttempt:
       "The last read of your billing status failed. Checkout isn’t blocked: reload the page in a few minutes.",
-    netCost: (amount: string) => `Estimated net cost today: ${amount}.`,
+    oneTimeFullCharge: (amount: string) =>
+      `Shopify charges the full one-time payment of ${amount}.`,
     endingAlready:
-      "The renewal is already cancelled: access stays until the end of the period you paid for.",
+      "Shopify confirmed the standard cancellation: access stays until the end of the current contract period.",
     monthlyName: "Monthly",
     annualName: "Annual",
     oneTimeName: "One payment",
-    creditEstimate: (amount: string) =>
-      `Estimated credit for the unused period: ${amount}. It’s an estimate: on the Shopify invoice the purchase can appear at full price with the credit listed separately, and the actual amount is the one Shopify calculates.`,
+    creditPending: (amount: string | null) =>
+      amount
+        ? `Separate estimated credit for the unused period: ${amount}. Confirmation and the final amount depend on Shopify's financial record.`
+        : "The separate credit requested from Shopify is awaiting financial confirmation.",
+    creditConfirmed: (amount: string | null) =>
+      amount
+        ? `Separate credit confirmed in Shopify financial data: ${amount}.`
+        : "Separate credit confirmed in Shopify financial data.",
+    creditNotApplicable:
+      "No credit is due: the switch happened during the free trial, before a subscription charge.",
+    creditNeedsReview:
+      "The credit needs manual review: Shopify's financial data doesn't match the estimate.",
   },
   rules: {
     heading: "Checkout rules",

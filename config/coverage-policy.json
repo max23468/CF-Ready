@@ -31,6 +31,7 @@
           "files": [
             "app/billing/commercial-entitlement.server.ts",
             "app/billing/domain.ts",
+            "app/billing/periodic-reconciliation.server.ts",
             "app/billing/repository.server.ts",
             "app/billing/shopify.server.ts"
           ]

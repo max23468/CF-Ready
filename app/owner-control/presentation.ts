@@ -25,6 +25,16 @@ const DATE = new Intl.DateTimeFormat("it-IT", {
 });
 const MONEY = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" });
 
+function formatMinorMoney(amountMinor: number, currency: string) {
+  try {
+    return new Intl.NumberFormat("it-IT", { style: "currency", currency }).format(
+      Math.abs(amountMinor) / 100,
+    );
+  } catch {
+    return `${Math.abs(amountMinor) / 100} ${currency}`;
+  }
+}
+
 export function dashboardMessage(
   data: Record<string, number | string | null | undefined>,
   growth?: { days7: Record<string, number>; days28: Record<string, number>; cachedAt: string },
@@ -119,8 +129,28 @@ export function shopMessage(
       section("💳 Commerciale", [
         ["Diritto", entitlement(shop)],
         ["Piano", planLabel(shop.plan_kind)],
+        ["Contratto Shopify", label(shop.shopify_status)],
+        [
+          "Addebito di test",
+          shop.billing_is_test === null ? "—" : shop.billing_is_test ? "Sì" : "No",
+        ],
         ["Trial", trialLabel(shop.trial_status)],
+        ["Periodo dal", formatDate(shop.current_period_start)],
         ["Scadenza", formatDate(shop.current_period_end ?? shop.trial_ends_at)],
+        ["Vendita Partner osservata", formatDate(shop.sale_observed_at)],
+        ["Ultimo controllo Partner", formatDate(shop.sale_checked_at)],
+        ["Fattura merchant riscossa", "Non osservabile via API"],
+        ["Payout liquidato", "Non osservabile via API"],
+        ["Ultima riconciliazione", formatDate(shop.last_reconciled_at)],
+        ["Credito conversione", creditStatusLabel(shop.conversion_credit_status)],
+        [
+          "Rettifica osservata",
+          shop.conversion_credit_amount_minor === null || !shop.conversion_credit_currency
+            ? "—"
+            : `${formatMinorMoney(shop.conversion_credit_amount_minor, shop.conversion_credit_currency)} · ${label(shop.conversion_credit_transaction_type)}`,
+        ],
+        ["Data rettifica", formatDate(shop.conversion_credit_observed_at)],
+        ["Vendita piano sostituito", formatDate(shop.conversion_subscription_sale_observed_at)],
       ]),
       ...(activity.length
         ? [
@@ -251,6 +281,7 @@ export function billingMessage(
       ...(revenue && "cachedAt" in revenue
         ? [`ricavi Partner ${formatDate(revenue.cachedAt)}`]
         : []),
+      "le transazioni Partner non provano che la fattura merchant sia riscossa o il payout liquidato",
     ].join(" · "),
   );
 }
@@ -674,10 +705,20 @@ function filterLabel(filter: ShopsFilter) {
   return {
     all: "Tutti",
     trial: "Trial",
-    paid: "Paganti",
+    paid: "Piano attivo verificato",
     validation_off: "Validation non attiva",
     issues: "Con problemi",
   }[filter];
+}
+function creditStatusLabel(input: string | null) {
+  return (
+    {
+      pending: "In attesa di osservazione",
+      confirmed: "Osservato",
+      not_applicable: "Non applicabile",
+      needs_review: "Da verificare",
+    }[input ?? ""] ?? "—"
+  );
 }
 function installationLabel(input: string | null) {
   return (
@@ -708,7 +749,8 @@ function planLabel(input: string | null) {
 }
 function trialLabel(input: string | null) {
   return (
-    { active: "Attiva", expired: "Scaduta", converted: "Convertita" }[input ?? ""] ?? label(input)
+    { active: "Attiva", expired: "Scaduta", converted: "Piano approvato" }[input ?? ""] ??
+    label(input)
   );
 }
 // I codici tecnici non mappati restano leggibili tramite `label`.
@@ -729,7 +771,7 @@ function eventLabel(input: string) {
       subscription_cancelled: "Abbonamento annullato",
       subscription_converted: "Abbonamento convertito",
       support_diagnostics_copied: "Diagnostica copiata",
-      trial_converted: "Prova convertita",
+      trial_converted: "Piano approvato durante la prova",
       trial_expired: "Prova scaduta",
       trial_started: "Prova avviata",
       validation_disabled: "Validation disattivata",

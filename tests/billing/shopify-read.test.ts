@@ -18,6 +18,8 @@ test("una sottoscrizione attiva Shopify vale anche quando la review la marca com
               id: "gid://shopify/AppSubscription/99",
               name: "launch-monthly",
               status: "ACTIVE",
+              createdAt: "2026-08-01T08:00:00Z",
+              trialDays: 0,
               test,
               currentPeriodEnd: "2026-08-31T21:59:59Z",
               lineItems: [
@@ -32,6 +34,10 @@ test("una sottoscrizione attiva Shopify vale anche quando la review la marca com
               ],
             },
           ],
+          allSubscriptions: {
+            nodes: [],
+            pageInfo: { hasNextPage: false, endCursor: null },
+          },
           oneTimePurchases: {
             nodes: [],
             pageInfo: { hasNextPage: false, endCursor: null },
@@ -77,11 +83,15 @@ test("la lettura pagina tutti gli acquisti e riconosce quelli pendenti", async (
   ];
   const admin = {
     graphql: async (_query: string, options?: { variables?: Record<string, unknown> }) => {
-      after.push(options?.variables?.after);
+      after.push(options?.variables?.purchaseAfter);
       return Response.json({
         data: {
           currentAppInstallation: {
             activeSubscriptions: [],
+            allSubscriptions: {
+              nodes: [],
+              pageInfo: { hasNextPage: false, endCursor: null },
+            },
             oneTimePurchases: pages.shift(),
           },
         },
@@ -102,6 +112,10 @@ test("la lettura rifiuta una paginazione acquisti senza cursore", async () => {
       { graphql: async () => Promise.reject(new Error("non deve interrogare Shopify")) },
       {
         activeSubscriptions: [],
+        allSubscriptions: {
+          nodes: [],
+          pageInfo: { hasNextPage: false, endCursor: null },
+        },
         oneTimePurchases: {
           nodes: [],
           pageInfo: { hasNextPage: true, endCursor: null },
@@ -120,21 +134,46 @@ test("una sottoscrizione senza pricing leggibile resta autorevole ma non inventa
           id: "gid://shopify/AppSubscription/senza-pricing",
           name: "Piano storico",
           status: "ACTIVE",
+          createdAt: "2026-08-01T08:00:00Z",
+          trialDays: 0,
+          test: true,
           currentPeriodEnd: null,
           lineItems: [],
         },
       ],
+      allSubscriptions: {
+        nodes: [],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      },
       oneTimePurchases: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
     },
   );
   expect(billing.subscription).toEqual({
     id: "gid://shopify/AppSubscription/senza-pricing",
     name: "Piano storico",
+    status: "ACTIVE",
+    createdAt: "2026-08-01T08:00:00Z",
+    trialDays: 0,
+    test: true,
     currentPeriodEnd: null,
     interval: null,
     amount: null,
     currency: null,
   });
+
+  await expect(
+    readBilling(
+      { graphql: async () => Promise.reject(new Error("non deve interrogare Shopify")) },
+      {
+        activeSubscriptions: [{ ...billing.subscription!, status: "UNKNOWN", lineItems: [] }],
+        allSubscriptions: {
+          nodes: [],
+          pageInfo: { hasNextPage: false, endCursor: null },
+        },
+        oneTimePurchases: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
+      },
+    ),
+  ).rejects.toMatchObject({ status: 502 });
 });
 
 test("la generazione cambia solo dopo una cessazione commerciale completa", async () => {
@@ -149,6 +188,9 @@ test("la generazione cambia solo dopo una cessazione commerciale completa", asyn
     plan_kind: "monthly" as const,
     pricing_generation: "launch" as const,
     shopify_charge_gid: "gid://shopify/AppSubscription/generation",
+    shopify_status: "ACTIVE" as const,
+    is_test: 0,
+    current_period_start: "2026-12-01",
     current_period_end: "2026-12-31",
   };
 
@@ -200,11 +242,12 @@ test("il credito stimato copre solo il ciclo corrente", () => {
   const mensile = {
     amount: "2.99",
     interval: "EVERY_30_DAYS" as const,
+    periodStart: "2026-08-01",
     periodEnd: "2026-08-31",
   };
 
   // Metà ciclo residuo su trenta giorni.
-  expect(proratedCredit({ ...mensile, today: "2026-08-16" })).toBeCloseTo(1.495, 3);
+  expect(proratedCredit({ ...mensile, today: "2026-08-16" })).toBe(1.5);
   // Ciclo concluso: nessun credito, e nessun cumulo dai cicli precedenti.
   expect(proratedCredit({ ...mensile, today: "2026-08-31" })).toBe(0);
   expect(proratedCredit({ ...mensile, today: "2026-09-10" })).toBe(0);
@@ -212,11 +255,36 @@ test("il credito stimato copre solo il ciclo corrente", () => {
     proratedCredit({
       amount: "29.90",
       interval: "ANNUAL",
+      periodStart: "2026-07-31",
       periodEnd: "2027-07-31",
       today: "2027-06-01",
     }),
-  ).toBeCloseTo(4.915, 3);
+  ).toBe(4.92);
   expect(
     proratedCredit({ amount: null, interval: null, periodEnd: null, today: "2026-08-16" }),
+  ).toBeNull();
+  expect(
+    proratedCredit({
+      amount: null,
+      interval: "EVERY_30_DAYS",
+      periodEnd: "2026-08-31",
+      today: "2026-08-16",
+    }),
+  ).toBeNull();
+  expect(
+    proratedCredit({
+      amount: "2.99",
+      interval: null,
+      periodEnd: "2026-08-31",
+      today: "2026-08-16",
+    }),
+  ).toBeNull();
+  expect(
+    proratedCredit({
+      amount: "2.99",
+      interval: "EVERY_30_DAYS",
+      periodEnd: null,
+      today: "2026-08-16",
+    }),
   ).toBeNull();
 });

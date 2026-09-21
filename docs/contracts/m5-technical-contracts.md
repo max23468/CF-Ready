@@ -69,7 +69,7 @@ descrive la transazione, non il diritto autorevole dell'installazione corrente.
 | Stato | Quando |
 | --- | --- |
 | `active` | sottoscrizione o acquisto una tantum attivi su Shopify |
-| `ending` | sottoscrizione cancellata, periodo pagato non ancora concluso |
+| `ending` | cancellazione ordinaria richiesta dall'app e confermata da Shopify, periodo contrattuale non ancora concluso |
 | `expired` | periodo concluso senza rinnovo |
 | `refunded` | l'acquisto una tantum non risulta più attivo: gli acquisti non scadono, quindi è stato rimborsato per intero |
 | `none` | nessun addebito mai osservato |

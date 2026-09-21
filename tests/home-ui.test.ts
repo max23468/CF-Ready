@@ -104,6 +104,51 @@ test("il piano omaggio non viene presentato come un pagamento", () => {
   ).toBe(true);
 });
 
+test("il pagamento unico distingue gli stati del credito osservato", () => {
+  const base = {
+    ...data,
+    entitlement: { kind: "one_time", validThrough: null },
+    complimentary: false,
+  } as Parameters<typeof PlanChoice>[0]["data"];
+  const cases = [
+    {
+      conversionCredit: { actual: 5, estimate: 4, currency: "EUR", status: "confirmed" },
+      expected: texts("it").plan.creditConfirmed("5,00 €"),
+    },
+    {
+      conversionCredit: { actual: null, estimate: null, currency: null, status: "not_applicable" },
+      expected: texts("it").plan.creditNotApplicable,
+    },
+    {
+      conversionCredit: { actual: null, estimate: 4, currency: "EUR", status: "needs_review" },
+      expected: texts("it").plan.creditNeedsReview,
+    },
+    {
+      conversionCredit: { actual: null, estimate: 4, currency: "EUR", status: "pending" },
+      expected: texts("it").plan.creditPending("4,00 €"),
+    },
+  ] as const;
+
+  for (const item of cases) {
+    const rendered = renderedElements(
+      PlanChoice({
+        data: { ...base, conversionCredit: item.conversionCredit },
+        busy: false,
+        pendingIntent: null,
+        submit: vi.fn(),
+        firstCharge: "oggi",
+      }),
+    );
+    expect(
+      rendered.some(
+        (element) =>
+          element.type === "s-paragraph" &&
+          (element.props as { children?: ReactNode }).children === item.expected,
+      ),
+    ).toBe(true);
+  }
+});
+
 test("la disattivazione invia l'intent soltanto dall'azione primaria", () => {
   const submit = vi.fn();
   const rendered = elements(DeactivateModal({ pendingIntent: null, submit, t: texts("it") }));

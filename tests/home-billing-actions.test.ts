@@ -5,7 +5,10 @@ const mocks = vi.hoisted(() => ({
   authenticate: vi.fn(),
   cancelSubscription: vi.fn(),
   dismissMerchantCheckIn: vi.fn(),
+  markOrdinaryCancellationConfirmed: vi.fn(),
+  queryContext: vi.fn(),
   readBilling: vi.fn(),
+  recordOrdinaryCancellationIntent: vi.fn(),
   reconcile: vi.fn(),
   recordEvent: vi.fn(),
   withValidationLock: vi.fn(),
@@ -18,7 +21,9 @@ vi.mock("../app/shopify.server", () => ({
 vi.mock("../app/billing.server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../app/billing.server")>()),
   cancelSubscription: mocks.cancelSubscription,
+  markOrdinaryCancellationConfirmed: mocks.markOrdinaryCancellationConfirmed,
   readBilling: mocks.readBilling,
+  recordOrdinaryCancellationIntent: mocks.recordOrdinaryCancellationIntent,
 }));
 
 vi.mock("../app/events.server", async (importOriginal) => ({
@@ -30,10 +35,15 @@ vi.mock("../app/events.server", async (importOriginal) => ({
 vi.mock("../app/validation.server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../app/validation.server")>()),
   reconcile: mocks.reconcile,
+  queryContext: mocks.queryContext,
   withValidationLock: mocks.withValidationLock,
 }));
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.queryContext.mockResolvedValue({ shop: { ianaTimezone: "Europe/Rome" } });
+  mocks.recordOrdinaryCancellationIntent.mockResolvedValue(true);
+});
 
 test("la riparazione ripete la riconciliazione autorevole", async () => {
   const admin = {};

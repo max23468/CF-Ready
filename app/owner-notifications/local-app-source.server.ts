@@ -173,10 +173,11 @@ async function trialNotification(db: D1Database, event: LocalNotificationEvent) 
       plan: "Prova gratuita (terminata)",
     },
     trial_converted: {
-      subject: "🟢 CF Ready · Prova convertita",
-      description: "La prova gratuita è stata convertita in un piano a pagamento.",
-      status: "Convertita",
-      plan: planLabel(event.plan_kind) ?? "Piano a pagamento",
+      subject: "🟢 CF Ready · Piano approvato durante la prova",
+      description:
+        "Il merchant ha approvato un piano Shopify durante la prova. Questo evento non prova che il pagamento sia già stato riscosso.",
+      status: "Piano approvato",
+      plan: planLabel(event.plan_kind) ?? "Piano Shopify",
     },
   }[event.event_name as "trial_started" | "trial_expired" | "trial_converted"];
   const shopDomain = normalizeShopDomain(event.shop_domain);

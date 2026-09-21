@@ -4,20 +4,46 @@ import { cancelSubscription, markTrialConverted, startTrial } from "../../app/bi
 import { insertShop } from "../support/billing";
 
 test("la cancellazione riporta un errore invece di fingere il successo", async () => {
+  const calls: Array<{ variables?: Record<string, unknown> }> = [];
   const risposta = (userErrors: { message: string }[]) => ({
     json: async () => ({ data: { appSubscriptionCancel: { userErrors } } }),
   });
 
   expect(
     await cancelSubscription(
-      { graphql: async () => risposta([]) as unknown as Response },
+      {
+        graphql: async (_query, options) => {
+          calls.push(options ?? {});
+          return risposta([]) as unknown as Response;
+        },
+      },
       "gid://shopify/AppSubscription/50",
       { prorate: false },
     ),
   ).toBeNull();
+  expect(calls).toEqual([
+    {
+      variables: { id: "gid://shopify/AppSubscription/50", prorate: false },
+    },
+  ]);
   expect(
     await cancelSubscription(
       { graphql: async () => risposta([{ message: "non cancellabile" }]) as unknown as Response },
+      "gid://shopify/AppSubscription/50",
+      { prorate: true },
+    ),
+  ).toBe("subscription_cancel_failed");
+  expect(
+    await cancelSubscription(
+      {
+        graphql: async () =>
+          ({
+            json: async () => ({
+              data: { appSubscriptionCancel: { userErrors: [] } },
+              errors: [{ message: "errore top-level" }],
+            }),
+          }) as unknown as Response,
+      },
       "gid://shopify/AppSubscription/50",
       { prorate: true },
     ),
