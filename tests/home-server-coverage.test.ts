@@ -377,6 +377,12 @@ test("la cancellazione copre gli stati terminali, il lock e gli errori", async (
     pendingOneTime: false,
     subscription: { id: "gid://shopify/AppSubscription/1" },
   });
+  mocks.recordOrdinaryCancellationIntent.mockResolvedValueOnce(false);
+  await expect(action(actionRequest("cancel"))).resolves.toEqual({
+    ok: false,
+    errorCode: "cancel_failed",
+  });
+
   mocks.cancelSubscription.mockResolvedValueOnce(true);
   await expect(action(actionRequest("cancel"))).resolves.toEqual({
     ok: false,

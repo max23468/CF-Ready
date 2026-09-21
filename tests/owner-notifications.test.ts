@@ -204,6 +204,17 @@ test("le osservazioni finanziarie distinguono contratto, pagamento e credito pro
                 shop: { myshopifyDomain: shop },
               },
             },
+            {
+              cursor: "vendita-una-tantum",
+              node: {
+                __typename: "AppOneTimeSale",
+                id: "gid://partners/AppOneTimeSale/1",
+                chargeId: "gid://shopify/AppPurchaseOneTime/aggiustamento",
+                createdAt: "2026-08-23T10:00:01.000Z",
+                grossAmount: null,
+                shop: { myshopifyDomain: shop },
+              },
+            },
           ],
           pageInfo: { hasNextPage: false },
         },
@@ -216,7 +227,7 @@ test("le osservazioni finanziarie distinguono contratto, pagamento e credito pro
       now: NOW,
       fetcher: fetcher as typeof fetch,
     }),
-  ).resolves.toEqual({ observed: 4, checkedAt: NOW.toISOString() });
+  ).resolves.toEqual({ observed: 5, checkedAt: NOW.toISOString() });
   expect(
     await env.DB.prepare(
       `SELECT sale_observed_at, sale_checked_at, sale_transaction_gid,
@@ -463,6 +474,22 @@ test("il poll finanziario pagina gli aggiustamenti e rifiuta payload incompleti"
             },
           },
         }),
+      ) as typeof fetch,
+    }),
+  ).rejects.toThrow("partner_api_invalid_financial_transaction");
+  await expect(
+    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
+      fetcher: vi.fn(async () =>
+        financialResponse([
+          financialNode(
+            "AppSaleCredit",
+            "gid://partners/AppSaleCredit/invalid",
+            "gid://shopify/AppSubscription/aggiustamento",
+            shop,
+            "1.00",
+            "euro",
+          ),
+        ]),
       ) as typeof fetch,
     }),
   ).rejects.toThrow("partner_api_invalid_financial_transaction");

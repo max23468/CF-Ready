@@ -299,6 +299,15 @@ test("la cancellazione lascia l'accesso fino a fine periodo e poi scade", async 
     await recordOrdinaryCancellationIntent(
       env.DB,
       shop,
+      { ...attivo.subscription, currentPeriodEnd: null },
+      opzioni.today,
+      opzioni.timeZone,
+    ),
+  ).toBe(false);
+  expect(
+    await recordOrdinaryCancellationIntent(
+      env.DB,
+      shop,
       attivo.subscription,
       opzioni.today,
       opzioni.timeZone,

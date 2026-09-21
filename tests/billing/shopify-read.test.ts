@@ -160,6 +160,20 @@ test("una sottoscrizione senza pricing leggibile resta autorevole ma non inventa
     amount: null,
     currency: null,
   });
+
+  await expect(
+    readBilling(
+      { graphql: async () => Promise.reject(new Error("non deve interrogare Shopify")) },
+      {
+        activeSubscriptions: [{ ...billing.subscription!, status: "UNKNOWN", lineItems: [] }],
+        allSubscriptions: {
+          nodes: [],
+          pageInfo: { hasNextPage: false, endCursor: null },
+        },
+        oneTimePurchases: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
+      },
+    ),
+  ).rejects.toMatchObject({ status: 502 });
 });
 
 test("la generazione cambia solo dopo una cessazione commerciale completa", async () => {

@@ -406,6 +406,17 @@ describe("presentazione Telegram", () => {
       shopFixture({ entitlement_status: null, trial_status: null, config_hash: null }),
     ];
     for (const shop of variants) expect(shopMessage(shop).richMessage.blocks).toBeTruthy();
+    expect(
+      JSON.stringify(
+        shopMessage(
+          shopFixture({
+            conversion_credit_amount_minor: -125,
+            conversion_credit_currency: "INVALID",
+            conversion_credit_transaction_type: "AppSaleCredit",
+          }),
+        ),
+      ),
+    ).toContain("1.25 INVALID");
     const uninstalled = JSON.stringify(
       shopMessage(
         shopFixture({
@@ -1601,7 +1612,7 @@ describe("query D1 e run-rate", () => {
            sale_checked_at, charge_accepted_at, created_at, updated_at
          ) VALUES (1, 'active', 'annual', 'balanced', 'gid://shopify/AppSubscription/alert',
                    'ACTIVE', 0, ?, ?, ?, ?, ?, ?)`,
-      ).bind(old, NOW.toISOString(), NOW.toISOString(), old, old, old),
+      ).bind(old, old, NOW.toISOString(), old, old, old),
       env.DB.prepare(
         `INSERT INTO billing_conversions (
            shop_id, subscription_gid, one_time_gid, credit_estimate_minor, currency,
@@ -1625,16 +1636,34 @@ describe("query D1 e run-rate", () => {
         {
           subject: "🔴 CF Ready · Vendita del piano sostituito non osservata dopo 37 giorni",
         },
+        { subject: "🔴 CF Ready · Billing Shopify da riconciliare" },
       ],
     });
+
+    await env.DB.prepare(
+      `UPDATE billing_conversions
+          SET credit_status = 'needs_review',
+              credit_transaction_gid = 'gid://partners/AppSaleAdjustment/alert',
+              credit_transaction_type = 'AppSaleAdjustment',
+              credit_observed_at = ?, credit_amount_minor = -1500
+        WHERE shop_id = 1`,
+    )
+      .bind(NOW.toISOString())
+      .run();
+    await reconcileOwnerIncidents(env.DB, new Date(NOW.getTime() + 30_000));
+    expect(
+      await env.DB.prepare(
+        "SELECT subject FROM owner_notifications WHERE subject = '🔴 CF Ready · Credito pro-rata da verificare'",
+      ).first("subject"),
+    ).toBe("🔴 CF Ready · Credito pro-rata da verificare");
 
     await env.DB.batch([
       env.DB.prepare(
         `UPDATE billing_accounts
               SET sale_observed_at = ?, sale_charge_gid = shopify_charge_gid,
-                  sale_cycle_start = current_period_start
+                  sale_cycle_start = current_period_start, last_reconciled_at = ?
             WHERE shop_id = 1`,
-      ).bind(NOW.toISOString()),
+      ).bind(NOW.toISOString(), NOW.toISOString()),
       env.DB.prepare(
         `UPDATE billing_conversions
             SET credit_status = 'confirmed',
@@ -1648,7 +1677,7 @@ describe("query D1 e run-rate", () => {
       await env.DB.prepare(
         "SELECT status, COUNT(*) AS count FROM owner_operational_incidents WHERE incident_kind = 'billing' GROUP BY status",
       ).all(),
-    ).toMatchObject({ results: [{ status: "resolved", count: 3 }] });
+    ).toMatchObject({ results: [{ status: "resolved", count: 5 }] });
   });
 
   test("rifiuta letture incidenti incomplete e ignora store già rimossi", async () => {
