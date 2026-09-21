@@ -9,7 +9,7 @@ import {
   CHECKOUT_LABEL_OPTIONAL_SCOPES,
   loadCheckoutLabels,
 } from "../checkout-labels/service.server";
-import { authenticateAdmin } from "../admin-auth.server";
+import { authenticateAdminTimed } from "../admin-auth.server";
 import {
   DEFAULT_CONFIG,
   MESSAGE_KEYS,
@@ -45,9 +45,7 @@ import {
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
-  const { admin, session, scopes } = await timing.measure("auth", () =>
-    authenticateAdmin(request, context),
-  );
+  const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);
   const validation = findValidation(
     (await timing.measure("shopify_context", () => queryContext(admin))).validations.nodes,
   );

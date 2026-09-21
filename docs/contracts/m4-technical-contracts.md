@@ -126,7 +126,7 @@ payload o dati merchant.
 | `shop_redacted` | `lifecycle` | dati dello store eliminati |
 | `shop_redact_skipped` | `lifecycle` | `shop/redact` per uno store che ha reinstallato |
 | `validation_enabled` / `validation_disabled` | `validation` | scrittura merchant riuscita e verificata |
-| `install_reconcile_failed` | `error` | riconciliazione fallita durante l'installazione |
+| `install_record_failed` | `error` | registrazione installazione fallita durante l'autenticazione |
 | `webhook_failed` | `error` | handler in errore |
 
 I metadati ammessi sono un'allowlist espressa dal tipo `EventMetadata`:

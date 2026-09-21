@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.12.3 — 21 settembre 2026
+
+- il documento embedded e il bootstrap Shopify condividono lo stesso URL
+  Polaris, evitando il download duplicato della libreria durante il caricamento;
+- il rinnovo della sessione non ripete la riconciliazione Shopify già eseguita
+  dalla rotta di destinazione;
+- i tempi server distinguono lettura, cifratura, salvataggio e rinnovo della
+  sessione, così i prossimi campioni LCP possono attribuire la latenza senza
+  conservare dati merchant.
+
 ## 1.12.2 — 20 settembre 2026
 
 - il ciclo owner in Production passa da ogni minuto a ogni cinque minuti,

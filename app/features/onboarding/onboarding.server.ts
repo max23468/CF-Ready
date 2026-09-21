@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { data } from "react-router";
-import { authenticateAdmin } from "../../admin-auth.server";
+import { authenticateAdminTimed } from "../../admin-auth.server";
 import { localDate, startTrial } from "../../billing.server";
 import {
   CONFIG_SCHEMA_VERSION,
@@ -37,9 +37,7 @@ import {
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
-  const { admin, session, scopes } = await timing.measure("auth", () =>
-    authenticateAdmin(request, context),
-  );
+  const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);
   const db = context.get(databaseContext);
   const state = await reconcile(admin, db, session.shop, {
     prefetchBilling: true,
