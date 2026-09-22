@@ -53,16 +53,30 @@ export type CheckoutLabelsLoadResult =
       errorCode: AppErrorCode;
     };
 
+export type CheckoutLabelsReadResult =
+  | { ok: true; snapshot: CheckoutLabelsSnapshot }
+  | { ok: false; error: unknown };
+
+export async function prefetchCheckoutLabels(admin: Admin): Promise<CheckoutLabelsReadResult> {
+  try {
+    return { ok: true, snapshot: await readCheckoutLabels(admin) };
+  } catch (error) {
+    return { ok: false, error };
+  }
+}
+
 export async function loadCheckoutLabels(
   admin: Admin,
   db: D1Database,
   shopDomain: string,
   rules: Rules,
+  prefetched?: CheckoutLabelsReadResult,
 ): Promise<CheckoutLabelsLoadResult> {
   const state = await readCheckoutLabelState(db, shopDomain);
   try {
+    if (prefetched && !prefetched.ok) throw prefetched.error;
     const [snapshot, stored] = await Promise.all([
-      readCheckoutLabels(admin),
+      prefetched ? Promise.resolve(prefetched.snapshot) : readCheckoutLabels(admin),
       readStoredCheckoutLabelSlots(db, shopDomain),
     ]);
     const managedExternalChange = hasExternalChange(snapshot.slots, stored, state.managementEpoch);

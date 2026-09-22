@@ -37,6 +37,7 @@ import { readCheckoutLabelState } from "../checkout-labels/repository.server";
 import {
   CHECKOUT_LABEL_OPTIONAL_SCOPES,
   loadCheckoutLabels,
+  prefetchCheckoutLabels,
 } from "../checkout-labels/service.server";
 import { checkoutLabelValuesMatch, proposedLabelForSlot } from "../checkout-labels/domain";
 import { observedConfigHash, reconcile } from "../validation.server";
@@ -61,10 +62,16 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const historyPromise = timing.measure("d1_configuration_history", () =>
     readConfigurationHistory(db, session.shop),
   );
-  const state = await reconcile(admin, db, session.shop, {
+  const statePromise = reconcile(admin, db, session.shop, {
     prefetchBilling: true,
     reportTiming: timing.record,
   });
+  const prefetchedLabelsPromise = scopeDetailsPromise.then((scopeDetails) =>
+    CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) => scopeDetails?.granted.includes(scope))
+      ? timing.measure("shopify_checkout_labels", () => prefetchCheckoutLabels(admin))
+      : null,
+  );
+  const state = await statePromise;
   const validation = state.validation;
   const config = readConfig(validation?.metafield?.jsonValue);
   const duplicateError: "duplicate_validations" | "duplicate_validations_active" | null =
@@ -72,18 +79,20 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     state.errorCode === "duplicate_validations_active"
       ? state.errorCode
       : null;
-  const [configHash, scopeDetails, labelState, configurationHistory] = await Promise.all([
-    observedConfigHash(validation),
-    scopeDetailsPromise,
-    labelStatePromise,
-    historyPromise,
-  ]);
+  const [configHash, scopeDetails, labelState, configurationHistory, prefetchedLabels] =
+    await Promise.all([
+      observedConfigHash(validation),
+      scopeDetailsPromise,
+      labelStatePromise,
+      historyPromise,
+      prefetchedLabelsPromise,
+    ]);
   const labelScopesGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
     scopeDetails?.granted.includes(scope),
   );
   const labels = labelScopesGranted
-    ? await timing.measure("shopify_checkout_labels", () =>
-        loadCheckoutLabels(admin, db, session.shop, config.rules),
+    ? await timing.measure("d1_checkout_labels", () =>
+        loadCheckoutLabels(admin, db, session.shop, config.rules, prefetchedLabels ?? undefined),
       )
     : null;
   const shopHandle = session.shop.replace(/\.myshopify\.com$/, "");
