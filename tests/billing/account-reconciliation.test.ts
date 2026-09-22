@@ -172,6 +172,16 @@ test("la riconciliazione periodica predefinita legge Shopify e aggiorna soltanto
   )
     .bind(shop)
     .run();
+  // syncBillingAccount registra la riconciliazione con l'orologio reale: la ancoriamo al `now`
+  // fisso del test, altrimenti il conto smette di essere scaduto col passare del tempo.
+  await env.DB.prepare(
+    `UPDATE billing_accounts
+        SET last_reconciled_at = '2026-09-22T09:00:00.000Z',
+            reconciliation_attempted_at = '2026-09-22T09:00:00.000Z'
+      WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+  )
+    .bind(shop)
+    .run();
 
   await expect(
     reconcileNextStaleBilling(env.DB, {
