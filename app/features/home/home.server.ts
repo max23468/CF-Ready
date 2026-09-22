@@ -53,11 +53,13 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticateAdminTimed(request, context, timing);
   const db = context.get(databaseContext);
 
-  const statePromise = reconcile(admin, db, session.shop, {
-    prefetchBilling: true,
-    waitUntil: context.get(waitUntilContext) ?? undefined,
-    reportTiming: timing.record,
-  });
+  const statePromise = timing.measure("reconcile_total", () =>
+    reconcile(admin, db, session.shop, {
+      prefetchBilling: true,
+      waitUntil: context.get(waitUntilContext) ?? undefined,
+      reportTiming: timing.record,
+    }),
+  );
   const localStatePromise = timing.measure("d1_home", () => readHomeState(db, session.shop));
   const labelStatePromise = timing.measure("d1_validation_state", () =>
     readCheckoutLabelState(db, session.shop),
