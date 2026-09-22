@@ -10,6 +10,8 @@ import {
 import {
   diagnosePec,
   diagnoseTaxCode,
+  invalidTaxCodeMessage,
+  taxCodeHint,
   isValidPec,
   isValidTaxCode,
   requiredFieldsAreDue,
@@ -94,7 +96,12 @@ test("il simulatore mostra i messaggi configurati effettivi", () => {
     "Messaggio merchant corrente",
   );
   expect(simulatorErrorMessage(messages, "taxCode", "required", false)).toBeUndefined();
-  expect(simulatorErrorMessage(messages, "taxCode", "invalid", true)).toBe(messages.taxCodeInvalid);
+  expect(simulatorErrorMessage(messages, "taxCode", "invalid", true, "IT01234567890", "it")).toBe(
+    `${messages.taxCodeInvalid} Sembra una Partita IVA: inserisci il Codice Fiscale senza il prefisso IT.`,
+  );
+  expect(simulatorErrorMessage(messages, "taxCode", "invalid", true, "RSSMRA85T10A56")).toBe(
+    `${messages.taxCodeInvalid} It must have 16 characters or 11 digits.`,
+  );
   expect(simulatorErrorMessage(messages, "pec", "required", true)).toBe(messages.pecRequired);
   expect(simulatorErrorMessage(messages, "pec", "invalid", true)).toBe(messages.pecInvalid);
   expect(simulatorErrorMessage(messages, "pec", null, true)).toBeUndefined();
@@ -113,6 +120,19 @@ test("gli scenari pronti coprono valori validi, non validi, Azienda e campi vuot
     pec: "",
   });
   expect(simulatorScenarioValues.empty).toEqual({ company: "", taxCode: "", pec: "" });
+});
+
+test("la causa aggiunta al checkout resta formale", () => {
+  expect(taxCodeHint("it 012.345.678-90", "en")).toBe(
+    "This looks like a VAT number: enter the tax code without the IT prefix.",
+  );
+  expect(taxCodeHint("RSSMRA85T10A562S.", "en")).toBe("Enter it without spaces, dots, or hyphens.");
+  expect(invalidTaxCodeMessage("Messaggio merchant.", "RSSMRA85T10A562A", "it")).toBe(
+    "Messaggio merchant. Controlla ogni carattere: l’ultimo non corrisponde agli altri.",
+  );
+  expect(taxCodeHint("AAAAAA00B30A000K", "en")).toBe(
+    "Check the order of letters and numbers and the date of birth.",
+  );
 });
 
 test("la diagnostica distingue le cause formali senza cambiare il contratto booleano", () => {

@@ -1,12 +1,13 @@
 import { unauthenticated } from "../shopify.server";
-import { queryContext } from "../validation.server";
+import { reconcile } from "../validation.server";
 import type { Admin } from "../validation/types";
-import { localDate } from "./domain";
-import { readCommercialInputs, syncCommercialEntitlement } from "./commercial-entitlement.server";
-import { readBilling } from "./shopify.server";
 
 export const BILLING_RECONCILIATION_HOURS = 24;
 const BILLING_RETRY_HOURS = 1;
+// Shopify rinnova le sottoscrizioni senza webhook: dal giorno di fine periodo il ciclo rilegge
+// ogni ora finché il nuovo periodo non arriva nel metafield, poi torna alla cadenza giornaliera.
+// Anche un diritto non scritto nel metafield viene ritentato ogni ora.
+const RENEWAL_WINDOW_DAYS = 3;
 
 type Options = {
   now?: Date;
@@ -19,7 +20,11 @@ export async function reconcileNextStaleBilling(db: D1Database, options: Options
   const nowIso = now.toISOString();
   const candidate = await db
     .prepare(
-      `SELECT s.shop_domain
+      `SELECT s.shop_domain,
+            (b.entitlement_status IN ('active', 'ending')
+             AND b.plan_kind IN ('monthly', 'annual')
+             AND b.current_period_end <= date(?)
+             AND b.current_period_end >= date(?, '-${RENEWAL_WINDOW_DAYS} days')) AS renewal_due
          FROM billing_accounts b
          JOIN shops s ON s.id = b.shop_id
         WHERE s.installation_status = 'active'
@@ -27,15 +32,17 @@ export async function reconcileNextStaleBilling(db: D1Database, options: Options
             SELECT 1 FROM shopify_sessions ss
              WHERE ss.shop_id = s.id AND ss.is_online = 0
           )
-          AND (b.is_test IS NULL
+          AND (renewal_due
+               OR b.reconciliation_error_code IN ('entitlement_readback_failed', 'entitlement_write_failed')
+               OR b.is_test IS NULL
                OR b.last_reconciled_at IS NULL
                OR datetime(b.last_reconciled_at) <= datetime(?, '-${BILLING_RECONCILIATION_HOURS} hours'))
           AND (b.reconciliation_attempted_at IS NULL
                OR datetime(b.reconciliation_attempted_at) <= datetime(?, '-${BILLING_RETRY_HOURS} hours'))
-        ORDER BY b.is_test IS NOT NULL, b.last_reconciled_at, b.shop_id
+        ORDER BY renewal_due DESC, b.is_test IS NOT NULL, b.last_reconciled_at, b.shop_id
         LIMIT 1`,
     )
-    .bind(nowIso, nowIso)
+    .bind(nowIso, nowIso, nowIso, nowIso)
     .first<{ shop_domain: string }>();
   if (!candidate) return { attempted: false, shopDomain: null, errorCode: null };
 
@@ -63,17 +70,11 @@ export async function reconcileNextStaleBilling(db: D1Database, options: Options
   }
 }
 
+// Stessa riconciliazione di Home e webhook: il diritto arriva anche nel metafield letto dalla
+// Function, e un rinnovo non osservato dal merchant non spegne la validazione.
 export async function reconcileBillingAccount(admin: Admin, db: D1Database, shopDomain: string) {
-  const [{ shop }, billing] = await Promise.all([queryContext(admin), readBilling(admin)]);
-  const today = localDate(shop.ianaTimezone);
-  const inputs = await readCommercialInputs(db, shopDomain, today);
-  await syncCommercialEntitlement(db, shopDomain, {
-    billing,
-    inputs,
-    timeZone: shop.ianaTimezone,
-    today,
-  });
-  return { retryable: false, errorCode: null };
+  const { errorCode, retryable } = await reconcile(admin, db, shopDomain);
+  return { retryable, errorCode };
 }
 
 function markAttempt(

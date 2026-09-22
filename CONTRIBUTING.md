@@ -72,6 +72,12 @@ previsti dal repository; i test di dominio restano obbligatori quando pertinenti
   scoperta, override e gerarchia dei file.
 - [Prompting Codex](https://learn.chatgpt.com/docs/prompting#prompting-codex):
   obiettivo, contesto, confini, risultato e verifica.
+- [Prompting Claude Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5):
+  verbosità, aggiornamenti durante il lavoro, perimetro, verifiche e delega.
+- [Context engineering per i modelli Claude 5](https://claude.dev/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models/):
+  giudizio al posto di regole, niente ripetizioni, progressive disclosure.
+- [Opus 5.5 in pratica](https://claude.dev/blog/getting-the-most-out-of-opus-5-5/):
+  autonomia, condizioni di arresto e incarichi con criterio di completamento.
 
 Le fonti descrivono prompting e gerarchia delle istruzioni. Le indicazioni
 operative del progetto valgono per tutti gli agenti, indipendentemente dal

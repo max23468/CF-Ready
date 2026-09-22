@@ -21,6 +21,13 @@ const messages = {
   },
 };
 
+// Il valore invalido delle matrici ha una lunghezza errata: la Function aggiunge la causa formale.
+const lengthHint = "Deve avere 16 caratteri oppure 11 cifre.";
+
+function expectedMessage(key: keyof typeof messages.it) {
+  return key === "taxCodeInvalid" ? `${messages.it[key]} ${lengthHint}` : messages.it[key];
+}
+
 const baseConfig = {
   schemaVersion: 3,
   enabled: true,
@@ -385,7 +392,10 @@ describe("applicabilità e fail-open", () => {
       });
 
       expect(errors(interaction)).toEqual([
-        { message: "CF non valido", target: "$.cart.localizedField.TAX_CREDENTIAL_IT" },
+        {
+          message: expectedMessage("taxCodeInvalid"),
+          target: "$.cart.localizedField.TAX_CREDENTIAL_IT",
+        },
         { message: "PEC non valida", target: "$.cart.localizedField.TAX_EMAIL_IT" },
       ]);
     },
@@ -521,7 +531,7 @@ describe("regole e messaggi", () => {
       expectedKind
         ? [
             {
-              message: messages.it[`${field}${expectedKind}`],
+              message: expectedMessage(`${field}${expectedKind}`),
               target: state === "absent" ? "$.cart" : target,
             },
           ]
@@ -573,7 +583,9 @@ describe("regole e messaggi", () => {
     const result = errors(input({ config, fields: [{ key, value }] }));
 
     expect(result.map(({ message }) => message)).toEqual(
-      expected ? [messages.it[`${field}${expected === "required" ? "Required" : "Invalid"}`]] : [],
+      expected
+        ? [expectedMessage(`${field}${expected === "required" ? "Required" : "Invalid"}`)]
+        : [],
     );
   });
 
@@ -588,6 +600,32 @@ describe("regole e messaggi", () => {
         target: "$.cart.localizedField.TAX_EMAIL_IT",
       },
     ]);
+  });
+
+  it.each([
+    [
+      "IT",
+      "IT01234567890",
+      "CF non valido Sembra una Partita IVA: inserisci il Codice Fiscale senza il prefisso IT.",
+    ],
+    ["IT", "RSS MRA 85T10 A562S", "CF non valido Scrivilo senza spazi, punti o trattini."],
+    ["IT", "RSSMRA85T10A562@", "CF non valido Usa solo lettere e numeri."],
+    [
+      "IT",
+      "RSSMRA85T35A562S",
+      "CF non valido Controlla l’ordine di lettere e numeri e la data di nascita.",
+    ],
+    [
+      "IT",
+      "RSSMRA85T10A562A",
+      "CF non valido Controlla ogni carattere: l’ultimo non corrisponde agli altri.",
+    ],
+    ["DE", "RSSMRA85T10A56", "Invalid tax code It must have 16 characters or 11 digits."],
+  ])("aggiunge al messaggio del merchant la causa in %s per %s", (language, value, message) => {
+    const config = { ...baseConfig, rules: { taxCode: "required_validated", pec: "unmanaged" } };
+    expect(
+      errors(input({ config, language, fields: [{ key: "TAX_CREDENTIAL_IT", value }] })),
+    ).toEqual([{ message, target: "$.cart.localizedField.TAX_CREDENTIAL_IT" }]);
   });
 
   it("usa l'inglese per le altre lingue", () => {
