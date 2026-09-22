@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   persistShopDisplayName: vi.fn(),
   queryContext: vi.fn(),
   loadCheckoutLabels: vi.fn(),
+  prefetchCheckoutLabels: vi.fn(),
   readConfigurationHistory: vi.fn(),
   readConfigurationHistoryEntry: vi.fn(),
   readAddress2Declaration: vi.fn(),
@@ -71,6 +72,7 @@ vi.mock("../app/checkout-labels/service.server", () => ({
   acceptAddress2Customization: mocks.acceptAddress2Customization,
   confirmGuidedCheckoutLabels: mocks.confirmGuidedCheckoutLabels,
   loadCheckoutLabels: mocks.loadCheckoutLabels,
+  prefetchCheckoutLabels: mocks.prefetchCheckoutLabels,
   restoreAddress2Translations: mocks.restoreAddress2Translations,
   saveRulesAndCheckoutLabels: mocks.saveRulesAndCheckoutLabels,
 }));
@@ -149,6 +151,10 @@ beforeEach(() => {
     state: { mode: "guided" },
     snapshot: { revision: "labels-r1", slots: [] },
     guidedConfirmations: [],
+  });
+  mocks.prefetchCheckoutLabels.mockResolvedValue({
+    ok: true,
+    snapshot: { revision: "labels-r1", slots: [] },
   });
   mocks.readConfigurationHistory.mockResolvedValue([]);
   mocks.readConfigurationHistoryEntry.mockResolvedValue(null);
@@ -766,6 +772,48 @@ test("Regole espone duplicati e accesso osservati", async () => {
   expect((await loader(args(request))).data).toMatchObject({
     labelScopesGranted: false,
   });
+});
+
+test("Regole sovrappone il readback Shopify delle etichette alla riconciliazione", async () => {
+  let resolveReconcile!: (value: {
+    validation: undefined;
+    validationEnabled: false;
+    entitlement: { kind: "none"; validThrough: null };
+    errorCode: null;
+  }) => void;
+  mocks.reconcile.mockReturnValueOnce(
+    new Promise((resolve) => {
+      resolveReconcile = resolve;
+    }),
+  );
+  mocks.scopeQuery.mockResolvedValueOnce({
+    granted: ["write_translations", "read_locales", "read_markets"],
+  });
+
+  const responsePromise = rulesRoute.loader(
+    args(new Request("https://example.test/app/rules?locale=it")),
+  );
+  await vi.waitFor(() => expect(mocks.prefetchCheckoutLabels).toHaveBeenCalledWith(admin));
+  expect(mocks.loadCheckoutLabels).not.toHaveBeenCalled();
+
+  resolveReconcile({
+    validation: undefined,
+    validationEnabled: false,
+    entitlement: { kind: "none", validThrough: null },
+    errorCode: null,
+  });
+  const response = await responsePromise;
+
+  expect(mocks.loadCheckoutLabels).toHaveBeenCalledWith(
+    admin,
+    db,
+    session.shop,
+    DEFAULT_CONFIG.rules,
+    expect.objectContaining({ ok: true }),
+  );
+  expect(new Headers(response.init?.headers).get("Server-Timing")).toMatch(
+    /shopify_checkout_labels;dur=.*d1_checkout_labels;dur=/,
+  );
 });
 
 test("Regole avvia le letture indipendenti mentre riconcilia Shopify", async () => {

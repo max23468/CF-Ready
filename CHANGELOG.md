@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.13.3 — 22 settembre 2026
+
+- la riconciliazione commerciale evita di riscrivere una prova già convertita;
+- la lettura billing Shopify richiede direttamente l'ultima sottoscrizione
+  storica invece di paginare l'intera cronologia;
+- la pagina Regole sovrappone il readback Shopify delle etichette alla
+  riconciliazione e ne separa il tempo dal successivo lavoro D1.
+
 ## 1.13.2 — 22 settembre 2026
 
 - i tempi server della Home distinguono la riconciliazione completa, le

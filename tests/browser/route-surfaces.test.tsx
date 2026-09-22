@@ -69,6 +69,7 @@ vi.mock("../../app/checkout-labels/service.server", () => ({
   acceptAddress2Customization: vi.fn(),
   confirmGuidedCheckoutLabels: vi.fn(),
   loadCheckoutLabels: vi.fn(),
+  prefetchCheckoutLabels: vi.fn(),
   restoreAddress2Translations: vi.fn(),
   saveRulesAndCheckoutLabels: vi.fn(),
 }));

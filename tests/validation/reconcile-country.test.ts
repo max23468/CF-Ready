@@ -38,6 +38,7 @@ test("la Home legge contesto e billing con una sola chiamata Shopify iniziale", 
   expect(queries).toHaveLength(1);
   expect(queries[0]).toContain("validations(first: 100");
   expect(queries[0]).toContain("currentAppInstallation");
+  expect(queries[0]).toContain("allSubscriptions(first: 1, sortKey: CREATED_AT, reverse: true)");
   expect(timings).toContain("shopify_snapshot");
   expect(timings).toContain("d1_commercial_sync");
   expect(timings).toContain("validation_entitlement_sync");
