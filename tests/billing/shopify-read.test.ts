@@ -55,6 +55,7 @@ test("una sottoscrizione attiva Shopify vale anche quando la review la marca com
 
 test("la lettura pagina tutti gli acquisti e riconosce quelli pendenti", async () => {
   const after: unknown[] = [];
+  const queries: string[] = [];
   const pages = [
     {
       nodes: [
@@ -83,6 +84,7 @@ test("la lettura pagina tutti gli acquisti e riconosce quelli pendenti", async (
   ];
   const admin = {
     graphql: async (_query: string, options?: { variables?: Record<string, unknown> }) => {
+      queries.push(_query);
       after.push(options?.variables?.purchaseAfter);
       return Response.json({
         data: {
@@ -104,6 +106,8 @@ test("la lettura pagina tutti gli acquisti e riconosce quelli pendenti", async (
     pendingOneTime: true,
   });
   expect(after).toEqual([null, "pagina-2"]);
+  expect(queries[0]).toContain("allSubscriptions(first: 1, sortKey: CREATED_AT, reverse: true)");
+  expect(queries[0]).not.toContain("$subscriptionAfter");
 });
 
 test("la lettura rifiuta una paginazione acquisti senza cursore", async () => {

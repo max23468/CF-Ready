@@ -38,7 +38,10 @@ export async function syncCommercialEntitlement(
   const complimentaryOperational =
     inputs.complimentary?.status === "active" && billing.subscription === null;
 
-  if (account.entitlement_status === "active" || complimentaryOperational) {
+  if (
+    inputs.trial?.status === "active" &&
+    (account.entitlement_status === "active" || complimentaryOperational)
+  ) {
     await markTrialConverted(db, shopDomain);
   }
 

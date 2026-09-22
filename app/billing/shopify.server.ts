@@ -5,7 +5,7 @@ import type { ShopifyBilling, ShopifySubscriptionStatus } from "./types";
 
 // Stryker disable next-line StringLiteral: il contratto GraphQL è verificato dai test delle chiamate, non dalla sostituzione dell'intero documento.
 export const BILLING_QUERY = `#graphql
-  query CfReadyBilling($purchaseAfter: String, $subscriptionAfter: String) {
+  query CfReadyBilling($purchaseAfter: String) {
     currentAppInstallation {
       activeSubscriptions {
         id
@@ -29,7 +29,7 @@ export const BILLING_QUERY = `#graphql
           }
         }
       }
-      allSubscriptions(first: 50, after: $subscriptionAfter) {
+      allSubscriptions(first: 1, sortKey: CREATED_AT, reverse: true) {
         nodes {
           id
           name
@@ -126,19 +126,17 @@ export async function readBilling(
   initialInstallation?: BillingInstallation,
 ): Promise<ShopifyBilling> {
   let purchaseAfter: string | null = null;
-  let subscriptionAfter: string | null = null;
   let installation = initialInstallation;
   let subscription: SubscriptionNode | undefined;
   let latestSubscription: SubscriptionNode | undefined;
   let oneTime: BillingInstallation["oneTimePurchases"]["nodes"][number] | undefined;
   let pendingOneTime = false;
   const purchaseCursors = new Set<string>();
-  const subscriptionCursors = new Set<string>();
 
   do {
     if (!installation) {
       const response = await admin.graphql(BILLING_QUERY, {
-        variables: { purchaseAfter, subscriptionAfter },
+        variables: { purchaseAfter },
       });
       const body = (await response.json()) as BillingResponse;
       if (!body.data || body.errors?.length) {
@@ -169,13 +167,8 @@ export async function readBilling(
       purchases.pageInfo.endCursor,
       purchaseCursors,
     );
-    subscriptionAfter = nextCursor(
-      subscriptions.pageInfo.hasNextPage,
-      subscriptions.pageInfo.endCursor,
-      subscriptionCursors,
-    );
     installation = undefined;
-  } while (purchaseAfter || subscriptionAfter);
+  } while (purchaseAfter);
 
   const active = subscription ? normalizeSubscription(subscription) : null;
   const latest = latestSubscription ? normalizeSubscription(latestSubscription) : active;
