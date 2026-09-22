@@ -409,6 +409,8 @@ test("Messaggi legge Shopify e copre rifiuto, salvataggio e conflitto", async ()
   expect(new Headers(loaded.init?.headers).get("Server-Timing")).toMatch(
     /auth;dur=.*shopify_context;dur=.*total;dur=/,
   );
+  expect(mocks.scopeQuery).not.toHaveBeenCalled();
+  expect(mocks.loadCheckoutLabels).not.toHaveBeenCalled();
   expect(
     new Headers(
       headers({
@@ -417,35 +419,6 @@ test("Messaggi legge Shopify e copre rifiuto, salvataggio e conflitto", async ()
       } as never),
     ).get("Server-Timing"),
   ).toBe(new Headers(loaded.init?.headers).get("Server-Timing"));
-
-  mocks.scopeQuery.mockResolvedValueOnce({
-    granted: ["write_translations", "read_locales", "read_markets"],
-  });
-  expect((await loader(args(new Request("https://example.test/app/messages")))).data).toMatchObject(
-    {
-      labelSnapshot: { revision: "labels-r1" },
-    },
-  );
-  mocks.scopeQuery.mockResolvedValueOnce({
-    granted: ["write_translations", "read_locales", "read_markets"],
-  });
-  mocks.loadCheckoutLabels.mockResolvedValueOnce({
-    available: false,
-    state: { mode: "partial" },
-    errorCode: "checkout_labels_readback_failed",
-  });
-  expect((await loader(args(new Request("https://example.test/app/messages")))).data).toMatchObject(
-    {
-      labelSnapshot: null,
-    },
-  );
-
-  mocks.scopeQuery.mockRejectedValueOnce(new Error("scope non disponibile"));
-  expect((await loader(args(new Request("https://example.test/app/messages")))).data).toMatchObject(
-    {
-      labelSnapshot: null,
-    },
-  );
 
   const invalid = messageForm({ "it.taxCodeRequired": "" });
   expect(await action(args(post("/app/messages", invalid)))).toMatchObject({
@@ -751,9 +724,11 @@ test("Regole espone duplicati e accesso osservati", async () => {
     entitled: false,
   });
   const serverTiming = new Headers(initial.init?.headers).get("Server-Timing");
-  expect(serverTiming).toMatch(/shopify_scopes;dur=/);
+  expect(serverTiming).not.toMatch(/shopify_scopes;dur=/);
   expect(serverTiming).toMatch(/d1_validation_state;dur=/);
   expect(serverTiming).toMatch(/d1_configuration_history;dur=/);
+  expect(mocks.scopeQuery).not.toHaveBeenCalled();
+  expect(mocks.loadCheckoutLabels).not.toHaveBeenCalled();
 
   for (const errorCode of ["duplicate_validations", "duplicate_validations_active", "other"]) {
     mocks.reconcile.mockResolvedValueOnce({
@@ -768,52 +743,10 @@ test("Regole espone duplicati e accesso osservati", async () => {
     });
   }
 
-  mocks.scopeQuery.mockRejectedValueOnce(new Error("scope non disponibile"));
   expect((await loader(args(request))).data).toMatchObject({
-    labelScopesGranted: false,
+    labelScopesGranted: null,
+    labelSnapshot: null,
   });
-});
-
-test("Regole sovrappone il readback Shopify delle etichette alla riconciliazione", async () => {
-  let resolveReconcile!: (value: {
-    validation: undefined;
-    validationEnabled: false;
-    entitlement: { kind: "none"; validThrough: null };
-    errorCode: null;
-  }) => void;
-  mocks.reconcile.mockReturnValueOnce(
-    new Promise((resolve) => {
-      resolveReconcile = resolve;
-    }),
-  );
-  mocks.scopeQuery.mockResolvedValueOnce({
-    granted: ["write_translations", "read_locales", "read_markets"],
-  });
-
-  const responsePromise = rulesRoute.loader(
-    args(new Request("https://example.test/app/rules?locale=it")),
-  );
-  await vi.waitFor(() => expect(mocks.prefetchCheckoutLabels).toHaveBeenCalledWith(admin));
-  expect(mocks.loadCheckoutLabels).not.toHaveBeenCalled();
-
-  resolveReconcile({
-    validation: undefined,
-    validationEnabled: false,
-    entitlement: { kind: "none", validThrough: null },
-    errorCode: null,
-  });
-  const response = await responsePromise;
-
-  expect(mocks.loadCheckoutLabels).toHaveBeenCalledWith(
-    admin,
-    db,
-    session.shop,
-    DEFAULT_CONFIG.rules,
-    expect.objectContaining({ ok: true }),
-  );
-  expect(new Headers(response.init?.headers).get("Server-Timing")).toMatch(
-    /shopify_checkout_labels;dur=.*d1_checkout_labels;dur=/,
-  );
 });
 
 test("Regole avvia le letture indipendenti mentre riconcilia Shopify", async () => {
@@ -833,26 +766,71 @@ test("Regole avvia le letture indipendenti mentre riconcilia Shopify", async () 
 
   const loading = rulesRoute.loader(args(new Request("https://example.test/app/rules?locale=it")));
   await vi.waitFor(() => {
-    expect(mocks.scopeQuery).toHaveBeenCalledOnce();
     expect(mocks.readCheckoutLabelState).toHaveBeenCalledOnce();
     expect(mocks.readConfigurationHistory).toHaveBeenCalledOnce();
   });
+  expect(mocks.scopeQuery).not.toHaveBeenCalled();
+  expect(mocks.loadCheckoutLabels).not.toHaveBeenCalled();
   finishReconcile();
   await expect(loading).resolves.toBeDefined();
 });
 
-test("Regole carica etichette disponibili e propaga un readback fallito", async () => {
-  const { loader } = rulesRoute;
-  const request = new Request("https://example.test/app/rules?locale=it");
+test("Regole carica scope ed etichette soltanto tramite l'intent differito", async () => {
+  const { action } = rulesRoute;
+
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          intent: "load_checkout_labels",
+          taxCode: "unmanaged",
+          pec: "unmanaged",
+        }),
+      ),
+    ),
+  ).toMatchObject({
+    ok: true,
+    loaded: { scopeGranted: false, snapshot: null, state: { mode: "off" }, errorCode: null },
+  });
+  expect(mocks.loadCheckoutLabels).not.toHaveBeenCalled();
+
+  mocks.readCheckoutLabelState.mockResolvedValueOnce({ mode: "automatic" });
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          intent: "load_checkout_labels",
+          taxCode: "unmanaged",
+          pec: "unmanaged",
+        }),
+      ),
+    ),
+  ).toMatchObject({
+    ok: true,
+    loaded: { scopeGranted: false, errorCode: "checkout_labels_scope_required" },
+  });
+
   mocks.scopeQuery.mockResolvedValue({
     granted: ["write_translations", "read_locales", "read_markets"],
   });
-
-  expect((await loader(args(request))).data).toMatchObject({
-    labelScopesGranted: true,
-    labelState: { mode: "guided" },
-    labelSnapshot: { revision: "labels-r1" },
-    labelLoadError: null,
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          intent: "load_checkout_labels",
+          taxCode: "unmanaged",
+          pec: "unmanaged",
+        }),
+      ),
+    ),
+  ).toMatchObject({
+    ok: true,
+    loaded: {
+      scopeGranted: true,
+      snapshot: { revision: "labels-r1" },
+      state: { mode: "guided" },
+      errorCode: null,
+    },
   });
 
   mocks.loadCheckoutLabels.mockResolvedValueOnce({
@@ -860,9 +838,24 @@ test("Regole carica etichette disponibili e propaga un readback fallito", async 
     state: { mode: "partial" },
     errorCode: "checkout_labels_readback_failed",
   });
-  expect((await loader(args(request))).data).toMatchObject({
-    labelSnapshot: null,
-    labelLoadError: "checkout_labels_readback_failed",
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          intent: "load_checkout_labels",
+          taxCode: "unmanaged",
+          pec: "unmanaged",
+        }),
+      ),
+    ),
+  ).toMatchObject({
+    ok: true,
+    loaded: {
+      scopeGranted: true,
+      snapshot: null,
+      state: { mode: "partial" },
+      errorCode: "checkout_labels_readback_failed",
+    },
   });
 });
 

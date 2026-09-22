@@ -34,28 +34,22 @@ import { authenticate } from "../shopify.server";
 import { PEC_RULE_MODES, readConfig, showSavedBanner, TAX_CODE_RULE_MODES } from "../config";
 import { databaseContext } from "../context.server";
 import { readCheckoutLabelState } from "../checkout-labels/repository.server";
-import {
-  CHECKOUT_LABEL_OPTIONAL_SCOPES,
-  loadCheckoutLabels,
-  prefetchCheckoutLabels,
-} from "../checkout-labels/service.server";
+import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../checkout-labels/service.server";
 import { checkoutLabelValuesMatch, proposedLabelForSlot } from "../checkout-labels/domain";
 import { observedConfigHash, reconcile } from "../validation.server";
 import { changedConfigurationFields, type ConfigurationSnapshot } from "../configuration-history";
 import { readConfigurationHistory } from "../configuration-history.server";
 import { handleRulesAction, saveAddress2Mode } from "../features/rules/rules-action.server";
 import { parseRulesIntent, RULES_INTENTS } from "../features/rules/rules-intents";
+import { useDeferredCheckoutLabels } from "../features/rules/use-deferred-checkout-labels";
 
 const SAVE_BAR = "checkout-rules-save-bar";
 const LABEL_CONFIRM_MODAL = "confirm-checkout-label-management";
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
   const authentication = await authenticateAdminTimed(request, context, timing);
-  const { admin, session, scopes } = authentication;
+  const { admin, session } = authentication;
   const db = context.get(databaseContext);
-  const scopeDetailsPromise = timing.measure("shopify_scopes", () =>
-    scopes.query().catch(() => null),
-  );
   const labelStatePromise = timing.measure("d1_validation_state", () =>
     readCheckoutLabelState(db, session.shop),
   );
@@ -66,11 +60,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     prefetchBilling: true,
     reportTiming: timing.record,
   });
-  const prefetchedLabelsPromise = scopeDetailsPromise.then((scopeDetails) =>
-    CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) => scopeDetails?.granted.includes(scope))
-      ? timing.measure("shopify_checkout_labels", () => prefetchCheckoutLabels(admin))
-      : null,
-  );
   const state = await statePromise;
   const validation = state.validation;
   const config = readConfig(validation?.metafield?.jsonValue);
@@ -79,22 +68,11 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     state.errorCode === "duplicate_validations_active"
       ? state.errorCode
       : null;
-  const [configHash, scopeDetails, labelState, configurationHistory, prefetchedLabels] =
-    await Promise.all([
-      observedConfigHash(validation),
-      scopeDetailsPromise,
-      labelStatePromise,
-      historyPromise,
-      prefetchedLabelsPromise,
-    ]);
-  const labelScopesGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
-    scopeDetails?.granted.includes(scope),
-  );
-  const labels = labelScopesGranted
-    ? await timing.measure("d1_checkout_labels", () =>
-        loadCheckoutLabels(admin, db, session.shop, config.rules, prefetchedLabels ?? undefined),
-      )
-    : null;
+  const [configHash, labelState, configurationHistory] = await Promise.all([
+    observedConfigHash(validation),
+    labelStatePromise,
+    historyPromise,
+  ]);
   const shopHandle = session.shop.replace(/\.myshopify\.com$/, "");
 
   return data(
@@ -108,18 +86,11 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       configurationHistory,
       enabled: state.validationEnabled,
       entitled: state.entitlement.kind !== "none",
-      labelScopesGranted,
-      labelState: labels?.state ?? labelState,
-      labelSnapshot: labels?.available ? labels.snapshot : null,
-      guidedConfirmations: labels?.available ? labels.guidedConfirmations : [],
-      labelLoadError:
-        labels && !labels.available
-          ? labels.errorCode
-          : labelScopesGranted
-            ? null
-            : labelState.mode === "off"
-              ? null
-              : "checkout_labels_scope_required",
+      labelScopesGranted: null,
+      labelState,
+      labelSnapshot: null,
+      guidedConfirmations: [],
+      labelLoadError: null,
       checkoutSettingsUrl: `https://admin.shopify.com/store/${shopHandle}/settings/checkout`,
       storefrontUrl: `https://${session.shop}`,
     },
@@ -149,7 +120,11 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
 export const shouldRevalidate: ShouldRevalidateFunction = (args) => {
   const actionResult = args.actionResult;
-  if (actionResult && typeof actionResult === "object" && "refreshed" in actionResult) {
+  if (
+    actionResult &&
+    typeof actionResult === "object" &&
+    ("refreshed" in actionResult || "loaded" in actionResult)
+  ) {
     return false;
   }
   return skipRevalidationWhenLeaving(args);
@@ -158,6 +133,10 @@ export const shouldRevalidate: ShouldRevalidateFunction = (args) => {
 export default function CheckoutRules() {
   const saved = useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
+  const labels = useDeferredCheckoutLabels(saved);
+  const labelsLoading = labels.loading;
+  const labelState = labels.state;
+  const labelSnapshot = labels.snapshot;
 
   const t = texts(saved.locale);
   const send = useSubmit();
@@ -176,7 +155,7 @@ export default function CheckoutRules() {
   const [changedSinceResult, setChangedSinceResult] = useState(false);
   const [formRevision, setFormRevision] = useState(0);
   const [draft, setDraft] = useState({ rules: saved.rules });
-  const [labelsEnabled, setLabelsEnabled] = useState(saved.labelState.mode !== "off");
+  const [labelsEnabled, setLabelsEnabled] = useState(labelState.mode !== "off");
 
   // Un solo ascoltatore sul form delle impostazioni. Il simulatore è deliberatamente fuori:
   // i suoi valori sono locali e non devono rendere sporca la configurazione del merchant.
@@ -189,9 +168,9 @@ export default function CheckoutRules() {
   useEffect(() => setChangedSinceResult(false), [result]);
 
   const dirty = draft.rules.taxCode !== saved.rules.taxCode || draft.rules.pec !== saved.rules.pec;
-  const labelsDirty = labelsEnabled !== (saved.labelState.mode !== "off");
+  const labelsDirty = labelsEnabled !== (labelState.mode !== "off");
   const automaticLabelWrites =
-    saved.labelSnapshot?.slots.flatMap((slot) => {
+    labelSnapshot?.slots.flatMap((slot) => {
       if (slot.capability !== "automatic" || (slot.name !== "taxCode" && slot.name !== "pec")) {
         return [];
       }
@@ -213,16 +192,16 @@ export default function CheckoutRules() {
         pec: draft.rules.pec,
         labelsEnabled: labelsEnabled ? "1" : "0",
         labelsConfirmed: labelsConfirmed ? "1" : "0",
-        labelsRevision: saved.labelSnapshot?.revision ?? "",
+        labelsRevision: labelSnapshot?.revision ?? "",
       },
       { method: "post" },
     );
   };
 
   const save = () => {
-    if (busy || conflict || sentRef.current) return;
+    if (busy || labelsLoading || conflict || sentRef.current) return;
     const firstAutomaticWrite =
-      labelsEnabled && saved.labelState.mode === "off" && automaticLabelWrites.length > 0;
+      labelsEnabled && labelState.mode === "off" && automaticLabelWrites.length > 0;
     if (firstAutomaticWrite) {
       const modal = document.getElementById(LABEL_CONFIRM_MODAL) as
         | (HTMLElement & {
@@ -257,7 +236,7 @@ export default function CheckoutRules() {
     baseHash.current = saved.configHash;
     setResolvedConflict(true);
     setDraft({ rules: saved.rules });
-    setLabelsEnabled(saved.labelState.mode !== "off");
+    setLabelsEnabled(labelState.mode !== "off");
     setFormRevision((current) => current + 1);
   };
 
@@ -360,11 +339,11 @@ export default function CheckoutRules() {
               <CheckoutLabelsSection
                 locale={saved.locale}
                 rules={draft.rules}
-                scopeGranted={saved.labelScopesGranted}
-                snapshot={saved.labelSnapshot}
-                state={saved.labelState}
-                loadErrorCode={saved.labelLoadError}
-                guidedConfirmations={saved.guidedConfirmations}
+                scopeGranted={labels.scopeGranted}
+                snapshot={labelSnapshot}
+                state={labelState}
+                loadErrorCode={labels.loadError}
+                guidedConfirmations={labels.guidedConfirmations}
                 enabled={labelsEnabled}
                 busy={busy}
                 checkoutSettingsUrl={saved.checkoutSettingsUrl}
@@ -373,6 +352,7 @@ export default function CheckoutRules() {
                   setChangedSinceResult(true);
                   setLabelsEnabled(value);
                 }}
+                onScopeGranted={() => labels.load(draft.rules)}
               />
               <ConfigurationHistory
                 locale={saved.locale}
@@ -385,7 +365,7 @@ export default function CheckoutRules() {
                       intent: RULES_INTENTS.restoreConfiguration,
                       historyId: String(historyId),
                       configHash: saved.configHash ?? "",
-                      labelsRevision: saved.labelSnapshot?.revision ?? "",
+                      labelsRevision: labelSnapshot?.revision ?? "",
                     },
                     { method: "post" },
                   )

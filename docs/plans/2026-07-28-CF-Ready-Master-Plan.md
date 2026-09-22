@@ -389,10 +389,12 @@ Rispetto alle alternative più ampie o invasive:
 | D-152 | Dichiarare nel `robots.txt` del sito pubblico `search=yes`, `ai-input=yes`, `ai-train=no` e `use=reference`. | Motori di ricerca e assistenti possono indicizzare, citare e usare i contenuti per risposte contestuali, mentre l'addestramento resta escluso. Il file versionato è autorevole e lo smoke Pages ne verifica il contenuto effettivo, evitando una seconda configurazione gestita all'edge. Deciso dall'owner il 9 settembre 2026 per la `1.8.1`. |
 | D-153 | Usare `supporto@cfready.it` per l’assistenza merchant e `info@cfready.it` per le altre comunicazioni, al posto della casella iCloud usata prima del dominio. | `supporto@` è il destinatario del `mailto:` precompilato dell’app, delle FAQ e della pagina Support. `info@` è il recapito di Privacy Policy, Termini, `SECURITY.md`, primo contatto di sicurezza sul sito e reviewer Shopify. Il flusso resta `mailto:` e non introduce Email binding. Deciso dall’owner l’11 settembre 2026 per la `1.9.1`. |
 | D-154 | Nel Control Center calcolare MRR e ARR netti con revenue share, commissione di elaborazione e commissione operativa regolamentare del Paese dello store; mostrare in `/billing` i ricavi cumulati dalle transazioni Shopify Partner e in `/performance` i requisiti Web Vitals di Built for Shopify e M12. | Gli accrediti Partner dell’11 settembre 2026 mostrano per i negozi italiani il 2,9% di elaborazione e il 3% di commissione operativa regolamentare; Shopify non pubblica la tariffa degli altri Paesi, quindi il run-rate applica loro il solo 2,9% e lo dichiara. I ricavi cumulati sommano abbonamenti, acquisti lifetime, rimborsi e crediti dalla query `transactions`, che richiede il permesso Partner `View financials`, e la cache D1 conserva soltanto totali aggregati. La vista performance stima dai campioni CF Ready il p75 su 28 giorni e i 100 campioni per metrica: lo stato Built for Shopify autorevole resta quello del Partner Dashboard. Deciso dall’owner l’11 settembre 2026 per la `1.9.1`. |
-| D-155 | Allineare il simulatore al gate preventivo della Function e spiegare localmente la causa formale dei valori rifiutati. | Le opzioni avanzate rappresentano Interaction, Completion, metodo di spedizione selezionato, gruppi misti e campi assenti; la matrice condivisa confronta gli esiti con la Function. Le diagnosi distinguono lunghezza, caratteri, struttura o data, controllo e formato email, senza cambiare i quattro messaggi checkout, attestare identità o trasmettere i valori. Deciso dall’owner il 12 settembre 2026. |
+| D-155 | Allineare il simulatore al gate preventivo della Function e spiegare localmente la causa formale dei valori rifiutati. **Superata in parte da D-161.** | Le opzioni avanzate rappresentano Interaction, Completion, metodo di spedizione selezionato, gruppi misti e campi assenti; la matrice condivisa confronta gli esiti con la Function. Le diagnosi distinguono lunghezza, caratteri, struttura o data, controllo e formato email, senza cambiare i quattro messaggi checkout, attestare identità o trasmettere i valori. Deciso dall’owner il 12 settembre 2026. |
 | D-156 | Conservare per ogni store al massimo dieci configurazioni differenti degli ultimi 90 giorni e consentire il ripristino tramite la normale scrittura protetta da lease e hash corrente. | Gli snapshot contengono soltanto regole e messaggi bilingui. Escludono attivazione, entitlement, billing, identità staff e dati checkout; il ripristino ricalcola i dati commerciali correnti e sincronizza le etichette quando la relativa gestione è attiva. La retention oraria e `shop/redact` eliminano lo storico. Deciso dall’owner il 12 settembre 2026. |
 | D-157 | Generare avvisi Telegram operativi deduplicati per incidenti persistenti deterministici e per la loro risoluzione. | L’outbox esistente riceve aperture e chiusure per webhook in elaborazione da 5 minuti, webhook falliti ancora aperti da 15 minuti, acquisizione Partner ferma da 15 minuti dall’ultimo ciclo completo valido ed errori deterministici di sincronizzazione etichette osservati almeno tre volte in 10 minuti. Scope, conferme e conflitti merchant delle etichette restano esclusi. Una lettura Partner incompleta non apre né chiude un incidente; gli incidenti risolti restano per 90 giorni. Contenuto, permessi e confini dati restano quelli dell’outbox owner, senza nuovi dati merchant o personali. Deciso dall’owner il 12 settembre 2026. |
 | D-158 | Eseguire in WebKit una selezione mirata dei percorsi merchant sensibili e mantenere una procedura separata per Shopify su iPhone reale. | Navigazione, onboarding, Save Bar, conflitti, permessi ed espansioni etichette usano la suite browser esistente senza duplicarla. WebKit locale individua regressioni del motore; soltanto la verifica embedded sul dispositivo chiude i difetti della cornice nativa Shopify. Deciso dall’owner il 12 settembre 2026. |
+| D-160 | Il ciclo periodico ogni cinque minuti, attivo in Development e Production, esegue la stessa riconciliazione di Home e webhook: aggiorna D1 e il diritto nel metafield della Validation. Le sottoscrizioni attive o in chiusura con fine periodo tra tre giorni fa e oggi hanno priorità e vengono rilette ogni ora; se il metafield non accetta il diritto si apre un incidente owner e lo store viene ritentato ogni ora. | Shopify rinnova le sottoscrizioni senza webhook: senza questa rilettura il `validThrough` del metafield resta alla fine del periodo precedente e la Function torna fail-open per un merchant pagante che non apre l’app. Resta scoperto soltanto l’intervallo tra la mezzanotte locale di fine periodo e il primo readback dopo il rinnovo Shopify. Un lotto di più store per esecuzione non viene introdotto per restare nel limite CPU del piano Free descritto in §18.4. |
+| D-161 | Per un Codice Fiscale formalmente non valido la Function aggiunge dopo `taxCodeInvalid` una frase fissa IT/EN sulla causa: prefisso `IT` di una Partita IVA, spazi o separatori, lunghezza, caratteri, struttura o data, carattere di controllo. Il testo del merchant, la PEC, i messaggi di campo obbligatorio e lo schema del metafield restano invariati; il simulatore mostra lo stesso testo del checkout. Supera in parte D-155. Deciso dall’owner il 22 settembre 2026. | Il cliente corregge l’errore senza tentativi alla cieca e il merchant non deve gestire nuovi testi. La frase resta formale: non attesta l’identità né l’esistenza del codice. |
 
 Precisazione D-149 del 9 settembre 2026 per la `1.9.0`: nella pagina Regole il
 blocco “Campo Interno” precede “Testi del checkout”. La sezione si chiama
@@ -728,6 +730,9 @@ validare il Codice Fiscale (D-147).
 | `taxCodeInvalid` | sì | sì |
 | `pecRequired` | sì | sì |
 | `pecInvalid` | sì | sì |
+
+Per un Codice Fiscale non valido il checkout aggiunge dopo `taxCodeInvalid` una
+frase fissa sulla causa formale (D-161); non è un messaggio modificabile.
 
 **FR-061** — Nessun messaggio può essere vuoto dopo trim.
 
@@ -1492,8 +1497,12 @@ La riconciliazione:
 4. corregge automaticamente solo divergenze sicure;
 5. in caso di ambiguità, mantiene fail-open e mostra un avviso operativo.
 
-La riconciliazione resta event-driven: il solo job periodico applicativo è la
-retention oraria, che non legge né modifica lo stato Shopify.
+Oltre agli eventi, un ciclo ogni cinque minuti riconcilia un solo store per
+esecuzione con la stessa procedura (D-160): prima le sottoscrizioni con fine
+periodo tra tre giorni fa e oggi, rilette ogni ora finché il rinnovo non arriva
+nel metafield. Gli altri account entrano nel ciclo dopo 24 ore dall'ultima
+rilettura oppure, ogni ora, se il diritto non è stato scritto nel metafield. La
+retention oraria resta separata e non legge né modifica lo stato Shopify.
 
 ---
 
@@ -2187,8 +2196,9 @@ gratuita resta quella comune di 14 giorni definita da D-044 e non usa questa fin
 finanziaria come estensione.
 
 La riconciliazione Admin API non dipende dalle notifiche Telegram: il ciclo periodico
-seleziona gli account obsoleti, incluse per prime le righe storiche con `is_test` ignoto,
-usa la sessione offline e registra tentativo ed errore senza dedurre lo stato dalle
+seleziona prima i rinnovi dovuti, poi gli account obsoleti, incluse le righe storiche con
+`is_test` ignoto, usa la sessione offline, aggiorna anche il diritto nel metafield della
+Validation (D-160) e registra tentativo ed errore senza dedurre lo stato dalle
 transazioni Partner. Le conversioni storiche ricostruibili da acquisto una tantum attivo
 e sottoscrizione cancellata restano `needs_review`; non generano retroattivamente né una
 cancellazione ordinaria né un credito.
@@ -3275,7 +3285,7 @@ Un comando terminato con exit code `0` non è, da solo, prova del risultato live
 Usare la più recente versione stabile compatibile dell’intera matrice Shopify–React Router–Cloudflare al momento dello scaffold, non `@latest` indiscriminato.
 
 - versioni dirette pin esatto;
-- Node.js `26.8.2` bloccato in `mise.toml`; il setup locale usa
+- Node.js `26.10.0` bloccato in `mise.toml`; il setup locale usa
   `mise trust`, `mise install` e `mise exec`, mentre la CI usa la stessa
   versione tramite `actions/setup-node`;
 - TypeScript `7.0.2` usa il compilatore nativo senza shim dell’API TS6; il

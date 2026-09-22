@@ -31,7 +31,7 @@
   },
   "upload_source_maps": true,
   "triggers": {
-    "crons": ["0 * * * *"]
+    "crons": ["0 * * * *", "*/5 * * * *"]
   },
   "d1_databases": [
     {

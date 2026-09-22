@@ -37,6 +37,20 @@ La Partner API espone transazioni come `AppSubscriptionSale` e
 `AppOneTimeSale`; il relativo importo netto è destinato al payout, ma la prova
 autorevole dello stato del payout resta il dettaglio in Partner Dashboard.
 
+## Diritto non sincronizzato nel checkout
+
+L'alert `Diritto non sincronizzato nel checkout` indica che il ciclo periodico
+ha letto il billing ma Shopify non ha accettato o confermato il diritto nel
+metafield della Validation (D-160). Finché resta aperto, la Function può essere
+fail-open anche per un merchant pagante.
+
+1. Controllare nella vista store del Control Center stato della Validation ed
+   errore aperto; l'alert riporta l'ultimo tentativo di riconciliazione.
+2. Il ciclo riprova ogni ora; l'alert si chiude da solo al primo tentativo
+   riuscito.
+3. Se persiste, verificare sessione offline, lock della Validation e presenza di
+   Validation duplicate, senza modificare risorse di altre app.
+
 ## Rimborso o credito manuale
 
 CF Ready non emette rimborsi o crediti automatici.
