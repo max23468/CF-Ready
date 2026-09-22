@@ -79,6 +79,8 @@ export async function syncPartnerFinancialObservations(
          EXISTS(
            SELECT 1 FROM billing_accounts
             WHERE plan_kind IN ('monthly', 'annual', 'one_time') AND is_test = 0
+              AND (plan_kind = 'one_time' OR current_period_start IS NOT NULL)
+              AND (plan_kind = 'one_time' OR date(current_period_start) <= date('now'))
               AND (
                 sale_observed_at IS NULL
                 OR sale_charge_gid IS NOT shopify_charge_gid

@@ -44,6 +44,7 @@ import {
   writeOwnerControlState,
 } from "./repository.server";
 import { readRevenueReport } from "./revenue.server";
+import { syncPartnerFinancialObservations } from "../owner-notifications/financial-source.server";
 import {
   readShopifyPlan,
   readShopifyPlans,
@@ -147,6 +148,17 @@ export async function renderOwnerControlAction(
         }),
       );
     case "billing": {
+      let financialRefreshUnavailable: string | undefined;
+      if (action.refresh) {
+        try {
+          await syncPartnerFinancialObservations(db, partnerConfig, {
+            now,
+            fetcher: options.fetcher,
+          });
+        } catch (error: unknown) {
+          financialRefreshUnavailable = ownerControlErrorCode(error);
+        }
+      }
       const [billing, revenue] = await Promise.all([
         readBilling(db),
         readRevenueReport(db, partnerConfig, {
@@ -155,7 +167,16 @@ export async function renderOwnerControlAction(
           fetcher: options.fetcher,
         }).catch((error: unknown) => ({ unavailable: ownerControlErrorCode(error) })),
       ]);
-      return billingMessage(billing, revenue);
+      return billingMessage(
+        {
+          ...billing,
+          reconciliation: {
+            ...billing.reconciliation,
+            refreshUnavailable: financialRefreshUnavailable,
+          },
+        },
+        revenue,
+      );
     }
     case "trials":
       return trialsMessage(await readTrials(db, page));
