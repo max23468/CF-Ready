@@ -37,7 +37,9 @@ export async function reconcile(
   // Il fence nasce prima della lettura Shopify: una scrittura successiva rende innocuo
   // l'eventuale completamento tardivo della persistenza affidata a waitUntil.
   const expectedRevision = options?.waitUntil
-    ? await readValidationStateRevision(db, shopDomain)
+    ? await measureReconcile(reportTiming, "d1_validation_revision", () =>
+        readValidationStateRevision(db, shopDomain),
+      )
     : undefined;
   const readBillingTimed = async () => {
     const startedAt = performance.now();
@@ -145,12 +147,14 @@ export async function reconcile(
       }
     }
 
-    const commercial = await syncCommercialEntitlement(db, shopDomain, {
-      billing: state,
-      inputs: commercialInputs,
-      timeZone: shop.ianaTimezone,
-      today,
-    });
+    const commercial = await measureReconcile(reportTiming, "d1_commercial_sync", () =>
+      syncCommercialEntitlement(db, shopDomain, {
+        billing: state,
+        inputs: commercialInputs,
+        timeZone: shop.ianaTimezone,
+        today,
+      }),
+    );
     account = commercial.account;
     billingConfirmed = true;
     complimentaryOperational = commercial.complimentaryOperational;
@@ -165,12 +169,14 @@ export async function reconcile(
 
   if (!billingConfirmed) entitlement = { kind: "none", validThrough: null };
 
-  validationPhase = await reconcileValidationEntitlement(
-    admin,
-    db,
-    shopDomain,
-    { ...validationPhase, errorCode, retryable },
-    entitlement,
+  validationPhase = await measureReconcile(reportTiming, "validation_entitlement_sync", () =>
+    reconcileValidationEntitlement(
+      admin,
+      db,
+      shopDomain,
+      { ...validationPhase, errorCode, retryable },
+      entitlement,
+    ),
   );
   ({ errorCode, retryable } = validationPhase);
   const { matches, validation } = validationPhase;
@@ -221,4 +227,17 @@ export async function reconcile(
     errorCode,
     retryable,
   };
+}
+
+async function measureReconcile<T>(
+  reportTiming: ReconcileTiming | undefined,
+  name: Parameters<ReconcileTiming>[0],
+  operation: () => Promise<T>,
+) {
+  const startedAt = performance.now();
+  try {
+    return await operation();
+  } finally {
+    reportTiming?.(name, performance.now() - startedAt);
+  }
 }
