@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.13.1 — 22 settembre 2026
+
+- la Home descrive il credito di conversione con un copy essenziale, senza
+  mostrare stime come importi confermati;
+- il refresh Billing del Control Center rilegge le transazioni Partner e
+  distingue vendite abbinate, in attesa e non ancora dovute durante la prova;
+- gli abbonamenti senza un ciclo pagato non generano falsi incidenti di vendita
+  mancante, mentre le conversioni incoerenti restano da verificare.
+
 ## 1.13.0 — 22 settembre 2026
 
 - la riconciliazione billing legge anche lo storico Shopify, distingue gli

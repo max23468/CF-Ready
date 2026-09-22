@@ -403,25 +403,14 @@ export const en: typeof it = {
     periodEnds: (date: string) => `The current contract period ends on ${date}.`,
     lastAttempt:
       "The last read of your billing status failed. Checkout isn’t blocked: reload the page in a few minutes.",
-    oneTimeFullCharge: (amount: string) =>
-      `Shopify charges the full one-time payment of ${amount}.`,
     endingAlready:
       "Shopify confirmed the standard cancellation: access stays until the end of the current contract period.",
     monthlyName: "Monthly",
     annualName: "Annual",
     oneTimeName: "One payment",
-    creditPending: (amount: string | null) =>
-      amount
-        ? `Separate estimated credit for the unused period: ${amount}. Confirmation and the final amount depend on Shopify's financial record.`
-        : "The separate credit requested from Shopify is awaiting financial confirmation.",
-    creditConfirmed: (amount: string | null) =>
-      amount
-        ? `Separate credit confirmed in Shopify financial data: ${amount}.`
-        : "Separate credit confirmed in Shopify financial data.",
-    creditNotApplicable:
-      "No credit is due: the switch happened during the free trial, before a subscription charge.",
-    creditNeedsReview:
-      "The credit needs manual review: Shopify's financial data doesn't match the estimate.",
+    creditExpected: "Shopify will apply any credit for the unused period separately.",
+    creditProcessing: "We’re checking whether a credit is due. You don’t need to do anything.",
+    creditComplete: "Shopify has recorded the credit.",
   },
   rules: {
     heading: "Checkout rules",

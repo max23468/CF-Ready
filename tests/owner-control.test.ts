@@ -410,6 +410,20 @@ describe("presentazione Telegram", () => {
       JSON.stringify(
         shopMessage(
           shopFixture({
+            entitlement_status: "active",
+            plan_kind: "one_time",
+            billing_is_test: 0,
+            sale_observed_at: NOW.toISOString(),
+            sale_charge_gid: "gid://shopify/AppPurchaseOneTime/1",
+            shopify_charge_gid: "gid://shopify/AppPurchaseOneTime/1",
+          }),
+        ),
+      ),
+    ).toContain("Abbinata");
+    expect(
+      JSON.stringify(
+        shopMessage(
+          shopFixture({
             conversion_credit_amount_minor: -125,
             conversion_credit_currency: "INVALID",
             conversion_credit_transaction_type: "AppSaleCredit",
@@ -550,6 +564,14 @@ describe("presentazione Telegram", () => {
       netMrr: 9.41,
       netArr: 112.92,
       regulatoryUnknown: 2,
+      reconciliation: {
+        paid: 5,
+        matched: 3,
+        awaiting: 1,
+        notDue: 1,
+        needsReview: 1,
+        checkedAt: NOW.toISOString(),
+      },
       shopifyFees: { revenueShare: 0, processing: 0.029, regulatoryOperating: { IT: 0.03 } },
     };
     const revenue = {
@@ -565,6 +587,9 @@ describe("presentazione Telegram", () => {
     const billingText = JSON.stringify(billing);
     expect(billing.richMessage.blocks).toBeTruthy();
     expect(billingText).toContain("Valore mensile (MRR)");
+    expect(billingText).toContain("Vendite abbinate");
+    expect(billingText).toContain("Piani commerciali");
+    expect(billingText).toContain("Non ancora dovute");
     expect(billingText).toContain("Mensile dopo fee");
     expect(billingText).toContain("elaborazione 2,9%");
     expect(billingText).toContain("regolamentare IT 3%");
@@ -810,12 +835,24 @@ describe("Ricavi Partner", () => {
   });
 
   test("mostra i ricavi nella vista billing e degrada senza permesso", async () => {
-    const sale = vi.fn(async () =>
+    await insertStore(1, "pagamento.myshopify.com", {
+      plan: ["active", "one_time", "balanced"],
+    });
+    await env.DB.prepare(
+      `UPDATE billing_accounts
+          SET shopify_charge_gid = 'gid://shopify/AppPurchaseOneTime/1'
+        WHERE shop_id = 1`,
+    ).run();
+    const responses = [
+      Response.json({
+        data: { transactions: { edges: [], pageInfo: { hasNextPage: false } } },
+      }),
       revenueResponse(
         [{ cursor: "t1", node: revenueTransaction("AppOneTimeSale", "104.53", "98.36") }],
         false,
       ),
-    ) as unknown as typeof fetch;
+    ];
+    const sale = vi.fn(async () => responses.shift()!) as unknown as typeof fetch;
     const billing = await renderOwnerControlAction(
       env.DB,
       { view: "billing", refresh: true },
@@ -823,6 +860,8 @@ describe("Ricavi Partner", () => {
       { now: NOW, fetcher: sale },
     );
     expect(JSON.stringify(billing)).toContain("98,36");
+    expect(JSON.stringify(billing)).toContain("In attesa della transazione Shopify");
+    expect(sale).toHaveBeenCalledTimes(2);
 
     await env.DB.prepare("DELETE FROM owner_control_state").run();
     const denied = vi.fn(async () =>
@@ -839,6 +878,16 @@ describe("Ricavi Partner", () => {
     );
     expect(JSON.stringify(withoutAccess)).toContain("serve il permesso View financials");
     expect(JSON.stringify(withoutAccess)).toContain("Valore mensile (MRR)");
+
+    const refreshWithoutAccess = await renderOwnerControlAction(
+      env.DB,
+      { view: "billing", refresh: true },
+      controlConfig(),
+      { now: NOW, fetcher: denied },
+    );
+    const refreshText = JSON.stringify(refreshWithoutAccess);
+    expect(refreshText).toContain("Aggiornamento");
+    expect(refreshText).toContain("Non riuscito (partner_api_graphql_error)");
   });
 });
 
@@ -1357,6 +1406,40 @@ describe("query D1 e run-rate", () => {
     });
     await insertStore(5, "omaggio.myshopify.com", { complimentary: true });
     await insertStore(6, "trial.myshopify.com", { trial: true });
+    await env.DB.batch([
+      env.DB.prepare(
+        `UPDATE billing_accounts
+            SET shopify_charge_gid = 'gid://shopify/AppSubscription/monthly',
+                current_period_start = date('now', '-1 day'),
+                sale_observed_at = datetime('now'),
+                sale_checked_at = datetime('now'),
+                sale_charge_gid = 'gid://shopify/AppSubscription/monthly',
+                sale_cycle_start = date('now', '-1 day')
+          WHERE shop_id = 1`,
+      ),
+      env.DB.prepare(
+        `UPDATE billing_accounts
+            SET shopify_charge_gid = 'gid://shopify/AppSubscription/annual',
+                current_period_start = date('now', '-1 day'),
+                sale_checked_at = datetime('now')
+          WHERE shop_id = 2`,
+      ),
+      env.DB.prepare(
+        `UPDATE billing_accounts
+            SET shopify_charge_gid = 'gid://shopify/AppPurchaseOneTime/1',
+                sale_observed_at = datetime('now'),
+                sale_checked_at = datetime('now'),
+                sale_charge_gid = 'gid://shopify/AppPurchaseOneTime/1'
+          WHERE shop_id = 3`,
+      ),
+      env.DB.prepare(
+        `UPDATE billing_accounts
+            SET shopify_charge_gid = 'gid://shopify/AppSubscription/trial',
+                current_period_start = NULL,
+                sale_checked_at = datetime('now')
+          WHERE shop_id = 4`,
+      ),
+    ]);
 
     const dashboard = await readDashboard(env.DB);
     expect(dashboard).toMatchObject({
@@ -1381,6 +1464,13 @@ describe("query D1 e run-rate", () => {
     expect(billing.netMrr).toBeCloseTo(3.99 * 0.941 + (29.9 / 12) * 0.971, 8);
     expect(billing.netArr).toBeCloseTo(3.99 * 12 * 0.941 + 29.9 * 0.971, 8);
     expect(billing.regulatoryUnknown).toBe(1);
+    expect(billing.reconciliation).toMatchObject({
+      paid: 4,
+      matched: 2,
+      awaiting: 1,
+      notDue: 1,
+      needsReview: 0,
+    });
     expect(billing.shopifyFees).toEqual({
       revenueShare: 0,
       processing: 0.029,
@@ -1678,6 +1768,29 @@ describe("query D1 e run-rate", () => {
         "SELECT status, COUNT(*) AS count FROM owner_operational_incidents WHERE incident_kind = 'billing' GROUP BY status",
       ).all(),
     ).toMatchObject({ results: [{ status: "resolved", count: 5 }] });
+  });
+
+  test("non segnala una vendita durante la prova senza ciclo pagato", async () => {
+    await insertStore(1, "billing-trial.myshopify.com");
+    const old = "2026-07-01T10:00:00.000Z";
+    await env.DB.prepare(
+      `INSERT INTO billing_accounts (
+         shop_id, entitlement_status, plan_kind, pricing_generation, shopify_charge_gid,
+         shopify_status, is_test, current_period_start, last_reconciled_at,
+         sale_checked_at, created_at, updated_at
+       ) VALUES (1, 'active', 'monthly', 'balanced',
+                 'gid://shopify/AppSubscription/trial', 'ACTIVE', 0, NULL, ?, ?, ?, ?)`,
+    )
+      .bind(NOW.toISOString(), NOW.toISOString(), old, old)
+      .run();
+
+    await reconcileOwnerIncidents(env.DB, NOW);
+
+    expect(
+      await env.DB.prepare(
+        "SELECT status FROM owner_operational_incidents WHERE incident_key = 'billing_sale:1'",
+      ).first(),
+    ).toBeNull();
   });
 
   test("rifiuta letture incidenti incomplete e ignora store già rimossi", async () => {
@@ -2202,6 +2315,9 @@ function shopFixture(overrides: Partial<ShopRow> = {}): ShopRow {
     last_reconciled_at: null,
     sale_observed_at: null,
     sale_checked_at: null,
+    sale_charge_gid: null,
+    sale_cycle_start: null,
+    shopify_charge_gid: null,
     conversion_credit_status: null,
     conversion_credit_amount_minor: null,
     conversion_credit_currency: null,
