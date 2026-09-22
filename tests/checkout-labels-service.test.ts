@@ -54,6 +54,7 @@ import {
   acceptAddress2Customization,
   confirmGuidedCheckoutLabels,
   loadCheckoutLabels,
+  prefetchCheckoutLabels,
   restoreAddress2Translations,
   saveRulesAndCheckoutLabels,
 } from "../app/checkout-labels/service.server";
@@ -92,6 +93,26 @@ beforeEach(() => {
   mocks.readStored.mockResolvedValue([]);
   mocks.enable.mockResolvedValue("epoch-1");
   mocks.writeValidation.mockResolvedValue({ ok: true, enabled: true });
+});
+
+test("il prefetch rende esplicito l'esito Shopify senza propagare il rifiuto", async () => {
+  const snapshot = snapshotOf([]);
+  mocks.readLabels.mockResolvedValueOnce(snapshot).mockRejectedValueOnce(new Error("rete"));
+
+  await expect(prefetchCheckoutLabels(admin)).resolves.toEqual({ ok: true, snapshot });
+  await expect(prefetchCheckoutLabels(admin)).resolves.toMatchObject({
+    ok: false,
+    error: expect.any(Error),
+  });
+});
+
+test("il caricamento riusa lo snapshot preletto", async () => {
+  const snapshot = snapshotOf([]);
+
+  await expect(
+    loadCheckoutLabels(admin, db, shop, rules, { ok: true, snapshot }),
+  ).resolves.toMatchObject({ available: true, snapshot });
+  expect(mocks.readLabels).not.toHaveBeenCalled();
 });
 
 test("il caricamento persiste il readback e aggiorna una gestione attiva", async () => {

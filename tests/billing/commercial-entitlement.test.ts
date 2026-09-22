@@ -97,3 +97,44 @@ test("un omaggio revocato non converte né sostituisce la prova ancora attiva", 
   });
   expect(await trialStatus(shop)).toMatchObject({ status: "active" });
 });
+
+test("un diritto già convertito non ripete l'UPDATE della prova", async () => {
+  const shop = await insertShop("commercial-already-converted.example.myshopify.com");
+  const activeInputs = await activeTrial(shop);
+  const billing = abbonamento(
+    "gid://shopify/AppSubscription/commercial-already-converted",
+    "2026-08-31T21:59:59Z",
+  );
+  await syncCommercialEntitlement(env.DB, shop, {
+    billing,
+    inputs: activeInputs,
+    timeZone: TIME_ZONE,
+    today: TODAY,
+  });
+  const convertedInputs = await readCommercialInputs(env.DB, shop, TODAY);
+  let conversionUpdates = 0;
+  const db = new Proxy(env.DB, {
+    get(target, property) {
+      if (property === "prepare") {
+        return (sql: string) => {
+          if (sql.includes("UPDATE trials") && sql.includes("status = 'converted'")) {
+            conversionUpdates += 1;
+          }
+          return target.prepare(sql);
+        };
+      }
+      const value = Reflect.get(target, property, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+
+  await syncCommercialEntitlement(db, shop, {
+    billing,
+    inputs: convertedInputs,
+    timeZone: TIME_ZONE,
+    today: TODAY,
+  });
+
+  expect(conversionUpdates).toBe(0);
+  expect(await trialStatus(shop)).toMatchObject({ status: "converted" });
+});

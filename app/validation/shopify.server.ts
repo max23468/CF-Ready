@@ -108,7 +108,7 @@ const HOME_SNAPSHOT_QUERY = `#graphql
           }
         }
       }
-      allSubscriptions(first: 50) {
+      allSubscriptions(first: 1, sortKey: CREATED_AT, reverse: true) {
         nodes {
           id
           name
