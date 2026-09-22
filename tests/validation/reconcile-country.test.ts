@@ -39,6 +39,8 @@ test("la Home legge contesto e billing con una sola chiamata Shopify iniziale", 
   expect(queries[0]).toContain("validations(first: 100");
   expect(queries[0]).toContain("currentAppInstallation");
   expect(timings).toContain("shopify_snapshot");
+  expect(timings).toContain("d1_commercial_sync");
+  expect(timings).toContain("validation_entitlement_sync");
   expect(state.errorCode).toBeNull();
 });
 
@@ -208,12 +210,14 @@ test("un errore billing resta fail-open e produce soltanto timing tecnici", asyn
       "shopify_context",
       "d1_commercial",
       "shopify_billing",
+      "validation_entitlement_sync",
       "d1_validation_state",
     ]),
   );
   expect(timings.every(({ durationMs }) => Number.isFinite(durationMs) && durationMs >= 0)).toBe(
     true,
   );
+  expect(timings.map(({ name }) => name)).not.toContain("d1_commercial_sync");
   expect(JSON.stringify(timings)).not.toContain(shop);
 });
 
@@ -233,6 +237,7 @@ test("la persistenza differita è recintata e rende il timing di scheduling", as
   expect(state.errorCode).toBeNull();
   expect(pending).toHaveLength(1);
   await Promise.all(pending);
+  expect(timings).toContain("d1_validation_revision");
   expect(timings).toContain("d1_validation_schedule");
   expect(timings).not.toContain("d1_validation_state");
 });

@@ -29,8 +29,11 @@ export type ReconcileTiming = (
     | "shopify_context"
     | "shopify_snapshot"
     | "d1_commercial"
+    | "d1_commercial_sync"
     | "shopify_billing"
+    | "d1_validation_revision"
     | "d1_validation_state"
-    | "d1_validation_schedule",
+    | "d1_validation_schedule"
+    | "validation_entitlement_sync",
   durationMs: number,
 ) => void;
