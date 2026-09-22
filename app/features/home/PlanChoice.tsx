@@ -2,8 +2,6 @@ import { formatMoney, texts } from "../../i18n";
 import { commercialState } from "./commercial-state";
 import type { HomeData } from "./home.server";
 
-const conversionMoneyFormatters = new Map<string, Intl.NumberFormat>();
-
 type PlanProps = {
   data: HomeData;
   busy: boolean;
@@ -164,12 +162,7 @@ function OneTimePlanOption({
   trialNeverStarted: boolean;
 }) {
   const t = texts(data.locale);
-  const credit =
-    data.entitlement.kind === "subscription" && data.creditEstimate
-      ? {
-          value: formatMoney(data.creditEstimate, data.locale),
-        }
-      : null;
+  const creditExpected = data.entitlement.kind === "subscription" && Boolean(data.creditEstimate);
   return (
     <s-stack direction="block" gap="small-100">
       <s-stack direction="inline" gap="small-100" alignItems="center">
@@ -179,14 +172,7 @@ function OneTimePlanOption({
       <s-paragraph>
         {trialNeverStarted ? t.plan.oneTimeChargeNotStarted : t.plan.oneTimeCharge}
       </s-paragraph>
-      {credit ? (
-        <>
-          <s-paragraph>
-            {t.plan.oneTimeFullCharge(formatMoney(data.plan!.one_time, data.locale))}
-          </s-paragraph>
-          <s-paragraph>{t.plan.creditPending(credit.value)}</s-paragraph>
-        </>
-      ) : null}
+      {creditExpected ? <s-paragraph>{t.plan.creditExpected}</s-paragraph> : null}
       <s-stack direction="inline" gap="base">
         <s-button
           disabled={busy}
@@ -204,31 +190,13 @@ function ConversionCreditNote({ data }: { data: HomeData }) {
   const t = texts(data.locale);
   const credit = data.conversionCredit;
   if (!credit) return null;
-  const amount = credit.actual ?? credit.estimate;
-  const formatted =
-    amount !== null && credit.currency
-      ? formatConversionMoney(amount, credit.currency, data.locale)
-      : null;
   if (credit.status === "confirmed") {
-    return <s-paragraph>{t.plan.creditConfirmed(formatted)}</s-paragraph>;
+    return <s-paragraph>{t.plan.creditComplete}</s-paragraph>;
   }
   if (credit.status === "not_applicable") {
-    return <s-paragraph>{t.plan.creditNotApplicable}</s-paragraph>;
+    return null;
   }
-  if (credit.status === "needs_review") {
-    return <s-paragraph>{t.plan.creditNeedsReview}</s-paragraph>;
-  }
-  return <s-paragraph>{t.plan.creditPending(formatted)}</s-paragraph>;
-}
-
-function formatConversionMoney(amount: number, currency: string, locale: string) {
-  const key = `${locale}:${currency}`;
-  let formatter = conversionMoneyFormatters.get(key);
-  if (!formatter) {
-    formatter = new Intl.NumberFormat(locale, { style: "currency", currency });
-    conversionMoneyFormatters.set(key, formatter);
-  }
-  return formatter.format(amount);
+  return <s-paragraph>{t.plan.creditProcessing}</s-paragraph>;
 }
 
 function SubscriptionCancellation({ data, busy, pendingIntent }: PlanProps) {

@@ -336,6 +336,31 @@ test("una vendita annuale tardiva resta collegata alla conversione dopo il lifet
   ).toMatchObject({ plan_kind: "one_time", sale_transaction_gid: null });
 });
 
+test("non interroga le transazioni per un abbonamento ancora in prova", async () => {
+  const shop = await insertShop("prova-finanziaria.myshopify.com");
+  const shopId = await shopIdFor(shop);
+  await env.DB.prepare(
+    `INSERT INTO billing_accounts (
+       shop_id, entitlement_status, plan_kind, pricing_generation, shopify_charge_gid,
+       shopify_status, is_test, current_period_start, current_period_end,
+       created_at, updated_at
+     ) VALUES (?, 'active', 'monthly', 'balanced',
+               'gid://shopify/AppSubscription/in-prova', 'ACTIVE', 0, NULL,
+               '2026-09-30', ?, ?)`,
+  )
+    .bind(shopId, NOW.toISOString(), NOW.toISOString())
+    .run();
+  const fetcher = vi.fn();
+
+  await expect(
+    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
+      now: NOW,
+      fetcher: fetcher as typeof fetch,
+    }),
+  ).resolves.toEqual({ observed: 0, checkedAt: NOW.toISOString() });
+  expect(fetcher).not.toHaveBeenCalled();
+});
+
 test("il credito richiede tipo, importo e valuta compatibili ed è idempotente", async () => {
   const cases = [
     ["corretto", "AppSaleAdjustment", "-10.00", "EUR", "confirmed"],

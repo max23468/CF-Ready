@@ -67,6 +67,9 @@ export type ShopRow = {
   last_reconciled_at: string | null;
   sale_observed_at: string | null;
   sale_checked_at: string | null;
+  sale_charge_gid: string | null;
+  sale_cycle_start: string | null;
+  shopify_charge_gid: string | null;
   conversion_credit_status: string | null;
   conversion_credit_amount_minor: number | null;
   conversion_credit_currency: string | null;
@@ -84,6 +87,7 @@ const SHOP_SELECT = `
     b.entitlement_status, b.plan_kind, b.pricing_generation, b.current_period_start,
     b.current_period_end, b.shopify_status, b.is_test AS billing_is_test,
     b.last_reconciled_at, b.sale_observed_at, b.sale_checked_at,
+    b.sale_charge_gid, b.sale_cycle_start, b.shopify_charge_gid,
     (SELECT credit_status FROM billing_conversions bc WHERE bc.shop_id = s.id
       ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_credit_status,
     (SELECT credit_amount_minor FROM billing_conversions bc WHERE bc.shop_id = s.id
@@ -198,7 +202,7 @@ export async function findShops(db: D1Database, input: string) {
 }
 
 export async function readBilling(db: D1Database) {
-  const [{ results }, complimentary, trials] = await Promise.all([
+  const [{ results }, complimentary, trials, reconciliation, conversions] = await Promise.all([
     db
       .prepare(
         `SELECT b.entitlement_status, b.plan_kind, b.pricing_generation, s.country_code,
@@ -228,6 +232,44 @@ export async function readBilling(db: D1Database) {
         `SELECT COUNT(*) AS count FROM trials t JOIN shops s ON s.id = t.shop_id
          WHERE s.installation_status = 'active' AND t.status = 'active'
            AND t.ends_at >= date('now')`,
+      )
+      .first<{ count: number }>(),
+    db
+      .prepare(
+        `SELECT
+           COUNT(*) AS paid,
+           COUNT(*) FILTER (
+             WHERE b.plan_kind IN ('monthly', 'annual')
+               AND (b.current_period_start IS NULL
+                    OR date(b.current_period_start) > date('now'))
+           ) AS not_due,
+           COUNT(*) FILTER (
+             WHERE NOT (
+               b.plan_kind IN ('monthly', 'annual')
+               AND (b.current_period_start IS NULL
+                    OR date(b.current_period_start) > date('now'))
+             )
+             AND b.sale_observed_at IS NOT NULL
+             AND b.sale_charge_gid IS b.shopify_charge_gid
+             AND (b.plan_kind = 'one_time'
+                  OR b.sale_cycle_start IS b.current_period_start)
+           ) AS matched,
+           MAX(b.sale_checked_at) AS checked_at
+         FROM billing_accounts b
+         JOIN shops s ON s.id = b.shop_id
+         WHERE s.installation_status = 'active'
+           AND b.entitlement_status IN ('active', 'ending')
+           AND b.plan_kind IN ('monthly', 'annual', 'one_time')
+           AND b.is_test = 0`,
+      )
+      .first<{ paid: number; not_due: number; matched: number; checked_at: string | null }>(),
+    db
+      .prepare(
+        `SELECT COUNT(*) AS count
+           FROM billing_conversions c
+           JOIN shops s ON s.id = c.shop_id
+          WHERE s.installation_status = 'active'
+            AND c.is_test = 0 AND c.credit_status = 'needs_review'`,
       )
       .first<{ count: number }>(),
   ]);
@@ -263,6 +305,17 @@ export async function readBilling(db: D1Database) {
     netArr: netMrr * 12,
     regulatoryUnknown,
     shopifyFees: SHOPIFY_APP_FEES,
+    reconciliation: {
+      paid: reconciliation?.paid ?? 0,
+      matched: reconciliation?.matched ?? 0,
+      awaiting:
+        (reconciliation?.paid ?? 0) -
+        (reconciliation?.matched ?? 0) -
+        (reconciliation?.not_due ?? 0),
+      notDue: reconciliation?.not_due ?? 0,
+      needsReview: conversions?.count ?? 0,
+      checkedAt: reconciliation?.checked_at ?? null,
+    },
   };
 }
 

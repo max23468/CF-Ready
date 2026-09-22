@@ -29,9 +29,6 @@ describe("componenti merchant nel browser", () => {
       "plan.firstCharge": ["10 settembre"],
       "plan.nextCharge": ["10 settembre"],
       "plan.periodEnds": ["10 settembre"],
-      "plan.oneTimeFullCharge": ["10,00 €"],
-      "plan.creditPending": ["5,00 €"],
-      "plan.creditConfirmed": ["5,00 €"],
     };
     for (const messages of [it, en]) {
       for (const [path, args] of Object.entries(formatterArguments)) {
