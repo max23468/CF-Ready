@@ -80,7 +80,7 @@
     "node": ">=26.8.2 <27"
   },
   "dependencies": {
-    "@shopify/shopify-api": "14.0.1",
+    "@shopify/shopify-api": "15.0.0",
     "@shopify/shopify-app-react-router": "2.1.0",
     "@shopify/shopify-app-session-storage": "6.0.1",
     "react": "19.3.0",
