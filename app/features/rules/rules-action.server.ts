@@ -16,7 +16,7 @@ import {
 } from "../../checkout-labels/service.server";
 import { reconcile, writeValidation } from "../../validation.server";
 import type { Admin } from "../../validation/types";
-import { RULES_INTENTS, type RulesIntent } from "./rules-intents";
+import { RULES_INTENTS, type CheckoutLabelsLoadAction, type RulesIntent } from "./rules-intents";
 
 type RulesActionContext = {
   admin: Admin;
@@ -102,6 +102,41 @@ async function refreshCheckoutLabels(context: RulesActionContext) {
       snapshot: refreshed.snapshot,
       state: refreshed.state,
       guidedConfirmations: refreshed.guidedConfirmations,
+    },
+  };
+}
+
+async function loadCheckoutLabelsForView(
+  context: RulesActionContext,
+): Promise<CheckoutLabelsLoadAction | ReturnType<typeof failure>> {
+  const taxCode = oneOf(TAX_CODE_RULE_MODES, context.form.get("taxCode"));
+  const pec = oneOf(PEC_RULE_MODES, context.form.get("pec"));
+  if (!taxCode || !pec) return failure("generic");
+  if (!context.labelScopesGranted) {
+    const state = await readCheckoutLabelState(context.db, context.shop);
+    return {
+      ok: true,
+      loaded: {
+        scopeGranted: false,
+        snapshot: null,
+        state,
+        guidedConfirmations: [],
+        errorCode: state.mode === "off" ? null : "checkout_labels_scope_required",
+      },
+    };
+  }
+  const labels = await loadCheckoutLabels(context.admin, context.db, context.shop, {
+    taxCode,
+    pec,
+  });
+  return {
+    ok: true,
+    loaded: {
+      scopeGranted: true,
+      snapshot: labels.available ? labels.snapshot : null,
+      state: labels.state,
+      guidedConfirmations: labels.available ? labels.guidedConfirmations : [],
+      errorCode: labels.available ? null : labels.errorCode,
     },
   };
 }
@@ -195,6 +230,8 @@ export function handleRulesAction(
   context: RulesActionContext,
 ) {
   switch (intent) {
+    case RULES_INTENTS.loadCheckoutLabels:
+      return loadCheckoutLabelsForView(context);
     case RULES_INTENTS.restoreConfiguration:
       return restoreConfiguration(context);
     case RULES_INTENTS.refreshCheckoutLabels:

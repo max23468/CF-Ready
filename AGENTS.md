@@ -1,218 +1,128 @@
 # AGENTS.md
 
-Regole operative condivise per questa repository. `CLAUDE.md` importa il file:
-mantieni qui solo invarianti, fonti, comandi e gate specifici. Stile, autonomia,
-qualità generale, Skill e collaborazione sono definiti nell'AGENTS globale.
+CF Ready è una public app Shopify che valida Codice Fiscale e PEC nei localized
+fields del checkout italiano: React Router e TypeScript su Cloudflare Workers,
+Queues per i webhook, D1 per dati e sessioni, R2 per i backup, Pages per il sito
+e una Cart and Checkout Validation Function.
 
-## Progetto e fonti
-
-CF Ready è una public app Shopify per validare Codice Fiscale e PEC nei
-localized fields del checkout italiano. Il target usa React Router e TypeScript
-su Cloudflare Workers, Queues per il lavoro webhook durevole, D1 per dati e
-sessioni, R2 per i backup, Pages per il sito pubblico e una Cart and Checkout
-Validation Function. Non presentare un deliverable pianificato come già
-implementato: codice, test e configurazioni provano lo stato corrente.
-
-- `docs/plans/2026-07-28-CF-Ready-Master-Plan.md`: requisiti, decisioni,
-  milestone e gate.
-- `docs/adr/`: decisioni architetturali accettate.
-- Codice, test e configurazioni: comportamento implementato.
-- `README.md` e `package.json`: setup e comandi correnti.
-
-Se le fonti contraddicono lo stesso fatto, correggi nella stessa modifica la
-fonte canonica coinvolta senza nascondere il disallineamento.
-I documenti non hanno versioni proprie e rimandano agli altri documenti per
-percorso o sezione; la cronologia resta in Git.
+Fonti, in ordine: codice, test e configurazioni per il comportamento attuale;
+`docs/plans/2026-07-28-CF-Ready-Master-Plan.md` per requisiti e decisioni
+(`D-nnn`); `docs/adr/` per l'architettura; `README.md` e `package.json` per i
+comandi. Un deliverable pianificato non è implementato finché il codice non lo
+prova. Se due fonti si contraddicono, correggi quella canonica nella stessa
+modifica.
 
 ## Invarianti di prodotto
 
-- CF Ready gestisce esclusivamente Codice Fiscale e PEC. Partita IVA, Codice SDI,
-  fatturazione elettronica, POS, modifiche al tema, Theme App Extension e
-  Checkout UI Extension sono fuori perimetro.
-- Usa `TAX_CREDENTIAL_IT` e `TAX_EMAIL_IT`; non creare campi alternativi e non
-  rinominare il campo “Interno”.
-- Ogni campo ha tre modalità indipendenti: `unmanaged`, `optional`, `required`.
-  Salvataggio delle regole e attivazione della Validation restano separati.
-- La validazione è formale, non anagrafica: non attestare l’appartenenza di un
-  Codice Fiscale o che una casella email sia realmente una PEC.
-- Configurazione o entitlement incerti ed errori runtime devono essere
-  fail-open. Un localized field obbligatorio assente blocca con errore globale
-  soltanto quando Shopify espone almeno una consegna italiana; senza consegna
-  osservabile resta fail-open. Un errore dell’app non blocca vendite legittime.
-- Shopify è autorevole per Validation e billing; D1 conserva stato operativo,
-  non una verità alternativa.
-- Gestisci una sola Validation per store e non modificare risorse di altre app.
-- Non ampliare scope, runtime, provider o dipendenze senza un requisito
-  verificato e una decisione esplicita.
+- Solo Codice Fiscale e PEC, tramite `TAX_CREDENTIAL_IT` e `TAX_EMAIL_IT`.
+  Partita IVA, SDI, fatturazione elettronica, POS, temi, Theme App Extension e
+  Checkout UI Extension sono fuori perimetro; il campo “Interno” non si rinomina.
+- Ogni campo è `unmanaged`, `optional` o `required`, in modo indipendente.
+  Salvare le regole e attivare la Validation restano azioni separate.
+- La validazione è formale: non attesta a chi appartiene un Codice Fiscale né
+  che una casella sia davvero una PEC.
+- Un errore dell'app non blocca vendite legittime: configurazione o entitlement
+  incerti ed errori runtime sono fail-open. Un campo obbligatorio assente blocca
+  soltanto se Shopify espone almeno una consegna italiana.
+- Shopify è autorevole per Validation e billing; D1 conserva stato operativo.
+  Una sola Validation per store, mai toccare risorse di altre app.
+- Scope Shopify minimo: niente ordini, clienti, prodotti o inventario senza un
+  requisito approvato. Nuovi runtime, provider o dipendenze richiedono una
+  decisione esplicita.
 
 ## Sicurezza e dati
 
-- Non committare né stampare segreti, token, credenziali, `.env` reali, dati
-  fiscali o personali. Verifica le env senza mostrarne il valore e usa fixture
-  sintetiche.
-- Valida HMAC, firma, stato o nonce ai confini Shopify. Webhook e callback
-  ritentabili devono essere idempotenti.
-- Per i webhook conserva l'ordine claim D1, consegna a Cloudflare Queues e ACK;
-  gli errori durevoli passano dalla DLQ senza perdere o duplicare il lavoro.
-- Mantieni lo scope Shopify minimo: non leggere ordini, clienti, prodotti o
-  inventario senza un requisito approvato.
-- Non inviare Codice Fiscale, PEC, dati checkout, nome o email dell'owner e altri
-  dati merchant a log, telemetria o provider esterni; usa identificatori tecnici
-  minimizzati. Fa eccezione soltanto la notifica Telegram privata dell'owner
-  definita in D-134, che può includere nome pubblico e dominio tecnico dello store
-  senza dati personali di owner o clienti né identificatori Shopify. D-159
-  aggiunge il solo feedback libero di disinstallazione fornito a Shopify,
-  riservato al dettaglio e alle notifiche private dell’owner: non va copiato
-  in log, analytics, fixture o repository e non è un dato anonimizzato.
-- Telemetria e prestazioni conservano soltanto esiti, durate e aggregati
-  allowlistati. Attribuisci Web Vitals alla rotta e al `Server-Timing` acquisiti
-  all'avvio del documento, senza contenuti merchant.
-- Le migrazioni applicate sono immutabili. Preferisci forward-fix e non unire
-  migrazioni distruttive a una release non verificata.
+- Segreti, token, `.env` reali, dati fiscali e personali non finiscono in
+  commit, output, log, telemetria o provider esterni. Verifica le env senza
+  stamparne il valore e usa fixture sintetiche.
+- Le uniche eccezioni sono le notifiche Telegram private dell'owner (D-134) e il
+  feedback di disinstallazione (D-159), nei limiti fissati da quelle decisioni.
+- Telemetria e prestazioni conservano solo esiti, durate e aggregati
+  allowlistati.
+- Ai confini Shopify valida HMAC, firma, stato o nonce. Webhook e callback
+  ritentabili sono idempotenti; i webhook seguono claim D1, Queue, ACK, con DLQ
+  per gli errori durevoli (ADR 0002).
+- Le migrazioni applicate sono immutabili: forward-fix, e mai una migrazione
+  distruttiva in una release non verificata.
 
-## Lavorare nel repository
+## Lavoro nel repository
 
-- Inizia da `git status --short --branch -uall` e preserva le modifiche non tue.
-- Per analisi, review o diagnosi, ispeziona e riferisci senza modificare. Per fix
-  o implementazioni, applica le modifiche locali richieste e i controlli
-  pertinenti.
-- Prima di correggere un bug, individua la causa nel punto condiviso e aggiungi
-  il test minimo che falliva prima del fix.
-- Mantieni il diff stretto: niente refactor, compatibilità legacy, astrazioni,
-  dipendenze o documenti non richiesti.
-- Segui stile, naming e densità di commenti del codice vicino. Per la UI
-  embedded usa Polaris e App Bridge Web Components prima di markup, CSS o stato
-  custom.
-- UI merchant e contenuti checkout sono bilingui dove previsto, con fallback
-  inglese. Non lasciare copy parziale tra italiano e inglese.
-- Aggiorna il Master Plan per decisioni di prodotto; usa un ADR per deviazioni
-  architetturali stabili. README, script e configurazioni descrivono soltanto
-  comandi e comportamento correnti.
-- Per preparare incarichi delegati segui
-  [CONTRIBUTING.md](CONTRIBUTING.md#preparare-un-incarico).
+Preserva modifiche, branch e worktree non tuoi. Una richiesta di analisi o
+review si risponde senza modificare; una richiesta di fix o implementazione si
+porta a termine in locale con i controlli pertinenti. Commit, push e PR
+arrivano con una richiesta esplicita o con `Pubblica`. Un bug si corregge nel punto
+condiviso, con il test minimo che falliva prima del fix.
+
+Per la UI embedded usa Polaris e App Bridge Web Components prima di markup o
+CSS custom. UI merchant e testi checkout sono bilingui con fallback inglese,
+mai a metà. Le decisioni di prodotto vanno nel Master Plan, le deviazioni
+architetturali stabili in un ADR. Per incarichi delegati vedi
+[CONTRIBUTING.md](CONTRIBUTING.md#preparare-un-incarico).
 
 ## Verifica
 
-| Corsia | Quando | Gate minimo |
+`scripts/ci-lane.mjs` classifica il diff; esegui il gate della corsia:
+
+| Corsia | Quando | Gate locale |
 | --- | --- | --- |
-| `docs` | contenuti documentali senza effetto operativo | riferimenti e comandi citati, `npm run check:docs` |
-| `standard` | TypeScript, route, config o test ordinari | test mirati, `npm run check:standard`, coverage e mutation applicabili |
-| `full` | governance, workflow, auth, webhook, cifratura, migrazioni, manifest o lockfile | `npm run check`, coverage e mutation applicabili, regressione mirata |
-| `promotion` | PR `develop` → `main` con ascendenza valida | provenienza, review, tree e gate esatti di `develop`, `promotion-guard` |
-| `deploy` | provider, migrazioni, Worker, Function o Pages | gate completo, preflight, backup se serve, smoke, readback e rollback |
+| `docs` | documenti senza effetto operativo | `npm run check:docs` |
+| `standard` | TypeScript, route, config, test | test mirati, `npm run check:standard` |
+| `full` | governance, workflow, auth, webhook, cifratura, migrazioni, manifest, lockfile | `npm run check` |
 
-`npm run check` è il gate locale della corsia `full`; `coverage:check`, i gate
-mutation condizionali e gli E2E restano controlli separati applicabili al diff.
-La coverage chiede righe eseguibili modificate coperte almeno al 95%, totale
-almeno al 90%, bundle Function al 100% per file e domini critici billing,
-webhook e Validation al 95% con mutation all'80%; non esiste una baseline da
-committare. Provider, database remoto,
-browser e deploy richiedono prove fresche; un exit code `0` non dimostra da solo
-lo stato live. Dichiara sempre i controlli non eseguiti.
+Coverage (`npm run coverage:check`) e mutation (`npm run mutation:critical`)
+valgono quando il diff tocca il loro perimetro; le soglie stanno in
+`scripts/coverage-report.mjs`. Provider, database remoto, browser e deploy
+richiedono prove fresche: un exit code `0` non dimostra lo stato live.
+Dichiara i controlli non eseguiti.
 
-Prima di ogni release Shopify verifica con il workflow lo schema Function API
-`2026-07`. Se la modifica tocca Function, versione API, query o CLI, riconferma
-il contratto nelle fonti Shopify correnti, rigenera con la CLI supportata e
-ripeti fixture e checkout reali applicabili.
+Se tocchi Function, versione API, query o CLI Shopify, riconferma il contratto
+Function API `2026-07` sulle fonti Shopify correnti e rigenera con la CLI.
 
-## Significato di `Pubblica`
+## Git e ambienti
 
-Quando il proprietario, riferendosi alla repository o alla modifica corrente,
-dice `Pubblica` o chiede in modo affermativo e inequivocabile di pubblicare,
-autorizza l'intero ciclo tecnico applicabile. Domande, ipotesi, pianificazioni e
-negazioni non costituiscono autorizzazione. L'agente non si ferma a stati
-intermedi e completa tutti i passaggi applicabili: preparazione e verifiche,
-branch e commit, versione e changelog quando richiesti, push, PR, soli gate
-bloccanti, merge, tag e GitHub Release quando previsti, deploy o promozione
-tecnica e verifica live. La sequenza concreta, in particolare tra versionamento,
-merge, deploy e release, è quella definita dalla policy della repository.
+| Ambiente | Branch | Versione Shopify |
+| --- | --- | --- |
+| Development (`dev`, `cf-ready-dev.myshopify.com`) | `develop` | `X.Y.Z-dev.<tree>` |
+| Production (`prod`) | `main` | SemVer di `package.json` |
 
-La pulizia finale rimuove soltanto branch e worktree temporanei creati nel ciclo
-corrente e già assorbiti; controlla stash e altri residui senza alterare elementi
-preesistenti o estranei alla pubblicazione. Se un passaggio non è applicabile, lo
-dichiara e prosegue con gli altri. La richiesta affermativa di pubblicazione
-vale come autorizzazione a PR, merge, deploy tecnico e release previsti dal
-ciclo, senza una seconda conferma. Non autorizza pubblicazione di temi Shopify
-live, submission Shopify App Store, billing o nuove attivazioni produttive,
-TestFlight o App Store, invii Aruba, email o scansioni reali, né aggiornamenti
-Notion: queste azioni richiedono una richiesta esplicita separata. Una richiesta
-riferita soltanto a una di queste azioni non avvia la pubblicazione della
-repository. Non dichiarare `pubblicato` finché il ciclo applicabile e la
-rilettura finale di PR, check, deploy, release e stato Git non sono completi.
+- PR ordinarie verso `develop` in squash, titoli e commit in Conventional
+  Commits, niente push diretti su `develop` o `main`.
+- `main` riceve solo promozioni da `develop` unite con metodo `MERGE`: l'head
+  della PR è il tip di `develop` e il commit a due parent nasce solo dal merge
+  GitHub. In review verifica head e parent dalla PR GitHub, non da un commit
+  sintetico locale. `develop` non si elimina mai; il riallineamento dopo la
+  promozione è compito di `reconcile-develop.yml`.
+- La SemVer si prepara nella PR verso `develop` (minor per funzionalità, patch
+  per fix) con manifest, lockfile e changelog, e resta la stessa fino alla
+  promozione. Documentazione e governance agentica da sole non la cambiano.
+- Prima di usare il connettore Shopify leggi l'identità dello store: in
+  sviluppo scrivi soltanto su `cf-ready-dev.myshopify.com`.
+- Prima di una scrittura remota identifica ambiente, account e store target e
+  verifica credenziali, backup e rollback senza esporre segreti.
 
-## Ambienti, Git e operazioni remote
+## `Pubblica`
 
-| Ambiente | ID | Branch | Uso |
-| --- | --- | --- | --- |
-| Development | `dev` | feature locali e `develop` | sviluppo e collaudo sul dev store |
-| Production | `prod` | `main` | merchant reali |
+Una richiesta affermativa e inequivocabile di pubblicare la modifica corrente
+autorizza l'intero ciclo tecnico senza seconda conferma. Domande, ipotesi e
+negazioni non lo autorizzano. Il ciclo lo esegue il coordinatore, dal worktree
+pulito del branch:
 
-- Le PR ordinarie puntano a `develop` e usano squash. `main` accetta soltanto
-  promozioni autorizzate da `develop`, unite con merge commit per preservare
-  l’ascendenza tra i due rami. Prima del merge l’head della PR resta quindi il
-  tip di `develop`: il commit di promozione a due parent nasce soltanto unendo
-  la PR con metodo `MERGE`, mai simulando o preparando uno squash. Dopo uno
-  squash elimina il branch temporaneo; non eliminare mai `develop` dopo una
-  promozione.
-- Nella review di una promozione, identifica l’head dalla PR GitHub
-  (`head.ref=develop` e relativo SHA), non dal commit sintetico costruito
-  nell’ambiente di review. Verifica il metodo `MERGE` e i due parent tramite il
-  candidato restituito da GitHub; un commit sintetico locale a parent singolo
-  non è il commit che verrà unito e non prova una perdita di ascendenza.
-- Commit e titoli PR seguono Conventional Commits. Non fare push diretti
-  intenzionali su `main` o `develop`. Fa eccezione soltanto il fast-forward
-  automatico di `develop` al merge commit Production già verificato: lo esegue
-  una GitHub App dedicata, ammessa dal ruleset esclusivamente dopo deploy e
-  readback verdi, solo se il secondo parent è l'HEAD corrente di `develop` e i
-  tree sono identici. Se quel fast-forward fallisce e `develop` avanza prima del
-  retry, la stessa App può aggiungere in modo manuale un merge di sola ascendenza
-  con tree `develop` invariato e senza force, soltanto dopo aver verificato la
-  ricevuta Production, il parent promosso e la discendenza lineare. Lo stesso
-  recupero manuale è ammesso senza ricevuta per una promozione `main` dichiarata
-  senza deploy, soltanto se il merge non cambia il tree del parent `develop` e
-  il branch corrente ne è un avanzamento lineare; il commit risultante conserva
-  il tree corrente di `develop` e non modifica provider. L'avvio manuale del
-  workflow dichiara obbligatoriamente `deploy-retry` oppure
-  `no-deploy-promotion`: la prima modalità verifica sempre la ricevuta, anche
-  nel recupero avanzato; la seconda termina senza scrivere se il parent promosso
-  è ancora l'HEAD di `develop`.
-- La ricevuta di deploy è l'unico dato che nasce dopo il merge e non apre PR:
-  il workflow la conserva come artifact JSON legato a commit e tree; quella
-  Production è anche attestata. Le PR di chiusura collegano queste prove senza
-  ricopiarle nel repository.
-- La prossima SemVer si prepara nella PR verso `develop`, insieme a manifest,
-  lockfile e changelog, anche con “pubblica senza promuovere”: minor per nuove
-  funzionalità compatibili, patch per soli fix. Durante il collaudo della stessa
-  release si mantiene quel numero; cambiano soltanto gli snapshot `dev.<tree>`.
-  La promozione porta in `main` la stessa versione e lo stesso tree verificati
-  in Development, senza un ulteriore bump. Preparare una versione non autorizza
-  la promozione Production. Documentazione interna e governance agentica da sole
-  non richiedono un bump.
-- Development usa `X.Y.Z-dev.<tree>` come versione Shopify immutabile del
-  contenuto. Un commit diverso con lo stesso tree riusa lo snapshot e ripete
-  soltanto readback, smoke e controlli provider freschi. Production continua a
-  usare la SemVer esatta di `package.json`.
-- Submission App Store e attivazioni commerciali restano azioni separate.
-- Per operazioni remote preferisci l’integrazione ufficiale del provider
-  disponibile; usa CLI, API raw o browser solo per la parte non coperta.
-- Prima di usare il connettore Shopify, leggi sempre l’identità dello store.
-  Durante sviluppo e test consenti scritture CF Ready solo su
-  `cf-ready-dev.myshopify.com`; se il connettore punta a un altro store,
-  fermati e cambia store. In Production serve l’autorizzazione prevista sotto:
-  una richiesta affermativa di pubblicazione la soddisfa per il ciclo tecnico
-  applicabile.
-- Prima di una scrittura remota identifica ambiente, account Cloudflare,
-  organizzazione/app/store Shopify e stato target; verifica presenza delle
-  credenziali, autorizzazione, backup e rollback senza esporre segreti.
-- Dopo un deploy registra ambiente, commit, deployment ID, migrazioni, smoke,
-  readback e versione di rollback.
-- In CF Ready crea tag e GitHub Release soltanto dopo che il workflow Production,
-  lo smoke e il readback del medesimo commit sono riusciti.
-- Al di fuori di una richiesta di pubblicazione, Deploy Production e release
-  richiedono autorizzazione separata. Submission App Store, attivazione billing
-  e altre operazioni esterne escluse sopra la richiedono sempre.
+```sh
+npm run publish:development   # PR → develop, squash, deploy Development
+npm run publish:production    # + promozione, deploy, readback, release
+```
 
-## Comunicazione e completamento
+`Pubblica` usa `publish:production` quando la modifica porta una nuova SemVer,
+perché ogni promozione crea la release `v<versione>`. Senza bump (solo
+documentazione o governance) o con “pubblica senza promuovere” usa
+`publish:development`. Dopo un errore si rilancia lo stesso comando; dettagli
+in [operations.md](docs/runbooks/operations.md#coordinatore-di-pubblicazione).
+Tag e GitHub Release esistono solo dopo deploy, smoke e readback verdi dello
+stesso commit. Chiudi riportando ambiente, commit, deployment ID, migrazioni e
+versione di rollback, e rimuovi soltanto branch e worktree temporanei del ciclo già assorbiti.
 
-Aggiorna brevemente all’avvio e su scoperte importanti o cambi di direzione.
-Includi stato Git e stato di pubblicazione/deploy quando pertinenti.
+`Pubblica` non autorizza mai: temi Shopify live, submission App Store, billing
+o nuove attivazioni produttive, TestFlight o App Store, invii Aruba, email o
+scansioni reali, aggiornamenti Notion. Ognuna richiede una richiesta separata.
+Fuori da una richiesta di pubblicazione, deploy Production e release
+richiedono un'autorizzazione esplicita.

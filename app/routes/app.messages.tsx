@@ -1,14 +1,22 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { data, useActionData, useLoaderData, useNavigation, useSubmit } from "react-router";
+import type {
+  ActionFunctionArgs,
+  HeadersFunction,
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction,
+} from "react-router";
+import {
+  data,
+  useActionData,
+  useFetcher,
+  useLoaderData,
+  useNavigation,
+  useSubmit,
+} from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError } from "../app-error";
 import { checkoutLabelCopy, observedLabelForSlot } from "../checkout-labels/domain";
 import type { CheckoutLabelsSnapshot } from "../checkout-labels/domain";
-import {
-  CHECKOUT_LABEL_OPTIONAL_SCOPES,
-  loadCheckoutLabels,
-} from "../checkout-labels/service.server";
 import { authenticateAdminTimed } from "../admin-auth.server";
 import {
   DEFAULT_CONFIG,
@@ -24,6 +32,7 @@ import { databaseContext } from "../context.server";
 import { ConfigConflict } from "../features/ConfigConflict";
 import { CustomerMessagesPreview } from "../features/messages/CustomerMessagesPreview";
 import { UncontrolledMessageTextArea } from "../features/messages/UncontrolledMessageTextArea";
+import { RULES_INTENTS, type CheckoutLabelsLoadAction } from "../features/rules/rules-intents";
 import { resolveLocale, texts } from "../i18n";
 import type { Locale } from "../i18n";
 import {
@@ -45,23 +54,11 @@ import {
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
-  const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);
+  const { admin } = await authenticateAdminTimed(request, context, timing);
   const validation = findValidation(
     (await timing.measure("shopify_context", () => queryContext(admin))).validations.nodes,
   );
   const config = readConfig(validation?.metafield?.jsonValue);
-  const db = context.get(databaseContext);
-  const scopeDetails = await timing.measure("shopify_snapshot", () =>
-    scopes.query().catch(() => null),
-  );
-  const labelScopesGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
-    scopeDetails?.granted.includes(scope),
-  );
-  const labels = labelScopesGranted
-    ? await timing.measure("shopify_snapshot", () =>
-        loadCheckoutLabels(admin, db, session.shop, config.rules),
-      )
-    : null;
 
   return data(
     {
@@ -69,13 +66,20 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       configHash: await observedConfigHash(validation),
       messages: config.messages,
       rules: config.rules,
-      labelSnapshot: labels?.available ? labels.snapshot : null,
+      labelSnapshot: null,
     },
     { headers: { "Server-Timing": timing.header() } },
   );
 };
 
 export const headers: HeadersFunction = (args) => boundary.headers(args);
+
+export const shouldRevalidate: ShouldRevalidateFunction = (args) => {
+  if (args.actionResult && typeof args.actionResult === "object" && "loaded" in args.actionResult) {
+    return false;
+  }
+  return skipRevalidationWhenLeaving(args);
+};
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
@@ -114,11 +118,11 @@ function rowsFor(text: string) {
   return Math.max(2, Math.ceil((text.length + 1) / 45));
 }
 
-export const shouldRevalidate = skipRevalidationWhenLeaving;
-
 export default function CustomerMessages() {
   const saved = useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
+  const labelsFetcher = useFetcher<CheckoutLabelsLoadAction>();
+  const labelLoadStarted = useRef(false);
   const send = useSubmit();
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
@@ -146,6 +150,22 @@ export default function CustomerMessages() {
   // cursore dentro un testo lungo. Il ripristino li rimonta cambiando chiave, così ripartono
   // dal nuovo valore predefinito senza che React possieda il contenuto.
   const [mounted, setMounted] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (saved.labelSnapshot || labelLoadStarted.current) return;
+    labelLoadStarted.current = true;
+    labelsFetcher.submit(
+      {
+        intent: RULES_INTENTS.loadCheckoutLabels,
+        taxCode: saved.rules.taxCode,
+        pec: saved.rules.pec,
+      },
+      { method: "post", action: "/app/rules" },
+    );
+  }, [labelsFetcher, saved.labelSnapshot, saved.rules]);
+
+  const labelSnapshot =
+    (labelsFetcher.data?.ok ? labelsFetcher.data.loaded.snapshot : null) ?? saved.labelSnapshot;
   const remount = useCallback((fields: string[]) => {
     setMounted((current) => {
       const next = { ...current };
@@ -236,13 +256,7 @@ export default function CustomerMessages() {
     remount(MESSAGE_FIELDS);
   };
 
-  const previewField = messageFieldLabel(
-    t,
-    saved.rules,
-    activeLocale,
-    selectedKey,
-    saved.labelSnapshot,
-  );
+  const previewField = messageFieldLabel(t, saved.rules, activeLocale, selectedKey, labelSnapshot);
 
   // FR-063: il ripristino agisce su una lingua sola e lo dichiara nella conferma. Non salva da
   // sé: rimette i testi predefiniti nei campi e il salvataggio resta un gesto esplicito.

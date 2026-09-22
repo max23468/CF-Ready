@@ -688,19 +688,19 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   const tsconfig = JSON.parse(readFileSync(new URL("../tsconfig.json", import.meta.url), "utf8"));
   const npmrc = readFileSync(new URL("../.npmrc", import.meta.url), "utf8");
   const mise = readFileSync(new URL("../mise.toml", import.meta.url), "utf8");
-  assert.equal(packageJson.packageManager, "npm@12.0.2");
-  assert.equal(packageJson.engines.node, ">=26.8.2 <27");
+  assert.equal(packageJson.packageManager, "npm@12.1.0");
+  assert.equal(packageJson.engines.node, ">=26.10.0 <27");
   assert.equal(packageJson.devDependencies.typescript, "7.0.2");
   assert.equal(packageJson.devDependencies["@typescript/typescript6"], undefined);
   assert.equal(packageJson.allowScripts["fsevents@2.3.2"], false);
   assert.equal(
-    packageJson.packageExtensions["@shopify/shopify-app-react-router@2.1.0"].peerDependencies[
+    packageJson.packageExtensions["@shopify/shopify-app-react-router@3.0.0"].peerDependencies[
       "react-router"
     ],
     "8.4.0",
   );
   assert.equal(lockfile.lockfileVersion, 4);
-  assert.equal(lockfile.packages[""].engines.node, ">=26.8.2 <27");
+  assert.equal(lockfile.packages[""].engines.node, ">=26.10.0 <27");
   assert.equal(lockfile.packages[""].devDependencies.typescript, "7.0.2");
   assert.equal(tsconfig.compilerOptions.strict, true);
   assert.equal(tsconfig.compilerOptions.noUncheckedSideEffectImports, true);
@@ -708,16 +708,16 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   assert.equal(tsconfig.compilerOptions.ignoreDeprecations, undefined);
   assert.equal(tsconfig.compilerOptions.stableTypeOrdering, undefined);
   assert.match(npmrc, /^strict-allow-scripts=true$/m);
-  assert.match(mise, /^node = "26\.8\.2"$/m);
-  assert.match(mise, /^npm = "12\.0\.2"$/m);
+  assert.match(mise, /^node = "26\.10\.0"$/m);
+  assert.match(mise, /^npm = "12\.1\.0"$/m);
 
   const setupAction = readFileSync(
     new URL("../.github/actions/setup-node-npm/action.yml", import.meta.url),
     "utf8",
   );
-  assert.match(setupAction, /node-version:\s*26\.8\.2/);
+  assert.match(setupAction, /node-version:\s*26\.10\.0/);
   assert.match(setupAction, /cache:\s*npm/);
-  assert.match(setupAction, /npm install --global npm@12\.0\.2/);
+  assert.match(setupAction, /npm install --global npm@12\.1\.0/);
 
   for (const path of [
     "ci.yml",

@@ -1,4 +1,7 @@
+import type { CheckoutLabelsSnapshot, CheckoutLabelState } from "../../checkout-labels/domain";
+
 export const RULES_INTENTS = {
+  loadCheckoutLabels: "load_checkout_labels",
   save: "save",
   saveAddress2FormMode: "save_address2_form_mode",
   restoreConfiguration: "restore_configuration",
@@ -8,6 +11,17 @@ export const RULES_INTENTS = {
   acceptCheckoutLabels: "accept_checkout_labels",
   confirmGuidedLabels: "confirm_guided_labels",
 } as const;
+
+export type CheckoutLabelsLoadAction = {
+  ok: true;
+  loaded: {
+    scopeGranted: boolean;
+    snapshot: CheckoutLabelsSnapshot | null;
+    state: CheckoutLabelState;
+    guidedConfirmations: Array<{ slotId: string; confirmedAt: string }>;
+    errorCode: string | null;
+  };
+};
 
 export type RulesIntent = (typeof RULES_INTENTS)[keyof typeof RULES_INTENTS];
 export type CheckoutLabelsIntent = Exclude<

@@ -671,6 +671,25 @@ describe("Guida", () => {
 });
 
 describe("Messaggi", () => {
+  test("carica l'anteprima delle etichette dopo il primo render", async () => {
+    router.loaderData = {
+      locale: "it",
+      configHash: "hash",
+      messages: DEFAULT_CONFIG.messages,
+      rules: DEFAULT_CONFIG.rules,
+      labelSnapshot: null,
+    };
+    await mount(<CustomerMessages />);
+    expect(router.fetcher.submit).toHaveBeenCalledWith(
+      {
+        intent: "load_checkout_labels",
+        taxCode: "unmanaged",
+        pec: "unmanaged",
+      },
+      { method: "post", action: "/app/rules" },
+    );
+  });
+
   test("usa nel simulatore l'etichetta osservata per la lingua corrente", async () => {
     router.loaderData = {
       locale: "it",
@@ -1310,6 +1329,30 @@ describe("Onboarding", () => {
 });
 
 describe("Regole", () => {
+  test("mostra subito la pagina e differisce la rilettura delle etichette", async () => {
+    router.loaderData = {
+      ...rulesData,
+      labelScopesGranted: null,
+      labelSnapshot: null,
+    };
+    const view = await mount(<CheckoutRules />);
+    expect(view.container.textContent).toContain(texts("it").rules.labels.loading);
+    expect(router.fetcher.submit).toHaveBeenCalledWith(
+      {
+        intent: "load_checkout_labels",
+        taxCode: "optional_validated",
+        pec: "required_validated",
+      },
+      { method: "post" },
+    );
+
+    await view.rerender(<CheckoutRules />);
+    expect(router.fetcher.submit).toHaveBeenCalledOnce();
+    router.loaderData = { ...router.loaderData };
+    await view.rerender(<CheckoutRules />);
+    expect(router.fetcher.submit).toHaveBeenCalledTimes(2);
+  });
+
   test("mostra la modalità Azienda soltanto per la PEC", async () => {
     router.loaderData = rulesData;
     const view = await mount(<CheckoutRules />);
@@ -2323,8 +2366,15 @@ describe("Regole", () => {
       "read_locales",
       "read_markets",
     ]);
-    expect(router.revalidator.revalidate).toHaveBeenCalledOnce();
-    expect(router.fetcher.submit).not.toHaveBeenCalled();
+    expect(router.revalidator.revalidate).not.toHaveBeenCalled();
+    expect(router.fetcher.submit).toHaveBeenCalledWith(
+      {
+        intent: "load_checkout_labels",
+        taxCode: "unmanaged",
+        pec: "unmanaged",
+      },
+      { method: "post" },
+    );
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
