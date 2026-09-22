@@ -137,7 +137,7 @@ export const en: typeof it = {
     previewCurrentFieldLabel: "Current Shopify label",
     previewProposedFieldLabel: "Proposed label",
     labelsNote:
-      "Here you edit the error messages shown when the Tax code or PEC is missing or invalid. Field names are managed in Checkout rules.",
+      "Here you edit the error messages shown when the Tax code or PEC is missing or invalid. Field names are managed in Checkout rules. When the Tax code is invalid, checkout adds a short fixed sentence about the formal cause after your text, for example a wrong length.",
     manageLabels: "Open Checkout rules",
   },
   setup: {
@@ -484,13 +484,6 @@ export const en: typeof it = {
       clear: "Clear",
       continue: "Continue",
       diagnostics: {
-        taxCode: {
-          valid: "The format is valid.",
-          length: "The value must contain 16 characters or 11 digits.",
-          characters: "The value contains unsupported characters.",
-          date_structure: "The structure or embedded date is invalid.",
-          check_character: "The check character or digit does not match.",
-        },
         pec: {
           valid: "The email format is valid.",
           email_format: "Check the @ sign, local part, domain, and spaces.",
@@ -513,6 +506,7 @@ export const en: typeof it = {
     },
     labels: {
       heading: "Checkout labels",
+      loading: "Reading Shopify labels…",
       nativeHeading: "Checkout text",
       permissionsHeading: "Check Shopify labels",
       permissionsBody:

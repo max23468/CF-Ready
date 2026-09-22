@@ -1,7 +1,6 @@
 import { useReducer, useState } from "react";
 import {
   diagnosePec,
-  diagnoseTaxCode,
   isValidPec,
   isValidTaxCode,
   requiredFieldsAreDue,
@@ -433,7 +432,6 @@ function SimulatorTaxCodeField({
 }) {
   if (mode === "unmanaged" || !present) return null;
   const problem = applies ? simulatorFieldError(mode, value, isValidTaxCode) : null;
-  const copy = texts(locale).rules.simulator;
   return (
     <s-text-field
       label={checkoutLabelCopy("taxCode", locale, mode)!}
@@ -444,8 +442,9 @@ function SimulatorTaxCodeField({
         "taxCode",
         problem,
         problem === "invalid" || requiredErrorsDue,
+        value,
+        locale,
       )}
-      details={problem === "invalid" ? copy.diagnostics.taxCode[diagnoseTaxCode(value)] : undefined}
       onInput={(event) => onInput(event.currentTarget.value)}
     />
   );

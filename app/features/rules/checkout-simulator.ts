@@ -1,4 +1,9 @@
-import { isValidPec, isValidTaxCode, requiredFieldsAreDue } from "../../checkout-field-validation";
+import {
+  invalidTaxCodeMessage,
+  isValidPec,
+  isValidTaxCode,
+  requiredFieldsAreDue,
+} from "../../checkout-field-validation";
 import type { Messages, Rules } from "../../config";
 
 export type SimulatorFieldError = "required" | "invalid" | null;
@@ -123,10 +128,14 @@ export function simulatorErrorMessage(
   field: "taxCode" | "pec",
   problem: SimulatorFieldError,
   revealErrors: boolean,
+  value = "",
+  language: "it" | "en" = "en",
 ): string | undefined {
   if (!revealErrors || !problem) return undefined;
   if (field === "taxCode") {
-    return problem === "required" ? messages.taxCodeRequired : messages.taxCodeInvalid;
+    return problem === "required"
+      ? messages.taxCodeRequired
+      : invalidTaxCodeMessage(messages.taxCodeInvalid, value, language);
   }
   return problem === "required" ? messages.pecRequired : messages.pecInvalid;
 }

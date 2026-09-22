@@ -137,7 +137,7 @@ export const it = {
     previewCurrentFieldLabel: "Etichetta attuale Shopify",
     previewProposedFieldLabel: "Etichetta proposta",
     labelsNote:
-      "Qui modifichi i messaggi di errore mostrati quando Codice Fiscale o PEC mancano o non sono validi. I nomi dei campi si modificano in Regole checkout.",
+      "Qui modifichi i messaggi di errore mostrati quando Codice Fiscale o PEC mancano o non sono validi. I nomi dei campi si modificano in Regole checkout. Se il Codice Fiscale non è valido, il checkout aggiunge dopo il tuo testo una breve frase fissa sulla causa formale, per esempio la lunghezza errata.",
     manageLabels: "Apri Regole checkout",
   },
   setup: {
@@ -490,13 +490,6 @@ export const it = {
       clear: "Svuota",
       continue: "Continua",
       diagnostics: {
-        taxCode: {
-          valid: "Il formato è valido.",
-          length: "La lunghezza deve essere di 16 caratteri oppure 11 cifre.",
-          characters: "Sono presenti caratteri non ammessi.",
-          date_structure: "La struttura o la data incorporata non è valida.",
-          check_character: "Il carattere o la cifra di controllo non coincide.",
-        },
         pec: {
           valid: "Il formato email è valido.",
           email_format: "Controlla @, parte locale, dominio e spazi.",
@@ -519,6 +512,7 @@ export const it = {
     },
     labels: {
       heading: "Etichette del checkout",
+      loading: "Rilettura delle etichette Shopify in corso…",
       nativeHeading: "Testi del checkout",
       permissionsHeading: "Controlla le etichette Shopify",
       permissionsBody:

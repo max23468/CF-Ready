@@ -3,6 +3,7 @@ import type {
   CartValidationsGenerateRunResult,
 } from "../generated/api";
 import {
+  invalidTaxCodeMessage,
   isValidPec,
   isValidTaxCode,
   requiredFieldsAreDue,
@@ -121,6 +122,7 @@ function addFieldError(
   target: string,
   validate: (value: string) => boolean,
   checkRequiredEmpty: boolean,
+  invalidMessage: (message: string, value: string) => string = (message) => message,
 ): void {
   if (!field || rule === "unmanaged") return;
   const value = field.value?.trim() ?? "";
@@ -129,7 +131,7 @@ function addFieldError(
       errors.push({ message: messages[requiredKey], target });
     }
   } else if (!validate(value)) {
-    errors.push({ message: messages[invalidKey], target });
+    errors.push({ message: invalidMessage(messages[invalidKey], value), target });
   }
 }
 
@@ -172,7 +174,8 @@ export function cartValidationsGenerateRun(
       })),
     );
 
-    const messages = config.messages[input.localization.language.isoCode === "IT" ? "it" : "en"];
+    const language = input.localization.language.isoCode === "IT" ? "it" : "en";
+    const messages = config.messages[language];
     const errors: { message: string; target: string }[] = [];
     const taxCode = input.cart.localizedFields.find(({ key }) => key === "TAX_CREDENTIAL_IT");
     const pec = input.cart.localizedFields.find(({ key }) => key === "TAX_EMAIL_IT");
@@ -194,6 +197,7 @@ export function cartValidationsGenerateRun(
       taxCode ? targets.taxCode : "$.cart",
       isValidTaxCode,
       checkRequiredEmpty,
+      (message, value) => invalidTaxCodeMessage(message, value, language),
     );
     addFieldError(
       errors,
