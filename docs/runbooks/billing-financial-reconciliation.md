@@ -11,6 +11,13 @@ Il Control Center automatizza i primi due fatti. Incasso e payout richiedono la
 verifica manuale nel Partner Dashboard. Una vendita Partner osservata non basta
 da sola a dichiarare riscossa la fattura o liquidato il payout.
 
+La riconciliazione considera una vendita dovuta soltanto quando il ciclo pagato
+è iniziato. Un abbonamento ancora in prova compare come `Non ancora dovuta`, non
+come vendita mancante. `In attesa della transazione Shopify` indica invece un
+ciclo iniziato per cui la Partner API non espone ancora una vendita abbinabile.
+Il comando `Aggiorna` della vista Billing forza una nuova lettura finanziaria
+prima di ricostruire il riepilogo.
+
 ## Riconciliazione ordinaria
 
 1. Identificare lo store e il charge ID senza copiare dati personali nei log.

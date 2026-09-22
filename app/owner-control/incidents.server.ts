@@ -103,6 +103,8 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
           AND b.entitlement_status IN ('active', 'ending')
           AND b.is_test = 0
           AND b.sale_checked_at IS NOT NULL
+          AND (b.plan_kind = 'one_time' OR b.current_period_start IS NOT NULL)
+          AND (b.plan_kind = 'one_time' OR date(b.current_period_start) <= date(?))
           AND (b.sale_observed_at IS NULL
                OR b.sale_charge_gid IS NOT b.shopify_charge_gid
                OR (b.plan_kind IN ('monthly', 'annual')
@@ -160,7 +162,7 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
         WHERE s.installation_status = 'active'
           AND datetime(COALESCE(b.last_reconciled_at, b.created_at)) <= datetime(?, '-1 day')`,
       )
-      .bind(nowIso, nowIso, nowIso, nowIso),
+      .bind(nowIso, nowIso, nowIso, nowIso, nowIso),
     db.prepare(`SELECT incident_key, incident_kind, shop_id, status, fingerprint,
                        consecutive_observations, first_observed_at, opened_at
                   FROM owner_operational_incidents`),

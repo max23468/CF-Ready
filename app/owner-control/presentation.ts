@@ -137,6 +137,7 @@ export function shopMessage(
         ["Trial", trialLabel(shop.trial_status)],
         ["Periodo dal", formatDate(shop.current_period_start)],
         ["Scadenza", formatDate(shop.current_period_end ?? shop.trial_ends_at)],
+        ["Riconciliazione vendita", saleReconciliationLabel(shop)],
         ["Vendita Partner osservata", formatDate(shop.sale_observed_at)],
         ["Ultimo controllo Partner", formatDate(shop.sale_checked_at)],
         ["Fattura merchant riscossa", "Non osservabile via API"],
@@ -210,6 +211,15 @@ export function billingMessage(
     netMrr: number;
     netArr: number;
     regulatoryUnknown: number;
+    reconciliation: {
+      paid: number;
+      matched: number;
+      awaiting: number;
+      notDue: number;
+      needsReview: number;
+      checkedAt: string | null;
+      refreshUnavailable?: string;
+    };
     shopifyFees: {
       revenueShare: number;
       processing: number;
@@ -263,6 +273,17 @@ export function billingMessage(
         ["Valore annuale (ARR)", MONEY.format(data.arr)],
         ["Annuale dopo fee", MONEY.format(data.netArr)],
       ]),
+      section("🔎 Riconciliazione", [
+        ["Piani commerciali", String(data.reconciliation.paid)],
+        ["Vendite abbinate", String(data.reconciliation.matched)],
+        ["In attesa della transazione Shopify", String(data.reconciliation.awaiting)],
+        ["Non ancora dovute", String(data.reconciliation.notDue)],
+        ["Conversioni da verificare", String(data.reconciliation.needsReview)],
+        ["Ultimo controllo", formatDate(data.reconciliation.checkedAt)],
+        ...(data.reconciliation.refreshUnavailable
+          ? [["Aggiornamento", `Non riuscito (${data.reconciliation.refreshUnavailable})`] as Row]
+          : []),
+      ]),
       section("💰 Ricavi cumulati · Shopify Partner", revenueRows(revenue)),
     ],
     keyboard([
@@ -284,6 +305,28 @@ export function billingMessage(
       "le transazioni Partner non provano che la fattura merchant sia riscossa o il payout liquidato",
     ].join(" · "),
   );
+}
+
+function saleReconciliationLabel(shop: ShopRow) {
+  if (
+    shop.billing_is_test ||
+    !["active", "ending"].includes(shop.entitlement_status ?? "") ||
+    !shop.plan_kind ||
+    !["monthly", "annual", "one_time"].includes(shop.plan_kind)
+  ) {
+    return "—";
+  }
+  if (
+    shop.plan_kind !== "one_time" &&
+    (!shop.current_period_start || Date.parse(shop.current_period_start) > Date.now())
+  ) {
+    return "Non ancora dovuta";
+  }
+  const matched =
+    shop.sale_observed_at !== null &&
+    shop.sale_charge_gid === shop.shopify_charge_gid &&
+    (shop.plan_kind === "one_time" || shop.sale_cycle_start === shop.current_period_start);
+  return matched ? "Abbinata" : "In attesa della transazione Shopify";
 }
 
 export function trialsMessage(data: {
