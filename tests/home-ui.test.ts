@@ -104,32 +104,28 @@ test("il piano omaggio non viene presentato come un pagamento", () => {
   ).toBe(true);
 });
 
-test("il pagamento unico distingue gli stati del credito osservato", () => {
+test("il pagamento unico mostra al merchant soltanto lo stato utile del credito", () => {
   const base = {
     ...data,
     entitlement: { kind: "one_time", validThrough: null },
     complimentary: false,
   } as Parameters<typeof PlanChoice>[0]["data"];
-  const cases = [
+  const visibleCases = [
     {
       conversionCredit: { actual: 5, estimate: 4, currency: "EUR", status: "confirmed" },
-      expected: texts("it").plan.creditConfirmed("5,00 €"),
-    },
-    {
-      conversionCredit: { actual: null, estimate: null, currency: null, status: "not_applicable" },
-      expected: texts("it").plan.creditNotApplicable,
+      expected: texts("it").plan.creditComplete,
     },
     {
       conversionCredit: { actual: null, estimate: 4, currency: "EUR", status: "needs_review" },
-      expected: texts("it").plan.creditNeedsReview,
+      expected: texts("it").plan.creditProcessing,
     },
     {
       conversionCredit: { actual: null, estimate: 4, currency: "EUR", status: "pending" },
-      expected: texts("it").plan.creditPending("4,00 €"),
+      expected: texts("it").plan.creditProcessing,
     },
   ] as const;
 
-  for (const item of cases) {
+  for (const item of visibleCases) {
     const rendered = renderedElements(
       PlanChoice({
         data: { ...base, conversionCredit: item.conversionCredit },
@@ -147,6 +143,31 @@ test("il pagamento unico distingue gli stati del credito osservato", () => {
       ),
     ).toBe(true);
   }
+
+  const notApplicable = renderedElements(
+    PlanChoice({
+      data: {
+        ...base,
+        conversionCredit: {
+          actual: null,
+          estimate: null,
+          currency: null,
+          status: "not_applicable",
+        },
+      },
+      busy: false,
+      pendingIntent: null,
+      submit: vi.fn(),
+      firstCharge: "oggi",
+    }),
+  );
+  expect(
+    notApplicable.some(
+      (element) =>
+        element.type === "s-paragraph" &&
+        (element.props as { children?: ReactNode }).children === texts("it").plan.creditProcessing,
+    ),
+  ).toBe(false);
 });
 
 test("la disattivazione invia l'intent soltanto dall'azione primaria", () => {

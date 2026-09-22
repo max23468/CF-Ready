@@ -408,25 +408,15 @@ export const it = {
     periodEnds: (date: string) => `Il periodo contrattuale corrente finisce il ${date}.`,
     lastAttempt:
       "L’ultima lettura dello stato commerciale non è riuscita. Il checkout non viene bloccato: riapri la pagina fra qualche minuto.",
-    oneTimeFullCharge: (amount: string) =>
-      `Shopify addebita per intero il pagamento unico di ${amount}.`,
     endingAlready:
       "Shopify ha confermato la cancellazione ordinaria: l’accesso resta fino alla fine del periodo contrattuale corrente.",
     monthlyName: "Mensile",
     annualName: "Annuale",
     oneTimeName: "Un solo pagamento",
-    creditPending: (amount: string | null) =>
-      amount
-        ? `Credito separato stimato sul periodo non usufruito: ${amount}. La conferma e l’importo effettivo dipendono dalla registrazione finanziaria di Shopify.`
-        : "Il credito separato richiesto a Shopify è in attesa di conferma finanziaria.",
-    creditConfirmed: (amount: string | null) =>
-      amount
-        ? `Credito separato confermato nei dati finanziari Shopify: ${amount}.`
-        : "Credito separato confermato nei dati finanziari Shopify.",
-    creditNotApplicable:
-      "Nessun credito da emettere: il passaggio è avvenuto durante la prova gratuita, prima di un addebito dell’abbonamento.",
-    creditNeedsReview:
-      "Il credito richiede una verifica manuale: i dati finanziari Shopify non coincidono con la stima.",
+    creditExpected:
+      "Shopify applicherà separatamente l’eventuale credito per il periodo non usato.",
+    creditProcessing: "Stiamo verificando l’eventuale credito. Non devi fare nulla.",
+    creditComplete: "Shopify ha registrato il credito.",
   },
   rules: {
     heading: "Regole checkout",
