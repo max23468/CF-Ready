@@ -11,6 +11,13 @@ export const CHECKOUT_LABEL_OBSERVATION_MINUTES = 10;
 const RESOLVED_INCIDENT_RETENTION_DAYS = 90;
 export const FINANCIAL_OBSERVATION_DAYS = 37;
 
+// Il diritto commerciale non è arrivato nel metafield: la Function può restare fail-open anche
+// per un merchant pagante.
+const ENTITLEMENT_SYNC_ERRORS = [
+  "entitlement_readback_failed",
+  "entitlement_write_failed",
+] as const;
+
 const CHECKOUT_LABEL_SYNC_ERRORS = [
   "checkout_labels_locale_missing",
   "checkout_labels_partial_sync",
@@ -43,7 +50,13 @@ type BillingIssueRow = {
   shop_id: number;
   shop_domain: string;
   display_name: string | null;
-  issue: "sale" | "credit" | "credit_review" | "conversion_sale" | "reconciliation_stale";
+  issue:
+    | "sale"
+    | "credit"
+    | "credit_review"
+    | "conversion_sale"
+    | "reconciliation_stale"
+    | "entitlement_sync";
   reference_at: string;
 };
 
@@ -53,7 +66,7 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
   const processingCutoff = new Date(
     now.getTime() - WEBHOOK_PROCESSING_MINUTES * 60 * 1000,
   ).toISOString();
-  const [webhooks, partner, labels, billingIssues, incidents] = await db.batch([
+  const [webhooks, partner, labels, billingIssues, entitlementIssues, incidents] = await db.batch([
     db
       .prepare(
         `SELECT
@@ -163,11 +176,28 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
           AND datetime(COALESCE(b.last_reconciled_at, b.created_at)) <= datetime(?, '-1 day')`,
       )
       .bind(nowIso, nowIso, nowIso, nowIso, nowIso),
+    // D1 accetta al massimo cinque termini in una SELECT composta.
+    db
+      .prepare(
+        `SELECT 'billing_entitlement:' || b.shop_id AS incident_key, s.id AS shop_id,
+              s.shop_domain, s.display_name, 'entitlement_sync' AS issue,
+              b.reconciliation_attempted_at AS reference_at
+         FROM billing_accounts b
+         JOIN shops s ON s.id = b.shop_id
+        WHERE s.installation_status = 'active'
+          AND b.reconciliation_attempted_at IS NOT NULL
+          AND b.reconciliation_error_code IN (${ENTITLEMENT_SYNC_ERRORS.map(() => "?").join(", ")})`,
+      )
+      .bind(...ENTITLEMENT_SYNC_ERRORS),
     db.prepare(`SELECT incident_key, incident_kind, shop_id, status, fingerprint,
                        consecutive_observations, first_observed_at, opened_at
                   FROM owner_operational_incidents`),
   ]);
-  if (![webhooks, partner, labels, billingIssues, incidents].every(({ success }) => success)) {
+  if (
+    ![webhooks, partner, labels, billingIssues, entitlementIssues, incidents].every(
+      ({ success }) => success,
+    )
+  ) {
     throw new Error("owner_incident_read_failed");
   }
 
@@ -289,12 +319,19 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
   }
 
   const currentBillingKeys = new Set<string>();
-  for (const row of billingIssues.results as BillingIssueRow[]) {
+  for (const row of [...billingIssues.results, ...entitlementIssues.results] as BillingIssueRow[]) {
     currentBillingKeys.add(row.incident_key);
     // L'ordine degli statement definisce l'ordine stabile degli alert per lo stesso ciclo.
     // react-doctor-disable-next-line react-doctor/async-await-in-loop
     const shopHash = await trialLedgerHash(row.shop_domain);
     const copy = billingIssueCopy(row.issue);
+    const details =
+      row.issue === "entitlement_sync"
+        ? [`Ultimo tentativo: ${formatDate(row.reference_at)}`]
+        : [
+            `Soglia: ${FINANCIAL_OBSERVATION_DAYS} giorni`,
+            `Riferimento: ${formatDate(row.reference_at)}`,
+          ];
     await openIncident(db, statements, existing.get(row.incident_key) ?? null, {
       key: row.incident_key,
       kind: "billing",
@@ -306,10 +343,7 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
       firstObservedAt: row.reference_at,
       nowIso,
       subject: copy.subject,
-      body: storeOperationalBody(copy.description, row, nowIso, [
-        `Soglia: ${FINANCIAL_OBSERVATION_DAYS} giorni`,
-        `Riferimento: ${formatDate(row.reference_at)}`,
-      ]),
+      body: storeOperationalBody(copy.description, row, nowIso, details),
     });
   }
 
@@ -325,13 +359,18 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
         .bind(incident.shop_id)
         .first<{ shop_domain: string; display_name: string | null }>();
       if (!shop) continue;
+      const entitlement = incident.incident_key.startsWith("billing_entitlement:");
       await resolveIncident(db, statements, incident, {
         nowIso,
         shopDomain: shop.shop_domain,
         shopHash: await trialLedgerHash(shop.shop_domain),
-        subject: "🟢 CF Ready · Anomalia billing risolta",
+        subject: entitlement
+          ? "🟢 CF Ready · Diritto sincronizzato nel checkout"
+          : "🟢 CF Ready · Anomalia billing risolta",
         body: storeOperationalBody(
-          "L'osservazione finanziaria non presenta più l'anomalia segnalata.",
+          entitlement
+            ? "Il metafield della Validation riporta di nuovo il diritto commerciale corrente."
+            : "L'osservazione finanziaria non presenta più l'anomalia segnalata.",
           shop,
           nowIso,
           ["Stato: regolare"],
@@ -406,6 +445,13 @@ function billingIssueCopy(issue: BillingIssueRow["issue"]) {
       subject: "🔴 CF Ready · Billing Shopify da riconciliare",
       description:
         "Il readback Admin API del billing è obsoleto. Verificare la sessione offline e rieseguire la riconciliazione senza dedurre lo stato dalle transazioni Partner.",
+    };
+  }
+  if (issue === "entitlement_sync") {
+    return {
+      subject: "🔴 CF Ready · Diritto non sincronizzato nel checkout",
+      description:
+        "La riconciliazione periodica non è riuscita a scrivere il diritto commerciale nel metafield della Validation: il checkout può restare senza controlli. Il ciclo riprova ogni ora.",
     };
   }
   if (issue === "credit_review") {

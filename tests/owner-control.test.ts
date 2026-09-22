@@ -1691,6 +1691,40 @@ describe("query D1 e run-rate", () => {
     ).toBeNull();
   });
 
+  test("segnala il diritto non scritto nel metafield e lo chiude al tentativo riuscito", async () => {
+    await insertStore(1, "entitlement-alert.myshopify.com");
+    await env.DB.prepare(
+      `INSERT INTO billing_accounts (
+         shop_id, entitlement_status, plan_kind, pricing_generation, shopify_status, is_test,
+         last_reconciled_at, reconciliation_attempted_at, reconciliation_error_code,
+         created_at, updated_at
+       ) VALUES (1, 'active', 'monthly', 'balanced', 'ACTIVE', 0, ?, ?,
+                 'entitlement_write_failed', ?, ?)`,
+    )
+      .bind(NOW.toISOString(), NOW.toISOString(), NOW.toISOString(), NOW.toISOString())
+      .run();
+
+    await reconcileOwnerIncidents(env.DB, NOW);
+    await reconcileOwnerIncidents(env.DB, new Date(NOW.getTime() + 60_000));
+    expect(
+      await env.DB.prepare(
+        "SELECT subject FROM owner_notifications WHERE notification_kind = 'operational' ORDER BY id",
+      ).all(),
+    ).toMatchObject({
+      results: [{ subject: "🔴 CF Ready · Diritto non sincronizzato nel checkout" }],
+    });
+
+    await env.DB.prepare(
+      "UPDATE billing_accounts SET reconciliation_error_code = NULL WHERE shop_id = 1",
+    ).run();
+    await reconcileOwnerIncidents(env.DB, new Date(NOW.getTime() + 120_000));
+    expect(
+      await env.DB.prepare(
+        "SELECT subject FROM owner_notifications ORDER BY id DESC LIMIT 1",
+      ).first(),
+    ).toMatchObject({ subject: "🟢 CF Ready · Diritto sincronizzato nel checkout" });
+  });
+
   test("segnala vendita e credito non osservati dopo 37 giorni e chiude gli alert", async () => {
     await insertStore(1, "billing-alert.myshopify.com");
     const old = "2026-07-31T10:00:00.000Z";
@@ -1818,6 +1852,7 @@ describe("query D1 e run-rate", () => {
           { success: true, results: [] },
           { success: true, results: [] },
           { success: true, results: [] },
+          { success: true, results: [] },
         ]),
         NOW,
       ),
@@ -1825,6 +1860,7 @@ describe("query D1 e run-rate", () => {
     await expect(
       reconcileOwnerIncidents(
         database([
+          { success: true, results: [] },
           { success: true, results: [] },
           { success: true, results: [] },
           { success: true, results: [] },
@@ -1839,6 +1875,7 @@ describe("query D1 e run-rate", () => {
       reconcileOwnerIncidents(
         database([
           { success: true, results: [{ failed: 0, processing: 0 }] },
+          { success: true, results: [] },
           { success: true, results: [] },
           { success: true, results: [] },
           { success: true, results: [] },

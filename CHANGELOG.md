@@ -6,6 +6,28 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.14.0 — 22 settembre 2026
+
+- il ciclo periodico riconcilia anche il diritto nel metafield della
+  Validation: un rinnovo Shopify, che non invia webhook, non lascia più il
+  checkout senza controlli per un merchant pagante che non apre l'app;
+- i rinnovi dovuti hanno priorità e vengono riletti ogni ora per tre giorni;
+  Development esegue lo stesso ciclo ogni cinque minuti;
+- un diritto non scritto nel metafield apre un alert owner, chiuso al primo
+  tentativo riuscito;
+- per un Codice Fiscale non valido il checkout aggiunge al messaggio del
+  merchant una breve frase fissa sulla causa formale, mostrata anche dal
+  simulatore;
+- le pagine Regole e Messaggi caricano le etichette del checkout dopo il
+  primo rendering, riducendo il Largest Contentful Paint;
+- le librerie app Shopify passano a `@shopify/shopify-api` 15,
+  `@shopify/shopify-app-react-router` 3 e session storage 7, senza effetti sui
+  webhook di CF Ready;
+- i tipi Polaris seguono Polaris 1.1, già servito dal canale CDN `polaris-1.js`;
+- toolchain aggiornata a Node.js 26.10.0, npm 12.1.0, Wrangler 4.136.3,
+  plugin Cloudflare, oxlint e oxfmt; Vitest resta sulla major 4 finché
+  `@cloudflare/vitest-plugin` non supporta la 5.
+
 ## 1.13.3 — 22 settembre 2026
 
 - la riconciliazione commerciale evita di riscrivere una prova già convertita;

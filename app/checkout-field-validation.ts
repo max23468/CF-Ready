@@ -141,6 +141,43 @@ export function isValidTaxCode(rawValue: string): boolean {
   return diagnoseTaxCode(rawValue) === "valid";
 }
 
+// Frase fissa aggiunta al messaggio del merchant per un Codice Fiscale rifiutato: indica al
+// cliente la causa formale senza sostituire il testo personalizzato né attestarne l'identità.
+const taxCodeHints = {
+  it: {
+    vatPrefix: "Sembra una Partita IVA: inserisci il Codice Fiscale senza il prefisso IT.",
+    separators: "Scrivilo senza spazi, punti o trattini.",
+    length: "Deve avere 16 caratteri oppure 11 cifre.",
+    characters: "Usa solo lettere e numeri.",
+    date_structure: "Controlla l’ordine di lettere e numeri e la data di nascita.",
+    check_character: "Controlla ogni carattere: l’ultimo non corrisponde agli altri.",
+  },
+  en: {
+    vatPrefix: "This looks like a VAT number: enter the tax code without the IT prefix.",
+    separators: "Enter it without spaces, dots, or hyphens.",
+    length: "It must have 16 characters or 11 digits.",
+    characters: "Use only letters and numbers.",
+    date_structure: "Check the order of letters and numbers and the date of birth.",
+    check_character: "Check each character: the last one does not match the others.",
+  },
+} as const;
+
+// Chiamata soltanto per un valore già rifiutato da `isValidTaxCode`.
+export function taxCodeHint(rawValue: string, language: "it" | "en"): string {
+  const compact = rawValue
+    .trim()
+    .toUpperCase()
+    .replace(/[\s.-]/g, "");
+  const hints = taxCodeHints[language];
+  if (/^IT\d{11}$/.test(compact)) return hints.vatPrefix;
+  if (isValidTaxCode(compact)) return hints.separators;
+  return hints[diagnoseTaxCode(rawValue) as Exclude<TaxCodeDiagnostic, "valid">];
+}
+
+export function invalidTaxCodeMessage(message: string, rawValue: string, language: "it" | "en") {
+  return `${message} ${taxCodeHint(rawValue, language)}`;
+}
+
 export function diagnosePec(rawValue: string): PecDiagnostic {
   const value = rawValue.trim();
   if (value.length > 254 || /\s/.test(value)) return "email_format";

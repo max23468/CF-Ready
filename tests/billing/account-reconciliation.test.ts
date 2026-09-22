@@ -8,6 +8,7 @@ import {
 } from "../../app/billing.server";
 import { reconcileNextStaleBilling } from "../../app/billing/periodic-reconciliation.server";
 import { insertShop, NESSUN_ADDEBITO, opzioni, abbonamento } from "../support/billing";
+import { shopContext } from "../support/lifecycle";
 
 test("una sottoscrizione attiva diventa diritto fino a fine periodo", async () => {
   const shop = await insertShop("abbonato.example.myshopify.com");
@@ -101,7 +102,7 @@ test("il backfill storico resta unknown finché Shopify non viene riconciliato e
   });
 });
 
-test("la riconciliazione periodica predefinita legge Shopify e aggiorna soltanto il dominio commerciale", async () => {
+test("la riconciliazione periodica predefinita legge Shopify e aggiorna il dominio commerciale", async () => {
   const shop = await insertShop("riconciliazione-periodica.example.myshopify.com");
   await syncBillingAccount(
     env.DB,
@@ -202,6 +203,159 @@ test("la riconciliazione periodica predefinita legge Shopify e aggiorna soltanto
       .bind(shop)
       .first(),
   ).toEqual({ is_test: 0, shopify_status: "ACTIVE" });
+});
+
+test("un rinnovo senza webhook aggiorna il metafield prima degli account ordinari", async () => {
+  const shop = await insertShop("rinnovo-periodico.example.myshopify.com");
+  const ordinary = await insertShop("rinnovo-ordinario.example.myshopify.com");
+  const chargeGid = "gid://shopify/AppSubscription/rinnovo-periodico";
+  await syncBillingAccount(env.DB, shop, abbonamento(chargeGid, "2026-09-21T21:59:59Z"), {
+    ...opzioni,
+    today: "2026-09-01",
+  });
+  await syncBillingAccount(
+    env.DB,
+    ordinary,
+    abbonamento("gid://shopify/AppSubscription/rinnovo-ordinario", "2026-10-31T22:59:59Z"),
+    opzioni,
+  );
+  for (const domain of [shop, ordinary]) {
+    await env.DB.prepare(
+      `INSERT INTO shopify_sessions (
+         id, shop_id, is_online, session_payload_ciphertext, created_at, updated_at
+       ) SELECT ?, id, 0, 'payload', ?, ? FROM shops WHERE shop_domain = ?`,
+    )
+      .bind(`offline_${domain}`, "2026-09-20", "2026-09-20", domain)
+      .run();
+  }
+  // Il rinnovo è stato riconciliato da poco ma resta dovuto; l'account ordinario è più vecchio.
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE billing_accounts
+          SET is_test = COALESCE(is_test, 0), last_reconciled_at = '2026-09-22T12:00:00.000Z'
+        WHERE shop_id NOT IN (SELECT id FROM shops WHERE shop_domain IN (?, ?))`,
+    ).bind(shop, ordinary),
+    env.DB.prepare(
+      `UPDATE billing_accounts
+          SET is_test = 1, last_reconciled_at = '2026-09-22T09:00:00.000Z',
+              reconciliation_attempted_at = '2026-09-22T09:00:00.000Z'
+        WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    ).bind(shop),
+    env.DB.prepare(
+      `UPDATE billing_accounts SET is_test = 1, last_reconciled_at = NULL
+        WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    ).bind(ordinary),
+  ]);
+
+  const context = shopContext("IT", true, { kind: "subscription", validThrough: "2026-09-21" });
+  const renewed = {
+    id: chargeGid,
+    name: "launch-monthly",
+    status: "ACTIVE",
+    createdAt: "2026-07-01T00:00:00Z",
+    trialDays: 0,
+    test: true,
+    currentPeriodEnd: "2099-10-21T21:59:59Z",
+    lineItems: [
+      {
+        plan: {
+          pricingDetails: {
+            interval: "EVERY_30_DAYS",
+            price: { amount: "2.99", currencyCode: "EUR" },
+          },
+        },
+      },
+    ],
+  };
+  const updates: { validation: { metafields: { value: string }[] } }[] = [];
+  const admin = {
+    graphql: async (query: string, options?: { variables?: unknown }) => {
+      if (query.includes("CfReadyValidationUpdate")) {
+        const variables = options?.variables as (typeof updates)[number];
+        updates.push(variables);
+        context.data.validations.nodes[0].metafield.jsonValue = JSON.parse(
+          variables.validation.metafields[0].value,
+        );
+        return Response.json({ data: { validationUpdate: { userErrors: [] } } });
+      }
+      if (query.includes("CfReadyBilling")) {
+        return Response.json({
+          data: {
+            currentAppInstallation: {
+              activeSubscriptions: [renewed],
+              allSubscriptions: {
+                nodes: [renewed],
+                pageInfo: { hasNextPage: false, endCursor: null },
+              },
+              oneTimePurchases: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
+            },
+          },
+        });
+      }
+      return Response.json(context);
+    },
+  };
+
+  await expect(
+    reconcileNextStaleBilling(env.DB, {
+      now: new Date("2026-09-22T10:30:00.000Z"),
+      adminForShop: async () => admin,
+    }),
+  ).resolves.toEqual({ attempted: true, shopDomain: shop, errorCode: null });
+  expect(updates).toHaveLength(1);
+  expect(JSON.parse(updates[0].validation.metafields[0].value).entitlement).toEqual({
+    kind: "subscription",
+    validThrough: "2099-10-21",
+  });
+  expect(
+    await env.DB.prepare(
+      `SELECT b.current_period_end FROM billing_accounts b JOIN shops s ON s.id = b.shop_id
+        WHERE s.shop_domain = ?`,
+    )
+      .bind(shop)
+      .first(),
+  ).toEqual({ current_period_end: "2099-10-21" });
+  await env.DB.prepare("DELETE FROM shopify_sessions WHERE id IN (?, ?)")
+    .bind(`offline_${shop}`, `offline_${ordinary}`)
+    .run();
+});
+
+test("un diritto non scritto nel metafield viene ritentato dopo un'ora", async () => {
+  const shop = await insertShop("diritto-non-scritto.example.myshopify.com");
+  const timestamp = "2026-09-22T09:00:00.000Z";
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE billing_accounts
+          SET is_test = COALESCE(is_test, 0), last_reconciled_at = '2026-09-22T12:00:00.000Z'`,
+    ),
+    env.DB.prepare(
+      `INSERT INTO billing_accounts (
+         shop_id, entitlement_status, plan_kind, pricing_generation, is_test,
+         last_reconciled_at, reconciliation_attempted_at, reconciliation_error_code,
+         created_at, updated_at
+       ) SELECT id, 'none', 'none', 'balanced', 0, ?, ?, 'entitlement_write_failed', ?, ?
+           FROM shops WHERE shop_domain = ?`,
+    ).bind(timestamp, timestamp, timestamp, timestamp, shop),
+    env.DB.prepare(
+      `INSERT INTO shopify_sessions (
+         id, shop_id, is_online, session_payload_ciphertext, created_at, updated_at
+       ) SELECT ?, id, 0, 'payload', ?, ? FROM shops WHERE shop_domain = ?`,
+    ).bind("offline_diritto_non_scritto", timestamp, timestamp, shop),
+  ]);
+  const options = {
+    adminForShop: async () => ({}) as never,
+    reconciler: async () => ({ retryable: false, errorCode: null }),
+  };
+
+  await expect(
+    reconcileNextStaleBilling(env.DB, { ...options, now: new Date("2026-09-22T09:30:00.000Z") }),
+  ).resolves.toMatchObject({ attempted: false });
+  await expect(
+    reconcileNextStaleBilling(env.DB, { ...options, now: new Date("2026-09-22T10:00:00.000Z") }),
+  ).resolves.toEqual({ attempted: true, shopDomain: shop, errorCode: null });
+  await env.DB.prepare(
+    "DELETE FROM shopify_sessions WHERE id = 'offline_diritto_non_scritto'",
+  ).run();
 });
 
 test("la riconciliazione periodica registra errori stabili senza concedere stato", async () => {

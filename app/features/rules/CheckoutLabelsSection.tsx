@@ -28,7 +28,7 @@ type LabelsAction =
 type CheckoutLabelsSectionProps = {
   locale: Locale;
   rules: Rules;
-  scopeGranted: boolean;
+  scopeGranted: boolean | null;
   snapshot: CheckoutLabelsSnapshot | null;
   state: CheckoutLabelState;
   loadErrorCode: string | null;
@@ -38,6 +38,7 @@ type CheckoutLabelsSectionProps = {
   checkoutSettingsUrl: string;
   storefrontUrl: string;
   onEnabledChange: (value: boolean) => void;
+  onScopeGranted: () => void;
 };
 
 export function CheckoutLabelsSection({
@@ -53,13 +54,22 @@ export function CheckoutLabelsSection({
   checkoutSettingsUrl,
   storefrontUrl,
   onEnabledChange,
+  onScopeGranted,
 }: CheckoutLabelsSectionProps) {
   const copy = texts(locale).rules.labels;
   const [selectedFamily, setSelectedFamily] = useState<CheckoutLabelFamily | null>(null);
   const activeFamily = selectedFamily ?? locale;
-  const controls = useCheckoutLabelsControls(snapshot, state, guidedConfirmations);
+  const controls = useCheckoutLabelsControls(snapshot, state, guidedConfirmations, onScopeGranted);
   const controlsBusy =
     busy || controls.actionBusy || controls.scopeRequestBusy || controls.revalidationBusy;
+
+  if (scopeGranted === null) {
+    return (
+      <s-section heading={copy.heading}>
+        <s-paragraph color="subdued">{copy.loading}</s-paragraph>
+      </s-section>
+    );
+  }
 
   return (
     <s-section heading={copy.heading}>
@@ -133,10 +143,11 @@ function useCheckoutLabelsControls(
   snapshot: CheckoutLabelsSnapshot | null,
   state: CheckoutLabelState,
   guidedConfirmations: Array<{ slotId: string; confirmedAt: string }>,
+  onScopeGranted: () => void,
 ) {
   const fetcher = useFetcher<LabelsAction>();
   const { requestPermissions, revalidationBusy, scopeRequestBusy, scopeRequestError } =
-    useCheckoutLabelScopeRequest();
+    useCheckoutLabelScopeRequest(onScopeGranted);
   const actionBusy = fetcher.state !== "idle";
   const actionError = fetcher.data?.ok === false ? fetcher.data.errorCode : null;
   const refreshed = fetcher.data?.ok ? fetcher.data.refreshed : undefined;

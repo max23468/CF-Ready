@@ -1,10 +1,10 @@
 {
   "name": "cf-ready",
-  "version": "1.13.3",
+  "version": "1.14.0",
   "private": true,
-  "packageManager": "npm@12.0.2",
+  "packageManager": "npm@12.1.0",
   "packageExtensions": {
-    "@shopify/shopify-app-react-router@2.1.0": {
+    "@shopify/shopify-app-react-router@3.0.0": {
       "peerDependencies": {
         "react-router": "8.4.0"
       }
@@ -77,27 +77,27 @@
   },
   "type": "module",
   "engines": {
-    "node": ">=26.8.2 <27"
+    "node": ">=26.10.0 <27"
   },
   "dependencies": {
-    "@shopify/shopify-api": "14.0.1",
-    "@shopify/shopify-app-react-router": "2.1.0",
-    "@shopify/shopify-app-session-storage": "6.0.1",
+    "@shopify/shopify-api": "15.0.0",
+    "@shopify/shopify-app-react-router": "3.0.0",
+    "@shopify/shopify-app-session-storage": "7.0.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-router": "8.4.0"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.54.10",
-    "@cloudflare/vitest-plugin": "1.1.10",
-    "@graphql-codegen/cli": "7.4.1",
+    "@cloudflare/vite-plugin": "1.57.3",
+    "@cloudflare/vitest-plugin": "1.2.3",
+    "@graphql-codegen/cli": "7.4.2",
     "@playwright/test": "1.63.0",
     "@react-router/dev": "8.4.0",
     "@shopify/cli": "4.8.0",
-    "@shopify/polaris-types": "1.0.7",
+    "@shopify/polaris-types": "1.1.0",
     "@stryker-mutator/core": "10.0.0",
     "@stryker-mutator/vitest-runner": "10.0.0",
-    "@types/node": "26.6.0",
+    "@types/node": "26.6.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitest/browser-playwright": "4.1.11",
@@ -109,13 +109,13 @@
     "istanbul-lib-report": "3.0.1",
     "istanbul-reports": "3.2.0",
     "mdast-util-from-markdown": "2.0.3",
-    "oxfmt": "0.68.0",
-    "oxlint": "1.83.0",
+    "oxfmt": "0.70.0",
+    "oxlint": "1.85.0",
     "react-doctor": "0.9.14",
     "typescript": "7.0.2",
     "vite": "8.3.0",
     "vitest": "4.1.11",
-    "wrangler": "4.132.0"
+    "wrangler": "4.136.3"
   },
   "workspaces": [
     "extensions/*"
@@ -129,7 +129,7 @@
     "esbuild@0.28.2": true,
     "fsevents@2.3.2": false,
     "fsevents@2.3.3": true,
-    "workerd@1.20260915.1": true
+    "workerd@1.20260921.1": true
   },
   "overrides": {
     "graphql-config": "5.1.7",
