@@ -6,6 +6,12 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.13.2 — 22 settembre 2026
+
+- i tempi server della Home distinguono la riconciliazione completa, le
+  sincronizzazioni commerciali e Validation e la lettura della revisione D1,
+  senza includere dati merchant né modificare il comportamento applicativo.
+
 ## 1.13.1 — 22 settembre 2026
 
 - la Home descrive il credito di conversione con un copy essenziale, senza

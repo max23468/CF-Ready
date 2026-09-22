@@ -139,6 +139,7 @@ test("la Home legge lo stato D1 in parallelo ed espone timing senza dati merchan
     showMerchantCheckIn: false,
   });
   expect(serverTiming).toContain("shopify_snapshot;dur=12.3");
+  expect(serverTiming).toContain("reconcile_total;dur=");
   expect(serverTiming).toContain("d1_home;dur=");
   expect(serverTiming).toContain("total;dur=");
   expect(serverTiming).not.toContain(shop);
