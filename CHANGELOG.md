@@ -6,6 +6,13 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.14.2 — 23 settembre 2026
+
+- il poll finanziario Partner non scarta più la vendita di un abbonamento
+  registrata nella prima notte del ciclo: l'istante UTC della transazione cadeva
+  nel giorno precedente alla data locale di inizio ciclo, e negli store a est di
+  Greenwich la vendita restava non osservata fino all'alert dopo 37 giorni.
+
 ## 1.14.1 — 23 settembre 2026
 
 - il ciclo periodico non ripropone ogni ora gli store che non hanno mai avuto

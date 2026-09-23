@@ -255,6 +255,49 @@ test("le osservazioni finanziarie distinguono contratto, pagamento e credito pro
   });
 });
 
+test("una vendita della prima notte del ciclo in ora italiana resta del ciclo corrente", async () => {
+  const shop = await insertShop("vendita-mezzanotte.myshopify.com");
+  const shopId = await shopIdFor(shop);
+  const annual = billing("gid://shopify/AppSubscription/annuale-mezzanotte", "ANNUAL", "29.90");
+  await syncBillingAccount(env.DB, shop, annual, {
+    today: "2026-08-24",
+    timeZone: "Europe/Rome",
+    pricingGeneration: "launch",
+    storedAccount: null,
+  });
+  // 00:30 del 24 agosto a Roma: la data UTC è ancora il 23, giorno prima dell'inizio locale.
+  const sale = financialNode(
+    "AppSubscriptionSale",
+    "gid://partners/AppSubscriptionSale/mezzanotte",
+    annual.subscription.id,
+    shop,
+    "29.90",
+    "EUR",
+  );
+  sale.node.createdAt = "2026-08-23T22:30:00.000Z";
+  const fetcher = vi.fn(async () =>
+    Response.json({
+      data: { transactions: { edges: [sale], pageInfo: { hasNextPage: false } } },
+    }),
+  );
+
+  await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
+    now: NOW,
+    fetcher: fetcher as typeof fetch,
+  });
+
+  expect(
+    await env.DB.prepare(
+      `SELECT sale_transaction_gid, sale_cycle_start FROM billing_accounts WHERE shop_id = ?`,
+    )
+      .bind(shopId)
+      .first(),
+  ).toEqual({
+    sale_transaction_gid: "gid://partners/AppSubscriptionSale/mezzanotte",
+    sale_cycle_start: "2026-08-24",
+  });
+});
+
 test("una vendita annuale tardiva resta collegata alla conversione dopo il lifetime", async () => {
   const shop = await insertShop("vendita-tardiva.myshopify.com");
   const shopId = await shopIdFor(shop);
