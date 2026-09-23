@@ -2186,7 +2186,8 @@ dall'app, confermata da Shopify e legata allo stesso `currentPeriodEnd`: una ris
 separatamente diritto, contratto Shopify, addebito di test, vendita Partner osservata e
 credito della conversione; fattura merchant riscossa e payout liquidato restano prove
 manuali del Partner Dashboard. Il poll finanziario Partner lega ogni vendita al charge
-e al ciclo corrente; per la conversione conserva una
+e al ciclo corrente, con un giorno di tolleranza perché la vendita porta un istante UTC e
+l'inizio ciclo una data locale dello store; per la conversione conserva una
 ricevuta minimizzata con ID tecnico, tipo, importo, valuta e timestamp. Una rettifica
 con charge, importo o valuta incompatibili passa a revisione invece di confermare il
 credito. Il poll interroga Partner solo quando esiste una voce da osservare e solo dalla
