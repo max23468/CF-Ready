@@ -160,6 +160,7 @@ if (command === "git") {
   else if (joined === "rev-parse HEAD") print("${sourceSha}\\n");
   else if (joined === "rev-parse ${mainSha}:site" || joined === "rev-parse ${mainSha}^1:site") print("site-tree\\n");
   else if (joined === "ls-remote origin refs/heads/develop") print((mode === "develop-advanced" ? "${sourceSha}" : "${developSha}") + "\\trefs/heads/develop\\n");
+  else if (joined === "ls-remote --heads origin codex/change") print("");
   else if (joined === "show -s --format=%P ${mainSha}") print("${oldMainSha} ${developSha}\\n");
   else if (joined === "rev-parse ${mainSha}^{tree}" || joined === "rev-parse ${developSha}^{tree}") print("tree\\n");
   else if (joined === "rev-parse origin/main") print("${mainSha}\\n");
@@ -249,7 +250,12 @@ if (command === "git") {
   else if (joined === "merge-base origin/main origin/develop") print("${mainSha}\\n");
   else if (joined === "merge-base origin/develop ${sourceSha}") print("${baseSha}\\n");
   else if (args[0] === "diff") print("M\\0app/routes/app._index.tsx\\0");
-  else if (args[0] !== "push" && args[0] !== "fetch") process.exitCode = 2;
+  else if (joined === "ls-remote --heads origin codex/change") print(existsSync(marker("remote-deleted")) ? "" : "${sourceSha}\\trefs/heads/codex/change\\n");
+  else if (args[0] === "push") {
+    writeFileSync(marker("git-push"), joined + "\\n", { flag: "a" });
+    if (args.includes("--delete")) writeFileSync(marker("remote-deleted"), "ok");
+  }
+  else if (args[0] !== "fetch") process.exitCode = 2;
 } else if (command === "npm") {
   writeFileSync(marker("npm-calls"), args.join(" ") + "\\n", { flag: "a" });
   if (mode === "gate-failed") process.exitCode = 1;
@@ -275,6 +281,7 @@ if (command === "git") {
     print({ number, state: mode === "closed-pr" ? "CLOSED" : merged ? "MERGED" : "OPEN", headRefOid: promotion ? "${developSha}" : "${sourceSha}", mergeCommit: merged ? { oid: promotion ? "${mainSha}" : "${developSha}" } : null, url: "https://github.test/pr/" + number });
   } else if (args[0] === "pr" && args[1] === "merge") {
     writeFileSync(marker("merge-" + args[2]), "ok");
+    writeFileSync(marker("merge-args"), args.join(" ") + "\\n", { flag: "a" });
   } else if (args[0] === "run" && args[1] === "list" && !args.includes("--commit")) {
     print([]);
   } else if (args[0] === "run" && args[1] === "list") {
@@ -326,6 +333,13 @@ if (command === "git") {
   assert.match(result.stdout, /Pubblicazione Production completata/);
   assert.match(result.stdout, /Gate locale della corsia standard prima del push/);
   assert.match(result.stdout, /PR #10: attendo i check obbligatori/);
+  const mergeArgs = readFileSync(path.join(directory, ".merge-args"), "utf8");
+  assert.match(mergeArgs, /^pr merge 10 --auto --squash$/m);
+  assert.doesNotMatch(mergeArgs, /--delete-branch/);
+  assert.equal(
+    readFileSync(path.join(directory, ".git-push"), "utf8"),
+    "push --set-upstream origin codex/change\npush --quiet origin --delete codex/change\n",
+  );
   assert.equal(
     readFileSync(path.join(directory, ".npm-calls"), "utf8"),
     `run check:ci-standard\nrun coverage:check -- --base-sha ${baseSha} --head-sha ${sourceSha}\n`,

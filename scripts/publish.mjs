@@ -231,15 +231,15 @@ async function ensurePullRequest({ branch, base, sourceSha, mergeMethod, title, 
     await waitForRequiredChecks(current.number);
     await waitForIdlePipeline();
   }
-  execute("gh", [
-    "pr",
-    "merge",
-    String(current.number),
-    "--auto",
-    `--${mergeMethod}`,
-    ...(base === "develop" ? ["--delete-branch"] : []),
-  ]);
+  execute("gh", ["pr", "merge", String(current.number), "--auto", `--${mergeMethod}`]);
   return waitForMerge(current.number);
+}
+
+// gh pr merge --delete-branch cancellerebbe anche il branch locale e sposterebbe il
+// checkout su develop: un retry dopo un deploy fallito non troverebbe più la modifica.
+function deleteRemoteBranch(branch) {
+  const remote = output("git", ["ls-remote", "--heads", "origin", branch]);
+  if (remote) execute("git", ["push", "--quiet", "origin", "--delete", branch]);
 }
 
 function workflowRuns(workflow, branch, sha) {
@@ -374,6 +374,7 @@ export async function publish(target) {
     mergeMethod: "squash",
   });
   const developSha = developmentPr.mergeCommit.oid;
+  deleteRemoteBranch(branch);
   await ensureWorkflow({
     workflow: "deploy-development.yml",
     branch: "develop",

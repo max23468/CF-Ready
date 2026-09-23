@@ -39,3 +39,4 @@ node_modules
 .react-router/
 
 /.stryker-tmp/
+/.stryker-incremental/

@@ -390,7 +390,9 @@ obbligatori della PR e la fine di promozioni o deploy di un'altra pubblicazione,
 così `develop` non avanza sotto un ciclo in corso. Il deploy Development accetta
 i gate dell'HEAD PR quando il commit unito ne conserva il tree, senza attendere
 che la CI di push li ripeta; lo stesso riuso vale per promozione e merge
-Production (D-162). Il secondo completa
+Production (D-162). Dopo il merge elimina il branch remoto ma lascia checkout e
+branch locale, così un retry riparte dallo stesso comando e dallo stesso
+worktree; il branch locale si rimuove a ciclo chiuso. Il secondo completa
 lo stesso percorso, crea o riprende la promozione `develop` → `main`, impone il
 merge commit, attende deploy e readback di Worker e Shopify e confronta il tree
 `site/` con il primo parent del merge. Soltanto quando il sito è cambiato avvia
