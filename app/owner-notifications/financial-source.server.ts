@@ -211,6 +211,9 @@ function normalizeMoney(money: Money) {
   return { amountMinor: Math.round(amount * 100), currency: money.currencyCode };
 }
 
+// `current_period_start` è una data locale dello store, `createdAt` un istante UTC: a est di
+// Greenwich una vendita della prima notte del ciclo ha la data UTC del giorno prima. Un giorno
+// di tolleranza la accetta senza raggiungere la vendita del ciclo precedente.
 function subscriptionSaleStatement(db: D1Database, observation: Observation, checkedAt: string) {
   return db
     .prepare(
@@ -221,7 +224,7 @@ function subscriptionSaleStatement(db: D1Database, observation: Observation, che
         WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
           AND shopify_charge_gid = ? AND plan_kind IN ('monthly', 'annual') AND is_test = 0
           AND current_period_start IS NOT NULL
-          AND date(?) >= date(current_period_start)
+          AND date(?) >= date(current_period_start, '-1 day')
           AND (sale_observed_at IS NULL OR datetime(?) > datetime(sale_observed_at))`,
     )
     .bind(
