@@ -965,8 +965,11 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
   assert.match(ci, /playwright install --with-deps chromium webkit/);
   assert.deepEqual(
     [...ci.matchAll(/playwright install --with-deps ([^\n]+)/g)].map((match) => match[1].trim()),
-    ["chromium webkit", "chromium webkit"],
+    ["chromium webkit"],
   );
+  assert.match(ci, /playwright@\$version" install-deps chromium webkit/);
+  assert.match(ci, /npx playwright install chromium webkit\n/);
+  assert.match(ci, /exit "\$\(cat "\$RUNNER_TEMP\/playwright-deps\.exit"\)"/);
   assert.match(ci, /actions\/cache@[0-9a-f]{40}/);
   assert.match(ci, /key: playwright-\$\{\{ runner\.os \}\}/);
   assert.match(ci, /npm run test:e2e/);
@@ -1165,6 +1168,11 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   );
   assert.match(workflow, /cron: "17 6 1 \* \*"/);
   assert.match(workflow, /cron: "47 6 1 1,4,7,10 \*"/);
+  assert.match(workflow, /cron: "37 5 \* \* \*"/);
+  assert.match(
+    workflow,
+    /function-schema:[\s\S]*deployment: false[\s\S]*npm run verify:function-schema/,
+  );
   assert.match(workflow, /npm run audit:security/);
   assert.match(workflow, /npm audit signatures/);
   assert.match(workflow, /npm run readback:dev/);
@@ -1174,7 +1182,7 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.match(workflow, /ruleset="\$\(gh api/);
   assert.match(
     workflow,
-    /ci-policy,coverage,dependency-review,e2e,promotion-guard,react-doctor,verify/,
+    /ci-policy,coverage,dependency-review,e2e,mutation,promotion-guard,react-doctor,verify/,
   );
   assert.match(workflow, /gh workflow list --all/);
   assert.match(workflow, /workflows="\$\(gh workflow list/);
@@ -1200,7 +1208,7 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
   assert.doesNotMatch(workflow, /bypass_actors/);
   assert.doesNotMatch(workflow, /allow_auto_merge|delete_branch_on_merge/);
   assert.doesNotMatch(workflow, /branches\/$branch\/protection/);
-  assert.equal((workflow.match(/test "\$GITHUB_REF" = "refs\/heads\/develop"/g) ?? []).length, 2);
+  assert.equal((workflow.match(/test "\$GITHUB_REF" = "refs\/heads\/develop"/g) ?? []).length, 3);
   assert.doesNotMatch(workflow, /shopify app deploy|wrangler deploy|d1 migrations apply/);
 });
 

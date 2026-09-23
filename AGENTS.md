@@ -71,7 +71,8 @@ architetturali stabili in un ADR. Per incarichi delegati vedi
 
 Coverage (`npm run coverage:check`) e mutation (`npm run mutation:critical`)
 valgono quando il diff tocca il loro perimetro; le soglie stanno in
-`scripts/coverage-report.mjs`. Provider, database remoto, browser e deploy
+`scripts/coverage-report.mjs` e in CI entrambe bloccano il merge. Il
+coordinatore di `Pubblica` ripete da sé gate di corsia e coverage prima del push. Provider, database remoto, browser e deploy
 richiedono prove fresche: un exit code `0` non dimostra lo stato live.
 Dichiara i controlli non eseguiti.
 

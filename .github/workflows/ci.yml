@@ -93,6 +93,18 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      # coverage è il percorso critico della PR: i pacchetti apt dei browser, non coperti
+      # dalla cache Playwright, si installano mentre procedono setup Node e dipendenze npm.
+      - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
+        name: Avvia in parallelo le dipendenze di sistema dei browser
+        run: |
+          version="$(node -p 'require("./package-lock.json").packages["node_modules/@playwright/test"].version')"
+          # Nessun descrittore dello step resta aperto, altrimenti il runner attende il processo.
+          (
+            status=0
+            npx --yes --ignore-scripts "playwright@$version" install-deps chromium webkit || status=$?
+            echo "$status" > "$RUNNER_TEMP/playwright-deps.exit"
+          ) > "$RUNNER_TEMP/playwright-deps.log" 2>&1 < /dev/null &
       - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
         uses: ./.github/actions/setup-node-npm
       - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
@@ -108,7 +120,12 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
       - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
-        run: npx playwright install --with-deps chromium webkit
+        name: Installa i browser e attende le dipendenze di sistema
+        run: |
+          npx playwright install chromium webkit
+          while [ ! -f "$RUNNER_TEMP/playwright-deps.exit" ]; do sleep 1; done
+          cat "$RUNNER_TEMP/playwright-deps.log"
+          exit "$(cat "$RUNNER_TEMP/playwright-deps.exit")"
       - if: needs.lane.outputs.lane == 'standard' || needs.lane.outputs.lane == 'full'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -142,10 +159,24 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup-node-npm
       - run: npm ci
+      # La base viene solo da develop e dalla campagna completa: le PR la leggono e basta.
+      - name: Ripristina il report incrementale ${{ matrix.domain }}
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .stryker-incremental/${{ matrix.domain }}.json
+          key: mutation-incremental-${{ matrix.domain }}-${{ github.sha }}
+          restore-keys: mutation-incremental-${{ matrix.domain }}-
       - name: Mutation ${{ matrix.domain }}
         env:
           CRITICAL_MUTATION_DOMAIN: ${{ matrix.domain }}
+          CRITICAL_MUTATION_INCREMENTAL: "true"
         run: npm run mutation:critical
+      - name: Salva il report incrementale ${{ matrix.domain }}
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .stryker-incremental/${{ matrix.domain }}.json
+          key: mutation-incremental-${{ matrix.domain }}-${{ github.sha }}-${{ github.run_id }}
       - name: Carica report mutation ${{ matrix.domain }}
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -155,6 +186,27 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
+
+  # Check stabile per il ruleset: la matrice cambia nome per dominio e manca nelle corsie
+  # senza domini critici, quindi il merge attende questo esito aggregato.
+  mutation:
+    needs: [lane, critical-mutation]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          LANE_RESULT: ${{ needs.lane.result }}
+          MUTATION_MATRIX: ${{ needs.lane.outputs.mutation_matrix }}
+          MUTATION_RESULT: ${{ needs.critical-mutation.result }}
+        run: |
+          test "$LANE_RESULT" = success
+          if [ "$MUTATION_MATRIX" = "[]" ]; then
+            echo "Mutation non applicabile: il diff non tocca domini critici."
+            test "$MUTATION_RESULT" = skipped
+          else
+            test "$MUTATION_RESULT" = success
+          fi
 
   e2e:
     needs: lane

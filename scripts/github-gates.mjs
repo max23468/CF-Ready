@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
-export function missingSuccessfulChecks(checkRuns, required, currentRunId = "") {
+function latestRequiredChecks(checkRuns, required, currentRunId = "") {
   const requiredNames = new Set(required);
   const latestChecks = new Map();
   for (const check of checkRuns) {
@@ -25,7 +25,39 @@ export function missingSuccessfulChecks(checkRuns, required, currentRunId = "") 
       latestChecks.set(check.name, candidate);
     }
   }
+  return latestChecks;
+}
+
+export function missingSuccessfulChecks(checkRuns, required, currentRunId = "") {
+  const latestChecks = latestRequiredChecks(checkRuns, required, currentRunId);
   return required.filter((name) => latestChecks.get(name)?.check.conclusion !== "success");
+}
+
+// Il commit unito conserva il tree dell'HEAD PR: i check di quel tree valgono anche qui,
+// ma un esito concluso e non verde sul commit stesso prevale sempre.
+export function missingWithEquivalentChecks(
+  checkRuns,
+  equivalentCheckRuns,
+  required,
+  currentRunId = "",
+) {
+  const own = latestRequiredChecks(checkRuns, required, currentRunId);
+  const equivalent = latestRequiredChecks(equivalentCheckRuns, required, currentRunId);
+  return required.filter((name) => {
+    const conclusion = own.get(name)?.check.conclusion;
+    if (conclusion) return conclusion !== "success";
+    return equivalent.get(name)?.check.conclusion !== "success";
+  });
+}
+
+export function developPullRequestFor(pullRequests, sha) {
+  return pullRequests.find(
+    (pullRequest) =>
+      pullRequest.merged_at &&
+      pullRequest.base?.ref === "develop" &&
+      pullRequest.merge_commit_sha === sha &&
+      /^[0-9a-f]{40}$/.test(pullRequest.head?.sha ?? ""),
+  );
 }
 
 export function verifyPromotionHistory(commits) {
@@ -55,13 +87,32 @@ async function request(path) {
 
 const pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
+async function reviewedTreeHead(repository, sha) {
+  const [detail, pullRequests] = await Promise.all([
+    request(`/repos/${repository}/git/commits/${sha}`),
+    request(`/repos/${repository}/commits/${sha}/pulls`),
+  ]);
+  const pullRequest = developPullRequestFor(pullRequests, sha);
+  if (!pullRequest || !detail.tree?.sha) return undefined;
+  const head = await request(`/repos/${repository}/git/commits/${pullRequest.head.sha}`);
+  return head.tree?.sha === detail.tree.sha ? pullRequest.head.sha : undefined;
+}
+
+async function checkRunsFor(repository, sha) {
+  const { check_runs: checkRuns } = await request(
+    `/repos/${repository}/commits/${sha}/check-runs?per_page=100`,
+  );
+  return checkRuns;
+}
+
 export async function waitForChecks(repository, sha, required, options = {}) {
   const attempts = options.attempts ?? 60;
   const intervalMs = options.intervalMs ?? 10_000;
+  // ci-policy attesta lo SHA candidato esatto: non si eredita mai da un altro commit.
+  const treeReusable = required.filter((name) => name !== "ci-policy");
+  let equivalentHead;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
-    const { check_runs: checkRuns } = await request(
-      `/repos/${repository}/commits/${sha}/check-runs?per_page=100`,
-    );
+    const checkRuns = await checkRunsFor(repository, sha);
     if (required.includes("ci-policy")) {
       const { statuses = [] } = await request(`/repos/${repository}/commits/${sha}/status`);
       checkRuns.push(
@@ -74,7 +125,24 @@ export async function waitForChecks(repository, sha, required, options = {}) {
         })),
       );
     }
-    const missing = missingSuccessfulChecks(checkRuns, required, process.env.GITHUB_RUN_ID);
+    let missing = missingSuccessfulChecks(checkRuns, required, process.env.GITHUB_RUN_ID);
+    if (missing.length > 0 && options.reuseReviewedTree && treeReusable.length > 0) {
+      equivalentHead ??= (await reviewedTreeHead(repository, sha)) ?? null;
+      if (equivalentHead) {
+        const equivalentRuns = (await checkRunsFor(repository, equivalentHead)).filter(({ name }) =>
+          treeReusable.includes(name),
+        );
+        missing = missingWithEquivalentChecks(
+          checkRuns,
+          equivalentRuns,
+          required,
+          process.env.GITHUB_RUN_ID,
+        );
+        if (missing.length === 0) {
+          console.log(`Gate di ${sha} riusati dall'HEAD PR ${equivalentHead} con tree identico.`);
+        }
+      }
+    }
     if (missing.length === 0) return checkRuns;
     if (attempt === attempts - 1) {
       throw new Error(`Gate mancanti sull'HEAD ${sha}: ${missing.join(", ")}.`);
@@ -151,8 +219,15 @@ export async function verifyProductionMerge({ event, repository }) {
       async ({ sha }) => (await request(`/repos/${repository}/git/commits/${sha}`)).tree.sha,
     ),
   );
-  const proof = verifyProductionMergeEvidence({ event, detail, pullRequests, parentTrees });
-  await waitForChecks(repository, proof.sourceSha, ["verify", "e2e", "coverage", "ci-policy"]);
+  const proof = verifyProductionMergeEvidence({
+    event,
+    detail,
+    pullRequests,
+    parentTrees,
+  });
+  await waitForChecks(repository, proof.sourceSha, ["verify", "e2e", "coverage", "ci-policy"], {
+    reuseReviewedTree: true,
+  });
   return proof;
 }
 
@@ -171,7 +246,9 @@ export async function verifyPromotion({ event, repository }) {
     encoding: "utf8",
   }).trim();
   if (mergeBase !== baseSha) throw new Error("main non è antenato dell'HEAD di develop.");
-  await waitForChecks(repository, headSha, ["verify", "e2e", "coverage", "ci-policy"]);
+  await waitForChecks(repository, headSha, ["verify", "e2e", "coverage", "ci-policy"], {
+    reuseReviewedTree: true,
+  });
   verifyPromotionHistory(await promotionCommitEvidence(repository, baseSha, headSha));
   return { baseSha, headSha };
 }
@@ -179,7 +256,9 @@ export async function verifyPromotion({ event, repository }) {
 async function main() {
   const required = process.env.REQUIRED_CHECKS?.split(",").filter(Boolean);
   if (required?.length) {
-    await waitForChecks(process.env.GITHUB_REPOSITORY, process.env.GITHUB_SHA, required);
+    await waitForChecks(process.env.GITHUB_REPOSITORY, process.env.GITHUB_SHA, required, {
+      reuseReviewedTree: process.env.GITHUB_REF === "refs/heads/develop",
+    });
     console.log(`Gate riusati per ${process.env.GITHUB_SHA}: ${required.join(", ")}.`);
     return;
   }
@@ -194,7 +273,10 @@ async function main() {
     );
     return;
   }
-  const proof = await verifyPromotion({ event, repository: process.env.GITHUB_REPOSITORY });
+  const proof = await verifyPromotion({
+    event,
+    repository: process.env.GITHUB_REPOSITORY,
+  });
   console.log(`Promozione verificata: ${proof.baseSha} -> ${proof.headSha}.`);
 }
 

@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { test } from "node:test";
 
 import {
@@ -51,8 +53,28 @@ const wrangler = `{
   }
 }`;
 
-test("un comando provider fallito interrompe il preflight", () => {
-  assert.throws(() => run(process.execPath, ["-e", "process.exit(1)"], false), /Preflight fallito/);
+test("un comando provider fallito interrompe il preflight dopo i tentativi", () => {
+  assert.throws(
+    () => run(process.execPath, ["-e", "process.exit(1)"], false, { delayMs: 0 }),
+    /Preflight fallito/,
+  );
+});
+
+test("una lettura provider transitoria riesce al tentativo successivo", () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "cf-ready-preflight-retry-"));
+  const counter = path.join(directory, "attempts");
+  const script = `const fs=require("node:fs");const n=Number(fs.existsSync(process.argv[1])?fs.readFileSync(process.argv[1],"utf8"):0)+1;fs.writeFileSync(process.argv[1],String(n));if(n<3)process.exit(1);process.stdout.write("ok");`;
+  try {
+    assert.equal(run(process.execPath, ["-e", script, counter], false, { delayMs: 0 }), "ok");
+    assert.equal(readFileSync(counter, "utf8"), "3");
+    rmSync(counter);
+    assert.throws(
+      () => run(process.execPath, ["-e", script, counter], false, { attempts: 2, delayMs: 0 }),
+      /Preflight fallito/,
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test("il preflight lega il nome Worker alla chiave corretta", () => {

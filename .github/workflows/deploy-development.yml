@@ -6,6 +6,8 @@ on:
 permissions:
   contents: read
   checks: read
+  # Il riuso dei gate per tree legge la PR che ha prodotto il commit di develop.
+  pull-requests: read
 
 concurrency:
   group: deploy-development
