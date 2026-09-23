@@ -242,7 +242,7 @@ test("crea e completa un nuovo ciclo Production con provider sintetici", (t) => 
   writeFileSync(
     provider,
     `#!/usr/bin/env node
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 const command = path.basename(process.argv[1]);
 const args = process.argv.slice(2);
@@ -279,6 +279,11 @@ if (command === "git") {
   else if (args[0] === "pr" && args[1] === "list" && value("--head") === "develop" && value("--state") === "open") {
     if (mode === "busy" && !existsSync(marker("busy-seen"))) { writeFileSync(marker("busy-seen"), "ok"); print([{ number: 5 }]); }
     else print([]);
+  } else if (args[0] === "pr" && args[1] === "list" && mode === "stale-head") {
+    const calls = Number(existsSync(marker("stale-calls")) ? readFileSync(marker("stale-calls"), "utf8") : 0) + 1;
+    writeFileSync(marker("stale-calls"), String(calls));
+    const head = calls <= 3 ? "${oldMainSha}" : "${sourceSha}";
+    print([{ number: 10, state: "OPEN", headRefOid: head, mergeCommit: null, url: "https://github.test/pr/10" }]);
   } else if (args[0] === "pr" && args[1] === "list") print([]);
   else if (args[0] === "pr" && args[1] === "checks") {
     if (!existsSync(marker("checks-seen"))) { writeFileSync(marker("checks-seen"), "ok"); process.stderr.write("no checks reported on the 'codex/change' branch"); process.exitCode = 1; }
@@ -286,6 +291,7 @@ if (command === "git") {
     else { writeFileSync(marker("mutation-waited"), "ok"); print([{ name: "verify", bucket: mode === "checks-failed" ? "fail" : "pass" }, { name: "mutation", bucket: "pass" }]); }
   }
   else if (args[0] === "pr" && args[1] === "create") {
+    if (mode === "stale-head") writeFileSync(marker("stale-created"), "ok");
     print("https://github.test/pr/" + (value("--base") === "develop" ? 10 : 11) + "\\n");
   } else if (args[0] === "pr" && args[1] === "view") {
     const promotion = String(args[2]).endsWith("11");
@@ -380,6 +386,24 @@ if (command === "git") {
   );
   assert.equal(queued.status, 0, queued.stderr);
   assert.match(queued.stdout, /Attendo la fine della pubblicazione già in corso/);
+
+  const stale = spawnSync(
+    process.execPath,
+    [path.join(root, "scripts", "publish.mjs"), "--target", "development"],
+    {
+      cwd: directory,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CF_READY_PUBLISH_POLL_MS: "1",
+        FAIL_MODE: "stale-head",
+        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+      },
+    },
+  );
+  assert.equal(stale.status, 0, stale.stderr);
+  assert.equal(existsSync(path.join(directory, ".stale-created")), false);
+  assert.equal(readFileSync(path.join(directory, ".stale-calls"), "utf8"), "4");
 
   const retried = spawnSync(
     process.execPath,

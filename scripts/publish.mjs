@@ -215,12 +215,25 @@ async function waitForIdlePipeline(attempts = 720) {
   throw new Error("Timeout in attesa che promozione e deploy in corso terminino.");
 }
 
+// Dopo il push GitHub aggiorna l'HEAD di una PR già aperta con qualche secondo di
+// ritardo: non va ricreata, né letta sui check verdi del commit precedente.
+async function pullRequestForHead(branch, base, sha, attempts = 60) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const candidates = pullRequests(branch, base);
+    const current = candidates.find((pr) => pr.headRefOid === sha);
+    if (current) return current;
+    if (!candidates.some((pr) => pr.state === "OPEN")) return undefined;
+    await wait(pollIntervalMs);
+  }
+  throw new Error(`La PR aperta per ${branch} non riporta ancora l'HEAD ${sha}.`);
+}
+
 async function ensurePullRequest({ branch, base, sourceSha, mergeMethod, title, body }) {
   let current = pullRequests(branch, base).find((pr) => pr.headRefOid === sourceSha);
   if (current?.state === "MERGED") return current;
   if (!current && base === "develop") {
     execute("git", ["push", "--set-upstream", "origin", branch], { interactive: true });
-    current = pullRequests(branch, base).find((pr) => pr.headRefOid === sourceSha);
+    current = await pullRequestForHead(branch, base, sourceSha);
   }
   if (!current) {
     if (base === "develop") {
