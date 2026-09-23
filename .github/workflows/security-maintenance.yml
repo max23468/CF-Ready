@@ -4,6 +4,7 @@ on:
   schedule:
     - cron: "17 6 1 * *"
     - cron: "47 6 1 1,4,7,10 *"
+    - cron: "37 5 * * *"
   workflow_dispatch:
 
 permissions:
@@ -59,8 +60,8 @@ jobs:
             test "$(jq -r '.rules[] | select(.type == "required_status_checks") | .parameters.strict_required_status_checks_policy' <<< "$ruleset")" = "$strict"
             test "$(jq -r '[.rules[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context] | sort | join(",")' <<< "$ruleset")" = "$expected_checks"
           }
-          verify_ruleset develop false ci-policy,coverage,dependency-review,e2e,react-doctor,verify
-          verify_ruleset main true ci-policy,coverage,dependency-review,e2e,promotion-guard,react-doctor,verify
+          verify_ruleset develop false ci-policy,coverage,dependency-review,e2e,mutation,react-doctor,verify
+          verify_ruleset main true ci-policy,coverage,dependency-review,e2e,mutation,promotion-guard,react-doctor,verify
           workflows="$(gh workflow list --all --json path,state \
             --jq '.[] | select(.state == "active" and (.path | startswith(".github/workflows/")) and .path != ".github/workflows/security-maintenance.yml") | .path')"
           test -n "$workflows"
@@ -111,3 +112,25 @@ jobs:
         run: >-
           curl --fail --silent --show-error --max-time 15 --output /dev/null
           https://cf-ready-dev.tmsf.workers.dev
+
+  # Una deriva dello schema Function fa fallire il deploy Development a metà
+  # pubblicazione: il controllo giornaliero la segnala prima che serva un rilascio.
+  function-schema:
+    name: Verifica giornaliera schema Function
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '37 5 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: Development
+      deployment: false
+    steps:
+      - name: Verifica branch
+        run: test "$GITHUB_REF" = "refs/heads/develop"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/setup-node-npm
+      - run: npm install --global --allow-scripts=esbuild @shopify/cli@4.8.0
+      - run: npm ci
+      - name: Verifica schema Function API
+        env:
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+        run: npm run verify:function-schema

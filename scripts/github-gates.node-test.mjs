@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import test from "node:test";
 import {
+  developPullRequestFor,
   missingSuccessfulChecks,
+  missingWithEquivalentChecks,
   verifyProductionMerge,
   verifyProductionMergeEvidence,
   verifyPromotion,
@@ -93,6 +95,128 @@ test("seleziona il check più recente per nome tra workflow distinti", () => {
     ),
     ["verify"],
   );
+});
+
+test("un esito concluso sul commit prevale sul tree equivalente", () => {
+  const check = (name, conclusion, suite = 1) => ({
+    id: suite,
+    name,
+    conclusion,
+    check_suite: { id: suite },
+  });
+  const equivalent = [check("verify", "success"), check("coverage", "success")];
+  assert.deepEqual(
+    missingWithEquivalentChecks([check("verify", null, 2)], equivalent, ["verify", "coverage"]),
+    [],
+  );
+  assert.deepEqual(
+    missingWithEquivalentChecks([check("verify", "failure", 2)], equivalent, [
+      "verify",
+      "coverage",
+    ]),
+    ["verify"],
+  );
+  assert.deepEqual(missingWithEquivalentChecks([], equivalent, ["verify", "e2e"]), ["e2e"]);
+});
+
+test("riconosce soltanto la PR unita su develop con quel merge commit", () => {
+  const sha = "a".repeat(40);
+  const head = { sha: "b".repeat(40) };
+  const merged = { merged_at: "2026-09-23T00:00:00Z", merge_commit_sha: sha, head };
+  assert.equal(developPullRequestFor([{ ...merged, base: { ref: "develop" } }], sha).head, head);
+  assert.equal(developPullRequestFor([{ ...merged, base: { ref: "main" } }], sha), undefined);
+  assert.equal(
+    developPullRequestFor([{ ...merged, base: { ref: "develop" }, merged_at: null }], sha),
+    undefined,
+  );
+  assert.equal(
+    developPullRequestFor(
+      [{ ...merged, base: { ref: "develop" }, merge_commit_sha: "c".repeat(40) }],
+      sha,
+    ),
+    undefined,
+  );
+});
+
+function reviewedTreeFetch({ sha, head, mergedTree, headTree, ownRuns = [], statuses = [] }) {
+  return async (input) => {
+    const url = String(input);
+    let payload;
+    if (url.endsWith(`/commits/${sha}/check-runs?per_page=100`)) {
+      payload = { check_runs: ownRuns };
+    } else if (url.endsWith(`/commits/${sha}/status`)) {
+      payload = { statuses };
+    } else if (url.endsWith(`/commits/${head}/check-runs?per_page=100`)) {
+      payload = {
+        check_runs: ["verify", "e2e", "coverage", "ci-policy"].map((name, id) => ({
+          id,
+          name,
+          conclusion: "success",
+          check_suite: { id: 5 },
+        })),
+      };
+    } else if (url.endsWith(`/git/commits/${sha}`)) {
+      payload = { tree: { sha: mergedTree } };
+    } else if (url.endsWith(`/git/commits/${head}`)) {
+      payload = { tree: { sha: headTree } };
+    } else if (url.endsWith(`/commits/${sha}/pulls`)) {
+      payload = [
+        {
+          merged_at: "2026-09-23T00:00:00Z",
+          base: { ref: "develop" },
+          merge_commit_sha: sha,
+          head: { sha: head },
+        },
+      ];
+    } else {
+      throw new Error(`richiesta inattesa: ${url}`);
+    }
+    return new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  };
+}
+
+test("riusa i gate dell'HEAD PR solo con tree identico e mai ci-policy", async () => {
+  const originalFetch = globalThis.fetch;
+  const sha = "a".repeat(40);
+  const head = "b".repeat(40);
+  const options = { attempts: 1, intervalMs: 0, reuseReviewedTree: true };
+  try {
+    globalThis.fetch = reviewedTreeFetch({ sha, head, mergedTree: "t1", headTree: "t1" });
+    await assert.doesNotReject(
+      waitForChecks("owner/repo", sha, ["verify", "e2e", "coverage"], options),
+    );
+    await assert.rejects(
+      waitForChecks("owner/repo", sha, ["verify", "ci-policy"], options),
+      /Gate mancanti.*ci-policy/,
+    );
+    await assert.rejects(
+      waitForChecks("owner/repo", sha, ["verify"], { attempts: 1, intervalMs: 0 }),
+      /Gate mancanti.*verify/,
+    );
+
+    globalThis.fetch = reviewedTreeFetch({ sha, head, mergedTree: "t1", headTree: "t2" });
+    await assert.rejects(
+      waitForChecks("owner/repo", sha, ["verify"], options),
+      /Gate mancanti.*verify/,
+    );
+
+    globalThis.fetch = reviewedTreeFetch({
+      sha,
+      head,
+      mergedTree: "t1",
+      headTree: "t1",
+      ownRuns: [{ id: 9, name: "verify", conclusion: "failure", check_suite: { id: 9 } }],
+    });
+    await assert.rejects(
+      waitForChecks("owner/repo", sha, ["verify"], options),
+      /Gate mancanti.*verify/,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("la promozione include coverage e policy dell'HEAD develop", async () => {
