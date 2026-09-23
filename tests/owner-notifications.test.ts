@@ -520,6 +520,55 @@ test("il poll finanziario pagina gli aggiustamenti e rifiuta payload incompleti"
   ).rejects.toThrow("partner_api_invalid_financial_transaction");
 });
 
+test("il poll finanziario interroga Partner solo dalla voce pendente più vecchia", async () => {
+  const shop = await insertShop("finestra-finanziaria.myshopify.com");
+  const shopId = await shopIdFor(shop);
+  const annual = billing("gid://shopify/AppSubscription/finestra", "ANNUAL", "29.90");
+  await syncBillingAccount(env.DB, shop, annual, {
+    today: "2026-08-24",
+    timeZone: "Europe/Rome",
+    pricingGeneration: "launch",
+    storedAccount: null,
+  });
+  const fetcher = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+    Response.json({ data: { transactions: { edges: [], pageInfo: { hasNextPage: false } } } }),
+  );
+  const createdAtMin = () =>
+    JSON.parse(String(fetcher.mock.calls.at(-1)?.[1]?.body)).variables.createdAtMin;
+
+  // Mai controllata: la finestra parte dal ciclo corrente, con un margine di due giorni.
+  await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
+    now: NOW,
+    fetcher: fetcher as typeof fetch,
+  });
+  expect(createdAtMin()).toBe("2026-08-22T00:00:00Z");
+
+  // Già controllata: basta il ritardo tollerato dalla Partner API, non l'intera storia.
+  await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
+    now: new Date("2026-08-24T11:00:00.000Z"),
+    fetcher: fetcher as typeof fetch,
+  });
+  expect(createdAtMin()).toBe("2026-08-17T10:00:00Z");
+
+  // Una conversione mai controllata copre anche la vendita di un ciclo annuale precedente.
+  await env.DB.prepare(
+    `INSERT INTO billing_conversions (
+       shop_id, subscription_gid, one_time_gid, credit_estimate_minor, currency,
+       credit_status, requested_at, is_test, created_at, updated_at
+     ) VALUES (?, ?, 'gid://shopify/AppPurchaseOneTime/finestra', 2440, 'EUR', 'pending',
+               '2026-08-20T10:00:00.000Z', 0, '2026-08-20T10:00:00.000Z',
+               '2026-08-20T10:00:00.000Z')`,
+  )
+    .bind(shopId, annual.subscription.id)
+    .run();
+  await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
+    now: new Date("2026-08-24T12:00:00.000Z"),
+    fetcher: fetcher as typeof fetch,
+  });
+  expect(createdAtMin()).toBe("2025-07-16T10:00:00Z");
+  expect(fetcher).toHaveBeenCalledTimes(3);
+});
+
 test("il poll finanziario non interroga Partner senza osservazioni pendenti", async () => {
   const shop = await insertShop("conversione-in-prova.myshopify.com");
   await env.DB.prepare(

@@ -6,6 +6,20 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.14.1 — 23 settembre 2026
+
+- il ciclo periodico non ripropone ogni ora gli store che non hanno mai avuto
+  un addebito: la priorità di backfill vale una sola volta per le righe mai
+  tentate dopo la migrazione `0026`, e gli abbonati da riconciliare non restano
+  più in coda dietro di loro;
+- un errore della riconciliazione billing periodica viene registrato e non
+  ferma più polling Partner, incidenti e consegne Telegram dello stesso ciclo;
+- il poll finanziario Partner legge le transazioni solo dalla voce pendente più
+  vecchia, invece dell'intera storia a ogni ciclo;
+- la retention oraria degli eventi ordinari usa l'indice per classe invece di
+  scandire tutta la tabella;
+- il Master Plan registra i limiti D1 misurati del ciclo owner.
+
 ## 1.14.0 — 22 settembre 2026
 
 - il ciclo periodico riconcilia anche il diritto nel metafield della
