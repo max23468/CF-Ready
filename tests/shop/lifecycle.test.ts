@@ -359,6 +359,13 @@ test("la retention rispetta le soglie pubblicate per eventi e ricevute", async (
       `INSERT INTO app_events (event_name, event_class, occurred_at)
        VALUES ('event-current', 'lifecycle', '2025-08-02T00:00:00.001Z')`,
     ),
+    // La retention elenca le classi ordinarie per usare l'indice: ognuna deve scadere.
+    ...["billing", "validation", "onboarding", "support"].map((eventClass) =>
+      env.DB.prepare(
+        `INSERT INTO app_events (event_name, event_class, occurred_at)
+         VALUES (?, ?, '2025-08-02T00:00:00.000Z')`,
+      ).bind(`event-expired-${eventClass}`, eventClass),
+    ),
     env.DB.prepare(
       `INSERT INTO performance_samples (
          shop_id, metric_id, metric_name, metric_value, country_code,

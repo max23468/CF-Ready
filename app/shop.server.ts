@@ -325,7 +325,9 @@ export async function applyRetention(db: D1Database, now = new Date()) {
       db
         .prepare(
           `DELETE FROM app_events WHERE id IN (
-             SELECT id FROM app_events WHERE event_class != 'error' AND occurred_at <= ?
+             SELECT id FROM app_events
+              WHERE event_class IN ('lifecycle', 'billing', 'validation', 'onboarding', 'support')
+                AND occurred_at <= ?
              ORDER BY occurred_at LIMIT 1000
            )`,
         )
