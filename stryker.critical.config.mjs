@@ -20,7 +20,9 @@ const testFiles = {
 
 export const CRITICAL_MUTATION_DOMAINS = Object.keys(testFiles);
 
-export function criticalMutationConfig(domainName) {
+// In CI il report incrementale arriva dall'ultimo run di develop: si ritestano solo i
+// mutanti di file o test cambiati. La campagna settimanale forza il run completo.
+export function criticalMutationConfig(domainName, env = process.env) {
   const target = policy.targets.criticalDomains.domains[domainName];
   if (!target || !testFiles[domainName]) {
     throw new Error(`Dominio mutation non configurato: ${domainName}`);
@@ -35,7 +37,9 @@ export function criticalMutationConfig(domainName) {
     coverageAnalysis: "perTest",
     tsconfigFile: "tsconfig.stryker-not-required.json",
     concurrency: 4,
-    incremental: false,
+    incremental: env.CRITICAL_MUTATION_INCREMENTAL === "true",
+    incrementalFile: `.stryker-incremental/${domainName}.json`,
+    force: env.CRITICAL_MUTATION_FORCE === "true",
     reporters: ["clear-text", "progress", "json"],
     jsonReporter: { fileName: `.coverage/mutation/${domainName}.json` },
     thresholds: { high: 95, low: threshold, break: threshold },
@@ -46,6 +50,6 @@ export function criticalMutationConfig(domainName) {
       createHash("sha256").update(process.cwd()).digest("hex").slice(0, 12),
       domainName,
     ),
-    ignorePatterns: [".stryker-tmp/**"],
+    ignorePatterns: [".stryker-tmp/**", ".stryker-incremental/**"],
   };
 }

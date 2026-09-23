@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
   chmodSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -81,6 +82,20 @@ test("il gate locale ripete verify e coverage della corsia", () => {
 
 test("classifica i check obbligatori e lo stato della pipeline", () => {
   assert.deepEqual(checksOutcome([]), { state: "pending", names: [] });
+  assert.deepEqual(checksOutcome([{ name: "verify", bucket: "pass" }], ["verify", "mutation"]), {
+    state: "pending",
+    names: ["mutation"],
+  });
+  assert.equal(
+    checksOutcome(
+      [
+        { name: "verify", bucket: "pass" },
+        { name: "mutation", bucket: "pass" },
+      ],
+      ["verify", "mutation"],
+    ).state,
+    "passed",
+  );
   assert.deepEqual(
     checksOutcome([
       { name: "verify", bucket: "pass" },
@@ -160,6 +175,7 @@ if (command === "git") {
   else if (joined === "rev-parse HEAD") print("${sourceSha}\\n");
   else if (joined === "rev-parse ${mainSha}:site" || joined === "rev-parse ${mainSha}^1:site") print("site-tree\\n");
   else if (joined === "ls-remote origin refs/heads/develop") print((mode === "develop-advanced" ? "${sourceSha}" : "${developSha}") + "\\trefs/heads/develop\\n");
+  else if (joined === "ls-remote --heads origin codex/change") print("");
   else if (joined === "show -s --format=%P ${mainSha}") print("${oldMainSha} ${developSha}\\n");
   else if (joined === "rev-parse ${mainSha}^{tree}" || joined === "rev-parse ${developSha}^{tree}") print("tree\\n");
   else if (joined === "rev-parse origin/main") print("${mainSha}\\n");
@@ -226,7 +242,7 @@ test("crea e completa un nuovo ciclo Production con provider sintetici", (t) => 
   writeFileSync(
     provider,
     `#!/usr/bin/env node
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 const command = path.basename(process.argv[1]);
 const args = process.argv.slice(2);
@@ -249,7 +265,12 @@ if (command === "git") {
   else if (joined === "merge-base origin/main origin/develop") print("${mainSha}\\n");
   else if (joined === "merge-base origin/develop ${sourceSha}") print("${baseSha}\\n");
   else if (args[0] === "diff") print("M\\0app/routes/app._index.tsx\\0");
-  else if (args[0] !== "push" && args[0] !== "fetch") process.exitCode = 2;
+  else if (joined === "ls-remote --heads origin codex/change") print(existsSync(marker("remote-deleted")) ? "" : "${sourceSha}\\trefs/heads/codex/change\\n");
+  else if (args[0] === "push") {
+    writeFileSync(marker("git-push"), joined + "\\n", { flag: "a" });
+    if (args.includes("--delete")) writeFileSync(marker("remote-deleted"), "ok");
+  }
+  else if (args[0] !== "fetch") process.exitCode = 2;
 } else if (command === "npm") {
   writeFileSync(marker("npm-calls"), args.join(" ") + "\\n", { flag: "a" });
   if (mode === "gate-failed") process.exitCode = 1;
@@ -258,12 +279,19 @@ if (command === "git") {
   else if (args[0] === "pr" && args[1] === "list" && value("--head") === "develop" && value("--state") === "open") {
     if (mode === "busy" && !existsSync(marker("busy-seen"))) { writeFileSync(marker("busy-seen"), "ok"); print([{ number: 5 }]); }
     else print([]);
+  } else if (args[0] === "pr" && args[1] === "list" && mode === "stale-head") {
+    const calls = Number(existsSync(marker("stale-calls")) ? readFileSync(marker("stale-calls"), "utf8") : 0) + 1;
+    writeFileSync(marker("stale-calls"), String(calls));
+    const head = calls <= 3 ? "${oldMainSha}" : "${sourceSha}";
+    print([{ number: 10, state: "OPEN", headRefOid: head, mergeCommit: null, url: "https://github.test/pr/10" }]);
   } else if (args[0] === "pr" && args[1] === "list") print([]);
   else if (args[0] === "pr" && args[1] === "checks") {
     if (!existsSync(marker("checks-seen"))) { writeFileSync(marker("checks-seen"), "ok"); process.stderr.write("no checks reported on the 'codex/change' branch"); process.exitCode = 1; }
-    else print([{ name: "verify", bucket: mode === "checks-failed" ? "fail" : "pass" }]);
+    else if (!existsSync(marker("mutation-reported"))) { writeFileSync(marker("mutation-reported"), "ok"); print([{ name: "verify", bucket: mode === "checks-failed" ? "fail" : "pass" }]); }
+    else { writeFileSync(marker("mutation-waited"), "ok"); print([{ name: "verify", bucket: mode === "checks-failed" ? "fail" : "pass" }, { name: "mutation", bucket: "pass" }]); }
   }
   else if (args[0] === "pr" && args[1] === "create") {
+    if (mode === "stale-head") writeFileSync(marker("stale-created"), "ok");
     print("https://github.test/pr/" + (value("--base") === "develop" ? 10 : 11) + "\\n");
   } else if (args[0] === "pr" && args[1] === "view") {
     const promotion = String(args[2]).endsWith("11");
@@ -275,6 +303,7 @@ if (command === "git") {
     print({ number, state: mode === "closed-pr" ? "CLOSED" : merged ? "MERGED" : "OPEN", headRefOid: promotion ? "${developSha}" : "${sourceSha}", mergeCommit: merged ? { oid: promotion ? "${mainSha}" : "${developSha}" } : null, url: "https://github.test/pr/" + number });
   } else if (args[0] === "pr" && args[1] === "merge") {
     writeFileSync(marker("merge-" + args[2]), "ok");
+    writeFileSync(marker("merge-args"), args.join(" ") + "\\n", { flag: "a" });
   } else if (args[0] === "run" && args[1] === "list" && !args.includes("--commit")) {
     print([]);
   } else if (args[0] === "run" && args[1] === "list") {
@@ -297,6 +326,8 @@ if (command === "git") {
     else process.exitCode = 1;
   } else if (args[0] === "release" && args[1] === "create") {
     writeFileSync(marker("release"), "ok");
+  } else if (args[0] === "api" && args[1] === "repos/{owner}/{repo}/rules/branches/develop") {
+    print([{ type: "pull_request" }, { type: "required_status_checks", parameters: { required_status_checks: [{ context: "verify" }, { context: "mutation" }] } }]);
   } else if (args[0] === "api") {
     print({ object: { sha: mode === "release-mismatch" ? "${sourceSha}" : "${mainSha}" } });
   } else process.exitCode = 2;
@@ -326,6 +357,14 @@ if (command === "git") {
   assert.match(result.stdout, /Pubblicazione Production completata/);
   assert.match(result.stdout, /Gate locale della corsia standard prima del push/);
   assert.match(result.stdout, /PR #10: attendo i check obbligatori/);
+  assert.ok(existsSync(path.join(directory, ".mutation-waited")));
+  const mergeArgs = readFileSync(path.join(directory, ".merge-args"), "utf8");
+  assert.match(mergeArgs, /^pr merge 10 --auto --squash$/m);
+  assert.doesNotMatch(mergeArgs, /--delete-branch/);
+  assert.equal(
+    readFileSync(path.join(directory, ".git-push"), "utf8"),
+    "push --set-upstream origin codex/change\npush --quiet origin --delete codex/change\n",
+  );
   assert.equal(
     readFileSync(path.join(directory, ".npm-calls"), "utf8"),
     `run check:ci-standard\nrun coverage:check -- --base-sha ${baseSha} --head-sha ${sourceSha}\n`,
@@ -347,6 +386,24 @@ if (command === "git") {
   );
   assert.equal(queued.status, 0, queued.stderr);
   assert.match(queued.stdout, /Attendo la fine della pubblicazione già in corso/);
+
+  const stale = spawnSync(
+    process.execPath,
+    [path.join(root, "scripts", "publish.mjs"), "--target", "development"],
+    {
+      cwd: directory,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CF_READY_PUBLISH_POLL_MS: "1",
+        FAIL_MODE: "stale-head",
+        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+      },
+    },
+  );
+  assert.equal(stale.status, 0, stale.stderr);
+  assert.equal(existsSync(path.join(directory, ".stale-created")), false);
+  assert.equal(readFileSync(path.join(directory, ".stale-calls"), "utf8"), "4");
 
   const retried = spawnSync(
     process.execPath,
