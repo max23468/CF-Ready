@@ -133,9 +133,9 @@ export async function syncBillingAccount(
       `INSERT INTO billing_accounts (
          shop_id, entitlement_status, plan_kind, pricing_generation, shopify_charge_gid,
          current_period_start, current_period_end, one_time_purchased_at, last_reconciled_at,
-         created_at, updated_at, shopify_status, is_test
+         reconciliation_attempted_at, created_at, updated_at, shopify_status, is_test
        )
-       SELECT id, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? FROM shops WHERE shop_domain = ?
+       SELECT id, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? FROM shops WHERE shop_domain = ?
        ON CONFLICT(shop_id) DO UPDATE SET
          entitlement_status = excluded.entitlement_status,
          plan_kind = excluded.plan_kind,
@@ -185,6 +185,7 @@ export async function syncBillingAccount(
       next.current_period_start,
       next.current_period_end,
       oneTimePurchasedAt,
+      now,
       now,
       now,
       now,

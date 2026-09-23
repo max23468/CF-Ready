@@ -320,6 +320,64 @@ test("un rinnovo senza webhook aggiorna il metafield prima degli account ordinar
     .run();
 });
 
+test("uno store senza addebiti già tentato non precede un abbonato scaduto", async () => {
+  const free = await insertShop("mai-pagante.example.myshopify.com");
+  const paying = await insertShop("abbonato-scaduto.example.myshopify.com");
+  await syncBillingAccount(env.DB, free, NESSUN_ADDEBITO, opzioni);
+  await syncBillingAccount(
+    env.DB,
+    paying,
+    abbonamento("gid://shopify/AppSubscription/abbonato-scaduto", "2026-10-31T22:59:59Z"),
+    opzioni,
+  );
+  await env.DB.batch([
+    ...[free, paying].map((domain) =>
+      env.DB.prepare(
+        `INSERT INTO shopify_sessions (
+           id, shop_id, is_online, session_payload_ciphertext, created_at, updated_at
+         ) SELECT ?, id, 0, 'payload', ?, ? FROM shops WHERE shop_domain = ?`,
+      ).bind(`offline_${domain}`, "2026-09-20", "2026-09-20", domain),
+    ),
+    env.DB.prepare(
+      `UPDATE billing_accounts SET reconciliation_attempted_at = '2026-09-22T10:00:00.000Z'
+        WHERE shop_id NOT IN (SELECT id FROM shops WHERE shop_domain IN (?, ?))`,
+    ).bind(free, paying),
+    // Il ciclo ha già tentato lo store senza addebiti: `is_test` resta NULL perché Shopify
+    // non restituisce alcun addebito da cui ricavarlo.
+    env.DB.prepare(
+      `UPDATE billing_accounts
+          SET last_reconciled_at = '2026-09-22T08:00:00.000Z',
+              reconciliation_attempted_at = '2026-09-22T08:00:00.000Z'
+        WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    ).bind(free),
+    env.DB.prepare(
+      `UPDATE billing_accounts
+          SET last_reconciled_at = '2026-09-21T08:00:00.000Z',
+              reconciliation_attempted_at = '2026-09-21T08:00:00.000Z'
+        WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    ).bind(paying),
+  ]);
+  expect(
+    await env.DB.prepare(
+      `SELECT b.is_test FROM billing_accounts b JOIN shops s ON s.id = b.shop_id
+        WHERE s.shop_domain = ?`,
+    )
+      .bind(free)
+      .first(),
+  ).toEqual({ is_test: null });
+
+  await expect(
+    reconcileNextStaleBilling(env.DB, {
+      now: new Date("2026-09-22T10:30:00.000Z"),
+      adminForShop: async () => ({}) as never,
+      reconciler: async () => ({ retryable: false, errorCode: null }),
+    }),
+  ).resolves.toEqual({ attempted: true, shopDomain: paying, errorCode: null });
+  await env.DB.prepare("DELETE FROM shopify_sessions WHERE id IN (?, ?)")
+    .bind(`offline_${free}`, `offline_${paying}`)
+    .run();
+});
+
 test("un diritto non scritto nel metafield viene ritentato dopo un'ora", async () => {
   const shop = await insertShop("diritto-non-scritto.example.myshopify.com");
   const timestamp = "2026-09-22T09:00:00.000Z";

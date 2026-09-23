@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   consumeWebhookMessage: vi.fn(),
   processWebhookJob: vi.fn(),
   applyRetention: vi.fn(),
+  reconcileNextStaleBilling: vi.fn(),
   pollPartnerEvents: vi.fn(),
   syncPartnerFinancialObservations: vi.fn(),
   pollLocalNotifications: vi.fn(),
@@ -27,6 +28,9 @@ vi.mock("../app/webhook-jobs.server", () => ({
   processWebhookJob: mocks.processWebhookJob,
 }));
 vi.mock("../app/shop.server", () => ({ applyRetention: mocks.applyRetention }));
+vi.mock("../app/billing/periodic-reconciliation.server", () => ({
+  reconcileNextStaleBilling: mocks.reconcileNextStaleBilling,
+}));
 vi.mock("../app/owner-notifications.server", () => ({
   pollPartnerEvents: mocks.pollPartnerEvents,
   syncPartnerFinancialObservations: mocks.syncPartnerFinancialObservations,
@@ -51,6 +55,7 @@ beforeEach(() => {
   mocks.requestHandler.mockResolvedValue(new Response("app", { status: 201 }));
   mocks.consumeWebhookMessage.mockResolvedValue(undefined);
   mocks.applyRetention.mockResolvedValue(undefined);
+  mocks.reconcileNextStaleBilling.mockResolvedValue(undefined);
   mocks.pollPartnerEvents.mockResolvedValue(undefined);
   mocks.syncPartnerFinancialObservations.mockResolvedValue(undefined);
   mocks.pollLocalNotifications.mockResolvedValue(undefined);
@@ -257,6 +262,27 @@ describe("entrypoint Worker", () => {
     ]);
   });
 
+  test("un errore della riconciliazione billing non ferma le fasi owner", async () => {
+    mocks.reconcileNextStaleBilling.mockRejectedValueOnce(new Error("D1_ERROR: dettaglio"));
+    const pending: Promise<unknown>[] = [];
+    const context = { waitUntil: (promise: Promise<unknown>) => pending.push(promise) };
+    const notificationEnv = {
+      DB: env.DB,
+      OWNER_NOTIFICATIONS_ENABLED: "true",
+      TELEGRAM_BOT_TOKEN: "bot",
+      TELEGRAM_CHAT_ID: "chat",
+    };
+
+    worker.scheduled({ cron: "*/5 * * * *" } as never, notificationEnv as never, context as never);
+    await Promise.all(pending);
+
+    expect(mocks.pollPartnerEvents).toHaveBeenCalledOnce();
+    expect(mocks.deliverOwnerNotifications).toHaveBeenCalledOnce();
+    expect(mocks.recordEvent.mock.calls.map(([, event]) => [event.name, event.metadata])).toEqual([
+      ["billing_reconciliation_cycle_failed", { error_code: "billing_reconciliation_failed" }],
+    ]);
+  });
+
   test("minimizza anche errori non Error e una chat Telegram mancante", async () => {
     mocks.pollPartnerEvents.mockRejectedValueOnce("errore esterno");
     const pending: Promise<unknown>[] = [];
@@ -289,5 +315,6 @@ describe("entrypoint Worker", () => {
     await Promise.all(pending);
 
     expect(mocks.pollPartnerEvents).not.toHaveBeenCalled();
+    expect(mocks.reconcileNextStaleBilling).toHaveBeenCalledOnce();
   });
 });

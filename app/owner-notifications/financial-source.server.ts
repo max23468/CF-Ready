@@ -4,11 +4,16 @@ import { writeNotificationState } from "./repository.server";
 
 const PAGE_SIZE = 100;
 const MAX_PAGES = 100;
+const REFERENCE_MARGIN_DAYS = 2;
+const PARTNER_LAG_DAYS = 7;
+const CONVERSION_LOOKBACK_DAYS = 400;
 
 const FINANCIAL_QUERY = `#graphql
-  query OwnerFinancialObservations($appId: ID!, $after: String, $first: Int!) {
+  query OwnerFinancialObservations(
+    $appId: ID!, $after: String, $first: Int!, $createdAtMin: DateTime!
+  ) {
     transactions(
-      appId: $appId, after: $after, first: $first,
+      appId: $appId, after: $after, first: $first, createdAtMin: $createdAtMin,
       types: [APP_SUBSCRIPTION_SALE APP_ONE_TIME_SALE APP_SALE_ADJUSTMENT APP_SALE_CREDIT]
     ) {
       edges {
@@ -73,32 +78,50 @@ export async function syncPartnerFinancialObservations(
   options: { now?: Date; fetcher?: typeof fetch } = {},
 ) {
   const now = options.now ?? new Date();
-  const pending = await db
-    .prepare(
-      `SELECT
-         EXISTS(
-           SELECT 1 FROM billing_accounts
-            WHERE plan_kind IN ('monthly', 'annual', 'one_time') AND is_test = 0
-              AND (plan_kind = 'one_time' OR current_period_start IS NOT NULL)
-              AND (plan_kind = 'one_time' OR date(current_period_start) <= date('now'))
-              AND (
-                sale_observed_at IS NULL
-                OR sale_charge_gid IS NOT shopify_charge_gid
-                OR (plan_kind IN ('monthly', 'annual')
-                    AND sale_cycle_start IS NOT current_period_start)
-              )
-         ) OR EXISTS(
-           SELECT 1 FROM billing_conversions
-            WHERE is_test = 0 AND (
-                  credit_status = 'pending'
-               OR (credit_status = 'needs_review' AND credit_transaction_gid IS NULL)
-               OR (credit_status != 'not_applicable'
-                   AND subscription_sale_transaction_gid IS NULL))
-         ) AS pending`,
-    )
-    .first<number>("pending");
   const checkedAt = now.toISOString();
-  if (!pending) {
+  // La finestra parte dalla voce più vecchia ancora da osservare: una voce mai controllata dal
+  // suo riferimento, una già controllata dall'ultimo controllo meno il ritardo tollerato dalla
+  // Partner API. Senza finestra ogni ciclo rileggerebbe l'intera storia delle transazioni. La
+  // vendita di un abbonamento convertito può precedere la richiesta di un intero ciclo annuale.
+  const createdAtMin = await db
+    .prepare(
+      `SELECT strftime('%Y-%m-%dT%H:%M:%SZ', MIN(window_start)) AS created_at_min FROM (
+         SELECT CASE
+                  WHEN sale_checked_at IS NULL THEN datetime(
+                    CASE WHEN plan_kind = 'one_time'
+                      THEN COALESCE(charge_accepted_at, charge_activated_at,
+                                    one_time_purchased_at, created_at)
+                      ELSE current_period_start END,
+                    '-${REFERENCE_MARGIN_DAYS} days')
+                  ELSE datetime(sale_checked_at, '-${PARTNER_LAG_DAYS} days')
+                END AS window_start
+           FROM billing_accounts
+          WHERE plan_kind IN ('monthly', 'annual', 'one_time') AND is_test = 0
+            AND (plan_kind = 'one_time' OR current_period_start IS NOT NULL)
+            AND (plan_kind = 'one_time' OR date(current_period_start) <= date(?))
+            AND (
+              sale_observed_at IS NULL
+              OR sale_charge_gid IS NOT shopify_charge_gid
+              OR (plan_kind IN ('monthly', 'annual')
+                  AND sale_cycle_start IS NOT current_period_start)
+            )
+         UNION ALL
+         SELECT CASE
+                  WHEN last_checked_at IS NULL
+                    THEN datetime(requested_at, '-${CONVERSION_LOOKBACK_DAYS} days')
+                  ELSE datetime(last_checked_at, '-${PARTNER_LAG_DAYS} days')
+                END
+           FROM billing_conversions
+          WHERE is_test = 0 AND (
+                credit_status = 'pending'
+             OR (credit_status = 'needs_review' AND credit_transaction_gid IS NULL)
+             OR (credit_status != 'not_applicable'
+                 AND subscription_sale_transaction_gid IS NULL))
+       )`,
+    )
+    .bind(checkedAt)
+    .first<string | null>("created_at_min");
+  if (!createdAtMin) {
     await writeNotificationState(db, "partner_financials_polled_at", checkedAt, now);
     return { observed: 0, checkedAt };
   }
@@ -109,7 +132,7 @@ export async function syncPartnerFinancialObservations(
     const payload: FinancialPayload = await requestPartnerApi<FinancialPayload>(
       config,
       FINANCIAL_QUERY,
-      { appId: config.appId, after, first: PAGE_SIZE },
+      { appId: config.appId, after, first: PAGE_SIZE, createdAtMin },
       options.fetcher,
     );
     const transactions = payload.data?.transactions ?? undefined;
