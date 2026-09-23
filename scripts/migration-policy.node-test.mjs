@@ -7,6 +7,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { verifyMigrationSafety } from "./preflight-common.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const policy = JSON.parse(readFileSync(path.join(root, "config/migration-policy.json"), "utf8"));
@@ -31,6 +32,16 @@ test("il registro rende immutabili e classifica tutte le migrazioni applicate", 
     assert.ok(migration.protects.length > 0, `${migration.name} non protegge alcun comportamento`);
     assert.equal(new Set(migration.protects).size, migration.protects.length);
   }
+});
+
+// Il preflight di deploy applica la stessa regola: fallire qui ferma la PR invece
+// della pubblicazione già unita.
+test("ogni migrazione del repository è distribuibile in una sola fase", () => {
+  const migrations = policy.migrations.map(({ name }) => ({
+    name,
+    sql: readFileSync(path.join(root, "migrations", name), "utf8"),
+  }));
+  assert.doesNotThrow(() => verifyMigrationSafety(migrations, policy));
 });
 
 test("Wrangler applica le migrazioni in sequenza e il secondo passaggio è idempotente", () => {
