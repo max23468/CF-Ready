@@ -393,7 +393,12 @@ i gate dell'HEAD PR quando il commit unito ne conserva il tree, senza attendere
 che la CI di push li ripeta; lo stesso riuso vale per promozione e merge
 Production (D-162). Dopo il merge elimina il branch remoto ma lascia checkout e
 branch locale, così un retry riparte dallo stesso comando e dallo stesso
-worktree; il branch locale si rimuove a ciclo chiuso. Il secondo completa
+worktree; il branch locale si rimuove a ciclo chiuso. Il secondo, prima di
+aprire la promozione, controlla che `main` sia antenato del candidato: se `main`
+contiene una promozione senza deploy non ancora collegata, avvia
+`reconcile-develop` in modalità `no-deploy-promotion` e promuove il merge che
+unisce `main` al commit distribuito in Development, solo se ne conserva il tree.
+Il secondo completa
 lo stesso percorso, crea o riprende la promozione `develop` → `main`, impone il
 merge commit, attende deploy e readback di Worker e Shopify e confronta il tree
 `site/` con il primo parent del merge. Soltanto quando il sito è cambiato avvia
