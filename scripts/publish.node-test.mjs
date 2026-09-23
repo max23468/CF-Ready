@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
   chmodSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -81,6 +82,20 @@ test("il gate locale ripete verify e coverage della corsia", () => {
 
 test("classifica i check obbligatori e lo stato della pipeline", () => {
   assert.deepEqual(checksOutcome([]), { state: "pending", names: [] });
+  assert.deepEqual(checksOutcome([{ name: "verify", bucket: "pass" }], ["verify", "mutation"]), {
+    state: "pending",
+    names: ["mutation"],
+  });
+  assert.equal(
+    checksOutcome(
+      [
+        { name: "verify", bucket: "pass" },
+        { name: "mutation", bucket: "pass" },
+      ],
+      ["verify", "mutation"],
+    ).state,
+    "passed",
+  );
   assert.deepEqual(
     checksOutcome([
       { name: "verify", bucket: "pass" },
@@ -267,7 +282,8 @@ if (command === "git") {
   } else if (args[0] === "pr" && args[1] === "list") print([]);
   else if (args[0] === "pr" && args[1] === "checks") {
     if (!existsSync(marker("checks-seen"))) { writeFileSync(marker("checks-seen"), "ok"); process.stderr.write("no checks reported on the 'codex/change' branch"); process.exitCode = 1; }
-    else print([{ name: "verify", bucket: mode === "checks-failed" ? "fail" : "pass" }]);
+    else if (!existsSync(marker("mutation-reported"))) { writeFileSync(marker("mutation-reported"), "ok"); print([{ name: "verify", bucket: mode === "checks-failed" ? "fail" : "pass" }]); }
+    else { writeFileSync(marker("mutation-waited"), "ok"); print([{ name: "verify", bucket: mode === "checks-failed" ? "fail" : "pass" }, { name: "mutation", bucket: "pass" }]); }
   }
   else if (args[0] === "pr" && args[1] === "create") {
     print("https://github.test/pr/" + (value("--base") === "develop" ? 10 : 11) + "\\n");
@@ -304,6 +320,8 @@ if (command === "git") {
     else process.exitCode = 1;
   } else if (args[0] === "release" && args[1] === "create") {
     writeFileSync(marker("release"), "ok");
+  } else if (args[0] === "api" && args[1] === "repos/{owner}/{repo}/rules/branches/develop") {
+    print([{ type: "pull_request" }, { type: "required_status_checks", parameters: { required_status_checks: [{ context: "verify" }, { context: "mutation" }] } }]);
   } else if (args[0] === "api") {
     print({ object: { sha: mode === "release-mismatch" ? "${sourceSha}" : "${mainSha}" } });
   } else process.exitCode = 2;
@@ -333,6 +351,7 @@ if (command === "git") {
   assert.match(result.stdout, /Pubblicazione Production completata/);
   assert.match(result.stdout, /Gate locale della corsia standard prima del push/);
   assert.match(result.stdout, /PR #10: attendo i check obbligatori/);
+  assert.ok(existsSync(path.join(directory, ".mutation-waited")));
   const mergeArgs = readFileSync(path.join(directory, ".merge-args"), "utf8");
   assert.match(mergeArgs, /^pr merge 10 --auto --squash$/m);
   assert.doesNotMatch(mergeArgs, /--delete-branch/);

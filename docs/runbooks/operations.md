@@ -385,8 +385,9 @@ Il primo crea o riprende la PR verso `develop` e attende il deploy Development
 del commit unito. Prima del push classifica il diff con `ci-lane.mjs` ed esegue
 in locale gli stessi comandi dei job `verify` e `coverage` della corsia
 (`check:docs`, oppure `check:ci-standard` o `check:ci-full` seguito da
-`coverage:check`). Prima di abilitare lo squash merge attende i check
-obbligatori della PR e la fine di promozioni o deploy di un'altra pubblicazione,
+`coverage:check`). Prima di abilitare lo squash merge attende tutti i check
+obbligatori del ruleset `develop`, anche quelli non ancora registrati come
+`mutation`, e la fine di promozioni o deploy di un'altra pubblicazione,
 così `develop` non avanza sotto un ciclo in corso. Il deploy Development accetta
 i gate dell'HEAD PR quando il commit unito ne conserva il tree, senza attendere
 che la CI di push li ripeta; lo stesso riuso vale per promozione e merge
