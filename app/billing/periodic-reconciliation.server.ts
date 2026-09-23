@@ -6,7 +6,9 @@ export const BILLING_RECONCILIATION_HOURS = 24;
 const BILLING_RETRY_HOURS = 1;
 // Shopify rinnova le sottoscrizioni senza webhook: dal giorno di fine periodo il ciclo rilegge
 // ogni ora finché il nuovo periodo non arriva nel metafield, poi torna alla cadenza giornaliera.
-// Anche un diritto non scritto nel metafield viene ritentato ogni ora.
+// Anche un diritto non scritto nel metafield viene ritentato ogni ora. Un conto mai tentato dopo
+// la migrazione 0026 ha priorità una sola volta; `is_test` resta NULL per chi non ha mai avuto un
+// addebito e non può quindi segnare il backfill senza riproporre lo store a ogni ora.
 const RENEWAL_WINDOW_DAYS = 3;
 
 type Options = {
@@ -34,12 +36,13 @@ export async function reconcileNextStaleBilling(db: D1Database, options: Options
           )
           AND (renewal_due
                OR b.reconciliation_error_code IN ('entitlement_readback_failed', 'entitlement_write_failed')
-               OR b.is_test IS NULL
+               OR b.reconciliation_attempted_at IS NULL
                OR b.last_reconciled_at IS NULL
                OR datetime(b.last_reconciled_at) <= datetime(?, '-${BILLING_RECONCILIATION_HOURS} hours'))
           AND (b.reconciliation_attempted_at IS NULL
                OR datetime(b.reconciliation_attempted_at) <= datetime(?, '-${BILLING_RETRY_HOURS} hours'))
-        ORDER BY renewal_due DESC, b.is_test IS NOT NULL, b.last_reconciled_at, b.shop_id
+        ORDER BY renewal_due DESC, b.reconciliation_attempted_at IS NOT NULL, b.last_reconciled_at,
+                 b.shop_id
         LIMIT 1`,
     )
     .bind(nowIso, nowIso, nowIso, nowIso)

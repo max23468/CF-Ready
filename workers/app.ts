@@ -78,15 +78,31 @@ export default {
 } satisfies ExportedHandler<Env, WebhookJob>;
 
 async function runOwnerNotificationCycle(env: NotificationBindings) {
-  const { reconcileNextStaleBilling } =
-    await import("../app/billing/periodic-reconciliation.server");
-  await reconcileNextStaleBilling(env.DB);
-  if (env.OWNER_NOTIFICATIONS_ENABLED !== "true") return;
-
-  const [notifications, { recordEvent }] = await Promise.all([
-    import("../app/owner-notifications.server"),
+  const [{ reconcileNextStaleBilling }, { recordEvent }] = await Promise.all([
+    import("../app/billing/periodic-reconciliation.server"),
     import("../app/events.server"),
   ]);
+  const recordStageFailure = (name: string, error: unknown, fallback: string) =>
+    recordEvent(env.DB, {
+      name,
+      class: "error",
+      metadata: { error_code: stageErrorCode(error, fallback) },
+    });
+
+  // La riconciliazione billing non dipende dalle notifiche owner: un suo errore D1 non deve
+  // fermare le fasi successive né restare un rifiuto non gestito in waitUntil.
+  try {
+    await reconcileNextStaleBilling(env.DB);
+  } catch (error) {
+    await recordStageFailure(
+      "billing_reconciliation_cycle_failed",
+      error,
+      "billing_reconciliation_failed",
+    );
+  }
+  if (env.OWNER_NOTIFICATIONS_ENABLED !== "true") return;
+
+  const notifications = await import("../app/owner-notifications.server");
 
   const stages = [
     () =>
@@ -123,11 +139,11 @@ async function runOwnerNotificationCycle(env: NotificationBindings) {
       await stage();
     } catch (error) {
       // react-doctor-disable-next-line react-doctor/async-await-in-loop
-      await recordEvent(env.DB, {
-        name: "owner_notification_cycle_failed",
-        class: "error",
-        metadata: { error_code: notificationErrorCode(error) },
-      });
+      await recordStageFailure(
+        "owner_notification_cycle_failed",
+        error,
+        "owner_notification_failed",
+      );
     }
   }
 }
@@ -137,7 +153,7 @@ async function runRetention(db: D1Database) {
   return applyRetention(db);
 }
 
-function notificationErrorCode(error: unknown) {
+function stageErrorCode(error: unknown, fallback: string) {
   const message = error instanceof Error ? error.message : "";
-  return /^[a-z0-9_]+$/.test(message) ? message : "owner_notification_failed";
+  return /^[a-z0-9_]+$/.test(message) ? message : fallback;
 }
