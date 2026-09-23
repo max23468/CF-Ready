@@ -7,14 +7,17 @@ provider senza introdurre una seconda corsia di deploy.
 
 `security-maintenance.yml` esegue:
 
+- ogni giorno: confronto dello schema Function API restituito da Shopify con
+  `schema.graphql`, così una deriva emerge prima di una pubblicazione (D-162);
 - ogni mese: audit npm senza eccezioni, firme del registry, documenti,
   ruleset GitHub pubblici, alert Dependabot/CodeQL/Secret Scanning e ultimo
   esito di ogni workflow attivo;
 - ogni trimestre: identità e accessi Shopify/Cloudflare Development, stato
   coordinato della versione attiva, D1, secret Worker e smoke HTTP.
 
-Il workflow trimestrale è in sola lettura. Non applica migrazioni, non pubblica
-versioni e non accede a Production. L'esecuzione manuale lancia entrambi i job.
+I job giornaliero e trimestrale sono in sola lettura. Non applicano migrazioni,
+non pubblicano versioni e non accedono a Production. L'esecuzione manuale lancia
+tutti e tre i job.
 I required checks vivono anche nei ruleset pubblici. `ci-policy` è pubblicato
 da `pull_request_target` sullo SHA candidato, ma esegue soltanto il workflow e
 lo script del branch predefinito attendibile: non fa checkout, fetch,

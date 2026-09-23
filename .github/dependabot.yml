@@ -18,6 +18,14 @@ updates:
       - dependency-name: "@vitest/*"
         update-types: ["version-update:semver-major"]
     groups:
+      # Le tre librerie app Shopify dichiarano peer reciproci: una major da sola non installa.
+      shopify-app-major:
+        applies-to: version-updates
+        patterns:
+          - "@shopify/shopify-api"
+          - "@shopify/shopify-app-*"
+        update-types:
+          - major
       npm-minor-patch:
         applies-to: version-updates
         patterns:
