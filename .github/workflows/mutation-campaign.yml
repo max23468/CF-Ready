@@ -34,7 +34,15 @@ jobs:
       - name: Esegui mutation ${{ matrix.domain }}
         env:
           CRITICAL_MUTATION_DOMAIN: ${{ matrix.domain }}
+          # Run completo: rinnova la base incrementale usata dalle PR.
+          CRITICAL_MUTATION_INCREMENTAL: "true"
+          CRITICAL_MUTATION_FORCE: "true"
         run: npm run mutation:critical
+      - name: Salva il report incrementale ${{ matrix.domain }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .stryker-incremental/${{ matrix.domain }}.json
+          key: mutation-incremental-${{ matrix.domain }}-${{ github.sha }}-${{ github.run_id }}
       - name: Carica report mutation ${{ matrix.domain }}
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

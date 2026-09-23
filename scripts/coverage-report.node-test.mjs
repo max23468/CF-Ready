@@ -143,13 +143,26 @@ test("il dominio webhook mantiene coverage e mutation gate canonici", async () =
   );
   const domain = repositoryPolicy.targets.criticalDomains.domains.webhooks;
   const { criticalMutationConfig } = await import("../stryker.critical.config.mjs");
-  const mutationConfig = criticalMutationConfig("webhooks");
+  const mutationConfig = criticalMutationConfig("webhooks", {});
 
   assert.equal(repositoryPolicy.targets.criticalDomains.minimum, 95);
   assert.equal(repositoryPolicy.targets.criticalDomains.mutationScore, 80);
   assert.deepEqual(mutationConfig.mutate, domain.files);
   assert.equal(mutationConfig.incremental, false);
+  assert.equal(mutationConfig.force, false);
   assert.equal(mutationConfig.thresholds.break, 80);
+
+  const incremental = criticalMutationConfig("webhooks", { CRITICAL_MUTATION_INCREMENTAL: "true" });
+  assert.equal(incremental.incremental, true);
+  assert.equal(incremental.incrementalFile, ".stryker-incremental/webhooks.json");
+  assert.equal(incremental.force, false);
+  assert.equal(
+    criticalMutationConfig("webhooks", {
+      CRITICAL_MUTATION_INCREMENTAL: "true",
+      CRITICAL_MUTATION_FORCE: "true",
+    }).force,
+    true,
+  );
 });
 
 test("il launcher mutation condiviso carica esplicitamente core e runner Vitest", async () => {
@@ -215,8 +228,8 @@ test("i domini critici mantengono gate coverage e mutation separati", async () =
   );
   for (const domainName of CRITICAL_MUTATION_DOMAINS) {
     const domain = repositoryPolicy.targets.criticalDomains.domains[domainName];
-    const mutationConfig = criticalMutationConfig(domainName);
-    assert.deepEqual(mutationConfig.ignorePatterns, [".stryker-tmp/**"]);
+    const mutationConfig = criticalMutationConfig(domainName, {});
+    assert.deepEqual(mutationConfig.ignorePatterns, [".stryker-tmp/**", ".stryker-incremental/**"]);
     assert.equal(mutationConfig.tempDirName.startsWith(`${process.cwd()}${sep}`), false);
     assert.equal(basename(mutationConfig.tempDirName), domainName);
     assert.ok(mutationConfig.tempDirName.startsWith(`${realpathSync(tmpdir())}${sep}`));

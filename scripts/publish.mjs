@@ -57,13 +57,27 @@ export function localGateCommands(lane, baseSha, headSha) {
   ];
 }
 
-export function checksOutcome(checks) {
+// gh elenca solo i check già registrati: un job che parte tardi, come l'aggregato
+// mutation, manca finché non inizia e va atteso secondo il ruleset.
+export function checksOutcome(checks, required = []) {
   const failed = checks.filter(({ bucket }) => bucket === "fail" || bucket === "cancel");
   if (failed.length > 0) return { state: "failed", names: failed.map(({ name }) => name) };
-  if (checks.length === 0 || checks.some(({ bucket }) => bucket === "pending")) {
-    return { state: "pending", names: [] };
+  const reported = new Set(checks.map(({ name }) => name));
+  const missing = required.filter((name) => !reported.has(name));
+  if (
+    checks.length === 0 ||
+    missing.length > 0 ||
+    checks.some(({ bucket }) => bucket === "pending")
+  ) {
+    return { state: "pending", names: missing };
   }
   return { state: "passed", names: [] };
+}
+
+function requiredCheckNames(branch) {
+  return json("gh", ["api", `repos/{owner}/{repo}/rules/branches/${branch}`])
+    .filter(({ type }) => type === "required_status_checks")
+    .flatMap(({ parameters }) => parameters.required_status_checks.map(({ context }) => context));
 }
 
 export function isPipelineBusy({ promotions, runs }) {
@@ -135,7 +149,8 @@ function runLocalGate(branch, sourceSha) {
   }
 }
 
-async function waitForRequiredChecks(number, attempts = 720) {
+async function waitForRequiredChecks(number, base, attempts = 720) {
+  const required = requiredCheckNames(base);
   let announced = false;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const result = execute(
@@ -152,7 +167,7 @@ async function waitForRequiredChecks(number, attempts = 720) {
     ) {
       throw new Error(`gh pr checks ${number} non riuscito: ${result.stderr.trim()}`);
     }
-    const outcome = checksOutcome(JSON.parse(result.stdout.trim() || "[]"));
+    const outcome = checksOutcome(JSON.parse(result.stdout.trim() || "[]"), required);
     if (outcome.state === "passed") return;
     if (outcome.state === "failed") {
       throw new Error(`La PR #${number} ha check falliti: ${outcome.names.join(", ")}.`);
@@ -200,12 +215,25 @@ async function waitForIdlePipeline(attempts = 720) {
   throw new Error("Timeout in attesa che promozione e deploy in corso terminino.");
 }
 
+// Dopo il push GitHub aggiorna l'HEAD di una PR già aperta con qualche secondo di
+// ritardo: non va ricreata, né letta sui check verdi del commit precedente.
+async function pullRequestForHead(branch, base, sha, attempts = 60) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const candidates = pullRequests(branch, base);
+    const current = candidates.find((pr) => pr.headRefOid === sha);
+    if (current) return current;
+    if (!candidates.some((pr) => pr.state === "OPEN")) return undefined;
+    await wait(pollIntervalMs);
+  }
+  throw new Error(`La PR aperta per ${branch} non riporta ancora l'HEAD ${sha}.`);
+}
+
 async function ensurePullRequest({ branch, base, sourceSha, mergeMethod, title, body }) {
   let current = pullRequests(branch, base).find((pr) => pr.headRefOid === sourceSha);
   if (current?.state === "MERGED") return current;
   if (!current && base === "develop") {
     execute("git", ["push", "--set-upstream", "origin", branch], { interactive: true });
-    current = pullRequests(branch, base).find((pr) => pr.headRefOid === sourceSha);
+    current = await pullRequestForHead(branch, base, sourceSha);
   }
   if (!current) {
     if (base === "develop") {
@@ -228,18 +256,18 @@ async function ensurePullRequest({ branch, base, sourceSha, mergeMethod, title, 
     }
   }
   if (base === "develop") {
-    await waitForRequiredChecks(current.number);
+    await waitForRequiredChecks(current.number, base);
     await waitForIdlePipeline();
   }
-  execute("gh", [
-    "pr",
-    "merge",
-    String(current.number),
-    "--auto",
-    `--${mergeMethod}`,
-    ...(base === "develop" ? ["--delete-branch"] : []),
-  ]);
+  execute("gh", ["pr", "merge", String(current.number), "--auto", `--${mergeMethod}`]);
   return waitForMerge(current.number);
+}
+
+// gh pr merge --delete-branch cancellerebbe anche il branch locale e sposterebbe il
+// checkout su develop: un retry dopo un deploy fallito non troverebbe più la modifica.
+function deleteRemoteBranch(branch) {
+  const remote = output("git", ["ls-remote", "--heads", "origin", branch]);
+  if (remote) execute("git", ["push", "--quiet", "origin", "--delete", branch]);
 }
 
 function workflowRuns(workflow, branch, sha) {
@@ -374,6 +402,7 @@ export async function publish(target) {
     mergeMethod: "squash",
   });
   const developSha = developmentPr.mergeCommit.oid;
+  deleteRemoteBranch(branch);
   await ensureWorkflow({
     workflow: "deploy-development.yml",
     branch: "develop",
