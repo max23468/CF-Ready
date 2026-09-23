@@ -287,9 +287,14 @@ function workflowRuns(workflow, branch, sha) {
   ]);
 }
 
-async function ensureWorkflow({ workflow, branch, sha }, attempts = 240) {
+async function ensureWorkflow(
+  { workflow, branch, sha, inputs = {}, fresh = false },
+  attempts = 240,
+) {
   const initialRuns = workflowRuns(workflow, branch, sha);
-  let run = selectWorkflowRun(initialRuns, sha);
+  // fresh ignora i run già riusciti: serve quando lo stato da verificare è cambiato
+  // dopo quel run pur restando sullo stesso commit del branch.
+  let run = fresh ? undefined : selectWorkflowRun(initialRuns, sha);
   let afterDatabaseId = 0;
   if (!run) {
     afterDatabaseId = latestWorkflowRun(initialRuns, sha)?.databaseId ?? 0;
@@ -299,7 +304,14 @@ async function ensureWorkflow({ workflow, branch, sha }, attempts = 240) {
     if (remoteSha !== sha) {
       throw new Error(`${branch} è avanzato prima dell'avvio di ${workflow}.`);
     }
-    execute("gh", ["workflow", "run", workflow, "--ref", branch]);
+    execute("gh", [
+      "workflow",
+      "run",
+      workflow,
+      "--ref",
+      branch,
+      ...Object.entries(inputs).flatMap(([name, value]) => ["-f", `${name}=${value}`]),
+    ]);
     console.log(`${workflow}: avviato per ${sha}.`);
   }
   let lastStatus = "";
@@ -325,6 +337,62 @@ function gitSha(ref) {
 
 function gitTree(ref) {
   return output("git", ["rev-parse", `${ref}^{tree}`]);
+}
+
+function isAncestor(ancestor, descendant) {
+  const result = execute("git", ["merge-base", "--is-ancestor", ancestor, descendant], {
+    allowFailure: true,
+  });
+  if (result.status === 0) return true;
+  if (result.status === 1) return false;
+  throw new Error(`git merge-base --is-ancestor non riuscito: ${result.stderr.trim()}`);
+}
+
+function parentsOf(sha) {
+  return output("git", ["show", "-s", "--format=%P", sha]).split(" ").filter(Boolean);
+}
+
+// Il riallineamento di una promozione senza deploy unisce main al commit distribuito
+// in Development senza cambiarne il tree: si promuove quel merge, non un contenuto nuovo.
+function isLinkedReconciliation(candidate, developSha, mainSha) {
+  const parents = parentsOf(candidate);
+  return (
+    parents.length === 2 &&
+    parents.includes(developSha) &&
+    parents.includes(mainSha) &&
+    gitTree(candidate) === gitTree(developSha)
+  );
+}
+
+function promotedSource(mainSha, developSha) {
+  const [previousMain, source, ...extra] = parentsOf(mainSha);
+  if (!source || extra.length > 0) return undefined;
+  return source === developSha || isLinkedReconciliation(source, developSha, previousMain)
+    ? source
+    : undefined;
+}
+
+async function promotionCandidate(developSha) {
+  execute("git", ["fetch", "--quiet", "origin", "main", "develop"]);
+  const mainSha = gitSha("origin/main");
+  const promoted = promotedSource(mainSha, developSha);
+  if (promoted) return promoted;
+  let candidate = gitSha("origin/develop");
+  if (candidate === developSha && isAncestor(mainSha, developSha)) return developSha;
+  if (candidate === developSha) {
+    console.log("main contiene una promozione senza deploy non collegata: riallineo develop.");
+    await ensureWorkflow({
+      workflow: "reconcile-develop.yml",
+      branch: "main",
+      sha: mainSha,
+      inputs: { mode: "no-deploy-promotion" },
+      fresh: true,
+    });
+    execute("git", ["fetch", "--quiet", "origin", "main", "develop"]);
+    candidate = gitSha("origin/develop");
+  }
+  if (isLinkedReconciliation(candidate, developSha, mainSha)) return candidate;
+  throw new Error("develop è avanzato dopo il deploy Development; serve un nuovo candidato.");
 }
 
 function gitPathTree(ref, path) {
@@ -414,22 +482,17 @@ export async function publish(target) {
   }
 
   const version = JSON.parse(readFileSync("package.json", "utf8")).version;
-  const remoteDevelopSha = output("git", ["ls-remote", "origin", "refs/heads/develop"]).split(
-    /\s+/,
-  )[0];
-  if (remoteDevelopSha !== developSha) {
-    throw new Error("develop è avanzato dopo il deploy Development; serve un nuovo candidato.");
-  }
+  const candidateSha = await promotionCandidate(developSha);
   const promotionPr = await ensurePullRequest({
     branch: "develop",
     base: "main",
-    sourceSha: developSha,
+    sourceSha: candidateSha,
     mergeMethod: "merge",
     title: `chore: promuovi CF Ready ${version}`,
-    body: `Promuove in Production il tree Development verificato \`${developSha}\`.`,
+    body: `Promuove in Production il tree Development verificato \`${candidateSha}\`.`,
   });
   const mainSha = promotionPr.mergeCommit.oid;
-  verifyPromotionCommit(mainSha, developSha);
+  verifyPromotionCommit(mainSha, candidateSha);
   await ensureWorkflow({
     workflow: "deploy-production.yml",
     branch: "main",
