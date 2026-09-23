@@ -30,6 +30,8 @@ const developSha = "b".repeat(40);
 const mainSha = "c".repeat(40);
 const oldMainSha = "d".repeat(40);
 const baseSha = "e".repeat(40);
+const noDeployMainSha = "1".repeat(40);
+const reconciledSha = "2".repeat(40);
 
 test("richiede un target di pubblicazione esplicito", () => {
   assert.equal(parseTarget(["--target", "development"]), "development");
@@ -258,10 +260,16 @@ if (command === "git") {
   else if (joined === "rev-parse ${mainSha}:site") print("site-tree-new\\n");
   else if (joined === "rev-parse ${mainSha}^1:site") print("site-tree-old\\n");
   else if (joined === "ls-remote origin refs/heads/develop") print((["develop-advanced", "workflow-advanced"].includes(mode) ? "${sourceSha}" : "${developSha}") + "\\trefs/heads/develop\\n");
-  else if (joined === "ls-remote origin refs/heads/main") print("${mainSha}\\trefs/heads/main\\n");
-  else if (joined === "show -s --format=%P ${mainSha}") print(mode === "bad-promotion" ? "${oldMainSha}\\n" : "${oldMainSha} ${developSha}\\n");
-  else if (joined === "rev-parse ${mainSha}^{tree}" || joined === "rev-parse ${developSha}^{tree}") print("tree\\n");
-  else if (joined === "rev-parse origin/main" || joined === "rev-parse origin/develop") print("${mainSha}\\n");
+  else if (joined === "ls-remote origin refs/heads/main") print((mode === "no-deploy-main" && !existsSync(marker("nd-promoted")) ? "${noDeployMainSha}" : "${mainSha}") + "\\trefs/heads/main\\n");
+  else if (joined === "show -s --format=%P ${mainSha}") print(mode === "bad-promotion" ? "${oldMainSha}\\n" : mode === "no-deploy-main" ? "${noDeployMainSha} ${reconciledSha}\\n" : "${oldMainSha} ${developSha}\\n");
+  else if (joined === "show -s --format=%P ${noDeployMainSha}" || joined === "show -s --format=%P ${oldMainSha}" || joined === "show -s --format=%P ${sourceSha}") print("${baseSha}\\n");
+  else if (joined === "show -s --format=%P ${reconciledSha}") print("${developSha} ${noDeployMainSha}\\n");
+  else if (["${mainSha}", "${developSha}", "${reconciledSha}"].some((sha) => joined === "rev-parse " + sha + "^{tree}")) print("tree\\n");
+  else if (joined === "rev-parse ${sourceSha}^{tree}") print("source-tree\\n");
+  else if (joined === "merge-base --is-ancestor ${noDeployMainSha} ${developSha}") process.exitCode = 1;
+  else if (args[0] === "merge-base" && args[1] === "--is-ancestor") process.exitCode = 0;
+  else if (joined === "rev-parse origin/main") print((mode === "develop-advanced" ? "${oldMainSha}" : mode === "no-deploy-main" && !existsSync(marker("nd-promoted")) ? "${noDeployMainSha}" : "${mainSha}") + "\\n");
+  else if (joined === "rev-parse origin/develop") print((mode === "develop-advanced" ? "${sourceSha}" : mode === "no-deploy-main" ? (existsSync(marker("run-reconcile-develop.yml")) ? "${reconciledSha}" : "${developSha}") : "${developSha}") + "\\n");
   else if (joined === "merge-base origin/main origin/develop") print("${mainSha}\\n");
   else if (joined === "merge-base origin/develop ${sourceSha}") print("${baseSha}\\n");
   else if (args[0] === "diff") print("M\\0app/routes/app._index.tsx\\0");
@@ -304,11 +312,12 @@ if (command === "git") {
   } else if (args[0] === "pr" && args[1] === "merge") {
     writeFileSync(marker("merge-" + args[2]), "ok");
     writeFileSync(marker("merge-args"), args.join(" ") + "\\n", { flag: "a" });
+    if (mode === "no-deploy-main" && args[2] === "11") writeFileSync(marker("nd-promoted"), "ok");
   } else if (args[0] === "run" && args[1] === "list" && !args.includes("--commit")) {
     print([]);
   } else if (args[0] === "run" && args[1] === "list") {
     const workflow = value("--workflow");
-    const sha = workflow === "deploy-development.yml" ? "${developSha}" : "${mainSha}";
+    const sha = workflow === "deploy-development.yml" ? "${developSha}" : workflow === "reconcile-develop.yml" ? "${noDeployMainSha}" : "${mainSha}";
     const runMarker = marker("run-" + workflow);
     const polledMarker = marker("polled-" + workflow);
     if (mode === "workflow-advanced") print([]);
@@ -320,6 +329,7 @@ if (command === "git") {
     else print([{ databaseId: 20, status: "completed", conclusion: "success", headSha: sha, url: "https://github.test/run" }]);
   } else if (args[0] === "workflow" && args[1] === "run") {
     writeFileSync(marker("run-" + args[2]), "ok");
+    writeFileSync(marker("workflow-args"), args.join(" ") + "\\n", { flag: "a" });
     if (mode === "workflow-failed") writeFileSync(marker("workflow-retried"), "ok");
   } else if (args[0] === "release" && args[1] === "view") {
     if (existsSync(marker("release"))) print({ tagName: "v1.2.3", url: "https://github.test/release" });
@@ -404,6 +414,28 @@ if (command === "git") {
   assert.equal(stale.status, 0, stale.stderr);
   assert.equal(existsSync(path.join(directory, ".stale-created")), false);
   assert.equal(readFileSync(path.join(directory, ".stale-calls"), "utf8"), "4");
+
+  const linked = spawnSync(
+    process.execPath,
+    [path.join(root, "scripts", "publish.mjs"), "--target", "production"],
+    {
+      cwd: directory,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CF_READY_PUBLISH_POLL_MS: "1",
+        FAIL_MODE: "no-deploy-main",
+        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+      },
+    },
+  );
+  assert.equal(linked.status, 0, linked.stderr);
+  assert.match(linked.stdout, /promozione senza deploy non collegata: riallineo develop/);
+  assert.match(linked.stdout, /Pubblicazione Production completata/);
+  assert.match(
+    readFileSync(path.join(directory, ".workflow-args"), "utf8"),
+    /^workflow run reconcile-develop\.yml --ref main -f mode=no-deploy-promotion$/m,
+  );
 
   const retried = spawnSync(
     process.execPath,
