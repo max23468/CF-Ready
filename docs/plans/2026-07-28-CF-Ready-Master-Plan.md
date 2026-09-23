@@ -2189,17 +2189,23 @@ manuali del Partner Dashboard. Il poll finanziario Partner lega ogni vendita al 
 e al ciclo corrente; per la conversione conserva una
 ricevuta minimizzata con ID tecnico, tipo, importo, valuta e timestamp. Una rettifica
 con charge, importo o valuta incompatibili passa a revisione invece di confermare il
-credito. Dopo 37 giorni senza vendita o credito osservabile apre un alert Telegram owner
+credito. Il poll interroga Partner solo quando esiste una voce da osservare e solo dalla
+più vecchia: una voce mai controllata dal suo riferimento, una conversione da 400 giorni
+prima della richiesta per coprire un ciclo annuale, una voce già controllata dall'ultimo
+controllo meno sette giorni di ritardo Partner.
+Dopo 37 giorni senza vendita o credito osservabile apre un alert Telegram owner
 e lo risolve quando l'osservazione arriva. Il riferimento è l'accettazione o attivazione
 Partner e, se successivo, l'inizio del ciclo fatturabile per trial e rinnovi. La prova
 gratuita resta quella comune di 14 giorni definita da D-044 e non usa questa finestra
 finanziaria come estensione.
 
 La riconciliazione Admin API non dipende dalle notifiche Telegram: il ciclo periodico
-seleziona prima i rinnovi dovuti, poi gli account obsoleti, incluse le righe storiche con
-`is_test` ignoto, usa la sessione offline, aggiorna anche il diritto nel metafield della
-Validation (D-160) e registra tentativo ed errore senza dedurre lo stato dalle
-transazioni Partner. Le conversioni storiche ricostruibili da acquisto una tantum attivo
+seleziona prima i rinnovi dovuti, poi, una sola volta, le righe mai tentate dopo la
+migrazione `0026`, quindi gli account obsoleti; `is_test` resta ignoto per chi non ha mai
+avuto un addebito e non decide la priorità. Usa la sessione offline, aggiorna anche il
+diritto nel metafield della Validation (D-160) e registra tentativo ed errore senza
+dedurre lo stato dalle transazioni Partner. Un suo errore non ferma le fasi owner dello
+stesso ciclo. Le conversioni storiche ricostruibili da acquisto una tantum attivo
 e sottoscrizione cancellata restano `needs_review`; non generano retroattivamente né una
 cancellazione ordinaria né un credito.
 
@@ -2852,7 +2858,7 @@ periodiche senza cambiare la CPU per esecuzione. Ricevuta e limite residuo:
 
 Il numero di ordini dei merchant non determina il carico del Worker: la Function viene eseguita da Shopify. Il consumo Cloudflare dipende soprattutto da aperture dell’app, OAuth, salvataggi, billing e webhook.
 
-La stima preliminare discussa per il piano Free era **10.000–20.000 store** con ampio margine, assumendo circa 50–100 richieste dinamiche mensili per store. È una stima di capacità non contrattuale, non un claim pubblico: prima di usarla per decisioni operative servono misure CPU, query D1, picchi webhook e prova di carico. La prima soglia commerciale reale sarà molto inferiore e non richiede pre-ottimizzazione.
+La stima preliminare discussa per il piano Free era **10.000–20.000 store**, assumendo circa 50–100 richieste dinamiche mensili per store. La misura D1 del 23 settembre 2026 la sostituisce: il ciclo owner ogni cinque minuti legge circa 9,3 righe per riga di `shops`, disinstallati compresi, e aggiorna una riga per account pagante non di test finché resta un'osservazione finanziaria pendente; la retention oraria legge tutti gli `app_events` ordinari. Sulle quote D1 Free, 5 milioni di righe lette e 100.000 scritte al giorno, il limite arriva intorno a **1.700 store totali o 350 paganti**, prima del traffico merchant. Il 23 settembre 2026 l'owner ha accettato questi limiti: il servizio non è sul piano Free e Development condivide l'account. Resta una stima non contrattuale e non un claim pubblico.
 
 Prima del Controlled Launch, M8 registra soglie numeriche basate sulle quote
 Cloudflare allora vigenti. L’architettura e il piano economico vanno rivalutati
