@@ -125,11 +125,10 @@
   ],
   "allowScripts": {
     "core-js": false,
-    "esbuild@0.28.1": true,
-    "esbuild@0.28.2": true,
+    "esbuild": true,
     "fsevents@2.3.2": false,
     "fsevents@2.3.3": true,
-    "workerd@1.20260921.1": true
+    "workerd": true
   },
   "overrides": {
     "graphql-config": "5.1.7",

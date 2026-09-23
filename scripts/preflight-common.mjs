@@ -112,13 +112,19 @@ export async function readMigrationPolicy() {
   return JSON.parse(await readFile("config/migration-policy.json", "utf8"));
 }
 
-export function run(command, args, inherit = true) {
-  const result = spawnSync(command, args, {
-    encoding: "utf8",
-    stdio: inherit ? "inherit" : "pipe",
-  });
-  if (result.status !== 0) {
-    throw new Error(`Preflight fallito: ${command} ${args.slice(0, 2).join(" ")}`);
+// Il preflight esegue solo letture provider: un errore transitorio di rete o API
+// si ritenta prima di far fallire il deploy.
+export function run(command, args, inherit = true, { attempts = 3, delayMs = 2_000 } = {}) {
+  for (let attempt = 1; ; attempt += 1) {
+    const result = spawnSync(command, args, {
+      encoding: "utf8",
+      stdio: inherit ? "inherit" : "pipe",
+    });
+    if (result.status === 0) return result.stdout;
+    if (attempt >= attempts) {
+      throw new Error(`Preflight fallito: ${command} ${args.slice(0, 2).join(" ")}`);
+    }
+    console.warn(`Lettura ${command} ${args.slice(0, 2).join(" ")} fallita, nuovo tentativo.`);
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delayMs * attempt);
   }
-  return result.stdout;
 }

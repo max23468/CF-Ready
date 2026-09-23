@@ -1,8 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+import { changedFiles, classifyCiLane } from "./ci-lane.mjs";
 
 const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+// I test sostituiscono GitHub con provider sintetici e non devono attendere i tempi reali.
+const pollIntervalMs = Number(process.env.CF_READY_PUBLISH_POLL_MS) || 5_000;
 
 function execute(command, args, { interactive = false, allowFailure = false } = {}) {
   const result = spawnSync(command, args, {
@@ -44,6 +47,27 @@ export function latestWorkflowRun(runs, sha, afterDatabaseId = 0) {
     .filter((run) => run.headSha === sha)
     .filter((run) => run.databaseId > afterDatabaseId)
     .sort((left, right) => right.databaseId - left.databaseId)[0];
+}
+
+export function localGateCommands(lane, baseSha, headSha) {
+  if (lane === "docs") return [["npm", ["run", "check:docs"]]];
+  return [
+    ["npm", ["run", `check:ci-${lane}`]],
+    ["npm", ["run", "coverage:check", "--", "--base-sha", baseSha, "--head-sha", headSha]],
+  ];
+}
+
+export function checksOutcome(checks) {
+  const failed = checks.filter(({ bucket }) => bucket === "fail" || bucket === "cancel");
+  if (failed.length > 0) return { state: "failed", names: failed.map(({ name }) => name) };
+  if (checks.length === 0 || checks.some(({ bucket }) => bucket === "pending")) {
+    return { state: "pending", names: [] };
+  }
+  return { state: "passed", names: [] };
+}
+
+export function isPipelineBusy({ promotions, runs }) {
+  return promotions.length > 0 || runs.some(({ status }) => status !== "completed");
 }
 
 export function isReconciled({ mainSha, developSha, mergeBase }) {
@@ -91,9 +115,89 @@ async function waitForMerge(number, attempts = 360) {
       console.log(`PR #${number}: attendo gate, review e merge automatico.`);
       lastState = current.state;
     }
-    await wait(5_000);
+    await wait(pollIntervalMs);
   }
   throw new Error(`Timeout in attesa del merge della PR #${number}.`);
+}
+
+// Stessi comandi dei job verify e coverage della CI, prima che il push li renda remoti.
+function runLocalGate(branch, sourceSha) {
+  execute("git", ["fetch", "--quiet", "origin", "develop"]);
+  const baseSha = output("git", ["merge-base", "origin/develop", sourceSha]);
+  const { lane } = classifyCiLane(changedFiles(baseSha, sourceSha), {
+    base: "develop",
+    head: branch,
+    eventName: "pull_request",
+  });
+  console.log(`Gate locale della corsia ${lane} prima del push.`);
+  for (const [command, args] of localGateCommands(lane, baseSha, sourceSha)) {
+    execute(command, args, { interactive: true });
+  }
+}
+
+async function waitForRequiredChecks(number, attempts = 720) {
+  let announced = false;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const result = execute(
+      "gh",
+      ["pr", "checks", String(number), "--required", "--json", "name,bucket"],
+      { allowFailure: true },
+    );
+    // gh esce con 8 per i check pendenti, con 1 per quelli falliti o ancora non registrati.
+    if (
+      ![0, 1, 8].includes(result.status) ||
+      (result.status === 1 &&
+        !result.stdout.trim() &&
+        !/no (?:required )?checks reported/i.test(result.stderr))
+    ) {
+      throw new Error(`gh pr checks ${number} non riuscito: ${result.stderr.trim()}`);
+    }
+    const outcome = checksOutcome(JSON.parse(result.stdout.trim() || "[]"));
+    if (outcome.state === "passed") return;
+    if (outcome.state === "failed") {
+      throw new Error(`La PR #${number} ha check falliti: ${outcome.names.join(", ")}.`);
+    }
+    if (!announced) {
+      console.log(`PR #${number}: attendo i check obbligatori.`);
+      announced = true;
+    }
+    await wait(pollIntervalMs);
+  }
+  throw new Error(`Timeout in attesa dei check della PR #${number}.`);
+}
+
+// Un merge su develop durante il deploy o la promozione di un'altra pubblicazione
+// fa avanzare develop sotto quel ciclo: si entra solo a pipeline libera.
+async function waitForIdlePipeline(attempts = 720) {
+  let announced = false;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const promotions = json("gh", [
+      "pr",
+      "list",
+      "--head",
+      "develop",
+      "--base",
+      "main",
+      "--state",
+      "open",
+      "--json",
+      "number",
+    ]);
+    const runs = [
+      "deploy-development.yml",
+      "deploy-production.yml",
+      "deploy-pages-production.yml",
+    ].flatMap((workflow) =>
+      json("gh", ["run", "list", "--workflow", workflow, "--limit", "5", "--json", "status"]),
+    );
+    if (!isPipelineBusy({ promotions, runs })) return;
+    if (!announced) {
+      console.log("Attendo la fine della pubblicazione già in corso prima del merge.");
+      announced = true;
+    }
+    await wait(pollIntervalMs);
+  }
+  throw new Error("Timeout in attesa che promozione e deploy in corso terminino.");
 }
 
 async function ensurePullRequest({ branch, base, sourceSha, mergeMethod, title, body }) {
@@ -122,6 +226,10 @@ async function ensurePullRequest({ branch, base, sourceSha, mergeMethod, title, 
       ]);
       current = pullRequest(url);
     }
+  }
+  if (base === "develop") {
+    await waitForRequiredChecks(current.number);
+    await waitForIdlePipeline();
   }
   execute("gh", [
     "pr",
@@ -178,7 +286,7 @@ async function ensureWorkflow({ workflow, branch, sha }, attempts = 240) {
       console.log(`${workflow}: ${status}.`);
       lastStatus = status;
     }
-    await wait(5_000);
+    await wait(pollIntervalMs);
   }
   throw new Error(`Timeout in attesa di ${workflow} per ${sha}.`);
 }
@@ -210,7 +318,7 @@ async function waitForReconciliation(attempts = 120) {
     ) {
       return;
     }
-    await wait(5_000);
+    await wait(pollIntervalMs);
   }
   throw new Error("develop non include ancora il merge Production verificato.");
 }
@@ -256,6 +364,9 @@ export async function publish(target) {
   }
   const sourceSha = gitSha("HEAD");
   const repositoryName = repository();
+  if (!pullRequests(branch, "develop").some((pr) => pr.headRefOid === sourceSha)) {
+    runLocalGate(branch, sourceSha);
+  }
   const developmentPr = await ensurePullRequest({
     branch,
     base: "develop",
