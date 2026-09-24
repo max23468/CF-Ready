@@ -552,13 +552,20 @@ describe("presentazione Telegram", () => {
 
   test("copre funnel, performance e versione con alternative di formato", () => {
     const billingData = {
-      rows: [
-        { entitlement_status: "ending", plan_kind: "monthly", count: 2 },
-        { entitlement_status: "expired", plan_kind: "annual", count: 3 },
-        { entitlement_status: "refunded", plan_kind: "one_time", count: 4 },
-      ],
-      complimentary: 1,
-      trials: 1,
+      status: {
+        total: 12,
+        monthly: 0,
+        annual: 0,
+        one_time: 0,
+        ending: 2,
+        complimentary: 1,
+        trial: 1,
+        expired: 3,
+        refunded: 4,
+        trial_expired: 0,
+        trial_never: 1,
+        other: 0,
+      },
       mrr: 10,
       arr: 120,
       netMrr: 9.41,
@@ -586,6 +593,13 @@ describe("presentazione Telegram", () => {
     const billing = billingMessage(billingData, revenue);
     const billingText = JSON.stringify(billing);
     expect(billing.richMessage.blocks).toBeTruthy();
+    expect(billingText).toContain("Prova mai avviata");
+    expect(billingText).not.toContain("Altro da verificare");
+    expect(
+      JSON.stringify(
+        billingMessage({ ...billingData, status: { ...billingData.status, other: 1 } }),
+      ),
+    ).toContain("Altro da verificare");
     expect(billingText).toContain("Valore mensile (MRR)");
     expect(billingText).toContain("Vendite abbinate");
     expect(billingText).toContain("Piani commerciali");
@@ -1456,8 +1470,15 @@ describe("query D1 e run-rate", () => {
     });
 
     const billing = await readBilling(env.DB);
-    expect(billing.complimentary).toBe(1);
-    expect(billing.trials).toBe(1);
+    expect(billing.status).toMatchObject({
+      total: 6,
+      monthly: 1,
+      annual: 1,
+      one_time: 1,
+      ending: 1,
+      complimentary: 1,
+      trial: 1,
+    });
     expect(billing.mrr).toBeCloseTo(3.99 + 29.9 / 12, 8);
     expect(billing.arr).toBeCloseTo(3.99 * 12 + 29.9, 8);
     // Mensile italiano: 2,9% di elaborazione e 3% regolamentare; annuale senza Paese: solo 2,9%.
@@ -1489,8 +1510,54 @@ describe("query D1 e run-rate", () => {
     await env.DB.prepare("UPDATE billing_accounts SET is_test = 1 WHERE shop_id = 1").run();
 
     expect(await readDashboard(env.DB)).toMatchObject({ monthly: 0, annual: 0, one_time: 0 });
-    expect(await readBilling(env.DB)).toMatchObject({ rows: [], mrr: 0, arr: 0 });
+    expect(await readBilling(env.DB)).toMatchObject({
+      status: { total: 1, monthly: 0, trial_never: 1 },
+      mrr: 0,
+      arr: 0,
+    });
     expect((await readShops(env.DB, "paid", 0)).count).toBe(0);
+  });
+
+  test("classifica ogni store attivo in una sola riga di stato billing", async () => {
+    await insertStore(1, "mensile.myshopify.com", { plan: ["active", "monthly", "balanced"] });
+    await insertStore(2, "omaggio-trial.myshopify.com", { complimentary: true, trial: true });
+    await insertStore(3, "trial.myshopify.com", { trial: true });
+    await insertStore(4, "scaduto.myshopify.com", { plan: ["expired", "annual", "balanced"] });
+    await insertStore(5, "rimborsato.myshopify.com", {
+      plan: ["refunded", "one_time", "balanced"],
+    });
+    await insertStore(6, "prova-scaduta.myshopify.com", { trial: true });
+    await insertStore(7, "prova-oltre-termine.myshopify.com", { trial: true });
+    await insertStore(8, "mai-avviata.myshopify.com");
+    await insertStore(9, "convertita-senza-piano.myshopify.com", { trial: true });
+    await insertStore(10, "disinstallato.myshopify.com", {
+      plan: ["active", "monthly", "balanced"],
+    });
+    await env.DB.batch([
+      env.DB.prepare("UPDATE trials SET status = 'expired' WHERE shop_id = 6"),
+      env.DB.prepare("UPDATE trials SET ends_at = '2020-01-01' WHERE shop_id = 7"),
+      env.DB.prepare("UPDATE trials SET status = 'converted' WHERE shop_id = 9"),
+      env.DB.prepare("UPDATE shops SET installation_status = 'uninstalled' WHERE id = 10"),
+    ]);
+
+    const { status } = await readBilling(env.DB);
+    expect(status).toEqual({
+      total: 9,
+      monthly: 1,
+      annual: 0,
+      one_time: 0,
+      ending: 0,
+      complimentary: 1,
+      trial: 1,
+      expired: 1,
+      refunded: 1,
+      trial_expired: 2,
+      trial_never: 1,
+      other: 1,
+    });
+    const { total, ...categories } = status;
+    expect(Object.values(categories).reduce((sum, count) => sum + count, 0)).toBe(total);
+    expect(await readDashboard(env.DB)).toMatchObject({ active_shops: total });
   });
 
   test("mostra soltanto webhook ancora da verificare", async () => {
