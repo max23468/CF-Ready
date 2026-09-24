@@ -32,7 +32,7 @@ jobs:
 
       - name: Verifica URL Development persistenti
         run: |
-          grep -Fxq 'application_url = "https://cf-ready-dev.tmsf.workers.dev"' shopify.app.dev.toml
+          grep -Fxq 'application_url = "https://cf-ready-dev.tmsf.workers.dev/app"' shopify.app.dev.toml
           grep -Fxq 'redirect_urls = [ "https://cf-ready-dev.tmsf.workers.dev/auth/callback" ]' shopify.app.dev.toml
 
       - uses: ./.github/actions/setup-node-npm

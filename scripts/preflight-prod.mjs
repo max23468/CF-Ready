@@ -33,7 +33,7 @@ export function verifyProductionConfig(shopifyConfig) {
     );
   if (
     !new RegExp(`^client_id\\s*=\\s*"${expected.clientId}"\\s*$`, "m").test(shopifyConfig) ||
-    !new RegExp(`^application_url\\s*=\\s*"${escapeUrl(expected.appUrl)}"\\s*$`, "m").test(
+    !new RegExp(`^application_url\\s*=\\s*"${escapeUrl(expected.appUrl)}/app"\\s*$`, "m").test(
       shopifyConfig,
     ) ||
     !new RegExp(

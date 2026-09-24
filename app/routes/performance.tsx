@@ -1,8 +1,11 @@
 import type { ActionFunctionArgs } from "react-router";
-import { authenticateAdmin } from "../admin-auth.server";
 import { databaseContext } from "../context.server";
 import { APP_VERSION } from "../env.server";
-import { normalizePerformanceReport, recordPerformanceReport } from "../performance.server";
+import {
+  normalizePerformanceReport,
+  recordPerformanceReport,
+  verifyPerformanceToken,
+} from "../performance.server";
 
 const MAX_REPORT_BYTES = 16_384;
 
@@ -59,7 +62,8 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const report = normalizePerformanceReport(parsed);
   if (!report) return new Response(null, { status: 400 });
 
-  const { session } = await authenticateAdmin(request, context);
-  await recordPerformanceReport(context.get(databaseContext), session.shop, APP_VERSION, report);
+  const shopDomain = await verifyPerformanceToken((parsed as { token?: unknown }).token);
+  if (!shopDomain) return new Response(null, { status: 401 });
+  await recordPerformanceReport(context.get(databaseContext), shopDomain, APP_VERSION, report);
   return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
 };

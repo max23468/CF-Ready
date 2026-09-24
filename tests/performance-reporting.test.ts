@@ -1,93 +1,51 @@
 import { env } from "cloudflare:test";
-import { beforeEach, expect, test, vi } from "vitest";
+import { expect, test, vi } from "vitest";
 import { createAppContext } from "../app/context.server";
 import { APP_VERSION } from "../app/env.server";
+import { normalizePerformanceRoute, performanceReporterScript } from "../app/performance-report";
 import {
-  normalizePerformanceRoute,
-  readNavigationServerTimings,
-  sendPerformanceReport,
-} from "../app/performance-report";
-import { normalizePerformanceReport } from "../app/performance.server";
+  createPerformanceToken,
+  normalizePerformanceReport,
+  PERFORMANCE_TOKEN_TTL_MS,
+  verifyPerformanceToken,
+} from "../app/performance.server";
 import { createServerTiming } from "../app/server-timing.server";
 import { insertShop } from "./support/lifecycle";
 
-const mocks = vi.hoisted(() => ({ authenticate: vi.fn() }));
-
-vi.mock("../app/shopify.server", () => ({
-  authenticate: { admin: mocks.authenticate },
-}));
-
-beforeEach(() => mocks.authenticate.mockReset());
-
-test("il client invia soltanto campi tecnici allowlistati e normalizza la route", async () => {
-  let captured: { url: RequestInfo | URL; init?: RequestInit } | undefined;
-  const fetcher = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
-    captured = { url, init };
-    return new Response(null, { status: 204 });
-  });
-  await sendPerformanceReport(
-    {
-      metrics: [
-        {
-          id: "v4-1",
-          name: "INP",
-          value: 942,
-          country: "IT",
-          attribution: { target: "testo-riservato" },
-        } as ShopifyWebVitalsMetric,
-      ],
-    },
-    "/app/messages/",
-    fetcher as typeof fetch,
-    readNavigationServerTimings([
-      { name: "auth", duration: 42.26 },
-      { name: "merchant-secret", duration: 999 },
-    ]),
-  );
+test("lo script inline porta route, firma ed endpoint senza poter chiudere il tag", () => {
+  const script = performanceReporterScript({ route: "messages", token: "negozio~1~</script>" });
 
   expect(normalizePerformanceRoute("/app")).toBe("home");
   expect(normalizePerformanceRoute("/app/rules/")).toBe("rules");
   expect(normalizePerformanceRoute("/app/guide")).toBe("guide");
   expect(normalizePerformanceRoute("/app/onboarding")).toBe("onboarding");
   expect(normalizePerformanceRoute("////")).toBe("other");
-  expect(normalizePerformanceRoute("/app/non-prevista")).toBe("other");
-  expect(fetcher).toHaveBeenCalledOnce();
-  expect(captured?.url).toBe("/app/performance");
-  expect(captured?.init).toMatchObject({ method: "POST", keepalive: true, cache: "no-store" });
-  expect(JSON.parse(String(captured?.init?.body))).toEqual({
-    route: "messages",
-    serverTimings: { auth: 42.3 },
-    metrics: [{ id: "v4-1", name: "INP", value: 942, country: "IT" }],
-  });
+  expect(normalizePerformanceRoute("/app/rules.data")).toBe("other");
+  expect(script).not.toContain("</script>");
+  expect(script).toContain(
+    '({"route":"messages","token":"negozio~1~\\u003c/script>","endpoint":"/performance"});',
+  );
 });
 
-test("i timing di navigazione ammettono solo nomi e durate validi", () => {
-  expect(
-    readNavigationServerTimings([
-      { name: "total", duration: 10.04 },
-      { name: "d1_home", duration: 0 },
-      { name: "auth", duration: -1 },
-      { name: "shopify_context", duration: Number.NaN },
-      { name: "riservato", duration: 12 },
-    ]),
-  ).toEqual({ total: 10, d1_home: 0 });
-  expect(readNavigationServerTimings()).toEqual({});
-});
+test("la firma del report vale per un solo store e scade dopo un giorno", async () => {
+  const now = Date.parse("2026-09-24T10:00:00.000Z");
+  const token = await createPerformanceToken("firma-example.myshopify.com", now);
+  const [shop, issuedAt, signature] = token.split("~");
 
-test("i timing omonimi vengono sommati invece di perdere le fasi precedenti", () => {
+  expect(await verifyPerformanceToken(token, now)).toBe("firma-example.myshopify.com");
+  expect(await verifyPerformanceToken(token, now + PERFORMANCE_TOKEN_TTL_MS)).toBe(
+    "firma-example.myshopify.com",
+  );
+  expect(await verifyPerformanceToken(token, now + PERFORMANCE_TOKEN_TTL_MS + 1)).toBeNull();
+  expect(await verifyPerformanceToken(token, now - 120_000)).toBeNull();
   expect(
-    readNavigationServerTimings([
-      { name: "shopify_snapshot", duration: 450 },
-      { name: "shopify_snapshot", duration: 20 },
-      { name: "shopify_snapshot", duration: 180 },
-      { name: "shopify_scopes", duration: 12.34 },
-      { name: "shopify_checkout_labels", duration: 56.78 },
-    ]),
-  ).toEqual({
-    shopify_snapshot: 650,
-    shopify_scopes: 12.3,
-    shopify_checkout_labels: 56.8,
-  });
+    await verifyPerformanceToken(`altro-example.myshopify.com~${issuedAt}~${signature}`, now),
+  ).toBeNull();
+  expect(await verifyPerformanceToken(`${shop}~${issuedAt}~${"0".repeat(64)}`, now)).toBeNull();
+  expect(await verifyPerformanceToken(`${token}~extra`, now)).toBeNull();
+  expect(await verifyPerformanceToken(`${shop}~adesso~${signature}`, now)).toBeNull();
+  expect(await verifyPerformanceToken(42, now)).toBeNull();
+  expect(await verifyPerformanceToken("x".repeat(513), now)).toBeNull();
 });
 
 test("il registratore server misura operazioni allowlistate e il totale", async () => {
@@ -104,19 +62,6 @@ test("il registratore server misura operazioni allowlistate e il totale", async 
 
   expect(timing.header()).toBe("d1_support;dur=25.0, total;dur=50.0");
   clock.mockRestore();
-});
-
-test("il reporter client resta best effort se il trasporto fallisce", async () => {
-  await expect(
-    sendPerformanceReport(
-      { metrics: [] },
-      "/app",
-      vi.fn(async () => {
-        throw new Error("offline");
-      }),
-      {},
-    ),
-  ).resolves.toBeUndefined();
 });
 
 test("il server scarta metriche e campi non ammessi", () => {
@@ -137,11 +82,11 @@ test("il server scarta metriche e campi non ammessi", () => {
   expect(normalizePerformanceReport({ route: "home", metrics: [] })).toBeNull();
 });
 
-test("la route autenticata registra versione e campioni idempotenti senza payload merchant", async () => {
+test("la route firmata registra versione e campioni idempotenti senza payload merchant", async () => {
   const shop = await insertShop("performance.example.myshopify.com");
-  mocks.authenticate.mockResolvedValue({ admin: {}, session: { shop } });
-  const { action } = await import("../app/routes/app.performance");
+  const { action } = await import("../app/routes/performance");
   const payload = {
+    token: await createPerformanceToken(shop),
     route: "messages",
     serverTimings: { auth: 48, shopify_snapshot: 2090, total: 2150 },
     metrics: [
@@ -151,7 +96,7 @@ test("la route autenticata registra versione e campioni idempotenti senza payloa
   };
   const submit = () =>
     action({
-      request: new Request("https://example.test/app/performance", {
+      request: new Request("https://example.test/performance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -192,14 +137,13 @@ test("la route autenticata registra versione e campioni idempotenti senza payloa
       server_timing_json: '{"auth":48,"shopify_snapshot":2090,"total":2150}',
     },
   ]);
-  expect(mocks.authenticate).toHaveBeenCalledTimes(2);
 });
 
-test("la route rifiuta body non JSON o sovradimensionati prima dell'autenticazione", async () => {
-  const { action } = await import("../app/routes/app.performance");
+test("la route rifiuta body non JSON o sovradimensionati prima della firma", async () => {
+  const { action } = await import("../app/routes/performance");
   const context = createAppContext(env.DB);
   const unsupported = await action({
-    request: new Request("https://example.test/app/performance", {
+    request: new Request("https://example.test/performance", {
       method: "POST",
       body: "metriche",
     }),
@@ -207,7 +151,7 @@ test("la route rifiuta body non JSON o sovradimensionati prima dell'autenticazio
     params: {},
   } as never);
   const oversized = await action({
-    request: new Request("https://example.test/app/performance", {
+    request: new Request("https://example.test/performance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ metrics: [], padding: "x".repeat(17_000) }),
@@ -218,14 +162,13 @@ test("la route rifiuta body non JSON o sovradimensionati prima dell'autenticazio
 
   expect(unsupported.status).toBe(415);
   expect(oversized.status).toBe(413);
-  expect(mocks.authenticate).not.toHaveBeenCalled();
 });
 
 test("la route rifiuta lunghezze dichiarate non valide e report JSON malformati", async () => {
-  const { action } = await import("../app/routes/app.performance");
+  const { action } = await import("../app/routes/performance");
   const context = createAppContext(env.DB);
   const invalidLength = await action({
-    request: new Request("https://example.test/app/performance", {
+    request: new Request("https://example.test/performance", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Content-Length": "non-numerica" },
       body: "{}",
@@ -234,7 +177,7 @@ test("la route rifiuta lunghezze dichiarate non valide e report JSON malformati"
     params: {},
   } as never);
   const malformedJson = await action({
-    request: new Request("https://example.test/app/performance", {
+    request: new Request("https://example.test/performance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: "{",
@@ -243,7 +186,7 @@ test("la route rifiuta lunghezze dichiarate non valide e report JSON malformati"
     params: {},
   } as never);
   const missingBody = await action({
-    request: new Request("https://example.test/app/performance", {
+    request: new Request("https://example.test/performance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
     }),
@@ -251,7 +194,7 @@ test("la route rifiuta lunghezze dichiarate non valide e report JSON malformati"
     params: {},
   } as never);
   const emptyReport = await action({
-    request: new Request("https://example.test/app/performance", {
+    request: new Request("https://example.test/performance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: "{}",
@@ -264,11 +207,10 @@ test("la route rifiuta lunghezze dichiarate non valide e report JSON malformati"
   expect(malformedJson.status).toBe(400);
   expect(missingBody.status).toBe(400);
   expect(emptyReport.status).toBe(400);
-  expect(mocks.authenticate).not.toHaveBeenCalled();
 });
 
 test("la route interrompe un body JSON chunked appena supera il limite", async () => {
-  const { action } = await import("../app/routes/app.performance");
+  const { action } = await import("../app/routes/performance");
   let chunksRead = 0;
   let cancelled = false;
   const stream = new ReadableStream<Uint8Array>({
@@ -282,7 +224,7 @@ test("la route interrompe un body JSON chunked appena supera il limite", async (
     },
   });
   const response = await action({
-    request: new Request("https://example.test/app/performance", {
+    request: new Request("https://example.test/performance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: stream,
@@ -294,5 +236,34 @@ test("la route interrompe un body JSON chunked appena supera il limite", async (
   expect(response.status).toBe(413);
   expect(chunksRead).toBe(3);
   expect(cancelled).toBe(true);
-  expect(mocks.authenticate).not.toHaveBeenCalled();
+});
+
+test("la route rifiuta un report senza firma valida senza registrarlo", async () => {
+  const shop = await insertShop("firma-assente.example.myshopify.com");
+  const { action } = await import("../app/routes/performance");
+  const submit = (token: unknown) =>
+    action({
+      request: new Request("https://example.test/performance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          route: "home",
+          metrics: [{ id: "v4-firma", name: "LCP", value: 1200, country: "IT" }],
+        }),
+      }),
+      context: createAppContext(env.DB),
+      params: {},
+    } as never);
+
+  expect((await submit(undefined)).status).toBe(401);
+  expect((await submit(`${shop}~${Date.now()}~${"a".repeat(64)}`)).status).toBe(401);
+  expect(
+    await env.DB.prepare(
+      `SELECT COUNT(*) AS campioni FROM performance_samples
+        WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    )
+      .bind(shop)
+      .first("campioni"),
+  ).toBe(0);
 });
