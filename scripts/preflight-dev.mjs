@@ -22,7 +22,10 @@ const expected = {
 export function verifyDevelopmentConfig(shopifyConfig, wranglerConfig) {
   const shopifyTargets = [
     [shopifyConfig, /^client_id\s*=\s*"adff48d4fe4ceb0dadb4734520701dd7"\s*$/m],
-    [shopifyConfig, /^application_url\s*=\s*"https:\/\/cf-ready-dev\.tmsf\.workers\.dev"\s*$/m],
+    [
+      shopifyConfig,
+      /^application_url\s*=\s*"https:\/\/cf-ready-dev\.tmsf\.workers\.dev\/app"\s*$/m,
+    ],
   ];
   const wrangler = JSON.parse(wranglerConfig);
   const database = wrangler.d1_databases?.find(({ binding }) => binding === "DB");

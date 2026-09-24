@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import {
   Outlet,
@@ -18,26 +18,31 @@ import { InstallationReporter } from "../InstallationReporter";
 import { navigateFromShopifyEvent, restoreEmbeddedAdmin } from "../embedded-admin";
 import { APP_API_KEY } from "../env.server";
 import { resolveLocale, texts } from "../i18n";
-import { PerformanceReporter } from "../PerformanceReporter";
+import { normalizePerformanceRoute, performanceReporterScript } from "../performance-report";
+import { createPerformanceToken } from "../performance.server";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { session } = await authenticateAdmin(request, context);
-  const installedAt = await readInstallationStartedAt(
-    context.get(databaseContext),
-    session.shop,
-  ).catch(() => null);
+  // Telemetria best effort: senza firma il documento resta identico e non invia report.
+  const [installedAt, performanceToken] = await Promise.all([
+    readInstallationStartedAt(context.get(databaseContext), session.shop).catch(() => null),
+    createPerformanceToken(session.shop).catch(() => null),
+  ]);
 
   return {
     installedAt,
+    performanceReporter: performanceToken
+      ? { route: normalizePerformanceRoute(new URL(request.url).pathname), token: performanceToken }
+      : null,
     apiKey: APP_API_KEY,
     shopDomain: session.shop,
     locale: resolveLocale(request),
   };
 };
 
-// Una voce visibile per rotta, e una sola. Il titolo dell'app usa la rotta predefinita `/`,
-// che inoltra a `/app` senza mostrare una pagina intermedia (D-128, D-130).
+// Una voce visibile per rotta, e una sola; Home resta nel menu. L'App URL è `/app` (D-166): titolo
+// e apertura dall'Admin arrivano alla Home senza il redirect da `/`.
 export const NAV = [
   { href: "/app", label: "home" },
   { href: "/app/rules", label: "rules" },
@@ -50,7 +55,12 @@ type Nav = ReturnType<typeof texts>["nav"];
 export const shouldRevalidate = skipRevalidationWhenLeaving;
 
 export default function App() {
-  const { apiKey, shopDomain, locale, installedAt } = useLoaderData<typeof loader>();
+  const { apiKey, shopDomain, locale, installedAt, performanceReporter } =
+    useLoaderData<typeof loader>();
+  // Solo il documento iniziale misura il caricamento: le rivalidazioni non riscrivono lo script.
+  const [performanceScript] = useState(() =>
+    performanceReporter ? performanceReporterScript(performanceReporter) : null,
+  );
   const t = texts(locale).nav;
   const location = useLocation();
   const navigate = useNavigate();
@@ -94,6 +104,9 @@ export default function App() {
 
   return (
     <>
+      {performanceScript ? (
+        <script dangerouslySetInnerHTML={{ __html: performanceScript }} />
+      ) : null}
       <s-app-nav>
         {NAV.map((item) => (
           <s-link key={item.href} href={item.href}>
@@ -101,7 +114,6 @@ export default function App() {
           </s-link>
         ))}
       </s-app-nav>
-      <PerformanceReporter />
       <InstallationReporter installedAt={installedAt} />
       <div className="app-route-surface" key={location.pathname}>
         <Outlet />

@@ -223,6 +223,26 @@ describe("shell embedded", () => {
     expect(shopify.loading).toHaveBeenLastCalledWith(true);
   });
 
+  test("installa il reporter prestazioni una volta sola per documento", async () => {
+    router.loaderData = {
+      apiKey: "api-key",
+      shopDomain: "demo.myshopify.com",
+      locale: "it",
+      performanceReporter: { route: "home", token: "firma-iniziale" },
+    };
+    const view = await mount(<App />);
+    const script = () => view.container.querySelector("script")?.textContent ?? "";
+    expect(script()).toContain('"route":"home","token":"firma-iniziale","endpoint":"/performance"');
+
+    router.loaderData = {
+      ...router.loaderData,
+      performanceReporter: { route: "other", token: "firma-rivalidata" },
+    };
+    await view.rerender(<App />);
+    expect(script()).toContain("firma-iniziale");
+    expect(script()).not.toContain("firma-rivalidata");
+  });
+
   test("espone boundary e header Shopify", () => {
     expect(ErrorBoundary()).toBeTruthy();
     expect(headers({} as never)).toBeInstanceOf(Headers);

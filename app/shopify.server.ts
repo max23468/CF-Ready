@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { LogSeverity, shopifyApi } from "@shopify/shopify-api";
 import { ApiVersion, AppDistribution, shopifyApp } from "@shopify/shopify-app-react-router/server";
 import { logEvent } from "./events.server";
 import { D1SessionStorage, recordSessionTiming } from "./session-storage.server";
@@ -61,6 +62,25 @@ const shopify = shopifyApp({
   },
   ...(bindings.SHOP_CUSTOM_DOMAIN ? { customShopDomains: [bindings.SHOP_CUSTOM_DOMAIN] } : {}),
 });
+
+let refreshApi: ReturnType<typeof shopifyApi> | undefined;
+
+// `shopifyApp` rinnova il token offline solo negli ultimi cinque minuti e non espone il proprio
+// client: il cron usa lo stesso grant ufficiale con la configurazione dell'app.
+export async function refreshOfflineSession(shop: string, refreshToken: string) {
+  refreshApi ??= shopifyApi({
+    apiKey: bindings.SHOPIFY_API_KEY,
+    apiSecretKey: bindings.SHOPIFY_API_SECRET || "",
+    apiVersion: ApiVersion.July26,
+    scopes: bindings.SCOPES?.split(","),
+    hostName: new URL(bindings.SHOPIFY_APP_URL || "").host,
+    isEmbeddedApp: true,
+    logger: { level: LogSeverity.Error },
+    ...(bindings.SHOP_CUSTOM_DOMAIN ? { customShopDomains: [bindings.SHOP_CUSTOM_DOMAIN] } : {}),
+  });
+  const { session } = await refreshApi.auth.refreshToken({ shop, refreshToken });
+  return session;
+}
 
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
 export const authenticate = shopify.authenticate;
