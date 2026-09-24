@@ -8,8 +8,9 @@ export default [
     route("messages", "routes/app.messages.tsx"),
     route("guide", "routes/app.guide.tsx"),
     route("onboarding", "routes/app.onboarding.tsx"),
-    route("performance", "routes/app.performance.tsx"),
     route("engagement", "routes/app.engagement.tsx"),
   ]),
+  // Fuori dal layout autenticato: il beacon arriva senza session token e porta la propria firma.
+  route("performance", "routes/performance.tsx"),
   route("auth/*", "routes/auth.$.tsx"),
 ] satisfies RouteConfig;

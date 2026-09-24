@@ -1,5 +1,6 @@
 import { expect, test, vi } from "vitest";
 import { texts } from "../app/i18n";
+import { verifyPerformanceToken } from "../app/performance.server";
 
 const mocks = vi.hoisted(() => ({
   authenticateAdmin: vi.fn(),
@@ -25,12 +26,17 @@ test("il layout autentica la richiesta ed espone soltanto il contesto minimo", a
   const context = { get: vi.fn(() => db) };
   mocks.readInstallationStartedAt.mockResolvedValueOnce("2026-09-14T12:00:00.000Z");
 
-  await expect(loader({ request, context } as never)).resolves.toMatchObject({
+  const data = await loader({ request, context } as never);
+  expect(data).toMatchObject({
     installedAt: "2026-09-14T12:00:00.000Z",
     apiKey: expect.any(String),
     shopDomain: "negozio.myshopify.com",
     locale: "it",
+    performanceReporter: { route: "home", token: expect.any(String) },
   });
+  expect(await verifyPerformanceToken(data.performanceReporter?.token)).toBe(
+    "negozio.myshopify.com",
+  );
   expect(mocks.authenticateAdmin).toHaveBeenCalledWith(request, context);
   expect(mocks.readInstallationStartedAt).toHaveBeenCalledWith(db, "negozio.myshopify.com");
 });
@@ -70,4 +76,22 @@ test("la diagnostica non impedisce il caricamento se la lettura D1 fallisce", as
   const request = new Request("https://cf-ready.test/app");
   const context = { get: () => ({}) };
   await expect(loader({ request, context } as never)).resolves.toMatchObject({ installedAt: null });
+});
+
+test("senza chiave di firma il documento non installa il reporter prestazioni", async () => {
+  vi.resetModules();
+  vi.doMock("../app/performance.server", () => ({
+    createPerformanceToken: () => Promise.reject(new Error("chiave assente")),
+  }));
+  const { loader: loaderSenzaFirma } = await import("../app/routes/app");
+  mocks.authenticateAdmin.mockResolvedValueOnce({ session: { shop: "negozio.myshopify.com" } });
+  mocks.readInstallationStartedAt.mockResolvedValueOnce(null);
+
+  await expect(
+    loaderSenzaFirma({
+      request: new Request("https://cf-ready.test/app/rules"),
+      context: { get: () => ({}) },
+    } as never),
+  ).resolves.toMatchObject({ performanceReporter: null });
+  vi.doUnmock("../app/performance.server");
 });

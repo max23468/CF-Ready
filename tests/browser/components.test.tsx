@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { DEFAULT_CONFIG } from "../../app/config";
 import { en } from "../../app/i18n/en";
 import { it } from "../../app/i18n/it";
-import { PerformanceReporter } from "../../app/PerformanceReporter";
+import { performanceReporterScript } from "../../app/performance-report";
 import { CustomerMessagesPreview } from "../../app/features/messages/CustomerMessagesPreview";
 import { UncontrolledMessageTextArea } from "../../app/features/messages/UncontrolledMessageTextArea";
 import { CheckoutSimulator } from "../../app/features/rules/CheckoutSimulator";
@@ -13,6 +13,7 @@ const mounted: Rendered[] = [];
 afterEach(async () => {
   for (const view of mounted.splice(0)) await view.unmount();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("componenti merchant nel browser", () => {
@@ -231,45 +232,69 @@ describe("componenti merchant nel browser", () => {
     expect(fields[1].getAttribute("error")).toBe(DEFAULT_CONFIG.messages.it.pecRequired);
   });
 
-  test("il reporter registra e rimuove il callback Web Vitals", async () => {
+  test("lo script inline si registra subito e invia via beacon soltanto campi tecnici", async () => {
     const onReport = vi.fn(async () => undefined);
-    const fetcher = vi.fn(async () => new Response(null, { status: 204 }));
-    vi.stubGlobal("fetch", fetcher);
+    const beacon = vi.spyOn(navigator, "sendBeacon").mockReturnValue(true);
+    vi.spyOn(performance, "getEntriesByType").mockReturnValue([
+      {
+        serverTiming: [
+          { name: "shopify_snapshot", duration: 450 },
+          { name: "shopify_snapshot", duration: 20.04 },
+          { name: "auth", duration: -1 },
+        ],
+      } as unknown as PerformanceEntry,
+    ]);
     vi.stubGlobal("shopify", { webVitals: { onReport } });
-    const view = await render(<PerformanceReporter />);
-    mounted.push(view);
+
+    new Function(performanceReporterScript({ route: "home", token: "firma" }))();
     expect(onReport).toHaveBeenCalledOnce();
-    const callback = onReport.mock.calls[0][0];
-    await callback({ metrics: [{ id: "v4-1", name: "LCP", value: 1200 }] });
-    expect(fetcher).toHaveBeenCalledWith(
-      "/app/performance",
-      expect.objectContaining({ method: "POST" }),
-    );
-    await view.unmount();
-    mounted.pop();
-    expect(onReport).toHaveBeenLastCalledWith(null);
+    const callback = onReport.mock.calls[0][0] as (report: ShopifyWebVitalsReport) => void;
+    callback({
+      metrics: [
+        { id: "v4-1", name: "LCP", value: 1200, country: "IT", target: "riservato" },
+      ] as ShopifyWebVitalsMetric[],
+    });
+
+    expect(beacon).toHaveBeenCalledOnce();
+    const [endpoint, blob] = beacon.mock.calls[0];
+    expect(endpoint).toBe("/performance");
+    expect((blob as Blob).type).toBe("application/json");
+    expect(JSON.parse(await (blob as Blob).text())).toEqual({
+      route: "home",
+      token: "firma",
+      serverTimings: { shopify_snapshot: 470 },
+      metrics: [{ id: "v4-1", name: "LCP", value: 1200, country: "IT" }],
+    });
   });
 
-  test("il reporter attribuisce le metriche alla rotta di lancio anche dopo una navigazione", async () => {
-    window.history.replaceState(null, "", "/app");
+  test("lo script ripiega su fetch keepalive e ignora un trasporto fallito", async () => {
     const onReport = vi.fn(async () => undefined);
-    const fetcher = vi.fn(async () => new Response(null, { status: 204 }));
+    vi.spyOn(navigator, "sendBeacon").mockReturnValue(false);
+    const fetcher = vi.fn(async () => {
+      throw new Error("offline");
+    });
     vi.stubGlobal("fetch", fetcher);
     vi.stubGlobal("shopify", { webVitals: { onReport } });
-    const view = await render(<PerformanceReporter />);
-    mounted.push(view);
 
-    window.history.replaceState(null, "", "/app/guide");
-    const callback = onReport.mock.calls[0][0];
-    await callback({ metrics: [{ id: "v4-route", name: "LCP", value: 1200 }] });
+    new Function(performanceReporterScript({ route: "rules", token: "firma" }))();
+    const callback = onReport.mock.calls[0][0] as (report: ShopifyWebVitalsReport) => void;
+    expect(() => callback({ metrics: [] })).not.toThrow();
+    await Promise.resolve();
 
-    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toMatchObject({ route: "home" });
+    expect(fetcher).toHaveBeenCalledWith(
+      "/performance",
+      expect.objectContaining({ method: "POST", keepalive: true }),
+    );
   });
 
-  test("il reporter non fa nulla quando Web Vitals non è disponibile", async () => {
+  test("dentro una App Window lo script non sostituisce il callback della finestra principale", () => {
+    const onReport = vi.fn(async () => undefined);
     vi.stubGlobal("shopify", {});
-    const view = await render(<PerformanceReporter />);
-    mounted.push(view);
-    expect(view.container.innerHTML).toBe("");
+
+    new Function(performanceReporterScript({ route: "onboarding", token: "firma" }))();
+    vi.stubGlobal("shopify", { webVitals: { onReport } });
+    document.dispatchEvent(new Event("DOMContentLoaded"));
+
+    expect(onReport).not.toHaveBeenCalled();
   });
 });

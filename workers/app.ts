@@ -78,16 +78,25 @@ export default {
 } satisfies ExportedHandler<Env, WebhookJob>;
 
 async function runOwnerNotificationCycle(env: NotificationBindings) {
-  const [{ reconcileNextStaleBilling }, { recordEvent }] = await Promise.all([
-    import("../app/billing/periodic-reconciliation.server"),
-    import("../app/events.server"),
-  ]);
+  const [{ reconcileNextStaleBilling }, { refreshExpiringOfflineSessions }, { recordEvent }] =
+    await Promise.all([
+      import("../app/billing/periodic-reconciliation.server"),
+      import("../app/offline-token-refresh.server"),
+      import("../app/events.server"),
+    ]);
   const recordStageFailure = (name: string, error: unknown, fallback: string) =>
     recordEvent(env.DB, {
       name,
       class: "error",
       metadata: { error_code: stageErrorCode(error, fallback) },
     });
+
+  // Token offline validi alla prossima apertura: l'LCP a freddo non paga il token exchange.
+  try {
+    await refreshExpiringOfflineSessions(env.DB);
+  } catch (error) {
+    await recordStageFailure("offline_token_refresh_failed", error, "offline_token_refresh_failed");
+  }
 
   // La riconciliazione billing non dipende dalle notifiche owner: un suo errore D1 non deve
   // fermare le fasi successive né restare un rifiuto non gestito in waitUntil.

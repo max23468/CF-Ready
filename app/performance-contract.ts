@@ -1,4 +1,4 @@
-export const PERFORMANCE_ENDPOINT = "/app/performance";
+export const PERFORMANCE_ENDPOINT = "/performance";
 
 export const PERFORMANCE_METRIC_NAMES = ["LCP", "INP", "CLS", "FCP", "TTFB"] as const;
 export const PERFORMANCE_ROUTES = [

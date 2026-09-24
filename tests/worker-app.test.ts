@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   processWebhookJob: vi.fn(),
   applyRetention: vi.fn(),
   reconcileNextStaleBilling: vi.fn(),
+  refreshExpiringOfflineSessions: vi.fn(),
   pollPartnerEvents: vi.fn(),
   syncPartnerFinancialObservations: vi.fn(),
   pollLocalNotifications: vi.fn(),
@@ -30,6 +31,9 @@ vi.mock("../app/webhook-jobs.server", () => ({
 vi.mock("../app/shop.server", () => ({ applyRetention: mocks.applyRetention }));
 vi.mock("../app/billing/periodic-reconciliation.server", () => ({
   reconcileNextStaleBilling: mocks.reconcileNextStaleBilling,
+}));
+vi.mock("../app/offline-token-refresh.server", () => ({
+  refreshExpiringOfflineSessions: mocks.refreshExpiringOfflineSessions,
 }));
 vi.mock("../app/owner-notifications.server", () => ({
   pollPartnerEvents: mocks.pollPartnerEvents,
@@ -56,6 +60,7 @@ beforeEach(() => {
   mocks.consumeWebhookMessage.mockResolvedValue(undefined);
   mocks.applyRetention.mockResolvedValue(undefined);
   mocks.reconcileNextStaleBilling.mockResolvedValue(undefined);
+  mocks.refreshExpiringOfflineSessions.mockResolvedValue({ refreshed: 0 });
   mocks.pollPartnerEvents.mockResolvedValue(undefined);
   mocks.syncPartnerFinancialObservations.mockResolvedValue(undefined);
   mocks.pollLocalNotifications.mockResolvedValue(undefined);
@@ -280,6 +285,23 @@ describe("entrypoint Worker", () => {
     expect(mocks.deliverOwnerNotifications).toHaveBeenCalledOnce();
     expect(mocks.recordEvent.mock.calls.map(([, event]) => [event.name, event.metadata])).toEqual([
       ["billing_reconciliation_cycle_failed", { error_code: "billing_reconciliation_failed" }],
+    ]);
+  });
+
+  test("un rinnovo dei token fallito non ferma la riconciliazione billing", async () => {
+    mocks.refreshExpiringOfflineSessions.mockRejectedValueOnce(
+      new Error("offline_token_refresh_failed"),
+    );
+    const pending: Promise<unknown>[] = [];
+    worker.scheduled({ cron: "*/5 * * * *" } as never, env, {
+      waitUntil: (promise: Promise<unknown>) => pending.push(promise),
+    } as never);
+    await Promise.all(pending);
+
+    expect(mocks.refreshExpiringOfflineSessions.mock.calls[0]?.[0]).toBe(env.DB);
+    expect(mocks.reconcileNextStaleBilling).toHaveBeenCalledOnce();
+    expect(mocks.recordEvent.mock.calls.map(([, event]) => [event.name, event.metadata])).toEqual([
+      ["offline_token_refresh_failed", { error_code: "offline_token_refresh_failed" }],
     ]);
   });
 

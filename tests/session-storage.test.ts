@@ -1,8 +1,14 @@
 import { env } from "cloudflare:test";
 import { Session } from "@shopify/shopify-api";
-import { expect, test } from "vitest";
+import { setAbstractFetchFunc } from "@shopify/shopify-api/runtime";
+import { expect, test, vi } from "vitest";
+import {
+  OFFLINE_TOKEN_REFRESH_BATCH,
+  refreshExpiringOfflineSessions,
+} from "../app/offline-token-refresh.server";
 import { D1SessionStorage, readSessionTimings } from "../app/session-storage.server";
 import { markUninstalled } from "../app/shop.server";
+import { refreshOfflineSession } from "../app/shopify.server";
 import { claimWebhook } from "../app/webhook-ingress.server";
 
 test("salva la sessione cifrata e la ricarica da D1", async () => {
@@ -317,4 +323,157 @@ test("rifiuta una chiave che non contiene esattamente 32 byte", async () => {
   await expect(storage.storeSession(session)).rejects.toThrow(
     /SESSION_ENCRYPTION_KEY deve contenere 32 byte/,
   );
+});
+
+function offlineSession(
+  shop: string,
+  expires: string,
+  refreshTokenExpires = "2026-12-01T00:00:00.000Z",
+) {
+  return new Session({
+    id: `offline_${shop}`,
+    shop,
+    state: "",
+    isOnline: false,
+    scope: "write_validations",
+    accessToken: `token-${shop}`,
+    expires: new Date(expires),
+    refreshToken: `refresh-${shop}`,
+    refreshTokenExpires: new Date(refreshTokenExpires),
+  });
+}
+
+test("rinnova in anticipo solo i token offline in scadenza degli store attivi", async () => {
+  const storage = new D1SessionStorage(
+    env.DB,
+    btoa(String.fromCharCode(...new Uint8Array(32).fill(5))),
+  );
+  const now = new Date("2026-09-24T10:00:00.000Z");
+  const scadenza = "refresh-scadenza.example.myshopify.com";
+  const scaduto = "refresh-scaduto.example.myshopify.com";
+  const lontano = "refresh-lontano.example.myshopify.com";
+  const disinstallato = "refresh-disinstallato.example.myshopify.com";
+  const refreshScaduto = "refresh-refresh-scaduto.example.myshopify.com";
+  const abbandonato = "refresh-abbandonato.example.myshopify.com";
+  await Promise.all([
+    storage.storeSession(offlineSession(scadenza, "2026-09-24T10:15:00.000Z")),
+    storage.storeSession(offlineSession(scaduto, "2026-09-24T08:00:00.000Z")),
+    storage.storeSession(offlineSession(lontano, "2026-09-24T10:45:00.000Z")),
+    storage.storeSession(offlineSession(abbandonato, "2026-09-23T09:00:00.000Z")),
+    storage.storeSession(offlineSession(disinstallato, "2026-09-24T10:05:00.000Z")),
+    storage.storeSession(
+      offlineSession(refreshScaduto, "2026-09-24T10:05:00.000Z", "2026-09-24T09:00:00.000Z"),
+    ),
+  ]);
+  await env.DB.prepare("UPDATE shops SET installation_status = 'uninstalled' WHERE shop_domain = ?")
+    .bind(disinstallato)
+    .run();
+  const refreshed: string[] = [];
+
+  await expect(
+    refreshExpiringOfflineSessions(env.DB, {
+      now,
+      loadSession: (id) => storage.loadSession(id),
+      storeSession: (session) => storage.storeSession(session),
+      refresh: async (shop, refreshToken) => {
+        refreshed.push(`${shop}:${refreshToken}`);
+        return offlineSession(shop, "2026-09-24T11:00:00.000Z");
+      },
+    }),
+  ).resolves.toEqual({ refreshed: 2 });
+
+  expect(refreshed.sort()).toEqual([
+    `${scadenza}:refresh-${scadenza}`,
+    `${scaduto}:refresh-${scaduto}`,
+  ]);
+  const { results } = await env.DB.prepare(
+    `SELECT shops.shop_domain, s.access_token_expires_at
+       FROM shopify_sessions s JOIN shops ON shops.id = s.shop_id
+      WHERE shops.shop_domain LIKE 'refresh-%' ORDER BY shops.shop_domain`,
+  ).all<{ shop_domain: string; access_token_expires_at: string }>();
+  expect(
+    Object.fromEntries(results.map((row) => [row.shop_domain, row.access_token_expires_at])),
+  ).toEqual({
+    [abbandonato]: "2026-09-23T09:00:00.000Z",
+    [disinstallato]: "2026-09-24T10:05:00.000Z",
+    [lontano]: "2026-09-24T10:45:00.000Z",
+    [refreshScaduto]: "2026-09-24T10:05:00.000Z",
+    [scadenza]: "2026-09-24T11:00:00.000Z",
+    [scaduto]: "2026-09-24T11:00:00.000Z",
+  });
+});
+
+test("un rinnovo fallito non blocca gli altri e cede il posto alle scadenze più recenti", async () => {
+  const storage = new D1SessionStorage(
+    env.DB,
+    btoa(String.fromCharCode(...new Uint8Array(32).fill(6))),
+  );
+  const now = new Date("2026-09-24T10:00:00.000Z");
+  const shops = Array.from(
+    { length: OFFLINE_TOKEN_REFRESH_BATCH + 1 },
+    (_, index) => `rinnovo-${index}.example.myshopify.com`,
+  );
+  // Il primo store ha la scadenza più vecchia: resta fuori dal lotto finché ce ne sono di più urgenti.
+  await Promise.all(
+    shops.map((shop, index) =>
+      storage.storeSession(offlineSession(shop, `2026-09-24T10:0${index}:00.000Z`)),
+    ),
+  );
+  const attempted: string[] = [];
+
+  await expect(
+    refreshExpiringOfflineSessions(env.DB, {
+      now,
+      loadSession: (id) => storage.loadSession(id),
+      storeSession: (session) => storage.storeSession(session),
+      refresh: async (shop) => {
+        attempted.push(shop);
+        if (shop === shops[OFFLINE_TOKEN_REFRESH_BATCH]) throw new Error(`Shopify: ${shop}`);
+        return offlineSession(shop, "2026-09-24T11:00:00.000Z");
+      },
+    }),
+  ).rejects.toThrow(/^offline_token_refresh_failed$/);
+
+  expect(attempted.sort()).toEqual(shops.slice(1).sort());
+  expect(
+    await env.DB.prepare(
+      `SELECT COUNT(*) AS rinnovati FROM shopify_sessions
+        WHERE id LIKE 'offline_rinnovo-%' AND access_token_expires_at = '2026-09-24T11:00:00.000Z'`,
+    ).first("rinnovati"),
+  ).toBe(OFFLINE_TOKEN_REFRESH_BATCH - 1);
+});
+
+test("il rinnovo usa il grant ufficiale e restituisce la sessione offline dello store", async () => {
+  const fetcher = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+    Response.json({
+      access_token: "token-rinnovato",
+      scope: "write_validations",
+      expires_in: 3600,
+      refresh_token: "refresh-rinnovato",
+      refresh_token_expires_in: 7_776_000,
+    }),
+  );
+  setAbstractFetchFunc(fetcher as unknown as typeof fetch);
+  try {
+    const session = await refreshOfflineSession("grant-example.myshopify.com", "refresh-attuale");
+
+    const [url, init] = fetcher.mock.calls[0] ?? [];
+    expect(String(url)).toBe("https://grant-example.myshopify.com/admin/oauth/access_token");
+    expect(JSON.parse(String(init?.body))).toEqual({
+      client_id: env.SHOPIFY_API_KEY,
+      client_secret: "synthetic-test-secret",
+      refresh_token: "refresh-attuale",
+      grant_type: "refresh_token",
+    });
+    expect(session).toMatchObject({
+      id: "offline_grant-example.myshopify.com",
+      shop: "grant-example.myshopify.com",
+      isOnline: false,
+      accessToken: "token-rinnovato",
+      refreshToken: "refresh-rinnovato",
+    });
+    expect(session.expires?.getTime()).toBeGreaterThan(Date.now() + 50 * 60_000);
+  } finally {
+    setAbstractFetchFunc(fetch);
+  }
 });
