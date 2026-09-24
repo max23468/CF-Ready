@@ -178,6 +178,47 @@ export async function readHomeState(db: D1Database, shopDomain: string) {
   };
 }
 
+// Ultimo stato noto per il primo paint della Home (D-167): nome, paese e ultima configurazione
+// scritta dall'app. Non è autorevole; la riconciliazione Shopify lo sostituisce appena risponde.
+export async function readStoredShopSnapshot(db: D1Database, shopDomain: string) {
+  const row = await db
+    .prepare(
+      `SELECT shop.display_name, shop.country_code, history.rules_json, history.messages_json
+         FROM shops shop
+         LEFT JOIN configuration_history history ON history.id = (
+           SELECT latest.id FROM configuration_history latest
+            WHERE latest.shop_id = shop.id
+            ORDER BY datetime(latest.created_at) DESC, latest.id DESC
+            LIMIT 1)
+        WHERE shop.shop_domain = ?`,
+    )
+    .bind(shopDomain)
+    .first<{
+      display_name: string | null;
+      country_code: string | null;
+      rules_json: string | null;
+      messages_json: string | null;
+    }>();
+
+  let config: Config | null = null;
+  try {
+    if (row?.rules_json && row.messages_json) {
+      config = {
+        schemaVersion: 3,
+        rules: JSON.parse(row.rules_json),
+        messages: JSON.parse(row.messages_json),
+      };
+    }
+  } catch {
+    config = null;
+  }
+  return {
+    displayName: row?.display_name ?? null,
+    countryCode: row?.country_code ?? null,
+    config,
+  };
+}
+
 export async function readOnboarding(db: D1Database, shopDomain: string) {
   const row = await db
     .prepare(
