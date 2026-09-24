@@ -1,6 +1,6 @@
 {
   "name": "cf-ready",
-  "version": "1.14.2",
+  "version": "1.15.0",
   "private": true,
   "packageManager": "npm@12.1.0",
   "packageExtensions": {
@@ -94,7 +94,7 @@
     "@playwright/test": "1.63.0",
     "@react-router/dev": "8.4.0",
     "@shopify/cli": "4.8.0",
-    "@shopify/polaris-types": "1.1.0",
+    "@shopify/polaris-types": "2.0.0-rc.0",
     "@stryker-mutator/core": "10.0.0",
     "@stryker-mutator/vitest-runner": "10.0.0",
     "@types/node": "26.6.2",
