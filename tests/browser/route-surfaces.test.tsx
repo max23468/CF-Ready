@@ -142,6 +142,14 @@ const homeData = {
   },
 } as const;
 
+// La Home riceve lo stato salvato e la conferma Shopify differita (D-167).
+function confirmedHome<T extends object>(data: T, confirmed?: Promise<unknown>) {
+  return {
+    home: { ...data, verified: false },
+    confirmed: confirmed ?? Promise.resolve({ ...data, verified: true }),
+  };
+}
+
 const onboardingData = {
   locale: "it",
   step: 1,
@@ -315,7 +323,7 @@ describe("Home merchant", () => {
             submit={submit}
             firstCharge="oggi"
           />
-          <PlanStatus data={data as never} />
+          <PlanStatus data={data as never} verifying={false} />
           <SetupGuide
             data={data as never}
             busy={false}
@@ -331,6 +339,46 @@ describe("Home merchant", () => {
     expect(submit).toHaveBeenCalledWith("annual");
     expect(submit).toHaveBeenCalledWith("one_time");
     expect(submit).toHaveBeenCalledWith("start_trial");
+  });
+
+  test("mostra lo stato salvato in verifica e segnala la verifica fallita", async () => {
+    const entitled = {
+      ...homeData,
+      entitlement: { kind: "subscription", validThrough: "2026-09-30" },
+      planKind: "monthly",
+      accountStatus: "active",
+      validationEnabled: true,
+      onboarding: "completed",
+    };
+    const t = texts("it");
+    router.loaderData = confirmedHome(entitled, new Promise(() => undefined));
+    const view = await mount(<HomePage key="pending" />);
+    const badges = [...view.container.querySelectorAll("s-badge")].filter(
+      (badge) => badge.textContent === t.home.verifying,
+    );
+    expect(badges).toHaveLength(2);
+    const deactivate = [...view.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === t.home.deactivate,
+    );
+    expect(deactivate?.hasAttribute("disabled")).toBe(true);
+
+    router.loaderData = confirmedHome(entitled, Promise.reject(new Error("timeout")));
+    await view.rerender(<HomePage key="failed" />);
+    await act(async () => void (await Promise.resolve()));
+    expect(view.container.textContent).toContain(t.home.verificationFailed);
+    expect(view.container.textContent).not.toContain(t.home.verifying);
+    const retry = [...view.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === t.home.verificationRetry,
+    );
+    if (!retry) throw new Error("riprova assente");
+    await click(retry);
+    expect(router.revalidator.revalidate).toHaveBeenCalledOnce();
+
+    router.loaderData = confirmedHome(entitled);
+    await view.rerender(<HomePage key="confirmed" />);
+    await act(async () => void (await Promise.resolve()));
+    expect(view.container.textContent).not.toContain(t.home.verifying);
+    expect(view.container.textContent).not.toContain(t.home.verificationFailed);
   });
 
   test("il check-in copre invio, dismiss e stato occupato", async () => {
@@ -355,7 +403,7 @@ describe("Home merchant", () => {
   });
 
   test("copre primo avvio, errore e azioni principali", async () => {
-    router.loaderData = homeData;
+    router.loaderData = confirmedHome(homeData);
     const view = await mount(<HomePage />);
     expect(view.container.textContent).toContain(texts("it").home.titleNotStarted);
     const startTrial = [...view.container.querySelectorAll("s-button")].find((button) =>
@@ -368,7 +416,7 @@ describe("Home merchant", () => {
       { method: "post" },
     );
 
-    router.loaderData = { ...homeData, errorCode: "billing_read_failed" };
+    router.loaderData = confirmedHome({ ...homeData, errorCode: "billing_read_failed" });
     router.fetcher.data = { ok: false, errorCode: "generic" };
     await view.rerender(<HomePage />);
     expect(view.container.querySelectorAll('s-banner[tone="critical"]')).toHaveLength(1);
@@ -381,7 +429,7 @@ describe("Home merchant", () => {
   });
 
   test("copre lo stato attivo completo", async () => {
-    router.loaderData = {
+    router.loaderData = confirmedHome({
       ...homeData,
       entitlement: { kind: "subscription", validThrough: "2026-09-30" },
       planKind: "monthly",
@@ -393,7 +441,7 @@ describe("Home merchant", () => {
       messagesDefault: false,
       firstChargeAt: "2026-09-10",
       checkoutLabels: { ...homeData.checkoutLabels, status: "action_required" },
-    };
+    });
     const view = await mount(<HomePage />);
     expect(view.container.textContent).toContain(texts("it").home.titleActive);
     expect(view.container.textContent).not.toContain(
@@ -435,7 +483,7 @@ describe("Home merchant", () => {
     let view: Rendered | undefined;
     for (const data of variants) {
       const variantKey = `${data.errorCode ?? "ok"}-${data.entitlement.kind}-${data.validationEnabled}-${data.rules.taxCode}-${data.trialStatus ?? "none"}`;
-      router.loaderData = data;
+      router.loaderData = confirmedHome(data);
       if (!view) view = await mount(<HomePage key={variantKey} />);
       else await view.rerender(<HomePage key={variantKey} />);
     }
@@ -477,7 +525,7 @@ describe("Home merchant", () => {
       saveBar: { hide: vi.fn(), show: vi.fn() },
       reviews: { request },
     });
-    router.loaderData = { ...homeData, reviewDue: true };
+    router.loaderData = confirmedHome({ ...homeData, reviewDue: true });
     const view = await mount(<HomePage key="review-ok" />);
     await act(async () => void (await Promise.resolve()));
     expect(router.fetcher.submit).toHaveBeenCalledWith(
@@ -512,7 +560,7 @@ describe("Home merchant", () => {
       accountStatus: "active",
       onboarding: "completed",
     };
-    router.loaderData = entitledData;
+    router.loaderData = confirmedHome(entitledData);
     const view = await mount(<HomePage />);
     await act(
       async () => void (await new Promise((resolve) => requestAnimationFrame(() => resolve(true)))),
@@ -521,10 +569,10 @@ describe("Home merchant", () => {
     expect(view.container.textContent).toContain(texts("it").home.nextConfigure);
 
     router.location = { pathname: "/app", state: null };
-    router.loaderData = {
+    router.loaderData = confirmedHome({
       ...entitledData,
       rules: { taxCode: "required_validated", pec: "unmanaged" },
-    };
+    });
     await view.rerender(<HomePage />);
     expect(view.container.textContent).toContain(texts("it").home.nextActivate);
     const activate = [...view.container.querySelectorAll("s-button")].find((button) =>
@@ -578,7 +626,7 @@ describe("Home merchant", () => {
       },
     ] as const;
     for (const data of variants) {
-      const view = await mount(<PlanStatus data={data as never} />);
+      const view = await mount(<PlanStatus data={data as never} verifying={false} />);
       expect(view.container.textContent).not.toBe("");
     }
   });

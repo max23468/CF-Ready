@@ -6,10 +6,13 @@ import {
   cancelSubscription,
   createCharge,
   currentPricingGeneration,
+  entitlementFor,
   localDate,
   readBilling,
   readBillingAccount,
   readComplimentaryEntitlement,
+  readLatestBillingConversion,
+  readTrial,
   recordOrdinaryCancellationIntent,
   requestedRecurringPlanIsActive,
   remainingTrialDays,
@@ -42,64 +45,170 @@ import {
   queryContext,
   completeOnboardingAutomatically,
   readHomeState,
+  readStoredShopSnapshot,
   reconcile,
   withValidationLock,
   writeValidation,
 } from "../../validation.server";
 import type { Admin } from "../../validation.server";
 
+// D-167: il documento parte con l'ultimo stato noto in D1 e la riconciliazione Shopify arriva in
+// streaming nella stessa risposta. Lo stato salvato non abilita azioni: resta `verified: false`
+// finché Shopify non conferma, e le azioni riconciliano comunque prima di scrivere.
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
   const { admin, session } = await authenticateAdminTimed(request, context, timing);
   const db = context.get(databaseContext);
+  const waitUntil = context.get(waitUntilContext) ?? undefined;
+  const shopDomain = session.shop;
 
-  const statePromise = timing.measure("reconcile_total", () =>
-    reconcile(admin, db, session.shop, {
-      prefetchBilling: true,
-      waitUntil: context.get(waitUntilContext) ?? undefined,
-      reportTiming: timing.record,
-    }),
+  // Parte subito: la lettura Shopify corre mentre D1 prepara il primo paint.
+  const reconciliation = reconcile(admin, db, shopDomain, {
+    prefetchBilling: true,
+    waitUntil,
+  });
+  const [local, checkoutLabelState, stored] = await Promise.all([
+    timing.measure("d1_home", () => readHomeState(db, shopDomain)),
+    timing.measure("d1_validation_state", () => readCheckoutLabelState(db, shopDomain)),
+    timing.measure("d1_commercial", () => readStoredHome(db, shopDomain)),
+  ]);
+  const storedState: HomeInputs = {
+    ...stored,
+    validationEnabled: local.onboarding.validationEnabled,
+    errorCode: local.onboarding.errorCode,
+  };
+  const base: HomeBase = {
+    locale: resolveLocale(request),
+    shopDomain,
+    local,
+    checkoutLabels: {
+      ...checkoutLabelState,
+      status: checkoutLabelsStatus(checkoutLabelState),
+    },
+  };
+
+  const confirmed = reconciliation.then(async (state) => {
+    const config = readConfig(state.validation?.metafield?.jsonValue);
+    const onboarding = await completeOnboardingIfReady(db, shopDomain, local, state, config);
+    return homeView({ ...state, config }, base, onboarding, true);
+  });
+  // Conversioni billing e completamento dell'onboarding non si fermano se il merchant chiude.
+  waitUntil?.(confirmed.catch(() => undefined));
+
+  return data(
+    {
+      home: homeView(storedState, base, local.onboarding.status, false),
+      confirmed,
+    },
+    { headers: { "Server-Timing": timing.header() } },
   );
-  const localStatePromise = timing.measure("d1_home", () => readHomeState(db, session.shop));
-  const labelStatePromise = timing.measure("d1_validation_state", () =>
-    readCheckoutLabelState(db, session.shop),
-  );
-  const [
-    state,
-    { onboarding, enabledSince, merchantCheckInDismissed, reviewCompleted },
-    checkoutLabelState,
-  ] = await Promise.all([statePromise, localStatePromise, labelStatePromise]);
-  const config = readConfig(state.validation?.metafield?.jsonValue);
+};
+
+type HomeBase = {
+  locale: ReturnType<typeof resolveLocale>;
+  shopDomain: string;
+  local: Awaited<ReturnType<typeof readHomeState>>;
+  checkoutLabels: Awaited<ReturnType<typeof readCheckoutLabelState>> & {
+    status: ReturnType<typeof checkoutLabelsStatus>;
+  };
+};
+
+type HomeInputs = Pick<
+  Awaited<ReturnType<typeof reconcile>>,
+  | "shopName"
+  | "countryCode"
+  | "partnerDevelopment"
+  | "today"
+  | "validationEnabled"
+  | "trial"
+  | "account"
+  | "complimentary"
+  | "entitlement"
+  | "creditEstimate"
+  | "conversionCredit"
+  | "errorCode"
+> & { config: ReturnType<typeof readConfig> };
+
+// Il fuso dello store arriva solo da Shopify: per l'ultimo stato noto basta quello italiano,
+// perché CF Ready serve store italiani e la data viene ricalcolata alla conferma.
+const STORED_TIME_ZONE = "Europe/Rome";
+
+async function readStoredHome(
+  db: D1Database,
+  shopDomain: string,
+): Promise<Omit<HomeInputs, "validationEnabled" | "errorCode">> {
+  const today = localDate(STORED_TIME_ZONE);
+  const [snapshot, trial, account, complimentary, conversionCredit] = await Promise.all([
+    readStoredShopSnapshot(db, shopDomain),
+    readTrial(db, shopDomain),
+    readBillingAccount(db, shopDomain),
+    readComplimentaryEntitlement(db, shopDomain),
+    readLatestBillingConversion(db, shopDomain),
+  ]);
+  const activeComplimentary = complimentary?.status === "active" ? complimentary : null;
+  return {
+    shopName: snapshot.displayName ?? shopDomain,
+    countryCode: snapshot.countryCode ?? "IT",
+    partnerDevelopment: false,
+    today,
+    trial,
+    account,
+    complimentary: activeComplimentary,
+    entitlement: entitlementFor(trial, today, account, activeComplimentary),
+    creditEstimate: null,
+    conversionCredit,
+    config: readConfig(snapshot.config),
+  };
+}
+
+async function completeOnboardingIfReady(
+  db: D1Database,
+  shopDomain: string,
+  local: HomeBase["local"],
+  state: Awaited<ReturnType<typeof reconcile>>,
+  config: ReturnType<typeof readConfig>,
+) {
   const configured = config.rules.taxCode !== "unmanaged" || config.rules.pec !== "unmanaged";
-  let onboardingStatus = onboarding.status;
   if (
-    onboardingCanAutoComplete({
-      onboarding: onboardingStatus,
+    !onboardingCanAutoComplete({
+      onboarding: local.onboarding.status,
       configured,
       entitled: state.entitlement.kind !== "none",
       validationEnabled: state.validationEnabled,
       errorCode: state.errorCode,
-    }) &&
-    (await completeOnboardingAutomatically(db, session.shop))
+    }) ||
+    !(await completeOnboardingAutomatically(db, shopDomain))
   ) {
-    onboardingStatus = "completed";
-    await recordEvent(db, {
-      shopDomain: session.shop,
-      name: "onboarding_auto_completed",
-      class: "onboarding",
-      metadata: { reason: "effective_configuration" },
-    });
+    return local.onboarding.status;
   }
+  await recordEvent(db, {
+    shopDomain,
+    name: "onboarding_auto_completed",
+    class: "onboarding",
+    metadata: { reason: "effective_configuration" },
+  });
+  return "completed" as const;
+}
+
+function homeView(
+  state: HomeInputs,
+  { locale, shopDomain, local, checkoutLabels }: HomeBase,
+  onboardingStatus: HomeBase["local"]["onboarding"]["status"],
+  verified: boolean,
+) {
+  const { merchantCheckInDismissed, reviewCompleted, enabledSince } = local;
+  const config = state.config;
   const paidAccount =
     state.account?.plan_kind !== "none" &&
     (state.account?.entitlement_status === "active" ||
       state.account?.entitlement_status === "ending");
 
   const remaining = remainingTrialDays(state.trial, state.today);
-  const payload = {
-    locale: resolveLocale(request),
+  return {
+    verified,
+    locale,
     shopName: state.shopName,
-    shopDomain: session.shop,
+    shopDomain,
     version: APP_VERSION,
     countryCode: state.countryCode,
     validationEnabled: state.validationEnabled,
@@ -139,26 +248,25 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       !state.errorCode &&
       !merchantCheckInDismissed,
     ),
-    reviewDue: reviewIsDue(
-      {
-        onboarding: onboardingStatus,
-        validationEnabled: state.validationEnabled,
-        errorCode: state.errorCode,
-        enabledSince,
-        partnerDevelopment: state.partnerDevelopment,
-        reviewCompleted,
-      },
-      Date.now(),
-    ),
-    checkoutLabels: {
-      ...checkoutLabelState,
-      status: checkoutLabelsStatus(checkoutLabelState),
-    },
+    // La richiesta di recensione è un effetto: parte solo da uno stato confermato.
+    reviewDue:
+      verified &&
+      reviewIsDue(
+        {
+          onboarding: onboardingStatus,
+          validationEnabled: state.validationEnabled,
+          errorCode: state.errorCode,
+          enabledSince,
+          partnerDevelopment: state.partnerDevelopment,
+          reviewCompleted,
+        },
+        Date.now(),
+      ),
+    checkoutLabels,
   };
-  return data(payload, { headers: { "Server-Timing": timing.header() } });
-};
+}
 
-export type HomeData = Awaited<ReturnType<typeof loader>>["data"];
+export type HomeData = ReturnType<typeof homeView>;
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);

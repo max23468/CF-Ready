@@ -84,6 +84,10 @@ export const it = {
       "Senza un piano attivo il checkout non blocca più nulla. Regole e messaggi restano salvati e tornano validi con il pagamento.",
     syncNeeded:
       "Lo stato mostrato qui potrebbe non coincidere con Shopify. Il checkout non viene bloccato. Riapri la pagina fra qualche minuto.",
+    verifying: "Verifica in corso…",
+    verificationFailed:
+      "Non è stato possibile verificare lo stato con Shopify. Il checkout non viene bloccato.",
+    verificationRetry: "Riprova",
     repair: "Ripara configurazione",
     messagesLabel: "Messaggi al cliente",
     messagesDefault: "Predefiniti",

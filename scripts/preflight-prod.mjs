@@ -7,6 +7,7 @@ import {
   readMigrationPolicy,
   run,
   verifyMigrationSafety,
+  verifyWebhookUris,
   verifyWorkerSecrets,
 } from "./preflight-common.mjs";
 
@@ -47,6 +48,7 @@ export function verifyProductionConfig(shopifyConfig) {
   ) {
     throw new Error("Il target Production non coincide con la configurazione attesa.");
   }
+  verifyWebhookUris(shopifyConfig, expected.appUrl);
   // Un `shopify app dev` distratto riscriverebbe gli URL dell'app pubblica con un tunnel.
   if (!/^automatically_update_urls_on_dev\s*=\s*false\s*$/m.test(shopifyConfig)) {
     throw new Error("shopify.app.toml deve vietare l'aggiornamento automatico degli URL.");

@@ -573,7 +573,7 @@ export function readComplimentaryEntitlement(db: D1Database, shopDomain: string)
     .first<ComplimentaryEntitlement>();
 }
 
-function readTrial(db: D1Database, shopDomain: string) {
+export function readTrial(db: D1Database, shopDomain: string) {
   return db
     .prepare(
       `SELECT t.status, t.started_at, t.ends_at, t.pricing_generation
