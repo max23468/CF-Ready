@@ -1,5 +1,8 @@
 import { beforeEach, expect, test, vi } from "vitest";
 import { createAppContext } from "../app/context.server";
+// Import statico: vi.mock viene sollevato sopra, e la compilazione a freddo della route
+// avviene nella raccolta del file invece di consumare il timeout del primo test.
+import { action } from "../app/routes/app._index";
 
 const mocks = vi.hoisted(() => ({
   authenticate: vi.fn(),
@@ -54,7 +57,6 @@ test("la riparazione ripete la riconciliazione autorevole", async () => {
   });
   mocks.reconcile.mockResolvedValue({ errorCode: null });
 
-  const { action } = await import("../app/routes/app._index");
   const result = await action({
     request: new Request("https://example.test/app", {
       method: "POST",
@@ -78,7 +80,6 @@ test("il check-in viene chiuso senza modificare onboarding o stato Shopify", asy
   });
   mocks.dismissMerchantCheckIn.mockResolvedValue(true);
 
-  const { action } = await import("../app/routes/app._index");
   const result = await action({
     request: new Request("https://example.test/app", {
       method: "POST",
@@ -102,7 +103,6 @@ test("l’esito del prompt recensione conserva soltanto il codice allowlistato",
     session: { shop: "review.example.myshopify.com" },
   });
 
-  const { action } = await import("../app/routes/app._index");
   const result = await action({
     request: new Request("https://example.test/app", {
       method: "POST",
@@ -134,7 +134,6 @@ test("un codice recensione futuro viene ridotto a unknown", async () => {
     session: { shop: "review-unknown.example.myshopify.com" },
   });
 
-  const { action } = await import("../app/routes/app._index");
   await action({
     request: new Request("https://example.test/app", {
       method: "POST",
@@ -169,7 +168,6 @@ test("la cancellazione non compete con un acquisto una tantum pendente", async (
     }),
   );
 
-  const { action } = await import("../app/routes/app._index");
   const result = await action({
     request: new Request("https://example.test/app", {
       method: "POST",

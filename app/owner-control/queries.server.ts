@@ -201,8 +201,38 @@ export async function findShops(db: D1Database, input: string) {
   return results;
 }
 
+export const BILLING_STATUS_CATEGORIES = [
+  "monthly",
+  "annual",
+  "one_time",
+  "ending",
+  "complimentary",
+  "trial",
+  "expired",
+  "refunded",
+  "trial_expired",
+  "trial_never",
+  "other",
+] as const;
+
+export type BillingStatusCategory = (typeof BILLING_STATUS_CATEGORIES)[number];
+
+// Ogni store attivo cade in una sola categoria, così le righe sommano sempre al totale.
+const BILLING_STATUS_CATEGORY_SQL = `CASE
+  WHEN b.is_test = 0 AND b.entitlement_status = 'active'
+       AND b.plan_kind IN ('monthly', 'annual', 'one_time') THEN b.plan_kind
+  WHEN b.is_test = 0 AND b.entitlement_status = 'ending' THEN 'ending'
+  WHEN c.status = 'active' THEN 'complimentary'
+  WHEN t.status = 'active' AND t.ends_at >= date('now') THEN 'trial'
+  WHEN b.is_test = 0 AND b.entitlement_status = 'expired' THEN 'expired'
+  WHEN b.is_test = 0 AND b.entitlement_status = 'refunded' THEN 'refunded'
+  WHEN t.status IN ('active', 'expired') THEN 'trial_expired'
+  WHEN t.status IS NULL OR t.status = 'not_started' THEN 'trial_never'
+  ELSE 'other'
+END`;
+
 export async function readBilling(db: D1Database) {
-  const [{ results }, complimentary, trials, reconciliation, conversions] = await Promise.all([
+  const [{ results }, categories, reconciliation, conversions] = await Promise.all([
     db
       .prepare(
         `SELECT b.entitlement_status, b.plan_kind, b.pricing_generation, s.country_code,
@@ -220,20 +250,15 @@ export async function readBilling(db: D1Database) {
       }>(),
     db
       .prepare(
-        `SELECT COUNT(*) AS count FROM complimentary_entitlements c
-         JOIN shops s ON s.id = c.shop_id
+        `SELECT ${BILLING_STATUS_CATEGORY_SQL} AS category, COUNT(*) AS count
+         FROM shops s
+         LEFT JOIN trials t ON t.shop_id = s.id
          LEFT JOIN billing_accounts b ON b.shop_id = s.id
-         WHERE s.installation_status = 'active' AND c.status = 'active'
-           AND COALESCE(b.entitlement_status, 'none') NOT IN ('active', 'ending')`,
+         LEFT JOIN complimentary_entitlements c ON c.shop_id = s.id
+         WHERE s.installation_status = 'active'
+         GROUP BY category`,
       )
-      .first<{ count: number }>(),
-    db
-      .prepare(
-        `SELECT COUNT(*) AS count FROM trials t JOIN shops s ON s.id = t.shop_id
-         WHERE s.installation_status = 'active' AND t.status = 'active'
-           AND t.ends_at >= date('now')`,
-      )
-      .first<{ count: number }>(),
+      .all<{ category: BillingStatusCategory; count: number }>(),
     db
       .prepare(
         `SELECT
@@ -295,10 +320,15 @@ export async function readBilling(db: D1Database) {
     mrr += monthly * row.count;
     netMrr += monthly * kept * row.count;
   }
+  const status = Object.fromEntries(
+    BILLING_STATUS_CATEGORIES.map((category) => [category, 0]),
+  ) as Record<BillingStatusCategory, number>;
+  for (const row of categories.results) status[row.category] = row.count;
   return {
-    rows: results,
-    complimentary: complimentary?.count ?? 0,
-    trials: trials?.count ?? 0,
+    status: {
+      ...status,
+      total: categories.results.reduce((sum, row) => sum + row.count, 0),
+    },
     mrr,
     arr: mrr * 12,
     netMrr,
