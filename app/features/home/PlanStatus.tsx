@@ -1,14 +1,16 @@
 import { formatDate, texts } from "../../i18n";
 import { commercialState } from "./commercial-state";
 import type { HomeData } from "./home.server";
+import { VerifyingBadge } from "./HomeSections";
 
-export function PlanStatus({ data }: { data: HomeData }) {
+export function PlanStatus({ data, verifying }: { data: HomeData; verifying: boolean }) {
   const t = texts(data.locale);
   const status = planStatusText(data);
 
   return (
     <s-section slot="aside" heading={t.plan.heading}>
       <s-stack direction="block" gap="small-100">
+        {verifying ? <VerifyingBadge t={t} /> : null}
         <s-paragraph>{status}</s-paragraph>
         {data.periodEnd && data.planKind !== "one_time" ? (
           <s-paragraph>

@@ -6,6 +6,7 @@ import {
   readMigrationPolicy,
   run,
   verifyMigrationSafety,
+  verifyWebhookUris,
   verifyWorkerSecrets,
 } from "./preflight-common.mjs";
 
@@ -20,6 +21,7 @@ const expected = {
 };
 
 export function verifyDevelopmentConfig(shopifyConfig, wranglerConfig) {
+  verifyWebhookUris(shopifyConfig, expected.appUrl);
   const shopifyTargets = [
     [shopifyConfig, /^client_id\s*=\s*"adff48d4fe4ceb0dadb4734520701dd7"\s*$/m],
     [

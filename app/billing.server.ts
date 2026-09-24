@@ -18,6 +18,7 @@ export {
   readBillingAccount,
   readLatestBillingConversion,
   readComplimentaryEntitlement,
+  readTrial,
   recordOrdinaryCancellationIntent,
   recordTrialLedger,
   recordBillingConversion,
