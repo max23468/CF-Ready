@@ -6,7 +6,7 @@ import {
 } from "../reporting/performance";
 import type { TelegramInlineKeyboard, TelegramRichMessage } from "../telegram/client.server";
 import { callbackData, type OwnerControlAction, type ShopsFilter } from "./model";
-import { SHOPS_PAGE_SIZE, type ShopRow } from "./queries.server";
+import { SHOPS_PAGE_SIZE, type BillingStatusCategory, type ShopRow } from "./queries.server";
 import type { RevenueReport } from "./revenue.server";
 import type { ShopifyPlanRow } from "./shopify-plans.server";
 
@@ -203,9 +203,7 @@ export function growthMessage(data: {
 
 export function billingMessage(
   data: {
-    rows: Array<{ entitlement_status: string; plan_kind: string; count: number }>;
-    complimentary: number;
-    trials: number;
+    status: Record<BillingStatusCategory | "total", number>;
     mrr: number;
     arr: number;
     netMrr: number;
@@ -229,43 +227,23 @@ export function billingMessage(
   revenue?: RevenueView,
 ): OwnerControlMessage {
   const fees = data.shopifyFees;
-  const count = (kind: string, status = "active") =>
-    data.rows
-      .filter((row) => row.plan_kind === kind && row.entitlement_status === status)
-      .reduce((sum, row) => sum + row.count, 0);
+  const status = data.status;
   return panel(
     "Billing",
     [
       section("💳 Stato", [
-        ["Trial attivi", String(data.trials)],
-        ["Mensili attivi", String(count("monthly"))],
-        ["Annuali attivi", String(count("annual"))],
-        ["Pagamento unico", String(count("one_time"))],
-        ["Omaggio", String(data.complimentary)],
-        [
-          "In scadenza",
-          String(
-            data.rows
-              .filter((row) => row.entitlement_status === "ending")
-              .reduce((sum, row) => sum + row.count, 0),
-          ),
-        ],
-        [
-          "Scaduti",
-          String(
-            data.rows
-              .filter((row) => row.entitlement_status === "expired")
-              .reduce((sum, row) => sum + row.count, 0),
-          ),
-        ],
-        [
-          "Rimborsati",
-          String(
-            data.rows
-              .filter((row) => row.entitlement_status === "refunded")
-              .reduce((sum, row) => sum + row.count, 0),
-          ),
-        ],
+        ["Store attivi", String(status.total)],
+        ["Mensili attivi", String(status.monthly)],
+        ["Annuali attivi", String(status.annual)],
+        ["Pagamento unico", String(status.one_time)],
+        ["In scadenza", String(status.ending)],
+        ["Omaggio", String(status.complimentary)],
+        ["Trial attivi", String(status.trial)],
+        ["Piani scaduti", String(status.expired)],
+        ["Rimborsati", String(status.refunded)],
+        ["Prova scaduta senza acquisto", String(status.trial_expired)],
+        ["Prova mai avviata", String(status.trial_never)],
+        ...(status.other ? [["Altro da verificare", String(status.other)] as Row] : []),
       ]),
       section("📐 Run-rate", [
         ["Valore mensile (MRR)", MONEY.format(data.mrr)],
