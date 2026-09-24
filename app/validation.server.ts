@@ -17,6 +17,7 @@ export {
   readAddress2Declaration,
   readHomeState,
   readOnboarding,
+  readStoredShopSnapshot,
   saveAddress2Declaration,
   saveOnboarding,
   validationEnabledSince,

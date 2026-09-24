@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.3 — 24 settembre 2026
+
+- la Home non attende più la riconciliazione Shopify prima dell'HTML (D-167):
+  mostra subito l'ultimo stato salvato con “Verifica in corso…” e le azioni
+  disabilitate, poi lo sostituisce con lo stato confermato in streaming nella
+  stessa risposta; se la verifica non riesce compare un avviso con “Riprova”.
+- i webhook Shopify usano URI assoluti sull'origine dell'app (D-168): dalla
+  1.15.2 l'App URL `/app` faceva arrivare le consegne su `/app/webhooks/*`,
+  respinte con 404; i preflight rifiutano ora URI relativi.
+
 ## 1.15.2 — 24 settembre 2026
 
 - il ciclo periodico rinnova in anticipo i token offline in scadenza degli

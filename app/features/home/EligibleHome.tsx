@@ -11,6 +11,7 @@ import { homeNextStep } from "./home-next-step";
 import type { HomeData } from "./home.server";
 
 type Submit = (intent: string, source?: string) => void;
+type Verification = "pending" | "confirmed" | "failed";
 
 export function EligibleHome({
   data,
@@ -19,6 +20,8 @@ export function EligibleHome({
   result,
   submit,
   onboardingWindowId,
+  verification,
+  retryVerification,
 }: {
   data: HomeData;
   fetcherState: "idle" | "loading" | "submitting";
@@ -26,12 +29,16 @@ export function EligibleHome({
   result: { ok: boolean; errorCode?: AppErrorCode; confirmationUrl?: string } | undefined;
   submit: Submit;
   onboardingWindowId: string;
+  verification: Verification;
+  retryVerification: () => void;
 }) {
   const t = texts(data.locale);
   const currentCommercialState = commercialState(data);
   const entitled = currentCommercialState === "entitled";
   const firstRun = currentCommercialState === "first_run";
-  const busy = fetcherState !== "idle";
+  // Le azioni partono solo da uno stato confermato da Shopify (D-167).
+  const busy = fetcherState !== "idle" || verification !== "confirmed";
+  const verifying = verification === "pending";
   const pendingIntent = pendingFetcherIntent(formData);
   const pendingSource = pendingFetcherSource(formData);
   const firstCharge = data.firstChargeAt
@@ -47,6 +54,8 @@ export function EligibleHome({
         busy={busy}
         pendingIntent={pendingIntent}
         submit={submit}
+        verification={verification}
+        retryVerification={retryVerification}
       />
       {data.showMerchantCheckIn ? (
         <MerchantCheckIn data={data} busy={busy} pendingIntent={pendingIntent} submit={submit} />
@@ -68,6 +77,7 @@ export function EligibleHome({
         pendingIntent={pendingIntent}
         pendingSource={pendingSource}
         submit={submit}
+        verifying={verifying}
         t={t}
       />
       <PlanChoice
@@ -77,7 +87,7 @@ export function EligibleHome({
         submit={submit}
         firstCharge={firstCharge}
       />
-      <PlanStatus data={data} />
+      <PlanStatus data={data} verifying={verifying} />
       <HomeAside nextStep={nextStep} t={t} />
       <s-app-window id={onboardingWindowId} src="/app/onboarding" />
       <DeactivateModal pendingIntent={pendingIntent} submit={submit} t={t} />
@@ -91,16 +101,28 @@ function HomeNotices({
   busy,
   pendingIntent,
   submit,
+  verification,
+  retryVerification,
 }: {
   data: HomeData;
   result: { ok: boolean; errorCode?: AppErrorCode } | undefined;
   busy: boolean;
   pendingIntent: string | null;
   submit: Submit;
+  verification: Verification;
+  retryVerification: () => void;
 }) {
   const t = texts(data.locale);
   return (
     <>
+      {verification === "failed" ? (
+        <MotionBanner tone="warning">
+          <s-stack direction="block" gap="small-100">
+            <s-paragraph>{t.home.verificationFailed}</s-paragraph>
+            <s-button onClick={retryVerification}>{t.home.verificationRetry}</s-button>
+          </s-stack>
+        </MotionBanner>
+      ) : null}
       <PrimaryNotice data={data} busy={busy} pendingIntent={pendingIntent} submit={submit} />
       {result && !result.ok ? (
         <MotionBanner tone="critical">{localizedError(t.errors, result.errorCode)}</MotionBanner>

@@ -29,6 +29,7 @@ export function HomeValidationSection({
   pendingIntent,
   pendingSource,
   submit,
+  verifying,
   t,
 }: {
   data: HomeData;
@@ -38,6 +39,7 @@ export function HomeValidationSection({
   pendingIntent: string | null;
   pendingSource: string | null;
   submit: Submit;
+  verifying: boolean;
   t: Texts;
 }) {
   const status = validationStatus(data.validationEnabled, entitled);
@@ -46,7 +48,10 @@ export function HomeValidationSection({
   return (
     <s-section>
       <s-stack direction="block" gap="base">
-        <s-badge tone={presentation.tone}>{presentation.badge}</s-badge>
+        <s-stack direction="inline" gap="small-100">
+          <s-badge tone={presentation.tone}>{presentation.badge}</s-badge>
+          {verifying ? <VerifyingBadge t={t} /> : null}
+        </s-stack>
         <s-heading>{presentation.title}</s-heading>
         {firstRun ? null : (
           <s-paragraph>
@@ -129,7 +134,7 @@ function HomeValidationAction({
 }) {
   if (data.validationEnabled) {
     return (
-      <s-button commandFor="deactivate" command="--show">
+      <s-button commandFor="deactivate" command="--show" disabled={busy}>
         {t.home.deactivate}
       </s-button>
     );
@@ -142,6 +147,14 @@ function HomeValidationAction({
     >
       {t.home.activate}
     </s-button>
+  );
+}
+
+export function VerifyingBadge({ t }: { t: Texts }) {
+  return (
+    <s-badge tone="info" icon="refresh">
+      {t.home.verifying}
+    </s-badge>
   );
 }
 

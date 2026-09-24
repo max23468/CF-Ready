@@ -71,7 +71,7 @@ test("il piano omaggio non viene presentato come un pagamento", () => {
       firstCharge: "oggi",
     }),
   );
-  const status = renderedElements(PlanStatus({ data: complimentary }));
+  const status = renderedElements(PlanStatus({ data: complimentary, verifying: false }));
 
   expect(
     choice.some(
@@ -509,7 +509,7 @@ test("la prima installazione non viene presentata come un piano da riattivare", 
         !(element.props as { slot?: string }).slot,
     )
     .map((element) => (element.props as { children?: ReactNode }).children);
-  const planStatus = renderedElements(PlanStatus({ data: firstRunData }));
+  const planStatus = renderedElements(PlanStatus({ data: firstRunData, verifying: false }));
 
   expect(commercialState(firstRunData)).toBe("first_run");
   expect(headings).toContain(texts("it").plan.chooseNowHeading);

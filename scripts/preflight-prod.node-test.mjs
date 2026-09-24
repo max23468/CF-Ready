@@ -79,6 +79,16 @@ test("il preflight rifiuta un manifest che non è quello Production", () => {
   }
 });
 
+test("il preflight rifiuta webhook relativi all'App URL /app", () => {
+  assert.throws(
+    () =>
+      verifyProductionConfig(
+        shopify.replace("https://app.cfready.it/webhooks/shop/update", "/webhooks/shop/update"),
+      ),
+    /\/webhooks\/shop\/update/,
+  );
+});
+
 test("il preflight vieta l'aggiornamento automatico degli URL in Production", () => {
   assert.throws(
     () =>

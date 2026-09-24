@@ -58,6 +58,18 @@ function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+// Shopify risolve un URI relativo sull'`application_url`, che è `/app` (D-166): i webhook
+// finirebbero su `/app/webhooks/*`, dove il Worker risponde 404. Solo URI assoluti sull'origine.
+export function verifyWebhookUris(shopifyConfig, appUrl) {
+  const uris = [...shopifyConfig.matchAll(/^\s*uri\s*=\s*"([^"]*)"\s*$/gm)].map(([, uri]) => uri);
+  const invalid = uris.filter((uri) => !uri.startsWith(`${appUrl}/webhooks/`));
+  if (uris.length === 0 || invalid.length > 0) {
+    throw new Error(
+      `I webhook devono usare URI assoluti su ${appUrl}/webhooks/: ${invalid.join(", ") || "nessuno"}.`,
+    );
+  }
+}
+
 export function verifyWorkerSecrets(
   secrets,
   { ownerNotifications = false, ownerControl = false } = {},
