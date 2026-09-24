@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.1 — 24 settembre 2026
+
+- il pannello Billing di Telegram mostra il totale degli store attivi e
+  assegna ogni store a una sola riga, così le righe sommano sempre al totale:
+  si aggiungono “Prova scaduta senza acquisto”, “Prova mai avviata” e, solo se
+  serve, “Altro da verificare”; “Scaduti” diventa “Piani scaduti”, perché
+  conta i piani a pagamento e non le prove;
+- i test delle azioni billing della home importano la route una volta sola, e
+  la compilazione a freddo sotto coverage non consuma più il timeout dei primi
+  test.
+
 ## 1.15.0 — 24 settembre 2026
 
 - l'app embedded carica la release candidate di Polaris 2
