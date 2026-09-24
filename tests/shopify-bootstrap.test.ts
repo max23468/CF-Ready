@@ -78,7 +78,7 @@ test("il bootstrap Shopify usa fallback locali", async () => {
     appUrl: "",
     authPathPrefix: "/auth",
     distribution: "app-store",
-    polarisUrl: "https://cdn.shopify.com/shopifycloud/polaris-1.js",
+    polarisUrl: "https://cdn.shopify.com/shopifycloud/polaris-2.0-rc.js",
     future: { expiringOfflineAccessTokens: true },
   });
   expect(module.sessionStorage).toEqual({ kind: "d1-session-storage" });

@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.0 — 24 settembre 2026
+
+- l'app embedded carica la release candidate di Polaris 2
+  (`polaris-2.0-rc.js`) e ne adotta i tipi `2.0.0-rc.0`: negli store con il
+  nuovo design dell'admin Shopify l'interfaccia usa colori, tipografia,
+  spaziature e icone nuovi, negli altri mantiene l'aspetto di Polaris 1.
+- lo schema della Validation Function segue l'aggiornamento Shopify della
+  Function API `2026-07`, che aggiunge il codice valuta `XCG`; CF Ready non
+  usa le valute e la validazione non cambia.
+
 ## 1.14.2 — 23 settembre 2026
 
 - il poll finanziario Partner non scarta più la vendita di un abbonamento
