@@ -15,6 +15,7 @@ import {
   run,
   verifyMigrationSafety,
   verifyNoPendingMigrations,
+  verifyWebhookUris,
   verifyWorkerSecrets,
 } from "./preflight-common.mjs";
 
@@ -24,6 +25,9 @@ application_url = "https://cf-ready-dev.tmsf.workers.dev/app"
 [access_scopes]
 scopes = "write_validations"
 optional_scopes = [ "write_translations", "read_locales", "read_markets" ]
+[webhooks]
+  [[webhooks.subscriptions]]
+  uri = "https://cf-ready-dev.tmsf.workers.dev/webhooks/app/uninstalled"
 [events]
 api_version = "unstable"
 subscription = []
@@ -75,6 +79,27 @@ test("una lettura provider transitoria riesce al tentativo successivo", () => {
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
+});
+
+test("i webhook usano URI assoluti sull'origine, non relativi all'App URL /app", () => {
+  const manifest = readFileSync(new URL("../shopify.app.dev.toml", import.meta.url), "utf8");
+  assert.doesNotThrow(() => verifyWebhookUris(manifest, "https://cf-ready-dev.tmsf.workers.dev"));
+  assert.throws(
+    () =>
+      verifyDevelopmentConfig(
+        shopify.replace("https://cf-ready-dev.tmsf.workers.dev/webhooks/", "/webhooks/"),
+        wrangler,
+      ),
+    /URI assoluti/,
+  );
+  assert.throws(
+    () =>
+      verifyWebhookUris(
+        shopify.replace(/^\s*uri.*$/m, ""),
+        "https://cf-ready-dev.tmsf.workers.dev",
+      ),
+    /nessuno/,
+  );
 });
 
 test("il preflight lega il nome Worker alla chiave corretta", () => {

@@ -18,6 +18,9 @@ const mocks = vi.hoisted(() => ({
   readBillingAccount: vi.fn(),
   readComplimentaryEntitlement: vi.fn(),
   readHomeState: vi.fn(),
+  readLatestBillingConversion: vi.fn(),
+  readStoredShopSnapshot: vi.fn(),
+  readTrial: vi.fn(),
   readCheckoutLabelState: vi.fn(),
   reconcile: vi.fn(),
   recordEvent: vi.fn(),
@@ -52,6 +55,8 @@ vi.mock("../app/billing.server", async (importOriginal) => ({
   readBilling: mocks.readBilling,
   readBillingAccount: mocks.readBillingAccount,
   readComplimentaryEntitlement: mocks.readComplimentaryEntitlement,
+  readLatestBillingConversion: mocks.readLatestBillingConversion,
+  readTrial: mocks.readTrial,
   recordOrdinaryCancellationIntent: mocks.recordOrdinaryCancellationIntent,
   requestedRecurringPlanIsActive: mocks.requestedRecurringPlanIsActive,
   returnUrlFor: mocks.returnUrlFor,
@@ -80,6 +85,7 @@ vi.mock("../app/validation.server", async (importOriginal) => ({
   completeOnboardingAutomatically: mocks.completeOnboardingAutomatically,
   queryContext: mocks.queryContext,
   readHomeState: mocks.readHomeState,
+  readStoredShopSnapshot: mocks.readStoredShopSnapshot,
   reconcile: mocks.reconcile,
   withValidationLock: mocks.withValidationLock,
   writeValidation: mocks.writeValidation,
@@ -111,6 +117,13 @@ beforeEach(() => {
     },
   );
   mocks.readComplimentaryEntitlement.mockResolvedValue(null);
+  mocks.readLatestBillingConversion.mockResolvedValue(null);
+  mocks.readStoredShopSnapshot.mockResolvedValue({
+    displayName: null,
+    countryCode: null,
+    config: null,
+  });
+  mocks.readTrial.mockResolvedValue(null);
   mocks.recordOrdinaryCancellationIntent.mockResolvedValue(true);
   mocks.readCheckoutLabelState.mockResolvedValue({
     mode: "off",
@@ -171,7 +184,7 @@ test("la Home completa automaticamente un onboarding già effettivo", async () =
     partnerDevelopment: false,
   });
   mocks.readHomeState.mockResolvedValue({
-    onboarding: { status: "in_progress", step: 4 },
+    onboarding: { status: "in_progress", step: 4, errorCode: null, validationEnabled: true },
     address2Declaration: "address2",
     enabledSince: "2026-08-01T00:00:00.000Z",
     merchantCheckInDismissed: false,
@@ -186,7 +199,10 @@ test("la Home completa automaticamente un onboarding già effettivo", async () =
     params: {},
   } as never);
 
-  expect(result.data).toMatchObject({
+  // Lo stato salvato non anticipa il completamento: arriva solo con la conferma Shopify.
+  expect(result.data.home).toMatchObject({ verified: false, onboarding: "in_progress" });
+  await expect(result.data.confirmed).resolves.toMatchObject({
+    verified: true,
     onboarding: "completed",
     complimentary: true,
     showMerchantCheckIn: true,

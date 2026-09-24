@@ -85,6 +85,9 @@ export const en: typeof it = {
       "Without an active plan, checkout no longer blocks anything. Rules and messages stay saved and apply again once you pay.",
     syncNeeded:
       "What you see here may not match Shopify. Checkout isn’t blocked. Reload the page in a few minutes.",
+    verifying: "Checking with Shopify…",
+    verificationFailed: "We couldn’t check your status with Shopify. Checkout isn’t blocked.",
+    verificationRetry: "Try again",
     repair: "Repair configuration",
     messagesLabel: "Customer messages",
     messagesDefault: "Default",

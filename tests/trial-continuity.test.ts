@@ -205,6 +205,7 @@ test("il richiamo è nello stesso blocco dello stato e punta al listino esistent
       pendingIntent: null,
       pendingSource: null,
       submit,
+      verifying: false,
       t: texts("it"),
     }),
   );
