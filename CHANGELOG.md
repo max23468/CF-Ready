@@ -6,6 +6,18 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.2 — 24 settembre 2026
+
+- il ciclo periodico rinnova in anticipo i token offline in scadenza degli
+  store attivi (D-164): alla prima apertura dopo un'ora il merchant non paga più
+  il token exchange prima dell'HTML, circa 500 ms di LCP misurato da Shopify;
+- il reporter Web Vitals si registra durante il parsing del documento e invia
+  i report con `sendBeacon` a `/performance`, firmati per lo store (D-165): i
+  caricamenti chiusi prima dell'idratazione non mancano più dai campioni D1
+  confrontati con il Dev Dashboard;
+- l'App URL è `/app` (D-166): l'apertura dall'Admin arriva alla Home senza il
+  redirect dalla radice, che resta attivo per i link precedenti.
+
 ## 1.15.1 — 24 settembre 2026
 
 - il pannello Billing di Telegram mostra il totale degli store attivi e

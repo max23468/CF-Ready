@@ -38,7 +38,7 @@ jobs:
 
       - name: Verifica URL Production persistenti
         run: |
-          grep -Fxq 'application_url = "https://app.cfready.it"' shopify.app.toml
+          grep -Fxq 'application_url = "https://app.cfready.it/app"' shopify.app.toml
           grep -Fxq 'redirect_urls = [ "https://app.cfready.it/auth/callback" ]' shopify.app.toml
 
       - uses: ./.github/actions/setup-node-npm
