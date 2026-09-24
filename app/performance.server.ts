@@ -1,3 +1,4 @@
+import { performanceReportKey } from "./hash.server";
 import {
   PERFORMANCE_METRIC_NAMES,
   PERFORMANCE_ROUTES,
@@ -66,6 +67,52 @@ export function normalizePerformanceReport(value: unknown): PerformanceReport | 
   });
 
   return metrics.length ? { route, metrics, serverTimings } : null;
+}
+
+// Il report parte con `sendBeacon` anche mentre l'iframe si chiude, quando il session token di App
+// Bridge (valido un minuto e ottenuto in modo asincrono) non è più raggiungibile. Il documento
+// autenticato riceve quindi una firma per il proprio store; CLS e INP arrivano anche ore dopo.
+export const PERFORMANCE_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+const TOKEN_SEPARATOR = "~";
+
+export async function createPerformanceToken(shopDomain: string, now = Date.now()) {
+  const payload = `${shopDomain}${TOKEN_SEPARATOR}${now}`;
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    await performanceReportKey(),
+    new TextEncoder().encode(payload),
+  );
+  return `${payload}${TOKEN_SEPARATOR}${toHex(new Uint8Array(signature))}`;
+}
+
+export async function verifyPerformanceToken(token: unknown, now = Date.now()) {
+  if (typeof token !== "string" || token.length > 512) return null;
+  const [shopDomain, issuedAt, signature, ...rest] = token.split(TOKEN_SEPARATOR);
+  if (
+    rest.length ||
+    !shopDomain ||
+    !/^\d{1,15}$/.test(issuedAt ?? "") ||
+    !/^[0-9a-f]{64}$/.test(signature ?? "")
+  ) {
+    return null;
+  }
+  const age = now - Number(issuedAt);
+  if (age < -60_000 || age > PERFORMANCE_TOKEN_TTL_MS) return null;
+  const valid = await crypto.subtle.verify(
+    "HMAC",
+    await performanceReportKey(),
+    fromHex(signature!),
+    new TextEncoder().encode(`${shopDomain}${TOKEN_SEPARATOR}${issuedAt}`),
+  );
+  return valid ? shopDomain : null;
+}
+
+function toHex(bytes: Uint8Array) {
+  return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function fromHex(value: string) {
+  return Uint8Array.from(value.match(/../g) ?? [], (pair) => Number.parseInt(pair, 16));
 }
 
 export async function recordPerformanceReport(

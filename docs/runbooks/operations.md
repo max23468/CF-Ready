@@ -203,6 +203,24 @@ separare sempre la shell Shopify Admin dall'iframe CF Ready: un LCP il cui
 elemento appartiene alla shell non prova una regressione del bundle o del
 loader dell'app.
 
+I campioni arrivano da uno script inline registrato durante il parsing di
+`/app` e inviato con `sendBeacon` a `/performance` (D-165). Per verificare che
+D1 veda gli stessi caricamenti di Shopify, confronta per giorno il numero di
+campioni LCP con i caricamenti del Dev Dashboard, sezione Monitoraggio: uno
+scarto stabile indica report persi o filtri Shopify, e va annotato prima di
+trarre conclusioni dal p75 locale.
+
+## Rinnovo dei token offline
+
+Lo stesso cron ogni cinque minuti rinnova per primo i token offline in scadenza
+entro venti minuti, fino a tre store attivi per esecuzione (D-164). Un evento
+`offline_token_refresh_failed` isolato non richiede interventi: l'apertura
+successiva dello store esegue il token exchange. Se l'evento si ripete a ogni
+esecuzione, lo store più urgente non si rinnova e l'LCP a freddo torna a
+includere circa 500 ms di autenticazione. Un token scaduto da oltre un giorno
+esce dai tentativi finché un'apertura o la riconciliazione billing non lo
+rinnovano.
+
 ## Notifiche owner
 
 Il cron Production ogni cinque minuti acquisisce dalla Shopify Partner API gli
