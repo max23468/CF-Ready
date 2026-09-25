@@ -9,6 +9,7 @@ import { callbackData, type OwnerControlAction, type ShopsFilter } from "./model
 import { SHOPS_PAGE_SIZE, type BillingStatusCategory, type ShopRow } from "./queries.server";
 import type { RevenueReport } from "./revenue.server";
 import type { ShopifyPlanRow } from "./shopify-plans.server";
+import { FINANCIAL_OBSERVATION_DAYS } from "./incidents.server";
 
 type Row = [string, string];
 type Section = { title: string; rows: Row[] };
@@ -100,6 +101,7 @@ export function shopMessage(
   shop: ShopRow,
   activity: Array<{ event_name: string; occurred_at: string }> = [],
   shopifyPlan?: string | null,
+  now = new Date(),
 ): OwnerControlMessage {
   return panel(
     "Dettaglio store",
@@ -165,7 +167,47 @@ export function shopMessage(
           ]
         : []),
     ],
-    keyboard([[button("‹ Store", { view: "shops", filter: "all", page: 0 })]]),
+    keyboard([
+      ...(canCloseConversion(shop, now)
+        ? [
+            [
+              button("Chiudi conversione verificata", {
+                view: "conversion_review",
+                shopId: shop.id,
+              }),
+            ],
+          ]
+        : []),
+      [button("‹ Store", { view: "shops", filter: "all", page: 0 })],
+    ]),
+  );
+}
+
+// Prima dei 37 giorni vendita e credito del piano sostituito possono ancora arrivare da Partner.
+export function canCloseConversion(shop: ShopRow, now: Date) {
+  return (
+    shop.conversion_credit_status === "needs_review" &&
+    shop.conversion_credit_observed_at === null &&
+    shop.conversion_requested_at !== null &&
+    Date.parse(shop.conversion_requested_at) <=
+      now.getTime() - FINANCIAL_OBSERVATION_DAYS * 24 * 60 * 60 * 1000
+  );
+}
+
+export function conversionReviewMessage(shop: ShopRow): OwnerControlMessage {
+  return panel(
+    "Chiudi conversione",
+    [
+      section(`🔎 ${shopName(shop)}`, [
+        ["Stato attuale", "Da verificare"],
+        ["Dopo la conferma", "Non applicabile"],
+        ["Conferma solo se", "nel Partner Dashboard il piano sostituito non ha vendita né credito"],
+      ]),
+    ],
+    keyboard([
+      [button("Conferma chiusura", { view: "conversion_close", shopId: shop.id })],
+      [button("‹ Annulla", { view: "shop", shopId: shop.id })],
+    ]),
   );
 }
 

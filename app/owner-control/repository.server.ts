@@ -1,3 +1,4 @@
+import { FINANCIAL_OBSERVATION_DAYS } from "./incidents.server";
 const UPDATE_CLAIM_TIMEOUT_MS = 2 * 60 * 1000;
 
 export async function claimOwnerControlUpdate(
@@ -105,4 +106,21 @@ export function writeOwnerControlState(
 export function ownerControlErrorCode(error: unknown) {
   const message = error instanceof Error ? error.message : "";
   return /^[a-z0-9_]+$/.test(message) ? message : "owner_control_failed";
+}
+
+// D-170: l'owner chiude una conversione verificata nel Partner Dashboard, solo dopo la stessa
+// finestra degli incidenti finanziari e senza credito osservato (la rilettura lo riaprirebbe).
+export async function closeReviewedConversion(db: D1Database, shopId: number, now: Date) {
+  const result = await db
+    .prepare(
+      `UPDATE billing_conversions
+          SET credit_status = 'not_applicable', updated_at = ?
+        WHERE id = (SELECT id FROM billing_conversions WHERE shop_id = ?
+                     ORDER BY requested_at DESC, id DESC LIMIT 1)
+          AND credit_status = 'needs_review' AND credit_transaction_gid IS NULL
+          AND datetime(requested_at) <= datetime(?, '-${FINANCIAL_OBSERVATION_DAYS} days')`,
+    )
+    .bind(now.toISOString(), shopId, now.toISOString())
+    .run();
+  return result.meta.changes === 1;
 }

@@ -75,6 +75,7 @@ export type ShopRow = {
   conversion_credit_currency: string | null;
   conversion_credit_transaction_type: string | null;
   conversion_credit_observed_at: string | null;
+  conversion_requested_at: string | null;
   conversion_subscription_sale_observed_at: string | null;
   complimentary_status: string | null;
 };
@@ -98,6 +99,8 @@ const SHOP_SELECT = `
       ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_credit_transaction_type,
     (SELECT credit_observed_at FROM billing_conversions bc WHERE bc.shop_id = s.id
       ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_credit_observed_at,
+    (SELECT requested_at FROM billing_conversions bc WHERE bc.shop_id = s.id
+      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_requested_at,
     (SELECT subscription_sale_observed_at FROM billing_conversions bc WHERE bc.shop_id = s.id
       ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1)
       AS conversion_subscription_sale_observed_at,
