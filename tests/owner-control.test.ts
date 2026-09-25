@@ -1894,6 +1894,79 @@ describe("query D1 e run-rate", () => {
     ).toBeNull();
   });
 
+  test("chiude dal pulsante solo una conversione da verificare, osservata e senza credito", async () => {
+    await insertStore(1, "conversion.myshopify.com");
+    await insertStore(2, "credited.myshopify.com");
+    await insertStore(3, "recent.myshopify.com");
+    const conversion = (
+      shopId: number,
+      creditGid: string | null,
+      requested = "2026-08-01T10:00:00.000Z",
+    ) =>
+      env.DB.prepare(
+        `INSERT INTO billing_conversions (
+           shop_id, subscription_gid, one_time_gid, currency, credit_status,
+           credit_transaction_gid, credit_observed_at, requested_at, source, is_test,
+           created_at, updated_at
+         ) VALUES (?, ?, ?, 'EUR', 'needs_review', ?, ?, ?, 'historical_reconciliation', 0,
+                   ?, ?)`,
+      ).bind(
+        shopId,
+        `gid://shopify/AppSubscription/${shopId}`,
+        `gid://shopify/AppPurchaseOneTime/${shopId}`,
+        creditGid,
+        creditGid ? requested : null,
+        requested,
+        requested,
+        requested,
+      );
+    await env.DB.batch([
+      conversion(1, null),
+      conversion(2, "gid://partners/AppSaleCredit/2"),
+      // Ancora nella finestra di 37 giorni: vendita e credito possono arrivare da Partner.
+      conversion(3, null, "2026-08-03T10:00:00.000Z"),
+    ]);
+    const options = {
+      now: NOW,
+      adminForShop: vi.fn(async () => ({
+        graphql: vi.fn(async () =>
+          Response.json({ data: { shop: { plan: { publicDisplayName: "Basic" } } } }),
+        ),
+      })),
+    };
+    const render = (action: OwnerControlAction) =>
+      renderOwnerControlAction(env.DB, action, controlConfig(), options);
+    const callbacks = (message: Awaited<ReturnType<typeof render>>) =>
+      message.replyMarkup?.inline_keyboard.flat().map((key) => key.callback_data) ?? [];
+    const status = (shopId: number) =>
+      env.DB.prepare("SELECT credit_status FROM billing_conversions WHERE shop_id = ?")
+        .bind(shopId)
+        .first("credit_status");
+
+    const review = parseCallback(callbackData({ view: "conversion_review", shopId: 1 }));
+    expect(review).toEqual({ view: "conversion_review", shopId: 1, page: 0, refresh: false });
+    expect(parseCommand("/conversion_close")).toBeNull();
+    expect(callbacks(await render({ view: "shop", shopId: 1 }))).toContain("oc1:c:1:0");
+    expect(callbacks(await render(review!))).toContain("oc1:k:1:0");
+
+    const closed = await render({ view: "conversion_close", shopId: 1 });
+    expect(await status(1)).toBe("not_applicable");
+    expect(callbacks(closed)).not.toContain("oc1:c:1:0");
+    await render({ view: "conversion_close", shopId: 1 });
+    expect(await status(1)).toBe("not_applicable");
+
+    expect(callbacks(await render({ view: "shop", shopId: 2 }))).not.toContain("oc1:c:2:0");
+    expect(JSON.stringify(await render({ view: "conversion_review", shopId: 2 }))).toContain(
+      "Nessuna conversione da chiudere.",
+    );
+    await render({ view: "conversion_close", shopId: 2 });
+    expect(await status(2)).toBe("needs_review");
+
+    expect(callbacks(await render({ view: "shop", shopId: 3 }))).not.toContain("oc1:c:3:0");
+    await render({ view: "conversion_close", shopId: 3 });
+    expect(await status(3)).toBe("needs_review");
+  });
+
   test("rifiuta letture incidenti incomplete e ignora store già rimossi", async () => {
     const statement = {
       bind() {
@@ -2427,6 +2500,7 @@ function shopFixture(overrides: Partial<ShopRow> = {}): ShopRow {
     conversion_credit_currency: null,
     conversion_credit_transaction_type: null,
     conversion_credit_observed_at: null,
+    conversion_requested_at: null,
     conversion_subscription_sale_observed_at: null,
     complimentary_status: null,
     ...overrides,

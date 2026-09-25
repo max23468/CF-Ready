@@ -16,7 +16,11 @@ export const OWNER_CONTROL_COMMANDS = [
   "help",
 ] as const;
 
-export type OwnerControlView = (typeof OWNER_CONTROL_COMMANDS)[number];
+// Le viste di chiusura conversione esistono solo come pulsanti della scheda store (D-170).
+export type OwnerControlView =
+  | (typeof OWNER_CONTROL_COMMANDS)[number]
+  | "conversion_review"
+  | "conversion_close";
 export type ShopsFilter = "all" | "trial" | "paid" | "validation_off" | "issues";
 
 export type OwnerControlAction = {
@@ -33,8 +37,9 @@ const SHOP_FILTERS = new Set<ShopsFilter>(["all", "trial", "paid", "validation_o
 export function parseCommand(text: string): OwnerControlAction | null {
   if (text.length > 160) return null;
   const match = /^\/([a-z]+)(?:\s+([^\s].*))?$/.exec(text.trim());
-  if (!match || !OWNER_CONTROL_COMMANDS.includes(match[1] as OwnerControlView)) return null;
-  const view = match[1] as OwnerControlView;
+  const commands: readonly string[] = OWNER_CONTROL_COMMANDS;
+  if (!match || !commands.includes(match[1])) return null;
+  const view = match[1] as (typeof OWNER_CONTROL_COMMANDS)[number];
   const argument = match[2]?.trim();
   if (view === "shops") {
     const filter = argument ?? "all";
@@ -64,6 +69,8 @@ const VIEW_CODES: Record<OwnerControlView, string> = {
   performance: "p",
   version: "v",
   help: "x",
+  conversion_review: "c",
+  conversion_close: "k",
 };
 const CODE_VIEWS = Object.fromEntries(
   Object.entries(VIEW_CODES).map(([view, code]) => [code, view]),
@@ -95,7 +102,7 @@ export function parseCallback(data: string): OwnerControlAction | null {
   ) {
     return null;
   }
-  if (view === "shop") {
+  if (view === "shop" || view === "conversion_review" || view === "conversion_close") {
     if (!target || !/^[0-9a-z]+$/.test(target)) return null;
     const shopId = Number.parseInt(target, 36);
     return Number.isSafeInteger(shopId) && shopId > 0
