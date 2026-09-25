@@ -172,6 +172,7 @@ export async function diagnosticShopMessage(
     },
     timeline,
     options.shopifyPlan,
+    options.now,
   );
   const blocks = message.richMessage.blocks;
   return {
