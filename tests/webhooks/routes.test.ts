@@ -51,6 +51,52 @@ test("non accoda gli aggiornamenti shop che conservano il Paese osservato", asyn
   expect(mocks.handleWebhook).not.toHaveBeenCalled();
 });
 
+test("riconosce senza D1 gli update ripetuti con il Paese già confermato", async () => {
+  vi.useFakeTimers();
+  try {
+    mocks.authenticateWebhook.mockResolvedValue({
+      webhookId: "wh-country-repeated",
+      topic: "SHOP_UPDATE",
+      shop: "repeated.myshopify.com",
+      payload: { country_code: "GB" },
+    });
+    mocks.first.mockResolvedValue({ 1: 1 });
+
+    expect((await callWebhook("/webhooks/shop/update")).status).toBe(200);
+    vi.advanceTimersByTime(9 * 60 * 1000);
+    const repeated = await callWebhook("/webhooks/shop/update");
+
+    expect(repeated.status).toBe(200);
+    expect(db.prepare).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(60 * 1000);
+    await callWebhook("/webhooks/shop/update");
+    expect(db.prepare).toHaveBeenCalledTimes(2);
+
+    mocks.first.mockResolvedValue(null);
+    mocks.authenticateWebhook.mockResolvedValue({
+      webhookId: "wh-country-moved",
+      topic: "SHOP_UPDATE",
+      shop: "repeated.myshopify.com",
+      payload: { country_code: "IT" },
+    });
+    await callWebhook("/webhooks/shop/update");
+    expect(mocks.handleWebhook).toHaveBeenCalledTimes(1);
+
+    // Dopo un Paese diverso la conferma precedente non vale più, anche se non è scaduta.
+    mocks.authenticateWebhook.mockResolvedValue({
+      webhookId: "wh-country-back",
+      topic: "SHOP_UPDATE",
+      shop: "repeated.myshopify.com",
+      payload: { country_code: "GB" },
+    });
+    await callWebhook("/webhooks/shop/update");
+    expect(db.prepare).toHaveBeenCalledTimes(4);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 test("accoda gli aggiornamenti shop quando cambia il Paese osservato", async () => {
   mocks.authenticateWebhook.mockResolvedValue({
     webhookId: "wh-country-changed",
