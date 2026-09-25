@@ -6,6 +6,13 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.4 — 25 settembre 2026
+
+- gli update `shop/update` con il Paese appena confermato non leggono più D1
+  (D-169): l'isolate del Worker ricorda la conferma per dieci minuti e risponde
+  subito, così i rari picchi di latenza verso D1 non superano il timeout di
+  consegna Shopify per gli store che inviano centinaia di update l'ora.
+
 ## 1.15.3 — 24 settembre 2026
 
 - la Home non attende più la riconciliazione Shopify prima dell'HTML (D-167):
