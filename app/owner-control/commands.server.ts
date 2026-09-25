@@ -7,6 +7,8 @@ import type { OwnerControlAction } from "./model";
 import {
   activityMessage,
   billingMessage,
+  canCloseConversion,
+  conversionReviewMessage,
   dashboardMessage,
   errorsMessage,
   funnelMessage,
@@ -39,6 +41,7 @@ import {
   readTrials,
 } from "./queries.server";
 import {
+  closeReviewedConversion,
   ownerControlErrorCode,
   readOwnerControlState,
   writeOwnerControlState,
@@ -139,6 +142,19 @@ export async function renderOwnerControlAction(
       if (shops.length > 1) return shopMatchesMessage(shops);
       return noticeMessage("Store", "Store non trovato.");
     }
+    case "conversion_review": {
+      const shop = action.shopId === undefined ? null : await readShop(db, action.shopId);
+      return shop && canCloseConversion(shop, now)
+        ? conversionReviewMessage(shop)
+        : noticeMessage("Conversione", "Nessuna conversione da chiudere.");
+    }
+    case "conversion_close":
+      // La scrittura è condizionata allo stato: un retry dello stesso update non cambia nulla.
+      if (action.shopId !== undefined) await closeReviewedConversion(db, action.shopId, now);
+      return renderOwnerControlAction(db, { view: "shop", shopId: action.shopId }, config, {
+        ...options,
+        now,
+      });
     case "growth":
       return growthMessage(
         await readGrowthReport(db, partnerConfig, {

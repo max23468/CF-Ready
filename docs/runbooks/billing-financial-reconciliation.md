@@ -78,6 +78,15 @@ sottoscrizione cancellata viene registrata come `historical_reconciliation` e
 crea un credito retroattivo e non viene confermata automaticamente. Si chiude
 solo dopo la riconciliazione manuale descritta sopra.
 
+Vendita e credito del piano sostituito possono comparire in Partner fino a 37
+giorni dopo la conversione: prima di allora la loro assenza non prova nulla. Se
+trascorsa questa finestra il Partner Dashboard non mostra né vendita né credito
+del piano sostituito, apri
+lo store nel Control Center Telegram e usa **Chiudi conversione verificata**,
+poi **Conferma chiusura** (D-170). La conversione passa a `Non applicabile`. Il
+pulsante non compare prima dei 37 giorni né quando Shopify ha già registrato un
+credito: in quel caso segui la sezione sul rimborso o credito manuale.
+
 ## Fonti Shopify
 
 - [Refund app charges](https://shopify.dev/docs/apps/launch/billing/billing-adjustments/refund-app-charges)
