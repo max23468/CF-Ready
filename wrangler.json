@@ -12,6 +12,7 @@
     "SHOPIFY_APP_URL": "https://cf-ready-dev.tmsf.workers.dev",
     "SCOPES": "write_validations",
     "ALLOWED_SHOP": "cf-ready-dev.myshopify.com",
+    "SHOP_UPDATE_ACK_ONLY_SHOP": "",
     "APP_ENVIRONMENT": "development",
     "OWNER_TELEGRAM_CONTROL_ENABLED": "false"
   },
@@ -80,6 +81,7 @@
         "SCOPES": "write_validations",
         "BILLING_TEST": "false",
         "ALLOWED_SHOP": "",
+        "SHOP_UPDATE_ACK_ONLY_SHOP": "willardltd.myshopify.com",
         "OWNER_NOTIFICATIONS_ENABLED": "true",
         "APP_ENVIRONMENT": "production",
         "OWNER_TELEGRAM_CONTROL_ENABLED": "true"

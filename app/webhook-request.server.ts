@@ -19,10 +19,16 @@ export async function handleWebhookRequest(
   request: Request,
   db: D1Database,
   queue: Queue<WebhookJob> | undefined,
+  ackOnlyShop = "",
 ) {
   const webhook = await authenticateWebhook(request);
 
   if (pathname === "/webhooks/shop/update") {
+    // D-171: eccezione esplicita per un solo store; il Paese resta aggiornato dalla
+    // riconciliazione Home/periodica. Nessuna dipendenza remota prima dell'ACK.
+    if (ackOnlyShop && webhook.shop === ackOnlyShop && webhook.topic === "SHOP_UPDATE") {
+      return new Response(null, { status: 200 });
+    }
     const countryCode = webhook.payload.country_code;
     if (typeof countryCode === "string") {
       // Alcuni store inviano centinaia di update l'ora: il Paese già confermato da D1 evita la
