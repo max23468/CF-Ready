@@ -29,7 +29,13 @@ export default {
           return new Response(null, { status: 405, headers: { Allow: "POST" } });
         }
         try {
-          return await handleWebhookRequest(pathname, request, env.DB, env.WEBHOOK_QUEUE);
+          return await handleWebhookRequest(
+            pathname,
+            request,
+            env.DB,
+            env.WEBHOOK_QUEUE,
+            env.SHOP_UPDATE_ACK_ONLY_SHOP,
+          );
         } catch (error) {
           if (error instanceof Response) return error;
           throw error;

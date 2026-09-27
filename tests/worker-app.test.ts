@@ -135,6 +135,7 @@ describe("entrypoint Worker", () => {
       request,
       env.DB,
       env.WEBHOOK_QUEUE,
+      env.SHOP_UPDATE_ACK_ONLY_SHOP,
     );
     expect(mocks.requestHandler).not.toHaveBeenCalled();
   });

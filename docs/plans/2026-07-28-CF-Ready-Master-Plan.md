@@ -404,6 +404,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-168 | Nei manifest Shopify ogni webhook usa un URI assoluto sull'origine dell'ambiente (`https://app.cfready.it/webhooks/...`, `https://cf-ready-dev.tmsf.workers.dev/webhooks/...`); i preflight Development e Production rifiutano URI relativi o su un'altra origine. | Shopify risolve un URI relativo sull'`application_url`: con l'App URL `/app` (D-166) le consegne andavano su `/app/webhooks/*`, dove il Worker risponde 404. Il 24 settembre 2026 Production ha registrato in due ore 2.151 consegne `shop/update` respinte; lo stesso schema colpiva disinstallazione, billing e compliance. Deciso dall'owner il 24 settembre 2026. |
 | D-169 | L'ingresso `shop/update` conserva per dieci minuti, nell'isolate del Worker, il Paese appena confermato da D1 per ciascuno store e riconosce le consegne con lo stesso Paese senza leggere D1. Un Paese diverso o non confermato segue il percorso D1, claim e coda invariato. | Il 25 settembre 2026, dopo la correzione di D-168, quattro consegne `shop/update` sono fallite per timeout Shopify: una sola richiesta restava ferma 6-27 secondi con 4-22 ms di CPU e nessuna subrequest, mentre D1 eseguiva le query in meno di 3 ms. Uno store inviava circa 500 update l'ora con Paese invariato. Il Paese è solo diagnostico, quindi una conferma vecchia di pochi minuti non cambia Validation, billing o configurazione. Richiesto dall'owner il 25 settembre 2026. |
 | D-170 | Il Control Center Telegram consente all'owner di chiudere una conversione di piano in stato “Da verificare” dopo averla verificata nel Partner Dashboard, trascorsi 37 giorni dalla richiesta: la scheda store mostra “Chiudi conversione verificata”, un secondo messaggio chiede conferma e la conversione passa a `not_applicable`. È l'unico comando di scrittura del Control Center. | Le conversioni `historical_reconciliation` restano `needs_review` per scelta (non si confermano da sole) e la loro chiusura richiedeva una query manuale sul D1 di Production. Il comando usa il webhook già autenticato e il claim idempotente degli update, e scrive soltanto sull'ultima conversione dello store se è ancora `needs_review`, senza credito osservato e oltre la stessa finestra di 37 giorni degli incidenti finanziari: prima di allora vendita e credito del piano sostituito possono ancora arrivare da Partner, e chiudere toglierebbe la conversione dal poll. Un credito registrato da Shopify resta invece da gestire a mano, perché la rilettura Partner riporterebbe lo stato a `needs_review`. Con `not_applicable` spariscono il contatore in `/billing`, l'incidente sulla vendita del piano sostituito e la nota sul credito nella Home del merchant. Deciso dall'owner il 25 settembre 2026, dopo la verifica di Francesa SNC. |
+| D-171 | Limitare l'ACK senza D1 né coda ai `shop/update` dello store esatto configurato in `SHOP_UPDATE_ACK_ONLY_SHOP`, dopo autenticazione e verifica del topic sul relativo endpoint. La variabile è vuota in Development e identifica il solo store scelto dall'owner in Production. La sottoscrizione Shopify e D-169 restano valide per tutti gli altri store; billing, disinstallazione, scope e compliance non cambiano. | Il 27 settembre 2026 Safari mostra una nuova consegna `shop/update` senza risposta entro 6.000 ms al primo tentativo. La cache D-169 non elimina le letture D1 a cache vuota o scaduta; non è stata attribuita a D1 la causa specifica di questa consegna. L'owner ha richiesto di limitare l'intervento a questo store. Il Paese resta diagnostico e si aggiorna alla riconciliazione Home e nel ciclo periodico esistente degli account attivi con sessione offline: selezione ogni cinque minuti, un account alla volta, ordinariamente dopo 24 ore, senza garanzia di freschezza entro 24 ore per tutti gli store. Nessun nuovo cron o provider. Deciso il 27 settembre 2026 per la `1.15.6`; eccezione a D-169. |
 
 Precisazione D-149 del 9 settembre 2026 per la `1.9.0`: nella pagina Regole il
 blocco “Campo Interno” precede “Testi del checkout”. La sezione si chiama
@@ -1493,7 +1494,8 @@ Eseguire riconciliazione:
 
 - all’apertura della Home;
 - dopo webhook billing;
-- dopo `shop/update` quando cambia il Paese osservato;
+- dopo `shop/update` quando cambia il Paese osservato, salvo lo store D-171;
+- nel ciclo periodico degli account attivi con sessione offline, anche per lo store D-171;
 - dopo ritorno da una pagina di approvazione Shopify;
 - dopo un errore di scrittura;
 - su reinstallazione.
@@ -1969,6 +1971,10 @@ senza leggere D1 quando l'isolate ha appena confermato lo stesso Paese (D-169).
 L’applicabilità geografica appartiene invece alla Function, che valuta il
 singolo checkout senza inferire la cittadinanza del cliente.
 
+Per il solo store configurato da D-171, `shop/update` viene riconosciuto senza
+letture o scritture remote dopo l'autenticazione: il Paese si aggiorna alla
+riconciliazione Home e periodica esistente, con possibile ritardo diagnostico.
+
 ### 13.2 Autenticazione
 
 - usare il flusso del template Shopify React Router;
@@ -2034,6 +2040,8 @@ Per ogni endpoint:
 
 #### `shop/update`
 
+- per lo store esatto configurato in `SHOP_UPDATE_ACK_ONLY_SHOP`, autentica e
+  risponde `200` senza D1 né coda, purché il topic sia `SHOP_UPDATE` (D-171);
 - confronta il Paese del payload firmato con D1 e riconosce subito gli update
   invariati, senza accodarli;
 - riconcilia e aggiorna il Paese osservato quando differisce o non è leggibile;
