@@ -104,6 +104,9 @@ test("il backfill storico resta unknown finché Shopify non viene riconciliato e
 
 test("la riconciliazione periodica predefinita legge Shopify e aggiorna il dominio commerciale", async () => {
   const shop = await insertShop("riconciliazione-periodica.example.myshopify.com");
+  await env.DB.prepare("UPDATE shops SET country_code = 'GB' WHERE shop_domain = ?")
+    .bind(shop)
+    .run();
   await syncBillingAccount(
     env.DB,
     shop,
@@ -196,13 +199,13 @@ test("la riconciliazione periodica predefinita legge Shopify e aggiorna il domin
   });
   expect(
     await env.DB.prepare(
-      `SELECT b.is_test, b.shopify_status
+      `SELECT b.is_test, b.shopify_status, s.country_code
          FROM billing_accounts b JOIN shops s ON s.id = b.shop_id
         WHERE s.shop_domain = ?`,
     )
       .bind(shop)
       .first(),
-  ).toEqual({ is_test: 0, shopify_status: "ACTIVE" });
+  ).toEqual({ is_test: 0, shopify_status: "ACTIVE", country_code: "IT" });
 });
 
 test("un rinnovo senza webhook aggiorna il metafield prima degli account ordinari", async () => {
