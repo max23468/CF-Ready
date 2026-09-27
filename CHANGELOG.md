@@ -6,6 +6,13 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.6 — 27 settembre 2026
+
+- `shop/update` dello store configurato in `SHOP_UPDATE_ACK_ONLY_SHOP` riceve
+  risposta dopo l'autenticazione, senza D1 né coda (D-171). Il Paese diagnostico
+  viene aggiornato dalla Home e dalla riconciliazione periodica esistente.
+  Gli altri store e topic conservano il percorso attuale.
+
 ## 1.15.5 — 25 settembre 2026
 
 - il Control Center Telegram permette all'owner di chiudere una conversione di
