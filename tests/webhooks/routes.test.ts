@@ -51,6 +51,56 @@ test("non accoda gli aggiornamenti shop che conservano il Paese osservato", asyn
   expect(mocks.handleWebhook).not.toHaveBeenCalled();
 });
 
+test.each([{}, { country_code: "IT" }, { country_code: "GB" }])(
+  "riconosce gli update dello store configurato senza D1 né coda: %j",
+  async (payload) => {
+    mocks.authenticateWebhook.mockResolvedValue({
+      webhookId: "wh-ack-only",
+      topic: "SHOP_UPDATE",
+      shop: "route.myshopify.com",
+      payload,
+    });
+    const response = await handleWebhookRequest(
+      "/webhooks/shop/update",
+      request,
+      db,
+      undefined,
+      "route.myshopify.com",
+    );
+    expect(response.status).toBe(200);
+    expect(mocks.authenticateWebhook).toHaveBeenCalledWith(request);
+    expect(db.prepare).not.toHaveBeenCalled();
+    expect(mocks.handleWebhook).not.toHaveBeenCalled();
+  },
+);
+
+test("l'eccezione non riconosce una consegna non autenticata", async () => {
+  const unauthorized = new Response(null, { status: 401 });
+  mocks.authenticateWebhook.mockRejectedValueOnce(unauthorized);
+  await expect(
+    handleWebhookRequest("/webhooks/shop/update", request, db, queue, "route.myshopify.com"),
+  ).rejects.toBe(unauthorized);
+  expect(db.prepare).not.toHaveBeenCalled();
+  expect(mocks.handleWebhook).not.toHaveBeenCalled();
+});
+
+test.each([
+  ["/webhooks/shop/update", "other.myshopify.com", "SHOP_UPDATE"],
+  ["/webhooks/app/uninstalled", "route.myshopify.com", "APP_UNINSTALLED"],
+  ["/webhooks/app/billing", "route.myshopify.com", "APP_SUBSCRIPTIONS_UPDATE"],
+  ["/webhooks/compliance", "route.myshopify.com", "SHOP_REDACT"],
+  ["/webhooks/compliance", "route.myshopify.com", "SHOP_UPDATE"],
+  ["/webhooks/shop/update", "route.myshopify.com", "APP_UNINSTALLED"],
+])("non applica l'eccezione a %s / %s / %s", async (pathname, shop, topic) => {
+  mocks.authenticateWebhook.mockResolvedValue({ webhookId: "wh-other", topic, shop, payload: {} });
+  await handleWebhookRequest(pathname, request, db, queue, "route.myshopify.com");
+  expect(mocks.handleWebhook).toHaveBeenCalledWith(
+    db,
+    expect.objectContaining({ webhookId: "wh-other" }),
+    queue,
+  );
+});
+
 test("riconosce senza D1 gli update ripetuti con il Paese già confermato", async () => {
   vi.useFakeTimers();
   try {

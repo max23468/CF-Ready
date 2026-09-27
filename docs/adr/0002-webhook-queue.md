@@ -28,3 +28,9 @@ ammessi, registra il medesimo claim D1 e pubblica lo stesso messaggio Queue. Il
 consumer e il codice merchant sono caricati soltanto per il rispettivo evento.
 Questa separazione riduce la CPU comune senza cambiare il confine durevole
 claim, Queue e ACK descritto sopra.
+
+Dal 27 settembre 2026, D-171 permette di riconoscere senza D1 né coda i soli
+`shop/update` dello store esatto configurato in `SHOP_UPDATE_ACK_ONLY_SHOP`,
+dopo l'autenticazione e solo sul relativo endpoint. Il dato diagnostico viene
+aggiornato dalla riconciliazione Home/periodica; gli altri topic dello stesso
+store e le consegne degli altri store mantengono il percorso precedente.
