@@ -4,6 +4,14 @@ import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
+const routeTests = [
+  "tests/browser/route-surfaces.test.tsx",
+  "tests/browser/home-route.test.tsx",
+  "tests/browser/guide-route.test.tsx",
+  "tests/browser/messages-route.test.tsx",
+  "tests/browser/onboarding-route.test.tsx",
+  "tests/browser/rules-route.test.tsx",
+];
 
 export default defineConfig({
   resolve: {
@@ -30,11 +38,18 @@ export default defineConfig({
       headless: true,
       provider: playwright(),
       instances: [
-        { browser: "chromium", name: "merchant-chromium" },
+        { browser: "chromium", name: "merchant-chromium", exclude: routeTests },
+        {
+          browser: "chromium",
+          name: "merchant-chromium-routes",
+          include: routeTests,
+          setupFiles: [path.join(root, "tests/browser/route-setup.tsx")],
+        },
         {
           browser: "webkit",
           name: "merchant-webkit-critical",
-          include: ["tests/browser/route-surfaces.test.tsx"],
+          include: routeTests,
+          setupFiles: [path.join(root, "tests/browser/route-setup.tsx")],
         },
       ],
     },
