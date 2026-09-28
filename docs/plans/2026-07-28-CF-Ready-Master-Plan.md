@@ -1514,6 +1514,11 @@ periodo tra tre giorni fa e oggi, rilette ogni ora finché il rinnovo non arriva
 nel metafield. Gli altri account entrano nel ciclo dopo 24 ore dall'ultima
 rilettura oppure, ogni ora, se il diritto non è stato scritto nel metafield. La
 retention oraria resta separata e non legge né modifica lo stato Shopify.
+L'incidente owner “Billing Shopify da riconciliare” si apre dopo 48 ore senza
+readback Admin API riuscito, lasciando tempo al ciclo ordinario di 24 ore e
+alla coda di uno store per esecuzione. Riporta l'ultimo tentativo e l'errore
+registrato; si chiude come readback ripristinato solo dopo una nuova lettura
+riuscita, senza dedurre esiti finanziari dalle transazioni Partner.
 
 ---
 
