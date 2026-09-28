@@ -75,7 +75,7 @@ richiedono l'autorizzazione prevista da `AGENTS.md`; la presenza del codice in u
 branch o in una PR non significa che il bot Production sia già aggiornato.
 
 ```sh
-npm test -- tests/installation-diagnostics.test.ts tests/owner-control.test.ts tests/owner-notifications.test.ts
+npm test -- tests/installation-diagnostics.test.ts tests/owner-control*.test.ts tests/owner-notifications.test.ts
 npm run test:ui -- tests/browser/installation-reporter.test.tsx
 npm run check
 npm run coverage:check

@@ -8,9 +8,7 @@ import {
   parsePerformanceRows,
   parsePerformanceTimings,
 } from "../reporting/performance";
-import type { ShopsFilter } from "./model";
-
-export const SHOPS_PAGE_SIZE = 8;
+import { SHOPS_PAGE_SIZE, type ShopsFilter } from "./model";
 
 export const UNRESOLVED_WEBHOOK_FILTER = `
   w.status = 'failed' AND NOT (
