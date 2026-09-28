@@ -6,10 +6,10 @@ import {
 } from "../reporting/performance";
 import type { TelegramInlineKeyboard, TelegramRichMessage } from "../telegram/client.server";
 import { callbackData, type OwnerControlAction, type ShopsFilter } from "./model";
-import { SHOPS_PAGE_SIZE, type BillingStatusCategory, type ShopRow } from "./queries.server";
+import type { BillingStatusCategory, ShopRow } from "./queries.server";
 import type { RevenueReport } from "./revenue.server";
 import type { ShopifyPlanRow } from "./shopify-plans.server";
-import { FINANCIAL_OBSERVATION_DAYS } from "./incidents.server";
+import { FINANCIAL_OBSERVATION_DAYS, SHOPS_PAGE_SIZE } from "./model";
 
 type Row = [string, string];
 type Section = { title: string; rows: Row[] };

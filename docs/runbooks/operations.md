@@ -53,7 +53,7 @@ Cloudflare prima di una decisione commerciale o di capacità.
 Gli E2E non conservano una sessione staff nel repository o in GitHub Actions.
 `npm run test:e2e` prova la superficie pubblica e l'ingresso pre-OAuth.
 `npm run test:ui` esegue tutte le superfici merchant sintetiche in Chromium e
-ripete in WebKit il solo file critico `tests/browser/route-surfaces.test.tsx`:
+ripete in WebKit le suite delle route selezionate in `vitest.browser.config.ts`:
 navigazione embedded, apertura e chiusura dell'onboarding, Save Bar, conflitti,
 richiesta permessi ed espansione delle etichette. I flussi embedded reali restano
 una matrice Development eseguita con una sessione staff aperta dall'owner. Questo
