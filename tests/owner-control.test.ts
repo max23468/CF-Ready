@@ -1792,6 +1792,36 @@ describe("query D1 e run-rate", () => {
     ).toMatchObject({ subject: "🟢 CF Ready · Diritto sincronizzato nel checkout" });
   });
 
+  test("non segnala il billing alla scadenza ordinaria della rilettura di 24 ore", async () => {
+    await insertStore(1, "billing-readback.myshopify.com");
+    const lastReconciledAt = new Date(NOW.getTime() - 24 * 60 * 60 * 1000 - 5_000).toISOString();
+    await env.DB.prepare(
+      `INSERT INTO billing_accounts (
+         shop_id, entitlement_status, plan_kind, pricing_generation, shopify_status, is_test,
+         last_reconciled_at, reconciliation_attempted_at, created_at, updated_at
+       ) VALUES (1, 'active', 'monthly', 'balanced', 'ACTIVE', 0, ?, ?, ?, ?)`,
+    )
+      .bind(lastReconciledAt, lastReconciledAt, lastReconciledAt, lastReconciledAt)
+      .run();
+
+    await reconcileOwnerIncidents(env.DB, NOW);
+    expect(
+      await env.DB.prepare(
+        "SELECT status FROM owner_operational_incidents WHERE incident_key = 'billing_reconciliation:1'",
+      ).first(),
+    ).toBeNull();
+
+    await reconcileOwnerIncidents(env.DB, new Date(NOW.getTime() + 24 * 60 * 60 * 1000));
+    expect(
+      await env.DB.prepare(
+        "SELECT subject, body_text FROM owner_notifications WHERE notification_kind = 'operational'",
+      ).first(),
+    ).toMatchObject({
+      subject: "🔴 CF Ready · Billing Shopify da riconciliare",
+      body_text: expect.stringContaining("Soglia: 48 ore"),
+    });
+  });
+
   test("segnala vendita e credito non osservati dopo 37 giorni e chiude gli alert", async () => {
     await insertStore(1, "billing-alert.myshopify.com");
     const old = "2026-07-31T10:00:00.000Z";

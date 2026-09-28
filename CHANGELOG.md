@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.7 — 28 settembre 2026
+
+- l'alert Telegram “Billing Shopify da riconciliare” si apre solo dopo 48 ore
+  senza rilettura Admin API riuscita. Con la soglia precedente di 24 ore,
+  identica alla cadenza della riconciliazione periodica, ogni store riceveva
+  ogni giorno un alert seguito dalla risoluzione cinque minuti dopo. Il
+  messaggio riporta ora la soglia in ore e l'ultima riconciliazione.
+
 ## 1.15.6 — 27 settembre 2026
 
 - `shop/update` dello store configurato in `SHOP_UPDATE_ACK_ONLY_SHOP` riceve

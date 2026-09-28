@@ -10,6 +10,10 @@ export const CHECKOUT_LABEL_OBSERVATIONS = 3;
 export const CHECKOUT_LABEL_OBSERVATION_MINUTES = 10;
 const RESOLVED_INCIDENT_RETENTION_DAYS = 90;
 export const FINANCIAL_OBSERVATION_DAYS = 37;
+// Il ciclo periodico rilegge il billing solo dopo 24 ore e al massimo uno store ogni cinque
+// minuti: con la stessa soglia l'alert si apriva a ogni scadenza e si chiudeva al ciclo
+// successivo. L'alert segnala quindi un intero giorno di riletture mancate o fallite.
+export const BILLING_READBACK_STALE_HOURS = 48;
 
 // Il diritto commerciale non è arrivato nel metafield: la Function può restare fail-open anche
 // per un merchant pagante.
@@ -173,7 +177,8 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
          FROM billing_accounts b
          JOIN shops s ON s.id = b.shop_id
         WHERE s.installation_status = 'active'
-          AND datetime(COALESCE(b.last_reconciled_at, b.created_at)) <= datetime(?, '-1 day')`,
+          AND datetime(COALESCE(b.last_reconciled_at, b.created_at))
+              <= datetime(?, '-${BILLING_READBACK_STALE_HOURS} hours')`,
       )
       .bind(nowIso, nowIso, nowIso, nowIso, nowIso),
     // D1 accetta al massimo cinque termini in una SELECT composta.
@@ -328,10 +333,15 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
     const details =
       row.issue === "entitlement_sync"
         ? [`Ultimo tentativo: ${formatDate(row.reference_at)}`]
-        : [
-            `Soglia: ${FINANCIAL_OBSERVATION_DAYS} giorni`,
-            `Riferimento: ${formatDate(row.reference_at)}`,
-          ];
+        : row.issue === "reconciliation_stale"
+          ? [
+              `Soglia: ${BILLING_READBACK_STALE_HOURS} ore`,
+              `Ultima riconciliazione: ${formatDate(row.reference_at)}`,
+            ]
+          : [
+              `Soglia: ${FINANCIAL_OBSERVATION_DAYS} giorni`,
+              `Riferimento: ${formatDate(row.reference_at)}`,
+            ];
     await openIncident(db, statements, existing.get(row.incident_key) ?? null, {
       key: row.incident_key,
       kind: "billing",
