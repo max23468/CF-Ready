@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.7 — 28 settembre 2026
+
+- l'alert Telegram sul readback billing si apre dopo 48 ore senza una lettura
+  Shopify riuscita, invece che alla scadenza ordinaria delle 24 ore. Mostra
+  soglia, ultimo tentativo ed errore registrato; la chiusura conferma soltanto
+  il ripristino del readback. La disinstallazione non produce una falsa
+  notifica di ripristino.
+
 ## 1.15.6 — 27 settembre 2026
 
 - `shop/update` dello store configurato in `SHOP_UPDATE_ACK_ONLY_SHOP` riceve
