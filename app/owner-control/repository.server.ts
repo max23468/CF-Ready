@@ -1,4 +1,4 @@
-import { FINANCIAL_OBSERVATION_DAYS } from "./incidents.server";
+import { FINANCIAL_OBSERVATION_DAYS } from "./model";
 const UPDATE_CLAIM_TIMEOUT_MS = 2 * 60 * 1000;
 
 export async function claimOwnerControlUpdate(
