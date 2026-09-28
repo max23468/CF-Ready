@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.8 — 28 settembre 2026
+
+- separa letture e riconciliazione degli incidenti del Control Center e porta
+  le costanti condivise nel modello, conservando ordine e atomicità degli alert;
+- separa decisioni, scritture e coordinamento delle etichette checkout,
+  mantenendo consenso, lock e verifica dello stato remoto;
+- suddivide i test del Control Center e delle schermate merchant per
+  responsabilità, conservando tutti i casi e la copertura Chromium e WebKit.
+
 ## 1.15.7 — 28 settembre 2026
 
 - l'alert Telegram sul readback billing si apre dopo 48 ore senza una lettura

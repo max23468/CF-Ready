@@ -1,3 +1,14 @@
+export const PARTNER_STALE_MINUTES = 15;
+export const WEBHOOK_FAILED_MINUTES = 15;
+export const WEBHOOK_PROCESSING_MINUTES = 5;
+export const CHECKOUT_LABEL_OBSERVATIONS = 3;
+export const CHECKOUT_LABEL_OBSERVATION_MINUTES = 10;
+export const RESOLVED_INCIDENT_RETENTION_DAYS = 90;
+export const FINANCIAL_OBSERVATION_DAYS = 37;
+export const BILLING_READBACK_STALE_HOURS = 48;
+
+export const SHOPS_PAGE_SIZE = 8;
+
 export const OWNER_CONTROL_COMMANDS = [
   "dashboard",
   "shops",
