@@ -88,12 +88,12 @@
     "react-router": "8.4.0"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.57.3",
-    "@cloudflare/vitest-plugin": "1.2.3",
-    "@graphql-codegen/cli": "7.4.2",
+    "@cloudflare/vite-plugin": "1.60.1",
+    "@cloudflare/vitest-plugin": "1.2.7",
+    "@graphql-codegen/cli": "7.4.3",
     "@playwright/test": "1.63.0",
     "@react-router/dev": "8.4.0",
-    "@shopify/cli": "4.8.0",
+    "@shopify/cli": "4.8.2",
     "@shopify/polaris-types": "2.0.0-rc.0",
     "@stryker-mutator/core": "10.0.0",
     "@stryker-mutator/vitest-runner": "10.0.0",
@@ -113,9 +113,9 @@
     "oxlint": "1.85.0",
     "react-doctor": "0.9.14",
     "typescript": "7.0.2",
-    "vite": "8.3.0",
+    "vite": "8.3.1",
     "vitest": "4.1.11",
-    "wrangler": "4.136.3"
+    "wrangler": "4.140.0"
   },
   "workspaces": [
     "extensions/*"
