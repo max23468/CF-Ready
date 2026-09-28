@@ -32,6 +32,7 @@ import {
   versionMessage,
 } from "../app/owner-control/presentation";
 import {
+  BILLING_READBACK_STALE_HOURS,
   CHECKOUT_LABEL_OBSERVATION_MINUTES,
   reconcileOwnerIncidents,
 } from "../app/owner-control/incidents.server";
@@ -1790,6 +1791,76 @@ describe("query D1 e run-rate", () => {
         "SELECT subject FROM owner_notifications ORDER BY id DESC LIMIT 1",
       ).first(),
     ).toMatchObject({ subject: "🟢 CF Ready · Diritto sincronizzato nel checkout" });
+  });
+
+  test("distingue il ritardo ordinario dal readback billing davvero fermo", async () => {
+    await insertStore(1, "billing-readback.myshopify.com");
+    const lastReadback = new Date(NOW.getTime() - 24 * 60 * 60 * 1000 - 5_000).toISOString();
+    await env.DB.prepare(
+      `INSERT INTO billing_accounts (
+         shop_id, entitlement_status, plan_kind, pricing_generation, shopify_status, is_test,
+         last_reconciled_at, reconciliation_attempted_at, created_at, updated_at
+       ) VALUES (1, 'active', 'monthly', 'balanced', 'ACTIVE', 0, ?, ?, ?, ?)`,
+    )
+      .bind(lastReadback, lastReadback, lastReadback, lastReadback)
+      .run();
+
+    await reconcileOwnerIncidents(env.DB, NOW);
+    expect(
+      await env.DB.prepare("SELECT COUNT(*) AS count FROM owner_notifications").first("count"),
+    ).toBe(0);
+
+    const staleAt = new Date(NOW.getTime() + 24 * 60 * 60 * 1000);
+    await env.DB.prepare(
+      `UPDATE billing_accounts
+          SET reconciliation_attempted_at = ?, reconciliation_error_code = 'billing_read_failed'
+        WHERE shop_id = 1`,
+    )
+      .bind(staleAt.toISOString())
+      .run();
+    await reconcileOwnerIncidents(env.DB, staleAt);
+    const opened = await env.DB.prepare(
+      "SELECT subject, body_text FROM owner_notifications ORDER BY id LIMIT 1",
+    ).first<{ subject: string; body_text: string }>();
+    expect(opened?.subject).toBe("🔴 CF Ready · Billing Shopify da riconciliare");
+    expect(opened?.body_text).toContain(`Soglia: ${BILLING_READBACK_STALE_HOURS} ore`);
+    expect(opened?.body_text).toContain("Ultimo errore: billing_read_failed");
+    expect(opened?.body_text).not.toContain("37 giorni");
+
+    const recoveredAt = new Date(staleAt.getTime() + 5 * 60_000);
+    await env.DB.prepare(
+      `UPDATE billing_accounts
+          SET last_reconciled_at = ?, reconciliation_attempted_at = ?,
+              reconciliation_error_code = NULL WHERE shop_id = 1`,
+    )
+      .bind(recoveredAt.toISOString(), recoveredAt.toISOString())
+      .run();
+    await reconcileOwnerIncidents(env.DB, recoveredAt);
+    const resolved = await env.DB.prepare(
+      "SELECT subject, body_text FROM owner_notifications ORDER BY id DESC LIMIT 1",
+    ).first<{ subject: string; body_text: string }>();
+    expect(resolved?.subject).toBe("🟢 CF Ready · Readback billing Shopify ripristinato");
+    expect(resolved?.body_text).toContain("lettura del billing dalla Shopify Admin API");
+    expect(resolved?.body_text).not.toContain("osservazione finanziaria");
+  });
+
+  test("non dichiara ripristinato il readback quando lo store viene disinstallato", async () => {
+    await insertStore(1, "billing-uninstalled.myshopify.com");
+    const staleAt = new Date(NOW.getTime() - 49 * 60 * 60 * 1000).toISOString();
+    await env.DB.prepare(
+      `INSERT INTO billing_accounts (
+         shop_id, entitlement_status, plan_kind, pricing_generation, shopify_status, is_test,
+         last_reconciled_at, created_at, updated_at
+       ) VALUES (1, 'active', 'monthly', 'balanced', 'ACTIVE', 0, ?, ?, ?)`,
+    )
+      .bind(staleAt, staleAt, staleAt)
+      .run();
+    await reconcileOwnerIncidents(env.DB, NOW);
+    await env.DB.prepare("UPDATE shops SET installation_status = 'uninstalled' WHERE id = 1").run();
+    await reconcileOwnerIncidents(env.DB, new Date(NOW.getTime() + 5 * 60_000));
+    expect(
+      await env.DB.prepare("SELECT COUNT(*) AS count FROM owner_notifications").first("count"),
+    ).toBe(1);
   });
 
   test("segnala vendita e credito non osservati dopo 37 giorni e chiude gli alert", async () => {
