@@ -10,6 +10,7 @@ export const CHECKOUT_LABEL_OBSERVATIONS = 3;
 export const CHECKOUT_LABEL_OBSERVATION_MINUTES = 10;
 const RESOLVED_INCIDENT_RETENTION_DAYS = 90;
 export const FINANCIAL_OBSERVATION_DAYS = 37;
+export const BILLING_READBACK_STALE_HOURS = 48;
 
 // Il diritto commerciale non è arrivato nel metafield: la Function può restare fail-open anche
 // per un merchant pagante.
@@ -58,6 +59,8 @@ type BillingIssueRow = {
     | "reconciliation_stale"
     | "entitlement_sync";
   reference_at: string;
+  attempted_at: string | null;
+  error_code: string | null;
 };
 
 export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) {
@@ -108,7 +111,7 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
                   THEN b.current_period_start
                 ELSE COALESCE(b.charge_accepted_at, b.charge_activated_at,
                               b.current_period_start, b.created_at)
-              END AS reference_at
+              END AS reference_at, NULL AS attempted_at, NULL AS error_code
          FROM billing_accounts b
          JOIN shops s ON s.id = b.shop_id
         WHERE s.installation_status = 'active'
@@ -137,7 +140,7 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
        UNION ALL
        SELECT 'billing_credit:' || c.id AS incident_key, s.id AS shop_id,
               s.shop_domain, s.display_name, 'credit' AS issue,
-              c.cancelled_at AS reference_at
+              c.cancelled_at AS reference_at, NULL AS attempted_at, NULL AS error_code
          FROM billing_conversions c
          JOIN shops s ON s.id = c.shop_id
         WHERE c.credit_status = 'pending' AND c.is_test = 0
@@ -147,7 +150,7 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
        UNION ALL
        SELECT 'billing_credit_review:' || c.id AS incident_key, s.id AS shop_id,
               s.shop_domain, s.display_name, 'credit_review' AS issue,
-              c.credit_observed_at AS reference_at
+              c.credit_observed_at AS reference_at, NULL AS attempted_at, NULL AS error_code
          FROM billing_conversions c
          JOIN shops s ON s.id = c.shop_id
         WHERE c.credit_status = 'needs_review' AND c.is_test = 0
@@ -156,7 +159,7 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
        SELECT 'billing_source_sale:' || c.id AS incident_key, s.id AS shop_id,
               s.shop_domain, s.display_name, 'conversion_sale' AS issue,
               COALESCE(c.subscription_accepted_at, c.subscription_activated_at,
-                       c.requested_at) AS reference_at
+                       c.requested_at) AS reference_at, NULL AS attempted_at, NULL AS error_code
          FROM billing_conversions c
          JOIN shops s ON s.id = c.shop_id
         WHERE c.credit_status IN ('pending', 'confirmed', 'needs_review')
@@ -169,11 +172,14 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
        UNION ALL
        SELECT 'billing_reconciliation:' || b.shop_id AS incident_key, s.id AS shop_id,
               s.shop_domain, s.display_name, 'reconciliation_stale' AS issue,
-              COALESCE(b.last_reconciled_at, b.created_at) AS reference_at
+              COALESCE(b.last_reconciled_at, b.created_at) AS reference_at,
+              b.reconciliation_attempted_at AS attempted_at,
+              b.reconciliation_error_code AS error_code
          FROM billing_accounts b
          JOIN shops s ON s.id = b.shop_id
         WHERE s.installation_status = 'active'
-          AND datetime(COALESCE(b.last_reconciled_at, b.created_at)) <= datetime(?, '-1 day')`,
+          AND datetime(COALESCE(b.last_reconciled_at, b.created_at))
+              <= datetime(?, '-${BILLING_READBACK_STALE_HOURS} hours')`,
       )
       .bind(nowIso, nowIso, nowIso, nowIso, nowIso),
     // D1 accetta al massimo cinque termini in una SELECT composta.
@@ -181,7 +187,8 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
       .prepare(
         `SELECT 'billing_entitlement:' || b.shop_id AS incident_key, s.id AS shop_id,
               s.shop_domain, s.display_name, 'entitlement_sync' AS issue,
-              b.reconciliation_attempted_at AS reference_at
+              b.reconciliation_attempted_at AS reference_at,
+              NULL AS attempted_at, NULL AS error_code
          FROM billing_accounts b
          JOIN shops s ON s.id = b.shop_id
         WHERE s.installation_status = 'active'
@@ -328,10 +335,17 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
     const details =
       row.issue === "entitlement_sync"
         ? [`Ultimo tentativo: ${formatDate(row.reference_at)}`]
-        : [
-            `Soglia: ${FINANCIAL_OBSERVATION_DAYS} giorni`,
-            `Riferimento: ${formatDate(row.reference_at)}`,
-          ];
+        : row.issue === "reconciliation_stale"
+          ? [
+              `Soglia: ${BILLING_READBACK_STALE_HOURS} ore`,
+              `Ultima lettura riuscita: ${formatDate(row.reference_at)}`,
+              `Ultimo tentativo: ${row.attempted_at ? formatDate(row.attempted_at) : "non registrato"}`,
+              `Ultimo errore: ${row.error_code ?? "nessuno registrato"}`,
+            ]
+          : [
+              `Soglia: ${FINANCIAL_OBSERVATION_DAYS} giorni`,
+              `Riferimento: ${formatDate(row.reference_at)}`,
+            ];
     await openIncident(db, statements, existing.get(row.incident_key) ?? null, {
       key: row.incident_key,
       kind: "billing",
@@ -355,25 +369,60 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
       // Le risoluzioni restano nello stesso ordine degli incidenti letti e dei relativi alert.
       // react-doctor-disable-next-line react-doctor/async-await-in-loop
       const shop = await db
-        .prepare("SELECT shop_domain, display_name FROM shops WHERE id = ?")
+        .prepare(
+          `SELECT s.shop_domain, s.display_name, s.installation_status,
+                  b.last_reconciled_at
+             FROM shops s LEFT JOIN billing_accounts b ON b.shop_id = s.id
+            WHERE s.id = ?`,
+        )
         .bind(incident.shop_id)
-        .first<{ shop_domain: string; display_name: string | null }>();
+        .first<{
+          shop_domain: string;
+          display_name: string | null;
+          installation_status: string;
+          last_reconciled_at: string | null;
+        }>();
       if (!shop) continue;
       const entitlement = incident.incident_key.startsWith("billing_entitlement:");
+      const readback = incident.incident_key.startsWith("billing_reconciliation:");
+      if (
+        readback &&
+        (shop.installation_status !== "active" ||
+          !shop.last_reconciled_at ||
+          Date.parse(shop.last_reconciled_at) <=
+            now.getTime() - BILLING_READBACK_STALE_HOURS * 60 * 60 * 1000)
+      ) {
+        statements.push(
+          db
+            .prepare(
+              `UPDATE owner_operational_incidents
+                  SET status = 'resolved', resolved_at = ?, updated_at = ?
+                WHERE incident_key = ? AND status = 'active'`,
+            )
+            .bind(nowIso, nowIso, incident.incident_key),
+        );
+        continue;
+      }
       await resolveIncident(db, statements, incident, {
         nowIso,
         shopDomain: shop.shop_domain,
         shopHash: await trialLedgerHash(shop.shop_domain),
         subject: entitlement
           ? "🟢 CF Ready · Diritto sincronizzato nel checkout"
-          : "🟢 CF Ready · Anomalia billing risolta",
+          : readback
+            ? "🟢 CF Ready · Readback billing Shopify ripristinato"
+            : "🟢 CF Ready · Anomalia billing risolta",
         body: storeOperationalBody(
           entitlement
             ? "Il metafield della Validation riporta di nuovo il diritto commerciale corrente."
-            : "L'osservazione finanziaria non presenta più l'anomalia segnalata.",
+            : readback
+              ? "La lettura del billing dalla Shopify Admin API è tornata aggiornata."
+              : "L'osservazione finanziaria non presenta più l'anomalia segnalata.",
           shop,
           nowIso,
-          ["Stato: regolare"],
+          readback
+            ? [`Ultima lettura riuscita: ${formatDate(shop.last_reconciled_at!)}`]
+            : ["Stato: regolare"],
         ),
       });
     }
