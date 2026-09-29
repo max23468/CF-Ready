@@ -152,8 +152,20 @@ export default function Guide() {
   return (
     <s-page heading={t.guide.heading}>
       <s-stack direction="inline" gap="base">
-        <s-link href="#validation-diagnosis">{t.guide.diagnosis.heading}</s-link>
-        <s-link href="#support">{t.support.heading}</s-link>
+        <s-button
+          variant="tertiary"
+          onClick={() =>
+            document.getElementById("validation-diagnosis")?.scrollIntoView({ block: "start" })
+          }
+        >
+          {t.guide.diagnosis.heading}
+        </s-button>
+        <s-button
+          variant="tertiary"
+          onClick={() => document.getElementById("support")?.scrollIntoView({ block: "start" })}
+        >
+          {t.support.heading}
+        </s-button>
       </s-stack>
       {/* §15.7: pagina unica con sezioni espandibili. Polaris non ha un componente di
           divulgazione, quindi si usa `details`, che è l'elemento nativo della piattaforma:
@@ -213,35 +225,40 @@ export default function Guide() {
       </s-section>
 
       {/* FR-090: il recapito è un `mailto:` precompilato, non un modulo che invia (§22). */}
-      <s-section id="support" slot="aside" heading={t.support.heading}>
-        <s-stack direction="block" gap="base">
-          <s-paragraph>{t.support.body}</s-paragraph>
-          <s-select
-            label={t.support.chooseCategory}
-            value={supportCategory}
-            onChange={(event) => setSupportCategory(event.currentTarget.value as SupportCategory)}
-          >
-            {Object.entries(t.support.categories).map(([category, label]) => (
-              <s-option key={category} value={category}>
-                {label}
-              </s-option>
-            ))}
-          </s-select>
-          <s-button variant="primary" href={supportMailto(supportDetails, locale, supportCategory)}>
-            {t.support.requestSupport}
-          </s-button>
-          <s-button onClick={copyDiagnostics}>{t.support.copyDiagnostics}</s-button>
-          {copyState ? (
-            <span className="cf-motion-reveal" key={copyState}>
-              <s-text tone={copyState === "copied" ? "success" : "critical"}>
-                {copyState === "copied"
-                  ? t.support.diagnosticsCopied
-                  : t.support.diagnosticsCopyFailed}
-              </s-text>
-            </span>
-          ) : null}
-          <s-text color="subdued">{t.support.privacyNote}</s-text>
-        </s-stack>
+      <s-section slot="aside" heading={t.support.heading}>
+        <div id="support">
+          <s-stack direction="block" gap="base">
+            <s-paragraph>{t.support.body}</s-paragraph>
+            <s-select
+              label={t.support.chooseCategory}
+              value={supportCategory}
+              onChange={(event) => setSupportCategory(event.currentTarget.value as SupportCategory)}
+            >
+              {Object.entries(t.support.categories).map(([category, label]) => (
+                <s-option key={category} value={category}>
+                  {label}
+                </s-option>
+              ))}
+            </s-select>
+            <s-button
+              variant="primary"
+              href={supportMailto(supportDetails, locale, supportCategory)}
+            >
+              {t.support.requestSupport}
+            </s-button>
+            <s-button onClick={copyDiagnostics}>{t.support.copyDiagnostics}</s-button>
+            {copyState ? (
+              <span className="cf-motion-reveal" key={copyState}>
+                <s-text tone={copyState === "copied" ? "success" : "critical"}>
+                  {copyState === "copied"
+                    ? t.support.diagnosticsCopied
+                    : t.support.diagnosticsCopyFailed}
+                </s-text>
+              </span>
+            ) : null}
+            <s-text color="subdued">{t.support.privacyNote}</s-text>
+          </s-stack>
+        </div>
       </s-section>
     </s-page>
   );
@@ -261,31 +278,35 @@ function ValidationDiagnosis({
   const checkCopy = t.guide.diagnosis;
   const errorCode = diagnosisErrorCode(check, checkResult, diagnostics.errorCode);
   return (
-    <s-section id="validation-diagnosis" heading={checkCopy.heading}>
-      <s-stack direction="block" gap="base">
-        <s-paragraph>{checkCopy.body}</s-paragraph>
-        <s-button
-          disabled={checkFetcher.state !== "idle"}
-          loading={checkFetcher.state !== "idle"}
-          onClick={() => checkFetcher.submit({ intent: "check_validation" }, { method: "post" })}
-        >
-          {checkCopy.refresh}
-        </s-button>
-        {checkResult?.ok === false ? <s-banner tone="warning">{checkCopy.failed}</s-banner> : null}
-        <DiagnosisResult check={check} locale={locale} />
-        {errorCode ? (
-          <s-banner tone="warning">{localizedError(t.errors, errorCode)}</s-banner>
-        ) : null}
-        <s-text color="subdued">
-          {checkCopy.lastSync}:{" "}
-          {diagnostics.lastSyncAt
-            ? formatDateTime(diagnostics.lastSyncAt, locale)
-            : checkCopy.unknown}
-        </s-text>
-        <s-heading>{checkCopy.manualHeading}</s-heading>
-        <s-paragraph>{checkCopy.manualBody}</s-paragraph>
-        <s-link href="/app/rules">{checkCopy.simulate}</s-link>
-      </s-stack>
+    <s-section heading={checkCopy.heading}>
+      <div id="validation-diagnosis">
+        <s-stack direction="block" gap="base">
+          <s-paragraph>{checkCopy.body}</s-paragraph>
+          <s-button
+            disabled={checkFetcher.state !== "idle"}
+            loading={checkFetcher.state !== "idle"}
+            onClick={() => checkFetcher.submit({ intent: "check_validation" }, { method: "post" })}
+          >
+            {checkCopy.refresh}
+          </s-button>
+          {checkResult?.ok === false ? (
+            <s-banner tone="warning">{checkCopy.failed}</s-banner>
+          ) : null}
+          <DiagnosisResult check={check} locale={locale} />
+          {errorCode ? (
+            <s-banner tone="warning">{localizedError(t.errors, errorCode)}</s-banner>
+          ) : null}
+          <s-text color="subdued">
+            {checkCopy.lastSync}:{" "}
+            {diagnostics.lastSyncAt
+              ? formatDateTime(diagnostics.lastSyncAt, locale)
+              : checkCopy.unknown}
+          </s-text>
+          <s-heading>{checkCopy.manualHeading}</s-heading>
+          <s-paragraph>{checkCopy.manualBody}</s-paragraph>
+          <s-link href="/app/rules">{checkCopy.simulate}</s-link>
+        </s-stack>
+      </div>
     </s-section>
   );
 }
