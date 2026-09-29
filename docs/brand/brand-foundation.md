@@ -444,17 +444,17 @@ CF Ready
 
 ## 7. Tono di voce
 
-*Approvato il 27 luglio 2026, invariato.*
+*Approvato il 27 luglio 2026. Principio 4, §7.7, §7.8 e §9.2 aggiornati il 29 settembre 2026 (A-18, D-172).*
 
 ### 7.1 Principi
 
 1. **Prima il fatto, poi il resto.** La prima frase dice cosa succede.
 2. **Frasi brevi.** Una frase, un'informazione. Media sotto le 20 parole.
 3. **Voce attiva e soggetto esplicito.** «L'app disattiva la validazione», non «la validazione viene disattivata».
-4. **Precisione sui limiti.** Ogni volta che c'è un limite (formale ≠ verificato, PEC non certificata, abbonamenti ricorrenti non coperti), si dice.
+4. **Precisione sui limiti.** Un limite (formale ≠ verificato, PEC non certificata, abbonamenti ricorrenti non coperti) si dice una volta, nel punto in cui cambia una decisione del merchant o del cliente. Non si ripete in ogni schermata.
 5. **Niente paura come leva.** Nessuna sanzione, nessun «rischi», nessun «obbligo di legge».
 6. **Niente entusiasmo di maniera.** Nessun punto esclamativo, nessun «Perfetto!».
-7. **Nessun gergo inutile.** "Validation Function", "metafield", "entitlement" restano nella documentazione tecnica.
+7. **Nessun gergo inutile.** "Validation Function", "metafield", "entitlement", "fail-open" restano nella documentazione tecnica.
 8. **Coerenza terminologica assoluta.** Un concetto, una parola, ovunque.
 
 ### 7.2 Glossario obbligatorio
@@ -519,6 +519,14 @@ La stessa cosa si chiama con la stessa parola nei tre contesti.
 
 **Spiegazioni** — prima la conseguenza pratica, poi il meccanismo. Ogni spiegazione che tocca un limite fiscale contiene «formalmente» o una formula equivalente. Massimo tre frasi per blocco; oltre, si va in FAQ.
 
+**Rassicurazioni e cautele** — il testo dice cosa succede e cosa fare, non cosa l'app evita di fare. In particolare:
+
+- «Il checkout resta aperto» compare solo dove il merchant può temere un blocco: casi particolari, FAQ sul blocco degli ordini, fine della prova o del piano. Non si aggiunge a ogni errore o avviso di sincronizzazione.
+- La privacy sta nelle sezioni dedicate: FAQ sui dati, sezione Dati del sito, campo Privacy della listing, Privacy Policy. Altrove non si ripete che l'app non legge ordini o dati dei clienti e non si avverte di non inviarli.
+- Le cautele legali («non è una garanzia», «sei tu a decidere», «non sostituisce…») stanno nei Termini, salvo i limiti fiscali di §16.3 del Master Plan.
+- Gli errori non descrivono le protezioni interne («nessun dato viene eliminato automaticamente», «non tocchiamo le risorse di altre app»): se serve un'azione del merchant, la indicano.
+- Un testo non commenta il proprio rilievo («sono qui con lo stesso spazio di tutto il resto»).
+
 ### 7.8 Esempi indicativi
 
 Non sono microcopy definitiva e non introducono funzionalità diverse dal Master Plan.
@@ -530,7 +538,7 @@ Non sono microcopy definitiva e non introducono funzionalità diverse dal Master
 > Validazione attiva nel checkout. Le regole valgono dal prossimo ordine.
 
 **Warning**
-> La prova finisce il 10 agosto 2026. Dopo quella data il checkout non blocca più gli ordini senza Codice Fiscale. Le regole e i messaggi restano salvati.
+> La prova finisce il 10 agosto 2026. Scegli un piano per continuare a controllare Codice Fiscale e PEC nel checkout; regole e messaggi restano salvati.
 
 **Errore**
 > Non è stato possibile salvare le regole. Shopify non ha confermato la scrittura. Riprova; se l'errore si ripete, contatta l'assistenza.
@@ -676,7 +684,7 @@ Direzione, non materiali finali. Testi completi, listing, screenshot definitivi 
 4. Cosa **non** fa: niente fatturazione elettronica, niente Partita IVA/SDI, generazioni successive degli abbonamenti non coperte (FR-099).
 5. Prova, prezzo, privacy, supporto.
 
-**Semplicità e affidabilità.** La semplicità si mostra facendo vedere quanto poco c'è da configurare. L'affidabilità si mostra dichiarando i limiti nello stesso posto e con lo stesso rilievo dei benefici. Nessun badge, sigillo, scudo o percentuale.
+**Semplicità e affidabilità.** La semplicità si mostra facendo vedere quanto poco c'è da configurare. L'affidabilità si mostra dichiarando i limiti in una sezione visibile, non in corpo minore né in coda, senza ripeterli in ogni blocco. Nessun badge, sigillo, scudo o percentuale.
 
 ### 9.3 Screenshot
 
@@ -820,6 +828,7 @@ Parte della direzione, non un controllo finale. Vale per app embedded, sito, lis
 | **A-15** | Sigla dentro l'icona della listing | Si presenta l'icona **con** la sigla, accettando la raccomandazione Shopify di evitarne il testo. Rimedio pronto se la review contesta (§11.3) | 28/07/2026 |
 | **A-16** | Colore di brand dentro l'app, per illustrazione | Deroga unica ad A-03: verde bottiglia e arancio cotto sono ammessi **dentro un'illustrazione**, mai su un controllo o su uno stato, e solo su onboarding (primo passo e riepilogo), testata di Guida e FAQ e piede della colonna laterale in Home (§2.6, §8.13) | 31/07/2026 |
 | **A-17** | Riduzione per la nav dell'Admin | A 16 px usa una tessera monocromatica `14 × 8,8` nelle proporzioni canoniche, con contorno e fascia superiore ma senza sigla. La semplificazione mantiene leggibile il segno ed evita la resa schiacciata della precedente variante `14 × 7,5` | 24/08/2026 |
+| **A-18** | Limiti e rassicurazioni | Ogni limite si dice una volta dove cambia una decisione; rassicurazioni sul checkout aperto, privacy e cautele legali restano nelle sezioni dedicate (§7.1, §7.7, §9.2; D-172) | 29/09/2026 |
 
 ### 11.2 Nota sulla dark mode
 

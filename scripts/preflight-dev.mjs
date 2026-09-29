@@ -85,27 +85,39 @@ export function developmentVersion(version, tree) {
   return `${version}-dev.${tree.slice(0, 12)}`;
 }
 
+// Un deploy annullato dopo lo snapshot Shopify lascia l'etichetta del tree
+// pubblicata ma non attiva: il retry dello stesso tree usa allora `.rN`.
 export function verifyVersionAvailable(versions, version, deployment, commit, tree) {
-  if (!versions.some(({ versionTag }) => versionTag === version)) {
-    return { readbackOnly: false, deployedCommit: undefined };
-  }
+  const family = versions
+    .map(({ versionTag }) => versionTag)
+    .filter((tag) => tag === version || retryNumber(version, tag) !== undefined);
+  if (!family.length) return { readbackOnly: false, deployedCommit: undefined, version };
 
   const active = versions.find(({ status }) => status === "active");
+  if (!family.includes(active?.versionTag)) {
+    const attempt = Math.max(1, ...family.map((tag) => retryNumber(version, tag) ?? 1)) + 1;
+    return { readbackOnly: false, deployedCommit: undefined, version: `${version}.r${attempt}` };
+  }
+
   const deployedCommit = active?.message?.match(/^Development ([0-9a-f]{40})$/)?.[1];
   const baseVersion = version.slice(0, version.lastIndexOf("-dev."));
   if (
     commit &&
     tree &&
     version === developmentVersion(baseVersion, tree) &&
-    active?.versionTag === version &&
     deployedCommit &&
     deployment.annotations?.["workers/message"] === `Development ${deployedCommit}` &&
     deployment.versions?.length === 1 &&
     deployment.versions[0].percentage === 100
   ) {
-    return { readbackOnly: true, deployedCommit };
+    return { readbackOnly: true, deployedCommit, version: active.versionTag };
   }
-  throw new Error(`La versione Shopify ${version} è già stata pubblicata.`);
+  throw new Error(`La versione Shopify ${active.versionTag} è già stata pubblicata.`);
+}
+
+function retryNumber(version, tag) {
+  const suffix = tag?.startsWith(`${version}.r`) ? tag.slice(version.length + 2) : "";
+  return /^[1-9]\d*$/.test(suffix) ? Number(suffix) : undefined;
 }
 
 export function verifyCoordinatedRollback(deployment, versions) {
@@ -161,7 +173,8 @@ async function main() {
     if (process.env.GITHUB_ENV) {
       await appendFile(
         process.env.GITHUB_ENV,
-        `DEPLOY_READBACK_ONLY=${availability.readbackOnly}\n` +
+        `DEPLOY_VERSION=${availability.version}\n` +
+          `DEPLOY_READBACK_ONLY=${availability.readbackOnly}\n` +
           `DEPLOY_SOURCE_COMMIT=${availability.deployedCommit ?? process.env.GITHUB_SHA}\n`,
       );
     }

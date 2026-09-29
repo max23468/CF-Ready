@@ -58,11 +58,11 @@ ripete lo slogan è inutile a chi non vede l'immagine.
 > Codice Fiscale e PEC se non gestirli, renderli facoltativi o obbligatori; puoi
 > richiedere la PEC quando il cliente compila Azienda. CF Ready usa i campi
 > nativi del checkout: configuri e provi le regole prima di attivarle, senza
-> codice né Shopify Plus. I controlli valgono solo per l’Italia. I dati fiscali
-> non arrivano ai nostri sistemi e, se l’app ha errori, il checkout resta aperto.
-> La verifica è formale, non anagrafica.
+> codice né Shopify Plus. I controlli valgono solo per l’Italia e i messaggi al
+> cliente si personalizzano in italiano e inglese. La verifica è formale, non
+> anagrafica.
 
-**499/500 caratteri.**
+**468/500 caratteri.**
 
 ## Punti in evidenza
 
@@ -70,7 +70,7 @@ ripete lo slogan è inutile a chi non vede l'immagine.
 2. `Configura Codice Fiscale e PEC con regole separate.`
 3. `Prova regole e messaggi nel simulatore prima di attivarli.`
 4. `Funziona senza codice, modifiche al tema o Shopify Plus.`
-5. `I dati fiscali non arrivano ai nostri sistemi.`
+5. `Messaggi al cliente personalizzabili in italiano e inglese.`
 
 ## Ricerca e SEO
 
@@ -83,7 +83,8 @@ ripete lo slogan è inutile a chi non vede l'immagine.
 
 ## Canali e limitazioni dichiarate
 
-Da riportare nella listing con lo stesso rilievo dei benefici, non in coda.
+Da riportare nella listing in una sezione visibile, non in coda (brand §9.2,
+D-172).
 
 | Ambito | Stato |
 | --- | --- |

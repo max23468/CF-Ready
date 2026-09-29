@@ -49,17 +49,15 @@ export const en: typeof it = {
     address2_restore_conflict:
       "The second address line changed after the comparison. Reload Shopify before restoring it.",
     validation_limit_reached:
-      "This store already has the maximum number of active validations Shopify allows. Your rules are still saved. Turn off another app’s validation in Settings → Checkout, then try again: CF Ready never touches other apps’ resources.",
-    entitlement_required:
-      "Start a trial or plan first. Without a valid entitlement, the validation would have no effect.",
+      "This store already has the maximum number of active validations Shopify allows. Your rules are still saved. Turn off another app’s validation in Settings → Checkout, then try again.",
+    entitlement_required: "Start the trial or choose a plan to turn on the check.",
     config_conflict:
       "The configuration changed in another window. Compare the values and choose whether to reapply your changes or use the current configuration.",
     duplicate_validations:
-      "Shopify returned more than one CF Ready validation. They were turned off to keep checkout fail-open, but we can’t choose which one to keep without risking your configuration: none is deleted automatically.",
+      "Shopify returned more than one CF Ready validation, so we turned them off without deleting any. Contact us and we’ll help you choose which one to keep.",
     duplicate_validations_active:
-      "Shopify returned more than one CF Ready validation and didn’t confirm that they were turned off. Try the repair again: no validation is deleted automatically.",
-    billing_read_failed:
-      "Plan information isn’t up to date. Checkout isn’t blocked: reload the page in a few minutes.",
+      "Shopify returned more than one CF Ready validation and didn’t confirm that they were turned off. Try the repair again.",
+    billing_read_failed: "Plan information isn’t up to date. Reload the page in a few minutes.",
     one_time_already_active:
       "This store already has the one-time payment: another charge wouldn’t add anything.",
     charge_pending:
@@ -82,11 +80,10 @@ export const en: typeof it = {
     titleNotStarted: "Checkout check not active yet",
     titleLapsed: "Check on, plan not active",
     noEntitlement:
-      "Without an active plan, checkout no longer blocks anything. Rules and messages stay saved and apply again once you pay.",
-    syncNeeded:
-      "What you see here may not match Shopify. Checkout isn’t blocked. Reload the page in a few minutes.",
+      "Without an active plan, your rules don’t apply at checkout. Rules and messages stay saved and apply again once you pay.",
+    syncNeeded: "What you see here may not match Shopify. Reload the page in a few minutes.",
     verifying: "Checking with Shopify…",
-    verificationFailed: "We couldn’t check your status with Shopify. Checkout isn’t blocked.",
+    verificationFailed: "We couldn’t check your status with Shopify.",
     verificationRetry: "Try again",
     repair: "Repair configuration",
     messagesLabel: "Customer messages",
@@ -173,7 +170,7 @@ export const en: typeof it = {
       "Set up the tax code and PEC checks, review customer messages, and choose when to turn on the rules.",
     step1Heading: "What it does and doesn’t do",
     step1Body:
-      "CF Ready checks the Italian tax code (Codice Fiscale) and certified email address (PEC) in Shopify checkout. It doesn’t change your theme, add fields or issue invoices.",
+      "CF Ready checks the Italian tax code (Codice Fiscale) and certified email address (PEC) in Shopify’s native checkout fields, without changing your theme.",
     step1Limits: [
       "It only checks data format: it doesn’t confirm the customer’s identity or that an address is actually a certified PEC address.",
       "Rules apply to deliveries in Italy. They do not apply if the billing address is outside Italy. If the delivery country is missing, required fields that Shopify does not show do not block the order.",
@@ -211,9 +208,9 @@ export const en: typeof it = {
   },
   support: {
     heading: "Support",
-    body: "Requests reach whoever builds the app and get an answer written by hand. The link opens your mail app with a message already filled in: you can read it and edit it before sending.",
+    body: "The person who builds the app answers you directly. The link opens your mail app with a message already filled in.",
     privacyNote:
-      "The message only carries your store domain, app version, language and technical status. Don’t attach tax codes, PEC addresses, orders or your customers’ data: they aren’t needed to understand a problem.",
+      "The message includes your store domain, app version, language and technical status: that’s usually all we need to understand the problem.",
     subject: "CF Ready support",
     chooseCategory: "Choose a topic:",
     requestSupport: "Get support",
@@ -253,10 +250,9 @@ export const en: typeof it = {
   guide: {
     diagnosis: {
       heading: "Is the check missing?",
-      body: "Refresh and check rules, activation and plan using the same sync as Home. Inconsistencies are handled by the app’s normal recovery. This does not verify a real checkout.",
+      body: "Reads rules, activation and plan again from Shopify. To see the real behaviour, then try an order at checkout.",
       refresh: "Refresh and check",
-      failed:
-        "Shopify is unavailable or the state is ambiguous. Try again from Home; an earlier result is not a fresh verification.",
+      failed: "We couldn’t read the status from Shopify. Try again shortly from Home.",
       checkedAt: "Rules and activation checked at",
       enabled: "The validation is enabled on Shopify.",
       disabled: "The validation is disabled or missing. Open Home to manage activation.",
@@ -270,8 +266,8 @@ export const en: typeof it = {
       manualBody:
         "Confirm billing and delivery countries, native tax fields and the checkout completion step. “Apartment, suite, etc.” is not the tax code field. These conditions require a manual check.",
       simulate: "Reproduce the case in the simulator",
-      entitled: "Trial or plan is valid in the newly synced state.",
-      notEntitled: "No valid trial or plan in the newly synced state.",
+      entitled: "Trial or plan active.",
+      notEntitled: "No active trial or plan.",
       checkoutLabels: "Checkout labels",
       address2: "Second address line",
     },
@@ -282,7 +278,7 @@ export const en: typeof it = {
     asideHeading: "What CF Ready does and doesn’t do",
     asideLinks: "Where to set it up",
     asideBody:
-      "CF Ready checks the Italian tax code and PEC in Shopify’s native Italian checkout fields according to the rules you choose. It validates their format without confirming the identity of the person entering them. It doesn’t issue invoices or handle VAT numbers or SDI codes.",
+      "CF Ready checks the Italian tax code and PEC in Shopify’s native Italian checkout fields according to the rules you choose. It checks the format of the values, not the identity of the person entering them. It doesn’t issue invoices or handle VAT numbers or SDI codes.",
     groups: [
       {
         heading: "Rules and validation",
@@ -293,7 +289,7 @@ export const en: typeof it = {
           },
           {
             q: "Which checkouts do the rules apply to?",
-            a: "Rules apply when at least one delivery is in Italy and the billing address is Italian or not yet available. They don’t apply when the billing address is outside Italy or all specified deliveries are abroad. If Shopify doesn’t provide a delivery country, CF Ready checks only the tax fields present in checkout: a field Shopify doesn’t show can’t block the order. You decide when to collect this information based on your business needs.",
+            a: "Rules apply when at least one delivery is in Italy and the billing address is Italian or not yet available. They don’t apply when the billing address is outside Italy or all specified deliveries are abroad. If Shopify doesn’t provide a delivery country, CF Ready checks only the tax fields present in checkout: a field Shopify doesn’t show can’t block the order.",
           },
           {
             q: "What gets validated?",
@@ -301,7 +297,7 @@ export const en: typeof it = {
           },
           {
             q: "Can I require PEC only when the customer fills in Company?",
-            a: "Yes. If you choose “Required when the Company field is filled in”, PEC becomes required when the customer enters a value in the billing address Company field. Otherwise it stays optional, but is still validated when entered. The Company field doesn’t automatically determine the order’s tax treatment.",
+            a: "Yes. If you choose “Required when the Company field is filled in”, PEC becomes required when the customer enters a value in the billing address Company field. Otherwise it stays optional, but is still validated when entered.",
           },
           {
             q: "When do checkout errors appear?",
@@ -343,7 +339,7 @@ export const en: typeof it = {
           },
           {
             q: "Which orders and channels aren’t covered?",
-            a: "CF Ready runs in Shopify’s online checkout, including accelerated checkouts supported by Shopify. It doesn’t act in POS, on orders created and completed directly in the admin, or on later generations of recurring subscription orders. Validation is formal and doesn’t query identity or tax registries.",
+            a: "CF Ready runs in Shopify’s online checkout, including accelerated checkouts supported by Shopify. It doesn’t act in POS, on orders created and completed directly in the admin, or on later generations of recurring subscription orders.",
           },
           {
             q: "What data does CF Ready store?",
@@ -351,7 +347,7 @@ export const en: typeof it = {
           },
           {
             q: "What should I do if something doesn’t look right?",
-            a: "Use “Refresh and check” under “The check doesn’t appear?” on this page to check rules, activation, and plan. Use “Re-read fields from Shopify” on Checkout rules to refresh labels. Then check a real checkout for the affected language and market. If the issue remains, select “Copy diagnostics” in the Support box and paste the result into your request without adding customer data.",
+            a: "Use “Refresh and check” under “Is the check missing?” on this page to check rules, activation, and plan. Use “Re-read fields from Shopify” on Checkout rules to refresh labels. Then check a real checkout for the affected language and market. If the issue remains, select “Copy diagnostics” in the Support box and paste the result into your request.",
           },
         ],
       },
@@ -365,9 +361,9 @@ export const en: typeof it = {
     subscription: (date: string) => `Subscription active until ${date}.`,
     trialOver: "Trial over: choose a plan to apply your rules again.",
     trialEndsSoon: (date: string) =>
-      `Your trial ends on ${date}. After that date checkout no longer blocks orders missing the required fields, and your rules and messages stay saved.`,
+      `Your trial ends on ${date}. Choose a plan to keep checking the tax code and PEC at checkout; your rules and messages stay saved.`,
     trialLastDay: (date: string) =>
-      `Today is the last day of your trial: it ends on ${date}. From tomorrow checkout blocks nothing, and your rules and messages stay saved.`,
+      `Today is the last day of your trial: it ends on ${date}. Choose a plan to keep your rules active from tomorrow; your rules and messages stay saved.`,
     none: "No active plan.",
     notStartedStatus: "The free trial has not started yet.",
     notStartedHeading: "Before turning the check on",
@@ -383,7 +379,7 @@ export const en: typeof it = {
     oneTimeStart: "Choose one payment",
     cancelRenewal: "Cancel renewal",
     cancelBody:
-      "If Shopify confirms the standard cancellation, access stays until the end of the current contract period, with no prorated credit. Your rules and messages stay saved.",
+      "Access stays until the end of the current period, with no credit for unused days. Your rules and messages stay saved.",
     firstCharge: (date: string) =>
       `If you start today, the first charge is on ${date}: you keep the trial days you have left.`,
     firstChargeNow: "The charge starts as soon as you approve it on Shopify.",
@@ -404,10 +400,8 @@ export const en: typeof it = {
     generationStandard: "Standard prices apply to this store.",
     nextCharge: (date: string) => `Next charge on ${date}.`,
     periodEnds: (date: string) => `The current contract period ends on ${date}.`,
-    lastAttempt:
-      "The last read of your billing status failed. Checkout isn’t blocked: reload the page in a few minutes.",
-    endingAlready:
-      "Shopify confirmed the standard cancellation: access stays until the end of the current contract period.",
+    lastAttempt: "We couldn’t read your plan status. Reload the page in a few minutes.",
+    endingAlready: "Renewal cancelled: access stays until the end of the current period.",
     monthlyName: "Monthly",
     annualName: "Annual",
     oneTimeName: "One payment",
@@ -513,7 +507,7 @@ export const en: typeof it = {
       nativeHeading: "Checkout text",
       permissionsHeading: "Check Shopify labels",
       permissionsBody:
-        "Grant access only to translations, languages and markets. CF Ready doesn’t read orders, customers or checkout entries.",
+        "To compare labels, CF Ready needs access to translations, languages and markets.",
       requestPermissions: "Grant permissions",
       statusManagedByShopify: "Managed by Shopify",
       statusManualRequired: "Manual verification required",
@@ -638,7 +632,7 @@ export const en: typeof it = {
       standardLabel: "Shopify text",
       restoreAddress: "Restore manageable translations",
       restoreAddressConfirm:
-        "Do you confirm the comparison? CF Ready will restore only the translations and overrides shown, then read Shopify again.",
+        "CF Ready restores the translations shown here, then reads Shopify again.",
       keepAddress: "Keep this customization",
       openCheckout: "Open checkout settings",
       sourceManual:
