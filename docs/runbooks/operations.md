@@ -9,7 +9,10 @@ costituiscono autorizzazione.
 
 `npm run capacity:dev` apre un tail Cloudflare filtrato lato provider da un
 header sintetico univoco, riscalda il Worker, invia 120 richieste alla rotta
-pubblica e misura la CPU delle sole invocazioni marcate. Il comando fallisce se
+pubblica e misura la CPU delle sole invocazioni marcate. Le richieste misurate
+partono una ogni 1,5 secondi: dal 29 settembre 2026 il tail consegna circa un
+evento al secondo dopo una breve raffica, e a ritmo pieno perdeva tutte le
+misure. Il controllo dura quindi circa tre minuti. Il comando fallisce se
 raccoglie meno di 100 eventi o più dei 120 emessi, incontra un errore Worker o
 HTTP, oppure supera `5 ms` al `p95`, metà del limite Free per richiesta. Il
 massimo resta nella ricevuta per rendere visibili eventuali cold start, ma non

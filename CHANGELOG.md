@@ -17,6 +17,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 - il retry di un deploy Development annullato dopo lo snapshot Shopify pubblica
   lo stesso tree con l'etichetta `.rN` invece di fermarsi; la verifica di
   capacità attende fino a 60 secondi gli eventi consegnati in ritardo dal tail.
+- la verifica di capacità distanzia le 120 richieste misurate di 1,5 secondi,
+  sotto il ritmo di consegna del tail Cloudflare, senza cambiare soglie.
 
 ## 1.15.8 — 28 settembre 2026
 
