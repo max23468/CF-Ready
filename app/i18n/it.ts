@@ -48,17 +48,16 @@ export const it = {
     address2_restore_conflict:
       "Il testo di Interno è cambiato dopo il confronto. Rileggi Shopify prima del ripristino.",
     validation_limit_reached:
-      "Questo store ha già il numero massimo di controlli al checkout consentito da Shopify. Le tue regole restano salvate. Disattiva il controllo di un’altra app da Impostazioni → Checkout, poi riprova: CF Ready non tocca le risorse di altre app.",
-    entitlement_required:
-      "Inizia prima la prova o scegli come pagare: senza, il controllo resterebbe attivo ma senza effetto nel checkout.",
+      "Questo store ha già il numero massimo di controlli al checkout consentito da Shopify. Le tue regole restano salvate. Disattiva il controllo di un’altra app da Impostazioni → Checkout, poi riprova.",
+    entitlement_required: "Per attivare il controllo, avvia la prova o scegli un piano.",
     config_conflict:
       "La configurazione è cambiata in un’altra finestra. Confronta i valori e scegli se riapplicare le tue modifiche o usare la configurazione attuale.",
     duplicate_validations:
-      "Shopify restituisce più controlli CF Ready. Sono stati disattivati per lasciare il checkout aperto, ma non possiamo scegliere quale conservare senza rischiare di perdere configurazione: nessuno viene eliminato automaticamente.",
+      "Shopify restituisce più controlli CF Ready, quindi li abbiamo disattivati senza eliminarne nessuno. Scrivici e ti aiutiamo a scegliere quale tenere.",
     duplicate_validations_active:
-      "Shopify restituisce più controlli CF Ready e non ha confermato la loro disattivazione. Riprova la riparazione: nessun controllo viene eliminato automaticamente.",
+      "Shopify restituisce più controlli CF Ready e non ha confermato la loro disattivazione. Riprova la riparazione.",
     billing_read_failed:
-      "Le informazioni sul piano non sono aggiornate. Il checkout non viene bloccato: riapri la pagina fra qualche minuto.",
+      "Le informazioni sul piano non sono aggiornate. Riapri la pagina fra qualche minuto.",
     one_time_already_active:
       "Questo store ha già il pagamento unico: un altro addebito non aggiungerebbe nulla.",
     charge_pending:
@@ -81,12 +80,11 @@ export const it = {
     titleNotStarted: "Controllo non ancora attivo",
     titleLapsed: "Validazione attiva, piano non attivo",
     noEntitlement:
-      "Senza un piano attivo il checkout non blocca più nulla. Regole e messaggi restano salvati e tornano validi con il pagamento.",
+      "Senza un piano attivo le regole non valgono nel checkout. Regole e messaggi restano salvati e tornano validi con il pagamento.",
     syncNeeded:
-      "Lo stato mostrato qui potrebbe non coincidere con Shopify. Il checkout non viene bloccato. Riapri la pagina fra qualche minuto.",
+      "Lo stato mostrato qui potrebbe non coincidere con Shopify. Riapri la pagina fra qualche minuto.",
     verifying: "Verifica in corso…",
-    verificationFailed:
-      "Non è stato possibile verificare lo stato con Shopify. Il checkout non viene bloccato.",
+    verificationFailed: "Non è stato possibile verificare lo stato con Shopify.",
     verificationRetry: "Riprova",
     repair: "Ripara configurazione",
     messagesLabel: "Messaggi al cliente",
@@ -175,7 +173,7 @@ export const it = {
       "Configura Codice Fiscale e PEC, controlla i messaggi mostrati al cliente e scegli quando attivare le regole.",
     step1Heading: "Cosa fa e cosa non fa",
     step1Body:
-      "CF Ready controlla Codice Fiscale e PEC nel checkout Shopify. Non modifica il tema, non aggiunge campi e non emette fatture.",
+      "CF Ready controlla Codice Fiscale e PEC nei campi nativi del checkout Shopify, senza modificare il tema.",
     step1Limits: [
       "Verifica solo il formato dei dati: non conferma l’identità del cliente né che un indirizzo sia davvero una PEC.",
       "Le regole si applicano alle consegne in Italia. Non si applicano se l’indirizzo di fatturazione è estero. Se manca il Paese di consegna, i campi obbligatori non mostrati da Shopify non bloccano l’ordine.",
@@ -214,9 +212,9 @@ export const it = {
   },
   support: {
     heading: "Assistenza",
-    body: "Le richieste arrivano a chi sviluppa l’app e ricevono una risposta scritta a mano. Il collegamento apre il tuo programma di posta con un messaggio già compilato: puoi leggerlo e modificarlo prima di inviarlo.",
+    body: "Ti risponde direttamente chi sviluppa l’app. Il collegamento apre il tuo programma di posta con un messaggio già compilato.",
     privacyNote:
-      "Nel messaggio finiscono solo dominio dello store, versione, lingua e stato tecnico dell’app. Non allegare Codici Fiscali, PEC, ordini o dati dei tuoi clienti: per capire un problema non servono.",
+      "Il messaggio contiene dominio dello store, versione, lingua e stato tecnico dell’app: di solito basta questo per capire il problema.",
     subject: "Assistenza CF Ready",
     chooseCategory: "Scegli l’argomento:",
     requestSupport: "Richiedi assistenza",
@@ -256,10 +254,9 @@ export const it = {
   guide: {
     diagnosis: {
       heading: "Il controllo non compare?",
-      body: "Aggiorna e verifica regole, attivazione e piano usando la stessa sincronizzazione della Home. Eventuali incoerenze vengono gestite dal normale recupero dell’app. Questa verifica non prova un checkout reale.",
+      body: "Rilegge da Shopify regole, attivazione e piano. Per vedere il comportamento reale, prova poi un ordine nel checkout.",
       refresh: "Aggiorna e verifica",
-      failed:
-        "Shopify non è raggiungibile o lo stato è ambiguo. Riprova dalla Home; nessun esito precedente vale come verifica aggiornata.",
+      failed: "Non è stato possibile leggere lo stato da Shopify. Riprova fra poco dalla Home.",
       checkedAt: "Regole e attivazione verificate il",
       enabled: "La Validation è attiva su Shopify.",
       disabled: "La Validation è disattivata o assente. Apri la Home per gestire l’attivazione.",
@@ -273,8 +270,8 @@ export const it = {
       manualBody:
         "Conferma Paese di fatturazione e consegna, presenza dei campi fiscali nativi e momento in cui completi il checkout. Il campo “Interno” non è il campo Codice Fiscale. Queste condizioni richiedono una verifica manuale.",
       simulate: "Riproduci il caso nel simulatore",
-      entitled: "Prova o piano validi nello stato appena sincronizzato.",
-      notEntitled: "Nessuna prova o piano validi nello stato appena sincronizzato.",
+      entitled: "Prova o piano attivi.",
+      notEntitled: "Nessuna prova o piano attivi.",
       checkoutLabels: "Etichette del checkout",
       address2: "Campo “Interno”",
     },
@@ -285,7 +282,7 @@ export const it = {
     asideHeading: "Cosa fa e cosa non fa CF Ready",
     asideLinks: "Dove si configura",
     asideBody:
-      "CF Ready controlla il Codice Fiscale e la PEC nei campi nativi del checkout italiano secondo le regole che scegli. Verifica la forma dei valori, senza confermare l’identità di chi li inserisce. Non emette fatture e non gestisce Partita IVA o Codice SDI.",
+      "CF Ready controlla il Codice Fiscale e la PEC nei campi nativi del checkout italiano secondo le regole che scegli. Controlla la forma dei valori, non l’identità di chi li inserisce. Non emette fatture e non gestisce Partita IVA o Codice SDI.",
     groups: [
       {
         heading: "Regole e validazione",
@@ -296,7 +293,7 @@ export const it = {
           },
           {
             q: "In quali checkout si applicano le regole?",
-            a: "Le regole si applicano quando almeno una consegna è in Italia e l’indirizzo di fatturazione è italiano o non ancora disponibile. Non si applicano quando l’indirizzo di fatturazione è estero o tutte le consegne indicate sono estere. Se Shopify non fornisce un Paese di consegna, CF Ready controlla soltanto i campi fiscali presenti nel checkout: un campo che Shopify non mostra non può bloccare l’ordine. Sei tu a decidere quando raccogliere questi dati in base alle esigenze della tua attività.",
+            a: "Le regole si applicano quando almeno una consegna è in Italia e l’indirizzo di fatturazione è italiano o non ancora disponibile. Non si applicano quando l’indirizzo di fatturazione è estero o tutte le consegne indicate sono estere. Se Shopify non fornisce un Paese di consegna, CF Ready controlla soltanto i campi fiscali presenti nel checkout: un campo che Shopify non mostra non può bloccare l’ordine.",
           },
           {
             q: "Che cosa viene validato?",
@@ -304,7 +301,7 @@ export const it = {
           },
           {
             q: "Posso richiedere la PEC soltanto quando il cliente compila Azienda?",
-            a: "Sì. Se scegli “Obbligatoria quando il campo Azienda è compilato”, la PEC diventa obbligatoria quando il cliente inserisce un valore nel campo Azienda dell’indirizzo di fatturazione. Negli altri casi resta facoltativa, ma viene comunque validata quando è inserita. Il campo Azienda non determina automaticamente la natura fiscale dell’ordine.",
+            a: "Sì. Se scegli “Obbligatoria quando il campo Azienda è compilato”, la PEC diventa obbligatoria quando il cliente inserisce un valore nel campo Azienda dell’indirizzo di fatturazione. Negli altri casi resta facoltativa, ma viene comunque validata quando è inserita.",
           },
           {
             q: "Quando compaiono gli errori nel checkout?",
@@ -346,7 +343,7 @@ export const it = {
           },
           {
             q: "Quali ordini e canali non sono coperti?",
-            a: "CF Ready opera nel checkout online di Shopify, compresi i checkout accelerati supportati da Shopify. Non interviene nel POS, negli ordini creati e completati direttamente dal pannello di amministrazione né nelle generazioni successive degli ordini ricorrenti in abbonamento. La validazione è formale e non consulta registri anagrafici o fiscali.",
+            a: "CF Ready opera nel checkout online di Shopify, compresi i checkout accelerati supportati da Shopify. Non interviene nel POS, negli ordini creati e completati direttamente dal pannello di amministrazione né nelle generazioni successive degli ordini ricorrenti in abbonamento.",
           },
           {
             q: "Quali dati conserva CF Ready?",
@@ -354,7 +351,7 @@ export const it = {
           },
           {
             q: "Cosa faccio se qualcosa non torna?",
-            a: "Usa “Aggiorna e verifica” nella sezione “Il controllo non compare?” di questa pagina per controllare regole, attivazione e piano. Usa “Rileggi i campi da Shopify” in Regole checkout per aggiornare le etichette. Verifica poi un checkout reale nella lingua e nel mercato interessati. Se il problema resta, premi “Copia diagnostica” nel box Assistenza e incolla il risultato nella richiesta, senza aggiungere dati dei clienti.",
+            a: "Usa “Aggiorna e verifica” nella sezione “Il controllo non compare?” di questa pagina per controllare regole, attivazione e piano. Usa “Rileggi i campi da Shopify” in Regole checkout per aggiornare le etichette. Verifica poi un checkout reale nella lingua e nel mercato interessati. Se il problema resta, premi “Copia diagnostica” nel box Assistenza e incolla il risultato nella richiesta.",
           },
         ],
       },
@@ -368,9 +365,9 @@ export const it = {
     subscription: (date: string) => `Abbonamento attivo fino al ${date}.`,
     trialOver: "Prova terminata: scegli come continuare per riattivare le regole.",
     trialEndsSoon: (date: string) =>
-      `La prova finisce il ${date}. Dopo quella data il checkout non blocca più gli ordini senza i dati richiesti, e regole e messaggi restano salvati.`,
+      `La prova finisce il ${date}. Scegli un piano per continuare a controllare Codice Fiscale e PEC nel checkout; regole e messaggi restano salvati.`,
     trialLastDay: (date: string) =>
-      `Oggi è l’ultimo giorno di prova: finisce il ${date}. Da domani il checkout non blocca più nulla, e regole e messaggi restano salvati.`,
+      `Oggi è l’ultimo giorno di prova: finisce il ${date}. Scegli un piano per mantenere attive le regole da domani; regole e messaggi restano salvati.`,
     none: "Nessun piano attivo.",
     notStartedStatus: "La prova gratuita non è ancora iniziata.",
     // Prima scelta: la prova non parte da sola, la avvia il merchant quando vuole.
@@ -387,7 +384,7 @@ export const it = {
     oneTimeStart: "Scegli un solo pagamento",
     cancelRenewal: "Cancella il rinnovo",
     cancelBody:
-      "Se Shopify conferma la cancellazione ordinaria, l’accesso resta fino alla fine del periodo contrattuale corrente, senza credito pro-rata. Regole e messaggi restano salvati.",
+      "L’accesso resta fino alla fine del periodo corrente, senza credito per i giorni non usati. Regole e messaggi restano salvati.",
     firstCharge: (date: string) =>
       `Se attivi oggi, il primo addebito è il ${date}: i giorni di prova che restano non li perdi.`,
     firstChargeNow: "L’addebito parte alla tua approvazione su Shopify.",
@@ -411,9 +408,8 @@ export const it = {
     nextCharge: (date: string) => `Prossimo addebito il ${date}.`,
     periodEnds: (date: string) => `Il periodo contrattuale corrente finisce il ${date}.`,
     lastAttempt:
-      "L’ultima lettura dello stato commerciale non è riuscita. Il checkout non viene bloccato: riapri la pagina fra qualche minuto.",
-    endingAlready:
-      "Shopify ha confermato la cancellazione ordinaria: l’accesso resta fino alla fine del periodo contrattuale corrente.",
+      "Non è stato possibile leggere lo stato del piano. Riapri la pagina fra qualche minuto.",
+    endingAlready: "Il rinnovo è cancellato: l’accesso resta fino alla fine del periodo corrente.",
     monthlyName: "Mensile",
     annualName: "Annuale",
     oneTimeName: "Un solo pagamento",
@@ -520,7 +516,7 @@ export const it = {
       nativeHeading: "Testi del checkout",
       permissionsHeading: "Controlla le etichette Shopify",
       permissionsBody:
-        "Concedi accesso soltanto a traduzioni, lingue e mercati. CF Ready non legge ordini, clienti o dati inseriti nel checkout.",
+        "Per confrontare le etichette, CF Ready ha bisogno di accedere a traduzioni, lingue e mercati.",
       requestPermissions: "Concedi i permessi",
       statusManagedByShopify: "Gestito da Shopify",
       statusManualRequired: "Verifica manuale richiesta",
@@ -643,8 +639,7 @@ export const it = {
       notAvailable: "Non disponibile",
       standardLabel: "Testo Shopify",
       restoreAddress: "Ripristina le traduzioni gestibili",
-      restoreAddressConfirm:
-        "Confermi il confronto? CF Ready ripristinerà soltanto le traduzioni e gli override mostrati, poi rileggerà Shopify.",
+      restoreAddressConfirm: "CF Ready ripristina le traduzioni mostrate qui, poi rilegge Shopify.",
       keepAddress: "Mantieni questa personalizzazione",
       openCheckout: "Apri le impostazioni checkout",
       sourceManual:

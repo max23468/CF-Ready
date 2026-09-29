@@ -6,6 +6,10 @@ const REQUESTS = 120;
 const MIN_EVENTS = 100;
 const CPU_LIMIT_MS = 10;
 const TAIL_READY_TIMEOUT_MS = 60_000;
+const MEASURED_EVENTS_TIMEOUT_MS = 60_000;
+// Il tail Cloudflare consegna circa un evento al secondo oltre una breve raffica:
+// il carico misurato resta sotto quel ritmo per non perdere eventi.
+const MEASURE_INTERVAL_MS = 1_500;
 const TAIL_POLL_INTERVAL_MS = 500;
 const REQUEST_TIMEOUT_MS = 15_000;
 
@@ -119,7 +123,15 @@ export async function runCapacityCheck({
       () => errors,
     );
     await runRequestBatch(target, 10, 1, marker, "warmup");
-    await runRequestBatch(target, REQUESTS, 5, marker, "measure");
+    await runRequestBatch(
+      target,
+      REQUESTS,
+      1,
+      marker,
+      "measure",
+      REQUEST_TIMEOUT_MS,
+      MEASURE_INTERVAL_MS,
+    );
     await waitForMeasuredEvents(() => output, marker);
   } finally {
     await stopProcess(tail);
@@ -160,7 +172,8 @@ export async function waitForTail(
 
 export async function waitForEvents(output, marker, pause = wait) {
   let samplesAfterMinimum = 0;
-  for (let attempt = 0; attempt < 44; attempt += 1) {
+  const attempts = MEASURED_EVENTS_TIMEOUT_MS / TAIL_POLL_INTERVAL_MS;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
     const count = parseJsonObjects(output()).filter(
       ({ event }) =>
         header(event?.request?.headers, "x-cf-ready-capacity") === marker &&
@@ -169,17 +182,19 @@ export async function waitForEvents(output, marker, pause = wait) {
     if (count === REQUESTS) return;
     samplesAfterMinimum = count >= MIN_EVENTS ? samplesAfterMinimum + 1 : 0;
     if (samplesAfterMinimum === 5) return;
-    await pause(500);
+    await pause(TAIL_POLL_INTERVAL_MS);
   }
 }
 
-async function requestBatch(
+export async function requestBatch(
   target,
   count,
   concurrency,
   marker,
   phase,
   timeout = REQUEST_TIMEOUT_MS,
+  interval = 0,
+  pause = wait,
 ) {
   let next = 0;
   await Promise.all(
@@ -197,6 +212,7 @@ async function requestBatch(
         if (response.status < 200 || response.status >= 400) {
           throw new Error(`Carico sintetico interrotto da HTTP ${response.status}.`);
         }
+        if (interval && next < count) await pause(interval);
       }
     }),
   );

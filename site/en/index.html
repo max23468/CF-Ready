@@ -137,7 +137,7 @@
       <ol class="steps">
         <li>
           <h3>Install it</h3>
-          <p>From the Shopify App Store, even if the store is based outside Italy. It doesn’t ask to read orders, customers or products, because it doesn’t need them.</p>
+          <p>From the Shopify App Store, even if the store is based outside Italy.</p>
         </li>
         <li>
           <h3>Decide what to ask for</h3>
@@ -158,7 +158,7 @@
           <span class="label">What the customer sees</span>
           <h2>A message you wrote</h2>
           <p>Use the default messages or customize them in Italian and English. CF Ready checks data during checkout, tells customers what to correct, and checks required fields before the order is completed.</p>
-          <p class="small">The sketch alongside shows how it behaves. It isn’t a reproduction of Shopify’s checkout.</p>
+          <p class="small">The sketch alongside shows how it behaves.</p>
         </div>
 
         <div class="mock">
@@ -226,10 +226,8 @@
         <li>Foreign billing details, even if you deliver or hand over in Italy: no check.</li>
         <li>Store pickup: checked when the fields are present. Mixed orders: checked if at least one delivery is Italian.</li>
         <li>Required field not shown by Shopify: blocks the order if there is a delivery in Italy. If the delivery country is missing, the absent field does not block it.</li>
-        <li>Unreadable configuration or a technical fault: the checkout stays open.</li>
-        <li>Trial over or plan inactive: the checkout stays open.</li>
+        <li>Technical fault, trial over or plan inactive: the checkout stays open.</li>
       </ul>
-      <p class="small note">A technical error in the app does not block sales. Validation does not replace the data checks your business needs.</p>
     </div>
   </section>
 
@@ -238,7 +236,7 @@
       <div class="section-head">
         <span class="label">Limits</span>
         <h2>What CF Ready doesn’t do</h2>
-        <p>They sit here in the middle, with the same room as everything else, because you’re better off knowing before you install.</p>
+        <p>Better to know before you install.</p>
       </div>
       <div class="grid two">
         <div class="card">
@@ -265,8 +263,7 @@
     <div class="wrap column">
       <span class="label">Data</span>
       <h2>What your customers type stays in Shopify</h2>
-      <p>Validation runs within Shopify’s infrastructure during checkout. Customer tax codes and PEC addresses never reach our systems and are not logged or stored by CF Ready.</p>
-      <p>We know nothing about your orders, customers, products or stock, and the permissions we ask Shopify for stop at what the app needs to run. It’s written out in full in the <a href="privacy">Privacy Policy</a>.</p>
+      <p>Validation runs inside Shopify during checkout: customer tax codes and PEC addresses don’t reach CF Ready, and the app doesn’t read orders, customers or products. The details are in the <a href="privacy">Privacy Policy</a>.</p>
     </div>
   </section>
 
@@ -316,12 +313,12 @@
 
       <details>
         <summary>Does it work with my Shopify plan?</summary>
-        <p>Yes, on Basic, Grow, Advanced and Plus, for stores based in any country. Rules apply to deliveries in Italy. They do not apply if the billing address is outside Italy. If the delivery country is missing, required fields that Shopify does not show do not block the order.</p>
+        <p>Yes, on Basic, Grow, Advanced and Plus, for stores based in any country. Rules apply to deliveries in Italy, except orders with a billing address outside Italy.</p>
       </details>
 
       <details>
-        <summary>Could it block good orders?</summary>
-        <p>A technical error in the app leaves checkout open. With a delivery in Italy and no foreign billing address, a required field that is empty, invalid or not shown by Shopify blocks the order. If the delivery country is missing, absent fields do not block it; fields that are present are still checked.</p>
+        <summary>Can it block valid orders?</summary>
+        <p>No. With a delivery in Italy and no foreign billing address, CF Ready blocks the order only when a required field is empty, invalid or not shown by Shopify. If the delivery country is missing, it checks only the fields that are present. If the app has a technical problem, the checkout stays open.</p>
       </details>
 
       <details>
