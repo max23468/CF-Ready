@@ -75,12 +75,14 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
   expect(summary.matches(":focus-visible")).toBe(true);
   expect(getComputedStyle(summary).outlineStyle).toBe("solid");
   expect(getComputedStyle(summary).outlineWidth).toBe("2px");
-  expect(view.container.querySelector('s-link[href="#support"]')).not.toBeNull();
-  await page.getByRole("link", { name: texts("it").support.heading, exact: true }).click();
+  expect(view.container.querySelector("#support")).not.toBeNull();
+  await page.getByRole("button", { name: texts("it").support.heading, exact: true }).click();
   const support = view.container.querySelector<HTMLElement>("#support")!;
   expect(support.getBoundingClientRect().height).toBeGreaterThan(100);
   await expect.poll(() => support.getBoundingClientRect().top).toBeLessThan(844);
-  await page.getByRole("link", { name: texts("it").guide.diagnosis.heading, exact: true }).click();
+  await page
+    .getByRole("button", { name: texts("it").guide.diagnosis.heading, exact: true })
+    .click();
   expect(
     view.container.querySelector("#validation-diagnosis")!.getBoundingClientRect().top,
   ).toBeLessThan(844);
