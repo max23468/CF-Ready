@@ -6,6 +6,13 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.12 — 30 settembre 2026
+
+- rende effettivi i salti rapidi della Guida su mobile con azioni Polaris di
+  scorrimento e bersagli HTML con dimensioni reali, anche nell’Admin embedded;
+- verifica scorrimento, posizione dei campi e stabilità della riga Home sui
+  contenuti effettivamente disegnati dai Web Components.
+
 ## 1.15.11 — 30 settembre 2026
 
 - stabilizza lo stato di verifica Shopify nella Home, senza badge temporanei;
