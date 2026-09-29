@@ -102,27 +102,25 @@ export function OnboardingStep4Content({
         <div className="cf-data-row cf-onboarding-summary-row">
           <s-text>{t.rules.taxCodeLabel}</s-text>
           <div className="cf-onboarding-summary-value">
-            <s-badge>{t.rules.taxCode[saved.rules.taxCode]}</s-badge>
+            <s-text>{t.rules.taxCode[saved.rules.taxCode]}</s-text>
           </div>
         </div>
         <div className="cf-data-row cf-onboarding-summary-row">
           <s-text>{t.rules.pecLabel}</s-text>
           <div className="cf-onboarding-summary-value">
-            <s-badge>{t.rules.pec[saved.rules.pec]}</s-badge>
+            <s-text>{t.rules.pec[saved.rules.pec]}</s-text>
           </div>
         </div>
         <div className="cf-data-row cf-onboarding-summary-row">
           <s-text>{t.onboarding.labelsSummary}</s-text>
           <div className="cf-onboarding-summary-value">
-            <s-badge>{t.rules.labels.modeValues[saved.labelState.mode]}</s-badge>
+            <s-text>{t.rules.labels.modeValues[saved.labelState.mode]}</s-text>
           </div>
         </div>
         <div className="cf-data-row cf-onboarding-summary-row">
           <s-text>{t.onboarding.address2Summary}</s-text>
           <div className="cf-onboarding-summary-value">
-            <s-badge>
-              {t.rules.labels.addressStatus[saved.labelState.address2Classification]}
-            </s-badge>
+            <s-text>{t.rules.labels.addressStatus[saved.labelState.address2Classification]}</s-text>
           </div>
         </div>
       </div>
