@@ -159,19 +159,48 @@ test("il preflight lega il nome Worker alla chiave corretta", () => {
   );
 });
 
-test("il preflight rifiuta una versione Shopify già pubblicata", () => {
+test("il preflight rifiuta una versione Shopify attiva ma incoerente", () => {
   const tree = "b".repeat(40);
   const version = developmentVersion("0.4.22", tree);
   assert.throws(() => developmentVersion("versione-invalida", tree), /tree Git non validi/);
   assert.throws(() => developmentVersion("0.4.22", "tree-invalido"), /tree Git non validi/);
   assert.throws(
-    () => verifyVersionAvailable([{ versionTag: version }], version, {}, undefined, tree),
+    () =>
+      verifyVersionAvailable(
+        [{ status: "active", versionTag: version }],
+        version,
+        {},
+        undefined,
+        tree,
+      ),
     /già stata pubblicata/,
   );
   assert.deepEqual(verifyVersionAvailable([{ versionTag: "0.4.21" }], version), {
     readbackOnly: false,
     deployedCommit: undefined,
+    version,
   });
+});
+
+test("il retry dopo un rollback usa una nuova etichetta per lo stesso tree", () => {
+  const tree = "b".repeat(40);
+  const version = developmentVersion("0.4.22", tree);
+  const rolledBack = [{ status: "active", versionTag: "0.4.21" }, { versionTag: version }];
+  assert.deepEqual(verifyVersionAvailable(rolledBack, version, {}, "a".repeat(40), tree), {
+    readbackOnly: false,
+    deployedCommit: undefined,
+    version: `${version}.r2`,
+  });
+  assert.equal(
+    verifyVersionAvailable(
+      [...rolledBack, { versionTag: `${version}.r2` }, { versionTag: `${version}.rx` }],
+      version,
+      {},
+      "a".repeat(40),
+      tree,
+    ).version,
+    `${version}.r3`,
+  );
 });
 
 test("il retry dello stesso tree coordinato procede in solo readback", () => {
@@ -187,7 +216,16 @@ test("il retry dello stesso tree coordinato procede in solo readback", () => {
   assert.deepEqual(verifyVersionAvailable(versions, version, deployment, "a".repeat(40), tree), {
     readbackOnly: true,
     deployedCommit: commit,
+    version,
   });
+  const retried = [
+    { versionTag: version },
+    { status: "active", versionTag: `${version}.r2`, message: `Development ${commit}` },
+  ];
+  assert.equal(
+    verifyVersionAvailable(retried, version, deployment, "a".repeat(40), tree).version,
+    `${version}.r2`,
+  );
 });
 
 test("il readback D1 richiede zero migrazioni pendenti", () => {
