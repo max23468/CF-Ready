@@ -34,9 +34,7 @@ Customers see the default messages or the merchant's customized ones, in Italian
 - Foreign billing details, even with delivery or handover in Italy: no check.
 - Store pickup: checked when the fields are present. Mixed orders: checked if at least one delivery is Italian.
 - Required field not shown by Shopify: blocks the order if there is a delivery in Italy. If the delivery country is missing, the absent field does not block it.
-- Unreadable configuration, a technical fault, an ended trial or an inactive plan: the checkout stays open.
-
-A technical error in the app does not block sales. Validation does not replace the data checks a business needs.
+- Technical fault, ended trial or inactive plan: the checkout stays open.
 
 ## Limits
 
@@ -47,7 +45,7 @@ A technical error in the app does not block sales. Validation does not replace t
 
 ## Data
 
-Validation runs within Shopify's infrastructure during checkout. Customer tax codes and PEC addresses never reach our systems and are not logged or stored by CF Ready. The app knows nothing about orders, customers, products or stock.
+Validation runs inside Shopify during checkout: customer tax codes and PEC addresses don't reach CF Ready, and the app doesn't read orders, customers or products.
 
 ## Trial and price
 

@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.9 — 29 settembre 2026
+
+- rende meno difensivi i testi di app, sito e listing: errori e avvisi dicono
+  cosa fare senza ripetere che il checkout resta aperto; privacy e cautele
+  legali restano nelle sezioni dedicate; gli avvisi di fine prova invitano a
+  scegliere un piano. I limiti formali e di copertura restano dichiarati;
+- aggiorna le regole di tono in brand foundation (A-18) e Master Plan (D-172);
+- forza `undici` 7.29.1 contro l'advisory GHSA-3wwx-pv8p-q78v.
+
 ## 1.15.8 — 28 settembre 2026
 
 - separa letture e riconciliazione degli incidenti del Control Center e porta
