@@ -14,6 +14,9 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   scegliere un piano. I limiti formali e di copertura restano dichiarati;
 - aggiorna le regole di tono in brand foundation (A-18) e Master Plan (D-172);
 - forza `undici` 7.29.1 contro l'advisory GHSA-3wwx-pv8p-q78v.
+- il retry di un deploy Development annullato dopo lo snapshot Shopify pubblica
+  lo stesso tree con l'etichetta `.rN` invece di fermarsi; la verifica di
+  capacità attende fino a 60 secondi gli eventi consegnati in ritardo dal tail.
 
 ## 1.15.8 — 28 settembre 2026
 

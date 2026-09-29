@@ -271,6 +271,33 @@ esac`,
   });
   assert.match(developmentResult.stdout, /Readback Development superato/);
 
+  const burnedTag = `1.1.4-dev.${sha("b").slice(0, 12)}`;
+  const pathWithBurnedTag = await providerBin(t, {
+    node: "exit 0",
+    shopify: `printf '%s\\n' '[{"status":"active","versionId":"shopify-version","versionTag":"1.1.4","message":"Development ${commit}"},{"versionId":"burned","versionTag":"${burnedTag}"}]'`,
+    npm: `
+case "$*" in
+  *"deployments status"*) printf '%s\\n' '{"id":"deployment","annotations":{"workers/message":"Development ${commit}"},"versions":[{"version_id":"worker-version","percentage":100}]}' ;;
+  *"d1 info cf-ready-db-dev"*) printf '%s\\n' '{"uuid":"9490eaea-3a12-465d-bb48-e2622b31fc4d","name":"cf-ready-db-dev"}' ;;
+  *"secret list"*) printf '%s\\n' '${JSON.stringify(secretNames.map((name) => ({ name })))}' ;;
+  *) exit 3 ;;
+esac`,
+  });
+  const githubEnv = path.join(development, "github-env");
+  runEntrypoint("preflight-dev.mjs", [], {
+    cwd: development,
+    env: {
+      PATH: pathWithBurnedTag,
+      GIT_TREE: sha("b"),
+      GITHUB_SHA: sha("c"),
+      GITHUB_ENV: githubEnv,
+    },
+  });
+  assert.match(
+    readFileSync(githubEnv, "utf8"),
+    new RegExp(`^DEPLOY_VERSION=${burnedTag}\\.r2$`, "m"),
+  );
+
   const production = await writePreflightProject(t, "Production");
   const productionResult = runEntrypoint("preflight-prod.mjs", [], {
     cwd: production,

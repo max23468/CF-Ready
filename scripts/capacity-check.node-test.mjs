@@ -83,6 +83,21 @@ test("mantiene aperto il tail per gli eventi tardivi dopo il minimo", async () =
   assert.equal(sample, 4);
 });
 
+test("attende fino a 60 secondi gli eventi misurati consegnati in ritardo dal tail", async () => {
+  let sample = 0;
+
+  await waitForEvents(
+    () =>
+      sample >= 60 ? Array.from({ length: 120 }, () => JSON.stringify(event(1))).join("\n") : "",
+    "target",
+    async () => {
+      sample += 1;
+    },
+  );
+
+  assert.equal(sample, 60);
+});
+
 test("attende l'avvio lento del tail oltre la vecchia soglia", async () => {
   let probes = 0;
 
