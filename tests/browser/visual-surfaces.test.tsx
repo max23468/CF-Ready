@@ -41,19 +41,20 @@ test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", asy
     router.loaderData = confirmedHome(data, confirmed);
     const view = await mount(<HomePage />);
     const status = view.container.querySelector<HTMLElement>(".home-verification")!;
-    const section = status.closest("s-section")!;
-    const pendingHeight = section.getBoundingClientRect().height;
+    const pendingRect = status.getBoundingClientRect();
+    expect(pendingRect.height).toBeGreaterThanOrEqual(40);
     expect(status.textContent).toContain(texts("it").home.verifying);
     await act(async () => resolve(data));
     await expect.poll(() => status.textContent).toContain(texts("it").home.verified);
-    expect(section.getBoundingClientRect().height).toBe(pendingHeight);
+    expect(status.getBoundingClientRect().height).toBe(pendingRect.height);
+    expect(status.getBoundingClientRect().top).toBe(pendingRect.top);
     await page.screenshot({
       path: `__screenshots__/visual/home-${server.browser}-${width}.png`,
     });
     router.loaderData = confirmedHome(data, Promise.reject(new Error("timeout")));
     await view.rerender(<HomePage />);
     await expect.poll(() => status.textContent).toContain(texts("it").home.verificationUnavailable);
-    expect(section.getBoundingClientRect().height).toBe(pendingHeight);
+    expect(status.getBoundingClientRect().height).toBe(pendingRect.height);
     await view.unmount();
   }
 });
@@ -75,6 +76,14 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
   expect(getComputedStyle(summary).outlineStyle).toBe("solid");
   expect(getComputedStyle(summary).outlineWidth).toBe("2px");
   expect(view.container.querySelector('s-link[href="#support"]')).not.toBeNull();
+  await page.getByRole("link", { name: texts("it").support.heading, exact: true }).click();
+  const support = view.container.querySelector<HTMLElement>("#support")!;
+  expect(support.getBoundingClientRect().height).toBeGreaterThan(100);
+  await expect.poll(() => support.getBoundingClientRect().top).toBeLessThan(844);
+  await page.getByRole("link", { name: texts("it").guide.diagnosis.heading, exact: true }).click();
+  expect(
+    view.container.querySelector("#validation-diagnosis")!.getBoundingClientRect().top,
+  ).toBeLessThan(844);
   await page.screenshot({
     path: `__screenshots__/visual/guide-${server.browser}-390.png`,
   });
@@ -94,18 +103,20 @@ test("Polaris reale: campi Messaggi prima dell’anteprima e riepilogo mobile se
       ".customer-messages-preview",
     )!;
     expect(preview.open).toBe(false);
-    expect(
-      messages.container.querySelector("s-text-area")!.getBoundingClientRect().top,
-    ).toBeLessThan(preview.getBoundingClientRect().top);
-    expect(
-      messages.container.querySelector("s-text-area")!.getBoundingClientRect().top,
-    ).toBeLessThan(500);
+    const field = page
+      .getByRole("textbox", { name: texts("it").messages.taxCodeRequired, exact: true })
+      .element();
+    expect(field.getBoundingClientRect().height).toBeGreaterThan(20);
+    expect(field.getBoundingClientRect().top).toBeLessThan(preview.getBoundingClientRect().top);
+    expect(field.getBoundingClientRect().top).toBeLessThan(500);
     await page.screenshot({
       path: `__screenshots__/visual/messages-${server.browser}-${width}.png`,
     });
-    await page
-      .getByRole("combobox", { name: texts("it").messages.languageSelector })
-      .selectOptions("en");
+    await act(async () => {
+      await page
+        .getByRole("combobox", { name: texts("it").messages.languageSelector })
+        .selectOptions("en");
+    });
     await page.elementLocator(preview.querySelector("summary")!).click();
     expect(
       messages.container.querySelector('.customer-messages-preview__error[lang="en"]')?.textContent,
