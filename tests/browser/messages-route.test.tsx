@@ -62,6 +62,18 @@ describe("Messaggi", () => {
     const language = view.container.querySelector("s-select") as HTMLElement & { value: string };
     language.value = "en";
     await dispatch(language, new Event("change", { bubbles: true }));
+    expect(
+      view.container.querySelector('.customer-messages-preview__error[lang="en"]')?.textContent,
+    ).toContain(texts("en").messages.previewErrorHeading);
+    expect(
+      view.container.querySelector(".customer-messages-preview__error")?.textContent,
+    ).not.toContain(texts("it").messages.previewErrorHeading);
+    expect(
+      view.container
+        .querySelector("s-text-area")!
+        .compareDocumentPosition(view.container.querySelector(".customer-messages-preview")!) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(view.container.textContent).toContain("Current tax code");
   });
 

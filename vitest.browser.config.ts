@@ -11,6 +11,7 @@ const routeTests = [
   "tests/browser/messages-route.test.tsx",
   "tests/browser/onboarding-route.test.tsx",
   "tests/browser/rules-route.test.tsx",
+  "tests/browser/visual-surfaces.test.tsx",
 ];
 
 export default defineConfig({

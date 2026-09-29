@@ -377,24 +377,14 @@ function MessagesEditor({
           <s-paragraph>{t.messages.labelsNote}</s-paragraph>
           <s-link href="/app/rules">{t.messages.manageLabels}</s-link>
         </s-banner>
-        <CustomerMessagesPreview
-          activeLocale={activeLocale}
-          context={t.messages.previewContext}
-          errorHeading={t.messages.previewErrorHeading}
-          fieldLabel={previewField.label}
-          fieldLabelHeading={
-            previewField.observed
-              ? t.messages.previewCurrentFieldLabel
-              : t.messages.previewProposedFieldLabel
-          }
-          heading={t.messages.previewHeading}
-          languageLabel={t.messages.languageSelector}
-          languages={{ it: t.messages.italian, en: t.messages.english }}
-          message={draft[activeLocale][selectedKey]}
-          onLocaleChange={setActiveLocale}
-          selectedHeading={t.messages.previewSelected}
-          selectedLabel={t.messages[selectedKey]}
-        />
+        <s-select
+          label={t.messages.languageSelector}
+          value={activeLocale}
+          onChange={(event) => setActiveLocale(event.currentTarget.value as Locale)}
+        >
+          <s-option value="it">{t.messages.italian}</s-option>
+          <s-option value="en">{t.messages.english}</s-option>
+        </s-select>
         <s-stack direction="block" gap="base">
           {MESSAGE_KEYS.map((key) => {
             const value = draft[activeLocale][key];
@@ -427,6 +417,22 @@ function MessagesEditor({
             );
           })}
         </s-stack>
+        <CustomerMessagesPreview
+          activeLocale={activeLocale}
+          context={t.messages.previewContext}
+          errorHeading={texts(activeLocale).messages.previewErrorHeading}
+          fieldLabel={previewField.label}
+          fieldLabelHeading={
+            previewField.observed
+              ? t.messages.previewCurrentFieldLabel
+              : t.messages.previewProposedFieldLabel
+          }
+          heading={t.messages.previewHeading}
+          languages={{ it: t.messages.italian, en: t.messages.english }}
+          message={draft[activeLocale][selectedKey]}
+          selectedHeading={t.messages.previewSelected}
+          selectedLabel={t.messages[selectedKey]}
+        />
         <s-button commandFor={`restore-${activeLocale}`} command="--show">
           {t.messages.reset}
         </s-button>

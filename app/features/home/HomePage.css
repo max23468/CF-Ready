@@ -5,11 +5,17 @@
   align-items: center;
   min-block-size: 36px;
   padding: 6px 8px;
-  border-radius: var(--p-border-radius-200);
+  border-radius: var(--p-border-radius-200, 8px);
 }
 
 .setup-guide__step--active {
-  background: var(--p-color-bg-surface-secondary);
+  background: var(--p-color-bg-surface-secondary, #f7f7f7);
+}
+
+.home-verification {
+  min-block-size: 40px;
+  font-size: 13px;
+  line-height: 20px;
 }
 
 @media (prefers-reduced-motion: no-preference) {

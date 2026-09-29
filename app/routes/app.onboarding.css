@@ -12,12 +12,25 @@
   justify-content: flex-end;
   min-inline-size: 0;
   max-inline-size: 100%;
-  overflow: hidden;
+  text-align: end;
+  overflow-wrap: anywhere;
 }
 
-.cf-onboarding-summary-value > s-badge {
+.cf-onboarding-summary-value > s-text {
   min-inline-size: 0;
   max-inline-size: 100%;
+}
+
+@media (max-width: 420px) {
+  .cf-onboarding-summary-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .cf-onboarding-summary-value {
+    justify-content: flex-start;
+    text-align: start;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {

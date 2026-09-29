@@ -151,6 +151,10 @@ export default function Guide() {
 
   return (
     <s-page heading={t.guide.heading}>
+      <s-stack direction="inline" gap="base">
+        <s-link href="#validation-diagnosis">{t.guide.diagnosis.heading}</s-link>
+        <s-link href="#support">{t.support.heading}</s-link>
+      </s-stack>
       {/* §15.7: pagina unica con sezioni espandibili. Polaris non ha un componente di
           divulgazione, quindi si usa `details`, che è l'elemento nativo della piattaforma:
           accessibile e utilizzabile da tastiera senza reimplementare nulla (§8.1). */}
@@ -209,7 +213,7 @@ export default function Guide() {
       </s-section>
 
       {/* FR-090: il recapito è un `mailto:` precompilato, non un modulo che invia (§22). */}
-      <s-section slot="aside" heading={t.support.heading}>
+      <s-section id="support" slot="aside" heading={t.support.heading}>
         <s-stack direction="block" gap="base">
           <s-paragraph>{t.support.body}</s-paragraph>
           <s-select
@@ -257,7 +261,7 @@ function ValidationDiagnosis({
   const checkCopy = t.guide.diagnosis;
   const errorCode = diagnosisErrorCode(check, checkResult, diagnostics.errorCode);
   return (
-    <s-section heading={checkCopy.heading}>
+    <s-section id="validation-diagnosis" heading={checkCopy.heading}>
       <s-stack direction="block" gap="base">
         <s-paragraph>{checkCopy.body}</s-paragraph>
         <s-button
