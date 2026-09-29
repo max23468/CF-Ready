@@ -17,11 +17,14 @@ sostituisce il percentile operativo. Gli eventi non sintetici non attraversano
 il confine Cloudflare-runner.
 
 L'avvio del tail può richiedere fino a 60 secondi; il carico non parte finché
-una probe marcata non torna dal provider. La soglia riguarda soltanto la
-connessione al tail e non allenta numero di eventi, errori o limiti CPU.
+una probe marcata non torna dal provider. Dopo il carico il comando attende
+altri 60 secondi al massimo gli eventi misurati, che il tail può consegnare in
+ritardo. Le due attese non allentano numero di eventi, errori o limiti CPU.
 
-Il workflow Development esegue il controllo dopo il deploy Worker e prima dello
-snapshot Shopify. Un fallimento attiva il rollback coordinato già previsto. La
+Il workflow Development esegue il controllo dopo lo snapshot Shopify e il
+deploy Worker. Un fallimento attiva il rollback coordinato già previsto; la
+versione Shopify del tree resta pubblicata ma non attiva, quindi il retry dello
+stesso commit la pubblica come `<versione>-dev.<tree>.r2` (poi `.r3`, …). La
 prova riguarda il costo base del routing React Router; i percorsi autenticati,
 le query D1 e le chiamate Shopify si controllano anche con metriche reali e con
 la matrice sotto, perché un test sintetico non deve generare traffico artificiale
