@@ -8,8 +8,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
 ## 1.15.12 — 30 settembre 2026
 
-- rende effettivi i salti rapidi della Guida su mobile, usando bersagli HTML
-  con dimensioni reali dentro le sezioni Polaris;
+- rende effettivi i salti rapidi della Guida su mobile con azioni Polaris di
+  scorrimento e bersagli HTML con dimensioni reali, anche nell’Admin embedded;
 - verifica scorrimento, posizione dei campi e stabilità della riga Home sui
   contenuti effettivamente disegnati dai Web Components.
 

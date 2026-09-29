@@ -79,12 +79,20 @@ describe("Guida", () => {
       ...view.container.querySelectorAll<HTMLDetailsElement>(".guide-faq__entry"),
     ];
     expect(faqEntries).toHaveLength(14);
-    expect(view.container.querySelector('s-link[href="#support"]')).not.toBeNull();
+    expect(
+      [...view.container.querySelectorAll("s-button")].some((button) =>
+        button.textContent?.includes(texts("it").support.heading),
+      ),
+    ).toBe(true);
     expect(view.container.querySelector("#support")).not.toBeNull();
-    expect(view.container.querySelector('s-link[href="#validation-diagnosis"]')).not.toBeNull();
+    expect(
+      [...view.container.querySelectorAll("s-button")].some((button) =>
+        button.textContent?.includes(texts("it").guide.diagnosis.heading),
+      ),
+    ).toBe(true);
     expect(texts("en").guide.groups.map((group) => group.entries.length)).toEqual([5, 5, 4]);
     expect(faqEntries.every((entry) => !entry.open)).toBe(true);
-    const buttons = [...view.container.querySelectorAll("s-button")];
+    const buttons = [...view.container.querySelectorAll("s-button")].slice(2);
     expect(buttons[0].textContent).toBe(texts("it").guide.expandAll);
     for (const entry of faqEntries) entry.open = true;
     await dispatch(faqEntries.at(-1)!, new Event("toggle"));
