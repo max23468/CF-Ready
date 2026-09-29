@@ -38,7 +38,6 @@ export function EligibleHome({
   const firstRun = currentCommercialState === "first_run";
   // Le azioni partono solo da uno stato confermato da Shopify (D-167).
   const busy = fetcherState !== "idle" || verification !== "confirmed";
-  const verifying = verification === "pending";
   const pendingIntent = pendingFetcherIntent(formData);
   const pendingSource = pendingFetcherSource(formData);
   const firstCharge = data.firstChargeAt
@@ -77,7 +76,7 @@ export function EligibleHome({
         pendingIntent={pendingIntent}
         pendingSource={pendingSource}
         submit={submit}
-        verifying={verifying}
+        verification={verification}
         t={t}
       />
       <PlanChoice
@@ -87,7 +86,7 @@ export function EligibleHome({
         submit={submit}
         firstCharge={firstCharge}
       />
-      <PlanStatus data={data} verifying={verifying} />
+      <PlanStatus data={data} />
       <HomeAside nextStep={nextStep} t={t} />
       <s-app-window id={onboardingWindowId} src="/app/onboarding" />
       <DeactivateModal pendingIntent={pendingIntent} submit={submit} t={t} />

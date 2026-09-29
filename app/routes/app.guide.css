@@ -27,7 +27,7 @@
 }
 
 .guide-faq__entry {
-  border-block-start: 1px solid var(--p-color-border-secondary);
+  border-block-start: 1px solid var(--p-color-border-secondary, #dfe3e8);
   padding-block: 12px;
 }
 
@@ -47,7 +47,7 @@
   align-items: center;
   margin-inline: -6px;
   padding: 4px 6px;
-  border-radius: var(--p-border-radius-200);
+  border-radius: var(--p-border-radius-200, 8px);
   cursor: pointer;
   list-style: none;
 }
@@ -76,7 +76,7 @@
 }
 
 .guide-faq__entry summary:focus-visible {
-  outline: 2px solid var(--p-color-border-focus);
+  outline: 2px solid var(--p-color-border-focus, #005bd3);
   outline-offset: 2px;
 }
 
@@ -103,7 +103,7 @@
   }
 
   .guide-faq__entry summary:hover {
-    background: var(--p-color-bg-surface-secondary);
+    background: var(--p-color-bg-surface-secondary, #f7f7f7);
   }
 
   .guide-faq__entry summary::after {

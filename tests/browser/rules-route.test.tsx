@@ -413,7 +413,7 @@ describe("Regole", () => {
     const labelsArea = view.container.querySelector(".rules-layout__labels");
     const fieldsArea = view.container.querySelector(".rules-layout__fields");
     const disclosures = labelsArea?.querySelectorAll(
-      "details.checkout-labels-disclosure:not(.checkout-label-instructions)",
+      "details.checkout-labels-disclosure:not(.checkout-label-instructions):not(.checkout-labels-technical)",
     );
     expect(labelsArea?.parentElement?.lastElementChild).toBe(labelsArea);
     expect(labelsArea?.parentElement?.classList.contains("rules-layout__main")).toBe(true);

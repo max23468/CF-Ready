@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.11 — 30 settembre 2026
+
+- stabilizza lo stato di verifica Shopify nella Home, senza badge temporanei;
+- ripristina focus e token CSS, alleggerisce gli spazi del simulatore su mobile;
+- mette i campi Messaggi prima dell’anteprima espandibile, dichiara la lingua
+  cliente e separa gli errori simulati dagli alert reali;
+- aggiunge accessi rapidi a diagnosi e assistenza, separa i dettagli tecnici
+  delle etichette e corregge testi e leggibilità del riepilogo onboarding;
+- aggiunge verifiche di regressione delle superfici merchant. Restano invariati
+  la duplicazione del piano e lo stile visivo del simulatore.
+
 ## 1.15.10 — 30 settembre 2026
 
 - accorcia il box informativo Messaggi in italiano e inglese, terminando il testo

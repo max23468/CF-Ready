@@ -1,0 +1,27 @@
+.customer-messages-preview summary {
+  padding: 8px 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.customer-messages-preview summary:focus-visible {
+  outline: 2px solid #005bd3;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.customer-messages-preview__error {
+  padding: 12px;
+  border: 1px solid #e0b3b2;
+  border-radius: 8px;
+  background: #fff4f4;
+  color: #8e1f0b;
+  font-size: 14px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.customer-messages-preview__error p {
+  margin: 8px 0 0;
+}

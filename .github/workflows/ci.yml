@@ -139,6 +139,7 @@ jobs:
           path: |
             .coverage/coverage-summary.json
             .coverage/global
+            tests/browser/__screenshots__/
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7

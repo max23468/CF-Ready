@@ -135,7 +135,7 @@ export function CheckoutSimulator({
         }}
       >
         <s-box background="transparent" border="base" borderRadius="large" overflow="hidden">
-          <s-box padding="small-200">
+          <s-box padding="@container (inline-size > 420px) small-200, small-100">
             <s-stack direction="block" gap="small-200">
               <s-grid
                 gridTemplateColumns="@container (inline-size > 420px) 1fr auto, 1fr"
@@ -177,9 +177,13 @@ export function CheckoutSimulator({
 
           <s-divider />
 
-          <s-box padding="small-200">
+          <s-box padding="@container (inline-size > 420px) small-200, small-100">
             <s-stack direction="block" gap="base">
-              <s-box background="subdued" borderRadius="base" padding="small-200">
+              <s-box
+                background="subdued"
+                borderRadius="base"
+                padding="@container (inline-size > 420px) small-200, small-100"
+              >
                 <s-stack direction="block" gap="small-200">
                   <s-stack direction="inline" gap="small-100" alignItems="center">
                     <s-icon type="location" color="subdued" />

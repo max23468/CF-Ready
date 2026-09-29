@@ -79,6 +79,9 @@ describe("Guida", () => {
       ...view.container.querySelectorAll<HTMLDetailsElement>(".guide-faq__entry"),
     ];
     expect(faqEntries).toHaveLength(14);
+    expect(view.container.querySelector('s-link[href="#support"]')).not.toBeNull();
+    expect(view.container.querySelector("#support")).not.toBeNull();
+    expect(view.container.querySelector('s-link[href="#validation-diagnosis"]')).not.toBeNull();
     expect(texts("en").guide.groups.map((group) => group.entries.length)).toEqual([5, 5, 4]);
     expect(faqEntries.every((entry) => !entry.open)).toBe(true);
     const buttons = [...view.container.querySelectorAll("s-button")];
