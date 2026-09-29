@@ -7,6 +7,9 @@ const MIN_EVENTS = 100;
 const CPU_LIMIT_MS = 10;
 const TAIL_READY_TIMEOUT_MS = 60_000;
 const MEASURED_EVENTS_TIMEOUT_MS = 60_000;
+// Il tail Cloudflare consegna circa un evento al secondo oltre una breve raffica:
+// il carico misurato resta sotto quel ritmo per non perdere eventi.
+const MEASURE_INTERVAL_MS = 1_500;
 const TAIL_POLL_INTERVAL_MS = 500;
 const REQUEST_TIMEOUT_MS = 15_000;
 
@@ -120,7 +123,15 @@ export async function runCapacityCheck({
       () => errors,
     );
     await runRequestBatch(target, 10, 1, marker, "warmup");
-    await runRequestBatch(target, REQUESTS, 5, marker, "measure");
+    await runRequestBatch(
+      target,
+      REQUESTS,
+      1,
+      marker,
+      "measure",
+      REQUEST_TIMEOUT_MS,
+      MEASURE_INTERVAL_MS,
+    );
     await waitForMeasuredEvents(() => output, marker);
   } finally {
     await stopProcess(tail);
@@ -175,13 +186,15 @@ export async function waitForEvents(output, marker, pause = wait) {
   }
 }
 
-async function requestBatch(
+export async function requestBatch(
   target,
   count,
   concurrency,
   marker,
   phase,
   timeout = REQUEST_TIMEOUT_MS,
+  interval = 0,
+  pause = wait,
 ) {
   let next = 0;
   await Promise.all(
@@ -199,6 +212,7 @@ async function requestBatch(
         if (response.status < 200 || response.status >= 400) {
           throw new Error(`Carico sintetico interrotto da HTTP ${response.status}.`);
         }
+        if (interval && next < count) await pause(interval);
       }
     }),
   );
