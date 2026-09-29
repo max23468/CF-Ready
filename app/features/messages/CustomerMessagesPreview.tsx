@@ -1,4 +1,5 @@
 import type { Locale } from "../../i18n";
+import "./CustomerMessagesPreview.css";
 
 type CustomerMessagesPreviewProps = {
   activeLocale: Locale;
@@ -7,10 +8,8 @@ type CustomerMessagesPreviewProps = {
   fieldLabel: string;
   fieldLabelHeading: string;
   heading: string;
-  languageLabel: string;
   languages: Record<Locale, string>;
   message: string;
-  onLocaleChange: (locale: Locale) => void;
   selectedHeading: string;
   selectedLabel: string;
 };
@@ -22,24 +21,14 @@ export function CustomerMessagesPreview({
   fieldLabel,
   fieldLabelHeading,
   heading,
-  languageLabel,
   languages,
   message,
-  onLocaleChange,
   selectedHeading,
   selectedLabel,
 }: CustomerMessagesPreviewProps) {
   return (
-    <s-stack direction="block" gap="base">
-      <s-select
-        label={languageLabel}
-        value={activeLocale}
-        onChange={(event) => onLocaleChange(event.currentTarget.value as Locale)}
-      >
-        <s-option value="it">{languages.it}</s-option>
-        <s-option value="en">{languages.en}</s-option>
-      </s-select>
-
+    <details className="customer-messages-preview">
+      <summary>{heading}</summary>
       <div className="cf-motion-swap" key={`${activeLocale}-${selectedLabel}`}>
         <s-box background="subdued" borderRadius="base" padding="base">
           <s-stack direction="block" gap="base">
@@ -59,11 +48,12 @@ export function CustomerMessagesPreview({
             <s-stack direction="block" gap="small-100">
               <s-text color="subdued">{context}</s-text>
               <s-text>
-                {fieldLabelHeading}: <strong>{fieldLabel}</strong>
+                {fieldLabelHeading}: <strong lang={activeLocale}>{fieldLabel}</strong>
               </s-text>
-              <s-banner tone="critical" heading={errorHeading}>
-                <s-paragraph>{message}</s-paragraph>
-              </s-banner>
+              <div lang={activeLocale} className="customer-messages-preview__error">
+                <strong>{errorHeading}</strong>
+                <p>{message}</p>
+              </div>
             </s-stack>
 
             <s-stack direction="inline" gap="small-100" alignItems="center">
@@ -73,6 +63,6 @@ export function CustomerMessagesPreview({
           </s-stack>
         </s-box>
       </div>
-    </s-stack>
+    </details>
   );
 }

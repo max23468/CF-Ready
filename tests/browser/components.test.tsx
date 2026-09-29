@@ -42,28 +42,27 @@ describe("componenti merchant nel browser", () => {
     }
   });
 
-  test("l'anteprima cambia lingua attraverso il Web Component Polaris", async () => {
-    const onLocaleChange = vi.fn();
+  test("l'anteprima dichiara la lingua cliente senza simulare un alert reale", async () => {
     const view = await render(
       <CustomerMessagesPreview
-        activeLocale="it"
+        activeLocale="en"
         context="Contesto"
         errorHeading="Errore"
         heading="Anteprima"
-        languageLabel="Lingua"
+        fieldLabel="Tax code"
+        fieldLabelHeading="Etichetta"
         languages={{ it: "Italiano", en: "English" }}
         message="Messaggio"
-        onLocaleChange={onLocaleChange}
         selectedHeading="Selezionato"
         selectedLabel="Codice fiscale"
       />,
     );
     mounted.push(view);
-    const select = view.container.querySelector("s-select");
-    if (!select) throw new Error("selettore lingua assente");
-    (select as HTMLElement & { value: string }).value = "en";
-    await dispatch(select, new Event("change", { bubbles: true }));
-    expect(onLocaleChange).toHaveBeenCalledWith("en");
+    expect(
+      view.container.querySelector('.customer-messages-preview__error[lang="en"]'),
+    ).not.toBeNull();
+    expect(view.container.querySelector('s-banner, [role="alert"]')).toBeNull();
+    expect(view.container.querySelector("details")?.open).toBe(false);
     expect(view.container.textContent).toContain("Messaggio");
   });
 

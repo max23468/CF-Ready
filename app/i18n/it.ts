@@ -84,6 +84,8 @@ export const it = {
     syncNeeded:
       "Lo stato mostrato qui potrebbe non coincidere con Shopify. Riapri la pagina fra qualche minuto.",
     verifying: "Verifica in corso…",
+    verified: "Stato confermato da Shopify",
+    verificationUnavailable: "Stato Shopify da verificare",
     verificationFailed: "Non è stato possibile verificare lo stato con Shopify.",
     verificationRetry: "Riprova",
     repair: "Ripara configurazione",
@@ -198,8 +200,8 @@ export const it = {
     step4TrialBody: "Avvia la prova gratuita o scegli un piano per poterle attivare.",
     step4StartTrial: "Avvia la prova gratuita",
     step4SeePlans: "Confronta i piani",
-    step4TrialActive: "La prova è attiva: puoi attivare il controllo.",
-    step4PlanActive: "Il piano è attivo: puoi attivare il controllo.",
+    step4TrialActive: "La prova è attiva.",
+    step4PlanActive: "Il piano è attivo.",
     reviewStep4Body:
       "Il controllo è già attivo nel checkout. Completa la revisione per tornare alla Home.",
     activate: "Attiva nel checkout",
@@ -534,6 +536,7 @@ export const it = {
       enableConfirmBody: "CF Ready aggiornerà questi campi tramite Shopify:",
       enableConfirmAction: "Conferma e salva",
       mode: "Modalità",
+      technicalDetails: "Dettagli tecnici",
       modeValues: {
         off: "Disattivata",
         guided: "Guidata",

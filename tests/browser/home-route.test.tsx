@@ -56,7 +56,7 @@ describe("Home merchant", () => {
             submit={submit}
             firstCharge="oggi"
           />
-          <PlanStatus data={data as never} verifying={false} />
+          <PlanStatus data={data as never} />
           <SetupGuide
             data={data as never}
             busy={false}
@@ -86,10 +86,14 @@ describe("Home merchant", () => {
     const t = texts("it");
     router.loaderData = confirmedHome(entitled, new Promise(() => undefined));
     const view = await mount(<HomePage key="pending" />);
-    const badges = [...view.container.querySelectorAll("s-badge")].filter(
-      (badge) => badge.textContent === t.home.verifying,
-    );
-    expect(badges).toHaveLength(2);
+    const status = view.container.querySelector(".home-verification");
+    expect(status?.textContent).toContain(t.home.verifying);
+    expect(view.container.querySelectorAll(".home-verification")).toHaveLength(1);
+    expect(
+      [...view.container.querySelectorAll("s-badge")].some(
+        (badge) => badge.textContent === t.home.verifying,
+      ),
+    ).toBe(false);
     const deactivate = [...view.container.querySelectorAll("s-button")].find(
       (button) => button.textContent === t.home.deactivate,
     );
@@ -112,6 +116,9 @@ describe("Home merchant", () => {
     await act(async () => void (await Promise.resolve()));
     expect(view.container.textContent).not.toContain(t.home.verifying);
     expect(view.container.textContent).not.toContain(t.home.verificationFailed);
+    expect(view.container.querySelector(".home-verification")?.textContent).toContain(
+      t.home.verified,
+    );
   });
 
   test("il check-in copre invio, dismiss e stato occupato", async () => {
@@ -359,7 +366,7 @@ describe("Home merchant", () => {
       },
     ] as const;
     for (const data of variants) {
-      const view = await mount(<PlanStatus data={data as never} verifying={false} />);
+      const view = await mount(<PlanStatus data={data as never} />);
       expect(view.container.textContent).not.toBe("");
     }
   });

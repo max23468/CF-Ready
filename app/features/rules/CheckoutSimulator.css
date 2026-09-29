@@ -55,7 +55,7 @@
 }
 
 .checkout-simulator__button:focus-visible {
-  outline: 3px solid rgb(201 123 46 / 32%);
+  outline: 3px solid #005bd3;
   outline-offset: 2px;
 }
 
