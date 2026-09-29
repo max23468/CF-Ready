@@ -29,7 +29,7 @@ export function HomeValidationSection({
   pendingIntent,
   pendingSource,
   submit,
-  verifying,
+  verification,
   t,
 }: {
   data: HomeData;
@@ -39,7 +39,7 @@ export function HomeValidationSection({
   pendingIntent: string | null;
   pendingSource: string | null;
   submit: Submit;
-  verifying: boolean;
+  verification: "pending" | "confirmed" | "failed";
   t: Texts;
 }) {
   const status = validationStatus(data.validationEnabled, entitled);
@@ -50,8 +50,16 @@ export function HomeValidationSection({
       <s-stack direction="block" gap="base">
         <s-stack direction="inline" gap="small-100">
           <s-badge tone={presentation.tone}>{presentation.badge}</s-badge>
-          {verifying ? <VerifyingBadge t={t} /> : null}
         </s-stack>
+        <div className="home-verification" role="status">
+          <s-text color="subdued">
+            {verification === "pending"
+              ? t.home.verifying
+              : verification === "confirmed"
+                ? t.home.verified
+                : t.home.verificationUnavailable}
+          </s-text>
+        </div>
         <s-heading>{presentation.title}</s-heading>
         {firstRun ? null : (
           <s-paragraph>
@@ -147,14 +155,6 @@ function HomeValidationAction({
     >
       {t.home.activate}
     </s-button>
-  );
-}
-
-export function VerifyingBadge({ t }: { t: Texts }) {
-  return (
-    <s-badge tone="info" icon="refresh">
-      {t.home.verifying}
-    </s-badge>
   );
 }
 

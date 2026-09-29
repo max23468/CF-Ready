@@ -262,7 +262,7 @@ describe("Onboarding", () => {
     );
   });
 
-  test("mantiene separate etichetta e pill nel riepilogo stretto", async () => {
+  test("mantiene leggibile il valore completo nel riepilogo stretto", async () => {
     const style = document.createElement("style");
     style.dataset.testOnboardingSummary = "true";
     style.textContent = `${motionCss}\n${onboardingCss}`;
@@ -278,13 +278,13 @@ describe("Onboarding", () => {
     if (!pecRow) throw new Error("riga PEC del riepilogo assente");
     pecRow.style.inlineSize = "320px";
 
-    const [label, badge] = [...pecRow.children] as HTMLElement[];
+    const [, value] = [...pecRow.children] as HTMLElement[];
     const rowRect = pecRow.getBoundingClientRect();
-    const labelRect = label.getBoundingClientRect();
-    const badgeRect = badge.getBoundingClientRect();
+    const valueRect = value.getBoundingClientRect();
 
-    expect(labelRect.right).toBeLessThanOrEqual(badgeRect.left);
-    expect(badgeRect.right - rowRect.right).toBeLessThan(0.1);
+    expect(valueRect.right - rowRect.right).toBeLessThan(0.1);
+    expect(value.querySelector("s-badge")).toBeNull();
+    expect(getComputedStyle(value).overflow).not.toBe("hidden");
     style.remove();
   });
 

@@ -150,18 +150,21 @@ function NativeLabelsContent({
         disabled={busy}
         onChange={(event) => onEnabledChange(event.currentTarget.checked)}
       />
-      <s-stack direction="inline" gap="small-100" alignItems="center">
-        <s-text type="strong">{copy.mode}:</s-text>
-        <s-badge tone={state.mode === "off" ? "neutral" : "info"}>
-          {copy.modeValues[state.mode]}
-        </s-badge>
-        <s-text color="subdued">
-          {state.lastSyncAt
-            ? copy.lastSync(formatDateTime(state.lastSyncAt, locale))
-            : copy.neverSynced}
-        </s-text>
-      </s-stack>
-      <s-paragraph>{copy.operationalSummary(automaticCount, pendingCount)}</s-paragraph>
+      <details className="checkout-labels-disclosure checkout-labels-technical">
+        <summary className="checkout-labels-disclosure__summary">{copy.technicalDetails}</summary>
+        <s-stack direction="inline" gap="small-100" alignItems="center">
+          <s-text type="strong">{copy.mode}:</s-text>
+          <s-badge tone={state.mode === "off" ? "neutral" : "info"}>
+            {copy.modeValues[state.mode]}
+          </s-badge>
+          <s-text color="subdued">
+            {state.lastSyncAt
+              ? copy.lastSync(formatDateTime(state.lastSyncAt, locale))
+              : copy.neverSynced}
+          </s-text>
+        </s-stack>
+        <s-paragraph>{copy.operationalSummary(automaticCount, pendingCount)}</s-paragraph>
+      </details>
       {snapshot ? (
         <>
           {pendingCount > 0 &&
