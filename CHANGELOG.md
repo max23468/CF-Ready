@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.10 — 30 settembre 2026
+
+- accorcia il box informativo Messaggi in italiano e inglese, terminando il testo
+  con il rimando a Regole checkout.
+- ripristina il canale stabile Polaris 1.x (`polaris-1.js`) e i tipi
+  `@shopify/polaris-types` `1.1.0` dopo le regressioni visive osservate nel nuovo
+  Admin Shopify; la configurazione e la validazione checkout restano invariate.
+
 ## 1.15.9 — 29 settembre 2026
 
 - rende meno difensivi i testi di app, sito e listing: errori e avvisi dicono

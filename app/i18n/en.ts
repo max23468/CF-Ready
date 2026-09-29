@@ -137,7 +137,7 @@ export const en: typeof it = {
     previewCurrentFieldLabel: "Current Shopify label",
     previewProposedFieldLabel: "Proposed label",
     labelsNote:
-      "Here you edit the error messages shown when the Tax code or PEC is missing or invalid. Field names are managed in Checkout rules. When the Tax code is invalid, checkout adds a short fixed sentence about the formal cause after your text, for example a wrong length.",
+      "Here you edit the error messages shown when the Tax code or PEC is missing or invalid. Field names are managed in Checkout rules.",
     manageLabels: "Open Checkout rules",
   },
   setup: {
