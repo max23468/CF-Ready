@@ -5,6 +5,7 @@ import {
   assessCapacity,
   parseJsonObjects,
   runCapacityCheck,
+  requestBatch,
   waitForEvents,
   waitForTail,
 } from "./capacity-check.mjs";
@@ -81,6 +82,22 @@ test("mantiene aperto il tail per gli eventi tardivi dopo il minimo", async () =
   );
 
   assert.equal(sample, 4);
+});
+
+test("distanzia le richieste misurate sotto il ritmo di consegna del tail", async (t) => {
+  const calls = [];
+  const pauses = [];
+  t.mock.method(globalThis, "fetch", async (target, options) => {
+    calls.push(options.headers["X-CF-Ready-Capacity-Phase"]);
+    return { status: 302 };
+  });
+
+  await requestBatch("https://worker.test", 3, 1, "target", "measure", 1_000, 1_100, async (ms) =>
+    pauses.push(ms),
+  );
+
+  assert.deepEqual(calls, ["measure", "measure", "measure"]);
+  assert.deepEqual(pauses, [1_100, 1_100]);
 });
 
 test("attende fino a 60 secondi gli eventi misurati consegnati in ritardo dal tail", async () => {
@@ -231,8 +248,12 @@ test("orchestra tail, warmup, misura e riepilogo GitHub senza rete", async () =>
     batches.map((args) => args.slice(0, 5)),
     [
       ["https://worker.test", 10, 1, "cf-ready-42-3-123", "warmup"],
-      ["https://worker.test", 120, 5, "cf-ready-42-3-123", "measure"],
+      ["https://worker.test", 120, 1, "cf-ready-42-3-123", "measure"],
     ],
+  );
+  assert.deepEqual(
+    batches.map((args) => args.slice(5)),
+    [[], [15_000, 1_500]],
   );
   assert.deepEqual(stopped, [tail]);
   assert.equal(summaries[0][0], "/tmp/summary");
