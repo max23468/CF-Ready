@@ -640,7 +640,9 @@ describe("Regole", () => {
       ],
     };
     await view.rerender(<CheckoutRules key="guided-english" />);
-    const previewLanguage = view.container.querySelector("s-select") as HTMLElement & {
+    const previewLanguage = [...view.container.querySelectorAll("s-select")].find(
+      (select) => select.getAttribute("label") === texts("en").rules.simulator.previewLanguage,
+    ) as HTMLElement & {
       value: string;
     };
     previewLanguage.value = "it";

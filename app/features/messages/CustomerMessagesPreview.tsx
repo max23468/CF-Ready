@@ -27,8 +27,7 @@ export function CustomerMessagesPreview({
   selectedLabel,
 }: CustomerMessagesPreviewProps) {
   return (
-    <details className="customer-messages-preview">
-      <summary>{heading}</summary>
+    <div className="customer-messages-preview">
       <div className="cf-motion-swap" key={`${activeLocale}-${selectedLabel}`}>
         <s-box background="subdued" borderRadius="base" padding="base">
           <s-stack direction="block" gap="base">
@@ -51,8 +50,19 @@ export function CustomerMessagesPreview({
                 {fieldLabelHeading}: <strong lang={activeLocale}>{fieldLabel}</strong>
               </s-text>
               <div lang={activeLocale} className="customer-messages-preview__error">
-                <strong>{errorHeading}</strong>
-                <p>{message}</p>
+                <s-grid
+                  gridTemplateColumns="auto minmax(0, 1fr)"
+                  gap="small-100"
+                  alignItems="start"
+                >
+                  <s-icon type="alert-circle" tone="critical" />
+                  <s-stack direction="block" gap="none">
+                    <s-text type="strong" tone="critical">
+                      {errorHeading}
+                    </s-text>
+                    <s-text tone="critical">{message}</s-text>
+                  </s-stack>
+                </s-grid>
               </div>
             </s-stack>
 
@@ -63,6 +73,6 @@ export function CustomerMessagesPreview({
           </s-stack>
         </s-box>
       </div>
-    </details>
+    </div>
   );
 }

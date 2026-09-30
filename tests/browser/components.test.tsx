@@ -62,7 +62,9 @@ describe("componenti merchant nel browser", () => {
       view.container.querySelector('.customer-messages-preview__error[lang="en"]'),
     ).not.toBeNull();
     expect(view.container.querySelector('s-banner, [role="alert"]')).toBeNull();
-    expect(view.container.querySelector("details")?.open).toBe(false);
+    expect(view.container.querySelector("details")).toBeNull();
+    expect(view.container.querySelector('s-icon[type="alert-circle"]')).not.toBeNull();
+    expect(view.container.textContent?.match(/Anteprima/g)).toHaveLength(1);
     expect(view.container.textContent).toContain("Messaggio");
   });
 
@@ -103,23 +105,25 @@ describe("componenti merchant nel browser", () => {
     const fields = [...view.container.querySelectorAll("s-text-field")];
     expect(selects).toHaveLength(5);
     expect(fields).toHaveLength(2);
+    const language = view.container.querySelector('s-select[label="Lingua dell’anteprima"]')!;
+    const delivery = view.container.querySelector('s-select[label="Paese di consegna"]')!;
 
-    (selects[0] as HTMLElement & { value: string }).value = "en";
-    await dispatch(selects[0], new Event("change", { bubbles: true }));
+    (language as HTMLElement & { value: string }).value = "en";
+    await dispatch(language, new Event("change", { bubbles: true }));
     expect(view.container.textContent).toContain("Interactive preview");
-    (selects[0] as HTMLElement & { value: string }).value = "it";
-    await dispatch(selects[0], new Event("change", { bubbles: true }));
+    (language as HTMLElement & { value: string }).value = "it";
+    await dispatch(language, new Event("change", { bubbles: true }));
 
-    (selects[1] as HTMLElement & { value: string }).value = "unknown";
-    await dispatch(selects[1], new Event("change", { bubbles: true }));
-    (selects[1] as HTMLElement & { value: string }).value = "FR";
-    await dispatch(selects[1], new Event("change", { bubbles: true }));
+    (delivery as HTMLElement & { value: string }).value = "unknown";
+    await dispatch(delivery, new Event("change", { bubbles: true }));
+    (delivery as HTMLElement & { value: string }).value = "FR";
+    await dispatch(delivery, new Event("change", { bubbles: true }));
     expect(view.container.querySelector('[role="status"]')?.textContent).toContain(
       "Regole non applicate",
     );
 
-    (selects[1] as HTMLElement & { value: string }).value = "IT";
-    await dispatch(selects[1], new Event("change", { bubbles: true }));
+    (delivery as HTMLElement & { value: string }).value = "IT";
+    await dispatch(delivery, new Event("change", { bubbles: true }));
     (selects[3] as HTMLElement & { value: string }).value = "CHECKOUT_COMPLETION";
     await dispatch(selects[3], new Event("change", { bubbles: true }));
     for (const checkbox of view.container.querySelectorAll("s-checkbox")) {
@@ -134,15 +138,13 @@ describe("componenti merchant nel browser", () => {
     await dispatch(fields[0], new Event("input", { bubbles: true }));
     const buttons = [...view.container.querySelectorAll("button")];
     await dispatch(buttons.at(-1)!, new MouseEvent("click", { bubbles: true }));
-    (selects[1] as HTMLElement & { value: string }).value = "DE";
-    await dispatch(selects[1], new Event("change", { bubbles: true }));
+    (delivery as HTMLElement & { value: string }).value = "DE";
+    await dispatch(delivery, new Event("change", { bubbles: true }));
     await dispatch(
       view.container.querySelector("button.checkout-simulator__button--clear")!,
       new MouseEvent("click", { bubbles: true }),
     );
-    expect(
-      (view.container.querySelectorAll("s-select")[1] as HTMLElement & { value: string }).value,
-    ).toBe("DE");
+    expect((delivery as HTMLElement & { value: string }).value).toBe("DE");
     expect(
       [...view.container.querySelectorAll("s-text-field")].map(
         (field) => (field as HTMLElement & { value?: string }).value ?? "",
@@ -198,8 +200,8 @@ describe("componenti merchant nel browser", () => {
       value: string;
     };
     expect(field).not.toBeNull();
-    (selects[2] as HTMLElement & { value: string }).value = "DE";
-    await dispatch(selects[2], new Event("change", { bubbles: true }));
+    (selects[1] as HTMLElement & { value: string }).value = "DE";
+    await dispatch(selects[1], new Event("change", { bubbles: true }));
     field.value = "cliente@example.com";
     await dispatch(field, new Event("input", { bubbles: true }));
     expect(pecOnly.container.querySelector('[role="status"]')?.textContent).toBeTruthy();

@@ -48,17 +48,10 @@ export function HomeValidationSection({
   return (
     <s-section>
       <s-stack direction="block" gap="base">
-        <s-stack direction="inline" gap="small-100">
-          <s-badge tone={presentation.tone}>{presentation.badge}</s-badge>
-        </s-stack>
-        <div className="home-verification" role="status">
-          <s-text color="subdued">
-            {verification === "pending"
-              ? t.home.verifying
-              : verification === "confirmed"
-                ? t.home.verified
-                : t.home.verificationUnavailable}
-          </s-text>
+        <div role="status">
+          <s-badge tone={verification === "pending" ? "info" : presentation.tone}>
+            {verification === "pending" ? t.home.verifying : presentation.badge}
+          </s-badge>
         </div>
         <s-heading>{presentation.title}</s-heading>
         {firstRun ? null : (
@@ -167,25 +160,19 @@ export function HomeAside({
 }) {
   return (
     <>
-      <s-section slot="aside" heading={t.home.nextHeading}>
+      <s-section heading={t.home.nextHeading}>
         <s-stack direction="block" gap="small-100">
           <s-paragraph>{nextStep.text}</s-paragraph>
           {nextStep.href ? <s-link href={nextStep.href}>{t.nav.rules}</s-link> : null}
         </s-stack>
       </s-section>
-      <s-section slot="aside" heading={t.home.helpHeading}>
+      <s-section heading={t.home.helpHeading}>
         <s-stack direction="block" gap="small-100">
           <s-paragraph>{t.home.helpBody}</s-paragraph>
           <s-link href="/app/guide">{t.nav.guide}</s-link>
         </s-stack>
       </s-section>
-      <s-stack
-        slot="aside"
-        direction="inline"
-        gap="base"
-        alignItems="center"
-        justifyContent="center"
-      >
+      <s-stack direction="inline" gap="base" alignItems="center" justifyContent="center">
         <s-box maxInlineSize="130px">
           <s-image src="/cf-ready-lockup.svg" alt="" aspectRatio="16/3" objectFit="contain" />
         </s-box>
