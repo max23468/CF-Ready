@@ -6,6 +6,11 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.15 — 30 settembre 2026
+
+- aggiunge il contenitore responsive nativo alla Home: regole su due colonne
+  nei box ampi e su una colonna sui display stretti, senza tagliare le etichette.
+
 ## 1.15.14 — 30 settembre 2026
 
 - mantiene i due box del Piano, distinguendo stato e rinnovi dai servizi inclusi;
