@@ -12,12 +12,6 @@
   background: var(--p-color-bg-surface-secondary, #f7f7f7);
 }
 
-.home-verification {
-  min-block-size: 40px;
-  font-size: 13px;
-  line-height: 20px;
-}
-
 @media (prefers-reduced-motion: no-preference) {
   .setup-guide__step {
     transition:

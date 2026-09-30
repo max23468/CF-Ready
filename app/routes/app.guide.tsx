@@ -202,64 +202,67 @@ export default function Guide() {
 
       <ValidationDiagnosis locale={locale} diagnostics={diagnostics} />
 
-      {/* A-16: il colore di brand è ammesso dentro un'illustrazione, su superfici prive di
-          azioni operative. Questa è documentazione, non configurazione. */}
-      <s-section slot="aside" heading={t.guide.asideHeading}>
-        <s-stack direction="block" gap="base">
-          <s-box maxInlineSize="160px">
-            <s-image
-              src="/cf-ready-lockup.svg"
-              alt="CF Ready"
-              aspectRatio="16/3"
-              objectFit="contain"
-            />
-          </s-box>
-          <s-paragraph>{t.guide.asideBody}</s-paragraph>
-          <s-stack direction="block" gap="small-100">
-            <s-heading>{t.guide.asideLinks}</s-heading>
-            <s-link href="/app/rules">{t.nav.rules}</s-link>
-            <s-link href="/app/messages">{t.nav.messages}</s-link>
-            <s-link href="/app/onboarding">{t.onboarding.reopen}</s-link>
-          </s-stack>
-        </s-stack>
-      </s-section>
-
       {/* FR-090: il recapito è un `mailto:` precompilato, non un modulo che invia (§22). */}
-      <s-section slot="aside" heading={t.support.heading}>
-        <div id="support">
+      <s-stack slot="aside" direction="block" gap="base">
+        <s-section heading={t.support.heading}>
+          <div id="support">
+            <s-stack direction="block" gap="base">
+              <s-paragraph>{t.support.body}</s-paragraph>
+              <s-select
+                label={t.support.chooseCategory}
+                value={supportCategory}
+                onChange={(event) =>
+                  setSupportCategory(event.currentTarget.value as SupportCategory)
+                }
+              >
+                {Object.entries(t.support.categories).map(([category, label]) => (
+                  <s-option key={category} value={category}>
+                    {label}
+                  </s-option>
+                ))}
+              </s-select>
+              <s-button
+                variant="primary"
+                href={supportMailto(supportDetails, locale, supportCategory)}
+              >
+                {t.support.requestSupport}
+              </s-button>
+              <s-button onClick={copyDiagnostics}>{t.support.copyDiagnostics}</s-button>
+              {copyState ? (
+                <span className="cf-motion-reveal" key={copyState}>
+                  <s-text tone={copyState === "copied" ? "success" : "critical"}>
+                    {copyState === "copied"
+                      ? t.support.diagnosticsCopied
+                      : t.support.diagnosticsCopyFailed}
+                  </s-text>
+                </span>
+              ) : null}
+              <s-text color="subdued">{t.support.privacyNote}</s-text>
+            </s-stack>
+          </div>
+        </s-section>
+        {/* A-16: il colore di brand è ammesso dentro un'illustrazione, su superfici prive di
+          azioni operative. Questa è documentazione, non configurazione. */}
+        <s-section heading={t.guide.asideHeading}>
           <s-stack direction="block" gap="base">
-            <s-paragraph>{t.support.body}</s-paragraph>
-            <s-select
-              label={t.support.chooseCategory}
-              value={supportCategory}
-              onChange={(event) => setSupportCategory(event.currentTarget.value as SupportCategory)}
-            >
-              {Object.entries(t.support.categories).map(([category, label]) => (
-                <s-option key={category} value={category}>
-                  {label}
-                </s-option>
-              ))}
-            </s-select>
-            <s-button
-              variant="primary"
-              href={supportMailto(supportDetails, locale, supportCategory)}
-            >
-              {t.support.requestSupport}
-            </s-button>
-            <s-button onClick={copyDiagnostics}>{t.support.copyDiagnostics}</s-button>
-            {copyState ? (
-              <span className="cf-motion-reveal" key={copyState}>
-                <s-text tone={copyState === "copied" ? "success" : "critical"}>
-                  {copyState === "copied"
-                    ? t.support.diagnosticsCopied
-                    : t.support.diagnosticsCopyFailed}
-                </s-text>
-              </span>
-            ) : null}
-            <s-text color="subdued">{t.support.privacyNote}</s-text>
+            <s-box maxInlineSize="160px">
+              <s-image
+                src="/cf-ready-lockup.svg"
+                alt="CF Ready"
+                aspectRatio="16/3"
+                objectFit="contain"
+              />
+            </s-box>
+            <s-paragraph>{t.guide.asideBody}</s-paragraph>
+            <s-stack direction="block" gap="small-100">
+              <s-heading>{t.guide.asideLinks}</s-heading>
+              <s-link href="/app/rules">{t.nav.rules}</s-link>
+              <s-link href="/app/messages">{t.nav.messages}</s-link>
+              <s-link href="/app/onboarding">{t.onboarding.reopen}</s-link>
+            </s-stack>
           </s-stack>
-        </div>
-      </s-section>
+        </s-section>
+      </s-stack>
     </s-page>
   );
 }

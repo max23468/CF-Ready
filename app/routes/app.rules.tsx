@@ -299,37 +299,37 @@ export default function CheckoutRules() {
             >
               <div className="rules-layout__fields">
                 <s-section>
-                  <s-stack direction="block" gap="base">
-                    <s-stack direction="block" gap="small-100">
-                      <s-heading>{t.rules.taxCodeLabel}</s-heading>
-                      <s-choice-list
-                        label={t.rules.taxCodeLabel}
-                        labelAccessibilityVisibility="exclusive"
-                        name="taxCode"
-                      >
-                        {TAX_CODE_RULE_MODES.map((mode) => (
-                          <s-choice key={mode} value={mode} selected={mode === draft.rules.taxCode}>
-                            {t.rules.taxCode[mode]}
-                            <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
-                          </s-choice>
-                        ))}
-                      </s-choice-list>
-                    </s-stack>
-                    <s-stack direction="block" gap="small-100">
-                      <s-heading>{t.rules.pecLabel}</s-heading>
-                      <s-choice-list
-                        label={t.rules.pecLabel}
-                        labelAccessibilityVisibility="exclusive"
-                        name="pec"
-                      >
-                        {PEC_RULE_MODES.map((mode) => (
-                          <s-choice key={mode} value={mode} selected={mode === draft.rules.pec}>
-                            {t.rules.pec[mode]}
-                            <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
-                          </s-choice>
-                        ))}
-                      </s-choice-list>
-                    </s-stack>
+                  <s-stack direction="block" gap="small-100">
+                    <s-heading>{t.rules.taxCodeLabel}</s-heading>
+                    <s-choice-list
+                      label={t.rules.taxCodeLabel}
+                      labelAccessibilityVisibility="exclusive"
+                      name="taxCode"
+                    >
+                      {TAX_CODE_RULE_MODES.map((mode) => (
+                        <s-choice key={mode} value={mode} selected={mode === draft.rules.taxCode}>
+                          {t.rules.taxCode[mode]}
+                          <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
+                        </s-choice>
+                      ))}
+                    </s-choice-list>
+                  </s-stack>
+                </s-section>
+                <s-section>
+                  <s-stack direction="block" gap="small-100">
+                    <s-heading>{t.rules.pecLabel}</s-heading>
+                    <s-choice-list
+                      label={t.rules.pecLabel}
+                      labelAccessibilityVisibility="exclusive"
+                      name="pec"
+                    >
+                      {PEC_RULE_MODES.map((mode) => (
+                        <s-choice key={mode} value={mode} selected={mode === draft.rules.pec}>
+                          {t.rules.pec[mode]}
+                          <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
+                        </s-choice>
+                      ))}
+                    </s-choice-list>
                   </s-stack>
                 </s-section>
               </div>

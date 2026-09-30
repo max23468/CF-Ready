@@ -1,0 +1,22 @@
+/* Fondo della pagina Polaris precedente: le card restano componenti nativi. */
+body {
+  background: var(--p-color-bg, #f1f1f1);
+  margin: 0;
+  min-block-size: 100vh;
+}
+
+/* Un solo gruppo laterale conserva la stessa distanza fra tutte le card. */
+s-stack[slot="aside"] {
+  display: block;
+}
+
+@media (max-width: 600px) {
+  body {
+    padding-inline: 16px;
+  }
+
+  /* Su mobile Polaris separa le due colonne con 32 px: uniformiamo a 16 px. */
+  s-stack[slot="aside"] {
+    margin-block-start: -16px;
+  }
+}

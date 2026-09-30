@@ -333,7 +333,9 @@ export default function CustomerMessages() {
         {/* L'anteprima sopra mostra il testo selezionato; questo riquadro aggiunge invece
             l'informazione che manca all'editor: quali messaggi sono pertinenti alle regole
             correnti e possono quindi comparire quando il controllo è attivo. */}
-        <MessageVisibilityAside t={t} rules={saved.rules} />
+        <s-stack slot="aside" direction="block" gap="base">
+          <MessageVisibilityAside t={t} rules={saved.rules} />
+        </s-stack>
         <RestoreMessageModals t={t} restore={restore} />
       </s-page>
     </form>
@@ -385,6 +387,22 @@ function MessagesEditor({
           <s-option value="it">{t.messages.italian}</s-option>
           <s-option value="en">{t.messages.english}</s-option>
         </s-select>
+        <CustomerMessagesPreview
+          activeLocale={activeLocale}
+          context={t.messages.previewContext}
+          errorHeading={texts(activeLocale).messages.previewErrorHeading}
+          fieldLabel={previewField.label}
+          fieldLabelHeading={
+            previewField.observed
+              ? t.messages.previewCurrentFieldLabel
+              : t.messages.previewProposedFieldLabel
+          }
+          heading={t.messages.previewHeading}
+          languages={{ it: t.messages.italian, en: t.messages.english }}
+          message={draft[activeLocale][selectedKey]}
+          selectedHeading={t.messages.previewSelected}
+          selectedLabel={t.messages[selectedKey]}
+        />
         <s-stack direction="block" gap="base">
           {MESSAGE_KEYS.map((key) => {
             const value = draft[activeLocale][key];
@@ -417,22 +435,6 @@ function MessagesEditor({
             );
           })}
         </s-stack>
-        <CustomerMessagesPreview
-          activeLocale={activeLocale}
-          context={t.messages.previewContext}
-          errorHeading={texts(activeLocale).messages.previewErrorHeading}
-          fieldLabel={previewField.label}
-          fieldLabelHeading={
-            previewField.observed
-              ? t.messages.previewCurrentFieldLabel
-              : t.messages.previewProposedFieldLabel
-          }
-          heading={t.messages.previewHeading}
-          languages={{ it: t.messages.italian, en: t.messages.english }}
-          message={draft[activeLocale][selectedKey]}
-          selectedHeading={t.messages.previewSelected}
-          selectedLabel={t.messages[selectedKey]}
-        />
         <s-button commandFor={`restore-${activeLocale}`} command="--show">
           {t.messages.reset}
         </s-button>
@@ -443,7 +445,7 @@ function MessagesEditor({
 
 function MessageVisibilityAside({ t, rules }: { t: MessagesCopy; rules: MessagesData["rules"] }) {
   return (
-    <s-section slot="aside" heading={t.messages.appearHeading}>
+    <s-section heading={t.messages.appearHeading}>
       <s-stack direction="block" gap="small-100">
         <s-paragraph>{t.messages.appearIntro}</s-paragraph>
         <div className="cf-data-list">
