@@ -6,6 +6,20 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.13 — 30 settembre 2026
+
+- ripristina il fondo grigio e la distinzione delle card native in tutta l'app;
+- compatta lo stato Home e uniforma a 16 px la distanza dei box laterali e
+  delle card su mobile, con margini laterali di 16 px;
+- separa Codice Fiscale e PEC in due card e rende l'anteprima Messaggi sempre
+  visibile sopra i campi, con titolo unico e avviso compatto con icona;
+- riporta l'assistenza in alto nella Guida, rende più marcate le domande FAQ
+  e raccoglie la lingua del simulatore nelle opzioni avanzate;
+- permette di tornare direttamente alla Home dalla revisione di una
+  configurazione già attiva, senza registrarne nuovamente il completamento;
+- aggiorna le dipendenze transitive `brace-expansion` e `fast-uri` alle
+  versioni corrette, eliminando tutte le vulnerabilità segnalate da npm audit.
+
 ## 1.15.12 — 30 settembre 2026
 
 - rende effettivi i salti rapidi della Guida su mobile con azioni Polaris di

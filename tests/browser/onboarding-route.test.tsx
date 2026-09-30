@@ -323,7 +323,7 @@ describe("Onboarding", () => {
     expect(router.fetcher.submit).toHaveBeenCalled();
   });
 
-  test("mostra errore, riepilogo revisione e schermata conclusa", async () => {
+  test("la revisione torna direttamente alla Home senza registrare un completamento", async () => {
     router.loaderData = {
       ...onboardingData,
       step: 4,
@@ -337,16 +337,13 @@ describe("Onboarding", () => {
     const view = await mount(<Onboarding />);
     expect(view.container.querySelector('s-banner[tone="critical"]')).not.toBeNull();
     const complete = [...view.container.querySelectorAll("s-button")].find((button) =>
-      button.textContent?.includes(texts("it").onboarding.completeReview),
+      button.textContent?.includes(texts("it").onboarding.goHome),
     );
     if (!complete) throw new Error("azione revisione assente");
     await click(complete);
-    router.fetcher.data = { ok: true };
-    router.fetcher.state = "loading";
-    await view.rerender(<Onboarding />);
-    router.fetcher.state = "idle";
-    await view.rerender(<Onboarding />);
-    expect(view.container.textContent).toContain(texts("it").onboarding.doneBody);
+    expect(router.navigate).toHaveBeenCalledWith("/app", { viewTransition: true });
+    expect(router.fetcher.submit).not.toHaveBeenCalled();
+    expect(view.container.textContent).not.toContain(texts("it").onboarding.doneBody);
   });
 
   test("chiude l’onboarding senza chiedere una dichiarazione su Interno", async () => {
