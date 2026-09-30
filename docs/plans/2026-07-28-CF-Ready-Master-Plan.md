@@ -2384,6 +2384,12 @@ Conclusioni operative:
   opzioni avanzate e nota sulle etichette dopo i campi. Su mobile le card hanno
   margini laterali di 16 px e distanza uniforme di 16 px, anche nel passaggio
   dalla colonna principale a quella laterale;
+- affinamenti dell'audit del 30 settembre 2026: restano due box del piano,
+  uno per stato e rinnovi e uno per aggiornamenti e assistenza inclusi, senza
+  ripetizioni o titoli di pagamento sui piani omaggio. Le regole nella Home
+  restano leggibili a 320 px; il simulatore compatta il contesto geografico
+  in una disclosure nativa e riallinea i selettori senza perdere la lingua.
+  La diagnostica distingue una verifica non eseguita da un controllo inattivo;
 - accessibile, responsive e coerente con Shopify Admin;
 - azioni ad alto impatto con conferma;
 - Save Bar nativa per modifiche non salvate.
@@ -2593,6 +2599,9 @@ Quattro passaggi:
 Regole:
 
 - si può tornare indietro;
+- ogni cambio di passo porta focus e scorrimento all'inizio del contenuto;
+- il riepilogo mantiene vicine etichette e valori, spiega la gestione mista
+  delle etichette e distingue i messaggi previsti da quelli non previsti;
 - il riepilogo finale va visualizzato;
 - azioni finali:
   - `Attiva nel checkout`;
