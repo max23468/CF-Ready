@@ -199,10 +199,10 @@ export const en: typeof it = {
     step4SeePlans: "Compare plans",
     step4TrialActive: "The trial is active.",
     step4PlanActive: "Your plan is active.",
-    reviewStep4Body: "The check is already active at checkout. Complete the review to return Home.",
+    reviewStep4Body: "The check is already active at checkout.",
     activate: "Turn on in checkout",
     finishWithout: "Return Home without turning on",
-    completeReview: "Complete review",
+    goHome: "Return Home",
     doneHeading: "Setup complete",
     doneBody:
       "Your rules are saved. You can change them whenever you want, and these steps stay available from the Help page.",

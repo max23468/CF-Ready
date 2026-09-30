@@ -164,14 +164,6 @@ export function CheckoutSimulator({
                   </s-badge>
                 </span>
               </s-grid>
-              <s-select
-                label={copy.previewLanguage}
-                value={previewLocale}
-                onChange={(event) => setSelectedPreviewLocale(event.currentTarget.value as Locale)}
-              >
-                <s-option value="it">{copy.italian}</s-option>
-                <s-option value="en">{copy.english}</s-option>
-              </s-select>
             </s-stack>
           </s-box>
 
@@ -211,6 +203,16 @@ export function CheckoutSimulator({
                     <summary>{copy.advanced}</summary>
                     <s-box paddingBlockStart="small-200">
                       <s-stack direction="block" gap="small-200">
+                        <s-select
+                          label={copy.previewLanguage}
+                          value={previewLocale}
+                          onChange={(event) =>
+                            setSelectedPreviewLocale(event.currentTarget.value as Locale)
+                          }
+                        >
+                          <s-option value="it">{copy.italian}</s-option>
+                          <s-option value="en">{copy.english}</s-option>
+                        </s-select>
                         <s-select
                           label={copy.checkoutStep}
                           value={step}
@@ -375,7 +377,6 @@ function SimulatorCustomerFields({
         <s-icon type="identity-card" color="subdued" />
         <s-text type="strong">{copy.customerData}</s-text>
       </s-stack>
-      <s-text color="subdued">{copy.labelsAfterSave}</s-text>
       {hasManagedFields ? (
         <>
           <SimulatorCompanyField
@@ -411,6 +412,7 @@ function SimulatorCustomerFields({
           <s-paragraph color="subdued">{t.checkout.nothing}</s-paragraph>
         </s-box>
       )}
+      <s-text color="subdued">{copy.labelsAfterSave}</s-text>
     </s-stack>
   );
 }

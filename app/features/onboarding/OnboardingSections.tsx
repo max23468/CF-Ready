@@ -172,22 +172,19 @@ export function OnboardingStep4Actions({
   busy,
   pendingIntent,
   close,
+  goHome,
 }: {
   t: ReturnType<typeof texts>;
   state: ReturnType<typeof onboardingStep4State>;
   busy: boolean;
   pendingIntent: string | null;
   close: (intent: "activate" | "finish") => void;
+  goHome: () => void;
 }) {
   if (state.summary === "review") {
     return (
-      <s-button
-        variant="primary"
-        disabled={busy}
-        loading={pendingIntent === "finish"}
-        onClick={() => close("finish")}
-      >
-        {t.onboarding.completeReview}
+      <s-button variant="primary" disabled={busy} onClick={goHome}>
+        {t.onboarding.goHome}
       </s-button>
     );
   }

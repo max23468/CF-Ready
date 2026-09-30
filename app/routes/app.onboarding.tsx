@@ -108,18 +108,11 @@ export default function Onboarding() {
       }),
     );
 
+  const goHome = () =>
+    requestAppWindowNavigation(window, "/app", (href) => navigate(href, { viewTransition: true }));
+
   if (finished) {
-    return (
-      <OnboardingCompletion
-        saved={saved}
-        goHome={() =>
-          requestAppWindowNavigation(window, "/app", (href) =>
-            navigate(href, { viewTransition: true }),
-          )
-        }
-        showPlans={showPlans}
-      />
-    );
+    return <OnboardingCompletion saved={saved} goHome={goHome} showPlans={showPlans} />;
   }
 
   const close = (intent: "activate" | "finish") => {
@@ -235,6 +228,7 @@ export default function Onboarding() {
                   busy={busy}
                   pendingIntent={pendingIntent}
                   close={close}
+                  goHome={goHome}
                 />
               ) : (
                 <s-button

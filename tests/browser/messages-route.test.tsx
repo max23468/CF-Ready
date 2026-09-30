@@ -72,7 +72,7 @@ describe("Messaggi", () => {
       view.container
         .querySelector("s-text-area")!
         .compareDocumentPosition(view.container.querySelector(".customer-messages-preview")!) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+        Node.DOCUMENT_POSITION_PRECEDING,
     ).toBeTruthy();
     expect(view.container.textContent).toContain("Current tax code");
   });

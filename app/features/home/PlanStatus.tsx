@@ -7,7 +7,7 @@ export function PlanStatus({ data }: { data: HomeData }) {
   const status = planStatusText(data);
 
   return (
-    <s-section slot="aside" heading={t.plan.heading}>
+    <s-section heading={t.plan.heading}>
       <s-stack direction="block" gap="small-100">
         <s-paragraph>{status}</s-paragraph>
         {data.periodEnd && data.planKind !== "one_time" ? (
