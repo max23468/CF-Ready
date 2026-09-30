@@ -74,26 +74,28 @@ export function HomeValidationSection({
         ) : null}
         <s-divider />
         <s-stack direction="block" gap="small-100">
-          <s-grid
-            gridTemplateColumns="@container (inline-size > 300px) auto auto, 1fr"
-            justifyContent="start"
-            alignItems="center"
-            columnGap="base"
-            rowGap="small-100"
-          >
-            <s-text>{t.rules.taxCodeLabel}</s-text>
-            <s-badge>{t.rules.taxCode[data.rules.taxCode]}</s-badge>
-            <s-text>{t.rules.pecLabel}</s-text>
-            {data.rules.pec === "required_when_company" ? (
-              <s-text>{t.rules.pec[data.rules.pec]}</s-text>
-            ) : (
-              <s-badge>{t.rules.pec[data.rules.pec]}</s-badge>
-            )}
-            <s-text>{t.home.messagesLabel}</s-text>
-            <s-badge>
-              {data.messagesDefault ? t.home.messagesDefault : t.home.messagesCustom}
-            </s-badge>
-          </s-grid>
+          <s-query-container>
+            <s-grid
+              gridTemplateColumns="@container (inline-size > 300px) auto auto, 1fr"
+              justifyContent="start"
+              alignItems="center"
+              columnGap="base"
+              rowGap="small-100"
+            >
+              <s-text>{t.rules.taxCodeLabel}</s-text>
+              <s-badge>{t.rules.taxCode[data.rules.taxCode]}</s-badge>
+              <s-text>{t.rules.pecLabel}</s-text>
+              {data.rules.pec === "required_when_company" ? (
+                <s-text>{t.rules.pec[data.rules.pec]}</s-text>
+              ) : (
+                <s-badge>{t.rules.pec[data.rules.pec]}</s-badge>
+              )}
+              <s-text>{t.home.messagesLabel}</s-text>
+              <s-badge>
+                {data.messagesDefault ? t.home.messagesDefault : t.home.messagesCustom}
+              </s-badge>
+            </s-grid>
+          </s-query-container>
           <s-box background="subdued" borderRadius="base" padding="small-200">
             <s-stack direction="inline" gap="small-100" alignItems="center">
               <s-icon type="location" color="subdued" />
