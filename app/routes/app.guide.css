@@ -7,7 +7,7 @@
 
 .guide-faq__groups {
   display: grid;
-  gap: 32px;
+  gap: 20px;
 }
 
 .guide-faq__group {

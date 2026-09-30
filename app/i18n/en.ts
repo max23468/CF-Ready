@@ -138,8 +138,7 @@ export const en: typeof it = {
     previewFieldLabel: "Field label",
     previewCurrentFieldLabel: "Current Shopify label",
     previewProposedFieldLabel: "Proposed label",
-    labelsNote:
-      "Here you edit the error messages shown when the Tax code or PEC is missing or invalid. Field names are managed in Checkout rules.",
+    labelsNote: "Customize tax code and PEC errors. For field names, open Checkout rules.",
     manageLabels: "Open Checkout rules",
   },
   setup: {
@@ -184,6 +183,7 @@ export const en: typeof it = {
     labelsPermissionsOptional:
       "You can grant permission to compare labels with Shopify now or continue without enabling it.",
     step3Heading: "Rules preview",
+    labelsMixedDescription: "Some labels are managed automatically; others need a manual check.",
     step3Body: "With the rules you selected:",
     step3Messages: "Configured messages",
     step3MessagesBody:
@@ -260,7 +260,8 @@ export const en: typeof it = {
       disabled: "The validation is disabled or missing. Open Home to manage activation.",
       configured: "At least one field is configured for validation.",
       unconfigured: "Both fields are unmanaged: choose which rules to apply.",
-      notChecked: "Rules and activation have not been checked in this session.",
+      notChecked:
+        "Diagnostics have not been run in this session. This does not mean the check is inactive.",
       openPlan: "Check plan",
       lastSync: "Last stored sync",
       unknown: "Unavailable",
@@ -393,10 +394,9 @@ export const en: typeof it = {
     chooseHeading: "How you want to continue",
     chooseBody:
       "Every plan has the same features. Shopify handles the charges on your store invoice.",
-    oneTimeSettled:
-      "One payment for this store, with no renewals. It includes app updates and support, at no extra cost. There’s nothing else to choose.",
-    complimentarySettled:
-      "The complimentary plan is active for this store. It includes app updates and support, with no charges.",
+    oneTimeSettled: "Includes app updates and support, at no extra cost.",
+    complimentarySettled: "Includes app updates and support, with no charges.",
+    includedHeading: "What the plan includes",
     recommended: "Recommended",
     generationLaunch: "Launch prices are reserved for this store.",
     generationStandard: "Standard prices apply to this store.",

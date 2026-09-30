@@ -101,12 +101,12 @@ describe("componenti merchant nel browser", () => {
       />,
     );
     mounted.push(view);
-    const selects = [...view.container.querySelectorAll("s-select")];
+    let selects = [...view.container.querySelectorAll("s-select")];
     const fields = [...view.container.querySelectorAll("s-text-field")];
     expect(selects).toHaveLength(5);
     expect(fields).toHaveLength(2);
     const language = view.container.querySelector('s-select[label="Lingua dell’anteprima"]')!;
-    const delivery = view.container.querySelector('s-select[label="Paese di consegna"]')!;
+    let delivery = view.container.querySelector('s-select[label="Paese di consegna"]')!;
 
     (language as HTMLElement & { value: string }).value = "en";
     await dispatch(language, new Event("change", { bubbles: true }));
@@ -114,6 +114,8 @@ describe("componenti merchant nel browser", () => {
     (language as HTMLElement & { value: string }).value = "it";
     await dispatch(language, new Event("change", { bubbles: true }));
 
+    selects = [...view.container.querySelectorAll("s-select")];
+    delivery = view.container.querySelector('s-select[label="Paese di consegna"]')!;
     (delivery as HTMLElement & { value: string }).value = "unknown";
     await dispatch(delivery, new Event("change", { bubbles: true }));
     (delivery as HTMLElement & { value: string }).value = "FR";
