@@ -57,8 +57,8 @@ export function CustomerMessagesPreview({
                 >
                   <s-icon type="alert-circle" tone="critical" />
                   <s-stack direction="block" gap="none">
-                    <s-text type="strong" tone="critical">
-                      {errorHeading}
+                    <s-text tone="critical">
+                      <strong>{errorHeading}</strong>
                     </s-text>
                     <s-text tone="critical">{message}</s-text>
                   </s-stack>

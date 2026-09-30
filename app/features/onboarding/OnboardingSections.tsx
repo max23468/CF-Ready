@@ -124,6 +124,9 @@ export function OnboardingStep4Content({
           </div>
         </div>
       </div>
+      {saved.labelState.mode === "partial" ? (
+        <s-paragraph color="subdued">{t.onboarding.labelsMixedDescription}</s-paragraph>
+      ) : null}
       <s-paragraph>
         {state.summary === "review"
           ? t.onboarding.reviewStep4Body

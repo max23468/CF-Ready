@@ -141,7 +141,7 @@ export const it = {
     previewCurrentFieldLabel: "Etichetta attuale Shopify",
     previewProposedFieldLabel: "Etichetta proposta",
     labelsNote:
-      "Qui modifichi i messaggi di errore mostrati quando Codice Fiscale o PEC mancano o non sono validi. I nomi dei campi si modificano in Regole checkout.",
+      "Personalizza gli errori di Codice Fiscale e PEC. Per i nomi dei campi, apri Regole checkout.",
     manageLabels: "Apri Regole checkout",
   },
   setup: {
@@ -187,6 +187,8 @@ export const it = {
     labelsPermissionsOptional:
       "Puoi concedere ora i permessi per confrontare le etichette con Shopify oppure continuare senza attivarli.",
     step3Heading: "Anteprima delle regole",
+    labelsMixedDescription:
+      "Alcune etichette sono gestite automaticamente; altre richiedono una verifica manuale.",
     step3Body: "Con le regole che hai scelto:",
     step3Messages: "Messaggi configurati",
     step3MessagesBody:
@@ -263,7 +265,8 @@ export const it = {
       disabled: "La Validation è disattivata o assente. Apri la Home per gestire l’attivazione.",
       configured: "Almeno un campo è configurato per essere controllato.",
       unconfigured: "Entrambi i campi sono non gestiti: scegli le regole da applicare.",
-      notChecked: "Regole e attivazione non ancora verificate in questa sessione.",
+      notChecked:
+        "Diagnostica non ancora eseguita in questa sessione. Questo non indica che il controllo sia disattivato.",
       openPlan: "Verifica il piano",
       lastSync: "Ultima sincronizzazione memorizzata",
       unknown: "Non disponibile",
@@ -399,10 +402,9 @@ export const it = {
       "Le funzioni sono le stesse per ogni piano. Shopify gestisce gli addebiti nella fattura dello store.",
     // §14.11: formulazione approvata. §7.2 vieta “a vita”, “per sempre”, “illimitato” e
     // “senza limiti di tempo”: si dice cosa il pagamento include, senza promettere una durata.
-    oneTimeSettled:
-      "Un solo pagamento per questo store, senza rinnovi. Include gli aggiornamenti dell’app e l’assistenza, senza costi aggiuntivi. Non c’è altro da scegliere.",
-    complimentarySettled:
-      "Il piano omaggio è attivo per questo store. Include gli aggiornamenti dell’app e l’assistenza, senza addebiti.",
+    oneTimeSettled: "Include gli aggiornamenti dell’app e l’assistenza, senza costi aggiuntivi.",
+    complimentarySettled: "Include gli aggiornamenti dell’app e l’assistenza, senza addebiti.",
+    includedHeading: "Cosa include il piano",
     recommended: "Consigliato",
     generationLaunch: "A questo store sono riservati i prezzi di lancio.",
     generationStandard: "A questo store si applicano i prezzi standard.",

@@ -11,6 +11,7 @@ import CheckoutRules from "../../app/routes/app.rules";
 import { DEFAULT_CONFIG } from "../../app/config";
 import { CheckoutSimulator } from "../../app/features/rules/CheckoutSimulator";
 import "../../app/app.css";
+import "../../app/ui-motion.css";
 
 // I test di interazione usano host non registrati. Qui serve il rendering reale:
 // solo fixture sintetiche, nessuna autenticazione o chiamata allo store.
@@ -53,6 +54,17 @@ function expectNativeCards(container: HTMLElement) {
   }
 }
 
+async function captureSurface(element: HTMLElement, path: string) {
+  const width = document.documentElement.clientWidth;
+  const height = window.innerHeight;
+  await page.viewport(
+    width,
+    Math.max(height, Math.ceil(element.getBoundingClientRect().height) + 32),
+  );
+  await page.screenshot({ path });
+  await page.viewport(width, height);
+}
+
 test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", async () => {
   const data = {
     ...homeData,
@@ -81,6 +93,16 @@ test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", asy
     expect(heading.getBoundingClientRect().height).toBe(pendingRect.height);
     expect(heading.getBoundingClientRect().top).toBe(pendingRect.top);
     expectNativeCards(view.container);
+    for (const badge of view.container.querySelectorAll("s-badge")) {
+      for (const element of badge.shadowRoot!.querySelectorAll<HTMLElement>("*")) {
+        if (element.textContent === badge.textContent && element.clientWidth > 0) {
+          expect(element.scrollWidth).toBeLessThanOrEqual(element.clientWidth + 1);
+        }
+      }
+    }
+    expect(
+      view.container.querySelector(`s-section[heading="${texts("it").plan.includedHeading}"]`),
+    ).not.toBeNull();
     const cards = view.container.querySelectorAll<HTMLElement>('s-stack[slot="aside"] > s-section');
     expect(cards).toHaveLength(3);
     const cardRects = Array.from(cards, (card) =>
@@ -96,9 +118,10 @@ test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", asy
       const gap = cardRects[index].top - cardRects[index - 1].bottom;
       expect(gap).toBe(16);
     }
-    await page.screenshot({
-      path: `__screenshots__/visual/home-${server.browser}-${width}.png`,
-    });
+    await captureSurface(
+      view.container,
+      `__screenshots__/visual/home-${server.browser}-${width}.png`,
+    );
     router.loaderData = confirmedHome(data, Promise.reject(new Error("timeout")));
     await view.rerender(<HomePage />);
     await expect
@@ -125,9 +148,15 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
   const summary = view.container.querySelector<HTMLElement>(".guide-faq__entry summary")!;
   expect(getComputedStyle(summary.querySelector(".guide-faq__question")!).fontWeight).toBe("600");
   expect(getComputedStyle(summary).listStyleType).toBe("disclosure-closed");
-  await page.screenshot({ path: `__screenshots__/visual/guide-top-${server.browser}-390.png` });
+  await captureSurface(
+    view.container,
+    `__screenshots__/visual/guide-top-${server.browser}-390.png`,
+  );
   await page.viewport(1280, 844);
-  await page.screenshot({ path: `__screenshots__/visual/guide-top-${server.browser}-1280.png` });
+  await captureSurface(
+    view.container,
+    `__screenshots__/visual/guide-top-${server.browser}-1280.png`,
+  );
   await page.viewport(390, 844);
   summary.focus();
   await userEvent.keyboard("{ArrowDown}");
@@ -171,9 +200,10 @@ test("Polaris reale: anteprima Messaggi visibile prima dei campi e riepilogo sen
     expect(field.getBoundingClientRect().height).toBeGreaterThan(20);
     expect(preview.getBoundingClientRect().top).toBeLessThan(field.getBoundingClientRect().top);
     expect(preview.getBoundingClientRect().top).toBeLessThan(500);
-    await page.screenshot({
-      path: `__screenshots__/visual/messages-${server.browser}-${width}.png`,
-    });
+    await captureSurface(
+      messages.container,
+      `__screenshots__/visual/messages-${server.browser}-${width}.png`,
+    );
     await act(async () => {
       await page
         .getByRole("combobox", { name: texts("it").messages.languageSelector })
@@ -197,6 +227,14 @@ test("Polaris reale: anteprima Messaggi visibile prima dei campi e riepilogo sen
     };
     const onboarding = await mount(<Onboarding />);
     expectNativeCards(onboarding.container);
+    if (width === 1280) {
+      const row = onboarding.container.querySelector<HTMLElement>(".cf-onboarding-summary-row")!;
+      const label = row.getBoundingClientRect();
+      const value = row.querySelector(".cf-onboarding-summary-value")!.getBoundingClientRect();
+      expect(getComputedStyle(row).gridTemplateColumns).toMatch(/^160px /);
+      expect(value.left - label.left).toBe(172);
+      expect(value.top).toBe(label.top);
+    }
     for (const value of onboarding.container.querySelectorAll<HTMLElement>(
       ".cf-onboarding-summary-value",
     )) {
@@ -207,9 +245,10 @@ test("Polaris reale: anteprima Messaggi visibile prima dei campi e riepilogo sen
     expect(onboarding.container.textContent).toContain(
       texts("it").rules.labels.addressStatus.expected,
     );
-    await page.screenshot({
-      path: `__screenshots__/visual/onboarding-${server.browser}-${width}.png`,
-    });
+    await captureSurface(
+      onboarding.container,
+      `__screenshots__/visual/onboarding-${server.browser}-${width}.png`,
+    );
     await onboarding.unmount();
   }
 });
@@ -241,9 +280,10 @@ test("Polaris reale: Regole con card bianche sul fondo grigio desktop e mobile",
     expect(ruleCards[0].querySelector('s-choice-list[name="taxCode"]')).not.toBeNull();
     expect(ruleCards[1].querySelector('s-choice-list[name="pec"]')).not.toBeNull();
     expect(view.container.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
-    await page.screenshot({
-      path: `__screenshots__/visual/rules-${server.browser}-${width}.png`,
-    });
+    await captureSurface(
+      view.container,
+      `__screenshots__/visual/rules-${server.browser}-${width}.png`,
+    );
     await view.unmount();
   }
 });
@@ -257,7 +297,9 @@ test("Polaris reale: simulatore stretto e focus tastiera leggibile", async () =>
       messages={DEFAULT_CONFIG.messages}
     />,
   );
-  const advanced = view.container.querySelector<HTMLDetailsElement>("details")!;
+  const advanced = Array.from(view.container.querySelectorAll<HTMLDetailsElement>("details")).find(
+    (details) => details.querySelector('s-select[label="Lingua dell’anteprima"]'),
+  )!;
   expect(advanced.open).toBe(false);
   expect(advanced.querySelector('s-select[label="Lingua dell’anteprima"]')).not.toBeNull();
   await page.elementLocator(advanced.querySelector("summary")!).click();
@@ -267,6 +309,16 @@ test("Polaris reale: simulatore stretto e focus tastiera leggibile", async () =>
       .selectOptions("en");
   });
   expect(view.container.textContent).toContain(texts("en").rules.simulator.privatePreview);
+  for (const [label, expected] of [
+    [texts("en").rules.simulator.deliveryCountry, "Italy"],
+    [texts("en").rules.simulator.billingCountry, "Italy"],
+    [texts("en").rules.simulator.checkoutStep, "Entering details"],
+  ]) {
+    const select = view.container
+      .querySelector(`s-select[label="${label}"]`)!
+      .shadowRoot!.querySelector("select")!;
+    expect(select.selectedOptions[0].text).toBe(expected);
+  }
   const button = view.container.querySelector<HTMLElement>(".checkout-simulator__button--primary")!;
   button.focus();
   await userEvent.keyboard("{ArrowDown}");
@@ -274,5 +326,69 @@ test("Polaris reale: simulatore stretto e focus tastiera leggibile", async () =>
   expect(getComputedStyle(button).outlineColor).toBe("rgb(0, 91, 211)");
   expect(getComputedStyle(button).outlineWidth).toBe("3px");
   expect(view.container.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
-  await page.screenshot({ path: `__screenshots__/visual/simulator-${server.browser}-320.png` });
+  await captureSurface(
+    view.container,
+    `__screenshots__/visual/simulator-${server.browser}-320.png`,
+  );
+});
+
+test("Polaris reale: cambio passo ripristina focus e scorrimento mobile", async () => {
+  await page.viewport(390, 844);
+  router.loaderData = {
+    ...onboardingData,
+    step: 1,
+    completed: true,
+    rules: { taxCode: "required_validated", pec: "optional_validated" },
+  };
+  const view = await mount(<Onboarding />);
+  for (const width of [390, 1280]) {
+    await page.viewport(width, 844);
+    await captureSurface(
+      view.container,
+      `__screenshots__/visual/onboarding-step1-${server.browser}-${width}.png`,
+    );
+  }
+  await page.viewport(390, 844);
+  await act(async () => {
+    await page.getByRole("button", { name: texts("it").onboarding.next, exact: true }).click();
+  });
+  for (const width of [390, 1280]) {
+    await page.viewport(width, 844);
+    await captureSurface(
+      view.container,
+      `__screenshots__/visual/onboarding-step2-${server.browser}-${width}.png`,
+    );
+  }
+  await page.viewport(390, 844);
+  await act(async () => {
+    await page.getByRole("button", { name: texts("it").onboarding.next, exact: true }).click();
+  });
+  const content = view.container.querySelector<HTMLElement>(".onboarding-step")!;
+  expect(document.activeElement).toBe(content);
+  expect(content.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
+  expect(content.getBoundingClientRect().top).toBeLessThan(100);
+  expect(content.textContent).toContain(texts("it").onboarding.step3Heading);
+  expect(content.textContent).toContain(texts("it").messages.appearsNot);
+  await captureSurface(
+    view.container,
+    `__screenshots__/visual/onboarding-step3-${server.browser}-390.png`,
+  );
+  await page.viewport(1280, 844);
+  await captureSurface(
+    view.container,
+    `__screenshots__/visual/onboarding-step3-${server.browser}-1280.png`,
+  );
+  await page.viewport(390, 844);
+  await act(async () => {
+    await page.getByRole("button", { name: texts("it").onboarding.next, exact: true }).click();
+  });
+  await captureSurface(
+    view.container,
+    `__screenshots__/visual/onboarding-step4-${server.browser}-390.png`,
+  );
+  await page.viewport(1280, 844);
+  await captureSurface(
+    view.container,
+    `__screenshots__/visual/onboarding-step4-${server.browser}-1280.png`,
+  );
 });
