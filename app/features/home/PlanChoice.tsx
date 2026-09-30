@@ -73,7 +73,7 @@ function PlanSelection(props: PlanProps & { trialNeverStarted: boolean }) {
   const t = texts(data.locale);
   const onOneTime = data.entitlement.kind === "one_time";
   const heading = onOneTime
-    ? t.plan.oneTimeName
+    ? t.plan.includedHeading
     : trialNeverStarted
       ? t.plan.chooseNowHeading
       : t.plan.chooseHeading;

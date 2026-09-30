@@ -72,6 +72,18 @@ test("il piano omaggio non viene presentato come un pagamento", () => {
     }),
   );
   const status = renderedElements(PlanStatus({ data: complimentary }));
+  expect(
+    choice.some(
+      (element) =>
+        (element.props as { heading?: string }).heading === texts("it").plan.includedHeading,
+    ),
+  ).toBe(true);
+  expect(
+    status.some(
+      (element) => (element.props as { heading?: string }).heading === texts("it").plan.heading,
+    ),
+  ).toBe(true);
+  expect(texts("it").plan.complimentarySettled).not.toContain("attivo");
 
   expect(
     choice.some(

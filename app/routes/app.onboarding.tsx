@@ -11,6 +11,8 @@ import {
 } from "../checkout-labels/domain";
 import {
   oneOf,
+  MESSAGE_KEYS,
+  messageAppears,
   PEC_RULE_MODES,
   pendingFetcherIntent,
   TAX_CODE_RULE_MODES,
@@ -78,6 +80,12 @@ export default function Onboarding() {
       progress.submit({ intent: "progress", step: String(next) }, { method: "post" });
     }
   };
+
+  useEffect(() => {
+    const content = form.current?.querySelector<HTMLElement>(".onboarding-step");
+    content?.focus({ preventScroll: true });
+    form.current?.scrollIntoView({ block: "start" });
+  }, [step]);
 
   // Il passo vive solo qui. Mescolarlo con lo stato del server produceva salti e blocchi: il
   // server lo riceve quando la procedura si chiude, che è l'unico momento in cui serve
@@ -288,7 +296,7 @@ function OnboardingCurrentStep(props: CurrentStepProps) {
     );
   }
   return (
-    <div className="onboarding-step" key={props.step}>
+    <div className="onboarding-step" key={props.step} tabIndex={-1}>
       {content}
     </div>
   );
@@ -412,10 +420,20 @@ function OnboardingPreview({ saved, t }: { saved: OnboardingData; t: OnboardingC
         items={t.rules.exceptions}
       />
       <s-heading>{t.onboarding.step3Messages}</s-heading>
-      <OnboardingListBlock
-        lead={<s-paragraph>{t.onboarding.step3MessagesBody}</s-paragraph>}
-        items={Object.values(saved.messages[saved.locale])}
-      />
+      <s-paragraph>{t.onboarding.step3MessagesBody}</s-paragraph>
+      <s-stack direction="block" gap="small-200">
+        {MESSAGE_KEYS.map((key) => (
+          <s-stack key={key} direction="block" gap="small-100">
+            <s-stack direction="inline" gap="small-100">
+              <s-text type="strong">{t.messages[key]}</s-text>
+              <s-badge>
+                {messageAppears(saved.rules, key) ? t.messages.appears : t.messages.appearsNot}
+              </s-badge>
+            </s-stack>
+            <s-paragraph>{saved.messages[saved.locale][key]}</s-paragraph>
+          </s-stack>
+        ))}
+      </s-stack>
     </>
   );
 }

@@ -153,7 +153,7 @@ export default function Guide() {
     <s-page heading={t.guide.heading}>
       <s-stack direction="inline" gap="base">
         <s-button
-          variant="tertiary"
+          icon="search"
           onClick={() =>
             document.getElementById("validation-diagnosis")?.scrollIntoView({ block: "start" })
           }
@@ -161,7 +161,7 @@ export default function Guide() {
           {t.guide.diagnosis.heading}
         </s-button>
         <s-button
-          variant="tertiary"
+          icon="chat"
           onClick={() => document.getElementById("support")?.scrollIntoView({ block: "start" })}
         >
           {t.support.heading}

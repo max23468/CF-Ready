@@ -375,10 +375,10 @@ function MessagesEditor({
   return (
     <s-section>
       <s-stack direction="block" gap="base">
-        <s-banner tone="info">
-          <s-paragraph>{t.messages.labelsNote}</s-paragraph>
+        <s-stack direction="block" gap="small-100">
+          <s-paragraph color="subdued">{t.messages.labelsNote}</s-paragraph>
           <s-link href="/app/rules">{t.messages.manageLabels}</s-link>
-        </s-banner>
+        </s-stack>
         <s-select
           label={t.messages.languageSelector}
           value={activeLocale}
