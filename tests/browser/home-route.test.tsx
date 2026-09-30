@@ -86,14 +86,9 @@ describe("Home merchant", () => {
     const t = texts("it");
     router.loaderData = confirmedHome(entitled, new Promise(() => undefined));
     const view = await mount(<HomePage key="pending" />);
-    const status = view.container.querySelector(".home-verification");
+    const status = view.container.querySelector('div[role="status"]');
     expect(status?.textContent).toContain(t.home.verifying);
-    expect(view.container.querySelectorAll(".home-verification")).toHaveLength(1);
-    expect(
-      [...view.container.querySelectorAll("s-badge")].some(
-        (badge) => badge.textContent === t.home.verifying,
-      ),
-    ).toBe(false);
+    expect(status?.querySelectorAll("s-badge")).toHaveLength(1);
     const deactivate = [...view.container.querySelectorAll("s-button")].find(
       (button) => button.textContent === t.home.deactivate,
     );
@@ -116,9 +111,11 @@ describe("Home merchant", () => {
     await act(async () => void (await Promise.resolve()));
     expect(view.container.textContent).not.toContain(t.home.verifying);
     expect(view.container.textContent).not.toContain(t.home.verificationFailed);
-    expect(view.container.querySelector(".home-verification")?.textContent).toContain(
-      t.home.verified,
+    expect(view.container.querySelector('div[role="status"]')?.textContent).toContain(
+      t.home.badgeActive,
     );
+    expect(view.container.textContent).not.toContain(t.home.verified);
+    expect(view.container.querySelector(".home-verification")).toBeNull();
   });
 
   test("il check-in copre invio, dismiss e stato occupato", async () => {

@@ -202,11 +202,10 @@ export const it = {
     step4SeePlans: "Confronta i piani",
     step4TrialActive: "La prova è attiva.",
     step4PlanActive: "Il piano è attivo.",
-    reviewStep4Body:
-      "Il controllo è già attivo nel checkout. Completa la revisione per tornare alla Home.",
+    reviewStep4Body: "Il controllo è già attivo nel checkout.",
     activate: "Attiva nel checkout",
     finishWithout: "Torna alla Home senza attivare",
-    completeReview: "Completa revisione",
+    goHome: "Torna alla Home",
     doneHeading: "Configurazione completata",
     doneBody:
       "Le regole sono salvate. Puoi cambiarle quando vuoi, e questa procedura resta disponibile dalla Guida.",
