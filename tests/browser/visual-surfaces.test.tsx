@@ -93,6 +93,11 @@ test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", asy
     expect(heading.getBoundingClientRect().height).toBe(pendingRect.height);
     expect(heading.getBoundingClientRect().top).toBe(pendingRect.top);
     expectNativeCards(view.container);
+    const rulesGrid = view.container.querySelector("s-query-container > s-grid")!;
+    const gridSurface = rulesGrid.shadowRoot!.querySelector<HTMLElement>(".grid")!;
+    expect(getComputedStyle(gridSurface).gridTemplateColumns.split(" ")).toHaveLength(
+      width === 320 ? 1 : 2,
+    );
     for (const badge of view.container.querySelectorAll("s-badge")) {
       for (const element of badge.shadowRoot!.querySelectorAll<HTMLElement>("*")) {
         if (element.textContent === badge.textContent && element.clientWidth > 0) {
@@ -169,7 +174,10 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
   expect(support.getBoundingClientRect().height).toBeGreaterThan(100);
   await expect.poll(() => support.getBoundingClientRect().top).toBeLessThan(844);
   await page
-    .getByRole("button", { name: texts("it").guide.diagnosis.heading, exact: true })
+    .getByRole("button", {
+      name: texts("it").guide.diagnosis.heading,
+      exact: true,
+    })
     .click();
   expect(
     view.container.querySelector("#validation-diagnosis")!.getBoundingClientRect().top,
@@ -195,7 +203,10 @@ test("Polaris reale: anteprima Messaggi visibile prima dei campi e riepilogo sen
     expect(preview.textContent?.match(/Anteprima nel checkout/g)).toHaveLength(1);
     expect(preview.querySelector('s-icon[type="alert-circle"]')).not.toBeNull();
     const field = page
-      .getByRole("textbox", { name: texts("it").messages.taxCodeRequired, exact: true })
+      .getByRole("textbox", {
+        name: texts("it").messages.taxCodeRequired,
+        exact: true,
+      })
       .element();
     expect(field.getBoundingClientRect().height).toBeGreaterThan(20);
     expect(preview.getBoundingClientRect().top).toBeLessThan(field.getBoundingClientRect().top);
@@ -223,7 +234,10 @@ test("Polaris reale: anteprima Messaggi visibile prima dei campi e riepilogo sen
       enabled: true,
       entitled: true,
       entitlementKind: "one_time",
-      labelState: { ...onboardingData.labelState, address2Classification: "expected" },
+      labelState: {
+        ...onboardingData.labelState,
+        address2Classification: "expected",
+      },
     };
     const onboarding = await mount(<Onboarding />);
     expectNativeCards(onboarding.container);
@@ -305,7 +319,9 @@ test("Polaris reale: simulatore stretto e focus tastiera leggibile", async () =>
   await page.elementLocator(advanced.querySelector("summary")!).click();
   await act(async () => {
     await page
-      .getByRole("combobox", { name: texts("it").rules.simulator.previewLanguage })
+      .getByRole("combobox", {
+        name: texts("it").rules.simulator.previewLanguage,
+      })
       .selectOptions("en");
   });
   expect(view.container.textContent).toContain(texts("en").rules.simulator.privatePreview);
