@@ -131,7 +131,7 @@ export function CheckoutSimulator({
         style={{
           background: "#f1f5ef",
           borderRadius: "16px",
-          padding: "6px",
+          padding: "0",
         }}
       >
         <s-box background="transparent" border="base" borderRadius="large" overflow="hidden">
@@ -143,7 +143,7 @@ export function CheckoutSimulator({
                 gap="small-200"
               >
                 <s-grid gridTemplateColumns="auto 1fr" gap="small-200" alignItems="start">
-                  <s-avatar src="/favicon.svg" alt="CF Ready" size="large" />
+                  <s-avatar src="/favicon.svg" alt="CF Ready" size="base" />
                   <s-stack direction="block" gap="small-100">
                     <span className="checkout-simulator__eyebrow">
                       <s-text color="subdued">{copy.eyebrow}</s-text>
@@ -171,28 +171,30 @@ export function CheckoutSimulator({
 
           <s-box padding="@container (inline-size > 420px) small-200, small-100">
             <s-stack direction="block" gap="base">
-              <s-box
-                background="subdued"
-                borderRadius="base"
-                padding="@container (inline-size > 420px) small-200, small-100"
-              >
+              <s-box background="transparent" borderRadius="base" padding="none">
                 <s-stack direction="block" gap="small-200">
                   <s-stack direction="inline" gap="small-100" alignItems="center">
                     <s-icon type="location" color="subdued" />
                     <s-text type="strong">{copy.orderContext}</s-text>
                   </s-stack>
-                  <s-paragraph color="subdued">{t.rules.exceptions[0]}</s-paragraph>
+                  <details>
+                    <summary>{t.rules.exceptionsHeading}</summary>
+                    <s-paragraph color="subdued">{t.rules.exceptions[0]}</s-paragraph>
+                  </details>
                   <s-grid
                     gridTemplateColumns="@container (inline-size > 280px) 1fr 1fr, 1fr"
+                    alignItems="end"
                     gap="small-200"
                   >
                     <SimulatorCountrySelect
+                      key={`delivery-${previewLocale}`}
                       label={copy.deliveryCountry}
                       value={deliveryCountry}
                       onChange={(value) => updateState({ deliveryCountry: value })}
                       copy={copy}
                     />
                     <SimulatorCountrySelect
+                      key={`billing-${previewLocale}`}
                       label={copy.billingCountry}
                       value={billingCountry}
                       onChange={(value) => updateState({ billingCountry: value })}
@@ -214,6 +216,7 @@ export function CheckoutSimulator({
                           <s-option value="en">{copy.english}</s-option>
                         </s-select>
                         <s-select
+                          key={`stage-${previewLocale}`}
                           label={copy.checkoutStep}
                           value={step}
                           onChange={(event) =>
@@ -292,6 +295,7 @@ export function CheckoutSimulator({
                 </div>
                 <div className="checkout-simulator__scenario">
                   <s-select
+                    key={`scenario-${previewLocale}`}
                     label={copy.scenarioLabel}
                     labelAccessibilityVisibility="exclusive"
                     placeholder={copy.scenarioPlaceholder}

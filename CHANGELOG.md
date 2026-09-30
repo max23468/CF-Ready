@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.14 — 30 settembre 2026
+
+- mantiene i due box del Piano, distinguendo stato e rinnovi dai servizi inclusi;
+- rende leggibili le regole nella Home anche a 320 px e compatta l'introduzione
+  dei Messaggi, le FAQ e le azioni di assistenza;
+- allinea i selettori del simulatore e aggiorna le etichette native quando cambia
+  la lingua dell'anteprima;
+- migliora spaziatura, riepilogo e scorrimento dei passaggi della configurazione,
+  chiarendo le etichette miste e i messaggi previsti nel checkout.
+
 ## 1.15.13 — 30 settembre 2026
 
 - ripristina il fondo grigio e la distinzione delle card native in tutta l'app;
