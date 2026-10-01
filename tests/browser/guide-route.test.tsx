@@ -83,16 +83,16 @@ describe("Guida", () => {
       [...view.container.querySelectorAll("s-button")].some((button) =>
         button.textContent?.includes(texts("it").support.heading),
       ),
-    ).toBe(true);
+    ).toBe(false);
     expect(view.container.querySelector("#support")).not.toBeNull();
     expect(
-      [...view.container.querySelectorAll("s-button")].some((button) =>
+      [...view.container.querySelectorAll("#support s-button")].some((button) =>
         button.textContent?.includes(texts("it").guide.diagnosis.heading),
       ),
     ).toBe(true);
     expect(texts("en").guide.groups.map((group) => group.entries.length)).toEqual([5, 5, 4]);
     expect(faqEntries.every((entry) => !entry.open)).toBe(true);
-    const buttons = [...view.container.querySelectorAll("s-button")].slice(2);
+    const buttons = [...view.container.querySelectorAll("#faq s-button")];
     expect(buttons[0].textContent).toBe(texts("it").guide.expandAll);
     for (const entry of faqEntries) entry.open = true;
     await dispatch(faqEntries.at(-1)!, new Event("toggle"));

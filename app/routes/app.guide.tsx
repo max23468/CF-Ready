@@ -151,22 +151,6 @@ export default function Guide() {
 
   return (
     <s-page heading={t.guide.heading}>
-      <s-stack direction="inline" gap="base">
-        <s-button
-          icon="search"
-          onClick={() =>
-            document.getElementById("validation-diagnosis")?.scrollIntoView({ block: "start" })
-          }
-        >
-          {t.guide.diagnosis.heading}
-        </s-button>
-        <s-button
-          icon="chat"
-          onClick={() => document.getElementById("support")?.scrollIntoView({ block: "start" })}
-        >
-          {t.support.heading}
-        </s-button>
-      </s-stack>
       {/* §15.7: pagina unica con sezioni espandibili. Polaris non ha un componente di
           divulgazione, quindi si usa `details`, che è l'elemento nativo della piattaforma:
           accessibile e utilizzabile da tastiera senza reimplementare nulla (§8.1). */}
@@ -208,6 +192,16 @@ export default function Guide() {
           <div id="support">
             <s-stack direction="block" gap="base">
               <s-paragraph>{t.support.body}</s-paragraph>
+              <s-button
+                icon="search"
+                onClick={() =>
+                  document
+                    .getElementById("validation-diagnosis")
+                    ?.scrollIntoView({ block: "start" })
+                }
+              >
+                {t.guide.diagnosis.heading}
+              </s-button>
               <s-select
                 label={t.support.chooseCategory}
                 value={supportCategory}

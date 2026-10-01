@@ -2,6 +2,10 @@
   white-space: nowrap;
 }
 
+.checkout-simulator__disclosure {
+  cursor: pointer;
+}
+
 .checkout-simulator__outcome {
   display: inline-flex;
   justify-self: end;
