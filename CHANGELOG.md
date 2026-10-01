@@ -13,7 +13,9 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 - mostra il cursore della mano sui dettagli espandibili del simulatore;
 - uniforma padding e spaziatura dei dettagli tecnici delle etichette e separa
   modalità, ultima rilettura e riepilogo operativo;
-- aggiunge spazio tra il titolo e il testo di “Quando si applicano”.
+- aggiunge spazio tra il titolo e il testo di “Quando si applicano”;
+- riallinea lo schema Function API 2026-07 alla deprecazione Shopify della valuta
+  `ANG`, senza modificare query, tipi generati o logica di validazione.
 
 ## 1.15.15 — 30 settembre 2026
 

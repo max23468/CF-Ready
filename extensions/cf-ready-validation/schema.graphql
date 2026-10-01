@@ -1936,7 +1936,7 @@ enum CurrencyCode {
   """
   Netherlands Antillean Guilder.
   """
-  ANG
+  ANG @deprecated(reason: "Use `XCG` instead.")
 
   """
   Angolan Kwanza (AOA).
