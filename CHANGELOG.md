@@ -6,6 +6,13 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.17 — 1 ottobre 2026
+
+- corregge la fixture degli screenshot delle etichette per mostrare la modalità
+  “Mista” e verifica il testo del badge su desktop e mobile;
+- vincola il valore della fixture al tipo del dominio per impedire modalità
+  inesistenti. Il comportamento dell'app resta invariato.
+
 ## 1.15.16 — 1 ottobre 2026
 
 - sposta il collegamento alla diagnosi nel box Assistenza della Guida e rimuove
