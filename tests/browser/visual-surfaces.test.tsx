@@ -9,6 +9,7 @@ import CustomerMessages from "../../app/routes/app.messages";
 import Onboarding from "../../app/routes/app.onboarding";
 import CheckoutRules from "../../app/routes/app.rules";
 import { DEFAULT_CONFIG } from "../../app/config";
+import type { CheckoutLabelsMode } from "../../app/checkout-labels/domain";
 import { CheckoutSimulator } from "../../app/features/rules/CheckoutSimulator";
 import "../../app/app.css";
 import "../../app/ui-motion.css";
@@ -283,7 +284,7 @@ test("Polaris reale: Regole con card bianche sul fondo grigio desktop e mobile",
       labelScopesGranted: true,
       labelState: {
         ...onboardingData.labelState,
-        mode: "mixed",
+        mode: "partial" satisfies CheckoutLabelsMode,
         lastSyncAt: "2026-10-01T06:00:00Z",
       },
       labelSnapshot: null,
@@ -304,6 +305,9 @@ test("Polaris reale: Regole con card bianche sul fondo grigio desktop e mobile",
     (technical.closest("details:not(.checkout-labels-technical)") as HTMLDetailsElement).open =
       true;
     technical.open = true;
+    expect(technical.querySelector("s-badge")?.textContent).toBe(
+      texts("it").rules.labels.modeValues.partial,
+    );
     const body = technical.querySelector<HTMLElement>(".checkout-labels-disclosure__body")!;
     expect(parseFloat(getComputedStyle(body).paddingInlineStart)).toBeGreaterThanOrEqual(16);
     expect(parseFloat(getComputedStyle(body).paddingBlockEnd)).toBeGreaterThanOrEqual(16);
