@@ -424,6 +424,11 @@ describe("Regole", () => {
     expect([...disclosures!].every((disclosure) => !disclosure.hasAttribute("open"))).toBe(true);
     expect(disclosures?.[0].textContent).toContain(texts("it").rules.labels.addressHeading);
     expect(disclosures?.[1].textContent).toContain(texts("it").rules.labels.nativeHeading);
+    const technicalBody = disclosures?.[1].querySelector(
+      ".checkout-labels-technical > .checkout-labels-disclosure__body",
+    );
+    expect(technicalBody).not.toBeNull();
+    expect(technicalBody?.querySelector('s-stack[direction="block"]')?.children).toHaveLength(3);
     expect(disclosures?.[1].querySelectorAll(".checkout-label-context__row").length).toBeLessThan(
       8,
     );

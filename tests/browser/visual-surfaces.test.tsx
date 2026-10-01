@@ -169,10 +169,11 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
   expect(getComputedStyle(summary).outlineStyle).toBe("solid");
   expect(getComputedStyle(summary).outlineWidth).toBe("2px");
   expect(view.container.querySelector("#support")).not.toBeNull();
-  await page.getByRole("button", { name: texts("it").support.heading, exact: true }).click();
   const support = view.container.querySelector<HTMLElement>("#support")!;
   expect(support.getBoundingClientRect().height).toBeGreaterThan(100);
-  await expect.poll(() => support.getBoundingClientRect().top).toBeLessThan(844);
+  expect(support.querySelector('s-button[icon="search"]')?.textContent).toBe(
+    texts("it").guide.diagnosis.heading,
+  );
   await page
     .getByRole("button", {
       name: texts("it").guide.diagnosis.heading,
@@ -279,8 +280,12 @@ test("Polaris reale: Regole con card bianche sul fondo grigio desktop e mobile",
       configurationHistory: [],
       enabled: true,
       entitled: true,
-      labelScopesGranted: false,
-      labelState: onboardingData.labelState,
+      labelScopesGranted: true,
+      labelState: {
+        ...onboardingData.labelState,
+        mode: "mixed",
+        lastSyncAt: "2026-10-01T06:00:00Z",
+      },
       labelSnapshot: null,
       guidedConfirmations: [],
       labelLoadError: null,
@@ -293,6 +298,26 @@ test("Polaris reale: Regole con card bianche sul fondo grigio desktop e mobile",
     expect(ruleCards).toHaveLength(2);
     expect(ruleCards[0].querySelector('s-choice-list[name="taxCode"]')).not.toBeNull();
     expect(ruleCards[1].querySelector('s-choice-list[name="pec"]')).not.toBeNull();
+    const technical = view.container.querySelector<HTMLDetailsElement>(
+      ".checkout-labels-technical",
+    )!;
+    (technical.closest("details:not(.checkout-labels-technical)") as HTMLDetailsElement).open =
+      true;
+    technical.open = true;
+    const body = technical.querySelector<HTMLElement>(".checkout-labels-disclosure__body")!;
+    expect(parseFloat(getComputedStyle(body).paddingInlineStart)).toBeGreaterThanOrEqual(16);
+    expect(parseFloat(getComputedStyle(body).paddingBlockEnd)).toBeGreaterThanOrEqual(16);
+    const rows = [...body.querySelector('s-stack[direction="block"]')!.children];
+    expect(rows).toHaveLength(3);
+    // Gli host Polaris usano display: contents; si misurano le superfici nello shadow DOM.
+    const rowRects = rows.map((row) =>
+      [...row.shadowRoot!.querySelectorAll("*")]
+        .map((element) => element.getBoundingClientRect())
+        .find((rectangle) => rectangle.height > 0)!,
+    );
+    for (let index = 1; index < rows.length; index++) {
+      expect(rowRects[index].top - rowRects[index - 1].bottom).toBeGreaterThanOrEqual(8);
+    }
     expect(view.container.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
     await captureSurface(
       view.container,
@@ -311,6 +336,11 @@ test("Polaris reale: simulatore stretto e focus tastiera leggibile", async () =>
       messages={DEFAULT_CONFIG.messages}
     />,
   );
+  const summaries = view.container.querySelectorAll("summary");
+  expect(summaries).toHaveLength(2);
+  for (const summary of summaries) {
+    expect(getComputedStyle(summary).cursor).toBe("pointer");
+  }
   const advanced = Array.from(view.container.querySelectorAll<HTMLDetailsElement>("details")).find(
     (details) => details.querySelector('s-select[label="Lingua dell’anteprima"]'),
   )!;
