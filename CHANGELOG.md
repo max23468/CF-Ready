@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.16 — 1 ottobre 2026
+
+- sposta il collegamento alla diagnosi nel box Assistenza della Guida e rimuove
+  il pulsante Assistenza ridondante;
+- mostra il cursore della mano sui dettagli espandibili del simulatore;
+- uniforma padding e spaziatura dei dettagli tecnici delle etichette e separa
+  modalità, ultima rilettura e riepilogo operativo;
+- aggiunge spazio tra il titolo e il testo di “Quando si applicano”;
+- riallinea lo schema Function API 2026-07 alla deprecazione Shopify della valuta
+  `ANG`, senza modificare query, tipi generati o logica di validazione.
+
 ## 1.15.15 — 30 settembre 2026
 
 - aggiunge il contenitore responsive nativo alla Home: regole su due colonne
