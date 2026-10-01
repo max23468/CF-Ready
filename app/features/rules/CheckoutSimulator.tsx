@@ -178,8 +178,12 @@ export function CheckoutSimulator({
                     <s-text type="strong">{copy.orderContext}</s-text>
                   </s-stack>
                   <details>
-                    <summary>{t.rules.exceptionsHeading}</summary>
-                    <s-paragraph color="subdued">{t.rules.exceptions[0]}</s-paragraph>
+                    <summary className="checkout-simulator__disclosure">
+                      {t.rules.exceptionsHeading}
+                    </summary>
+                    <s-box paddingBlockStart="small-100">
+                      <s-paragraph color="subdued">{t.rules.exceptions[0]}</s-paragraph>
+                    </s-box>
                   </details>
                   <s-grid
                     gridTemplateColumns="@container (inline-size > 280px) 1fr 1fr, 1fr"
@@ -202,7 +206,7 @@ export function CheckoutSimulator({
                     />
                   </s-grid>
                   <details>
-                    <summary>{copy.advanced}</summary>
+                    <summary className="checkout-simulator__disclosure">{copy.advanced}</summary>
                     <s-box paddingBlockStart="small-200">
                       <s-stack direction="block" gap="small-200">
                         <s-select
