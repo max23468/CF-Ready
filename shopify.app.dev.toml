@@ -11,7 +11,7 @@ scopes = "write_validations"
 optional_scopes = [ "write_translations", "read_locales", "read_markets" ]
 
 [webhooks]
-api_version = "2026-07"
+api_version = "2026-10"
 
   [[webhooks.subscriptions]]
   uri = "https://cf-ready-dev.tmsf.workers.dev/webhooks/app/uninstalled"

@@ -1,4 +1,4 @@
-# api_version: 2026-07
+# api_version: 2026-10
 
 schema {
   query: Input
@@ -319,7 +319,7 @@ Information about a delivery option that's available for an item in a cart. Deli
 ways that customers can choose to have their orders shipped. Examples include express shipping or standard
 shipping.
 """
-type CartDeliveryOption {
+type CartDeliveryOption implements HasMetafields {
   """
   A unique identifier that represents the delivery option offered to customers.
   For example, `Canada Post Expedited`.
@@ -351,6 +351,29 @@ type CartDeliveryOption {
   For example, `standard-shipping`.
   """
   handle: Handle!
+
+  """
+  A [custom field](https://shopify.dev/docs/apps/build/custom-data) that stores additional information
+  about a Shopify resource, such as products, orders, and
+  [many more](https://shopify.dev/docs/api/admin-graphql/latest/enums/MetafieldOwnerType).
+  Using [metafields with Shopify Functions](https://shopify.dev/docs/apps/build/functions/input-output/metafields-for-input-queries)
+  enables you to customize the checkout experience.
+  """
+  metafield(
+    """
+    The unique identifier for the metafield within its namespace. A metafield is composed of a
+    namespace and a key, in the format `namespace.key`.
+    """
+    key: String!
+
+    """
+    A category that organizes a group of metafields. Namespaces are used to prevent naming conflicts
+    between different apps or different parts of the same app. If omitted, then the
+    [app-reserved namespace](https://shopify.dev/docs/apps/build/custom-data/ownership)
+    is used.
+    """
+    namespace: String
+  ): Metafield
 
   """
   The name of the delivery option that displays to customers. The title is used to construct the delivery
@@ -2776,6 +2799,11 @@ type Customer implements HasMetafields {
   The amount is converted from the shop's currency to the currency of the cart using a market rate.
   """
   amountSpent: MoneyV2!
+
+  """
+  The date and time ([ISO 8601 format](http://en.wikipedia.org/wiki/ISO_8601)) at which the customer was created in Shopify.
+  """
+  createdAt: DateTime!
 
   """
   The full name of the customer, based on the values for `firstName` and `lastName`.

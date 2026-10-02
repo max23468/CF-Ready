@@ -6,6 +6,22 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.19 — 2 ottobre 2026
+
+- aggiorna Shopify React Router alla patch che limita le destinazioni dei
+  redirect di autenticazione e allinea la CLI locale e dei workflow alla 4.8.4;
+- aggiorna npm, Wrangler, plugin Cloudflare, Vite, strumenti Oxc, tipi Node e
+  dipendenze transitive; Vitest resta alla 4.1.11 e Polaris alla 1.1 stabile;
+- aggiorna gli override Sharp e Undici e porta la compatibility date Workers
+  al 2 ottobre 2026;
+- allinea Admin GraphQL, webhook e Validation Function alla versione stabile
+  Shopify `2026-10`, con schema e tipi rigenerati dalla CLI; la Partner API
+  resta sulla sua ultima versione disponibile `2026-07`;
+- fissa React Doctor in CI alla stessa versione usata localmente.
+- elimina il falso allarme del controllo schema Function quando Shopify
+  cambia soltanto descrizioni o annotazioni di deprecazione; i cambiamenti
+  effettivi al contratto continuano a bloccare il controllo.
+
 ## 1.15.18 — 1 ottobre 2026
 
 - mostra gli orari di etichette e Guida nel fuso dello store, con la
