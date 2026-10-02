@@ -6,6 +6,12 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.21 — 2 ottobre 2026
+
+- mostra il banner "Grazie per aver scelto CF Ready" solo dopo la conferma
+  Shopify, evitando che compaia per un istante durante la ricarica degli store
+  Development.
+
 ## 1.15.20 — 2 ottobre 2026
 
 - sposta l'esito del simulatore del checkout subito sopra "Continua", così resta
