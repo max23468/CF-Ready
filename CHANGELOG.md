@@ -42,7 +42,11 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 - al passo 3 mostra ogni messaggio in un blocco con il riquadro d'errore visto
   dal cliente (O2, O3) e toglie la frase tecnica sui permessi al passo 2 (O7);
 - allinea il riepilogo del passo 4 sull'etichetta più lunga, così in inglese le
-  voci non vanno a capo (EN2).
+  voci non vanno a capo (EN2);
+- il coordinatore di pubblicazione prende la versione di promozione e release
+  dal commit promosso, non dal `package.json` del worktree locale: la 1.15.18
+  era stata promossa e rilasciata come `v1.15.19` perché `develop` era già
+  avanzato.
 
 ## 1.15.19 — 2 ottobre 2026
 
@@ -61,6 +65,9 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   effettivi al contratto continuano a bloccare il controllo.
 
 ## 1.15.18 — 1 ottobre 2026
+
+Non rilasciata da sola: è entrata in Production con la 1.15.19 (release
+`v1.15.19`, promozione #611).
 
 - mostra gli orari di etichette e Guida nel fuso dello store, con la
   sigla del fuso; il fuso si salva in D1 alla riconciliazione (migrazione 0027,
