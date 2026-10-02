@@ -11,6 +11,7 @@ import CheckoutRules from "../../app/routes/app.rules";
 import { DEFAULT_CONFIG } from "../../app/config";
 import type { CheckoutLabelsMode } from "../../app/checkout-labels/domain";
 import { CheckoutSimulator } from "../../app/features/rules/CheckoutSimulator";
+import { RevealBanner } from "../../app/ui-feedback";
 import "../../app/app.css";
 import "../../app/ui-motion.css";
 
@@ -55,6 +56,20 @@ function expectNativeCards(container: HTMLElement) {
   }
 }
 
+// Gli host Polaris usano display: contents; si misurano le superfici nello shadow DOM.
+function surfaceRect(element: Element) {
+  const rectangles = [...(element.shadowRoot?.querySelectorAll("*") ?? [])]
+    .map((child) => child.getBoundingClientRect())
+    .filter((rectangle) => rectangle.width > 0 && rectangle.height > 0);
+  if (rectangles.length === 0) return element.getBoundingClientRect();
+  return {
+    left: Math.min(...rectangles.map((rectangle) => rectangle.left)),
+    right: Math.max(...rectangles.map((rectangle) => rectangle.right)),
+    top: Math.min(...rectangles.map((rectangle) => rectangle.top)),
+    bottom: Math.max(...rectangles.map((rectangle) => rectangle.bottom)),
+  };
+}
+
 async function captureSurface(element: HTMLElement, path: string) {
   const width = document.documentElement.clientWidth;
   const height = window.innerHeight;
@@ -73,7 +88,7 @@ test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", asy
     onboarding: "completed",
     complimentary: true,
     entitlement: { kind: "one_time", validThrough: null },
-    rules: { taxCode: "required_validated", pec: "optional_validated" },
+    rules: { taxCode: "required_validated", pec: "required_when_company" },
   };
   for (const width of [1280, 390, 320]) {
     await page.viewport(width, 844);
@@ -84,21 +99,27 @@ test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", asy
     router.loaderData = confirmedHome(data, confirmed);
     const view = await mount(<HomePage />);
     const status = view.container.querySelector<HTMLElement>('div[role="status"]')!;
-    const heading = view.container.querySelector<HTMLElement>("s-heading")!;
-    const pendingRect = heading.getBoundingClientRect();
+    // Il riepilogo sotto il badge non deve spostarsi quando lo stato si conferma.
+    const summary = view.container.querySelector<HTMLElement>("s-section s-paragraph")!;
+    const pendingRect = summary.getBoundingClientRect();
     expect(status.textContent).toContain(texts("it").home.verifying);
     await act(async () => resolve(data));
     await expect.poll(() => status.textContent).toContain(texts("it").home.badgeActive);
     expect(view.container.textContent).not.toContain(texts("it").home.verified);
     expect(view.container.querySelector(".home-verification")).toBeNull();
-    expect(heading.getBoundingClientRect().height).toBe(pendingRect.height);
-    expect(heading.getBoundingClientRect().top).toBe(pendingRect.top);
+    expect(summary.getBoundingClientRect().height).toBe(pendingRect.height);
+    expect(summary.getBoundingClientRect().top).toBe(pendingRect.top);
     expectNativeCards(view.container);
     const rulesGrid = view.container.querySelector("s-query-container > s-grid")!;
     const gridSurface = rulesGrid.shadowRoot!.querySelector<HTMLElement>(".grid")!;
     expect(getComputedStyle(gridSurface).gridTemplateColumns.split(" ")).toHaveLength(
       width === 320 ? 1 : 2,
     );
+    // T5: anche la PEC obbligatoria per aziende è un badge azzurro, senza troncamenti.
+    const pecBadge = [...view.container.querySelectorAll("s-badge")].find(
+      (badge) => badge.textContent === texts("it").home.pecRequiredForCompanies,
+    );
+    expect(pecBadge?.getAttribute("tone")).toBe("info");
     for (const badge of view.container.querySelectorAll("s-badge")) {
       for (const element of badge.shadowRoot!.querySelectorAll<HTMLElement>("*")) {
         if (element.textContent === badge.textContent && element.clientWidth > 0) {
@@ -153,7 +174,9 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
   expect(asideCards[0].getAttribute("heading")).toBe(texts("it").support.heading);
   const summary = view.container.querySelector<HTMLElement>(".guide-faq__entry summary")!;
   expect(getComputedStyle(summary.querySelector(".guide-faq__question")!).fontWeight).toBe("600");
-  expect(getComputedStyle(summary).listStyleType).toBe("disclosure-closed");
+  // Freccia condivisa al posto del triangolo nativo del browser.
+  expect(getComputedStyle(summary).listStyleType).toBe("none");
+  expect(getComputedStyle(summary, "::after").content).toBe('""');
   await captureSurface(
     view.container,
     `__screenshots__/visual/guide-top-${server.browser}-390.png`,
@@ -278,7 +301,6 @@ test("Polaris reale: Regole con card bianche sul fondo grigio desktop e mobile",
       configHash: "fixture",
       rules: DEFAULT_CONFIG.rules,
       messages: DEFAULT_CONFIG.messages,
-      configurationHistory: [],
       enabled: true,
       entitled: true,
       labelScopesGranted: true,
@@ -299,29 +321,28 @@ test("Polaris reale: Regole con card bianche sul fondo grigio desktop e mobile",
     expect(ruleCards).toHaveLength(2);
     expect(ruleCards[0].querySelector('s-choice-list[name="taxCode"]')).not.toBeNull();
     expect(ruleCards[1].querySelector('s-choice-list[name="pec"]')).not.toBeNull();
-    const technical = view.container.querySelector<HTMLDetailsElement>(
-      ".checkout-labels-technical",
-    )!;
-    (technical.closest("details:not(.checkout-labels-technical)") as HTMLDetailsElement).open =
-      true;
-    technical.open = true;
-    expect(technical.querySelector("s-badge")?.textContent).toBe(
-      texts("it").rules.labels.modeValues.partial,
-    );
-    const body = technical.querySelector<HTMLElement>(".checkout-labels-disclosure__body")!;
-    expect(parseFloat(getComputedStyle(body).paddingInlineStart)).toBeGreaterThanOrEqual(16);
-    expect(parseFloat(getComputedStyle(body).paddingBlockEnd)).toBeGreaterThanOrEqual(16);
-    const rows = [...body.querySelector('s-stack[direction="block"]')!.children];
+    // R-B6: modalità, ultima lettura e conteggi sono righe nel pannello, non un pannello annidato.
+    const technical = view.container.querySelector<HTMLElement>(".checkout-labels-technical")!;
+    (technical.closest("details") as HTMLDetailsElement).open = true;
+    expect(technical.closest("details")?.parentElement?.closest("details")).toBeNull();
+    expect(technical.textContent).toContain(texts("it").rules.labels.modeValues.partial);
+    const rows = [...technical.querySelectorAll("s-stack s-stack > s-text")];
     expect(rows).toHaveLength(3);
-    // Gli host Polaris usano display: contents; si misurano le superfici nello shadow DOM.
-    const rowRects = rows.map((row) =>
-      [...row.shadowRoot!.querySelectorAll("*")]
-        .map((element) => element.getBoundingClientRect())
-        .find((rectangle) => rectangle.height > 0)!,
-    );
+    const rowRects = rows.map(surfaceRect);
     for (let index = 1; index < rows.length; index++) {
-      expect(rowRects[index].top - rowRects[index - 1].bottom).toBeGreaterThanOrEqual(8);
+      expect(rowRects[index].top - rowRects[index - 1].bottom).toBeGreaterThanOrEqual(4);
     }
+    // R-B9: le card delle regole e "Etichette del checkout" hanno lo stesso spazio sopra il primo campo.
+    const firstFieldOffset = (section: Element, field: Element) =>
+      surfaceRect(field).top - surfaceRect(section).top;
+    const labelsSection = view.container.querySelector(".rules-layout__labels s-section")!;
+    const ruleOffset = firstFieldOffset(ruleCards[0], ruleCards[0].querySelector("s-choice-list")!);
+    expect(firstFieldOffset(ruleCards[1], ruleCards[1].querySelector("s-choice-list")!)).toBe(
+      ruleOffset,
+    );
+    expect(firstFieldOffset(labelsSection, labelsSection.querySelector("s-select")!)).toBe(
+      ruleOffset,
+    );
     expect(view.container.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
     await captureSurface(
       view.container,
@@ -329,6 +350,21 @@ test("Polaris reale: Regole con card bianche sul fondo grigio desktop e mobile",
     );
     await view.unmount();
   }
+});
+
+test("Polaris reale: il banner di esito resta separato dalle card che seguono", async () => {
+  await page.viewport(1280, 844);
+  const view = await mount(
+    <s-page heading="Regole">
+      <RevealBanner tone="warning">{texts("it").rules.labelsSaved}</RevealBanner>
+      <s-section heading="Card">
+        <s-paragraph>Contenuto</s-paragraph>
+      </s-section>
+    </s-page>,
+  );
+  const banner = surfaceRect(view.container.querySelector("s-banner")!);
+  const card = surfaceRect(view.container.querySelector("s-section")!);
+  expect(card.top - banner.bottom).toBeGreaterThanOrEqual(16);
 });
 
 test("Polaris reale: simulatore stretto e focus tastiera leggibile", async () => {
@@ -358,7 +394,7 @@ test("Polaris reale: simulatore stretto e focus tastiera leggibile", async () =>
       })
       .selectOptions("en");
   });
-  expect(view.container.textContent).toContain(texts("en").rules.simulator.privatePreview);
+  expect(view.container.textContent).toContain(texts("en").rules.simulator.heading);
   for (const [label, expected] of [
     [texts("en").rules.simulator.deliveryCountry, "Italy"],
     [texts("en").rules.simulator.billingCountry, "Italy"],
@@ -369,6 +405,25 @@ test("Polaris reale: simulatore stretto e focus tastiera leggibile", async () =>
       .shadowRoot!.querySelector("select")!;
     expect(select.selectedOptions[0].text).toBe(expected);
   }
+  // R-B1: la riga scenario e "Continua" hanno gli stessi bordi dei campi sopra.
+  const simulator = texts("en").rules.simulator;
+  const delivery = surfaceRect(
+    view.container.querySelector(`s-select[label="${simulator.deliveryCountry}"]`)!,
+  );
+  const billing = surfaceRect(
+    view.container.querySelector(`s-select[label="${simulator.billingCountry}"]`)!,
+  );
+  const scenario = surfaceRect(
+    view.container.querySelector(".checkout-simulator__scenario s-select")!,
+  );
+  expect(scenario.left).toBe(delivery.left);
+  expect(
+    surfaceRect(view.container.querySelector(".checkout-simulator__button--primary")!).right,
+  ).toBe(billing.right);
+  // R-B3: il badge di stato si allinea al titolo, non al logo.
+  expect(
+    surfaceRect(view.container.querySelector(".checkout-simulator__outcome s-badge")!).left,
+  ).toBe(surfaceRect(view.container.querySelector("s-query-container s-heading")!).left);
   const button = view.container.querySelector<HTMLElement>(".checkout-simulator__button--primary")!;
   button.focus();
   await userEvent.keyboard("{ArrowDown}");
@@ -429,9 +484,19 @@ test("Polaris reale: cambio passo ripristina focus e scorrimento mobile", async 
     `__screenshots__/visual/onboarding-step3-${server.browser}-1280.png`,
   );
   await page.viewport(390, 844);
+  // Da tastiera Chrome mostrerebbe il contorno sul contenitore che riceve il focus.
+  (
+    page
+      .getByRole("button", { name: texts("it").onboarding.next, exact: true })
+      .element() as HTMLElement
+  ).focus();
   await act(async () => {
-    await page.getByRole("button", { name: texts("it").onboarding.next, exact: true }).click();
+    await userEvent.keyboard("{Enter}");
   });
+  const step4 = view.container.querySelector<HTMLElement>(".onboarding-step")!;
+  expect(step4.textContent).toContain(texts("it").onboarding.step4Heading);
+  expect(document.activeElement).toBe(step4);
+  expect(getComputedStyle(step4).outlineStyle).toBe("none");
   await captureSurface(
     view.container,
     `__screenshots__/visual/onboarding-step4-${server.browser}-390.png`,

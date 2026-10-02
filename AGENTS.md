@@ -77,7 +77,7 @@ richiedono prove fresche: un exit code `0` non dimostra lo stato live.
 Dichiara i controlli non eseguiti.
 
 Se tocchi Function, versione API, query o CLI Shopify, riconferma il contratto
-Function API `2026-07` sulle fonti Shopify correnti e rigenera con la CLI.
+Function API `2026-10` sulle fonti Shopify correnti e rigenera con la CLI.
 
 ## Git e ambienti
 

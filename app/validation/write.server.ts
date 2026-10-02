@@ -7,7 +7,7 @@ import {
 } from "../billing/commercial-entitlement.server";
 import { CONFIG_SCHEMA_VERSION, DEFAULT_CONFIG, readConfig } from "../config";
 import type { CheckoutConfig, Entitlement } from "../config";
-import { configurationSnapshot, recordConfigurationHistory } from "../configuration-history.server";
+import { configurationSnapshot, recordLatestConfiguration } from "../configuration-history.server";
 import { configHash, observedConfigHash } from "./domain";
 import {
   acquireValidationLock,
@@ -177,6 +177,7 @@ export async function writeValidationUnderLock(
       await persistValidationState(db, shopDomain, {
         displayName: data.shop.name,
         countryCode,
+        ianaTimezone: data.shop.ianaTimezone,
         validation: existing,
         errorCode,
       });
@@ -194,15 +195,15 @@ export async function writeValidationUnderLock(
     await persistValidationState(db, shopDomain, {
       displayName: data.shop.name,
       countryCode,
+      ianaTimezone: data.shop.ianaTimezone,
       validation: readback,
       errorCode: consistent ? null : "validation_readback_failed",
     });
     if (!consistent) return { ok: false, errorCode: "validation_readback_failed" };
     if (next) {
-      await recordConfigurationHistory(db, shopDomain, [
-        configurationSnapshot(existingConfig),
-        configurationSnapshot(config),
-      ]).catch(() => undefined);
+      await recordLatestConfiguration(db, shopDomain, configurationSnapshot(config)).catch(
+        () => undefined,
+      );
     }
     if (declared !== undefined && declared !== null) {
       await saveAddress2Declaration(db, shopDomain, declared);

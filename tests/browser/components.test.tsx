@@ -6,6 +6,8 @@ import { performanceReporterScript } from "../../app/performance-report";
 import { CustomerMessagesPreview } from "../../app/features/messages/CustomerMessagesPreview";
 import { UncontrolledMessageTextArea } from "../../app/features/messages/UncontrolledMessageTextArea";
 import { CheckoutSimulator } from "../../app/features/rules/CheckoutSimulator";
+import { AutomaticLabelsConfirmModal } from "../../app/features/rules/AutomaticLabelsConfirmModal";
+import type { CheckoutLabelSlot } from "../../app/checkout-labels/domain";
 import { dispatch, render, type Rendered } from "./render";
 
 const mounted: Rendered[] = [];
@@ -38,8 +40,23 @@ describe("componenti merchant nel browser", () => {
         expect(typeof formatter).toBe("function");
         expect((formatter as (...values: unknown[]) => string)(...args).trim()).not.toBe("");
       }
-      expect(messages.rules.history.changed(["Codice fiscale", "PEC"])).toContain("PEC");
     }
+  });
+
+  test("la conferma della gestione automatica cita le etichette tra virgolette (T7)", async () => {
+    const slot = { name: "pec", family: "en" } as CheckoutLabelSlot;
+    const view = await render(
+      <AutomaticLabelsConfirmModal
+        id="confirm"
+        locale="it"
+        writes={[{ slot, proposed: "PEC (optional)" }]}
+        onConfirm={() => undefined}
+      />,
+    );
+    expect(view.container.querySelector("s-list-item")?.textContent).toBe(
+      "PEC · Inglese: «PEC (optional)»",
+    );
+    await view.unmount();
   });
 
   test("l'anteprima dichiara la lingua cliente senza simulare un alert reale", async () => {
@@ -110,7 +127,7 @@ describe("componenti merchant nel browser", () => {
 
     (language as HTMLElement & { value: string }).value = "en";
     await dispatch(language, new Event("change", { bubbles: true }));
-    expect(view.container.textContent).toContain("Interactive preview");
+    expect(view.container.textContent).toContain(en.rules.simulator.heading);
     (language as HTMLElement & { value: string }).value = "it";
     await dispatch(language, new Event("change", { bubbles: true }));
 
@@ -143,7 +160,9 @@ describe("componenti merchant nel browser", () => {
     (delivery as HTMLElement & { value: string }).value = "DE";
     await dispatch(delivery, new Event("change", { bubbles: true }));
     await dispatch(
-      view.container.querySelector("button.checkout-simulator__button--clear")!,
+      [...view.container.querySelectorAll("s-button")].find(
+        (button) => button.textContent === it.rules.simulator.clear,
+      )!,
       new MouseEvent("click", { bubbles: true }),
     );
     expect((delivery as HTMLElement & { value: string }).value).toBe("DE");

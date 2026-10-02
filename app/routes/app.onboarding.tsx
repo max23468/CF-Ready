@@ -32,7 +32,7 @@ import {
   planComparisonLocationState,
   requestPlanComparisonFromFrame,
 } from "../features/home/plan-comparison";
-import { describeCheckout, texts } from "../i18n";
+import { describeCheckout, quoteLabel, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { action, loader } from "../features/onboarding/onboarding.server";
 import "./app.onboarding.css";
@@ -308,14 +308,18 @@ function OnboardingIntroduction({ t }: { t: OnboardingCopy }) {
       <s-box maxInlineSize="150px">
         <s-image src="/cf-ready-lockup.svg" alt="CF Ready" aspectRatio="16/3" objectFit="contain" />
       </s-box>
-      <s-heading>{t.onboarding.welcomeHeading}</s-heading>
-      <s-paragraph>{t.onboarding.welcomeBody}</s-paragraph>
+      <s-stack direction="block" gap="small-100">
+        <s-heading>{t.onboarding.welcomeHeading}</s-heading>
+        <s-paragraph>{t.onboarding.welcomeBody}</s-paragraph>
+      </s-stack>
       <s-divider />
-      <s-heading>{t.onboarding.step1Heading}</s-heading>
-      <OnboardingListBlock
-        lead={<s-paragraph>{t.onboarding.step1Body}</s-paragraph>}
-        items={t.onboarding.step1Limits}
-      />
+      <s-stack direction="block" gap="small-100">
+        <s-heading>{t.onboarding.step1Heading}</s-heading>
+        <OnboardingListBlock
+          lead={<s-paragraph>{t.onboarding.step1Body}</s-paragraph>}
+          items={t.onboarding.step1Limits}
+        />
+      </s-stack>
     </>
   );
 }
@@ -324,8 +328,10 @@ function OnboardingRules(props: CurrentStepProps) {
   const { saved, t } = props;
   return (
     <>
-      <s-heading>{t.onboarding.step2Heading}</s-heading>
-      <s-paragraph>{t.onboarding.step2Body}</s-paragraph>
+      <s-stack direction="block" gap="small-100">
+        <s-heading>{t.onboarding.step2Heading}</s-heading>
+        <s-paragraph>{t.onboarding.step2Body}</s-paragraph>
+      </s-stack>
       <s-choice-list label={t.rules.taxCodeLabel} name="taxCode">
         {TAX_CODE_RULE_MODES.map((mode) => (
           <s-choice key={mode} value={mode} selected={mode === saved.rules.taxCode}>
@@ -363,15 +369,18 @@ function OnboardingRules(props: CurrentStepProps) {
       <s-box background="subdued" borderRadius="base" padding="base">
         <s-stack direction="block" gap="small-100">
           <s-heading>{t.onboarding.labelsPreviewHeading}</s-heading>
-          {(["it", "en"] as const).map((locale) => (
-            <s-text key={locale}>
-              {locale.toUpperCase()} ·{" "}
-              {checkoutLabelCopy("taxCode", locale, props.draftRules.taxCode) ??
-                t.rules.labels.unchanged}
-              {" · "}
-              {checkoutLabelCopy("pec", locale, props.draftRules.pec) ?? t.rules.labels.unchanged}
-            </s-text>
-          ))}
+          {(["it", "en"] as const).map((locale) => {
+            const label = (copy: string | null) =>
+              copy === null ? t.rules.labels.unchanged : quoteLabel(copy, props.saved.locale);
+            return (
+              <s-text key={locale}>
+                {locale.toUpperCase()} ·{" "}
+                {label(checkoutLabelCopy("taxCode", locale, props.draftRules.taxCode))}
+                {" · "}
+                {label(checkoutLabelCopy("pec", locale, props.draftRules.pec))}
+              </s-text>
+            );
+          })}
         </s-stack>
       </s-box>
       <OnboardingLabelControls {...props} />
@@ -410,8 +419,10 @@ function OnboardingLabelControls(props: CurrentStepProps) {
 function OnboardingPreview({ saved, t }: { saved: OnboardingData; t: OnboardingCopy }) {
   return (
     <>
-      <s-heading>{t.onboarding.step3Heading}</s-heading>
-      <s-paragraph>{t.onboarding.step3Body}</s-paragraph>
+      <s-stack direction="block" gap="small-100">
+        <s-heading>{t.onboarding.step3Heading}</s-heading>
+        <s-paragraph>{t.onboarding.step3Body}</s-paragraph>
+      </s-stack>
       {describeCheckout({ rules: saved.rules, status: "active" }, saved.locale).map((line) => (
         <s-paragraph key={line}>{line}</s-paragraph>
       ))}
@@ -419,14 +430,16 @@ function OnboardingPreview({ saved, t }: { saved: OnboardingData; t: OnboardingC
         lead={<s-heading>{t.rules.exceptionsHeading}</s-heading>}
         items={t.rules.exceptions}
       />
-      <s-heading>{t.onboarding.step3Messages}</s-heading>
-      <s-paragraph>{t.onboarding.step3MessagesBody}</s-paragraph>
+      <s-stack direction="block" gap="small-100">
+        <s-heading>{t.onboarding.step3Messages}</s-heading>
+        <s-paragraph>{t.onboarding.step3MessagesBody}</s-paragraph>
+      </s-stack>
       <s-stack direction="block" gap="small-200">
         {MESSAGE_KEYS.map((key) => (
           <s-stack key={key} direction="block" gap="small-100">
             <s-stack direction="inline" gap="small-100">
               <s-text type="strong">{t.messages[key]}</s-text>
-              <s-badge>
+              <s-badge tone={messageAppears(saved.rules, key) ? "success" : "neutral"}>
                 {messageAppears(saved.rules, key) ? t.messages.appears : t.messages.appearsNot}
               </s-badge>
             </s-stack>

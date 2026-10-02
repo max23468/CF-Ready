@@ -3,7 +3,8 @@ import type { Locale } from "./types";
 
 const moneyFormatters = new Map<Locale, Intl.NumberFormat>();
 const dateFormatters = new Map<Locale, Intl.DateTimeFormat>();
-const dateTimeFormatters = new Map<Locale, Intl.DateTimeFormat>();
+const dateTimeFormatters = new Map<string, Intl.DateTimeFormat>();
+const zoneNameFormatters = new Map<string, Intl.DateTimeFormat>();
 
 export function formatMoney(amount: number, locale: Locale) {
   let formatter = moneyFormatters.get(locale);
@@ -26,15 +27,26 @@ export function formatDate(iso: string | null, locale: Locale) {
   return formatter.format(new Date(`${iso}T00:00:00Z`));
 }
 
-export function formatDateTime(iso: string, locale: Locale) {
-  let formatter = dateTimeFormatters.get(locale);
+// Gli orari si mostrano nel fuso dello store con la sua sigla; senza fuso noto restano in UTC.
+export function formatDateTime(iso: string, locale: Locale, timeZone?: string | null) {
+  const zone = timeZone || "UTC";
+  const key = `${locale}|${zone}`;
+  let formatter = dateTimeFormatters.get(key);
   if (!formatter) {
     formatter = new Intl.DateTimeFormat(locale === "it" ? "it-IT" : "en-GB", {
       dateStyle: "medium",
       timeStyle: "short",
-      timeZone: "UTC",
+      timeZone: zone,
     });
-    dateTimeFormatters.set(locale, formatter);
+    dateTimeFormatters.set(key, formatter);
   }
-  return `${formatter.format(new Date(iso))} UTC`;
+  let zoneFormatter = zoneNameFormatters.get(zone);
+  if (!zoneFormatter) {
+    zoneFormatter = new Intl.DateTimeFormat("en-GB", { timeZone: zone, timeZoneName: "short" });
+    zoneNameFormatters.set(zone, zoneFormatter);
+  }
+  const zoneName = zoneFormatter
+    .formatToParts(new Date(iso))
+    .find((part) => part.type === "timeZoneName")?.value;
+  return `${formatter.format(new Date(iso))} ${zone === "UTC" ? "UTC" : zoneName}`;
 }

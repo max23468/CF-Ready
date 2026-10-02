@@ -8,6 +8,7 @@ import {
   checkoutLabelName,
   checkoutLabelValuesMatch,
   observedLabelForSlot,
+  proposedLabelForSlot,
   checkoutLabelsMode,
   checkoutLabelsSetupDone,
   checkoutLabelsStatus,
@@ -35,7 +36,10 @@ import {
   saveCheckoutLabelWrite,
   stopCheckoutLabelManagement,
 } from "../app/checkout-labels/repository.server";
-import { saveRulesAndCheckoutLabels } from "../app/checkout-labels/service.server";
+import {
+  loadCheckoutLabels,
+  saveRulesAndCheckoutLabels,
+} from "../app/checkout-labels/service.server";
 
 const shop = "checkout-labels.example.myshopify.com";
 const resourceId = "gid://shopify/OnlineStoreThemeLocaleContent/test-resource";
@@ -871,6 +875,46 @@ test("D1 conserva una conferma guidata se cambia solo la maiuscola", async () =>
     guidedConfirmedValue: null,
     guidedConfirmedAt: null,
   });
+});
+
+test("D1 ripristina la conferma guidata quando la regola torna a quella confermata", async () => {
+  const initialRules = { taxCode: "unmanaged", pec: "optional_validated" } as const;
+  const changedRules = { taxCode: "unmanaged", pec: "required_when_company" } as const;
+  const english = slot({
+    name: "pec",
+    key: CHECKOUT_LABEL_KEYS.pec,
+    locale: "en",
+    family: "en",
+    kind: "global_translation",
+    capability: "guided",
+    sourceValue: "PEC",
+  });
+  english.currentValue = proposedLabelForSlot(english, initialRules);
+  const snapshot = {
+    revision: "r1",
+    locales: [{ locale: "en", family: "en", name: "English", primary: false, published: true }],
+    markets: [],
+    slots: [english],
+    issues: [],
+    address2: { classification: "expected", hasMarketOverride: false },
+  } as never;
+  const read = (rules: typeof initialRules | typeof changedRules) =>
+    loadCheckoutLabels({ graphql: vi.fn() } as never, env.DB, shop, rules, {
+      ok: true,
+      snapshot,
+    });
+  await enableCheckoutLabels(env.DB, shop, "partial");
+  await read(initialRules);
+  await confirmGuidedCheckoutLabelSlots(env.DB, shop, [english]);
+
+  const confirmed = await read(initialRules);
+  expect(confirmed.available && confirmed.guidedConfirmations).toHaveLength(1);
+  const changed = await read(changedRules);
+  expect(changed.available && changed.guidedConfirmations).toEqual([]);
+  const restored = await read(initialRules);
+  expect(restored.available && restored.guidedConfirmations).toEqual(
+    confirmed.available ? confirmed.guidedConfirmations : null,
+  );
 });
 
 test("la prima scrittura automatica richiede il secondo consenso sotto la stessa lease", async () => {

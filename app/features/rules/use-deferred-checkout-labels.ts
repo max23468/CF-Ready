@@ -21,24 +21,30 @@ const loadRequest = (rules: SavedLabels["rules"]) => ({
   pec: rules.pec,
 });
 
-export function useDeferredCheckoutLabels(saved: SavedLabels) {
+export function useDeferredCheckoutLabels(saved: SavedLabels, reloadAfter: object | null = null) {
   const fetcher = useFetcher<CheckoutLabelsLoadAction>();
   const loadedFor = useRef<SavedLabels | null>(null);
+  const reloadedAfter = useRef<object | null>(null);
 
   const load = (rules: SavedLabels["rules"]) =>
     fetcher.submit(loadRequest(rules), { method: "post" });
 
   // Le etichette Shopify non bloccano il primo render: si rileggono dopo ogni caricamento del
-  // loader, così revisione e stato restano allineati anche dopo un salvataggio.
+  // loader, così revisione e stato restano allineati anche dopo un salvataggio. `reloadAfter`
+  // forza una nuova lettura, per esempio dopo un conflitto di revisione al salvataggio.
   useEffect(() => {
     if (saved.duplicateError || saved.labelScopesGranted !== null) return;
-    if (loadedFor.current === saved) return;
+    if (loadedFor.current === saved && (!reloadAfter || reloadedAfter.current === reloadAfter)) {
+      return;
+    }
     loadedFor.current = saved;
+    reloadedAfter.current = reloadAfter;
     fetcher.submit(loadRequest(saved.rules), { method: "post" });
-  }, [fetcher, saved]);
+  }, [fetcher, saved, reloadAfter]);
 
+  // Durante una rilettura resta visibile l'ultimo esito: i pannelli aperti non si richiudono.
   const loading = fetcher.state !== "idle";
-  const loaded: Partial<Loaded> = (!loading && fetcher.data?.ok && fetcher.data.loaded) || {};
+  const loaded: Partial<Loaded> = (fetcher.data?.ok && fetcher.data.loaded) || {};
   return {
     loading,
     load,

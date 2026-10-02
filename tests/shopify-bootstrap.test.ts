@@ -44,7 +44,7 @@ vi.mock("../app/session-storage.server", () => ({
 }));
 
 vi.mock("@shopify/shopify-app-react-router/server", () => ({
-  ApiVersion: { July26: "2026-07" },
+  ApiVersion: { October26: "2026-10" },
   AppDistribution: { AppStore: "app-store" },
   shopifyApp: mocks.shopifyApp,
 }));
@@ -73,7 +73,7 @@ test("il bootstrap Shopify usa fallback locali", async () => {
   expect(state.shopifyOptions[0]).toMatchObject({
     apiKey: undefined,
     apiSecretKey: "",
-    apiVersion: "2026-07",
+    apiVersion: "2026-10",
     scopes: undefined,
     appUrl: "",
     authPathPrefix: "/auth",

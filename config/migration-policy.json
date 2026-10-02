@@ -145,6 +145,11 @@
         "ordinary cancellation intent evidence",
         "billing operational incident lifecycle"
       ]
+    },
+    {
+      "name": "0027_shop_timezone.sql",
+      "sha256": "f7fc0c84a858cdd1301f3343a11273fc523dcb5f2dbeadda5f10c2a5a26f5e82",
+      "protects": ["store time zone for merchant-facing times"]
     }
   ]
 }

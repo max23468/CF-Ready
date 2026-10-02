@@ -8,7 +8,10 @@ provider senza introdurre una seconda corsia di deploy.
 `security-maintenance.yml` esegue:
 
 - ogni giorno: confronto dello schema Function API restituito da Shopify con
-  `schema.graphql`, così una deriva emerge prima di una pubblicazione (D-162);
+  `schema.graphql`, così una deriva emerge prima di una pubblicazione (D-162).
+  Il confronto ignora formattazione, ordinamento equivalente, descrizioni e
+  annotazioni `@deprecated`; cambiamenti a campi, tipi, valori enum, default e
+  altre direttive continuano a far fallire il controllo;
 - ogni mese: audit npm senza eccezioni, firme del registry, documenti,
   ruleset GitHub pubblici, alert Dependabot/CodeQL/Secret Scanning e ultimo
   esito di ogni workflow attivo;

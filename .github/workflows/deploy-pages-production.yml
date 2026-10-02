@@ -107,7 +107,7 @@ jobs:
         run: npx playwright install --with-deps chromium webkit
 
       - if: steps.preflight.outputs.deploy_required == 'true'
-        run: npm install --global --allow-scripts=esbuild @shopify/cli@4.8.0
+        run: npm install --global --allow-scripts=esbuild @shopify/cli@4.8.4
 
       - if: steps.preflight.outputs.deploy_required == 'true'
         run: npm run check
