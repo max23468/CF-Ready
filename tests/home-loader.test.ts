@@ -121,6 +121,7 @@ test("la Home risponde con lo stato D1 senza attendere la riconciliazione Shopif
     entitlement: { kind: "subscription", validThrough: "2999-01-01" },
     onboarding: "in_progress",
     creditEstimate: null,
+    showMerchantCheckIn: false,
     reviewDue: false,
   });
   expect(result.data.confirmed).toBeInstanceOf(Promise);
@@ -175,6 +176,41 @@ test("la conferma Shopify sostituisce lo stato salvato", async () => {
     onboarding: "in_progress",
   });
 });
+
+test.each([
+  { partnerDevelopment: true, showMerchantCheckIn: false },
+  { partnerDevelopment: false, showMerchantCheckIn: true },
+])(
+  "il check-in attende Shopify e rispetta lo store Development: $partnerDevelopment",
+  async ({ partnerDevelopment, showMerchantCheckIn }) => {
+    const reconciliation = deferred<unknown>();
+    mocks.reconcile.mockReturnValue(reconciliation.promise);
+
+    const { result } = await loadHome();
+    expect(result.data.home.showMerchantCheckIn).toBe(false);
+
+    reconciliation.resolve({
+      shopName: "Negozio confermato",
+      countryCode: "IT",
+      partnerDevelopment,
+      today: "2026-10-02",
+      validation: { metafield: { jsonValue: DEFAULT_CONFIG } },
+      validationEnabled: true,
+      trial: null,
+      account: await mocks.readBillingAccount(),
+      complimentary: null,
+      entitlement: { kind: "subscription", validThrough: "2999-01-01" },
+      creditEstimate: null,
+      conversionCredit: null,
+      errorCode: null,
+    });
+
+    await expect(result.data.confirmed).resolves.toMatchObject({
+      verified: true,
+      showMerchantCheckIn,
+    });
+  },
+);
 
 test("senza configurazione salvata la Home parte dai valori predefiniti", async () => {
   mocks.readStoredShopSnapshot.mockResolvedValue({
