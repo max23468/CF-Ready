@@ -250,6 +250,78 @@ describe("componenti merchant nel browser", () => {
     expect(fields[1].getAttribute("error")).toBe(DEFAULT_CONFIG.messages.it.pecRequired);
   });
 
+  test("il simulatore spiega i campi obbligatori nascosti solo al completamento italiano", async () => {
+    for (const locale of ["it", "en"] as const) {
+      const copy = (locale === "it" ? it : en).rules.simulator;
+      const view = await render(
+        <CheckoutSimulator
+          locale={locale}
+          rules={{ taxCode: "required_validated", pec: "required_when_company" }}
+          messages={DEFAULT_CONFIG.messages}
+        />,
+      );
+      mounted.push(view);
+      const change = async (selector: string, value: string | boolean) => {
+        const field = view.container.querySelector(selector) as HTMLElement & {
+          value: string;
+          checked: boolean;
+        };
+        if (typeof value === "boolean") field.checked = value;
+        else field.value = value;
+        await dispatch(field, new Event("change", { bubbles: true }));
+      };
+      await change(`s-checkbox[label="${copy.taxCodePresent}"]`, false);
+      await change(`s-checkbox[label="${copy.pecPresent}"]`, false);
+      const company = view.container.querySelector("s-text-field") as HTMLElement & {
+        value: string;
+      };
+      company.value = "Acme";
+      await dispatch(company, new Event("input", { bubbles: true }));
+      expect(view.container.querySelector(".checkout-simulator__missing-fields")).toBeNull();
+      await change(`s-select[label="${copy.checkoutStep}"]`, "CHECKOUT_COMPLETION");
+      const errors = view.container.querySelector(".checkout-simulator__missing-fields")!;
+      expect(errors).not.toBeNull();
+      expect(errors.textContent?.toLowerCase()).toContain(
+        locale === "it" ? "codice fiscale" : "italian tax code",
+      );
+      expect(errors.textContent).toContain("PEC");
+      expect(errors.textContent).toContain(copy.advanced);
+      await change(`s-select[label="${copy.billingCountry}"]`, "FR");
+      expect(view.container.querySelector(".checkout-simulator__missing-fields")).toBeNull();
+      await change(`s-select[label="${copy.billingCountry}"]`, "IT");
+      await change(`s-select[label="${copy.deliveryCountry}"]`, "unknown");
+      expect(view.container.querySelector(".checkout-simulator__missing-fields")).toBeNull();
+      await view.unmount();
+      mounted.pop();
+    }
+  });
+
+  test("il simulatore toglie l'obbligatorietà ai campi nei casi esclusi", async () => {
+    const view = await render(
+      <CheckoutSimulator
+        locale="it"
+        rules={{ taxCode: "required_validated", pec: "required_when_company" }}
+        messages={DEFAULT_CONFIG.messages}
+      />,
+    );
+    mounted.push(view);
+    const fields = [...view.container.querySelectorAll("s-text-field")] as Array<
+      HTMLElement & { value: string }
+    >;
+    fields[0].value = "Acme";
+    await dispatch(fields[0], new Event("input", { bubbles: true }));
+    expect(fields.slice(1).every((field) => field.hasAttribute("required"))).toBe(true);
+    const billing = view.container.querySelector(
+      's-select[label="Paese di fatturazione"]',
+    ) as HTMLElement & { value: string };
+    billing.value = "FR";
+    await dispatch(billing, new Event("change", { bubbles: true }));
+    expect(fields.slice(1).every((field) => !field.hasAttribute("required"))).toBe(true);
+    billing.value = "IT";
+    await dispatch(billing, new Event("change", { bubbles: true }));
+    expect(fields.slice(1).every((field) => field.hasAttribute("required"))).toBe(true);
+  });
+
   test("lo script inline si registra subito e invia via beacon soltanto campi tecnici", async () => {
     const onReport = vi.fn(async () => undefined);
     const beacon = vi.spyOn(navigator, "sendBeacon").mockReturnValue(true);

@@ -199,7 +199,7 @@ export const it = {
       "Puoi concedere ora i permessi per confrontare le etichette con Shopify oppure continuare senza attivarli.",
     step3Heading: "Anteprima delle regole",
     labelsMixedDescription:
-      "Alcune etichette sono gestite automaticamente; altre richiedono una verifica manuale.",
+      "La modalità Mista supporta aggiornamenti automatici e verifiche manuali. “Regole checkout” mostra eventuali verifiche ancora da completare.",
     step3Body: "Con le regole che hai scelto:",
     step3Messages: "Messaggi configurati",
     step3MessagesBody:
@@ -502,6 +502,10 @@ export const it = {
       mixedDelivery: "Aggiungi una consegna estera",
       taxCodePresent: "Shopify mostra il campo Codice Fiscale",
       pecPresent: "Shopify mostra il campo PEC",
+      missingRequiredField: (label: string) =>
+        `Il campo “${label}” è obbligatorio, ma Shopify non lo mostra in questo scenario. Con una consegna italiana, l’ordine viene bloccato al completamento.`,
+      showMissingFields:
+        "Per provare la compilazione, apri “Opzioni avanzate” e seleziona “Shopify mostra il campo” per il campo mancante.",
       scenarioLabel: "Prova uno scenario",
       scenarioHelp: "Scegli uno scenario: il simulatore compila i campi e mostra il risultato.",
       scenarioPlaceholder: "Scegli uno scenario",
