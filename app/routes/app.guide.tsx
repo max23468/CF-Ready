@@ -164,7 +164,7 @@ export default function Guide() {
           accessibile e utilizzabile da tastiera senza reimplementare nulla (§8.1). */}
       {/* G-B5: titoli `s-heading` nativi, domande senza grassetto. `s-section` non accetta
           azioni accanto al titolo: il titolo sta nel contenuto, con "Espandi tutte" a destra. */}
-      <s-section id="faq" accessibilityLabel={t.guide.faqHeading}>
+      <s-section id="faq">
         <s-stack direction="block" gap="base">
           <s-grid gridTemplateColumns="minmax(0, 1fr) auto" alignItems="center" gap="base">
             <s-heading>{t.guide.faqHeading}</s-heading>
@@ -273,16 +273,14 @@ export default function Guide() {
   );
 }
 
-// G-B2: porta in vista l'intera sezione, titolo compreso, e le passa il focus. La sezione
-// resta figlia diretta di `s-page`, che ne gestisce gli spazi; l'host Polaris è
-// `display: contents`, quindi si fa scorrere il suo primo box reale.
+// Il titolo ha un box reale: centrarlo mantiene visibile il punto di arrivo anche sotto
+// l'intestazione fissa dell'Admin, senza dipendere dallo shadow DOM di Polaris.
 function showDiagnosis() {
   const target = document.getElementById("validation-diagnosis");
   if (!target) return;
-  const section = target.closest("s-section");
-  const box = section?.shadowRoot?.firstElementChild ?? section ?? target;
+  const heading = target.querySelector(".guide-diagnosis__heading");
   const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  box.scrollIntoView?.({ block: "start", behavior: reduced ? "auto" : "smooth" });
+  heading?.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" });
   target.focus({ preventScroll: true });
 }
 
@@ -300,9 +298,12 @@ function ValidationDiagnosis({
   const checkCopy = t.guide.diagnosis;
   const errorCode = diagnosisErrorCode(check, checkResult, diagnostics.errorCode);
   return (
-    <s-section heading={checkCopy.heading}>
+    <s-section>
       <div id="validation-diagnosis" className="guide-diagnosis" tabIndex={-1}>
         <s-stack direction="block" gap="base">
+          <div className="guide-diagnosis__heading">
+            <s-heading>{checkCopy.heading}</s-heading>
+          </div>
           <s-paragraph>{checkCopy.body}</s-paragraph>
           <s-button
             disabled={checkFetcher.state !== "idle"}
