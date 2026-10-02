@@ -6,6 +6,44 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.20 — 2 ottobre 2026
+
+- sposta l'esito del simulatore del checkout subito sopra "Continua", così resta
+  in vista mentre si compilano i campi (audit UI/UX R-S1);
+- con dati da correggere, "Continua" nel simulatore porta in vista il primo
+  campo in errore e gli dà il focus, invece di spostare il bottone sotto il
+  puntatore (R-S2);
+- in Messaggi al cliente dà un titolo alla card dei campi, spiega che
+  l'anteprima segue il messaggio in modifica e su desktop affianca i campi di
+  Codice Fiscale e PEC in due colonne vicino all'anteprima (M1, M2);
+- avvisa nell'anteprima quando, con le regole attuali, il messaggio non compare
+  nel checkout e toglie il badge di lingua ripetuto (M3, M6);
+- mostra sempre il contatore dei caratteri, così il focus non sposta i campi
+  (M4);
+- raggruppa per campo la card laterale e sostituisce "Previsto" / "Non
+  previsto" con "Può comparire" / "Non compare", anche nell'onboarding (M7);
+- scrive la lingua in minuscolo nella conferma di ripristino ("in inglese")
+  (M8);
+- nella Guida la diagnostica mostra esiti in linguaggio comune con icone di
+  stato e link blu, senza valori interni né il termine "Validation" (G-B1);
+- "Il controllo non compare?" porta in vista la diagnosi con il suo titolo e le
+  passa il focus; "Riproduci il caso nel simulatore" apre Regole sul simulatore
+  (G-B2, G-B4);
+- alleggerisce le FAQ: titolo nativo della card, domande senza grassetto e
+  sfondo di hover entro le linee divisorie (G-B5, G-B7);
+- con piano omaggio la FAQ su prova e pagamenti non parla di prova e prezzi
+  (G-B8);
+- riordina la card Assistenza: spiegazione, argomento, invio e copia, con
+  bottoni della stessa larghezza e il salto alla diagnosi in fondo (G-B9,
+  G-N1); "Espandi tutte" passa a destra del titolo delle FAQ;
+- nell'onboarding usa la larghezza ridotta di Polaris, aggiunge una barra di
+  avanzamento e mette un'icona piccola accanto al titolo di benvenuto (O1, O4,
+  O5);
+- al passo 3 mostra ogni messaggio in un blocco con il riquadro d'errore visto
+  dal cliente (O2, O3) e toglie la frase tecnica sui permessi al passo 2 (O7);
+- allinea il riepilogo del passo 4 sull'etichetta più lunga, così in inglese le
+  voci non vanno a capo (EN2).
+
 ## 1.15.19 — 2 ottobre 2026
 
 - aggiorna Shopify React Router alla patch che limita le destinazioni dei

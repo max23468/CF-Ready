@@ -34,6 +34,16 @@ describe("Regole", () => {
     expect(router.fetcher.submit).toHaveBeenCalledTimes(2);
   });
 
+  test("dalla Guida porta in vista il simulatore e gli dà il focus", async () => {
+    router.loaderData = rulesData;
+    router.location = { pathname: "/app/rules", hash: "#simulatore", state: null };
+    const view = await mount(<CheckoutRules />);
+    // G-B4: "Riproduci il caso nel simulatore" arriva qui con l'ancora.
+    const simulator = view.container.querySelector<HTMLElement>("#simulatore")!;
+    expect(simulator.querySelector("s-query-container")).not.toBeNull();
+    expect(document.activeElement).toBe(simulator);
+  });
+
   test("mostra la modalità Azienda soltanto per la PEC", async () => {
     router.loaderData = rulesData;
     const view = await mount(<CheckoutRules />);
