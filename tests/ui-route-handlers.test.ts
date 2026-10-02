@@ -20,8 +20,6 @@ const mocks = vi.hoisted(() => ({
   queryContext: vi.fn(),
   loadCheckoutLabels: vi.fn(),
   prefetchCheckoutLabels: vi.fn(),
-  readConfigurationHistory: vi.fn(),
-  readConfigurationHistoryEntry: vi.fn(),
   readAddress2Declaration: vi.fn(),
   readCheckoutLabelState: vi.fn(),
   readOnboarding: vi.fn(),
@@ -48,11 +46,6 @@ vi.mock("../app/billing.server", async (importOriginal) => ({
   startTrial: mocks.startTrial,
 }));
 vi.mock("../app/events.server", () => ({ recordEvent: mocks.recordEvent }));
-vi.mock("../app/configuration-history.server", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../app/configuration-history.server")>()),
-  readConfigurationHistory: mocks.readConfigurationHistory,
-  readConfigurationHistoryEntry: mocks.readConfigurationHistoryEntry,
-}));
 vi.mock("../app/shop-profile.server", () => ({
   persistShopDisplayName: mocks.persistShopDisplayName,
 }));
@@ -156,8 +149,6 @@ beforeEach(() => {
     ok: true,
     snapshot: { revision: "labels-r1", slots: [] },
   });
-  mocks.readConfigurationHistory.mockResolvedValue([]);
-  mocks.readConfigurationHistoryEntry.mockResolvedValue(null);
   mocks.restoreAddress2Translations.mockResolvedValue({ ok: true });
   mocks.saveRulesAndCheckoutLabels.mockResolvedValue({ ok: true, labelsErrorCode: null });
   mocks.readOnboarding.mockResolvedValue({ status: "in_progress", step: 2 });
@@ -170,174 +161,6 @@ beforeEach(() => {
   });
   mocks.startTrial.mockResolvedValue({ status: "active" });
   mocks.writeValidation.mockResolvedValue({ ok: true, enabled: true });
-});
-
-test("Regole ripristina uno snapshot tramite hash e scrittura Validation correnti", async () => {
-  mocks.readConfigurationHistoryEntry.mockResolvedValue({
-    id: 7,
-    createdAt: "2026-09-01T10:00:00.000Z",
-    rules: { taxCode: "optional_validated", pec: "unmanaged" },
-    messages: DEFAULT_CONFIG.messages,
-  });
-
-  expect(
-    await rulesRoute.action(
-      args(
-        post("/app/rules", {
-          intent: "restore_configuration",
-          historyId: "7",
-          configHash: "hash-corrente",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: true, enabled: true });
-  expect(mocks.writeValidation).toHaveBeenCalledWith(
-    admin,
-    db,
-    session.shop,
-    {
-      rules: { taxCode: "optional_validated", pec: "unmanaged" },
-      messages: DEFAULT_CONFIG.messages,
-    },
-    null,
-    "hash-corrente",
-  );
-});
-
-test("Regole valida l'identità dello snapshot da ripristinare", async () => {
-  expect(
-    await rulesRoute.action(
-      args(
-        post("/app/rules", {
-          intent: "restore_configuration",
-          historyId: "0",
-          configHash: "hash-corrente",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: false, errorCode: "generic" });
-  expect(mocks.readConfigurationHistoryEntry).not.toHaveBeenCalled();
-
-  expect(
-    await rulesRoute.action(
-      args(
-        post("/app/rules", {
-          intent: "restore_configuration",
-          historyId: "11",
-          configHash: "hash-corrente",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: false, errorCode: "config_conflict" });
-});
-
-test("Regole segnala che il ripristino non può aggiornare etichette senza scope", async () => {
-  mocks.readCheckoutLabelState.mockResolvedValue({ mode: "automatic" });
-  mocks.readConfigurationHistoryEntry.mockResolvedValue({
-    id: 9,
-    createdAt: "2026-09-01T08:00:00.000Z",
-    rules: DEFAULT_CONFIG.rules,
-    messages: DEFAULT_CONFIG.messages,
-  });
-
-  expect(
-    await rulesRoute.action(
-      args(
-        post("/app/rules", {
-          intent: "restore_configuration",
-          historyId: "9",
-          configHash: "hash-corrente",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: true, labelsErrorCode: "checkout_labels_scope_required" });
-});
-
-test("Regole ripristina la Validation anche quando la lettura scope fallisce", async () => {
-  mocks.scopeQuery.mockRejectedValue(new Error("scope non disponibile"));
-  mocks.readConfigurationHistoryEntry.mockResolvedValue({
-    id: 10,
-    createdAt: "2026-09-01T07:00:00.000Z",
-    rules: DEFAULT_CONFIG.rules,
-    messages: DEFAULT_CONFIG.messages,
-  });
-
-  expect(
-    await rulesRoute.action(
-      args(
-        post("/app/rules", {
-          intent: "restore_configuration",
-          historyId: "10",
-          configHash: "hash-corrente",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: true, enabled: true });
-  expect(mocks.writeValidation).toHaveBeenCalledOnce();
-});
-
-test("Regole ripristina messaggi e regole coordinando le etichette gia gestite", async () => {
-  mocks.scopeQuery.mockResolvedValue({
-    granted: ["write_translations", "read_locales", "read_markets"],
-  });
-  mocks.readCheckoutLabelState.mockResolvedValue({ mode: "automatic" });
-  mocks.readConfigurationHistoryEntry.mockResolvedValue({
-    id: 8,
-    createdAt: "2026-09-01T09:00:00.000Z",
-    rules: { taxCode: "required_validated", pec: "optional_validated" },
-    messages: DEFAULT_CONFIG.messages,
-  });
-
-  expect(
-    await rulesRoute.action(
-      args(
-        post("/app/rules", {
-          intent: "restore_configuration",
-          historyId: "8",
-          configHash: "hash-corrente",
-          labelsRevision: "labels-r1",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: true, labelsErrorCode: null });
-  expect(mocks.saveRulesAndCheckoutLabels).toHaveBeenCalledWith(admin, db, session.shop, {
-    rules: { taxCode: "required_validated", pec: "optional_validated" },
-    messages: DEFAULT_CONFIG.messages,
-    expectedConfigHash: "hash-corrente",
-    labelsEnabled: true,
-    confirmAutomaticWrite: true,
-    expectedLabelsRevision: "labels-r1",
-  });
-  expect(mocks.writeValidation).not.toHaveBeenCalled();
-});
-
-test("Regole accetta il ripristino etichette senza una revisione precedente", async () => {
-  mocks.scopeQuery.mockResolvedValue({
-    granted: ["write_translations", "read_locales", "read_markets"],
-  });
-  mocks.readConfigurationHistoryEntry.mockResolvedValue({
-    id: 12,
-    createdAt: "2026-09-01T06:00:00.000Z",
-    rules: DEFAULT_CONFIG.rules,
-    messages: DEFAULT_CONFIG.messages,
-  });
-
-  await rulesRoute.action(
-    args(
-      post("/app/rules", {
-        intent: "restore_configuration",
-        historyId: "12",
-        configHash: "hash-corrente",
-        labelsRevision: "",
-      }),
-    ),
-  );
-  expect(mocks.saveRulesAndCheckoutLabels).toHaveBeenCalledWith(
-    admin,
-    db,
-    session.shop,
-    expect.objectContaining({ expectedLabelsRevision: null }),
-  );
 });
 
 test("Guida carica diagnostica e accetta solo ricevute di copia valide", async () => {
@@ -726,7 +549,7 @@ test("Regole espone duplicati e accesso osservati", async () => {
   const serverTiming = new Headers(initial.init?.headers).get("Server-Timing");
   expect(serverTiming).not.toMatch(/shopify_scopes;dur=/);
   expect(serverTiming).toMatch(/d1_validation_state;dur=/);
-  expect(serverTiming).toMatch(/d1_configuration_history;dur=/);
+  expect(serverTiming).not.toMatch(/d1_configuration_history/);
   expect(mocks.scopeQuery).not.toHaveBeenCalled();
   expect(mocks.loadCheckoutLabels).not.toHaveBeenCalled();
 
@@ -767,7 +590,6 @@ test("Regole avvia le letture indipendenti mentre riconcilia Shopify", async () 
   const loading = rulesRoute.loader(args(new Request("https://example.test/app/rules?locale=it")));
   await vi.waitFor(() => {
     expect(mocks.readCheckoutLabelState).toHaveBeenCalledOnce();
-    expect(mocks.readConfigurationHistory).toHaveBeenCalledOnce();
   });
   expect(mocks.scopeQuery).not.toHaveBeenCalled();
   expect(mocks.loadCheckoutLabels).not.toHaveBeenCalled();

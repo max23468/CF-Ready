@@ -1,5 +1,5 @@
 import type { CheckoutLabelSlot } from "../../checkout-labels/domain";
-import { texts, type Locale } from "../../i18n";
+import { quoteLabel, texts, type Locale } from "../../i18n";
 
 export function AutomaticLabelsConfirmModal({
   id,
@@ -26,7 +26,7 @@ export function AutomaticLabelsConfirmModal({
           {writes.map(({ slot, proposed }) => (
             <s-list-item key={`${slot.name}:${slot.family}`}>
               {slot.name === "taxCode" ? t.rules.taxCodeLabel : t.rules.pecLabel} ·{" "}
-              {slot.family === "it" ? copy.italian : copy.english}: {proposed}
+              {slot.family === "it" ? copy.italian : copy.english}: {quoteLabel(proposed, locale)}
             </s-list-item>
           ))}
         </s-unordered-list>

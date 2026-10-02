@@ -142,7 +142,7 @@ describe("Home merchant", () => {
   test("copre primo avvio, errore e azioni principali", async () => {
     router.loaderData = confirmedHome(homeData);
     const view = await mount(<HomePage />);
-    expect(view.container.textContent).toContain(texts("it").home.titleNotStarted);
+    expect(view.container.textContent).toContain(texts("it").home.badgeNotStarted);
     const startTrial = [...view.container.querySelectorAll("s-button")].find((button) =>
       button.textContent?.includes(texts("it").plan.startTrial),
     );
@@ -180,7 +180,7 @@ describe("Home merchant", () => {
       checkoutLabels: { ...homeData.checkoutLabels, status: "action_required" },
     });
     const view = await mount(<HomePage />);
-    expect(view.container.textContent).toContain(texts("it").home.titleActive);
+    expect(view.container.textContent).toContain(texts("it").home.badgeActive);
     expect(view.container.textContent).not.toContain(
       "Le etichette del checkout o il campo “Interno” richiedono un controllo.",
     );
@@ -316,11 +316,16 @@ describe("Home merchant", () => {
       button.textContent?.includes(texts("it").home.activate),
     );
     if (!activate) throw new Error("attivazione Home assente");
+    // Da disattivata, con diritto attivo, riattivare è l'azione principale.
+    expect(activate.getAttribute("variant")).toBe("primary");
     await click(activate);
     expect(router.fetcher.submit).toHaveBeenCalledWith(
       { intent: "enable", source: "status" },
       { method: "post" },
     );
+    router.fetcher.data = { ok: true, enabled: true };
+    await view.rerender(<HomePage />);
+    expect(shopify.toast.show).toHaveBeenCalledWith(texts("it").home.activated);
 
     const pending = new FormData();
     pending.set("intent", "enable");

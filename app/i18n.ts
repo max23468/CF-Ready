@@ -33,6 +33,11 @@ export function texts(locale: Locale) {
   return dictionaries[locale];
 }
 
+// Le etichette reali del checkout Shopify si citano tra virgolette, per distinguerle dai testi
+// dell'app (per esempio «Codice fiscale» accanto a Codice Fiscale).
+export const quoteLabel = (value: string, locale: Locale) =>
+  locale === "it" ? `«${value}»` : `“${value}”`;
+
 // Il riepilogo di §15.4 e lo stato della Home dicono la stessa cosa e devono dirla con le stesse
 // parole: una frase per conseguenza, mai un elenco di stati. Il simulatore aggiunge soltanto una
 // prova locale e interattiva delle stesse regole (D-068).

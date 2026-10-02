@@ -62,6 +62,19 @@ describe("Onboarding", () => {
     vi.stubGlobal("FormData", originalFormData);
   });
 
+  test("cita tra virgolette le etichette proposte (T7)", async () => {
+    router.loaderData = {
+      ...onboardingData,
+      step: 2,
+      rules: { taxCode: "required_validated", pec: "required_when_company" },
+    };
+    const view = await mount(<Onboarding />);
+    const taxCode = checkoutLabelCopy("taxCode", "it", "required_validated")!;
+    const pec = checkoutLabelCopy("pec", "en", "required_when_company")!;
+    expect(view.container.textContent).toContain(`IT · «${taxCode}»`);
+    expect(view.container.textContent).toContain(`· «${pec}»`);
+  });
+
   test("mostra l'errore se Shopify non completa la richiesta dei permessi", async () => {
     router.loaderData = { ...onboardingData, step: 2, labelScopesGranted: false };
     vi.mocked(shopify.scopes.request).mockRejectedValueOnce(new Error("scope_request_failed"));
@@ -307,7 +320,7 @@ describe("Onboarding", () => {
     router.loaderData = { ...onboardingData, step: 3 };
     await view.rerender(<Onboarding key="step-3" />);
     expect(view.container.textContent).toContain(texts("it").onboarding.step3Heading);
-    expect(view.container.textContent).not.toContain("Checkout di prova");
+    expect(view.container.textContent).not.toContain(texts("it").rules.simulator.heading);
 
     router.loaderData = {
       ...onboardingData,

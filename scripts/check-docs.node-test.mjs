@@ -688,13 +688,13 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   const tsconfig = JSON.parse(readFileSync(new URL("../tsconfig.json", import.meta.url), "utf8"));
   const npmrc = readFileSync(new URL("../.npmrc", import.meta.url), "utf8");
   const mise = readFileSync(new URL("../mise.toml", import.meta.url), "utf8");
-  assert.equal(packageJson.packageManager, "npm@12.1.0");
+  assert.equal(packageJson.packageManager, "npm@12.2.0");
   assert.equal(packageJson.engines.node, ">=26.10.0 <27");
   assert.equal(packageJson.devDependencies.typescript, "7.0.2");
   assert.equal(packageJson.devDependencies["@typescript/typescript6"], undefined);
   assert.equal(packageJson.allowScripts["fsevents@2.3.2"], false);
   assert.equal(
-    packageJson.packageExtensions["@shopify/shopify-app-react-router@3.0.0"].peerDependencies[
+    packageJson.packageExtensions["@shopify/shopify-app-react-router@3.0.1"].peerDependencies[
       "react-router"
     ],
     "8.4.0",
@@ -709,7 +709,7 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   assert.equal(tsconfig.compilerOptions.stableTypeOrdering, undefined);
   assert.match(npmrc, /^strict-allow-scripts=true$/m);
   assert.match(mise, /^node = "26\.10\.0"$/m);
-  assert.match(mise, /^npm = "12\.1\.0"$/m);
+  assert.match(mise, /^npm = "12\.2\.0"$/m);
 
   const setupAction = readFileSync(
     new URL("../.github/actions/setup-node-npm/action.yml", import.meta.url),
@@ -717,7 +717,7 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   );
   assert.match(setupAction, /node-version:\s*26\.10\.0/);
   assert.match(setupAction, /cache:\s*npm/);
-  assert.match(setupAction, /npm install --global npm@12\.1\.0/);
+  assert.match(setupAction, /npm install --global npm@12\.2\.0/);
 
   for (const path of [
     "ci.yml",
@@ -735,7 +735,9 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
       path,
     );
     if (/shopify app|npm run check/.test(workflow)) {
-      assert.doesNotMatch(workflow, /@shopify\/cli@(?!4\.8\.0)/, path);
+      for (const [, version] of workflow.matchAll(/@shopify\/cli@([^\s]+)/g)) {
+        assert.equal(version, packageJson.devDependencies["@shopify/cli"], path);
+      }
     }
     if (path !== "ci.yml" && /npm run check/.test(workflow)) {
       const browserInstall = workflow.indexOf("playwright install --with-deps chromium webkit");
@@ -743,6 +745,15 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
       assert(browserInstall < workflow.indexOf("npm run check"), path);
     }
   }
+
+  const doctorWorkflow = readFileSync(
+    new URL("../.github/workflows/react-doctor.yml", import.meta.url),
+    "utf8",
+  );
+  assert.equal(
+    doctorWorkflow.match(/\n\s+version:\s*(\S+)/)?.[1],
+    packageJson.devDependencies["react-doctor"],
+  );
 
   for (const path of ["deploy-development.yml", "deploy-production.yml"]) {
     const workflow = readFileSync(new URL(`../.github/workflows/${path}`, import.meta.url), "utf8");
@@ -781,7 +792,7 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /wrangler pages deploy "\$RUNNER_TEMP\/pages-site"/);
   assert.match(workflow, /--branch main/);
   assert.match(workflow, /--commit-hash "\$GITHUB_SHA"/);
-  const shopifyCliInstall = "npm install --global --allow-scripts=esbuild @shopify/cli@4.8.0";
+  const shopifyCliInstall = "npm install --global --allow-scripts=esbuild @shopify/cli@4.8.4";
   assert.match(workflow, new RegExp(shopifyCliInstall.replaceAll(".", "\\.")));
   assert(workflow.indexOf(shopifyCliInstall) < workflow.indexOf("npm run check"));
   assert.match(workflow, /canonical_deployment\.deployment_trigger\.metadata\.commit_hash/);

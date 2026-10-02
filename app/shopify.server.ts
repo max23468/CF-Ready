@@ -21,7 +21,7 @@ const d1SessionStorage = new D1SessionStorage(bindings.DB, bindings.SESSION_ENCR
 const shopify = shopifyApp({
   apiKey: bindings.SHOPIFY_API_KEY,
   apiSecretKey: bindings.SHOPIFY_API_SECRET || "",
-  apiVersion: ApiVersion.July26,
+  apiVersion: ApiVersion.October26,
   scopes: bindings.SCOPES?.split(","),
   appUrl: bindings.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
@@ -71,7 +71,7 @@ export async function refreshOfflineSession(shop: string, refreshToken: string) 
   refreshApi ??= shopifyApi({
     apiKey: bindings.SHOPIFY_API_KEY,
     apiSecretKey: bindings.SHOPIFY_API_SECRET || "",
-    apiVersion: ApiVersion.July26,
+    apiVersion: ApiVersion.October26,
     scopes: bindings.SCOPES?.split(","),
     hostName: new URL(bindings.SHOPIFY_APP_URL || "").host,
     isEmbeddedApp: true,

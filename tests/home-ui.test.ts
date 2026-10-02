@@ -14,6 +14,7 @@ import {
   requestPlanComparisonFromFrame,
 } from "../app/features/home/plan-comparison";
 import { DeactivateModal } from "../app/features/home/HomeSections";
+import { homeNextStep } from "../app/features/home/home-next-step";
 import { PlanStatus } from "../app/features/home/PlanStatus";
 import { onboardingStep4State } from "../app/features/onboarding/step4-state";
 import { openBillingApproval } from "../app/revalidation";
@@ -242,6 +243,23 @@ test("il prossimo passo usa un testo generico sui prossimi ordini", () => {
   expect(it).not.toMatch(/autentici|prova|fake|lingua/i);
   expect(en).toMatch(/next orders/i);
   expect(en).not.toMatch(/authentic|genuine|test|fake|language/i);
+});
+
+test("il prossimo passo collega la pagina giusta", () => {
+  const t = texts("it");
+  const configured = { taxCode: "required_validated", pec: "unmanaged" } as const;
+  const unmanaged = { taxCode: "unmanaged", pec: "unmanaged" } as const;
+
+  expect(homeNextStep({ rules: configured, validationEnabled: true }, "entitled", t)).toEqual({
+    text: t.home.nextTestOrder,
+    href: "shopify://admin/orders",
+    label: t.home.openOrders,
+  });
+  expect(homeNextStep({ rules: unmanaged, validationEnabled: false }, "entitled", t)).toEqual({
+    text: t.home.nextConfigure,
+    href: "/app/rules",
+    label: t.nav.rules,
+  });
 });
 
 test("l'approvazione billing si apre fuori dall'iframe", () => {
@@ -751,7 +769,6 @@ test("i testi iniziali non presuppongono una configurazione precedente", () => {
   const en = texts("en");
   const initialItalian = [
     it.home.badgeNotStarted,
-    it.home.titleNotStarted,
     it.setup.welcome,
     it.setup.planBody,
     it.onboarding.welcomeBody,
@@ -762,7 +779,6 @@ test("i testi iniziali non presuppongono una configurazione precedente", () => {
   ].join(" ");
   const initialEnglish = [
     en.home.badgeNotStarted,
-    en.home.titleNotStarted,
     en.setup.welcome,
     en.setup.planBody,
     en.onboarding.welcomeBody,

@@ -90,7 +90,7 @@ function Address2Summary({
   const hidden = formMode === "hidden";
   return (
     <summary className="checkout-labels-disclosure__summary">
-      <s-stack direction="inline" gap="small-200" alignItems="center">
+      <div className="checkout-labels-title">
         <s-heading>{copy.addressHeading}</s-heading>
         <s-badge tone={hidden ? "neutral" : formMode ? addressTone(classification) : "warning"}>
           {hidden
@@ -99,7 +99,7 @@ function Address2Summary({
               ? copy.addressStatus[classification]
               : copy.statusManualRequired}
         </s-badge>
-      </s-stack>
+      </div>
       <s-paragraph color="subdued">
         {hidden
           ? copy.addressHiddenSummary

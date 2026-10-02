@@ -93,6 +93,7 @@ beforeEach(() => {
       request: vi.fn().mockResolvedValue({ result: "granted-all" }),
     },
     saveBar: { hide: vi.fn(), show: vi.fn() },
+    toast: { show: vi.fn() },
   });
 });
 

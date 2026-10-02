@@ -75,9 +75,7 @@ export const it = {
     badgeActive: "Attiva",
     badgeInactive: "Disattivata",
     badgeNotStarted: "Non ancora attiva",
-    titleActive: "Validazione attiva nel checkout",
-    titleDisabled: "Validazione disattivata",
-    titleNotStarted: "Controllo non ancora attivo",
+    validationHeading: "Validazione nel checkout",
     titleLapsed: "Validazione attiva, piano non attivo",
     noEntitlement:
       "Senza un piano attivo le regole non valgono nel checkout. Regole e messaggi restano salvati e tornano validi con il pagamento.",
@@ -92,9 +90,13 @@ export const it = {
     messagesLabel: "Messaggi al cliente",
     messagesDefault: "Predefiniti",
     messagesCustom: "Personalizzati",
+    pecRequiredForCompanies: "Obbligatoria per aziende",
     editRules: "Modifica regole",
     activate: "Attiva nel checkout",
     deactivate: "Disattiva nel checkout",
+    activated: "Validazione attivata nel checkout.",
+    deactivated: "Validazione disattivata.",
+    openOrders: "Apri gli ordini",
     deactivateConfirm:
       "Da questo momento il checkout smette di controllare i campi. Regole e messaggi restano salvati e puoi riattivarli quando vuoi.",
     nextConfigure: "Scegli quali campi controllare nel checkout.",
@@ -116,7 +118,7 @@ export const it = {
     heading: "Messaggi al cliente",
     saved: "Messaggi salvati.",
     italian: "Italiano",
-    english: "English",
+    english: "Inglese",
     taxCodeRequired: "Codice Fiscale obbligatorio",
     taxCodeInvalid: "Codice Fiscale non valido",
     pecRequired: "PEC obbligatoria",
@@ -219,7 +221,7 @@ export const it = {
     privacyNote:
       "Il messaggio contiene dominio dello store, versione, lingua e stato tecnico dell’app: di solito basta questo per capire il problema.",
     subject: "Assistenza CF Ready",
-    chooseCategory: "Scegli l’argomento:",
+    chooseCategory: "Scegli l’argomento",
     requestSupport: "Richiedi assistenza",
     categories: {
       checkout: "Checkout e regole",
@@ -268,7 +270,7 @@ export const it = {
       notChecked:
         "Diagnostica non ancora eseguita in questa sessione. Questo non indica che il controllo sia disattivato.",
       openPlan: "Verifica il piano",
-      lastSync: "Ultima sincronizzazione memorizzata",
+      lastSync: "Ultima verifica di regole e attivazione",
       unknown: "Non disponibile",
       manualHeading: "Da verificare nel checkout",
       manualBody:
@@ -326,7 +328,7 @@ export const it = {
           },
           {
             q: "Come completo la verifica manuale delle etichette?",
-            a: "In “Regole checkout”, scegli la lingua e apri il caso che richiede attenzione. Segui i passaggi mostrati per controllare il checkout reale e, se necessario, modificare i testi nell’editor Shopify. Dopo aver salvato in Shopify, torna in CF Ready e premi “Rileggi i campi da Shopify”. Quando i valori coincidono, conferma la verifica manuale. “Ultima rilettura riuscita da Shopify” indica quando CF Ready ha riletto i campi; “Ultima conferma manuale nel checkout” indica quando hai confermato il controllo nel checkout reale.",
+            a: "In “Regole checkout”, scegli la lingua e apri il caso che richiede attenzione. Segui i passaggi mostrati per controllare il checkout reale e, se necessario, modificare i testi nell’editor Shopify. Dopo aver salvato in Shopify, torna in CF Ready e premi “Rileggi i campi da Shopify”. Quando i valori coincidono, conferma la verifica manuale. “Ultima lettura delle etichette da Shopify” indica quando CF Ready ha riletto i campi; “Ultima conferma manuale nel checkout” indica quando hai confermato il controllo nel checkout reale.",
           },
           {
             q: "Perché Codice Fiscale o PEC hanno ancora un’etichetta diversa?",
@@ -425,6 +427,9 @@ export const it = {
     heading: "Regole checkout",
     saved: "Regole salvate.",
     labelsSaved: "Regole salvate. Le etichette richiedono attenzione.",
+    showLabels: "Mostra le etichette",
+    labelsConflict:
+      "Le etichette su Shopify sono cambiate dopo l’ultima lettura. CF Ready le ha rilette e le tue modifiche sono ancora qui: premi di nuovo Salva.",
     taxCodeLabel: "Codice Fiscale",
     pecLabel: "PEC",
     taxCode: {
@@ -457,13 +462,12 @@ export const it = {
     previewHeading: "Come funzionerà il checkout",
     simulator: {
       unknownCountry: "Non indicato",
-      eyebrow: "CF Ready · simulazione checkout",
-      heading: "Checkout di prova",
-      privatePreview: "Anteprima interattiva",
+      heading: "Simulatore del checkout",
       previewLanguage: "Lingua dell’anteprima",
-      labelsAfterSave: "Etichette mostrate dopo il salvataggio delle regole",
+      labelsAfterSave:
+        "Le etichette seguono le regole selezionate qui; nel checkout cambiano dopo il salvataggio.",
       italian: "Italiano",
-      english: "English",
+      english: "Inglese",
       orderContext: "Destinazione dell’ordine",
       customerData: "Dati fiscali del cliente",
       company: "Azienda",
@@ -506,13 +510,6 @@ export const it = {
         ready: "Checkout pronto",
       },
     },
-    history: {
-      heading: "Cronologia configurazioni",
-      body: "Sono disponibili le ultime 10 configurazioni dei 90 giorni precedenti. Il ripristino aggiorna regole e messaggi; piano e attivazione restano quelli correnti.",
-      messages: "Messaggi al cliente",
-      changed: (fields: string[]) => `Differenze: ${fields.join(", ")}.`,
-      restore: "Ripristina questa configurazione",
-    },
     labels: {
       heading: "Etichette del checkout",
       loading: "Rilettura delle etichette Shopify in corso…",
@@ -521,23 +518,26 @@ export const it = {
       permissionsBody:
         "Per confrontare le etichette, CF Ready ha bisogno di accedere a traduzioni, lingue e mercati.",
       requestPermissions: "Concedi i permessi",
-      statusManagedByShopify: "Gestito da Shopify",
+      statusUpToDate: "Aggiornati",
+      statusKept: "Gestiti da te",
       statusManualRequired: "Verifica manuale richiesta",
       nativeSummaryNeedsAccess: "Concedi l’accesso per controllare i testi del checkout.",
-      nativeSummaryNeedsReview: (count: number) =>
-        `${count === 1 ? "Un checkout richiede" : `${count} checkout richiedono`} una verifica.`,
+      nativeSummaryNeedsReview: (count: number, languages: string[]) =>
+        `${count === 1 ? "Un checkout" : `${count} checkout`} in ${languages.join(" e ")} ${count === 1 ? "richiede" : "richiedono"} una verifica.`,
+      languageNames: { it: "italiano", en: "inglese" },
       nativeSummaryNeedsChoice: "Scegli se CF Ready deve gestire questi testi.",
       nativeSummaryError: "CF Ready non ha completato l’ultimo controllo.",
       nativeSummaryKept: "Hai scelto di mantenere i testi attuali.",
       nativeSummaryReady: "I testi sono coerenti con le regole salvate.",
       enable: "Gestisci automaticamente le etichette supportate da Shopify",
       enableGuided: "Mantieni attivo il controllo guidato delle etichette",
+      disableWarning:
+        "Salvando, CF Ready ripristina le etichette che aveva scritto e smette di aggiornarle. Le etichette modificate da te o da altre app restano come sono.",
       enableConfirm: "Ho confrontato i campi attuali con quelli proposti",
       enableConfirmHeading: "Conferma gestione automatica",
       enableConfirmBody: "CF Ready aggiornerà questi campi tramite Shopify:",
       enableConfirmAction: "Conferma e salva",
       mode: "Modalità",
-      technicalDetails: "Dettagli tecnici",
       modeValues: {
         off: "Disattivata",
         guided: "Guidata",
@@ -546,7 +546,7 @@ export const it = {
       },
       current: "Campo attuale",
       proposed: "Campo dopo il salvataggio",
-      language: "Lingua",
+      language: "Lingua delle etichette",
       italian: "Italiano",
       english: "Inglese",
       unchanged: "Mantieni il testo attuale",
@@ -554,20 +554,20 @@ export const it = {
       generalText: "Predefinito per questa lingua",
       marketException: (market: string) => `Personalizzazione per il mercato ${market}`,
       unknownMarket: "mercato non identificato",
-      allMarketsSame: "Tutti i mercati usano questo testo",
+      allMarketsSame: "Tutti i mercati usano questo testo.",
       marketCheckIncluded: (markets: string[]) =>
         `Controlla anche il checkout per ${markets.join(", ")}: Shopify non ne distingue con certezza la configurazione.`,
-      primary: "primaria",
-      unpublished: "non pubblicata",
+      primary: "Lingua primaria.",
+      unpublished: "Lingua non pubblicata.",
       marketAmbiguous:
         "Shopify segnala almeno un mercato con una configurazione ereditata o non univoca. CF Ready accorpa i valori uguali e indica quali checkout aggiuntivi controllare.",
       refresh: "Rileggi i campi da Shopify",
       refreshComplete: "Campi riletti da Shopify.",
       stop: "Ripristina e interrompi la gestione",
-      lastSync: (value: string) => `Ultima rilettura riuscita da Shopify: ${value}`,
+      lastSync: (value: string) => `Ultima lettura delle etichette da Shopify: ${value}`,
       neverSynced: "Nessuna rilettura riuscita da Shopify",
       operationalSummary: (automatic: number, manual: number) =>
-        `${automatic} ${automatic === 1 ? "etichetta gestita" : "etichette gestite"} da Shopify · ${manual} ${manual === 1 ? "verifica manuale richiesta" : "verifiche manuali richieste"}`,
+        `${automatic} ${automatic === 1 ? "etichetta aggiornata" : "etichette aggiornate"} automaticamente · ${manual} ${manual === 1 ? "verifica manuale richiesta" : "verifiche manuali richieste"}`,
       manualHeading: "Come completare la verifica manuale",
       manualSteps: (
         language: string,
@@ -611,11 +611,12 @@ export const it = {
       openCheckoutContentEditor: "Apri l’editor dei testi del checkout",
       confirmGuided: "Conferma verifica manuale",
       lastManualVerification: (value: string) => `Ultima conferma manuale nel checkout: ${value}`,
-      checkoutCheckRequired: "verifica manuale nel checkout richiesta",
+      checkoutCheckRequired: "Verifica manuale nel checkout richiesta.",
       keepNative: "Mantieni le mie etichette",
       keepNativeAccepted: "Scelta registrata: mantieni le etichette attuali",
       addressHeading: "Campo Interno",
       addressModeLabel: "Configurazione del campo Interno",
+      addressModeSaved: "Configurazione del campo Interno salvata.",
       addressModePlaceholder: "Seleziona la configurazione attiva",
       addressModeHelp:
         "Indica l’opzione attiva in Impostazioni → Checkout. Shopify non la espone automaticamente a CF Ready.",
@@ -665,7 +666,7 @@ export const it = {
       "La PEC è obbligatoria per gli ordini italiani con il campo Azienda compilato.",
     summaryChecking:
       "I dati che i clienti italiani inseriscono vengono controllati, ma nessuno è obbligatorio.",
-    disabled: "Il controllo non è attivo: queste regole non valgono ancora per i tuoi clienti.",
+    disabled: "Il controllo non è attivo: queste regole non valgono per i tuoi clienti.",
     lapsed:
       "Il controllo è attivo ma il piano non lo è: finché resta così il checkout non blocca nulla.",
   },

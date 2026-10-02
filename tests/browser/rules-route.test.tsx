@@ -41,9 +41,9 @@ describe("Regole", () => {
       's-choice-list[name="taxCode"] s-choice',
     );
     const pecChoices = view.container.querySelectorAll('s-choice-list[name="pec"] s-choice');
-    const ruleHeadings = [...view.container.querySelectorAll("s-heading")].map(
-      (heading) => heading.textContent,
-    );
+    const ruleHeadings = [
+      ...view.container.querySelectorAll(".rules-layout__fields > s-section"),
+    ].map((section) => section.getAttribute("heading"));
     expect(ruleHeadings).toEqual(
       expect.arrayContaining([texts("it").rules.taxCodeLabel, texts("it").rules.pecLabel]),
     );
@@ -110,7 +110,6 @@ describe("Regole", () => {
     configHash: "hash",
     rules: { taxCode: "optional_validated", pec: "required_validated" },
     messages: DEFAULT_CONFIG.messages,
-    configurationHistory: [],
     enabled: true,
     entitled: true,
     labelScopesGranted: false,
@@ -136,84 +135,6 @@ describe("Regole", () => {
     checkoutSettingsUrl: "https://admin.shopify.com/store/demo/settings/checkout",
     storefrontUrl: "https://demo.myshopify.com",
   } as const;
-
-  test("mostra e ripristina soltanto configurazioni precedenti differenti", async () => {
-    router.loaderData = {
-      ...rulesData,
-      configHash: null,
-      labelSnapshot: {
-        revision: "labels-r1",
-        locales: [],
-        markets: [],
-        slots: [],
-        issues: [],
-      },
-      configurationHistory: [
-        {
-          id: 1,
-          createdAt: "2026-09-01T10:00:00.000Z",
-          rules: { ...rulesData.rules, taxCode: "required_validated" },
-          messages: rulesData.messages,
-        },
-        {
-          id: 2,
-          createdAt: "2026-09-02T10:00:00.000Z",
-          rules: { ...rulesData.rules, pec: "unmanaged" },
-          messages: rulesData.messages,
-        },
-        {
-          id: 3,
-          createdAt: "2026-09-03T10:00:00.000Z",
-          rules: rulesData.rules,
-          messages: {
-            ...rulesData.messages,
-            it: { ...rulesData.messages.it, pecRequired: "PEC precedente" },
-          },
-        },
-        {
-          id: 4,
-          createdAt: "2026-09-04T10:00:00.000Z",
-          rules: rulesData.rules,
-          messages: rulesData.messages,
-        },
-      ],
-    };
-    const view = await mount(<CheckoutRules />);
-    const restore = [...view.container.querySelectorAll("s-button")].filter(
-      (button) => button.textContent === texts("it").rules.history.restore,
-    );
-    expect(restore).toHaveLength(3);
-    expect(view.container.textContent).toContain(texts("it").rules.taxCodeLabel);
-    expect(view.container.textContent).toContain(texts("it").rules.pecLabel);
-    expect(view.container.textContent).toContain(texts("it").rules.history.messages);
-
-    await click(restore[0]);
-    expect(router.submit).toHaveBeenLastCalledWith(
-      {
-        intent: "restore_configuration",
-        historyId: "1",
-        configHash: "",
-        labelsRevision: "labels-r1",
-      },
-      { method: "post" },
-    );
-
-    router.loaderData = {
-      ...router.loaderData,
-      configHash: "hash-corrente",
-      labelSnapshot: null,
-    };
-    await view.rerender(<CheckoutRules key="history-without-label-snapshot" />);
-    const restoreWithoutLabels = [...view.container.querySelectorAll("s-button")].find(
-      (button) => button.textContent === texts("it").rules.history.restore,
-    );
-    if (!restoreWithoutLabels) throw new Error("ripristino configurazione assente");
-    await click(restoreWithoutLabels);
-    expect(router.submit).toHaveBeenLastCalledWith(
-      expect.objectContaining({ configHash: "hash-corrente", labelsRevision: "" }),
-      { method: "post" },
-    );
-  });
 
   test("modifica la bozza, salva, annulla e invia il form", async () => {
     router.loaderData = rulesData;
@@ -256,7 +177,7 @@ describe("Regole", () => {
     router.loaderData = { ...rulesData, configHash: "saved-hash" };
     router.actionData = { ok: true };
     await view.rerender(<CheckoutRules />);
-    expect(view.container.textContent).toContain(texts("it").rules.saved);
+    expect(shopify.toast.show).toHaveBeenCalledWith(texts("it").rules.saved);
   });
 
   test("mostra il conflitto senza riproporre la vecchia dichiarazione di Interno", async () => {
@@ -413,7 +334,7 @@ describe("Regole", () => {
     const labelsArea = view.container.querySelector(".rules-layout__labels");
     const fieldsArea = view.container.querySelector(".rules-layout__fields");
     const disclosures = labelsArea?.querySelectorAll(
-      "details.checkout-labels-disclosure:not(.checkout-label-instructions):not(.checkout-labels-technical)",
+      "details.checkout-labels-disclosure:not(.checkout-label-instructions)",
     );
     expect(labelsArea?.parentElement?.lastElementChild).toBe(labelsArea);
     expect(labelsArea?.parentElement?.classList.contains("rules-layout__main")).toBe(true);
@@ -424,11 +345,11 @@ describe("Regole", () => {
     expect([...disclosures!].every((disclosure) => !disclosure.hasAttribute("open"))).toBe(true);
     expect(disclosures?.[0].textContent).toContain(texts("it").rules.labels.addressHeading);
     expect(disclosures?.[1].textContent).toContain(texts("it").rules.labels.nativeHeading);
-    const technicalBody = disclosures?.[1].querySelector(
-      ".checkout-labels-technical > .checkout-labels-disclosure__body",
-    );
-    expect(technicalBody).not.toBeNull();
-    expect(technicalBody?.querySelector('s-stack[direction="block"]')?.children).toHaveLength(3);
+    // R-B6: modalità, ultima lettura e conteggi sono righe semplici, non un pannello annidato.
+    const technical = disclosures?.[1].querySelector(".checkout-labels-technical");
+    expect(technical?.closest("details")).toBe(disclosures?.[1]);
+    expect(technical?.querySelectorAll("s-stack s-stack > s-text")).toHaveLength(3);
+    expect(technical?.textContent).toContain(texts("it").rules.labels.refresh);
     expect(disclosures?.[1].querySelectorAll(".checkout-label-context__row").length).toBeLessThan(
       8,
     );
@@ -538,9 +459,7 @@ describe("Regole", () => {
       guidedConfirmations: snapshot.slots
         .filter(
           (slot) =>
-            slot.family === "it" &&
-            slot.capability !== "automatic" &&
-            (slot.name === "taxCode" || slot.name === "pec"),
+            slot.capability !== "automatic" && (slot.name === "taxCode" || slot.name === "pec"),
         )
         .map((slot) => ({
           slotId: checkoutLabelSlotId(slot),
@@ -760,9 +679,27 @@ describe("Regole", () => {
       })),
     };
     const view = await mount(<CheckoutRules />);
+    // L'inglese ha una verifica in sospeso: "Lingua delle etichette" lo seleziona da solo (R-H4).
+    const language = view.container
+      .querySelector(".rules-layout__labels")
+      ?.querySelector("s-select") as HTMLElement & { value: string };
+    expect(language.getAttribute("value")).toBe("en");
+    language.value = "it";
+    await dispatch(language, new Event("change", { bubbles: true }));
     expect(view.container.textContent).toContain(texts("it").rules.labels.allMarketsSame);
     expect(view.container.textContent).toContain("Ultima conferma manuale nel checkout:");
     expect(view.container.textContent).toContain(texts("it").rules.labels.addressStatus.expected);
+    // R-B7: nessuna etichetta fiscale in Interno è un esito neutro, non un successo.
+    const addressBadge = [
+      ...view.container.querySelectorAll(".checkout-labels-title s-badge"),
+    ].find((badge) => badge.textContent === texts("it").rules.labels.addressStatus.expected);
+    expect(addressBadge?.getAttribute("tone")).toBe("neutral");
+    // R-B4: le note del contesto sono frasi separate, senza puntini di unione.
+    const notes = [...view.container.querySelectorAll(".checkout-label-context s-text")].map(
+      (note) => note.textContent,
+    );
+    expect(notes).toContain(texts("it").rules.labels.allMarketsSame);
+    expect(notes.some((note) => note?.includes(" · "))).toBe(false);
     expect(texts("en").rules.labels.marketException("Italy")).toBe(
       "Customization for the Italy market",
     );
@@ -936,7 +873,7 @@ describe("Regole", () => {
       },
     };
     await view.rerender(<CheckoutRules />);
-    expect(view.container.textContent).toContain(texts("it").rules.labels.refreshComplete);
+    expect(shopify.toast.show).toHaveBeenCalledWith(texts("it").rules.labels.refreshComplete);
     expect(nativeDisclosure.hasAttribute("open")).toBe(true);
     const enabledConfirmation = [...view.container.querySelectorAll("s-button")].find(
       (button) => button.textContent === texts("it").rules.labels.confirmGuided,
@@ -987,8 +924,12 @@ describe("Regole", () => {
     expect(texts("en").rules.labels.marketCheckIncluded(["Italy"])).toContain("Italy");
     expect(texts("en").rules.labels.operationalSummary(1, 1)).toContain("1 label");
     expect(texts("en").rules.labels.operationalSummary(2, 2)).toContain("2 labels");
-    expect(texts("en").rules.labels.nativeSummaryNeedsReview(1)).toContain("One checkout");
-    expect(texts("en").rules.labels.nativeSummaryNeedsReview(2)).toContain("2 checkouts");
+    expect(texts("en").rules.labels.nativeSummaryNeedsReview(1, ["English"])).toBe(
+      "One checkout in English needs verification.",
+    );
+    expect(texts("en").rules.labels.nativeSummaryNeedsReview(2, ["Italian", "English"])).toBe(
+      "2 checkouts in Italian and English need verification.",
+    );
     expect(texts("en").rules.labels.manualSteps("English", null, true, []).join(" ")).toContain(
       "Search and filter results",
     );
@@ -1112,7 +1053,7 @@ describe("Regole", () => {
       labelSnapshot: healthySnapshot,
     };
     await view.rerender(<CheckoutRules key="labels-healthy" />);
-    expect(view.container.textContent).toContain(texts("it").rules.labels.statusManagedByShopify);
+    expect(view.container.textContent).toContain(texts("it").rules.labels.statusUpToDate);
     expect(view.container.textContent).toContain(texts("it").rules.labels.notAvailable);
 
     router.loaderData = {
@@ -1136,5 +1077,199 @@ describe("Regole", () => {
     };
     await view.rerender(<CheckoutRules key="labels-pending" />);
     expect(view.container.textContent).not.toContain(texts("it").rules.labels.nativeSummaryError);
+  });
+});
+
+describe("Regole: salvataggio ed etichette (audit §5.1)", () => {
+  const baseData = {
+    locale: "it",
+    duplicateError: null,
+    configHash: "hash",
+    rules: { taxCode: "optional_validated", pec: "required_validated" },
+    messages: DEFAULT_CONFIG.messages,
+    enabled: true,
+    entitled: true,
+    labelScopesGranted: true,
+    labelState: {
+      mode: "partial",
+      managementEpoch: "epoch",
+      enabledAt: null,
+      lastSyncAt: null,
+      lastErrorCode: null,
+      decision: "pending",
+      acceptedRevision: null,
+      reviewedAt: null,
+      address2Classification: "expected",
+      address2HasMarketOverride: false,
+      address2ExternalChangeAt: null,
+      address2Decision: "pending",
+      address2ReviewedAt: null,
+      address2FormMode: "required",
+    },
+    labelSnapshot: null as unknown,
+    guidedConfirmations: [] as Array<{ slotId: string; confirmedAt: string }>,
+    labelLoadError: null,
+    checkoutSettingsUrl: "https://admin.shopify.com/store/demo/settings/checkout",
+    storefrontUrl: "https://demo.myshopify.com",
+  };
+  const snapshot = (revision: string, slots: unknown[] = []) => ({
+    revision,
+    locales: [
+      { locale: "it", family: "it", name: "Italiano", primary: true, published: true },
+      { locale: "en", family: "en", name: "English", primary: false, published: true },
+    ],
+    markets: [],
+    slots,
+    issues: [],
+    address2: { classification: "expected", hasMarketOverride: false },
+  });
+  const pecSlot = (family: "it" | "en", currentValue: string) =>
+    labelSlot({
+      name: "pec",
+      key: "shopify.checkout.contact.tax_email_it_label",
+      locale: family,
+      family,
+      kind: family === "it" ? "source" : "global_translation",
+      capability: "guided",
+      currentValue,
+      sourceValue: "PEC",
+    });
+
+  async function editRules(view: Awaited<ReturnType<typeof mount>>) {
+    const original = FormData;
+    class EditedFormData {
+      get(name: string) {
+        return name === "taxCode" ? "required_validated" : name === "pec" ? "unmanaged" : null;
+      }
+    }
+    vi.stubGlobal("FormData", EditedFormData as unknown as typeof original);
+    await dispatch(
+      view.container.querySelector("s-choice-list")!,
+      new Event("change", { bubbles: true }),
+    );
+    vi.stubGlobal("FormData", original);
+  }
+
+  test("dopo un conflitto delle etichette rilegge Shopify e conserva la bozza", async () => {
+    router.loaderData = { ...baseData, labelScopesGranted: null };
+    router.fetcher.data = {
+      ok: true,
+      loaded: {
+        scopeGranted: true,
+        snapshot: snapshot("labels-r1"),
+        state: baseData.labelState,
+        guidedConfirmations: [],
+        errorCode: null,
+      },
+    };
+    const view = await mount(<CheckoutRules />);
+    expect(router.fetcher.submit).toHaveBeenCalledOnce();
+    await editRules(view);
+    await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
+    expect(router.submit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ taxCode: "required_validated", labelsRevision: "labels-r1" }),
+      { method: "post" },
+    );
+
+    router.actionData = { ok: false, errorCode: "checkout_labels_conflict" };
+    await view.rerender(<CheckoutRules />);
+    expect(router.fetcher.submit).toHaveBeenCalledTimes(2);
+    expect(router.fetcher.submit).toHaveBeenLastCalledWith(
+      { intent: "load_checkout_labels", taxCode: "optional_validated", pec: "required_validated" },
+      { method: "post" },
+    );
+    expect(view.container.textContent).toContain(texts("it").rules.labelsConflict);
+    expect(view.container.textContent).not.toContain(texts("it").errors.checkout_labels_conflict);
+
+    await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
+    expect(router.submit).toHaveBeenCalledTimes(2);
+    expect(router.submit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ taxCode: "required_validated", pec: "unmanaged" }),
+      { method: "post" },
+    );
+  });
+
+  test("durante la rilettura delle etichette i pannelli restano aperti", async () => {
+    router.loaderData = { ...baseData, labelScopesGranted: null };
+    router.fetcher.data = {
+      ok: true,
+      loaded: {
+        scopeGranted: true,
+        snapshot: snapshot("labels-r1"),
+        state: baseData.labelState,
+        guidedConfirmations: [],
+        errorCode: null,
+      },
+    };
+    const view = await mount(<CheckoutRules />);
+    const panel = view.container.querySelector("details.checkout-labels-disclosure");
+    expect(panel).not.toBeNull();
+    router.fetcher.state = "submitting";
+    router.loaderData = { ...router.loaderData! };
+    await view.rerender(<CheckoutRules />);
+    expect(view.container.textContent).not.toContain(texts("it").rules.labels.loading);
+    expect(view.container.querySelector("details.checkout-labels-disclosure")).toBe(panel);
+  });
+
+  test("conferma il salvataggio del campo Interno con un toast", async () => {
+    router.loaderData = { ...baseData, labelSnapshot: snapshot("labels-r1") };
+    const view = await mount(<CheckoutRules />);
+    const addressMode = [...view.container.querySelectorAll("s-select")].find(
+      (select) => select.getAttribute("label") === texts("it").rules.labels.addressModeLabel,
+    ) as HTMLElement & { value: string };
+    addressMode.value = "optional";
+    await dispatch(addressMode, new Event("change", { bubbles: true }));
+    router.fetcher.data = { ok: true };
+    await view.rerender(<CheckoutRules />);
+    expect(shopify.toast.show).toHaveBeenCalledWith(texts("it").rules.labels.addressModeSaved);
+  });
+
+  test("indica la lingua da verificare e la seleziona da sola", async () => {
+    router.loaderData = {
+      ...baseData,
+      labelSnapshot: snapshot("labels-r1", [pecSlot("it", "PEC"), pecSlot("en", "PEC")]),
+      guidedConfirmations: [
+        {
+          slotId: checkoutLabelSlotId(pecSlot("it", "PEC") as never),
+          confirmedAt: "2026-09-08T12:00:00Z",
+        },
+      ],
+    };
+    const view = await mount(<CheckoutRules />);
+    expect(view.container.textContent).toContain(
+      texts("it").rules.labels.nativeSummaryNeedsReview(1, ["inglese"]),
+    );
+    expect(texts("it").rules.labels.nativeSummaryNeedsReview(1, ["inglese"])).toBe(
+      "Un checkout in inglese richiede una verifica.",
+    );
+    const language = [...view.container.querySelectorAll("s-select")].find(
+      (select) => select.getAttribute("label") === texts("it").rules.labels.language,
+    );
+    expect(language?.getAttribute("value")).toBe("en");
+  });
+
+  test("il banner delle etichette porta a Testi del checkout", async () => {
+    router.loaderData = { ...baseData, labelSnapshot: snapshot("labels-r1") };
+    router.actionData = { ok: true, labelsErrorCode: "checkout_labels_confirmation_pending" };
+    const view = await mount(<CheckoutRules />);
+    const show = [...view.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === texts("it").rules.showLabels,
+    );
+    const native = view.container.querySelector<HTMLDetailsElement>("#checkout-native-labels");
+    expect(native?.open).toBe(false);
+    await click(show!);
+    expect(native?.open).toBe(true);
+  });
+
+  test("avvisa delle conseguenze quando si toglie la gestione automatica", async () => {
+    router.loaderData = { ...baseData, labelSnapshot: snapshot("labels-r1") };
+    const view = await mount(<CheckoutRules />);
+    expect(view.container.textContent).not.toContain(texts("it").rules.labels.disableWarning);
+    const checkbox = view.container.querySelector("s-checkbox") as HTMLElement & {
+      checked: boolean;
+    };
+    checkbox.checked = false;
+    await dispatch(checkbox, new Event("change", { bubbles: true }));
+    expect(view.container.textContent).toContain(texts("it").rules.labels.disableWarning);
   });
 });

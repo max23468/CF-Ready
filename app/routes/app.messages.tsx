@@ -23,7 +23,6 @@ import {
   MESSAGE_KEYS,
   MESSAGE_MAX_LENGTH,
   messageAppears,
-  showSavedBanner,
   readConfig,
 } from "../config";
 import { validateMessages } from "../config";
@@ -33,7 +32,7 @@ import { ConfigConflict } from "../features/ConfigConflict";
 import { CustomerMessagesPreview } from "../features/messages/CustomerMessagesPreview";
 import { UncontrolledMessageTextArea } from "../features/messages/UncontrolledMessageTextArea";
 import { RULES_INTENTS, type CheckoutLabelsLoadAction } from "../features/rules/rules-intents";
-import { resolveLocale, texts } from "../i18n";
+import { quoteLabel, resolveLocale, texts } from "../i18n";
 import type { Locale } from "../i18n";
 import {
   messageSubmission,
@@ -42,7 +41,8 @@ import {
   updateMessageDraft,
 } from "../messages-draft";
 import { skipRevalidationWhenLeaving } from "../revalidation";
-import { setSaveBarVisibility } from "../save-bar";
+import { setSaveBarVisibility, showToast } from "../save-bar";
+import { RevealBanner } from "../ui-feedback";
 import { createServerTiming } from "../server-timing.server";
 import { authenticate } from "../shopify.server";
 import {
@@ -137,7 +137,6 @@ export default function CustomerMessages() {
     result.errorCode === "config_conflict" &&
     !resolvedConflict;
   const t = texts(saved.locale);
-  const [changedSinceResult, setChangedSinceResult] = useState(false);
   const [draft, setDraft] = useState<CheckoutConfig["messages"]>(saved.messages);
   const draftRef = useRef(draft);
   const [, startDraftTransition] = useTransition();
@@ -189,7 +188,6 @@ export default function CustomerMessages() {
     draftRef.current = next;
     baseRef.current = saved.messages;
     baseHash.current = saved.configHash;
-    setChangedSinceResult(false);
     setDraft(next);
   }, [result, saved.messages, saved.configHash, busy, remount]);
 
@@ -204,6 +202,10 @@ export default function CustomerMessages() {
   );
 
   useEffect(() => setSaveBarVisibility(SAVE_BAR, dirty), [dirty]);
+  const savedText = t.messages.saved;
+  useEffect(() => {
+    if (result?.ok) showToast(savedText);
+  }, [result, savedText]);
 
   // `input` copre ogni battuta; ascoltare anche `change` ripeteva lo stesso lavoro al commit.
   // Il campo è uncontrolled: la ref conserva subito la sorgente usata da Salva, mentre
@@ -222,7 +224,6 @@ export default function CustomerMessages() {
       key as (typeof MESSAGE_KEYS)[number],
       value,
     );
-    setChangedSinceResult(true);
     startDraftTransition(() => {
       // Leggere la ref nell'updater impedisce a una transition già accodata di ripristinare
       // una battuta precedente dopo Salva o Annulla.
@@ -256,7 +257,8 @@ export default function CustomerMessages() {
     remount(MESSAGE_FIELDS);
   };
 
-  const previewField = messageFieldLabel(t, saved.rules, activeLocale, selectedKey, labelSnapshot);
+  const field = messageFieldLabel(t, saved.rules, activeLocale, selectedKey, labelSnapshot);
+  const previewField = { ...field, label: quoteLabel(field.label, saved.locale) };
 
   // FR-063: il ripristino agisce su una lingua sola e lo dichiara nella conferma. Non salva da
   // sé: rimette i testi predefiniti nei campi e il salvataggio resta un gesto esplicito.
@@ -265,7 +267,6 @@ export default function CustomerMessages() {
       ...draftRef.current,
       [locale]: { ...DEFAULT_CONFIG.messages[locale] },
     };
-    setChangedSinceResult(true);
     setDraft(draftRef.current);
     remount(MESSAGE_FIELDS.filter((field) => field.startsWith(`${locale}.`)));
   };
@@ -288,18 +289,11 @@ export default function CustomerMessages() {
             )}
           />
         ) : null}
-        {showSavedBanner(result, dirty, changedSinceResult) ? (
-          <div className="cf-motion-reveal">
-            <s-banner tone="success">{t.messages.saved}</s-banner>
-          </div>
-        ) : null}
         {result &&
         !result.ok &&
         "errorCode" in result &&
         (result.errorCode !== "config_conflict" || conflict) ? (
-          <div className="cf-motion-reveal">
-            <s-banner tone="critical">{localizedError(t.errors, result.errorCode)}</s-banner>
-          </div>
+          <RevealBanner tone="critical">{localizedError(t.errors, result.errorCode)}</RevealBanner>
         ) : null}
 
         <ui-save-bar id={SAVE_BAR}>
@@ -452,7 +446,7 @@ function MessageVisibilityAside({ t, rules }: { t: MessagesCopy; rules: Messages
           {MESSAGE_KEYS.map((key) => (
             <div className="cf-data-row" key={key}>
               <s-text>{t.messages[key]}</s-text>
-              <s-badge>
+              <s-badge tone={messageAppears(rules, key) ? "success" : "neutral"}>
                 {messageAppears(rules, key) ? t.messages.appears : t.messages.appearsNot}
               </s-badge>
             </div>

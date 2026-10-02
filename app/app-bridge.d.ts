@@ -1,5 +1,5 @@
 // `@shopify/polaris-types` copre i componenti Polaris ma non quelli App Bridge. Uno shim evita
-// una dipendenza in più per navigazione, Save Bar e finestra embedded
+// una dipendenza in più per navigazione, Save Bar, toast e finestra embedded
 // (§20.1). Da rimuovere se i tipi App Bridge entrano nel pacchetto già installato.
 import type { HTMLAttributes } from "react";
 
@@ -61,6 +61,9 @@ declare global {
     saveBar: {
       show(id: string): Promise<void>;
       hide(id: string): Promise<void>;
+    };
+    toast: {
+      show(message: string, options?: { duration?: number; isError?: boolean }): string;
     };
   };
 }
