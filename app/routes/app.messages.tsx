@@ -29,7 +29,10 @@ import { validateMessages } from "../config";
 import type { CheckoutConfig } from "../config";
 import { databaseContext } from "../context.server";
 import { ConfigConflict } from "../features/ConfigConflict";
-import { CustomerMessagesPreview } from "../features/messages/CustomerMessagesPreview";
+import {
+  CheckoutErrorPreview,
+  CustomerMessagesPreview,
+} from "../features/messages/CustomerMessagesPreview";
 import { UncontrolledMessageTextArea } from "../features/messages/UncontrolledMessageTextArea";
 import { RULES_INTENTS, type CheckoutLabelsLoadAction } from "../features/rules/rules-intents";
 import { quoteLabel, resolveLocale, texts } from "../i18n";
@@ -107,14 +110,15 @@ const MESSAGE_GROUPS = [
   ["pec", ["pecRequired", "pecInvalid"]],
 ] as const satisfies readonly (readonly ["taxCode" | "pec", readonly MessageKey[]])[];
 
-// Polaris non ha un campo che si ridimensiona da solo: `rows` fissa le righe visibili e il
-// resto finisce in uno scroll interno. Le righe si calcolano quindi dal testo, così il campo
-// cresce e nulla resta nascosto — nemmeno oltre i 200 caratteri, che è proprio il momento in
-// cui il merchant deve vedere tutto per decidere cosa tagliare.
-// Stima a 45 caratteri per riga, prudente per le colonne strette. Se Polaris
-// introduce l'auto-ridimensionamento, questa funzione sparisce.
+// Altezza iniziale, compresi ritorni a capo e righe vuote. Il componente la adatta poi
+// all'andata a capo reale del textarea e alla larghezza disponibile.
 function rowsFor(text: string) {
-  return Math.max(2, Math.ceil((text.length + 1) / 45));
+  return Math.max(
+    2,
+    text
+      .split(/\r\n|\r|\n/)
+      .reduce((rows, line) => rows + Math.max(1, Math.ceil((line.length + 1) / 45)), 0),
+  );
 }
 
 export default function CustomerMessages() {
@@ -393,39 +397,56 @@ function MessagesEditor({
         />
         {/* M2: su desktop i quattro campi stanno in due colonne, Codice Fiscale e PEC, così
             restano vicini all'anteprima. Il contatore è sempre presente: al focus nulla si sposta (M4). */}
-        <s-query-container>
-          <s-grid
-            gridTemplateColumns="@container (inline-size > 560px) 1fr 1fr, 1fr"
-            gap="base"
-            alignItems="start"
-          >
-            {MESSAGE_GROUPS.map(([field, keys]) => (
-              <s-stack key={field} direction="block" gap="base">
-                {keys.map((key) => {
-                  const value = draft[activeLocale][key];
-                  const invalid =
-                    value.length > MESSAGE_MAX_LENGTH
-                      ? t.messages.tooLong
-                      : problem?.locale === activeLocale && problem.key === key
-                        ? t.messages.empty
-                        : undefined;
-                  return (
-                    <UncontrolledMessageTextArea
-                      key={`${activeLocale}-${key}-${mounted[`${activeLocale}.${key}`] ?? 0}`}
-                      initialValue={value}
-                      label={t.messages[key]}
-                      name={`${activeLocale}.${key}`}
-                      rows={rowsFor(value)}
-                      details={t.messages.counter(value.length)}
-                      error={invalid}
-                      onFocus={() => setSelectedKey(key)}
-                    />
-                  );
-                })}
-              </s-stack>
-            ))}
-          </s-grid>
-        </s-query-container>
+        <div className="customer-messages-fields">
+          <s-query-container>
+            <s-grid
+              gridTemplateColumns="@container (inline-size > 560px) 1fr 1fr, 1fr"
+              gap="base"
+              alignItems="start"
+            >
+              {MESSAGE_GROUPS.map(([field, keys]) => (
+                <s-stack key={field} direction="block" gap="base">
+                  {keys.map((key) => {
+                    const value = draft[activeLocale][key];
+                    const invalid =
+                      value.length > MESSAGE_MAX_LENGTH
+                        ? t.messages.tooLong
+                        : problem?.locale === activeLocale && problem.key === key
+                          ? t.messages.empty
+                          : undefined;
+                    return (
+                      <s-stack key={key} direction="block" gap="small-100">
+                        <UncontrolledMessageTextArea
+                          key={`${activeLocale}-${mounted[`${activeLocale}.${key}`] ?? 0}`}
+                          initialValue={value}
+                          label={t.messages[key]}
+                          name={`${activeLocale}.${key}`}
+                          rows={rowsFor(value)}
+                          details={t.messages.counter(value.length)}
+                          error={invalid}
+                          onFocus={() => setSelectedKey(key)}
+                        />
+                        <div className="customer-messages-preview__local">
+                          <s-stack direction="block" gap="small-100">
+                            <s-text color="subdued">{t.messages.previewHeading}</s-text>
+                            <CheckoutErrorPreview
+                              locale={activeLocale}
+                              heading={texts(activeLocale).messages.previewErrorHeading}
+                              message={value}
+                            />
+                            {!messageAppears(rules, key) ? (
+                              <s-text color="subdued">{t.messages.previewNotShown}</s-text>
+                            ) : null}
+                          </s-stack>
+                        </div>
+                      </s-stack>
+                    );
+                  })}
+                </s-stack>
+              ))}
+            </s-grid>
+          </s-query-container>
+        </div>
         <s-button commandFor={`restore-${activeLocale}`} command="--show">
           {t.messages.reset}
         </s-button>
