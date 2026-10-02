@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { localizedError } from "../../app-error";
 import type { Rules } from "../../config";
@@ -8,9 +8,11 @@ import type {
   CheckoutLabelState,
 } from "../../checkout-labels/domain";
 import { texts, type Locale } from "../../i18n";
+import { showToast } from "../../save-bar";
 import { useCheckoutLabelScopeRequest } from "../use-checkout-label-scopes";
 import { Address2CheckoutLabels } from "./Address2CheckoutLabels";
 import { KeepNativeLabelsChoice, NativeCheckoutLabels } from "./NativeCheckoutLabels";
+import { fiscalLabelContexts, pendingFiscalLabels } from "./checkout-labels-presentation";
 import { RULES_INTENTS, type SubmitCheckoutLabelsIntent } from "./rules-intents";
 
 type LabelsAction =
@@ -27,6 +29,7 @@ type LabelsAction =
 
 type CheckoutLabelsSectionProps = {
   locale: Locale;
+  timeZone: string | null;
   rules: Rules;
   scopeGranted: boolean | null;
   snapshot: CheckoutLabelsSnapshot | null;
@@ -43,6 +46,7 @@ type CheckoutLabelsSectionProps = {
 
 export function CheckoutLabelsSection({
   locale,
+  timeZone,
   rules,
   scopeGranted,
   snapshot,
@@ -58,10 +62,29 @@ export function CheckoutLabelsSection({
 }: CheckoutLabelsSectionProps) {
   const copy = texts(locale).rules.labels;
   const [selectedFamily, setSelectedFamily] = useState<CheckoutLabelFamily | null>(null);
-  const activeFamily = selectedFamily ?? locale;
   const controls = useCheckoutLabelsControls(snapshot, state, guidedConfirmations, onScopeGranted);
+  // Finché il merchant non sceglie, "Lingua" mostra la prima lingua con una verifica in sospeso.
+  const pendingFamilies = controls.visibleSnapshot
+    ? pendingFiscalLabels(
+        fiscalLabelContexts(controls.visibleSnapshot, rules, locale),
+        controls.visibleGuidedConfirmations,
+      ).families
+    : [];
+  const activeFamily =
+    selectedFamily ??
+    (pendingFamilies.length === 0 || pendingFamilies.includes(locale)
+      ? locale
+      : pendingFamilies[0]);
   const controlsBusy =
     busy || controls.actionBusy || controls.scopeRequestBusy || controls.revalidationBusy;
+  const refreshedText = copy.refreshComplete;
+  useEffect(() => {
+    if (controls.refreshed) showToast(refreshedText);
+  }, [controls.refreshed, refreshedText]);
+  const address2SavedText = copy.addressModeSaved;
+  useEffect(() => {
+    if (controls.address2ModeSaved) showToast(address2SavedText);
+  }, [controls.address2ModeSaved, address2SavedText]);
 
   if (scopeGranted === null) {
     return (
@@ -120,6 +143,7 @@ export function CheckoutLabelsSection({
         {scopeGranted ? (
           <NativeCheckoutLabels
             locale={locale}
+            timeZone={timeZone}
             rules={rules}
             snapshot={controls.visibleSnapshot}
             state={controls.visibleState}
@@ -146,6 +170,7 @@ function useCheckoutLabelsControls(
   onScopeGranted: () => void,
 ) {
   const fetcher = useFetcher<LabelsAction>();
+  const submittedIntent = useRef<string | null>(null);
   const { requestPermissions, revalidationBusy, scopeRequestBusy, scopeRequestError } =
     useCheckoutLabelScopeRequest(onScopeGranted);
   const actionBusy = fetcher.state !== "idle";
@@ -154,10 +179,18 @@ function useCheckoutLabelsControls(
   const visibleSnapshot = refreshed?.snapshot ?? snapshot;
   const visibleState = refreshed?.state ?? state;
   const visibleGuidedConfirmations = refreshed?.guidedConfirmations ?? guidedConfirmations;
+  // R-H7: il salvataggio immediato del campo Interno si conferma con un toast.
+  const address2ModeSaved =
+    !actionBusy &&
+    fetcher.data?.ok === true &&
+    submittedIntent.current === RULES_INTENTS.saveAddress2FormMode
+      ? fetcher.data
+      : null;
   const refreshing =
     actionBusy && fetcher.formData?.get("intent") === RULES_INTENTS.refreshCheckoutLabels;
   const submitIntent: SubmitCheckoutLabelsIntent = (intent, slotIds = [], values = {}) => {
     const form = new FormData();
+    submittedIntent.current = intent;
     form.set("intent", intent);
     form.set("labelsRevision", visibleSnapshot?.revision ?? "");
     for (const slotId of slotIds) form.append("slotId", slotId);
@@ -167,6 +200,7 @@ function useCheckoutLabelsControls(
   return {
     actionBusy,
     actionError,
+    address2ModeSaved,
     refreshed,
     refreshing,
     revalidationBusy,
@@ -201,7 +235,6 @@ function CheckoutLabelsFeedback({
       {loadErrorCode && !refreshed ? (
         <s-banner tone="warning">{localizedError(t.errors, loadErrorCode)}</s-banner>
       ) : null}
-      {refreshed ? <s-banner tone="success">{t.rules.labels.refreshComplete}</s-banner> : null}
     </>
   );
 }

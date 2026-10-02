@@ -15,6 +15,13 @@ test("importi e date seguono la lingua di chi guarda", () => {
 test("gli orari sono deterministici tra rendering server e idratazione", () => {
   expect(formatDateTime("2026-09-12T21:45:00Z", "it")).toBe("12 set 2026, 21:45 UTC");
   expect(formatDateTime("2026-09-12T21:45:00Z", "en")).toBe("12 Sept 2026, 21:45 UTC");
+  expect(formatDateTime("2026-09-12T21:45:00Z", "it", "Europe/Rome")).toBe(
+    "12 set 2026, 23:45 CEST",
+  );
+  expect(formatDateTime("2026-01-12T21:45:00Z", "en", "Europe/Rome")).toBe(
+    "12 Jan 2026, 22:45 CET",
+  );
+  expect(formatDateTime("2026-09-12T21:45:00Z", "it", null)).toBe("12 set 2026, 21:45 UTC");
 });
 
 test("i messaggi rifiutano vuoti e testi oltre il limite, e li trimmano", () => {

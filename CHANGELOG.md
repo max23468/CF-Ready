@@ -6,6 +6,55 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.18 — 1 ottobre 2026
+
+- mostra gli orari di etichette e Guida nel fuso dello store, con la
+  sigla del fuso; il fuso si salva in D1 alla riconciliazione (migrazione 0027,
+  D-173) e la diagnostica copiabile resta in UTC;
+- conferma i salvataggi riusciti con il toast di App Bridge; avvisi ed errori
+  restano banner e si portano in vista quando compaiono;
+- usa per FAQ e simulatore la stessa freccia dei pannelli di “Campo Interno” al
+  posto del triangolo del browser;
+- avvicina titolo e testo nelle card di Home, onboarding e Guida;
+- colora i badge: verde per i messaggi previsti, azzurro per i campi controllati
+  e i messaggi personalizzati, grigio per i casi non gestiti o non previsti;
+- cita tra virgolette le etichette reali del checkout Shopify;
+- nomina le lingue nella lingua dell'interfaccia (“Inglese”, “Italian”) e
+  allinea i nomi delle letture Shopify tra Regole e FAQ;
+- toglie i due punti da “Scegli l'argomento” e limita al testo il focus dei
+  collegamenti nelle card.
+- Home: la card principale ha il titolo fisso “Validazione nel checkout” e lo
+  stato nel badge; l'icona del riquadro informativo resta sulla riga del testo;
+- Home: “Disattiva nel checkout” usa il tono critico anche nella conferma; da
+  disattivata, con un diritto attivo, “Attiva nel checkout” diventa l'azione
+  principale; attivazione e disattivazione confermano l'esito con un toast;
+- Home: “Prossimo passo” collega la pagina Ordini di Shopify quando la
+  validazione è attiva e il testo da disattivata non dice più “ancora”.
+- Regole: toglie la cronologia configurazioni e il ripristino; D1 conserva solo
+  l'ultima configurazione per il primo caricamento della Home (D-174);
+- Regole: se le etichette cambiano su Shopify durante il salvataggio, l'app le
+  rilegge da sola, conserva le modifiche e chiede di premere di nuovo Salva;
+- Regole: “Testi del checkout” indica la lingua da verificare e “Lingua” si
+  posiziona sulla prima lingua in sospeso;
+- Regole: il banner “Le etichette richiedono attenzione” ha il pulsante “Mostra
+  le etichette”, che apre e porta in vista “Testi del checkout”;
+- Regole: durante la rilettura delle etichette i pannelli aperti restano aperti
+  e il salvataggio della configurazione del campo Interno si conferma con un
+  toast;
+- Regole: togliendo la gestione automatica delle etichette compare cosa succede
+  al salvataggio.
+- Regole: il simulatore ha un'intestazione sola (“Checkout di prova”) con lo
+  stato accanto al titolo; la riga “Prova uno scenario” è allineata ai campi e
+  “Svuota” è un pulsante Polaris; la nota sulle etichette spiega che seguono le
+  regole selezionate;
+- Regole: “Testi del checkout” mostra lo stato “Aggiornati” (o “Gestiti da te”),
+  conta le etichette di tutte le lingue e porta modalità e ultima lettura in
+  fondo al pannello, senza il pannello annidato “Dettagli tecnici”;
+- Regole: le note dei contesti sono frasi separate, “Nessuna etichetta fiscale
+  rilevata” ha un badge neutro, il badge resta accanto al titolo dei pannelli e
+  le card delle regole usano il titolo nativo con la stessa spaziatura delle
+  altre; la select diventa “Lingua delle etichette”.
+
 ## 1.15.17 — 1 ottobre 2026
 
 - corregge la fixture degli screenshot delle etichette per mostrare la modalità

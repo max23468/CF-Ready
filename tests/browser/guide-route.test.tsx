@@ -110,6 +110,7 @@ describe("Guida", () => {
     await dispatch(select, new Event("change", { bubbles: true }));
     await click([...view.container.querySelectorAll("s-button")].at(-1)!);
     expect(writeText).toHaveBeenCalledOnce();
+    expect(shopify.toast.show).toHaveBeenCalledWith(texts("it").support.diagnosticsCopied);
     expect(router.fetcher.submit).toHaveBeenCalledWith(
       {
         intent: "diagnostics_copied",

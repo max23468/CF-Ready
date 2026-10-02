@@ -7,16 +7,20 @@ import {
   type CheckoutLabelsSnapshot,
   type CheckoutLabelState,
 } from "../../checkout-labels/domain";
-import { formatDateTime, texts, type Locale } from "../../i18n";
+import { formatDateTime, quoteLabel, texts, type Locale } from "../../i18n";
 import {
   fiscalLabelContexts,
   latestConfirmation,
+  pendingFiscalLabels,
   type FiscalLabelContext,
 } from "./checkout-labels-presentation";
 import { RULES_INTENTS, type SubmitCheckoutLabelsIntent } from "./rules-intents";
 
+export const NATIVE_LABELS_ID = "checkout-native-labels";
+
 type NativeCheckoutLabelsProps = {
   locale: Locale;
+  timeZone: string | null;
   rules: Rules;
   snapshot: CheckoutLabelsSnapshot | null;
   state: CheckoutLabelState;
@@ -33,6 +37,7 @@ type NativeCheckoutLabelsProps = {
 
 export function NativeCheckoutLabels({
   locale,
+  timeZone,
   rules,
   snapshot,
   state,
@@ -56,10 +61,8 @@ export function NativeCheckoutLabels({
   const displayedContexts = contexts.filter((context) =>
     context.entries.some(({ slot }) => slot.family === activeFamily),
   );
-  const confirmedSlots = new Set(guidedConfirmations.map(({ slotId }) => slotId));
-  const pendingContexts = contexts.filter((context) =>
-    context.guidedSlotIds.some((slotId) => !confirmedSlots.has(slotId)),
-  );
+  const pending = pendingFiscalLabels(contexts, guidedConfirmations);
+  const pendingContexts = pending.contexts;
   const keptByMerchant = state.mode === "off" && state.decision === "accepted";
   const needsAttention =
     pendingContexts.length > 0 ||
@@ -70,20 +73,22 @@ export function NativeCheckoutLabels({
     state,
     keptByMerchant,
     pendingCount: pendingContexts.length,
+    pendingLanguages: pending.families.map((family) => copy.languageNames[family]),
   });
 
   return (
-    <details className="checkout-labels-disclosure">
+    <details className="checkout-labels-disclosure" id={NATIVE_LABELS_ID}>
       <summary className="checkout-labels-disclosure__summary">
-        <s-stack direction="inline" alignItems="center" gap="small-200">
+        <div className="checkout-labels-title">
           <s-heading>{copy.nativeHeading}</s-heading>
           <s-badge tone={needsAttention ? "warning" : "success"}>{presentation.status}</s-badge>
-        </s-stack>
+        </div>
         <s-paragraph color="subdued">{presentation.summary}</s-paragraph>
       </summary>
       <div className="checkout-labels-disclosure__body">
         <NativeLabelsContent
           locale={locale}
+          timeZone={timeZone}
           rules={rules}
           snapshot={snapshot}
           state={state}
@@ -94,6 +99,7 @@ export function NativeCheckoutLabels({
           checkoutSettingsUrl={checkoutSettingsUrl}
           automaticAvailable={automaticAvailable}
           displayedContexts={displayedContexts}
+          pendingTotal={pendingContexts.length}
           guidedConfirmations={guidedConfirmations}
           onEnabledChange={onEnabledChange}
           submitIntent={submitIntent}
@@ -106,16 +112,17 @@ export function NativeCheckoutLabels({
 
 function NativeLabelsContent({
   locale,
+  timeZone,
   rules,
   snapshot,
   state,
   enabled,
   busy,
-  activeFamily,
   storefrontUrl,
   checkoutSettingsUrl,
   automaticAvailable,
   displayedContexts,
+  pendingTotal,
   guidedConfirmations,
   onEnabledChange,
   submitIntent,
@@ -123,6 +130,7 @@ function NativeLabelsContent({
 }: NativeCheckoutLabelsProps & {
   automaticAvailable: boolean;
   displayedContexts: FiscalLabelContext[];
+  pendingTotal: number;
 }) {
   const copy = texts(locale).rules.labels;
   const confirmed = new Map(
@@ -131,16 +139,16 @@ function NativeLabelsContent({
   const pendingCount = displayedContexts.filter((context) =>
     context.guidedSlotIds.some((slotId) => !confirmed.has(slotId)),
   ).length;
-  const automaticCount = new Set(
-    snapshot?.slots.flatMap((slot) =>
-      slot.family === activeFamily &&
-      slot.capability === "automatic" &&
-      (slot.name === "taxCode" || slot.name === "pec") &&
-      rules[slot.name] !== "unmanaged"
-        ? [slot.name]
-        : [],
-    ) ?? [],
-  ).size;
+  // R-B5: il riepilogo conta le etichette di tutte le lingue, non solo di quella selezionata.
+  const automaticCount =
+    state.mode === "off"
+      ? 0
+      : (snapshot?.slots.filter(
+          (slot) =>
+            slot.capability === "automatic" &&
+            (slot.name === "taxCode" || slot.name === "pec") &&
+            rules[slot.name] !== "unmanaged",
+        ).length ?? 0);
 
   return (
     <s-stack direction="block" gap="base">
@@ -150,25 +158,9 @@ function NativeLabelsContent({
         disabled={busy}
         onChange={(event) => onEnabledChange(event.currentTarget.checked)}
       />
-      <details className="checkout-labels-disclosure checkout-labels-technical">
-        <summary className="checkout-labels-disclosure__summary">{copy.technicalDetails}</summary>
-        <div className="checkout-labels-disclosure__body">
-          <s-stack direction="block" gap="small-200">
-            <s-stack direction="inline" gap="small-100" alignItems="center">
-              <s-text type="strong">{copy.mode}:</s-text>
-              <s-badge tone={state.mode === "off" ? "neutral" : "info"}>
-                {copy.modeValues[state.mode]}
-              </s-badge>
-            </s-stack>
-            <s-text color="subdued">
-              {state.lastSyncAt
-                ? copy.lastSync(formatDateTime(state.lastSyncAt, locale))
-                : copy.neverSynced}
-            </s-text>
-            <s-paragraph>{copy.operationalSummary(automaticCount, pendingCount)}</s-paragraph>
-          </s-stack>
-        </div>
-      </details>
+      {state.mode !== "off" && !enabled ? (
+        <s-banner tone="warning">{copy.disableWarning}</s-banner>
+      ) : null}
       {snapshot ? (
         <>
           {pendingCount > 0 &&
@@ -179,6 +171,7 @@ function NativeLabelsContent({
             contexts={displayedContexts}
             rules={rules}
             locale={locale}
+            timeZone={timeZone}
             confirmations={confirmed}
             busy={busy}
             storefrontUrl={storefrontUrl}
@@ -197,18 +190,33 @@ function NativeLabelsContent({
           onAccept={() => submitIntent(RULES_INTENTS.acceptCheckoutLabels)}
         />
       ) : null}
-      <s-button
-        disabled={busy}
-        loading={refreshing}
-        onClick={() =>
-          submitIntent(RULES_INTENTS.refreshCheckoutLabels, [], {
-            taxCode: rules.taxCode,
-            pec: rules.pec,
-          })
-        }
-      >
-        {copy.refresh}
-      </s-button>
+      <div className="checkout-labels-technical">
+        <s-stack direction="block" gap="small-200">
+          <s-stack direction="block" gap="small-100">
+            <s-text color="subdued">
+              {copy.mode}: {copy.modeValues[state.mode]}
+            </s-text>
+            <s-text color="subdued">
+              {state.lastSyncAt
+                ? copy.lastSync(formatDateTime(state.lastSyncAt, locale, timeZone))
+                : copy.neverSynced}
+            </s-text>
+            <s-text color="subdued">{copy.operationalSummary(automaticCount, pendingTotal)}</s-text>
+          </s-stack>
+          <s-button
+            disabled={busy}
+            loading={refreshing}
+            onClick={() =>
+              submitIntent(RULES_INTENTS.refreshCheckoutLabels, [], {
+                taxCode: rules.taxCode,
+                pec: rules.pec,
+              })
+            }
+          >
+            {copy.refresh}
+          </s-button>
+        </s-stack>
+      </div>
     </s-stack>
   );
 }
@@ -218,11 +226,13 @@ function nativeLabelsPresentation({
   state,
   keptByMerchant,
   pendingCount,
+  pendingLanguages,
 }: {
   copy: ReturnType<typeof texts>["rules"]["labels"];
   state: CheckoutLabelState;
   keptByMerchant: boolean;
   pendingCount: number;
+  pendingLanguages: string[];
 }) {
   if (state.lastErrorCode && state.lastErrorCode !== "checkout_labels_confirmation_pending") {
     return { status: copy.statusManualRequired, summary: copy.nativeSummaryError };
@@ -230,16 +240,16 @@ function nativeLabelsPresentation({
   if (pendingCount > 0) {
     return {
       status: copy.statusManualRequired,
-      summary: copy.nativeSummaryNeedsReview(pendingCount),
+      summary: copy.nativeSummaryNeedsReview(pendingCount, pendingLanguages),
     };
   }
   if (keptByMerchant) {
-    return { status: copy.statusManagedByShopify, summary: copy.nativeSummaryKept };
+    return { status: copy.statusKept, summary: copy.nativeSummaryKept };
   }
   if (state.mode === "off" && state.decision === "pending") {
     return { status: copy.statusManualRequired, summary: copy.nativeSummaryNeedsChoice };
   }
-  return { status: copy.statusManagedByShopify, summary: copy.nativeSummaryReady };
+  return { status: copy.statusUpToDate, summary: copy.nativeSummaryReady };
 }
 
 export function KeepNativeLabelsChoice({
@@ -266,6 +276,7 @@ function LabelComparison({
   contexts,
   rules,
   locale,
+  timeZone,
   confirmations,
   busy,
   storefrontUrl,
@@ -275,6 +286,7 @@ function LabelComparison({
   contexts: FiscalLabelContext[];
   rules: Rules;
   locale: Locale;
+  timeZone: string | null;
   confirmations: Map<string, string>;
   busy: boolean;
   storefrontUrl: string;
@@ -302,10 +314,18 @@ function LabelComparison({
               {pendingSlotIds.length > 0 ? (
                 <s-badge tone="warning">{copy.statusManualRequired}</s-badge>
               ) : context.guidedSlotIds.length === 0 ? (
-                <s-badge tone="success">{copy.statusManagedByShopify}</s-badge>
+                <s-badge tone="success">{copy.statusUpToDate}</s-badge>
               ) : null}
             </s-stack>
-            {context.note ? <s-text color="subdued">{context.note}</s-text> : null}
+            {context.notes.length > 0 ? (
+              <s-stack direction="block" gap="small-100">
+                {context.notes.map((note) => (
+                  <s-text key={note} color="subdued">
+                    {note}
+                  </s-text>
+                ))}
+              </s-stack>
+            ) : null}
             <div className="checkout-label-context__rows">
               {context.entries.map(({ name, slot }) => {
                 const proposed = proposedLabelForSlot(slot, rules);
@@ -317,11 +337,12 @@ function LabelComparison({
                     </s-text>
                     <s-stack direction="block" gap="small-100">
                       <s-text color="subdued">
-                        {copy.current}: {observed ?? copy.notAvailable}
+                        {copy.current}:{" "}
+                        {observed ? quoteLabel(observed, locale) : copy.notAvailable}
                       </s-text>
                       {proposed && !checkoutLabelValuesMatch(proposed, observed) ? (
                         <s-text>
-                          {copy.proposed}: {proposed}
+                          {copy.proposed}: {quoteLabel(proposed, locale)}
                         </s-text>
                       ) : (
                         <s-text color="subdued">{copy.noChange}</s-text>
@@ -370,7 +391,7 @@ function LabelComparison({
               </details>
             ) : confirmedAt ? (
               <s-text color="subdued">
-                {copy.lastManualVerification(formatDateTime(confirmedAt, locale))}
+                {copy.lastManualVerification(formatDateTime(confirmedAt, locale, timeZone))}
               </s-text>
             ) : null}
           </div>

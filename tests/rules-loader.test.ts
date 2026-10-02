@@ -5,7 +5,6 @@ import { createAppContext } from "../app/context.server";
 const mocks = vi.hoisted(() => ({
   authenticate: vi.fn(),
   observedConfigHash: vi.fn(),
-  readConfigurationHistory: vi.fn(async () => []),
   readAddress2Declaration: vi.fn(),
   readCheckoutLabelState: vi.fn(),
   reconcile: vi.fn(),
@@ -24,10 +23,6 @@ vi.mock("../app/validation.server", async (importOriginal) => ({
 vi.mock("../app/checkout-labels/repository.server", () => ({
   readCheckoutLabelState: mocks.readCheckoutLabelState,
   saveAddress2FormMode: vi.fn(),
-}));
-vi.mock("../app/configuration-history.server", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../app/configuration-history.server")>()),
-  readConfigurationHistory: mocks.readConfigurationHistory,
 }));
 
 test("la pagina Regole carica l’entitlement autorevole per l’anteprima", async () => {
@@ -67,7 +62,7 @@ test("la pagina Regole carica l’entitlement autorevole per l’anteprima", asy
   const serverTiming = new Headers(result.init?.headers).get("Server-Timing");
   expect(serverTiming).toMatch(/auth;dur=/);
   expect(serverTiming).toMatch(/d1_validation_state;dur=/);
-  expect(serverTiming).toMatch(/d1_configuration_history;dur=/);
+  expect(serverTiming).not.toMatch(/d1_configuration_history/);
   expect(serverTiming).toMatch(/total;dur=/);
   expect(
     new Headers(

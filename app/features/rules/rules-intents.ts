@@ -4,7 +4,6 @@ export const RULES_INTENTS = {
   loadCheckoutLabels: "load_checkout_labels",
   save: "save",
   saveAddress2FormMode: "save_address2_form_mode",
-  restoreConfiguration: "restore_configuration",
   refreshCheckoutLabels: "refresh_checkout_labels",
   restoreAddress2Labels: "restore_address2_labels",
   acceptAddress2Labels: "accept_address2_labels",
@@ -24,10 +23,7 @@ export type CheckoutLabelsLoadAction = {
 };
 
 export type RulesIntent = (typeof RULES_INTENTS)[keyof typeof RULES_INTENTS];
-export type CheckoutLabelsIntent = Exclude<
-  RulesIntent,
-  typeof RULES_INTENTS.save | typeof RULES_INTENTS.restoreConfiguration
->;
+export type CheckoutLabelsIntent = Exclude<RulesIntent, typeof RULES_INTENTS.save>;
 export type SubmitCheckoutLabelsIntent = (
   intent: CheckoutLabelsIntent,
   slotIds?: string[],

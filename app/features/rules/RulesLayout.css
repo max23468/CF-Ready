@@ -57,6 +57,15 @@
   outline-offset: 2px;
 }
 
+/* R-B8: il badge resta accanto al titolo; se manca spazio va a capo il titolo. */
+.checkout-labels-title {
+  align-items: center;
+  display: grid;
+  gap: var(--p-space-200, 0.5rem);
+  grid-template-columns: minmax(0, max-content) auto;
+  justify-content: start;
+}
+
 .checkout-labels-disclosure__body {
   border-block-start: 1px solid var(--p-color-border-secondary, #dfe3e8);
   padding: var(--p-space-400, 1rem);

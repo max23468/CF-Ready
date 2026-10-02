@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
 import { DEFAULT_CONFIG } from "../../app/config";
-import { recordConfigurationHistory } from "../../app/configuration-history.server";
+import { recordLatestConfiguration } from "../../app/configuration-history.server";
 import { readStoredShopSnapshot } from "../../app/validation/repository.server";
 import { insertShop } from "../support/lifecycle";
 
@@ -27,10 +27,11 @@ test("la Home legge l'ultima configurazione salvata come stato non confermato", 
     } as const,
     messages: DEFAULT_CONFIG.messages,
   };
-  await recordConfigurationHistory(env.DB, shop, [
-    { rules: DEFAULT_CONFIG.rules, messages: DEFAULT_CONFIG.messages },
-    current,
-  ]);
+  await recordLatestConfiguration(env.DB, shop, {
+    rules: DEFAULT_CONFIG.rules,
+    messages: DEFAULT_CONFIG.messages,
+  });
+  await recordLatestConfiguration(env.DB, shop, current);
 
   expect(await readStoredShopSnapshot(env.DB, shop)).toEqual({
     displayName: "Negozio",

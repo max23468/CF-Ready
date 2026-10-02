@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useFetcher, useLoaderData, useLocation, useNavigate, useRevalidator } from "react-router";
 import type { AppErrorCode } from "../../app-error";
+import { texts } from "../../i18n";
 import { openBillingApproval } from "../../revalidation";
+import { showToast } from "../../save-bar";
 import type { HomeData, action, loader } from "./home.server";
 import {
   handlePlanComparisonRequest,
@@ -23,7 +25,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const fetcher = useFetcher<typeof action>();
   const result = fetcher.data as
-    | { ok: boolean; errorCode?: AppErrorCode; confirmationUrl?: string }
+    | { ok: boolean; errorCode?: AppErrorCode; confirmationUrl?: string; enabled?: boolean }
     | undefined;
   const confirmationUrl = result?.confirmationUrl;
   const submit = (intent: string, source?: string) =>
@@ -32,6 +34,12 @@ export default function HomePage() {
     });
 
   useNativeReviewPrompt(data.reviewDue);
+
+  const toggled = result?.ok ? result.enabled : undefined;
+  const { activated, deactivated } = texts(data.locale).home;
+  useEffect(() => {
+    if (toggled !== undefined) showToast(toggled ? activated : deactivated);
+  }, [result, toggled, activated, deactivated]);
 
   useEffect(() => {
     openBillingApproval(confirmationUrl);

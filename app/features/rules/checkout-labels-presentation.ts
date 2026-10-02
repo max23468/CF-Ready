@@ -16,7 +16,7 @@ import { texts, type Locale } from "../../i18n";
 export type FiscalLabelContext = {
   key: string;
   label: string;
-  note: string | null;
+  notes: string[];
   language: string;
   marketName: string | null;
   verificationMarkets: string[];
@@ -45,7 +45,7 @@ export function fiscalLabelContexts(
     const base: FiscalLabelContext = {
       key: `${shopLocale.locale}:global`,
       label: copy.generalText,
-      note: null,
+      notes: [],
       language: shopLocale.family === "it" ? copy.italian : copy.english,
       marketName: null,
       verificationMarkets: [],
@@ -107,7 +107,7 @@ export function fiscalLabelContexts(
       marketContexts.push({
         key: `${shopLocale.locale}:${marketId}`,
         label: copy.marketException(market.name),
-        note: market.resolution === "ambiguous" ? copy.checkoutCheckRequired : null,
+        notes: market.resolution === "ambiguous" ? [copy.checkoutCheckRequired] : [],
         language: shopLocale.family === "it" ? copy.italian : copy.english,
         marketName: market.name,
         verificationMarkets: [],
@@ -119,17 +119,33 @@ export function fiscalLabelContexts(
       });
     }
 
-    const baseNotes = [
+    base.notes = [
       shopLocale.primary ? copy.primary : null,
       !shopLocale.published ? copy.unpublished : null,
       marketSlots.size > 0 && marketContexts.length === 0 ? copy.allMarketsSame : null,
       base.verificationMarkets.length > 0
         ? copy.marketCheckIncluded(base.verificationMarkets)
         : null,
-    ].filter(Boolean);
-    base.note = baseNotes.length > 0 ? baseNotes.join(" · ") : null;
+    ].filter((note): note is string => Boolean(note));
     return base.entries.length > 0 ? [base, ...marketContexts] : [];
   });
+}
+
+// Contesti con una verifica manuale ancora da confermare e relative lingue, nell'ordine dello store.
+export function pendingFiscalLabels(
+  contexts: FiscalLabelContext[],
+  guidedConfirmations: Array<{ slotId: string }>,
+) {
+  const confirmed = new Set(guidedConfirmations.map(({ slotId }) => slotId));
+  const contextsPending = contexts.filter((context) =>
+    context.guidedSlotIds.some((slotId) => !confirmed.has(slotId)),
+  );
+  const families = [
+    ...new Set(
+      contextsPending.flatMap((context) => context.entries.map(({ slot }) => slot.family)),
+    ),
+  ];
+  return { contexts: contextsPending, families };
 }
 
 function needsManualVerification(slot: CheckoutLabelSlot, rules: Rules) {
@@ -225,7 +241,6 @@ export function address2Presentation(
 export function addressTone(classification: CheckoutLabelState["address2Classification"]) {
   if (classification === "fiscal_conflict") return "critical" as const;
   if (classification === "nonstandard") return "warning" as const;
-  if (classification === "expected") return "success" as const;
   return "neutral" as const;
 }
 

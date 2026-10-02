@@ -1,6 +1,5 @@
 import type { AppErrorCode } from "../../app-error";
 import { oneOf, PEC_RULE_MODES, readConfig, TAX_CODE_RULE_MODES } from "../../config";
-import { readConfigurationHistoryEntry } from "../../configuration-history.server";
 import { ADDRESS2_FORM_MODES } from "../../checkout-labels/domain";
 import {
   readCheckoutLabelState,
@@ -46,43 +45,6 @@ export async function saveAddress2Mode(db: D1Database, shop: string, form: FormD
   if (!mode) return failure("generic");
   await saveAddress2FormMode(db, shop, mode);
   return { ok: true as const };
-}
-
-async function restoreConfiguration(context: RulesActionContext) {
-  const { admin, db, shop, form, labelScopesGranted } = context;
-  const historyId = Number(form.get("historyId"));
-  const expectedConfigHash = form.get("configHash");
-  if (
-    !Number.isSafeInteger(historyId) ||
-    historyId <= 0 ||
-    typeof expectedConfigHash !== "string"
-  ) {
-    return failure("generic");
-  }
-  const snapshot = await readConfigurationHistoryEntry(db, shop, historyId);
-  if (!snapshot) return failure("config_conflict");
-  const labelState = await readCheckoutLabelState(db, shop);
-  const result = labelScopesGranted
-    ? await saveRulesAndCheckoutLabels(admin, db, shop, {
-        rules: snapshot.rules,
-        messages: snapshot.messages,
-        expectedConfigHash,
-        labelsEnabled: labelState.mode !== "off",
-        confirmAutomaticWrite: true,
-        expectedLabelsRevision: revision(form),
-      })
-    : await writeValidation(
-        admin,
-        db,
-        shop,
-        { rules: snapshot.rules, messages: snapshot.messages },
-        null,
-        expectedConfigHash,
-      );
-  if (!labelScopesGranted && labelState.mode !== "off" && result.ok) {
-    return { ok: true as const, labelsErrorCode: "checkout_labels_scope_required" as const };
-  }
-  return result;
 }
 
 async function refreshCheckoutLabels(context: RulesActionContext) {
@@ -232,8 +194,6 @@ export function handleRulesAction(
   switch (intent) {
     case RULES_INTENTS.loadCheckoutLabels:
       return loadCheckoutLabelsForView(context);
-    case RULES_INTENTS.restoreConfiguration:
-      return restoreConfiguration(context);
     case RULES_INTENTS.refreshCheckoutLabels:
       return refreshCheckoutLabels(context);
     case RULES_INTENTS.restoreAddress2Labels:

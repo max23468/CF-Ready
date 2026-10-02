@@ -19,16 +19,10 @@ import {
   rebaseRulesDraft,
   type RulesFormDraft,
 } from "../features/rules/rules-form";
-import {
-  describeCheckout,
-  formatDateTime,
-  resolveLocale,
-  texts,
-  validationStatus,
-  type Locale,
-} from "../i18n";
+import { describeCheckout, resolveLocale, texts, validationStatus, type Locale } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
-import { setSaveBarVisibility } from "../save-bar";
+import { setSaveBarVisibility, showToast } from "../save-bar";
+import { RevealBanner } from "../ui-feedback";
 import { createServerTiming } from "../server-timing.server";
 import { authenticate } from "../shopify.server";
 import { PEC_RULE_MODES, readConfig, showSavedBanner, TAX_CODE_RULE_MODES } from "../config";
@@ -37,11 +31,10 @@ import { readCheckoutLabelState } from "../checkout-labels/repository.server";
 import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../checkout-labels/service.server";
 import { checkoutLabelValuesMatch, proposedLabelForSlot } from "../checkout-labels/domain";
 import { observedConfigHash, reconcile } from "../validation.server";
-import { changedConfigurationFields, type ConfigurationSnapshot } from "../configuration-history";
-import { readConfigurationHistory } from "../configuration-history.server";
 import { handleRulesAction, saveAddress2Mode } from "../features/rules/rules-action.server";
 import { parseRulesIntent, RULES_INTENTS } from "../features/rules/rules-intents";
 import { useDeferredCheckoutLabels } from "../features/rules/use-deferred-checkout-labels";
+import { NATIVE_LABELS_ID } from "../features/rules/NativeCheckoutLabels";
 
 const SAVE_BAR = "checkout-rules-save-bar";
 const LABEL_CONFIRM_MODAL = "confirm-checkout-label-management";
@@ -52,9 +45,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const db = context.get(databaseContext);
   const labelStatePromise = timing.measure("d1_validation_state", () =>
     readCheckoutLabelState(db, session.shop),
-  );
-  const historyPromise = timing.measure("d1_configuration_history", () =>
-    readConfigurationHistory(db, session.shop),
   );
   const statePromise = reconcile(admin, db, session.shop, {
     prefetchBilling: true,
@@ -68,22 +58,21 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     state.errorCode === "duplicate_validations_active"
       ? state.errorCode
       : null;
-  const [configHash, labelState, configurationHistory] = await Promise.all([
+  const [configHash, labelState] = await Promise.all([
     observedConfigHash(validation),
     labelStatePromise,
-    historyPromise,
   ]);
   const shopHandle = session.shop.replace(/\.myshopify\.com$/, "");
 
   return data(
     {
       locale: resolveLocale(request),
+      timeZone: state.timeZone,
       duplicateError,
       // §11.4: firma della configurazione osservata, rimandata indietro al salvataggio.
       configHash,
       rules: config.rules,
       messages: config.messages,
-      configurationHistory,
       enabled: state.validationEnabled,
       entitled: state.entitlement.kind !== "none",
       labelScopesGranted: null,
@@ -133,7 +122,11 @@ export const shouldRevalidate: ShouldRevalidateFunction = (args) => {
 export default function CheckoutRules() {
   const saved = useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
-  const labels = useDeferredCheckoutLabels(saved);
+  // R-H3: se le etichette sono cambiate dopo l'ultima lettura, si rileggono da sole e la bozza
+  // resta pronta per un nuovo salvataggio.
+  const labelsConflict =
+    result?.ok === false && result.errorCode === "checkout_labels_conflict" ? result : null;
+  const labels = useDeferredCheckoutLabels(saved, labelsConflict);
   const labelsLoading = labels.loading;
   const labelState = labels.state;
   const labelSnapshot = labels.snapshot;
@@ -166,6 +159,10 @@ export default function CheckoutRules() {
   };
 
   useEffect(() => setChangedSinceResult(false), [result]);
+  const savedText = t.rules.saved;
+  useEffect(() => {
+    if (result?.ok && !labelsErrorCode) showToast(savedText);
+  }, [result, labelsErrorCode, savedText]);
 
   const dirty = draft.rules.taxCode !== saved.rules.taxCode || draft.rules.pec !== saved.rules.pec;
   const labelsDirty = labelsEnabled !== (labelState.mode !== "off");
@@ -298,39 +295,33 @@ export default function CheckoutRules() {
               }}
             >
               <div className="rules-layout__fields">
-                <s-section>
-                  <s-stack direction="block" gap="small-100">
-                    <s-heading>{t.rules.taxCodeLabel}</s-heading>
-                    <s-choice-list
-                      label={t.rules.taxCodeLabel}
-                      labelAccessibilityVisibility="exclusive"
-                      name="taxCode"
-                    >
-                      {TAX_CODE_RULE_MODES.map((mode) => (
-                        <s-choice key={mode} value={mode} selected={mode === draft.rules.taxCode}>
-                          {t.rules.taxCode[mode]}
-                          <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
-                        </s-choice>
-                      ))}
-                    </s-choice-list>
-                  </s-stack>
+                <s-section heading={t.rules.taxCodeLabel}>
+                  <s-choice-list
+                    label={t.rules.taxCodeLabel}
+                    labelAccessibilityVisibility="exclusive"
+                    name="taxCode"
+                  >
+                    {TAX_CODE_RULE_MODES.map((mode) => (
+                      <s-choice key={mode} value={mode} selected={mode === draft.rules.taxCode}>
+                        {t.rules.taxCode[mode]}
+                        <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
+                      </s-choice>
+                    ))}
+                  </s-choice-list>
                 </s-section>
-                <s-section>
-                  <s-stack direction="block" gap="small-100">
-                    <s-heading>{t.rules.pecLabel}</s-heading>
-                    <s-choice-list
-                      label={t.rules.pecLabel}
-                      labelAccessibilityVisibility="exclusive"
-                      name="pec"
-                    >
-                      {PEC_RULE_MODES.map((mode) => (
-                        <s-choice key={mode} value={mode} selected={mode === draft.rules.pec}>
-                          {t.rules.pec[mode]}
-                          <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
-                        </s-choice>
-                      ))}
-                    </s-choice-list>
-                  </s-stack>
+                <s-section heading={t.rules.pecLabel}>
+                  <s-choice-list
+                    label={t.rules.pecLabel}
+                    labelAccessibilityVisibility="exclusive"
+                    name="pec"
+                  >
+                    {PEC_RULE_MODES.map((mode) => (
+                      <s-choice key={mode} value={mode} selected={mode === draft.rules.pec}>
+                        {t.rules.pec[mode]}
+                        <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
+                      </s-choice>
+                    ))}
+                  </s-choice-list>
                 </s-section>
               </div>
             </form>
@@ -338,6 +329,7 @@ export default function CheckoutRules() {
             <div className="rules-layout__labels">
               <CheckoutLabelsSection
                 locale={saved.locale}
+                timeZone={saved.timeZone}
                 rules={draft.rules}
                 scopeGranted={labels.scopeGranted}
                 snapshot={labelSnapshot}
@@ -353,23 +345,6 @@ export default function CheckoutRules() {
                   setLabelsEnabled(value);
                 }}
                 onScopeGranted={() => labels.load(draft.rules)}
-              />
-              <ConfigurationHistory
-                locale={saved.locale}
-                current={{ rules: saved.rules, messages: saved.messages }}
-                entries={saved.configurationHistory}
-                busy={busy}
-                onRestore={(historyId) =>
-                  send(
-                    {
-                      intent: RULES_INTENTS.restoreConfiguration,
-                      historyId: String(historyId),
-                      configHash: saved.configHash ?? "",
-                      labelsRevision: labelSnapshot?.revision ?? "",
-                    },
-                    { method: "post" },
-                  )
-                }
               />
             </div>
           </div>
@@ -403,57 +378,6 @@ export default function CheckoutRules() {
   );
 }
 
-function ConfigurationHistory({
-  locale,
-  current,
-  entries,
-  busy,
-  onRestore,
-}: {
-  locale: Locale;
-  current: ConfigurationSnapshot;
-  entries: Awaited<ReturnType<typeof readConfigurationHistory>>;
-  busy: boolean;
-  onRestore: (id: number) => void;
-}) {
-  const t = texts(locale);
-  const copy = t.rules.history;
-  const visible = entries.flatMap((entry) => {
-    const changed = changedConfigurationFields(current, entry);
-    return changed.length > 0 ? [{ entry, changed }] : [];
-  });
-  if (visible.length === 0) return null;
-
-  return (
-    <s-section heading={copy.heading}>
-      <s-stack direction="block" gap="base">
-        <s-paragraph color="subdued">{copy.body}</s-paragraph>
-        {visible.map(({ entry, changed }) => (
-          <s-box key={entry.id} background="subdued" borderRadius="base" padding="base">
-            <s-stack direction="block" gap="small-100">
-              <s-text type="strong">{formatDateTime(entry.createdAt, locale)}</s-text>
-              <s-text color="subdued">
-                {copy.changed(
-                  changed.map((field) =>
-                    field === "taxCode"
-                      ? t.rules.taxCodeLabel
-                      : field === "pec"
-                        ? t.rules.pecLabel
-                        : copy.messages,
-                  ),
-                )}
-              </s-text>
-              <s-button disabled={busy} onClick={() => onRestore(entry.id)}>
-                {copy.restore}
-              </s-button>
-            </s-stack>
-          </s-box>
-        ))}
-      </s-stack>
-    </s-section>
-  );
-}
-
 function RulesResultBanners({
   t,
   result,
@@ -473,20 +397,31 @@ function RulesResultBanners({
 }) {
   return (
     <>
-      {showSavedBanner(result, dirty, changedSinceResult) ? (
-        <div className="cf-motion-reveal">
-          <s-banner tone={labelsErrorCode ? "warning" : "success"}>
-            {labelsErrorCode ? t.rules.labelsSaved : t.rules.saved}
-          </s-banner>
-        </div>
+      {labelsErrorCode && showSavedBanner(result, dirty, changedSinceResult) ? (
+        <RevealBanner tone="warning">
+          {t.rules.labelsSaved}
+          <s-button slot="secondary-actions" onClick={showNativeLabels}>
+            {t.rules.showLabels}
+          </s-button>
+        </RevealBanner>
       ) : null}
-      {errorCode && (errorCode !== "config_conflict" || conflict) ? (
-        <div className="cf-motion-reveal">
-          <s-banner tone="critical">{localizedError(t.errors, errorCode)}</s-banner>
-        </div>
+      {errorCode === "checkout_labels_conflict" ? (
+        <RevealBanner tone="warning">{t.rules.labelsConflict}</RevealBanner>
+      ) : errorCode && (errorCode !== "config_conflict" || conflict) ? (
+        <RevealBanner tone="critical">{localizedError(t.errors, errorCode)}</RevealBanner>
       ) : null}
     </>
   );
+}
+
+// R-H5: apre "Testi del checkout" e lo porta in vista.
+function showNativeLabels() {
+  const details = document.getElementById(NATIVE_LABELS_ID) as HTMLDetailsElement | null;
+  if (!details) return;
+  details.open = true;
+  const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  details.scrollIntoView?.({ block: "start", behavior: reduced ? "auto" : "smooth" });
+  details.querySelector("summary")?.focus();
 }
 
 function rulesConflictRows(
