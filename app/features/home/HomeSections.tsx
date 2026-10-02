@@ -122,13 +122,12 @@ function HomeRulesSummary({ data, t }: { data: HomeData; t: Texts }) {
           {t.rules.taxCode[data.rules.taxCode]}
         </s-badge>
         <s-text>{t.rules.pecLabel}</s-text>
-        {data.rules.pec === "required_when_company" ? (
-          <s-text>{t.rules.pec[data.rules.pec]}</s-text>
-        ) : (
-          <s-badge tone={data.rules.pec === "unmanaged" ? "neutral" : "info"}>
-            {t.rules.pec[data.rules.pec]}
-          </s-badge>
-        )}
+        {/* La forma breve tiene il badge leggibile anche a 320 px. */}
+        <s-badge tone={data.rules.pec === "unmanaged" ? "neutral" : "info"}>
+          {data.rules.pec === "required_when_company"
+            ? t.home.pecRequiredForCompanies
+            : t.rules.pec[data.rules.pec]}
+        </s-badge>
         <s-text>{t.home.messagesLabel}</s-text>
         <s-badge tone={data.messagesDefault ? "neutral" : "info"}>
           {data.messagesDefault ? t.home.messagesDefault : t.home.messagesCustom}
