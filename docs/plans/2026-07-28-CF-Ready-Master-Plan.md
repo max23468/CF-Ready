@@ -35,7 +35,7 @@ La conversazione di origine è stata trattata come materiale storico non autorev
 
 Questa revisione integra inoltre:
 
-- strategia API aggiornata: Admin GraphQL e Function API `2026-07` stabili;
+- strategia API aggiornata: Admin GraphQL e Function API `2026-10` stabili;
 - comportamento esplicito `blockOnFailure: false`;
 - limite Shopify di 25 Validation Function attive per store;
 - limite relativo alle generazioni ricorrenti degli ordini in abbonamento;
@@ -539,7 +539,7 @@ confronta con il contenuto servito all’edge.
 | D-102 | Usare una sola Validation per store e non modificare quelle di altre app. | Shopify consente al massimo 25 Validation Function attive per store; se il limite è raggiunto l’app mostra un errore operativo senza eliminare risorse altrui. |
 | D-103 | Non promettere copertura delle generazioni successive degli ordini ricorrenti in abbonamento. | La superficie Cart and Checkout Validation corrente non le supporta; il checkout iniziale va testato e documentato separatamente. |
 | D-104 | Il metafield della Function usa il namespace riservato `$app:cf-ready-validation` e la key `function-configuration`. | Allinea il dato al relativo Function handle e riduce collisioni o ambiguità. |
-| D-105 | Usare Function API e Admin GraphQL `2026-07`, stabili dal 1º luglio 2026. | Mantiene entrambe le superfici sulla stessa versione trimestrale; prima della `1.0.0` lo schema generato dalla CLI corrente resta un gate obbligatorio. |
+| D-105 | Usare Function API, Admin GraphQL e webhook `2026-10`, stabili dal 1º ottobre 2026; la Partner API resta alla sua ultima versione disponibile `2026-07`. Aggiornamento autorizzato dall’owner il 2 ottobre 2026 per la `1.15.19`. | Mantiene ogni superficie sulla versione stabile supportata; schema generato, tipi e build della Function si riconfermano con la CLI corrente a ogni aggiornamento. |
 | D-106 | Handover operativo con Sol 5.6 e ragionamento `medium`. | Profilo definitivo indicato dall’owner. |
 | D-107 | Brand Foundation approvata il 28 luglio 2026. `docs/brand/brand-foundation.md` è la fonte vincolante per identità visiva, tono di voce e materiali pubblici. | Gate M2 superato: UI, sito, listing e screenshot si progettano senza rework di brand. |
 | D-108 | Palette: Verde bottiglia `#20492F` primario, Arancio cotto `#C97B2E` accento unico, Panna `#F7F5EE`, Inchiostro `#1A211C`, Grigio caldo `#6B6A5C`. | Il verde porta l’associazione con la validazione restando lontano dal verde-teal Shopify. L’arancio è l’unico tono caldo sopra 3:1 sia sul verde sia sulla carta. |
@@ -1115,13 +1115,13 @@ sequenceDiagram
 - Tipo: Cart and Checkout Validation Function.
 - Linguaggio: TypeScript.
 - Target corrente: `cart.validations.generate.run`.
-- Function API: pin `2026-07`, stabile dal 1º luglio 2026. Non pubblicare
+- Function API: pin `2026-10`, stabile dal 1º ottobre 2026. Non pubblicare
   `1.0.0` finché schema generato, build, fixture server-side e almeno un
   checkout reale non sono stati riconfermati con la CLI supportata corrente.
   M10 copre le superfici non transazionali; il checkout reale resta un gate M11
   da osservare su un ordine che si verifichi organicamente, senza creare ordini
   artificiali.
-- Admin GraphQL API: pin `2026-07`, già stabile.
+- Admin GraphQL API: pin `2026-10`, già stabile.
 - Trigger logico: `CHECKOUT_INTERACTION` e `CHECKOUT_COMPLETION`, con un solo algoritmo automatico.
 - Configurazione: un metafield JSON sulla Validation.
 - Output: `validationAdd.errors`.
@@ -5449,9 +5449,9 @@ Le API e i requisiti cambiano: prima di implementare o pubblicare, verificare se
 
 - [Shopify Functions](https://shopify.dev/docs/apps/build/functions/index)
 - [Cart and Checkout Validation Function API — latest](https://shopify.dev/docs/api/functions/latest/cart-and-checkout-validation)
-- [Cart and Checkout Validation Function API 2026-07](https://shopify.dev/docs/api/functions/2026-07/cart-and-checkout-validation)
+- [Cart and Checkout Validation Function API 2026-10](https://shopify.dev/docs/api/functions/2026-10/cart-and-checkout-validation)
 - [Monitoring and handling errors in production](https://shopify.dev/docs/apps/build/functions/monitoring-and-errors) e [Test and debug Shopify Functions](https://shopify.dev/docs/apps/build/functions/test-debug-functions) — riverificare visibilità di input/output, scope richiesti, supporto di `console.log` per JavaScript e limite dei log
-- [Admin GraphQL API 2026-07](https://shopify.dev/docs/api/admin-graphql/2026-07)
+- [Admin GraphQL API 2026-10](https://shopify.dev/docs/api/admin-graphql/2026-10)
 - [`validationCreate`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/validationCreate)
 - [`validationUpdate`](https://shopify.dev/docs/api/admin-graphql/latest/mutations/validationUpdate)
 - [`ShopAddress`](https://shopify.dev/docs/api/admin-graphql/latest/objects/ShopAddress)
