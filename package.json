@@ -1,10 +1,10 @@
 {
   "name": "cf-ready",
-  "version": "1.15.18",
+  "version": "1.15.19",
   "private": true,
-  "packageManager": "npm@12.1.0",
+  "packageManager": "npm@12.2.0",
   "packageExtensions": {
-    "@shopify/shopify-app-react-router@3.0.0": {
+    "@shopify/shopify-app-react-router@3.0.1": {
       "peerDependencies": {
         "react-router": "8.4.0"
       }
@@ -81,23 +81,23 @@
   },
   "dependencies": {
     "@shopify/shopify-api": "15.0.0",
-    "@shopify/shopify-app-react-router": "3.0.0",
+    "@shopify/shopify-app-react-router": "3.0.1",
     "@shopify/shopify-app-session-storage": "7.0.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-router": "8.4.0"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.60.2",
-    "@cloudflare/vitest-plugin": "1.2.8",
+    "@cloudflare/vite-plugin": "1.62.5",
+    "@cloudflare/vitest-plugin": "1.3.6",
     "@graphql-codegen/cli": "7.4.3",
     "@playwright/test": "1.63.0",
     "@react-router/dev": "8.4.0",
-    "@shopify/cli": "4.8.2",
+    "@shopify/cli": "4.8.4",
     "@shopify/polaris-types": "1.1.0",
     "@stryker-mutator/core": "10.0.0",
     "@stryker-mutator/vitest-runner": "10.0.0",
-    "@types/node": "26.6.3",
+    "@types/node": "26.6.4",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitest/browser-playwright": "4.1.11",
@@ -109,13 +109,13 @@
     "istanbul-lib-report": "3.0.1",
     "istanbul-reports": "3.2.0",
     "mdast-util-from-markdown": "2.0.3",
-    "oxfmt": "0.70.0",
-    "oxlint": "1.85.0",
+    "oxfmt": "0.71.0",
+    "oxlint": "1.86.0",
     "react-doctor": "0.9.14",
     "typescript": "7.0.2",
-    "vite": "8.3.1",
+    "vite": "8.3.2",
     "vitest": "4.1.11",
-    "wrangler": "4.141.0"
+    "wrangler": "4.147.0"
   },
   "workspaces": [
     "extensions/*"
@@ -134,8 +134,8 @@
     "graphql-config": "5.1.7",
     "lodash": "4.18.1",
     "qs": "6.16.0",
-    "sharp": "0.35.4",
-    "undici": "7.29.1"
+    "sharp": "0.35.5",
+    "undici": "8.11.2"
   },
   "author": "Matteo"
 }

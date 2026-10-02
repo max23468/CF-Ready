@@ -13,6 +13,10 @@ const manifestPath = join(functionRoot, "shopify.extension.toml");
 function canonicalSchema(schema, label) {
   try {
     const ast = visit(parse(schema), {
+      enter(node) {
+        // Descrizioni e deprecazioni non cambiano i valori accettati dalla Function.
+        if (node.description) return { ...node, description: undefined };
+      },
       leave(node) {
         const byName = (values) =>
           values
@@ -60,6 +64,7 @@ function canonicalSchema(schema, label) {
           case Kind.FIELD_DEFINITION:
             return { ...node, arguments: byName(node.arguments) };
           case Kind.DIRECTIVE:
+            if (node.name.value === "deprecated") return null;
             return { ...node, arguments: byName(node.arguments) };
           case Kind.OBJECT:
             return { ...node, fields: byName(node.fields) };
@@ -92,8 +97,8 @@ export function verifyFunctionSchema(expected, actual) {
 }
 
 export function verifyFunctionApiVersion(manifest) {
-  if (!/^api_version\s*=\s*"2026-07"\s*$/m.test(manifest)) {
-    throw new Error('La Validation Function non dichiara api_version = "2026-07".');
+  if (!/^api_version\s*=\s*"2026-10"\s*$/m.test(manifest)) {
+    throw new Error('La Validation Function non dichiara api_version = "2026-10".');
   }
 }
 
@@ -115,7 +120,7 @@ export function fetchFunctionSchema({
   );
 
   if (result.status !== 0 || !result.stdout) {
-    throw new Error("Shopify CLI non ha restituito lo schema Function API 2026-07.");
+    throw new Error("Shopify CLI non ha restituito lo schema Function API 2026-10.");
   }
   return result.stdout;
 }
@@ -126,7 +131,7 @@ function main() {
   const fetched = fetchFunctionSchema();
   verifyFunctionSchema(committed, fetched);
   process.stdout.write(
-    "Schema Function API 2026-07 verificato: nessuna differenza semantica rispetto a schema.graphql.\n",
+    "Schema Function API 2026-10 verificato: nessuna differenza semantica rispetto a schema.graphql.\n",
   );
 }
 
