@@ -26,6 +26,8 @@ export type SupportDiagnosticState = {
   checkoutLabelMarketCount: number;
   checkoutLabelsLastSyncAt: string | null;
   checkoutLabelsErrorCode: string | null;
+  // Solo per mostrare gli orari: non entra nel messaggio di assistenza.
+  timeZone: string | null;
 };
 
 export async function readSupportDiagnosticState(
@@ -34,7 +36,7 @@ export async function readSupportDiagnosticState(
 ): Promise<SupportDiagnosticState> {
   const row = await db
     .prepare(
-      `SELECT state.config_schema_version, state.config_hash, state.last_sync_at,
+      `SELECT shop.iana_timezone, state.config_schema_version, state.config_hash, state.last_sync_at,
               state.last_error_code, state.validation_enabled,
               state.validation_state_revision,
               state.checkout_labels_mode, state.checkout_labels_last_sync_at,
@@ -60,6 +62,7 @@ export async function readSupportDiagnosticState(
     )
     .bind(shopDomain)
     .first<{
+      iana_timezone: string | null;
       config_schema_version: number | null;
       config_hash: string | null;
       last_sync_at: string | null;
@@ -130,5 +133,6 @@ export async function readSupportDiagnosticState(
     checkoutLabelMarketCount: row?.label_market_count ?? 0,
     checkoutLabelsLastSyncAt: checkoutLabelState.lastSyncAt,
     checkoutLabelsErrorCode: checkoutLabelState.lastErrorCode,
+    timeZone: row?.iana_timezone ?? null,
   };
 }

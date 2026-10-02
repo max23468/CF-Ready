@@ -42,9 +42,8 @@
 
 .guide-faq__entry summary {
   margin-inline: -6px;
-  padding: 4px 6px;
+  padding: 4px 1.75rem 4px 6px;
   border-radius: var(--p-border-radius-200, 8px);
-  cursor: pointer;
 }
 
 .guide-faq__question {

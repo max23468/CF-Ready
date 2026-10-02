@@ -78,3 +78,18 @@ test("una persistenza Home tardiva non sovrascrive una scrittura Validation succ
     display_name: "Nome recente",
   });
 });
+
+test("il fuso dello store resta salvato anche quando una scrittura non lo fornisce", async () => {
+  const shop = await insertShop("validation-timezone.example.myshopify.com");
+  const base = { displayName: "Store", countryCode: "IT", validation: undefined, errorCode: null };
+  const timeZone = () =>
+    env.DB.prepare("SELECT iana_timezone FROM shops WHERE shop_domain = ?")
+      .bind(shop)
+      .first("iana_timezone");
+
+  await persistValidationState(env.DB, shop, { ...base, ianaTimezone: "Europe/Rome" });
+  expect(await timeZone()).toBe("Europe/Rome");
+
+  await persistValidationState(env.DB, shop, base);
+  expect(await timeZone()).toBe("Europe/Rome");
+});

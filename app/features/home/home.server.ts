@@ -334,7 +334,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     class: "validation",
     metadata: { enabled: result.enabled, schema_version: CONFIG_SCHEMA_VERSION },
   });
-  return { ok: true };
+  return { ok: true, enabled: result.enabled };
 };
 
 async function subscribe(admin: Admin, db: D1Database, shopDomain: string, kind: PlanKind) {

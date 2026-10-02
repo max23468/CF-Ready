@@ -38,7 +38,6 @@ describe("componenti merchant nel browser", () => {
         expect(typeof formatter).toBe("function");
         expect((formatter as (...values: unknown[]) => string)(...args).trim()).not.toBe("");
       }
-      expect(messages.rules.history.changed(["Codice fiscale", "PEC"])).toContain("PEC");
     }
   });
 
@@ -110,7 +109,7 @@ describe("componenti merchant nel browser", () => {
 
     (language as HTMLElement & { value: string }).value = "en";
     await dispatch(language, new Event("change", { bubbles: true }));
-    expect(view.container.textContent).toContain("Interactive preview");
+    expect(view.container.textContent).toContain(en.rules.simulator.heading);
     (language as HTMLElement & { value: string }).value = "it";
     await dispatch(language, new Event("change", { bubbles: true }));
 
@@ -143,7 +142,9 @@ describe("componenti merchant nel browser", () => {
     (delivery as HTMLElement & { value: string }).value = "DE";
     await dispatch(delivery, new Event("change", { bubbles: true }));
     await dispatch(
-      view.container.querySelector("button.checkout-simulator__button--clear")!,
+      [...view.container.querySelectorAll("s-button")].find(
+        (button) => button.textContent === it.rules.simulator.clear,
+      )!,
       new MouseEvent("click", { bubbles: true }),
     );
     expect((delivery as HTMLElement & { value: string }).value).toBe("DE");

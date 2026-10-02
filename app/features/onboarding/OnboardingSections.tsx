@@ -97,33 +97,37 @@ export function OnboardingStep4Content({
 }) {
   return (
     <>
-      <s-heading>{t.onboarding.step4Heading}</s-heading>
-      <div className="cf-data-list">
-        <div className="cf-data-row cf-onboarding-summary-row">
-          <s-text>{t.rules.taxCodeLabel}</s-text>
-          <div className="cf-onboarding-summary-value">
-            <s-text>{t.rules.taxCode[saved.rules.taxCode]}</s-text>
+      <s-stack direction="block" gap="small-100">
+        <s-heading>{t.onboarding.step4Heading}</s-heading>
+        <div className="cf-data-list">
+          <div className="cf-data-row cf-onboarding-summary-row">
+            <s-text>{t.rules.taxCodeLabel}</s-text>
+            <div className="cf-onboarding-summary-value">
+              <s-text>{t.rules.taxCode[saved.rules.taxCode]}</s-text>
+            </div>
+          </div>
+          <div className="cf-data-row cf-onboarding-summary-row">
+            <s-text>{t.rules.pecLabel}</s-text>
+            <div className="cf-onboarding-summary-value">
+              <s-text>{t.rules.pec[saved.rules.pec]}</s-text>
+            </div>
+          </div>
+          <div className="cf-data-row cf-onboarding-summary-row">
+            <s-text>{t.onboarding.labelsSummary}</s-text>
+            <div className="cf-onboarding-summary-value">
+              <s-text>{t.rules.labels.modeValues[saved.labelState.mode]}</s-text>
+            </div>
+          </div>
+          <div className="cf-data-row cf-onboarding-summary-row">
+            <s-text>{t.onboarding.address2Summary}</s-text>
+            <div className="cf-onboarding-summary-value">
+              <s-text>
+                {t.rules.labels.addressStatus[saved.labelState.address2Classification]}
+              </s-text>
+            </div>
           </div>
         </div>
-        <div className="cf-data-row cf-onboarding-summary-row">
-          <s-text>{t.rules.pecLabel}</s-text>
-          <div className="cf-onboarding-summary-value">
-            <s-text>{t.rules.pec[saved.rules.pec]}</s-text>
-          </div>
-        </div>
-        <div className="cf-data-row cf-onboarding-summary-row">
-          <s-text>{t.onboarding.labelsSummary}</s-text>
-          <div className="cf-onboarding-summary-value">
-            <s-text>{t.rules.labels.modeValues[saved.labelState.mode]}</s-text>
-          </div>
-        </div>
-        <div className="cf-data-row cf-onboarding-summary-row">
-          <s-text>{t.onboarding.address2Summary}</s-text>
-          <div className="cf-onboarding-summary-value">
-            <s-text>{t.rules.labels.addressStatus[saved.labelState.address2Classification]}</s-text>
-          </div>
-        </div>
-      </div>
+      </s-stack>
       {saved.labelState.mode === "partial" ? (
         <s-paragraph color="subdued">{t.onboarding.labelsMixedDescription}</s-paragraph>
       ) : null}
@@ -135,32 +139,34 @@ export function OnboardingStep4Content({
             : t.onboarding.step4BodyNeedsEntitlement}
       </s-paragraph>
       <s-divider />
-      <s-heading>{t.onboarding.step4TrialHeading}</s-heading>
-      {state.access === "trial" ? (
-        <s-paragraph>{t.onboarding.step4TrialActive}</s-paragraph>
-      ) : state.access === "plan" ? (
-        <s-paragraph>{t.onboarding.step4PlanActive}</s-paragraph>
-      ) : state.access === "first_run" ? (
-        <>
-          <s-paragraph>{t.onboarding.step4TrialBody}</s-paragraph>
-          <s-stack direction="inline" gap="base">
-            <s-button
-              variant="primary"
-              disabled={busy}
-              loading={pendingIntent === "start_trial"}
-              onClick={startTrial}
-            >
-              {t.onboarding.step4StartTrial}
-            </s-button>
+      <s-stack direction="block" gap="small-100">
+        <s-heading>{t.onboarding.step4TrialHeading}</s-heading>
+        {state.access === "trial" ? (
+          <s-paragraph>{t.onboarding.step4TrialActive}</s-paragraph>
+        ) : state.access === "plan" ? (
+          <s-paragraph>{t.onboarding.step4PlanActive}</s-paragraph>
+        ) : state.access === "first_run" ? (
+          <s-stack direction="block" gap="base">
+            <s-paragraph>{t.onboarding.step4TrialBody}</s-paragraph>
+            <s-stack direction="inline" gap="base">
+              <s-button
+                variant="primary"
+                disabled={busy}
+                loading={pendingIntent === "start_trial"}
+                onClick={startTrial}
+              >
+                {t.onboarding.step4StartTrial}
+              </s-button>
+              <s-button onClick={showPlans}>{t.onboarding.step4SeePlans}</s-button>
+            </s-stack>
+          </s-stack>
+        ) : (
+          <s-stack direction="block" gap="base">
+            <s-paragraph>{t.plan.trialOver}</s-paragraph>
             <s-button onClick={showPlans}>{t.onboarding.step4SeePlans}</s-button>
           </s-stack>
-        </>
-      ) : (
-        <>
-          <s-paragraph>{t.plan.trialOver}</s-paragraph>
-          <s-button onClick={showPlans}>{t.onboarding.step4SeePlans}</s-button>
-        </>
-      )}
+        )}
+      </s-stack>
     </>
   );
 }

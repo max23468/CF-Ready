@@ -271,7 +271,7 @@ test("l'attivazione e la disattivazione registrano soltanto scritture riuscite",
   });
 
   mocks.writeValidation.mockResolvedValueOnce({ ok: true, enabled: false });
-  await expect(action(actionRequest("disable"))).resolves.toEqual({ ok: true });
+  await expect(action(actionRequest("disable"))).resolves.toEqual({ ok: true, enabled: false });
   expect(mocks.recordEvent).toHaveBeenLastCalledWith(db, {
     shopDomain: shop,
     name: "validation_disabled",
@@ -280,7 +280,7 @@ test("l'attivazione e la disattivazione registrano soltanto scritture riuscite",
   });
 
   mocks.writeValidation.mockResolvedValueOnce({ ok: true, enabled: true });
-  await expect(action(actionRequest("enable"))).resolves.toEqual({ ok: true });
+  await expect(action(actionRequest("enable"))).resolves.toEqual({ ok: true, enabled: true });
   expect(mocks.recordEvent).toHaveBeenLastCalledWith(
     db,
     expect.objectContaining({

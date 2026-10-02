@@ -137,32 +137,26 @@ export function CheckoutSimulator({
         <s-box background="transparent" border="base" borderRadius="large" overflow="hidden">
           <s-box padding="@container (inline-size > 420px) small-200, small-100">
             <s-stack direction="block" gap="small-200">
-              <s-grid
-                gridTemplateColumns="@container (inline-size > 420px) 1fr auto, 1fr"
-                alignItems="center"
-                gap="small-200"
-              >
-                <s-grid gridTemplateColumns="auto 1fr" gap="small-200" alignItems="start">
-                  <s-avatar src="/favicon.svg" alt="CF Ready" size="base" />
-                  <s-stack direction="block" gap="small-100">
-                    <span className="checkout-simulator__eyebrow">
-                      <s-text color="subdued">{copy.eyebrow}</s-text>
-                    </span>
-                    <s-heading>{copy.heading}</s-heading>
-                    <s-text color="subdued">{copy.privatePreview}</s-text>
-                  </s-stack>
-                </s-grid>
-                <span
-                  aria-atomic="true"
-                  aria-live="polite"
-                  className="checkout-simulator__outcome cf-motion-swap"
-                  key={outcome}
-                  role="status"
+              <s-grid gridTemplateColumns="auto 1fr" gap="small-200" alignItems="center">
+                <s-avatar src="/favicon.svg" alt="CF Ready" size="base" />
+                <s-grid
+                  gridTemplateColumns="@container (inline-size > 420px) 1fr auto, 1fr"
+                  alignItems="center"
+                  gap="small-100"
                 >
-                  <s-badge tone={outcomeTone[outcome]} icon={outcomeIcon[outcome]}>
-                    {copy.outcomes[outcome]}
-                  </s-badge>
-                </span>
+                  <s-heading>{copy.heading}</s-heading>
+                  <span
+                    aria-atomic="true"
+                    aria-live="polite"
+                    className="checkout-simulator__outcome cf-motion-swap"
+                    key={outcome}
+                    role="status"
+                  >
+                    <s-badge tone={outcomeTone[outcome]} icon={outcomeIcon[outcome]}>
+                      {copy.outcomes[outcome]}
+                    </s-badge>
+                  </span>
+                </s-grid>
               </s-grid>
             </s-stack>
           </s-box>
@@ -178,9 +172,7 @@ export function CheckoutSimulator({
                     <s-text type="strong">{copy.orderContext}</s-text>
                   </s-stack>
                   <details>
-                    <summary className="checkout-simulator__disclosure">
-                      {t.rules.exceptionsHeading}
-                    </summary>
+                    <summary className="cf-disclosure">{t.rules.exceptionsHeading}</summary>
                     <s-box paddingBlockStart="small-100">
                       <s-paragraph color="subdued">{t.rules.exceptions[0]}</s-paragraph>
                     </s-box>
@@ -206,7 +198,7 @@ export function CheckoutSimulator({
                     />
                   </s-grid>
                   <details>
-                    <summary className="checkout-simulator__disclosure">{copy.advanced}</summary>
+                    <summary className="cf-disclosure">{copy.advanced}</summary>
                     <s-box paddingBlockStart="small-200">
                       <s-stack direction="block" gap="small-200">
                         <s-select
@@ -290,7 +282,10 @@ export function CheckoutSimulator({
 
           <s-divider />
 
-          <s-box background="subdued" padding="small-200">
+          <s-box
+            background="subdued"
+            padding="@container (inline-size > 420px) small-200, small-100"
+          >
             <div className="checkout-simulator__actions">
               <div className="checkout-simulator__secondary-actions">
                 <div className="checkout-simulator__scenario-copy">
@@ -311,9 +306,7 @@ export function CheckoutSimulator({
                     <SimulatorScenarioOptions rules={rules} copy={copy} />
                   </s-select>
                 </div>
-                <button
-                  type="button"
-                  className="checkout-simulator__button checkout-simulator__button--clear"
+                <s-button
                   onClick={() =>
                     updateState({
                       company: "",
@@ -324,7 +317,7 @@ export function CheckoutSimulator({
                   }
                 >
                   {copy.clear}
-                </button>
+                </s-button>
               </div>
               <button
                 type="button"

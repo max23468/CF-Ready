@@ -188,6 +188,7 @@ export async function reconcile(
   const persistence = persistValidationState(db, shopDomain, {
     displayName: shop.name,
     countryCode,
+    ianaTimezone: shop.ianaTimezone,
     validation,
     validationEnabled,
     errorCode,
@@ -214,6 +215,7 @@ export async function reconcile(
   return {
     shopName: shop.name,
     countryCode,
+    timeZone: shop.ianaTimezone,
     partnerDevelopment: shop.plan.partnerDevelopment,
     today,
     validation,

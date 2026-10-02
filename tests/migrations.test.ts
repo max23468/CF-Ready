@@ -576,6 +576,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "0024_installation_diagnostics.sql",
     "0025_webhook_monitor_indexes.sql",
     "0026_billing_observability.sql",
+    "0027_shop_timezone.sql",
   ]);
   await applyThrough(db, migrations, "0022_configuration_history.sql");
   await insertShop(db);

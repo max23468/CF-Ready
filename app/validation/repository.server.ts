@@ -11,6 +11,7 @@ export async function persistValidationState(
   state: {
     displayName: string;
     countryCode: string;
+    ianaTimezone?: string;
     validation: Validation | undefined;
     validationEnabled?: boolean;
     errorCode: AppErrorCode | null;
@@ -30,6 +31,7 @@ export async function persistValidationState(
         `UPDATE shops SET
            display_name = ?,
            country_code = ?,
+           iana_timezone = COALESCE(?, iana_timezone),
            installation_status = CASE
              WHEN installation_status = 'blocked_country' THEN 'active'
              ELSE installation_status
@@ -43,6 +45,7 @@ export async function persistValidationState(
       .bind(
         safeStoreDisplayName(state.displayName),
         state.countryCode,
+        state.ianaTimezone ?? null,
         now,
         shopDomain,
         state.expectedRevision ?? null,

@@ -75,9 +75,7 @@ export const en: typeof it = {
     badgeActive: "Active",
     badgeInactive: "Turned off",
     badgeNotStarted: "Not active yet",
-    titleActive: "Check active at checkout",
-    titleDisabled: "Check not active",
-    titleNotStarted: "Checkout check not active yet",
+    validationHeading: "Checkout check",
     titleLapsed: "Check on, plan not active",
     noEntitlement:
       "Without an active plan, your rules don’t apply at checkout. Rules and messages stay saved and apply again once you pay.",
@@ -94,6 +92,9 @@ export const en: typeof it = {
     editRules: "Edit rules",
     activate: "Turn on in checkout",
     deactivate: "Turn off in checkout",
+    activated: "Check turned on in checkout.",
+    deactivated: "Check turned off.",
+    openOrders: "Open orders",
     deactivateConfirm:
       "From now on checkout stops checking the fields. Rules and messages stay saved and you can turn them back on whenever you want.",
     nextConfigure: "Choose which fields to check in checkout.",
@@ -113,7 +114,7 @@ export const en: typeof it = {
   messages: {
     heading: "Customer messages",
     saved: "Messages saved.",
-    italian: "Italiano",
+    italian: "Italian",
     english: "English",
     taxCodeRequired: "Tax code required",
     taxCodeInvalid: "Tax code invalid",
@@ -214,7 +215,7 @@ export const en: typeof it = {
     privacyNote:
       "The message includes your store domain, app version, language and technical status: that’s usually all we need to understand the problem.",
     subject: "CF Ready support",
-    chooseCategory: "Choose a topic:",
+    chooseCategory: "Choose a topic",
     requestSupport: "Get support",
     categories: {
       checkout: "Checkout and rules",
@@ -263,7 +264,7 @@ export const en: typeof it = {
       notChecked:
         "Diagnostics have not been run in this session. This does not mean the check is inactive.",
       openPlan: "Check plan",
-      lastSync: "Last stored sync",
+      lastSync: "Last check of rules and activation",
       unknown: "Unavailable",
       manualHeading: "Check manually at checkout",
       manualBody:
@@ -321,11 +322,11 @@ export const en: typeof it = {
           },
           {
             q: "How do I complete a manual label check?",
-            a: "On “Checkout rules”, choose the language and open the case that needs attention. Follow the displayed steps to check a real checkout and, if necessary, edit the texts in Shopify’s editor. After saving in Shopify, return to CF Ready and select “Re-read fields from Shopify”. When the values match, confirm the manual check. “Last successful re-read from Shopify” shows when CF Ready read the fields; “Last manual confirmation in checkout” shows when you confirmed the real-checkout check.",
+            a: "On “Checkout rules”, choose the language and open the case that needs attention. Follow the displayed steps to check a real checkout and, if necessary, edit the texts in Shopify’s editor. After saving in Shopify, return to CF Ready and select “Read fields again from Shopify”. When the values match, confirm the manual check. “Last read of labels from Shopify” shows when CF Ready read the fields; “Last manual confirmation in checkout” shows when you confirmed the real-checkout check.",
           },
           {
             q: "Why do the tax code or PEC still have a different label?",
-            a: "Check that you selected the correct language and open every case listed under “Checkout texts”. A market can inherit the general text or have its own customization. After each Shopify edit, select “Re-read fields from Shopify”, then check a real checkout for the affected language and market.",
+            a: "Check that you selected the correct language and open every case listed under “Checkout text”. A market can inherit the general text or have its own customization. After each Shopify edit, select “Read fields again from Shopify”, then check a real checkout for the affected language and market.",
           },
           {
             q: "What happens if I stop label management or uninstall CF Ready?",
@@ -350,7 +351,7 @@ export const en: typeof it = {
           },
           {
             q: "What should I do if something doesn’t look right?",
-            a: "Use “Refresh and check” under “Is the check missing?” on this page to check rules, activation, and plan. Use “Re-read fields from Shopify” on Checkout rules to refresh labels. Then check a real checkout for the affected language and market. If the issue remains, select “Copy diagnostics” in the Support box and paste the result into your request.",
+            a: "Use “Refresh and check” under “Is the check missing?” on this page to check rules, activation, and plan. Use “Read fields again from Shopify” on Checkout rules to refresh labels. Then check a real checkout for the affected language and market. If the issue remains, select “Copy diagnostics” in the Support box and paste the result into your request.",
           },
         ],
       },
@@ -415,6 +416,9 @@ export const en: typeof it = {
     heading: "Checkout rules",
     saved: "Rules saved.",
     labelsSaved: "Rules saved. The labels need attention.",
+    showLabels: "Show labels",
+    labelsConflict:
+      "The Shopify labels changed after the last read. CF Ready read them again and kept your changes: press Save again.",
     taxCodeLabel: "Italian tax code (Codice Fiscale)",
     pecLabel: "Certified email address (PEC)",
     taxCode: {
@@ -447,12 +451,11 @@ export const en: typeof it = {
     previewHeading: "What customers will see",
     simulator: {
       unknownCountry: "Not provided",
-      eyebrow: "CF Ready · checkout simulation",
       heading: "Test checkout",
-      privatePreview: "Interactive preview",
       previewLanguage: "Preview language",
-      labelsAfterSave: "Labels shown after saving the rules",
-      italian: "Italiano",
+      labelsAfterSave:
+        "Labels follow the rules selected here; the checkout changes after you save.",
+      italian: "Italian",
       english: "English",
       orderContext: "Order destination",
       customerData: "Customer tax details",
@@ -496,13 +499,6 @@ export const en: typeof it = {
         ready: "Checkout ready",
       },
     },
-    history: {
-      heading: "Configuration history",
-      body: "The latest 10 configurations from the previous 90 days are available. Restoring updates rules and messages; the current plan and activation stay in place.",
-      messages: "Customer messages",
-      changed: (fields: string[]) => `Changes: ${fields.join(", ")}.`,
-      restore: "Restore this configuration",
-    },
     labels: {
       heading: "Checkout labels",
       loading: "Reading Shopify labels…",
@@ -511,23 +507,26 @@ export const en: typeof it = {
       permissionsBody:
         "To compare labels, CF Ready needs access to translations, languages and markets.",
       requestPermissions: "Grant permissions",
-      statusManagedByShopify: "Managed by Shopify",
+      statusUpToDate: "Up to date",
+      statusKept: "Managed by you",
       statusManualRequired: "Manual verification required",
       nativeSummaryNeedsAccess: "Grant access to check the checkout text.",
-      nativeSummaryNeedsReview: (count: number) =>
-        `${count === 1 ? "One checkout needs" : `${count} checkouts need`} verification.`,
+      nativeSummaryNeedsReview: (count: number, languages: string[]) =>
+        `${count === 1 ? "One checkout" : `${count} checkouts`} in ${languages.join(" and ")} ${count === 1 ? "needs" : "need"} verification.`,
+      languageNames: { it: "Italian", en: "English" },
       nativeSummaryNeedsChoice: "Choose whether CF Ready should manage this text.",
       nativeSummaryError: "CF Ready did not complete the latest check.",
       nativeSummaryKept: "You chose to keep the current text.",
       nativeSummaryReady: "The text matches the saved rules.",
       enable: "Automatically manage labels supported by Shopify",
       enableGuided: "Keep guided label checks active",
+      disableWarning:
+        "When you save, CF Ready restores the labels it wrote and stops updating them. Labels changed by you or by other apps stay as they are.",
       enableConfirm: "I compared the current and proposed fields",
       enableConfirmHeading: "Confirm automatic management",
       enableConfirmBody: "CF Ready will update these fields through Shopify:",
       enableConfirmAction: "Confirm and save",
       mode: "Mode",
-      technicalDetails: "Technical details",
       modeValues: {
         off: "Off",
         guided: "Guided",
@@ -536,28 +535,28 @@ export const en: typeof it = {
       },
       current: "Current field",
       proposed: "Field after saving",
-      language: "Language",
-      italian: "Italiano",
+      language: "Label language",
+      italian: "Italian",
       english: "English",
       unchanged: "Keep the current text",
       noChange: "No changes",
       generalText: "Default for this language",
       marketException: (market: string) => `Customization for the ${market} market`,
       unknownMarket: "unidentified market",
-      allMarketsSame: "All markets use this text",
+      allMarketsSame: "All markets use this text.",
       marketCheckIncluded: (markets: string[]) =>
         `Also check checkout for ${markets.join(", ")}: Shopify doesn’t identify its configuration with certainty.`,
-      primary: "primary",
-      unpublished: "not published",
+      primary: "Primary language.",
+      unpublished: "Language not published.",
       marketAmbiguous:
         "Shopify reports at least one market with an inherited or non-unique configuration. CF Ready groups matching values and identifies the additional checkouts to verify.",
       refresh: "Read fields again from Shopify",
       refreshComplete: "Fields refreshed from Shopify.",
       stop: "Restore and stop managing",
-      lastSync: (value: string) => `Last successful read from Shopify: ${value}`,
+      lastSync: (value: string) => `Last read of labels from Shopify: ${value}`,
       neverSynced: "No successful read from Shopify yet",
       operationalSummary: (automatic: number, manual: number) =>
-        `${automatic} ${automatic === 1 ? "label" : "labels"} managed by Shopify · ${manual} manual ${manual === 1 ? "verification" : "verifications"} required`,
+        `${automatic} ${automatic === 1 ? "label" : "labels"} updated automatically · ${manual} manual ${manual === 1 ? "verification" : "verifications"} required`,
       manualHeading: "How to complete the manual verification",
       manualSteps: (
         language: string,
@@ -601,11 +600,12 @@ export const en: typeof it = {
       openCheckoutContentEditor: "Open the checkout text editor",
       confirmGuided: "Confirm manual verification",
       lastManualVerification: (value: string) => `Last manual confirmation in checkout: ${value}`,
-      checkoutCheckRequired: "manual checkout verification required",
+      checkoutCheckRequired: "Manual checkout verification required.",
       keepNative: "Keep my labels",
       keepNativeAccepted: "Choice recorded: keep the current labels",
       addressHeading: "Second address line",
       addressModeLabel: "Second address line configuration",
+      addressModeSaved: "Second address line configuration saved.",
       addressModePlaceholder: "Select the active configuration",
       addressModeHelp:
         "Select the option active under Settings → Checkout. Shopify doesn’t expose it automatically to CF Ready.",
@@ -654,7 +654,7 @@ export const en: typeof it = {
     summaryBlocking: "An Italian customer can’t complete the order without the required fields.",
     summaryConditional: "PEC is required for Italian orders when the Company field is filled in.",
     summaryChecking: "What Italian customers enter is checked, but nothing is required.",
-    disabled: "The validation is turned off: these rules don’t apply to customers yet.",
+    disabled: "The validation is turned off: these rules don’t apply to customers.",
     lapsed:
       "The validation is on but your plan isn’t: while that’s the case, checkout blocks nothing.",
   },

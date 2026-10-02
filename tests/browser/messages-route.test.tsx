@@ -110,7 +110,7 @@ describe("Messaggi", () => {
     expect(
       (view.container.querySelector("s-text-area") as HTMLElement & { value: string }).value,
     ).toBe("Messaggio normalizzato");
-    expect(view.container.textContent).toContain(texts("it").messages.saved);
+    expect(shopify.toast.show).toHaveBeenCalledWith(texts("it").messages.saved);
     expect(shopify.saveBar.hide).toHaveBeenCalled();
   });
 
@@ -264,6 +264,6 @@ describe("Messaggi", () => {
 
     router.actionData = { ok: true };
     await view.rerender(<CustomerMessages />);
-    expect(view.container.textContent).toContain(texts("it").messages.saved);
+    expect(shopify.toast.show).toHaveBeenCalledWith(texts("it").messages.saved);
   });
 });

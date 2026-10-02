@@ -33,6 +33,9 @@ test("la diagnostica legge solo lo stato D1 minimizzato e dà precedenza all'acc
          shop_id, status, granted_at, created_at, updated_at
        ) SELECT id, 'active', ?, ?, ? FROM shops WHERE shop_domain = ?`,
     ).bind(now, now, now, shop),
+    env.DB.prepare("UPDATE shops SET iana_timezone = 'Europe/Rome' WHERE shop_domain = ?").bind(
+      shop,
+    ),
   ]);
 
   expect(await readSupportDiagnosticState(env.DB, shop)).toEqual({
@@ -53,6 +56,7 @@ test("la diagnostica legge solo lo stato D1 minimizzato e dà precedenza all'acc
     checkoutLabelMarketCount: 0,
     checkoutLabelsLastSyncAt: null,
     checkoutLabelsErrorCode: null,
+    timeZone: "Europe/Rome",
   });
 });
 
@@ -77,6 +81,7 @@ test("la diagnostica fallisce aperta su uno store senza stato operativo", async 
     checkoutLabelMarketCount: 0,
     checkoutLabelsLastSyncAt: null,
     checkoutLabelsErrorCode: null,
+    timeZone: null,
   });
 });
 

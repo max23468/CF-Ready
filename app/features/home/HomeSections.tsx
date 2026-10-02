@@ -46,19 +46,21 @@ export function HomeValidationSection({
   const presentation = homeValidationPresentation(data, status, firstRun, t);
   const continuity = trialContinuityNotice(data);
   return (
-    <s-section>
+    <s-section heading={t.home.validationHeading}>
       <s-stack direction="block" gap="base">
-        <div role="status">
-          <s-badge tone={verification === "pending" ? "info" : presentation.tone}>
-            {verification === "pending" ? t.home.verifying : presentation.badge}
-          </s-badge>
-        </div>
-        <s-heading>{presentation.title}</s-heading>
-        {firstRun ? null : (
-          <s-paragraph>
-            {homeCheckoutSummary({ rules: data.rules, status }, data.locale)}
-          </s-paragraph>
-        )}
+        <s-stack direction="block" gap="small-100">
+          <div role="status">
+            <s-badge tone={verification === "pending" ? "info" : presentation.tone}>
+              {verification === "pending" ? t.home.verifying : presentation.badge}
+            </s-badge>
+          </div>
+          {presentation.note ? <s-paragraph>{presentation.note}</s-paragraph> : null}
+          {firstRun ? null : (
+            <s-paragraph>
+              {homeCheckoutSummary({ rules: data.rules, status }, data.locale)}
+            </s-paragraph>
+          )}
+        </s-stack>
         {continuity ? (
           <MotionBanner tone={continuity.tone}>
             <s-stack direction="block" gap="small-100">
@@ -74,37 +76,20 @@ export function HomeValidationSection({
         ) : null}
         <s-divider />
         <s-stack direction="block" gap="small-100">
-          <s-query-container>
-            <s-grid
-              gridTemplateColumns="@container (inline-size > 300px) auto auto, 1fr"
-              justifyContent="start"
-              alignItems="center"
-              columnGap="base"
-              rowGap="small-100"
-            >
-              <s-text>{t.rules.taxCodeLabel}</s-text>
-              <s-badge>{t.rules.taxCode[data.rules.taxCode]}</s-badge>
-              <s-text>{t.rules.pecLabel}</s-text>
-              {data.rules.pec === "required_when_company" ? (
-                <s-text>{t.rules.pec[data.rules.pec]}</s-text>
-              ) : (
-                <s-badge>{t.rules.pec[data.rules.pec]}</s-badge>
-              )}
-              <s-text>{t.home.messagesLabel}</s-text>
-              <s-badge>
-                {data.messagesDefault ? t.home.messagesDefault : t.home.messagesCustom}
-              </s-badge>
-            </s-grid>
-          </s-query-container>
+          <HomeRulesSummary data={data} t={t} />
           <s-box background="subdued" borderRadius="base" padding="small-200">
-            <s-stack direction="inline" gap="small-100" alignItems="center">
+            <s-grid gridTemplateColumns="auto 1fr" columnGap="small-100" alignItems="start">
               <s-icon type="location" color="subdued" />
               <s-text color="subdued">{t.rules.exceptions[0]}</s-text>
-            </s-stack>
+            </s-grid>
           </s-box>
         </s-stack>
         <s-stack direction="inline" gap="base">
-          <s-button href="/app/rules" variant="primary">
+          {/* Da disattivata, con un diritto attivo, l'azione principale è riattivare. */}
+          <s-button
+            href="/app/rules"
+            variant={!data.validationEnabled && entitled ? "secondary" : "primary"}
+          >
             {t.home.editRules}
           </s-button>
           <HomeValidationAction
@@ -119,6 +104,37 @@ export function HomeValidationSection({
         </s-stack>
       </s-stack>
     </s-section>
+  );
+}
+
+function HomeRulesSummary({ data, t }: { data: HomeData; t: Texts }) {
+  return (
+    <s-query-container>
+      <s-grid
+        gridTemplateColumns="@container (inline-size > 300px) auto auto, 1fr"
+        justifyContent="start"
+        alignItems="center"
+        columnGap="base"
+        rowGap="small-100"
+      >
+        <s-text>{t.rules.taxCodeLabel}</s-text>
+        <s-badge tone={data.rules.taxCode === "unmanaged" ? "neutral" : "info"}>
+          {t.rules.taxCode[data.rules.taxCode]}
+        </s-badge>
+        <s-text>{t.rules.pecLabel}</s-text>
+        {data.rules.pec === "required_when_company" ? (
+          <s-text>{t.rules.pec[data.rules.pec]}</s-text>
+        ) : (
+          <s-badge tone={data.rules.pec === "unmanaged" ? "neutral" : "info"}>
+            {t.rules.pec[data.rules.pec]}
+          </s-badge>
+        )}
+        <s-text>{t.home.messagesLabel}</s-text>
+        <s-badge tone={data.messagesDefault ? "neutral" : "info"}>
+          {data.messagesDefault ? t.home.messagesDefault : t.home.messagesCustom}
+        </s-badge>
+      </s-grid>
+    </s-query-container>
   );
 }
 
@@ -141,13 +157,14 @@ function HomeValidationAction({
 }) {
   if (data.validationEnabled) {
     return (
-      <s-button commandFor="deactivate" command="--show" disabled={busy}>
+      <s-button tone="critical" commandFor="deactivate" command="--show" disabled={busy}>
         {t.home.deactivate}
       </s-button>
     );
   }
   return (
     <s-button
+      variant={entitled ? "primary" : "secondary"}
       disabled={!entitled || busy}
       loading={pendingIntent === "enable" && pendingSource === "status"}
       onClick={() => submit("enable", "status")}
@@ -161,19 +178,19 @@ export function HomeAside({
   nextStep,
   t,
 }: {
-  nextStep: { text: string; href: string | null };
+  nextStep: { text: string; href: string | null; label: string | null };
   t: Texts;
 }) {
   return (
     <>
       <s-section heading={t.home.nextHeading}>
-        <s-stack direction="block" gap="small-100">
+        <s-stack direction="block" gap="small-100" alignItems="start">
           <s-paragraph>{nextStep.text}</s-paragraph>
-          {nextStep.href ? <s-link href={nextStep.href}>{t.nav.rules}</s-link> : null}
+          {nextStep.href ? <s-link href={nextStep.href}>{nextStep.label}</s-link> : null}
         </s-stack>
       </s-section>
       <s-section heading={t.home.helpHeading}>
-        <s-stack direction="block" gap="small-100">
+        <s-stack direction="block" gap="small-100" alignItems="start">
           <s-paragraph>{t.home.helpBody}</s-paragraph>
           <s-link href="/app/guide">{t.nav.guide}</s-link>
         </s-stack>
@@ -209,6 +226,7 @@ export function DeactivateModal({
       <s-button
         slot="primary-action"
         variant="primary"
+        tone="critical"
         loading={pendingIntent === "disable"}
         commandFor="deactivate"
         command="--hide"
