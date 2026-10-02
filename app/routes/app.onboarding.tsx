@@ -32,7 +32,7 @@ import {
   planComparisonLocationState,
   requestPlanComparisonFromFrame,
 } from "../features/home/plan-comparison";
-import { describeCheckout, texts } from "../i18n";
+import { describeCheckout, quoteLabel, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { action, loader } from "../features/onboarding/onboarding.server";
 import "./app.onboarding.css";
@@ -369,15 +369,18 @@ function OnboardingRules(props: CurrentStepProps) {
       <s-box background="subdued" borderRadius="base" padding="base">
         <s-stack direction="block" gap="small-100">
           <s-heading>{t.onboarding.labelsPreviewHeading}</s-heading>
-          {(["it", "en"] as const).map((locale) => (
-            <s-text key={locale}>
-              {locale.toUpperCase()} ·{" "}
-              {checkoutLabelCopy("taxCode", locale, props.draftRules.taxCode) ??
-                t.rules.labels.unchanged}
-              {" · "}
-              {checkoutLabelCopy("pec", locale, props.draftRules.pec) ?? t.rules.labels.unchanged}
-            </s-text>
-          ))}
+          {(["it", "en"] as const).map((locale) => {
+            const label = (copy: string | null) =>
+              copy === null ? t.rules.labels.unchanged : quoteLabel(copy, props.saved.locale);
+            return (
+              <s-text key={locale}>
+                {locale.toUpperCase()} ·{" "}
+                {label(checkoutLabelCopy("taxCode", locale, props.draftRules.taxCode))}
+                {" · "}
+                {label(checkoutLabelCopy("pec", locale, props.draftRules.pec))}
+              </s-text>
+            );
+          })}
         </s-stack>
       </s-box>
       <OnboardingLabelControls {...props} />

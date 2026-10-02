@@ -1,4 +1,4 @@
-import { beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import {
   CHECKOUT_LABEL_KEYS,
   checkoutLabelSlotId,
@@ -94,6 +94,8 @@ beforeEach(() => {
   mocks.enable.mockResolvedValue("epoch-1");
   mocks.writeValidation.mockResolvedValue({ ok: true, enabled: true });
 });
+
+afterEach(() => vi.useRealTimers());
 
 test("il prefetch rende esplicito l'esito Shopify senza propagare il rifiuto", async () => {
   const snapshot = snapshotOf([]);
@@ -609,13 +611,45 @@ test("un errore dopo la Validation produce sincronizzazione parziale", async () 
 });
 
 test("un readback finale divergente resta recuperabile", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout"] });
   const tax = fiscalSlot({ capability: "automatic", currentValue: "Testo diverso" });
   mocks.readStored.mockResolvedValue([stored(tax, { capability: "automatic" })]);
   mocks.readLabels.mockResolvedValue(snapshotOf([tax]));
 
-  await expect(save(input())).resolves.toEqual({
+  const pending = save(input());
+  await vi.runAllTimersAsync();
+  await expect(pending).resolves.toEqual({
     ok: true,
     labelsErrorCode: "checkout_labels_partial_sync",
+  });
+  // Rilettura dopo la scrittura più due ricontrolli, poi l'esito parziale resta.
+  expect(mocks.readLabels).toHaveBeenCalledTimes(5);
+});
+
+test("una rilettura non ancora aggiornata dopo la scrittura non segnala una sincronizzazione parziale", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout"] });
+  const pec = fiscalSlot({
+    name: "pec",
+    key: CHECKOUT_LABEL_KEYS.pec,
+    capability: "automatic",
+    currentValue: "PEC",
+  });
+  const written = { ...pec, currentValue: "PEC (facoltativa)" };
+  mocks.readStored.mockResolvedValue([stored(pec, { capability: "automatic" })]);
+  mocks.readLabels
+    .mockResolvedValueOnce(snapshotOf([pec]))
+    .mockResolvedValueOnce(snapshotOf([pec]))
+    .mockResolvedValueOnce(snapshotOf([pec]))
+    .mockResolvedValue(snapshotOf([written]));
+
+  const pending = save(input());
+  await vi.runAllTimersAsync();
+  await expect(pending).resolves.toEqual({ ok: true, labelsErrorCode: null });
+  expect(mocks.register).toHaveBeenCalledOnce();
+  expect(mocks.mark).toHaveBeenLastCalledWith(db, shop, {
+    mode: "automatic",
+    errorCode: null,
+    synced: true,
   });
 });
 

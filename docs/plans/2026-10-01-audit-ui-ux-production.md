@@ -355,14 +355,14 @@ coverage e mutation rimandati alla pubblicazione.
 | T1, T2, T6 | Escluso dall'owner | Nessuna modifica |
 | T3 | Implementato | Freccia condivisa `.cf-disclosure` per FAQ e simulatore, al posto del triangolo del browser |
 | T4 | Implementato | Titolo e testo raggruppati con spazio piccolo in Home, onboarding e "Da verificare nel checkout" |
-| T5 | Implementato | "Previsto" verde, "Non previsto" grigio; in Home campi controllati e messaggi personalizzati azzurri, casi non gestiti e predefiniti grigi |
-| T7 | Implementato | Etichette reali di Shopify tra virgolette («…» in italiano, “…” in inglese) in Messaggi e Regole |
+| T5 | Implementato | "Previsto" verde, "Non previsto" grigio; in Home campi controllati e messaggi personalizzati azzurri, casi non gestiti e predefiniti grigi. La PEC obbligatoria per aziende, rimasta testo semplice da #599, usa il badge breve "Obbligatoria per aziende" per restare leggibile a 320 px |
+| T7 | Implementato | Etichette reali di Shopify tra virgolette («…» in italiano, “…” in inglese) in Messaggi, Regole (anche nella conferma della gestione automatica) e onboarding |
 | T8 | Implementato | Tolti i due punti da "Scegli l'argomento" |
 | T9 | Implementato | Nomi delle lingue nella lingua dell'interfaccia; risolve anche M8 |
 | T10 | Chiuso senza modifiche | Comportamento nativo di Polaris (`text-wrap: pretty`) |
 | T11 | Implementato | Orari nel fuso dello store con sigla; fuso salvato in `shops.iana_timezone` (migrazione 0027, D-173); diagnostica copiabile in UTC |
 | T12 | Implementato | "Ultima verifica di regole e attivazione" e "Ultima lettura delle etichette da Shopify"; risolve anche EN1 |
-| T13 | Implementato | Toast di App Bridge per gli esiti positivi; avvisi ed errori come banner che si portano in vista |
+| T13 | Implementato | Toast di App Bridge per gli esiti positivi; avvisi ed errori come banner che si portano in vista, separati da 16 px dalle card che seguono (la separazione mancava nella prima consegna) |
 | T14 | Implementato | Il focus dei link nelle card si limita al testo |
 | H1 | Implementato | Icona e testo del riquadro informativo in griglia, sulla stessa riga |
 | H2, H9 | Escluso dall'owner | Nessuna modifica |
@@ -381,7 +381,7 @@ coverage e mutation rimandati alla pubblicazione.
 | R-H8 | Implementato | Togliendo la gestione automatica compare l'avviso sulle conseguenze del salvataggio |
 | R-B1 | Implementato | Piede del simulatore con lo stesso margine del corpo: a 390 px la riga scenario non sporge più; "Svuota" è un `s-button` alto come la select |
 | R-B2 | Già risolto da #603 | Nessuna modifica |
-| R-B3 | Implementato | Intestazione ridotta a "Checkout di prova"; il badge di stato sta nella colonna del titolo anche sotto i 420 px di contenitore |
+| R-B3 | Implementato | Intestazione ridotta a "Simulatore del checkout"; il badge di stato sta nella colonna del titolo anche sotto i 420 px di contenitore |
 | R-B4 | Implementato | Note dei contesti come frasi separate con iniziale maiuscola ("Lingua primaria.", "Tutti i mercati usano questo testo.") |
 | R-B5 | Implementato | Badge "Aggiornati" ("Gestiti da te" se il merchant mantiene i suoi testi) al posto di "Gestito da Shopify"; il conteggio somma le etichette di tutte le lingue: "1 etichetta aggiornata automaticamente" |
 | R-B6 | Implementato | Tolto il pannello annidato "Dettagli tecnici": modalità, ultima lettura e conteggi sono righe in fondo, accanto a "Rileggi i campi da Shopify" |
@@ -391,3 +391,25 @@ coverage e mutation rimandati alla pubblicazione.
 | R-B10 | Implementato | "Le etichette seguono le regole selezionate qui; nel checkout cambiano dopo il salvataggio." |
 | R-B11 | Implementato | "Lingua" diventa "Lingua delle etichette"; "Lingua dei messaggi" e "Lingua dell'anteprima" restano |
 | R-B12 | Escluso dall'owner | Nessuna modifica |
+
+### Verifica su `cf-ready-dev` del 2 ottobre 2026
+
+Verifica in Chrome della `1.15.18-dev.58c8a10a224f`. Risultano corretti in Home
+H1 e H3-H8; in Regole R-H1-R-H3, R-H4 (a), R-H5, R-H7, R-H8 e R-B1, R-B3-R-B11;
+tra i trasversali T3, T4, T5, T7, T8, T9, T11, T12 e T13. R-H4 (b) non si
+riproduce: dopo cambio di regola e ritorno restano le conferme manuali italiana
+e inglese del 12 settembre, coerenti con lo stato D1. Nella seconda passata
+risultano corretti anche il toast "Messaggi salvati." (testo poi ripristinato),
+il focus di T14 limitato al testo di "Apri gli ordini", i quattro passi
+dell'onboarding (T4, T5, riepilogo coerente, nessuna scrittura) e Home, Regole,
+Messaggi e Guida a 500 px reali, la larghezza minima della finestra Chrome; 390
+e 320 px restano coperti dai test visuali.
+
+| ID | Problema | Stato |
+| --- | --- | --- |
+| V1 | Tornando a una regola già verificata, il salvataggio mostrava "Le etichette richiedono attenzione" mentre la rilettura successiva diceva "Aggiornati" (riprodotto due volte). In D1 conferme guidate intatte e valore scritto uguale all'osservato: la rilettura subito dopo la scrittura restituiva ancora la traduzione precedente | Corretto: due ricontrolli (400 e 1200 ms) prima di segnalare `checkout_labels_partial_sync` |
+| V2 | Il banner di esito toccava le card sottostanti (parte di T13) | Corretto |
+| V3 | In Home la PEC obbligatoria per aziende restava testo semplice (resto di T5, da #599) | Corretto con il badge breve |
+| V4 | "Checkout di prova" poteva sembrare un checkout reale in modalità test | Titolo "Simulatore del checkout", deciso dall'owner |
+| V5 | Aprendo l'onboarding direttamente o cambiando passo da tastiera, il contenuto del passo mostra il contorno di focus con il testo a filo del bordo | Corretto: il contenitore riceve ancora il focus, senza contorno |
+| V6 | Le etichette proposte nell'onboarding e nella conferma della gestione automatica non erano tra virgolette (resto di T7) | Corretto |

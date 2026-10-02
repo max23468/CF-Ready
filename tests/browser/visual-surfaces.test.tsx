@@ -11,6 +11,7 @@ import CheckoutRules from "../../app/routes/app.rules";
 import { DEFAULT_CONFIG } from "../../app/config";
 import type { CheckoutLabelsMode } from "../../app/checkout-labels/domain";
 import { CheckoutSimulator } from "../../app/features/rules/CheckoutSimulator";
+import { RevealBanner } from "../../app/ui-feedback";
 import "../../app/app.css";
 import "../../app/ui-motion.css";
 
@@ -87,7 +88,7 @@ test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", asy
     onboarding: "completed",
     complimentary: true,
     entitlement: { kind: "one_time", validThrough: null },
-    rules: { taxCode: "required_validated", pec: "optional_validated" },
+    rules: { taxCode: "required_validated", pec: "required_when_company" },
   };
   for (const width of [1280, 390, 320]) {
     await page.viewport(width, 844);
@@ -114,6 +115,11 @@ test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", asy
     expect(getComputedStyle(gridSurface).gridTemplateColumns.split(" ")).toHaveLength(
       width === 320 ? 1 : 2,
     );
+    // T5: anche la PEC obbligatoria per aziende è un badge azzurro, senza troncamenti.
+    const pecBadge = [...view.container.querySelectorAll("s-badge")].find(
+      (badge) => badge.textContent === texts("it").home.pecRequiredForCompanies,
+    );
+    expect(pecBadge?.getAttribute("tone")).toBe("info");
     for (const badge of view.container.querySelectorAll("s-badge")) {
       for (const element of badge.shadowRoot!.querySelectorAll<HTMLElement>("*")) {
         if (element.textContent === badge.textContent && element.clientWidth > 0) {
@@ -346,6 +352,21 @@ test("Polaris reale: Regole con card bianche sul fondo grigio desktop e mobile",
   }
 });
 
+test("Polaris reale: il banner di esito resta separato dalle card che seguono", async () => {
+  await page.viewport(1280, 844);
+  const view = await mount(
+    <s-page heading="Regole">
+      <RevealBanner tone="warning">{texts("it").rules.labelsSaved}</RevealBanner>
+      <s-section heading="Card">
+        <s-paragraph>Contenuto</s-paragraph>
+      </s-section>
+    </s-page>,
+  );
+  const banner = surfaceRect(view.container.querySelector("s-banner")!);
+  const card = surfaceRect(view.container.querySelector("s-section")!);
+  expect(card.top - banner.bottom).toBeGreaterThanOrEqual(16);
+});
+
 test("Polaris reale: simulatore stretto e focus tastiera leggibile", async () => {
   await page.viewport(320, 844);
   const view = await mount(
@@ -463,9 +484,19 @@ test("Polaris reale: cambio passo ripristina focus e scorrimento mobile", async 
     `__screenshots__/visual/onboarding-step3-${server.browser}-1280.png`,
   );
   await page.viewport(390, 844);
+  // Da tastiera Chrome mostrerebbe il contorno sul contenitore che riceve il focus.
+  (
+    page
+      .getByRole("button", { name: texts("it").onboarding.next, exact: true })
+      .element() as HTMLElement
+  ).focus();
   await act(async () => {
-    await page.getByRole("button", { name: texts("it").onboarding.next, exact: true }).click();
+    await userEvent.keyboard("{Enter}");
   });
+  const step4 = view.container.querySelector<HTMLElement>(".onboarding-step")!;
+  expect(step4.textContent).toContain(texts("it").onboarding.step4Heading);
+  expect(document.activeElement).toBe(step4);
+  expect(getComputedStyle(step4).outlineStyle).toBe("none");
   await captureSurface(
     view.container,
     `__screenshots__/visual/onboarding-step4-${server.browser}-390.png`,

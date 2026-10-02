@@ -3,6 +3,12 @@
   gap: 16px;
 }
 
+/* Il contenitore riceve il focus solo per portare lettori di schermo e tastiera al nuovo passo:
+   non è un controllo, quindi non mostra il contorno. */
+.onboarding-step:focus {
+  outline: none;
+}
+
 .cf-data-row.cf-onboarding-summary-row {
   grid-template-columns: 160px minmax(0, 1fr);
 }

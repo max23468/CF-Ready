@@ -17,7 +17,7 @@ export function RevealBanner({
     });
   }, []);
   return (
-    <div className="cf-motion-reveal" ref={ref}>
+    <div className="cf-reveal-banner cf-motion-reveal" ref={ref}>
       <s-banner tone={tone}>{children}</s-banner>
     </div>
   );
