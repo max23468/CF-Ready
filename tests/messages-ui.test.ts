@@ -1,12 +1,7 @@
 import { expect, test, vi } from "vitest";
 import { DEFAULT_CONFIG } from "../app/config";
 import { texts } from "../app/i18n";
-import {
-  rebaseMessageDraft,
-  messageSubmission,
-  shouldShowMessageCounter,
-  updateMessageDraft,
-} from "../app/messages-draft";
+import { rebaseMessageDraft, messageSubmission, updateMessageDraft } from "../app/messages-draft";
 import { setSaveBarVisibility } from "../app/save-bar";
 import { skipRevalidationWhenLeaving } from "../app/revalidation";
 
@@ -52,14 +47,6 @@ test("Salva serializza anche l'ultima battuta mentre la vista derivata è ancora
     configHash: "hash-corrente",
     "it.taxCodeRequired": "Ultima battuta",
   });
-});
-
-test("il contatore compare durante la modifica o quando il limite è vicino", () => {
-  expect(shouldShowMessageCounter(52, false)).toBe(false);
-  expect(shouldShowMessageCounter(52, true)).toBe(true);
-  expect(shouldShowMessageCounter(159, false)).toBe(false);
-  expect(shouldShowMessageCounter(160, false)).toBe(true);
-  expect(shouldShowMessageCounter(201, false)).toBe(true);
 });
 
 test("l'anteprima spiega il momento e l'esito del controllo in entrambe le lingue", () => {

@@ -1,10 +1,3 @@
-.guide-faq__heading {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 28px;
-}
-
 .guide-faq__groups {
   display: grid;
   gap: 20px;
@@ -13,13 +6,6 @@
 .guide-faq__group {
   display: grid;
   gap: 12px;
-}
-
-.guide-faq__group-heading {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 24px;
 }
 
 .guide-faq__entries {
@@ -40,16 +26,27 @@
   padding-block-end: 4px;
 }
 
+/* G-B7: lo sfondo di hover resta entro le linee divisorie; domanda e risposta rientrano
+   insieme di 6 px. */
 .guide-faq__entry summary {
-  margin-inline: -6px;
   padding: 4px 1.75rem 4px 6px;
   border-radius: var(--p-border-radius-200, 8px);
 }
 
 .guide-faq__question {
   font-size: 14px;
-  font-weight: 600;
   line-height: 20px;
+}
+
+.guide-faq__answer {
+  padding-block-start: 4px;
+  padding-inline: 6px;
+}
+
+/* La sezione riceve il focus solo per portarvi tastiera e lettori di schermo dal salto in
+   Assistenza: non è un controllo, quindi non mostra il contorno. */
+.guide-diagnosis:focus {
+  outline: none;
 }
 
 .guide-faq__entry summary:focus-visible {

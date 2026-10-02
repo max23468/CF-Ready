@@ -130,13 +130,23 @@ export const en: typeof it = {
     appearHeading: "Messages linked to your rules",
     appearIntro:
       "These indicators depend on the rules you chose, not on whether the check is active. A message can appear at checkout only while the check is active.",
-    appears: "Expected",
-    appearsNot: "Not expected",
+    appears: "Can appear",
+    appearsNot: "Does not appear",
+    fieldNames: { taxCode: "Tax code", pec: "PEC" },
+    shortLabels: {
+      taxCodeRequired: "Required",
+      taxCodeInvalid: "Invalid",
+      pecRequired: "Required",
+      pecInvalid: "Invalid",
+    },
     languageSelector: "Message language",
     previewHeading: "Checkout preview",
     previewContext: "When the customer tries to complete the order",
     previewErrorHeading: "Order can’t be completed",
     previewSelected: "Selected message",
+    previewHint: "The preview shows the message you are editing.",
+    previewNotShown: "With the current rules this message does not appear at checkout.",
+    editorHeading: "Error messages",
     previewFieldLabel: "Field label",
     previewCurrentFieldLabel: "Current Shopify label",
     previewProposedFieldLabel: "Proposed label",
@@ -181,7 +191,6 @@ export const en: typeof it = {
     step2Heading: "Choose what to check",
     step2Body: "You can change these choices whenever you want from Checkout rules.",
     labelsPreviewHeading: "Proposed labels in Italian and English",
-    labelsPermissionsGranted: "The permissions used to compare labels are available.",
     labelsPermissionsOptional:
       "You can grant permission to compare labels with Shopify now or continue without enabling it.",
     step3Heading: "Rules preview",
@@ -273,9 +282,19 @@ export const en: typeof it = {
       simulate: "Reproduce the case in the simulator",
       entitled: "Trial or plan active.",
       notEntitled: "No active trial or plan.",
-      checkoutLabels: "Checkout labels",
-      address2: "Second address line",
+      labelsStatus: {
+        synced: "Checkout labels are up to date.",
+        action_required: "Checkout labels need attention.",
+        scope_required: "Grant permissions to check the labels.",
+        unknown: "Checkout labels have not been checked yet.",
+      },
+      address2Decision: {
+        accepted: "You chose to keep the customization.",
+        manual_restore_required: "Manual restore required.",
+      },
     },
+    complimentaryBillingAnswer:
+      "Your store has a permanent complimentary plan: there is no trial or payment to manage.",
     heading: "Help and FAQ",
     faqHeading: "Frequently asked",
     expandAll: "Expand all",
@@ -339,6 +358,7 @@ export const en: typeof it = {
         heading: "Plan, privacy and support",
         entries: [
           {
+            id: "billing",
             q: "How do the trial and payments work?",
             a: "The free trial lasts 14 days, starts only when you launch it, and is available once per store. It doesn’t require a payment method. If you choose the monthly or annual plan during the trial, the remaining days are added as Shopify subscription trial days. If you choose the one-time payment, the charge is immediate and you give up the remaining trial days.",
           },

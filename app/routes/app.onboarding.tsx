@@ -28,6 +28,7 @@ import {
 } from "../features/onboarding/OnboardingSections";
 import { useCheckoutLabelScopeRequest } from "../features/use-checkout-label-scopes";
 import { AutomaticLabelsConfirmModal } from "../features/rules/AutomaticLabelsConfirmModal";
+import { CheckoutErrorPreview } from "../features/messages/CustomerMessagesPreview";
 import {
   planComparisonLocationState,
   requestPlanComparisonFromFrame,
@@ -195,7 +196,8 @@ export default function Onboarding() {
         writes={automaticLabelWrites}
         onConfirm={() => saveRules(true)}
       />
-      <s-page heading={t.onboarding.heading}>
+      {/* O1: pagina stretta nativa, così testo e select non corrono a tutta larghezza. */}
+      <s-page heading={t.onboarding.heading} inlineSize="small">
         {(esito && !esito.ok) || scopeRequestError ? (
           <div className="cf-motion-reveal">
             <s-banner tone="critical">
@@ -305,11 +307,12 @@ function OnboardingCurrentStep(props: CurrentStepProps) {
 function OnboardingIntroduction({ t }: { t: OnboardingCopy }) {
   return (
     <>
-      <s-box maxInlineSize="150px">
-        <s-image src="/cf-ready-lockup.svg" alt="CF Ready" aspectRatio="16/3" objectFit="contain" />
-      </s-box>
+      {/* O4: icona piccola accanto al titolo, che resta l'elemento principale. */}
       <s-stack direction="block" gap="small-100">
-        <s-heading>{t.onboarding.welcomeHeading}</s-heading>
+        <s-grid gridTemplateColumns="auto minmax(0, 1fr)" gap="small-200" alignItems="center">
+          <s-avatar src="/favicon.svg" alt="CF Ready" size="base" />
+          <s-heading>{t.onboarding.welcomeHeading}</s-heading>
+        </s-grid>
         <s-paragraph>{t.onboarding.welcomeBody}</s-paragraph>
       </s-stack>
       <s-divider />
@@ -406,7 +409,6 @@ function OnboardingLabelControls(props: CurrentStepProps) {
   }
   return (
     <s-stack direction="block" gap="small-100">
-      <s-text color="subdued">{t.onboarding.labelsPermissionsGranted}</s-text>
       <s-checkbox
         label={props.automaticLabelsAvailable ? t.rules.labels.enable : t.rules.labels.enableGuided}
         checked={props.labelsEnabled}
@@ -434,17 +436,25 @@ function OnboardingPreview({ saved, t }: { saved: OnboardingData; t: OnboardingC
         <s-heading>{t.onboarding.step3Messages}</s-heading>
         <s-paragraph>{t.onboarding.step3MessagesBody}</s-paragraph>
       </s-stack>
-      <s-stack direction="block" gap="small-200">
+      {/* O2, O3: ogni messaggio è un blocco con etichetta e lo stesso riquadro d'errore
+          dell'anteprima in Messaggi; i blocchi sono più distanti tra loro che al loro interno. */}
+      <s-stack direction="block" gap="large">
         {MESSAGE_KEYS.map((key) => (
-          <s-stack key={key} direction="block" gap="small-100">
-            <s-stack direction="inline" gap="small-100">
-              <s-text type="strong">{t.messages[key]}</s-text>
-              <s-badge tone={messageAppears(saved.rules, key) ? "success" : "neutral"}>
-                {messageAppears(saved.rules, key) ? t.messages.appears : t.messages.appearsNot}
-              </s-badge>
+          <div className="onboarding-message" key={key}>
+            <s-stack direction="block" gap="small-300">
+              <s-stack direction="inline" gap="small-100" alignItems="center">
+                <s-text type="strong">{t.messages[key]}</s-text>
+                <s-badge tone={messageAppears(saved.rules, key) ? "success" : "neutral"}>
+                  {messageAppears(saved.rules, key) ? t.messages.appears : t.messages.appearsNot}
+                </s-badge>
+              </s-stack>
+              <CheckoutErrorPreview
+                locale={saved.locale}
+                heading={t.messages.previewErrorHeading}
+                message={saved.messages[saved.locale][key]}
+              />
             </s-stack>
-            <s-paragraph>{saved.messages[saved.locale][key]}</s-paragraph>
-          </s-stack>
+          </div>
         ))}
       </s-stack>
     </>

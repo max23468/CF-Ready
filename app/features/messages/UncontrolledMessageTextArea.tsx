@@ -6,7 +6,6 @@ export function UncontrolledMessageTextArea({
   initialValue,
   label,
   name,
-  onBlur,
   onFocus,
   rows,
 }: {
@@ -15,7 +14,6 @@ export function UncontrolledMessageTextArea({
   initialValue: string;
   label: string;
   name: string;
-  onBlur: () => void;
   onFocus: () => void;
   rows: number;
 }) {
@@ -36,7 +34,6 @@ export function UncontrolledMessageTextArea({
       details={details}
       error={error}
       onFocus={onFocus}
-      onBlur={onBlur}
     />
   );
 }

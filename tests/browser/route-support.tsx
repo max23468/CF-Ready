@@ -11,7 +11,11 @@ export const router = {
     submit: vi.fn(),
   },
   loaderData: undefined as unknown,
-  location: { pathname: "/app", state: null as unknown },
+  location: { pathname: "/app", state: null } as {
+    pathname: string;
+    hash?: string;
+    state: unknown;
+  },
   navigate: vi.fn(),
   navigation: { state: "idle" },
   revalidator: { revalidate: vi.fn(), state: "idle" },

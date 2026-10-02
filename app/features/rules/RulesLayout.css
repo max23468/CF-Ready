@@ -124,6 +124,11 @@
   min-width: 0;
 }
 
+/* Riceve il focus solo all'arrivo dalla Guida: non è un controllo, niente contorno. */
+.rules-layout__preview:focus {
+  outline: none;
+}
+
 .rules-layout__labels {
   min-width: 0;
 }

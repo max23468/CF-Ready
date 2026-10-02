@@ -31,7 +31,7 @@ export function OnboardingCompletion({ saved, goHome, showPlans }: CompletionPro
       : null;
 
   return (
-    <s-page heading={t.onboarding.heading}>
+    <s-page heading={t.onboarding.heading} inlineSize="small">
       <s-section heading={active ? continuity.activeHeading : t.onboarding.doneHeading}>
         <s-stack direction="block" gap="base">
           <s-paragraph>
@@ -99,7 +99,7 @@ export function OnboardingStep4Content({
     <>
       <s-stack direction="block" gap="small-100">
         <s-heading>{t.onboarding.step4Heading}</s-heading>
-        <div className="cf-data-list">
+        <div className="cf-data-list cf-onboarding-summary">
           <div className="cf-data-row cf-onboarding-summary-row">
             <s-text>{t.rules.taxCodeLabel}</s-text>
             <div className="cf-onboarding-summary-value">
@@ -171,8 +171,15 @@ export function OnboardingStep4Content({
   );
 }
 
+// O5: il testo resta per chi legge, la barra rende visibile l'avanzamento.
 export function OnboardingProgress({ step, t }: { step: number; t: ReturnType<typeof texts> }) {
-  return <s-text color="subdued">{t.onboarding.stepOf(step, STEPS)}</s-text>;
+  const label = t.onboarding.stepOf(step, STEPS);
+  return (
+    <s-stack direction="block" gap="small-100">
+      <s-text color="subdued">{label}</s-text>
+      <s-progress value={step} max={STEPS} accessibilityLabel={label} />
+    </s-stack>
+  );
 }
 
 export function OnboardingStep4Actions({
