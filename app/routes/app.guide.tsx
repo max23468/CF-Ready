@@ -25,6 +25,7 @@ import {
 } from "../checkout-labels/service.server";
 import { reconcile } from "../validation.server";
 import { skipRevalidationWhenLeaving } from "../revalidation";
+import { showToast } from "../save-bar";
 import { createServerTiming } from "../server-timing.server";
 import { readSupportDiagnosticState, type SupportDiagnosticState } from "../support.server";
 import "./app.guide.css";
@@ -75,6 +76,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
         ok: true as const,
         check: {
           checkedAt: new Date().toISOString(),
+          timeZone: state.timeZone,
           enabled: state.validationEnabled,
           entitled: state.entitlement.kind !== "none",
           errorCode: state.errorCode,
@@ -115,7 +117,7 @@ export default function Guide() {
   const { locale, shopDomain, version, diagnosticId, diagnostics } = useLoaderData<typeof loader>();
   const t = texts(locale);
   const [expanded, setExpanded] = useState(false);
-  const [copyState, setCopyState] = useState<"copied" | "failed" | null>(null);
+  const [copyFailed, setCopyFailed] = useState(false);
   const [supportCategory, setSupportCategory] = useState<SupportCategory>("checkout");
   const diagnosticsFetcher = useFetcher<typeof action>();
   const supportDetails = { shopDomain, version, diagnosticId, ...diagnostics };
@@ -123,13 +125,14 @@ export default function Guide() {
   const copyDiagnostics = async () => {
     try {
       await navigator.clipboard.writeText(supportDiagnosticText(supportDetails, locale));
-      setCopyState("copied");
+      setCopyFailed(false);
+      showToast(t.support.diagnosticsCopied);
       diagnosticsFetcher.submit(
         { intent: "diagnostics_copied", diagnostic_id: diagnosticId },
         { method: "post" },
       );
     } catch {
-      setCopyState("failed");
+      setCopyFailed(true);
     }
   };
 
@@ -169,7 +172,7 @@ export default function Guide() {
                 <div className="guide-faq__entries">
                   {group.entries.map((entry) => (
                     <details className="guide-faq__entry" key={entry.q} onToggle={syncExpanded}>
-                      <summary>
+                      <summary className="cf-disclosure">
                         <span className="guide-faq__question">{entry.q}</span>
                       </summary>
                       <s-box paddingBlockStart="small-100">
@@ -222,13 +225,9 @@ export default function Guide() {
                 {t.support.requestSupport}
               </s-button>
               <s-button onClick={copyDiagnostics}>{t.support.copyDiagnostics}</s-button>
-              {copyState ? (
-                <span className="cf-motion-reveal" key={copyState}>
-                  <s-text tone={copyState === "copied" ? "success" : "critical"}>
-                    {copyState === "copied"
-                      ? t.support.diagnosticsCopied
-                      : t.support.diagnosticsCopyFailed}
-                  </s-text>
+              {copyFailed ? (
+                <span className="cf-motion-reveal">
+                  <s-text tone="critical">{t.support.diagnosticsCopyFailed}</s-text>
                 </span>
               ) : null}
               <s-text color="subdued">{t.support.privacyNote}</s-text>
@@ -248,7 +247,7 @@ export default function Guide() {
               />
             </s-box>
             <s-paragraph>{t.guide.asideBody}</s-paragraph>
-            <s-stack direction="block" gap="small-100">
+            <s-stack direction="block" gap="small-100" alignItems="start">
               <s-heading>{t.guide.asideLinks}</s-heading>
               <s-link href="/app/rules">{t.nav.rules}</s-link>
               <s-link href="/app/messages">{t.nav.messages}</s-link>
@@ -296,11 +295,13 @@ function ValidationDiagnosis({
           <s-text color="subdued">
             {checkCopy.lastSync}:{" "}
             {diagnostics.lastSyncAt
-              ? formatDateTime(diagnostics.lastSyncAt, locale)
+              ? formatDateTime(diagnostics.lastSyncAt, locale, diagnostics.timeZone)
               : checkCopy.unknown}
           </s-text>
-          <s-heading>{checkCopy.manualHeading}</s-heading>
-          <s-paragraph>{checkCopy.manualBody}</s-paragraph>
+          <s-stack direction="block" gap="small-100">
+            <s-heading>{checkCopy.manualHeading}</s-heading>
+            <s-paragraph>{checkCopy.manualBody}</s-paragraph>
+          </s-stack>
           <s-link href="/app/rules">{checkCopy.simulate}</s-link>
         </s-stack>
       </div>
@@ -320,6 +321,7 @@ function diagnosisErrorCode(
 
 type DiagnosisCheck = {
   checkedAt: string;
+  timeZone: string | null;
   enabled: boolean;
   entitled: boolean;
   configured: boolean;
@@ -342,7 +344,7 @@ function DiagnosisResult({
   return (
     <>
       <s-text color="subdued">
-        {copy.checkedAt}: {formatDateTime(check.checkedAt, locale)}
+        {copy.checkedAt}: {formatDateTime(check.checkedAt, locale, check.timeZone)}
       </s-text>
       <s-paragraph>
         {check.enabled ? copy.enabled : copy.disabled} <s-link href="/app">{t.nav.home}</s-link>

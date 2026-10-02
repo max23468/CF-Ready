@@ -1029,7 +1029,7 @@ test("il salvataggio non sovrascrive la configurazione cambiata da un'altra sess
     )
       .bind(shop)
       .first("total"),
-  ).toBe(2);
+  ).toBe(1);
 });
 
 test("un errore nello storico non annulla una scrittura Shopify verificata", async () => {

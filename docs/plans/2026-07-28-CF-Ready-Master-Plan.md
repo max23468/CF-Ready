@@ -390,7 +390,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-153 | Usare `supporto@cfready.it` per l’assistenza merchant e `info@cfready.it` per le altre comunicazioni, al posto della casella iCloud usata prima del dominio. | `supporto@` è il destinatario del `mailto:` precompilato dell’app, delle FAQ e della pagina Support. `info@` è il recapito di Privacy Policy, Termini, `SECURITY.md`, primo contatto di sicurezza sul sito e reviewer Shopify. Il flusso resta `mailto:` e non introduce Email binding. Deciso dall’owner l’11 settembre 2026 per la `1.9.1`. |
 | D-154 | Nel Control Center calcolare MRR e ARR netti con revenue share, commissione di elaborazione e commissione operativa regolamentare del Paese dello store; mostrare in `/billing` i ricavi cumulati dalle transazioni Shopify Partner e in `/performance` i requisiti Web Vitals di Built for Shopify e M12. | Gli accrediti Partner dell’11 settembre 2026 mostrano per i negozi italiani il 2,9% di elaborazione e il 3% di commissione operativa regolamentare; Shopify non pubblica la tariffa degli altri Paesi, quindi il run-rate applica loro il solo 2,9% e lo dichiara. I ricavi cumulati sommano abbonamenti, acquisti lifetime, rimborsi e crediti dalla query `transactions`, che richiede il permesso Partner `View financials`, e la cache D1 conserva soltanto totali aggregati. La vista performance stima dai campioni CF Ready il p75 su 28 giorni e i 100 campioni per metrica: lo stato Built for Shopify autorevole resta quello del Partner Dashboard. Deciso dall’owner l’11 settembre 2026 per la `1.9.1`. |
 | D-155 | Allineare il simulatore al gate preventivo della Function e spiegare localmente la causa formale dei valori rifiutati. **Superata in parte da D-161.** | Le opzioni avanzate rappresentano Interaction, Completion, metodo di spedizione selezionato, gruppi misti e campi assenti; la matrice condivisa confronta gli esiti con la Function. Le diagnosi distinguono lunghezza, caratteri, struttura o data, controllo e formato email, senza cambiare i quattro messaggi checkout, attestare identità o trasmettere i valori. Deciso dall’owner il 12 settembre 2026. |
-| D-156 | Conservare per ogni store al massimo dieci configurazioni differenti degli ultimi 90 giorni e consentire il ripristino tramite la normale scrittura protetta da lease e hash corrente. | Gli snapshot contengono soltanto regole e messaggi bilingui. Escludono attivazione, entitlement, billing, identità staff e dati checkout; il ripristino ricalcola i dati commerciali correnti e sincronizza le etichette quando la relativa gestione è attiva. La retention oraria e `shop/redact` eliminano lo storico. Deciso dall’owner il 12 settembre 2026. |
+| D-156 | Conservare per ogni store al massimo dieci configurazioni differenti degli ultimi 90 giorni e consentire il ripristino tramite la normale scrittura protetta da lease e hash corrente. **Superata da D-174.** | Gli snapshot contengono soltanto regole e messaggi bilingui. Escludono attivazione, entitlement, billing, identità staff e dati checkout; il ripristino ricalcola i dati commerciali correnti e sincronizza le etichette quando la relativa gestione è attiva. La retention oraria e `shop/redact` eliminano lo storico. Deciso dall’owner il 12 settembre 2026. |
 | D-157 | Generare avvisi Telegram operativi deduplicati per incidenti persistenti deterministici e per la loro risoluzione. | L’outbox esistente riceve aperture e chiusure per webhook in elaborazione da 5 minuti, webhook falliti ancora aperti da 15 minuti, acquisizione Partner ferma da 15 minuti dall’ultimo ciclo completo valido ed errori deterministici di sincronizzazione etichette osservati almeno tre volte in 10 minuti. Scope, conferme e conflitti merchant delle etichette restano esclusi. Una lettura Partner incompleta non apre né chiude un incidente; gli incidenti risolti restano per 90 giorni. Contenuto, permessi e confini dati restano quelli dell’outbox owner, senza nuovi dati merchant o personali. Deciso dall’owner il 12 settembre 2026. |
 | D-158 | Eseguire in WebKit una selezione mirata dei percorsi merchant sensibili e mantenere una procedura separata per Shopify su iPhone reale. | Navigazione, onboarding, Save Bar, conflitti, permessi ed espansioni etichette usano la suite browser esistente senza duplicarla. WebKit locale individua regressioni del motore; soltanto la verifica embedded sul dispositivo chiude i difetti della cornice nativa Shopify. Deciso dall’owner il 12 settembre 2026. |
 | D-160 | Il ciclo periodico ogni cinque minuti, attivo in Development e Production, esegue la stessa riconciliazione di Home e webhook: aggiorna D1 e il diritto nel metafield della Validation. Le sottoscrizioni attive o in chiusura con fine periodo tra tre giorni fa e oggi hanno priorità e vengono rilette ogni ora; se il metafield non accetta il diritto si apre un incidente owner e lo store viene ritentato ogni ora. | Shopify rinnova le sottoscrizioni senza webhook: senza questa rilettura il `validThrough` del metafield resta alla fine del periodo precedente e la Function torna fail-open per un merchant pagante che non apre l’app. Resta scoperto soltanto l’intervallo tra la mezzanotte locale di fine periodo e il primo readback dopo il rinnovo Shopify. Un lotto di più store per esecuzione non viene introdotto per restare nel limite CPU del piano Free descritto in §18.4. |
@@ -406,6 +406,8 @@ Rispetto alle alternative più ampie o invasive:
 | D-170 | Il Control Center Telegram consente all'owner di chiudere una conversione di piano in stato “Da verificare” dopo averla verificata nel Partner Dashboard, trascorsi 37 giorni dalla richiesta: la scheda store mostra “Chiudi conversione verificata”, un secondo messaggio chiede conferma e la conversione passa a `not_applicable`. È l'unico comando di scrittura del Control Center. | Le conversioni `historical_reconciliation` restano `needs_review` per scelta (non si confermano da sole) e la loro chiusura richiedeva una query manuale sul D1 di Production. Il comando usa il webhook già autenticato e il claim idempotente degli update, e scrive soltanto sull'ultima conversione dello store se è ancora `needs_review`, senza credito osservato e oltre la stessa finestra di 37 giorni degli incidenti finanziari: prima di allora vendita e credito del piano sostituito possono ancora arrivare da Partner, e chiudere toglierebbe la conversione dal poll. Un credito registrato da Shopify resta invece da gestire a mano, perché la rilettura Partner riporterebbe lo stato a `needs_review`. Con `not_applicable` spariscono il contatore in `/billing`, l'incidente sulla vendita del piano sostituito e la nota sul credito nella Home del merchant. Deciso dall'owner il 25 settembre 2026, dopo la verifica di Francesa SNC. |
 | D-171 | Limitare l'ACK senza D1 né coda ai `shop/update` dello store esatto configurato in `SHOP_UPDATE_ACK_ONLY_SHOP`, dopo autenticazione e verifica del topic sul relativo endpoint. La variabile è vuota in Development e identifica il solo store scelto dall'owner in Production. La sottoscrizione Shopify e D-169 restano valide per tutti gli altri store; billing, disinstallazione, scope e compliance non cambiano. | Il 27 settembre 2026 Safari mostra una nuova consegna `shop/update` senza risposta entro 6.000 ms al primo tentativo. La cache D-169 non elimina le letture D1 a cache vuota o scaduta; non è stata attribuita a D1 la causa specifica di questa consegna. L'owner ha richiesto di limitare l'intervento a questo store. Il Paese resta diagnostico e si aggiorna alla riconciliazione Home e nel ciclo periodico esistente degli account attivi con sessione offline: selezione ogni cinque minuti, un account alla volta, ordinariamente dopo 24 ore, senza garanzia di freschezza entro 24 ore per tutti gli store. Nessun nuovo cron o provider. Deciso il 27 settembre 2026 per la `1.15.6`; eccezione a D-169. |
 | D-172 | Nei testi di app, sito e listing ogni limite si dichiara una volta, dove cambia una decisione del merchant o del cliente. La rassicurazione sul checkout aperto compare solo nei casi particolari, nella FAQ sul blocco degli ordini e a fine prova o piano; privacy e cautele legali restano nelle sezioni dedicate e nei Termini; gli errori indicano cosa fare, non le protezioni interne dell'app. Restano invariati i limiti obbligatori di §16.3, §24.4 e FR-099. Le regole stanno in `docs/brand/brand-foundation.md` §7.1, §7.7 e §9.2 (A-18). | La revisione dei testi ha trovato la stessa rassicurazione in cinque errori, la privacy ripetuta in assistenza, permessi, FAQ e sito, e cautele legali fuori dai Termini: il tono risultava difensivo e allungava messaggi che devono guidare un'azione. Il principio «ogni volta che c'è un limite, si dice» favoriva queste ripetizioni. Deciso dall'owner il 29 settembre 2026. |
+| D-173 | Gli orari mostrati al merchant (rilettura e conferma delle etichette, diagnosi della Guida) usano il fuso dello store con la sigla del fuso, per esempio “1 ott 2026, 08:30 CEST”. Il fuso si legge da Shopify alla riconciliazione e si conserva in `shops.iana_timezone`; finché non è noto gli orari restano in UTC. La diagnostica copiabile per l'assistenza mantiene i timestamp UTC ISO 8601. | L'audit UI del 1 ottobre 2026 ha trovato orari solo in UTC, poco leggibili per un merchant italiano. Il loader della Guida usa solo D1 (§22), quindi il fuso va salvato con la riconciliazione già esistente: nessuna nuova chiamata Shopify né nuovo scope. Deciso dall'owner il 1 ottobre 2026 per la `1.15.18`. |
+| D-174 | La pagina Regole non offre più la cronologia configurazioni né il ripristino di una configurazione precedente. `configuration_history` conserva soltanto l’ultima configurazione confermata da Shopify, che la Home usa per il primo paint (D-167): a ogni scrittura le voci precedenti si cancellano. La tabella resta, senza migrazioni distruttive. | L’audit UI del 1 ottobre 2026 ha trovato un ripristino che riscriveva subito il checkout live senza conferma e lasciava nel modulo la bozza precedente (R-H1, R-H2), oltre a una card comparsa solo dopo un salvataggio con orari ambigui (R-H6). La funzione non risponde a un bisogno ricorrente del merchant: rimuoverla elimina i tre problemi. Deciso dall’owner il 1 ottobre 2026 per la `1.15.18`; supera D-156. |
 
 Precisazione D-149 del 9 settembre 2026 per la `1.9.0`: nella pagina Regole il
 blocco “Campo Interno” precede “Testi del checkout”. La sezione si chiama
@@ -767,15 +769,12 @@ English:
 - PEC required: “Enter your certified email address (PEC) to complete the order.”
 - PEC invalid: “The certified email address (PEC) does not have a valid email format.”
 
-**FR-065** — La cronologia conserva al massimo dieci configurazioni differenti
-degli ultimi 90 giorni per store. Ogni snapshot include soltanto regole e otto
-messaggi; non include entitlement, billing, attivazione, identità staff o dati
-checkout.
+**FR-065** — D1 conserva per store soltanto l’ultima configurazione confermata
+da Shopify, per il primo paint della Home (D-167, D-174). Lo snapshot include
+soltanto regole e otto messaggi; non include entitlement, billing, attivazione,
+identità staff o dati checkout.
 
-**FR-066** — Un ripristino usa la lease Validation e l’hash della configurazione
-corrente. Regole e messaggi vengono riscritti insieme, mentre diritto commerciale
-e stato di attivazione derivano dalle fonti correnti. Se la gestione etichette è
-attiva, il ripristino segue anche il normale percorso di sincronizzazione.
+**FR-066** — Ritirato da D-174: l’app non ripristina configurazioni precedenti.
 
 ### 7.8 Billing
 
@@ -1059,6 +1058,7 @@ flowchart LR
 | Abbonamento/acquisto | Shopify Billing | stato normalizzato in D1 |
 | Sessioni/token | D1 | nessuna duplicazione |
 | Paese dello store, solo diagnostico | GraphQL Admin API | `shops.country_code` |
+| Fuso orario dello store, solo per mostrare gli orari | GraphQL Admin API | `shops.iana_timezone` |
 | Onboarding | D1 | nessuna fonte esterna |
 | Telemetria | D1/Workers Logs | aggregati interni |
 
@@ -1560,6 +1560,7 @@ Una riga per store conosciuto.
 | `display_name` | text nullable, nome pubblico dello store limitato e normalizzato |
 | `shopify_installation_gid` | text nullable |
 | `country_code` | text |
+| `iana_timezone` | text nullable, fuso IANA letto alla riconciliazione; serve solo a mostrare gli orari, anche nei loader che usano solo D1 (D-173) |
 | `shop_currency` | text nullable |
 | `billing_currency` | text nullable |
 | `installation_status` | `active`, `uninstalled`, `suspended`; `blocked_country` resta leggibile solo per migrare le righe create prima di D-143 |
@@ -1752,12 +1753,12 @@ Stato tecnico per store.
 
 #### `configuration_history`
 
-Cronologia merchant minimizzata delle configurazioni confermate da Shopify.
-Ogni riga appartiene allo store, contiene hash, regole JSON, messaggi IT/EN JSON
-e timestamp UTC. Non copia `enabled`, entitlement, billing, dati checkout o
-identità staff. La coppia store e hash evita duplicati; restano al massimo dieci
-snapshot e nessuno oltre 90 giorni. La cancellazione dello store elimina le
-righe in cascata.
+Ultima configurazione minimizzata confermata da Shopify, letta dalla Home per il
+primo paint (D-167, D-174). Ogni riga appartiene allo store, contiene hash,
+regole JSON, messaggi IT/EN JSON e timestamp UTC. Non copia `enabled`,
+entitlement, billing, dati checkout o identità staff. A ogni scrittura le righe
+precedenti dello store si cancellano, quindi ne resta una; nessuna oltre 90
+giorni. La cancellazione dello store elimina le righe in cascata.
 
 #### `webhook_events`
 
@@ -2495,8 +2496,7 @@ Ogni opzione ha una spiegazione concreta. Dopo le regole:
   istruzioni per rimuovere quell’uso (FR-058);
 - Save Bar `Salva` / `Annulla`;
 - salvataggio non attiva implicitamente una Validation disattivata;
-- cronologia delle configurazioni precedenti con data, differenze essenziali e
-  ripristino protetto dal controllo di concorrenza corrente.
+- nessuna cronologia né ripristino di configurazioni precedenti (D-174).
 
 ### 15.5 Messaggi al cliente
 
@@ -3529,7 +3529,7 @@ La Function riceve i valori necessari in Shopify, li valuta localmente e restitu
 |---|---|
 | Sessioni/token | fino a scadenza o disinstallazione; eliminazione immediata alla disinstallazione |
 | Configurazione/onboarding dopo disinstallazione | 90 giorni |
-| Cronologia configurazioni | ultime 10 configurazioni differenti e massimo 90 giorni |
+| Ultima configurazione salvata (`configuration_history`) | solo l’ultima configurazione, massimo 90 giorni (D-174) |
 | Richieste di supporto | 12 mesi, salvo necessità diversa documentata |
 | Errori tecnici dettagliati | 90 giorni |
 | Outbox notifiche owner | 90 giorni |
@@ -3554,7 +3554,7 @@ I 90 giorni sono il limite massimo residuale. Shopify invia `shop/redact` circa
 la finestra non viene consumata. Un trigger orario del Worker cancella gli
 store ancora disinstallati che raggiungono i 90 giorni, in batch deterministici
 da 25, come fallback quando il webhook non arriva. Lo stesso trigger elimina
-cronologia configurazioni, ricevute webhook, errori dettagliati e notifiche
+l’ultima configurazione salvata, ricevute webhook, errori dettagliati e notifiche
 owner dopo 90 giorni, e gli
 altri eventi tecnici e di billing dopo 12 mesi, tramite indici sulle relative
 date.

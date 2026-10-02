@@ -9,14 +9,14 @@ export function homeNextStep(
   const configured = data.rules.taxCode !== "unmanaged" || data.rules.pec !== "unmanaged";
   if (state === "first_run") {
     return configured
-      ? { text: t.home.nextStartTrial, href: null }
-      : { text: t.home.nextConfigure, href: "/app/rules" };
+      ? { text: t.home.nextStartTrial, href: null, label: null }
+      : { text: t.home.nextConfigure, href: "/app/rules", label: t.nav.rules };
   }
-  if (state !== "entitled") return { text: t.home.nextChoosePlan, href: null };
-  if (!configured) return { text: t.home.nextConfigure, href: "/app/rules" };
+  if (state !== "entitled") return { text: t.home.nextChoosePlan, href: null, label: null };
+  if (!configured) return { text: t.home.nextConfigure, href: "/app/rules", label: t.nav.rules };
   return data.validationEnabled
-    ? { text: t.home.nextTestOrder, href: null }
-    : { text: t.home.nextActivate, href: null };
+    ? { text: t.home.nextTestOrder, href: "shopify://admin/orders", label: t.home.openOrders }
+    : { text: t.home.nextActivate, href: null, label: null };
 }
 
 export function homeValidationPresentation(
@@ -30,14 +30,9 @@ export function homeValidationPresentation(
     : firstRun
       ? t.home.badgeNotStarted
       : t.home.badgeInactive;
-  const title =
-    status === "active"
-      ? t.home.titleActive
-      : status === "lapsed"
-        ? t.home.titleLapsed
-        : firstRun
-          ? t.home.titleNotStarted
-          : t.home.titleDisabled;
+  // Il titolo della card è fisso: lo stato lo dice il badge, e solo il piano scaduto aggiunge
+  // una frase perché il badge "Attiva" da solo sarebbe fuorviante.
+  const note = status === "lapsed" ? t.home.titleLapsed : null;
   const tone = status === "active" ? "success" : status === "lapsed" ? "warning" : "neutral";
-  return { badge, title, tone } as const;
+  return { badge, note, tone } as const;
 }

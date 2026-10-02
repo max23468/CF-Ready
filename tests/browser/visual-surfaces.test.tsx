@@ -55,6 +55,20 @@ function expectNativeCards(container: HTMLElement) {
   }
 }
 
+// Gli host Polaris usano display: contents; si misurano le superfici nello shadow DOM.
+function surfaceRect(element: Element) {
+  const rectangles = [...(element.shadowRoot?.querySelectorAll("*") ?? [])]
+    .map((child) => child.getBoundingClientRect())
+    .filter((rectangle) => rectangle.width > 0 && rectangle.height > 0);
+  if (rectangles.length === 0) return element.getBoundingClientRect();
+  return {
+    left: Math.min(...rectangles.map((rectangle) => rectangle.left)),
+    right: Math.max(...rectangles.map((rectangle) => rectangle.right)),
+    top: Math.min(...rectangles.map((rectangle) => rectangle.top)),
+    bottom: Math.max(...rectangles.map((rectangle) => rectangle.bottom)),
+  };
+}
+
 async function captureSurface(element: HTMLElement, path: string) {
   const width = document.documentElement.clientWidth;
   const height = window.innerHeight;
@@ -84,15 +98,16 @@ test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", asy
     router.loaderData = confirmedHome(data, confirmed);
     const view = await mount(<HomePage />);
     const status = view.container.querySelector<HTMLElement>('div[role="status"]')!;
-    const heading = view.container.querySelector<HTMLElement>("s-heading")!;
-    const pendingRect = heading.getBoundingClientRect();
+    // Il riepilogo sotto il badge non deve spostarsi quando lo stato si conferma.
+    const summary = view.container.querySelector<HTMLElement>("s-section s-paragraph")!;
+    const pendingRect = summary.getBoundingClientRect();
     expect(status.textContent).toContain(texts("it").home.verifying);
     await act(async () => resolve(data));
     await expect.poll(() => status.textContent).toContain(texts("it").home.badgeActive);
     expect(view.container.textContent).not.toContain(texts("it").home.verified);
     expect(view.container.querySelector(".home-verification")).toBeNull();
-    expect(heading.getBoundingClientRect().height).toBe(pendingRect.height);
-    expect(heading.getBoundingClientRect().top).toBe(pendingRect.top);
+    expect(summary.getBoundingClientRect().height).toBe(pendingRect.height);
+    expect(summary.getBoundingClientRect().top).toBe(pendingRect.top);
     expectNativeCards(view.container);
     const rulesGrid = view.container.querySelector("s-query-container > s-grid")!;
     const gridSurface = rulesGrid.shadowRoot!.querySelector<HTMLElement>(".grid")!;
@@ -153,7 +168,9 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
   expect(asideCards[0].getAttribute("heading")).toBe(texts("it").support.heading);
   const summary = view.container.querySelector<HTMLElement>(".guide-faq__entry summary")!;
   expect(getComputedStyle(summary.querySelector(".guide-faq__question")!).fontWeight).toBe("600");
-  expect(getComputedStyle(summary).listStyleType).toBe("disclosure-closed");
+  // Freccia condivisa al posto del triangolo nativo del browser.
+  expect(getComputedStyle(summary).listStyleType).toBe("none");
+  expect(getComputedStyle(summary, "::after").content).toBe('""');
   await captureSurface(
     view.container,
     `__screenshots__/visual/guide-top-${server.browser}-390.png`,
@@ -278,7 +295,6 @@ test("Polaris reale: Regole con card bianche sul fondo grigio desktop e mobile",
       configHash: "fixture",
       rules: DEFAULT_CONFIG.rules,
       messages: DEFAULT_CONFIG.messages,
-      configurationHistory: [],
       enabled: true,
       entitled: true,
       labelScopesGranted: true,
@@ -299,29 +315,28 @@ test("Polaris reale: Regole con card bianche sul fondo grigio desktop e mobile",
     expect(ruleCards).toHaveLength(2);
     expect(ruleCards[0].querySelector('s-choice-list[name="taxCode"]')).not.toBeNull();
     expect(ruleCards[1].querySelector('s-choice-list[name="pec"]')).not.toBeNull();
-    const technical = view.container.querySelector<HTMLDetailsElement>(
-      ".checkout-labels-technical",
-    )!;
-    (technical.closest("details:not(.checkout-labels-technical)") as HTMLDetailsElement).open =
-      true;
-    technical.open = true;
-    expect(technical.querySelector("s-badge")?.textContent).toBe(
-      texts("it").rules.labels.modeValues.partial,
-    );
-    const body = technical.querySelector<HTMLElement>(".checkout-labels-disclosure__body")!;
-    expect(parseFloat(getComputedStyle(body).paddingInlineStart)).toBeGreaterThanOrEqual(16);
-    expect(parseFloat(getComputedStyle(body).paddingBlockEnd)).toBeGreaterThanOrEqual(16);
-    const rows = [...body.querySelector('s-stack[direction="block"]')!.children];
+    // R-B6: modalità, ultima lettura e conteggi sono righe nel pannello, non un pannello annidato.
+    const technical = view.container.querySelector<HTMLElement>(".checkout-labels-technical")!;
+    (technical.closest("details") as HTMLDetailsElement).open = true;
+    expect(technical.closest("details")?.parentElement?.closest("details")).toBeNull();
+    expect(technical.textContent).toContain(texts("it").rules.labels.modeValues.partial);
+    const rows = [...technical.querySelectorAll("s-stack s-stack > s-text")];
     expect(rows).toHaveLength(3);
-    // Gli host Polaris usano display: contents; si misurano le superfici nello shadow DOM.
-    const rowRects = rows.map((row) =>
-      [...row.shadowRoot!.querySelectorAll("*")]
-        .map((element) => element.getBoundingClientRect())
-        .find((rectangle) => rectangle.height > 0)!,
-    );
+    const rowRects = rows.map(surfaceRect);
     for (let index = 1; index < rows.length; index++) {
-      expect(rowRects[index].top - rowRects[index - 1].bottom).toBeGreaterThanOrEqual(8);
+      expect(rowRects[index].top - rowRects[index - 1].bottom).toBeGreaterThanOrEqual(4);
     }
+    // R-B9: le card delle regole e "Etichette del checkout" hanno lo stesso spazio sopra il primo campo.
+    const firstFieldOffset = (section: Element, field: Element) =>
+      surfaceRect(field).top - surfaceRect(section).top;
+    const labelsSection = view.container.querySelector(".rules-layout__labels s-section")!;
+    const ruleOffset = firstFieldOffset(ruleCards[0], ruleCards[0].querySelector("s-choice-list")!);
+    expect(firstFieldOffset(ruleCards[1], ruleCards[1].querySelector("s-choice-list")!)).toBe(
+      ruleOffset,
+    );
+    expect(firstFieldOffset(labelsSection, labelsSection.querySelector("s-select")!)).toBe(
+      ruleOffset,
+    );
     expect(view.container.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
     await captureSurface(
       view.container,
@@ -358,7 +373,7 @@ test("Polaris reale: simulatore stretto e focus tastiera leggibile", async () =>
       })
       .selectOptions("en");
   });
-  expect(view.container.textContent).toContain(texts("en").rules.simulator.privatePreview);
+  expect(view.container.textContent).toContain(texts("en").rules.simulator.heading);
   for (const [label, expected] of [
     [texts("en").rules.simulator.deliveryCountry, "Italy"],
     [texts("en").rules.simulator.billingCountry, "Italy"],
@@ -369,6 +384,25 @@ test("Polaris reale: simulatore stretto e focus tastiera leggibile", async () =>
       .shadowRoot!.querySelector("select")!;
     expect(select.selectedOptions[0].text).toBe(expected);
   }
+  // R-B1: la riga scenario e "Continua" hanno gli stessi bordi dei campi sopra.
+  const simulator = texts("en").rules.simulator;
+  const delivery = surfaceRect(
+    view.container.querySelector(`s-select[label="${simulator.deliveryCountry}"]`)!,
+  );
+  const billing = surfaceRect(
+    view.container.querySelector(`s-select[label="${simulator.billingCountry}"]`)!,
+  );
+  const scenario = surfaceRect(
+    view.container.querySelector(".checkout-simulator__scenario s-select")!,
+  );
+  expect(scenario.left).toBe(delivery.left);
+  expect(
+    surfaceRect(view.container.querySelector(".checkout-simulator__button--primary")!).right,
+  ).toBe(billing.right);
+  // R-B3: il badge di stato si allinea al titolo, non al logo.
+  expect(
+    surfaceRect(view.container.querySelector(".checkout-simulator__outcome s-badge")!).left,
+  ).toBe(surfaceRect(view.container.querySelector("s-query-container s-heading")!).left);
   const button = view.container.querySelector<HTMLElement>(".checkout-simulator__button--primary")!;
   button.focus();
   await userEvent.keyboard("{ArrowDown}");
