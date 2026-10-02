@@ -59,7 +59,7 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   toast;
 - Regole: togliendo la gestione automatica delle etichette compare cosa succede
   al salvataggio.
-- Regole: il simulatore ha un'intestazione sola (“Checkout di prova”) con lo
+- Regole: il simulatore ha un'intestazione sola (“Simulatore del checkout”) con lo
   stato accanto al titolo; la riga “Prova uno scenario” è allineata ai campi e
   “Svuota” è un pulsante Polaris; la nota sulle etichette spiega che seguono le
   regole selezionate;
@@ -69,7 +69,15 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 - Regole: le note dei contesti sono frasi separate, “Nessuna etichetta fiscale
   rilevata” ha un badge neutro, il badge resta accanto al titolo dei pannelli e
   le card delle regole usano il titolo nativo con la stessa spaziatura delle
-  altre; la select diventa “Lingua delle etichette”.
+  altre; la select diventa “Lingua delle etichette”;
+- Regole: dopo la scrittura delle etichette automatiche l'app ricontrolla la
+  rilettura di Shopify prima di segnalare una sincronizzazione parziale, così il
+  ritorno a una regola già verificata non mostra più un avviso falso;
+- i banner di esito restano separati dalle card che seguono e in Home la PEC
+  obbligatoria per aziende ha il badge azzurro “Obbligatoria per aziende”;
+- onboarding: il passaggio da un passo all'altro sposta il focus senza mostrare
+  il contorno blu attorno al contenuto; le etichette proposte nell'onboarding e
+  nella conferma della gestione automatica sono tra virgolette.
 
 ## 1.15.17 — 1 ottobre 2026
 

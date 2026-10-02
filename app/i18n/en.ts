@@ -89,6 +89,7 @@ export const en: typeof it = {
     messagesLabel: "Customer messages",
     messagesDefault: "Default",
     messagesCustom: "Edited",
+    pecRequiredForCompanies: "Required for companies",
     editRules: "Edit rules",
     activate: "Turn on in checkout",
     deactivate: "Turn off in checkout",
@@ -451,7 +452,7 @@ export const en: typeof it = {
     previewHeading: "What customers will see",
     simulator: {
       unknownCountry: "Not provided",
-      heading: "Test checkout",
+      heading: "Checkout simulator",
       previewLanguage: "Preview language",
       labelsAfterSave:
         "Labels follow the rules selected here; the checkout changes after you save.",

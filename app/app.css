@@ -21,6 +21,11 @@ s-stack[slot="aside"] {
   }
 }
 
+/* Un banner che si porta in vista resta separato dalle card che seguono. */
+.cf-reveal-banner {
+  margin-block-end: var(--p-space-400, 1rem);
+}
+
 /* Stessa freccia di "Campo Interno" per i dettagli espandibili leggeri (FAQ, simulatore),
    al posto del triangolo del browser. */
 .cf-disclosure {

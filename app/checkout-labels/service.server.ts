@@ -446,11 +446,7 @@ async function finishFiscalLabels(
     });
     return { ok: true as const, labelsErrorCode: after.errorCode };
   }
-  const [readback, stored] = await Promise.all([
-    readCheckoutLabels(admin),
-    readStoredCheckoutLabelSlots(db, shopDomain),
-  ]);
-  const errorCode = checkoutLabelsResultError(readback, stored, rules);
+  const { readback, errorCode } = await readbackAfterWrites(admin, db, shopDomain, rules);
   if (errorCode) {
     await markCheckoutLabelsResult(db, shopDomain, {
       mode:
@@ -472,4 +468,23 @@ async function finishFiscalLabels(
     synced: true,
   });
   return { ok: true as const, labelsErrorCode: null };
+}
+
+// Subito dopo una scrittura Shopify può restituire ancora la traduzione precedente: una
+// differenza sulle etichette automatiche si ricontrolla prima di segnalarla come parziale.
+const READBACK_RETRY_DELAYS_MS = [400, 1200];
+
+async function readbackAfterWrites(admin: Admin, db: D1Database, shopDomain: string, rules: Rules) {
+  for (let attempt = 0; ; attempt += 1) {
+    const [readback, stored] = await Promise.all([
+      readCheckoutLabels(admin),
+      readStoredCheckoutLabelSlots(db, shopDomain),
+    ]);
+    const errorCode = checkoutLabelsResultError(readback, stored, rules);
+    const delay = READBACK_RETRY_DELAYS_MS[attempt];
+    if (errorCode !== "checkout_labels_partial_sync" || delay === undefined) {
+      return { readback, errorCode };
+    }
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
 }

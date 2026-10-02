@@ -19,7 +19,7 @@ import {
   rebaseRulesDraft,
   type RulesFormDraft,
 } from "../features/rules/rules-form";
-import { describeCheckout, resolveLocale, texts, validationStatus, type Locale } from "../i18n";
+import { describeCheckout, resolveLocale, texts, validationStatus } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { setSaveBarVisibility, showToast } from "../save-bar";
 import { RevealBanner } from "../ui-feedback";

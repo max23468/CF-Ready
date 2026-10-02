@@ -90,6 +90,7 @@ export const it = {
     messagesLabel: "Messaggi al cliente",
     messagesDefault: "Predefiniti",
     messagesCustom: "Personalizzati",
+    pecRequiredForCompanies: "Obbligatoria per aziende",
     editRules: "Modifica regole",
     activate: "Attiva nel checkout",
     deactivate: "Disattiva nel checkout",
@@ -461,7 +462,7 @@ export const it = {
     previewHeading: "Come funzionerà il checkout",
     simulator: {
       unknownCountry: "Non indicato",
-      heading: "Checkout di prova",
+      heading: "Simulatore del checkout",
       previewLanguage: "Lingua dell’anteprima",
       labelsAfterSave:
         "Le etichette seguono le regole selezionate qui; nel checkout cambiano dopo il salvataggio.",

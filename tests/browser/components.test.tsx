@@ -6,6 +6,8 @@ import { performanceReporterScript } from "../../app/performance-report";
 import { CustomerMessagesPreview } from "../../app/features/messages/CustomerMessagesPreview";
 import { UncontrolledMessageTextArea } from "../../app/features/messages/UncontrolledMessageTextArea";
 import { CheckoutSimulator } from "../../app/features/rules/CheckoutSimulator";
+import { AutomaticLabelsConfirmModal } from "../../app/features/rules/AutomaticLabelsConfirmModal";
+import type { CheckoutLabelSlot } from "../../app/checkout-labels/domain";
 import { dispatch, render, type Rendered } from "./render";
 
 const mounted: Rendered[] = [];
@@ -39,6 +41,22 @@ describe("componenti merchant nel browser", () => {
         expect((formatter as (...values: unknown[]) => string)(...args).trim()).not.toBe("");
       }
     }
+  });
+
+  test("la conferma della gestione automatica cita le etichette tra virgolette (T7)", async () => {
+    const slot = { name: "pec", family: "en" } as CheckoutLabelSlot;
+    const view = await render(
+      <AutomaticLabelsConfirmModal
+        id="confirm"
+        locale="it"
+        writes={[{ slot, proposed: "PEC (optional)" }]}
+        onConfirm={() => undefined}
+      />,
+    );
+    expect(view.container.querySelector("s-list-item")?.textContent).toBe(
+      "PEC · Inglese: «PEC (optional)»",
+    );
+    await view.unmount();
   });
 
   test("l'anteprima dichiara la lingua cliente senza simulare un alert reale", async () => {
