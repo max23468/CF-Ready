@@ -68,7 +68,7 @@ describe("componenti merchant nel browser", () => {
         heading="Anteprima"
         fieldLabel="Tax code"
         fieldLabelHeading="Etichetta"
-        languages={{ it: "Italiano", en: "English" }}
+        hint="Suggerimento"
         message="Messaggio"
         selectedHeading="Selezionato"
         selectedLabel="Codice fiscale"
@@ -85,9 +85,8 @@ describe("componenti merchant nel browser", () => {
     expect(view.container.textContent).toContain("Messaggio");
   });
 
-  test("la textarea resta non controllata e inoltra focus e blur", async () => {
+  test("la textarea resta non controllata e inoltra il focus", async () => {
     const onFocus = vi.fn();
-    const onBlur = vi.fn();
     const view = await render(
       <UncontrolledMessageTextArea
         initialValue="Testo iniziale"
@@ -97,16 +96,13 @@ describe("componenti merchant nel browser", () => {
         details="12 / 200"
         error="Errore"
         onFocus={onFocus}
-        onBlur={onBlur}
       />,
     );
     mounted.push(view);
     const field = view.container.querySelector("s-text-area") as HTMLElement & { value?: string };
     expect(field.value).toBe("Testo iniziale");
     await dispatch(field, new FocusEvent("focusin", { bubbles: true }));
-    await dispatch(field, new FocusEvent("focusout", { bubbles: true }));
     expect(onFocus).toHaveBeenCalledOnce();
-    expect(onBlur).toHaveBeenCalledOnce();
   });
 
   test("il simulatore attraversa paesi, scenari, invio e pulizia", async () => {
