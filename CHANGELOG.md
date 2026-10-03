@@ -8,6 +8,10 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
 ## 1.15.23 — 3 ottobre 2026
 
+- riduce le letture duplicate dopo il salvataggio di regole e messaggi usando
+  il risultato verificato su Shopify e conserva la rilettura per gli esiti incompleti;
+- dichiara la lingua dell'anteprima del checkout e rende bilingue la pagina 404;
+- chiude il menu del sito quando il focus o un clic passano al contenuto;
 - conserva la conferma manuale delle etichette quando una regola cambia e poi
   torna com'era: i mercati che ereditano una traduzione scritta da CF Ready non
   richiedono più una nuova verifica (R-H4 b, riprodotto su Numisleo);

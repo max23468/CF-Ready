@@ -59,7 +59,7 @@ Non sono emersi nuovi blocchi nei percorsi osservati. Sono confermati due riliev
 
 **Riproduzione:** con interfaccia merchant italiana, aprire Regole checkout, Opzioni avanzate e selezionare Inglese come lingua dell'anteprima. Il simulatore mostra titoli, istruzioni, campi ed esiti inglesi, mentre il resto della pagina resta italiano.
 
-**Prova live:** [simulatore inglese dentro la pagina italiana](../../audit-data/2026-10-03-safari-production/07-simulatore-inglese-opzioni.png).
+**Prova live:** simulatore inglese dentro la pagina italiana (schermata rimossa su richiesta dell’owner).
 
 **Prova nel codice:** `app/root.tsx` dichiara `html lang={locale}`. In `app/features/rules/CheckoutSimulator.tsx`, `previewLocale` determina testi e messaggi; il contenitore con `rootRef` e il componente `SimulatorCustomerFields` non dichiarano `lang`. Il controllo della cartella non trova un attributo di lingua che delimiti il simulatore. Il componente Messaggi, invece, dichiara già la lingua dei testi di anteprima.
 
@@ -71,7 +71,7 @@ Non sono emersi nuovi blocchi nei percorsi osservati. Sono confermati due riliev
 
 **Riproduzione:** aprire `https://cfready.it/en/audit-pagina-inesistente-20261003`. La pagina mostra «Questa pagina non c'è», descrizione e azioni italiane; Home e guide puntano ai percorsi italiani.
 
-**Prova live:** [404 dal percorso inglese](../../audit-data/2026-10-03-safari-production/46-404-en.png). **Prova nel codice:** `site/404.html` è un documento con `lang="it"`, testi italiani e collegamenti `/` e `/guide/...`, senza recupero inglese.
+**Prova live:** 404 dal percorso inglese (schermata rimossa su richiesta dell’owner). **Prova nel codice:** `site/404.html` è un documento con `lang="it"`, testi italiani e collegamenti `/` e `/guide/...`, senza recupero inglese.
 
 **Impatto:** chi consulta il sito in inglese perde il contesto linguistico proprio durante il recupero da un indirizzo errato. Le pagine inglesi valide funzionano: il problema è circoscritto alla 404.
 
@@ -83,7 +83,7 @@ La Home mostra validazione attiva, Codice Fiscale obbligatorio, PEC facoltativa 
 
 È stata aperta e annullata la conferma di disattivazione. La finestra espone l'effetto sul checkout e usa un'azione critica. La disattivazione effettiva non è stata eseguita.
 
-Prove: [Home iniziale](../../audit-data/2026-10-03-safari-production/01-home-iniziale.png), [conferma critica](../../audit-data/2026-10-03-safari-production/02-conferma-disattivazione.png), [Home stretta](../../audit-data/2026-10-03-safari-production/23-home-574.png), [readback finale](../../audit-data/2026-10-03-safari-production/55-home-readback-finale.png).
+Prove: Home iniziale (schermata rimossa su richiesta dell’owner), conferma critica (schermata rimossa su richiesta dell’owner), Home stretta (schermata rimossa su richiesta dell’owner), readback finale (schermata rimossa su richiesta dell’owner).
 
 Trial, primo avvio, scadenza, piano mensile/annuale, pagamento unico, confronto piani, errori billing, stato in verifica e check-in non sono stati prodotti artificialmente sullo store omaggio. Sono stati letti nei componenti e percorsi nella suite `home-route`, `route-surfaces` e `visual-surfaces`. La suite verifica anche conferma Shopify rapida, lenta e fallita. Non dimostra una nuova transazione billing live né il ritorno da una pagina di approvazione Shopify reale.
 
@@ -97,7 +97,7 @@ Una bozza locale con PEC obbligatoria per aziende è stata provata nel simulator
 
 La cronologia e il ripristino della configurazione rimossi dalle release precedenti non ricompaiono. Sono superati dalla decisione D-174, quindi non sono nuove superfici da riattivare per il test.
 
-Prove: [regole e stati osservati all'inizio](../../audit-data/2026-10-03-safari-production/03-regole-iniziali.png), [etichette](../../audit-data/2026-10-03-safari-production/04-etichette-iniziali.png), [readback finale](../../audit-data/2026-10-03-safari-production/54-regole-readback-finale.png).
+Prove: regole e stati osservati all'inizio (schermata rimossa su richiesta dell’owner), etichette (schermata rimossa su richiesta dell’owner), readback finale (schermata rimossa su richiesta dell’owner).
 
 ### 5.2 Matrice del simulatore eseguita in Safari
 
@@ -117,7 +117,7 @@ Prove: [regole e stati osservati all'inizio](../../audit-data/2026-10-03-safari-
 
 Sono stati aperti «Quando si applicano» e «Opzioni avanzate». Scenari, paesi e valori di prova non hanno sporcato la configurazione salvata. «Svuota» e la ricarica finale hanno eliminato i valori locali.
 
-Prove: [campo richiesto e focus](../../audit-data/2026-10-03-safari-production/06-simulatore-campo-obbligatorio.png), [inglese e opzioni](../../audit-data/2026-10-03-safari-production/07-simulatore-inglese-opzioni.png), [PEC aziendale](../../audit-data/2026-10-03-safari-production/28-azienda-senza-pec.png).
+Prove: campo richiesto e focus (schermata rimossa su richiesta dell’owner), inglese e opzioni (schermata rimossa su richiesta dell’owner), PEC aziendale (schermata rimossa su richiesta dell’owner).
 
 ### 5.3 Variabilità dello stato prima dei salvataggi
 
@@ -135,7 +135,7 @@ Una bozza sintetica aggiorna l'anteprima e apre la barra di salvataggio. Il tent
 
 Nessun messaggio è stato salvato su Shopify. Le bozze sono state rimosse, con Home finale su «Predefiniti».
 
-Prove: [stato iniziale](../../audit-data/2026-10-03-safari-production/08-messaggi-iniziali.png), [bozza e barra](../../audit-data/2026-10-03-safari-production/09-messaggi-bozza.png), [conferma inglese](../../audit-data/2026-10-03-safari-production/10-ripristina-messaggi-inglesi.png), [limite di lunghezza](../../audit-data/2026-10-03-safari-production/25-messaggio-oltre-limite.png).
+Prove: stato iniziale (schermata rimossa su richiesta dell’owner), bozza e barra (schermata rimossa su richiesta dell’owner), conferma inglese (schermata rimossa su richiesta dell’owner), limite di lunghezza (schermata rimossa su richiesta dell’owner).
 
 ## 7. Guida, FAQ, diagnosi e assistenza
 
@@ -147,7 +147,7 @@ I collegamenti verso assistenza e diagnosi portano il titolo di arrivo in vista.
 
 Il collegamento di assistenza include versione `1.15.22` e diagnostica operativa, secondo il costruttore esistente. Non è stata aperta né inviata una bozza email; «Copia diagnostica» non è stato premuto. Il feedback visivo di copia e gli esiti di richiesta recensione restano coperti dalle fixture, non da un nuovo invio esterno.
 
-Prove: [FAQ aperte](../../audit-data/2026-10-03-safari-production/12-faq-espanse.png), [diagnosi effettiva](../../audit-data/2026-10-03-safari-production/15-diagnosi-risultati.png), [dettaglio](../../audit-data/2026-10-03-safari-production/16-diagnosi-dettaglio.png), [arrivo al simulatore](../../audit-data/2026-10-03-safari-production/17-arrivo-simulatore-da-guida.png), [arrivo stretto](../../audit-data/2026-10-03-safari-production/27-simulatore-arrivo-stretto.png).
+Prove: FAQ aperte (schermata rimossa su richiesta dell’owner), diagnosi effettiva (schermata rimossa su richiesta dell’owner), dettaglio (schermata rimossa su richiesta dell’owner), arrivo al simulatore (schermata rimossa su richiesta dell’owner), arrivo stretto (schermata rimossa su richiesta dell’owner).
 
 ## 8. Onboarding
 
@@ -155,7 +155,7 @@ Sono stati visitati i quattro passi: introduzione, regole/etichette, messaggi e 
 
 Una ricarica al passo 4 mantiene il passo corretto. Il riepilogo nella finestra stretta conserva regole, piano e messaggi leggibili. Non sono stati completati una nuova installazione, una nuova attivazione o un nuovo pagamento. Le varianti di primo avvio, errori di permessi, salvataggio e completamento restano verificate da codice e suite locale.
 
-Prove: [passo 1](../../audit-data/2026-10-03-safari-production/18-onboarding-passo1.png), [passo 2](../../audit-data/2026-10-03-safari-production/19-onboarding-passo2.png), [passo 3](../../audit-data/2026-10-03-safari-production/20-onboarding-passo3.png), [passo 4](../../audit-data/2026-10-03-safari-production/21-onboarding-passo4.png), [riepilogo stretto](../../audit-data/2026-10-03-safari-production/22-onboarding-stretto.png).
+Prove: passo 1 (schermata rimossa su richiesta dell’owner), passo 2 (schermata rimossa su richiesta dell’owner), passo 3 (schermata rimossa su richiesta dell’owner), passo 4 (schermata rimossa su richiesta dell’owner), riepilogo stretto (schermata rimossa su richiesta dell’owner).
 
 ## 9. Sito pubblico e checkout nativo
 
@@ -182,7 +182,7 @@ Il carrello iniziale era vuoto. È stato aggiunto un solo articolo temporaneo, q
 
 Non è stato premuto «Paga ora» né un pulsante express. La scomparsa degli errori non prova il completamento dell'ordine o tutti gli stadi di esecuzione della Function. Non sono state provate transazioni, wallet, clienti autenticati o tutti i mercati Shopify.
 
-Gli screenshot del checkout sono stati esaminati durante il test ma non conservati nel deliverable perché la barra di Safari conteneva l'identificatore riservato del checkout. Il [readback finale sanificato](../../audit-data/2026-10-03-safari-production/checkout-ripristino.txt) documenta campi personali e pagamento vuoti, lingua italiana e provincia iniziale Milano. I campi fiscali sono stati riletti vuoti prima di svuotare l'indirizzo, che li nasconde. La [prova del carrello vuoto](../../audit-data/2026-10-03-safari-production/53-carrello-ripristinato.png) chiude il ripristino dell'articolo temporaneo.
+Gli screenshot del checkout sono stati esaminati durante il test ma non conservati nel deliverable perché la barra di Safari conteneva l'identificatore riservato del checkout. Il [readback finale sanificato](../../audit-data/2026-10-03-safari-production/checkout-ripristino.txt) documenta campi personali e pagamento vuoti, lingua italiana e provincia iniziale Milano. I campi fiscali sono stati riletti vuoti prima di svuotare l'indirizzo, che li nasconde. La prova del carrello vuoto (schermata rimossa su richiesta dell’owner) chiude il ripristino dell'articolo temporaneo.
 
 ## 10. Inventario completo, responsive e limiti
 
@@ -215,7 +215,7 @@ Questi limiti sono stati cercati nell'UI disponibile, nel codice e nei test indi
 
 `npm run test:ui -- --project=merchant-webkit-critical`: **7 file, 73 test passati**. Include `route-surfaces`, `home-route`, `guide-route`, `messages-route`, `onboarding-route`, `rules-route` e `visual-surfaces`. Il runner ha emesso avvisi React su script e `act`, senza fallimenti. Non sono stati alterati test o fixture.
 
-`npm run check:docs`: **passato**, 54 test e 94 documenti verificati. Controllati anche tutti i collegamenti locali del nuovo rapporto: nessun riferimento mancante. Sono conservati 49 screenshot e due readback testuali sanificati. Gate standard/full, coverage e mutation non richiesti per questo diff e non eseguiti come parte dell'audit. Nessuna scansione di produzione o misura di prestazioni è stata dedotta dal semplice esito verde dei test.
+`npm run check:docs`: **passato**, 54 test e 94 documenti verificati. Controllati anche tutti i collegamenti locali del nuovo rapporto: nessun riferimento mancante. Le 49 schermate locali sono state eliminate il 3 ottobre 2026 su richiesta dell’owner prima della pubblicazione; restano i due readback testuali sanificati. I riferimenti alle schermate descrivono osservazioni storiche e non costituiscono allegati disponibili. Gate standard/full, coverage e mutation non richiesti per questo diff e non eseguiti come parte dell'audit. Nessuna scansione di produzione o misura di prestazioni è stata dedotta dal semplice esito verde dei test.
 
 ## 12. Ripristino e lavoro successivo
 
