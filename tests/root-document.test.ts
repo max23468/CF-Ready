@@ -1,20 +1,17 @@
 import type { ReactElement, ReactNode } from "react";
 import { isValidElement } from "react";
 import { expect, test, vi } from "vitest";
-import { polarisUrlForEnvironment, POLARIS_STABLE_URL, POLARIS_V2_URL } from "../app/shopify-ui";
-
-const state = vi.hoisted(() => ({ polarisUrl: "" }));
-state.polarisUrl = POLARIS_V2_URL;
 
 vi.mock("react-router", async (importOriginal) => {
   const original = await importOriginal<typeof import("react-router")>();
   return {
     ...original,
-    useLoaderData: () => ({ apiKey: "test-api-key", locale: "it", polarisUrl: state.polarisUrl }),
+    useLoaderData: () => ({ apiKey: "test-api-key", locale: "it" }),
   };
 });
 
 import App, { loader } from "../app/root";
+import { POLARIS_URL } from "../app/shopify-ui";
 
 function elements(node: ReactNode): ReactElement[] {
   if (Array.isArray(node)) return node.flatMap(elements);
@@ -27,57 +24,42 @@ test("il documento espone chiave App Bridge e lingua risolta dalla richiesta", (
     loader({
       request: new Request("https://cf-ready.test/app?locale=it-IT"),
     } as never),
-  ).toMatchObject({ locale: "it", apiKey: expect.any(String), polarisUrl: POLARIS_V2_URL });
+  ).toMatchObject({ locale: "it", apiKey: expect.any(String) });
 });
 
-test.each(["development", "production", undefined, "unknown"])(
-  "App Bridge e Polaris vengono caricati una sola volta nel head (%s)",
-  (environment) => {
-    state.polarisUrl = polarisUrlForEnvironment(environment);
-    const document = elements(App());
-    expect(document[0].props).toMatchObject({
-      "data-polaris-version": environment === "development" ? "2" : "1",
-    });
-    const head = document.find((element) => element.type === "head");
-    if (!head) throw new Error("head del documento assente");
+test("App Bridge e Polaris vengono caricati una sola volta nel head", () => {
+  const document = elements(App());
+  const head = document.find((element) => element.type === "head");
+  if (!head) throw new Error("head del documento assente");
 
-    const headElements = elements(head);
-    const appBridge = headElements.filter(
+  const headElements = elements(head);
+  const appBridge = headElements.filter(
+    (element) =>
+      element.type === "script" &&
+      (element.props as { src?: string }).src ===
+        "https://cdn.shopify.com/shopifycloud/app-bridge.js",
+  );
+  const polaris = headElements.filter(
+    (element) =>
+      element.type === "script" && (element.props as { src?: string }).src === POLARIS_URL,
+  );
+
+  expect(appBridge).toHaveLength(1);
+  expect(appBridge[0].props).toMatchObject({ "data-api-key": "test-api-key" });
+  expect(
+    headElements.filter(
       (element) =>
-        element.type === "script" &&
-        (element.props as { src?: string }).src ===
-          "https://cdn.shopify.com/shopifycloud/app-bridge.js",
-    );
-    const polaris = headElements.filter(
+        element.type === "meta" && (element.props as { name?: string }).name === "shopify-api-key",
+    ),
+  ).toHaveLength(0);
+  expect(polaris).toHaveLength(1);
+  expect(document.filter((element) => element.type === "script")).toHaveLength(2);
+  expect(
+    headElements.filter(
       (element) =>
-        element.type === "script" && (element.props as { src?: string }).src === state.polarisUrl,
-    );
-
-    expect(appBridge).toHaveLength(1);
-    expect(appBridge[0].props).toMatchObject({ "data-api-key": "test-api-key" });
-    expect(
-      headElements.filter(
-        (element) =>
-          element.type === "meta" &&
-          (element.props as { name?: string }).name === "shopify-api-key",
-      ),
-    ).toHaveLength(0);
-    expect(polaris).toHaveLength(1);
-    expect(document.filter((element) => element.type === "script")).toHaveLength(2);
-    expect(
-      headElements.filter(
-        (element) =>
-          element.type === "meta" &&
-          (element.props as { name?: string; content?: string }).name === "shopify-debug" &&
-          (element.props as { content?: string }).content === "web-vitals",
-      ),
-    ).toHaveLength(1);
-  },
-);
-
-test("Polaris v2 è limitata all'ambiente Development esplicito", () => {
-  expect(polarisUrlForEnvironment("development")).toBe(POLARIS_V2_URL);
-  for (const environment of ["production", undefined, "unknown"]) {
-    expect(polarisUrlForEnvironment(environment)).toBe(POLARIS_STABLE_URL);
-  }
+        element.type === "meta" &&
+        (element.props as { name?: string; content?: string }).name === "shopify-debug" &&
+        (element.props as { content?: string }).content === "web-vitals",
+    ),
+  ).toHaveLength(1);
 });

@@ -1,5 +1,5 @@
 import { act } from "react";
-import { beforeAll, expect, inject, test } from "vitest";
+import { beforeAll, expect, test } from "vitest";
 import { page, server, userEvent } from "vitest/browser";
 import { router, mount, homeData, confirmedHome, onboardingData } from "./route-support";
 import { texts } from "../../app/i18n";
@@ -12,29 +12,17 @@ import { DEFAULT_CONFIG } from "../../app/config";
 import type { CheckoutLabelsMode } from "../../app/checkout-labels/domain";
 import { CheckoutSimulator } from "../../app/features/rules/CheckoutSimulator";
 import { RevealBanner } from "../../app/ui-feedback";
-import { polarisUrlForEnvironment } from "../../app/shopify-ui";
 import "../../app/app.css";
 import "../../app/ui-motion.css";
-
-declare module "vitest" {
-  export interface ProvidedContext {
-    polarisEnvironment: string;
-  }
-}
-
-const polarisV2 = inject("polarisEnvironment") === "development";
-const screenshotPath = (path: string) =>
-  path.replace("/visual/", polarisV2 ? "/visual-v2/" : "/visual/");
 
 // I test di interazione usano host non registrati. Qui serve il rendering reale:
 // solo fixture sintetiche, nessuna autenticazione o chiamata allo store.
 beforeAll(async () => {
   const script = document.createElement("script");
-  script.src = polarisUrlForEnvironment(polarisV2 ? "development" : "production");
+  script.src = "https://cdn.shopify.com/shopifycloud/polaris-1.js";
   document.head.append(script);
   await customElements.whenDefined("s-page");
   document.documentElement.lang = "it";
-  document.documentElement.dataset.polarisVersion = polarisV2 ? "2" : "1";
   const style = document.createElement("style");
   style.textContent =
     "*, *::before, *::after { animation: none !important; transition: none !important; } body { height: 100vh; overflow: auto; }";
@@ -42,12 +30,7 @@ beforeAll(async () => {
 }, 30000);
 
 function expectNativeCards(container: HTMLElement) {
-  if (!polarisV2) {
-    expect(getComputedStyle(document.body).backgroundColor).toBe("rgb(241, 241, 241)");
-  } else {
-    // La v2 usa il fondo e la colonna laterale nativi dell'Admin Next.
-    expect(getComputedStyle(document.body).backgroundColor).not.toBe("rgb(241, 241, 241)");
-  }
+  expect(getComputedStyle(document.body).backgroundColor).toBe("rgb(241, 241, 241)");
   const sections = container.querySelectorAll("s-section");
   expect(sections.length).toBeGreaterThan(0);
   const rectangles: DOMRect[] = [];
@@ -61,7 +44,7 @@ function expectNativeCards(container: HTMLElement) {
     expect(surface).toBeDefined();
     rectangles.push(surface!.getBoundingClientRect());
   }
-  if (!polarisV2 && document.documentElement.clientWidth <= 600) {
+  if (document.documentElement.clientWidth <= 600) {
     rectangles.sort((a, b) => a.top - b.top);
     for (const rectangle of rectangles) {
       expect(rectangle.left).toBeGreaterThanOrEqual(16);
@@ -94,7 +77,7 @@ async function captureSurface(element: HTMLElement, path: string) {
     width,
     Math.max(height, Math.ceil(element.getBoundingClientRect().height) + 32),
   );
-  await page.screenshot({ path: screenshotPath(path) });
+  await page.screenshot({ path });
   await page.viewport(width, height);
 }
 
@@ -131,7 +114,7 @@ test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", asy
     const rulesGrid = view.container.querySelector("s-query-container > s-grid")!;
     const gridSurface = rulesGrid.shadowRoot!.querySelector<HTMLElement>(".grid")!;
     expect(getComputedStyle(gridSurface).gridTemplateColumns.split(" ")).toHaveLength(
-      gridSurface.getBoundingClientRect().width > 300 ? 2 : 1,
+      width === 320 ? 1 : 2,
     );
     // T5: anche la PEC obbligatoria per aziende è un badge azzurro, senza troncamenti.
     const pecBadge = [...view.container.querySelectorAll("s-badge")].find(
@@ -161,11 +144,7 @@ test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", asy
     );
     for (let index = 1; index < cards.length; index++) {
       const gap = cardRects[index].top - cardRects[index - 1].bottom;
-      if (polarisV2) {
-        expect(gap).toBeGreaterThanOrEqual(16);
-      } else {
-        expect(gap).toBe(16);
-      }
+      expect(gap).toBe(16);
     }
     await captureSurface(
       view.container,
@@ -277,7 +256,7 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
     .toBe(true);
   header.remove();
   await page.screenshot({
-    path: screenshotPath(`__screenshots__/visual/guide-${server.browser}-390.png`),
+    path: `__screenshots__/visual/guide-${server.browser}-390.png`,
   });
 });
 
@@ -320,9 +299,7 @@ test("Polaris reale: messaggi multiriga interamente visibili e anteprima vicina 
     expect(local.getBoundingClientRect().top).toBeGreaterThan(input.getBoundingClientRect().bottom);
     expect(local.getBoundingClientRect().bottom).toBeLessThan(window.innerHeight);
     await page.screenshot({
-      path: screenshotPath(
-        `__screenshots__/visual/messages-local-${locale}-${server.browser}-320.png`,
-      ),
+      path: `__screenshots__/visual/messages-local-${locale}-${server.browser}-320.png`,
     });
     await page.viewport(1280, 844);
     await expect.poll(() => getComputedStyle(local).display).toBe("none");
@@ -375,7 +352,7 @@ test("Polaris reale: anteprima Messaggi visibile prima dei campi e riepilogo sen
     // M6: nessun badge di lingua nell'anteprima.
     expect(preview.textContent).not.toContain(it.italian);
     // M4: il contatore è sempre visibile, quindi il focus non sposta i campi sotto.
-    const below = fieldTop(it.taxCodeInvalid).top + window.scrollY;
+    const below = fieldTop(it.taxCodeInvalid).top;
     expect(
       messages.container
         .querySelector('s-text-area[name="it.pecInvalid"]')!
@@ -383,7 +360,7 @@ test("Polaris reale: anteprima Messaggi visibile prima dei campi e riepilogo sen
     ).toBe(it.counter(DEFAULT_CONFIG.messages.it.pecInvalid.length));
     await page.getByRole("textbox", { name: it.taxCodeRequired, exact: true }).click();
     // WebKit arrotonda il bordo di focus Polaris a mezzo pixel; il difetto era di circa 20 px.
-    expect(Math.abs(fieldTop(it.taxCodeInvalid).top + window.scrollY - below)).toBeLessThan(1);
+    expect(Math.abs(fieldTop(it.taxCodeInvalid).top - below)).toBeLessThan(1);
     // M7: righe raggruppate per campo, ciascuna su una riga sola.
     const rows = [...messages.container.querySelectorAll<HTMLElement>(".cf-data-row")];
     expect(rows.map((row) => row.querySelector("s-text")!.textContent)).toEqual([
@@ -454,7 +431,7 @@ test("Polaris reale: anteprima Messaggi visibile prima dei campi e riepilogo sen
   }
 });
 
-test("Polaris reale: Regole con superfici native desktop e mobile", async () => {
+test("Polaris reale: Regole con card bianche sul fondo grigio desktop e mobile", async () => {
   for (const width of [1280, 390, 320]) {
     await page.viewport(width, 844);
     router.loaderData = {
