@@ -393,7 +393,6 @@ function MessagesEditor({
         <CustomerMessagesPreview
           activeLocale={activeLocale}
           context={t.messages.previewContext}
-          errorHeading={texts(activeLocale).messages.previewErrorHeading}
           fieldLabel={previewField.label}
           fieldLabelHeading={
             previewField.observed
@@ -445,11 +444,8 @@ function MessagesEditor({
                         <div className="customer-messages-preview__local">
                           <s-stack direction="block" gap="small-100">
                             <s-text color="subdued">{t.messages.previewHeading}</s-text>
-                            <CheckoutErrorPreview
-                              locale={activeLocale}
-                              heading={texts(activeLocale).messages.previewErrorHeading}
-                              message={value}
-                            />
+                            <CheckoutErrorPreview locale={activeLocale} message={value} />
+                            <s-text color="subdued">{t.messages.previewHint}</s-text>
                             {!messageAppears(rules, key) ? (
                               <s-text color="subdued">{t.messages.previewNotShown}</s-text>
                             ) : null}

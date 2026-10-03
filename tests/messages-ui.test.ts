@@ -65,12 +65,12 @@ test("soltanto il successo con readback evita la seconda lettura della pagina", 
 test("l'anteprima spiega il momento e l'esito del controllo in entrambe le lingue", () => {
   expect(texts("it").messages).toMatchObject({
     previewContext: "Quando il cliente prova a completare l’ordine",
-    previewErrorHeading: "Ordine non completato",
+    previewHeading: "Esempio del messaggio",
     previewSelected: "Messaggio selezionato",
   });
   expect(texts("en").messages).toMatchObject({
     previewContext: "When the customer tries to complete the order",
-    previewErrorHeading: "Order can’t be completed",
+    previewHeading: "Message example",
     previewSelected: "Selected message",
   });
 });

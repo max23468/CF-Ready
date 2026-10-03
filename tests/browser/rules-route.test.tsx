@@ -1078,7 +1078,8 @@ describe("Regole", () => {
     const summary = disclosures[0].querySelector("summary")!;
     const collapsedSummaryHeight = summary.getBoundingClientRect().height;
     const collapsedBorder = getComputedStyle(disclosures[0]).borderTopWidth;
-    expect(getComputedStyle(summary, "::after").borderTopWidth).toBe("1px");
+    expect(disclosures[0].parentElement?.tagName).toBe("S-BOX");
+    expect(disclosures[0].parentElement?.getAttribute("borderWidth")).toBe("base");
     await click(summary);
     expect(disclosures[0].hasAttribute("open")).toBe(true);
     expect(summary.getBoundingClientRect().height).toBe(collapsedSummaryHeight);

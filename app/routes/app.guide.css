@@ -13,7 +13,6 @@
 }
 
 .guide-faq__entry {
-  border-block-start: 1px solid var(--p-color-border-secondary, #dfe3e8);
   padding-block: 12px;
 }
 
@@ -30,12 +29,10 @@
    insieme di 6 px. */
 .guide-faq__entry summary {
   padding: 4px 1.75rem 4px 6px;
-  border-radius: var(--p-border-radius-200, 8px);
 }
 
 .guide-faq__question {
-  font-size: 14px;
-  line-height: 20px;
+  font: inherit;
 }
 
 .guide-faq__answer {
@@ -50,7 +47,7 @@
 }
 
 .guide-faq__entry summary:focus-visible {
-  outline: 2px solid var(--p-color-border-focus, #005bd3);
+  outline: auto;
   outline-offset: 2px;
 }
 
@@ -74,10 +71,6 @@
 @media (prefers-reduced-motion: no-preference) {
   .guide-faq__entry summary {
     transition: background-color var(--cf-motion-duration-fast) ease;
-  }
-
-  .guide-faq__entry summary:hover {
-    background: var(--p-color-bg-surface-secondary, #f7f7f7);
   }
 
   @supports (interpolate-size: allow-keywords) {

@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.3 — 3 ottobre 2026
+
+- affida a Polaris le cornici dei pannelli etichette, i separatori FAQ e gli
+  esempi dei messaggi, rimuovendo i fallback della vecchia palette;
+- mantiene completi i badge a 390 px, semplifica i casi etichette e impedisce
+  il taglio dei contenuti nelle griglie interne;
+- allinea icona e testo informativo su mobile e presenta i messaggi come
+  esempi, con nota bilingue sulla resa Shopify, anche nell'onboarding.
+  Pubblicazione solo Development, senza promozione Production.
+
 ## 2.0.2 — 3 ottobre 2026
 
 - consente l'installazione dell'app Development sui due soli store autorizzati,
