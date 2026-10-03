@@ -46,35 +46,37 @@ export function Address2CheckoutLabels({
   const hidden = state.address2FormMode === "hidden";
 
   return (
-    <details className="checkout-labels-disclosure">
-      <Address2Summary
-        copy={copy}
-        formMode={state.address2FormMode}
-        classification={presentation.classification}
-      />
-      <Address2Content
-        {...{
-          locale,
-          scopeGranted,
-          snapshot,
-          state,
-          activeFamily,
-          busy,
-          checkoutSettingsUrl,
-          submitIntent,
-          copy,
-          presentation,
-          restoreModalId,
-          hidden,
-        }}
-      />
-      <Address2RestoreModal
-        locale={locale}
-        restoreModalId={restoreModalId}
-        restorableSlots={presentation.restorableSlots}
-        submitIntent={submitIntent}
-      />
-    </details>
+    <s-box borderWidth="base" borderRadius="base">
+      <details className="checkout-labels-disclosure">
+        <Address2Summary
+          copy={copy}
+          formMode={state.address2FormMode}
+          classification={presentation.classification}
+        />
+        <Address2Content
+          {...{
+            locale,
+            scopeGranted,
+            snapshot,
+            state,
+            activeFamily,
+            busy,
+            checkoutSettingsUrl,
+            submitIntent,
+            copy,
+            presentation,
+            restoreModalId,
+            hidden,
+          }}
+        />
+        <Address2RestoreModal
+          locale={locale}
+          restoreModalId={restoreModalId}
+          restorableSlots={presentation.restorableSlots}
+          submitIntent={submitIntent}
+        />
+      </details>
+    </s-box>
   );
 }
 

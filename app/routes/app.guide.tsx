@@ -1,5 +1,5 @@
 import { localizedError } from "../app-error";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { data, useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
@@ -177,22 +177,25 @@ export default function Guide() {
               <div className="guide-faq__group" key={group.heading}>
                 <s-heading>{group.heading}</s-heading>
                 <div className="guide-faq__entries">
-                  {group.entries.map((entry) => (
-                    <details className="guide-faq__entry" key={entry.q} onToggle={syncExpanded}>
-                      <summary className="cf-disclosure">
-                        <span className="guide-faq__question">{entry.q}</span>
-                      </summary>
-                      <div className="guide-faq__answer">
-                        <s-paragraph>
-                          {/* G-B8: a uno store con piano omaggio non si parla di prova e prezzi. */}
-                          {"id" in entry &&
-                          entry.id === "billing" &&
-                          diagnostics.entitlementKind === "complimentary"
-                            ? t.guide.complimentaryBillingAnswer
-                            : entry.a}
-                        </s-paragraph>
-                      </div>
-                    </details>
+                  {group.entries.map((entry, index) => (
+                    <Fragment key={entry.q}>
+                      {index > 0 ? <s-divider /> : null}
+                      <details className="guide-faq__entry" onToggle={syncExpanded}>
+                        <summary className="cf-disclosure">
+                          <span className="guide-faq__question">{entry.q}</span>
+                        </summary>
+                        <div className="guide-faq__answer">
+                          <s-paragraph>
+                            {/* G-B8: a uno store con piano omaggio non si parla di prova e prezzi. */}
+                            {"id" in entry &&
+                            entry.id === "billing" &&
+                            diagnostics.entitlementKind === "complimentary"
+                              ? t.guide.complimentaryBillingAnswer
+                              : entry.a}
+                          </s-paragraph>
+                        </div>
+                      </details>
+                    </Fragment>
                   ))}
                 </div>
               </div>

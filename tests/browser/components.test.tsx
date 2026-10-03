@@ -64,12 +64,12 @@ describe("componenti merchant nel browser", () => {
       <CustomerMessagesPreview
         activeLocale="en"
         context="Contesto"
-        errorHeading="Errore"
         heading="Anteprima"
         fieldLabel="Tax code"
         fieldLabelHeading="Etichetta"
         hint="Suggerimento"
         message="Messaggio"
+        availability="Disponibilità"
         selectedHeading="Selezionato"
         selectedLabel="Codice fiscale"
       />,
@@ -80,7 +80,7 @@ describe("componenti merchant nel browser", () => {
     ).not.toBeNull();
     expect(view.container.querySelector('s-banner, [role="alert"]')).toBeNull();
     expect(view.container.querySelector("details")).toBeNull();
-    expect(view.container.querySelector('s-icon[type="alert-circle"]')).not.toBeNull();
+    expect(view.container.querySelector('s-icon[type="alert-circle"]')).toBeNull();
     expect(view.container.textContent?.match(/Anteprima/g)).toHaveLength(1);
     expect(view.container.textContent).toContain("Messaggio");
   });

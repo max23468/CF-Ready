@@ -95,10 +95,10 @@ describe("Messaggi", () => {
     await dispatch(language, new Event("change", { bubbles: true }));
     expect(
       view.container.querySelector('.customer-messages-preview__error[lang="en"]')?.textContent,
-    ).toContain(texts("en").messages.previewErrorHeading);
+    ).toContain(DEFAULT_CONFIG.messages.en.taxCodeRequired);
     expect(
       view.container.querySelector(".customer-messages-preview__error")?.textContent,
-    ).not.toContain(texts("it").messages.previewErrorHeading);
+    ).not.toContain(DEFAULT_CONFIG.messages.it.taxCodeRequired);
     expect(
       view.container
         .querySelector("s-text-area")!
