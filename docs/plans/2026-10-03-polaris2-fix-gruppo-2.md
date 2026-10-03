@@ -7,7 +7,8 @@ Worktree locale dedicato: `CF-Ready-polaris2-gruppo-2`.
 Fonte: audit originale non tracciato nel checkout principale,
 `docs/plans/2026-10-03-audit-ui-ux-development-2.0.md` del checkout principale.
 Audit e prove originali preservati. Confronto con le catture native 08 e
-con le prove 21, 35, 41, 50–52. Nessuna scrittura remota, commit o pubblicazione.
+con le prove 21, 35, 41, 50–52. Il primo passaggio era limitato al lavoro locale.
+L’owner ha poi autorizzato la pubblicazione senza promozione e la verifica finale.
 
 ## Esiti dei cinque findings
 
@@ -73,6 +74,10 @@ i dizionari IT/EN e i test delle superfici. Conservare i badge brevi e il ramo
 `statusChoiceRequired` quando si integra V2-R1. Nessuna modifica a CSS, ai box
 di V2-R2, alle anteprime di V2-M1/M2 o a UX-C1/C2. Nessun messaggio all’altra chat.
 
-Worktree e branch restano disponibili con modifiche non committate. SemVer e
-changelog della futura PR andranno preparati una sola volta dopo l’integrazione
-dei due gruppi; nessun manifest o lockfile modificato qui.
+Preparazione della pubblicazione: riallineamento al gruppo 1 unito con PR #626
+(`fd1fb757e241298d78bfef679f31f7368ec81169`), senza conflitti; conservati i suoi
+componenti e i badge brevi. Patch 2.0.4 nel manifest e nel lockfile, con changelog.
+Test browser di integrazione: 98 verdi in sei esecuzioni, con entrambi i runtime
+e browser; catture Chromium aggiornate sul risultato integrato.
+Il coordinatore `publish:development` ripete i gate e segue CI, merge e deploy.
+Production resta fuori dal ciclo autorizzato.
