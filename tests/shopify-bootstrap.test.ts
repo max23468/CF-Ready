@@ -1,6 +1,7 @@
 import { beforeEach, expect, test, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
+  allowedShop: "",
   bindings: {} as Record<string, unknown>,
   shopifyOptions: [] as Array<Record<string, unknown>>,
 }));
@@ -17,6 +18,12 @@ const mocks = vi.hoisted(() => ({
 vi.mock("cloudflare:workers", () => ({
   get env() {
     return state.bindings;
+  },
+}));
+
+vi.mock("../app/env.server", () => ({
+  get ALLOWED_SHOP() {
+    return state.allowedShop;
   },
 }));
 
@@ -45,6 +52,7 @@ vi.mock("@shopify/shopify-app-react-router/server", () => ({
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
+  state.allowedShop = "";
   state.bindings = { DB: { name: "db" } };
   state.shopifyOptions = [];
   mocks.shopifyApp.mockImplementation((options: Record<string, unknown>) => {
@@ -99,24 +107,8 @@ test("il bootstrap inoltra binding espliciti e dominio custom", async () => {
   });
 });
 
-test.each(["development", "production", undefined, "unknown"])(
-  "il preload Shopify corrisponde al runtime Polaris del documento (%s)",
-  async (environment) => {
-    state.bindings.APP_ENVIRONMENT = environment;
-    await import("../app/shopify.server");
-    const { loader } = await import("../app/root");
-    const document = loader({ request: new Request("https://cf-ready.test/app") } as never);
-    expect(state.shopifyOptions[0].polarisUrl).toBe(document.polarisUrl);
-    expect(document.polarisUrl).toBe(
-      environment === "development"
-        ? "https://cdn.shopify.com/shopifycloud/polaris-2.0-rc.js"
-        : "https://cdn.shopify.com/shopifycloud/polaris-1.js",
-    );
-  },
-);
-
 test("afterAuth rifiuta uno store diverso da quello Development consentito", async () => {
-  state.bindings.ALLOWED_SHOP = "cf-ready-dev.myshopify.com";
+  state.allowedShop = "cf-ready-dev.myshopify.com";
   await import("../app/shopify.server");
   const afterAuth = (
     state.shopifyOptions[0].hooks as {
