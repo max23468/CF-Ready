@@ -642,6 +642,18 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
   router.loaderData = { ...onboardingData, step: 2, labelScopesGranted: true };
   const step2 = await mount(<Onboarding />);
   expect(step2.container.textContent).not.toContain("permessi per confrontare le etichette");
+  // Il titolo di Codice Fiscale sta vicino alle sue opzioni, come nelle card di Regole.
+  const taxHeading = [...step2.container.querySelectorAll(".onboarding-step s-heading")].find(
+    (heading) => heading.textContent === it.rules.taxCodeLabel,
+  )!;
+  const choices = step2.container.querySelector(".onboarding-step s-choice-list")!;
+  // Distanza dal titolo al primo radio, come nelle card di Regole (prima 16 px di griglia).
+  const radio = [choices, ...choices.querySelectorAll("s-choice")]
+    .flatMap((element) => [...(element.shadowRoot?.querySelectorAll("*") ?? [])])
+    .map((element) => element.getBoundingClientRect())
+    .filter((rect) => rect.width > 0 && rect.height > 0 && rect.width < 40)
+    .sort((a, b) => a.top - b.top)[0];
+  expect(radio.top - surfaceRect(taxHeading).bottom).toBeLessThanOrEqual(12);
   await step2.unmount();
 
   // O2, O3: ogni messaggio è un blocco con etichetta e anteprima, separato dagli altri.

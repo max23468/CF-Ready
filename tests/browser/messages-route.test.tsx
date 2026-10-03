@@ -10,6 +10,20 @@ import { click, dispatch } from "./render";
 import CustomerMessages from "../../app/routes/app.messages";
 
 describe("Messaggi", () => {
+  test("l'anteprima dice sempre se il messaggio compare, così l'altezza non cambia", async () => {
+    // Prima la nota compariva solo per i messaggi "non previsti" e spostava i campi sotto.
+    router.loaderData = {
+      locale: "it",
+      configHash: "hash",
+      messages: DEFAULT_CONFIG.messages,
+      rules: { taxCode: "required_validated", pec: "optional_validated" },
+    };
+    const view = await mount(<CustomerMessages />);
+    const preview = view.container.querySelector(".customer-messages-preview")!;
+    expect(preview.textContent).toContain(texts("it").messages.previewShown);
+    expect(preview.textContent).not.toContain(texts("it").messages.previewNotShown);
+  });
+
   test("mostra tutte le righe esplicite di un messaggio valido", async () => {
     router.loaderData = {
       locale: "it",

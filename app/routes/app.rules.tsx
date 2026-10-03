@@ -289,7 +289,14 @@ export default function CheckoutRules() {
       />
 
       <ui-save-bar id={SAVE_BAR}>
-        <button type="button" variant="primary" disabled={busy || Boolean(conflict)} onClick={save}>
+        {/* Il salvataggio con le etichette dura alcuni secondi: Salva mostra il caricamento. */}
+        <button
+          type="button"
+          variant="primary"
+          disabled={busy || Boolean(conflict)}
+          loading={busy ? "" : undefined}
+          onClick={save}
+        >
           {t.common.save}
         </button>
         <button type="button" disabled={busy} onClick={discard}>
@@ -443,7 +450,8 @@ function showNativeLabels() {
   details.open = true;
   const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   details.scrollIntoView?.({ block: "start", behavior: reduced ? "auto" : "smooth" });
-  details.querySelector("summary")?.focus();
+  // Senza preventScroll il focus interrompe lo scorrimento morbido a metà pagina.
+  details.querySelector("summary")?.focus({ preventScroll: true });
 }
 
 function rulesConflictRows(

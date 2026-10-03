@@ -1289,8 +1289,41 @@ describe("Regole: salvataggio ed etichette (audit §5.1)", () => {
     );
     const native = view.container.querySelector<HTMLDetailsElement>("#checkout-native-labels");
     expect(native?.open).toBe(false);
+    // Il focus non deve interrompere lo scorrimento verso la sezione (che finiva a metà schermo).
+    const focus = vi.spyOn(native!.querySelector("summary")!, "focus");
     await click(show!);
     expect(native?.open).toBe(true);
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+  });
+
+  test("le lingue da verificare seguono un ordine fisso, non quello dello store", async () => {
+    router.loaderData = {
+      ...baseData,
+      // Su Numisleo l'inglese viene prima nelle lingue dello store.
+      labelSnapshot: {
+        ...snapshot("labels-r1", [pecSlot("en", "PEC"), pecSlot("it", "PEC")]),
+        locales: [
+          { locale: "en", family: "en", name: "English", primary: false, published: true },
+          { locale: "it", family: "it", name: "Italiano", primary: true, published: true },
+        ],
+      },
+      guidedConfirmations: [],
+    };
+    const view = await mount(<CheckoutRules />);
+    expect(view.container.textContent).toContain(
+      texts("it").rules.labels.nativeSummaryNeedsReview(2, ["italiano", "inglese"]),
+    );
+  });
+
+  test("durante il salvataggio Salva mostra il caricamento", async () => {
+    router.loaderData = { ...baseData, labelSnapshot: snapshot("labels-r1") };
+    router.navigation = { state: "submitting" };
+    const view = await mount(<CheckoutRules />);
+    expect(
+      view.container
+        .querySelector('ui-save-bar button[variant="primary"]')!
+        .hasAttribute("loading"),
+    ).toBe(true);
   });
 
   test("avvisa delle conseguenze quando si toglie la gestione automatica", async () => {

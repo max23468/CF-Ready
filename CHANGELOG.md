@@ -6,6 +6,21 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.23 — 3 ottobre 2026
+
+- conserva la conferma manuale delle etichette quando una regola cambia e poi
+  torna com'era: i mercati che ereditano una traduzione scritta da CF Ready non
+  richiedono più una nuova verifica (R-H4 b, riprodotto su Numisleo);
+- "Ultima lettura delle etichette da Shopify" mostra l'ultima lettura reale,
+  anche quando restano verifiche manuali;
+- "Salva" mostra il caricamento durante il salvataggio di regole e messaggi;
+- l'anteprima dei messaggi dice sempre se il messaggio può comparire, così la
+  sua altezza non cambia e i campi non si spostano;
+- nell'onboarding avvicina i titoli di Codice Fiscale e PEC alle opzioni e, al
+  passo 3, segnala i messaggi che non compaiono con le regole scelte;
+- "Mostra le etichette" porta la sezione in cima e il riepilogo elenca le lingue
+  in ordine fisso, italiano poi inglese.
+
 ## 1.15.22 — 3 ottobre 2026
 
 - nel simulatore spiega il blocco dovuto a un campo obbligatorio che Shopify

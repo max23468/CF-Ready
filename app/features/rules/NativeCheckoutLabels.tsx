@@ -202,8 +202,12 @@ function NativeLabelsContent({
               {copy.mode}: {copy.modeValues[state.mode]}
             </s-text>
             <s-text color="subdued">
-              {state.lastSyncAt
-                ? copy.lastSync(formatDateTime(state.lastSyncAt, locale, timeZone))
+              {/* L'ultima lettura reale, anche se restano verifiche manuali (lastSyncAt resta
+                  l'ultima sincronizzazione completa, usata per lo stato). */}
+              {(state.lastReadAt ?? state.lastSyncAt)
+                ? copy.lastSync(
+                    formatDateTime((state.lastReadAt ?? state.lastSyncAt)!, locale, timeZone),
+                  )
                 : copy.neverSynced}
             </s-text>
             <s-text color="subdued">{copy.operationalSummary(automaticCount, pendingTotal)}</s-text>

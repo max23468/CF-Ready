@@ -301,6 +301,7 @@ export default function CustomerMessages() {
             type="button"
             variant="primary"
             disabled={busy || Boolean(conflict)}
+            loading={busy ? "" : undefined}
             onClick={save}
           >
             {t.common.save}
@@ -391,7 +392,11 @@ function MessagesEditor({
           heading={t.messages.previewHeading}
           hint={t.messages.previewHint}
           message={draft[activeLocale][selectedKey]}
-          notShown={messageAppears(rules, selectedKey) ? undefined : t.messages.previewNotShown}
+          availability={
+            messageAppears(rules, selectedKey)
+              ? t.messages.previewShown
+              : t.messages.previewNotShown
+          }
           selectedHeading={t.messages.previewSelected}
           selectedLabel={t.messages[selectedKey]}
         />
