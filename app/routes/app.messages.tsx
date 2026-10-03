@@ -147,12 +147,8 @@ export default function CustomerMessages() {
   const sentRef = useRef<CheckoutConfig["messages"] | null>(null);
   const baseHash = useRef(saved.configHash);
   const [resolvedConflict, setResolvedConflict] = useState(false);
-  const conflict =
-    result &&
-    !result.ok &&
-    "errorCode" in result &&
-    result.errorCode === "config_conflict" &&
-    !resolvedConflict;
+  const errorCode = messageErrorCode(result);
+  const conflict = errorCode === "config_conflict" && !resolvedConflict;
   const t = texts(saved.locale);
   const [draft, setDraft] = useState<CheckoutConfig["messages"]>(saved.messages);
   const draftRef = useRef(draft);
@@ -303,11 +299,8 @@ export default function CustomerMessages() {
             )}
           />
         ) : null}
-        {result &&
-        !result.ok &&
-        "errorCode" in result &&
-        (result.errorCode !== "config_conflict" || conflict) ? (
-          <RevealBanner tone="critical">{localizedError(t.errors, result.errorCode)}</RevealBanner>
+        {errorCode && (errorCode !== "config_conflict" || conflict) ? (
+          <RevealBanner tone="critical">{localizedError(t.errors, errorCode)}</RevealBanner>
         ) : null}
 
         <ui-save-bar id={SAVE_BAR}>
@@ -353,6 +346,10 @@ export default function CustomerMessages() {
 type MessagesCopy = ReturnType<typeof texts>;
 type MessagesData = ReturnType<typeof useLoaderData<typeof loader>>;
 type MessagesActionResult = ReturnType<typeof useActionData<typeof action>>;
+
+function messageErrorCode(result: MessagesActionResult) {
+  return result && !result.ok && "errorCode" in result ? result.errorCode : null;
+}
 
 function MessagesEditor({
   t,
