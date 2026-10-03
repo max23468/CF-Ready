@@ -13,6 +13,8 @@ import type { CheckoutLabelsMode } from "../../app/checkout-labels/domain";
 import { CheckoutSimulator } from "../../app/features/rules/CheckoutSimulator";
 import { RevealBanner } from "../../app/ui-feedback";
 import { polarisUrlForEnvironment } from "../../app/shopify-ui";
+import { trialContinuityTexts } from "../../app/i18n/trial-continuity";
+import { formatDate, formatMoney } from "../../app/i18n";
 import "../../app/app.css";
 import "../../app/ui-motion.css";
 
@@ -181,6 +183,168 @@ test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", asy
   }
 });
 
+test.each([
+  ["it", 1280],
+  ["it", 390],
+  ["en", 1280],
+  ["en", 390],
+] as const)("Polaris reale: gruppo 2, %s a %i px", async (locale, width) => {
+  document.documentElement.lang = locale;
+  const copy = texts(locale);
+  await page.viewport(width, 844);
+  const data = {
+    ...homeData,
+    locale,
+    validationEnabled: true,
+    onboarding: "completed",
+    entitlement: { kind: "trial", validThrough: "2026-10-16" },
+    trialStatus: "active",
+    trialEndsAt: "2026-10-16",
+    firstChargeAt: "2026-10-17",
+    remaining: 13,
+  };
+  router.loaderData = confirmedHome(data);
+  const home = await mount(<HomePage />);
+  await expect
+    .poll(() => home.container.querySelector("s-banner s-button")?.hasAttribute("disabled"))
+    .toBe(false);
+  const banner = home.container.querySelector("s-banner")!;
+  expect(banner.querySelectorAll("s-paragraph")).toHaveLength(1);
+  expect(banner.textContent).not.toContain(trialContinuityTexts(locale).approvalHelp);
+  const plans = home.container.querySelector("#plans")!;
+  expect(plans.textContent).toContain(copy.plan.firstCharge(formatDate("2026-10-17", locale)));
+  expect(plans.textContent).toContain(copy.plan.oneTimeCharge);
+  const prices = [...plans.querySelectorAll('s-heading[accessibilityRole="presentation"]')];
+  expect(prices.map((price) => price.textContent)).toEqual(
+    [data.plan.monthly, data.plan.annual, data.plan.one_time].map((price) =>
+      formatMoney(price, locale),
+    ),
+  );
+  for (const price of prices) {
+    const number = surfaceRect(price);
+    const period = surfaceRect(price.nextElementSibling!);
+    expect(period.left).toBeGreaterThanOrEqual(number.right);
+    expect(period.top).toBeLessThan(number.bottom);
+    expect(period.right).toBeLessThanOrEqual(window.innerWidth);
+  }
+  if (width === 390) expect(surfaceRect(banner).bottom - surfaceRect(banner).top).toBeLessThan(180);
+  await page.screenshot({
+    path: screenshotPath(
+      `__screenshots__/visual/group2-home-top-${locale}-${server.browser}-${width}.png`,
+    ),
+  });
+  await page.screenshot({
+    element: plans,
+    path: screenshotPath(
+      `__screenshots__/visual/group2-plans-${locale}-${server.browser}-${width}.png`,
+    ),
+  });
+  window.scrollTo(0, 0);
+  await captureSurface(
+    home.container,
+    `__screenshots__/visual/group2-home-${locale}-${server.browser}-${width}.png`,
+  );
+  await home.unmount();
+  router.loaderData = {
+    locale,
+    shopDomain: "demo.myshopify.com",
+    version: "fixture",
+    diagnosticId: "123e4567-e89b-42d3-a456-426614174000",
+    diagnostics: {},
+  };
+  const guide = await mount(<Guide />);
+  const headingRange = document.createRange();
+  headingRange.selectNodeContents(
+    page.getByRole("heading", { name: copy.guide.faqHeading, exact: true }).element(),
+  );
+  const heading = headingRange.getBoundingClientRect();
+  const action = surfaceRect(
+    guide.container.querySelector('#faq s-button[slot="secondary-actions"]')!,
+  );
+  expect(heading.right).toBeLessThanOrEqual(window.innerWidth);
+  expect(action.right).toBeLessThanOrEqual(window.innerWidth);
+  expect(action.left >= heading.right || action.top >= heading.bottom).toBe(true);
+  await act(async () => {
+    await page.getByRole("button", { name: copy.guide.expandAll, exact: true }).click();
+  });
+  expect(guide.container.querySelectorAll("details:not([open])")).toHaveLength(0);
+  await act(async () => {
+    await page.getByRole("button", { name: copy.guide.collapseAll, exact: true }).click();
+  });
+  await page.screenshot({
+    path: screenshotPath(
+      `__screenshots__/visual/group2-guide-top-${locale}-${server.browser}-${width}.png`,
+    ),
+  });
+  await captureSurface(
+    guide.container,
+    `__screenshots__/visual/group2-guide-${locale}-${server.browser}-${width}.png`,
+  );
+  await guide.unmount();
+  for (const manual of [false, true]) {
+    router.loaderData = {
+      locale,
+      duplicateError: null,
+      configHash: "fixture",
+      rules: manual ? { taxCode: "required_validated", pec: "unmanaged" } : DEFAULT_CONFIG.rules,
+      messages: DEFAULT_CONFIG.messages,
+      enabled: false,
+      entitled: true,
+      labelScopesGranted: true,
+      labelState: {
+        mode: manual ? "guided" : "off",
+        managementEpoch: null,
+        enabledAt: null,
+        lastSyncAt: null,
+        lastErrorCode: null,
+        decision: "pending",
+        acceptedRevision: null,
+        reviewedAt: null,
+        address2Classification: "expected",
+        address2HasMarketOverride: false,
+        address2ExternalChangeAt: null,
+        address2Decision: "pending",
+        address2ReviewedAt: null,
+        address2FormMode: null,
+      },
+      labelSnapshot: {
+        revision: "fixture",
+        locales: [{ locale: "it", family: "it", name: "Italiano", primary: true, published: true }],
+        markets: [],
+        issues: [],
+        address2: { classification: "expected", hasMarketOverride: false },
+        slots: [labelSlot({ name: "taxCode", capability: "guided" })],
+      },
+      guidedConfirmations: [],
+      labelLoadError: null,
+      checkoutSettingsUrl: "https://admin.shopify.com/store/demo/settings/checkout",
+      storefrontUrl: "https://demo.myshopify.com",
+    };
+    const rules = await mount(<CheckoutRules />);
+    const labels = rules.container.querySelector<HTMLElement>("#checkout-native-labels")!;
+    const badge = labels.querySelector("summary s-badge")!;
+    expect(badge.textContent).toBe(
+      manual ? copy.rules.labels.statusManualRequired : copy.rules.labels.statusChoiceRequired,
+    );
+    expect(badge.getAttribute("tone")).toBe("warning");
+    for (const element of badge.shadowRoot!.querySelectorAll<HTMLElement>("*")) {
+      if (element.clientWidth > 0)
+        expect(element.scrollWidth).toBeLessThanOrEqual(element.clientWidth + 1);
+    }
+    await page.screenshot({
+      element: labels,
+      path: screenshotPath(
+        `__screenshots__/visual/group2-labels-${manual ? "manual" : "choice"}-${locale}-${server.browser}-${width}.png`,
+      ),
+    });
+    await captureSurface(
+      rules.container,
+      `__screenshots__/visual/group2-rules-${manual ? "manual" : "choice"}-${locale}-${server.browser}-${width}.png`,
+    );
+    await rules.unmount();
+  }
+});
+
 test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
   await page.viewport(390, 844);
   router.loaderData = {
@@ -195,16 +359,18 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
   const asideCards = view.container.querySelectorAll('s-stack[slot="aside"] > s-section');
   expect(asideCards[0].getAttribute("heading")).toBe(texts("it").support.heading);
   const summary = view.container.querySelector<HTMLElement>(".guide-faq__entry summary")!;
-  // G-B5: titolo nativo e domande senza grassetto; "Espandi tutte" a destra del titolo.
-  const faqHeading = view.container.querySelector("#faq s-heading")!;
-  expect(faqHeading.textContent).toBe(texts("it").guide.faqHeading);
+  // V2-T2: intestazione di sezione nativa, come Home, Regole e Messaggi.
+  expect(view.container.querySelector("#faq")!.getAttribute("heading")).toBe(
+    texts("it").guide.faqHeading,
+  );
   expect(
     page.getByRole("heading", { name: texts("it").guide.faqHeading, exact: true }).elements(),
   ).toHaveLength(1);
   const toggle = surfaceRect(view.container.querySelector("#faq s-button")!);
-  const headingBox = surfaceRect(faqHeading);
-  expect(toggle.left).toBeGreaterThan(headingBox.right);
-  expect(toggle.top).toBeLessThan(headingBox.bottom);
+  expect(toggle.right).toBeLessThanOrEqual(window.innerWidth);
+  expect(view.container.querySelector("#faq s-button")!.getAttribute("slot")).toBe(
+    "secondary-actions",
+  );
   expect(
     Number(getComputedStyle(summary.querySelector(".guide-faq__question")!).fontWeight),
   ).toBeLessThan(600);

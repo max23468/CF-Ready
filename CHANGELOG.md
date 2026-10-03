@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.4 — 3 ottobre 2026
+
+- uniforma i titoli principali con la sezione FAQ nativa Polaris e completa
+  il titolo inglese, conservando il comando globale anche a 390 px;
+- distingue la scelta iniziale dei testi checkout dalle verifiche manuali
+  effettivamente pendenti, con badge brevi in italiano e inglese;
+- riduce il banner della prova nella Home e mette in risalto prezzi e
+  periodicità, conservando condizioni commerciali e azioni esistenti.
+  Pubblicazione solo Development, senza promozione Production.
+
 ## 2.0.3 — 3 ottobre 2026
 
 - affida a Polaris le cornici dei pannelli etichette, i separatori FAQ e gli

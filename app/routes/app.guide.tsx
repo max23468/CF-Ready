@@ -162,16 +162,11 @@ export default function Guide() {
       {/* §15.7: pagina unica con sezioni espandibili. Polaris non ha un componente di
           divulgazione, quindi si usa `details`, che è l'elemento nativo della piattaforma:
           accessibile e utilizzabile da tastiera senza reimplementare nulla (§8.1). */}
-      {/* G-B5: titoli `s-heading` nativi, domande senza grassetto. `s-section` non accetta
-          azioni accanto al titolo: il titolo sta nel contenuto, con "Espandi tutte" a destra. */}
-      <s-section id="faq">
+      <s-section id="faq" heading={t.guide.faqHeading}>
+        <s-button slot="secondary-actions" onClick={toggleAll}>
+          {expanded ? t.guide.collapseAll : t.guide.expandAll}
+        </s-button>
         <s-stack direction="block" gap="base">
-          <s-grid gridTemplateColumns="minmax(0, 1fr) auto" alignItems="center" gap="base">
-            <s-heading>{t.guide.faqHeading}</s-heading>
-            <s-button onClick={toggleAll}>
-              {expanded ? t.guide.collapseAll : t.guide.expandAll}
-            </s-button>
-          </s-grid>
           <div className="guide-faq__groups">
             {t.guide.groups.map((group) => (
               <div className="guide-faq__group" key={group.heading}>

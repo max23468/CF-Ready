@@ -135,8 +135,13 @@ function RecurringPlanOption({
     <s-stack direction="block" gap="small-100">
       <s-stack direction="inline" gap="small-100" alignItems="center">
         <s-text type="strong">{label}</s-text>
-        <s-text>{formatMoney(data.plan![kind], data.locale)}</s-text>
         {annual ? <s-badge>{t.plan.recommended}</s-badge> : null}
+      </s-stack>
+      <s-stack direction="inline" gap="small-100" alignItems="baseline">
+        <s-heading fontSize="large-200" accessibilityRole="presentation">
+          {formatMoney(data.plan![kind], data.locale)}
+        </s-heading>
+        <s-text color="subdued">{annual ? t.plan.annualPeriod : t.plan.monthlyPeriod}</s-text>
       </s-stack>
       {active ? null : (
         <s-stack direction="inline" gap="base">
@@ -169,7 +174,12 @@ function OneTimePlanOption({
     <s-stack direction="block" gap="small-100">
       <s-stack direction="inline" gap="small-100" alignItems="center">
         <s-text type="strong">{t.plan.oneTimeName}</s-text>
-        <s-text>{formatMoney(data.plan!.one_time, data.locale)}</s-text>
+      </s-stack>
+      <s-stack direction="inline" gap="small-100" alignItems="baseline">
+        <s-heading fontSize="large-200" accessibilityRole="presentation">
+          {formatMoney(data.plan!.one_time, data.locale)}
+        </s-heading>
+        <s-text color="subdued">{t.plan.oneTimePeriod}</s-text>
       </s-stack>
       <s-paragraph>
         {trialNeverStarted ? t.plan.oneTimeChargeNotStarted : t.plan.oneTimeCharge}
