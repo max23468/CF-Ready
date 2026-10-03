@@ -7,6 +7,7 @@ import {
   parseWranglerJson,
 } from "./d1-report.mjs";
 import { FUNNEL_QUERY, parseFunnel } from "../app/reporting/funnel.ts";
+import { OPEN_STORE_ERROR_FILTER } from "../app/reporting/operational.ts";
 
 export { FUNNEL_QUERY, parseFunnel };
 
@@ -18,11 +19,11 @@ SELECT
   COALESCE(SUM(CASE WHEN shops.installed_at >= datetime('now', '-7 days') THEN 1 ELSE 0 END), 0) AS installs_7d,
   COALESCE(SUM(CASE WHEN shops.installed_at >= datetime('now', '-30 days') THEN 1 ELSE 0 END), 0) AS installs_30d,
   COALESCE(SUM(CASE WHEN shops.installation_status = 'active'
-    AND app_state.onboarding_status = 'completed' THEN 1 ELSE 0 END), 0) AS onboarding_completed,
+    AND a.onboarding_status = 'completed' THEN 1 ELSE 0 END), 0) AS onboarding_completed,
   COALESCE(SUM(CASE WHEN shops.installation_status = 'active'
-    AND app_state.validation_enabled = 1 THEN 1 ELSE 0 END), 0) AS validations_enabled,
+    AND a.validation_enabled = 1 THEN 1 ELSE 0 END), 0) AS validations_enabled,
   COALESCE(SUM(CASE WHEN shops.installation_status = 'active'
-    AND app_state.last_error_code IS NOT NULL THEN 1 ELSE 0 END), 0) AS stores_with_open_error,
+    AND ${OPEN_STORE_ERROR_FILTER} THEN 1 ELSE 0 END), 0) AS stores_with_open_error,
   COALESCE(SUM(CASE
     WHEN shops.installation_status = 'active'
       AND trials.status = 'active' AND trials.ends_at >= date('now')
@@ -31,6 +32,7 @@ SELECT
     WHEN shops.installation_status = 'active'
       AND billing_accounts.entitlement_status IN ('active', 'ending')
       AND billing_accounts.plan_kind IN ('monthly', 'annual', 'one_time')
+      AND billing_accounts.is_test = 0
     THEN 1 ELSE 0 END), 0) AS paying_or_paid_stores,
   COALESCE(SUM(CASE WHEN shops.installation_status = 'active'
     AND complimentary_entitlements.status = 'active' THEN 1 ELSE 0 END), 0) AS complimentary_stores,
@@ -39,7 +41,7 @@ SELECT
   (SELECT COUNT(*) FROM webhook_events
     WHERE status = 'failed' AND received_at >= datetime('now', '-7 days')) AS failed_webhooks_7d
 FROM shops
-LEFT JOIN app_state ON app_state.shop_id = shops.id
+LEFT JOIN app_state a ON a.shop_id = shops.id
 LEFT JOIN trials ON trials.shop_id = shops.id
 LEFT JOIN billing_accounts ON billing_accounts.shop_id = shops.id
 LEFT JOIN complimentary_entitlements ON complimentary_entitlements.shop_id = shops.id;
