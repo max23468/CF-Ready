@@ -16,11 +16,13 @@ export function PlanChoice(props: PlanProps) {
   const trialNeverStarted = commercialState(data) === "first_run";
   return (
     <>
-      <s-box id="plans" paddingBlockEnd="base">
-        <s-stack direction="block" gap="base">
-          {trialNeverStarted ? <StartTrialSection {...props} /> : null}
-          <PlanSelection {...props} trialNeverStarted={trialNeverStarted} />
-        </s-stack>
+      <s-box paddingBlockEnd="base">
+        <div id="plans" className="home-plans" tabIndex={-1}>
+          <s-stack direction="block" gap="base">
+            {trialNeverStarted ? <StartTrialSection {...props} /> : null}
+            <PlanSelection {...props} trialNeverStarted={trialNeverStarted} />
+          </s-stack>
+        </div>
       </s-box>
       <s-modal
         id="cancel-renewal"
@@ -97,6 +99,8 @@ function PlanSelection(props: PlanProps & { trialNeverStarted: boolean }) {
     <s-section heading={heading}>
       <s-stack direction="block" gap="base">
         <s-paragraph>{t.plan.chooseBody}</s-paragraph>
+        {/* Mensile e annuale hanno lo stesso primo addebito: la data si dice una volta. */}
+        <s-paragraph>{props.firstCharge}</s-paragraph>
         <RecurringPlanOption {...props} kind="monthly" />
         <s-divider />
         <RecurringPlanOption {...props} kind="annual" />
@@ -113,7 +117,6 @@ function RecurringPlanOption({
   busy,
   pendingIntent,
   submit,
-  firstCharge,
   trialNeverStarted,
   kind,
 }: PlanProps & { trialNeverStarted: boolean; kind: "monthly" | "annual" }) {
@@ -135,7 +138,6 @@ function RecurringPlanOption({
         <s-text>{formatMoney(data.plan![kind], data.locale)}</s-text>
         {annual ? <s-badge>{t.plan.recommended}</s-badge> : null}
       </s-stack>
-      <s-paragraph>{firstCharge}</s-paragraph>
       {active ? null : (
         <s-stack direction="inline" gap="base">
           <s-button

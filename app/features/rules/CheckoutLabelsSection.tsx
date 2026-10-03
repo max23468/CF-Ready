@@ -9,6 +9,7 @@ import type {
 } from "../../checkout-labels/domain";
 import { texts, type Locale } from "../../i18n";
 import { showToast } from "../../save-bar";
+import { RevealBanner } from "../../ui-feedback";
 import { useCheckoutLabelScopeRequest } from "../use-checkout-label-scopes";
 import { Address2CheckoutLabels } from "./Address2CheckoutLabels";
 import { KeepNativeLabelsChoice, NativeCheckoutLabels } from "./NativeCheckoutLabels";
@@ -231,9 +232,11 @@ function CheckoutLabelsFeedback({
   const error = actionError ?? scopeRequestError;
   return (
     <>
-      {error ? <s-banner tone="critical">{localizedError(t.errors, error)}</s-banner> : null}
+      {error ? (
+        <RevealBanner tone="critical">{localizedError(t.errors, error)}</RevealBanner>
+      ) : null}
       {loadErrorCode && !refreshed ? (
-        <s-banner tone="warning">{localizedError(t.errors, loadErrorCode)}</s-banner>
+        <RevealBanner tone="warning">{localizedError(t.errors, loadErrorCode)}</RevealBanner>
       ) : null}
     </>
   );
@@ -258,15 +261,18 @@ function NativeLabelsPermissionPrompt({
       <s-stack direction="block" gap="small-200">
         <s-text type="strong">{copy.permissionsHeading}</s-text>
         <s-paragraph>{copy.permissionsBody}</s-paragraph>
-        <s-button variant="primary" disabled={busy} onClick={requestPermissions}>
-          {copy.requestPermissions}
-        </s-button>
-        <KeepNativeLabelsChoice
-          accepted={state.decision === "accepted"}
-          busy={busy}
-          copy={copy}
-          onAccept={onKeep}
-        />
+        {/* Le due scelte stanno affiancate, come le altre coppie di azioni (G-B9). */}
+        <s-stack direction="inline" gap="base" alignItems="center">
+          <s-button variant="primary" disabled={busy} onClick={requestPermissions}>
+            {copy.requestPermissions}
+          </s-button>
+          <KeepNativeLabelsChoice
+            accepted={state.decision === "accepted"}
+            busy={busy}
+            copy={copy}
+            onAccept={onKeep}
+          />
+        </s-stack>
       </s-stack>
     </s-box>
   );

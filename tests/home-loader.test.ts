@@ -195,3 +195,19 @@ test("senza configurazione salvata la Home parte dai valori predefiniti", async 
     entitlement: { kind: "none", validThrough: null },
   });
 });
+
+test("un credito di conversione di test non resta in verifica per sempre", async () => {
+  // Gli addebiti di test non producono crediti reali: la nota "Stiamo verificando" non si chiude.
+  mocks.readLatestBillingConversion.mockResolvedValue({
+    credit_estimate_minor: null,
+    currency: null,
+    credit_status: "needs_review",
+    credit_amount_minor: null,
+    credit_currency: null,
+    credit_observed_at: null,
+    is_test: 1,
+  });
+  mocks.reconcile.mockReturnValue(new Promise(() => undefined));
+  const { result } = await loadHome();
+  expect(result.data.home.conversionCredit).toBeNull();
+});

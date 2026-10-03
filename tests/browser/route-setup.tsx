@@ -14,6 +14,7 @@ vi.mock("react-router", async (importOriginal) => {
     useNavigation: () => router.navigation,
     useRevalidator: () => router.revalidator,
     useRouteError: () => new Error("errore route"),
+    useRouteLoaderData: () => router.loaderData,
     useSubmit: () => router.submit,
   };
 });

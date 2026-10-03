@@ -318,11 +318,14 @@ function ValidationDiagnosis({
           {errorCode ? (
             <s-banner tone="warning">{localizedError(t.errors, errorCode)}</s-banner>
           ) : null}
+          {/* Dopo "Aggiorna e verifica" l'ultima verifica è quella appena fatta: un solo orario. */}
           <s-text color="subdued">
             {checkCopy.lastSync}:{" "}
-            {diagnostics.lastSyncAt
-              ? formatDateTime(diagnostics.lastSyncAt, locale, diagnostics.timeZone)
-              : checkCopy.unknown}
+            {check
+              ? formatDateTime(check.checkedAt, locale, check.timeZone)
+              : diagnostics.lastSyncAt
+                ? formatDateTime(diagnostics.lastSyncAt, locale, diagnostics.timeZone)
+                : checkCopy.unknown}
           </s-text>
           <s-stack direction="block" gap="small-100">
             <s-heading>{checkCopy.manualHeading}</s-heading>
@@ -417,9 +420,6 @@ function DiagnosisResult({
   if (!check || check.errorCode) return <s-paragraph>{copy.notChecked}</s-paragraph>;
   return (
     <>
-      <s-text color="subdued">
-        {copy.checkedAt}: {formatDateTime(check.checkedAt, locale, check.timeZone)}
-      </s-text>
       <DiagnosisRow
         tone={check.enabled ? "success" : "warning"}
         text={check.enabled ? copy.enabled : copy.disabled}

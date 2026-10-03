@@ -13,6 +13,7 @@ import {
 import { useOnboardingWindowNavigation } from "./use-onboarding-window-navigation";
 import { useNativeReviewPrompt } from "./use-native-review-prompt";
 import { EligibleHome } from "./EligibleHome";
+import { showPlans } from "./show-plans";
 import "./HomePage.css";
 
 const ONBOARDING_WINDOW_ID = "onboarding-window";
@@ -20,6 +21,11 @@ const ONBOARDING_WINDOW_ID = "onboarding-window";
 export default function HomePage() {
   const { home, confirmed } = useLoaderData<typeof loader>();
   const { data, verification } = useConfirmedHome(home, confirmed);
+  // Di solito Shopify conferma in meno di un secondo: fino ad allora si mostra lo stato salvato,
+  // senza far lampeggiare badge e bottoni. Le azioni restano comunque ferme finché lo stato non è
+  // confermato (D-167).
+  const slow = useSlowPending(verification === "pending");
+  const displayedVerification = verification === "pending" && !slow ? "confirmed" : verification;
   const revalidator = useRevalidator();
   const location = useLocation();
   const navigate = useNavigate();
@@ -28,10 +34,12 @@ export default function HomePage() {
     | { ok: boolean; errorCode?: AppErrorCode; confirmationUrl?: string; enabled?: boolean }
     | undefined;
   const confirmationUrl = result?.confirmationUrl;
-  const submit = (intent: string, source?: string) =>
+  const submit = (intent: string, source?: string) => {
+    if (verification !== "confirmed") return;
     fetcher.submit(source ? { intent, source } : { intent }, {
       method: "post",
     });
+  };
 
   useNativeReviewPrompt(data.reviewDue);
 
@@ -46,26 +54,21 @@ export default function HomePage() {
   }, [confirmationUrl]);
 
   useEffect(() => {
-    const showPlans = (event: MessageEvent) => {
+    const onMessage = (event: MessageEvent) => {
       void handlePlanComparisonRequest(event, window.location.origin, {
         hideWindow: async () => void (await hideAppWindow(document, ONBOARDING_WINDOW_ID)),
-        showPlans: () =>
-          requestAnimationFrame(() =>
-            document.getElementById("plans")?.scrollIntoView({ block: "start" }),
-          ),
+        showPlans: () => requestAnimationFrame(showPlans),
       });
     };
-    window.addEventListener("message", showPlans);
-    return () => window.removeEventListener("message", showPlans);
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
   }, []);
 
   useOnboardingWindowNavigation(navigate);
 
   useEffect(() => {
     if (!isPlanComparisonLocationState(location.state)) return;
-    requestAnimationFrame(() =>
-      document.getElementById("plans")?.scrollIntoView({ block: "start" }),
-    );
+    requestAnimationFrame(showPlans);
   }, [location.state]);
 
   return (
@@ -76,10 +79,23 @@ export default function HomePage() {
       result={result}
       submit={submit}
       onboardingWindowId={ONBOARDING_WINDOW_ID}
-      verification={verification}
+      verification={displayedVerification}
       retryVerification={() => void revalidator.revalidate()}
     />
   );
+}
+
+function useSlowPending(pending: boolean) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    if (!pending) return;
+    const timer = setTimeout(() => setSlow(true), 1000);
+    return () => {
+      clearTimeout(timer);
+      setSlow(false);
+    };
+  }, [pending]);
+  return pending && slow;
 }
 
 // D-167: la conferma Shopify aggiorna la stessa pagina senza rimontarla, così il primo paint

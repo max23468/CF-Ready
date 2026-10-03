@@ -8,11 +8,105 @@ import { click, type Rendered } from "./render";
 
 import HomePage from "../../app/features/home/HomePage";
 import { MerchantCheckIn } from "../../app/features/home/MerchantCheckIn";
+import { HomeValidationSection } from "../../app/features/home/HomeSections";
+import { trialContinuityTexts } from "../../app/i18n/trial-continuity";
 import { PlanChoice } from "../../app/features/home/PlanChoice";
 import { PlanStatus } from "../../app/features/home/PlanStatus";
 import { SetupGuide } from "../../app/features/home/SetupGuide";
 
 describe("Home merchant", () => {
+  test("la conferma Shopify rapida non fa lampeggiare badge e bottoni", async () => {
+    router.loaderData = confirmedHome(
+      { ...homeData, validationEnabled: true, onboarding: "completed" },
+      new Promise(() => undefined),
+    );
+    const view = await mount(<HomePage />);
+    // Nel primo secondo si vede lo stato salvato, senza "Verifica in corso…" né bottoni grigi.
+    expect(view.container.textContent).not.toContain(texts("it").home.verifying);
+    const deactivate = [...view.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === texts("it").home.deactivate,
+    )!;
+    expect(deactivate.hasAttribute("disabled")).toBe(false);
+    // Se Shopify tarda, lo stato di verifica compare.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1100));
+    });
+    expect(view.container.textContent).toContain(texts("it").home.verifying);
+  });
+
+  test("gli stati rari della Home portano in vista piani e avvisi", async () => {
+    const lapsed = { ...homeData, trialStatus: "expired", remaining: 0, onboarding: "completed" };
+    const view = await mount(
+      <div>
+        <HomeValidationSection
+          data={lapsed as never}
+          entitled={false}
+          firstRun={false}
+          busy={false}
+          pendingIntent={null}
+          pendingSource={null}
+          submit={vi.fn()}
+          verification="confirmed"
+          t={texts("it")}
+        />
+        <PlanChoice
+          data={homeData as never}
+          busy={false}
+          pendingIntent={null}
+          submit={vi.fn()}
+          firstCharge="PRIMO-ADDEBITO"
+        />
+        <SetupGuide
+          data={homeData as never}
+          busy={false}
+          pendingIntent={null}
+          pendingSource={null}
+          submit={vi.fn()}
+        />
+      </div>,
+    );
+    // Punto 2: "Scegli un piano" porta ai piani e sposta il focus, senza ancora `#plans`.
+    const plans = view.container.querySelector<HTMLElement>("#plans")!;
+    plans.scrollIntoView = vi.fn();
+    const choose = [...view.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === trialContinuityTexts("it").choosePlan,
+    )!;
+    expect(choose.getAttribute("href")).toBeNull();
+    await click(choose);
+    expect(plans.scrollIntoView).toHaveBeenCalled();
+    expect(document.activeElement).toBe(plans);
+    // Punto 15: la data del primo addebito compare una volta, non per ogni piano ricorrente.
+    expect(view.container.textContent!.match(/PRIMO-ADDEBITO/g)).toHaveLength(1);
+    // Punto 6: quattro passi in una griglia 2 × 2, senza un passo da solo sull'ultima riga.
+    expect(
+      view.container
+        .querySelector(".setup-guide__step")!
+        .closest("s-grid")!
+        .getAttribute("gridTemplateColumns"),
+    ).toBe("@container (inline-size > 400px) 1fr 1fr, 1fr");
+    await view.unmount();
+
+    // Prezzi di lancio: contano solo per chi ha un abbonamento con rinnovi.
+    const oneTime = await mount(
+      <PlanStatus
+        data={
+          {
+            ...homeData,
+            entitlement: { kind: "one_time", validThrough: null },
+            planKind: "one_time",
+          } as never
+        }
+      />,
+    );
+    expect(oneTime.container.textContent).not.toContain(texts("it").plan.generationLaunch);
+    await oneTime.unmount();
+
+    // Punto 3: gli avvisi della Home si portano in vista come in Regole e Messaggi.
+    router.loaderData = confirmedHome({ ...homeData, errorCode: "duplicate_validations" });
+    const home = await mount(<HomePage />);
+    expect(home.container.querySelector(".cf-reveal-banner s-banner")).not.toBeNull();
+  });
+
   test("attraversa le varianti commerciali e le relative azioni", async () => {
     const submit = vi.fn();
     const variants = [
@@ -87,6 +181,11 @@ describe("Home merchant", () => {
     router.loaderData = confirmedHome(entitled, new Promise(() => undefined));
     const view = await mount(<HomePage key="pending" />);
     const status = view.container.querySelector('div[role="status"]');
+    // Nel primo secondo resta lo stato salvato; poi, se Shopify tarda, la verifica è esplicita.
+    expect(status?.textContent).toContain(t.home.badgeActive);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1100));
+    });
     expect(status?.textContent).toContain(t.home.verifying);
     expect(status?.querySelectorAll("s-badge")).toHaveLength(1);
     const deactivate = [...view.container.querySelectorAll("s-button")].find(

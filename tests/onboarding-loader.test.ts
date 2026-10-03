@@ -67,6 +67,14 @@ test("l’Onboarding riusa lo snapshot Shopify combinato", async () => {
   } as never);
 
   expect(result.data).toMatchObject({ step: 2, completed: false, entitled: false });
+
+  // Ricaricando la pagina si resta al passo indicato nell'URL.
+  const reloaded = await loader({
+    request: new Request("https://example.test/app/onboarding?locale=it&step=4"),
+    context: createAppContext(db),
+    params: {},
+  } as never);
+  expect(reloaded.data).toMatchObject({ step: 4 });
   expect(new Headers(result.init?.headers).get("Server-Timing")).toMatch(
     /auth;dur=.*d1_onboarding;dur=.*total;dur=/,
   );

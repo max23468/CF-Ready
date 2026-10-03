@@ -1,7 +1,7 @@
 import { router, mount } from "./route-support";
 import { describe, expect, test, vi } from "vitest";
 
-import { texts } from "../../app/i18n";
+import { formatDateTime, texts } from "../../app/i18n";
 
 import { click, dispatch } from "./render";
 
@@ -58,7 +58,7 @@ describe("Guida", () => {
     router.fetcher.data = { ok: false };
     await view.rerender(<Guide />);
     expect(view.container.textContent).toContain(texts("it").guide.diagnosis.failed);
-    expect(view.container.textContent).not.toContain(texts("it").guide.diagnosis.checkedAt);
+    expect(view.container.textContent).not.toContain("verificate il");
   });
 
   test("la diagnosi mostra esiti leggibili con icone e porta al simulatore", async () => {
@@ -94,6 +94,11 @@ describe("Guida", () => {
     await view.rerender(<Guide />);
     // G-B1: niente valori interni né il termine inglese "Validation".
     const text = view.container.querySelector("#validation-diagnosis")!.textContent!;
+    // Un solo orario dopo la verifica: l'ultima verifica coincide con quella appena fatta.
+    expect(text).not.toContain("verificate il");
+    expect(text).toContain(
+      `${it.guide.diagnosis.lastSync}: ${formatDateTime("2026-09-05T00:01:00Z", "it", "Europe/Rome")}`,
+    );
     expect(text).not.toMatch(/synced|fiscal_conflict|accepted|Validation/);
     expect(text).toContain(it.guide.diagnosis.labelsStatus.synced);
     expect(text).toContain(it.rules.labels.addressSummary.fiscal_conflict);

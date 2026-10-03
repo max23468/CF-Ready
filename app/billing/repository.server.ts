@@ -546,7 +546,7 @@ export function readLatestBillingConversion(db: D1Database, shopDomain: string) 
   return db
     .prepare(
       `SELECT c.credit_estimate_minor, c.currency, c.credit_status,
-              c.credit_amount_minor, c.credit_currency, c.credit_observed_at
+              c.credit_amount_minor, c.credit_currency, c.credit_observed_at, c.is_test
          FROM billing_conversions c JOIN shops s ON s.id = c.shop_id
         WHERE s.shop_domain = ?
         ORDER BY c.requested_at DESC, c.id DESC LIMIT 1`,
@@ -559,6 +559,7 @@ export function readLatestBillingConversion(db: D1Database, shopDomain: string) 
       credit_amount_minor: number | null;
       credit_currency: string | null;
       credit_observed_at: string | null;
+      is_test: number;
     }>();
 }
 

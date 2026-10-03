@@ -75,8 +75,16 @@ export default function Onboarding() {
 
   // §15.9: riaprendo la procedura si torna dove si era rimasti. Il passo si ricorda scrivendolo,
   // mai rileggendolo: il valore letto all'apertura serve solo come punto di partenza.
-  const setStep = (next: number) => {
+  // Il passo va anche nell'URL: ricaricando una revisione già completata si resta dove si era.
+  const showStep = (next: number) => {
     setStepState(next);
+    const url = new URL(window.location.href);
+    url.searchParams.set("step", String(next));
+    window.history.replaceState(window.history.state, "", url);
+  };
+
+  const setStep = (next: number) => {
+    showStep(next);
     if (!saved.completed) {
       progress.submit({ intent: "progress", step: String(next) }, { method: "post" });
     }
@@ -98,7 +106,7 @@ export default function Onboarding() {
     if (fetcher.state !== "idle") return;
     if (savingRules.current) {
       savingRules.current = false;
-      if (esito?.ok) setStepState(3);
+      if (esito?.ok) showStep(3);
     }
     // La chiusura va riconosciuta esplicitamente: prima la schermata finale dipendeva dal
     // passo locale, che dopo l'attivazione resta il quarto, quindi non compariva mai e
@@ -335,7 +343,13 @@ function OnboardingRules(props: CurrentStepProps) {
         <s-heading>{t.onboarding.step2Heading}</s-heading>
         <s-paragraph>{t.onboarding.step2Body}</s-paragraph>
       </s-stack>
-      <s-choice-list label={t.rules.taxCodeLabel} name="taxCode">
+      {/* Codice Fiscale e PEC hanno un titolo come "Campo Interno": stessa gerarchia. */}
+      <s-heading>{t.rules.taxCodeLabel}</s-heading>
+      <s-choice-list
+        label={t.rules.taxCodeLabel}
+        labelAccessibilityVisibility="exclusive"
+        name="taxCode"
+      >
         {TAX_CODE_RULE_MODES.map((mode) => (
           <s-choice key={mode} value={mode} selected={mode === saved.rules.taxCode}>
             {t.rules.taxCode[mode]}
@@ -343,7 +357,8 @@ function OnboardingRules(props: CurrentStepProps) {
           </s-choice>
         ))}
       </s-choice-list>
-      <s-choice-list label={t.rules.pecLabel} name="pec">
+      <s-heading>{t.rules.pecLabel}</s-heading>
+      <s-choice-list label={t.rules.pecLabel} labelAccessibilityVisibility="exclusive" name="pec">
         {PEC_RULE_MODES.map((mode) => (
           <s-choice key={mode} value={mode} selected={mode === saved.rules.pec}>
             {t.rules.pec[mode]}
@@ -377,9 +392,8 @@ function OnboardingRules(props: CurrentStepProps) {
               copy === null ? t.rules.labels.unchanged : quoteLabel(copy, props.saved.locale);
             return (
               <s-text key={locale}>
-                {locale.toUpperCase()} ·{" "}
-                {label(checkoutLabelCopy("taxCode", locale, props.draftRules.taxCode))}
-                {" · "}
+                {locale === "it" ? t.messages.italian : t.messages.english}:{" "}
+                {label(checkoutLabelCopy("taxCode", locale, props.draftRules.taxCode))},{" "}
                 {label(checkoutLabelCopy("pec", locale, props.draftRules.pec))}
               </s-text>
             );
