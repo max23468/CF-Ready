@@ -149,6 +149,7 @@ export const en: typeof it = {
     previewSelected: "Selected message",
     previewHint: "The preview shows the message you are editing.",
     previewNotShown: "With the current rules this message does not appear at checkout.",
+    previewShown: "With the current rules this message can appear at checkout.",
     editorHeading: "Error messages",
     previewFieldLabel: "Field label",
     previewCurrentFieldLabel: "Current Shopify label",

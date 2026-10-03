@@ -36,8 +36,9 @@ export async function synchronizeFiscalPhase(
   epoch: string,
   phase: "before_validation" | "after_validation",
   heartbeat: ValidationLockHeartbeat,
-): Promise<{ ok: true } | { ok: false; errorCode: AppErrorCode }> {
+): Promise<{ ok: true; written: boolean } | { ok: false; errorCode: AppErrorCode }> {
   let snapshot = initialSnapshot;
+  let written = false;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const stored = await readStoredCheckoutLabelSlots(db, shopDomain);
@@ -61,6 +62,7 @@ export async function synchronizeFiscalPhase(
         if (mode === "unmanaged") {
           if (previous?.managementEpoch !== epoch) continue;
           await restoreSlot(admin, db, shopDomain, slot, previous);
+          written = true;
           continue;
         }
 
@@ -80,11 +82,12 @@ export async function synchronizeFiscalPhase(
           resourceId,
           group.map(({ slot, target }) => translationInput(slot, target)),
         );
+        written = true;
         await Promise.all(
           group.map(({ slot, target }) => saveCheckoutLabelWrite(db, shopDomain, slot, target)),
         );
       }
-      return { ok: true };
+      return { ok: true, written };
     } catch (error) {
       const errorCode = checkoutLabelsError(error);
       if (errorCode !== "checkout_labels_stale_digest" || attempt === 1) {

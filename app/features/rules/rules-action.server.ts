@@ -12,9 +12,11 @@ import {
   loadCheckoutLabels,
   restoreAddress2Translations,
   saveRulesAndCheckoutLabels,
+  type RulesAndCheckoutLabelsSaveResult,
 } from "../../checkout-labels/service.server";
 import { reconcile, writeValidation } from "../../validation.server";
 import type { Admin } from "../../validation/types";
+import type { createServerTiming } from "../../server-timing.server";
 import { RULES_INTENTS, type CheckoutLabelsLoadAction, type RulesIntent } from "./rules-intents";
 
 type RulesActionContext = {
@@ -23,6 +25,7 @@ type RulesActionContext = {
   shop: string;
   form: FormData;
   labelScopesGranted: boolean;
+  timing?: ReturnType<typeof createServerTiming>;
 };
 
 const failure = (errorCode: AppErrorCode) => ({ ok: false as const, errorCode });
@@ -156,7 +159,7 @@ async function confirmGuidedLabels(context: RulesActionContext) {
 }
 
 async function saveRules(context: RulesActionContext) {
-  const { admin, db, shop, form, labelScopesGranted } = context;
+  const { admin, db, shop, form, labelScopesGranted, timing } = context;
   const taxCode = oneOf(TAX_CODE_RULE_MODES, form.get("taxCode"));
   const pec = oneOf(PEC_RULE_MODES, form.get("pec"));
   if (!taxCode || !pec) return failure("generic");
@@ -167,15 +170,30 @@ async function saveRules(context: RulesActionContext) {
     ? false
     : (await readCheckoutLabelState(db, shop)).mode !== "off";
   const expectedConfigHash = (form.get("configHash") as string) || null;
-  const result = labelScopesGranted
-    ? await saveRulesAndCheckoutLabels(admin, db, shop, {
-        rules: { taxCode, pec },
+  const result: RulesAndCheckoutLabelsSaveResult = labelScopesGranted
+    ? await saveRulesAndCheckoutLabels(
+        admin,
+        db,
+        shop,
+        {
+          rules: { taxCode, pec },
+          expectedConfigHash,
+          labelsEnabled,
+          confirmAutomaticWrite: form.get("labelsConfirmed") === "1",
+          expectedLabelsRevision: revision(form),
+        },
+        timing,
+      )
+    : await writeValidation(
+        admin,
+        db,
+        shop,
+        { rules: { taxCode, pec } },
+        null,
         expectedConfigHash,
-        labelsEnabled,
-        confirmAutomaticWrite: form.get("labelsConfirmed") === "1",
-        expectedLabelsRevision: revision(form),
-      })
-    : await writeValidation(admin, db, shop, { rules: { taxCode, pec } }, null, expectedConfigHash);
+        undefined,
+        timing,
+      );
 
   if (!labelScopesGranted && labelsWereEnabled) {
     return result.ok
@@ -184,7 +202,22 @@ async function saveRules(context: RulesActionContext) {
   }
   if (!result.ok) return failure(result.errorCode);
   const labelsErrorCode = "labelsErrorCode" in result ? result.labelsErrorCode : null;
-  return labelsErrorCode ? { ok: true as const, labelsErrorCode } : { ok: true as const };
+  if (labelsErrorCode) return { ok: true as const, labelsErrorCode };
+  if (!result.saved) return { ok: true as const };
+  const labels = result.labels;
+  if (labels && !labels.available) return { ok: true as const, labelsErrorCode: labels.errorCode };
+  return {
+    ok: true as const,
+    saved: {
+      ...result.saved,
+      labelState: labels?.state ?? (await readCheckoutLabelState(db, shop)),
+      labelSnapshot: labels?.snapshot ?? null,
+      guidedConfirmations: labels?.guidedConfirmations ?? [],
+      // Senza snapshot resta necessaria la lettura differita, per esempio dopo un ripristino.
+      labelScopesGranted: labels ? true : null,
+      labelLoadError: null,
+    },
+  };
 }
 
 export function handleRulesAction(

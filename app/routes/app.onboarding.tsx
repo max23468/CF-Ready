@@ -344,28 +344,33 @@ function OnboardingRules(props: CurrentStepProps) {
         <s-paragraph>{t.onboarding.step2Body}</s-paragraph>
       </s-stack>
       {/* Codice Fiscale e PEC hanno un titolo come "Campo Interno": stessa gerarchia. */}
-      <s-heading>{t.rules.taxCodeLabel}</s-heading>
-      <s-choice-list
-        label={t.rules.taxCodeLabel}
-        labelAccessibilityVisibility="exclusive"
-        name="taxCode"
-      >
-        {TAX_CODE_RULE_MODES.map((mode) => (
-          <s-choice key={mode} value={mode} selected={mode === saved.rules.taxCode}>
-            {t.rules.taxCode[mode]}
-            <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
-          </s-choice>
-        ))}
-      </s-choice-list>
-      <s-heading>{t.rules.pecLabel}</s-heading>
-      <s-choice-list label={t.rules.pecLabel} labelAccessibilityVisibility="exclusive" name="pec">
-        {PEC_RULE_MODES.map((mode) => (
-          <s-choice key={mode} value={mode} selected={mode === saved.rules.pec}>
-            {t.rules.pec[mode]}
-            <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
-          </s-choice>
-        ))}
-      </s-choice-list>
+      {/* Titolo e opzioni restano vicini, come nelle card di Regole. */}
+      <s-stack direction="block" gap="small-100">
+        <s-heading>{t.rules.taxCodeLabel}</s-heading>
+        <s-choice-list
+          label={t.rules.taxCodeLabel}
+          labelAccessibilityVisibility="exclusive"
+          name="taxCode"
+        >
+          {TAX_CODE_RULE_MODES.map((mode) => (
+            <s-choice key={mode} value={mode} selected={mode === saved.rules.taxCode}>
+              {t.rules.taxCode[mode]}
+              <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
+            </s-choice>
+          ))}
+        </s-choice-list>
+      </s-stack>
+      <s-stack direction="block" gap="small-100">
+        <s-heading>{t.rules.pecLabel}</s-heading>
+        <s-choice-list label={t.rules.pecLabel} labelAccessibilityVisibility="exclusive" name="pec">
+          {PEC_RULE_MODES.map((mode) => (
+            <s-choice key={mode} value={mode} selected={mode === saved.rules.pec}>
+              {t.rules.pec[mode]}
+              <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
+            </s-choice>
+          ))}
+        </s-choice-list>
+      </s-stack>
       <s-divider />
       <s-heading>{t.rules.labels.addressHeading}</s-heading>
       <s-select
@@ -467,6 +472,10 @@ function OnboardingPreview({ saved, t }: { saved: OnboardingData; t: OnboardingC
                 heading={t.messages.previewErrorHeading}
                 message={saved.messages[saved.locale][key]}
               />
+              {/* Come in Messaggi: il riquadro mostra il testo, la nota dice che non comparirà. */}
+              {messageAppears(saved.rules, key) ? null : (
+                <s-text color="subdued">{t.messages.previewNotShown}</s-text>
+              )}
             </s-stack>
           </div>
         ))}

@@ -17,6 +17,7 @@ import {
   writeValidation,
 } from "../app/validation.server";
 import type { ShopifyBilling } from "../app/billing.server";
+import { createServerTiming } from "../app/server-timing.server";
 
 test("la configurazione scritta è accettata dalla Function", () => {
   expect(DEFAULT_CONFIG).toMatchObject({
@@ -583,7 +584,15 @@ test("il primo salvataggio crea la Validation disattivata e non la attiva", asyn
     null,
   );
 
-  expect(result).toEqual({ ok: true, enabled: false });
+  expect(result).toMatchObject({ ok: true, enabled: false });
+  if (!result.ok) throw new Error("salvataggio fallito");
+  expect(result.saved).toEqual({
+    configHash: await configHash(calls[0].config),
+    rules: calls[0].config!.rules,
+    messages: calls[0].config!.messages,
+    enabled: false,
+    entitled: true,
+  });
   expect(
     await env.DB.prepare(
       "SELECT event_name, metadata_json FROM app_events WHERE event_name = 'rules_saved' AND shop_id = (SELECT id FROM shops WHERE shop_domain = ?)",
@@ -604,6 +613,62 @@ test("il primo salvataggio crea la Validation disattivata e non la attiva", asyn
   });
 });
 
+test("contesto e billing si leggono in parallelo sotto lease, con timing senza dati dello store", async () => {
+  const shop = "parallel-save.example.myshopify.com";
+  await seedShop(shop);
+  const stub = stubAdmin({ existing: { enabled: false } });
+  let releaseContext!: () => void;
+  const contextGate = new Promise<void>((resolve) => {
+    releaseContext = resolve;
+  });
+  let billingStarted = false;
+  let contextReads = 0;
+  const admin = {
+    async graphql(query: string, options?: { variables?: Record<string, unknown> }) {
+      if (query.includes("CfReadyContext") && ++contextReads === 1) await contextGate;
+      if (query.includes("CfReadyBilling")) {
+        billingStarted = true;
+        expect(
+          await env.DB.prepare("SELECT 1 FROM validation_operation_locks WHERE shop_domain = ?")
+            .bind(shop)
+            .first(),
+        ).not.toBeNull();
+      }
+      return stub.admin.graphql(query, options);
+    },
+  };
+  const timing = createServerTiming();
+  const pending = writeValidation(
+    admin,
+    env.DB,
+    shop,
+    { rules: DEFAULT_CONFIG.rules },
+    null,
+    undefined,
+    undefined,
+    timing,
+  );
+  try {
+    await vi.waitFor(() => expect(billingStarted).toBe(true));
+    expect(stub.calls).toHaveLength(0);
+  } finally {
+    releaseContext();
+  }
+  await expect(pending).resolves.toMatchObject({ ok: true, saved: { enabled: false } });
+  const header = timing.header();
+  for (const name of [
+    "validation_lock",
+    "shopify_context",
+    "shopify_billing",
+    "validation_write",
+    "validation_readback",
+    "d1_configuration_history",
+  ]) {
+    expect(header).toContain(`${name};dur=`);
+  }
+  expect(header).not.toContain(shop);
+});
+
 test("il salvataggio conserva lo stato di una Validation già attiva", async () => {
   const shop = "keep-enabled.example.myshopify.com";
   await seedShop(shop);
@@ -620,7 +685,7 @@ test("il salvataggio conserva lo stato di una Validation già attiva", async () 
     null,
   );
 
-  expect(result).toEqual({ ok: true, enabled: true });
+  expect(result).toMatchObject({ ok: true, enabled: true });
   expect(calls[0].operation).toBe("validationUpdate");
   expect(calls[0].enable).toBe(true);
   expect(calls[0].config).toMatchObject({ enabled: true });
@@ -648,7 +713,7 @@ test("il salvataggio parziale conserva i messaggi e normalizza la modalità lega
       },
       null,
     ),
-  ).toEqual({ ok: true, enabled: false });
+  ).toMatchObject({ ok: true, enabled: false });
   expect(calls[0].config).toMatchObject({
     errorDisplay: "inline",
     messages: { it: { taxCodeRequired: "Messaggio personalizzato" } },
@@ -906,7 +971,7 @@ test("la scrittura non cancella né sostituisce un abbonamento attivo con l'omag
         },
         null,
       ),
-    ).toEqual({ ok: true, enabled: true });
+    ).toMatchObject({ ok: true, enabled: true });
     expect(stub.shopifyCalls).toEqual(["billing"]);
     expect(stub.calls[0].config?.entitlement).toEqual({
       kind: "subscription",
@@ -930,7 +995,7 @@ test("un errore billing non impedisce di disattivare il controllo con un omaggio
     .run();
   const stub = stubAdmin({ existing: { enabled: true }, billingError: true });
 
-  expect(await writeValidation(stub.admin, env.DB, shop, null, false)).toEqual({
+  expect(await writeValidation(stub.admin, env.DB, shop, null, false)).toMatchObject({
     ok: true,
     enabled: false,
   });
@@ -951,7 +1016,7 @@ test("un errore billing non impedisce di disattivare il controllo con un omaggio
       },
       null,
     ),
-  ).toEqual({ ok: true, enabled: false });
+  ).toMatchObject({ ok: true, enabled: false });
   expect(stub.calls).toHaveLength(2);
 });
 
@@ -1020,7 +1085,7 @@ test("il salvataggio non sovrascrive la configurazione cambiata da un'altra sess
     await configHash(DEFAULT_CONFIG),
   );
 
-  expect(current).toEqual({ ok: true, enabled: false });
+  expect(current).toMatchObject({ ok: true, enabled: false });
   expect(calls).toHaveLength(1);
   expect(
     await env.DB.prepare(
@@ -1066,7 +1131,7 @@ test("un errore nello storico non annulla una scrittura Shopify verificata", asy
       },
       null,
     ),
-  ).toEqual({ ok: true, enabled: false });
+  ).toMatchObject({ ok: true, enabled: false });
 });
 
 test("la dichiarazione D1 cambia soltanto dopo il successo Shopify", async () => {
@@ -1118,7 +1183,7 @@ test("la dichiarazione D1 cambia soltanto dopo il successo Shopify", async () =>
       await configHash(DEFAULT_CONFIG),
       true,
     ),
-  ).toEqual({ ok: true, enabled: false });
+  ).toMatchObject({ ok: true, enabled: false });
   expect(lockHeldDuringDeclaration).toBe(true);
   expect(await readAddress2Declaration(env.DB, shop)).not.toBeNull();
 });
@@ -1135,7 +1200,7 @@ test("l'attivazione conserva la configurazione letta dentro la lease", async () 
 
   const result = await writeValidation(admin, env.DB, shop, null, true);
 
-  expect(result).toEqual({ ok: true, enabled: true });
+  expect(result).toMatchObject({ ok: true, enabled: true });
   expect(calls[0].enable).toBe(true);
   expect(calls[0].config).toMatchObject({
     rules: current.rules,
@@ -1180,7 +1245,7 @@ test("la scrittura espone lock occupato, supporta store esteri e rifiuta richies
   const foreignShop = "write-fr.example.myshopify.com";
   await seedShop(foreignShop);
   const foreign = stubAdmin({ countryCode: "FR" });
-  expect(await writeValidation(foreign.admin, env.DB, foreignShop, null, true)).toEqual({
+  expect(await writeValidation(foreign.admin, env.DB, foreignShop, null, true)).toMatchObject({
     ok: true,
     enabled: true,
   });
@@ -1226,7 +1291,7 @@ test("un omaggio confermato senza subscription entra nel metafield", async () =>
   const stub = stubAdmin({ existing: { enabled: false } });
   expect(
     await writeValidation(stub.admin, env.DB, shop, { rules: DEFAULT_CONFIG.rules }, null),
-  ).toEqual({ ok: true, enabled: false });
+  ).toMatchObject({ ok: true, enabled: false });
   expect(stub.calls[0].config?.entitlement).toEqual({ kind: "one_time", validThrough: null });
 });
 
