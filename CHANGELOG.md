@@ -19,7 +19,31 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   anche sotto l'intestazione fissa dell'Admin;
 - elimina il titolo FAQ duplicato nella struttura accessibile;
 - distingue nell'onboarding le capacità della modalità Mista dalle verifiche
-  manuali ancora da completare.
+  manuali ancora da completare;
+- con un errore runtime l'app mostra una pagina bilingue con "Ricarica la
+  pagina" invece di quella predefinita di React Router, in inglese;
+- in Home "Scegli un piano" porta alle offerte e vi sposta il focus; gli avvisi,
+  come quelli delle etichette in Regole e il conflitto di configurazione, si
+  portano in vista; la guida di configurazione dispone i quattro passi in 2 × 2
+  e la data del primo addebito compare una volta;
+- un errore salvato sulle etichette si presenta come "Controllo non completato"
+  con la spiegazione, non come verifica manuale; scelte neutre con badge
+  neutro, etichette del campo Interno tra virgolette e bottoni dei permessi
+  affiancati;
+- i messaggi di errore nominano i comandi reali ("Rileggi i campi da Shopify",
+  "Aggiorna e verifica"), la procedura manuale cita tra virgolette le voci di
+  Shopify e i riepiloghi non uniscono più frammenti con "·";
+- in Home lo stato salvato resta a vista mentre Shopify conferma; "Verifica in
+  corso…" compare solo se la conferma supera un secondo, senza lampi di colore;
+- dalla Guida, il simulatore torna in vista anche dopo il caricamento delle
+  etichette; la diagnosi mostra un solo orario di verifica;
+- l'onboarding conserva il passo nell'URL e al passo 2 dà a Codice Fiscale e PEC
+  lo stesso titolo del campo “Interno”;
+- non mostra più "Stiamo verificando l'eventuale credito" per gli addebiti di
+  test, né i prezzi di lancio a chi ha il pagamento unico;
+- `npm audit` ammette eccezioni temporanee con scadenza (D-175): la prima
+  copre fino al 31 ottobre 2026 l'avviso di `braces`, senza ancora una versione
+  corretta e presente solo negli strumenti di build della Function.
 
 ## 1.15.21 — 2 ottobre 2026
 

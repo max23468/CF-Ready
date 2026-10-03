@@ -140,7 +140,10 @@ export function OnboardingStep4Content({
       </s-paragraph>
       <s-divider />
       <s-stack direction="block" gap="small-100">
-        <s-heading>{t.onboarding.step4TrialHeading}</s-heading>
+        {/* Con un piano attivo, anche omaggio, non si parla di prova (come G-B8). */}
+        <s-heading>
+          {state.access === "plan" ? t.plan.heading : t.onboarding.step4TrialHeading}
+        </s-heading>
         {state.access === "trial" ? (
           <s-paragraph>{t.onboarding.step4TrialActive}</s-paragraph>
         ) : state.access === "plan" ? (

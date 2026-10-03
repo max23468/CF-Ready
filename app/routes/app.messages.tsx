@@ -282,7 +282,7 @@ export default function CustomerMessages() {
             onDiscard={discard}
             rows={(["it", "en"] as const).flatMap((locale) =>
               MESSAGE_KEYS.map((key) => ({
-                label: `${locale.toUpperCase()} · ${t.messages[key]}`,
+                label: `${t.messages[key]} (${t.rules.labels.languageNames[locale]})`,
                 current: saved.messages[locale][key],
                 draft: draft[locale][key],
               })),

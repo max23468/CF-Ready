@@ -102,7 +102,8 @@ test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", asy
     // Il riepilogo sotto il badge non deve spostarsi quando lo stato si conferma.
     const summary = view.container.querySelector<HTMLElement>("s-section s-paragraph")!;
     const pendingRect = summary.getBoundingClientRect();
-    expect(status.textContent).toContain(texts("it").home.verifying);
+    // Conferma rapida: lo stato salvato resta a vista, senza lampo di "Verifica in corso…".
+    expect(status.textContent).toContain(texts("it").home.badgeActive);
     await act(async () => resolve(data));
     await expect.poll(() => status.textContent).toContain(texts("it").home.badgeActive);
     expect(view.container.textContent).not.toContain(texts("it").home.verified);

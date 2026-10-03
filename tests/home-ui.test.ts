@@ -323,7 +323,7 @@ test("la Setup guide non marca come completati i passi aperti e usa la griglia r
 
   const grid = rendered.find((element) => element.type === "s-grid");
   expect(grid?.props).toMatchObject({
-    gridTemplateColumns: "@container (inline-size > 560px) 1fr 1fr 1fr, 1fr",
+    gridTemplateColumns: "@container (inline-size > 400px) 1fr 1fr, 1fr",
     gap: "small-100",
   });
   expect(rendered.some((element) => element.type === "s-query-container")).toBe(true);
@@ -722,7 +722,7 @@ test("il confronto piani comunica con la Home senza navigare il frame della moda
     }),
   );
   const planAnchor = renderedPlanChoice.find(
-    (element) => element.type === "s-box" && (element.props as { id?: string }).id === "plans",
+    (element) => element.type === "div" && (element.props as { id?: string }).id === "plans",
   );
   const planStack = renderedPlanChoice.find(
     (element) =>
@@ -730,7 +730,8 @@ test("il confronto piani comunica con la Home senza navigare il frame della moda
       (element.props as { direction?: string; gap?: string }).direction === "block" &&
       (element.props as { direction?: string; gap?: string }).gap === "base",
   );
-  expect(planAnchor?.props).toMatchObject({ paddingBlockEnd: "base" });
+  // Il contenitore dei piani riceve il focus da "Scegli un piano" (tabIndex -1).
+  expect(planAnchor?.props).toMatchObject({ tabIndex: -1 });
   expect(planStack).toBeDefined();
 });
 

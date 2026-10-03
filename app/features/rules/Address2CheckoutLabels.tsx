@@ -9,7 +9,7 @@ import {
   type CheckoutLabelsSnapshot,
   type CheckoutLabelState,
 } from "../../checkout-labels/domain";
-import { texts, type Locale } from "../../i18n";
+import { quoteLabel, texts, type Locale } from "../../i18n";
 import {
   address2Presentation,
   addressLabelContexts,
@@ -306,10 +306,12 @@ function Address2Comparison({
                     {slot.marketName ? <s-text color="subdued">{slot.marketName}</s-text> : null}
                   </s-stack>
                   <s-stack direction="block" gap="small-100">
-                    <s-text>{current ?? copy.notAvailable}</s-text>
+                    {/* Etichette reali di Shopify tra virgolette, come in Testi del checkout (T7). */}
+                    <s-text>{current ? quoteLabel(current, locale) : copy.notAvailable}</s-text>
                     {current !== expected ? (
                       <s-text color="subdued">
-                        {copy.standardLabel}: {expected}
+                        {copy.standardLabel}:{" "}
+                        {expected ? quoteLabel(expected, locale) : copy.notAvailable}
                       </s-text>
                     ) : null}
                   </s-stack>

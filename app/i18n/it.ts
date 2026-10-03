@@ -5,6 +5,9 @@ export const it = {
     messages: "Messaggi al cliente",
     guide: "Guida e FAQ",
   },
+  errorPage: {
+    reload: "Ricarica la pagina",
+  },
   common: {
     yes: "Sì",
     no: "No",
@@ -30,23 +33,23 @@ export const it = {
     checkout_labels_resource_missing:
       "Shopify non espone una delle etichette attese. Le regole continuano a funzionare; usa la procedura guidata.",
     checkout_labels_resource_ambiguous:
-      "Shopify espone più risorse per la stessa etichetta. Nessun testo è stato modificato.",
+      "Shopify restituisce più testi per la stessa etichetta, quindi CF Ready non ha modificato nulla. Controlla le etichette nell’editor dei testi del checkout; se il problema resta, scrivici.",
     checkout_labels_locale_missing:
       "Italiano o inglese non sono disponibili nello store. Pubblica la lingua oppure continua con quelle disponibili.",
     checkout_labels_conflict:
-      "Un’etichetta è cambiata dopo l’ultima lettura. Rileggi Shopify prima di decidere quale testo mantenere.",
+      "Un’etichetta è cambiata dopo l’ultima lettura. Premi “Rileggi i campi da Shopify” prima di decidere quale testo mantenere.",
     checkout_labels_confirmation_required:
       "Conferma il confronto prima della prima scrittura automatica delle etichette.",
     checkout_labels_confirmation_pending:
       "Le regole sono salvate. Aggiorna in Shopify le etichette indicate, poi confermale in CF Ready.",
     checkout_labels_stale_digest:
-      "Shopify ha aggiornato il contenuto durante il salvataggio. Rileggi le etichette e riprova.",
+      "Shopify ha aggiornato il contenuto durante il salvataggio. Premi “Rileggi i campi da Shopify” e riprova.",
     checkout_labels_partial_sync:
       "Le regole sono salvate, ma alcune etichette richiedono un nuovo tentativo.",
     checkout_labels_readback_failed:
-      "Shopify non ha confermato tutte le etichette. Rileggi lo stato prima di modificarle ancora.",
+      "Shopify non ha confermato tutte le etichette. Premi “Rileggi i campi da Shopify” prima di modificarle ancora.",
     address2_restore_conflict:
-      "Il testo di Interno è cambiato dopo il confronto. Rileggi Shopify prima del ripristino.",
+      "Il testo del campo “Interno” è cambiato dopo il confronto. Premi “Rileggi i campi da Shopify” prima del ripristino.",
     validation_limit_reached:
       "Questo store ha già il numero massimo di controlli al checkout consentito da Shopify. Le tue regole restano salvate. Disattiva il controllo di un’altra app da Impostazioni → Checkout, poi riprova.",
     entitlement_required: "Per attivare il controllo, avvia la prova o scegli un piano.",
@@ -270,8 +273,8 @@ export const it = {
       heading: "Il controllo non compare?",
       body: "Rilegge da Shopify regole, attivazione e piano. Per vedere il comportamento reale, prova poi un ordine nel checkout.",
       refresh: "Aggiorna e verifica",
-      failed: "Non è stato possibile leggere lo stato da Shopify. Riprova fra poco dalla Home.",
-      checkedAt: "Regole e attivazione verificate il",
+      failed:
+        "Non è stato possibile leggere lo stato da Shopify. Riprova fra poco con “Aggiorna e verifica”.",
       enabled: "La validazione è attiva su Shopify.",
       disabled: "La validazione è disattivata o assente. Apri la Home per gestire l’attivazione.",
       configured: "Almeno un campo è configurato per essere controllato.",
@@ -545,6 +548,7 @@ export const it = {
       statusUpToDate: "Aggiornati",
       statusKept: "Gestiti da te",
       statusManualRequired: "Verifica manuale richiesta",
+      statusError: "Controllo non completato",
       nativeSummaryNeedsAccess: "Concedi l’accesso per controllare i testi del checkout.",
       nativeSummaryNeedsReview: (count: number, languages: string[]) =>
         `${count === 1 ? "Un checkout" : `${count} checkout`} in ${languages.join(" e ")} ${count === 1 ? "richiede" : "richiedono"} una verifica.`,
@@ -591,7 +595,7 @@ export const it = {
       lastSync: (value: string) => `Ultima lettura delle etichette da Shopify: ${value}`,
       neverSynced: "Nessuna rilettura riuscita da Shopify",
       operationalSummary: (automatic: number, manual: number) =>
-        `${automatic} ${automatic === 1 ? "etichetta aggiornata" : "etichette aggiornate"} automaticamente · ${manual} ${manual === 1 ? "verifica manuale richiesta" : "verifiche manuali richieste"}`,
+        `${automatic} ${automatic === 1 ? "etichetta aggiornata" : "etichette aggiornate"} automaticamente. ${manual} ${manual === 1 ? "verifica manuale richiesta" : "verifiche manuali richieste"}.`,
       manualHeading: "Come completare la verifica manuale",
       manualSteps: (
         language: string,
@@ -609,14 +613,14 @@ export const it = {
           : []),
         "Per ogni caso indicato, aggiungi un prodotto al carrello e raggiungi il checkout. Imposta Italia come paese di consegna e seleziona un indirizzo italiano riconosciuto da Shopify: Codice Fiscale e PEC compaiono dopo che l’indirizzo è stato acquisito.",
         "Confronta le etichette di Codice Fiscale e PEC con “Campo dopo il salvataggio” mostrato qui.",
-        "Se differiscono, premi “Apri l’editor dei testi del checkout”. In Shopify, nella sezione Lingua del check-out, premi “Modifica contenuto del check-out”.",
+        "Se differiscono, premi “Apri l’editor dei testi del checkout”. In Shopify, nella sezione “Lingua del check-out”, premi “Modifica contenuto del check-out”.",
         ...(primary && !market
           ? [
-              "Nell’editor premi “Cerca e filtra i risultati”. Per Codice Fiscale cerca il valore indicato come “Campo attuale” e modifica soltanto Checkout localized fields additional information → Tax credential it; ignora B2B locations → Tax id.",
-              "Per PEC cerca “PEC”, scorri fino a Checkout localized fields additional information e modifica Tax email it. Inserisci per entrambi il relativo “Campo dopo il salvataggio”, poi premi “Salva”.",
+              "Nell’editor premi “Cerca e filtra i risultati”. Per Codice Fiscale cerca il valore indicato come “Campo attuale” e modifica soltanto “Checkout localized fields additional information → Tax credential it”; ignora “B2B locations → Tax id”.",
+              "Per PEC cerca “PEC”, scorri fino a “Checkout localized fields additional information” e modifica “Tax email it”. Inserisci per entrambi il relativo “Campo dopo il salvataggio”, poi premi “Salva”.",
               ...(verificationMarkets.length > 0
                 ? [
-                    `Se un’etichetta differisce soltanto in ${verificationMarkets.join(", ")}, premi “Traduci” nell’editor, apri il selettore “Traduzione in…” e scegli “Adatta un mercato”. Apri uno alla volta ${verificationMarkets.join(", ")} con lingua ${language}, quindi in Checkout and system usa “Filtra campi” per cercare Tax credential it o Tax email it, inserisci il relativo “Campo dopo il salvataggio” e salva.`,
+                    `Se un’etichetta differisce soltanto in ${verificationMarkets.join(", ")}, premi “Traduci” nell’editor, apri il selettore “Traduzione in…” e scegli “Adatta un mercato”. Apri uno alla volta ${verificationMarkets.join(", ")} con lingua ${language}, quindi in “Checkout and system” usa “Filtra campi” per cercare “Tax credential it” o “Tax email it”, inserisci il relativo “Campo dopo il salvataggio” e salva.`,
                   ]
                 : []),
             ]
@@ -625,7 +629,7 @@ export const it = {
               market
                 ? `Apri il selettore “Traduzione in…” e scegli “Adatta un mercato” → ${market} → ${language}.`
                 : `Controlla che in alto sia selezionato “Traduzione in ${language}”. Se non lo è, apri il selettore “Traduzione in…” e scegli ${language} sotto “Traduci per tutti i mercati”.`,
-              "Apri Checkout and system. In “Filtra campi” cerca Tax credential it e Tax email it, inserisci per ciascuno il relativo “Campo dopo il salvataggio”, poi premi “Salva”.",
+              "Apri “Checkout and system”. In “Filtra campi” cerca “Tax credential it” e “Tax email it”, inserisci per ciascuno il relativo “Campo dopo il salvataggio”, poi premi “Salva”.",
             ]),
         "Torna in CF Ready e premi “Rileggi i campi da Shopify”. Quando i due valori coincidono, il pulsante di conferma si attiva.",
       ],
@@ -657,11 +661,11 @@ export const it = {
         fiscal_conflict: "Possibile doppione",
       },
       addressSummary: {
-        unknown: "Concedi l’accesso per controllare il testo del campo Interno.",
-        expected: "Nel campo Interno non è stata rilevata un’etichetta fiscale.",
-        nonstandard: "Il campo Interno usa un testo personalizzato che non sembra fiscale.",
+        unknown: "Concedi l’accesso per controllare il testo del campo “Interno”.",
+        expected: "Nel campo “Interno” non è stata rilevata un’etichetta fiscale.",
+        nonstandard: "Il campo “Interno” usa un testo personalizzato che non sembra fiscale.",
         fiscal_conflict:
-          "Il campo Interno è etichettato come Codice Fiscale e può creare un doppione.",
+          "Il campo “Interno” è etichettato come Codice Fiscale e può creare un doppione.",
       },
       addressLimit:
         "CF Ready controlla il testo. Visibilità e obbligatorietà restano nelle impostazioni checkout di Shopify.",

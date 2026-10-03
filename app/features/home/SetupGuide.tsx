@@ -94,7 +94,7 @@ export function SetupGuide({
 
         <s-query-container>
           <s-grid
-            gridTemplateColumns="@container (inline-size > 560px) 1fr 1fr 1fr, 1fr"
+            gridTemplateColumns="@container (inline-size > 400px) 1fr 1fr, 1fr"
             gap="small-100"
           >
             {steps.map((step, index) => (

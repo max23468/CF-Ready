@@ -1,4 +1,5 @@
 import { texts, type Locale } from "../i18n";
+import { RevealBanner } from "../ui-feedback";
 
 export function ConfigConflict({
   locale,
@@ -15,14 +16,15 @@ export function ConfigConflict({
 }) {
   const t = texts(locale).conflict;
   return (
-    <s-section heading={t.heading}>
+    // Il conflitto blocca il salvataggio: è un avviso che si porta in vista, come gli altri (T13).
+    <RevealBanner tone="warning" heading={t.heading}>
       <s-stack direction="block" gap="base">
         <s-paragraph>{t.body}</s-paragraph>
         {rows.map((row) =>
           row.current === row.draft ? null : (
             <s-box key={row.label} padding="base" background="subdued" borderRadius="base">
               <s-stack direction="block" gap="small-100">
-                <s-heading>{row.label}</s-heading>
+                <s-text type="strong">{row.label}</s-text>
                 <s-paragraph>
                   {t.current}: {row.current}
                 </s-paragraph>
@@ -34,7 +36,7 @@ export function ConfigConflict({
           ),
         )}
         <s-stack direction="inline" gap="base">
-          <s-button disabled={busy} onClick={onReapply}>
+          <s-button variant="primary" disabled={busy} onClick={onReapply}>
             {t.reapply}
           </s-button>
           <s-button disabled={busy} onClick={onDiscard}>
@@ -42,6 +44,6 @@ export function ConfigConflict({
           </s-button>
         </s-stack>
       </s-stack>
-    </s-section>
+    </RevealBanner>
   );
 }

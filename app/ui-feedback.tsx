@@ -3,9 +3,11 @@ import { useEffect, useRef, type ReactNode } from "react";
 // Avvisi ed errori restano banner, ma quando compaiono si portano in vista.
 export function RevealBanner({
   tone,
+  heading,
   children,
 }: {
   tone: "critical" | "warning";
+  heading?: string;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -18,7 +20,9 @@ export function RevealBanner({
   }, []);
   return (
     <div className="cf-reveal-banner cf-motion-reveal" ref={ref}>
-      <s-banner tone={tone}>{children}</s-banner>
+      <s-banner tone={tone} heading={heading}>
+        {children}
+      </s-banner>
     </div>
   );
 }

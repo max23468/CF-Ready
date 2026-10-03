@@ -62,6 +62,31 @@ describe("Onboarding", () => {
     vi.stubGlobal("FormData", originalFormData);
   });
 
+  test("il passo resta nell'URL e il passo 2 ha titoli coerenti", async () => {
+    const original = window.location.href;
+    router.loaderData = { ...onboardingData, step: 1, completed: true };
+    const view = await mount(<Onboarding />);
+    await click(
+      [...view.container.querySelectorAll("s-button")].find(
+        (button) => button.textContent === texts("it").onboarding.next,
+      )!,
+    );
+    // Ricaricando, il loader riparte dal passo scritto nell'URL.
+    expect(new URL(window.location.href).searchParams.get("step")).toBe("2");
+    // Codice Fiscale e PEC hanno un titolo come "Campo Interno".
+    const headings = [...view.container.querySelectorAll(".onboarding-step s-heading")].map(
+      (heading) => heading.textContent,
+    );
+    expect(headings).toEqual(
+      expect.arrayContaining([
+        texts("it").rules.taxCodeLabel,
+        texts("it").rules.pecLabel,
+        texts("it").rules.labels.addressHeading,
+      ]),
+    );
+    window.history.replaceState(window.history.state, "", original);
+  });
+
   test("cita tra virgolette le etichette proposte (T7)", async () => {
     router.loaderData = {
       ...onboardingData,
@@ -71,8 +96,10 @@ describe("Onboarding", () => {
     const view = await mount(<Onboarding />);
     const taxCode = checkoutLabelCopy("taxCode", "it", "required_validated")!;
     const pec = checkoutLabelCopy("pec", "en", "required_when_company")!;
-    expect(view.container.textContent).toContain(`IT · «${taxCode}»`);
-    expect(view.container.textContent).toContain(`· «${pec}»`);
+    // Punto 10: nomi delle lingue al posto dei codici e niente frammenti uniti da puntini.
+    expect(view.container.textContent).toContain(`Italiano: «${taxCode}»`);
+    expect(view.container.textContent).not.toContain("IT · ");
+    expect(view.container.textContent).toContain(`, «${pec}»`);
   });
 
   test("mostra l'errore se Shopify non completa la richiesta dei permessi", async () => {

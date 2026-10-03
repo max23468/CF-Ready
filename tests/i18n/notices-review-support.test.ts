@@ -203,3 +203,47 @@ test("la Home distingue i messaggi predefiniti da quelli riscritti", () => {
   // Basta un testo riscritto in una lingua sola: la riga in Home deve dirlo.
   expect(messagesAreDefault(edited)).toBe(false);
 });
+
+test("gli errori rari nominano i comandi reali e spiegano cosa fare", () => {
+  for (const locale of ["it", "en"] as const) {
+    const t = texts(locale);
+    // Punto 5: il comando si chiama come il bottone di Regole.
+    for (const code of [
+      "checkout_labels_conflict",
+      "checkout_labels_stale_digest",
+      "checkout_labels_readback_failed",
+      "address2_restore_conflict",
+    ] as const) {
+      expect(t.errors[code]).toContain(`“${t.rules.labels.refresh}”`);
+    }
+    // Punto 12: si riprova dalla Guida, con il suo comando.
+    expect(t.guide.diagnosis.failed).toContain(`“${t.guide.diagnosis.refresh}”`);
+    // Punto 13: niente "risorse" senza un'azione.
+    expect(t.errors.checkout_labels_resource_ambiguous).not.toMatch(/risorse|resource/);
+  }
+});
+
+test("la procedura manuale cita tra virgolette ogni voce dell'interfaccia Shopify", () => {
+  for (const locale of ["it", "en"] as const) {
+    const labels = texts(locale).rules.labels;
+    // Punto 14: come gli altri comandi, anche le voci di Translate & Adapt sono citate.
+    for (const [primary, market] of [
+      [true, null],
+      [false, null],
+      [false, "Europa"],
+    ] as const) {
+      const steps = labels.manualSteps("italiano", market, primary, ["Europa"]).join("\n");
+      expect(steps).not.toMatch(/(?<!“)Checkout and system/);
+      expect(steps).not.toMatch(/(?<!“|→ )Tax (credential|email) it/);
+      expect(steps).not.toMatch(/(?<!“)B2B locations/);
+    }
+    // Punto 10: due conteggi sono due frasi, non frammenti uniti da un puntino.
+    expect(labels.operationalSummary(1, 2)).not.toContain("·");
+  }
+});
+
+test("i riepiloghi del campo Interno lo citano tra virgolette", () => {
+  for (const summary of Object.values(texts("it").rules.labels.addressSummary)) {
+    expect(summary).not.toMatch(/campo Interno/);
+  }
+});

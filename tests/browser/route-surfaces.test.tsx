@@ -2,6 +2,7 @@ import { router, mount } from "./route-support";
 import { describe, expect, test, vi } from "vitest";
 
 import { dispatch } from "./render";
+import { texts } from "../../app/i18n";
 
 import App, { ErrorBoundary, headers } from "../../app/routes/app";
 
@@ -58,6 +59,17 @@ describe("shell embedded", () => {
   test("espone boundary e header Shopify", () => {
     expect(ErrorBoundary()).toBeTruthy();
     expect(headers({} as never)).toBeInstanceOf(Headers);
+  });
+
+  test("un errore runtime mostra una pagina bilingue invece di quella di React Router", async () => {
+    // Punto 1: `boundary.error` gestisce solo le risposte Shopify e rilancia il resto.
+    for (const locale of ["it", "en"] as const) {
+      router.loaderData = { locale };
+      const view = await mount(<ErrorBoundary />);
+      expect(view.container.textContent).toContain(texts(locale).errors.generic);
+      expect(view.container.textContent).toContain(texts(locale).errorPage.reload);
+      await view.unmount();
+    }
   });
 
   test("ripristina la cornice Admin anche quando App Bridge non è disponibile", async () => {
