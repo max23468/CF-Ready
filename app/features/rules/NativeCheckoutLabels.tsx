@@ -7,6 +7,7 @@ import {
   type CheckoutLabelsSnapshot,
   type CheckoutLabelState,
 } from "../../checkout-labels/domain";
+import { localizedError } from "../../app-error";
 import { formatDateTime, quoteLabel, texts, type Locale } from "../../i18n";
 import {
   fiscalLabelContexts,
@@ -70,6 +71,7 @@ export function NativeCheckoutLabels({
     (state.mode === "off" && state.decision === "pending");
   const presentation = nativeLabelsPresentation({
     copy,
+    errors: texts(locale).errors,
     state,
     keptByMerchant,
     pendingCount: pendingContexts.length,
@@ -81,7 +83,10 @@ export function NativeCheckoutLabels({
       <summary className="checkout-labels-disclosure__summary">
         <div className="checkout-labels-title">
           <s-heading>{copy.nativeHeading}</s-heading>
-          <s-badge tone={needsAttention ? "warning" : "success"}>{presentation.status}</s-badge>
+          {/* Una scelta del merchant è neutra, non un successo (come R-B7). */}
+          <s-badge tone={needsAttention ? "warning" : keptByMerchant ? "neutral" : "success"}>
+            {presentation.status}
+          </s-badge>
         </div>
         <s-paragraph color="subdued">{presentation.summary}</s-paragraph>
       </summary>
@@ -223,19 +228,25 @@ function NativeLabelsContent({
 
 function nativeLabelsPresentation({
   copy,
+  errors,
   state,
   keptByMerchant,
   pendingCount,
   pendingLanguages,
 }: {
   copy: ReturnType<typeof texts>["rules"]["labels"];
+  errors: ReturnType<typeof texts>["errors"];
   state: CheckoutLabelState;
   keptByMerchant: boolean;
   pendingCount: number;
   pendingLanguages: string[];
 }) {
+  // Un errore salvato non è una verifica manuale: lo si nomina e si dice cosa fare (come R-H4).
   if (state.lastErrorCode && state.lastErrorCode !== "checkout_labels_confirmation_pending") {
-    return { status: copy.statusManualRequired, summary: copy.nativeSummaryError };
+    return {
+      status: copy.statusError,
+      summary: `${copy.nativeSummaryError} ${localizedError(errors, state.lastErrorCode)}`,
+    };
   }
   if (pendingCount > 0) {
     return {
@@ -264,7 +275,7 @@ export function KeepNativeLabelsChoice({
   onAccept: () => void;
 }) {
   return accepted ? (
-    <s-badge tone="success">{copy.keepNativeAccepted}</s-badge>
+    <s-badge tone="neutral">{copy.keepNativeAccepted}</s-badge>
   ) : (
     <s-button disabled={busy} onClick={onAccept}>
       {copy.keepNative}

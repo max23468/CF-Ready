@@ -211,11 +211,13 @@ test("il richiamo è nello stesso blocco dello stato e punta al listino esistent
   );
   expect(rendered[0]?.type).toBe("s-section");
   expect(rendered.some((element) => element.type === "s-banner")).toBe(true);
+  // Niente ancora `#plans`: App Bridge la scarterebbe. Il bottone porta in vista i piani.
   expect(
     rendered.find(
       (element) =>
-        element.type === "s-button" && (element.props as { href?: string }).href === "#plans",
+        element.type === "s-button" &&
+        (element.props as { children?: string }).children === "Scegli un piano",
     )?.props,
-  ).toMatchObject({ children: "Scegli un piano", disabled: false });
+  ).toMatchObject({ disabled: false, onClick: expect.any(Function) });
   expect(submit).not.toHaveBeenCalled();
 });

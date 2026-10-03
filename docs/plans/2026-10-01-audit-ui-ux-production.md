@@ -448,3 +448,46 @@ Branch `fix/audit-simulatore`, decisioni dell'owner del 2 ottobre 2026.
 | EN2 | Implementato | Le righe del riepilogo condividono le colonne (`subgrid`) e la prima si allarga fino all'etichetta più lunga; a 1200 px le voci inglesi stanno su una riga |
 | EN3 | Verificato | Risolto da T11: orari nel fuso dello store |
 | EN4 | Verificato | H1, M2, M4 e R-S1 implementati; T2 escluso dall'owner |
+
+### Verifica sul codice degli stati non visibili su `cf-ready-dev`
+
+Il 2 ottobre 2026 una lettura del codice ha cercato gli stessi schemi dei
+findings in stati che il dev store non mostra (errori, conflitti, billing,
+permessi assenti, piano omaggio). Correzioni nella `1.15.22`:
+
+| Punto | Schema | Correzione |
+| --- | --- | --- |
+| Pagina d'errore | Lingue mescolate | `boundary.error` gestisce solo le risposte Shopify: per gli altri errori `ErrorBoundary` mostra una pagina bilingue con "Ricarica la pagina" |
+| "Scegli un piano" | G-B2, G-B4 | Al posto dell'ancora `#plans`, che App Bridge scarta, porta in vista le offerte e vi sposta il focus |
+| Avvisi Home, etichette, conflitto | T13 | `RevealBanner` per gli avvisi della Home, gli errori delle etichette e il conflitto di configurazione, ora un avviso con "Riapplica le mie modifiche" primario |
+| Errore salvato sulle etichette | R-H4 | Badge "Controllo non completato" e spiegazione dell'errore, non "Verifica manuale richiesta" |
+| Comandi nei messaggi | EN1, T12 | Gli errori citano "Rileggi i campi da Shopify" e "Aggiorna e verifica"; tolto "più risorse" senza azione |
+| Guida di configurazione | M7, G-B9 | Quattro passi in griglia 2 × 2 |
+| Campo Interno, procedura manuale | T7 | Etichette e voci dell'interfaccia Shopify tra virgolette |
+| Scelte neutre | R-B7, T5 | Badge neutri per "Gestiti da te" e "Scelta registrata" |
+| Richiesta permessi | G-B9 | Bottoni affiancati |
+| Riepiloghi a frammenti | R-B4 | Conflitto dei messaggi, passo 2 dell'onboarding e conteggio delle etichette senza codici lingua né "·" |
+| Piano | G-B8, M5 | Titolo "Piano" al passo 4 con piano attivo; data del primo addebito una volta |
+
+Il sito pubblico e le notifiche dell'owner non sono stati analizzati.
+
+### Verifica su Chrome di `cf-ready-dev` del 3 ottobre 2026
+
+Giro completo della `1.15.20-dev` (#612) a 1440 e 500 px, con ricaricamento
+di ogni pagina. Conformi R-S1, R-S2, M1-M4, M6-M8, G-B1, G-B2, G-B5-G-B9,
+G-N1, O1-O5, O7 ed EN2 (italiano). G-B4 conforme in parte. Ricaricamenti
+stabili, salvo l'onboarding. Lo store non è stato modificato. Lingua inglese
+non provata dal vivo: richiede di cambiare la lingua del profilo.
+
+| Problema | Correzione |
+| --- | --- |
+| In Home, a ogni ingresso, "Verifica in corso…" azzurro e bottoni grigi per circa mezzo secondo | Lo stato salvato resta a vista; la verifica compare solo dopo un secondo. Le azioni restano ferme fino alla conferma (D-167) |
+| G-B4: le etichette caricate dopo spingono il simulatore fuori vista | Nuovo scorrimento a caricamento concluso, se il focus è ancora sul simulatore |
+| Diagnosi con due righe dello stesso orario e "verificate il:" | Una sola riga "Ultima verifica di regole e attivazione" |
+| "campo Interno" senza virgolette nei riepiloghi | “Interno” tra virgolette |
+| "Stiamo verificando l'eventuale credito" fisso sul dev store: conversione di test in `needs_review` | Nota nascosta per le conversioni di test |
+| Prezzi di lancio mostrati con il pagamento unico | Frase nascosta con il pagamento unico |
+| Onboarding: ricaricando una revisione si torna al passo 1 | Passo nell'URL (`?step=`), riletto dal loader |
+| Passo 2: Codice Fiscale e PEC senza titolo, "Campo Interno" con titolo | Stesso titolo `s-heading` per i tre gruppi |
+| «Codice fiscale» proposto con la minuscola | Nessuna modifica: è il testo standard di Shopify |
+

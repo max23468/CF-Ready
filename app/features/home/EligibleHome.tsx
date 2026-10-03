@@ -2,7 +2,8 @@ import { localizedError, type AppErrorCode } from "../../app-error";
 import { pendingFetcherIntent, pendingFetcherSource } from "../../config";
 import { formatDate, texts } from "../../i18n";
 import { commercialState } from "./commercial-state";
-import { DeactivateModal, HomeAside, HomeValidationSection, MotionBanner } from "./HomeSections";
+import { DeactivateModal, HomeAside, HomeValidationSection } from "./HomeSections";
+import { RevealBanner } from "../../ui-feedback";
 import { MerchantCheckIn } from "./MerchantCheckIn";
 import { PlanChoice } from "./PlanChoice";
 import { PlanStatus } from "./PlanStatus";
@@ -117,16 +118,16 @@ function HomeNotices({
   return (
     <>
       {verification === "failed" ? (
-        <MotionBanner tone="warning">
+        <RevealBanner tone="warning">
           <s-stack direction="block" gap="small-100">
             <s-paragraph>{t.home.verificationFailed}</s-paragraph>
             <s-button onClick={retryVerification}>{t.home.verificationRetry}</s-button>
           </s-stack>
-        </MotionBanner>
+        </RevealBanner>
       ) : null}
       <PrimaryNotice data={data} busy={busy} pendingIntent={pendingIntent} submit={submit} />
       {result && !result.ok ? (
-        <MotionBanner tone="critical">{localizedError(t.errors, result.errorCode)}</MotionBanner>
+        <RevealBanner tone="critical">{localizedError(t.errors, result.errorCode)}</RevealBanner>
       ) : null}
     </>
   );
@@ -153,7 +154,7 @@ function PrimaryNotice({
           ? t.errors[data.errorCode]
           : t.home.syncNeeded;
     return (
-      <MotionBanner tone="warning">
+      <RevealBanner tone="warning">
         <s-stack direction="block" gap="small-100">
           <s-paragraph>{message}</s-paragraph>
           <s-button
@@ -164,7 +165,7 @@ function PrimaryNotice({
             {t.home.repair}
           </s-button>
         </s-stack>
-      </MotionBanner>
+      </RevealBanner>
     );
   }
   return null;
