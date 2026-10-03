@@ -6,6 +6,11 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.24 — 3 ottobre 2026
+
+- consente al browser di caricare il webmanifest del sito pubblico dallo stesso
+  dominio, eliminando il blocco CSP senza ampliare le altre origini consentite.
+
 ## 1.15.23 — 3 ottobre 2026
 
 - riduce le letture duplicate dopo il salvataggio di regole e messaggi usando
