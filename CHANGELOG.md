@@ -6,7 +6,10 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
-## 1.15.24 — 3 ottobre 2026
+## 2.0.0 — 3 ottobre 2026
+
+Milestone di design scelta dall'owner il 3 ottobre 2026, pubblicazione limitata
+a Development senza promozione in Production.
 
 - prepara Polaris 2.0 release candidate soltanto in Development, con tipi
   aggiornati e script allineato al preload Shopify anche nei build ottimizzati;

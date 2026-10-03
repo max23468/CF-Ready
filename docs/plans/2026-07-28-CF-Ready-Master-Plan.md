@@ -3104,6 +3104,12 @@ separate e richiedono autorizzazione esplicita.
 - `1.x.0`: funzionalità compatibili;
 - major solo per cambi incompatibili o sostanziali.
 
+Il 3 ottobre 2026 l'owner assegna `2.0.0` all'upgrade di design basato su
+Polaris 2.0 release candidate, come milestone sostanziale di prodotto.
+La pubblicazione autorizzata riguarda soltanto Development, con snapshot
+`2.0.0-dev.<tree>`; non autorizza una promozione, un deploy o una release
+Production. Production conserva Polaris 1 tramite la selezione per ambiente.
+
 Ogni release Production:
 
 - tag `vX.Y.Z`;
