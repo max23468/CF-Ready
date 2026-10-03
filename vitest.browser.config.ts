@@ -52,6 +52,13 @@ export default defineConfig({
           include: routeTests,
           setupFiles: [path.join(root, "tests/browser/route-setup.tsx")],
         },
+        ...(["chromium", "webkit"] as const).map((browser) => ({
+          browser,
+          name: `merchant-${browser}-polaris-v2`,
+          include: ["tests/browser/visual-surfaces.test.tsx"],
+          setupFiles: [path.join(root, "tests/browser/route-setup.tsx")],
+          provide: { polarisEnvironment: "development" },
+        })),
       ],
     },
     coverage: {
