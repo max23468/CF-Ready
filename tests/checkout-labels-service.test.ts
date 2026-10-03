@@ -630,7 +630,9 @@ test("un readback finale divergente resta recuperabile", async () => {
   vi.useFakeTimers({ toFake: ["setTimeout"] });
   const tax = fiscalSlot({ capability: "automatic", currentValue: "Testo diverso" });
   mocks.readStored.mockResolvedValue([stored(tax, { capability: "automatic" })]);
-  mocks.readLabels.mockResolvedValue(snapshotOf([tax]));
+  mocks.readLabels
+    .mockResolvedValue(snapshotOf([tax]))
+    .mockResolvedValueOnce(snapshotOf([{ ...tax, currentValue: "Testo iniziale" }]));
 
   const pending = save(input());
   await vi.runAllTimersAsync();
@@ -640,6 +642,10 @@ test("un readback finale divergente resta recuperabile", async () => {
   });
   // Rilettura dopo la scrittura più due ricontrolli, poi l'esito parziale resta.
   expect(mocks.readLabels).toHaveBeenCalledTimes(4);
+  expect(mocks.persist).toHaveBeenLastCalledWith(db, shop, [tax], snapshotOf([tax]).address2);
+  expect(mocks.persist.mock.invocationCallOrder.at(-1)).toBeLessThan(
+    mocks.mark.mock.invocationCallOrder.at(-1)!,
+  );
 });
 
 test("una rilettura non ancora aggiornata dopo la scrittura non segnala una sincronizzazione parziale", async () => {

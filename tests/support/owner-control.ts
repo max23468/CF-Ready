@@ -97,6 +97,8 @@ export function shopFixture(overrides: Partial<ShopRow> = {}): ShopRow {
     validation_state_revision: 2,
     last_sync_at: NOW.toISOString(),
     last_error_code: null,
+    checkout_labels_last_error_code: null,
+    checkout_labels_last_read_at: null,
     trial_status: null,
     trial_ends_at: null,
     entitlement_status: null,

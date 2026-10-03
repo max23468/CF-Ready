@@ -124,6 +124,8 @@ export function shopMessage(
         ["Validation", shop.validation_enabled ? "Attiva" : "Non attiva"],
         ["Ultimo sync", formatDate(shop.last_sync_at)],
         ["Errore aperto", shop.last_error_code ?? "Nessuno"],
+        ["Errore etichette registrato", shop.checkout_labels_last_error_code ?? "Nessuno"],
+        ["Ultima lettura etichette Shopify", formatDate(shop.checkout_labels_last_read_at)],
         ["Schema config", value(shop.config_schema_version)],
         ["Revisione", value(shop.validation_state_revision)],
         ["Hash config", shortHash(shop.config_hash)],
@@ -762,7 +764,8 @@ function shopSummary(shop: ShopRow, shopifyPlan?: string | null) {
     shop.installation_status === "active" && shopifyPlan !== undefined
       ? ` · Shopify ${shopifyPlan ?? "non disponibile"}`
       : "";
-  return `${plan}${platformPlan} · Validation ${shop.validation_enabled ? "attiva" : "non attiva"}${shop.last_error_code ? ` · ${shop.last_error_code}` : ""}`;
+  const error = shop.last_error_code ?? shop.checkout_labels_last_error_code;
+  return `${plan}${platformPlan} · Validation ${shop.validation_enabled ? "attiva" : "non attiva"}${error ? ` · ${error}` : ""}`;
 }
 function filterLabel(filter: ShopsFilter) {
   return {

@@ -5007,15 +5007,19 @@ commit candidato `345c27d`.
 **Avviata il 26 agosto 2026.** M12 combina i criteri Built for Shopify correnti
 con i segnali Controlled Launch specifici di CF Ready descritti in §25.4.
 
-**Readback del 20 settembre 2026:** M12 resta aperta e non candidabile. Il
-Partner Dashboard mostra la listing pubblicata, `12` merchant con l'app e `11`
-installazioni nette cumulative negli ultimi 30 giorni, mentre il requisito BFS
-di `50` installazioni qualificate resta aperto. La listing pubblica non mostra
-recensioni e LCP, CLS e INP riportano tutti `Dati non sufficienti`, con meno di
-`100` chiamate per metrica negli ultimi 28 giorni. Il pulsante `Iscriviti oggi`
-è disabilitato; non è stata eseguita alcuna candidatura. Production è alla
-release tecnica `v1.11.7`, che non prova l'idoneità BFS. La ricevuta M12 conserva
-i conteggi interni, i limiti delle prove e gli altri residui.
+**Readback del 3 ottobre 2026:** M12 resta aperta e non candidabile. La checklist
+Shopify riconosce Web Vitals, incorporamento, token di sessione e App Bridge
+corrente come superati. Restano aperti `50` installazioni nette qualificate,
+almeno `5` recensioni e rating `4+`; la listing pubblicata ha `0` recensioni e
+`Candidati ora` è disabilitato. Le `18` installazioni nette cumulative negli
+ultimi 30 giorni non sono il contatore BFS. D1 mostra `22` store attivi, `18`
+Validation attive e `8` paganti non-test. Un errore etichette resta registrato
+su uno store attivo, con testi letti l'ultima volta il 16 settembre: il monitor
+D1 non prova che il checkout sia ancora errato oggi. Il fix locale conserva
+anche i readback parziali e include gli errori etichette nei contatori; il
+readback Shopify dello store e la pubblicazione restano da eseguire. Production
+è alla release tecnica `v1.15.24`, che non prova l'idoneità BFS. La ricevuta M12
+conserva conteggi, prove e limiti delle verifiche.
 
 Gate:
 
