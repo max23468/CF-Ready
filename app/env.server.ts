@@ -20,8 +20,8 @@ export const BILLING_IS_TEST = billingTest !== "false";
 export const APP_API_KEY = apiKey || "";
 export const APP_POLARIS_URL = polarisUrlForEnvironment(bindings.APP_ENVIRONMENT);
 // L'app Development ha distribuzione pubblica per poter usare la Billing API: il suo
-// `client_id` è nel repository pubblico, quindi l'installazione resta ammessa solo sul dev
-// store. Vuota in Production, dove installa chi vuole.
+// `client_id` è nel repository pubblico, quindi l'installazione resta ammessa solo sui dev
+// store autorizzati, elencati con separatore virgola. Vuota in Production, dove installa chi vuole.
 export const ALLOWED_SHOP = bindings.ALLOWED_SHOP || "";
 export const TRIAL_LEDGER_HMAC_KEY = bindings.TRIAL_LEDGER_HMAC_KEY || "";
 // §22: la versione è uno dei dati tecnici che il merchant allega alla richiesta di
