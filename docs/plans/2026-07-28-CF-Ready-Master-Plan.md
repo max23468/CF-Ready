@@ -2374,7 +2374,17 @@ Conclusioni operative:
 - il simulatore checkout usa soltanto Polaris Web Components, resta locale al
   browser e dichiara esplicitamente che non salva i valori di prova;
 - CSS custom minimo;
-- tutte le schermate condividono il fondo grigio Polaris (`--p-color-bg`, fallback
+- upgrade Polaris preparato il 3 ottobre 2026: Development carica
+  `polaris-2.0-rc.js`, la v2 più recente disponibile, con tipi
+  `@shopify/polaris-types@2.0.0-rc.1`; Production e ambienti non riconosciuti
+  conservano `polaris-1.js`. Script e preload seguono lo stesso ambiente
+  Workers, anche nei build ottimizzati. Il fondo e gli spazi della v2 restano
+  nativi; i ripristini visivi seguenti si applicano alla v1. Pubblicazione
+  limitata a Development, senza promozione in Production; la verifica embedded
+  reale resta distinta dalle prove con fixture sintetiche.
+  Fonti: [versioning v2](https://shopify.dev/docs/api/app-home/v2.0-rc/web-components/versioning)
+  e [annuncio Shopify](https://community.shopify.dev/t/polaris-2-0-release-candidate/37957);
+- con Polaris 1 tutte le schermate condividono il fondo grigio Polaris (`--p-color-bg`, fallback
   `#F1F1F1`) per distinguere le card bianche native, compreso l'onboarding;
   componenti, bordi, tipografia e controlli restano Polaris. Ripristino richiesto
   dall'owner il 30 settembre 2026;
