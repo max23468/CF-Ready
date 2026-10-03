@@ -36,7 +36,7 @@ const shopify = shopifyApp({
     // lo stato autorevole senza duplicare chiamate Shopify nel percorso critico di auth.
     afterAuth: async ({ session }) => {
       const startedAt = performance.now();
-      if (ALLOWED_SHOP && session.shop !== ALLOWED_SHOP) {
+      if (ALLOWED_SHOP && !ALLOWED_SHOP.split(",").includes(session.shop)) {
         await refuseInstall(bindings.DB, session.shop);
         throw new Response("Questa installazione di CF Ready è riservata allo store di sviluppo.", {
           status: 403,

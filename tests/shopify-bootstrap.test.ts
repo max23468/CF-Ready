@@ -115,8 +115,12 @@ test.each(["development", "production", undefined, "unknown"])(
   },
 );
 
-test("afterAuth rifiuta uno store diverso da quello Development consentito", async () => {
-  state.bindings.ALLOWED_SHOP = "cf-ready-dev.myshopify.com";
+test.each([
+  "wrong.myshopify.com",
+  "cf-ready-polaris-2.myshopify.com.attacker.test",
+  "ready-polaris-2.myshopify.com",
+])("afterAuth rifiuta uno store fuori dalla lista Development (%s)", async (shop) => {
+  state.bindings.ALLOWED_SHOP = "cf-ready-dev.myshopify.com,cf-ready-polaris-2.myshopify.com";
   await import("../app/shopify.server");
   const afterAuth = (
     state.shopifyOptions[0].hooks as {
@@ -124,12 +128,26 @@ test("afterAuth rifiuta uno store diverso da quello Development consentito", asy
     }
   ).afterAuth;
 
-  await expect(
-    afterAuth({ session: { shop: "wrong.myshopify.com" }, admin: {} }),
-  ).rejects.toMatchObject({ status: 403 });
-  expect(mocks.refuseInstall).toHaveBeenCalledWith(state.bindings.DB, "wrong.myshopify.com");
+  await expect(afterAuth({ session: { shop }, admin: {} })).rejects.toMatchObject({ status: 403 });
+  expect(mocks.refuseInstall).toHaveBeenCalledWith(state.bindings.DB, shop);
   expect(mocks.recordInstallOnce).not.toHaveBeenCalled();
 });
+
+test.each(["cf-ready-dev.myshopify.com", "cf-ready-polaris-2.myshopify.com"])(
+  "afterAuth consente lo store Development autorizzato (%s)",
+  async (shop) => {
+    state.bindings.ALLOWED_SHOP = "cf-ready-dev.myshopify.com,cf-ready-polaris-2.myshopify.com";
+    await import("../app/shopify.server");
+    const afterAuth = (
+      state.shopifyOptions[0].hooks as {
+        afterAuth: (input: { session: { shop: string } }) => Promise<void>;
+      }
+    ).afterAuth;
+    await afterAuth({ session: { shop } });
+    expect(mocks.refuseInstall).not.toHaveBeenCalled();
+    expect(mocks.recordInstallOnce).toHaveBeenCalledWith(state.bindings.DB, shop);
+  },
+);
 
 test("afterAuth registra l'installazione senza duplicare la riconciliazione della rotta", async () => {
   await import("../app/shopify.server");

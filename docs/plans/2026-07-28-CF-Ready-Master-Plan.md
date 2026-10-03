@@ -56,7 +56,9 @@ Quando due passaggi storici risultano in tensione, vale la decisione approvata p
 - l’unica abbreviazione interna ammessa è `CFR`; ogni abbreviazione precedente è eliminata;
 - l’app ha quattro pagine permanenti; stato e scelta del piano sono nella Home e l’onboarding si apre in una finestra;
 - non esiste un selettore manuale della lingua;
-- si mantiene un solo dev store;
+- il dev store Basic principale resta `cf-ready-dev`; dal 3 ottobre 2026 è
+  autorizzato anche `cf-ready-polaris-2` per la preview del nuovo Admin e
+  l'audit Polaris 2, sempre nell'ambiente Development;
 - ESLint e Prettier sono sostituiti da Oxlint e Oxfmt;
 - Cloudflare è l’infrastruttura primaria; Oracle è fuori dall’architettura iniziale;
 - non esiste alcun fallback architetturale a Hono, Next.js, Express o Remix.
@@ -525,7 +527,7 @@ confronta con il contenuto servito all’edge.
 | D-087 | Telemetria tecnica minimale sempre attiva, senza opt-out. | Necessaria a operatività, sicurezza e misurazione essenziale. |
 | D-088 | Prompt recensione nativo, neutrale e non incentivato. | Feedback autentico dopo un momento positivo. |
 | D-089 | Versioni di sviluppo `0.x`; `1.0.0` prima dei merchant esterni. | Non vendere una prerelease. |
-| D-090 | Un solo dev store Basic permanente. | Semplicità operativa. |
+| D-090 | Dev store Basic principale `cf-ready-dev`. Il 3 ottobre 2026 l'owner autorizza un secondo dev store Basic, `cf-ready-polaris-2`, con preview `new_admin_design`, Italia e dati dimostrativi, dedicato ai test CFR e all'audit Polaris 2. L'app resta Development; il collegamento del nuovo dominio richiede l'adeguamento della restrizione di installazione, senza rimuoverla. | Il vecchio dev store conserva l'Admin precedente e non espone un percorso supportato per aggiungere la preview dopo la creazione. Il secondo store consente il confronto embedded con il nuovo Admin e conserva il target precedente. |
 | D-091 | Utility CLI di reset solo `dev`, impossibile in `prod`. | Ripetere flussi puliti con un solo dev store. |
 | D-092 | Controlled Launch con listing a visibilità completa dal 25 agosto 2026; il controllo resta nell'acquisizione e nel supporto graduali, non nella reperibilità. | Rende l'app trovabile nella ricerca App Store senza fingere che i criteri di maturità successivi alla release siano già raggiunti. |
 | D-093 | Controlled Launch non comunicato come beta/pilot. | Comunicazione normale di lancio, senza nascondere limitazioni materiali o inventare trazione. |
@@ -3041,11 +3043,23 @@ team e lo scope correnti, duplicherebbe configurazioni, secret e deploy. Se in
 futuro più collaboratori o merchant reali rendessero insufficiente il dev store,
 un ambiente intermedio richiederebbe una nuova decisione basata su quel bisogno.
 
-Un solo dev store permanente, piano simulato Basic:
+Dev store principale permanente, piano simulato Basic:
 
 ```text
 cf-ready-dev
 ```
+
+Dal 3 ottobre 2026 è presente anche `cf-ready-polaris-2.myshopify.com`,
+creato su richiesta dell'owner nell'organizzazione Temisfera con piano Basic,
+Paese Italia, dati dimostrativi e preview `new_admin_design` (D-090).
+Il nuovo Admin è stato osservato in Chrome nella sessione Shopify dell'owner.
+Non costituisce un terzo ambiente o una terza app. Al momento della creazione
+CF Ready Development non era installata. L'owner autorizza anche l'adeguamento
+e la pubblicazione solo Development: `ALLOWED_SHOP` contiene i due domini
+separati da virgola, l'hook di auth confronta ciascun dominio esattamente e
+il preflight Development vincola la lista ai due store. Production mantiene
+la lista vuota. Installazione e test della Validation sul secondo store
+richiedono il readback dopo il rilascio.
 
 Utility CLI di reset per `dev`:
 

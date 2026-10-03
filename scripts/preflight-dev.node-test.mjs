@@ -38,7 +38,7 @@ const wrangler = `{
     "SHOPIFY_API_KEY": "adff48d4fe4ceb0dadb4734520701dd7",
     "SHOPIFY_APP_URL": "https://cf-ready-dev.tmsf.workers.dev",
     "SCOPES": "write_validations",
-    "ALLOWED_SHOP": "cf-ready-dev.myshopify.com",
+    "ALLOWED_SHOP": "cf-ready-dev.myshopify.com,cf-ready-polaris-2.myshopify.com",
     "APP_ENVIRONMENT": "development",
     "OWNER_TELEGRAM_CONTROL_ENABLED": "false"
   },
@@ -141,6 +141,20 @@ test("il preflight lega il nome Worker alla chiave corretta", () => {
     /target Development/,
   );
   const parsed = JSON.parse(wrangler);
+  for (const allowed of [
+    "",
+    "cf-ready-dev.myshopify.com",
+    `${parsed.vars.ALLOWED_SHOP},wrong.myshopify.com`,
+  ]) {
+    assert.throws(
+      () =>
+        verifyDevelopmentConfig(
+          shopify,
+          JSON.stringify({ ...parsed, vars: { ...parsed.vars, ALLOWED_SHOP: allowed } }),
+        ),
+      /target Development/,
+    );
+  }
   parsed.d1_databases = [
     { binding: "DB", database_name: "database-errato", database_id: "id-errato" },
     { ...parsed.d1_databases[0], binding: "ALTRO" },
