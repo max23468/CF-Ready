@@ -301,7 +301,7 @@ export const en: typeof it = {
     complimentaryBillingAnswer:
       "Your store has a permanent complimentary plan: there is no trial or payment to manage.",
     heading: "Help and FAQ",
-    faqHeading: "Frequently asked",
+    faqHeading: "Frequently asked questions",
     expandAll: "Expand all",
     collapseAll: "Collapse all",
     asideHeading: "What CF Ready does and doesn’t do",
@@ -402,6 +402,9 @@ export const en: typeof it = {
     startTrial: "Start the 14-day trial",
     orChoose: "Or choose a plan directly.",
     monthlyStart: "Start monthly",
+    monthlyPeriod: "per month",
+    annualPeriod: "per year",
+    oneTimePeriod: "once",
     monthlySwitch: "Switch to monthly",
     annualStart: "Start annual",
     annualSwitch: "Switch to annual",
@@ -539,7 +542,8 @@ export const en: typeof it = {
       requestPermissions: "Grant permissions",
       statusUpToDate: "Up to date",
       statusKept: "Managed by you",
-      statusManualRequired: "Manual verification required",
+      statusManualRequired: "Needs review",
+      statusChoiceRequired: "Set up required",
       statusError: "Check not completed",
       nativeSummaryNeedsAccess: "Grant access to check the checkout text.",
       nativeSummaryNeedsReview: (count: number, languages: string[]) =>

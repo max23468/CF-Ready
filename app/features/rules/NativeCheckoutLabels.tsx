@@ -264,7 +264,7 @@ function nativeLabelsPresentation({
     return { status: copy.statusKept, summary: copy.nativeSummaryKept };
   }
   if (state.mode === "off" && state.decision === "pending") {
-    return { status: copy.statusManualRequired, summary: copy.nativeSummaryNeedsChoice };
+    return { status: copy.statusChoiceRequired, summary: copy.nativeSummaryNeedsChoice };
   }
   return { status: copy.statusUpToDate, summary: copy.nativeSummaryReady };
 }

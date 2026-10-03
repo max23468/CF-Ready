@@ -224,6 +224,42 @@ describe("Regole", () => {
     storefrontUrl: "https://demo.myshopify.com",
   } as const;
 
+  test.each(["it", "en"] as const)(
+    "%s: distingue scelta iniziale e verifica manuale",
+    async (locale) => {
+      const copy = texts(locale).rules.labels;
+      const snapshot = {
+        revision: "fixture",
+        locales: [{ locale: "it", family: "it", name: "Italiano", primary: true, published: true }],
+        markets: [],
+        issues: [],
+        address2: { classification: "expected", hasMarketOverride: false },
+        slots: [labelSlot({ name: "taxCode", capability: "guided" })],
+      };
+      router.loaderData = {
+        ...rulesData,
+        locale,
+        rules: { taxCode: "unmanaged", pec: "unmanaged" },
+        labelScopesGranted: true,
+        labelSnapshot: snapshot,
+      };
+      const view = await mount(<CheckoutRules />);
+      const badge = () => view.container.querySelector("#checkout-native-labels summary s-badge")!;
+      expect(badge().textContent).toBe(copy.statusChoiceRequired);
+      expect(badge().getAttribute("tone")).toBe("warning");
+      expect(view.container.textContent).toContain(copy.operationalSummary(0, 0));
+      router.loaderData = {
+        ...router.loaderData,
+        rules: { taxCode: "required_validated", pec: "unmanaged" },
+        labelState: { ...rulesData.labelState, mode: "guided" },
+      };
+      await view.rerender(<CheckoutRules key="manual-review" />);
+      expect(badge().textContent).toBe(copy.statusManualRequired);
+      expect(badge().getAttribute("tone")).toBe("warning");
+      expect(view.container.textContent).toContain(copy.operationalSummary(0, 1));
+    },
+  );
+
   test("modifica la bozza, salva, annulla e invia il form", async () => {
     router.loaderData = rulesData;
     const view = await mount(<CheckoutRules />);
