@@ -8,7 +8,11 @@ export function initializeNotFound(doc = document, pathname = window.location.pa
     element.textContent = element.getAttribute("data-it");
   });
   doc.querySelectorAll("[data-it-href]").forEach(function (element) {
-    element.setAttribute("href", element.getAttribute("data-it-href"));
+    var href = element.getAttribute("data-it-href");
+    if (href === "/") element.setAttribute("href", "/");
+    if (href === "/guide/codice-fiscale-obbligatorio-shopify") {
+      element.setAttribute("href", "/guide/codice-fiscale-obbligatorio-shopify");
+    }
   });
   var description = doc.querySelector('meta[name="description"]');
   description.setAttribute("content", description.getAttribute("data-it-content"));

@@ -47,6 +47,26 @@ test("la 404 seleziona l'italiano fuori da /en e conserva il fallback inglese", 
   assert.equal(initializeNotFound({ querySelector: () => null }, "/"), undefined);
 });
 
+test("la 404 usa solo le destinazioni italiane previste e ignora URL estranee", () => {
+  for (const value of ["/", "/guide/codice-fiscale-obbligatorio-shopify", "javascript:alert(1)"]) {
+    const link = {
+      href: "/en/",
+      getAttribute: () => value,
+      setAttribute(name, next) {
+        this[name] = next;
+      },
+    };
+    const doc = {
+      documentElement: { lang: "en" },
+      querySelector: (selector) =>
+        selector === "[data-not-found]" ? {} : { getAttribute: () => "", setAttribute() {} },
+      querySelectorAll: (selector) => (selector === "[data-it-href]" ? [link] : []),
+    };
+    initializeNotFound(doc, "/missing");
+    assert.equal(link.href, value.startsWith("/") ? value : "/en/");
+  }
+});
+
 class FakeClassList {
   values = new Set();
   add(value) {
