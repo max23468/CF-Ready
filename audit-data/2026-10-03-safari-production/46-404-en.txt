@@ -1,0 +1,58 @@
+Window: "Pagina non trovata | CF Ready", App: Safari.
+0 finestra standard Pagina non trovata | CF Ready, ID: SafariWindow?IsSecure=true&UUID=6FC659B8-54AD-4AA2-A4B8-A972D8EF9BA0, Secondary Actions: Raise
+	1 gruppo split
+		2 divisore (disabled, settable, float) -1
+		3 gruppo pannelli
+			4 area di scorrimento
+				5 Contenuto HTML Description: Pagina non trovata | CF Ready, URL: cfready.it/en/audit-pagina-inesistente-20261003
+					6 link Vai al contenuto, Value: cfready.it/en/audit-pagina-inesistente-20261003#content
+					7 container
+						8 link CF Ready, Value: cfready.it/
+						9 pulsante (collapsed) Menu, Secondary Actions: Expand
+					10 container
+						11 testo ERRORE 404
+						12 intestazione Questa pagina non c’è., Value: 1
+							13 testo Questa pagina non c’è.
+						14 testo L’indirizzo potrebbe essere incompleto oppure la pagina potrebbe essere stata spostata.
+						15 link Torna alla Home, Value: cfready.it/
+						16 link Consulta le guide, Value: cfready.it/guide/codice-fiscale-obbligatorio-shopify
+					17 testo CF Ready è un’app di Temisfera.
+	18 barra strumenti
+		19 container Secondary Actions: Sposta nella posizione precedente, Sposta nella posizione successiva, Rimuovi dalla barra strumenti
+			20 pulsante Description: mostra barra laterale , Help: Mostra barra laterale , ID: SidebarButton
+			21 pulsante menu Description: Selezione gruppo di pannelli, ID: TabGroupPickerButton?TabGroup=
+		22 container BackForwardSegmentedControl
+			23 pulsante Description: Indietro, Help: Mostra la pagina precedente, ID: BackButton
+			24 pulsante (disabled) Description: Avanti, Help: Mostra la pagina successiva, ID: ForwardButton
+		25 container Secondary Actions: Sposta nella posizione precedente, Sposta nella posizione successiva, Rimuovi dalla barra strumenti
+			26 pulsante Menu della pagina, ID: AssistantButton
+			27 pulsante Aggiungi pagina a “Elenco lettura”, ID: OneStepBookmarkingButton
+			28 campo di testo (settable) Description: campo di ricerca smart, Value: https://cfready.it/en/audit-pagina-inesistente-20261003, ID: WEB_BROWSER_ADDRESS_AND_SEARCH_FIELD
+			29 pulsante Traduzione disponibile, ID: TranslationButton
+			30 pulsante Ricarica pagina, ID: ReloadButton
+		31 pulsante a comparsa ulteriori elementi della barra strumenti
+	32 gruppo pannelli Description: Barra dei pannelli, 3 pannelli, ID: TabBar?isSeparate=false
+		33 pannello CF Ready Dev · CF Ready · Shopify, Value: [URL CON PARAMETRI OMESSA]
+			34 immagine FaviconImageView
+			35 testo Value: CF Ready Dev · CF Ready · Shopify, ID: UnifiedTabBarButton._titleTextField
+		36 pannello Numismatica Leonessa · Regole checkout · Shopify, Value: [URL CON PARAMETRI OMESSA]
+			37 immagine FaviconImageView
+			38 testo Value: Numismatica Leonessa · Regole checkout · Shopify, ID: UnifiedTabBarButton._titleTextField
+		39 pannello Pagina non trovata | CF Ready, Help: Per interagire con gli elementi su questo pulsante, premi Ctrl-Opzione-Maiuscole-Freccia giù., Value: [URL CON PARAMETRI OMESSA]
+			40 immagine FaviconImageView
+			41 testo Value: Pagina non trovata | CF Ready, ID: UnifiedTabBarButton._titleTextField
+	42 pulsante di chiusura
+	43 pulsante schermo intero Help: questo pulsante consente anche di ridimensionare la finestra, Secondary Actions: ridimensiona finestra
+	44 pulsante contrai
+45 menu bar
+	46 Safari
+	47 File
+	48 Modifica
+	49 Vista, ID: SafariViewMenu
+	50 Cronologia
+	51 Segnalibri, ID: SafariBookmarksMenu
+	52 Sviluppo
+	53 Finestra, ID: SafariWindowMenu
+	54 Aiuto, ID: SafariHelpMenu
+
+The focused UI element is 5 Contenuto HTML Description: Pagina non trovata | CF Ready, URL: cfready.it/en/audit-pagina-inesistente-20261003

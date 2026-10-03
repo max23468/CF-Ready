@@ -13,6 +13,7 @@ const DEFAULT_STATE: CheckoutLabelState = {
   managementEpoch: null,
   enabledAt: null,
   lastSyncAt: null,
+  lastReadAt: null,
   lastErrorCode: null,
   decision: "pending",
   acceptedRevision: null,
@@ -38,7 +39,9 @@ export async function readCheckoutLabelState(
               address2_classification,
               address2_has_market_override, address2_external_change_at,
               address2_decision, address2_reviewed_at, address2_form_mode,
-              address2_form_hidden
+              address2_form_hidden,
+              (SELECT MAX(last_observed_at) FROM checkout_label_slots
+                WHERE checkout_label_slots.shop_id = app_state.shop_id) AS last_read_at
        FROM app_state
        WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
     )
@@ -59,6 +62,7 @@ export async function readCheckoutLabelState(
       address2_reviewed_at: string | null;
       address2_form_mode: Exclude<CheckoutLabelState["address2FormMode"], "hidden">;
       address2_form_hidden: number;
+      last_read_at: string | null;
     }>();
 
   return row
@@ -67,6 +71,7 @@ export async function readCheckoutLabelState(
         managementEpoch: row.checkout_labels_management_epoch,
         enabledAt: row.checkout_labels_enabled_at,
         lastSyncAt: row.checkout_labels_last_sync_at,
+        lastReadAt: row.last_read_at,
         lastErrorCode: row.checkout_labels_last_error_code,
         decision: row.checkout_labels_decision,
         acceptedRevision: row.checkout_labels_accepted_revision,
@@ -144,6 +149,9 @@ export async function persistCheckoutLabelObservation(
   const now = new Date().toISOString();
   const requiredAddress2 = classifyVisibleAddress2(slots, "required");
   const optionalAddress2 = classifyVisibleAddress2(slots, "optional");
+  // R-H4 (b): la conferma guidata resta salvata anche se il testo cambia. È valida solo finché
+  // il testo osservato coincide (guidedConfirmationIsValid): così un mercato che eredita una
+  // traduzione scritta da CF Ready torna confermato quando la regola torna quella di prima.
   const statements = slots.map((slot) =>
     db
       .prepare(
@@ -160,17 +168,7 @@ export async function persistCheckoutLabelObservation(
          DO UPDATE SET write_capability = excluded.write_capability,
                        source_digest = excluded.source_digest,
                        last_observed_value = excluded.last_observed_value,
-                       last_observed_at = excluded.last_observed_at,
-                       guided_confirmed_value = CASE
-                         WHEN lower(checkout_label_slots.guided_confirmed_value) = lower(excluded.last_observed_value)
-                           THEN checkout_label_slots.guided_confirmed_value
-                         ELSE NULL
-                       END,
-                       guided_confirmed_at = CASE
-                         WHEN lower(checkout_label_slots.guided_confirmed_value) = lower(excluded.last_observed_value)
-                           THEN checkout_label_slots.guided_confirmed_at
-                         ELSE NULL
-                       END`,
+                       last_observed_at = excluded.last_observed_at`,
       )
       .bind(
         shopDomain,

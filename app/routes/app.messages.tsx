@@ -38,11 +38,10 @@ import { RULES_INTENTS, type CheckoutLabelsLoadAction } from "../features/rules/
 import { quoteLabel, resolveLocale, texts } from "../i18n";
 import type { Locale } from "../i18n";
 import { messageSubmission, rebaseMessageDraft, updateMessageDraft } from "../messages-draft";
-import { skipRevalidationWhenLeaving } from "../revalidation";
+import { skipRevalidationWhenLeaving, useSavedData } from "../revalidation";
 import { setSaveBarVisibility, showToast } from "../save-bar";
 import { RevealBanner } from "../ui-feedback";
 import { createServerTiming } from "../server-timing.server";
-import { authenticate } from "../shopify.server";
 import {
   findValidation,
   observedConfigHash,
@@ -80,10 +79,15 @@ export const shouldRevalidate: ShouldRevalidateFunction = (args) => {
 };
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
-  const { admin, session } = await authenticate.admin(request);
+  const timing = createServerTiming();
+  const { admin, session } = await authenticateAdminTimed(request, context, timing);
   const form = Object.fromEntries(await request.formData());
   const validated = validateMessages(form);
-  if ("problem" in validated) return { ok: false as const, problem: validated.problem };
+  if ("problem" in validated)
+    return data(
+      { ok: false as const, problem: validated.problem },
+      { headers: { "Server-Timing": timing.header() } },
+    );
 
   // FR-051: si salvano i messaggi e il percorso condiviso conserva il resto della
   // configurazione osservata sotto la stessa lease usata per la scrittura.
@@ -94,9 +98,18 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     { messages: validated.messages },
     null,
     (form.configHash as string) || null,
+    undefined,
+    timing,
   );
 
-  return result.ok ? { ok: true as const } : { ok: false as const, errorCode: result.errorCode };
+  return data(
+    result.ok
+      ? { ok: true as const, saved: result.saved }
+      : { ok: false as const, errorCode: result.errorCode },
+    {
+      headers: { "Server-Timing": timing.header() },
+    },
+  );
 };
 
 const MESSAGE_FIELDS = (["it", "en"] as const).flatMap((locale) =>
@@ -122,8 +135,9 @@ function rowsFor(text: string) {
 }
 
 export default function CustomerMessages() {
-  const saved = useLoaderData<typeof loader>();
+  const loaded = useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
+  const saved = useSavedData(loaded, result?.ok ? result.saved : undefined);
   const labelsFetcher = useFetcher<CheckoutLabelsLoadAction>();
   const labelLoadStarted = useRef(false);
   const send = useSubmit();
@@ -133,12 +147,8 @@ export default function CustomerMessages() {
   const sentRef = useRef<CheckoutConfig["messages"] | null>(null);
   const baseHash = useRef(saved.configHash);
   const [resolvedConflict, setResolvedConflict] = useState(false);
-  const conflict =
-    result &&
-    !result.ok &&
-    "errorCode" in result &&
-    result.errorCode === "config_conflict" &&
-    !resolvedConflict;
+  const errorCode = messageErrorCode(result);
+  const conflict = errorCode === "config_conflict" && !resolvedConflict;
   const t = texts(saved.locale);
   const [draft, setDraft] = useState<CheckoutConfig["messages"]>(saved.messages);
   const draftRef = useRef(draft);
@@ -289,11 +299,8 @@ export default function CustomerMessages() {
             )}
           />
         ) : null}
-        {result &&
-        !result.ok &&
-        "errorCode" in result &&
-        (result.errorCode !== "config_conflict" || conflict) ? (
-          <RevealBanner tone="critical">{localizedError(t.errors, result.errorCode)}</RevealBanner>
+        {errorCode && (errorCode !== "config_conflict" || conflict) ? (
+          <RevealBanner tone="critical">{localizedError(t.errors, errorCode)}</RevealBanner>
         ) : null}
 
         <ui-save-bar id={SAVE_BAR}>
@@ -301,6 +308,7 @@ export default function CustomerMessages() {
             type="button"
             variant="primary"
             disabled={busy || Boolean(conflict)}
+            loading={busy ? "" : undefined}
             onClick={save}
           >
             {t.common.save}
@@ -338,6 +346,10 @@ export default function CustomerMessages() {
 type MessagesCopy = ReturnType<typeof texts>;
 type MessagesData = ReturnType<typeof useLoaderData<typeof loader>>;
 type MessagesActionResult = ReturnType<typeof useActionData<typeof action>>;
+
+function messageErrorCode(result: MessagesActionResult) {
+  return result && !result.ok && "errorCode" in result ? result.errorCode : null;
+}
 
 function MessagesEditor({
   t,
@@ -391,7 +403,11 @@ function MessagesEditor({
           heading={t.messages.previewHeading}
           hint={t.messages.previewHint}
           message={draft[activeLocale][selectedKey]}
-          notShown={messageAppears(rules, selectedKey) ? undefined : t.messages.previewNotShown}
+          availability={
+            messageAppears(rules, selectedKey)
+              ? t.messages.previewShown
+              : t.messages.previewNotShown
+          }
           selectedHeading={t.messages.previewSelected}
           selectedLabel={t.messages[selectedKey]}
         />

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import type { CheckoutLabelsSnapshot, CheckoutLabelState } from "../../checkout-labels/domain";
 import { RULES_INTENTS, type CheckoutLabelsLoadAction } from "./rules-intents";
@@ -23,6 +23,8 @@ const loadRequest = (rules: SavedLabels["rules"]) => ({
 
 export function useDeferredCheckoutLabels(saved: SavedLabels, reloadAfter: object | null = null) {
   const fetcher = useFetcher<CheckoutLabelsLoadAction>();
+  const [baseline, setBaseline] = useState({ saved, data: fetcher.data });
+  if (baseline.saved !== saved) setBaseline({ saved, data: fetcher.data });
   const loadedFor = useRef<SavedLabels | null>(null);
   const reloadedAfter = useRef<object | null>(null);
 
@@ -44,7 +46,18 @@ export function useDeferredCheckoutLabels(saved: SavedLabels, reloadAfter: objec
 
   // Durante una rilettura resta visibile l'ultimo esito: i pannelli aperti non si richiudono.
   const loading = fetcher.state !== "idle";
-  const loaded: Partial<Loaded> = (fetcher.data?.ok && fetcher.data.loaded) || {};
+  const useSnapshot =
+    saved.labelScopesGranted !== null &&
+    (baseline.saved !== saved || baseline.data === fetcher.data);
+  const loaded: Partial<Loaded> = useSnapshot
+    ? {
+        scopeGranted: saved.labelScopesGranted ?? undefined,
+        snapshot: saved.labelSnapshot,
+        state: saved.labelState,
+        guidedConfirmations: saved.guidedConfirmations,
+        errorCode: saved.labelLoadError,
+      }
+    : (fetcher.data?.ok && fetcher.data.loaded) || {};
   return {
     loading,
     load,

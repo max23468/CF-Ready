@@ -149,6 +149,7 @@ export function CheckoutSimulator({
     <s-query-container>
       <div
         ref={rootRef}
+        lang={previewLocale}
         style={{
           background: "#f1f5ef",
           borderRadius: "16px",

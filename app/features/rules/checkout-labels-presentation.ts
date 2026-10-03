@@ -140,11 +140,11 @@ export function pendingFiscalLabels(
   const contextsPending = contexts.filter((context) =>
     context.guidedSlotIds.some((slotId) => !confirmed.has(slotId)),
   );
-  const families = [
-    ...new Set(
-      contextsPending.flatMap((context) => context.entries.map(({ slot }) => slot.family)),
-    ),
-  ];
+  // Ordine fisso italiano, inglese: non quello delle lingue dello store ("in inglese e italiano").
+  const pendingFamilies = new Set(
+    contextsPending.flatMap((context) => context.entries.map(({ slot }) => slot.family)),
+  );
+  const families = (["it", "en"] as const).filter((family) => pendingFamilies.has(family));
   return { contexts: contextsPending, families };
 }
 
