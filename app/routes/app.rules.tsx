@@ -27,16 +27,19 @@ import {
   type RulesFormDraft,
 } from "../features/rules/rules-form";
 import { describeCheckout, resolveLocale, texts, validationStatus } from "../i18n";
-import { skipRevalidationWhenLeaving } from "../revalidation";
+import { skipRevalidationWhenLeaving, useSavedData } from "../revalidation";
 import { setSaveBarVisibility, showToast } from "../save-bar";
 import { RevealBanner } from "../ui-feedback";
 import { createServerTiming } from "../server-timing.server";
-import { authenticate } from "../shopify.server";
 import { PEC_RULE_MODES, readConfig, showSavedBanner, TAX_CODE_RULE_MODES } from "../config";
 import { databaseContext } from "../context.server";
 import { readCheckoutLabelState } from "../checkout-labels/repository.server";
 import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../checkout-labels/service.server";
-import { checkoutLabelValuesMatch, proposedLabelForSlot } from "../checkout-labels/domain";
+import {
+  checkoutLabelValuesMatch,
+  proposedLabelForSlot,
+  type CheckoutLabelsSnapshot,
+} from "../checkout-labels/domain";
 import { observedConfigHash, reconcile } from "../validation.server";
 import { handleRulesAction, saveAddress2Mode } from "../features/rules/rules-action.server";
 import { parseRulesIntent, RULES_INTENTS } from "../features/rules/rules-intents";
@@ -45,6 +48,9 @@ import { NATIVE_LABELS_ID } from "../features/rules/NativeCheckoutLabels";
 
 const SAVE_BAR = "checkout-rules-save-bar";
 const LABEL_CONFIRM_MODAL = "confirm-checkout-label-management";
+type RulesActionData =
+  | Awaited<ReturnType<typeof handleRulesAction>>
+  | Awaited<ReturnType<typeof saveAddress2Mode>>;
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
   const authentication = await authenticateAdminTimed(request, context, timing);
@@ -82,11 +88,11 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       messages: config.messages,
       enabled: state.validationEnabled,
       entitled: state.entitlement.kind !== "none",
-      labelScopesGranted: null,
+      labelScopesGranted: null as boolean | null,
       labelState,
-      labelSnapshot: null,
-      guidedConfirmations: [],
-      labelLoadError: null,
+      labelSnapshot: null as CheckoutLabelsSnapshot | null,
+      guidedConfirmations: [] as Array<{ slotId: string; confirmedAt: string }>,
+      labelLoadError: null as string | null,
       checkoutSettingsUrl: `https://admin.shopify.com/store/${shopHandle}/settings/checkout`,
       storefrontUrl: `https://${session.shop}`,
     },
@@ -97,21 +103,32 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 export const headers: HeadersFunction = (args) => boundary.headers(args);
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
-  const { admin, session, scopes } = await authenticate.admin(request);
+  const timing = createServerTiming();
+  const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);
   const db = context.get(databaseContext);
   const form = await request.formData();
   const intent = parseRulesIntent(form.get("intent"));
-  if (!intent) return { ok: false as const, errorCode: "generic" as const };
-
-  if (intent === RULES_INTENTS.saveAddress2FormMode) {
-    return saveAddress2Mode(db, session.shop, form);
-  }
-
-  const scopeDetails = await scopes.query().catch(() => null);
-  const labelScopesGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
-    scopeDetails?.granted.includes(scope),
-  );
-  return handleRulesAction(intent, { admin, db, shop: session.shop, form, labelScopesGranted });
+  const result = !intent
+    ? { ok: false as const, errorCode: "generic" as const }
+    : intent === RULES_INTENTS.saveAddress2FormMode
+      ? await saveAddress2Mode(db, session.shop, form)
+      : await timing.measure("rules_save", async () => {
+          const scopeDetails = await timing
+            .measure("shopify_scopes", () => scopes.query())
+            .catch(() => null);
+          const labelScopesGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
+            scopeDetails?.granted.includes(scope),
+          );
+          return await handleRulesAction(intent, {
+            admin,
+            db,
+            shop: session.shop,
+            form,
+            labelScopesGranted,
+            timing,
+          });
+        });
+  return data(result, { headers: { "Server-Timing": timing.header() } });
 };
 
 export const shouldRevalidate: ShouldRevalidateFunction = (args) => {
@@ -128,9 +145,14 @@ export const shouldRevalidate: ShouldRevalidateFunction = (args) => {
 
 const SIMULATOR_ID = "simulatore";
 
+function savedRulesResult(result: RulesActionData | undefined) {
+  return result?.ok && "saved" in result ? result.saved : undefined;
+}
+
 export default function CheckoutRules() {
-  const saved = useLoaderData<typeof loader>();
-  const result = useActionData<typeof action>();
+  const loaded = useLoaderData<typeof loader>();
+  const result = useActionData<RulesActionData>();
+  const saved = useSavedData(loaded, savedRulesResult(result));
   // R-H3: se le etichette sono cambiate dopo l'ultima lettura, si rileggono da sole e la bozza
   // resta pronta per un nuovo salvataggio.
   const labelsConflict =
@@ -417,7 +439,7 @@ function RulesResultBanners({
   conflict,
 }: {
   t: ReturnType<typeof texts>;
-  result: Awaited<ReturnType<typeof action>> | undefined;
+  result: ReturnType<typeof useActionData<RulesActionData>>;
   dirty: boolean;
   changedSinceResult: boolean;
   labelsErrorCode: string | null;

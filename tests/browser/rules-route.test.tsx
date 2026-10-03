@@ -34,6 +34,77 @@ describe("Regole", () => {
     expect(router.fetcher.submit).toHaveBeenCalledTimes(2);
   });
 
+  test("il readback di Salva aggiorna regole e revisione etichette senza una nuova scoperta", async () => {
+    router.loaderData = {
+      ...rulesData,
+      labelScopesGranted: null,
+      labelState: { ...rulesData.labelState, mode: "automatic" },
+    };
+    router.fetcher.data = {
+      ok: true,
+      loaded: {
+        scopeGranted: true,
+        snapshot: {
+          revision: "old",
+          slots: [],
+          locales: [],
+          markets: [],
+          issues: [],
+          address2: { classification: "unknown", hasMarketOverride: false },
+        },
+        state: { ...rulesData.labelState, mode: "automatic" },
+        guidedConfirmations: [],
+        errorCode: null,
+      },
+    };
+    const view = await mount(<CheckoutRules />);
+    router.fetcher.submit.mockClear();
+    await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
+    const verified = {
+      ...rulesData,
+      configHash: "verified",
+      labelScopesGranted: true,
+      labelState: { ...rulesData.labelState, mode: "automatic" },
+      labelSnapshot: {
+        revision: "new",
+        slots: [],
+        locales: [],
+        markets: [],
+        issues: [],
+        address2: { classification: "unknown", hasMarketOverride: false },
+      },
+    };
+    router.actionData = { ok: true, saved: verified };
+    await view.rerender(<CheckoutRules />);
+    expect(router.fetcher.submit).not.toHaveBeenCalled();
+    await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
+    expect(router.submit).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        configHash: "verified",
+        labelsRevision: "new",
+        labelsEnabled: "1",
+      }),
+      { method: "post" },
+    );
+
+    // La rilettura esplicita continua ad aggiornare lo snapshot dopo il successo.
+    router.fetcher.data = {
+      ok: true,
+      loaded: {
+        ...router.fetcher.data.loaded,
+        snapshot: { ...verified.labelSnapshot, revision: "refreshed" },
+      },
+    };
+    await view.rerender(<CheckoutRules />);
+    router.actionData = { ok: false, errorCode: "generic" };
+    await view.rerender(<CheckoutRules />);
+    await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
+    expect(router.submit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ labelsRevision: "refreshed" }),
+      { method: "post" },
+    );
+  });
+
   test("dalla Guida porta in vista il simulatore e gli dà il focus", async () => {
     router.loaderData = rulesData;
     router.location = { pathname: "/app/rules", hash: "#simulatore", state: null };

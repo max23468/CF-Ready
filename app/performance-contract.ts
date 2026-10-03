@@ -33,6 +33,11 @@ export const PERFORMANCE_SERVER_TIMING_NAMES = [
   "d1_validation_revision",
   "d1_validation_state",
   "validation_entitlement_sync",
+  "validation_lock",
+  "validation_write",
+  "validation_readback",
+  "rules_save",
+  "d1_configuration_history",
   "d1_checkout_labels",
   "total",
 ] as const;

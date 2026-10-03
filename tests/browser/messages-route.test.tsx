@@ -128,21 +128,48 @@ describe("Messaggi", () => {
     field.value = "Messaggio normalizzato ";
     await dispatch(field, new Event("input", { bubbles: true }));
     await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
-    router.loaderData = {
-      ...(router.loaderData as object),
+    const loaded = router.loaderData;
+    const verified = {
       configHash: "new",
       messages: {
         ...DEFAULT_CONFIG.messages,
         it: { ...DEFAULT_CONFIG.messages.it, taxCodeRequired: "Messaggio normalizzato" },
       },
     };
-    router.actionData = { ok: true };
+    router.actionData = { ok: true, saved: verified };
     await view.rerender(<CustomerMessages />);
     expect(
       (view.container.querySelector("s-text-area") as HTMLElement & { value: string }).value,
     ).toBe("Messaggio normalizzato");
     expect(shopify.toast.show).toHaveBeenCalledWith(texts("it").messages.saved);
     expect(shopify.saveBar.hide).toHaveBeenCalled();
+    expect(router.loaderData).toBe(loaded);
+
+    // Il secondo invio usa la firma del readback senza dipendere da un nuovo loader.
+    const nextField = view.container.querySelector("s-text-area") as HTMLElement & {
+      name: string;
+      value: string;
+    };
+    nextField.name = "it.taxCodeRequired";
+    nextField.value = "Secondo salvataggio";
+    await dispatch(nextField, new Event("input", { bubbles: true }));
+    await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
+    expect(router.submit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ configHash: "new", "it.taxCodeRequired": "Secondo salvataggio" }),
+      { method: "post" },
+    );
+
+    // Una rilettura esplicita prevale sul vecchio successo conservato da React Router.
+    router.loaderData = {
+      ...(loaded as object),
+      configHash: "remote",
+      messages: DEFAULT_CONFIG.messages,
+    };
+    await view.rerender(<CustomerMessages />);
+    await click(view.container.querySelector("ui-save-bar button:not([variant])")!);
+    expect(
+      (view.container.querySelector("s-text-area") as HTMLElement & { value: string }).value,
+    ).toBe(DEFAULT_CONFIG.messages.it.taxCodeRequired);
   });
 
   test("un conflitto conserva la bozza e riapplica solo i campi modificati", async () => {
