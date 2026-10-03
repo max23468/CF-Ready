@@ -453,7 +453,7 @@ Branch `fix/audit-simulatore`, decisioni dell'owner del 2 ottobre 2026.
 
 Il 2 ottobre 2026 una lettura del codice ha cercato gli stessi schemi dei
 findings in stati che il dev store non mostra (errori, conflitti, billing,
-permessi assenti, piano omaggio). Correzioni nella `1.15.20`:
+permessi assenti, piano omaggio). Correzioni nella `1.15.22`:
 
 | Punto | Schema | Correzione |
 | --- | --- | --- |
