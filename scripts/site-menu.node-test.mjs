@@ -4,12 +4,48 @@ import { readFileSync } from "node:fs";
 import {
   activeSection,
   initializeMenu,
+  initializeNotFound,
   initializeMobileInstallCta,
   orderSections,
   readingProgress,
   shouldHideMasthead,
   shouldShowMobileInstallCta,
 } from "../site/menu.js";
+
+test("la 404 seleziona l'italiano fuori da /en e conserva il fallback inglese", () => {
+  for (const pathname of ["/missing", "/english/missing", "/en", "/en/missing"]) {
+    const heading = {
+      textContent: "This page isn’t here.",
+      getAttribute: () => "Questa pagina non c’è.",
+    };
+    const home = {
+      href: "/en/",
+      getAttribute: () => "/",
+      setAttribute(name, value) {
+        this[name] = value;
+      },
+    };
+    const description = {
+      content: "Page not found",
+      getAttribute: () => "Pagina non trovata",
+      setAttribute(name, value) {
+        this[name] = value;
+      },
+    };
+    const doc = {
+      documentElement: { lang: "en" },
+      querySelector: (selector) => (selector === "[data-not-found]" ? {} : description),
+      querySelectorAll: (selector) => (selector === "[data-it]" ? [heading] : [home]),
+    };
+    initializeNotFound(doc, pathname);
+    const english = pathname === "/en" || pathname.startsWith("/en/");
+    assert.equal(doc.documentElement.lang, english ? "en" : "it");
+    assert.equal(heading.textContent, english ? "This page isn’t here." : "Questa pagina non c’è.");
+    assert.equal(home.href, english ? "/en/" : "/");
+    assert.equal(description.content, english ? "Page not found" : "Pagina non trovata");
+  }
+  assert.equal(initializeNotFound({ querySelector: () => null }, "/"), undefined);
+});
 
 class FakeClassList {
   values = new Set();
@@ -98,6 +134,7 @@ function menuFixture({ links = true, sectionsPresent = true } = {}) {
   });
   const mobile = eventTarget({ matches: true });
   const win = eventTarget({
+    location: { pathname: "/" },
     scrollY: 0,
     innerHeight: 500,
     matchMedia: () => mobile,
@@ -108,7 +145,8 @@ function menuFixture({ links = true, sectionsPresent = true } = {}) {
   const doc = eventTarget({
     activeElement: null,
     documentElement: { scrollHeight: 1500 },
-    querySelector: (selector) => (selector === ".reading-progress" ? progress : masthead),
+    querySelector: (selector) =>
+      selector === ".reading-progress" ? progress : selector === ".masthead" ? masthead : null,
     getElementById: (id) => sections[id],
   });
   return {

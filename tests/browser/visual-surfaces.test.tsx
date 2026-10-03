@@ -516,6 +516,8 @@ test("Polaris reale: simulatore stretto e focus tastiera leggibile", async () =>
     />,
   );
   const summaries = view.container.querySelectorAll("summary");
+  const simulatorLanguage = view.container.querySelector("s-query-container > div")!;
+  expect(simulatorLanguage.getAttribute("lang")).toBe("it");
   expect(summaries).toHaveLength(2);
   for (const summary of summaries) {
     expect(getComputedStyle(summary).cursor).toBe("pointer");
@@ -534,6 +536,7 @@ test("Polaris reale: simulatore stretto e focus tastiera leggibile", async () =>
       .selectOptions("en");
   });
   expect(view.container.textContent).toContain(texts("en").rules.simulator.heading);
+  expect(simulatorLanguage.getAttribute("lang")).toBe("en");
   for (const [label, expected] of [
     [texts("en").rules.simulator.deliveryCountry, "Italy"],
     [texts("en").rules.simulator.billingCountry, "Italy"],
@@ -580,6 +583,13 @@ test("Polaris reale: simulatore stretto e focus tastiera leggibile", async () =>
     view.container,
     `__screenshots__/visual/simulator-${server.browser}-320.png`,
   );
+  await act(async () => {
+    await page
+      .getByRole("combobox", { name: texts("en").rules.simulator.previewLanguage })
+      .selectOptions("it");
+  });
+  expect(simulatorLanguage.getAttribute("lang")).toBe("it");
+  expect(view.container.textContent).toContain(texts("it").rules.simulator.heading);
 });
 
 test("Polaris reale: Continua porta in vista e mette a fuoco il primo campo in errore", async () => {
