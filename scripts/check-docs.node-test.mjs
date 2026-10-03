@@ -310,8 +310,10 @@ test("rileva output tracciati in directory ignorate annidate", () => {
   }
 });
 
-test("la CSP consente beacon e raccolta Cloudflare Web Analytics", () => {
+test("la CSP consente il manifest locale, beacon e raccolta Cloudflare Web Analytics", () => {
   const headers = readFileSync(new URL("../site/_headers", import.meta.url), "utf8");
+  assert.match(headers, /(?:^|;)\s*manifest-src 'self'(?:;|$)/m);
+  assert.match(headers, /default-src 'none'/);
   assert.match(headers, /script-src .*https:\/\/static\.cloudflareinsights\.com/);
   assert.match(headers, /connect-src .*https:\/\/cloudflareinsights\.com/);
 });
