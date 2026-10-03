@@ -6,6 +6,13 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.2 — 3 ottobre 2026
+
+- consente l'installazione dell'app Development sui due soli store autorizzati,
+  `cf-ready-dev` e `cf-ready-polaris-2`, per confrontare il vecchio Admin con
+  la preview del nuovo design; conserva il rifiuto di tutti gli altri domini
+  e vincola il preflight alla lista esatta. Pubblicazione solo Development.
+
 ## 2.0.1 — 3 ottobre 2026
 
 - include gli errori di sincronizzazione delle etichette nei conteggi e nei

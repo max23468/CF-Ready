@@ -60,7 +60,7 @@ export function verifyDevelopmentConfig(shopifyConfig, wranglerConfig) {
     !emptyEvents ||
     /^\[\[events\.subscription\]\]/m.test(shopifyConfig) ||
     wrangler.vars?.SCOPES !== shopifyScopes ||
-    wrangler.vars?.ALLOWED_SHOP !== "cf-ready-dev.myshopify.com" ||
+    wrangler.vars?.ALLOWED_SHOP !== "cf-ready-dev.myshopify.com,cf-ready-polaris-2.myshopify.com" ||
     wrangler.vars?.APP_ENVIRONMENT !== "development" ||
     !["true", "false"].includes(wrangler.vars?.OWNER_TELEGRAM_CONTROL_ENABLED) ||
     wrangler.version_metadata?.binding !== "CF_VERSION_METADATA" ||
