@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { version } from "../package.json";
+import { polarisUrlForEnvironment } from "./shopify-ui";
 
 const bindings = env as Env & {
   BILLING_TEST?: string;
@@ -17,6 +18,7 @@ const billingTest: string | undefined = bindings.BILLING_TEST;
 const apiKey: string | undefined = bindings.SHOPIFY_API_KEY;
 export const BILLING_IS_TEST = billingTest !== "false";
 export const APP_API_KEY = apiKey || "";
+export const APP_POLARIS_URL = polarisUrlForEnvironment(bindings.APP_ENVIRONMENT);
 // L'app Development ha distribuzione pubblica per poter usare la Billing API: il suo
 // `client_id` è nel repository pubblico, quindi l'installazione resta ammessa solo sul dev
 // store. Vuota in Production, dove installa chi vuole.
