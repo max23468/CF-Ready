@@ -53,6 +53,17 @@ img {
   max-width: var(--cf-measure);
 }
 
+body[data-not-found] {
+  min-height: 100svh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+body[data-not-found] main {
+  display: grid;
+  align-content: center;
+}
+
 .wide-column {
   max-width: 58rem;
 }

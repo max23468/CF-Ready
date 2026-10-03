@@ -87,6 +87,21 @@ describe("Onboarding", () => {
     window.history.replaceState(window.history.state, "", original);
   });
 
+  test("al passo 3 i messaggi che non compaiono lo dicono anche sotto l'anteprima", async () => {
+    router.loaderData = {
+      ...onboardingData,
+      step: 3,
+      rules: { taxCode: "required_validated", pec: "optional_validated" },
+    };
+    const view = await mount(<Onboarding />);
+    const blocks = [...view.container.querySelectorAll<HTMLElement>(".onboarding-message")];
+    const notes = blocks.map((block) =>
+      block.textContent!.includes(texts("it").messages.previewNotShown),
+    );
+    // Solo "PEC obbligatoria" non compare con queste regole.
+    expect(notes).toEqual([false, false, true, false]);
+  });
+
   test("cita tra virgolette le etichette proposte (T7)", async () => {
     router.loaderData = {
       ...onboardingData,

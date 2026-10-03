@@ -1,6 +1,24 @@
 // CF Ready — comportamento progressivo del menu pubblico.
 // Senza JavaScript la testata resta visibile e tutti i collegamenti funzionano.
 
+export function initializeNotFound(doc = document, pathname = window.location.pathname) {
+  if (!doc.querySelector("[data-not-found]") || /^\/en(?:\/|$)/.test(pathname)) return;
+  doc.documentElement.lang = "it";
+  doc.querySelectorAll("[data-it]").forEach(function (element) {
+    element.textContent = element.getAttribute("data-it");
+  });
+  doc.querySelectorAll("[data-it-href]").forEach(function (element) {
+    var href = element.getAttribute("data-it-href");
+    if (href === "/") element.setAttribute("href", "/");
+    if (href === "/support") element.setAttribute("href", "/support");
+    if (href === "/guide/codice-fiscale-obbligatorio-shopify") {
+      element.setAttribute("href", "/guide/codice-fiscale-obbligatorio-shopify");
+    }
+  });
+  var description = doc.querySelector('meta[name="description"]');
+  description.setAttribute("content", description.getAttribute("data-it-content"));
+}
+
 export function shouldHideMasthead({ mobile, scrollingDown, scrollY, focusInside }) {
   return mobile && scrollingDown && scrollY > 240 && !focusInside;
 }
@@ -172,6 +190,7 @@ export function initializeMenu(doc = document, win = window) {
 }
 
 if (typeof document !== "undefined") {
+  initializeNotFound();
   initializeMenu();
   initializeMobileInstallCta();
 }

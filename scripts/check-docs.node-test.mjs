@@ -418,8 +418,12 @@ const siteHtmlPages = readdirSync(new URL("../site", import.meta.url), { recursi
 test("ogni pagina HTML pubblica mantiene metadati e alternative testuali", () => {
   for (const file of siteHtmlPages) {
     const html = readFileSync(new URL(`../site/${file}`, import.meta.url), "utf8");
-    assert.equal([...html.matchAll(/<title>[^<]+<\/title>/g)].length, 1, file);
-    assert.equal([...html.matchAll(/<meta name="description" content="[^"]+">/g)].length, 1, file);
+    assert.equal([...html.matchAll(/<title(?:\s[^>]*)?>[^<]+<\/title>/g)].length, 1, file);
+    assert.equal(
+      [...html.matchAll(/<meta name="description" content="[^"]+"(?:\s[^>]*)?>/g)].length,
+      1,
+      file,
+    );
     assert.equal(
       [...html.matchAll(/<meta name="viewport" content="width=device-width, initial-scale=1">/g)]
         .length,
@@ -664,7 +668,7 @@ test("i dati strutturati restano verificabili e non inventano prezzo o recension
 test("la pagina 404 è dedicata e fuori dall’indice", () => {
   const notFound = readFileSync(new URL("../site/404.html", import.meta.url), "utf8");
   assert.match(notFound, /<meta name="robots" content="noindex">/);
-  assert.match(notFound, /<title>Pagina non trovata \| CF Ready<\/title>/);
+  assert.match(notFound, /<title[^>]*>Page not found \| CF Ready<\/title>/);
   assert.doesNotMatch(notFound, /rel="canonical"/);
 });
 

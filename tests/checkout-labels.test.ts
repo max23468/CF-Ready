@@ -1,4 +1,5 @@
 import { env } from "cloudflare:test";
+import { guidedConfirmationIsValid } from "../app/checkout-labels/decisions";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import {
   CHECKOUT_LABEL_KEYS,
@@ -865,16 +866,86 @@ test("D1 conserva una conferma guidata se cambia solo la maiuscola", async () =>
     guidedConfirmedAt: expect.any(String),
   });
 
-  await persistCheckoutLabelObservation(
-    env.DB,
-    shop,
-    [{ ...guided, inheritedValue: "Codice fiscale aggiornato" }],
-    { classification: "unknown", hasMarketOverride: false },
-  );
-  expect((await readStoredCheckoutLabelSlots(env.DB, shop))[0]).toMatchObject({
-    guidedConfirmedValue: null,
-    guidedConfirmedAt: null,
+  // Un testo diverso non cancella la conferma: la rende solo non valida finché resta diverso.
+  const changed = { ...guided, inheritedValue: "Codice fiscale aggiornato" };
+  await persistCheckoutLabelObservation(env.DB, shop, [changed], {
+    classification: "unknown",
+    hasMarketOverride: false,
   });
+  const stored = (await readStoredCheckoutLabelSlots(env.DB, shop))[0];
+  expect(stored).toMatchObject({ guidedConfirmedValue: "Codice fiscale" });
+  expect(
+    guidedConfirmationIsValid(stored, changed, { taxCode: "required_validated", pec: "unmanaged" }),
+  ).toBe(false);
+});
+
+test("lo stato espone l'ultima lettura reale anche se restano verifiche manuali", async () => {
+  // "Ultima lettura delle etichette" restava ferma finché una rilettura non chiudeva ogni verifica.
+  const guided = slot({
+    name: "pec",
+    key: CHECKOUT_LABEL_KEYS.pec,
+    kind: "market_translation",
+    capability: "guided",
+    currentValue: null,
+    inheritedValue: "PEC (facoltativa)",
+  });
+  expect((await readCheckoutLabelState(env.DB, shop)).lastReadAt).toBeNull();
+  await persistCheckoutLabelObservation(env.DB, shop, [guided], {
+    classification: "unknown",
+    hasMarketOverride: false,
+  });
+  await markCheckoutLabelsResult(env.DB, shop, {
+    errorCode: "checkout_labels_confirmation_pending",
+    synced: false,
+  });
+  const state = await readCheckoutLabelState(env.DB, shop);
+  expect(state.lastSyncAt).toBeNull();
+  expect(state.lastReadAt).toEqual(expect.any(String));
+});
+
+test("R-H4 (b): un mercato che eredita la traduzione scritta da CF Ready conserva la conferma", async () => {
+  // Numisleo, 3 ottobre 2026: la traduzione inglese generale è automatica, i mercati la
+  // ereditano e sono confermati a mano. Cambio di regola e ritorno cancellavano le conferme.
+  const initialRules = { taxCode: "unmanaged", pec: "optional_validated" } as const;
+  const changedRules = { taxCode: "unmanaged", pec: "required_when_company" } as const;
+  const market = slot({
+    name: "pec",
+    key: CHECKOUT_LABEL_KEYS.pec,
+    locale: "en",
+    family: "en",
+    kind: "market_translation",
+    capability: "guided",
+    marketId: "gid://shopify/Market/1",
+    marketName: "Internazionale",
+    currentValue: null,
+  });
+  const snapshotFor = (rules: typeof initialRules | typeof changedRules) =>
+    ({
+      revision: rules.pec,
+      locales: [{ locale: "en", family: "en", name: "English", primary: false, published: true }],
+      markets: [{ id: "gid://shopify/Market/1", name: "Internazionale" }],
+      slots: [{ ...market, inheritedValue: proposedLabelForSlot(market, rules) }],
+      issues: [],
+      address2: { classification: "expected", hasMarketOverride: false },
+    }) as never;
+  const read = (rules: typeof initialRules | typeof changedRules) =>
+    loadCheckoutLabels({ graphql: vi.fn() } as never, env.DB, shop, rules, {
+      ok: true,
+      snapshot: snapshotFor(rules),
+    });
+  await enableCheckoutLabels(env.DB, shop, "partial");
+  await read(initialRules);
+  await confirmGuidedCheckoutLabelSlots(env.DB, shop, [
+    { ...market, inheritedValue: proposedLabelForSlot(market, initialRules) },
+  ]);
+  const confirmed = await read(initialRules);
+  expect(confirmed.available && confirmed.guidedConfirmations).toHaveLength(1);
+
+  await read(changedRules);
+  const restored = await read(initialRules);
+  expect(restored.available && restored.guidedConfirmations).toEqual(
+    confirmed.available ? confirmed.guidedConfirmations : null,
+  );
 });
 
 test("D1 ripristina la conferma guidata quando la regola torna a quella confermata", async () => {
