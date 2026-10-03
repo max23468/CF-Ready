@@ -28,6 +28,7 @@ import {
 } from "../features/onboarding/OnboardingSections";
 import { useCheckoutLabelScopeRequest } from "../features/use-checkout-label-scopes";
 import { AutomaticLabelsConfirmModal } from "../features/rules/AutomaticLabelsConfirmModal";
+import { CheckoutErrorPreview } from "../features/messages/CustomerMessagesPreview";
 import {
   planComparisonLocationState,
   requestPlanComparisonFromFrame,
@@ -74,8 +75,16 @@ export default function Onboarding() {
 
   // §15.9: riaprendo la procedura si torna dove si era rimasti. Il passo si ricorda scrivendolo,
   // mai rileggendolo: il valore letto all'apertura serve solo come punto di partenza.
-  const setStep = (next: number) => {
+  // Il passo va anche nell'URL: ricaricando una revisione già completata si resta dove si era.
+  const showStep = (next: number) => {
     setStepState(next);
+    const url = new URL(window.location.href);
+    url.searchParams.set("step", String(next));
+    window.history.replaceState(window.history.state, "", url);
+  };
+
+  const setStep = (next: number) => {
+    showStep(next);
     if (!saved.completed) {
       progress.submit({ intent: "progress", step: String(next) }, { method: "post" });
     }
@@ -97,7 +106,7 @@ export default function Onboarding() {
     if (fetcher.state !== "idle") return;
     if (savingRules.current) {
       savingRules.current = false;
-      if (esito?.ok) setStepState(3);
+      if (esito?.ok) showStep(3);
     }
     // La chiusura va riconosciuta esplicitamente: prima la schermata finale dipendeva dal
     // passo locale, che dopo l'attivazione resta il quarto, quindi non compariva mai e
@@ -195,7 +204,8 @@ export default function Onboarding() {
         writes={automaticLabelWrites}
         onConfirm={() => saveRules(true)}
       />
-      <s-page heading={t.onboarding.heading}>
+      {/* O1: pagina stretta nativa, così testo e select non corrono a tutta larghezza. */}
+      <s-page heading={t.onboarding.heading} inlineSize="small">
         {(esito && !esito.ok) || scopeRequestError ? (
           <div className="cf-motion-reveal">
             <s-banner tone="critical">
@@ -305,11 +315,12 @@ function OnboardingCurrentStep(props: CurrentStepProps) {
 function OnboardingIntroduction({ t }: { t: OnboardingCopy }) {
   return (
     <>
-      <s-box maxInlineSize="150px">
-        <s-image src="/cf-ready-lockup.svg" alt="CF Ready" aspectRatio="16/3" objectFit="contain" />
-      </s-box>
+      {/* O4: icona piccola accanto al titolo, che resta l'elemento principale. */}
       <s-stack direction="block" gap="small-100">
-        <s-heading>{t.onboarding.welcomeHeading}</s-heading>
+        <s-grid gridTemplateColumns="auto minmax(0, 1fr)" gap="small-200" alignItems="center">
+          <s-avatar src="/favicon.svg" alt="CF Ready" size="base" />
+          <s-heading>{t.onboarding.welcomeHeading}</s-heading>
+        </s-grid>
         <s-paragraph>{t.onboarding.welcomeBody}</s-paragraph>
       </s-stack>
       <s-divider />
@@ -332,7 +343,13 @@ function OnboardingRules(props: CurrentStepProps) {
         <s-heading>{t.onboarding.step2Heading}</s-heading>
         <s-paragraph>{t.onboarding.step2Body}</s-paragraph>
       </s-stack>
-      <s-choice-list label={t.rules.taxCodeLabel} name="taxCode">
+      {/* Codice Fiscale e PEC hanno un titolo come "Campo Interno": stessa gerarchia. */}
+      <s-heading>{t.rules.taxCodeLabel}</s-heading>
+      <s-choice-list
+        label={t.rules.taxCodeLabel}
+        labelAccessibilityVisibility="exclusive"
+        name="taxCode"
+      >
         {TAX_CODE_RULE_MODES.map((mode) => (
           <s-choice key={mode} value={mode} selected={mode === saved.rules.taxCode}>
             {t.rules.taxCode[mode]}
@@ -340,7 +357,8 @@ function OnboardingRules(props: CurrentStepProps) {
           </s-choice>
         ))}
       </s-choice-list>
-      <s-choice-list label={t.rules.pecLabel} name="pec">
+      <s-heading>{t.rules.pecLabel}</s-heading>
+      <s-choice-list label={t.rules.pecLabel} labelAccessibilityVisibility="exclusive" name="pec">
         {PEC_RULE_MODES.map((mode) => (
           <s-choice key={mode} value={mode} selected={mode === saved.rules.pec}>
             {t.rules.pec[mode]}
@@ -374,9 +392,8 @@ function OnboardingRules(props: CurrentStepProps) {
               copy === null ? t.rules.labels.unchanged : quoteLabel(copy, props.saved.locale);
             return (
               <s-text key={locale}>
-                {locale.toUpperCase()} ·{" "}
-                {label(checkoutLabelCopy("taxCode", locale, props.draftRules.taxCode))}
-                {" · "}
+                {locale === "it" ? t.messages.italian : t.messages.english}:{" "}
+                {label(checkoutLabelCopy("taxCode", locale, props.draftRules.taxCode))},{" "}
                 {label(checkoutLabelCopy("pec", locale, props.draftRules.pec))}
               </s-text>
             );
@@ -406,7 +423,6 @@ function OnboardingLabelControls(props: CurrentStepProps) {
   }
   return (
     <s-stack direction="block" gap="small-100">
-      <s-text color="subdued">{t.onboarding.labelsPermissionsGranted}</s-text>
       <s-checkbox
         label={props.automaticLabelsAvailable ? t.rules.labels.enable : t.rules.labels.enableGuided}
         checked={props.labelsEnabled}
@@ -434,17 +450,25 @@ function OnboardingPreview({ saved, t }: { saved: OnboardingData; t: OnboardingC
         <s-heading>{t.onboarding.step3Messages}</s-heading>
         <s-paragraph>{t.onboarding.step3MessagesBody}</s-paragraph>
       </s-stack>
-      <s-stack direction="block" gap="small-200">
+      {/* O2, O3: ogni messaggio è un blocco con etichetta e lo stesso riquadro d'errore
+          dell'anteprima in Messaggi; i blocchi sono più distanti tra loro che al loro interno. */}
+      <s-stack direction="block" gap="large">
         {MESSAGE_KEYS.map((key) => (
-          <s-stack key={key} direction="block" gap="small-100">
-            <s-stack direction="inline" gap="small-100">
-              <s-text type="strong">{t.messages[key]}</s-text>
-              <s-badge tone={messageAppears(saved.rules, key) ? "success" : "neutral"}>
-                {messageAppears(saved.rules, key) ? t.messages.appears : t.messages.appearsNot}
-              </s-badge>
+          <div className="onboarding-message" key={key}>
+            <s-stack direction="block" gap="small-300">
+              <s-stack direction="inline" gap="small-100" alignItems="center">
+                <s-text type="strong">{t.messages[key]}</s-text>
+                <s-badge tone={messageAppears(saved.rules, key) ? "success" : "neutral"}>
+                  {messageAppears(saved.rules, key) ? t.messages.appears : t.messages.appearsNot}
+                </s-badge>
+              </s-stack>
+              <CheckoutErrorPreview
+                locale={saved.locale}
+                heading={t.messages.previewErrorHeading}
+                message={saved.messages[saved.locale][key]}
+              />
             </s-stack>
-            <s-paragraph>{saved.messages[saved.locale][key]}</s-paragraph>
-          </s-stack>
+          </div>
         ))}
       </s-stack>
     </>

@@ -34,6 +34,23 @@ describe("Regole", () => {
     expect(router.fetcher.submit).toHaveBeenCalledTimes(2);
   });
 
+  test("dalla Guida porta in vista il simulatore e gli dà il focus", async () => {
+    router.loaderData = rulesData;
+    router.location = { pathname: "/app/rules", hash: "#simulatore", state: null };
+    const view = await mount(<CheckoutRules />);
+    // G-B4: "Riproduci il caso nel simulatore" arriva qui con l'ancora.
+    const simulator = view.container.querySelector<HTMLElement>("#simulatore")!;
+    expect(simulator.querySelector("s-query-container")).not.toBeNull();
+    expect(document.activeElement).toBe(simulator);
+    // Le etichette arrivano dopo e allungano la pagina: il simulatore torna in vista.
+    simulator.scrollIntoView = vi.fn();
+    router.fetcher.state = "loading";
+    await view.rerender(<CheckoutRules />);
+    router.fetcher.state = "idle";
+    await view.rerender(<CheckoutRules />);
+    expect(simulator.scrollIntoView).toHaveBeenCalled();
+  });
+
   test("mostra la modalità Azienda soltanto per la PEC", async () => {
     router.loaderData = rulesData;
     const view = await mount(<CheckoutRules />);
@@ -234,6 +251,12 @@ describe("Regole", () => {
     };
     await view.rerender(<CheckoutRules key="labels-kept" />);
     expect(view.container.textContent).toContain(texts("it").rules.labels.keepNativeAccepted);
+    // Punto 8: una scelta neutra non è un successo.
+    expect(
+      [...view.container.querySelectorAll("s-badge")]
+        .find((badge) => badge.textContent === texts("it").rules.labels.keepNativeAccepted)!
+        .getAttribute("tone"),
+    ).toBe("neutral");
 
     router.loaderData = {
       ...rulesData,
@@ -380,6 +403,10 @@ describe("Regole", () => {
     await click(guidedConfirmations[0]);
 
     expect(disclosures?.[0].querySelector("s-select")).not.toBeNull();
+    // Punto 7: anche le etichette del campo Interno sono tra virgolette.
+    expect(disclosures?.[0].querySelector(".checkout-label-context__row")?.textContent).toMatch(
+      /«.+»/,
+    );
 
     const restore = [...view.container.querySelectorAll("s-button")].find((button) =>
       button.textContent?.includes(texts("it").rules.labels.restoreAddress),
@@ -989,6 +1016,8 @@ describe("Regole", () => {
       button.textContent?.includes(texts("it").rules.labels.requestPermissions),
     );
     if (!requestScopes) throw new Error("richiesta permessi Regole assente");
+    // Punto 9: le due scelte stanno affiancate, non impilate con larghezze diverse.
+    expect(requestScopes.parentElement!.getAttribute("direction")).toBe("inline");
     await click(requestScopes);
     expect(shopify.scopes.request).toHaveBeenCalledWith([
       "write_translations",
@@ -1066,6 +1095,9 @@ describe("Regole", () => {
     };
     await view.rerender(<CheckoutRules key="labels-error" />);
     expect(view.container.textContent).toContain(texts("it").rules.labels.nativeSummaryError);
+    // Punto 4: un errore salvato si spiega e non si presenta come verifica manuale.
+    expect(view.container.textContent).toContain(texts("it").errors.checkout_labels_partial_sync);
+    expect(view.container.textContent).toContain(texts("it").rules.labels.statusError);
 
     router.loaderData = {
       ...router.loaderData,

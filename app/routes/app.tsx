@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import {
+  isRouteErrorResponse,
   Outlet,
   useLoaderData,
   useLocation,
   useNavigate,
   useNavigation,
   useRouteError,
+  useRouteLoaderData,
 } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
@@ -21,6 +23,7 @@ import { resolveLocale, texts } from "../i18n";
 import { normalizePerformanceRoute, performanceReporterScript } from "../performance-report";
 import { createPerformanceToken } from "../performance.server";
 import { skipRevalidationWhenLeaving } from "../revalidation";
+import type { loader as rootLoader } from "../root";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { session } = await authenticateAdmin(request, context);
@@ -123,8 +126,29 @@ export default function App() {
 }
 
 // Shopify needs React Router to catch some thrown responses, so that their headers are included in the response.
+// `boundary.error` gestisce solo quelle e rilancia ogni altro errore: senza una pagina propria il
+// merchant vedrebbe quella predefinita di React Router, in inglese e senza via d'uscita.
 export function ErrorBoundary() {
-  return boundary.error(useRouteError());
+  const error = useRouteError();
+  if (isRouteErrorResponse(error)) return boundary.error(error);
+  return <AppErrorPage />;
+}
+
+function AppErrorPage() {
+  const root = useRouteLoaderData<typeof rootLoader>("root");
+  const t = texts(root?.locale ?? "en");
+  return (
+    <s-page heading={t.home.heading}>
+      <s-section>
+        <s-stack direction="block" gap="base" alignItems="start">
+          <s-banner tone="critical">{t.errors.generic}</s-banner>
+          <s-button variant="primary" onClick={() => window.location.reload()}>
+            {t.errorPage.reload}
+          </s-button>
+        </s-stack>
+      </s-section>
+    </s-page>
+  );
 }
 
 export const headers: HeadersFunction = (headersArgs) => {

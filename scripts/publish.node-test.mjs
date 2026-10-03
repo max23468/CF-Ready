@@ -180,6 +180,7 @@ if (command === "git") {
   else if (joined === "ls-remote --heads origin codex/change") print("");
   else if (joined === "show -s --format=%P ${mainSha}") print("${oldMainSha} ${developSha}\\n");
   else if (joined === "rev-parse ${mainSha}^{tree}" || joined === "rev-parse ${developSha}^{tree}") print("tree\\n");
+  else if (joined === "show ${developSha}:package.json") print('{"version":"1.2.3"}\\n');
   else if (joined === "rev-parse origin/main") print("${mainSha}\\n");
   else if (joined === "rev-parse origin/develop") print((existsSync(marker("reconciled")) ? "${mainSha}" : "${developSha}") + "\\n");
   else if (joined === "merge-base origin/main origin/develop") {
@@ -266,6 +267,7 @@ if (command === "git") {
   else if (joined === "show -s --format=%P ${reconciledSha}") print("${developSha} ${noDeployMainSha}\\n");
   else if (["${mainSha}", "${developSha}", "${reconciledSha}"].some((sha) => joined === "rev-parse " + sha + "^{tree}")) print("tree\\n");
   else if (joined === "rev-parse ${sourceSha}^{tree}") print("source-tree\\n");
+  else if (joined === "show ${developSha}:package.json" || joined === "show ${reconciledSha}:package.json") print('{"version":"1.2.4"}\\n');
   else if (joined === "merge-base --is-ancestor ${noDeployMainSha} ${developSha}") process.exitCode = 1;
   else if (args[0] === "merge-base" && args[1] === "--is-ancestor") process.exitCode = 0;
   else if (joined === "rev-parse origin/main") print((mode === "develop-advanced" ? "${oldMainSha}" : mode === "no-deploy-main" && !existsSync(marker("nd-promoted")) ? "${noDeployMainSha}" : "${mainSha}") + "\\n");
@@ -300,6 +302,7 @@ if (command === "git") {
   }
   else if (args[0] === "pr" && args[1] === "create") {
     if (mode === "stale-head") writeFileSync(marker("stale-created"), "ok");
+    if (value("--base") === "main") writeFileSync(marker("promotion-title"), value("--title") + "\\n", { flag: "a" });
     print("https://github.test/pr/" + (value("--base") === "develop" ? 10 : 11) + "\\n");
   } else if (args[0] === "pr" && args[1] === "view") {
     const promotion = String(args[2]).endsWith("11");
@@ -332,10 +335,11 @@ if (command === "git") {
     writeFileSync(marker("workflow-args"), args.join(" ") + "\\n", { flag: "a" });
     if (mode === "workflow-failed") writeFileSync(marker("workflow-retried"), "ok");
   } else if (args[0] === "release" && args[1] === "view") {
-    if (existsSync(marker("release"))) print({ tagName: "v1.2.3", url: "https://github.test/release" });
+    if (existsSync(marker("release"))) print({ tagName: args[2], url: "https://github.test/release" });
     else process.exitCode = 1;
   } else if (args[0] === "release" && args[1] === "create") {
     writeFileSync(marker("release"), "ok");
+    writeFileSync(marker("release-args"), args.join(" ") + "\\n", { flag: "a" });
   } else if (args[0] === "api" && args[1] === "repos/{owner}/{repo}/rules/branches/develop") {
     print([{ type: "pull_request" }, { type: "required_status_checks", parameters: { required_status_checks: [{ context: "verify" }, { context: "mutation" }] } }]);
   } else if (args[0] === "api") {
@@ -365,6 +369,15 @@ if (command === "git") {
   assert.match(result.stdout, /deploy-production\.yml: avviato/);
   assert.match(result.stdout, /deploy-pages-production\.yml: avviato/);
   assert.match(result.stdout, /Pubblicazione Production completata/);
+  // La versione viene dal candidato promosso, non dal worktree locale (1.2.3).
+  assert.equal(
+    readFileSync(path.join(directory, ".promotion-title"), "utf8"),
+    "chore: promuovi CF Ready 1.2.4\n",
+  );
+  assert.match(
+    readFileSync(path.join(directory, ".release-args"), "utf8"),
+    /^release create v1\.2\.4 --target /m,
+  );
   assert.match(result.stdout, /Gate locale della corsia standard prima del push/);
   assert.match(result.stdout, /PR #10: attendo i check obbligatori/);
   assert.ok(existsSync(path.join(directory, ".mutation-waited")));
@@ -463,7 +476,7 @@ if (command === "git") {
     ["workflow-failed", /deploy-development\.yml concluso con failure/],
     ["develop-advanced", /develop è avanzato/],
     ["bad-promotion", /merge Production non conserva/],
-    ["release-mismatch", /v1\.2\.3 esiste su un commit diverso/],
+    ["release-mismatch", /v1\.2\.4 esiste su un commit diverso/],
   ]) {
     const failed = spawnSync(
       process.execPath,

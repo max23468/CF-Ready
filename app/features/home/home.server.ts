@@ -225,23 +225,27 @@ function homeView(
     periodEnd: state.account?.current_period_end ?? null,
     accountStatus: state.account?.entitlement_status ?? "none",
     creditEstimate: state.creditEstimate,
-    conversionCredit: state.conversionCredit
-      ? {
-          estimate:
-            state.conversionCredit.credit_estimate_minor === null
-              ? null
-              : state.conversionCredit.credit_estimate_minor / 100,
-          actual:
-            state.conversionCredit.credit_amount_minor === null
-              ? null
-              : Math.abs(state.conversionCredit.credit_amount_minor) / 100,
-          currency: state.conversionCredit.credit_currency ?? state.conversionCredit.currency,
-          status: state.conversionCredit.credit_status,
-        }
-      : null,
+    // Un addebito di test non produce mai un credito reale: la nota resterebbe in verifica per
+    // sempre, quindi non si mostra.
+    conversionCredit:
+      state.conversionCredit && !state.conversionCredit.is_test
+        ? {
+            estimate:
+              state.conversionCredit.credit_estimate_minor === null
+                ? null
+                : state.conversionCredit.credit_estimate_minor / 100,
+            actual:
+              state.conversionCredit.credit_amount_minor === null
+                ? null
+                : Math.abs(state.conversionCredit.credit_amount_minor) / 100,
+            currency: state.conversionCredit.credit_currency ?? state.conversionCredit.currency,
+            status: state.conversionCredit.credit_status,
+          }
+        : null,
     errorCode: state.errorCode,
     onboarding: onboardingStatus,
     showMerchantCheckIn: Boolean(
+      verified &&
       !state.partnerDevelopment &&
       paidAccount &&
       state.validationEnabled &&

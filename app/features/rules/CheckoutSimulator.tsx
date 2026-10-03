@@ -1,4 +1,4 @@
-import { useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import {
   diagnosePec,
   isValidPec,
@@ -81,6 +81,8 @@ export function CheckoutSimulator({
   const t = texts(previewLocale);
   const copy = t.rules.simulator;
   const [state, updateState] = useReducer(updateSimulatorState, initialSimulatorState);
+  const [continueCount, setContinueCount] = useState(0);
+  const rootRef = useRef<HTMLDivElement>(null);
   const {
     deliveryCountry,
     billingCountry,
@@ -114,6 +116,24 @@ export function CheckoutSimulator({
     pecPresent,
   });
 
+  // R-S2: come nel checkout reale, "Continua" porta al primo campo da correggere. Gli errori
+  // allungano il blocco sopra il bottone: senza questo il clic successivo cade sulla select.
+  useEffect(() => {
+    if (continueCount === 0) return;
+    const field =
+      rootRef.current?.querySelector<HTMLElement>(".checkout-simulator__missing-fields") ??
+      [
+        ...(rootRef.current?.querySelectorAll<HTMLElement & { error?: string }>("s-text-field") ??
+          []),
+      ].find((element) => element.error);
+    if (!field) return;
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    // L'host Polaris è `display: contents`: si fa scorrere il primo box reale del campo.
+    const box = field.shadowRoot?.firstElementChild ?? field;
+    box.scrollIntoView?.({ block: "center", behavior: reduced ? "auto" : "smooth" });
+    field.focus({ preventScroll: true });
+  }, [continueCount]);
+
   const applyScenario = (nextScenario: SimulatorScenario) => {
     const values = simulatorScenarioValues[nextScenario];
     updateState({
@@ -128,6 +148,7 @@ export function CheckoutSimulator({
   return (
     <s-query-container>
       <div
+        ref={rootRef}
         style={{
           background: "#f1f5ef",
           borderRadius: "16px",
@@ -139,24 +160,7 @@ export function CheckoutSimulator({
             <s-stack direction="block" gap="small-200">
               <s-grid gridTemplateColumns="auto 1fr" gap="small-200" alignItems="center">
                 <s-avatar src="/favicon.svg" alt="CF Ready" size="base" />
-                <s-grid
-                  gridTemplateColumns="@container (inline-size > 420px) 1fr auto, 1fr"
-                  alignItems="center"
-                  gap="small-100"
-                >
-                  <s-heading>{copy.heading}</s-heading>
-                  <span
-                    aria-atomic="true"
-                    aria-live="polite"
-                    className="checkout-simulator__outcome cf-motion-swap"
-                    key={outcome}
-                    role="status"
-                  >
-                    <s-badge tone={outcomeTone[outcome]} icon={outcomeIcon[outcome]}>
-                      {copy.outcomes[outcome]}
-                    </s-badge>
-                  </span>
-                </s-grid>
+                <s-heading>{copy.heading}</s-heading>
               </s-grid>
             </s-stack>
           </s-box>
@@ -264,6 +268,7 @@ export function CheckoutSimulator({
                 messages={previewMessages}
                 outcome={outcome}
                 requiredErrorsDue={requiredFieldsAreDue(step, deliveryGroups)}
+                absentRequiredFieldsDue={step === "CHECKOUT_COMPLETION" && deliveryCountry === "IT"}
                 company={company}
                 taxCode={taxCode}
                 pec={pec}
@@ -319,10 +324,25 @@ export function CheckoutSimulator({
                   {copy.clear}
                 </s-button>
               </div>
+              {/* R-S1: l'esito sta accanto al comando, in vista mentre si compilano i campi. */}
+              <span
+                aria-atomic="true"
+                aria-live="polite"
+                className="checkout-simulator__outcome cf-motion-swap"
+                key={outcome}
+                role="status"
+              >
+                <s-badge tone={outcomeTone[outcome]} icon={outcomeIcon[outcome]}>
+                  {copy.outcomes[outcome]}
+                </s-badge>
+              </span>
               <button
                 type="button"
                 className="checkout-simulator__button checkout-simulator__button--primary"
-                onClick={() => updateState({ shippingSelected: true })}
+                onClick={() => {
+                  updateState({ shippingSelected: true });
+                  setContinueCount((count) => count + 1);
+                }}
               >
                 {copy.continue}
               </button>
@@ -344,6 +364,7 @@ function SimulatorCustomerFields({
   messages,
   outcome,
   requiredErrorsDue,
+  absentRequiredFieldsDue,
   company,
   taxCode,
   pec,
@@ -358,6 +379,7 @@ function SimulatorCustomerFields({
   messages: Messages;
   outcome: SimulatorOutcome;
   requiredErrorsDue: boolean;
+  absentRequiredFieldsDue: boolean;
   company: string;
   taxCode: string;
   pec: string;
@@ -371,6 +393,17 @@ function SimulatorCustomerFields({
   const copy = t.rules.simulator;
   const applies = outcome !== "notApplied";
   const hasManagedFields = Object.values(rules).some((mode) => mode !== "unmanaged");
+  const missingFields =
+    applies && absentRequiredFieldsDue
+      ? [
+          !taxCodePresent && rules.taxCode === "required_validated"
+            ? checkoutLabelCopy("taxCode", locale, rules.taxCode)
+            : null,
+          !pecPresent && pecIsRequired(rules.pec, company)
+            ? checkoutLabelCopy("pec", locale, rules.pec)
+            : null,
+        ].filter((label) => label !== null)
+      : [];
 
   return (
     <s-stack direction="block" gap="small-200">
@@ -378,6 +411,18 @@ function SimulatorCustomerFields({
         <s-icon type="identity-card" color="subdued" />
         <s-text type="strong">{copy.customerData}</s-text>
       </s-stack>
+      {missingFields.length > 0 ? (
+        <div className="checkout-simulator__missing-fields" tabIndex={-1}>
+          <s-banner tone="critical">
+            <s-stack direction="block" gap="small-100">
+              {missingFields.map((label) => (
+                <s-paragraph key={label}>{copy.missingRequiredField(label)}</s-paragraph>
+              ))}
+              <s-paragraph>{copy.showMissingFields}</s-paragraph>
+            </s-stack>
+          </s-banner>
+        </div>
+      ) : null}
       {hasManagedFields ? (
         <>
           <SimulatorCompanyField
@@ -443,7 +488,7 @@ function SimulatorTaxCodeField({
     <s-text-field
       label={checkoutLabelCopy("taxCode", locale, mode)!}
       value={value}
-      required={mode === "required_validated"}
+      required={applies && mode === "required_validated"}
       error={simulatorErrorMessage(
         messages,
         "taxCode",
@@ -479,7 +524,7 @@ function SimulatorPecField({
   onInput: (value: string) => void;
 }) {
   if (mode === "unmanaged" || !present) return null;
-  const required = pecIsRequired(mode, company);
+  const required = applies && pecIsRequired(mode, company);
   const problem = applies ? simulatorFieldError(mode, value, isValidPec, required) : null;
   const copy = texts(locale).rules.simulator;
   return (

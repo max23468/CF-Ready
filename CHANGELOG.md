@@ -6,6 +6,93 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.22 — 3 ottobre 2026
+
+- nel simulatore spiega il blocco dovuto a un campo obbligatorio che Shopify
+  non mostra e indica come riprovare con il campo visibile;
+- toglie l'indicatore di obbligatorietà nello scenario del simulatore quando
+  le regole non si applicano;
+- adatta l'altezza dei messaggi ai ritorni a capo e alla larghezza effettiva,
+  rendendo leggibili anche testi lunghi senza spazi;
+- affianca a ogni messaggio un'anteprima compatta nei layout stretti;
+- mantiene visibile il titolo della diagnostica dopo il salto dalla Guida,
+  anche sotto l'intestazione fissa dell'Admin;
+- elimina il titolo FAQ duplicato nella struttura accessibile;
+- distingue nell'onboarding le capacità della modalità Mista dalle verifiche
+  manuali ancora da completare;
+- con un errore runtime l'app mostra una pagina bilingue con "Ricarica la
+  pagina" invece di quella predefinita di React Router, in inglese;
+- in Home "Scegli un piano" porta alle offerte e vi sposta il focus; gli avvisi,
+  come quelli delle etichette in Regole e il conflitto di configurazione, si
+  portano in vista; la guida di configurazione dispone i quattro passi in 2 × 2
+  e la data del primo addebito compare una volta;
+- un errore salvato sulle etichette si presenta come "Controllo non completato"
+  con la spiegazione, non come verifica manuale; scelte neutre con badge
+  neutro, etichette del campo Interno tra virgolette e bottoni dei permessi
+  affiancati;
+- i messaggi di errore nominano i comandi reali ("Rileggi i campi da Shopify",
+  "Aggiorna e verifica"), la procedura manuale cita tra virgolette le voci di
+  Shopify e i riepiloghi non uniscono più frammenti con "·";
+- in Home lo stato salvato resta a vista mentre Shopify conferma; "Verifica in
+  corso…" compare solo se la conferma supera un secondo, senza lampi di colore;
+- dalla Guida, il simulatore torna in vista anche dopo il caricamento delle
+  etichette; la diagnosi mostra un solo orario di verifica;
+- l'onboarding conserva il passo nell'URL e al passo 2 dà a Codice Fiscale e PEC
+  lo stesso titolo del campo “Interno”;
+- non mostra più "Stiamo verificando l'eventuale credito" per gli addebiti di
+  test, né i prezzi di lancio a chi ha il pagamento unico;
+- `npm audit` ammette eccezioni temporanee con scadenza (D-175): la prima
+  copre fino al 31 ottobre 2026 l'avviso di `braces`, senza ancora una versione
+  corretta e presente solo negli strumenti di build della Function.
+
+## 1.15.21 — 2 ottobre 2026
+
+- mostra il banner "Grazie per aver scelto CF Ready" solo dopo la conferma
+  Shopify, evitando che compaia per un istante durante la ricarica degli store
+  Development.
+
+## 1.15.20 — 2 ottobre 2026
+
+- sposta l'esito del simulatore del checkout subito sopra "Continua", così resta
+  in vista mentre si compilano i campi (audit UI/UX R-S1);
+- con dati da correggere, "Continua" nel simulatore porta in vista il primo
+  campo in errore e gli dà il focus, invece di spostare il bottone sotto il
+  puntatore (R-S2);
+- in Messaggi al cliente dà un titolo alla card dei campi, spiega che
+  l'anteprima segue il messaggio in modifica e su desktop affianca i campi di
+  Codice Fiscale e PEC in due colonne vicino all'anteprima (M1, M2);
+- avvisa nell'anteprima quando, con le regole attuali, il messaggio non compare
+  nel checkout e toglie il badge di lingua ripetuto (M3, M6);
+- mostra sempre il contatore dei caratteri, così il focus non sposta i campi
+  (M4);
+- raggruppa per campo la card laterale e sostituisce "Previsto" / "Non
+  previsto" con "Può comparire" / "Non compare", anche nell'onboarding (M7);
+- scrive la lingua in minuscolo nella conferma di ripristino ("in inglese")
+  (M8);
+- nella Guida la diagnostica mostra esiti in linguaggio comune con icone di
+  stato e link blu, senza valori interni né il termine "Validation" (G-B1);
+- "Il controllo non compare?" porta in vista la diagnosi con il suo titolo e le
+  passa il focus; "Riproduci il caso nel simulatore" apre Regole sul simulatore
+  (G-B2, G-B4);
+- alleggerisce le FAQ: titolo nativo della card, domande senza grassetto e
+  sfondo di hover entro le linee divisorie (G-B5, G-B7);
+- con piano omaggio la FAQ su prova e pagamenti non parla di prova e prezzi
+  (G-B8);
+- riordina la card Assistenza: spiegazione, argomento, invio e copia, con
+  bottoni della stessa larghezza e il salto alla diagnosi in fondo (G-B9,
+  G-N1); "Espandi tutte" passa a destra del titolo delle FAQ;
+- nell'onboarding usa la larghezza ridotta di Polaris, aggiunge una barra di
+  avanzamento e mette un'icona piccola accanto al titolo di benvenuto (O1, O4,
+  O5);
+- al passo 3 mostra ogni messaggio in un blocco con il riquadro d'errore visto
+  dal cliente (O2, O3) e toglie la frase tecnica sui permessi al passo 2 (O7);
+- allinea il riepilogo del passo 4 sull'etichetta più lunga, così in inglese le
+  voci non vanno a capo (EN2);
+- il coordinatore di pubblicazione prende la versione di promozione e release
+  dal commit promosso, non dal `package.json` del worktree locale: la 1.15.18
+  era stata promossa e rilasciata come `v1.15.19` perché `develop` era già
+  avanzato.
+
 ## 1.15.19 — 2 ottobre 2026
 
 - aggiorna Shopify React Router alla patch che limita le destinazioni dei
@@ -23,6 +110,9 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   effettivi al contratto continuano a bloccare il controllo.
 
 ## 1.15.18 — 1 ottobre 2026
+
+Non rilasciata da sola: è entrata in Production con la 1.15.19 (release
+`v1.15.19`, promozione #611).
 
 - mostra gli orari di etichette e Guida nel fuso dello store, con la
   sigla del fuso; il fuso si salva in D1 alla riconciliazione (migrazione 0027,

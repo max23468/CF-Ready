@@ -1,6 +1,6 @@
 .checkout-simulator__outcome {
   display: inline-flex;
-  justify-self: end;
+  justify-self: start;
 }
 
 .checkout-simulator__actions {
@@ -72,11 +72,5 @@
 @media (prefers-reduced-motion: reduce) {
   .checkout-simulator__button {
     transition: none;
-  }
-}
-
-@container (inline-size <= 420px) {
-  .checkout-simulator__outcome {
-    justify-self: start;
   }
 }

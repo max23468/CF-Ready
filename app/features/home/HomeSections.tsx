@@ -3,6 +3,7 @@ import { homeCheckoutSummary, type texts, validationStatus } from "../../i18n";
 import type { HomeData } from "./home.server";
 import { homeValidationPresentation } from "./home-next-step";
 import { trialContinuityNotice } from "./commercial-state";
+import { showPlans } from "./show-plans";
 
 type Texts = ReturnType<typeof texts>;
 type Submit = (intent: string, source?: string) => void;
@@ -67,7 +68,7 @@ export function HomeValidationSection({
               <s-paragraph>{continuity.text}</s-paragraph>
               {continuity.detail ? <s-paragraph>{continuity.detail}</s-paragraph> : null}
               {continuity.action ? (
-                <s-button href="#plans" disabled={busy}>
+                <s-button onClick={showPlans} disabled={busy}>
                   {continuity.action}
                 </s-button>
               ) : null}

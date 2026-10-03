@@ -29,17 +29,15 @@ import { validateMessages } from "../config";
 import type { CheckoutConfig } from "../config";
 import { databaseContext } from "../context.server";
 import { ConfigConflict } from "../features/ConfigConflict";
-import { CustomerMessagesPreview } from "../features/messages/CustomerMessagesPreview";
+import {
+  CheckoutErrorPreview,
+  CustomerMessagesPreview,
+} from "../features/messages/CustomerMessagesPreview";
 import { UncontrolledMessageTextArea } from "../features/messages/UncontrolledMessageTextArea";
 import { RULES_INTENTS, type CheckoutLabelsLoadAction } from "../features/rules/rules-intents";
 import { quoteLabel, resolveLocale, texts } from "../i18n";
 import type { Locale } from "../i18n";
-import {
-  messageSubmission,
-  rebaseMessageDraft,
-  shouldShowMessageCounter,
-  updateMessageDraft,
-} from "../messages-draft";
+import { messageSubmission, rebaseMessageDraft, updateMessageDraft } from "../messages-draft";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { setSaveBarVisibility, showToast } from "../save-bar";
 import { RevealBanner } from "../ui-feedback";
@@ -107,15 +105,20 @@ const MESSAGE_FIELDS = (["it", "en"] as const).flatMap((locale) =>
 
 const SAVE_BAR = "cf-ready-messages";
 type MessageKey = (typeof MESSAGE_KEYS)[number];
+const MESSAGE_GROUPS = [
+  ["taxCode", ["taxCodeRequired", "taxCodeInvalid"]],
+  ["pec", ["pecRequired", "pecInvalid"]],
+] as const satisfies readonly (readonly ["taxCode" | "pec", readonly MessageKey[]])[];
 
-// Polaris non ha un campo che si ridimensiona da solo: `rows` fissa le righe visibili e il
-// resto finisce in uno scroll interno. Le righe si calcolano quindi dal testo, così il campo
-// cresce e nulla resta nascosto — nemmeno oltre i 200 caratteri, che è proprio il momento in
-// cui il merchant deve vedere tutto per decidere cosa tagliare.
-// Stima a 45 caratteri per riga, prudente per le colonne strette. Se Polaris
-// introduce l'auto-ridimensionamento, questa funzione sparisce.
+// Altezza iniziale, compresi ritorni a capo e righe vuote. Il componente la adatta poi
+// all'andata a capo reale del textarea e alla larghezza disponibile.
 function rowsFor(text: string) {
-  return Math.max(2, Math.ceil((text.length + 1) / 45));
+  return Math.max(
+    2,
+    text
+      .split(/\r\n|\r|\n/)
+      .reduce((rows, line) => rows + Math.max(1, Math.ceil((line.length + 1) / 45)), 0),
+  );
 }
 
 export default function CustomerMessages() {
@@ -142,9 +145,6 @@ export default function CustomerMessages() {
   const [, startDraftTransition] = useTransition();
   const [activeLocale, setActiveLocale] = useState<Locale>(saved.locale);
   const [selectedKey, setSelectedKey] = useState<MessageKey>("taxCodeRequired");
-  const [focusedMessage, setFocusedMessage] = useState<
-    { locale: Locale; key: MessageKey } | undefined
-  >();
   // I campi non sono controllati: React che riscrive `value` a ogni tasto farebbe saltare il
   // cursore dentro un testo lungo. Il ripristino li rimonta cambiando chiave, così ripartono
   // dal nuovo valore predefinito senza che React possieda il contenuto.
@@ -282,7 +282,7 @@ export default function CustomerMessages() {
             onDiscard={discard}
             rows={(["it", "en"] as const).flatMap((locale) =>
               MESSAGE_KEYS.map((key) => ({
-                label: `${locale.toUpperCase()} · ${t.messages[key]}`,
+                label: `${t.messages[key]} (${t.rules.labels.languageNames[locale]})`,
                 current: saved.messages[locale][key],
                 draft: draft[locale][key],
               })),
@@ -318,8 +318,7 @@ export default function CustomerMessages() {
           draft={draft}
           selectedKey={selectedKey}
           setSelectedKey={setSelectedKey}
-          focusedMessage={focusedMessage}
-          setFocusedMessage={setFocusedMessage}
+          rules={saved.rules}
           mounted={mounted}
           result={result}
         />
@@ -348,8 +347,7 @@ function MessagesEditor({
   draft,
   selectedKey,
   setSelectedKey,
-  focusedMessage,
-  setFocusedMessage,
+  rules,
   mounted,
   result,
 }: {
@@ -360,14 +358,13 @@ function MessagesEditor({
   draft: CheckoutConfig["messages"];
   selectedKey: MessageKey;
   setSelectedKey: (key: MessageKey) => void;
-  focusedMessage: { locale: Locale; key: MessageKey } | undefined;
-  setFocusedMessage: (message: { locale: Locale; key: MessageKey } | undefined) => void;
+  rules: CheckoutConfig["rules"];
   mounted: Record<string, number>;
   result: MessagesActionResult;
 }) {
   const problem = result && !result.ok && "problem" in result ? result.problem : undefined;
   return (
-    <s-section>
+    <s-section heading={t.messages.editorHeading}>
       <s-stack direction="block" gap="base">
         <s-stack direction="block" gap="small-100">
           <s-paragraph color="subdued">{t.messages.labelsNote}</s-paragraph>
@@ -392,43 +389,64 @@ function MessagesEditor({
               : t.messages.previewProposedFieldLabel
           }
           heading={t.messages.previewHeading}
-          languages={{ it: t.messages.italian, en: t.messages.english }}
+          hint={t.messages.previewHint}
           message={draft[activeLocale][selectedKey]}
+          notShown={messageAppears(rules, selectedKey) ? undefined : t.messages.previewNotShown}
           selectedHeading={t.messages.previewSelected}
           selectedLabel={t.messages[selectedKey]}
         />
-        <s-stack direction="block" gap="base">
-          {MESSAGE_KEYS.map((key) => {
-            const value = draft[activeLocale][key];
-            const invalid =
-              value.length > MESSAGE_MAX_LENGTH
-                ? t.messages.tooLong
-                : problem?.locale === activeLocale && problem.key === key
-                  ? t.messages.empty
-                  : undefined;
-            const focused = focusedMessage?.locale === activeLocale && focusedMessage.key === key;
-            return (
-              <UncontrolledMessageTextArea
-                key={`${activeLocale}-${key}-${mounted[`${activeLocale}.${key}`] ?? 0}`}
-                initialValue={value}
-                label={t.messages[key]}
-                name={`${activeLocale}.${key}`}
-                rows={rowsFor(value)}
-                details={
-                  shouldShowMessageCounter(value.length, focused)
-                    ? t.messages.counter(value.length)
-                    : undefined
-                }
-                error={invalid}
-                onFocus={() => {
-                  setSelectedKey(key);
-                  setFocusedMessage({ locale: activeLocale, key });
-                }}
-                onBlur={() => setFocusedMessage(undefined)}
-              />
-            );
-          })}
-        </s-stack>
+        {/* M2: su desktop i quattro campi stanno in due colonne, Codice Fiscale e PEC, così
+            restano vicini all'anteprima. Il contatore è sempre presente: al focus nulla si sposta (M4). */}
+        <div className="customer-messages-fields">
+          <s-query-container>
+            <s-grid
+              gridTemplateColumns="@container (inline-size > 560px) 1fr 1fr, 1fr"
+              gap="base"
+              alignItems="start"
+            >
+              {MESSAGE_GROUPS.map(([field, keys]) => (
+                <s-stack key={field} direction="block" gap="base">
+                  {keys.map((key) => {
+                    const value = draft[activeLocale][key];
+                    const invalid =
+                      value.length > MESSAGE_MAX_LENGTH
+                        ? t.messages.tooLong
+                        : problem?.locale === activeLocale && problem.key === key
+                          ? t.messages.empty
+                          : undefined;
+                    return (
+                      <s-stack key={key} direction="block" gap="small-100">
+                        <UncontrolledMessageTextArea
+                          key={`${activeLocale}-${mounted[`${activeLocale}.${key}`] ?? 0}`}
+                          initialValue={value}
+                          label={t.messages[key]}
+                          name={`${activeLocale}.${key}`}
+                          rows={rowsFor(value)}
+                          details={t.messages.counter(value.length)}
+                          error={invalid}
+                          onFocus={() => setSelectedKey(key)}
+                        />
+                        <div className="customer-messages-preview__local">
+                          <s-stack direction="block" gap="small-100">
+                            <s-text color="subdued">{t.messages.previewHeading}</s-text>
+                            <CheckoutErrorPreview
+                              locale={activeLocale}
+                              heading={texts(activeLocale).messages.previewErrorHeading}
+                              message={value}
+                            />
+                            {!messageAppears(rules, key) ? (
+                              <s-text color="subdued">{t.messages.previewNotShown}</s-text>
+                            ) : null}
+                          </s-stack>
+                        </div>
+                      </s-stack>
+                    );
+                  })}
+                </s-stack>
+              ))}
+            </s-grid>
+          </s-query-container>
+        </div>
         <s-button commandFor={`restore-${activeLocale}`} command="--show">
           {t.messages.reset}
         </s-button>
@@ -440,18 +458,24 @@ function MessagesEditor({
 function MessageVisibilityAside({ t, rules }: { t: MessagesCopy; rules: MessagesData["rules"] }) {
   return (
     <s-section heading={t.messages.appearHeading}>
-      <s-stack direction="block" gap="small-100">
+      <s-stack direction="block" gap="base">
         <s-paragraph>{t.messages.appearIntro}</s-paragraph>
-        <div className="cf-data-list">
-          {MESSAGE_KEYS.map((key) => (
-            <div className="cf-data-row" key={key}>
-              <s-text>{t.messages[key]}</s-text>
-              <s-badge tone={messageAppears(rules, key) ? "success" : "neutral"}>
-                {messageAppears(rules, key) ? t.messages.appears : t.messages.appearsNot}
-              </s-badge>
+        {/* M7: raggruppate per campo, le voci brevi stanno su una riga anche nella colonna. */}
+        {MESSAGE_GROUPS.map(([field, keys]) => (
+          <s-stack key={field} direction="block" gap="small-100">
+            <s-text type="strong">{t.messages.fieldNames[field]}</s-text>
+            <div className="cf-data-list">
+              {keys.map((key) => (
+                <div className="cf-data-row" key={key}>
+                  <s-text>{t.messages.shortLabels[key]}</s-text>
+                  <s-badge tone={messageAppears(rules, key) ? "success" : "neutral"}>
+                    {messageAppears(rules, key) ? t.messages.appears : t.messages.appearsNot}
+                  </s-badge>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </s-stack>
+        ))}
         <s-link href="/app/rules">{t.nav.rules}</s-link>
       </s-stack>
     </s-section>
@@ -466,7 +490,8 @@ function RestoreMessageModals({
   restore: (locale: Locale) => void;
 }) {
   return (["it", "en"] as const).map((locale) => {
-    const language = locale === "it" ? t.messages.italian : t.messages.english;
+    // M8: dentro la frase la lingua è un nome comune ("in inglese"), non la voce della select.
+    const language = t.rules.labels.languageNames[locale];
     return (
       <s-modal
         key={locale}
