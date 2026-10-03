@@ -10,6 +10,7 @@ export function initializeNotFound(doc = document, pathname = window.location.pa
   doc.querySelectorAll("[data-it-href]").forEach(function (element) {
     var href = element.getAttribute("data-it-href");
     if (href === "/") element.setAttribute("href", "/");
+    if (href === "/support") element.setAttribute("href", "/support");
     if (href === "/guide/codice-fiscale-obbligatorio-shopify") {
       element.setAttribute("href", "/guide/codice-fiscale-obbligatorio-shopify");
     }

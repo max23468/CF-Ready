@@ -48,7 +48,12 @@ test("la 404 seleziona l'italiano fuori da /en e conserva il fallback inglese", 
 });
 
 test("la 404 usa solo le destinazioni italiane previste e ignora URL estranee", () => {
-  for (const value of ["/", "/guide/codice-fiscale-obbligatorio-shopify", "javascript:alert(1)"]) {
+  for (const value of [
+    "/",
+    "/support",
+    "/guide/codice-fiscale-obbligatorio-shopify",
+    "javascript:alert(1)",
+  ]) {
     const link = {
       href: "/en/",
       getAttribute: () => value,
