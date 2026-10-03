@@ -346,9 +346,8 @@ nuovo giro in italiano sulla `1.15.17`.
 
 ## 14. Stato di implementazione
 
-Branch `fix/ui-trasversali-audit`, versione `1.15.18`, non ancora pubblicata.
-Decisioni dell'owner del 1 ottobre 2026. Gate locale `npm run check` verde;
-coverage e mutation rimandati alla pubblicazione.
+Versione `1.15.18` (#608 e #610), in Production con la release `v1.15.19`.
+Decisioni dell'owner del 1 ottobre 2026.
 
 | Finding | Stato | Implementazione |
 | --- | --- | --- |
@@ -375,13 +374,13 @@ coverage e mutation rimandati alla pubblicazione.
 | R-H1, R-H2, R-H6 | Superato da D-174 | Tolte la card "Cronologia configurazioni" e l'azione `restore_configuration`; `configuration_history` conserva solo l'ultima configurazione per il primo paint della Home (D-167) |
 | R-H3 | Implementato | Su `checkout_labels_conflict` al salvataggio l'app rilegge le etichette (`useDeferredCheckoutLabels`), conserva la bozza e chiede di premere di nuovo "Salva". Causa (readback Shopify non ancora stabile) non confermata |
 | R-H4 (a) | Implementato | Il riepilogo nomina la lingua ("Un checkout in inglese richiede una verifica") e "Lingua" si posiziona sulla prima lingua in sospeso finché il merchant non sceglie |
-| R-H4 (b) | Non riprodotto in locale | Test D1 (`tests/checkout-labels.test.ts`): conferma, cambio di regola e ritorno conservano la conferma. Codice invariato in attesa della riproduzione su `cf-ready-dev` |
+| R-H4 (b) | Non riprodotto | Né in D1 locale (`tests/checkout-labels.test.ts`: conferma, cambio di regola e ritorno conservano la conferma) né su `cf-ready-dev` il 2 ottobre 2026. Codice invariato |
 | R-H5 | Implementato | Pulsante "Mostra le etichette" nel banner, che apre "Testi del checkout" e lo porta in vista; i passaggi manuali restano |
 | R-H7 | Implementato | Salvataggio immediato invariato; durante la rilettura le etichette restano visibili, quindi il pannello non si richiude, e compare il toast "Configurazione del campo Interno salvata." |
 | R-H8 | Implementato | Togliendo la gestione automatica compare l'avviso sulle conseguenze del salvataggio |
 | R-B1 | Implementato | Piede del simulatore con lo stesso margine del corpo: a 390 px la riga scenario non sporge più; "Svuota" è un `s-button` alto come la select |
 | R-B2 | Già risolto da #603 | Nessuna modifica |
-| R-B3 | Implementato | Intestazione ridotta a "Simulatore del checkout"; il badge di stato sta nella colonna del titolo anche sotto i 420 px di contenitore |
+| R-B3 | Implementato | Intestazione ridotta a "Simulatore del checkout"; il badge di stato è poi passato nel piede con R-S1 |
 | R-B4 | Implementato | Note dei contesti come frasi separate con iniziale maiuscola ("Lingua primaria.", "Tutti i mercati usano questo testo.") |
 | R-B5 | Implementato | Badge "Aggiornati" ("Gestiti da te" se il merchant mantiene i suoi testi) al posto di "Gestito da Shopify"; il conteggio somma le etichette di tutte le lingue: "1 etichetta aggiornata automaticamente" |
 | R-B6 | Implementato | Tolto il pannello annidato "Dettagli tecnici": modalità, ultima lettura e conteggi sono righe in fondo, accanto a "Rileggi i campi da Shopify" |
@@ -413,3 +412,82 @@ e 320 px restano coperti dai test visuali.
 | V4 | "Checkout di prova" poteva sembrare un checkout reale in modalità test | Titolo "Simulatore del checkout", deciso dall'owner |
 | V5 | Aprendo l'onboarding direttamente o cambiando passo da tastiera, il contenuto del passo mostra il contorno di focus con il testo a filo del bordo | Corretto: il contenitore riceve ancora il focus, senza contorno |
 | V6 | Le etichette proposte nell'onboarding e nella conferma della gestione automatica non erano tra virgolette (resto di T7) | Corretto |
+
+### Simulatore, Messaggi, Guida, onboarding e inglese, versione `1.15.20`
+
+Branch `fix/audit-simulatore`, decisioni dell'owner del 2 ottobre 2026.
+
+| Finding | Stato | Implementazione |
+| --- | --- | --- |
+| R-S1 | Implementato | Il badge di esito, unica regione `aria-live`, passa dall'intestazione al piede, subito sopra "Continua"; l'intestazione resta con il solo titolo |
+| R-S2 | Implementato | Gli errori dei campi obbligatori compaiono dopo "Continua" e spostavano il bottone sotto la select degli scenari. Ora "Continua" porta in vista il primo campo in errore e gli dà il focus, come il checkout reale; senza errori nulla cambia. Errori di formato ancora in tempo reale (R-S3) |
+| M1 | Implementato | Titolo "Messaggi di errore" sulla card dei campi |
+| M2 | Implementato | Riga "L'anteprima mostra il messaggio che stai modificando." sotto l'anteprima; oltre i 560 px di contenitore i campi stanno in due colonne, Codice Fiscale e PEC. Un'anteprima fissa non è affidabile perché lo scroll lo gestisce l'Admin, non l'iframe |
+| M3 | Implementato | Se le regole non prevedono il messaggio, l'anteprima aggiunge "Con le regole attuali questo messaggio non compare nel checkout." |
+| M4 | Implementato | Contatore dei caratteri sempre visibile: al focus i campi non si spostano |
+| M5 | Escluso dall'owner | La ripetizione dei collegamenti non è considerata un problema |
+| M6 | Implementato | Tolto il badge di lingua dall'anteprima |
+| M7 | Implementato | Card laterale raggruppata per campo con voci brevi su una riga; badge "Può comparire" / "Non compare", anche al passo 3 dell'onboarding |
+| M8 | Implementato | T9 aveva tolto l'inglese dalla frase italiana, ma restava "in Italiano" / "in Inglese" con la maiuscola della select: ora "in italiano" / "in inglese" |
+| G-B1 | Implementato | Ogni esito della diagnosi è una riga con icona di stato (verde, gialla o neutra), testo in linguaggio comune e link fuori dal paragrafo. Etichette: "Etichette del checkout aggiornate." e varianti; campo Interno con i testi di Regole e la scelta del merchant quando conta; "validazione" al posto di "Validation". La diagnostica copiabile conserva i valori tecnici |
+| G-B2 | Implementato | Il salto porta in vista la sezione dal suo titolo e dà il focus al contenuto, senza contorno |
+| G-B3 | Già risolto da #603 | Nessuna modifica |
+| G-B4 | Implementato | Il link porta a `/app/rules#simulatore`; Regole scorre al simulatore e gli dà il focus. Nessuna precompilazione: la Guida non ha un caso da trasferire. Da confermare su `cf-ready-dev` che la navigazione embedded conservi l'ancora |
+| G-B5 | Implementato | "Domande frequenti" e gruppi con `s-heading` nativo, domande a peso normale; "Espandi tutte" a destra del titolo, sulla stessa riga, su richiesta dell'owner (`s-section` non accetta azioni nell'intestazione) |
+| G-B6 | Risolto da T3 | Con la freccia a destra la seconda riga parte sotto la prima; verificato a 320 px nei test visuali |
+| G-B7 | Implementato | Tolto il margine negativo: lo sfondo resta entro le linee; domanda e risposta rientrano insieme di 6 px |
+| G-B8 | Implementato | Con piano omaggio: "Il tuo negozio ha un piano omaggio permanente: non ci sono prove né pagamenti da gestire." |
+| G-B9, G-N1 | Implementato | Card Assistenza: testo, nota sul contenuto del messaggio, argomento, "Richiedi assistenza", "Copia diagnostica"; bottoni a tutta larghezza; "Il controllo non compare?" in fondo dopo un divisore |
+| O1 | Implementato | Pagina dell'onboarding con `s-page inlineSize="small"`: righe e select più corte |
+| O2, O3 | Implementato | Al passo 3 ogni messaggio è un blocco con etichetta, badge e lo stesso riquadro d'errore dell'anteprima di Messaggi (`CheckoutErrorPreview`); più spazio tra i blocchi che al loro interno. Simulatore al passo 3 scartato dall'owner |
+| O4 | Implementato | Tolto il logo grande; icona dell'app piccola accanto a "Benvenuto in CF Ready" |
+| O5 | Implementato | `s-progress` sotto "Passo N di 4" |
+| O6 | Escluso dall'owner | Nessuna modifica |
+| O7 | Implementato | Tolta la frase "I permessi per confrontare le etichette sono disponibili."; resta la casella della gestione automatica |
+| EN1 | Verificato | Risolto da T12: le FAQ inglesi usano "Read fields again from Shopify", "Last read of labels from Shopify" e "Checkout text", come Regole |
+| EN2 | Implementato | Le righe del riepilogo condividono le colonne (`subgrid`) e la prima si allarga fino all'etichetta più lunga; a 1200 px le voci inglesi stanno su una riga |
+| EN3 | Verificato | Risolto da T11: orari nel fuso dello store |
+| EN4 | Verificato | H1, M2, M4 e R-S1 implementati; T2 escluso dall'owner |
+
+### Verifica sul codice degli stati non visibili su `cf-ready-dev`
+
+Il 2 ottobre 2026 una lettura del codice ha cercato gli stessi schemi dei
+findings in stati che il dev store non mostra (errori, conflitti, billing,
+permessi assenti, piano omaggio). Correzioni nella `1.15.22`:
+
+| Punto | Schema | Correzione |
+| --- | --- | --- |
+| Pagina d'errore | Lingue mescolate | `boundary.error` gestisce solo le risposte Shopify: per gli altri errori `ErrorBoundary` mostra una pagina bilingue con "Ricarica la pagina" |
+| "Scegli un piano" | G-B2, G-B4 | Al posto dell'ancora `#plans`, che App Bridge scarta, porta in vista le offerte e vi sposta il focus |
+| Avvisi Home, etichette, conflitto | T13 | `RevealBanner` per gli avvisi della Home, gli errori delle etichette e il conflitto di configurazione, ora un avviso con "Riapplica le mie modifiche" primario |
+| Errore salvato sulle etichette | R-H4 | Badge "Controllo non completato" e spiegazione dell'errore, non "Verifica manuale richiesta" |
+| Comandi nei messaggi | EN1, T12 | Gli errori citano "Rileggi i campi da Shopify" e "Aggiorna e verifica"; tolto "più risorse" senza azione |
+| Guida di configurazione | M7, G-B9 | Quattro passi in griglia 2 × 2 |
+| Campo Interno, procedura manuale | T7 | Etichette e voci dell'interfaccia Shopify tra virgolette |
+| Scelte neutre | R-B7, T5 | Badge neutri per "Gestiti da te" e "Scelta registrata" |
+| Richiesta permessi | G-B9 | Bottoni affiancati |
+| Riepiloghi a frammenti | R-B4 | Conflitto dei messaggi, passo 2 dell'onboarding e conteggio delle etichette senza codici lingua né "·" |
+| Piano | G-B8, M5 | Titolo "Piano" al passo 4 con piano attivo; data del primo addebito una volta |
+
+Il sito pubblico e le notifiche dell'owner non sono stati analizzati.
+
+### Verifica su Chrome di `cf-ready-dev` del 3 ottobre 2026
+
+Giro completo della `1.15.20-dev` (#612) a 1440 e 500 px, con ricaricamento
+di ogni pagina. Conformi R-S1, R-S2, M1-M4, M6-M8, G-B1, G-B2, G-B5-G-B9,
+G-N1, O1-O5, O7 ed EN2 (italiano). G-B4 conforme in parte. Ricaricamenti
+stabili, salvo l'onboarding. Lo store non è stato modificato. Lingua inglese
+non provata dal vivo: richiede di cambiare la lingua del profilo.
+
+| Problema | Correzione |
+| --- | --- |
+| In Home, a ogni ingresso, "Verifica in corso…" azzurro e bottoni grigi per circa mezzo secondo | Lo stato salvato resta a vista; la verifica compare solo dopo un secondo. Le azioni restano ferme fino alla conferma (D-167) |
+| G-B4: le etichette caricate dopo spingono il simulatore fuori vista | Nuovo scorrimento a caricamento concluso, se il focus è ancora sul simulatore |
+| Diagnosi con due righe dello stesso orario e "verificate il:" | Una sola riga "Ultima verifica di regole e attivazione" |
+| "campo Interno" senza virgolette nei riepiloghi | “Interno” tra virgolette |
+| "Stiamo verificando l'eventuale credito" fisso sul dev store: conversione di test in `needs_review` | Nota nascosta per le conversioni di test |
+| Prezzi di lancio mostrati con il pagamento unico | Frase nascosta con il pagamento unico |
+| Onboarding: ricaricando una revisione si torna al passo 1 | Passo nell'URL (`?step=`), riletto dal loader |
+| Passo 2: Codice Fiscale e PEC senza titolo, "Campo Interno" con titolo | Stesso titolo `s-heading` per i tre gruppi |
+| «Codice fiscale» proposto con la minuscola | Nessuna modifica: è il testo standard di Shopify |
+

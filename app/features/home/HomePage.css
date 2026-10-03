@@ -1,3 +1,8 @@
+/* Riceve il focus solo da "Scegli un piano": non è un controllo, niente contorno. */
+.home-plans:focus {
+  outline: none;
+}
+
 .setup-guide__step {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);

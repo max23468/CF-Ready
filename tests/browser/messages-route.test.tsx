@@ -10,6 +10,23 @@ import { click, dispatch } from "./render";
 import CustomerMessages from "../../app/routes/app.messages";
 
 describe("Messaggi", () => {
+  test("mostra tutte le righe esplicite di un messaggio valido", async () => {
+    router.loaderData = {
+      locale: "it",
+      configHash: "hash",
+      messages: DEFAULT_CONFIG.messages,
+      rules: DEFAULT_CONFIG.rules,
+    };
+    const view = await mount(<CustomerMessages />);
+    const field = view.container.querySelector(
+      's-text-area[name="it.pecInvalid"]',
+    ) as HTMLElement & { value: string };
+    Object.assign(field, { name: "it.pecInvalid", value: "Riga di prova\n".repeat(12) });
+    await dispatch(field, new Event("input", { bubbles: true }));
+    expect(Number(field.getAttribute("rows"))).toBeGreaterThanOrEqual(13);
+    expect(field.getAttribute("error")).toBeNull();
+  });
+
   test("carica l'anteprima delle etichette dopo il primo render", async () => {
     router.loaderData = {
       locale: "it",
@@ -146,6 +163,14 @@ describe("Messaggi", () => {
     await view.rerender(<CustomerMessages />);
     expect(view.container.textContent).toContain("Modifica concorrente");
     expect(view.container.textContent).toContain("La mia modifica");
+    // Punti 10 e 11: titoli leggibili e conflitto come avviso che si porta in vista.
+    expect(view.container.textContent).toContain(
+      `${texts("it").messages.taxCodeRequired} (italiano)`,
+    );
+    expect(view.container.textContent).not.toContain("IT · ");
+    expect(
+      view.container.querySelector('.cf-reveal-banner s-banner[tone="warning"]'),
+    ).not.toBeNull();
     expect(
       view.container
         .querySelector('ui-save-bar button[variant="primary"]')

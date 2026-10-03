@@ -7,6 +7,9 @@ export const en: typeof it = {
     messages: "Customer messages",
     guide: "Help and FAQ",
   },
+  errorPage: {
+    reload: "Reload the page",
+  },
   common: {
     yes: "Yes",
     no: "No",
@@ -32,22 +35,22 @@ export const en: typeof it = {
     checkout_labels_resource_missing:
       "Shopify doesn’t expose one of the expected labels. Rules still work; use the guided steps.",
     checkout_labels_resource_ambiguous:
-      "Shopify exposes more than one resource for the same label. No text was changed.",
+      "Shopify returns more than one text for the same label, so CF Ready didn’t change anything. Check the labels in the checkout text editor; if the problem persists, contact us.",
     checkout_labels_locale_missing:
       "Italian or English isn’t available on this store. Publish it or continue with the available languages.",
     checkout_labels_conflict:
-      "A label changed after the last read. Reload Shopify before choosing which text to keep.",
+      "A label changed after the last read. Select “Read fields again from Shopify” before choosing which text to keep.",
     checkout_labels_confirmation_required:
       "Confirm the comparison before the first automatic label write.",
     checkout_labels_confirmation_pending:
       "Rules were saved. Update the listed labels in Shopify, then confirm them in CF Ready.",
     checkout_labels_stale_digest:
-      "Shopify updated the content during the save. Reload the labels and try again.",
+      "Shopify updated the content during the save. Select “Read fields again from Shopify” and try again.",
     checkout_labels_partial_sync: "Rules were saved, but some labels need another attempt.",
     checkout_labels_readback_failed:
-      "Shopify didn’t confirm every label. Reload their status before making another change.",
+      "Shopify didn’t confirm every label. Select “Read fields again from Shopify” before making another change.",
     address2_restore_conflict:
-      "The second address line changed after the comparison. Reload Shopify before restoring it.",
+      "The second address line changed after the comparison. Select “Read fields again from Shopify” before restoring it.",
     validation_limit_reached:
       "This store already has the maximum number of active validations Shopify allows. Your rules are still saved. Turn off another app’s validation in Settings → Checkout, then try again.",
     entitlement_required: "Start the trial or choose a plan to turn on the check.",
@@ -130,13 +133,23 @@ export const en: typeof it = {
     appearHeading: "Messages linked to your rules",
     appearIntro:
       "These indicators depend on the rules you chose, not on whether the check is active. A message can appear at checkout only while the check is active.",
-    appears: "Expected",
-    appearsNot: "Not expected",
+    appears: "Can appear",
+    appearsNot: "Does not appear",
+    fieldNames: { taxCode: "Tax code", pec: "PEC" },
+    shortLabels: {
+      taxCodeRequired: "Required",
+      taxCodeInvalid: "Invalid",
+      pecRequired: "Required",
+      pecInvalid: "Invalid",
+    },
     languageSelector: "Message language",
     previewHeading: "Checkout preview",
     previewContext: "When the customer tries to complete the order",
     previewErrorHeading: "Order can’t be completed",
     previewSelected: "Selected message",
+    previewHint: "The preview shows the message you are editing.",
+    previewNotShown: "With the current rules this message does not appear at checkout.",
+    editorHeading: "Error messages",
     previewFieldLabel: "Field label",
     previewCurrentFieldLabel: "Current Shopify label",
     previewProposedFieldLabel: "Proposed label",
@@ -181,11 +194,11 @@ export const en: typeof it = {
     step2Heading: "Choose what to check",
     step2Body: "You can change these choices whenever you want from Checkout rules.",
     labelsPreviewHeading: "Proposed labels in Italian and English",
-    labelsPermissionsGranted: "The permissions used to compare labels are available.",
     labelsPermissionsOptional:
       "You can grant permission to compare labels with Shopify now or continue without enabling it.",
     step3Heading: "Rules preview",
-    labelsMixedDescription: "Some labels are managed automatically; others need a manual check.",
+    labelsMixedDescription:
+      "Mixed mode supports automatic updates and manual checks. “Checkout rules” shows any checks still to complete.",
     step3Body: "With the rules you selected:",
     step3Messages: "Configured messages",
     step3MessagesBody:
@@ -256,8 +269,8 @@ export const en: typeof it = {
       heading: "Is the check missing?",
       body: "Reads rules, activation and plan again from Shopify. To see the real behaviour, then try an order at checkout.",
       refresh: "Refresh and check",
-      failed: "We couldn’t read the status from Shopify. Try again shortly from Home.",
-      checkedAt: "Rules and activation checked at",
+      failed:
+        "We couldn’t read the status from Shopify. Try again shortly with “Refresh and check”.",
       enabled: "The validation is enabled on Shopify.",
       disabled: "The validation is disabled or missing. Open Home to manage activation.",
       configured: "At least one field is configured for validation.",
@@ -273,9 +286,19 @@ export const en: typeof it = {
       simulate: "Reproduce the case in the simulator",
       entitled: "Trial or plan active.",
       notEntitled: "No active trial or plan.",
-      checkoutLabels: "Checkout labels",
-      address2: "Second address line",
+      labelsStatus: {
+        synced: "Checkout labels are up to date.",
+        action_required: "Checkout labels need attention.",
+        scope_required: "Grant permissions to check the labels.",
+        unknown: "Checkout labels have not been checked yet.",
+      },
+      address2Decision: {
+        accepted: "You chose to keep the customization.",
+        manual_restore_required: "Manual restore required.",
+      },
     },
+    complimentaryBillingAnswer:
+      "Your store has a permanent complimentary plan: there is no trial or payment to manage.",
     heading: "Help and FAQ",
     faqHeading: "Frequently asked",
     expandAll: "Expand all",
@@ -339,6 +362,7 @@ export const en: typeof it = {
         heading: "Plan, privacy and support",
         entries: [
           {
+            id: "billing",
             q: "How do the trial and payments work?",
             a: "The free trial lasts 14 days, starts only when you launch it, and is available once per store. It doesn’t require a payment method. If you choose the monthly or annual plan during the trial, the remaining days are added as Shopify subscription trial days. If you choose the one-time payment, the charge is immediate and you give up the remaining trial days.",
           },
@@ -472,6 +496,10 @@ export const en: typeof it = {
       mixedDelivery: "Add a foreign delivery",
       taxCodePresent: "Shopify shows the Italian tax code field",
       pecPresent: "Shopify shows the PEC field",
+      missingRequiredField: (label: string) =>
+        `The “${label}” field is required, but Shopify does not show it in this scenario. With an Italian delivery, the order is blocked at completion.`,
+      showMissingFields:
+        "To try entering a value, open “Advanced options” and select “Shopify shows the field” for the missing field.",
       scenarioLabel: "Try a scenario",
       scenarioHelp: "Choose a scenario: the simulator fills the fields and shows the result.",
       scenarioPlaceholder: "Choose a scenario",
@@ -511,6 +539,7 @@ export const en: typeof it = {
       statusUpToDate: "Up to date",
       statusKept: "Managed by you",
       statusManualRequired: "Manual verification required",
+      statusError: "Check not completed",
       nativeSummaryNeedsAccess: "Grant access to check the checkout text.",
       nativeSummaryNeedsReview: (count: number, languages: string[]) =>
         `${count === 1 ? "One checkout" : `${count} checkouts`} in ${languages.join(" and ")} ${count === 1 ? "needs" : "need"} verification.`,
@@ -557,7 +586,7 @@ export const en: typeof it = {
       lastSync: (value: string) => `Last read of labels from Shopify: ${value}`,
       neverSynced: "No successful read from Shopify yet",
       operationalSummary: (automatic: number, manual: number) =>
-        `${automatic} ${automatic === 1 ? "label" : "labels"} updated automatically · ${manual} manual ${manual === 1 ? "verification" : "verifications"} required`,
+        `${automatic} ${automatic === 1 ? "label" : "labels"} updated automatically. ${manual} manual ${manual === 1 ? "verification" : "verifications"} required.`,
       manualHeading: "How to complete the manual verification",
       manualSteps: (
         language: string,
@@ -575,14 +604,14 @@ export const en: typeof it = {
           : []),
         "For every case listed, add a product to the cart and continue to checkout. Set Italy as the delivery country and select an Italian address recognized by Shopify: the tax code and PEC fields appear after the address is accepted.",
         "Compare the tax code and PEC labels with the “Field after saving” value shown here.",
-        "If they differ, select “Open the checkout text editor”. In Shopify, under Checkout language, select “Edit checkout content”.",
+        "If they differ, select “Open the checkout text editor”. In Shopify, under “Checkout language”, select “Edit checkout content”.",
         ...(primary && !market
           ? [
-              "In the editor, select “Search and filter results”. For the tax code, search for the value shown as “Current field” and edit only Checkout localized fields additional information → Tax credential it; ignore B2B locations → Tax id.",
-              "For PEC, search for “PEC”, scroll to Checkout localized fields additional information, and edit Tax email it. Enter the corresponding “Field after saving” for both fields, then select “Save”.",
+              "In the editor, select “Search and filter results”. For the tax code, search for the value shown as “Current field” and edit only “Checkout localized fields additional information → Tax credential it”; ignore “B2B locations → Tax id”.",
+              "For PEC, search for “PEC”, scroll to “Checkout localized fields additional information”, and edit “Tax email it”. Enter the corresponding “Field after saving” for both fields, then select “Save”.",
               ...(verificationMarkets.length > 0
                 ? [
-                    `If a label differs only in ${verificationMarkets.join(", ")}, select “Translate” in the editor, open the “Translating into…” selector, and choose “Adapt a market”. Open ${verificationMarkets.join(", ")} one at a time with ${language} selected, then under Checkout and system use “Filter fields” to find Tax credential it or Tax email it, enter the corresponding “Field after saving”, and save.`,
+                    `If a label differs only in ${verificationMarkets.join(", ")}, select “Translate” in the editor, open the “Translating into…” selector, and choose “Adapt a market”. Open ${verificationMarkets.join(", ")} one at a time with ${language} selected, then under “Checkout and system” use “Filter fields” to find “Tax credential it” or “Tax email it”, enter the corresponding “Field after saving”, and save.`,
                   ]
                 : []),
             ]
@@ -591,7 +620,7 @@ export const en: typeof it = {
               market
                 ? `Open the “Translating into…” selector and choose “Adapt a market” → ${market} → ${language}.`
                 : `Check that “Translating into ${language}” is selected at the top. If it isn’t, open the “Translating into…” selector and choose ${language} under “Translate for all markets”.`,
-              "Open Checkout and system. Under “Filter fields”, search for Tax credential it and Tax email it, enter the corresponding “Field after saving” for each one, then select “Save”.",
+              "Open “Checkout and system”. Under “Filter fields”, search for “Tax credential it” and “Tax email it”, enter the corresponding “Field after saving” for each one, then select “Save”.",
             ]),
         "Return to CF Ready and select “Read fields again from Shopify”. When the two values match, the confirmation button becomes available.",
       ],

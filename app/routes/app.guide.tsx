@@ -18,7 +18,12 @@ import {
 } from "../i18n";
 import { readConfig } from "../config";
 import { readCheckoutLabelState } from "../checkout-labels/repository.server";
-import { checkoutLabelsStatus } from "../checkout-labels/domain";
+import {
+  checkoutLabelsStatus,
+  type Address2Classification,
+  type Address2Decision,
+  type CheckoutLabelsStatus,
+} from "../checkout-labels/domain";
 import {
   CHECKOUT_LABEL_OPTIONAL_SCOPES,
   loadCheckoutLabels,
@@ -157,10 +162,12 @@ export default function Guide() {
       {/* §15.7: pagina unica con sezioni espandibili. Polaris non ha un componente di
           divulgazione, quindi si usa `details`, che è l'elemento nativo della piattaforma:
           accessibile e utilizzabile da tastiera senza reimplementare nulla (§8.1). */}
+      {/* G-B5: titoli `s-heading` nativi, domande senza grassetto. `s-section` non accetta
+          azioni accanto al titolo: il titolo sta nel contenuto, con "Espandi tutte" a destra. */}
       <s-section id="faq">
-        <s-stack direction="block" gap="small-100">
-          <s-grid gridTemplateColumns="1fr auto" alignItems="center" gap="base">
-            <h2 className="guide-faq__heading">{t.guide.faqHeading}</h2>
+        <s-stack direction="block" gap="base">
+          <s-grid gridTemplateColumns="minmax(0, 1fr) auto" alignItems="center" gap="base">
+            <s-heading>{t.guide.faqHeading}</s-heading>
             <s-button onClick={toggleAll}>
               {expanded ? t.guide.collapseAll : t.guide.expandAll}
             </s-button>
@@ -168,16 +175,23 @@ export default function Guide() {
           <div className="guide-faq__groups">
             {t.guide.groups.map((group) => (
               <div className="guide-faq__group" key={group.heading}>
-                <h3 className="guide-faq__group-heading">{group.heading}</h3>
+                <s-heading>{group.heading}</s-heading>
                 <div className="guide-faq__entries">
                   {group.entries.map((entry) => (
                     <details className="guide-faq__entry" key={entry.q} onToggle={syncExpanded}>
                       <summary className="cf-disclosure">
                         <span className="guide-faq__question">{entry.q}</span>
                       </summary>
-                      <s-box paddingBlockStart="small-100">
-                        <s-paragraph>{entry.a}</s-paragraph>
-                      </s-box>
+                      <div className="guide-faq__answer">
+                        <s-paragraph>
+                          {/* G-B8: a uno store con piano omaggio non si parla di prova e prezzi. */}
+                          {"id" in entry &&
+                          entry.id === "billing" &&
+                          diagnostics.entitlementKind === "complimentary"
+                            ? t.guide.complimentaryBillingAnswer
+                            : entry.a}
+                        </s-paragraph>
+                      </div>
                     </details>
                   ))}
                 </div>
@@ -193,18 +207,11 @@ export default function Guide() {
       <s-stack slot="aside" direction="block" gap="base">
         <s-section heading={t.support.heading}>
           <div id="support">
+            {/* G-B9, G-N1: spiegazione, argomento e invio in sequenza; il salto alla
+                diagnosi è un percorso diverso e sta in fondo. */}
             <s-stack direction="block" gap="base">
               <s-paragraph>{t.support.body}</s-paragraph>
-              <s-button
-                icon="search"
-                onClick={() =>
-                  document
-                    .getElementById("validation-diagnosis")
-                    ?.scrollIntoView({ block: "start" })
-                }
-              >
-                {t.guide.diagnosis.heading}
-              </s-button>
+              <s-text color="subdued">{t.support.privacyNote}</s-text>
               <s-select
                 label={t.support.chooseCategory}
                 value={supportCategory}
@@ -220,17 +227,23 @@ export default function Guide() {
               </s-select>
               <s-button
                 variant="primary"
+                inlineSize="fill"
                 href={supportMailto(supportDetails, locale, supportCategory)}
               >
                 {t.support.requestSupport}
               </s-button>
-              <s-button onClick={copyDiagnostics}>{t.support.copyDiagnostics}</s-button>
+              <s-button inlineSize="fill" onClick={copyDiagnostics}>
+                {t.support.copyDiagnostics}
+              </s-button>
               {copyFailed ? (
                 <span className="cf-motion-reveal">
                   <s-text tone="critical">{t.support.diagnosticsCopyFailed}</s-text>
                 </span>
               ) : null}
-              <s-text color="subdued">{t.support.privacyNote}</s-text>
+              <s-divider />
+              <s-button icon="search" inlineSize="fill" onClick={showDiagnosis}>
+                {t.guide.diagnosis.heading}
+              </s-button>
             </s-stack>
           </div>
         </s-section>
@@ -260,6 +273,17 @@ export default function Guide() {
   );
 }
 
+// Il titolo ha un box reale: centrarlo mantiene visibile il punto di arrivo anche sotto
+// l'intestazione fissa dell'Admin, senza dipendere dallo shadow DOM di Polaris.
+function showDiagnosis() {
+  const target = document.getElementById("validation-diagnosis");
+  if (!target) return;
+  const heading = target.querySelector(".guide-diagnosis__heading");
+  const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  heading?.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" });
+  target.focus({ preventScroll: true });
+}
+
 function ValidationDiagnosis({
   locale,
   diagnostics,
@@ -274,9 +298,12 @@ function ValidationDiagnosis({
   const checkCopy = t.guide.diagnosis;
   const errorCode = diagnosisErrorCode(check, checkResult, diagnostics.errorCode);
   return (
-    <s-section heading={checkCopy.heading}>
-      <div id="validation-diagnosis">
+    <s-section>
+      <div id="validation-diagnosis" className="guide-diagnosis" tabIndex={-1}>
         <s-stack direction="block" gap="base">
+          <div className="guide-diagnosis__heading">
+            <s-heading>{checkCopy.heading}</s-heading>
+          </div>
           <s-paragraph>{checkCopy.body}</s-paragraph>
           <s-button
             disabled={checkFetcher.state !== "idle"}
@@ -292,17 +319,20 @@ function ValidationDiagnosis({
           {errorCode ? (
             <s-banner tone="warning">{localizedError(t.errors, errorCode)}</s-banner>
           ) : null}
+          {/* Dopo "Aggiorna e verifica" l'ultima verifica è quella appena fatta: un solo orario. */}
           <s-text color="subdued">
             {checkCopy.lastSync}:{" "}
-            {diagnostics.lastSyncAt
-              ? formatDateTime(diagnostics.lastSyncAt, locale, diagnostics.timeZone)
-              : checkCopy.unknown}
+            {check
+              ? formatDateTime(check.checkedAt, locale, check.timeZone)
+              : diagnostics.lastSyncAt
+                ? formatDateTime(diagnostics.lastSyncAt, locale, diagnostics.timeZone)
+                : checkCopy.unknown}
           </s-text>
           <s-stack direction="block" gap="small-100">
             <s-heading>{checkCopy.manualHeading}</s-heading>
             <s-paragraph>{checkCopy.manualBody}</s-paragraph>
           </s-stack>
-          <s-link href="/app/rules">{checkCopy.simulate}</s-link>
+          <s-link href="/app/rules#simulatore">{checkCopy.simulate}</s-link>
         </s-stack>
       </div>
     </s-section>
@@ -326,10 +356,58 @@ type DiagnosisCheck = {
   entitled: boolean;
   configured: boolean;
   errorCode: unknown;
-  checkoutLabelsStatus: string;
-  address2Classification: string;
-  address2Decision: string;
+  checkoutLabelsStatus: CheckoutLabelsStatus;
+  address2Classification: Address2Classification;
+  address2Decision: Address2Decision;
 };
+
+type DiagnosisTone = "success" | "warning" | "neutral";
+
+const DIAGNOSIS_ICON = {
+  success: "check-circle",
+  warning: "alert-triangle",
+  neutral: "info",
+} as const;
+
+const LABELS_TONE: Record<CheckoutLabelsStatus, DiagnosisTone> = {
+  synced: "success",
+  action_required: "warning",
+  scope_required: "warning",
+  unknown: "neutral",
+};
+
+function address2Tone(check: DiagnosisCheck): DiagnosisTone {
+  if (
+    check.address2Decision === "manual_restore_required" ||
+    (check.address2Classification === "fiscal_conflict" && check.address2Decision === "pending")
+  ) {
+    return "warning";
+  }
+  return check.address2Classification === "unknown" ? "neutral" : "success";
+}
+
+// G-B1: ogni esito ha un'icona di stato e il link fuori dal paragrafo, quindi blu come altrove.
+function DiagnosisRow({
+  tone,
+  text,
+  href,
+  link,
+}: {
+  tone: DiagnosisTone;
+  text: string;
+  href: string;
+  link: string;
+}) {
+  return (
+    <s-grid gridTemplateColumns="auto minmax(0, 1fr)" gap="small-200" alignItems="start">
+      <s-icon type={DIAGNOSIS_ICON[tone]} tone={tone} />
+      <s-stack direction="block" gap="small-100" alignItems="start">
+        <s-text>{text}</s-text>
+        <s-link href={href}>{link}</s-link>
+      </s-stack>
+    </s-grid>
+  );
+}
 
 function DiagnosisResult({
   check,
@@ -343,26 +421,48 @@ function DiagnosisResult({
   if (!check || check.errorCode) return <s-paragraph>{copy.notChecked}</s-paragraph>;
   return (
     <>
-      <s-text color="subdued">
-        {copy.checkedAt}: {formatDateTime(check.checkedAt, locale, check.timeZone)}
-      </s-text>
-      <s-paragraph>
-        {check.enabled ? copy.enabled : copy.disabled} <s-link href="/app">{t.nav.home}</s-link>
-      </s-paragraph>
-      <s-paragraph>
-        {check.entitled ? copy.entitled : copy.notEntitled}{" "}
-        <s-link href="/app">{copy.openPlan}</s-link>
-      </s-paragraph>
-      <s-paragraph>
-        {check.configured ? copy.configured : copy.unconfigured}{" "}
-        <s-link href="/app/rules">{t.nav.rules}</s-link>
-      </s-paragraph>
-      <s-paragraph>
-        {copy.checkoutLabels}: {check.checkoutLabelsStatus}
-      </s-paragraph>
-      <s-paragraph>
-        {copy.address2}: {check.address2Classification} · {check.address2Decision}
-      </s-paragraph>
+      <DiagnosisRow
+        tone={check.enabled ? "success" : "warning"}
+        text={check.enabled ? copy.enabled : copy.disabled}
+        href="/app"
+        link={t.nav.home}
+      />
+      <DiagnosisRow
+        tone={check.entitled ? "success" : "warning"}
+        text={check.entitled ? copy.entitled : copy.notEntitled}
+        href="/app"
+        link={copy.openPlan}
+      />
+      <DiagnosisRow
+        tone={check.configured ? "success" : "warning"}
+        text={check.configured ? copy.configured : copy.unconfigured}
+        href="/app/rules"
+        link={t.nav.rules}
+      />
+      {check.checkoutLabelsStatus in LABELS_TONE ? (
+        <DiagnosisRow
+          tone={LABELS_TONE[check.checkoutLabelsStatus]}
+          text={copy.labelsStatus[check.checkoutLabelsStatus]}
+          href="/app/rules"
+          link={t.nav.rules}
+        />
+      ) : null}
+      {check.address2Classification in t.rules.labels.addressSummary ? (
+        <DiagnosisRow
+          tone={address2Tone(check)}
+          text={[
+            t.rules.labels.addressSummary[check.address2Classification],
+            check.address2Decision === "accepted" ||
+            check.address2Decision === "manual_restore_required"
+              ? copy.address2Decision[check.address2Decision]
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          href="/app/rules"
+          link={t.nav.rules}
+        />
+      ) : null}
     </>
   );
 }

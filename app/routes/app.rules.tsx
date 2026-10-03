@@ -5,7 +5,14 @@ import type {
   LoaderFunctionArgs,
   ShouldRevalidateFunction,
 } from "react-router";
-import { data, useActionData, useLoaderData, useNavigation, useSubmit } from "react-router";
+import {
+  data,
+  useActionData,
+  useLoaderData,
+  useLocation,
+  useNavigation,
+  useSubmit,
+} from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError } from "../app-error";
 import { authenticateAdminTimed } from "../admin-auth.server";
@@ -119,6 +126,8 @@ export const shouldRevalidate: ShouldRevalidateFunction = (args) => {
   return skipRevalidationWhenLeaving(args);
 };
 
+const SIMULATOR_ID = "simulatore";
+
 export default function CheckoutRules() {
   const saved = useLoaderData<typeof loader>();
   const result = useActionData<typeof action>();
@@ -159,6 +168,19 @@ export default function CheckoutRules() {
   };
 
   useEffect(() => setChangedSinceResult(false), [result]);
+  // G-B4: dalla Guida "Riproduci il caso nel simulatore" arriva con l'ancora del simulatore.
+  // Le etichette si caricano dopo e allungano la colonna sopra il simulatore: a caricamento
+  // concluso lo si riporta in vista, se il merchant non ha spostato il focus altrove.
+  const { hash } = useLocation();
+  const simulatorReached = useRef(false);
+  useEffect(() => {
+    if (hash !== `#${SIMULATOR_ID}` || (labelsLoading && simulatorReached.current)) return;
+    const target = document.getElementById(SIMULATOR_ID);
+    if (!target || (simulatorReached.current && document.activeElement !== target)) return;
+    simulatorReached.current = true;
+    target.scrollIntoView?.({ block: "start" });
+    target.focus({ preventScroll: true });
+  }, [hash, labelsLoading]);
   const savedText = t.rules.saved;
   useEffect(() => {
     if (result?.ok && !labelsErrorCode) showToast(savedText);
@@ -349,7 +371,7 @@ export default function CheckoutRules() {
             </div>
           </div>
 
-          <div className="rules-layout__preview">
+          <div className="rules-layout__preview" id={SIMULATOR_ID} tabIndex={-1}>
             <s-section heading={t.rules.previewHeading}>
               <s-stack direction="block" gap="base">
                 <s-stack direction="block" gap="small-100">

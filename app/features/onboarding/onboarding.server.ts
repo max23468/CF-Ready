@@ -63,7 +63,8 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   return data(
     {
       locale: resolveLocale(request),
-      step: onboarding.step,
+      // Il passo nell'URL tiene il punto anche ricaricando una revisione già completata.
+      step: parseOnboardingStep(new URL(request.url).searchParams.get("step")) ?? onboarding.step,
       completed: onboarding.status === "completed",
       rules: config.rules,
       messages: config.messages,

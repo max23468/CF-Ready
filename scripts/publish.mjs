@@ -1,5 +1,4 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { changedFiles, classifyCiLane } from "./ci-lane.mjs";
 
@@ -481,8 +480,9 @@ export async function publish(target) {
     return { developSha };
   }
 
-  const version = JSON.parse(readFileSync("package.json", "utf8")).version;
   const candidateSha = await promotionCandidate(developSha);
+  // La versione è quella del tree promosso: develop può essere avanzato oltre il branch locale.
+  const version = JSON.parse(output("git", ["show", `${candidateSha}:package.json`])).version;
   const promotionPr = await ensurePullRequest({
     branch: "develop",
     base: "main",

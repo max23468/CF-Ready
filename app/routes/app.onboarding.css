@@ -9,8 +9,16 @@
   outline: none;
 }
 
+/* EN2: le righe condividono le colonne del riepilogo; la prima si allarga fino all'etichetta
+   più lunga, così le etichette inglesi non vanno a capo e i valori restano allineati. */
+.cf-data-list.cf-onboarding-summary {
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: 12px;
+}
+
 .cf-data-row.cf-onboarding-summary-row {
-  grid-template-columns: 160px minmax(0, 1fr);
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
 }
 
 .cf-onboarding-summary-value {
@@ -28,6 +36,10 @@
 }
 
 @media (max-width: 420px) {
+  .cf-data-list.cf-onboarding-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .cf-data-row.cf-onboarding-summary-row {
     grid-template-columns: minmax(0, 1fr);
     gap: 4px;
