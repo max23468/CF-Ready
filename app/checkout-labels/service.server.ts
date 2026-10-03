@@ -1,7 +1,8 @@
 import type { AppErrorCode } from "../app-error";
 import type { CheckoutConfig, Rules } from "../config";
 import { withValidationLock, type ValidationLockHeartbeat } from "../validation/lock.server";
-import { writeValidationUnderLock } from "../validation/write.server";
+import { writeValidationUnderLock, type SavedValidation } from "../validation/write.server";
+import { createServerTiming } from "../server-timing.server";
 import {
   address2Reference,
   CHECKOUT_LABEL_OPTIONAL_SCOPES,
@@ -152,6 +153,15 @@ export async function acceptCheckoutLabelsCustomization(
     : { ok: false as const, errorCode: "validation_locked" as const };
 }
 
+export type RulesAndCheckoutLabelsSaveResult =
+  | {
+      ok: true;
+      saved?: SavedValidation;
+      labelsErrorCode?: AppErrorCode | null;
+      labels?: CheckoutLabelsLoadResult;
+    }
+  | { ok: false; errorCode: AppErrorCode };
+
 export async function saveRulesAndCheckoutLabels(
   admin: Admin,
   db: D1Database,
@@ -164,101 +174,128 @@ export async function saveRulesAndCheckoutLabels(
     confirmAutomaticWrite: boolean;
     expectedLabelsRevision: string | null;
   },
-) {
-  const locked = await withValidationLock(db, shopDomain, async (heartbeat) => {
-    const state = await readCheckoutLabelState(db, shopDomain);
-    const wasEnabled = state.mode !== "off";
-    let snapshot: CheckoutLabelsSnapshot | null = null;
-    let epoch = state.managementEpoch;
+  timing = createServerTiming(),
+): Promise<RulesAndCheckoutLabelsSaveResult> {
+  const locked = await withValidationLock<RulesAndCheckoutLabelsSaveResult>(
+    db,
+    shopDomain,
+    async (heartbeat) => {
+      const state = await readCheckoutLabelState(db, shopDomain);
+      const wasEnabled = state.mode !== "off";
+      let snapshot: CheckoutLabelsSnapshot | null = null;
+      let epoch = state.managementEpoch;
 
-    if (input.labelsEnabled || wasEnabled) {
-      try {
-        snapshot = await readCheckoutLabels(admin);
-      } catch (error) {
-        const errorCode = checkoutLabelsError(error);
-        await markCheckoutLabelsResult(db, shopDomain, { errorCode, synced: false });
-        return { ok: false as const, errorCode };
+      if (input.labelsEnabled || wasEnabled) {
+        try {
+          snapshot = await timing.measure("shopify_checkout_labels", () =>
+            readCheckoutLabels(admin),
+          );
+        } catch (error) {
+          const errorCode = checkoutLabelsError(error);
+          await markCheckoutLabelsResult(db, shopDomain, { errorCode, synced: false });
+          return { ok: false as const, errorCode };
+        }
+        if (input.expectedLabelsRevision && snapshot.revision !== input.expectedLabelsRevision) {
+          return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
+        }
+        await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots, snapshot.address2);
       }
-      if (input.expectedLabelsRevision && snapshot.revision !== input.expectedLabelsRevision) {
-        return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
+
+      if (
+        input.labelsEnabled &&
+        !wasEnabled &&
+        snapshot &&
+        automaticFiscalWrites(snapshot, input.rules).length > 0 &&
+        !input.confirmAutomaticWrite
+      ) {
+        return {
+          ok: false as const,
+          errorCode: "checkout_labels_confirmation_required" as const,
+        };
       }
-      await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots, snapshot.address2);
-    }
 
-    if (
-      input.labelsEnabled &&
-      !wasEnabled &&
-      snapshot &&
-      automaticFiscalWrites(snapshot, input.rules).length > 0 &&
-      !input.confirmAutomaticWrite
-    ) {
-      return {
-        ok: false as const,
-        errorCode: "checkout_labels_confirmation_required" as const,
-      };
-    }
+      if (input.labelsEnabled && !wasEnabled && snapshot) {
+        epoch = await enableCheckoutLabels(db, shopDomain, checkoutLabelsMode(snapshot.slots));
+      }
 
-    if (input.labelsEnabled && !wasEnabled && snapshot) {
-      epoch = await enableCheckoutLabels(db, shopDomain, checkoutLabelsMode(snapshot.slots));
-    }
+      const initialIssue = snapshot ? fiscalSnapshotIssue(snapshot, input.rules) : null;
+      if (input.labelsEnabled && snapshot && epoch && !initialIssue) {
+        const preflight = await synchronizeFiscalPhase(
+          admin,
+          db,
+          shopDomain,
+          snapshot,
+          input.rules,
+          epoch,
+          "before_validation",
+          heartbeat,
+        );
+        if (!preflight.ok) {
+          await markCheckoutLabelsResult(db, shopDomain, {
+            errorCode: preflight.errorCode,
+            synced: false,
+          });
+          return preflight;
+        }
+      }
 
-    const initialIssue = snapshot ? fiscalSnapshotIssue(snapshot, input.rules) : null;
-    if (input.labelsEnabled && snapshot && epoch && !initialIssue) {
-      const preflight = await synchronizeFiscalPhase(
+      const validation = await writeValidationUnderLock(
         admin,
         db,
         shopDomain,
-        snapshot,
-        input.rules,
-        epoch,
-        "before_validation",
+        { rules: input.rules, ...(input.messages ? { messages: input.messages } : {}) },
+        null,
+        input.expectedConfigHash,
+        undefined,
         heartbeat,
+        timing,
       );
-      if (!preflight.ok) {
-        await markCheckoutLabelsResult(db, shopDomain, {
-          errorCode: preflight.errorCode,
-          synced: false,
-        });
-        return preflight;
+      if (!validation.ok) return validation;
+
+      if (input.labelsEnabled && snapshot && epoch) {
+        const labels = await finishFiscalLabels(
+          admin,
+          db,
+          shopDomain,
+          input.rules,
+          epoch,
+          initialIssue,
+          heartbeat,
+          timing,
+        );
+        if (labels.labelsErrorCode)
+          return { ok: true as const, labelsErrorCode: labels.labelsErrorCode };
+        return {
+          ...validation,
+          labelsErrorCode: null,
+          labels: await loadCheckoutLabels(admin, db, shopDomain, input.rules, {
+            ok: true,
+            snapshot: labels.snapshot,
+          }),
+        };
+      } else if (!input.labelsEnabled && wasEnabled && snapshot) {
+        const restored = await restoreOwnedFiscalLabels(
+          admin,
+          db,
+          shopDomain,
+          snapshot,
+          state.managementEpoch,
+          heartbeat,
+        );
+        if (!restored.ok) {
+          await markCheckoutLabelsResult(db, shopDomain, {
+            mode: "partial",
+            errorCode: restored.errorCode,
+            synced: false,
+          });
+          return { ok: true as const, labelsErrorCode: restored.errorCode };
+        }
+        await stopCheckoutLabelManagement(db, shopDomain);
       }
-    }
 
-    const validation = await writeValidationUnderLock(
-      admin,
-      db,
-      shopDomain,
-      { rules: input.rules, ...(input.messages ? { messages: input.messages } : {}) },
-      null,
-      input.expectedConfigHash,
-      undefined,
-      heartbeat,
-    );
-    if (!validation.ok) return validation;
-
-    if (input.labelsEnabled && snapshot && epoch) {
-      return finishFiscalLabels(admin, db, shopDomain, input.rules, epoch, initialIssue, heartbeat);
-    } else if (!input.labelsEnabled && wasEnabled && snapshot) {
-      const restored = await restoreOwnedFiscalLabels(
-        admin,
-        db,
-        shopDomain,
-        snapshot,
-        state.managementEpoch,
-        heartbeat,
-      );
-      if (!restored.ok) {
-        await markCheckoutLabelsResult(db, shopDomain, {
-          mode: "partial",
-          errorCode: restored.errorCode,
-          synced: false,
-        });
-        return { ok: true as const, labelsErrorCode: restored.errorCode };
-      }
-      await stopCheckoutLabelManagement(db, shopDomain);
-    }
-
-    return { ok: true as const, labelsErrorCode: null };
-  });
+      return { ...validation, labelsErrorCode: null };
+    },
+  );
 
   return locked.acquired
     ? locked.result
@@ -424,8 +461,9 @@ async function finishFiscalLabels(
   epoch: string,
   initialIssue: AppErrorCode | null,
   heartbeat: ValidationLockHeartbeat,
+  timing: ReturnType<typeof createServerTiming>,
 ) {
-  const snapshot = await readCheckoutLabels(admin);
+  const snapshot = await timing.measure("shopify_checkout_labels", () => readCheckoutLabels(admin));
   const after = initialIssue
     ? { ok: false as const, errorCode: initialIssue }
     : await synchronizeFiscalPhase(
@@ -444,9 +482,16 @@ async function finishFiscalLabels(
       errorCode: after.errorCode,
       synced: false,
     });
-    return { ok: true as const, labelsErrorCode: after.errorCode };
+    return { ok: true as const, labelsErrorCode: after.errorCode, snapshot };
   }
-  const { readback, errorCode } = await readbackAfterWrites(admin, db, shopDomain, rules);
+  const { readback, errorCode } = await readbackAfterWrites(
+    admin,
+    db,
+    shopDomain,
+    rules,
+    after.written ? undefined : snapshot,
+    timing,
+  );
   if (errorCode) {
     await markCheckoutLabelsResult(db, shopDomain, {
       mode:
@@ -459,6 +504,7 @@ async function finishFiscalLabels(
     return {
       ok: true as const,
       labelsErrorCode: errorCode,
+      snapshot: readback,
     };
   }
   await persistCheckoutLabelObservation(db, shopDomain, readback.slots, readback.address2);
@@ -467,17 +513,26 @@ async function finishFiscalLabels(
     errorCode: null,
     synced: true,
   });
-  return { ok: true as const, labelsErrorCode: null };
+  return { ok: true as const, labelsErrorCode: null, snapshot: readback };
 }
 
 // Subito dopo una scrittura Shopify può restituire ancora la traduzione precedente: una
 // differenza sulle etichette automatiche si ricontrolla prima di segnalarla come parziale.
 const READBACK_RETRY_DELAYS_MS = [400, 1200];
 
-async function readbackAfterWrites(admin: Admin, db: D1Database, shopDomain: string, rules: Rules) {
+async function readbackAfterWrites(
+  admin: Admin,
+  db: D1Database,
+  shopDomain: string,
+  rules: Rules,
+  initial?: CheckoutLabelsSnapshot,
+  timing = createServerTiming(),
+) {
   for (let attempt = 0; ; attempt += 1) {
     const [readback, stored] = await Promise.all([
-      readCheckoutLabels(admin),
+      attempt === 0 && initial
+        ? Promise.resolve(initial)
+        : timing.measure("shopify_checkout_labels", () => readCheckoutLabels(admin)),
       readStoredCheckoutLabelSlots(db, shopDomain),
     ]);
     const errorCode = checkoutLabelsResultError(readback, stored, rules);

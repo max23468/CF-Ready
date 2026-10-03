@@ -6,6 +6,8 @@ import type { HTMLAttributes } from "react";
 declare module "react" {
   interface ButtonHTMLAttributes<T> {
     variant?: "primary";
+    // Attributo booleano dei bottoni della Save Bar App Bridge.
+    loading?: "";
   }
 
   namespace JSX {

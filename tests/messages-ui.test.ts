@@ -49,6 +49,19 @@ test("Salva serializza anche l'ultima battuta mentre la vista derivata è ancora
   });
 });
 
+test("soltanto il successo con readback evita la seconda lettura della pagina", () => {
+  for (const [actionResult, expected] of [
+    [{ ok: true, saved: { configHash: "verificata" } }, false],
+    [{ ok: false, errorCode: "config_conflict" }, true],
+    [{ ok: true, labelsErrorCode: "checkout_labels_partial_sync" }, true],
+    [{ ok: true }, true],
+  ] as const) {
+    expect(
+      skipRevalidationWhenLeaving({ actionResult, defaultShouldRevalidate: true } as never),
+    ).toBe(expected);
+  }
+});
+
 test("l'anteprima spiega il momento e l'esito del controllo in entrambe le lingue", () => {
   expect(texts("it").messages).toMatchObject({
     previewContext: "Quando il cliente prova a completare l’ordine",

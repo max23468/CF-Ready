@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { DEFAULT_CONFIG } from "../app/config";
 import {
   CHECKOUT_LABEL_KEYS,
   checkoutLabelSlotId,
@@ -411,7 +412,7 @@ test("il salvataggio gestisce lock, readback e revisione prima delle scritture",
 });
 
 test("il salvataggio senza gestione etichette delega soltanto la Validation", async () => {
-  await expect(save(input({ labelsEnabled: false }))).resolves.toEqual({
+  await expect(save(input({ labelsEnabled: false }))).resolves.toMatchObject({
     ok: true,
     labelsErrorCode: null,
   });
@@ -441,6 +442,7 @@ test("il salvataggio senza gestione etichette delega soltanto la Validation", as
     null,
     undefined,
     heartbeat,
+    expect.objectContaining({ measure: expect.any(Function) }),
   );
 
   mocks.writeValidation.mockResolvedValueOnce({ ok: false, errorCode: "config_conflict" });
@@ -509,7 +511,7 @@ test("il retry su digest scaduto rilegge Shopify e completa la sincronizzazione"
     .mockRejectedValueOnce(new Error("checkout_labels_stale_digest"))
     .mockResolvedValueOnce(undefined);
 
-  await expect(save()).resolves.toEqual({ ok: true, labelsErrorCode: null });
+  await expect(save()).resolves.toMatchObject({ ok: true, labelsErrorCode: null });
   expect(mocks.register).toHaveBeenCalledTimes(2);
 });
 
@@ -522,15 +524,29 @@ test("una scrittura già allineata e uno slot fuori epoca non generano modifiche
   ]);
   mocks.readLabels.mockResolvedValue(snapshotOf([fiscal]));
 
-  await expect(save()).resolves.toEqual({ ok: true, labelsErrorCode: null });
+  const saved = {
+    configHash: "verified",
+    rules,
+    messages: DEFAULT_CONFIG.messages,
+    enabled: true,
+    entitled: true,
+  };
+  mocks.writeValidation.mockResolvedValueOnce({ ok: true, enabled: true, saved });
+  await expect(save()).resolves.toMatchObject({
+    ok: true,
+    saved,
+    labelsErrorCode: null,
+    labels: { available: true, snapshot: snapshotOf([fiscal]) },
+  });
+  expect(mocks.readLabels).toHaveBeenCalledTimes(2);
   expect(mocks.register).not.toHaveBeenCalled();
 
-  await expect(save(input({ rules: { taxCode: "unmanaged", pec: "unmanaged" } }))).resolves.toEqual(
-    {
-      ok: true,
-      labelsErrorCode: null,
-    },
-  );
+  await expect(
+    save(input({ rules: { taxCode: "unmanaged", pec: "unmanaged" } })),
+  ).resolves.toMatchObject({
+    ok: true,
+    labelsErrorCode: null,
+  });
   expect(mocks.remove).not.toHaveBeenCalled();
 });
 
@@ -565,7 +581,7 @@ test("la prima capacità automatica richiede conferma e poi sincronizza le due f
     .mockResolvedValueOnce(after)
     .mockResolvedValueOnce(final);
 
-  await expect(save(input())).resolves.toEqual({ ok: true, labelsErrorCode: null });
+  await expect(save(input())).resolves.toMatchObject({ ok: true, labelsErrorCode: null });
   expect(mocks.enable).toHaveBeenCalled();
   expect(mocks.register).toHaveBeenCalledTimes(2);
   expect(mocks.writeValidation).toHaveBeenCalled();
@@ -581,7 +597,7 @@ test("non richiede conferma quando l’attivazione non modifica etichette automa
   mocks.readStored.mockResolvedValue([stored(tax, { capability: "automatic" })]);
   mocks.readLabels.mockResolvedValue(snapshotOf([tax]));
 
-  await expect(save(input({ confirmAutomaticWrite: false }))).resolves.toEqual({
+  await expect(save(input({ confirmAutomaticWrite: false }))).resolves.toMatchObject({
     ok: true,
     labelsErrorCode: null,
   });
@@ -623,7 +639,7 @@ test("un readback finale divergente resta recuperabile", async () => {
     labelsErrorCode: "checkout_labels_partial_sync",
   });
   // Rilettura dopo la scrittura più due ricontrolli, poi l'esito parziale resta.
-  expect(mocks.readLabels).toHaveBeenCalledTimes(5);
+  expect(mocks.readLabels).toHaveBeenCalledTimes(4);
 });
 
 test("una rilettura non ancora aggiornata dopo la scrittura non segnala una sincronizzazione parziale", async () => {
@@ -644,7 +660,7 @@ test("una rilettura non ancora aggiornata dopo la scrittura non segnala una sinc
 
   const pending = save(input());
   await vi.runAllTimersAsync();
-  await expect(pending).resolves.toEqual({ ok: true, labelsErrorCode: null });
+  await expect(pending).resolves.toMatchObject({ ok: true, labelsErrorCode: null });
   expect(mocks.register).toHaveBeenCalledOnce();
   expect(mocks.mark).toHaveBeenLastCalledWith(db, shop, {
     mode: "automatic",
@@ -682,7 +698,7 @@ test("la disattivazione ripristina solo slot posseduti e invariati", async () =>
     }),
   ]);
 
-  await expect(save(input({ labelsEnabled: false }))).resolves.toEqual({
+  await expect(save(input({ labelsEnabled: false }))).resolves.toMatchObject({
     ok: true,
     labelsErrorCode: null,
   });
@@ -699,7 +715,7 @@ test("la disattivazione ripristina solo slot posseduti e invariati", async () =>
       lastWrittenValue: "Altro",
     }),
   ]);
-  await expect(save(input({ labelsEnabled: false }))).resolves.toEqual({
+  await expect(save(input({ labelsEnabled: false }))).resolves.toMatchObject({
     ok: true,
     labelsErrorCode: "checkout_labels_conflict",
   });
@@ -711,7 +727,7 @@ test("la disattivazione gestisce epoche assenti, slot estranei e lease scadute",
   mocks.readLabels.mockResolvedValue(snapshotOf([fiscal]));
 
   mocks.readState.mockResolvedValueOnce({ ...state, mode: "automatic" as const });
-  await expect(save(input({ labelsEnabled: false }))).resolves.toEqual({
+  await expect(save(input({ labelsEnabled: false }))).resolves.toMatchObject({
     ok: true,
     labelsErrorCode: null,
   });
@@ -726,7 +742,7 @@ test("la disattivazione gestisce epoche assenti, slot estranei e lease scadute",
     }),
   ];
   mocks.readStored.mockResolvedValueOnce(foreign);
-  await expect(save(input({ labelsEnabled: false }))).resolves.toEqual({
+  await expect(save(input({ labelsEnabled: false }))).resolves.toMatchObject({
     ok: true,
     labelsErrorCode: null,
   });
@@ -740,7 +756,7 @@ test("la disattivazione gestisce epoche assenti, slot estranei e lease scadute",
   ];
   mocks.readStored.mockResolvedValueOnce(owned);
   heartbeat.isHeld.mockResolvedValueOnce(false);
-  await expect(save(input({ labelsEnabled: false }))).resolves.toEqual({
+  await expect(save(input({ labelsEnabled: false }))).resolves.toMatchObject({
     ok: true,
     labelsErrorCode: "validation_locked",
   });
@@ -767,12 +783,12 @@ test("il ripristino automatico conserva il valore originario e il mercato", asyn
     .mockResolvedValueOnce(snapshotOf([fiscal]))
     .mockResolvedValueOnce(snapshotOf([{ ...fiscal, currentValue: "Tax ID" }]));
 
-  await expect(save(input({ rules: { taxCode: "unmanaged", pec: "unmanaged" } }))).resolves.toEqual(
-    {
-      ok: true,
-      labelsErrorCode: null,
-    },
-  );
+  await expect(
+    save(input({ rules: { taxCode: "unmanaged", pec: "unmanaged" } })),
+  ).resolves.toMatchObject({
+    ok: true,
+    labelsErrorCode: null,
+  });
   expect(mocks.register).toHaveBeenCalledWith(admin, fiscal.resourceId, [
     expect.objectContaining({ value: "Tax ID", marketId: fiscal.marketId }),
   ]);

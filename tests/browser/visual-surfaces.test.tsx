@@ -516,6 +516,8 @@ test("Polaris reale: simulatore stretto e focus tastiera leggibile", async () =>
     />,
   );
   const summaries = view.container.querySelectorAll("summary");
+  const simulatorLanguage = view.container.querySelector("s-query-container > div")!;
+  expect(simulatorLanguage.getAttribute("lang")).toBe("it");
   expect(summaries).toHaveLength(2);
   for (const summary of summaries) {
     expect(getComputedStyle(summary).cursor).toBe("pointer");
@@ -534,6 +536,7 @@ test("Polaris reale: simulatore stretto e focus tastiera leggibile", async () =>
       .selectOptions("en");
   });
   expect(view.container.textContent).toContain(texts("en").rules.simulator.heading);
+  expect(simulatorLanguage.getAttribute("lang")).toBe("en");
   for (const [label, expected] of [
     [texts("en").rules.simulator.deliveryCountry, "Italy"],
     [texts("en").rules.simulator.billingCountry, "Italy"],
@@ -580,6 +583,13 @@ test("Polaris reale: simulatore stretto e focus tastiera leggibile", async () =>
     view.container,
     `__screenshots__/visual/simulator-${server.browser}-320.png`,
   );
+  await act(async () => {
+    await page
+      .getByRole("combobox", { name: texts("en").rules.simulator.previewLanguage })
+      .selectOptions("it");
+  });
+  expect(simulatorLanguage.getAttribute("lang")).toBe("it");
+  expect(view.container.textContent).toContain(texts("it").rules.simulator.heading);
 });
 
 test("Polaris reale: Continua porta in vista e mette a fuoco il primo campo in errore", async () => {
@@ -632,6 +642,18 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
   router.loaderData = { ...onboardingData, step: 2, labelScopesGranted: true };
   const step2 = await mount(<Onboarding />);
   expect(step2.container.textContent).not.toContain("permessi per confrontare le etichette");
+  // Il titolo di Codice Fiscale sta vicino alle sue opzioni, come nelle card di Regole.
+  const taxHeading = [...step2.container.querySelectorAll(".onboarding-step s-heading")].find(
+    (heading) => heading.textContent === it.rules.taxCodeLabel,
+  )!;
+  const choices = step2.container.querySelector(".onboarding-step s-choice-list")!;
+  // Distanza dal titolo al primo radio, come nelle card di Regole (prima 16 px di griglia).
+  const radio = [choices, ...choices.querySelectorAll("s-choice")]
+    .flatMap((element) => [...(element.shadowRoot?.querySelectorAll("*") ?? [])])
+    .map((element) => element.getBoundingClientRect())
+    .filter((rect) => rect.width > 0 && rect.height > 0 && rect.width < 40)
+    .sort((a, b) => a.top - b.top)[0];
+  expect(radio.top - surfaceRect(taxHeading).bottom).toBeLessThanOrEqual(12);
   await step2.unmount();
 
   // O2, O3: ogni messaggio è un blocco con etichetta e anteprima, separato dagli altri.

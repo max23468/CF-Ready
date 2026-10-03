@@ -374,7 +374,7 @@ Decisioni dell'owner del 1 ottobre 2026.
 | R-H1, R-H2, R-H6 | Superato da D-174 | Tolte la card "Cronologia configurazioni" e l'azione `restore_configuration`; `configuration_history` conserva solo l'ultima configurazione per il primo paint della Home (D-167) |
 | R-H3 | Implementato | Su `checkout_labels_conflict` al salvataggio l'app rilegge le etichette (`useDeferredCheckoutLabels`), conserva la bozza e chiede di premere di nuovo "Salva". Causa (readback Shopify non ancora stabile) non confermata |
 | R-H4 (a) | Implementato | Il riepilogo nomina la lingua ("Un checkout in inglese richiede una verifica") e "Lingua" si posiziona sulla prima lingua in sospeso finché il merchant non sceglie |
-| R-H4 (b) | Non riprodotto | Né in D1 locale (`tests/checkout-labels.test.ts`: conferma, cambio di regola e ritorno conservano la conferma) né su `cf-ready-dev` il 2 ottobre 2026. Codice invariato |
+| R-H4 (b) | Riprodotto e corretto nella `1.15.23` | Riprodotto su Numisleo il 3 ottobre 2026: i mercati inglesi guidati ereditano la traduzione generale scritta da CF Ready, e la rilettura dopo il cambio di regola cancellava la conferma (`ELSE NULL` nell'upsert). Ora la conferma resta salvata e vale solo finché il testo osservato coincide. In precedenza: Né in D1 locale (`tests/checkout-labels.test.ts`: conferma, cambio di regola e ritorno conservano la conferma) né su `cf-ready-dev` il 2 ottobre 2026. Codice invariato |
 | R-H5 | Implementato | Pulsante "Mostra le etichette" nel banner, che apre "Testi del checkout" e lo porta in vista; i passaggi manuali restano |
 | R-H7 | Implementato | Salvataggio immediato invariato; durante la rilettura le etichette restano visibili, quindi il pannello non si richiude, e compare il toast "Configurazione del campo Interno salvata." |
 | R-H8 | Implementato | Togliendo la gestione automatica compare l'avviso sulle conseguenze del salvataggio |
@@ -490,4 +490,23 @@ non provata dal vivo: richiede di cambiare la lingua del profilo.
 | Onboarding: ricaricando una revisione si torna al passo 1 | Passo nell'URL (`?step=`), riletto dal loader |
 | Passo 2: Codice Fiscale e PEC senza titolo, "Campo Interno" con titolo | Stesso titolo `s-heading` per i tre gruppi |
 | «Codice fiscale» proposto con la minuscola | Nessuna modifica: è il testo standard di Shopify |
+
+### Verifica su Chrome di Production (Numisleo) del 3 ottobre 2026
+
+Giro completo della `1.15.22` a 1440 e 500 px, con modifiche reversibili:
+cambio di regola e ritorno, messaggio modificato e ripristinato,
+disattivazione e riattivazione. Tutte le correzioni della `1.15.22` risultano
+conformi. Lo store è tornato allo stato iniziale; la conferma manuale del
+checkout inglese, cancellata dal difetto, è stata ripetuta.
+
+| Problema | Correzione (`1.15.23`) |
+| --- | --- |
+| R-H4 (b): cambio di regola e ritorno cancellano la conferma manuale dei mercati inglesi | Conferma conservata, valida solo con testo coincidente |
+| "Ultima lettura delle etichette" ferma dopo riletture con verifiche in sospeso | `lastReadAt` dall'ultima osservazione degli slot |
+| Salvataggio di circa 10 secondi con la sola barra in grigio | "Salva" in caricamento. Durata invariata: letture, scritture sotto lock e ricontrolli V1 restano in sequenza |
+| Nota "non compare" che sposta i campi in Messaggi | Riga di stato sempre presente ("può comparire" / "non compare") |
+| Onboarding, passo 2: titolo lontano dalle opzioni | Titolo e opzioni in uno stack stretto |
+| Onboarding, passo 3: messaggi "Non compare" senza spiegazione | Nota sotto l'anteprima |
+| "Mostra le etichette" a metà schermo | Focus con `preventScroll` |
+| "in inglese e italiano" nell'ordine dello store | Ordine fisso italiano, inglese |
 

@@ -8,6 +8,7 @@ import {
 import { CONFIG_SCHEMA_VERSION, DEFAULT_CONFIG, readConfig } from "../config";
 import type { CheckoutConfig, Entitlement } from "../config";
 import { configurationSnapshot, recordLatestConfiguration } from "../configuration-history.server";
+import { createServerTiming } from "../server-timing.server";
 import { configHash, observedConfigHash } from "./domain";
 import {
   acquireValidationLock,
@@ -32,8 +33,16 @@ import {
   type MutationResult,
 } from "./types";
 
+export type SavedValidation = {
+  configHash: string;
+  rules: CheckoutConfig["rules"];
+  messages: CheckoutConfig["messages"];
+  enabled: boolean;
+  entitled: boolean;
+};
+
 export type ValidationWriteResult =
-  | { ok: true; enabled: boolean }
+  | { ok: true; enabled: boolean; saved: SavedValidation }
   | { ok: false; errorCode: AppErrorCode };
 
 type ValidationConfigUpdate = Partial<Pick<CheckoutConfig, "rules" | "messages">>;
@@ -48,8 +57,11 @@ export async function writeValidation(
   enable: boolean | null,
   expectedHash?: string | null,
   declared?: boolean | null,
+  timing = createServerTiming(),
 ): Promise<ValidationWriteResult> {
-  const lockToken = await acquireValidationLock(db, shopDomain);
+  const lockToken = await timing.measure("validation_lock", () =>
+    acquireValidationLock(db, shopDomain),
+  );
   if (!lockToken) return { ok: false, errorCode: "validation_locked" };
   const heartbeat = startValidationLockHeartbeat(db, shopDomain, lockToken);
 
@@ -63,6 +75,7 @@ export async function writeValidation(
       expectedHash,
       declared,
       heartbeat,
+      timing,
     );
   } finally {
     await heartbeat.stop();
@@ -81,9 +94,16 @@ export async function writeValidationUnderLock(
   expectedHash: string | null | undefined,
   declared: boolean | null | undefined,
   heartbeat: ValidationLockHeartbeat,
+  timing = createServerTiming(),
 ): Promise<ValidationWriteResult> {
   try {
-    const data = await queryContext(admin);
+    // Entrambe le letture restano sotto lease; il billing non dipende dalla configurazione.
+    // Il catch immediato evita rifiuti pendenti anche se il controllo di conflitto termina prima.
+    const contextPromise = timing.measure("shopify_context", () => queryContext(admin));
+    const billingPromise = timing
+      .measure("shopify_billing", () => readBilling(admin))
+      .catch(() => null);
+    const data = await contextPromise;
     const countryCode = data.shop.shopAddress.countryCodeV2;
 
     const existing = findValidation(data.validations.nodes);
@@ -96,24 +116,23 @@ export async function writeValidationUnderLock(
 
     const enabled = enable ?? existing?.enabled ?? false;
     const today = localDate(data.shop.ianaTimezone);
-    const commercialInputs = await readCommercialInputs(db, shopDomain, today);
-    let billing: Awaited<ReturnType<typeof readBilling>> | null = null;
-    try {
-      billing = await readBilling(admin);
-    } catch {
-      // Shopify non raggiungibile: conserva lo stato operativo noto senza concedere diritti.
-    }
+    const [commercialInputs, billing] = await Promise.all([
+      timing.measure("d1_commercial", () => readCommercialInputs(db, shopDomain, today)),
+      billingPromise,
+    ]);
     if (!billing && commercialInputs.complimentary?.status === "active" && enable === true) {
       return { ok: false, errorCode: "billing_read_failed" };
     }
     let entitlement: Entitlement = { kind: "none", validThrough: null };
     if (billing) {
-      const commercial = await syncCommercialEntitlement(db, shopDomain, {
-        billing,
-        inputs: commercialInputs,
-        timeZone: data.shop.ianaTimezone,
-        today,
-      });
+      const commercial = await timing.measure("d1_commercial_sync", () =>
+        syncCommercialEntitlement(db, shopDomain, {
+          billing,
+          inputs: commercialInputs,
+          timeZone: data.shop.ianaTimezone,
+          today,
+        }),
+      );
       entitlement = commercial.entitlement;
     }
     if (enable === true && !existing?.enabled && entitlement.kind === "none") {
@@ -165,9 +184,11 @@ export async function writeValidationUnderLock(
     if (!(await heartbeat.isHeld())) return { ok: false, errorCode: "validation_locked" };
 
     const operation = existing ? "validationUpdate" : "validationCreate";
-    const response = await admin.graphql(existing ? UPDATE_VALIDATION : CREATE_VALIDATION, {
-      variables,
-    });
+    const response = await timing.measure("validation_write", () =>
+      admin.graphql(existing ? UPDATE_VALIDATION : CREATE_VALIDATION, {
+        variables,
+      }),
+    );
     const error = mutationError((await response.json()) as MutationResult, operation);
 
     if (error) {
@@ -184,26 +205,33 @@ export async function writeValidationUnderLock(
       return { ok: false, errorCode };
     }
 
-    const readback = findValidation((await queryContext(admin)).validations.nodes);
+    const readback = findValidation(
+      (await timing.measure("validation_readback", () => queryContext(admin))).validations.nodes,
+    );
+    const writtenHash = await configHash(config);
     const consistent = Boolean(
       readback &&
       readback.enabled === enabled &&
       readback.blockOnFailure === false &&
-      (await observedConfigHash(readback)) === (await configHash(config)),
+      (await observedConfigHash(readback)) === writtenHash,
     );
 
-    await persistValidationState(db, shopDomain, {
-      displayName: data.shop.name,
-      countryCode,
-      ianaTimezone: data.shop.ianaTimezone,
-      validation: readback,
-      errorCode: consistent ? null : "validation_readback_failed",
-    });
+    await timing.measure("d1_validation_state", () =>
+      persistValidationState(db, shopDomain, {
+        displayName: data.shop.name,
+        countryCode,
+        ianaTimezone: data.shop.ianaTimezone,
+        validation: readback,
+        errorCode: consistent ? null : "validation_readback_failed",
+      }),
+    );
     if (!consistent) return { ok: false, errorCode: "validation_readback_failed" };
     if (next) {
-      await recordLatestConfiguration(db, shopDomain, configurationSnapshot(config)).catch(
-        () => undefined,
-      );
+      await timing
+        .measure("d1_configuration_history", () =>
+          recordLatestConfiguration(db, shopDomain, configurationSnapshot(config)),
+        )
+        .catch(() => undefined);
     }
     if (declared !== undefined && declared !== null) {
       await saveAddress2Declaration(db, shopDomain, declared);
@@ -212,7 +240,17 @@ export async function writeValidationUnderLock(
     if (enable === null && next?.rules) {
       await recordEvent(db, { shopDomain, name: "rules_saved", class: "onboarding" });
     }
-    return { ok: true, enabled };
+    return {
+      ok: true,
+      enabled,
+      saved: {
+        configHash: writtenHash,
+        rules: config.rules,
+        messages: config.messages,
+        enabled,
+        entitled: config.entitlement.kind !== "none",
+      },
+    };
   } catch {
     return { ok: false, errorCode: "validation_write_failed" };
   }

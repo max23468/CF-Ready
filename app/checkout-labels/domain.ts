@@ -81,6 +81,8 @@ export type CheckoutLabelState = {
   managementEpoch: string | null;
   enabledAt: string | null;
   lastSyncAt: string | null;
+  // Ultima lettura riuscita degli slot da Shopify, anche se restano verifiche manuali.
+  lastReadAt?: string | null;
   lastErrorCode: string | null;
   decision: CheckoutLabelsDecision;
   acceptedRevision: string | null;

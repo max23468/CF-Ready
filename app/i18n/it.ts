@@ -151,6 +151,7 @@ export const it = {
     previewSelected: "Messaggio selezionato",
     previewHint: "L’anteprima mostra il messaggio che stai modificando.",
     previewNotShown: "Con le regole attuali questo messaggio non compare nel checkout.",
+    previewShown: "Con le regole attuali questo messaggio può comparire nel checkout.",
     editorHeading: "Messaggi di errore",
     previewFieldLabel: "Etichetta del campo",
     previewCurrentFieldLabel: "Etichetta attuale Shopify",

@@ -220,7 +220,9 @@ test("Guida continua la diagnosi quando Shopify non restituisce gli scope", asyn
 test("Messaggi legge Shopify e copre rifiuto, salvataggio e conflitto", async () => {
   const validation = { metafield: { jsonValue: DEFAULT_CONFIG } };
   mocks.findValidation.mockReturnValue(validation);
-  const { action, headers, loader } = messagesRoute;
+  const { headers, loader } = messagesRoute;
+  const action = async (...parameters: Parameters<typeof messagesRoute.action>) =>
+    (await messagesRoute.action(...parameters)).data;
   const loaded = await loader(args(new Request("https://example.test/app/messages?locale=it")));
   expect(loaded.data).toEqual({
     locale: "it",
@@ -258,6 +260,8 @@ test("Messaggi legge Shopify e copre rifiuto, salvataggio e conflitto", async ()
     { messages: DEFAULT_CONFIG.messages },
     null,
     "hash",
+    undefined,
+    expect.objectContaining({ measure: expect.any(Function) }),
   );
 
   mocks.writeValidation.mockResolvedValueOnce({ ok: false, errorCode: "config_conflict" });
@@ -598,7 +602,8 @@ test("Regole avvia le letture indipendenti mentre riconcilia Shopify", async () 
 });
 
 test("Regole carica scope ed etichette soltanto tramite l'intent differito", async () => {
-  const { action } = rulesRoute;
+  const action = async (...parameters: Parameters<typeof rulesRoute.action>) =>
+    (await rulesRoute.action(...parameters)).data;
 
   expect(
     await action(
@@ -682,7 +687,8 @@ test("Regole carica scope ed etichette soltanto tramite l'intent differito", asy
 });
 
 test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", async () => {
-  const { action } = rulesRoute;
+  const action = async (...parameters: Parameters<typeof rulesRoute.action>) =>
+    (await rulesRoute.action(...parameters)).data;
   expect(await action(args(post("/app/rules", { intent: "intent_sconosciuto" })))).toEqual({
     ok: false,
     errorCode: "generic",
@@ -723,6 +729,8 @@ test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", asyn
     },
     null,
     "hash",
+    undefined,
+    expect.objectContaining({ measure: expect.any(Function) }),
   );
 
   mocks.writeValidation.mockResolvedValueOnce({ ok: false, errorCode: "config_conflict" });
@@ -733,8 +741,68 @@ test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", asyn
   ).toEqual({ ok: false, errorCode: "config_conflict" });
 });
 
+test("Regole restituisce il readback verificato e rivalida gli esiti incompleti", async () => {
+  const saved = {
+    configHash: "verified",
+    rules: { taxCode: "required_validated", pec: "optional_validated" },
+    messages: DEFAULT_CONFIG.messages,
+    enabled: true,
+    entitled: true,
+  };
+  const values = { ...saved.rules, configHash: "hash" };
+  mocks.writeValidation.mockResolvedValueOnce({ ok: true, saved });
+  const withoutLabels = await rulesRoute.action(args(post("/app/rules", values)));
+  expect(withoutLabels.data).toMatchObject({
+    ok: true,
+    saved: { ...saved, labelScopesGranted: null, labelSnapshot: null },
+  });
+  expect(new Headers(withoutLabels.init?.headers).get("Server-Timing")).toContain("auth;dur=");
+
+  mocks.scopeQuery.mockResolvedValue({
+    granted: ["write_translations", "read_locales", "read_markets"],
+  });
+  const labels = {
+    available: true,
+    state: { mode: "automatic" },
+    snapshot: { revision: "verified-labels", slots: [] },
+    guidedConfirmations: [{ slotId: "guided-en", confirmedAt: "2026-10-01T12:00:00Z" }],
+  };
+  mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({ ok: true, saved, labels });
+  const complete = (await rulesRoute.action(args(post("/app/rules", values)))).data;
+  expect(complete).toEqual({
+    ok: true,
+    saved: {
+      ...saved,
+      labelScopesGranted: true,
+      labelState: labels.state,
+      labelSnapshot: labels.snapshot,
+      guidedConfirmations: labels.guidedConfirmations,
+      labelLoadError: null,
+    },
+  });
+  expect(
+    rulesRoute.shouldRevalidate({ actionResult: complete, defaultShouldRevalidate: true } as never),
+  ).toBe(false);
+
+  mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({
+    ok: true,
+    saved,
+    labels: { available: false, errorCode: "checkout_labels_readback_failed" },
+  });
+  const incomplete = (await rulesRoute.action(args(post("/app/rules", values)))).data;
+  expect(incomplete).toEqual({ ok: true, labelsErrorCode: "checkout_labels_readback_failed" });
+  expect(
+    rulesRoute.shouldRevalidate({
+      actionResult: incomplete,
+      defaultShouldRevalidate: true,
+    } as never),
+  ).toBe(true);
+});
+
 test("Regole gestisce ripristino e sincronizzazione delle etichette", async () => {
-  const { action, shouldRevalidate } = rulesRoute;
+  const { shouldRevalidate } = rulesRoute;
+  const action = async (...parameters: Parameters<typeof rulesRoute.action>) =>
+    (await rulesRoute.action(...parameters)).data;
   expect(
     await action(
       args(
@@ -979,6 +1047,7 @@ test("Regole gestisce ripristino e sincronizzazione delle etichette", async () =
       confirmAutomaticWrite: true,
       expectedLabelsRevision: "r1",
     }),
+    expect.objectContaining({ measure: expect.any(Function) }),
   );
 
   mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({
@@ -999,7 +1068,8 @@ test("Regole gestisce ripristino e sincronizzazione delle etichette", async () =
 });
 
 test("Regole conserva il salvataggio dopo la revoca degli scope", async () => {
-  const { action } = rulesRoute;
+  const action = async (...parameters: Parameters<typeof rulesRoute.action>) =>
+    (await rulesRoute.action(...parameters)).data;
   mocks.readCheckoutLabelState.mockResolvedValueOnce({ mode: "automatic" });
   mocks.writeValidation.mockResolvedValueOnce({ ok: true });
   expect(

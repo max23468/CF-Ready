@@ -1,4 +1,77 @@
 import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
+
+const notFoundHtml = readFileSync(new URL("../../site/404.html", import.meta.url), "utf8");
+
+test("404 con una sola lingua e recupero coerente con il percorso", async ({ page }) => {
+  // Vite non applica la 404 di Pages: serviamo lo stesso documento all'URL mancante.
+  await page.route(/\/audit-not-found$/, (route) =>
+    route.fulfill({ status: 404, contentType: "text/html", body: notFoundHtml }),
+  );
+  for (const [locale, missing, heading, title, links] of [
+    [
+      "en",
+      "/en/audit-not-found",
+      "This page isn’t here.",
+      "Page not found | CF Ready",
+      [
+        ["Return Home", "/en/"],
+        ["Read the guides", "/en/guides/required-codice-fiscale-shopify-checkout"],
+      ],
+    ],
+    [
+      "it",
+      "/audit-not-found",
+      "Questa pagina non c’è.",
+      "Pagina non trovata | CF Ready",
+      [
+        ["Torna alla Home", "/"],
+        ["Consulta le guide", "/guide/codice-fiscale-obbligatorio-shopify"],
+      ],
+    ],
+  ] as const) {
+    for (const [name, path] of links) {
+      const response = await page.goto(missing);
+      expect(response?.status()).toBe(404);
+      await expect(page).toHaveTitle(title);
+      await expect(page.locator("html")).toHaveAttribute("lang", locale);
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex");
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(heading);
+      await expect(page.getByRole("main").getByRole("link")).toHaveCount(2);
+      const paragraph = await page.locator("main .lede").boundingBox();
+      const actions = await page.locator("main .actions").boundingBox();
+      expect(actions!.y - (paragraph!.y + paragraph!.height)).toBeGreaterThanOrEqual(32);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+      const footer = await page.locator("footer").boundingBox();
+      const pageHeight = await page.evaluate(() => document.documentElement.scrollHeight);
+      expect(pageHeight).toBeGreaterThanOrEqual(page.viewportSize()!.height);
+      expect(footer!.y + footer!.height).toBeCloseTo(pageHeight, 0);
+      const link = page.getByRole("main").getByRole("link", { name, exact: true });
+      await expect(link).toHaveAttribute("href", path);
+      const target = new URL(path, page.url()).href;
+      await link.click();
+      await expect(page).toHaveURL(target);
+      await expect(page.locator("html")).toHaveAttribute("lang", locale);
+    }
+  }
+});
+
+test.describe("404 senza JavaScript", () => {
+  test.use({ javaScriptEnabled: false });
+  test("fallback inglese senza testi mescolati", async ({ page }) => {
+    await page.route(/\/en\/audit-not-found$/, (route) =>
+      route.fulfill({ status: 404, contentType: "text/html", body: notFoundHtml }),
+    );
+    await page.goto("/en/audit-not-found");
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("This page isn’t here.");
+    await expect(page.getByRole("heading", { name: "Questa pagina non c’è." })).toHaveCount(0);
+    await page.getByRole("main").getByRole("link", { name: "Return Home", exact: true }).click();
+    await expect(page).toHaveURL(/\/en\/$/);
+  });
+});
 
 test("testata desktop con logo, menu e pulsanti allineati", async ({ page }) => {
   test.skip((page.viewportSize()?.width ?? 0) <= 832);

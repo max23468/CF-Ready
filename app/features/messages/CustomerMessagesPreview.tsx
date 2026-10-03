@@ -10,7 +10,9 @@ type CustomerMessagesPreviewProps = {
   heading: string;
   hint: string;
   message: string;
-  notShown?: string;
+  // Sempre presente: se compare solo per alcuni messaggi l'anteprima cambia altezza e sposta
+  // i campi sotto il puntatore.
+  availability: string;
   selectedHeading: string;
   selectedLabel: string;
 };
@@ -24,7 +26,7 @@ export function CustomerMessagesPreview({
   heading,
   hint,
   message,
-  notShown,
+  availability,
   selectedHeading,
   selectedLabel,
 }: CustomerMessagesPreviewProps) {
@@ -54,12 +56,10 @@ export function CustomerMessagesPreview({
               <s-text color="subdued">{selectedHeading}</s-text>
               <s-badge>{selectedLabel}</s-badge>
             </s-stack>
-            {notShown ? (
-              <s-stack direction="inline" gap="small-100" alignItems="center">
-                <s-icon type="info" color="subdued" />
-                <s-text color="subdued">{notShown}</s-text>
-              </s-stack>
-            ) : null}
+            <s-stack direction="inline" gap="small-100" alignItems="center">
+              <s-icon type="info" color="subdued" />
+              <s-text color="subdued">{availability}</s-text>
+            </s-stack>
           </s-stack>
         </s-box>
       </div>
