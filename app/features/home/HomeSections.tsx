@@ -66,7 +66,6 @@ export function HomeValidationSection({
           <MotionBanner tone={continuity.tone}>
             <s-stack direction="block" gap="small-100">
               <s-paragraph>{continuity.text}</s-paragraph>
-              {continuity.detail ? <s-paragraph>{continuity.detail}</s-paragraph> : null}
               {continuity.action ? (
                 <s-button onClick={showPlans} disabled={busy}>
                   {continuity.action}
