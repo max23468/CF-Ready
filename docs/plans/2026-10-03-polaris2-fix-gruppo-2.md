@@ -51,7 +51,9 @@ Controlli:
 - Coverage finale verde: statement 98,31%, branch 96,04%, funzioni 99,20%,
   righe 98,60%. La prima raccolta concorrente aveva sei timeout;
   le raccolte complete successive sono verdi.
-- Non eseguiti E2E pubblici e doctor; mutation non richiesta dalla classificazione.
+- Verifica locale iniziale: E2E pubblici e doctor non eseguiti; mutation non
+  richiesta dal diff UI. Il bump di pubblicazione porta la corsia a full:
+  il coordinatore esegue anche doctor e la CI i gate mutation ed E2E.
 - Validatore della skill: snippet nativi validi contro il catalogo v1.1.
   Il catalogo installato non supporta 2.0 RC; contratto 2.0 verificato nelle
   fonti Shopify correnti, nei tipi installati `2.0.0-rc.1`, nel typecheck
@@ -79,5 +81,8 @@ Preparazione della pubblicazione: riallineamento al gruppo 1 unito con PR #626
 componenti e i badge brevi. Patch 2.0.4 nel manifest e nel lockfile, con changelog.
 Test browser di integrazione: 98 verdi in sei esecuzioni, con entrambi i runtime
 e browser; catture Chromium aggiornate sul risultato integrato.
+La prima coverage del coordinatore ha esposto il timeout del caso visivo
+aggregato: suddiviso in quattro casi indipendenti IT/EN × desktop/390 px,
+con tutte le assertion e le catture conservate, senza alzare il timeout globale.
 Il coordinatore `publish:development` ripete i gate e segue CI, merge e deploy.
 Production resta fuori dal ciclo autorizzato.
