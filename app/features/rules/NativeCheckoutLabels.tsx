@@ -79,39 +79,41 @@ export function NativeCheckoutLabels({
   });
 
   return (
-    <details className="checkout-labels-disclosure" id={NATIVE_LABELS_ID}>
-      <summary className="checkout-labels-disclosure__summary">
-        <div className="checkout-labels-title">
-          <s-heading>{copy.nativeHeading}</s-heading>
-          {/* Una scelta del merchant è neutra, non un successo (come R-B7). */}
-          <s-badge tone={needsAttention ? "warning" : keptByMerchant ? "neutral" : "success"}>
-            {presentation.status}
-          </s-badge>
+    <s-box borderWidth="base" borderRadius="base">
+      <details className="checkout-labels-disclosure" id={NATIVE_LABELS_ID}>
+        <summary className="checkout-labels-disclosure__summary">
+          <div className="checkout-labels-title">
+            <s-heading>{copy.nativeHeading}</s-heading>
+            {/* Una scelta del merchant è neutra, non un successo (come R-B7). */}
+            <s-badge tone={needsAttention ? "warning" : keptByMerchant ? "neutral" : "success"}>
+              {presentation.status}
+            </s-badge>
+          </div>
+          <s-paragraph color="subdued">{presentation.summary}</s-paragraph>
+        </summary>
+        <div className="checkout-labels-disclosure__body">
+          <NativeLabelsContent
+            locale={locale}
+            timeZone={timeZone}
+            rules={rules}
+            snapshot={snapshot}
+            state={state}
+            enabled={enabled}
+            busy={busy}
+            activeFamily={activeFamily}
+            storefrontUrl={storefrontUrl}
+            checkoutSettingsUrl={checkoutSettingsUrl}
+            automaticAvailable={automaticAvailable}
+            displayedContexts={displayedContexts}
+            pendingTotal={pendingContexts.length}
+            guidedConfirmations={guidedConfirmations}
+            onEnabledChange={onEnabledChange}
+            submitIntent={submitIntent}
+            refreshing={refreshing}
+          />
         </div>
-        <s-paragraph color="subdued">{presentation.summary}</s-paragraph>
-      </summary>
-      <div className="checkout-labels-disclosure__body">
-        <NativeLabelsContent
-          locale={locale}
-          timeZone={timeZone}
-          rules={rules}
-          snapshot={snapshot}
-          state={state}
-          enabled={enabled}
-          busy={busy}
-          activeFamily={activeFamily}
-          storefrontUrl={storefrontUrl}
-          checkoutSettingsUrl={checkoutSettingsUrl}
-          automaticAvailable={automaticAvailable}
-          displayedContexts={displayedContexts}
-          pendingTotal={pendingContexts.length}
-          guidedConfirmations={guidedConfirmations}
-          onEnabledChange={onEnabledChange}
-          submitIntent={submitIntent}
-          refreshing={refreshing}
-        />
-      </div>
-    </details>
+      </details>
+    </s-box>
   );
 }
 
@@ -170,7 +172,7 @@ function NativeLabelsContent({
         <>
           {pendingCount > 0 &&
           snapshot.markets.some(({ resolution }) => resolution === "ambiguous") ? (
-            <s-banner tone="warning">{copy.marketAmbiguous}</s-banner>
+            <s-text color="subdued">{copy.marketAmbiguous}</s-text>
           ) : null}
           <LabelComparison
             contexts={displayedContexts}
@@ -324,23 +326,14 @@ function LabelComparison({
         });
         return (
           <div className="checkout-label-context" key={context.key}>
-            <s-stack direction="inline" gap="small-100" alignItems="center">
+            <div className="checkout-labels-title">
               <s-text type="strong">{context.label}</s-text>
               {pendingSlotIds.length > 0 ? (
                 <s-badge tone="warning">{copy.statusManualRequired}</s-badge>
               ) : context.guidedSlotIds.length === 0 ? (
                 <s-badge tone="success">{copy.statusUpToDate}</s-badge>
               ) : null}
-            </s-stack>
-            {context.notes.length > 0 ? (
-              <s-stack direction="block" gap="small-100">
-                {context.notes.map((note) => (
-                  <s-text key={note} color="subdued">
-                    {note}
-                  </s-text>
-                ))}
-              </s-stack>
-            ) : null}
+            </div>
             <div className="checkout-label-context__rows">
               {context.entries.map(({ name, slot }) => {
                 const proposed = proposedLabelForSlot(slot, rules);
@@ -367,6 +360,15 @@ function LabelComparison({
                 );
               })}
             </div>
+            {context.notes.length > 0 ? (
+              <s-stack direction="block" gap="small-100">
+                {context.notes.map((note) => (
+                  <s-text key={note} color="subdued">
+                    {note}
+                  </s-text>
+                ))}
+              </s-stack>
+            ) : null}
             {pendingSlotIds.length > 0 ? (
               <details className="checkout-labels-disclosure checkout-label-instructions">
                 <summary className="checkout-labels-disclosure__summary">

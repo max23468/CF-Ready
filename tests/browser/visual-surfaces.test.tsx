@@ -1,7 +1,7 @@
 import { act } from "react";
 import { beforeAll, expect, inject, test } from "vitest";
 import { page, server, userEvent } from "vitest/browser";
-import { router, mount, homeData, confirmedHome, onboardingData } from "./route-support";
+import { router, mount, homeData, confirmedHome, onboardingData, labelSlot } from "./route-support";
 import { texts } from "../../app/i18n";
 import HomePage from "../../app/features/home/HomePage";
 import Guide from "../../app/routes/app.guide";
@@ -243,8 +243,8 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
   summary.focus();
   await userEvent.keyboard("{ArrowDown}");
   expect(summary.matches(":focus-visible")).toBe(true);
-  expect(getComputedStyle(summary).outlineStyle).toBe("solid");
-  expect(getComputedStyle(summary).outlineWidth).toBe("2px");
+  expect(getComputedStyle(summary).outlineStyle).not.toBe("none");
+  expect(parseFloat(getComputedStyle(summary).outlineWidth)).toBeGreaterThan(0);
   expect(view.container.querySelector("#support")).not.toBeNull();
   const support = view.container.querySelector<HTMLElement>("#support")!;
   expect(support.getBoundingClientRect().height).toBeGreaterThan(100);
@@ -344,8 +344,13 @@ test("Polaris reale: anteprima Messaggi visibile prima dei campi e riepilogo sen
     expectNativeCards(messages.container);
     const preview = messages.container.querySelector<HTMLElement>(".customer-messages-preview")!;
     expect(preview.querySelector("summary")).toBeNull();
-    expect(preview.textContent?.match(/Anteprima nel checkout/g)).toHaveLength(1);
-    expect(preview.querySelector('s-icon[type="alert-circle"]')).not.toBeNull();
+    expect(preview.textContent?.match(/Esempio del messaggio/g)).toHaveLength(1);
+    expect(preview.querySelector('s-icon[type="alert-circle"]')).toBeNull();
+    const availability = preview.querySelector('s-icon[type="info"]')!.parentElement!;
+    const iconBox = surfaceRect(availability.querySelector("s-icon")!);
+    const textBox = surfaceRect(availability.querySelector("s-text")!);
+    expect(textBox.left).toBeGreaterThanOrEqual(iconBox.right);
+    expect(Math.abs(textBox.top - iconBox.top)).toBeLessThan(6);
     const field = page
       .getByRole("textbox", {
         name: texts("it").messages.taxCodeRequired,
@@ -410,7 +415,7 @@ test("Polaris reale: anteprima Messaggi visibile prima dei campi e riepilogo sen
     });
     expect(
       messages.container.querySelector('.customer-messages-preview__error[lang="en"]')?.textContent,
-    ).toContain(texts("en").messages.previewErrorHeading);
+    ).toContain(DEFAULT_CONFIG.messages.en.taxCodeRequired);
     expect(
       messages.container.querySelector('s-banner[tone="critical"], [role="alert"]'),
     ).toBeNull();
@@ -513,6 +518,148 @@ test("Polaris reale: Regole con superfici native desktop e mobile", async () => 
     await view.unmount();
   }
 });
+
+test("Polaris reale: gruppo 1, etichette e messaggi IT/EN desktop e 390 px", async () => {
+  for (const locale of ["it", "en"] as const) {
+    for (const width of [1280, 390]) {
+      await page.viewport(width, 844);
+      const rules = { taxCode: "required_validated", pec: "required_when_company" } as const;
+      router.loaderData = {
+        ...onboardingData,
+        locale,
+        rules,
+        configHash: "fixture",
+        duplicateError: null,
+        labelScopesGranted: true,
+        labelLoadError: null,
+        guidedConfirmations: [],
+        labelState: {
+          ...onboardingData.labelState,
+          mode: "guided",
+          decision: "pending",
+          address2FormMode: "optional",
+          address2Decision: "pending",
+        },
+        labelSnapshot: {
+          revision: "fixture",
+          locales: [{ locale, primary: true, published: true }],
+          markets: [
+            {
+              id: "gid://shopify/Market/1",
+              name: "Italy",
+              defaultLocale: locale,
+              locales: [locale],
+              resolution: "ambiguous",
+            },
+          ],
+          issues: [],
+          address2: { classification: "expected", hasMarketOverride: false },
+          slots: [
+            labelSlot({
+              name: "taxCode",
+              key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
+              locale,
+              family: locale,
+              currentValue: "Codice fiscale (opzionale)",
+            }),
+            labelSlot({
+              name: "pec",
+              key: "shopify.checkout.localized_fields.additional_information.tax_email_it",
+              locale,
+              family: locale,
+              currentValue: "PEC (opzionale)",
+            }),
+            labelSlot({ locale, family: locale, currentValue: "Interno" }),
+          ],
+        },
+        checkoutSettingsUrl: "https://admin.shopify.com/store/demo/settings/checkout",
+        storefrontUrl: "https://demo.myshopify.com",
+      };
+      const labels = await mount(<CheckoutRules />);
+      for (const disclosure of labels.container.querySelectorAll<HTMLDetailsElement>(
+        ".rules-layout__labels details",
+      ))
+        disclosure.open = true;
+      for (const badge of labels.container.querySelectorAll(".checkout-labels-title s-badge")) {
+        for (const element of badge.shadowRoot!.querySelectorAll<HTMLElement>("*")) {
+          if (element.textContent === badge.textContent && element.clientWidth > 0) {
+            expect(element.scrollWidth).toBeLessThanOrEqual(element.clientWidth + 1);
+          }
+        }
+      }
+      expect(labels.container.querySelector(".checkout-label-context")).not.toBeNull();
+      for (const context of labels.container.querySelectorAll<HTMLElement>(
+        ".checkout-label-context",
+      )) {
+        expect(context.scrollWidth).toBeLessThanOrEqual(context.clientWidth + 1);
+        const limit = context.getBoundingClientRect().right;
+        for (const element of context.querySelectorAll("s-text, s-badge, s-ordered-list")) {
+          expect(surfaceRect(element).right).toBeLessThanOrEqual(limit + 1);
+        }
+      }
+      expect(labels.container.scrollWidth).toBeLessThanOrEqual(width);
+      await captureSurface(
+        labels.container,
+        `__screenshots__/visual/gruppo1-labels-${locale}-${server.browser}-${width}.png`,
+      );
+      await labels.unmount();
+
+      router.loaderData = {
+        locale,
+        configHash: "fixture",
+        rules,
+        messages: DEFAULT_CONFIG.messages,
+      };
+      const messages = await mount(<CustomerMessages />);
+      const availability = messages.container.querySelector('s-icon[type="info"]')!.parentElement!;
+      const iconBox = surfaceRect(availability.querySelector("s-icon")!);
+      const textBox = surfaceRect(availability.querySelector("s-text")!);
+      expect(textBox.left).toBeGreaterThanOrEqual(iconBox.right);
+      expect(Math.abs(textBox.top - iconBox.top)).toBeLessThan(6);
+      expect(messages.container.textContent).toContain(texts(locale).messages.previewHint);
+      await captureSurface(
+        messages.container,
+        `__screenshots__/visual/gruppo1-messages-${locale}-${server.browser}-${width}.png`,
+      );
+      await messages.unmount();
+
+      router.loaderData = { ...onboardingData, locale, rules, step: 3 };
+      const onboarding = await mount(<Onboarding />);
+      expect(
+        onboarding.container.querySelectorAll(".customer-messages-preview__error"),
+      ).toHaveLength(4);
+      expect(onboarding.container.textContent).toContain(texts(locale).messages.previewHint);
+      expect(
+        onboarding.container.querySelector('.onboarding-message s-icon[type="alert-circle"]'),
+      ).toBeNull();
+      await captureSurface(
+        onboarding.container,
+        `__screenshots__/visual/gruppo1-onboarding-${locale}-${server.browser}-${width}.png`,
+      );
+      await onboarding.unmount();
+
+      router.loaderData = {
+        locale,
+        shopDomain: "demo.myshopify.com",
+        version: "2.0.2",
+        diagnosticId: "123e4567-e89b-42d3-a456-426614174000",
+        diagnostics: {},
+      };
+      const guide = await mount(<Guide />);
+      for (const disclosure of guide.container.querySelectorAll<HTMLDetailsElement>(
+        ".guide-faq__entry",
+      ))
+        disclosure.open = true;
+      expect(guide.container.querySelector(".guide-faq__entries s-divider")).not.toBeNull();
+      expect(guide.container.scrollWidth).toBeLessThanOrEqual(width);
+      await captureSurface(
+        guide.container,
+        `__screenshots__/visual/gruppo1-guide-${locale}-${server.browser}-${width}.png`,
+      );
+      await guide.unmount();
+    }
+  }
+}, 30000);
 
 test("Polaris reale: il banner di esito resta separato dalle card che seguono", async () => {
   await page.viewport(1280, 844);

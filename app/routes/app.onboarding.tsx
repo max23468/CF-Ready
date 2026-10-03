@@ -454,6 +454,7 @@ function OnboardingPreview({ saved, t }: { saved: OnboardingData; t: OnboardingC
       <s-stack direction="block" gap="small-100">
         <s-heading>{t.onboarding.step3Messages}</s-heading>
         <s-paragraph>{t.onboarding.step3MessagesBody}</s-paragraph>
+        <s-text color="subdued">{t.messages.previewHint}</s-text>
       </s-stack>
       {/* O2, O3: ogni messaggio è un blocco con etichetta e lo stesso riquadro d'errore
           dell'anteprima in Messaggi; i blocchi sono più distanti tra loro che al loro interno. */}
@@ -469,7 +470,6 @@ function OnboardingPreview({ saved, t }: { saved: OnboardingData; t: OnboardingC
               </s-stack>
               <CheckoutErrorPreview
                 locale={saved.locale}
-                heading={t.messages.previewErrorHeading}
                 message={saved.messages[saved.locale][key]}
               />
               {/* Come in Messaggi: il riquadro mostra il testo, la nota dice che non comparirà. */}

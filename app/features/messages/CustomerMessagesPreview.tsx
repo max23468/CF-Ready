@@ -4,7 +4,6 @@ import "./CustomerMessagesPreview.css";
 type CustomerMessagesPreviewProps = {
   activeLocale: Locale;
   context: string;
-  errorHeading: string;
   fieldLabel: string;
   fieldLabelHeading: string;
   heading: string;
@@ -20,7 +19,6 @@ type CustomerMessagesPreviewProps = {
 export function CustomerMessagesPreview({
   activeLocale,
   context,
-  errorHeading,
   fieldLabel,
   fieldLabelHeading,
   heading,
@@ -45,21 +43,17 @@ export function CustomerMessagesPreview({
               <s-text>
                 {fieldLabelHeading}: <strong lang={activeLocale}>{fieldLabel}</strong>
               </s-text>
-              <CheckoutErrorPreview
-                locale={activeLocale}
-                heading={errorHeading}
-                message={message}
-              />
+              <CheckoutErrorPreview locale={activeLocale} message={message} />
             </s-stack>
 
             <s-stack direction="inline" gap="small-100" alignItems="center">
               <s-text color="subdued">{selectedHeading}</s-text>
               <s-badge>{selectedLabel}</s-badge>
             </s-stack>
-            <s-stack direction="inline" gap="small-100" alignItems="center">
+            <s-grid gridTemplateColumns="auto minmax(0, 1fr)" gap="small-100" alignItems="start">
               <s-icon type="info" color="subdued" />
               <s-text color="subdued">{availability}</s-text>
-            </s-stack>
+            </s-grid>
           </s-stack>
         </s-box>
       </div>
@@ -70,27 +64,13 @@ export function CustomerMessagesPreview({
   );
 }
 
-// Riquadro d'errore come lo vede il cliente: condiviso da Messaggi e dal passo 3 dell'onboarding.
-export function CheckoutErrorPreview({
-  locale,
-  heading,
-  message,
-}: {
-  locale: Locale;
-  heading: string;
-  message: string;
-}) {
+// Esempio del testo, condiviso da Messaggi e onboarding. La resa checkout dipende da Shopify.
+export function CheckoutErrorPreview({ locale, message }: { locale: Locale; message: string }) {
   return (
     <div lang={locale} className="customer-messages-preview__error">
-      <s-grid gridTemplateColumns="auto minmax(0, 1fr)" gap="small-100" alignItems="start">
-        <s-icon type="alert-circle" tone="critical" />
-        <s-stack direction="block" gap="none">
-          <s-text tone="critical">
-            <strong>{heading}</strong>
-          </s-text>
-          <s-text tone="critical">{message}</s-text>
-        </s-stack>
-      </s-grid>
+      <s-box padding="base" borderWidth="base" borderRadius="base">
+        <s-text tone="critical">{message}</s-text>
+      </s-box>
     </div>
   );
 }
