@@ -1,4 +1,5 @@
 import { UNRESOLVED_WEBHOOK_FILTER } from "./queries.server";
+import { CHECKOUT_LABEL_SYNC_ERRORS } from "../reporting/operational";
 import {
   WEBHOOK_FAILED_MINUTES,
   WEBHOOK_PROCESSING_MINUTES,
@@ -11,15 +12,6 @@ import {
 const ENTITLEMENT_SYNC_ERRORS = [
   "entitlement_readback_failed",
   "entitlement_write_failed",
-] as const;
-
-const CHECKOUT_LABEL_SYNC_ERRORS = [
-  "checkout_labels_locale_missing",
-  "checkout_labels_partial_sync",
-  "checkout_labels_readback_failed",
-  "checkout_labels_resource_ambiguous",
-  "checkout_labels_resource_missing",
-  "checkout_labels_stale_digest",
 ] as const;
 
 export type IncidentRow = {
@@ -38,6 +30,7 @@ export type LabelErrorRow = {
   shop_domain: string;
   display_name: string | null;
   error_code: string;
+  last_read_at: string | null;
 };
 
 export type BillingIssueRow = {
@@ -82,7 +75,9 @@ export async function readIncidentObservations(db: D1Database, now: Date) {
     db
       .prepare(
         `SELECT s.id AS shop_id, s.shop_domain, s.display_name,
-              a.checkout_labels_last_error_code AS error_code
+              a.checkout_labels_last_error_code AS error_code,
+              (SELECT MAX(last_observed_at) FROM checkout_label_slots
+                WHERE shop_id = s.id) AS last_read_at
          FROM app_state a
          JOIN shops s ON s.id = a.shop_id
         WHERE s.installation_status = 'active'

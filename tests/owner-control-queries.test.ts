@@ -26,6 +26,29 @@ import { controlConfig, insertStore, resetOwnerControl } from "./support/owner-c
 beforeEach(resetOwnerControl);
 
 describe("query D1 e run-rate", () => {
+  test("include gli errori etichette nei contatori e nei filtri senza contare le conferme guidate", async () => {
+    await insertStore(1, "labels-error.myshopify.com");
+    await insertStore(2, "labels-guided.myshopify.com");
+    await insertStore(3, "labels-off.myshopify.com");
+    await env.DB.batch([
+      env.DB.prepare(`UPDATE app_state SET checkout_labels_mode = 'partial',
+        checkout_labels_last_error_code = 'checkout_labels_partial_sync' WHERE shop_id = 1`),
+      env.DB.prepare(`UPDATE app_state SET checkout_labels_mode = 'guided',
+        checkout_labels_last_error_code = 'checkout_labels_confirmation_pending' WHERE shop_id = 2`),
+      env.DB.prepare(`UPDATE app_state SET checkout_labels_mode = 'off',
+        checkout_labels_last_error_code = 'checkout_labels_partial_sync' WHERE shop_id = 3`),
+    ]);
+    expect(await readDashboard(env.DB)).toMatchObject({ shops_with_error: 1 });
+    expect(await readIssues(env.DB)).toMatchObject({ stores: { count: 1 } });
+    expect(await readErrors(env.DB)).toContainEqual(
+      expect.objectContaining({ error_code: "checkout_labels_partial_sync", count: 1 }),
+    );
+    expect(await readShops(env.DB, "issues", 0)).toMatchObject({
+      count: 1,
+      shops: [{ checkout_labels_last_error_code: "checkout_labels_partial_sync" }],
+    });
+  });
+
   test("legge i piani Shopify senza bloccare gli altri store per un errore", async () => {
     const shops = [
       shopFixture({ id: 1, shop_domain: "store-1.myshopify.com" }),

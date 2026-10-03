@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.1 — 3 ottobre 2026
+
+- include gli errori di sincronizzazione delle etichette nei conteggi e nei
+  controlli owner ed esclude gli abbonamenti di test dai negozi paganti;
+- conserva l'ultima lettura Shopify anche quando la sincronizzazione è parziale
+  e distingue le osservazioni D1 dalla verifica effettiva del checkout;
+- aggiorna le prove M12 e lo stato dei requisiti Built for Shopify.
+
 ## 2.0.0 — 3 ottobre 2026
 
 Milestone di design scelta dall'owner il 3 ottobre 2026, pubblicazione limitata

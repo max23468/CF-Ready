@@ -76,6 +76,37 @@ test("produce conteggi a zero quando il database non contiene store", () => {
   );
 });
 
+test("conta gli errori etichette una sola volta ed esclude conferme guidate e pagamenti test", async () => {
+  const { DatabaseSync } = await import("node:sqlite");
+  const db = new DatabaseSync(":memory:");
+  try {
+    db.exec(`
+      CREATE TABLE shops(id INTEGER, installed_at TEXT, installation_status TEXT);
+      CREATE TABLE app_state(shop_id INTEGER, onboarding_status TEXT, validation_enabled INTEGER,
+        last_error_code TEXT, checkout_labels_mode TEXT, checkout_labels_last_error_code TEXT);
+      CREATE TABLE trials(shop_id INTEGER, status TEXT, ends_at TEXT);
+      CREATE TABLE billing_accounts(shop_id INTEGER, entitlement_status TEXT, plan_kind TEXT, is_test INTEGER);
+      CREATE TABLE complimentary_entitlements(shop_id INTEGER, status TEXT);
+      CREATE TABLE app_events(event_class TEXT, occurred_at TEXT);
+      CREATE TABLE webhook_events(status TEXT, received_at TEXT);
+      INSERT INTO shops VALUES (1, datetime('now'), 'active'), (2, datetime('now'), 'active'),
+        (3, datetime('now'), 'active'), (4, datetime('now'), 'uninstalled');
+      INSERT INTO app_state VALUES (1, 'completed', 1, 'validation_error', 'partial', 'checkout_labels_partial_sync'),
+        (2, 'completed', 1, NULL, 'partial', 'checkout_labels_readback_failed'),
+        (3, 'completed', 1, NULL, 'guided', 'checkout_labels_confirmation_pending'),
+        (4, 'completed', 1, NULL, 'partial', 'checkout_labels_partial_sync');
+      INSERT INTO billing_accounts VALUES (1, 'active', 'monthly', 0), (2, 'active', 'monthly', 1);
+    `);
+    const args = commandFor("production");
+    const query = args[args.indexOf("--command") + 1].split(FUNNEL_QUERY)[0];
+    const result = db.prepare(query).get();
+    assert.equal(result.stores_with_open_error, 2);
+    assert.equal(result.paying_or_paid_stores, 1);
+  } finally {
+    db.close();
+  }
+});
+
 test("accetta soltanto il risultato aggregato completo", () => {
   assert.deepEqual(
     parseWranglerResult(
