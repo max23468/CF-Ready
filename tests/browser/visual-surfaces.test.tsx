@@ -177,6 +177,9 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
   // G-B5: titolo nativo e domande senza grassetto; "Espandi tutte" a destra del titolo.
   const faqHeading = view.container.querySelector("#faq s-heading")!;
   expect(faqHeading.textContent).toBe(texts("it").guide.faqHeading);
+  expect(
+    page.getByRole("heading", { name: texts("it").guide.faqHeading, exact: true }).elements(),
+  ).toHaveLength(1);
   const toggle = surfaceRect(view.container.querySelector("#faq s-button")!);
   const headingBox = surfaceRect(faqHeading);
   expect(toggle.left).toBeGreaterThan(headingBox.right);
@@ -232,6 +235,10 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
     Math.round(surfaceRect(button).right - surfaceRect(button).left),
   );
   expect(new Set(widths).size).toBe(1);
+  // L'Admin embedded può coprire il bordo superiore: il salto deve lasciare visibile il titolo.
+  const header = document.createElement("div");
+  header.style.cssText = "position:fixed;inset:0 0 auto;height:80px;z-index:1000;background:white";
+  document.body.append(header);
   await page
     .getByRole("button", {
       name: texts("it").guide.diagnosis.heading,
@@ -243,14 +250,62 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
   expect(document.activeElement).toBe(diagnosis);
   await expect
     .poll(() => {
-      const heading = surfaceRect(diagnosis.closest("s-section")!);
-      // WebKit allinea il bordo con un arrotondamento sub-pixel.
-      return heading.top > -1 && heading.top < 844;
+      const heading = diagnosis.querySelector(".guide-diagnosis__heading")!.getBoundingClientRect();
+      return heading.top >= 80 && heading.bottom < 844;
     })
     .toBe(true);
+  header.remove();
   await page.screenshot({
     path: `__screenshots__/visual/guide-${server.browser}-390.png`,
   });
+});
+
+test("Polaris reale: messaggi multiriga interamente visibili e anteprima vicina al campo", async () => {
+  await page.viewport(390, 844);
+  for (const locale of ["it", "en"] as const) {
+    router.loaderData = {
+      locale,
+      configHash: "fixture",
+      messages: DEFAULT_CONFIG.messages,
+      rules: { taxCode: "required_validated", pec: "required_validated" },
+    };
+    const view = await mount(<CustomerMessages />);
+    const copy = texts(locale).messages;
+    const textbox = page.getByRole("textbox", { name: copy.pecInvalid, exact: true });
+    const input = textbox.element() as HTMLTextAreaElement;
+    const host = view.container.querySelector(`s-text-area[name="${locale}.pecInvalid"]`)!;
+    const local = host.parentElement!.querySelector<HTMLElement>(
+      ".customer-messages-preview__local",
+    )!;
+    const value = "Riga di prova\n".repeat(12);
+    await act(async () => {
+      await textbox.fill(value);
+    });
+    await expect.poll(() => input.clientHeight >= input.scrollHeight - 1).toBe(true);
+    expect(local.textContent).toContain(value);
+    expect(getComputedStyle(local).display).toBe("block");
+    await act(async () => {
+      await textbox.fill("W".repeat(200));
+    });
+    await expect.poll(() => input.clientHeight >= input.scrollHeight - 1).toBe(true);
+    await page.viewport(320, 844);
+    await expect.poll(() => input.clientHeight >= input.scrollHeight - 1).toBe(true);
+    await act(async () => {
+      await textbox.fill("Testo breve");
+    });
+    await expect.poll(() => input.rows).toBe(2);
+    await textbox.click();
+    // L'anteprima si legge senza risalire al riquadro iniziale.
+    expect(local.getBoundingClientRect().top).toBeGreaterThan(input.getBoundingClientRect().bottom);
+    expect(local.getBoundingClientRect().bottom).toBeLessThan(window.innerHeight);
+    await page.screenshot({
+      path: `__screenshots__/visual/messages-local-${locale}-${server.browser}-320.png`,
+    });
+    await page.viewport(1280, 844);
+    await expect.poll(() => getComputedStyle(local).display).toBe("none");
+    await view.unmount();
+    await page.viewport(390, 844);
+  }
 });
 
 test("Polaris reale: anteprima Messaggi visibile prima dei campi e riepilogo senza tagli", async () => {

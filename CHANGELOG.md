@@ -6,6 +6,27 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 1.15.22 — 3 ottobre 2026
+
+- nel simulatore spiega il blocco dovuto a un campo obbligatorio che Shopify
+  non mostra e indica come riprovare con il campo visibile;
+- toglie l'indicatore di obbligatorietà nello scenario del simulatore quando
+  le regole non si applicano;
+- adatta l'altezza dei messaggi ai ritorni a capo e alla larghezza effettiva,
+  rendendo leggibili anche testi lunghi senza spazi;
+- affianca a ogni messaggio un'anteprima compatta nei layout stretti;
+- mantiene visibile il titolo della diagnostica dopo il salto dalla Guida,
+  anche sotto l'intestazione fissa dell'Admin;
+- elimina il titolo FAQ duplicato nella struttura accessibile;
+- distingue nell'onboarding le capacità della modalità Mista dalle verifiche
+  manuali ancora da completare.
+
+## 1.15.21 — 2 ottobre 2026
+
+- mostra il banner "Grazie per aver scelto CF Ready" solo dopo la conferma
+  Shopify, evitando che compaia per un istante durante la ricarica degli store
+  Development.
+
 ## 1.15.20 — 2 ottobre 2026
 
 - sposta l'esito del simulatore del checkout subito sopra "Continua", così resta

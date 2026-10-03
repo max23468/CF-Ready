@@ -302,6 +302,26 @@ describe("Onboarding", () => {
     );
   });
 
+  test("la modalità Mista descrive le capacità senza dichiarare controlli pendenti", async () => {
+    for (const locale of ["it", "en"] as const) {
+      router.loaderData = {
+        ...onboardingData,
+        locale,
+        step: 4,
+        labelState: { mode: "partial", address2Classification: "expected" },
+      };
+      const view = await mount(<Onboarding />);
+      expect(view.container.textContent).toContain(texts(locale).onboarding.labelsMixedDescription);
+      expect(view.container.textContent).toContain(
+        locale === "it" ? "eventuali verifiche" : "any checks",
+      );
+      expect(view.container.textContent).not.toContain(
+        locale === "it" ? "altre richiedono" : "others need",
+      );
+      await view.unmount();
+    }
+  });
+
   test("mantiene leggibile il valore completo nel riepilogo stretto", async () => {
     const style = document.createElement("style");
     style.dataset.testOnboardingSummary = "true";

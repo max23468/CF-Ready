@@ -6,4 +6,19 @@
   font-size: 14px;
   line-height: 20px;
   overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.customer-messages-fields {
+  container: message-fields / inline-size;
+}
+
+.customer-messages-preview__local {
+  display: none;
+}
+
+@container message-fields (inline-size <= 560px) {
+  .customer-messages-preview__local {
+    display: block;
+  }
 }

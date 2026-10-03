@@ -245,6 +245,7 @@ function homeView(
     errorCode: state.errorCode,
     onboarding: onboardingStatus,
     showMerchantCheckIn: Boolean(
+      verified &&
       !state.partnerDevelopment &&
       paidAccount &&
       state.validationEnabled &&

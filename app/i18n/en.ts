@@ -197,7 +197,8 @@ export const en: typeof it = {
     labelsPermissionsOptional:
       "You can grant permission to compare labels with Shopify now or continue without enabling it.",
     step3Heading: "Rules preview",
-    labelsMixedDescription: "Some labels are managed automatically; others need a manual check.",
+    labelsMixedDescription:
+      "Mixed mode supports automatic updates and manual checks. “Checkout rules” shows any checks still to complete.",
     step3Body: "With the rules you selected:",
     step3Messages: "Configured messages",
     step3MessagesBody:
@@ -495,6 +496,10 @@ export const en: typeof it = {
       mixedDelivery: "Add a foreign delivery",
       taxCodePresent: "Shopify shows the Italian tax code field",
       pecPresent: "Shopify shows the PEC field",
+      missingRequiredField: (label: string) =>
+        `The “${label}” field is required, but Shopify does not show it in this scenario. With an Italian delivery, the order is blocked at completion.`,
+      showMissingFields:
+        "To try entering a value, open “Advanced options” and select “Shopify shows the field” for the missing field.",
       scenarioLabel: "Try a scenario",
       scenarioHelp: "Choose a scenario: the simulator fills the fields and shows the result.",
       scenarioPlaceholder: "Choose a scenario",
