@@ -331,10 +331,10 @@ function LabelComparison({
           <div className="checkout-label-context" key={context.key}>
             <div className="checkout-labels-title">
               <s-text type="strong">{context.label}</s-text>
+              {/* R-7: lo stato complessivo sta nel titolo del pannello; qui solo ciò che va
+                  verificato. */}
               {pendingSlotIds.length > 0 ? (
                 <s-badge tone="warning">{copy.statusManualRequired}</s-badge>
-              ) : context.guidedSlotIds.length === 0 ? (
-                <s-badge tone="success">{copy.statusUpToDate}</s-badge>
               ) : null}
             </div>
             <div className="checkout-label-context__rows">
@@ -346,19 +346,25 @@ function LabelComparison({
                     <s-text type="strong">
                       {name === "taxCode" ? translated.taxCodeLabel : translated.pecLabel}
                     </s-text>
-                    <s-stack direction="block" gap="small-100">
-                      <s-text color="subdued">
-                        {copy.current}:{" "}
-                        {observed ? quoteLabel(observed, locale) : copy.notAvailable}
-                      </s-text>
-                      {proposed && !checkoutLabelValuesMatch(proposed, observed) ? (
+                    {proposed && !checkoutLabelValuesMatch(proposed, observed) ? (
+                      <s-stack direction="block" gap="small-300">
+                        <s-text color="subdued">
+                          {copy.current}:{" "}
+                          {observed ? quoteLabel(observed, locale) : copy.notAvailable}
+                        </s-text>
                         <s-text>
                           {copy.proposed}: {quoteLabel(proposed, locale)}
                         </s-text>
-                      ) : (
+                      </s-stack>
+                    ) : (
+                      // Decisione del 4 ottobre: senza modifiche il confronto sta su una riga.
+                      <s-stack direction="inline" gap="small-200" alignItems="baseline">
+                        <s-text>
+                          {observed ? quoteLabel(observed, locale) : copy.notAvailable}
+                        </s-text>
                         <s-text color="subdued">{copy.noChange}</s-text>
-                      )}
-                    </s-stack>
+                      </s-stack>
+                    )}
                   </div>
                 );
               })}
