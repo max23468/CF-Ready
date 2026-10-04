@@ -1,6 +1,6 @@
 # Audit grafico di CF Ready 2.0 con Polaris 2 (Claude)
 
-**Stato:** verifica finale in Chrome del 4 ottobre 2026, in italiano, su Development 2.0.15, commit `56d59c5` (§30). Dei 50 ID: **42 risolti, 2 parziali, 6 accettati per decisione**. Restano aperti O-5, per i badge troncati a 390 e 320 px (C-2, non corretto nel codice), ed EN-2, solo inglese e fuori dal perimetro di questa verifica. Si aggiunge il rilievo lieve C-3 sulle note dei mercati nelle etichette. Le sezioni 1–29 conservano le osservazioni e le prove dei giri precedenti; §30 è il riferimento per lo stato corrente.
+**Stato:** verifica finale in Chrome del 4 ottobre 2026, in italiano, su Development 2.0.16, commit `b64d53d` (§30). Dei 50 ID: **43 risolti, 1 parziale, 6 accettati per decisione**. L'unico aperto è EN-2, solo inglese e fuori dal perimetro di questa verifica. C-2 e C-3 sono corretti in 2.0.16 e verificati dal vivo (§30.6). Le sezioni 1–29 conservano le osservazioni e le prove dei giri precedenti; §30 è il riferimento per lo stato corrente.
 **Data:** 3 ottobre 2026, circa 20:30-21:45 CEST, compresi il ricontrollo e la prova della conferma etichette
 **Ambiente:** Development, `cf-ready-polaris-2.myshopify.com` (preview
 `new_admin_design`), app `cf-ready-development`
@@ -181,7 +181,7 @@ nel nuovo Admin non è ancora stata provata.
 | O-2 | Divisore prima di «Campo Interno» ma non prima di «PEC» nello stesso passo | Bassa | Alta | **Risolto** (§28) |
 | O-3 | Il riquadro «Etichette proposte» scrive «Italiano: Mantieni il testo attuale, Mantieni il testo attuale» senza nominare i campi ([21](evidence/2026-10-03-polaris-2-claude/21-onboarding-passo-2-fondo.jpg)) | Media | Alta | **Risolto** (§28) |
 | O-4 | Passo 3: «Quando si applicano» è un elenco puntato con una sola voce; i quattro esempi sono box bianchi bordati su card bianca, diversi dal riquadro grigio di Messaggi ([22](evidence/2026-10-03-polaris-2-claude/22-onboarding-passo-3.jpg)) | Bassa | Alta | **Risolto** (§28) |
-| O-5 | Passo 4: il riepilogo usa testo semplice per gli stessi stati che la Home mostra con badge; tre bottoni con il primario in mezzo ([23](evidence/2026-10-03-polaris-2-claude/23-onboarding-passo-4.jpg)) | Bassa | Alta | **Parziale** (§30) |
+| O-5 | Passo 4: il riepilogo usa testo semplice per gli stessi stati che la Home mostra con badge; tre bottoni con il primario in mezzo ([23](evidence/2026-10-03-polaris-2-claude/23-onboarding-passo-4.jpg)) | Bassa | Alta | **Risolto** (§30.6) |
 | O-6 | «Configurazione completata» ha il titolo fuori dalla card, mentre i passi lo hanno dentro; il bottone dice «Vai alla home» con l'iniziale minuscola ([24](evidence/2026-10-03-polaris-2-claude/24-onboarding-completata.jpg)) | Bassa | Alta | **Risolto** (§30) |
 
 ## 10. Conferme e feedback
@@ -1308,8 +1308,9 @@ documentale successivo alla PR del fix, senza ulteriori modifiche operative.
 
 ## 30. Verifica finale in Chrome, italiano, 4 ottobre 2026
 
-**Esito:** dei 50 ID, **42 risolti, 2 parziali, 6 accettati per decisione**.
-L'audit **non è chiuso**: O-5 resta parziale per i badge troncati su mobile
+**Esito:** dopo la correzione e la verifica di 2.0.16 (30.6), dei 50 ID
+**43 sono risolti, 1 parziale (EN-2, solo inglese) e 6 accettati per decisione**.
+Prima della correzione erano 42 risolti e 2 parziali: O-5 resta parziale per i badge troncati su mobile
 (C-2), che nessuna PR ha corretto ([ui-status-list.tsx](../../app/ui-status-list.tsx)
 è fermo a #630). EN-2 resta parziale perché riguarda solo l'inglese, escluso
 dall'owner da questa verifica. Nessuna regressione delle ultime PR è emersa nei
@@ -1408,5 +1409,22 @@ conferma alcuni mercati.
 Il test visivo del riepilogo a 320 px ora confronta la larghezza del testo di
 ogni badge con quella visibile: falliva su Chromium e WebKit, con Polaris 1 e
 2, prima della correzione. Il test della route Regole verifica l'assenza della
-nota nel caso ambiguo e falliva prima della correzione. O-5 resta parziale
-fino alla verifica live dopo il deploy Development.
+nota nel caso ambiguo e falliva prima della correzione.
+
+Pubblicata in Development con
+[#651](https://github.com/max23468/CF-Ready/pull/651), squash `b64d53d`,
+[deploy](https://github.com/max23468/CF-Ready/actions/runs/37233716108) verde:
+Shopify `2.0.16-dev.f5c1fa3290fa`, Worker version
+`2711be2e-b1bd-48bf-af1b-3352fdeae5d6`, nessuna migrazione D1. Nessuna
+promozione Production.
+
+Verifica live in Chrome, stesso metodo di 30.1, senza scritture:
+
+| ID | Stato | Riscontro | Prova |
+| --- | --- | --- | --- |
+| O-5, C-2 | Risolto | A 320 px Home e riepilogo impilano etichetta e badge; tutti i badge, compreso «Nessuna etichetta fiscale rilevata», sono interi anche a 390 px. A 1440 px le righe restano su due colonne. | [13](evidence/2026-10-04-verifica-finale/13-v2016-home-320.png), [14](evidence/2026-10-04-verifica-finale/14-v2016-riepilogo-320.png) |
+| C-3 | Risolto | In «Testi del checkout» resta solo «Controlla anche il checkout per Canada, Italy…»; modalità e ultima lettura su due colonne. | [15](evidence/2026-10-04-verifica-finale/15-v2016-c3-nota-mercati.jpg) |
+
+Con questa verifica gli ID italiani dell'audit sono tutti risolti o accettati
+per decisione. Resta parziale EN-2, da verificare in inglese se l'owner lo
+richiederà.
