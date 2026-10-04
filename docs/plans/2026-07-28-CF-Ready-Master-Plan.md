@@ -4908,6 +4908,10 @@ Consegnata in tre layer versionati, come da §19.5:
   criteri di rivalutazione, runbook, E2E e matrice manuale. Chiude feature
   complete.
 
+Il controllo sintetico di capacità è stato ritirato dall’owner il 4 ottobre
+2026: non è più un requisito di deploy né un comando operativo. Restano le
+soglie delle risorse, le metriche reali, smoke e readback.
+
 Deliverable:
 
 - backup R2;
@@ -4919,7 +4923,6 @@ Deliverable:
 - runbook;
 - security audit;
 - dependency audit;
-- load/CPU check;
 - soglie Free tier e criteri di rivalutazione;
 - formato ricevuta deploy/readback;
 - workflow GitHub Actions controllato per il deploy Pages;
