@@ -486,8 +486,6 @@ export const en: typeof it = {
       unknownCountry: "Not provided",
       heading: "Checkout simulator",
       previewLanguage: "Preview language",
-      labelsAfterSave:
-        "Labels follow the rules selected here; the checkout changes after you save.",
       italian: "Italian",
       english: "English",
       orderContext: "Order destination",
@@ -509,7 +507,6 @@ export const en: typeof it = {
       showMissingFields:
         "To try entering a value, open “Advanced options” and select “Shopify shows the field” for the missing field.",
       scenarioLabel: "Try a scenario",
-      scenarioHelp: "Choose a scenario: the simulator fills the fields and shows the result.",
       scenarioPlaceholder: "Choose a scenario",
       scenarios: {
         valid: "Valid details",

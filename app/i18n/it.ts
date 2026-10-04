@@ -491,8 +491,6 @@ export const it = {
       unknownCountry: "Non indicato",
       heading: "Simulatore del checkout",
       previewLanguage: "Lingua dell’anteprima",
-      labelsAfterSave:
-        "Le etichette seguono le regole selezionate qui; nel checkout cambiano dopo il salvataggio.",
       italian: "Italiano",
       english: "Inglese",
       orderContext: "Destinazione dell’ordine",
@@ -514,7 +512,6 @@ export const it = {
       showMissingFields:
         "Per provare la compilazione, apri «Opzioni avanzate» e seleziona «Shopify mostra il campo» per il campo mancante.",
       scenarioLabel: "Prova uno scenario",
-      scenarioHelp: "Scegli uno scenario: il simulatore compila i campi e mostra il risultato.",
       scenarioPlaceholder: "Scegli uno scenario",
       scenarios: {
         valid: "Dati validi",
