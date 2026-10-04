@@ -333,98 +333,99 @@ export default function CheckoutRules() {
         onConfirm={() => submitSave(true)}
       />
 
-      <div className="rules-layout-container">
-        <div className="rules-layout">
-          <div className="rules-layout__main">
-            <form
-              className="rules-layout__form"
-              key={formRevision}
-              onChange={readDraft}
-              onSubmit={(event) => {
-                event.preventDefault();
-                save();
-              }}
-            >
-              <div className="rules-layout__fields">
-                <s-section heading={t.rules.taxCodeLabel}>
-                  <s-choice-list
-                    label={t.rules.taxCodeLabel}
-                    labelAccessibilityVisibility="exclusive"
-                    name="taxCode"
-                  >
-                    {TAX_CODE_RULE_MODES.map((mode) => (
-                      <s-choice key={mode} value={mode} selected={mode === draft.rules.taxCode}>
-                        {t.rules.taxCode[mode]}
-                        <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
-                      </s-choice>
-                    ))}
-                  </s-choice-list>
-                </s-section>
-                <s-section heading={t.rules.pecLabel}>
-                  <s-choice-list
-                    label={t.rules.pecLabel}
-                    labelAccessibilityVisibility="exclusive"
-                    name="pec"
-                  >
-                    {PEC_RULE_MODES.map((mode) => (
-                      <s-choice key={mode} value={mode} selected={mode === draft.rules.pec}>
-                        {t.rules.pec[mode]}
-                        <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
-                      </s-choice>
-                    ))}
-                  </s-choice-list>
-                </s-section>
-              </div>
-            </form>
-
-            <div className="rules-layout__labels">
-              <CheckoutLabelsSection
-                locale={saved.locale}
-                timeZone={saved.timeZone}
-                rules={draft.rules}
-                scopeGranted={labels.scopeGranted}
-                snapshot={labelSnapshot}
-                state={labelState}
-                loadErrorCode={labels.loadError}
-                guidedConfirmations={labels.guidedConfirmations}
-                enabled={labelsEnabled}
-                busy={busy}
-                checkoutSettingsUrl={saved.checkoutSettingsUrl}
-                storefrontUrl={saved.storefrontUrl}
-                onEnabledChange={(value) => {
-                  setChangedSinceResult(true);
-                  setLabelsEnabled(value);
-                }}
-                onScopeGranted={() => labels.load(draft.rules)}
-              />
-            </div>
-          </div>
-
-          <div className="rules-layout__preview" id={SIMULATOR_ID} tabIndex={-1}>
-            <s-section heading={t.rules.previewHeading}>
-              <s-stack direction="block" gap="base">
-                <s-stack direction="block" gap="small-100">
-                  {describeCheckout(
-                    {
-                      rules: draft.rules,
-                      status: validationStatus(saved.enabled, saved.entitled),
-                    },
-                    saved.locale,
-                  ).map((line) => (
-                    <s-paragraph key={line}>{line}</s-paragraph>
-                  ))}
-                </s-stack>
-
-                <CheckoutSimulator
-                  locale={saved.locale}
-                  rules={draft.rules}
-                  messages={saved.messages}
-                />
-              </s-stack>
+      {/* P2-T1: stessa pagina base delle altre, con il simulatore nella colonna laterale nativa:
+          il bordo sinistro non si sposta tra le pagine e regole ed etichette hanno tutta la
+          colonna principale. */}
+      <div className="rules-layout__main">
+        <form
+          className="rules-layout__form"
+          key={formRevision}
+          onChange={readDraft}
+          onSubmit={(event) => {
+            event.preventDefault();
+            save();
+          }}
+        >
+          <div className="rules-layout__fields">
+            <s-section heading={t.rules.taxCodeLabel}>
+              <s-choice-list
+                label={t.rules.taxCodeLabel}
+                labelAccessibilityVisibility="exclusive"
+                name="taxCode"
+              >
+                {TAX_CODE_RULE_MODES.map((mode) => (
+                  <s-choice key={mode} value={mode} selected={mode === draft.rules.taxCode}>
+                    {t.rules.taxCode[mode]}
+                    <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
+                  </s-choice>
+                ))}
+              </s-choice-list>
+            </s-section>
+            <s-section heading={t.rules.pecLabel}>
+              <s-choice-list
+                label={t.rules.pecLabel}
+                labelAccessibilityVisibility="exclusive"
+                name="pec"
+              >
+                {PEC_RULE_MODES.map((mode) => (
+                  <s-choice key={mode} value={mode} selected={mode === draft.rules.pec}>
+                    {t.rules.pec[mode]}
+                    <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
+                  </s-choice>
+                ))}
+              </s-choice-list>
             </s-section>
           </div>
+        </form>
+
+        <div className="rules-layout__labels">
+          <CheckoutLabelsSection
+            locale={saved.locale}
+            timeZone={saved.timeZone}
+            rules={draft.rules}
+            scopeGranted={labels.scopeGranted}
+            snapshot={labelSnapshot}
+            state={labelState}
+            loadErrorCode={labels.loadError}
+            guidedConfirmations={labels.guidedConfirmations}
+            enabled={labelsEnabled}
+            busy={busy}
+            checkoutSettingsUrl={saved.checkoutSettingsUrl}
+            storefrontUrl={saved.storefrontUrl}
+            onEnabledChange={(value) => {
+              setChangedSinceResult(true);
+              setLabelsEnabled(value);
+            }}
+            onScopeGranted={() => labels.load(draft.rules)}
+          />
         </div>
       </div>
+
+      <s-stack slot="aside" direction="block" gap="base">
+        <div className="rules-layout__preview" id={SIMULATOR_ID} tabIndex={-1}>
+          <s-section heading={t.rules.previewHeading}>
+            <s-stack direction="block" gap="base">
+              <s-stack direction="block" gap="small-100">
+                {describeCheckout(
+                  {
+                    rules: draft.rules,
+                    status: validationStatus(saved.enabled, saved.entitled),
+                  },
+                  saved.locale,
+                ).map((line) => (
+                  <s-paragraph key={line}>{line}</s-paragraph>
+                ))}
+              </s-stack>
+
+              <CheckoutSimulator
+                locale={saved.locale}
+                rules={draft.rules}
+                messages={saved.messages}
+              />
+            </s-stack>
+          </s-section>
+        </div>
+      </s-stack>
     </s-page>
   );
 }

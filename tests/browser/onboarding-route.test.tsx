@@ -3,8 +3,6 @@ import { describe, expect, test, vi } from "vitest";
 
 import { checkoutLabelCopy } from "../../app/checkout-labels/domain";
 import { texts } from "../../app/i18n";
-import onboardingCss from "../../app/routes/app.onboarding.css?raw";
-import motionCss from "../../app/ui-motion.css?raw";
 import { click, dispatch } from "./render";
 
 import Onboarding from "../../app/routes/app.onboarding";
@@ -338,29 +336,25 @@ describe("Onboarding", () => {
   });
 
   test("mantiene leggibile il valore completo nel riepilogo stretto", async () => {
-    const style = document.createElement("style");
-    style.dataset.testOnboardingSummary = "true";
-    style.textContent = `${motionCss}\n${onboardingCss}`;
-    document.head.append(style);
     router.loaderData = {
       ...onboardingData,
       step: 4,
       rules: { taxCode: "required_validated", pec: "required_when_company" },
     };
     const view = await mount(<Onboarding />);
-    const rows = view.container.querySelectorAll<HTMLElement>(".cf-onboarding-summary-row");
-    const pecRow = rows[1];
-    if (!pecRow) throw new Error("riga PEC del riepilogo assente");
-    pecRow.style.inlineSize = "320px";
+    const list = view.container.querySelector<HTMLElement>("s-query-container")!;
+    list.style.display = "block";
+    list.style.inlineSize = "320px";
+    const value = view.container.querySelectorAll<HTMLElement>(".cf-status-list__value")[1];
+    if (!value) throw new Error("valore PEC del riepilogo assente");
 
-    const [, value] = [...pecRow.children] as HTMLElement[];
-    const rowRect = pecRow.getBoundingClientRect();
-    const valueRect = value.getBoundingClientRect();
-
-    expect(valueRect.right - rowRect.right).toBeLessThan(0.1);
+    expect(value.textContent).toBe(texts("it").rules.pec.required_when_company);
+    expect(value.getBoundingClientRect().right - list.getBoundingClientRect().right).toBeLessThan(
+      0.1,
+    );
+    expect(value.scrollWidth).toBeLessThanOrEqual(value.clientWidth);
     expect(value.querySelector("s-badge")).toBeNull();
-    expect(getComputedStyle(value).overflow).not.toBe("hidden");
-    style.remove();
+    await view.unmount();
   });
 
   test("attraversa i quattro passi e completa senza attivare", async () => {

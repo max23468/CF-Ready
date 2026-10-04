@@ -16,6 +16,7 @@ import {
   addressTone,
 } from "./checkout-labels-presentation";
 import { RULES_INTENTS, type SubmitCheckoutLabelsIntent } from "./rules-intents";
+import { Disclosure } from "../../ui-disclosure";
 
 type Address2CheckoutLabelsProps = {
   locale: Locale;
@@ -46,37 +47,40 @@ export function Address2CheckoutLabels({
   const hidden = state.address2FormMode === "hidden";
 
   return (
-    <s-box borderWidth="base" borderRadius="base">
-      <details className="checkout-labels-disclosure">
+    <Disclosure
+      panel
+      className="checkout-labels-disclosure"
+      summary={
         <Address2Summary
           copy={copy}
           formMode={state.address2FormMode}
           classification={presentation.classification}
         />
-        <Address2Content
-          {...{
-            locale,
-            scopeGranted,
-            snapshot,
-            state,
-            activeFamily,
-            busy,
-            checkoutSettingsUrl,
-            submitIntent,
-            copy,
-            presentation,
-            restoreModalId,
-            hidden,
-          }}
-        />
-        <Address2RestoreModal
-          locale={locale}
-          restoreModalId={restoreModalId}
-          restorableSlots={presentation.restorableSlots}
-          submitIntent={submitIntent}
-        />
-      </details>
-    </s-box>
+      }
+    >
+      <Address2Content
+        {...{
+          locale,
+          scopeGranted,
+          snapshot,
+          state,
+          activeFamily,
+          busy,
+          checkoutSettingsUrl,
+          submitIntent,
+          copy,
+          presentation,
+          restoreModalId,
+          hidden,
+        }}
+      />
+      <Address2RestoreModal
+        locale={locale}
+        restoreModalId={restoreModalId}
+        restorableSlots={presentation.restorableSlots}
+        submitIntent={submitIntent}
+      />
+    </Disclosure>
   );
 }
 
@@ -91,7 +95,7 @@ function Address2Summary({
 }) {
   const hidden = formMode === "hidden";
   return (
-    <summary className="checkout-labels-disclosure__summary">
+    <>
       <div className="checkout-labels-title">
         <s-heading>{copy.addressHeading}</s-heading>
         <s-badge tone={hidden ? "neutral" : formMode ? addressTone(classification) : "warning"}>
@@ -109,7 +113,7 @@ function Address2Summary({
             ? copy.addressSummary[classification]
             : copy.addressModeSummary}
       </s-paragraph>
-    </summary>
+    </>
   );
 }
 
@@ -133,57 +137,55 @@ function Address2Content({
   hidden: boolean;
 }) {
   return (
-    <div className="checkout-labels-disclosure__body">
-      <s-stack direction="block" gap="base">
-        <s-select
-          label={copy.addressModeLabel}
-          placeholder={copy.addressModePlaceholder}
-          value={state.address2FormMode ?? undefined}
-          disabled={busy}
-          onChange={(event) =>
-            submitIntent(RULES_INTENTS.saveAddress2FormMode, [], {
-              address2FormMode: event.currentTarget.value,
-            })
-          }
-        >
-          <s-option value="required">{copy.addressRequired}</s-option>
-          <s-option value="optional">{copy.addressOptional}</s-option>
-          <s-option value="hidden">{copy.addressHidden}</s-option>
-        </s-select>
-        <s-paragraph color="subdued">{copy.addressModeHelp}</s-paragraph>
-        <s-paragraph color="subdued">
-          {hidden ? copy.addressHiddenHelp : scopeGranted ? copy.addressLimit : copy.noSnapshot}
-        </s-paragraph>
-        {snapshot && state.address2FormMode && !hidden ? (
-          <Address2Comparison
-            snapshot={snapshot}
-            locale={locale}
-            family={activeFamily}
-            formMode={state.address2FormMode}
-          />
-        ) : null}
-        {presentation.sourceRequiresManualRestore ? (
-          <s-banner tone="warning">{copy.sourceManual}</s-banner>
-        ) : null}
-        {hidden ? (
-          <s-link href={checkoutSettingsUrl} target="_top">
-            {copy.openCheckout}
-          </s-link>
-        ) : (
-          <Address2Actions
-            copy={copy}
-            scopeGranted={scopeGranted}
-            snapshotAvailable={Boolean(snapshot)}
-            busy={busy}
-            checkoutSettingsUrl={checkoutSettingsUrl}
-            restoreModalId={restoreModalId}
-            classification={presentation.classification}
-            hasRestorableSlots={presentation.restorableSlots.length > 0}
-            onKeep={() => submitIntent(RULES_INTENTS.acceptAddress2Labels)}
-          />
-        )}
-      </s-stack>
-    </div>
+    <s-stack direction="block" gap="base">
+      <s-select
+        label={copy.addressModeLabel}
+        placeholder={copy.addressModePlaceholder}
+        value={state.address2FormMode ?? undefined}
+        disabled={busy}
+        onChange={(event) =>
+          submitIntent(RULES_INTENTS.saveAddress2FormMode, [], {
+            address2FormMode: event.currentTarget.value,
+          })
+        }
+      >
+        <s-option value="required">{copy.addressRequired}</s-option>
+        <s-option value="optional">{copy.addressOptional}</s-option>
+        <s-option value="hidden">{copy.addressHidden}</s-option>
+      </s-select>
+      <s-paragraph color="subdued">{copy.addressModeHelp}</s-paragraph>
+      <s-paragraph color="subdued">
+        {hidden ? copy.addressHiddenHelp : scopeGranted ? copy.addressLimit : copy.noSnapshot}
+      </s-paragraph>
+      {snapshot && state.address2FormMode && !hidden ? (
+        <Address2Comparison
+          snapshot={snapshot}
+          locale={locale}
+          family={activeFamily}
+          formMode={state.address2FormMode}
+        />
+      ) : null}
+      {presentation.sourceRequiresManualRestore ? (
+        <s-banner tone="warning">{copy.sourceManual}</s-banner>
+      ) : null}
+      {hidden ? (
+        <s-link href={checkoutSettingsUrl} target="_top">
+          {copy.openCheckout}
+        </s-link>
+      ) : (
+        <Address2Actions
+          copy={copy}
+          scopeGranted={scopeGranted}
+          snapshotAvailable={Boolean(snapshot)}
+          busy={busy}
+          checkoutSettingsUrl={checkoutSettingsUrl}
+          restoreModalId={restoreModalId}
+          classification={presentation.classification}
+          hasRestorableSlots={presentation.restorableSlots.length > 0}
+          onKeep={() => submitIntent(RULES_INTENTS.acceptAddress2Labels)}
+        />
+      )}
+    </s-stack>
   );
 }
 

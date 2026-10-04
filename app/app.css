@@ -27,32 +27,3 @@ html[data-polaris-version="1"] s-stack[slot="aside"] {
 .cf-reveal-banner {
   margin-block-end: var(--p-space-400, 1rem);
 }
-
-/* Stessa freccia di "Campo Interno" per i dettagli espandibili leggeri (FAQ, simulatore),
-   al posto del triangolo del browser. */
-.cf-disclosure {
-  cursor: pointer;
-  list-style: none;
-  padding-inline-end: 1.75rem;
-  position: relative;
-}
-
-.cf-disclosure::-webkit-details-marker {
-  display: none;
-}
-
-.cf-disclosure::after {
-  block-size: 0.45rem;
-  border-block-end: 1.5px solid currentColor;
-  border-inline-end: 1.5px solid currentColor;
-  content: "";
-  inline-size: 0.45rem;
-  inset-block-start: 50%;
-  inset-inline-end: 0.5rem;
-  position: absolute;
-  transform: translateY(-65%) rotate(45deg);
-}
-
-details[open] > .cf-disclosure::after {
-  transform: translateY(-35%) rotate(225deg);
-}
