@@ -192,23 +192,29 @@ test.each([
 
 test("il richiamo è nello stesso blocco dello stato e punta al listino esistente", () => {
   const submit = vi.fn();
-  const rendered = elements(
-    HomeValidationSection({
-      data: {
-        ...trial,
-        rules: { taxCode: "required_validated", pec: "optional_validated" },
-        messagesDefault: true,
-      } as Parameters<typeof HomeValidationSection>[0]["data"],
-      entitled: true,
-      firstRun: false,
-      busy: false,
-      pendingIntent: null,
-      pendingSource: null,
-      submit,
-      verification: "confirmed",
-      t: texts("it"),
-    }),
-  );
+  const render = (remaining: number) =>
+    elements(
+      HomeValidationSection({
+        data: {
+          ...trial,
+          remaining,
+          rules: { taxCode: "required_validated", pec: "optional_validated" },
+          messagesDefault: true,
+        } as Parameters<typeof HomeValidationSection>[0]["data"],
+        entitled: true,
+        firstRun: false,
+        busy: false,
+        pendingIntent: null,
+        pendingSource: null,
+        submit,
+        verification: "confirmed",
+        t: texts("it"),
+      }),
+    );
+  // Decisione del 4 ottobre: la prova in corso sta in «Piano»; la card la richiama solo
+  // quando serve un'azione.
+  expect(render(14).some((element) => element.type === "s-banner")).toBe(false);
+  const rendered = render(3);
   expect(rendered[0]?.type).toBe("s-section");
   expect(rendered.some((element) => element.type === "s-banner")).toBe(true);
   // Niente ancora `#plans`: App Bridge la scarterebbe. Il bottone porta in vista i piani.
