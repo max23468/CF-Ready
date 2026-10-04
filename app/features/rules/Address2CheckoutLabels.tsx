@@ -291,7 +291,10 @@ function Address2Comparison({
     <div className="checkout-label-contexts">
       {contexts.map(({ shopLocale, slots }) => (
         <div className="checkout-label-context" key={shopLocale.locale}>
-          <s-text type="strong">{copy.generalText}</s-text>
+          {/* R-6: «Predefinito per questa lingua» vale solo in Testi del checkout, dove si
+              distingue dai mercati; qui le personalizzazioni stanno nella colonna Campo e un
+              titolo serve solo a distinguere più lingue della stessa famiglia. */}
+          {contexts.length > 1 ? <s-text type="strong">{shopLocale.name}</s-text> : null}
           {/* N-2: stessa tabella nativa di Testi del checkout. */}
           <s-table variant="auto">
             <s-table-header-row>

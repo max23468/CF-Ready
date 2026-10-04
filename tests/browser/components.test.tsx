@@ -270,6 +270,7 @@ describe("componenti merchant nel browser", () => {
         />,
       );
       mounted.push(view);
+      expect(view.container.textContent).not.toContain(copy.noFieldsShown);
       const change = async (selector: string, value: string | boolean) => {
         const field = view.container.querySelector(selector) as HTMLElement & {
           value: string;
@@ -280,7 +281,9 @@ describe("componenti merchant nel browser", () => {
         await dispatch(field, new Event("change", { bubbles: true }));
       };
       await change(`s-checkbox[label="${copy.taxCodePresent}"]`, false);
+      expect(view.container.textContent).not.toContain(copy.noFieldsShown);
       await change(`s-checkbox[label="${copy.pecPresent}"]`, false);
+      expect(view.container.textContent).toContain(copy.noFieldsShown);
       const company = view.container.querySelector("s-text-field") as HTMLElement & {
         value: string;
       };
@@ -290,6 +293,7 @@ describe("componenti merchant nel browser", () => {
       await change(`s-select[label="${copy.checkoutStep}"]`, "CHECKOUT_COMPLETION");
       const errors = view.container.querySelector(".checkout-simulator__missing-fields")!;
       expect(errors).not.toBeNull();
+      expect(view.container.textContent).not.toContain(copy.noFieldsShown);
       expect(errors.textContent?.toLowerCase()).toContain(
         locale === "it" ? "codice fiscale" : "italian tax code",
       );
@@ -297,6 +301,7 @@ describe("componenti merchant nel browser", () => {
       expect(errors.textContent).toContain(copy.advanced);
       await change(`s-select[label="${copy.billingCountry}"]`, "FR");
       expect(view.container.querySelector(".checkout-simulator__missing-fields")).toBeNull();
+      expect(view.container.textContent).toContain(copy.noFieldsShown);
       await change(`s-select[label="${copy.billingCountry}"]`, "IT");
       await change(`s-select[label="${copy.deliveryCountry}"]`, "unknown");
       expect(view.container.querySelector(".checkout-simulator__missing-fields")).toBeNull();

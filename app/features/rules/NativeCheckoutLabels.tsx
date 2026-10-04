@@ -17,6 +17,7 @@ import {
 } from "./checkout-labels-presentation";
 import { RULES_INTENTS, type SubmitCheckoutLabelsIntent } from "./rules-intents";
 import { Disclosure } from "../../ui-disclosure";
+import { StatusList } from "../../ui-status-list";
 
 export const NATIVE_LABELS_ID = "checkout-native-labels";
 
@@ -110,7 +111,6 @@ export function NativeCheckoutLabels({
         checkoutSettingsUrl={checkoutSettingsUrl}
         automaticAvailable={automaticAvailable}
         displayedContexts={displayedContexts}
-        pendingTotal={pendingContexts.length}
         guidedConfirmations={guidedConfirmations}
         onEnabledChange={onEnabledChange}
         submitIntent={submitIntent}
@@ -132,7 +132,6 @@ function NativeLabelsContent({
   checkoutSettingsUrl,
   automaticAvailable,
   displayedContexts,
-  pendingTotal,
   guidedConfirmations,
   onEnabledChange,
   submitIntent,
@@ -140,7 +139,6 @@ function NativeLabelsContent({
 }: NativeCheckoutLabelsProps & {
   automaticAvailable: boolean;
   displayedContexts: FiscalLabelContext[];
-  pendingTotal: number;
 }) {
   const copy = texts(locale).rules.labels;
   const confirmed = new Map(
@@ -149,28 +147,17 @@ function NativeLabelsContent({
   const pendingCount = displayedContexts.filter((context) =>
     context.guidedSlotIds.some((slotId) => !confirmed.has(slotId)),
   ).length;
-  // R-B5: il riepilogo conta le etichette di tutte le lingue, non solo di quella selezionata.
-  const automaticCount =
-    state.mode === "off"
-      ? 0
-      : (snapshot?.slots.filter(
-          (slot) =>
-            slot.capability === "automatic" &&
-            (slot.name === "taxCode" || slot.name === "pec") &&
-            rules[slot.name] !== "unmanaged",
-        ).length ?? 0);
-
   return (
     <s-stack direction="block" gap="base">
+      {/* R-13: la conseguenza di togliere la gestione sta sotto la casella, senza un banner
+          annidato nel pannello che sposta il contenuto. */}
       <s-checkbox
         label={automaticAvailable ? copy.enable : copy.enableGuided}
+        details={state.mode !== "off" && !enabled ? copy.disableWarning : undefined}
         checked={enabled}
         disabled={busy}
         onChange={(event) => onEnabledChange(event.currentTarget.checked)}
       />
-      {state.mode !== "off" && !enabled ? (
-        <s-banner tone="warning">{copy.disableWarning}</s-banner>
-      ) : null}
       {snapshot ? (
         <>
           {pendingCount > 0 &&
@@ -192,46 +179,105 @@ function NativeLabelsContent({
       ) : (
         <s-paragraph color="subdued">{copy.noSnapshot}</s-paragraph>
       )}
-      {state.mode === "off" && snapshot ? (
-        <KeepNativeLabelsChoice
-          accepted={state.decision === "accepted"}
-          busy={busy}
-          copy={copy}
-          onAccept={() => submitIntent(RULES_INTENTS.acceptCheckoutLabels)}
-        />
-      ) : null}
+      <s-divider />
+      <NativeLabelsTechnical
+        locale={locale}
+        timeZone={timeZone}
+        rules={rules}
+        snapshot={snapshot}
+        state={state}
+        busy={busy}
+        refreshing={refreshing}
+        submitIntent={submitIntent}
+      />
+    </s-stack>
+  );
+}
+
+function NativeLabelsTechnical({
+  locale,
+  timeZone,
+  rules,
+  snapshot,
+  state,
+  busy,
+  refreshing,
+  submitIntent,
+}: Pick<
+  NativeCheckoutLabelsProps,
+  "locale" | "timeZone" | "rules" | "snapshot" | "state" | "busy" | "refreshing" | "submitIntent"
+>) {
+  const copy = texts(locale).rules.labels;
+  const lastReadAt = state.lastReadAt ?? state.lastSyncAt;
+  // R-B5: conta tutte le lingue, non solo quella selezionata.
+  const automaticCount =
+    snapshot?.slots.filter(
+      (slot) =>
+        slot.capability === "automatic" &&
+        (slot.name === "taxCode" || slot.name === "pec") &&
+        rules[slot.name] !== "unmanaged",
+    ).length ?? 0;
+
+  return (
+    <>
+      {/* R-8: modalità e ultima lettura sono righe etichetta-valore, come nella Home; le azioni
+          stanno affiancate a 16 px. Il conteggio delle verifiche manuali è già nel riepilogo. */}
       <div className="checkout-labels-technical">
-        <s-stack direction="block" gap="small-200">
-          <s-stack direction="block" gap="small-100">
-            <s-text color="subdued">
-              {copy.mode}: {copy.modeValues[state.mode]}
-            </s-text>
-            <s-text color="subdued">
-              {/* L'ultima lettura reale, anche se restano verifiche manuali (lastSyncAt resta
-                  l'ultima sincronizzazione completa, usata per lo stato). */}
-              {(state.lastReadAt ?? state.lastSyncAt)
-                ? copy.lastSync(
-                    formatDateTime((state.lastReadAt ?? state.lastSyncAt)!, locale, timeZone),
-                  )
-                : copy.neverSynced}
-            </s-text>
-            <s-text color="subdued">{copy.operationalSummary(automaticCount, pendingTotal)}</s-text>
+        <s-stack direction="block" gap="base">
+          <StatusList
+            rows={[
+              {
+                key: "mode",
+                label: <s-text color="subdued">{copy.mode}</s-text>,
+                value: <s-text>{copy.modeValues[state.mode]}</s-text>,
+              },
+              {
+                key: "lastRead",
+                label: <s-text color="subdued">{copy.lastReadLabel}</s-text>,
+                // L'ultima lettura reale, anche se restano verifiche manuali (lastSyncAt resta
+                // l'ultima sincronizzazione completa, usata per lo stato).
+                value: (
+                  <s-text>
+                    {lastReadAt ? formatDateTime(lastReadAt, locale, timeZone) : copy.neverSynced}
+                  </s-text>
+                ),
+              },
+              ...(state.mode === "automatic" || state.mode === "partial"
+                ? [
+                    {
+                      key: "automatic",
+                      label: <s-text color="subdued">{copy.automaticCountLabel}</s-text>,
+                      value: <s-text>{automaticCount}</s-text>,
+                    },
+                  ]
+                : []),
+            ]}
+          />
+          <s-stack direction="inline" gap="small-200" alignItems="center">
+            <s-button
+              disabled={busy}
+              loading={refreshing}
+              onClick={() =>
+                submitIntent(RULES_INTENTS.refreshCheckoutLabels, [], {
+                  taxCode: rules.taxCode,
+                  pec: rules.pec,
+                })
+              }
+            >
+              {copy.refresh}
+            </s-button>
+            {state.mode === "off" && state.decision !== "accepted" && snapshot ? (
+              <KeepNativeLabelsChoice
+                accepted={false}
+                busy={busy}
+                copy={copy}
+                onAccept={() => submitIntent(RULES_INTENTS.acceptCheckoutLabels)}
+              />
+            ) : null}
           </s-stack>
-          <s-button
-            disabled={busy}
-            loading={refreshing}
-            onClick={() =>
-              submitIntent(RULES_INTENTS.refreshCheckoutLabels, [], {
-                taxCode: rules.taxCode,
-                pec: rules.pec,
-              })
-            }
-          >
-            {copy.refresh}
-          </s-button>
         </s-stack>
       </div>
-    </s-stack>
+    </>
   );
 }
 
@@ -329,14 +375,8 @@ function LabelComparison({
         });
         return (
           <div className="checkout-label-context" key={context.key}>
-            <div className="checkout-labels-title">
-              <s-text type="strong">{context.label}</s-text>
-              {/* R-7: lo stato complessivo sta nel titolo del pannello; qui solo ciò che va
-                  verificato. */}
-              {pendingSlotIds.length > 0 ? (
-                <s-badge tone="warning">{copy.statusManualRequired}</s-badge>
-              ) : null}
-            </div>
+            {/* R-7: un solo badge di stato per pannello, nel titolo (Master Plan §15.1). */}
+            <s-text type="strong">{context.label}</s-text>
             {/* N-2: tabella nativa, una riga per campo; su mobile diventa un elenco. */}
             <s-table variant="auto">
               <s-table-header-row>
@@ -378,32 +418,14 @@ function LabelComparison({
               </s-stack>
             ) : null}
             {pendingSlotIds.length > 0 ? (
-              <Disclosure
-                className="checkout-labels-disclosure checkout-label-instructions"
-                summary={<s-text type="strong">{copy.manualHeading}</s-text>}
-              >
-                <s-stack direction="block" gap="small-200">
-                  <s-ordered-list>
-                    {copy
-                      .manualSteps(
-                        context.language,
-                        context.marketName,
-                        context.primary,
-                        context.verificationMarkets,
-                      )
-                      .map((step) => (
-                        <s-list-item key={step}>{step}</s-list-item>
-                      ))}
-                  </s-ordered-list>
-                  <s-link href={storefrontUrl} target="_blank">
-                    {copy.openStorefront}
-                  </s-link>
-                  <s-link href={checkoutSettingsUrl} target="_blank">
-                    {copy.openCheckoutContentEditor}
-                  </s-link>
-                  {!matchesProposed ? (
-                    <s-banner tone="warning">{copy.manualMismatch}</s-banner>
-                  ) : null}
+              // R-9: la procedura sta in una modale nativa, non in un disclosure annidato nel
+              // pannello; nel pannello restano le due azioni e, se serve, perché la conferma è
+              // disattivata.
+              <s-stack direction="block" gap="small-200">
+                <s-stack direction="inline" gap="small-200" alignItems="center">
+                  <s-button commandFor={manualModalId(context.key)} command="--show">
+                    {copy.manualHeading}
+                  </s-button>
                   <s-button
                     disabled={busy || !matchesProposed}
                     onClick={() => onConfirm(pendingSlotIds)}
@@ -411,7 +433,43 @@ function LabelComparison({
                     {copy.confirmGuided}
                   </s-button>
                 </s-stack>
-              </Disclosure>
+                {!matchesProposed ? <s-text color="subdued">{copy.manualMismatch}</s-text> : null}
+                <s-modal
+                  id={manualModalId(context.key)}
+                  heading={copy.manualHeading}
+                  accessibilityLabel={copy.manualHeading}
+                >
+                  <s-stack direction="block" gap="base">
+                    <s-ordered-list>
+                      {copy
+                        .manualSteps(
+                          context.language,
+                          context.marketName,
+                          context.primary,
+                          context.verificationMarkets,
+                        )
+                        .map((step) => (
+                          <s-list-item key={step}>{step}</s-list-item>
+                        ))}
+                    </s-ordered-list>
+                    <s-stack direction="inline" gap="base">
+                      <s-link href={storefrontUrl} target="_blank">
+                        {copy.openStorefront}
+                      </s-link>
+                      <s-link href={checkoutSettingsUrl} target="_blank">
+                        {copy.openCheckoutContentEditor}
+                      </s-link>
+                    </s-stack>
+                  </s-stack>
+                  <s-button
+                    slot="secondary-actions"
+                    commandFor={manualModalId(context.key)}
+                    command="--hide"
+                  >
+                    {copy.close}
+                  </s-button>
+                </s-modal>
+              </s-stack>
             ) : confirmedAt ? (
               <s-text color="subdued">
                 {copy.lastManualVerification(formatDateTime(confirmedAt, locale, timeZone))}
@@ -422,4 +480,9 @@ function LabelComparison({
       })}
     </div>
   );
+}
+
+// Le chiavi dei contesti contengono «:» e ID di mercato: l'ID della modale resta un token semplice.
+function manualModalId(contextKey: string) {
+  return `manual-labels-${contextKey.replace(/[^A-Za-z0-9_-]/g, "-")}`;
 }

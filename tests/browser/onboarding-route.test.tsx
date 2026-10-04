@@ -1,7 +1,6 @@
 import { router, mount, onboardingData, labelSlot } from "./route-support";
 import { describe, expect, test, vi } from "vitest";
 
-import { checkoutLabelCopy } from "../../app/checkout-labels/domain";
 import { MESSAGE_KEYS } from "../../app/config";
 import { texts } from "../../app/i18n";
 import { click, dispatch } from "./render";
@@ -9,46 +8,17 @@ import { click, dispatch } from "./render";
 import Onboarding from "../../app/routes/app.onboarding";
 
 describe("Onboarding", () => {
-  test("richiede i permessi opzionali e ignora un modulo regole incompleto", async () => {
+  test("ignora un modulo regole incompleto senza richiedere permessi", async () => {
     router.loaderData = {
       ...onboardingData,
       step: 2,
       labelScopesGranted: false,
     };
     const view = await mount(<Onboarding />);
-    const requestScopes = [...view.container.querySelectorAll("s-button")].find((button) =>
-      button.textContent?.includes(texts("it").rules.labels.requestPermissions),
-    );
-    if (!requestScopes) throw new Error("richiesta permessi onboarding assente");
-    await click(requestScopes);
-    expect(shopify.scopes.request).toHaveBeenCalledWith([
-      "write_translations",
-      "read_locales",
-      "read_markets",
-    ]);
-    expect(router.revalidator.revalidate).toHaveBeenCalledOnce();
+    expect(shopify.scopes.request).not.toHaveBeenCalled();
     expect(router.fetcher.submit).not.toHaveBeenCalled();
 
     const originalFormData = FormData;
-    class CompleteRulesFormData {
-      get(name: string) {
-        if (name === "taxCode") return "required_validated";
-        if (name === "pec") return "optional_validated";
-        return null;
-      }
-    }
-    vi.stubGlobal("FormData", CompleteRulesFormData as unknown as typeof originalFormData);
-    await dispatch(
-      view.container.querySelector("s-choice")!,
-      new Event("change", { bubbles: true }),
-    );
-    expect(view.container.textContent).toContain(
-      checkoutLabelCopy("taxCode", "it", "required_validated"),
-    );
-    expect(view.container.textContent).toContain(
-      checkoutLabelCopy("pec", "it", "optional_validated"),
-    );
-
     class IncompleteRulesFormData {
       get(name: string) {
         return name === "taxCode" ? "required_validated" : null;
@@ -133,133 +103,93 @@ describe("Onboarding", () => {
     }
   }
 
-  test("cita tra virgolette le etichette proposte (T7)", async () => {
-    router.loaderData = {
-      ...onboardingData,
-      step: 2,
-      rules: { taxCode: "required_validated", pec: "required_when_company" },
-    };
-    const view = await mount(<Onboarding />);
-    const taxCode = checkoutLabelCopy("taxCode", "it", "required_validated")!;
-    const pec = checkoutLabelCopy("pec", "en", "required_when_company")!;
-    // Punto 10: nomi delle lingue al posto dei codici e niente frammenti uniti da puntini.
-    expect(view.container.textContent).toContain(`Italiano: «${taxCode}»`);
-    expect(view.container.textContent).not.toContain("IT · ");
-    expect(view.container.textContent).toContain(`, «${pec}»`);
-  });
+  test.each(["it", "en"] as const)(
+    "il passo 2 contiene solo le scelte CF e PEC (%s)",
+    async (locale) => {
+      router.loaderData = {
+        ...onboardingData,
+        step: 2,
+        locale,
+        rules: { taxCode: "required_validated", pec: "required_when_company" },
+      };
+      const view = await mount(<Onboarding />);
+      const step = view.container.querySelector(".onboarding-step")!;
+      expect(step.querySelectorAll("s-choice-list")).toHaveLength(2);
+      expect(step.querySelectorAll("s-checkbox, s-box")).toHaveLength(0);
+      expect(step.querySelectorAll("s-heading")).toHaveLength(2);
+      expect(view.container.querySelector("s-modal")).toBeNull();
+      expect(shopify.scopes.request).not.toHaveBeenCalled();
+    },
+  );
 
-  test("mostra l'errore se Shopify non completa la richiesta dei permessi", async () => {
-    router.loaderData = {
-      ...onboardingData,
-      step: 2,
-      labelScopesGranted: false,
-    };
-    vi.mocked(shopify.scopes.request).mockRejectedValueOnce(new Error("scope_request_failed"));
-    const view = await mount(<Onboarding />);
-    const requestScopes = [...view.container.querySelectorAll("s-button")].find((button) =>
-      button.textContent?.includes(texts("it").rules.labels.requestPermissions),
-    );
-    if (!requestScopes) throw new Error("richiesta permessi onboarding assente");
-
-    await click(requestScopes);
-
-    expect(view.container.querySelector('s-banner[tone="critical"]')).not.toBeNull();
-    expect(router.revalidator.revalidate).not.toHaveBeenCalled();
-
-    vi.mocked(shopify.scopes.request).mockResolvedValueOnce({
-      result: "declined-all",
-    });
-    await click(requestScopes);
-    expect(router.revalidator.revalidate).not.toHaveBeenCalled();
-  });
-
-  test("configura la sincronizzazione automatica delle etichette dal secondo passo", async () => {
-    router.loaderData = {
-      ...onboardingData,
-      step: 2,
-      configHash: "hash",
-      rules: { taxCode: "required_validated", pec: "optional_validated" },
-      labelScopesGranted: true,
-      labelSnapshot: {
-        revision: "labels-r1",
-        slots: [
-          labelSlot({
-            name: "taxCode",
-            key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
-            locale: "it",
-            family: "it",
-            capability: "automatic",
-          }),
-          labelSlot({
-            name: "pec",
-            key: "shopify.checkout.localized_fields.additional_information.tax_email_it",
-            locale: "en",
-            family: "en",
-            capability: "automatic",
-          }),
-          labelSlot({
-            name: "taxCode",
-            key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
-            locale: "it",
-            family: "it",
-            capability: "automatic",
-            currentValue: "Codice fiscale",
-          }),
-          labelSlot({ name: "address2", kind: "source" }),
-        ],
-      },
-    };
-    const view = await mount(<Onboarding />);
-    const management = [...view.container.querySelectorAll("s-checkbox")].find((checkbox) =>
-      checkbox.getAttribute("label")?.includes(texts("it").rules.labels.enable),
-    ) as (HTMLElement & { checked: boolean }) | undefined;
-    if (!management) throw new Error("gestione etichette onboarding assente");
-    management.checked = true;
-    await dispatch(management, new Event("change", { bubbles: true }));
-    expect(
-      [...view.container.querySelectorAll("s-checkbox")].some(
-        (checkbox) => checkbox.getAttribute("label") === texts("it").rules.labels.enableConfirm,
-      ),
-    ).toBe(false);
-
-    const originalFormData = FormData;
-    class LabelsFormData {
-      get(name: string) {
-        if (name === "taxCode") return "required_validated";
-        if (name === "pec") return "optional_validated";
-        return null;
-      }
-    }
-    vi.stubGlobal("FormData", LabelsFormData as unknown as typeof originalFormData);
-    await dispatch(view.container.querySelector("form")!, new Event("change", { bubbles: true }));
-    await click(
-      [...view.container.querySelectorAll("s-button")].find((button) =>
-        button.textContent?.includes(texts("it").onboarding.next),
-      )!,
-    );
-    expect(router.fetcher.submit).not.toHaveBeenCalled();
-    const confirmation = view.container.querySelector(
-      's-modal[id="confirm-onboarding-checkout-label-management"]',
-    );
-    expect(confirmation?.textContent).toContain("Codice Fiscale · Italiano");
-    expect(confirmation?.textContent).toContain("PEC · Inglese");
-    await click(
-      view.container.querySelector(
-        's-modal[id="confirm-onboarding-checkout-label-management"] s-button[slot="primary-action"]',
-      )!,
-    );
-    expect(router.fetcher.submit).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        intent: "rules",
+  test.each(["off", "guided", "partial", "automatic"] as const)(
+    "salvare dal passo 2 conserva la gestione etichette %s",
+    async (mode) => {
+      router.loaderData = {
+        ...onboardingData,
+        step: 2,
         configHash: "hash",
-        labelsEnabled: "1",
-        labelsConfirmed: "1",
-        labelsRevision: "labels-r1",
-      }),
-      { method: "post" },
-    );
-    vi.stubGlobal("FormData", originalFormData);
-  });
+        rules: { taxCode: "required_validated", pec: "optional_validated" },
+        labelScopesGranted: true,
+        labelState: { ...onboardingData.labelState, mode },
+        labelSnapshot: {
+          revision: "labels-r1",
+          slots: [
+            labelSlot({
+              name: "taxCode",
+              key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
+              locale: "it",
+              family: "it",
+              capability: "automatic",
+            }),
+            labelSlot({
+              name: "pec",
+              key: "shopify.checkout.localized_fields.additional_information.tax_email_it",
+              locale: "en",
+              family: "en",
+              capability: "automatic",
+            }),
+            labelSlot({
+              name: "taxCode",
+              key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
+              locale: "it",
+              family: "it",
+              capability: "automatic",
+              currentValue: "Codice fiscale",
+            }),
+            labelSlot({ name: "address2", kind: "source" }),
+          ],
+        },
+      };
+      const view = await mount(<Onboarding />);
+      const originalFormData = FormData;
+      class LabelsFormData {
+        get(name: string) {
+          if (name === "taxCode") return "required_validated";
+          if (name === "pec") return "optional_validated";
+          return null;
+        }
+      }
+      vi.stubGlobal("FormData", LabelsFormData as unknown as typeof originalFormData);
+      await dispatch(view.container.querySelector("form")!, new Event("change", { bubbles: true }));
+      await click(
+        [...view.container.querySelectorAll("s-button")].find((button) =>
+          button.textContent?.includes(texts("it").onboarding.next),
+        )!,
+      );
+      expect(router.fetcher.submit).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          intent: "rules",
+          configHash: "hash",
+          labelsEnabled: mode === "off" ? "0" : "1",
+          labelsConfirmed: "0",
+          labelsRevision: "labels-r1",
+        }),
+        { method: "post" },
+      );
+      vi.stubGlobal("FormData", originalFormData);
+    },
+  );
 
   test.each(["it", "en"] as const)(
     "il passo 2 non configura il campo Interno (%s)",
@@ -275,7 +205,9 @@ describe("Onboarding", () => {
       expect(view.container.textContent).not.toContain(t.rules.labels.addressModeHelp);
       expect(view.container.querySelector('s-choice-list[name="taxCode"]')).not.toBeNull();
       expect(view.container.querySelector('s-choice-list[name="pec"]')).not.toBeNull();
-      expect(view.container.textContent).toContain(t.onboarding.labelsPreviewHeading);
+      expect(
+        view.container.querySelectorAll(".onboarding-step s-checkbox, .onboarding-step s-box"),
+      ).toHaveLength(0);
     },
   );
 

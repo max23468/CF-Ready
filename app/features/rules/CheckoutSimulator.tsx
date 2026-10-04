@@ -270,6 +270,10 @@ export function CheckoutSimulator({
                 </s-stack>
               </s-box>
 
+              {/* R-3: i due gruppi hanno titoli della stessa misura delle etichette dei campi;
+                  il divisore li separa come blocchi, senza CSS sulla tipografia Polaris. */}
+              <s-divider />
+
               <SimulatorCustomerFields
                 locale={previewLocale}
                 rules={rules}
@@ -381,6 +385,7 @@ function SimulatorCustomerFields({
   const copy = t.rules.simulator;
   const applies = outcome !== "notApplied";
   const hasManagedFields = Object.values(rules).some((mode) => mode !== "unmanaged");
+  const showsFiscalField = hasVisibleFiscalFields(rules, taxCodePresent, pecPresent);
   const missingFields =
     applies && absentRequiredFieldsDue
       ? [
@@ -440,6 +445,13 @@ function SimulatorCustomerFields({
             requiredErrorsDue={requiredErrorsDue}
             onInput={onPecChange}
           />
+          {/* R-12: con i campi nascosti nelle opzioni avanzate il gruppo dice perché è vuoto;
+              se mancano campi obbligatori lo spiega già il banner sopra. */}
+          {!showsFiscalField && missingFields.length === 0 ? (
+            <s-box background="base" borderRadius="base" padding="base">
+              <s-paragraph color="subdued">{copy.noFieldsShown}</s-paragraph>
+            </s-box>
+          ) : null}
         </>
       ) : (
         <s-box background="base" borderRadius="base" padding="base">
@@ -447,6 +459,12 @@ function SimulatorCustomerFields({
         </s-box>
       )}
     </s-stack>
+  );
+}
+
+function hasVisibleFiscalFields(rules: Rules, taxCodePresent: boolean, pecPresent: boolean) {
+  return (
+    (rules.taxCode !== "unmanaged" && taxCodePresent) || (rules.pec !== "unmanaged" && pecPresent)
   );
 }
 

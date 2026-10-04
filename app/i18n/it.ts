@@ -51,7 +51,7 @@ export const it = {
     address2_restore_conflict:
       "Il testo del campo «Interno» è cambiato dopo il confronto. Premi «Rileggi i campi da Shopify» prima del ripristino.",
     validation_limit_reached:
-      "Questo store ha già il numero massimo di controlli al checkout consentito da Shopify. Le tue regole restano salvate. Disattiva il controllo di un’altra app da Impostazioni → Checkout, poi riprova.",
+      "Questo store ha già il numero massimo di controlli al checkout consentito da Shopify. Le tue regole restano salvate. Disattiva il controllo di un’altra app da Impostazioni → Check-out, poi riprova.",
     entitlement_required: "Per attivare il controllo, avvia la prova o scegli un piano.",
     config_conflict:
       "La configurazione è cambiata in un’altra finestra. Confronta i valori e scegli se riapplicare le tue modifiche o usare la configurazione attuale.",
@@ -199,9 +199,6 @@ export const it = {
     ],
     step2Heading: "Scegli cosa controllare",
     step2Body: "Puoi cambiare queste scelte quando vuoi da Regole checkout.",
-    labelsPreviewHeading: "Etichette proposte in italiano e inglese",
-    labelsPermissionsOptional:
-      "Puoi concedere ora i permessi per confrontare le etichette con Shopify oppure continuare senza attivarli.",
     step3Heading: "Anteprima delle regole",
     labelsMixedDescription:
       "La modalità Mista supporta aggiornamenti automatici e verifiche manuali. «Regole checkout» mostra eventuali verifiche ancora da completare.",
@@ -504,6 +501,8 @@ export const it = {
       english: "Inglese",
       orderContext: "Destinazione dell’ordine",
       customerData: "Dati fiscali del cliente",
+      noFieldsShown:
+        "In questo scenario Shopify non mostra i campi gestiti da CF Ready: il cliente non ha nulla da compilare.",
       company: "Azienda",
       deliveryCountry: "Paese di consegna",
       billingCountry: "Paese di fatturazione",
@@ -604,10 +603,10 @@ export const it = {
       refresh: "Rileggi i campi da Shopify",
       refreshComplete: "Campi riletti da Shopify.",
       stop: "Ripristina e interrompi la gestione",
-      lastSync: (value: string) => `Ultima lettura delle etichette da Shopify: ${value}`,
-      neverSynced: "Nessuna rilettura riuscita da Shopify",
-      operationalSummary: (automatic: number, manual: number) =>
-        `${automatic} ${automatic === 1 ? "etichetta aggiornata" : "etichette aggiornate"} automaticamente. ${manual} ${manual === 1 ? "verifica manuale richiesta" : "verifiche manuali richieste"}.`,
+      lastReadLabel: "Ultima lettura da Shopify",
+      neverSynced: "Nessuna lettura riuscita",
+      automaticCountLabel: "Etichette aggiornate automaticamente",
+      close: "Chiudi",
       manualHeading: "Come completare la verifica manuale",
       manualSteps: (
         language: string,
@@ -624,7 +623,7 @@ export const it = {
             ]
           : []),
         "Per ogni caso indicato, aggiungi un prodotto al carrello e raggiungi il checkout. Imposta Italia come paese di consegna e seleziona un indirizzo italiano riconosciuto da Shopify: Codice Fiscale e PEC compaiono dopo che l’indirizzo è stato acquisito.",
-        "Confronta le etichette di Codice Fiscale e PEC con «Campo dopo il salvataggio» mostrato qui.",
+        "Confronta le etichette di Codice Fiscale e PEC con «Campo dopo il salvataggio» nella tabella di CF Ready.",
         "Se differiscono, premi «Apri l’editor dei testi del checkout». In Shopify, nella sezione «Lingua del check-out», premi «Modifica contenuto del check-out».",
         ...(primary && !market
           ? [
@@ -646,7 +645,7 @@ export const it = {
         "Torna in CF Ready e premi «Rileggi i campi da Shopify». Quando i due valori coincidono, il pulsante di conferma si attiva.",
       ],
       manualMismatch:
-        "Shopify restituisce ancora un testo diverso. Modificalo e salvalo con la procedura qui sopra, quindi premi «Rileggi i campi da Shopify».",
+        "Shopify restituisce ancora un testo diverso. Correggilo seguendo «Come completare la verifica manuale», quindi premi «Rileggi i campi da Shopify».",
       openStorefront: "Apri il negozio",
       openCheckoutContentEditor: "Apri l’editor dei testi del checkout",
       confirmGuided: "Conferma verifica manuale",
@@ -659,7 +658,7 @@ export const it = {
       addressModeSaved: "Configurazione del campo Interno salvata.",
       addressModePlaceholder: "Seleziona la configurazione attiva",
       addressModeHelp:
-        "Indica l’opzione attiva in Impostazioni → Checkout. Shopify non la espone automaticamente a CF Ready.",
+        "Indica l’opzione attiva in Impostazioni → Check-out. Shopify non la espone automaticamente a CF Ready.",
       addressModeSummary: "Indica se il campo Interno è obbligatorio, facoltativo o non mostrato.",
       addressRequired: "Obbligatorio",
       addressOptional: "Facoltativo",

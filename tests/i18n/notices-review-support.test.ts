@@ -239,8 +239,6 @@ test("la procedura manuale cita tra virgolette ogni voce dell'interfaccia Shopif
       expect(steps).not.toMatch(/(?<![“«]|→ )Tax (credential|email) it/);
       expect(steps).not.toMatch(/(?<![“«])B2B locations/);
     }
-    // Punto 10: due conteggi sono due frasi, non frammenti uniti da un puntino.
-    expect(labels.operationalSummary(1, 2)).not.toContain("·");
   }
 });
 

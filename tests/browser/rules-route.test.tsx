@@ -254,7 +254,8 @@ describe("Regole", () => {
       const badge = () => view.container.querySelector("#checkout-native-labels summary s-badge")!;
       expect(badge().textContent).toBe(copy.statusChoiceRequired);
       expect(badge().getAttribute("tone")).toBe("warning");
-      expect(view.container.textContent).toContain(copy.operationalSummary(0, 0));
+      const technical = () => view.container.querySelector(".checkout-labels-technical")!;
+      expect(technical().textContent).toContain(copy.modeValues.off);
       router.loaderData = {
         ...router.loaderData,
         rules: { taxCode: "required_validated", pec: "unmanaged" },
@@ -263,7 +264,17 @@ describe("Regole", () => {
       await view.rerender(<CheckoutRules key="manual-review" />);
       expect(badge().textContent).toBe(copy.statusManualRequired);
       expect(badge().getAttribute("tone")).toBe("warning");
-      expect(view.container.textContent).toContain(copy.operationalSummary(0, 1));
+      // R-8: la modalità guidata non ripete il conteggio delle verifiche, già nel riepilogo.
+      expect(technical().textContent).toContain(copy.modeValues.guided);
+      expect(technical().textContent).not.toContain(copy.automaticCountLabel);
+      router.loaderData = {
+        ...router.loaderData,
+        rules: { taxCode: "unmanaged", pec: "unmanaged" },
+        labelState: { ...rulesData.labelState, mode: "off", decision: "accepted" },
+      };
+      await view.rerender(<CheckoutRules key="kept-native-labels" />);
+      expect(badge().textContent).toBe(copy.statusKept);
+      expect(view.container.querySelectorAll("#checkout-native-labels s-badge")).toHaveLength(1);
     },
   );
 
@@ -487,11 +498,15 @@ describe("Regole", () => {
     expect([...disclosures!].every((disclosure) => !disclosure.hasAttribute("open"))).toBe(true);
     expect(disclosures?.[0].textContent).toContain(texts("it").rules.labels.addressHeading);
     expect(disclosures?.[1].textContent).toContain(texts("it").rules.labels.nativeHeading);
-    // R-B6: modalità, ultima lettura e conteggi sono righe semplici, non un pannello annidato.
+    // R-B6, R-8: modalità, ultima lettura e conteggio automatico sono righe etichetta-valore,
+    // non un pannello annidato.
     const technical = disclosures?.[1].querySelector(".checkout-labels-technical");
     expect(technical?.closest("details")).toBe(disclosures?.[1]);
-    expect(technical?.querySelectorAll("s-stack s-stack > s-text")).toHaveLength(3);
+    expect(technical?.querySelectorAll(".cf-status-list__label")).toHaveLength(3);
+    expect(technical?.textContent).toContain(texts("it").rules.labels.automaticCountLabel);
     expect(technical?.textContent).toContain(texts("it").rules.labels.refresh);
+    // R-7: un solo badge di stato nel pannello, nel titolo.
+    expect(disclosures?.[1].querySelectorAll(".checkout-label-context s-badge")).toHaveLength(0);
     // N-2: confronto in tabella nativa, una riga per campo.
     expect(disclosures?.[1].querySelectorAll("s-table-body s-table-row").length).toBeLessThan(8);
     expect(disclosures?.[1].textContent).toContain(
@@ -503,15 +518,18 @@ describe("Regole", () => {
     expect(disclosures?.[1].textContent).toContain("Cerca e filtra i risultati");
     expect(disclosures?.[1].textContent).toContain("Tax credential it");
     expect(disclosures?.[1].textContent).toContain("Tax email it");
-    const instructions = disclosures?.[1].querySelectorAll(".checkout-label-instructions");
+    // R-9: la procedura sta in una modale nativa aperta da un bottone, non in un disclosure annidato.
+    expect(disclosures?.[1].querySelectorAll("details")).toHaveLength(0);
+    const instructions = disclosures?.[1].querySelectorAll('s-modal[id^="manual-labels-"]');
     if (!instructions?.length) throw new Error("istruzioni guidate assenti");
-    expect([...instructions].every((instruction) => !instruction.hasAttribute("open"))).toBe(true);
     const firstInstructions = instructions[0];
-    const instructionsSummary = firstInstructions.querySelector("summary");
-    expect(instructionsSummary?.textContent).toContain(texts("it").rules.labels.manualHeading);
-    if (!instructionsSummary) throw new Error("titolo istruzioni guidate assente");
-    await click(instructionsSummary);
-    expect(firstInstructions.hasAttribute("open")).toBe(true);
+    expect(firstInstructions.getAttribute("heading")).toBe(texts("it").rules.labels.manualHeading);
+    expect(firstInstructions.id).toMatch(/^manual-labels-[A-Za-z0-9_-]+$/);
+    const openInstructions = disclosures?.[1].querySelector(
+      `s-button[commandFor="${firstInstructions.id}"][command="--show"]`,
+    );
+    expect(openInstructions?.textContent).toBe(texts("it").rules.labels.manualHeading);
+    expect(firstInstructions.querySelector("s-ordered-list")).not.toBeNull();
 
     const guidedConfirmations = [...view.container.querySelectorAll("s-button")].filter(
       (button) => button.textContent === texts("it").rules.labels.confirmGuided,
@@ -529,6 +547,8 @@ describe("Regole", () => {
     expect(addressHelp[0].textContent).toContain(texts("it").rules.labels.addressLimit);
     // Punto 7: anche le etichette del campo Interno sono tra virgolette.
     expect(disclosures?.[0].querySelector("s-table-body s-table-row")?.textContent).toMatch(/«.+»/);
+    // R-6: con una sola lingua il campo Interno non ripete «Predefinito per questa lingua».
+    expect(disclosures?.[0].textContent).not.toContain(texts("it").rules.labels.generalText);
 
     const restore = [...view.container.querySelectorAll("s-button")].find((button) =>
       button.textContent?.includes(texts("it").rules.labels.restoreAddress),
@@ -1075,8 +1095,6 @@ describe("Regole", () => {
     expect(view.container.textContent).toContain("Filtra campi");
     expect(view.container.textContent).toContain(texts("it").rules.labels.checkoutCheckRequired);
     expect(texts("en").rules.labels.marketCheckIncluded(["Italy"])).toContain("Italy");
-    expect(texts("en").rules.labels.operationalSummary(1, 1)).toContain("1 label");
-    expect(texts("en").rules.labels.operationalSummary(2, 2)).toContain("2 labels");
     expect(texts("en").rules.labels.nativeSummaryNeedsReview(1, ["English"])).toBe(
       "One checkout in English needs verification.",
     );
@@ -1456,14 +1474,18 @@ describe("Regole: salvataggio ed etichette (audit §5.1)", () => {
   test("avvisa delle conseguenze quando si toglie la gestione automatica", async () => {
     router.loaderData = { ...baseData, labelSnapshot: snapshot("labels-r1") };
     const view = await mount(<CheckoutRules />);
-    expect(view.container.textContent).not.toContain(texts("it").rules.labels.disableWarning);
     const checkbox = view.container.querySelector(
       ".rules-layout__labels s-checkbox",
     ) as HTMLElement & {
       checked: boolean;
     };
+    expect(checkbox.getAttribute("details")).toBeNull();
     checkbox.checked = false;
     await dispatch(checkbox, new Event("change", { bubbles: true }));
-    expect(view.container.textContent).toContain(texts("it").rules.labels.disableWarning);
+    // R-13: l'avviso è l'aiuto della casella, non un banner annidato nel pannello.
+    expect(checkbox.getAttribute("details")).toBe(texts("it").rules.labels.disableWarning);
+    expect(
+      view.container.querySelectorAll('.rules-layout__labels s-banner[tone="warning"]'),
+    ).toHaveLength(0);
   });
 });

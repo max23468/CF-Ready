@@ -719,7 +719,7 @@ test("Polaris reale: Regole con superfici native desktop e mobile", async () => 
     (technical.closest("details") as HTMLDetailsElement).open = true;
     expect(technical.closest("details")?.parentElement?.closest("details")).toBeNull();
     expect(technical.textContent).toContain(texts("it").rules.labels.modeValues.partial);
-    const rows = [...technical.querySelectorAll("s-stack s-stack > s-text")];
+    const rows = [...technical.querySelectorAll(".cf-status-list__label")];
     expect(rows).toHaveLength(3);
     const rowRects = rows.map(surfaceRect);
     for (let index = 1; index < rows.length; index++) {
@@ -819,7 +819,8 @@ test("Polaris reale: gruppo 1, etichette e messaggi IT/EN desktop e 390 px", asy
       )) {
         expect(context.scrollWidth).toBeLessThanOrEqual(context.clientWidth + 1);
         const limit = context.getBoundingClientRect().right;
-        for (const element of context.querySelectorAll("s-text, s-badge, s-ordered-list")) {
+        for (const element of context.querySelectorAll("s-text, s-badge")) {
+          if (element.closest("s-modal")) continue;
           expect(surfaceRect(element).right).toBeLessThanOrEqual(limit + 1);
         }
       }
@@ -828,6 +829,20 @@ test("Polaris reale: gruppo 1, etichette e messaggi IT/EN desktop e 390 px", asy
         labels.container,
         `__screenshots__/visual/gruppo1-labels-${locale}-${server.browser}-${width}.png`,
       );
+      const labelCopy = texts(locale).rules.labels;
+      expect(labels.container.querySelectorAll(".checkout-label-context s-badge")).toHaveLength(0);
+      await page.getByRole("button", { name: labelCopy.manualHeading, exact: true }).click();
+      const manualDialog = page.getByRole("dialog", { name: labelCopy.manualHeading });
+      await expect.element(manualDialog).toBeVisible();
+      const closeManual = labels.container.querySelector(
+        's-modal[id^="manual-labels-"] s-button[slot="secondary-actions"]',
+      )!;
+      await userEvent.click(closeManual);
+      await expect.poll(() => manualDialog.query()).toBeNull();
+      await act(async () => {
+        await page.getByRole("checkbox", { name: labelCopy.enableGuided, exact: true }).click();
+      });
+      await expect.element(page.getByText(labelCopy.disableWarning, { exact: true })).toBeVisible();
       await labels.unmount();
 
       router.loaderData = {
@@ -1054,6 +1069,10 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
   // O7: con i permessi concessi non resta la frase tecnica.
   router.loaderData = { ...onboardingData, step: 2, labelScopesGranted: true };
   const step2 = await mount(<Onboarding />);
+  expect(
+    step2.container.querySelectorAll(".onboarding-step s-box, .onboarding-step s-checkbox"),
+  ).toHaveLength(0);
+  expect(step2.container.querySelectorAll(".onboarding-step s-choice-list")).toHaveLength(2);
   expect(step2.container.textContent).not.toContain("permessi per confrontare le etichette");
   // Il titolo di Codice Fiscale sta vicino alle sue opzioni, come nelle card di Regole.
   const taxHeading = [...step2.container.querySelectorAll(".onboarding-step s-heading")].find(
