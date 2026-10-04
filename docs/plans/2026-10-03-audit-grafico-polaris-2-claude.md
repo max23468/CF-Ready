@@ -1,6 +1,6 @@
 # Audit grafico di CF Ready 2.0 con Polaris 2 (Claude)
 
-**Stato:** ricontrollo indipendente in Chrome del 4 ottobre 2026 (§28), seguito dalla pubblicazione e verifica italiana di F-2 su Development 2.0.15, commit `56d59c5` (§29). Dei 50 ID: **38 risolti, 6 parziali, 6 accettati per decisione**. Il difetto del testo della bozza è corretto; restano i badge troncati su mobile (O-5), le verifiche live residue e due checkout IT/EN con etichette da verificare in ciascuno dei due store Development osservati. Il ricontrollo live inglese del fix F-2 è escluso su richiesta dell’owner. Non è confermata una chiusura senza punti residui. Le sezioni 1–27 conservano le osservazioni e le prove dei giri precedenti; §28 e §29 riportano lo stato corrente.
+**Stato:** verifica finale in Chrome del 4 ottobre 2026, in italiano, su Development 2.0.15, commit `56d59c5` (§30). Dei 50 ID: **42 risolti, 2 parziali, 6 accettati per decisione**. Restano aperti O-5, per i badge troncati a 390 e 320 px (C-2, non corretto nel codice), ed EN-2, solo inglese e fuori dal perimetro di questa verifica. Si aggiunge il rilievo lieve C-3 sulle note dei mercati nelle etichette. Le sezioni 1–29 conservano le osservazioni e le prove dei giri precedenti; §30 è il riferimento per lo stato corrente.
 **Data:** 3 ottobre 2026, circa 20:30-21:45 CEST, compresi il ricontrollo e la prova della conferma etichette
 **Ambiente:** Development, `cf-ready-polaris-2.myshopify.com` (preview
 `new_admin_design`), app `cf-ready-development`
@@ -71,7 +71,7 @@ Confronto con le pagine native dello stesso store:
 
 ## 3. Priorità
 
-La matrice per ID di §28.4 è il riferimento corrente, riportato anche nella
+La matrice per ID di §30.3 è il riferimento corrente, riportato anche nella
 colonna **Stato attuale** delle tabelle. Le descrizioni conservano il problema
 iniziale; le sezioni successive documentano le prove dei diversi giri.
 **Risolto** indica chiusura comprovata nel percorso indicato, **Parziale** un
@@ -80,7 +80,7 @@ scelta conservata. Positivi e informativi non sono difetti.
 
 | ID | Problema | Severità | Confidenza | Stato attuale |
 | --- | --- | --- | --- | --- |
-| H-5 | Badge verde «Attiva» con nessun campo configurato | Media | Alta | **Parziale** (§28) |
+| H-5 | Badge verde «Attiva» con nessun campo configurato | Media | Alta | **Risolto** (§30) |
 | P2-T4 | Toni dei badge non semantici: ciano identico al banner commerciale, verde per una possibilità | Media | Alta | **Risolto** (§28) |
 | R-1 | In Regole la colonna destra resta vuota per almeno tre schermate quando si apre «Testi del checkout» | Media | Alta | **Accettato per decisione** (§28) |
 | R-2 | Simulatore con due fondi non tematizzati nello stesso riquadro | Media | Alta | **Accettato per decisione** (§28) |
@@ -126,8 +126,8 @@ nel nuovo Admin non è ancora stata provata.
 | H-2 | Da disattivata «Modifica regole» è secondario a sinistra e «Attiva nel checkout» primario a destra. Da attiva «Modifica regole» diventa primario a sinistra e «Disattiva nel checkout» compare a destra in rosa critico, con lo stesso peso visivo. Il primario cambia posizione e l'azione distruttiva diventa la più evidente dopo il primario ([30](evidence/2026-10-03-polaris-2-claude/30-home-attiva.jpg)) | Media | Alta | **Risolto** (§28) |
 | H-3 | Righe campo-stato: la colonna delle etichette si adatta al testo più lungo, da «Messaggi al cliente» in italiano a «Italian tax code (Codice Fiscale)» in inglese, senza tagli ([43](evidence/2026-10-03-polaris-2-claude/43-home-en-1440.jpg)) | Informativo | Alta | **Informativo** |
 | H-4 | Card dei piani: il nome del piano è testo normale da 14 px sopra un prezzo da circa 24 px. Solo «Un solo pagamento» ha una riga descrittiva, quindi le tre righe hanno altezze diverse. Il periodo («al mese») sta 12 px dopo il prezzo. «Consigliato» è neutro mentre «Attiva l'annuale» è l'unico primario della card | Bassa | Media | **Risolto** (§28) |
-| H-5 | Con validazione attiva e nessun campo configurato la card mostra il badge verde «Attiva» sopra «Nessun campo è configurato: il checkout resta invariato.» ([49](evidence/2026-10-03-polaris-2-claude/49-home-attiva-senza-campi-conferma.jpg)). Il verde comunica una protezione in corso che non esiste | Media | Alta | **Parziale** (§28) |
-| H-6 | «Prossimo passo» cambia struttura con lo stato: link «Regole checkout» da disattivata, solo testo con regole pronte, «Apri gli ordini» da attiva. La colonna laterale cambia altezza e ritmo a ogni stato ([29](evidence/2026-10-03-polaris-2-claude/29-home-regole-salvate-disattivata.jpg)) | Bassa | Media | **Parziale** (§28) |
+| H-5 | Con validazione attiva e nessun campo configurato la card mostra il badge verde «Attiva» sopra «Nessun campo è configurato: il checkout resta invariato.» ([49](evidence/2026-10-03-polaris-2-claude/49-home-attiva-senza-campi-conferma.jpg)). Il verde comunica una protezione in corso che non esiste | Media | Alta | **Risolto** (§30) |
+| H-6 | «Prossimo passo» cambia struttura con lo stato: link «Regole checkout» da disattivata, solo testo con regole pronte, «Apri gli ordini» da attiva. La colonna laterale cambia altezza e ritmo a ogni stato ([29](evidence/2026-10-03-polaris-2-claude/29-home-regole-salvate-disattivata.jpg)) | Bassa | Media | **Risolto** (§30) |
 
 ## 6. Regole checkout
 
@@ -181,8 +181,8 @@ nel nuovo Admin non è ancora stata provata.
 | O-2 | Divisore prima di «Campo Interno» ma non prima di «PEC» nello stesso passo | Bassa | Alta | **Risolto** (§28) |
 | O-3 | Il riquadro «Etichette proposte» scrive «Italiano: Mantieni il testo attuale, Mantieni il testo attuale» senza nominare i campi ([21](evidence/2026-10-03-polaris-2-claude/21-onboarding-passo-2-fondo.jpg)) | Media | Alta | **Risolto** (§28) |
 | O-4 | Passo 3: «Quando si applicano» è un elenco puntato con una sola voce; i quattro esempi sono box bianchi bordati su card bianca, diversi dal riquadro grigio di Messaggi ([22](evidence/2026-10-03-polaris-2-claude/22-onboarding-passo-3.jpg)) | Bassa | Alta | **Risolto** (§28) |
-| O-5 | Passo 4: il riepilogo usa testo semplice per gli stessi stati che la Home mostra con badge; tre bottoni con il primario in mezzo ([23](evidence/2026-10-03-polaris-2-claude/23-onboarding-passo-4.jpg)) | Bassa | Alta | **Parziale** (§28) |
-| O-6 | «Configurazione completata» ha il titolo fuori dalla card, mentre i passi lo hanno dentro; il bottone dice «Vai alla home» con l'iniziale minuscola ([24](evidence/2026-10-03-polaris-2-claude/24-onboarding-completata.jpg)) | Bassa | Alta | **Parziale** (§28) |
+| O-5 | Passo 4: il riepilogo usa testo semplice per gli stessi stati che la Home mostra con badge; tre bottoni con il primario in mezzo ([23](evidence/2026-10-03-polaris-2-claude/23-onboarding-passo-4.jpg)) | Bassa | Alta | **Parziale** (§30) |
+| O-6 | «Configurazione completata» ha il titolo fuori dalla card, mentre i passi lo hanno dentro; il bottone dice «Vai alla home» con l'iniziale minuscola ([24](evidence/2026-10-03-polaris-2-claude/24-onboarding-completata.jpg)) | Bassa | Alta | **Risolto** (§30) |
 
 ## 10. Conferme e feedback
 
@@ -202,9 +202,9 @@ nel nuovo Admin non è ancora stata provata.
 - **RW-1** (Bassa, Media): la barra inferiore dell'host (menu e Sidekick,
   circa 100 px opachi) copre le azioni della card principale nella prima vista
   della Home. Sono raggiungibili scorrendo.
-  **Stato attuale: Parziale** · Azioni visibili nello stato corrente a
-  500×844 e 390×844 nel giro precedente; riconfermate a 390×844 in §28.
-  Non copre ogni stato e altezza dell’host.
+  **Stato attuale: Risolto** (§30) · Azioni visibili sopra la barra
+  dell’host anche nella finestra reale più bassa, 500×666, oltre che a
+  390×844 (§28).
 - **RW-2** (Bassa, Media): in Regole il simulatore finisce dopo tutte le
   etichette ([38](evidence/2026-10-03-polaris-2-claude/38-regole-500-simulatore.jpg)).
   A 500 px il badge di «Testi del checkout» va su una riga propria senza tagli
@@ -226,7 +226,7 @@ mantiene alcune voci nella lingua precedente per cache.
 | ID | Problema | Severità | Confidenza | Stato attuale |
 | --- | --- | --- | --- | --- |
 | EN-1 | Titolo «How you want to continue»: sgrammaticato come titolo; per esempio «How do you want to continue?» o «Choose how to continue» ([44](evidence/2026-10-03-polaris-2-claude/44-home-en-piani.jpg)) | Bassa | Alta | **Risolto** (§28) |
-| EN-2 | Badge «Set up required»: come sostantivo è «Setup required» ([45](evidence/2026-10-03-polaris-2-claude/45-regole-en-etichette.jpg)) | Bassa | Alta | **Parziale** (§28) |
+| EN-2 | Badge «Set up required»: come sostantivo è «Setup required» ([45](evidence/2026-10-03-polaris-2-claude/45-regole-en-etichette.jpg)) | Bassa | Alta | **Parziale** (§30) |
 | EN-3 | Lo stesso campo ha tre nomi: «Italian tax code (Codice Fiscale)» in Home e Regole, «Tax code» nella colonna laterale e nel badge di Messaggi ([46](evidence/2026-10-03-polaris-2-claude/46-messaggi-en.jpg)) | Bassa | Media | **Risolto** (§28) |
 | EN-4 | «Frequently asked questions» completo; etichette lunghe senza troncamenti ([47](evidence/2026-10-03-polaris-2-claude/47-guida-en.jpg)) | Positivo | Alta | **Positivo** |
 
@@ -1305,3 +1305,108 @@ Restano parziali **H-5, H-6, O-5, O-6, RW-1 ed EN-2**. O-5/C-2 richiede
 ancora una correzione; gli altri conservano i limiti di verifica descritti
 in §28. Le prove nuove e questa chiusura sono pubblicate in un aggiornamento
 documentale successivo alla PR del fix, senza ulteriori modifiche operative.
+
+## 30. Verifica finale in Chrome, italiano, 4 ottobre 2026
+
+**Esito:** dei 50 ID, **42 risolti, 2 parziali, 6 accettati per decisione**.
+L'audit **non è chiuso**: O-5 resta parziale per i badge troncati su mobile
+(C-2), che nessuna PR ha corretto ([ui-status-list.tsx](../../app/ui-status-list.tsx)
+è fermo a #630). EN-2 resta parziale perché riguarda solo l'inglese, escluso
+dall'owner da questa verifica. Nessuna regressione delle ultime PR è emersa nei
+percorsi esercitati; si aggiunge il rilievo lieve C-3.
+
+### 30.1 Versione e metodo
+
+Google Chrome con la sessione Admin dell'owner, scheda in primo piano
+(`visibilityState` `visible`), store `cf-ready-polaris-2.myshopify.com`, app
+Development **2.0.15** (`develop` a `56d59c5`, deploy
+[37231117748](https://github.com/max23468/CF-Ready/actions/runs/37231117748)
+verde, `2.0.15-dev.08dd6b1c53c1`). Solo italiano. Desktop a 1440×666 e
+finestra reale a 500×666. Chrome non scende sotto 500 px: 390 e 320 px sono
+stati ottenuti restringendo l'iframe dell'app nella pagina Admin, quindi
+emulano il layout dell'app, non la cornice mobile dell'host.
+
+Percorsi: Home, Regole con bozza, simulatore e «Testi del checkout», Messaggi,
+Guida con «Espandi tutte» e «Aggiorna e verifica», passo 4 e completamento
+dell'onboarding. Su autorizzazione dell'owner sono state eseguite scritture
+temporanee per esporre gli stati non riproducibili in sola lettura (30.4).
+Prove in [evidence/2026-10-04-verifica-finale](evidence/2026-10-04-verifica-finale).
+
+### 30.2 Riscontri sugli ID ancora aperti in §29
+
+| ID | Stato | Riscontro | Prova |
+| --- | --- | --- | --- |
+| F-2 | Risolto | Riconfermato §29: con bozza aperta il clic sull'app nella navigazione Admin lascia aperte le Regole; il banner «salva o scarta le modifiche dalla barra in alto» è coerente con «Rimuovi / Salva». «Rimuovi» toglie banner e barra. | [01](evidence/2026-10-04-verifica-finale/01-f2-bozza-navigazione-bloccata.jpg) |
+| H-5 | Risolto | Validazione attiva con CF e PEC non gestiti: badge «Attiva» neutro, non verde, sopra «Nessun campo è configurato: il checkout resta invariato.» | [08](evidence/2026-10-04-verifica-finale/08-h5-attiva-senza-campi.jpg) |
+| H-6 | Risolto | «Prossimo passo» ha sempre testo più link: da disattivata con regole pronte («Le regole sono pronte…», «Regole checkout»), senza regole («Scegli quali campi…», «Regole checkout»), attiva senza campi (uguale), attiva con campi («Apri gli ordini»). | [04](evidence/2026-10-04-verifica-finale/04-home-disattivata-regole-pronte.jpg), [07](evidence/2026-10-04-verifica-finale/07-h6-disattivata-senza-regole.jpg), [10](evidence/2026-10-04-verifica-finale/10-home-finale-ripristinata.jpg) |
+| H-2 | Risolto | Variante disattivata ora vista live: «Attiva nel checkout» primario per primo, «Modifica regole» secondario. | [04](evidence/2026-10-04-verifica-finale/04-home-disattivata-regole-pronte.jpg) |
+| O-6 | Risolto | Dopo «Torna alla Home senza attivare» compare «Configurazione completata» con il titolo fuori dalla card, come nei passi, e «Vai alla Home» con la maiuscola. | [06](evidence/2026-10-04-verifica-finale/06-o6-configurazione-completata.jpg) |
+| O-5 | Parziale | Variante a tre azioni vista live e corretta: «Attiva nel checkout» primario, poi «Torna alla Home senza attivare» e «Indietro». Resta C-2: a 390 px si tronca «Nessuna etichetta fiscale rilevata», a 320 px anche i badge di CF e PEC. | [05](evidence/2026-10-04-verifica-finale/05-o5-riepilogo-tre-azioni.jpg), [03](evidence/2026-10-04-verifica-finale/03-c2-riepilogo-320-badge-troncati.png) |
+| RW-1 | Risolto | Nella finestra reale più bassa disponibile, 500×666, «Modifica regole» e «Disattiva nel checkout» stanno sopra la barra dell'host senza scorrere. | [11](evidence/2026-10-04-verifica-finale/11-rw1-home-500x666.jpg) |
+| EN-2 | Parziale | Non verificato: solo inglese, escluso dall'owner. | — |
+
+Riprovati anche, senza cambiamenti rispetto a §28: errore in linea, focus e
+badge «Checkout bloccato» del simulatore (R-11); tabella delle etichette,
+modalità e ultima lettura (N-2, R-6, R-8); esempio nativo e aside di Messaggi
+con regole correnti e senza regole (N-1, M-4); FAQ espanse e diagnosi (G-2,
+G-3); toast «Validazione disattivata.», «Validazione attivata nel checkout.»,
+«Regole salvate.» e la conferma critica di disattivazione (F-1); banner F-3
+con «Mostra le etichette», che apre e porta in vista «Testi del checkout».
+
+### 30.3 Difetti residui e nuovo rilievo
+
+| ID del giro | Collegamento | Severità | Confidenza | Prova, causa e intervento |
+| --- | --- | --- | --- | --- |
+| C-2 | O-5, Home | Bassa | Alta | A 320 px la Home mostra «Obbligatorio …» e «Facoltativa e…»; il riepilogo dell'onboarding tronca anche «Nessuna eti…». `StatusList` usa `@container (inline-size > 200px) auto 1fr` e comprime gli `s-badge`. Va resa comune la riga stretta (badge a capo o colonna singola sotto una soglia più alta), poi verificata Home e onboarding. [02](evidence/2026-10-04-verifica-finale/02-c2-home-320-badge-troncati.png), [03](evidence/2026-10-04-verifica-finale/03-c2-riepilogo-320-badge-troncati.png) |
+| C-3 | Etichette | Bassa | Media | In «Testi del checkout» compaiono di seguito «Tutti i mercati usano questo testo.» e «Controlla anche il checkout per Canada, Italy: Shopify non ne distingue con certezza la configurazione.» La prima frase sembra escludere la seconda. Nasce in `checkout-labels-presentation.ts`, che aggiunge entrambe le note quando i mercati ambigui non hanno eccezioni; il testo risale a #618, non alle PR di questo audit. «Italy» è il nome del mercato nello store. Va riformulata la coppia, per esempio indicando che il testo vale per tutti i mercati ma che per quelli elencati Shopify non lo conferma. [12](evidence/2026-10-04-verifica-finale/12-c3-note-mercati.jpg) |
+
+Configurazione dello store invariata rispetto a §28.3: «2 checkout in
+italiano e inglese richiedono una verifica», con «Codice fiscale (opzionale)»
+e «PEC (opzionale)» ancora su Shopify. È uno stato operativo dello store,
+non un difetto dell'app; per questo l'esempio di Messaggi mostra
+«Codice fiscale (opzionale)» accanto all'errore di campo obbligatorio.
+
+### 30.4 Scritture e ripristino
+
+Stato iniziale: validazione attiva, CF obbligatorio, PEC facoltativa,
+messaggi predefiniti, gestione etichette guidata, prova fino al 16 ottobre.
+Scritture, tra le 22:31 e le 22:34 CEST:
+
+1. validazione disattivata dalla Home, con la conferma critica;
+2. onboarding chiuso dal passo 4 con «Torna alla Home senza attivare»;
+3. regole salvate con CF e PEC non gestiti;
+4. validazione attivata senza campi;
+5. regole ripristinate: CF obbligatorio e PEC facoltativa.
+
+Rilettura finale della Home: «Attiva», CF «Obbligatorio e validato», PEC
+«Facoltativa e validata», messaggi «Predefiniti», prova fino al 16 ottobre
+([10](evidence/2026-10-04-verifica-finale/10-home-finale-ripristinata.jpg));
+in Regole modalità «Guidata». Due bozze sono state scartate con «Rimuovi».
+«Aggiorna e verifica» eseguita una volta. Etichette Shopify, campo Interno,
+messaggi, mercati, piano e lingua del profilo non sono stati modificati.
+Restano gli orari di salvataggio e lettura aggiornati e gli eventi di
+attivazione e disattivazione.
+
+### 30.5 Limiti
+
+Non verificati in questo giro: inglese (EN-2 e tutte le superfici EN),
+Production, dispositivo fisico, cornice mobile dell'host sotto 500 px,
+checkout reale per lingua e mercato, stati di billing diversi dalla prova,
+modale delle scritture automatiche delle etichette (F-4), tema scuro e
+accessibilità completa. Per chiudere l'audit servono la correzione di C-2 con
+la verifica di O-5 e, se l'owner lo vorrà, il controllo inglese di EN-2.
+
+### 30.6 Correzione di C-2 e C-3 in 2.0.16
+
+Su richiesta dell'owner, `StatusList` impila etichetta e badge fino a 400 px
+di contenitore, invece che fino a 200, con 8 px prima di ogni nuova etichetta
+per tenere unite le coppie. La correzione vale insieme per Home, riepilogo
+dell'onboarding e righe tecniche delle etichette. In «Testi del checkout» la
+nota «Tutti i mercati usano questo testo» non compare più quando Shopify non
+conferma alcuni mercati.
+
+Il test visivo del riepilogo a 320 px ora confronta la larghezza del testo di
+ogni badge con quella visibile: falliva su Chromium e WebKit, con Polaris 1 e
+2, prima della correzione. Il test della route Regole verifica l'assenza della
+nota nel caso ambiguo e falliva prima della correzione. O-5 resta parziale
+fino alla verifica live dopo il deploy Development.

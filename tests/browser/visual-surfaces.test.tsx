@@ -145,7 +145,7 @@ test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", asy
     const rulesGrid = view.container.querySelector("s-query-container > s-grid")!;
     const gridSurface = rulesGrid.shadowRoot!.querySelector<HTMLElement>(".grid")!;
     expect(getComputedStyle(gridSurface).gridTemplateColumns.split(" ")).toHaveLength(
-      gridSurface.getBoundingClientRect().width > 200 ? 2 : 1,
+      gridSurface.getBoundingClientRect().width > 400 ? 2 : 1,
     );
     // T5, P2-T4: anche la PEC obbligatoria per aziende è un badge neutro, senza troncamenti.
     const pecBadge = [...view.container.querySelectorAll("s-badge")].find(
@@ -1180,6 +1180,12 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
         const badge = value.querySelector("s-badge")!;
         expect(surfaceRect(badge).right).toBeLessThanOrEqual(
           value.getBoundingClientRect().right + 1,
+        );
+        // C-2: `s-badge` non va a capo e taglia con i puntini il testo che non entra.
+        const text = document.createRange();
+        text.selectNodeContents(badge);
+        expect(text.getBoundingClientRect().width).toBeLessThanOrEqual(
+          surfaceRect(badge).right - surfaceRect(badge).left + 1,
         );
       }
       await summary.unmount();
