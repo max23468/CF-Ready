@@ -1,6 +1,6 @@
 # Audit grafico di CF Ready 2.0 con Polaris 2 (Claude)
 
-**Stato:** audit concluso; findings ricontrollati in Chrome il 4 ottobre 2026 su Development 2.0.7. Correzioni nelle sezioni 19 e 20; verifica per ID, prove nuove e limiti nella sezione 21. Restano 7 risolti, 9 parziali, 30 aperti e 4 accettati per decisione.
+**Stato:** audit concluso; findings ricontrollati in Chrome il 4 ottobre 2026 su Development 2.0.7 (sezione 21) e, per le correzioni 2.0.8, su Development 2.0.8 (sezione 22). Su 50 ID: 16 risolti, 9 parziali, 21 aperti e 4 accettati per decisione.
 **Data:** 3 ottobre 2026, circa 20:30-21:45 CEST, compresi il ricontrollo e la prova della conferma etichette
 **Ambiente:** Development, `cf-ready-polaris-2.myshopify.com` (preview
 `new_admin_design`), app `cf-ready-development`
@@ -71,26 +71,26 @@ Confronto con le pagine native dello stesso store:
 
 ## 3. Priorità
 
-La matrice per ID della sezione 21 è il riferimento aggiornato per gli stati
-di chiusura, riportati anche nella colonna **Stato attuale** delle tabelle.
-Le descrizioni conservano il problema iniziale; prove e limiti successivi
-sono in §21. **Risolto** indica chiusura comprovata, **Parziale** una parte
+Le matrici per ID delle sezioni 21 e 22.1 sono il riferimento per gli stati
+di chiusura, riportati anche nella colonna **Stato attuale** delle tabelle;
+dove i due giri differiscono vale §22.1. Le descrizioni conservano il problema
+iniziale; prove e limiti successivi sono in §21 e §22. **Risolto** indica chiusura comprovata, **Parziale** una parte
 ancora incompleta, **Aperto** assenza di chiusura completa e **Accettato per
 decisione** una scelta conservata. Positivi e informativi non sono difetti.
 
 | ID | Problema | Severità | Confidenza | Stato attuale |
 | --- | --- | --- | --- | --- |
 | H-5 | Badge verde «Attiva» con nessun campo configurato | Media | Alta | **Aperto** |
-| P2-T4 | Toni dei badge non semantici: ciano identico al banner commerciale, verde per una possibilità | Media | Alta | **Parziale** |
+| P2-T4 | Toni dei badge non semantici: ciano identico al banner commerciale, verde per una possibilità | Media | Alta | **Risolto** |
 | R-1 | In Regole la colonna destra resta vuota per almeno tre schermate quando si apre «Testi del checkout» | Media | Alta | **Parziale** |
 | R-2 | Simulatore con due fondi non tematizzati nello stesso riquadro | Media | Alta | **Accettato per decisione** |
 | H-2 | Azioni della card principale: primario e critico si scambiano posto e peso al cambio di stato | Media | Alta | **Aperto** |
 | P2-T1 | Tre larghezze e griglie di pagina diverse: il bordo sinistro si sposta di 61 px tra Home e Regole | Media | Alta | **Accettato per decisione** |
-| P2-T3 | Gerarchia dei titoli incoerente tra pagine e dentro simulatore e onboarding | Media | Alta | **Parziale** |
-| M-1, N-1 | Esempi dei messaggi indistinguibili dai campi di testo a 500 px; un campo nativo in sola lettura con errore li renderebbe fedeli al checkout | Media | Alta | **Aperto** |
-| N-2 | Il confronto tra etichetta attuale e nuova è una griglia CSS che spezza le citazioni; `s-table` lo risolve in modo nativo | Media | Alta | **Aperto** |
+| P2-T3 | Gerarchia dei titoli incoerente tra pagine e dentro simulatore e onboarding | Media | Alta | **Risolto** |
+| M-1, N-1 | Esempi dei messaggi indistinguibili dai campi di testo a 500 px; un campo nativo in sola lettura con errore li renderebbe fedeli al checkout | Media | Alta | **Risolto** |
+| N-2 | Il confronto tra etichetta attuale e nuova è una griglia CSS che spezza le citazioni; `s-table` lo risolve in modo nativo | Media | Alta | **Risolto** |
 | R-6, R-7 | Pannello etichette: righe valore mal raggruppate, citazioni spezzate, doppio badge con stati opposti | Media | Alta | **Parziale** |
-| G-2, G-3 | FAQ senza gerarchia domanda-risposta; risultati della diagnosi poco leggibili | Media | Alta | **Aperto** |
+| G-2, G-3 | FAQ senza gerarchia domanda-risposta; risultati della diagnosi poco leggibili | Media | Alta | G-2: **Aperto** · G-3: **Parziale** |
 
 ## 4. Problemi trasversali
 
@@ -98,12 +98,12 @@ decisione** una scelta conservata. Positivi e informativi non sono difetti.
 | --- | --- | --- | --- | --- |
 | P2-T1 | Tre impianti di pagina. Home, Messaggi e Guida usano `s-page` con colonna laterale (contenuto da x 284, colonna principale 760 px, laterale 280 px). Regole usa una griglia custom 50/50 senza colonna laterale (`RulesLayout.css:127`, contenuto da x 345, due colonne da 476 px). L'onboarding usa `inlineSize="small"` (card 785 px, da y 75 invece di 113). Passando da una pagina all'altra il bordo sinistro si sposta di 61 px, e nell'onboarding la prima riga sta 38 px più in alto che altrove. Prove [01](evidence/2026-10-03-polaris-2-claude/01-home-disattivata-1440.jpg), [05](evidence/2026-10-03-polaris-2-claude/05-regole-iniziale-1440.jpg), [19](evidence/2026-10-03-polaris-2-claude/19-onboarding-passo-1.jpg) | Media | Alta | **Accettato per decisione** |
 | P2-T2 | Colonna laterale non allineata. In Home, Messaggi e Guida il primo titolo laterale («Piano», «Messaggi collegati alle regole», «Assistenza») sta a y 88 e il titolo della prima sezione a y 113. Nella scheda prodotto nativa la colonna laterale è allineata al titolo di pagina, che in CF Ready non c'è nel contenuto | Bassa | Alta | **Accettato per decisione** |
-| P2-T3 | Gerarchia dei titoli incoerente. I titoli di sezione stanno fuori dalla card in Home, Regole, Messaggi e FAQ, ma dentro la card in «Il controllo non compare?» ([16](evidence/2026-10-03-polaris-2-claude/16-guida-diagnosi-card.jpg)), nei passi dell'onboarding e nel simulatore. Nell'onboarding «Benvenuto in CF Ready» è più leggero di «Cosa fa e cosa non fa». Nel simulatore i titoli di gruppo con icona hanno peso normale e le etichette dei campi sono semibold. I sottotitoli laterali sono semibold in Guida («Dove si configura») e quasi uguali alle righe in Messaggi («Codice Fiscale», «PEC») | Media | Alta | **Parziale** |
-| P2-T4 | Toni dei badge non semantici. «Obbligatorio e validato» e «Obbligatoria per aziende» sono ciano saturo, lo stesso tono del banner della prova, anche con validazione disattivata ([29](evidence/2026-10-03-polaris-2-claude/29-home-regole-salvate-disattivata.jpg)). «Può comparire» è verde ([32](evidence/2026-10-03-polaris-2-claude/32-messaggi-puo-comparire.jpg)), ma descrive una possibilità, non un esito positivo. «Aggiornati» verde convive con «Da configurare» arancione nello stesso pannello ([08](evidence/2026-10-03-polaris-2-claude/08-regole-testi-checkout-da-configurare.jpg)). «Consigliato» è neutro e non dà rilievo al piano annuale | Media | Alta | **Parziale** |
+| P2-T3 | Gerarchia dei titoli incoerente. I titoli di sezione stanno fuori dalla card in Home, Regole, Messaggi e FAQ, ma dentro la card in «Il controllo non compare?» ([16](evidence/2026-10-03-polaris-2-claude/16-guida-diagnosi-card.jpg)), nei passi dell'onboarding e nel simulatore. Nell'onboarding «Benvenuto in CF Ready» è più leggero di «Cosa fa e cosa non fa». Nel simulatore i titoli di gruppo con icona hanno peso normale e le etichette dei campi sono semibold. I sottotitoli laterali sono semibold in Guida («Dove si configura») e quasi uguali alle righe in Messaggi («Codice Fiscale», «PEC») | Media | Alta | **Risolto** |
+| P2-T4 | Toni dei badge non semantici. «Obbligatorio e validato» e «Obbligatoria per aziende» sono ciano saturo, lo stesso tono del banner della prova, anche con validazione disattivata ([29](evidence/2026-10-03-polaris-2-claude/29-home-regole-salvate-disattivata.jpg)). «Può comparire» è verde ([32](evidence/2026-10-03-polaris-2-claude/32-messaggi-puo-comparire.jpg)), ma descrive una possibilità, non un esito positivo. «Aggiornati» verde convive con «Da configurare» arancione nello stesso pannello ([08](evidence/2026-10-03-polaris-2-claude/08-regole-testi-checkout-da-configurare.jpg)). «Consigliato» è neutro e non dà rilievo al piano annuale | Media | Alta | **Risolto** |
 | P2-T5 | Logo in quattro forme. Lockup da 130 px centrato in fondo alla colonna laterale della Home, mentre i testi sopra sono allineati a sinistra. Lockup da circa 160 px a sinistra sotto un titolo grigio in Guida. `s-avatar` con la favicon e un quadrato crema attorno nel simulatore e nell'onboarding | Bassa | Alta | **Risolto** |
 | P2-T6 | Virgolette miste in italiano. «» per le etichette Shopify, ma “ ” in «Nel campo “Interno”», «Controllo di “Interno”», nella procedura manuale («“Campo dopo il salvataggio”») e nella FAQ «Come devo gestire il campo “Interno”?». La decisione T7 del 1 ottobre ha scelto «» | Bassa | Alta | **Risolto** |
-| P2-T7 | Ripetizioni che appesantiscono la pagina. «Nessun campo è configurato: il checkout resta invariato.» compare due volte nella stessa card di Regole. Il paragrafo «Le regole si applicano alle consegne in Italia…» è identico in Home, simulatore e onboarding (passi 1 e 3). A 500 px la nota «L'esempio mostra il testo del messaggio…» compare cinque volte in Messaggi. Nel passo 3 «Con le regole attuali questo messaggio non compare» si ripete quattro volte accanto al badge «Non compare», che dice la stessa cosa | Media | Alta | **Aperto** |
-| P2-T8 | Raggruppamento per vicinanza assente. Nel pannello etichette le righe «Campo attuale» e «Campo dopo il salvataggio» distano 16 px tra loro e 16 px dal campo successivo. Nei risultati della diagnosi testo, link e risultato seguente sono equidistanti (16 px). Nel passo 2 dell'onboarding «Codice Fiscale» sta 40 px sopra i suoi radio e 38 px sotto il gruppo precedente | Media | Alta | **Parziale** |
+| P2-T7 | Ripetizioni che appesantiscono la pagina. «Nessun campo è configurato: il checkout resta invariato.» compare due volte nella stessa card di Regole. Il paragrafo «Le regole si applicano alle consegne in Italia…» è identico in Home, simulatore e onboarding (passi 1 e 3). A 500 px la nota «L'esempio mostra il testo del messaggio…» compare cinque volte in Messaggi. Nel passo 3 «Con le regole attuali questo messaggio non compare» si ripete quattro volte accanto al badge «Non compare», che dice la stessa cosa | Media | Alta | **Risolto** |
+| P2-T8 | Raggruppamento per vicinanza assente. Nel pannello etichette le righe «Campo attuale» e «Campo dopo il salvataggio» distano 16 px tra loro e 16 px dal campo successivo. Nei risultati della diagnosi testo, link e risultato seguente sono equidistanti (16 px). Nel passo 2 dell'onboarding «Codice Fiscale» sta 40 px sopra i suoi radio e 38 px sotto il gruppo precedente | Media | Alta | **Risolto** |
 | P2-T9 | Disclosure custom disallineati. Il chevron di «Come completare la verifica manuale» sta 16 px più a sinistra di quelli del pannello che lo contiene (x 762 contro 778). Nel simulatore «Quando si applicano» e «Opzioni avanzate» partono dall'icona (x 853) e non dal testo del gruppo (x 885). I chevron sono disegnati in CSS con bordi da 1,5 px, mentre select e controlli nativi usano le icone Polaris | Bassa | Alta | **Risolto** |
 
 ### 4.1 Componenti da sostituire con alternative native
@@ -114,8 +114,8 @@ nel nuovo Admin non è ancora stata provata.
 
 | ID | Problema | Severità | Confidenza | Stato attuale |
 | --- | --- | --- | --- | --- |
-| N-1 | Gli esempi di errore in Messaggi e nel passo 3 dell'onboarding sono box custom (`CustomerMessagesPreview.css`, classe `.customer-messages-preview__error`): testo rosso in un riquadro bianco bordato, che non somiglia al checkout e su mobile si confonde con i campi modificabili (M-1, O-4). Polaris 2 offre `s-text-field` con `readOnly` ed `error`: con `label` uguale all'etichetta Shopify attuale e `error` uguale al messaggio, riproduce campo ed errore in linea come nel checkout reale, senza CSS. Da provare che il campo in sola lettura non sembri modificabile e che l'errore resti rosso | Media | Alta sul problema, Media sulla resa | **Aperto** |
-| N-2 | Il confronto «Campo attuale / Campo dopo il salvataggio» è una griglia CSS (`.checkout-label-context__row`, `RulesLayout.css`) con una colonna valori di circa 270 px: spezza le citazioni a metà, non separa i campi e ripete le etichette su ogni riga (R-6, P2-T8). `s-table` con colonne Campo, Attuale, Dopo il salvataggio allinea i valori, separa le righe in modo nativo e su mobile diventa da sola un elenco chiave-valore (`variant="auto"`) | Media | Alta sul problema, Media sulla resa | **Aperto** |
+| N-1 | Gli esempi di errore in Messaggi e nel passo 3 dell'onboarding sono box custom (`CustomerMessagesPreview.css`, classe `.customer-messages-preview__error`): testo rosso in un riquadro bianco bordato, che non somiglia al checkout e su mobile si confonde con i campi modificabili (M-1, O-4). Polaris 2 offre `s-text-field` con `readOnly` ed `error`: con `label` uguale all'etichetta Shopify attuale e `error` uguale al messaggio, riproduce campo ed errore in linea come nel checkout reale, senza CSS. Da provare che il campo in sola lettura non sembri modificabile e che l'errore resti rosso | Media | Alta sul problema, Media sulla resa | **Risolto** |
+| N-2 | Il confronto «Campo attuale / Campo dopo il salvataggio» è una griglia CSS (`.checkout-label-context__row`, `RulesLayout.css`) con una colonna valori di circa 270 px: spezza le citazioni a metà, non separa i campi e ripete le etichette su ogni riga (R-6, P2-T8). `s-table` con colonne Campo, Attuale, Dopo il salvataggio allinea i valori, separa le righe in modo nativo e su mobile diventa da sola un elenco chiave-valore (`variant="auto"`) | Media | Alta sul problema, Media sulla resa | **Risolto** |
 | N-3 | Nel simulatore e nel passo 1 dell'onboarding il logo è un `s-avatar` con la favicon: il componente è pensato per persone e aggiunge un fondo chiaro attorno al marchio (R-5). `s-image` a dimensione fissa, come il lockup della Home, mostra il logo senza fondo e unifica il trattamento (P2-T5) | Bassa | Alta | **Risolto** |
 
 ## 5. Home
@@ -125,7 +125,7 @@ nel nuovo Admin non è ancora stata provata.
 | H-1 | Nella card principale il banner della prova è seguito da 33 px vuoti prima del divisore, che dista poi 25 px dalla prima riga. La data della prova compare tre volte nella prima schermata: banner, colonna laterale e testo «primo addebito il 17 ottobre» ([01](evidence/2026-10-03-polaris-2-claude/01-home-disattivata-1440.jpg), [02](evidence/2026-10-03-polaris-2-claude/02-home-piani-1440.jpg)) | Media | Alta | **Parziale** |
 | H-2 | Da disattivata «Modifica regole» è secondario a sinistra e «Attiva nel checkout» primario a destra. Da attiva «Modifica regole» diventa primario a sinistra e «Disattiva nel checkout» compare a destra in rosa critico, con lo stesso peso visivo. Il primario cambia posizione e l'azione distruttiva diventa la più evidente dopo il primario ([30](evidence/2026-10-03-polaris-2-claude/30-home-attiva.jpg)) | Media | Alta | **Aperto** |
 | H-3 | Righe campo-stato: la colonna delle etichette si adatta al testo più lungo, da «Messaggi al cliente» in italiano a «Italian tax code (Codice Fiscale)» in inglese, senza tagli ([43](evidence/2026-10-03-polaris-2-claude/43-home-en-1440.jpg)) | Informativo | Alta | **Informativo** |
-| H-4 | Card dei piani: il nome del piano è testo normale da 14 px sopra un prezzo da circa 24 px. Solo «Un solo pagamento» ha una riga descrittiva, quindi le tre righe hanno altezze diverse. Il periodo («al mese») sta 12 px dopo il prezzo. «Consigliato» è neutro mentre «Attiva l'annuale» è l'unico primario della card | Bassa | Media | **Aperto** |
+| H-4 | Card dei piani: il nome del piano è testo normale da 14 px sopra un prezzo da circa 24 px. Solo «Un solo pagamento» ha una riga descrittiva, quindi le tre righe hanno altezze diverse. Il periodo («al mese») sta 12 px dopo il prezzo. «Consigliato» è neutro mentre «Attiva l'annuale» è l'unico primario della card | Bassa | Media | **Parziale** |
 | H-5 | Con validazione attiva e nessun campo configurato la card mostra il badge verde «Attiva» sopra «Nessun campo è configurato: il checkout resta invariato.» ([49](evidence/2026-10-03-polaris-2-claude/49-home-attiva-senza-campi-conferma.jpg)). Il verde comunica una protezione in corso che non esiste | Media | Alta | **Aperto** |
 | H-6 | «Prossimo passo» cambia struttura con lo stato: link «Regole checkout» da disattivata, solo testo con regole pronte, «Apri gli ordini» da attiva. La colonna laterale cambia altezza e ritmo a ogni stato ([29](evidence/2026-10-03-polaris-2-claude/29-home-regole-salvate-disattivata.jpg)) | Bassa | Media | **Aperto** |
 
@@ -148,7 +148,7 @@ nel nuovo Admin non è ancora stata provata.
 | ID | Problema | Severità | Confidenza | Stato attuale |
 | --- | --- | --- | --- | --- |
 | R-2 | Due fondi nello stesso riquadro: verde `#f1f5ef` impostato inline (`CheckoutSimulator.tsx:154`) per la parte superiore e `s-box background="subdued"` grigio per «Prova uno scenario», senza separatore. Il riquadro vuoto «Nessun campo è configurato» è grigio su verde. Il verde è un valore fisso che non segue il tema, il caso che la guida Polaris 2 segnala ([05](evidence/2026-10-03-polaris-2-claude/05-regole-iniziale-1440.jpg), [12](evidence/2026-10-03-polaris-2-claude/12-simulatore-checkout-bloccato.jpg)) | Media | Alta | **Accettato per decisione** |
-| R-3 | Gerarchia invertita: «Destinazione dell'ordine» e «Dati fiscali del cliente» (titoli con icona) hanno peso normale, «Paese di consegna» e «Codice fiscale» (etichette) sono semibold. «Prova uno scenario» è testo normale come le descrizioni | Media | Alta | **Aperto** |
+| R-3 | Gerarchia invertita: «Destinazione dell'ordine» e «Dati fiscali del cliente» (titoli con icona) hanno peso normale, «Paese di consegna» e «Codice fiscale» (etichette) sono semibold. «Prova uno scenario» è testo normale come le descrizioni | Media | Alta | **Parziale** |
 | R-4 | «Continua» è un bottone custom (`#20492f`, raggio 9 px, 13 px, peso 650) accanto a «Svuota», che è Polaris: nella stessa riga convivono due sistemi di bottoni. Il verde imita il checkout ed è una scelta deliberata; il problema è l'accostamento | Bassa | Media | **Accettato per decisione** |
 | R-5 | Il logo nell'intestazione è un `s-avatar` con la favicon: attorno al marchio compare un quadrato crema chiaro, visibile anche nel passo 1 dell'onboarding | Bassa | Media | **Risolto** |
 | R-12 | Quando nelle opzioni avanzate Shopify non mostra il campo Codice Fiscale, il gruppo «Dati fiscali del cliente» resta con titolo e icona ma senza campi né spiegazione: subito sotto c'è la nota sulle etichette ([52](evidence/2026-10-03-polaris-2-claude/52-simulatore-gruppo-dati-fiscali-vuoto.jpg), [53](evidence/2026-10-03-polaris-2-claude/53-simulatore-opzioni-avanzate.jpg)) | Bassa | Alta | **Aperto** |
@@ -158,7 +158,7 @@ nel nuovo Admin non è ancora stata provata.
 
 | ID | Problema | Severità | Confidenza | Stato attuale |
 | --- | --- | --- | --- | --- |
-| M-1 | L'esempio è un box bianco con bordo e testo rosso scuro, senza icona né campo: non somiglia né al checkout né a un errore Polaris. A 500 px gli esempi locali hanno sfondo, bordo e raggio identici ai campi di testo e si distinguono solo per il colore del testo ([39](evidence/2026-10-03-polaris-2-claude/39-messaggi-500-esempi-locali.jpg)) | Media | Alta | **Aperto** |
+| M-1 | L'esempio è un box bianco con bordo e testo rosso scuro, senza icona né campo: non somiglia né al checkout né a un errore Polaris. A 500 px gli esempi locali hanno sfondo, bordo e raggio identici ai campi di testo e si distinguono solo per il colore del testo ([39](evidence/2026-10-03-polaris-2-claude/39-messaggi-500-esempi-locali.jpg)) | Media | Alta | **Risolto** |
 | M-2 | La nota «L'esempio mostra il testo del messaggio…» sta fuori dal riquadro grigio dell'esempio, tra esempio e campi, quindi non è chiaro a cosa si riferisca ([13](evidence/2026-10-03-polaris-2-claude/13-messaggi-top-1440.jpg), [14](evidence/2026-10-03-polaris-2-claude/14-messaggi-campi-1440.jpg)) | Bassa | Alta | **Aperto** |
 | M-3 | Spaziatura interna del riquadro esempio non uniforme: lo spazio tra il titolo con l'icona e la prima riga è maggiore di quello tra le righe seguenti. «Messaggio selezionato» con badge ripete il nome del campo che ha il focus | Bassa | Media | **Aperto** |
 | M-4 | Colonna laterale: quattro badge identici («Non compare» grigi oppure «Può comparire» verdi) con sottotitoli di peso simile alle righe; il blocco comunica poco a colpo d'occhio | Bassa | Media | **Parziale** |
@@ -170,17 +170,17 @@ nel nuovo Admin non è ancora stata provata.
 | --- | --- | --- | --- | --- |
 | G-1 | Le domande hanno un rientro di 6 px rispetto ai titoli di gruppo (x 306 contro 300); i divisori partono da 300 ([15](evidence/2026-10-03-polaris-2-claude/15-guida-top-1440.jpg)) | Bassa | Alta | **Aperto** |
 | G-2 | La risposta ha peso, colore e dimensione della domanda; a 1440 px le righe arrivano a circa 120 caratteri ([18](evidence/2026-10-03-polaris-2-claude/18-guida-faq-espanse.jpg)) | Media | Alta | **Aperto** |
-| G-3 | Risultati della diagnosi: l'icona informativa è nera mentre avvisi e successi sono colorati; tre link identici «Regole checkout»; ogni link è equidistante dal proprio testo e dal risultato seguente; l'elenco non è contenuto e non ha un riepilogo ([17](evidence/2026-10-03-polaris-2-claude/17-guida-diagnosi-risultati.jpg)) | Media | Alta | **Aperto** |
+| G-3 | Risultati della diagnosi: l'icona informativa è nera mentre avvisi e successi sono colorati; tre link identici «Regole checkout»; ogni link è equidistante dal proprio testo e dal risultato seguente; l'elenco non è contenuto e non ha un riepilogo ([17](evidence/2026-10-03-polaris-2-claude/17-guida-diagnosi-risultati.jpg)) | Media | Alta | **Parziale** |
 | G-4 | Assistenza: tre bottoni a tutta larghezza impilati in 280 px, con un primario nero molto pesante, poi un divisore e un bottone con lente per un salto interno. A 500 px la colonna laterale va in fondo, dopo la card di diagnosi, quindi quel salto porta verso l'alto ([40](evidence/2026-10-03-polaris-2-claude/40-guida-500-aside.jpg)) | Bassa | Media | **Aperto** |
 
 ## 9. Onboarding
 
 | ID | Problema | Severità | Confidenza | Stato attuale |
 | --- | --- | --- | --- | --- |
-| O-1 | Gerarchia: «Benvenuto in CF Ready» è più leggero di «Cosa fa e cosa non fa». Nel passo 2 «Codice Fiscale» e «PEC» sono titoli di gruppo con peso normale, sotto «Scegli cosa controllare» semibold ([19](evidence/2026-10-03-polaris-2-claude/19-onboarding-passo-1.jpg), [20](evidence/2026-10-03-polaris-2-claude/20-onboarding-passo-2.jpg)) | Media | Alta | **Aperto** |
+| O-1 | Gerarchia: «Benvenuto in CF Ready» è più leggero di «Cosa fa e cosa non fa». Nel passo 2 «Codice Fiscale» e «PEC» sono titoli di gruppo con peso normale, sotto «Scegli cosa controllare» semibold ([19](evidence/2026-10-03-polaris-2-claude/19-onboarding-passo-1.jpg), [20](evidence/2026-10-03-polaris-2-claude/20-onboarding-passo-2.jpg)) | Media | Alta | **Risolto** |
 | O-2 | Divisore prima di «Campo Interno» ma non prima di «PEC» nello stesso passo | Bassa | Alta | **Aperto** |
 | O-3 | Il riquadro «Etichette proposte» scrive «Italiano: Mantieni il testo attuale, Mantieni il testo attuale» senza nominare i campi ([21](evidence/2026-10-03-polaris-2-claude/21-onboarding-passo-2-fondo.jpg)) | Media | Alta | **Aperto** |
-| O-4 | Passo 3: «Quando si applicano» è un elenco puntato con una sola voce; i quattro esempi sono box bianchi bordati su card bianca, diversi dal riquadro grigio di Messaggi ([22](evidence/2026-10-03-polaris-2-claude/22-onboarding-passo-3.jpg)) | Bassa | Alta | **Aperto** |
+| O-4 | Passo 3: «Quando si applicano» è un elenco puntato con una sola voce; i quattro esempi sono box bianchi bordati su card bianca, diversi dal riquadro grigio di Messaggi ([22](evidence/2026-10-03-polaris-2-claude/22-onboarding-passo-3.jpg)) | Bassa | Alta | **Risolto** |
 | O-5 | Passo 4: il riepilogo usa testo semplice per gli stessi stati che la Home mostra con badge; tre bottoni con il primario in mezzo ([23](evidence/2026-10-03-polaris-2-claude/23-onboarding-passo-4.jpg)) | Bassa | Alta | **Aperto** |
 | O-6 | «Configurazione completata» ha il titolo fuori dalla card, mentre i passi lo hanno dentro; il bottone dice «Vai alla home» con l'iniziale minuscola ([24](evidence/2026-10-03-polaris-2-claude/24-onboarding-completata.jpg)) | Bassa | Alta | **Aperto** |
 
@@ -610,3 +610,54 @@ le superfici con Polaris 1 e 2, in Chromium e WebKit; la verifica live è in
 | P2-T8 | Confronto etichette in tabella; nella diagnosi testo e link dello stesso esito attaccati, esiti a 16 px; nel passo 2 titolo a 6 px dalle opzioni e gruppi a 20 px (prima 12 e 16) |
 | N-1 | Esempi di Messaggi e del passo 3 come `s-text-field` in sola lettura, con l'etichetta del campo come `label` e il messaggio come `error` (anche M-1, O-4) |
 | N-2 | Confronto «Campo attuale / Campo dopo il salvataggio» e testi di «Interno» in `s-table`, colonne Campo, Campo attuale e Campo dopo il salvataggio o Testo Shopify; su mobile elenco nativo (anche R-6) |
+
+### 22.1 Verifica live di 2.0.8
+
+Pubblicazione Development con
+[#635](https://github.com/max23468/CF-Ready/pull/635), commit `4fa2081`,
+versione Shopify `2.0.8-dev.833f85d2e807`, deployment Worker
+`7123cb17-b416-46b0-b29c-e25f433d0c91`; la
+[ricevuta](evidence/2026-10-04-v208-live/deploy-receipt-development.json)
+conferma smoke, readback provider e migrazioni verdi. Rollback: Shopify
+`2.0.7-dev.8533ec6f53a8`. Nessuna promozione Production.
+
+Verifica del 4 ottobre in Chrome con la sessione Admin dell'owner, scheda in
+primo piano, a 1440 px e, per Messaggi, a 500 px. `cf-ready-polaris-2` usa il
+nuovo Admin, `cf-ready-dev` il vecchio. Le regole sono state cambiate solo in
+una bozza poi scartata con «Rimuovi»; i passi dell'onboarding sono stati
+aperti con `?step=`, senza salvare. «Aggiorna e verifica» della Guida rilegge
+soltanto Shopify. Nessuna regola, messaggio, etichetta o piano salvato.
+
+| ID | Stato | Riscontro |
+| --- | --- | --- |
+| P2-T3 | Risolto | Titoli dei quattro passi e di «Il controllo non compare?» fuori dalla card nel nuovo Admin, visibile anche dopo il salto da Assistenza; «Destinazione dell'ordine» e «Dati fiscali del cliente» sono titoli ([passo 1](evidence/2026-10-04-v208-live/p2-onboarding-passo1-1440.jpg), [diagnosi](evidence/2026-10-04-v208-live/p2-diagnosi-1440.jpg), [regole](evidence/2026-10-04-v208-live/p2-regole-senza-campi-bozza-1440.jpg)) |
+| P2-T4 | Risolto | Badge del passo 3 neutri; «Consigliato» in tono `info` ([piani](evidence/2026-10-04-v208-live/p2-home-piani-1440.jpg), [passo 3](evidence/2026-10-04-v208-live/p2-onboarding-passo3-1440.jpg)) |
+| P2-T7 | Risolto | In bozza senza campi gestiti «Nessun campo è configurato» compare una volta, nel simulatore; a 500 px la nota dell'esempio non si ripete; il passo 3 non ha note né «Quando si applicano» ([regole](evidence/2026-10-04-v208-live/p2-regole-senza-campi-bozza-1440.jpg), [messaggi 500](evidence/2026-10-04-v208-live/p2-messaggi-500.jpg)) |
+| P2-T8 | Risolto | Tabella delle etichette; nella diagnosi ogni link sta sotto il proprio esito; nel passo 2 il titolo è vicino alle opzioni e PEC è staccato dal gruppo sopra ([etichette](evidence/2026-10-04-v208-live/p2-etichette-tabella-1440.jpg), [passo 2](evidence/2026-10-04-v208-live/p2-onboarding-passo2-1440.jpg)) |
+| N-1, M-1, O-4 | Risolto | Esempi come campi in sola lettura con l'etichetta reale («Codice fiscale (opzionale)») e l'errore in linea; digitando il campo resta vuoto. A 500 px gli esempi si distinguono dalle aree di testo ([messaggi](evidence/2026-10-04-v208-live/p2-messaggi-1440.jpg), [messaggi 500](evidence/2026-10-04-v208-live/p2-messaggi-500.jpg)) |
+| N-2 | Risolto | Colonne Campo, Campo attuale, Campo dopo il salvataggio; citazioni intere; «Nessuna modifica» nella riga senza modifiche ([nuovo Admin](evidence/2026-10-04-v208-live/p2-etichette-tabella-1440.jpg), [vecchio Admin](evidence/2026-10-04-v208-live/p1-etichette-tabella-1440.jpg)) |
+| O-1 | Risolto | Il titolo del passo è quello della sezione; «Cosa fa e cosa non fa», «Codice Fiscale» e «PEC» gli restano subordinati |
+| R-3 | Parziale | I titoli dei gruppi non sono più leggeri delle etichette, ma hanno la stessa dimensione |
+| G-3 | Parziale | Distanze corrette; restano i tre link «Regole checkout» e l'assenza di un riepilogo |
+| H-4 | Parziale | «Consigliato» ha rilievo; restano nome leggero e descrizione solo nel pagamento unico |
+| R-6 | Parziale | Le citazioni non vanno più a capo; resta l'intestazione «Predefinito per questa lingua» con due significati |
+
+Nel vecchio Admin (`cf-ready-dev`) Home, Regole, simulatore, Messaggi, Guida e
+passo 3 non mostrano modifiche impreviste: le card restano a 16 px, i titoli di
+sezione stanno dentro la card come in tutte le pagine di quell'host, e campi
+d'esempio e tabella usano lo stile del vecchio Admin
+([home](evidence/2026-10-04-v208-live/p1-home-1440.jpg),
+[regole](evidence/2026-10-04-v208-live/p1-regole-1440.jpg),
+[messaggi](evidence/2026-10-04-v208-live/p1-messaggi-1440.jpg),
+[passo 3](evidence/2026-10-04-v208-live/p1-onboarding-passo3-1440.jpg),
+[diagnosi](evidence/2026-10-04-v208-live/p1-diagnosi-1440.jpg)). La scelta del
+piano non compare in `cf-ready-dev`, che ha un pagamento unico attivo.
+
+Rilievo nuovo: nel nuovo Admin, al passaggio del mouse e al focus, il campo
+d'esempio in sola lettura perde il bordo rosso e diventa grigio, mentre
+l'errore resta rosso sotto il campo
+([prova](evidence/2026-10-04-v208-live/p2-messaggi-esempio-focus.png)). È lo
+stile nativo di `readOnly`; non impedisce di leggere l'esempio.
+
+Conteggio dopo questo giro: **50 ID**, **16 risolti**, **9 parziali**, **21
+aperti**, **4 accettati per decisione**; restano **30 da completare**.
