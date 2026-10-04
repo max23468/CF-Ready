@@ -1,39 +1,11 @@
-# Operazioni — capacità, backup, osservabilità e verifiche
+# Operazioni — risorse, backup, osservabilità e verifiche
 
 Le operazioni Production richiedono l'autorizzazione dell'owner: una richiesta
 affermativa di pubblicazione la concede per il ciclo tecnico applicabile; fuori
 da tale richiesta serve una conferma separata. I workflow, da soli, non
 costituiscono autorizzazione.
 
-## Capacità Development
-
-`npm run capacity:dev` apre un tail Cloudflare filtrato lato provider da un
-header sintetico univoco, riscalda il Worker, invia 120 richieste alla rotta
-pubblica e misura la CPU delle sole invocazioni marcate. Le richieste misurate
-partono una ogni 1,5 secondi: dal 29 settembre 2026 il tail consegna circa un
-evento al secondo dopo una breve raffica, e a ritmo pieno perdeva tutte le
-misure. Il controllo dura quindi circa tre minuti. Il comando fallisce se
-raccoglie meno di 100 eventi o più dei 120 emessi, incontra un errore Worker o
-HTTP, oppure supera `5 ms` al `p95`, metà del limite Free per richiesta. Il
-massimo resta nella ricevuta per rendere visibili eventuali cold start, ma non
-sostituisce il percentile operativo. Gli eventi non sintetici non attraversano
-il confine Cloudflare-runner.
-
-L'avvio del tail può richiedere fino a 60 secondi; il carico non parte finché
-una probe marcata non torna dal provider. Dopo il carico il comando attende
-altri 60 secondi al massimo gli eventi misurati, che il tail può consegnare in
-ritardo. Le due attese non allentano numero di eventi, errori o limiti CPU.
-
-Il workflow Development esegue il controllo dopo lo snapshot Shopify e il
-deploy Worker. Un fallimento attiva il rollback coordinato già previsto; la
-versione Shopify del tree resta pubblicata ma non attiva, quindi il retry dello
-stesso commit la pubblica come `<versione>-dev.<tree>.r2` (poi `.r3`, …). La
-prova riguarda il costo base del routing React Router; i percorsi autenticati,
-le query D1 e le chiamate Shopify si controllano anche con metriche reali e con
-la matrice sotto, perché un test sintetico non deve generare traffico artificiale
-verso Shopify.
-
-### Soglie Free tier
+## Soglie Free tier
 
 | Risorsa | Quota Free di riferimento | Stop point operativo |
 | --- | --- | --- |
