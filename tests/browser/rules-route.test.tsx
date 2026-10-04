@@ -514,6 +514,8 @@ describe("Regole", () => {
     expect(disclosures?.[1].textContent).toContain(
       texts("it").rules.labels.marketCheckIncluded(["Italia"]),
     );
+    // C-3: con mercati non confermati da Shopify non si afferma che tutti usano lo stesso testo.
+    expect(disclosures?.[1].textContent).not.toContain(texts("it").rules.labels.allMarketsSame);
     expect(disclosures?.[1].textContent).not.toContain(
       texts("it").rules.labels.marketException("Italia"),
     );

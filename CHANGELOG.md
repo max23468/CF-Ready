@@ -6,6 +6,20 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.16 — 4 ottobre 2026
+
+- impila etichetta e badge delle righe di stato fino a 400 px, così Home e
+  riepilogo della configurazione non troncano i badge a 390 e 320 px (C-2);
+- toglie la nota «Tutti i mercati usano questo testo» quando Shopify non
+  conferma la configurazione di alcuni mercati, perché contraddiceva la
+  richiesta di controllarli (C-3);
+- registra nell’audit di Claude la verifica finale in Chrome degli stati
+  ancora aperti. Pubblicazione solo Development, senza promozione Production.
+
+Status rows stack label and badge up to 400 px so badges are no longer
+truncated on narrow screens. The “All markets use this text” note no longer
+appears when Shopify cannot confirm some markets.
+
 ## 2.0.15 — 4 ottobre 2026
 
 - corregge l’istruzione delle bozze non salvate in italiano e inglese:
