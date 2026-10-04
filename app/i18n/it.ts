@@ -14,7 +14,7 @@ export const it = {
     save: "Salva",
     cancel: "Annulla",
     unsavedNavigation:
-      "Hai modifiche non salvate. Prima di cambiare pagina, scegli Salva o Annulla nella barra in alto.",
+      "Hai modifiche non salvate. Prima di cambiare pagina, salva o scarta le modifiche dalla barra in alto.",
   },
   conflict: {
     heading: "La configurazione è cambiata",
