@@ -10,6 +10,43 @@ import { click, dispatch } from "./render";
 import CustomerMessages from "../../app/routes/app.messages";
 
 describe("Messaggi", () => {
+  test("raggruppa i messaggi per disponibilità in IT/EN senza gruppi vuoti", async () => {
+    for (const locale of ["it", "en"] as const) {
+      for (const rules of [
+        DEFAULT_CONFIG.rules,
+        { taxCode: "required_validated", pec: "required_when_company" },
+        { taxCode: "optional_validated", pec: "unmanaged" },
+      ] as const) {
+        router.loaderData = {
+          locale,
+          configHash: "hash",
+          messages: DEFAULT_CONFIG.messages,
+          rules,
+        };
+        const view = await mount(<CustomerMessages />);
+        const aside = view.container.querySelector('[slot="aside"]')!;
+        const copy = texts(locale).messages;
+        const groups = [...aside.querySelectorAll("s-unordered-list")];
+        expect(groups).toHaveLength(rules.taxCode === "optional_validated" ? 2 : 1);
+        const available =
+          rules.taxCode === "unmanaged"
+            ? []
+            : rules.taxCode === "optional_validated"
+              ? [copy.taxCodeInvalid]
+              : [copy.taxCodeRequired, copy.taxCodeInvalid, copy.pecRequired, copy.pecInvalid];
+        const shown = groups.find(
+          (group) => group.parentElement!.querySelector("s-heading")!.textContent === copy.appears,
+        );
+        expect(
+          [...(shown?.querySelectorAll("s-list-item") ?? [])].map((item) => item.textContent),
+        ).toEqual(available);
+        expect(aside.querySelectorAll("s-list-item")).toHaveLength(4);
+        expect(aside.querySelector("s-badge")).toBeNull();
+        await view.unmount();
+      }
+    }
+  });
+
   test("l'anteprima dice sempre se il messaggio compare, così l'altezza non cambia", async () => {
     // Prima la nota compariva solo per i messaggi "non previsti" e spostava i campi sotto.
     router.loaderData = {

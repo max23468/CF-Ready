@@ -71,7 +71,6 @@ describe("componenti merchant nel browser", () => {
         hint="Suggerimento"
         message="Messaggio"
         availability="Disponibilità"
-        selectedHeading="Selezionato"
         selectedLabel="Codice fiscale"
       />,
     );
@@ -83,6 +82,8 @@ describe("componenti merchant nel browser", () => {
     expect(view.container.querySelector("details")).toBeNull();
     expect(view.container.querySelector('s-icon[type="alert-circle"]')).toBeNull();
     expect(view.container.textContent?.match(/Anteprima/g)).toHaveLength(1);
+    expect(view.container.querySelector("s-box")?.textContent).toContain("Suggerimento");
+    expect(view.container.querySelector("s-badge")).toBeNull();
     // N-1: campo nativo in sola lettura, con l'etichetta del campo e il messaggio come errore.
     const field = view.container.querySelector<HTMLElement & { error: string; label: string }>(
       ".customer-messages-preview__error s-text-field",

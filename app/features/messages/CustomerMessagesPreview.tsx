@@ -12,7 +12,6 @@ type CustomerMessagesPreviewProps = {
   // Sempre presente: se compare solo per alcuni messaggi l'anteprima cambia altezza e sposta
   // i campi sotto il puntatore.
   availability: string;
-  selectedHeading: string;
   selectedLabel: string;
 };
 
@@ -25,40 +24,35 @@ export function CustomerMessagesPreview({
   hint,
   message,
   availability,
-  selectedHeading,
   selectedLabel,
 }: CustomerMessagesPreviewProps) {
   return (
     <div className="customer-messages-preview">
       <div className="cf-motion-swap" key={`${activeLocale}-${selectedLabel}`}>
         <s-box background="subdued" borderRadius="base" padding="base">
-          <s-stack direction="block" gap="base">
-            <s-stack direction="inline" gap="small-100" alignItems="center">
+          <s-stack direction="block" gap="small-100">
+            <s-grid gridTemplateColumns="auto minmax(0, 1fr)" gap="small-100" alignItems="start">
               <s-icon type="view" color="subdued" />
-              <s-text type="strong">{heading}</s-text>
-            </s-stack>
+              <s-text type="strong">
+                {heading}: {selectedLabel}
+              </s-text>
+            </s-grid>
 
-            <s-stack direction="block" gap="small-200">
+            <s-stack direction="block" gap="small-100">
               <s-text color="subdued">
                 {context}, {fieldLabelHeading}
               </s-text>
               <CheckoutErrorPreview locale={activeLocale} label={fieldLabel} message={message} />
             </s-stack>
 
-            <s-stack direction="inline" gap="small-100" alignItems="center">
-              <s-text color="subdued">{selectedHeading}</s-text>
-              <s-badge>{selectedLabel}</s-badge>
-            </s-stack>
             <s-grid gridTemplateColumns="auto minmax(0, 1fr)" gap="small-100" alignItems="start">
               <s-icon type="info" color="subdued" />
               <s-text color="subdued">{availability}</s-text>
             </s-grid>
+            <s-text color="subdued">{hint}</s-text>
           </s-stack>
         </s-box>
       </div>
-      <s-box paddingBlockStart="small-100">
-        <s-text color="subdued">{hint}</s-text>
-      </s-box>
     </div>
   );
 }
