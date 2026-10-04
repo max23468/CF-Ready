@@ -6,6 +6,19 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.13 — 4 ottobre 2026
+
+- allinea domande e risposte delle FAQ e limita la larghezza delle risposte;
+- raccoglie la diagnosi in un riquadro con riepilogo, link distinti e icone
+  informative; alleggerisce le azioni di assistenza;
+- mostra badge nel riepilogo onboarding e mette l’azione principale per prima;
+- spiega come lasciare una bozza aperta e corregge i testi inglesi dei piani e
+  delle etichette. Pubblicazione solo Development, senza promozione Production.
+
+FAQ answers are easier to read, diagnostics have a summary and distinct links,
+and onboarding uses consistent status badges and action order. Unsaved drafts
+show navigation guidance; English plan and setup headings are corrected.
+
 ## 2.0.12 — 4 ottobre 2026
 
 - distingue gli esempi dei messaggi dai campi modificabili anche su mobile;

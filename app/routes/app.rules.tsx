@@ -458,6 +458,7 @@ function RulesResultBanners({
 }) {
   return (
     <>
+      {dirty ? <s-banner tone="info">{t.common.unsavedNavigation}</s-banner> : null}
       {labelsErrorCode && showSavedBanner(result, dirty, changedSinceResult) ? (
         <RevealBanner tone="warning">
           {t.rules.labelsSaved}

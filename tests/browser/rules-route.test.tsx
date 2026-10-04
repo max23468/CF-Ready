@@ -294,8 +294,10 @@ describe("Regole", () => {
       view.container.querySelector("s-choice-list")!,
       new Event("change", { bubbles: true }),
     );
+    expect(view.container.textContent).toContain(texts("it").common.unsavedNavigation);
     const buttons = [...view.container.querySelectorAll("button")];
     await click(buttons[1]);
+    expect(view.container.textContent).not.toContain(texts("it").common.unsavedNavigation);
     await click(buttons[0]);
     await dispatch(
       view.container.querySelector("form")!,

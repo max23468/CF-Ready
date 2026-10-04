@@ -183,7 +183,7 @@ export default function Guide() {
                         summary={<span className="guide-faq__question">{entry.q}</span>}
                       >
                         <div className="guide-faq__answer">
-                          <s-paragraph>
+                          <s-paragraph color="subdued">
                             {/* G-B8: a uno store con piano omaggio non si parla di prova e prezzi. */}
                             {"id" in entry &&
                             entry.id === "billing" &&
@@ -226,14 +226,10 @@ export default function Guide() {
                   </s-option>
                 ))}
               </s-select>
-              <s-button
-                variant="primary"
-                inlineSize="fill"
-                href={supportMailto(supportDetails, locale, supportCategory)}
-              >
+              <s-button href={supportMailto(supportDetails, locale, supportCategory)}>
                 {t.support.requestSupport}
               </s-button>
-              <s-button inlineSize="fill" onClick={copyDiagnostics}>
+              <s-button variant="tertiary" onClick={copyDiagnostics}>
                 {t.support.copyDiagnostics}
               </s-button>
               {copyFailed ? (
@@ -242,9 +238,15 @@ export default function Guide() {
                 </span>
               ) : null}
               <s-divider />
-              <s-button icon="search" inlineSize="fill" onClick={showDiagnosis}>
+              <s-link
+                href="#validation-diagnosis"
+                onClick={(event) => {
+                  event.preventDefault();
+                  showDiagnosis();
+                }}
+              >
                 {t.guide.diagnosis.heading}
-              </s-button>
+              </s-link>
             </s-stack>
           </div>
         </s-section>
@@ -353,19 +355,19 @@ type DiagnosisCheck = {
   address2Decision: Address2Decision;
 };
 
-type DiagnosisTone = "success" | "warning" | "neutral";
+type DiagnosisTone = "success" | "warning" | "info";
 
 const DIAGNOSIS_ICON = {
   success: "check-circle",
   warning: "alert-triangle",
-  neutral: "info",
+  info: "info",
 } as const;
 
 const LABELS_TONE: Record<CheckoutLabelsStatus, DiagnosisTone> = {
   synced: "success",
   action_required: "warning",
   scope_required: "warning",
-  unknown: "neutral",
+  unknown: "info",
 };
 
 function address2Tone(check: DiagnosisCheck): DiagnosisTone {
@@ -375,7 +377,7 @@ function address2Tone(check: DiagnosisCheck): DiagnosisTone {
   ) {
     return "warning";
   }
-  return check.address2Classification === "unknown" ? "neutral" : "success";
+  return check.address2Classification === "unknown" ? "info" : "success";
 }
 
 // G-B1: ogni esito ha un'icona di stato e il link fuori dal paragrafo, quindi blu come altrove.
@@ -393,12 +395,26 @@ function DiagnosisRow({
   return (
     <s-grid gridTemplateColumns="auto minmax(0, 1fr)" gap="small-200" alignItems="start">
       <s-icon type={DIAGNOSIS_ICON[tone]} tone={tone} />
-      <s-stack direction="block" gap="none" alignItems="start">
+      <s-stack direction="block" gap="small-100" alignItems="start">
         <s-text>{text}</s-text>
         <s-link href={href}>{link}</s-link>
       </s-stack>
     </s-grid>
   );
+}
+
+function diagnosisSummary(check: DiagnosisCheck, t: ReturnType<typeof texts>) {
+  const copy = t.guide.diagnosis;
+  const tones = [
+    check.enabled ? "success" : "warning",
+    check.entitled ? "success" : "warning",
+    check.configured ? "success" : "warning",
+    LABELS_TONE[check.checkoutLabelsStatus],
+    check.address2Classification in t.rules.labels.addressSummary ? address2Tone(check) : null,
+  ];
+  if (tones.includes("warning")) return copy.needsAttention;
+  if (tones.includes("info")) return copy.incomplete;
+  return copy.checked;
 }
 
 function DiagnosisResult({
@@ -413,49 +429,52 @@ function DiagnosisResult({
   if (!check || check.errorCode) return <s-paragraph>{copy.notChecked}</s-paragraph>;
   // P2-T8: testo e link di un esito stanno insieme, più distanti dall'esito successivo.
   return (
-    <s-stack direction="block" gap="base">
-      <DiagnosisRow
-        tone={check.enabled ? "success" : "warning"}
-        text={check.enabled ? copy.enabled : copy.disabled}
-        href="/app"
-        link={t.nav.home}
-      />
-      <DiagnosisRow
-        tone={check.entitled ? "success" : "warning"}
-        text={check.entitled ? copy.entitled : copy.notEntitled}
-        href="/app"
-        link={copy.openPlan}
-      />
-      <DiagnosisRow
-        tone={check.configured ? "success" : "warning"}
-        text={check.configured ? copy.configured : copy.unconfigured}
-        href="/app/rules"
-        link={t.nav.rules}
-      />
-      {check.checkoutLabelsStatus in LABELS_TONE ? (
+    <s-box background="subdued" borderRadius="base" padding="base">
+      <s-stack direction="block" gap="large">
+        <s-text type="strong">{diagnosisSummary(check, t)}</s-text>
         <DiagnosisRow
-          tone={LABELS_TONE[check.checkoutLabelsStatus]}
-          text={copy.labelsStatus[check.checkoutLabelsStatus]}
-          href="/app/rules"
-          link={t.nav.rules}
+          tone={check.enabled ? "success" : "warning"}
+          text={check.enabled ? copy.enabled : copy.disabled}
+          href="/app"
+          link={t.nav.home}
         />
-      ) : null}
-      {check.address2Classification in t.rules.labels.addressSummary ? (
         <DiagnosisRow
-          tone={address2Tone(check)}
-          text={[
-            t.rules.labels.addressSummary[check.address2Classification],
-            check.address2Decision === "accepted" ||
-            check.address2Decision === "manual_restore_required"
-              ? copy.address2Decision[check.address2Decision]
-              : null,
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          href="/app/rules"
-          link={t.nav.rules}
+          tone={check.entitled ? "success" : "warning"}
+          text={check.entitled ? copy.entitled : copy.notEntitled}
+          href="/app"
+          link={copy.openPlan}
         />
-      ) : null}
-    </s-stack>
+        <DiagnosisRow
+          tone={check.configured ? "success" : "warning"}
+          text={check.configured ? copy.configured : copy.unconfigured}
+          href="/app/rules"
+          link={copy.openRules}
+        />
+        {check.checkoutLabelsStatus in LABELS_TONE ? (
+          <DiagnosisRow
+            tone={LABELS_TONE[check.checkoutLabelsStatus]}
+            text={copy.labelsStatus[check.checkoutLabelsStatus]}
+            href="/app/rules"
+            link={copy.openLabels}
+          />
+        ) : null}
+        {check.address2Classification in t.rules.labels.addressSummary ? (
+          <DiagnosisRow
+            tone={address2Tone(check)}
+            text={[
+              t.rules.labels.addressSummary[check.address2Classification],
+              check.address2Decision === "accepted" ||
+              check.address2Decision === "manual_restore_required"
+                ? copy.address2Decision[check.address2Decision]
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            href="/app/rules"
+            link={copy.openAddress2}
+          />
+        ) : null}
+      </s-stack>
+    </s-box>
   );
 }
