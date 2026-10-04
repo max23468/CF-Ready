@@ -184,9 +184,11 @@ test("la PEC condizionale è richiesta soltanto con Azienda compilata", () => {
   expect(simulatorOutcome({ ...input, company: "", pec: "mario@example.com" })).toBe("ready");
 });
 
-test("il selettore spiega che ogni scenario compila i campi e mostra il risultato", () => {
-  expect(texts("it").rules.simulator.scenarioHelp).toMatch(/scenario.*compila i campi/i);
-  expect(texts("en").rules.simulator.scenarioHelp).toMatch(/scenario.*fills the fields/i);
+test("il selettore degli scenari ha solo la sua etichetta, senza spiegazione", () => {
+  // Decisione del 4 ottobre: la spiegazione era superflua accanto all'etichetta nativa.
+  expect(texts("it").rules.simulator.scenarioLabel).toBe("Prova uno scenario");
+  expect(texts("en").rules.simulator.scenarioLabel).toBe("Try a scenario");
+  expect("scenarioHelp" in texts("it").rules.simulator).toBe(false);
   expect(JSON.stringify([texts("it"), texts("en")])).not.toMatch(/sintetic|synthetic/i);
 });
 

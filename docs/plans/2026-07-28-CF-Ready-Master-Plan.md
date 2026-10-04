@@ -2395,7 +2395,8 @@ Conclusioni operative:
   anteprima Messaggi sempre visibile prima dei campi, con un solo titolo e
   avviso compatto con icona; assistenza prima della card informativa nella Guida,
   domande FAQ in grassetto con indicatore nativo; lingua del simulatore nelle
-  opzioni avanzate e nota sulle etichette dopo i campi. Su mobile le card hanno
+  opzioni avanzate. La nota sulle etichette dopo i campi è stata tolta il 4
+  ottobre 2026 su decisione dell'owner, perché ripeteva il comportamento. Su mobile le card hanno
   margini laterali di 16 px e distanza uniforme di 16 px, anche nel passaggio
   dalla colonna principale a quella laterale;
 - affinamenti dell'audit del 30 settembre 2026: restano due box del piano,
@@ -2410,7 +2411,8 @@ Conclusioni operative:
     laterale nello slot `aside`. Regole, per decisione dell'owner del 4
     ottobre, affianca al 50% regole e simulatore, così una scelta e il suo
     effetto restano in vista insieme, e mette «Etichette del checkout» a tutta
-    larghezza sotto; senza colonna laterale il suo bordo sinistro differisce
+    larghezza sotto. L'esito del simulatore sta in alto a destra della sua
+    intestazione, senza una riga propria; senza colonna laterale il suo bordo sinistro differisce
     dalle altre pagine, per scelta. L'onboarding resta `inlineSize="small"`
     come flusso guidato. Nessun CSS sposta o allarga la pagina. Il titolo di
     pagina sta nella barra dell'Admin, quindi la colonna laterale non si
@@ -2429,9 +2431,10 @@ Conclusioni operative:
     titolo (`app/ui-brand.tsx`); mai `s-avatar` per il marchio. Il simulatore
     del checkout è l'unico accento di brand: fondo panna e «Continua» verde
     bottiglia (decisione dell'owner del 4 ottobre, `docs/brand/brand-foundation.md` §3.1);
-  - **densità:** banner solo quando serve un'azione (la prova in corso sta
-    nella sezione «Piano»); un solo badge di stato per pannello; un confronto
-    senza modifiche sta su una riga;
+  - **densità:** il banner della prova sta subito dopo la card della
+    validazione, non dentro, con l'azione nello slot nativo del banner; un
+    solo badge di stato per pannello; un confronto senza modifiche sta su una
+    riga;
   - **disclosure:** `details` tramite `app/ui-disclosure.tsx`, con chevron
     `s-icon` al bordo finale del summary, uguale a ogni livello di annidamento;
   - **spaziature:** dentro un gruppo `small-200` o meno, tra gruppi della stessa

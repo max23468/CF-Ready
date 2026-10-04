@@ -208,15 +208,22 @@ test.each([
     };
     router.loaderData = confirmedHome(data);
     const home = await mount(<HomePage />);
-    // Decisione del 4 ottobre: con la prova in corso la card non ha il banner; l'azione sta in
-    // «Piano» nella colonna laterale.
-    await expect.poll(() => home.container.querySelector('[slot="aside"] s-link')).not.toBeNull();
-    expect(home.container.querySelector("s-banner")).toBeNull();
-    const planLink = [...home.container.querySelectorAll('[slot="aside"] s-link')].find(
-      (link) => link.textContent === trialContinuityTexts(locale).choosePlan,
-    );
-    expect(planLink).toBeDefined();
+    // Decisione del 4 ottobre: il banner della prova sta subito dopo la card della validazione,
+    // con l'azione nello slot nativo del banner.
+    await expect
+      .poll(() =>
+        home.container
+          .querySelector('s-banner s-button[slot="secondary-actions"]')
+          ?.hasAttribute("disabled"),
+      )
+      .toBe(false);
+    const banner = home.container.querySelector("s-banner")!;
+    expect(banner.closest("s-section")).toBeNull();
+    const validation = home.container.querySelector("s-section")!;
+    expect(surfaceRect(banner).top).toBeGreaterThan(surfaceRect(validation).bottom);
+    expect(banner.textContent).not.toContain(trialContinuityTexts(locale).approvalHelp);
     const plans = home.container.querySelector("#plans")!;
+    expect(surfaceRect(plans).top).toBeGreaterThan(surfaceRect(banner).bottom);
     expect(plans.textContent).toContain(copy.plan.firstCharge(formatDate("2026-10-17", locale)));
     expect(plans.textContent).toContain(copy.plan.oneTimeCharge);
     const prices = [...plans.querySelectorAll('s-heading[accessibilityRole="presentation"]')];
@@ -921,17 +928,15 @@ test("Polaris reale: simulatore stretto e focus tastiera leggibile", async () =>
   expect(
     surfaceRect(view.container.querySelector(".checkout-simulator__button--primary")!).right,
   ).toBe(billing.right);
-  // R-S1: l'esito sta subito sopra "Continua", allineato al bottone, e non più nell'intestazione.
+  // Decisione del 4 ottobre (sostituisce R-S1): l'esito sta in alto a destra
+  // nell'intestazione, senza una riga propria.
   const button = view.container.querySelector<HTMLElement>(".checkout-simulator__button--primary")!;
-  const outcome = surfaceRect(
-    view.container.querySelector(".checkout-simulator__outcome s-badge")!,
-  );
-  expect(
-    view.container.querySelector("s-query-container s-heading")!.closest("s-grid")!.textContent,
-  ).toBe(simulator.heading);
-  expect(outcome.left).toBe(surfaceRect(button).left);
-  expect(surfaceRect(button).top - outcome.bottom).toBeGreaterThanOrEqual(0);
-  expect(surfaceRect(button).top - outcome.bottom).toBeLessThanOrEqual(12);
+  const header = view.container.querySelector<HTMLElement>(".checkout-simulator__header")!;
+  const outcome = surfaceRect(header.querySelector(".checkout-simulator__outcome s-badge")!);
+  expect(header.querySelector("s-heading")!.textContent).toBe(simulator.heading);
+  expect(Math.abs(outcome.right - header.getBoundingClientRect().right)).toBeLessThan(1);
+  expect(outcome.bottom).toBeLessThan(surfaceRect(button).top);
+  expect(view.container.textContent).not.toContain("Labels follow the rules");
   button.focus();
   await userEvent.keyboard("{ArrowDown}");
   expect(button.matches(":focus-visible")).toBe(true);

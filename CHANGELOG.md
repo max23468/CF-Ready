@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.7 — 4 ottobre 2026
+
+- porta l'esito del simulatore in alto a destra nell'intestazione e toglie la
+  nota sulle etichette e la spiegazione degli scenari, lasciando a «Prova uno
+  scenario» l'etichetta nativa del campo;
+- rimette il banner della prova nella Home subito dopo la card della
+  validazione, con «Scegli un piano» nello slot nativo del banner.
+  Pubblicazione solo Development, senza promozione Production.
+
 ## 2.0.6 — 4 ottobre 2026
 
 - affianca al 50% regole e simulatore in Regole e porta le etichette a tutta

@@ -47,10 +47,6 @@ export function HomeValidationSection({
 }) {
   const status = validationStatus(data.validationEnabled, entitled);
   const presentation = homeValidationPresentation(data, status, firstRun, t);
-  // Decisione del 4 ottobre: la card parla della validazione. La prova in corso sta in «Piano»;
-  // qui compare solo quando serve un'azione (ultimi giorni o prova scaduta).
-  const notice = trialContinuityNotice(data);
-  const continuity = notice?.tone === "warning" ? notice : null;
   return (
     <s-section heading={t.home.validationHeading}>
       <s-stack direction="block" gap="base">
@@ -67,18 +63,6 @@ export function HomeValidationSection({
             </s-paragraph>
           )}
         </s-stack>
-        {continuity ? (
-          <MotionBanner tone={continuity.tone}>
-            <s-stack direction="block" gap="small-100">
-              <s-paragraph>{continuity.text}</s-paragraph>
-              {continuity.action ? (
-                <s-button onClick={showPlans} disabled={busy}>
-                  {continuity.action}
-                </s-button>
-              ) : null}
-            </s-stack>
-          </MotionBanner>
-        ) : null}
         <s-divider />
         <s-stack direction="block" gap="small-100">
           <HomeRulesSummary data={data} t={t} />
@@ -109,6 +93,26 @@ export function HomeValidationSection({
         </s-stack>
       </s-stack>
     </s-section>
+  );
+}
+
+// Decisione del 4 ottobre: la prova sta in un banner subito dopo la card della validazione, non
+// dentro di essa; l'azione usa lo slot nativo del banner, che Polaris stila secondo il tono.
+export function HomeTrialNotice({ data, busy }: { data: HomeData; busy: boolean }) {
+  const continuity = trialContinuityNotice(data);
+  if (!continuity) return null;
+  return (
+    // Stesso distacco dei banner di esito: il banner non tocca la sezione dei piani che segue.
+    <div className="cf-reveal-banner">
+      <MotionBanner tone={continuity.tone}>
+        {continuity.text}
+        {continuity.action ? (
+          <s-button slot="secondary-actions" onClick={showPlans} disabled={busy}>
+            {continuity.action}
+          </s-button>
+        ) : null}
+      </MotionBanner>
+    </div>
   );
 }
 
