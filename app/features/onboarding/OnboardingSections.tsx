@@ -103,7 +103,12 @@ export function OnboardingStep4Content({
         <StatusList
           rows={[
             [t.rules.taxCodeLabel, t.rules.taxCode[saved.rules.taxCode]],
-            [t.rules.pecLabel, t.rules.pec[saved.rules.pec]],
+            [
+              t.rules.pecLabel,
+              saved.rules.pec === "required_when_company"
+                ? t.home.pecRequiredForCompanies
+                : t.rules.pec[saved.rules.pec],
+            ],
             [t.onboarding.labelsSummary, t.rules.labels.modeValues[saved.labelState.mode]],
             [
               t.onboarding.address2Summary,
@@ -112,7 +117,7 @@ export function OnboardingStep4Content({
           ].map(([label, value]) => ({
             key: label,
             label: <s-text>{label}</s-text>,
-            value: <s-text>{value}</s-text>,
+            value: <s-badge tone="neutral">{value}</s-badge>,
           }))}
         />
       </s-stack>

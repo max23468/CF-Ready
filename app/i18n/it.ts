@@ -13,6 +13,8 @@ export const it = {
     no: "No",
     save: "Salva",
     cancel: "Annulla",
+    unsavedNavigation:
+      "Hai modifiche non salvate. Prima di cambiare pagina, scegli Salva o Annulla nella barra in alto.",
   },
   conflict: {
     heading: "La configurazione è cambiata",
@@ -283,6 +285,12 @@ export const it = {
       notChecked:
         "Diagnostica non ancora eseguita in questa sessione. Questo non indica che il controllo sia disattivato.",
       openPlan: "Verifica il piano",
+      openRules: "Configura i controlli",
+      openLabels: "Verifica le etichette del checkout",
+      openAddress2: "Verifica il campo «Interno»",
+      needsAttention: "Ci sono impostazioni da verificare.",
+      incomplete: "Alcune impostazioni non sono ancora state verificate.",
+      checked: "Le impostazioni verificate non richiedono interventi.",
       lastSync: "Ultima verifica di regole e attivazione",
       unknown: "Non disponibile",
       manualHeading: "Da verificare nel checkout",

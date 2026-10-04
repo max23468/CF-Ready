@@ -411,7 +411,13 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
   );
   expect(
     Number(getComputedStyle(summary.querySelector(".guide-faq__question")!).fontWeight),
-  ).toBeLessThan(600);
+  ).toBeGreaterThanOrEqual(600);
+  expect(summary.getBoundingClientRect().left).toBe(
+    view.container.querySelector(".guide-faq__entries")!.getBoundingClientRect().left,
+  );
+  const answer = view.container.querySelector<HTMLElement>(".guide-faq__answer")!;
+  expect(parseFloat(getComputedStyle(answer).maxInlineSize)).toBeLessThan(900);
+  expect(answer.querySelector('s-paragraph[color="subdued"]')).not.toBeNull();
   // G-B7: lo sfondo di hover non sporge oltre le linee divisorie.
   for (const entry of view.container.querySelectorAll<HTMLElement>(".guide-faq__entry")) {
     const box = entry.getBoundingClientRect();
@@ -452,20 +458,16 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
   expect(view.container.querySelector("#support")).not.toBeNull();
   const support = view.container.querySelector<HTMLElement>("#support")!;
   expect(support.getBoundingClientRect().height).toBeGreaterThan(100);
-  expect(support.querySelector('s-button[icon="search"]')?.textContent).toBe(
+  expect(support.querySelector('s-link[href="#validation-diagnosis"]')?.textContent).toBe(
     texts("it").guide.diagnosis.heading,
   );
-  // G-B9: i bottoni della card Assistenza hanno la stessa larghezza.
-  const widths = [...support.querySelectorAll("s-button")].map((button) =>
-    Math.round(surfaceRect(button).right - surfaceRect(button).left),
-  );
-  expect(new Set(widths).size).toBe(1);
+  expect(support.querySelector('s-button[variant="primary"]')).toBeNull();
   // L'Admin embedded può coprire il bordo superiore: il salto deve lasciare visibile il titolo.
   const header = document.createElement("div");
   header.style.cssText = "position:fixed;inset:0 0 auto;height:80px;z-index:1000;background:white";
   document.body.append(header);
   await page
-    .getByRole("button", {
+    .getByRole("link", {
       name: texts("it").guide.diagnosis.heading,
       exact: true,
     })
@@ -660,13 +662,15 @@ test("Polaris reale: anteprima Messaggi visibile prima dei campi e riepilogo sen
         .querySelector(".cf-status-list__value")!
         .getBoundingClientRect();
       expect(value.left).toBeGreaterThan(label.right);
-      expect(Math.abs(value.top - label.top)).toBeLessThan(1);
+      expect(
+        Math.abs((value.top + value.bottom) / 2 - (label.top + label.bottom) / 2),
+      ).toBeLessThan(1);
     }
     for (const value of onboarding.container.querySelectorAll<HTMLElement>(
       ".cf-status-list__value",
     )) {
       expect(value.scrollWidth).toBeLessThanOrEqual(value.clientWidth);
-      expect(value.querySelector("s-badge")).toBeNull();
+      expect(value.querySelector('s-badge[tone="neutral"]')).not.toBeNull();
     }
     expect(onboarding.container.textContent).not.toContain("puoi attivare");
     expect(onboarding.container.textContent).toContain(
@@ -1138,6 +1142,36 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
     `__screenshots__/visual/onboarding-step4-en-${server.browser}-1200.png`,
   );
   await step4.unmount();
+
+  // I badge mantengono tutti gli stati leggibili anche nel riepilogo più stretto.
+  await page.viewport(320, 666);
+  for (const locale of ["it", "en"] as const) {
+    for (const address2Classification of [
+      "unknown",
+      "expected",
+      "nonstandard",
+      "fiscal_conflict",
+    ] as const) {
+      router.loaderData = {
+        ...onboardingData,
+        locale,
+        step: 4,
+        rules: { taxCode: "required_validated", pec: "required_when_company" },
+        labelState: { ...onboardingData.labelState, address2Classification },
+      };
+      const summary = await mount(<Onboarding />);
+      for (const value of summary.container.querySelectorAll<HTMLElement>(
+        ".cf-status-list__value",
+      )) {
+        expect(value.scrollWidth).toBeLessThanOrEqual(value.clientWidth);
+        const badge = value.querySelector("s-badge")!;
+        expect(surfaceRect(badge).right).toBeLessThanOrEqual(
+          value.getBoundingClientRect().right + 1,
+        );
+      }
+      await summary.unmount();
+    }
+  }
 });
 
 test("Polaris reale: cambio passo ripristina focus e scorrimento mobile", async () => {

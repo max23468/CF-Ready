@@ -835,3 +835,62 @@ aperta dal coordinatore, è stata chiusa prima del merge e l'auto-merge
 disabilitato. Il coordinatore Production è stato terminato: nessun deploy
 Production avviato, `main` invariato a
 `83b5b591c34d81fcad4fe7df46b34cec5eabc1c2`, nessuna release creata.
+
+## 27. Correzioni locali delle categorie 8–12, 4 ottobre 2026
+
+Implementazione sul branch `codex/fix-audit-categories-8-12`, a partire da
+`2daab51` (2.0.12), preparata come 2.0.13. Pubblicazione autorizzata soltanto
+Development, senza promozione Production. La verifica live segue il deploy.
+
+Stati correnti delle categorie 8–12, prima della verifica Chrome:
+
+| ID | Stato corrente |
+| --- | --- |
+| G-1, G-2, G-3, G-4, O-5, O-6, EN-1, EN-2 | Corretti e verificati localmente; verifica live in attesa del deploy. |
+| O-1, O-2, O-3, O-4 | Superati dal codice già presente; verificati localmente, da riconfermare live. |
+| F-2 | Corretto il feedback in bozza; da verificare live il clic sulla navigazione Admin. |
+| RW-1 | Parziale: lo stato corrente è coperto localmente, non ogni variante della cornice host. |
+| RW-2, EN-3 | Risolti in precedenza; da ricontrollare per regressioni. |
+| F-1, F-3, EN-4 | Positivi, senza correzioni necessarie. |
+| F-4 | Informativo: la modale richiede uno stato con scritture automatiche, non ricreato nel giro locale. |
+
+| ID | Riscontro nel codice e intervento locale |
+| --- | --- |
+| G-1 | Rimossi i 6 px di rientro: domande, risposte e divisori condividono il bordo iniziale. |
+| G-2 | Domande semibold; risposte con colore secondario e larghezza massima di 70 caratteri tipografici, mantenendo il ritorno a capo mobile. |
+| G-3 | Esiti raccolti in un riquadro Polaris, con riepilogo distinto per avvisi, impostazioni non verificate e impostazioni senza interventi. Icone informative blu, link con nomi specifici e maggiore distanza tra gli esiti che tra testo e link. Il riepilogo riguarda le impostazioni, non prova il checkout shopper. |
+| G-4 | Assistenza con azione di invio secondaria, copia terziaria e link alla diagnosi. Rimosse larghezza forzata e lente; il salto conserva scorrimento e focus accessibile anche quando la diagnosi è sopra. |
+| O-1 | Già superato nel codice di base: i passi usano il titolo di sezione nativo, mentre CF e PEC mantengono titoli di gruppo e opzioni vicine. |
+| O-2, O-3 | Già superati nel codice di base: il passo 2 contiene solo CF e PEC. Non ci sono il blocco Interno, il divisore asimmetrico o le proposte di etichette senza nomi di campo. Non reintrodotti. |
+| O-4 | Già superato nel codice di base: condizioni in paragrafi e anteprime con lo stesso campo Polaris in sola lettura di Messaggi, solo per i messaggi applicabili. |
+| O-5 | Riepilogo con badge neutri, come Home; PEC aziendale con il testo breve esistente. Azione primaria prima delle altre, anche nella variante con tre azioni. |
+| O-6 | Completamento già con titolo di sezione coerente; corretta la maiuscola in «Vai alla Home» e «Go to Home». |
+| F-2 | Con una bozza di regole o etichette compare una spiegazione bilingue che indica Salva o Annulla prima di cambiare pagina. Sparisce scartando la bozza. La protezione della save bar rimane nativa: animazione e intercettazione dei clic nella cornice Admin richiedono ancora verifica embedded. |
+| RW-1 | Nessun nuovo difetto dimostrato nel codice della Home. Resta parziale: i test locali non qualificano ogni stato e altezza della barra host Shopify. |
+| RW-2 | Conservato il simulatore prima delle etichette; nessuna modifica necessaria. |
+| EN-1, EN-2 | Corretti in «Choose how to continue» e «Setup required». |
+| EN-3, EN-4, F-1, F-3, F-4 | Conservati gli esiti precedenti; nessuna ulteriore correzione individuata nel perimetro. |
+
+Questa sezione aggiorna gli stati storici delle categorie 8–12 riportati nelle
+tabelle precedenti. Le correzioni sono locali e non costituiscono ancora una
+verifica live di questa implementazione. Rimangono da
+ricontrollare nello store le superfici modificate e il clic nella navigazione
+Admin con bozza aperta.
+
+Verifiche locali completate: `npm run check:standard` e
+`npm run coverage:check` verdi; 146 test browser mirati verdi in Chromium e
+WebKit. Il gate comprende 704 test applicativi, 341 test browser e 195 test
+Function, oltre a lint, formato, tipi, build e deploy simulato. La verifica con
+Polaris reale copre FAQ e onboarding in entrambi i browser, con Polaris 1 e 2;
+un controllo aggiuntivo a 320×666 verifica i badge IT/EN per tutte le
+classificazioni del campo Interno. Nessuna mutation richiesta dal diff
+(`scripts/ci-lane.mjs`: corsia `standard`, domini mutation vuoti).
+Non eseguiti E2E di installazione/sito pubblico e verifica live embedded.
+
+Preparazione della pubblicazione 2.0.13: il primo gate completo ha rilevato
+due superamenti della soglia React Doctor introdotti dalla presentazione del
+riepilogo e del feedback bozza. Il riepilogo è ora calcolato fuori dal
+componente React e l’avviso usa `RulesResultBanners`, che riceve già lo stato
+di bozza. React Doctor torna a 100/100, senza soppressioni; `npm run check`
+è stato ripetuto e passa su 2.0.13. Il bump di manifest e lockfile porta la
+pubblicazione nella corsia `full`, con i gate mutation richiesti dalla CI.

@@ -19,6 +19,8 @@ export const en: typeof it = {
     no: "No",
     save: "Save",
     cancel: "Cancel",
+    unsavedNavigation:
+      "You have unsaved changes. Before leaving this page, choose Save or Cancel in the bar above.",
   },
   conflict: {
     heading: "The configuration has changed",
@@ -283,6 +285,12 @@ export const en: typeof it = {
       notChecked:
         "Diagnostics have not been run in this session. This does not mean the check is inactive.",
       openPlan: "Check plan",
+      openRules: "Configure the checks",
+      openLabels: "Check the checkout labels",
+      openAddress2: "Check the “Apartment” field",
+      needsAttention: "Some settings need attention.",
+      incomplete: "Some settings have not been checked yet.",
+      checked: "The checked settings need no changes.",
       lastSync: "Last check of rules and activation",
       unknown: "Unavailable",
       manualHeading: "Check manually at checkout",
@@ -431,7 +439,7 @@ export const en: typeof it = {
     oneTimeChargeNotStarted:
       "One charge as soon as you approve it on Shopify. The free trial will not be started.",
     chooseNowHeading: "Choose a plan now",
-    chooseHeading: "How you want to continue",
+    chooseHeading: "Choose how to continue",
     chooseBody:
       "Every plan has the same features. Shopify handles the charges on your store invoice.",
     oneTimeSettled: "Includes app updates and support, at no extra cost.",
@@ -552,7 +560,7 @@ export const en: typeof it = {
       statusUpToDate: "Up to date",
       statusKept: "Managed by you",
       statusManualRequired: "Needs review",
-      statusChoiceRequired: "Set up required",
+      statusChoiceRequired: "Setup required",
       statusError: "Check not completed",
       nativeSummaryNeedsAccess: "Grant access to check the checkout text.",
       nativeSummaryNeedsReview: (count: number, languages: string[]) =>

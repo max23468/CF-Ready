@@ -331,12 +331,12 @@ describe("Onboarding", () => {
     const value = view.container.querySelectorAll<HTMLElement>(".cf-status-list__value")[1];
     if (!value) throw new Error("valore PEC del riepilogo assente");
 
-    expect(value.textContent).toBe(texts("it").rules.pec.required_when_company);
+    expect(value.textContent).toBe(texts("it").home.pecRequiredForCompanies);
     expect(value.getBoundingClientRect().right - list.getBoundingClientRect().right).toBeLessThan(
       0.1,
     );
     expect(value.scrollWidth).toBeLessThanOrEqual(value.clientWidth);
-    expect(value.querySelector("s-badge")).toBeNull();
+    expect(value.querySelector('s-badge[tone="neutral"]')).not.toBeNull();
     await view.unmount();
   });
 

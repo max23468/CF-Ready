@@ -170,11 +170,6 @@ export default function Onboarding() {
             />
 
             <s-stack direction="inline" gap="base">
-              {step > 1 ? (
-                <s-button disabled={busy} onClick={() => setStep(step - 1)}>
-                  {t.onboarding.back}
-                </s-button>
-              ) : null}
               {step === 4 ? (
                 <OnboardingStep4Actions
                   t={t}
@@ -197,6 +192,11 @@ export default function Onboarding() {
                   {t.onboarding.next}
                 </s-button>
               )}
+              {step > 1 ? (
+                <s-button disabled={busy} onClick={() => setStep(step - 1)}>
+                  {t.onboarding.back}
+                </s-button>
+              ) : null}
             </s-stack>
           </s-stack>
         </s-section>
