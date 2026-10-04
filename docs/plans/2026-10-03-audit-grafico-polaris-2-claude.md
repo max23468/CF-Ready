@@ -1,6 +1,6 @@
 # Audit grafico di CF Ready 2.0 con Polaris 2 (Claude)
 
-**Stato:** ricontrollo indipendente in Chrome del 4 ottobre 2026 su Development 2.0.14, commit `4571c30` (§28). Dei 50 ID: **37 risolti, 7 parziali, 6 accettati per decisione**. Due difetti lievi confermati mantengono parziali F-2 e O-5: testo della bozza diverso dalla barra Shopify e badge troncati su mobile. Restano inoltre verifiche live da completare e due checkout IT/EN con etichette da verificare in ciascuno dei due store Development osservati. Non è confermata una chiusura senza punti residui. Le sezioni 1–27 conservano le osservazioni e le prove dei giri precedenti; §28 è il riferimento per lo stato corrente.
+**Stato:** ricontrollo indipendente in Chrome del 4 ottobre 2026 (§28), seguito dalla pubblicazione e verifica italiana di F-2 su Development 2.0.15, commit `56d59c5` (§29). Dei 50 ID: **38 risolti, 6 parziali, 6 accettati per decisione**. Il difetto del testo della bozza è corretto; restano i badge troncati su mobile (O-5), le verifiche live residue e due checkout IT/EN con etichette da verificare in ciascuno dei due store Development osservati. Il ricontrollo live inglese del fix F-2 è escluso su richiesta dell’owner. Non è confermata una chiusura senza punti residui. Le sezioni 1–27 conservano le osservazioni e le prove dei giri precedenti; §28 e §29 riportano lo stato corrente.
 **Data:** 3 ottobre 2026, circa 20:30-21:45 CEST, compresi il ricontrollo e la prova della conferma etichette
 **Ambiente:** Development, `cf-ready-polaris-2.myshopify.com` (preview
 `new_admin_design`), app `cf-ready-development`
@@ -191,7 +191,7 @@ nel nuovo Admin non è ancora stata provata.
 | F-1 | Save bar, toast «Regole salvate.», «Messaggi salvati.», «Validazione attivata/disattivata nel checkout.» e le due finestre di conferma sono nativi, con critico rosso e annullamento neutro ([10](evidence/2026-10-03-polaris-2-claude/10-regole-bozza-save-bar.jpg), [25](evidence/2026-10-03-polaris-2-claude/25-regole-toast-salvate.jpg), [33](evidence/2026-10-03-polaris-2-claude/33-messaggi-toast-salvati.jpg), [31](evidence/2026-10-03-polaris-2-claude/31-home-conferma-disattivazione.jpg), [34](evidence/2026-10-03-polaris-2-claude/34-messaggi-conferma-ripristino.jpg)) | Positivo | Alta | **Positivo** |
 | F-3 | Dopo un salvataggio con etichette da verificare compare in cima a Regole un banner di avviso a tutta larghezza, «Regole salvate. Le etichette richiedono attenzione.», con il bottone «Mostra le etichette» e 16 px di distacco dalle sezioni ([55](evidence/2026-10-03-polaris-2-claude/55-regole-banner-etichette-attenzione.jpg)). È coerente con la decisione T13 del 1 ottobre; il banner sparisce appena si apre una nuova bozza | Positivo | Alta | **Positivo** |
 | F-4 | La finestra «Conferma etichette» (`AutomaticLabelsConfirmModal.tsx`) non compare in questo store: attivando il controllo guidato con Codice Fiscale obbligatorio, «Salva» scrive subito, perché con i mercati non univoci le etichette sono solo da verificare a mano e non ci sono scritture automatiche da confermare (`app.rules.tsx:244`). L'unico riscontro visivo del salvataggio è la barra di caricamento dell'Admin, poi il banner F-3 ([54](evidence/2026-10-03-polaris-2-claude/54-regole-salva-guidato-senza-conferma.jpg)). La resa della finestra resta non verificata | Informativo | Alta | **Informativo** |
-| F-2 | Con una bozza aperta in Regole, un clic su «Messaggi al cliente» nella navigazione non produce cambiamenti visibili nello screenshot: la pagina resta e la save bar non cambia aspetto ([50](evidence/2026-10-03-polaris-2-claude/50-regole-navigazione-con-bozza.jpg)). Il clic è stato inviato via script sul link dell'Admin: l'eventuale scossa animata della save bar non è stata catturata | Bassa | Media | **Parziale** (§28) |
+| F-2 | Con una bozza aperta in Regole, un clic su «Messaggi al cliente» nella navigazione non produce cambiamenti visibili nello screenshot: la pagina resta e la save bar non cambia aspetto ([50](evidence/2026-10-03-polaris-2-claude/50-regole-navigazione-con-bozza.jpg)). Il clic è stato inviato via script sul link dell'Admin: l'eventuale scossa animata della save bar non è stata catturata | Bassa | Media | **Risolto** (§29, live IT; EN escluso dall’owner) |
 
 ## 11. Responsive
 
@@ -1120,8 +1120,9 @@ Le immagini qui sotto provengono da questo giro, non dalle verifiche delle PR.
 | C-1 | F-2 | Bassa (P3) | Alta | Il banner dice «scegli Salva o Annulla nella barra in alto», ma la barra nativa presenta «Rimuovi» e «Salva». Il blocco della navigazione funziona. Il testo aggiunto in `app/i18n/it.ts`, `common.unsavedNavigation`, resta incompatibile con il nome del pulsante in questo Admin. Correggere l’istruzione condivisa senza dipendere da una traduzione dell’host non garantita, poi ricontrollare il caso embedded IT/EN. |
 | C-2 | O-5; anche Home a 320 px | Bassa (P3) | Alta | A 390 px «Nessuna etichetta fiscale rilevata» diventa «Nessuna etichetta fisc…»; a 320 px si tagliano anche CF e PEC. Il testo completo rimane nell’albero accessibile, ma non è leggibile interamente a vista. `StatusList` mantiene due colonne sopra 200 px e i `s-badge` neutral vengono compressi. Correggere la resa comune delle righe e dei badge alle larghezze strette, conservando l’allineamento desktop, poi verificare Home e onboarding IT/EN. |
 
-Questi due riscontri impediscono la chiusura completa di F-2 e O-5. C-1 è
-emerso nel testo introdotto dalla correzione; per C-2 non è dimostrato che il
+La tabella conserva i riscontri su 2.0.14. C-1 è ora corretto e verificato
+in italiano (§29), mentre C-2 mantiene parziale O-5. C-1 era emerso nel
+testo introdotto dalla correzione; per C-2 non è dimostrato che il
 taglio della Home sia nato nelle ultime PR. Nessun altro difetto nuovo con
 impatto funzionale è stato riprodotto nei percorsi esercitati.
 
@@ -1157,7 +1158,7 @@ Non sono stati riclassificati come bug CFR senza una causa nell’app dimostrata
 nel percorso pertinente; eventuali varianti non esposte sono esplicitate.
 «Parziale» mantiene aperto il difetto o la verifica live indicata.
 «Accettato per decisione» conserva le scelte dell’owner, senza contarle
-come correzioni. Totale: **37 risolti, 7 parziali, 6 accettati**.
+come correzioni. Totale aggiornato dopo §29: **38 risolti, 6 parziali, 6 accettati**.
 
 | ID | Stato | Riscontro corrente / limite |
 | --- | --- | --- |
@@ -1205,7 +1206,7 @@ come correzioni. Totale: **37 risolti, 7 parziali, 6 accettati**.
 | O-4 | Risolto | Condizioni in paragrafi ed esempi nativi per i messaggi applicabili. |
 | O-5 | Parziale | Badge neutri e primaria prima di Indietro; testi troncati su mobile (C-2). Variante a tre azioni non ricreata live. |
 | O-6 | Parziale | Correzione nel codice; completamento iniziale non esposto dallo store già configurato. |
-| F-2 | Parziale | Navigazione bloccata, spiegazione e focus presenti; «Annulla» non coincide con «Rimuovi» (C-1). |
+| F-2 | Risolto | Testo corretto pubblicato in 2.0.15, navigazione bloccata e focus presenti; bozza scartata con ripristino dei valori iniziali. Verificato live IT (§29); live EN escluso dall’owner. |
 | RW-1 | Parziale | Home a 390×844 con azioni raggiungibili e senza overflow visibile; altre altezze/stati host non qualificati. |
 | RW-2 | Risolto | A 390×844 il simulatore precede le etichette. |
 | EN-1 | Risolto | «Choose how to continue» letto e catturato nella Home embedded inglese corrente. |
@@ -1250,12 +1251,12 @@ salvataggi ripetuti con conflitto R-H3 e conservazione della conferma manuale
 R-H4 (b), non sono stati riprovati dal vivo in questo incarico. Gli stati
 storici di implementazione non sono presentati come nuove prove live.
 
-Per chiudere l’audit occorrono la correzione di C-1/C-2, la verifica live dei
+Per chiudere l’audit restano la correzione di C-2, la verifica live dei
 casi parziali e il completamento della verifica delle etichette IT/EN nel
-checkout reale. L’aggiornamento del documento è locale; non è stato
-pubblicato con commit, push o PR.
+checkout reale. Il giro di §28 e il fix di C-1 sono stati pubblicati con
+la PR #649; §29 registra la verifica successiva al deploy.
 
-## 29. Correzione locale di F-2, 4 ottobre 2026
+## 29. Pubblicazione e verifica italiana di F-2, 4 ottobre 2026
 
 Su richiesta dell’owner, corretta `common.unsavedNavigation` nei dizionari
 italiano e inglese. Il banner descrive ora le azioni senza citare i nomi dei
@@ -1265,11 +1266,42 @@ your changes using the bar above.» La protezione della bozza e la barra
 Shopify mantengono il comportamento esistente.
 
 Verifica mirata: 31 test dei dizionari e 52 test browser della route Regole
-verdi, questi ultimi su Chromium e WebKit. La correzione è locale e non
-pubblicata: F-2 resta parziale nella matrice live di §28 fino al deploy e
-al ricontrollo della nuova frase nel vero Admin Shopify IT/EN.
+verdi, questi ultimi su Chromium e WebKit.
 
 Anche `npm run check:standard` e `npm run coverage:check` sono verdi sulla
 correzione. L’owner ha poi richiesto la pubblicazione di fix e audit soltanto
-in Development, senza promozione: preparata la patch 2.0.15. La chiusura live
-sarà registrata dopo deploy e verifica della nuova istruzione in Chrome.
+in Development, senza promozione: pubblicata la patch 2.0.15 con
+[#649](https://github.com/max23468/CF-Ready/pull/649), squash
+`56d59c537056e66ff5e21bd076ca64627db98a6c`.
+Il coordinatore ha ripetuto il gate completo e la coverage prima del push.
+[CI](https://github.com/max23468/CF-Ready/actions/runs/37230793106) e
+[deploy Development](https://github.com/max23468/CF-Ready/actions/runs/37231117748)
+verdi, comprese mutation e verifiche di versione, smoke e readback.
+
+Nel vero Admin Shopify di `cf-ready-polaris-2.myshopify.com`, dopo il deploy,
+Chrome in italiano mostra la nuova frase mentre la barra nativa espone
+«Rimuovi» e «Salva». Una bozza temporanea rende facoltativo il Codice Fiscale;
+il clic su «Messaggi al cliente» lascia aperte le Regole e porta il focus
+su «Salva». Con «Rimuovi» spariscono banner e barra e il Codice Fiscale torna
+obbligatorio. La PEC resta facoltativa. Nessuna regola è stata salvata.
+
+| Prova live | Esito |
+| --- | --- |
+| [Bozza e nuova istruzione](evidence/2026-10-04-f2-live/01-bozza-italiano.png) | Testo coerente con le azioni disponibili, navigazione protetta. |
+| [Bozza scartata](evidence/2026-10-04-f2-live/02-bozza-scartata-italiano.png) | Valori iniziali ripristinati, avviso e barra assenti. |
+
+F-2 e C-1 sono chiusi nel perimetro live italiano richiesto. Il ricontrollo
+live inglese del fix è escluso su richiesta dell’owner; il testo inglese è
+corretto nel codice e coperto dai test, senza nuova conferma embedded EN.
+Non è stato salvato un cambio di lingua del profilo durante questo ricontrollo.
+
+Readback del deploy del fix: Shopify `2.0.15-dev.08dd6b1c53c1`, Worker
+deployment `cc85aa65-99b0-42f2-bc47-52012d2379f9`, versione
+`1fb4f956-5272-4c23-b140-3a630d23195a`, tutti riferiti al commit `56d59c5`.
+Nessuna migrazione D1 da applicare. Il rollback coordinato è stato verificato
+sul commit precedente `4571c30`, versione 2.0.14. Nessuna promozione Production.
+
+Restano parziali **H-5, H-6, O-5, O-6, RW-1 ed EN-2**. O-5/C-2 richiede
+ancora una correzione; gli altri conservano i limiti di verifica descritti
+in §28. Le prove nuove e questa chiusura sono pubblicate in un aggiornamento
+documentale successivo alla PR del fix, senza ulteriori modifiche operative.
