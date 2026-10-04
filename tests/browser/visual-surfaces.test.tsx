@@ -237,7 +237,17 @@ test.each([
     expect(sectionHeadingTop(plans.querySelector("s-section")!)).toBeGreaterThan(
       surfaceRect(banner).bottom,
     );
-    expect(plans.textContent).toContain(copy.plan.firstCharge(formatDate("2026-10-17", locale)));
+    // H-1: la data della prova la dice solo il banner.
+    expect(plans.textContent).toContain(copy.plan.firstChargeAfterTrial);
+    expect(home.container.textContent!.split(formatDate("2026-10-16", locale))).toHaveLength(2);
+    expect(home.container.textContent).not.toContain(formatDate("2026-10-17", locale));
+    // H-2: da attiva il primario è il primo bottone e la disattivazione è terziaria critica.
+    const [edit, deactivate] = [...validation.querySelectorAll("s-button")];
+    expect(edit.textContent).toBe(copy.home.editRules);
+    expect(edit.getAttribute("variant")).toBe("primary");
+    expect(deactivate.textContent).toBe(copy.home.deactivate);
+    expect(deactivate.getAttribute("variant")).toBe("tertiary");
+    expect(deactivate.getAttribute("tone")).toBe("critical");
     expect(plans.textContent).toContain(copy.plan.oneTimeCharge);
     const prices = [...plans.querySelectorAll('s-heading[accessibilityRole="presentation"]')];
     expect(prices.map((price) => price.textContent)).toEqual(

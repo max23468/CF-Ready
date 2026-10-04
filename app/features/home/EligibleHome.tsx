@@ -1,7 +1,7 @@
 import { localizedError, type AppErrorCode } from "../../app-error";
 import { pendingFetcherIntent, pendingFetcherSource } from "../../config";
 import { formatDate, texts } from "../../i18n";
-import { commercialState } from "./commercial-state";
+import { commercialState, trialContinuityNotice } from "./commercial-state";
 import { DeactivateModal, HomeAside, HomeTrialNotice, HomeValidationSection } from "./HomeSections";
 import { RevealBanner } from "../../ui-feedback";
 import { MerchantCheckIn } from "./MerchantCheckIn";
@@ -41,9 +41,14 @@ export function EligibleHome({
   const busy = fetcherState !== "idle" || verification !== "confirmed";
   const pendingIntent = pendingFetcherIntent(formData);
   const pendingSource = pendingFetcherSource(formData);
-  const firstCharge = data.firstChargeAt
-    ? t.plan.firstCharge(formatDate(data.firstChargeAt, data.locale))
-    : t.plan.firstChargeNow;
+  // H-1: durante la prova il banner dice già la data; piano e scelta non la ripetono.
+  const trialDateInBanner =
+    data.entitlement.kind === "trial" && trialContinuityNotice(data) !== null;
+  const firstCharge = !data.firstChargeAt
+    ? t.plan.firstChargeNow
+    : trialDateInBanner
+      ? t.plan.firstChargeAfterTrial
+      : t.plan.firstCharge(formatDate(data.firstChargeAt, data.locale));
   const nextStep = homeNextStep(data, currentCommercialState, t);
 
   return (
@@ -89,7 +94,7 @@ export function EligibleHome({
         firstCharge={firstCharge}
       />
       <s-stack slot="aside" direction="block" gap="base">
-        <PlanStatus data={data} />
+        <PlanStatus data={data} trialDateInBanner={trialDateInBanner} />
         <HomeAside nextStep={nextStep} t={t} />
       </s-stack>
       <s-app-window id={onboardingWindowId} src="/app/onboarding" />

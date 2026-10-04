@@ -134,7 +134,8 @@ function RecurringPlanOption({
   return (
     <s-stack direction="block" gap="small-100">
       <s-stack direction="inline" gap="small-100" alignItems="center">
-        <s-text type="strong">{label}</s-text>
+        {/* H-4: il nome è il titolo dell'opzione, un gradino sotto il prezzo. */}
+        <s-heading fontSize="large">{label}</s-heading>
         {/* P2-T4: l'unico badge della scelta del piano, nel tono del banner della prova. */}
         {annual ? <s-badge tone="info">{t.plan.recommended}</s-badge> : null}
       </s-stack>
@@ -144,6 +145,12 @@ function RecurringPlanOption({
         </s-heading>
         <s-text color="subdued">{annual ? t.plan.annualPeriod : t.plan.monthlyPeriod}</s-text>
       </s-stack>
+      {/* H-4: ogni opzione ha una riga descrittiva, così le tre hanno lo stesso ritmo. */}
+      <s-paragraph>
+        {annual
+          ? t.plan.annualDescription(formatMoney(data.plan!.annual / 12, data.locale))
+          : t.plan.monthlyDescription}
+      </s-paragraph>
       {active ? null : (
         <s-stack direction="inline" gap="base">
           <s-button
@@ -174,7 +181,7 @@ function OneTimePlanOption({
   return (
     <s-stack direction="block" gap="small-100">
       <s-stack direction="inline" gap="small-100" alignItems="center">
-        <s-text type="strong">{t.plan.oneTimeName}</s-text>
+        <s-heading fontSize="large">{t.plan.oneTimeName}</s-heading>
       </s-stack>
       <s-stack direction="inline" gap="small-100" alignItems="baseline">
         <s-heading fontSize="large-200" accessibilityRole="presentation">

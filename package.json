@@ -1,6 +1,6 @@
 {
   "name": "cf-ready",
-  "version": "2.0.8",
+  "version": "2.0.9",
   "private": true,
   "packageManager": "npm@12.2.0",
   "packageExtensions": {

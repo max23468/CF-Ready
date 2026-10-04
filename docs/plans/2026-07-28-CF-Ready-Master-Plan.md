@@ -2514,8 +2514,14 @@ consigliato` include il promemoria di rimuovere il Codice Fiscale dal campo
 Con Validation attiva:
 
 - azione primaria `Modifica regole`;
-- azione secondaria `Disattiva nel checkout`;
+- azione secondaria `Disattiva nel checkout`, terziaria con tono critico;
 - conferma per la disattivazione.
+
+In ogni stato il primario è il primo bottone della card: da disattivata con un
+diritto attivo è `Attiva nel checkout`, seguito da `Modifica regole`. Il badge
+`Attiva` è verde solo con almeno un campo configurato. `Prossimo passo
+consigliato` ha sempre un testo e un'azione. Con il banner della prova visibile
+la data della prova compare solo nel banner.
 
 La checklist iniziale scompare definitivamente dopo il completamento dell’onboarding.
 
@@ -2652,8 +2658,8 @@ applicano con fatturazione estera o sole consegne estere.
 Quattro passaggi:
 
 1. introduzione, perimetro e limitazioni;
-2. scelta regole CF e PEC, configurazione obbligatoria, facoltativa o non mostrata del campo
-   “Interno” e gestione delle etichette;
+2. scelta regole CF e PEC e gestione delle etichette; la configurazione del campo
+   “Interno” resta nella pagina Regole checkout;
 3. eccezioni automatiche e revisione messaggi;
 4. riepilogo e attivazione.
 

@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.9 — 4 ottobre 2026
+
+- nella Home mette sempre per primo il bottone principale e rende terziaria
+  la disattivazione, colora di verde «Attiva» solo con almeno un campo
+  configurato e dà a ogni «Prossimo passo» un testo e un'azione;
+- durante la prova mostra la data soltanto nel banner;
+- nella scelta del piano usa il nome come titolo e dà a ogni opzione una
+  riga descrittiva. Pubblicazione solo Development, senza promozione
+  Production.
+
 ## 2.0.8 — 4 ottobre 2026
 
 - mostra gli esempi dei messaggi come campi nativi in sola lettura con
