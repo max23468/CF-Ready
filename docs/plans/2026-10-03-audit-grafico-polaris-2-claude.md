@@ -1,6 +1,6 @@
 # Audit grafico di CF Ready 2.0 con Polaris 2 (Claude)
 
-**Stato:** audit concluso; correzioni in 2.0.5 e 2.0.6, verificate live il 4 ottobre (sezione 19); ulteriori correzioni locali in 2.0.7 (sezione 20)
+**Stato:** audit concluso; findings ricontrollati in Chrome il 4 ottobre 2026 su Development 2.0.7. Correzioni nelle sezioni 19 e 20; verifica per ID, prove nuove e limiti nella sezione 21. Restano 7 risolti, 9 parziali, 30 aperti e 4 accettati per decisione.
 **Data:** 3 ottobre 2026, circa 20:30-21:45 CEST, compresi il ricontrollo e la prova della conferma etichette
 **Ambiente:** Development, `cf-ready-polaris-2.myshopify.com` (preview
 `new_admin_design`), app `cf-ready-development`
@@ -70,6 +70,9 @@ Confronto con le pagine native dello stesso store:
 | Nome della pagina impostazioni | «Check-out» | «Impostazioni → Checkout» | R-10 |
 
 ## 3. Priorità
+
+La matrice per ID della sezione 21 è il riferimento aggiornato per gli stati
+di chiusura. Le sezioni precedenti conservano osservazioni e prove storiche.
 
 | ID | Problema | Severità | Confidenza |
 | --- | --- | --- | --- |
@@ -381,8 +384,9 @@ regole non gestite, validazione disattivata, prova attiva.
 
 - **EN-3:** un solo nome inglese per il Codice Fiscale. Serve il profilo in
   inglese, che richiede un permesso dell'owner.
-- **P2-T8, passo 4 dell'onboarding:** ci si arriva solo salvando le regole dal
-  passo 2.
+- **P2-T8, passo 4 dell'onboarding:** verificato nel giro della sezione 21.
+  Riaprendo un onboarding già completato e mantenendo le scelte salvate,
+  il passo 2 prosegue senza scrivere le regole.
 
 Non corretti di proposito: P2-T2 (comportamento dell'host). P2-T3 (resto),
 P2-T7 e le applicazioni di P2-T8 a diagnosi e passo 2 sono convenzioni del
@@ -418,8 +422,8 @@ Rilievi aperti emersi dalla verifica:
 - **Confronto delle etichette con modifiche:** quando cambia il valore restano
   due righe («Campo attuale», «Campo dopo il salvataggio»), come deciso; la
   riga singola vale solo senza modifiche, caso non presente nello store.
-- **Non verificati live:** EN-3 (profilo in inglese) e il passo 4
-  dell'onboarding (richiede di salvare le regole dal passo 2).
+- **Non verificati live durante quel giro:** EN-3 e passo 4 dell'onboarding.
+  Gli stati aggiornati e i limiti del ricontrollo sono nella sezione 21.
 
 ## 20. Correzioni successive in 2.0.7
 
@@ -438,3 +442,115 @@ La verifica locale misura le distanze con i componenti Polaris reali in
 Chromium e WebKit, con Polaris 1 e 2, in italiano e inglese, a 1440, 1054,
 500 e 390 px. Non costituisce una verifica del rendering nell'Admin live.
 La pubblicazione richiesta riguarda solo Development.
+
+## 21. Ricontrollo degli stati in Chrome, 4 ottobre 2026
+
+Verifica nel tab **già aperto** di `cf-ready-polaris-2`, app Development.
+La diagnostica della Guida identifica la versione **2.0.7**; commit e
+stato provider non sono stati riconfermati in questo giro. Questo giro aggiorna
+il presente audit con gli stati, non il report separato con ID `V2-*`.
+
+Superfici osservate: Home, Regole, Messaggi, FAQ espanse, risultati della
+diagnosi e tutti i quattro passi dell'onboarding riaperto. Desktop a
+1440×900, Messaggi con focus a 1440×666, Home/Messaggi/Regole a 500×844;
+Home anche a 390×844. Sono viewport CSS emulati in Chrome, non dispositivi
+fisici. Le prove sono in
+[evidence/2026-10-04-status-chrome](evidence/2026-10-04-status-chrome).
+
+Stato trovato nello store: Validation attiva, CF e PEC facoltativi e validati,
+messaggi predefiniti, gestione etichette guidata, due verifiche manuali
+pendenti. È diverso dal ripristino storico di §15 e non ne modifica il
+resoconto. «Aggiorna e verifica» ha riletto lo stato e aggiornato l'orario
+operativo. Le due bozze locali (CF obbligatorio e disattivazione del controllo
+guidato) sono state scartate; nessun salvataggio, attivazione, pagamento,
+scrittura delle etichette o invio di assistenza.
+
+Alla fine viewport ripristinato e tab originale riportato alla Home, senza
+bozze: [rilettura finale](evidence/2026-10-04-status-chrome/home-finale-ripristinata.jpg).
+Gli altri tab già aperti non sono stati modificati.
+
+### 21.1 Esito per finding
+
+Gli stati di chiusura restano invariati: **50 ID**, **7 risolti**, **9
+parziali**, **30 aperti**, **4 accettati per decisione**, quindi **39 da
+completare**. Una mancata riproduzione in un solo stato non equivale a
+risoluzione. «Prova precedente» distingue i casi non riconfermati live in
+questo giro; non sono nuovi esiti positivi.
+
+| ID | Stato | Riscontro di questo giro |
+| --- | --- | --- |
+| P2-T1 | Accettato per decisione | Regole conserva il 50/50 e l'onboarding il contenitore stretto. Decisione precedente preservata. |
+| P2-T2 | Accettato per decisione | Aside di Messaggi/Guida ancora sopra la prima sezione; comportamento host accettato. |
+| P2-T3 | Parziale | Titoli laterali di Messaggi distinti; diagnosi e passi onboarding mantengono titoli dentro la card. |
+| P2-T4 | Parziale | Badge neutri in Home e Messaggi, ma **«Può comparire» è ancora verde nel passo 3 dell'onboarding**. Non resta soltanto «Consigliato». |
+| P2-T5 | Risolto | Marchio senza fondo in simulatore e onboarding; lockup allineato in Guida. Nessuna regressione osservata nelle superfici controllate. |
+| P2-T6 | Risolto | «Interno» e citazioni nelle etichette, FAQ e riepilogo onboarding usano «». |
+| P2-T7 | Aperto | Nota dell'esempio presente cinque volte nel DOM mobile di Messaggi; disponibilità ripetuta negli esempi onboarding. |
+| P2-T8 | Parziale | Righe del passo 4 **ora verificate live e allineate**; restano le distanze dei risultati diagnostici e dei gruppi del passo 2. |
+| P2-T9 | Risolto | Chevron Polaris a destra nei pannelli, procedura manuale e FAQ; apertura confermata. |
+| N-1 | Aperto | Messaggi e passo 3 conservano box custom rossi, senza campo nativo in sola lettura. |
+| N-2 | Aperto | Confronto etichette ancora in righe custom; nessuna tabella nativa. |
+| N-3 | Risolto | Marchio senza quadrato crema nel simulatore e nel passo 1. |
+| H-1 | Parziale | Banner esterno e compatto; data della prova ripetuta nella sezione Piano e continuità commerciale. |
+| H-2 | Aperto | Da attiva: Modifica regole primaria a sinistra, Disattiva critica a destra. Variante disattivata non ricreata. |
+| H-4 | Aperto | Prezzo distinto e periodo vicino; nome leggero, descrizione aggiuntiva solo nel pagamento unico, «Consigliato» neutro. |
+| H-5 | Aperto | Non ricreato: lo store ha entrambi i campi configurati. Resta la prova precedente del caso attivo senza campi. |
+| H-6 | Aperto | Da attiva la sezione propone Apri gli ordini; confronto con gli altri stati conservato dalla prova precedente. |
+| R-1 | Parziale | Etichette sotto entrambe le colonne; diversa altezza di regole e simulatore ancora visibile. Non confermata la misura storica di 240 px con PEC aziendale. |
+| R-2 | Accettato per decisione | Unico fondo panna del simulatore riconfermato. |
+| R-3 | Aperto | Titoli dei gruppi leggeri rispetto alle etichette; Prova uno scenario è ora etichetta nativa, come già documentato in §20. |
+| R-4 | Accettato per decisione | Continua verde custom mantenuto accanto a Svuota Polaris. |
+| R-5 | Risolto | Marchio del simulatore senza il fondo crema. |
+| R-6 | Parziale | Caso con modifiche: due righe attuale/proposto; intestazione Predefinito per questa lingua ancora presente. Caso senza modifiche non ricreato. |
+| R-7 | Parziale | Da verificare ripetuto nel sommario e nel caso della lingua; nessun Aggiornati verde in quello stato. |
+| R-8 | Aperto | Modalità, ultima lettura e conteggio restano paragrafi; conferma disabilitata nella procedura aperta. |
+| R-9 | Aperto | Procedura annidata di nove passi e banner interno ancora presenti. |
+| R-10 | Aperto | Testo Impostazioni → Checkout ancora nel DOM; denominazione nativa Check-out conservata dalla prova precedente. |
+| R-12 | Aperto | Togliendo entrambi i campi nelle opzioni locali resta Dati fiscali del cliente vuoto, senza spiegazione. |
+| R-13 | Aperto | Disattivazione guidata in bozza mostra ancora il banner giallo dentro il pannello; bozza scartata. |
+| M-1 | Aperto | A 500 px esempi locali e campi modificabili conservano box bianchi bordati simili. |
+| M-2 | Aperto | Nota di fedeltà ancora fuori dal riquadro grigio. |
+| M-3 | Aperto | Spaziatura differenziata e Messaggio selezionato con badge ancora presenti. |
+| M-4 | Parziale | Titoli e badge neutri confermati; restano i quattro indicatori ripetuti. |
+| M-5 | Aperto | **Non riprodotto nel percorso provato:** a 1440×666 il focus su PEC non valida scorre il campo sopra Sidekick. Il percorso intermedio storico non è escluso. |
+| G-1 | Aperto | Domande ancora rientrate rispetto ai titoli e divisori. |
+| G-2 | Aperto | Espandi tutte conferma domanda e risposta con gerarchia poco distinta e righe desktop lunghe. |
+| G-3 | Aperto | Diagnosi eseguita: tre link Regole checkout, distanze uniformi e assenza di riepilogo. Nel caso corrente non c'è un esito informativo con icona nera. |
+| G-4 | Aperto | Tre azioni impilate nell'assistenza desktop; variante con salto verso l'alto a 500 px non riprovata. |
+| O-1 | Aperto | Passi 1 e 2 confermano il titolo introduttivo leggero e la gerarchia dei gruppi. |
+| O-2 | Aperto | Passo 2: separatore prima di Interno, nessun separatore equivalente prima di PEC. |
+| O-3 | Aperto | Proposte ancora elencate per lingua senza righe dedicate ai campi. Variante Mantieni il testo attuale non ricreata. |
+| O-4 | Aperto | Passo 3: una sola voce sotto Quando si applicano, esempi bianchi su card bianca. |
+| O-5 | Aperto | **Passo 4 verificato live:** righe allineate ma stati in testo semplice. Da già attiva ci sono due azioni; variante con tre bottoni non ricreata. |
+| O-6 | Aperto | Completamento non rieseguito; conserva la prova precedente. Riaprire l'onboarding non mostra quella schermata. |
+| F-2 | Aperto | Clic reale sul link Admin con bozza: pagina resta in Regole e save bar presente, senza spiegazione aggiuntiva. Animazione transitoria non qualificata; bozza scartata. |
+| RW-1 | Parziale | Azioni della Home visibili sopra la barra host a 500×844 e 390×844 nello stato corrente; non copre ogni stato e altezza. |
+| RW-2 | Risolto | A 500 px simulatore prima delle etichette; badge delle etichette su riga autonoma. |
+| EN-1 | Aperto | Non riconfermato live EN; codice corrente conserva How you want to continue (`app/i18n/en.ts`). |
+| EN-2 | Aperto | Non riconfermato live EN; codice corrente conserva Set up required (`app/i18n/en.ts`). |
+| EN-3 | Risolto | Conservata la verifica inglese recente riportata nella copia locale aggiornata dell'audit consultata prima del giro; nessuna nuova conferma live EN. |
+
+### 21.2 Prove e limiti
+
+| Prova | Findings principali |
+| --- | --- |
+| [Home desktop](evidence/2026-10-04-status-chrome/home-1440.jpg), [Home mobile](evidence/2026-10-04-status-chrome/home-500.jpg) | H-1, H-2, H-4, H-6, RW-1 |
+| [Confronto etichette](evidence/2026-10-04-status-chrome/etichette-confronto-1440.jpg), [procedura](evidence/2026-10-04-status-chrome/etichette-procedura-1440.jpg) | N-2, R-6, R-7, R-8, R-9, P2-T9 |
+| [Banner in bozza](evidence/2026-10-04-status-chrome/etichette-disattivazione-bozza-500.jpg) | R-13 |
+| [Simulatore senza campi](evidence/2026-10-04-status-chrome/simulatore-senza-campi-1440.jpg), [ordine mobile](evidence/2026-10-04-status-chrome/regole-simulatore-500.jpg) | R-12, RW-2 |
+| [Messaggi desktop](evidence/2026-10-04-status-chrome/messaggi-1440.jpg), [mobile](evidence/2026-10-04-status-chrome/messaggi-500.jpg), [focus](evidence/2026-10-04-status-chrome/messaggi-focus-1440x666.jpg) | N-1, M-1…M-5, P2-T7 |
+| [FAQ espanse](evidence/2026-10-04-status-chrome/faq-espanse-1440.jpg), [diagnosi](evidence/2026-10-04-status-chrome/diagnosi-1440.jpg) | G-1…G-3, P2-T8 |
+| [Passo 1](evidence/2026-10-04-status-chrome/onboarding-passo1-1440.jpg), [passo 2](evidence/2026-10-04-status-chrome/onboarding-passo2-1440.jpg), [passo 3](evidence/2026-10-04-status-chrome/onboarding-passo3-1440.jpg), [passo 4](evidence/2026-10-04-status-chrome/onboarding-passo4-1440.jpg) | O-1…O-5, P2-T3/T4/T8, N-3 |
+| [Navigazione con bozza](evidence/2026-10-04-status-chrome/navigazione-bozza-1440.jpg) | F-2 |
+
+L'Admin conserva l'italiano anche passando `locale=en` nell'URL esterno;
+quel tentativo non è una prova inglese. Profilo non modificato, quindi
+EN-1/EN-2 restano corroborati dal codice e EN-3 dalla prova precedente.
+Durante il giro sono comparse modifiche locali concorrenti a componenti,
+test e Master Plan: non sono state toccate né usate come prova di correzione
+live. Gli stati della tabella si riferiscono alla versione osservata in Chrome.
+Non sono stati ricreati Validation disattivata, assenza di campi salvati,
+completamento onboarding, scritture automatiche e varianti di billing.
+I positivi/informativi H-3, R-11, F-1, F-3, F-4 ed EN-4 restano esclusi
+dal conteggio; toast di salvataggio, errori del simulatore e modale automatica
+non sono stati riqualificati in questo giro.
