@@ -90,6 +90,17 @@ function surfaceRect(element: Element) {
   };
 }
 
+function sectionHeadingTop(section: Element) {
+  const heading = section.getAttribute("heading")!;
+  return Math.min(
+    ...[...section.shadowRoot!.querySelectorAll<HTMLElement>("div")]
+      .filter((element) => element.textContent?.trim() === heading)
+      .map((element) => element.getBoundingClientRect())
+      .filter((rect) => rect.height > 10 && rect.height < 40)
+      .map((rect) => rect.top),
+  );
+}
+
 async function captureSurface(element: HTMLElement, path: string) {
   const width = document.documentElement.clientWidth;
   const height = window.innerHeight;
@@ -223,7 +234,7 @@ test.each([
     expect(surfaceRect(banner).top).toBeGreaterThan(surfaceRect(validation).bottom);
     expect(banner.textContent).not.toContain(trialContinuityTexts(locale).approvalHelp);
     const plans = home.container.querySelector("#plans")!;
-    expect(surfaceRect(plans.querySelector("s-section")!).top).toBeGreaterThan(
+    expect(sectionHeadingTop(plans.querySelector("s-section")!)).toBeGreaterThan(
       surfaceRect(banner).bottom,
     );
     expect(plans.textContent).toContain(copy.plan.firstCharge(formatDate("2026-10-17", locale)));
@@ -1359,14 +1370,7 @@ test.each(
       .getBoundingClientRect();
     const banner = surfaceRect(home.container.querySelector("s-banner")!);
     // La riga del titolo «Come vuoi continuare», non l'intera sezione.
-    const heading = plans.getAttribute("heading")!;
-    const titleTop = Math.min(
-      ...[...plans.shadowRoot!.querySelectorAll<HTMLElement>("div")]
-        .filter((element) => element.textContent?.trim() === heading)
-        .map((element) => element.getBoundingClientRect())
-        .filter((rect) => rect.height > 10 && rect.height < 40)
-        .map((rect) => rect.top),
-    );
+    const titleTop = sectionHeadingTop(plans);
     const above = banner.top - card.bottom;
     const below = titleTop - banner.bottom;
     expect(Math.abs(above - below), `Sopra: ${above}px; sotto: ${below}px`).toBeLessThanOrEqual(1);
