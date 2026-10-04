@@ -12,7 +12,10 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   nota sulle etichette e la spiegazione degli scenari, lasciando a «Prova uno
   scenario» l'etichetta nativa del campo;
 - rimette il banner della prova nella Home subito dopo la card della
-  validazione, con «Scegli un piano» nello slot nativo del banner.
+  validazione, equidistante dalla card e dal titolo successivo, con «Scegli
+  un piano» nello slot nativo del banner;
+- include l'audit grafico di Claude e le prove delle verifiche Development
+  sulle versioni 2.0.5 e 2.0.6.
   Pubblicazione solo Development, senza promozione Production.
 
 ## 2.0.6 — 4 ottobre 2026

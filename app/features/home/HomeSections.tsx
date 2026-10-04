@@ -102,8 +102,8 @@ export function HomeTrialNotice({ data, busy }: { data: HomeData; busy: boolean 
   const continuity = trialContinuityNotice(data);
   if (!continuity) return null;
   return (
-    // Stesso distacco dei banner di esito: il banner non tocca la sezione dei piani che segue.
-    <div className="cf-reveal-banner">
+    // Il contenitore bilancia lo spazio nativo della card e del titolo successivo.
+    <div className="cf-trial-notice">
       <MotionBanner tone={continuity.tone}>
         {continuity.text}
         {continuity.action ? (

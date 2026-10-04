@@ -1322,3 +1322,52 @@ test("Polaris reale: P2-T9, chevron nativo allineato anche nel disclosure annida
   ).toBe("chevron-up");
   await view.unmount();
 });
+
+test.each(
+  [1440, 1054, 500, 390].flatMap((width) =>
+    (["it", "en"] as const).map((locale) => ({ width, locale })),
+  ),
+)(
+  "Polaris reale: il banner della prova è equidistante ($width px, $locale)",
+  async ({ width, locale }) => {
+    await page.viewport(width, 844);
+    const data = {
+      ...homeData,
+      locale,
+      validationEnabled: true,
+      onboarding: "completed",
+      entitlement: { kind: "trial", validThrough: "2026-10-16" },
+      trialStatus: "active",
+      trialEndsAt: "2026-10-16",
+      firstChargeAt: "2026-10-17",
+      remaining: 13,
+    };
+    router.loaderData = confirmedHome(data);
+    const home = await mount(<HomePage />);
+    await expect.poll(() => home.container.querySelector("s-banner")).not.toBeNull();
+    const [validation, plans] = [...home.container.querySelectorAll("s-section")].filter(
+      (section) => !section.closest('[slot="aside"]'),
+    );
+    const card = [...validation.shadowRoot!.querySelectorAll<HTMLElement>("*")]
+      .find(
+        (element) =>
+          element.getBoundingClientRect().width > 100 &&
+          getComputedStyle(element).backgroundColor === "rgb(255, 255, 255)",
+      )!
+      .getBoundingClientRect();
+    const banner = surfaceRect(home.container.querySelector("s-banner")!);
+    // La riga del titolo «Come vuoi continuare», non l'intera sezione.
+    const heading = plans.getAttribute("heading")!;
+    const titleTop = Math.min(
+      ...[...plans.shadowRoot!.querySelectorAll<HTMLElement>("div")]
+        .filter((element) => element.textContent?.trim() === heading)
+        .map((element) => element.getBoundingClientRect())
+        .filter((rect) => rect.height > 10 && rect.height < 40)
+        .map((rect) => rect.top),
+    );
+    const above = banner.top - card.bottom;
+    const below = titleTop - banner.bottom;
+    expect(Math.abs(above - below), `Sopra: ${above}px; sotto: ${below}px`).toBeLessThanOrEqual(1);
+    await home.unmount();
+  },
+);

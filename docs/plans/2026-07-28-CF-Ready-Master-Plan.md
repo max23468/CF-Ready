@@ -2432,7 +2432,8 @@ Conclusioni operative:
     del checkout è l'unico accento di brand: fondo panna e «Continua» verde
     bottiglia (decisione dell'owner del 4 ottobre, `docs/brand/brand-foundation.md` §3.1);
   - **densità:** il banner della prova sta subito dopo la card della
-    validazione, non dentro, con l'azione nello slot nativo del banner; un
+    validazione, non dentro, equidistante dalla card e dal titolo successivo,
+    con l'azione nello slot nativo del banner; un
     solo badge di stato per pannello; un confronto senza modifiche sta su una
     riga;
   - **disclosure:** `details` tramite `app/ui-disclosure.tsx`, con chevron
