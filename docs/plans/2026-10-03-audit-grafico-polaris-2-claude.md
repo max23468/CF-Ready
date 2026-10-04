@@ -675,3 +675,57 @@ aggiornata nel Master Plan §15.3. H-3 è informativo e non richiede interventi.
 | H-4 | Nome del piano come `s-heading` sopra il prezzo; mensile e annuale hanno una riga descrittiva come il pagamento unico («Si rinnova ogni mese finché non cancelli il rinnovo.», «Equivale a … al mese e si rinnova ogni anno.»). «Consigliato» in `info` da 2.0.8 |
 | H-5 | Il badge «Attiva» è verde solo con almeno un campo configurato, altrimenti neutro |
 | H-6 | «Prossimo passo» ha sempre testo e azione: «Regole checkout» per configurare o rivedere prima di attivare, «Vedi le opzioni» verso la scelta del piano per prova da avviare o piano scaduto, «Apri gli ordini» da attiva |
+
+## 24. Correzioni locali degli R, 4 ottobre 2026
+
+Ripresa della chat «Implementazione audit R (escluso R-1)», nel worktree
+`CF-Ready-audit-r`, branch `fix/polaris2-audit-regole`, base `482c31c`.
+L'incarico esclude R-1, considerato validato dall'owner, e richiede di
+implementare gli altri R e aggiornare i findings senza pubblicare.
+Questa tabella aggiorna lo stato locale; le prove live delle sezioni precedenti
+restano storiche e non attestano queste modifiche.
+
+| ID | Stato locale | Intervento o decisione |
+| --- | --- | --- |
+| R-1 | Accettato per decisione | Validato così dall'owner, escluso dall'intervento; layout invariato. |
+| R-2, R-4 | Accettato per decisione | Conservati il fondo panna unico e il bottone Continua verde. |
+| R-3 | Risolto in locale | Titoli nativi `s-heading`; divisore Polaris tra destinazione e dati fiscali per distinguere i gruppi senza alterare la tipografia nativa. |
+| R-5 | Risolto in precedenza | Marchio senza fondo già presente nella base. |
+| R-6 | Risolto in locale | Conservata la tabella nativa; Interno non ripete «Predefinito per questa lingua». Se ci sono più lingue della stessa famiglia mostra il nome della lingua. |
+| R-7 | Risolto in locale | Stato soltanto nel sommario di Testi del checkout; rimossi i badge per contesto e la ripetizione della scelta di mantenere le etichette native. |
+| R-8 | Risolto in locale | Modalità, ultima lettura e conteggio automatico in `StatusList`; conteggio manuale nel riepilogo, azioni affiancate con spaziatura nativa. |
+| R-9 | Risolto in locale | Procedura in modale Polaris con apertura e chiusura esplicite; conferma accanto all'apertura, motivo della disabilitazione come testo. Eliminati disclosure e banner interni della procedura. |
+| R-10 | Risolto in locale | Percorsi dell'Admin italiano aggiornati a «Impostazioni → Check-out»; inglese conservato. |
+| R-11 | Positivo | Conservati errori in linea e comportamento del simulatore. |
+| R-12 | Risolto in locale | Spiegazione IT/EN quando Shopify non mostra i campi gestiti; quando il completamento italiano richiede campi assenti resta soltanto il banner di errore specifico. |
+| R-13 | Risolto in locale | Conseguenze della disattivazione nei dettagli della checkbox, senza banner annidato. |
+
+Verifiche locali: 704 test Workers, 333 test browser e 195 test Function
+verdi; lint, formattazione, TypeScript, build app e Function, deploy dry-run
+verdi. Le prove browser usano fixture sintetiche con Polaris 1 e 2,
+Chromium e WebKit, IT/EN, desktop e mobile. Sono verificati apertura e chiusura
+della modale, avviso di disattivazione e assenza di badge ripetuti.
+Coverage globale: statements 98,33%, branches 96,04%, functions 99,21%,
+lines 98,60%; righe eseguibili modificate 100% (5/5), calcolate sul diff
+non committato con le utility canoniche. Soglie globali, dei domini critici
+e della Function rispettate; 242 test operativi verdi. Mutation non richiesta
+per questo diff, che non tocca domini critici.
+La raccolta browser è stata eseguita con una configurazione temporanea che
+isola la cache Vite e consente la lettura del `node_modules` condiviso:
+il caricamento del provider Istanbul falliva con la configurazione ordinaria
+del worktree collegato. L'ultimo giro completo ha 333 test verdi senza errori
+del provider; le mappe sono state rigenerate sul codice finale.
+
+Alla chiusura dell'implementazione non erano stati eseguiti commit, push, PR
+o deploy. Il successivo incarico dell'owner autorizza la pubblicazione della
+patch `2.0.11` solo Development, senza promozione. La prova locale non attesta
+la verifica embedded negli store Shopify; il deploy e il readback sono
+documentati dalla ricevuta del ciclo di pubblicazione.
+
+Nel medesimo incarico di pubblicazione l'owner ha chiesto di rimuovere dal
+passo 2 dell'onboarding l'intera sezione «Etichette proposte in italiano e
+inglese», inclusa la casella del controllo guidato. Il passo conserva le sole
+scelte CF e PEC, senza anteprima, richiesta di permessi o azioni sulle
+etichette. Il salvataggio preserva la modalità già configurata; gestione e
+permessi restano nella pagina Regole checkout. Master Plan §15.9 e test di
+regressione aggiornati, con casi `off`, `guided`, `partial` e `automatic`.

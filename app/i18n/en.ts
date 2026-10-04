@@ -199,9 +199,6 @@ export const en: typeof it = {
     ],
     step2Heading: "Choose what to check",
     step2Body: "You can change these choices whenever you want from Checkout rules.",
-    labelsPreviewHeading: "Proposed labels in Italian and English",
-    labelsPermissionsOptional:
-      "You can grant permission to compare labels with Shopify now or continue without enabling it.",
     step3Heading: "Rules preview",
     labelsMixedDescription:
       "Mixed mode supports automatic updates and manual checks. “Checkout rules” shows any checks still to complete.",
@@ -499,6 +496,8 @@ export const en: typeof it = {
       english: "English",
       orderContext: "Order destination",
       customerData: "Customer tax details",
+      noFieldsShown:
+        "In this scenario Shopify doesn’t show the fields managed by CF Ready, so the customer has nothing to fill in.",
       company: "Company",
       deliveryCountry: "Delivery country",
       billingCountry: "Billing country",
@@ -599,10 +598,10 @@ export const en: typeof it = {
       refresh: "Read fields again from Shopify",
       refreshComplete: "Fields refreshed from Shopify.",
       stop: "Restore and stop managing",
-      lastSync: (value: string) => `Last read of labels from Shopify: ${value}`,
-      neverSynced: "No successful read from Shopify yet",
-      operationalSummary: (automatic: number, manual: number) =>
-        `${automatic} ${automatic === 1 ? "label" : "labels"} updated automatically. ${manual} manual ${manual === 1 ? "verification" : "verifications"} required.`,
+      lastReadLabel: "Last read from Shopify",
+      neverSynced: "No successful read yet",
+      automaticCountLabel: "Labels updated automatically",
+      close: "Close",
       manualHeading: "How to complete the manual verification",
       manualSteps: (
         language: string,
@@ -619,7 +618,7 @@ export const en: typeof it = {
             ]
           : []),
         "For every case listed, add a product to the cart and continue to checkout. Set Italy as the delivery country and select an Italian address recognized by Shopify: the tax code and PEC fields appear after the address is accepted.",
-        "Compare the tax code and PEC labels with the “Field after saving” value shown here.",
+        "Compare the Italian tax code and PEC labels with the “Field after saving” value in the CF Ready table.",
         "If they differ, select “Open the checkout text editor”. In Shopify, under “Checkout language”, select “Edit checkout content”.",
         ...(primary && !market
           ? [
@@ -641,7 +640,7 @@ export const en: typeof it = {
         "Return to CF Ready and select “Read fields again from Shopify”. When the two values match, the confirmation button becomes available.",
       ],
       manualMismatch:
-        "Shopify is still returning a different text. Change and save it using the steps above, then select “Read fields again from Shopify”.",
+        "Shopify is still returning a different text. Correct it by following “How to complete the manual verification”, then select “Read fields again from Shopify”.",
       openStorefront: "Open storefront",
       openCheckoutContentEditor: "Open the checkout text editor",
       confirmGuided: "Confirm manual verification",

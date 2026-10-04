@@ -4,11 +4,7 @@ import { useFetcher, useLoaderData, useNavigate } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError, type AppErrorCode } from "../app-error";
 import { requestAppWindowNavigation } from "../app-window-navigation";
-import {
-  checkoutLabelCopy,
-  checkoutLabelValuesMatch,
-  proposedLabelForSlot,
-} from "../checkout-labels/domain";
+import { checkoutLabelCopy } from "../checkout-labels/domain";
 import {
   oneOf,
   MESSAGE_KEYS,
@@ -16,7 +12,6 @@ import {
   PEC_RULE_MODES,
   pendingFetcherIntent,
   TAX_CODE_RULE_MODES,
-  type Rules,
 } from "../config";
 import { onboardingStep4State } from "../features/onboarding/step4-state";
 import {
@@ -26,14 +21,12 @@ import {
   OnboardingStep4Actions,
   OnboardingStep4Content,
 } from "../features/onboarding/OnboardingSections";
-import { useCheckoutLabelScopeRequest } from "../features/use-checkout-label-scopes";
-import { AutomaticLabelsConfirmModal } from "../features/rules/AutomaticLabelsConfirmModal";
 import { CheckoutErrorPreview } from "../features/messages/CustomerMessagesPreview";
 import {
   planComparisonLocationState,
   requestPlanComparisonFromFrame,
 } from "../features/home/plan-comparison";
-import { describeCheckout, quoteLabel, texts } from "../i18n";
+import { describeCheckout, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { action, loader } from "../features/onboarding/onboarding.server";
 import { BrandMark } from "../ui-brand";
@@ -45,32 +38,23 @@ export { OnboardingListBlock, OnboardingProgress, OnboardingStep4Content };
 
 export const shouldRevalidate = skipRevalidationWhenLeaving;
 
-const LABEL_CONFIRM_MODAL = "confirm-onboarding-checkout-label-management";
-
 export default function Onboarding() {
   const saved = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const fetcher = useFetcher<typeof action>();
   const t = texts(saved.locale);
   const [step, setStepState] = useState(saved.step);
-  const [draftRules, setDraftRules] = useState<Rules>(saved.rules);
-  const [labelsEnabled, setLabelsEnabled] = useState(saved.labelState.mode !== "off");
   const [finished, setFinished] = useState(false);
-  const { requestPermissions, scopeRequestBusy, scopeRequestError } =
-    useCheckoutLabelScopeRequest();
   const form = useRef<HTMLFormElement>(null);
   // Un secondo canale per la sola memoria del passo: la scrittura non tocca lo stato del
   // pulsante principale e non viene mai riletta, quindi non può far rimbalzare la pagina.
   const progress = useFetcher();
-  const busy = fetcher.state !== "idle" || scopeRequestBusy;
-  const pendingIntent = scopeRequestBusy
-    ? "request_label_scopes"
-    : pendingFetcherIntent(fetcher.formData);
+  const busy = fetcher.state !== "idle";
+  const pendingIntent = pendingFetcherIntent(fetcher.formData);
   const esito = fetcher.data as { ok: boolean; errorCode?: AppErrorCode } | undefined;
   const step4State = onboardingStep4State(saved);
 
   const go = (intent: string, extra: Record<string, string> = {}) => {
-    if (intent === "request_label_scopes") return void requestPermissions();
     fetcher.submit({ intent, step: String(step), ...extra }, { method: "post" });
   };
 
@@ -138,52 +122,13 @@ export default function Onboarding() {
     go(intent);
   };
 
-  const readForm = () => {
-    const data = form.current ? new FormData(form.current) : null;
-    const taxCode = oneOf(TAX_CODE_RULE_MODES, data?.get("taxCode"));
-    const pec = oneOf(PEC_RULE_MODES, data?.get("pec"));
-    if (taxCode && pec) setDraftRules({ taxCode, pec });
-  };
-
-  const automaticLabelsAvailable = Boolean(
-    saved.labelSnapshot?.slots.some(
-      (slot) => slot.capability === "automatic" && (slot.name === "taxCode" || slot.name === "pec"),
-    ),
-  );
-  const automaticLabelWrites =
-    saved.labelSnapshot?.slots.flatMap((slot) => {
-      if (slot.capability !== "automatic" || (slot.name !== "taxCode" && slot.name !== "pec")) {
-        return [];
-      }
-      const proposed = proposedLabelForSlot(slot, draftRules);
-      if (proposed === null || checkoutLabelValuesMatch(proposed, slot.currentValue)) return [];
-      return [{ slot, proposed }];
-    }) ?? [];
-
-  const saveRules = (confirmAutomaticWrite = false) => {
+  const saveRules = () => {
     const data = form.current ? new FormData(form.current) : null;
     const taxCode = oneOf(TAX_CODE_RULE_MODES, data?.get("taxCode"));
     const pec = oneOf(PEC_RULE_MODES, data?.get("pec"));
     if (!taxCode || !pec) return;
-    if (
-      saved.completed &&
-      taxCode === saved.rules.taxCode &&
-      pec === saved.rules.pec &&
-      labelsEnabled === (saved.labelState.mode !== "off")
-    ) {
+    if (saved.completed && taxCode === saved.rules.taxCode && pec === saved.rules.pec) {
       setStep(3);
-      return;
-    }
-    if (
-      !confirmAutomaticWrite &&
-      labelsEnabled &&
-      saved.labelState.mode === "off" &&
-      automaticLabelWrites.length > 0
-    ) {
-      const modal = document.getElementById(LABEL_CONFIRM_MODAL) as
-        | (HTMLElement & { showOverlay?: () => void })
-        | null;
-      modal?.showOverlay?.();
       return;
     }
     savingRules.current = true;
@@ -191,27 +136,19 @@ export default function Onboarding() {
       taxCode,
       pec,
       configHash: saved.configHash ?? "",
-      labelsEnabled: labelsEnabled ? "1" : "0",
-      labelsConfirmed: confirmAutomaticWrite ? "1" : "0",
+      labelsEnabled: saved.labelState.mode !== "off" ? "1" : "0",
+      labelsConfirmed: "0",
       labelsRevision: saved.labelSnapshot?.revision ?? "",
     });
   };
 
   return (
-    <form ref={form} onChange={readForm}>
-      <AutomaticLabelsConfirmModal
-        id={LABEL_CONFIRM_MODAL}
-        locale={saved.locale}
-        writes={automaticLabelWrites}
-        onConfirm={() => saveRules(true)}
-      />
+    <form ref={form}>
       {/* O1: pagina stretta nativa, così testo e select non corrono a tutta larghezza. */}
       <s-page heading={t.onboarding.heading} inlineSize="small">
-        {(esito && !esito.ok) || scopeRequestError ? (
+        {esito && !esito.ok ? (
           <div className="cf-motion-reveal">
-            <s-banner tone="critical">
-              {localizedError(t.errors, scopeRequestError ?? esito?.errorCode)}
-            </s-banner>
+            <s-banner tone="critical">{localizedError(t.errors, esito.errorCode)}</s-banner>
           </div>
         ) : null}
 
@@ -225,10 +162,6 @@ export default function Onboarding() {
               step={step}
               saved={saved}
               t={t}
-              draftRules={draftRules}
-              labelsEnabled={labelsEnabled}
-              automaticLabelsAvailable={automaticLabelsAvailable}
-              setLabelsEnabled={setLabelsEnabled}
               state={step4State}
               busy={busy}
               pendingIntent={pendingIntent}
@@ -279,10 +212,6 @@ type CurrentStepProps = {
   step: number;
   saved: OnboardingData;
   t: OnboardingCopy;
-  draftRules: Rules;
-  labelsEnabled: boolean;
-  automaticLabelsAvailable: boolean;
-  setLabelsEnabled: (enabled: boolean) => void;
   state: ReturnType<typeof onboardingStep4State>;
   busy: boolean;
   pendingIntent: string | null;
@@ -380,52 +309,7 @@ function OnboardingRules(props: CurrentStepProps) {
           </s-choice-list>
         </s-stack>
       </s-stack>
-      <s-divider />
-      <s-box background="subdued" borderRadius="base" padding="base">
-        <s-stack direction="block" gap="small-100">
-          <s-heading>{t.onboarding.labelsPreviewHeading}</s-heading>
-          {(["it", "en"] as const).map((locale) => {
-            const label = (copy: string | null) =>
-              copy === null ? t.rules.labels.unchanged : quoteLabel(copy, props.saved.locale);
-            return (
-              <s-text key={locale}>
-                {locale === "it" ? t.messages.italian : t.messages.english}:{" "}
-                {label(checkoutLabelCopy("taxCode", locale, props.draftRules.taxCode))},{" "}
-                {label(checkoutLabelCopy("pec", locale, props.draftRules.pec))}
-              </s-text>
-            );
-          })}
-        </s-stack>
-      </s-box>
-      <OnboardingLabelControls {...props} />
     </>
-  );
-}
-
-function OnboardingLabelControls(props: CurrentStepProps) {
-  const { saved, t } = props;
-  if (!saved.labelScopesGranted) {
-    return (
-      <s-stack direction="block" gap="small-100">
-        <s-paragraph>{t.onboarding.labelsPermissionsOptional}</s-paragraph>
-        <s-button
-          disabled={props.busy}
-          loading={props.pendingIntent === "request_label_scopes"}
-          onClick={() => props.go("request_label_scopes")}
-        >
-          {t.rules.labels.requestPermissions}
-        </s-button>
-      </s-stack>
-    );
-  }
-  return (
-    <s-stack direction="block" gap="small-100">
-      <s-checkbox
-        label={props.automaticLabelsAvailable ? t.rules.labels.enable : t.rules.labels.enableGuided}
-        checked={props.labelsEnabled}
-        onChange={(event) => props.setLabelsEnabled(event.currentTarget.checked)}
-      />
-    </s-stack>
   );
 }
 

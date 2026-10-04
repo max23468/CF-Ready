@@ -6,6 +6,19 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.11 — 4 ottobre 2026
+
+- sposta la procedura di verifica manuale delle etichette in una modale nativa,
+  elimina gli stati ripetuti e allinea modalità, ultima lettura e azioni;
+- distingue i gruppi del simulatore e spiega quando Shopify non mostra i
+  campi gestiti, con testi italiani e inglesi;
+- aggiorna i percorsi dell’Admin italiano a «Check-out» e mostra le
+  conseguenze della disattivazione sotto la casella di gestione.
+- rimuove dal passo 2 dell’onboarding l’intera sezione delle etichette,
+  comprese anteprime, controllo guidato e richiesta dei permessi; la gestione
+  resta in Regole checkout e il salvataggio conserva lo stato già configurato.
+  Pubblicazione solo Development, senza promozione Production.
+
 ## 2.0.10 — 4 ottobre 2026
 
 - rimuove la configurazione del campo «Interno» dal passo 2 dell’onboarding,

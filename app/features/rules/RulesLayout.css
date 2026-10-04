@@ -31,14 +31,6 @@
   }
 }
 
-.checkout-label-instructions > .cf-disclosure__summary {
-  padding-block: 0.5rem;
-}
-
-.checkout-label-instructions > .cf-disclosure__body {
-  padding-block-start: 0.5rem;
-}
-
 .rules-layout-container {
   container-type: inline-size;
   display: grid;
