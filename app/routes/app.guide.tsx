@@ -1,5 +1,5 @@
 import { localizedError } from "../app-error";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { data, useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
@@ -33,6 +33,8 @@ import { skipRevalidationWhenLeaving } from "../revalidation";
 import { showToast } from "../save-bar";
 import { createServerTiming } from "../server-timing.server";
 import { readSupportDiagnosticState, type SupportDiagnosticState } from "../support.server";
+import { BrandLockup } from "../ui-brand";
+import { Disclosure } from "../ui-disclosure";
 import "./app.guide.css";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
@@ -162,37 +164,36 @@ export default function Guide() {
       {/* §15.7: pagina unica con sezioni espandibili. Polaris non ha un componente di
           divulgazione, quindi si usa `details`, che è l'elemento nativo della piattaforma:
           accessibile e utilizzabile da tastiera senza reimplementare nulla (§8.1). */}
-      {/* G-B5: titoli `s-heading` nativi, domande senza grassetto. `s-section` non accetta
-          azioni accanto al titolo: il titolo sta nel contenuto, con "Espandi tutte" a destra. */}
-      <s-section id="faq">
+      <s-section id="faq" heading={t.guide.faqHeading}>
+        <s-button slot="secondary-actions" onClick={toggleAll}>
+          {expanded ? t.guide.collapseAll : t.guide.expandAll}
+        </s-button>
         <s-stack direction="block" gap="base">
-          <s-grid gridTemplateColumns="minmax(0, 1fr) auto" alignItems="center" gap="base">
-            <s-heading>{t.guide.faqHeading}</s-heading>
-            <s-button onClick={toggleAll}>
-              {expanded ? t.guide.collapseAll : t.guide.expandAll}
-            </s-button>
-          </s-grid>
           <div className="guide-faq__groups">
             {t.guide.groups.map((group) => (
               <div className="guide-faq__group" key={group.heading}>
                 <s-heading>{group.heading}</s-heading>
                 <div className="guide-faq__entries">
-                  {group.entries.map((entry) => (
-                    <details className="guide-faq__entry" key={entry.q} onToggle={syncExpanded}>
-                      <summary className="cf-disclosure">
-                        <span className="guide-faq__question">{entry.q}</span>
-                      </summary>
-                      <div className="guide-faq__answer">
-                        <s-paragraph>
-                          {/* G-B8: a uno store con piano omaggio non si parla di prova e prezzi. */}
-                          {"id" in entry &&
-                          entry.id === "billing" &&
-                          diagnostics.entitlementKind === "complimentary"
-                            ? t.guide.complimentaryBillingAnswer
-                            : entry.a}
-                        </s-paragraph>
-                      </div>
-                    </details>
+                  {group.entries.map((entry, index) => (
+                    <Fragment key={entry.q}>
+                      {index > 0 ? <s-divider /> : null}
+                      <Disclosure
+                        className="guide-faq__entry"
+                        onToggle={syncExpanded}
+                        summary={<span className="guide-faq__question">{entry.q}</span>}
+                      >
+                        <div className="guide-faq__answer">
+                          <s-paragraph color="subdued">
+                            {/* G-B8: a uno store con piano omaggio non si parla di prova e prezzi. */}
+                            {"id" in entry &&
+                            entry.id === "billing" &&
+                            diagnostics.entitlementKind === "complimentary"
+                              ? t.guide.complimentaryBillingAnswer
+                              : entry.a}
+                          </s-paragraph>
+                        </div>
+                      </Disclosure>
+                    </Fragment>
                   ))}
                 </div>
               </div>
@@ -225,14 +226,10 @@ export default function Guide() {
                   </s-option>
                 ))}
               </s-select>
-              <s-button
-                variant="primary"
-                inlineSize="fill"
-                href={supportMailto(supportDetails, locale, supportCategory)}
-              >
+              <s-button href={supportMailto(supportDetails, locale, supportCategory)}>
                 {t.support.requestSupport}
               </s-button>
-              <s-button inlineSize="fill" onClick={copyDiagnostics}>
+              <s-button variant="tertiary" onClick={copyDiagnostics}>
                 {t.support.copyDiagnostics}
               </s-button>
               {copyFailed ? (
@@ -241,9 +238,17 @@ export default function Guide() {
                 </span>
               ) : null}
               <s-divider />
-              <s-button icon="search" inlineSize="fill" onClick={showDiagnosis}>
-                {t.guide.diagnosis.heading}
-              </s-button>
+              <div className="guide-support__diagnosis-link">
+                <s-link
+                  href="#validation-diagnosis"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    showDiagnosis();
+                  }}
+                >
+                  {t.guide.diagnosis.heading}
+                </s-link>
+              </div>
             </s-stack>
           </div>
         </s-section>
@@ -251,14 +256,7 @@ export default function Guide() {
           azioni operative. Questa è documentazione, non configurazione. */}
         <s-section heading={t.guide.asideHeading}>
           <s-stack direction="block" gap="base">
-            <s-box maxInlineSize="160px">
-              <s-image
-                src="/cf-ready-lockup.svg"
-                alt="CF Ready"
-                aspectRatio="16/3"
-                objectFit="contain"
-              />
-            </s-box>
+            <BrandLockup alt="CF Ready" />
             <s-paragraph>{t.guide.asideBody}</s-paragraph>
             <s-stack direction="block" gap="small-100" alignItems="start">
               <s-heading>{t.guide.asideLinks}</s-heading>
@@ -273,14 +271,14 @@ export default function Guide() {
   );
 }
 
-// Il titolo ha un box reale: centrarlo mantiene visibile il punto di arrivo anche sotto
-// l'intestazione fissa dell'Admin, senza dipendere dallo shadow DOM di Polaris.
+// Il titolo sta nello shadow DOM di `s-section`: si fa scorrere il contenuto della card, il cui
+// margine di scorrimento lascia il titolo visibile sopra di esso e sotto l'intestazione
+// fissa dell'Admin.
 function showDiagnosis() {
   const target = document.getElementById("validation-diagnosis");
   if (!target) return;
-  const heading = target.querySelector(".guide-diagnosis__heading");
   const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  heading?.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" });
+  target.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
   target.focus({ preventScroll: true });
 }
 
@@ -297,13 +295,11 @@ function ValidationDiagnosis({
   const check = checkResult && "check" in checkResult ? checkResult.check : null;
   const checkCopy = t.guide.diagnosis;
   const errorCode = diagnosisErrorCode(check, checkResult, diagnostics.errorCode);
+  // P2-T3: come le altre sezioni, il titolo sta fuori dalla card.
   return (
-    <s-section>
+    <s-section heading={checkCopy.heading}>
       <div id="validation-diagnosis" className="guide-diagnosis" tabIndex={-1}>
         <s-stack direction="block" gap="base">
-          <div className="guide-diagnosis__heading">
-            <s-heading>{checkCopy.heading}</s-heading>
-          </div>
           <s-paragraph>{checkCopy.body}</s-paragraph>
           <s-button
             disabled={checkFetcher.state !== "idle"}
@@ -361,19 +357,19 @@ type DiagnosisCheck = {
   address2Decision: Address2Decision;
 };
 
-type DiagnosisTone = "success" | "warning" | "neutral";
+type DiagnosisTone = "success" | "warning" | "info";
 
 const DIAGNOSIS_ICON = {
   success: "check-circle",
   warning: "alert-triangle",
-  neutral: "info",
+  info: "info",
 } as const;
 
 const LABELS_TONE: Record<CheckoutLabelsStatus, DiagnosisTone> = {
   synced: "success",
   action_required: "warning",
   scope_required: "warning",
-  unknown: "neutral",
+  unknown: "info",
 };
 
 function address2Tone(check: DiagnosisCheck): DiagnosisTone {
@@ -383,7 +379,7 @@ function address2Tone(check: DiagnosisCheck): DiagnosisTone {
   ) {
     return "warning";
   }
-  return check.address2Classification === "unknown" ? "neutral" : "success";
+  return check.address2Classification === "unknown" ? "info" : "success";
 }
 
 // G-B1: ogni esito ha un'icona di stato e il link fuori dal paragrafo, quindi blu come altrove.
@@ -409,6 +405,20 @@ function DiagnosisRow({
   );
 }
 
+function diagnosisSummary(check: DiagnosisCheck, t: ReturnType<typeof texts>) {
+  const copy = t.guide.diagnosis;
+  const tones = [
+    check.enabled ? "success" : "warning",
+    check.entitled ? "success" : "warning",
+    check.configured ? "success" : "warning",
+    LABELS_TONE[check.checkoutLabelsStatus],
+    check.address2Classification in t.rules.labels.addressSummary ? address2Tone(check) : null,
+  ];
+  if (tones.includes("warning")) return copy.needsAttention;
+  if (tones.includes("info")) return copy.incomplete;
+  return copy.checked;
+}
+
 function DiagnosisResult({
   check,
   locale,
@@ -419,50 +429,54 @@ function DiagnosisResult({
   const t = texts(locale);
   const copy = t.guide.diagnosis;
   if (!check || check.errorCode) return <s-paragraph>{copy.notChecked}</s-paragraph>;
+  // P2-T8: testo e link di un esito stanno insieme, più distanti dall'esito successivo.
   return (
-    <>
-      <DiagnosisRow
-        tone={check.enabled ? "success" : "warning"}
-        text={check.enabled ? copy.enabled : copy.disabled}
-        href="/app"
-        link={t.nav.home}
-      />
-      <DiagnosisRow
-        tone={check.entitled ? "success" : "warning"}
-        text={check.entitled ? copy.entitled : copy.notEntitled}
-        href="/app"
-        link={copy.openPlan}
-      />
-      <DiagnosisRow
-        tone={check.configured ? "success" : "warning"}
-        text={check.configured ? copy.configured : copy.unconfigured}
-        href="/app/rules"
-        link={t.nav.rules}
-      />
-      {check.checkoutLabelsStatus in LABELS_TONE ? (
+    <s-box background="subdued" borderRadius="base" padding="base">
+      <s-stack direction="block" gap="large">
+        <s-text type="strong">{diagnosisSummary(check, t)}</s-text>
         <DiagnosisRow
-          tone={LABELS_TONE[check.checkoutLabelsStatus]}
-          text={copy.labelsStatus[check.checkoutLabelsStatus]}
-          href="/app/rules"
-          link={t.nav.rules}
+          tone={check.enabled ? "success" : "warning"}
+          text={check.enabled ? copy.enabled : copy.disabled}
+          href="/app"
+          link={t.nav.home}
         />
-      ) : null}
-      {check.address2Classification in t.rules.labels.addressSummary ? (
         <DiagnosisRow
-          tone={address2Tone(check)}
-          text={[
-            t.rules.labels.addressSummary[check.address2Classification],
-            check.address2Decision === "accepted" ||
-            check.address2Decision === "manual_restore_required"
-              ? copy.address2Decision[check.address2Decision]
-              : null,
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          href="/app/rules"
-          link={t.nav.rules}
+          tone={check.entitled ? "success" : "warning"}
+          text={check.entitled ? copy.entitled : copy.notEntitled}
+          href="/app"
+          link={copy.openPlan}
         />
-      ) : null}
-    </>
+        <DiagnosisRow
+          tone={check.configured ? "success" : "warning"}
+          text={check.configured ? copy.configured : copy.unconfigured}
+          href="/app/rules"
+          link={copy.openRules}
+        />
+        {check.checkoutLabelsStatus in LABELS_TONE ? (
+          <DiagnosisRow
+            tone={LABELS_TONE[check.checkoutLabelsStatus]}
+            text={copy.labelsStatus[check.checkoutLabelsStatus]}
+            href="/app/rules"
+            link={copy.openLabels}
+          />
+        ) : null}
+        {check.address2Classification in t.rules.labels.addressSummary ? (
+          <DiagnosisRow
+            tone={address2Tone(check)}
+            text={[
+              t.rules.labels.addressSummary[check.address2Classification],
+              check.address2Decision === "accepted" ||
+              check.address2Decision === "manual_restore_required"
+                ? copy.address2Decision[check.address2Decision]
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            href="/app/rules"
+            link={copy.openAddress2}
+          />
+        ) : null}
+      </s-stack>
+    </s-box>
   );
 }

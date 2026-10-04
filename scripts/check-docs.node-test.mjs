@@ -963,7 +963,7 @@ test("osservabilità sicura e ricevute restano configurate", () => {
   assert.equal(wrangler.observability.logs.invocation_logs, false);
   assert.equal(wrangler.observability.traces.enabled, false);
   assert.match(development, /## Ricevuta deploy Development/);
-  assert.match(development, /npm run capacity:dev/);
+  assert.doesNotMatch(development, /capacity:dev|capacity-check|Verifica capacità/);
   assert.match(operations, /D1 storage per database \| 500 MB \| 250 MB/);
 });
 

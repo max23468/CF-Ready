@@ -4,6 +4,8 @@ import type { HomeData } from "./home.server";
 import { homeValidationPresentation } from "./home-next-step";
 import { trialContinuityNotice } from "./commercial-state";
 import { showPlans } from "./show-plans";
+import { BrandLockup } from "../../ui-brand";
+import { StatusList } from "../../ui-status-list";
 
 type Texts = ReturnType<typeof texts>;
 type Submit = (intent: string, source?: string) => void;
@@ -45,7 +47,6 @@ export function HomeValidationSection({
 }) {
   const status = validationStatus(data.validationEnabled, entitled);
   const presentation = homeValidationPresentation(data, status, firstRun, t);
-  const continuity = trialContinuityNotice(data);
   return (
     <s-section heading={t.home.validationHeading}>
       <s-stack direction="block" gap="base">
@@ -62,19 +63,6 @@ export function HomeValidationSection({
             </s-paragraph>
           )}
         </s-stack>
-        {continuity ? (
-          <MotionBanner tone={continuity.tone}>
-            <s-stack direction="block" gap="small-100">
-              <s-paragraph>{continuity.text}</s-paragraph>
-              {continuity.detail ? <s-paragraph>{continuity.detail}</s-paragraph> : null}
-              {continuity.action ? (
-                <s-button onClick={showPlans} disabled={busy}>
-                  {continuity.action}
-                </s-button>
-              ) : null}
-            </s-stack>
-          </MotionBanner>
-        ) : null}
         <s-divider />
         <s-stack direction="block" gap="small-100">
           <HomeRulesSummary data={data} t={t} />
@@ -85,60 +73,80 @@ export function HomeValidationSection({
             </s-grid>
           </s-box>
         </s-stack>
-        <s-stack direction="inline" gap="base">
-          {/* Da disattivata, con un diritto attivo, l'azione principale è riattivare. */}
-          <s-button
-            href="/app/rules"
-            variant={!data.validationEnabled && entitled ? "secondary" : "primary"}
-          >
-            {t.home.editRules}
-          </s-button>
-          <HomeValidationAction
-            data={data}
-            entitled={entitled}
-            busy={busy}
-            pendingIntent={pendingIntent}
-            pendingSource={pendingSource}
-            submit={submit}
-            t={t}
-          />
-        </s-stack>
+        <HomeValidationActions
+          data={data}
+          entitled={entitled}
+          busy={busy}
+          pendingIntent={pendingIntent}
+          pendingSource={pendingSource}
+          submit={submit}
+          t={t}
+        />
       </s-stack>
     </s-section>
   );
 }
 
-function HomeRulesSummary({ data, t }: { data: HomeData; t: Texts }) {
+// Decisione del 4 ottobre: la prova sta in un banner subito dopo la card della validazione, non
+// dentro di essa; l'azione usa lo slot nativo del banner, che Polaris stila secondo il tono.
+export function HomeTrialNotice({ data, busy }: { data: HomeData; busy: boolean }) {
+  const continuity = trialContinuityNotice(data);
+  if (!continuity) return null;
   return (
-    <s-query-container>
-      <s-grid
-        gridTemplateColumns="@container (inline-size > 300px) auto auto, 1fr"
-        justifyContent="start"
-        alignItems="center"
-        columnGap="base"
-        rowGap="small-100"
-      >
-        <s-text>{t.rules.taxCodeLabel}</s-text>
-        <s-badge tone={data.rules.taxCode === "unmanaged" ? "neutral" : "info"}>
-          {t.rules.taxCode[data.rules.taxCode]}
-        </s-badge>
-        <s-text>{t.rules.pecLabel}</s-text>
-        {/* La forma breve tiene il badge leggibile anche a 320 px. */}
-        <s-badge tone={data.rules.pec === "unmanaged" ? "neutral" : "info"}>
-          {data.rules.pec === "required_when_company"
-            ? t.home.pecRequiredForCompanies
-            : t.rules.pec[data.rules.pec]}
-        </s-badge>
-        <s-text>{t.home.messagesLabel}</s-text>
-        <s-badge tone={data.messagesDefault ? "neutral" : "info"}>
-          {data.messagesDefault ? t.home.messagesDefault : t.home.messagesCustom}
-        </s-badge>
-      </s-grid>
-    </s-query-container>
+    // Il contenitore bilancia lo spazio nativo della card e del titolo successivo.
+    <div className="cf-trial-notice">
+      <MotionBanner tone={continuity.tone}>
+        {continuity.text}
+        {continuity.action ? (
+          <s-button slot="secondary-actions" onClick={showPlans} disabled={busy}>
+            {continuity.action}
+          </s-button>
+        ) : null}
+      </MotionBanner>
+    </div>
   );
 }
 
-function HomeValidationAction({
+// P2-T4: le regole sono valori di configurazione, quindi badge neutri; il verde resta agli esiti.
+function HomeRulesSummary({ data, t }: { data: HomeData; t: Texts }) {
+  return (
+    <StatusList
+      rows={[
+        {
+          key: "taxCode",
+          label: <s-text>{t.rules.taxCodeLabel}</s-text>,
+          value: <s-badge tone="neutral">{t.rules.taxCode[data.rules.taxCode]}</s-badge>,
+        },
+        {
+          key: "pec",
+          label: <s-text>{t.rules.pecLabel}</s-text>,
+          // La forma breve tiene il badge leggibile anche a 320 px.
+          value: (
+            <s-badge tone="neutral">
+              {data.rules.pec === "required_when_company"
+                ? t.home.pecRequiredForCompanies
+                : t.rules.pec[data.rules.pec]}
+            </s-badge>
+          ),
+        },
+        {
+          key: "messages",
+          label: <s-text>{t.home.messagesLabel}</s-text>,
+          value: (
+            <s-badge tone="neutral">
+              {data.messagesDefault ? t.home.messagesDefault : t.home.messagesCustom}
+            </s-badge>
+          ),
+        },
+      ]}
+    />
+  );
+}
+
+// H-2: il primario è sempre il primo bottone. Da disattivata, con un diritto attivo, è
+// riattivare; altrimenti è modificare le regole. La disattivazione resta un'azione terziaria
+// critica: confermata dalla finestra, mai più evidente del primario.
+function HomeValidationActions({
   data,
   entitled,
   busy,
@@ -155,14 +163,23 @@ function HomeValidationAction({
   submit: Submit;
   t: Texts;
 }) {
-  if (data.validationEnabled) {
-    return (
-      <s-button tone="critical" commandFor="deactivate" command="--show" disabled={busy}>
-        {t.home.deactivate}
-      </s-button>
-    );
-  }
-  return (
+  const activateFirst = !data.validationEnabled && entitled;
+  const editRules = (
+    <s-button href="/app/rules" variant={activateFirst ? "secondary" : "primary"}>
+      {t.home.editRules}
+    </s-button>
+  );
+  const toggle = data.validationEnabled ? (
+    <s-button
+      variant="tertiary"
+      tone="critical"
+      commandFor="deactivate"
+      command="--show"
+      disabled={busy}
+    >
+      {t.home.deactivate}
+    </s-button>
+  ) : (
     <s-button
       variant={entitled ? "primary" : "secondary"}
       disabled={!entitled || busy}
@@ -172,13 +189,19 @@ function HomeValidationAction({
       {t.home.activate}
     </s-button>
   );
+  return (
+    <s-stack direction="inline" gap="base">
+      {activateFirst ? toggle : editRules}
+      {activateFirst ? editRules : toggle}
+    </s-stack>
+  );
 }
 
 export function HomeAside({
   nextStep,
   t,
 }: {
-  nextStep: { text: string; href: string | null; label: string | null };
+  nextStep: { text: string; href: string | null; label: string };
   t: Texts;
 }) {
   return (
@@ -186,20 +209,21 @@ export function HomeAside({
       <s-section heading={t.home.nextHeading}>
         <s-stack direction="block" gap="small-100" alignItems="start">
           <s-paragraph>{nextStep.text}</s-paragraph>
-          {nextStep.href ? <s-link href={nextStep.href}>{nextStep.label}</s-link> : null}
+          {nextStep.href ? (
+            <s-link href={nextStep.href}>{nextStep.label}</s-link>
+          ) : (
+            <s-link onClick={showPlans}>{nextStep.label}</s-link>
+          )}
         </s-stack>
       </s-section>
       <s-section heading={t.home.helpHeading}>
         <s-stack direction="block" gap="small-100" alignItems="start">
           <s-paragraph>{t.home.helpBody}</s-paragraph>
           <s-link href="/app/guide">{t.nav.guide}</s-link>
+          {/* P2-T5: dentro la sezione, allineato al testo come nella Guida. */}
+          <BrandLockup />
         </s-stack>
       </s-section>
-      <s-stack direction="inline" gap="base" alignItems="center" justifyContent="center">
-        <s-box maxInlineSize="130px">
-          <s-image src="/cf-ready-lockup.svg" alt="" aspectRatio="16/3" objectFit="contain" />
-        </s-box>
-      </s-stack>
     </>
   );
 }

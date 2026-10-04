@@ -111,6 +111,13 @@ describe("Guida", () => {
       "success",
       "success",
     ]);
+    expect(text).toContain(it.guide.diagnosis.checked);
+    expect(
+      view.container.querySelectorAll('#validation-diagnosis s-link[href="/app/rules"]'),
+    ).toHaveLength(3);
+    expect(text).toContain(it.guide.diagnosis.openRules);
+    expect(text).toContain(it.guide.diagnosis.openLabels);
+    expect(text).toContain(it.guide.diagnosis.openAddress2);
     router.fetcher.data = {
       ok: true,
       check: {
@@ -125,6 +132,20 @@ describe("Guida", () => {
         .slice(3)
         .map((icon) => icon.getAttribute("tone")),
     ).toEqual(["warning", "warning"]);
+    expect(view.container.textContent).toContain(it.guide.diagnosis.needsAttention);
+    router.fetcher.data = {
+      ok: true,
+      check: {
+        ...(router.fetcher.data as { check: object }).check,
+        checkoutLabelsStatus: "unknown",
+        address2Classification: "unknown",
+      },
+    };
+    await view.rerender(<Guide />);
+    expect(view.container.textContent).toContain(it.guide.diagnosis.incomplete);
+    expect([
+      ...view.container.querySelectorAll('#validation-diagnosis s-icon[tone="info"]'),
+    ]).toHaveLength(2);
   });
 
   test("la card Assistenza segue testo, argomento, invio e lascia il salto in fondo", async () => {
@@ -153,12 +174,10 @@ describe("Guida", () => {
     );
     expect(order.every((index) => index >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
-    for (const button of support.querySelectorAll("s-button")) {
-      expect(button.getAttribute("inlineSize") ?? button.getAttribute("inline-size")).toBe("fill");
-    }
+    expect(support.querySelector('s-button[variant="primary"]')).toBeNull();
     // G-B2: il salto porta il focus alla sezione di arrivo.
     await click(
-      [...support.querySelectorAll("s-button")].find(
+      [...support.querySelectorAll("s-link")].find(
         (button) => button.textContent === it.guide.diagnosis.heading,
       )!,
     );
@@ -194,7 +213,7 @@ describe("Guida", () => {
     ).toBe(false);
     expect(view.container.querySelector("#support")).not.toBeNull();
     expect(
-      [...view.container.querySelectorAll("#support s-button")].some((button) =>
+      [...view.container.querySelectorAll("#support s-link")].some((button) =>
         button.textContent?.includes(texts("it").guide.diagnosis.heading),
       ),
     ).toBe(true);

@@ -1,22 +1,24 @@
-/* Fondo della pagina Polaris precedente: le card restano componenti nativi. */
 body {
-  background: var(--p-color-bg, #f1f1f1);
   margin: 0;
   min-block-size: 100vh;
 }
 
-/* Un solo gruppo laterale conserva la stessa distanza fra tutte le card. */
-s-stack[slot="aside"] {
+/* Il ripristino visivo della v1 non modifica il layout nativo della v2. */
+html[data-polaris-version="1"] body {
+  background: var(--p-color-bg, #f1f1f1);
+}
+
+html[data-polaris-version="1"] s-stack[slot="aside"] {
   display: block;
 }
 
 @media (max-width: 600px) {
-  body {
+  html[data-polaris-version="1"] body {
     padding-inline: 16px;
   }
 
   /* Su mobile Polaris separa le due colonne con 32 px: uniformiamo a 16 px. */
-  s-stack[slot="aside"] {
+  html[data-polaris-version="1"] s-stack[slot="aside"] {
     margin-block-start: -16px;
   }
 }
@@ -24,33 +26,4 @@ s-stack[slot="aside"] {
 /* Un banner che si porta in vista resta separato dalle card che seguono. */
 .cf-reveal-banner {
   margin-block-end: var(--p-space-400, 1rem);
-}
-
-/* Stessa freccia di "Campo Interno" per i dettagli espandibili leggeri (FAQ, simulatore),
-   al posto del triangolo del browser. */
-.cf-disclosure {
-  cursor: pointer;
-  list-style: none;
-  padding-inline-end: 1.75rem;
-  position: relative;
-}
-
-.cf-disclosure::-webkit-details-marker {
-  display: none;
-}
-
-.cf-disclosure::after {
-  block-size: 0.45rem;
-  border-block-end: 1.5px solid currentColor;
-  border-inline-end: 1.5px solid currentColor;
-  content: "";
-  inline-size: 0.45rem;
-  inset-block-start: 50%;
-  inset-inline-end: 0.5rem;
-  position: absolute;
-  transform: translateY(-65%) rotate(45deg);
-}
-
-details[open] > .cf-disclosure::after {
-  transform: translateY(-35%) rotate(225deg);
 }

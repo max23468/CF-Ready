@@ -6,6 +6,195 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.16 — 4 ottobre 2026
+
+- impila etichetta e badge delle righe di stato fino a 400 px, così Home e
+  riepilogo della configurazione non troncano i badge a 390 e 320 px (C-2);
+- toglie la nota «Tutti i mercati usano questo testo» quando Shopify non
+  conferma la configurazione di alcuni mercati, perché contraddiceva la
+  richiesta di controllarli (C-3);
+- registra nell’audit di Claude la verifica finale in Chrome degli stati
+  ancora aperti;
+- non avvia il deploy Development quando una PR unita cambia solo
+  documentazione. Promossa in Production su autorizzazione dell’owner.
+
+Status rows stack label and badge up to 400 px so badges are no longer
+truncated on narrow screens. The “All markets use this text” note no longer
+appears when Shopify cannot confirm some markets. Documentation-only
+changes no longer trigger a Development deploy.
+
+## 2.0.15 — 4 ottobre 2026
+
+- corregge l’istruzione delle bozze non salvate in italiano e inglese:
+  descrive come salvare o scartare le modifiche senza dipendere dai nomi
+  dei pulsanti della barra Shopify;
+- aggiorna l’audit di Claude con la verifica indipendente in Chrome,
+  i difetti residui e i limiti delle prove live.
+  Pubblicazione solo Development, senza promozione Production.
+
+Unsaved draft guidance describes saving or discarding changes without
+depending on Shopify’s button labels. The audit records current Chrome
+evidence, remaining findings and live verification limits.
+
+## 2.0.14 — 4 ottobre 2026
+
+- usa tutta la larghezza della FAQ per le risposte, senza la fascia vuota
+  introdotta dal limite di 70 caratteri;
+- centra il link «Il controllo non compare?» tra i divisori dell’assistenza
+  Polaris 2, mantenendo la spaziatura Polaris 1.
+  Pubblicazione solo Development, senza promozione Production.
+
+FAQ answers use the available card width. The diagnosis link is centred
+between the support dividers in Polaris 2.
+
+## 2.0.13 — 4 ottobre 2026
+
+- allinea domande e risposte delle FAQ e limita la larghezza delle risposte;
+- raccoglie la diagnosi in un riquadro con riepilogo, link distinti e icone
+  informative; alleggerisce le azioni di assistenza;
+- mostra badge nel riepilogo onboarding e mette l’azione principale per prima;
+- spiega come lasciare una bozza aperta e corregge i testi inglesi dei piani e
+  delle etichette. Pubblicazione solo Development, senza promozione Production.
+
+FAQ answers are easier to read, diagnostics have a summary and distinct links,
+and onboarding uses consistent status badges and action order. Unsaved drafts
+show navigation guidance; English plan and setup headings are corrected.
+
+## 2.0.12 — 4 ottobre 2026
+
+- distingue gli esempi dei messaggi dai campi modificabili anche su mobile;
+- raccoglie nota e anteprima nello stesso riquadro e rimuove il badge del
+  messaggio selezionato;
+- raggruppa i messaggi per disponibilità nelle regole, senza indicatori ripetuti,
+  in italiano e inglese. Sidekick resta accettato per decisione dell'owner.
+  Pubblicazione solo Development, senza promozione Production.
+
+Customer message examples are clearer on mobile, keep their explanatory note
+inside the preview, and group rule availability without repeated badges.
+
+## 2.0.11 — 4 ottobre 2026
+
+- sposta la procedura di verifica manuale delle etichette in una modale nativa,
+  elimina gli stati ripetuti e allinea modalità, ultima lettura e azioni;
+- distingue i gruppi del simulatore e spiega quando Shopify non mostra i
+  campi gestiti, con testi italiani e inglesi;
+- aggiorna i percorsi dell’Admin italiano a «Check-out» e mostra le
+  conseguenze della disattivazione sotto la casella di gestione.
+- rimuove dal passo 2 dell’onboarding l’intera sezione delle etichette,
+  comprese anteprime, controllo guidato e richiesta dei permessi; la gestione
+  resta in Regole checkout e il salvataggio conserva lo stato già configurato.
+  Pubblicazione solo Development, senza promozione Production.
+
+## 2.0.10 — 4 ottobre 2026
+
+- rimuove la configurazione del campo «Interno» dal passo 2 dell’onboarding,
+  mantenendola in Regole checkout;
+- mostra al passo 3 soltanto i messaggi di errore previsti dalle regole scelte,
+  con testi italiani e inglesi aggiornati e una spiegazione quando entrambi
+  i campi sono non gestiti.
+  Pubblicazione solo Development, senza promozione Production.
+
+## 2.0.9 — 4 ottobre 2026
+
+- nella Home mette sempre per primo il bottone principale e rende terziaria
+  la disattivazione, colora di verde «Attiva» solo con almeno un campo
+  configurato e dà a ogni «Prossimo passo» un testo e un'azione;
+- durante la prova mostra la data soltanto nel banner;
+- nella scelta del piano usa il nome come titolo e dà a ogni opzione una
+  riga descrittiva. Pubblicazione solo Development, senza promozione
+  Production.
+
+## 2.0.8 — 4 ottobre 2026
+
+- mostra gli esempi dei messaggi come campi nativi in sola lettura con
+  l'errore in linea e il confronto delle etichette come tabella nativa;
+- porta fuori dalla card i titoli dei passi dell'onboarding e della
+  diagnosi, usa titoli nei gruppi del simulatore e badge neutri nel passo 3,
+  con «Consigliato» nel tono del banner della prova;
+- toglie ripetizioni in Regole, Messaggi e onboarding e raggruppa per
+  vicinanza i risultati della diagnosi e le scelte del passo 2;
+- completa l'audit grafico Polaris 2 con la verifica EN-3 e le correzioni.
+  Pubblicazione solo Development, senza promozione Production.
+
+## 2.0.7 — 4 ottobre 2026
+
+- porta l'esito del simulatore in alto a destra nell'intestazione e toglie la
+  nota sulle etichette e la spiegazione degli scenari, lasciando a «Prova uno
+  scenario» l'etichetta nativa del campo;
+- rimette il banner della prova nella Home subito dopo la card della
+  validazione, equidistante dalla card e dal titolo successivo, con «Scegli
+  un piano» nello slot nativo del banner;
+- include l'audit grafico di Claude e le prove delle verifiche Development
+  sulle versioni 2.0.5 e 2.0.6.
+  Pubblicazione solo Development, senza promozione Production.
+
+## 2.0.6 — 4 ottobre 2026
+
+- affianca al 50% regole e simulatore in Regole e porta le etichette a tutta
+  larghezza sotto, così simulatore e regole restano in vista insieme;
+- dà al simulatore un unico fondo panna e il «Continua» verde bottiglia, unico
+  accento di brand ammesso nell'app (brand A-19);
+- toglie dalla Home il banner della prova in corso, ora con «Scegli un piano»
+  nella sezione Piano, e compatta righe di stato, confronto delle etichette e
+  aiuto del campo Interno, con un solo badge di stato per pannello.
+  Pubblicazione solo Development, senza promozione Production.
+
+## 2.0.5 — 4 ottobre 2026
+
+- porta il simulatore di Regole nella colonna laterale nativa, così le quattro
+  pagine condividono lo stesso impianto e il bordo sinistro non si sposta;
+- unifica i disclosure su `details` con il chevron Polaris, il logo in due sole
+  forme senza fondo panna e le righe etichetta-valore in un'unica griglia;
+- rende neutri i badge di configurazione e possibilità, usa «» per tutte le
+  citazioni italiane e un solo nome inglese per il Codice Fiscale.
+  Pubblicazione solo Development, senza promozione Production.
+
+## 2.0.4 — 3 ottobre 2026
+
+- uniforma i titoli principali con la sezione FAQ nativa Polaris e completa
+  il titolo inglese, conservando il comando globale anche a 390 px;
+- distingue la scelta iniziale dei testi checkout dalle verifiche manuali
+  effettivamente pendenti, con badge brevi in italiano e inglese;
+- riduce il banner della prova nella Home e mette in risalto prezzi e
+  periodicità, conservando condizioni commerciali e azioni esistenti.
+  Pubblicazione solo Development, senza promozione Production.
+
+## 2.0.3 — 3 ottobre 2026
+
+- affida a Polaris le cornici dei pannelli etichette, i separatori FAQ e gli
+  esempi dei messaggi, rimuovendo i fallback della vecchia palette;
+- mantiene completi i badge a 390 px, semplifica i casi etichette e impedisce
+  il taglio dei contenuti nelle griglie interne;
+- allinea icona e testo informativo su mobile e presenta i messaggi come
+  esempi, con nota bilingue sulla resa Shopify, anche nell'onboarding.
+  Pubblicazione solo Development, senza promozione Production.
+
+## 2.0.2 — 3 ottobre 2026
+
+- consente l'installazione dell'app Development sui due soli store autorizzati,
+  `cf-ready-dev` e `cf-ready-polaris-2`, per confrontare il vecchio Admin con
+  la preview del nuovo design; conserva il rifiuto di tutti gli altri domini
+  e vincola il preflight alla lista esatta. Pubblicazione solo Development.
+
+## 2.0.1 — 3 ottobre 2026
+
+- include gli errori di sincronizzazione delle etichette nei conteggi e nei
+  controlli owner ed esclude gli abbonamenti di test dai negozi paganti;
+- conserva l'ultima lettura Shopify anche quando la sincronizzazione è parziale
+  e distingue le osservazioni D1 dalla verifica effettiva del checkout;
+- aggiorna le prove M12 e lo stato dei requisiti Built for Shopify.
+
+## 2.0.0 — 3 ottobre 2026
+
+Milestone di design scelta dall'owner il 3 ottobre 2026, pubblicazione limitata
+a Development senza promozione in Production.
+
+- prepara Polaris 2.0 release candidate soltanto in Development, con tipi
+  aggiornati e script allineato al preload Shopify anche nei build ottimizzati;
+- lascia alla v2 fondo e spazi nativi e conserva il ripristino visivo della
+  v1 in Production; verifica le schermate con entrambi i runtime in Chromium
+  e WebKit, con fixture sintetiche. Upgrade riservato a Development.
+
 ## 1.15.24 — 3 ottobre 2026
 
 - consente al browser di caricare il webmanifest del sito pubblico dallo stesso

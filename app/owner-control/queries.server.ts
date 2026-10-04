@@ -1,5 +1,6 @@
 import { planPrices, SHOPIFY_APP_FEES } from "../plans.server";
 import { FUNNEL_QUERY, parseFunnel } from "../reporting/funnel";
+import { OPEN_STORE_ERROR_FILTER } from "../reporting/operational";
 import {
   PERFORMANCE_QUERY,
   PERFORMANCE_TIMING_QUERY,
@@ -53,6 +54,8 @@ export type ShopRow = {
   validation_state_revision: number | null;
   last_sync_at: string | null;
   last_error_code: string | null;
+  checkout_labels_last_error_code: string | null;
+  checkout_labels_last_read_at: string | null;
   trial_status: string | null;
   trial_ends_at: string | null;
   entitlement_status: string | null;
@@ -82,6 +85,9 @@ const SHOP_SELECT = `
   SELECT s.id, s.shop_domain, s.display_name, s.installation_status, s.installed_at,
     s.country_code, a.onboarding_status, a.validation_enabled, a.config_schema_version,
     a.config_hash, a.validation_state_revision, a.last_sync_at, a.last_error_code,
+    a.checkout_labels_last_error_code,
+    (SELECT MAX(last_observed_at) FROM checkout_label_slots
+      WHERE shop_id = s.id) AS checkout_labels_last_read_at,
     t.status AS trial_status, t.ends_at AS trial_ends_at,
     b.entitlement_status, b.plan_kind, b.pricing_generation, b.current_period_start,
     b.current_period_end, b.shopify_status, b.is_test AS billing_is_test,
@@ -117,7 +123,7 @@ export async function readDashboard(db: D1Database) {
           COUNT(*) FILTER (WHERE s.installation_status = 'active') AS active_shops,
           COUNT(*) FILTER (WHERE s.installation_status = 'active' AND a.onboarding_status = 'completed') AS onboarding_completed,
           COUNT(*) FILTER (WHERE s.installation_status = 'active' AND a.validation_enabled = 1) AS validation_active,
-          COUNT(*) FILTER (WHERE s.installation_status = 'active' AND a.last_error_code IS NOT NULL) AS shops_with_error,
+          COUNT(*) FILTER (WHERE s.installation_status = 'active' AND ${OPEN_STORE_ERROR_FILTER}) AS shops_with_error,
           COUNT(*) FILTER (WHERE s.installation_status = 'active' AND t.status = 'active' AND t.ends_at >= date('now')) AS trials_active,
           COUNT(*) FILTER (WHERE s.installation_status = 'active' AND b.entitlement_status = 'active' AND b.plan_kind = 'monthly' AND b.is_test = 0) AS monthly,
           COUNT(*) FILTER (WHERE s.installation_status = 'active' AND b.entitlement_status = 'active' AND b.plan_kind = 'annual' AND b.is_test = 0) AS annual,
@@ -148,7 +154,7 @@ const FILTER_SQL: Record<ShopsFilter, string> = {
   trial: "t.status = 'active' AND t.ends_at >= date('now')",
   paid: "b.entitlement_status IN ('active', 'ending') AND b.plan_kind != 'none' AND b.is_test = 0",
   validation_off: "s.installation_status = 'active' AND COALESCE(a.validation_enabled, 0) = 0",
-  issues: "s.installation_status = 'active' AND a.last_error_code IS NOT NULL",
+  issues: `s.installation_status = 'active' AND ${OPEN_STORE_ERROR_FILTER}`,
 };
 
 export async function readShops(db: D1Database, filter: ShopsFilter, page: number) {
@@ -463,7 +469,7 @@ export async function readIssues(db: D1Database) {
   const [[state, webhooks, notifications, control, partner], performance] = await Promise.all([
     db.batch([
       db.prepare(
-        `SELECT COUNT(*) AS count FROM app_state a JOIN shops s ON s.id = a.shop_id WHERE s.installation_status = 'active' AND a.last_error_code IS NOT NULL`,
+        `SELECT COUNT(*) AS count FROM app_state a JOIN shops s ON s.id = a.shop_id WHERE s.installation_status = 'active' AND ${OPEN_STORE_ERROR_FILTER}`,
       ),
       db.prepare(WEBHOOK_ISSUES_QUERY),
       db.prepare(
@@ -509,8 +515,10 @@ export async function readErrors(db: D1Database) {
             AND datetime(occurred_at) >= datetime('now', '-28 days')
            GROUP BY error_code
          UNION ALL
-         SELECT last_error_code, COUNT(*), MAX(updated_at) FROM app_state
-          WHERE last_error_code IS NOT NULL GROUP BY last_error_code
+         SELECT COALESCE(a.last_error_code, a.checkout_labels_last_error_code),
+                COUNT(*), MAX(a.updated_at) FROM app_state a
+          WHERE ${OPEN_STORE_ERROR_FILTER}
+          GROUP BY COALESCE(a.last_error_code, a.checkout_labels_last_error_code)
          UNION ALL
          SELECT error_code, COUNT(*), MAX(processed_at) FROM webhook_events
           WHERE status = 'failed' AND error_code IS NOT NULL GROUP BY error_code

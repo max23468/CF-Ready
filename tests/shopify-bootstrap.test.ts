@@ -1,7 +1,6 @@
 import { beforeEach, expect, test, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
-  allowedShop: "",
   bindings: {} as Record<string, unknown>,
   shopifyOptions: [] as Array<Record<string, unknown>>,
 }));
@@ -18,12 +17,6 @@ const mocks = vi.hoisted(() => ({
 vi.mock("cloudflare:workers", () => ({
   get env() {
     return state.bindings;
-  },
-}));
-
-vi.mock("../app/env.server", () => ({
-  get ALLOWED_SHOP() {
-    return state.allowedShop;
   },
 }));
 
@@ -52,7 +45,6 @@ vi.mock("@shopify/shopify-app-react-router/server", () => ({
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
-  state.allowedShop = "";
   state.bindings = { DB: { name: "db" } };
   state.shopifyOptions = [];
   mocks.shopifyApp.mockImplementation((options: Record<string, unknown>) => {
@@ -107,8 +99,28 @@ test("il bootstrap inoltra binding espliciti e dominio custom", async () => {
   });
 });
 
-test("afterAuth rifiuta uno store diverso da quello Development consentito", async () => {
-  state.allowedShop = "cf-ready-dev.myshopify.com";
+test.each(["development", "production", undefined, "unknown"])(
+  "il preload Shopify corrisponde al runtime Polaris del documento (%s)",
+  async (environment) => {
+    state.bindings.APP_ENVIRONMENT = environment;
+    await import("../app/shopify.server");
+    const { loader } = await import("../app/root");
+    const document = loader({ request: new Request("https://cf-ready.test/app") } as never);
+    expect(state.shopifyOptions[0].polarisUrl).toBe(document.polarisUrl);
+    expect(document.polarisUrl).toBe(
+      environment === "development"
+        ? "https://cdn.shopify.com/shopifycloud/polaris-2.0-rc.js"
+        : "https://cdn.shopify.com/shopifycloud/polaris-1.js",
+    );
+  },
+);
+
+test.each([
+  "wrong.myshopify.com",
+  "cf-ready-polaris-2.myshopify.com.attacker.test",
+  "ready-polaris-2.myshopify.com",
+])("afterAuth rifiuta uno store fuori dalla lista Development (%s)", async (shop) => {
+  state.bindings.ALLOWED_SHOP = "cf-ready-dev.myshopify.com,cf-ready-polaris-2.myshopify.com";
   await import("../app/shopify.server");
   const afterAuth = (
     state.shopifyOptions[0].hooks as {
@@ -116,12 +128,26 @@ test("afterAuth rifiuta uno store diverso da quello Development consentito", asy
     }
   ).afterAuth;
 
-  await expect(
-    afterAuth({ session: { shop: "wrong.myshopify.com" }, admin: {} }),
-  ).rejects.toMatchObject({ status: 403 });
-  expect(mocks.refuseInstall).toHaveBeenCalledWith(state.bindings.DB, "wrong.myshopify.com");
+  await expect(afterAuth({ session: { shop }, admin: {} })).rejects.toMatchObject({ status: 403 });
+  expect(mocks.refuseInstall).toHaveBeenCalledWith(state.bindings.DB, shop);
   expect(mocks.recordInstallOnce).not.toHaveBeenCalled();
 });
+
+test.each(["cf-ready-dev.myshopify.com", "cf-ready-polaris-2.myshopify.com"])(
+  "afterAuth consente lo store Development autorizzato (%s)",
+  async (shop) => {
+    state.bindings.ALLOWED_SHOP = "cf-ready-dev.myshopify.com,cf-ready-polaris-2.myshopify.com";
+    await import("../app/shopify.server");
+    const afterAuth = (
+      state.shopifyOptions[0].hooks as {
+        afterAuth: (input: { session: { shop: string } }) => Promise<void>;
+      }
+    ).afterAuth;
+    await afterAuth({ session: { shop } });
+    expect(mocks.refuseInstall).not.toHaveBeenCalled();
+    expect(mocks.recordInstallOnce).toHaveBeenCalledWith(state.bindings.DB, shop);
+  },
+);
 
 test("afterAuth registra l'installazione senza duplicare la riconciliazione della rotta", async () => {
   await import("../app/shopify.server");

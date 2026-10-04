@@ -8,18 +8,6 @@
   min-block-size: 100%;
 }
 
-.cf-data-list {
-  display: grid;
-  gap: 8px;
-}
-
-.cf-data-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-}
-
 @keyframes cf-page-exit {
   to {
     opacity: 0;
@@ -54,12 +42,5 @@
   .cf-motion-reveal,
   .cf-motion-swap {
     animation: cf-content-enter var(--cf-motion-duration-base) var(--cf-motion-ease-out) both;
-  }
-}
-
-@media (max-width: 360px) {
-  .cf-data-row {
-    grid-template-columns: 1fr;
-    gap: 4px;
   }
 }

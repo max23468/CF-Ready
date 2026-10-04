@@ -83,7 +83,7 @@ Function API `2026-10` sulle fonti Shopify correnti e rigenera con la CLI.
 
 | Ambiente | Branch | Versione Shopify |
 | --- | --- | --- |
-| Development (`dev`, `cf-ready-dev.myshopify.com`) | `develop` | `X.Y.Z-dev.<tree>` |
+| Development (`dev`, `cf-ready-dev.myshopify.com`, `cf-ready-polaris-2.myshopify.com`) | `develop` | `X.Y.Z-dev.<tree>` |
 | Production (`prod`) | `main` | SemVer di `package.json` |
 
 - PR ordinarie verso `develop` in squash, titoli e commit in Conventional
@@ -97,7 +97,8 @@ Function API `2026-10` sulle fonti Shopify correnti e rigenera con la CLI.
   per fix) con manifest, lockfile e changelog, e resta la stessa fino alla
   promozione. Documentazione e governance agentica da sole non la cambiano.
 - Prima di usare il connettore Shopify leggi l'identità dello store: in
-  sviluppo scrivi soltanto su `cf-ready-dev.myshopify.com`.
+  sviluppo scrivi soltanto su `cf-ready-dev.myshopify.com` o sullo store di
+  preview autorizzato `cf-ready-polaris-2.myshopify.com`.
 - Prima di una scrittura remota identifica ambiente, account e store target e
   verifica credenziali, backup e rollback senza esporre segreti.
 
@@ -109,7 +110,7 @@ negazioni non lo autorizzano. Il ciclo lo esegue il coordinatore, dal worktree
 pulito del branch:
 
 ```sh
-npm run publish:development   # PR → develop, squash, deploy Development
+npm run publish:development   # PR → develop, squash, deploy Development (non per corsia docs)
 npm run publish:production    # + promozione, deploy, readback, release
 ```
 
