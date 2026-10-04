@@ -918,3 +918,29 @@ risposta occupa tutta la larghezza disponibile. Il link riceve lo spazio
 aggiuntivo sopra richiesto dall’aside Polaris 2; Polaris 1 conserva la sua
 spaziatura. I controlli con Polaris reale misurano sia la larghezza delle
 risposte aperte sia la distanza del link dai due divisori.
+
+### 27.2 Riscontro finale Chrome, Development 2.0.14
+
+[#647](https://github.com/max23468/CF-Ready/pull/647) unita in `1c1c2fa`.
+Il [deploy Development](https://github.com/max23468/CF-Ready/actions/runs/37225063770)
+ha pubblicato `2.0.14-dev.05567710becd`, Worker deployment
+`387abfc4-d0f0-410d-9322-0a0384db8d0d`, con migrazioni, smoke e readback verdi.
+Rollback: Shopify `2.0.13-dev.94cb8af17d9a`, Worker
+`65903690-14fb-47bb-99cb-bb41522895dc`. Nessuna promozione Production.
+
+Verifica nella sessione Chrome dello store `cf-ready-polaris-2`, italiano:
+
+| Finding | Riscontro corrente |
+| --- | --- |
+| G-1, G-2 | Tutte le 14 FAQ aperte: risposta e riga larghe 728 px, `max-inline-size: none`; domande semibold, testo secondario. |
+| G-3, G-4 | Diagnosi con riepilogo di attenzione, link specifici e icone coerenti nello stato osservato; assistenza secondaria, copia terziaria e salto alla diagnosi con focus. Link nell’aside a 34 px dal divisore superiore e 34,5 px da quello inferiore. Lo stato diagnostico ignoto è coperto localmente. |
+| O-1, O-2, O-3, O-4 | Passi 1–3 osservati, con soli controlli CF/PEC nel passo 2 ed esempi nativi nel passo 3; restano valide le chiusure precedenti. |
+| O-5 | Passo 4 osservato a 1440×666 e 390×844: badge neutri, PEC breve e senza overflow, azione principale prima di Indietro. |
+| O-6 | Corretto e verificato localmente. Lo store già configurato mostra il riepilogo di revisione; la schermata di completamento iniziale non è stata esposta live. |
+| F-2 | Una bozza temporanea nelle regole mostra l’avviso e blocca la navigazione; ripristinato il valore iniziale senza salvare. |
+| RW-1 | Home senza overflow a 390×844 nello stato osservato: validazione attiva e prova gratuita. Restano parziali gli altri stati dipendenti dall’host. |
+| RW-2 | A 390×844 il simulatore precede le etichette; nessun overflow orizzontale. |
+| EN-1, EN-2, EN-3 | Controlli locali completati; verifica inglese in Chrome esclusa su richiesta dell’owner. |
+
+Le prove live non chiudono gli stati non osservati. Le viewport mobili sono
+emulate in Chrome. Nessuna modifica alle regole dello store è stata salvata.
