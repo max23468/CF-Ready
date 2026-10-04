@@ -14,11 +14,14 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   conferma la configurazione di alcuni mercati, perché contraddiceva la
   richiesta di controllarli (C-3);
 - registra nell’audit di Claude la verifica finale in Chrome degli stati
-  ancora aperti. Pubblicazione solo Development, senza promozione Production.
+  ancora aperti;
+- non avvia il deploy Development quando una PR unita cambia solo
+  documentazione. Promossa in Production su autorizzazione dell’owner.
 
 Status rows stack label and badge up to 400 px so badges are no longer
 truncated on narrow screens. The “All markets use this text” note no longer
-appears when Shopify cannot confirm some markets.
+appears when Shopify cannot confirm some markets. Documentation-only
+changes no longer trigger a Development deploy.
 
 ## 2.0.15 — 4 ottobre 2026
 
