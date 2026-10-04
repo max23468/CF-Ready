@@ -1,0 +1,11 @@
+/* P2-T8: etichetta e valore vanno a capo nella propria colonna senza uscire dalla riga. L'etichetta
+   occupa al massimo metà della lista: oltre va a capo invece di schiacciare il valore. */
+.cf-status-list__label,
+.cf-status-list__value {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.cf-status-list__label {
+  max-inline-size: 50cqi;
+}

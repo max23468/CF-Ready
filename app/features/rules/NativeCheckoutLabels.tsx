@@ -16,6 +16,7 @@ import {
   type FiscalLabelContext,
 } from "./checkout-labels-presentation";
 import { RULES_INTENTS, type SubmitCheckoutLabelsIntent } from "./rules-intents";
+import { Disclosure } from "../../ui-disclosure";
 
 export const NATIVE_LABELS_ID = "checkout-native-labels";
 
@@ -79,9 +80,12 @@ export function NativeCheckoutLabels({
   });
 
   return (
-    <s-box borderWidth="base" borderRadius="base">
-      <details className="checkout-labels-disclosure" id={NATIVE_LABELS_ID}>
-        <summary className="checkout-labels-disclosure__summary">
+    <Disclosure
+      panel
+      className="checkout-labels-disclosure"
+      id={NATIVE_LABELS_ID}
+      summary={
+        <>
           <div className="checkout-labels-title">
             <s-heading>{copy.nativeHeading}</s-heading>
             {/* Una scelta del merchant è neutra, non un successo (come R-B7). */}
@@ -90,30 +94,29 @@ export function NativeCheckoutLabels({
             </s-badge>
           </div>
           <s-paragraph color="subdued">{presentation.summary}</s-paragraph>
-        </summary>
-        <div className="checkout-labels-disclosure__body">
-          <NativeLabelsContent
-            locale={locale}
-            timeZone={timeZone}
-            rules={rules}
-            snapshot={snapshot}
-            state={state}
-            enabled={enabled}
-            busy={busy}
-            activeFamily={activeFamily}
-            storefrontUrl={storefrontUrl}
-            checkoutSettingsUrl={checkoutSettingsUrl}
-            automaticAvailable={automaticAvailable}
-            displayedContexts={displayedContexts}
-            pendingTotal={pendingContexts.length}
-            guidedConfirmations={guidedConfirmations}
-            onEnabledChange={onEnabledChange}
-            submitIntent={submitIntent}
-            refreshing={refreshing}
-          />
-        </div>
-      </details>
-    </s-box>
+        </>
+      }
+    >
+      <NativeLabelsContent
+        locale={locale}
+        timeZone={timeZone}
+        rules={rules}
+        snapshot={snapshot}
+        state={state}
+        enabled={enabled}
+        busy={busy}
+        activeFamily={activeFamily}
+        storefrontUrl={storefrontUrl}
+        checkoutSettingsUrl={checkoutSettingsUrl}
+        automaticAvailable={automaticAvailable}
+        displayedContexts={displayedContexts}
+        pendingTotal={pendingContexts.length}
+        guidedConfirmations={guidedConfirmations}
+        onEnabledChange={onEnabledChange}
+        submitIntent={submitIntent}
+        refreshing={refreshing}
+      />
+    </Disclosure>
   );
 }
 
@@ -370,42 +373,40 @@ function LabelComparison({
               </s-stack>
             ) : null}
             {pendingSlotIds.length > 0 ? (
-              <details className="checkout-labels-disclosure checkout-label-instructions">
-                <summary className="checkout-labels-disclosure__summary">
-                  <s-text type="strong">{copy.manualHeading}</s-text>
-                </summary>
-                <div className="checkout-labels-disclosure__body">
-                  <s-stack direction="block" gap="small-200">
-                    <s-ordered-list>
-                      {copy
-                        .manualSteps(
-                          context.language,
-                          context.marketName,
-                          context.primary,
-                          context.verificationMarkets,
-                        )
-                        .map((step) => (
-                          <s-list-item key={step}>{step}</s-list-item>
-                        ))}
-                    </s-ordered-list>
-                    <s-link href={storefrontUrl} target="_blank">
-                      {copy.openStorefront}
-                    </s-link>
-                    <s-link href={checkoutSettingsUrl} target="_blank">
-                      {copy.openCheckoutContentEditor}
-                    </s-link>
-                    {!matchesProposed ? (
-                      <s-banner tone="warning">{copy.manualMismatch}</s-banner>
-                    ) : null}
-                    <s-button
-                      disabled={busy || !matchesProposed}
-                      onClick={() => onConfirm(pendingSlotIds)}
-                    >
-                      {copy.confirmGuided}
-                    </s-button>
-                  </s-stack>
-                </div>
-              </details>
+              <Disclosure
+                className="checkout-labels-disclosure checkout-label-instructions"
+                summary={<s-text type="strong">{copy.manualHeading}</s-text>}
+              >
+                <s-stack direction="block" gap="small-200">
+                  <s-ordered-list>
+                    {copy
+                      .manualSteps(
+                        context.language,
+                        context.marketName,
+                        context.primary,
+                        context.verificationMarkets,
+                      )
+                      .map((step) => (
+                        <s-list-item key={step}>{step}</s-list-item>
+                      ))}
+                  </s-ordered-list>
+                  <s-link href={storefrontUrl} target="_blank">
+                    {copy.openStorefront}
+                  </s-link>
+                  <s-link href={checkoutSettingsUrl} target="_blank">
+                    {copy.openCheckoutContentEditor}
+                  </s-link>
+                  {!matchesProposed ? (
+                    <s-banner tone="warning">{copy.manualMismatch}</s-banner>
+                  ) : null}
+                  <s-button
+                    disabled={busy || !matchesProposed}
+                    onClick={() => onConfirm(pendingSlotIds)}
+                  >
+                    {copy.confirmGuided}
+                  </s-button>
+                </s-stack>
+              </Disclosure>
             ) : confirmedAt ? (
               <s-text color="subdued">
                 {copy.lastManualVerification(formatDateTime(confirmedAt, locale, timeZone))}

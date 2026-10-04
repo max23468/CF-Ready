@@ -1,0 +1,48 @@
+/* P2-T9: un solo disclosure (`ui-disclosure.tsx`). Il chevron è un `s-icon` Polaris al bordo finale
+   del summary: giù da chiuso, su da aperto. */
+.cf-disclosure__summary {
+  align-items: center;
+  column-gap: var(--p-space-200, 0.5rem);
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  list-style: none;
+}
+
+.cf-disclosure__summary::-webkit-details-marker {
+  display: none;
+}
+
+.cf-disclosure__summary:focus-visible {
+  outline: auto;
+  outline-offset: 2px;
+}
+
+.cf-disclosure__label {
+  min-inline-size: 0;
+}
+
+.cf-disclosure__icon {
+  display: inline-flex;
+}
+
+.cf-disclosure__icon--open,
+details[open] > .cf-disclosure__summary > .cf-disclosure__icon:not(.cf-disclosure__icon--open) {
+  display: none;
+}
+
+details[open] > .cf-disclosure__summary > .cf-disclosure__icon--open {
+  display: inline-flex;
+}
+
+.cf-disclosure--panel > .cf-disclosure__summary {
+  padding: var(--p-space-400, 1rem);
+}
+
+.cf-disclosure--panel > .cf-disclosure__summary:focus-visible {
+  outline-offset: -2px;
+}
+
+.cf-disclosure--panel > .cf-disclosure__body {
+  padding: 0 var(--p-space-400, 1rem) var(--p-space-400, 1rem);
+}

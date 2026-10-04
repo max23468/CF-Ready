@@ -4,6 +4,8 @@ import type { HomeData } from "./home.server";
 import { homeValidationPresentation } from "./home-next-step";
 import { trialContinuityNotice } from "./commercial-state";
 import { showPlans } from "./show-plans";
+import { BrandLockup } from "../../ui-brand";
+import { StatusList } from "../../ui-status-list";
 
 type Texts = ReturnType<typeof texts>;
 type Submit = (intent: string, source?: string) => void;
@@ -107,33 +109,39 @@ export function HomeValidationSection({
   );
 }
 
+// P2-T4: le regole sono valori di configurazione, quindi badge neutri; il verde resta agli esiti.
 function HomeRulesSummary({ data, t }: { data: HomeData; t: Texts }) {
   return (
-    <s-query-container>
-      <s-grid
-        gridTemplateColumns="@container (inline-size > 300px) auto auto, 1fr"
-        justifyContent="start"
-        alignItems="center"
-        columnGap="base"
-        rowGap="small-100"
-      >
-        <s-text>{t.rules.taxCodeLabel}</s-text>
-        <s-badge tone={data.rules.taxCode === "unmanaged" ? "neutral" : "info"}>
-          {t.rules.taxCode[data.rules.taxCode]}
-        </s-badge>
-        <s-text>{t.rules.pecLabel}</s-text>
-        {/* La forma breve tiene il badge leggibile anche a 320 px. */}
-        <s-badge tone={data.rules.pec === "unmanaged" ? "neutral" : "info"}>
-          {data.rules.pec === "required_when_company"
-            ? t.home.pecRequiredForCompanies
-            : t.rules.pec[data.rules.pec]}
-        </s-badge>
-        <s-text>{t.home.messagesLabel}</s-text>
-        <s-badge tone={data.messagesDefault ? "neutral" : "info"}>
-          {data.messagesDefault ? t.home.messagesDefault : t.home.messagesCustom}
-        </s-badge>
-      </s-grid>
-    </s-query-container>
+    <StatusList
+      rows={[
+        {
+          key: "taxCode",
+          label: <s-text>{t.rules.taxCodeLabel}</s-text>,
+          value: <s-badge tone="neutral">{t.rules.taxCode[data.rules.taxCode]}</s-badge>,
+        },
+        {
+          key: "pec",
+          label: <s-text>{t.rules.pecLabel}</s-text>,
+          // La forma breve tiene il badge leggibile anche a 320 px.
+          value: (
+            <s-badge tone="neutral">
+              {data.rules.pec === "required_when_company"
+                ? t.home.pecRequiredForCompanies
+                : t.rules.pec[data.rules.pec]}
+            </s-badge>
+          ),
+        },
+        {
+          key: "messages",
+          label: <s-text>{t.home.messagesLabel}</s-text>,
+          value: (
+            <s-badge tone="neutral">
+              {data.messagesDefault ? t.home.messagesDefault : t.home.messagesCustom}
+            </s-badge>
+          ),
+        },
+      ]}
+    />
   );
 }
 
@@ -192,13 +200,10 @@ export function HomeAside({
         <s-stack direction="block" gap="small-100" alignItems="start">
           <s-paragraph>{t.home.helpBody}</s-paragraph>
           <s-link href="/app/guide">{t.nav.guide}</s-link>
+          {/* P2-T5: dentro la sezione, allineato al testo come nella Guida. */}
+          <BrandLockup />
         </s-stack>
       </s-section>
-      <s-stack direction="inline" gap="base" alignItems="center" justifyContent="center">
-        <s-box maxInlineSize="130px">
-          <s-image src="/cf-ready-lockup.svg" alt="" aspectRatio="16/3" objectFit="contain" />
-        </s-box>
-      </s-stack>
     </>
   );
 }

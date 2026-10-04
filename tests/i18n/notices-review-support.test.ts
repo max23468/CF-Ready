@@ -7,6 +7,7 @@ import {
 } from "../../app/config";
 import {
   describeCheckout,
+  quoteLabel,
   summariseCheckout,
   SUPPORT_EMAIL,
   supportDiagnosticText,
@@ -14,6 +15,7 @@ import {
   texts,
   trialNotice,
 } from "../../app/i18n";
+import italianSource from "../../app/i18n/it.ts?raw";
 
 test("l'azione di assistenza è esplicita in italiano e inglese", () => {
   expect(texts("it").support.requestSupport).toBe("Richiedi assistenza");
@@ -214,10 +216,10 @@ test("gli errori rari nominano i comandi reali e spiegano cosa fare", () => {
       "checkout_labels_readback_failed",
       "address2_restore_conflict",
     ] as const) {
-      expect(t.errors[code]).toContain(`“${t.rules.labels.refresh}”`);
+      expect(t.errors[code]).toContain(quoteLabel(t.rules.labels.refresh, locale));
     }
     // Punto 12: si riprova dalla Guida, con il suo comando.
-    expect(t.guide.diagnosis.failed).toContain(`“${t.guide.diagnosis.refresh}”`);
+    expect(t.guide.diagnosis.failed).toContain(quoteLabel(t.guide.diagnosis.refresh, locale));
     // Punto 13: niente "risorse" senza un'azione.
     expect(t.errors.checkout_labels_resource_ambiguous).not.toMatch(/risorse|resource/);
   }
@@ -233,9 +235,9 @@ test("la procedura manuale cita tra virgolette ogni voce dell'interfaccia Shopif
       [false, "Europa"],
     ] as const) {
       const steps = labels.manualSteps("italiano", market, primary, ["Europa"]).join("\n");
-      expect(steps).not.toMatch(/(?<!“)Checkout and system/);
-      expect(steps).not.toMatch(/(?<!“|→ )Tax (credential|email) it/);
-      expect(steps).not.toMatch(/(?<!“)B2B locations/);
+      expect(steps).not.toMatch(/(?<![“«])Checkout and system/);
+      expect(steps).not.toMatch(/(?<![“«]|→ )Tax (credential|email) it/);
+      expect(steps).not.toMatch(/(?<![“«])B2B locations/);
     }
     // Punto 10: due conteggi sono due frasi, non frammenti uniti da un puntino.
     expect(labels.operationalSummary(1, 2)).not.toContain("·");
@@ -246,4 +248,20 @@ test("i riepiloghi del campo Interno lo citano tra virgolette", () => {
   for (const summary of Object.values(texts("it").rules.labels.addressSummary)) {
     expect(summary).not.toMatch(/campo Interno/);
   }
+});
+
+test("in italiano ogni citazione usa le virgolette basse", () => {
+  // P2-T6: «» per etichette Shopify, comandi e pagine; “” resta all'inglese.
+  expect(italianSource).not.toMatch(/[“”]/);
+  expect(texts("it").errors.checkout_labels_conflict).toContain(
+    quoteLabel(texts("it").rules.labels.refresh, "it"),
+  );
+});
+
+test("in inglese il Codice Fiscale ha un solo nome", () => {
+  // EN-3: stesso nome in Home, Regole e Messaggi; nei nomi composti la forma breve.
+  const en = texts("en");
+  expect(en.messages.fieldNames.taxCode).toBe(en.rules.taxCodeLabel);
+  expect(en.messages.taxCodeRequired).toMatch(/^Italian tax code /);
+  expect(en.messages.taxCodeInvalid).toMatch(/^Italian tax code /);
 });

@@ -9,6 +9,8 @@ import type { Messages, Rules } from "../../config";
 import { texts } from "../../i18n";
 import type { Locale } from "../../i18n";
 import { checkoutLabelCopy } from "../../checkout-labels/domain";
+import { BrandMark } from "../../ui-brand";
+import { Disclosure } from "../../ui-disclosure";
 import "./CheckoutSimulator.css";
 import {
   simulatorErrorMessage,
@@ -160,7 +162,7 @@ export function CheckoutSimulator({
           <s-box padding="@container (inline-size > 420px) small-200, small-100">
             <s-stack direction="block" gap="small-200">
               <s-grid gridTemplateColumns="auto 1fr" gap="small-200" alignItems="center">
-                <s-avatar src="/favicon.svg" alt="CF Ready" size="base" />
+                <BrandMark />
                 <s-heading>{copy.heading}</s-heading>
               </s-grid>
             </s-stack>
@@ -176,12 +178,11 @@ export function CheckoutSimulator({
                     <s-icon type="location" color="subdued" />
                     <s-text type="strong">{copy.orderContext}</s-text>
                   </s-stack>
-                  <details>
-                    <summary className="cf-disclosure">{t.rules.exceptionsHeading}</summary>
+                  <Disclosure summary={t.rules.exceptionsHeading}>
                     <s-box paddingBlockStart="small-100">
                       <s-paragraph color="subdued">{t.rules.exceptions[0]}</s-paragraph>
                     </s-box>
-                  </details>
+                  </Disclosure>
                   <s-grid
                     gridTemplateColumns="@container (inline-size > 280px) 1fr 1fr, 1fr"
                     alignItems="end"
@@ -202,8 +203,7 @@ export function CheckoutSimulator({
                       copy={copy}
                     />
                   </s-grid>
-                  <details>
-                    <summary className="cf-disclosure">{copy.advanced}</summary>
+                  <Disclosure summary={copy.advanced}>
                     <s-box paddingBlockStart="small-200">
                       <s-stack direction="block" gap="small-200">
                         <s-select
@@ -259,7 +259,7 @@ export function CheckoutSimulator({
                         />
                       </s-stack>
                     </s-box>
-                  </details>
+                  </Disclosure>
                 </s-stack>
               </s-box>
 

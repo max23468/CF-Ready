@@ -3,6 +3,7 @@ import { formatDate, texts } from "../../i18n";
 import { trialContinuityTexts } from "../../i18n/trial-continuity";
 import type { OnboardingData } from "./onboarding.server";
 import type { onboardingStep4State } from "./step4-state";
+import { StatusList } from "../../ui-status-list";
 
 const STEPS = 4;
 
@@ -99,34 +100,21 @@ export function OnboardingStep4Content({
     <>
       <s-stack direction="block" gap="small-100">
         <s-heading>{t.onboarding.step4Heading}</s-heading>
-        <div className="cf-data-list cf-onboarding-summary">
-          <div className="cf-data-row cf-onboarding-summary-row">
-            <s-text>{t.rules.taxCodeLabel}</s-text>
-            <div className="cf-onboarding-summary-value">
-              <s-text>{t.rules.taxCode[saved.rules.taxCode]}</s-text>
-            </div>
-          </div>
-          <div className="cf-data-row cf-onboarding-summary-row">
-            <s-text>{t.rules.pecLabel}</s-text>
-            <div className="cf-onboarding-summary-value">
-              <s-text>{t.rules.pec[saved.rules.pec]}</s-text>
-            </div>
-          </div>
-          <div className="cf-data-row cf-onboarding-summary-row">
-            <s-text>{t.onboarding.labelsSummary}</s-text>
-            <div className="cf-onboarding-summary-value">
-              <s-text>{t.rules.labels.modeValues[saved.labelState.mode]}</s-text>
-            </div>
-          </div>
-          <div className="cf-data-row cf-onboarding-summary-row">
-            <s-text>{t.onboarding.address2Summary}</s-text>
-            <div className="cf-onboarding-summary-value">
-              <s-text>
-                {t.rules.labels.addressStatus[saved.labelState.address2Classification]}
-              </s-text>
-            </div>
-          </div>
-        </div>
+        <StatusList
+          rows={[
+            [t.rules.taxCodeLabel, t.rules.taxCode[saved.rules.taxCode]],
+            [t.rules.pecLabel, t.rules.pec[saved.rules.pec]],
+            [t.onboarding.labelsSummary, t.rules.labels.modeValues[saved.labelState.mode]],
+            [
+              t.onboarding.address2Summary,
+              t.rules.labels.addressStatus[saved.labelState.address2Classification],
+            ],
+          ].map(([label, value]) => ({
+            key: label,
+            label: <s-text>{label}</s-text>,
+            value: <s-text>{value}</s-text>,
+          }))}
+        />
       </s-stack>
       {saved.labelState.mode === "partial" ? (
         <s-paragraph color="subdued">{t.onboarding.labelsMixedDescription}</s-paragraph>

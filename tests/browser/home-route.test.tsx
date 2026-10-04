@@ -281,7 +281,7 @@ describe("Home merchant", () => {
     const view = await mount(<HomePage />);
     expect(view.container.textContent).toContain(texts("it").home.badgeActive);
     expect(view.container.textContent).not.toContain(
-      "Le etichette del checkout o il campo “Interno” richiedono un controllo.",
+      "Le etichette del checkout o il campo «Interno» richiedono un controllo.",
     );
     const deactivate = [...view.container.querySelectorAll("s-button")].find((button) =>
       button.textContent?.includes(texts("it").home.deactivate),

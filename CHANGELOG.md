@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.5 — 4 ottobre 2026
+
+- porta il simulatore di Regole nella colonna laterale nativa, così le quattro
+  pagine condividono lo stesso impianto e il bordo sinistro non si sposta;
+- unifica i disclosure su `details` con il chevron Polaris, il logo in due sole
+  forme senza fondo panna e le righe etichetta-valore in un'unica griglia;
+- rende neutri i badge di configurazione e possibilità, usa «» per tutte le
+  citazioni italiane e un solo nome inglese per il Codice Fiscale.
+  Pubblicazione solo Development, senza promozione Production.
+
 ## 2.0.4 — 3 ottobre 2026
 
 - uniforma i titoli principali con la sezione FAQ nativa Polaris e completa

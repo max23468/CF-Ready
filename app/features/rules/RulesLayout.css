@@ -1,41 +1,7 @@
-.rules-layout-container {
-  container-type: inline-size;
-}
-
-.checkout-labels-disclosure__summary {
-  align-items: center;
-  cursor: pointer;
+/* Titolo, badge e riepilogo del pannello stanno insieme nel summary del disclosure condiviso. */
+.checkout-labels-disclosure .cf-disclosure__label {
   display: grid;
   gap: 0.5rem;
-  list-style: none;
-  padding: 1rem 3rem 1rem 1rem;
-  position: relative;
-}
-
-.checkout-labels-disclosure__summary::-webkit-details-marker {
-  display: none;
-}
-
-.checkout-labels-disclosure__summary::before {
-  block-size: 0.45rem;
-  border-block-end: 1.5px solid currentColor;
-  border-inline-end: 1.5px solid currentColor;
-  content: "";
-  inline-size: 0.45rem;
-  inset-inline-end: 1.25rem;
-  inset-block-start: 50%;
-  position: absolute;
-  transform: translateY(-65%) rotate(45deg);
-  z-index: 1;
-}
-
-.checkout-labels-disclosure[open] > .checkout-labels-disclosure__summary::before {
-  transform: translateY(-35%) rotate(225deg);
-}
-
-.checkout-labels-disclosure__summary:focus-visible {
-  outline: auto;
-  outline-offset: -2px;
 }
 
 /* Il badge ha una riga autonoma quando titolo e stato non entrano insieme. */
@@ -44,10 +10,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-}
-
-.checkout-labels-disclosure__body {
-  padding: 0 1rem 1rem;
 }
 
 .checkout-label-contexts {
@@ -85,24 +47,26 @@
   }
 }
 
-.checkout-label-instructions > .checkout-labels-disclosure__summary {
-  padding: 0.5rem 2rem 0.5rem 0;
+.checkout-label-instructions > .cf-disclosure__summary {
+  padding-block: 0.5rem;
 }
 
-.checkout-label-instructions > .checkout-labels-disclosure__body {
-  padding: 0.5rem 0 0;
-}
-
-.rules-layout {
-  display: grid;
-  gap: 16px;
-  align-items: start;
+.checkout-label-instructions > .cf-disclosure__body {
+  padding-block-start: 0.5rem;
 }
 
 .rules-layout__main {
   display: grid;
   gap: 16px;
   min-width: 0;
+}
+
+/* Con Polaris 1 la colonna laterale risale di 16 px su mobile (app.css), contando sul margine
+   dell'ultima card: qui l'ultima card sta dentro questo contenitore, che lo restituisce. */
+@media (max-width: 600px) {
+  html[data-polaris-version="1"] .rules-layout__main {
+    margin-block-end: 16px;
+  }
 }
 
 .rules-layout__fields {
@@ -122,10 +86,4 @@
 
 .rules-layout__labels {
   min-width: 0;
-}
-
-@container (inline-size > 720px) {
-  .rules-layout {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
 }

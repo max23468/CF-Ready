@@ -36,6 +36,7 @@ import {
 import { describeCheckout, quoteLabel, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { action, loader } from "../features/onboarding/onboarding.server";
+import { BrandMark } from "../ui-brand";
 import "./app.onboarding.css";
 
 export { action, loader };
@@ -318,7 +319,7 @@ function OnboardingIntroduction({ t }: { t: OnboardingCopy }) {
       {/* O4: icona piccola accanto al titolo, che resta l'elemento principale. */}
       <s-stack direction="block" gap="small-100">
         <s-grid gridTemplateColumns="auto minmax(0, 1fr)" gap="small-200" alignItems="center">
-          <s-avatar src="/favicon.svg" alt="CF Ready" size="base" />
+          <BrandMark />
           <s-heading>{t.onboarding.welcomeHeading}</s-heading>
         </s-grid>
         <s-paragraph>{t.onboarding.welcomeBody}</s-paragraph>

@@ -41,6 +41,7 @@ import { messageSubmission, rebaseMessageDraft, updateMessageDraft } from "../me
 import { skipRevalidationWhenLeaving, useSavedData } from "../revalidation";
 import { setSaveBarVisibility, showToast } from "../save-bar";
 import { RevealBanner } from "../ui-feedback";
+import { StatusList } from "../ui-status-list";
 import { createServerTiming } from "../server-timing.server";
 import {
   findValidation,
@@ -475,17 +476,19 @@ function MessageVisibilityAside({ t, rules }: { t: MessagesCopy; rules: Messages
         {/* M7: raggruppate per campo, le voci brevi stanno su una riga anche nella colonna. */}
         {MESSAGE_GROUPS.map(([field, keys]) => (
           <s-stack key={field} direction="block" gap="small-100">
-            <s-text type="strong">{t.messages.fieldNames[field]}</s-text>
-            <div className="cf-data-list">
-              {keys.map((key) => (
-                <div className="cf-data-row" key={key}>
-                  <s-text>{t.messages.shortLabels[key]}</s-text>
-                  <s-badge tone={messageAppears(rules, key) ? "success" : "neutral"}>
+            <s-heading>{t.messages.fieldNames[field]}</s-heading>
+            {/* P2-T4: «Può comparire» descrive una possibilità, non un esito: badge neutro. */}
+            <StatusList
+              rows={keys.map((key) => ({
+                key,
+                label: <s-text>{t.messages.shortLabels[key]}</s-text>,
+                value: (
+                  <s-badge tone="neutral">
                     {messageAppears(rules, key) ? t.messages.appears : t.messages.appearsNot}
                   </s-badge>
-                </div>
-              ))}
-            </div>
+                ),
+              }))}
+            />
           </s-stack>
         ))}
         <s-link href="/app/rules">{t.nav.rules}</s-link>

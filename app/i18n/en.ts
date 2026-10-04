@@ -1,5 +1,9 @@
 import type { it } from "./it";
 
+// EN-3: un solo nome per il campo. Da solo è «Italian tax code (Codice Fiscale)», nei nomi composti
+// «Italian tax code»; mai «Tax code».
+const TAX_CODE_NAME = "Italian tax code (Codice Fiscale)";
+
 export const en: typeof it = {
   nav: {
     home: "Home",
@@ -120,8 +124,8 @@ export const en: typeof it = {
     saved: "Messages saved.",
     italian: "Italian",
     english: "English",
-    taxCodeRequired: "Tax code required",
-    taxCodeInvalid: "Tax code invalid",
+    taxCodeRequired: "Italian tax code required",
+    taxCodeInvalid: "Italian tax code invalid",
     pecRequired: "PEC required",
     pecInvalid: "PEC invalid",
     counter: (used: number) => `${used}/200 characters`,
@@ -135,7 +139,7 @@ export const en: typeof it = {
       "These indicators depend on the rules you chose, not on whether the check is active. A message can appear at checkout only while the check is active.",
     appears: "Can appear",
     appearsNot: "Does not appear",
-    fieldNames: { taxCode: "Tax code", pec: "PEC" },
+    fieldNames: { taxCode: TAX_CODE_NAME, pec: "PEC" },
     shortLabels: {
       taxCodeRequired: "Required",
       taxCodeInvalid: "Invalid",
@@ -448,7 +452,7 @@ export const en: typeof it = {
     showLabels: "Show labels",
     labelsConflict:
       "The Shopify labels changed after the last read. CF Ready read them again and kept your changes: press Save again.",
-    taxCodeLabel: "Italian tax code (Codice Fiscale)",
+    taxCodeLabel: TAX_CODE_NAME,
     pecLabel: "Certified email address (PEC)",
     taxCode: {
       unmanaged: "Not managed",
