@@ -155,12 +155,23 @@ export function CheckoutSimulator({
       <div ref={rootRef} lang={previewLocale} className="checkout-simulator">
         <s-box background="transparent" border="base" borderRadius="large" overflow="hidden">
           <s-box padding="@container (inline-size > 420px) small-200, small-100">
-            <s-stack direction="block" gap="small-200">
-              <s-grid gridTemplateColumns="auto 1fr" gap="small-200" alignItems="center">
-                <BrandMark />
-                <s-heading>{copy.heading}</s-heading>
-              </s-grid>
-            </s-stack>
+            {/* Decisione del 4 ottobre: l'esito sta in alto a destra, accanto al titolo, e non
+                occupa una riga propria; resta in vista mentre si compilano i campi. */}
+            <div className="checkout-simulator__header">
+              <BrandMark />
+              <s-heading>{copy.heading}</s-heading>
+              <span
+                aria-atomic="true"
+                aria-live="polite"
+                className="checkout-simulator__outcome cf-motion-swap"
+                key={outcome}
+                role="status"
+              >
+                <s-badge tone={outcomeTone[outcome]} icon={outcomeIcon[outcome]}>
+                  {copy.outcomes[outcome]}
+                </s-badge>
+              </span>
+            </div>
           </s-box>
 
           <s-divider />
@@ -286,15 +297,10 @@ export function CheckoutSimulator({
           <s-box padding="@container (inline-size > 420px) small-200, small-100">
             <div className="checkout-simulator__actions">
               <div className="checkout-simulator__secondary-actions">
-                <div className="checkout-simulator__scenario-copy">
-                  <s-text type="strong">{copy.scenarioLabel}</s-text>
-                  <s-text color="subdued">{copy.scenarioHelp}</s-text>
-                </div>
                 <div className="checkout-simulator__scenario">
                   <s-select
                     key={`scenario-${previewLocale}`}
                     label={copy.scenarioLabel}
-                    labelAccessibilityVisibility="exclusive"
                     placeholder={copy.scenarioPlaceholder}
                     value={scenario}
                     onChange={(event) =>
@@ -317,18 +323,6 @@ export function CheckoutSimulator({
                   {copy.clear}
                 </s-button>
               </div>
-              {/* R-S1: l'esito sta accanto al comando, in vista mentre si compilano i campi. */}
-              <span
-                aria-atomic="true"
-                aria-live="polite"
-                className="checkout-simulator__outcome cf-motion-swap"
-                key={outcome}
-                role="status"
-              >
-                <s-badge tone={outcomeTone[outcome]} icon={outcomeIcon[outcome]}>
-                  {copy.outcomes[outcome]}
-                </s-badge>
-              </span>
               <button
                 type="button"
                 className="checkout-simulator__button checkout-simulator__button--primary"
@@ -451,7 +445,6 @@ function SimulatorCustomerFields({
           <s-paragraph color="subdued">{t.checkout.nothing}</s-paragraph>
         </s-box>
       )}
-      <s-text color="subdued">{copy.labelsAfterSave}</s-text>
     </s-stack>
   );
 }

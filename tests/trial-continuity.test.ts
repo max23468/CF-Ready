@@ -3,7 +3,7 @@ import { expect, test, vi } from "vitest";
 import { formatDate, texts } from "../app/i18n";
 import { trialContinuityTexts } from "../app/i18n/trial-continuity";
 import { trialContinuityNotice } from "../app/features/home/commercial-state";
-import { HomeValidationSection } from "../app/features/home/HomeSections";
+import { HomeTrialNotice, HomeValidationSection } from "../app/features/home/HomeSections";
 import { OnboardingCompletion } from "../app/features/onboarding/OnboardingSections";
 
 function elements(node: ReactNode): ReactElement[] {
@@ -190,40 +190,43 @@ test.each([
   expect(rendered.filter((element) => element.type === "s-button")).toHaveLength(1);
 });
 
-test("il richiamo è nello stesso blocco dello stato e punta al listino esistente", () => {
+test("il richiamo della prova sta dopo la card e punta al listino esistente", () => {
   const submit = vi.fn();
-  const render = (remaining: number) =>
-    elements(
-      HomeValidationSection({
-        data: {
-          ...trial,
-          remaining,
-          rules: { taxCode: "required_validated", pec: "optional_validated" },
-          messagesDefault: true,
-        } as Parameters<typeof HomeValidationSection>[0]["data"],
-        entitled: true,
-        firstRun: false,
-        busy: false,
-        pendingIntent: null,
-        pendingSource: null,
-        submit,
-        verification: "confirmed",
-        t: texts("it"),
-      }),
-    );
-  // Decisione del 4 ottobre: la prova in corso sta in «Piano»; la card la richiama solo
-  // quando serve un'azione.
-  expect(render(14).some((element) => element.type === "s-banner")).toBe(false);
-  const rendered = render(3);
-  expect(rendered[0]?.type).toBe("s-section");
-  expect(rendered.some((element) => element.type === "s-banner")).toBe(true);
-  // Niente ancora `#plans`: App Bridge la scarterebbe. Il bottone porta in vista i piani.
-  expect(
-    rendered.find(
-      (element) =>
-        element.type === "s-button" &&
-        (element.props as { children?: string }).children === "Scegli un piano",
-    )?.props,
-  ).toMatchObject({ disabled: false, onClick: expect.any(Function) });
+  const data = {
+    ...trial,
+    rules: { taxCode: "required_validated", pec: "optional_validated" },
+    messagesDefault: true,
+  } as Parameters<typeof HomeValidationSection>[0]["data"];
+  // Decisione del 4 ottobre: la card della validazione non contiene più il banner.
+  const section = elements(
+    HomeValidationSection({
+      data,
+      entitled: true,
+      firstRun: false,
+      busy: false,
+      pendingIntent: null,
+      pendingSource: null,
+      submit,
+      verification: "confirmed",
+      t: texts("it"),
+    }),
+  );
+  expect(section[0]?.type).toBe("s-section");
+  expect(section.some((element) => element.type === "s-banner")).toBe(false);
+  for (const [remaining, tone] of [
+    [14, "info"],
+    [3, "warning"],
+  ] as const) {
+    const notice = elements(HomeTrialNotice({ data: { ...data, remaining }, busy: false }));
+    expect(notice.find((element) => element.type === "s-banner")?.props).toMatchObject({ tone });
+    // Niente ancora `#plans`: App Bridge la scarterebbe. Lo slot nativo porta in vista i piani.
+    expect(
+      notice.find(
+        (element) =>
+          element.type === "s-button" &&
+          (element.props as { children?: string }).children === "Scegli un piano",
+      )?.props,
+    ).toMatchObject({ slot: "secondary-actions", disabled: false, onClick: expect.any(Function) });
+  }
   expect(submit).not.toHaveBeenCalled();
 });

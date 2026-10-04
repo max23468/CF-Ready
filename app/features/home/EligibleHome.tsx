@@ -2,7 +2,7 @@ import { localizedError, type AppErrorCode } from "../../app-error";
 import { pendingFetcherIntent, pendingFetcherSource } from "../../config";
 import { formatDate, texts } from "../../i18n";
 import { commercialState } from "./commercial-state";
-import { DeactivateModal, HomeAside, HomeValidationSection } from "./HomeSections";
+import { DeactivateModal, HomeAside, HomeTrialNotice, HomeValidationSection } from "./HomeSections";
 import { RevealBanner } from "../../ui-feedback";
 import { MerchantCheckIn } from "./MerchantCheckIn";
 import { PlanChoice } from "./PlanChoice";
@@ -80,6 +80,7 @@ export function EligibleHome({
         verification={verification}
         t={t}
       />
+      <HomeTrialNotice data={data} busy={busy} />
       <PlanChoice
         data={data}
         busy={busy}

@@ -8,7 +8,7 @@ import { click, type Rendered } from "./render";
 
 import HomePage from "../../app/features/home/HomePage";
 import { MerchantCheckIn } from "../../app/features/home/MerchantCheckIn";
-import { HomeValidationSection } from "../../app/features/home/HomeSections";
+import { HomeTrialNotice, HomeValidationSection } from "../../app/features/home/HomeSections";
 import { trialContinuityTexts } from "../../app/i18n/trial-continuity";
 import { PlanChoice } from "../../app/features/home/PlanChoice";
 import { PlanStatus } from "../../app/features/home/PlanStatus";
@@ -49,6 +49,7 @@ describe("Home merchant", () => {
           verification="confirmed"
           t={texts("it")}
         />
+        <HomeTrialNotice data={lapsed as never} busy={false} />
         <PlanChoice
           data={homeData as never}
           busy={false}
