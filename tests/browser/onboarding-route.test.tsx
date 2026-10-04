@@ -85,7 +85,7 @@ describe("Onboarding", () => {
     window.history.replaceState(window.history.state, "", original);
   });
 
-  test("al passo 3 i messaggi che non compaiono lo dicono anche sotto l'anteprima", async () => {
+  test("al passo 3 il badge neutro dice se il messaggio compare, senza note ripetute", async () => {
     router.loaderData = {
       ...onboardingData,
       step: 3,
@@ -93,11 +93,19 @@ describe("Onboarding", () => {
     };
     const view = await mount(<Onboarding />);
     const blocks = [...view.container.querySelectorAll<HTMLElement>(".onboarding-message")];
-    const notes = blocks.map((block) =>
-      block.textContent!.includes(texts("it").messages.previewNotShown),
-    );
+    const badges = blocks.map((block) => block.querySelector("s-badge")!);
     // Solo "PEC obbligatoria" non compare con queste regole.
-    expect(notes).toEqual([false, false, true, false]);
+    expect(badges.map((badge) => badge.textContent)).toEqual([
+      texts("it").messages.appears,
+      texts("it").messages.appears,
+      texts("it").messages.appearsNot,
+      texts("it").messages.appears,
+    ]);
+    // P2-T4, P2-T7: badge neutri e nessuna nota che ne ripeta lo stato.
+    expect(badges.every((badge) => badge.getAttribute("tone") === "neutral")).toBe(true);
+    expect(view.container.textContent).not.toContain(texts("it").messages.previewNotShown);
+    // Il limite alle consegne in Italia sta nel passo 1, non si ripete qui.
+    expect(view.container.textContent).not.toContain(texts("it").rules.exceptions[0]);
   });
 
   test("cita tra virgolette le etichette proposte (T7)", async () => {
@@ -279,7 +287,9 @@ describe("Onboarding", () => {
     router.fetcher.data = { ok: true };
     router.fetcher.state = "idle";
     await view.rerender(<Onboarding />);
-    expect(view.container.textContent).toContain(texts("it").onboarding.step3Heading);
+    expect(view.container.querySelector("s-section")?.getAttribute("heading")).toBe(
+      texts("it").onboarding.step3Heading,
+    );
     vi.stubGlobal("FormData", originalFormData);
   });
 
@@ -365,17 +375,23 @@ describe("Onboarding", () => {
         button.textContent?.includes(texts("it").onboarding.next),
       );
     await click(next()!);
-    expect(view.container.textContent).toContain(texts("it").onboarding.step2Heading);
+    expect(view.container.querySelector("s-section")?.getAttribute("heading")).toBe(
+      texts("it").onboarding.step2Heading,
+    );
     await click(
       [...view.container.querySelectorAll("s-button")].find((button) =>
         button.textContent?.includes(texts("it").onboarding.back),
       )!,
     );
-    expect(view.container.textContent).toContain(texts("it").onboarding.step1Heading);
+    expect(view.container.querySelector("s-section")?.getAttribute("heading")).toBe(
+      texts("it").onboarding.welcomeHeading,
+    );
 
     router.loaderData = { ...onboardingData, step: 3 };
     await view.rerender(<Onboarding key="step-3" />);
-    expect(view.container.textContent).toContain(texts("it").onboarding.step3Heading);
+    expect(view.container.querySelector("s-section")?.getAttribute("heading")).toBe(
+      texts("it").onboarding.step3Heading,
+    );
     expect(view.container.textContent).not.toContain(texts("it").rules.simulator.heading);
 
     router.loaderData = {
@@ -480,7 +496,9 @@ describe("Onboarding", () => {
     );
     if (!next) throw new Error("avanzamento onboarding assente");
     await click(next);
-    expect(view.container.textContent).toContain(texts("it").onboarding.step3Heading);
+    expect(view.container.querySelector("s-section")?.getAttribute("heading")).toBe(
+      texts("it").onboarding.step3Heading,
+    );
     expect(router.fetcher.submit).not.toHaveBeenCalled();
     vi.stubGlobal("FormData", originalFormData);
   });

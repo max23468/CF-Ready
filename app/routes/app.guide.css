@@ -46,6 +46,11 @@
   outline: none;
 }
 
+/* Il salto da Assistenza lascia il titolo sotto l'intestazione fissa dell'Admin. */
+.guide-diagnosis {
+  scroll-margin-block-start: 25vh;
+}
+
 .guide-faq__entry summary:focus-visible {
   outline: auto;
   outline-offset: 2px;

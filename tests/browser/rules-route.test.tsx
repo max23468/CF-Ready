@@ -10,6 +10,13 @@ import { click, dispatch } from "./render";
 import CheckoutRules from "../../app/routes/app.rules";
 
 describe("Regole", () => {
+  test("senza campi gestiti dice una volta sola che il checkout resta invariato", async () => {
+    router.loaderData = { ...rulesData, rules: { taxCode: "unmanaged", pec: "unmanaged" } };
+    const view = await mount(<CheckoutRules />);
+    // P2-T7: lo dice il simulatore, non anche la sezione che lo contiene.
+    expect(view.container.textContent!.split(texts("it").checkout.nothing).length - 1).toBe(1);
+  });
+
   test("mostra subito la pagina e differisce la rilettura delle etichette", async () => {
     router.loaderData = {
       ...rulesData,
@@ -485,9 +492,8 @@ describe("Regole", () => {
     expect(technical?.closest("details")).toBe(disclosures?.[1]);
     expect(technical?.querySelectorAll("s-stack s-stack > s-text")).toHaveLength(3);
     expect(technical?.textContent).toContain(texts("it").rules.labels.refresh);
-    expect(disclosures?.[1].querySelectorAll(".checkout-label-context__row").length).toBeLessThan(
-      8,
-    );
+    // N-2: confronto in tabella nativa, una riga per campo.
+    expect(disclosures?.[1].querySelectorAll("s-table-body s-table-row").length).toBeLessThan(8);
     expect(disclosures?.[1].textContent).toContain(
       texts("it").rules.labels.marketCheckIncluded(["Italia"]),
     );
@@ -522,9 +528,7 @@ describe("Regole", () => {
     expect(addressHelp).toHaveLength(1);
     expect(addressHelp[0].textContent).toContain(texts("it").rules.labels.addressLimit);
     // Punto 7: anche le etichette del campo Interno sono tra virgolette.
-    expect(disclosures?.[0].querySelector(".checkout-label-context__row")?.textContent).toMatch(
-      /«.+»/,
-    );
+    expect(disclosures?.[0].querySelector("s-table-body s-table-row")?.textContent).toMatch(/«.+»/);
 
     const restore = [...view.container.querySelectorAll("s-button")].find((button) =>
       button.textContent?.includes(texts("it").rules.labels.restoreAddress),

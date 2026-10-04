@@ -182,7 +182,8 @@ export function CheckoutSimulator({
                 <s-stack direction="block" gap="small-200">
                   <s-stack direction="inline" gap="small-100" alignItems="center">
                     <s-icon type="location" color="subdued" />
-                    <s-text type="strong">{copy.orderContext}</s-text>
+                    {/* P2-T3: gruppo con controlli dentro una card, quindi titolo. */}
+                    <s-heading>{copy.orderContext}</s-heading>
                   </s-stack>
                   <Disclosure summary={t.rules.exceptionsHeading}>
                     <s-box paddingBlockStart="small-100">
@@ -396,7 +397,7 @@ function SimulatorCustomerFields({
     <s-stack direction="block" gap="small-200">
       <s-stack direction="inline" gap="small-100" alignItems="center">
         <s-icon type="identity-card" color="subdued" />
-        <s-text type="strong">{copy.customerData}</s-text>
+        <s-heading>{copy.customerData}</s-heading>
       </s-stack>
       {missingFields.length > 0 ? (
         <div className="checkout-simulator__missing-fields" tabIndex={-1}>

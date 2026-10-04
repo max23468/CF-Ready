@@ -448,15 +448,47 @@ sessione di Claude:
 
 La verifica locale misura le distanze con i componenti Polaris reali in
 Chromium e WebKit, con Polaris 1 e 2, in italiano e inglese, a 1440, 1054,
-500 e 390 px. Non costituisce una verifica del rendering nell'Admin live.
-La pubblicazione richiesta riguarda solo Development.
+500 e 390 px.
+
+Pubblicazione completata in Development con
+[#631](https://github.com/max23468/CF-Ready/pull/631), commit `c44c316`, versione
+Shopify `2.0.7-dev.08203c388d1a`. La
+[ricevuta](evidence/2026-10-03-polaris-2-claude/deploy-receipt-development.json)
+conferma smoke, readback provider e migrazioni verdi sullo stesso commit.
+Nessuna promozione Production.
+
+Verifica live del 4 ottobre in Chrome su `cf-ready-polaris-2`: banner della
+prova ripristinato, con **27 px sopra e 27 px sotto**, e azione nello slot
+nativo ([prova](evidence/2026-10-03-polaris-2-claude/cfr-banner-development.jpg)).
+Simulatore verificato nei due store Development: esito nell'intestazione,
+nota e spiegazione assenti, etichetta nativa «Prova uno scenario». Nessun
+salvataggio di regole o messaggi durante queste verifiche. Le date ripetute
+di H-1 e il residuo di altezza di R-1 non sono dichiarati risolti.
+
+### 20.1 Verifica live di EN-3
+
+Su richiesta dell'owner, profilo Shopify temporaneamente in English e app
+Development 2.0.7 nello store `cf-ready-polaris-2`, a 1440 px:
+
+- [Home](evidence/2026-10-03-polaris-2-claude/en3-home-live.jpg) e
+  [Regole](evidence/2026-10-03-polaris-2-claude/en3-regole-live.jpg):
+  «Italian tax code (Codice Fiscale)»;
+- [Messaggi](evidence/2026-10-03-polaris-2-claude/en3-messaggi-live.jpg): stesso
+  nome esteso nella colonna laterale; forme composte «Italian tax code
+  required» e «Italian tax code invalid» nelle etichette e nell'anteprima.
+  Nessun vecchio «Tax code» come nome autonomo.
+
+**EN-3 risolto e verificato live.** Italiano e fuso Roma ripristinati e riletti
+dal profilo, app riletta in italiano, scheda temporanea del profilo chiusa.
+Nessuna regola, messaggio, etichetta checkout o piano modificato.
 
 ## 21. Ricontrollo degli stati in Chrome, 4 ottobre 2026
 
 Verifica nel tab **già aperto** di `cf-ready-polaris-2`, app Development.
-La diagnostica della Guida identifica la versione **2.0.7**; commit e
-stato provider non sono stati riconfermati in questo giro. Questo giro aggiorna
-il presente audit con gli stati, non il report separato con ID `V2-*`.
+La diagnostica della Guida identifica la versione **2.0.7**; il commit della
+distribuzione resta quello della ricevuta in §20, non è una nuova verifica
+provider. Questo giro aggiorna il presente audit con gli stati, non il report
+separato con ID `V2-*`.
 
 Superfici osservate: Home, Regole, Messaggi, FAQ espanse, risultati della
 diagnosi e tutti i quattro passi dell'onboarding riaperto. Desktop a
@@ -536,7 +568,7 @@ questo giro; non sono nuovi esiti positivi.
 | RW-2 | Risolto | A 500 px simulatore prima delle etichette; badge delle etichette su riga autonoma. |
 | EN-1 | Aperto | Non riconfermato live EN; codice corrente conserva How you want to continue (`app/i18n/en.ts`). |
 | EN-2 | Aperto | Non riconfermato live EN; codice corrente conserva Set up required (`app/i18n/en.ts`). |
-| EN-3 | Risolto | Conservata la verifica inglese recente riportata nella copia locale aggiornata dell'audit consultata prima del giro; nessuna nuova conferma live EN. |
+| EN-3 | Risolto | Conservata la verifica inglese recente di §20.1; nessuna nuova conferma live EN in questo giro. |
 
 ### 21.2 Prove e limiti
 
@@ -562,3 +594,19 @@ completamento onboarding, scritture automatiche e varianti di billing.
 I positivi/informativi H-3, R-11, F-1, F-3, F-4 ed EN-4 restano esclusi
 dal conteggio; toast di salvataggio, errori del simulatore e modale automatica
 non sono stati riqualificati in questo giro.
+
+## 22. Correzioni in 2.0.8
+
+Correzioni dei residui di §21 per P2-T3, P2-T4, P2-T7, P2-T8, N-1 e N-2,
+con le convenzioni aggiornate nel Master Plan §15.1. I test browser misurano
+le superfici con Polaris 1 e 2, in Chromium e WebKit; la verifica live è in
+§22.1.
+
+| ID | Correzione |
+| --- | --- |
+| P2-T3 | Il titolo di ogni passo dell'onboarding e quello di «Il controllo non compare?» sono il titolo nativo di `s-section`, fuori dalla card. Nel simulatore «Destinazione dell'ordine» e «Dati fiscali del cliente» sono `s-heading` (anche R-3, O-1) |
+| P2-T4 | Badge del passo 3 neutri; «Consigliato» in tono `info`, come il banner della prova |
+| P2-T7 | «Nessun campo è configurato» una sola volta in Regole, nel simulatore; nota dell'esempio una sola volta in Messaggi anche a 500 px; nel passo 3 nessuna nota che ripeta il badge e nessun paragrafo sulle consegne in Italia, già nel passo 1 |
+| P2-T8 | Confronto etichette in tabella; nella diagnosi testo e link dello stesso esito attaccati, esiti a 16 px; nel passo 2 titolo a 6 px dalle opzioni e gruppi a 20 px (prima 12 e 16) |
+| N-1 | Esempi di Messaggi e del passo 3 come `s-text-field` in sola lettura, con l'etichetta del campo come `label` e il messaggio come `error` (anche M-1, O-4) |
+| N-2 | Confronto «Campo attuale / Campo dopo il salvataggio» e testi di «Interno» in `s-table`, colonne Campo, Campo attuale e Campo dopo il salvataggio o Testo Shopify; su mobile elenco nativo (anche R-6) |
