@@ -73,19 +73,18 @@ Confronto con le pagine native dello stesso store:
 
 Le matrici per ID delle sezioni 21 e 22.1 sono il riferimento per gli stati
 di chiusura, riportati anche nella colonna **Stato attuale** delle tabelle;
-dove i due giri differiscono vale §22.1. **Corretto in 2.0.9** indica una
-correzione della Home descritta in §23, non ancora verificata live. Le descrizioni conservano il problema
+dove i due giri differiscono vale §22.1; per i findings della Home vale §23.1. Le descrizioni conservano il problema
 iniziale; prove e limiti successivi sono in §21 e §22. **Risolto** indica chiusura comprovata, **Parziale** una parte
 ancora incompleta, **Aperto** assenza di chiusura completa e **Accettato per
 decisione** una scelta conservata. Positivi e informativi non sono difetti.
 
 | ID | Problema | Severità | Confidenza | Stato attuale |
 | --- | --- | --- | --- | --- |
-| H-5 | Badge verde «Attiva» con nessun campo configurato | Media | Alta | **Corretto in 2.0.9** (§23) |
+| H-5 | Badge verde «Attiva» con nessun campo configurato | Media | Alta | **Parziale** |
 | P2-T4 | Toni dei badge non semantici: ciano identico al banner commerciale, verde per una possibilità | Media | Alta | **Risolto** |
 | R-1 | In Regole la colonna destra resta vuota per almeno tre schermate quando si apre «Testi del checkout» | Media | Alta | **Parziale** |
 | R-2 | Simulatore con due fondi non tematizzati nello stesso riquadro | Media | Alta | **Accettato per decisione** |
-| H-2 | Azioni della card principale: primario e critico si scambiano posto e peso al cambio di stato | Media | Alta | **Corretto in 2.0.9** (§23) |
+| H-2 | Azioni della card principale: primario e critico si scambiano posto e peso al cambio di stato | Media | Alta | **Risolto** |
 | P2-T1 | Tre larghezze e griglie di pagina diverse: il bordo sinistro si sposta di 61 px tra Home e Regole | Media | Alta | **Accettato per decisione** |
 | P2-T3 | Gerarchia dei titoli incoerente tra pagine e dentro simulatore e onboarding | Media | Alta | **Risolto** |
 | M-1, N-1 | Esempi dei messaggi indistinguibili dai campi di testo a 500 px; un campo nativo in sola lettura con errore li renderebbe fedeli al checkout | Media | Alta | **Risolto** |
@@ -123,12 +122,12 @@ nel nuovo Admin non è ancora stata provata.
 
 | ID | Problema | Severità | Confidenza | Stato attuale |
 | --- | --- | --- | --- | --- |
-| H-1 | Nella card principale il banner della prova è seguito da 33 px vuoti prima del divisore, che dista poi 25 px dalla prima riga. La data della prova compare tre volte nella prima schermata: banner, colonna laterale e testo «primo addebito il 17 ottobre» ([01](evidence/2026-10-03-polaris-2-claude/01-home-disattivata-1440.jpg), [02](evidence/2026-10-03-polaris-2-claude/02-home-piani-1440.jpg)) | Media | Alta | **Corretto in 2.0.9** (§23) |
-| H-2 | Da disattivata «Modifica regole» è secondario a sinistra e «Attiva nel checkout» primario a destra. Da attiva «Modifica regole» diventa primario a sinistra e «Disattiva nel checkout» compare a destra in rosa critico, con lo stesso peso visivo. Il primario cambia posizione e l'azione distruttiva diventa la più evidente dopo il primario ([30](evidence/2026-10-03-polaris-2-claude/30-home-attiva.jpg)) | Media | Alta | **Corretto in 2.0.9** (§23) |
+| H-1 | Nella card principale il banner della prova è seguito da 33 px vuoti prima del divisore, che dista poi 25 px dalla prima riga. La data della prova compare tre volte nella prima schermata: banner, colonna laterale e testo «primo addebito il 17 ottobre» ([01](evidence/2026-10-03-polaris-2-claude/01-home-disattivata-1440.jpg), [02](evidence/2026-10-03-polaris-2-claude/02-home-piani-1440.jpg)) | Media | Alta | **Risolto** |
+| H-2 | Da disattivata «Modifica regole» è secondario a sinistra e «Attiva nel checkout» primario a destra. Da attiva «Modifica regole» diventa primario a sinistra e «Disattiva nel checkout» compare a destra in rosa critico, con lo stesso peso visivo. Il primario cambia posizione e l'azione distruttiva diventa la più evidente dopo il primario ([30](evidence/2026-10-03-polaris-2-claude/30-home-attiva.jpg)) | Media | Alta | **Risolto** |
 | H-3 | Righe campo-stato: la colonna delle etichette si adatta al testo più lungo, da «Messaggi al cliente» in italiano a «Italian tax code (Codice Fiscale)» in inglese, senza tagli ([43](evidence/2026-10-03-polaris-2-claude/43-home-en-1440.jpg)) | Informativo | Alta | **Informativo** |
-| H-4 | Card dei piani: il nome del piano è testo normale da 14 px sopra un prezzo da circa 24 px. Solo «Un solo pagamento» ha una riga descrittiva, quindi le tre righe hanno altezze diverse. Il periodo («al mese») sta 12 px dopo il prezzo. «Consigliato» è neutro mentre «Attiva l'annuale» è l'unico primario della card | Bassa | Media | **Corretto in 2.0.9** (§23) |
-| H-5 | Con validazione attiva e nessun campo configurato la card mostra il badge verde «Attiva» sopra «Nessun campo è configurato: il checkout resta invariato.» ([49](evidence/2026-10-03-polaris-2-claude/49-home-attiva-senza-campi-conferma.jpg)). Il verde comunica una protezione in corso che non esiste | Media | Alta | **Corretto in 2.0.9** (§23) |
-| H-6 | «Prossimo passo» cambia struttura con lo stato: link «Regole checkout» da disattivata, solo testo con regole pronte, «Apri gli ordini» da attiva. La colonna laterale cambia altezza e ritmo a ogni stato ([29](evidence/2026-10-03-polaris-2-claude/29-home-regole-salvate-disattivata.jpg)) | Bassa | Media | **Corretto in 2.0.9** (§23) |
+| H-4 | Card dei piani: il nome del piano è testo normale da 14 px sopra un prezzo da circa 24 px. Solo «Un solo pagamento» ha una riga descrittiva, quindi le tre righe hanno altezze diverse. Il periodo («al mese») sta 12 px dopo il prezzo. «Consigliato» è neutro mentre «Attiva l'annuale» è l'unico primario della card | Bassa | Media | **Risolto** |
+| H-5 | Con validazione attiva e nessun campo configurato la card mostra il badge verde «Attiva» sopra «Nessun campo è configurato: il checkout resta invariato.» ([49](evidence/2026-10-03-polaris-2-claude/49-home-attiva-senza-campi-conferma.jpg)). Il verde comunica una protezione in corso che non esiste | Media | Alta | **Parziale** |
+| H-6 | «Prossimo passo» cambia struttura con lo stato: link «Regole checkout» da disattivata, solo testo con regole pronte, «Apri gli ordini» da attiva. La colonna laterale cambia altezza e ritmo a ogni stato ([29](evidence/2026-10-03-polaris-2-claude/29-home-regole-salvate-disattivata.jpg)) | Bassa | Media | **Parziale** |
 
 ## 6. Regole checkout
 
@@ -675,3 +674,28 @@ aggiornata nel Master Plan §15.3. H-3 è informativo e non richiede interventi.
 | H-4 | Nome del piano come `s-heading` sopra il prezzo; mensile e annuale hanno una riga descrittiva come il pagamento unico («Si rinnova ogni mese finché non cancelli il rinnovo.», «Equivale a … al mese e si rinnova ogni anno.»). «Consigliato» in `info` da 2.0.8 |
 | H-5 | Il badge «Attiva» è verde solo con almeno un campo configurato, altrimenti neutro |
 | H-6 | «Prossimo passo» ha sempre testo e azione: «Regole checkout» per configurare o rivedere prima di attivare, «Vedi le opzioni» verso la scelta del piano per prova da avviare o piano scaduto, «Apri gli ordini» da attiva |
+
+### 23.1 Verifica live di 2.0.9
+
+Pubblicazione Development con
+[#637](https://github.com/max23468/CF-Ready/pull/637), commit `e531e96`,
+versione Shopify `2.0.9-dev.dca7971e3c22`, deployment Worker
+`509c9f12-dfd1-413e-869e-72b088a166d5`; la
+[ricevuta](evidence/2026-10-04-v209-live/deploy-receipt-development.json)
+conferma smoke, readback provider e migrazioni verdi. Rollback: Shopify
+`2.0.8-dev.acda0712bd7b`. Nessuna promozione Production.
+
+Verifica del 4 ottobre in Chrome su `cf-ready-polaris-2`, nuovo Admin, a
+1440 px, con Validation attiva, CF e PEC facoltativi e prova in corso. Solo
+lettura: nessuna regola, attivazione o piano modificato.
+
+| ID | Stato | Riscontro |
+| --- | --- | --- |
+| H-1 | Risolto | La data compare solo nel banner («Prova gratuita fino al 16 ottobre 2026»); Piano dice «Prova gratuita attiva.» e la scelta del piano «il primo addebito arriva dopo la fine della prova» ([home](evidence/2026-10-04-v209-live/p2-home-attiva-1440.jpg), [piani](evidence/2026-10-04-v209-live/p2-home-piani-1440.jpg)) |
+| H-2 | Risolto | «Modifica regole» primario e primo, «Disattiva nel checkout» terziario rosso senza fondo ([home](evidence/2026-10-04-v209-live/p2-home-attiva-1440.jpg)). La variante disattivata è coperta dai test browser, non ricreata live |
+| H-4 | Risolto | Nomi dei piani come titoli, prezzo distinto, una riga descrittiva per ogni opzione, «Consigliato» in `info` ([piani](evidence/2026-10-04-v209-live/p2-home-piani-1440.jpg)) |
+| H-5 | Parziale | Con campi configurati «Attiva» resta verde, come previsto. Il caso senza campi è coperto dai test unitari ma non ricreato live per non salvare regole |
+| H-6 | Parziale | Da attiva testo e «Apri gli ordini». Gli altri stati sono coperti dai test unitari ma non ricreati live |
+
+Conteggio dopo questo giro: **50 ID**, **19 risolti**, **9 parziali**, **18
+aperti**, **4 accettati per decisione**; restano **27 da completare**.
