@@ -15,7 +15,7 @@ export function StatusList({ rows }: { rows: StatusRow[] }) {
         gridTemplateColumns="@container (inline-size > 200px) auto 1fr, 1fr"
         alignItems="center"
         columnGap="base"
-        rowGap="small-100"
+        rowGap="small-300"
       >
         {rows.map((row) => (
           <Fragment key={row.key}>

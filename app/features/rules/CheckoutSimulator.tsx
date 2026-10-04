@@ -149,15 +149,10 @@ export function CheckoutSimulator({
 
   return (
     <s-query-container>
-      <div
-        ref={rootRef}
-        lang={previewLocale}
-        style={{
-          background: "#f1f5ef",
-          borderRadius: "16px",
-          padding: "0",
-        }}
-      >
+      {/* Decisione del 4 ottobre: il simulatore è l'unico accento di brand dell'app (fondo
+          panna e «Continua» verde bottiglia, come un checkout del merchant). Un solo fondo per
+          tutto il riquadro (R-2). */}
+      <div ref={rootRef} lang={previewLocale} className="checkout-simulator">
         <s-box background="transparent" border="base" borderRadius="large" overflow="hidden">
           <s-box padding="@container (inline-size > 420px) small-200, small-100">
             <s-stack direction="block" gap="small-200">
@@ -288,10 +283,7 @@ export function CheckoutSimulator({
 
           <s-divider />
 
-          <s-box
-            background="subdued"
-            padding="@container (inline-size > 420px) small-200, small-100"
-          >
+          <s-box padding="@container (inline-size > 420px) small-200, small-100">
             <div className="checkout-simulator__actions">
               <div className="checkout-simulator__secondary-actions">
                 <div className="checkout-simulator__scenario-copy">
@@ -455,7 +447,7 @@ function SimulatorCustomerFields({
           />
         </>
       ) : (
-        <s-box background="subdued" borderRadius="base" padding="base">
+        <s-box background="base" borderRadius="base" padding="base">
           <s-paragraph color="subdued">{t.checkout.nothing}</s-paragraph>
         </s-box>
       )}

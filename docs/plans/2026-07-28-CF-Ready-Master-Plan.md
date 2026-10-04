@@ -2406,12 +2406,16 @@ Conclusioni operative:
   La diagnostica distingue una verifica non eseguita da un controllo inattivo;
 - convenzioni condivise di CF Ready 2.0, approvate dall'owner il 4 ottobre
   2026 dopo l'audit grafico Polaris 2 del 3 ottobre (ID P2-T*, N-3, R-5, EN-3):
-  - **layout:** Home, Regole, Messaggi e Guida usano `s-page` base con la
-    colonna laterale nello slot `aside`; in Regole la colonna laterale ospita
-    il simulatore. L'onboarding resta `inlineSize="small"` come flusso guidato.
-    Nessun CSS sposta o allarga la pagina. Il titolo di pagina sta nella barra
-    dell'Admin, quindi la colonna laterale non si allinea a un titolo nel
-    contenuto: è un comportamento dell'host e non si corregge;
+  - **layout:** Home, Messaggi e Guida usano `s-page` base con la colonna
+    laterale nello slot `aside`. Regole, per decisione dell'owner del 4
+    ottobre, affianca al 50% regole e simulatore, così una scelta e il suo
+    effetto restano in vista insieme, e mette «Etichette del checkout» a tutta
+    larghezza sotto; senza colonna laterale il suo bordo sinistro differisce
+    dalle altre pagine, per scelta. L'onboarding resta `inlineSize="small"`
+    come flusso guidato. Nessun CSS sposta o allarga la pagina. Il titolo di
+    pagina sta nella barra dell'Admin, quindi la colonna laterale non si
+    allinea a un titolo nel contenuto: è un comportamento dell'host e non si
+    corregge;
   - **titoli:** sezione con `s-section heading`, sempre fuori dalla card;
     gruppo con controlli dentro una card o sottogruppo laterale con
     `s-heading`; etichetta di riga con `s-text type="strong"`; il nome di un
@@ -2420,9 +2424,14 @@ Conclusioni operative:
     corso, `warning` quando serve un'azione del merchant, `critical` per un
     blocco o un errore, `neutral` per valori di configurazione e stati
     descrittivi (regole, messaggi predefiniti, «Può comparire»);
-  - **logo:** lockup a 128 px allineato a sinistra nelle colonne laterali,
-    marchio positivo senza fondo in un box da 32 px accanto a un titolo
-    (`app/ui-brand.tsx`); mai `s-avatar` per il marchio;
+  - **logo e brand:** lockup a 128 px allineato a sinistra nelle colonne
+    laterali, marchio positivo senza fondo in un box da 32 px accanto a un
+    titolo (`app/ui-brand.tsx`); mai `s-avatar` per il marchio. Il simulatore
+    del checkout è l'unico accento di brand: fondo panna e «Continua» verde
+    bottiglia (decisione dell'owner del 4 ottobre, `docs/brand/brand-foundation.md` §3.1);
+  - **densità:** banner solo quando serve un'azione (la prova in corso sta
+    nella sezione «Piano»); un solo badge di stato per pannello; un confronto
+    senza modifiche sta su una riga;
   - **disclosure:** `details` tramite `app/ui-disclosure.tsx`, con chevron
     `s-icon` al bordo finale del summary, uguale a ogni livello di annidamento;
   - **spaziature:** dentro un gruppo `small-200` o meno, tra gruppi della stessa

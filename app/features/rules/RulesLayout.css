@@ -55,17 +55,21 @@
   padding-block-start: 0.5rem;
 }
 
-.rules-layout__main {
+.rules-layout-container {
+  container-type: inline-size;
   display: grid;
   gap: 16px;
-  min-width: 0;
 }
 
-/* Con Polaris 1 la colonna laterale risale di 16 px su mobile (app.css), contando sul margine
-   dell'ultima card: qui l'ultima card sta dentro questo contenitore, che lo restituisce. */
-@media (max-width: 600px) {
-  html[data-polaris-version="1"] .rules-layout__main {
-    margin-block-end: 16px;
+.rules-layout {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+}
+
+@container (inline-size > 720px) {
+  .rules-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 
