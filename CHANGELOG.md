@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.6 — 4 ottobre 2026
+
+- affianca al 50% regole e simulatore in Regole e porta le etichette a tutta
+  larghezza sotto, così simulatore e regole restano in vista insieme;
+- dà al simulatore un unico fondo panna e il «Continua» verde bottiglia, unico
+  accento di brand ammesso nell'app (brand A-19);
+- toglie dalla Home il banner della prova in corso, ora con «Scegli un piano»
+  nella sezione Piano, e compatta righe di stato, confronto delle etichette e
+  aiuto del campo Interno, con un solo badge di stato per pannello.
+  Pubblicazione solo Development, senza promozione Production.
+
 ## 2.0.5 — 4 ottobre 2026
 
 - porta il simulatore di Regole nella colonna laterale nativa, così le quattro

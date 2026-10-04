@@ -1,3 +1,10 @@
+/* Brand: panna (#F7F5EE) e verde bottiglia (#20492F) sono ammessi dentro l'app solo qui
+   (docs/brand/brand-foundation.md, decisione del 4 ottobre 2026). */
+.checkout-simulator {
+  background: #f7f5ee;
+  border-radius: 16px;
+}
+
 .checkout-simulator__outcome {
   display: inline-flex;
   justify-self: start;

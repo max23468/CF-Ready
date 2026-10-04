@@ -208,12 +208,14 @@ test.each([
     };
     router.loaderData = confirmedHome(data);
     const home = await mount(<HomePage />);
-    await expect
-      .poll(() => home.container.querySelector("s-banner s-button")?.hasAttribute("disabled"))
-      .toBe(false);
-    const banner = home.container.querySelector("s-banner")!;
-    expect(banner.querySelectorAll("s-paragraph")).toHaveLength(1);
-    expect(banner.textContent).not.toContain(trialContinuityTexts(locale).approvalHelp);
+    // Decisione del 4 ottobre: con la prova in corso la card non ha il banner; l'azione sta in
+    // «Piano» nella colonna laterale.
+    await expect.poll(() => home.container.querySelector('[slot="aside"] s-link')).not.toBeNull();
+    expect(home.container.querySelector("s-banner")).toBeNull();
+    const planLink = [...home.container.querySelectorAll('[slot="aside"] s-link')].find(
+      (link) => link.textContent === trialContinuityTexts(locale).choosePlan,
+    );
+    expect(planLink).toBeDefined();
     const plans = home.container.querySelector("#plans")!;
     expect(plans.textContent).toContain(copy.plan.firstCharge(formatDate("2026-10-17", locale)));
     expect(plans.textContent).toContain(copy.plan.oneTimeCharge);
@@ -230,8 +232,6 @@ test.each([
       expect(period.top).toBeLessThan(number.bottom);
       expect(period.right).toBeLessThanOrEqual(window.innerWidth);
     }
-    if (width === 390)
-      expect(surfaceRect(banner).bottom - surfaceRect(banner).top).toBeLessThan(180);
     await page.screenshot({
       path: screenshotPath(
         `__screenshots__/visual/group2-home-top-${locale}-${server.browser}-${width}.png`,
@@ -1157,7 +1157,7 @@ test.each([
   ["en", 1054],
   ["en", 500],
 ] as const)(
-  "Polaris reale: P2, stesso impianto di pagina e logo unico, %s a %i px",
+  "Polaris reale: P2, impianto di pagina e logo unico, %s a %i px",
   async (locale, width) => {
     await page.viewport(width, 900);
     const lefts: Record<string, number> = {};
@@ -1178,6 +1178,12 @@ test.each([
     const ruleBadges = [...home.container.querySelectorAll(".cf-status-list__value s-badge")];
     expect(ruleBadges).toHaveLength(3);
     expect(ruleBadges.every((badge) => badge.getAttribute("tone") === "neutral")).toBe(true);
+    // Decisione del 4 ottobre: righe più fitte, al massimo 28 px da una all'altra.
+    const rowTops = [...home.container.querySelectorAll(".cf-status-list__label")].map(
+      (label) => label.getBoundingClientRect().top,
+    );
+    for (let index = 1; index < rowTops.length; index++)
+      expect(rowTops[index] - rowTops[index - 1]).toBeLessThanOrEqual(28);
     // P2-T5: lockup a 128 px, allineato al testo della colonna laterale.
     const lockup = home.container.querySelector('s-image[src="/cf-ready-lockup.svg"]')!;
     const lockupRect = surfaceRect(lockup);
@@ -1207,21 +1213,31 @@ test.each([
       storefrontUrl: "https://demo.myshopify.com",
     };
     const rules = await mount(<CheckoutRules />);
-    lefts.rules = firstMainCardLeft(rules.container);
-    // P2-T1: il simulatore sta nella colonna laterale nativa, accanto o sotto le regole.
+    // Decisione del 4 ottobre: regole e simulatore al 50%, etichette a tutta larghezza sotto.
     const simulator = rules.container.querySelector<HTMLElement>("#simulatore")!;
-    expect(simulator.closest('[slot="aside"]')).not.toBeNull();
+    expect(simulator.closest('[slot="aside"]')).toBeNull();
+    const fields = rules.container.querySelector<HTMLElement>(".rules-layout__fields")!;
     const labels = rules.container.querySelector<HTMLElement>(".rules-layout__labels")!;
+    const simulatorRect = simulator.getBoundingClientRect();
+    const fieldsRect = fields.getBoundingClientRect();
     if (width >= 1054) {
-      expect(simulator.getBoundingClientRect().left).toBeGreaterThan(
-        labels.getBoundingClientRect().right,
-      );
+      expect(simulatorRect.left).toBeGreaterThan(fieldsRect.right);
+      expect(Math.abs(simulatorRect.top - fieldsRect.top)).toBeLessThan(1);
+      expect(Math.abs(simulatorRect.width - fieldsRect.width)).toBeLessThan(1);
+      expect(simulatorRect.width).toBeGreaterThan(380);
     } else {
-      expect(simulator.getBoundingClientRect().top).toBeGreaterThan(
-        labels.getBoundingClientRect().bottom,
-      );
+      expect(simulatorRect.top).toBeGreaterThan(fieldsRect.bottom);
     }
+    expect(labels.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      Math.max(simulatorRect.bottom, fieldsRect.bottom),
+    );
+    if (width >= 1054)
+      expect(labels.getBoundingClientRect().width).toBeGreaterThan(simulatorRect.width);
     expect(rules.container.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
+    // Decisione del 4 ottobre: un solo fondo panna per tutto il simulatore (brand A-19).
+    const surface = rules.container.querySelector<HTMLElement>(".checkout-simulator")!;
+    expect(getComputedStyle(surface).backgroundColor).toBe("rgb(247, 245, 238)");
+    expect(surface.querySelector('s-box[background="subdued"]')).toBeNull();
     // N-3: marchio senza fondo, niente avatar.
     expect(rules.container.querySelector("s-avatar")).toBeNull();
     expect(rules.container.querySelector('s-image[src="/cf-ready-mark.svg"]')).not.toBeNull();
@@ -1263,7 +1279,7 @@ test.each([
     );
     await guide.unmount();
 
-    // P2-T1: passando da una pagina all'altra il bordo sinistro non si sposta.
+    // P2-T1: Home, Messaggi e Guida hanno lo stesso bordo; Regole è l'eccezione dichiarata.
     for (const left of Object.values(lefts)) expect(Math.abs(left - lefts.home)).toBeLessThan(1);
   },
   30000,

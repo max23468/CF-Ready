@@ -190,9 +190,9 @@ Cinque valori. Nessun colore funzionale proprietario: dentro l'Admin i colori di
 
 | Nome | HEX | Funzione | Contesto d'uso | Limiti | Contrasto |
 |---|---|---|---|---|---|
-| **Verde bottiglia** | `#20492F` | Primario | Marchio, titoli, superfici scure del sito, cornici screenshot, bottoni e link **del solo sito pubblico** | Mai dentro l'app embedded. Mai come colore di stato | 9,4:1 su Panna · 10,2:1 su bianco |
+| **Verde bottiglia** | `#20492F` | Primario | Marchio, titoli, superfici scure del sito, cornici screenshot, bottoni e link **del solo sito pubblico** | Dentro l'app embedded solo nel bottone «Continua» del simulatore del checkout (decisione dell'owner del 4 ottobre 2026). Mai come colore di stato | 9,4:1 su Panna · 10,2:1 su bianco |
 | **Arancio cotto** | `#C97B2E` | Accento unico | Fascia del marchio, un dettaglio per schermata sui materiali pubblici | Mai dentro l'app. **Mai come colore di stato.** Mai su superfici estese. Solo grafica e testo grande | 3,1:1 su Verde bottiglia · 3,0:1 su Panna |
-| **Panna** | `#F7F5EE` | Fondo caldo | Fondo di default dei materiali pubblici, fondo degli screenshot, marchio in negativo | Non usarlo dentro l'app | — |
+| **Panna** | `#F7F5EE` | Fondo caldo | Fondo di default dei materiali pubblici, fondo degli screenshot, marchio in negativo | Dentro l'app solo come fondo del simulatore del checkout (decisione dell'owner del 4 ottobre 2026) | — |
 | **Inchiostro** | `#1A211C` | Testo primario | Sito, didascalie, materiali | Non usarlo come fondo esteso: per il buio c'è il Verde bottiglia | 15,1:1 su Panna |
 | **Grigio caldo** | `#6B6A5C` | Testo secondario | Occhielli, didascalie, note | Mai per testo sotto 14 px su fondi tinti | 5,0:1 su Panna |
 
@@ -812,7 +812,7 @@ Parte della direzione, non un controllo finale. Vale per app embedded, sito, lis
 |---|---|---|---|
 | **A-01** | Direzione visiva | «L'oggetto e lo strumento»: riferimento concreto alla tessera, linguaggio geometrico modernista, neutri caldi. Brand ai bordi, neutro al centro (§2) | 28/07/2026 |
 | **A-02** | Palette | Verde bottiglia `#20492F`, Arancio cotto `#C97B2E`, Panna `#F7F5EE`, Inchiostro `#1A211C`, Grigio caldo `#6B6A5C` (§3) | 28/07/2026 |
-| **A-03** | Zero colore di brand nell'app embedded | Solo token Polaris su controlli e stati; brand presente tramite l'icona in navigazione. Derogata per le sole illustrazioni da A-16 (§2.6, §8.13) | 27/07/2026 |
+| **A-03** | Zero colore di brand nell'app embedded | Solo token Polaris su controlli e stati; brand presente tramite l'icona in navigazione. Derogata per le sole illustrazioni da A-16 e per il simulatore del checkout da A-19 (§2.6, §8.13) | 27/07/2026 |
 | **A-04** | Tipografia | Grottesco geometrico di sistema, nessun webfont, nessun font dichiarato dentro l'Admin, wordmark in tracciati (§4) | 28/07/2026 |
 | **A-05** | Marchio | «Tessera con fascia»: proporzione ISO ID-1, raggio 12,5% del lato corto, fascia in alto a spessore pieno, sigla `CF` centrata (§6.1–6.5) | 28/07/2026 |
 | **A-06** | Wordmark e lockup | Due parole, peso uniforme, monocromo, tre configurazioni (§6.6–6.7) | 28/07/2026 |
@@ -829,6 +829,7 @@ Parte della direzione, non un controllo finale. Vale per app embedded, sito, lis
 | **A-16** | Colore di brand dentro l'app, per illustrazione | Deroga unica ad A-03: verde bottiglia e arancio cotto sono ammessi **dentro un'illustrazione**, mai su un controllo o su uno stato, e solo su onboarding (primo passo e riepilogo), testata di Guida e FAQ e piede della colonna laterale in Home (§2.6, §8.13) | 31/07/2026 |
 | **A-17** | Riduzione per la nav dell'Admin | A 16 px usa una tessera monocromatica `14 × 8,8` nelle proporzioni canoniche, con contorno e fascia superiore ma senza sigla. La semplificazione mantiene leggibile il segno ed evita la resa schiacciata della precedente variante `14 × 7,5` | 24/08/2026 |
 | **A-18** | Limiti e rassicurazioni | Ogni limite si dice una volta dove cambia una decisione; rassicurazioni sul checkout aperto, privacy e cautele legali restano nelle sezioni dedicate (§7.1, §7.7, §9.2; D-172) | 29/09/2026 |
+| **A-19** | Simulatore del checkout come accento di brand | Seconda deroga ad A-03: il simulatore in Regole usa fondo Panna e bottone «Continua» Verde bottiglia, come un checkout del merchant. Nessun altro controllo o stato dell'app usa colori di brand; il fondo fisso non segue un eventuale tema scuro dell'Admin (§3.1) | 04/10/2026 |
 
 ### 11.2 Nota sulla dark mode
 

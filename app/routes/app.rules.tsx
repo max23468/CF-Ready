@@ -333,51 +333,76 @@ export default function CheckoutRules() {
         onConfirm={() => submitSave(true)}
       />
 
-      {/* P2-T1: stessa pagina base delle altre, con il simulatore nella colonna laterale nativa:
-          il bordo sinistro non si sposta tra le pagine e regole ed etichette hanno tutta la
-          colonna principale. */}
-      <div className="rules-layout__main">
-        <form
-          className="rules-layout__form"
-          key={formRevision}
-          onChange={readDraft}
-          onSubmit={(event) => {
-            event.preventDefault();
-            save();
-          }}
-        >
-          <div className="rules-layout__fields">
-            <s-section heading={t.rules.taxCodeLabel}>
-              <s-choice-list
-                label={t.rules.taxCodeLabel}
-                labelAccessibilityVisibility="exclusive"
-                name="taxCode"
-              >
-                {TAX_CODE_RULE_MODES.map((mode) => (
-                  <s-choice key={mode} value={mode} selected={mode === draft.rules.taxCode}>
-                    {t.rules.taxCode[mode]}
-                    <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
-                  </s-choice>
-                ))}
-              </s-choice-list>
-            </s-section>
-            <s-section heading={t.rules.pecLabel}>
-              <s-choice-list
-                label={t.rules.pecLabel}
-                labelAccessibilityVisibility="exclusive"
-                name="pec"
-              >
-                {PEC_RULE_MODES.map((mode) => (
-                  <s-choice key={mode} value={mode} selected={mode === draft.rules.pec}>
-                    {t.rules.pec[mode]}
-                    <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
-                  </s-choice>
-                ))}
-              </s-choice-list>
+      {/* Decisione del 4 ottobre: regole e simulatore affiancati al 50%, così una scelta e il
+          suo effetto restano in vista insieme; le etichette, lunghe quando aperte, stanno a
+          tutta larghezza sotto e non lasciano vuota la colonna del simulatore. Regole non ha
+          colonna laterale: è l'unica pagina con un bordo diverso, per scelta. */}
+      <div className="rules-layout-container">
+        <div className="rules-layout">
+          <form
+            className="rules-layout__form"
+            key={formRevision}
+            onChange={readDraft}
+            onSubmit={(event) => {
+              event.preventDefault();
+              save();
+            }}
+          >
+            <div className="rules-layout__fields">
+              <s-section heading={t.rules.taxCodeLabel}>
+                <s-choice-list
+                  label={t.rules.taxCodeLabel}
+                  labelAccessibilityVisibility="exclusive"
+                  name="taxCode"
+                >
+                  {TAX_CODE_RULE_MODES.map((mode) => (
+                    <s-choice key={mode} value={mode} selected={mode === draft.rules.taxCode}>
+                      {t.rules.taxCode[mode]}
+                      <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
+                    </s-choice>
+                  ))}
+                </s-choice-list>
+              </s-section>
+              <s-section heading={t.rules.pecLabel}>
+                <s-choice-list
+                  label={t.rules.pecLabel}
+                  labelAccessibilityVisibility="exclusive"
+                  name="pec"
+                >
+                  {PEC_RULE_MODES.map((mode) => (
+                    <s-choice key={mode} value={mode} selected={mode === draft.rules.pec}>
+                      {t.rules.pec[mode]}
+                      <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
+                    </s-choice>
+                  ))}
+                </s-choice-list>
+              </s-section>
+            </div>
+          </form>
+          <div className="rules-layout__preview" id={SIMULATOR_ID} tabIndex={-1}>
+            <s-section heading={t.rules.previewHeading}>
+              <s-stack direction="block" gap="base">
+                <s-stack direction="block" gap="small-100">
+                  {describeCheckout(
+                    {
+                      rules: draft.rules,
+                      status: validationStatus(saved.enabled, saved.entitled),
+                    },
+                    saved.locale,
+                  ).map((line) => (
+                    <s-paragraph key={line}>{line}</s-paragraph>
+                  ))}
+                </s-stack>
+
+                <CheckoutSimulator
+                  locale={saved.locale}
+                  rules={draft.rules}
+                  messages={saved.messages}
+                />
+              </s-stack>
             </s-section>
           </div>
-        </form>
-
+        </div>
         <div className="rules-layout__labels">
           <CheckoutLabelsSection
             locale={saved.locale}
@@ -400,32 +425,6 @@ export default function CheckoutRules() {
           />
         </div>
       </div>
-
-      <s-stack slot="aside" direction="block" gap="base">
-        <div className="rules-layout__preview" id={SIMULATOR_ID} tabIndex={-1}>
-          <s-section heading={t.rules.previewHeading}>
-            <s-stack direction="block" gap="base">
-              <s-stack direction="block" gap="small-100">
-                {describeCheckout(
-                  {
-                    rules: draft.rules,
-                    status: validationStatus(saved.enabled, saved.entitled),
-                  },
-                  saved.locale,
-                ).map((line) => (
-                  <s-paragraph key={line}>{line}</s-paragraph>
-                ))}
-              </s-stack>
-
-              <CheckoutSimulator
-                locale={saved.locale}
-                rules={draft.rules}
-                messages={saved.messages}
-              />
-            </s-stack>
-          </s-section>
-        </div>
-      </s-stack>
     </s-page>
   );
 }

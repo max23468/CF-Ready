@@ -47,7 +47,10 @@ export function HomeValidationSection({
 }) {
   const status = validationStatus(data.validationEnabled, entitled);
   const presentation = homeValidationPresentation(data, status, firstRun, t);
-  const continuity = trialContinuityNotice(data);
+  // Decisione del 4 ottobre: la card parla della validazione. La prova in corso sta in «Piano»;
+  // qui compare solo quando serve un'azione (ultimi giorni o prova scaduta).
+  const notice = trialContinuityNotice(data);
+  const continuity = notice?.tone === "warning" ? notice : null;
   return (
     <s-section heading={t.home.validationHeading}>
       <s-stack direction="block" gap="base">

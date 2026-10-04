@@ -467,10 +467,15 @@ describe("Regole", () => {
       "details.checkout-labels-disclosure:not(.checkout-label-instructions)",
     );
     expect(labelsArea?.parentElement?.lastElementChild).toBe(labelsArea);
-    expect(labelsArea?.parentElement?.classList.contains("rules-layout__main")).toBe(true);
+    expect(labelsArea?.parentElement?.classList.contains("rules-layout-container")).toBe(true);
+    // Le etichette stanno sotto la griglia di regole e simulatore, a 16 px.
     expect(
-      labelsArea!.getBoundingClientRect().top - fieldsArea!.getBoundingClientRect().bottom,
+      labelsArea!.getBoundingClientRect().top -
+        view.container.querySelector(".rules-layout")!.getBoundingClientRect().bottom,
     ).toBe(16);
+    expect(labelsArea!.getBoundingClientRect().top).toBeGreaterThan(
+      fieldsArea!.getBoundingClientRect().bottom,
+    );
     expect(disclosures).toHaveLength(2);
     expect([...disclosures!].every((disclosure) => !disclosure.hasAttribute("open"))).toBe(true);
     expect(disclosures?.[0].textContent).toContain(texts("it").rules.labels.addressHeading);
@@ -510,6 +515,12 @@ describe("Regole", () => {
     await click(guidedConfirmations[0]);
 
     expect(disclosures?.[0].querySelector("s-select")).not.toBeNull();
+    // Decisione del 4 ottobre: l'aiuto del campo Interno è un solo paragrafo.
+    const addressHelp = [...disclosures![0].querySelectorAll("s-paragraph")].filter((paragraph) =>
+      paragraph.textContent?.includes(texts("it").rules.labels.addressModeHelp),
+    );
+    expect(addressHelp).toHaveLength(1);
+    expect(addressHelp[0].textContent).toContain(texts("it").rules.labels.addressLimit);
     // Punto 7: anche le etichette del campo Interno sono tra virgolette.
     expect(disclosures?.[0].querySelector(".checkout-label-context__row")?.textContent).toMatch(
       /«.+»/,
@@ -834,6 +845,10 @@ describe("Regole", () => {
     );
     expect(notes).toContain(texts("it").rules.labels.allMarketsSame);
     expect(notes.some((note) => note?.includes(" · "))).toBe(false);
+    // R-7: lo stato complessivo sta nel titolo del pannello, non su ogni lingua.
+    expect(
+      view.container.querySelector('.checkout-label-context s-badge[tone="success"]'),
+    ).toBeNull();
     expect(texts("en").rules.labels.marketException("Italy")).toBe(
       "Customization for the Italy market",
     );
@@ -1438,7 +1453,9 @@ describe("Regole: salvataggio ed etichette (audit §5.1)", () => {
     router.loaderData = { ...baseData, labelSnapshot: snapshot("labels-r1") };
     const view = await mount(<CheckoutRules />);
     expect(view.container.textContent).not.toContain(texts("it").rules.labels.disableWarning);
-    const checkbox = view.container.querySelector("s-checkbox") as HTMLElement & {
+    const checkbox = view.container.querySelector(
+      ".rules-layout__labels s-checkbox",
+    ) as HTMLElement & {
       checked: boolean;
     };
     checkbox.checked = false;

@@ -153,8 +153,9 @@ function Address2Content({
         <s-option value="optional">{copy.addressOptional}</s-option>
         <s-option value="hidden">{copy.addressHidden}</s-option>
       </s-select>
-      <s-paragraph color="subdued">{copy.addressModeHelp}</s-paragraph>
+      {/* Decisione del 4 ottobre: un solo paragrafo di aiuto sotto la scelta. */}
       <s-paragraph color="subdued">
+        {copy.addressModeHelp}{" "}
         {hidden ? copy.addressHiddenHelp : scopeGranted ? copy.addressLimit : copy.noSnapshot}
       </s-paragraph>
       {snapshot && state.address2FormMode && !hidden ? (
