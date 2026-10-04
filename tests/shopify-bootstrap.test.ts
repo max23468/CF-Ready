@@ -70,7 +70,7 @@ test("il bootstrap Shopify usa fallback locali", async () => {
     appUrl: "",
     authPathPrefix: "/auth",
     distribution: "app-store",
-    polarisUrl: "https://cdn.shopify.com/shopifycloud/polaris-1.js",
+    polarisUrl: "https://cdn.shopify.com/shopifycloud/polaris-2.0-rc.js",
     future: { expiringOfflineAccessTokens: true },
   });
   expect(module.sessionStorage).toEqual({ kind: "d1-session-storage" });
@@ -107,11 +107,7 @@ test.each(["development", "production", undefined, "unknown"])(
     const { loader } = await import("../app/root");
     const document = loader({ request: new Request("https://cf-ready.test/app") } as never);
     expect(state.shopifyOptions[0].polarisUrl).toBe(document.polarisUrl);
-    expect(document.polarisUrl).toBe(
-      environment === "development"
-        ? "https://cdn.shopify.com/shopifycloud/polaris-2.0-rc.js"
-        : "https://cdn.shopify.com/shopifycloud/polaris-1.js",
-    );
+    expect(document.polarisUrl).toBe("https://cdn.shopify.com/shopifycloud/polaris-2.0-rc.js");
   },
 );
 

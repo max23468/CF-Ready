@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.17 — 4 ottobre 2026
+
+- carica Polaris 2.0 release candidate in tutti gli ambienti, Production
+  compresa; Polaris 1 resta disponibile come ritorno rapido.
+  Promossa in Production su autorizzazione dell’owner.
+
+Polaris 2.0 release candidate now loads in every environment, Production
+included; Polaris 1 remains available as a quick fallback.
+
 ## 2.0.16 — 4 ottobre 2026
 
 - impila etichetta e badge delle righe di stato fino a 400 px, così Home e
