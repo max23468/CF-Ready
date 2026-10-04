@@ -5,7 +5,7 @@ import { logEvent } from "./events.server";
 import { D1SessionStorage, recordSessionTiming } from "./session-storage.server";
 import { ALLOWED_SHOP } from "./env.server";
 import { recordInstallOnce, refuseInstall } from "./shop.server";
-import { polarisUrlForEnvironment } from "./shopify-ui";
+import { POLARIS_URL } from "./shopify-ui";
 
 type ShopifyBindings = Env & {
   SCOPES?: string;
@@ -27,7 +27,7 @@ const shopify = shopifyApp({
   authPathPrefix: "/auth",
   sessionStorage: d1SessionStorage,
   distribution: AppDistribution.AppStore,
-  polarisUrl: polarisUrlForEnvironment(bindings.APP_ENVIRONMENT),
+  polarisUrl: POLARIS_URL,
   future: {
     expiringOfflineAccessTokens: true,
   },

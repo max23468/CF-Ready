@@ -13,7 +13,7 @@ import type { CheckoutLabelsMode } from "../../app/checkout-labels/domain";
 import { CheckoutSimulator } from "../../app/features/rules/CheckoutSimulator";
 import { RevealBanner } from "../../app/ui-feedback";
 import { Disclosure } from "../../app/ui-disclosure";
-import { polarisUrlForEnvironment } from "../../app/shopify-ui";
+import { POLARIS_STABLE_URL, POLARIS_V2_URL } from "../../app/shopify-ui";
 import { trialContinuityTexts } from "../../app/i18n/trial-continuity";
 import { formatDate, formatMoney } from "../../app/i18n";
 import "../../app/app.css";
@@ -33,7 +33,8 @@ const screenshotPath = (path: string) =>
 // solo fixture sintetiche, nessuna autenticazione o chiamata allo store.
 beforeAll(async () => {
   const script = document.createElement("script");
-  script.src = polarisUrlForEnvironment(polarisV2 ? "development" : "production");
+  // La v1 resta provata come ritorno rapido finché la v2 è una release candidate.
+  script.src = polarisV2 ? POLARIS_V2_URL : POLARIS_STABLE_URL;
   document.head.append(script);
   await customElements.whenDefined("s-page");
   document.documentElement.lang = "it";

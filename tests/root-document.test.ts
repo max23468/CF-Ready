@@ -1,7 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
 import { isValidElement } from "react";
 import { expect, test, vi } from "vitest";
-import { polarisUrlForEnvironment, POLARIS_STABLE_URL, POLARIS_V2_URL } from "../app/shopify-ui";
+import { POLARIS_STABLE_URL, POLARIS_URL, POLARIS_V2_URL } from "../app/shopify-ui";
 
 const state = vi.hoisted(() => ({ polarisUrl: "" }));
 state.polarisUrl = POLARIS_V2_URL;
@@ -30,54 +30,48 @@ test("il documento espone chiave App Bridge e lingua risolta dalla richiesta", (
   ).toMatchObject({ locale: "it", apiKey: expect.any(String), polarisUrl: POLARIS_V2_URL });
 });
 
-test.each(["development", "production", undefined, "unknown"])(
-  "App Bridge e Polaris vengono caricati una sola volta nel head (%s)",
-  (environment) => {
-    state.polarisUrl = polarisUrlForEnvironment(environment);
-    const document = elements(App());
-    expect(document[0].props).toMatchObject({
-      "data-polaris-version": environment === "development" ? "2" : "1",
-    });
-    const head = document.find((element) => element.type === "head");
-    if (!head) throw new Error("head del documento assente");
+test.each([
+  [POLARIS_V2_URL, "2"],
+  [POLARIS_STABLE_URL, "1"],
+])("App Bridge e Polaris vengono caricati una sola volta nel head (%s)", (polarisUrl, version) => {
+  state.polarisUrl = polarisUrl;
+  const document = elements(App());
+  expect(document[0].props).toMatchObject({ "data-polaris-version": version });
+  const head = document.find((element) => element.type === "head");
+  if (!head) throw new Error("head del documento assente");
 
-    const headElements = elements(head);
-    const appBridge = headElements.filter(
+  const headElements = elements(head);
+  const appBridge = headElements.filter(
+    (element) =>
+      element.type === "script" &&
+      (element.props as { src?: string }).src ===
+        "https://cdn.shopify.com/shopifycloud/app-bridge.js",
+  );
+  const polaris = headElements.filter(
+    (element) =>
+      element.type === "script" && (element.props as { src?: string }).src === state.polarisUrl,
+  );
+
+  expect(appBridge).toHaveLength(1);
+  expect(appBridge[0].props).toMatchObject({ "data-api-key": "test-api-key" });
+  expect(
+    headElements.filter(
       (element) =>
-        element.type === "script" &&
-        (element.props as { src?: string }).src ===
-          "https://cdn.shopify.com/shopifycloud/app-bridge.js",
-    );
-    const polaris = headElements.filter(
+        element.type === "meta" && (element.props as { name?: string }).name === "shopify-api-key",
+    ),
+  ).toHaveLength(0);
+  expect(polaris).toHaveLength(1);
+  expect(document.filter((element) => element.type === "script")).toHaveLength(2);
+  expect(
+    headElements.filter(
       (element) =>
-        element.type === "script" && (element.props as { src?: string }).src === state.polarisUrl,
-    );
+        element.type === "meta" &&
+        (element.props as { name?: string; content?: string }).name === "shopify-debug" &&
+        (element.props as { content?: string }).content === "web-vitals",
+    ),
+  ).toHaveLength(1);
+});
 
-    expect(appBridge).toHaveLength(1);
-    expect(appBridge[0].props).toMatchObject({ "data-api-key": "test-api-key" });
-    expect(
-      headElements.filter(
-        (element) =>
-          element.type === "meta" &&
-          (element.props as { name?: string }).name === "shopify-api-key",
-      ),
-    ).toHaveLength(0);
-    expect(polaris).toHaveLength(1);
-    expect(document.filter((element) => element.type === "script")).toHaveLength(2);
-    expect(
-      headElements.filter(
-        (element) =>
-          element.type === "meta" &&
-          (element.props as { name?: string; content?: string }).name === "shopify-debug" &&
-          (element.props as { content?: string }).content === "web-vitals",
-      ),
-    ).toHaveLength(1);
-  },
-);
-
-test("Polaris v2 è limitata all'ambiente Development esplicito", () => {
-  expect(polarisUrlForEnvironment("development")).toBe(POLARIS_V2_URL);
-  for (const environment of ["production", undefined, "unknown"]) {
-    expect(polarisUrlForEnvironment(environment)).toBe(POLARIS_STABLE_URL);
-  }
+test("Polaris v2 è il runtime di tutti gli ambienti", () => {
+  expect(POLARIS_URL).toBe(POLARIS_V2_URL);
 });
