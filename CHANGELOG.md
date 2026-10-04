@@ -6,6 +6,19 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.15 — 4 ottobre 2026
+
+- corregge l’istruzione delle bozze non salvate in italiano e inglese:
+  descrive come salvare o scartare le modifiche senza dipendere dai nomi
+  dei pulsanti della barra Shopify;
+- aggiorna l’audit di Claude con la verifica indipendente in Chrome,
+  i difetti residui e i limiti delle prove live.
+  Pubblicazione solo Development, senza promozione Production.
+
+Unsaved draft guidance describes saving or discarding changes without
+depending on Shopify’s button labels. The audit records current Chrome
+evidence, remaining findings and live verification limits.
+
 ## 2.0.14 — 4 ottobre 2026
 
 - usa tutta la larghezza della FAQ per le risposte, senza la fascia vuota
