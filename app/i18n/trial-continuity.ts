@@ -2,7 +2,7 @@ import type { Locale } from "./types";
 
 const it = {
   choosePlan: "Scegli un piano",
-  goHome: "Vai alla home",
+  goHome: "Vai alla Home",
   activeHeading: "CF Ready è attivo",
   trialActive: (date: string) => `Prova gratuita fino al ${date}.`,
   trialInactive: (date: string) => `Prova gratuita fino al ${date}.`,
@@ -17,7 +17,7 @@ const it = {
 
 const en = {
   choosePlan: "Choose a plan",
-  goHome: "Go to home",
+  goHome: "Go to Home",
   activeHeading: "CF Ready is active",
   trialActive: (date: string) => `Free trial until ${date}.`,
   trialInactive: (date: string) => `Free trial until ${date}.`,

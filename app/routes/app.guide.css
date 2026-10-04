@@ -25,19 +25,19 @@
   padding-block-end: 4px;
 }
 
-/* G-B7: lo sfondo di hover resta entro le linee divisorie; domanda e risposta rientrano
-   insieme di 6 px, il chevron del disclosure condiviso resta a 6 px dal bordo. */
+/* Domande, risposte e divisori condividono il bordo iniziale. */
 .guide-faq__entry summary {
-  padding: 4px 6px;
+  padding-block: 4px;
 }
 
 .guide-faq__question {
   font: inherit;
+  font-weight: 600;
 }
 
 .guide-faq__answer {
-  padding-block-start: 4px;
-  padding-inline: 6px;
+  padding-block-start: 8px;
+  max-inline-size: 70ch;
 }
 
 /* La sezione riceve il focus solo per portarvi tastiera e lettori di schermo dal salto in
