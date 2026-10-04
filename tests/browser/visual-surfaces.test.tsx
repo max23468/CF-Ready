@@ -189,162 +189,169 @@ test.each([
   ["it", 390],
   ["en", 1280],
   ["en", 390],
-] as const)("Polaris reale: gruppo 2, %s a %i px", async (locale, width) => {
-  document.documentElement.lang = locale;
-  const copy = texts(locale);
-  await page.viewport(width, 844);
-  const data = {
-    ...homeData,
-    locale,
-    validationEnabled: true,
-    onboarding: "completed",
-    entitlement: { kind: "trial", validThrough: "2026-10-16" },
-    trialStatus: "active",
-    trialEndsAt: "2026-10-16",
-    firstChargeAt: "2026-10-17",
-    remaining: 13,
-  };
-  router.loaderData = confirmedHome(data);
-  const home = await mount(<HomePage />);
-  await expect
-    .poll(() => home.container.querySelector("s-banner s-button")?.hasAttribute("disabled"))
-    .toBe(false);
-  const banner = home.container.querySelector("s-banner")!;
-  expect(banner.querySelectorAll("s-paragraph")).toHaveLength(1);
-  expect(banner.textContent).not.toContain(trialContinuityTexts(locale).approvalHelp);
-  const plans = home.container.querySelector("#plans")!;
-  expect(plans.textContent).toContain(copy.plan.firstCharge(formatDate("2026-10-17", locale)));
-  expect(plans.textContent).toContain(copy.plan.oneTimeCharge);
-  const prices = [...plans.querySelectorAll('s-heading[accessibilityRole="presentation"]')];
-  expect(prices.map((price) => price.textContent)).toEqual(
-    [data.plan.monthly, data.plan.annual, data.plan.one_time].map((price) =>
-      formatMoney(price, locale),
-    ),
-  );
-  for (const price of prices) {
-    const number = surfaceRect(price);
-    const period = surfaceRect(price.nextElementSibling!);
-    expect(period.left).toBeGreaterThanOrEqual(number.right);
-    expect(period.top).toBeLessThan(number.bottom);
-    expect(period.right).toBeLessThanOrEqual(window.innerWidth);
-  }
-  if (width === 390) expect(surfaceRect(banner).bottom - surfaceRect(banner).top).toBeLessThan(180);
-  await page.screenshot({
-    path: screenshotPath(
-      `__screenshots__/visual/group2-home-top-${locale}-${server.browser}-${width}.png`,
-    ),
-  });
-  await page.screenshot({
-    element: plans,
-    path: screenshotPath(
-      `__screenshots__/visual/group2-plans-${locale}-${server.browser}-${width}.png`,
-    ),
-  });
-  window.scrollTo(0, 0);
-  await captureSurface(
-    home.container,
-    `__screenshots__/visual/group2-home-${locale}-${server.browser}-${width}.png`,
-  );
-  await home.unmount();
-  router.loaderData = {
-    locale,
-    shopDomain: "demo.myshopify.com",
-    version: "fixture",
-    diagnosticId: "123e4567-e89b-42d3-a456-426614174000",
-    diagnostics: {},
-  };
-  const guide = await mount(<Guide />);
-  const headingRange = document.createRange();
-  headingRange.selectNodeContents(
-    page.getByRole("heading", { name: copy.guide.faqHeading, exact: true }).element(),
-  );
-  const heading = headingRange.getBoundingClientRect();
-  const action = surfaceRect(
-    guide.container.querySelector('#faq s-button[slot="secondary-actions"]')!,
-  );
-  expect(heading.right).toBeLessThanOrEqual(window.innerWidth);
-  expect(action.right).toBeLessThanOrEqual(window.innerWidth);
-  expect(action.left >= heading.right || action.top >= heading.bottom).toBe(true);
-  await act(async () => {
-    await page.getByRole("button", { name: copy.guide.expandAll, exact: true }).click();
-  });
-  expect(guide.container.querySelectorAll("details:not([open])")).toHaveLength(0);
-  await act(async () => {
-    await page.getByRole("button", { name: copy.guide.collapseAll, exact: true }).click();
-  });
-  await page.screenshot({
-    path: screenshotPath(
-      `__screenshots__/visual/group2-guide-top-${locale}-${server.browser}-${width}.png`,
-    ),
-  });
-  await captureSurface(
-    guide.container,
-    `__screenshots__/visual/group2-guide-${locale}-${server.browser}-${width}.png`,
-  );
-  await guide.unmount();
-  for (const manual of [false, true]) {
+] as const)(
+  "Polaris reale: gruppo 2, %s a %i px",
+  async (locale, width) => {
+    document.documentElement.lang = locale;
+    const copy = texts(locale);
+    await page.viewport(width, 844);
+    const data = {
+      ...homeData,
+      locale,
+      validationEnabled: true,
+      onboarding: "completed",
+      entitlement: { kind: "trial", validThrough: "2026-10-16" },
+      trialStatus: "active",
+      trialEndsAt: "2026-10-16",
+      firstChargeAt: "2026-10-17",
+      remaining: 13,
+    };
+    router.loaderData = confirmedHome(data);
+    const home = await mount(<HomePage />);
+    await expect
+      .poll(() => home.container.querySelector("s-banner s-button")?.hasAttribute("disabled"))
+      .toBe(false);
+    const banner = home.container.querySelector("s-banner")!;
+    expect(banner.querySelectorAll("s-paragraph")).toHaveLength(1);
+    expect(banner.textContent).not.toContain(trialContinuityTexts(locale).approvalHelp);
+    const plans = home.container.querySelector("#plans")!;
+    expect(plans.textContent).toContain(copy.plan.firstCharge(formatDate("2026-10-17", locale)));
+    expect(plans.textContent).toContain(copy.plan.oneTimeCharge);
+    const prices = [...plans.querySelectorAll('s-heading[accessibilityRole="presentation"]')];
+    expect(prices.map((price) => price.textContent)).toEqual(
+      [data.plan.monthly, data.plan.annual, data.plan.one_time].map((price) =>
+        formatMoney(price, locale),
+      ),
+    );
+    for (const price of prices) {
+      const number = surfaceRect(price);
+      const period = surfaceRect(price.nextElementSibling!);
+      expect(period.left).toBeGreaterThanOrEqual(number.right);
+      expect(period.top).toBeLessThan(number.bottom);
+      expect(period.right).toBeLessThanOrEqual(window.innerWidth);
+    }
+    if (width === 390)
+      expect(surfaceRect(banner).bottom - surfaceRect(banner).top).toBeLessThan(180);
+    await page.screenshot({
+      path: screenshotPath(
+        `__screenshots__/visual/group2-home-top-${locale}-${server.browser}-${width}.png`,
+      ),
+    });
+    await page.screenshot({
+      element: plans,
+      path: screenshotPath(
+        `__screenshots__/visual/group2-plans-${locale}-${server.browser}-${width}.png`,
+      ),
+    });
+    window.scrollTo(0, 0);
+    await captureSurface(
+      home.container,
+      `__screenshots__/visual/group2-home-${locale}-${server.browser}-${width}.png`,
+    );
+    await home.unmount();
     router.loaderData = {
       locale,
-      duplicateError: null,
-      configHash: "fixture",
-      rules: manual ? { taxCode: "required_validated", pec: "unmanaged" } : DEFAULT_CONFIG.rules,
-      messages: DEFAULT_CONFIG.messages,
-      enabled: false,
-      entitled: true,
-      labelScopesGranted: true,
-      labelState: {
-        mode: manual ? "guided" : "off",
-        managementEpoch: null,
-        enabledAt: null,
-        lastSyncAt: null,
-        lastErrorCode: null,
-        decision: "pending",
-        acceptedRevision: null,
-        reviewedAt: null,
-        address2Classification: "expected",
-        address2HasMarketOverride: false,
-        address2ExternalChangeAt: null,
-        address2Decision: "pending",
-        address2ReviewedAt: null,
-        address2FormMode: null,
-      },
-      labelSnapshot: {
-        revision: "fixture",
-        locales: [{ locale: "it", family: "it", name: "Italiano", primary: true, published: true }],
-        markets: [],
-        issues: [],
-        address2: { classification: "expected", hasMarketOverride: false },
-        slots: [labelSlot({ name: "taxCode", capability: "guided" })],
-      },
-      guidedConfirmations: [],
-      labelLoadError: null,
-      checkoutSettingsUrl: "https://admin.shopify.com/store/demo/settings/checkout",
-      storefrontUrl: "https://demo.myshopify.com",
+      shopDomain: "demo.myshopify.com",
+      version: "fixture",
+      diagnosticId: "123e4567-e89b-42d3-a456-426614174000",
+      diagnostics: {},
     };
-    const rules = await mount(<CheckoutRules />);
-    const labels = rules.container.querySelector<HTMLElement>("#checkout-native-labels")!;
-    const badge = labels.querySelector("summary s-badge")!;
-    expect(badge.textContent).toBe(
-      manual ? copy.rules.labels.statusManualRequired : copy.rules.labels.statusChoiceRequired,
+    const guide = await mount(<Guide />);
+    const headingRange = document.createRange();
+    headingRange.selectNodeContents(
+      page.getByRole("heading", { name: copy.guide.faqHeading, exact: true }).element(),
     );
-    expect(badge.getAttribute("tone")).toBe("warning");
-    for (const element of badge.shadowRoot!.querySelectorAll<HTMLElement>("*")) {
-      if (element.clientWidth > 0)
-        expect(element.scrollWidth).toBeLessThanOrEqual(element.clientWidth + 1);
-    }
+    const heading = headingRange.getBoundingClientRect();
+    const action = surfaceRect(
+      guide.container.querySelector('#faq s-button[slot="secondary-actions"]')!,
+    );
+    expect(heading.right).toBeLessThanOrEqual(window.innerWidth);
+    expect(action.right).toBeLessThanOrEqual(window.innerWidth);
+    expect(action.left >= heading.right || action.top >= heading.bottom).toBe(true);
+    await act(async () => {
+      await page.getByRole("button", { name: copy.guide.expandAll, exact: true }).click();
+    });
+    expect(guide.container.querySelectorAll("details:not([open])")).toHaveLength(0);
+    await act(async () => {
+      await page.getByRole("button", { name: copy.guide.collapseAll, exact: true }).click();
+    });
     await page.screenshot({
-      element: labels,
       path: screenshotPath(
-        `__screenshots__/visual/group2-labels-${manual ? "manual" : "choice"}-${locale}-${server.browser}-${width}.png`,
+        `__screenshots__/visual/group2-guide-top-${locale}-${server.browser}-${width}.png`,
       ),
     });
     await captureSurface(
-      rules.container,
-      `__screenshots__/visual/group2-rules-${manual ? "manual" : "choice"}-${locale}-${server.browser}-${width}.png`,
+      guide.container,
+      `__screenshots__/visual/group2-guide-${locale}-${server.browser}-${width}.png`,
     );
-    await rules.unmount();
-  }
-});
+    await guide.unmount();
+    for (const manual of [false, true]) {
+      router.loaderData = {
+        locale,
+        duplicateError: null,
+        configHash: "fixture",
+        rules: manual ? { taxCode: "required_validated", pec: "unmanaged" } : DEFAULT_CONFIG.rules,
+        messages: DEFAULT_CONFIG.messages,
+        enabled: false,
+        entitled: true,
+        labelScopesGranted: true,
+        labelState: {
+          mode: manual ? "guided" : "off",
+          managementEpoch: null,
+          enabledAt: null,
+          lastSyncAt: null,
+          lastErrorCode: null,
+          decision: "pending",
+          acceptedRevision: null,
+          reviewedAt: null,
+          address2Classification: "expected",
+          address2HasMarketOverride: false,
+          address2ExternalChangeAt: null,
+          address2Decision: "pending",
+          address2ReviewedAt: null,
+          address2FormMode: null,
+        },
+        labelSnapshot: {
+          revision: "fixture",
+          locales: [
+            { locale: "it", family: "it", name: "Italiano", primary: true, published: true },
+          ],
+          markets: [],
+          issues: [],
+          address2: { classification: "expected", hasMarketOverride: false },
+          slots: [labelSlot({ name: "taxCode", capability: "guided" })],
+        },
+        guidedConfirmations: [],
+        labelLoadError: null,
+        checkoutSettingsUrl: "https://admin.shopify.com/store/demo/settings/checkout",
+        storefrontUrl: "https://demo.myshopify.com",
+      };
+      const rules = await mount(<CheckoutRules />);
+      const labels = rules.container.querySelector<HTMLElement>("#checkout-native-labels")!;
+      const badge = labels.querySelector("summary s-badge")!;
+      expect(badge.textContent).toBe(
+        manual ? copy.rules.labels.statusManualRequired : copy.rules.labels.statusChoiceRequired,
+      );
+      expect(badge.getAttribute("tone")).toBe("warning");
+      for (const element of badge.shadowRoot!.querySelectorAll<HTMLElement>("*")) {
+        if (element.clientWidth > 0)
+          expect(element.scrollWidth).toBeLessThanOrEqual(element.clientWidth + 1);
+      }
+      await page.screenshot({
+        element: labels,
+        path: screenshotPath(
+          `__screenshots__/visual/group2-labels-${manual ? "manual" : "choice"}-${locale}-${server.browser}-${width}.png`,
+        ),
+      });
+      await captureSurface(
+        rules.container,
+        `__screenshots__/visual/group2-rules-${manual ? "manual" : "choice"}-${locale}-${server.browser}-${width}.png`,
+      );
+      await rules.unmount();
+    }
+  },
+  30000,
+);
 
 test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
   await page.viewport(390, 844);
@@ -1141,118 +1148,126 @@ function firstMainCardLeft(container: HTMLElement) {
   return surface.getBoundingClientRect().left;
 }
 
-test("Polaris reale: P2, stesso impianto di pagina, logo unico in IT e EN a 1440, 1054 e 500 px", async () => {
-  for (const locale of ["it", "en"] as const) {
-    for (const width of [1440, 1054, 500]) {
-      await page.viewport(width, 900);
-      const lefts: Record<string, number> = {};
+// Un caso per lingua e larghezza: con l'instrumentazione coverage un caso unico supera il timeout.
+test.each([
+  ["it", 1440],
+  ["it", 1054],
+  ["it", 500],
+  ["en", 1440],
+  ["en", 1054],
+  ["en", 500],
+] as const)(
+  "Polaris reale: P2, stesso impianto di pagina e logo unico, %s a %i px",
+  async (locale, width) => {
+    await page.viewport(width, 900);
+    const lefts: Record<string, number> = {};
 
-      const homeFixture = {
-        ...homeData,
-        locale,
-        onboarding: "completed",
-        rules: { taxCode: "required_validated", pec: "required_when_company" },
-      };
-      router.loaderData = confirmedHome(homeFixture);
-      const home = await mount(<HomePage />);
-      await act(async () => {
-        await new Promise((done) => setTimeout(done, 0));
-      });
-      lefts.home = firstMainCardLeft(home.container);
-      // P2-T4: le regole configurate sono valori, non esiti.
-      const ruleBadges = [...home.container.querySelectorAll(".cf-status-list__value s-badge")];
-      expect(ruleBadges).toHaveLength(3);
-      expect(ruleBadges.every((badge) => badge.getAttribute("tone") === "neutral")).toBe(true);
-      // P2-T5: lockup a 128 px, allineato al testo della colonna laterale.
-      const lockup = home.container.querySelector('s-image[src="/cf-ready-lockup.svg"]')!;
-      const lockupRect = surfaceRect(lockup);
-      expect(Math.round(lockupRect.right - lockupRect.left)).toBe(128);
-      const asideText = surfaceRect(home.container.querySelector('[slot="aside"] s-paragraph')!);
-      expect(Math.abs(lockupRect.left - asideText.left)).toBeLessThan(1);
-      await captureSurface(
-        home.container,
-        `__screenshots__/visual/p2-home-${locale}-${server.browser}-${width}.png`,
+    const homeFixture = {
+      ...homeData,
+      locale,
+      onboarding: "completed",
+      rules: { taxCode: "required_validated", pec: "required_when_company" },
+    };
+    router.loaderData = confirmedHome(homeFixture);
+    const home = await mount(<HomePage />);
+    await act(async () => {
+      await new Promise((done) => setTimeout(done, 0));
+    });
+    lefts.home = firstMainCardLeft(home.container);
+    // P2-T4: le regole configurate sono valori, non esiti.
+    const ruleBadges = [...home.container.querySelectorAll(".cf-status-list__value s-badge")];
+    expect(ruleBadges).toHaveLength(3);
+    expect(ruleBadges.every((badge) => badge.getAttribute("tone") === "neutral")).toBe(true);
+    // P2-T5: lockup a 128 px, allineato al testo della colonna laterale.
+    const lockup = home.container.querySelector('s-image[src="/cf-ready-lockup.svg"]')!;
+    const lockupRect = surfaceRect(lockup);
+    expect(Math.round(lockupRect.right - lockupRect.left)).toBe(128);
+    const asideText = surfaceRect(home.container.querySelector('[slot="aside"] s-paragraph')!);
+    expect(Math.abs(lockupRect.left - asideText.left)).toBeLessThan(1);
+    await captureSurface(
+      home.container,
+      `__screenshots__/visual/p2-home-${locale}-${server.browser}-${width}.png`,
+    );
+    await home.unmount();
+
+    router.loaderData = {
+      locale,
+      duplicateError: null,
+      configHash: "fixture",
+      rules: { taxCode: "required_validated", pec: "optional_validated" },
+      messages: DEFAULT_CONFIG.messages,
+      enabled: true,
+      entitled: true,
+      labelScopesGranted: true,
+      labelState: onboardingData.labelState,
+      labelSnapshot: null,
+      guidedConfirmations: [],
+      labelLoadError: null,
+      checkoutSettingsUrl: "https://admin.shopify.com/store/demo/settings/checkout",
+      storefrontUrl: "https://demo.myshopify.com",
+    };
+    const rules = await mount(<CheckoutRules />);
+    lefts.rules = firstMainCardLeft(rules.container);
+    // P2-T1: il simulatore sta nella colonna laterale nativa, accanto o sotto le regole.
+    const simulator = rules.container.querySelector<HTMLElement>("#simulatore")!;
+    expect(simulator.closest('[slot="aside"]')).not.toBeNull();
+    const labels = rules.container.querySelector<HTMLElement>(".rules-layout__labels")!;
+    if (width >= 1054) {
+      expect(simulator.getBoundingClientRect().left).toBeGreaterThan(
+        labels.getBoundingClientRect().right,
       );
-      await home.unmount();
-
-      router.loaderData = {
-        locale,
-        duplicateError: null,
-        configHash: "fixture",
-        rules: { taxCode: "required_validated", pec: "optional_validated" },
-        messages: DEFAULT_CONFIG.messages,
-        enabled: true,
-        entitled: true,
-        labelScopesGranted: true,
-        labelState: onboardingData.labelState,
-        labelSnapshot: null,
-        guidedConfirmations: [],
-        labelLoadError: null,
-        checkoutSettingsUrl: "https://admin.shopify.com/store/demo/settings/checkout",
-        storefrontUrl: "https://demo.myshopify.com",
-      };
-      const rules = await mount(<CheckoutRules />);
-      lefts.rules = firstMainCardLeft(rules.container);
-      // P2-T1: il simulatore sta nella colonna laterale nativa, accanto o sotto le regole.
-      const simulator = rules.container.querySelector<HTMLElement>("#simulatore")!;
-      expect(simulator.closest('[slot="aside"]')).not.toBeNull();
-      const labels = rules.container.querySelector<HTMLElement>(".rules-layout__labels")!;
-      if (width >= 1054) {
-        expect(simulator.getBoundingClientRect().left).toBeGreaterThan(
-          labels.getBoundingClientRect().right,
-        );
-      } else {
-        expect(simulator.getBoundingClientRect().top).toBeGreaterThan(
-          labels.getBoundingClientRect().bottom,
-        );
-      }
-      expect(rules.container.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
-      // N-3: marchio senza fondo, niente avatar.
-      expect(rules.container.querySelector("s-avatar")).toBeNull();
-      expect(rules.container.querySelector('s-image[src="/cf-ready-mark.svg"]')).not.toBeNull();
-      await captureSurface(
-        rules.container,
-        `__screenshots__/visual/p2-rules-${locale}-${server.browser}-${width}.png`,
+    } else {
+      expect(simulator.getBoundingClientRect().top).toBeGreaterThan(
+        labels.getBoundingClientRect().bottom,
       );
-      await rules.unmount();
-
-      router.loaderData = {
-        locale,
-        configHash: "fixture",
-        messages: DEFAULT_CONFIG.messages,
-        rules: DEFAULT_CONFIG.rules,
-      };
-      const messages = await mount(<CustomerMessages />);
-      lefts.messages = firstMainCardLeft(messages.container);
-      await captureSurface(
-        messages.container,
-        `__screenshots__/visual/p2-messages-${locale}-${server.browser}-${width}.png`,
-      );
-      await messages.unmount();
-
-      router.loaderData = {
-        locale,
-        shopDomain: "demo.myshopify.com",
-        version: "2.0.5",
-        diagnosticId: "123e4567-e89b-42d3-a456-426614174000",
-        diagnostics: {},
-      };
-      const guide = await mount(<Guide />);
-      lefts.guide = firstMainCardLeft(guide.container);
-      const guideLockup = guide.container.querySelector('s-image[src="/cf-ready-lockup.svg"]')!;
-      const guideLockupRect = surfaceRect(guideLockup);
-      expect(Math.round(guideLockupRect.right - guideLockupRect.left)).toBe(128);
-      await captureSurface(
-        guide.container,
-        `__screenshots__/visual/p2-guide-${locale}-${server.browser}-${width}.png`,
-      );
-      await guide.unmount();
-
-      // P2-T1: passando da una pagina all'altra il bordo sinistro non si sposta.
-      for (const left of Object.values(lefts)) expect(Math.abs(left - lefts.home)).toBeLessThan(1);
     }
-  }
-});
+    expect(rules.container.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
+    // N-3: marchio senza fondo, niente avatar.
+    expect(rules.container.querySelector("s-avatar")).toBeNull();
+    expect(rules.container.querySelector('s-image[src="/cf-ready-mark.svg"]')).not.toBeNull();
+    await captureSurface(
+      rules.container,
+      `__screenshots__/visual/p2-rules-${locale}-${server.browser}-${width}.png`,
+    );
+    await rules.unmount();
+
+    router.loaderData = {
+      locale,
+      configHash: "fixture",
+      messages: DEFAULT_CONFIG.messages,
+      rules: DEFAULT_CONFIG.rules,
+    };
+    const messages = await mount(<CustomerMessages />);
+    lefts.messages = firstMainCardLeft(messages.container);
+    await captureSurface(
+      messages.container,
+      `__screenshots__/visual/p2-messages-${locale}-${server.browser}-${width}.png`,
+    );
+    await messages.unmount();
+
+    router.loaderData = {
+      locale,
+      shopDomain: "demo.myshopify.com",
+      version: "2.0.5",
+      diagnosticId: "123e4567-e89b-42d3-a456-426614174000",
+      diagnostics: {},
+    };
+    const guide = await mount(<Guide />);
+    lefts.guide = firstMainCardLeft(guide.container);
+    const guideLockup = guide.container.querySelector('s-image[src="/cf-ready-lockup.svg"]')!;
+    const guideLockupRect = surfaceRect(guideLockup);
+    expect(Math.round(guideLockupRect.right - guideLockupRect.left)).toBe(128);
+    await captureSurface(
+      guide.container,
+      `__screenshots__/visual/p2-guide-${locale}-${server.browser}-${width}.png`,
+    );
+    await guide.unmount();
+
+    // P2-T1: passando da una pagina all'altra il bordo sinistro non si sposta.
+    for (const left of Object.values(lefts)) expect(Math.abs(left - lefts.home)).toBeLessThan(1);
+  },
+  30000,
+);
 
 test("Polaris reale: P2-T9, chevron nativo allineato anche nel disclosure annidato", async () => {
   await page.viewport(1054, 900);
