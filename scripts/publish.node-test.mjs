@@ -181,6 +181,8 @@ if (command === "git") {
   else if (joined === "show -s --format=%P ${mainSha}") print("${oldMainSha} ${developSha}\\n");
   else if (joined === "rev-parse ${mainSha}^{tree}" || joined === "rev-parse ${developSha}^{tree}") print("tree\\n");
   else if (joined === "show ${developSha}:package.json") print('{"version":"1.2.3"}\\n');
+  else if (mode === "docs" && joined === "rev-parse ${developSha}^1") print("${baseSha}\\n");
+  else if (mode === "docs" && args[0] === "diff") process.stdout.write("M\\0docs/plans/note.md\\0");
   else if (joined === "rev-parse origin/main") print("${mainSha}\\n");
   else if (joined === "rev-parse origin/develop") print((existsSync(marker("reconciled")) ? "${mainSha}" : "${developSha}") + "\\n");
   else if (joined === "merge-base origin/main origin/develop") {
@@ -206,6 +208,23 @@ if (command === "git") {
   for (const command of ["git", "gh"]) {
     symlinkSync(provider, path.join(bin, command));
   }
+
+  const docs = spawnSync(
+    process.execPath,
+    [path.join(root, "scripts", "publish.mjs"), "--target", "development"],
+    {
+      cwd: directory,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CF_READY_PUBLISH_POLL_MS: "1",
+        FAIL_MODE: "docs",
+        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+      },
+    },
+  );
+  assert.equal(docs.status, 0, docs.stderr);
+  assert.match(docs.stdout, /Deploy Development non necessario/);
 
   for (const target of ["development", "production"]) {
     const result = spawnSync(
