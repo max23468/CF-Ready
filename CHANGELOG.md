@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.12 — 4 ottobre 2026
+
+- distingue gli esempi dei messaggi dai campi modificabili anche su mobile;
+- raccoglie nota e anteprima nello stesso riquadro e rimuove il badge del
+  messaggio selezionato;
+- raggruppa i messaggi per disponibilità nelle regole, senza indicatori ripetuti,
+  in italiano e inglese. Sidekick resta accettato per decisione dell'owner.
+
+Customer message examples are clearer on mobile, keep their explanatory note
+inside the preview, and group rule availability without repeated badges.
+
 ## 2.0.11 — 4 ottobre 2026
 
 - sposta la procedura di verifica manuale delle etichette in una modale nativa,

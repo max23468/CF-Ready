@@ -575,7 +575,14 @@ test("Polaris reale: anteprima Messaggi visibile prima dei campi e riepilogo sen
       messages.container.querySelector(`s-section[heading="${it.editorHeading}"]`),
     ).not.toBeNull();
     // M2: l'anteprima spiega come sceglie il messaggio; su desktop i campi stanno in due colonne.
-    expect(preview.parentElement!.textContent).toContain(it.previewHint);
+    expect(preview.querySelector("s-box")!.textContent).toContain(it.previewHint);
+    expect(preview.querySelector("s-badge")).toBeNull();
+    expect(preview.textContent).not.toContain(it.previewSelected);
+    const title = preview.querySelector('s-icon[type="view"]')!.parentElement!;
+    const titleIcon = surfaceRect(title.querySelector("s-icon")!);
+    const titleText = surfaceRect(title.querySelector("s-text")!);
+    expect(titleText.left).toBeGreaterThanOrEqual(titleIcon.right);
+    expect(Math.abs(titleText.top - titleIcon.top)).toBeLessThan(6);
     const fieldTop = (name: string) =>
       page.getByRole("textbox", { name, exact: true }).element().getBoundingClientRect();
     if (width === 1280) {
@@ -598,29 +605,17 @@ test("Polaris reale: anteprima Messaggi visibile prima dei campi e riepilogo sen
     await page.getByRole("textbox", { name: it.taxCodeRequired, exact: true }).click();
     // WebKit arrotonda il bordo di focus Polaris a mezzo pixel; il difetto era di circa 20 px.
     expect(Math.abs(fieldTop(it.taxCodeInvalid).top + window.scrollY - below)).toBeLessThan(1);
-    // M7, P2-T8: righe raggruppate per campo, ciascuna su una riga sola, badge neutri.
-    const labels = [...messages.container.querySelectorAll<HTMLElement>(".cf-status-list__label")];
-    const values = [...messages.container.querySelectorAll<HTMLElement>(".cf-status-list__value")];
-    expect(labels.map((label) => label.textContent)).toEqual([
-      it.shortLabels.taxCodeRequired,
-      it.shortLabels.taxCodeInvalid,
-      it.shortLabels.pecRequired,
-      it.shortLabels.pecInvalid,
+    // M-4: uno stato per gruppo, senza badge ripetuti su ogni messaggio.
+    const aside = messages.container.querySelector('[slot="aside"]')!;
+    expect(aside.querySelectorAll("s-badge")).toHaveLength(0);
+    expect(aside.querySelectorAll("s-heading")).toHaveLength(1);
+    expect(aside.querySelector("s-heading")!.textContent).toBe(it.appearsNot);
+    expect([...aside.querySelectorAll("s-list-item")].map((item) => item.textContent)).toEqual([
+      it.taxCodeRequired,
+      it.taxCodeInvalid,
+      it.pecRequired,
+      it.pecInvalid,
     ]);
-    const heights = values.map((value) => Math.round(value.getBoundingClientRect().height));
-    expect(new Set(heights).size).toBe(1);
-    // Etichetta e badge della stessa riga condividono il centro verticale.
-    labels.forEach((label, index) => {
-      const labelRect = label.getBoundingClientRect();
-      const valueRect = values[index].getBoundingClientRect();
-      expect(
-        Math.abs(labelRect.top + labelRect.height / 2 - valueRect.top - valueRect.height / 2),
-      ).toBeLessThan(1);
-    });
-    expect(values[0].textContent).toContain(it.appearsNot);
-    expect(
-      values.every((value) => value.querySelector("s-badge")!.getAttribute("tone") === "neutral"),
-    ).toBe(true);
     // M8: nella conferma la lingua è un nome comune, minuscolo.
     expect(
       messages.container.querySelector("s-modal#restore-en s-paragraph")!.textContent,

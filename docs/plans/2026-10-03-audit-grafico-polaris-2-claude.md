@@ -1,6 +1,6 @@
 # Audit grafico di CF Ready 2.0 con Polaris 2 (Claude)
 
-**Stato:** audit concluso; findings ricontrollati in Chrome il 4 ottobre 2026 su Development 2.0.7 (sezione 21), 2.0.8 (sezione 22) e, per la Home, 2.0.9 (§23.1). Dopo quest'ultimo giro: 50 ID, 19 risolti, 9 parziali, 18 aperti e 4 accettati per decisione. Le correzioni R successive e i loro limiti di verifica restano separati in §24.
+**Stato:** audit concluso; findings ricontrollati in Chrome il 4 ottobre 2026 su Development 2.0.7 (sezione 21), 2.0.8 (sezione 22) e, per la Home, 2.0.9 (§23.1). Dopo quest'ultimo giro: 50 ID, 19 risolti, 9 parziali, 18 aperti e 4 accettati per decisione. Le correzioni R successive e i loro limiti di verifica restano separati in §24. Gli stati locali di Messaggi al cliente e l'accettazione di Sidekick sono aggiornati in §7 e §25; non sono una nuova verifica live.
 **Data:** 3 ottobre 2026, circa 20:30-21:45 CEST, compresi il ricontrollo e la prova della conferma etichette
 **Ambiente:** Development, `cf-ready-polaris-2.myshopify.com` (preview
 `new_admin_design`), app `cf-ready-development`
@@ -159,11 +159,11 @@ nel nuovo Admin non è ancora stata provata.
 
 | ID | Problema | Severità | Confidenza | Stato attuale |
 | --- | --- | --- | --- | --- |
-| M-1 | L'esempio è un box bianco con bordo e testo rosso scuro, senza icona né campo: non somiglia né al checkout né a un errore Polaris. A 500 px gli esempi locali hanno sfondo, bordo e raggio identici ai campi di testo e si distinguono solo per il colore del testo ([39](evidence/2026-10-03-polaris-2-claude/39-messaggi-500-esempi-locali.jpg)) | Media | Alta | **Risolto** |
-| M-2 | La nota «L'esempio mostra il testo del messaggio…» sta fuori dal riquadro grigio dell'esempio, tra esempio e campi, quindi non è chiaro a cosa si riferisca ([13](evidence/2026-10-03-polaris-2-claude/13-messaggi-top-1440.jpg), [14](evidence/2026-10-03-polaris-2-claude/14-messaggi-campi-1440.jpg)) | Bassa | Alta | **Aperto** |
-| M-3 | Spaziatura interna del riquadro esempio non uniforme: lo spazio tra il titolo con l'icona e la prima riga è maggiore di quello tra le righe seguenti. «Messaggio selezionato» con badge ripete il nome del campo che ha il focus | Bassa | Media | **Aperto** |
-| M-4 | Colonna laterale: quattro badge identici («Non compare» grigi oppure «Può comparire» verdi) con sottotitoli di peso simile alle righe; il blocco comunica poco a colpo d'occhio | Bassa | Media | **Parziale** |
-| M-5 | La barra di Sidekick copre il campo in fondo mentre lo si modifica a 1440×666 ([51](evidence/2026-10-03-polaris-2-claude/51-messaggi-sidekick-sul-campo.jpg)). È un elemento dell'host; la pagina ha margine sufficiente solo a fine scorrimento | Bassa | Media | **Aperto** |
+| M-1 | L'esempio è un box bianco con bordo e testo rosso scuro, senza icona né campo: non somiglia né al checkout né a un errore Polaris. A 500 px gli esempi locali hanno sfondo, bordo e raggio identici ai campi di testo e si distinguono solo per il colore del testo ([39](evidence/2026-10-03-polaris-2-claude/39-messaggi-500-esempi-locali.jpg)) | Media | Alta | **Risolto**, confermato live in §22; distinzione mobile rafforzata in locale (§25) |
+| M-2 | La nota «L'esempio mostra il testo del messaggio…» sta fuori dal riquadro grigio dell'esempio, tra esempio e campi, quindi non è chiaro a cosa si riferisca ([13](evidence/2026-10-03-polaris-2-claude/13-messaggi-top-1440.jpg), [14](evidence/2026-10-03-polaris-2-claude/14-messaggi-campi-1440.jpg)) | Bassa | Alta | **Risolto in locale** (§25) |
+| M-3 | Spaziatura interna del riquadro esempio non uniforme: lo spazio tra il titolo con l'icona e la prima riga è maggiore di quello tra le righe seguenti. «Messaggio selezionato» con badge ripete il nome del campo che ha il focus | Bassa | Media | **Risolto in locale** (§25) |
+| M-4 | Colonna laterale: quattro badge identici («Non compare» grigi oppure «Può comparire» verdi) con sottotitoli di peso simile alle righe; il blocco comunica poco a colpo d'occhio | Bassa | Media | **Risolto in locale** (§25) |
+| M-5 | La barra di Sidekick copre il campo in fondo mentre lo si modifica a 1440×666 ([51](evidence/2026-10-03-polaris-2-claude/51-messaggi-sidekick-sul-campo.jpg)). È un elemento dell'host; la pagina ha margine sufficiente solo a fine scorrimento | Bassa | Media | **Accettato per decisione** dell'owner, escluso dall'intervento (§25) |
 
 ## 8. Guida e FAQ
 
@@ -757,3 +757,39 @@ scelte CF e PEC, senza anteprima, richiesta di permessi o azioni sulle
 etichette. Il salvataggio preserva la modalità già configurata; gestione e
 permessi restano nella pagina Regole checkout. Master Plan §15.9 e test di
 regressione aggiornati, con casi `off`, `guided`, `partial` e `automatic`.
+
+## 25. Correzioni locali di Messaggi al cliente, 4 ottobre 2026
+
+Incarico dell'owner: implementare i findings di §7, escludendo Sidekick,
+considerato accettato. Base `e444efa`, branch `codex/fix-audit-customer-messages`.
+Gli stati in §7 riflettono questo intervento; §21 e §22 conservano i riscontri
+storici. Nessuna pubblicazione o scrittura sullo store in questo incarico.
+
+| ID | Stato | Intervento o decisione |
+| --- | --- | --- |
+| M-1 | Risolto in precedenza; rafforzato in locale | Conservato il campo Polaris in sola lettura con errore in linea, già verificato live in §22. Gli esempi mobile hanno ora un contenitore grigio con icona e titolo, distinto dalle aree modificabili. |
+| M-2 | Risolto in locale | Nota su posizione e aspetto dentro il riquadro grigio principale, una sola volta; nessuna ripetizione negli esempi locali. |
+| M-3 | Risolto in locale | Spaziatura nativa uniforme; tipo del messaggio nel titolo dell'esempio. Rimossi riga «Messaggio selezionato» e badge ridondante. Griglia nativa per mantenere icona e titolo affiancati anche a 320 px. |
+| M-4 | Risolto in locale | Elenchi Polaris raggruppati per «Può comparire» e «Non compare», con nomi completi CF/PEC e nessun badge ripetuto. Gruppi vuoti omessi; disponibilità calcolata con la funzione condivisa `messageAppears`. Test IT/EN per campi non gestiti, facoltativi, obbligatori e PEC aziendale. |
+| M-5 | Accettato per decisione | Sidekick escluso dall'intervento su richiesta dell'owner. |
+
+Le prove locali usano fixture sintetiche, Polaris 1 e 2 reali, Chromium e
+WebKit, IT/EN, desktop e mobile fino a 320 px. Non attestano la nuova resa
+embedded nello store: quella richiede pubblicazione e successiva verifica live.
+
+Catture del rendering locale:
+[Polaris 2, italiano desktop](evidence/2026-10-04-messages-local/polaris2-messages-it-chromium-1280.png),
+[italiano mobile](evidence/2026-10-04-messages-local/polaris2-messages-it-webkit-390.png),
+[inglese a 320 px](evidence/2026-10-04-messages-local/polaris2-messages-en-chromium-320.png),
+[Polaris 1 desktop](evidence/2026-10-04-messages-local/polaris1-messages-it-chromium-1280.png).
+
+Verifiche: corsia `standard`, `npm run check:standard` verde con 704 test
+Workers, 341 test browser e 195 test Function; lint, formattazione, TypeScript,
+build app e Function e deploy dry-run verdi. Dopo il controllo delle catture,
+corretti l'affiancamento dell'icona a 320 px e la spaziatura interna finale:
+12 test visuali mirati verdi, oltre alla raccolta coverage sul codice finale.
+`npm run coverage:check` verde: statements 98,36%, branches 96,05%, functions
+99,33%, lines 98,66%. Righe eseguibili modificate 100% (3/3), calcolate sul
+diff locale con le utility canoniche. Mutation non richiesta: il diff non
+tocca domini critici. `npm run check:docs` e `git diff --check` verdi.
+Commit, push, PR, deploy e nuova verifica embedded non eseguiti.

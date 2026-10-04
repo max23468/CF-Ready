@@ -137,7 +137,7 @@ export const en: typeof it = {
       `The four ${language} messages go back to their default texts. The others don’t change, and it only takes effect once you save.`,
     appearHeading: "Messages linked to your rules",
     appearIntro:
-      "These indicators depend on the rules you chose, not on whether the check is active. A message can appear at checkout only while the check is active.",
+      "Messages are grouped by the rules you chose. They can appear at checkout only while the check is active.",
     appears: "Can appear",
     appearsNot: "Does not appear",
     fieldNames: { taxCode: TAX_CODE_NAME, pec: "PEC" },
