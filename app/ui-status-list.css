@@ -9,3 +9,10 @@
 .cf-status-list__label {
   max-inline-size: 50cqi;
 }
+
+/* C-2: impilate, le coppie restano raggruppate; stessa soglia di `gridTemplateColumns`. */
+@container (inline-size <= 400px) {
+  .cf-status-list__label:not(:first-child) {
+    margin-block-start: 8px;
+  }
+}
