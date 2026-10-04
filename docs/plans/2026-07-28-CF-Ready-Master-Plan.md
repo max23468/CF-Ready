@@ -2660,7 +2660,9 @@ Quattro passaggi:
 1. introduzione, perimetro e limitazioni;
 2. scelta regole CF e PEC e gestione delle etichette; la configurazione del campo
    “Interno” resta nella pagina Regole checkout;
-3. eccezioni automatiche e revisione messaggi;
+3. anteprima delle regole e dei soli messaggi che possono comparire con la
+   configurazione scelta al passo 2; se entrambi i campi sono non gestiti,
+   spiega che non sono previsti messaggi di errore;
 4. riepilogo e attivazione.
 
 Regole:
@@ -2668,7 +2670,7 @@ Regole:
 - si può tornare indietro;
 - ogni cambio di passo porta focus e scorrimento all'inizio del contenuto;
 - il riepilogo mantiene vicine etichette e valori, spiega la gestione mista
-  delle etichette e distingue i messaggi previsti da quelli non previsti;
+  delle etichette; l’anteprima mostra soltanto i messaggi previsti;
 - il riepilogo finale va visualizzato;
 - azioni finali:
   - `Attiva nel checkout`;

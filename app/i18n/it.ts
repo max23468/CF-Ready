@@ -206,9 +206,11 @@ export const it = {
     labelsMixedDescription:
       "La modalità Mista supporta aggiornamenti automatici e verifiche manuali. «Regole checkout» mostra eventuali verifiche ancora da completare.",
     step3Body: "Con le regole che hai scelto:",
-    step3Messages: "Messaggi configurati",
+    step3Messages: "Messaggi nel checkout",
     step3MessagesBody:
-      "Questi sono i quattro messaggi già configurati. Sono disponibili in italiano e inglese e puoi modificarli da Messaggi al cliente.",
+      "Questi messaggi possono comparire quando i dati del checkout non rispettano le regole scelte. Puoi modificarli in italiano e inglese da Messaggi al cliente.",
+    step3NoMessages:
+      "Codice Fiscale e PEC sono entrambi non gestiti: CF Ready non mostra messaggi di errore per questi campi. Puoi tornare al passo 2 per scegliere cosa controllare.",
     step4Heading: "Riepilogo",
     labelsSummary: "Gestione etichette",
     address2Summary: "Controllo di «Interno»",
