@@ -135,7 +135,7 @@ export const it = {
       `I quattro messaggi in ${language} tornano ai testi predefiniti. Gli altri non cambiano, e la modifica vale solo dopo il salvataggio.`,
     appearHeading: "Messaggi collegati alle regole",
     appearIntro:
-      "Questi indicatori dipendono dalle regole scelte, non dallo stato del controllo. Un messaggio può comparire nel checkout solo quando il controllo è attivo.",
+      "I messaggi sono raggruppati in base alle regole scelte. Possono comparire nel checkout solo quando il controllo è attivo.",
     appears: "Può comparire",
     appearsNot: "Non compare",
     fieldNames: { taxCode: "Codice Fiscale", pec: "PEC" },
