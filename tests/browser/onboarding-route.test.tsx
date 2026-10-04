@@ -2,6 +2,7 @@ import { router, mount, onboardingData, labelSlot } from "./route-support";
 import { describe, expect, test, vi } from "vitest";
 
 import { checkoutLabelCopy } from "../../app/checkout-labels/domain";
+import { MESSAGE_KEYS } from "../../app/config";
 import { texts } from "../../app/i18n";
 import { click, dispatch } from "./render";
 
@@ -9,7 +10,11 @@ import Onboarding from "../../app/routes/app.onboarding";
 
 describe("Onboarding", () => {
   test("richiede i permessi opzionali e ignora un modulo regole incompleto", async () => {
-    router.loaderData = { ...onboardingData, step: 2, labelScopesGranted: false };
+    router.loaderData = {
+      ...onboardingData,
+      step: 2,
+      labelScopesGranted: false,
+    };
     const view = await mount(<Onboarding />);
     const requestScopes = [...view.container.querySelectorAll("s-button")].find((button) =>
       button.textContent?.includes(texts("it").rules.labels.requestPermissions),
@@ -71,42 +76,62 @@ describe("Onboarding", () => {
     );
     // Ricaricando, il loader riparte dal passo scritto nell'URL.
     expect(new URL(window.location.href).searchParams.get("step")).toBe("2");
-    // Codice Fiscale e PEC hanno un titolo come "Campo Interno".
+    // Codice Fiscale e PEC mantengono i propri titoli.
     const headings = [...view.container.querySelectorAll(".onboarding-step s-heading")].map(
       (heading) => heading.textContent,
     );
     expect(headings).toEqual(
-      expect.arrayContaining([
-        texts("it").rules.taxCodeLabel,
-        texts("it").rules.pecLabel,
-        texts("it").rules.labels.addressHeading,
-      ]),
+      expect.arrayContaining([texts("it").rules.taxCodeLabel, texts("it").rules.pecLabel]),
     );
     window.history.replaceState(window.history.state, "", original);
   });
 
-  test("al passo 3 il badge neutro dice se il messaggio compare, senza note ripetute", async () => {
-    router.loaderData = {
-      ...onboardingData,
-      step: 3,
-      rules: { taxCode: "required_validated", pec: "optional_validated" },
-    };
-    const view = await mount(<Onboarding />);
-    const blocks = [...view.container.querySelectorAll<HTMLElement>(".onboarding-message")];
-    const badges = blocks.map((block) => block.querySelector("s-badge")!);
-    // Solo "PEC obbligatoria" non compare con queste regole.
-    expect(badges.map((badge) => badge.textContent)).toEqual([
-      texts("it").messages.appears,
-      texts("it").messages.appears,
-      texts("it").messages.appearsNot,
-      texts("it").messages.appears,
-    ]);
-    // P2-T4, P2-T7: badge neutri e nessuna nota che ne ripeta lo stato.
-    expect(badges.every((badge) => badge.getAttribute("tone") === "neutral")).toBe(true);
-    expect(view.container.textContent).not.toContain(texts("it").messages.previewNotShown);
-    // Il limite alle consegne in Italia sta nel passo 1, non si ripete qui.
-    expect(view.container.textContent).not.toContain(texts("it").rules.exceptions[0]);
-  });
+  for (const locale of ["it", "en"] as const) {
+    for (const [taxCode, taxMessages] of [
+      ["unmanaged", []],
+      ["optional_validated", ["taxCodeInvalid"]],
+      ["required_validated", ["taxCodeRequired", "taxCodeInvalid"]],
+    ] as const) {
+      for (const [pec, pecMessages] of [
+        ["unmanaged", []],
+        ["optional_validated", ["pecInvalid"]],
+        ["required_validated", ["pecRequired", "pecInvalid"]],
+        ["required_when_company", ["pecRequired", "pecInvalid"]],
+      ] as const) {
+        test(`il passo 3 mostra solo i messaggi previsti: ${locale}, CF ${taxCode}, PEC ${pec}`, async () => {
+          router.loaderData = { ...onboardingData, locale, step: 3, rules: { taxCode, pec } };
+          const view = await mount(<Onboarding />);
+          const t = texts(locale);
+          const keys = [...taxMessages, ...pecMessages];
+          const blocks = [...view.container.querySelectorAll<HTMLElement>(".onboarding-message")];
+          expect(blocks).toHaveLength(keys.length);
+          expect(
+            blocks.map((block) => block.querySelector('s-text[type="strong"]')?.textContent),
+          ).toEqual(keys.map((key) => t.messages[key]));
+          for (const key of MESSAGE_KEYS) {
+            const message = onboardingData.messages[locale][key];
+            const shown = blocks.some(
+              (block) => block.querySelector("s-text-field")?.getAttribute("error") === message,
+            );
+            if (keys.some((shown) => shown === key)) {
+              expect(shown).toBe(true);
+            } else {
+              expect(shown).toBe(false);
+            }
+          }
+          expect(view.container.querySelector(".onboarding-message s-badge")).toBeNull();
+          expect(view.container.textContent).toContain(
+            keys.length ? t.onboarding.step3MessagesBody : t.onboarding.step3NoMessages,
+          );
+          expect(view.container.textContent).not.toContain(
+            keys.length ? t.onboarding.step3NoMessages : t.onboarding.step3MessagesBody,
+          );
+          if (!keys.length)
+            expect(view.container.textContent).not.toContain(t.messages.previewHint);
+        });
+      }
+    }
+  }
 
   test("cita tra virgolette le etichette proposte (T7)", async () => {
     router.loaderData = {
@@ -124,7 +149,11 @@ describe("Onboarding", () => {
   });
 
   test("mostra l'errore se Shopify non completa la richiesta dei permessi", async () => {
-    router.loaderData = { ...onboardingData, step: 2, labelScopesGranted: false };
+    router.loaderData = {
+      ...onboardingData,
+      step: 2,
+      labelScopesGranted: false,
+    };
     vi.mocked(shopify.scopes.request).mockRejectedValueOnce(new Error("scope_request_failed"));
     const view = await mount(<Onboarding />);
     const requestScopes = [...view.container.querySelectorAll("s-button")].find((button) =>
@@ -137,7 +166,9 @@ describe("Onboarding", () => {
     expect(view.container.querySelector('s-banner[tone="critical"]')).not.toBeNull();
     expect(router.revalidator.revalidate).not.toHaveBeenCalled();
 
-    vi.mocked(shopify.scopes.request).mockResolvedValueOnce({ result: "declined-all" });
+    vi.mocked(shopify.scopes.request).mockResolvedValueOnce({
+      result: "declined-all",
+    });
     await click(requestScopes);
     expect(router.revalidator.revalidate).not.toHaveBeenCalled();
   });
@@ -230,28 +261,23 @@ describe("Onboarding", () => {
     vi.stubGlobal("FormData", originalFormData);
   });
 
-  test("salva la configurazione del campo Interno dal secondo passo", async () => {
-    router.loaderData = { ...onboardingData, step: 2 };
-    const view = await mount(<Onboarding />);
-    const addressMode = [...view.container.querySelectorAll("s-select")].find(
-      (select) => select.getAttribute("label") === texts("it").rules.labels.addressModeLabel,
-    );
-    if (!addressMode) throw new Error("configurazione Interno onboarding assente");
-
-    expect(addressMode.querySelector('s-option[value="hidden"]')?.textContent).toBe(
-      texts("it").rules.labels.addressHidden,
-    );
-    Object.defineProperty(addressMode, "value", { configurable: true, value: "hidden" });
-    await dispatch(addressMode, new Event("change", { bubbles: true }));
-
-    expect(router.fetcher.submit).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        intent: "save_address2_form_mode",
-        address2FormMode: "hidden",
-      }),
-      { method: "post" },
-    );
-  });
+  test.each(["it", "en"] as const)(
+    "il passo 2 non configura il campo Interno (%s)",
+    async (locale) => {
+      router.loaderData = { ...onboardingData, step: 2, locale };
+      const view = await mount(<Onboarding />);
+      const t = texts(locale);
+      const addressMode = [...view.container.querySelectorAll("s-select")].find(
+        (select) => select.getAttribute("label") === t.rules.labels.addressModeLabel,
+      );
+      expect(addressMode).toBeUndefined();
+      expect(view.container.textContent).not.toContain(t.rules.labels.addressHeading);
+      expect(view.container.textContent).not.toContain(t.rules.labels.addressModeHelp);
+      expect(view.container.querySelector('s-choice-list[name="taxCode"]')).not.toBeNull();
+      expect(view.container.querySelector('s-choice-list[name="pec"]')).not.toBeNull();
+      expect(view.container.textContent).toContain(t.onboarding.labelsPreviewHeading);
+    },
+  );
 
   test("salva le regole nel percorso locale e avanza al riepilogo", async () => {
     router.loaderData = onboardingData;
@@ -295,9 +321,24 @@ describe("Onboarding", () => {
 
   test("copre accesso prova, piano, scaduto e attivazione", async () => {
     const variants = [
-      { entitlementKind: "trial", entitled: true, trialStatus: "active", enabled: false },
-      { entitlementKind: "subscription", entitled: true, trialStatus: null, enabled: false },
-      { entitlementKind: "none", entitled: false, trialStatus: "expired", enabled: false },
+      {
+        entitlementKind: "trial",
+        entitled: true,
+        trialStatus: "active",
+        enabled: false,
+      },
+      {
+        entitlementKind: "subscription",
+        entitled: true,
+        trialStatus: null,
+        enabled: false,
+      },
+      {
+        entitlementKind: "none",
+        entitled: false,
+        trialStatus: "expired",
+        enabled: false,
+      },
     ] as const;
     for (const variant of variants) {
       router.loaderData = {
@@ -426,7 +467,9 @@ describe("Onboarding", () => {
     );
     if (!complete) throw new Error("azione revisione assente");
     await click(complete);
-    expect(router.navigate).toHaveBeenCalledWith("/app", { viewTransition: true });
+    expect(router.navigate).toHaveBeenCalledWith("/app", {
+      viewTransition: true,
+    });
     expect(router.fetcher.submit).not.toHaveBeenCalled();
     expect(view.container.textContent).not.toContain(texts("it").onboarding.doneBody);
   });
