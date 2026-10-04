@@ -110,7 +110,7 @@ negazioni non lo autorizzano. Il ciclo lo esegue il coordinatore, dal worktree
 pulito del branch:
 
 ```sh
-npm run publish:development   # PR → develop, squash, deploy Development
+npm run publish:development   # PR → develop, squash, deploy Development (non per corsia docs)
 npm run publish:production    # + promozione, deploy, readback, release
 ```
 
