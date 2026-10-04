@@ -73,24 +73,15 @@ export function HomeValidationSection({
             </s-grid>
           </s-box>
         </s-stack>
-        <s-stack direction="inline" gap="base">
-          {/* Da disattivata, con un diritto attivo, l'azione principale è riattivare. */}
-          <s-button
-            href="/app/rules"
-            variant={!data.validationEnabled && entitled ? "secondary" : "primary"}
-          >
-            {t.home.editRules}
-          </s-button>
-          <HomeValidationAction
-            data={data}
-            entitled={entitled}
-            busy={busy}
-            pendingIntent={pendingIntent}
-            pendingSource={pendingSource}
-            submit={submit}
-            t={t}
-          />
-        </s-stack>
+        <HomeValidationActions
+          data={data}
+          entitled={entitled}
+          busy={busy}
+          pendingIntent={pendingIntent}
+          pendingSource={pendingSource}
+          submit={submit}
+          t={t}
+        />
       </s-stack>
     </s-section>
   );
@@ -152,7 +143,10 @@ function HomeRulesSummary({ data, t }: { data: HomeData; t: Texts }) {
   );
 }
 
-function HomeValidationAction({
+// H-2: il primario è sempre il primo bottone. Da disattivata, con un diritto attivo, è
+// riattivare; altrimenti è modificare le regole. La disattivazione resta un'azione terziaria
+// critica: confermata dalla finestra, mai più evidente del primario.
+function HomeValidationActions({
   data,
   entitled,
   busy,
@@ -169,14 +163,23 @@ function HomeValidationAction({
   submit: Submit;
   t: Texts;
 }) {
-  if (data.validationEnabled) {
-    return (
-      <s-button tone="critical" commandFor="deactivate" command="--show" disabled={busy}>
-        {t.home.deactivate}
-      </s-button>
-    );
-  }
-  return (
+  const activateFirst = !data.validationEnabled && entitled;
+  const editRules = (
+    <s-button href="/app/rules" variant={activateFirst ? "secondary" : "primary"}>
+      {t.home.editRules}
+    </s-button>
+  );
+  const toggle = data.validationEnabled ? (
+    <s-button
+      variant="tertiary"
+      tone="critical"
+      commandFor="deactivate"
+      command="--show"
+      disabled={busy}
+    >
+      {t.home.deactivate}
+    </s-button>
+  ) : (
     <s-button
       variant={entitled ? "primary" : "secondary"}
       disabled={!entitled || busy}
@@ -186,13 +189,19 @@ function HomeValidationAction({
       {t.home.activate}
     </s-button>
   );
+  return (
+    <s-stack direction="inline" gap="base">
+      {activateFirst ? toggle : editRules}
+      {activateFirst ? editRules : toggle}
+    </s-stack>
+  );
 }
 
 export function HomeAside({
   nextStep,
   t,
 }: {
-  nextStep: { text: string; href: string | null; label: string | null };
+  nextStep: { text: string; href: string | null; label: string };
   t: Texts;
 }) {
   return (
@@ -200,7 +209,11 @@ export function HomeAside({
       <s-section heading={t.home.nextHeading}>
         <s-stack direction="block" gap="small-100" alignItems="start">
           <s-paragraph>{nextStep.text}</s-paragraph>
-          {nextStep.href ? <s-link href={nextStep.href}>{nextStep.label}</s-link> : null}
+          {nextStep.href ? (
+            <s-link href={nextStep.href}>{nextStep.label}</s-link>
+          ) : (
+            <s-link onClick={showPlans}>{nextStep.label}</s-link>
+          )}
         </s-stack>
       </s-section>
       <s-section heading={t.home.helpHeading}>

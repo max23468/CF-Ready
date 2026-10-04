@@ -14,7 +14,7 @@ import {
   requestPlanComparisonFromFrame,
 } from "../app/features/home/plan-comparison";
 import { DeactivateModal } from "../app/features/home/HomeSections";
-import { homeNextStep } from "../app/features/home/home-next-step";
+import { homeNextStep, homeValidationPresentation } from "../app/features/home/home-next-step";
 import { PlanStatus } from "../app/features/home/PlanStatus";
 import { onboardingStep4State } from "../app/features/onboarding/step4-state";
 import { openBillingApproval } from "../app/revalidation";
@@ -260,6 +260,38 @@ test("il prossimo passo collega la pagina giusta", () => {
     href: "/app/rules",
     label: t.nav.rules,
   });
+  // H-6: ogni stato ha un'azione; senza href porta alla scelta del piano.
+  expect(homeNextStep({ rules: configured, validationEnabled: false }, "entitled", t)).toEqual({
+    text: t.home.nextActivate,
+    href: "/app/rules",
+    label: t.nav.rules,
+  });
+  expect(homeNextStep({ rules: configured, validationEnabled: false }, "first_run", t)).toEqual({
+    text: t.home.nextStartTrial,
+    href: null,
+    label: t.home.showPlans,
+  });
+  expect(homeNextStep({ rules: configured, validationEnabled: true }, "lapsed", t)).toEqual({
+    text: t.home.nextChoosePlan,
+    href: null,
+    label: t.home.showPlans,
+  });
+});
+
+test("il badge Attiva è verde solo con almeno un campo configurato", () => {
+  const t = texts("it");
+  const configured = { taxCode: "required_validated", pec: "unmanaged" } as const;
+  const unmanaged = { taxCode: "unmanaged", pec: "unmanaged" } as const;
+  const present = (rules: typeof configured | typeof unmanaged) =>
+    homeValidationPresentation(
+      { locale: "it", validationEnabled: true, rules },
+      "active",
+      false,
+      t,
+    );
+
+  expect(present(configured)).toMatchObject({ badge: t.home.badgeActive, tone: "success" });
+  expect(present(unmanaged)).toMatchObject({ badge: t.home.badgeActive, tone: "neutral" });
 });
 
 test("l'approvazione billing si apre fuori dall'iframe", () => {

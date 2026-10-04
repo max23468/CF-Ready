@@ -30,6 +30,7 @@ describe("componenti merchant nel browser", () => {
       "plan.trialEndsSoon": ["10 settembre"],
       "plan.trialLastDay": ["10 settembre"],
       "plan.firstCharge": ["10 settembre"],
+      "plan.annualDescription": ["8,25 €"],
       "plan.nextCharge": ["10 settembre"],
       "plan.periodEnds": ["10 settembre"],
     };

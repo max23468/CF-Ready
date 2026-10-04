@@ -103,6 +103,7 @@ export const en: typeof it = {
     activated: "Check turned on in checkout.",
     deactivated: "Check turned off.",
     openOrders: "Open orders",
+    showPlans: "See the options",
     deactivateConfirm:
       "From now on checkout stops checking the fields. Rules and messages stay saved and you can turn them back on whenever you want.",
     nextConfigure: "Choose which fields to check in checkout.",
@@ -390,6 +391,7 @@ export const en: typeof it = {
   plan: {
     heading: "Plan",
     trial: (date: string) => `Trial active until ${date}.`,
+    trialActive: "Free trial active.",
     oneTime: "One payment active, no renewals.",
     complimentary: "Complimentary permanent plan active, with no renewals.",
     subscription: (date: string) => `Subscription active until ${date}.`,
@@ -409,6 +411,9 @@ export const en: typeof it = {
     monthlyPeriod: "per month",
     annualPeriod: "per year",
     oneTimePeriod: "once",
+    monthlyDescription: "Renews every month until you cancel the renewal.",
+    annualDescription: (monthly: string) =>
+      `Works out to ${monthly} a month and renews every year.`,
     monthlySwitch: "Switch to monthly",
     annualStart: "Start annual",
     annualSwitch: "Switch to annual",
@@ -419,6 +424,8 @@ export const en: typeof it = {
       "Access stays until the end of the current period, with no credit for unused days. Your rules and messages stay saved.",
     firstCharge: (date: string) =>
       `If you start today, the first charge is on ${date}: you keep the trial days you have left.`,
+    firstChargeAfterTrial:
+      "If you start today, the first charge comes after the trial ends: you keep the trial days you have left.",
     firstChargeNow: "The charge starts as soon as you approve it on Shopify.",
     oneTimeCharge:
       "One charge as soon as you approve it on Shopify. Any remaining trial days are given up.",

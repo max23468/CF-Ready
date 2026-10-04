@@ -100,6 +100,7 @@ export const it = {
     activated: "Validazione attivata nel checkout.",
     deactivated: "Validazione disattivata.",
     openOrders: "Apri gli ordini",
+    showPlans: "Vedi le opzioni",
     deactivateConfirm:
       "Da questo momento il checkout smette di controllare i campi. Regole e messaggi restano salvati e puoi riattivarli quando vuoi.",
     nextConfigure: "Scegli quali campi controllare nel checkout.",
@@ -390,6 +391,8 @@ export const it = {
   plan: {
     heading: "Piano",
     trial: (date: string) => `Prova attiva fino al ${date}.`,
+    // H-1: con il banner della prova a vista la data la dice il banner.
+    trialActive: "Prova gratuita attiva.",
     oneTime: "Pagamento unico attivo, senza rinnovi.",
     complimentary: "Piano omaggio permanente attivo, senza rinnovi.",
     subscription: (date: string) => `Abbonamento attivo fino al ${date}.`,
@@ -410,6 +413,8 @@ export const it = {
     monthlyPeriod: "al mese",
     annualPeriod: "all’anno",
     oneTimePeriod: "una sola volta",
+    monthlyDescription: "Si rinnova ogni mese finché non cancelli il rinnovo.",
+    annualDescription: (monthly: string) => `Equivale a ${monthly} al mese e si rinnova ogni anno.`,
     monthlySwitch: "Passa al mensile",
     annualStart: "Attiva l’annuale",
     annualSwitch: "Passa all’annuale",
@@ -420,6 +425,8 @@ export const it = {
       "L’accesso resta fino alla fine del periodo corrente, senza credito per i giorni non usati. Regole e messaggi restano salvati.",
     firstCharge: (date: string) =>
       `Se attivi oggi, il primo addebito è il ${date}: i giorni di prova che restano non li perdi.`,
+    firstChargeAfterTrial:
+      "Se attivi oggi, il primo addebito arriva dopo la fine della prova: i giorni di prova che restano non li perdi.",
     firstChargeNow: "L’addebito parte alla tua approvazione su Shopify.",
     oneTimeCharge:
       "Addebito unico alla tua approvazione su Shopify. I giorni di prova residui decadono.",

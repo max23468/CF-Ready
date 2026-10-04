@@ -2,9 +2,15 @@ import { formatDate, texts } from "../../i18n";
 import { commercialState } from "./commercial-state";
 import type { HomeData } from "./home.server";
 
-export function PlanStatus({ data }: { data: HomeData }) {
+export function PlanStatus({
+  data,
+  trialDateInBanner = false,
+}: {
+  data: HomeData;
+  trialDateInBanner?: boolean;
+}) {
   const t = texts(data.locale);
-  const status = planStatusText(data);
+  const status = planStatusText(data, trialDateInBanner);
 
   return (
     <s-section heading={t.plan.heading}>
@@ -30,10 +36,12 @@ export function PlanStatus({ data }: { data: HomeData }) {
   );
 }
 
-function planStatusText(data: HomeData) {
+function planStatusText(data: HomeData, trialDateInBanner: boolean) {
   const t = texts(data.locale);
   if (data.entitlement.kind === "trial") {
-    return t.plan.trial(formatDate(data.trialEndsAt, data.locale));
+    return trialDateInBanner
+      ? t.plan.trialActive
+      : t.plan.trial(formatDate(data.trialEndsAt, data.locale));
   }
   if (data.entitlement.kind === "one_time") {
     return data.complimentary ? t.plan.complimentary : t.plan.oneTime;
