@@ -438,6 +438,12 @@ terzo passo conserva riepilogo, ambito e messaggi configurati; il simulatore
 interattivo resta nella pagina Regole checkout e mostra soltanto i campi gestiti
 da CF Ready, senza il campo “Interno”.
 
+La parte relativa al passo 2 è superata dalla decisione dell'owner del 4
+ottobre 2026 per la `2.0.11`: configurazione di “Interno”, anteprima e gestione
+delle etichette e relativi permessi restano in Regole checkout. L'onboarding
+configura soltanto CF e PEC e conserva la gestione delle etichette già scelta
+(§15.9).
+
 Precisazione D-149 del 12 settembre 2026: classificazione, conflitti e variazioni
 del campo “Interno” considerano soltanto la variante obbligatoria o facoltativa
 che il merchant ha dichiarato visibile; quando il campo non è mostrato, gli
@@ -2658,8 +2664,11 @@ applicano con fatturazione estera o sole consegne estere.
 Quattro passaggi:
 
 1. introduzione, perimetro e limitazioni;
-2. scelta regole CF e PEC e gestione delle etichette; la configurazione del campo
-   “Interno” resta nella pagina Regole checkout;
+2. scelta delle sole regole CF e PEC; anteprima e gestione delle etichette,
+   richiesta dei relativi permessi e configurazione del campo “Interno”
+   restano nella pagina Regole checkout. Salvare dall'onboarding conserva
+   lo stato di gestione delle etichette già configurato, senza attivarlo o
+   disattivarlo;
 3. anteprima delle regole e dei soli messaggi che possono comparire con la
    configurazione scelta al passo 2; se entrambi i campi sono non gestiti,
    spiega che non sono previsti messaggi di errore;
