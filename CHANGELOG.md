@@ -13,6 +13,7 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   messaggio selezionato;
 - raggruppa i messaggi per disponibilità nelle regole, senza indicatori ripetuti,
   in italiano e inglese. Sidekick resta accettato per decisione dell'owner.
+  Pubblicazione solo Development, senza promozione Production.
 
 Customer message examples are clearer on mobile, keep their explanatory note
 inside the preview, and group rule availability without repeated badges.
