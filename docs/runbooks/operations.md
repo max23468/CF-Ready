@@ -378,7 +378,9 @@ npm run publish:production
 ```
 
 Il primo crea o riprende la PR verso `develop` e attende il deploy Development
-del commit unito. Prima del push classifica il diff con `ci-lane.mjs` ed esegue
+del commit unito. Se il commit unito tocca soltanto file della corsia `docs`,
+che non entrano nel Worker né nell'app Shopify, il deploy non parte: Development
+resta sulla versione precedente, che ha lo stesso codice. Prima del push classifica il diff con `ci-lane.mjs` ed esegue
 in locale gli stessi comandi dei job `verify` e `coverage` della corsia
 (`check:docs`, oppure `check:ci-standard` o `check:ci-full` seguito da
 `coverage:check`). Prima di abilitare lo squash merge attende tutti i check

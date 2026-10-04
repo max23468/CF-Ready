@@ -394,6 +394,15 @@ async function promotionCandidate(developSha) {
   throw new Error("develop è avanzato dopo il deploy Development; serve un nuovo candidato.");
 }
 
+// Corsia docs: nessun file entra nel Worker o nell'app Shopify. Se il diff non si legge,
+// si distribuisce come prima.
+function isDocumentationOnly(sha) {
+  execute("git", ["fetch", "--quiet", "origin", "develop"]);
+  const parent = execute("git", ["rev-parse", `${sha}^1`], { allowFailure: true });
+  if (parent.status !== 0) return false;
+  return classifyCiLane(changedFiles(parent.stdout.trim(), sha)).lane === "docs";
+}
+
 function gitPathTree(ref, path) {
   return output("git", ["rev-parse", `${ref}:${path}`]);
 }
@@ -470,11 +479,15 @@ export async function publish(target) {
   });
   const developSha = developmentPr.mergeCommit.oid;
   deleteRemoteBranch(branch);
-  await ensureWorkflow({
-    workflow: "deploy-development.yml",
-    branch: "develop",
-    sha: developSha,
-  });
+  if (isDocumentationOnly(developSha)) {
+    console.log("Deploy Development non necessario: il commit cambia solo documentazione.");
+  } else {
+    await ensureWorkflow({
+      workflow: "deploy-development.yml",
+      branch: "develop",
+      sha: developSha,
+    });
+  }
   if (target === "development") {
     console.log(`Pubblicazione Development completata: ${developSha}.`);
     return { developSha };
