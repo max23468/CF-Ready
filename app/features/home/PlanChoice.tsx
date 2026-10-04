@@ -135,7 +135,8 @@ function RecurringPlanOption({
     <s-stack direction="block" gap="small-100">
       <s-stack direction="inline" gap="small-100" alignItems="center">
         <s-text type="strong">{label}</s-text>
-        {annual ? <s-badge>{t.plan.recommended}</s-badge> : null}
+        {/* P2-T4: l'unico badge della scelta del piano, nel tono del banner della prova. */}
+        {annual ? <s-badge tone="info">{t.plan.recommended}</s-badge> : null}
       </s-stack>
       <s-stack direction="inline" gap="small-100" alignItems="baseline">
         <s-heading fontSize="large-200" accessibilityRole="presentation">

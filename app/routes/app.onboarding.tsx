@@ -215,7 +215,9 @@ export default function Onboarding() {
           </div>
         ) : null}
 
-        <s-section>
+        {/* P2-T3: il titolo del passo sta fuori dalla card, come nelle altre pagine; i titoli
+            di gruppo dentro la card gli restano subordinati. */}
+        <s-section heading={onboardingStepHeading(step, t)}>
           <s-stack direction="block" gap="base">
             <OnboardingProgress step={step} t={t} />
 
@@ -288,6 +290,13 @@ type CurrentStepProps = {
   showPlans: () => void;
 };
 
+function onboardingStepHeading(step: number, t: OnboardingCopy) {
+  if (step === 1) return t.onboarding.welcomeHeading;
+  if (step === 2) return t.onboarding.step2Heading;
+  if (step === 3) return t.onboarding.step3Heading;
+  return t.onboarding.step4Heading;
+}
+
 function OnboardingCurrentStep(props: CurrentStepProps) {
   let content = null;
   if (props.step === 1) content = <OnboardingIntroduction t={props.t} />;
@@ -316,14 +325,11 @@ function OnboardingCurrentStep(props: CurrentStepProps) {
 function OnboardingIntroduction({ t }: { t: OnboardingCopy }) {
   return (
     <>
-      {/* O4: icona piccola accanto al titolo, che resta l'elemento principale. */}
-      <s-stack direction="block" gap="small-100">
-        <s-grid gridTemplateColumns="auto minmax(0, 1fr)" gap="small-200" alignItems="center">
-          <BrandMark />
-          <s-heading>{t.onboarding.welcomeHeading}</s-heading>
-        </s-grid>
+      {/* O4: icona piccola accanto all'introduzione; il titolo è quello della sezione. */}
+      <s-grid gridTemplateColumns="auto minmax(0, 1fr)" gap="small-200" alignItems="center">
+        <BrandMark />
         <s-paragraph>{t.onboarding.welcomeBody}</s-paragraph>
-      </s-stack>
+      </s-grid>
       <s-divider />
       <s-stack direction="block" gap="small-100">
         <s-heading>{t.onboarding.step1Heading}</s-heading>
@@ -340,37 +346,40 @@ function OnboardingRules(props: CurrentStepProps) {
   const { saved, t } = props;
   return (
     <>
-      <s-stack direction="block" gap="small-100">
-        <s-heading>{t.onboarding.step2Heading}</s-heading>
-        <s-paragraph>{t.onboarding.step2Body}</s-paragraph>
-      </s-stack>
-      {/* Codice Fiscale e PEC hanno un titolo come "Campo Interno": stessa gerarchia. */}
-      {/* Titolo e opzioni restano vicini, come nelle card di Regole. */}
-      <s-stack direction="block" gap="small-100">
-        <s-heading>{t.rules.taxCodeLabel}</s-heading>
-        <s-choice-list
-          label={t.rules.taxCodeLabel}
-          labelAccessibilityVisibility="exclusive"
-          name="taxCode"
-        >
-          {TAX_CODE_RULE_MODES.map((mode) => (
-            <s-choice key={mode} value={mode} selected={mode === saved.rules.taxCode}>
-              {t.rules.taxCode[mode]}
-              <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
-            </s-choice>
-          ))}
-        </s-choice-list>
-      </s-stack>
-      <s-stack direction="block" gap="small-100">
-        <s-heading>{t.rules.pecLabel}</s-heading>
-        <s-choice-list label={t.rules.pecLabel} labelAccessibilityVisibility="exclusive" name="pec">
-          {PEC_RULE_MODES.map((mode) => (
-            <s-choice key={mode} value={mode} selected={mode === saved.rules.pec}>
-              {t.rules.pec[mode]}
-              <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
-            </s-choice>
-          ))}
-        </s-choice-list>
+      <s-paragraph>{t.onboarding.step2Body}</s-paragraph>
+      {/* Codice Fiscale e PEC hanno un titolo come "Campo Interno": stessa gerarchia.
+          P2-T8: titolo e opzioni restano vicini, i due gruppi più distanti tra loro. */}
+      <s-stack direction="block" gap="large">
+        <s-stack direction="block" gap="small-300">
+          <s-heading>{t.rules.taxCodeLabel}</s-heading>
+          <s-choice-list
+            label={t.rules.taxCodeLabel}
+            labelAccessibilityVisibility="exclusive"
+            name="taxCode"
+          >
+            {TAX_CODE_RULE_MODES.map((mode) => (
+              <s-choice key={mode} value={mode} selected={mode === saved.rules.taxCode}>
+                {t.rules.taxCode[mode]}
+                <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
+              </s-choice>
+            ))}
+          </s-choice-list>
+        </s-stack>
+        <s-stack direction="block" gap="small-300">
+          <s-heading>{t.rules.pecLabel}</s-heading>
+          <s-choice-list
+            label={t.rules.pecLabel}
+            labelAccessibilityVisibility="exclusive"
+            name="pec"
+          >
+            {PEC_RULE_MODES.map((mode) => (
+              <s-choice key={mode} value={mode} selected={mode === saved.rules.pec}>
+                {t.rules.pec[mode]}
+                <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
+              </s-choice>
+            ))}
+          </s-choice-list>
+        </s-stack>
       </s-stack>
       <s-divider />
       <s-heading>{t.rules.labels.addressHeading}</s-heading>
@@ -441,45 +450,43 @@ function OnboardingLabelControls(props: CurrentStepProps) {
 function OnboardingPreview({ saved, t }: { saved: OnboardingData; t: OnboardingCopy }) {
   return (
     <>
-      <s-stack direction="block" gap="small-100">
-        <s-heading>{t.onboarding.step3Heading}</s-heading>
-        <s-paragraph>{t.onboarding.step3Body}</s-paragraph>
-      </s-stack>
+      <s-paragraph>{t.onboarding.step3Body}</s-paragraph>
+      {/* P2-T7: il limite alle consegne in Italia sta già nel passo 1. */}
       {describeCheckout({ rules: saved.rules, status: "active" }, saved.locale).map((line) => (
         <s-paragraph key={line}>{line}</s-paragraph>
       ))}
-      <OnboardingListBlock
-        lead={<s-heading>{t.rules.exceptionsHeading}</s-heading>}
-        items={t.rules.exceptions}
-      />
       <s-stack direction="block" gap="small-100">
         <s-heading>{t.onboarding.step3Messages}</s-heading>
         <s-paragraph>{t.onboarding.step3MessagesBody}</s-paragraph>
         <s-text color="subdued">{t.messages.previewHint}</s-text>
       </s-stack>
-      {/* O2, O3: ogni messaggio è un blocco con etichetta e lo stesso riquadro d'errore
-          dell'anteprima in Messaggi; i blocchi sono più distanti tra loro che al loro interno. */}
+      {/* O2, O3: ogni messaggio è un blocco con etichetta e lo stesso campo d'esempio
+          dell'anteprima in Messaggi; i blocchi sono più distanti tra loro che al loro interno.
+          P2-T4, P2-T7: badge neutro e nessuna nota che ne ripeta lo stato. */}
       <s-stack direction="block" gap="large">
-        {MESSAGE_KEYS.map((key) => (
-          <div className="onboarding-message" key={key}>
-            <s-stack direction="block" gap="small-300">
-              <s-stack direction="inline" gap="small-100" alignItems="center">
-                <s-text type="strong">{t.messages[key]}</s-text>
-                <s-badge tone={messageAppears(saved.rules, key) ? "success" : "neutral"}>
-                  {messageAppears(saved.rules, key) ? t.messages.appears : t.messages.appearsNot}
-                </s-badge>
+        {MESSAGE_KEYS.map((key) => {
+          const field = key.startsWith("taxCode") ? "taxCode" : "pec";
+          return (
+            <div className="onboarding-message" key={key}>
+              <s-stack direction="block" gap="small-200">
+                <s-stack direction="inline" gap="small-100" alignItems="center">
+                  <s-text type="strong">{t.messages[key]}</s-text>
+                  <s-badge tone="neutral">
+                    {messageAppears(saved.rules, key) ? t.messages.appears : t.messages.appearsNot}
+                  </s-badge>
+                </s-stack>
+                <CheckoutErrorPreview
+                  locale={saved.locale}
+                  label={
+                    checkoutLabelCopy(field, saved.locale, saved.rules[field]) ??
+                    t.rules[`${field}Label`]
+                  }
+                  message={saved.messages[saved.locale][key]}
+                />
               </s-stack>
-              <CheckoutErrorPreview
-                locale={saved.locale}
-                message={saved.messages[saved.locale][key]}
-              />
-              {/* Come in Messaggi: il riquadro mostra il testo, la nota dice che non comparirà. */}
-              {messageAppears(saved.rules, key) ? null : (
-                <s-text color="subdued">{t.messages.previewNotShown}</s-text>
-              )}
-            </s-stack>
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </s-stack>
     </>
   );

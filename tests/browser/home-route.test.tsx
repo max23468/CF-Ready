@@ -66,6 +66,11 @@ describe("Home merchant", () => {
         />
       </div>,
     );
+    // P2-T4: l'unico badge della scelta del piano ha il tono del banner della prova.
+    const recommended = [...view.container.querySelectorAll("s-badge")].find(
+      (badge) => badge.textContent === texts("it").plan.recommended,
+    );
+    expect(recommended?.getAttribute("tone")).toBe("info");
     // Punto 2: "Scegli un piano" porta ai piani e sposta il focus, senza ancora `#plans`.
     const plans = view.container.querySelector<HTMLElement>("#plans")!;
     plans.scrollIntoView = vi.fn();

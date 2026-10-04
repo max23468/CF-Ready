@@ -2423,7 +2423,8 @@ Conclusioni operative:
     `s-heading`; etichetta di riga con `s-text type="strong"`; il nome di un
     campo lo dà la `label` del componente;
   - **badge:** `success` solo per un esito raggiunto, `info` per uno stato in
-    corso, `warning` quando serve un'azione del merchant, `critical` per un
+    corso e per l'opzione consigliata del piano, nel tono del banner della
+    prova, `warning` quando serve un'azione del merchant, `critical` per un
     blocco o un errore, `neutral` per valori di configurazione e stati
     descrittivi (regole, messaggi predefiniti, «Può comparire»);
   - **logo e brand:** lockup a 128 px allineato a sinistra nelle colonne
@@ -2438,6 +2439,11 @@ Conclusioni operative:
     riga;
   - **disclosure:** `details` tramite `app/ui-disclosure.tsx`, con chevron
     `s-icon` al bordo finale del summary, uguale a ogni livello di annidamento;
+  - **componenti nativi:** l'esempio di un messaggio è un `s-text-field` in sola
+    lettura con l'etichetta del campo come `label` e il messaggio come `error`;
+    il confronto tra etichetta attuale e nuova è una `s-table` con colonne
+    Campo, Campo attuale e Campo dopo il salvataggio (o Testo Shopify per
+    «Interno»), che su mobile diventa un elenco;
   - **spaziature:** dentro un gruppo `small-200` o meno, tra gruppi della stessa
     card `base`, tra blocchi con titolo proprio `large`; le righe
     etichetta-valore usano `app/ui-status-list.tsx`;

@@ -82,7 +82,15 @@ describe("componenti merchant nel browser", () => {
     expect(view.container.querySelector("details")).toBeNull();
     expect(view.container.querySelector('s-icon[type="alert-circle"]')).toBeNull();
     expect(view.container.textContent?.match(/Anteprima/g)).toHaveLength(1);
-    expect(view.container.textContent).toContain("Messaggio");
+    // N-1: campo nativo in sola lettura, con l'etichetta del campo e il messaggio come errore.
+    const field = view.container.querySelector<HTMLElement & { error: string; label: string }>(
+      ".customer-messages-preview__error s-text-field",
+    )!;
+    expect(
+      field.hasAttribute("readonly") || (field as unknown as { readOnly: boolean }).readOnly,
+    ).toBe(true);
+    expect(field.label ?? field.getAttribute("label")).toBe("Tax code");
+    expect(field.error ?? field.getAttribute("error")).toBe("Messaggio");
   });
 
   test("la textarea resta non controllata e inoltra il focus", async () => {

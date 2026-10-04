@@ -463,10 +463,13 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
   // G-B2: dopo il salto il titolo della sezione è in vista e la sezione ha il focus.
   const diagnosis = view.container.querySelector<HTMLElement>("#validation-diagnosis")!;
   expect(document.activeElement).toBe(diagnosis);
+  // P2-T3: il titolo è quello nativo della sezione, fuori dalla card.
+  const diagnosisSection = diagnosis.closest("s-section")!;
+  expect(diagnosisSection.getAttribute("heading")).toBe(texts("it").guide.diagnosis.heading);
   await expect
     .poll(() => {
-      const heading = diagnosis.querySelector(".guide-diagnosis__heading")!.getBoundingClientRect();
-      return heading.top >= 80 && heading.bottom < 844;
+      const top = sectionHeadingTop(diagnosisSection);
+      return top >= 80 && top < 800;
     })
     .toBe(true);
   header.remove();
@@ -497,7 +500,9 @@ test("Polaris reale: messaggi multiriga interamente visibili e anteprima vicina 
       await textbox.fill(value);
     });
     await expect.poll(() => input.clientHeight >= input.scrollHeight - 1).toBe(true);
-    expect(local.textContent).toContain(value);
+    expect(local.querySelector<HTMLElement & { error: string }>("s-text-field")!.error).toBe(value);
+    // P2-T7: la nota su posizione e aspetto non si ripete accanto a ogni campo.
+    expect(local.textContent).not.toContain(copy.previewHint);
     expect(getComputedStyle(local).display).toBe("block");
     await act(async () => {
       await textbox.fill("W".repeat(200));
@@ -620,8 +625,10 @@ test("Polaris reale: anteprima Messaggi visibile prima dei campi e riepilogo sen
         .selectOptions("en");
     });
     expect(
-      messages.container.querySelector('.customer-messages-preview__error[lang="en"]')?.textContent,
-    ).toContain(DEFAULT_CONFIG.messages.en.taxCodeRequired);
+      messages.container.querySelector<HTMLElement & { error: string }>(
+        '.customer-messages-preview__error[lang="en"] s-text-field',
+      )?.error,
+    ).toBe(DEFAULT_CONFIG.messages.en.taxCodeRequired);
     expect(
       messages.container.querySelector('s-banner[tone="critical"], [role="alert"]'),
     ).toBeNull();
@@ -1007,15 +1014,31 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
   const progress = view.container.querySelector("s-progress")!;
   expect(progress.getAttribute("value")).toBe("1");
   expect(progress.getAttribute("max")).toBe("4");
-  // O4, N-3: solo il marchio piccolo accanto al titolo di benvenuto, senza avatar né fondo.
+  // O4, N-3: solo il marchio piccolo accanto all'introduzione, senza avatar né fondo.
   expect(view.container.querySelectorAll(".onboarding-step s-image")).toHaveLength(1);
   expect(view.container.querySelector("s-avatar")).toBeNull();
-  const welcome = [...view.container.querySelectorAll(".onboarding-step s-heading")].find(
-    (heading) => heading.textContent === it.onboarding.welcomeHeading,
+  const welcome = [...view.container.querySelectorAll(".onboarding-step s-paragraph")].find(
+    (paragraph) => paragraph.textContent === it.onboarding.welcomeBody,
   )!;
   const mark = welcome.closest("s-grid")!.querySelector('s-image[src="/cf-ready-mark.svg"]')!;
   expect(mark).not.toBeNull();
   expect(surfaceRect(mark).right - surfaceRect(mark).left).toBeLessThanOrEqual(32);
+  // P2-T3: il titolo del passo è quello nativo della sezione, fuori dalla card, sopra il
+  // titolo di gruppo interno.
+  const stepSection = view.container.querySelector("s-section")!;
+  expect(stepSection.getAttribute("heading")).toBe(it.onboarding.welcomeHeading);
+  const limits = [...view.container.querySelectorAll(".onboarding-step s-heading")].find(
+    (heading) => heading.textContent === it.onboarding.step1Heading,
+  )!;
+  if (polarisV2) {
+    const surface = [...stepSection.shadowRoot!.querySelectorAll<HTMLElement>("*")].find(
+      (element) =>
+        element.getBoundingClientRect().width > 100 &&
+        getComputedStyle(element).backgroundColor === "rgb(255, 255, 255)",
+    )!;
+    expect(sectionHeadingTop(stepSection)).toBeLessThan(surface.getBoundingClientRect().top);
+  }
+  expect(sectionHeadingTop(stepSection)).toBeLessThan(surfaceRect(limits).top);
   await view.unmount();
 
   // O7: con i permessi concessi non resta la frase tecnica.
@@ -1034,6 +1057,13 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
     .filter((rect) => rect.width > 0 && rect.height > 0 && rect.width < 40)
     .sort((a, b) => a.top - b.top)[0];
   expect(radio.top - surfaceRect(taxHeading).bottom).toBeLessThanOrEqual(12);
+  // P2-T8: il gruppo PEC è più distante dalle opzioni del Codice Fiscale che il titolo dalle sue.
+  const pecHeading = [...step2.container.querySelectorAll(".onboarding-step s-heading")].find(
+    (heading) => heading.textContent === it.rules.pecLabel,
+  )!;
+  const headingGap = surfaceRect(choices).top - surfaceRect(taxHeading).bottom;
+  const groupGap = surfaceRect(pecHeading).top - surfaceRect(choices).bottom;
+  expect(groupGap).toBeGreaterThanOrEqual(headingGap * 2);
   await step2.unmount();
 
   // O2, O3: ogni messaggio è un blocco con etichetta e anteprima, separato dagli altri.
@@ -1115,9 +1145,14 @@ test("Polaris reale: cambio passo ripristina focus e scorrimento mobile", async 
   });
   const content = view.container.querySelector<HTMLElement>(".onboarding-step")!;
   expect(document.activeElement).toBe(content);
-  expect(content.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
-  expect(content.getBoundingClientRect().top).toBeLessThan(100);
-  expect(content.textContent).toContain(texts("it").onboarding.step3Heading);
+  // Il titolo del passo, fuori dalla card, resta in vista sopra il contenuto.
+  const stepSection = content.closest("s-section")!;
+  expect(sectionHeadingTop(stepSection)).toBeGreaterThanOrEqual(0);
+  expect(content.getBoundingClientRect().top).toBeGreaterThan(sectionHeadingTop(stepSection));
+  expect(content.getBoundingClientRect().top).toBeLessThan(200);
+  expect(content.closest("s-section")!.getAttribute("heading")).toBe(
+    texts("it").onboarding.step3Heading,
+  );
   expect(content.textContent).toContain(texts("it").messages.appearsNot);
   await captureSurface(
     view.container,
@@ -1139,7 +1174,9 @@ test("Polaris reale: cambio passo ripristina focus e scorrimento mobile", async 
     await userEvent.keyboard("{Enter}");
   });
   const step4 = view.container.querySelector<HTMLElement>(".onboarding-step")!;
-  expect(step4.textContent).toContain(texts("it").onboarding.step4Heading);
+  expect(step4.closest("s-section")!.getAttribute("heading")).toBe(
+    texts("it").onboarding.step4Heading,
+  );
   expect(document.activeElement).toBe(step4);
   expect(getComputedStyle(step4).outlineStyle).toBe("none");
   await captureSurface(

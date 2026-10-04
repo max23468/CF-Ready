@@ -267,14 +267,14 @@ export default function Guide() {
   );
 }
 
-// Il titolo ha un box reale: centrarlo mantiene visibile il punto di arrivo anche sotto
-// l'intestazione fissa dell'Admin, senza dipendere dallo shadow DOM di Polaris.
+// Il titolo sta nello shadow DOM di `s-section`: si fa scorrere il contenuto della card, il cui
+// margine di scorrimento lascia il titolo visibile sopra di esso e sotto l'intestazione
+// fissa dell'Admin.
 function showDiagnosis() {
   const target = document.getElementById("validation-diagnosis");
   if (!target) return;
-  const heading = target.querySelector(".guide-diagnosis__heading");
   const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  heading?.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" });
+  target.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
   target.focus({ preventScroll: true });
 }
 
@@ -291,13 +291,11 @@ function ValidationDiagnosis({
   const check = checkResult && "check" in checkResult ? checkResult.check : null;
   const checkCopy = t.guide.diagnosis;
   const errorCode = diagnosisErrorCode(check, checkResult, diagnostics.errorCode);
+  // P2-T3: come le altre sezioni, il titolo sta fuori dalla card.
   return (
-    <s-section>
+    <s-section heading={checkCopy.heading}>
       <div id="validation-diagnosis" className="guide-diagnosis" tabIndex={-1}>
         <s-stack direction="block" gap="base">
-          <div className="guide-diagnosis__heading">
-            <s-heading>{checkCopy.heading}</s-heading>
-          </div>
           <s-paragraph>{checkCopy.body}</s-paragraph>
           <s-button
             disabled={checkFetcher.state !== "idle"}
@@ -395,7 +393,7 @@ function DiagnosisRow({
   return (
     <s-grid gridTemplateColumns="auto minmax(0, 1fr)" gap="small-200" alignItems="start">
       <s-icon type={DIAGNOSIS_ICON[tone]} tone={tone} />
-      <s-stack direction="block" gap="small-100" alignItems="start">
+      <s-stack direction="block" gap="none" alignItems="start">
         <s-text>{text}</s-text>
         <s-link href={href}>{link}</s-link>
       </s-stack>
@@ -413,8 +411,9 @@ function DiagnosisResult({
   const t = texts(locale);
   const copy = t.guide.diagnosis;
   if (!check || check.errorCode) return <s-paragraph>{copy.notChecked}</s-paragraph>;
+  // P2-T8: testo e link di un esito stanno insieme, più distanti dall'esito successivo.
   return (
-    <>
+    <s-stack direction="block" gap="base">
       <DiagnosisRow
         tone={check.enabled ? "success" : "warning"}
         text={check.enabled ? copy.enabled : copy.disabled}
@@ -457,6 +456,6 @@ function DiagnosisResult({
           link={t.nav.rules}
         />
       ) : null}
-    </>
+    </s-stack>
   );
 }

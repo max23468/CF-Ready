@@ -292,38 +292,46 @@ function Address2Comparison({
       {contexts.map(({ shopLocale, slots }) => (
         <div className="checkout-label-context" key={shopLocale.locale}>
           <s-text type="strong">{copy.generalText}</s-text>
-          <div className="checkout-label-context__rows">
-            {slots.map((slot) => {
-              const expected = proposedLabelForSlot(slot, {
-                taxCode: "unmanaged",
-                pec: "unmanaged",
-              });
-              const current = observedLabelForSlot(slot);
-              return (
-                <div
-                  className="checkout-label-context__row"
-                  key={`${slot.name}:${slot.marketId ?? "global"}`}
-                >
-                  <s-stack direction="block" gap="small-100">
-                    <s-text type="strong">
+          {/* N-2: stessa tabella nativa di Testi del checkout. */}
+          <s-table variant="auto">
+            <s-table-header-row>
+              <s-table-header listSlot="primary">{copy.fieldColumn}</s-table-header>
+              <s-table-header>{copy.current}</s-table-header>
+              <s-table-header>{copy.standardLabel}</s-table-header>
+            </s-table-header-row>
+            <s-table-body>
+              {slots.map((slot) => {
+                const expected = proposedLabelForSlot(slot, {
+                  taxCode: "unmanaged",
+                  pec: "unmanaged",
+                });
+                const current = observedLabelForSlot(slot);
+                return (
+                  <s-table-row key={`${slot.name}:${slot.marketId ?? "global"}`}>
+                    <s-table-cell>
                       {formMode === "required" ? copy.addressRequired : copy.addressOptional}
-                    </s-text>
-                    {slot.marketName ? <s-text color="subdued">{slot.marketName}</s-text> : null}
-                  </s-stack>
-                  <s-stack direction="block" gap="small-100">
+                      {slot.marketName ? ` · ${slot.marketName}` : null}
+                    </s-table-cell>
                     {/* Etichette reali di Shopify tra virgolette, come in Testi del checkout (T7). */}
-                    <s-text>{current ? quoteLabel(current, locale) : copy.notAvailable}</s-text>
-                    {current !== expected ? (
-                      <s-text color="subdued">
-                        {copy.standardLabel}:{" "}
-                        {expected ? quoteLabel(expected, locale) : copy.notAvailable}
-                      </s-text>
-                    ) : null}
-                  </s-stack>
-                </div>
-              );
-            })}
-          </div>
+                    <s-table-cell>
+                      {current ? quoteLabel(current, locale) : copy.notAvailable}
+                    </s-table-cell>
+                    <s-table-cell>
+                      {current !== expected ? (
+                        expected ? (
+                          quoteLabel(expected, locale)
+                        ) : (
+                          copy.notAvailable
+                        )
+                      ) : (
+                        <s-text color="subdued">{copy.noChange}</s-text>
+                      )}
+                    </s-table-cell>
+                  </s-table-row>
+                );
+              })}
+            </s-table-body>
+          </s-table>
         </div>
       ))}
     </div>
