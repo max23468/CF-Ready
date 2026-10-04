@@ -33,6 +33,8 @@ import { skipRevalidationWhenLeaving } from "../revalidation";
 import { showToast } from "../save-bar";
 import { createServerTiming } from "../server-timing.server";
 import { readSupportDiagnosticState, type SupportDiagnosticState } from "../support.server";
+import { BrandLockup } from "../ui-brand";
+import { Disclosure } from "../ui-disclosure";
 import "./app.guide.css";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
@@ -175,10 +177,11 @@ export default function Guide() {
                   {group.entries.map((entry, index) => (
                     <Fragment key={entry.q}>
                       {index > 0 ? <s-divider /> : null}
-                      <details className="guide-faq__entry" onToggle={syncExpanded}>
-                        <summary className="cf-disclosure">
-                          <span className="guide-faq__question">{entry.q}</span>
-                        </summary>
+                      <Disclosure
+                        className="guide-faq__entry"
+                        onToggle={syncExpanded}
+                        summary={<span className="guide-faq__question">{entry.q}</span>}
+                      >
                         <div className="guide-faq__answer">
                           <s-paragraph>
                             {/* G-B8: a uno store con piano omaggio non si parla di prova e prezzi. */}
@@ -189,7 +192,7 @@ export default function Guide() {
                               : entry.a}
                           </s-paragraph>
                         </div>
-                      </details>
+                      </Disclosure>
                     </Fragment>
                   ))}
                 </div>
@@ -249,14 +252,7 @@ export default function Guide() {
           azioni operative. Questa è documentazione, non configurazione. */}
         <s-section heading={t.guide.asideHeading}>
           <s-stack direction="block" gap="base">
-            <s-box maxInlineSize="160px">
-              <s-image
-                src="/cf-ready-lockup.svg"
-                alt="CF Ready"
-                aspectRatio="16/3"
-                objectFit="contain"
-              />
-            </s-box>
+            <BrandLockup alt="CF Ready" />
             <s-paragraph>{t.guide.asideBody}</s-paragraph>
             <s-stack direction="block" gap="small-100" alignItems="start">
               <s-heading>{t.guide.asideLinks}</s-heading>

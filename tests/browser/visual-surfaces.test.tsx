@@ -12,6 +12,7 @@ import { DEFAULT_CONFIG } from "../../app/config";
 import type { CheckoutLabelsMode } from "../../app/checkout-labels/domain";
 import { CheckoutSimulator } from "../../app/features/rules/CheckoutSimulator";
 import { RevealBanner } from "../../app/ui-feedback";
+import { Disclosure } from "../../app/ui-disclosure";
 import { polarisUrlForEnvironment } from "../../app/shopify-ui";
 import { trialContinuityTexts } from "../../app/i18n/trial-continuity";
 import { formatDate, formatMoney } from "../../app/i18n";
@@ -133,13 +134,13 @@ test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", asy
     const rulesGrid = view.container.querySelector("s-query-container > s-grid")!;
     const gridSurface = rulesGrid.shadowRoot!.querySelector<HTMLElement>(".grid")!;
     expect(getComputedStyle(gridSurface).gridTemplateColumns.split(" ")).toHaveLength(
-      gridSurface.getBoundingClientRect().width > 300 ? 2 : 1,
+      gridSurface.getBoundingClientRect().width > 200 ? 2 : 1,
     );
-    // T5: anche la PEC obbligatoria per aziende è un badge azzurro, senza troncamenti.
+    // T5, P2-T4: anche la PEC obbligatoria per aziende è un badge neutro, senza troncamenti.
     const pecBadge = [...view.container.querySelectorAll("s-badge")].find(
       (badge) => badge.textContent === texts("it").home.pecRequiredForCompanies,
     );
-    expect(pecBadge?.getAttribute("tone")).toBe("info");
+    expect(pecBadge?.getAttribute("tone")).toBe("neutral");
     for (const badge of view.container.querySelectorAll("s-badge")) {
       for (const element of badge.shadowRoot!.querySelectorAll<HTMLElement>("*")) {
         if (element.textContent === badge.textContent && element.clientWidth > 0) {
@@ -188,162 +189,169 @@ test.each([
   ["it", 390],
   ["en", 1280],
   ["en", 390],
-] as const)("Polaris reale: gruppo 2, %s a %i px", async (locale, width) => {
-  document.documentElement.lang = locale;
-  const copy = texts(locale);
-  await page.viewport(width, 844);
-  const data = {
-    ...homeData,
-    locale,
-    validationEnabled: true,
-    onboarding: "completed",
-    entitlement: { kind: "trial", validThrough: "2026-10-16" },
-    trialStatus: "active",
-    trialEndsAt: "2026-10-16",
-    firstChargeAt: "2026-10-17",
-    remaining: 13,
-  };
-  router.loaderData = confirmedHome(data);
-  const home = await mount(<HomePage />);
-  await expect
-    .poll(() => home.container.querySelector("s-banner s-button")?.hasAttribute("disabled"))
-    .toBe(false);
-  const banner = home.container.querySelector("s-banner")!;
-  expect(banner.querySelectorAll("s-paragraph")).toHaveLength(1);
-  expect(banner.textContent).not.toContain(trialContinuityTexts(locale).approvalHelp);
-  const plans = home.container.querySelector("#plans")!;
-  expect(plans.textContent).toContain(copy.plan.firstCharge(formatDate("2026-10-17", locale)));
-  expect(plans.textContent).toContain(copy.plan.oneTimeCharge);
-  const prices = [...plans.querySelectorAll('s-heading[accessibilityRole="presentation"]')];
-  expect(prices.map((price) => price.textContent)).toEqual(
-    [data.plan.monthly, data.plan.annual, data.plan.one_time].map((price) =>
-      formatMoney(price, locale),
-    ),
-  );
-  for (const price of prices) {
-    const number = surfaceRect(price);
-    const period = surfaceRect(price.nextElementSibling!);
-    expect(period.left).toBeGreaterThanOrEqual(number.right);
-    expect(period.top).toBeLessThan(number.bottom);
-    expect(period.right).toBeLessThanOrEqual(window.innerWidth);
-  }
-  if (width === 390) expect(surfaceRect(banner).bottom - surfaceRect(banner).top).toBeLessThan(180);
-  await page.screenshot({
-    path: screenshotPath(
-      `__screenshots__/visual/group2-home-top-${locale}-${server.browser}-${width}.png`,
-    ),
-  });
-  await page.screenshot({
-    element: plans,
-    path: screenshotPath(
-      `__screenshots__/visual/group2-plans-${locale}-${server.browser}-${width}.png`,
-    ),
-  });
-  window.scrollTo(0, 0);
-  await captureSurface(
-    home.container,
-    `__screenshots__/visual/group2-home-${locale}-${server.browser}-${width}.png`,
-  );
-  await home.unmount();
-  router.loaderData = {
-    locale,
-    shopDomain: "demo.myshopify.com",
-    version: "fixture",
-    diagnosticId: "123e4567-e89b-42d3-a456-426614174000",
-    diagnostics: {},
-  };
-  const guide = await mount(<Guide />);
-  const headingRange = document.createRange();
-  headingRange.selectNodeContents(
-    page.getByRole("heading", { name: copy.guide.faqHeading, exact: true }).element(),
-  );
-  const heading = headingRange.getBoundingClientRect();
-  const action = surfaceRect(
-    guide.container.querySelector('#faq s-button[slot="secondary-actions"]')!,
-  );
-  expect(heading.right).toBeLessThanOrEqual(window.innerWidth);
-  expect(action.right).toBeLessThanOrEqual(window.innerWidth);
-  expect(action.left >= heading.right || action.top >= heading.bottom).toBe(true);
-  await act(async () => {
-    await page.getByRole("button", { name: copy.guide.expandAll, exact: true }).click();
-  });
-  expect(guide.container.querySelectorAll("details:not([open])")).toHaveLength(0);
-  await act(async () => {
-    await page.getByRole("button", { name: copy.guide.collapseAll, exact: true }).click();
-  });
-  await page.screenshot({
-    path: screenshotPath(
-      `__screenshots__/visual/group2-guide-top-${locale}-${server.browser}-${width}.png`,
-    ),
-  });
-  await captureSurface(
-    guide.container,
-    `__screenshots__/visual/group2-guide-${locale}-${server.browser}-${width}.png`,
-  );
-  await guide.unmount();
-  for (const manual of [false, true]) {
+] as const)(
+  "Polaris reale: gruppo 2, %s a %i px",
+  async (locale, width) => {
+    document.documentElement.lang = locale;
+    const copy = texts(locale);
+    await page.viewport(width, 844);
+    const data = {
+      ...homeData,
+      locale,
+      validationEnabled: true,
+      onboarding: "completed",
+      entitlement: { kind: "trial", validThrough: "2026-10-16" },
+      trialStatus: "active",
+      trialEndsAt: "2026-10-16",
+      firstChargeAt: "2026-10-17",
+      remaining: 13,
+    };
+    router.loaderData = confirmedHome(data);
+    const home = await mount(<HomePage />);
+    await expect
+      .poll(() => home.container.querySelector("s-banner s-button")?.hasAttribute("disabled"))
+      .toBe(false);
+    const banner = home.container.querySelector("s-banner")!;
+    expect(banner.querySelectorAll("s-paragraph")).toHaveLength(1);
+    expect(banner.textContent).not.toContain(trialContinuityTexts(locale).approvalHelp);
+    const plans = home.container.querySelector("#plans")!;
+    expect(plans.textContent).toContain(copy.plan.firstCharge(formatDate("2026-10-17", locale)));
+    expect(plans.textContent).toContain(copy.plan.oneTimeCharge);
+    const prices = [...plans.querySelectorAll('s-heading[accessibilityRole="presentation"]')];
+    expect(prices.map((price) => price.textContent)).toEqual(
+      [data.plan.monthly, data.plan.annual, data.plan.one_time].map((price) =>
+        formatMoney(price, locale),
+      ),
+    );
+    for (const price of prices) {
+      const number = surfaceRect(price);
+      const period = surfaceRect(price.nextElementSibling!);
+      expect(period.left).toBeGreaterThanOrEqual(number.right);
+      expect(period.top).toBeLessThan(number.bottom);
+      expect(period.right).toBeLessThanOrEqual(window.innerWidth);
+    }
+    if (width === 390)
+      expect(surfaceRect(banner).bottom - surfaceRect(banner).top).toBeLessThan(180);
+    await page.screenshot({
+      path: screenshotPath(
+        `__screenshots__/visual/group2-home-top-${locale}-${server.browser}-${width}.png`,
+      ),
+    });
+    await page.screenshot({
+      element: plans,
+      path: screenshotPath(
+        `__screenshots__/visual/group2-plans-${locale}-${server.browser}-${width}.png`,
+      ),
+    });
+    window.scrollTo(0, 0);
+    await captureSurface(
+      home.container,
+      `__screenshots__/visual/group2-home-${locale}-${server.browser}-${width}.png`,
+    );
+    await home.unmount();
     router.loaderData = {
       locale,
-      duplicateError: null,
-      configHash: "fixture",
-      rules: manual ? { taxCode: "required_validated", pec: "unmanaged" } : DEFAULT_CONFIG.rules,
-      messages: DEFAULT_CONFIG.messages,
-      enabled: false,
-      entitled: true,
-      labelScopesGranted: true,
-      labelState: {
-        mode: manual ? "guided" : "off",
-        managementEpoch: null,
-        enabledAt: null,
-        lastSyncAt: null,
-        lastErrorCode: null,
-        decision: "pending",
-        acceptedRevision: null,
-        reviewedAt: null,
-        address2Classification: "expected",
-        address2HasMarketOverride: false,
-        address2ExternalChangeAt: null,
-        address2Decision: "pending",
-        address2ReviewedAt: null,
-        address2FormMode: null,
-      },
-      labelSnapshot: {
-        revision: "fixture",
-        locales: [{ locale: "it", family: "it", name: "Italiano", primary: true, published: true }],
-        markets: [],
-        issues: [],
-        address2: { classification: "expected", hasMarketOverride: false },
-        slots: [labelSlot({ name: "taxCode", capability: "guided" })],
-      },
-      guidedConfirmations: [],
-      labelLoadError: null,
-      checkoutSettingsUrl: "https://admin.shopify.com/store/demo/settings/checkout",
-      storefrontUrl: "https://demo.myshopify.com",
+      shopDomain: "demo.myshopify.com",
+      version: "fixture",
+      diagnosticId: "123e4567-e89b-42d3-a456-426614174000",
+      diagnostics: {},
     };
-    const rules = await mount(<CheckoutRules />);
-    const labels = rules.container.querySelector<HTMLElement>("#checkout-native-labels")!;
-    const badge = labels.querySelector("summary s-badge")!;
-    expect(badge.textContent).toBe(
-      manual ? copy.rules.labels.statusManualRequired : copy.rules.labels.statusChoiceRequired,
+    const guide = await mount(<Guide />);
+    const headingRange = document.createRange();
+    headingRange.selectNodeContents(
+      page.getByRole("heading", { name: copy.guide.faqHeading, exact: true }).element(),
     );
-    expect(badge.getAttribute("tone")).toBe("warning");
-    for (const element of badge.shadowRoot!.querySelectorAll<HTMLElement>("*")) {
-      if (element.clientWidth > 0)
-        expect(element.scrollWidth).toBeLessThanOrEqual(element.clientWidth + 1);
-    }
+    const heading = headingRange.getBoundingClientRect();
+    const action = surfaceRect(
+      guide.container.querySelector('#faq s-button[slot="secondary-actions"]')!,
+    );
+    expect(heading.right).toBeLessThanOrEqual(window.innerWidth);
+    expect(action.right).toBeLessThanOrEqual(window.innerWidth);
+    expect(action.left >= heading.right || action.top >= heading.bottom).toBe(true);
+    await act(async () => {
+      await page.getByRole("button", { name: copy.guide.expandAll, exact: true }).click();
+    });
+    expect(guide.container.querySelectorAll("details:not([open])")).toHaveLength(0);
+    await act(async () => {
+      await page.getByRole("button", { name: copy.guide.collapseAll, exact: true }).click();
+    });
     await page.screenshot({
-      element: labels,
       path: screenshotPath(
-        `__screenshots__/visual/group2-labels-${manual ? "manual" : "choice"}-${locale}-${server.browser}-${width}.png`,
+        `__screenshots__/visual/group2-guide-top-${locale}-${server.browser}-${width}.png`,
       ),
     });
     await captureSurface(
-      rules.container,
-      `__screenshots__/visual/group2-rules-${manual ? "manual" : "choice"}-${locale}-${server.browser}-${width}.png`,
+      guide.container,
+      `__screenshots__/visual/group2-guide-${locale}-${server.browser}-${width}.png`,
     );
-    await rules.unmount();
-  }
-});
+    await guide.unmount();
+    for (const manual of [false, true]) {
+      router.loaderData = {
+        locale,
+        duplicateError: null,
+        configHash: "fixture",
+        rules: manual ? { taxCode: "required_validated", pec: "unmanaged" } : DEFAULT_CONFIG.rules,
+        messages: DEFAULT_CONFIG.messages,
+        enabled: false,
+        entitled: true,
+        labelScopesGranted: true,
+        labelState: {
+          mode: manual ? "guided" : "off",
+          managementEpoch: null,
+          enabledAt: null,
+          lastSyncAt: null,
+          lastErrorCode: null,
+          decision: "pending",
+          acceptedRevision: null,
+          reviewedAt: null,
+          address2Classification: "expected",
+          address2HasMarketOverride: false,
+          address2ExternalChangeAt: null,
+          address2Decision: "pending",
+          address2ReviewedAt: null,
+          address2FormMode: null,
+        },
+        labelSnapshot: {
+          revision: "fixture",
+          locales: [
+            { locale: "it", family: "it", name: "Italiano", primary: true, published: true },
+          ],
+          markets: [],
+          issues: [],
+          address2: { classification: "expected", hasMarketOverride: false },
+          slots: [labelSlot({ name: "taxCode", capability: "guided" })],
+        },
+        guidedConfirmations: [],
+        labelLoadError: null,
+        checkoutSettingsUrl: "https://admin.shopify.com/store/demo/settings/checkout",
+        storefrontUrl: "https://demo.myshopify.com",
+      };
+      const rules = await mount(<CheckoutRules />);
+      const labels = rules.container.querySelector<HTMLElement>("#checkout-native-labels")!;
+      const badge = labels.querySelector("summary s-badge")!;
+      expect(badge.textContent).toBe(
+        manual ? copy.rules.labels.statusManualRequired : copy.rules.labels.statusChoiceRequired,
+      );
+      expect(badge.getAttribute("tone")).toBe("warning");
+      for (const element of badge.shadowRoot!.querySelectorAll<HTMLElement>("*")) {
+        if (element.clientWidth > 0)
+          expect(element.scrollWidth).toBeLessThanOrEqual(element.clientWidth + 1);
+      }
+      await page.screenshot({
+        element: labels,
+        path: screenshotPath(
+          `__screenshots__/visual/group2-labels-${manual ? "manual" : "choice"}-${locale}-${server.browser}-${width}.png`,
+        ),
+      });
+      await captureSurface(
+        rules.container,
+        `__screenshots__/visual/group2-rules-${manual ? "manual" : "choice"}-${locale}-${server.browser}-${width}.png`,
+      );
+      await rules.unmount();
+    }
+  },
+  30000,
+);
 
 test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
   await page.viewport(390, 844);
@@ -393,9 +401,9 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
   expect(wrapped).toBeDefined();
   expect(new Set(wrapped.map((line) => Math.round(line.left))).size).toBe(1);
   await page.viewport(390, 844);
-  // Freccia condivisa al posto del triangolo nativo del browser.
+  // P2-T9: chevron Polaris condiviso al posto del triangolo nativo del browser.
   expect(getComputedStyle(summary).listStyleType).toBe("none");
-  expect(getComputedStyle(summary, "::after").content).toBe('""');
+  expect(summary.querySelector('s-icon[type="chevron-down"]')).not.toBeNull();
   await captureSurface(
     view.container,
     `__screenshots__/visual/guide-top-${server.browser}-390.png`,
@@ -555,17 +563,29 @@ test("Polaris reale: anteprima Messaggi visibile prima dei campi e riepilogo sen
     await page.getByRole("textbox", { name: it.taxCodeRequired, exact: true }).click();
     // WebKit arrotonda il bordo di focus Polaris a mezzo pixel; il difetto era di circa 20 px.
     expect(Math.abs(fieldTop(it.taxCodeInvalid).top + window.scrollY - below)).toBeLessThan(1);
-    // M7: righe raggruppate per campo, ciascuna su una riga sola.
-    const rows = [...messages.container.querySelectorAll<HTMLElement>(".cf-data-row")];
-    expect(rows.map((row) => row.querySelector("s-text")!.textContent)).toEqual([
+    // M7, P2-T8: righe raggruppate per campo, ciascuna su una riga sola, badge neutri.
+    const labels = [...messages.container.querySelectorAll<HTMLElement>(".cf-status-list__label")];
+    const values = [...messages.container.querySelectorAll<HTMLElement>(".cf-status-list__value")];
+    expect(labels.map((label) => label.textContent)).toEqual([
       it.shortLabels.taxCodeRequired,
       it.shortLabels.taxCodeInvalid,
       it.shortLabels.pecRequired,
       it.shortLabels.pecInvalid,
     ]);
-    const heights = rows.map((row) => Math.round(row.getBoundingClientRect().height));
+    const heights = values.map((value) => Math.round(value.getBoundingClientRect().height));
     expect(new Set(heights).size).toBe(1);
-    expect(rows[0].textContent).toContain(it.appearsNot);
+    // Etichetta e badge della stessa riga condividono il centro verticale.
+    labels.forEach((label, index) => {
+      const labelRect = label.getBoundingClientRect();
+      const valueRect = values[index].getBoundingClientRect();
+      expect(
+        Math.abs(labelRect.top + labelRect.height / 2 - valueRect.top - valueRect.height / 2),
+      ).toBeLessThan(1);
+    });
+    expect(values[0].textContent).toContain(it.appearsNot);
+    expect(
+      values.every((value) => value.querySelector("s-badge")!.getAttribute("tone") === "neutral"),
+    ).toBe(true);
     // M8: nella conferma la lingua è un nome comune, minuscolo.
     expect(
       messages.container.querySelector("s-modal#restore-en s-paragraph")!.textContent,
@@ -601,14 +621,17 @@ test("Polaris reale: anteprima Messaggi visibile prima dei campi e riepilogo sen
     const onboarding = await mount(<Onboarding />);
     expectNativeCards(onboarding.container);
     if (width === 1280) {
-      const row = onboarding.container.querySelector<HTMLElement>(".cf-onboarding-summary-row")!;
-      const label = row.getBoundingClientRect();
-      const value = row.querySelector(".cf-onboarding-summary-value")!.getBoundingClientRect();
-      expect(value.left).toBeGreaterThan(label.left);
-      expect(value.top).toBe(label.top);
+      const label = onboarding.container
+        .querySelector(".cf-status-list__label")!
+        .getBoundingClientRect();
+      const value = onboarding.container
+        .querySelector(".cf-status-list__value")!
+        .getBoundingClientRect();
+      expect(value.left).toBeGreaterThan(label.right);
+      expect(Math.abs(value.top - label.top)).toBeLessThan(1);
     }
     for (const value of onboarding.container.querySelectorAll<HTMLElement>(
-      ".cf-onboarding-summary-value",
+      ".cf-status-list__value",
     )) {
       expect(value.scrollWidth).toBeLessThanOrEqual(value.clientWidth);
       expect(value.querySelector("s-badge")).toBeNull();
@@ -966,12 +989,15 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
   const progress = view.container.querySelector("s-progress")!;
   expect(progress.getAttribute("value")).toBe("1");
   expect(progress.getAttribute("max")).toBe("4");
-  // O4: icona piccola accanto al titolo di benvenuto, niente logo grande sopra.
-  expect(view.container.querySelector(".onboarding-step s-image")).toBeNull();
+  // O4, N-3: solo il marchio piccolo accanto al titolo di benvenuto, senza avatar né fondo.
+  expect(view.container.querySelectorAll(".onboarding-step s-image")).toHaveLength(1);
+  expect(view.container.querySelector("s-avatar")).toBeNull();
   const welcome = [...view.container.querySelectorAll(".onboarding-step s-heading")].find(
     (heading) => heading.textContent === it.onboarding.welcomeHeading,
   )!;
-  expect(welcome.closest("s-grid")!.querySelector("s-avatar")).not.toBeNull();
+  const mark = welcome.closest("s-grid")!.querySelector('s-image[src="/cf-ready-mark.svg"]')!;
+  expect(mark).not.toBeNull();
+  expect(surfaceRect(mark).right - surfaceRect(mark).left).toBeLessThanOrEqual(32);
   await view.unmount();
 
   // O7: con i permessi concessi non resta la frase tecnica.
@@ -1020,16 +1046,15 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
     labelState: { ...onboardingData.labelState, address2Classification: "expected" },
   };
   const step4 = await mount(<Onboarding />);
-  const rows = [...step4.container.querySelectorAll<HTMLElement>(".cf-onboarding-summary-row")];
+  const rows = [...step4.container.querySelectorAll<HTMLElement>(".cf-status-list__label")];
   expect(rows.length).toBeGreaterThan(2);
-  for (const row of rows) {
-    const label = row.firstElementChild!;
+  for (const label of rows) {
     const range = document.createRange();
     range.selectNodeContents(label);
     expect(new Set([...range.getClientRects()].map((line) => Math.round(line.top))).size).toBe(1);
   }
-  const lefts = rows.map((row) =>
-    Math.round(row.querySelector(".cf-onboarding-summary-value")!.getBoundingClientRect().left),
+  const lefts = [...step4.container.querySelectorAll<HTMLElement>(".cf-status-list__value")].map(
+    (value) => Math.round(value.getBoundingClientRect().left),
   );
   expect(new Set(lefts).size).toBe(1);
   await captureSurface(
@@ -1108,4 +1133,171 @@ test("Polaris reale: cambio passo ripristina focus e scorrimento mobile", async 
     view.container,
     `__screenshots__/visual/onboarding-step4-${server.browser}-1280.png`,
   );
+});
+
+// Bordo sinistro della prima card della colonna principale, misurato sulla superficie bianca.
+function firstMainCardLeft(container: HTMLElement) {
+  const section = [...container.querySelectorAll("s-section")].find(
+    (candidate) => !candidate.closest('[slot="aside"]'),
+  )!;
+  const surface = [...section.shadowRoot!.querySelectorAll<HTMLElement>("*")].find(
+    (element) =>
+      element.getBoundingClientRect().width > 100 &&
+      getComputedStyle(element).backgroundColor === "rgb(255, 255, 255)",
+  )!;
+  return surface.getBoundingClientRect().left;
+}
+
+// Un caso per lingua e larghezza: con l'instrumentazione coverage un caso unico supera il timeout.
+test.each([
+  ["it", 1440],
+  ["it", 1054],
+  ["it", 500],
+  ["en", 1440],
+  ["en", 1054],
+  ["en", 500],
+] as const)(
+  "Polaris reale: P2, stesso impianto di pagina e logo unico, %s a %i px",
+  async (locale, width) => {
+    await page.viewport(width, 900);
+    const lefts: Record<string, number> = {};
+
+    const homeFixture = {
+      ...homeData,
+      locale,
+      onboarding: "completed",
+      rules: { taxCode: "required_validated", pec: "required_when_company" },
+    };
+    router.loaderData = confirmedHome(homeFixture);
+    const home = await mount(<HomePage />);
+    await act(async () => {
+      await new Promise((done) => setTimeout(done, 0));
+    });
+    lefts.home = firstMainCardLeft(home.container);
+    // P2-T4: le regole configurate sono valori, non esiti.
+    const ruleBadges = [...home.container.querySelectorAll(".cf-status-list__value s-badge")];
+    expect(ruleBadges).toHaveLength(3);
+    expect(ruleBadges.every((badge) => badge.getAttribute("tone") === "neutral")).toBe(true);
+    // P2-T5: lockup a 128 px, allineato al testo della colonna laterale.
+    const lockup = home.container.querySelector('s-image[src="/cf-ready-lockup.svg"]')!;
+    const lockupRect = surfaceRect(lockup);
+    expect(Math.round(lockupRect.right - lockupRect.left)).toBe(128);
+    const asideText = surfaceRect(home.container.querySelector('[slot="aside"] s-paragraph')!);
+    expect(Math.abs(lockupRect.left - asideText.left)).toBeLessThan(1);
+    await captureSurface(
+      home.container,
+      `__screenshots__/visual/p2-home-${locale}-${server.browser}-${width}.png`,
+    );
+    await home.unmount();
+
+    router.loaderData = {
+      locale,
+      duplicateError: null,
+      configHash: "fixture",
+      rules: { taxCode: "required_validated", pec: "optional_validated" },
+      messages: DEFAULT_CONFIG.messages,
+      enabled: true,
+      entitled: true,
+      labelScopesGranted: true,
+      labelState: onboardingData.labelState,
+      labelSnapshot: null,
+      guidedConfirmations: [],
+      labelLoadError: null,
+      checkoutSettingsUrl: "https://admin.shopify.com/store/demo/settings/checkout",
+      storefrontUrl: "https://demo.myshopify.com",
+    };
+    const rules = await mount(<CheckoutRules />);
+    lefts.rules = firstMainCardLeft(rules.container);
+    // P2-T1: il simulatore sta nella colonna laterale nativa, accanto o sotto le regole.
+    const simulator = rules.container.querySelector<HTMLElement>("#simulatore")!;
+    expect(simulator.closest('[slot="aside"]')).not.toBeNull();
+    const labels = rules.container.querySelector<HTMLElement>(".rules-layout__labels")!;
+    if (width >= 1054) {
+      expect(simulator.getBoundingClientRect().left).toBeGreaterThan(
+        labels.getBoundingClientRect().right,
+      );
+    } else {
+      expect(simulator.getBoundingClientRect().top).toBeGreaterThan(
+        labels.getBoundingClientRect().bottom,
+      );
+    }
+    expect(rules.container.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
+    // N-3: marchio senza fondo, niente avatar.
+    expect(rules.container.querySelector("s-avatar")).toBeNull();
+    expect(rules.container.querySelector('s-image[src="/cf-ready-mark.svg"]')).not.toBeNull();
+    await captureSurface(
+      rules.container,
+      `__screenshots__/visual/p2-rules-${locale}-${server.browser}-${width}.png`,
+    );
+    await rules.unmount();
+
+    router.loaderData = {
+      locale,
+      configHash: "fixture",
+      messages: DEFAULT_CONFIG.messages,
+      rules: DEFAULT_CONFIG.rules,
+    };
+    const messages = await mount(<CustomerMessages />);
+    lefts.messages = firstMainCardLeft(messages.container);
+    await captureSurface(
+      messages.container,
+      `__screenshots__/visual/p2-messages-${locale}-${server.browser}-${width}.png`,
+    );
+    await messages.unmount();
+
+    router.loaderData = {
+      locale,
+      shopDomain: "demo.myshopify.com",
+      version: "2.0.5",
+      diagnosticId: "123e4567-e89b-42d3-a456-426614174000",
+      diagnostics: {},
+    };
+    const guide = await mount(<Guide />);
+    lefts.guide = firstMainCardLeft(guide.container);
+    const guideLockup = guide.container.querySelector('s-image[src="/cf-ready-lockup.svg"]')!;
+    const guideLockupRect = surfaceRect(guideLockup);
+    expect(Math.round(guideLockupRect.right - guideLockupRect.left)).toBe(128);
+    await captureSurface(
+      guide.container,
+      `__screenshots__/visual/p2-guide-${locale}-${server.browser}-${width}.png`,
+    );
+    await guide.unmount();
+
+    // P2-T1: passando da una pagina all'altra il bordo sinistro non si sposta.
+    for (const left of Object.values(lefts)) expect(Math.abs(left - lefts.home)).toBeLessThan(1);
+  },
+  30000,
+);
+
+test("Polaris reale: P2-T9, chevron nativo allineato anche nel disclosure annidato", async () => {
+  await page.viewport(1054, 900);
+  const view = await mount(
+    <div style={{ inlineSize: "480px" }}>
+      <Disclosure panel summary={<s-heading>Testi del checkout</s-heading>}>
+        <Disclosure summary={<s-text type="strong">Come completare la verifica manuale</s-text>}>
+          <s-paragraph>Passi della procedura.</s-paragraph>
+        </Disclosure>
+      </Disclosure>
+    </div>,
+  );
+  const [outer, inner] = [...view.container.querySelectorAll("details")];
+  const iconRight = (details: HTMLDetailsElement) =>
+    [
+      ...details
+        .querySelector(":scope > summary")!
+        .querySelectorAll<HTMLElement>(".cf-disclosure__icon"),
+    ]
+      .find((icon) => getComputedStyle(icon).display !== "none")!
+      .getBoundingClientRect().right;
+  const closedHeight = outer.querySelector("summary")!.getBoundingClientRect().height;
+  await act(async () => {
+    outer.open = true;
+    inner.open = true;
+  });
+  expect(outer.querySelector("summary")!.getBoundingClientRect().height).toBe(closedHeight);
+  expect(Math.abs(iconRight(outer) - iconRight(inner))).toBeLessThan(1);
+  expect(
+    outer.querySelector(":scope > summary .cf-disclosure__icon--open s-icon")!.getAttribute("type"),
+  ).toBe("chevron-up");
+  await view.unmount();
 });
