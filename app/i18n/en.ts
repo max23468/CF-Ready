@@ -20,7 +20,7 @@ export const en: typeof it = {
     save: "Save",
     cancel: "Cancel",
     unsavedNavigation:
-      "You have unsaved changes. Before leaving this page, choose Save or Cancel in the bar above.",
+      "You have unsaved changes. Before leaving this page, save or discard your changes using the bar above.",
   },
   conflict: {
     heading: "The configuration has changed",

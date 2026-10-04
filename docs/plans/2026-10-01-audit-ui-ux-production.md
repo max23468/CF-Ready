@@ -1,6 +1,13 @@
 # Audit UI/UX di CF Ready Production su Numisleo
 
-**Stato:** audit concluso, nessuna correzione avviata
+**Stato:** audit storico del 30 settembre e 1 ottobre 2026. Le implementazioni
+e le verifiche successive sono registrate in §14; «nessuna correzione
+avviata» descriveva solo la fine del giro originale. Il ricontrollo corrente
+di Polaris 2 su Development è in
+[audit del 3 ottobre, §28](2026-10-03-audit-grafico-polaris-2-claude.md#28-verifica-indipendente-completa-dellaudit-4-ottobre-2026):
+37 dei suoi 50 ID risolti, 7 parziali e 6 accettati per decisione. Quel giro
+non certifica una nuova chiusura di questo audit Production né dei suoi
+salvataggi e casi fiscali non riprovati.
 **Data:** 30 settembre e 1 ottobre 2026
 **Ambiente:** Production, `numisleo.myshopify.com`, app `cf-ready` servita da
 `app.cfready.it`
@@ -509,4 +516,3 @@ checkout inglese, cancellata dal difetto, è stata ripetuta.
 | Onboarding, passo 3: messaggi "Non compare" senza spiegazione | Nota sotto l'anteprima |
 | "Mostra le etichette" a metà schermo | Focus con `preventScroll` |
 | "in inglese e italiano" nell'ordine dello store | Ordine fisso italiano, inglese |
-
