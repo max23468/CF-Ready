@@ -35,7 +35,7 @@ import {
 } from "../features/messages/CustomerMessagesPreview";
 import { UncontrolledMessageTextArea } from "../features/messages/UncontrolledMessageTextArea";
 import { RULES_INTENTS, type CheckoutLabelsLoadAction } from "../features/rules/rules-intents";
-import { quoteLabel, resolveLocale, texts } from "../i18n";
+import { resolveLocale, texts } from "../i18n";
 import type { Locale } from "../i18n";
 import { messageSubmission, rebaseMessageDraft, updateMessageDraft } from "../messages-draft";
 import { skipRevalidationWhenLeaving, useSavedData } from "../revalidation";
@@ -268,8 +268,9 @@ export default function CustomerMessages() {
     remount(MESSAGE_FIELDS);
   };
 
-  const field = messageFieldLabel(t, saved.rules, activeLocale, selectedKey, labelSnapshot);
-  const previewField = { ...field, label: quoteLabel(field.label, saved.locale) };
+  // N-1: l'etichetta è la label del campo d'esempio, come nel checkout, quindi senza virgolette.
+  const fieldLabelFor = (key: MessageKey) =>
+    messageFieldLabel(t, saved.rules, activeLocale, key, labelSnapshot);
 
   // FR-063: il ripristino agisce su una lingua sola e lo dichiara nella conferma. Non salva da
   // sé: rimette i testi predefiniti nei campi e il salvataggio resta un gesto esplicito.
@@ -323,7 +324,7 @@ export default function CustomerMessages() {
           t={t}
           activeLocale={activeLocale}
           setActiveLocale={setActiveLocale}
-          previewField={previewField}
+          fieldLabelFor={fieldLabelFor}
           draft={draft}
           selectedKey={selectedKey}
           setSelectedKey={setSelectedKey}
@@ -356,7 +357,7 @@ function MessagesEditor({
   t,
   activeLocale,
   setActiveLocale,
-  previewField,
+  fieldLabelFor,
   draft,
   selectedKey,
   setSelectedKey,
@@ -367,7 +368,7 @@ function MessagesEditor({
   t: MessagesCopy;
   activeLocale: Locale;
   setActiveLocale: (locale: Locale) => void;
-  previewField: { label: string; observed: boolean };
+  fieldLabelFor: (key: MessageKey) => { label: string; observed: boolean };
   draft: CheckoutConfig["messages"];
   selectedKey: MessageKey;
   setSelectedKey: (key: MessageKey) => void;
@@ -376,6 +377,7 @@ function MessagesEditor({
   result: MessagesActionResult;
 }) {
   const problem = result && !result.ok && "problem" in result ? result.problem : undefined;
+  const previewField = fieldLabelFor(selectedKey);
   return (
     <s-section heading={t.messages.editorHeading}>
       <s-stack direction="block" gap="base">
@@ -445,8 +447,13 @@ function MessagesEditor({
                         <div className="customer-messages-preview__local">
                           <s-stack direction="block" gap="small-100">
                             <s-text color="subdued">{t.messages.previewHeading}</s-text>
-                            <CheckoutErrorPreview locale={activeLocale} message={value} />
-                            <s-text color="subdued">{t.messages.previewHint}</s-text>
+                            {/* P2-T7: la nota su posizione e aspetto sta una volta sola,
+                                sotto l'anteprima principale. */}
+                            <CheckoutErrorPreview
+                              locale={activeLocale}
+                              label={fieldLabelFor(key).label}
+                              message={value}
+                            />
                             {!messageAppears(rules, key) ? (
                               <s-text color="subdued">{t.messages.previewNotShown}</s-text>
                             ) : null}

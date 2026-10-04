@@ -88,24 +88,28 @@ describe("Messaggi", () => {
     };
     const view = await mount(<CustomerMessages />);
     expect(view.container.textContent).toContain(texts("it").messages.previewCurrentFieldLabel);
-    expect(view.container.textContent).toContain("Codice fiscale corrente");
+    const field = () =>
+      view.container.querySelector<HTMLElement & { error: string; label: string }>(
+        ".customer-messages-preview__error s-text-field",
+      )!;
+    expect(field().label ?? field().getAttribute("label")).toBe("Codice fiscale corrente");
 
     const language = view.container.querySelector("s-select") as HTMLElement & { value: string };
     language.value = "en";
     await dispatch(language, new Event("change", { bubbles: true }));
     expect(
-      view.container.querySelector('.customer-messages-preview__error[lang="en"]')?.textContent,
-    ).toContain(DEFAULT_CONFIG.messages.en.taxCodeRequired);
-    expect(
-      view.container.querySelector(".customer-messages-preview__error")?.textContent,
-    ).not.toContain(DEFAULT_CONFIG.messages.it.taxCodeRequired);
+      view.container.querySelector('.customer-messages-preview__error[lang="en"]'),
+    ).not.toBeNull();
+    expect(field().error ?? field().getAttribute("error")).toBe(
+      DEFAULT_CONFIG.messages.en.taxCodeRequired,
+    );
     expect(
       view.container
         .querySelector("s-text-area")!
         .compareDocumentPosition(view.container.querySelector(".customer-messages-preview")!) &
         Node.DOCUMENT_POSITION_PRECEDING,
     ).toBeTruthy();
-    expect(view.container.textContent).toContain("Current tax code");
+    expect(field().label ?? field().getAttribute("label")).toBe("Current tax code");
   });
 
   test("il salvataggio normalizzato chiude la bozza senza lasciare spazi nei campi", async () => {

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "environment": "Development",
+  "repository": "max23468/CF-Ready",
+  "commit": "c44c31607c05f52549c0fa879a9cbf9445d063c8",
+  "providerSourceCommit": "c44c31607c05f52549c0fa879a9cbf9445d063c8",
+  "tree": "08203c388d1a2a7715357d4ee0df06cfc114a181",
+  "repositoryVersion": "2.0.7",
+  "shopifyVersion": "2.0.7-dev.08203c388d1a",
+  "workflowRun": "https://github.com/max23468/CF-Ready/actions/runs/37194216876",
+  "createdAt": "2026-10-04T10:10:11.131Z",
+  "worker": {
+    "deploymentId": "ea925f41-c02a-4570-bdee-c3b0a0bdc54a",
+    "versionId": "d7164801-d3ef-466b-9870-29f33160f5d7",
+    "percentage": 100
+  },
+  "shopify": {
+    "versionId": "gid://shopify/Version/1154050588673",
+    "versionTag": "2.0.7-dev.08203c388d1a",
+    "message": "Development c44c31607c05f52549c0fa879a9cbf9445d063c8"
+  },
+  "rollback": {
+    "workerVersionId": "50606e59-f291-4a81-862c-dae93be11393",
+    "shopifyVersionTag": "2.0.6-dev.6d362a39b546"
+  },
+  "checks": {
+    "migrations": "readback-green",
+    "smoke": "green",
+    "providerReadback": "green"
+  }
+}

@@ -6,6 +6,18 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.8 — 4 ottobre 2026
+
+- mostra gli esempi dei messaggi come campi nativi in sola lettura con
+  l'errore in linea e il confronto delle etichette come tabella nativa;
+- porta fuori dalla card i titoli dei passi dell'onboarding e della
+  diagnosi, usa titoli nei gruppi del simulatore e badge neutri nel passo 3,
+  con «Consigliato» nel tono del banner della prova;
+- toglie ripetizioni in Regole, Messaggi e onboarding e raggruppa per
+  vicinanza i risultati della diagnosi e le scelte del passo 2;
+- completa l'audit grafico Polaris 2 con la verifica EN-3 e le correzioni.
+  Pubblicazione solo Development, senza promozione Production.
+
 ## 2.0.7 — 4 ottobre 2026
 
 - porta l'esito del simulatore in alto a destra nell'intestazione e toglie la

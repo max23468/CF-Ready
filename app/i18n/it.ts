@@ -154,8 +154,8 @@ export const it = {
     previewShown: "Con le regole attuali questo messaggio può comparire nel checkout.",
     editorHeading: "Messaggi di errore",
     previewFieldLabel: "Etichetta del campo",
-    previewCurrentFieldLabel: "Etichetta attuale Shopify",
-    previewProposedFieldLabel: "Etichetta proposta",
+    previewCurrentFieldLabel: "con l’etichetta attuale di Shopify",
+    previewProposedFieldLabel: "con l’etichetta proposta da CF Ready",
     labelsNote:
       "Personalizza gli errori di Codice Fiscale e PEC. Per i nomi dei campi, apri Regole checkout.",
     manageLabels: "Apri Regole checkout",
@@ -574,6 +574,7 @@ export const it = {
         automatic: "Automatica",
         partial: "Mista",
       },
+      fieldColumn: "Campo",
       current: "Campo attuale",
       proposed: "Campo dopo il salvataggio",
       language: "Lingua delle etichette",

@@ -24,26 +24,10 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-.checkout-label-context__rows {
-  display: grid;
-  gap: 0.5rem;
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.checkout-label-context__row {
-  align-items: start;
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: minmax(8rem, 0.4fr) minmax(0, 1fr);
-}
-
 @media (max-width: 600px) {
   .checkout-labels-title {
     align-items: start;
     flex-direction: column;
-  }
-  .checkout-label-context__row {
-    grid-template-columns: 1fr;
   }
 }
 

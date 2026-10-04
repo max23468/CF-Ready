@@ -26,7 +26,7 @@ import {
   rebaseRulesDraft,
   type RulesFormDraft,
 } from "../features/rules/rules-form";
-import { describeCheckout, resolveLocale, texts, validationStatus } from "../i18n";
+import { describeCheckout, resolveLocale, texts, validationStatus, type Locale } from "../i18n";
 import { skipRevalidationWhenLeaving, useSavedData } from "../revalidation";
 import { setSaveBarVisibility, showToast } from "../save-bar";
 import { RevealBanner } from "../ui-feedback";
@@ -382,17 +382,11 @@ export default function CheckoutRules() {
           <div className="rules-layout__preview" id={SIMULATOR_ID} tabIndex={-1}>
             <s-section heading={t.rules.previewHeading}>
               <s-stack direction="block" gap="base">
-                <s-stack direction="block" gap="small-100">
-                  {describeCheckout(
-                    {
-                      rules: draft.rules,
-                      status: validationStatus(saved.enabled, saved.entitled),
-                    },
-                    saved.locale,
-                  ).map((line) => (
-                    <s-paragraph key={line}>{line}</s-paragraph>
-                  ))}
-                </s-stack>
+                <RulesSummary
+                  rules={draft.rules}
+                  status={validationStatus(saved.enabled, saved.entitled)}
+                  locale={saved.locale}
+                />
 
                 <CheckoutSimulator
                   locale={saved.locale}
@@ -426,6 +420,22 @@ export default function CheckoutRules() {
         </div>
       </div>
     </s-page>
+  );
+}
+
+// P2-T7: senza campi gestiti lo dice già il simulatore, una volta sola.
+function RulesSummary({
+  rules,
+  status,
+  locale,
+}: Parameters<typeof describeCheckout>[0] & { locale: Locale }) {
+  if (!Object.values(rules).some((mode) => mode !== "unmanaged")) return null;
+  return (
+    <s-stack direction="block" gap="small-100">
+      {describeCheckout({ rules, status }, locale).map((line) => (
+        <s-paragraph key={line}>{line}</s-paragraph>
+      ))}
+    </s-stack>
   );
 }
 

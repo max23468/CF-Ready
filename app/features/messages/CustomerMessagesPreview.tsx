@@ -38,12 +38,11 @@ export function CustomerMessagesPreview({
               <s-text type="strong">{heading}</s-text>
             </s-stack>
 
-            <s-stack direction="block" gap="small-100">
-              <s-text color="subdued">{context}</s-text>
-              <s-text>
-                {fieldLabelHeading}: <strong lang={activeLocale}>{fieldLabel}</strong>
+            <s-stack direction="block" gap="small-200">
+              <s-text color="subdued">
+                {context}, {fieldLabelHeading}
               </s-text>
-              <CheckoutErrorPreview locale={activeLocale} message={message} />
+              <CheckoutErrorPreview locale={activeLocale} label={fieldLabel} message={message} />
             </s-stack>
 
             <s-stack direction="inline" gap="small-100" alignItems="center">
@@ -64,13 +63,20 @@ export function CustomerMessagesPreview({
   );
 }
 
-// Esempio del testo, condiviso da Messaggi e onboarding. La resa checkout dipende da Shopify.
-export function CheckoutErrorPreview({ locale, message }: { locale: Locale; message: string }) {
+// N-1: esempio condiviso da Messaggi e onboarding. Un campo nativo in sola lettura con l'errore
+// in linea somiglia al checkout e non si confonde con i campi modificabili.
+export function CheckoutErrorPreview({
+  locale,
+  label,
+  message,
+}: {
+  locale: Locale;
+  label: string;
+  message: string;
+}) {
   return (
     <div lang={locale} className="customer-messages-preview__error">
-      <s-box padding="base" borderWidth="base" borderRadius="base">
-        <s-text tone="critical">{message}</s-text>
-      </s-box>
+      <s-text-field readOnly label={label} value="" error={message} />
     </div>
   );
 }

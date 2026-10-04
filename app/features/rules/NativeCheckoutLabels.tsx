@@ -337,38 +337,37 @@ function LabelComparison({
                 <s-badge tone="warning">{copy.statusManualRequired}</s-badge>
               ) : null}
             </div>
-            <div className="checkout-label-context__rows">
-              {context.entries.map(({ name, slot }) => {
-                const proposed = proposedLabelForSlot(slot, rules);
-                const observed = observedLabelForSlot(slot);
-                return (
-                  <div className="checkout-label-context__row" key={name}>
-                    <s-text type="strong">
-                      {name === "taxCode" ? translated.taxCodeLabel : translated.pecLabel}
-                    </s-text>
-                    {proposed && !checkoutLabelValuesMatch(proposed, observed) ? (
-                      <s-stack direction="block" gap="small-300">
-                        <s-text color="subdued">
-                          {copy.current}:{" "}
-                          {observed ? quoteLabel(observed, locale) : copy.notAvailable}
-                        </s-text>
-                        <s-text>
-                          {copy.proposed}: {quoteLabel(proposed, locale)}
-                        </s-text>
-                      </s-stack>
-                    ) : (
-                      // Decisione del 4 ottobre: senza modifiche il confronto sta su una riga.
-                      <s-stack direction="inline" gap="small-200" alignItems="baseline">
-                        <s-text>
-                          {observed ? quoteLabel(observed, locale) : copy.notAvailable}
-                        </s-text>
-                        <s-text color="subdued">{copy.noChange}</s-text>
-                      </s-stack>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            {/* N-2: tabella nativa, una riga per campo; su mobile diventa un elenco. */}
+            <s-table variant="auto">
+              <s-table-header-row>
+                <s-table-header listSlot="primary">{copy.fieldColumn}</s-table-header>
+                <s-table-header>{copy.current}</s-table-header>
+                <s-table-header>{copy.proposed}</s-table-header>
+              </s-table-header-row>
+              <s-table-body>
+                {context.entries.map(({ name, slot }) => {
+                  const proposed = proposedLabelForSlot(slot, rules);
+                  const observed = observedLabelForSlot(slot);
+                  return (
+                    <s-table-row key={name}>
+                      <s-table-cell>
+                        {name === "taxCode" ? translated.taxCodeLabel : translated.pecLabel}
+                      </s-table-cell>
+                      <s-table-cell>
+                        {observed ? quoteLabel(observed, locale) : copy.notAvailable}
+                      </s-table-cell>
+                      <s-table-cell>
+                        {proposed && !checkoutLabelValuesMatch(proposed, observed) ? (
+                          quoteLabel(proposed, locale)
+                        ) : (
+                          <s-text color="subdued">{copy.noChange}</s-text>
+                        )}
+                      </s-table-cell>
+                    </s-table-row>
+                  );
+                })}
+              </s-table-body>
+            </s-table>
             {context.notes.length > 0 ? (
               <s-stack direction="block" gap="small-100">
                 {context.notes.map((note) => (

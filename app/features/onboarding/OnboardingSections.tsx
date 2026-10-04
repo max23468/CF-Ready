@@ -98,8 +98,8 @@ export function OnboardingStep4Content({
 }) {
   return (
     <>
+      {/* Il titolo del passo è quello della sezione che contiene il passo. */}
       <s-stack direction="block" gap="small-100">
-        <s-heading>{t.onboarding.step4Heading}</s-heading>
         <StatusList
           rows={[
             [t.rules.taxCodeLabel, t.rules.taxCode[saved.rules.taxCode]],
