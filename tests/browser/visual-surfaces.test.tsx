@@ -223,7 +223,9 @@ test.each([
     expect(surfaceRect(banner).top).toBeGreaterThan(surfaceRect(validation).bottom);
     expect(banner.textContent).not.toContain(trialContinuityTexts(locale).approvalHelp);
     const plans = home.container.querySelector("#plans")!;
-    expect(surfaceRect(plans).top).toBeGreaterThan(surfaceRect(banner).bottom);
+    expect(surfaceRect(plans.querySelector("s-section")!).top).toBeGreaterThan(
+      surfaceRect(banner).bottom,
+    );
     expect(plans.textContent).toContain(copy.plan.firstCharge(formatDate("2026-10-17", locale)));
     expect(plans.textContent).toContain(copy.plan.oneTimeCharge);
     const prices = [...plans.querySelectorAll('s-heading[accessibilityRole="presentation"]')];
