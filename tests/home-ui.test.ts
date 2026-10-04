@@ -779,7 +779,7 @@ test("i testi onboarding descrivono le regole attive senza contraddire lo stato 
 
   expect(preview).toContain(it.checkout.taxCodeRequired);
   expect(preview).not.toContain(it.checkout.disabled);
-  expect(it.onboarding.step3MessagesBody).toMatch(/quattro messaggi già configurati/i);
+  expect(it.onboarding.step3MessagesBody).toMatch(/possono comparire.*regole scelte/i);
   expect(`${it.onboarding.welcomeBody} ${it.onboarding.step1Limits.join(" ")}`).not.toMatch(
     /fail-open|cinque minuti|niente parte|campo mancante/i,
   );

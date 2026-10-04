@@ -1077,7 +1077,11 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
   await step2.unmount();
 
   // O2, O3: ogni messaggio è un blocco con etichetta e anteprima, separato dagli altri.
-  router.loaderData = { ...onboardingData, step: 3 };
+  router.loaderData = {
+    ...onboardingData,
+    step: 3,
+    rules: { taxCode: "required_validated", pec: "required_validated" },
+  };
   const step3 = await mount(<Onboarding />);
   const blocks = [...step3.container.querySelectorAll<HTMLElement>(".onboarding-message")];
   expect(blocks).toHaveLength(4);
@@ -1086,7 +1090,7 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
   }
   const inside =
     blocks[0].querySelector(".customer-messages-preview__error")!.getBoundingClientRect().top -
-    surfaceRect(blocks[0].querySelector("s-badge")!).bottom;
+    surfaceRect(blocks[0].querySelector('s-text[type="strong"]')!).bottom;
   const between = blocks[1].getBoundingClientRect().top - blocks[0].getBoundingClientRect().bottom;
   expect(between).toBeGreaterThan(inside);
   await step3.unmount();
@@ -1163,7 +1167,8 @@ test("Polaris reale: cambio passo ripristina focus e scorrimento mobile", async 
   expect(content.closest("s-section")!.getAttribute("heading")).toBe(
     texts("it").onboarding.step3Heading,
   );
-  expect(content.textContent).toContain(texts("it").messages.appearsNot);
+  expect(content.querySelectorAll(".onboarding-message")).toHaveLength(3);
+  expect(content.textContent).not.toContain(texts("it").messages.pecRequired);
   await captureSurface(
     view.container,
     `__screenshots__/visual/onboarding-step3-${server.browser}-390.png`,

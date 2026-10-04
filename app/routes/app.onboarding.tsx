@@ -347,8 +347,7 @@ function OnboardingRules(props: CurrentStepProps) {
   return (
     <>
       <s-paragraph>{t.onboarding.step2Body}</s-paragraph>
-      {/* Codice Fiscale e PEC hanno un titolo come "Campo Interno": stessa gerarchia.
-          P2-T8: titolo e opzioni restano vicini, i due gruppi più distanti tra loro. */}
+      {/* P2-T8: titolo e opzioni restano vicini, i due gruppi più distanti tra loro. */}
       <s-stack direction="block" gap="large">
         <s-stack direction="block" gap="small-300">
           <s-heading>{t.rules.taxCodeLabel}</s-heading>
@@ -382,23 +381,6 @@ function OnboardingRules(props: CurrentStepProps) {
         </s-stack>
       </s-stack>
       <s-divider />
-      <s-heading>{t.rules.labels.addressHeading}</s-heading>
-      <s-select
-        label={t.rules.labels.addressModeLabel}
-        placeholder={t.rules.labels.addressModePlaceholder}
-        value={saved.labelState.address2FormMode ?? undefined}
-        disabled={props.busy}
-        onChange={(event) =>
-          props.go("save_address2_form_mode", {
-            address2FormMode: event.currentTarget.value,
-          })
-        }
-      >
-        <s-option value="required">{t.rules.labels.addressRequired}</s-option>
-        <s-option value="optional">{t.rules.labels.addressOptional}</s-option>
-        <s-option value="hidden">{t.rules.labels.addressHidden}</s-option>
-      </s-select>
-      <s-paragraph color="subdued">{t.rules.labels.addressModeHelp}</s-paragraph>
       <s-box background="subdued" borderRadius="base" padding="base">
         <s-stack direction="block" gap="small-100">
           <s-heading>{t.onboarding.labelsPreviewHeading}</s-heading>
@@ -448,6 +430,7 @@ function OnboardingLabelControls(props: CurrentStepProps) {
 }
 
 function OnboardingPreview({ saved, t }: { saved: OnboardingData; t: OnboardingCopy }) {
+  const messages = MESSAGE_KEYS.filter((key) => messageAppears(saved.rules, key));
   return (
     <>
       <s-paragraph>{t.onboarding.step3Body}</s-paragraph>
@@ -457,24 +440,20 @@ function OnboardingPreview({ saved, t }: { saved: OnboardingData; t: OnboardingC
       ))}
       <s-stack direction="block" gap="small-100">
         <s-heading>{t.onboarding.step3Messages}</s-heading>
-        <s-paragraph>{t.onboarding.step3MessagesBody}</s-paragraph>
-        <s-text color="subdued">{t.messages.previewHint}</s-text>
+        <s-paragraph>
+          {messages.length ? t.onboarding.step3MessagesBody : t.onboarding.step3NoMessages}
+        </s-paragraph>
+        {messages.length ? <s-text color="subdued">{t.messages.previewHint}</s-text> : null}
       </s-stack>
       {/* O2, O3: ogni messaggio è un blocco con etichetta e lo stesso campo d'esempio
-          dell'anteprima in Messaggi; i blocchi sono più distanti tra loro che al loro interno.
-          P2-T4, P2-T7: badge neutro e nessuna nota che ne ripeta lo stato. */}
+          dell'anteprima in Messaggi; i blocchi sono più distanti tra loro che al loro interno. */}
       <s-stack direction="block" gap="large">
-        {MESSAGE_KEYS.map((key) => {
+        {messages.map((key) => {
           const field = key.startsWith("taxCode") ? "taxCode" : "pec";
           return (
             <div className="onboarding-message" key={key}>
               <s-stack direction="block" gap="small-200">
-                <s-stack direction="inline" gap="small-100" alignItems="center">
-                  <s-text type="strong">{t.messages[key]}</s-text>
-                  <s-badge tone="neutral">
-                    {messageAppears(saved.rules, key) ? t.messages.appears : t.messages.appearsNot}
-                  </s-badge>
-                </s-stack>
+                <s-text type="strong">{t.messages[key]}</s-text>
                 <CheckoutErrorPreview
                   locale={saved.locale}
                   label={

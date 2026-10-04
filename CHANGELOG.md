@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.10 — 4 ottobre 2026
+
+- rimuove la configurazione del campo «Interno» dal passo 2 dell’onboarding,
+  mantenendola in Regole checkout;
+- mostra al passo 3 soltanto i messaggi di errore previsti dalle regole scelte,
+  con testi italiani e inglesi aggiornati e una spiegazione quando entrambi
+  i campi sono non gestiti.
+  Pubblicazione solo Development, senza promozione Production.
+
 ## 2.0.9 — 4 ottobre 2026
 
 - nella Home mette sempre per primo il bottone principale e rende terziaria

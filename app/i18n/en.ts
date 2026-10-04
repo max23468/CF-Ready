@@ -206,9 +206,11 @@ export const en: typeof it = {
     labelsMixedDescription:
       "Mixed mode supports automatic updates and manual checks. “Checkout rules” shows any checks still to complete.",
     step3Body: "With the rules you selected:",
-    step3Messages: "Configured messages",
+    step3Messages: "Checkout messages",
     step3MessagesBody:
-      "These are the four messages already configured. They’re available in Italian and English and can be edited from Customer messages.",
+      "These messages may appear when checkout data does not meet the selected rules. You can edit them in Italian and English from Customer messages.",
+    step3NoMessages:
+      "Tax Code and PEC are both unmanaged: CF Ready does not show error messages for these fields. You can go back to step 2 to choose what to check.",
     step4Heading: "Summary",
     labelsSummary: "Label management",
     address2Summary: "Second address line check",
