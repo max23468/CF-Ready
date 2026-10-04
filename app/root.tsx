@@ -1,9 +1,9 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "react-router";
 
-import { APP_API_KEY } from "./env.server";
+import { APP_API_KEY, APP_POLARIS_URL } from "./env.server";
 import { resolveLocale } from "./i18n";
-import { POLARIS_URL } from "./shopify-ui";
+import { POLARIS_V2_URL } from "./shopify-ui";
 import "./app.css";
 import "./ui-motion.css";
 
@@ -13,13 +13,14 @@ const APP_BRIDGE_URL = "https://cdn.shopify.com/shopifycloud/app-bridge.js";
 export const loader = ({ request }: LoaderFunctionArgs) => ({
   apiKey: APP_API_KEY,
   locale: resolveLocale(request),
+  polarisUrl: APP_POLARIS_URL,
 });
 
 export default function App() {
-  const { apiKey, locale } = useLoaderData<typeof loader>();
+  const { apiKey, locale, polarisUrl } = useLoaderData<typeof loader>();
 
   return (
-    <html lang={locale}>
+    <html lang={locale} data-polaris-version={polarisUrl === POLARIS_V2_URL ? "2" : "1"}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -30,7 +31,7 @@ export default function App() {
             prima dei Web Components Polaris e impedisce che l'app si idrati con componenti
             ancora non registrati; doctor.config.json limita l'eccezione a queste due righe. */}
         <script src={APP_BRIDGE_URL} data-api-key={apiKey} />
-        <script src={POLARIS_URL} />
+        <script src={polarisUrl} />
         <Meta />
         <Links />
       </head>

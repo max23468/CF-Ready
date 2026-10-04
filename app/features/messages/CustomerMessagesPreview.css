@@ -1,10 +1,4 @@
 .customer-messages-preview__error {
-  padding: 12px;
-  border-radius: 8px;
-  background: var(--p-color-bg-fill-critical-secondary, #fee9e8);
-  color: #8e1f0b;
-  font-size: 14px;
-  line-height: 20px;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }

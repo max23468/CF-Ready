@@ -9,6 +9,8 @@ import type { Messages, Rules } from "../../config";
 import { texts } from "../../i18n";
 import type { Locale } from "../../i18n";
 import { checkoutLabelCopy } from "../../checkout-labels/domain";
+import { BrandMark } from "../../ui-brand";
+import { Disclosure } from "../../ui-disclosure";
 import "./CheckoutSimulator.css";
 import {
   simulatorErrorMessage,
@@ -147,23 +149,29 @@ export function CheckoutSimulator({
 
   return (
     <s-query-container>
-      <div
-        ref={rootRef}
-        lang={previewLocale}
-        style={{
-          background: "#f1f5ef",
-          borderRadius: "16px",
-          padding: "0",
-        }}
-      >
+      {/* Decisione del 4 ottobre: il simulatore è l'unico accento di brand dell'app (fondo
+          panna e «Continua» verde bottiglia, come un checkout del merchant). Un solo fondo per
+          tutto il riquadro (R-2). */}
+      <div ref={rootRef} lang={previewLocale} className="checkout-simulator">
         <s-box background="transparent" border="base" borderRadius="large" overflow="hidden">
           <s-box padding="@container (inline-size > 420px) small-200, small-100">
-            <s-stack direction="block" gap="small-200">
-              <s-grid gridTemplateColumns="auto 1fr" gap="small-200" alignItems="center">
-                <s-avatar src="/favicon.svg" alt="CF Ready" size="base" />
-                <s-heading>{copy.heading}</s-heading>
-              </s-grid>
-            </s-stack>
+            {/* Decisione del 4 ottobre: l'esito sta in alto a destra, accanto al titolo, e non
+                occupa una riga propria; resta in vista mentre si compilano i campi. */}
+            <div className="checkout-simulator__header">
+              <BrandMark />
+              <s-heading>{copy.heading}</s-heading>
+              <span
+                aria-atomic="true"
+                aria-live="polite"
+                className="checkout-simulator__outcome cf-motion-swap"
+                key={outcome}
+                role="status"
+              >
+                <s-badge tone={outcomeTone[outcome]} icon={outcomeIcon[outcome]}>
+                  {copy.outcomes[outcome]}
+                </s-badge>
+              </span>
+            </div>
           </s-box>
 
           <s-divider />
@@ -174,14 +182,14 @@ export function CheckoutSimulator({
                 <s-stack direction="block" gap="small-200">
                   <s-stack direction="inline" gap="small-100" alignItems="center">
                     <s-icon type="location" color="subdued" />
-                    <s-text type="strong">{copy.orderContext}</s-text>
+                    {/* P2-T3: gruppo con controlli dentro una card, quindi titolo. */}
+                    <s-heading>{copy.orderContext}</s-heading>
                   </s-stack>
-                  <details>
-                    <summary className="cf-disclosure">{t.rules.exceptionsHeading}</summary>
+                  <Disclosure summary={t.rules.exceptionsHeading}>
                     <s-box paddingBlockStart="small-100">
                       <s-paragraph color="subdued">{t.rules.exceptions[0]}</s-paragraph>
                     </s-box>
-                  </details>
+                  </Disclosure>
                   <s-grid
                     gridTemplateColumns="@container (inline-size > 280px) 1fr 1fr, 1fr"
                     alignItems="end"
@@ -202,8 +210,7 @@ export function CheckoutSimulator({
                       copy={copy}
                     />
                   </s-grid>
-                  <details>
-                    <summary className="cf-disclosure">{copy.advanced}</summary>
+                  <Disclosure summary={copy.advanced}>
                     <s-box paddingBlockStart="small-200">
                       <s-stack direction="block" gap="small-200">
                         <s-select
@@ -259,9 +266,13 @@ export function CheckoutSimulator({
                         />
                       </s-stack>
                     </s-box>
-                  </details>
+                  </Disclosure>
                 </s-stack>
               </s-box>
+
+              {/* R-3: i due gruppi hanno titoli della stessa misura delle etichette dei campi;
+                  il divisore li separa come blocchi, senza CSS sulla tipografia Polaris. */}
+              <s-divider />
 
               <SimulatorCustomerFields
                 locale={previewLocale}
@@ -288,21 +299,13 @@ export function CheckoutSimulator({
 
           <s-divider />
 
-          <s-box
-            background="subdued"
-            padding="@container (inline-size > 420px) small-200, small-100"
-          >
+          <s-box padding="@container (inline-size > 420px) small-200, small-100">
             <div className="checkout-simulator__actions">
               <div className="checkout-simulator__secondary-actions">
-                <div className="checkout-simulator__scenario-copy">
-                  <s-text type="strong">{copy.scenarioLabel}</s-text>
-                  <s-text color="subdued">{copy.scenarioHelp}</s-text>
-                </div>
                 <div className="checkout-simulator__scenario">
                   <s-select
                     key={`scenario-${previewLocale}`}
                     label={copy.scenarioLabel}
-                    labelAccessibilityVisibility="exclusive"
                     placeholder={copy.scenarioPlaceholder}
                     value={scenario}
                     onChange={(event) =>
@@ -325,18 +328,6 @@ export function CheckoutSimulator({
                   {copy.clear}
                 </s-button>
               </div>
-              {/* R-S1: l'esito sta accanto al comando, in vista mentre si compilano i campi. */}
-              <span
-                aria-atomic="true"
-                aria-live="polite"
-                className="checkout-simulator__outcome cf-motion-swap"
-                key={outcome}
-                role="status"
-              >
-                <s-badge tone={outcomeTone[outcome]} icon={outcomeIcon[outcome]}>
-                  {copy.outcomes[outcome]}
-                </s-badge>
-              </span>
               <button
                 type="button"
                 className="checkout-simulator__button checkout-simulator__button--primary"
@@ -394,6 +385,7 @@ function SimulatorCustomerFields({
   const copy = t.rules.simulator;
   const applies = outcome !== "notApplied";
   const hasManagedFields = Object.values(rules).some((mode) => mode !== "unmanaged");
+  const showsFiscalField = hasVisibleFiscalFields(rules, taxCodePresent, pecPresent);
   const missingFields =
     applies && absentRequiredFieldsDue
       ? [
@@ -410,7 +402,7 @@ function SimulatorCustomerFields({
     <s-stack direction="block" gap="small-200">
       <s-stack direction="inline" gap="small-100" alignItems="center">
         <s-icon type="identity-card" color="subdued" />
-        <s-text type="strong">{copy.customerData}</s-text>
+        <s-heading>{copy.customerData}</s-heading>
       </s-stack>
       {missingFields.length > 0 ? (
         <div className="checkout-simulator__missing-fields" tabIndex={-1}>
@@ -453,14 +445,26 @@ function SimulatorCustomerFields({
             requiredErrorsDue={requiredErrorsDue}
             onInput={onPecChange}
           />
+          {/* R-12: con i campi nascosti nelle opzioni avanzate il gruppo dice perché è vuoto;
+              se mancano campi obbligatori lo spiega già il banner sopra. */}
+          {!showsFiscalField && missingFields.length === 0 ? (
+            <s-box background="base" borderRadius="base" padding="base">
+              <s-paragraph color="subdued">{copy.noFieldsShown}</s-paragraph>
+            </s-box>
+          ) : null}
         </>
       ) : (
-        <s-box background="subdued" borderRadius="base" padding="base">
+        <s-box background="base" borderRadius="base" padding="base">
           <s-paragraph color="subdued">{t.checkout.nothing}</s-paragraph>
         </s-box>
       )}
-      <s-text color="subdued">{copy.labelsAfterSave}</s-text>
     </s-stack>
+  );
+}
+
+function hasVisibleFiscalFields(rules: Rules, taxCodePresent: boolean, pecPresent: boolean) {
+  return (
+    (rules.taxCode !== "unmanaged" && taxCodePresent) || (rules.pec !== "unmanaged" && pecPresent)
   );
 }
 

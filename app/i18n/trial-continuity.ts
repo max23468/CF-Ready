@@ -2,12 +2,10 @@ import type { Locale } from "./types";
 
 const it = {
   choosePlan: "Scegli un piano",
-  goHome: "Vai alla home",
+  goHome: "Vai alla Home",
   activeHeading: "CF Ready è attivo",
-  trialActive: (date: string) =>
-    `La validazione è attiva fino al ${date}. Scegli un piano per mantenerla attiva dopo la prova.`,
-  trialInactive: (date: string) =>
-    `La prova termina il ${date}. La validazione è disattivata. Scegli un piano per continuare a usare CF Ready dopo la prova.`,
+  trialActive: (date: string) => `Prova gratuita fino al ${date}.`,
+  trialInactive: (date: string) => `Prova gratuita fino al ${date}.`,
   approvalHelp:
     "Puoi approvare ora un abbonamento mensile o annuale: conservi i giorni di prova rimanenti e il primo addebito avviene dopo la prova.",
   expired:
@@ -19,12 +17,10 @@ const it = {
 
 const en = {
   choosePlan: "Choose a plan",
-  goHome: "Go to home",
+  goHome: "Go to Home",
   activeHeading: "CF Ready is active",
-  trialActive: (date: string) =>
-    `Validation is active until ${date}. Choose a plan to keep it active after your trial.`,
-  trialInactive: (date: string) =>
-    `Your trial ends on ${date}. Validation is disabled. Choose a plan to keep using CF Ready after your trial.`,
+  trialActive: (date: string) => `Free trial until ${date}.`,
+  trialInactive: (date: string) => `Free trial until ${date}.`,
   approvalHelp:
     "You can approve a monthly or annual subscription now: you keep your remaining trial days and the first charge starts after the trial.",
   expired: "Validation is paused. Your settings are saved: choose a plan to restore it.",

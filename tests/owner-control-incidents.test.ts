@@ -123,6 +123,8 @@ describe("incidenti operativi", () => {
       "SELECT body_text FROM owner_notifications ORDER BY id LIMIT 1",
     ).first<string>("body_text");
     expect(alertBody).toContain("Nome: Store 1");
+    expect(alertBody).toContain("I controlli del monitor non sono nuove letture Shopify");
+    expect(alertBody).toContain("Ultima lettura Shopify: non disponibile");
     expect(alertBody).toMatch(/🕒 Evento: \d{1,2} set 2026, \d{2}:\d{2}/);
     expect(
       await env.DB.prepare(
@@ -141,7 +143,7 @@ describe("incidenti operativi", () => {
       await env.DB.prepare(
         "SELECT subject FROM owner_notifications ORDER BY id DESC LIMIT 1",
       ).first(),
-    ).toMatchObject({ subject: "🟢 CF Ready · Sincronizzazione etichette ripristinata" });
+    ).toMatchObject({ subject: "🟢 CF Ready · Errore etichette non più registrato" });
   });
 
   test("rimuove un errore etichette ancora in osservazione quando scompare", async () => {

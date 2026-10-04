@@ -138,8 +138,13 @@ test("il preflight richiede app.cfready.it come unico ingresso pubblico del Work
 
 test("il preflight vieta ALLOWED_SHOP in Production", () => {
   const restricted = JSON.parse(builtProduction);
-  restricted.vars.ALLOWED_SHOP = "cf-ready-dev.myshopify.com";
-  assert.throws(() => verifyBuiltConfig(JSON.stringify(restricted)), /ALLOWED_SHOP/);
+  for (const allowed of [
+    "cf-ready-dev.myshopify.com",
+    "cf-ready-dev.myshopify.com,cf-ready-polaris-2.myshopify.com",
+  ]) {
+    restricted.vars.ALLOWED_SHOP = allowed;
+    assert.throws(() => verifyBuiltConfig(JSON.stringify(restricted)), /ALLOWED_SHOP/);
+  }
 });
 
 test("il preflight legge il database Production sbagliato", () => {

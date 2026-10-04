@@ -13,7 +13,6 @@
 }
 
 .guide-faq__entry {
-  border-block-start: 1px solid var(--p-color-border-secondary, #dfe3e8);
   padding-block: 12px;
 }
 
@@ -26,21 +25,24 @@
   padding-block-end: 4px;
 }
 
-/* G-B7: lo sfondo di hover resta entro le linee divisorie; domanda e risposta rientrano
-   insieme di 6 px. */
+/* Domande, risposte e divisori condividono il bordo iniziale. */
 .guide-faq__entry summary {
-  padding: 4px 1.75rem 4px 6px;
-  border-radius: var(--p-border-radius-200, 8px);
+  padding-block: 4px;
 }
 
 .guide-faq__question {
-  font-size: 14px;
-  line-height: 20px;
+  font: inherit;
+  font-weight: 600;
 }
 
 .guide-faq__answer {
-  padding-block-start: 4px;
-  padding-inline: 6px;
+  padding-block-start: 8px;
+}
+
+/* L’aside v2 aggiunge uno spazio tra il fondo della sezione e il divisore
+   successivo. Lo stesso spazio sopra il link lo centra tra i due divisori. */
+html[data-polaris-version="2"] .guide-support__diagnosis-link {
+  padding-block-start: var(--p-space-400, 1rem);
 }
 
 /* La sezione riceve il focus solo per portarvi tastiera e lettori di schermo dal salto in
@@ -49,8 +51,13 @@
   outline: none;
 }
 
+/* Il salto da Assistenza lascia il titolo sotto l'intestazione fissa dell'Admin. */
+.guide-diagnosis {
+  scroll-margin-block-start: 25vh;
+}
+
 .guide-faq__entry summary:focus-visible {
-  outline: 2px solid var(--p-color-border-focus, #005bd3);
+  outline: auto;
   outline-offset: 2px;
 }
 
@@ -74,10 +81,6 @@
 @media (prefers-reduced-motion: no-preference) {
   .guide-faq__entry summary {
     transition: background-color var(--cf-motion-duration-fast) ease;
-  }
-
-  .guide-faq__entry summary:hover {
-    background: var(--p-color-bg-surface-secondary, #f7f7f7);
   }
 
   @supports (interpolate-size: allow-keywords) {

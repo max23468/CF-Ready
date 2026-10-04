@@ -2,8 +2,9 @@
 
 Data di avvio: 26 agosto 2026.
 
-Stato: **avviata, prerequisiti automatici ancora aperti e status non ancora
-ottenuto**. Ultimo readback: 20 settembre 2026.
+Stato: **avviata, adozione e recensioni ancora insufficienti; Web Vitals e
+incorporamento superati nella checklist Shopify; status non ancora ottenuto**.
+Ultimo readback: 3 ottobre 2026.
 
 M12 combina i requisiti Built for Shopify con i segnali di consolidamento
 specifici di CF Ready. Si chiude quando Shopify assegna effettivamente lo status
@@ -15,7 +16,7 @@ corso sono condizioni intermedie e non costituiscono chiusura.
 ## Fonti e autorità
 
 I requisiti sono stati riletti il 26 agosto 2026 e riconfermati il 20 settembre
-2026 nelle fonti ufficiali:
+e il 3 ottobre 2026 nelle fonti ufficiali:
 
 - [Built for Shopify requirements](https://shopify.dev/docs/apps/launch/built-for-shopify/requirements);
 - [About Built for Shopify](https://shopify.dev/docs/apps/launch/built-for-shopify);
@@ -316,3 +317,110 @@ Restano quindi tre prerequisiti automatici osservabili da colmare:
 Dopo questi prerequisiti resteranno la candidatura autorizzata dall'owner e la
 valutazione Shopify dei criteri manuali. Soltanto l'assegnazione dello status e
 il readback nel Partner Dashboard e sulla listing chiuderanno M12.
+
+## Readback del 3 ottobre 2026
+
+La pagina Distribution dell'app Production nell'organizzazione Partner
+Temisfera è stata letta senza candidatura o cambi di configurazione. La listing
+è pubblicata e il pulsante `Candidati ora` resta disabilitato.
+
+| Criterio Shopify | Stato osservato |
+| --- | --- |
+| LCP, CLS e INP | tutti verdi; benchmark Web Vitals superato |
+| Incorporamento, token di sessione e App Bridge corrente | superati; highlight di app incorporata ottenuto |
+| 50 installazioni nette da store attivi su piani Shopify a pagamento | aperto; conteggio qualificato esatto non esposto nella checklist |
+| Almeno 5 recensioni autentiche | aperto; listing pubblica con 0 recensioni |
+| Rating di almeno 4 stelle | aperto, senza recensioni |
+| Impatto storefront, integrazione, design e assenza di Asset API | valutazione manuale; nessuna bocciatura osservata |
+| Categoria specialistica | nessuna assegnata |
+
+La panoramica Partner mostra 18 installazioni nette cumulative negli ultimi 30
+giorni. Il valore non è il contatore delle installazioni qualificate BFS. Il
+link al dettaglio numerico delle prestazioni nella Dev Dashboard ha restituito
+`Store unavailable` anche dopo aggiornamento: il superamento è provato dalle
+icone verdi nella checklist, non da numeri Shopify ricostruiti localmente.
+
+La lettura aggregata D1 Production delle `13:19:41 UTC`, eseguita con il report
+locale corretto, restituisce:
+
+| Segnale interno | Valore |
+| --- | ---: |
+| Store registrati | 25 |
+| Store attivi | 22 |
+| Installazioni negli ultimi 7 / 30 giorni | 8 / 20 |
+| Onboarding completati | 17 |
+| Validation attive | 18 |
+| Store paganti o con acquisto concluso, esclusi addebiti test | 8 |
+| Prove gratuite attive | 8 |
+| Concessioni omaggio | 1 |
+| Store attivi con errore applicativo o di sincronizzazione etichette registrato | 1 |
+| Eventi di errore negli ultimi 7 giorni | 52 |
+| Webhook falliti visibili in D1 negli ultimi 7 giorni | 0 |
+
+Il report precedente contava soltanto `app_state.last_error_code` e mostrava 0,
+omettendo l'errore etichette. La correzione locale usa lo stesso predicato del
+Control Center e non conta conferme guidate pendenti o gestione disattivata.
+Non è stata applicata alcuna modifica al database remoto.
+
+Il report prestazioni interno sui 28 giorni, aggregando tutte le versioni,
+mostra CLS p75 `0,02655` su 150 campioni, INP `64 ms` su 113 e LCP `1.720 ms`
+su 152. Tutti sono entro soglia e hanno almeno 100 campioni. Restano misure CF
+Ready separate dall'accreditamento Shopify.
+
+### Incidente etichette e limiti della prova
+
+Un incidente `checkout_labels_partial_sync` è attivo su uno store ancora
+installato. La prima osservazione del monitor è del 16 settembre; i testi
+conservati hanno ultima lettura del 16 settembre. La Validation risulta attiva
+in D1, senza errore generale, e non è registrata una sincronizzazione completa
+delle etichette. Questi dati non dimostrano che oggi il checkout abbia testi
+errati o sia bloccato: manca una nuova lettura Shopify dello store interessato.
+Altri cinque store attendono conferme guidate, stato distinto dall'incidente.
+
+La verifica del codice ha trovato che il readback finale veniva conservato
+soltanto in caso di esito completo. Il fix locale conserva anche i testi letti
+con esito parziale, prima di registrare il risultato. Gli avvisi owner dichiarano
+che il monitor rilegge D1, riportano l'ultima lettura Shopify disponibile e non
+presentano la scomparsa del codice come una nuova verifica del checkout.
+La correzione non aggiorna retroattivamente osservazioni o incidenti Production.
+
+I 52 eventi sono 30 `billing_event_invalid_payload` nel ciclo notifiche owner
+(ultimo 26 settembre), 15 fallimenti di rinnovo token offline, 4 richieste
+Partner fallite e 3 eventi Partner esclusi per dominio invalido. Non sono stati
+osservati incidenti billing attivi. Il conteggio non prova da solo un bug
+corrente: cause e impatto dei fallimenti recenti restano da riconfermare, senza
+eliminare eventi o indebolire i controlli dei payload.
+Una lettura aggiuntiva delle `13:22:50 UTC` conferma acquisizione Partner
+aggiornata alle `13:20:18 UTC`, zero notifiche fallite e zero notifiche in attesa
+o in elaborazione. Non è quindi osservato un blocco corrente della pipeline
+notifiche; gli errori storici restano conservati.
+
+### Release, acquisizione e verifiche residue
+
+Durante la ricognizione Production è passata da `1.15.23`, commit `b1a0840`,
+alla `1.15.24`, commit `83b5b591c34d81fcad4fe7df46b34cec5eabc1c2`. Il relativo
+[workflow Production](https://github.com/max23468/CF-Ready/actions/runs/37125142772)
+risulta riuscito. La nuova release non costituisce assegnazione BFS.
+
+Il [backup del 28 settembre](https://github.com/max23468/CF-Ready/actions/runs/36406225373)
+comprende restore drill riuscito. Le 12 pagine della sitemap pubblica rispondono
+200 e dichiarano canonical e hreflang; comprendono le quattro guide in IT/EN.
+Clic, query e checkpoint di acquisizione non sono stati verificati in Google
+Search Console. Non sono stati riconfermati separatamente infrazioni Partner,
+checkout express, mobile reale, nuovi acquisti, reinstallazione o rollback.
+L'audit Safari del 3 ottobre conserva i limiti dei percorsi live osservati.
+
+Restano adozione qualificata, recensioni e rating, poi candidatura autorizzata,
+valutazione manuale e status assegnato. Prima della candidatura va chiarito
+l'incidente etichette con un nuovo readback Shopify. I fix di questo aggiornamento
+sono locali: pubblicazione e chiusura dell'incidente remoto non sono avvenute.
+
+### Verifica dei fix locali
+
+Le regressioni sono state eseguite anche su una copia del commit precedente:
+falliscono sul contatore incompleto, sul readback parziale non conservato e
+sull'avviso che confonde controlli D1 con nuove letture Shopify; passano con i
+fix. `npm run check` è verde, con 689 test app, 179 UI e 195 Function.
+`npm run coverage:check` è verde: righe 98,59%, branch 95,99%.
+La corsia selezionata è `full`, senza domini mutation selezionati; mutation non
+eseguita. Nessun commit, push, deploy o invio Telegram è stato eseguito.

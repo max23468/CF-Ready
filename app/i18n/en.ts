@@ -1,5 +1,9 @@
 import type { it } from "./it";
 
+// EN-3: un solo nome per il campo. Da solo è «Italian tax code (Codice Fiscale)», nei nomi composti
+// «Italian tax code»; mai «Tax code».
+const TAX_CODE_NAME = "Italian tax code (Codice Fiscale)";
+
 export const en: typeof it = {
   nav: {
     home: "Home",
@@ -15,6 +19,8 @@ export const en: typeof it = {
     no: "No",
     save: "Save",
     cancel: "Cancel",
+    unsavedNavigation:
+      "You have unsaved changes. Before leaving this page, save or discard your changes using the bar above.",
   },
   conflict: {
     heading: "The configuration has changed",
@@ -99,6 +105,7 @@ export const en: typeof it = {
     activated: "Check turned on in checkout.",
     deactivated: "Check turned off.",
     openOrders: "Open orders",
+    showPlans: "See the options",
     deactivateConfirm:
       "From now on checkout stops checking the fields. Rules and messages stay saved and you can turn them back on whenever you want.",
     nextConfigure: "Choose which fields to check in checkout.",
@@ -120,8 +127,8 @@ export const en: typeof it = {
     saved: "Messages saved.",
     italian: "Italian",
     english: "English",
-    taxCodeRequired: "Tax code required",
-    taxCodeInvalid: "Tax code invalid",
+    taxCodeRequired: "Italian tax code required",
+    taxCodeInvalid: "Italian tax code invalid",
     pecRequired: "PEC required",
     pecInvalid: "PEC invalid",
     counter: (used: number) => `${used}/200 characters`,
@@ -132,10 +139,10 @@ export const en: typeof it = {
       `The four ${language} messages go back to their default texts. The others don’t change, and it only takes effect once you save.`,
     appearHeading: "Messages linked to your rules",
     appearIntro:
-      "These indicators depend on the rules you chose, not on whether the check is active. A message can appear at checkout only while the check is active.",
+      "Messages are grouped by the rules you chose. They can appear at checkout only while the check is active.",
     appears: "Can appear",
     appearsNot: "Does not appear",
-    fieldNames: { taxCode: "Tax code", pec: "PEC" },
+    fieldNames: { taxCode: TAX_CODE_NAME, pec: "PEC" },
     shortLabels: {
       taxCodeRequired: "Required",
       taxCodeInvalid: "Invalid",
@@ -143,17 +150,17 @@ export const en: typeof it = {
       pecInvalid: "Invalid",
     },
     languageSelector: "Message language",
-    previewHeading: "Checkout preview",
+    previewHeading: "Message example",
     previewContext: "When the customer tries to complete the order",
-    previewErrorHeading: "Order can’t be completed",
     previewSelected: "Selected message",
-    previewHint: "The preview shows the message you are editing.",
+    previewHint:
+      "This example shows the message text. Its position and appearance at checkout depend on Shopify.",
     previewNotShown: "With the current rules this message does not appear at checkout.",
     previewShown: "With the current rules this message can appear at checkout.",
     editorHeading: "Error messages",
     previewFieldLabel: "Field label",
-    previewCurrentFieldLabel: "Current Shopify label",
-    previewProposedFieldLabel: "Proposed label",
+    previewCurrentFieldLabel: "with the current Shopify label",
+    previewProposedFieldLabel: "with the label proposed by CF Ready",
     labelsNote: "Customize tax code and PEC errors. For field names, open Checkout rules.",
     manageLabels: "Open Checkout rules",
   },
@@ -194,16 +201,15 @@ export const en: typeof it = {
     ],
     step2Heading: "Choose what to check",
     step2Body: "You can change these choices whenever you want from Checkout rules.",
-    labelsPreviewHeading: "Proposed labels in Italian and English",
-    labelsPermissionsOptional:
-      "You can grant permission to compare labels with Shopify now or continue without enabling it.",
     step3Heading: "Rules preview",
     labelsMixedDescription:
       "Mixed mode supports automatic updates and manual checks. “Checkout rules” shows any checks still to complete.",
     step3Body: "With the rules you selected:",
-    step3Messages: "Configured messages",
+    step3Messages: "Checkout messages",
     step3MessagesBody:
-      "These are the four messages already configured. They’re available in Italian and English and can be edited from Customer messages.",
+      "These messages may appear when checkout data does not meet the selected rules. You can edit them in Italian and English from Customer messages.",
+    step3NoMessages:
+      "Tax Code and PEC are both unmanaged: CF Ready does not show error messages for these fields. You can go back to step 2 to choose what to check.",
     step4Heading: "Summary",
     labelsSummary: "Label management",
     address2Summary: "Second address line check",
@@ -279,6 +285,12 @@ export const en: typeof it = {
       notChecked:
         "Diagnostics have not been run in this session. This does not mean the check is inactive.",
       openPlan: "Check plan",
+      openRules: "Configure the checks",
+      openLabels: "Check the checkout labels",
+      openAddress2: "Check the “Apartment” field",
+      needsAttention: "Some settings need attention.",
+      incomplete: "Some settings have not been checked yet.",
+      checked: "The checked settings need no changes.",
       lastSync: "Last check of rules and activation",
       unknown: "Unavailable",
       manualHeading: "Check manually at checkout",
@@ -301,7 +313,7 @@ export const en: typeof it = {
     complimentaryBillingAnswer:
       "Your store has a permanent complimentary plan: there is no trial or payment to manage.",
     heading: "Help and FAQ",
-    faqHeading: "Frequently asked",
+    faqHeading: "Frequently asked questions",
     expandAll: "Expand all",
     collapseAll: "Collapse all",
     asideHeading: "What CF Ready does and doesn’t do",
@@ -386,6 +398,7 @@ export const en: typeof it = {
   plan: {
     heading: "Plan",
     trial: (date: string) => `Trial active until ${date}.`,
+    trialActive: "Free trial active.",
     oneTime: "One payment active, no renewals.",
     complimentary: "Complimentary permanent plan active, with no renewals.",
     subscription: (date: string) => `Subscription active until ${date}.`,
@@ -402,6 +415,12 @@ export const en: typeof it = {
     startTrial: "Start the 14-day trial",
     orChoose: "Or choose a plan directly.",
     monthlyStart: "Start monthly",
+    monthlyPeriod: "per month",
+    annualPeriod: "per year",
+    oneTimePeriod: "once",
+    monthlyDescription: "Renews every month until you cancel the renewal.",
+    annualDescription: (monthly: string) =>
+      `Works out to ${monthly} a month and renews every year.`,
     monthlySwitch: "Switch to monthly",
     annualStart: "Start annual",
     annualSwitch: "Switch to annual",
@@ -412,13 +431,15 @@ export const en: typeof it = {
       "Access stays until the end of the current period, with no credit for unused days. Your rules and messages stay saved.",
     firstCharge: (date: string) =>
       `If you start today, the first charge is on ${date}: you keep the trial days you have left.`,
+    firstChargeAfterTrial:
+      "If you start today, the first charge comes after the trial ends: you keep the trial days you have left.",
     firstChargeNow: "The charge starts as soon as you approve it on Shopify.",
     oneTimeCharge:
       "One charge as soon as you approve it on Shopify. Any remaining trial days are given up.",
     oneTimeChargeNotStarted:
       "One charge as soon as you approve it on Shopify. The free trial will not be started.",
     chooseNowHeading: "Choose a plan now",
-    chooseHeading: "How you want to continue",
+    chooseHeading: "Choose how to continue",
     chooseBody:
       "Every plan has the same features. Shopify handles the charges on your store invoice.",
     oneTimeSettled: "Includes app updates and support, at no extra cost.",
@@ -445,7 +466,7 @@ export const en: typeof it = {
     showLabels: "Show labels",
     labelsConflict:
       "The Shopify labels changed after the last read. CF Ready read them again and kept your changes: press Save again.",
-    taxCodeLabel: "Italian tax code (Codice Fiscale)",
+    taxCodeLabel: TAX_CODE_NAME,
     pecLabel: "Certified email address (PEC)",
     taxCode: {
       unmanaged: "Not managed",
@@ -479,12 +500,12 @@ export const en: typeof it = {
       unknownCountry: "Not provided",
       heading: "Checkout simulator",
       previewLanguage: "Preview language",
-      labelsAfterSave:
-        "Labels follow the rules selected here; the checkout changes after you save.",
       italian: "Italian",
       english: "English",
       orderContext: "Order destination",
       customerData: "Customer tax details",
+      noFieldsShown:
+        "In this scenario Shopify doesn’t show the fields managed by CF Ready, so the customer has nothing to fill in.",
       company: "Company",
       deliveryCountry: "Delivery country",
       billingCountry: "Billing country",
@@ -502,7 +523,6 @@ export const en: typeof it = {
       showMissingFields:
         "To try entering a value, open “Advanced options” and select “Shopify shows the field” for the missing field.",
       scenarioLabel: "Try a scenario",
-      scenarioHelp: "Choose a scenario: the simulator fills the fields and shows the result.",
       scenarioPlaceholder: "Choose a scenario",
       scenarios: {
         valid: "Valid details",
@@ -539,7 +559,8 @@ export const en: typeof it = {
       requestPermissions: "Grant permissions",
       statusUpToDate: "Up to date",
       statusKept: "Managed by you",
-      statusManualRequired: "Manual verification required",
+      statusManualRequired: "Needs review",
+      statusChoiceRequired: "Setup required",
       statusError: "Check not completed",
       nativeSummaryNeedsAccess: "Grant access to check the checkout text.",
       nativeSummaryNeedsReview: (count: number, languages: string[]) =>
@@ -564,6 +585,7 @@ export const en: typeof it = {
         automatic: "Automatic",
         partial: "Mixed",
       },
+      fieldColumn: "Field",
       current: "Current field",
       proposed: "Field after saving",
       language: "Label language",
@@ -584,10 +606,10 @@ export const en: typeof it = {
       refresh: "Read fields again from Shopify",
       refreshComplete: "Fields refreshed from Shopify.",
       stop: "Restore and stop managing",
-      lastSync: (value: string) => `Last read of labels from Shopify: ${value}`,
-      neverSynced: "No successful read from Shopify yet",
-      operationalSummary: (automatic: number, manual: number) =>
-        `${automatic} ${automatic === 1 ? "label" : "labels"} updated automatically. ${manual} manual ${manual === 1 ? "verification" : "verifications"} required.`,
+      lastReadLabel: "Last read from Shopify",
+      neverSynced: "No successful read yet",
+      automaticCountLabel: "Labels updated automatically",
+      close: "Close",
       manualHeading: "How to complete the manual verification",
       manualSteps: (
         language: string,
@@ -604,7 +626,7 @@ export const en: typeof it = {
             ]
           : []),
         "For every case listed, add a product to the cart and continue to checkout. Set Italy as the delivery country and select an Italian address recognized by Shopify: the tax code and PEC fields appear after the address is accepted.",
-        "Compare the tax code and PEC labels with the “Field after saving” value shown here.",
+        "Compare the Italian tax code and PEC labels with the “Field after saving” value in the CF Ready table.",
         "If they differ, select “Open the checkout text editor”. In Shopify, under “Checkout language”, select “Edit checkout content”.",
         ...(primary && !market
           ? [
@@ -626,7 +648,7 @@ export const en: typeof it = {
         "Return to CF Ready and select “Read fields again from Shopify”. When the two values match, the confirmation button becomes available.",
       ],
       manualMismatch:
-        "Shopify is still returning a different text. Change and save it using the steps above, then select “Read fields again from Shopify”.",
+        "Shopify is still returning a different text. Correct it by following “How to complete the manual verification”, then select “Read fields again from Shopify”.",
       openStorefront: "Open storefront",
       openCheckoutContentEditor: "Open the checkout text editor",
       confirmGuided: "Confirm manual verification",

@@ -122,7 +122,10 @@ export function fiscalLabelContexts(
     base.notes = [
       shopLocale.primary ? copy.primary : null,
       !shopLocale.published ? copy.unpublished : null,
-      marketSlots.size > 0 && marketContexts.length === 0 ? copy.allMarketsSame : null,
+      // C-3: se Shopify non conferma alcuni mercati, «tutti i mercati» non è un'affermazione certa.
+      marketSlots.size > 0 && marketContexts.length === 0 && base.verificationMarkets.length === 0
+        ? copy.allMarketsSame
+        : null,
       base.verificationMarkets.length > 0
         ? copy.marketCheckIncluded(base.verificationMarkets)
         : null,

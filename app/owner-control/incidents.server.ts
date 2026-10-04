@@ -151,10 +151,14 @@ async function observeLabelIncidents(
         nowIso,
         subject: "🔴 CF Ready · Sincronizzazione etichette in errore",
         body: storeOperationalBody(
-          "La sincronizzazione delle etichette checkout è ancora in errore dopo controlli consecutivi.",
+          "D1 conserva un errore di sincronizzazione delle etichette checkout. I controlli del monitor non sono nuove letture Shopify.",
           row,
           nowIso,
-          [`Errore: ${row.error_code}`, `Controlli consecutivi: ${observations}`],
+          [
+            `Errore registrato: ${row.error_code}`,
+            `Ultima lettura Shopify: ${row.last_read_at ?? "non disponibile"}`,
+            `Controlli D1 consecutivi: ${observations}`,
+          ],
         ),
       });
     } else {
@@ -313,12 +317,12 @@ async function resolveLabelIncidents(
         nowIso,
         shopDomain: shop.shop_domain,
         shopHash: await trialLedgerHash(shop.shop_domain),
-        subject: "🟢 CF Ready · Sincronizzazione etichette ripristinata",
+        subject: "🟢 CF Ready · Errore etichette non più registrato",
         body: storeOperationalBody(
-          "La sincronizzazione delle etichette checkout non presenta più l'errore persistente.",
+          "D1 non riporta più l'errore di sincronizzazione monitorato. Questo avviso non è una nuova verifica del checkout.",
           shop,
           nowIso,
-          ["Stato: regolare"],
+          ["Stato D1: errore monitorato assente"],
         ),
       });
     } else if (incident.status === "observing") {

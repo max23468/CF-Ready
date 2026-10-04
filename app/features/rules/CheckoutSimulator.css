@@ -1,6 +1,21 @@
+/* Brand: panna (#F7F5EE) e verde bottiglia (#20492F) sono ammessi dentro l'app solo qui
+   (docs/brand/brand-foundation.md, decisione del 4 ottobre 2026). */
+.checkout-simulator {
+  background: #f7f5ee;
+  border-radius: 16px;
+}
+
+.checkout-simulator__header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* L'esito va al bordo destro; se il titolo non lascia spazio scende a capo, sempre a destra. */
 .checkout-simulator__outcome {
   display: inline-flex;
-  justify-self: start;
+  margin-inline-start: auto;
 }
 
 .checkout-simulator__actions {
@@ -8,16 +23,12 @@
   gap: 8px;
 }
 
+/* Lo scenario ha la sua etichetta nativa; «Svuota» si allinea al campo, non all'etichetta. */
 .checkout-simulator__secondary-actions {
+  align-items: flex-end;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-.checkout-simulator__scenario-copy {
-  display: grid;
-  flex: 1 0 100%;
-  gap: 2px;
 }
 
 .checkout-simulator__scenario {

@@ -477,6 +477,7 @@ async function finishFiscalLabels(
         heartbeat,
       );
   if (!after.ok) {
+    await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots, snapshot.address2);
     await markCheckoutLabelsResult(db, shopDomain, {
       mode: "partial",
       errorCode: after.errorCode,
@@ -492,6 +493,7 @@ async function finishFiscalLabels(
     after.written ? undefined : snapshot,
     timing,
   );
+  await persistCheckoutLabelObservation(db, shopDomain, readback.slots, readback.address2);
   if (errorCode) {
     await markCheckoutLabelsResult(db, shopDomain, {
       mode:
@@ -507,7 +509,6 @@ async function finishFiscalLabels(
       snapshot: readback,
     };
   }
-  await persistCheckoutLabelObservation(db, shopDomain, readback.slots, readback.address2);
   await markCheckoutLabelsResult(db, shopDomain, {
     mode: checkoutLabelsMode(snapshot.slots),
     errorCode: null,

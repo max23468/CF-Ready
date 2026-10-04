@@ -8,7 +8,7 @@ import { click, type Rendered } from "./render";
 
 import HomePage from "../../app/features/home/HomePage";
 import { MerchantCheckIn } from "../../app/features/home/MerchantCheckIn";
-import { HomeValidationSection } from "../../app/features/home/HomeSections";
+import { HomeTrialNotice, HomeValidationSection } from "../../app/features/home/HomeSections";
 import { trialContinuityTexts } from "../../app/i18n/trial-continuity";
 import { PlanChoice } from "../../app/features/home/PlanChoice";
 import { PlanStatus } from "../../app/features/home/PlanStatus";
@@ -49,6 +49,7 @@ describe("Home merchant", () => {
           verification="confirmed"
           t={texts("it")}
         />
+        <HomeTrialNotice data={lapsed as never} busy={false} />
         <PlanChoice
           data={homeData as never}
           busy={false}
@@ -65,6 +66,11 @@ describe("Home merchant", () => {
         />
       </div>,
     );
+    // P2-T4: l'unico badge della scelta del piano ha il tono del banner della prova.
+    const recommended = [...view.container.querySelectorAll("s-badge")].find(
+      (badge) => badge.textContent === texts("it").plan.recommended,
+    );
+    expect(recommended?.getAttribute("tone")).toBe("info");
     // Punto 2: "Scegli un piano" porta ai piani e sposta il focus, senza ancora `#plans`.
     const plans = view.container.querySelector<HTMLElement>("#plans")!;
     plans.scrollIntoView = vi.fn();
@@ -281,7 +287,7 @@ describe("Home merchant", () => {
     const view = await mount(<HomePage />);
     expect(view.container.textContent).toContain(texts("it").home.badgeActive);
     expect(view.container.textContent).not.toContain(
-      "Le etichette del checkout o il campo “Interno” richiedono un controllo.",
+      "Le etichette del checkout o il campo «Interno» richiedono un controllo.",
     );
     const deactivate = [...view.container.querySelectorAll("s-button")].find((button) =>
       button.textContent?.includes(texts("it").home.deactivate),

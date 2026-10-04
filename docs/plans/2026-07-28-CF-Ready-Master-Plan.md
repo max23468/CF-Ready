@@ -56,7 +56,9 @@ Quando due passaggi storici risultano in tensione, vale la decisione approvata p
 - l’unica abbreviazione interna ammessa è `CFR`; ogni abbreviazione precedente è eliminata;
 - l’app ha quattro pagine permanenti; stato e scelta del piano sono nella Home e l’onboarding si apre in una finestra;
 - non esiste un selettore manuale della lingua;
-- si mantiene un solo dev store;
+- il dev store Basic principale resta `cf-ready-dev`; dal 3 ottobre 2026 è
+  autorizzato anche `cf-ready-polaris-2` per la preview del nuovo Admin e
+  l'audit Polaris 2, sempre nell'ambiente Development;
 - ESLint e Prettier sono sostituiti da Oxlint e Oxfmt;
 - Cloudflare è l’infrastruttura primaria; Oracle è fuori dall’architettura iniziale;
 - non esiste alcun fallback architetturale a Hono, Next.js, Express o Remix.
@@ -436,6 +438,12 @@ terzo passo conserva riepilogo, ambito e messaggi configurati; il simulatore
 interattivo resta nella pagina Regole checkout e mostra soltanto i campi gestiti
 da CF Ready, senza il campo “Interno”.
 
+La parte relativa al passo 2 è superata dalla decisione dell'owner del 4
+ottobre 2026 per la `2.0.11`: configurazione di “Interno”, anteprima e gestione
+delle etichette e relativi permessi restano in Regole checkout. L'onboarding
+configura soltanto CF e PEC e conserva la gestione delle etichette già scelta
+(§15.9).
+
 Precisazione D-149 del 12 settembre 2026: classificazione, conflitti e variazioni
 del campo “Interno” considerano soltanto la variante obbligatoria o facoltativa
 che il merchant ha dichiarato visibile; quando il campo non è mostrato, gli
@@ -525,7 +533,7 @@ confronta con il contenuto servito all’edge.
 | D-087 | Telemetria tecnica minimale sempre attiva, senza opt-out. | Necessaria a operatività, sicurezza e misurazione essenziale. |
 | D-088 | Prompt recensione nativo, neutrale e non incentivato. | Feedback autentico dopo un momento positivo. |
 | D-089 | Versioni di sviluppo `0.x`; `1.0.0` prima dei merchant esterni. | Non vendere una prerelease. |
-| D-090 | Un solo dev store Basic permanente. | Semplicità operativa. |
+| D-090 | Dev store Basic principale `cf-ready-dev`. Il 3 ottobre 2026 l'owner autorizza un secondo dev store Basic, `cf-ready-polaris-2`, con preview `new_admin_design`, Italia e dati dimostrativi, dedicato ai test CFR e all'audit Polaris 2. L'app resta Development; il collegamento del nuovo dominio richiede l'adeguamento della restrizione di installazione, senza rimuoverla. | Il vecchio dev store conserva l'Admin precedente e non espone un percorso supportato per aggiungere la preview dopo la creazione. Il secondo store consente il confronto embedded con il nuovo Admin e conserva il target precedente. |
 | D-091 | Utility CLI di reset solo `dev`, impossibile in `prod`. | Ripetere flussi puliti con un solo dev store. |
 | D-092 | Controlled Launch con listing a visibilità completa dal 25 agosto 2026; il controllo resta nell'acquisizione e nel supporto graduali, non nella reperibilità. | Rende l'app trovabile nella ricerca App Store senza fingere che i criteri di maturità successivi alla release siano già raggiunti. |
 | D-093 | Controlled Launch non comunicato come beta/pilot. | Comunicazione normale di lancio, senza nascondere limitazioni materiali o inventare trazione. |
@@ -2374,7 +2382,18 @@ Conclusioni operative:
 - il simulatore checkout usa soltanto Polaris Web Components, resta locale al
   browser e dichiara esplicitamente che non salva i valori di prova;
 - CSS custom minimo;
-- tutte le schermate condividono il fondo grigio Polaris (`--p-color-bg`, fallback
+- upgrade Polaris preparato il 3 ottobre 2026: Development carica
+  `polaris-2.0-rc.js`, la v2 più recente disponibile, con tipi
+  `@shopify/polaris-types@2.0.0-rc.1`; Production e ambienti non riconosciuti
+  conservano `polaris-1.js`. Script e preload seguono lo stesso ambiente
+  Workers, anche nei build ottimizzati. Il fondo e gli spazi della v2 restano
+  nativi; i ripristini visivi seguenti si applicano alla v1. Pubblicazione
+  inizialmente limitata a Development; il 4 ottobre 2026 l'owner ha autorizzato
+  la promozione in Production della 2.0.16, dove resta `polaris-1.js`; la verifica embedded
+  reale resta distinta dalle prove con fixture sintetiche.
+  Fonti: [versioning v2](https://shopify.dev/docs/api/app-home/v2.0-rc/web-components/versioning)
+  e [annuncio Shopify](https://community.shopify.dev/t/polaris-2-0-release-candidate/37957);
+- con Polaris 1 tutte le schermate condividono il fondo grigio Polaris (`--p-color-bg`, fallback
   `#F1F1F1`) per distinguere le card bianche native, compreso l'onboarding;
   componenti, bordi, tipografia e controlli restano Polaris. Ripristino richiesto
   dall'owner il 30 settembre 2026;
@@ -2383,7 +2402,8 @@ Conclusioni operative:
   anteprima Messaggi sempre visibile prima dei campi, con un solo titolo e
   avviso compatto con icona; assistenza prima della card informativa nella Guida,
   domande FAQ in grassetto con indicatore nativo; lingua del simulatore nelle
-  opzioni avanzate e nota sulle etichette dopo i campi. Su mobile le card hanno
+  opzioni avanzate. La nota sulle etichette dopo i campi è stata tolta il 4
+  ottobre 2026 su decisione dell'owner, perché ripeteva il comportamento. Su mobile le card hanno
   margini laterali di 16 px e distanza uniforme di 16 px, anche nel passaggio
   dalla colonna principale a quella laterale;
 - affinamenti dell'audit del 30 settembre 2026: restano due box del piano,
@@ -2392,6 +2412,53 @@ Conclusioni operative:
   restano leggibili a 320 px; il simulatore compatta il contesto geografico
   in una disclosure nativa e riallinea i selettori senza perdere la lingua.
   La diagnostica distingue una verifica non eseguita da un controllo inattivo;
+- convenzioni condivise di CF Ready 2.0, approvate dall'owner il 4 ottobre
+  2026 dopo l'audit grafico Polaris 2 del 3 ottobre (ID P2-T*, N-3, R-5, EN-3):
+  - **layout:** Home, Messaggi e Guida usano `s-page` base con la colonna
+    laterale nello slot `aside`. Regole, per decisione dell'owner del 4
+    ottobre, affianca al 50% regole e simulatore, così una scelta e il suo
+    effetto restano in vista insieme, e mette «Etichette del checkout» a tutta
+    larghezza sotto. L'esito del simulatore sta in alto a destra della sua
+    intestazione, senza una riga propria; senza colonna laterale il suo bordo sinistro differisce
+    dalle altre pagine, per scelta. L'onboarding resta `inlineSize="small"`
+    come flusso guidato. Nessun CSS sposta o allarga la pagina. Il titolo di
+    pagina sta nella barra dell'Admin, quindi la colonna laterale non si
+    allinea a un titolo nel contenuto: è un comportamento dell'host e non si
+    corregge;
+  - **titoli:** sezione con `s-section heading`, sempre fuori dalla card;
+    gruppo con controlli dentro una card o sottogruppo laterale con
+    `s-heading`; etichetta di riga con `s-text type="strong"`; il nome di un
+    campo lo dà la `label` del componente;
+  - **badge:** `success` solo per un esito raggiunto, `info` per uno stato in
+    corso e per l'opzione consigliata del piano, nel tono del banner della
+    prova, `warning` quando serve un'azione del merchant, `critical` per un
+    blocco o un errore, `neutral` per valori di configurazione e stati
+    descrittivi (regole, messaggi predefiniti, «Può comparire»);
+  - **logo e brand:** lockup a 128 px allineato a sinistra nelle colonne
+    laterali, marchio positivo senza fondo in un box da 32 px accanto a un
+    titolo (`app/ui-brand.tsx`); mai `s-avatar` per il marchio. Il simulatore
+    del checkout è l'unico accento di brand: fondo panna e «Continua» verde
+    bottiglia (decisione dell'owner del 4 ottobre, `docs/brand/brand-foundation.md` §3.1);
+  - **densità:** il banner della prova sta subito dopo la card della
+    validazione, non dentro, equidistante dalla card e dal titolo successivo,
+    con l'azione nello slot nativo del banner; un
+    solo badge di stato per pannello; un confronto senza modifiche sta su una
+    riga;
+  - **disclosure:** `details` tramite `app/ui-disclosure.tsx`, con chevron
+    `s-icon` al bordo finale del summary, uguale a ogni livello di annidamento;
+  - **componenti nativi:** l'esempio di un messaggio è un `s-text-field` in sola
+    lettura con l'etichetta del campo come `label` e il messaggio come `error`;
+    il confronto tra etichetta attuale e nuova è una `s-table` con colonne
+    Campo, Campo attuale e Campo dopo il salvataggio (o Testo Shopify per
+    «Interno»), che su mobile diventa un elenco;
+  - **spaziature:** dentro un gruppo `small-200` o meno, tra gruppi della stessa
+    card `base`, tra blocchi con titolo proprio `large`; le righe
+    etichetta-valore usano `app/ui-status-list.tsx`;
+  - **testi:** ogni testo nuovo o cambiato entra in italiano e inglese nello
+    stesso commit; citazioni «» in italiano e “” in inglese; «Codice Fiscale» e
+    «PEC», in inglese «Italian tax code (Codice Fiscale)» da solo e «Italian tax
+    code» nei nomi composti; ogni informazione compare una volta per vista, una
+    nota per gruppo e nessuna frase che ripete lo stato di un badge;
 - accessibile, responsive e coerente con Shopify Admin;
 - azioni ad alto impatto con conferma;
 - Save Bar nativa per modifiche non salvate.
@@ -2454,8 +2521,14 @@ consigliato` include il promemoria di rimuovere il Codice Fiscale dal campo
 Con Validation attiva:
 
 - azione primaria `Modifica regole`;
-- azione secondaria `Disattiva nel checkout`;
+- azione secondaria `Disattiva nel checkout`, terziaria con tono critico;
 - conferma per la disattivazione.
+
+In ogni stato il primario è il primo bottone della card: da disattivata con un
+diritto attivo è `Attiva nel checkout`, seguito da `Modifica regole`. Il badge
+`Attiva` è verde solo con almeno un campo configurato. `Prossimo passo
+consigliato` ha sempre un testo e un'azione. Con il banner della prova visibile
+la data della prova compare solo nel banner.
 
 La checklist iniziale scompare definitivamente dopo il completamento dell’onboarding.
 
@@ -2592,9 +2665,14 @@ applicano con fatturazione estera o sole consegne estere.
 Quattro passaggi:
 
 1. introduzione, perimetro e limitazioni;
-2. scelta regole CF e PEC, configurazione obbligatoria, facoltativa o non mostrata del campo
-   “Interno” e gestione delle etichette;
-3. eccezioni automatiche e revisione messaggi;
+2. scelta delle sole regole CF e PEC; anteprima e gestione delle etichette,
+   richiesta dei relativi permessi e configurazione del campo “Interno”
+   restano nella pagina Regole checkout. Salvare dall'onboarding conserva
+   lo stato di gestione delle etichette già configurato, senza attivarlo o
+   disattivarlo;
+3. anteprima delle regole e dei soli messaggi che possono comparire con la
+   configurazione scelta al passo 2; se entrambi i campi sono non gestiti,
+   spiega che non sono previsti messaggi di errore;
 4. riepilogo e attivazione.
 
 Regole:
@@ -2602,7 +2680,7 @@ Regole:
 - si può tornare indietro;
 - ogni cambio di passo porta focus e scorrimento all'inizio del contenuto;
 - il riepilogo mantiene vicine etichette e valori, spiega la gestione mista
-  delle etichette e distingue i messaggi previsti da quelli non previsti;
+  delle etichette; l’anteprima mostra soltanto i messaggi previsti;
 - il riepilogo finale va visualizzato;
 - azioni finali:
   - `Attiva nel checkout`;
@@ -3031,11 +3109,23 @@ team e lo scope correnti, duplicherebbe configurazioni, secret e deploy. Se in
 futuro più collaboratori o merchant reali rendessero insufficiente il dev store,
 un ambiente intermedio richiederebbe una nuova decisione basata su quel bisogno.
 
-Un solo dev store permanente, piano simulato Basic:
+Dev store principale permanente, piano simulato Basic:
 
 ```text
 cf-ready-dev
 ```
+
+Dal 3 ottobre 2026 è presente anche `cf-ready-polaris-2.myshopify.com`,
+creato su richiesta dell'owner nell'organizzazione Temisfera con piano Basic,
+Paese Italia, dati dimostrativi e preview `new_admin_design` (D-090).
+Il nuovo Admin è stato osservato in Chrome nella sessione Shopify dell'owner.
+Non costituisce un terzo ambiente o una terza app. Al momento della creazione
+CF Ready Development non era installata. L'owner autorizza anche l'adeguamento
+e la pubblicazione solo Development: `ALLOWED_SHOP` contiene i due domini
+separati da virgola, l'hook di auth confronta ciascun dominio esattamente e
+il preflight Development vincola la lista ai due store. Production mantiene
+la lista vuota. Installazione e test della Validation sul secondo store
+richiedono il readback dopo il rilascio.
 
 Utility CLI di reset per `dev`:
 
@@ -3093,6 +3183,12 @@ separate e richiedono autorizzazione esplicita.
 - `1.0.x`: fix;
 - `1.x.0`: funzionalità compatibili;
 - major solo per cambi incompatibili o sostanziali.
+
+Il 3 ottobre 2026 l'owner assegna `2.0.0` all'upgrade di design basato su
+Polaris 2.0 release candidate, come milestone sostanziale di prodotto.
+La pubblicazione autorizzata riguarda soltanto Development, con snapshot
+`2.0.0-dev.<tree>`; non autorizza una promozione, un deploy o una release
+Production. Production conserva Polaris 1 tramite la selezione per ambiente.
 
 Ogni release Production:
 
@@ -4822,6 +4918,10 @@ Consegnata in tre layer versionati, come da §19.5:
   criteri di rivalutazione, runbook, E2E e matrice manuale. Chiude feature
   complete.
 
+Il controllo sintetico di capacità è stato ritirato dall’owner il 4 ottobre
+2026: non è più un requisito di deploy né un comando operativo. Restano le
+soglie delle risorse, le metriche reali, smoke e readback.
+
 Deliverable:
 
 - backup R2;
@@ -4833,7 +4933,6 @@ Deliverable:
 - runbook;
 - security audit;
 - dependency audit;
-- load/CPU check;
 - soglie Free tier e criteri di rivalutazione;
 - formato ricevuta deploy/readback;
 - workflow GitHub Actions controllato per il deploy Pages;
@@ -4991,15 +5090,19 @@ commit candidato `345c27d`.
 **Avviata il 26 agosto 2026.** M12 combina i criteri Built for Shopify correnti
 con i segnali Controlled Launch specifici di CF Ready descritti in §25.4.
 
-**Readback del 20 settembre 2026:** M12 resta aperta e non candidabile. Il
-Partner Dashboard mostra la listing pubblicata, `12` merchant con l'app e `11`
-installazioni nette cumulative negli ultimi 30 giorni, mentre il requisito BFS
-di `50` installazioni qualificate resta aperto. La listing pubblica non mostra
-recensioni e LCP, CLS e INP riportano tutti `Dati non sufficienti`, con meno di
-`100` chiamate per metrica negli ultimi 28 giorni. Il pulsante `Iscriviti oggi`
-è disabilitato; non è stata eseguita alcuna candidatura. Production è alla
-release tecnica `v1.11.7`, che non prova l'idoneità BFS. La ricevuta M12 conserva
-i conteggi interni, i limiti delle prove e gli altri residui.
+**Readback del 3 ottobre 2026:** M12 resta aperta e non candidabile. La checklist
+Shopify riconosce Web Vitals, incorporamento, token di sessione e App Bridge
+corrente come superati. Restano aperti `50` installazioni nette qualificate,
+almeno `5` recensioni e rating `4+`; la listing pubblicata ha `0` recensioni e
+`Candidati ora` è disabilitato. Le `18` installazioni nette cumulative negli
+ultimi 30 giorni non sono il contatore BFS. D1 mostra `22` store attivi, `18`
+Validation attive e `8` paganti non-test. Un errore etichette resta registrato
+su uno store attivo, con testi letti l'ultima volta il 16 settembre: il monitor
+D1 non prova che il checkout sia ancora errato oggi. Il fix locale conserva
+anche i readback parziali e include gli errori etichette nei contatori; il
+readback Shopify dello store e la pubblicazione restano da eseguire. Production
+è alla release tecnica `v1.15.24`, che non prova l'idoneità BFS. La ricevuta M12
+conserva conteggi, prove e limiti delle verifiche.
 
 Gate:
 

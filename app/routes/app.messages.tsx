@@ -35,7 +35,7 @@ import {
 } from "../features/messages/CustomerMessagesPreview";
 import { UncontrolledMessageTextArea } from "../features/messages/UncontrolledMessageTextArea";
 import { RULES_INTENTS, type CheckoutLabelsLoadAction } from "../features/rules/rules-intents";
-import { quoteLabel, resolveLocale, texts } from "../i18n";
+import { resolveLocale, texts } from "../i18n";
 import type { Locale } from "../i18n";
 import { messageSubmission, rebaseMessageDraft, updateMessageDraft } from "../messages-draft";
 import { skipRevalidationWhenLeaving, useSavedData } from "../revalidation";
@@ -267,8 +267,9 @@ export default function CustomerMessages() {
     remount(MESSAGE_FIELDS);
   };
 
-  const field = messageFieldLabel(t, saved.rules, activeLocale, selectedKey, labelSnapshot);
-  const previewField = { ...field, label: quoteLabel(field.label, saved.locale) };
+  // N-1: l'etichetta è la label del campo d'esempio, come nel checkout, quindi senza virgolette.
+  const fieldLabelFor = (key: MessageKey) =>
+    messageFieldLabel(t, saved.rules, activeLocale, key, labelSnapshot);
 
   // FR-063: il ripristino agisce su una lingua sola e lo dichiara nella conferma. Non salva da
   // sé: rimette i testi predefiniti nei campi e il salvataggio resta un gesto esplicito.
@@ -322,7 +323,7 @@ export default function CustomerMessages() {
           t={t}
           activeLocale={activeLocale}
           setActiveLocale={setActiveLocale}
-          previewField={previewField}
+          fieldLabelFor={fieldLabelFor}
           draft={draft}
           selectedKey={selectedKey}
           setSelectedKey={setSelectedKey}
@@ -355,7 +356,7 @@ function MessagesEditor({
   t,
   activeLocale,
   setActiveLocale,
-  previewField,
+  fieldLabelFor,
   draft,
   selectedKey,
   setSelectedKey,
@@ -366,7 +367,7 @@ function MessagesEditor({
   t: MessagesCopy;
   activeLocale: Locale;
   setActiveLocale: (locale: Locale) => void;
-  previewField: { label: string; observed: boolean };
+  fieldLabelFor: (key: MessageKey) => { label: string; observed: boolean };
   draft: CheckoutConfig["messages"];
   selectedKey: MessageKey;
   setSelectedKey: (key: MessageKey) => void;
@@ -375,6 +376,7 @@ function MessagesEditor({
   result: MessagesActionResult;
 }) {
   const problem = result && !result.ok && "problem" in result ? result.problem : undefined;
+  const previewField = fieldLabelFor(selectedKey);
   return (
     <s-section heading={t.messages.editorHeading}>
       <s-stack direction="block" gap="base">
@@ -393,7 +395,6 @@ function MessagesEditor({
         <CustomerMessagesPreview
           activeLocale={activeLocale}
           context={t.messages.previewContext}
-          errorHeading={texts(activeLocale).messages.previewErrorHeading}
           fieldLabel={previewField.label}
           fieldLabelHeading={
             previewField.observed
@@ -408,7 +409,6 @@ function MessagesEditor({
               ? t.messages.previewShown
               : t.messages.previewNotShown
           }
-          selectedHeading={t.messages.previewSelected}
           selectedLabel={t.messages[selectedKey]}
         />
         {/* M2: su desktop i quattro campi stanno in due colonne, Codice Fiscale e PEC, così
@@ -443,17 +443,28 @@ function MessagesEditor({
                           onFocus={() => setSelectedKey(key)}
                         />
                         <div className="customer-messages-preview__local">
-                          <s-stack direction="block" gap="small-100">
-                            <s-text color="subdued">{t.messages.previewHeading}</s-text>
-                            <CheckoutErrorPreview
-                              locale={activeLocale}
-                              heading={texts(activeLocale).messages.previewErrorHeading}
-                              message={value}
-                            />
-                            {!messageAppears(rules, key) ? (
-                              <s-text color="subdued">{t.messages.previewNotShown}</s-text>
-                            ) : null}
-                          </s-stack>
+                          <s-box background="subdued" borderRadius="base" padding="base">
+                            <s-stack direction="block" gap="small-100">
+                              <s-grid
+                                gridTemplateColumns="auto minmax(0, 1fr)"
+                                gap="small-100"
+                                alignItems="start"
+                              >
+                                <s-icon type="view" color="subdued" />
+                                <s-text type="strong">{t.messages.previewHeading}</s-text>
+                              </s-grid>
+                              {/* P2-T7: la nota su posizione e aspetto sta una volta sola,
+                                dentro l'anteprima principale. */}
+                              <CheckoutErrorPreview
+                                locale={activeLocale}
+                                label={fieldLabelFor(key).label}
+                                message={value}
+                              />
+                              {!messageAppears(rules, key) ? (
+                                <s-text color="subdued">{t.messages.previewNotShown}</s-text>
+                              ) : null}
+                            </s-stack>
+                          </s-box>
                         </div>
                       </s-stack>
                     );
@@ -476,22 +487,19 @@ function MessageVisibilityAside({ t, rules }: { t: MessagesCopy; rules: Messages
     <s-section heading={t.messages.appearHeading}>
       <s-stack direction="block" gap="base">
         <s-paragraph>{t.messages.appearIntro}</s-paragraph>
-        {/* M7: raggruppate per campo, le voci brevi stanno su una riga anche nella colonna. */}
-        {MESSAGE_GROUPS.map(([field, keys]) => (
-          <s-stack key={field} direction="block" gap="small-100">
-            <s-text type="strong">{t.messages.fieldNames[field]}</s-text>
-            <div className="cf-data-list">
-              {keys.map((key) => (
-                <div className="cf-data-row" key={key}>
-                  <s-text>{t.messages.shortLabels[key]}</s-text>
-                  <s-badge tone={messageAppears(rules, key) ? "success" : "neutral"}>
-                    {messageAppears(rules, key) ? t.messages.appears : t.messages.appearsNot}
-                  </s-badge>
-                </div>
-              ))}
-            </div>
-          </s-stack>
-        ))}
+        {[true, false].map((appears) => {
+          const keys = MESSAGE_KEYS.filter((key) => messageAppears(rules, key) === appears);
+          return keys.length > 0 ? (
+            <s-stack key={String(appears)} direction="block" gap="small-100">
+              <s-heading>{appears ? t.messages.appears : t.messages.appearsNot}</s-heading>
+              <s-unordered-list>
+                {keys.map((key) => (
+                  <s-list-item key={key}>{t.messages[key]}</s-list-item>
+                ))}
+              </s-unordered-list>
+            </s-stack>
+          ) : null;
+        })}
         <s-link href="/app/rules">{t.nav.rules}</s-link>
       </s-stack>
     </s-section>

@@ -30,6 +30,7 @@ describe("componenti merchant nel browser", () => {
       "plan.trialEndsSoon": ["10 settembre"],
       "plan.trialLastDay": ["10 settembre"],
       "plan.firstCharge": ["10 settembre"],
+      "plan.annualDescription": ["8,25 €"],
       "plan.nextCharge": ["10 settembre"],
       "plan.periodEnds": ["10 settembre"],
     };
@@ -64,13 +65,12 @@ describe("componenti merchant nel browser", () => {
       <CustomerMessagesPreview
         activeLocale="en"
         context="Contesto"
-        errorHeading="Errore"
         heading="Anteprima"
         fieldLabel="Tax code"
         fieldLabelHeading="Etichetta"
         hint="Suggerimento"
         message="Messaggio"
-        selectedHeading="Selezionato"
+        availability="Disponibilità"
         selectedLabel="Codice fiscale"
       />,
     );
@@ -80,9 +80,19 @@ describe("componenti merchant nel browser", () => {
     ).not.toBeNull();
     expect(view.container.querySelector('s-banner, [role="alert"]')).toBeNull();
     expect(view.container.querySelector("details")).toBeNull();
-    expect(view.container.querySelector('s-icon[type="alert-circle"]')).not.toBeNull();
+    expect(view.container.querySelector('s-icon[type="alert-circle"]')).toBeNull();
     expect(view.container.textContent?.match(/Anteprima/g)).toHaveLength(1);
-    expect(view.container.textContent).toContain("Messaggio");
+    expect(view.container.querySelector("s-box")?.textContent).toContain("Suggerimento");
+    expect(view.container.querySelector("s-badge")).toBeNull();
+    // N-1: campo nativo in sola lettura, con l'etichetta del campo e il messaggio come errore.
+    const field = view.container.querySelector<HTMLElement & { error: string; label: string }>(
+      ".customer-messages-preview__error s-text-field",
+    )!;
+    expect(
+      field.hasAttribute("readonly") || (field as unknown as { readOnly: boolean }).readOnly,
+    ).toBe(true);
+    expect(field.label ?? field.getAttribute("label")).toBe("Tax code");
+    expect(field.error ?? field.getAttribute("error")).toBe("Messaggio");
   });
 
   test("la textarea resta non controllata e inoltra il focus", async () => {
@@ -261,6 +271,7 @@ describe("componenti merchant nel browser", () => {
         />,
       );
       mounted.push(view);
+      expect(view.container.textContent).not.toContain(copy.noFieldsShown);
       const change = async (selector: string, value: string | boolean) => {
         const field = view.container.querySelector(selector) as HTMLElement & {
           value: string;
@@ -271,7 +282,9 @@ describe("componenti merchant nel browser", () => {
         await dispatch(field, new Event("change", { bubbles: true }));
       };
       await change(`s-checkbox[label="${copy.taxCodePresent}"]`, false);
+      expect(view.container.textContent).not.toContain(copy.noFieldsShown);
       await change(`s-checkbox[label="${copy.pecPresent}"]`, false);
+      expect(view.container.textContent).toContain(copy.noFieldsShown);
       const company = view.container.querySelector("s-text-field") as HTMLElement & {
         value: string;
       };
@@ -281,6 +294,7 @@ describe("componenti merchant nel browser", () => {
       await change(`s-select[label="${copy.checkoutStep}"]`, "CHECKOUT_COMPLETION");
       const errors = view.container.querySelector(".checkout-simulator__missing-fields")!;
       expect(errors).not.toBeNull();
+      expect(view.container.textContent).not.toContain(copy.noFieldsShown);
       expect(errors.textContent?.toLowerCase()).toContain(
         locale === "it" ? "codice fiscale" : "italian tax code",
       );
@@ -288,6 +302,7 @@ describe("componenti merchant nel browser", () => {
       expect(errors.textContent).toContain(copy.advanced);
       await change(`s-select[label="${copy.billingCountry}"]`, "FR");
       expect(view.container.querySelector(".checkout-simulator__missing-fields")).toBeNull();
+      expect(view.container.textContent).toContain(copy.noFieldsShown);
       await change(`s-select[label="${copy.billingCountry}"]`, "IT");
       await change(`s-select[label="${copy.deliveryCountry}"]`, "unknown");
       expect(view.container.querySelector(".checkout-simulator__missing-fields")).toBeNull();

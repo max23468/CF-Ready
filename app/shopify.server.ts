@@ -5,7 +5,7 @@ import { logEvent } from "./events.server";
 import { D1SessionStorage, recordSessionTiming } from "./session-storage.server";
 import { ALLOWED_SHOP } from "./env.server";
 import { recordInstallOnce, refuseInstall } from "./shop.server";
-import { POLARIS_URL } from "./shopify-ui";
+import { polarisUrlForEnvironment } from "./shopify-ui";
 
 type ShopifyBindings = Env & {
   SCOPES?: string;
@@ -27,7 +27,7 @@ const shopify = shopifyApp({
   authPathPrefix: "/auth",
   sessionStorage: d1SessionStorage,
   distribution: AppDistribution.AppStore,
-  polarisUrl: POLARIS_URL,
+  polarisUrl: polarisUrlForEnvironment(bindings.APP_ENVIRONMENT),
   future: {
     expiringOfflineAccessTokens: true,
   },
@@ -36,7 +36,7 @@ const shopify = shopifyApp({
     // lo stato autorevole senza duplicare chiamate Shopify nel percorso critico di auth.
     afterAuth: async ({ session }) => {
       const startedAt = performance.now();
-      if (ALLOWED_SHOP && session.shop !== ALLOWED_SHOP) {
+      if (ALLOWED_SHOP && !ALLOWED_SHOP.split(",").includes(session.shop)) {
         await refuseInstall(bindings.DB, session.shop);
         throw new Response("Questa installazione di CF Ready è riservata allo store di sviluppo.", {
           status: 403,

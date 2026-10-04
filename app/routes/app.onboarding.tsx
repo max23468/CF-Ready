@@ -4,11 +4,7 @@ import { useFetcher, useLoaderData, useNavigate } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError, type AppErrorCode } from "../app-error";
 import { requestAppWindowNavigation } from "../app-window-navigation";
-import {
-  checkoutLabelCopy,
-  checkoutLabelValuesMatch,
-  proposedLabelForSlot,
-} from "../checkout-labels/domain";
+import { checkoutLabelCopy } from "../checkout-labels/domain";
 import {
   oneOf,
   MESSAGE_KEYS,
@@ -16,7 +12,6 @@ import {
   PEC_RULE_MODES,
   pendingFetcherIntent,
   TAX_CODE_RULE_MODES,
-  type Rules,
 } from "../config";
 import { onboardingStep4State } from "../features/onboarding/step4-state";
 import {
@@ -26,16 +21,15 @@ import {
   OnboardingStep4Actions,
   OnboardingStep4Content,
 } from "../features/onboarding/OnboardingSections";
-import { useCheckoutLabelScopeRequest } from "../features/use-checkout-label-scopes";
-import { AutomaticLabelsConfirmModal } from "../features/rules/AutomaticLabelsConfirmModal";
 import { CheckoutErrorPreview } from "../features/messages/CustomerMessagesPreview";
 import {
   planComparisonLocationState,
   requestPlanComparisonFromFrame,
 } from "../features/home/plan-comparison";
-import { describeCheckout, quoteLabel, texts } from "../i18n";
+import { describeCheckout, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { action, loader } from "../features/onboarding/onboarding.server";
+import { BrandMark } from "../ui-brand";
 import "./app.onboarding.css";
 
 export { action, loader };
@@ -44,32 +38,23 @@ export { OnboardingListBlock, OnboardingProgress, OnboardingStep4Content };
 
 export const shouldRevalidate = skipRevalidationWhenLeaving;
 
-const LABEL_CONFIRM_MODAL = "confirm-onboarding-checkout-label-management";
-
 export default function Onboarding() {
   const saved = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const fetcher = useFetcher<typeof action>();
   const t = texts(saved.locale);
   const [step, setStepState] = useState(saved.step);
-  const [draftRules, setDraftRules] = useState<Rules>(saved.rules);
-  const [labelsEnabled, setLabelsEnabled] = useState(saved.labelState.mode !== "off");
   const [finished, setFinished] = useState(false);
-  const { requestPermissions, scopeRequestBusy, scopeRequestError } =
-    useCheckoutLabelScopeRequest();
   const form = useRef<HTMLFormElement>(null);
   // Un secondo canale per la sola memoria del passo: la scrittura non tocca lo stato del
   // pulsante principale e non viene mai riletta, quindi non può far rimbalzare la pagina.
   const progress = useFetcher();
-  const busy = fetcher.state !== "idle" || scopeRequestBusy;
-  const pendingIntent = scopeRequestBusy
-    ? "request_label_scopes"
-    : pendingFetcherIntent(fetcher.formData);
+  const busy = fetcher.state !== "idle";
+  const pendingIntent = pendingFetcherIntent(fetcher.formData);
   const esito = fetcher.data as { ok: boolean; errorCode?: AppErrorCode } | undefined;
   const step4State = onboardingStep4State(saved);
 
   const go = (intent: string, extra: Record<string, string> = {}) => {
-    if (intent === "request_label_scopes") return void requestPermissions();
     fetcher.submit({ intent, step: String(step), ...extra }, { method: "post" });
   };
 
@@ -137,52 +122,13 @@ export default function Onboarding() {
     go(intent);
   };
 
-  const readForm = () => {
-    const data = form.current ? new FormData(form.current) : null;
-    const taxCode = oneOf(TAX_CODE_RULE_MODES, data?.get("taxCode"));
-    const pec = oneOf(PEC_RULE_MODES, data?.get("pec"));
-    if (taxCode && pec) setDraftRules({ taxCode, pec });
-  };
-
-  const automaticLabelsAvailable = Boolean(
-    saved.labelSnapshot?.slots.some(
-      (slot) => slot.capability === "automatic" && (slot.name === "taxCode" || slot.name === "pec"),
-    ),
-  );
-  const automaticLabelWrites =
-    saved.labelSnapshot?.slots.flatMap((slot) => {
-      if (slot.capability !== "automatic" || (slot.name !== "taxCode" && slot.name !== "pec")) {
-        return [];
-      }
-      const proposed = proposedLabelForSlot(slot, draftRules);
-      if (proposed === null || checkoutLabelValuesMatch(proposed, slot.currentValue)) return [];
-      return [{ slot, proposed }];
-    }) ?? [];
-
-  const saveRules = (confirmAutomaticWrite = false) => {
+  const saveRules = () => {
     const data = form.current ? new FormData(form.current) : null;
     const taxCode = oneOf(TAX_CODE_RULE_MODES, data?.get("taxCode"));
     const pec = oneOf(PEC_RULE_MODES, data?.get("pec"));
     if (!taxCode || !pec) return;
-    if (
-      saved.completed &&
-      taxCode === saved.rules.taxCode &&
-      pec === saved.rules.pec &&
-      labelsEnabled === (saved.labelState.mode !== "off")
-    ) {
+    if (saved.completed && taxCode === saved.rules.taxCode && pec === saved.rules.pec) {
       setStep(3);
-      return;
-    }
-    if (
-      !confirmAutomaticWrite &&
-      labelsEnabled &&
-      saved.labelState.mode === "off" &&
-      automaticLabelWrites.length > 0
-    ) {
-      const modal = document.getElementById(LABEL_CONFIRM_MODAL) as
-        | (HTMLElement & { showOverlay?: () => void })
-        | null;
-      modal?.showOverlay?.();
       return;
     }
     savingRules.current = true;
@@ -190,31 +136,25 @@ export default function Onboarding() {
       taxCode,
       pec,
       configHash: saved.configHash ?? "",
-      labelsEnabled: labelsEnabled ? "1" : "0",
-      labelsConfirmed: confirmAutomaticWrite ? "1" : "0",
+      labelsEnabled: saved.labelState.mode !== "off" ? "1" : "0",
+      labelsConfirmed: "0",
       labelsRevision: saved.labelSnapshot?.revision ?? "",
     });
   };
 
   return (
-    <form ref={form} onChange={readForm}>
-      <AutomaticLabelsConfirmModal
-        id={LABEL_CONFIRM_MODAL}
-        locale={saved.locale}
-        writes={automaticLabelWrites}
-        onConfirm={() => saveRules(true)}
-      />
+    <form ref={form}>
       {/* O1: pagina stretta nativa, così testo e select non corrono a tutta larghezza. */}
       <s-page heading={t.onboarding.heading} inlineSize="small">
-        {(esito && !esito.ok) || scopeRequestError ? (
+        {esito && !esito.ok ? (
           <div className="cf-motion-reveal">
-            <s-banner tone="critical">
-              {localizedError(t.errors, scopeRequestError ?? esito?.errorCode)}
-            </s-banner>
+            <s-banner tone="critical">{localizedError(t.errors, esito.errorCode)}</s-banner>
           </div>
         ) : null}
 
-        <s-section>
+        {/* P2-T3: il titolo del passo sta fuori dalla card, come nelle altre pagine; i titoli
+            di gruppo dentro la card gli restano subordinati. */}
+        <s-section heading={onboardingStepHeading(step, t)}>
           <s-stack direction="block" gap="base">
             <OnboardingProgress step={step} t={t} />
 
@@ -222,10 +162,6 @@ export default function Onboarding() {
               step={step}
               saved={saved}
               t={t}
-              draftRules={draftRules}
-              labelsEnabled={labelsEnabled}
-              automaticLabelsAvailable={automaticLabelsAvailable}
-              setLabelsEnabled={setLabelsEnabled}
               state={step4State}
               busy={busy}
               pendingIntent={pendingIntent}
@@ -234,11 +170,6 @@ export default function Onboarding() {
             />
 
             <s-stack direction="inline" gap="base">
-              {step > 1 ? (
-                <s-button disabled={busy} onClick={() => setStep(step - 1)}>
-                  {t.onboarding.back}
-                </s-button>
-              ) : null}
               {step === 4 ? (
                 <OnboardingStep4Actions
                   t={t}
@@ -261,6 +192,11 @@ export default function Onboarding() {
                   {t.onboarding.next}
                 </s-button>
               )}
+              {step > 1 ? (
+                <s-button disabled={busy} onClick={() => setStep(step - 1)}>
+                  {t.onboarding.back}
+                </s-button>
+              ) : null}
             </s-stack>
           </s-stack>
         </s-section>
@@ -276,16 +212,19 @@ type CurrentStepProps = {
   step: number;
   saved: OnboardingData;
   t: OnboardingCopy;
-  draftRules: Rules;
-  labelsEnabled: boolean;
-  automaticLabelsAvailable: boolean;
-  setLabelsEnabled: (enabled: boolean) => void;
   state: ReturnType<typeof onboardingStep4State>;
   busy: boolean;
   pendingIntent: string | null;
   go: (intent: string, extra?: Record<string, string>) => void;
   showPlans: () => void;
 };
+
+function onboardingStepHeading(step: number, t: OnboardingCopy) {
+  if (step === 1) return t.onboarding.welcomeHeading;
+  if (step === 2) return t.onboarding.step2Heading;
+  if (step === 3) return t.onboarding.step3Heading;
+  return t.onboarding.step4Heading;
+}
 
 function OnboardingCurrentStep(props: CurrentStepProps) {
   let content = null;
@@ -315,14 +254,11 @@ function OnboardingCurrentStep(props: CurrentStepProps) {
 function OnboardingIntroduction({ t }: { t: OnboardingCopy }) {
   return (
     <>
-      {/* O4: icona piccola accanto al titolo, che resta l'elemento principale. */}
-      <s-stack direction="block" gap="small-100">
-        <s-grid gridTemplateColumns="auto minmax(0, 1fr)" gap="small-200" alignItems="center">
-          <s-avatar src="/favicon.svg" alt="CF Ready" size="base" />
-          <s-heading>{t.onboarding.welcomeHeading}</s-heading>
-        </s-grid>
+      {/* O4: icona piccola accanto all'introduzione; il titolo è quello della sezione. */}
+      <s-grid gridTemplateColumns="auto minmax(0, 1fr)" gap="small-200" alignItems="center">
+        <BrandMark />
         <s-paragraph>{t.onboarding.welcomeBody}</s-paragraph>
-      </s-stack>
+      </s-grid>
       <s-divider />
       <s-stack direction="block" gap="small-100">
         <s-heading>{t.onboarding.step1Heading}</s-heading>
@@ -339,146 +275,81 @@ function OnboardingRules(props: CurrentStepProps) {
   const { saved, t } = props;
   return (
     <>
-      <s-stack direction="block" gap="small-100">
-        <s-heading>{t.onboarding.step2Heading}</s-heading>
-        <s-paragraph>{t.onboarding.step2Body}</s-paragraph>
-      </s-stack>
-      {/* Codice Fiscale e PEC hanno un titolo come "Campo Interno": stessa gerarchia. */}
-      {/* Titolo e opzioni restano vicini, come nelle card di Regole. */}
-      <s-stack direction="block" gap="small-100">
-        <s-heading>{t.rules.taxCodeLabel}</s-heading>
-        <s-choice-list
-          label={t.rules.taxCodeLabel}
-          labelAccessibilityVisibility="exclusive"
-          name="taxCode"
-        >
-          {TAX_CODE_RULE_MODES.map((mode) => (
-            <s-choice key={mode} value={mode} selected={mode === saved.rules.taxCode}>
-              {t.rules.taxCode[mode]}
-              <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
-            </s-choice>
-          ))}
-        </s-choice-list>
-      </s-stack>
-      <s-stack direction="block" gap="small-100">
-        <s-heading>{t.rules.pecLabel}</s-heading>
-        <s-choice-list label={t.rules.pecLabel} labelAccessibilityVisibility="exclusive" name="pec">
-          {PEC_RULE_MODES.map((mode) => (
-            <s-choice key={mode} value={mode} selected={mode === saved.rules.pec}>
-              {t.rules.pec[mode]}
-              <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
-            </s-choice>
-          ))}
-        </s-choice-list>
-      </s-stack>
-      <s-divider />
-      <s-heading>{t.rules.labels.addressHeading}</s-heading>
-      <s-select
-        label={t.rules.labels.addressModeLabel}
-        placeholder={t.rules.labels.addressModePlaceholder}
-        value={saved.labelState.address2FormMode ?? undefined}
-        disabled={props.busy}
-        onChange={(event) =>
-          props.go("save_address2_form_mode", {
-            address2FormMode: event.currentTarget.value,
-          })
-        }
-      >
-        <s-option value="required">{t.rules.labels.addressRequired}</s-option>
-        <s-option value="optional">{t.rules.labels.addressOptional}</s-option>
-        <s-option value="hidden">{t.rules.labels.addressHidden}</s-option>
-      </s-select>
-      <s-paragraph color="subdued">{t.rules.labels.addressModeHelp}</s-paragraph>
-      <s-box background="subdued" borderRadius="base" padding="base">
-        <s-stack direction="block" gap="small-100">
-          <s-heading>{t.onboarding.labelsPreviewHeading}</s-heading>
-          {(["it", "en"] as const).map((locale) => {
-            const label = (copy: string | null) =>
-              copy === null ? t.rules.labels.unchanged : quoteLabel(copy, props.saved.locale);
-            return (
-              <s-text key={locale}>
-                {locale === "it" ? t.messages.italian : t.messages.english}:{" "}
-                {label(checkoutLabelCopy("taxCode", locale, props.draftRules.taxCode))},{" "}
-                {label(checkoutLabelCopy("pec", locale, props.draftRules.pec))}
-              </s-text>
-            );
-          })}
+      <s-paragraph>{t.onboarding.step2Body}</s-paragraph>
+      {/* P2-T8: titolo e opzioni restano vicini, i due gruppi più distanti tra loro. */}
+      <s-stack direction="block" gap="large">
+        <s-stack direction="block" gap="small-300">
+          <s-heading>{t.rules.taxCodeLabel}</s-heading>
+          <s-choice-list
+            label={t.rules.taxCodeLabel}
+            labelAccessibilityVisibility="exclusive"
+            name="taxCode"
+          >
+            {TAX_CODE_RULE_MODES.map((mode) => (
+              <s-choice key={mode} value={mode} selected={mode === saved.rules.taxCode}>
+                {t.rules.taxCode[mode]}
+                <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
+              </s-choice>
+            ))}
+          </s-choice-list>
         </s-stack>
-      </s-box>
-      <OnboardingLabelControls {...props} />
+        <s-stack direction="block" gap="small-300">
+          <s-heading>{t.rules.pecLabel}</s-heading>
+          <s-choice-list
+            label={t.rules.pecLabel}
+            labelAccessibilityVisibility="exclusive"
+            name="pec"
+          >
+            {PEC_RULE_MODES.map((mode) => (
+              <s-choice key={mode} value={mode} selected={mode === saved.rules.pec}>
+                {t.rules.pec[mode]}
+                <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
+              </s-choice>
+            ))}
+          </s-choice-list>
+        </s-stack>
+      </s-stack>
     </>
   );
 }
 
-function OnboardingLabelControls(props: CurrentStepProps) {
-  const { saved, t } = props;
-  if (!saved.labelScopesGranted) {
-    return (
-      <s-stack direction="block" gap="small-100">
-        <s-paragraph>{t.onboarding.labelsPermissionsOptional}</s-paragraph>
-        <s-button
-          disabled={props.busy}
-          loading={props.pendingIntent === "request_label_scopes"}
-          onClick={() => props.go("request_label_scopes")}
-        >
-          {t.rules.labels.requestPermissions}
-        </s-button>
-      </s-stack>
-    );
-  }
-  return (
-    <s-stack direction="block" gap="small-100">
-      <s-checkbox
-        label={props.automaticLabelsAvailable ? t.rules.labels.enable : t.rules.labels.enableGuided}
-        checked={props.labelsEnabled}
-        onChange={(event) => props.setLabelsEnabled(event.currentTarget.checked)}
-      />
-    </s-stack>
-  );
-}
-
 function OnboardingPreview({ saved, t }: { saved: OnboardingData; t: OnboardingCopy }) {
+  const messages = MESSAGE_KEYS.filter((key) => messageAppears(saved.rules, key));
   return (
     <>
-      <s-stack direction="block" gap="small-100">
-        <s-heading>{t.onboarding.step3Heading}</s-heading>
-        <s-paragraph>{t.onboarding.step3Body}</s-paragraph>
-      </s-stack>
+      <s-paragraph>{t.onboarding.step3Body}</s-paragraph>
+      {/* P2-T7: il limite alle consegne in Italia sta già nel passo 1. */}
       {describeCheckout({ rules: saved.rules, status: "active" }, saved.locale).map((line) => (
         <s-paragraph key={line}>{line}</s-paragraph>
       ))}
-      <OnboardingListBlock
-        lead={<s-heading>{t.rules.exceptionsHeading}</s-heading>}
-        items={t.rules.exceptions}
-      />
       <s-stack direction="block" gap="small-100">
         <s-heading>{t.onboarding.step3Messages}</s-heading>
-        <s-paragraph>{t.onboarding.step3MessagesBody}</s-paragraph>
+        <s-paragraph>
+          {messages.length ? t.onboarding.step3MessagesBody : t.onboarding.step3NoMessages}
+        </s-paragraph>
+        {messages.length ? <s-text color="subdued">{t.messages.previewHint}</s-text> : null}
       </s-stack>
-      {/* O2, O3: ogni messaggio è un blocco con etichetta e lo stesso riquadro d'errore
+      {/* O2, O3: ogni messaggio è un blocco con etichetta e lo stesso campo d'esempio
           dell'anteprima in Messaggi; i blocchi sono più distanti tra loro che al loro interno. */}
       <s-stack direction="block" gap="large">
-        {MESSAGE_KEYS.map((key) => (
-          <div className="onboarding-message" key={key}>
-            <s-stack direction="block" gap="small-300">
-              <s-stack direction="inline" gap="small-100" alignItems="center">
+        {messages.map((key) => {
+          const field = key.startsWith("taxCode") ? "taxCode" : "pec";
+          return (
+            <div className="onboarding-message" key={key}>
+              <s-stack direction="block" gap="small-200">
                 <s-text type="strong">{t.messages[key]}</s-text>
-                <s-badge tone={messageAppears(saved.rules, key) ? "success" : "neutral"}>
-                  {messageAppears(saved.rules, key) ? t.messages.appears : t.messages.appearsNot}
-                </s-badge>
+                <CheckoutErrorPreview
+                  locale={saved.locale}
+                  label={
+                    checkoutLabelCopy(field, saved.locale, saved.rules[field]) ??
+                    t.rules[`${field}Label`]
+                  }
+                  message={saved.messages[saved.locale][key]}
+                />
               </s-stack>
-              <CheckoutErrorPreview
-                locale={saved.locale}
-                heading={t.messages.previewErrorHeading}
-                message={saved.messages[saved.locale][key]}
-              />
-              {/* Come in Messaggi: il riquadro mostra il testo, la nota dice che non comparirà. */}
-              {messageAppears(saved.rules, key) ? null : (
-                <s-text color="subdued">{t.messages.previewNotShown}</s-text>
-              )}
-            </s-stack>
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </s-stack>
     </>
   );
