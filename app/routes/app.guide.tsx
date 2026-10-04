@@ -238,15 +238,17 @@ export default function Guide() {
                 </span>
               ) : null}
               <s-divider />
-              <s-link
-                href="#validation-diagnosis"
-                onClick={(event) => {
-                  event.preventDefault();
-                  showDiagnosis();
-                }}
-              >
-                {t.guide.diagnosis.heading}
-              </s-link>
+              <div className="guide-support__diagnosis-link">
+                <s-link
+                  href="#validation-diagnosis"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    showDiagnosis();
+                  }}
+                >
+                  {t.guide.diagnosis.heading}
+                </s-link>
+              </div>
             </s-stack>
           </div>
         </s-section>

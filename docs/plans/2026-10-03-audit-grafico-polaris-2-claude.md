@@ -894,3 +894,27 @@ componente React e l’avviso usa `RulesResultBanners`, che riceve già lo stato
 di bozza. React Doctor torna a 100/100, senza soppressioni; `npm run check`
 è stato ripetuto e passa su 2.0.13. Il bump di manifest e lockfile porta la
 pubblicazione nella corsia `full`, con i gate mutation richiesti dalla CI.
+
+### 27.1 Pubblicazione Development e correzione della spaziatura
+
+2.0.13 pubblicata solo Development con
+[#646](https://github.com/max23468/CF-Ready/pull/646), commit `9a99ffc`,
+versione Shopify `2.0.13-dev.94cb8af17d9a`.
+Il [run di deploy](https://github.com/max23468/CF-Ready/actions/runs/37223333938)
+contiene la ricevuta: Worker deployment `bbf5570d-58b6-4ace-9d3f-027a489db620`,
+migrazioni, smoke e readback verdi. Rollback Shopify
+`2.0.12-dev.3ef5b2206e29`; Worker `a067e391-04d7-406a-9617-41602b151959`.
+
+Primo riscontro Chrome su `cf-ready-polaris-2`, italiano, 1440×666:
+FAQ allineate, domande semibold, risposte secondarie; diagnosi con riepilogo
+di attenzione e link distinti; assistenza con azioni secondaria e terziaria.
+Passi 1–3 dell’onboarding osservati. La verifica è stata interrotta dall’owner
+per due rifiniture della Guida e prosegue dopo il prossimo deploy.
+
+L’owner ha chiesto di sfruttare la fascia vuota a destra delle risposte e di
+centrare «Il controllo non compare?» tra i separatori. In 2.0.14 viene rimosso
+il limite di 70 caratteri, sostituendo la scelta di G-2 descritta sopra: la
+risposta occupa tutta la larghezza disponibile. Il link riceve lo spazio
+aggiuntivo sopra richiesto dall’aside Polaris 2; Polaris 1 conserva la sua
+spaziatura. I controlli con Polaris reale misurano sia la larghezza delle
+risposte aperte sia la distanza del link dai due divisori.

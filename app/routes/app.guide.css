@@ -37,7 +37,12 @@
 
 .guide-faq__answer {
   padding-block-start: 8px;
-  max-inline-size: 70ch;
+}
+
+/* L’aside v2 aggiunge uno spazio tra il fondo della sezione e il divisore
+   successivo. Lo stesso spazio sopra il link lo centra tra i due divisori. */
+html[data-polaris-version="2"] .guide-support__diagnosis-link {
+  padding-block-start: var(--p-space-400, 1rem);
 }
 
 /* La sezione riceve il focus solo per portarvi tastiera e lettori di schermo dal salto in

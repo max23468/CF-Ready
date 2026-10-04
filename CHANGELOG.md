@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.14 — 4 ottobre 2026
+
+- usa tutta la larghezza della FAQ per le risposte, senza la fascia vuota
+  introdotta dal limite di 70 caratteri;
+- centra il link «Il controllo non compare?» tra i divisori dell’assistenza
+  Polaris 2, mantenendo la spaziatura Polaris 1.
+  Pubblicazione solo Development, senza promozione Production.
+
+FAQ answers use the available card width. The diagnosis link is centred
+between the support dividers in Polaris 2.
+
 ## 2.0.13 — 4 ottobre 2026
 
 - allinea domande e risposte delle FAQ e limita la larghezza delle risposte;

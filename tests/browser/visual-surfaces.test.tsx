@@ -416,7 +416,7 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
     view.container.querySelector(".guide-faq__entries")!.getBoundingClientRect().left,
   );
   const answer = view.container.querySelector<HTMLElement>(".guide-faq__answer")!;
-  expect(parseFloat(getComputedStyle(answer).maxInlineSize)).toBeLessThan(900);
+  expect(getComputedStyle(answer).maxInlineSize).toBe("none");
   expect(answer.querySelector('s-paragraph[color="subdued"]')).not.toBeNull();
   // G-B7: lo sfondo di hover non sporge oltre le linee divisorie.
   for (const entry of view.container.querySelectorAll<HTMLElement>(".guide-faq__entry")) {
@@ -445,6 +445,8 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
     `__screenshots__/visual/guide-top-${server.browser}-390.png`,
   );
   await page.viewport(1280, 844);
+  await page.getByRole("button", { name: texts("it").guide.expandAll, exact: true }).click();
+  expect(answer.getBoundingClientRect().width).toBe(summary.getBoundingClientRect().width);
   await captureSurface(
     view.container,
     `__screenshots__/visual/guide-top-${server.browser}-1280.png`,
@@ -462,6 +464,17 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
     texts("it").guide.diagnosis.heading,
   );
   expect(support.querySelector('s-button[variant="primary"]')).toBeNull();
+  if (polarisV2) {
+    const divider = surfaceRect(support.querySelector("s-divider")!);
+    const link = surfaceRect(support.querySelector('s-link[href="#validation-diagnosis"]')!);
+    const nextSection = support.closest("s-section")!.nextElementSibling!;
+    const section = nextSection.shadowRoot!.querySelector("section")!;
+    const before = getComputedStyle(section, "::before");
+    const lowerDividerTop = section.getBoundingClientRect().top + parseFloat(before.top);
+    expect(
+      Math.abs(link.top - divider.bottom - (lowerDividerTop - link.bottom)),
+    ).toBeLessThanOrEqual(1);
+  }
   // L'Admin embedded può coprire il bordo superiore: il salto deve lasciare visibile il titolo.
   const header = document.createElement("div");
   header.style.cssText = "position:fixed;inset:0 0 auto;height:80px;z-index:1000;background:white";
