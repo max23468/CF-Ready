@@ -19,7 +19,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   lettura da Shopify non è arrivata (NP-4);
 - il riepilogo dei testi del checkout chiarisce che lo stato riguarda tutte
   le lingue, anche quando la tabella mostra solo quella selezionata;
-- registra l'audit italiano di Production su Numisleo.
+- registra gli audit italiani di Production su Numisleo in Chrome e Safari,
+  con tutte le schermate e i limiti delle verifiche.
 
 Stacked status labels use the full width; the manual-check FAQ names “Last
 read from Shopify” as shown in Rules; the Apartment field table labels its

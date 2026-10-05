@@ -10,6 +10,11 @@ dell'app, quindi emulano il layout dell'app e non la cornice mobile dell'host.
 
 ## Esito
 
+Questo documento riporta l'audit di Claude in Chrome. L'audit richiesto su
+Safari, con checkout reale italiano e 28 schermate, è registrato nel
+[rapporto Safari](2026-10-05-audit-numisleo-safari-production.md).
+I due audit restano distinti per browser, prove e scritture eseguite.
+
 Nessuna anomalia bloccante. Le pagine funzionano e rispettano Polaris 2 come
 lo store di preview. Quattro rilievi lievi: uno grafico introdotto dalla
 correzione di C-2 in 2.0.16, tre di testo o di caricamento nati prima.
@@ -72,5 +77,13 @@ pubblicazione. Ogni correzione ha un test che falliva prima:
 - **NP-4:** senza lettura salvata, l'esempio di Messaggi mostra solo il
   contesto finché Shopify non risponde; il test di caricamento lo verifica.
 
-La verifica live in Chrome resta da fare dopo una pubblicazione.
+Nella stessa PR #658 è incluso anche F1 del rapporto Safari: il riepilogo
+«Testi del checkout in tutte le lingue» chiarisce che lo stato riguarda
+tutte le lingue, indipendentemente dalla lingua selezionata nella tabella.
+Il test della route Regole riproduce il passaggio da Inglese a Italiano.
 
+Le cinque correzioni, i due audit e le rispettive prove sono raccolti nel
+candidato 2.0.18. Il coordinatore ha eseguito il gate completo e la coverage
+sul diff integrato con esito verde. Pubblicazione autorizzata solo in
+Development, senza promozione. La verifica live delle correzioni in
+Production resta pendente; questo audit osserva la versione 2.0.17.
