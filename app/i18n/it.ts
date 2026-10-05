@@ -359,7 +359,7 @@ export const it = {
           },
           {
             q: "Come completo la verifica manuale delle etichette?",
-            a: "In «Regole checkout», scegli la lingua e apri il caso che richiede attenzione. Segui i passaggi mostrati per controllare il checkout reale e, se necessario, modificare i testi nell’editor Shopify. Dopo aver salvato in Shopify, torna in CF Ready e premi «Rileggi i campi da Shopify». Quando i valori coincidono, conferma la verifica manuale. «Ultima lettura delle etichette da Shopify» indica quando CF Ready ha riletto i campi; «Ultima conferma manuale nel checkout» indica quando hai confermato il controllo nel checkout reale.",
+            a: "In «Regole checkout», scegli la lingua e apri il caso che richiede attenzione. Segui i passaggi mostrati per controllare il checkout reale e, se necessario, modificare i testi nell’editor Shopify. Dopo aver salvato in Shopify, torna in CF Ready e premi «Rileggi i campi da Shopify». Quando i valori coincidono, conferma la verifica manuale. «Ultima lettura da Shopify» indica quando CF Ready ha riletto i campi; «Ultima conferma manuale nel checkout» indica quando hai confermato il controllo nel checkout reale.",
           },
           {
             q: "Perché Codice Fiscale o PEC hanno ancora un’etichetta diversa?",
@@ -557,7 +557,7 @@ export const it = {
     labels: {
       heading: "Etichette del checkout",
       loading: "Rilettura delle etichette Shopify in corso…",
-      nativeHeading: "Testi del checkout",
+      nativeHeading: "Testi del checkout in tutte le lingue",
       permissionsHeading: "Controlla le etichette Shopify",
       permissionsBody:
         "Per confrontare le etichette, CF Ready ha bisogno di accedere a traduzioni, lingue e mercati.",
@@ -689,7 +689,9 @@ export const it = {
       addressLimit:
         "CF Ready controlla il testo. Visibilità e obbligatorietà restano nelle impostazioni checkout di Shopify.",
       notAvailable: "Non disponibile",
-      standardLabel: "Testo Shopify",
+      addressSettingColumn: "Configurazione Shopify",
+      standardLabel: "Testo standard Shopify",
+      addressAlreadyStandard: "Già standard",
       restoreAddress: "Ripristina le traduzioni gestibili",
       restoreAddressConfirm: "CF Ready ripristina le traduzioni mostrate qui, poi rilegge Shopify.",
       keepAddress: "Mantieni questa personalizzazione",

@@ -551,6 +551,14 @@ describe("Regole", () => {
     expect(addressHelp[0].textContent).toContain(texts("it").rules.labels.addressLimit);
     // Punto 7: anche le etichette del campo Interno sono tra virgolette.
     expect(disclosures?.[0].querySelector("s-table-body s-table-row")?.textContent).toMatch(/«.+»/);
+    // NP-3: le colonne dicono cosa contengono: configurazione di Shopify e testo standard.
+    expect(
+      [...disclosures![0].querySelectorAll("s-table-header")].map((header) => header.textContent),
+    ).toEqual([
+      texts("it").rules.labels.addressSettingColumn,
+      texts("it").rules.labels.current,
+      texts("it").rules.labels.standardLabel,
+    ]);
     // R-6: con una sola lingua il campo Interno non ripete «Predefinito per questa lingua».
     expect(disclosures?.[0].textContent).not.toContain(texts("it").rules.labels.generalText);
 
@@ -1427,6 +1435,12 @@ describe("Regole: salvataggio ed etichette (audit §5.1)", () => {
       (select) => select.getAttribute("label") === texts("it").rules.labels.language,
     );
     expect(language?.getAttribute("value")).toBe("en");
+    const italian = language as HTMLElement & { value: string };
+    italian.value = "it";
+    await dispatch(italian, new Event("change", { bubbles: true }));
+    const summary = view.container.querySelector("#checkout-native-labels summary");
+    expect(summary?.textContent).toContain("Testi del checkout in tutte le lingue");
+    expect(summary?.textContent).toContain("Un checkout in inglese richiede una verifica.");
   });
 
   test("il banner delle etichette porta a Testi del checkout", async () => {

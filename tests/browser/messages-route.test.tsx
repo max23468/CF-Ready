@@ -86,7 +86,12 @@ describe("Messaggi", () => {
       rules: DEFAULT_CONFIG.rules,
       labelSnapshot: null,
     };
-    await mount(<CustomerMessages />);
+    const view = await mount(<CustomerMessages />);
+    // NP-4: finché la lettura non arriva l'esempio non dichiara da dove viene l'etichetta.
+    expect(view.container.textContent).not.toContain(
+      texts("it").messages.previewProposedFieldLabel,
+    );
+    expect(view.container.textContent).not.toContain(texts("it").messages.previewCurrentFieldLabel);
     expect(router.fetcher.submit).toHaveBeenCalledWith(
       {
         intent: "load_checkout_labels",

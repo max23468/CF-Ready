@@ -5,7 +5,8 @@ type CustomerMessagesPreviewProps = {
   activeLocale: Locale;
   context: string;
   fieldLabel: string;
-  fieldLabelHeading: string;
+  // Assente mentre si attende la lettura da Shopify: non si dichiara una provenienza ignota.
+  fieldLabelHeading?: string;
   heading: string;
   hint: string;
   message: string;
@@ -40,7 +41,7 @@ export function CustomerMessagesPreview({
 
             <s-stack direction="block" gap="small-100">
               <s-text color="subdued">
-                {context}, {fieldLabelHeading}
+                {fieldLabelHeading ? `${context}, ${fieldLabelHeading}` : context}
               </s-text>
               <CheckoutErrorPreview locale={activeLocale} label={fieldLabel} message={message} />
             </s-stack>
