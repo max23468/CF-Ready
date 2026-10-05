@@ -1174,6 +1174,16 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
         labelState: { ...onboardingData.labelState, address2Classification },
       };
       const summary = await mount(<Onboarding />);
+      // NP-1: impilata, l'etichetta usa tutta la riga invece di andare a capo a metà.
+      for (const label of summary.container.querySelectorAll<HTMLElement>(
+        ".cf-status-list__label",
+      )) {
+        const lines = document.createRange();
+        lines.selectNodeContents(label);
+        expect(new Set([...lines.getClientRects()].map((line) => Math.round(line.top))).size).toBe(
+          1,
+        );
+      }
       for (const value of summary.container.querySelectorAll<HTMLElement>(
         ".cf-status-list__value",
       )) {

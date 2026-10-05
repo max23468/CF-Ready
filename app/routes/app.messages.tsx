@@ -175,6 +175,8 @@ export default function CustomerMessages() {
 
   const labelSnapshot =
     (labelsFetcher.data?.ok ? labelsFetcher.data.loaded.snapshot : null) ?? saved.labelSnapshot;
+  // NP-4: senza lettura salvata, finché Shopify non risponde l'etichetta è solo provvisoria.
+  const labelsPending = !saved.labelSnapshot && !labelsFetcher.data;
   const remount = useCallback((fields: string[]) => {
     setMounted((current) => {
       const next = { ...current };
@@ -268,8 +270,10 @@ export default function CustomerMessages() {
   };
 
   // N-1: l'etichetta è la label del campo d'esempio, come nel checkout, quindi senza virgolette.
-  const fieldLabelFor = (key: MessageKey) =>
-    messageFieldLabel(t, saved.rules, activeLocale, key, labelSnapshot);
+  const fieldLabelFor = (key: MessageKey) => ({
+    ...messageFieldLabel(t, saved.rules, activeLocale, key, labelSnapshot),
+    pending: labelsPending,
+  });
 
   // FR-063: il ripristino agisce su una lingua sola e lo dichiara nella conferma. Non salva da
   // sé: rimette i testi predefiniti nei campi e il salvataggio resta un gesto esplicito.
@@ -367,7 +371,7 @@ function MessagesEditor({
   t: MessagesCopy;
   activeLocale: Locale;
   setActiveLocale: (locale: Locale) => void;
-  fieldLabelFor: (key: MessageKey) => { label: string; observed: boolean };
+  fieldLabelFor: (key: MessageKey) => { label: string; observed: boolean; pending: boolean };
   draft: CheckoutConfig["messages"];
   selectedKey: MessageKey;
   setSelectedKey: (key: MessageKey) => void;
@@ -397,9 +401,11 @@ function MessagesEditor({
           context={t.messages.previewContext}
           fieldLabel={previewField.label}
           fieldLabelHeading={
-            previewField.observed
-              ? t.messages.previewCurrentFieldLabel
-              : t.messages.previewProposedFieldLabel
+            previewField.pending
+              ? undefined
+              : previewField.observed
+                ? t.messages.previewCurrentFieldLabel
+                : t.messages.previewProposedFieldLabel
           }
           heading={t.messages.previewHeading}
           hint={t.messages.previewHint}

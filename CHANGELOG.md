@@ -6,6 +6,28 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.18 — 5 ottobre 2026
+
+- nelle righe di stato impilate l'etichetta usa tutta la larghezza e non va
+  più a capo a metà riga (NP-1);
+- la FAQ sulla verifica manuale cita «Ultima lettura da Shopify» come la
+  pagina Regole (NP-2);
+- la tabella di «Campo Interno» intitola le colonne «Configurazione Shopify»
+  e «Testo standard Shopify» e scrive «Già standard» quando il testo coincide
+  (NP-3);
+- in Messaggi l'esempio non dichiara la provenienza dell'etichetta finché la
+  lettura da Shopify non è arrivata (NP-4);
+- il riepilogo dei testi del checkout chiarisce che lo stato riguarda tutte
+  le lingue, anche quando la tabella mostra solo quella selezionata;
+- registra gli audit italiani di Production su Numisleo in Chrome e Safari,
+  con tutte le schermate e i limiti delle verifiche.
+
+Stacked status labels use the full width; the manual-check FAQ names “Last
+read from Shopify” as shown in Rules; the Apartment field table labels its
+columns “Shopify setting” and “Shopify standard text”; the message example
+no longer states where the label comes from before Shopify answers. The checkout
+text summary explicitly covers all languages, regardless of the selected table language.
+
 ## 2.0.17 — 4 ottobre 2026
 
 - carica Polaris 2.0 release candidate in tutti gli ambienti, Production
