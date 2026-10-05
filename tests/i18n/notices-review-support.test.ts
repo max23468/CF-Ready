@@ -263,3 +263,11 @@ test("in inglese il Codice Fiscale ha un solo nome", () => {
   expect(en.messages.taxCodeRequired).toMatch(/^Italian tax code /);
   expect(en.messages.taxCodeInvalid).toMatch(/^Italian tax code /);
 });
+
+test("la FAQ sulla verifica manuale cita le righe mostrate in Regole", () => {
+  for (const locale of ["it", "en"] as const) {
+    const t = texts(locale);
+    const answers = t.guide.groups.flatMap((group) => group.entries.map((entry) => entry.a));
+    expect(answers.join(" ")).toContain(quoteLabel(t.rules.labels.lastReadLabel, locale));
+  }
+});

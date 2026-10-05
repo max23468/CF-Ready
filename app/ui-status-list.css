@@ -12,6 +12,11 @@
 
 /* C-2: impilate, le coppie restano raggruppate; stessa soglia di `gridTemplateColumns`. */
 @container (inline-size <= 400px) {
+  /* NP-1: in colonna singola il limite a metà riga farebbe andare a capo etichette brevi. */
+  .cf-status-list__label {
+    max-inline-size: none;
+  }
+
   .cf-status-list__label:not(:first-child) {
     margin-block-start: 8px;
   }

@@ -359,7 +359,7 @@ export const en: typeof it = {
           },
           {
             q: "How do I complete a manual label check?",
-            a: "On “Checkout rules”, choose the language and open the case that needs attention. Follow the displayed steps to check a real checkout and, if necessary, edit the texts in Shopify’s editor. After saving in Shopify, return to CF Ready and select “Read fields again from Shopify”. When the values match, confirm the manual check. “Last read of labels from Shopify” shows when CF Ready read the fields; “Last manual confirmation in checkout” shows when you confirmed the real-checkout check.",
+            a: "On “Checkout rules”, choose the language and open the case that needs attention. Follow the displayed steps to check a real checkout and, if necessary, edit the texts in Shopify’s editor. After saving in Shopify, return to CF Ready and select “Read fields again from Shopify”. When the values match, confirm the manual check. “Last read from Shopify” shows when CF Ready read the fields; “Last manual confirmation in checkout” shows when you confirmed the real-checkout check.",
           },
           {
             q: "Why do the tax code or PEC still have a different label?",
@@ -552,7 +552,7 @@ export const en: typeof it = {
     labels: {
       heading: "Checkout labels",
       loading: "Reading Shopify labels…",
-      nativeHeading: "Checkout text",
+      nativeHeading: "Checkout text in all languages",
       permissionsHeading: "Check Shopify labels",
       permissionsBody:
         "To compare labels, CF Ready needs access to translations, languages and markets.",
@@ -685,7 +685,9 @@ export const en: typeof it = {
       addressLimit:
         "CF Ready checks the text. Visibility and requirement settings stay in Shopify checkout settings.",
       notAvailable: "Not available",
-      standardLabel: "Shopify text",
+      addressSettingColumn: "Shopify setting",
+      standardLabel: "Shopify standard text",
+      addressAlreadyStandard: "Already standard",
       restoreAddress: "Restore manageable translations",
       restoreAddressConfirm:
         "CF Ready restores the translations shown here, then reads Shopify again.",

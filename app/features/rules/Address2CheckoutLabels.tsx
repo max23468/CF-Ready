@@ -298,7 +298,8 @@ function Address2Comparison({
           {/* N-2: stessa tabella nativa di Testi del checkout. */}
           <s-table variant="auto">
             <s-table-header-row>
-              <s-table-header listSlot="primary">{copy.fieldColumn}</s-table-header>
+              {/* NP-3: la prima colonna è la configurazione di Shopify, la terza il testo standard. */}
+              <s-table-header listSlot="primary">{copy.addressSettingColumn}</s-table-header>
               <s-table-header>{copy.current}</s-table-header>
               <s-table-header>{copy.standardLabel}</s-table-header>
             </s-table-header-row>
@@ -327,7 +328,7 @@ function Address2Comparison({
                           copy.notAvailable
                         )
                       ) : (
-                        <s-text color="subdued">{copy.noChange}</s-text>
+                        <s-text color="subdued">{copy.addressAlreadyStandard}</s-text>
                       )}
                     </s-table-cell>
                   </s-table-row>
