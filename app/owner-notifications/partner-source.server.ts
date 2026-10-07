@@ -1,6 +1,7 @@
 import { trialLedgerHash as notificationShopHash } from "../hash.server";
 import { recordEvent } from "../events.server";
 import {
+  normalizeUninstallFeedback,
   saveUninstallFeedback,
   uninstallFeedbackSection,
 } from "../installation-diagnostics.server";
@@ -34,6 +35,7 @@ import {
   NOTIFICATION_PAGE_SIZE,
   billingNotificationKey,
   hasEquivalentNotification,
+  notificationKey,
   notificationStatement,
   partnerPollWindow,
   previousPlanKind,
@@ -194,8 +196,7 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode,
     ]);
     if (await hasEquivalentNotification(db, shopDomain, lifecycle.subject, occurredAt)) {
       if (uninstalled) {
-        // Nessun reinvio o modifica di messaggi già consegnati: /shop legge sempre il feedback.
-        await db
+        const enriched = await db
           .prepare(
             `UPDATE owner_notifications SET body_text = ?, updated_at = ?
              WHERE shop_domain = ? AND subject = ? AND status = 'pending'
@@ -203,6 +204,41 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode,
           )
           .bind(body, now.toISOString(), shopDomain, lifecycle.subject, occurredAt)
           .run();
+        if (enriched.meta.changes > 0) return null;
+        const feedback = normalizeUninstallFeedback(event);
+        if (!feedback || (!feedback.reason && !feedback.description)) return null;
+        const original = await db
+          .prepare(
+            `SELECT body_text FROM owner_notifications
+             WHERE shop_domain = ? AND subject = ?
+               AND ABS(unixepoch(source_occurred_at) - unixepoch(?)) <= 300
+             ORDER BY id LIMIT 1`,
+          )
+          .bind(shopDomain, lifecycle.subject, occurredAt)
+          .first<{ body_text: string }>();
+        const sharedReason = original?.body_text.match(/\nMotivo: ([^\n]+)/)?.[1];
+        const sharedComment = original?.body_text.match(/\nCommento: ([^\n]+)/)?.[1];
+        // Il corpo in processing è già stato acquisito dal mittente: non modificarlo.
+        // Anche i messaggi precedenti alla sezione feedback possono ricevere il seguito.
+        if (
+          !original ||
+          (sharedReason && sharedReason !== "Nessun motivo fornito") ||
+          (sharedComment && sharedComment !== "Nessun commento fornito")
+        )
+          return null;
+        return notificationStatement(db, {
+          dedupeKey: await notificationKey("uninstall-feedback", `${shopDomain}:${occurredAt}`),
+          kind: "lifecycle",
+          shopDomain,
+          shopHash: await notificationShopHash(shopDomain),
+          subject: "💬 CF Ready · Motivo della disinstallazione",
+          body: notificationBody(
+            "Shopify Partners ha reso disponibile il feedback della disinstallazione.",
+            occurredAt,
+            [storeSection(displayName, shopDomain, snapshot), uninstallFeedbackSection(event)],
+          ),
+          occurredAt,
+        });
       }
       return null;
     }

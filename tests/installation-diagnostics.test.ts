@@ -19,6 +19,10 @@ import {
   readShopFeedback,
 } from "../app/owner-control/shop-diagnostics.server";
 import { pollPartnerEvents } from "../app/owner-notifications/partner-source.server";
+import {
+  pollLocalNotifications,
+  deliverOwnerNotifications,
+} from "../app/owner-notifications.server";
 import { action, loader } from "../app/routes/app.engagement";
 
 vi.mock("../app/admin-auth.server", () => ({ authenticateAdmin: vi.fn() }));
@@ -365,4 +369,94 @@ test("un feedback tardivo arricchisce la notifica ancora pending senza crearne u
   expect(await env.DB.prepare("SELECT body_text FROM owner_notifications").first()).toMatchObject({
     body_text: expect.stringContaining("Cercavo una funzione diversa."),
   });
+});
+
+test.each(["sent", "processing", "failed"])(
+  "il feedback dopo l'avviso locale %s genera un solo messaggio separato",
+  async (status) => {
+    const current = await shop(true);
+    await env.DB.prepare(
+      `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
+       VALUES (?, 'app_uninstalled', 'lifecycle', ?)`,
+    )
+      .bind(current.id, UNINSTALLED)
+      .run();
+    await pollLocalNotifications(env.DB, NOW);
+    const original = await env.DB.prepare("SELECT body_text FROM owner_notifications").first();
+    expect(original).toMatchObject({
+      body_text: expect.stringContaining("Motivo non ancora disponibile"),
+    });
+    await env.DB.prepare("UPDATE owner_notifications SET status = ?").bind(status).run();
+    const node = { ...feedback(), shop: { myshopifyDomain: SHOP, name: "Store sintetico" } };
+    const fetcher = async () => page([node]);
+    expect(await pollPartnerEvents(env.DB, PARTNER, { now: NOW, fetcher })).toMatchObject({
+      inserted: 1,
+    });
+    expect(await pollPartnerEvents(env.DB, PARTNER, { now: NOW, fetcher })).toMatchObject({
+      inserted: 0,
+    });
+    const { results } = await env.DB.prepare(
+      "SELECT subject, body_text FROM owner_notifications ORDER BY id",
+    ).all();
+    expect(results).toHaveLength(2);
+    expect(results[0].body_text).toEqual(original?.body_text);
+    expect(results[1]).toMatchObject({
+      subject: "💬 CF Ready · Motivo della disinstallazione",
+      body_text: expect.stringContaining("Cercavo una funzione diversa."),
+    });
+    const send = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(Response.json({ ok: true, result: { message_id: 1 } }));
+    expect(
+      await deliverOwnerNotifications(
+        env.DB,
+        { botToken: "123456789:abcdefghijklmnopqrstuvwxyz_ABCD", chatId: "987654321" },
+        { now: NOW, fetcher: send },
+      ),
+    ).toEqual({ sent: 1, failed: 0 });
+    expect(send).toHaveBeenCalledTimes(1);
+  },
+);
+
+test.each([
+  { reason: null, description: null, expected: 1 },
+  { reason: "   ", description: "   ", expected: 1 },
+  { reason: undefined, description: undefined, expected: 1 },
+  { reason: "Other", description: null, expected: 0 },
+  { reason: null, description: "Solo commento", expected: 0 },
+])(
+  "il seguito distingue feedback assente e feedback già condiviso: $reason / $description",
+  async ({ reason, description, expected }) => {
+    await shop(true);
+    const node = { ...feedback(), shop: { myshopifyDomain: SHOP, name: "Store sintetico" } };
+    await pollPartnerEvents(env.DB, PARTNER, {
+      now: NOW,
+      fetcher: async () => page([{ ...node, reason, description }]),
+    });
+    await env.DB.prepare("UPDATE owner_notifications SET status = 'sent'").run();
+    expect(
+      await pollPartnerEvents(env.DB, PARTNER, { now: NOW, fetcher: async () => page([node]) }),
+    ).toMatchObject({ inserted: expected });
+  },
+);
+
+test("nessun messaggio aggiuntivo per feedback vuoto o ancora assente", async () => {
+  await shop(true);
+  const node = { ...feedback(), shop: { myshopifyDomain: SHOP, name: "Store sintetico" } };
+  await pollPartnerEvents(env.DB, PARTNER, {
+    now: NOW,
+    fetcher: async () => page([{ ...node, reason: undefined, description: undefined }]),
+  });
+  await env.DB.prepare("UPDATE owner_notifications SET status = 'sent'").run();
+  for (const reason of [undefined, null, "   "]) {
+    expect(
+      await pollPartnerEvents(env.DB, PARTNER, {
+        now: NOW,
+        fetcher: async () => page([{ ...node, reason, description: reason }]),
+      }),
+    ).toMatchObject({ inserted: 0 });
+  }
+  expect(await env.DB.prepare("SELECT COUNT(*) AS count FROM owner_notifications").first()).toEqual(
+    { count: 1 },
+  );
 });

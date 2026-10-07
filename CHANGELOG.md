@@ -6,6 +6,23 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.19 — 7 ottobre 2026
+
+- invia un solo messaggio Telegram aggiuntivo quando il feedback Partner della
+  disinstallazione arriva dopo un avviso senza motivo o commento;
+- gli avvisi locali indicano quando il motivo non è ancora disponibile;
+- aggiorna GraphQL Tools alla versione corretta e rende stabile la fixture
+  temporale del confronto prestazioni;
+- riallinea lo spazio del banner della prova al rendering Polaris corrente.
+- mantiene entro la colonna mobile le etichette del checkout più lunghe.
+
+Late uninstall feedback from Shopify Partners now sends one separate Telegram
+message when the original notice contained no feedback. Local notices explicitly
+show when the reason is unavailable. GraphQL Tools uses a patched version,
+performance comparison fixtures remain valid over time, and trial banner spacing
+matches the current Polaris rendering. Long checkout labels remain within their
+mobile column.
+
 ## 2.0.18 — 5 ottobre 2026
 
 - nelle righe di stato impilate l'etichetta usa tutta la larghezza e non va

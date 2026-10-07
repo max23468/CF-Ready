@@ -318,18 +318,22 @@ function Address2Comparison({
                     </s-table-cell>
                     {/* Etichette reali di Shopify tra virgolette, come in Testi del checkout (T7). */}
                     <s-table-cell>
-                      {current ? quoteLabel(current, locale) : copy.notAvailable}
+                      <span className="checkout-label-value">
+                        {current ? quoteLabel(current, locale) : copy.notAvailable}
+                      </span>
                     </s-table-cell>
                     <s-table-cell>
-                      {current !== expected ? (
-                        expected ? (
-                          quoteLabel(expected, locale)
+                      <span className="checkout-label-value">
+                        {current !== expected ? (
+                          expected ? (
+                            quoteLabel(expected, locale)
+                          ) : (
+                            copy.notAvailable
+                          )
                         ) : (
-                          copy.notAvailable
-                        )
-                      ) : (
-                        <s-text color="subdued">{copy.addressAlreadyStandard}</s-text>
-                      )}
+                          <s-text color="subdued">{copy.addressAlreadyStandard}</s-text>
+                        )}
+                      </span>
                     </s-table-cell>
                   </s-table-row>
                 );
