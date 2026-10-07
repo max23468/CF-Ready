@@ -6,6 +6,29 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.1.0 — 7 ottobre 2026
+
+- aggiunge una chat di assistenza espandibile dal pulsante fisso in basso a destra
+  su tutte le pagine dell’app, nei colori e con il marchio di CF Ready; il pannello conserva la conversazione quando viene ridotto;
+- aggiorna Guida e FAQ, assistenza e informativa privacy in italiano e inglese;
+- carica tawk.to alla prima apertura, senza inviare automaticamente dati Shopify
+  o diagnostica; l’email precompilata resta disponibile.
+
+An expandable support chat is available from the CF Ready branded button at the
+bottom right of every app page. Minimizing keeps the conversation loaded. Help and FAQ, support and
+privacy texts are updated in Italian and English. The chat loads on first opening
+without automatically sending Shopify data or diagnostics; prefilled email remains available.
+
+## 2.0.20 — 7 ottobre 2026
+
+- la riconciliazione periodica rilegge anche le etichette checkout gestite, così
+  un esito scritto da una versione precedente non resta tra gli errori aperti
+  finché il merchant non riapre l'app.
+
+The periodic reconciliation now also re-reads managed checkout labels, so an
+outcome stored by an earlier version no longer stays among open store errors
+until the merchant reopens the app.
+
 ## 2.0.19 — 7 ottobre 2026
 
 - invia un solo messaggio Telegram aggiuntivo quando il feedback Partner della

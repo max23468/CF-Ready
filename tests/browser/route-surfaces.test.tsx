@@ -1,7 +1,7 @@
 import { router, mount } from "./route-support";
 import { describe, expect, test, vi } from "vitest";
 
-import { dispatch } from "./render";
+import { click, dispatch } from "./render";
 import { texts } from "../../app/i18n";
 
 import App, { ErrorBoundary, headers } from "../../app/routes/app";
@@ -17,6 +17,10 @@ describe("shell embedded", () => {
     expect(view.container.querySelectorAll("s-app-nav s-link")).toHaveLength(4);
     expect(view.container.querySelector("[data-outlet]")).not.toBeNull();
     expect(shopify.loading).toHaveBeenCalledWith(false);
+    const chatToggle = view.container.querySelector("#support-chat-toggle")!;
+    await click(chatToggle);
+    const chatFrame = view.container.querySelector(".support-chat__frame");
+    expect(chatFrame).not.toBeNull();
 
     const rulesLink = view.container.querySelector('s-link[href="/app/rules"]');
     if (!rulesLink) throw new Error("link Regole assente");
@@ -34,7 +38,51 @@ describe("shell embedded", () => {
     router.location = { pathname: "/app/rules", state: null };
     await view.rerender(<App />);
     expect(shopify.loading).toHaveBeenLastCalledWith(true);
+    expect(view.container.querySelector(".support-chat__frame")).toBe(chatFrame);
+    expect(view.container.querySelector<HTMLElement>(".support-chat__panel")?.hidden).toBe(false);
   });
+
+  test.each([
+    ["it", "1k4bnk33m"],
+    ["en", "1k4bqnrvs"],
+  ] as const)(
+    "la chat %s si carica alla prima apertura e resta caricata quando ridotta",
+    async (locale, widget) => {
+      router.loaderData = { apiKey: "api-key", shopDomain: "demo.myshopify.com", locale };
+      const view = await mount(<App />);
+      const t = texts(locale);
+      const panel = view.container.querySelector<HTMLElement>(".support-chat__panel")!;
+      const toggle = view.container.querySelector("#support-chat-toggle")!;
+      expect(panel.hidden).toBe(true);
+      expect(panel.querySelector("iframe")).toBeNull();
+      expect(toggle.textContent).toBe(t.support.heading);
+      expect(
+        toggle.querySelector('img[src="/cf-ready-mark-negative.svg"]')?.getAttribute("alt"),
+      ).toBe("");
+
+      await click(toggle);
+      const frame = panel.querySelector("iframe")!;
+      expect(panel.hidden).toBe(false);
+      expect(document.activeElement).toBe(panel);
+      expect(toggle.textContent).toBe(t.support.minimizeChat);
+      expect(frame.title).toBe(t.support.chatTitle);
+      expect(frame.src).toBe(`https://tawk.to/chat/6ac67c330815b934ca8c8652/${widget}`);
+      expect(frame.referrerPolicy).toBe("no-referrer");
+      expect(frame.sandbox.contains("allow-popups-to-escape-sandbox")).toBe(true);
+      expect(frame.sandbox.contains("allow-top-navigation")).toBe(false);
+      expect(panel.querySelector('s-link[href="mailto:supporto@cfready.it"]')).not.toBeNull();
+
+      await click(toggle);
+      expect(panel.hidden).toBe(true);
+      expect(toggle.textContent).toBe(t.support.heading);
+      await click(toggle);
+      expect(panel.querySelector("iframe")).toBe(frame);
+      await dispatch(panel, new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      expect(panel.hidden).toBe(false);
+      await dispatch(panel, new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      expect(panel.hidden).toBe(true);
+    },
+  );
 
   test("installa il reporter prestazioni una volta sola per documento", async () => {
     router.loaderData = {
