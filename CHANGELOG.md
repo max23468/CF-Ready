@@ -9,13 +9,13 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 ## 2.1.0 — 7 ottobre 2026
 
 - aggiunge una chat di assistenza espandibile dal pulsante fisso in basso a destra
-  su tutte le pagine dell’app; il pannello conserva la conversazione quando viene ridotto;
+  su tutte le pagine dell’app, nei colori e con il marchio di CF Ready; il pannello conserva la conversazione quando viene ridotto;
 - aggiorna Guida e FAQ, assistenza e informativa privacy in italiano e inglese;
 - carica tawk.to alla prima apertura, senza inviare automaticamente dati Shopify
   o diagnostica; l’email precompilata resta disponibile.
 
-An expandable support chat is available from the bottom-right button on every
-app page. Minimizing keeps the conversation loaded. Help and FAQ, support and
+An expandable support chat is available from the CF Ready branded button at the
+bottom right of every app page. Minimizing keeps the conversation loaded. Help and FAQ, support and
 privacy texts are updated in Italian and English. The chat loads on first opening
 without automatically sending Shopify data or diagnostics; prefilled email remains available.
 
