@@ -1,4 +1,5 @@
 import { trialLedgerHash as notificationShopHash } from "../hash.server";
+import { uninstallFeedbackSection } from "../installation-diagnostics.server";
 import {
   localNotificationEvent,
   normalizeShopDomain,
@@ -153,6 +154,7 @@ async function localRelationshipNotification(db: D1Database, event: LocalNotific
             ? formatDuration(event.installed_at, event.occurred_at)
             : null,
       }),
+      ...(event.event_name === "app_uninstalled" ? [uninstallFeedbackSection({})] : []),
     ]),
     occurredAt: event.occurred_at,
   });

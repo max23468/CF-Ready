@@ -55,3 +55,12 @@ test("un avviso in eccezione non copre gli altri", () => {
     /vulnerabilità/,
   );
 });
+
+test("l'eccezione sprintf-js approvata dall'owner scade il 31 ottobre", () => {
+  const report = bracesReport();
+  report.vulnerabilities.braces.via = [
+    { source: 2, url: "https://github.com/advisories/GHSA-hp3w-g68c-fv3c" },
+  ];
+  assert.doesNotThrow(() => verifySecurityAudit(report, "2026-10-31"));
+  assert.throws(() => verifySecurityAudit(report, "2026-11-01"), /vulnerabilità/);
+});

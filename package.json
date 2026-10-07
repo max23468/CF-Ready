@@ -1,6 +1,6 @@
 {
   "name": "cf-ready",
-  "version": "2.0.18",
+  "version": "2.0.19",
   "private": true,
   "packageManager": "npm@12.2.0",
   "packageExtensions": {
@@ -130,6 +130,7 @@
     "workerd": true
   },
   "overrides": {
+    "@graphql-tools/utils": "12.0.3",
     "graphql-config": "5.1.7",
     "lodash": "4.18.1",
     "qs": "6.16.0",
