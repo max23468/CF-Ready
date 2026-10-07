@@ -56,6 +56,9 @@ describe("shell embedded", () => {
       expect(panel.hidden).toBe(true);
       expect(panel.querySelector("iframe")).toBeNull();
       expect(toggle.textContent).toBe(t.support.heading);
+      expect(
+        toggle.querySelector('img[src="/cf-ready-mark-negative.svg"]')?.getAttribute("alt"),
+      ).toBe("");
 
       await click(toggle);
       const frame = panel.querySelector("iframe")!;

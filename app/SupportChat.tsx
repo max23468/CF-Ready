@@ -50,8 +50,10 @@ export function SupportChat({ locale }: { locale: Locale }) {
           {t.support.chatFallback} <s-link href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</s-link>
         </s-paragraph>
       </section>
-      <s-button
+      <button
+        type="button"
         id="support-chat-toggle"
+        className="support-chat__toggle"
         aria-controls="support-chat-panel"
         aria-expanded={expanded}
         onClick={() => {
@@ -59,8 +61,26 @@ export function SupportChat({ locale }: { locale: Locale }) {
           setExpanded(!expanded);
         }}
       >
+        <img src="/cf-ready-mark-negative.svg" alt="" width="40" height="40" />
         {expanded ? t.support.minimizeChat : t.support.heading}
-      </s-button>
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          {expanded ? (
+            <path
+              d="M6 9l6 6 6-6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          ) : (
+            <path
+              d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6c-.5.4-1.3.1-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z"
+              fill="currentColor"
+            />
+          )}
+        </svg>
+      </button>
     </div>
   );
 }

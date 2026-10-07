@@ -190,7 +190,7 @@ Cinque valori. Nessun colore funzionale proprietario: dentro l'Admin i colori di
 
 | Nome | HEX | Funzione | Contesto d'uso | Limiti | Contrasto |
 |---|---|---|---|---|---|
-| **Verde bottiglia** | `#20492F` | Primario | Marchio, titoli, superfici scure del sito, cornici screenshot, bottoni e link **del solo sito pubblico** | Dentro l'app embedded solo nel bottone «Continua» del simulatore del checkout (decisione dell'owner del 4 ottobre 2026). Mai come colore di stato | 9,4:1 su Panna · 10,2:1 su bianco |
+| **Verde bottiglia** | `#20492F` | Primario | Marchio, titoli, superfici scure del sito, cornici screenshot, bottoni e link **del solo sito pubblico** | Dentro l'app embedded solo nel bottone «Continua» del simulatore del checkout (decisione dell'owner del 4 ottobre 2026) e nel pulsante fisso dell'assistenza, con il marchio in negativo (decisione dell'owner del 7 ottobre 2026). Mai come colore di stato | 9,4:1 su Panna · 10,2:1 su bianco |
 | **Arancio cotto** | `#C97B2E` | Accento unico | Fascia del marchio, un dettaglio per schermata sui materiali pubblici | Mai dentro l'app. **Mai come colore di stato.** Mai su superfici estese. Solo grafica e testo grande | 3,1:1 su Verde bottiglia · 3,0:1 su Panna |
 | **Panna** | `#F7F5EE` | Fondo caldo | Fondo di default dei materiali pubblici, fondo degli screenshot, marchio in negativo | Dentro l'app solo come fondo del simulatore del checkout (decisione dell'owner del 4 ottobre 2026) | — |
 | **Inchiostro** | `#1A211C` | Testo primario | Sito, didascalie, materiali | Non usarlo come fondo esteso: per il buio c'è il Verde bottiglia | 15,1:1 su Panna |
