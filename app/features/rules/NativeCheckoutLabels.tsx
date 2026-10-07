@@ -394,14 +394,18 @@ function LabelComparison({
                         {name === "taxCode" ? translated.taxCodeLabel : translated.pecLabel}
                       </s-table-cell>
                       <s-table-cell>
-                        {observed ? quoteLabel(observed, locale) : copy.notAvailable}
+                        <span className="checkout-label-value">
+                          {observed ? quoteLabel(observed, locale) : copy.notAvailable}
+                        </span>
                       </s-table-cell>
                       <s-table-cell>
-                        {proposed && !checkoutLabelValuesMatch(proposed, observed) ? (
-                          quoteLabel(proposed, locale)
-                        ) : (
-                          <s-text color="subdued">{copy.noChange}</s-text>
-                        )}
+                        <span className="checkout-label-value">
+                          {proposed && !checkoutLabelValuesMatch(proposed, observed) ? (
+                            quoteLabel(proposed, locale)
+                          ) : (
+                            <s-text color="subdued">{copy.noChange}</s-text>
+                          )}
+                        </span>
                       </s-table-cell>
                     </s-table-row>
                   );

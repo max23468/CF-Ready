@@ -412,6 +412,12 @@ Rispetto alle alternative più ampie o invasive:
 | D-174 | La pagina Regole non offre più la cronologia configurazioni né il ripristino di una configurazione precedente. `configuration_history` conserva soltanto l’ultima configurazione confermata da Shopify, che la Home usa per il primo paint (D-167): a ogni scrittura le voci precedenti si cancellano. La tabella resta, senza migrazioni distruttive. | L’audit UI del 1 ottobre 2026 ha trovato un ripristino che riscriveva subito il checkout live senza conferma e lasciava nel modulo la bozza precedente (R-H1, R-H2), oltre a una card comparsa solo dopo un salvataggio con orari ambigui (R-H6). La funzione non risponde a un bisogno ricorrente del merchant: rimuoverla elimina i tre problemi. Deciso dall’owner il 1 ottobre 2026 per la `1.15.18`; supera D-156. |
 | D-175 | `npm audit` ammette eccezioni temporanee, ciascuna legata a un solo avviso e con scadenza. La prima riguarda GHSA-vfj7-8cjw-p6xm di `braces` fino al 31 ottobre 2026. Ogni altro avviso, o lo stesso dopo la scadenza, continua a bloccare gate locale e CI. | Il 3 ottobre 2026 l’avviso è stato pubblicato senza una versione corretta di `braces` (ultima 3.0.3). Il pacchetto arriva da `@graphql-codegen/cli` e `@shopify/shopify_function`, usati per i tipi e la build della Function: non entra nel Worker né nel checkout. Bloccare ogni pubblicazione fino alla correzione a monte non riduce il rischio. Alla scadenza, o appena esce una versione corretta, l’eccezione si rimuove e la dipendenza si aggiorna. Deciso dall’owner il 3 ottobre 2026. |
 
+Integrazione D-175 del 7 ottobre 2026, approvata dall'owner: anche l'avviso
+GHSA-hp3w-g68c-fv3c di `sprintf-js`, dipendenza indiretta della Shopify CLI senza
+versione corretta disponibile, è ammesso fino al 31 ottobre 2026. L'eccezione
+riguarda soltanto questo avviso e non il codice del Worker; si rimuove alla
+scadenza o quando diventa disponibile una correzione a monte.
+
 Precisazione D-149 del 9 settembre 2026 per la `1.9.0`: nella pagina Regole il
 blocco “Campo Interno” precede “Testi del checkout”. La sezione si chiama
 “Etichette del checkout (impostazioni avanzate)”. Il confronto distingue
@@ -3699,6 +3705,14 @@ email, shop ID, GID Shopify, Codice Fiscale, PEC o dati checkout. Esito, tentati
 sanitizzati restano nell’outbox D1 per il tempo indicato in §21.5 e vengono
 eliminati prima se arriva `shop/redact`; sopravvive soltanto la barriera HMAC
 necessaria a non reinviare eventi antecedenti alla cancellazione.
+
+Per la disinstallazione, l'avviso locale indica quando il motivo Partner non è
+ancora disponibile. Se arriva un motivo o un commento prima dell'invio, il
+feedback completa l'avviso in attesa. Se l'avviso è già stato acquisito per
+l'invio o consegnato senza feedback, l'outbox accoda un solo messaggio separato
+con il motivo e il commento disponibili, senza modificare il messaggio precedente.
+Nessun seguito per feedback vuoto o già condiviso; i poll ripetuti non creano
+nuovi messaggi. Decisione dell'owner del 7 ottobre 2026, integrazione di D-134.
 
 Il solo sito pubblico usa inoltre Cloudflare Web Analytics per visite aggregate
 e prestazioni reali. Il beacon non usa cookie o archiviazione locale, non crea

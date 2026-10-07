@@ -19,9 +19,17 @@
 }
 
 .checkout-label-context {
+  container-type: inline-size;
   display: grid;
   gap: 0.75rem;
   grid-template-columns: minmax(0, 1fr);
+}
+
+/* Le etichette reali possono essere più larghe della coppia titolo-valore mobile. */
+.checkout-label-value {
+  display: inline-block;
+  max-inline-size: 50cqw;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 600px) {
