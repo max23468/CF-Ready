@@ -1,3 +1,5 @@
+/* Brand: il verde bottiglia (#20492F) e il marchio in negativo sono ammessi anche qui
+   (docs/brand/brand-foundation.md, decisione del 7 ottobre 2026). */
 .support-chat {
   position: fixed;
   right: max(16px, env(safe-area-inset-right));
@@ -27,4 +29,40 @@
   width: 100%;
   height: min(55dvh, 480px);
   border: 0;
+}
+
+.support-chat__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 0 18px 0 10px;
+  border: 0;
+  border-radius: 18px;
+  background: #20492f;
+  box-shadow: 0 4px 14px rgb(32 73 47 / 35%);
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.support-chat__toggle:hover {
+  background: #173824;
+  box-shadow: 0 6px 18px rgb(32 73 47 / 40%);
+}
+
+.support-chat__toggle:focus-visible {
+  outline: 3px solid #005bd3;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .support-chat__toggle {
+    transition: none;
+  }
 }
