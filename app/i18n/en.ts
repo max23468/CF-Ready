@@ -232,9 +232,12 @@ export const en: typeof it = {
   },
   support: {
     heading: "Support",
-    body: "The person who builds the app answers you directly. The link opens your mail app with a message already filled in.",
+    body: "The person who builds the app answers you directly. You can use the chat or send an email with the technical details already filled in.",
+    minimizeChat: "Minimize",
+    chatTitle: "CF Ready support chat",
+    chatFallback: "If the chat does not load, write to",
     privacyNote:
-      "The message includes your store domain, app version, language and technical status: that’s usually all we need to understand the problem.",
+      "The prefilled email includes your store domain, app version, language and technical status. These details are not sent automatically in chat: you can copy them with “Copy diagnostics”.",
     subject: "CF Ready support",
     chooseCategory: "Choose a topic",
     requestSupport: "Get support",
@@ -374,6 +377,10 @@ export const en: typeof it = {
       {
         heading: "Plan, privacy and support",
         entries: [
+          {
+            q: "How do I contact support?",
+            a: "Select “Support” at the bottom right of any app page. You can minimize the chat and reopen it while you continue using the app. The chat asks for your email so we can reply later too; you can also write to us by email directly. To describe a problem, you can paste the details from “Copy diagnostics”, without adding customers’ tax codes or PEC addresses.",
+          },
           {
             id: "billing",
             q: "How do the trial and payments work?",

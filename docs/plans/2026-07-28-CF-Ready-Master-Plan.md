@@ -411,6 +411,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-173 | Gli orari mostrati al merchant (rilettura e conferma delle etichette, diagnosi della Guida) usano il fuso dello store con la sigla del fuso, per esempio “1 ott 2026, 08:30 CEST”. Il fuso si legge da Shopify alla riconciliazione e si conserva in `shops.iana_timezone`; finché non è noto gli orari restano in UTC. La diagnostica copiabile per l'assistenza mantiene i timestamp UTC ISO 8601. | L'audit UI del 1 ottobre 2026 ha trovato orari solo in UTC, poco leggibili per un merchant italiano. Il loader della Guida usa solo D1 (§22), quindi il fuso va salvato con la riconciliazione già esistente: nessuna nuova chiamata Shopify né nuovo scope. Deciso dall'owner il 1 ottobre 2026 per la `1.15.18`. |
 | D-174 | La pagina Regole non offre più la cronologia configurazioni né il ripristino di una configurazione precedente. `configuration_history` conserva soltanto l’ultima configurazione confermata da Shopify, che la Home usa per il primo paint (D-167): a ogni scrittura le voci precedenti si cancellano. La tabella resta, senza migrazioni distruttive. | L’audit UI del 1 ottobre 2026 ha trovato un ripristino che riscriveva subito il checkout live senza conferma e lasciava nel modulo la bozza precedente (R-H1, R-H2), oltre a una card comparsa solo dopo un salvataggio con orari ambigui (R-H6). La funzione non risponde a un bisogno ricorrente del merchant: rimuoverla elimina i tre problemi. Deciso dall’owner il 1 ottobre 2026 per la `1.15.18`; supera D-156. |
 | D-175 | `npm audit` ammette eccezioni temporanee, ciascuna legata a un solo avviso e con scadenza. La prima riguarda GHSA-vfj7-8cjw-p6xm di `braces` fino al 31 ottobre 2026. Ogni altro avviso, o lo stesso dopo la scadenza, continua a bloccare gate locale e CI. | Il 3 ottobre 2026 l’avviso è stato pubblicato senza una versione corretta di `braces` (ultima 3.0.3). Il pacchetto arriva da `@graphql-codegen/cli` e `@shopify/shopify_function`, usati per i tipi e la build della Function: non entra nel Worker né nel checkout. Bloccare ogni pubblicazione fino alla correzione a monte non riduce il rischio. Alla scadenza, o appena esce una versione corretta, l’eccezione si rimuove e la dipendenza si aggiorna. Deciso dall’owner il 3 ottobre 2026. |
+| D-176 | Assistenza merchant con tawk.to gratuito: pulsante fisso in basso a destra su tutte le pagine embedded, verde bottiglia con il marchio CF Ready in negativo, pannello espandibile senza interrompere l’uso dell’app, Guida e FAQ bilingue aggiornata. | Scelto dall’owner il 7 ottobre 2026. La chat viene caricata soltanto alla prima apertura in un iframe separato dall’app, senza referrer né invio automatico di identità, dominio store, diagnostica o dati checkout. Ridurre il pannello conserva l’iframe nella sessione corrente; non si promette continuità tra dispositivi. Un widget per lingua (italiano e inglese) segue la lingua dell’app; il modulo pre-chat chiede nome ed email per le risposte successive. L’email precompilata e la diagnostica copiabile restano disponibili. Nessuna dipendenza, nuovo scope Shopify, tabella D1 o chatbot AI. |
 
 Integrazione D-175 del 7 ottobre 2026, approvata dall'owner: anche l'avviso
 GHSA-hp3w-g68c-fv3c di `sprintf-js`, dipendenza indiretta della Shopify CLI senza
@@ -839,7 +840,9 @@ identità staff o dati checkout.
 
 ### 7.9 Supporto e recensioni
 
-**FR-090** — Percorso di assistenza minimale dentro l’app, raggiungibile anche
+**FR-090** — Chat tawk.to espandibile dal pulsante fisso in basso a destra su
+tutte le pagine dell’app, con caricamento alla prima apertura (D-176). Rimane
+disponibile il percorso email minimale, raggiungibile anche
 dal Support Link nativo **Richiedi assistenza / Get support**, che prepara un
 messaggio già compilato verso la casella sviluppatore con:
 
@@ -2881,7 +2884,7 @@ supportato.
 - R2: backup cifrati;
 - Workers Logs: osservabilità;
 - Pages: sito pubblico statico con Web Analytics nativa;
-- Telegram Bot API: notifiche tecniche in una chat privata dell’owner; il supporto merchant resta un link `mailto:` verso `supporto@cfready.it`.
+- Telegram Bot API: notifiche tecniche in una chat privata dell’owner. Il supporto merchant usa tawk.to su richiesta (D-176) e un link `mailto:` verso `supporto@cfready.it`.
 
 ### 18.2 Nomi risorse
 
@@ -3782,6 +3785,16 @@ Il percorso di assistenza mantiene:
 - recapito a una casella sviluppatore verificata;
 - nessuna copia email automatica al merchant;
 - risposta manuale dello sviluppatore.
+
+D-176 aggiunge la chat tawk.to su tutte le pagine dell’app tramite un pulsante
+fisso in basso a destra. Il pannello resta aperto durante l’uso dell’app e la
+navigazione interna; ridurlo non ricarica la conversazione. L’iframe si carica
+solo alla prima apertura, usa `referrerPolicy="no-referrer"` e non riceve
+parametri relativi a store, utente o sessione. Il provider riceve la connessione
+del browser e i messaggi inviati volontariamente dal merchant; non ha accesso
+al DOM autenticato dell’app. L’email resta un canale alternativo. La Guida e FAQ
+spiega apertura, riduzione, recapito per risposte successive e copia manuale
+della diagnostica. Non si richiedono dati fiscali dei clienti.
 
 **Esito della verifica sull’Email binding, 1 agosto 2026.** La verifica imposta
 più sotto è stata eseguita: l’Email binding di Cloudflare invia gratuitamente
