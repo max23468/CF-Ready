@@ -6,6 +6,8 @@ import { pathToFileURL } from "node:url";
 export const AUDIT_EXCEPTIONS = [
   // `braces` non ha ancora una versione corretta; arriva solo dagli strumenti di build della Function.
   { advisory: "GHSA-vfj7-8cjw-p6xm", until: "2026-10-31" },
+  // `sprintf-js` arriva dalla Shopify CLI; eccezione approvata dall'owner il 7 ottobre.
+  { advisory: "GHSA-hp3w-g68c-fv3c", until: "2026-10-31" },
 ];
 
 export function verifySecurityAudit(
