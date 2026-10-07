@@ -355,12 +355,12 @@ describe("query D1 e run-rate", () => {
       env.DB.prepare(
         `INSERT INTO performance_samples
            (shop_id, metric_id, metric_name, metric_value, app_version, app_route, observed_at)
-         VALUES (1, 'old-lcp', 'LCP', 1000, '1.5.3', 'home', '2026-09-07T10:00:00.000Z')`,
+         VALUES (1, 'old-lcp', 'LCP', 1000, '1.5.3', 'home', datetime('now', '-1 day'))`,
       ),
       env.DB.prepare(
         `INSERT INTO performance_samples
            (shop_id, metric_id, metric_name, metric_value, app_version, app_route, observed_at)
-         VALUES (1, 'new-lcp', 'LCP', 1300, '1.5.4', 'home', '2026-09-08T10:00:00.000Z')`,
+         VALUES (1, 'new-lcp', 'LCP', 1300, '1.5.4', 'home', datetime('now'))`,
       ),
     ]);
 

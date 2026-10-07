@@ -3700,6 +3700,14 @@ sanitizzati restano nell’outbox D1 per il tempo indicato in §21.5 e vengono
 eliminati prima se arriva `shop/redact`; sopravvive soltanto la barriera HMAC
 necessaria a non reinviare eventi antecedenti alla cancellazione.
 
+Per la disinstallazione, l'avviso locale indica quando il motivo Partner non è
+ancora disponibile. Se arriva un motivo o un commento prima dell'invio, il
+feedback completa l'avviso in attesa. Se l'avviso è già stato acquisito per
+l'invio o consegnato senza feedback, l'outbox accoda un solo messaggio separato
+con il motivo e il commento disponibili, senza modificare il messaggio precedente.
+Nessun seguito per feedback vuoto o già condiviso; i poll ripetuti non creano
+nuovi messaggi. Decisione dell'owner del 7 ottobre 2026, integrazione di D-134.
+
 Il solo sito pubblico usa inoltre Cloudflare Web Analytics per visite aggregate
 e prestazioni reali. Il beacon non usa cookie o archiviazione locale, non crea
 fingerprint, non registra query string e non raggiunge checkout o app embedded.
