@@ -17,6 +17,7 @@ import { authenticateAdmin } from "../admin-auth.server";
 import { databaseContext } from "../context.server";
 import { readInstallationStartedAt } from "../installation-diagnostics.server";
 import { InstallationReporter } from "../InstallationReporter";
+import { SupportChat } from "../SupportChat";
 import { navigateFromShopifyEvent, restoreEmbeddedAdmin } from "../embedded-admin";
 import { APP_API_KEY } from "../env.server";
 import { resolveLocale, texts } from "../i18n";
@@ -118,6 +119,7 @@ export default function App() {
         ))}
       </s-app-nav>
       <InstallationReporter installedAt={installedAt} />
+      <SupportChat locale={locale} />
       <div className="app-route-surface" key={location.pathname}>
         <Outlet />
       </div>
