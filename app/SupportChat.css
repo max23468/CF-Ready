@@ -27,7 +27,9 @@
 .support-chat__frame {
   display: block;
   width: 100%;
-  height: min(55dvh, 480px);
+  /* Riempie l'altezza utile del pannello: sotto restano la riga email e il pulsante. */
+  height: min(560px, calc(100dvh - 170px));
+  min-height: 240px;
   border: 0;
 }
 
@@ -42,7 +44,17 @@
   background: #20492f;
   box-shadow: 0 4px 14px rgb(32 73 47 / 35%);
   color: #fff;
-  font: inherit;
+  /* Fuori dai componenti Polaris il documento non ha un font: senza questa pila
+     il pulsante userebbe il serif predefinito del browser. */
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "San Francisco",
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    sans-serif;
   font-size: 15px;
   font-weight: 650;
   cursor: pointer;
