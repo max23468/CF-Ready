@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.1.1 — 8 ottobre 2026
+
+- il pulsante «Assistenza» usa lo stesso carattere senza grazie dell'app invece
+  del carattere predefinito del browser;
+- la chat occupa l'altezza disponibile, così su finestre basse il contenuto non
+  resta schiacciato.
+
+The «Support» button now uses the app's sans-serif typeface instead of the
+browser's default font, and the chat uses the available height so its content
+is no longer squeezed in short windows.
+
 ## 2.1.0 — 7 ottobre 2026
 
 - aggiunge una chat di assistenza espandibile dal pulsante fisso in basso a destra
