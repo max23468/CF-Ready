@@ -232,9 +232,12 @@ export const it = {
   },
   support: {
     heading: "Assistenza",
-    body: "Ti risponde direttamente chi sviluppa l’app. Il collegamento apre il tuo programma di posta con un messaggio già compilato.",
+    body: "Ti risponde direttamente chi sviluppa l’app. Puoi scrivere in chat oppure inviare un’email con i dati tecnici già compilati.",
+    minimizeChat: "Riduci",
+    chatTitle: "Chat di assistenza CF Ready",
+    chatFallback: "Se la chat non si carica, scrivi a",
     privacyNote:
-      "Il messaggio contiene dominio dello store, versione, lingua e stato tecnico dell’app: di solito basta questo per capire il problema.",
+      "L’email precompilata contiene dominio dello store, versione, lingua e stato tecnico dell’app. In chat questi dati non vengono inviati automaticamente: puoi copiarli con «Copia diagnostica».",
     subject: "Assistenza CF Ready",
     chooseCategory: "Scegli l’argomento",
     requestSupport: "Richiedi assistenza",
@@ -374,6 +377,10 @@ export const it = {
       {
         heading: "Piano, privacy e assistenza",
         entries: [
+          {
+            q: "Come contatto l’assistenza?",
+            a: "Premi «Assistenza» in basso a destra da qualsiasi pagina dell’app. Puoi ridurre la chat e riaprirla mentre continui a usare l’app. La chat ti chiede un’email, così possiamo risponderti anche più tardi; in alternativa puoi scrivere direttamente via email. Per descrivere un problema puoi incollare i dati di «Copia diagnostica», senza aggiungere Codici Fiscali o PEC dei clienti.",
+          },
           {
             id: "billing",
             q: "Come funzionano la prova e i pagamenti?",

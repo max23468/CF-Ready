@@ -204,7 +204,7 @@ export default function Guide() {
 
       <ValidationDiagnosis locale={locale} diagnostics={diagnostics} />
 
-      {/* FR-090: il recapito è un `mailto:` precompilato, non un modulo che invia (§22). */}
+      {/* FR-090: chat su richiesta; l'email precompilata resta disponibile (§22). */}
       <s-stack slot="aside" direction="block" gap="base">
         <s-section heading={t.support.heading}>
           <div id="support">

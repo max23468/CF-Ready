@@ -205,7 +205,7 @@ describe("Guida", () => {
     const faqEntries = [
       ...view.container.querySelectorAll<HTMLDetailsElement>(".guide-faq__entry"),
     ];
-    expect(faqEntries).toHaveLength(14);
+    expect(faqEntries).toHaveLength(15);
     expect(
       [...view.container.querySelectorAll("s-button")].some((button) =>
         button.textContent?.includes(texts("it").support.heading),
@@ -217,7 +217,7 @@ describe("Guida", () => {
         button.textContent?.includes(texts("it").guide.diagnosis.heading),
       ),
     ).toBe(true);
-    expect(texts("en").guide.groups.map((group) => group.entries.length)).toEqual([5, 5, 4]);
+    expect(texts("en").guide.groups.map((group) => group.entries.length)).toEqual([5, 5, 5]);
     expect(faqEntries.every((entry) => !entry.open)).toBe(true);
     const buttons = [...view.container.querySelectorAll("#faq s-button")];
     expect(buttons[0].textContent).toBe(texts("it").guide.expandAll);
