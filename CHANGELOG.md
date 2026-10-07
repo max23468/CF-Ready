@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.0.20 — 7 ottobre 2026
+
+- la riconciliazione periodica rilegge anche le etichette checkout gestite, così
+  un esito scritto da una versione precedente non resta tra gli errori aperti
+  finché il merchant non riapre l'app.
+
+The periodic reconciliation now also re-reads managed checkout labels, so an
+outcome stored by an earlier version no longer stays among open store errors
+until the merchant reopens the app.
+
 ## 2.0.19 — 7 ottobre 2026
 
 - invia un solo messaggio Telegram aggiuntivo quando il feedback Partner della
