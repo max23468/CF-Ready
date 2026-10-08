@@ -1,6 +1,6 @@
 {
   "name": "cf-ready",
-  "version": "2.1.3",
+  "version": "2.1.4",
   "private": true,
   "packageManager": "npm@12.2.0",
   "packageExtensions": {
@@ -21,6 +21,7 @@
     }
   },
   "scripts": {
+    "postinstall": "node scripts/patch-stryker-vitest.mjs",
     "build": "react-router build && node scripts/check-client-bundle.mjs",
     "dev": "shopify app dev",
     "preview": "npm run build && vite preview",
@@ -88,7 +89,7 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.62.5",
-    "@cloudflare/vitest-plugin": "1.3.6",
+    "@cloudflare/vitest-plugin": "1.4.0",
     "@graphql-codegen/cli": "7.4.3",
     "@playwright/test": "1.63.0",
     "@react-router/dev": "8.4.0",
@@ -99,8 +100,8 @@
     "@types/node": "26.6.4",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "@vitest/browser-playwright": "4.1.11",
-    "@vitest/coverage-istanbul": "4.1.11",
+    "@vitest/browser-playwright": "5.0.3",
+    "@vitest/coverage-istanbul": "5.0.3",
     "c8": "12.0.0",
     "esbuild": "0.28.2",
     "graphql": "17.0.2",
@@ -113,7 +114,7 @@
     "react-doctor": "0.9.14",
     "typescript": "7.0.2",
     "vite": "8.3.2",
-    "vitest": "4.1.11",
+    "vitest": "5.0.3",
     "wrangler": "4.147.0"
   },
   "workspaces": [
