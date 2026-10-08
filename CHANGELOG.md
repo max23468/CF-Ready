@@ -6,6 +6,19 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.1.2 — 8 ottobre 2026
+
+- quando la configurazione si completa durante la visita, la guida in Home resta
+  al suo posto con tutti i passi completati invece di sparire: la sua rimozione
+  spostava l'intera pagina, con un CLS misurato fino a 0,6 su schermo stretto;
+- i marchi CF Ready e l'icona della scheda restano in cache per un giorno, così
+  l'app non li richiede a ogni apertura.
+
+When setup is completed during a visit, the Home setup guide stays in place with
+every step done instead of disappearing, which shifted the whole page. CF Ready
+brand images and the tab icon are now cached for a day, so the app no longer
+requests them on every load.
+
 ## 2.1.1 — 8 ottobre 2026
 
 - il pulsante «Assistenza» usa lo stesso carattere senza grazie dell'app invece
