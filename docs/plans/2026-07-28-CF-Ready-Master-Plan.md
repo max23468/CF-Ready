@@ -5024,6 +5024,19 @@ Decisioni prese durante la milestone:
   alla sessione staff del dev store; la feature image è generata dal sistema
   brand.
 
+Per l’aggiornamento alla serie 2.x, l’8 ottobre 2026 l’owner ha autorizzato
+Numisleo come appoggio con ripristino delle modifiche temporanee. Sono stati
+preparati sei screenshot per lingua, con UI e didascalie IT/EN separate:
+regole, messaggi, due casi del simulatore, Home e assistenza generale con FAQ,
+chat, email e diagnostica. Su richiesta dell’owner gli sfondi alternano Verde
+bottiglia e Panna, a partire dal verde. Le
+etichette checkout sono escluse. Su successiva autorizzazione dell’owner, la
+serie è stata caricata e salvata nei due listing; il readback pubblico in
+Chrome dell’8 ottobre 2026 ha verificato tutte le sei immagini per lingua,
+ordine e alt text. Asset, alt text, ripristino e ricevuta della pubblicazione
+sono in
+[screenshots.md](../listing/screenshots.md).
+
 La submission, inviata il 4 agosto 2026 e sospesa il 10 agosto sui requisiti
 1.2.2 e 2.1.1, è stata corretta con la `0.9.20`. La promozione Production, il
 deploy, lo smoke, il readback e la release del candidato sono riusciti il

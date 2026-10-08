@@ -1,0 +1,86 @@
+[
+  {
+    "language": "it",
+    "order": 1,
+    "file": "it/01-regole-cf-pec.png",
+    "caption": "Scegli regole separate per Codice Fiscale e PEC.",
+    "alt": "Regole indipendenti per Codice Fiscale e PEC."
+  },
+  {
+    "language": "it",
+    "order": 2,
+    "file": "it/02-messaggi.png",
+    "caption": "Personalizza i messaggi e controlla l’anteprima.",
+    "alt": "Editor e anteprima dei messaggi di errore in italiano."
+  },
+  {
+    "language": "it",
+    "order": 3,
+    "file": "it/03-simulatore-cf.png",
+    "caption": "Prova nel simulatore un Codice Fiscale non valido.",
+    "alt": "Simulatore dell’app con Codice Fiscale non valido."
+  },
+  {
+    "language": "it",
+    "order": 4,
+    "file": "it/04-simulatore-pec.png",
+    "caption": "Richiedi la PEC quando Azienda è compilata.",
+    "alt": "Simulatore: Azienda compilata e PEC obbligatoria mancante."
+  },
+  {
+    "language": "it",
+    "order": 5,
+    "file": "it/05-home-stato.png",
+    "caption": "Controlla lo stato e le regole attive.",
+    "alt": "Home con controllo attivo, CF obbligatorio e PEC facoltativa."
+  },
+  {
+    "language": "it",
+    "order": 6,
+    "file": "it/06-assistenza.png",
+    "caption": "Guida, chat ed email quando serve assistenza.",
+    "alt": "FAQ, assistenza via chat o email e diagnostica tecnica."
+  },
+  {
+    "language": "en",
+    "order": 1,
+    "file": "en/01-regole-cf-pec.png",
+    "caption": "Choose separate rules for Italian tax code and PEC.",
+    "alt": "Independent rules for Italian tax code and PEC."
+  },
+  {
+    "language": "en",
+    "order": 2,
+    "file": "en/02-messaggi.png",
+    "caption": "Customize error messages and check the preview.",
+    "alt": "English error message editor and preview."
+  },
+  {
+    "language": "en",
+    "order": 3,
+    "file": "en/03-simulatore-cf.png",
+    "caption": "Test an invalid Italian tax code in the simulator.",
+    "alt": "In-app simulator with an invalid Italian tax code."
+  },
+  {
+    "language": "en",
+    "order": 4,
+    "file": "en/04-simulatore-pec.png",
+    "caption": "Require PEC when the Company field is filled in.",
+    "alt": "In-app simulator: Company filled in and required PEC missing."
+  },
+  {
+    "language": "en",
+    "order": 5,
+    "file": "en/05-home-stato.png",
+    "caption": "Check the status and active rules.",
+    "alt": "Home with active check, required tax code and optional PEC."
+  },
+  {
+    "language": "en",
+    "order": 6,
+    "file": "en/06-assistenza.png",
+    "caption": "Guides, chat and email whenever you need support.",
+    "alt": "FAQs, chat or email support and technical diagnostics."
+  }
+]
