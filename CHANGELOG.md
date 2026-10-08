@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.1.4 — 8 ottobre 2026
+
+- aggiorna Vitest a 5.0.3 e il plugin di test Cloudflare a 1.4.0, con browser,
+  coverage e benchmark allineati;
+- applica durante l'installazione il backport della PR Stryker #6247 per
+  selezionare correttamente i test annidati nei mutation test con Vitest 5.
+
+Vitest is upgraded to 5.0.3 with aligned browser, coverage and benchmarks.
+The Cloudflare test plugin is upgraded to 1.4.0. Installation applies the
+Stryker #6247 backport to select nested tests correctly with Vitest 5.
+
 ## 2.1.3 — 8 ottobre 2026
 
 - aggiorna i sei screenshot del listing App Store in italiano e inglese alla

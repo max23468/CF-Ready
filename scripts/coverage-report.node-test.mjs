@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, realpathSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, realpathSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
 import { basename, dirname, resolve, sep } from "node:path";
 import test from "node:test";
 import coverageLibrary from "istanbul-lib-coverage";
+import { applyStrykerVitestPatch, patchStrykerVitest } from "./patch-stryker-vitest.mjs";
 import {
   bundledFunctionSources,
   changedExecutableLineCoverage,
@@ -163,6 +166,67 @@ test("il dominio webhook mantiene coverage e mutation gate canonici", async () =
     }).force,
     true,
   );
+});
+
+test("il backport Stryker è idempotente e rifiuta codice inatteso", () => {
+  const entry = import.meta.resolve("@stryker-mutator/vitest-runner");
+  const installed = readFileSync(new URL("vitest-test-runner.js", entry), "utf8");
+  const original = installed
+    .replace("escapeRegExp(name).replace(/ /g, '(?: > | )')", "escapeRegExp(name)")
+    .replace("new RegExp(`(?:${regexTestNameFilter})\\\\s*$`)", "new RegExp(regexTestNameFilter)");
+  assert.notEqual(original, installed);
+  assert.equal(patchStrykerVitest(original), installed);
+  assert.equal(patchStrykerVitest(installed), installed);
+  assert.throws(() => patchStrykerVitest("codice diverso"), /codice inatteso/);
+  assert.throws(() => patchStrykerVitest(original + original), /codice inatteso/);
+});
+
+test("il postinstall Stryker applica il fix una volta e rifiuta versioni diverse", (t) => {
+  const directory = mkdtempSync(resolve(tmpdir(), "cf-ready-stryker-patch-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const sourceDirectory = resolve(directory, "dist/src");
+  mkdirSync(sourceDirectory, { recursive: true });
+  const manifest = resolve(directory, "package.json");
+  const target = resolve(sourceDirectory, "vitest-test-runner.js");
+  const installed = readFileSync(
+    new URL("vitest-test-runner.js", import.meta.resolve("@stryker-mutator/vitest-runner")),
+    "utf8",
+  );
+  const original = installed
+    .replace("escapeRegExp(name).replace(/ /g, '(?: > | )')", "escapeRegExp(name)")
+    .replace("new RegExp(`(?:${regexTestNameFilter})\\\\s*$`)", "new RegExp(regexTestNameFilter)");
+  writeFileSync(manifest, JSON.stringify({ version: "10.0.0" }));
+  writeFileSync(target, original);
+  const entry = pathToFileURL(resolve(sourceDirectory, "index.js"));
+  applyStrykerVitestPatch(entry);
+  assert.equal(readFileSync(target, "utf8"), installed);
+  applyStrykerVitestPatch(entry);
+  assert.equal(readFileSync(target, "utf8"), installed);
+  writeFileSync(manifest, JSON.stringify({ version: "10.0.1" }));
+  assert.throws(() => applyStrykerVitestPatch(entry), /previsto per vitest-runner 10.0.0/);
+  execFileSync(process.execPath, [
+    fileURLToPath(new URL("./patch-stryker-vitest.mjs", import.meta.url)),
+  ]);
+});
+
+test("il runner Stryker seleziona test annidati Vitest 5 senza includere nomi con lo stesso prefisso", async () => {
+  const entry = import.meta.resolve("@stryker-mutator/vitest-runner");
+  const { VitestTestRunner } = await import(new URL("vitest-test-runner.js", entry));
+  const project = { config: {} };
+  const runner = new VitestTestRunner({ vitest: { related: false } }, {}, "synthetic");
+  runner.ctx = {
+    config: {},
+    projects: [project],
+    state: { filesMap: new Map(), getFiles: () => [], errorsSet: new Set() },
+    start: async () => {},
+  };
+  await runner.run({ testIds: ["synthetic.test.ts#outer calc add (positive)"] });
+  const pattern = project.config.testNamePattern;
+  assert.equal(pattern.test("outer > calc > add (positive)"), true);
+  assert.equal(pattern.test("outer calc add (positive)"), true);
+  assert.equal(pattern.test("outer > calc > add (positive)  "), true);
+  assert.equal(pattern.test("outer > calc > add (positive) negative"), false);
+  assert.equal(pattern.test("outer > calc > add positive"), false);
 });
 
 test("il launcher mutation condiviso carica esplicitamente core e runner Vitest", async () => {

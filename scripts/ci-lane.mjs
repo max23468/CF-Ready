@@ -45,6 +45,7 @@ const sharedMutationFiles = new Set([
   "package-lock.json",
   "scripts/ci-lane.mjs",
   "scripts/run-critical-mutation.mjs",
+  "scripts/patch-stryker-vitest.mjs",
   "stryker.critical.config.mjs",
   "tsconfig.stryker-not-required.json",
   "vitest.config.ts",
