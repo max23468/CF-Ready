@@ -692,6 +692,11 @@ Direzione, non materiali finali. Testi completi, listing, screenshot definitivi 
 
 **Sfondo.** Un solo colore pieno per tutta la serie: Panna per la maggior parte, Verde bottiglia per uno o due screenshot chiave. Nessun gradiente, nessun pattern, nessuna foto.
 
+**Serie listing 2.x, decisione dell’owner dell’8 ottobre 2026.** I sei screenshot
+alternano Verde bottiglia (1, 3, 5) e Panna (2, 4, 6), nello stesso ordine per
+italiano e inglese. Ogni immagine mantiene un solo fondo pieno; cornice e stile
+della didascalia restano comuni.
+
 **Quantità di testo.** Una frase per screenshot, massimo 8–10 parole, sempre nella stessa posizione e nello stesso stile. Nessun elenco sovrapposto, nessuna freccia, nessun cerchietto rosso, nessun testo dentro la UI.
 
 **Accenti.** Arancio cotto al massimo su un elemento per screenshot e solo se indica davvero qualcosa. Il colore non è mai l'unico veicolo dell'informazione (§10.7): l'accento accompagna sempre la didascalia testuale.

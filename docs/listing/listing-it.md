@@ -4,8 +4,10 @@ Testi pronti da incollare nella listing. La versione inglese è
 [`listing-en.md`](listing-en.md) e le due devono restare allineate: se cambia un
 fatto, cambialo in entrambe nella stessa modifica.
 
-Il Partner Dashboard mostra questa lingua primaria e l'inglese entrambe `Live`
-dal 23 agosto 2026; non resta alcuna lingua non pubblicata.
+Italiano e inglese sono pubblicati dal 23 agosto 2026. Testi riallineati ai
+campi pubblicati del Partner Dashboard, verificati su Chrome l'8 ottobre 2026.
+I sei screenshot 2.x per lingua, ordine e alt text sono documentati in
+[`screenshots.md`](screenshots.md).
 
 I limiti di caratteri dei campi vanno **riconfermati nel Partner Dashboard al
 momento della compilazione**: cambiano senza preavviso e non sono una costante
@@ -23,7 +25,7 @@ checkout.
 
 | Campo | Valore |
 | --- | --- |
-| Nome app | CF Ready \| Codice Fiscale, PEC |
+| Nome app | CF Ready \| Codice Fiscale |
 | Nome breve in Admin | CF Ready |
 | Handle | `cf-ready` |
 | Categoria primaria | Gestione del negozio → Finanze → Imposte |
@@ -41,9 +43,9 @@ ripete lo slogan è inutile a chi non vede l'immagine.
 
 ## Sottotitolo della scheda app
 
-> Rende il Codice Fiscale obbligatorio nel checkout e lo valida
+> Rende il codice fiscale obbligatorio nel checkout e lo valida.
 
-**61/62 caratteri.**
+**62/62 caratteri.**
 
 ## Introduzione
 
@@ -58,11 +60,11 @@ ripete lo slogan è inutile a chi non vede l'immagine.
 > Codice Fiscale e PEC se non gestirli, renderli facoltativi o obbligatori; puoi
 > richiedere la PEC quando il cliente compila Azienda. CF Ready usa i campi
 > nativi del checkout: configuri e provi le regole prima di attivarle, senza
-> codice né Shopify Plus. I controlli valgono solo per l’Italia e i messaggi al
-> cliente si personalizzano in italiano e inglese. La verifica è formale, non
-> anagrafica.
+> codice né Shopify Plus. I controlli valgono solo per l’Italia. I dati fiscali
+> non arrivano ai nostri sistemi e, se l’app ha errori, il checkout resta aperto.
+> La verifica è formale, non anagrafica.
 
-**468/500 caratteri.**
+**499/500 caratteri.**
 
 ## Punti in evidenza
 
@@ -70,7 +72,7 @@ ripete lo slogan è inutile a chi non vede l'immagine.
 2. `Configura Codice Fiscale e PEC con regole separate.`
 3. `Prova regole e messaggi nel simulatore prima di attivarli.`
 4. `Funziona senza codice, modifiche al tema o Shopify Plus.`
-5. `Messaggi al cliente personalizzabili in italiano e inglese.`
+5. `I dati fiscali non arrivano ai nostri sistemi.`
 
 ## Ricerca e SEO
 

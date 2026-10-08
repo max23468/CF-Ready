@@ -4,9 +4,11 @@ Ready-to-paste listing copy. The Italian version is
 [`listing-it.md`](listing-it.md); the two must stay aligned — if a fact changes,
 change it in both within the same edit.
 
-Italian is the primary published listing language. The Partner Dashboard
-marked this aligned English listing `Live` on 23 August 2026; both languages
-now appear under published languages and no unpublished language remains.
+Italian is the primary published listing language. Both languages have been
+published since 23 August 2026. Copy aligned with published Partner Dashboard
+fields, verified in Chrome on 8 October 2026. The six 2.x screenshots per
+language, their order and alt text are documented in
+[`screenshots.md`](screenshots.md).
 
 Field character limits must be **reconfirmed in the Partner Dashboard when
 filling the listing in**. Actual lengths are stated below each text so a tighter
@@ -22,7 +24,7 @@ for amounts, `extensions/cf-ready-validation/` for checkout behaviour.
 
 | Field | Value |
 | --- | --- |
-| App name | CF Ready \| Codice Fiscale, PEC |
+| App name | CF Ready \| Codice Fiscale |
 | Short name in Admin | CF Ready |
 | Handle | `cf-ready` |
 | Primary category | Store management → Finances → Taxes |
@@ -33,43 +35,43 @@ for amounts, `extensions/cf-ready-validation/` for checkout behaviour.
 
 The feature image needs alt text alongside it:
 
-> CF Ready | Codice Fiscale and PEC at checkout
+> CF Ready | Codice Fiscale (Tax ID code) and PEC at checkout
 
 It describes what is visible, not what we would like the reader to conclude: alt
 text that repeats the tagline is useless to someone who cannot see the image.
 
 ## App card subtitle
 
-> Makes Codice Fiscale mandatory at checkout, and validates it
+> Makes Codice Fiscale mandatory at checkout, and validates it.
 
-**60/62 characters.**
+**61/62 characters.**
 
 ## Introduction
 
-> No more orders without a Codice Fiscale: collect it upfront and simplify
-> e-invoicing.
+> No more orders without a Codice Fiscale (Tax ID code): collect it upfront and
+> simplify invoices.
 
-**85/100 characters.**
+**96/100 characters.**
 
 ## App details
 
-> Prevent Italian orders with missing or invalid Codice Fiscale. For Codice
+> Prevent Italian orders with missing or invalid Codice Fiscale (Tax ID). For Codice
 > Fiscale and PEC, choose whether to leave them unmanaged, make them optional or
 > required; you can require PEC when the customer fills in Company. CF Ready
-> uses Shopify's native checkout fields: configure and preview rules before
-> activation, with no code or Shopify Plus. Checks apply only to Italy, and
-> customer messages are editable in Italian and English. Validation is formal,
-> not identity-based.
+> uses Shopify’s native checkout fields: configure and preview rules before
+> activation, with no code or Shopify Plus. Checks apply only to Italy. Tax data
+> never reaches our systems and, if the app fails, checkout stays open. Validation
+> is formal, not identity-based
 
-**472/500 characters.**
+**500/500 characters.**
 
 ## Key features
 
-1. `Prevent Italian orders without a formally valid Codice Fiscale.`
+1. `Prevent Italian orders without a formally valid Codice Fiscale (Tax ID).`
 2. `Configure Codice Fiscale and PEC with separate rules.`
 3. `Preview rules and messages in the simulator before activation.`
 4. `Works with no code, theme changes, or Shopify Plus.`
-5. `Customer messages editable in Italian and English.`
+5. `Tax data never reaches our systems.`
 
 ## Search terms
 
@@ -145,7 +147,7 @@ must state the same figure.
 
 | Item | URL |
 | --- | --- |
-| Support | `https://cfready.it/support` (shared from the primary listing) |
+| Support | `https://cfready.it/en/support` |
 | Developer website | `https://cfready.it/en/` |
 | Privacy | `https://cfready.it/en/privacy` |
 | Terms | `https://cfready.it/en/terms` |
