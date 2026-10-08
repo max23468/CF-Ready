@@ -12,10 +12,14 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   coverage e benchmark allineati;
 - applica durante l'installazione il backport della PR Stryker #6247 per
   selezionare correttamente i test annidati nei mutation test con Vitest 5.
+- separa i casi visivi di etichette e messaggi per lingua e larghezza, così
+  ognuno conserva il proprio budget di esecuzione anche con la coverage.
 
 Vitest is upgraded to 5.0.3 with aligned browser, coverage and benchmarks.
 The Cloudflare test plugin is upgraded to 1.4.0. Installation applies the
 Stryker #6247 backport to select nested tests correctly with Vitest 5.
+Visual label and message tests run separately for each language and width,
+preserving the execution budget of each case under coverage.
 
 ## 2.1.3 — 8 ottobre 2026
 

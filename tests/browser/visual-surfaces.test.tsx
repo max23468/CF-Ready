@@ -758,162 +758,168 @@ test("Polaris reale: Regole con superfici native desktop e mobile", async () => 
   }
 });
 
-test("Polaris reale: gruppo 1, etichette e messaggi IT/EN desktop e 390 px", async () => {
-  for (const locale of ["it", "en"] as const) {
-    for (const width of [1280, 390]) {
-      await page.viewport(width, 844);
-      const rules = { taxCode: "required_validated", pec: "required_when_company" } as const;
-      router.loaderData = {
-        ...onboardingData,
-        locale,
-        rules,
-        configHash: "fixture",
-        duplicateError: null,
-        labelScopesGranted: true,
-        labelLoadError: null,
-        guidedConfirmations: [],
-        labelState: {
-          ...onboardingData.labelState,
-          mode: "guided",
-          decision: "pending",
-          address2FormMode: "optional",
-          address2Decision: "pending",
-        },
-        labelSnapshot: {
-          revision: "fixture",
-          locales: [{ locale, primary: true, published: true }],
-          markets: [
-            {
-              id: "gid://shopify/Market/1",
-              name: "Italy",
-              defaultLocale: locale,
-              locales: [locale],
-              resolution: "ambiguous",
-            },
-          ],
-          issues: [],
-          address2: { classification: "expected", hasMarketOverride: false },
-          slots: [
-            labelSlot({
-              name: "taxCode",
-              key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
-              locale,
-              family: locale,
-              currentValue: "Codice fiscale (opzionale)",
-            }),
-            labelSlot({
-              name: "pec",
-              key: "shopify.checkout.localized_fields.additional_information.tax_email_it",
-              locale,
-              family: locale,
-              currentValue: "PEC (opzionale)",
-            }),
-            labelSlot({ locale, family: locale, currentValue: "Interno" }),
-          ],
-        },
-        checkoutSettingsUrl: "https://admin.shopify.com/store/demo/settings/checkout",
-        storefrontUrl: "https://demo.myshopify.com",
-      };
-      const labels = await mount(<CheckoutRules />);
-      for (const disclosure of labels.container.querySelectorAll<HTMLDetailsElement>(
-        ".rules-layout__labels details",
-      ))
-        disclosure.open = true;
-      for (const badge of labels.container.querySelectorAll(".checkout-labels-title s-badge")) {
-        for (const element of badge.shadowRoot!.querySelectorAll<HTMLElement>("*")) {
-          if (element.textContent === badge.textContent && element.clientWidth > 0) {
-            expect(element.scrollWidth).toBeLessThanOrEqual(element.clientWidth + 1);
-          }
+// Ogni combinazione mantiene il proprio budget anche con coverage e comandi browser Vitest 5.
+test.each([
+  ["it", 1280],
+  ["it", 390],
+  ["en", 1280],
+  ["en", 390],
+] as const)(
+  "Polaris reale: gruppo 1, etichette e messaggi, %s a %i px",
+  async (locale, width) => {
+    await page.viewport(width, 844);
+    const rules = { taxCode: "required_validated", pec: "required_when_company" } as const;
+    router.loaderData = {
+      ...onboardingData,
+      locale,
+      rules,
+      configHash: "fixture",
+      duplicateError: null,
+      labelScopesGranted: true,
+      labelLoadError: null,
+      guidedConfirmations: [],
+      labelState: {
+        ...onboardingData.labelState,
+        mode: "guided",
+        decision: "pending",
+        address2FormMode: "optional",
+        address2Decision: "pending",
+      },
+      labelSnapshot: {
+        revision: "fixture",
+        locales: [{ locale, primary: true, published: true }],
+        markets: [
+          {
+            id: "gid://shopify/Market/1",
+            name: "Italy",
+            defaultLocale: locale,
+            locales: [locale],
+            resolution: "ambiguous",
+          },
+        ],
+        issues: [],
+        address2: { classification: "expected", hasMarketOverride: false },
+        slots: [
+          labelSlot({
+            name: "taxCode",
+            key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
+            locale,
+            family: locale,
+            currentValue: "Codice fiscale (opzionale)",
+          }),
+          labelSlot({
+            name: "pec",
+            key: "shopify.checkout.localized_fields.additional_information.tax_email_it",
+            locale,
+            family: locale,
+            currentValue: "PEC (opzionale)",
+          }),
+          labelSlot({ locale, family: locale, currentValue: "Interno" }),
+        ],
+      },
+      checkoutSettingsUrl: "https://admin.shopify.com/store/demo/settings/checkout",
+      storefrontUrl: "https://demo.myshopify.com",
+    };
+    const labels = await mount(<CheckoutRules />);
+    for (const disclosure of labels.container.querySelectorAll<HTMLDetailsElement>(
+      ".rules-layout__labels details",
+    ))
+      disclosure.open = true;
+    for (const badge of labels.container.querySelectorAll(".checkout-labels-title s-badge")) {
+      for (const element of badge.shadowRoot!.querySelectorAll<HTMLElement>("*")) {
+        if (element.textContent === badge.textContent && element.clientWidth > 0) {
+          expect(element.scrollWidth).toBeLessThanOrEqual(element.clientWidth + 1);
         }
       }
-      expect(labels.container.querySelector(".checkout-label-context")).not.toBeNull();
-      for (const context of labels.container.querySelectorAll<HTMLElement>(
-        ".checkout-label-context",
-      )) {
-        expect(context.scrollWidth).toBeLessThanOrEqual(context.clientWidth + 1);
-        const limit = context.getBoundingClientRect().right;
-        for (const element of context.querySelectorAll("s-text, s-badge")) {
-          if (element.closest("s-modal")) continue;
-          expect(surfaceRect(element).right).toBeLessThanOrEqual(limit + 1);
-        }
-      }
-      expect(labels.container.scrollWidth).toBeLessThanOrEqual(width);
-      await captureSurface(
-        labels.container,
-        `__screenshots__/visual/gruppo1-labels-${locale}-${server.browser}-${width}.png`,
-      );
-      const labelCopy = texts(locale).rules.labels;
-      expect(labels.container.querySelectorAll(".checkout-label-context s-badge")).toHaveLength(0);
-      await page.getByRole("button", { name: labelCopy.manualHeading, exact: true }).click();
-      const manualDialog = page.getByRole("dialog", { name: labelCopy.manualHeading });
-      await expect.element(manualDialog).toBeVisible();
-      const closeManual = labels.container.querySelector(
-        's-modal[id^="manual-labels-"] s-button[slot="secondary-actions"]',
-      )!;
-      await userEvent.click(closeManual);
-      await expect.poll(() => manualDialog.query()).toBeNull();
-      await act(async () => {
-        await page.getByRole("checkbox", { name: labelCopy.enableGuided, exact: true }).click();
-      });
-      await expect.element(page.getByText(labelCopy.disableWarning, { exact: true })).toBeVisible();
-      await labels.unmount();
-
-      router.loaderData = {
-        locale,
-        configHash: "fixture",
-        rules,
-        messages: DEFAULT_CONFIG.messages,
-      };
-      const messages = await mount(<CustomerMessages />);
-      const availability = messages.container.querySelector('s-icon[type="info"]')!.parentElement!;
-      const iconBox = surfaceRect(availability.querySelector("s-icon")!);
-      const textBox = surfaceRect(availability.querySelector("s-text")!);
-      expect(textBox.left).toBeGreaterThanOrEqual(iconBox.right);
-      expect(Math.abs(textBox.top - iconBox.top)).toBeLessThan(6);
-      expect(messages.container.textContent).toContain(texts(locale).messages.previewHint);
-      await captureSurface(
-        messages.container,
-        `__screenshots__/visual/gruppo1-messages-${locale}-${server.browser}-${width}.png`,
-      );
-      await messages.unmount();
-
-      router.loaderData = { ...onboardingData, locale, rules, step: 3 };
-      const onboarding = await mount(<Onboarding />);
-      expect(
-        onboarding.container.querySelectorAll(".customer-messages-preview__error"),
-      ).toHaveLength(4);
-      expect(onboarding.container.textContent).toContain(texts(locale).messages.previewHint);
-      expect(
-        onboarding.container.querySelector('.onboarding-message s-icon[type="alert-circle"]'),
-      ).toBeNull();
-      await captureSurface(
-        onboarding.container,
-        `__screenshots__/visual/gruppo1-onboarding-${locale}-${server.browser}-${width}.png`,
-      );
-      await onboarding.unmount();
-
-      router.loaderData = {
-        locale,
-        shopDomain: "demo.myshopify.com",
-        version: "2.0.2",
-        diagnosticId: "123e4567-e89b-42d3-a456-426614174000",
-        diagnostics: {},
-      };
-      const guide = await mount(<Guide />);
-      for (const disclosure of guide.container.querySelectorAll<HTMLDetailsElement>(
-        ".guide-faq__entry",
-      ))
-        disclosure.open = true;
-      expect(guide.container.querySelector(".guide-faq__entries s-divider")).not.toBeNull();
-      expect(guide.container.scrollWidth).toBeLessThanOrEqual(width);
-      await captureSurface(
-        guide.container,
-        `__screenshots__/visual/gruppo1-guide-${locale}-${server.browser}-${width}.png`,
-      );
-      await guide.unmount();
     }
-  }
-}, 30000);
+    expect(labels.container.querySelector(".checkout-label-context")).not.toBeNull();
+    for (const context of labels.container.querySelectorAll<HTMLElement>(
+      ".checkout-label-context",
+    )) {
+      expect(context.scrollWidth).toBeLessThanOrEqual(context.clientWidth + 1);
+      const limit = context.getBoundingClientRect().right;
+      for (const element of context.querySelectorAll("s-text, s-badge")) {
+        if (element.closest("s-modal")) continue;
+        expect(surfaceRect(element).right).toBeLessThanOrEqual(limit + 1);
+      }
+    }
+    expect(labels.container.scrollWidth).toBeLessThanOrEqual(width);
+    await captureSurface(
+      labels.container,
+      `__screenshots__/visual/gruppo1-labels-${locale}-${server.browser}-${width}.png`,
+    );
+    const labelCopy = texts(locale).rules.labels;
+    expect(labels.container.querySelectorAll(".checkout-label-context s-badge")).toHaveLength(0);
+    await page.getByRole("button", { name: labelCopy.manualHeading, exact: true }).click();
+    const manualDialog = page.getByRole("dialog", { name: labelCopy.manualHeading });
+    await expect.element(manualDialog).toBeVisible();
+    const closeManual = labels.container.querySelector(
+      's-modal[id^="manual-labels-"] s-button[slot="secondary-actions"]',
+    )!;
+    await userEvent.click(closeManual);
+    await expect.poll(() => manualDialog.query()).toBeNull();
+    await act(async () => {
+      await page.getByRole("checkbox", { name: labelCopy.enableGuided, exact: true }).click();
+    });
+    await expect.element(page.getByText(labelCopy.disableWarning, { exact: true })).toBeVisible();
+    await labels.unmount();
+
+    router.loaderData = {
+      locale,
+      configHash: "fixture",
+      rules,
+      messages: DEFAULT_CONFIG.messages,
+    };
+    const messages = await mount(<CustomerMessages />);
+    const availability = messages.container.querySelector('s-icon[type="info"]')!.parentElement!;
+    const iconBox = surfaceRect(availability.querySelector("s-icon")!);
+    const textBox = surfaceRect(availability.querySelector("s-text")!);
+    expect(textBox.left).toBeGreaterThanOrEqual(iconBox.right);
+    expect(Math.abs(textBox.top - iconBox.top)).toBeLessThan(6);
+    expect(messages.container.textContent).toContain(texts(locale).messages.previewHint);
+    await captureSurface(
+      messages.container,
+      `__screenshots__/visual/gruppo1-messages-${locale}-${server.browser}-${width}.png`,
+    );
+    await messages.unmount();
+
+    router.loaderData = { ...onboardingData, locale, rules, step: 3 };
+    const onboarding = await mount(<Onboarding />);
+    expect(onboarding.container.querySelectorAll(".customer-messages-preview__error")).toHaveLength(
+      4,
+    );
+    expect(onboarding.container.textContent).toContain(texts(locale).messages.previewHint);
+    expect(
+      onboarding.container.querySelector('.onboarding-message s-icon[type="alert-circle"]'),
+    ).toBeNull();
+    await captureSurface(
+      onboarding.container,
+      `__screenshots__/visual/gruppo1-onboarding-${locale}-${server.browser}-${width}.png`,
+    );
+    await onboarding.unmount();
+
+    router.loaderData = {
+      locale,
+      shopDomain: "demo.myshopify.com",
+      version: "2.0.2",
+      diagnosticId: "123e4567-e89b-42d3-a456-426614174000",
+      diagnostics: {},
+    };
+    const guide = await mount(<Guide />);
+    for (const disclosure of guide.container.querySelectorAll<HTMLDetailsElement>(
+      ".guide-faq__entry",
+    ))
+      disclosure.open = true;
+    expect(guide.container.querySelector(".guide-faq__entries s-divider")).not.toBeNull();
+    expect(guide.container.scrollWidth).toBeLessThanOrEqual(width);
+    await captureSurface(
+      guide.container,
+      `__screenshots__/visual/gruppo1-guide-${locale}-${server.browser}-${width}.png`,
+    );
+    await guide.unmount();
+  },
+  30000,
+);
 
 test("Polaris reale: il banner di esito resta separato dalle card che seguono", async () => {
   await page.viewport(1280, 844);
