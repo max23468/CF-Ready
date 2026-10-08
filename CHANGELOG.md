@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.1.3 — 8 ottobre 2026
+
+- aggiorna i sei screenshot del listing App Store in italiano e inglese alla
+  versione 2.x e riallinea la documentazione ai testi pubblicati;
+- patch autorizzata per promuovere il materiale del listing già verificato,
+  senza modifiche alle funzionalità dell'app.
+
+The six App Store screenshots in Italian and English now reflect version 2.x,
+and the listing documentation matches the published copy. This authorized patch
+promotes the verified listing materials without changing app functionality.
+
 ## 2.1.2 — 8 ottobre 2026
 
 - quando la configurazione si completa durante la visita, la guida in Home resta
