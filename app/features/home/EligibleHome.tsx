@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { localizedError, type AppErrorCode } from "../../app-error";
 import { pendingFetcherIntent, pendingFetcherSource } from "../../config";
 import { formatDate, texts } from "../../i18n";
@@ -34,6 +35,9 @@ export function EligibleHome({
   retryVerification: () => void;
 }) {
   const t = texts(data.locale);
+  // La guida visibile all'apertura resta fino al prossimo caricamento e mostra i passi completati:
+  // toglierla in cima alla pagina dopo la configurazione spostava tutta la Home (CLS fino a 0,6).
+  const [setupGuideShown] = useState(() => data.onboarding !== "completed");
   const currentCommercialState = commercialState(data);
   const entitled = currentCommercialState === "entitled";
   const firstRun = currentCommercialState === "first_run";
@@ -65,7 +69,7 @@ export function EligibleHome({
       {data.showMerchantCheckIn ? (
         <MerchantCheckIn data={data} busy={busy} pendingIntent={pendingIntent} submit={submit} />
       ) : null}
-      {data.onboarding !== "completed" ? (
+      {setupGuideShown ? (
         <SetupGuide
           data={data}
           busy={busy}

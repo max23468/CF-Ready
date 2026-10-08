@@ -34,6 +34,31 @@ describe("Home merchant", () => {
     expect(view.container.textContent).toContain(texts("it").home.verifying);
   });
 
+  test("la guida resta visibile e completata quando la configurazione finisce durante la visita", async () => {
+    const before = {
+      ...homeData,
+      onboarding: "in_progress",
+      entitlement: { kind: "trial", validThrough: "2026-10-22" },
+      trialStatus: "active",
+      trialEndsAt: "2026-10-22",
+    };
+    router.loaderData = confirmedHome(before);
+    const view = await mount(<HomePage />);
+    await act(async () => void (await Promise.resolve()));
+    expect(view.container.textContent).toContain(texts("it").setup.heading);
+
+    router.loaderData = confirmedHome({
+      ...before,
+      onboarding: "completed",
+      validationEnabled: true,
+      rules: { taxCode: "required_validated", pec: "optional_validated" },
+    });
+    await view.rerender(<HomePage />);
+    await act(async () => void (await Promise.resolve()));
+    // Togliere la card in cima alla pagina spostava tutta la Home (CLS fino a 0,6).
+    expect(view.container.textContent).toContain(texts("it").setup.heading);
+  });
+
   test("gli stati rari della Home portano in vista piani e avvisi", async () => {
     const lapsed = { ...homeData, trialStatus: "expired", remaining: 0, onboarding: "completed" };
     const view = await mount(
