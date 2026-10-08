@@ -96,6 +96,11 @@ test("seleziona soltanto i domini mutation toccati", () => {
 });
 
 test("i file condivisi del mutation harness attivano tutti i domini", () => {
+  assert.deepEqual(selectMutationDomains(["scripts/patch-stryker-vitest.mjs"]), [
+    "billing",
+    "validation",
+    "webhooks",
+  ]);
   assert.deepEqual(selectMutationDomains(["stryker.critical.config.mjs"]), [
     "billing",
     "validation",

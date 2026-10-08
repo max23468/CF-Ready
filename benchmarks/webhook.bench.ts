@@ -1,4 +1,4 @@
-import { beforeAll, bench, describe } from "vitest";
+import { beforeAll, test } from "vitest";
 import { validateShopifyWebhook } from "../app/shopify-webhook.server";
 
 const secret = "synthetic-secret";
@@ -32,20 +32,22 @@ beforeAll(async () => {
   }
 });
 
-describe("percorso CPU webhook sintetico", () => {
-  bench("HMAC e header, payload piccolo", async () => {
-    await validateShopifyWebhook(headers.get("small")!, payloads.small, secret);
-  });
+test("percorso CPU webhook sintetico", async ({ bench }) => {
+  await bench.compare(
+    bench("HMAC e header, payload piccolo", async () => {
+      await validateShopifyWebhook(headers.get("small")!, payloads.small, secret);
+    }),
 
-  bench("JSON.parse, payload piccolo", () => {
-    JSON.parse(payloads.small);
-  });
+    bench("JSON.parse, payload piccolo", () => {
+      JSON.parse(payloads.small);
+    }),
 
-  bench("HMAC e header, payload 32 KiB", async () => {
-    await validateShopifyWebhook(headers.get("large")!, payloads.large, secret);
-  });
+    bench("HMAC e header, payload 32 KiB", async () => {
+      await validateShopifyWebhook(headers.get("large")!, payloads.large, secret);
+    }),
 
-  bench("JSON.parse, payload 32 KiB", () => {
-    JSON.parse(payloads.large);
-  });
+    bench("JSON.parse, payload 32 KiB", () => {
+      JSON.parse(payloads.large);
+    }),
+  );
 });
