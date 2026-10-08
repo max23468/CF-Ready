@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -16,7 +16,23 @@ test("il bundle client resta entro il budget", () => {
 
 test("gli asset fingerprinted hanno una cache browser immutabile", async () => {
   const headers = await readFile("public/_headers", "utf8");
-  assert.match(headers, /^\/assets\/\*\n  Cache-Control: public, max-age=31556952, immutable\n$/);
+  assert.match(headers, /^\/assets\/\*\n  Cache-Control: public, max-age=31556952, immutable\n/);
+});
+
+// I marchi non hanno hash nel nome: un giorno di cache evita la riconvalida a ogni apertura
+// senza bloccare per sempre un logo aggiornato.
+test("i marchi pubblici hanno una cache breve e rinnovabile", async () => {
+  const headers = await readFile("public/_headers", "utf8");
+  const brandFiles = (await readdir("public")).filter((file) => file.endsWith(".svg"));
+  assert.ok(brandFiles.length > 0);
+  for (const file of brandFiles) {
+    assert.ok(
+      headers.includes(
+        `/${file}\n  Cache-Control: public, max-age=86400, stale-while-revalidate=604800\n`,
+      ),
+      `${file} senza cache`,
+    );
+  }
 });
 
 test("il gate blocca un bundle client oltre il budget", () => {
