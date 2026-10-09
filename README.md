@@ -25,6 +25,13 @@ mise exec -- npm run db:migrate:local
 mise exec -- npm run dev
 ```
 
+I test usano Vitest 5. Durante `npm ci`, `postinstall` applica al runner Stryker
+10.0.0 il backport della [PR #6247](https://github.com/stryker-mutator/stryker-js/pull/6247),
+necessario per i nomi dei test annidati. Il backport è in
+`scripts/patch-stryker-vitest.mjs` e va rimosso quando una versione pubblicata
+del runner include la correzione; codice o versione inattesi interrompono
+l'installazione. Non saltare gli script di installazione nei gate mutation.
+
 ## Sito pubblico
 
 Le pagine statiche bilingui stanno in `site/` e non hanno passo di build né
