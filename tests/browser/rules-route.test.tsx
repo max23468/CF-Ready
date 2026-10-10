@@ -699,6 +699,53 @@ describe("Regole", () => {
       { method: "post" },
     );
 
+    router.loaderData = {
+      ...router.loaderData,
+      labelState: {
+        ...rulesData.labelState,
+        mode: "guided",
+        managementEpoch: "existing-epoch",
+        lastErrorCode: "checkout_labels_confirmation_required",
+      },
+    };
+    for (const stateError of [
+      "checkout_labels_confirmation_required",
+      "checkout_labels_partial_sync",
+    ] as const) {
+      router.loaderData = {
+        ...router.loaderData,
+        labelState: { ...router.loaderData.labelState, lastErrorCode: stateError },
+      };
+      router.actionData =
+        stateError === "checkout_labels_partial_sync"
+          ? { ok: false, errorCode: "checkout_labels_confirmation_required" }
+          : undefined;
+      await view.rerender(<CheckoutRules key={`new-automatic-labels-${stateError}`} />);
+      expect(view.container.textContent).toContain(
+        stateError === "checkout_labels_confirmation_required"
+          ? texts("it").rules.labels.statusManualRequired
+          : texts("it").rules.labels.statusError,
+      );
+      if (stateError === "checkout_labels_confirmation_required") {
+        expect(view.container.textContent).not.toContain(
+          texts("it").rules.labels.nativeSummaryError,
+        );
+      }
+      const beforeNewLabels = router.submit.mock.calls.length;
+      await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
+      expect(router.submit).toHaveBeenCalledTimes(beforeNewLabels);
+      await click(
+        view.container.querySelector(
+          's-modal[id="confirm-checkout-label-management"] s-button[slot="primary-action"]',
+        )!,
+      );
+      expect(router.submit).toHaveBeenLastCalledWith(
+        expect.objectContaining({ labelsEnabled: "1", labelsConfirmed: "1" }),
+        { method: "post" },
+      );
+    }
+    router.actionData = undefined;
+
     router.loaderData = { ...rulesData, labelScopesGranted: true, labelSnapshot: null };
     await view.rerender(<CheckoutRules key="labels-without-snapshot" />);
     expect(view.container.textContent).toContain(texts("it").rules.labels.noSnapshot);

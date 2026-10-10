@@ -6,6 +6,18 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.1.5 — 10 ottobre 2026
+
+- distingue le etichette automatiche mai scritte dalle sincronizzazioni fallite,
+  anche durante la riconciliazione periodica;
+- richiede il confronto e la conferma per i nuovi slot automatici anche quando
+  la gestione è già attiva, mostrando la scelta come «Da verificare».
+
+Automatic labels that have never been written now require confirmation instead
+of reporting a failed synchronization, including during periodic reconciliation.
+New automatic slots require comparison and consent even when label management
+is already active, and the interface presents them as needing review.
+
 ## 2.1.4 — 8 ottobre 2026
 
 - aggiorna Vitest a 5.0.3 e il plugin di test Cloudflare a 1.4.0, con browser,

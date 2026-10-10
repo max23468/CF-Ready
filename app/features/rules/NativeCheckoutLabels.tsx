@@ -296,6 +296,12 @@ function nativeLabelsPresentation({
   pendingCount: number;
   pendingLanguages: string[];
 }) {
+  if (state.lastErrorCode === "checkout_labels_confirmation_required") {
+    return {
+      status: copy.statusManualRequired,
+      summary: localizedError(errors, state.lastErrorCode),
+    };
+  }
   // Un errore salvato non è una verifica manuale: lo si nomina e si dice cosa fare (come R-H4).
   if (state.lastErrorCode && state.lastErrorCode !== "checkout_labels_confirmation_pending") {
     return {

@@ -25,6 +25,20 @@ export type FiscalLabelContext = {
   guidedSlotIds: string[];
 };
 
+export function labelManagementSaveState(
+  state: CheckoutLabelState,
+  enabled: boolean,
+  errorCode: string | null,
+) {
+  const automaticConfirmationRequired =
+    state.lastErrorCode === "checkout_labels_confirmation_required" ||
+    errorCode === "checkout_labels_confirmation_required";
+  return {
+    automaticConfirmationRequired,
+    dirty: enabled !== (state.mode !== "off") || (enabled && automaticConfirmationRequired),
+  };
+}
+
 function displaySlots(slots: CheckoutLabelSlot[], name: CheckoutLabelSlot["name"], locale: string) {
   const matching = slots.filter((slot) => slot.name === name && slot.locale === locale);
   const base =
