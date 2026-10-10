@@ -1,10 +1,5 @@
 import { useEffect, useReducer, useRef, useState } from "react";
-import {
-  diagnosePec,
-  isValidPec,
-  isValidTaxCode,
-  requiredFieldsAreDue,
-} from "../../checkout-field-validation";
+import { isValidPec, isValidTaxCode, requiredFieldsAreDue } from "../../checkout-field-validation";
 import type { Messages, Rules } from "../../config";
 import { texts } from "../../i18n";
 import type { Locale } from "../../i18n";
@@ -531,7 +526,6 @@ function SimulatorPecField({
   if (mode === "unmanaged" || !present) return null;
   const required = applies && pecIsRequired(mode, company);
   const problem = applies ? simulatorFieldError(mode, value, isValidPec, required) : null;
-  const copy = texts(locale).rules.simulator;
   return (
     <s-text-field
       label={checkoutLabelCopy("pec", locale, mode)!}
@@ -542,8 +536,9 @@ function SimulatorPecField({
         "pec",
         problem,
         problem === "invalid" || requiredErrorsDue,
+        value,
+        locale,
       )}
-      details={problem === "invalid" ? copy.diagnostics.pec[diagnosePec(value)] : undefined}
       onInput={(event) => onInput(event.currentTarget.value)}
     />
   );

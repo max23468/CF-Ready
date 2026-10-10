@@ -216,9 +216,13 @@ describe("reporting condiviso", () => {
       trial_without_activation: 1,
       uninstalled_before_observed_activation: 1,
       activation_without_observed_trial: 0,
+      paid_plan_observed: 2,
+      paid_plan_after_activation: 1,
+      uninstalled_after_activation: 1,
       seconds_to_rules: null,
       seconds_to_trial: 2,
       seconds_to_activation: 3,
+      seconds_to_paid_plan: 4,
     };
     expect(parseFunnel([base])[0]).toMatchObject({ activation_rate: 0.6, evidence: "descriptive" });
     expect(
@@ -233,11 +237,16 @@ describe("reporting condiviso", () => {
           configured_without_activation: 0,
           trial_without_activation: 0,
           uninstalled_before_observed_activation: 0,
+          paid_plan_observed: 0,
+          paid_plan_after_activation: 0,
+          uninstalled_after_activation: 0,
         },
       ])[0],
     ).toMatchObject({ activation_rate: null, evidence: "small_cohort" });
     expect(() => parseFunnel([{ ...base, cohort: "x" }])).toThrow("Coorte");
     expect(() => parseFunnel([{ ...base, rules_observed: 11 }])).toThrow("Coorte");
+    expect(() => parseFunnel([{ ...base, paid_plan_after_activation: 7 }])).toThrow("Coorte");
+    expect(() => parseFunnel([{ ...base, uninstalled_after_activation: 7 }])).toThrow("Coorte");
     expect(() => parseFunnel([{ ...base, seconds_to_rules: -1 }])).toThrow("Durata");
   });
 });
