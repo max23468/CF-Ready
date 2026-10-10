@@ -6,6 +6,19 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.1.6 — 10 ottobre 2026
+
+- distingue errori di rete, timeout, HTTP e GraphQL nelle richieste Partner;
+- ritenta gli errori transitori fino a tre tentativi, rispettando `Retry-After`,
+  e identifica la fase del ciclo owner che fallisce;
+- conserva il cursore degli eventi dopo un fallimento per recuperarli al ciclo
+  successivo, senza registrare contenuti riservati delle risposte.
+
+Partner requests distinguish network, timeout, HTTP and GraphQL failures.
+Transient failures are retried up to three attempts while respecting
+`Retry-After`. Owner cycle diagnostics identify the failing stage, and event
+checkpoints remain unchanged after a failure so the next cycle can recover.
+
 ## 2.1.5 — 10 ottobre 2026
 
 - distingue le etichette automatiche mai scritte dalle sincronizzazioni fallite,

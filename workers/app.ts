@@ -90,11 +90,11 @@ async function runOwnerNotificationCycle(env: NotificationBindings) {
       import("../app/offline-token-refresh.server"),
       import("../app/events.server"),
     ]);
-  const recordStageFailure = (name: string, error: unknown, fallback: string) =>
+  const recordStageFailure = (name: string, error: unknown, fallback: string, reason?: string) =>
     recordEvent(env.DB, {
       name,
       class: "error",
-      metadata: { error_code: stageErrorCode(error, fallback) },
+      metadata: { error_code: stageErrorCode(error, fallback), ...(reason ? { reason } : {}) },
     });
 
   // Token offline validi alla prossima apertura: l'LCP a freddo non paga il token exchange.
@@ -148,7 +148,14 @@ async function runOwnerNotificationCycle(env: NotificationBindings) {
   // Le fasi restano indipendenti: un errore Partner non deve impedire la verifica degli
   // altri incidenti o l'invio delle prove già registrate; un errore Telegram non deve perdere i
   // nuovi eventi acquisiti.
-  for (const stage of stages) {
+  const stageNames = [
+    "partner_events",
+    "partner_financials",
+    "local_notifications",
+    "incidents",
+    "delivery",
+  ];
+  for (const [index, stage] of stages.entries()) {
     try {
       // react-doctor-disable-next-line react-doctor/async-await-in-loop
       await stage();
@@ -158,6 +165,7 @@ async function runOwnerNotificationCycle(env: NotificationBindings) {
         "owner_notification_cycle_failed",
         error,
         "owner_notification_failed",
+        stageNames[index],
       );
     }
   }
