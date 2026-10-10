@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { diagnosePec, invalidPecMessage, pecHints } from "../../../app/checkout-field-validation";
 import type { CartValidationsGenerateRunInput } from "../generated/api";
 import {
   cartValidationsGenerateRun,
@@ -25,6 +26,7 @@ const messages = {
 const lengthHint = "Deve avere 16 caratteri oppure 11 cifre.";
 
 function expectedMessage(key: keyof typeof messages.it) {
+  if (key === "pecInvalid") return `${messages.it[key]} Scrivi l’indirizzo senza spazi.`;
   return key === "taxCodeInvalid" ? `${messages.it[key]} ${lengthHint}` : messages.it[key];
 }
 
@@ -119,6 +121,35 @@ describe("Codice Fiscale", () => {
 });
 
 describe("PEC", () => {
+  it.each([
+    ["x".repeat(255), "length"],
+    ["no me@pec.example", "spaces"],
+    ["nomepec.example", "at_sign"],
+    ["nome@@pec.example", "at_sign"],
+    ["@pec.example", "local_part"],
+    ["nome@", "domain"],
+    ["nome@pec..example", "domain"],
+  ] as const)("spiega il formato rifiutato in entrambe le lingue: %s", (value, reason) => {
+    expect(diagnosePec(value)).toBe(reason);
+    for (const locale of ["it", "en"] as const) {
+      const config = { ...baseConfig, rules: { taxCode: "unmanaged", pec: "optional_validated" } };
+      expect(
+        errors(
+          input({
+            config,
+            language: locale === "it" ? "IT" : "EN",
+            fields: [{ key: "TAX_EMAIL_IT", value }],
+          }),
+        ),
+      ).toEqual([
+        {
+          message: `${messages[locale].pecInvalid} ${pecHints[locale][reason]}`,
+          target: "$.cart.localizedField.TAX_EMAIL_IT",
+        },
+      ]);
+      expect(invalidPecMessage("Testo", "nome@example.com", locale)).toBe("Testo");
+    }
+  });
   it.each([
     ["semplice", "nome@pec.example", true],
     ["maiuscole", "NOME@PEC.EXAMPLE", true],
@@ -396,7 +427,10 @@ describe("applicabilità e fail-open", () => {
           message: expectedMessage("taxCodeInvalid"),
           target: "$.cart.localizedField.TAX_CREDENTIAL_IT",
         },
-        { message: "PEC non valida", target: "$.cart.localizedField.TAX_EMAIL_IT" },
+        {
+          message: "PEC non valida Scrivi l’indirizzo senza spazi.",
+          target: "$.cart.localizedField.TAX_EMAIL_IT",
+        },
       ]);
     },
   );
@@ -700,7 +734,12 @@ describe("regole e messaggi", () => {
     ])("valida una PEC presente con %s", (_name, company) => {
       expect(
         errors(input({ config, company, fields: [{ key: "TAX_EMAIL_IT", value: "non valida" }] })),
-      ).toEqual([{ message: "PEC non valida", target: "$.cart.localizedField.TAX_EMAIL_IT" }]);
+      ).toEqual([
+        {
+          message: "PEC non valida Scrivi l’indirizzo senza spazi.",
+          target: "$.cart.localizedField.TAX_EMAIL_IT",
+        },
+      ]);
       expect(
         errors(
           input({ config, company, fields: [{ key: "TAX_EMAIL_IT", value: "nome@example.com" }] }),

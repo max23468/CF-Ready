@@ -5,6 +5,7 @@ export const SHOPIFY_PLAN_QUERY = `#graphql
     shop {
       plan {
         publicDisplayName
+        partnerDevelopment
       }
     }
   }
@@ -39,16 +40,29 @@ export async function readShopifyPlan(
   shopDomain: string,
   adminForShop: ShopifyAdminForShop,
 ): Promise<string | null> {
+  return (await readShopifyPlanDetails(shopDomain, adminForShop))?.name ?? null;
+}
+
+export async function readShopifyPlanDetails(
+  shopDomain: string,
+  adminForShop: ShopifyAdminForShop,
+): Promise<{ name: string; partnerDevelopment: boolean | null } | null> {
   try {
     const admin = await adminForShop(shopDomain);
     const response = await admin.graphql(SHOPIFY_PLAN_QUERY);
     const payload = (await response.json()) as {
-      data?: { shop?: { plan?: { publicDisplayName?: unknown } } };
+      data?: { shop?: { plan?: { publicDisplayName?: unknown; partnerDevelopment?: unknown } } };
       errors?: unknown[];
     };
     const value = payload.data?.shop?.plan?.publicDisplayName;
     return response.ok && !payload.errors?.length && typeof value === "string" && value.trim()
-      ? value.trim()
+      ? {
+          name: value.trim(),
+          partnerDevelopment:
+            typeof payload.data?.shop?.plan?.partnerDevelopment === "boolean"
+              ? payload.data.shop.plan.partnerDevelopment
+              : null,
+        }
       : null;
   } catch {
     return null;

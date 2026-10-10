@@ -6,6 +6,65 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.2.1 — 10 ottobre 2026
+
+- integra in Performance e Dashboard Telegram la stima del progresso verso i
+  50 store BFS, basata sui piani Shopify e distinta dal billing CF Ready;
+- notifica ogni cinque store aggiuntivi e il raggiungimento di 50, con stato
+  persistente per evitare duplicati e conteggi incompleti;
+- segnala superamenti e rientri delle soglie BFS di LCP, CLS e INP sul p75
+  degli ultimi 28 giorni, distinguendo i campioni preliminari;
+- mantiene otto comandi nel menu Telegram, con Activity al posto di Help.
+
+Telegram Performance and Dashboard show estimated progress toward 50 BFS
+stores using Shopify plans independently of CF Ready billing. Persistent
+notifications report every five additional stores and reaching 50. LCP, CLS
+and INP alerts track threshold breaches and recovery using the 28-day p75,
+with preliminary samples identified. The eight-command menu includes Activity
+in place of Help, which remains available as a typed command.
+
+## 2.2.0 — 10 ottobre 2026
+
+- aggiunge al messaggio PEC non valida un suggerimento IT/EN sulla causa formale,
+  identico nel checkout e nel simulatore, senza cambiare i formati accettati;
+- adegua il lotto di rinnovo token all'arretrato, da 3 a 15 sessioni per ciclo,
+  mantenendo al massimo 3 rinnovi contemporanei, e ne espone lo stato in `/health`;
+- estende le coorti di attivazione con piani paganti non test, tempi e tassi
+  di conversione e disinstallazioni successive all'attivazione. Le attivazioni
+  dei piani non attestano incassi liquidati; i dati restano soggetti a retention.
+
+Invalid PEC messages now include an Italian or English format hint, shared by
+checkout and simulator. Accepted formats remain unchanged. Offline token refresh
+batches adapt to the backlog from 3 to 15 sessions, with at most 3 concurrent
+refreshes; `/health` exposes aggregate renewal status. Activation cohorts now
+include non-test paid plans, conversion timings and rates, and uninstalls after
+activation. Plan activation does not prove settled revenue; retention still applies.
+
+## 2.1.6 — 10 ottobre 2026
+
+- distingue errori di rete, timeout, HTTP e GraphQL nelle richieste Partner;
+- ritenta gli errori transitori fino a tre tentativi, rispettando `Retry-After`,
+  e identifica la fase del ciclo owner che fallisce;
+- conserva il cursore degli eventi dopo un fallimento per recuperarli al ciclo
+  successivo, senza registrare contenuti riservati delle risposte.
+
+Partner requests distinguish network, timeout, HTTP and GraphQL failures.
+Transient failures are retried up to three attempts while respecting
+`Retry-After`. Owner cycle diagnostics identify the failing stage, and event
+checkpoints remain unchanged after a failure so the next cycle can recover.
+
+## 2.1.5 — 10 ottobre 2026
+
+- distingue le etichette automatiche mai scritte dalle sincronizzazioni fallite,
+  anche durante la riconciliazione periodica;
+- richiede il confronto e la conferma per i nuovi slot automatici anche quando
+  la gestione è già attiva, mostrando la scelta come «Da verificare».
+
+Automatic labels that have never been written now require confirmation instead
+of reporting a failed synchronization, including during periodic reconciliation.
+New automatic slots require comparison and consent even when label management
+is already active, and the interface presents them as needing review.
+
 ## 2.1.4 — 8 ottobre 2026
 
 - aggiorna Vitest a 5.0.3 e il plugin di test Cloudflare a 1.4.0, con browser,

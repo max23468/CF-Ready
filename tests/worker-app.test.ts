@@ -12,6 +12,9 @@ const mocks = vi.hoisted(() => ({
   syncPartnerFinancialObservations: vi.fn(),
   pollLocalNotifications: vi.fn(),
   reconcileOwnerIncidents: vi.fn(),
+  refreshBFSPlans: vi.fn(),
+  pollBFSProgress: vi.fn(),
+  pollBFSPerformance: vi.fn(),
   deliverOwnerNotifications: vi.fn(),
   recordEvent: vi.fn(),
   handleOwnerControlWebhook: vi.fn(),
@@ -43,6 +46,11 @@ vi.mock("../app/owner-notifications.server", () => ({
   deliverOwnerNotifications: mocks.deliverOwnerNotifications,
 }));
 vi.mock("../app/events.server", () => ({ recordEvent: mocks.recordEvent }));
+vi.mock("../app/owner-control/bfs.server", () => ({ refreshBFSPlans: mocks.refreshBFSPlans }));
+vi.mock("../app/owner-control/bfs-notifications.server", () => ({
+  pollBFSProgress: mocks.pollBFSProgress,
+  pollBFSPerformance: mocks.pollBFSPerformance,
+}));
 vi.mock("../app/owner-control/handler.server", () => ({
   handleOwnerControlWebhook: mocks.handleOwnerControlWebhook,
 }));
@@ -65,6 +73,9 @@ beforeEach(() => {
   mocks.syncPartnerFinancialObservations.mockResolvedValue(undefined);
   mocks.pollLocalNotifications.mockResolvedValue(undefined);
   mocks.reconcileOwnerIncidents.mockResolvedValue(undefined);
+  mocks.refreshBFSPlans.mockResolvedValue(undefined);
+  mocks.pollBFSProgress.mockResolvedValue(undefined);
+  mocks.pollBFSPerformance.mockResolvedValue(undefined);
   mocks.deliverOwnerNotifications.mockResolvedValue(undefined);
   mocks.recordEvent.mockResolvedValue(undefined);
   mocks.handleOwnerControlWebhook.mockResolvedValue(new Response("control", { status: 202 }));
@@ -242,6 +253,9 @@ describe("entrypoint Worker", () => {
     });
     expect(mocks.pollLocalNotifications).toHaveBeenCalledOnce();
     expect(mocks.reconcileOwnerIncidents).toHaveBeenCalledOnce();
+    expect(mocks.refreshBFSPlans).toHaveBeenCalledOnce();
+    expect(mocks.pollBFSProgress).toHaveBeenCalledOnce();
+    expect(mocks.pollBFSPerformance).toHaveBeenCalledOnce();
     expect(mocks.deliverOwnerNotifications.mock.calls[0][1]).toEqual({
       botToken: "bot",
       chatId: "chat",
@@ -265,6 +279,11 @@ describe("entrypoint Worker", () => {
       "partner_failed",
       "owner_notification_failed",
       "owner_notification_configuration_incomplete",
+    ]);
+    expect(mocks.recordEvent.mock.calls.map(([, event]) => event.metadata.reason)).toEqual([
+      "partner_events",
+      "local_notifications",
+      "delivery",
     ]);
   });
 
@@ -338,6 +357,33 @@ describe("entrypoint Worker", () => {
     await Promise.all(pending);
 
     expect(mocks.pollPartnerEvents).not.toHaveBeenCalled();
+    expect(mocks.refreshBFSPlans).not.toHaveBeenCalled();
+    expect(mocks.pollBFSPerformance).not.toHaveBeenCalled();
     expect(mocks.reconcileNextStaleBilling).toHaveBeenCalledOnce();
+  });
+
+  test("una lettura BFS fallita non impedisce il controllo prestazioni e la consegna", async () => {
+    mocks.refreshBFSPlans.mockRejectedValueOnce(new Error("bfs_read_failed"));
+    const pending: Promise<unknown>[] = [];
+    worker.scheduled(
+      { cron: "*/5 * * * *" } as never,
+      {
+        DB: env.DB,
+        OWNER_NOTIFICATIONS_ENABLED: "true",
+        TELEGRAM_BOT_TOKEN: "bot",
+        TELEGRAM_CHAT_ID: "chat",
+      } as never,
+      { waitUntil: (promise: Promise<unknown>) => pending.push(promise) } as never,
+    );
+    await Promise.all(pending);
+    expect(mocks.pollBFSProgress).not.toHaveBeenCalled();
+    expect(mocks.pollBFSPerformance).toHaveBeenCalledOnce();
+    expect(mocks.deliverOwnerNotifications).toHaveBeenCalledOnce();
+    expect(mocks.recordEvent.mock.calls.map(([, event]) => event.metadata.error_code)).toContain(
+      "bfs_read_failed",
+    );
+    expect(mocks.recordEvent.mock.calls.map(([, event]) => event.metadata.reason)).toContain(
+      "bfs_progress",
+    );
   });
 });

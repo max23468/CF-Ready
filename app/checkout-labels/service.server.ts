@@ -29,7 +29,7 @@ import {
 import { readCheckoutLabels, registerCheckoutLabelTranslations } from "./shopify.server";
 
 import {
-  automaticFiscalWrites,
+  automaticFiscalWritesNeedConfirmation,
   checkoutLabelsResultError,
   guidedConfirmationIsValid,
   fiscalSnapshotIssue,
@@ -105,7 +105,7 @@ export async function loadCheckoutLabels(
         externalChange: address2ExternalChange,
       });
     } else if (state.mode !== "off") {
-      const errorCode = checkoutLabelsResultError(snapshot, stored, rules);
+      const errorCode = checkoutLabelsResultError(snapshot, stored, rules, state.managementEpoch);
       await markCheckoutLabelsResult(db, shopDomain, { errorCode, synced: errorCode === null });
     }
     return {
@@ -203,10 +203,14 @@ export async function saveRulesAndCheckoutLabels(
 
       if (
         input.labelsEnabled &&
-        !wasEnabled &&
         snapshot &&
-        automaticFiscalWrites(snapshot, input.rules).length > 0 &&
-        !input.confirmAutomaticWrite
+        !input.confirmAutomaticWrite &&
+        automaticFiscalWritesNeedConfirmation(
+          snapshot,
+          await readStoredCheckoutLabelSlots(db, shopDomain),
+          input.rules,
+          epoch,
+        )
       ) {
         return {
           ok: false as const,
@@ -437,7 +441,7 @@ export async function confirmGuidedCheckoutLabels(
         readStoredCheckoutLabelSlots(db, shopDomain),
         readCheckoutLabelState(db, shopDomain),
       ]);
-      const errorCode = checkoutLabelsResultError(snapshot, stored, rules);
+      const errorCode = checkoutLabelsResultError(snapshot, stored, rules, state.managementEpoch);
       await markCheckoutLabelsResult(db, shopDomain, {
         mode: state.mode === "off" ? "off" : checkoutLabelsMode(snapshot.slots),
         errorCode,
@@ -490,6 +494,7 @@ async function finishFiscalLabels(
     db,
     shopDomain,
     rules,
+    epoch,
     after.written ? undefined : snapshot,
     timing,
   );
@@ -526,6 +531,7 @@ async function readbackAfterWrites(
   db: D1Database,
   shopDomain: string,
   rules: Rules,
+  epoch: string,
   initial?: CheckoutLabelsSnapshot,
   timing = createServerTiming(),
 ) {
@@ -536,7 +542,7 @@ async function readbackAfterWrites(
         : timing.measure("shopify_checkout_labels", () => readCheckoutLabels(admin)),
       readStoredCheckoutLabelSlots(db, shopDomain),
     ]);
-    const errorCode = checkoutLabelsResultError(readback, stored, rules);
+    const errorCode = checkoutLabelsResultError(readback, stored, rules, epoch);
     const delay = READBACK_RETRY_DELAYS_MS[attempt];
     if (errorCode !== "checkout_labels_partial_sync" || delay === undefined) {
       return { readback, errorCode };

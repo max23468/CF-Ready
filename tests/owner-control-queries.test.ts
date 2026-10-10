@@ -419,6 +419,11 @@ describe("query D1 e run-rate", () => {
       }
     }
     expect(health).toContain("Attivo · nessun arretrato");
+    expect(health).toContain("Token offline da rinnovare");
+    expect(health).toContain("Lotto rinnovo token");
+    expect(await readHealth(env.DB)).toMatchObject({
+      tokens: { pending: 0, expired: 0, batchSize: 3 },
+    });
 
     const shops = await renderOwnerControlAction(
       env.DB,
