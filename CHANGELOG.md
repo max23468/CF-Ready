@@ -6,6 +6,23 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.2.1 — 10 ottobre 2026
+
+- integra in Performance e Dashboard Telegram la stima del progresso verso i
+  50 store BFS, basata sui piani Shopify e distinta dal billing CF Ready;
+- notifica ogni cinque store aggiuntivi e il raggiungimento di 50, con stato
+  persistente per evitare duplicati e conteggi incompleti;
+- segnala superamenti e rientri delle soglie BFS di LCP, CLS e INP sul p75
+  degli ultimi 28 giorni, distinguendo i campioni preliminari;
+- mantiene otto comandi nel menu Telegram, con Activity al posto di Help.
+
+Telegram Performance and Dashboard show estimated progress toward 50 BFS
+stores using Shopify plans independently of CF Ready billing. Persistent
+notifications report every five additional stores and reaching 50. LCP, CLS
+and INP alerts track threshold breaches and recovery using the 28-day p75,
+with preliminary samples identified. The eight-command menu includes Activity
+in place of Help, which remains available as a typed command.
+
 ## 2.2.0 — 10 ottobre 2026
 
 - aggiunge al messaggio PEC non valida un suggerimento IT/EN sulla causa formale,
