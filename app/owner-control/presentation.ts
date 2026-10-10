@@ -9,6 +9,8 @@ import { callbackData, type OwnerControlAction, type ShopsFilter } from "./model
 import type { BillingStatusCategory, ShopRow } from "./queries.server";
 import type { RevenueReport } from "./revenue.server";
 import type { ShopifyPlanRow } from "./shopify-plans.server";
+import type { BFSReport } from "./bfs.server";
+import { BFS_TARGET } from "./model";
 import { FINANCIAL_OBSERVATION_DAYS, SHOPS_PAGE_SIZE } from "./model";
 
 type Row = [string, string];
@@ -40,6 +42,7 @@ export function dashboardMessage(
   data: Record<string, number | string | null | undefined>,
   growth?: { days7: Record<string, number>; days28: Record<string, number>; cachedAt: string },
   environment = "Production",
+  bfs?: BFSReport,
 ): OwnerControlMessage {
   return panel(
     `CF Ready · ${environment}`,
@@ -59,6 +62,16 @@ export function dashboardMessage(
         ["In scadenza", value(data.ending)],
       ]),
       section("📈 Growth", growthRows(growth)),
+      ...(bfs
+        ? [
+            section("🎯 Obiettivo BFS · stima", [
+              [
+                "Store",
+                `${bfs.eligible}/${BFS_TARGET} · Mancano ${Math.max(0, BFS_TARGET - bfs.eligible)} · Da verificare ${bfs.unknown}`,
+              ],
+            ]),
+          ]
+        : []),
       section("⚙️ Operatività", [
         ["Problemi aperti", value(data.open_issues)],
         ["Webhook da verificare", value(data.unresolved_webhooks)],
@@ -557,21 +570,24 @@ export function healthMessage(
   );
 }
 
-export function performanceMessage(data: {
-  groups: Array<{
-    metric: string;
-    app_version: string;
-    app_route: string;
-    sample_count: number;
-    p75: number;
-    status: string;
-  }>;
-  comparison: {
-    previous_version: string;
-    current_version: string;
-    alerts: Array<{ route: string; metric: string; delta: number | null }>;
-  } | null;
-}): OwnerControlMessage {
+export function performanceMessage(
+  data: {
+    groups: Array<{
+      metric: string;
+      app_version: string;
+      app_route: string;
+      sample_count: number;
+      p75: number;
+      status: string;
+    }>;
+    comparison: {
+      previous_version: string;
+      current_version: string;
+      alerts: Array<{ route: string; metric: string; delta: number | null }>;
+    } | null;
+  },
+  bfs?: BFSReport,
+): OwnerControlMessage {
   const overall = data.groups.filter((row) => row.app_version === "all" && row.app_route === "all");
   const alerts = data.comparison?.alerts ?? [];
   const metrics = (Object.keys(PERFORMANCE_THRESHOLDS) as PerformanceMetric[]).map((metric) => ({
@@ -586,6 +602,29 @@ export function performanceMessage(data: {
   return panel(
     "Performance",
     [
+      ...(bfs
+        ? [
+            section("🎯 Obiettivo 50 store · stima interna", [
+              [
+                "Store su piani Shopify paganti",
+                `${bfs.eligible}/${BFS_TARGET} · ${Math.min(100, Math.floor((bfs.eligible / BFS_TARGET) * 100))}%`,
+              ],
+              ["Mancano", String(Math.max(0, BFS_TARGET - bfs.eligible))],
+              ["Store di sviluppo esclusi", String(bfs.development)],
+              ["Altri store esclusi", String(bfs.excluded)],
+              ["Da verificare", String(bfs.unknown)],
+              [
+                "Variazione 7 giorni",
+                bfs.days7 === null
+                  ? "Storico completo non disponibile"
+                  : `${bfs.days7 >= 0 ? "+" : ""}${bfs.days7}`,
+              ],
+              ["Lettura meno recente", formatDate(bfs.checkedAt)],
+              ["Criterio", "Installazioni nette da store attivi su piani Shopify a pagamento"],
+              ["Piano CF Ready", "Mensile, annuale, Lifetime, prova e omaggio inclusi"],
+            ]),
+          ]
+        : []),
       section(`🎯 Built for Shopify · M12 · p75 ${PERFORMANCE_WINDOW_DAYS} giorni`, [
         ...metrics.map(({ metric, threshold, group }): Row => [
           metric,
@@ -616,12 +655,15 @@ export function performanceMessage(data: {
           ]
         : []),
     ],
-    back(),
+    keyboard([
+      [button("Aggiorna", { view: "performance", refresh: true })],
+      [button("‹ Dashboard", { view: "dashboard" })],
+    ]),
     `${
       data.comparison
         ? `Confronto ${data.comparison.previous_version} → ${data.comparison.current_version}. Campioni insufficienti non generano regressioni.`
         : "Servono due versioni osservate e campioni sufficienti per classificare regressioni."
-    } Stima dai campioni CF Ready: lo stato Built for Shopify autorevole è nel Partner Dashboard.`,
+    } Stima interna: il contatore store e lo stato Built for Shopify autorevoli restano nella pagina Distribution del Partner Dashboard. Aggiorna rilegge fino a 3 piani Shopify, con cooldown; il ciclo periodico completa la verifica.`,
   );
 }
 
