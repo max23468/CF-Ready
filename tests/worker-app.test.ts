@@ -266,6 +266,11 @@ describe("entrypoint Worker", () => {
       "owner_notification_failed",
       "owner_notification_configuration_incomplete",
     ]);
+    expect(mocks.recordEvent.mock.calls.map(([, event]) => event.metadata.reason)).toEqual([
+      "partner_events",
+      "local_notifications",
+      "delivery",
+    ]);
   });
 
   test("un errore della riconciliazione billing non ferma le fasi owner", async () => {

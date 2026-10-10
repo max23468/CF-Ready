@@ -9,6 +9,7 @@ import {
   syncPartnerFinancialObservations,
 } from "../app/owner-notifications.server";
 import { pollLocalBillingEvents } from "../app/owner-notifications/local-billing-source.server";
+import { requestPartnerApi } from "../app/owner-notifications/partner-source.server";
 import { operationalSection } from "../app/owner-notifications/presentation";
 import { insertShop } from "./support/lifecycle";
 
@@ -1235,6 +1236,118 @@ test("un evento Partner incompleto non blocca pagina, checkpoint o diagnostica s
   });
 });
 
+test.each([
+  new Response("temporaneo", { status: 503 }),
+  new Response("limite", { status: 429 }),
+  Response.json({ errors: [{ extensions: { code: "429" } }] }),
+  Response.json({ errors: [{ extensions: { code: "500" } }] }),
+])("Partner recupera un errore transitorio senza perdere la query", async (response) => {
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(response)
+    .mockResolvedValueOnce(Response.json({ data: { recovered: true } }));
+  await expect(
+    requestPartnerApi(PARTNER_CONFIG, "query Recovery { app { id } }", { first: 1 }, fetcher),
+  ).resolves.toEqual({ data: { recovered: true } });
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(fetcher.mock.calls[1][1]?.body).toEqual(fetcher.mock.calls[0][1]?.body);
+  expect(fetcher.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
+});
+
+test("Partner limita i retry di rete e non espone dettagli riservati", async () => {
+  const fetcher = vi.fn<typeof fetch>().mockRejectedValue(new Error("token e URL riservati"));
+  await expect(
+    requestPartnerApi(PARTNER_CONFIG, "query { app { id } }", {}, fetcher),
+  ).rejects.toThrow(/^partner_api_network_failed$/);
+  expect(fetcher).toHaveBeenCalledTimes(3);
+});
+
+test.each([401, 403, 404])("Partner non ritenta HTTP %s", async (status) => {
+  const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response("riservato", { status }));
+  await expect(
+    requestPartnerApi(PARTNER_CONFIG, "query { app { id } }", {}, fetcher),
+  ).rejects.toThrow(`partner_api_http_${status}`);
+  expect(fetcher).toHaveBeenCalledOnce();
+});
+
+test("Partner non anticipa un Retry-After oltre il budget del ciclo", async () => {
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue(new Response(null, { status: 429, headers: { "Retry-After": "120" } }));
+  await expect(
+    requestPartnerApi(PARTNER_CONFIG, "query { app { id } }", {}, fetcher),
+  ).rejects.toThrow("partner_api_http_429");
+  expect(fetcher).toHaveBeenCalledOnce();
+});
+
+test.each(["transport", "body"])(
+  "Partner distingue il timeout %s e limita i tentativi",
+  async (phase) => {
+    const timeout = vi.spyOn(AbortSignal, "timeout").mockReturnValue(AbortSignal.abort());
+    try {
+      const response = Response.json({ data: {} });
+      vi.spyOn(response, "json").mockRejectedValue(new Error("aborted"));
+      const fetcher =
+        phase === "transport"
+          ? vi.fn<typeof fetch>().mockRejectedValue(new Error("aborted"))
+          : vi.fn<typeof fetch>().mockResolvedValue(response);
+      await expect(
+        requestPartnerApi(PARTNER_CONFIG, "query { app { id } }", {}, fetcher),
+      ).rejects.toThrow("partner_api_timeout");
+      expect(fetcher).toHaveBeenCalledTimes(3);
+      expect(timeout).toHaveBeenCalledWith(10_000);
+    } finally {
+      timeout.mockRestore();
+    }
+  },
+);
+
+test("Partner rispetta Retry-After prima di ripetere la lettura", async () => {
+  vi.useFakeTimers();
+  try {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(null, { status: 429, headers: { "Retry-After": "2" } }))
+      .mockResolvedValueOnce(Response.json({ data: {} }));
+    const pending = requestPartnerApi(PARTNER_CONFIG, "query { app { id } }", {}, fetcher);
+    await vi.advanceTimersByTimeAsync(1999);
+    expect(fetcher).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(pending).resolves.toEqual({ data: {} });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("Partner conserva il cursore quando fallisce e recupera al ciclo successivo", async () => {
+  const checkpoint = "2026-08-24T09:00:00.000Z";
+  await env.DB.prepare(
+    "INSERT INTO owner_notification_state (state_key,state_value,updated_at) VALUES (?,?,?)",
+  )
+    .bind("partner_events_polled_at", checkpoint, checkpoint)
+    .run();
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(new Response(null, { status: 403 }))
+    .mockResolvedValueOnce(partnerResponse([]));
+  await expect(pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher })).rejects.toThrow(
+    "partner_api_http_403",
+  );
+  expect(
+    await env.DB.prepare(
+      "SELECT state_value FROM owner_notification_state WHERE state_key='partner_events_polled_at'",
+    ).first("state_value"),
+  ).toBe(checkpoint);
+  await pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher });
+  expect(fetcher.mock.calls[1][1]?.body).toEqual(fetcher.mock.calls[0][1]?.body);
+  expect(
+    await env.DB.prepare(
+      "SELECT state_value FROM owner_notification_state WHERE state_key='partner_events_polled_at'",
+    ).first("state_value"),
+  ).toBe(NOW.toISOString());
+});
+
 test("i confini Partner rifiutano configurazione, trasporto, JSON e paginazione invalidi", async () => {
   for (const config of [
     { ...PARTNER_CONFIG, organizationId: " " },
@@ -1247,8 +1360,9 @@ test("i confini Partner rifiutano configurazione, trasporto, JSON e paginazione 
   }
 
   const cases: Array<[string, Response]> = [
-    ["partner_api_request_failed", new Response("errore", { status: 503 })],
+    ["partner_api_http_503", new Response("errore", { status: 503 })],
     ["partner_api_invalid_json", new Response("non-json")],
+    ["partner_api_invalid_payload", Response.json(null)],
     ["partner_api_invalid_payload", Response.json({ data: { app: { events: null } } })],
   ];
   for (const [code, response] of cases) {
@@ -1266,7 +1380,7 @@ test("i confini Partner rifiutano configurazione, trasporto, JSON e paginazione 
         throw new Error("rete");
       }),
     }),
-  ).rejects.toThrow("partner_api_request_failed");
+  ).rejects.toThrow("partner_api_network_failed");
 
   const repeatedCursor = vi.fn(async () =>
     partnerResponse(

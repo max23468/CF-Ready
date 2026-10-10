@@ -332,31 +332,67 @@ export async function requestPartnerApi<T>(
   fetcher: typeof fetch = fetch,
 ): Promise<T> {
   requirePartnerConfig(config);
-  let response: Response;
-  try {
-    response = await fetcher(
-      `https://partners.shopify.com/${encodeURIComponent(config.organizationId)}/api/${PARTNER_API_VERSION}/graphql.json`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Shopify-Access-Token": config.accessToken,
+  // Tutti i consumatori eseguono query di lettura: i retry non ripetono mutazioni.
+  for (let attempt = 0; ; attempt += 1) {
+    let response: Response | undefined;
+    let errorCode = "partner_api_network_failed";
+    let retryable = true;
+    const signal = AbortSignal.timeout(10_000);
+    try {
+      response = await fetcher(
+        `https://partners.shopify.com/${encodeURIComponent(config.organizationId)}/api/${PARTNER_API_VERSION}/graphql.json`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Shopify-Access-Token": config.accessToken,
+          },
+          body: JSON.stringify({ query, variables }),
+          signal,
         },
-        body: JSON.stringify({ query, variables }),
-      },
-    );
-  } catch {
-    throw new Error("partner_api_request_failed");
+      );
+    } catch {
+      if (signal.aborted) errorCode = "partner_api_timeout";
+    }
+    if (response) {
+      errorCode = `partner_api_http_${response.status}`;
+      retryable = response.status === 429 || response.status >= 500;
+      if (response.ok) {
+        let payload: (T & { errors?: Array<{ extensions?: { code?: string } }> }) | undefined;
+        try {
+          payload = (await response.json()) as typeof payload;
+        } catch {
+          if (!signal.aborted) throw new Error("partner_api_invalid_json");
+        }
+        if (signal.aborted) {
+          errorCode = "partner_api_timeout";
+          retryable = true;
+        } else {
+          if (!payload || typeof payload !== "object")
+            throw new Error("partner_api_invalid_payload");
+          if (!payload.errors?.length) return payload;
+          const codes = payload.errors.map((error) => error?.extensions?.code);
+          retryable = codes.every((code) => code === "429" || code === "500");
+          errorCode = retryable
+            ? codes.includes("429")
+              ? "partner_api_throttled"
+              : "partner_api_internal_error"
+            : "partner_api_graphql_error";
+        }
+      }
+    }
+    if (!retryable || attempt >= 2) throw new Error(errorCode);
+    const retryAfter = response?.headers.get("Retry-After");
+    const retryAfterMs = retryAfter
+      ? /^\d+(?:\.\d+)?$/.test(retryAfter)
+        ? Number(retryAfter) * 1000
+        : Date.parse(retryAfter) - Date.now()
+      : 0;
+    // Un'attesa lunga passa al prossimo cron, senza anticipare il Retry-After del provider.
+    if (retryAfterMs > 30_000) throw new Error(errorCode);
+    const delay = Math.max(500 * 2 ** attempt, Number.isFinite(retryAfterMs) ? retryAfterMs : 0);
+    await new Promise((resolve) => setTimeout(resolve, delay));
   }
-  if (!response.ok) throw new Error("partner_api_request_failed");
-  let payload: T & { errors?: Array<{ message?: string }> };
-  try {
-    payload = (await response.json()) as T & { errors?: Array<{ message?: string }> };
-  } catch {
-    throw new Error("partner_api_invalid_json");
-  }
-  if (payload.errors?.length) throw new Error("partner_api_graphql_error");
-  return payload;
 }
 
 function requirePartnerConfig(config: PartnerInstallConfig) {
