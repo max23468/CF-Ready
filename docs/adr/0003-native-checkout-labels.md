@@ -28,6 +28,12 @@ traduzioni ancora possedute dall'app. Risorse mancanti o ambigue, digest
 scaduti e readback divergenti lasciano la sincronizzazione incompleta e
 visibile al merchant.
 
+Il consenso alla prima scrittura vale anche per gli slot automatici che
+compaiono in seguito, ad esempio dopo l'aggiunta dell'inglese. Finché lo slot
+non appartiene alla gestione corrente, una differenza richiede un nuovo
+confronto e consenso: non è una scrittura fallita. La sola lettura, anche nel
+ciclo periodico, aggiorna questo stato senza scrivere traduzioni Shopify.
+
 Il merchant può scegliere di conservare le proprie etichette anche senza
 concedere gli scope opzionali. D1 registra la scelta e, quando disponibile, la
 revisione dello snapshot accettato. Un nuovo snapshot invalida la scelta e
