@@ -191,7 +191,12 @@ trarre conclusioni dal p75 locale.
 ## Rinnovo dei token offline
 
 Lo stesso cron ogni cinque minuti rinnova per primo i token offline in scadenza
-entro venti minuti, fino a tre store attivi per esecuzione (D-164). Un evento
+entro venti minuti. Il lotto parte da tre store e cresce fino a quindici in
+base all'arretrato e ai cicli disponibili prima della scadenza più vecchia;
+le ondate eseguono al massimo tre rinnovi contemporanei (D-178).
+`/health` mostra sessioni da rinnovare, scadute ancora ritentabili, scadenza
+più vecchia e dimensione del prossimo lotto. Sono letture aggregate su richiesta,
+senza nuovi eventi periodici o dati di sessione. Un evento
 `offline_token_refresh_failed` isolato non richiede interventi: l'apertura
 successiva dello store esegue il token exchange. Se l'evento si ripete a ogni
 esecuzione, lo store più urgente non si rinnova e l'LCP a freddo torna a

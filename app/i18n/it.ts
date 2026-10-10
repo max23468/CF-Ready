@@ -547,12 +547,6 @@ export const it = {
       },
       clear: "Svuota",
       continue: "Continua",
-      diagnostics: {
-        pec: {
-          valid: "Il formato email è valido.",
-          email_format: "Controlla @, parte locale, dominio e spazi.",
-        },
-      },
       outcomes: {
         notApplied: "Regole non applicate",
         noChecks: "Nessun controllo",

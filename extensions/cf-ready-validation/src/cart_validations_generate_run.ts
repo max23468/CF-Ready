@@ -3,6 +3,7 @@ import type {
   CartValidationsGenerateRunResult,
 } from "../generated/api";
 import {
+  invalidPecMessage,
   invalidTaxCodeMessage,
   isValidPec,
   isValidTaxCode,
@@ -122,7 +123,7 @@ function addFieldError(
   target: string,
   validate: (value: string) => boolean,
   checkRequiredEmpty: boolean,
-  invalidMessage: (message: string, value: string) => string = (message) => message,
+  invalidMessage: (message: string, value: string) => string,
 ): void {
   if (!field || rule === "unmanaged") return;
   const value = field.value?.trim() ?? "";
@@ -209,6 +210,7 @@ export function cartValidationsGenerateRun(
       pec ? targets.pec : "$.cart",
       isValidPec,
       checkRequiredEmpty,
+      (message, value) => invalidPecMessage(message, value, language),
     );
 
     return { operations: [{ validationAdd: { errors } }] };

@@ -413,6 +413,14 @@ Rispetto alle alternative più ampie o invasive:
 | D-175 | `npm audit` ammette eccezioni temporanee, ciascuna legata a un solo avviso e con scadenza. La prima riguarda GHSA-vfj7-8cjw-p6xm di `braces` fino al 31 ottobre 2026. Ogni altro avviso, o lo stesso dopo la scadenza, continua a bloccare gate locale e CI. | Il 3 ottobre 2026 l’avviso è stato pubblicato senza una versione corretta di `braces` (ultima 3.0.3). Il pacchetto arriva da `@graphql-codegen/cli` e `@shopify/shopify_function`, usati per i tipi e la build della Function: non entra nel Worker né nel checkout. Bloccare ogni pubblicazione fino alla correzione a monte non riduce il rischio. Alla scadenza, o appena esce una versione corretta, l’eccezione si rimuove e la dipendenza si aggiorna. Deciso dall’owner il 3 ottobre 2026. |
 | D-176 | Assistenza merchant con tawk.to gratuito: pulsante fisso in basso a destra su tutte le pagine embedded, verde bottiglia con il marchio CF Ready in negativo, pannello espandibile senza interrompere l’uso dell’app, Guida e FAQ bilingue aggiornata. | Scelto dall’owner il 7 ottobre 2026. La chat viene caricata soltanto alla prima apertura in un iframe separato dall’app, senza referrer né invio automatico di identità, dominio store, diagnostica o dati checkout. Ridurre il pannello conserva l’iframe nella sessione corrente; non si promette continuità tra dispositivi. Un widget per lingua (italiano e inglese) segue la lingua dell’app; il modulo pre-chat chiede nome ed email per le risposte successive. L’email precompilata e la diagnostica copiabile restano disponibili. Nessuna dipendenza, nuovo scope Shopify, tabella D1 o chatbot AI. |
 
+Decisioni del 10 ottobre 2026, approvate dall'owner con «Implementa 2, 7, 8»:
+
+| ID    | Decisione approvata                                                                                                                                                                                                                                                                                                  | Motivazione o alternativa scartata                                                                                                                                                                                                |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D-177 | Aggiungere al messaggio PEC non valida una frase fissa IT/EN per lunghezza, spazi, chiocciola, parte locale o dominio. Function e simulatore condividono diagnosi e testo; i formati accettati e i messaggi personalizzati restano invariati.                                                                        | Estende alla PEC i suggerimenti già disponibili per il CF, senza verificare provider, esistenza o certificazione della casella.                                                                                                   |
+| D-178 | Superare il limite fisso di tre store per ciclo di D-164: il lotto di rinnovo token varia da 3 a 15 in base alle sessioni eleggibili e ai cicli di cinque minuti prima della scadenza più vecchia, mantenendo tre rinnovi simultanei. `/health` espone arretrato, scaduti ritentabili, scadenza più vecchia e lotto. | Aumenta la capacità senza nuovi provider, cron, scope o scritture periodiche. La CPU e il comportamento live del lotto maggiore richiedono readback dopo pubblicazione; il limite resta esplicito.                                |
+| D-179 | Estendere le coorti a 28 giorni con prima attivazione di un piano pagante non test e di importo positivo, tempo e tassi di conversione, e disinstallazioni osservate dopo l'attivazione.                                                                                                                             | Riusa `billing_events` e `app_events`, deduplica gli store ed esclude eventi anteriori all'installazione corrente. Una charge attiva non prova un incasso liquidato; assenze, retention e piccoli campioni non provano abbandono. |
+
 Integrazione D-175 del 7 ottobre 2026, approvata dall'owner: anche l'avviso
 GHSA-hp3w-g68c-fv3c di `sprintf-js`, dipendenza indiretta della Shopify CLI senza
 versione corretta disponibile, è ammesso fino al 31 ottobre 2026. L'eccezione
@@ -702,6 +710,10 @@ osservabile non generare errori per il campo assente.
 - niente elenco provider PEC;
 - niente certificazione di esistenza.
 
+Per un valore PEC rifiutato, Function e simulatore aggiungono al testo
+personalizzato la causa formale IT/EN prevista da D-177. Non duplicare il
+suggerimento nei dettagli del simulatore e non riportare il valore inserito.
+
 ### 7.6 Configurazione e attivazione
 
 **FR-050** — Prima installazione:
@@ -760,8 +772,10 @@ validare il Codice Fiscale (D-147).
 | `pecRequired` | sì | sì |
 | `pecInvalid` | sì | sì |
 
-Per un Codice Fiscale non valido il checkout aggiunge dopo `taxCodeInvalid` una
-frase fissa sulla causa formale (D-161); non è un messaggio modificabile.
+Per un Codice Fiscale o una PEC non validi il checkout aggiunge dopo
+`taxCodeInvalid` o `pecInvalid` una frase fissa IT/EN sulla causa formale
+(D-161 e D-177); non è un messaggio modificabile. Il simulatore mostra lo
+stesso testo.
 
 **FR-061** — Nessun messaggio può essere vuoto dopo trim.
 
@@ -4451,6 +4465,16 @@ bloccanti. Questi criteri non bloccano M11, già chiusa con `v1.0.0`.
 - motivi di mancata conversione raccolti volontariamente.
 
 Nessuna analytics sugli acquirenti.
+
+Le coorti di installazione degli ultimi 28 giorni (D-179) riportano inoltre
+la prima attivazione di un piano non test con importo positivo, il tempo medio
+da installazione a piano, la quota di store con piano, la quota di attivazioni
+seguite dal piano e la quota di attivazioni seguite da disinstallazione.
+Le sequenze sono osservazioni separate, non un percorso obbligatorio:
+un merchant può scegliere il piano prima di attivare le regole. Le letture
+restano aggregate; meno di dieci installazioni sono un campione indicativo.
+Retention e cancellazioni privacy possono rimuovere eventi o store, quindi
+il report non rappresenta un registro storico completo né incassi liquidati.
 
 ### 25.6 Acquisizione organica coordinata con M12
 

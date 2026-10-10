@@ -103,7 +103,9 @@ test("il simulatore mostra i messaggi configurati effettivi", () => {
     `${messages.taxCodeInvalid} It must have 16 characters or 11 digits.`,
   );
   expect(simulatorErrorMessage(messages, "pec", "required", true)).toBe(messages.pecRequired);
-  expect(simulatorErrorMessage(messages, "pec", "invalid", true)).toBe(messages.pecInvalid);
+  expect(simulatorErrorMessage(messages, "pec", "invalid", true, "mario@", "it")).toBe(
+    `${messages.pecInvalid} Controlla il dominio dopo @, per esempio pec.example.it.`,
+  );
   expect(simulatorErrorMessage(messages, "pec", null, true)).toBeUndefined();
 });
 
@@ -142,7 +144,7 @@ test("la diagnostica distingue le cause formali senza cambiare il contratto bool
   expect(diagnoseTaxCode("RSSMRA85T10A562A")).toBe("check_character");
   expect(diagnoseTaxCode("12345678903")).toBe("valid");
   expect(diagnoseTaxCode("AAAAAAL0A01A000K")).toBe("valid");
-  expect(diagnosePec("mario@")).toBe("email_format");
+  expect(diagnosePec("mario@")).toBe("domain");
   expect(diagnosePec("mario@example.com")).toBe("valid");
   expect(isValidTaxCode("RSSMRA85T10A562A")).toBe(false);
   expect(isValidPec("mario@")).toBe(false);

@@ -6,6 +6,23 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.2.0 — 10 ottobre 2026
+
+- aggiunge al messaggio PEC non valida un suggerimento IT/EN sulla causa formale,
+  identico nel checkout e nel simulatore, senza cambiare i formati accettati;
+- adegua il lotto di rinnovo token all'arretrato, da 3 a 15 sessioni per ciclo,
+  mantenendo al massimo 3 rinnovi contemporanei, e ne espone lo stato in `/health`;
+- estende le coorti di attivazione con piani paganti non test, tempi e tassi
+  di conversione e disinstallazioni successive all'attivazione. Le attivazioni
+  dei piani non attestano incassi liquidati; i dati restano soggetti a retention.
+
+Invalid PEC messages now include an Italian or English format hint, shared by
+checkout and simulator. Accepted formats remain unchanged. Offline token refresh
+batches adapt to the backlog from 3 to 15 sessions, with at most 3 concurrent
+refreshes; `/health` exposes aggregate renewal status. Activation cohorts now
+include non-test paid plans, conversion timings and rates, and uninstalls after
+activation. Plan activation does not prove settled revenue; retention still applies.
+
 ## 2.1.6 — 10 ottobre 2026
 
 - distingue errori di rete, timeout, HTTP e GraphQL nelle richieste Partner;

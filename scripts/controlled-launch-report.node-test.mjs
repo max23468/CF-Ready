@@ -144,6 +144,7 @@ test("le coorti contano store, deduplicano eventi e distinguono riordino e disin
   try {
     db.exec(`CREATE TABLE shops(id INTEGER, installed_at TEXT, installation_status TEXT);
       CREATE TABLE app_events(shop_id INTEGER, event_name TEXT, occurred_at TEXT);
+      CREATE TABLE billing_events(shop_id INTEGER, occurred_at TEXT, event_type TEXT, status TEXT, is_test INTEGER, amount_minor INTEGER);
       INSERT INTO shops VALUES (1, datetime('now', '-2 days'), 'active'), (2, datetime('now', '-2 days'), 'uninstalled'), (3, datetime('now', '-2 days'), 'active'), (4, datetime('now', '-40 days'), 'active');
       INSERT INTO app_events VALUES (1, 'trial_started', datetime('now', '-2 days', '+1 hour')), (1, 'rules_saved', datetime('now', '-2 days', '+2 hours')), (1, 'rules_saved', datetime('now', '-1 day')), (1, 'validation_enabled', datetime('now', '-2 days', '+3 hours')), (2, 'trial_started', datetime('now', '-2 days', '+1 hour')), (3, 'validation_enabled', datetime('now', '-3 days'));`);
     const report = parseFunnel(db.prepare(FUNNEL_QUERY).all());
@@ -165,6 +166,52 @@ test("le coorti contano store, deduplicano eventi e distinguono riordino e disin
   assert.throws(() => parseFunnel([{ cohort: "bad" }]));
 });
 
+test("le coorti distinguono piani reali, test, ordine degli eventi e disinstallazioni", async () => {
+  const { DatabaseSync } = await import("node:sqlite");
+  const db = new DatabaseSync(":memory:");
+  try {
+    db.exec(`CREATE TABLE shops(id INTEGER, installed_at TEXT, installation_status TEXT);
+      CREATE TABLE app_events(shop_id INTEGER, event_name TEXT, occurred_at TEXT);
+      CREATE TABLE billing_events(shop_id INTEGER, occurred_at TEXT, event_type TEXT, status TEXT, is_test INTEGER, amount_minor INTEGER);`);
+    for (let id = 1; id <= 6; id++) {
+      db.prepare("INSERT INTO shops VALUES (?, datetime('now', '-2 days'), 'active')").run(id);
+      db.prepare(
+        "INSERT INTO app_events VALUES (?, 'validation_enabled', datetime('now', '-2 days', '+2 hours'))",
+      ).run(id);
+    }
+    const [withoutConversions] = parseFunnel(db.prepare(FUNNEL_QUERY).all());
+    assert.equal(withoutConversions.paid_plan_after_activation, 0);
+    assert.equal(withoutConversions.uninstalled_after_activation, 0);
+    assert.equal(withoutConversions.activation_to_paid_plan_rate, 0);
+    assert.equal(withoutConversions.uninstalled_after_activation_rate, 0);
+    assert.equal(withoutConversions.seconds_to_paid_plan, null);
+    db.exec(`INSERT INTO billing_events VALUES
+      (1, datetime('now', '-2 days', '+3 hours'), 'active', 'monthly', 0, 500),
+      (1, datetime('now', '-2 days', '+4 hours'), 'active', 'annual', 0, 5000),
+      (2, datetime('now', '-2 days', '+1 hour'), 'active', 'one_time', 0, 10000),
+      (3, datetime('now', '-2 days', '+3 hours'), 'active', 'monthly', 1, 500),
+      (4, datetime('now', '-2 days', '+3 hours'), 'active', 'monthly', NULL, 500),
+      (5, datetime('now', '-2 days', '+3 hours'), 'active', 'monthly', 0, 0),
+      (6, datetime('now', '-3 days'), 'active', 'monthly', 0, 500);
+      INSERT INTO app_events VALUES
+      (1, 'app_uninstalled', datetime('now', '-2 days', '+4 hours')),
+      (1, 'app_uninstalled', datetime('now', '-2 days', '+5 hours')),
+      (2, 'app_uninstalled', datetime('now', '-2 days', '+1 hour')),
+      (3, 'app_uninstalled', datetime('now', '-3 days'));`);
+    const [cohort] = parseFunnel(db.prepare(FUNNEL_QUERY).all());
+    assert.equal(cohort.installed, 6);
+    assert.equal(cohort.paid_plan_observed, 2);
+    assert.equal(cohort.paid_plan_after_activation, 1);
+    assert.equal(cohort.uninstalled_after_activation, 1);
+    assert.equal(cohort.paid_plan_rate, 2 / 6);
+    assert.equal(cohort.activation_to_paid_plan_rate, 1 / 6);
+    assert.equal(cohort.uninstalled_after_activation_rate, 1 / 6);
+    assert.ok(Math.abs(cohort.seconds_to_paid_plan - 7200) < 1);
+  } finally {
+    db.close();
+  }
+});
+
 test("le coorti complete mantengono l'incertezza dei tempi assenti e rifiutano contatori incoerenti", () => {
   const cohort = {
     cohort: "2026-35",
@@ -177,9 +224,13 @@ test("le coorti complete mantengono l'incertezza dei tempi assenti e rifiutano c
     trial_without_activation: 0,
     uninstalled_before_observed_activation: 0,
     activation_without_observed_trial: 0,
+    paid_plan_observed: 0,
+    paid_plan_after_activation: 0,
+    uninstalled_after_activation: 0,
     seconds_to_rules: null,
     seconds_to_trial: null,
     seconds_to_activation: null,
+    seconds_to_paid_plan: null,
   };
   assert.equal(parseFunnel([cohort])[0].evidence, "descriptive");
   for (const patch of [
@@ -189,6 +240,9 @@ test("le coorti complete mantengono l'incertezza dei tempi assenti e rifiutano c
     { seconds_to_rules: -1 },
     { seconds_to_trial: Infinity },
     { seconds_to_activation: undefined },
+    { seconds_to_paid_plan: -1 },
+    { paid_plan_after_activation: 1 },
+    { uninstalled_after_activation: 1 },
   ])
     assert.throws(() => parseFunnel([{ ...cohort, ...patch }]));
   assert.throws(() => parseWranglerResult(JSON.stringify([{ success: true, results: [row] }])));

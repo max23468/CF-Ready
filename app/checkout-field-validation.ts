@@ -58,7 +58,7 @@ export type TaxCodeDiagnostic =
   | "characters"
   | "date_structure"
   | "check_character";
-export type PecDiagnostic = "valid" | "email_format";
+export type PecDiagnostic = "valid" | "length" | "spaces" | "at_sign" | "local_part" | "domain";
 
 export type CheckoutDeliveryContext = {
   countryCode?: string | null;
@@ -180,10 +180,11 @@ export function invalidTaxCodeMessage(message: string, rawValue: string, languag
 
 export function diagnosePec(rawValue: string): PecDiagnostic {
   const value = rawValue.trim();
-  if (value.length > 254 || /\s/.test(value)) return "email_format";
+  if (value.length > 254) return "length";
+  if (/\s/.test(value)) return "spaces";
 
   const parts = value.split("@");
-  if (parts.length !== 2) return "email_format";
+  if (parts.length !== 2) return "at_sign";
   const [local, domain] = parts;
   if (
     !local ||
@@ -193,7 +194,7 @@ export function diagnosePec(rawValue: string): PecDiagnostic {
     local.endsWith(".") ||
     local.includes("..")
   ) {
-    return "email_format";
+    return "local_part";
   }
 
   const labels = domain.split(".");
@@ -204,7 +205,31 @@ export function diagnosePec(rawValue: string): PecDiagnostic {
         label.length > 0 && label.length <= 63 && /^[A-Z0-9](?:[A-Z0-9-]*[A-Z0-9])?$/i.test(label),
     )
     ? "valid"
-    : "email_format";
+    : "domain";
+}
+
+export const pecHints = {
+  it: {
+    length: "L’indirizzo deve avere al massimo 254 caratteri.",
+    spaces: "Scrivi l’indirizzo senza spazi.",
+    at_sign: "Inserisci una sola @ tra il nome e il dominio.",
+    local_part:
+      "Controlla il testo prima di @: non può essere vuoto né iniziare o finire con un punto o contenere punti consecutivi.",
+    domain: "Controlla il dominio dopo @, per esempio pec.example.it.",
+  },
+  en: {
+    length: "The address must contain at most 254 characters.",
+    spaces: "Enter the address without spaces.",
+    at_sign: "Enter one @ between the name and the domain.",
+    local_part:
+      "Check the text before @: it cannot be empty, start or end with a dot, or contain consecutive dots.",
+    domain: "Check the domain after @, for example pec.example.it.",
+  },
+} as const;
+
+export function invalidPecMessage(message: string, rawValue: string, language: "it" | "en") {
+  const diagnostic = diagnosePec(rawValue);
+  return diagnostic === "valid" ? message : `${message} ${pecHints[language][diagnostic]}`;
 }
 
 export function isValidPec(rawValue: string): boolean {

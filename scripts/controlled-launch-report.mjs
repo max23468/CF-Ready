@@ -97,7 +97,7 @@ function main() {
   const environment = parseEnvironment(process.argv.slice(2));
   const report = fetchReport(environment);
   process.stdout.write(
-    `${JSON.stringify({ environment, ...report, funnel_note: "Milestones observed within the current installation, not a mandatory ordered funnel. Missing events are not proven abandonment; rules_saved is available only since this feature was deployed. Timings are means in seconds since installation; small cohorts are indicative." }, null, 2)}\n`,
+    `${JSON.stringify({ environment, ...report, funnel_note: "Milestones observed within the current installation, not a mandatory ordered funnel. Paid plans are non-test activations with a positive amount, not settled payments. Missing or retention-deleted events are not proven abandonment. Timings are means in seconds since installation; small cohorts are indicative." }, null, 2)}\n`,
   );
 }
 
