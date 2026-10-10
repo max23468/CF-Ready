@@ -542,12 +542,6 @@ export const en: typeof it = {
       },
       clear: "Clear",
       continue: "Continue",
-      diagnostics: {
-        pec: {
-          valid: "The email format is valid.",
-          email_format: "Check the @ sign, local part, domain, and spaces.",
-        },
-      },
       outcomes: {
         notApplied: "Rules not applied",
         noChecks: "No checks",

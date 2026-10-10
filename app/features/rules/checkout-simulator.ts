@@ -1,4 +1,5 @@
 import {
+  invalidPecMessage,
   invalidTaxCodeMessage,
   isValidPec,
   isValidTaxCode,
@@ -137,5 +138,7 @@ export function simulatorErrorMessage(
       ? messages.taxCodeRequired
       : invalidTaxCodeMessage(messages.taxCodeInvalid, value, language);
   }
-  return problem === "required" ? messages.pecRequired : messages.pecInvalid;
+  return problem === "required"
+    ? messages.pecRequired
+    : invalidPecMessage(messages.pecInvalid, value, language);
 }

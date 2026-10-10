@@ -40,6 +40,7 @@ import {
   proposedLabelForSlot,
   type CheckoutLabelsSnapshot,
 } from "../checkout-labels/domain";
+import { labelManagementSaveState } from "../features/rules/checkout-labels-presentation";
 import { observedConfigHash, reconcile } from "../validation.server";
 import { handleRulesAction, saveAddress2Mode } from "../features/rules/rules-action.server";
 import { parseRulesIntent, RULES_INTENTS } from "../features/rules/rules-intents";
@@ -209,7 +210,11 @@ export default function CheckoutRules() {
   }, [result, labelsErrorCode, savedText]);
 
   const dirty = draft.rules.taxCode !== saved.rules.taxCode || draft.rules.pec !== saved.rules.pec;
-  const labelsDirty = labelsEnabled !== (labelState.mode !== "off");
+  const { automaticConfirmationRequired, dirty: labelsDirty } = labelManagementSaveState(
+    labelState,
+    labelsEnabled,
+    errorCode,
+  );
   const automaticLabelWrites =
     labelSnapshot?.slots.flatMap((slot) => {
       if (slot.capability !== "automatic" || (slot.name !== "taxCode" && slot.name !== "pec")) {
@@ -242,7 +247,9 @@ export default function CheckoutRules() {
   const save = () => {
     if (busy || labelsLoading || conflict || sentRef.current) return;
     const firstAutomaticWrite =
-      labelsEnabled && labelState.mode === "off" && automaticLabelWrites.length > 0;
+      labelsEnabled &&
+      (labelState.mode === "off" || automaticConfirmationRequired) &&
+      automaticLabelWrites.length > 0;
     if (firstAutomaticWrite) {
       const modal = document.getElementById(LABEL_CONFIRM_MODAL) as
         | (HTMLElement & {

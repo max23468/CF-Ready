@@ -24,11 +24,15 @@ export function automaticFiscalWrites(snapshot: CheckoutLabelsSnapshot, rules: R
   });
 }
 
-function managedFiscalValuesMatch(snapshot: CheckoutLabelsSnapshot, rules: Rules) {
-  return automaticFiscalSlots(snapshot.slots).every((slot) => {
-    const mode = slot.name === "taxCode" ? rules.taxCode : rules.pec;
-    if (mode === "unmanaged") return true;
-    return checkoutLabelValuesMatch(slot.currentValue, proposedLabelForSlot(slot, rules));
+export function automaticFiscalWritesNeedConfirmation(
+  snapshot: CheckoutLabelsSnapshot,
+  stored: StoredCheckoutLabelSlot[],
+  rules: Rules,
+  epoch: string | null,
+) {
+  return automaticFiscalWrites(snapshot, rules).some((slot) => {
+    const previous = findStoredSlot(stored, slot);
+    return !epoch || previous?.managementEpoch !== epoch;
   });
 }
 
@@ -38,10 +42,17 @@ export function checkoutLabelsResultError(
   snapshot: CheckoutLabelsSnapshot,
   stored: StoredCheckoutLabelSlot[],
   rules: Rules,
+  epoch: string | null,
 ): AppErrorCode | null {
   const issue = fiscalSnapshotIssue(snapshot, rules);
   if (issue) return issue;
-  if (!managedFiscalValuesMatch(snapshot, rules)) return "checkout_labels_partial_sync";
+  // Una nuova locale può introdurre slot automatici mai scritti: serve il confronto del
+  // merchant, non un errore di sincronizzazione né una scrittura durante la sola lettura.
+  const writes = automaticFiscalWrites(snapshot, rules);
+  if (writes.some((slot) => epoch && findStoredSlot(stored, slot)?.managementEpoch === epoch)) {
+    return "checkout_labels_partial_sync";
+  }
+  if (writes.length > 0) return "checkout_labels_confirmation_required";
   const confirmed = snapshot.slots
     .filter((slot) => {
       if (slot.capability === "automatic") return false;

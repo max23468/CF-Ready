@@ -1,5 +1,6 @@
 import { planPrices, SHOPIFY_APP_FEES } from "../plans.server";
 import { FUNNEL_QUERY, parseFunnel } from "../reporting/funnel";
+import { readOfflineTokenRefreshStatus } from "../offline-token-refresh.server";
 import { OPEN_STORE_ERROR_FILTER } from "../reporting/operational";
 import {
   PERFORMANCE_QUERY,
@@ -560,10 +561,11 @@ export async function readActivity(db: D1Database) {
 }
 
 export async function readHealth(db: D1Database) {
-  const [d1, partner, webhooks, notifications, inbound] = await db.batch([
-    db.prepare("SELECT 1 AS ok"),
-    db.prepare(
-      `SELECT state_value AS synced_at,
+  const [[d1, partner, webhooks, notifications, inbound], tokens] = await Promise.all([
+    db.batch([
+      db.prepare("SELECT 1 AS ok"),
+      db.prepare(
+        `SELECT state_value AS synced_at,
               CASE WHEN state_value IS NULL
                      OR datetime(state_value) < datetime('now', '-15 minutes')
                    THEN 1 ELSE 0 END AS stale
@@ -571,18 +573,20 @@ export async function readHealth(db: D1Database) {
            SELECT state_value FROM owner_notification_state
             WHERE state_key = 'partner_events_polled_at'
          ) AS state_value)`,
-    ),
-    db.prepare(WEBHOOK_ISSUES_QUERY),
-    db.prepare(`SELECT COUNT(*) FILTER (WHERE status = 'pending') AS pending,
+      ),
+      db.prepare(WEBHOOK_ISSUES_QUERY),
+      db.prepare(`SELECT COUNT(*) FILTER (WHERE status = 'pending') AS pending,
       COUNT(*) FILTER (WHERE status = 'processing') AS processing,
       COUNT(*) FILTER (WHERE status = 'failed') AS failed,
       MIN(CASE WHEN status = 'pending' THEN created_at END) AS oldest_pending_at,
       MAX(sent_at) AS last_sent_at,
       MAX(CASE WHEN status = 'failed' THEN updated_at END) AS last_failed_at
       FROM owner_notifications`),
-    db.prepare(
-      `SELECT MAX(processed_at) AS last_processed_at, COUNT(*) FILTER (WHERE status = 'failed') AS failed FROM owner_control_updates`,
-    ),
+      db.prepare(
+        `SELECT MAX(processed_at) AS last_processed_at, COUNT(*) FILTER (WHERE status = 'failed') AS failed FROM owner_control_updates`,
+      ),
+    ]),
+    readOfflineTokenRefreshStatus(db),
   ]);
   return {
     d1: d1.success,
@@ -590,6 +594,7 @@ export async function readHealth(db: D1Database) {
     webhooks: webhooks.results[0] as Record<string, unknown> | undefined,
     notifications: notifications.results[0] as Record<string, unknown> | undefined,
     inbound: inbound.results[0] as Record<string, unknown> | undefined,
+    tokens,
   };
 }
 

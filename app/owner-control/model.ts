@@ -8,6 +8,7 @@ export const FINANCIAL_OBSERVATION_DAYS = 37;
 export const BILLING_READBACK_STALE_HOURS = 48;
 
 export const SHOPS_PAGE_SIZE = 8;
+export const BFS_TARGET = 50;
 
 export const OWNER_CONTROL_COMMANDS = [
   "dashboard",

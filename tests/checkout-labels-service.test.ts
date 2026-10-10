@@ -234,6 +234,70 @@ test("il caricamento attivo segnala una conferma guidata ancora assente", async 
   });
 });
 
+test("le etichette automatiche mai gestite richiedono conferma, senza simulare una scrittura fallita", async () => {
+  const tax = fiscalSlot({
+    locale: "en",
+    family: "en",
+    capability: "automatic",
+    currentValue: "Codice Fiscale (optional)",
+  });
+  const active = { ...state, mode: "guided" as const, managementEpoch: "epoch-1" };
+  mocks.readState.mockResolvedValue(active);
+  mocks.readLabels.mockResolvedValue(snapshotOf([tax]));
+  mocks.readStored.mockResolvedValue([stored(tax)]);
+
+  await loadCheckoutLabels(admin, db, shop, rules);
+
+  expect(mocks.mark).toHaveBeenCalledWith(db, shop, {
+    errorCode: "checkout_labels_confirmation_required",
+    synced: false,
+  });
+  expect(mocks.register).not.toHaveBeenCalled();
+  await expect(save({ confirmAutomaticWrite: false })).resolves.toEqual({
+    ok: false,
+    errorCode: "checkout_labels_confirmation_required",
+  });
+  expect(mocks.writeValidation).not.toHaveBeenCalled();
+  expect(mocks.claim).not.toHaveBeenCalled();
+});
+
+test.each([
+  ["epoch-1", "checkout_labels_partial_sync"],
+  ["previous-epoch", "checkout_labels_confirmation_required"],
+])(
+  "le scritture incomplete restano errori soltanto nell'epoca corrente: %s",
+  async (epoch, errorCode) => {
+    const tax = fiscalSlot({ capability: "automatic", currentValue: "Etichetta precedente" });
+    mocks.readState.mockResolvedValue({ ...state, mode: "automatic", managementEpoch: "epoch-1" });
+    mocks.readLabels.mockResolvedValue(snapshotOf([tax]));
+    mocks.readStored.mockResolvedValue([stored(tax, { managementEpoch: epoch })]);
+
+    await loadCheckoutLabels(admin, db, shop, rules);
+
+    expect(mocks.mark).toHaveBeenCalledWith(db, shop, { errorCode, synced: false });
+  },
+);
+
+test("una nuova etichetta non nasconde una scrittura già iniziata e incompleta", async () => {
+  const tax = fiscalSlot({ capability: "automatic", currentValue: "Etichetta precedente" });
+  const pec = fiscalSlot({
+    name: "pec",
+    key: CHECKOUT_LABEL_KEYS.pec,
+    capability: "automatic",
+    currentValue: "PEC",
+  });
+  mocks.readState.mockResolvedValue({ ...state, mode: "partial", managementEpoch: "epoch-1" });
+  mocks.readLabels.mockResolvedValue(snapshotOf([tax, pec]));
+  mocks.readStored.mockResolvedValue([stored(tax, { managementEpoch: "epoch-1" }), stored(pec)]);
+
+  await loadCheckoutLabels(admin, db, shop, rules);
+
+  expect(mocks.mark).toHaveBeenCalledWith(db, shop, {
+    errorCode: "checkout_labels_partial_sync",
+    synced: false,
+  });
+});
+
 test("il caricamento conserva l'errore della chiave fiscale incompleta", async () => {
   const active = { ...state, mode: "guided" as const };
   const snapshot = {
@@ -629,7 +693,9 @@ test("un errore dopo la Validation produce sincronizzazione parziale", async () 
 test("un readback finale divergente resta recuperabile", async () => {
   vi.useFakeTimers({ toFake: ["setTimeout"] });
   const tax = fiscalSlot({ capability: "automatic", currentValue: "Testo diverso" });
-  mocks.readStored.mockResolvedValue([stored(tax, { capability: "automatic" })]);
+  mocks.readStored.mockResolvedValue([
+    stored(tax, { capability: "automatic", managementEpoch: "epoch-1" }),
+  ]);
   mocks.readLabels
     .mockResolvedValue(snapshotOf([tax]))
     .mockResolvedValueOnce(snapshotOf([{ ...tax, currentValue: "Testo iniziale" }]));
@@ -657,7 +723,9 @@ test("una rilettura non ancora aggiornata dopo la scrittura non segnala una sinc
     currentValue: "PEC",
   });
   const written = { ...pec, currentValue: "PEC (facoltativa)" };
-  mocks.readStored.mockResolvedValue([stored(pec, { capability: "automatic" })]);
+  mocks.readStored.mockResolvedValue([
+    stored(pec, { capability: "automatic", managementEpoch: "epoch-1" }),
+  ]);
   mocks.readLabels
     .mockResolvedValueOnce(snapshotOf([pec]))
     .mockResolvedValueOnce(snapshotOf([pec]))
