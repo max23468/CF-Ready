@@ -4,6 +4,8 @@ import { setAbstractFetchFunc } from "@shopify/shopify-api/runtime";
 import { expect, test, vi } from "vitest";
 import {
   OFFLINE_TOKEN_REFRESH_BATCH,
+  OFFLINE_TOKEN_REFRESH_MAX_BATCH,
+  readOfflineTokenRefreshStatus,
   refreshExpiringOfflineSessions,
 } from "../app/offline-token-refresh.server";
 import { D1SessionStorage, readSessionTimings } from "../app/session-storage.server";
@@ -416,7 +418,9 @@ test("un rinnovo fallito non blocca gli altri e cede il posto alle scadenze più
   // Il primo store ha la scadenza più vecchia: resta fuori dal lotto finché ce ne sono di più urgenti.
   await Promise.all(
     shops.map((shop, index) =>
-      storage.storeSession(offlineSession(shop, `2026-09-24T10:0${index}:00.000Z`)),
+      storage.storeSession(
+        offlineSession(shop, new Date(now.getTime() + (17 + index) * 60_000).toISOString()),
+      ),
     ),
   );
   const attempted: string[] = [];
@@ -441,6 +445,91 @@ test("un rinnovo fallito non blocca gli altri e cede il posto alle scadenze più
         WHERE id LIKE 'offline_rinnovo-%' AND access_token_expires_at = '2026-09-24T11:00:00.000Z'`,
     ).first("rinnovati"),
   ).toBe(OFFLINE_TOKEN_REFRESH_BATCH - 1);
+});
+
+test("smaltisce cinquanta scadenze in quattro cicli mantenendo tre rinnovi simultanei", async () => {
+  await env.DB.prepare("DELETE FROM shopify_sessions").run();
+  const storage = new D1SessionStorage(
+    env.DB,
+    btoa(String.fromCharCode(...new Uint8Array(32).fill(8))),
+  );
+  const start = new Date("2026-09-24T10:00:00.000Z");
+  await Promise.all(
+    Array.from({ length: 50 }, (_, index) =>
+      storage.storeSession(
+        offlineSession(`crescita-${index}.example.myshopify.com`, "2026-09-24T10:20:00.000Z"),
+      ),
+    ),
+  );
+  expect(await readOfflineTokenRefreshStatus(env.DB, start)).toEqual({
+    pending: 50,
+    expired: 0,
+    oldestExpiresAt: "2026-09-24T10:20:00.000Z",
+    batchSize: 13,
+  });
+  let active = 0;
+  let maximumActive = 0;
+  let refreshed = 0;
+  for (let cycle = 0; cycle < 4; cycle++) {
+    const result = await refreshExpiringOfflineSessions(env.DB, {
+      now: new Date(start.getTime() + cycle * 5 * 60_000),
+      loadSession: (id) => storage.loadSession(id),
+      storeSession: (session) => storage.storeSession(session),
+      refresh: async (shop) => {
+        active++;
+        maximumActive = Math.max(maximumActive, active);
+        await Promise.resolve();
+        active--;
+        return offlineSession(shop, "2026-09-24T11:00:00.000Z");
+      },
+    });
+    refreshed += result.refreshed;
+  }
+  expect(refreshed).toBe(50);
+  expect(maximumActive).toBeLessThanOrEqual(OFFLINE_TOKEN_REFRESH_BATCH);
+  expect(await readOfflineTokenRefreshStatus(env.DB, new Date("2026-09-24T10:15:00.000Z"))).toEqual(
+    { pending: 0, expired: 0, oldestExpiresAt: null, batchSize: 3 },
+  );
+});
+
+test("limita un arretrato scaduto e continua le ondate dopo un salvataggio fallito", async () => {
+  await env.DB.prepare("DELETE FROM shopify_sessions").run();
+  const storage = new D1SessionStorage(
+    env.DB,
+    btoa(String.fromCharCode(...new Uint8Array(32).fill(9))),
+  );
+  const now = new Date("2026-09-24T10:00:00.000Z");
+  await Promise.all(
+    Array.from({ length: 20 }, (_, index) =>
+      storage.storeSession(
+        offlineSession(`arretrato-${index}.example.myshopify.com`, "2026-09-24T09:59:00.000Z"),
+      ),
+    ),
+  );
+  expect(await readOfflineTokenRefreshStatus(env.DB, now)).toMatchObject({
+    pending: 20,
+    expired: 20,
+    batchSize: OFFLINE_TOKEN_REFRESH_MAX_BATCH,
+  });
+  let attempted = 0;
+  let stored = 0;
+  await expect(
+    refreshExpiringOfflineSessions(env.DB, {
+      now,
+      loadSession: (id) => storage.loadSession(id),
+      storeSession: (session) =>
+        ++stored === 1 ? Promise.resolve(false) : storage.storeSession(session),
+      refresh: async (shop) => {
+        attempted++;
+        return offlineSession(shop, "2026-09-24T11:00:00.000Z");
+      },
+    }),
+  ).rejects.toThrow(/^offline_token_refresh_failed$/);
+  expect(attempted).toBe(OFFLINE_TOKEN_REFRESH_MAX_BATCH);
+  expect(await readOfflineTokenRefreshStatus(env.DB, now)).toMatchObject({
+    pending: 6,
+    expired: 6,
+  });
 });
 
 test("il rinnovo usa il grant ufficiale e restituisce la sessione offline dello store", async () => {

@@ -381,21 +381,35 @@ export function funnelMessage(rows: Array<Record<string, unknown>>): OwnerContro
     [
       section(
         "Coorti · 28 giorni",
-        rows
-          .flatMap((row) => [
+        rows.slice(-5).flatMap((row) => [
+          [
+            String(row.cohort),
+            `${row.installed} installati · ${row.rules_observed} regole · ${row.trial_observed} trial · ${row.activation_observed} attivazioni · ${row.paid_plan_observed} piani paganti · ${row.paid_plan_after_activation} dopo attivazione · ${row.uninstalled_after_activation} disinstallazioni dopo attivazione`,
+          ] as Row,
+          [
+            "Conversioni osservate",
             [
-              String(row.cohort),
-              `${row.installed} installati · ${row.rules_observed} regole · ${row.trial_observed} trial · ${row.activation_observed} attivazioni`,
-            ] as Row,
-            ...(row.evidence === "small_cohort"
-              ? [["Campione", "Piccolo, dato indicativo"] as Row]
-              : []),
-          ])
-          .slice(-16),
+              ["Installati → piano", row.paid_plan_rate],
+              ["Attivati → piano", row.activation_to_paid_plan_rate],
+              ["Attivati → disinstallati", row.uninstalled_after_activation_rate],
+            ]
+              .map(([label, rate]) => `${label}: ${typeof rate === "number" ? percent(rate) : "—"}`)
+              .join(" · "),
+          ] as Row,
+          [
+            "Tempo medio al piano",
+            typeof row.seconds_to_paid_plan === "number"
+              ? `${Math.round(row.seconds_to_paid_plan / 60)} min`
+              : "—",
+          ] as Row,
+          ...(row.evidence === "small_cohort"
+            ? [["Campione", "Piccolo, dato indicativo"] as Row]
+            : []),
+        ]),
       ),
     ],
     back(),
-    "Milestone osservate; le assenze non provano abbandono né un ordine obbligatorio.",
+    "Milestone osservate, senza ordine obbligatorio. Piani non test con importo positivo, non incassi liquidati. Le assenze e i dati eliminati dalla retention non provano abbandono.",
   );
 }
 
@@ -497,12 +511,17 @@ export function healthMessage(
   const partnerOk = (data.partner as Record<string, unknown> | undefined)?.stale === 0;
   const notifications = data.notifications as Record<string, unknown> | undefined;
   const inbound = data.inbound as Record<string, unknown> | undefined;
+  const tokens = data.tokens as Record<string, unknown> | undefined;
   return panel(
     "Health",
     [
       section("🩺 Componenti osservabili", [
         ["Worker", "Operativo"],
         ["D1", data.d1 ? "OK" : "Errore"],
+        ["Token offline da rinnovare", value(tokens?.pending)],
+        ["Token già scaduti ritentabili", value(tokens?.expired)],
+        ["Scadenza token più vecchia", formatDate(tokens?.oldestExpiresAt)],
+        ["Lotto rinnovo token", value(tokens?.batchSize)],
         ["Partner sync", partnerOk ? formatDate(partnerAt) : "Stale o assente"],
         ["Ultimo comando Telegram", formatDate(inbound?.last_processed_at)],
         ["Telegram inbound falliti", value(inbound?.failed)],
