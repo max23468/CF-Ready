@@ -16,6 +16,13 @@ const environment = {
   SHOPIFY_APP_URL: "https://cf-ready-prod.test",
 };
 
+test("il menu conserva gli otto comandi prioritari concordati", () => {
+  assert.deepEqual(
+    OWNER_CONTROL_MENU_COMMANDS.map(({ command }) => command),
+    ["dashboard", "performance", "shops", "billing", "growth", "issues", "health", "activity"],
+  );
+});
+
 test("legge modalità e configurazione senza esporre scorciatoie ambigue", () => {
   assert.deepEqual(parseOptions(["--check"]), { mode: "check" });
   assert.deepEqual(parseOptions(["--apply"]), { mode: "apply" });

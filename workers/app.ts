@@ -117,7 +117,12 @@ async function runOwnerNotificationCycle(env: NotificationBindings) {
   }
   if (env.OWNER_NOTIFICATIONS_ENABLED !== "true") return;
 
-  const notifications = await import("../app/owner-notifications.server");
+  const [notifications, { refreshBFSPlans }, { pollBFSProgress, pollBFSPerformance }] =
+    await Promise.all([
+      import("../app/owner-notifications.server"),
+      import("../app/owner-control/bfs.server"),
+      import("../app/owner-control/bfs-notifications.server"),
+    ]);
 
   const stages = [
     () =>
@@ -134,6 +139,11 @@ async function runOwnerNotificationCycle(env: NotificationBindings) {
       }),
     () => notifications.pollLocalNotifications(env.DB),
     () => notifications.reconcileOwnerIncidents(env.DB),
+    async () => {
+      await refreshBFSPlans(env.DB);
+      await pollBFSProgress(env.DB);
+    },
+    () => pollBFSPerformance(env.DB),
     () => {
       if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
         throw new Error("owner_notification_configuration_incomplete");
@@ -153,6 +163,8 @@ async function runOwnerNotificationCycle(env: NotificationBindings) {
     "partner_financials",
     "local_notifications",
     "incidents",
+    "bfs_progress",
+    "bfs_performance",
     "delivery",
   ];
   for (const [index, stage] of stages.entries()) {

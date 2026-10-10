@@ -175,6 +175,36 @@ ha stato `insufficient_samples` finché non raggiunge 100 campioni; dopo quella
 soglia è `pass` o `fail`. Il comando è di sola lettura e non sostituisce lo
 stato Built for Shopify assegnato e riletto da Shopify.
 
+Nel Control Center Telegram, `/performance` mostra anche l'obiettivo di 50
+installazioni nette da store attivi su piani Shopify a pagamento (D-180).
+Il piano commerciale CF Ready non influenza il conteggio: Lifetime, mensile,
+annuale, prova e omaggio possono contribuire. È una stima interna: la pagina
+Distribution Shopify resta autorevole. Basic, Grow, Advanced, Plus, Starter e
+Lite senza `partnerDevelopment` sono candidati; sviluppo, Trial, Plus Trial,
+Paused e Inactive sono esclusi; gli altri piani o letture incerte sono da verificare.
+
+Il ciclo notifiche ogni cinque minuti rilegge fino a tre piani scaduti: cache
+di 24 ore, retry degli incerti dopo un'ora. Il pulsante Aggiorna già nella vista
+rilegge fino a tre piani con cooldown di cinque minuti (un'ora per gli incerti).
+Il ciclo seguente continua gli altri store. La variazione a sette giorni usa
+snapshot giornalieri completi; senza snapshot o con letture incerte resta non
+disponibile. La dashboard contiene un riepilogo dello stesso obiettivo.
+
+La prima lettura completa stabilisce la baseline. Le notifiche arrivano ogni
+cinque store netti aggiuntivi, con un solo messaggio per salti più grandi e
+senza ripetere traguardi persi e recuperati; il raggiungimento stimato di 50 ha
+un avviso dedicato nello stesso messaggio. Gli incerti sospendono questo monitor.
+Ogni ciclo controlla separatamente il p75 complessivo LCP/CLS/INP: un superamento
+genera un avviso anche se già presente alla prima osservazione; sotto 100 campioni
+è preliminare, poi arriva una conferma. Non si ripete mentre persiste. Il rientro
+si notifica solo con almeno 100 campioni; perdere campioni non prova un rientro.
+Più metriche cambiate nello stesso ciclo producono un solo messaggio.
+
+Il menu configurato dallo script Telegram espone otto comandi, in ordine:
+`/dashboard`, `/performance`, `/shops`, `/billing`, `/growth`, `/issues`,
+`/health`, `/activity`. Gli altri sette restano richiamabili digitandoli.
+La modifica locale dello script non aggiorna il menu del bot remoto.
+
 La rotta del campione è quella che ha avviato il documento e condivide la
 stessa origine temporale dei valori `Server-Timing`. Per un'analisi causale
 separare sempre la shell Shopify Admin dall'iframe CF Ready: un LCP il cui

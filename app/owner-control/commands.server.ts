@@ -2,6 +2,7 @@ import { version as appVersion } from "../../package.json";
 import type { TelegramClientConfig } from "../telegram/client.server";
 import { createTelegramClient } from "../telegram/client.server";
 import { readGrowthReport } from "./growth.server";
+import { readBFSReport, refreshBFSPlans } from "./bfs.server";
 import { diagnosticShopMessage } from "./shop-diagnostics.server";
 import type { OwnerControlAction } from "./model";
 import {
@@ -89,13 +90,16 @@ export async function renderOwnerControlAction(
 
   switch (action.view) {
     case "dashboard": {
-      const data = await readDashboard(db);
-      const growth = await readGrowthReport(db, partnerConfig, {
-        now,
-        force: action.refresh,
-        fetcher: options.fetcher,
-      }).catch(() => undefined);
-      return dashboardMessage(data, growth, environmentLabel(config.environment));
+      const [data, growth, bfs] = await Promise.all([
+        readDashboard(db),
+        readGrowthReport(db, partnerConfig, {
+          now,
+          force: action.refresh,
+          fetcher: options.fetcher,
+        }).catch(() => undefined),
+        readBFSReport(db, now),
+      ]);
+      return dashboardMessage(data, growth, environmentLabel(config.environment), bfs);
     }
     case "shops": {
       const shops = await readShops(db, action.filter ?? "all", page);
@@ -219,8 +223,15 @@ export async function renderOwnerControlAction(
         ).catch(() => undefined),
       );
     }
-    case "performance":
-      return performanceMessage(await readPerformance(db));
+    case "performance": {
+      const [performance, bfs] = await Promise.all([
+        readPerformance(db),
+        action.refresh
+          ? refreshBFSPlans(db, { now, force: true, adminForShop: options.adminForShop })
+          : readBFSReport(db, now),
+      ]);
+      return performanceMessage(performance, bfs);
+    }
     case "version":
       return versionMessage({
         appVersion,

@@ -883,14 +883,14 @@ test("l'entrypoint Telegram esegue il readback con provider sintetico", async (t
     [`POST /bot${token}/getMyCommands`]: {
       ok: true,
       result: [
-        { command: "dashboard", description: "Dashboard" },
+        { command: "dashboard", description: "Riepilogo" },
+        { command: "performance", description: "Obiettivo BFS e prestazioni" },
         { command: "shops", description: "Store" },
-        { command: "growth", description: "Growth" },
-        { command: "billing", description: "Billing" },
-        { command: "funnel", description: "Funnel" },
-        { command: "issues", description: "Problemi" },
-        { command: "health", description: "Health" },
-        { command: "help", description: "Help" },
+        { command: "billing", description: "Ricavi e piani" },
+        { command: "growth", description: "Crescita" },
+        { command: "issues", description: "Problemi aperti" },
+        { command: "health", description: "Stato del sistema" },
+        { command: "activity", description: "Attività recente" },
       ],
     },
   });
