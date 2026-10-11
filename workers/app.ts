@@ -73,7 +73,12 @@ export default {
     );
   },
   scheduled(controller, env, ctx) {
-    if (controller.cron === "0 * * * *") {
+    // Il vecchio trigger orario può ancora scattare durante la propagazione: la retention la
+    // esegue già il tick delle :00 e due passate parallele duplicherebbero le redazioni.
+    if (controller.cron === "0 * * * *") return;
+    // Un solo trigger per ambiente: il tick delle :00 resta alla retention, in un'invocazione
+    // separata dal ciclo owner come prima, così il budget CPU di ciascuna non si somma.
+    if (new Date(controller.scheduledTime).getUTCMinutes() === 0) {
       ctx.waitUntil(runRetention(env.DB));
       return;
     }
@@ -184,8 +189,19 @@ async function runOwnerNotificationCycle(env: NotificationBindings) {
 }
 
 async function runRetention(db: D1Database) {
-  const { applyRetention } = await import("../app/shop.server");
-  return applyRetention(db);
+  const [{ applyRetention }, { recordEvent }] = await Promise.all([
+    import("../app/shop.server"),
+    import("../app/events.server"),
+  ]);
+  try {
+    await applyRetention(db);
+  } catch (error) {
+    await recordEvent(db, {
+      name: "retention_failed",
+      class: "error",
+      metadata: { error_code: stageErrorCode(error, "retention_failed") },
+    });
+  }
 }
 
 function stageErrorCode(error: unknown, fallback: string) {

@@ -6,6 +6,18 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.2.3 — 11 ottobre 2026
+
+- riduce i Cron Trigger da due a uno per ambiente: il tick delle :00 esegue la
+  retention in un'invocazione separata, gli altri il ciclo owner;
+- registra gli errori della retention e porta a 20 minuti la soglia
+  dell'incidente Partner, anche in Dashboard e `/health`.
+
+Each environment now uses a single Cron Trigger: the :00 tick runs data
+retention in its own invocation and the others run the owner cycle. Retention
+failures are recorded, and the Partner ingestion alert threshold is now
+20 minutes.
+
 ## 2.2.2 — 11 ottobre 2026
 
 - riduce di circa il 90% le righe D1 lette dal controllo prestazioni BFS del
