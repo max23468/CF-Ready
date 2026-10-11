@@ -14,9 +14,19 @@ import {
   readIssues,
   readNotificationStatus,
   readPerformance,
+  readPerformanceOverall,
   readShops,
   readTrials,
 } from "../app/owner-control/queries.server";
+import {
+  PERFORMANCE_LATEST_VERSIONS_QUERY,
+  PERFORMANCE_OVERALL_QUERY,
+  PERFORMANCE_QUERY,
+  PERFORMANCE_TIMING_QUERY,
+  comparePerformanceVersions,
+  parsePerformanceRows,
+  performanceCutoff,
+} from "../app/reporting/performance";
 
 import { readShopifyPlans, SHOPIFY_PLAN_QUERY } from "../app/owner-control/shopify-plans.server";
 
@@ -338,6 +348,96 @@ describe("query D1 e run-rate", () => {
       open_issues: 1,
       unresolved_webhooks: 1,
     });
+  });
+
+  test("calcola p75 e confronto come il report completo leggendo solo la finestra", async () => {
+    await insertStore(1, "performance.myshopify.com");
+    const versions = ["2.0.0", "2.1.0", "2.2.0"];
+    await env.DB.batch(
+      Array.from({ length: 150 }, (_, index) => {
+        const metric = ["LCP", "INP", "CLS", "FCP"][index % 4];
+        // Valori ripetuti per il rango con i pareggi; ogni dieci campioni uno è fuori finestra.
+        const value = metric === "CLS" ? (index % 7) / 100 : (index % 11) * 100;
+        const version = index % 3;
+        return env.DB.prepare(
+          `INSERT INTO performance_samples
+             (shop_id, metric_id, metric_name, metric_value, app_version, app_route, observed_at)
+           VALUES (1, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?, ?))`,
+        ).bind(
+          `sample-${index}`,
+          metric,
+          value,
+          versions[version],
+          ["home", "rules", "other"][index % 3 === 0 ? 0 : index % 2],
+          index % 10 === 0 ? "-40 days" : `-${(index % 5) + 1} days`,
+          `-${2 - version} hours`,
+        );
+      }),
+    );
+    const { results } = await env.DB.prepare(PERFORMANCE_QUERY).all();
+    const expected = parsePerformanceRows(results);
+    const latest = ["2.2.0", "2.1.0"];
+    const cutoff = performanceCutoff(new Date());
+    const rowsRead = async (query: string, ...params: string[]) =>
+      (
+        await env.DB.prepare(query)
+          .bind(...params)
+          .all()
+      ).meta.rows_read;
+    // D1 conta come righe lette anche gli ordinamenti: il ciclo owner non deve tornare al report completo.
+    const before = (await rowsRead(PERFORMANCE_QUERY)) + (await rowsRead(PERFORMANCE_TIMING_QUERY));
+    const overall = await rowsRead(PERFORMANCE_OVERALL_QUERY, cutoff);
+    expect(overall).toBeLessThan(before / 4);
+    expect(overall + (await rowsRead(PERFORMANCE_LATEST_VERSIONS_QUERY, cutoff))).toBeLessThan(
+      before * 0.7,
+    );
+
+    const performance = await readPerformance(env.DB);
+    expect(performance.groups).toEqual(
+      expect.arrayContaining(
+        expected.filter(
+          (group) =>
+            (group.app_version === "all" && group.app_route === "all") ||
+            (latest.includes(group.app_version) && group.app_route !== "all"),
+        ),
+      ),
+    );
+    expect(performance.groups).toHaveLength(
+      expected.filter(
+        (group) =>
+          (group.app_version === "all" && group.app_route === "all") ||
+          (latest.includes(group.app_version) && group.app_route !== "all"),
+      ).length,
+    );
+    expect(performance.comparison?.comparisons.length).toBeGreaterThan(0);
+    expect(performance.comparison).toEqual(
+      comparePerformanceVersions(expected, [], "2.1.0", "2.2.0"),
+    );
+    expect(await readPerformanceOverall(env.DB)).toEqual(
+      expected.filter((group) => group.app_version === "all" && group.app_route === "all"),
+    );
+  });
+
+  test("include nel p75 il campione esattamente al limite dei 28 giorni", async () => {
+    await insertStore(1, "performance-boundary.myshopify.com");
+    const now = new Date("2026-10-11T12:00:00.000Z");
+    const cutoff = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1_000);
+    await env.DB.batch(
+      [
+        ["edge", 900, cutoff.toISOString()],
+        ["expired", 100, new Date(cutoff.getTime() - 1).toISOString()],
+      ].map(([id, value, observedAt]) =>
+        env.DB.prepare(
+          `INSERT INTO performance_samples
+             (shop_id, metric_id, metric_name, metric_value, app_version, app_route, observed_at)
+           VALUES (1, ?, 'LCP', ?, '2.2.0', 'home', ?)`,
+        ).bind(id, value, observedAt),
+      ),
+    );
+
+    expect(await readPerformanceOverall(env.DB, now)).toMatchObject([
+      { metric: "LCP", sample_count: 1, p75: 900 },
+    ]);
   });
 
   test("renderizza tutte le viste, apre gli store e confronta le versioni osservate", async () => {

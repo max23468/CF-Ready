@@ -49,7 +49,9 @@ modifica.
 
 Preserva modifiche, branch e worktree non tuoi. Una richiesta di analisi o
 review si risponde senza modificare; una richiesta di fix o implementazione si
-porta a termine in locale con i controlli pertinenti. Commit, push e PR
+porta a termine in locale con i controlli pertinenti. Il formattatore è solo
+`oxfmt` (`npm run format`): Prettier non si usa, nemmeno tramite `npx`, perché
+riscrive righe estranee che `oxfmt` poi conserva. Commit, push e PR
 arrivano con una richiesta esplicita o con `Pubblica`. Un bug si corregge nel punto
 condiviso, con il test minimo che falliva prima del fix.
 
