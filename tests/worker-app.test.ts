@@ -195,17 +195,56 @@ describe("entrypoint Worker", () => {
     ]);
   });
 
-  test("pianifica la retention soltanto con il cron orario", async () => {
+  test("il tick delle :00 esegue soltanto la retention", async () => {
     const pending: Promise<unknown>[] = [];
     const context = { waitUntil: (promise: Promise<unknown>) => pending.push(promise) };
 
-    worker.scheduled({ cron: "0 * * * *" } as never, env, context as never);
+    worker.scheduled(
+      { cron: "*/5 * * * *", scheduledTime: Date.UTC(2026, 9, 11, 10, 0) } as never,
+      env,
+      context as never,
+    );
     await Promise.all(pending);
 
     expect(mocks.applyRetention).toHaveBeenCalledOnce();
-    expect(mocks.pollPartnerEvents).not.toHaveBeenCalled();
-    expect(mocks.syncPartnerFinancialObservations).not.toHaveBeenCalled();
+    expect(mocks.refreshExpiringOfflineSessions).not.toHaveBeenCalled();
+    expect(mocks.reconcileNextStaleBilling).not.toHaveBeenCalled();
     expect(pending).toHaveLength(1);
+  });
+
+  test("il vecchio trigger orario in propagazione non duplica la retention", async () => {
+    const pending: Promise<unknown>[] = [];
+    const context = { waitUntil: (promise: Promise<unknown>) => pending.push(promise) };
+
+    worker.scheduled(
+      { cron: "0 * * * *", scheduledTime: Date.UTC(2026, 9, 11, 10, 0) } as never,
+      env,
+      context as never,
+    );
+
+    expect(pending).toHaveLength(0);
+    expect(mocks.applyRetention).not.toHaveBeenCalled();
+  });
+
+  test("registra l'errore della retention senza rifiuti non gestiti", async () => {
+    mocks.applyRetention.mockRejectedValueOnce(
+      new AggregateError([], "Retention store incompleta"),
+    );
+    const pending: Promise<unknown>[] = [];
+    const context = { waitUntil: (promise: Promise<unknown>) => pending.push(promise) };
+
+    worker.scheduled(
+      { cron: "*/5 * * * *", scheduledTime: Date.UTC(2026, 9, 11, 10, 0) } as never,
+      env,
+      context as never,
+    );
+    await Promise.all(pending);
+
+    expect(mocks.recordEvent).toHaveBeenCalledWith(env.DB, {
+      name: "retention_failed",
+      class: "error",
+      metadata: { error_code: "retention_failed" },
+    });
   });
 
   test("un cron notifiche ancora in propagazione avvia comunque il ciclo owner", async () => {
@@ -213,7 +252,7 @@ describe("entrypoint Worker", () => {
     const notificationEnv = { DB: env.DB, OWNER_NOTIFICATIONS_ENABLED: "true" };
 
     worker.scheduled(
-      { cron: "*/5 * * * *" } as never,
+      { cron: "*/5 * * * *", scheduledTime: Date.UTC(2026, 9, 11, 10, 55) } as never,
       notificationEnv as never,
       {
         waitUntil: (promise: Promise<unknown>) => pending.push(promise),

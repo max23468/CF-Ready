@@ -218,6 +218,16 @@ campioni LCP con i caricamenti del Dev Dashboard, sezione Monitoraggio: uno
 scarto stabile indica report persi o filtri Shopify, e va annotato prima di
 trarre conclusioni dal p75 locale.
 
+## Cron Trigger
+
+Ogni Worker ha un solo trigger `*/5 * * * *` (D-181): il tick delle :00 UTC
+esegue la retention, gli altri il ciclo owner. Dopo un deploy che cambia i
+trigger, Cloudflare può impiegare fino a 15 minuti per propagarli: il readback
+dei schedules va fatto dopo quella finestra. Un rollback a una versione
+precedente alla `2.2.3` non ripristina il vecchio trigger orario e lascia la
+retention ferma: ridistribuisci la configurazione con `0 * * * *` e
+`*/5 * * * *`. Un errore di retention registra `retention_failed`.
+
 ## Rinnovo dei token offline
 
 Lo stesso cron ogni cinque minuti rinnova per primo i token offline in scadenza
