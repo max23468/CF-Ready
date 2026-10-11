@@ -3,12 +3,11 @@ import { FUNNEL_QUERY, parseFunnel } from "../reporting/funnel";
 import { readOfflineTokenRefreshStatus } from "../offline-token-refresh.server";
 import { OPEN_STORE_ERROR_FILTER } from "../reporting/operational";
 import {
-  PERFORMANCE_QUERY,
-  PERFORMANCE_TIMING_QUERY,
-  PERFORMANCE_WINDOW_DAYS,
+  PERFORMANCE_LATEST_VERSIONS_QUERY,
+  PERFORMANCE_OVERALL_QUERY,
   comparePerformanceVersions,
   parsePerformanceRows,
-  parsePerformanceTimings,
+  performanceCutoff,
 } from "../reporting/performance";
 import { SHOPS_PAGE_SIZE, type ShopsFilter } from "./model";
 
@@ -416,34 +415,26 @@ export async function readFunnel(db: D1Database) {
   return parseFunnel(results);
 }
 
-export async function readPerformance(db: D1Database) {
-  const [groupsResult, timingsResult, versionsResult] = await Promise.all([
-    db.prepare(PERFORMANCE_QUERY).all(),
-    db.prepare(PERFORMANCE_TIMING_QUERY).all(),
-    db
-      .prepare(
-        `SELECT app_version, MAX(observed_at) AS last_observed_at
-         FROM performance_samples
-         WHERE datetime(observed_at) >= datetime('now', '-${PERFORMANCE_WINDOW_DAYS} days')
-           AND metric_name IN ('LCP', 'INP', 'CLS')
-         GROUP BY app_version
-         ORDER BY last_observed_at DESC, app_version DESC
-         LIMIT 2`,
-      )
-      .all<{ app_version: string; last_observed_at: string }>(),
+export async function readPerformanceOverall(db: D1Database, now = new Date()) {
+  const { results } = await db
+    .prepare(PERFORMANCE_OVERALL_QUERY)
+    .bind(performanceCutoff(now))
+    .all();
+  return parsePerformanceRows(results);
+}
+
+// Le durate server restano al report CLI: Control Center mostra solo p75 e regressioni.
+export async function readPerformance(db: D1Database, now = new Date()) {
+  const cutoff = performanceCutoff(now);
+  const [overallResult, latestResult] = await db.batch([
+    db.prepare(PERFORMANCE_OVERALL_QUERY).bind(cutoff),
+    db.prepare(PERFORMANCE_LATEST_VERSIONS_QUERY).bind(cutoff),
   ]);
-  const groups = parsePerformanceRows(groupsResult.results);
-  const timings = parsePerformanceTimings(timingsResult.results);
-  const versions = versionsResult.results;
+  const latest = parsePerformanceRows(latestResult.results);
+  const groups = [...parsePerformanceRows(overallResult.results), ...latest];
+  const versions = [...new Set(latest.map((group) => group.app_version))];
   const comparison =
-    versions.length === 2
-      ? comparePerformanceVersions(
-          groups,
-          timings,
-          versions[1].app_version,
-          versions[0].app_version,
-        )
-      : null;
+    versions.length === 2 ? comparePerformanceVersions(groups, [], versions[1], versions[0]) : null;
   return { groups, comparison };
 }
 

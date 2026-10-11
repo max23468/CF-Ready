@@ -3,10 +3,11 @@ import {
   PERFORMANCE_THRESHOLDS,
   PERFORMANCE_MINIMUM_SAMPLES,
   PERFORMANCE_WINDOW_DAYS,
+  type PerformanceMetric,
 } from "../reporting/performance";
 import { readBFSReport, type BFSHistoryPoint } from "./bfs.server";
 import { BFS_TARGET } from "./model";
-import { readPerformance } from "./queries.server";
+import { readPerformanceOverall } from "./queries.server";
 
 type ProgressState = {
   baseline: number;
@@ -129,7 +130,9 @@ export async function pollBFSProgress(db: D1Database, now = new Date()) {
 }
 
 export async function pollBFSPerformance(db: D1Database, now = new Date()) {
-  const report = await readPerformance(db);
+  const overall = new Map(
+    (await readPerformanceOverall(db, now)).map((group) => [group.metric, group]),
+  );
   await saveObservation<PerformanceState>(
     db,
     "bfs_performance_v1",
@@ -137,9 +140,7 @@ export async function pollBFSPerformance(db: D1Database, now = new Date()) {
       const state = { ...previous };
       const lines: string[] = [];
       for (const [metric, threshold] of Object.entries(PERFORMANCE_THRESHOLDS)) {
-        const group = report.groups.find(
-          (row) => row.metric === metric && row.app_version === "all" && row.app_route === "all",
-        );
+        const group = overall.get(metric as PerformanceMetric);
         const enough = (group?.sample_count ?? 0) >= PERFORMANCE_MINIMUM_SAMPLES;
         const failed = group && group.p75 > threshold;
         const status: MetricState = failed
