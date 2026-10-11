@@ -1,4 +1,6 @@
-export const PARTNER_STALE_MINUTES = 15;
+// Con il tick delle :00 riservato alla retention, tra i cicli delle :55 e delle :05 passano dieci
+// minuti: 20 minuti richiedono due cicli falliti consecutivi, come prima.
+export const PARTNER_STALE_MINUTES = 20;
 export const WEBHOOK_FAILED_MINUTES = 15;
 export const WEBHOOK_PROCESSING_MINUTES = 5;
 export const CHECKOUT_LABEL_OBSERVATIONS = 3;
