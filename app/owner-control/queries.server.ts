@@ -9,7 +9,7 @@ import {
   parsePerformanceRows,
   performanceCutoff,
 } from "../reporting/performance";
-import { SHOPS_PAGE_SIZE, type ShopsFilter } from "./model";
+import { PARTNER_STALE_MINUTES, SHOPS_PAGE_SIZE, type ShopsFilter } from "./model";
 
 export const UNRESOLVED_WEBHOOK_FILTER = `
   w.status = 'failed' AND NOT (
@@ -476,7 +476,7 @@ export async function readIssues(db: D1Database) {
       db.prepare(
         `SELECT state_value AS synced_at,
                 CASE WHEN state_value IS NULL
-                       OR datetime(state_value) < datetime('now', '-15 minutes')
+                       OR datetime(state_value) < datetime('now', '-${PARTNER_STALE_MINUTES} minutes')
                      THEN 1 ELSE 0 END AS stale
            FROM (SELECT (
              SELECT state_value FROM owner_notification_state
@@ -558,7 +558,7 @@ export async function readHealth(db: D1Database) {
       db.prepare(
         `SELECT state_value AS synced_at,
               CASE WHEN state_value IS NULL
-                     OR datetime(state_value) < datetime('now', '-15 minutes')
+                     OR datetime(state_value) < datetime('now', '-${PARTNER_STALE_MINUTES} minutes')
                    THEN 1 ELSE 0 END AS stale
          FROM (SELECT (
            SELECT state_value FROM owner_notification_state
