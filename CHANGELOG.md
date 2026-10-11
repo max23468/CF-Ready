@@ -6,6 +6,18 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.2.2 — 11 ottobre 2026
+
+- riduce di circa il 90% le righe D1 lette dal controllo prestazioni BFS del
+  ciclo owner, calcolando soltanto i p75 globali di LCP, CLS e INP;
+- limita il confronto delle regressioni alle due versioni più recenti e lascia
+  le durate server al solo report CLI, con gli stessi valori di prima.
+
+The BFS performance check in the owner cycle reads about 90% fewer D1 rows by
+computing only the overall LCP, CLS and INP p75. Regression comparison covers
+the two most recent versions, and server timings remain in the CLI report;
+reported values are unchanged.
+
 ## 2.2.1 — 10 ottobre 2026
 
 - integra in Performance e Dashboard Telegram la stima del progresso verso i
