@@ -12,6 +12,8 @@ import {
   verifyVersionAvailable,
 } from "./preflight-dev.mjs";
 import {
+  activeDeployment,
+  loadWorkerConfig,
   run,
   verifyMigrationSafety,
   verifyNoPendingMigrations,
@@ -32,30 +34,27 @@ optional_scopes = [ "write_translations", "read_locales", "read_markets" ]
 api_version = "unstable"
 subscription = []
 `;
-const wrangler = `{
+const worker = `{
   "name": "cf-ready-dev",
-  "vars": {
-    "SHOPIFY_API_KEY": "adff48d4fe4ceb0dadb4734520701dd7",
-    "SHOPIFY_APP_URL": "https://cf-ready-dev.tmsf.workers.dev",
-    "SCOPES": "write_validations",
-    "ALLOWED_SHOP": "cf-ready-dev.myshopify.com,cf-ready-polaris-2.myshopify.com",
-    "APP_ENVIRONMENT": "development",
-    "OWNER_TELEGRAM_CONTROL_ENABLED": "false"
+  "env": {
+    "SHOPIFY_API_KEY": {"type": "text", "value": "adff48d4fe4ceb0dadb4734520701dd7"},
+    "SHOPIFY_APP_URL": {"type": "text", "value": "https://cf-ready-dev.tmsf.workers.dev"},
+    "SCOPES": {"type": "text", "value": "write_validations"},
+    "ALLOWED_SHOP": {"type": "text", "value": "cf-ready-dev.myshopify.com,cf-ready-polaris-2.myshopify.com"},
+    "APP_ENVIRONMENT": {"type": "text", "value": "development"},
+    "OWNER_TELEGRAM_CONTROL_ENABLED": {"type": "text", "value": "false"},
+    "DB": {"type": "d1", "name": "cf-ready-db-dev", "id": "9490eaea-3a12-465d-bb48-e2622b31fc4d"},
+    "WEBHOOK_QUEUE": {"type": "queue", "name": "cf-ready-webhooks-dev"},
+    "CF_VERSION_METADATA": {"type": "version-metadata"}
   },
-  "version_metadata": {"binding": "CF_VERSION_METADATA"},
-  "d1_databases": [{
-    "binding": "DB",
-    "database_name": "cf-ready-db-dev",
-    "database_id": "9490eaea-3a12-465d-bb48-e2622b31fc4d"
-  }],
-  "queues": {
-    "producers": [{"binding": "WEBHOOK_QUEUE", "queue": "cf-ready-webhooks-dev"}],
-    "consumers": [
-      {"queue": "cf-ready-webhooks-dev", "max_batch_size": 1, "max_retries": 5, "dead_letter_queue": "cf-ready-webhooks-dev-failures"},
-      {"queue": "cf-ready-webhooks-dev-failures", "max_batch_size": 1, "max_retries": 100, "dead_letter_queue": "cf-ready-webhooks-dev"}
-    ]
-  }
+  "triggers": [
+    {"type": "queue", "name": "cf-ready-webhooks-dev", "maxBatchSize": 1, "maxRetries": 5, "deadLetterQueue": "cf-ready-webhooks-dev-failures"},
+    {"type": "queue", "name": "cf-ready-webhooks-dev-failures", "maxBatchSize": 1, "maxRetries": 100, "deadLetterQueue": "cf-ready-webhooks-dev"}
+  ]
 }`;
+
+const verifyDevelopment = (shopifyConfig, workerConfig) =>
+  verifyDevelopmentConfig(shopifyConfig, JSON.parse(workerConfig));
 
 test("un comando provider fallito interrompe il preflight dopo i tentativi", () => {
   assert.throws(
@@ -86,9 +85,9 @@ test("i webhook usano URI assoluti sull'origine, non relativi all'App URL /app",
   assert.doesNotThrow(() => verifyWebhookUris(manifest, "https://cf-ready-dev.tmsf.workers.dev"));
   assert.throws(
     () =>
-      verifyDevelopmentConfig(
+      verifyDevelopment(
         shopify.replace("https://cf-ready-dev.tmsf.workers.dev/webhooks/", "/webhooks/"),
-        wrangler,
+        worker,
       ),
     /URI assoluti/,
   );
@@ -102,73 +101,83 @@ test("i webhook usano URI assoluti sull'origine, non relativi all'App URL /app",
   );
 });
 
+test("cloudflare.config.ts supera il preflight in mode dev e rifiuta la mode production", async () => {
+  const manifest = readFileSync(new URL("../shopify.app.dev.toml", import.meta.url), "utf8");
+  verifyDevelopmentConfig(manifest, await loadWorkerConfig("dev"));
+  await assert.rejects(loadWorkerConfig("production"), /--mode prod/);
+});
+
 test("il preflight lega il nome Worker alla chiave corretta", () => {
-  assert.doesNotThrow(() => verifyDevelopmentConfig(shopify, wrangler));
+  assert.doesNotThrow(() => verifyDevelopment(shopify, worker));
   assert.throws(
     () =>
-      verifyDevelopmentConfig(
+      verifyDevelopment(
         shopify,
-        wrangler.replace('"name": "cf-ready-dev"', '"name": "altro-worker"'),
+        worker.replace('"name": "cf-ready-dev"', '"name": "altro-worker"'),
       ),
     /target Development/,
   );
   assert.throws(
-    () => verifyDevelopmentConfig(shopify, wrangler.replace("write_validations", "read_orders")),
+    () => verifyDevelopment(shopify, worker.replace("write_validations", "read_orders")),
     /target Development/,
   );
   assert.throws(
-    () => verifyDevelopmentConfig(shopify.replace("write_validations", "read_orders"), wrangler),
+    () => verifyDevelopment(shopify.replace("write_validations", "read_orders"), worker),
     /target Development/,
   );
   assert.throws(
-    () => verifyDevelopmentConfig(shopify.replace(/^optional_scopes.*\n/m, ""), wrangler),
+    () => verifyDevelopment(shopify.replace(/^optional_scopes.*\n/m, ""), worker),
     /target Development/,
   );
   assert.throws(
-    () => verifyDevelopmentConfig(shopify.replace("unstable", "2026-07"), wrangler),
+    () => verifyDevelopment(shopify.replace("unstable", "2026-07"), worker),
     /target Development/,
   );
   assert.throws(
-    () => verifyDevelopmentConfig(shopify.replace("subscription = []", ""), wrangler),
+    () => verifyDevelopment(shopify.replace("subscription = []", ""), worker),
     /target Development/,
   );
   assert.throws(
     () =>
-      verifyDevelopmentConfig(
+      verifyDevelopment(
         shopify,
-        wrangler.replace("cf-ready-dev.myshopify.com", "altro-store.myshopify.com"),
+        worker.replace("cf-ready-dev.myshopify.com", "altro-store.myshopify.com"),
       ),
     /target Development/,
   );
-  const parsed = JSON.parse(wrangler);
+  const parsed = JSON.parse(worker);
   for (const allowed of [
     "",
     "cf-ready-dev.myshopify.com",
-    `${parsed.vars.ALLOWED_SHOP},wrong.myshopify.com`,
+    `${parsed.env.ALLOWED_SHOP.value},wrong.myshopify.com`,
   ]) {
     assert.throws(
       () =>
-        verifyDevelopmentConfig(
-          shopify,
-          JSON.stringify({ ...parsed, vars: { ...parsed.vars, ALLOWED_SHOP: allowed } }),
-        ),
+        verifyDevelopmentConfig(shopify, {
+          ...parsed,
+          env: { ...parsed.env, ALLOWED_SHOP: { type: "text", value: allowed } },
+        }),
       /target Development/,
     );
   }
-  parsed.d1_databases = [
-    { binding: "DB", database_name: "database-errato", database_id: "id-errato" },
-    { ...parsed.d1_databases[0], binding: "ALTRO" },
-  ];
   assert.throws(
-    () => verifyDevelopmentConfig(shopify, JSON.stringify(parsed)),
+    () =>
+      verifyDevelopmentConfig(shopify, {
+        ...parsed,
+        env: {
+          ...parsed.env,
+          DB: { type: "d1", name: "database-errato", id: "id-errato" },
+          ALTRO: parsed.env.DB,
+        },
+      }),
     /target Development/,
   );
   assert.throws(
-    () => verifyDevelopmentConfig(shopify, wrangler.replaceAll("cf-ready-webhooks-dev", "wrong")),
+    () => verifyDevelopment(shopify, worker.replaceAll("cf-ready-webhooks-dev", "wrong")),
     /target Development/,
   );
   assert.throws(
-    () => verifyDevelopmentConfig(shopify, wrangler.replace("CF_VERSION_METADATA", "WRONG")),
+    () => verifyDevelopment(shopify, worker.replace("CF_VERSION_METADATA", "WRONG")),
     /target Development/,
   );
 });
@@ -243,11 +252,9 @@ test("il retry dello stesso tree coordinato procede in solo readback", () => {
 });
 
 test("il readback D1 richiede zero migrazioni pendenti", () => {
-  assert.doesNotThrow(() => verifyNoPendingMigrations("✅ No migrations to apply!"));
-  assert.throws(
-    () => verifyNoPendingMigrations("Migrations to be applied:\n0008_claim.sql"),
-    /ancora pendenti/,
-  );
+  assert.doesNotThrow(() => verifyNoPendingMigrations("[]"));
+  assert.throws(() => verifyNoPendingMigrations('[{"name":"0008_claim.sql"}]'), /ancora pendenti/);
+  assert.throws(() => verifyNoPendingMigrations("No migrations to apply!"), /JSON valido/);
 });
 
 test("il preflight richiede due fasi per nuove migrazioni distruttive", () => {
@@ -470,6 +477,9 @@ test("il workflow ripristina entrambi i provider da un job indipendente", () => 
   );
   assert.match(rollbackStep, /needs: deploy/);
   assert.match(rollbackStep, /shopify app release[\s\S]*SHOPIFY_ROLLBACK_VERSION_TAG/);
-  assert.match(rollbackStep, /wrangler rollback "\$WORKER_ROLLBACK_VERSION_ID"/);
+  assert.match(
+    rollbackStep,
+    /cf workers deployments create --worker "\$WORKER_NAME" --bypass-deployment-checks[\s\S]*\$WORKER_ROLLBACK_VERSION_ID/,
+  );
   assert.match(rollbackStep, /verifyCoordinatedRollback\(deployment, versions\)/);
 });

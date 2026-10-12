@@ -1,6 +1,25 @@
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { reactRouter } from "@react-router/dev/vite";
-import { defineConfig, type UserConfig } from "vite";
+import { mkdirSync, renameSync, rmdirSync } from "node:fs";
+import path from "node:path";
+import { defineConfig, type Plugin, type UserConfig } from "vite";
+
+// La Vite plugin 2.0 beta scrive il client nella Build Output (`.cloudflare/output/v0`),
+// mentre React Router 8 legge il manifest client sempre da `build/client`. Spostarlo lì
+// sblocca la build SSR e lo toglie dagli asset pubblici. Da rimuovere quando React Router
+// seguirà `environments.client.build.outDir` (ADR 0004).
+function reactRouterClientManifest(): Plugin {
+  return {
+    name: "cf-ready:react-router-client-manifest",
+    applyToEnvironment: (environment) => environment.name === "client",
+    writeBundle({ dir }) {
+      if (!dir) throw new Error("Build client senza directory di output.");
+      mkdirSync("build/client/.vite", { recursive: true });
+      renameSync(path.join(dir, ".vite/manifest.json"), "build/client/.vite/manifest.json");
+      rmdirSync(path.join(dir, ".vite"));
+    },
+  };
+}
 
 // Related: https://github.com/remix-run/remix/issues/2835#issuecomment-1144102176
 // Replace the HOST env var with SHOPIFY_APP_URL so that it doesn't break the Vite server.
@@ -46,8 +65,14 @@ export default defineConfig({
       allow: ["app", "workers", "node_modules", "package.json"],
     },
   },
-  plugins: [cloudflare({ viteEnvironment: { name: "ssr" } }), reactRouter()],
+  plugins: [
+    cloudflare({ viteEnvironment: { name: "ssr" } }),
+    reactRouter(),
+    reactRouterClientManifest(),
+  ],
   build: {
     assetsInlineLimit: 0,
   },
+  // Source map del Worker caricate da `cf deploy`, come `upload_source_maps` in Wrangler.
+  environments: { ssr: { build: { sourcemap: true } } },
 }) satisfies UserConfig;

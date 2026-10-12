@@ -6,6 +6,19 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.2.5 — 12 ottobre 2026
+
+- passa alla CLI Cloudflare `cf`: `cloudflare.config.ts` sostituisce
+  `wrangler.json`, con le mode `dev` e `prod`, e una build senza mode viene
+  rifiutata;
+- build e deploy usano la Vite plugin 2.0 beta e la Build Output di `cf`;
+  preflight, readback, migrazioni D1, rollback, code e report D1 passano a `cf`;
+- Wrangler resta solo per log live, singoli secret, export e restore D1,
+  migrazioni locali, oggetti R2 del backup e deploy Pages (D-183, ADR 0004).
+
+Cloudflare tooling now runs on the `cf` CLI, with `cloudflare.config.ts` as the
+single Workers configuration; no change for merchants or the checkout.
+
 ## 2.2.4 — 12 ottobre 2026
 
 - riduce la CPU del ciclo owner: sincronizzazione finanziaria Partner, piani e

@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync } from "node:fs";
-import { chmod, cp, mkdir, rm, writeFile } from "node:fs/promises";
+import { chmod, cp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
+
+import { loadWorkerConfig } from "./preflight-common.mjs";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const sha = (character) => character.repeat(40);
@@ -111,50 +113,26 @@ async function writePreflightProject(t, environment) {
   await writeFile(path.join(directory, "package.json"), '{"version":"1.1.4"}\n');
   if (environment === "Development") {
     await cp(path.join(root, "shopify.app.dev.toml"), path.join(directory, "shopify.app.dev.toml"));
-    await cp(path.join(root, "wrangler.json"), path.join(directory, "wrangler.json"));
+    await cp(path.join(root, "cloudflare.config.ts"), path.join(directory, "cloudflare.config.ts"));
+    await symlink(path.join(root, "node_modules"), path.join(directory, "node_modules"));
   } else {
     await cp(path.join(root, "shopify.app.toml"), path.join(directory, "shopify.app.toml"));
-    await mkdir(path.join(directory, "build", "server"), { recursive: true });
+    const output = path.join(directory, ".cloudflare", "output", "v0");
+    await mkdir(path.join(output, "workers", "default"), { recursive: true });
     await writeFile(
-      path.join(directory, "build", "server", "wrangler.json"),
+      path.join(output, "config.json"),
+      JSON.stringify({ buildContext: { isPreview: false, mode: "prod" } }),
+    );
+    const worker = await loadWorkerConfig("prod", root);
+    const text = (value) => ({ type: "text", value });
+    await writeFile(
+      path.join(output, "workers", "default", "worker.config.json"),
       JSON.stringify({
-        name: "cf-ready-prod",
-        vars: {
-          SHOPIFY_API_KEY: "3640fb39bcf605de0537d6dfc0d01c8a",
-          SHOPIFY_APP_URL: "https://app.cfready.it",
-          SCOPES: "write_validations",
-          BILLING_TEST: "false",
-          OWNER_NOTIFICATIONS_ENABLED: "false",
-          OWNER_TELEGRAM_CONTROL_ENABLED: "false",
-          APP_ENVIRONMENT: "production",
-        },
-        version_metadata: { binding: "CF_VERSION_METADATA" },
-        workers_dev: false,
-        routes: [{ pattern: "app.cfready.it", custom_domain: true }],
-        triggers: { crons: ["*/5 * * * *"] },
-        d1_databases: [
-          {
-            binding: "DB",
-            database_name: "cf-ready-db-prod",
-            database_id: "6434597c-d683-48d9-a51f-b0d15de6a684",
-          },
-        ],
-        queues: {
-          producers: [{ binding: "WEBHOOK_QUEUE", queue: "cf-ready-webhooks-prod" }],
-          consumers: [
-            {
-              queue: "cf-ready-webhooks-prod",
-              max_batch_size: 1,
-              max_retries: 5,
-              dead_letter_queue: "cf-ready-webhooks-prod-failures",
-            },
-            {
-              queue: "cf-ready-webhooks-prod-failures",
-              max_batch_size: 1,
-              max_retries: 100,
-              dead_letter_queue: "cf-ready-webhooks-prod",
-            },
-          ],
+        ...worker,
+        env: {
+          ...worker.env,
+          OWNER_NOTIFICATIONS_ENABLED: text("false"),
+          OWNER_TELEGRAM_CONTROL_ENABLED: text("false"),
         },
       }),
     );
@@ -257,10 +235,10 @@ test("i preflight reali usano soltanto comandi provider sintetici", async (t) =>
     shopify: `printf '%s\\n' '[{"status":"active","versionId":"shopify-version","versionTag":"1.1.4","message":"Development ${commit}"}]'`,
     npm: `
 case "$*" in
-  *"deployments status"*) printf '%s\\n' '{"id":"deployment","annotations":{"workers/message":"Development ${commit}"},"versions":[{"version_id":"worker-version","percentage":100}]}' ;;
-  *"d1 info cf-ready-db-dev"*) printf '%s\\n' '{"uuid":"9490eaea-3a12-465d-bb48-e2622b31fc4d","name":"cf-ready-db-dev"}' ;;
-  *"d1 info cf-ready-db-prod"*) printf '%s\\n' '{"uuid":"6434597c-d683-48d9-a51f-b0d15de6a684","name":"cf-ready-db-prod"}' ;;
-  *"secret list"*) if [ "${"${CF_READY_FAIL_SECRET:-}"}" = "1" ]; then exit 2; fi; printf '%s\\n' '${JSON.stringify(secretNames.map((name) => ({ name })))}' ;;
+  *"workers deployments list --worker cf-ready-dev"*) printf '%s\\n' '{"deployments":[{"id":"deployment","annotations":{"workers/message":"Development ${commit}"},"versions":[{"version_id":"worker-version","percentage":100}]}]}' ;;
+  *"d1 get 9490eaea-3a12-465d-bb48-e2622b31fc4d"*) printf '%s\\n' '{"uuid":"9490eaea-3a12-465d-bb48-e2622b31fc4d","name":"cf-ready-db-dev"}' ;;
+  *"d1 get 6434597c-d683-48d9-a51f-b0d15de6a684"*) printf '%s\\n' '{"uuid":"6434597c-d683-48d9-a51f-b0d15de6a684","name":"cf-ready-db-prod"}' ;;
+  *"workers secrets list"*) if [ "${"${CF_READY_FAIL_SECRET:-}"}" = "1" ]; then exit 2; fi; printf '%s\\n' '${JSON.stringify(secretNames.map((name) => ({ name })))}' ;;
   *) exit 3 ;;
 esac`,
   });
@@ -277,9 +255,9 @@ esac`,
     shopify: `printf '%s\\n' '[{"status":"active","versionId":"shopify-version","versionTag":"1.1.4","message":"Development ${commit}"},{"versionId":"burned","versionTag":"${burnedTag}"}]'`,
     npm: `
 case "$*" in
-  *"deployments status"*) printf '%s\\n' '{"id":"deployment","annotations":{"workers/message":"Development ${commit}"},"versions":[{"version_id":"worker-version","percentage":100}]}' ;;
-  *"d1 info cf-ready-db-dev"*) printf '%s\\n' '{"uuid":"9490eaea-3a12-465d-bb48-e2622b31fc4d","name":"cf-ready-db-dev"}' ;;
-  *"secret list"*) printf '%s\\n' '${JSON.stringify(secretNames.map((name) => ({ name })))}' ;;
+  *"workers deployments list --worker cf-ready-dev"*) printf '%s\\n' '{"deployments":[{"id":"deployment","annotations":{"workers/message":"Development ${commit}"},"versions":[{"version_id":"worker-version","percentage":100}]}]}' ;;
+  *"d1 get 9490eaea-3a12-465d-bb48-e2622b31fc4d"*) printf '%s\\n' '{"uuid":"9490eaea-3a12-465d-bb48-e2622b31fc4d","name":"cf-ready-db-dev"}' ;;
+  *"workers secrets list"*) printf '%s\\n' '${JSON.stringify(secretNames.map((name) => ({ name })))}' ;;
   *) exit 3 ;;
 esac`,
   });

@@ -95,7 +95,8 @@ stati pubblicati.
 Ogni esecuzione:
 
 1. verifica account, UUID e jurisdiction D1 e nome/jurisdiction R2;
-2. esporta il database remoto con `wrangler d1 export --remote`;
+2. esporta il database remoto con `wrangler d1 export --remote`, unico residuo
+   Wrangler del ciclo insieme al restore locale e agli oggetti R2;
 3. cifra prima dell'upload;
 4. decifra e importa la copia in un D1 locale effimero, quindi verifica
    separatamente l'export con `PRAGMA integrity_check` del runtime SQLite
@@ -129,7 +130,7 @@ metà import lascerebbe uno stato misto difficile da annullare.
 
 ## Workers Logs
 
-`wrangler.json` mantiene Workers Logs attivi al 100% e gli invocation log
+`cloudflare.config.ts` mantiene Workers Logs attivi al 100% e gli invocation log
 disattivati. Il 100% evita di perdere errori e webhook; è l'app a inviare
 sempre errori e webhook e a campionare al 10% gli eventi ordinari. Ogni oggetto
 log contiene `event`, `class`, `occurredAt`, `correlation_id`, `webhook` e la
@@ -164,7 +165,7 @@ riverificate trimestralmente sulle fonti Cloudflare correnti.
 ### Dashboard tecnici Cloudflare
 
 Usare `CF Ready · Production` e `CF Ready · Development` nell'account dichiarato
-in `wrangler.json`. Cercare prima dashboard e query esistenti, senza modificare
+in `cloudflare.config.ts`. Cercare prima dashboard e query esistenti, senza modificare
 quelli di altri progetti. Configurare manualmente i grafici con una finestra
 iniziale di 24 ore e granularità di cinque minuti, quando supportata. Ogni
 grafico deve fissare il Worker dell'ambiente, anche se esiste un filtro globale.
@@ -527,13 +528,15 @@ Traces resta `enabled: false`. Si usa solo per riprodurre un difetto con dati
 sintetici sul dev store:
 
 1. eseguire preflight e annotare commit/versione Worker attivi;
-2. creare fuori dal repository una copia di `wrangler.json` con
-   `observability.traces.enabled: true` e `head_sampling_rate: 1`;
-3. distribuire quella configurazione su `cf-ready-dev`, con messaggio che
-   include il commit Development attivo;
+2. in un worktree temporaneo, impostare nella mode `dev` di
+   `cloudflare.config.ts` `observability.traces.enabled: true` e
+   `headSamplingRate: 1`, senza committare;
+3. distribuire quella configurazione su `cf-ready-dev` con
+   `npm run build && npx cf deploy --prebuilt --mode dev --message "..."`, con
+   messaggio che include il commit Development attivo;
 4. verificare via API `GET /accounts/<account>/workers/scripts/cf-ready-dev/script-settings`
    che Traces sia attivo, quindi generare soltanto traffico sintetico;
-5. ridistribuire immediatamente `wrangler.json` senza modifiche;
+5. ridistribuire immediatamente dal worktree pulito dello stesso commit;
 6. ripetere il readback API e chiudere solo con `traces.enabled == false` e
    Worker/Shopify ancora riferiti allo stesso commit.
 
@@ -625,30 +628,52 @@ questi: nessun evento lo avvia da sé e nessun branch diverso da `main` può
 raggiungerlo. L'environment non chiede un'approvazione interattiva — sarebbe un
 terzo passaggio sullo stesso intento, dato che il lancio è già manuale.
 
-**L'ambiente si sceglie a build time, non a deploy time.** Il Vite plugin di
-Cloudflare appiattisce la configurazione nel bundle, quindi
-`CLOUDFLARE_ENV=production npm run build` è ciò che decide dove si va a finire;
-`wrangler deploy --env production` dopo una build ordinaria pubblicherebbe le
-variabili Development sotto il nome sbagliato senza dirlo. Il workflow riusa i
-gate verdi dell'HEAD, costruisce una sola volta con `CLOUDFLARE_ENV=production`
-e il preflight legge `build/server/wrangler.json` prima di lasciar proseguire.
+**L'ambiente si sceglie a build time, non a deploy time.** La Vite plugin
+valuta `cloudflare.config.ts` nella mode della build e la scrive nella Build
+Output (`.cloudflare/output/v0`), quindi `npm run build:prod` (`--mode prod`) è
+ciò che decide dove si va a finire. La mode `production`, predefinita di
+`vite build`, viene rifiutata: una build senza `--mode` si ferma invece di
+portare le variabili Development. Il workflow riusa i gate verdi dell'HEAD,
+costruisce una sola volta, il preflight verifica `worker.config.json` e la mode
+`prod` registrata, poi `cf deploy --prebuilt --mode prod` distribuisce quella
+Build Output; una mode diversa ferma `cf` prima dell'upload.
 
-I comandi che leggono la configurazione sorgente, migrazioni e secret, usano
-`--config wrangler.json --env production`; il deploy del Worker non passa
-`--env`, perché il bundle è già quello giusto.
+Migrazioni D1 e secret si indirizzano per ID di database e nome del Worker, non
+più tramite un ambiente di configurazione.
 
 Il primo deploy Production non ha un Worker da ripristinare: il workflow lo
 riconosce, lo dichiara nella ricevuta e prosegue senza rollback armato del
 Worker. La versione Shopify resta ripristinabile fin dal primo giro.
 
 Il Worker `cf-ready-prod` viene creato materialmente dal primo
-`wrangler secret put --env production`: finché non esiste, il preflight si
-ferma e lo dice.
+`npx wrangler secret put SHOPIFY_API_SECRET --name cf-ready-prod`: finché non
+esiste, il preflight si ferma e lo dice.
+
+## CLI Cloudflare
+
+`cf` è la CLI predefinita (D-183, [ADR 0004](../adr/0004-cf-cli.md)):
+`cloudflare.config.ts` è l'unica configurazione Workers, con le mode `dev` e
+`prod`. Wrangler resta una dipendenza pinnata solo per questi comandi, che `cf`
+1.0.0-beta.14 non copre o esegue in modo errato:
+
+| Operazione | Comando | Motivo |
+| --- | --- | --- |
+| Log live | `npx wrangler tail <worker>` | `cf` non trasmette ancora log live |
+| Singolo secret | `npx wrangler secret put <NOME> --name <worker>` | `cf` non scrive ancora un singolo secret |
+| Export D1 del backup | `wrangler d1 export` con configurazione generata | `cf` non esporta D1 |
+| Restore di prova e migrazioni locali | `wrangler d1 execute`/`migrations apply --local` con configurazione generata (`npm run db:migrate:local`) | `cf d1 raw --local` e `cf d1 migrations apply --local` non terminano |
+| Oggetti R2 del backup | `wrangler r2 object get/put` | `cf r2 objects` codifica `/` nella chiave e ignora la jurisdiction `eu` |
+| Deploy del sito | `wrangler pages deploy` | `cf pages deploy` non accetta progetto, branch e commit |
+
+Le configurazioni Wrangler generate nominano soltanto il database interessato e
+non entrano nel repository. A ogni aggiornamento di `cf` si riprova ciascuna
+riga e si toglie quella che `cf` copre.
 
 Fonti operative correnti: [Workers limits](https://developers.cloudflare.com/workers/platform/limits/),
 [Workers metrics](https://developers.cloudflare.com/workers/observability/metrics-and-analytics/),
 [D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/),
 [R2 pricing](https://developers.cloudflare.com/r2/pricing/),
+[cf CLI](https://developers.cloudflare.com/cf/),
 [D1 export](https://developers.cloudflare.com/d1/wrangler-commands/#d1-export),
 [R2 CLI](https://developers.cloudflare.com/r2/get-started/cli/),
 [Workers Logs](https://developers.cloudflare.com/workers/observability/logs/workers-logs/),

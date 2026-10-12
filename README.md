@@ -25,6 +25,11 @@ mise exec -- npm run db:migrate:local
 mise exec -- npm run dev
 ```
 
+Per Cloudflare si usa la CLI `cf` del progetto: `npx cf auth login` una volta,
+poi i comandi in [operations.md](docs/runbooks/operations.md#cli-cloudflare).
+La configurazione Workers sta in `cloudflare.config.ts`, con le mode `dev` e
+`prod`.
+
 I test usano Vitest 5. Durante `npm ci`, `postinstall` applica al runner Stryker
 10.0.0 il backport della [PR #6247](https://github.com/stryker-mutator/stryker-js/pull/6247),
 necessario per i nomi dei test annidati. Il backport è in

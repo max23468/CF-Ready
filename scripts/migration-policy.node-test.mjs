@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -7,6 +6,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { applyLocalMigrations } from "./d1-local-migrate.mjs";
 import { verifyMigrationSafety } from "./preflight-common.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -44,32 +44,14 @@ test("ogni migrazione del repository è distribuibile in una sola fase", () => {
   assert.doesNotThrow(() => verifyMigrationSafety(migrations, policy));
 });
 
-test("Wrangler applica le migrazioni in sequenza e il secondo passaggio è idempotente", () => {
+test("le migrazioni locali si applicano in sequenza e il secondo passaggio è idempotente", async () => {
   const persistenceDirectory = mkdtempSync(path.join(tmpdir(), "cf-ready-d1-migrations-"));
-  const wrangler = path.join(root, "node_modules/wrangler/bin/wrangler.js");
-  const run = () =>
-    execFileSync(
-      process.execPath,
-      [
-        wrangler,
-        "d1",
-        "migrations",
-        "apply",
-        "DB",
-        "--local",
-        `--persist-to=${persistenceDirectory}`,
-      ],
-      {
-        cwd: root,
-        encoding: "utf8",
-        env: { ...process.env, CI: "true", WRANGLER_SEND_METRICS: "false" },
-      },
-    );
+  const run = () => applyLocalMigrations(persistenceDirectory);
 
   try {
-    const firstRun = run();
+    const firstRun = await run();
     for (const { name } of policy.migrations) assert.match(firstRun, new RegExp(name));
-    assert.match(run(), /No migrations to apply/);
+    assert.match(await run(), /No migrations to apply/);
 
     const databasePath = readdirSync(persistenceDirectory, { recursive: true, encoding: "utf8" })
       .filter(
