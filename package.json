@@ -80,20 +80,20 @@
     "node": ">=26.10.0 <27"
   },
   "dependencies": {
-    "@shopify/shopify-api": "15.0.0",
-    "@shopify/shopify-app-react-router": "3.0.1",
-    "@shopify/shopify-app-session-storage": "7.0.0",
+    "@shopify/shopify-api": "15.0.1",
+    "@shopify/shopify-app-react-router": "3.0.2",
+    "@shopify/shopify-app-session-storage": "7.0.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-router": "8.4.0"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.62.5",
+    "@cloudflare/vite-plugin": "1.63.1",
     "@cloudflare/vitest-plugin": "1.4.0",
-    "@graphql-codegen/cli": "7.4.3",
-    "@playwright/test": "1.63.0",
+    "@graphql-codegen/cli": "7.4.6",
+    "@playwright/test": "1.64.0",
     "@react-router/dev": "8.4.0",
-    "@shopify/cli": "4.8.4",
+    "@shopify/cli": "4.9.2",
     "@shopify/polaris-types": "2.0.0-rc.2",
     "@stryker-mutator/core": "10.0.0",
     "@stryker-mutator/vitest-runner": "10.0.0",
@@ -108,14 +108,14 @@
     "istanbul-lib-coverage": "3.2.2",
     "istanbul-lib-report": "3.0.1",
     "istanbul-reports": "3.2.0",
-    "mdast-util-from-markdown": "2.0.3",
-    "oxfmt": "0.71.0",
-    "oxlint": "1.86.0",
-    "react-doctor": "0.9.14",
+    "mdast-util-from-markdown": "2.1.0",
+    "oxfmt": "0.72.0",
+    "oxlint": "1.87.0",
+    "react-doctor": "0.9.17",
     "typescript": "7.0.2",
-    "vite": "8.3.2",
+    "vite": "8.3.4",
     "vitest": "5.0.3",
-    "wrangler": "4.147.0"
+    "wrangler": "4.149.0"
   },
   "workspaces": [
     "extensions/*"
