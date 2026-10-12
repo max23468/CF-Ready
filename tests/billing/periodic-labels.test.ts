@@ -1,5 +1,5 @@
 import { beforeEach, expect, test, vi } from "vitest";
-import { reconcileBillingAccount } from "../../app/billing/periodic-reconciliation.server";
+import { reconcileBillingAccount } from "../../app/billing/reconcile-account.server";
 
 const mocks = vi.hoisted(() => ({
   reconcile: vi.fn(),

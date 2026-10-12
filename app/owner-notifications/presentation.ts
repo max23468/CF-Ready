@@ -286,16 +286,25 @@ export function formatCalendarDate(value: string) {
   return OWNER_NOTIFICATION_DAY_FORMATTER.format(new Date(`${value}T00:00:00.000Z`));
 }
 
+// Il replay Partner formatta gli stessi importi a ogni ciclo: un formatter per valuta basta.
+const CURRENCY_FORMATTERS = new Map<string, Intl.NumberFormat>();
+
+function currencyFormatter(currency: string) {
+  let formatter = CURRENCY_FORMATTERS.get(currency);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat("it-IT", { style: "currency", currency });
+    CURRENCY_FORMATTERS.set(currency, formatter);
+  }
+  return formatter;
+}
+
 export function formatMoney(
   money: NonNullable<PartnerCharge["amount"]>,
   kind: "monthly" | "annual" | "one_time" | null,
 ) {
   const amount = Number(money.amount);
   const currency = money.currencyCode!;
-  const formatted = new Intl.NumberFormat("it-IT", {
-    style: "currency",
-    currency,
-  }).format(amount);
+  const formatted = currencyFormatter(currency).format(amount);
   const cadence =
     kind === "monthly"
       ? " / mese"
