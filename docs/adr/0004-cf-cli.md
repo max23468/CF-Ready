@@ -22,7 +22,11 @@ I secret runtime sono dichiarati in `cloudflare.config.ts`, 3 in Development e
 10 in Production. La Vite plugin 2.0 passa al Worker locale i valori di
 `.dev.vars`, `.env` o del processo solo per i secret dichiarati, e `cf deploy`
 li eredita dal Worker remoto fermandosi se ne manca uno. Un nuovo secret va
-dichiarato qui e impostato sul Worker prima del deploy.
+dichiarato qui e impostato sul Worker prima del deploy. Le variabili `text` invece
+restano quelle del file: per questo la mode `development` del dev server Vite,
+avviato da `shopify app dev`, prende URL del tunnel, chiave e scope dal
+processo, mentre le mode `dev` e `prod` di build e deploy non leggono
+l'ambiente.
 
 React Router 8 legge il manifest client sempre da `build/client/.vite`, mentre
 la Vite plugin 2.0 forza il client nella Build Output. Un plugin Vite locale
@@ -30,7 +34,7 @@ sposta il manifest dove React Router lo cerca e lo toglie dagli asset pubblici;
 va rimosso quando React Router seguirà `environments.client.build.outDir`.
 
 Wrangler resta una dipendenza pinnata per i comandi che `cf` 1.0.0-beta.14 non
-copre o esegue in modo errato: log live, singolo secret, export D1, restore e
+copre o esegue in modo errato: log live, export D1, restore e
 migrazioni D1 locali, oggetti R2 del bucket backup e deploy Pages. Dove Wrangler
 deve risolvere un binding, riceve una configurazione generata che nomina solo
 il database interessato, mai una seconda configurazione versionata. L'elenco e
