@@ -8,21 +8,32 @@ function trialLedgerKeyBytes() {
   return bytes;
 }
 
+// Le chiavi derivano da un secret fisso per isolate: il ciclo owner calcola un hash per ogni
+// evento, e importarle o derivarle ogni volta costava CPU senza cambiare il risultato.
+let ledgerKey: Promise<CryptoKey> | undefined;
+let reportKey: Promise<CryptoKey> | undefined;
+
 export async function trialLedgerHash(value: string) {
-  const key = await crypto.subtle.importKey(
+  ledgerKey ??= crypto.subtle.importKey(
     "raw",
     trialLedgerKeyBytes(),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
   );
+  const key = await ledgerKey;
   const digest = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 // Chiave HMAC separata per i report prestazioni, derivata con HKDF dallo stesso secret: una firma
 // esposta al browser non vale mai come hash del ledger, e non serve un secret in più.
-export async function performanceReportKey() {
+export function performanceReportKey() {
+  reportKey ??= deriveReportKey();
+  return reportKey;
+}
+
+async function deriveReportKey() {
   const material = await crypto.subtle.importKey("raw", trialLedgerKeyBytes(), "HKDF", false, [
     "deriveKey",
   ]);

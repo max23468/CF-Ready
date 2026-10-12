@@ -6,6 +6,20 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.2.4 — 12 ottobre 2026
+
+- riduce la CPU del ciclo owner: sincronizzazione finanziaria Partner, piani e
+  progresso BFS e controllo prestazioni BFS girano una volta all'ora, in tick
+  diversi;
+- il replay Partner salta nome e snapshot dello store per gli eventi già
+  notificati, e chiavi HMAC e formatter di valuta si riusano;
+- Shopify e la riconciliazione billing si caricano solo quando c'è uno store da
+  aggiornare.
+
+The owner cycle now uses less CPU: Partner financial sync, BFS plan refresh and
+BFS performance checks run hourly on separate ticks, replayed Partner events
+skip store lookups, and Shopify modules load only when there is work to do.
+
 ## 2.2.3 — 11 ottobre 2026
 
 - riduce i Cron Trigger da due a uno per ambiente: il tick delle :00 esegue la
