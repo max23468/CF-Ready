@@ -39,10 +39,32 @@
   }
 }
 
+/* Nell'Admin attuale (tema Polaris admin-next) una `s-page` base con aside occupa
+   760px + 3rem + 280px, senza aside soltanto 966px. Regole non ha aside, quindi il
+   contenitore si allarga in modo simmetrico fino alla stessa larghezza complessiva.
+   `100cqi` è la larghezza di `s-page`; i margini interni della pagina sono 2rem per
+   lato con puntatore fine, 1rem altrimenti. Sotto i 966px disponibili non cambia nulla. */
 .rules-layout-container {
+  --rules-page-gutters: 4rem;
+  --rules-page-without-aside: 966px;
+  --rules-page-with-aside: calc(760px + 3rem + 280px);
   container-type: inline-size;
   display: grid;
   gap: 16px;
+  margin-inline: calc(
+    -1 *
+      clamp(
+        0px,
+        (100cqi - var(--rules-page-gutters) - var(--rules-page-without-aside)) / 2,
+        (var(--rules-page-with-aside) - var(--rules-page-without-aside)) / 2
+      )
+  );
+}
+
+@media not (pointer: fine) {
+  .rules-layout-container {
+    --rules-page-gutters: 2rem;
+  }
 }
 
 .rules-layout {
