@@ -17,6 +17,7 @@ import {
   run,
   verifyMigrationSafety,
   verifyNoPendingMigrations,
+  verifyQueueJurisdiction,
   verifyWebhookUris,
   verifyWorkerSecrets,
 } from "./preflight-common.mjs";
@@ -44,12 +45,12 @@ const worker = `{
     "APP_ENVIRONMENT": {"type": "text", "value": "development"},
     "OWNER_TELEGRAM_CONTROL_ENABLED": {"type": "text", "value": "false"},
     "DB": {"type": "d1", "name": "cf-ready-db-dev", "id": "9490eaea-3a12-465d-bb48-e2622b31fc4d"},
-    "WEBHOOK_QUEUE": {"type": "queue", "name": "cf-ready-webhooks-dev"},
+    "WEBHOOK_QUEUE": {"type": "queue", "name": "cf-ready-webhooks-dev-eu"},
     "CF_VERSION_METADATA": {"type": "version-metadata"}
   },
   "triggers": [
-    {"type": "queue", "name": "cf-ready-webhooks-dev", "maxBatchSize": 1, "maxRetries": 5, "deadLetterQueue": "cf-ready-webhooks-dev-failures"},
-    {"type": "queue", "name": "cf-ready-webhooks-dev-failures", "maxBatchSize": 1, "maxRetries": 100, "deadLetterQueue": "cf-ready-webhooks-dev"}
+    {"type": "queue", "name": "cf-ready-webhooks-dev-eu", "maxBatchSize": 1, "maxRetries": 5, "deadLetterQueue": "cf-ready-webhooks-dev-eu-failures"},
+    {"type": "queue", "name": "cf-ready-webhooks-dev-eu-failures", "maxBatchSize": 1, "maxRetries": 100, "deadLetterQueue": "cf-ready-webhooks-dev-eu"}
   ]
 }`;
 
@@ -105,6 +106,29 @@ test("cloudflare.config.ts supera il preflight in mode dev e rifiuta la mode pro
   const manifest = readFileSync(new URL("../shopify.app.dev.toml", import.meta.url), "utf8");
   verifyDevelopmentConfig(manifest, await loadWorkerConfig("dev"));
   await assert.rejects(loadWorkerConfig("production"), /--mode prod/);
+});
+
+test("il dev server usa URL, chiave e scope di Shopify CLI, build e deploy no", async () => {
+  const names = ["SHOPIFY_APP_URL", "SHOPIFY_API_KEY", "SCOPES"];
+  const previous = Object.fromEntries(names.map((name) => [name, process.env[name]]));
+  Object.assign(process.env, {
+    SHOPIFY_APP_URL: "https://tunnel.example.test",
+    SHOPIFY_API_KEY: "chiave-cli",
+    SCOPES: "write_validations",
+  });
+  try {
+    const local = await loadWorkerConfig("development");
+    assert.equal(local.env.SHOPIFY_APP_URL.value, "https://tunnel.example.test");
+    assert.equal(local.env.SHOPIFY_API_KEY.value, "chiave-cli");
+    const deployed = await loadWorkerConfig("dev");
+    assert.equal(deployed.env.SHOPIFY_APP_URL.value, "https://cf-ready-dev.tmsf.workers.dev");
+    assert.equal(deployed.env.SHOPIFY_API_KEY.value, "adff48d4fe4ceb0dadb4734520701dd7");
+  } finally {
+    for (const name of names) {
+      if (previous[name] === undefined) delete process.env[name];
+      else process.env[name] = previous[name];
+    }
+  }
 });
 
 test("il preflight lega il nome Worker alla chiave corretta", () => {
@@ -255,6 +279,23 @@ test("il readback D1 richiede zero migrazioni pendenti", () => {
   assert.doesNotThrow(() => verifyNoPendingMigrations("[]"));
   assert.throws(() => verifyNoPendingMigrations('[{"name":"0008_claim.sql"}]'), /ancora pendenti/);
   assert.throws(() => verifyNoPendingMigrations("No migrations to apply!"), /JSON valido/);
+});
+
+test("le code webhook devono esistere nella jurisdiction eu", () => {
+  const names = ["webhooks-eu", "webhooks-eu-failures"];
+  const eu = names.map((queue_name) => ({ queue_name, jurisdiction: "eu" }));
+  assert.doesNotThrow(() => verifyQueueJurisdiction(eu, names));
+  assert.throws(
+    () => verifyQueueJurisdiction([eu[0], { ...eu[1], jurisdiction: null }], names),
+    /webhooks-eu-failures non è nella jurisdiction eu/,
+  );
+  assert.throws(() => verifyQueueJurisdiction([eu[0]], names), /non esiste/);
+  assert.doesNotThrow(() => verifyQueueJurisdiction([eu[0]], names, { allowMissing: true }));
+  assert.throws(
+    () =>
+      verifyQueueJurisdiction([{ ...eu[0], jurisdiction: "us" }], names, { allowMissing: true }),
+    /non è nella jurisdiction eu/,
+  );
 });
 
 test("il preflight richiede due fasi per nuove migrazioni distruttive", () => {

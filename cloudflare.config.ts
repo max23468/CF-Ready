@@ -18,6 +18,9 @@ const runtimeSecrets = secrets(
 
 const accountId = "98195e505f42abaaeb4827f71a924b1a";
 
+// Le code webhook stanno nella jurisdiction `eu` (D-184), che Cloudflare fissa solo alla
+// creazione: per questo hanno il suffisso `-eu`. Le code precedenti, senza jurisdiction,
+// conservano i consumer per un rilascio, finché si svuotano; poi si tolgono con le code.
 function webhookQueueTriggers(queue: string) {
   return [
     triggers.queue({
@@ -60,6 +63,7 @@ const production = {
     domains: ["app.cfready.it"],
     triggers: [
       triggers.scheduled({ schedule: "*/5 * * * *" }),
+      ...webhookQueueTriggers("cf-ready-webhooks-prod-eu"),
       ...webhookQueueTriggers("cf-ready-webhooks-prod"),
     ],
     env: {
@@ -73,7 +77,7 @@ const production = {
       APP_ENVIRONMENT: bindings.text("production"),
       OWNER_TELEGRAM_CONTROL_ENABLED: bindings.text("true"),
       DB: bindings.d1({ name: "cf-ready-db-prod", id: "6434597c-d683-48d9-a51f-b0d15de6a684" }),
-      WEBHOOK_QUEUE: bindings.queue({ name: "cf-ready-webhooks-prod" }),
+      WEBHOOK_QUEUE: bindings.queue({ name: "cf-ready-webhooks-prod-eu" }),
       CF_VERSION_METADATA: bindings.versionMetadata(),
       ...runtimeSecrets,
       ...secrets(
@@ -97,6 +101,7 @@ const development = {
     workersDev: true,
     triggers: [
       triggers.scheduled({ schedule: "*/5 * * * *" }),
+      ...webhookQueueTriggers("cf-ready-webhooks-dev-eu"),
       ...webhookQueueTriggers("cf-ready-webhooks-dev"),
     ],
     env: {
@@ -108,12 +113,35 @@ const development = {
       APP_ENVIRONMENT: bindings.text("development"),
       OWNER_TELEGRAM_CONTROL_ENABLED: bindings.text("false"),
       DB: bindings.d1({ name: "cf-ready-db-dev", id: "9490eaea-3a12-465d-bb48-e2622b31fc4d" }),
-      WEBHOOK_QUEUE: bindings.queue({ name: "cf-ready-webhooks-dev" }),
+      WEBHOOK_QUEUE: bindings.queue({ name: "cf-ready-webhooks-dev-eu" }),
       CF_VERSION_METADATA: bindings.versionMetadata(),
       ...runtimeSecrets,
     },
   },
 };
+
+// Il dev server Vite (`development`), avviato da `shopify app dev`, riceve URL del tunnel,
+// chiave e scope da Shopify CLI. La Vite plugin applica i valori locali solo ai secret, quindi
+// qui sovrascrivono le variabili; build e deploy (`dev`, `prod`) restano fissi.
+function localDevelopment() {
+  const { env } = development.worker;
+  const fromCli = (name: "SHOPIFY_APP_URL" | "SHOPIFY_API_KEY" | "SCOPES") => {
+    const value = process.env[name];
+    return value ? bindings.text(value) : env[name];
+  };
+  return {
+    ...development,
+    worker: {
+      ...development.worker,
+      env: {
+        ...env,
+        SHOPIFY_APP_URL: fromCli("SHOPIFY_APP_URL"),
+        SHOPIFY_API_KEY: fromCli("SHOPIFY_API_KEY"),
+        SCOPES: fromCli("SCOPES"),
+      },
+    },
+  };
+}
 
 export default defineConfig((ctx) => {
   switch (ctx.mode) {
@@ -121,8 +149,10 @@ export default defineConfig((ctx) => {
       return production;
     case "production":
       throw new Error("Mode `production` non valida: usa `--mode prod` o `--mode dev`.");
+    case "development":
+      return localDevelopment();
     default:
-      // `dev`, il dev server Vite (`development`), Vitest (`test`) e i comandi API senza mode.
+      // `dev`, Vitest (`test`) e i comandi API senza mode.
       return development;
   }
 });
