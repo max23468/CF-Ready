@@ -2455,9 +2455,13 @@ Conclusioni operative:
     ottobre, affianca al 50% regole e simulatore, così una scelta e il suo
     effetto restano in vista insieme, e mette «Etichette del checkout» a tutta
     larghezza sotto. L'esito del simulatore sta in alto a destra della sua
-    intestazione, senza una riga propria; senza colonna laterale il suo bordo sinistro differisce
-    dalle altre pagine, per scelta. L'onboarding resta `inlineSize="small"`
-    come flusso guidato. Nessun CSS sposta o allarga la pagina. Il titolo di
+    intestazione, senza una riga propria. Dal 13 ottobre, su richiesta
+    dell'owner, Regole ha la stessa larghezza complessiva delle pagine con
+    colonna laterale: `s-page` senza aside è larga 966 px contro i
+    1088 px della griglia con aside, quindi il contenitore di Regole, banner
+    compresi, si allarga in modo simmetrico fino a quella misura
+    (`RulesLayout.css`). L'onboarding resta `inlineSize="small"` come flusso
+    guidato. Nessun altro CSS sposta o allarga la pagina. Il titolo di
     pagina sta nella barra dell'Admin, quindi la colonna laterale non si
     allinea a un titolo nel contenuto: è un comportamento dell'host e non si
     corregge;
