@@ -806,6 +806,24 @@ test("paginazione Partner e checkpoint restano idempotenti", async () => {
   expect(JSON.parse(String(requests[1].init?.body)).variables.after).toBe("cursor-09:58");
 });
 
+test("il replay di eventi già notificati non rilegge nome store e snapshot", async () => {
+  const shop = await insertShop("replay.myshopify.com");
+  const events = [
+    relationship("RELATIONSHIP_INSTALLED", shop, "09:50"),
+    subscription("SUBSCRIPTION_CHARGE_ACTIVATED", shop, "09:55"),
+  ];
+  const fetcher = vi.fn(async () => partnerResponse(events));
+  await pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher: fetcher as typeof fetch });
+  const prepare = vi.spyOn(env.DB, "prepare");
+
+  expect(
+    await pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher: fetcher as typeof fetch }),
+  ).toMatchObject({ inserted: 0 });
+  const statements = prepare.mock.calls.map(([sql]) => sql);
+  prepare.mockRestore();
+  expect(statements.filter((sql) => sql.includes("display_name"))).toEqual([]);
+});
+
 test("shop/redact blocca eventi Partner precedenti ma consente una reinstallazione successiva", async () => {
   const shop = "redatto.myshopify.com";
   await env.DB.prepare(

@@ -228,6 +228,14 @@ precedente alla `2.2.3` non ripristina il vecchio trigger orario e lascia la
 retention ferma: ridistribuisci la configurazione con `0 * * * *` e
 `*/5 * * * *`. Un errore di retention registra `retention_failed`.
 
+Dalla `2.2.4` (D-182) il ciclo owner esegue a ogni tick eventi Partner, notifiche
+locali, incidenti, consegna, rinnovo token e riconciliazione billing; la
+sincronizzazione finanziaria Partner gira alle :20, piani e progresso BFS alle
+:35, il controllo prestazioni BFS alle :50. Per attribuire la CPU a una fase
+confronta in `workersInvocationsScheduled` i tick di quel minuto con quelli
+ordinari: il Worker non misura la propria CPU. Una lettura finanziaria urgente
+si forza dal Control Center invece di attendere le :20.
+
 ## Rinnovo dei token offline
 
 Lo stesso cron ogni cinque minuti rinnova per primo i token offline in scadenza

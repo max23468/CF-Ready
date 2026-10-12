@@ -1,5 +1,4 @@
 import type { Session } from "@shopify/shopify-api";
-import { refreshOfflineSession, sessionStorage } from "./shopify.server";
 
 // Il token offline scade dopo un'ora: alla prima apertura successiva `authenticate.admin` rifaceva
 // il token exchange prima dell'HTML, circa 500 ms di LCP a freddo misurati da Shopify per BFS. Il
@@ -61,9 +60,16 @@ export async function refreshExpiringOfflineSessions(db: D1Database, options: Op
   const now = options.now ?? new Date();
   const nowIso = now.toISOString();
   const status = await readOfflineTokenRefreshStatus(db, now);
-  const loadSession = options.loadSession ?? ((id) => sessionStorage.loadSession(id));
-  const storeSession = options.storeSession ?? ((session) => sessionStorage.storeSession(session));
-  const refresh = options.refresh ?? refreshOfflineSession;
+  // Shopify si carica soltanto se c'è un token da rinnovare: i cicli vuoti non ne pagano la CPU.
+  const shopify = () => import("./shopify.server");
+  const loadSession =
+    options.loadSession ?? (async (id) => (await shopify()).sessionStorage.loadSession(id));
+  const storeSession =
+    options.storeSession ??
+    (async (session) => (await shopify()).sessionStorage.storeSession(session));
+  const refresh =
+    options.refresh ??
+    (async (shop, refreshToken) => (await shopify()).refreshOfflineSession(shop, refreshToken));
 
   const { results } = await db
     .prepare(
