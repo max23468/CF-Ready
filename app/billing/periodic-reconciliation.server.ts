@@ -1,9 +1,5 @@
-import { readCheckoutLabelState } from "../checkout-labels/repository.server";
-import { loadCheckoutLabels } from "../checkout-labels/service.server";
-import { readConfig } from "../config";
-import { unauthenticated } from "../shopify.server";
-import { reconcile } from "../validation.server";
 import type { Admin } from "../validation/types";
+import type { reconcileBillingAccount } from "./reconcile-account.server";
 
 export const BILLING_RECONCILIATION_HOURS = 24;
 const BILLING_RETRY_HOURS = 1;
@@ -54,14 +50,15 @@ export async function reconcileNextStaleBilling(db: D1Database, options: Options
 
   await markAttempt(db, candidate.shop_domain, nowIso, null);
   try {
+    // Shopify e la riconciliazione si caricano solo con un candidato: i cicli senza store da
+    // rileggere non pagano in CPU la valutazione di quei moduli.
     const admin = options.adminForShop
       ? await options.adminForShop(candidate.shop_domain)
-      : (await unauthenticated.admin(candidate.shop_domain)).admin;
-    const state = await (options.reconciler ?? reconcileBillingAccount)(
-      admin,
-      db,
-      candidate.shop_domain,
-    );
+      : (await (await import("../shopify.server")).unauthenticated.admin(candidate.shop_domain))
+          .admin;
+    const reconciler =
+      options.reconciler ?? (await import("./reconcile-account.server")).reconcileBillingAccount;
+    const state = await reconciler(admin, db, candidate.shop_domain);
     if (state.retryable) throw new Error(state.errorCode ?? "billing_reconciliation_retryable");
     await markAttempt(db, candidate.shop_domain, nowIso, state.errorCode ?? null);
     return {
@@ -73,37 +70,6 @@ export async function reconcileNextStaleBilling(db: D1Database, options: Options
     const errorCode = stableErrorCode(error);
     await markAttempt(db, candidate.shop_domain, nowIso, errorCode);
     return { attempted: true, shopDomain: candidate.shop_domain, errorCode };
-  }
-}
-
-// Stessa riconciliazione di Home e webhook: il diritto arriva anche nel metafield letto dalla
-// Function, e un rinnovo non osservato dal merchant non spegne la validazione.
-export async function reconcileBillingAccount(admin: Admin, db: D1Database, shopDomain: string) {
-  const { errorCode, retryable, validation } = await reconcile(admin, db, shopDomain);
-  await refreshCheckoutLabels(admin, db, shopDomain, validation);
-  return { retryable, errorCode };
-}
-
-// Lo stato etichette si ricalcola solo alla lettura: senza questo passaggio un esito scritto da
-// una versione precedente resterebbe aperto finché il merchant non riapre l'app. La lettura è
-// la stessa della pagina regole e un suo errore non tocca la riconciliazione del billing.
-async function refreshCheckoutLabels(
-  admin: Admin,
-  db: D1Database,
-  shopDomain: string,
-  validation: Awaited<ReturnType<typeof reconcile>>["validation"],
-) {
-  try {
-    const state = await readCheckoutLabelState(db, shopDomain);
-    if (state.mode === "off") return;
-    await loadCheckoutLabels(
-      admin,
-      db,
-      shopDomain,
-      readConfig(validation?.metafield?.jsonValue).rules,
-    );
-  } catch {
-    // Fail-open: il prossimo ciclo o la prossima apertura dell'app rileggono le etichette.
   }
 }
 

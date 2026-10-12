@@ -277,7 +277,11 @@ describe("entrypoint Worker", () => {
       TELEGRAM_CHAT_ID: "chat",
     };
 
-    worker.scheduled({ cron: "*/5 * * * *" } as never, notificationEnv as never, context as never);
+    worker.scheduled(
+      { cron: "*/5 * * * *", scheduledTime: Date.UTC(2026, 9, 11, 10, 20) } as never,
+      notificationEnv as never,
+      context as never,
+    );
     await Promise.all(pending);
 
     expect(mocks.pollPartnerEvents.mock.calls[0][1]).toEqual({
@@ -292,14 +296,53 @@ describe("entrypoint Worker", () => {
     });
     expect(mocks.pollLocalNotifications).toHaveBeenCalledOnce();
     expect(mocks.reconcileOwnerIncidents).toHaveBeenCalledOnce();
-    expect(mocks.refreshBFSPlans).toHaveBeenCalledOnce();
-    expect(mocks.pollBFSProgress).toHaveBeenCalledOnce();
-    expect(mocks.pollBFSPerformance).toHaveBeenCalledOnce();
     expect(mocks.deliverOwnerNotifications.mock.calls[0][1]).toEqual({
       botToken: "bot",
       chatId: "chat",
     });
     expect(mocks.recordEvent).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    [5, []],
+    [20, ["financials"]],
+    [35, ["plans", "progress"]],
+    [50, ["performance"]],
+  ])("al minuto %i esegue soltanto le fasi orarie di quel tick", async (minute, expected) => {
+    const pending: Promise<unknown>[] = [];
+    worker.scheduled(
+      { cron: "*/5 * * * *", scheduledTime: Date.UTC(2026, 9, 11, 10, minute) } as never,
+      { DB: env.DB, OWNER_NOTIFICATIONS_ENABLED: "true" } as never,
+      { waitUntil: (promise: Promise<unknown>) => pending.push(promise) } as never,
+    );
+    await Promise.all(pending);
+
+    const ran = Object.entries({
+      financials: mocks.syncPartnerFinancialObservations,
+      plans: mocks.refreshBFSPlans,
+      progress: mocks.pollBFSProgress,
+      performance: mocks.pollBFSPerformance,
+    })
+      .filter(([, mock]) => mock.mock.calls.length > 0)
+      .map(([name]) => name);
+    expect(ran).toEqual(expected);
+    expect(mocks.pollPartnerEvents).toHaveBeenCalledOnce();
+    expect(mocks.reconcileOwnerIncidents).toHaveBeenCalledOnce();
+  });
+
+  test("il controllo progresso BFS riusa il report appena aggiornato", async () => {
+    const report = { eligible: 3 };
+    mocks.refreshBFSPlans.mockResolvedValueOnce(report);
+    const pending: Promise<unknown>[] = [];
+    worker.scheduled(
+      { cron: "*/5 * * * *", scheduledTime: Date.UTC(2026, 9, 11, 10, 35) } as never,
+      { DB: env.DB, OWNER_NOTIFICATIONS_ENABLED: "true" } as never,
+      { waitUntil: (promise: Promise<unknown>) => pending.push(promise) } as never,
+    );
+    await Promise.all(pending);
+
+    const [, { now }] = mocks.refreshBFSPlans.mock.calls[0];
+    expect(mocks.pollBFSProgress.mock.calls[0]).toEqual([env.DB, now, report]);
   });
 
   test("resta fail-open e registra codici minimizzati per ogni errore di fase", async () => {
@@ -401,11 +444,11 @@ describe("entrypoint Worker", () => {
     expect(mocks.reconcileNextStaleBilling).toHaveBeenCalledOnce();
   });
 
-  test("una lettura BFS fallita non impedisce il controllo prestazioni e la consegna", async () => {
+  test("una lettura BFS fallita non impedisce la consegna", async () => {
     mocks.refreshBFSPlans.mockRejectedValueOnce(new Error("bfs_read_failed"));
     const pending: Promise<unknown>[] = [];
     worker.scheduled(
-      { cron: "*/5 * * * *" } as never,
+      { cron: "*/5 * * * *", scheduledTime: Date.UTC(2026, 9, 11, 10, 35) } as never,
       {
         DB: env.DB,
         OWNER_NOTIFICATIONS_ENABLED: "true",
@@ -416,7 +459,6 @@ describe("entrypoint Worker", () => {
     );
     await Promise.all(pending);
     expect(mocks.pollBFSProgress).not.toHaveBeenCalled();
-    expect(mocks.pollBFSPerformance).toHaveBeenCalledOnce();
     expect(mocks.deliverOwnerNotifications).toHaveBeenCalledOnce();
     expect(mocks.recordEvent.mock.calls.map(([, event]) => event.metadata.error_code)).toContain(
       "bfs_read_failed",

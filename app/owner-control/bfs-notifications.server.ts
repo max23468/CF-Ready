@@ -5,7 +5,7 @@ import {
   PERFORMANCE_WINDOW_DAYS,
   type PerformanceMetric,
 } from "../reporting/performance";
-import { readBFSReport, type BFSHistoryPoint } from "./bfs.server";
+import { readBFSReport, type BFSHistoryPoint, type BFSReport } from "./bfs.server";
 import { BFS_TARGET } from "./model";
 import { readPerformanceOverall } from "./queries.server";
 
@@ -68,8 +68,9 @@ async function saveObservation<T>(
   await db.batch(statements);
 }
 
-export async function pollBFSProgress(db: D1Database, now = new Date()) {
-  const report = await readBFSReport(db, now);
+// Il ciclo passa il report appena restituito da `refreshBFSPlans`, senza rileggere gli store.
+export async function pollBFSProgress(db: D1Database, now = new Date(), current?: BFSReport) {
+  const report = current ?? (await readBFSReport(db, now));
   if (report.unknown) return;
   await saveObservation<ProgressState>(
     db,
