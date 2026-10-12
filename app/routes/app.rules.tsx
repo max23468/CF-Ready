@@ -298,25 +298,6 @@ export default function CheckoutRules() {
 
   return (
     <s-page heading={t.rules.heading}>
-      {conflict ? (
-        <ConfigConflict
-          locale={saved.locale}
-          busy={busy}
-          onReapply={reapply}
-          onDiscard={discard}
-          rows={rulesConflictRows(current, draft, t)}
-        />
-      ) : null}
-      <RulesResultBanners
-        t={t}
-        result={result}
-        dirty={dirty || labelsDirty}
-        changedSinceResult={changedSinceResult}
-        labelsErrorCode={labelsErrorCode}
-        errorCode={errorCode}
-        conflict={Boolean(conflict)}
-      />
-
       <ui-save-bar id={SAVE_BAR}>
         {/* Il salvataggio con le etichette dura alcuni secondi: Salva mostra il caricamento. */}
         <button
@@ -342,9 +323,27 @@ export default function CheckoutRules() {
 
       {/* Decisione del 4 ottobre: regole e simulatore affiancati al 50%, così una scelta e il
           suo effetto restano in vista insieme; le etichette, lunghe quando aperte, stanno a
-          tutta larghezza sotto e non lasciano vuota la colonna del simulatore. Regole non ha
-          colonna laterale: è l'unica pagina con un bordo diverso, per scelta. */}
+          tutta larghezza sotto e non lasciano vuota la colonna del simulatore. Senza colonna
+          laterale il contenitore, banner compresi, raggiunge la larghezza delle altre pagine. */}
       <div className="rules-layout-container">
+        {conflict ? (
+          <ConfigConflict
+            locale={saved.locale}
+            busy={busy}
+            onReapply={reapply}
+            onDiscard={discard}
+            rows={rulesConflictRows(current, draft, t)}
+          />
+        ) : null}
+        <RulesResultBanners
+          t={t}
+          result={result}
+          dirty={dirty || labelsDirty}
+          changedSinceResult={changedSinceResult}
+          labelsErrorCode={labelsErrorCode}
+          errorCode={errorCode}
+          conflict={Boolean(conflict)}
+        />
         <div className="rules-layout">
           <form
             className="rules-layout__form"
