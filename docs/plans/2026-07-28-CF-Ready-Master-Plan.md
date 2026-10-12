@@ -3058,7 +3058,7 @@ Non automatizzare una pipeline complessa prima di validare il metodo di export D
 - nessun input fiscale;
 - eventi ordinari campionati;
 - errori e webhook tracciati;
-- conservazione nativa corrente del piano Free;
+- conservazione nativa del piano Workers effettivo, distinta dallo storico analytics della zona;
 - niente Sentry nella 1.0.
 
 Stato e attivazione progressiva:
@@ -3084,6 +3084,34 @@ Stato e attivazione progressiva:
 L’attivazione Development del 29 luglio 2026 e il relativo rollback sono
 registrati in
 `docs/evidence/2026-07-29-checkout-validation-rendering.md#aggiornamento-osservabilità-development`.
+
+Precisazione di D-123 approvata dall'owner il 12 ottobre 2026: la diagnosi
+tecnica usa due Custom Dashboards, `CF Ready · Production` e
+`CF Ready · Development`, con il Worker esatto fissato in ogni grafico. Il
+grafico degli errori registrati legge Workers Observability — Logs; invocazioni,
+errori runtime, CPU e wall time leggono le metriche Workers, mai il conteggio
+dei log come sostituto delle invocazioni. Se il selettore del Custom Dashboard
+non espone un campo metrico, si usa la corrispondente vista Metrics nativa.
+Non si abilitano invocation log o trace per alimentare i grafici e non si
+aggiungono eventi, servizi, dipendenze o automazioni.
+
+I marker nativi di release e rollback nella scheda Metrics aiutano la diagnosi
+e restano separati dalla prova della versione attiva. Il confronto delle fasi
+cron segue D-182, separando finestre di release e trigger. Lo storico HTTP
+adattivo della zona serve, quando necessario, a confrontare traffico e risposte
+dell'app e del sito su giorni omologhi; non misura conversioni o traffico
+checkout e non estende Workers Logs, Workers Metrics o Web Analytics.
+Configurazione dei grafici, query, limiti, accettazione e rollback stanno in
+`docs/runbooks/operations.md#dashboard-tecnici-cloudflare`.
+
+Fino al 30 novembre 2026 Workers Logs conserva tre giorni sul Free e sette sul
+Paid. Dal 1 dicembre usa il modello Observability con retention predefinita
+di sette giorni e quote condivise a livello account; query, dashboard e
+analytics non hanno un costo aggiuntivo. Questi prezzi non identificano il
+piano attivo né il consumo dell'account condiviso. Il readback del 12 ottobre
+conferma 31 giorni interrogabili per `httpRequestsAdaptiveGroups`, con finestre
+massime di 30 giorni; disponibilità dei dataset e limiti si rileggono prima
+della diagnosi. Le fonti economiche e il controllo operativo sono nel runbook.
 
 ---
 
