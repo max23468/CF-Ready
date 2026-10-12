@@ -136,8 +136,11 @@ log contiene `event`, `class`, `occurredAt`, `correlation_id`, `webhook` e la
 sola allowlist di metadati tecnici. Non contiene URL, query string, shop domain,
 payload, header, token, Codice Fiscale o PEC.
 
-Creare nel Query Builder Cloudflare queste query account-level dopo il primo
-deploy che abilita questi log:
+Nel Query Builder Cloudflare riusare, o creare se assenti, queste query per
+ciascun ambiente. Fissare sempre il dataset Workers Logs e il servizio esatto
+`cf-ready-dev` o `cf-ready-prod`; non interrogare l'intero account condiviso.
+Confermare la rappresentazione dei campi custom nel Query Builder prima di
+salvare e aggiungere l'ambiente al nome della query:
 
 | Nome | Filtro | Vista |
 | --- | --- | --- |
@@ -157,6 +160,129 @@ Soglie iniziali:
 La retention nativa del piano corrente è breve: il correlation ID va copiato
 nella ricevuta dell'incidente, non i log completi. Query e retention vanno
 riverificate trimestralmente sulle fonti Cloudflare correnti.
+
+### Dashboard tecnici Cloudflare
+
+Usare `CF Ready · Production` e `CF Ready · Development` nell'account dichiarato
+in `wrangler.json`. Cercare prima dashboard e query esistenti, senza modificare
+quelli di altri progetti. Configurare manualmente i grafici con una finestra
+iniziale di 24 ore e granularità di cinque minuti, quando supportata. Ogni
+grafico deve fissare il Worker dell'ambiente, anche se esiste un filtro globale.
+
+| Grafico | Sorgente e filtro | Misura |
+| --- | --- | --- |
+| Errori registrati | Workers Observability — Logs; servizio uguale al Worker, Level `error` | Events nel tempo: record conservati, non invocazioni o incidenti unici |
+| Invocazioni runtime per esito | `workersInvocationsAdaptive`; `scriptName` esatto, dimensione temporale e `status` | `sum.requests`; leggere `sum.errors` nella query nativa per il tasso di errore |
+| CPU per invocazione | Stesso dataset; dimensione temporale e, nel confronto release, `scriptVersion` | `quantiles.cpuTimeP50` e `quantiles.cpuTimeP95`, da microsecondi a millisecondi |
+| Wall time per invocazione | Stesso dataset e filtri | `quantiles.wallTimeP50` e `quantiles.wallTimeP95`, da microsecondi a millisecondi |
+
+Verificare che il selettore dei Custom Dashboards esponga dataset e campi prima
+di salvare. Se non li espone, usare il grafico nativo nella scheda Metrics e
+registrarne il percorso operativo: non creare una pipeline alternativa. CPU e
+wall time nei Workers Logs dipendono dagli invocation log, disattivati in CFR;
+il dataset Traces non alimenta alcun grafico. Non presumere che i campi custom
+del Query Builder siano disponibili anche nei Custom Dashboards.
+
+Gli eventi ordinari sono campionati dall'app: i conteggi dei log non si
+espandono moltiplicandoli per dieci e non costituiscono denominatori di traffico.
+Errori e webhook non sono campionati dall'app, ma il conteggio riguarda i record
+effettivamente conservati e può includere più errori della stessa operazione.
+Un tasso di errore runtime usa soltanto `sum.errors / sum.requests` della stessa
+query, con valore non disponibile se il denominatore è zero. Gli errori runtime
+non coincidono con tutti gli HTTP `5xx`. Non sommare né mediare percentili di
+bucket o versioni differenti: interrogare l'intera finestra omogenea. I
+percentili nativi sono stime statistiche; wall time comprende anche attese e
+`waitUntil`, quindi non equivale a tempo di risposta, LCP o durata checkout.
+
+Il readback API del 12 ottobre 2026 conferma le sorgenti metriche e questi
+limiti: `workersInvocationsAdaptive` conserva 90 giorni con finestre massime
+di 32 giorni; `workersInvocationsScheduled` conserva 90 giorni con finestre
+massime di sette giorni. I grafici Logs seguono invece la retention dei log.
+Rileggere `settings.enabled`, `availableFields`, `notOlderThan`, `maxDuration`
+e `maxPageSize` prima di estendere una query; un intervallo senza dati non
+dimostra assenza di errori o invocazioni.
+
+Per approfondire una variazione del traffico, usare anche Analytics → Traffic
+della zona `cfready.it`, senza un filone di monitoraggio separato. Il dataset
+`httpRequestsAdaptiveGroups` consente, nel readback del 12 ottobre, 31 giorni
+di storico e al massimo 30 giorni per query. Fissare
+`clientRequestHTTPHost = "app.cfready.it"` per l'app; per il sito leggere
+`cfready.it` e `www.cfready.it` separatamente dall'app. Il confronto usa volume
+HTTP nel tempo, `edgeResponseStatus` e giorni omologhi delle settimane
+precedenti. Gli aggregati adattivi sono stime, con il campionamento disponibile
+dichiarato; non indicano visite merchant, conversioni o acquirenti. Development
+su `workers.dev` non appartiene a questa vista. Non inserire grafici Security
+Events senza aver verificato il dataset: `firewallEventsAdaptiveGroups` risultava
+non disponibile con l'accesso usato nel readback.
+
+L'annuncio sullo storico analytics non estende Workers Logs e non modifica il
+percorso Web Analytics del sito né quello dei Web Vitals dell'app. Fino al
+30 novembre 2026 Workers Logs conserva tre giorni sul Free e sette sul Paid;
+Paid include 20 milioni di eventi/mese, poi $0,60 per milione aggiuntivo. Dal
+1 dicembre 2026 il modello Observability condivide le quote fra i prodotti
+dell'account: Free include 0,5 GB/giorno con stop dell'ingestione a esaurimento;
+Paid include 50 GB di ingestione e 10 GB-mese per ciclo, poi $0,25/GB e
+$0,10/GB-mese. La retention predefinita è sette giorni. Query, dashboard,
+analytics e alert non hanno un costo aggiuntivo. La transizione è automatica
+per clienti Free/Pro/Business, senza addebiti retroattivi; Enterprise segue il
+rinnovo contrattuale. I dashboard su dati esistenti non aggiungono ingestione o
+storage, ma non eliminano i costi generali futuri dell'account condiviso.
+Verificare piano Workers e consumo in Billable Usage senza cambiare piano,
+quote o retention; il piano della zona non identifica quello Workers.
+
+Accettazione della configurazione:
+
+1. riaprire dashboard e query e verificare i filtri dell'ambiente;
+2. confrontare conteggi e percentili con la sorgente nativa usando la stessa
+   finestra e gli stessi filtri, dichiarando arrotondamenti e campionamento;
+3. se log e query restituiscono entrambi zero, non dichiarare provato il
+   percorso completo; usare la successiva osservazione pertinente, senza
+   provocare errori Production o aggiungere eventi soltanto per il grafico;
+4. associare un marker di release esistente alla ricevuta provider, senza
+   eseguire un rollback Production per verificare il grafico;
+5. leggere aggregati HTTP più vecchi di otto giorni con gli hostname esatti;
+6. rileggere le impostazioni dei due Worker e confermare ancora
+   `invocation_logs == false` e `traces.enabled == false`.
+
+La ricevuta di configurazione conserva nomi e link dei dashboard, filtri,
+finestre, sorgenti, confronti aggregati e verifiche pendenti, mai log completi
+o dati merchant. Prima di modificare un dashboard esistente annotarne la
+configurazione precedente. Il rollback ripristina soltanto dashboard/query
+modificati in questo incarico e le aggiunte documentali, senza rollback Worker
+o migrazioni. I gate delle modifiche repository restano quelli di `AGENTS.md`
+e `scripts/ci-lane.mjs`: Master Plan e runbook sono governance operativa, corsia
+`full`, senza bump SemVer quando non cambia il prodotto.
+
+Fonti da riconfermare: [Custom Dashboards](https://developers.cloudflare.com/analytics/custom-dashboards/),
+[Workers Metrics](https://developers.cloudflare.com/workers/observability/metrics-and-analytics/),
+[GraphQL Workers Metrics](https://developers.cloudflare.com/analytics/graphql-api/tutorials/querying-workers-metrics/),
+[Settings node](https://developers.cloudflare.com/analytics/graphql-api/features/discovery/settings/),
+[storico analytics](https://developers.cloudflare.com/changelog/post/2026-10-02-30-days-analytics-on-every-plan/),
+[Workers Logs pricing](https://developers.cloudflare.com/workers/observability/logs/workers-logs/#pricing)
+e [Observability pricing](https://developers.cloudflare.com/observability/pricing/).
+
+Configurazione salvata il 12 ottobre 2026:
+
+- [CF Ready · Production](https://dash.cloudflare.com/98195e505f42abaaeb4827f71a924b1a/dashboards/fa27be7d-6c01-4f00-bf85-8232f0d1a19a), filtro `cf-ready-prod`;
+- [CF Ready · Development](https://dash.cloudflare.com/98195e505f42abaaeb4827f71a924b1a/dashboards/e44c8f45-c1a9-43d4-a5e9-16b7704769db), filtro `cf-ready-dev`.
+
+Entrambi contengono quattro grafici temporali: `Errori registrati · record di log`,
+`Invocazioni runtime · per esito`, `CPU · p50 e p95` e
+`Wall time · p50 e p95`. Nei Logs i filtri salvati sono
+`$metadata.service` uguale al Worker e `$metadata.level = "error"`.
+Le altre viste usano Invocazioni Workers: CPU e wall time hanno due serie
+personalizzate con filtro `scriptName` esatto su entrambe. Il selettore CPU
+indica microsecondi, mentre il grafico converte automaticamente in ms o s.
+La finestra iniziale è 24 ore; l'intervallo salvato è automatico, con bucket
+di 15 minuti nella finestra verificata. Scegliere cinque minuti dal menu
+`Azioni grafico` quando serve un confronto più fine.
+
+Le quattro query della tabella Workers Logs sono salvate per ciascun ambiente,
+otto in tutto, con il servizio esatto nel filtro; il Query Builder espone
+`class`, `event` ed `error_code` come campi applicativi. Il marker Production
+visibile in Metrics corrisponde alla versione attiva `9e4f74c5`, distribuita
+dal commit `4a068e9`. Il readback finale dei due Worker conferma log al 100%,
+`invocation_logs == false` e `traces.enabled == false`.
 
 ## Report prestazioni Built for Shopify
 
@@ -235,6 +361,17 @@ sincronizzazione finanziaria Partner gira alle :20, piani e progresso BFS alle
 confronta in `workersInvocationsScheduled` i tick di quel minuto con quelli
 ordinari: il Worker non misura la propria CPU. Una lettura finanziaria urgente
 si forza dal Control Center invece di attendere le :20.
+
+Per un confronto CPU leggere `cpuTimeUs / 1000` insieme a `cron`,
+`scheduledDatetime`, `datetime` e `status` in `workersInvocationsScheduled`.
+Raggruppare per minuto UTC di `scheduledDatetime`, filtrare il trigger
+pertinente e separare le finestre dei deployment. Il dataset non espone
+`scriptVersion`: attribuire le righe alla release tramite la finestra fra due
+deployment verificati, senza includere periodi di propagazione incerti. I
+vecchi tick `0 * * * *` non sono esecuzioni della retention nella versione
+attuale. Differenze tra tick sono compatibili con il costo aggiuntivo della
+fase, non una misura isolata della sua CPU. Campioni su più versioni o sul
+cambio dei trigger non provano l'effetto di una singola release.
 
 ## Rinnovo dei token offline
 
@@ -419,6 +556,16 @@ Il workflow genera anche una ricevuta JSON con commit, tree e identificatori di
 readback. L'artifact resta legato al run per 90 giorni; in Production viene
 attestato con la provenienza GitHub Actions. La chiusura collega run, artifact o
 GitHub Release e non apre una PR per copiare la ricevuta nel repository.
+
+Durante la diagnosi aprire anche la scheda Metrics del Worker nella finestra
+interessata. I marker nativi mostrano deployment diretti al 100% e rollback;
+versioni soltanto caricate o configurate allo 0% non compaiono. Collegare il
+marker a versione, deployment ID, commit e orario UTC della ricevuta, poi
+confrontare CPU, wall time ed errori su intervalli con traffico e fasi cron
+comparabili. Dopo un rollback necessario, verificare separatamente versione
+attiva e andamento delle metriche. Un marker non sostituisce il readback e
+non introduce un nuovo gate automatico di pubblicazione. Fonte:
+[release nei grafici Metrics](https://developers.cloudflare.com/changelog/post/2026-09-25-release-flows-workers-metrics/).
 
 ## Coordinatore di pubblicazione
 
