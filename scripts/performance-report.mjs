@@ -4,7 +4,7 @@ import {
   d1ReportCommand,
   fetchD1Report,
   parseReportEnvironment,
-  parseWranglerJson,
+  parseD1Json,
 } from "./d1-report.mjs";
 
 import {
@@ -46,18 +46,18 @@ export function commandFor(environment) {
   return d1ReportCommand(environment, PERFORMANCE_QUERY);
 }
 
-export function parseWranglerResult(stdout) {
-  const payload = parseWranglerJson(stdout);
+export function parseD1Result(stdout) {
+  const payload = parseD1Json(stdout);
   const result = payload?.[0];
   if (!result?.success || !Array.isArray(result.results)) {
-    throw new Error("Wrangler non ha restituito il report prestazioni atteso.");
+    throw new Error("cf non ha restituito il report prestazioni atteso.");
   }
 
   return parsePerformanceRows(result.results);
 }
 
 export function fetchReport(environment, options = {}) {
-  return fetchD1Report(environment, PERFORMANCE_QUERY, parseWranglerResult, options);
+  return fetchD1Report(environment, PERFORMANCE_QUERY, parseD1Result, options);
 }
 
 function main() {
@@ -65,7 +65,7 @@ function main() {
   const groups = fetchReport(environment);
   const timings = versions
     ? fetchD1Report(environment, TIMING_QUERY, (stdout) => {
-        const result = parseWranglerJson(stdout)?.[0];
+        const result = parseD1Json(stdout)?.[0];
         if (!result?.success) throw new Error("Durate server mancanti.");
         return parseTimings(result.results);
       })

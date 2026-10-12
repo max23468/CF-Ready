@@ -4,7 +4,7 @@ import {
   d1ReportCommand,
   fetchD1Report,
   parseReportEnvironment,
-  parseWranglerJson,
+  parseD1Json,
 } from "./d1-report.mjs";
 import { FUNNEL_QUERY, parseFunnel } from "../app/reporting/funnel.ts";
 import { OPEN_STORE_ERROR_FILTER } from "../app/reporting/operational.ts";
@@ -70,12 +70,12 @@ export function commandFor(environment) {
   return d1ReportCommand(environment, QUERY + FUNNEL_QUERY);
 }
 
-export function parseWranglerResult(stdout) {
-  const payload = parseWranglerJson(stdout);
+export function parseD1Result(stdout) {
+  const payload = parseD1Json(stdout);
   const result = payload?.[0];
   const row = result?.results?.[0];
   if (!result?.success || !row || typeof row.generated_at !== "string") {
-    throw new Error("Wrangler non ha restituito il report aggregato atteso.");
+    throw new Error("cf non ha restituito il report aggregato atteso.");
   }
 
   const report = { generated_at: row.generated_at };
@@ -90,7 +90,7 @@ export function parseWranglerResult(stdout) {
 }
 
 export function fetchReport(environment, options = {}) {
-  return fetchD1Report(environment, QUERY + FUNNEL_QUERY, parseWranglerResult, options);
+  return fetchD1Report(environment, QUERY + FUNNEL_QUERY, parseD1Result, options);
 }
 
 function main() {

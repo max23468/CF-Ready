@@ -1,11 +1,81 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 
+// `cf d1 migrations list` stampa in JSON le sole migrazioni non ancora applicate.
 export function verifyNoPendingMigrations(output) {
-  if (!output.includes("No migrations to apply!")) {
+  let pending;
+  try {
+    pending = JSON.parse(output);
+  } catch {
+    throw new Error("Il readback D1 non ha restituito JSON valido.");
+  }
+  if (!Array.isArray(pending) || pending.length) {
     throw new Error("Il readback D1 segnala migrazioni ancora pendenti.");
   }
+}
+
+// Valuta `cloudflare.config.ts` nella mode richiesta, come fanno build e deploy.
+export async function loadWorkerConfig(mode, root = process.cwd()) {
+  const module = await import(pathToFileURL(path.join(root, "cloudflare.config.ts")).href);
+  const config =
+    typeof module.default === "function" ? await module.default({ mode }) : module.default;
+  return config.worker;
+}
+
+// Riduce la configurazione Worker di `cf`, sorgente o Build Output, ai target che i preflight
+// confrontano: hanno la stessa forma camelCase con binding tipizzati.
+export function workerTargets(worker = {}) {
+  const env = worker.env ?? {};
+  const triggers = worker.triggers ?? [];
+  return {
+    name: worker.name,
+    vars: Object.fromEntries(
+      Object.entries(env)
+        .filter(([, binding]) => binding?.type === "text")
+        .map(([name, binding]) => [name, binding.value]),
+    ),
+    database: env.DB?.type === "d1" ? env.DB : undefined,
+    queue: env.WEBHOOK_QUEUE?.type === "queue" ? env.WEBHOOK_QUEUE.name : undefined,
+    versionMetadata: env.CF_VERSION_METADATA?.type === "version-metadata",
+    sendsEmail: Object.values(env).some((binding) => /email/i.test(binding?.type ?? "")),
+    consumers: Object.fromEntries(
+      triggers.filter(({ type }) => type === "queue").map((trigger) => [trigger.name, trigger]),
+    ),
+    crons: triggers.filter(({ type }) => type === "scheduled").map(({ schedule }) => schedule),
+    workersDev: worker.workersDev,
+    domains: worker.domains ?? [],
+  };
+}
+
+// Database, coda webhook con DLQ reciproca e metadati versione, comuni ai due ambienti.
+export function sharesWorkerTopology(targets, expected) {
+  const consumer = targets.consumers[expected.queueName];
+  const failureConsumer = targets.consumers[expected.failureQueueName];
+  return (
+    targets.name === expected.workerName &&
+    targets.vars.SHOPIFY_API_KEY === expected.clientId &&
+    targets.vars.SHOPIFY_APP_URL === expected.appUrl &&
+    targets.vars.SCOPES === "write_validations" &&
+    targets.versionMetadata &&
+    targets.database?.name === expected.databaseName &&
+    targets.database?.id === expected.databaseId &&
+    targets.queue === expected.queueName &&
+    consumer?.maxBatchSize === 1 &&
+    consumer?.maxRetries === 5 &&
+    consumer?.deadLetterQueue === expected.failureQueueName &&
+    failureConsumer?.maxBatchSize === 1 &&
+    failureConsumer?.maxRetries === 100 &&
+    failureConsumer?.deadLetterQueue === expected.queueName
+  );
+}
+
+// `cf workers deployments list` mette per primo il deployment che serve il traffico; ha la
+// stessa forma che `wrangler deployments status --json` restituiva da solo.
+export function activeDeployment(listing) {
+  return listing?.deployments?.[0] ?? {};
 }
 
 export function verifyMigrationSafety(migrations, policy = { migrations: [] }) {

@@ -18,7 +18,9 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: `npm run build && npx wrangler dev --config build/server/wrangler.json --var SHOPIFY_API_SECRET:e2e-test-secret --port ${appPort}`,
+      command: `npm run build && vite preview --mode dev --port ${appPort} --strictPort`,
+      // La Vite plugin passa al Worker le variabili di processo solo con questo flag.
+      env: { CLOUDFLARE_INCLUDE_PROCESS_ENV: "true", SHOPIFY_API_SECRET: "e2e-test-secret" },
       cwd: repositoryRoot,
       url: `http://localhost:${appPort}/favicon.svg`,
       timeout: 120_000,

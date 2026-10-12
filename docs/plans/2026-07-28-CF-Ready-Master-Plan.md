@@ -415,6 +415,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-180 | Il Control Center Telegram integra l'obiettivo delle 50 installazioni BFS nella vista Performance e un riepilogo nella Dashboard. Conta le installazioni attive su piani Shopify paganti, indipendentemente dal piano CF Ready, incluso Lifetime, prova e omaggio. Notifica ogni cinque store netti aggiuntivi dalla prima baseline completa e il raggiungimento stimato di 50. Il menu espone, nell'ordine, dashboard, performance, shops, billing, growth, issues, health e activity; gli altri sette comandi restano disponibili. | Deciso dall'owner il 10 ottobre 2026. Il conteggio è una stima interna, non il contatore ufficiale BFS della pagina Distribution. I piani di sviluppo sono esclusi; Trial, Plus Trial, Paused e Inactive sono esclusi; piani speciali, errori e letture scadute restano da verificare. Il cron esistente rilegge fino a tre piani all'ora (D-182), ordinariamente dopo 24 ore, con retry degli incerti dopo un'ora; non garantisce il completamento di tutte le letture entro 24 ore. Nessun nuovo scope, provider, dipendenza o migrazione. Le notifiche di crescita attendono una lettura completa, raggruppano salti e non ripetono traguardi già notificati dopo perdite e recuperi. LCP, CLS e INP generano avvisi al superamento delle soglie BFS al p75 su 28 giorni (2.500 ms, 0,1 e 200 ms), preliminari sotto 100 campioni per metrica, confermati quando si raggiungono 100; il rientro richiede campioni sufficienti. Le notifiche sono aggregate, deduplicate e ritentate nell'outbox esistente; le misure CF Ready non sostituiscono quelle Shopify. |
 | D-181 | Un solo Cron Trigger `*/5 * * * *` per Worker, in Development e Production. Il tick delle :00 UTC, letto da `scheduledTime`, esegue soltanto la retention; gli altri undici eseguono il ciclo owner. Il vecchio trigger `0 * * * *` ancora in propagazione non esegue lavori. Un errore di retention registra `retention_failed`. La soglia dell'incidente Partner di D-157 passa da 15 a 20 minuti. | I Cron Trigger sono 5 per account sul piano Free e l'account, oggi Paid, condivide gli slot con Development e un altro progetto: CF Ready passa da 4 a 2. Retention e ciclo owner restano in invocazioni separate perché insieme supererebbero i 10 ms del Free: il 20 settembre 2026 valevano 7 e 9 ms, il 12 ottobre in Production 5,9 e 31,6 ms mediani (D-182). Senza il ciclo delle :00 tra :55 e :05 passano dieci minuti: con 20 minuti l'incidente Partner richiede ancora due cicli falliti consecutivi. Il rinnovo token resta coperto con 10 minuti di margine, la riconciliazione billing scende a undici account all'ora. Una retention saltata riprende all'ora successiva, come prima; nessuna migrazione, claim o checkpoint. Un rollback del codice va accompagnato dalla configurazione con entrambi i trigger, altrimenti la retention si ferma. Deciso dall'owner l'11 ottobre 2026. |
 | D-182 | Nel ciclo owner la sincronizzazione finanziaria Partner, l'aggiornamento di piani e progresso BFS e il controllo prestazioni BFS girano una volta all'ora, ai minuti :20, :35 e :50 UTC; acquisizione eventi Partner, notifiche locali, incidenti, consegna, rinnovo token e riconciliazione billing restano a ogni tick. Il replay Partner verifica la deduplica prima di leggere nome e snapshot dello store, mentre feedback di disinstallazione e osservazione degli addebiti restano prima della deduplica. Chiavi HMAC e formatter di valuta si riusano per isolate, Shopify e riconciliazione billing si caricano solo con un candidato e il controllo progresso BFS riusa il report appena aggiornato. | Readback del 12 ottobre 2026 sulla `2.2.3`: ciclo owner Production con CPU mediana 31,6 ms e p95 72,6 ms, 150 esecuzioni su 157 sopra 10 ms; retention mediana 5,9 ms; invocazioni HTTP e Queue con media 1,1 ms. Development, senza notifiche owner, resta a 2,6 ms mediani: il costo sta nelle fasi owner. Le fasi orarie osservano orizzonti di giorni: 37 giorni per gli incidenti finanziari (D-052), piani BFS giornalieri, p75 su 28 giorni; il comando del Control Center forza ancora la lettura finanziaria. Ogni minuto esegue un insieme noto di fasi, così la CPU per minuto di `workersInvocationsScheduled` attribuisce il costo di ciascuna senza strumenti aggiuntivi, dato che il Worker non può misurare la propria CPU. Una Queue non porterebbe sotto il limite, perché sul piano Free anche il consumer ha 10 ms di CPU per invocazione. Un tick saltato rinvia la fase all'ora successiva; nessuna migrazione, claim o nuovo trigger. Deciso dall'owner il 12 ottobre 2026. |
+| D-183 | `cf` è la CLI Cloudflare predefinita del progetto, per persone, agenti e CI. `cloudflare.config.ts` è l'unica configurazione Workers, con le mode `dev` e `prod`; `wrangler.json` è eliminato. La mode `production`, predefinita di `vite build`, è rifiutata. Build e deploy usano `@cloudflare/vite-plugin` 2.0 beta pinnato per SHA e `cf deploy --prebuilt --mode`; preflight, readback, migrazioni D1, rollback, code e report D1 usano `cf`. Wrangler resta dipendenza pinnata solo per log live, singoli secret, export e restore D1, migrazioni locali, oggetti R2 del backup e deploy Pages, elencati in `operations.md`. | Deciso dall'owner il 12 ottobre 2026, accettando in Production una CLI e una Vite plugin in beta. React Router 8 legge il manifest client solo da `build/client`, mentre la Vite plugin 2.0 lo scrive nella Build Output: un plugin locale lo sposta finché React Router non segue `outDir` (ADR 0004). `cf d1 migrations` usa la stessa tabella `d1_migrations` di Wrangler, verificata sui database reali. Nessun nuovo scope, provider, runtime o migrazione; il rollback è il commit precedente. |
 
 Decisioni del 10 ottobre 2026, approvate dall'owner con «Implementa 2, 7, 8»:
 
@@ -485,8 +486,8 @@ Precisazione D-151 dell’11 settembre 2026: `cf-ready.pages.dev` reindirizza co
 singoli deployment restano endpoint tecnici non reindirizzati; preflight e
 readback Pages continuano a usare le API Cloudflare, mentre lo smoke verifica il
 redirect. Il Worker Production dichiara `app.cfready.it` come custom domain in
-`wrangler.json` e disattiva `workers.dev`; il preflight rifiuta un bundle
-diverso. La zona applica Always Use HTTPS, TLS minimo 1.2, HSTS di sei mesi con
+`cloudflare.config.ts` e disattiva `workers.dev`; il preflight rifiuta una Build
+Output diversa. La zona applica Always Use HTTPS, TLS minimo 1.2, HSTS di sei mesi con
 `includeSubDomains` e `nosniff` senza preload, Page Shield in monitoraggio e un
 unico redirect 301 da `http` e `https` di `www`. Email Obfuscation è spenta,
 perché riscrive l’HTML e nasconde i recapiti ad agenti senza JavaScript; il
@@ -2974,7 +2975,7 @@ Worker Production:
 https://app.cfready.it
 ```
 
-Il dominio personalizzato, dichiarato in `wrangler.json`, instrada il traffico al
+Il dominio personalizzato, dichiarato in `cloudflare.config.ts`, instrada il traffico al
 Worker `cf-ready-prod`. L’URL `workers.dev` di Production è disattivato: non fa
 parte del contratto pubblico né dei callback OAuth dell’app.
 
@@ -3144,7 +3145,7 @@ cf-ready/
 ├── SECURITY.md
 ├── shopify.app.toml
 ├── shopify.app.dev.toml
-├── wrangler.json
+├── cloudflare.config.ts
 ├── package.json
 └── package-lock.json
 ```
@@ -3533,6 +3534,7 @@ react-router
 ```text
 @react-router/dev
 @cloudflare/vite-plugin
+cf
 wrangler
 vite
 typescript
