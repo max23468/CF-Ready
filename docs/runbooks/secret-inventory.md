@@ -75,7 +75,8 @@ più leggibile, viene ignorata con l'evento `session_decrypt_failed` e Shopify
 ripete l'autenticazione in modo trasparente.
 
 1. genera 32 byte casuali codificati in base64, fuori dal repository;
-2. scrivi il secret nell'ambiente bersaglio con `npx wrangler secret put <NOME> --name <worker>` e, dove
+2. scrivi il secret nell'ambiente bersaglio con `npx cf workers secrets update`
+   (comando in [operations.md](operations.md#deploy-production)) e, dove
    previsto, nel secret store di GitHub Actions;
 3. ridistribuisci il Worker dell'ambiente;
 4. verifica con un login embedded che una nuova sessione venga scritta e

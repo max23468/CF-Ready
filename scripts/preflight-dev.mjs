@@ -9,6 +9,7 @@ import {
   run,
   sharesWorkerTopology,
   verifyMigrationSafety,
+  verifyQueueJurisdiction,
   verifyWebhookUris,
   verifyWorkerSecrets,
   workerTargets,
@@ -19,8 +20,8 @@ const expected = {
   appUrl: "https://cf-ready-dev.tmsf.workers.dev",
   databaseId: "9490eaea-3a12-465d-bb48-e2622b31fc4d",
   databaseName: "cf-ready-db-dev",
-  queueName: "cf-ready-webhooks-dev",
-  failureQueueName: "cf-ready-webhooks-dev-failures",
+  queueName: "cf-ready-webhooks-dev-eu",
+  failureQueueName: "cf-ready-webhooks-dev-eu-failures",
   workerName: "cf-ready-dev",
 };
 
@@ -168,6 +169,10 @@ async function main() {
     }
   }
   verifyCoordinatedRollback(deployment, versions);
+  verifyQueueJurisdiction(JSON.parse(run("npm", ["exec", "--", "cf", "queues", "list"], false)), [
+    expected.queueName,
+    expected.failureQueueName,
+  ]);
   const d1 = JSON.parse(run("npm", ["exec", "--", "cf", "d1", "get", expected.databaseId], false));
   if (d1.uuid !== expected.databaseId || d1.name !== expected.databaseName) {
     throw new Error("Il database D1 Development non coincide con il target atteso.");
@@ -184,7 +189,7 @@ async function main() {
   });
 
   console.log(
-    `${readbackOnly ? "Readback" : "Preflight"} Development superato: Shopify, D1 e secret Worker verificati.`,
+    `${readbackOnly ? "Readback" : "Preflight"} Development superato: Shopify, code, D1 e secret Worker verificati.`,
   );
 }
 

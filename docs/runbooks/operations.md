@@ -645,9 +645,15 @@ Il primo deploy Production non ha un Worker da ripristinare: il workflow lo
 riconosce, lo dichiara nella ricevuta e prosegue senza rollback armato del
 Worker. La versione Shopify resta ripristinabile fin dal primo giro.
 
-Il Worker `cf-ready-prod` viene creato materialmente dal primo
-`npx wrangler secret put SHOPIFY_API_SECRET --name cf-ready-prod`: finché non
-esiste, il preflight si ferma e lo dice.
+Un Worker che non esiste ancora nasce dal primo deploy con i secret, passati
+con `cf deploy --secrets-file <file>`: finché non esiste, il preflight si ferma
+e lo dice.
+
+Un singolo secret si imposta con
+`npx cf workers secrets update <NOME> --worker <worker> --body @<file>`, dove il
+file, creato con `umask 077` e cancellato subito dopo, contiene
+`{"name":"<NOME>","type":"secret_text","text":"<valore>"}`. Il valore non passa
+dalla riga di comando, e `cf workers secrets delete` lo rimuove.
 
 ## CLI Cloudflare
 
@@ -659,7 +665,6 @@ esiste, il preflight si ferma e lo dice.
 | Operazione | Comando | Motivo |
 | --- | --- | --- |
 | Log live | `npx wrangler tail <worker>` | `cf` non trasmette ancora log live |
-| Singolo secret | `npx wrangler secret put <NOME> --name <worker>` | `cf` non scrive ancora un singolo secret |
 | Export D1 del backup | `wrangler d1 export` con configurazione generata | `cf` non esporta D1 |
 | Restore di prova e migrazioni locali | `wrangler d1 execute`/`migrations apply --local` con configurazione generata (`npm run db:migrate:local`) | `cf d1 raw --local` e `cf d1 migrations apply --local` non terminano |
 | Oggetti R2 del backup | `wrangler r2 object get/put` | `cf r2 objects` codifica `/` nella chiave e ignora la jurisdiction `eu` |

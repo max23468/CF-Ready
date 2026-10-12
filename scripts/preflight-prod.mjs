@@ -8,6 +8,7 @@ import {
   run,
   sharesWorkerTopology,
   verifyMigrationSafety,
+  verifyQueueJurisdiction,
   verifyWebhookUris,
   verifyWorkerSecrets,
   workerTargets,
@@ -23,8 +24,8 @@ const expected = {
   appUrl: "https://app.cfready.it",
   databaseId: "6434597c-d683-48d9-a51f-b0d15de6a684",
   databaseName: "cf-ready-db-prod",
-  queueName: "cf-ready-webhooks-prod",
-  failureQueueName: "cf-ready-webhooks-prod-failures",
+  queueName: "cf-ready-webhooks-prod-eu",
+  failureQueueName: "cf-ready-webhooks-prod-eu-failures",
   workerName: "cf-ready-prod",
 };
 
@@ -120,6 +121,11 @@ async function main() {
 
   run("node", ["scripts/shopify-info-safe.mjs", "shopify.app.toml"]);
 
+  verifyQueueJurisdiction(
+    JSON.parse(run("npm", ["exec", "--", "cf", "queues", "list"], false)),
+    [expected.queueName, expected.failureQueueName],
+    { allowMissing: true },
+  );
   const d1 = JSON.parse(run("npm", ["exec", "--", "cf", "d1", "get", expected.databaseId], false));
   if (d1.uuid !== expected.databaseId || d1.name !== expected.databaseName) {
     throw new Error("Il database D1 Production non coincide con il target atteso.");
@@ -135,7 +141,7 @@ async function main() {
   if (listed.status !== 0) {
     throw new Error(
       `Impossibile leggere i secret di ${expected.workerName}. Se il Worker non esiste ancora, ` +
-        "lo crea il primo secret: npx wrangler secret put SHOPIFY_API_SECRET --name cf-ready-prod",
+        "lo crea il primo deploy con i secret: cf deploy --prebuilt --mode prod --secrets-file <file>",
     );
   }
   const { vars } = workerTargets(JSON.parse(workerConfig));
@@ -145,7 +151,7 @@ async function main() {
   });
 
   console.log(
-    "Preflight Production superato: Shopify, Build Output, D1 e secret Worker verificati.",
+    "Preflight Production superato: Shopify, Build Output, code, D1 e secret Worker verificati.",
   );
 }
 
