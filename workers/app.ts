@@ -84,11 +84,25 @@ export default {
     }
     // Qualsiasi altro cron avvia il ciclo owner: un cambio di frequenza resta attivo anche mentre
     // Cloudflare propaga ancora il trigger precedente.
-    ctx.waitUntil(runOwnerNotificationCycle(env as NotificationBindings));
+    ctx.waitUntil(
+      runOwnerNotificationCycle(
+        env as NotificationBindings,
+        new Date(controller.scheduledTime).getUTCMinutes(),
+      ),
+    );
   },
 } satisfies ExportedHandler<Env, WebhookJob>;
 
-async function runOwnerNotificationCycle(env: NotificationBindings) {
+// D-182: le fasi che osservano ore o giorni girano una volta all'ora, ciascuna in un tick
+// diverso dalle altre e dalla retention delle :00. Ogni invocazione porta così al più una fase
+// pesante, e la CPU per minuto attribuisce il costo di ciascuna senza strumenti aggiuntivi.
+const HOURLY_STAGE_MINUTES: Partial<Record<string, number>> = {
+  partner_financials: 20,
+  bfs_progress: 35,
+  bfs_performance: 50,
+};
+
+async function runOwnerNotificationCycle(env: NotificationBindings, minute: number) {
   const [{ reconcileNextStaleBilling }, { refreshExpiringOfflineSessions }, { recordEvent }] =
     await Promise.all([
       import("../app/billing/periodic-reconciliation.server"),
@@ -145,8 +159,9 @@ async function runOwnerNotificationCycle(env: NotificationBindings) {
     () => notifications.pollLocalNotifications(env.DB),
     () => notifications.reconcileOwnerIncidents(env.DB),
     async () => {
-      await refreshBFSPlans(env.DB);
-      await pollBFSProgress(env.DB);
+      // Il report appena aggiornato basta al controllo progresso: niente seconda lettura store.
+      const now = new Date();
+      await pollBFSProgress(env.DB, now, await refreshBFSPlans(env.DB, { now }));
     },
     () => pollBFSPerformance(env.DB),
     () => {
@@ -173,6 +188,8 @@ async function runOwnerNotificationCycle(env: NotificationBindings) {
     "delivery",
   ];
   for (const [index, stage] of stages.entries()) {
+    const hourlyMinute = HOURLY_STAGE_MINUTES[stageNames[index]];
+    if (hourlyMinute !== undefined && hourlyMinute !== minute) continue;
     try {
       // react-doctor-disable-next-line react-doctor/async-await-in-loop
       await stage();

@@ -173,16 +173,27 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode,
   const type = event.type as PartnerEventType;
   const occurredAt = event.occurredAt!;
   const shopDomain = normalizeShopDomain(event.shop!.myshopifyDomain!);
-  const [displayName, snapshot] = await Promise.all([
-    persistShopDisplayName(db, shopDomain, event.shop!.name),
-    readOperationalSnapshot(db, shopDomain),
-  ]);
+  // Il replay di 24 ore ripresenta a ogni ciclo eventi già notificati: nome, snapshot e corpo
+  // servono soltanto a un evento nuovo o al feedback tardivo, non al controllo di deduplica.
+  const storeContext = () =>
+    Promise.all([
+      persistShopDisplayName(db, shopDomain, event.shop!.name),
+      readOperationalSnapshot(db, shopDomain),
+    ]);
   if (type.startsWith("RELATIONSHIP_")) {
     const relationshipType = type as Extract<PartnerEventType, `RELATIONSHIP_${string}`>;
     const lifecycle = relationshipCopy(relationshipType);
     const uninstalled = type === "RELATIONSHIP_UNINSTALLED";
     // Conservare il feedback prima della deduplica: il webhook locale può avere già notificato.
     if (uninstalled) await saveUninstallFeedback(db, event, now);
+    const duplicate = await hasEquivalentNotification(
+      db,
+      shopDomain,
+      lifecycle.subject,
+      occurredAt,
+    );
+    if (duplicate && !uninstalled) return null;
+    const [displayName, snapshot] = await storeContext();
     const body = notificationBody(lifecycle.description, occurredAt, [
       storeSection(displayName, shopDomain, snapshot),
       operationalSection(snapshot, {
@@ -194,53 +205,50 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode,
       }),
       ...(uninstalled ? [uninstallFeedbackSection(event)] : []),
     ]);
-    if (await hasEquivalentNotification(db, shopDomain, lifecycle.subject, occurredAt)) {
-      if (uninstalled) {
-        const enriched = await db
-          .prepare(
-            `UPDATE owner_notifications SET body_text = ?, updated_at = ?
-             WHERE shop_domain = ? AND subject = ? AND status = 'pending'
-               AND ABS(unixepoch(source_occurred_at) - unixepoch(?)) <= 300`,
-          )
-          .bind(body, now.toISOString(), shopDomain, lifecycle.subject, occurredAt)
-          .run();
-        if (enriched.meta.changes > 0) return null;
-        const feedback = normalizeUninstallFeedback(event);
-        if (!feedback || (!feedback.reason && !feedback.description)) return null;
-        const original = await db
-          .prepare(
-            `SELECT body_text FROM owner_notifications
-             WHERE shop_domain = ? AND subject = ?
-               AND ABS(unixepoch(source_occurred_at) - unixepoch(?)) <= 300
-             ORDER BY id LIMIT 1`,
-          )
-          .bind(shopDomain, lifecycle.subject, occurredAt)
-          .first<{ body_text: string }>();
-        const sharedReason = original?.body_text.match(/\nMotivo: ([^\n]+)/)?.[1];
-        const sharedComment = original?.body_text.match(/\nCommento: ([^\n]+)/)?.[1];
-        // Il corpo in processing è già stato acquisito dal mittente: non modificarlo.
-        // Anche i messaggi precedenti alla sezione feedback possono ricevere il seguito.
-        if (
-          !original ||
-          (sharedReason && sharedReason !== "Nessun motivo fornito") ||
-          (sharedComment && sharedComment !== "Nessun commento fornito")
+    if (duplicate) {
+      const enriched = await db
+        .prepare(
+          `UPDATE owner_notifications SET body_text = ?, updated_at = ?
+           WHERE shop_domain = ? AND subject = ? AND status = 'pending'
+             AND ABS(unixepoch(source_occurred_at) - unixepoch(?)) <= 300`,
         )
-          return null;
-        return notificationStatement(db, {
-          dedupeKey: await notificationKey("uninstall-feedback", `${shopDomain}:${occurredAt}`),
-          kind: "lifecycle",
-          shopDomain,
-          shopHash: await notificationShopHash(shopDomain),
-          subject: "💬 CF Ready · Motivo della disinstallazione",
-          body: notificationBody(
-            "Shopify Partners ha reso disponibile il feedback della disinstallazione.",
-            occurredAt,
-            [storeSection(displayName, shopDomain, snapshot), uninstallFeedbackSection(event)],
-          ),
+        .bind(body, now.toISOString(), shopDomain, lifecycle.subject, occurredAt)
+        .run();
+      if (enriched.meta.changes > 0) return null;
+      const feedback = normalizeUninstallFeedback(event);
+      if (!feedback || (!feedback.reason && !feedback.description)) return null;
+      const original = await db
+        .prepare(
+          `SELECT body_text FROM owner_notifications
+           WHERE shop_domain = ? AND subject = ?
+             AND ABS(unixepoch(source_occurred_at) - unixepoch(?)) <= 300
+           ORDER BY id LIMIT 1`,
+        )
+        .bind(shopDomain, lifecycle.subject, occurredAt)
+        .first<{ body_text: string }>();
+      const sharedReason = original?.body_text.match(/\nMotivo: ([^\n]+)/)?.[1];
+      const sharedComment = original?.body_text.match(/\nCommento: ([^\n]+)/)?.[1];
+      // Il corpo in processing è già stato acquisito dal mittente: non modificarlo.
+      // Anche i messaggi precedenti alla sezione feedback possono ricevere il seguito.
+      if (
+        !original ||
+        (sharedReason && sharedReason !== "Nessun motivo fornito") ||
+        (sharedComment && sharedComment !== "Nessun commento fornito")
+      )
+        return null;
+      return notificationStatement(db, {
+        dedupeKey: await notificationKey("uninstall-feedback", `${shopDomain}:${occurredAt}`),
+        kind: "lifecycle",
+        shopDomain,
+        shopHash: await notificationShopHash(shopDomain),
+        subject: "💬 CF Ready · Motivo della disinstallazione",
+        body: notificationBody(
+          "Shopify Partners ha reso disponibile il feedback della disinstallazione.",
           occurredAt,
-        });
-      }
-      return null;
+          [storeSection(displayName, shopDomain, snapshot), uninstallFeedbackSection(event)],
+        ),
+        occurredAt,
+      });
     }
     return notificationStatement(db, {
       dedupeKey: await relationshipNotificationKey(
@@ -264,6 +272,7 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode,
     : null;
   const billing = billingCopy(type, previousKind !== null);
   if (await hasEquivalentNotification(db, shopDomain, billing.subject, occurredAt)) return null;
+  const [displayName, snapshot] = await storeContext();
   const plan = safePlanName(charge.name) ?? planLabel(currentKind) ?? operationalPlan(snapshot);
   const billingDetails = [
     ...(previousKind ? [`Da: ${planLabel(previousKind)}`] : []),
