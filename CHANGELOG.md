@@ -6,6 +6,30 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.2.6 — 13 ottobre 2026
+
+- sposta le code webhook nella jurisdiction `eu` di Cloudflare Queues con i
+  nomi `cf-ready-webhooks-dev-eu` e `cf-ready-webhooks-prod-eu`, ciascuna con la
+  propria failure queue;
+- il deploy Production crea le code mancanti con `--jurisdiction eu` e i
+  preflight rifiutano code fuori da `eu`;
+- le code precedenti restano consumate per questo rilascio, finché si svuotano
+  (D-184).
+
+Webhook queues now live in Cloudflare's EU jurisdiction; no change for
+merchants or the checkout.
+
+## 2.2.6 — 13 ottobre 2026
+
+- `shopify app dev` torna a usare URL del tunnel, chiave e scope di Shopify
+  CLI: con la Vite plugin 2.0 il Worker locale riceveva quelli di
+  Development;
+- i singoli secret si impostano con `cf workers secrets update`, non più con
+  Wrangler.
+
+Local development with `shopify app dev` again uses the tunnel URL, API key
+and scopes from Shopify CLI; single secrets are set with the `cf` CLI.
+
 ## 2.2.5 — 12 ottobre 2026
 
 - passa alla CLI Cloudflare `cf`: `cloudflare.config.ts` sostituisce

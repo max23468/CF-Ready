@@ -72,6 +72,20 @@ export function sharesWorkerTopology(targets, expected) {
   );
 }
 
+// Le code webhook vivono nella jurisdiction `eu` (D-184), fissata da Cloudflare solo alla
+// creazione: una coda omonima creata altrove non si corregge e va ricreata. Production
+// tollera le code assenti, perché il workflow le crea subito dopo con `--jurisdiction eu`.
+export function verifyQueueJurisdiction(listing, names, { allowMissing = false } = {}) {
+  for (const name of names) {
+    const queue = listing.find(({ queue_name }) => queue_name === name);
+    if (!queue && allowMissing) continue;
+    if (!queue) throw new Error(`La coda ${name} non esiste: creala con --jurisdiction eu.`);
+    if (queue.jurisdiction !== "eu") {
+      throw new Error(`La coda ${name} non è nella jurisdiction eu.`);
+    }
+  }
+}
+
 // `cf workers deployments list` mette per primo il deployment che serve il traffico; ha la
 // stessa forma che `wrangler deployments status --json` restituiva da solo.
 export function activeDeployment(listing) {

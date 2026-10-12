@@ -83,11 +83,12 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           npm exec -- cf queues list > "$RUNNER_TEMP/queues.json"
-          for queue in cf-ready-webhooks-prod cf-ready-webhooks-prod-failures; do
+          # La jurisdiction si fissa solo alla creazione; il preflight rifiuta code fuori da `eu`.
+          for queue in cf-ready-webhooks-prod-eu cf-ready-webhooks-prod-eu-failures; do
             if jq -e --arg queue "$queue" 'any(.[]; .queue_name == $queue)' "$RUNNER_TEMP/queues.json" > /dev/null; then
               continue
             fi
-            npm exec -- cf queues create --queue-name "$queue" > /dev/null
+            npm exec -- cf queues create --queue-name "$queue" --jurisdiction eu > /dev/null
           done
 
       - name: Prepara versione
