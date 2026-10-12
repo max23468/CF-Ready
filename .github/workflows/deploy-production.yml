@@ -15,6 +15,8 @@ concurrency:
 
 env:
   WORKER_NAME: cf-ready-prod
+  D1_DATABASE_ID: 6434597c-d683-48d9-a51f-b0d15de6a684
+  CF_SEND_TELEMETRY: "false"
   WORKER_URL: https://app.cfready.it
 
 jobs:
@@ -63,13 +65,11 @@ jobs:
           REQUIRED_CHECKS: verify,e2e,react-doctor,coverage
         run: node scripts/github-gates.mjs
 
-      # Il Vite plugin appiattisce l'ambiente al momento della build: il bundle
-      # Production nasce qui e viene poi distribuito senza ricostruzioni.
+      # La Vite plugin fissa la mode al momento della build: la Build Output Production
+      # nasce qui e viene poi distribuita con `--prebuilt`, senza ricostruzioni.
       - name: Costruisci per Production
-        env:
-          CLOUDFLARE_ENV: production
         run: |
-          npm run build
+          npm run build:prod
           npm run build:function
 
       - name: Preflight Production
@@ -82,11 +82,12 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
+          npm exec -- cf queues list > "$RUNNER_TEMP/queues.json"
           for queue in cf-ready-webhooks-prod cf-ready-webhooks-prod-failures; do
-            if npm exec -- wrangler queues info "$queue" > /dev/null 2>&1; then
+            if jq -e --arg queue "$queue" 'any(.[]; .queue_name == $queue)' "$RUNNER_TEMP/queues.json" > /dev/null; then
               continue
             fi
-            npm exec -- wrangler queues create "$queue"
+            npm exec -- cf queues create --queue-name "$queue" > /dev/null
           done
 
       - name: Prepara versione
@@ -102,13 +103,13 @@ jobs:
           # shellcheck disable=SC2016
           billing="$(node --input-type=module -e '
             import { readFileSync } from "node:fs";
-            import { readBillingMode } from "./scripts/preflight-prod.mjs";
-            process.stdout.write(readBillingMode(readFileSync("build/server/wrangler.json", "utf8")));
+            import { buildOutput, readBillingMode } from "./scripts/preflight-prod.mjs";
+            process.stdout.write(readBillingMode(readFileSync(buildOutput.worker, "utf8")));
           ')"
           {
             echo "## Ricevuta deploy Production"
             echo "- Ambiente: Production"
-            echo "- Configurazione: \`wrangler.json\` env \`production\`, \`shopify.app.toml\`"
+            echo "- Configurazione: \`cloudflare.config.ts\` mode \`prod\`, \`shopify.app.toml\`"
             echo "- Worker: \`$WORKER_NAME\`, URL $WORKER_URL"
             echo "- Versione repository/Shopify: \`$version\`"
             echo "- Commit: \`$GITHUB_SHA\`"
@@ -124,8 +125,12 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
         run: |
-          if npm exec -- wrangler deployments status --config wrangler.json --env production --json \
-            > "$RUNNER_TEMP/worker-rollback.json" 2>/dev/null; then :; else echo '{}' > "$RUNNER_TEMP/worker-rollback.json"; fi
+          if npm exec -- cf workers deployments list --worker "$WORKER_NAME" \
+            > "$RUNNER_TEMP/worker-deployments.json" 2>/dev/null; then
+            jq '.deployments[0] // {}' "$RUNNER_TEMP/worker-deployments.json" > "$RUNNER_TEMP/worker-rollback.json"
+          else
+            echo '{}' > "$RUNNER_TEMP/worker-rollback.json"
+          fi
           shopify app versions list --no-color --json > "$RUNNER_TEMP/shopify-rollback.json"
           # shellcheck disable=SC2016
           node --input-type=module -e '
@@ -151,14 +156,14 @@ jobs:
       - name: Applica migrazioni D1 Production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: npm exec -- wrangler d1 migrations apply DB --config wrangler.json --env production --remote
+        run: npm exec -- cf d1 migrations apply "$D1_DATABASE_ID"
 
       - name: Readback migrazioni D1 Production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          npm exec -- wrangler d1 migrations list DB --config wrangler.json --env production --remote \
-            | tee "$RUNNER_TEMP/d1-migrations.txt"
+          npm exec -- cf d1 migrations list "$D1_DATABASE_ID" > "$RUNNER_TEMP/d1-migrations.json"
+          cat "$RUNNER_TEMP/d1-migrations.json"
           # shellcheck disable=SC2016
           node --input-type=module -e '
             import { appendFileSync, readFileSync } from "node:fs";
@@ -166,7 +171,7 @@ jobs:
             verifyNoPendingMigrations(readFileSync(process.argv[1], "utf8"));
             appendFileSync(process.env.GITHUB_STEP_SUMMARY,
               "- D1 Production: nessuna migrazione pendente dopo il readback remoto\n");
-          ' "$RUNNER_TEMP/d1-migrations.txt"
+          ' "$RUNNER_TEMP/d1-migrations.json"
 
       - name: Arma rollback Shopify Production
         id: arm_shopify
@@ -192,9 +197,8 @@ jobs:
           shopify app versions list --no-color --json > "$RUNNER_TEMP/shopify-versions.json"
           node scripts/provider-readback.mjs shopify "$RUNNER_TEMP/shopify-versions.json"
 
-      # Nessun `--env` qui: il bundle appena costruito è già quello Production e wrangler
-      # lo legge da .wrangler/deploy/config.json. Passare `--env` cercherebbe un ambiente
-      # dentro un file che non ne ha.
+      # `--prebuilt` distribuisce la Build Output verificata dal preflight; `--mode prod` deve
+      # coincidere con quella registrata, altrimenti `cf` si ferma prima dell'upload.
       - name: Arma rollback Worker Production
         id: arm_worker
         run: echo "started=true" >> "$GITHUB_OUTPUT"
@@ -202,7 +206,7 @@ jobs:
       - name: Deploy Worker Production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: npm exec -- wrangler deploy --message "Production ${GITHUB_SHA}"
+        run: npm exec -- cf deploy --prebuilt --mode prod --no-provision --message "Production ${GITHUB_SHA}"
 
       - name: Readback Worker Production
         env:
@@ -210,8 +214,8 @@ jobs:
           DEPLOY_ENVIRONMENT: Production
           DEPLOY_SOURCE_COMMIT: ${{ github.sha }}
         run: |
-          npm exec -- wrangler deployments status --config wrangler.json --env production --json \
-            > "$RUNNER_TEMP/worker-deployment.json"
+          npm exec -- cf workers deployments list --worker "$WORKER_NAME" > "$RUNNER_TEMP/worker-deployments.json"
+          jq '.deployments[0] // {}' "$RUNNER_TEMP/worker-deployments.json" > "$RUNNER_TEMP/worker-deployment.json"
           node scripts/provider-readback.mjs worker "$RUNNER_TEMP/worker-deployment.json"
 
       - name: Smoke Worker Production
@@ -277,9 +281,10 @@ jobs:
             echo "- Worker: invariato, nessun ripristino necessario" >> "$GITHUB_STEP_SUMMARY"
             worker_ready_for_shopify=1
           elif [ "$ROLLBACK_ARMED" = "true" ]; then
-            if npm exec -- wrangler rollback "$WORKER_ROLLBACK_VERSION_ID" \
-              --config wrangler.json --env production \
-              --message "Rollback Production ${GITHUB_SHA}" --yes; then
+            if npm exec -- cf workers deployments create --worker "$WORKER_NAME" --bypass-deployment-checks \
+              --body "$(jq -n --arg version "$WORKER_ROLLBACK_VERSION_ID" --arg message "Rollback Production ${GITHUB_SHA}" \
+                '{strategy: "percentage", versions: [{version_id: $version, percentage: 100}], annotations: {"workers/message": $message}}')" \
+              > /dev/null; then
               echo "- Worker ripristinato alla versione \`$WORKER_ROLLBACK_VERSION_ID\`" >> "$GITHUB_STEP_SUMMARY"
               worker_ready_for_shopify=1
             else
@@ -305,8 +310,8 @@ jobs:
 
           shopify app versions list --no-color --json > "$RUNNER_TEMP/shopify-rollback-readback.json"
           if [ "$WORKER_DEPLOY_STARTED" = "true" ] && [ "$ROLLBACK_ARMED" = "true" ]; then
-            npm exec -- wrangler deployments status --config wrangler.json --env production --json \
-              > "$RUNNER_TEMP/worker-rollback-readback.json"
+            npm exec -- cf workers deployments list --worker "$WORKER_NAME" > "$RUNNER_TEMP/worker-rollback-list.json"
+            jq '.deployments[0] // {}' "$RUNNER_TEMP/worker-rollback-list.json" > "$RUNNER_TEMP/worker-rollback-readback.json"
           else
             echo '{}' > "$RUNNER_TEMP/worker-rollback-readback.json"
           fi

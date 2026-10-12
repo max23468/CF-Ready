@@ -23,6 +23,7 @@ import {
   markdownTargets,
   xmlAnchors,
 } from "./check-docs.mjs";
+import { loadWorkerConfig } from "./preflight-common.mjs";
 import { preparePagesSite } from "./prepare-pages-site.mjs";
 
 test("rifiuta percorsi assoluti legati alla macchina locale", () => {
@@ -911,9 +912,9 @@ test("il deploy Production provisiona entrambe le code webhook dichiarate", () =
     new URL("../.github/workflows/deploy-production.yml", import.meta.url),
     "utf8",
   );
-  assert.match(workflow, /wrangler queues info "\$queue"/);
+  assert.match(workflow, /cf queues list > "\$RUNNER_TEMP\/queues\.json"/);
   assert.match(workflow, /cf-ready-webhooks-prod cf-ready-webhooks-prod-failures/);
-  assert.match(workflow, /wrangler queues create "\$queue"/);
+  assert.match(workflow, /cf queues create --queue-name "\$queue"/);
 });
 
 test("il backup Production cifra, ruota gli slot e prova il restore", () => {
@@ -930,7 +931,12 @@ test("il backup Production cifra, ruota gli slot e prova il restore", () => {
   assert.match(schedule, /schedule:/);
   assert.match(schedule, /gh workflow run backup-production\.yml .*--ref main/);
   assert.match(workflow, /environment: Production Backups/);
-  assert.match(workflow, /wrangler d1 export "\$D1_DATABASE" --remote/);
+  assert.match(workflow, /cf d1 get "\$D1_DATABASE_ID"/);
+  assert.match(workflow, /cf r2 buckets get "\$R2_BUCKET" --cf-r2-jurisdiction eu/);
+  assert.match(
+    workflow,
+    /wrangler d1 export DB --config "\$RUNNER_TEMP\/backup-wrangler\.json" --remote/,
+  );
   assert.match(workflow, /--output "\$RUNNER_TEMP\/d1\.sql" > \/dev\/null/);
   assert.match(workflow, /test -n "\$CLOUDFLARE_API_TOKEN"\n\s+test -n "\$D1_BACKUP_KEY"/);
   assert.doesNotMatch(workflow, /test -n "\$CLOUDFLARE_API_TOKEN" &&/);
@@ -940,7 +946,10 @@ test("il backup Production cifra, ruota gli slot e prova il restore", () => {
   assert.match(workflow, /wrangler r2 object get "\$R2_BUCKET\/\$WEEKLY_KEY"/);
   assert.match(workflow, /--jurisdiction eu/);
   assert.match(workflow, /backup-crypto\.mjs verify/);
-  assert.match(workflow, /wrangler d1 execute DB --local/);
+  assert.match(
+    workflow,
+    /wrangler d1 execute DB --config "\$RUNNER_TEMP\/backup-wrangler\.json" --local/,
+  );
   assert.match(workflow, /monthly\/latest\.txt/);
   assert.doesNotMatch(workflow, /date -u \+%d/);
   assert.ok(
@@ -949,8 +958,7 @@ test("il backup Production cifra, ruota gli slot e prova il restore", () => {
   assert.doesNotMatch(workflow, /d1 execute .*--remote/);
 });
 
-test("osservabilità sicura e ricevute restano configurate", () => {
-  const wrangler = JSON.parse(readFileSync(new URL("../wrangler.json", import.meta.url), "utf8"));
+test("osservabilità sicura e ricevute restano configurate", async () => {
   const development = readFileSync(
     new URL("../.github/workflows/deploy-development.yml", import.meta.url),
     "utf8",
@@ -959,9 +967,12 @@ test("osservabilità sicura e ricevute restano configurate", () => {
     new URL("../docs/runbooks/operations.md", import.meta.url),
     "utf8",
   );
-  assert.equal(wrangler.observability.logs.head_sampling_rate, 1);
-  assert.equal(wrangler.observability.logs.invocation_logs, false);
-  assert.equal(wrangler.observability.traces.enabled, false);
+  for (const mode of ["dev", "prod"]) {
+    const { observability } = await loadWorkerConfig(mode);
+    assert.equal(observability.logs.headSamplingRate, 1);
+    assert.equal(observability.logs.invocationLogs, false);
+    assert.equal(observability.traces.enabled, false);
+  }
   assert.match(development, /## Ricevuta deploy Development/);
   assert.doesNotMatch(development, /capacity:dev|capacity-check|Verifica capacità/);
   assert.match(operations, /D1 storage per database \| 500 MB \| 250 MB/);
@@ -995,7 +1006,8 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
   assert.match(ci, /actions\/upload-artifact@[0-9a-f]{40}/);
   assert.match(ci, /path: test-results/);
   assert.match(playwright, /failOnFlakyTests: Boolean\(process\.env\.CI\)/);
-  assert.match(playwright, /wrangler dev --config build\/server\/wrangler\.json/);
+  assert.match(playwright, /vite preview --mode dev/);
+  assert.match(playwright, /CLOUDFLARE_INCLUDE_PROCESS_ENV: "true"/);
   assert.match(playwright, /npm run site:dev/);
   assert.doesNotMatch(playwright, /cf-ready-dev|cf-ready\.pages\.dev/);
 });
@@ -1092,7 +1104,7 @@ test("i deploy riusano i gate e conservano ricevute fuori dalle PR", () => {
   const developmentRollback = development.slice(
     development.indexOf("name: Ripristina snapshot Development coordinato"),
   );
-  const developmentWorkerRollback = developmentRollback.indexOf("wrangler rollback");
+  const developmentWorkerRollback = developmentRollback.indexOf("cf workers deployments create");
   const developmentShopifyRollback = developmentRollback.indexOf("shopify app release");
   assert.ok(
     developmentWorkerRollback >= 0 && developmentShopifyRollback > developmentWorkerRollback,
@@ -1109,7 +1121,7 @@ test("i deploy riusano i gate e conservano ricevute fuori dalle PR", () => {
   const productionRollback = production.slice(
     production.indexOf("name: Ripristina lo snapshot Production precedente"),
   );
-  const productionWorkerRollback = productionRollback.indexOf("wrangler rollback");
+  const productionWorkerRollback = productionRollback.indexOf("cf workers deployments create");
   const productionShopifyRollback = productionRollback.indexOf("shopify app release");
   assert.ok(productionWorkerRollback >= 0 && productionShopifyRollback > productionWorkerRollback);
   assert.match(productionRollback, /elif \[ "\$worker_ready_for_shopify" -ne 1 \]; then/);

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
+import { loadWorkerConfig } from "./preflight-common.mjs";
 import {
   readBillingMode,
   readRollbackTarget,
@@ -11,45 +12,19 @@ import {
 
 const shopify = readFileSync(new URL("../shopify.app.toml", import.meta.url), "utf8");
 
+// La Build Output Production nasce da `cloudflare.config.ts` in mode `prod`; gli addebiti di
+// prova distinguono il fixture dal valore reale.
+const productionWorker = await loadWorkerConfig("prod");
 const builtProduction = JSON.stringify({
-  name: "cf-ready-prod",
-  vars: {
-    SHOPIFY_API_KEY: "3640fb39bcf605de0537d6dfc0d01c8a",
-    SHOPIFY_APP_URL: "https://app.cfready.it",
-    SCOPES: "write_validations",
-    BILLING_TEST: "true",
-    OWNER_NOTIFICATIONS_ENABLED: "false",
-    OWNER_TELEGRAM_CONTROL_ENABLED: "false",
-    APP_ENVIRONMENT: "production",
-  },
-  version_metadata: { binding: "CF_VERSION_METADATA" },
-  workers_dev: false,
-  routes: [{ pattern: "app.cfready.it", custom_domain: true }],
-  triggers: { crons: ["*/5 * * * *"] },
-  d1_databases: [
-    {
-      binding: "DB",
-      database_name: "cf-ready-db-prod",
-      database_id: "6434597c-d683-48d9-a51f-b0d15de6a684",
-    },
-  ],
-  queues: {
-    producers: [{ binding: "WEBHOOK_QUEUE", queue: "cf-ready-webhooks-prod" }],
-    consumers: [
-      {
-        queue: "cf-ready-webhooks-prod",
-        max_batch_size: 1,
-        max_retries: 5,
-        dead_letter_queue: "cf-ready-webhooks-prod-failures",
-      },
-      {
-        queue: "cf-ready-webhooks-prod-failures",
-        max_batch_size: 1,
-        max_retries: 100,
-        dead_letter_queue: "cf-ready-webhooks-prod",
-      },
-    ],
-  },
+  ...productionWorker,
+  env: { ...productionWorker.env, BILLING_TEST: { type: "text", value: "true" } },
+});
+const prodRoot = JSON.stringify({ buildContext: { isPreview: false, mode: "prod" } });
+const verifyBuilt = (workerConfig, rootConfig = prodRoot) =>
+  verifyBuiltConfig(workerConfig, rootConfig);
+const withVar = (config, name, value) => ({
+  ...config,
+  env: { ...config.env, [name]: { type: "text", value } },
 });
 
 test("il manifest Production del repository supera il preflight", () => {
@@ -102,75 +77,64 @@ test("il preflight vieta l'aggiornamento automatico degli URL in Production", ()
   );
 });
 
-// La regressione che conta: senza CLOUDFLARE_ENV=production il bundle porta i valori
-// Development e `wrangler deploy` li pubblicherebbe senza dire niente.
-test("il preflight riconosce un bundle costruito senza CLOUDFLARE_ENV=production", () => {
-  const builtDevelopment = JSON.stringify({
-    name: "cf-ready-dev",
-    vars: {
-      SHOPIFY_API_KEY: "adff48d4fe4ceb0dadb4734520701dd7",
-      SHOPIFY_APP_URL: "https://cf-ready-dev.tmsf.workers.dev",
-      SCOPES: "write_validations",
-      ALLOWED_SHOP: "cf-ready-dev.myshopify.com",
-    },
-    d1_databases: [
-      {
-        binding: "DB",
-        database_name: "cf-ready-db-dev",
-        database_id: "9490eaea-3a12-465d-bb48-e2622b31fc4d",
-      },
-    ],
-  });
-
-  assert.doesNotThrow(() => verifyBuiltConfig(builtProduction));
-  assert.throws(() => verifyBuiltConfig(builtDevelopment), /CLOUDFLARE_ENV=production/);
+// La regressione che conta: senza `--mode prod` la Build Output porta i valori Development e
+// `cf deploy --prebuilt` li pubblicherebbe senza dire niente.
+test("il preflight riconosce una Build Output costruita senza --mode prod", async () => {
+  const builtDevelopment = JSON.stringify(await loadWorkerConfig("dev"));
+  assert.doesNotThrow(() => verifyBuilt(builtProduction));
+  assert.throws(() => verifyBuilt(builtDevelopment), /build:prod/);
+  for (const mode of ["dev", "production", undefined]) {
+    assert.throws(
+      () => verifyBuilt(builtProduction, JSON.stringify({ buildContext: { mode } })),
+      /build:prod/,
+    );
+  }
 });
 
 test("il preflight richiede app.cfready.it come unico ingresso pubblico del Worker", () => {
-  const workersDev = JSON.parse(builtProduction);
-  workersDev.workers_dev = true;
-  assert.throws(() => verifyBuiltConfig(JSON.stringify(workersDev)), /Production/);
+  const workersDev = { ...JSON.parse(builtProduction), workersDev: true };
+  assert.throws(() => verifyBuilt(JSON.stringify(workersDev)), /Production/);
 
-  const withoutCustomDomain = JSON.parse(builtProduction);
-  delete withoutCustomDomain.routes;
-  assert.throws(() => verifyBuiltConfig(JSON.stringify(withoutCustomDomain)), /Production/);
+  const withoutCustomDomain = { ...JSON.parse(builtProduction), domains: [] };
+  assert.throws(() => verifyBuilt(JSON.stringify(withoutCustomDomain)), /Production/);
 });
 
 test("il preflight vieta ALLOWED_SHOP in Production", () => {
-  const restricted = JSON.parse(builtProduction);
   for (const allowed of [
     "cf-ready-dev.myshopify.com",
     "cf-ready-dev.myshopify.com,cf-ready-polaris-2.myshopify.com",
   ]) {
-    restricted.vars.ALLOWED_SHOP = allowed;
-    assert.throws(() => verifyBuiltConfig(JSON.stringify(restricted)), /ALLOWED_SHOP/);
+    const restricted = withVar(JSON.parse(builtProduction), "ALLOWED_SHOP", allowed);
+    assert.throws(() => verifyBuilt(JSON.stringify(restricted)), /ALLOWED_SHOP/);
   }
 });
 
 test("il preflight legge il database Production sbagliato", () => {
   const wrongDatabase = JSON.parse(builtProduction);
-  wrongDatabase.d1_databases[0].database_name = "cf-ready-db-dev";
-  assert.throws(() => verifyBuiltConfig(JSON.stringify(wrongDatabase)), /Production/);
+  wrongDatabase.env.DB.name = "cf-ready-db-dev";
+  assert.throws(() => verifyBuilt(JSON.stringify(wrongDatabase)), /Production/);
 });
 
 test("il preflight rifiuta la coda webhook Production sbagliata", () => {
   const wrongQueue = JSON.parse(builtProduction);
-  wrongQueue.queues.producers[0].queue = "cf-ready-webhooks-dev";
-  assert.throws(() => verifyBuiltConfig(JSON.stringify(wrongQueue)), /Production/);
+  wrongQueue.env.WEBHOOK_QUEUE.name = "cf-ready-webhooks-dev";
+  assert.throws(() => verifyBuilt(JSON.stringify(wrongQueue)), /Production/);
 });
 
 test("il preflight richiede un solo trigger ogni cinque minuti", () => {
   for (const crons of [["* * * * *"], ["0 * * * *", "*/5 * * * *"]]) {
     const wrong = JSON.parse(builtProduction);
-    wrong.triggers.crons = crons;
-    assert.throws(() => verifyBuiltConfig(JSON.stringify(wrong)), /Production/);
+    wrong.triggers = [
+      ...crons.map((schedule) => ({ type: "scheduled", schedule })),
+      ...wrong.triggers.filter(({ type }) => type !== "scheduled"),
+    ];
+    assert.throws(() => verifyBuilt(JSON.stringify(wrong)), /Production/);
   }
 });
 
 test("la modalità di addebito è dichiarata come la legge il Worker", () => {
   assert.equal(readBillingMode(builtProduction), "di prova");
-  const real = JSON.parse(builtProduction);
-  real.vars.BILLING_TEST = "false";
+  const real = withVar(JSON.parse(builtProduction), "BILLING_TEST", "false");
   assert.equal(readBillingMode(JSON.stringify(real)), "reale");
 });
 
