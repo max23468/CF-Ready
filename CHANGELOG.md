@@ -14,21 +14,21 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 - il deploy Production crea le code mancanti con `--jurisdiction eu` e i
   preflight rifiutano code fuori da `eu`;
 - le code precedenti restano consumate per questo rilascio, finché si svuotano
-  (D-184).
-
-Webhook queues now live in Cloudflare's EU jurisdiction; no change for
-merchants or the checkout.
-
-## 2.2.6 — 13 ottobre 2026
-
+  (D-184);
 - `shopify app dev` torna a usare URL del tunnel, chiave e scope di Shopify
   CLI: con la Vite plugin 2.0 il Worker locale riceveva quelli di
   Development;
 - i singoli secret si impostano con `cf workers secrets update`, non più con
-  Wrangler.
+  Wrangler;
+- Regole ha la stessa larghezza complessiva di Home, Messaggi e Guida: senza
+  colonna laterale `s-page` si fermava a 966 px contro 1088 px, e ora il
+  contenitore, banner compresi, si allarga in modo simmetrico fino a quella
+  misura; regole e simulatore restano affiancati al 50%.
 
-Local development with `shopify app dev` again uses the tunnel URL, API key
-and scopes from Shopify CLI; single secrets are set with the `cf` CLI.
+Webhook queues now live in Cloudflare's EU jurisdiction, and the Checkout rules
+page now has the same overall width as the other pages. Local development with
+`shopify app dev` again uses the tunnel URL, API key and scopes from Shopify
+CLI; single secrets are set with the `cf` CLI. No change for the checkout.
 
 ## 2.2.5 — 12 ottobre 2026
 
