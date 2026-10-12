@@ -2,12 +2,16 @@ import { appendFile, readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
 import {
+  activeDeployment,
+  loadWorkerConfig,
   readMigrations,
   readMigrationPolicy,
   run,
+  sharesWorkerTopology,
   verifyMigrationSafety,
   verifyWebhookUris,
   verifyWorkerSecrets,
+  workerTargets,
 } from "./preflight-common.mjs";
 
 const expected = {
@@ -20,7 +24,7 @@ const expected = {
   workerName: "cf-ready-dev",
 };
 
-export function verifyDevelopmentConfig(shopifyConfig, wranglerConfig) {
+export function verifyDevelopmentConfig(shopifyConfig, worker) {
   verifyWebhookUris(shopifyConfig, expected.appUrl);
   const shopifyTargets = [
     [shopifyConfig, /^client_id\s*=\s*"adff48d4fe4ceb0dadb4734520701dd7"\s*$/m],
@@ -29,17 +33,7 @@ export function verifyDevelopmentConfig(shopifyConfig, wranglerConfig) {
       /^application_url\s*=\s*"https:\/\/cf-ready-dev\.tmsf\.workers\.dev\/app"\s*$/m,
     ],
   ];
-  const wrangler = JSON.parse(wranglerConfig);
-  const database = wrangler.d1_databases?.find(({ binding }) => binding === "DB");
-  const queueProducer = wrangler.queues?.producers?.find(
-    ({ binding }) => binding === "WEBHOOK_QUEUE",
-  );
-  const queueConsumer = wrangler.queues?.consumers?.find(
-    ({ queue }) => queue === expected.queueName,
-  );
-  const failureQueueConsumer = wrangler.queues?.consumers?.find(
-    ({ queue }) => queue === expected.failureQueueName,
-  );
+  const targets = workerTargets(worker);
   const shopifyScopes = shopifyConfig.match(
     /^\[access_scopes\]\s*$[\s\S]*?^scopes\s*=\s*"([^"]*)"\s*$/m,
   )?.[1];
@@ -52,27 +46,15 @@ export function verifyDevelopmentConfig(shopifyConfig, wranglerConfig) {
     );
   if (
     shopifyTargets.some(([config, pattern]) => !pattern.test(config)) ||
-    wrangler.name !== expected.workerName ||
-    wrangler.vars?.SHOPIFY_API_KEY !== expected.clientId ||
-    wrangler.vars?.SHOPIFY_APP_URL !== expected.appUrl ||
+    !sharesWorkerTopology(targets, expected) ||
     shopifyScopes !== "write_validations" ||
     optionalScopes?.join(",") !== "write_translations,read_locales,read_markets" ||
     !emptyEvents ||
     /^\[\[events\.subscription\]\]/m.test(shopifyConfig) ||
-    wrangler.vars?.SCOPES !== shopifyScopes ||
-    wrangler.vars?.ALLOWED_SHOP !== "cf-ready-dev.myshopify.com,cf-ready-polaris-2.myshopify.com" ||
-    wrangler.vars?.APP_ENVIRONMENT !== "development" ||
-    !["true", "false"].includes(wrangler.vars?.OWNER_TELEGRAM_CONTROL_ENABLED) ||
-    wrangler.version_metadata?.binding !== "CF_VERSION_METADATA" ||
-    database?.database_name !== expected.databaseName ||
-    database?.database_id !== expected.databaseId ||
-    queueProducer?.queue !== expected.queueName ||
-    queueConsumer?.max_batch_size !== 1 ||
-    queueConsumer?.max_retries !== 5 ||
-    queueConsumer?.dead_letter_queue !== expected.failureQueueName ||
-    failureQueueConsumer?.max_batch_size !== 1 ||
-    failureQueueConsumer?.max_retries !== 100 ||
-    failureQueueConsumer?.dead_letter_queue !== expected.queueName
+    targets.vars.SCOPES !== shopifyScopes ||
+    targets.vars.ALLOWED_SHOP !== "cf-ready-dev.myshopify.com,cf-ready-polaris-2.myshopify.com" ||
+    targets.vars.APP_ENVIRONMENT !== "development" ||
+    !["true", "false"].includes(targets.vars.OWNER_TELEGRAM_CONTROL_ENABLED)
   ) {
     throw new Error("Il target Development non coincide con la configurazione attesa.");
   }
@@ -148,16 +130,22 @@ export function verifyCoordinatedRollback(deployment, versions) {
 async function main() {
   const readbackOnly = process.argv.includes("--readback-only");
   const shopifyConfig = await readFile("shopify.app.dev.toml", "utf8");
-  const wranglerConfig = await readFile("wrangler.json", "utf8");
-  verifyDevelopmentConfig(shopifyConfig, wranglerConfig);
+  const worker = await loadWorkerConfig("dev");
+  verifyDevelopmentConfig(shopifyConfig, worker);
   verifyMigrationSafety(await readMigrations(), await readMigrationPolicy());
 
   run("node", ["scripts/shopify-info-safe.mjs", "shopify.app.dev.toml"]);
   const versions = JSON.parse(
     run("shopify", ["app", "versions", "list", "--config", "dev", "--no-color", "--json"], false),
   );
-  const deployment = JSON.parse(
-    run("npm", ["exec", "--", "wrangler", "deployments", "status", "--json"], false),
+  const deployment = activeDeployment(
+    JSON.parse(
+      run(
+        "npm",
+        ["exec", "--", "cf", "workers", "deployments", "list", "--worker", expected.workerName],
+        false,
+      ),
+    ),
   );
   if (!readbackOnly) {
     const { version } = JSON.parse(await readFile("package.json", "utf8"));
@@ -180,17 +168,19 @@ async function main() {
     }
   }
   verifyCoordinatedRollback(deployment, versions);
-  const d1 = JSON.parse(
-    run("npm", ["exec", "--", "wrangler", "d1", "info", expected.databaseName, "--json"], false),
-  );
+  const d1 = JSON.parse(run("npm", ["exec", "--", "cf", "d1", "get", expected.databaseId], false));
   if (d1.uuid !== expected.databaseId || d1.name !== expected.databaseName) {
     throw new Error("Il database D1 Development non coincide con il target atteso.");
   }
   const secrets = JSON.parse(
-    run("npm", ["exec", "--", "wrangler", "secret", "list", "--format", "json"], false),
+    run(
+      "npm",
+      ["exec", "--", "cf", "workers", "secrets", "list", "--worker", expected.workerName],
+      false,
+    ),
   );
   verifyWorkerSecrets(secrets, {
-    ownerControl: JSON.parse(wranglerConfig).vars?.OWNER_TELEGRAM_CONTROL_ENABLED === "true",
+    ownerControl: workerTargets(worker).vars.OWNER_TELEGRAM_CONTROL_ENABLED === "true",
   });
 
   console.log(

@@ -1,6 +1,7 @@
 {
   "include": [
-    ".wrangler/types/worker-configuration.d.ts",
+    ".cloudflare/types/index.d.ts",
+    "cloudflare.config.ts",
     "app/**/*.ts",
     "app/**/*.tsx",
     "workers/**/*.ts",

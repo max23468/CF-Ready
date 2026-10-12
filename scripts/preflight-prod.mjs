@@ -6,10 +6,17 @@ import {
   readMigrations,
   readMigrationPolicy,
   run,
+  sharesWorkerTopology,
   verifyMigrationSafety,
   verifyWebhookUris,
   verifyWorkerSecrets,
+  workerTargets,
 } from "./preflight-common.mjs";
+
+export const buildOutput = {
+  root: ".cloudflare/output/v0/config.json",
+  worker: ".cloudflare/output/v0/workers/default/worker.config.json",
+};
 
 const expected = {
   clientId: "3640fb39bcf605de0537d6dfc0d01c8a",
@@ -55,60 +62,40 @@ export function verifyProductionConfig(shopifyConfig) {
   }
 }
 
-// Il Vite plugin appiattisce l'ambiente **al momento della build**: senza
-// CLOUDFLARE_ENV=production il bundle porta i valori Development, e `wrangler deploy`
-// li pubblicherebbe sotto il nome sbagliato senza dire niente. È l'unico controllo
-// che intercetta l'errore prima che diventi un deploy.
-export function verifyBuiltConfig(builtConfig) {
-  const built = JSON.parse(builtConfig);
-  const database = built.d1_databases?.find(({ binding }) => binding === "DB");
-  const queueProducer = built.queues?.producers?.find(({ binding }) => binding === "WEBHOOK_QUEUE");
-  const queueConsumer = built.queues?.consumers?.find(({ queue }) => queue === expected.queueName);
-  const failureQueueConsumer = built.queues?.consumers?.find(
-    ({ queue }) => queue === expected.failureQueueName,
-  );
+// La Vite plugin fissa l'ambiente **al momento della build**: senza `--mode prod` la Build
+// Output porta i valori Development, e `cf deploy --prebuilt` li pubblicherebbe. È l'unico
+// controllo che intercetta l'errore prima che diventi un deploy.
+export function verifyBuiltConfig(workerConfig, rootConfig) {
+  const targets = workerTargets(JSON.parse(workerConfig));
   if (
-    built.name !== expected.workerName ||
-    built.vars?.SHOPIFY_API_KEY !== expected.clientId ||
-    built.vars?.SHOPIFY_APP_URL !== expected.appUrl ||
-    built.vars?.SCOPES !== "write_validations" ||
-    database?.database_name !== expected.databaseName ||
-    database?.database_id !== expected.databaseId ||
-    queueProducer?.queue !== expected.queueName ||
-    queueConsumer?.max_batch_size !== 1 ||
-    queueConsumer?.max_retries !== 5 ||
-    queueConsumer?.dead_letter_queue !== expected.failureQueueName ||
-    failureQueueConsumer?.max_batch_size !== 1 ||
-    failureQueueConsumer?.max_retries !== 100 ||
-    failureQueueConsumer?.dead_letter_queue !== expected.queueName ||
-    built.send_email?.length ||
+    JSON.parse(rootConfig).buildContext?.mode !== "prod" ||
+    !sharesWorkerTopology(targets, expected) ||
+    targets.sendsEmail ||
     // Un solo trigger: il tick delle :00 esegue la retention, gli altri il ciclo owner.
-    JSON.stringify(built.triggers?.crons) !== '["*/5 * * * *"]' ||
-    !["true", "false"].includes(built.vars?.OWNER_NOTIFICATIONS_ENABLED) ||
-    !["true", "false"].includes(built.vars?.OWNER_TELEGRAM_CONTROL_ENABLED) ||
-    built.vars?.APP_ENVIRONMENT !== "production" ||
-    built.version_metadata?.binding !== "CF_VERSION_METADATA" ||
+    JSON.stringify(targets.crons) !== '["*/5 * * * *"]' ||
+    !["true", "false"].includes(targets.vars.OWNER_NOTIFICATIONS_ENABLED) ||
+    !["true", "false"].includes(targets.vars.OWNER_TELEGRAM_CONTROL_ENABLED) ||
+    targets.vars.APP_ENVIRONMENT !== "production" ||
     // D-151: l'app Production risponde solo sul dominio personalizzato dichiarato qui.
-    built.workers_dev !== false ||
-    !built.routes?.some(
-      ({ pattern, custom_domain }) =>
-        pattern === new URL(expected.appUrl).host && custom_domain === true,
-    )
+    targets.workersDev !== false ||
+    !targets.domains.includes(new URL(expected.appUrl).host)
   ) {
     throw new Error(
-      "Il bundle non è quello Production: ricostruisci con CLOUDFLARE_ENV=production.",
+      "La Build Output non è quella Production: ricostruisci con `npm run build:prod`.",
     );
   }
   // In Development limita l'installazione al dev store, perché il client_id sta in un
   // repository pubblico. In Production deve installare chiunque riceva il link.
-  if (built.vars?.ALLOWED_SHOP) {
+  if (targets.vars.ALLOWED_SHOP) {
     throw new Error("ALLOWED_SHOP non deve essere impostata in Production.");
   }
 }
 
 // Il deploy dichiara nella ricevuta se il bundle usa addebiti reali o di prova.
-export function readBillingMode(builtConfig) {
-  return JSON.parse(builtConfig).vars?.BILLING_TEST === "false" ? "reale" : "di prova";
+export function readBillingMode(workerConfig) {
+  return workerTargets(JSON.parse(workerConfig)).vars.BILLING_TEST === "false"
+    ? "reale"
+    : "di prova";
 }
 
 // Al primo deploy Production non esiste niente da ripristinare. Il caso va riconosciuto,
@@ -126,54 +113,40 @@ function escapeUrl(url) {
 async function main() {
   const shopifyConfig = await readFile("shopify.app.toml", "utf8");
   verifyProductionConfig(shopifyConfig);
-  verifyBuiltConfig(await readFile("build/server/wrangler.json", "utf8"));
+  const workerConfig = await readFile(buildOutput.worker, "utf8");
+  verifyBuiltConfig(workerConfig, await readFile(buildOutput.root, "utf8"));
 
   verifyMigrationSafety(await readMigrations(), await readMigrationPolicy());
 
   run("node", ["scripts/shopify-info-safe.mjs", "shopify.app.toml"]);
 
-  const d1 = JSON.parse(
-    run("npm", ["exec", "--", "wrangler", "d1", "info", expected.databaseName, "--json"], false),
-  );
+  const d1 = JSON.parse(run("npm", ["exec", "--", "cf", "d1", "get", expected.databaseId], false));
   if (d1.uuid !== expected.databaseId || d1.name !== expected.databaseName) {
     throw new Error("Il database D1 Production non coincide con il target atteso.");
   }
 
-  // Al primo giro il Worker non esiste ancora e `secret list` fallisce. È il caso più
+  // Al primo giro il Worker non esiste ancora e `secrets list` fallisce. È il caso più
   // probabile per chi legge questo errore, quindi vale la pena distinguerlo.
   const listed = spawnSync(
     "npm",
-    [
-      "exec",
-      "--",
-      "wrangler",
-      "secret",
-      "list",
-      "--config",
-      "wrangler.json",
-      "--env",
-      "production",
-      "--format",
-      "json",
-    ],
+    ["exec", "--", "cf", "workers", "secrets", "list", "--worker", expected.workerName],
     { encoding: "utf8", stdio: "pipe" },
   );
   if (listed.status !== 0) {
     throw new Error(
       `Impossibile leggere i secret di ${expected.workerName}. Se il Worker non esiste ancora, ` +
-        "lo crea il primo secret: npx wrangler secret put SHOPIFY_API_SECRET --env production",
+        "lo crea il primo secret: npx wrangler secret put SHOPIFY_API_SECRET --name cf-ready-prod",
     );
   }
+  const { vars } = workerTargets(JSON.parse(workerConfig));
   verifyWorkerSecrets(JSON.parse(listed.stdout), {
-    ownerNotifications:
-      JSON.parse(await readFile("build/server/wrangler.json", "utf8")).vars
-        ?.OWNER_NOTIFICATIONS_ENABLED === "true",
-    ownerControl:
-      JSON.parse(await readFile("build/server/wrangler.json", "utf8")).vars
-        ?.OWNER_TELEGRAM_CONTROL_ENABLED === "true",
+    ownerNotifications: vars.OWNER_NOTIFICATIONS_ENABLED === "true",
+    ownerControl: vars.OWNER_TELEGRAM_CONTROL_ENABLED === "true",
   });
 
-  console.log("Preflight Production superato: Shopify, bundle, D1 e secret Worker verificati.");
+  console.log(
+    "Preflight Production superato: Shopify, Build Output, D1 e secret Worker verificati.",
+  );
 }
 
 const isDirectExecution =

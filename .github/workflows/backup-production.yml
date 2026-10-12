@@ -15,6 +15,7 @@ env:
   D1_DATABASE: cf-ready-db-prod
   D1_DATABASE_ID: 6434597c-d683-48d9-a51f-b0d15de6a684
   R2_BUCKET: cf-ready-backups-prod
+  CF_SEND_TELEMETRY: "false"
 
 jobs:
   backup:
@@ -39,8 +40,8 @@ jobs:
         run: |
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$D1_BACKUP_KEY"
-          npm exec -- wrangler d1 info "$D1_DATABASE" --json > "$RUNNER_TEMP/d1-info.json"
-          npm exec -- wrangler r2 bucket info "$R2_BUCKET" --jurisdiction eu --json > "$RUNNER_TEMP/r2-info.json"
+          npm exec -- cf d1 get "$D1_DATABASE_ID" > "$RUNNER_TEMP/d1-info.json"
+          npm exec -- cf r2 buckets get "$R2_BUCKET" --cf-r2-jurisdiction eu > "$RUNNER_TEMP/r2-info.json"
           node --input-type=module -e '
             import { readFileSync } from "node:fs";
             const d1 = JSON.parse(readFileSync(process.argv[1], "utf8"));
@@ -51,6 +52,11 @@ jobs:
             }
           ' "$RUNNER_TEMP/d1-info.json" "$RUNNER_TEMP/r2-info.json"
           node scripts/backup-crypto.mjs check-key
+          # `cf` non esporta D1 e `cf r2 objects` 1.0.0-beta non gestisce bucket UE con chiavi a
+          # cartelle: export, restore di prova e oggetti R2 restano su Wrangler (ADR 0004), con
+          # una configurazione minima che nomina solo il database da salvare.
+          printf '{"name":"cf-ready-backup","compatibility_date":"2026-10-02","d1_databases":[{"binding":"DB","database_name":"%s","database_id":"%s"}]}\n' \
+            "$D1_DATABASE" "$D1_DATABASE_ID" > "$RUNNER_TEMP/backup-wrangler.json"
 
       - name: Esporta e cifra D1 Production
         env:
@@ -58,7 +64,7 @@ jobs:
           D1_BACKUP_KEY: ${{ secrets.D1_BACKUP_KEY }}
         run: |
           umask 077
-          npm exec -- wrangler d1 export "$D1_DATABASE" --remote --skip-confirmation \
+          npm exec -- wrangler d1 export DB --config "$RUNNER_TEMP/backup-wrangler.json" --remote --skip-confirmation \
             --output "$RUNNER_TEMP/d1.sql" > /dev/null
           node scripts/backup-crypto.mjs encrypt "$RUNNER_TEMP/d1.sql" "$RUNNER_TEMP/d1.cfrb"
 
@@ -70,7 +76,7 @@ jobs:
           node scripts/backup-crypto.mjs decrypt \
             "$RUNNER_TEMP/d1.cfrb" "$RUNNER_TEMP/preflight.sql"
           cmp "$RUNNER_TEMP/d1.sql" "$RUNNER_TEMP/preflight.sql"
-          npm exec -- wrangler d1 execute DB --local --yes \
+          npm exec -- wrangler d1 execute DB --config "$RUNNER_TEMP/backup-wrangler.json" --local --yes \
             --persist-to "$RUNNER_TEMP/preflight-state" --file "$RUNNER_TEMP/preflight.sql"
           node scripts/backup-crypto.mjs verify \
             "$RUNNER_TEMP/preflight.sql" "$RUNNER_TEMP/preflight.sqlite"

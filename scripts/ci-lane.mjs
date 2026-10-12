@@ -81,7 +81,7 @@ const isSecuritySensitive = (path) =>
   path.startsWith("migrations/") ||
   path.startsWith("config/") ||
   path.startsWith("scripts/") ||
-  path === "wrangler.json" ||
+  path === "cloudflare.config.ts" ||
   /(?:auth|billing|crypto|privacy|session|webhook)/i.test(path);
 
 export function classifyCiLane(files, { base = "", head = "", eventName = "", refName = "" } = {}) {

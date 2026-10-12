@@ -9,7 +9,7 @@ import {
   commandFor,
   fetchReport,
   parseEnvironment,
-  parseWranglerResult,
+  parseD1Result,
 } from "./performance-report.mjs";
 
 test("richiede l'ambiente esplicito", () => {
@@ -31,11 +31,11 @@ test("esegue una sola SELECT aggregata e non espone lo store", () => {
   assert.match(command, /metric_rank = CAST\(\(3 \* sample_count \+ 3\) \/ 4 AS INTEGER\)/);
   assert.doesNotMatch(command, /\b(?:INSERT|UPDATE|DELETE|ALTER|DROP)\b/i);
   assert.doesNotMatch(command, /shop_domain|shop_id|metric_id|country_code|server_timing_json/);
-  assert.deepEqual(production.slice(-2), ["--env", "production"]);
+  assert.equal(production[5], "6434597c-d683-48d9-a51f-b0d15de6a684");
 });
 
 test("classifica p75, soglie e numerosità senza arrotondare il valore", () => {
-  const groups = parseWranglerResult(
+  const groups = parseD1Result(
     JSON.stringify([
       {
         success: true,
@@ -98,14 +98,14 @@ test("classifica p75, soglie e numerosità senza arrotondare il valore", () => {
 });
 
 test("rifiuta output incompleto e non inoltra quello Wrangler in errore", () => {
-  assert.throws(() => parseWranglerResult("no"), /JSON valido/);
+  assert.throws(() => parseD1Result("no"), /JSON valido/);
   assert.throws(
-    () => parseWranglerResult(JSON.stringify([{ success: false, results: [] }])),
+    () => parseD1Result(JSON.stringify([{ success: false, results: [] }])),
     /report prestazioni/,
   );
   assert.throws(
     () =>
-      parseWranglerResult(
+      parseD1Result(
         JSON.stringify([
           {
             success: true,
