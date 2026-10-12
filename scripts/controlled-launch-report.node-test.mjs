@@ -7,7 +7,7 @@ import {
   commandFor,
   fetchReport,
   parseEnvironment,
-  parseWranglerResult,
+  parseD1Result,
 } from "./controlled-launch-report.mjs";
 
 const row = {
@@ -38,15 +38,14 @@ test("esegue soltanto una SELECT aggregata sul database remoto scelto", () => {
   const development = commandFor("development");
   const production = commandFor("production");
 
-  assert.deepEqual(development.slice(0, 8), [
+  assert.deepEqual(development.slice(0, 7), [
     "exec",
     "--",
-    "wrangler",
+    "cf",
     "d1",
-    "execute",
-    "DB",
-    "--remote",
-    "--json",
+    "query",
+    "9490eaea-3a12-465d-bb48-e2622b31fc4d",
+    "--sql",
   ]);
   assert.match(development.join(" "), /SELECT[\s\S]*COUNT/);
   assert.doesNotMatch(development.join(" "), /\b(?:INSERT|UPDATE|DELETE|ALTER|DROP)\b/i);
@@ -57,7 +56,7 @@ test("esegue soltanto una SELECT aggregata sul database remoto scelto", () => {
   assert.equal(development.join(" ").match(/shops\.installation_status = 'active'/g)?.length, 7);
   assert.match(development.join(" "), /LEFT JOIN trials ON trials\.shop_id = shops\.id/);
   assert.equal(development.join(" ").match(/COALESCE\(SUM\(/g)?.length, 9);
-  assert.deepEqual(production.slice(-2), ["--env", "production"]);
+  assert.equal(production[5], "6434597c-d683-48d9-a51f-b0d15de6a684");
 });
 
 test("produce conteggi a zero quando il database non contiene store", () => {
@@ -66,7 +65,7 @@ test("produce conteggi a zero quando il database non contiene store", () => {
   );
 
   assert.deepEqual(
-    parseWranglerResult(
+    parseD1Result(
       JSON.stringify([
         { success: true, results: [empty] },
         { success: true, results: [] },
@@ -98,7 +97,7 @@ test("conta gli errori etichette una sola volta ed esclude conferme guidate e pa
       INSERT INTO billing_accounts VALUES (1, 'active', 'monthly', 0), (2, 'active', 'monthly', 1);
     `);
     const args = commandFor("production");
-    const query = args[args.indexOf("--command") + 1].split(FUNNEL_QUERY)[0];
+    const query = args[args.indexOf("--sql") + 1].split(FUNNEL_QUERY)[0];
     const result = db.prepare(query).get();
     assert.equal(result.stores_with_open_error, 2);
     assert.equal(result.paying_or_paid_stores, 1);
@@ -109,7 +108,7 @@ test("conta gli errori etichette una sola volta ed esclude conferme guidate e pa
 
 test("accetta soltanto il risultato aggregato completo", () => {
   assert.deepEqual(
-    parseWranglerResult(
+    parseD1Result(
       JSON.stringify([
         { success: true, results: [row] },
         { success: true, results: [] },
@@ -117,21 +116,19 @@ test("accetta soltanto il risultato aggregato completo", () => {
     ),
     { ...row, activation_cohorts: [] },
   );
-  assert.throws(() => parseWranglerResult("no"), /JSON valido/);
+  assert.throws(() => parseD1Result("no"), /JSON valido/);
   assert.throws(
-    () => parseWranglerResult(JSON.stringify([{ success: false, results: [] }])),
+    () => parseD1Result(JSON.stringify([{ success: false, results: [] }])),
     /report aggregato/,
   );
   assert.throws(
     () =>
-      parseWranglerResult(
-        JSON.stringify([{ success: true, results: [{ ...row, stores_total: -1 }] }]),
-      ),
+      parseD1Result(JSON.stringify([{ success: true, results: [{ ...row, stores_total: -1 }] }])),
     /stores_total/,
   );
 });
 
-test("non inoltra l'output Wrangler quando la lettura fallisce", () => {
+test("non inoltra l'output cf quando la lettura fallisce", () => {
   assert.throws(
     () => fetchReport("production", { spawn: () => ({ status: 1, stdout: "", stderr: "secret" }) }),
     /lettura aggregata D1/,
@@ -245,5 +242,5 @@ test("le coorti complete mantengono l'incertezza dei tempi assenti e rifiutano c
     { uninstalled_after_activation: 1 },
   ])
     assert.throws(() => parseFunnel([{ ...cohort, ...patch }]));
-  assert.throws(() => parseWranglerResult(JSON.stringify([{ success: true, results: [row] }])));
+  assert.throws(() => parseD1Result(JSON.stringify([{ success: true, results: [row] }])));
 });

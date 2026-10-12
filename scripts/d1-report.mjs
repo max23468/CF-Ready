@@ -8,30 +8,20 @@ export function parseReportEnvironment(args, usage) {
   return value;
 }
 
+const databaseIds = {
+  development: "9490eaea-3a12-465d-bb48-e2622b31fc4d",
+  production: "6434597c-d683-48d9-a51f-b0d15de6a684",
+};
+
 export function d1ReportCommand(environment, query) {
-  const args = [
-    "exec",
-    "--",
-    "wrangler",
-    "d1",
-    "execute",
-    "DB",
-    "--remote",
-    "--json",
-    "--config",
-    "wrangler.json",
-    "--command",
-    query,
-  ];
-  if (environment === "production") args.push("--env", "production");
-  return args;
+  return ["exec", "--", "cf", "d1", "query", databaseIds[environment], "--sql", query];
 }
 
-export function parseWranglerJson(stdout) {
+export function parseD1Json(stdout) {
   try {
     return JSON.parse(stdout);
   } catch {
-    throw new Error("Wrangler non ha restituito JSON valido.");
+    throw new Error("cf non ha restituito JSON valido.");
   }
 }
 
