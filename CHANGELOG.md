@@ -14,6 +14,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   riconciliazione e aggiunge le scorciatoie verso store paganti e trial.
 - il totale delle disinstallazioni combina gli eventi Partner dal lancio con un
   contatore aggregato D1 che sopravvive a `shop/redact` (D-188).
+- le raccolte coverage instrumentate hanno timeout per test più ampi, così la
+  pubblicazione locale non fallisce per il solo carico della macchina.
 - ogni vista ha il pulsante «📋 Copia», che invia lo stesso contenuto come testo
   preformattato copiabile per intero. Nessun cambiamento merchant.
 
