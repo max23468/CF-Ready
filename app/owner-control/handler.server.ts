@@ -1,7 +1,8 @@
 import { recordEvent } from "../events.server";
 import { createTelegramClient } from "../telegram/client.server";
 import { renderOwnerControlAction, type OwnerControlRuntimeConfig } from "./commands.server";
-import type { OwnerControlMessage } from "./presentation";
+import { copyTarget } from "./model";
+import { ownerControlPlainText, withCopyButton, type OwnerControlMessage } from "./presentation";
 import {
   claimOwnerControlUpdate,
   finishOwnerControlUpdate,
@@ -86,15 +87,23 @@ export async function handleOwnerControlWebhook(
       await client.answerCallbackQuery(parsed.update.callbackQueryId).catch(() => undefined);
     }
 
-    const message = await renderOwnerControlAction(env.DB, parsed.update.action, config, {
-      now,
-      fetcher: options.fetcher,
-    });
+    const action = parsed.update.action;
+    const message = await renderOwnerControlAction(
+      env.DB,
+      action.copy ? copyTarget(action) : action,
+      config,
+      { now, fetcher: options.fetcher },
+    );
     if (!(await renewOwnerControlClaim(env.DB, parsed.update.updateId, claim.token))) {
       throw new Error("owner_control_claim_lost");
     }
 
-    await deliverInteractiveMessage(client, parsed.update, message);
+    if (action.copy) {
+      // Un nuovo messaggio, così il pannello resta navigabile.
+      await client.sendPreformattedText(ownerControlPlainText(message));
+    } else {
+      await deliverInteractiveMessage(client, parsed.update, withCopyButton(message, action));
+    }
     try {
       if (
         !(await finishOwnerControlUpdate(env.DB, parsed.update.updateId, claim.token, "processed"))

@@ -44,6 +44,8 @@ export type OwnerControlAction = {
   page?: number;
   shopId?: number;
   refresh?: boolean;
+  // Invia la vista come testo copiabile invece di aggiornare il pannello.
+  copy?: boolean;
 };
 
 const SHOP_FILTERS = new Set<ShopsFilter>(["all", "trial", "paid", "validation_off", "issues"]);
@@ -97,7 +99,19 @@ export function callbackData(action: OwnerControlAction) {
   else parts.push("-");
   parts.push(String(action.page ?? 0));
   if (action.refresh) parts.push("r");
+  else if (action.copy) parts.push("c");
   return parts.join(":");
+}
+
+// La copia rilegge la vista senza scritture: niente refresh, e la chiusura di una
+// conversione si copia come scheda store.
+export function copyTarget(action: OwnerControlAction): OwnerControlAction {
+  return {
+    view: action.view === "conversion_close" ? "shop" : action.view,
+    ...(action.shopId !== undefined ? { shopId: action.shopId } : {}),
+    ...(action.filter ? { filter: action.filter } : {}),
+    page: action.page ?? 0,
+  };
 }
 
 export function parseCallback(data: string): OwnerControlAction | null {
@@ -105,6 +119,7 @@ export function parseCallback(data: string): OwnerControlAction | null {
   const [version, code, target, pageText, refresh, ...rest] = data.split(":");
   const view = CODE_VIEWS[code];
   const page = Number(pageText);
+  const copy = refresh === "c" ? { copy: true } : {};
   if (
     version !== "oc1" ||
     !view ||
@@ -112,7 +127,7 @@ export function parseCallback(data: string): OwnerControlAction | null {
     !Number.isSafeInteger(page) ||
     page < 0 ||
     page > 10_000 ||
-    (refresh !== undefined && refresh !== "r")
+    (refresh !== undefined && refresh !== "r" && refresh !== "c")
   ) {
     return null;
   }
@@ -120,13 +135,13 @@ export function parseCallback(data: string): OwnerControlAction | null {
     if (!target || !/^[0-9a-z]+$/.test(target)) return null;
     const shopId = Number.parseInt(target, 36);
     return Number.isSafeInteger(shopId) && shopId > 0
-      ? { view, shopId, page, refresh: refresh === "r" }
+      ? { view, shopId, page, refresh: refresh === "r", ...copy }
       : null;
   }
   if (view === "shops") {
     if (!SHOP_FILTERS.has(target as ShopsFilter)) return null;
-    return { view, filter: target as ShopsFilter, page, refresh: refresh === "r" };
+    return { view, filter: target as ShopsFilter, page, refresh: refresh === "r", ...copy };
   }
   if (target !== "-") return null;
-  return { view, page, refresh: refresh === "r" };
+  return { view, page, refresh: refresh === "r", ...copy };
 }

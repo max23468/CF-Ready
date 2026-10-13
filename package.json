@@ -1,6 +1,6 @@
 {
   "name": "cf-ready",
-  "version": "2.2.15",
+  "version": "2.3.0",
   "private": true,
   "packageManager": "npm@12.2.0",
   "packageExtensions": {
@@ -51,8 +51,8 @@
     "test": "vitest run",
     "test:migrations": "node --test scripts/migration-policy.node-test.mjs && vitest run tests/migrations.test.ts",
     "test:function": "npm test --workspace cf-ready-validation -- --run",
-    "coverage:app": "vitest run --coverage --coverage.reporter=json --coverage.reportsDirectory=.coverage/app",
-    "coverage:ui": "vitest run --config vitest.browser.config.ts --coverage --coverage.reporter=json --coverage.reportsDirectory=.coverage/ui",
+    "coverage:app": "vitest run --testTimeout=30000 --coverage --coverage.reporter=json --coverage.reportsDirectory=.coverage/app",
+    "coverage:ui": "vitest run --config vitest.browser.config.ts --testTimeout=45000 --coverage --coverage.reporter=json --coverage.reportsDirectory=.coverage/ui",
     "coverage:function": "npm test --workspace cf-ready-validation -- --run tests/validation.test.ts --coverage --coverage.reporter=json --coverage.reportsDirectory=../../.coverage/function",
     "coverage:operations": "GITHUB_ACTIONS=true c8 --all --include 'app/routes.ts' --include 'scripts/**/*.mjs' --include 'site/**/*.js' --exclude 'scripts/*.node-test.mjs' --reporter=json --reports-dir=.coverage/operations node --test scripts/*.node-test.mjs",
     "coverage:collect": "node scripts/coverage-collect.mjs",

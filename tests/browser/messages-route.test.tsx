@@ -24,7 +24,7 @@ describe("Messaggi", () => {
           rules,
         };
         const view = await mount(<CustomerMessages />);
-        const aside = view.container.querySelector('[slot="aside"]')!;
+        const aside = view.container.querySelector('s-stack[slot="aside"]')!;
         const copy = texts(locale).messages;
         const groups = [...aside.querySelectorAll("s-unordered-list")];
         expect(groups).toHaveLength(rules.taxCode === "optional_validated" ? 2 : 1);

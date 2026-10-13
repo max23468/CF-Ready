@@ -577,6 +577,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "0025_webhook_monitor_indexes.sql",
     "0026_billing_observability.sql",
     "0027_shop_timezone.sql",
+    "0028_owner_metric_counters.sql",
   ]);
   await applyThrough(db, migrations, "0022_configuration_history.sql");
   await insertShop(db);
@@ -594,6 +595,8 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
   await applyD1Migrations(db, [migrationAfter(migrations, "0023_owner_operational_incidents.sql")]);
   await applyD1Migrations(db, [migrationAfter(migrations, "0024_installation_diagnostics.sql")]);
   await applyD1Migrations(db, [migrationAfter(migrations, "0025_webhook_monitor_indexes.sql")]);
+  await applyD1Migrations(db, [migrationAfter(migrations, "0026_billing_observability.sql")]);
+  await applyD1Migrations(db, [migrationAfter(migrations, "0027_shop_timezone.sql")]);
 
   expect(await db.prepare("SELECT * FROM owner_notifications WHERE id = 23").first()).toMatchObject(
     {
@@ -639,6 +642,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "installation_engagement",
     "owner_control_state",
     "owner_control_updates",
+    "owner_metric_counters",
     "owner_notification_redactions",
     "owner_notification_state",
     "owner_notifications",

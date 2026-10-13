@@ -6,6 +6,35 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.3.0 — 14 ottobre 2026
+
+- la vista billing del Control Center Telegram raggruppa gli store in paganti,
+  in prova o omaggio e senza piano, mostra MRR e ARR con il netto sulla stessa
+  riga, dichiara i piani esclusi dal run-rate, evidenzia le anomalie di
+  riconciliazione e aggiunge le scorciatoie verso store paganti e trial.
+- il totale delle disinstallazioni combina gli eventi Partner dal lancio con un
+  contatore aggregato D1 che sopravvive a `shop/redact` (D-188).
+- le raccolte coverage instrumentate hanno timeout per test più ampi, così la
+  pubblicazione locale non fallisce per il solo carico della macchina.
+- ogni vista ha il pulsante «📋 Copia», che invia lo stesso contenuto come testo
+  preformattato copiabile per intero. Nessun cambiamento merchant.
+
+The Telegram billing view groups stores, shows net run-rate inline, flags
+reconciliation issues and reports total uninstalls. Every view can be copied as
+plain text.
+## 2.2.16 — 14 ottobre 2026
+
+- Home, Guida e Messaggi mostrano le due colonne fin dal primo paint: con
+  Polaris 2 la colonna laterale compariva dopo il contenuto e lo restringeva,
+  spostando la pagina (CLS fino a 0,33 in laboratorio, p75 della Home sopra 0,1
+  in Production). Un componente condiviso fissa la griglia con un segnaposto
+  vuoto e lascia la colonna vera dopo il contenuto, dove Polaris la mostra su
+  schermo stretto.
+
+Home, Guide and Messages now lay out both columns from the first paint. With
+Polaris 2 the sidebar appeared after the content and narrowed it, shifting the
+page.
+
 ## 2.2.15 — 13 ottobre 2026
 
 - la pulizia elenca le directory ignorate in forma compatta, evitando il limite
