@@ -24,8 +24,8 @@ const expected = {
   appUrl: "https://app.cfready.it",
   databaseId: "6434597c-d683-48d9-a51f-b0d15de6a684",
   databaseName: "cf-ready-db-prod",
-  queueName: "cf-ready-webhooks-prod-eu",
-  failureQueueName: "cf-ready-webhooks-prod-eu-failures",
+  queueName: "cf-ready-webhooks-prod",
+  failureQueueName: "cf-ready-webhooks-prod-failures",
   workerName: "cf-ready-prod",
 };
 
@@ -127,7 +127,11 @@ async function main() {
     { allowMissing: true },
   );
   const d1 = JSON.parse(run("npm", ["exec", "--", "cf", "d1", "get", expected.databaseId], false));
-  if (d1.uuid !== expected.databaseId || d1.name !== expected.databaseName) {
+  if (
+    d1.uuid !== expected.databaseId ||
+    d1.name !== expected.databaseName ||
+    d1.jurisdiction !== "eu"
+  ) {
     throw new Error("Il database D1 Production non coincide con il target atteso.");
   }
 

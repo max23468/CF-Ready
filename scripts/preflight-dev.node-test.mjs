@@ -12,7 +12,6 @@ import {
   verifyVersionAvailable,
 } from "./preflight-dev.mjs";
 import {
-  activeDeployment,
   loadWorkerConfig,
   run,
   verifyMigrationSafety,
@@ -44,13 +43,13 @@ const worker = `{
     "ALLOWED_SHOP": {"type": "text", "value": "cf-ready-dev.myshopify.com,cf-ready-polaris-2.myshopify.com"},
     "APP_ENVIRONMENT": {"type": "text", "value": "development"},
     "OWNER_TELEGRAM_CONTROL_ENABLED": {"type": "text", "value": "false"},
-    "DB": {"type": "d1", "name": "cf-ready-db-dev", "id": "9490eaea-3a12-465d-bb48-e2622b31fc4d"},
-    "WEBHOOK_QUEUE": {"type": "queue", "name": "cf-ready-webhooks-dev-eu"},
+    "DB": {"type": "d1", "name": "cf-ready-db-dev", "id": "63a31c75-10fc-4530-b9cd-6e39b540eb8a"},
+    "WEBHOOK_QUEUE": {"type": "queue", "name": "cf-ready-webhooks-dev"},
     "CF_VERSION_METADATA": {"type": "version-metadata"}
   },
   "triggers": [
-    {"type": "queue", "name": "cf-ready-webhooks-dev-eu", "maxBatchSize": 1, "maxRetries": 5, "deadLetterQueue": "cf-ready-webhooks-dev-eu-failures"},
-    {"type": "queue", "name": "cf-ready-webhooks-dev-eu-failures", "maxBatchSize": 1, "maxRetries": 100, "deadLetterQueue": "cf-ready-webhooks-dev-eu"}
+    {"type": "queue", "name": "cf-ready-webhooks-dev", "maxBatchSize": 1, "maxRetries": 5, "deadLetterQueue": "cf-ready-webhooks-dev-failures"},
+    {"type": "queue", "name": "cf-ready-webhooks-dev-failures", "maxBatchSize": 1, "maxRetries": 100, "deadLetterQueue": "cf-ready-webhooks-dev"}
   ]
 }`;
 
