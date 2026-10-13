@@ -154,13 +154,10 @@ jobs:
         if: env.DEPLOY_READBACK_ONLY != 'true'
         env:
           SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
-        # Temporaneo (D-186): un solo deploy rimuove il modulo Events vuoto che Shopify CLI 4.9
-        # non invia più. Il flag si toglie subito dopo; l'anteprima ha mostrato solo questa rimozione.
         run: >-
           shopify app deploy
           --config dev
           --allow-updates
-          --allow-deletes
           --version "$DEPLOY_VERSION"
           --message "Development ${GITHUB_SHA}"
           --source-control-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"

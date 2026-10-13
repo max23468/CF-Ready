@@ -10,8 +10,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
 - la configurazione dell'app non dichiara più la sezione `[events]` vuota:
   Shopify CLI 4.9 la tratta come rimozione da confermare e bloccava il deploy;
-  un solo deploy per ambiente rimuove il modulo con `--allow-deletes`, che poi
-  si toglie dai workflow (D-186).
+  un solo deploy per ambiente ha rimosso il modulo con `--allow-deletes`, poi
+  tolto dai workflow (D-186).
 
 The app configuration no longer declares an empty Events section; no change
 for merchants or the checkout.
