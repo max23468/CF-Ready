@@ -701,7 +701,7 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   assert.equal(packageJson.devDependencies["@typescript/typescript6"], undefined);
   assert.equal(packageJson.allowScripts["fsevents@2.3.2"], false);
   assert.equal(
-    packageJson.packageExtensions["@shopify/shopify-app-react-router@3.0.1"].peerDependencies[
+    packageJson.packageExtensions["@shopify/shopify-app-react-router@3.0.2"].peerDependencies[
       "react-router"
     ],
     "8.4.0",
@@ -799,7 +799,7 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /wrangler pages deploy "\$RUNNER_TEMP\/pages-site"/);
   assert.match(workflow, /--branch main/);
   assert.match(workflow, /--commit-hash "\$GITHUB_SHA"/);
-  const shopifyCliInstall = "npm install --global --allow-scripts=esbuild @shopify/cli@4.8.4";
+  const shopifyCliInstall = "npm install --global --allow-scripts=esbuild @shopify/cli@4.9.3";
   assert.match(workflow, new RegExp(shopifyCliInstall.replaceAll(".", "\\.")));
   assert(workflow.indexOf(shopifyCliInstall) < workflow.indexOf("npm run check"));
   assert.match(workflow, /canonical_deployment\.deployment_trigger\.metadata\.commit_hash/);
