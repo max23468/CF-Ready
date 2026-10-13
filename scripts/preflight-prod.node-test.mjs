@@ -6,6 +6,7 @@ import { loadWorkerConfig } from "./preflight-common.mjs";
 import {
   readBillingMode,
   readRollbackTarget,
+  productionDeployPlan,
   verifyBuiltConfig,
   verifyProductionConfig,
 } from "./preflight-prod.mjs";
@@ -25,6 +26,58 @@ const verifyBuilt = (workerConfig, rootConfig = prodRoot) =>
 const withVar = (config, name, value) => ({
   ...config,
   env: { ...config.env, [name]: { type: "text", value } },
+});
+
+test("la ripresa Production distingue assenza, versione attiva, rilascio e collisione", () => {
+  const commit = "a".repeat(40);
+  const previous = "b".repeat(40);
+  const entry = (sha, tag, status = "inactive") => ({
+    versionId: tag,
+    versionTag: tag,
+    message: `Production ${sha}`,
+    status,
+  });
+  const deployment = (sha, id) => ({
+    id,
+    annotations: { "workers/message": `Production ${sha}` },
+    versions: [{ version_id: id, percentage: 100 }],
+  });
+  const old = entry(previous, "1.0.0", "active");
+  const candidate = entry(commit, "1.0.1");
+  const before = deployment(previous, "old");
+  const now = deployment(commit, "new");
+  const plan = (versions, workers) =>
+    productionDeployPlan(versions, workers, { version: "1.0.1", commit });
+  assert.deepEqual(plan([old], [before]), {
+    shopifyAction: "deploy",
+    workerAction: "deploy",
+    rollbackWorkerVersionId: "old",
+    rollbackShopifyVersionTag: "1.0.0",
+  });
+  assert.equal(plan([old, candidate], [before]).shopifyAction, "release");
+  assert.equal(
+    plan(
+      [
+        { ...old, status: "inactive" },
+        { ...candidate, status: "active" },
+      ],
+      [before],
+    ).shopifyAction,
+    "skip",
+  );
+  assert.equal(plan([old, candidate], [now, before]).rollbackWorkerVersionId, "old");
+  assert.equal(plan([old, candidate], [now, before]).workerAction, "skip");
+  assert.equal(plan([{ ...candidate, status: "active" }], [now]).workerAction, "skip");
+  assert.equal(plan([old], []).rollbackWorkerVersionId, "");
+  assert.throws(() => plan([old, entry(previous, "1.0.1")], [before]), /Collisione/);
+  assert.throws(() => plan([old, candidate, candidate], [before]), /Collisione/);
+  assert.throws(() => plan([], []), /ambiguo/);
+  assert.throws(() => plan([old, { ...candidate, status: "active" }], [before]), /ambiguo/);
+  assert.throws(() => plan([{ ...old, versionId: "" }], [before]), /Snapshot Shopify/);
+  assert.throws(() => plan([old], [{ ...before, versions: [] }]), /ambiguo/);
+  assert.throws(() => plan([old], [deployment("c".repeat(40), "unknown")]), /coordinato/);
+  assert.throws(() => plan([{ ...old, message: "manuale" }], []), /Provenienza/);
+  assert.throws(() => productionDeployPlan([], [], { version: "x", commit }), /Candidato/);
 });
 
 test("il manifest Production del repository supera il preflight", () => {

@@ -317,49 +317,95 @@ export function runCoverageReport({
   execute = execFileSync,
 } = {}) {
   const policy = readJson(resolve(repositoryRoot, "config/coverage-policy.json"));
-  const reportFiles = ["app", "ui", "function", "operations"].map((name) =>
-    resolve(repositoryRoot, `.coverage/${name}/coverage-final.json`),
-  );
+  const operationsOnly = args.includes("--operations-only");
+  const reportFiles = (
+    operationsOnly ? ["operations"] : ["app", "ui", "function", "operations"]
+  ).map((name) => resolve(repositoryRoot, `.coverage/${name}/coverage-final.json`));
   const globalMap = mergeCoverageFiles(reportFiles);
-  const functionMap = mergeCoverageFiles([reportFiles[2]]);
-  const sources = trackedCoverageSources(repositoryRoot, policy, execute);
+  const functionMap = operationsOnly ? createCoverageMap({}) : mergeCoverageFiles([reportFiles[2]]);
+  const sources = trackedCoverageSources(repositoryRoot, policy, execute).filter(
+    (file) =>
+      !operationsOnly ||
+      file === "app/routes.ts" ||
+      file.startsWith("scripts/") ||
+      file.startsWith("site/"),
+  );
   const functionEntries = sources.filter(isFunctionSource);
-  const functionDependencies = bundledFunctionSources({
-    repositoryRoot,
-    entryPoints: functionEntries,
-    sources,
-  });
+  const functionDependencies = operationsOnly
+    ? []
+    : bundledFunctionSources({
+        repositoryRoot,
+        entryPoints: functionEntries,
+        sources,
+      });
+  const scopedPolicy = operationsOnly
+    ? {
+        ...policy,
+        functionBundle: [],
+        targets: {
+          ...policy.targets,
+          criticalDomains: { ...policy.targets.criticalDomains, domains: {} },
+        },
+      }
+    : policy;
   const state = coverageState({
     globalMap,
     functionMap,
     functionDependencies,
     sources,
-    policy,
+    policy: scopedPolicy,
     repositoryRoot,
   });
+  state.scope = operationsOnly ? "operations" : "full";
 
   writeCoverageReports(globalMap, resolve(repositoryRoot, ".coverage/global"));
-  writeFileSync(
-    resolve(repositoryRoot, ".coverage/coverage-summary.json"),
-    `${JSON.stringify(state, null, 2)}\n`,
-  );
 
-  const failures = targetFailures(state, policy);
+  const failures = targetFailures(state, scopedPolicy);
   const baseSha = argument(args, "--base-sha");
   const headSha = argument(args, "--head-sha");
   // Il controllo sulle righe modificate richiede un confronto Git esplicito, disponibile in CI.
-  if (/^[0-9a-f]{40}$/.test(baseSha ?? "") && /^[0-9a-f]{40}$/.test(headSha ?? "")) {
+  if (
+    args.includes("--working-tree") ||
+    (/^[0-9a-f]{40}$/.test(baseSha ?? "") && /^[0-9a-f]{40}$/.test(headSha ?? ""))
+  ) {
     const diff = execute(
       "git",
-      ["diff", "--unified=0", "--diff-filter=ACMR", `${baseSha}...${headSha}`, "--"],
+      [
+        "diff",
+        "--unified=0",
+        "--diff-filter=ACMR",
+        ...(args.includes("--working-tree") ? [baseSha ?? "HEAD"] : [`${baseSha}...${headSha}`]),
+        "--",
+      ],
       { cwd: repositoryRoot, encoding: "utf8" },
     );
+    const changed = parseChangedLines(diff);
+    if (args.includes("--working-tree")) {
+      const untracked = execute("git", ["ls-files", "--others", "--exclude-standard", "-z"], {
+        cwd: repositoryRoot,
+        encoding: "utf8",
+      })
+        .split("\0")
+        .filter(Boolean);
+      for (const file of untracked) {
+        if (sources.includes(file))
+          changed.set(
+            file,
+            new Set(
+              readFileSync(resolve(repositoryRoot, file), "utf8")
+                .split("\n")
+                .map((_line, index) => index + 1),
+            ),
+          );
+      }
+    }
     const changedCoverage = changedExecutableLineCoverage(
       globalMap,
-      parseChangedLines(diff),
+      changed,
       sources,
       repositoryRoot,
     );
+    state.changedExecutableLines = changedCoverage;
     const minimum = policy.targets.changedExecutableLines.minimum;
     if (changedCoverage.pct < minimum) {
       failures.push(
@@ -368,6 +414,10 @@ export function runCoverageReport({
     }
   }
 
+  writeFileSync(
+    resolve(repositoryRoot, ".coverage/coverage-summary.json"),
+    `${JSON.stringify(state, null, 2)}\n`,
+  );
   if (failures.length) throw new Error(failures.join("\n"));
   return { state, failures };
 }

@@ -420,6 +420,8 @@ Rispetto alle alternative più ampie o invasive:
 | D-185 | Anche il D1 di Development sta nella jurisdiction `eu`, come quello di Production, con il nome `cf-ready-db-dev`. Il database originale senza jurisdiction è stato sostituito passando da `cf-ready-db-dev-eu`, poi ricreato con il nome originale e `--jurisdiction eu`, ogni volta con export, import e confronto dei conteggi; i database intermedi sono stati eliminati dopo aver verificato che nessun Worker li usasse. I preflight di entrambi gli ambienti rifiutano un D1 fuori da `eu`. Così Queues, D1 e R2 di entrambi gli ambienti sono in `eu`. | Chiesto dall'owner il 13 ottobre 2026. Il D1 Production era già in `eu` dalla creazione; Development contiene solo dati degli store di test. Le scritture tra export e deploy si perdono, accettato per Development. Nessun nuovo scope, provider, runtime o migrazione D1; il rollback passa da un nuovo import dei dati di test. |
 | D-186 | La configurazione dell'app non dichiara la sezione `[events]`: le sottoscrizioni restano webhook e i preflight rifiutano sia la sezione sia ogni `[[events.subscription]]`. Shopify CLI 4.9 non invia più un modulo Events vuoto e lo tratta come rimozione da confermare, quindi un solo deploy per ambiente usa `--allow-deletes` per rimuovere il modulo vuoto già pubblicato; il flag si toglie dai workflow subito dopo, perché autorizzerebbe anche la cancellazione di estensioni. | Deciso dall'owner il 13 ottobre 2026 dopo il deploy Development fallito con la CLI 4.9.3. Un'anteprima interattiva non confermata ha mostrato come unica cancellazione il modulo `events`, senza sottoscrizioni, quindi senza effetti funzionali. La sezione era stata aggiunta con la CLI 4.7, che la richiedeva. Nessun nuovo scope, provider o runtime. |
 
+| D-187 | La pubblicazione seleziona i controlli per superficie, raccoglie coverage in parallelo e riusa la CI della PR dopo squash solo con tree identico, ultimo run verde e artifact completi. D-141 resta invariata per il runtime; per solo tooling operativo valgono inventario completo delle operazioni, 90% per metrica e 95% sulle righe modificate. Metadati non distribuiti non avviano coverage o deploy. La verifica locale finale usa `verify:change`; il coordinatore verifica da sé il candidato prima del push, riprende Production in base allo stato provider, conserva readback freschi, misura le fasi e pulisce solo il checkout temporaneo verificato. | L'owner il 13 ottobre 2026 ha chiesto di implementare tutte le sei proposte dell'analisi della pubblicazione. Su 65 PR ordinarie recenti la CI mediana era 282 secondi; la promozione eseguiva 32 secondi di CI ma attendeva altri check sullo stesso commit. La PR #711, con sola `.gitignore`, ha atteso 346 secondi fino al merge e avviato un deploy. Dettagli in §23.1.1 e ADR 0005; nessuna riduzione delle soglie runtime né autorizzazione a pubblicare implicita nell'implementazione. |
+
 Decisioni del 10 ottobre 2026, approvate dall'owner con «Implementa 2, 7, 8»:
 
 | ID    | Decisione approvata                                                                                                                                                                                                                                                                                                  | Motivazione o alternativa scartata                                                                                                                                                                                                |
@@ -3959,7 +3961,8 @@ comparire esattamente una volta nell'aggregato globale. Il bundle Function usa
 inoltre un overlay separato, così le dipendenze condivise non vengono contate due
 volte nel totale ma restano soggette al gate specifico.
 
-La CI di ogni PR standard o full, secondo D-141:
+La CI dei diff runtime, inclusi dipendenze e configurazioni condivise,
+secondo D-141 e il perimetro D-187:
 
 - richiede almeno il 95% delle linee eseguibili aggiunte o modificate;
 - richiede almeno il 90% sul totale di statement, branch, funzioni e linee;
@@ -3994,6 +3997,40 @@ prova sul candidato `develop`, non un deploy né un'autorizzazione alla
 promozione.
 
 ### 23.1.1 Gate per tipo di modifica
+
+D-187 applica D-141 alla superficie eseguibile interessata. Runtime, dipendenze,
+manifest, migrazioni e configurazioni condivise conservano l'inventario globale
+e tutte le soglie. Il tooling operativo senza runtime raccoglie l'inventario
+completo delle operazioni (script, `app/routes.ts` e JavaScript del sito), con
+90% su ciascuna metrica e 95% sulle righe eseguibili modificate; non eredita un
+report globale vecchio. Metadati non distribuiti non richiedono coverage.
+La selezione è deterministica, considera anche eliminazioni e rinomine e usa
+il gate completo per percorsi sconosciuti. Una modifica mista usa il perimetro
+più ampio. La verifica finale locale è `npm run verify:change`; durante lo
+sviluppo bastano i test mirati, evitando di ripetere una suite completa prima
+che il coordinatore verifichi autonomamente il candidato pulito.
+
+Le quattro raccolte coverage girano in parallelo, con output separati. Il
+check stabile `coverage` aggrega solo report dello stesso commit e tree e
+fallisce se una raccolta richiesta manca o non riesce. Dopo lo squash su
+`develop`, una CI PR riuscita con tree identico e artifact completi può essere
+riusata: i check stabili attestano il riuso e i report incrementali mutation
+vengono copiati nella base `develop` senza rieseguire i mutanti. Artifact
+scaduti, risultati non verdi, tree diverso o API indisponibili fanno eseguire
+la CI ordinaria. `ci-policy` resta sempre legata al commit esatto.
+
+I deploy Development non partono per sole modifiche a metadati, tooling,
+documentazione, test, benchmark o sito; Pages segue il proprio confronto del
+contenuto. In Production una versione Shopify dello stesso commit può essere
+già attiva oppure disponibile da rilasciare: il preflight distingue questi
+casi dal deploy nuovo e rifiuta collisioni o provenienze ambigue. La ripresa
+ricostruisce uno snapshot Worker/Shopify dello stesso commit, anche dopo una
+scrittura parziale. Ogni nuovo tentativo conserva preflight e readback freschi.
+Il coordinatore misura le fasi, valida e raccoglie le ricevute provider nei
+metadati Git, usa attesa adattiva entro i timeout originali e pulisce solo il
+checkout temporaneo `codex/` ancora pulito, fermo sul candidato e con tree
+equivalente a quello unito. File ignorati non generati impediscono la rimozione
+del worktree; branch estranei e checkout avanzati si conservano.
 
 | Corsia | Quando | Gate minimo |
 |---|---|---|

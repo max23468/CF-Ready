@@ -279,14 +279,30 @@ esac`,
   );
 
   const production = await writePreflightProject(t, "Production");
+  const productionProviders = await providerBin(t, {
+    node: "exit 0",
+    shopify: `printf '%s\\n' '[{"status":"active","versionId":"shopify-version","versionTag":"1.1.4","message":"Production ${commit}"}]'`,
+    npm: `
+case "$*" in
+  *"workers deployments list"*) printf '%s\\n' '{"deployments":[{"id":"deployment","annotations":{"workers/message":"Production ${commit}"},"versions":[{"version_id":"worker-version","percentage":100}]}]}' ;;
+  *"queues list"*) printf '%s\\n' '[{"queue_name":"cf-ready-webhooks-prod","jurisdiction":"eu"},{"queue_name":"cf-ready-webhooks-prod-failures","jurisdiction":"eu"}]' ;;
+  *"d1 get"*) printf '%s\\n' '{"uuid":"6434597c-d683-48d9-a51f-b0d15de6a684","name":"cf-ready-db-prod","jurisdiction":"eu"}' ;;
+  *"workers secrets list"*) if [ "${"${CF_READY_FAIL_SECRET:-}"}" = "1" ]; then exit 2; fi; printf '%s\\n' '${JSON.stringify(secretNames.map((name) => ({ name })))}' ;;
+  *) exit 3 ;;
+esac`,
+  });
   const productionResult = runEntrypoint("preflight-prod.mjs", [], {
     cwd: production,
-    env: { PATH: pathWithProviders },
+    env: {
+      PATH: productionProviders,
+      GITHUB_SHA: commit,
+      GITHUB_ENV: path.join(production, "github-env"),
+    },
   });
   assert.match(productionResult.stdout, /Preflight Production superato/);
   runEntrypoint("preflight-prod.mjs", [], {
     cwd: production,
-    env: { PATH: pathWithProviders, CF_READY_FAIL_SECRET: "1" },
+    env: { PATH: productionProviders, GITHUB_SHA: commit, CF_READY_FAIL_SECRET: "1" },
     success: false,
   });
 });
@@ -473,6 +489,27 @@ test("i gate GitHub reali riusano check sintetici senza rete", async (t) => {
     },
     success: false,
   });
+});
+
+test("il riuso CI indisponibile ripiega sul gate ordinario nell'entrypoint", async (t) => {
+  const directory = await temporaryDirectory(t);
+  const provider = await fetchEnvironment(t, {
+    [`GET /repos/owner/repository/git/commits/${sha("a")}`]: { status: 503, body: {} },
+    [`GET /repos/owner/repository/commits/${sha("a")}/pulls`]: [],
+  });
+  const output = path.join(directory, "outputs");
+  const result = runEntrypoint("github-gates.mjs", ["--reuse-ci"], {
+    env: {
+      ...provider,
+      GITHUB_ACTIONS: "true",
+      GITHUB_TOKEN: "token-sintetico",
+      GITHUB_REPOSITORY: "owner/repository",
+      GITHUB_SHA: sha("a"),
+      GITHUB_OUTPUT: output,
+    },
+  });
+  assert.match(result.stdout, /CI ordinaria/);
+  assert.match(readFileSync(output, "utf8"), /reuse_ci=false/);
 });
 
 test("il riallineamento reale copre no-op e recupero usando API sintetiche", async (t) => {

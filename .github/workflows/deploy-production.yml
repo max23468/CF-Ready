@@ -122,37 +122,14 @@ jobs:
       # riconosciuto e dichiarato, non aggirato.
       - name: Registra rollback Production
         id: rollback_snapshot
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
         run: |
-          if npm exec -- cf workers deployments list --worker "$WORKER_NAME" \
-            > "$RUNNER_TEMP/worker-deployments.json" 2>/dev/null; then
-            jq '.deployments[0] // {}' "$RUNNER_TEMP/worker-deployments.json" > "$RUNNER_TEMP/worker-rollback.json"
-          else
-            echo '{}' > "$RUNNER_TEMP/worker-rollback.json"
-          fi
-          shopify app versions list --no-color --json > "$RUNNER_TEMP/shopify-rollback.json"
+          {
+            if [ -n "$ROLLBACK_WORKER_VERSION_ID" ]; then echo "armed=true"; else echo "armed=false"; fi
+            echo "worker_version_id=$ROLLBACK_WORKER_VERSION_ID"
+            echo "shopify_version_tag=$ROLLBACK_SHOPIFY_VERSION_TAG"
+          } >> "$GITHUB_OUTPUT"
           # shellcheck disable=SC2016
-          node --input-type=module -e '
-            import { appendFileSync, readFileSync } from "node:fs";
-            import { readRollbackTarget } from "./scripts/preflight-prod.mjs";
-            const worker = readRollbackTarget(JSON.parse(readFileSync(process.argv[1], "utf8")));
-            const versions = JSON.parse(readFileSync(process.argv[2], "utf8"));
-            const active = versions.find(({ status }) => status === "active");
-            if (!active?.versionTag) {
-              throw new Error("Nessuna versione Shopify attiva da registrare per il rollback.");
-            }
-            const lines = [
-              `armed=${worker ? "true" : "false"}`,
-              `worker_version_id=${worker?.workerVersionId ?? ""}`,
-              `shopify_version_tag=${active?.versionTag ?? ""}`,
-            ];
-            appendFileSync(process.env.GITHUB_OUTPUT, lines.join("\n") + "\n");
-            appendFileSync(process.env.GITHUB_STEP_SUMMARY, worker
-              ? `- Rollback: Worker deployment \`${worker.deploymentId}\`, versione \`${worker.workerVersionId}\`; Shopify \`${active?.versionTag}\`\n`
-              : `- Rollback Worker: **non disponibile**, è il primo deploy Production. Shopify ripristinabile a \`${active?.versionTag}\`\n`);
-          ' "$RUNNER_TEMP/worker-rollback.json" "$RUNNER_TEMP/shopify-rollback.json"
+          printf -- '- Rollback coordinato: Worker `%s`, Shopify `%s`\n' "$ROLLBACK_WORKER_VERSION_ID" "$ROLLBACK_SHOPIFY_VERSION_TAG" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Applica migrazioni D1 Production
         env:
@@ -176,9 +153,11 @@ jobs:
 
       - name: Arma rollback Shopify Production
         id: arm_shopify
+        if: env.SHOPIFY_DEPLOY_ACTION != 'skip'
         run: echo "started=true" >> "$GITHUB_OUTPUT"
 
       - name: Deploy Shopify Production
+        if: env.SHOPIFY_DEPLOY_ACTION == 'deploy'
         env:
           SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
         run: >-
@@ -188,6 +167,12 @@ jobs:
           --message "Production ${GITHUB_SHA}"
           --source-control-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
           --no-color
+
+      - name: Riprendi la versione Shopify Production esistente
+        if: env.SHOPIFY_DEPLOY_ACTION == 'release'
+        env:
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+        run: shopify app release --version "$DEPLOY_VERSION" --allow-updates --no-color
 
       - name: Readback versione attiva Shopify
         env:
@@ -202,9 +187,11 @@ jobs:
       # coincidere con quella registrata, altrimenti `cf` si ferma prima dell'upload.
       - name: Arma rollback Worker Production
         id: arm_worker
+        if: env.WORKER_DEPLOY_ACTION != 'skip'
         run: echo "started=true" >> "$GITHUB_OUTPUT"
 
       - name: Deploy Worker Production
+        if: env.WORKER_DEPLOY_ACTION == 'deploy'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: npm exec -- cf deploy --prebuilt --mode prod --no-provision --message "Production ${GITHUB_SHA}"
