@@ -5,6 +5,7 @@ import { formatDate, texts } from "../../i18n";
 import { commercialState, trialContinuityNotice } from "./commercial-state";
 import { DeactivateModal, HomeAside, HomeTrialNotice, HomeValidationSection } from "./HomeSections";
 import { RevealBanner } from "../../ui-feedback";
+import { PageWithAside } from "../../ui-page";
 import { MerchantCheckIn } from "./MerchantCheckIn";
 import { PlanChoice } from "./PlanChoice";
 import { PlanStatus } from "./PlanStatus";
@@ -56,7 +57,15 @@ export function EligibleHome({
   const nextStep = homeNextStep(data, currentCommercialState, t);
 
   return (
-    <s-page heading={t.home.heading}>
+    <PageWithAside
+      heading={t.home.heading}
+      aside={
+        <>
+          <PlanStatus data={data} trialDateInBanner={trialDateInBanner} />
+          <HomeAside nextStep={nextStep} t={t} />
+        </>
+      }
+    >
       <HomeNotices
         data={data}
         result={result}
@@ -97,13 +106,9 @@ export function EligibleHome({
         submit={submit}
         firstCharge={firstCharge}
       />
-      <s-stack slot="aside" direction="block" gap="base">
-        <PlanStatus data={data} trialDateInBanner={trialDateInBanner} />
-        <HomeAside nextStep={nextStep} t={t} />
-      </s-stack>
       <s-app-window id={onboardingWindowId} src="/app/onboarding" />
       <DeactivateModal pendingIntent={pendingIntent} submit={submit} t={t} />
-    </s-page>
+    </PageWithAside>
   );
 }
 

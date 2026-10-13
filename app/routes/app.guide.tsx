@@ -35,6 +35,7 @@ import { createServerTiming } from "../server-timing.server";
 import { readSupportDiagnosticState, type SupportDiagnosticState } from "../support.server";
 import { BrandLockup } from "../ui-brand";
 import { Disclosure } from "../ui-disclosure";
+import { PageWithAside } from "../ui-page";
 import "./app.guide.css";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
@@ -160,7 +161,74 @@ export default function Guide() {
   };
 
   return (
-    <s-page heading={t.guide.heading}>
+    <PageWithAside
+      heading={t.guide.heading}
+      aside={
+        <>
+          {/* FR-090: chat su richiesta; l'email precompilata resta disponibile (§22). */}
+          <s-section heading={t.support.heading}>
+            <div id="support">
+              {/* G-B9, G-N1: spiegazione, argomento e invio in sequenza; il salto alla
+                  diagnosi è un percorso diverso e sta in fondo. */}
+              <s-stack direction="block" gap="base">
+                <s-paragraph>{t.support.body}</s-paragraph>
+                <s-text color="subdued">{t.support.privacyNote}</s-text>
+                <s-select
+                  label={t.support.chooseCategory}
+                  value={supportCategory}
+                  onChange={(event) =>
+                    setSupportCategory(event.currentTarget.value as SupportCategory)
+                  }
+                >
+                  {Object.entries(t.support.categories).map(([category, label]) => (
+                    <s-option key={category} value={category}>
+                      {label}
+                    </s-option>
+                  ))}
+                </s-select>
+                <s-button href={supportMailto(supportDetails, locale, supportCategory)}>
+                  {t.support.requestSupport}
+                </s-button>
+                <s-button variant="tertiary" onClick={copyDiagnostics}>
+                  {t.support.copyDiagnostics}
+                </s-button>
+                {copyFailed ? (
+                  <span className="cf-motion-reveal">
+                    <s-text tone="critical">{t.support.diagnosticsCopyFailed}</s-text>
+                  </span>
+                ) : null}
+                <s-divider />
+                <div className="guide-support__diagnosis-link">
+                  <s-link
+                    href="#validation-diagnosis"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      showDiagnosis();
+                    }}
+                  >
+                    {t.guide.diagnosis.heading}
+                  </s-link>
+                </div>
+              </s-stack>
+            </div>
+          </s-section>
+          {/* A-16: il colore di brand è ammesso dentro un'illustrazione, su superfici prive di
+            azioni operative. Questa è documentazione, non configurazione. */}
+          <s-section heading={t.guide.asideHeading}>
+            <s-stack direction="block" gap="base">
+              <BrandLockup alt="CF Ready" />
+              <s-paragraph>{t.guide.asideBody}</s-paragraph>
+              <s-stack direction="block" gap="small-100" alignItems="start">
+                <s-heading>{t.guide.asideLinks}</s-heading>
+                <s-link href="/app/rules">{t.nav.rules}</s-link>
+                <s-link href="/app/messages">{t.nav.messages}</s-link>
+                <s-link href="/app/onboarding">{t.onboarding.reopen}</s-link>
+              </s-stack>
+            </s-stack>
+          </s-section>
+        </>
+      }
+    >
       {/* §15.7: pagina unica con sezioni espandibili. Polaris non ha un componente di
           divulgazione, quindi si usa `details`, che è l'elemento nativo della piattaforma:
           accessibile e utilizzabile da tastiera senza reimplementare nulla (§8.1). */}
@@ -203,71 +271,7 @@ export default function Guide() {
       </s-section>
 
       <ValidationDiagnosis locale={locale} diagnostics={diagnostics} />
-
-      {/* FR-090: chat su richiesta; l'email precompilata resta disponibile (§22). */}
-      <s-stack slot="aside" direction="block" gap="base">
-        <s-section heading={t.support.heading}>
-          <div id="support">
-            {/* G-B9, G-N1: spiegazione, argomento e invio in sequenza; il salto alla
-                diagnosi è un percorso diverso e sta in fondo. */}
-            <s-stack direction="block" gap="base">
-              <s-paragraph>{t.support.body}</s-paragraph>
-              <s-text color="subdued">{t.support.privacyNote}</s-text>
-              <s-select
-                label={t.support.chooseCategory}
-                value={supportCategory}
-                onChange={(event) =>
-                  setSupportCategory(event.currentTarget.value as SupportCategory)
-                }
-              >
-                {Object.entries(t.support.categories).map(([category, label]) => (
-                  <s-option key={category} value={category}>
-                    {label}
-                  </s-option>
-                ))}
-              </s-select>
-              <s-button href={supportMailto(supportDetails, locale, supportCategory)}>
-                {t.support.requestSupport}
-              </s-button>
-              <s-button variant="tertiary" onClick={copyDiagnostics}>
-                {t.support.copyDiagnostics}
-              </s-button>
-              {copyFailed ? (
-                <span className="cf-motion-reveal">
-                  <s-text tone="critical">{t.support.diagnosticsCopyFailed}</s-text>
-                </span>
-              ) : null}
-              <s-divider />
-              <div className="guide-support__diagnosis-link">
-                <s-link
-                  href="#validation-diagnosis"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    showDiagnosis();
-                  }}
-                >
-                  {t.guide.diagnosis.heading}
-                </s-link>
-              </div>
-            </s-stack>
-          </div>
-        </s-section>
-        {/* A-16: il colore di brand è ammesso dentro un'illustrazione, su superfici prive di
-          azioni operative. Questa è documentazione, non configurazione. */}
-        <s-section heading={t.guide.asideHeading}>
-          <s-stack direction="block" gap="base">
-            <BrandLockup alt="CF Ready" />
-            <s-paragraph>{t.guide.asideBody}</s-paragraph>
-            <s-stack direction="block" gap="small-100" alignItems="start">
-              <s-heading>{t.guide.asideLinks}</s-heading>
-              <s-link href="/app/rules">{t.nav.rules}</s-link>
-              <s-link href="/app/messages">{t.nav.messages}</s-link>
-              <s-link href="/app/onboarding">{t.onboarding.reopen}</s-link>
-            </s-stack>
-          </s-stack>
-        </s-section>
-      </s-stack>
-    </s-page>
+    </PageWithAside>
   );
 }
 
