@@ -582,7 +582,14 @@ export function cleanupPublishedCheckout(
   const managed = root.startsWith(
     resolve(process.env.CODEX_HOME ?? join(homedir(), ".codex"), "worktrees") + sep,
   );
-  const ignored = run("git", ["ls-files", "--others", "--ignored", "--exclude-standard", "-z"])
+  const ignored = run("git", [
+    "ls-files",
+    "--others",
+    "--ignored",
+    "--exclude-standard",
+    "--directory",
+    "-z",
+  ])
     .split("\0")
     .filter(Boolean);
   const generated =

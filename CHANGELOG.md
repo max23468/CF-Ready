@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.2.15 — 13 ottobre 2026
+
+- la pulizia elenca le directory ignorate in forma compatta, evitando il limite
+  del buffer con `node_modules`; i file ignorati non generati restano protetti.
+- il riallineamento `develop` al merge Production riusa la CI della PR
+  Development solo dopo aver verificato la promozione GitHub, il secondo parent
+  e l'identità del tree, senza ripetere la suite sullo stesso contenuto.
+
+Cleanup uses compact ignored-directory listings. Reconciliation reuses verified
+Development checks through the recorded Production merge, with identical trees.
+
 ## 2.2.14 — 13 ottobre 2026
 
 - pubblicazione proporzionata per superficie: riuso della CI dopo squash con

@@ -125,6 +125,48 @@ test("richiede un target di pubblicazione esplicito", () => {
   assert.throws(() => parseTarget([]), /--target/);
 });
 
+test("la pulizia compatta directory ignorate grandi senza perdere la protezione dei file", (t) => {
+  const directory = mkdtempSync(path.join(tmpdir(), "cf-ready-cleanup-buffer-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  assert.equal(spawnSync("git", ["init", "--quiet"], { cwd: directory }).status, 0);
+  writeFileSync(path.join(directory, ".gitignore"), "node_modules/\n.env\n");
+  mkdirSync(path.join(directory, "node_modules"));
+  for (let index = 0; index < 12; index++)
+    writeFileSync(path.join(directory, "node_modules", `${index}-${"x".repeat(80)}`), "fixture");
+  const args = ["ls-files", "--others", "--ignored", "--exclude-standard", "-z"];
+  assert.equal(spawnSync("git", args, { cwd: directory, maxBuffer: 256 }).error.code, "ENOBUFS");
+  writeFileSync(path.join(directory, ".env"), "fixture sintetica");
+  let inspected = false;
+  const run = (_command, received) => {
+    const command = received.join(" ");
+    if (received[0] === "ls-files") {
+      assert.ok(received.includes("--directory"));
+      const result = spawnSync("git", received, {
+        cwd: directory,
+        encoding: "utf8",
+        maxBuffer: 256,
+      });
+      assert.equal(result.status, 0);
+      inspected = true;
+      return result.stdout;
+    }
+    if (command === "status --porcelain") return "";
+    if (command === "rev-parse refs/heads/codex/change") return sourceSha;
+    if (command.endsWith("^{tree}")) return "same";
+    if (command === "rev-parse --show-toplevel") return directory;
+    if (command === "rev-parse --git-common-dir") return path.join(directory, ".git");
+    assert.ok(!received.includes("remove"));
+    return "";
+  };
+  assert.equal(
+    cleanupPublishedCheckout({ branch: "codex/change", sourceSha, developSha, cwd: directory }, run)
+      .status,
+    "branch-removed",
+  );
+  assert.equal(inspected, true);
+  assert.equal(existsSync(path.join(directory, ".env")), true);
+});
+
 test("riusa soltanto una run riuscita o ancora attiva dello stesso commit", () => {
   const sha = "a".repeat(40);
   assert.equal(
