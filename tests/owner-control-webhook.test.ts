@@ -368,6 +368,42 @@ describe("idempotenza e delivery interattiva", () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
+  test("ogni pannello offre Copia e la copia arriva come nuovo testo preformattato", async () => {
+    const fetcher = telegramSuccess();
+    await handleOwnerControlWebhook(
+      request(callbackUpdate(callbackData({ view: "help" }), { updateId: 81 })),
+      controlEnv(),
+      { now: NOW, fetcher },
+    );
+    expect(JSON.stringify(bodyAt(fetcher, 1))).toContain("oc1:x:-:0:c");
+
+    const copy = telegramSuccess();
+    expect(
+      (
+        await handleOwnerControlWebhook(
+          request(callbackUpdate(callbackData({ view: "help", copy: true }), { updateId: 82 })),
+          controlEnv(),
+          { now: NOW, fetcher: copy },
+        )
+      ).status,
+    ).toBe(200);
+    expect(methods(copy)).toEqual(["answerCallbackQuery", "sendMessage"]);
+    const body = bodyAt(copy, 1) as { text: string; entities: unknown; reply_markup?: unknown };
+    expect(body.text).toMatch(/^Owner Control Center\n\nComandi\n\/dashboard: /);
+    expect(body.entities).toEqual([{ type: "pre", offset: 0, length: body.text.length }]);
+    expect(body).not.toHaveProperty("reply_markup");
+
+    // Una copia della chiusura conversione rilegge la scheda store e non scrive nulla.
+    const close = telegramSuccess();
+    await handleOwnerControlWebhook(
+      request(callbackUpdate("oc1:k:zz:0:c", { updateId: 83 })),
+      controlEnv(),
+      { now: NOW, fetcher: close },
+    );
+    expect(methods(close)).toEqual(["answerCallbackQuery", "sendMessage"]);
+    expect((bodyAt(close, 1) as { text: string }).text).toContain("Store non trovato.");
+  });
+
   test("un ack callback già consumato non blocca il retry della risposta", async () => {
     const fetcher = vi.fn(async (input: RequestInfo | URL) => {
       const method = String(input).split("/").at(-1);

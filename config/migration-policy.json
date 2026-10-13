@@ -150,6 +150,11 @@
       "name": "0027_shop_timezone.sql",
       "sha256": "f7fc0c84a858cdd1301f3343a11273fc523dcb5f2dbeadda5f10c2a5a26f5e82",
       "protects": ["store time zone for merchant-facing times"]
+    },
+    {
+      "name": "0028_owner_metric_counters.sql",
+      "sha256": "644b7cecacb6179f0d6cbbe84da97df053fedd866791b1ce160d529b4244b9de",
+      "protects": ["aggregate uninstall counter surviving shop redaction"]
     }
   ]
 }

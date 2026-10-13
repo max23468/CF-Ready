@@ -421,6 +421,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-186 | La configurazione dell'app non dichiara la sezione `[events]`: le sottoscrizioni restano webhook e i preflight rifiutano sia la sezione sia ogni `[[events.subscription]]`. Shopify CLI 4.9 non invia più un modulo Events vuoto e lo tratta come rimozione da confermare, quindi un solo deploy per ambiente usa `--allow-deletes` per rimuovere il modulo vuoto già pubblicato; il flag si toglie dai workflow subito dopo, perché autorizzerebbe anche la cancellazione di estensioni. | Deciso dall'owner il 13 ottobre 2026 dopo il deploy Development fallito con la CLI 4.9.3. Un'anteprima interattiva non confermata ha mostrato come unica cancellazione il modulo `events`, senza sottoscrizioni, quindi senza effetti funzionali. La sezione era stata aggiunta con la CLI 4.7, che la richiedeva. Nessun nuovo scope, provider o runtime. |
 
 | D-187 | La pubblicazione seleziona i controlli per superficie, raccoglie coverage in parallelo e riusa la CI della PR dopo squash solo con tree identico, ultimo run verde e artifact completi. D-141 resta invariata per il runtime; per solo tooling operativo valgono inventario completo delle operazioni, 90% per metrica e 95% sulle righe modificate. Metadati non distribuiti non avviano coverage o deploy. La verifica locale finale usa `verify:change`; il coordinatore verifica da sé il candidato prima del push, riprende Production in base allo stato provider, conserva readback freschi, misura le fasi e pulisce solo il checkout temporaneo verificato. | L'owner il 13 ottobre 2026 ha chiesto di implementare tutte le sei proposte dell'analisi della pubblicazione. Su 65 PR ordinarie recenti la CI mediana era 282 secondi; la promozione eseguiva 32 secondi di CI ma attendeva altri check sullo stesso commit. La PR #711, con sola `.gitignore`, ha atteso 346 secondi fino al merge e avviato un deploy. Dettagli in §23.1.1 e ADR 0005; nessuna riduzione delle soglie runtime né autorizzazione a pubblicare implicita nell'implementazione. |
+| D-188 | Nella vista billing del Control Center Telegram gli store installati si raggruppano in paganti, in prova o omaggio e senza piano; MRR e ARR mostrano il netto sulla stessa riga e dichiarano i piani esclusi; le anomalie di riconciliazione hanno un segnale ⚠️. Il totale delle disinstallazioni è il maggiore fra gli eventi Partner `RELATIONSHIP_UNINSTALLED` dal 28 luglio 2026, con store distinti e ultimi 28 giorni, e il contatore aggregato D1 `owner_metric_counters`, incrementato una volta per installazione senza riferimento allo store; senza Partner vale il contatore con la sua data di inizio. Ogni vista offre «📋 Copia», che rilegge la stessa vista senza refresh né scritture e invia un nuovo messaggio di testo semplice in un blocco preformattato, troncato a 4096 caratteri. | Le tabelle Rich Message di D-134 non entrano nella copia del client Telegram e il pulsante `copy_text` accetta al massimo 256 caratteri. `shop/redact` cancella le righe degli store disinstallati, quindi D1 da solo non dà uno storico; la Partner API può mancare o arrivare in ritardo, e il contatore ne copre l'assenza. Contenuti e privacy restano quelli di D-134. Deciso dall'owner il 13 ottobre 2026. |
 
 Decisioni del 10 ottobre 2026, approvate dall'owner con «Implementa 2, 7, 8»:
 
@@ -1760,7 +1761,7 @@ del comando, chat e user ID non vengono persistiti. `applyRetention()` elimina
 le ricevute dopo sette giorni.
 
 `owner_control_state` conserva cache JSON aggregate e sovrascrivibili per Growth
-Partner e stato del webhook Telegram. D-180 aggiunge le osservazioni BFS per ID
+Partner, disinstallazioni Partner aggregate (D-188) e stato del webhook Telegram. D-180 aggiunge le osservazioni BFS per ID
 interno dello store (soltanto classificazione e istante di installazione, senza
 dominio, nome o dati billing), eliminate al ciclo seguente alla disinstallazione
 o redazione. Una lettura vale meno di 24 ore e si invalida alla reinstallazione.
@@ -1771,6 +1772,9 @@ Growth conta separatamente installazioni,
 riattivazioni, disattivazioni e disinstallazioni negli ultimi 7 e 28 giorni; non
 ricostruisce store già redatti e non calcola una crescita netta. La cache ordinaria
 dura quindici minuti e un refresh esplicito rispetta cinque minuti di cooldown.
+Il totale billing delle disinstallazioni (D-188) ha una cache di un'ora con lo
+stesso cooldown e conserva soltanto conteggi; `owner_metric_counters` tiene il
+contatore aggregato locale, privo di riferimenti allo store.
 
 L’endpoint `POST /internal/telegram/webhook` viene intercettato dal Worker prima
 del router merchant. Accetta soltanto JSON entro 64 KiB, `message` e
