@@ -44,7 +44,7 @@ test("esegue soltanto una SELECT aggregata sul database remoto scelto", () => {
     "cf",
     "d1",
     "query",
-    "9490eaea-3a12-465d-bb48-e2622b31fc4d",
+    "63a31c75-10fc-4530-b9cd-6e39b540eb8a",
     "--sql",
   ]);
   assert.match(development.join(" "), /SELECT[\s\S]*COUNT/);

@@ -9,7 +9,7 @@ export function parseReportEnvironment(args, usage) {
 }
 
 const databaseIds = {
-  development: "9490eaea-3a12-465d-bb48-e2622b31fc4d",
+  development: "63a31c75-10fc-4530-b9cd-6e39b540eb8a",
   production: "6434597c-d683-48d9-a51f-b0d15de6a684",
 };
 

@@ -674,6 +674,13 @@ Le configurazioni Wrangler generate nominano soltanto il database interessato e
 non entrano nel repository. A ogni aggiornamento di `cf` si riprova ciascuna
 riga e si toglie quella che `cf` copre.
 
+`cf deploy` non stacca i consumer Queue tolti da `cloudflare.config.ts`: la coda
+resta collegata al Worker. Per dismettere una coda, dopo il deploy che toglie il
+consumer, si verifica con `cf queues metrics get` che il backlog sia zero, si
+eliminano i consumer residui con `cf queues consumers delete --queue-id` e poi
+la coda con `cf queues delete`. Una coda che fa ancora da DLQ a un altro consumer
+non si elimina: si toglie prima quel consumer.
+
 Fonti operative correnti: [Workers limits](https://developers.cloudflare.com/workers/platform/limits/),
 [Workers metrics](https://developers.cloudflare.com/workers/observability/metrics-and-analytics/),
 [D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/),
