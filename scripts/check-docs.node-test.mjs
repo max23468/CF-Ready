@@ -913,7 +913,7 @@ test("il deploy Production provisiona entrambe le code webhook dichiarate", () =
     "utf8",
   );
   assert.match(workflow, /cf queues list > "\$RUNNER_TEMP\/queues\.json"/);
-  assert.match(workflow, /cf-ready-webhooks-prod-eu cf-ready-webhooks-prod-eu-failures/);
+  assert.match(workflow, /cf-ready-webhooks-prod cf-ready-webhooks-prod-failures/);
   assert.match(workflow, /cf queues create --queue-name "\$queue" --jurisdiction eu/);
 });
 

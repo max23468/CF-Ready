@@ -236,8 +236,8 @@ test("i preflight reali usano soltanto comandi provider sintetici", async (t) =>
     npm: `
 case "$*" in
   *"workers deployments list --worker cf-ready-dev"*) printf '%s\\n' '{"deployments":[{"id":"deployment","annotations":{"workers/message":"Development ${commit}"},"versions":[{"version_id":"worker-version","percentage":100}]}]}' ;;
-  *"queues list"*) printf '%s\\n' '[{"queue_name":"cf-ready-webhooks-dev-eu","jurisdiction":"eu"},{"queue_name":"cf-ready-webhooks-dev-eu-failures","jurisdiction":"eu"},{"queue_name":"cf-ready-webhooks-prod-eu","jurisdiction":"eu"},{"queue_name":"cf-ready-webhooks-prod-eu-failures","jurisdiction":"eu"}]' ;;
-  *"d1 get f5433c14-1379-4154-bbc7-4e562081e92b"*) printf '%s\\n' '{"uuid":"f5433c14-1379-4154-bbc7-4e562081e92b","name":"cf-ready-db-dev-eu","jurisdiction":"eu"}' ;;
+  *"queues list"*) printf '%s\\n' '[{"queue_name":"cf-ready-webhooks-dev","jurisdiction":"eu"},{"queue_name":"cf-ready-webhooks-dev-failures","jurisdiction":"eu"},{"queue_name":"cf-ready-webhooks-prod","jurisdiction":"eu"},{"queue_name":"cf-ready-webhooks-prod-failures","jurisdiction":"eu"}]' ;;
+  *"d1 get 63a31c75-10fc-4530-b9cd-6e39b540eb8a"*) printf '%s\\n' '{"uuid":"63a31c75-10fc-4530-b9cd-6e39b540eb8a","name":"cf-ready-db-dev","jurisdiction":"eu"}' ;;
   *"d1 get 6434597c-d683-48d9-a51f-b0d15de6a684"*) printf '%s\\n' '{"uuid":"6434597c-d683-48d9-a51f-b0d15de6a684","name":"cf-ready-db-prod","jurisdiction":"eu"}' ;;
   *"workers secrets list"*) if [ "${"${CF_READY_FAIL_SECRET:-}"}" = "1" ]; then exit 2; fi; printf '%s\\n' '${JSON.stringify(secretNames.map((name) => ({ name })))}' ;;
   *) exit 3 ;;
@@ -257,8 +257,8 @@ esac`,
     npm: `
 case "$*" in
   *"workers deployments list --worker cf-ready-dev"*) printf '%s\\n' '{"deployments":[{"id":"deployment","annotations":{"workers/message":"Development ${commit}"},"versions":[{"version_id":"worker-version","percentage":100}]}]}' ;;
-  *"queues list"*) printf '%s\\n' '[{"queue_name":"cf-ready-webhooks-dev-eu","jurisdiction":"eu"},{"queue_name":"cf-ready-webhooks-dev-eu-failures","jurisdiction":"eu"},{"queue_name":"cf-ready-webhooks-prod-eu","jurisdiction":"eu"},{"queue_name":"cf-ready-webhooks-prod-eu-failures","jurisdiction":"eu"}]' ;;
-  *"d1 get f5433c14-1379-4154-bbc7-4e562081e92b"*) printf '%s\\n' '{"uuid":"f5433c14-1379-4154-bbc7-4e562081e92b","name":"cf-ready-db-dev-eu","jurisdiction":"eu"}' ;;
+  *"queues list"*) printf '%s\\n' '[{"queue_name":"cf-ready-webhooks-dev","jurisdiction":"eu"},{"queue_name":"cf-ready-webhooks-dev-failures","jurisdiction":"eu"},{"queue_name":"cf-ready-webhooks-prod","jurisdiction":"eu"},{"queue_name":"cf-ready-webhooks-prod-failures","jurisdiction":"eu"}]' ;;
+  *"d1 get 63a31c75-10fc-4530-b9cd-6e39b540eb8a"*) printf '%s\\n' '{"uuid":"63a31c75-10fc-4530-b9cd-6e39b540eb8a","name":"cf-ready-db-dev","jurisdiction":"eu"}' ;;
   *"workers secrets list"*) printf '%s\\n' '${JSON.stringify(secretNames.map((name) => ({ name })))}' ;;
   *) exit 3 ;;
 esac`,
