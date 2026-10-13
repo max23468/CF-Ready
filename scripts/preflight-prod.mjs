@@ -127,7 +127,11 @@ async function main() {
     { allowMissing: true },
   );
   const d1 = JSON.parse(run("npm", ["exec", "--", "cf", "d1", "get", expected.databaseId], false));
-  if (d1.uuid !== expected.databaseId || d1.name !== expected.databaseName) {
+  if (
+    d1.uuid !== expected.databaseId ||
+    d1.name !== expected.databaseName ||
+    d1.jurisdiction !== "eu"
+  ) {
     throw new Error("Il database D1 Production non coincide con il target atteso.");
   }
 

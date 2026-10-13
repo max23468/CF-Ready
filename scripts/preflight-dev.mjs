@@ -18,8 +18,8 @@ import {
 const expected = {
   clientId: "adff48d4fe4ceb0dadb4734520701dd7",
   appUrl: "https://cf-ready-dev.tmsf.workers.dev",
-  databaseId: "9490eaea-3a12-465d-bb48-e2622b31fc4d",
-  databaseName: "cf-ready-db-dev",
+  databaseId: "f5433c14-1379-4154-bbc7-4e562081e92b",
+  databaseName: "cf-ready-db-dev-eu",
   queueName: "cf-ready-webhooks-dev-eu",
   failureQueueName: "cf-ready-webhooks-dev-eu-failures",
   workerName: "cf-ready-dev",
@@ -174,7 +174,11 @@ async function main() {
     expected.failureQueueName,
   ]);
   const d1 = JSON.parse(run("npm", ["exec", "--", "cf", "d1", "get", expected.databaseId], false));
-  if (d1.uuid !== expected.databaseId || d1.name !== expected.databaseName) {
+  if (
+    d1.uuid !== expected.databaseId ||
+    d1.name !== expected.databaseName ||
+    d1.jurisdiction !== "eu"
+  ) {
     throw new Error("Il database D1 Development non coincide con il target atteso.");
   }
   const secrets = JSON.parse(

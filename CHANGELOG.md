@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.2.9 — 13 ottobre 2026
+
+- il D1 di Development passa a `cf-ready-db-dev-eu`, nella jurisdiction `eu`
+  come quello di Production; i preflight rifiutano un D1 fuori da `eu`
+  (D-185);
+- il runbook spiega come dismettere una coda, perché `cf deploy` non stacca i
+  consumer tolti dalla configurazione.
+
+The Development database now lives in Cloudflare's EU jurisdiction like
+Production; no change for merchants or the checkout.
+
 ## 2.2.8 — 13 ottobre 2026
 
 - toglie i consumer delle code webhook senza jurisdiction, ormai vuote: il

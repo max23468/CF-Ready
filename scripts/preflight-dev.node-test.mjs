@@ -12,7 +12,6 @@ import {
   verifyVersionAvailable,
 } from "./preflight-dev.mjs";
 import {
-  activeDeployment,
   loadWorkerConfig,
   run,
   verifyMigrationSafety,
@@ -44,7 +43,7 @@ const worker = `{
     "ALLOWED_SHOP": {"type": "text", "value": "cf-ready-dev.myshopify.com,cf-ready-polaris-2.myshopify.com"},
     "APP_ENVIRONMENT": {"type": "text", "value": "development"},
     "OWNER_TELEGRAM_CONTROL_ENABLED": {"type": "text", "value": "false"},
-    "DB": {"type": "d1", "name": "cf-ready-db-dev", "id": "9490eaea-3a12-465d-bb48-e2622b31fc4d"},
+    "DB": {"type": "d1", "name": "cf-ready-db-dev-eu", "id": "f5433c14-1379-4154-bbc7-4e562081e92b"},
     "WEBHOOK_QUEUE": {"type": "queue", "name": "cf-ready-webhooks-dev-eu"},
     "CF_VERSION_METADATA": {"type": "version-metadata"}
   },
