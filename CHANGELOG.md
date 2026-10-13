@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.2.10 — 13 ottobre 2026
+
+- le code webhook e il D1 di Development tornano ai nomi senza suffisso,
+  `cf-ready-webhooks-dev`, `cf-ready-webhooks-prod` e `cf-ready-db-dev`,
+  sempre nella jurisdiction `eu`; le code `-eu` restano consumate per questo
+  rilascio, finché si svuotano (D-184, D-185).
+
+Webhook queues and the Development database keep the EU jurisdiction under
+their original names; no change for merchants or the checkout.
+
 ## 2.2.9 — 13 ottobre 2026
 
 - il D1 di Development passa a `cf-ready-db-dev-eu`, nella jurisdiction `eu`

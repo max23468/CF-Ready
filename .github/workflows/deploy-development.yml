@@ -15,7 +15,7 @@ concurrency:
 
 env:
   CF_SEND_TELEMETRY: "false"
-  D1_DATABASE_ID: f5433c14-1379-4154-bbc7-4e562081e92b
+  D1_DATABASE_ID: 63a31c75-10fc-4530-b9cd-6e39b540eb8a
   WORKER_NAME: cf-ready-dev
 
 jobs:

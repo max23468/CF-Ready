@@ -19,7 +19,8 @@ const runtimeSecrets = secrets(
 const accountId = "98195e505f42abaaeb4827f71a924b1a";
 
 // Le code webhook stanno nella jurisdiction `eu` (D-184), che Cloudflare fissa solo alla
-// creazione: per questo hanno il suffisso `-eu`.
+// creazione. Le code `-eu` della prima migrazione conservano i consumer per un rilascio,
+// finché si svuotano; poi si tolgono con le code.
 function webhookQueueTriggers(queue: string) {
   return [
     triggers.queue({
@@ -62,6 +63,7 @@ const production = {
     domains: ["app.cfready.it"],
     triggers: [
       triggers.scheduled({ schedule: "*/5 * * * *" }),
+      ...webhookQueueTriggers("cf-ready-webhooks-prod"),
       ...webhookQueueTriggers("cf-ready-webhooks-prod-eu"),
     ],
     env: {
@@ -75,7 +77,7 @@ const production = {
       APP_ENVIRONMENT: bindings.text("production"),
       OWNER_TELEGRAM_CONTROL_ENABLED: bindings.text("true"),
       DB: bindings.d1({ name: "cf-ready-db-prod", id: "6434597c-d683-48d9-a51f-b0d15de6a684" }),
-      WEBHOOK_QUEUE: bindings.queue({ name: "cf-ready-webhooks-prod-eu" }),
+      WEBHOOK_QUEUE: bindings.queue({ name: "cf-ready-webhooks-prod" }),
       CF_VERSION_METADATA: bindings.versionMetadata(),
       ...runtimeSecrets,
       ...secrets(
@@ -99,6 +101,7 @@ const development = {
     workersDev: true,
     triggers: [
       triggers.scheduled({ schedule: "*/5 * * * *" }),
+      ...webhookQueueTriggers("cf-ready-webhooks-dev"),
       ...webhookQueueTriggers("cf-ready-webhooks-dev-eu"),
     ],
     env: {
@@ -109,8 +112,8 @@ const development = {
       SHOP_UPDATE_ACK_ONLY_SHOP: bindings.text(""),
       APP_ENVIRONMENT: bindings.text("development"),
       OWNER_TELEGRAM_CONTROL_ENABLED: bindings.text("false"),
-      DB: bindings.d1({ name: "cf-ready-db-dev-eu", id: "f5433c14-1379-4154-bbc7-4e562081e92b" }),
-      WEBHOOK_QUEUE: bindings.queue({ name: "cf-ready-webhooks-dev-eu" }),
+      DB: bindings.d1({ name: "cf-ready-db-dev", id: "63a31c75-10fc-4530-b9cd-6e39b540eb8a" }),
+      WEBHOOK_QUEUE: bindings.queue({ name: "cf-ready-webhooks-dev" }),
       CF_VERSION_METADATA: bindings.versionMetadata(),
       ...runtimeSecrets,
     },
