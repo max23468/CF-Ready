@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.2.13 — 13 ottobre 2026
+
+- la configurazione dell'app non dichiara più la sezione `[events]` vuota:
+  Shopify CLI 4.9 la tratta come rimozione da confermare e bloccava il deploy;
+  un solo deploy per ambiente rimuove il modulo con `--allow-deletes`, che poi
+  si toglie dai workflow (D-186).
+
+The app configuration no longer declares an empty Events section; no change
+for merchants or the checkout.
+
 ## 2.2.12 — 13 ottobre 2026
 
 - aggiorna le dipendenze all'ultima versione disponibile: librerie Shopify
