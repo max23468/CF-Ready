@@ -36,10 +36,9 @@ export function verifyProductionConfig(shopifyConfig) {
   const optionalScopes = shopifyConfig
     .match(/^optional_scopes\s*=\s*\[\s*"([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\]\s*$/m)
     ?.slice(1);
-  const emptyEvents =
-    /^\[events\]\s*\napi_version\s*=\s*"unstable"\s*\nsubscription\s*=\s*\[\s*\]\s*$/m.test(
-      shopifyConfig,
-    );
+  // Le sottoscrizioni restano webhook. Shopify CLI 4.9 non invia una sezione Events vuota e la
+  // tratta come rimozione del modulo: la sezione non si dichiara affatto.
+  const noEvents = !/^\[events\]/m.test(shopifyConfig);
   if (
     !new RegExp(`^client_id\\s*=\\s*"${expected.clientId}"\\s*$`, "m").test(shopifyConfig) ||
     !new RegExp(`^application_url\\s*=\\s*"${escapeUrl(expected.appUrl)}/app"\\s*$`, "m").test(
@@ -51,7 +50,7 @@ export function verifyProductionConfig(shopifyConfig) {
     ).test(shopifyConfig) ||
     scopes !== "write_validations" ||
     optionalScopes?.join(",") !== "write_translations,read_locales,read_markets" ||
-    !emptyEvents ||
+    !noEvents ||
     /^\[\[events\.subscription\]\]/m.test(shopifyConfig)
   ) {
     throw new Error("Il target Production non coincide con la configurazione attesa.");
