@@ -22,7 +22,7 @@ node_modules
 .playwright-cli/
 /playwright-report/
 /test-results/
-/.vitest-attachments/
+/.vitest/
 /tests/browser/__screenshots__/
 /.coverage/
 
