@@ -627,7 +627,7 @@ test("Polaris reale: anteprima Messaggi visibile prima dei campi e riepilogo sen
     // WebKit arrotonda il bordo di focus Polaris a mezzo pixel; il difetto era di circa 20 px.
     expect(Math.abs(fieldTop(it.taxCodeInvalid).top + window.scrollY - below)).toBeLessThan(1);
     // M-4: uno stato per gruppo, senza badge ripetuti su ogni messaggio.
-    const aside = messages.container.querySelector('[slot="aside"]')!;
+    const aside = messages.container.querySelector('s-stack[slot="aside"]')!;
     expect(aside.querySelectorAll("s-badge")).toHaveLength(0);
     expect(aside.querySelectorAll("s-heading")).toHaveLength(1);
     expect(aside.querySelector("s-heading")!.textContent).toBe(it.appearsNot);

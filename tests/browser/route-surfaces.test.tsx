@@ -1,10 +1,14 @@
-import { router, mount } from "./route-support";
+import { router, mount, homeData, confirmedHome } from "./route-support";
 import { describe, expect, test, vi } from "vitest";
 
 import { click, dispatch } from "./render";
+import { DEFAULT_CONFIG } from "../../app/config";
 import { texts } from "../../app/i18n";
 
+import HomePage from "../../app/features/home/HomePage";
 import App, { ErrorBoundary, headers } from "../../app/routes/app";
+import Guide from "../../app/routes/app.guide";
+import CustomerMessages from "../../app/routes/app.messages";
 
 describe("shell embedded", () => {
   test("gestisce il menu Shopify senza sospendere il render in una View Transition", async () => {
@@ -140,5 +144,47 @@ describe("shell embedded", () => {
 
     expect(window.location.hash).toBe("#embedded-restore");
     window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+  });
+});
+
+describe("pagine a due colonne", () => {
+  // Polaris 2 passa a due colonne solo quando trova l'aside: in coda al DOM arrivava dopo il primo
+  // paint e restringeva il contenuto già visibile (CLS fino a 0,33 sulla Home in Production). Un
+  // segnaposto vuoto in testa fissa la griglia; la colonna vera resta dopo il contenuto, dove
+  // Polaris la mostra sotto i 784 px.
+  test.each([
+    ["Home", () => confirmedHome(homeData), <HomePage />],
+    [
+      "Guida",
+      () => ({
+        locale: "it",
+        shopDomain: "demo.myshopify.com",
+        version: "1.2.2",
+        diagnosticId: "123e4567-e89b-42d3-a456-426614174000",
+        diagnostics: { lastSyncAt: "2026-09-05T00:00:00Z", errorCode: null },
+      }),
+      <Guide />,
+    ],
+    [
+      "Messaggi",
+      () => ({
+        locale: "it",
+        configHash: "hash",
+        messages: DEFAULT_CONFIG.messages,
+        rules: DEFAULT_CONFIG.rules,
+      }),
+      <CustomerMessages />,
+    ],
+  ] as const)("%s fissa la colonna laterale dal primo paint", async (_, loaderData, page) => {
+    router.loaderData = loaderData();
+    const view = await mount(page);
+    const children = [...view.container.querySelector("s-page")!.children];
+    const [placeholder] = children;
+    expect(placeholder.getAttribute("slot")).toBe("aside");
+    expect(placeholder.hasAttribute("hidden")).toBe(true);
+    expect(placeholder.childNodes).toHaveLength(0);
+    const aside = children.findIndex((child) => child.matches('s-stack[slot="aside"]'));
+    const content = children.findIndex((child) => !child.hasAttribute("slot"));
+    expect(aside).toBeGreaterThan(content);
   });
 });

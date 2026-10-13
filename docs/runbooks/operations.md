@@ -594,6 +594,10 @@ gate applicabili: documentazione per metadati; controlli statici e
 `coverage:check-operations` per sole operazioni; `check:ci-standard` o
 `check:ci-full` e `coverage:check` per il runtime. Le raccolte coverage
 procedono in parallelo, con verifica di commit e tree prima dell'aggregazione.
+Le raccolte instrumentate `coverage:app` e `coverage:ui` hanno timeout per test
+di 30 e 45 secondi: istanbul e i runner simultanei rallentano i test, e su una
+macchina carica i limiti ordinari di 10 e 15 secondi facevano fallire la
+raccolta senza un difetto reale.
 Prima di abilitare lo squash merge attende tutti i check
 obbligatori del ruleset `develop`, anche quelli non ancora registrati come
 `mutation`, e la fine di promozioni o deploy di un'altra pubblicazione,

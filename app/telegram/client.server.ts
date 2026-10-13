@@ -70,6 +70,16 @@ export function createTelegramClient(config: TelegramClientConfig, fetcher: type
       return Number.isSafeInteger(messageId) ? (messageId as number) : null;
     },
 
+    // Tutto il testo in un blocco preformattato: Telegram lo copia con un tocco.
+    async sendPreformattedText(text: string) {
+      await call("sendMessage", {
+        chat_id: config.chatId,
+        text,
+        entities: [{ type: "pre", offset: 0, length: text.length }],
+        link_preview_options: { is_disabled: true },
+      });
+    },
+
     async editRichMessage(
       messageId: number,
       richMessage: TelegramRichMessage,

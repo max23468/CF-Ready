@@ -86,6 +86,22 @@ export async function markUninstalled(
          )`,
       )
       .bind(shopDomain, installationStartedAt),
+    // Precede l'evento e ne ripete la condizione: il batch è una transazione, quindi il
+    // contatore aggregato sale una sola volta per installazione anche con webhook ritentati.
+    db
+      .prepare(
+        `UPDATE owner_metric_counters SET value = value + 1, updated_at = ?
+         WHERE metric = 'app_uninstalled' AND EXISTS (
+           SELECT 1 FROM shops
+           WHERE shop_domain = ? AND installed_at = ?
+             AND NOT EXISTS (
+               SELECT 1 FROM app_events
+               WHERE shop_id = shops.id AND event_name = 'app_uninstalled'
+                 AND occurred_at >= shops.installed_at
+             )
+         )`,
+      )
+      .bind(now, shopDomain, installationStartedAt),
     db
       .prepare(
         `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
@@ -99,7 +115,7 @@ export async function markUninstalled(
       )
       .bind(now, shopDomain, installationStartedAt),
   ]);
-  const inserted = results[3].meta.changes === 1;
+  const inserted = results[4].meta.changes === 1;
   if (inserted) {
     logEvent({ name: "app_uninstalled", class: "lifecycle", webhookId }, now);
   }
