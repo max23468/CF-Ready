@@ -917,6 +917,15 @@ test("il deploy Production provisiona entrambe le code webhook dichiarate", () =
   assert.match(workflow, /cf queues create --queue-name "\$queue" --jurisdiction eu/);
 });
 
+test("i deploy Shopify non autorizzano cancellazioni senza conferma", () => {
+  // D-186: `--allow-deletes` cancellerebbe anche estensioni rimosse per errore.
+  for (const path of ["deploy-development.yml", "deploy-production.yml"]) {
+    const workflow = readFileSync(new URL(`../.github/workflows/${path}`, import.meta.url), "utf8");
+    assert.match(workflow, /shopify app deploy/, path);
+    assert.doesNotMatch(workflow, /--allow-deletes/, path);
+  }
+});
+
 test("il backup Production cifra, ruota gli slot e prova il restore", () => {
   const workflow = readFileSync(
     new URL("../.github/workflows/backup-production.yml", import.meta.url),
