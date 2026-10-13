@@ -886,7 +886,9 @@ test("il rollback Production richiede uno snapshot Shopify e verifica il riprist
     new URL("../.github/workflows/deploy-production.yml", import.meta.url),
     "utf8",
   );
-  assert.match(workflow, /Nessuna versione Shopify attiva da registrare per il rollback/);
+  const preflight = readFileSync(new URL("./preflight-prod.mjs", import.meta.url), "utf8");
+  assert.match(preflight, /Snapshot Shopify Production assente/);
+  assert.match(preflight, /Rollback Production coordinato non disponibile/);
   assert.match(workflow, /needs\.deploy\.result != 'success'/);
   assert.match(workflow, /needs\.deploy\.outputs\.worker_deploy_started == 'true'/);
   assert.match(workflow, /needs\.deploy\.outputs\.shopify_deploy_started == 'true'/);
@@ -1046,7 +1048,10 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   assert.match(ci, /^  coverage:\n[\s\S]*timeout-minutes: 15/m);
   assert.match(ci, /^  e2e:\n[\s\S]*timeout-minutes: 20/m);
   assert.match(promotionGuard, /^  promotion-guard:\n[\s\S]*timeout-minutes: 15/m);
-  assert.match(ci, /npm run coverage:check -- --base-sha/);
+  assert.match(ci, /node scripts\/coverage-report\.mjs.*--base-sha/);
+  assert.match(ci, /node scripts\/coverage-collect\.mjs --verify/);
+  assert.match(ci, /matrix:\n\s+part:/);
+  assert.match(ci, /node scripts\/github-gates\.mjs --reuse-ci/);
   assert.match(ci, /name: coverage-\$\{\{ github\.sha \}\}/);
   assert.match(ci, /include-hidden-files: true/);
   assert.match(doctor, /steps\.lane\.outputs\.react_doctor == 'true'/);

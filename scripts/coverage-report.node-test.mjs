@@ -1,10 +1,25 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, realpathSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import {
+  chmodSync,
+  mkdtempSync,
+  mkdirSync,
+  realpathSync,
+  readFileSync,
+  writeFileSync,
+  rmSync,
+} from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
 import { basename, dirname, resolve, sep } from "node:path";
 import test from "node:test";
+import { EventEmitter } from "node:events";
+import {
+  coverageParts,
+  collectCoverage,
+  stampCoverage,
+  verifyCoverageParts,
+} from "./coverage-collect.mjs";
 import coverageLibrary from "istanbul-lib-coverage";
 import { applyStrykerVitestPatch, patchStrykerVitest } from "./patch-stryker-vitest.mjs";
 import {
@@ -31,6 +46,94 @@ import {
 } from "./run-critical-mutation.mjs";
 
 const { createCoverageMap, createFileCoverage } = coverageLibrary;
+
+test("le raccolte coverage partono in parallelo e attendono anche il ramo fallito", async (t) => {
+  const root = mkdtempSync(resolve(tmpdir(), "cf-ready-coverage-parallel-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  assert.deepEqual(coverageParts("operations"), ["operations"]);
+  assert.throws(() => coverageParts("unknown"), /Modalità/);
+  const children = [];
+  const running = collectCoverage("full", root, (_command, args) => {
+    const child = new EventEmitter();
+    children.push({ child, part: args[1].split(":")[1] });
+    return child;
+  });
+  const rejected = assert.rejects(running, /Raccolta coverage fallita/);
+  assert.equal(children.length, 4);
+  children[0].child.emit("exit", 1);
+  for (const { child } of children.slice(1)) child.emit("exit", 0);
+  await rejected;
+  const failedStart = collectCoverage("operations", root, () => {
+    const child = new EventEmitter();
+    queueMicrotask(() => child.emit("error", new Error("non eseguibile")));
+    return child;
+  });
+  await assert.rejects(failedStart, /Raccolta/);
+});
+
+test("l'aggregazione coverage rifiuta report assenti, obsoleti o di un altro tree", (t) => {
+  const root = mkdtempSync(resolve(tmpdir(), "cf-ready-coverage-provenance-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(resolve(root, ".coverage/operations"), { recursive: true });
+  writeFileSync(resolve(root, ".coverage/operations/coverage-final.json"), "{}");
+  const execute = (_command, args) => (args[1] === "HEAD" ? "a".repeat(40) : "b".repeat(40));
+  stampCoverage("operations", root, execute);
+  assert.doesNotThrow(() => verifyCoverageParts(["operations"], root, execute));
+  assert.throws(() => stampCoverage("other", root, execute), /sconosciuta/);
+  assert.throws(() => verifyCoverageParts(["other"], root, execute), /sconosciuta/);
+  assert.throws(() => verifyCoverageParts(["app"], root, execute), /ENOENT/);
+  writeFileSync(
+    resolve(root, ".coverage/operations/provenance.json"),
+    JSON.stringify({ part: "operations", commit: "a".repeat(40), tree: "c".repeat(40) }),
+  );
+  assert.throws(() => verifyCoverageParts(["operations"], root, execute), /Provenienza/);
+});
+
+test("il collector completa tutti i report e i suoi entrypoint verificano la provenienza", async (t) => {
+  const root = mkdtempSync(resolve(tmpdir(), "cf-ready-coverage-cli-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  execFileSync("git", ["init", "--quiet"], { cwd: root });
+  execFileSync(
+    "git",
+    [
+      "-c",
+      "user.name=Fixture",
+      "-c",
+      "user.email=fixture@example.test",
+      "commit",
+      "--quiet",
+      "--allow-empty",
+      "-m",
+      "fixture",
+    ],
+    { cwd: root },
+  );
+  await collectCoverage("full", root, (_command, args) => {
+    const child = new EventEmitter();
+    const directory = resolve(root, ".coverage", args[1].split(":")[1]);
+    mkdirSync(directory, { recursive: true });
+    writeFileSync(resolve(directory, "coverage-final.json"), "{}");
+    queueMicrotask(() => child.emit("exit", 0));
+    return child;
+  });
+  verifyCoverageParts(coverageParts(), root);
+  const script = fileURLToPath(new URL("./coverage-collect.mjs", import.meta.url));
+  for (const args of [["--stamp", "operations"], ["--verify"], ["--verify", "--operations-only"]]) {
+    execFileSync(process.execPath, [script, ...args], { cwd: root });
+  }
+  const bin = resolve(root, "bin");
+  mkdirSync(bin);
+  writeFileSync(
+    resolve(bin, "npm"),
+    '#!/bin/sh\npart="${2#coverage:}"\nmkdir -p ".coverage/$part"\nprintf "{}" > ".coverage/$part/coverage-final.json"\n',
+  );
+  chmodSync(resolve(bin, "npm"), 0o755);
+  execFileSync(process.execPath, [script, "--operations-only"], {
+    cwd: root,
+    env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+  });
+  verifyCoverageParts(["operations"], root);
+});
 
 const policy = {
   schemaVersion: 2,
@@ -757,6 +860,7 @@ test("verifica soglie e righe modificate producendo i report aggregati", () => {
 
   const checked = runCoverageReport({ repositoryRoot, args: [], execute });
   assert.deepEqual(checked.failures, []);
+  assert.equal(checked.state.scope, "full");
   assert.equal(checked.state.global.lines.pct, 80);
   const sha = "a".repeat(40);
   assert.doesNotThrow(() =>
@@ -765,6 +869,27 @@ test("verifica soglie e righe modificate producendo i report aggregati", () => {
       args: ["--base-sha", sha, "--head-sha", sha],
       execute,
     }),
+  );
+  assert.throws(
+    () => runCoverageReport({ repositoryRoot, args: ["--operations-only"], execute }),
+    /global/,
+  );
+  reportsByName.operations = mapFor(repositoryRoot, ["scripts/task.mjs", "site/menu.js"]);
+  writeFileSync(
+    resolve(repositoryRoot, ".coverage/operations/coverage-final.json"),
+    JSON.stringify(reportsByName.operations.toJSON()),
+  );
+  const scoped = runCoverageReport({
+    repositoryRoot,
+    args: ["--operations-only", "--working-tree"],
+    execute,
+  });
+  assert.equal(scoped.state.sourceCount, 2);
+  assert.equal(scoped.state.scope, "operations");
+  assert.equal(scoped.state.changedExecutableLines.pct, 100);
+  writeFileSync(
+    resolve(repositoryRoot, ".coverage/operations/coverage-final.json"),
+    JSON.stringify(operations.toJSON()),
   );
   assert.doesNotThrow(() =>
     runCoverageReport({

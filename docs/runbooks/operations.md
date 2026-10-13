@@ -580,13 +580,21 @@ npm run publish:development
 npm run publish:production
 ```
 
-Il primo crea o riprende la PR verso `develop` e attende il deploy Development
-del commit unito. Se il commit unito tocca soltanto file della corsia `docs`,
-che non entrano nel Worker né nell'app Shopify, il deploy non parte: Development
-resta sulla versione precedente, che ha lo stesso codice. Prima del push classifica il diff con `ci-lane.mjs` ed esegue
-in locale gli stessi comandi dei job `verify` e `coverage` della corsia
-(`check:docs`, oppure `check:ci-standard` o `check:ci-full` seguito da
-`coverage:check`). Prima di abilitare lo squash merge attende tutti i check
+Durante lo sviluppo eseguire test mirati; per la verifica finale locale usare
+`npm run verify:change`. Il comando include modifiche locali nel diff e applica
+gli stessi gate di superficie del coordinatore. I nuovi sorgenti non ancora
+tracciati entrano nel controllo come righe aggiunte, senza doverli mettere in stage.
+Non anteporre una seconda suite completa a una pubblicazione autorizzata.
+
+Il primo comando crea o riprende la PR verso `develop`. Il deploy Development
+parte solo se cambia una superficie distribuita nel Worker o nell'app Shopify;
+documentazione, metadati, tooling, test, benchmark e solo sito non lo avviano.
+Prima del push classifica il diff con `ci-lane.mjs` ed esegue autonomamente i
+gate applicabili: documentazione per metadati; controlli statici e
+`coverage:check-operations` per sole operazioni; `check:ci-standard` o
+`check:ci-full` e `coverage:check` per il runtime. Le raccolte coverage
+procedono in parallelo, con verifica di commit e tree prima dell'aggregazione.
+Prima di abilitare lo squash merge attende tutti i check
 obbligatori del ruleset `develop`, anche quelli non ancora registrati come
 `mutation`, e la fine di promozioni o deploy di un'altra pubblicazione,
 così `develop` non avanza sotto un ciclo in corso. Il deploy Development accetta
@@ -607,7 +615,16 @@ anche Pages Production; poi verifica la riconciliazione di `develop` e crea la
 GitHub Release dopo che tutte le superfici applicabili hanno concluso sullo
 stesso commit.
 
-Il coordinatore riusa PR, run e release già riusciti per lo stesso commit. Dopo
+La CI del push può riusare l'ultimo run PR riuscito con tree identico e artifact
+completi non scaduti, trasferendo anche la base mutation incrementale. In ogni
+altro caso esegue i gate ordinari; la policy del commit esatto non si eredita.
+Il coordinatore riusa PR e release già riuscite per lo stesso commit. I run
+provider in corso si attendono; dopo un run Worker/Shopify già riuscito si
+avvia una nuova verifica con preflight e readback freschi. Production distingue
+versione Shopify assente, dello stesso commit già attiva o disponibile da
+rilasciare, e rifiuta collisioni. Una ripresa parziale recupera uno snapshot
+Worker/Shopify dello stesso commit per il rollback delle sole scritture avviate.
+Dopo
 un errore si rilancia quindi lo stesso comando: riparte dal primo passaggio
 incompleto. Quando viene avviato, il workflow Pages riconferma a sua volta la
 differenza dal deployment canonico prima di distribuire il sito e completare
@@ -619,6 +636,19 @@ li confronta con la sorgente. I workflow provider restano manuali e vincolati al
 proprio branch; il comando li avvia tramite l'identità GitHub dell'operatore.
 Eseguire questi comandi costituisce un'azione remota e richiede l'autorizzazione
 prevista da `AGENTS.md`.
+
+L'attesa cresce da cinque a trenta secondi, entro i timeout originali, e mostra
+le transizioni di fase. Stato e durate vengono salvati anche nei tentativi
+falliti, senza registrare payload o errori provider non sanitizzati.
+A ciclo chiuso il coordinatore scarica e valida le
+ricevute Worker/Shopify e conserva durate, prove e risultato della pulizia in
+`cf-ready-publications/<source-sha>.json` nella directory Git comune. Elimina
+solo il branch temporaneo `codex/` pulito, ancora sul candidato e con tree
+equivalente allo squash; elimina il relativo worktree solo se secondario e
+privo di file ignorati non generati. I worktree gestiti da Codex restano alla
+pulizia dell'host, che li archivia con la relativa ricevuta. Conserva gli altri checkout e dichiara il
+motivo nella ricevuta. Il worktree e il branch locali restano disponibili fino
+alla chiusura del ciclo, così gli errori precedenti alla pulizia sono riprendibili.
 
 ## Deploy Production
 
