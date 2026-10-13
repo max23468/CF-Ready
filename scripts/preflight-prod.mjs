@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { appendFile, readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
 import {
@@ -106,6 +106,66 @@ export function readRollbackTarget(deployment) {
   return { deploymentId: deployment.id, workerVersionId: version.version_id };
 }
 
+export function productionDeployPlan(versions, deployments, { version, commit }) {
+  if (
+    !/^\d+\.\d+\.\d+$/.test(version) ||
+    !/^[0-9a-f]{40}$/.test(commit) ||
+    !Array.isArray(versions) ||
+    !Array.isArray(deployments)
+  )
+    throw new Error("Candidato Production non valido.");
+  const message = `Production ${commit}`;
+  const candidates = versions.filter((entry) => entry.versionTag === version);
+  if (
+    candidates.length > 1 ||
+    candidates.some((entry) => entry.message !== message || !entry.versionId)
+  ) {
+    throw new Error(
+      `Collisione Shopify ${version}: la versione non appartiene al commit candidato.`,
+    );
+  }
+  const candidate = candidates[0];
+  const activeVersions = versions.filter((entry) => entry.status === "active");
+  if (activeVersions.length !== 1) throw new Error("Stato Shopify Production ambiguo.");
+  const active = activeVersions[0];
+  if (!active?.versionTag || !active.versionId)
+    throw new Error("Snapshot Shopify Production assente.");
+  const stable = (deployment) =>
+    Boolean(
+      deployment?.id &&
+      deployment.versions?.length === 1 &&
+      deployment.versions[0].version_id &&
+      deployment.versions[0].percentage === 100,
+    );
+  const worker = deployments[0];
+  if (worker && !stable(worker)) throw new Error("Deployment Worker Production ambiguo.");
+  const workerCurrent = worker?.annotations?.["workers/message"] === message;
+  const shopifyCurrent = active.versionTag === version && active.message === message;
+  // Un retry dopo una scrittura parziale deve ripristinare una coppia dello stesso commit.
+  const previousMessage =
+    !workerCurrent && worker
+      ? worker.annotations?.["workers/message"]
+      : !shopifyCurrent
+        ? active.message
+        : message;
+  if (!/^Production [0-9a-f]{40}$/.test(previousMessage ?? ""))
+    throw new Error("Provenienza rollback Production non verificabile.");
+  const rollbackShopify = versions.find(
+    (entry) => entry.message === previousMessage && entry.versionTag && entry.versionId,
+  );
+  const rollbackWorker = deployments.find(
+    (entry) => stable(entry) && entry.annotations?.["workers/message"] === previousMessage,
+  );
+  if (!rollbackShopify || (worker && !rollbackWorker))
+    throw new Error("Rollback Production coordinato non disponibile.");
+  return {
+    shopifyAction: !candidate ? "deploy" : shopifyCurrent ? "skip" : "release",
+    workerAction: workerCurrent ? "skip" : "deploy",
+    rollbackWorkerVersionId: rollbackWorker?.versions[0].version_id ?? "",
+    rollbackShopifyVersionTag: rollbackShopify.versionTag,
+  };
+}
+
 function escapeUrl(url) {
   return url.replaceAll(".", "\\.").replaceAll("/", "\\/");
 }
@@ -152,6 +212,26 @@ async function main() {
     ownerNotifications: vars.OWNER_NOTIFICATIONS_ENABLED === "true",
     ownerControl: vars.OWNER_TELEGRAM_CONTROL_ENABLED === "true",
   });
+
+  const { version } = JSON.parse(await readFile("package.json", "utf8"));
+  const commit = process.env.GITHUB_SHA ?? run("git", ["rev-parse", "HEAD"], false).trim();
+  const versions = JSON.parse(
+    run("shopify", ["app", "versions", "list", "--no-color", "--json"], false),
+  );
+  const deployments = JSON.parse(
+    run(
+      "npm",
+      ["exec", "--", "cf", "workers", "deployments", "list", "--worker", expected.workerName],
+      false,
+    ),
+  );
+  const plan = productionDeployPlan(versions, deployments.deployments, { version, commit });
+  if (process.env.GITHUB_ENV)
+    await appendFile(
+      process.env.GITHUB_ENV,
+      `SHOPIFY_DEPLOY_ACTION=${plan.shopifyAction}\nWORKER_DEPLOY_ACTION=${plan.workerAction}\n` +
+        `ROLLBACK_WORKER_VERSION_ID=${plan.rollbackWorkerVersionId}\nROLLBACK_SHOPIFY_VERSION_TAG=${plan.rollbackShopifyVersionTag}\n`,
+    );
 
   console.log(
     "Preflight Production superato: Shopify, Build Output, code, D1 e secret Worker verificati.",

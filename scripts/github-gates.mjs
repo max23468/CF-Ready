@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
+import { appendFileSync } from "node:fs";
 
 function latestRequiredChecks(checkRuns, required, currentRunId = "") {
   const requiredNames = new Set(required);
@@ -87,7 +88,7 @@ async function request(path) {
 
 const pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
-async function reviewedTreeHead(repository, sha) {
+export async function reviewedTreeHead(repository, sha) {
   const [detail, pullRequests] = await Promise.all([
     request(`/repos/${repository}/git/commits/${sha}`),
     request(`/repos/${repository}/commits/${sha}/pulls`),
@@ -96,6 +97,49 @@ async function reviewedTreeHead(repository, sha) {
   if (!pullRequest || !detail.tree?.sha) return undefined;
   const head = await request(`/repos/${repository}/git/commits/${pullRequest.head.sha}`);
   return head.tree?.sha === detail.tree.sha ? pullRequest.head.sha : undefined;
+}
+
+// Il riuso è un'ottimizzazione: prove assenti, incomplete o API indisponibile
+// portano alla suite ordinaria, senza produrre un check verde di comodo.
+export async function reviewedCiEvidence(repository, sha, domains = []) {
+  try {
+    const head = await reviewedTreeHead(repository, sha);
+    if (!head) return undefined;
+    const checks = await checkRunsFor(repository, head);
+    if (missingSuccessfulChecks(checks, ["verify", "e2e", "coverage", "mutation"]).length)
+      return undefined;
+    const { workflow_runs: runs } = await request(
+      `/repos/${repository}/actions/workflows/ci.yml/runs?head_sha=${head}&event=pull_request&per_page=100`,
+    );
+    const latest = runs.sort((a, b) => b.id - a.id)[0];
+    if (
+      latest?.head_sha !== head ||
+      latest.event !== "pull_request" ||
+      latest.conclusion !== "success"
+    )
+      return undefined;
+    const runChecks = checks.filter((check) =>
+      check.details_url?.includes(`/actions/runs/${latest.id}/`),
+    );
+    if (missingSuccessfulChecks(runChecks, ["verify", "e2e", "coverage", "mutation"]).length)
+      return undefined;
+    const { artifacts } = await request(
+      `/repos/${repository}/actions/runs/${latest.id}/artifacts?per_page=100`,
+    );
+    const requiredArtifacts = [
+      `ci-reusable-${latest.id}`,
+      ...domains.map((domain) => `mutation-incremental-${domain}`),
+    ];
+    if (
+      requiredArtifacts.some(
+        (name) => !artifacts.some((artifact) => artifact.name === name && !artifact.expired),
+      )
+    )
+      return undefined;
+    return { head, runId: latest.id };
+  } catch {
+    return undefined;
+  }
 }
 
 async function checkRunsFor(repository, sha) {
@@ -254,6 +298,23 @@ export async function verifyPromotion({ event, repository }) {
 }
 
 async function main() {
+  if (process.argv.includes("--reuse-ci")) {
+    const evidence = await reviewedCiEvidence(
+      process.env.GITHUB_REPOSITORY,
+      process.env.GITHUB_SHA,
+      JSON.parse(process.env.MUTATION_MATRIX ?? "[]"),
+    );
+    appendFileSync(
+      process.env.GITHUB_OUTPUT,
+      `reuse_ci=${Boolean(evidence)}\nreviewed_head=${evidence?.head ?? ""}\nreviewed_run=${evidence?.runId ?? ""}\n`,
+    );
+    console.log(
+      evidence
+        ? `CI riusata dal run ${evidence.runId}, HEAD ${evidence.head}.`
+        : "CI ordinaria: nessuna prova completa riusabile.",
+    );
+    return;
+  }
   const required = process.env.REQUIRED_CHECKS?.split(",").filter(Boolean);
   if (required?.length) {
     await waitForChecks(process.env.GITHUB_REPOSITORY, process.env.GITHUB_SHA, required, {

@@ -6,12 +6,25 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.2.14 — 13 ottobre 2026
+
+- pubblicazione proporzionata per superficie: riuso della CI dopo squash con
+  tree identico e prove complete, raccolte coverage parallele con provenienza,
+  verifica locale unica, ripresa Production senza collisioni Shopify, attesa
+  adattiva, ricevute del ciclo e pulizia dei checkout temporanei (D-187).
+  Le soglie dei gate restano invariate; cambia il perimetro applicabile alle
+  sole modifiche di metadati e tooling operativo. Nessun cambiamento merchant.
+
+Publication checks follow the changed surface, reuse verified identical trees,
+collect coverage in parallel and resume partial deployments with coordinated
+rollback. Runtime coverage thresholds and fresh provider readback remain required.
+
 ## 2.2.13 — 13 ottobre 2026
 
 - la configurazione dell'app non dichiara più la sezione `[events]` vuota:
   Shopify CLI 4.9 la tratta come rimozione da confermare e bloccava il deploy;
-  un solo deploy per ambiente rimuove il modulo con `--allow-deletes`, che poi
-  si toglie dai workflow (D-186).
+  un solo deploy per ambiente ha rimosso il modulo con `--allow-deletes`, poi
+  tolto dai workflow (D-186).
 
 The app configuration no longer declares an empty Events section; no change
 for merchants or the checkout.

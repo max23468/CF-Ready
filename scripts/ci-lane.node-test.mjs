@@ -110,4 +110,40 @@ test("i file condivisi del mutation harness attivano tutti i domini", () => {
 
 test("un diff vuoto fallisce verso la corsia completa", () => {
   assert.equal(classifyCiLane([]).lane, "full");
+  assert.equal(classifyCiLane(["unknown/entry.custom"]).lane, "full");
+  assert.equal(classifyCiLane(["unknown/entry.custom"]).coverageMode, "full");
+  assert.equal(classifyCiLane(["shopify.app.toml"]).lane, "full");
+});
+
+test("le superfici separano metadati, operazioni e runtime senza distribuire test o tooling", () => {
+  for (const file of [".gitignore", ".gitattributes"]) {
+    const result = classifyCiLane([file]);
+    assert.equal(result.coverageMode, "none");
+    assert.equal(result.e2e, false);
+    assert.equal(result.deployDevelopment, false);
+  }
+  for (const file of [
+    "scripts/publish.mjs",
+    ".github/workflows/deploy-production.yml",
+    "AGENTS.md",
+  ]) {
+    const result = classifyCiLane([file]);
+    assert.equal(result.coverageMode, "operations");
+    assert.equal(result.e2e, false);
+    assert.equal(result.deployDevelopment, false);
+  }
+  for (const file of [
+    "app/root.tsx",
+    "package-lock.json",
+    "cloudflare.config.ts",
+    "shopify.app.toml",
+  ]) {
+    const result = classifyCiLane([file]);
+    assert.equal(result.coverageMode, "full");
+    assert.equal(result.e2e, true);
+    assert.equal(result.deployDevelopment, true);
+  }
+  assert.equal(classifyCiLane(["tests/browser/home.test.ts"]).deployDevelopment, false);
+  assert.equal(classifyCiLane(["site/style.css"]).deployDevelopment, false);
+  assert.equal(classifyCiLane(["scripts/publish.mjs", "app/root.tsx"]).coverageMode, "full");
 });
