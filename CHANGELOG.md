@@ -6,6 +6,24 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.2.12 — 13 ottobre 2026
+
+- aggiorna le dipendenze all'ultima versione disponibile: librerie Shopify
+  (`@shopify/shopify-api` 15.0.1, `shopify-app-react-router` 3.0.2,
+  `shopify-app-session-storage` 7.0.1, CLI 4.9.3 anche nei workflow), Vite
+  8.3.4, Playwright 1.64, Wrangler 4.150, `@cloudflare/vitest-plugin` 1.4.1,
+  oxfmt 0.73, oxlint 1.88, React Doctor 0.9.18, `@shopify/polaris-types`
+  2.0.0-rc.3 e gli override `@graphql-tools/utils` 12.0.4 e `graphql-config`
+  5.1.8; sostituisce la PR Dependabot #694;
+- Vitest resta alla 5.0.3: la 5.0.4 rompe la cache dei moduli nel pool Workers
+  e Dependabot la salta;
+- Dependabot aggiorna `shopify-app-react-router` fuori dal gruppo minor e
+  patch, perché la sua `packageExtension` richiede un aggiornamento manuale;
+- lo schema Function API `2026-10` resta invariato con la CLI aggiornata.
+
+Dependencies are updated to their latest working releases; no change for
+merchants or the checkout.
+
 ## 2.2.11 — 13 ottobre 2026
 
 - toglie i consumer delle code webhook temporanee `-eu`, ormai vuote: il Worker
