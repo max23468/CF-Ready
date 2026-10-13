@@ -9,6 +9,11 @@ import { writeOwnerControlState } from "../app/owner-control/repository.server";
 import { unauthenticated } from "../app/shopify.server";
 
 import { fetchRevenueReport, readRevenueReport } from "../app/owner-control/revenue.server";
+import {
+  fetchPartnerUninstalls,
+  PARTNER_HISTORY_START,
+  readUninstallReport,
+} from "../app/owner-control/uninstalls.server";
 
 import {
   NOW,
@@ -444,16 +449,37 @@ describe("Ricavi Partner", () => {
         false,
       ),
     ];
-    const sale = vi.fn(async () => responses.shift()!) as unknown as typeof fetch;
+    const uninstalls = vi.fn(async () =>
+      Response.json({
+        data: {
+          app: {
+            events: {
+              edges: [
+                uninstallEdge("u1", "2026-08-01T12:00:00.000Z", "gid://shopify/Shop/1"),
+                uninstallEdge("u2", "2026-09-07T12:00:00.000Z", "gid://shopify/Shop/1"),
+              ],
+              pageInfo: { hasNextPage: false },
+            },
+          },
+        },
+      }),
+    );
+    const sale = vi.fn(async () => responses.shift()!);
+    const fetcher = (async (input: RequestInfo | URL, init?: RequestInit) =>
+      String(init?.body).includes("OwnerControlUninstalls")
+        ? uninstalls()
+        : sale()) as unknown as typeof fetch;
     const billing = await renderOwnerControlAction(
       env.DB,
       { view: "billing", refresh: true },
       controlConfig(),
-      { now: NOW, fetcher: sale },
+      { now: NOW, fetcher },
     );
     expect(JSON.stringify(billing)).toContain("98,36");
     expect(JSON.stringify(billing)).toContain("In attesa della transazione Shopify");
+    expect(JSON.stringify(billing)).toContain("2 · 1 store · 1 negli ultimi 28 gg");
     expect(sale).toHaveBeenCalledTimes(2);
+    expect(uninstalls).toHaveBeenCalledTimes(1);
 
     await env.DB.prepare("DELETE FROM owner_control_state").run();
     const denied = vi.fn(async () =>
@@ -469,7 +495,8 @@ describe("Ricavi Partner", () => {
       },
     );
     expect(JSON.stringify(withoutAccess)).toContain("serve il permesso View financials");
-    expect(JSON.stringify(withoutAccess)).toContain("Valore mensile (MRR)");
+    expect(JSON.stringify(withoutAccess)).toContain("MRR");
+    expect(JSON.stringify(withoutAccess)).toContain("Partner non disponibile");
 
     const refreshWithoutAccess = await renderOwnerControlAction(
       env.DB,
@@ -482,6 +509,10 @@ describe("Ricavi Partner", () => {
     expect(refreshText).toContain("Non riuscito (partner_api_graphql_error)");
   });
 });
+
+function uninstallEdge(cursor: string, occurredAt: string, shopId: string) {
+  return { cursor, node: { type: "RELATIONSHIP_UNINSTALLED", occurredAt, shop: { id: shopId } } };
+}
 
 describe("Growth Partner", () => {
   test("usa i default runtime con una risposta Partner vuota", async () => {
@@ -571,5 +602,114 @@ describe("Growth Partner", () => {
       days7: { RELATIONSHIP_INSTALLED: 0, RELATIONSHIP_UNINSTALLED: 0 },
       days28: { RELATIONSHIP_INSTALLED: 0, RELATIONSHIP_UNINSTALLED: 0 },
     });
+  });
+});
+
+describe("Disinstallazioni Partner", () => {
+  const page = (edges: unknown[], hasNextPage: boolean) =>
+    Response.json({ data: { app: { events: { edges, pageInfo: { hasNextPage } } } } });
+
+  test("conta eventi e store dal lancio, separa 28 giorni e riusa la cache", async () => {
+    const responses = [
+      page([uninstallEdge("u1", "2026-08-01T12:00:00.000Z", "gid://shopify/Shop/1")], true),
+      page(
+        [
+          uninstallEdge("u2", "2026-09-01T12:00:00.000Z", "gid://shopify/Shop/2"),
+          uninstallEdge("u3", "2026-09-07T12:00:00.000Z", "gid://shopify/Shop/1"),
+        ],
+        false,
+      ),
+    ];
+    const fetcher = vi.fn(async () => responses.shift()!);
+    const report = await readUninstallReport(env.DB, PARTNER, {
+      now: NOW,
+      fetcher: fetcher as unknown as typeof fetch,
+    });
+    expect(report.partner).toMatchObject({ total: 3, stores: 2, days28: 2 });
+    expect(report.local).toMatchObject({ total: expect.any(Number) });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    const variables = JSON.parse(
+      String(
+        (fetcher.mock.calls[0] as unknown[])[1] &&
+          (fetcher.mock.calls[0] as unknown as [unknown, RequestInit])[1].body,
+      ),
+    ).variables;
+    expect(variables.occurredAtMin).toBe(PARTNER_HISTORY_START);
+    expect(
+      JSON.stringify(await env.DB.prepare("SELECT state_value FROM owner_control_state").all()),
+    ).not.toContain("gid://");
+
+    const cached = await readUninstallReport(env.DB, PARTNER, {
+      now: new Date(NOW.getTime() + 60_000),
+      force: true,
+      fetcher: vi.fn(() => Promise.reject(new Error("non chiamare"))),
+    });
+    expect(cached.partner).toMatchObject({ total: 3 });
+  });
+
+  test("degrada a contatore locale e rifiuta payload, eventi e cursori invalidi", async () => {
+    const failed = await readUninstallReport(env.DB, PARTNER, {
+      now: NOW,
+      fetcher: vi.fn(async () => Response.json({ data: { app: {} } })) as unknown as typeof fetch,
+    });
+    expect(failed.partner).toEqual({ unavailable: "partner_api_invalid_payload" });
+
+    const fetchWith = (response: () => Response) =>
+      fetchPartnerUninstalls(
+        PARTNER,
+        NOW,
+        vi.fn(async () => response()) as unknown as typeof fetch,
+      );
+    await expect(
+      fetchWith(() => page([uninstallEdge("u1", "data", "gid://shopify/Shop/1")], false)),
+    ).rejects.toThrow("partner_api_invalid_uninstall_event");
+    await expect(
+      fetchWith(() =>
+        page(
+          [
+            {
+              cursor: "u1",
+              node: { type: "RELATIONSHIP_UNINSTALLED", occurredAt: "2026-09-01T00:00:00.000Z" },
+            },
+          ],
+          false,
+        ),
+      ),
+    ).rejects.toThrow("partner_api_invalid_uninstall_event");
+    await expect(
+      fetchWith(() =>
+        page([uninstallEdge("", "2026-09-01T00:00:00.000Z", "gid://shopify/Shop/1")], true),
+      ),
+    ).rejects.toThrow("partner_api_invalid_cursor");
+    let cursor = 0;
+    await expect(
+      fetchWith(() => {
+        cursor += 1;
+        return page(
+          [uninstallEdge(`u${cursor}`, "2026-09-01T00:00:00.000Z", "gid://shopify/Shop/1")],
+          true,
+        );
+      }),
+    ).rejects.toThrow("partner_api_page_limit");
+    await expect(fetchWith(() => page([], false))).resolves.toMatchObject({
+      total: 0,
+      stores: 0,
+      days28: 0,
+    });
+  });
+
+  test("usa i default runtime", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => page([], false)),
+    );
+    try {
+      await expect(readUninstallReport(env.DB, PARTNER)).resolves.toMatchObject({
+        partner: { total: 0 },
+      });
+      await expect(fetchPartnerUninstalls(PARTNER)).resolves.toMatchObject({ total: 0 });
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

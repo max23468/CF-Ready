@@ -54,6 +54,16 @@ describe("parser Control Center", () => {
     ]) {
       expect(parseCallback(invalid)).toBeNull();
     }
+    expect(callbackData({ view: "billing", copy: true })).toBe("oc1:b:-:0:c");
+    expect(parseCallback("oc1:b:-:0:c")).toEqual({
+      view: "billing",
+      page: 0,
+      refresh: false,
+      copy: true,
+    });
+    expect(parseCallback("oc1:s:paid:1:c")).toMatchObject({ filter: "paid", copy: true });
+    expect(parseCallback("oc1:o:1:0:c")).toMatchObject({ shopId: 1, copy: true });
+    expect(parseCallback("oc1:b:-:0:r")).not.toHaveProperty("copy");
     expect(parseCommand("/shops")).toEqual({ view: "shops", filter: "all", page: 0 });
     expect(parseCommand("/shop")).toEqual({ view: "shop" });
   });

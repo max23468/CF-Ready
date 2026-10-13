@@ -48,6 +48,7 @@ import {
   writeOwnerControlState,
 } from "./repository.server";
 import { readRevenueReport } from "./revenue.server";
+import { readUninstallReport } from "./uninstalls.server";
 import { syncPartnerFinancialObservations } from "../owner-notifications/financial-source.server";
 import {
   readShopifyPlan,
@@ -130,7 +131,7 @@ export async function renderOwnerControlAction(
       if (!action.argument) return noticeMessage("Store", "Usa /shop nome_o_dominio.");
       const shops = await findShops(db, action.argument);
       if (shops.length === 1) {
-        return diagnosticShopMessage(db, shops[0], partnerConfig, {
+        const message = await diagnosticShopMessage(db, shops[0], partnerConfig, {
           ...options,
           now,
           refresh: action.refresh,
@@ -142,6 +143,7 @@ export async function renderOwnerControlAction(
                 )
               : null,
         });
+        return { ...message, copyAction: { view: "shop", shopId: shops[0].id } };
       }
       if (shops.length > 1) return shopMatchesMessage(shops);
       return noticeMessage("Store", "Store non trovato.");
@@ -179,13 +181,18 @@ export async function renderOwnerControlAction(
           financialRefreshUnavailable = ownerControlErrorCode(error);
         }
       }
-      const [billing, revenue] = await Promise.all([
+      const [billing, revenue, uninstalls] = await Promise.all([
         readBilling(db),
         readRevenueReport(db, partnerConfig, {
           now,
           force: action.refresh,
           fetcher: options.fetcher,
         }).catch((error: unknown) => ({ unavailable: ownerControlErrorCode(error) })),
+        readUninstallReport(db, partnerConfig, {
+          now,
+          force: action.refresh,
+          fetcher: options.fetcher,
+        }),
       ]);
       return billingMessage(
         {
@@ -196,6 +203,7 @@ export async function renderOwnerControlAction(
           },
         },
         revenue,
+        uninstalls,
       );
     }
     case "trials":

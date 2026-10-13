@@ -4,11 +4,16 @@ import {
   PERFORMANCE_WINDOW_DAYS,
   type PerformanceMetric,
 } from "../reporting/performance";
-import type { TelegramInlineKeyboard, TelegramRichMessage } from "../telegram/client.server";
-import { callbackData, type OwnerControlAction, type ShopsFilter } from "./model";
+import type {
+  TelegramInlineKeyboard,
+  TelegramRichMessage,
+  TelegramRichText,
+} from "../telegram/client.server";
+import { callbackData, copyTarget, type OwnerControlAction, type ShopsFilter } from "./model";
 import type { BillingStatusCategory, ShopRow } from "./queries.server";
 import type { RevenueReport } from "./revenue.server";
 import type { ShopifyPlanRow } from "./shopify-plans.server";
+import type { UninstallReport } from "./uninstalls.server";
 import type { BFSReport } from "./bfs.server";
 import { BFS_TARGET } from "./model";
 import { FINANCIAL_OBSERVATION_DAYS, SHOPS_PAGE_SIZE } from "./model";
@@ -19,6 +24,8 @@ type RevenueView = (RevenueReport & { cachedAt: string }) | { unavailable: strin
 export type OwnerControlMessage = {
   richMessage: TelegramRichMessage;
   replyMarkup?: TelegramInlineKeyboard;
+  // Vista da rigenerare per "Copia" quando l'azione ricevuta non è ripetibile da un pulsante.
+  copyAction?: OwnerControlAction;
 };
 
 const DATE = new Intl.DateTimeFormat("it-IT", {
@@ -282,64 +289,124 @@ export function billingMessage(
     };
   },
   revenue?: RevenueView,
+  uninstalls?: UninstallReport,
 ): OwnerControlMessage {
   const fees = data.shopifyFees;
   const status = data.status;
+  const reconciliation = data.reconciliation;
+  // MRR e ARR contano solo i piani ricorrenti attivi: chi è in scadenza o ha pagato una
+  // volta resta fuori, e la riga lo dichiara perché i numeri tornino con lo stato.
+  const excluded = parts([
+    [status.ending, "in scadenza", "in scadenza"],
+    [status.one_time, "pagamento unico", "pagamenti unici"],
+  ]);
   return panel(
     "Billing",
     [
-      section("💳 Stato", [
-        ["Store attivi", String(status.total)],
-        ["Mensili attivi", String(status.monthly)],
-        ["Annuali attivi", String(status.annual)],
-        ["Pagamento unico", String(status.one_time)],
-        ["In scadenza", String(status.ending)],
-        ["Omaggio", String(status.complimentary)],
-        ["Trial attivi", String(status.trial)],
-        ["Piani scaduti", String(status.expired)],
-        ["Rimborsati", String(status.refunded)],
-        ["Prova scaduta senza acquisto", String(status.trial_expired)],
-        ["Prova mai avviata", String(status.trial_never)],
-        ...(status.other ? [["Altro da verificare", String(status.other)] as Row] : []),
+      section(`💳 Stato · ${countLabel(status.total, "installato", "installati")}`, [
+        statusGroup("Paganti", [
+          [status.monthly, "mensile", "mensili"],
+          [status.annual, "annuale", "annuali"],
+          [status.one_time, "unico", "unici"],
+          [status.ending, "in scadenza", "in scadenza"],
+        ]),
+        statusGroup("In prova o omaggio", [
+          [status.trial, "trial", "trial"],
+          [status.complimentary, "omaggio", "omaggi"],
+        ]),
+        statusGroup("Senza piano", [
+          [status.trial_expired, "prova scaduta", "prove scadute"],
+          [status.trial_never, "prova mai avviata", "prove mai avviate"],
+          [status.expired, "piano scaduto", "piani scaduti"],
+          [status.refunded, "rimborsato", "rimborsati"],
+        ]),
+        ...(status.other ? [["⚠️ Da verificare", String(status.other)] as Row] : []),
+        ["Disinstallazioni", uninstallsLabel(uninstalls)],
       ]),
       section("📐 Run-rate", [
-        ["Valore mensile (MRR)", MONEY.format(data.mrr)],
-        ["Mensile dopo fee", MONEY.format(data.netMrr)],
-        ["Valore annuale (ARR)", MONEY.format(data.arr)],
-        ["Annuale dopo fee", MONEY.format(data.netArr)],
+        ["MRR", `${MONEY.format(data.mrr)} · netto ${MONEY.format(data.netMrr)}`],
+        ["ARR", `${MONEY.format(data.arr)} · netto ${MONEY.format(data.netArr)}`],
+        ...(excluded ? [["Esclusi", excluded] as Row] : []),
+        [
+          "Fee",
+          [
+            `revenue share ${percent(fees.revenueShare)}`,
+            `elaborazione ${percent(fees.processing)}`,
+            ...Object.entries(fees.regulatoryOperating).map(
+              ([country, rate]) => `regolamentare ${country} ${percent(rate)}`,
+            ),
+            ...(data.regulatoryUnknown
+              ? [`regolamentare non nota per ${data.regulatoryUnknown} abbonamenti`]
+              : []),
+          ].join(" · "),
+        ],
       ]),
       section("🔎 Riconciliazione", [
-        ["Piani commerciali", String(data.reconciliation.paid)],
-        ["Vendite abbinate", String(data.reconciliation.matched)],
-        ["In attesa della transazione Shopify", String(data.reconciliation.awaiting)],
-        ["Non ancora dovute", String(data.reconciliation.notDue)],
-        ["Conversioni da verificare", String(data.reconciliation.needsReview)],
-        ["Ultimo controllo", formatDate(data.reconciliation.checkedAt)],
-        ...(data.reconciliation.refreshUnavailable
-          ? [["Aggiornamento", `Non riuscito (${data.reconciliation.refreshUnavailable})`] as Row]
+        ["Vendite abbinate", `${reconciliation.matched}/${reconciliation.paid}`],
+        ["Non ancora dovute", String(reconciliation.notDue)],
+        [
+          warn("In attesa della transazione Shopify", reconciliation.awaiting),
+          String(reconciliation.awaiting),
+        ],
+        [
+          warn("Conversioni da verificare", reconciliation.needsReview),
+          String(reconciliation.needsReview),
+        ],
+        ["Ultimo controllo", formatDate(reconciliation.checkedAt)],
+        ...(reconciliation.refreshUnavailable
+          ? [["⚠️ Aggiornamento", `Non riuscito (${reconciliation.refreshUnavailable})`] as Row]
           : []),
       ]),
       section("💰 Ricavi cumulati · Shopify Partner", revenueRows(revenue)),
     ],
     keyboard([
       [button("Aggiorna", { view: "billing", refresh: true })],
+      [
+        button("Store paganti", { view: "shops", filter: "paid" }),
+        button("Trial", { view: "trials" }),
+      ],
       [button("‹ Dashboard", { view: "dashboard" })],
     ]),
     [
-      `Fee applicate a MRR e ARR: revenue share ${percent(fees.revenueShare)}`,
-      `elaborazione ${percent(fees.processing)}`,
-      ...Object.entries(fees.regulatoryOperating).map(
-        ([country, rate]) => `regolamentare ${country} ${percent(rate)}`,
-      ),
-      ...(data.regulatoryUnknown
-        ? [`regolamentare non nota per ${data.regulatoryUnknown} abbonamenti`]
-        : []),
       ...(revenue && "cachedAt" in revenue
-        ? [`ricavi Partner ${formatDate(revenue.cachedAt)}`]
+        ? [`Ricavi Partner ${formatDate(revenue.cachedAt)}`]
         : []),
-      "le transazioni Partner non provano che la fattura merchant sia riscossa o il payout liquidato",
+      "Disinstallazioni: il maggiore fra Partner dal lancio e contatore locale",
+      "Le transazioni Partner non provano incasso della fattura merchant né payout",
     ].join(" · "),
   );
+}
+
+type CountPart = [count: number, singular: string, plural: string];
+
+function parts(items: CountPart[]) {
+  return items
+    .filter(([count]) => count > 0)
+    .map(([count, singular, plural]) => countLabel(count, singular, plural))
+    .join(" · ");
+}
+function statusGroup(name: string, items: CountPart[]): Row {
+  const total = items.reduce((sum, [count]) => sum + count, 0);
+  const detail = parts(items);
+  return [name, detail ? `${total} · ${detail}` : String(total)];
+}
+function warn(name: string, count: number) {
+  return count > 0 ? `⚠️ ${name}` : name;
+}
+function uninstallsLabel(report?: UninstallReport) {
+  if (!report) return "Non disponibile";
+  const local = report.local;
+  if ("unavailable" in report.partner) {
+    return local
+      ? `${local.total} dal ${formatDate(local.startedAt)} · Partner non disponibile`
+      : `Non disponibile (${report.partner.unavailable})`;
+  }
+  const partner = report.partner;
+  return [
+    String(Math.max(partner.total, local?.total ?? 0)),
+    countLabel(partner.stores, "store", "store"),
+    `${partner.days28} negli ultimi 28 gg`,
+  ].join(" · ");
 }
 
 function saleReconciliationLabel(shop: ShopRow) {
@@ -705,10 +772,59 @@ export function helpMessage(): OwnerControlMessage {
         ["/health · /version", "Runtime e deploy"],
       ]),
       section("Filtri store", [["Disponibili", "trial · paid · validation_off · issues"]]),
+      section("Pulsanti", [["📋 Copia", "Invia la vista come testo copiabile"]]),
     ],
     back(),
     "Console privata read-only.",
   );
+}
+
+export const TELEGRAM_TEXT_LIMIT = 4096;
+const TRUNCATED_SUFFIX = "\n… testo troncato";
+
+// Ricava dal pannello lo stesso contenuto in testo semplice: le tabelle Rich Message non
+// entrano nella copia del client Telegram, un blocco di testo sì.
+export function ownerControlPlainText(message: OwnerControlMessage) {
+  const lines: string[] = [];
+  for (const block of message.richMessage.blocks) {
+    if (block.type === "heading" || block.type === "footer") {
+      if (block.type === "footer" || lines.length) lines.push("");
+      lines.push(String(block.text));
+    } else if (block.type === "table") {
+      lines.push("", String(block.caption));
+      for (const row of block.cells as Array<Array<{ text: TelegramRichText }>>) {
+        lines.push(row.map((cell) => plainText(cell.text)).join(": "));
+      }
+    }
+  }
+  const text = lines.join("\n");
+  if (text.length <= TELEGRAM_TEXT_LIMIT) return text;
+  // Il limite Telegram è in unità UTF-16: il taglio non deve dividere un emoji.
+  let end = TELEGRAM_TEXT_LIMIT - TRUNCATED_SUFFIX.length;
+  if (/[\uD800-\uDBFF]/.test(text[end - 1])) end -= 1;
+  return `${text.slice(0, end)}${TRUNCATED_SUFFIX}`;
+}
+
+function plainText(text: TelegramRichText) {
+  return typeof text === "string" ? text : text.text;
+}
+
+// Ogni vista riceve per ultimo il pulsante di copia, se l'azione è ripetibile.
+export function withCopyButton(
+  message: OwnerControlMessage,
+  action: OwnerControlAction,
+): OwnerControlMessage {
+  const source = message.copyAction ?? action;
+  // Un argomento libero non entra in un pulsante.
+  if (source.argument !== undefined) return message;
+  const target = copyTarget(source);
+  return {
+    ...message,
+    replyMarkup: keyboard([
+      ...(message.replyMarkup?.inline_keyboard ?? []),
+      [button("📋 Copia", { ...target, copy: true })],
+    ]),
+  };
 }
 
 export function noticeMessage(title: string, text: string): OwnerControlMessage {
