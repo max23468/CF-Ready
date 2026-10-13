@@ -67,18 +67,28 @@ architetturali stabili in un ADR. Per incarichi delegati vedi
 
 ## Verifica
 
-`scripts/ci-lane.mjs` classifica il diff; esegui il gate della corsia:
+`scripts/ci-lane.mjs` classifica rischio e superficie del diff. Durante lo
+sviluppo esegui test mirati; per la verifica finale usa `npm run verify:change`,
+che include modifiche locali e sceglie lo stesso gate del coordinatore. Non
+anteporre una seconda suite completa a `Pubblica`: il coordinatore esegue da sé
+la verifica del candidato pulito prima del push.
 
 | Corsia | Quando | Gate locale |
 | --- | --- | --- |
 | `docs` | documenti senza effetto operativo | `npm run check:docs` |
-| `standard` | TypeScript, route, config, test | test mirati, `npm run check:standard` |
-| `full` | governance, workflow, auth, webhook, cifratura, migrazioni, manifest, lockfile | `npm run check` |
+| `standard` | TypeScript, route, config, test | `npm run verify:change` |
+| `full` | governance, workflow, auth, webhook, cifratura, migrazioni, manifest, lockfile | `npm run verify:change` |
+
+Metadati non distribuiti usano solo il gate documentale; script e governance
+operativa senza runtime usano controlli statici e coverage delle operazioni.
+Runtime, dipendenze, manifest, migrazioni e configurazioni condivise mantengono
+coverage globale, build e regressione browser. Percorsi sconosciuti usano il
+gate completo. `npm run check` resta disponibile per una diagnosi completa.
 
 Coverage (`npm run coverage:check`) e mutation (`npm run mutation:critical`)
 valgono quando il diff tocca il loro perimetro; le soglie stanno in
 `scripts/coverage-report.mjs` e in CI entrambe bloccano il merge. Il
-coordinatore di `Pubblica` ripete da sé gate di corsia e coverage prima del push. Provider, database remoto, browser e deploy
+coordinatore di `Pubblica` esegue da sé gate di superficie e coverage applicabile prima del push. Provider, database remoto, browser e deploy
 richiedono prove fresche: un exit code `0` non dimostra lo stato live.
 Dichiara i controlli non eseguiti.
 

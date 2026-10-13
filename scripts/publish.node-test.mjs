@@ -10,7 +10,7 @@ import {
   symlinkSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -22,6 +22,9 @@ import {
   localGateCommands,
   parseTarget,
   selectWorkflowRun,
+  pollingDelay,
+  validatePublishReceipt,
+  cleanupPublishedCheckout,
 } from "./publish.mjs";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -32,6 +35,89 @@ const oldMainSha = "d".repeat(40);
 const baseSha = "e".repeat(40);
 const noDeployMainSha = "1".repeat(40);
 const reconciledSha = "2".repeat(40);
+
+test("l'attesa cresce senza superare trenta secondi", () => {
+  assert.equal(pollingDelay(0, 5000), 5000);
+  assert.equal(pollingDelay(3, 5000), 10000);
+  assert.equal(pollingDelay(30, 5000), 30000);
+  assert.equal(pollingDelay(30, 1), 1);
+});
+
+test("la ricevuta del ciclo verifica candidato, ambiente, run e readback", () => {
+  const receipt = {
+    schemaVersion: 1,
+    environment: "Production",
+    commit: mainSha,
+    tree: sourceSha,
+    repository: "owner/repo",
+    workflowRun: "https://github.com/owner/repo/actions/runs/20",
+    providerSourceCommit: mainSha,
+    worker: { deploymentId: "d", versionId: "w", percentage: 100 },
+    shopify: { versionId: "s", versionTag: "1.2.3", message: `Production ${mainSha}` },
+    checks: { migrations: "readback-green", smoke: "green", providerReadback: "green" },
+  };
+  const expected = {
+    environment: "Production",
+    commit: mainSha,
+    tree: sourceSha,
+    repositoryName: "owner/repo",
+    runId: 20,
+  };
+  assert.equal(validatePublishReceipt(receipt, expected), receipt);
+  for (const change of [
+    { environment: "Development" },
+    { commit: sourceSha },
+    { tree: developSha },
+    { repository: "another/repo" },
+    { workflowRun: "https://github.test/run" },
+    { worker: {} },
+    { shopify: {} },
+    { checks: { ...receipt.checks, smoke: "failed" } },
+  ]) {
+    assert.throws(() => validatePublishReceipt({ ...receipt, ...change }, expected), /Ricevuta/);
+  }
+});
+
+test("la pulizia conserva checkout avanzati, branch estranei e file ignorati non generati", () => {
+  const calls = [];
+  let dirty = false;
+  let ignored = "node_modules/a\0";
+  let branchSha = sourceSha;
+  let root = "/checkout/task";
+  const run = (_command, args) => {
+    calls.push(args);
+    const command = args.join(" ");
+    if (command === "status --porcelain") return dirty ? " M file" : "";
+    if (command === "rev-parse refs/heads/codex/change") return branchSha;
+    if (command.endsWith("^{tree}")) return "same";
+    if (command === "rev-parse --show-toplevel") return root;
+    if (command === "rev-parse --git-common-dir") return "/checkout/.git";
+    if (command.startsWith("ls-files")) return ignored;
+    return "";
+  };
+  const input = { branch: "codex/change", sourceSha, developSha, cwd: "/checkout/task" };
+  assert.equal(
+    cleanupPublishedCheckout({ ...input, branch: "feature/user" }, run).status,
+    "preserved",
+  );
+  dirty = true;
+  assert.equal(cleanupPublishedCheckout(input, run).status, "preserved");
+  dirty = false;
+  branchSha = developSha;
+  assert.equal(cleanupPublishedCheckout(input, run).status, "preserved");
+  branchSha = sourceSha;
+  assert.equal(cleanupPublishedCheckout({ ...input, cwd: "/other" }, run).status, "preserved");
+  ignored = ".env\0";
+  assert.equal(cleanupPublishedCheckout(input, run).status, "branch-removed");
+  assert.ok(!calls.some((args) => args.includes("remove")));
+  ignored = "node_modules/a\0";
+  assert.equal(cleanupPublishedCheckout(input, run).status, "removed");
+  assert.deepEqual(calls.at(-1), ["-C", "/checkout", "worktree", "remove", "/checkout/task"]);
+  root = path.resolve(process.env.CODEX_HOME ?? path.join(homedir(), ".codex"), "worktrees/task");
+  calls.length = 0;
+  assert.equal(cleanupPublishedCheckout({ ...input, cwd: root }, run).status, "branch-removed");
+  assert.ok(!calls.some((args) => args.includes("remove")));
+});
 
 test("richiede un target di pubblicazione esplicito", () => {
   assert.equal(parseTarget(["--target", "development"]), "development");
@@ -162,7 +248,7 @@ test("riprende un ciclo già completato e verifica Development e Production", (t
   writeFileSync(
     provider,
     `#!/usr/bin/env node
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 const command = path.basename(process.argv[1]);
 const args = process.argv.slice(2);
@@ -174,15 +260,21 @@ if (command === "git") {
   const joined = args.join(" ");
   if (joined === "status --porcelain") print(mode === "dirty" ? " M file\\n" : "");
   else if (joined === "branch --show-current") print(mode === "main" ? "main\\n" : "codex/change\\n");
-  else if (joined === "rev-parse HEAD") print("${sourceSha}\\n");
+  else if (joined === "rev-parse HEAD" || joined === "rev-parse refs/heads/codex/change") print("${sourceSha}\\n");
+  else if (joined === "rev-parse --git-common-dir") print(".git\\n");
   else if (joined === "rev-parse ${mainSha}:site" || joined === "rev-parse ${mainSha}^1:site") print("site-tree\\n");
   else if (joined === "ls-remote origin refs/heads/develop") print((mode === "develop-advanced" ? "${sourceSha}" : "${developSha}") + "\\trefs/heads/develop\\n");
+  else if (joined === "ls-remote origin refs/heads/main") print("${mainSha}\\trefs/heads/main\\n");
   else if (joined === "ls-remote --heads origin codex/change") print("");
   else if (joined === "show -s --format=%P ${mainSha}") print("${oldMainSha} ${developSha}\\n");
+  else if (joined === "rev-parse ${sourceSha}^{tree}") print("source-tree\\n");
   else if (joined === "rev-parse ${mainSha}^{tree}" || joined === "rev-parse ${developSha}^{tree}") print("tree\\n");
   else if (joined === "show ${developSha}:package.json") print('{"version":"1.2.3"}\\n');
   else if (mode === "docs" && joined === "rev-parse ${developSha}^1") print("${baseSha}\\n");
   else if (mode === "docs" && args[0] === "diff") process.stdout.write("M\\0docs/plans/note.md\\0");
+  else if (mode === "verification" && args[0] === "diff") process.stdout.write("M\\0scripts/task.mjs\\0");
+  else if (mode === "verification" && args[0] === "ls-files") process.stdout.write("scripts/new.mjs\\0");
+  else if (mode === "verification" && args[0] === "merge-base") print("${baseSha}\\n");
   else if (joined === "rev-parse origin/main") print("${mainSha}\\n");
   else if (joined === "rev-parse origin/develop") print((existsSync(marker("reconciled")) ? "${mainSha}" : "${developSha}") + "\\n");
   else if (joined === "merge-base origin/main origin/develop") {
@@ -190,14 +282,31 @@ if (command === "git") {
     else { writeFileSync(marker("reconciled"), "ok"); print("${oldMainSha}\\n"); }
   }
   else if (args[0] !== "fetch") process.exitCode = 2;
+} else if (command === "npm") {
+  writeFileSync(marker("npm-verify"), args.join(" ") + "\\n", { flag: "a" });
 } else if (command === "gh") {
-  if (args[0] === "repo") print({ nameWithOwner: "owner/repository" });
+  if (args[0] === "run" && args[1] === "download") {
+    const environment = value("--name").includes("development") ? "Development" : "Production";
+    const commit = environment === "Development" ? "${developSha}" : "${mainSha}";
+    const receipt = { schemaVersion: 1, environment, commit, tree: "tree", repository: "owner/repository",
+      providerSourceCommit: commit, workflowRun: "https://github.com/owner/repository/actions/runs/" + args[2],
+      worker: { deploymentId: "deployment", versionId: "worker", percentage: 100 },
+      shopify: { versionId: "shopify", versionTag: "1.2.3", message: environment + " " + commit },
+      checks: { migrations: "readback-green", smoke: "green", providerReadback: "green" } };
+    writeFileSync(path.join(value("--dir"), "deploy-receipt-" + environment.toLowerCase() + ".json"), JSON.stringify(receipt));
+  }
+  else if (args[0] === "repo") print({ nameWithOwner: "owner/repository" });
   else if (args[0] === "pr" && args[1] === "list") {
     const development = value("--head") === "codex/change";
     print([{ number: development ? 10 : 11, state: "MERGED", headRefOid: development ? "${sourceSha}" : "${developSha}", mergeCommit: { oid: development ? "${developSha}" : "${mainSha}" }, url: "https://github.test/pr" }]);
   } else if (args[0] === "run" && args[1] === "list") {
     const development = value("--workflow") === "deploy-development.yml";
-    print([{ databaseId: development ? 20 : 21, status: "completed", conclusion: "success", headSha: development ? "${developSha}" : "${mainSha}", url: "https://github.test/run" }]);
+    const file = marker("refresh-" + value("--workflow"));
+    const fresh = existsSync(file) ? Number(readFileSync(file, "utf8")) : 0;
+    print([{ databaseId: (development ? 20 : 21) + fresh, status: "completed", conclusion: "success", headSha: development ? "${developSha}" : "${mainSha}", url: "https://github.test/run" }]);
+  } else if (args[0] === "workflow") {
+    const file = marker("refresh-" + args[2]);
+    writeFileSync(file, String((existsSync(file) ? Number(readFileSync(file, "utf8")) : 0) + 1));
   } else if (args[0] === "release" && args[1] === "view") print({ tagName: "v1.2.3", url: "https://github.test/release" });
   else if (args[0] === "api") print({ object: { sha: "${mainSha}" } });
   else process.exitCode = 2;
@@ -205,7 +314,7 @@ if (command === "git") {
 `,
   );
   chmodSync(provider, 0o755);
-  for (const command of ["git", "gh"]) {
+  for (const command of ["git", "gh", "npm"]) {
     symlinkSync(provider, path.join(bin, command));
   }
 
@@ -225,6 +334,26 @@ if (command === "git") {
   );
   assert.equal(docs.status, 0, docs.stderr);
   assert.match(docs.stdout, /Deploy Development non necessario/);
+
+  const verified = spawnSync(
+    process.execPath,
+    [path.join(root, "scripts/publish.mjs"), "--verify-only"],
+    {
+      cwd: directory,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        FAIL_MODE: "verification",
+        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+      },
+    },
+  );
+  assert.equal(verified.status, 0, verified.stderr);
+  assert.match(readFileSync(path.join(directory, ".npm-verify"), "utf8"), /check:ci-operations/);
+  assert.match(
+    readFileSync(path.join(directory, ".npm-verify"), "utf8"),
+    /coverage:check-operations .*--working-tree/,
+  );
 
   for (const target of ["development", "production"]) {
     const result = spawnSync(
@@ -276,7 +405,8 @@ if (command === "git") {
   const joined = args.join(" ");
   if (joined === "status --porcelain") print(mode === "dirty" ? " M file\\n" : "");
   else if (joined === "branch --show-current") print(mode === "main" ? "main\\n" : "codex/change\\n");
-  else if (joined === "rev-parse HEAD") print("${sourceSha}\\n");
+  else if (joined === "rev-parse HEAD" || joined === "rev-parse refs/heads/codex/change") print("${sourceSha}\\n");
+  else if (joined === "rev-parse --git-common-dir") print(".git\\n");
   else if (joined === "rev-parse ${mainSha}:site") print("site-tree-new\\n");
   else if (joined === "rev-parse ${mainSha}^1:site") print("site-tree-old\\n");
   else if (joined === "ls-remote origin refs/heads/develop") print((["develop-advanced", "workflow-advanced"].includes(mode) ? "${sourceSha}" : "${developSha}") + "\\trefs/heads/develop\\n");
@@ -304,7 +434,17 @@ if (command === "git") {
   writeFileSync(marker("npm-calls"), args.join(" ") + "\\n", { flag: "a" });
   if (mode === "gate-failed") process.exitCode = 1;
 } else if (command === "gh") {
-  if (args[0] === "repo") print({ nameWithOwner: "owner/repository" });
+  if (args[0] === "run" && args[1] === "download") {
+    const environment = value("--name").includes("development") ? "Development" : "Production";
+    const commit = environment === "Development" ? "${developSha}" : "${mainSha}";
+    const receipt = { schemaVersion: 1, environment, commit, tree: "tree", repository: "owner/repository",
+      providerSourceCommit: commit, workflowRun: "https://github.com/owner/repository/actions/runs/" + args[2],
+      worker: { deploymentId: "deployment", versionId: "worker", percentage: 100 },
+      shopify: { versionId: "shopify", versionTag: "1.2.3", message: environment + " " + commit },
+      checks: { migrations: "readback-green", smoke: "green", providerReadback: "green" } };
+    writeFileSync(path.join(value("--dir"), "deploy-receipt-" + environment.toLowerCase() + ".json"), JSON.stringify(receipt));
+  }
+  else if (args[0] === "repo") print({ nameWithOwner: "owner/repository" });
   else if (args[0] === "pr" && args[1] === "list" && value("--head") === "develop" && value("--state") === "open") {
     if (mode === "busy" && !existsSync(marker("busy-seen"))) { writeFileSync(marker("busy-seen"), "ok"); print([{ number: 5 }]); }
     else print([]);
@@ -342,14 +482,18 @@ if (command === "git") {
     const sha = workflow === "deploy-development.yml" ? "${developSha}" : workflow === "reconcile-develop.yml" ? "${noDeployMainSha}" : "${mainSha}";
     const runMarker = marker("run-" + workflow);
     const polledMarker = marker("polled-" + workflow);
+    const generation = marker("generation-" + workflow);
+    const databaseId = 20 + Number(existsSync(generation) ? readFileSync(generation, "utf8") : 0);
     if (mode === "workflow-advanced") print([]);
     else if (mode === "workflow-failed") print([{ databaseId: existsSync(marker("workflow-retried")) ? 21 : 20, status: "completed", conclusion: "failure", headSha: sha, url: "https://github.test/run" }]);
     else if (mode === "old-failed-run" && !existsSync(marker("old-run-seen"))) { writeFileSync(marker("old-run-seen"), "ok"); print([{ databaseId: 20, status: "completed", conclusion: "failure", headSha: sha, url: "https://github.test/run" }]); }
-    else if (mode === "old-failed-run") print([{ databaseId: 21, status: "completed", conclusion: "success", headSha: sha, url: "https://github.test/run" }]);
+    else if (mode === "old-failed-run") print([{ databaseId, status: "completed", conclusion: "success", headSha: sha, url: "https://github.test/run" }]);
     else if (!existsSync(runMarker)) print([]);
-    else if (!existsSync(polledMarker)) { writeFileSync(polledMarker, "ok"); print([{ databaseId: 20, status: "queued", conclusion: "", headSha: sha, url: "https://github.test/run" }]); }
-    else print([{ databaseId: 20, status: "completed", conclusion: "success", headSha: sha, url: "https://github.test/run" }]);
+    else if (!existsSync(polledMarker)) { writeFileSync(polledMarker, "ok"); print([{ databaseId, status: "queued", conclusion: "", headSha: sha, url: "https://github.test/run" }]); }
+    else print([{ databaseId, status: "completed", conclusion: "success", headSha: sha, url: "https://github.test/run" }]);
   } else if (args[0] === "workflow" && args[1] === "run") {
+    const generation = marker("generation-" + args[2]);
+    writeFileSync(generation, String(Number(existsSync(generation) ? readFileSync(generation, "utf8") : 0) + 1));
     writeFileSync(marker("run-" + args[2]), "ok");
     writeFileSync(marker("workflow-args"), args.join(" ") + "\\n", { flag: "a" });
     if (mode === "workflow-failed") writeFileSync(marker("workflow-retried"), "ok");
@@ -513,6 +657,17 @@ if (command === "git") {
     );
     assert.equal(failed.status, 1, failed.stdout);
     assert.match(failed.stderr, message);
+    if (mode === "workflow-failed") {
+      const record = JSON.parse(
+        readFileSync(
+          path.join(directory, ".git/cf-ready-publications", `${sourceSha}.json`),
+          "utf8",
+        ),
+      );
+      assert.equal(record.status, "failed");
+      assert.equal(record.phases.at(-1).status, "failed");
+      assert.equal(record.activePhase, "Deploy e readback Development");
+    }
   }
 });
 

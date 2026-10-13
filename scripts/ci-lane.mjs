@@ -54,6 +54,41 @@ const sharedMutationFiles = new Set([
 const matchesPath = (path, candidate) =>
   candidate.endsWith("/") ? path.startsWith(candidate) : path === candidate;
 
+const metadataFiles = new Set([".gitignore", ".gitattributes", "LICENSE"]);
+const isOperationalOnly = (path) =>
+  isOperationalGovernance(path) ||
+  path.startsWith(".github/") ||
+  path.startsWith("scripts/") ||
+  path === "doctor.config.json";
+
+export function verificationSurface(files) {
+  if (!files.length) return "runtime";
+  if (files.every((path) => metadataFiles.has(path) || isContentDocumentation(path)))
+    return "metadata";
+  if (
+    files.every(
+      (path) => isOperationalOnly(path) || metadataFiles.has(path) || isContentDocumentation(path),
+    )
+  )
+    return "operations";
+  return "runtime";
+}
+
+export function requiresDevelopmentDeploy(files) {
+  return (
+    files.length === 0 ||
+    files.some(
+      (path) =>
+        !isOperationalOnly(path) &&
+        !metadataFiles.has(path) &&
+        !isContentDocumentation(path) &&
+        !path.startsWith("tests/") &&
+        !path.startsWith("benchmarks/") &&
+        !path.startsWith("site/"),
+    )
+  );
+}
+
 export function selectMutationDomains(files) {
   const normalized = [...new Set(files.filter(Boolean))];
   if (normalized.some((path) => sharedMutationFiles.has(path))) {
@@ -71,6 +106,7 @@ const isOperationalGovernance = (path) =>
 const isContentDocumentation = (path) =>
   !isOperationalGovernance(path) &&
   (path === "README.md" ||
+    path === "CHANGELOG.md" ||
     path === "CONTRIBUTING.md" ||
     path === "LICENSE" ||
     path.startsWith("docs/"));
@@ -82,7 +118,18 @@ const isSecuritySensitive = (path) =>
   path.startsWith("config/") ||
   path.startsWith("scripts/") ||
   path === "cloudflare.config.ts" ||
+  /^shopify\..*\.toml$/.test(path) ||
   /(?:auth|billing|crypto|privacy|session|webhook)/i.test(path);
+
+const isKnownPath = (path) =>
+  metadataFiles.has(path) ||
+  isContentDocumentation(path) ||
+  isOperationalOnly(path) ||
+  isSecuritySensitive(path) ||
+  /^(?:app|workers|extensions|tests|site|public|benchmarks)\//.test(path) ||
+  /^(?:tsconfig[^/]*\.json|vitest[^/]*\.config\.[^/]+|vite\.config\.ts|react-router\.config\.ts|stryker\.[^/]+|\.editorconfig|mise\.toml)$/.test(
+    path,
+  );
 
 export function classifyCiLane(files, { base = "", head = "", eventName = "", refName = "" } = {}) {
   const normalized = [...new Set(files.filter(Boolean))].sort();
@@ -93,6 +140,9 @@ export function classifyCiLane(files, { base = "", head = "", eventName = "", re
       e2e: false,
       reactDoctor: false,
       mutationDomains: [],
+      surface: "promotion",
+      coverageMode: "none",
+      deployDevelopment: false,
       files: normalized,
     };
   }
@@ -103,6 +153,9 @@ export function classifyCiLane(files, { base = "", head = "", eventName = "", re
       e2e: true,
       reactDoctor: true,
       mutationDomains: [],
+      surface: "runtime",
+      coverageMode: "full",
+      deployDevelopment: true,
       files: normalized,
     };
   }
@@ -113,16 +166,24 @@ export function classifyCiLane(files, { base = "", head = "", eventName = "", re
       e2e: false,
       reactDoctor: false,
       mutationDomains: [],
+      surface: "metadata",
+      coverageMode: "none",
+      deployDevelopment: false,
       files: normalized,
     };
   }
   const full = normalized.some(
-    (path) => isOperationalGovernance(path) || isSecuritySensitive(path),
+    (path) => isOperationalGovernance(path) || isSecuritySensitive(path) || !isKnownPath(path),
   );
+  const surface = verificationSurface(normalized);
   return {
     lane: full ? "full" : "standard",
     dependencyReview: normalized.some((path) => dependencyFiles.has(path)),
-    e2e: true,
+    e2e: surface === "runtime",
+    surface,
+    coverageMode:
+      surface === "metadata" ? "none" : surface === "operations" ? "operations" : "full",
+    deployDevelopment: requiresDevelopmentDeploy(normalized),
     reactDoctor: normalized.some(
       (path) => path.startsWith("app/") || /\.(?:jsx?|tsx?|css)$/.test(path),
     ),
@@ -187,6 +248,9 @@ function main() {
     `dependency_review=${result.dependencyReview}`,
     `e2e=${result.e2e}`,
     `react_doctor=${result.reactDoctor}`,
+    `surface=${result.surface}`,
+    `coverage_mode=${result.coverageMode}`,
+    `deploy_development=${result.deployDevelopment}`,
     `mutation_matrix=${JSON.stringify(result.mutationDomains)}`,
   ];
   if (process.env.GITHUB_OUTPUT)

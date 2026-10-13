@@ -1,10 +1,21 @@
 import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { dirname, join, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
-import { changedFiles, classifyCiLane } from "./ci-lane.mjs";
+import { changedFiles, classifyCiLane, parseChangedFiles } from "./ci-lane.mjs";
 
 const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 // I test sostituiscono GitHub con provider sintetici e non devono attendere i tempi reali.
 const pollIntervalMs = Number(process.env.CF_READY_PUBLISH_POLL_MS) || 5_000;
+
+export function pollingDelay(attempt, base = pollIntervalMs) {
+  return Math.min(base * 2 ** Math.floor(attempt / 3), base < 100 ? base : 30_000);
+}
+
+async function pollWait(attempt, deadline) {
+  await wait(Math.max(0, Math.min(pollingDelay(attempt), deadline - Date.now())));
+}
 
 function execute(command, args, { interactive = false, allowFailure = false } = {}) {
   const result = spawnSync(command, args, {
@@ -48,12 +59,31 @@ export function latestWorkflowRun(runs, sha, afterDatabaseId = 0) {
     .sort((left, right) => right.databaseId - left.databaseId)[0];
 }
 
-export function localGateCommands(lane, baseSha, headSha) {
+export function localGateCommands(
+  lane,
+  baseSha,
+  headSha,
+  surface = "runtime",
+  coverageMode = "full",
+  workingTree = false,
+) {
   if (lane === "docs") return [["npm", ["run", "check:docs"]]];
-  return [
-    ["npm", ["run", `check:ci-${lane}`]],
-    ["npm", ["run", "coverage:check", "--", "--base-sha", baseSha, "--head-sha", headSha]],
-  ];
+  const commands = [["npm", ["run", `check:ci-${surface === "runtime" ? lane : surface}`]]];
+  if (coverageMode !== "none")
+    commands.push([
+      "npm",
+      [
+        "run",
+        coverageMode === "operations" ? "coverage:check-operations" : "coverage:check",
+        "--",
+        "--base-sha",
+        baseSha,
+        "--head-sha",
+        headSha,
+        ...(workingTree ? ["--working-tree"] : []),
+      ],
+    ]);
+  return commands;
 }
 
 // gh elenca solo i check già registrati: un job che parte tardi, come l'aggregato
@@ -120,7 +150,8 @@ function pullRequest(number) {
 
 async function waitForMerge(number, attempts = 360) {
   let lastState = "";
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
+  const deadline = Date.now() + attempts * Math.max(pollIntervalMs, 100);
+  for (let attempt = 0; attempt < attempts && Date.now() < deadline; attempt += 1) {
     const current = pullRequest(number);
     if (current.state === "MERGED" && current.mergeCommit?.oid) return current;
     if (current.state !== "OPEN") throw new Error(`La PR #${number} è ${current.state}.`);
@@ -128,22 +159,42 @@ async function waitForMerge(number, attempts = 360) {
       console.log(`PR #${number}: attendo gate, review e merge automatico.`);
       lastState = current.state;
     }
-    await wait(pollIntervalMs);
+    await pollWait(attempt, deadline);
   }
   throw new Error(`Timeout in attesa del merge della PR #${number}.`);
 }
 
 // Stessi comandi dei job verify e coverage della CI, prima che il push li renda remoti.
-function runLocalGate(branch, sourceSha) {
+export function runLocalGate(branch, sourceSha, workingTree = false) {
   execute("git", ["fetch", "--quiet", "origin", "develop"]);
   const baseSha = output("git", ["merge-base", "origin/develop", sourceSha]);
-  const { lane } = classifyCiLane(changedFiles(baseSha, sourceSha), {
+  const files = changedFiles(baseSha, sourceSha);
+  if (workingTree) {
+    files.push(
+      ...parseChangedFiles(
+        output("git", ["diff", "--name-status", "-z", "--find-renames", "HEAD"]),
+      ),
+    );
+    files.push(
+      ...output("git", ["ls-files", "--others", "--exclude-standard", "-z"])
+        .split("\0")
+        .filter(Boolean),
+    );
+  }
+  const { lane, surface, coverageMode } = classifyCiLane(files, {
     base: "develop",
     head: branch,
     eventName: "pull_request",
   });
   console.log(`Gate locale della corsia ${lane} prima del push.`);
-  for (const [command, args] of localGateCommands(lane, baseSha, sourceSha)) {
+  for (const [command, args] of localGateCommands(
+    lane,
+    baseSha,
+    sourceSha,
+    surface,
+    coverageMode,
+    workingTree,
+  )) {
     execute(command, args, { interactive: true });
   }
 }
@@ -151,7 +202,8 @@ function runLocalGate(branch, sourceSha) {
 async function waitForRequiredChecks(number, base, attempts = 720) {
   const required = requiredCheckNames(base);
   let announced = false;
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
+  const deadline = Date.now() + attempts * Math.max(pollIntervalMs, 100);
+  for (let attempt = 0; attempt < attempts && Date.now() < deadline; attempt += 1) {
     const result = execute(
       "gh",
       ["pr", "checks", String(number), "--required", "--json", "name,bucket"],
@@ -175,7 +227,7 @@ async function waitForRequiredChecks(number, base, attempts = 720) {
       console.log(`PR #${number}: attendo i check obbligatori.`);
       announced = true;
     }
-    await wait(pollIntervalMs);
+    await pollWait(attempt, deadline);
   }
   throw new Error(`Timeout in attesa dei check della PR #${number}.`);
 }
@@ -184,7 +236,8 @@ async function waitForRequiredChecks(number, base, attempts = 720) {
 // fa avanzare develop sotto quel ciclo: si entra solo a pipeline libera.
 async function waitForIdlePipeline(attempts = 720) {
   let announced = false;
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
+  const deadline = Date.now() + attempts * Math.max(pollIntervalMs, 100);
+  for (let attempt = 0; attempt < attempts && Date.now() < deadline; attempt += 1) {
     const promotions = json("gh", [
       "pr",
       "list",
@@ -209,7 +262,7 @@ async function waitForIdlePipeline(attempts = 720) {
       console.log("Attendo la fine della pubblicazione già in corso prima del merge.");
       announced = true;
     }
-    await wait(pollIntervalMs);
+    await pollWait(attempt, deadline);
   }
   throw new Error("Timeout in attesa che promozione e deploy in corso terminino.");
 }
@@ -217,12 +270,13 @@ async function waitForIdlePipeline(attempts = 720) {
 // Dopo il push GitHub aggiorna l'HEAD di una PR già aperta con qualche secondo di
 // ritardo: non va ricreata, né letta sui check verdi del commit precedente.
 async function pullRequestForHead(branch, base, sha, attempts = 60) {
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
+  const deadline = Date.now() + attempts * Math.max(pollIntervalMs, 100);
+  for (let attempt = 0; attempt < attempts && Date.now() < deadline; attempt += 1) {
     const candidates = pullRequests(branch, base);
     const current = candidates.find((pr) => pr.headRefOid === sha);
     if (current) return current;
     if (!candidates.some((pr) => pr.state === "OPEN")) return undefined;
-    await wait(pollIntervalMs);
+    await pollWait(attempt, deadline);
   }
   throw new Error(`La PR aperta per ${branch} non riporta ancora l'HEAD ${sha}.`);
 }
@@ -287,13 +341,14 @@ function workflowRuns(workflow, branch, sha) {
 }
 
 async function ensureWorkflow(
-  { workflow, branch, sha, inputs = {}, fresh = false },
+  { workflow, branch, sha, inputs = {}, fresh = false, refreshSuccessful = false },
   attempts = 240,
 ) {
   const initialRuns = workflowRuns(workflow, branch, sha);
   // fresh ignora i run già riusciti: serve quando lo stato da verificare è cambiato
   // dopo quel run pur restando sullo stesso commit del branch.
   let run = fresh ? undefined : selectWorkflowRun(initialRuns, sha);
+  if (refreshSuccessful && run?.conclusion === "success") run = undefined;
   let afterDatabaseId = 0;
   if (!run) {
     afterDatabaseId = latestWorkflowRun(initialRuns, sha)?.databaseId ?? 0;
@@ -314,7 +369,8 @@ async function ensureWorkflow(
     console.log(`${workflow}: avviato per ${sha}.`);
   }
   let lastStatus = "";
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
+  const deadline = Date.now() + attempts * Math.max(pollIntervalMs, 100);
+  for (let attempt = 0; attempt < attempts && Date.now() < deadline; attempt += 1) {
     run = latestWorkflowRun(workflowRuns(workflow, branch, sha), sha, afterDatabaseId);
     if (run?.conclusion === "success") return run;
     if (run?.status === "completed") {
@@ -325,7 +381,7 @@ async function ensureWorkflow(
       console.log(`${workflow}: ${status}.`);
       lastStatus = status;
     }
-    await wait(pollIntervalMs);
+    await pollWait(attempt, deadline);
   }
   throw new Error(`Timeout in attesa di ${workflow} per ${sha}.`);
 }
@@ -396,11 +452,11 @@ async function promotionCandidate(developSha) {
 
 // Corsia docs: nessun file entra nel Worker o nell'app Shopify. Se il diff non si legge,
 // si distribuisce come prima.
-function isDocumentationOnly(sha) {
+function needsDevelopmentDeploy(sha) {
   execute("git", ["fetch", "--quiet", "origin", "develop"]);
   const parent = execute("git", ["rev-parse", `${sha}^1`], { allowFailure: true });
-  if (parent.status !== 0) return false;
-  return classifyCiLane(changedFiles(parent.stdout.trim(), sha)).lane === "docs";
+  if (parent.status !== 0) return true;
+  return classifyCiLane(changedFiles(parent.stdout.trim(), sha)).deployDevelopment;
 }
 
 function gitPathTree(ref, path) {
@@ -408,7 +464,8 @@ function gitPathTree(ref, path) {
 }
 
 async function waitForReconciliation(attempts = 120) {
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
+  const deadline = Date.now() + attempts * Math.max(pollIntervalMs, 100);
+  for (let attempt = 0; attempt < attempts && Date.now() < deadline; attempt += 1) {
     execute("git", ["fetch", "--quiet", "origin", "main", "develop"]);
     const mainSha = gitSha("origin/main");
     const developSha = gitSha("origin/develop");
@@ -422,7 +479,7 @@ async function waitForReconciliation(attempts = 120) {
     ) {
       return;
     }
-    await wait(pollIntervalMs);
+    await pollWait(attempt, deadline);
   }
   throw new Error("develop non include ancora il merge Production verificato.");
 }
@@ -458,6 +515,94 @@ function ensureRelease(repositoryName, version, mainSha) {
   return json("gh", ["release", "view", tag, "--json", "url,tagName"]);
 }
 
+export function validatePublishReceipt(
+  receipt,
+  { environment, commit, tree, repositoryName, runId },
+) {
+  if (
+    receipt.schemaVersion !== 1 ||
+    receipt.environment !== environment ||
+    receipt.commit !== commit ||
+    receipt.tree !== tree ||
+    receipt.repository !== repositoryName ||
+    receipt.workflowRun !== `https://github.com/${repositoryName}/actions/runs/${runId}` ||
+    !/^[0-9a-f]{40}$/.test(receipt.providerSourceCommit ?? "") ||
+    !receipt.worker?.deploymentId ||
+    !receipt.worker.versionId ||
+    receipt.worker.percentage !== 100 ||
+    !receipt.shopify?.versionId ||
+    !receipt.shopify.versionTag ||
+    receipt.shopify.message !== `${environment} ${receipt.providerSourceCommit}` ||
+    receipt.checks?.migrations !== "readback-green" ||
+    receipt.checks.smoke !== "green" ||
+    receipt.checks.providerReadback !== "green"
+  )
+    throw new Error(`Ricevuta ${environment} incompleta o diversa dal candidato.`);
+  return receipt;
+}
+
+function readDeployReceipt(run, environment, commit, repositoryName) {
+  const directory = mkdtempSync(join(tmpdir(), "cf-ready-receipt-"));
+  try {
+    const name = `deploy-receipt-${environment.toLowerCase()}-${commit}`;
+    execute("gh", ["run", "download", String(run.databaseId), "--name", name, "--dir", directory]);
+    const receipt = JSON.parse(
+      readFileSync(join(directory, `deploy-receipt-${environment.toLowerCase()}.json`), "utf8"),
+    );
+    return validatePublishReceipt(receipt, {
+      environment,
+      commit,
+      tree: gitTree(commit),
+      repositoryName,
+      runId: run.databaseId,
+    });
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+export function cleanupPublishedCheckout(
+  { branch, sourceSha, developSha, cwd = process.cwd() },
+  run = output,
+) {
+  if (!branch.startsWith("codex/"))
+    return { status: "preserved", reason: "Branch non temporaneo." };
+  if (
+    run("git", ["status", "--porcelain"]) ||
+    run("git", ["rev-parse", `refs/heads/${branch}`]) !== sourceSha ||
+    run("git", ["rev-parse", `${sourceSha}^{tree}`]) !==
+      run("git", ["rev-parse", `${developSha}^{tree}`])
+  ) {
+    return { status: "preserved", reason: "Checkout avanzato, modificato o tree non equivalente." };
+  }
+  const root = run("git", ["rev-parse", "--show-toplevel"]);
+  if (resolve(root) !== resolve(cwd))
+    return { status: "preserved", reason: "Checkout diverso da quello pubblicato." };
+  const common = resolve(cwd, run("git", ["rev-parse", "--git-common-dir"]));
+  const managed = root.startsWith(
+    resolve(process.env.CODEX_HOME ?? join(homedir(), ".codex"), "worktrees") + sep,
+  );
+  const ignored = run("git", ["ls-files", "--others", "--ignored", "--exclude-standard", "-z"])
+    .split("\0")
+    .filter(Boolean);
+  const generated =
+    /^(?:node_modules\/|build\/|\.coverage\/|\.stryker-incremental\/|\.stryker-tmp\/|\.react-router\/|\.cloudflare\/|\.wrangler\/|\.vitest\/|extensions\/cf-ready-validation\/(?:dist|generated|node_modules)\/)/;
+  run("git", ["switch", "--detach", "origin/develop"]);
+  run("git", ["branch", "-D", branch]);
+  if (!managed && dirname(common) !== root && ignored.every((file) => generated.test(file))) {
+    run("git", ["-C", dirname(common), "worktree", "remove", root]);
+    return { status: "removed", branch, worktree: root };
+  }
+  return {
+    status: "branch-removed",
+    branch,
+    worktree: root,
+    reason: managed
+      ? "Worktree Codex gestito: archiviazione tramite l'host."
+      : "Checkout principale o file ignorati da conservare.",
+  };
+}
+
 export async function publish(target) {
   if (output("git", ["status", "--porcelain"])) {
     throw new Error("Il worktree deve essere pulito prima della pubblicazione.");
@@ -468,68 +613,153 @@ export async function publish(target) {
   }
   const sourceSha = gitSha("HEAD");
   const repositoryName = repository();
-  if (!pullRequests(branch, "develop").some((pr) => pr.headRefOid === sourceSha)) {
-    runLocalGate(branch, sourceSha);
-  }
-  const developmentPr = await ensurePullRequest({
-    branch,
-    base: "develop",
+  const record = {
     sourceSha,
-    mergeMethod: "squash",
-  });
+    branch,
+    target,
+    repository: repositoryName,
+    phases: [],
+    receipts: [],
+  };
+  const directory = join(
+    resolve(output("git", ["rev-parse", "--git-common-dir"])),
+    "cf-ready-publications",
+  );
+  mkdirSync(directory, { recursive: true });
+  const recordPath = join(directory, `${sourceSha}.json`);
+  const save = () => writeFileSync(recordPath, `${JSON.stringify(record, null, 2)}\n`);
+  const measured = async (name, action) => {
+    console.log(`Fase: ${name}.`);
+    const start = Date.now();
+    record.activePhase = name;
+    record.status = "running";
+    save();
+    let status = "failed";
+    try {
+      const result = await action();
+      status = "success";
+      return result;
+    } finally {
+      record.status = status === "failed" ? "failed" : "running";
+      record.phases.push({ name, status, milliseconds: Date.now() - start });
+      save();
+    }
+  };
+  if (!pullRequests(branch, "develop").some((pr) => pr.headRefOid === sourceSha)) {
+    await measured("Verifica locale", () => runLocalGate(branch, sourceSha));
+  }
+  const developmentPr = await measured("PR Development e merge", () =>
+    ensurePullRequest({
+      branch,
+      base: "develop",
+      sourceSha,
+      mergeMethod: "squash",
+    }),
+  );
   const developSha = developmentPr.mergeCommit.oid;
   deleteRemoteBranch(branch);
-  if (isDocumentationOnly(developSha)) {
-    console.log("Deploy Development non necessario: il commit cambia solo documentazione.");
+  if (!needsDevelopmentDeploy(developSha)) {
+    console.log(
+      "Deploy Development non necessario: nessuna superficie Development distribuita è cambiata.",
+    );
   } else {
-    await ensureWorkflow({
-      workflow: "deploy-development.yml",
-      branch: "develop",
-      sha: developSha,
-    });
+    const run = await measured("Deploy e readback Development", () =>
+      ensureWorkflow({
+        workflow: "deploy-development.yml",
+        branch: "develop",
+        sha: developSha,
+        refreshSuccessful: true,
+      }),
+    );
+    record.receipts.push(
+      await measured("Ricevuta Development", () =>
+        readDeployReceipt(run, "Development", developSha, repositoryName),
+      ),
+    );
   }
   if (target === "development") {
+    finishPublication(record, { branch, sourceSha, developSha }, recordPath);
     console.log(`Pubblicazione Development completata: ${developSha}.`);
     return { developSha };
   }
 
-  const candidateSha = await promotionCandidate(developSha);
+  const candidateSha = await measured("Candidato Production", () => promotionCandidate(developSha));
   // La versione è quella del tree promosso: develop può essere avanzato oltre il branch locale.
   const version = JSON.parse(output("git", ["show", `${candidateSha}:package.json`])).version;
-  const promotionPr = await ensurePullRequest({
-    branch: "develop",
-    base: "main",
-    sourceSha: candidateSha,
-    mergeMethod: "merge",
-    title: `chore: promuovi CF Ready ${version}`,
-    body: `Promuove in Production il tree Development verificato \`${candidateSha}\`.`,
-  });
+  const promotionPr = await measured("Promozione e merge Production", () =>
+    ensurePullRequest({
+      branch: "develop",
+      base: "main",
+      sourceSha: candidateSha,
+      mergeMethod: "merge",
+      title: `chore: promuovi CF Ready ${version}`,
+      body: `Promuove in Production il tree Development verificato \`${candidateSha}\`.`,
+    }),
+  );
   const mainSha = promotionPr.mergeCommit.oid;
+  record.mainSha = mainSha;
   verifyPromotionCommit(mainSha, candidateSha);
-  await ensureWorkflow({
-    workflow: "deploy-production.yml",
-    branch: "main",
-    sha: mainSha,
-  });
-  if (gitPathTree(mainSha, "site") !== gitPathTree(`${mainSha}^1`, "site")) {
-    await ensureWorkflow({
-      workflow: "deploy-pages-production.yml",
+  const productionRun = await measured("Deploy e readback Production", () =>
+    ensureWorkflow({
+      workflow: "deploy-production.yml",
       branch: "main",
       sha: mainSha,
-    });
+      refreshSuccessful: true,
+    }),
+  );
+  record.receipts.push(
+    await measured("Ricevuta Production", () =>
+      readDeployReceipt(productionRun, "Production", mainSha, repositoryName),
+    ),
+  );
+  if (gitPathTree(mainSha, "site") !== gitPathTree(`${mainSha}^1`, "site")) {
+    record.pages = await measured("Deploy e readback Pages", () =>
+      ensureWorkflow({
+        workflow: "deploy-pages-production.yml",
+        branch: "main",
+        sha: mainSha,
+        refreshSuccessful: true,
+      }),
+    );
   } else {
     console.log("Deploy Pages Production non necessario: il tree site/ è invariato.");
   }
-  await waitForReconciliation();
-  const release = ensureRelease(repositoryName, version, mainSha);
+  await measured("Riconciliazione", () => waitForReconciliation());
+  const release = await measured("Release", () => ensureRelease(repositoryName, version, mainSha));
+  record.releaseUrl = release.url;
+  finishPublication(record, { branch, sourceSha, developSha }, recordPath);
   console.log(`Pubblicazione Production completata: ${mainSha}, ${release.url}.`);
   return { developSha, mainSha, releaseUrl: release.url };
+}
+
+function finishPublication(record, candidate, path) {
+  // La ricevuta locale sta nei metadati Git, fuori dal tree distribuito e dai worktree rimossi.
+  const start = Date.now();
+  record.developSha = candidate.developSha;
+  try {
+    record.cleanup = cleanupPublishedCheckout(candidate);
+  } catch {
+    record.cleanup = {
+      status: "preserved",
+      reason: "Pulizia Git non conclusa; conservare il checkout residuo.",
+    };
+  }
+  record.phases.push({ name: "Pulizia", milliseconds: Date.now() - start });
+  record.status = "complete";
+  record.activePhase = "Pulizia";
+  writeFileSync(path, `${JSON.stringify(record, null, 2)}\n`);
+  console.log(`Ricevuta del ciclo: ${path}. Pulizia: ${record.cleanup.status}.`);
 }
 
 const isDirectExecution =
   process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isDirectExecution) {
-  publish(parseTarget(process.argv.slice(2))).catch((error) => {
+  const action = process.argv.includes("--verify-only")
+    ? Promise.resolve().then(() =>
+        runLocalGate(output("git", ["branch", "--show-current"]), gitSha("HEAD"), true),
+      )
+    : publish(parseTarget(process.argv.slice(2)));
+  action.catch((error) => {
     console.error(error.message);
     process.exitCode = 1;
   });
