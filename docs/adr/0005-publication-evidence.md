@@ -27,7 +27,9 @@ Il push su `develop` può riusare soltanto la CI della PR che ha prodotto quello
 squash con tree identico. Servono l'ultimo run PR verde del workflow canonico,
 i check `verify`, `coverage`, `e2e`, `mutation` di quel run, l'artifact finale
 di riusabilità e i report incrementali dei domini richiesti, non scaduti.
-In assenza di una prova si esegue la suite ordinaria. I report incrementali
+Il riallineamento a un merge Production segue soltanto il secondo parent di
+una promozione GitHub unita da `develop` a `main`, con tree identico, fino alla
+PR Development verificata. In assenza di una prova si esegue la suite ordinaria. I report incrementali
 vengono trasferiti nella cache `develop`, mantenendo la campagna completa
 settimanale. La policy sul commit esatto e i controlli provider non si ereditano.
 
@@ -40,7 +42,9 @@ coppia storica Worker/Shopify dello stesso commit; le migrazioni restano forward
 Il coordinatore conserva ricevute e durate nei metadati Git, fuori dal tree
 distribuito. I retry rinnovano i readback di Worker e Shopify. La pulizia
 riguarda soltanto il branch temporaneo `codex/` ancora fermo sul candidato,
-con checkout pulito e tree identico allo squash. Worktree con file ignorati
+con checkout pulito e tree identico allo squash. L'inventario dei file ignorati
+usa directory compatte, evitando di enumerare ogni file di `node_modules`.
+Worktree con file ignorati
 non generati, checkout principali e branch estranei si conservano. I worktree
 gestiti da Codex vengono archiviati dall'host, senza rimuovere la registrazione
 dell'app tramite comandi Git.
