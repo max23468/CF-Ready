@@ -19,8 +19,7 @@ const runtimeSecrets = secrets(
 const accountId = "98195e505f42abaaeb4827f71a924b1a";
 
 // Le code webhook stanno nella jurisdiction `eu` (D-184), che Cloudflare fissa solo alla
-// creazione: per questo hanno il suffisso `-eu`. Le code precedenti, senza jurisdiction,
-// conservano i consumer per un rilascio, finché si svuotano; poi si tolgono con le code.
+// creazione: per questo hanno il suffisso `-eu`.
 function webhookQueueTriggers(queue: string) {
   return [
     triggers.queue({
@@ -64,7 +63,6 @@ const production = {
     triggers: [
       triggers.scheduled({ schedule: "*/5 * * * *" }),
       ...webhookQueueTriggers("cf-ready-webhooks-prod-eu"),
-      ...webhookQueueTriggers("cf-ready-webhooks-prod"),
     ],
     env: {
       SHOPIFY_API_KEY: bindings.text("3640fb39bcf605de0537d6dfc0d01c8a"),
@@ -102,7 +100,6 @@ const development = {
     triggers: [
       triggers.scheduled({ schedule: "*/5 * * * *" }),
       ...webhookQueueTriggers("cf-ready-webhooks-dev-eu"),
-      ...webhookQueueTriggers("cf-ready-webhooks-dev"),
     ],
     env: {
       SHOPIFY_API_KEY: bindings.text("adff48d4fe4ceb0dadb4734520701dd7"),

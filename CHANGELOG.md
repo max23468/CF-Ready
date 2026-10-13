@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.2.8 — 13 ottobre 2026
+
+- toglie i consumer delle code webhook senza jurisdiction, ormai vuote: il
+  Worker consuma soltanto `cf-ready-webhooks-dev-eu` e
+  `cf-ready-webhooks-prod-eu` con le rispettive failure queue (D-184).
+
+Only the EU webhook queues remain in use; no change for merchants or the
+checkout.
+
 ## 2.2.7 — 13 ottobre 2026
 
 - Regole ha la stessa larghezza complessiva di Home, Messaggi e Guida: senza
