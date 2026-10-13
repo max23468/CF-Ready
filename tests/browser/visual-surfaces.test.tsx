@@ -541,9 +541,14 @@ test("Polaris reale: messaggi multiriga interamente visibili e anteprima vicina 
     });
     await expect.poll(() => input.rows).toBe(2);
     await textbox.click();
-    // L'anteprima si legge senza risalire al riquadro iniziale.
-    expect(local.getBoundingClientRect().top).toBeGreaterThan(input.getBoundingClientRect().bottom);
-    expect(local.getBoundingClientRect().bottom).toBeLessThan(window.innerHeight);
+    // L'anteprima si legge senza risalire al riquadro iniziale: segue il campo e ci sta
+    // insieme a lui nella finestra. La misura è relativa al campo perché lo scroll del
+    // click non è stabile: WebKit su Linux lascia talvolta il campo sul bordo inferiore.
+    const field = input.getBoundingClientRect();
+    const preview = local.getBoundingClientRect();
+    expect(preview.top).toBeGreaterThan(field.bottom);
+    expect(preview.bottom - field.top).toBeLessThan(window.innerHeight);
+    input.scrollIntoView({ block: "center" });
     await page.screenshot({
       path: screenshotPath(
         `__screenshots__/visual/messages-local-${locale}-${server.browser}-320.png`,

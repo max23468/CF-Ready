@@ -41,16 +41,15 @@ export function verifyDevelopmentConfig(shopifyConfig, worker) {
   const optionalScopes = shopifyConfig
     .match(/^optional_scopes\s*=\s*\[\s*"([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\]\s*$/m)
     ?.slice(1);
-  const emptyEvents =
-    /^\[events\]\s*\napi_version\s*=\s*"unstable"\s*\nsubscription\s*=\s*\[\s*\]\s*$/m.test(
-      shopifyConfig,
-    );
+  // Le sottoscrizioni restano webhook. Shopify CLI 4.9 non invia una sezione Events vuota e la
+  // tratta come rimozione del modulo: la sezione non si dichiara affatto.
+  const noEvents = !/^\[events\]/m.test(shopifyConfig);
   if (
     shopifyTargets.some(([config, pattern]) => !pattern.test(config)) ||
     !sharesWorkerTopology(targets, expected) ||
     shopifyScopes !== "write_validations" ||
     optionalScopes?.join(",") !== "write_translations,read_locales,read_markets" ||
-    !emptyEvents ||
+    !noEvents ||
     /^\[\[events\.subscription\]\]/m.test(shopifyConfig) ||
     targets.vars.SCOPES !== shopifyScopes ||
     targets.vars.ALLOWED_SHOP !== "cf-ready-dev.myshopify.com,cf-ready-polaris-2.myshopify.com" ||

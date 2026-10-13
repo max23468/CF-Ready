@@ -30,9 +30,6 @@ optional_scopes = [ "write_translations", "read_locales", "read_markets" ]
 [webhooks]
   [[webhooks.subscriptions]]
   uri = "https://cf-ready-dev.tmsf.workers.dev/webhooks/app/uninstalled"
-[events]
-api_version = "unstable"
-subscription = []
 `;
 const worker = `{
   "name": "cf-ready-dev",
@@ -153,11 +150,11 @@ test("il preflight lega il nome Worker alla chiave corretta", () => {
     /target Development/,
   );
   assert.throws(
-    () => verifyDevelopment(shopify.replace("unstable", "2026-07"), worker),
-    /target Development/,
-  );
-  assert.throws(
-    () => verifyDevelopment(shopify.replace("subscription = []", ""), worker),
+    () =>
+      verifyDevelopment(
+        `${shopify}[events]\napi_version = "unstable"\nsubscription = []\n`,
+        worker,
+      ),
     /target Development/,
   );
   assert.throws(

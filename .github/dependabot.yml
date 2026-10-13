@@ -11,12 +11,17 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(deps)"
-    # @cloudflare/vitest-plugin supporta soltanto Vitest 4: resta sulla major 4 finché il peer non cambia.
+    # Le major di Vitest arrivano solo quando @cloudflare/vitest-plugin le supporta. La 5.0.4 rompe
+    # la cache dei moduli nel pool Workers (tutte le suite falliscono su `.vitest-cache`): si salta.
     ignore:
       - dependency-name: "vitest"
         update-types: ["version-update:semver-major"]
       - dependency-name: "@vitest/*"
         update-types: ["version-update:semver-major"]
+      - dependency-name: "vitest"
+        versions: ["5.0.4"]
+      - dependency-name: "@vitest/*"
+        versions: ["5.0.4"]
     groups:
       # Le tre librerie app Shopify dichiarano peer reciproci: una major da sola non installa.
       shopify-app-major:
@@ -26,10 +31,15 @@ updates:
           - "@shopify/shopify-app-*"
         update-types:
           - major
+      # La packageExtension del peer react-router nomina la versione esatta e npm 12 non la
+      # riapplica a un lockfile esistente: ogni patch di questo pacchetto si aggiorna a mano.
+      # Fuori dal gruppo, la sua PR separata non blocca gli altri aggiornamenti.
       npm-minor-patch:
         applies-to: version-updates
         patterns:
           - "*"
+        exclude-patterns:
+          - "@shopify/shopify-app-react-router"
         update-types:
           - minor
           - patch

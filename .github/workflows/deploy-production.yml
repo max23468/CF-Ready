@@ -44,7 +44,7 @@ jobs:
           grep -Fxq 'redirect_urls = [ "https://app.cfready.it/auth/callback" ]' shopify.app.toml
 
       - uses: ./.github/actions/setup-node-npm
-      - run: npm install --global --allow-scripts=esbuild @shopify/cli@4.8.4
+      - run: npm install --global --allow-scripts=esbuild @shopify/cli@4.9.3
       - run: npm ci
 
       - name: Verifica credenziali provider
@@ -181,9 +181,12 @@ jobs:
       - name: Deploy Shopify Production
         env:
           SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+        # Temporaneo (D-186): un solo deploy rimuove il modulo Events vuoto che Shopify CLI 4.9
+        # non invia più. Il flag si toglie subito dopo; l'anteprima ha mostrato solo questa rimozione.
         run: >-
           shopify app deploy
           --allow-updates
+          --allow-deletes
           --version "$DEPLOY_VERSION"
           --message "Production ${GITHUB_SHA}"
           --source-control-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
@@ -262,7 +265,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - uses: ./.github/actions/setup-node-npm
-      - run: npm install --global --allow-scripts=esbuild @shopify/cli@4.8.4
+      - run: npm install --global --allow-scripts=esbuild @shopify/cli@4.9.3
       - run: npm ci
 
       - name: Ripristina lo snapshot Production precedente

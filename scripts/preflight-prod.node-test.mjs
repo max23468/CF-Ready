@@ -41,12 +41,12 @@ test("il preflight rifiuta un manifest che non è quello Production", () => {
     ["scope più ampio", shopify.replace("write_validations", "read_orders")],
     ["scope opzionali assenti", shopify.replace(/^optional_scopes.*\n/m, "")],
     [
-      "sezione Events assente",
-      shopify.replace(/\n\[events\]\napi_version = "unstable"\nsubscription = \[\]\n/, "\n"),
+      "sezione Events presente",
+      `${shopify}\n[events]\napi_version = "unstable"\nsubscription = []\n`,
     ],
     [
       "sottoscrizione Events non prevista",
-      shopify.replace("subscription = []", '[[events.subscription]]\nhandle = "non-prevista"'),
+      `${shopify}\n[[events.subscription]]\nhandle = "non-prevista"\n`,
     ],
   ];
   for (const [name, config] of cases) {
