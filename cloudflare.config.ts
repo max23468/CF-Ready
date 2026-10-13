@@ -109,7 +109,7 @@ const development = {
       SHOP_UPDATE_ACK_ONLY_SHOP: bindings.text(""),
       APP_ENVIRONMENT: bindings.text("development"),
       OWNER_TELEGRAM_CONTROL_ENABLED: bindings.text("false"),
-      DB: bindings.d1({ name: "cf-ready-db-dev", id: "9490eaea-3a12-465d-bb48-e2622b31fc4d" }),
+      DB: bindings.d1({ name: "cf-ready-db-dev-eu", id: "f5433c14-1379-4154-bbc7-4e562081e92b" }),
       WEBHOOK_QUEUE: bindings.queue({ name: "cf-ready-webhooks-dev-eu" }),
       CF_VERSION_METADATA: bindings.versionMetadata(),
       ...runtimeSecrets,
