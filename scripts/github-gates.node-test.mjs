@@ -10,6 +10,7 @@ import {
   verifyPromotion,
   verifyPromotionHistory,
   waitForChecks,
+  reviewedCiEvidence,
 } from "./github-gates.mjs";
 
 test("riusa soltanto la suite più recente conclusa fuori dal run corrente", () => {
@@ -502,4 +503,66 @@ test("rifiuta una promozione che non nasce da develop", async () => {
     }),
     /main accetta solo promozioni/,
   );
+});
+
+test("il riuso CI richiede l'ultimo run PR verde, lo stesso tree e artifact non scaduti", async () => {
+  const original = globalThis.fetch;
+  const sha = "a".repeat(40);
+  const head = "b".repeat(40);
+  let tree = "same";
+  let conclusion = "success";
+  let artifacts = [
+    { name: "ci-reusable-12", expired: false },
+    { name: "mutation-incremental-billing", expired: false },
+  ];
+  let missing = false;
+  let badHead = false;
+  try {
+    const base = reviewedTreeFetch({ sha, head, mergedTree: "same", headTree: "same" });
+    globalThis.fetch = async (input) => {
+      const url = String(input);
+      let payload;
+      if (url.endsWith(`/git/commits/${head}`)) payload = { tree: { sha: tree } };
+      else if (url.includes("actions/workflows/ci.yml/runs"))
+        payload = {
+          workflow_runs: [
+            { id: 11, head_sha: head, event: "pull_request", conclusion: "success" },
+            { id: 12, head_sha: badHead ? sha : head, event: "pull_request", conclusion },
+          ],
+        };
+      else if (url.includes("/artifacts?")) payload = { artifacts };
+      else if (url.endsWith(`/commits/${head}/check-runs?per_page=100`))
+        payload = {
+          check_runs: (missing ? ["verify"] : ["verify", "coverage", "e2e", "mutation"]).map(
+            (name, id) => ({
+              id,
+              name,
+              conclusion: "success",
+              details_url: "https://github.test/actions/runs/12/job/1",
+            }),
+          ),
+        };
+      else return base(input);
+      return new Response(JSON.stringify(payload), { status: 200 });
+    };
+    assert.deepEqual(await reviewedCiEvidence("owner/repo", sha, ["billing"]), { head, runId: 12 });
+    artifacts[1].expired = true;
+    assert.equal(await reviewedCiEvidence("owner/repo", sha, ["billing"]), undefined);
+    artifacts[1].expired = false;
+    conclusion = "failure";
+    assert.equal(await reviewedCiEvidence("owner/repo", sha), undefined);
+    conclusion = "success";
+    badHead = true;
+    assert.equal(await reviewedCiEvidence("owner/repo", sha), undefined);
+    badHead = false;
+    missing = true;
+    assert.equal(await reviewedCiEvidence("owner/repo", sha), undefined);
+    missing = false;
+    tree = "different";
+    assert.equal(await reviewedCiEvidence("owner/repo", sha), undefined);
+    globalThis.fetch = async () => new Response("", { status: 503 });
+    assert.equal(await reviewedCiEvidence("owner/repo", sha), undefined);
+  } finally {
+    globalThis.fetch = original;
+  }
 });
