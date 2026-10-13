@@ -47,13 +47,7 @@
   /* Fuori dai componenti Polaris il documento non ha un font: senza questa pila
      il pulsante userebbe il serif predefinito del browser. */
   font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    "San Francisco",
-    "Segoe UI",
-    Roboto,
-    "Helvetica Neue",
+    Inter, -apple-system, BlinkMacSystemFont, "San Francisco", "Segoe UI", Roboto, "Helvetica Neue",
     sans-serif;
   font-size: 15px;
   font-weight: 650;
