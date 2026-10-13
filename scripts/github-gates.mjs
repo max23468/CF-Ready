@@ -88,15 +88,32 @@ async function request(path) {
 
 const pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
-export async function reviewedTreeHead(repository, sha) {
+export async function reviewedTreeHead(repository, sha, depth = 0) {
   const [detail, pullRequests] = await Promise.all([
     request(`/repos/${repository}/git/commits/${sha}`),
     request(`/repos/${repository}/commits/${sha}/pulls`),
   ]);
   const pullRequest = developPullRequestFor(pullRequests, sha);
-  if (!pullRequest || !detail.tree?.sha) return undefined;
-  const head = await request(`/repos/${repository}/git/commits/${pullRequest.head.sha}`);
-  return head.tree?.sha === detail.tree.sha ? pullRequest.head.sha : undefined;
+  if (!detail.tree?.sha) return undefined;
+  if (pullRequest) {
+    const head = await request(`/repos/${repository}/git/commits/${pullRequest.head.sha}`);
+    return head.tree?.sha === detail.tree.sha ? pullRequest.head.sha : undefined;
+  }
+  // Il riallineamento dopo un deploy può avanzare develop al merge Production:
+  // si segue soltanto il secondo parent di una promozione GitHub verificabile.
+  const promotion = pullRequests.find(
+    (pr) =>
+      pr.merged_at &&
+      pr.base?.ref === "main" &&
+      pr.head?.ref === "develop" &&
+      pr.merge_commit_sha === sha,
+  );
+  if (!promotion || detail.parents?.length !== 2 || depth >= 2) return undefined;
+  const source = detail.parents[1].sha;
+  if (promotion.head.sha !== source) return undefined;
+  const parent = await request(`/repos/${repository}/git/commits/${source}`);
+  if (parent.tree?.sha !== detail.tree.sha) return undefined;
+  return reviewedTreeHead(repository, source, depth + 1);
 }
 
 // Il riuso è un'ottimizzazione: prove assenti, incomplete o API indisponibile
