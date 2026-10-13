@@ -11,6 +11,7 @@ import {
   verifyPromotionHistory,
   waitForChecks,
   reviewedCiEvidence,
+  reviewedTreeHead,
 } from "./github-gates.mjs";
 
 test("riusa soltanto la suite più recente conclusa fuori dal run corrente", () => {
@@ -225,6 +226,55 @@ test("la promozione include coverage e policy dell'HEAD develop", async () => {
     readFile(new URL("./github-gates.mjs", import.meta.url), "utf8"),
   );
   assert.match(source, /\["verify", "e2e", "coverage", "ci-policy"\]/);
+});
+
+test("il riallineamento a main segue soltanto la promozione verificata con tree identico", async () => {
+  const original = globalThis.fetch;
+  const main = "c".repeat(40);
+  const source = "a".repeat(40);
+  const head = "b".repeat(40);
+  const base = reviewedTreeFetch({ sha: source, head, mergedTree: "same", headTree: "same" });
+  let tree = "same";
+  let secondParent = source;
+  let merged = true;
+  try {
+    globalThis.fetch = async (input) => {
+      const url = String(input);
+      if (url.endsWith(`/git/commits/${main}`))
+        return new Response(
+          JSON.stringify({
+            tree: { sha: tree },
+            parents: [{ sha: "d".repeat(40) }, { sha: secondParent }],
+          }),
+          { status: 200 },
+        );
+      if (url.endsWith(`/commits/${main}/pulls`))
+        return new Response(
+          JSON.stringify([
+            {
+              merged_at: merged ? "2026-10-13T00:00:00Z" : null,
+              base: { ref: "main" },
+              head: { ref: "develop", sha: source },
+              merge_commit_sha: main,
+            },
+          ]),
+          { status: 200 },
+        );
+      return base(input);
+    };
+    assert.equal(await reviewedTreeHead("owner/repo", main), head);
+    assert.equal(await reviewedTreeHead("owner/repo", main, 2), undefined);
+    tree = "different";
+    assert.equal(await reviewedTreeHead("owner/repo", main), undefined);
+    tree = "same";
+    secondParent = "e".repeat(40);
+    assert.equal(await reviewedTreeHead("owner/repo", main), undefined);
+    secondParent = source;
+    merged = false;
+    assert.equal(await reviewedTreeHead("owner/repo", main), undefined);
+  } finally {
+    globalThis.fetch = original;
+  }
 });
 
 test("accetta soltanto il merge main a due parent con tree di develop", () => {
