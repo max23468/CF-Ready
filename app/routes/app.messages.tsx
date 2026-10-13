@@ -41,6 +41,7 @@ import { messageSubmission, rebaseMessageDraft, updateMessageDraft } from "../me
 import { skipRevalidationWhenLeaving, useSavedData } from "../revalidation";
 import { setSaveBarVisibility, showToast } from "../save-bar";
 import { RevealBanner } from "../ui-feedback";
+import { PageWithAside } from "../ui-page";
 import { createServerTiming } from "../server-timing.server";
 import {
   findValidation,
@@ -288,7 +289,13 @@ export default function CustomerMessages() {
 
   return (
     <form onInput={readDraft}>
-      <s-page heading={t.messages.heading}>
+      <PageWithAside
+        heading={t.messages.heading}
+        // L'anteprima dell'editor mostra il testo selezionato; questo riquadro aggiunge invece
+        // l'informazione che manca all'editor: quali messaggi sono pertinenti alle regole
+        // correnti e possono quindi comparire quando il controllo è attivo.
+        aside={<MessageVisibilityAside t={t} rules={saved.rules} />}
+      >
         {conflict ? (
           <ConfigConflict
             locale={saved.locale}
@@ -336,14 +343,8 @@ export default function CustomerMessages() {
           result={result}
         />
 
-        {/* L'anteprima sopra mostra il testo selezionato; questo riquadro aggiunge invece
-            l'informazione che manca all'editor: quali messaggi sono pertinenti alle regole
-            correnti e possono quindi comparire quando il controllo è attivo. */}
-        <s-stack slot="aside" direction="block" gap="base">
-          <MessageVisibilityAside t={t} rules={saved.rules} />
-        </s-stack>
         <RestoreMessageModals t={t} restore={restore} />
-      </s-page>
+      </PageWithAside>
     </form>
   );
 }
