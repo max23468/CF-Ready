@@ -37,10 +37,18 @@ test("gli eventi lifecycle inseriti direttamente raggiungono i log una volta sol
   const shop = await insertShop("log-diretti.example.myshopify.com");
   const installedAt = "2026-07-30T00:00:00.000Z";
 
+  const uninstalls = () =>
+    env.DB.prepare(
+      "SELECT value FROM owner_metric_counters WHERE metric = 'app_uninstalled'",
+    ).first<number>("value");
+  const before = await uninstalls();
+
   expect(await markUninstalled(env.DB, shop, installedAt, "wh-log-uninstall")).toBe(true);
   expect(await markUninstalled(env.DB, shop, installedAt, "wh-log-uninstall")).toBe(false);
   expect(await redactShop(env.DB, shop, "wh-log-redact")).toBe(true);
   expect(await redactShop(env.DB, shop, "wh-log-redact")).toBe(true);
+  // Il contatore aggregato sale una volta e sopravvive alla cancellazione dello store.
+  expect(await uninstalls()).toBe(before! + 1);
 
   expect(
     info.mock.calls.map(([record]) => ({

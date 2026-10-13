@@ -7,17 +7,79 @@ import {
   errorsMessage,
   funnelMessage,
   healthMessage,
+  helpMessage,
   issuesMessage,
+  noticeMessage,
+  ownerControlPlainText,
   performanceMessage,
   shopMessage,
   shopsMessage,
   trialsMessage,
   versionMessage,
+  withCopyButton,
 } from "../app/owner-control/presentation";
+import type { UninstallReport } from "../app/owner-control/uninstalls.server";
 
 import { NOW, shopFixture } from "./support/owner-control";
 
 describe("presentazione Telegram", () => {
+  test("ricava dal pannello un testo copiabile completo e tronca oltre il limite", () => {
+    const text = ownerControlPlainText(
+      versionMessage({ appVersion: "2.3.0", environment: "Production" }),
+    );
+    expect(text.split("\n").slice(0, 5)).toEqual([
+      "Versione",
+      "",
+      "CF Ready",
+      "App: 2.3.0",
+      "Ambiente: Production",
+    ]);
+    expect(text).toMatch(/\n\nAggiornato: /);
+    expect(ownerControlPlainText(helpMessage())).toContain(
+      "📋 Copia: Invia la vista come testo copiabile",
+    );
+
+    const long = ownerControlPlainText(noticeMessage("Store", "x".repeat(5000)));
+    expect(long).toHaveLength(4096);
+    expect(long.endsWith("\n… testo troncato")).toBe(true);
+    // "Store" + "\n\nInformazione\nStato: " occupa 27 unità: l'emoji cade a cavallo del taglio.
+    const emoji = ownerControlPlainText(
+      noticeMessage("Store", `${"x".repeat(4096 - 17 - 27 - 1)}🎯${"x".repeat(100)}`),
+    );
+    expect(emoji).toHaveLength(4095);
+    expect(emoji).not.toContain("\uD83C\n");
+  });
+
+  test("aggiunge Copia alle viste ripetibili senza refresh né scritture", () => {
+    const copied = (message: ReturnType<typeof noticeMessage>) =>
+      message.replyMarkup?.inline_keyboard.at(-1);
+    expect(
+      copied(withCopyButton(noticeMessage("Billing", "x"), { view: "billing", refresh: true })),
+    ).toEqual([{ text: "📋 Copia", callback_data: "oc1:b:-:0:c" }]);
+    expect(
+      copied(
+        withCopyButton(noticeMessage("Store", "x"), { view: "shops", filter: "paid", page: 2 }),
+      ),
+    ).toEqual([{ text: "📋 Copia", callback_data: "oc1:s:paid:2:c" }]);
+    expect(
+      copied(withCopyButton(noticeMessage("Store", "x"), { view: "conversion_close", shopId: 35 })),
+    ).toEqual([{ text: "📋 Copia", callback_data: "oc1:o:z:0:c" }]);
+    const byName = noticeMessage("Store", "x");
+    expect(withCopyButton(byName, { view: "shop", argument: "nome" })).toBe(byName);
+    expect(
+      copied(
+        withCopyButton(
+          { ...byName, copyAction: { view: "shop", shopId: 1 } },
+          { view: "shop", argument: "nome" },
+        ),
+      ),
+    ).toEqual([{ text: "📋 Copia", callback_data: "oc1:o:1:0:c" }]);
+    const bare = { richMessage: byName.richMessage };
+    expect(withCopyButton(bare, { view: "help" }).replyMarkup?.inline_keyboard).toEqual([
+      [{ text: "📋 Copia", callback_data: "oc1:x:-:0:c" }],
+    ]);
+  });
+
   test("copre stati vuoti, fallback e paginazione", () => {
     expect(dashboardMessage({}).richMessage.blocks).toBeTruthy();
     expect(shopsMessage({ shops: [], count: 0, page: 0 }, "all").replyMarkup).toBeTruthy();
@@ -259,18 +321,22 @@ describe("presentazione Telegram", () => {
     const billing = billingMessage(billingData, revenue);
     const billingText = JSON.stringify(billing);
     expect(billing.richMessage.blocks).toBeTruthy();
-    expect(billingText).toContain("Prova mai avviata");
-    expect(billingText).not.toContain("Altro da verificare");
+    expect(billingText).toContain("💳 Stato · 12 installati");
+    expect(billingText).toContain("2 · 2 in scadenza");
+    expect(billingText).toContain("2 · 1 trial · 1 omaggio");
+    expect(billingText).toContain("8 · 1 prova mai avviata · 3 piani scaduti · 4 rimborsati");
+    expect(billingText).not.toContain("Da verificare");
     expect(
       JSON.stringify(
         billingMessage({ ...billingData, status: { ...billingData.status, other: 1 } }),
       ),
-    ).toContain("Altro da verificare");
-    expect(billingText).toContain("Valore mensile (MRR)");
-    expect(billingText).toContain("Vendite abbinate");
-    expect(billingText).toContain("Piani commerciali");
-    expect(billingText).toContain("Non ancora dovute");
-    expect(billingText).toContain("Mensile dopo fee");
+    ).toContain("⚠️ Da verificare");
+    expect(billingText).toMatch(/10,00\s€ · netto 9,41\s€/);
+    expect(billingText).toMatch(/120,00\s€ · netto 112,92\s€/);
+    expect(billingText).toContain('"Esclusi"');
+    expect(billingText).toContain("3/5");
+    expect(billingText).toContain("⚠️ In attesa della transazione Shopify");
+    expect(billingText).toContain("⚠️ Conversioni da verificare");
     expect(billingText).toContain("elaborazione 2,9%");
     expect(billingText).toContain("regolamentare IT 3%");
     expect(billingText).toContain("regolamentare non nota per 2 abbonamenti");
@@ -278,8 +344,51 @@ describe("presentazione Telegram", () => {
     expect(billingText).toContain("6,17");
     expect(billingText).toContain("98,36");
     expect(billingText).toContain("1 acquisto");
-    expect(billingText).toContain("non provano che la fattura merchant sia riscossa");
+    expect(billingText).toContain("non provano incasso della fattura merchant né payout");
     expect(billingText).toContain("oc1:b:-:0:r");
+    expect(billingText).toContain("oc1:s:paid:0");
+    expect(billingText).toContain("oc1:t:-:0");
+    expect(billingText).toContain(
+      '"Disinstallazioni"},"is_header":true},{"text":"Non disponibile"',
+    );
+    const calm = JSON.stringify(
+      billingMessage({
+        ...billingData,
+        status: { ...billingData.status, ending: 0, one_time: 0, trial: 0, complimentary: 0 },
+        reconciliation: { ...billingData.reconciliation, awaiting: 0, needsReview: 0 },
+      }),
+    );
+    expect(calm).not.toContain("⚠️");
+    expect(calm).not.toContain('"Esclusi"');
+    expect(calm).toContain('"In prova o omaggio"},"is_header":true},{"text":"0"');
+    const uninstalls = (partner: UninstallReport["partner"], local: UninstallReport["local"]) =>
+      JSON.stringify(billingMessage(billingData, revenue, { partner, local }));
+    const partner = {
+      generatedAt: NOW.toISOString(),
+      cachedAt: NOW.toISOString(),
+      total: 4,
+      stores: 3,
+      days28: 1,
+    };
+    expect(uninstalls(partner, { total: 2, startedAt: NOW.toISOString() })).toContain(
+      "4 · 3 store · 1 negli ultimi 28 gg",
+    );
+    expect(uninstalls(partner, { total: 6, startedAt: NOW.toISOString() })).toContain(
+      "6 · 3 store · 1 negli ultimi 28 gg",
+    );
+    expect(uninstalls(partner, null)).toContain("4 · 3 store");
+    expect(
+      uninstalls(
+        { unavailable: "partner_api_graphql_error" },
+        {
+          total: 2,
+          startedAt: NOW.toISOString(),
+        },
+      ),
+    ).toContain("2 dal 08/09/26, 14:00 · Partner non disponibile");
+    expect(uninstalls({ unavailable: "partner_api_graphql_error" }, null)).toContain(
+      "Non disponibile (partner_api_graphql_error)",
+    );
     expect(JSON.stringify(billingMessage(billingData))).toContain("Partner API non disponibile");
     expect(
       JSON.stringify(billingMessage(billingData, { unavailable: "partner_api_graphql_error" })),
