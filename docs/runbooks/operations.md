@@ -488,8 +488,11 @@ npm run owner-control:telegram -- --apply
 
 `--check` chiama soltanto `getWebhookInfo` e `getMyCommands` e fallisce se URL,
 update ammessi o menu della chat owner divergono. `--apply` esegue
-`setWebhook` con `message` e `callback_query`, imposta gli otto shortcut nella
-sola chat owner e ripete lo stesso readback. L’URL predefinito deriva da
+`setWebhook` con `message` e `callback_query`, imposta gli shortcut di
+`config/telegram-owner-menu.json` nella sola chat owner e ripete lo stesso
+readback. Il menu non richiede più `--apply` dopo un deploy: con il Control
+Center attivo, il Worker lo confronta ogni ora al minuto :05 e lo riscrive solo
+se diverge (D-190); un errore resta nella fase `telegram_menu` del ciclo owner. L’URL predefinito deriva da
 `SHOPIFY_APP_URL`, così il tooling configura sempre il target dell’ambiente caricato.
 Il deploy non aggiorna il webhook: dopo ogni cambio di `SHOPIFY_APP_URL` Production
 eseguire `--apply` e `--check` prima di disattivare il vecchio host, altrimenti
