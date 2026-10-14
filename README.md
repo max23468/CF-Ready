@@ -72,6 +72,7 @@ dal workflow di deploy e dal relativo readback.
 ## Verifica
 
 ```sh
+mise exec -- npm run verify:change
 mise exec -- npm test
 mise exec -- npm run test:function
 mise exec -- npm run test:e2e
@@ -82,6 +83,9 @@ mise exec -- npm run check:docs
 mise exec -- npm run check:standard
 mise exec -- npm run check
 ```
+
+`verify:change` è il gate locale prima del push: controlli statici, politica di
+versione e test legati al diff. La CI esegue coverage, browser e mutation.
 
 `coverage:check` misura tutto il codice eseguibile first-party, unisce i report
 senza duplicare i sorgenti condivisi e scrive il report in `.coverage/global/`.

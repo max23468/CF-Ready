@@ -1006,8 +1006,18 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
     [...ci.matchAll(/playwright install --with-deps ([^\n]+)/g)].map((match) => match[1].trim()),
     ["chromium webkit"],
   );
-  assert.match(ci, /playwright@\$version" install-deps chromium webkit/);
-  assert.match(ci, /npx playwright install chromium webkit\n/);
+  // La coverage browser divide i motori in due job e ciascuno installa solo il proprio.
+  assert.match(ci, /playwright@\$version" install-deps "\$BROWSER"/);
+  assert.match(ci, /npx playwright install "\$BROWSER"\n/);
+  assert.match(ci, /BROWSER: \$\{\{ matrix\.part == 'ui-webkit' && 'webkit' \|\| 'chromium' \}\}/);
+  assert.equal(
+    packageJson.scripts["coverage:ui-chromium"].includes("--project 'merchant-chromium*'"),
+    true,
+  );
+  assert.equal(
+    packageJson.scripts["coverage:ui-webkit"].includes("--project 'merchant-webkit*'"),
+    true,
+  );
   assert.match(ci, /exit "\$\(cat "\$RUNNER_TEMP\/playwright-deps\.exit"\)"/);
   assert.match(ci, /actions\/cache@[0-9a-f]{40}/);
   assert.match(ci, /key: playwright-\$\{\{ runner\.os \}\}/);
