@@ -155,6 +155,11 @@
       "name": "0028_owner_metric_counters.sql",
       "sha256": "644b7cecacb6179f0d6cbbe84da97df053fedd866791b1ce160d529b4244b9de",
       "protects": ["aggregate uninstall counter surviving shop redaction"]
+    },
+    {
+      "name": "0029_uninstall_history.sql",
+      "sha256": "7a6b6646316b8ef61c734eaa89a9d9fc514365b1fafc5ced8982ee9add7c2cfc",
+      "protects": ["anonymous uninstall history and review store separation"]
     }
   ]
 }

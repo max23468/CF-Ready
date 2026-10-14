@@ -23,6 +23,7 @@ import {
   shopMatchesMessage,
   shopsMessage,
   trialsMessage,
+  uninstallsMessage,
   versionMessage,
   type OwnerControlMessage,
 } from "./presentation";
@@ -48,7 +49,11 @@ import {
   writeOwnerControlState,
 } from "./repository.server";
 import { readRevenueReport } from "./revenue.server";
-import { readUninstallReport } from "./uninstalls.server";
+import {
+  fetchPartnerUninstallEvents,
+  readUninstallHistory,
+  readUninstallReport,
+} from "./uninstalls.server";
 import { syncPartnerFinancialObservations } from "../owner-notifications/financial-source.server";
 import {
   readShopifyPlan,
@@ -205,6 +210,16 @@ export async function renderOwnerControlAction(
         revenue,
         uninstalls,
       );
+    }
+    case "uninstalls": {
+      // Nomi e domini si leggono dal vivo e non entrano nella cache (D-189).
+      const [partner, history] = await Promise.all([
+        fetchPartnerUninstallEvents(partnerConfig, now, options.fetcher).catch(
+          (error: unknown) => ({ unavailable: ownerControlErrorCode(error) }),
+        ),
+        readUninstallHistory(db),
+      ]);
+      return uninstallsMessage(partner, history);
     }
     case "trials":
       return trialsMessage(await readTrials(db, page));
