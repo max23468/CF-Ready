@@ -3,14 +3,15 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
-import { changedFiles, classifyCiLane, parseChangedFiles } from "./ci-lane.mjs";
+import { changedFiles, classifyCiLane, parseChangedFiles, releaseSurface } from "./ci-lane.mjs";
+import { packageManifest, runVersionPolicy } from "./version-policy.mjs";
 
 const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 // I test sostituiscono GitHub con provider sintetici e non devono attendere i tempi reali.
 const pollIntervalMs = Number(process.env.CF_READY_PUBLISH_POLL_MS) || 5_000;
 
 export function pollingDelay(attempt, base = pollIntervalMs) {
-  return Math.min(base * 2 ** Math.floor(attempt / 3), base < 100 ? base : 30_000);
+  return Math.min(base * 2 ** Math.floor(attempt / 3), base < 100 ? base : 10_000);
 }
 
 async function pollWait(attempt, deadline) {
@@ -59,30 +60,25 @@ export function latestWorkflowRun(runs, sha, afterDatabaseId = 0) {
     .sort((left, right) => right.databaseId - left.databaseId)[0];
 }
 
-export function localGateCommands(
-  lane,
-  baseSha,
-  headSha,
-  surface = "runtime",
-  coverageMode = "full",
-  workingTree = false,
-) {
-  if (lane === "docs") return [["npm", ["run", "check:docs"]]];
-  const commands = [["npm", ["run", `check:ci-${surface === "runtime" ? lane : surface}`]]];
-  if (coverageMode !== "none")
-    commands.push([
-      "npm",
-      [
-        "run",
-        coverageMode === "operations" ? "coverage:check-operations" : "coverage:check",
-        "--",
-        "--base-sha",
-        baseSha,
-        "--head-sha",
-        headSha,
-        ...(workingTree ? ["--working-tree"] : []),
-      ],
-    ]);
+// Prima del push bastano controlli statici e test legati al diff: coverage, browser,
+// build, dry-run e mutation restano alla CI, che li esegue in parallelo sul candidato.
+export function localGateCommands(lane, baseSha, surface = "runtime", files = []) {
+  if (lane === "docs" || surface === "metadata") return [["npm", ["run", "check:docs"]]];
+  const commands = [["npm", ["run", "check:local"]]];
+  if (surface === "runtime") commands.push(["npm", ["run", "test:changed", "--", baseSha]]);
+  if (files.some((path) => path.startsWith("extensions/")))
+    commands.push(["npm", ["run", "test:function"]]);
+  if (
+    files.some(
+      (path) =>
+        path.startsWith("scripts/") ||
+        path.startsWith(".github/") ||
+        path.startsWith("site/") ||
+        path === "package.json" ||
+        path === "app/routes.ts",
+    )
+  )
+    commands.push(["npm", ["run", "test:operations"]], ["npm", ["run", "test:preflight"]]);
   return commands;
 }
 
@@ -164,9 +160,9 @@ async function waitForMerge(number, attempts = 360) {
   throw new Error(`Timeout in attesa del merge della PR #${number}.`);
 }
 
-// Stessi comandi dei job verify e coverage della CI, prima che il push li renda remoti.
+// Controlli rapidi della corsia e politica di versione, prima che il push li renda remoti.
 export function runLocalGate(branch, sourceSha, workingTree = false) {
-  execute("git", ["fetch", "--quiet", "origin", "develop"]);
+  execute("git", ["fetch", "--quiet", "origin", "develop", "main"]);
   const baseSha = output("git", ["merge-base", "origin/develop", sourceSha]);
   const files = changedFiles(baseSha, sourceSha);
   if (workingTree) {
@@ -181,20 +177,16 @@ export function runLocalGate(branch, sourceSha, workingTree = false) {
         .filter(Boolean),
     );
   }
-  const { lane, surface, coverageMode } = classifyCiLane(files, {
+  const { lane, surface } = classifyCiLane(files, {
     base: "develop",
     head: branch,
     eventName: "pull_request",
   });
   console.log(`Gate locale della corsia ${lane} prima del push.`);
-  for (const [command, args] of localGateCommands(
-    lane,
-    baseSha,
-    sourceSha,
-    surface,
-    coverageMode,
-    workingTree,
-  )) {
+  console.log(
+    `Versione: ${runVersionPolicy({ baseSha, headSha: sourceSha, files, headRef: branch, workingTree })}.`,
+  );
+  for (const [command, args] of localGateCommands(lane, baseSha, surface, files)) {
     execute(command, args, { interactive: true });
   }
 }
@@ -431,9 +423,10 @@ async function promotionCandidate(developSha) {
   execute("git", ["fetch", "--quiet", "origin", "main", "develop"]);
   const mainSha = gitSha("origin/main");
   const promoted = promotedSource(mainSha, developSha);
-  if (promoted) return promoted;
+  if (promoted) return { candidate: promoted, previousMain: parentsOf(mainSha)[0] };
   let candidate = gitSha("origin/develop");
-  if (candidate === developSha && isAncestor(mainSha, developSha)) return developSha;
+  if (candidate === developSha && isAncestor(mainSha, developSha))
+    return { candidate, previousMain: mainSha };
   if (candidate === developSha) {
     console.log("main contiene una promozione senza deploy non collegata: riallineo develop.");
     await ensureWorkflow({
@@ -446,17 +439,50 @@ async function promotionCandidate(developSha) {
     execute("git", ["fetch", "--quiet", "origin", "main", "develop"]);
     candidate = gitSha("origin/develop");
   }
-  if (isLinkedReconciliation(candidate, developSha, mainSha)) return candidate;
+  if (isLinkedReconciliation(candidate, developSha, mainSha))
+    return { candidate, previousMain: mainSha };
   throw new Error("develop è avanzato dopo il deploy Development; serve un nuovo candidato.");
 }
 
-// Corsia docs: nessun file entra nel Worker o nell'app Shopify. Se il diff non si legge,
-// si distribuisce come prima.
+function surfaceBetween(base, head) {
+  const files = changedFiles(base, head);
+  return releaseSurface(files, { before: packageManifest(base), after: packageManifest(head) });
+}
+
+// Nessun file entra nel Worker o nell'app Shopify: documentazione, tooling, test e
+// sito. Se il diff non si legge, si distribuisce come prima.
 function needsDevelopmentDeploy(sha) {
   execute("git", ["fetch", "--quiet", "origin", "develop"]);
   const parent = execute("git", ["rev-parse", `${sha}^1`], { allowFailure: true });
   if (parent.status !== 0) return true;
-  return classifyCiLane(changedFiles(parent.stdout.trim(), sha)).deployDevelopment;
+  return surfaceBetween(parent.stdout.trim(), sha).deploy;
+}
+
+function versionAt(ref) {
+  return JSON.parse(output("git", ["show", `${ref}:package.json`])).version;
+}
+
+// Una promozione porta una versione nuova solo se cambia una superficie distribuita;
+// tooling, workflow e documentazione arrivano su main senza deploy né release.
+function promotionPlan(previousMain, candidate) {
+  if (gitTree(previousMain) === gitTree(candidate)) return undefined;
+  const { deploy, release } = surfaceBetween(previousMain, candidate);
+  const version = versionAt(candidate);
+  const promoted = versionAt(previousMain);
+  if (release && version === promoted) {
+    throw new Error(
+      `Il lotto cambia superfici distribuite ma resta ${promoted}: prepara il bump in una PR verso develop.`,
+    );
+  }
+  if (!release && version !== promoted) {
+    throw new Error(`La versione ${version} non ha superfici distribuite da rilasciare.`);
+  }
+  return {
+    version,
+    deploy,
+    release,
+    site: gitPathTree(candidate, "site") !== gitPathTree(previousMain, "site"),
+  };
 }
 
 function gitPathTree(ref, path) {
@@ -610,6 +636,143 @@ export function cleanupPublishedCheckout(
   };
 }
 
+function startRecord(name, fields) {
+  const record = { ...fields, phases: [], receipts: [] };
+  const directory = join(
+    resolve(output("git", ["rev-parse", "--git-common-dir"])),
+    "cf-ready-publications",
+  );
+  mkdirSync(directory, { recursive: true });
+  const path = join(directory, `${name}.json`);
+  const save = () => writeFileSync(path, `${JSON.stringify(record, null, 2)}\n`);
+  const measured = async (phase, action) => {
+    console.log(`Fase: ${phase}.`);
+    const start = Date.now();
+    record.activePhase = phase;
+    record.status = "running";
+    save();
+    let status = "failed";
+    try {
+      const result = await action();
+      status = "success";
+      return result;
+    } finally {
+      record.status = status === "failed" ? "failed" : "running";
+      record.phases.push({ name: phase, status, milliseconds: Date.now() - start });
+      save();
+    }
+  };
+  return { record, path, measured };
+}
+
+// Development resta verificato finché dopo l'ultimo deploy riuscito non cambia una
+// superficie distribuita: la promozione di un lotto riusa quella ricevuta.
+async function developmentEvidence(developSha, repositoryName) {
+  const [latest] = json("gh", [
+    "run",
+    "list",
+    "--workflow",
+    "deploy-development.yml",
+    "--branch",
+    "develop",
+    "--status",
+    "success",
+    "--limit",
+    "1",
+    "--json",
+    "databaseId,status,conclusion,headSha,url",
+  ]);
+  if (
+    latest &&
+    (latest.headSha === developSha ||
+      (isAncestor(latest.headSha, developSha) &&
+        !surfaceBetween(latest.headSha, developSha).deploy))
+  ) {
+    console.log(`Development già verificato su ${latest.headSha}.`);
+    return readDeployReceipt(latest, "Development", latest.headSha, repositoryName);
+  }
+  const run = await ensureWorkflow({
+    workflow: "deploy-development.yml",
+    branch: "develop",
+    sha: developSha,
+  });
+  return readDeployReceipt(run, "Development", developSha, repositoryName);
+}
+
+async function promoteProduction({ developSha, record, measured, repositoryName }) {
+  const { candidate: candidateSha, previousMain } = await measured("Candidato Production", () =>
+    promotionCandidate(developSha),
+  );
+  // La versione è quella del tree promosso: develop può essere avanzato oltre il branch locale.
+  const planned = promotionPlan(previousMain, candidateSha);
+  if (!planned) {
+    console.log(`Niente da promuovere: main contiene già il tree di ${candidateSha}.`);
+    return { mainSha: previousMain };
+  }
+  const promotionPr = await measured("Promozione e merge Production", () =>
+    ensurePullRequest({
+      branch: "develop",
+      base: "main",
+      sourceSha: candidateSha,
+      mergeMethod: "merge",
+      title: planned.release
+        ? `chore: promuovi CF Ready ${planned.version}`
+        : `chore: promuovi CF Ready ${planned.version} senza deploy`,
+      body: `Promuove in Production il tree Development verificato \`${candidateSha}\`.`,
+    }),
+  );
+  const mainSha = promotionPr.mergeCommit.oid;
+  record.mainSha = mainSha;
+  verifyPromotionCommit(mainSha, candidateSha);
+  const plan = promotionPlan(parentsOf(mainSha)[0], mainSha);
+  record.plan = plan;
+  if (plan.deploy) {
+    const productionRun = await measured("Deploy e readback Production", () =>
+      ensureWorkflow({
+        workflow: "deploy-production.yml",
+        branch: "main",
+        sha: mainSha,
+        refreshSuccessful: true,
+      }),
+    );
+    record.receipts.push(
+      await measured("Ricevuta Production", () =>
+        readDeployReceipt(productionRun, "Production", mainSha, repositoryName),
+      ),
+    );
+  } else {
+    console.log("Deploy Production non necessario: Worker e app Shopify sono invariati.");
+  }
+  if (plan.site) {
+    record.pages = await measured("Deploy e readback Pages", () =>
+      ensureWorkflow({
+        workflow: "deploy-pages-production.yml",
+        branch: "main",
+        sha: mainSha,
+        refreshSuccessful: true,
+      }),
+    );
+  } else {
+    console.log("Deploy Pages Production non necessario: il tree site/ è invariato.");
+  }
+  if (plan.deploy || plan.site) {
+    await measured("Riconciliazione", () => waitForReconciliation());
+  } else {
+    console.log(
+      "Riallineamento di develop rinviato alla prossima promozione (no-deploy-promotion).",
+    );
+  }
+  if (!plan.release) {
+    console.log(`Release non necessaria: ${plan.version} resta la versione rilasciata.`);
+    return { mainSha };
+  }
+  const release = await measured("Release", () =>
+    ensureRelease(repositoryName, plan.version, mainSha),
+  );
+  record.releaseUrl = release.url;
+  return { mainSha, releaseUrl: release.url };
+}
+
 export async function publish(target) {
   if (output("git", ["status", "--porcelain"])) {
     throw new Error("Il worktree deve essere pulito prima della pubblicazione.");
@@ -620,38 +783,12 @@ export async function publish(target) {
   }
   const sourceSha = gitSha("HEAD");
   const repositoryName = repository();
-  const record = {
+  const { record, path, measured } = startRecord(sourceSha, {
     sourceSha,
     branch,
     target,
     repository: repositoryName,
-    phases: [],
-    receipts: [],
-  };
-  const directory = join(
-    resolve(output("git", ["rev-parse", "--git-common-dir"])),
-    "cf-ready-publications",
-  );
-  mkdirSync(directory, { recursive: true });
-  const recordPath = join(directory, `${sourceSha}.json`);
-  const save = () => writeFileSync(recordPath, `${JSON.stringify(record, null, 2)}\n`);
-  const measured = async (name, action) => {
-    console.log(`Fase: ${name}.`);
-    const start = Date.now();
-    record.activePhase = name;
-    record.status = "running";
-    save();
-    let status = "failed";
-    try {
-      const result = await action();
-      status = "success";
-      return result;
-    } finally {
-      record.status = status === "failed" ? "failed" : "running";
-      record.phases.push({ name, status, milliseconds: Date.now() - start });
-      save();
-    }
-  };
+  });
   if (!pullRequests(branch, "develop").some((pr) => pr.headRefOid === sourceSha)) {
     await measured("Verifica locale", () => runLocalGate(branch, sourceSha));
   }
@@ -685,58 +822,38 @@ export async function publish(target) {
     );
   }
   if (target === "development") {
-    finishPublication(record, { branch, sourceSha, developSha }, recordPath);
+    finishPublication(record, { branch, sourceSha, developSha }, path);
     console.log(`Pubblicazione Development completata: ${developSha}.`);
     return { developSha };
   }
+  const production = await promoteProduction({ developSha, record, measured, repositoryName });
+  finishPublication(record, { branch, sourceSha, developSha }, path);
+  console.log(
+    `Pubblicazione Production completata: ${production.mainSha}${production.releaseUrl ? `, ${production.releaseUrl}` : ""}.`,
+  );
+  return { developSha, ...production };
+}
 
-  const candidateSha = await measured("Candidato Production", () => promotionCandidate(developSha));
-  // La versione è quella del tree promosso: develop può essere avanzato oltre il branch locale.
-  const version = JSON.parse(output("git", ["show", `${candidateSha}:package.json`])).version;
-  const promotionPr = await measured("Promozione e merge Production", () =>
-    ensurePullRequest({
-      branch: "develop",
-      base: "main",
-      sourceSha: candidateSha,
-      mergeMethod: "merge",
-      title: `chore: promuovi CF Ready ${version}`,
-      body: `Promuove in Production il tree Development verificato \`${candidateSha}\`.`,
-    }),
-  );
-  const mainSha = promotionPr.mergeCommit.oid;
-  record.mainSha = mainSha;
-  verifyPromotionCommit(mainSha, candidateSha);
-  const productionRun = await measured("Deploy e readback Production", () =>
-    ensureWorkflow({
-      workflow: "deploy-production.yml",
-      branch: "main",
-      sha: mainSha,
-      refreshSuccessful: true,
-    }),
-  );
+// Promuove il lotto già verificato su develop, senza un branch di modifica.
+export async function promote() {
+  execute("git", ["fetch", "--quiet", "origin", "main", "develop"]);
+  const developSha = gitSha("origin/develop");
+  const repositoryName = repository();
+  const { record, path, measured } = startRecord(`promotion-${developSha}`, {
+    developSha,
+    target: "production",
+    repository: repositoryName,
+  });
   record.receipts.push(
-    await measured("Ricevuta Production", () =>
-      readDeployReceipt(productionRun, "Production", mainSha, repositoryName),
-    ),
+    await measured("Prova Development", () => developmentEvidence(developSha, repositoryName)),
   );
-  if (gitPathTree(mainSha, "site") !== gitPathTree(`${mainSha}^1`, "site")) {
-    record.pages = await measured("Deploy e readback Pages", () =>
-      ensureWorkflow({
-        workflow: "deploy-pages-production.yml",
-        branch: "main",
-        sha: mainSha,
-        refreshSuccessful: true,
-      }),
-    );
-  } else {
-    console.log("Deploy Pages Production non necessario: il tree site/ è invariato.");
-  }
-  await measured("Riconciliazione", () => waitForReconciliation());
-  const release = await measured("Release", () => ensureRelease(repositoryName, version, mainSha));
-  record.releaseUrl = release.url;
-  finishPublication(record, { branch, sourceSha, developSha }, recordPath);
-  console.log(`Pubblicazione Production completata: ${mainSha}, ${release.url}.`);
-  return { developSha, mainSha, releaseUrl: release.url };
+  const production = await promoteProduction({ developSha, record, measured, repositoryName });
+  record.status = "complete";
+  writeFileSync(path, `${JSON.stringify(record, null, 2)}\n`);
+  console.log(
+    `Promozione Production completata: ${production.mainSha}${production.releaseUrl ? `, ${production.releaseUrl}` : ""}. Ricevuta del ciclo: ${path}.`,
+  );
+  return production;
 }
 
 function finishPublication(record, candidate, path) {
@@ -765,7 +882,9 @@ if (isDirectExecution) {
     ? Promise.resolve().then(() =>
         runLocalGate(output("git", ["branch", "--show-current"]), gitSha("HEAD"), true),
       )
-    : publish(parseTarget(process.argv.slice(2)));
+    : process.argv.includes("--promote")
+      ? promote()
+      : publish(parseTarget(process.argv.slice(2)));
   action.catch((error) => {
     console.error(error.message);
     process.exitCode = 1;

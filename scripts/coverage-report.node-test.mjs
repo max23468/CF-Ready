@@ -59,7 +59,10 @@ test("le raccolte coverage partono in parallelo e attendono anche il ramo fallit
     return child;
   });
   const rejected = assert.rejects(running, /Raccolta coverage fallita/);
-  assert.equal(children.length, 4);
+  assert.deepEqual(
+    children.map(({ part }) => part),
+    ["app", "ui-chromium", "ui-webkit", "function", "operations"],
+  );
   children[0].child.emit("exit", 1);
   for (const { child } of children.slice(1)) child.emit("exit", 0);
   await rejected;
@@ -834,7 +837,8 @@ test("verifica soglie e righe modificate producendo i report aggregati", () => {
   operations.addFileCoverage(coverage(resolve(repositoryRoot, "site/menu.js"), 0));
   const reportsByName = {
     app: mapFor(repositoryRoot, sources.slice(0, 2)),
-    ui: mapFor(repositoryRoot, ["app/root.tsx"]),
+    "ui-chromium": mapFor(repositoryRoot, ["app/root.tsx"]),
+    "ui-webkit": mapFor(repositoryRoot, ["app/root.tsx"]),
     function: mapFor(repositoryRoot, policy.functionBundle),
     operations,
   };

@@ -3,7 +3,9 @@ import test from "node:test";
 import {
   changedFiles,
   classifyCiLane,
+  packageManifestDistributed,
   parseChangedFiles,
+  releaseSurface,
   selectMutationDomains,
 } from "./ci-lane.mjs";
 
@@ -146,4 +148,35 @@ test("le superfici separano metadati, operazioni e runtime senza distribuire tes
   assert.equal(classifyCiLane(["tests/browser/home.test.ts"]).deployDevelopment, false);
   assert.equal(classifyCiLane(["site/style.css"]).deployDevelopment, false);
   assert.equal(classifyCiLane(["scripts/publish.mjs", "app/root.tsx"]).coverageMode, "full");
+});
+
+test("la superficie di rilascio separa deploy, sito e tooling del manifest", () => {
+  const manifest = { version: "1.0.0", scripts: { build: "vite build", test: "vitest" } };
+  const tooling = {
+    before: manifest,
+    after: { ...manifest, version: "1.0.1", scripts: { ...manifest.scripts, test: "vitest run" } },
+  };
+  assert.equal(packageManifestDistributed(manifest, tooling.after), false);
+  for (const after of [
+    { ...manifest, scripts: { ...manifest.scripts, build: "vite build --mode prod" } },
+    { ...manifest, scripts: { ...manifest.scripts, postinstall: "node patch.mjs" } },
+    { ...manifest, dependencies: { react: "19.0.0" } },
+  ])
+    assert.equal(packageManifestDistributed(manifest, after), true);
+  assert.deepEqual(releaseSurface([]), { deploy: true, release: true });
+  assert.deepEqual(releaseSurface(["package.json"], tooling), { deploy: false, release: false });
+  assert.deepEqual(releaseSurface(["package.json"]), { deploy: true, release: true });
+  assert.deepEqual(releaseSurface(["package.json"], { before: manifest }), {
+    deploy: true,
+    release: true,
+  });
+  assert.deepEqual(releaseSurface(["site/style.css", "scripts/publish.mjs"]), {
+    deploy: false,
+    release: true,
+  });
+  assert.deepEqual(releaseSurface(["tests/home.test.ts", ".github/workflows/ci.yml"]), {
+    deploy: false,
+    release: false,
+  });
+  assert.deepEqual(releaseSurface(["app/root.tsx"]), { deploy: true, release: true });
 });

@@ -82,6 +82,13 @@ jobs:
         run: node scripts/github-gates.mjs
       - if: needs.lane.outputs.lane != 'promotion' && needs.lane.outputs.reuse_ci != 'true'
         uses: ./.github/actions/setup-node-npm
+      - if: github.event_name == 'pull_request' && github.base_ref == 'develop'
+        name: Politica di versione del lotto
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: node scripts/version-policy.mjs --base-sha "$BASE_SHA" --head-sha "$HEAD_SHA" --head-ref "$HEAD_REF"
       - if: needs.lane.outputs.lane != 'promotion' && needs.lane.outputs.reuse_ci != 'true'
         run: npm ci
       - if: needs.lane.outputs.lane == 'docs' && needs.lane.outputs.reuse_ci != 'true'
@@ -103,34 +110,38 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        part: ${{ fromJSON(needs.lane.outputs.coverage_mode == 'operations' && '["operations"]' || '["app","ui","function","operations"]') }}
+        part: ${{ fromJSON(needs.lane.outputs.coverage_mode == 'operations' && '["operations"]' || '["app","ui-chromium","ui-webkit","function","operations"]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           persist-credentials: false
-      - if: matrix.part == 'ui'
-        name: Avvia in parallelo le dipendenze di sistema dei browser
+      - if: startsWith(matrix.part, 'ui-')
+        name: Avvia in parallelo le dipendenze di sistema del browser
+        env:
+          BROWSER: ${{ matrix.part == 'ui-webkit' && 'webkit' || 'chromium' }}
         run: |
           version="$(node -p 'require("./package-lock.json").packages["node_modules/@playwright/test"].version')"
           (
             status=0
-            npx --yes --ignore-scripts "playwright@$version" install-deps chromium webkit || status=$?
+            npx --yes --ignore-scripts "playwright@$version" install-deps "$BROWSER" || status=$?
             echo "$status" > "$RUNNER_TEMP/playwright-deps.exit"
           ) > "$RUNNER_TEMP/playwright-deps.log" 2>&1 < /dev/null &
       - uses: ./.github/actions/setup-node-npm
       - run: npm ci
-      - if: matrix.part == 'ui'
+      - if: startsWith(matrix.part, 'ui-')
         id: playwright-version
         run: echo "version=$(node -p 'require("@playwright/test/package.json").version')" >> "$GITHUB_OUTPUT"
-      - if: matrix.part == 'ui'
+      - if: startsWith(matrix.part, 'ui-')
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
-      - if: matrix.part == 'ui'
+      - if: startsWith(matrix.part, 'ui-')
+        env:
+          BROWSER: ${{ matrix.part == 'ui-webkit' && 'webkit' || 'chromium' }}
         run: |
-          npx playwright install chromium webkit
+          npx playwright install "$BROWSER"
           while [ ! -f "$RUNNER_TEMP/playwright-deps.exit" ]; do sleep 1; done
           cat "$RUNNER_TEMP/playwright-deps.log"
           exit "$(cat "$RUNNER_TEMP/playwright-deps.exit")"
@@ -182,7 +193,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          for part in app ui function operations; do
+          for part in app ui-chromium ui-webkit function operations; do
             source=".coverage/parts/coverage-part-$part-$GITHUB_RUN_ID"
             if [ -d "$source" ]; then mv "$source" ".coverage/$part"; fi
           done

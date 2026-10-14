@@ -36,10 +36,10 @@ const baseSha = "e".repeat(40);
 const noDeployMainSha = "1".repeat(40);
 const reconciledSha = "2".repeat(40);
 
-test("l'attesa cresce senza superare trenta secondi", () => {
+test("l'attesa cresce senza superare dieci secondi", () => {
   assert.equal(pollingDelay(0, 5000), 5000);
   assert.equal(pollingDelay(3, 5000), 10000);
-  assert.equal(pollingDelay(30, 5000), 30000);
+  assert.equal(pollingDelay(30, 5000), 10000);
   assert.equal(pollingDelay(30, 1), 1);
 });
 
@@ -202,11 +202,31 @@ test("dopo un retry ignora la run fallita precedente", () => {
   assert.equal(latestWorkflowRun(runs.slice(0, 1), sha, 10), undefined);
 });
 
-test("il gate locale ripete verify e coverage della corsia", () => {
-  assert.deepEqual(localGateCommands("docs", baseSha, sourceSha), [["npm", ["run", "check:docs"]]]);
-  assert.deepEqual(localGateCommands("full", baseSha, sourceSha), [
-    ["npm", ["run", "check:ci-full"]],
-    ["npm", ["run", "coverage:check", "--", "--base-sha", baseSha, "--head-sha", sourceSha]],
+test("il gate locale esegue controlli statici e test legati al diff", () => {
+  assert.deepEqual(localGateCommands("docs", baseSha, "metadata"), [
+    ["npm", ["run", "check:docs"]],
+  ]);
+  assert.deepEqual(localGateCommands("full", baseSha, "metadata", [".gitignore"]), [
+    ["npm", ["run", "check:docs"]],
+  ]);
+  assert.deepEqual(localGateCommands("standard", baseSha, "runtime", ["app/root.tsx"]), [
+    ["npm", ["run", "check:local"]],
+    ["npm", ["run", "test:changed", "--", baseSha]],
+  ]);
+  assert.deepEqual(
+    localGateCommands("full", baseSha, "runtime", ["extensions/x/src/run.ts", "package.json"]),
+    [
+      ["npm", ["run", "check:local"]],
+      ["npm", ["run", "test:changed", "--", baseSha]],
+      ["npm", ["run", "test:function"]],
+      ["npm", ["run", "test:operations"]],
+      ["npm", ["run", "test:preflight"]],
+    ],
+  );
+  assert.deepEqual(localGateCommands("full", baseSha, "operations", [".github/workflows/ci.yml"]), [
+    ["npm", ["run", "check:local"]],
+    ["npm", ["run", "test:operations"]],
+    ["npm", ["run", "test:preflight"]],
   ]);
 });
 
@@ -304,19 +324,22 @@ if (command === "git") {
   else if (joined === "branch --show-current") print(mode === "main" ? "main\\n" : "codex/change\\n");
   else if (joined === "rev-parse HEAD" || joined === "rev-parse refs/heads/codex/change") print("${sourceSha}\\n");
   else if (joined === "rev-parse --git-common-dir") print(".git\\n");
-  else if (joined === "rev-parse ${mainSha}:site" || joined === "rev-parse ${mainSha}^1:site") print("site-tree\\n");
+  else if (/^rev-parse [0-9a-f]{40}:site$/.test(joined)) print("site-tree\\n");
   else if (joined === "ls-remote origin refs/heads/develop") print((mode === "develop-advanced" ? "${sourceSha}" : "${developSha}") + "\\trefs/heads/develop\\n");
   else if (joined === "ls-remote origin refs/heads/main") print("${mainSha}\\trefs/heads/main\\n");
   else if (joined === "ls-remote --heads origin codex/change") print("");
   else if (joined === "show -s --format=%P ${mainSha}") print("${oldMainSha} ${developSha}\\n");
   else if (joined === "rev-parse ${sourceSha}^{tree}") print("source-tree\\n");
   else if (joined === "rev-parse ${mainSha}^{tree}" || joined === "rev-parse ${developSha}^{tree}") print("tree\\n");
-  else if (joined === "show ${developSha}:package.json") print('{"version":"1.2.3"}\\n');
+  else if (joined === "rev-parse ${oldMainSha}^{tree}") print("old-tree\\n");
+  else if (joined === "show ${oldMainSha}:package.json") print('{"version":"1.2.2"}\\n');
+  else if (/^show (${developSha}|${mainSha}|${baseSha}|origin\\/main):package\\.json$/.test(joined)) print('{"version":"1.2.3"}\\n');
   else if (mode === "docs" && joined === "rev-parse ${developSha}^1") print("${baseSha}\\n");
   else if (mode === "docs" && args[0] === "diff") process.stdout.write("M\\0docs/plans/note.md\\0");
   else if (mode === "verification" && args[0] === "diff") process.stdout.write("M\\0scripts/task.mjs\\0");
   else if (mode === "verification" && args[0] === "ls-files") process.stdout.write("scripts/new.mjs\\0");
   else if (mode === "verification" && args[0] === "merge-base") print("${baseSha}\\n");
+  else if (args[0] === "diff") process.stdout.write("M\\0app/routes/app._index.tsx\\0");
   else if (joined === "rev-parse origin/main") print("${mainSha}\\n");
   else if (joined === "rev-parse origin/develop") print((existsSync(marker("reconciled")) ? "${mainSha}" : "${developSha}") + "\\n");
   else if (joined === "merge-base origin/main origin/develop") {
@@ -391,11 +414,11 @@ if (command === "git") {
     },
   );
   assert.equal(verified.status, 0, verified.stderr);
-  assert.match(readFileSync(path.join(directory, ".npm-verify"), "utf8"), /check:ci-operations/);
-  assert.match(
+  assert.equal(
     readFileSync(path.join(directory, ".npm-verify"), "utf8"),
-    /coverage:check-operations .*--working-tree/,
+    "run check:local\nrun test:operations\nrun test:preflight\n",
   );
+  assert.match(verified.stdout, /Versione: nessun bump/);
 
   for (const target of ["development", "production"]) {
     const result = spawnSync(
@@ -449,8 +472,8 @@ if (command === "git") {
   else if (joined === "branch --show-current") print(mode === "main" ? "main\\n" : "codex/change\\n");
   else if (joined === "rev-parse HEAD" || joined === "rev-parse refs/heads/codex/change") print("${sourceSha}\\n");
   else if (joined === "rev-parse --git-common-dir") print(".git\\n");
-  else if (joined === "rev-parse ${mainSha}:site") print("site-tree-new\\n");
-  else if (joined === "rev-parse ${mainSha}^1:site") print("site-tree-old\\n");
+  else if (["${mainSha}", "${developSha}", "${reconciledSha}"].some((sha) => joined === "rev-parse " + sha + ":site")) print("site-tree-new\\n");
+  else if (/^rev-parse [0-9a-f]{40}:site$/.test(joined)) print("site-tree-old\\n");
   else if (joined === "ls-remote origin refs/heads/develop") print((["develop-advanced", "workflow-advanced"].includes(mode) ? "${sourceSha}" : "${developSha}") + "\\trefs/heads/develop\\n");
   else if (joined === "ls-remote origin refs/heads/main") print((mode === "no-deploy-main" && !existsSync(marker("nd-promoted")) ? "${noDeployMainSha}" : "${mainSha}") + "\\trefs/heads/main\\n");
   else if (joined === "show -s --format=%P ${mainSha}") print(mode === "bad-promotion" ? "${oldMainSha}\\n" : mode === "no-deploy-main" ? "${noDeployMainSha} ${reconciledSha}\\n" : "${oldMainSha} ${developSha}\\n");
@@ -458,10 +481,12 @@ if (command === "git") {
   else if (joined === "show -s --format=%P ${reconciledSha}") print("${developSha} ${noDeployMainSha}\\n");
   else if (["${mainSha}", "${developSha}", "${reconciledSha}"].some((sha) => joined === "rev-parse " + sha + "^{tree}")) print("tree\\n");
   else if (joined === "rev-parse ${sourceSha}^{tree}") print("source-tree\\n");
-  else if (joined === "show ${developSha}:package.json" || joined === "show ${reconciledSha}:package.json") print('{"version":"1.2.4"}\\n');
+  else if (/^rev-parse [0-9a-f]{40}\\^\\{tree\\}$/.test(joined)) print("old-tree\\n");
+  else if (["${developSha}", "${reconciledSha}", "${mainSha}", "${sourceSha}"].some((sha) => joined === "show " + sha + ":package.json")) print('{"version":"1.2.4"}\\n');
+  else if (args[0] === "show" && args[1].endsWith(":package.json")) print('{"version":"1.2.3"}\\n');
   else if (joined === "merge-base --is-ancestor ${noDeployMainSha} ${developSha}") process.exitCode = 1;
   else if (args[0] === "merge-base" && args[1] === "--is-ancestor") process.exitCode = 0;
-  else if (joined === "rev-parse origin/main") print((mode === "develop-advanced" ? "${oldMainSha}" : mode === "no-deploy-main" && !existsSync(marker("nd-promoted")) ? "${noDeployMainSha}" : "${mainSha}") + "\\n");
+  else if (joined === "rev-parse origin/main") print((["develop-advanced", "bad-promotion"].includes(mode) ? "${oldMainSha}" : mode === "no-deploy-main" && !existsSync(marker("nd-promoted")) ? "${noDeployMainSha}" : "${mainSha}") + "\\n");
   else if (joined === "rev-parse origin/develop") print((mode === "develop-advanced" ? "${sourceSha}" : mode === "no-deploy-main" ? (existsSync(marker("run-reconcile-develop.yml")) ? "${reconciledSha}" : "${developSha}") : "${developSha}") + "\\n");
   else if (joined === "merge-base origin/main origin/develop") print("${mainSha}\\n");
   else if (joined === "merge-base origin/develop ${sourceSha}") print("${baseSha}\\n");
@@ -595,7 +620,7 @@ if (command === "git") {
   );
   assert.equal(
     readFileSync(path.join(directory, ".npm-calls"), "utf8"),
-    `run check:ci-standard\nrun coverage:check -- --base-sha ${baseSha} --head-sha ${sourceSha}\n`,
+    `run check:local\nrun test:changed -- ${baseSha}\n`,
   );
 
   const queued = spawnSync(
@@ -673,7 +698,7 @@ if (command === "git") {
 
   for (const [mode, message] of [
     ["dirty", /worktree deve essere pulito/],
-    ["gate-failed", /npm run check:ci-standard non riuscito/],
+    ["gate-failed", /npm run check:local non riuscito/],
     ["checks-failed", /La PR #10 ha check falliti: verify/],
     ["main", /branch della modifica/],
     ["closed-pr", /La PR #10 è CLOSED/],
@@ -710,6 +735,152 @@ if (command === "git") {
       assert.equal(record.phases.at(-1).status, "failed");
       assert.equal(record.activePhase, "Deploy e readback Development");
     }
+  }
+});
+
+test("promuove il lotto di develop secondo superficie e versione", (t) => {
+  const deployedSha = "3".repeat(40);
+  const promote = (mode) => {
+    const directory = mkdtempSync(path.join(tmpdir(), `cf-ready-promote-${mode}-`));
+    const bin = path.join(directory, "bin");
+    const provider = path.join(bin, "provider.mjs");
+    t.after(() => rmSync(directory, { recursive: true, force: true }));
+    mkdirSync(bin);
+    writeFileSync(
+      provider,
+      `#!/usr/bin/env node
+import { existsSync, writeFileSync } from "node:fs";
+import path from "node:path";
+const command = path.basename(process.argv[1]);
+const args = process.argv.slice(2);
+const joined = args.join(" ");
+const mode = process.env.FAIL_MODE;
+const value = (name) => args[args.indexOf(name) + 1];
+const marker = (name) => path.join(process.cwd(), "." + name);
+const print = (payload) => process.stdout.write(typeof payload === "string" ? payload : JSON.stringify(payload));
+const tooling = ["tooling", "bump-only"].includes(mode);
+const bumped = !["tooling", "no-bump"].includes(mode);
+if (command === "git") {
+  if (joined === "rev-parse --git-common-dir") print(".git\\n");
+  else if (joined === "rev-parse origin/develop") print("${developSha}\\n");
+  else if (joined === "rev-parse origin/main") print("${oldMainSha}\\n");
+  else if (joined === "rev-parse ${oldMainSha}^{tree}") print(mode === "nothing" ? "tree\\n" : "old-tree\\n");
+  else if (args[0] === "rev-parse" && joined.endsWith("^{tree}")) print("tree\\n");
+  else if (args[0] === "rev-parse" && joined.endsWith(":site")) print("site-tree\\n");
+  else if (joined === "show -s --format=%P ${oldMainSha}") print("${baseSha}\\n");
+  else if (joined === "show -s --format=%P ${mainSha}") print("${oldMainSha} ${developSha}\\n");
+  else if (joined === "show ${oldMainSha}:package.json") print('{"version":"1.2.3"}\\n');
+  else if (args[0] === "show") print(bumped ? '{"version":"1.2.4"}\\n' : '{"version":"1.2.3"}\\n');
+  else if (args[0] === "diff") print(tooling ? "M\\0scripts/task.mjs\\0" : "M\\0app/root.tsx\\0");
+  else if (joined === "ls-remote origin refs/heads/develop") print("${developSha}\\trefs/heads/develop\\n");
+  else if (joined === "ls-remote origin refs/heads/main") print("${mainSha}\\trefs/heads/main\\n");
+  else if (joined === "merge-base origin/main origin/develop") print("${oldMainSha}\\n");
+  else if (args[0] !== "fetch" && args[0] !== "merge-base") process.exitCode = 2;
+} else if (command === "gh") {
+  if (args[0] === "repo") print({ nameWithOwner: "owner/repository" });
+  else if (args[0] === "run" && args[1] === "list" && args.includes("--status")) {
+    print([{ databaseId: 30, status: "completed", conclusion: "success", headSha: mode === "stale" ? "${deployedSha}" : "${developSha}", url: "https://github.test/run" }]);
+  } else if (args[0] === "run" && args[1] === "list") {
+    const workflow = value("--workflow");
+    print(existsSync(marker("run-" + workflow)) ? [{ databaseId: 40, status: "completed", conclusion: "success", headSha: value("--commit"), url: "https://github.test/run" }] : []);
+  } else if (args[0] === "workflow") {
+    writeFileSync(marker("run-" + args[2]), "ok");
+  } else if (args[0] === "run" && args[1] === "download") {
+    const name = value("--name");
+    const environment = name.includes("development") ? "Development" : "Production";
+    const commit = name.slice(-40);
+    writeFileSync(path.join(value("--dir"), "deploy-receipt-" + environment.toLowerCase() + ".json"), JSON.stringify({
+      schemaVersion: 1, environment, commit, tree: "tree", repository: "owner/repository", providerSourceCommit: commit,
+      workflowRun: "https://github.com/owner/repository/actions/runs/" + args[2],
+      worker: { deploymentId: "deployment", versionId: "worker", percentage: 100 },
+      shopify: { versionId: "shopify", versionTag: "1.2.4", message: environment + " " + commit },
+      checks: { migrations: "readback-green", smoke: "green", providerReadback: "green" } }));
+  } else if (args[0] === "pr" && args[1] === "list") print([]);
+  else if (args[0] === "pr" && args[1] === "create") {
+    writeFileSync(marker("title"), value("--title"));
+    print("https://github.test/pr/11\\n");
+  } else if (args[0] === "pr" && args[1] === "view") {
+    const merged = existsSync(marker("merged"));
+    print({ number: 11, state: merged ? "MERGED" : "OPEN", headRefOid: "${developSha}", mergeCommit: merged ? { oid: "${mainSha}" } : null, url: "https://github.test/pr/11" });
+  } else if (args[0] === "pr" && args[1] === "merge") writeFileSync(marker("merged"), "ok");
+  else if (args[0] === "release" && args[1] === "view") {
+    if (existsSync(marker("release"))) print({ tagName: args[2], url: "https://github.test/release" });
+    else process.exitCode = 1;
+  } else if (args[0] === "release" && args[1] === "create") writeFileSync(marker("release"), args[2]);
+  else process.exitCode = 2;
+} else process.exitCode = 2;
+`,
+    );
+    chmodSync(provider, 0o755);
+    for (const command of ["git", "gh"]) symlinkSync(provider, path.join(bin, command));
+    const result = spawnSync(
+      process.execPath,
+      [path.join(root, "scripts/publish.mjs"), "--promote"],
+      {
+        cwd: directory,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CF_READY_PUBLISH_POLL_MS: "1",
+          FAIL_MODE: mode,
+          PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+        },
+      },
+    );
+    const read = (name) =>
+      existsSync(path.join(directory, `.${name}`))
+        ? readFileSync(path.join(directory, `.${name}`), "utf8")
+        : undefined;
+    return { ...result, read, directory };
+  };
+
+  const batch = promote("batch");
+  assert.equal(batch.status, 0, batch.stderr);
+  assert.match(batch.stdout, new RegExp(`Development già verificato su ${developSha}`));
+  assert.equal(batch.read("run-deploy-development.yml"), undefined);
+  assert.match(batch.stdout, /deploy-production\.yml: avviato/);
+  assert.equal(batch.read("title"), "chore: promuovi CF Ready 1.2.4");
+  assert.equal(batch.read("release"), "v1.2.4");
+  assert.match(batch.stdout, /Promozione Production completata: .*https:\/\/github\.test\/release/);
+  const record = JSON.parse(
+    readFileSync(
+      path.join(batch.directory, ".git/cf-ready-publications", `promotion-${developSha}.json`),
+      "utf8",
+    ),
+  );
+  assert.equal(record.status, "complete");
+  assert.deepEqual(record.plan, { version: "1.2.4", deploy: true, release: true, site: false });
+  assert.deepEqual(
+    record.receipts.map(({ environment }) => environment),
+    ["Development", "Production"],
+  );
+
+  const stale = promote("stale");
+  assert.equal(stale.status, 0, stale.stderr);
+  assert.match(stale.stdout, /deploy-development\.yml: avviato/);
+
+  const tooling = promote("tooling");
+  assert.equal(tooling.status, 0, tooling.stderr);
+  assert.equal(tooling.read("title"), "chore: promuovi CF Ready 1.2.3 senza deploy");
+  assert.match(tooling.stdout, /Deploy Production non necessario/);
+  assert.match(tooling.stdout, /Riallineamento di develop rinviato/);
+  assert.match(tooling.stdout, /Release non necessaria: 1\.2\.3/);
+  assert.equal(tooling.read("run-deploy-production.yml"), undefined);
+  assert.equal(tooling.read("release"), undefined);
+
+  const nothing = promote("nothing");
+  assert.equal(nothing.status, 0, nothing.stderr);
+  assert.match(nothing.stdout, /Niente da promuovere/);
+  assert.equal(nothing.read("title"), undefined);
+
+  for (const [mode, message] of [
+    ["no-bump", /resta 1\.2\.3: prepara il bump/],
+    ["bump-only", /La versione 1\.2\.4 non ha superfici distribuite/],
+  ]) {
+    const failed = promote(mode);
+    assert.equal(failed.status, 1, failed.stdout);
+    assert.match(failed.stderr, message);
+    assert.equal(failed.read("title"), undefined);
   }
 });
 
