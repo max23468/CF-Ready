@@ -9,6 +9,7 @@ let requestHandler: ReturnType<(typeof import("react-router"))["createRequestHan
 
 type NotificationBindings = Omit<Env, "OWNER_NOTIFICATIONS_ENABLED"> & {
   OWNER_NOTIFICATIONS_ENABLED?: string;
+  OWNER_TELEGRAM_CONTROL_ENABLED?: string;
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_CHAT_ID?: string;
   SHOPIFY_PARTNER_ORGANIZATION_ID?: string;
@@ -100,6 +101,7 @@ const HOURLY_STAGE_MINUTES: Partial<Record<string, number>> = {
   partner_financials: 20,
   bfs_progress: 35,
   bfs_performance: 50,
+  telegram_menu: 5,
 };
 
 async function runOwnerNotificationCycle(env: NotificationBindings, minute: number) {
@@ -136,12 +138,17 @@ async function runOwnerNotificationCycle(env: NotificationBindings, minute: numb
   }
   if (env.OWNER_NOTIFICATIONS_ENABLED !== "true") return;
 
-  const [notifications, { refreshBFSPlans }, { pollBFSProgress, pollBFSPerformance }] =
-    await Promise.all([
-      import("../app/owner-notifications.server"),
-      import("../app/owner-control/bfs.server"),
-      import("../app/owner-control/bfs-notifications.server"),
-    ]);
+  const [
+    notifications,
+    { refreshBFSPlans },
+    { pollBFSProgress, pollBFSPerformance },
+    { syncOwnerControlMenu },
+  ] = await Promise.all([
+    import("../app/owner-notifications.server"),
+    import("../app/owner-control/bfs.server"),
+    import("../app/owner-control/bfs-notifications.server"),
+    import("../app/owner-control/menu.server"),
+  ]);
 
   const stages = [
     () =>
@@ -164,6 +171,17 @@ async function runOwnerNotificationCycle(env: NotificationBindings, minute: numb
       await pollBFSProgress(env.DB, now, await refreshBFSPlans(env.DB, { now }));
     },
     () => pollBFSPerformance(env.DB),
+    // Il menu serve solo dove il Control Center risponde: Development lo tiene spento.
+    async () => {
+      if (env.OWNER_TELEGRAM_CONTROL_ENABLED !== "true") return;
+      if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
+        throw new Error("owner_control_configuration_incomplete");
+      }
+      await syncOwnerControlMenu({
+        botToken: env.TELEGRAM_BOT_TOKEN,
+        chatId: env.TELEGRAM_CHAT_ID,
+      });
+    },
     () => {
       if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
         throw new Error("owner_notification_configuration_incomplete");
@@ -185,6 +203,7 @@ async function runOwnerNotificationCycle(env: NotificationBindings, minute: numb
     "incidents",
     "bfs_progress",
     "bfs_performance",
+    "telegram_menu",
     "delivery",
   ];
   for (const [index, stage] of stages.entries()) {
