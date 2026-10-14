@@ -1,6 +1,8 @@
 import { recordTrialLedger } from "./billing.server";
 import { trialLedgerHash } from "./hash.server";
 import { logEvent, recordEvent } from "./events.server";
+import { BFS_PLAN_STATE_PREFIX, BILLING_STATUS_CATEGORY_SQL } from "./owner-control/model";
+import { reviewStoreSql } from "./owner-control/review-stores";
 
 // Installazione da uno store non ammesso: si cancella tutto ciò che l'autenticazione ha
 // appena creato, così non resta né una sessione utilizzabile né uno store sconosciuto.
@@ -55,6 +57,15 @@ export async function recordInstallOnce(db: D1Database, shopDomain: string) {
   return inserted !== null;
 }
 
+// Vale una sola volta per installazione: snapshot, contatore ed evento condividono la condizione.
+const FIRST_UNINSTALL_SQL = `NOT EXISTS (
+  SELECT 1 FROM app_events
+  WHERE shop_id = s.id AND event_name = 'app_uninstalled' AND occurred_at >= s.installed_at
+)`;
+const BFS_DEVELOPMENT_SQL = `(json_extract(o.state_value, '$.classification') = 'development'
+  AND json_extract(o.state_value, '$.installedAt') = s.installed_at)`;
+const REVIEW_STORE_SQL = reviewStoreSql("s.display_name", "s.shop_domain", BFS_DEVELOPMENT_SQL);
+
 export async function markUninstalled(
   db: D1Database,
   shopDomain: string,
@@ -63,6 +74,28 @@ export async function markUninstalled(
 ) {
   const now = new Date().toISOString();
   const results = await db.batch([
+    // Primo del batch: legge Validation e onboarding prima che la disinstallazione li azzeri.
+    // Lo storico è anonimo e sopravvive a `shop/redact` (D-189).
+    db
+      .prepare(
+        `INSERT INTO uninstall_history (
+           uninstalled_on, installed_days, store_kind, billing_category,
+           validation_enabled, onboarding_completed
+         )
+         SELECT date(?), MAX(0, CAST(julianday(?) - julianday(s.installed_at) AS INTEGER)),
+                CASE WHEN ${REVIEW_STORE_SQL} THEN 'review' ELSE 'merchant' END,
+                ${BILLING_STATUS_CATEGORY_SQL},
+                coalesce(a.validation_enabled, 0),
+                coalesce(a.onboarding_status = 'completed', 0)
+         FROM shops s
+         LEFT JOIN app_state a ON a.shop_id = s.id
+         LEFT JOIN trials t ON t.shop_id = s.id
+         LEFT JOIN billing_accounts b ON b.shop_id = s.id
+         LEFT JOIN complimentary_entitlements c ON c.shop_id = s.id
+         LEFT JOIN owner_control_state o ON o.state_key = '${BFS_PLAN_STATE_PREFIX}' || s.id
+         WHERE s.shop_domain = ? AND s.installed_at = ? AND ${FIRST_UNINSTALL_SQL}`,
+      )
+      .bind(now, now, shopDomain, installationStartedAt),
     db
       .prepare(
         `UPDATE shops SET installation_status = 'uninstalled', uninstalled_at = ?, updated_at = ?
@@ -86,36 +119,35 @@ export async function markUninstalled(
          )`,
       )
       .bind(shopDomain, installationStartedAt),
-    // Precede l'evento e ne ripete la condizione: il batch è una transazione, quindi il
-    // contatore aggregato sale una sola volta per installazione anche con webhook ritentati.
+    // Precede l'evento: il batch è una transazione, quindi il contatore aggregato sale una
+    // sola volta per installazione anche con webhook ritentati.
     db
       .prepare(
-        `UPDATE owner_metric_counters SET value = value + 1, updated_at = ?
+        `UPDATE owner_metric_counters
+         SET value = value + 1,
+             review_value = review_value + (
+               SELECT CASE WHEN ${REVIEW_STORE_SQL} THEN 1 ELSE 0 END
+               FROM shops s
+               LEFT JOIN owner_control_state o
+                 ON o.state_key = '${BFS_PLAN_STATE_PREFIX}' || s.id
+               WHERE s.shop_domain = ? AND s.installed_at = ?
+             ),
+             updated_at = ?
          WHERE metric = 'app_uninstalled' AND EXISTS (
-           SELECT 1 FROM shops
-           WHERE shop_domain = ? AND installed_at = ?
-             AND NOT EXISTS (
-               SELECT 1 FROM app_events
-               WHERE shop_id = shops.id AND event_name = 'app_uninstalled'
-                 AND occurred_at >= shops.installed_at
-             )
+           SELECT 1 FROM shops s
+           WHERE s.shop_domain = ? AND s.installed_at = ? AND ${FIRST_UNINSTALL_SQL}
          )`,
       )
-      .bind(now, shopDomain, installationStartedAt),
+      .bind(shopDomain, installationStartedAt, now, shopDomain, installationStartedAt),
     db
       .prepare(
         `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
-         SELECT id, 'app_uninstalled', 'lifecycle', ? FROM shops
-         WHERE shop_domain = ? AND installed_at = ?
-           AND NOT EXISTS (
-             SELECT 1 FROM app_events
-             WHERE shop_id = shops.id AND event_name = 'app_uninstalled'
-               AND occurred_at >= shops.installed_at
-           )`,
+         SELECT s.id, 'app_uninstalled', 'lifecycle', ? FROM shops s
+         WHERE s.shop_domain = ? AND s.installed_at = ? AND ${FIRST_UNINSTALL_SQL}`,
       )
       .bind(now, shopDomain, installationStartedAt),
   ]);
-  const inserted = results[4].meta.changes === 1;
+  const inserted = results[5].meta.changes === 1;
   if (inserted) {
     logEvent({ name: "app_uninstalled", class: "lifecycle", webhookId }, now);
   }

@@ -366,29 +366,28 @@ describe("presentazione Telegram", () => {
     const partner = {
       generatedAt: NOW.toISOString(),
       cachedAt: NOW.toISOString(),
-      total: 4,
-      stores: 3,
-      days28: 1,
+      merchant: { total: 4, stores: 3, days28: 1 },
+      review: 9,
     };
-    expect(uninstalls(partner, { total: 2, startedAt: NOW.toISOString() })).toContain(
-      "4 · 3 store · 1 negli ultimi 28 gg",
-    );
-    expect(uninstalls(partner, { total: 6, startedAt: NOW.toISOString() })).toContain(
-      "6 · 3 store · 1 negli ultimi 28 gg",
-    );
+    const local = (total: number, review: number) => ({
+      total,
+      review,
+      startedAt: NOW.toISOString(),
+    });
+    const lowLocal = uninstalls(partner, local(5, 2));
+    expect(lowLocal).toContain("4 · 3 store · 1 negli ultimi 28 gg");
+    expect(lowLocal).toContain('"Disinstallazioni review"},"is_header":true},{"text":"9"');
+    const highLocal = uninstalls(partner, local(18, 10));
+    expect(highLocal).toContain("8 · 3 store · 1 negli ultimi 28 gg");
+    expect(highLocal).toContain('"Disinstallazioni review"},"is_header":true},{"text":"10"');
     expect(uninstalls(partner, null)).toContain("4 · 3 store");
-    expect(
-      uninstalls(
-        { unavailable: "partner_api_graphql_error" },
-        {
-          total: 2,
-          startedAt: NOW.toISOString(),
-        },
-      ),
-    ).toContain("2 dal 08/09/26, 14:00 · Partner non disponibile");
+    const offline = uninstalls({ unavailable: "partner_api_graphql_error" }, local(5, 2));
+    expect(offline).toContain("3 dal 08/09/26, 14:00 · Partner non disponibile");
+    expect(offline).toContain('"Disinstallazioni review"},"is_header":true},{"text":"2"');
     expect(uninstalls({ unavailable: "partner_api_graphql_error" }, null)).toContain(
       "Non disponibile (partner_api_graphql_error)",
     );
+    expect(billingText).toContain("oc1:u:-:0");
     expect(JSON.stringify(billingMessage(billingData))).toContain("Partner API non disponibile");
     expect(
       JSON.stringify(billingMessage(billingData, { unavailable: "partner_api_graphql_error" })),

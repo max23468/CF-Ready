@@ -19,7 +19,17 @@ const environment = {
 test("il menu conserva gli otto comandi prioritari concordati", () => {
   assert.deepEqual(
     OWNER_CONTROL_MENU_COMMANDS.map(({ command }) => command),
-    ["dashboard", "performance", "shops", "billing", "growth", "issues", "health", "activity"],
+    [
+      "dashboard",
+      "performance",
+      "shops",
+      "billing",
+      "uninstalls",
+      "growth",
+      "issues",
+      "health",
+      "activity",
+    ],
   );
 });
 
