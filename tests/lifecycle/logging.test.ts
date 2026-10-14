@@ -49,6 +49,19 @@ test("gli eventi lifecycle inseriti direttamente raggiungono i log una volta sol
   expect(await redactShop(env.DB, shop, "wh-log-redact")).toBe(true);
   // Il contatore aggregato sale una volta e sopravvive alla cancellazione dello store.
   expect(await uninstalls()).toBe(before! + 1);
+  // Lo snapshot anonimo resta dopo `shop/redact`, senza nome né dominio.
+  const history = await env.DB.prepare("SELECT * FROM uninstall_history").all();
+  expect(history.results).toEqual([
+    {
+      id: expect.any(Number),
+      uninstalled_on: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      installed_days: expect.any(Number),
+      store_kind: "merchant",
+      billing_category: "trial_never",
+      validation_enabled: 0,
+      onboarding_completed: 0,
+    },
+  ]);
 
   expect(
     info.mock.calls.map(([record]) => ({
@@ -61,6 +74,33 @@ test("gli eventi lifecycle inseriti direttamente raggiungono i log una volta sol
     { event: "shop_redacted", correlation_id: "wh-log-redact", webhook: true },
   ]);
   info.mockRestore();
+});
+
+test("lo snapshot legge Validation, onboarding e review prima di azzerarli", async () => {
+  const shop = await insertShop("app-review-c0d01c8a-r1-a0-primary.myshopify.com");
+  const installedAt = "2026-07-30T00:00:00.000Z";
+  const review = () =>
+    env.DB.prepare(
+      "SELECT review_value FROM owner_metric_counters WHERE metric = 'app_uninstalled'",
+    ).first<number>("review_value");
+  const before = await review();
+  await env.DB.prepare(
+    `INSERT INTO app_state (shop_id, validation_enabled, onboarding_status, updated_at)
+     SELECT id, 1, 'completed', ? FROM shops WHERE shop_domain = ?`,
+  )
+    .bind(installedAt, shop)
+    .run();
+
+  expect(await markUninstalled(env.DB, shop, installedAt, "wh-review-uninstall")).toBe(true);
+  expect(await markUninstalled(env.DB, shop, installedAt, "wh-review-uninstall")).toBe(false);
+
+  expect(await review()).toBe(before! + 1);
+  expect(
+    await env.DB.prepare(
+      `SELECT store_kind, validation_enabled, onboarding_completed FROM uninstall_history
+       ORDER BY id DESC LIMIT 1`,
+    ).first(),
+  ).toEqual({ store_kind: "review", validation_enabled: 1, onboarding_completed: 1 });
 });
 
 test("un errore di persistenza produce soltanto un evento tecnico sanitizzato", async () => {

@@ -13,7 +13,7 @@ import { callbackData, copyTarget, type OwnerControlAction, type ShopsFilter } f
 import type { BillingStatusCategory, ShopRow } from "./queries.server";
 import type { RevenueReport } from "./revenue.server";
 import type { ShopifyPlanRow } from "./shopify-plans.server";
-import type { UninstallReport } from "./uninstalls.server";
+import type { PartnerUninstallEvent, UninstallHistory, UninstallReport } from "./uninstalls.server";
 import type { BFSReport } from "./bfs.server";
 import { BFS_TARGET } from "./model";
 import { FINANCIAL_OBSERVATION_DAYS, SHOPS_PAGE_SIZE } from "./model";
@@ -321,7 +321,7 @@ export function billingMessage(
           [status.refunded, "rimborsato", "rimborsati"],
         ]),
         ...(status.other ? [["⚠️ Da verificare", String(status.other)] as Row] : []),
-        ["Disinstallazioni", uninstallsLabel(uninstalls)],
+        ...uninstallRows(uninstalls),
       ]),
       section("📐 Run-rate", [
         ["MRR", `${MONEY.format(data.mrr)} · netto ${MONEY.format(data.netMrr)}`],
@@ -365,13 +365,14 @@ export function billingMessage(
         button("Store paganti", { view: "shops", filter: "paid" }),
         button("Trial", { view: "trials" }),
       ],
+      [button("Disinstallazioni", { view: "uninstalls" })],
       [button("‹ Dashboard", { view: "dashboard" })],
     ]),
     [
       ...(revenue && "cachedAt" in revenue
         ? [`Ricavi Partner ${formatDate(revenue.cachedAt)}`]
         : []),
-      "Disinstallazioni: il maggiore fra Partner dal lancio e contatore locale",
+      "Disinstallazioni: il maggiore fra Partner dal lancio e contatore locale, review separate",
       "Le transazioni Partner non provano incasso della fattura merchant né payout",
     ].join(" · "),
   );
@@ -393,20 +394,128 @@ function statusGroup(name: string, items: CountPart[]): Row {
 function warn(name: string, count: number) {
   return count > 0 ? `⚠️ ${name}` : name;
 }
-function uninstallsLabel(report?: UninstallReport) {
-  if (!report) return "Non disponibile";
+// Merchant e review si combinano separatamente: per ciascuno vale il maggiore fra Partner e
+// contatore locale, che parte più tardi ma non dipende dalla Partner API.
+function uninstallRows(report?: UninstallReport): Row[] {
+  if (!report) return [["Disinstallazioni", "Non disponibile"]];
   const local = report.local;
+  const localMerchant = local ? local.total - local.review : 0;
   if ("unavailable" in report.partner) {
     return local
-      ? `${local.total} dal ${formatDate(local.startedAt)} · Partner non disponibile`
-      : `Non disponibile (${report.partner.unavailable})`;
+      ? [
+          [
+            "Disinstallazioni merchant",
+            `${localMerchant} dal ${formatDate(local.startedAt)} · Partner non disponibile`,
+          ],
+          ["Disinstallazioni review", String(local.review)],
+        ]
+      : [["Disinstallazioni", `Non disponibile (${report.partner.unavailable})`]];
   }
   const partner = report.partner;
   return [
-    String(Math.max(partner.total, local?.total ?? 0)),
-    countLabel(partner.stores, "store", "store"),
-    `${partner.days28} negli ultimi 28 gg`,
-  ].join(" · ");
+    [
+      "Disinstallazioni merchant",
+      [
+        String(Math.max(partner.merchant.total, localMerchant)),
+        countLabel(partner.merchant.stores, "store", "store"),
+        `${partner.merchant.days28} negli ultimi 28 gg`,
+      ].join(" · "),
+    ],
+    ["Disinstallazioni review", String(Math.max(partner.review, local?.review ?? 0))],
+  ];
+}
+
+export function uninstallsMessage(
+  partner: PartnerUninstallEvent[] | { unavailable: string },
+  history: UninstallHistory,
+): OwnerControlMessage {
+  const merchants = Array.isArray(partner)
+    ? partner.filter((event) => event.kind === "merchant")
+    : [];
+  const reviews = Array.isArray(partner) ? partner.filter((event) => event.kind === "review") : [];
+  const status = history.merchant.status;
+  return panel(
+    "Disinstallazioni",
+    [
+      ...(Array.isArray(partner)
+        ? [
+            section(
+              `🏪 Merchant · ${merchants.length}`,
+              merchants.length
+                ? merchants.slice(0, UNINSTALL_ROWS).map(uninstallRow)
+                : [["Stato", "Nessuna disinstallazione"]],
+            ),
+            section(
+              `🧪 Review e interni · ${reviews.length}`,
+              reviews.length
+                ? reviews.slice(0, UNINSTALL_ROWS).map(uninstallRow)
+                : [["Stato", "Nessuna disinstallazione"]],
+            ),
+          ]
+        : [
+            section("🏪 Partner", [
+              ["Stato", `Partner API non disponibile (${partner.unavailable})`],
+            ]),
+          ]),
+      section(`📊 Storico anonimo · dal ${formatDate(history.startedAt)}`, [
+        ["Merchant", String(history.merchant.total)],
+        statusGroup("Paganti", [
+          [status.monthly, "mensile", "mensili"],
+          [status.annual, "annuale", "annuali"],
+          [status.one_time, "unico", "unici"],
+          [status.ending, "in scadenza", "in scadenza"],
+        ]),
+        statusGroup("In prova o omaggio", [
+          [status.trial, "trial", "trial"],
+          [status.complimentary, "omaggio", "omaggi"],
+        ]),
+        statusGroup("Senza piano", [
+          [status.trial_expired, "prova scaduta", "prove scadute"],
+          [status.trial_never, "prova mai avviata", "prove mai avviate"],
+          [status.expired, "piano scaduto", "piani scaduti"],
+          [status.refunded, "rimborsato", "rimborsati"],
+          [status.other, "da verificare", "da verificare"],
+        ]),
+        [
+          "Durata media",
+          history.merchant.averageDays === null
+            ? "—"
+            : countLabel(history.merchant.averageDays, "giorno", "giorni"),
+        ],
+        ["Con Validation attiva", String(history.merchant.validationEnabled)],
+        ["Con onboarding completato", String(history.merchant.onboardingCompleted)],
+        ["Review e interni", String(history.review)],
+      ]),
+    ],
+    keyboard([
+      [button("Aggiorna", { view: "uninstalls" })],
+      [button("‹ Billing", { view: "billing" }), button("‹ Dashboard", { view: "dashboard" })],
+    ]),
+    `Elenchi letti dal vivo da Shopify Partner, ultimi ${UNINSTALL_ROWS} per gruppo, non salvati · Review: nomi app-review, appstoretest, apdev, REDACTED, store interni e di sviluppo · Lo storico anonimo non contiene nomi né domini`,
+  );
+}
+
+const UNINSTALL_ROWS = 25;
+const FEEDBACK_LIMIT = 80;
+
+function uninstallRow(event: PartnerUninstallEvent): Row {
+  const feedback = [event.reason, event.description]
+    .filter((value): value is string => value !== null)
+    .join(": ");
+  return [
+    event.name ?? event.domain ?? "Store senza nome",
+    [
+      formatDate(event.occurredAt),
+      event.domain ?? "dominio non disponibile",
+      ...(feedback
+        ? [
+            feedback.length > FEEDBACK_LIMIT
+              ? `${feedback.slice(0, FEEDBACK_LIMIT - 1)}…`
+              : feedback,
+          ]
+        : []),
+    ].join(" · "),
+  ];
 }
 
 function saleReconciliationLabel(shop: ShopRow) {
@@ -766,6 +875,7 @@ export function helpMessage(): OwnerControlMessage {
         ["/shop nome_o_dominio", "Diagnostica store"],
         ["/growth", "Eventi Partner 7/28 gg"],
         ["/billing · /trials", "Stato commerciale"],
+        ["/uninstalls", "Disinstallazioni merchant e review"],
         ["/funnel · /performance", "Report operativi"],
         ["/issues · /errors", "Anomalie tecniche"],
         ["/notifications · /activity", "Pipeline e attività"],
