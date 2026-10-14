@@ -57,7 +57,10 @@ ogni build o deploy passa `--mode dev` o `--mode prod`. Wrangler si usa solo
 per i comandi elencati in
 [operations.md](docs/runbooks/operations.md#cli-cloudflare). Commit, push e PR
 arrivano con una richiesta esplicita o con `Pubblica`. Un bug si corregge nel punto
-condiviso, con il test minimo che falliva prima del fix.
+condiviso, con il test minimo che falliva prima del fix. Il ciclo di
+pubblicazione (`publish.mjs`, `ci-lane.mjs`, `version-policy.mjs`, workflow
+di CI e deploy) cambia solo per un errore riprodotto o su richiesta dell'owner,
+non per affinamenti (D-191).
 
 Per la UI embedded usa Polaris e App Bridge Web Components prima di markup o
 CSS custom. UI merchant e testi checkout sono bilingui con fallback inglese,
@@ -69,9 +72,10 @@ architetturali stabili in un ADR. Per incarichi delegati vedi
 
 `scripts/ci-lane.mjs` classifica rischio e superficie del diff. Durante lo
 sviluppo esegui test mirati; per la verifica finale usa `npm run verify:change`,
-che include modifiche locali e sceglie lo stesso gate del coordinatore. Non
-anteporre una seconda suite completa a `Pubblica`: il coordinatore esegue da sé
-la verifica del candidato pulito prima del push.
+che include modifiche locali ed esegue lo stesso gate del coordinatore: controlli
+statici, politica di versione e test legati al diff. Coverage, browser, build,
+dry-run e mutation li esegue la CI in parallelo; in locale servono solo per
+diagnosticare un errore, non prima di `Pubblica`.
 
 | Corsia | Quando | Gate locale |
 | --- | --- | --- |
@@ -80,15 +84,14 @@ la verifica del candidato pulito prima del push.
 | `full` | governance, workflow, auth, webhook, cifratura, migrazioni, manifest, lockfile | `npm run verify:change` |
 
 Metadati non distribuiti usano solo il gate documentale; script e governance
-operativa senza runtime usano controlli statici e coverage delle operazioni.
-Runtime, dipendenze, manifest, migrazioni e configurazioni condivise mantengono
+operativa senza runtime aggiungono i test delle operazioni. In CI runtime,
+dipendenze, manifest, migrazioni e configurazioni condivise mantengono
 coverage globale, build e regressione browser. Percorsi sconosciuti usano il
 gate completo. `npm run check` resta disponibile per una diagnosi completa.
 
 Coverage (`npm run coverage:check`) e mutation (`npm run mutation:critical`)
 valgono quando il diff tocca il loro perimetro; le soglie stanno in
-`scripts/coverage-report.mjs` e in CI entrambe bloccano il merge. Il
-coordinatore di `Pubblica` esegue da sé gate di superficie e coverage applicabile prima del push. Provider, database remoto, browser e deploy
+`scripts/coverage-report.mjs` e in CI entrambe bloccano il merge. Provider, database remoto, browser e deploy
 richiedono prove fresche: un exit code `0` non dimostra lo stato live.
 Dichiara i controlli non eseguiti.
 
@@ -109,9 +112,12 @@ Function API `2026-10` sulle fonti Shopify correnti e rigenera con la CLI.
   GitHub. In review verifica head e parent dalla PR GitHub, non da un commit
   sintetico locale. `develop` non si elimina mai; il riallineamento dopo la
   promozione è compito di `reconcile-develop.yml`.
-- La SemVer si prepara nella PR verso `develop` (minor per funzionalità, patch
-  per fix) con manifest, lockfile e changelog, e resta la stessa fino alla
-  promozione. Documentazione e governance agentica da sole non la cambiano.
+- Un lotto su `develop` porta una sola SemVer. La prepara, con manifest,
+  lockfile e changelog, la prima PR che cambia una superficie distribuita
+  (Worker, app Shopify, migrazioni o `site/`): minor per funzionalità, patch
+  per fix. Le PR successive la riusano o ne alzano il livello rispetto alla
+  versione su `main`. Tooling, test, workflow e documentazione non la cambiano.
+  `scripts/version-policy.mjs` lo verifica in CI e nel gate locale (D-191).
 - Prima di usare il connettore Shopify leggi l'identità dello store: in
   sviluppo scrivi soltanto su `cf-ready-dev.myshopify.com` o sullo store di
   preview autorizzato `cf-ready-polaris-2.myshopify.com`.
@@ -121,26 +127,32 @@ Function API `2026-10` sulle fonti Shopify correnti e rigenera con la CLI.
 ## `Pubblica`
 
 Una richiesta affermativa e inequivocabile di pubblicare la modifica corrente
-autorizza l'intero ciclo tecnico senza seconda conferma. Domande, ipotesi e
-negazioni non lo autorizzano. Il ciclo lo esegue il coordinatore, dal worktree
-pulito del branch:
+autorizza il ciclo tecnico verso Development senza seconda conferma;
+“Promuovi” autorizza allo stesso modo la promozione Production del lotto su
+`develop`. Domande, ipotesi e negazioni non li autorizzano. Il ciclo lo esegue
+il coordinatore:
 
 ```sh
-npm run publish:development   # PR → develop, squash, deploy Development (non per corsia docs)
-npm run publish:production    # + promozione, deploy, readback, release
+npm run publish:development   # Pubblica: PR → develop, squash, deploy Development se serve
+npm run promote:production    # Promuovi: lotto develop → main, deploy applicabili, release
+npm run publish:production    # Pubblica in Production: i due passi insieme
 ```
 
-`Pubblica` usa `publish:production` quando la modifica porta una nuova SemVer,
-perché ogni promozione crea la release `v<versione>`. Senza bump (solo
-documentazione o governance) o con “pubblica senza promuovere” usa
-`publish:development`. Dopo un errore si rilancia lo stesso comando; dettagli
-in [operations.md](docs/runbooks/operations.md#coordinatore-di-pubblicazione).
-Tag e GitHub Release esistono solo dopo deploy, smoke e readback verdi dello
-stesso commit. Chiudi riportando ambiente, commit, deployment ID, migrazioni e
+`Pubblica` porta la modifica su Development dal worktree pulito del branch,
+anche quando prepara una SemVer. `Promuovi` parte da qualsiasi checkout e
+promuove tutto ciò che è su `develop`, riusando la ricevuta Development se
+dopo l'ultimo deploy non è cambiata una superficie distribuita. “Pubblica in
+Production” serve a un fix urgente e promuove anche il lotto già presente.
+La promozione distribuisce solo ciò che cambia: senza Worker o app Shopify
+salta il deploy Production, senza `site/` salta Pages, senza nuova versione
+non crea release. Dopo un errore si rilancia lo stesso comando; dettagli in
+[operations.md](docs/runbooks/operations.md#coordinatore-di-pubblicazione).
+Tag e GitHub Release esistono solo dopo deploy, smoke e readback verdi delle
+superfici cambiate dello stesso commit. Chiudi riportando ambiente, commit, deployment ID, migrazioni e
 versione di rollback, e rimuovi soltanto branch e worktree temporanei del ciclo già assorbiti.
 
-`Pubblica` non autorizza mai: temi Shopify live, submission App Store, billing
+`Pubblica` e “Promuovi” non autorizzano mai: temi Shopify live, submission App Store, billing
 o nuove attivazioni produttive, TestFlight o App Store, invii Aruba, email o
 scansioni reali, aggiornamenti Notion. Ognuna richiede una richiesta separata.
-Fuori da una richiesta di pubblicazione, deploy Production e release
-richiedono un'autorizzazione esplicita.
+Fuori da “Promuovi” o da una pubblicazione in Production, deploy Production e
+release richiedono un'autorizzazione esplicita.
