@@ -1,11 +1,12 @@
 import { unauthenticated } from "../shopify.server";
+import { BFS_PLAN_STATE_PREFIX } from "./model";
 import { readOwnerControlState, writeOwnerControlState } from "./repository.server";
 import { readShopifyPlanDetails, type ShopifyAdminForShop } from "./shopify-plans.server";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const RETRY_MS = 60 * 60 * 1000;
 const REFRESH_LIMIT = 3;
-const PREFIX = "bfs_plan_v1:";
+const PREFIX = BFS_PLAN_STATE_PREFIX;
 type Classification = "eligible" | "development" | "excluded" | "unknown";
 type PlanObservation = { classification: Classification; installedAt: string };
 type Store = {
