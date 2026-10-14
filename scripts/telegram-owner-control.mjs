@@ -1,18 +1,10 @@
 import { pathToFileURL } from "node:url";
+import menuCommands from "../config/telegram-owner-menu.json" with { type: "json" };
 
 const WEBHOOK_PATH = "/internal/telegram/webhook";
 
-export const OWNER_CONTROL_MENU_COMMANDS = [
-  { command: "dashboard", description: "Riepilogo" },
-  { command: "performance", description: "Obiettivo BFS e prestazioni" },
-  { command: "shops", description: "Store" },
-  { command: "billing", description: "Ricavi e piani" },
-  { command: "uninstalls", description: "Disinstallazioni" },
-  { command: "growth", description: "Crescita" },
-  { command: "issues", description: "Problemi aperti" },
-  { command: "health", description: "Stato del sistema" },
-  { command: "activity", description: "Attività recente" },
-];
+// Fonte unica condivisa con il Worker, che riallinea il menu ogni ora (D-190).
+export const OWNER_CONTROL_MENU_COMMANDS = menuCommands;
 
 export function parseOptions(args) {
   const modes = args.filter((argument) => argument === "--check" || argument === "--apply");
