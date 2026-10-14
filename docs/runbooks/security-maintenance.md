@@ -70,7 +70,7 @@ identici e ricevuta Production. L'avvio manuale richiede sempre di scegliere la
 provenienza: `deploy-retry` cerca e verifica il deploy verde dello stesso commit
 anche quando serve un recupero di sola ascendenza; `no-deploy-promotion` non
 cerca ricevute e vale soltanto per una promozione `main` dichiarata senza deploy.
-`npm run publish:production` la avvia da sé quando trova una promozione di
+`npm run promote:production` e `npm run publish:production` la avviano da sé quando trovano una promozione di
 questo tipo non ancora collegata a `develop`.
 In quest'ultimo caso il workflow termina verde senza scrivere se il parent
 `develop` promosso è ancora l'HEAD; se `develop` è avanzato, il tree del merge

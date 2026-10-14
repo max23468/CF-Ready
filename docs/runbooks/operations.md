@@ -575,32 +575,34 @@ non introduce un nuovo gate automatico di pubblicazione. Fonte:
 
 ## Coordinatore di pubblicazione
 
-Una richiesta affermativa di pubblicazione può essere eseguita dal worktree
-pulito del branch della modifica con uno dei due comandi:
+Le richieste affermative di pubblicazione e promozione (`AGENTS.md`) si eseguono
+con tre comandi:
 
 ```sh
-npm run publish:development
-npm run publish:production
+npm run publish:development   # Pubblica, dal worktree pulito del branch
+npm run promote:production    # Promuovi, da qualsiasi checkout
+npm run publish:production    # Pubblica in Production, i due passi insieme
 ```
 
 Durante lo sviluppo eseguire test mirati; per la verifica finale locale usare
-`npm run verify:change`. Il comando include modifiche locali nel diff e applica
-gli stessi gate di superficie del coordinatore. I nuovi sorgenti non ancora
-tracciati entrano nel controllo come righe aggiunte, senza doverli mettere in stage.
-Non anteporre una seconda suite completa a una pubblicazione autorizzata.
+`npm run verify:change`. Il comando include modifiche locali e nuovi sorgenti
+non tracciati nel diff ed esegue lo stesso gate locale del coordinatore:
+`check:local` (documentazione, lint, formato, typecheck), la politica di
+versione, `test:changed` sui test Vitest collegati al diff per il runtime,
+`test:function` se cambia la Function e `test:operations` con
+`test:preflight` se cambiano script, workflow, sito o manifest. I soli metadati
+usano `check:docs`. Coverage, browser, build, dry-run e mutation restano alla
+CI, che li esegue in parallelo sul candidato: in locale servono solo a
+diagnosticare un errore.
 
-Il primo comando crea o riprende la PR verso `develop`. Il deploy Development
-parte solo se cambia una superficie distribuita nel Worker o nell'app Shopify;
-documentazione, metadati, tooling, test, benchmark e solo sito non lo avviano.
-Prima del push classifica il diff con `ci-lane.mjs` ed esegue autonomamente i
-gate applicabili: documentazione per metadati; controlli statici e
-`coverage:check-operations` per sole operazioni; `check:ci-standard` o
-`check:ci-full` e `coverage:check` per il runtime. Le raccolte coverage
-procedono in parallelo, con verifica di commit e tree prima dell'aggregazione.
-Le raccolte instrumentate `coverage:app` e `coverage:ui` hanno timeout per test
-di 30 e 45 secondi: istanbul e i runner simultanei rallentano i test, e su una
-macchina carica i limiti ordinari di 10 e 15 secondi facevano fallire la
-raccolta senza un difetto reale.
+`publish:development` crea o riprende la PR verso `develop`. Il deploy
+Development parte solo se cambia una superficie distribuita nel Worker o
+nell'app Shopify; documentazione, metadati, tooling, test, benchmark, sito e un
+`package.json` cambiato solo in versione o script di tooling non lo avviano.
+Le raccolte instrumentate `coverage:app`, `coverage:ui-chromium` e
+`coverage:ui-webkit` hanno timeout per test di 30 e 45 secondi: istanbul e i
+runner simultanei rallentano i test, e su una macchina carica i limiti ordinari
+di 10 e 15 secondi facevano fallire la raccolta senza un difetto reale.
 Prima di abilitare lo squash merge attende tutti i check
 obbligatori del ruleset `develop`, anche quelli non ancora registrati come
 `mutation`, e la fine di promozioni o deploy di un'altra pubblicazione,
@@ -609,18 +611,36 @@ i gate dell'HEAD PR quando il commit unito ne conserva il tree, senza attendere
 che la CI di push li ripeta; lo stesso riuso vale per promozione e merge
 Production (D-162). Dopo il merge elimina il branch remoto ma lascia checkout e
 branch locale, così un retry riparte dallo stesso comando e dallo stesso
-worktree; il branch locale si rimuove a ciclo chiuso. Il secondo, prima di
-aprire la promozione, controlla che `main` sia antenato del candidato: se `main`
-contiene una promozione senza deploy non ancora collegata, avvia
-`reconcile-develop` in modalità `no-deploy-promotion` e promuove il merge che
-unisce `main` al commit distribuito in Development, solo se ne conserva il tree.
-Il secondo completa
-lo stesso percorso, crea o riprende la promozione `develop` → `main`, impone il
-merge commit, attende deploy e readback di Worker e Shopify e confronta il tree
-`site/` con il primo parent del merge. Soltanto quando il sito è cambiato avvia
-anche Pages Production; poi verifica la riconciliazione di `develop` e crea la
-GitHub Release dopo che tutte le superfici applicabili hanno concluso sullo
-stesso commit.
+worktree; il branch locale si rimuove a ciclo chiuso.
+
+`promote:production` promuove il tip di `develop` (D-191). Riusa la ricevuta
+dell'ultimo deploy Development riuscito se dopo quel commit non è cambiata una
+superficie distribuita; altrimenti distribuisce il tip in Development prima di
+promuovere. `publish:production` esegue lo stesso passo dopo il proprio deploy
+Development, quindi promuove anche il lotto già presente su `develop`. Prima di
+aprire la promozione il coordinatore controlla che `main` sia antenato del
+candidato: se `main` contiene una promozione senza deploy non ancora collegata,
+avvia `reconcile-develop` in modalità `no-deploy-promotion` e promuove il merge
+che unisce `main` al commit distribuito in Development, solo se ne conserva il
+tree. Confronta poi il candidato con `main`: un tree identico non apre nessuna
+promozione; superfici distribuite senza nuova versione, o una nuova versione
+senza superfici distribuite, fermano il ciclo prima della PR. Crea o riprende la
+promozione `develop` → `main`, impone il merge commit e, rispetto al primo
+parent del merge, avvia soltanto ciò che è cambiato: deploy e readback di Worker
+e Shopify, Pages Production per `site/`. Dopo un deploy verifica la
+riconciliazione di `develop`; una promozione di solo tooling o documentazione
+non avvia deploy né release e lascia il collegamento a `no-deploy-promotion`
+della promozione successiva. Una nuova versione produce la GitHub Release dopo
+che tutte le superfici applicabili hanno concluso sullo stesso commit.
+
+La politica di versione (`scripts/version-policy.mjs`) gira nel job `verify`
+di ogni PR verso `develop` e nel gate locale. Confronta la versione promossa su
+`origin/main`, quella della base e quella della PR: il primo cambiamento
+distribuito del lotto richiede un bump di un solo passo, le PR successive
+riusano la versione del lotto o ne alzano il livello rispetto a `main`, e un
+bump senza superfici distribuite è rifiutato. Le PR Dependabot possono
+aggiornare dipendenze senza bump: la promozione si ferma finché una PR non
+prepara la versione.
 
 La CI del push può riusare l'ultimo run PR riuscito con tree identico e artifact
 completi non scaduti, trasferendo anche la base mutation incrementale. In ogni
@@ -644,12 +664,13 @@ proprio branch; il comando li avvia tramite l'identità GitHub dell'operatore.
 Eseguire questi comandi costituisce un'azione remota e richiede l'autorizzazione
 prevista da `AGENTS.md`.
 
-L'attesa cresce da cinque a trenta secondi, entro i timeout originali, e mostra
+L'attesa cresce da cinque a dieci secondi, entro i timeout originali, e mostra
 le transizioni di fase. Stato e durate vengono salvati anche nei tentativi
 falliti, senza registrare payload o errori provider non sanitizzati.
 A ciclo chiuso il coordinatore scarica e valida le
 ricevute Worker/Shopify e conserva durate, prove e risultato della pulizia in
-`cf-ready-publications/<source-sha>.json` nella directory Git comune. Elimina
+`cf-ready-publications/<source-sha>.json`, o `promotion-<develop-sha>.json` per
+`promote:production`, nella directory Git comune. Elimina
 solo il branch temporaneo `codex/` pulito, ancora sul candidato e con tree
 equivalente allo squash; elimina il relativo worktree solo se secondario e
 privo di file ignorati non generati. I worktree gestiti da Codex restano alla

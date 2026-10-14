@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+import { isDeepStrictEqual } from "node:util";
 
 const operationalDocs = new Set([
   "AGENTS.md",
@@ -87,6 +88,34 @@ export function requiresDevelopmentDeploy(files) {
         !path.startsWith("site/"),
     )
   );
+}
+
+// Script che cambiano artifact o installazione: un loro ritocco resta distribuito.
+const distributedScripts = /^(?:pre|post)?(?:build|install|prepare)(?::|$)/;
+
+export function packageManifestDistributed(before, after) {
+  const distributed = ({ version: _version, scripts = {}, ...manifest }) => ({
+    manifest,
+    scripts: Object.fromEntries(
+      Object.entries(scripts).filter(([name]) => distributedScripts.test(name)),
+    ),
+  });
+  return !isDeepStrictEqual(distributed(before), distributed(after));
+}
+
+// Un diff illeggibile resta distribuito; `package.json` conta solo oltre versione e
+// script di tooling.
+export function releaseSurface(files, manifests) {
+  if (files.length === 0) return { deploy: true, release: true };
+  const distributed = files.filter(
+    (path) =>
+      path !== "package.json" ||
+      !manifests?.before ||
+      !manifests.after ||
+      packageManifestDistributed(manifests.before, manifests.after),
+  );
+  const deploy = distributed.length > 0 && requiresDevelopmentDeploy(distributed);
+  return { deploy, release: deploy || distributed.some((path) => path.startsWith("site/")) };
 }
 
 export function selectMutationDomains(files) {
