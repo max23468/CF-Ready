@@ -6,6 +6,13 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.4.1 — 14 ottobre 2026
+
+- il menu comandi del bot owner si riallinea da solo ogni ora all'elenco del
+  codice, senza eseguire a mano lo script Telegram dopo un deploy (D-190).
+
+The owner bot command menu now realigns itself hourly with the code.
+
 ## 2.4.0 — 14 ottobre 2026
 
 - le disinstallazioni separano merchant e store di review Shopify o interni, con

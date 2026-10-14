@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   pollBFSProgress: vi.fn(),
   pollBFSPerformance: vi.fn(),
   deliverOwnerNotifications: vi.fn(),
+  syncOwnerControlMenu: vi.fn(),
   recordEvent: vi.fn(),
   handleOwnerControlWebhook: vi.fn(),
   handleWebhookRequest: vi.fn(),
@@ -51,6 +52,9 @@ vi.mock("../app/owner-control/bfs-notifications.server", () => ({
   pollBFSProgress: mocks.pollBFSProgress,
   pollBFSPerformance: mocks.pollBFSPerformance,
 }));
+vi.mock("../app/owner-control/menu.server", () => ({
+  syncOwnerControlMenu: mocks.syncOwnerControlMenu,
+}));
 vi.mock("../app/owner-control/handler.server", () => ({
   handleOwnerControlWebhook: mocks.handleOwnerControlWebhook,
 }));
@@ -77,6 +81,7 @@ beforeEach(() => {
   mocks.pollBFSProgress.mockResolvedValue(undefined);
   mocks.pollBFSPerformance.mockResolvedValue(undefined);
   mocks.deliverOwnerNotifications.mockResolvedValue(undefined);
+  mocks.syncOwnerControlMenu.mockResolvedValue("aligned");
   mocks.recordEvent.mockResolvedValue(undefined);
   mocks.handleOwnerControlWebhook.mockResolvedValue(new Response("control", { status: 202 }));
   mocks.handleWebhookRequest.mockResolvedValue(new Response(null, { status: 200 }));
@@ -304,7 +309,8 @@ describe("entrypoint Worker", () => {
   });
 
   test.each([
-    [5, []],
+    [5, ["menu"]],
+    [10, []],
     [20, ["financials"]],
     [35, ["plans", "progress"]],
     [50, ["performance"]],
@@ -312,7 +318,13 @@ describe("entrypoint Worker", () => {
     const pending: Promise<unknown>[] = [];
     worker.scheduled(
       { cron: "*/5 * * * *", scheduledTime: Date.UTC(2026, 9, 11, 10, minute) } as never,
-      { DB: env.DB, OWNER_NOTIFICATIONS_ENABLED: "true" } as never,
+      {
+        DB: env.DB,
+        OWNER_NOTIFICATIONS_ENABLED: "true",
+        OWNER_TELEGRAM_CONTROL_ENABLED: "true",
+        TELEGRAM_BOT_TOKEN: "bot",
+        TELEGRAM_CHAT_ID: "chat",
+      } as never,
       { waitUntil: (promise: Promise<unknown>) => pending.push(promise) } as never,
     );
     await Promise.all(pending);
@@ -322,12 +334,51 @@ describe("entrypoint Worker", () => {
       plans: mocks.refreshBFSPlans,
       progress: mocks.pollBFSProgress,
       performance: mocks.pollBFSPerformance,
+      menu: mocks.syncOwnerControlMenu,
     })
       .filter(([, mock]) => mock.mock.calls.length > 0)
       .map(([name]) => name);
     expect(ran).toEqual(expected);
     expect(mocks.pollPartnerEvents).toHaveBeenCalledOnce();
     expect(mocks.reconcileOwnerIncidents).toHaveBeenCalledOnce();
+  });
+
+  test("il menu Telegram resta spento senza Control Center e fail-open senza configurazione", async () => {
+    const run = async (extra: Record<string, string>) => {
+      const pending: Promise<unknown>[] = [];
+      worker.scheduled(
+        { cron: "*/5 * * * *", scheduledTime: Date.UTC(2026, 9, 11, 10, 5) } as never,
+        { DB: env.DB, OWNER_NOTIFICATIONS_ENABLED: "true", ...extra } as never,
+        { waitUntil: (promise: Promise<unknown>) => pending.push(promise) } as never,
+      );
+      await Promise.all(pending);
+    };
+    await run({ TELEGRAM_BOT_TOKEN: "bot", TELEGRAM_CHAT_ID: "chat" });
+    expect(mocks.syncOwnerControlMenu).not.toHaveBeenCalled();
+
+    await run({ OWNER_TELEGRAM_CONTROL_ENABLED: "true" });
+    expect(mocks.syncOwnerControlMenu).not.toHaveBeenCalled();
+    expect(mocks.recordEvent.mock.calls[0][1].metadata).toEqual({
+      error_code: "owner_control_configuration_incomplete",
+      reason: "telegram_menu",
+    });
+
+    mocks.recordEvent.mockClear();
+    mocks.syncOwnerControlMenu.mockRejectedValueOnce(new Error("telegram_api_failed"));
+    await run({
+      OWNER_TELEGRAM_CONTROL_ENABLED: "true",
+      TELEGRAM_BOT_TOKEN: "bot",
+      TELEGRAM_CHAT_ID: "chat",
+    });
+    expect(mocks.syncOwnerControlMenu.mock.calls.at(-1)?.[0]).toEqual({
+      botToken: "bot",
+      chatId: "chat",
+    });
+    expect(mocks.recordEvent.mock.calls[0][1].metadata).toEqual({
+      error_code: "telegram_api_failed",
+      reason: "telegram_menu",
+    });
+    expect(mocks.deliverOwnerNotifications).toHaveBeenCalled();
   });
 
   test("il controllo progresso BFS riusa il report appena aggiornato", async () => {

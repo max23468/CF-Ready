@@ -9,6 +9,8 @@ export type TelegramInlineKeyboard = {
   inline_keyboard: Array<Array<{ text: string; callback_data: string }>>;
 };
 
+export type TelegramBotCommand = { command: string; description: string };
+
 export type TelegramClientConfig = {
   botToken: string;
   chatId: string;
@@ -92,6 +94,25 @@ export function createTelegramClient(config: TelegramClientConfig, fetcher: type
         ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
       });
       return response.notModified ? "not_modified" : "edited";
+    },
+
+    // Il menu owner vale soltanto nella chat privata configurata.
+    async getMyCommands(): Promise<TelegramBotCommand[]> {
+      const response = await call("getMyCommands", {
+        scope: { type: "chat", chat_id: config.chatId },
+      });
+      if (!Array.isArray(response.result)) throw new Error("telegram_invalid_response");
+      return response.result.map((item: { command?: unknown; description?: unknown }) => ({
+        command: String(item.command),
+        description: String(item.description),
+      }));
+    },
+
+    async setMyCommands(commands: readonly TelegramBotCommand[]) {
+      await call("setMyCommands", {
+        commands,
+        scope: { type: "chat", chat_id: config.chatId },
+      });
     },
 
     async answerCallbackQuery(callbackQueryId: string) {
