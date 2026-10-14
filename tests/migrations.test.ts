@@ -578,6 +578,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "0026_billing_observability.sql",
     "0027_shop_timezone.sql",
     "0028_owner_metric_counters.sql",
+    "0029_uninstall_history.sql",
   ]);
   await applyThrough(db, migrations, "0022_configuration_history.sql");
   await insertShop(db);
@@ -597,6 +598,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
   await applyD1Migrations(db, [migrationAfter(migrations, "0025_webhook_monitor_indexes.sql")]);
   await applyD1Migrations(db, [migrationAfter(migrations, "0026_billing_observability.sql")]);
   await applyD1Migrations(db, [migrationAfter(migrations, "0027_shop_timezone.sql")]);
+  await applyD1Migrations(db, [migrationAfter(migrations, "0028_owner_metric_counters.sql")]);
 
   expect(await db.prepare("SELECT * FROM owner_notifications WHERE id = 23").first()).toMatchObject(
     {
@@ -653,6 +655,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "trial_ledger",
     "trials",
     "uninstall_feedback",
+    "uninstall_history",
     "validation_operation_locks",
     "webhook_events",
   ]);
@@ -684,6 +687,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "performance_samples_version_route_metric_idx",
     "shopify_sessions_shop_id_idx",
     "shops_uninstalled_at_idx",
+    "uninstall_history_uninstalled_on_idx",
     "webhook_events_received_at_idx",
     "webhook_events_recovery_idx",
     "webhook_events_status_received_at_idx",

@@ -10,7 +10,38 @@ export const FINANCIAL_OBSERVATION_DAYS = 37;
 export const BILLING_READBACK_STALE_HOURS = 48;
 
 export const SHOPS_PAGE_SIZE = 8;
+export const BFS_PLAN_STATE_PREFIX = "bfs_plan_v1:";
 export const BFS_TARGET = 50;
+
+export const BILLING_STATUS_CATEGORIES = [
+  "monthly",
+  "annual",
+  "one_time",
+  "ending",
+  "complimentary",
+  "trial",
+  "expired",
+  "refunded",
+  "trial_expired",
+  "trial_never",
+  "other",
+] as const;
+
+export type BillingStatusCategory = (typeof BILLING_STATUS_CATEGORIES)[number];
+
+// Ogni store attivo cade in una sola categoria, così le righe sommano sempre al totale.
+export const BILLING_STATUS_CATEGORY_SQL = `CASE
+  WHEN b.is_test = 0 AND b.entitlement_status = 'active'
+       AND b.plan_kind IN ('monthly', 'annual', 'one_time') THEN b.plan_kind
+  WHEN b.is_test = 0 AND b.entitlement_status = 'ending' THEN 'ending'
+  WHEN c.status = 'active' THEN 'complimentary'
+  WHEN t.status = 'active' AND t.ends_at >= date('now') THEN 'trial'
+  WHEN b.is_test = 0 AND b.entitlement_status = 'expired' THEN 'expired'
+  WHEN b.is_test = 0 AND b.entitlement_status = 'refunded' THEN 'refunded'
+  WHEN t.status IN ('active', 'expired') THEN 'trial_expired'
+  WHEN t.status IS NULL OR t.status = 'not_started' THEN 'trial_never'
+  ELSE 'other'
+END`;
 
 export const OWNER_CONTROL_COMMANDS = [
   "dashboard",
@@ -18,6 +49,7 @@ export const OWNER_CONTROL_COMMANDS = [
   "shop",
   "growth",
   "billing",
+  "uninstalls",
   "trials",
   "funnel",
   "issues",
@@ -75,6 +107,7 @@ const VIEW_CODES: Record<OwnerControlView, string> = {
   shop: "o",
   growth: "g",
   billing: "b",
+  uninstalls: "u",
   trials: "t",
   funnel: "f",
   issues: "i",

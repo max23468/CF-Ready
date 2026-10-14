@@ -10,10 +10,11 @@ import { unauthenticated } from "../app/shopify.server";
 
 import { fetchRevenueReport, readRevenueReport } from "../app/owner-control/revenue.server";
 import {
-  fetchPartnerUninstalls,
+  fetchPartnerUninstallEvents,
   PARTNER_HISTORY_START,
   readUninstallReport,
 } from "../app/owner-control/uninstalls.server";
+import { reviewStoreSql, storeKind } from "../app/owner-control/review-stores";
 
 import {
   NOW,
@@ -510,8 +511,22 @@ describe("Ricavi Partner", () => {
   });
 });
 
-function uninstallEdge(cursor: string, occurredAt: string, shopId: string) {
-  return { cursor, node: { type: "RELATIONSHIP_UNINSTALLED", occurredAt, shop: { id: shopId } } };
+function uninstallEdge(
+  cursor: string,
+  occurredAt: string,
+  shopId: string,
+  shop: { name?: string; myshopifyDomain?: string } = {},
+  feedback: { reason?: string; description?: string } = {},
+) {
+  return {
+    cursor,
+    node: {
+      type: "RELATIONSHIP_UNINSTALLED",
+      occurredAt,
+      shop: { id: shopId, ...shop },
+      ...feedback,
+    },
+  };
 }
 
 describe("Growth Partner", () => {
@@ -609,13 +624,27 @@ describe("Disinstallazioni Partner", () => {
   const page = (edges: unknown[], hasNextPage: boolean) =>
     Response.json({ data: { app: { events: { edges, pageInfo: { hasNextPage } } } } });
 
-  test("conta eventi e store dal lancio, separa 28 giorni e riusa la cache", async () => {
+  test("separa merchant e review dal lancio, conta 28 giorni e riusa la cache", async () => {
     const responses = [
-      page([uninstallEdge("u1", "2026-08-01T12:00:00.000Z", "gid://shopify/Shop/1")], true),
+      page(
+        [
+          uninstallEdge("u1", "2026-08-01T12:00:00.000Z", "gid://shopify/Shop/1", {
+            name: "Atelier",
+          }),
+          uninstallEdge("r1", "2026-09-02T12:00:00.000Z", "gid://shopify/Shop/9", {
+            name: "app-review-c0d01c8a-r84307-a0-victim",
+          }),
+        ],
+        true,
+      ),
       page(
         [
           uninstallEdge("u2", "2026-09-01T12:00:00.000Z", "gid://shopify/Shop/2"),
           uninstallEdge("u3", "2026-09-07T12:00:00.000Z", "gid://shopify/Shop/1"),
+          uninstallEdge("r2", "2026-09-06T12:00:00.000Z", "gid://shopify/Shop/8", {
+            name: "CF Ready Dev",
+            myshopifyDomain: "cf-ready-dev.myshopify.com",
+          }),
         ],
         false,
       ),
@@ -625,26 +654,28 @@ describe("Disinstallazioni Partner", () => {
       now: NOW,
       fetcher: fetcher as unknown as typeof fetch,
     });
-    expect(report.partner).toMatchObject({ total: 3, stores: 2, days28: 2 });
-    expect(report.local).toMatchObject({ total: expect.any(Number) });
+    expect(report.partner).toMatchObject({
+      merchant: { total: 3, stores: 2, days28: 2 },
+      review: 2,
+    });
+    expect(report.local).toMatchObject({ total: expect.any(Number), review: expect.any(Number) });
     expect(fetcher).toHaveBeenCalledTimes(2);
     const variables = JSON.parse(
-      String(
-        (fetcher.mock.calls[0] as unknown[])[1] &&
-          (fetcher.mock.calls[0] as unknown as [unknown, RequestInit])[1].body,
-      ),
+      String((fetcher.mock.calls[0] as unknown as [unknown, RequestInit])[1].body),
     ).variables;
     expect(variables.occurredAtMin).toBe(PARTNER_HISTORY_START);
-    expect(
-      JSON.stringify(await env.DB.prepare("SELECT state_value FROM owner_control_state").all()),
-    ).not.toContain("gid://");
+    const cache = JSON.stringify(
+      await env.DB.prepare("SELECT state_value FROM owner_control_state").all(),
+    );
+    expect(cache).not.toContain("gid://");
+    expect(cache).not.toContain("Atelier");
 
     const cached = await readUninstallReport(env.DB, PARTNER, {
       now: new Date(NOW.getTime() + 60_000),
       force: true,
       fetcher: vi.fn(() => Promise.reject(new Error("non chiamare"))),
     });
-    expect(cached.partner).toMatchObject({ total: 3 });
+    expect(cached.partner).toMatchObject({ review: 2 });
   });
 
   test("degrada a contatore locale e rifiuta payload, eventi e cursori invalidi", async () => {
@@ -655,7 +686,7 @@ describe("Disinstallazioni Partner", () => {
     expect(failed.partner).toEqual({ unavailable: "partner_api_invalid_payload" });
 
     const fetchWith = (response: () => Response) =>
-      fetchPartnerUninstalls(
+      fetchPartnerUninstallEvents(
         PARTNER,
         NOW,
         vi.fn(async () => response()) as unknown as typeof fetch,
@@ -691,11 +722,33 @@ describe("Disinstallazioni Partner", () => {
         );
       }),
     ).rejects.toThrow("partner_api_page_limit");
-    await expect(fetchWith(() => page([], false))).resolves.toMatchObject({
-      total: 0,
-      stores: 0,
-      days28: 0,
-    });
+    await expect(fetchWith(() => page([], false))).resolves.toEqual([]);
+    await expect(
+      fetchWith(() =>
+        page(
+          [
+            uninstallEdge(
+              "u1",
+              "2026-09-01T00:00:00.000Z",
+              "gid://shopify/Shop/1",
+              { name: "  ", myshopifyDomain: "atelier.myshopify.com" },
+              { reason: "Altro", description: "  " },
+            ),
+          ],
+          false,
+        ),
+      ),
+    ).resolves.toEqual([
+      {
+        occurredAt: "2026-09-01T00:00:00.000Z",
+        shopId: "gid://shopify/Shop/1",
+        name: null,
+        domain: "atelier.myshopify.com",
+        reason: "Altro",
+        description: null,
+        kind: "merchant",
+      },
+    ]);
   });
 
   test("usa i default runtime", async () => {
@@ -705,11 +758,106 @@ describe("Disinstallazioni Partner", () => {
     );
     try {
       await expect(readUninstallReport(env.DB, PARTNER)).resolves.toMatchObject({
-        partner: { total: 0 },
+        partner: { merchant: { total: 0 }, review: 0 },
       });
-      await expect(fetchPartnerUninstalls(PARTNER)).resolves.toMatchObject({ total: 0 });
+      await expect(fetchPartnerUninstallEvents(PARTNER)).resolves.toEqual([]);
     } finally {
       vi.unstubAllGlobals();
+    }
+  });
+
+  test("la vista elenca dal vivo merchant e review con lo storico anonimo", async () => {
+    await env.DB.prepare(
+      `INSERT INTO uninstall_history (
+         uninstalled_on, installed_days, store_kind, billing_category,
+         validation_enabled, onboarding_completed
+       ) VALUES ('2026-09-01', 4, 'merchant', 'monthly', 1, 1),
+                ('2026-09-02', 10, 'merchant', 'trial_expired', 0, 1),
+                ('2026-09-03', 0, 'review', 'trial_never', 0, 0)`,
+    ).run();
+    const fetcher = vi.fn(async () =>
+      page(
+        [
+          uninstallEdge(
+            "u1",
+            "2026-09-07T12:00:00.000Z",
+            "gid://shopify/Shop/1",
+            { name: "Atelier", myshopifyDomain: "atelier.myshopify.com" },
+            { reason: "Non sto usando l'app al momento", description: "x".repeat(120) },
+          ),
+          uninstallEdge("r1", "2026-09-03T12:00:00.000Z", "gid://shopify/Shop/9", {
+            name: "REDACTED",
+          }),
+        ],
+        false,
+      ),
+    ) as unknown as typeof fetch;
+    const message = await renderOwnerControlAction(
+      env.DB,
+      { view: "uninstalls" },
+      controlConfig(),
+      { now: NOW, fetcher },
+    );
+    const text = JSON.stringify(message);
+    expect(text).toContain("🏪 Merchant · 1");
+    expect(text).toContain("atelier.myshopify.com · Non sto usando l'app al momento: xxx");
+    expect(text).toContain("…");
+    expect(text).toContain("🧪 Review e interni · 1");
+    expect(text).toContain("dominio non disponibile");
+    expect(text).toContain('"Merchant"},"is_header":true},{"text":"2"');
+    expect(text).toContain("1 · 1 mensile");
+    expect(text).toContain("7 giorni");
+    expect(text).toContain('"Review e interni"},"is_header":true},{"text":"1"');
+    expect(
+      await env.DB.prepare(
+        "SELECT COUNT(*) AS n FROM owner_control_state WHERE state_value LIKE '%Atelier%'",
+      ).first("n"),
+    ).toBe(0);
+
+    await env.DB.prepare("DELETE FROM uninstall_history").run();
+    const offline = JSON.stringify(
+      await renderOwnerControlAction(env.DB, { view: "uninstalls" }, controlConfig(), {
+        now: NOW,
+        fetcher: vi.fn(async () => Response.json({ data: { app: {} } })) as unknown as typeof fetch,
+      }),
+    );
+    expect(offline).toContain("Partner API non disponibile (partner_api_invalid_payload)");
+    expect(offline).toContain('"Durata media"},"is_header":true},{"text":"—"');
+    const empty = JSON.stringify(
+      await renderOwnerControlAction(env.DB, { view: "uninstalls" }, controlConfig(), {
+        now: NOW,
+        fetcher: vi.fn(async () => page([], false)) as unknown as typeof fetch,
+      }),
+    );
+    expect(empty).toContain("Nessuna disinstallazione");
+  });
+});
+
+describe("Store di review", () => {
+  test("JS e SQL applicano lo stesso criterio dedotto dalle review osservate", async () => {
+    const cases: Array<[string | null, string | null, number, "merchant" | "review"]> = [
+      ["app-review-c0d01c8a-r130169-a0-primary", null, 0, "review"],
+      ["APP-REVIEW-c0d01c8a-r84307-a0-victim", null, 0, "review"],
+      ["REDACTED", null, 0, "review"],
+      ["appstoretest9", "uvszh1-m5.myshopify.com", 0, "review"],
+      ["apdevplusstaging1", "apdevplusstaging1.myshopify.com", 0, "review"],
+      ["Alpha", "asa5ve-kz.myshopify.com", 0, "review"],
+      ["CF Ready Dev", "cf-ready-dev.myshopify.com", 0, "review"],
+      [null, "app-review-x.myshopify.com", 0, "review"],
+      ["Negozio qualsiasi", "negozio.myshopify.com", 1, "review"],
+      ["Mirtilla Bio", "mirtilla-bio.myshopify.com", 0, "merchant"],
+      ["Happy Reviews", "happy-reviews.myshopify.com", 0, "merchant"],
+      ["Redacted Studio", null, 0, "merchant"],
+      [null, null, 0, "merchant"],
+    ];
+    for (const [name, domain, development, kind] of cases) {
+      expect(storeKind({ name, domain, development: development === 1 })).toBe(kind);
+      const row = await env.DB.prepare(
+        `SELECT CASE WHEN ${reviewStoreSql("?1", "?2", "?3")} THEN 'review' ELSE 'merchant' END AS kind`,
+      )
+        .bind(name, domain, development)
+        .first<{ kind: string }>();
+      expect(row?.kind, `${name} ${domain}`).toBe(kind);
     }
   });
 });

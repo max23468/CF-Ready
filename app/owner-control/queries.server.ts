@@ -9,7 +9,16 @@ import {
   parsePerformanceRows,
   performanceCutoff,
 } from "../reporting/performance";
-import { PARTNER_STALE_MINUTES, SHOPS_PAGE_SIZE, type ShopsFilter } from "./model";
+import {
+  BILLING_STATUS_CATEGORIES,
+  BILLING_STATUS_CATEGORY_SQL,
+  PARTNER_STALE_MINUTES,
+  SHOPS_PAGE_SIZE,
+  type BillingStatusCategory,
+  type ShopsFilter,
+} from "./model";
+
+export type { BillingStatusCategory } from "./model";
 
 export const UNRESOLVED_WEBHOOK_FILTER = `
   w.status = 'failed' AND NOT (
@@ -207,36 +216,6 @@ export async function findShops(db: D1Database, input: string) {
     .all<ShopRow>();
   return results;
 }
-
-export const BILLING_STATUS_CATEGORIES = [
-  "monthly",
-  "annual",
-  "one_time",
-  "ending",
-  "complimentary",
-  "trial",
-  "expired",
-  "refunded",
-  "trial_expired",
-  "trial_never",
-  "other",
-] as const;
-
-export type BillingStatusCategory = (typeof BILLING_STATUS_CATEGORIES)[number];
-
-// Ogni store attivo cade in una sola categoria, così le righe sommano sempre al totale.
-const BILLING_STATUS_CATEGORY_SQL = `CASE
-  WHEN b.is_test = 0 AND b.entitlement_status = 'active'
-       AND b.plan_kind IN ('monthly', 'annual', 'one_time') THEN b.plan_kind
-  WHEN b.is_test = 0 AND b.entitlement_status = 'ending' THEN 'ending'
-  WHEN c.status = 'active' THEN 'complimentary'
-  WHEN t.status = 'active' AND t.ends_at >= date('now') THEN 'trial'
-  WHEN b.is_test = 0 AND b.entitlement_status = 'expired' THEN 'expired'
-  WHEN b.is_test = 0 AND b.entitlement_status = 'refunded' THEN 'refunded'
-  WHEN t.status IN ('active', 'expired') THEN 'trial_expired'
-  WHEN t.status IS NULL OR t.status = 'not_started' THEN 'trial_never'
-  ELSE 'other'
-END`;
 
 export async function readBilling(db: D1Database) {
   const [{ results }, categories, reconciliation, conversions] = await Promise.all([

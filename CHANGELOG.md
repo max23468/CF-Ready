@@ -6,6 +6,19 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.4.0 — 14 ottobre 2026
+
+- le disinstallazioni separano merchant e store di review Shopify o interni, con
+  un criterio dedotto dalle review osservate: nomi `app-review-*`,
+  `appstoretest*`, `apdev*`, `REDACTED`, store interni noti e store di sviluppo.
+- la nuova vista Telegram `/uninstalls` elenca dal vivo, senza salvarli, nome,
+  dominio, data e motivo delle disinstallazioni Partner, e riassume lo storico
+  anonimo locale: stato commerciale, durata, Validation e onboarding (D-189).
+
+Uninstalls now separate merchants from Shopify review and internal stores. A
+new Telegram view lists Partner uninstalls live and summarizes an anonymous
+local history.
+
 ## 2.3.0 — 14 ottobre 2026
 
 - la vista billing del Control Center Telegram raggruppa gli store in paganti,
