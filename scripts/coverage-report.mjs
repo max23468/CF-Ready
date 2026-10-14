@@ -6,6 +6,7 @@ import { buildSync } from "esbuild";
 import coverageLibrary from "istanbul-lib-coverage";
 import reportLibrary from "istanbul-lib-report";
 import reports from "istanbul-reports";
+import { coverageParts } from "./coverage-collect.mjs";
 import {
   isFunctionSource,
   normalizeCoveragePath,
@@ -318,11 +319,13 @@ export function runCoverageReport({
 } = {}) {
   const policy = readJson(resolve(repositoryRoot, "config/coverage-policy.json"));
   const operationsOnly = args.includes("--operations-only");
-  const reportFiles = (
-    operationsOnly ? ["operations"] : ["app", "ui", "function", "operations"]
-  ).map((name) => resolve(repositoryRoot, `.coverage/${name}/coverage-final.json`));
-  const globalMap = mergeCoverageFiles(reportFiles);
-  const functionMap = operationsOnly ? createCoverageMap({}) : mergeCoverageFiles([reportFiles[2]]);
+  const report = (name) => resolve(repositoryRoot, `.coverage/${name}/coverage-final.json`);
+  const globalMap = mergeCoverageFiles(
+    coverageParts(operationsOnly ? "operations" : "full").map(report),
+  );
+  const functionMap = operationsOnly
+    ? createCoverageMap({})
+    : mergeCoverageFiles([report("function")]);
   const sources = trackedCoverageSources(repositoryRoot, policy, execute).filter(
     (file) =>
       !operationsOnly ||

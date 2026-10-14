@@ -424,6 +424,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-188 | Nella vista billing del Control Center Telegram gli store installati si raggruppano in paganti, in prova o omaggio e senza piano; MRR e ARR mostrano il netto sulla stessa riga e dichiarano i piani esclusi; le anomalie di riconciliazione hanno un segnale ⚠️. Il totale delle disinstallazioni è il maggiore fra gli eventi Partner `RELATIONSHIP_UNINSTALLED` dal 28 luglio 2026, con store distinti e ultimi 28 giorni, e il contatore aggregato D1 `owner_metric_counters`, incrementato una volta per installazione senza riferimento allo store; senza Partner vale il contatore con la sua data di inizio. Ogni vista offre «📋 Copia», che rilegge la stessa vista senza refresh né scritture e invia un nuovo messaggio di testo semplice in un blocco preformattato, troncato a 4096 caratteri. | Le tabelle Rich Message di D-134 non entrano nella copia del client Telegram e il pulsante `copy_text` accetta al massimo 256 caratteri. `shop/redact` cancella le righe degli store disinstallati, quindi D1 da solo non dà uno storico; la Partner API può mancare o arrivare in ritardo, e il contatore ne copre l'assenza. Contenuti e privacy restano quelli di D-134. Deciso dall'owner il 13 ottobre 2026. |
 | D-189 | Le disinstallazioni si dividono in merchant e review; review comprende gli store dei revisori Shopify e gli store interni dell'owner. Il criterio, dedotto dalle 23 disinstallazioni Partner osservate al 14 ottobre 2026 e confermato dall'owner, classifica review uno store con nome o dominio che inizia per `app-review-`, `appstoretest` o `apdev`, con nome `REDACTED`, con dominio nell'elenco interno (`cf-ready-dev`, `cf-ready-polaris-2`, `numisleo`, `asa5ve-kz`, `bvkxxq-cv`, `dnu1dk-yp`) o classificato store di sviluppo dalla lettura BFS; tutto il resto è merchant. Billing mostra le due serie, ciascuna come il maggiore fra Partner e contatore locale. `/uninstalls` elenca dal vivo dalla Partner API nome, dominio, data e motivo, senza cache né copia in D1. `uninstall_history` conserva senza scadenza una riga anonima per disinstallazione: giorno, giorni di installazione, tipo di store, categoria billing, Validation attiva e onboarding completato; nessun nome, dominio, identificatore o motivo. | `shop/redact` cancella nome e dominio, quindi lo storico utile alle tendenze deve essere anonimo; il motivo Partner arriva dopo la disinstallazione e collegarlo richiederebbe un identificatore. La Partner API resta la fonte di nomi e motivi. Le review Shopify e i test interni gonfiavano il dato: su 23 disinstallazioni soltanto 7 erano merchant. Un nuovo pattern di review si aggiunge al criterio condiviso fra JS e SQL. Deciso dall'owner il 14 ottobre 2026. |
 | D-190 | Il menu comandi del bot owner ha una sola fonte, `config/telegram-owner-menu.json`, letta dallo script operativo e dal Worker. Con `OWNER_TELEGRAM_CONTROL_ENABLED` attivo, il ciclo owner legge ogni ora al minuto :05 `getMyCommands` con scope chat owner e chiama `setMyCommands` soltanto se l'elenco diverge; un errore è fail-open e si registra come fase `telegram_menu`. Il webhook resta allo script `--apply`. | Il token del bot esiste solo come secret del Worker, quindi nessuno poteva eseguire `--apply` dopo l'aggiunta di `/uninstalls` e il menu restava indietro rispetto al codice. Il minuto :05 è libero da retention e fasi orarie di D-182. Deciso dall'owner il 14 ottobre 2026. |
+| D-191 | “Pubblica” porta su Development; “Promuovi” (`promote:production`) promuove a lotti il tip di `develop`, riusando la ricevuta Development se dopo l'ultimo deploy non cambia una superficie distribuita; “Pubblica in Production” (`publish:production`) resta per un fix urgente e promuove anche il lotto presente. Un lotto porta una sola SemVer, preparata dalla prima PR che cambia Worker, app Shopify, migrazioni o `site/` (sito incluso, patch) e verificata da `version-policy.mjs` in CI e nel gate locale; tooling, test, workflow, documentazione e `package.json` cambiato solo in versione o script di tooling non la cambiano. La promozione avvia solo i deploy delle superfici cambiate e la release solo per una nuova versione. Il gate locale si limita a controlli statici, politica di versione e test legati al diff; la coverage browser gira in due job per motore e l'attesa del coordinatore arriva al massimo a dieci secondi. Il ciclo di pubblicazione cambia solo per un errore riprodotto o su richiesta dell'owner. | L'owner il 14 ottobre 2026 ha scelto promozione su richiesta, gate locale con statici e test mirati e bump patch per il sito, chiedendo di implementare tutte le otto proposte dell'analisi. Dal 29 settembre al 13 ottobre 2026 ci sono state 34 promozioni, 7 il 13 ottobre; le versioni 2.2.9 e 2.2.12 sono state alzate senza essere mai promosse; 13 PR su 86 hanno riguardato pipeline e governance. Le ricevute del coordinatore misurano circa 13 minuti per un ciclo Production e 9 per Development, con la verifica locale da 1,6 a 4,5 minuti che ripeteva la CI; nella CI PR `coverage-collect (ui)` durava 3m10s, di cui 140 s di test. Dettagli in §19.5, §23.1.1 e ADR 0006; nessuna soglia cambia e l'implementazione non autorizza una pubblicazione. |
 
 Decisioni del 10 ottobre 2026, approvate dall'owner con «Implementa 2, 7, 8»:
 
@@ -3248,8 +3249,9 @@ Lo store standard dell’attività:
 - nessuna cancellazione automatica di estensioni Shopify.
 
 Una richiesta affermativa e inequivocabile di “Pubblica” richiede commit, push,
-PR, gate, merge e, quando applicabili, release SemVer, deploy pertinente e
-verifica live. Submission App Store e attivazioni commerciali restano azioni
+PR, gate, merge, deploy Development pertinente e verifica live; “Promuovi”
+richiede promozione, deploy Production delle superfici cambiate, verifica live
+e, con una nuova versione, release SemVer (D-191). Submission App Store e attivazioni commerciali restano azioni
 separate e richiedono autorizzazione esplicita.
 
 ### 19.5 Versionamento
@@ -3278,8 +3280,11 @@ Ogni release Production:
 - riferimento al commit deployato;
 - piano di rollback.
 
-Modifiche solo a documentazione interna, ADR, piani o governance agentica non
-richiedono bump, tag o GitHub Release.
+Modifiche solo a documentazione interna, ADR, piani, governance agentica,
+tooling, test o workflow non richiedono bump, tag o GitHub Release. Un lotto su
+`develop` porta una sola versione: la prepara la prima PR che cambia Worker,
+app Shopify, migrazioni o `site/`, le successive la riusano o ne alzano il
+livello rispetto a `main` (D-191).
 
 `CHANGELOG.md` è mantenuto dalla `0.1.0`: ogni snapshot rilasciato, anche in
 Development, ha una voce con versione, data, milestone e sintesi. Note pubbliche
@@ -4013,11 +4018,13 @@ completo delle operazioni (script, `app/routes.ts` e JavaScript del sito), con
 report globale vecchio. Metadati non distribuiti non richiedono coverage.
 La selezione è deterministica, considera anche eliminazioni e rinomine e usa
 il gate completo per percorsi sconosciuti. Una modifica mista usa il perimetro
-più ampio. La verifica finale locale è `npm run verify:change`; durante lo
-sviluppo bastano i test mirati, evitando di ripetere una suite completa prima
-che il coordinatore verifichi autonomamente il candidato pulito.
+più ampio. La verifica finale locale è `npm run verify:change`: controlli
+statici, politica di versione e test legati al diff, lo stesso gate locale del
+coordinatore (D-191). Coverage, browser, build, dry-run e mutation si
+verificano in CI.
 
-Le quattro raccolte coverage girano in parallelo, con output separati. Il
+Le cinque raccolte coverage (app, browser Chromium, browser WebKit, Function e
+operazioni) girano in parallelo, con output separati. Il
 check stabile `coverage` aggrega solo report dello stesso commit e tree e
 fallisce se una raccolta richiesta manca o non riesce. Dopo lo squash su
 `develop`, una CI PR riuscita con tree identico e artifact completi può essere
