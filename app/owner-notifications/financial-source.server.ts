@@ -140,13 +140,12 @@ export async function syncPartnerFinancialObservations(
       throw new Error("partner_api_invalid_financial_payload");
     }
     for (const { node } of transactions.edges) {
-      if (
-        !node?.id ||
-        !node.chargeId ||
-        !validIsoDate(node.createdAt) ||
-        !node.shop?.myshopifyDomain ||
-        !isFinancialType(node.__typename)
-      ) {
+      if (!node?.id || !validIsoDate(node.createdAt) || !isFinancialType(node.__typename)) {
+        throw new Error("partner_api_invalid_financial_transaction");
+      }
+      // Shopify ammette riferimenti nulli: senza charge o store non possiamo abbinare la voce.
+      if (node.chargeId === null || node.shop === null) continue;
+      if (!node.chargeId || !node.shop?.myshopifyDomain) {
         throw new Error("partner_api_invalid_financial_transaction");
       }
       observations.push({

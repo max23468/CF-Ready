@@ -564,6 +564,61 @@ test("il poll finanziario pagina gli aggiustamenti e rifiuta payload incompleti"
   ).rejects.toThrow("partner_api_invalid_financial_transaction");
 });
 
+test.each([
+  ["chargeId", { chargeId: null }],
+  ["shop", { shop: null }],
+])("il poll finanziario prosegue quando Shopify restituisce %s nullo", async (_field, nullable) => {
+  const shop = await insertShop("vendita-abbinabile.myshopify.com");
+  const annual = billing("gid://shopify/AppSubscription/abbinabile", "ANNUAL", "29.90");
+  await syncBillingAccount(env.DB, shop, annual, {
+    today: "2026-08-24",
+    timeZone: "Europe/Rome",
+    pricingGeneration: "launch",
+    storedAccount: null,
+  });
+  const sale = financialNode(
+    "AppSubscriptionSale",
+    "gid://partners/AppSubscriptionSale/abbinabile",
+    annual.subscription.id,
+    shop,
+    "29.90",
+    "EUR",
+  );
+  sale.node.createdAt = NOW.toISOString();
+  const pages = [
+    Response.json({
+      data: {
+        transactions: {
+          edges: [{ cursor: "non-abbinabile", node: { ...sale.node, ...nullable } }],
+          pageInfo: { hasNextPage: true },
+        },
+      },
+    }),
+    financialResponse([sale]),
+  ];
+  const fetcher = vi.fn(async () => pages.shift()!);
+
+  await expect(
+    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
+      now: NOW,
+      fetcher: fetcher as typeof fetch,
+    }),
+  ).resolves.toEqual({ observed: 1, checkedAt: NOW.toISOString() });
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(
+    await env.DB.prepare(
+      `SELECT sale_transaction_gid, sale_observed_at, sale_checked_at
+         FROM billing_accounts WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    )
+      .bind(shop)
+      .first(),
+  ).toEqual({
+    sale_transaction_gid: sale.node.id,
+    sale_observed_at: NOW.toISOString(),
+    sale_checked_at: NOW.toISOString(),
+  });
+});
+
 test("il poll finanziario interroga Partner solo dalla voce pendente più vecchia", async () => {
   const shop = await insertShop("finestra-finanziaria.myshopify.com");
   const shopId = await shopIdFor(shop);
