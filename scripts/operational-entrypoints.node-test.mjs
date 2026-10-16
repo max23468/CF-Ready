@@ -8,10 +8,82 @@ import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { loadWorkerConfig } from "./preflight-common.mjs";
+import { checkWorkflows } from "./check-workflows.mjs";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const sha = (character) => character.repeat(40);
 const secretNames = ["SHOPIFY_API_SECRET", "SESSION_ENCRYPTION_KEY", "TRIAL_LEDGER_HMAC_KEY"];
+
+test("actionlint richiede il tool presente e la versione fissata", () => {
+  for (const result of [
+    { error: new Error("ENOENT"), status: null },
+    { status: 1 },
+    { status: 0, stdout: "0.0.0\n" },
+  ]) {
+    assert.throws(() => checkWorkflows(() => result), /mise install actionlint/);
+  }
+});
+
+test("actionlint propaga violazioni, segnali ed errori senza successo implicito", () => {
+  const version = readFileSync(path.join(root, "mise.toml"), "utf8").match(
+    /^actionlint = "([\d.]+)"$/m,
+  )[1];
+  for (const [result, expected] of [
+    [{ status: 0 }, 0],
+    [{ status: 1 }, 1],
+    [{ status: null }, 1],
+  ]) {
+    let calls = 0;
+    assert.equal(
+      checkWorkflows(() => (++calls === 1 ? { status: 0, stdout: `${version}\n` } : result)),
+      expected,
+    );
+    assert.equal(calls, 2);
+  }
+  let calls = 0;
+  assert.throws(
+    () =>
+      checkWorkflows(() =>
+        ++calls === 1
+          ? { status: 0, stdout: `${version}\n` }
+          : { error: new Error("esecuzione fallita") },
+      ),
+    /esecuzione fallita/,
+  );
+});
+
+test("la versione actionlint installata in CI coincide con quella locale", () => {
+  const version = readFileSync(path.join(root, "mise.toml"), "utf8").match(
+    /^actionlint = "([\d.]+)"$/m,
+  )[1];
+  const ci = readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8");
+  assert.ok(ci.includes(`/v${version}/actionlint_${version}_linux_amd64.tar.gz`));
+  assert.match(ci, /[a-f0-9]{64}  \$directory\/actionlint\.tar\.gz/);
+});
+
+test("l'entrypoint actionlint blocca tool assente e violazioni e accetta workflow validi", async (t) => {
+  const directory = await temporaryDirectory(t);
+  const env = { PATH: directory };
+  const missing = runEntrypoint("check-workflows.mjs", [], { env, success: false });
+  assert.match(missing.stderr, /mise install actionlint/);
+  const version = readFileSync(path.join(root, "mise.toml"), "utf8").match(
+    /^actionlint = "([\d.]+)"$/m,
+  )[1];
+  for (const status of [0, 1]) {
+    await executable(
+      directory,
+      "actionlint",
+      `
+if [ "$1" = "-version" ]; then
+  echo "${version}"
+  exit 0
+fi
+exit ${status}`,
+    );
+    const result = runEntrypoint("check-workflows.mjs", [], { env, success: status === 0 });
+    assert.equal(result.status, status);
+  }
+});
 
 function inheritedEnvironment() {
   return Object.fromEntries(

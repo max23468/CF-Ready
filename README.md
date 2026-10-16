@@ -73,6 +73,8 @@ dal workflow di deploy e dal relativo readback.
 
 ```sh
 mise exec -- npm run verify:change
+mise exec -- npm run quality:knip
+mise exec -- npm run quality:workflows
 mise exec -- npm test
 mise exec -- npm run test:function
 mise exec -- npm run test:e2e
@@ -86,6 +88,19 @@ mise exec -- npm run check
 
 `verify:change` è il gate locale prima del push: controlli statici, politica di
 versione e test legati al diff. La CI esegue coverage, browser e mutation.
+
+Knip e actionlint sono bloccanti nel gate locale e nel job CI `verify` per le
+modifiche non documentali. `quality:knip` genera prima i tipi delle route e
+controlla app, Worker, sito, script, test e workspace Function. Gli ingressi e le
+eccezioni motivate sono in `knip.jsonc`: non usare `--fix` o esclusioni generiche
+per azzerare le segnalazioni. Le dipendenze di codegen fornite da Shopify CLI e
+i moduli virtuali Cloudflare non sono pacchetti mancanti.
+
+Per actionlint eseguire `mise install actionlint`: la versione è fissata in
+`mise.toml` e verificata dal comando; la CI verifica anche il checksum
+dell'archivio ufficiale. ShellCheck e Pyflakes opzionali sono disabilitati per
+avere lo stesso risultato in locale e CI. Una versione errata, un tool assente
+o una violazione fanno fallire il controllo.
 
 `coverage:check` misura tutto il codice eseguibile first-party, unisce i report
 senza duplicare i sorgenti condivisi e scrive il report in `.coverage/global/`.

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  "treatConfigHintsAsErrors": true,
+  "ignoreExportsUsedInFile": true,
+  // Moduli virtuali forniti da workerd e non da pacchetti npm.
+  "ignoreDependencies": ["cloudflare"],
+  // jq è disponibile sui runner GitHub ospitati.
+  "ignoreBinaries": ["jq"],
+  "ignoreIssues": {
+    // Promise.all degli import in workers/app.ts: reconcileOwnerIncidents è consumato.
+    "app/owner-notifications.server.ts": ["exports"],
+    // POLARIS_URL è il selettore rollback; POLARIS_V2_URL identifica la versione nel DOM.
+    "app/shopify-ui.ts": ["duplicates"]
+  },
+  "workspaces": {
+    ".": {
+      "entry": [
+        "workers/app.ts",
+        "cloudflare.config.ts",
+        "scripts/vite-dev.mjs",
+        "tests/worker.ts",
+        // Alias e setup risolti con path.join nella configurazione browser.
+        "tests/browser/cloudflare-workers.ts",
+        "tests/browser/route-setup.tsx"
+      ],
+      "project": [
+        "*.{ts,mjs}",
+        "app/**/*.{ts,tsx}",
+        "workers/**/*.ts",
+        "scripts/**/*.mjs",
+        "tests/**/*.{ts,tsx}",
+        "benchmarks/**/*.ts",
+        "config/**/*.ts",
+        "site/**/*.js"
+      ],
+      "vitest": { "config": ["vitest.config.ts", "vitest.browser.config.ts"] },
+      "vite": { "config": ["vite.config.ts", "config/vite.site.ts"], "entry": ["site/**/*.html"] },
+      // Shopify CLI esegue codegen tramite questa dipendenza e fornisce i plugin.
+      "ignoreDependencies": ["@graphql-codegen/cli"]
+    },
+    "extensions/cf-ready-validation": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.{ts,js}", "tests/**/*.ts"],
+      // Contratto del template Shopify e plugin risolti internamente da Shopify CLI.
+      "ignoreDependencies": [
+        "@shopify/shopify_function",
+        "@graphql-codegen/typescript",
+        "@graphql-codegen/typescript-operations"
+      ]
+    }
+  }
+}
