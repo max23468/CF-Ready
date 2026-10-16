@@ -11,6 +11,8 @@ test("riconosce tutto il control plane CI senza ampliare la superficie", () => {
     ".npmrc",
     "config/coverage-policy.json",
     "doctor.config.json",
+    "knip.jsonc",
+    "mise.toml",
     "extensions/cf-ready-validation/package.json",
     "extensions/cf-ready-validation/vitest.config.js",
     "package-lock.json",
