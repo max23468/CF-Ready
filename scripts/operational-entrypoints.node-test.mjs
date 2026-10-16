@@ -61,6 +61,30 @@ test("la versione actionlint installata in CI coincide con quella locale", () =>
   assert.match(ci, /[a-f0-9]{64}  \$directory\/actionlint\.tar\.gz/);
 });
 
+test("l'entrypoint actionlint blocca tool assente e violazioni e accetta workflow validi", async (t) => {
+  const directory = await temporaryDirectory(t);
+  const env = { PATH: directory };
+  const missing = runEntrypoint("check-workflows.mjs", [], { env, success: false });
+  assert.match(missing.stderr, /mise install actionlint/);
+  const version = readFileSync(path.join(root, "mise.toml"), "utf8").match(
+    /^actionlint = "([\d.]+)"$/m,
+  )[1];
+  for (const status of [0, 1]) {
+    await executable(
+      directory,
+      "actionlint",
+      `
+if [ "$1" = "-version" ]; then
+  echo "${version}"
+  exit 0
+fi
+exit ${status}`,
+    );
+    const result = runEntrypoint("check-workflows.mjs", [], { env, success: status === 0 });
+    assert.equal(result.status, status);
+  }
+});
+
 function inheritedEnvironment() {
   return Object.fromEntries(
     ["PATH", "TMPDIR", "NODE_V8_COVERAGE"].flatMap((name) =>
