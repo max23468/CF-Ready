@@ -91,6 +91,20 @@ jobs:
         run: node scripts/version-policy.mjs --base-sha "$BASE_SHA" --head-sha "$HEAD_SHA" --head-ref "$HEAD_REF"
       - if: needs.lane.outputs.lane != 'promotion' && needs.lane.outputs.reuse_ci != 'true'
         run: npm ci
+      - if: needs.lane.outputs.lane != 'promotion' && needs.lane.outputs.lane != 'docs' && needs.lane.outputs.reuse_ci != 'true'
+        name: Installa actionlint verificato
+        shell: bash
+        run: |
+          directory="$RUNNER_TEMP/actionlint"
+          mkdir -p "$directory"
+          curl --fail --silent --show-error --location --output "$directory/actionlint.tar.gz" \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $directory/actionlint.tar.gz" | sha256sum --check
+          tar -xzf "$directory/actionlint.tar.gz" -C "$directory" actionlint
+          echo "$directory" >> "$GITHUB_PATH"
+      - if: needs.lane.outputs.lane != 'promotion' && needs.lane.outputs.lane != 'docs' && needs.lane.outputs.reuse_ci != 'true'
+        name: Knip e actionlint bloccanti
+        run: npm run quality:knip && npm run quality:workflows
       - if: needs.lane.outputs.lane == 'docs' && needs.lane.outputs.reuse_ci != 'true'
         run: npm run check:docs
       - if: needs.lane.outputs.lane != 'docs' && needs.lane.outputs.surface == 'metadata' && needs.lane.outputs.reuse_ci != 'true'
