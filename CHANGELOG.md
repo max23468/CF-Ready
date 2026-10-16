@@ -6,6 +6,13 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.4.2 — 16 ottobre 2026
+
+- Knip e actionlint bloccano i gate locali e la CI su codice inutilizzato ed
+  errori nei workflow; versioni fissate ed eccezioni documentate.
+
+Knip and actionlint now block local checks and CI on unused code and workflow errors.
+
 ## 2.4.1 — 14 ottobre 2026
 
 - il menu comandi del bot owner si riallinea da solo ogni ora all'elenco del
