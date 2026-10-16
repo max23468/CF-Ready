@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.4.3 — 16 ottobre 2026
+
+- il poll finanziario prosegue sulle transazioni abbinabili quando Shopify
+  restituisce una voce con charge o store nullo, senza forzare riconciliazioni
+  né chiudere conversioni da verificare.
+
+Financial polling continues past transactions with a null charge or shop,
+without forcing matches or closing conversions awaiting review.
+
 ## 2.4.2 — 16 ottobre 2026
 
 - Knip e actionlint bloccano i gate locali e la CI su codice inutilizzato ed
