@@ -18,6 +18,13 @@ ciclo iniziato per cui la Partner API non espone ancora una vendita abbinabile.
 Il comando `Aggiorna` della vista Billing forza una nuova lettura finanziaria
 prima di ricostruire il riepilogo.
 
+Le transazioni Partner con `chargeId` o `shop` esplicitamente nulli sono ammesse
+dal contratto API: il poll prosegue sulle altre voci senza attribuire quelle
+transazioni a uno store o a una charge. Una conversione resta da verificare se
+non arriva una transazione abbinabile. Payload malformati interrompono invece
+il ciclo senza avanzare il timestamp `partner_financials_polled_at`: controllare
+questo valore per distinguere un credito non osservato da una lettura fallita.
+
 ## Riconciliazione ordinaria
 
 1. Identificare lo store e il charge ID senza copiare dati personali nei log.
