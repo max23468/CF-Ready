@@ -211,11 +211,14 @@ describe("contratti dei dati delle notifiche owner", () => {
       billingEvent({ shopify_resource_gid: "" }),
       billingEvent({ event_type: "ignored" as LocalBillingEvent["event_type"] }),
       billingEvent({ status: "ignored" as LocalBillingEvent["status"] }),
-      billingEvent({ status: "none", previous_plan_kind: "none" }),
       billingEvent({ occurred_at: "non-data" }),
     ]) {
       expect(validLocalBillingEvent(invalid)).toBe(false);
     }
+    // Una transizione senza piano è ben formata ma non notificabile: il poll la salta.
+    const withoutPlan = billingEvent({ status: "none", previous_plan_kind: "none" });
+    expect(validLocalBillingEvent(withoutPlan)).toBe(true);
+    expect(localBillingPlan(withoutPlan)).toBeNull();
     expect(validMinorMoney(299, "EUR")).toBe(true);
     expect(validMinorMoney(299, null)).toBe(false);
     expect(validMinorMoney(null, "EUR")).toBe(false);
