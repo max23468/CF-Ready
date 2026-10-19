@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.4.6 — 20 ottobre 2026
+
+- le notifiche billing dell'owner saltano le transizioni senza un piano da
+  segnalare, come una richiesta mai attivata su un conto già scaduto, invece di
+  fermare il ciclo a ogni esecuzione; gli eventi successivi tornano a essere
+  notificati.
+
+Owner billing notifications skip transitions with no plan to report, such as a
+never-activated request on an already expired account, instead of stopping the
+cycle on every run; later events are notified again.
+
 ## 2.4.5 — 19 ottobre 2026
 
 - la disdetta senza proratazione conserva l'accesso fino alla scadenza verificata

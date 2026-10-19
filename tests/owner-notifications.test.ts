@@ -1573,6 +1573,39 @@ test("il poll billing ignora una riga rimasta senza store", async () => {
   await expect(pollLocalBillingEvents(db, NOW)).rejects.toThrow("billing_notification_page_limit");
 });
 
+test("il poll billing supera una transizione senza piano e notifica gli eventi successivi", async () => {
+  const shop = await insertShop("billing-senza-piano.myshopify.com");
+  const shopId = await shopIdFor(shop);
+  // Un conto già scaduto che riceve una richiesta mai attivata cambia charge senza avere un piano.
+  await insertBillingEvent({
+    shopId,
+    resourceId: "gid://shopify/AppSubscription/richiesta-non-attivata",
+    eventType: "expired",
+    planKind: "none",
+    occurredAt: "2026-08-24T09:40:00.000Z",
+    previousPlanKind: "none",
+  });
+  await insertBillingEvent({
+    shopId,
+    resourceId: "gid://shopify/AppSubscription/disdetta",
+    eventType: "ending",
+    planKind: "annual",
+    occurredAt: "2026-08-24T09:50:00.000Z",
+    previousPlanKind: "none",
+  });
+
+  const result = await pollLocalBillingEvents(env.DB, NOW);
+  const { id: lastId } = (await env.DB.prepare("SELECT MAX(id) AS id FROM billing_events").first<{
+    id: number;
+  }>())!;
+  expect(result).toMatchObject({ inserted: 1, afterId: lastId });
+  expect(
+    await env.DB.prepare(
+      "SELECT COUNT(*) AS count FROM owner_notifications WHERE notification_kind = 'billing'",
+    ).first(),
+  ).toEqual({ count: 1 });
+});
+
 test("Telegram copre config invalide, risposta non JSON, claim perso e tentativo terminale", async () => {
   await expect(
     deliverOwnerNotifications(env.DB, { botToken: "invalido", chatId: "1" }),
