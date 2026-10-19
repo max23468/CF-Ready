@@ -695,8 +695,8 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   const tsconfig = JSON.parse(readFileSync(new URL("../tsconfig.json", import.meta.url), "utf8"));
   const npmrc = readFileSync(new URL("../.npmrc", import.meta.url), "utf8");
   const mise = readFileSync(new URL("../mise.toml", import.meta.url), "utf8");
-  assert.equal(packageJson.packageManager, "npm@12.2.0");
-  assert.equal(packageJson.engines.node, ">=26.10.0 <27");
+  assert.equal(packageJson.packageManager, "npm@12.2.1");
+  assert.equal(packageJson.engines.node, ">=26.12.0 <27");
   assert.equal(packageJson.devDependencies.typescript, "7.0.2");
   assert.equal(packageJson.devDependencies["@typescript/typescript6"], undefined);
   assert.equal(packageJson.allowScripts["fsevents@2.3.2"], false);
@@ -707,7 +707,7 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
     "8.4.0",
   );
   assert.equal(lockfile.lockfileVersion, 4);
-  assert.equal(lockfile.packages[""].engines.node, ">=26.10.0 <27");
+  assert.equal(lockfile.packages[""].engines.node, ">=26.12.0 <27");
   assert.equal(lockfile.packages[""].devDependencies.typescript, "7.0.2");
   assert.equal(tsconfig.compilerOptions.strict, true);
   assert.equal(tsconfig.compilerOptions.noUncheckedSideEffectImports, true);
@@ -715,16 +715,16 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   assert.equal(tsconfig.compilerOptions.ignoreDeprecations, undefined);
   assert.equal(tsconfig.compilerOptions.stableTypeOrdering, undefined);
   assert.match(npmrc, /^strict-allow-scripts=true$/m);
-  assert.match(mise, /^node = "26\.10\.0"$/m);
-  assert.match(mise, /^npm = "12\.2\.0"$/m);
+  assert.match(mise, /^node = "26\.12\.0"$/m);
+  assert.match(mise, /^npm = "12\.2\.1"$/m);
 
   const setupAction = readFileSync(
     new URL("../.github/actions/setup-node-npm/action.yml", import.meta.url),
     "utf8",
   );
-  assert.match(setupAction, /node-version:\s*26\.10\.0/);
+  assert.match(setupAction, /node-version:\s*26\.12\.0/);
   assert.match(setupAction, /cache:\s*npm/);
-  assert.match(setupAction, /npm install --global npm@12\.2\.0/);
+  assert.match(setupAction, /npm install --global npm@12\.2\.1/);
 
   for (const path of [
     "ci.yml",
@@ -799,7 +799,7 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /wrangler pages deploy "\$RUNNER_TEMP\/pages-site"/);
   assert.match(workflow, /--branch main/);
   assert.match(workflow, /--commit-hash "\$GITHUB_SHA"/);
-  const shopifyCliInstall = "npm install --global --allow-scripts=esbuild @shopify/cli@4.9.3";
+  const shopifyCliInstall = "npm install --global --allow-scripts=esbuild @shopify/cli@4.9.4";
   assert.match(workflow, new RegExp(shopifyCliInstall.replaceAll(".", "\\.")));
   assert(workflow.indexOf(shopifyCliInstall) < workflow.indexOf("npm run check"));
   assert.match(workflow, /canonical_deployment\.deployment_trigger\.metadata\.commit_hash/);

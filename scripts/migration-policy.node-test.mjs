@@ -51,7 +51,7 @@ test("le migrazioni locali si applicano in sequenza e il secondo passaggio è id
   try {
     const firstRun = await run();
     for (const { name } of policy.migrations) assert.match(firstRun, new RegExp(name));
-    assert.match(await run(), /No migrations to apply/);
+    assert.deepEqual(JSON.parse(await run()), []);
 
     const databasePath = readdirSync(persistenceDirectory, { recursive: true, encoding: "utf8" })
       .filter(

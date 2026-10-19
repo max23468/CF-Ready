@@ -1,4 +1,4 @@
 [tools]
-node = "26.10.0"
-npm = "12.2.0"
+node = "26.12.0"
+npm = "12.2.1"
 actionlint = "1.7.12"
