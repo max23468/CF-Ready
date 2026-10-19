@@ -173,7 +173,6 @@ export function validLocalBillingEvent(event: LocalBillingEvent) {
     event.shopify_resource_gid &&
     ["active", "ending", "expired", "refunded"].includes(event.event_type) &&
     ["monthly", "annual", "one_time", "none"].includes(event.status) &&
-    localBillingPlan(event) &&
     validIsoDate(event.occurred_at),
   );
 }
