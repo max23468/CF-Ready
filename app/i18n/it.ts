@@ -333,7 +333,7 @@ export const it = {
           },
           {
             q: "In quali checkout si applicano le regole?",
-            a: "Le regole si applicano quando almeno una consegna è in Italia e l’indirizzo di fatturazione è italiano o non ancora disponibile. Non si applicano quando l’indirizzo di fatturazione è estero o tutte le consegne indicate sono estere. Se Shopify non fornisce un Paese di consegna, CF Ready controlla soltanto i campi fiscali presenti nel checkout: un campo che Shopify non mostra non può bloccare l’ordine.",
+            a: "Le regole si applicano quando almeno una consegna è in Italia e l’indirizzo di fatturazione è italiano o non ancora disponibile. Non si applicano quando l’indirizzo di fatturazione è estero o tutte le consegne indicate sono estere. Se Shopify non fornisce un Paese di consegna, CF Ready controlla soltanto i campi fiscali presenti nel checkout: un campo che Shopify non mostra non blocca l’ordine, salvo che tu attivi in Regole checkout l’opzione per gli ordini senza spedizione. Con quell’opzione e fatturazione italiana anche il campo non mostrato blocca, perfino in pagamenti come PayPal in cui il cliente potrebbe non vederlo.",
           },
           {
             q: "Che cosa viene validato?",
@@ -507,6 +507,16 @@ export const it = {
     exceptions: [
       "Le regole si applicano alle consegne in Italia. Non si applicano se l’indirizzo di fatturazione è estero. Se manca il Paese di consegna, i campi obbligatori non mostrati da Shopify non bloccano l’ordine.",
     ],
+    exceptionsBlockingAbsent:
+      "Le regole si applicano alle consegne in Italia. Non si applicano se l’indirizzo di fatturazione è estero. Se manca il Paese di consegna e la fatturazione è italiana, i campi obbligatori non mostrati da Shopify bloccano l’ordine.",
+    absentWithoutDelivery: {
+      heading: "Ordini senza spedizione",
+      label: "Blocca anche quando Shopify non mostra il campo",
+      details:
+        "Vale per servizi digitali e ritiro in negozio con fatturazione italiana. Con alcuni pagamenti, come PayPal, Shop Pay, Google Pay o Apple Pay, l’ordine potrebbe essere bloccato anche se il cliente non vede il campo da compilare.",
+      on: "Attivo",
+      off: "Disattivato",
+    },
     previewHeading: "Come funzionerà il checkout",
     simulator: {
       unknownCountry: "Non indicato",
