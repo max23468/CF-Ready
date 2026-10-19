@@ -6,6 +6,18 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.4.4 — 19 ottobre 2026
+
+- aggiornati React, toolchain Node/npm, CLI Shopify e Cloudflare, strumenti di
+  test e analisi e dipendenze transitive compatibili; versioni allineate nei
+  workflow e nel workspace della Validation Function;
+- le migrazioni D1 locali usano ora `cf`, che dalla beta.18 termina correttamente.
+
+Updated React, the Node/npm toolchain, Shopify and Cloudflare CLIs, testing
+and analysis tools, and compatible transitive dependencies, with matching
+versions in workflows and the Validation Function workspace. Local D1 migrations
+now use `cf`, whose beta.18 exits correctly.
+
 ## 2.4.3 — 16 ottobre 2026
 
 - il poll finanziario prosegue sulle transazioni abbinabili quando Shopify
