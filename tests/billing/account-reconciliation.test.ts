@@ -516,50 +516,141 @@ test("la riconciliazione storica ricostruisce la conversione senza inventare cre
   });
 });
 
-test("la cancellazione lascia l'accesso fino a fine periodo e poi scade", async () => {
-  const shop = await insertShop("cancellato.example.myshopify.com");
-  const attivo = abbonamento("gid://shopify/AppSubscription/2", "2026-08-31T21:59:59Z");
+test.each(["EVERY_30_DAYS", "ANNUAL"] as const)(
+  "la cancellazione %s lascia l'accesso fino a fine periodo e poi scade",
+  async (interval) => {
+    const shop = await insertShop(`cancellato-${interval.toLowerCase()}.example.myshopify.com`);
+    const attivo = abbonamento(
+      `gid://shopify/AppSubscription/cancellato-${interval}`,
+      "2026-08-31T21:59:59Z",
+      interval,
+    );
+    await syncBillingAccount(env.DB, shop, attivo, opzioni);
+    expect(
+      await recordOrdinaryCancellationIntent(
+        env.DB,
+        shop,
+        { ...attivo.subscription, currentPeriodEnd: null },
+        opzioni.today,
+        opzioni.timeZone,
+      ),
+    ).toBe(false);
+    expect(
+      await recordOrdinaryCancellationIntent(
+        env.DB,
+        shop,
+        attivo.subscription,
+        opzioni.today,
+        opzioni.timeZone,
+      ),
+    ).toBe(true);
+    await markOrdinaryCancellationConfirmed(env.DB, attivo.subscription.id);
+
+    const cancellato = {
+      ...NESSUN_ADDEBITO,
+      latestSubscription: {
+        ...attivo.subscription,
+        status: "CANCELLED" as const,
+        currentPeriodEnd: null,
+      },
+    };
+    const inScadenza = await syncBillingAccount(env.DB, shop, cancellato, opzioni);
+    expect(inScadenza).toMatchObject({
+      entitlement_status: "ending",
+      current_period_end: "2026-08-31",
+    });
+    expect(entitlementFor(null, "2026-08-31", inScadenza)).toEqual({
+      kind: "subscription",
+      validThrough: "2026-08-31",
+    });
+
+    const pending = {
+      ...cancellato,
+      latestSubscription: {
+        ...attivo.subscription,
+        id: `${attivo.subscription.id}-pending`,
+        status: "PENDING" as const,
+        currentPeriodEnd: null,
+      },
+    };
+    for (const status of ["PENDING", "DECLINED", "EXPIRED"] as const) {
+      const stillEnding = await syncBillingAccount(
+        env.DB,
+        shop,
+        { ...pending, latestSubscription: { ...pending.latestSubscription, status } },
+        opzioni,
+      );
+      expect(stillEnding, status).toMatchObject({
+        entitlement_status: "ending",
+        shopify_charge_gid: attivo.subscription.id,
+        current_period_end: "2026-08-31",
+      });
+    }
+
+    const scaduto = await syncBillingAccount(env.DB, shop, cancellato, {
+      ...opzioni,
+      today: "2026-09-01",
+    });
+    expect(scaduto.entitlement_status).toBe("expired");
+    expect(entitlementFor(null, "2026-09-01", scaduto)).toEqual({
+      kind: "none",
+      validThrough: null,
+    });
+  },
+);
+
+test("un conto annuale scaduto per errore dopo la disdetta torna in chiusura", async () => {
+  const shop = await insertShop("disdetta-ripristinata.example.myshopify.com");
+  const attivo = abbonamento(
+    "gid://shopify/AppSubscription/disdetta-ripristinata",
+    "2027-08-31T21:59:59Z",
+    "ANNUAL",
+  );
   await syncBillingAccount(env.DB, shop, attivo, opzioni);
-  expect(
-    await recordOrdinaryCancellationIntent(
-      env.DB,
-      shop,
-      { ...attivo.subscription, currentPeriodEnd: null },
-      opzioni.today,
-      opzioni.timeZone,
-    ),
-  ).toBe(false);
-  expect(
-    await recordOrdinaryCancellationIntent(
-      env.DB,
-      shop,
-      attivo.subscription,
-      opzioni.today,
-      opzioni.timeZone,
-    ),
-  ).toBe(true);
+  await recordOrdinaryCancellationIntent(
+    env.DB,
+    shop,
+    attivo.subscription,
+    opzioni.today,
+    opzioni.timeZone,
+  );
   await markOrdinaryCancellationConfirmed(env.DB, attivo.subscription.id);
+  const pendingGid = `${attivo.subscription.id}-pending`;
+  await env.DB.prepare(
+    `UPDATE billing_accounts
+        SET entitlement_status = 'expired', plan_kind = 'none', shopify_charge_gid = ?,
+            shopify_status = 'PENDING'
+      WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+  )
+    .bind(pendingGid, shop)
+    .run();
 
-  const cancellato = {
-    ...NESSUN_ADDEBITO,
-    latestSubscription: { ...attivo.subscription, status: "CANCELLED" as const },
-  };
-  const inScadenza = await syncBillingAccount(env.DB, shop, cancellato, opzioni);
-  expect(inScadenza).toMatchObject({
+  const account = await syncBillingAccount(
+    env.DB,
+    shop,
+    {
+      ...NESSUN_ADDEBITO,
+      latestSubscription: {
+        ...attivo.subscription,
+        id: pendingGid,
+        status: "PENDING",
+        currentPeriodEnd: null,
+      },
+    },
+    opzioni,
+  );
+
+  expect(account).toMatchObject({
     entitlement_status: "ending",
-    current_period_end: "2026-08-31",
+    plan_kind: "annual",
+    shopify_charge_gid: attivo.subscription.id,
+    shopify_status: "CANCELLED",
+    current_period_end: "2027-08-31",
   });
-  expect(entitlementFor(null, "2026-08-31", inScadenza)).toEqual({
+  expect(entitlementFor(null, opzioni.today, account)).toEqual({
     kind: "subscription",
-    validThrough: "2026-08-31",
+    validThrough: "2027-08-31",
   });
-
-  const scaduto = await syncBillingAccount(env.DB, shop, cancellato, {
-    ...opzioni,
-    today: "2026-09-01",
-  });
-  expect(scaduto.entitlement_status).toBe("expired");
-  expect(entitlementFor(null, "2026-09-01", scaduto)).toEqual({ kind: "none", validThrough: null });
 });
 
 test("una cancellazione non qualificata non eredita il periodo residuo", async () => {

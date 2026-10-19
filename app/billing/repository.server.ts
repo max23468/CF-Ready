@@ -116,7 +116,7 @@ export async function syncBillingAccount(
   const stored =
     storedAccount === undefined ? await readBillingAccount(db, shopDomain) : storedAccount;
   const ordinaryCancellation = billing.latestSubscription
-    ? await readOrdinaryCancellationIntent(db, shopDomain, billing.latestSubscription.id)
+    ? await readOrdinaryCancellationIntent(db, shopDomain)
     : null;
 
   const next = nextAccount(stored, billing, {
@@ -253,7 +253,7 @@ function nextAccount(
     today: string;
     timeZone: string;
     pricingGeneration: PricingGeneration;
-    ordinaryCancellation: { period_end: string } | null;
+    ordinaryCancellation: OrdinaryCancellation | null;
   },
 ): BillingAccount {
   const generation =
@@ -295,17 +295,38 @@ function nextAccount(
   }
 
   const latest = billing.latestSubscription;
+  // La disdetta senza proratazione conserva il periodo già pagato. Dopo la cancellazione
+  // Shopify restituisce currentPeriodEnd=null, quindi vale la scadenza registrata prima
+  // della disdetta. Una richiesta successiva mai attivata (in attesa, rifiutata o scaduta)
+  // non sostituisce quel periodo e ripara anche un conto già marcato `expired` per errore.
+  const cancellation = ordinaryCancellation;
+  const cancellationStillApplies =
+    cancellation !== null &&
+    latest !== null &&
+    (latest.id === cancellation.subscription_gid
+      ? latest.status === "CANCELLED" &&
+        (latest.currentPeriodEnd === null || latest.currentPeriodEnd === cancellation.period_end)
+      : UNACTIVATED_REPLACEMENT.has(latest.status));
+  const periodEnd = cancellation ? localDate(timeZone, new Date(cancellation.period_end)) : null;
+  const planKind = cancellation?.plan_kind ?? stored?.plan_kind;
   const inGracePeriod =
-    latest?.status === "CANCELLED" &&
-    latest.id === stored?.shopify_charge_gid &&
-    ordinaryCancellation?.period_end === latest.currentPeriodEnd &&
-    (stored?.entitlement_status === "active" || stored?.entitlement_status === "ending") &&
-    stored.plan_kind !== "one_time" &&
-    stored.current_period_end !== null &&
-    stored.current_period_end >= today;
+    cancellationStillApplies &&
+    periodEnd !== null &&
+    periodEnd >= today &&
+    periodEnd === stored?.current_period_end &&
+    (stored.entitlement_status === "active" ||
+      stored.entitlement_status === "ending" ||
+      stored.entitlement_status === "expired") &&
+    (planKind === "annual" || planKind === "monthly");
 
   if (inGracePeriod) {
-    return { ...stored, entitlement_status: "ending", shopify_status: "CANCELLED" };
+    return {
+      ...stored,
+      entitlement_status: "ending",
+      plan_kind: planKind,
+      shopify_charge_gid: cancellation.subscription_gid,
+      shopify_status: "CANCELLED",
+    };
   }
 
   if (latest?.status === "FROZEN") {
@@ -495,21 +516,31 @@ export function readBillingAccount(db: D1Database, shopDomain: string) {
     .first<BillingAccount>();
 }
 
-function readOrdinaryCancellationIntent(
-  db: D1Database,
-  shopDomain: string,
-  subscriptionGid: string,
-) {
+type OrdinaryCancellation = {
+  subscription_gid: string;
+  period_end: string;
+  plan_kind: "annual" | "monthly" | null;
+};
+
+const UNACTIVATED_REPLACEMENT = new Set(["PENDING", "DECLINED", "EXPIRED"]);
+
+// Ultima disdetta ordinaria del negozio, con il piano registrato quando l'abbonamento
+// era attivo: il conto locale può essere già stato sovrascritto da una richiesta successiva.
+function readOrdinaryCancellationIntent(db: D1Database, shopDomain: string) {
   return db
     .prepare(
-      `SELECT i.period_end
+      `SELECT i.subscription_gid, i.period_end,
+              (SELECT e.status FROM billing_events e
+                WHERE e.shopify_resource_gid = i.subscription_gid AND e.event_type = 'active'
+                  AND e.status IN ('annual', 'monthly')) AS plan_kind
          FROM billing_cancellation_intents i
          JOIN shops s ON s.id = i.shop_id
-        WHERE s.shop_domain = ? AND i.subscription_gid = ?
-          AND i.status IN ('requested', 'confirmed')`,
+        WHERE s.shop_domain = ? AND i.status IN ('requested', 'confirmed')
+        ORDER BY i.requested_at DESC
+        LIMIT 1`,
     )
-    .bind(shopDomain, subscriptionGid)
-    .first<{ period_end: string }>();
+    .bind(shopDomain)
+    .first<OrdinaryCancellation>();
 }
 
 function historicalConversionStatement(
