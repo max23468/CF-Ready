@@ -94,6 +94,7 @@
   outline: none;
 }
 
-.rules-layout__labels {
+.rules-layout__labels,
+.rules-layout__absent {
   min-width: 0;
 }

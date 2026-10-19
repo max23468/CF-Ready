@@ -60,7 +60,8 @@ Italy
 The Function applies rules when billing is Italian or not yet available and at
 least one delivery is Italian. If no delivery country is available, as can
 happen with digital products or pickup, it checks only Italian tax fields that
-are present. Foreign billing or only foreign deliveries remain excluded and are
+are present, unless the merchant turns on the opt-in "Block even when Shopify
+does not show the field" (off by default). Foreign billing or only foreign deliveries remain excluded and are
 covered in step 8 below.
 
 ## 4. Test values
@@ -109,7 +110,8 @@ Each step is independent; run them in order the first time.
   open. With Italian or not-yet-available billing and at least one Italian
   delivery, a required field that is absent blocks with a global error. If no
   delivery country is available, only fields that are present are checked and
-  an absent field remains fail-open.
+  an absent field remains fail-open, unless the merchant has turned on the
+  opt-in for orders without shipping and billing is Italian.
 - **Store country is not an eligibility gate.** Non-Italian stores can use the
   Home, trial, billing and Validation. Only the checkout context determines
   whether the rules apply.

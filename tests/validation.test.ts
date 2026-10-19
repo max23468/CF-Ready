@@ -376,6 +376,7 @@ test("una configurazione illeggibile o fuori contratto torna ai default senza la
   expect(config.rules).toEqual({
     taxCode: "required_validated",
     pec: "unmanaged",
+    blockAbsentWithoutDelivery: false,
   });
   expect(config.errorDisplay).toBe("inline");
   expect(config.messages.it.taxCodeRequired).toBe("Inserisci il Codice Fiscale.");
@@ -405,6 +406,23 @@ test("una configurazione illeggibile o fuori contratto torna ai default senza la
     schemaVersion: 3,
     rules: { taxCode: "unmanaged", pec: "required_when_company" },
   });
+  // D-192: solo `true` attiva il blocco; qualunque altro valore lo lascia spento.
+  for (const [value, expected] of [
+    [true, true],
+    ["true", false],
+    [1, false],
+  ] as const) {
+    expect(
+      readConfig({
+        schemaVersion: 3,
+        rules: {
+          taxCode: "required_validated",
+          pec: "unmanaged",
+          blockAbsentWithoutDelivery: value,
+        },
+      }).rules.blockAbsentWithoutDelivery,
+    ).toBe(expected);
+  }
 });
 
 // La prova non parte più all'installazione: la avvia il merchant. Questi test descrivono
@@ -719,6 +737,42 @@ test("il salvataggio parziale conserva i messaggi e normalizza la modalità lega
     messages: { it: { taxCodeRequired: "Messaggio personalizzato" } },
     rules: { taxCode: "required_validated", pec: "optional_validated" },
   });
+});
+
+test("D-192: chi salva solo le modalità conserva la spunta dei campi assenti", async () => {
+  const shop = "absent-fields.example.myshopify.com";
+  await seedShop(shop);
+  const current = structuredClone(DEFAULT_CONFIG);
+  current.rules = {
+    taxCode: "required_validated",
+    pec: "unmanaged",
+    blockAbsentWithoutDelivery: true,
+  };
+  const { admin, calls } = stubAdmin({ existing: { enabled: false, config: current } });
+
+  await writeValidation(
+    admin,
+    env.DB,
+    shop,
+    { rules: { taxCode: "required_validated", pec: "optional_validated" } },
+    null,
+  );
+  expect(calls[0].config?.rules.blockAbsentWithoutDelivery).toBe(true);
+
+  await writeValidation(
+    admin,
+    env.DB,
+    shop,
+    {
+      rules: {
+        taxCode: "required_validated",
+        pec: "optional_validated",
+        blockAbsentWithoutDelivery: false,
+      },
+    },
+    null,
+  );
+  expect(calls.at(-1)?.config?.rules.blockAbsentWithoutDelivery).toBe(false);
 });
 
 test.each(["messaggio", "entitlement"] as const)(

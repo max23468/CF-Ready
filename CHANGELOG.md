@@ -6,16 +6,26 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
-## 2.4.6 — 20 ottobre 2026
+## 2.5.0 — 20 ottobre 2026
 
+- Regole checkout aggiunge, sotto le etichette, l'opzione “Blocca anche quando
+  Shopify non mostra il campo”, disattivata di default (D-192). Con fatturazione
+  italiana e senza Paese di consegna, come per servizi digitali, ritiro o il
+  percorso PayPal, un Codice Fiscale o una PEC obbligatori che non arrivano alla
+  Function bloccano l'ordine con il messaggio di campo obbligatorio. Simulatore,
+  Home, guida e condizioni d'uso descrivono il nuovo comportamento.
 - le notifiche billing dell'owner saltano le transizioni senza un piano da
   segnalare, come una richiesta mai attivata su un conto già scaduto, invece di
   fermare il ciclo a ogni esecuzione; gli eventi successivi tornano a essere
   notificati.
 
-Owner billing notifications skip transitions with no plan to report, such as a
-never-activated request on an already expired account, instead of stopping the
-cycle on every run; later events are notified again.
+Checkout rules adds, below the labels, the option “Block even when Shopify does
+not show the field”, off by default. With an Italian billing address and no
+delivery country, as with digital services, pickup or the PayPal flow, a required
+tax code or PEC that does not reach the Function blocks the order with the
+required-field message. Owner billing notifications skip transitions with no plan
+to report, such as a never-activated request on an already expired account,
+instead of stopping the cycle on every run; later events are notified again.
 
 ## 2.4.5 — 19 ottobre 2026
 

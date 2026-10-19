@@ -278,6 +278,35 @@ describe("Regole", () => {
     },
   );
 
+  test("D-192: mostra la spunta sotto le etichette solo con un campo obbligatorio e la salva", async () => {
+    const copy = texts("it").rules.absentWithoutDelivery;
+    router.loaderData = {
+      ...rulesData,
+      rules: { taxCode: "optional_validated", pec: "unmanaged" },
+    };
+    const optional = await mount(<CheckoutRules />);
+    expect(optional.container.querySelector(`s-section[heading="${copy.heading}"]`)).toBeNull();
+
+    router.loaderData = rulesData;
+    const view = await mount(<CheckoutRules />);
+    const section = view.container.querySelector(`s-section[heading="${copy.heading}"]`)!;
+    expect(section.closest(".rules-layout__absent")?.previousElementSibling?.className).toBe(
+      "rules-layout__labels",
+    );
+    const checkbox = section.querySelector("s-checkbox") as HTMLElement & { checked: boolean };
+    expect(checkbox.getAttribute("label")).toBe(copy.label);
+    expect(checkbox.hasAttribute("checked")).toBe(false);
+
+    checkbox.checked = true;
+    await dispatch(checkbox, new Event("change", { bubbles: true }));
+    expect(view.container.textContent).toContain(texts("it").common.unsavedNavigation);
+    await click([...view.container.querySelectorAll("button")][0]);
+    expect(router.submit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ blockAbsentWithoutDelivery: "1" }),
+      { method: "post" },
+    );
+  });
+
   test("modifica la bozza, salva, annulla e invia il form", async () => {
     router.loaderData = rulesData;
     const view = await mount(<CheckoutRules />);
@@ -486,7 +515,9 @@ describe("Regole", () => {
     const disclosures = labelsArea?.querySelectorAll(
       "details.checkout-labels-disclosure:not(.checkout-label-instructions)",
     );
-    expect(labelsArea?.parentElement?.lastElementChild).toBe(labelsArea);
+    // Dopo le etichette resta solo la spunta D-192, presente perché la PEC è obbligatoria.
+    expect(labelsArea?.nextElementSibling?.className).toBe("rules-layout__absent");
+    expect(labelsArea?.parentElement?.lastElementChild).toBe(labelsArea?.nextElementSibling);
     expect(labelsArea?.parentElement?.classList.contains("rules-layout-container")).toBe(true);
     // Le etichette stanno sotto la griglia di regole e simulatore, a 16 px.
     expect(

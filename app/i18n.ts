@@ -1,5 +1,5 @@
 import type { AppErrorCode } from "./app-error";
-import type { Rules } from "./config";
+import { hasRequiredField, type Rules } from "./config";
 import type {
   Address2Classification,
   Address2Decision,
@@ -67,6 +67,14 @@ export function describeCheckout(
   // decide se le regole valgono davvero.
   if (status !== "active") lines.push(status === "lapsed" ? t.lapsed : t.disabled);
   return lines;
+}
+
+// D-192: con la spunta attiva e un campo obbligatorio l'eccezione senza consegna cambia verso.
+export function rulesException(rules: Rules, locale: Locale) {
+  const t = texts(locale).rules;
+  return rules.blockAbsentWithoutDelivery === true && hasRequiredField(rules)
+    ? t.exceptionsBlockingAbsent
+    : t.exceptions[0];
 }
 
 // In Home lo stato dice l'esito in una riga: le regole per campo stanno nel blocco

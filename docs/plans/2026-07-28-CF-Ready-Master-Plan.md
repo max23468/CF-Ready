@@ -343,8 +343,8 @@ Rispetto alle alternative più ampie o invasive:
 | D-025 | Nessuna regola per destinazione estera. | I campi italiani non sono pertinenti o possono non essere disponibili. |
 | D-026 | Fatturazione estera esenta automaticamente CF e PEC, anche con consegna in Italia. | Shopify non comunica la cittadinanza; il Paese di fatturazione è il proxy disponibile. |
 | D-027 | Se la fatturazione non è ancora disponibile ma il contesto italiano è rilevabile, applicare prudentemente la regola. | Evita aggiramenti dovuti a dato temporaneamente assente. |
-| D-028 | Se un localized field obbligatorio non è esposto ma Shopify comunica almeno una consegna italiana, restituire un errore globale; senza consegna osservabile, fail-open. | Chiude il bypass dei checkout accelerati senza bloccare prodotti digitali, ritiro o contesti in cui il campo non può comparire. |
-| D-029 | Prodotti digitali: validare solo se i localized fields sono presenti. | Il checkout può non raccogliere consegna o campi fiscali. |
+| D-028 | Se un localized field obbligatorio non è esposto ma Shopify comunica almeno una consegna italiana, restituire un errore globale; senza consegna osservabile, fail-open. **In parte superata da D-192.** | Chiude il bypass dei checkout accelerati senza bloccare prodotti digitali, ritiro o contesti in cui il campo non può comparire. |
+| D-029 | Prodotti digitali: validare solo se i localized fields sono presenti. **In parte superata da D-192.** | Il checkout può non raccogliere consegna o campi fiscali. |
 | D-030 | Ritiro online incluso se i campi sono presenti; ordini misti inclusi se almeno una consegna è in Italia. | Coprire il caso reale senza coinvolgere POS. |
 | D-031 | Configurazione assente, corrotta o sconosciuta: fail-open. | Un errore app non deve interrompere le vendite. |
 | D-032 | Stack: React Router template + TypeScript. | Percorso Shopify raccomandato e unico linguaggio. |
@@ -425,6 +425,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-189 | Le disinstallazioni si dividono in merchant e review; review comprende gli store dei revisori Shopify e gli store interni dell'owner. Il criterio, dedotto dalle 23 disinstallazioni Partner osservate al 14 ottobre 2026 e confermato dall'owner, classifica review uno store con nome o dominio che inizia per `app-review-`, `appstoretest` o `apdev`, con nome `REDACTED`, con dominio nell'elenco interno (`cf-ready-dev`, `cf-ready-polaris-2`, `numisleo`, `asa5ve-kz`, `bvkxxq-cv`, `dnu1dk-yp`) o classificato store di sviluppo dalla lettura BFS; tutto il resto è merchant. Billing mostra le due serie, ciascuna come il maggiore fra Partner e contatore locale. `/uninstalls` elenca dal vivo dalla Partner API nome, dominio, data e motivo, senza cache né copia in D1. `uninstall_history` conserva senza scadenza una riga anonima per disinstallazione: giorno, giorni di installazione, tipo di store, categoria billing, Validation attiva e onboarding completato; nessun nome, dominio, identificatore o motivo. | `shop/redact` cancella nome e dominio, quindi lo storico utile alle tendenze deve essere anonimo; il motivo Partner arriva dopo la disinstallazione e collegarlo richiederebbe un identificatore. La Partner API resta la fonte di nomi e motivi. Le review Shopify e i test interni gonfiavano il dato: su 23 disinstallazioni soltanto 7 erano merchant. Un nuovo pattern di review si aggiunge al criterio condiviso fra JS e SQL. Deciso dall'owner il 14 ottobre 2026. |
 | D-190 | Il menu comandi del bot owner ha una sola fonte, `config/telegram-owner-menu.json`, letta dallo script operativo e dal Worker. Con `OWNER_TELEGRAM_CONTROL_ENABLED` attivo, il ciclo owner legge ogni ora al minuto :05 `getMyCommands` con scope chat owner e chiama `setMyCommands` soltanto se l'elenco diverge; un errore è fail-open e si registra come fase `telegram_menu`. Il webhook resta allo script `--apply`. | Il token del bot esiste solo come secret del Worker, quindi nessuno poteva eseguire `--apply` dopo l'aggiunta di `/uninstalls` e il menu restava indietro rispetto al codice. Il minuto :05 è libero da retention e fasi orarie di D-182. Deciso dall'owner il 14 ottobre 2026. |
 | D-191 | “Pubblica” porta su Development; “Promuovi” (`promote:production`) promuove a lotti il tip di `develop`, riusando la ricevuta Development se dopo l'ultimo deploy non cambia una superficie distribuita; “Pubblica in Production” (`publish:production`) resta per un fix urgente e promuove anche il lotto presente. Un lotto porta una sola SemVer, preparata dalla prima PR che cambia Worker, app Shopify, migrazioni o `site/` (sito incluso, patch) e verificata da `version-policy.mjs` in CI e nel gate locale; tooling, test, workflow, documentazione e `package.json` cambiato solo in versione o script di tooling non la cambiano. La promozione avvia solo i deploy delle superfici cambiate e la release solo per una nuova versione. Il gate locale si limita a controlli statici, politica di versione e test legati al diff; la coverage browser gira in due job per motore e l'attesa del coordinatore arriva al massimo a dieci secondi. Il ciclo di pubblicazione cambia solo per un errore riprodotto o su richiesta dell'owner. | L'owner il 14 ottobre 2026 ha scelto promozione su richiesta, gate locale con statici e test mirati e bump patch per il sito, chiedendo di implementare tutte le otto proposte dell'analisi. Dal 29 settembre al 13 ottobre 2026 ci sono state 34 promozioni, 7 il 13 ottobre; le versioni 2.2.9 e 2.2.12 sono state alzate senza essere mai promosse; 13 PR su 86 hanno riguardato pipeline e governance. Le ricevute del coordinatore misurano circa 13 minuti per un ciclo Production e 9 per Development, con la verifica locale da 1,6 a 4,5 minuti che ripeteva la CI; nella CI PR `coverage-collect (ui)` durava 3m10s, di cui 140 s di test. Dettagli in §19.5, §23.1.1 e ADR 0006; nessuna soglia cambia e l'implementazione non autorizza una pubblicazione. |
+| D-192 | Aggiungere nella pagina Regole, sotto “Etichette del checkout”, la spunta “Blocca anche quando Shopify non mostra il campo”, disattivata di default e visibile solo con almeno un campo obbligatorio. Attiva, a `CHECKOUT_COMPLETION` un campo obbligatorio assente blocca l’ordine con errore globale `$.cart` anche senza Paese di consegna, purché la fatturazione sia esplicitamente italiana. Vale per CF e PEC, compresa la PEC obbligatoria per aziende, e usa i messaggi di campo obbligatorio esistenti. Il valore sta in `rules.blockAbsentWithoutDelivery` dello schema 3: una Function precedente lo ignora e resta fail-open. | Un merchant che vende solo servizi digitali ha completato con PayPal ordini senza Codice Fiscale pur avendo il campo visibile nel checkout: nel percorso PayPal il campo non arriva alla Function e senza consegna valeva il fail-open di D-028/D-029. La spunta resta facoltativa perché può bloccare pagamenti rapidi in cui il campo non è compilabile e, nei negozi non italiani, ordini in cui `TAX_CREDENTIAL_IT` non compare (open item 7). Il meccanismo PayPal non è stato osservato nei log: l’owner ha scelto di non riprodurlo in sandbox e di farlo verificare al merchant. Deciso dall’owner il 20 ottobre 2026 per la `2.5.0`; supera in parte D-028 e D-029. |
 
 Decisioni del 10 ottobre 2026, approvate dall'owner con «Implementa 2, 7, 8»:
 
@@ -614,7 +615,7 @@ confronta con il contenuto servito all’edge.
 - creare o attivare la Validation;
 - scegliere un piano.
 
-**FR-003** — L’app chiarisce che non crea né forza la comparsa dei localized fields. Con fatturazione italiana o non ancora disponibile e almeno una consegna italiana applica le regole anche a un campo obbligatorio assente; senza un Paese di consegna controlla soltanto `TAX_CREDENTIAL_IT` e `TAX_EMAIL_IT` presenti; con fatturazione estera o sole consegne estere non applica regole.
+**FR-003** — L’app chiarisce che non crea né forza la comparsa dei localized fields. Con fatturazione italiana o non ancora disponibile e almeno una consegna italiana applica le regole anche a un campo obbligatorio assente; senza un Paese di consegna controlla soltanto `TAX_CREDENTIAL_IT` e `TAX_EMAIL_IT` presenti, salvo la spunta D-192 che con fatturazione italiana tratta come mancante anche un campo obbligatorio assente; con fatturazione estera o sole consegne estere non applica regole.
 
 **FR-004** — Nessuno store viene bloccato o disinstallato automaticamente in base al Paese della sede, ai mercati o alle zone di spedizione.
 
@@ -665,7 +666,7 @@ dell’ordine.
 **FR-023** — Destinazione italiana e fatturazione non ancora disponibile:
 regole normali; un campo obbligatorio assente genera un errore globale.
 
-**FR-024** — Checkout senza spedizione: regole solo se i localized fields sono presenti e non esiste una fatturazione estera.
+**FR-024** — Checkout senza spedizione: regole solo se i localized fields sono presenti e non esiste una fatturazione estera. Con la spunta D-192 e fatturazione italiana, a Completion anche un campo obbligatorio assente blocca con errore globale.
 
 **FR-025** — Ritiro online senza indirizzo di consegna: regole se i localized fields sono presenti e la fatturazione non è estera.
 
@@ -1257,6 +1258,11 @@ else:
   # localized field presence is treated as Shopify's applicability signal
   validate non-empty present fields at Interaction
   validate all present fields at Completion unless billing is foreign
+  if step == CHECKOUT_COMPLETION and rules.blockAbsentWithoutDelivery
+     and billing country == IT:
+    # D-192, opt-in del merchant
+    for each required field absent from the input:
+      add a global error
 ```
 
 Questa regola copre la decisione prudenziale per fatturazione non ancora disponibile senza costringere un checkout privo di campi fiscali.
@@ -1310,7 +1316,8 @@ Restituiscono zero errori:
 - `enabled` falso;
 - entitlement scaduto o non valido;
 - local time non leggibile;
-- campo nativo assente senza una consegna italiana osservabile;
+- campo nativo assente senza una consegna italiana osservabile, salvo la spunta
+  D-192 con fatturazione italiana;
 - contesto geografico escluso;
 - eccezione non gestita.
 
@@ -1410,7 +1417,8 @@ La forma logica del valore è:
   },
   "rules": {
     "taxCode": "required_validated",
-    "pec": "optional_validated"
+    "pec": "optional_validated",
+    "blockAbsentWithoutDelivery": false
   },
   "messages": {
     "it": {
@@ -1442,6 +1450,13 @@ La PEC ammette inoltre:
 ```text
 required_when_company
 ```
+
+`blockAbsentWithoutDelivery` (D-192) è un booleano facoltativo dentro `rules`:
+solo `true` attiva il blocco dei campi obbligatori assenti senza Paese di
+consegna; un valore assente o diverso vale `false`. Resta nello schema 3 perché
+una Function che non lo conosce lo ignora e conserva il fail-open, quindi
+l'ordine di deploy fra Function e Worker non può bloccare ordini. Chi salva
+soltanto le modalità dei campi conserva il valore già scritto.
 
 La lettura dello schema 3 accetta anche le configurazioni schema 2 e le
 normalizza senza perdere regole o messaggi. Il deploy distribuisce e verifica
@@ -2556,7 +2571,8 @@ Ordine dei contenuti:
      principale, accanto a Codice Fiscale, PEC e messaggi;
    - fatturazione estera esclusa;
    - campi obbligatori assenti bloccati solo con consegna italiana osservabile;
-   - campi assenti senza consegna osservabile fail-open.
+   - campi assenti senza consegna osservabile fail-open, salvo la spunta D-192
+     con fatturazione italiana.
 4. **Prossimo passo consigliato**
    - completare onboarding;
    - attivare;
@@ -2708,8 +2724,9 @@ Non esiste una schermata di blocco basata sul Paese dello store. Home, onboardin
 prova, billing e gestione della Validation restano disponibili ovunque. La UI
 spiega che CF Ready non crea i campi fiscali. Le regole si applicano con
 fatturazione italiana o non ancora disponibile e almeno una consegna italiana;
-senza un Paese di consegna, soltanto ai campi fiscali italiani presenti. Non si
-applicano con fatturazione estera o sole consegne estere.
+senza un Paese di consegna, soltanto ai campi fiscali italiani presenti, salvo la
+spunta D-192 che con fatturazione italiana blocca anche i campi obbligatori
+assenti. Non si applicano con fatturazione estera o sole consegne estere.
 
 ### 15.9 Onboarding
 
@@ -4121,7 +4138,7 @@ Usare dati sintetici o pubblicamente documentati, mai CF di clienti reali.
 | solo ritiro Italia | estero | sì | non applicate |
 | ordine misto con consegna Italia | Italia/assente | sì | applicate |
 | Italia | Italia/assente | no | errore globale per i campi obbligatori |
-| nessuna consegna osservabile | Italia/assente | no | fail-open |
+| nessuna consegna osservabile | Italia/assente | no | fail-open; con la spunta D-192 e fatturazione Italia, errore globale a Completion |
 
 Testare esplicitamente più delivery groups e i tipi `SHIPPING`, `LOCAL`, `PICK_UP`, `PICKUP_POINT`, `RETAIL` se esposti dalla versione Function.
 
@@ -5374,7 +5391,7 @@ La `1.0.0` è accettabile quando:
 15. ritiro Italia è coperto quando i campi esistono;
 16. campi obbligatori assenti con consegna italiana sono bloccati; senza
     consegna osservabile, config corrotta o entitlement incerto il motore è
-    fail-open;
+    fail-open, salvo la spunta D-192 senza consegna e con fatturazione italiana;
 17. disattivazione conserva config;
 18. trial scaduto non blocca ordini;
 19. mensile, annuale e una tantum funzionano;

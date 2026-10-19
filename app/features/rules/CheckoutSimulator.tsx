@@ -1,13 +1,14 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { isValidPec, isValidTaxCode, requiredFieldsAreDue } from "../../checkout-field-validation";
-import type { Messages, Rules } from "../../config";
-import { texts } from "../../i18n";
+import { hasManagedField, type Messages, type Rules } from "../../config";
+import { rulesException, texts } from "../../i18n";
 import type { Locale } from "../../i18n";
 import { checkoutLabelCopy } from "../../checkout-labels/domain";
 import { BrandMark } from "../../ui-brand";
 import { Disclosure } from "../../ui-disclosure";
 import "./CheckoutSimulator.css";
 import {
+  absentRequiredFieldsDue,
   simulatorErrorMessage,
   simulatorFieldError,
   simulatorOutcome,
@@ -182,7 +183,9 @@ export function CheckoutSimulator({
                   </s-stack>
                   <Disclosure summary={t.rules.exceptionsHeading}>
                     <s-box paddingBlockStart="small-100">
-                      <s-paragraph color="subdued">{t.rules.exceptions[0]}</s-paragraph>
+                      <s-paragraph color="subdued">
+                        {rulesException(rules, previewLocale)}
+                      </s-paragraph>
                     </s-box>
                   </Disclosure>
                   <s-grid
@@ -275,7 +278,12 @@ export function CheckoutSimulator({
                 messages={previewMessages}
                 outcome={outcome}
                 requiredErrorsDue={requiredFieldsAreDue(step, deliveryGroups)}
-                absentRequiredFieldsDue={step === "CHECKOUT_COMPLETION" && deliveryCountry === "IT"}
+                absentRequiredFieldsDue={absentRequiredFieldsDue(
+                  rules,
+                  step,
+                  deliveryGroups,
+                  billingCountry,
+                )}
                 company={company}
                 taxCode={taxCode}
                 pec={pec}
@@ -379,7 +387,7 @@ function SimulatorCustomerFields({
   const t = texts(locale);
   const copy = t.rules.simulator;
   const applies = outcome !== "notApplied";
-  const hasManagedFields = Object.values(rules).some((mode) => mode !== "unmanaged");
+  const hasManagedFields = hasManagedField(rules);
   const showsFiscalField = hasVisibleFiscalFields(rules, taxCodePresent, pecPresent);
   const missingFields =
     applies && absentRequiredFieldsDue

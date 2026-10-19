@@ -733,6 +733,39 @@ test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", asyn
     expect.objectContaining({ measure: expect.any(Function) }),
   );
 
+  for (const [value, expected] of [
+    ["1", true],
+    ["0", false],
+  ] as const) {
+    mocks.writeValidation.mockResolvedValueOnce({ ok: true });
+    await action(
+      args(
+        post("/app/rules", {
+          taxCode: "required_validated",
+          pec: "unmanaged",
+          blockAbsentWithoutDelivery: value,
+          configHash: "hash",
+        }),
+      ),
+    );
+    expect(mocks.writeValidation).toHaveBeenLastCalledWith(
+      admin,
+      db,
+      session.shop,
+      {
+        rules: {
+          taxCode: "required_validated",
+          pec: "unmanaged",
+          blockAbsentWithoutDelivery: expected,
+        },
+      },
+      null,
+      "hash",
+      undefined,
+      expect.objectContaining({ measure: expect.any(Function) }),
+    );
+  }
+
   mocks.writeValidation.mockResolvedValueOnce({ ok: false, errorCode: "config_conflict" });
   expect(
     await action(
