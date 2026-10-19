@@ -1,8 +1,8 @@
 {
   "name": "cf-ready",
-  "version": "2.4.3",
+  "version": "2.4.4",
   "private": true,
-  "packageManager": "npm@12.2.0",
+  "packageManager": "npm@12.2.1",
   "packageExtensions": {
     "graphql-request@6.1.0": {
       "peerDependencies": {
@@ -88,47 +88,47 @@
   },
   "type": "module",
   "engines": {
-    "node": ">=26.10.0 <27"
+    "node": ">=26.12.0 <27"
   },
   "dependencies": {
     "@shopify/shopify-api": "15.0.1",
     "@shopify/shopify-app-react-router": "3.0.2",
     "@shopify/shopify-app-session-storage": "7.0.1",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "react-router": "8.4.0"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "2.0.0-beta.sha-91c870c02",
-    "@cloudflare/vitest-plugin": "1.4.1",
+    "@cloudflare/vite-plugin": "2.0.0-beta.v.1",
+    "@cloudflare/vitest-plugin": "1.4.4",
     "@graphql-codegen/cli": "7.4.6",
-    "@playwright/test": "1.64.0",
+    "@playwright/test": "1.64.1",
     "@react-router/dev": "8.4.0",
-    "@shopify/cli": "4.9.3",
+    "@shopify/cli": "4.9.4",
     "@shopify/polaris-types": "2.0.0-rc.3",
     "@stryker-mutator/core": "10.0.0",
     "@stryker-mutator/vitest-runner": "10.0.0",
     "@types/node": "26.6.5",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "@vitest/browser-playwright": "5.0.3",
-    "@vitest/coverage-istanbul": "5.0.3",
+    "@vitest/browser-playwright": "5.0.5",
+    "@vitest/coverage-istanbul": "5.0.5",
     "c8": "12.0.0",
-    "cf": "1.0.0-beta.14",
+    "cf": "1.0.0-beta.18",
     "esbuild": "0.28.2",
     "graphql": "17.0.2",
     "istanbul-lib-coverage": "3.2.2",
     "istanbul-lib-report": "3.0.1",
     "istanbul-reports": "3.2.0",
-    "knip": "6.41.0",
+    "knip": "6.42.0",
     "mdast-util-from-markdown": "2.1.0",
     "oxfmt": "0.73.0",
     "oxlint": "1.88.0",
     "react-doctor": "0.9.18",
     "typescript": "7.0.2",
     "vite": "8.3.4",
-    "vitest": "5.0.3",
-    "wrangler": "4.150.0"
+    "vitest": "5.0.5",
+    "wrangler": "4.151.1"
   },
   "workspaces": [
     "extensions/*"
@@ -144,12 +144,12 @@
     "workerd": true
   },
   "overrides": {
-    "@graphql-tools/utils": "12.0.4",
+    "@graphql-tools/utils": "12.1.0",
     "graphql-config": "5.1.8",
     "lodash": "4.18.1",
-    "qs": "6.16.0",
+    "qs": "6.16.1",
     "sharp": "0.35.5",
-    "undici": "8.11.2"
+    "undici": "8.12.2"
   },
   "author": "Matteo"
 }
