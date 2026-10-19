@@ -114,7 +114,7 @@
     "@vitest/browser-playwright": "5.0.3",
     "@vitest/coverage-istanbul": "5.0.3",
     "c8": "12.0.0",
-    "cf": "1.0.0-beta.14",
+    "cf": "1.0.0-beta.17",
     "esbuild": "0.28.2",
     "graphql": "17.0.2",
     "istanbul-lib-coverage": "3.2.2",
