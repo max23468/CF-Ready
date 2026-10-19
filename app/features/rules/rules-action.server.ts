@@ -163,6 +163,12 @@ async function saveRules(context: RulesActionContext) {
   const taxCode = oneOf(TAX_CODE_RULE_MODES, form.get("taxCode"));
   const pec = oneOf(PEC_RULE_MODES, form.get("pec"));
   if (!taxCode || !pec) return failure("generic");
+  const blockAbsent = form.get("blockAbsentWithoutDelivery");
+  const rules = {
+    taxCode,
+    pec,
+    ...(blockAbsent === null ? {} : { blockAbsentWithoutDelivery: blockAbsent === "1" }),
+  };
 
   const labelsEnabled = form.get("labelsEnabled") === "1";
   if (labelsEnabled && !labelScopesGranted) return failure("checkout_labels_scope_required");
@@ -176,7 +182,7 @@ async function saveRules(context: RulesActionContext) {
         db,
         shop,
         {
-          rules: { taxCode, pec },
+          rules,
           expectedConfigHash,
           labelsEnabled,
           confirmAutomaticWrite: form.get("labelsConfirmed") === "1",
@@ -188,7 +194,7 @@ async function saveRules(context: RulesActionContext) {
         admin,
         db,
         shop,
-        { rules: { taxCode, pec } },
+        { rules },
         null,
         expectedConfigHash,
         undefined,

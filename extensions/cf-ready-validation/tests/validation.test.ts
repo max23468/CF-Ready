@@ -409,6 +409,62 @@ describe("applicabilità e fail-open", () => {
     ).toEqual([]);
   });
 
+  describe("D-192: campi assenti senza consegna", () => {
+    const blocking = {
+      ...baseConfig,
+      rules: { ...baseConfig.rules, blockAbsentWithoutDelivery: true },
+    };
+
+    it("blocca i required assenti a Completion con fatturazione italiana", () => {
+      for (const deliveries of [[], [null]]) {
+        expect(errors(input({ config: blocking, deliveries, fields: [] }))).toEqual([
+          { message: "CF richiesto", target: "$.cart" },
+          { message: "PEC richiesta", target: "$.cart" },
+        ]);
+      }
+      expect(
+        errors(
+          input({
+            config: blocking,
+            deliveries: [],
+            fields: [{ key: "TAX_CREDENTIAL_IT", value: "RSSMRA80A01H501U" }],
+          }),
+        ),
+      ).toEqual([{ message: "PEC richiesta", target: "$.cart" }]);
+    });
+
+    it.each([
+      ["spunta disattivata", { deliveries: [], fields: [] }],
+      ["spunta non booleana", { deliveries: [], fields: [], flag: "true" }],
+      ["fatturazione assente", { deliveries: [], fields: [], billing: null }],
+      ["fatturazione estera", { deliveries: [], fields: [], billing: "FR" }],
+      ["Interaction", { deliveries: [], fields: [], step: "CHECKOUT_INTERACTION" }],
+      ["consegna solo estera", { deliveries: ["FR"], fields: [] }],
+    ] as const)("resta fail-open: %s", (_name, { flag, ...options }) => {
+      const enabled = _name !== "spunta disattivata";
+      const config = {
+        ...baseConfig,
+        rules: { ...baseConfig.rules, blockAbsentWithoutDelivery: flag ?? enabled },
+      };
+      expect(errors(input({ ...options, config }))).toEqual([]);
+    });
+
+    it("non tocca i campi facoltativi né la PEC per aziende senza azienda", () => {
+      const optional = {
+        ...blocking,
+        rules: {
+          taxCode: "optional_validated",
+          pec: "required_when_company",
+          blockAbsentWithoutDelivery: true,
+        },
+      };
+      expect(errors(input({ config: optional, deliveries: [], fields: [] }))).toEqual([]);
+      expect(
+        errors(input({ config: optional, deliveries: [], fields: [], company: "Acme S.r.l." })),
+      ).toEqual([{ message: "PEC richiesta", target: "$.cart" }]);
+    });
+  });
+
   it.each([undefined, "inline", "preventive", "other"])(
     "ignora la precedente modalità %s e usa lo stesso comportamento automatico",
     (errorDisplay) => {

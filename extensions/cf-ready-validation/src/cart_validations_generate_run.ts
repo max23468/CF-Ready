@@ -17,7 +17,7 @@ type PecRule = Rule | "required_when_company";
 type MessageKey = "taxCodeRequired" | "taxCodeInvalid" | "pecRequired" | "pecInvalid";
 
 type Configuration = {
-  rules: { taxCode: Rule; pec: PecRule };
+  rules: { taxCode: Rule; pec: PecRule; blockAbsentWithoutDelivery: boolean };
   messages: Record<"it" | "en", Record<MessageKey, string>>;
 };
 
@@ -107,6 +107,7 @@ function readConfiguration(value: unknown, localDate: unknown): Configuration | 
         rules: {
           taxCode: rules.taxCode as Rule,
           pec: rules.pec as PecRule,
+          blockAbsentWithoutDelivery: rules.blockAbsentWithoutDelivery === true,
         },
         messages: value.messages,
       }
@@ -165,7 +166,15 @@ export function cartValidationsGenerateRun(
     const hasItalianDelivery = deliveryCountries.includes(
       "IT" as (typeof deliveryCountries)[number],
     );
-    if (input.cart.localizedFields.length === 0 && !hasItalianDelivery) return allow;
+    // D-028 tratta come mancante un campo obbligatorio assente solo con consegna italiana.
+    // D-192 lo estende, su scelta del merchant, agli ordini senza Paese di consegna con
+    // fatturazione esplicitamente italiana: digitale, ritiro e percorsi come PayPal.
+    const absentFieldsBlock =
+      hasItalianDelivery ||
+      (config.rules.blockAbsentWithoutDelivery &&
+        deliveryCountries.length === 0 &&
+        input.cart.billingAddress?.countryCode === "IT");
+    if (input.cart.localizedFields.length === 0 && !absentFieldsBlock) return allow;
 
     const checkRequiredEmpty = requiredFieldsAreDue(
       step,
@@ -187,7 +196,7 @@ export function cartValidationsGenerateRun(
           : "optional_validated"
         : config.rules.pec;
     const absentRequiredField =
-      step === "CHECKOUT_COMPLETION" && hasItalianDelivery ? {} : undefined;
+      step === "CHECKOUT_COMPLETION" && absentFieldsBlock ? {} : undefined;
     addFieldError(
       errors,
       taxCode ?? absentRequiredField,

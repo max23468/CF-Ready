@@ -97,12 +97,15 @@ I controlli geografici hanno questa precedenza.
 | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `cart.billingAddress.countryCode` è presente e diverso da `IT`         | Consenso anticipato, anche se esiste una consegna italiana.                                                    | La fatturazione osservata era estera; CF Ready non ha applicato i campi fiscali italiani.                   |
 | Almeno un `deliveryAddress.countryCode` è presente e nessuno vale `IT` | Consenso anticipato.                                                                                           | Tutte le consegne osservabili erano estere; CF Ready non doveva bloccare.                                   |
-| Nessun Paese di consegna è osservabile                                 | La diagnosi continua sui soli localized field presenti. Gli indirizzi `null` non contano come Paesi osservati. | Shopify non aveva ancora esposto una consegna italiana; CF Ready può controllare soltanto i campi presenti. |
+| Nessun Paese di consegna è osservabile                                 | La diagnosi continua sui soli localized field presenti, salvo D-192. Gli indirizzi `null` non contano come Paesi osservati. | Shopify non aveva ancora esposto una consegna italiana; CF Ready può controllare soltanto i campi presenti. |
 | Almeno una consegna vale `IT`, anche insieme a consegne estere         | La diagnosi continua. A Completion i campi obbligatori assenti vengono trattati come vuoti.                    | Era presente una consegna italiana; CF Ready ha applicato le regole configurate.                            |
 
 Un indirizzo di fatturazione assente non produce consenso anticipato. Se
 `cart.localizedFields` è vuoto e non esiste una consegna italiana osservabile,
-la Function restituisce consenso: spiegare al merchant che Shopify non aveva
+la Function restituisce consenso, salvo che `rules.blockAbsentWithoutDelivery`
+valga `true`, non ci sia alcun Paese di consegna e la fatturazione sia `IT`:
+in quel caso (D-192) a Completion i campi obbligatori assenti producono `$.cart`.
+Negli altri casi spiegare al merchant che Shopify non aveva
 fornito né i campi da controllare né una consegna italiana che rendesse
 significativa la loro assenza.
 

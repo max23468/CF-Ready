@@ -96,7 +96,7 @@ D-172).
 | Ordini misti | inclusi se almeno una consegna è in Italia |
 | Shopify POS | **non supportato** |
 | Generazioni ricorrenti degli abbonamenti | **non coperte** |
-| Store non italiani | supportati; regole attive con fatturazione non estera e consegna italiana, oppure sui soli campi presenti se manca un Paese di consegna |
+| Store non italiani | supportati; regole attive con fatturazione non estera e consegna italiana, oppure sui soli campi presenti se manca un Paese di consegna, salvo l’opzione per gli ordini senza spedizione |
 
 ## Prezzi e prova
 
