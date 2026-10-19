@@ -211,6 +211,12 @@ jobs:
             source=".coverage/parts/coverage-part-$part-$GITHUB_RUN_ID"
             if [ -d "$source" ]; then mv "$source" ".coverage/$part"; fi
           done
+          # Con un solo artifact download-artifact estrae direttamente in `path`, senza
+          # sottocartella: succede nella corsia operations. La verifica controlla la parte.
+          if [ -f .coverage/parts/provenance.json ]; then
+            part="$(node -p 'require("./.coverage/parts/provenance.json").part')"
+            mv .coverage/parts ".coverage/$part"
+          fi
           args=()
           if [ "$COVERAGE_MODE" = operations ]; then args+=(--operations-only); fi
           node scripts/coverage-collect.mjs --verify "${args[@]}"
