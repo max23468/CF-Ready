@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { homeCheckoutSummary, type texts, validationStatus } from "../../i18n";
+import { homeCheckoutSummary, rulesException, type texts, validationStatus } from "../../i18n";
 import type { HomeData } from "./home.server";
 import { homeValidationPresentation } from "./home-next-step";
 import { trialContinuityNotice } from "./commercial-state";
@@ -69,7 +69,7 @@ export function HomeValidationSection({
           <s-box background="subdued" borderRadius="base" padding="small-200">
             <s-grid gridTemplateColumns="auto 1fr" columnGap="small-100" alignItems="start">
               <s-icon type="location" color="subdued" />
-              <s-text color="subdued">{t.rules.exceptions[0]}</s-text>
+              <s-text color="subdued">{rulesException(data.rules, data.locale)}</s-text>
             </s-grid>
           </s-box>
         </s-stack>

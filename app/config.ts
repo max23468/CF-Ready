@@ -30,7 +30,14 @@ export const MESSAGE_MAX_LENGTH = 200;
 export type TaxCodeRuleMode = (typeof TAX_CODE_RULE_MODES)[number];
 export type PecRuleMode = (typeof PEC_RULE_MODES)[number];
 export type Messages = Record<(typeof MESSAGE_KEYS)[number], string>;
-export type Rules = { taxCode: TaxCodeRuleMode; pec: PecRuleMode };
+export type Rules = {
+  taxCode: TaxCodeRuleMode;
+  pec: PecRuleMode;
+  // D-192: senza Paese di consegna e con fatturazione italiana, un campo obbligatorio che
+  // Shopify non passa alla Function blocca l'ordine. Opzionale per i chiamanti che descrivono
+  // solo le modalità dei campi; `readConfig` lo valorizza sempre.
+  blockAbsentWithoutDelivery?: boolean;
+};
 export type CheckoutConfig = {
   schemaVersion: typeof CONFIG_SCHEMA_VERSION;
   enabled: boolean;
@@ -52,6 +59,7 @@ export const DEFAULT_CONFIG: CheckoutConfig = {
   rules: {
     taxCode: "unmanaged",
     pec: "unmanaged",
+    blockAbsentWithoutDelivery: false,
   },
   messages: {
     it: {
@@ -88,6 +96,7 @@ export function readConfig(value: unknown): CheckoutConfig {
       pec:
         oneOf(value.schemaVersion === 2 ? TAX_CODE_RULE_MODES : PEC_RULE_MODES, rules.pec) ??
         DEFAULT_CONFIG.rules.pec,
+      blockAbsentWithoutDelivery: rules.blockAbsentWithoutDelivery === true,
     },
     messages: {
       it: readMessages(messages.it, DEFAULT_CONFIG.messages.it),
@@ -168,6 +177,19 @@ export function validateMessages(
   }
 
   return { messages };
+}
+
+export function hasManagedField(rules: Rules) {
+  return rules.taxCode !== "unmanaged" || rules.pec !== "unmanaged";
+}
+
+// La PEC obbligatoria per aziende conta: il blocco dei campi assenti vale anche per lei.
+export function hasRequiredField(rules: Rules) {
+  return (
+    rules.taxCode === "required_validated" ||
+    rules.pec === "required_validated" ||
+    rules.pec === "required_when_company"
+  );
 }
 
 // Quali messaggi il cliente può davvero leggere, date le regole attive. Il messaggio di campo

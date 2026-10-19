@@ -333,7 +333,7 @@ export const en: typeof it = {
           },
           {
             q: "Which checkouts do the rules apply to?",
-            a: "Rules apply when at least one delivery is in Italy and the billing address is Italian or not yet available. They don’t apply when the billing address is outside Italy or all specified deliveries are abroad. If Shopify doesn’t provide a delivery country, CF Ready checks only the tax fields present in checkout: a field Shopify doesn’t show can’t block the order.",
+            a: "Rules apply when at least one delivery is in Italy and the billing address is Italian or not yet available. They don’t apply when the billing address is outside Italy or all specified deliveries are abroad. If Shopify doesn’t provide a delivery country, CF Ready checks only the tax fields present in checkout: a field Shopify doesn’t show doesn’t block the order, unless you turn on the option for orders without shipping in Checkout rules. With that option and an Italian billing address, a field that isn’t shown blocks too, even in payment flows such as PayPal where the customer may not see it.",
           },
           {
             q: "What gets validated?",
@@ -502,6 +502,16 @@ export const en: typeof it = {
     exceptions: [
       "Rules apply to deliveries in Italy. They do not apply if the billing address is outside Italy. If the delivery country is missing, required fields that Shopify does not show do not block the order.",
     ],
+    exceptionsBlockingAbsent:
+      "Rules apply to deliveries in Italy. They do not apply if the billing address is outside Italy. If the delivery country is missing and the billing address is in Italy, required fields that Shopify does not show block the order.",
+    absentWithoutDelivery: {
+      heading: "Orders without shipping",
+      label: "Block even when Shopify does not show the field",
+      details:
+        "Applies to digital services and in-store pickup with an Italian billing address. With some payment methods, such as PayPal, Shop Pay, Google Pay or Apple Pay, the order may be blocked even if the customer cannot see the field to fill in.",
+      on: "On",
+      off: "Off",
+    },
     previewHeading: "What customers will see",
     simulator: {
       unknownCountry: "Not provided",

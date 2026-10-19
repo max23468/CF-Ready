@@ -22,6 +22,7 @@ import { CheckoutSimulator } from "../features/rules/CheckoutSimulator";
 import { CheckoutLabelsSection } from "../features/rules/CheckoutLabelsSection";
 import "../features/rules/RulesLayout.css";
 import {
+  blocksAbsentWithoutDelivery,
   mergeRulesFormDraft,
   rebaseRulesDraft,
   type RulesFormDraft,
@@ -31,7 +32,14 @@ import { skipRevalidationWhenLeaving, useSavedData } from "../revalidation";
 import { setSaveBarVisibility, showToast } from "../save-bar";
 import { RevealBanner } from "../ui-feedback";
 import { createServerTiming } from "../server-timing.server";
-import { PEC_RULE_MODES, readConfig, showSavedBanner, TAX_CODE_RULE_MODES } from "../config";
+import {
+  hasManagedField,
+  hasRequiredField,
+  PEC_RULE_MODES,
+  readConfig,
+  showSavedBanner,
+  TAX_CODE_RULE_MODES,
+} from "../config";
 import { databaseContext } from "../context.server";
 import { readCheckoutLabelState } from "../checkout-labels/repository.server";
 import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../checkout-labels/service.server";
@@ -209,7 +217,10 @@ export default function CheckoutRules() {
     if (result?.ok && !labelsErrorCode) showToast(savedText);
   }, [result, labelsErrorCode, savedText]);
 
-  const dirty = draft.rules.taxCode !== saved.rules.taxCode || draft.rules.pec !== saved.rules.pec;
+  const dirty =
+    draft.rules.taxCode !== saved.rules.taxCode ||
+    draft.rules.pec !== saved.rules.pec ||
+    blocksAbsentWithoutDelivery(draft.rules) !== blocksAbsentWithoutDelivery(saved.rules);
   const { automaticConfirmationRequired, dirty: labelsDirty } = labelManagementSaveState(
     labelState,
     labelsEnabled,
@@ -236,6 +247,7 @@ export default function CheckoutRules() {
         configHash: baseHash.current ?? "",
         taxCode: draft.rules.taxCode,
         pec: draft.rules.pec,
+        blockAbsentWithoutDelivery: blocksAbsentWithoutDelivery(draft.rules) ? "1" : "0",
         labelsEnabled: labelsEnabled ? "1" : "0",
         labelsConfirmed: labelsConfirmed ? "1" : "0",
         labelsRevision: labelSnapshot?.revision ?? "",
@@ -424,6 +436,25 @@ export default function CheckoutRules() {
             onScopeGranted={() => labels.load(draft.rules)}
           />
         </div>
+        {hasRequiredField(draft.rules) ? (
+          <div className="rules-layout__absent">
+            <s-section heading={t.rules.absentWithoutDelivery.heading}>
+              <s-checkbox
+                label={t.rules.absentWithoutDelivery.label}
+                details={t.rules.absentWithoutDelivery.details}
+                checked={blocksAbsentWithoutDelivery(draft.rules)}
+                disabled={busy}
+                onChange={(event) => {
+                  const checked = event.currentTarget.checked;
+                  setChangedSinceResult(true);
+                  setDraft((current) => ({
+                    rules: { ...current.rules, blockAbsentWithoutDelivery: checked },
+                  }));
+                }}
+              />
+            </s-section>
+          </div>
+        ) : null}
       </div>
     </s-page>
   );
@@ -435,7 +466,7 @@ function RulesSummary({
   status,
   locale,
 }: Parameters<typeof describeCheckout>[0] & { locale: Locale }) {
-  if (!Object.values(rules).some((mode) => mode !== "unmanaged")) return null;
+  if (!hasManagedField(rules)) return null;
   return (
     <s-stack direction="block" gap="small-100">
       {describeCheckout({ rules, status }, locale).map((line) => (
@@ -508,6 +539,12 @@ function rulesConflictRows(
       label: t.rules.pecLabel,
       current: t.rules.pec[current.rules.pec],
       draft: t.rules.pec[draft.rules.pec],
+    },
+    {
+      label: t.rules.absentWithoutDelivery.heading,
+      current:
+        t.rules.absentWithoutDelivery[blocksAbsentWithoutDelivery(current.rules) ? "on" : "off"],
+      draft: t.rules.absentWithoutDelivery[blocksAbsentWithoutDelivery(draft.rules) ? "on" : "off"],
     },
   ];
 }

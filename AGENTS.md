@@ -23,7 +23,9 @@ modifica.
   che una casella sia davvero una PEC.
 - Un errore dell'app non blocca vendite legittime: configurazione o entitlement
   incerti ed errori runtime sono fail-open. Un campo obbligatorio assente blocca
-  soltanto se Shopify espone almeno una consegna italiana.
+  soltanto se Shopify espone almeno una consegna italiana, oppure, quando il
+  merchant attiva la spunta D-192, senza Paese di consegna e con fatturazione
+  italiana.
 - Shopify è autorevole per Validation e billing; D1 conserva stato operativo.
   Una sola Validation per store, mai toccare risorse di altre app.
 - Scope Shopify minimo: niente ordini, clienti, prodotti o inventario senza un
