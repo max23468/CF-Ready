@@ -56,6 +56,9 @@ export async function pollLocalBillingEvents(db: D1Database, now: Date) {
         results.map((event) => {
           if (!event.shop_domain) return null;
           if (!validLocalBillingEvent(event)) throw new Error("billing_event_invalid_payload");
+          // Un cambio di charge tra stati senza piano (per esempio una richiesta mai attivata
+          // su un conto già scaduto) non ha nulla da notificare e non deve fermare il cursore.
+          if (!localBillingPlan(event)) return null;
           return localBillingNotification(db, event);
         }),
       )
