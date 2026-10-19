@@ -46,6 +46,22 @@ autorevole dello stato del payout resta il dettaglio in Partner Dashboard.
 
 ## Diritto non sincronizzato nel checkout
 
+### Disdetta ordinaria e periodo residuo
+
+La disdetta dall'app usa `prorate: false`: il periodo già confermato resta
+accessibile fino alla scadenza. Dopo la cancellazione Shopify restituisce
+`currentPeriodEnd: null`; la riconciliazione usa l'ultima disdetta registrata in
+`billing_cancellation_intents` e il piano dell'evento `active` dello stesso
+abbonamento. Una richiesta successiva mai attivata (`PENDING`, `DECLINED`,
+`EXPIRED`) non sostituisce quel diritto.
+
+Un conto già trasformato in `expired` da una versione precedente torna `ending`
+alla prima riconciliazione, se la scadenza registrata coincide con quella del
+conto e non è passata. Dopo il deploy verificare il conto e il metafield della
+Validation. Non chiedere un nuovo acquisto per riparare lo stato locale.
+
+### Errore di sincronizzazione della Validation
+
 L'alert `Diritto non sincronizzato nel checkout` indica che il ciclo periodico
 ha letto il billing ma Shopify non ha accettato o confermato il diritto nel
 metafield della Validation (D-160). Finché resta aperto, la Function può essere
