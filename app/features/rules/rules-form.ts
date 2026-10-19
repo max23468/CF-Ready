@@ -20,6 +20,14 @@ export function blocksAbsentWithoutDelivery(rules: Rules) {
   return rules.blockAbsentWithoutDelivery === true;
 }
 
+export function rulesDraftChanged(draft: Rules, saved: Rules) {
+  return (
+    draft.taxCode !== saved.taxCode ||
+    draft.pec !== saved.pec ||
+    blocksAbsentWithoutDelivery(draft) !== blocksAbsentWithoutDelivery(saved)
+  );
+}
+
 export function rebaseRulesDraft(
   base: RulesFormDraft,
   draft: RulesFormDraft,

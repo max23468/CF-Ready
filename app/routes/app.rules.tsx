@@ -21,10 +21,12 @@ import { AutomaticLabelsConfirmModal } from "../features/rules/AutomaticLabelsCo
 import { CheckoutSimulator } from "../features/rules/CheckoutSimulator";
 import { CheckoutLabelsSection } from "../features/rules/CheckoutLabelsSection";
 import "../features/rules/RulesLayout.css";
+import { AbsentWithoutDeliverySection } from "../features/rules/AbsentWithoutDeliverySection";
 import {
   blocksAbsentWithoutDelivery,
   mergeRulesFormDraft,
   rebaseRulesDraft,
+  rulesDraftChanged,
   type RulesFormDraft,
 } from "../features/rules/rules-form";
 import { describeCheckout, resolveLocale, texts, validationStatus, type Locale } from "../i18n";
@@ -34,7 +36,6 @@ import { RevealBanner } from "../ui-feedback";
 import { createServerTiming } from "../server-timing.server";
 import {
   hasManagedField,
-  hasRequiredField,
   PEC_RULE_MODES,
   readConfig,
   showSavedBanner,
@@ -217,10 +218,7 @@ export default function CheckoutRules() {
     if (result?.ok && !labelsErrorCode) showToast(savedText);
   }, [result, labelsErrorCode, savedText]);
 
-  const dirty =
-    draft.rules.taxCode !== saved.rules.taxCode ||
-    draft.rules.pec !== saved.rules.pec ||
-    blocksAbsentWithoutDelivery(draft.rules) !== blocksAbsentWithoutDelivery(saved.rules);
+  const dirty = rulesDraftChanged(draft.rules, saved.rules);
   const { automaticConfirmationRequired, dirty: labelsDirty } = labelManagementSaveState(
     labelState,
     labelsEnabled,
@@ -436,25 +434,17 @@ export default function CheckoutRules() {
             onScopeGranted={() => labels.load(draft.rules)}
           />
         </div>
-        {hasRequiredField(draft.rules) ? (
-          <div className="rules-layout__absent">
-            <s-section heading={t.rules.absentWithoutDelivery.heading}>
-              <s-checkbox
-                label={t.rules.absentWithoutDelivery.label}
-                details={t.rules.absentWithoutDelivery.details}
-                checked={blocksAbsentWithoutDelivery(draft.rules)}
-                disabled={busy}
-                onChange={(event) => {
-                  const checked = event.currentTarget.checked;
-                  setChangedSinceResult(true);
-                  setDraft((current) => ({
-                    rules: { ...current.rules, blockAbsentWithoutDelivery: checked },
-                  }));
-                }}
-              />
-            </s-section>
-          </div>
-        ) : null}
+        <AbsentWithoutDeliverySection
+          locale={saved.locale}
+          rules={draft.rules}
+          busy={busy}
+          onChange={(checked) => {
+            setChangedSinceResult(true);
+            setDraft((current) => ({
+              rules: { ...current.rules, blockAbsentWithoutDelivery: checked },
+            }));
+          }}
+        />
       </div>
     </s-page>
   );
