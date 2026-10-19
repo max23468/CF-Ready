@@ -6,6 +6,19 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.4.5 — 19 ottobre 2026
+
+- la disdetta senza proratazione conserva l'accesso fino alla scadenza verificata
+  prima della cancellazione, anche quando Shopify restituisce una fine periodo
+  nulla; una nuova richiesta di piano in attesa, rifiutata o scaduta non
+  interrompe il periodo residuo, e la riconciliazione ripristina i conti già
+  sospesi per errore.
+
+Cancellation without proration preserves access until the previously verified
+period end when Shopify returns a null period end. A new plan request that is
+pending, declined or expired does not interrupt the remaining access period, and
+reconciliation restores accounts that were suspended by mistake.
+
 ## 2.4.4 — 19 ottobre 2026
 
 - aggiornati React, toolchain Node/npm, CLI Shopify e Cloudflare, strumenti di
