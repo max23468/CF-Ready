@@ -150,7 +150,14 @@ export async function writeValidationUnderLock(
       enabled,
       errorDisplay: DEFAULT_CONFIG.errorDisplay,
       entitlement,
-      rules: source.rules,
+      rules: {
+        taxCode: source.rules.taxCode,
+        pec: source.rules.pec,
+        // Chi salva solo le modalità dei campi, come la procedura guidata, non tocca D-192.
+        blockAbsentWithoutDelivery:
+          (source.rules.blockAbsentWithoutDelivery ??
+            existingConfig.rules.blockAbsentWithoutDelivery) === true,
+      },
       messages: source.messages,
     };
     const metafields = [

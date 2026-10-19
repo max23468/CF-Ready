@@ -93,7 +93,7 @@ To be shown in the listing in a visible section, not tucked at the end (brand
 | Mixed orders | included if at least one delivery is in Italy |
 | Shopify POS | **not supported** |
 | Recurring subscription generations | **not covered** |
-| Non-Italian stores | supported; rules apply with non-foreign billing and an Italian delivery, or only to present fields if no delivery country is available |
+| Non-Italian stores | supported; rules apply with non-foreign billing and an Italian delivery, or only to present fields if no delivery country is available, unless the option for orders without shipping is on |
 
 ## Pricing and trial
 

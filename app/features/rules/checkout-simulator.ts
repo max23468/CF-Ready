@@ -86,12 +86,12 @@ export function simulatorOutcome({
     countryCode ? [countryCode] : [],
   );
   if (deliveryCountries.length > 0 && !deliveryCountries.includes("IT")) return "notApplied";
-  const hasItalianDelivery = deliveryCountries.includes("IT");
-  if (!taxCodePresent && !pecPresent && !hasItalianDelivery) return "notApplied";
+  const absentFieldsBlock = absentFieldsBlockOrder(rules, deliveryGroups, billingCountry);
+  if (!taxCodePresent && !pecPresent && !absentFieldsBlock) return "notApplied";
   if (rules.taxCode === "unmanaged" && rules.pec === "unmanaged") return "noChecks";
 
   const checkRequiredEmpty = requiredFieldsAreDue(step, deliveryGroups);
-  const absentRequiredField = step === "CHECKOUT_COMPLETION" && hasItalianDelivery;
+  const absentRequiredField = absentRequiredFieldsDue(rules, step, deliveryGroups, billingCountry);
   const problems = [
     rules.taxCode === "unmanaged"
       ? null
@@ -122,6 +122,37 @@ export function simulatorOutcome({
     return "blocked";
   }
   return problems.includes("required") ? "editing" : "ready";
+}
+
+type SimulatorDeliveryGroups = readonly { countryCode?: string | null }[];
+
+// Stessa condizione della Function: D-028 con consegna italiana, D-192 senza Paese di consegna
+// e con fatturazione italiana quando il merchant ha attivato la spunta.
+function absentFieldsBlockOrder(
+  rules: Rules,
+  deliveryGroups: SimulatorDeliveryGroups,
+  billingCountry: string,
+) {
+  const deliveryCountries = deliveryGroups.flatMap(({ countryCode }) =>
+    countryCode ? [countryCode] : [],
+  );
+  return (
+    deliveryCountries.includes("IT") ||
+    (rules.blockAbsentWithoutDelivery === true &&
+      deliveryCountries.length === 0 &&
+      billingCountry === "IT")
+  );
+}
+
+export function absentRequiredFieldsDue(
+  rules: Rules,
+  step: "CHECKOUT_INTERACTION" | "CHECKOUT_COMPLETION",
+  deliveryGroups: SimulatorDeliveryGroups,
+  billingCountry: string,
+) {
+  return (
+    step === "CHECKOUT_COMPLETION" && absentFieldsBlockOrder(rules, deliveryGroups, billingCountry)
+  );
 }
 
 export function simulatorErrorMessage(

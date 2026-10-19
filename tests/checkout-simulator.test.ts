@@ -277,6 +277,49 @@ test("la riapplicazione conserva modifiche locali e regole remote non toccate", 
     rules: { ...base.rules, pec: "required_validated" },
   } as const;
   expect(rebaseRulesDraft(base, local, current)).toEqual({
-    rules: { taxCode: "required_validated", pec: "required_validated" },
+    rules: {
+      taxCode: "required_validated",
+      pec: "required_validated",
+      blockAbsentWithoutDelivery: false,
+    },
   });
+  expect(
+    rebaseRulesDraft(
+      base,
+      { rules: { ...base.rules, blockAbsentWithoutDelivery: true } },
+      { rules: { ...current.rules, blockAbsentWithoutDelivery: false } },
+    ).rules.blockAbsentWithoutDelivery,
+  ).toBe(true);
+  expect(
+    rebaseRulesDraft(base, base, {
+      rules: { ...current.rules, blockAbsentWithoutDelivery: true },
+    }).rules.blockAbsentWithoutDelivery,
+  ).toBe(true);
+  expect(
+    mergeRulesFormDraft(
+      { rules: { ...base.rules, blockAbsentWithoutDelivery: true } },
+      new FormData(),
+    ).rules.blockAbsentWithoutDelivery,
+  ).toBe(true);
+});
+
+test("D-192: il simulatore blocca i required assenti senza consegna solo con la spunta", () => {
+  const input = {
+    rules: { ...requiredTaxCode, blockAbsentWithoutDelivery: true },
+    billingCountry: "IT",
+    step: "CHECKOUT_COMPLETION" as const,
+    deliveryGroups: [] as Array<{ countryCode?: string }>,
+    taxCode: "",
+    pec: "",
+    taxCodePresent: false,
+    pecPresent: false,
+  };
+  expect(simulatorOutcome(input)).toBe("blocked");
+  expect(simulatorOutcome({ ...input, deliveryGroups: [{}] })).toBe("blocked");
+  expect(simulatorOutcome({ ...input, step: "CHECKOUT_INTERACTION" })).toBe("ready");
+  expect(simulatorOutcome({ ...input, billingCountry: "" })).toBe("notApplied");
+  expect(simulatorOutcome({ ...input, rules: requiredTaxCode })).toBe("notApplied");
+  expect(simulatorOutcome({ ...input, taxCodePresent: true, taxCode: "RSSMRA85T10A562S" })).toBe(
+    "ready",
+  );
 });
