@@ -77,6 +77,8 @@ corrente si legge da codice, configurazioni e `package.json`.
   — ricostruzione dei rami fail-open da input e output del Dev Dashboard.
 - [Manutenzione sicurezza](runbooks/security-maintenance.md) — audit periodici
   di repository, dipendenze e provider Development.
+- [Controlli ufficiali Shopify a ogni release](runbooks/shopify-release-security-checks.md)
+  — scansione locale, review del coding agent e prova del candidato.
 - [Changelog](../CHANGELOG.md) — versioni rilasciate e sintesi per milestone.
 - [README](../README.md) — setup e comandi correnti.
 - [Sicurezza](../SECURITY.md) — canale privato e disclosure coordinata.
