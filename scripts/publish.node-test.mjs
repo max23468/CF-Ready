@@ -758,28 +758,35 @@ const mode = process.env.FAIL_MODE;
 const value = (name) => args[args.indexOf(name) + 1];
 const marker = (name) => path.join(process.cwd(), "." + name);
 const print = (payload) => process.stdout.write(typeof payload === "string" ? payload : JSON.stringify(payload));
-const tooling = ["tooling", "bump-only"].includes(mode);
+const tooling = ["tooling", "bump-only", "resume", "pending"].includes(mode);
+// resume e pending: main porta già 1.2.4, ma sito e release di un ciclo interrotto mancano.
+const interrupted = ["resume", "pending"].includes(mode);
 const bumped = !["tooling", "no-bump"].includes(mode);
 if (command === "git") {
   if (joined === "rev-parse --git-common-dir") print(".git\\n");
   else if (joined === "rev-parse origin/develop") print("${developSha}\\n");
   else if (joined === "rev-parse origin/main") print("${oldMainSha}\\n");
-  else if (joined === "rev-parse ${oldMainSha}^{tree}") print(mode === "nothing" ? "tree\\n" : "old-tree\\n");
+  else if (joined === "rev-parse ${oldMainSha}^{tree}") print(["nothing", "pending"].includes(mode) ? "tree\\n" : "old-tree\\n");
+  else if (joined === "rev-parse ${deployedSha}:site") print(interrupted ? "old-site-tree\\n" : "site-tree\\n");
   else if (args[0] === "rev-parse" && joined.endsWith("^{tree}")) print("tree\\n");
   else if (args[0] === "rev-parse" && joined.endsWith(":site")) print("site-tree\\n");
   else if (joined === "show -s --format=%P ${oldMainSha}") print("${baseSha}\\n");
   else if (joined === "show -s --format=%P ${mainSha}") print("${oldMainSha} ${developSha}\\n");
-  else if (joined === "show ${oldMainSha}:package.json") print('{"version":"1.2.3"}\\n');
+  else if (joined === "show ${oldMainSha}:package.json") print(interrupted ? '{"version":"1.2.4"}\\n' : '{"version":"1.2.3"}\\n');
   else if (args[0] === "show") print(bumped ? '{"version":"1.2.4"}\\n' : '{"version":"1.2.3"}\\n');
+  else if (args[0] === "diff" && new Set(args.at(-1).split("...")).size === 1) print("");
   else if (args[0] === "diff") print(tooling ? "M\\0scripts/task.mjs\\0" : "M\\0app/root.tsx\\0");
   else if (joined === "ls-remote origin refs/heads/develop") print("${developSha}\\trefs/heads/develop\\n");
-  else if (joined === "ls-remote origin refs/heads/main") print("${mainSha}\\trefs/heads/main\\n");
+  else if (joined === "ls-remote origin refs/heads/main") print((mode === "pending" ? "${oldMainSha}" : "${mainSha}") + "\\trefs/heads/main\\n");
   else if (joined === "merge-base origin/main origin/develop") print("${oldMainSha}\\n");
   else if (args[0] !== "fetch" && args[0] !== "merge-base") process.exitCode = 2;
 } else if (command === "gh") {
   if (args[0] === "repo") print({ nameWithOwner: "owner/repository" });
-  else if (args[0] === "run" && args[1] === "list" && args.includes("--status")) {
+  else if (args[0] === "run" && args[1] === "list" && args.includes("--status") && value("--workflow") === "deploy-development.yml") {
     print([{ databaseId: 30, status: "completed", conclusion: "success", headSha: mode === "stale" ? "${deployedSha}" : "${developSha}", url: "https://github.test/run" }]);
+  } else if (args[0] === "run" && args[1] === "list" && args.includes("--status")) {
+    const headSha = interrupted && value("--workflow") === "deploy-pages-production.yml" ? "${deployedSha}" : "${oldMainSha}";
+    print([{ databaseId: 31, status: "completed", conclusion: "success", headSha, url: "https://github.test/run" }]);
   } else if (args[0] === "run" && args[1] === "list") {
     const workflow = value("--workflow");
     print(existsSync(marker("run-" + workflow)) ? [{ databaseId: 40, status: "completed", conclusion: "success", headSha: value("--commit"), url: "https://github.test/run" }] : []);
@@ -804,7 +811,7 @@ if (command === "git") {
     print({ number: 11, state: merged ? "MERGED" : "OPEN", headRefOid: "${developSha}", mergeCommit: merged ? { oid: "${mainSha}" } : null, url: "https://github.test/pr/11" });
   } else if (args[0] === "pr" && args[1] === "merge") writeFileSync(marker("merged"), "ok");
   else if (args[0] === "release" && args[1] === "view") {
-    if (existsSync(marker("release"))) print({ tagName: args[2], url: "https://github.test/release" });
+    if (existsSync(marker("release")) || args[2] === "v1.2.3") print({ tagName: args[2], url: "https://github.test/release" });
     else process.exitCode = 1;
   } else if (args[0] === "release" && args[1] === "create") writeFileSync(marker("release"), args[2]);
   else process.exitCode = 2;
@@ -868,10 +875,28 @@ if (command === "git") {
   assert.equal(tooling.read("run-deploy-production.yml"), undefined);
   assert.equal(tooling.read("release"), undefined);
 
+  // 20 ottobre 2026: il Pages della 2.5.0 era fallito e la ripresa promuoveva solo tooling.
+  const resume = promote("resume");
+  assert.equal(resume.status, 0, resume.stderr);
+  assert.equal(resume.read("title"), "chore: promuovi CF Ready 1.2.4 senza deploy");
+  assert.equal(resume.read("run-deploy-production.yml"), undefined);
+  assert.match(resume.stdout, /deploy-pages-production\.yml: avviato/);
+  assert.equal(resume.read("release"), "v1.2.4");
+
+  const pending = promote("pending");
+  assert.equal(pending.status, 0, pending.stderr);
+  assert.match(pending.stdout, /Niente da promuovere/);
+  assert.equal(pending.read("title"), undefined);
+  assert.equal(pending.read("run-deploy-production.yml"), undefined);
+  assert.match(pending.stdout, /deploy-pages-production\.yml: avviato/);
+  assert.equal(pending.read("release"), "v1.2.4");
+
   const nothing = promote("nothing");
   assert.equal(nothing.status, 0, nothing.stderr);
   assert.match(nothing.stdout, /Niente da promuovere/);
   assert.equal(nothing.read("title"), undefined);
+  assert.equal(nothing.read("run-deploy-pages-production.yml"), undefined);
+  assert.equal(nothing.read("release"), undefined);
 
   for (const [mode, message] of [
     ["no-bump", /resta 1\.2\.3: prepara il bump/],
