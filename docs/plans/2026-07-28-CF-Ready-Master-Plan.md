@@ -4438,7 +4438,9 @@ Fornire:
 ### 24.8 Audit pre-submission
 
 - App Store requirements correnti;
-- toolkit/audit ufficiale Shopify;
+- [controlli ufficiali Shopify](../runbooks/shopify-release-security-checks.md),
+  con scansione deterministica, review del coding agent e prova sul candidato;
+  ripeterli a ogni release Development e Production, oltre alla submission;
 - GraphQL Admin API;
 - scope minimi;
 - webhook privacy;
