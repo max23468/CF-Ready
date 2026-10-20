@@ -12,11 +12,18 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   dalla pubblicazione, tramite Dependabot per npm e GitHub Actions e tramite
   la configurazione npm locale. Le vulnerabilità note si correggono senza
   attendere, con un'eccezione npm temporanea limitata al pacchetto necessario.
+- la Home accetta richieste di navigazione e apertura dei piani soltanto dalla
+  finestra onboarding aperta, verificando anche la finestra mittente oltre
+  all'origine e al contenuto del messaggio.
 
 Routine dependency updates wait at least seven days after publication, through
 Dependabot for npm and GitHub Actions and through the local npm configuration.
 Known vulnerabilities are fixed promptly, using a temporary npm exception limited
 to the affected package when needed.
+
+The Home page accepts navigation and plan comparison requests only from the open
+onboarding window, checking the sender window as well as the message origin and
+content.
 
 ## 2.5.1 — 20 ottobre 2026
 

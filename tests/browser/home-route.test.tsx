@@ -358,15 +358,35 @@ describe("Home merchant", () => {
 
     const appWindow = view.container.querySelector("s-app-window") as HTMLElement & {
       hide: () => Promise<void>;
+      contentWindow: Window | null;
     };
+    const onboardingFrame = document.createElement("iframe");
+    view.container.append(onboardingFrame);
+    appWindow.contentWindow = onboardingFrame.contentWindow;
     appWindow.hide = vi.fn(async () => undefined);
     const plans = view.container.querySelector("#plans") as HTMLElement;
     plans.scrollIntoView = vi.fn();
+    await act(async () => {
+      for (const source of [null, window]) {
+        for (const data of [
+          { type: "cf-ready:show-plans" },
+          { type: "cf-ready:navigate-from-app-window", href: "/app/rules" },
+        ]) {
+          window.dispatchEvent(
+            new MessageEvent("message", { origin: window.location.origin, source, data }),
+          );
+        }
+      }
+      await Promise.resolve();
+    });
+    expect(appWindow.hide).not.toHaveBeenCalled();
+    expect(router.navigate).not.toHaveBeenCalled();
     await act(async () => {
       window.dispatchEvent(
         new MessageEvent("message", {
           origin: window.location.origin,
           data: { type: "cf-ready:show-plans" },
+          source: onboardingFrame.contentWindow,
         }),
       );
       await Promise.resolve();
@@ -378,6 +398,7 @@ describe("Home merchant", () => {
         new MessageEvent("message", {
           origin: window.location.origin,
           data: { type: "cf-ready:navigate-from-app-window", href: "/app/rules" },
+          source: onboardingFrame.contentWindow,
         }),
       );
       await Promise.resolve();
