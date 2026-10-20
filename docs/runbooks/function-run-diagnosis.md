@@ -151,7 +151,7 @@ appartenga al ramo ricostruito.
 | `localization.language.isoCode` è `IT`                        | Messaggi presi da `messages.it`.                                                         |
 | Qualunque altra lingua                                        | Messaggi presi da `messages.en`.                                                         |
 | Step `CHECKOUT_INTERACTION` e campo presente                  | Target `$.cart.localizedField.TAX_CREDENTIAL_IT` o `$.cart.localizedField.TAX_EMAIL_IT`. |
-| Step `CHECKOUT_COMPLETION` e campo presente                   | Target `$.cart.localizedField.TAX_CREDENTIAL_IT` o `$.cart.localizedField.TAX_EMAIL_IT`. |
+| Step `CHECKOUT_COMPLETION` e campo presente                   | Target `$.cart.localizedField.TAX_CREDENTIAL_IT` o `$.cart.localizedField.TAX_EMAIL_IT`, ripetuto con lo stesso messaggio in `$.cart` (D-193). |
 | Step `CHECKOUT_COMPLETION`, consegna italiana e campo assente | Target `$.cart`.                                                                         |
 
 ## Fail-open inatteso e replay locale
