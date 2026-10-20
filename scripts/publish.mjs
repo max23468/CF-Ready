@@ -667,21 +667,50 @@ function startRecord(name, fields) {
 
 // Development resta verificato finché dopo l'ultimo deploy riuscito non cambia una
 // superficie distribuita: la promozione di un lotto riusa quella ricevuta.
-async function developmentEvidence(developSha, repositoryName) {
-  const [latest] = json("gh", [
+function lastSuccessfulRun(workflow, branch) {
+  return json("gh", [
     "run",
     "list",
     "--workflow",
-    "deploy-development.yml",
+    workflow,
     "--branch",
-    "develop",
+    branch,
     "--status",
     "success",
     "--limit",
     "1",
     "--json",
     "databaseId,status,conclusion,headSha,url",
-  ]);
+  ])[0];
+}
+
+function releaseExists(version) {
+  return (
+    execute("gh", ["release", "view", `v${version}`, "--json", "tagName"], { allowFailure: true })
+      .status === 0
+  );
+}
+
+// Il piano confronta main col merge precedente; una promozione interrotta lascia però deploy,
+// sito o release mai completati su un commit già unito. Si riprendono confrontando main con
+// l'ultimo run riuscito di ogni workflow e con le release esistenti.
+function withPendingProductionWork(plan, mainSha) {
+  const production = plan.deploy ? undefined : lastSuccessfulRun("deploy-production.yml", "main");
+  const pages = plan.site ? undefined : lastSuccessfulRun("deploy-pages-production.yml", "main");
+  return {
+    ...plan,
+    deploy:
+      plan.deploy ||
+      !production ||
+      (production.headSha !== mainSha && surfaceBetween(production.headSha, mainSha).deploy),
+    site:
+      plan.site || !pages || gitPathTree(pages.headSha, "site") !== gitPathTree(mainSha, "site"),
+    release: plan.release || !releaseExists(plan.version),
+  };
+}
+
+async function developmentEvidence(developSha, repositoryName) {
+  const latest = lastSuccessfulRun("deploy-development.yml", "develop");
   if (
     latest &&
     (latest.headSha === developSha ||
@@ -707,7 +736,18 @@ async function promoteProduction({ developSha, record, measured, repositoryName 
   const planned = promotionPlan(previousMain, candidateSha);
   if (!planned) {
     console.log(`Niente da promuovere: main contiene già il tree di ${candidateSha}.`);
-    return { mainSha: previousMain };
+    const idle = { version: versionAt(previousMain), deploy: false, release: false, site: false };
+    const pending = withPendingProductionWork(idle, previousMain);
+    if (!pending.deploy && !pending.site && !pending.release) return { mainSha: previousMain };
+    console.log("Riprendo le superfici Production non completate su main.");
+    record.mainSha = previousMain;
+    return completeProduction({
+      mainSha: previousMain,
+      plan: pending,
+      record,
+      measured,
+      repositoryName,
+    });
   }
   const promotionPr = await measured("Promozione e merge Production", () =>
     ensurePullRequest({
@@ -724,7 +764,11 @@ async function promoteProduction({ developSha, record, measured, repositoryName 
   const mainSha = promotionPr.mergeCommit.oid;
   record.mainSha = mainSha;
   verifyPromotionCommit(mainSha, candidateSha);
-  const plan = promotionPlan(parentsOf(mainSha)[0], mainSha);
+  const plan = withPendingProductionWork(promotionPlan(parentsOf(mainSha)[0], mainSha), mainSha);
+  return completeProduction({ mainSha, plan, record, measured, repositoryName });
+}
+
+async function completeProduction({ mainSha, plan, record, measured, repositoryName }) {
   record.plan = plan;
   if (plan.deploy) {
     const productionRun = await measured("Deploy e readback Production", () =>
