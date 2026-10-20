@@ -3,8 +3,17 @@ export const APP_WINDOW_NAVIGATION_MESSAGE_TYPE = "cf-ready:navigate-from-app-wi
 const APP_ROUTE = /^\/app(?:\/|$)/;
 
 type AppWindowFrame = Pick<Window, "location" | "opener">;
-type NavigationMessage = Pick<MessageEvent, "data" | "origin">;
+type NavigationMessage = Pick<MessageEvent, "data" | "origin" | "source">;
 type NavigationActions = { hideWindow(): Promise<void>; navigate(href: string): void };
+
+export function appWindowSource(document: Pick<Document, "getElementById">, id: string) {
+  // Shopify espone il frame della finestra aperta tramite contentWindow.
+  // Il parent dell'iframe è l'Admin, non la finestra che invia questi messaggi.
+  const appWindow = document.getElementById(id) as
+    | (HTMLElement & { readonly contentWindow?: Window | null })
+    | null;
+  return appWindow?.contentWindow ?? null;
+}
 
 export function requestAppWindowNavigation(
   frame: AppWindowFrame,
@@ -23,8 +32,14 @@ export function requestAppWindowNavigation(
   return "opener" as const;
 }
 
-export function isAppWindowNavigation(event: NavigationMessage, expectedOrigin: string) {
+export function isAppWindowNavigation(
+  event: NavigationMessage,
+  expectedOrigin: string,
+  expectedSource: Window | null,
+) {
   return (
+    expectedSource !== null &&
+    event.source === expectedSource &&
     event.origin === expectedOrigin &&
     typeof event.data === "object" &&
     event.data !== null &&
@@ -40,8 +55,9 @@ export async function handleAppWindowNavigation(
   event: NavigationMessage,
   expectedOrigin: string,
   actions: NavigationActions,
+  expectedSource: Window | null,
 ) {
-  if (!isAppWindowNavigation(event, expectedOrigin)) return false;
+  if (!isAppWindowNavigation(event, expectedOrigin, expectedSource)) return false;
   await actions.hideWindow();
   actions.navigate(event.data.href);
   return true;

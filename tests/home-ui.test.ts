@@ -14,6 +14,29 @@ import {
   requestPlanComparisonFromFrame,
 } from "../app/features/home/plan-comparison";
 import { DeactivateModal } from "../app/features/home/HomeSections";
+
+test.each([
+  { source: null, expectedSource: {} as Window },
+  { source: {} as Window, expectedSource: {} as Window },
+  { source: null, expectedSource: null },
+  { source: {} as Window, expectedSource: null },
+])(
+  "rifiuta richieste piani da una finestra diversa dall'onboarding (%s)",
+  async ({ source, expectedSource }) => {
+    const hideWindow = vi.fn(async () => undefined);
+    const showPlans = vi.fn();
+    expect(
+      await handlePlanComparisonRequest(
+        { origin: "https://app.example", source, data: { type: PLAN_COMPARISON_MESSAGE_TYPE } },
+        "https://app.example",
+        { hideWindow, showPlans },
+        expectedSource,
+      ),
+    ).toBe(false);
+    expect(hideWindow).not.toHaveBeenCalled();
+    expect(showPlans).not.toHaveBeenCalled();
+  },
+);
 import { homeNextStep, homeValidationPresentation } from "../app/features/home/home-next-step";
 import { PlanStatus } from "../app/features/home/PlanStatus";
 import { onboardingStep4State } from "../app/features/onboarding/step4-state";
@@ -700,22 +723,27 @@ test("il confronto piani comunica con la Home senza navigare il frame della moda
   expect(directFallback).toHaveBeenCalledOnce();
   expect(isPlanComparisonLocationState(planComparisonLocationState())).toBe(true);
   expect(isPlanComparisonLocationState(null)).toBe(false);
+  const onboardingSource = {} as Window;
   expect(
     isPlanComparisonRequest(
       {
         origin: "https://app.example",
+        source: onboardingSource,
         data: { type: PLAN_COMPARISON_MESSAGE_TYPE },
       } as MessageEvent,
       "https://app.example",
+      onboardingSource,
     ),
   ).toBe(true);
   expect(
     isPlanComparisonRequest(
       {
         origin: "https://other.example",
+        source: onboardingSource,
         data: { type: PLAN_COMPARISON_MESSAGE_TYPE },
       } as MessageEvent,
       "https://app.example",
+      onboardingSource,
     ),
   ).toBe(false);
 
@@ -728,6 +756,7 @@ test("il confronto piani comunica con la Home senza navigare il frame della moda
     await handlePlanComparisonRequest(
       {
         origin: "https://app.example",
+        source: onboardingSource,
         data: { type: PLAN_COMPARISON_MESSAGE_TYPE },
       } as MessageEvent,
       "https://app.example",
@@ -738,6 +767,7 @@ test("il confronto piani comunica con la Home senza navigare il frame della moda
           showPlanSection();
         },
       },
+      onboardingSource,
     ),
   ).toBe(true);
   expect(hideWindow).toHaveBeenCalledOnce();
