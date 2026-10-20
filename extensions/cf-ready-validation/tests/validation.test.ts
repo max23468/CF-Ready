@@ -85,8 +85,24 @@ function input(
   } as CartValidationsGenerateRunInput;
 }
 
-function errors(value: CartValidationsGenerateRunInput) {
+function allErrors(value: CartValidationsGenerateRunInput) {
   return cartValidationsGenerateRun(value).operations[0].validationAdd!.errors;
+}
+
+// D-193: a Completion la Function ripete in `$.cart` i messaggi dei campi. I test delle regole
+// verificano gli errori per campo; il riepilogo ha un test dedicato.
+function errors(value: CartValidationsGenerateRunInput) {
+  const all = allErrors(value);
+  const fieldMessages = all
+    .filter(({ target }) => target !== "$.cart")
+    .map(({ message }) => message);
+  return all.filter(({ message, target }) => {
+    if (target !== "$.cart") return true;
+    const index = fieldMessages.indexOf(message);
+    if (index === -1) return true;
+    fieldMessages.splice(index, 1);
+    return false;
+  });
 }
 
 describe("Codice Fiscale", () => {
@@ -407,6 +423,32 @@ describe("applicabilità e fail-open", () => {
         }),
       ),
     ).toEqual([]);
+  });
+
+  it("D-193: a Completion ripete in alto gli errori dei campi, a Interaction no", () => {
+    const fields = [
+      { key: "TAX_CREDENTIAL_IT", value: "" },
+      { key: "TAX_EMAIL_IT", value: "non valida" },
+    ];
+    expect(allErrors(input({ fields }))).toEqual([
+      { message: "CF richiesto", target: "$.cart.localizedField.TAX_CREDENTIAL_IT" },
+      {
+        message: "PEC non valida Scrivi l’indirizzo senza spazi.",
+        target: "$.cart.localizedField.TAX_EMAIL_IT",
+      },
+      { message: "CF richiesto", target: "$.cart" },
+      { message: "PEC non valida Scrivi l’indirizzo senza spazi.", target: "$.cart" },
+    ]);
+    // Un campo assente ha già solo l'errore globale: non si duplica.
+    expect(allErrors(input({ fields: [] }))).toEqual([
+      { message: "CF richiesto", target: "$.cart" },
+      { message: "PEC richiesta", target: "$.cart" },
+    ]);
+    expect(
+      allErrors(input({ fields, step: "CHECKOUT_INTERACTION", deliveries: [] })).map(
+        ({ target }) => target,
+      ),
+    ).toEqual(["$.cart.localizedField.TAX_EMAIL_IT"]);
   });
 
   describe("D-192: campi assenti senza consegna", () => {

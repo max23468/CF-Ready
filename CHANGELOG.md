@@ -6,6 +6,18 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.5.1 — 20 ottobre 2026
+
+- al momento del pagamento il checkout mostra in alto anche la causa del blocco,
+  con lo stesso messaggio del campo Codice Fiscale o PEC (D-193). Dopo un
+  pagamento esterno come PayPal Shopify mostrava in alto soltanto un avviso
+  generico e il messaggio di CF Ready restava visibile solo scorrendo.
+
+When the customer pays, checkout also shows the reason for the block at the top,
+with the same message as the tax code or PEC field. After an external payment such
+as PayPal, Shopify only showed a generic notice at the top and the CF Ready message
+was visible only by scrolling.
+
 ## 2.5.0 — 20 ottobre 2026
 
 - Regole checkout aggiunge, sotto le etichette, l'opzione “Blocca anche quando

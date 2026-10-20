@@ -222,7 +222,15 @@ export function cartValidationsGenerateRun(
       (message, value) => invalidPecMessage(message, value, language),
     );
 
-    return { operations: [{ validationAdd: { errors } }] };
+    // D-193: dopo un pagamento esterno come PayPal Shopify mostra in alto solo un avviso
+    // generico. A Completion la causa si ripete anche come errore globale, visibile subito.
+    const summary =
+      step === "CHECKOUT_COMPLETION"
+        ? errors
+            .filter(({ target }) => target !== "$.cart")
+            .map(({ message }) => ({ message, target: "$.cart" }))
+        : [];
+    return { operations: [{ validationAdd: { errors: [...errors, ...summary] } }] };
   } catch {
     return allow;
   }
