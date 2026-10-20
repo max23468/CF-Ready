@@ -109,11 +109,15 @@ repository. Non usare `--force` o `--legacy-peer-deps`.
 
 ## Gestione di un fallimento
 
+Se emergono indizi di compromissione o credenziali esposte, seguire subito
+[Risposta a un sospetto incidente di sicurezza](security-incident-response.md),
+senza attendere la conferma dell'abuso.
+
 1. aprire il run e identificare il primo controllo fallito senza copiare
    credenziali o output sensibili;
 2. verificare l'alert o lo stato direttamente nel provider;
 3. correggere tramite PR ordinaria verso `develop` con test e audit completi;
-4. ruotare subito le credenziali soltanto se risultano compromesse;
+4. per credenziali esposte o sospette compromissioni, passare al runbook incidenti;
 5. pubblicare Development e ripetere il workflow manuale.
 
 Se `ci-policy` fallisce, si corregge l'errore che ha impedito allo script
