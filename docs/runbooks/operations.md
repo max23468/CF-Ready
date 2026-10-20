@@ -584,6 +584,11 @@ npm run promote:production    # Promuovi, da qualsiasi checkout
 npm run publish:production    # Pubblica in Production, i due passi insieme
 ```
 
+Prima di ogni release completare i
+[controlli ufficiali Shopify e la prova del candidato](shopify-release-security-checks.md).
+La review del coding agent è un passaggio operativo: i gate CI e il coordinatore
+non ne attestano automaticamente l'esecuzione.
+
 Durante lo sviluppo eseguire test mirati; per la verifica finale locale usare
 `npm run verify:change`. Il comando include modifiche locali e nuovi sorgenti
 non tracciati nel diff ed esegue lo stesso gate locale del coordinatore:
