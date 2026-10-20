@@ -76,6 +76,10 @@
               {
                 "message": "Inserisci il Codice Fiscale per completare l’ordine.",
                 "target": "$.cart.localizedField.TAX_CREDENTIAL_IT"
+              },
+              {
+                "message": "Inserisci il Codice Fiscale per completare l’ordine.",
+                "target": "$.cart"
               }
             ]
           }
