@@ -2,7 +2,7 @@ export const PLAN_COMPARISON_MESSAGE_TYPE = "cf-ready:show-plans";
 export const PLAN_COMPARISON_LOCATION_STATE = "cf-ready:show-plans";
 
 type MessageTarget = Pick<Window, "postMessage">;
-type PlanComparisonMessage = Pick<MessageEvent, "data" | "origin">;
+type PlanComparisonMessage = Pick<MessageEvent, "data" | "origin" | "source">;
 type PlanComparisonActions = { hideWindow(): Promise<void>; showPlans(): void };
 type PlanComparisonFrame = Pick<Window, "location" | "opener">;
 type AppWindowElement = HTMLElement & { hide(): Promise<void> };
@@ -46,8 +46,14 @@ export function requestPlanComparisonFromFrame(frame: PlanComparisonFrame, fallb
   return "fallback" as const;
 }
 
-export function isPlanComparisonRequest(event: PlanComparisonMessage, expectedOrigin: string) {
+export function isPlanComparisonRequest(
+  event: PlanComparisonMessage,
+  expectedOrigin: string,
+  expectedSource: Window | null,
+) {
   return (
+    expectedSource !== null &&
+    event.source === expectedSource &&
     event.origin === expectedOrigin &&
     typeof event.data === "object" &&
     event.data !== null &&
@@ -60,8 +66,9 @@ export async function handlePlanComparisonRequest(
   event: PlanComparisonMessage,
   expectedOrigin: string,
   actions: PlanComparisonActions,
+  expectedSource: Window | null,
 ) {
-  if (!isPlanComparisonRequest(event, expectedOrigin)) return false;
+  if (!isPlanComparisonRequest(event, expectedOrigin, expectedSource)) return false;
   await actions.hideWindow();
   actions.showPlans();
   return true;

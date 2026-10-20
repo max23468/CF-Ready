@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useFetcher, useLoaderData, useLocation, useNavigate, useRevalidator } from "react-router";
 import type { AppErrorCode } from "../../app-error";
+import { appWindowSource } from "../../app-window-navigation";
 import { texts } from "../../i18n";
 import { openBillingApproval } from "../../revalidation";
 import { showToast } from "../../save-bar";
@@ -55,10 +56,15 @@ export default function HomePage() {
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      void handlePlanComparisonRequest(event, window.location.origin, {
-        hideWindow: async () => void (await hideAppWindow(document, ONBOARDING_WINDOW_ID)),
-        showPlans: () => requestAnimationFrame(showPlans),
-      });
+      void handlePlanComparisonRequest(
+        event,
+        window.location.origin,
+        {
+          hideWindow: async () => void (await hideAppWindow(document, ONBOARDING_WINDOW_ID)),
+          showPlans: () => requestAnimationFrame(showPlans),
+        },
+        appWindowSource(document, ONBOARDING_WINDOW_ID),
+      );
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
