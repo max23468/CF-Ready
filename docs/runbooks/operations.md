@@ -630,7 +630,11 @@ parent del merge, avvia soltanto ciò che è cambiato: deploy e readback di Work
 e Shopify, Pages Production per `site/`. Dopo un deploy verifica la
 riconciliazione di `develop`; una promozione di solo tooling o documentazione
 non avvia deploy né release e lascia il collegamento a `no-deploy-promotion`
-della promozione successiva. Una nuova versione produce la GitHub Release dopo
+della promozione successiva. Il confronto col merge precedente non basta dopo un ciclo
+interrotto: il coordinatore confronta anche `main` con l'ultimo run riuscito di
+`deploy-production.yml` e `deploy-pages-production.yml` e con le release
+esistenti, e riprende deploy, sito o release mancanti anche quando `main`
+contiene già il tree di `develop`. Una nuova versione produce la GitHub Release dopo
 che tutte le superfici applicabili hanno concluso sullo stesso commit.
 
 La politica di versione (`scripts/version-policy.mjs`) gira nel job `verify`
