@@ -6,6 +6,18 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.5.2 — 20 ottobre 2026
+
+- gli aggiornamenti ordinari delle dipendenze attendono almeno sette giorni
+  dalla pubblicazione, tramite Dependabot per npm e GitHub Actions e tramite
+  la configurazione npm locale. Le vulnerabilità note si correggono senza
+  attendere, con un'eccezione npm temporanea limitata al pacchetto necessario.
+
+Routine dependency updates wait at least seven days after publication, through
+Dependabot for npm and GitHub Actions and through the local npm configuration.
+Known vulnerabilities are fixed promptly, using a temporary npm exception limited
+to the affected package when needed.
+
 ## 2.5.1 — 20 ottobre 2026
 
 - al momento del pagamento il checkout mostra in alto anche la causa del blocco,

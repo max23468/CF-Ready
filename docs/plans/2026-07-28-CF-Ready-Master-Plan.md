@@ -3552,7 +3552,13 @@ Usare la più recente versione stabile compatibile dell’intera matrice Shopify
 - ultima patch della major supportata;
 - aggiornamenti Shopify, React Router, Cloudflare e Function solo con test completi;
 - revisione trimestrale allineata alle API Shopify;
-- Dependabot settimanale;
+- Dependabot settimanale con `cooldown.default-days: 7` per npm e GitHub Actions;
+  anche gli aggiornamenti npm manuali rispettano `min-release-age=7` in `.npmrc`;
+- correggere tempestivamente le vulnerabilità note: Dependabot non applica il
+  cooldown agli aggiornamenti di sicurezza; per npm, dopo revisione della
+  correzione, usare `--min-release-age-exclude=nome-pacchetto` nel solo comando
+  necessario, senza esclusioni permanenti. Le dipendenze del pacchetto escluso
+  mantengono l'attesa;
 - auto-merge verso `develop` delle sole PR Dependabot minor/patch dopo i gate
   verdi; major e promozioni verso `main` restano manuali.
 

@@ -8,6 +8,9 @@ updates:
       day: monday
       time: "06:00"
       timezone: Europe/Rome
+    # Attesa per le versioni ordinarie; gli aggiornamenti di sicurezza restano tempestivi.
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(deps)"
@@ -52,6 +55,8 @@ updates:
       day: monday
       time: "06:30"
       timezone: Europe/Rome
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     commit-message:
       prefix: "ci(deps)"
