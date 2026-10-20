@@ -12,8 +12,8 @@ provider senza introdurre una seconda corsia di deploy.
   Il confronto ignora formattazione, ordinamento equivalente, descrizioni e
   annotazioni `@deprecated`; cambiamenti a campi, tipi, valori enum, default e
   altre direttive continuano a far fallire il controllo;
-- ogni mese: audit npm senza eccezioni, firme del registry, documenti,
-  ruleset GitHub pubblici, alert Dependabot/CodeQL/Secret Scanning e ultimo
+- ogni mese: audit npm con le eccezioni temporanee D-175 descritte sotto, firme
+  del registry, documenti, ruleset GitHub pubblici, alert Dependabot/CodeQL/Secret Scanning e ultimo
   esito di ogni workflow attivo;
 - ogni trimestre: identità e accessi Shopify/Cloudflare Development, stato
   coordinato della versione attiva, D1, secret Worker e smoke HTTP.
@@ -84,9 +84,23 @@ riallineamento senza modificare provider o contenuto del branch.
 ## Dipendenze npm
 
 Il repository usa npm 12 e il relativo lockfile v4. React Router `8.3.0`
-risolve `GHSA-qwww-vcr4-c8h2`; `npm audit` e `dependency-review` non ammettono
-eccezioni. Finché Shopify non amplia la propria peer dependency, il manifest
-root corregge soltanto quel metadato con `packageExtensions`.
+risolve `GHSA-qwww-vcr4-c8h2`. Finché Shopify non amplia la propria peer
+dependency, il manifest root corregge soltanto quel metadato con
+`packageExtensions`.
+
+Il controllo `npm run audit:security` e la scansione `npm run audit:security-scan`
+usata dai gate CI applicano `scripts/security-audit.mjs` al report di
+`npm audit --json`. Secondo D-175 nel
+[Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md), sono ammessi soltanto
+`GHSA-vfj7-8cjw-p6xm` di `braces` e `GHSA-hp3w-g68c-fv3c` di `sprintf-js`,
+entrambi fino al 31 ottobre 2026 incluso. Ogni altro avviso, o uno dei due dopo
+la scadenza, blocca il controllo locale e CI. Le eccezioni si rimuovono alla
+scadenza o quando diventa disponibile una correzione a monte; il comando
+`npm audit` eseguito direttamente non applica queste eccezioni.
+
+`dependency-review` è un controllo separato delle PR: quando applicabile al
+diff, `.github/workflows/ci.yml` esegue `actions/dependency-review-action`
+senza eccezioni configurate. Non usa la lista D-175 dello script di audit.
 
 GitHub documenta Dependabot fino a npm 11. Alert e security update restano
 attivi, ma ogni PR che non riesca ad aggiornare il lockfile v4 va sostituita da
