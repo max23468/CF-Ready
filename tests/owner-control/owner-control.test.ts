@@ -1,16 +1,16 @@
 import { describe, expect, test } from "vitest";
 
-import { callbackData, parseCallback, parseCommand } from "../app/owner-control/model";
+import { callbackData, parseCallback, parseCommand } from "../../app/owner-control/model";
 
-import { parseOwnerControlUpdate } from "../app/owner-control/update.server";
-import { parseFunnel } from "../app/reporting/funnel";
+import { parseOwnerControlUpdate } from "../../app/owner-control/update.server";
+import { parseFunnel } from "../../app/reporting/funnel";
 import {
   comparePerformanceVersions,
   parsePerformanceRows,
   parsePerformanceTimings,
-} from "../app/reporting/performance";
+} from "../../app/reporting/performance";
 
-import { CHAT_ID, OWNER_ID, messageUpdate, callbackUpdate } from "./support/owner-control";
+import { CHAT_ID, OWNER_ID, messageUpdate, callbackUpdate } from "../support/owner-control";
 
 describe("parser Control Center", () => {
   test("accetta comandi, argomenti e filtri in allowlist", () => {

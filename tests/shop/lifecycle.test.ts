@@ -11,8 +11,12 @@ import {
 } from "../../app/shop.server";
 import { localDate, trialEnd } from "../../app/billing.server";
 import { reconcile } from "../../app/validation.server";
-import { claimWebhook, handleWebhook, type WebhookJob } from "../../app/webhook-ingress.server";
-import { runClaimedWebhook } from "../../app/webhooks.server";
+import {
+  claimWebhook,
+  handleWebhook,
+  type WebhookJob,
+} from "../../app/webhooks/webhook-ingress.server";
+import { runClaimedWebhook } from "../../app/webhooks/webhooks.server";
 import {
   webhookQueue,
   insertShop,

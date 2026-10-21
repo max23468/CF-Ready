@@ -26,10 +26,10 @@ vi.mock("react-router", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-router")>()),
   createRequestHandler: vi.fn(() => mocks.requestHandler),
 }));
-vi.mock("../app/webhooks.server", () => ({
+vi.mock("../app/webhooks/webhooks.server", () => ({
   consumeWebhookMessage: mocks.consumeWebhookMessage,
 }));
-vi.mock("../app/webhook-jobs.server", () => ({
+vi.mock("../app/webhooks/webhook-jobs.server", () => ({
   processWebhookJob: mocks.processWebhookJob,
 }));
 vi.mock("../app/shop.server", () => ({ applyRetention: mocks.applyRetention }));
@@ -58,7 +58,7 @@ vi.mock("../app/owner-control/menu.server", () => ({
 vi.mock("../app/owner-control/handler.server", () => ({
   handleOwnerControlWebhook: mocks.handleOwnerControlWebhook,
 }));
-vi.mock("../app/webhook-request.server", () => ({
+vi.mock("../app/webhooks/webhook-request.server", () => ({
   WEBHOOK_PATHS: new Set(["/webhooks/shop/update"]),
   handleWebhookRequest: mocks.handleWebhookRequest,
 }));
