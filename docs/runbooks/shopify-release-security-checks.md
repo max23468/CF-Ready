@@ -30,9 +30,11 @@ non attesta l'esecuzione di questa procedura.
 
 ## Esecuzione su un candidato autorizzato
 
-Questi passaggi avviano una nuova scansione e richiedono un incarico che la
-autorizzi. L'incarico del 20 ottobre per predisporre questa procedura non la
-autorizza e non produce una prova di scansione.
+Una richiesta di pubblicazione o promozione autorizza anche questi controlli
+locali obbligatori e la review dell'agente corrente, senza conferma aggiuntiva.
+Restano soggetti ad autorizzazione specifica nuovi provider e invio del codice
+a servizi esterni. La sola manutenzione di questa procedura non avvia né
+attesta una scansione.
 
 1. Preparare un checkout isolato del candidato pulito e registrare SHA,
    versione, ambiente e configurazione selezionata. Verificare le versioni
