@@ -26,49 +26,41 @@ export async function readEuroExchangeRate(
       age < 7 * 24 * 60 * 60 * 1000
     );
   };
-  const cached = await readOwnerControlState<EuroExchangeRate>(db, "ecb_usd_eur_v1");
+  const cached = await readOwnerControlState<EuroExchangeRate>(db, "exchange_rate_eur_usd_v1");
   const cacheAge = cached ? now.getTime() - Date.parse(cached.updatedAt) : Infinity;
   if (cached && valid(cached.value) && cacheAge >= 0 && cacheAge < 60 * 60 * 1000) {
     return cached.value;
   }
   try {
     const response = await (options.fetcher ?? fetch)(
-      "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
-      { signal: AbortSignal.timeout(5000), redirect: "error" },
+      "https://api.frankfurter.dev/v2/rate/eur/usd",
+      { signal: AbortSignal.timeout(5000), redirect: "manual" },
     );
-    if (!response.ok || !response.body) throw new Error("ecb_rate_unavailable");
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let xml = "";
-    let bytes = 0;
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        bytes += value.byteLength;
-        if (bytes > 32_768) throw new Error("ecb_rate_invalid");
-        xml += decoder.decode(value, { stream: true });
-      }
-      xml += decoder.decode();
-    } finally {
-      await reader.cancel();
-      reader.releaseLock();
-    }
-    const date = /<Cube\s+time=['"](\d{4}-\d{2}-\d{2})['"]/.exec(xml)?.[1];
-    const usd = /<Cube\s+currency=['"]USD['"]\s+rate=['"](\d+(?:\.\d+)?)['"]/.exec(xml)?.[1];
-    const rate = { date: date ?? "", usdPerEuro: Number(usd) };
+    if (!response.ok) throw new Error("exchange_rate_unavailable");
+    const payload: unknown = await response.json();
+    if (!payload || typeof payload !== "object") throw new Error("exchange_rate_invalid");
+    const data = payload as { date?: unknown; base?: unknown; quote?: unknown; rate?: unknown };
     if (
-      !date ||
-      new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) !== date ||
+      data.base !== "EUR" ||
+      data.quote !== "USD" ||
+      typeof data.rate !== "number" ||
+      typeof data.date !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(data.date)
+    ) {
+      throw new Error("exchange_rate_invalid");
+    }
+    const rate = { date: data.date, usdPerEuro: data.rate };
+    if (
+      new Date(`${rate.date}T00:00:00Z`).toISOString().slice(0, 10) !== rate.date ||
       !valid(rate)
     ) {
-      throw new Error("ecb_rate_invalid");
+      throw new Error("exchange_rate_invalid");
     }
-    await writeOwnerControlState(db, "ecb_usd_eur_v1", rate, now);
+    await writeOwnerControlState(db, "exchange_rate_eur_usd_v1", rate, now);
     return rate;
   } catch {
     if (cached && valid(cached.value)) return cached.value;
-    throw new Error("ecb_rate_unavailable");
+    throw new Error("exchange_rate_unavailable");
   }
 }
 
