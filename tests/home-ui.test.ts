@@ -451,9 +451,7 @@ test("la Home chiude l'App Window con il metodo Shopify prima di mostrare i pian
   );
 });
 
-// La card è la prima cosa che si vede dopo l'installazione: deve accogliere, e deve
-// offrire l'unica azione che sblocca tutto il resto invece di limitarsi a nominarla.
-test("la Setup guide accoglie alla prima apertura e offre di iniziare la prova", () => {
+test("la Setup guide mostra il passo una sola volta e offre di iniziare la prova", () => {
   const base = {
     locale: "it",
     rules: { taxCode: "unmanaged", pec: "unmanaged" },
@@ -468,12 +466,12 @@ test("la Setup guide accoglie alla prima apertura e offre di iniziare la prova",
     elements(SetupGuide({ data, busy: false, pendingIntent: null, pendingSource: null, submit }));
 
   const primaVolta = render(base);
-  const benvenuto = primaVolta.some(
+  const titoliPasso = primaVolta.filter(
     (element) =>
-      element.type === "s-paragraph" &&
-      (element.props as { children?: ReactNode }).children === texts("it").setup.welcome,
+      element.type === "s-text" &&
+      (element.props as { children?: ReactNode }).children === texts("it").setup.rulesTitle,
   );
-  expect(benvenuto).toBe(true);
+  expect(titoliPasso).toHaveLength(1);
 
   // La card apre un passo per volta: quello della prova si apre con le regole già scelte,
   // e viene prima dell'attivazione, che senza un diritto valido resterebbe disabilitata.
@@ -497,19 +495,12 @@ test("la Setup guide accoglie alla prima apertura e offre di iniziare la prova",
   (avvia.props as { onClick: () => void }).onClick();
   expect(submit).toHaveBeenCalledWith("start_trial", "setup");
 
-  // Con la prova in corso il passo è concluso: niente benvenuto, niente pulsante.
+  // Con la prova in corso il passo è concluso: niente pulsante.
   const inProva = render({
     ...base,
     trialStatus: "active",
     entitlement: { kind: "trial", validThrough: "2026-08-18" },
   });
-  expect(
-    inProva.some(
-      (element) =>
-        element.type === "s-paragraph" &&
-        (element.props as { children?: ReactNode }).children === texts("it").setup.welcome,
-    ),
-  ).toBe(false);
   expect(
     inProva.some(
       (element) =>
@@ -810,7 +801,7 @@ test("i testi onboarding descrivono le regole attive senza contraddire lo stato 
   expect(preview).toContain(it.checkout.taxCodeRequired);
   expect(preview).not.toContain(it.checkout.disabled);
   expect(it.onboarding.step3MessagesBody).toMatch(/possono comparire.*regole scelte/i);
-  expect(`${it.onboarding.welcomeBody} ${it.onboarding.step1Limits.join(" ")}`).not.toMatch(
+  expect(`${it.onboarding.step1Body} ${it.onboarding.step1Limits.join(" ")}`).not.toMatch(
     /fail-open|cinque minuti|niente parte|campo mancante/i,
   );
   expect(it.rules.exceptions.join(" ")).toMatch(/fatturazione è estero/i);
@@ -832,9 +823,8 @@ test("i testi iniziali non presuppongono una configurazione precedente", () => {
   const en = texts("en");
   const initialItalian = [
     it.home.badgeNotStarted,
-    it.setup.welcome,
     it.setup.planBody,
-    it.onboarding.welcomeBody,
+    it.onboarding.step1Body,
     it.onboarding.step4BodyNeedsEntitlement,
     it.plan.notStartedStatus,
     it.plan.oneTimeChargeNotStarted,
@@ -842,9 +832,8 @@ test("i testi iniziali non presuppongono una configurazione precedente", () => {
   ].join(" ");
   const initialEnglish = [
     en.home.badgeNotStarted,
-    en.setup.welcome,
     en.setup.planBody,
-    en.onboarding.welcomeBody,
+    en.onboarding.step1Body,
     en.onboarding.step4BodyNeedsEntitlement,
     en.plan.notStartedStatus,
     en.plan.oneTimeChargeNotStarted,

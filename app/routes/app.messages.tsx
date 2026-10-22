@@ -288,7 +288,7 @@ export default function CustomerMessages() {
   };
 
   return (
-    <form onInput={readDraft}>
+    <form className="customer-messages-page" onInput={readDraft}>
       <PageWithAside
         heading={t.messages.heading}
         // L'anteprima dell'editor mostra il testo selezionato; questo riquadro aggiunge invece
@@ -383,109 +383,101 @@ function MessagesEditor({
   const problem = result && !result.ok && "problem" in result ? result.problem : undefined;
   const previewField = fieldLabelFor(selectedKey);
   return (
-    <s-section heading={t.messages.editorHeading}>
-      <s-stack direction="block" gap="base">
-        <s-stack direction="block" gap="small-100">
-          <s-paragraph color="subdued">{t.messages.labelsNote}</s-paragraph>
+    <div className="customer-messages-editor">
+      <s-section heading={t.messages.editorHeading}>
+        <s-stack direction="block" gap="base">
           <s-link href="/app/rules">{t.messages.manageLabels}</s-link>
-        </s-stack>
-        <s-select
-          label={t.messages.languageSelector}
-          value={activeLocale}
-          onChange={(event) => setActiveLocale(event.currentTarget.value as Locale)}
-        >
-          <s-option value="it">{t.messages.italian}</s-option>
-          <s-option value="en">{t.messages.english}</s-option>
-        </s-select>
-        <CustomerMessagesPreview
-          activeLocale={activeLocale}
-          context={t.messages.previewContext}
-          fieldLabel={previewField.label}
-          fieldLabelHeading={
-            previewField.pending
-              ? undefined
-              : previewField.observed
-                ? t.messages.previewCurrentFieldLabel
-                : t.messages.previewProposedFieldLabel
-          }
-          heading={t.messages.previewHeading}
-          hint={t.messages.previewHint}
-          message={draft[activeLocale][selectedKey]}
-          availability={
-            messageAppears(rules, selectedKey)
-              ? t.messages.previewShown
-              : t.messages.previewNotShown
-          }
-          selectedLabel={t.messages[selectedKey]}
-        />
-        {/* M2: su desktop i quattro campi stanno in due colonne, Codice Fiscale e PEC, così
+          <s-select
+            label={t.messages.languageSelector}
+            value={activeLocale}
+            onChange={(event) => setActiveLocale(event.currentTarget.value as Locale)}
+          >
+            <s-option value="it">{t.messages.italian}</s-option>
+            <s-option value="en">{t.messages.english}</s-option>
+          </s-select>
+          <s-paragraph color="subdued">{t.messages.previewHint}</s-paragraph>
+          <CustomerMessagesPreview
+            activeLocale={activeLocale}
+            fieldLabel={previewField.label}
+            fieldLabelHeading={
+              previewField.pending
+                ? undefined
+                : previewField.observed
+                  ? t.messages.previewCurrentFieldLabel
+                  : t.messages.previewProposedFieldLabel
+            }
+            heading={t.messages.previewHeading}
+            message={draft[activeLocale][selectedKey]}
+            selectedLabel={t.messages[selectedKey]}
+          />
+          {/* M2: su desktop i quattro campi stanno in due colonne, Codice Fiscale e PEC, così
             restano vicini all'anteprima. Il contatore è sempre presente: al focus nulla si sposta (M4). */}
-        <div className="customer-messages-fields">
-          <s-query-container>
-            <s-grid
-              gridTemplateColumns="@container (inline-size > 560px) 1fr 1fr, 1fr"
-              gap="base"
-              alignItems="start"
-            >
-              {MESSAGE_GROUPS.map(([field, keys]) => (
-                <s-stack key={field} direction="block" gap="base">
-                  {keys.map((key) => {
-                    const value = draft[activeLocale][key];
-                    const invalid =
-                      value.length > MESSAGE_MAX_LENGTH
-                        ? t.messages.tooLong
-                        : problem?.locale === activeLocale && problem.key === key
-                          ? t.messages.empty
-                          : undefined;
-                    return (
-                      <s-stack key={key} direction="block" gap="small-100">
-                        <UncontrolledMessageTextArea
-                          key={`${activeLocale}-${mounted[`${activeLocale}.${key}`] ?? 0}`}
-                          initialValue={value}
-                          label={t.messages[key]}
-                          name={`${activeLocale}.${key}`}
-                          rows={rowsFor(value)}
-                          details={t.messages.counter(value.length)}
-                          error={invalid}
-                          onFocus={() => setSelectedKey(key)}
-                        />
-                        <div className="customer-messages-preview__local">
-                          <s-box background="subdued" borderRadius="base" padding="base">
-                            <s-stack direction="block" gap="small-100">
-                              <s-grid
-                                gridTemplateColumns="auto minmax(0, 1fr)"
-                                gap="small-100"
-                                alignItems="start"
-                              >
-                                <s-icon type="view" color="subdued" />
-                                <s-text type="strong">{t.messages.previewHeading}</s-text>
-                              </s-grid>
-                              {/* P2-T7: la nota su posizione e aspetto sta una volta sola,
-                                dentro l'anteprima principale. */}
-                              <CheckoutErrorPreview
-                                locale={activeLocale}
-                                label={fieldLabelFor(key).label}
-                                message={value}
-                              />
-                              {!messageAppears(rules, key) ? (
-                                <s-text color="subdued">{t.messages.previewNotShown}</s-text>
-                              ) : null}
-                            </s-stack>
-                          </s-box>
-                        </div>
-                      </s-stack>
-                    );
-                  })}
-                </s-stack>
-              ))}
-            </s-grid>
-          </s-query-container>
-        </div>
-        <s-button commandFor={`restore-${activeLocale}`} command="--show">
-          {t.messages.reset}
-        </s-button>
-      </s-stack>
-    </s-section>
+          <div className="customer-messages-fields">
+            <s-query-container>
+              <s-grid
+                gridTemplateColumns="@container (inline-size > 560px) 1fr 1fr, 1fr"
+                gap="base"
+                alignItems="start"
+              >
+                {MESSAGE_GROUPS.map(([field, keys]) => (
+                  <s-stack key={field} direction="block" gap="base">
+                    {keys.map((key) => {
+                      const value = draft[activeLocale][key];
+                      const invalid =
+                        value.length > MESSAGE_MAX_LENGTH
+                          ? t.messages.tooLong
+                          : problem?.locale === activeLocale && problem.key === key
+                            ? t.messages.empty
+                            : undefined;
+                      return (
+                        <s-stack key={key} direction="block" gap="small-100">
+                          <UncontrolledMessageTextArea
+                            key={`${activeLocale}-${mounted[`${activeLocale}.${key}`] ?? 0}`}
+                            initialValue={value}
+                            label={t.messages[key]}
+                            name={`${activeLocale}.${key}`}
+                            rows={rowsFor(value)}
+                            details={t.messages.counter(value.length)}
+                            error={invalid}
+                            onFocus={() => setSelectedKey(key)}
+                          />
+                          {!messageAppears(rules, key) ? (
+                            <div className="customer-messages-unavailable">
+                              <s-text color="subdued">{t.messages.notExpected}</s-text>
+                            </div>
+                          ) : null}
+                          <div className="customer-messages-preview__local">
+                            <s-box background="subdued" borderRadius="base" padding="base">
+                              <s-stack direction="block" gap="small-100">
+                                {!fieldLabelFor(key).pending ? (
+                                  <s-text color="subdued">
+                                    {fieldLabelFor(key).observed
+                                      ? t.messages.previewCurrentFieldLabel
+                                      : t.messages.previewProposedFieldLabel}
+                                  </s-text>
+                                ) : null}
+                                <CheckoutErrorPreview
+                                  locale={activeLocale}
+                                  label={fieldLabelFor(key).label}
+                                  message={value}
+                                />
+                              </s-stack>
+                            </s-box>
+                          </div>
+                        </s-stack>
+                      );
+                    })}
+                  </s-stack>
+                ))}
+              </s-grid>
+            </s-query-container>
+          </div>
+          <s-button commandFor={`restore-${activeLocale}`} command="--show">
+            {t.messages.reset}
+          </s-button>
+        </s-stack>
+      </s-section>
+    </div>
   );
 }
 

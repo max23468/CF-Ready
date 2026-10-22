@@ -3,28 +3,20 @@ import "./CustomerMessagesPreview.css";
 
 type CustomerMessagesPreviewProps = {
   activeLocale: Locale;
-  context: string;
   fieldLabel: string;
   // Assente mentre si attende la lettura da Shopify: non si dichiara una provenienza ignota.
   fieldLabelHeading?: string;
   heading: string;
-  hint: string;
   message: string;
-  // Sempre presente: se compare solo per alcuni messaggi l'anteprima cambia altezza e sposta
-  // i campi sotto il puntatore.
-  availability: string;
   selectedLabel: string;
 };
 
 export function CustomerMessagesPreview({
   activeLocale,
-  context,
   fieldLabel,
   fieldLabelHeading,
   heading,
-  hint,
   message,
-  availability,
   selectedLabel,
 }: CustomerMessagesPreviewProps) {
   return (
@@ -40,17 +32,9 @@ export function CustomerMessagesPreview({
             </s-grid>
 
             <s-stack direction="block" gap="small-100">
-              <s-text color="subdued">
-                {fieldLabelHeading ? `${context}, ${fieldLabelHeading}` : context}
-              </s-text>
+              {fieldLabelHeading ? <s-text color="subdued">{fieldLabelHeading}</s-text> : null}
               <CheckoutErrorPreview locale={activeLocale} label={fieldLabel} message={message} />
             </s-stack>
-
-            <s-grid gridTemplateColumns="auto minmax(0, 1fr)" gap="small-100" alignItems="start">
-              <s-icon type="info" color="subdued" />
-              <s-text color="subdued">{availability}</s-text>
-            </s-grid>
-            <s-text color="subdued">{hint}</s-text>
           </s-stack>
         </s-box>
       </div>

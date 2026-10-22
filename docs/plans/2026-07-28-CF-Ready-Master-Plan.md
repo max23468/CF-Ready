@@ -2644,13 +2644,13 @@ Ogni opzione ha una spiegazione concreta. Dopo le regole:
 
 ### 15.5 Messaggi al cliente
 
-Un selettore segmentato Polaris cambia la lingua modificata:
+Un selettore Polaris `s-select` cambia la lingua modificata:
 
 - Italiano
 - English
 
-Il selettore usa `s-press-button`, conserva uno stato premuto accessibile e non
-reimplementa la semantica dei controlli Polaris. Se il salvataggio trova un
+Il selettore conserva un'etichetta accessibile e non reimplementa la semantica
+dei controlli Polaris. Se il salvataggio trova un
 errore nella lingua non visibile, quella lingua e il messaggio coinvolto vengono
 selezionati automaticamente. Il ripristino resta separato per lingua.
 
@@ -2666,12 +2666,33 @@ Comportamenti:
 - massimo 200 caratteri;
 - trim;
 - nessun valore vuoto;
-- contatore visibile durante la modifica o da 160 caratteri in poi;
-- anteprima testuale Polaris del messaggio selezionato, aggiornata durante la
-  scrittura e senza simulare l’intero checkout;
+- contatore sempre visibile, senza spostamenti al focus;
+- anteprima testuale Polaris aggiornata durante la scrittura, senza simulare
+  l’intero checkout: sopra i 560 px della colonna mostra il messaggio selezionato;
+  fino a 560 px mostra gli esempi accanto ai campi e nasconde l'anteprima principale;
+- disponibilità dei messaggi raccolta nel riepilogo laterale su desktop, con la
+  condizione che il controllo sia attivo; sotto i 784 px il riepilogo è nascosto
+  e solo gli editor non previsti dalle regole mostrano una nota contestuale;
+  una sola nota distingue l'anteprima
+  dall'aspetto del checkout reale e un link porta alla modifica delle etichette;
 - Save Bar comune;
 - `Ripristina testi predefiniti` separato per lingua;
 - conferma prima del ripristino.
+
+Semplificazione approvata il 22 ottobre 2026: titoli e descrizioni non ripetono
+ciò che il layout o l'azione mostrano già. In Home l'accesso alla Guida è un link
+diretto e il passo attivo della preparazione ha un solo titolo. L'onboarding
+accorpa l'introduzione e conserva i limiti della validazione formale e di
+applicabilità. Il sito IT/EN elimina gli inviti a osservare schemi o schermate
+già visibili e le introduzioni prive di informazioni aggiuntive. Restano le
+spiegazioni necessarie per salvare, attivare, autorizzare e ripristinare.
+
+Integrazioni approvate il 23 ottobre 2026 dopo la verifica della versione
+pubblicata in Safari: disponibilità contestuale su mobile come sopra; fino a
+600 px il pulsante Assistenza mostra soltanto l'icona in un bersaglio di 48 px,
+con nome accessibile IT/EN e stato espanso invariati. Le pagine conservano spazio
+in fondo per portare le ultime azioni sopra il pulsante flottante. Il pannello
+e il caricamento della chat restano invariati.
 
 ### 15.6 Piano e fatturazione
 
