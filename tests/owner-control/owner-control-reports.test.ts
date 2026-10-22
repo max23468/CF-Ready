@@ -15,7 +15,11 @@ import {
 import { writeOwnerControlState } from "../../app/owner-control/repository.server";
 import { unauthenticated } from "../../app/shopify.server";
 
-import { fetchRevenueReport, readRevenueReport } from "../../app/owner-control/revenue.server";
+import {
+  fetchRevenueReport,
+  readRevenueReport,
+  readEuroExchangeRate,
+} from "../../app/owner-control/revenue.server";
 import {
   fetchPartnerUninstallEvents,
   PARTNER_HISTORY_START,
@@ -310,6 +314,60 @@ describe("Obiettivo BFS", () => {
 });
 
 describe("Ricavi Partner", () => {
+  test("legge il cambio BCE senza credenziali, usa la cache e recupera un cambio recente in caso di errore", async () => {
+    const fetcher = vi.fn(
+      async () => new Response("<Cube time='2026-09-08'><Cube currency='USD' rate='1.25'/></Cube>"),
+    );
+    const rate = await readEuroExchangeRate(env.DB, { now: NOW, fetcher });
+    expect(rate).toEqual({ date: "2026-09-08", usdPerEuro: 1.25 });
+    expect(fetcher.mock.calls[0]).toEqual([
+      "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
+      { signal: expect.any(AbortSignal), redirect: "error" },
+    ]);
+    await expect(readEuroExchangeRate(env.DB, { now: NOW, fetcher })).resolves.toEqual(rate);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    const unavailable = vi.fn(async () => new Response(null, { status: 503 }));
+    await expect(
+      readEuroExchangeRate(env.DB, {
+        now: new Date(NOW.getTime() + 60 * 60 * 1000),
+        fetcher: unavailable,
+      }),
+    ).resolves.toEqual(rate);
+    expect(unavailable).toHaveBeenCalledTimes(1);
+    await expect(
+      readEuroExchangeRate(env.DB, {
+        now: new Date("2026-09-15T12:00:00Z"),
+        fetcher: unavailable,
+      }),
+    ).rejects.toThrow("ecb_rate_unavailable");
+  });
+
+  test("rifiuta cambi BCE mancanti, nulli, scaduti, futuri o risposte troppo grandi", async () => {
+    for (const body of [
+      "<Cube/>",
+      "<Cube time='2026-09-08'><Cube currency='USD' rate='0'/></Cube>",
+      "<Cube time='2026-09-01'><Cube currency='USD' rate='1.25'/></Cube>",
+      "<Cube time='2026-09-09'><Cube currency='USD' rate='1.25'/></Cube>",
+      "<Cube time='2026-02-31'><Cube currency='USD' rate='1.25'/></Cube>",
+      "x".repeat(32_769),
+    ]) {
+      await expect(
+        readEuroExchangeRate(env.DB, {
+          now: NOW,
+          fetcher: async () => new Response(body),
+        }),
+      ).rejects.toThrow("ecb_rate_unavailable");
+    }
+    await expect(
+      readEuroExchangeRate(env.DB, {
+        now: NOW,
+        fetcher: async () => {
+          throw new Error("network_failure");
+        },
+      }),
+    ).rejects.toThrow("ecb_rate_unavailable");
+  });
+
   test("usa i default runtime con una risposta Partner vuota", async () => {
     vi.stubGlobal(
       "fetch",
@@ -474,16 +532,18 @@ describe("Ricavi Partner", () => {
     );
     const sale = vi.fn(async () => responses.shift()!);
     const fetcher = (async (input: RequestInfo | URL, init?: RequestInit) =>
-      String(init?.body).includes("OwnerControlUninstalls")
-        ? uninstalls()
-        : sale()) as unknown as typeof fetch;
+      String(input).startsWith("https://www.ecb.europa.eu/")
+        ? new Response("<Cube time='2026-09-08'><Cube currency='USD' rate='1.25'/></Cube>")
+        : String(init?.body).includes("OwnerControlUninstalls")
+          ? uninstalls()
+          : sale()) as unknown as typeof fetch;
     const billing = await renderOwnerControlAction(
       env.DB,
       { view: "billing", refresh: true },
       controlConfig(),
       { now: NOW, fetcher },
     );
-    expect(JSON.stringify(billing)).toContain("98,36");
+    expect(JSON.stringify(billing)).toMatch(/78,29\s€/);
     expect(JSON.stringify(billing)).toContain("In attesa della transazione Shopify");
     expect(JSON.stringify(billing)).toContain("2 · 1 store · 1 negli ultimi 28 gg");
     expect(sale).toHaveBeenCalledTimes(2);

@@ -318,7 +318,8 @@ describe("presentazione Telegram", () => {
       lifetime: { count: 1, grossMinor: 10453, netMinor: 9836 },
       adjustments: { count: 1, grossMinor: -147, netMinor: -127 },
     };
-    const billing = billingMessage(billingData, revenue);
+    const exchangeRate = { date: "2026-09-08", usdPerEuro: 1.25 };
+    const billing = billingMessage(billingData, revenue, undefined, exchangeRate);
     const billingText = JSON.stringify(billing);
     expect(billing.richMessage.blocks).toBeTruthy();
     expect(billingText).toContain("💳 Stato · 12 installati");
@@ -331,8 +332,8 @@ describe("presentazione Telegram", () => {
         billingMessage({ ...billingData, status: { ...billingData.status, other: 1 } }),
       ),
     ).toContain("⚠️ Da verificare");
-    expect(billingText).toMatch(/10,00\s€ · netto 9,41\s€/);
-    expect(billingText).toMatch(/120,00\s€ · netto 112,92\s€/);
+    expect(billingText).toMatch(/10,00\s€ · netto 9,36\s€/);
+    expect(billingText).toMatch(/120,00\s€ · netto 112,36\s€/);
     expect(billingText).toContain('"Esclusi"');
     expect(billingText).toContain("3/5");
     expect(billingText).toContain("⚠️ In attesa della transazione Shopify");
@@ -340,9 +341,38 @@ describe("presentazione Telegram", () => {
     expect(billingText).toContain("elaborazione 2,9%");
     expect(billingText).toContain("regolamentare IT 3%");
     expect(billingText).toContain("regolamentare non nota per 2 abbonamenti");
-    expect(billingText).toContain("100,36");
+    expect(billingText).toContain("Hyperwallet 0,5% sul netto Shopify");
+    expect(billingText).toMatch(/79,89\s€/);
+    expect(billingText).toMatch(/2,60\s€ netti/);
+    expect(billingText).toMatch(/78,29\s€ netti/);
+    expect(billingText).toMatch(/-1,01\s€/);
+    expect(billingText).toContain("106,53");
     expect(billingText).toContain("6,17");
-    expect(billingText).toContain("98,36");
+    expect(billingText).toContain("cambio BCE 2026-09-08");
+    expect(billingText).not.toContain("USD netti");
+    for (const [currency, netMinor, expected] of [
+      ["EUR", 10036, "100,36"],
+      ["USD", 0, "0,00"],
+      ["USD", -10036, "-79,89"],
+    ] as const) {
+      const text = JSON.stringify(
+        billingMessage(
+          billingData,
+          {
+            ...revenue,
+            currency,
+            totals: { ...revenue.totals, netMinor },
+          },
+          undefined,
+          exchangeRate,
+        ),
+      );
+      expect(text).toContain(expected);
+      expect(text).not.toContain("Dopo fee cambio");
+    }
+    expect(JSON.stringify(billingMessage(billingData, revenue))).toContain(
+      "Non disponibile (cambio BCE)",
+    );
     expect(billingText).toContain("1 acquisto");
     expect(billingText).toContain("non provano incasso della fattura merchant né payout");
     expect(billingText).toContain("oc1:b:-:0:r");
