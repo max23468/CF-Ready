@@ -10,6 +10,68 @@ const REVENUE_REFRESH_COOLDOWN_MS = 5 * 60 * 1000;
 const PAGE_SIZE = 100;
 const MAX_PAGES = 100;
 
+export type EuroExchangeRate = { date: string; usdPerEuro: number };
+
+export async function readEuroExchangeRate(
+  db: D1Database,
+  options: { now?: Date; fetcher?: typeof fetch } = {},
+): Promise<EuroExchangeRate> {
+  const now = options.now ?? new Date();
+  const valid = (rate: EuroExchangeRate) => {
+    const age = now.getTime() - Date.parse(`${rate.date}T00:00:00Z`);
+    return (
+      Number.isFinite(rate.usdPerEuro) &&
+      rate.usdPerEuro > 0 &&
+      age >= 0 &&
+      age < 7 * 24 * 60 * 60 * 1000
+    );
+  };
+  const cached = await readOwnerControlState<EuroExchangeRate>(db, "ecb_usd_eur_v1");
+  const cacheAge = cached ? now.getTime() - Date.parse(cached.updatedAt) : Infinity;
+  if (cached && valid(cached.value) && cacheAge >= 0 && cacheAge < 60 * 60 * 1000) {
+    return cached.value;
+  }
+  try {
+    const response = await (options.fetcher ?? fetch)(
+      "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
+      { signal: AbortSignal.timeout(5000), redirect: "error" },
+    );
+    if (!response.ok || !response.body) throw new Error("ecb_rate_unavailable");
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let xml = "";
+    let bytes = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        bytes += value.byteLength;
+        if (bytes > 32_768) throw new Error("ecb_rate_invalid");
+        xml += decoder.decode(value, { stream: true });
+      }
+      xml += decoder.decode();
+    } finally {
+      await reader.cancel();
+      reader.releaseLock();
+    }
+    const date = /<Cube\s+time=['"](\d{4}-\d{2}-\d{2})['"]/.exec(xml)?.[1];
+    const usd = /<Cube\s+currency=['"]USD['"]\s+rate=['"](\d+(?:\.\d+)?)['"]/.exec(xml)?.[1];
+    const rate = { date: date ?? "", usdPerEuro: Number(usd) };
+    if (
+      !date ||
+      new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) !== date ||
+      !valid(rate)
+    ) {
+      throw new Error("ecb_rate_invalid");
+    }
+    await writeOwnerControlState(db, "ecb_usd_eur_v1", rate, now);
+    return rate;
+  } catch {
+    if (cached && valid(cached.value)) return cached.value;
+    throw new Error("ecb_rate_unavailable");
+  }
+}
+
 // Le transazioni Partner che modificano gli accrediti dell'app, raggruppate per la vista Billing.
 const TRANSACTION_KINDS = {
   AppSubscriptionSale: "subscriptions",
