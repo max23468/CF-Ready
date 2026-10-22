@@ -348,7 +348,8 @@ describe("presentazione Telegram", () => {
     expect(billingText).toMatch(/-1,01\s€/);
     expect(billingText).toContain("106,53");
     expect(billingText).toContain("6,17");
-    expect(billingText).toContain("cambio BCE 2026-09-08");
+    expect(billingText).not.toContain("BCE");
+    expect(billingText).toContain("Netti stimati dopo la commissione Hyperwallet");
     expect(billingText).not.toContain("USD netti");
     for (const [currency, netMinor, expected] of [
       ["EUR", 10036, "100,36"],
@@ -370,9 +371,18 @@ describe("presentazione Telegram", () => {
       expect(text).toContain(expected);
       expect(text).not.toContain("Dopo fee cambio");
     }
-    expect(JSON.stringify(billingMessage(billingData, revenue))).toContain(
-      "Non disponibile (cambio BCE)",
-    );
+    const withoutRate = JSON.stringify(billingMessage(billingData, revenue));
+    expect(withoutRate).toContain("Non disponibile");
+    expect(withoutRate).not.toContain("BCE");
+    expect(withoutRate).not.toContain("Non disponibile netti");
+    expect(
+      JSON.stringify(
+        billingMessage(billingData, {
+          ...revenue,
+          adjustments: { count: 0, grossMinor: 0, netMinor: 0 },
+        }),
+      ),
+    ).toMatch(/0,00\s€ · 0 movimenti/);
     expect(billingText).toContain("1 acquisto");
     expect(billingText).toContain("non provano incasso della fattura merchant né payout");
     expect(billingText).toContain("oc1:b:-:0:r");
