@@ -1,5 +1,5 @@
 import { beforeAll, test } from "vitest";
-import { validateShopifyWebhook } from "../app/shopify-webhook.server";
+import { validateShopifyWebhook } from "../app/webhooks/shopify-webhook.server";
 
 const secret = "synthetic-secret";
 const encoder = new TextEncoder();

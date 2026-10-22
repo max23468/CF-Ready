@@ -2503,7 +2503,7 @@ Conclusioni operative:
     descrittivi (regole, messaggi predefiniti, «Può comparire»);
   - **logo e brand:** lockup a 128 px allineato a sinistra nelle colonne
     laterali, marchio positivo senza fondo in un box da 32 px accanto a un
-    titolo (`app/ui-brand.tsx`); mai `s-avatar` per il marchio. Il simulatore
+    titolo (`app/ui/ui-brand.tsx`); mai `s-avatar` per il marchio. Il simulatore
     del checkout è l'unico accento di brand: fondo panna e «Continua» verde
     bottiglia (decisione dell'owner del 4 ottobre, `docs/brand/brand-foundation.md` §3.1);
   - **densità:** il banner della prova sta subito dopo la card della
@@ -2511,7 +2511,7 @@ Conclusioni operative:
     con l'azione nello slot nativo del banner; un
     solo badge di stato per pannello; un confronto senza modifiche sta su una
     riga;
-  - **disclosure:** `details` tramite `app/ui-disclosure.tsx`, con chevron
+  - **disclosure:** `details` tramite `app/ui/ui-disclosure.tsx`, con chevron
     `s-icon` al bordo finale del summary, uguale a ogni livello di annidamento;
   - **componenti nativi:** l'esempio di un messaggio è un `s-text-field` in sola
     lettura con l'etichetta del campo come `label` e il messaggio come `error`;
@@ -2520,7 +2520,7 @@ Conclusioni operative:
     «Interno»), che su mobile diventa un elenco;
   - **spaziature:** dentro un gruppo `small-200` o meno, tra gruppi della stessa
     card `base`, tra blocchi con titolo proprio `large`; le righe
-    etichetta-valore usano `app/ui-status-list.tsx`;
+    etichetta-valore usano `app/ui/ui-status-list.tsx`;
   - **testi:** ogni testo nuovo o cambiato entra in italiano e inglese nello
     stesso commit; citazioni «» in italiano e “” in inglese; «Codice Fiscale» e
     «PEC», in inglese «Italian tax code (Codice Fiscale)» da solo e «Italian tax

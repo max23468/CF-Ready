@@ -40,8 +40,8 @@ import type { Locale } from "../i18n";
 import { messageSubmission, rebaseMessageDraft, updateMessageDraft } from "../messages-draft";
 import { skipRevalidationWhenLeaving, useSavedData } from "../revalidation";
 import { setSaveBarVisibility, showToast } from "../save-bar";
-import { RevealBanner } from "../ui-feedback";
-import { PageWithAside } from "../ui-page";
+import { RevealBanner } from "../ui/ui-feedback";
+import { PageWithAside } from "../ui/ui-page";
 import { createServerTiming } from "../server-timing.server";
 import {
   findValidation,

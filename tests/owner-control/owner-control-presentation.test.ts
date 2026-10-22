@@ -17,10 +17,10 @@ import {
   trialsMessage,
   versionMessage,
   withCopyButton,
-} from "../app/owner-control/presentation";
-import type { UninstallReport } from "../app/owner-control/uninstalls.server";
+} from "../../app/owner-control/presentation";
+import type { UninstallReport } from "../../app/owner-control/uninstalls.server";
 
-import { NOW, shopFixture } from "./support/owner-control";
+import { NOW, shopFixture } from "../support/owner-control";
 
 describe("presentazione Telegram", () => {
   test("ricava dal pannello un testo copiabile completo e tronca oltre il limite", () => {

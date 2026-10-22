@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import motionCss from "../../app/ui-motion.css?raw";
+import motionCss from "../../app/ui/ui-motion.css?raw";
 
 test.each([1440, 390])("il contenuto iniziale produce LCP a %i px", async (width) => {
   const frame = document.createElement("iframe");

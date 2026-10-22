@@ -3,11 +3,11 @@ import { describe, expect, test, vi } from "vitest";
 import {
   OWNER_CONTROL_MENU_COMMANDS,
   syncOwnerControlMenu,
-} from "../app/owner-control/menu.server";
-import { OWNER_CONTROL_COMMANDS } from "../app/owner-control/model";
-import { createTelegramClient } from "../app/telegram/client.server";
+} from "../../app/owner-control/menu.server";
+import { OWNER_CONTROL_COMMANDS } from "../../app/owner-control/model";
+import { createTelegramClient } from "../../app/telegram/client.server";
 
-import { BOT_TOKEN, CHAT_ID, methods } from "./support/owner-control";
+import { BOT_TOKEN, CHAT_ID, methods } from "../support/owner-control";
 
 describe("client Telegram condiviso", () => {
   test("invia, modifica, chiude callback e legge il webhook", async () => {

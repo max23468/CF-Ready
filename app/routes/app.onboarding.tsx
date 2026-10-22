@@ -29,7 +29,7 @@ import {
 import { describeCheckout, texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { action, loader } from "../features/onboarding/onboarding.server";
-import { BrandMark } from "../ui-brand";
+import { BrandMark } from "../ui/ui-brand";
 import "./app.onboarding.css";
 
 export { action, loader };

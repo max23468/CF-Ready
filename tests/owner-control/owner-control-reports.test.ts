@@ -1,20 +1,27 @@
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-import { renderOwnerControlAction } from "../app/owner-control/commands.server";
-import { fetchGrowthReport, readGrowthReport } from "../app/owner-control/growth.server";
-import { classifyBFSPlan, readBFSReport, refreshBFSPlans } from "../app/owner-control/bfs.server";
-import { pollBFSPerformance, pollBFSProgress } from "../app/owner-control/bfs-notifications.server";
-import { writeOwnerControlState } from "../app/owner-control/repository.server";
-import { unauthenticated } from "../app/shopify.server";
+import { renderOwnerControlAction } from "../../app/owner-control/commands.server";
+import { fetchGrowthReport, readGrowthReport } from "../../app/owner-control/growth.server";
+import {
+  classifyBFSPlan,
+  readBFSReport,
+  refreshBFSPlans,
+} from "../../app/owner-control/bfs.server";
+import {
+  pollBFSPerformance,
+  pollBFSProgress,
+} from "../../app/owner-control/bfs-notifications.server";
+import { writeOwnerControlState } from "../../app/owner-control/repository.server";
+import { unauthenticated } from "../../app/shopify.server";
 
-import { fetchRevenueReport, readRevenueReport } from "../app/owner-control/revenue.server";
+import { fetchRevenueReport, readRevenueReport } from "../../app/owner-control/revenue.server";
 import {
   fetchPartnerUninstallEvents,
   PARTNER_HISTORY_START,
   readUninstallReport,
-} from "../app/owner-control/uninstalls.server";
-import { reviewStoreSql, storeKind } from "../app/owner-control/review-stores";
+} from "../../app/owner-control/uninstalls.server";
+import { reviewStoreSql, storeKind } from "../../app/owner-control/review-stores";
 
 import {
   NOW,
@@ -23,8 +30,8 @@ import {
   growthResponse,
   revenueTransaction,
   revenueResponse,
-} from "./support/owner-control";
-import { controlConfig, insertStore, resetOwnerControl } from "./support/owner-control-db";
+} from "../support/owner-control";
+import { controlConfig, insertStore, resetOwnerControl } from "../support/owner-control-db";
 
 beforeEach(resetOwnerControl);
 

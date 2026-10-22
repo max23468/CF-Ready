@@ -16,8 +16,8 @@ import {
   type FiscalLabelContext,
 } from "./checkout-labels-presentation";
 import { RULES_INTENTS, type SubmitCheckoutLabelsIntent } from "./rules-intents";
-import { Disclosure } from "../../ui-disclosure";
-import { StatusList } from "../../ui-status-list";
+import { Disclosure } from "../../ui/ui-disclosure";
+import { StatusList } from "../../ui/ui-status-list";
 
 export const NATIVE_LABELS_ID = "checkout-native-labels";
 

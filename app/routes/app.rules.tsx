@@ -32,7 +32,7 @@ import {
 import { describeCheckout, resolveLocale, texts, validationStatus, type Locale } from "../i18n";
 import { skipRevalidationWhenLeaving, useSavedData } from "../revalidation";
 import { setSaveBarVisibility, showToast } from "../save-bar";
-import { RevealBanner } from "../ui-feedback";
+import { RevealBanner } from "../ui/ui-feedback";
 import { createServerTiming } from "../server-timing.server";
 import {
   hasManagedField,

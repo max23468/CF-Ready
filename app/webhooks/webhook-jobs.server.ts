@@ -1,10 +1,10 @@
-import { recordEvent } from "./events.server";
-import { markUninstalled, redactShop } from "./shop.server";
-import { sessionStorage, unauthenticated } from "./shopify.server";
-import { reconcile } from "./validation.server";
+import { recordEvent } from "../events.server";
+import { markUninstalled, redactShop } from "../shop.server";
+import { sessionStorage, unauthenticated } from "../shopify.server";
+import { reconcile } from "../validation.server";
 import { runClaimedWebhook, type WebhookJob } from "./webhooks.server";
-import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "./checkout-labels/service.server";
-import { markCheckoutLabelsScopeRequired } from "./checkout-labels/repository.server";
+import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../checkout-labels/service.server";
+import { markCheckoutLabelsScopeRequired } from "../checkout-labels/repository.server";
 
 export async function processWebhookJob(db: D1Database, job: WebhookJob) {
   await runClaimedWebhook(db, job, async (claim) => {
