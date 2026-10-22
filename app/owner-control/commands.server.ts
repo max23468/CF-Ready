@@ -48,7 +48,7 @@ import {
   readOwnerControlState,
   writeOwnerControlState,
 } from "./repository.server";
-import { readRevenueReport } from "./revenue.server";
+import { readEuroExchangeRate, readRevenueReport } from "./revenue.server";
 import {
   fetchPartnerUninstallEvents,
   readUninstallHistory,
@@ -209,6 +209,9 @@ export async function renderOwnerControlAction(
         },
         revenue,
         uninstalls,
+        "currency" in revenue && revenue.currency === "USD"
+          ? await readEuroExchangeRate(db, { now, fetcher: options.fetcher }).catch(() => undefined)
+          : undefined,
       );
     }
     case "uninstalls": {
