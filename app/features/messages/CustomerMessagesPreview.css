@@ -16,7 +16,8 @@
 }
 
 @media (max-width: 783px) {
-  .customer-messages-page s-stack[slot="aside"] {
+  /* Prevale anche sul ripristino display:block della colonna Polaris 1 in app.css. */
+  form.customer-messages-page s-page > s-stack[slot="aside"] {
     display: none;
   }
 

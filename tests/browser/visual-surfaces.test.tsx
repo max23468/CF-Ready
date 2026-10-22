@@ -57,6 +57,11 @@ function expectNativeCards(container: HTMLElement) {
   expect(sections.length).toBeGreaterThan(0);
   const rectangles: DOMRect[] = [];
   for (const section of sections) {
+    let ancestor: Element | null = section;
+    while (ancestor && getComputedStyle(ancestor).display !== "none") {
+      ancestor = ancestor.parentElement;
+    }
+    if (ancestor) continue;
     const surfaces = Array.from(section.shadowRoot!.querySelectorAll<HTMLElement>("*"));
     const surface = surfaces.find(
       (surface) =>
