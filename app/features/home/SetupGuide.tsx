@@ -89,7 +89,6 @@ export function SetupGuide({
               {t.setup.progress(done, steps.length)}
             </s-badge>
           </s-stack>
-          {done === 0 ? <s-paragraph>{t.setup.welcome}</s-paragraph> : null}
         </s-stack>
 
         <s-query-container>
@@ -123,10 +122,6 @@ export function SetupGuide({
         {active >= 0 ? (
           <s-box background="subdued" borderRadius="base" padding="base">
             <s-stack direction="block" gap="small-100">
-              <s-stack direction="inline" gap="small-100" alignItems="center">
-                <s-icon type={steps[active].icon} color="base" />
-                <s-text type="strong">{steps[active].title}</s-text>
-              </s-stack>
               <s-paragraph>{steps[active].body}</s-paragraph>
               {steps[active].action}
             </s-stack>

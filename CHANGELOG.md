@@ -6,6 +6,24 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.5.6 — 23 ottobre 2026
+
+- semplificati i testi di Home, Messaggi, configurazione iniziale e sito in
+  italiano e inglese. L'editor mostra l'anteprima principale su desktop e gli
+  esempi accanto ai campi su schermi stretti, senza duplicarli; disponibilità
+  e limiti restano nei rispettivi punti.
+- su mobile Assistenza usa un pulsante compatto con nome accessibile e spazio
+  per le ultime azioni; i messaggi non previsti dalle regole sono indicati
+  vicino agli editor, al posto del riepilogo in fondo alla pagina.
+
+Home, customer messages, onboarding and website copy is simpler in Italian and
+English. The editor shows the main preview on desktop and examples beside each
+field on narrow screens, without displaying both. Availability and preview limits
+remain in their respective places.
+On mobile, support uses a compact accessible button with room to scroll the last
+actions clear of it. Messages not used by the current rules are identified beside
+their editors instead of in a summary at the bottom.
+
 ## 2.5.5 — 22 ottobre 2026
 
 - il cambio viene letto dall'API JSON Frankfurter, verificata nel runtime
