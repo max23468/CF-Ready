@@ -254,18 +254,13 @@ function OnboardingCurrentStep(props: CurrentStepProps) {
 function OnboardingIntroduction({ t }: { t: OnboardingCopy }) {
   return (
     <>
-      {/* O4: icona piccola accanto all'introduzione; il titolo è quello della sezione. */}
       <s-grid gridTemplateColumns="auto minmax(0, 1fr)" gap="small-200" alignItems="center">
         <BrandMark />
-        <s-paragraph>{t.onboarding.welcomeBody}</s-paragraph>
+        <s-paragraph>{t.onboarding.step1Body}</s-paragraph>
       </s-grid>
       <s-divider />
       <s-stack direction="block" gap="small-100">
-        <s-heading>{t.onboarding.step1Heading}</s-heading>
-        <OnboardingListBlock
-          lead={<s-paragraph>{t.onboarding.step1Body}</s-paragraph>}
-          items={t.onboarding.step1Limits}
-        />
+        <OnboardingListBlock items={t.onboarding.step1Limits} />
       </s-stack>
     </>
   );

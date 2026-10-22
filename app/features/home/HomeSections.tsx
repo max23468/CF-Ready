@@ -216,9 +216,8 @@ export function HomeAside({
           )}
         </s-stack>
       </s-section>
-      <s-section heading={t.home.helpHeading}>
+      <s-section>
         <s-stack direction="block" gap="small-100" alignItems="start">
-          <s-paragraph>{t.home.helpBody}</s-paragraph>
           <s-link href="/app/guide">{t.nav.guide}</s-link>
           {/* P2-T5: dentro la sezione, allineato al testo come nella Guida. */}
           <BrandLockup />

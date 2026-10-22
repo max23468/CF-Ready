@@ -3,15 +3,33 @@
   white-space: pre-wrap;
 }
 
-.customer-messages-fields {
-  container: message-fields / inline-size;
+.customer-messages-editor {
+  container: message-editor / inline-size;
 }
 
 .customer-messages-preview__local {
   display: none;
 }
 
-@container message-fields (inline-size <= 560px) {
+.customer-messages-unavailable {
+  display: none;
+}
+
+@media (max-width: 783px) {
+  .customer-messages-page s-stack[slot="aside"] {
+    display: none;
+  }
+
+  .customer-messages-unavailable {
+    display: block;
+  }
+}
+
+@container message-editor (inline-size <= 560px) {
+  .customer-messages-preview {
+    display: none;
+  }
+
   .customer-messages-preview__local {
     display: block;
   }

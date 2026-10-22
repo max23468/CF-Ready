@@ -60,6 +60,7 @@ describe("shell embedded", () => {
       expect(panel.hidden).toBe(true);
       expect(panel.querySelector("iframe")).toBeNull();
       expect(toggle.textContent).toBe(t.support.heading);
+      expect(toggle.getAttribute("aria-label")).toBe(t.support.heading);
       expect(
         toggle.querySelector('img[src="/cf-ready-mark-negative.svg"]')?.getAttribute("alt"),
       ).toBe("");
@@ -69,6 +70,7 @@ describe("shell embedded", () => {
       expect(panel.hidden).toBe(false);
       expect(document.activeElement).toBe(panel);
       expect(toggle.textContent).toBe(t.support.minimizeChat);
+      expect(toggle.getAttribute("aria-label")).toBe(t.support.minimizeChat);
       expect(frame.title).toBe(t.support.chatTitle);
       expect(frame.src).toBe(`https://tawk.to/chat/6ac67c330815b934ca8c8652/${widget}`);
       expect(frame.referrerPolicy).toBe("no-referrer");

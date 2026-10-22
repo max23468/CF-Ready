@@ -114,8 +114,6 @@ export const en: typeof it = {
     nextStartTrial:
       "Your rules are ready. Start the free trial whenever you want, or choose a plan now.",
     nextChoosePlan: "Choose a plan to apply your rules in checkout again.",
-    helpHeading: "Help and support",
-    helpBody: "What CF Ready checks, what it doesn’t, and what happens in the edge cases.",
     checkInHeading: "Thank you for choosing CF Ready",
     checkInBody:
       "The checkout check is active. If you have feedback on the setup or need help, message the developer directly.",
@@ -138,10 +136,10 @@ export const en: typeof it = {
     resetConfirm: (language: string) =>
       `The four ${language} messages go back to their default texts. The others don’t change, and it only takes effect once you save.`,
     appearHeading: "Messages linked to your rules",
-    appearIntro:
-      "Messages are grouped by the rules you chose. They can appear at checkout only while the check is active.",
+    appearIntro: "While the checkout check is active.",
     appears: "Can appear",
     appearsNot: "Does not appear",
+    notExpected: "Not used by the current rules.",
     fieldNames: { taxCode: TAX_CODE_NAME, pec: "PEC" },
     shortLabels: {
       taxCodeRequired: "Required",
@@ -151,22 +149,16 @@ export const en: typeof it = {
     },
     languageSelector: "Message language",
     previewHeading: "Message example",
-    previewContext: "When the customer tries to complete the order",
-    previewSelected: "Selected message",
     previewHint:
-      "This example shows the message text. Its position and appearance at checkout depend on Shopify.",
-    previewNotShown: "With the current rules this message does not appear at checkout.",
-    previewShown: "With the current rules this message can appear at checkout.",
+      "The preview shows the text; its position and appearance at checkout depend on Shopify.",
     editorHeading: "Error messages",
     previewFieldLabel: "Field label",
-    previewCurrentFieldLabel: "with the current Shopify label",
-    previewProposedFieldLabel: "with the label proposed by CF Ready",
-    labelsNote: "Customize tax code and PEC errors. For field names, open Checkout rules.",
-    manageLabels: "Open Checkout rules",
+    previewCurrentFieldLabel: "Current Shopify label",
+    previewProposedFieldLabel: "Label proposed by CF Ready",
+    manageLabels: "Edit field labels",
   },
   setup: {
     heading: "Get CF Ready ready",
-    welcome: "Choose what to check and when to turn the checkout rules on.",
     progress: (done: number, total: number) => `${done} of ${total} done`,
     rulesTitle: "Choose what to check",
     rulesBody: "Decide whether the tax code and PEC are not managed, optional or required.",
@@ -190,9 +182,6 @@ export const en: typeof it = {
     back: "Back",
     next: "Continue",
     welcomeHeading: "Welcome to CF Ready",
-    welcomeBody:
-      "Set up the tax code and PEC checks, review customer messages, and choose when to turn on the rules.",
-    step1Heading: "What it does and doesn’t do",
     step1Body:
       "CF Ready checks the Italian tax code (Codice Fiscale) and certified email address (PEC) in Shopify’s native checkout fields, without changing your theme.",
     step1Limits: [
