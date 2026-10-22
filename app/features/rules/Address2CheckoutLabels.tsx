@@ -16,7 +16,7 @@ import {
   addressTone,
 } from "./checkout-labels-presentation";
 import { RULES_INTENTS, type SubmitCheckoutLabelsIntent } from "./rules-intents";
-import { Disclosure } from "../../ui-disclosure";
+import { Disclosure } from "../../ui/ui-disclosure";
 
 type Address2CheckoutLabelsProps = {
   locale: Locale;

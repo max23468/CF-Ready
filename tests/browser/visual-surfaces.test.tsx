@@ -11,13 +11,13 @@ import CheckoutRules from "../../app/routes/app.rules";
 import { DEFAULT_CONFIG } from "../../app/config";
 import type { CheckoutLabelsMode } from "../../app/checkout-labels/domain";
 import { CheckoutSimulator } from "../../app/features/rules/CheckoutSimulator";
-import { RevealBanner } from "../../app/ui-feedback";
-import { Disclosure } from "../../app/ui-disclosure";
+import { RevealBanner } from "../../app/ui/ui-feedback";
+import { Disclosure } from "../../app/ui/ui-disclosure";
 import { POLARIS_STABLE_URL, POLARIS_V2_URL } from "../../app/shopify-ui";
 import { trialContinuityTexts } from "../../app/i18n/trial-continuity";
 import { formatDate, formatMoney } from "../../app/i18n";
 import "../../app/app.css";
-import "../../app/ui-motion.css";
+import "../../app/ui/ui-motion.css";
 
 declare module "vitest" {
   export interface ProvidedContext {

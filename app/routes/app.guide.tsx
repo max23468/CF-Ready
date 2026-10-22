@@ -33,9 +33,9 @@ import { skipRevalidationWhenLeaving } from "../revalidation";
 import { showToast } from "../save-bar";
 import { createServerTiming } from "../server-timing.server";
 import { readSupportDiagnosticState, type SupportDiagnosticState } from "../support.server";
-import { BrandLockup } from "../ui-brand";
-import { Disclosure } from "../ui-disclosure";
-import { PageWithAside } from "../ui-page";
+import { BrandLockup } from "../ui/ui-brand";
+import { Disclosure } from "../ui/ui-disclosure";
+import { PageWithAside } from "../ui/ui-page";
 import "./app.guide.css";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {

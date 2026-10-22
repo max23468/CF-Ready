@@ -1,9 +1,9 @@
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-import { renderOwnerControlAction } from "../app/owner-control/commands.server";
+import { renderOwnerControlAction } from "../../app/owner-control/commands.server";
 
-import { type OwnerControlAction } from "../app/owner-control/model";
+import { type OwnerControlAction } from "../../app/owner-control/model";
 
 import {
   findShops,
@@ -17,7 +17,7 @@ import {
   readPerformanceOverall,
   readShops,
   readTrials,
-} from "../app/owner-control/queries.server";
+} from "../../app/owner-control/queries.server";
 import {
   PERFORMANCE_LATEST_VERSIONS_QUERY,
   PERFORMANCE_OVERALL_QUERY,
@@ -26,12 +26,12 @@ import {
   comparePerformanceVersions,
   parsePerformanceRows,
   performanceCutoff,
-} from "../app/reporting/performance";
+} from "../../app/reporting/performance";
 
-import { readShopifyPlans, SHOPIFY_PLAN_QUERY } from "../app/owner-control/shopify-plans.server";
+import { readShopifyPlans, SHOPIFY_PLAN_QUERY } from "../../app/owner-control/shopify-plans.server";
 
-import { NOW, shopFixture, growthResponse } from "./support/owner-control";
-import { controlConfig, insertStore, resetOwnerControl } from "./support/owner-control-db";
+import { NOW, shopFixture, growthResponse } from "../support/owner-control";
+import { controlConfig, insertStore, resetOwnerControl } from "../support/owner-control-db";
 
 beforeEach(resetOwnerControl);
 

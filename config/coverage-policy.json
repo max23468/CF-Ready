@@ -16,14 +16,14 @@
       "mutationScore": 80,
       "domains": {
         "webhooks": {
-          "sourcePrefixes": ["app/shopify-webhook", "app/webhook"],
+          "sourcePrefixes": ["app/webhooks/"],
           "files": [
-            "app/shopify-webhook.server.ts",
-            "app/webhook-auth.server.ts",
-            "app/webhook-ingress.server.ts",
-            "app/webhook-jobs.server.ts",
-            "app/webhook-request.server.ts",
-            "app/webhooks.server.ts"
+            "app/webhooks/shopify-webhook.server.ts",
+            "app/webhooks/webhook-auth.server.ts",
+            "app/webhooks/webhook-ingress.server.ts",
+            "app/webhooks/webhook-jobs.server.ts",
+            "app/webhooks/webhook-request.server.ts",
+            "app/webhooks/webhooks.server.ts"
           ]
         },
         "billing": {

@@ -1,6 +1,6 @@
 import type { OwnerControlBindings } from "../app/owner-control/handler.server";
-import { handleWebhookRequest, WEBHOOK_PATHS } from "../app/webhook-request.server";
-import type { WebhookJob } from "../app/webhooks.server";
+import { handleWebhookRequest, WEBHOOK_PATHS } from "../app/webhooks/webhook-request.server";
+import type { WebhookJob } from "../app/webhooks/webhooks.server";
 import { limitFormBody } from "./form-body";
 
 const OWNER_CONTROL_PATH = "/internal/telegram/webhook";
@@ -63,8 +63,8 @@ export default {
     const message = batch.messages[0];
     if (!message) return;
     const [{ consumeWebhookMessage }, { processWebhookJob }] = await Promise.all([
-      import("../app/webhooks.server"),
-      import("../app/webhook-jobs.server"),
+      import("../app/webhooks/webhooks.server"),
+      import("../app/webhooks/webhook-jobs.server"),
     ]);
     await consumeWebhookMessage(
       env.DB,

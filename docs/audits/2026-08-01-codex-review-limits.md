@@ -235,7 +235,7 @@ lifecycle e riconciliazione.
 #### F-M4-58-01 — webhook abbandonato nello stato `processing`
 
 - **Classe/priorità/stato:** bug di affidabilità e idempotenza, P1, chiuso.
-- **Evidenza:** `app/webhooks.server.ts:32-54` riacquisisce soltanto righe con
+- **Evidenza:** `app/webhooks/webhooks.server.ts:32-54` riacquisisce soltanto righe con
   `status = 'failed'`. `handleWebhook` imposta `processed` solo dopo il gestore
   (`:14-29`). Un crash, timeout o errore nel `finishWebhook` lascia la riga
   `processing`; ogni retry trova il webhook già presente, ritorna `200` e non

@@ -1,17 +1,17 @@
 import { env } from "cloudflare:test";
 import { beforeEach, expect, test, vi } from "vitest";
-import { readBillingAccount, syncBillingAccount } from "../app/billing.server";
-import { trialLedgerHash } from "../app/hash.server";
+import { readBillingAccount, syncBillingAccount } from "../../app/billing.server";
+import { trialLedgerHash } from "../../app/hash.server";
 import {
   deliverOwnerNotifications,
   pollLocalNotifications,
   pollPartnerEvents,
   syncPartnerFinancialObservations,
-} from "../app/owner-notifications.server";
-import { pollLocalBillingEvents } from "../app/owner-notifications/local-billing-source.server";
-import { requestPartnerApi } from "../app/owner-notifications/partner-source.server";
-import { operationalSection } from "../app/owner-notifications/presentation";
-import { insertShop } from "./support/lifecycle";
+} from "../../app/owner-notifications.server";
+import { pollLocalBillingEvents } from "../../app/owner-notifications/local-billing-source.server";
+import { requestPartnerApi } from "../../app/owner-notifications/partner-source.server";
+import { operationalSection } from "../../app/owner-notifications/presentation";
+import { insertShop } from "../support/lifecycle";
 
 const PARTNER_CONFIG = {
   organizationId: "organizzazione",
