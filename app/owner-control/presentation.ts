@@ -11,7 +11,7 @@ import type {
 } from "../telegram/client.server";
 import { callbackData, copyTarget, type OwnerControlAction, type ShopsFilter } from "./model";
 import type { BillingStatusCategory, ShopRow } from "./queries.server";
-import type { RevenueReport } from "./revenue.server";
+import type { EuroExchangeRate, RevenueReport } from "./revenue.server";
 import type { ShopifyPlanRow } from "./shopify-plans.server";
 import type { PartnerUninstallEvent, UninstallHistory, UninstallReport } from "./uninstalls.server";
 import type { BFSReport } from "./bfs.server";
@@ -21,6 +21,7 @@ import { FINANCIAL_OBSERVATION_DAYS, SHOPS_PAGE_SIZE } from "./model";
 type Row = [string, string];
 type Section = { title: string; rows: Row[] };
 type RevenueView = (RevenueReport & { cachedAt: string }) | { unavailable: string };
+const HYPERWALLET_CONVERSION_FEE = 0.005;
 export type OwnerControlMessage = {
   richMessage: TelegramRichMessage;
   replyMarkup?: TelegramInlineKeyboard;
@@ -290,6 +291,7 @@ export function billingMessage(
   },
   revenue?: RevenueView,
   uninstalls?: UninstallReport,
+  exchangeRate?: EuroExchangeRate,
 ): OwnerControlMessage {
   const fees = data.shopifyFees;
   const status = data.status;
@@ -324,14 +326,21 @@ export function billingMessage(
         ...uninstallRows(uninstalls),
       ]),
       section("📐 Run-rate", [
-        ["MRR", `${MONEY.format(data.mrr)} · netto ${MONEY.format(data.netMrr)}`],
-        ["ARR", `${MONEY.format(data.arr)} · netto ${MONEY.format(data.netArr)}`],
+        [
+          "MRR",
+          `${MONEY.format(data.mrr)} · netto ${MONEY.format(data.netMrr * (1 - HYPERWALLET_CONVERSION_FEE))}`,
+        ],
+        [
+          "ARR",
+          `${MONEY.format(data.arr)} · netto ${MONEY.format(data.netArr * (1 - HYPERWALLET_CONVERSION_FEE))}`,
+        ],
         ...(excluded ? [["Esclusi", excluded] as Row] : []),
         [
           "Fee",
           [
             `revenue share ${percent(fees.revenueShare)}`,
             `elaborazione ${percent(fees.processing)}`,
+            `Hyperwallet ${percent(HYPERWALLET_CONVERSION_FEE)} sul netto Shopify (cambio USD/EUR)`,
             ...Object.entries(fees.regulatoryOperating).map(
               ([country, rate]) => `regolamentare ${country} ${percent(rate)}`,
             ),
@@ -357,7 +366,7 @@ export function billingMessage(
           ? [["⚠️ Aggiornamento", `Non riuscito (${reconciliation.refreshUnavailable})`] as Row]
           : []),
       ]),
-      section("💰 Ricavi cumulati · Shopify Partner", revenueRows(revenue)),
+      section("💰 Ricavi cumulati · Shopify Partner", revenueRows(revenue, exchangeRate)),
     ],
     keyboard([
       [button("Aggiorna", { view: "billing", refresh: true })],
@@ -374,6 +383,9 @@ export function billingMessage(
         : []),
       "Disinstallazioni: il maggiore fra Partner dal lancio e contatore locale, review separate",
       "Le transazioni Partner non provano incasso della fattura merchant né payout",
+      exchangeRate
+        ? `Netti cumulati EUR stimati · cambio BCE ${exchangeRate.date} · 1 EUR = ${exchangeRate.usdPerEuro} USD`
+        : "Netti stimati dopo fee Hyperwallet; conversione cumulati USD/EUR non disponibile senza cambio BCE",
     ].join(" · "),
   );
 }
@@ -1171,7 +1183,7 @@ function thresholdLabel(p75: number, threshold: number, samples: number) {
         : "Entro soglia";
   return samples < PERFORMANCE_MINIMUM_SAMPLES ? `${band} · campioni insufficienti` : band;
 }
-function revenueRows(revenue?: RevenueView): Row[] {
+function revenueRows(revenue?: RevenueView, exchangeRate?: EuroExchangeRate): Row[] {
   if (!revenue || "unavailable" in revenue) {
     return [
       [
@@ -1185,21 +1197,29 @@ function revenueRows(revenue?: RevenueView): Row[] {
   if (!revenue.currency) return [["Transazioni", "Nessuna vendita registrata"]];
   const money = new Intl.NumberFormat("it-IT", { style: "currency", currency: revenue.currency });
   const amount = (minor: number) => money.format(minor / 100);
+  const netAmount = (minor: number) =>
+    revenue.currency === "USD"
+      ? exchangeRate
+        ? MONEY.format(
+            Math.round((minor * (1 - HYPERWALLET_CONVERSION_FEE)) / exchangeRate.usdPerEuro) / 100,
+          )
+        : "Non disponibile (cambio BCE)"
+      : amount(minor);
   return [
     ["Lordo", amount(revenue.totals.grossMinor)],
     ["Commissioni Shopify", amount(revenue.totals.grossMinor - revenue.totals.netMinor)],
-    ["Netto", amount(revenue.totals.netMinor)],
+    ["Netto", netAmount(revenue.totals.netMinor)],
     [
       "Abbonamenti",
-      `${amount(revenue.subscriptions.netMinor)} netti · ${countLabel(revenue.subscriptions.count, "addebito", "addebiti")}`,
+      `${netAmount(revenue.subscriptions.netMinor)} netti · ${countLabel(revenue.subscriptions.count, "addebito", "addebiti")}`,
     ],
     [
       "Lifetime",
-      `${amount(revenue.lifetime.netMinor)} netti · ${countLabel(revenue.lifetime.count, "acquisto", "acquisti")}`,
+      `${netAmount(revenue.lifetime.netMinor)} netti · ${countLabel(revenue.lifetime.count, "acquisto", "acquisti")}`,
     ],
     [
       "Rimborsi e crediti",
-      `${amount(revenue.adjustments.netMinor)} · ${countLabel(revenue.adjustments.count, "movimento", "movimenti")}`,
+      `${netAmount(revenue.adjustments.netMinor)} · ${countLabel(revenue.adjustments.count, "movimento", "movimenti")}`,
     ],
   ];
 }

@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.5.4 — 22 ottobre 2026
+
+- la vista billing Telegram aggiunge la stima della commissione Hyperwallet
+  dello 0,5% direttamente nei netti MRR/ARR e converte i netti cumulati USD
+  in EUR con il cambio giornaliero BCE, senza aggiungere righe alla vista.
+
+Telegram billing estimates the 0.5% Hyperwallet fee in net MRR/ARR and converts
+cumulative USD net amounts to EUR using the daily ECB reference rate, without
+adding rows. Gross amounts and Shopify fees retain their original currency.
+
 ## 2.5.3 — 22 ottobre 2026
 
 - riordinate evidenze, audit, test owner, componenti UI e moduli webhook in
