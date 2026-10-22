@@ -6,6 +6,18 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.5.5 — 22 ottobre 2026
+
+- il cambio viene letto dall'API JSON Frankfurter, verificata nel runtime
+  Workers, al posto del feed XML BCE. I redirect restano rifiutati tramite
+  gestione manuale, compatibile con Workers. Rimossi i riferimenti tecnici
+  dalla vista Telegram; le rettifiche nulle restano visibili come zero.
+
+Exchange rates now use the Frankfurter JSON API, verified in the Workers runtime,
+instead of the ECB XML feed. Manual redirect handling rejects redirects without
+unsupported runtime options. Telegram hides technical rate details and displays
+zero adjustments even when a rate is unavailable.
+
 ## 2.5.4 — 22 ottobre 2026
 
 - la vista billing Telegram aggiunge la stima della commissione Hyperwallet
