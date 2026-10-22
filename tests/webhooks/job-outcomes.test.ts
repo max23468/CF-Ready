@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
   markCheckoutLabelsScopeRequired: vi.fn(),
 }));
 
-vi.mock("../../app/webhooks.server", () => ({
+vi.mock("../../app/webhooks/webhooks.server", () => ({
   runClaimedWebhook: mocks.runClaimedWebhook,
 }));
 vi.mock("../../app/events.server", () => ({ recordEvent: mocks.recordEvent }));
@@ -34,7 +34,7 @@ vi.mock("../../app/checkout-labels/repository.server", () => ({
   markCheckoutLabelsScopeRequired: mocks.markCheckoutLabelsScopeRequired,
 }));
 
-import { processWebhookJob } from "../../app/webhook-jobs.server";
+import { processWebhookJob } from "../../app/webhooks/webhook-jobs.server";
 
 const db = {} as D1Database;
 const job = {

@@ -66,11 +66,11 @@ creato con la preview new_admin_design, documentata nelle
 [feature preview Shopify](https://shopify.dev/docs/apps/build/stores/feature-previews).
 La differenza iniziale non è stata attribuita a una cache guasta.
 
-Le prove [01](evidence/2026-10-03-cfr-2-dev/01-home-it-desktop.png),
-[02](evidence/2026-10-03-cfr-2-dev/02-rules-it-desktop.png),
-[03](evidence/2026-10-03-cfr-2-dev/03-polaris-runtime-theme.png),
-[04](evidence/2026-10-03-cfr-2-dev/04-rules-after-hard-reload.png) e
-[05](evidence/2026-10-03-cfr-2-dev/05-dev-store-actions.png) documentano
+Le prove [01](../evidence/2026-10-03-cfr-2-dev/01-home-it-desktop.png),
+[02](../evidence/2026-10-03-cfr-2-dev/02-rules-it-desktop.png),
+[03](../evidence/2026-10-03-cfr-2-dev/03-polaris-runtime-theme.png),
+[04](../evidence/2026-10-03-cfr-2-dev/04-rules-after-hard-reload.png) e
+[05](../evidence/2026-10-03-cfr-2-dev/05-dev-store-actions.png) documentano
 l'identificazione del target, non difetti grafici del nuovo design.
 
 ### Criteri ufficiali applicati
@@ -108,9 +108,9 @@ riferimento esclusivo del nuovo design.
 | Tipografia | Shopify Inter, gerarchia sobria | Font coerente, alcuni pesi editoriali migliorabili | V2-T2/H1/H2 |
 | Mobile | Menu e Sidekick dell'host, contenuto scorrevole | Azioni osservate raggiungibili con scroll | Buona base, due difetti di composizione |
 
-![Benchmark nativo, mercato Italy](evidence/2026-10-03-cfr-2-dev/08-native-market-it-desktop.png)
+![Benchmark nativo, mercato Italy](../evidence/2026-10-03-cfr-2-dev/08-native-market-it-desktop.png)
 
-La [pagina Prodotti](evidence/2026-10-03-cfr-2-dev/07-native-products-desktop.png)
+La [pagina Prodotti](../evidence/2026-10-03-cfr-2-dev/07-native-products-desktop.png)
 completa il confronto per toolbar, tabella, badge e densità. L'aspetto
 non prova l'identità delle implementazioni interne Shopify.
 
@@ -168,9 +168,9 @@ valori che non seguono automaticamente il tema.
 **Riproduzione:** nuovo Admin, Regole, aprire Interno e Testi del checkout;
 confrontare cornici e chevron con la sezione contenitrice e il mercato nativo.
 
-**Prove:** [21](evidence/2026-10-03-cfr-2-dev/21-rules-custom-panels.png),
-[46](evidence/2026-10-03-cfr-2-dev/46-rules-labels-current.png),
-[49](evidence/2026-10-03-cfr-2-dev/49-messages-en-desktop.png).
+**Prove:** [21](../evidence/2026-10-03-cfr-2-dev/21-rules-custom-panels.png),
+[46](../evidence/2026-10-03-cfr-2-dev/46-rules-labels-current.png),
+[49](../evidence/2026-10-03-cfr-2-dev/49-messages-en-desktop.png).
 
 **Proposta:** preferire componenti nativi per le superfici merchant; dove
 serve CSS custom, definire pochi valori compatibili con entrambi i temi.
@@ -183,14 +183,14 @@ pannello il titolo va su due righe e compete con badge e chevron. La frase
 sottostante aiuta, ma lo stato non si legge per intero a colpo d'occhio.
 
 **Riproduzione:** Regole a 390 × 844, sezione etichette con verifica manuale
-pendente. **Prova:** [35](evidence/2026-10-03-cfr-2-dev/35-labels-mobile-390.png).
+pendente. **Prova:** [35](../evidence/2026-10-03-cfr-2-dev/35-labels-mobile-390.png).
 
 **Proposta:** badge brevi, per esempio «Da verificare» e «Testo corretto»,
 con frase completa nel riepilogo; oppure una riga autonoma per il badge
 su mobile. L'ellissi nativa non è un difetto di Polaris: è la composizione
 CFR che assegna un testo troppo lungo.
 
-![Badge a 390 px](evidence/2026-10-03-cfr-2-dev/35-labels-mobile-390.png)
+![Badge a 390 px](../evidence/2026-10-03-cfr-2-dev/35-labels-mobile-390.png)
 
 ### V2-R2. Stratificazione delle etichette troppo profonda
 
@@ -203,9 +203,9 @@ Su mobile il banner occupa molte righe prima delle etichette da confrontare.
 procedura; confrontare mobile e desktop con il raggruppamento del mercato.
 Il finding riguarda la composizione, non la necessità dei casi distinti.
 
-**Prove:** [35](evidence/2026-10-03-cfr-2-dev/35-labels-mobile-390.png),
-[47](evidence/2026-10-03-cfr-2-dev/47-labels-reread-control.png),
-[08](evidence/2026-10-03-cfr-2-dev/08-native-market-it-desktop.png).
+**Prove:** [35](../evidence/2026-10-03-cfr-2-dev/35-labels-mobile-390.png),
+[47](../evidence/2026-10-03-cfr-2-dev/47-labels-reread-control.png),
+[08](../evidence/2026-10-03-cfr-2-dev/08-native-market-it-desktop.png).
 
 **Proposta:** una cornice per gruppo, separazione interna con titolo e
 spaziatura; rendere compatta la spiegazione del mercato. Portare il
@@ -220,12 +220,12 @@ A desktop sono affiancate. Lo stack inline lascia andare a capo l'intero
 testo invece di mantenere il suo legame con l'icona.
 
 **Riproduzione:** Messaggi IT, 390 × 844, anteprima CF obbligatorio.
-**Prova:** [36](evidence/2026-10-03-cfr-2-dev/36-messages-mobile-390-top.png).
+**Prova:** [36](../evidence/2026-10-03-cfr-2-dev/36-messages-mobile-390-top.png).
 
 **Proposta:** due colonne, icona e testo flessibile, allineati in alto;
 verificare frasi lunghe ed EN senza fissare l'altezza del box.
 
-![Icona e testo separati](evidence/2026-10-03-cfr-2-dev/36-messages-mobile-390-top.png)
+![Icona e testo separati](../evidence/2026-10-03-cfr-2-dev/36-messages-mobile-390-top.png)
 
 ### V2-M2. Anteprima grafica diversa dal checkout
 
@@ -239,9 +239,9 @@ Il finding riguarda la rappresentazione grafica, non la validazione.
 
 **Riproduzione:** confrontare Messaggi con un CF non valido nel checkout
 italiano di test, senza creare ordini.
-**Prove:** [15](evidence/2026-10-03-cfr-2-dev/15-onboarding-step3.png),
-[27](evidence/2026-10-03-cfr-2-dev/27-messages-it-top.png),
-[44](evidence/2026-10-03-cfr-2-dev/44-checkout-it-invalid-cf.png).
+**Prove:** [15](../evidence/2026-10-03-cfr-2-dev/15-onboarding-step3.png),
+[27](../evidence/2026-10-03-cfr-2-dev/27-messages-it-top.png),
+[44](../evidence/2026-10-03-cfr-2-dev/44-checkout-it-invalid-cf.png).
 
 **Proposta:** rappresentare campo ed errore inline come osservati, oppure
 chiamarlo «Esempio del messaggio» e dichiarare che posizione e aspetto
@@ -255,10 +255,10 @@ del contenuto cambia passando fra pagine. Il formato FAQ resta comprensibile:
 è una rifinitura editoriale, non un pattern vietato da Polaris.
 
 **Riproduzione:** prime sezioni delle quattro pagine, desktop e 390 px.
-**Prove:** [11](evidence/2026-10-03-cfr-2-dev/11-home-new-admin-initial.png),
-[19](evidence/2026-10-03-cfr-2-dev/19-rules-initial-top.png),
-[27](evidence/2026-10-03-cfr-2-dev/27-messages-it-top.png),
-[30](evidence/2026-10-03-cfr-2-dev/30-guide-top.png).
+**Prove:** [11](../evidence/2026-10-03-cfr-2-dev/11-home-new-admin-initial.png),
+[19](../evidence/2026-10-03-cfr-2-dev/19-rules-initial-top.png),
+[27](../evidence/2026-10-03-cfr-2-dev/27-messages-it-top.png),
+[30](../evidence/2026-10-03-cfr-2-dev/30-guide-top.png).
 
 **Proposta:** collocazione e distanza titolo-card comuni per le sezioni
 principali. I titoli più discreti dell'aside hanno una gerarchia appropriata.
@@ -271,7 +271,7 @@ In quello stato sono riportate zero verifiche manuali. Scelta iniziale e
 verifica reale sono messaggi diversi, presentati con lo stesso stato visivo.
 
 **Riproduzione:** primo accesso, campi non gestiti e scelta etichette pendente.
-**Prova:** [21](evidence/2026-10-03-cfr-2-dev/21-rules-custom-panels.png)
+**Prova:** [21](../evidence/2026-10-03-cfr-2-dev/21-rules-custom-panels.png)
 per badge e richiesta; contatore zero letto nel DOM del giro iniziale.
 
 **Proposta:** «Da configurare» o «Scelta richiesta» inizialmente; «Da verificare»
@@ -284,8 +284,8 @@ La card si intitola «Frequently asked», senza il sostantivo; l'italiano
 «Domande frequenti» è completo.
 
 **Riproduzione:** merchant English, Help and FAQ.
-**Prove:** [50](evidence/2026-10-03-cfr-2-dev/50-guide-en-desktop.png),
-[51](evidence/2026-10-03-cfr-2-dev/51-guide-en-390.png).
+**Prove:** [50](../evidence/2026-10-03-cfr-2-dev/50-guide-en-desktop.png),
+[51](../evidence/2026-10-03-cfr-2-dev/51-guide-en-390.png).
 
 **Proposta:** «Frequently asked questions», verificando il comportamento
 del comando Expand all su mobile con il titolo più lungo.
@@ -298,8 +298,8 @@ Il piano ricompare nella scelta e nell'aside. La palette è nativa: il punto
 è il peso relativo del contenuto nella prima vista.
 
 **Riproduzione:** Home, prova e controllo attivi, 390 × 844.
-**Prove:** [41](evidence/2026-10-03-cfr-2-dev/41-home-mobile-active.png),
-[52](evidence/2026-10-03-cfr-2-dev/52-home-en-390.png).
+**Prove:** [41](../evidence/2026-10-03-cfr-2-dev/41-home-mobile-active.png),
+[52](../evidence/2026-10-03-cfr-2-dev/52-home-en-390.png).
 
 **Proposta editoriale:** una frase con data e azione, dettagli sugli addebiti
 nella scelta del piano; valutare un messaggio esteso vicino alla scadenza.
@@ -313,8 +313,8 @@ le opzioni sono righe verticali in una card: leggibili, ma la comparazione
 rapida dipende soprattutto da separatori e pulsanti.
 
 **Riproduzione:** Home con prova attiva, sezione Come vuoi continuare,
-768 px. **Prove:** [43](evidence/2026-10-03-cfr-2-dev/43-home-tablet-768.png),
-[26](evidence/2026-10-03-cfr-2-dev/26-home-active-trial.png).
+768 px. **Prove:** [43](../evidence/2026-10-03-cfr-2-dev/43-home-tablet-768.png),
+[26](../evidence/2026-10-03-cfr-2-dev/26-home-active-trial.png).
 
 **Proposta editoriale:** prezzo più distinto e periodo vicino al valore;
 stesse posizioni per nome, prezzo e azione. Conservare l'enfasi annuale
@@ -347,15 +347,15 @@ conteggiate nei 10 findings grafici e non spostano l'audit sul funzionamento.
 
 | ID | Osservazione | Severità | Confidenza | Prova e proposta |
 | --- | --- | --- | --- | --- |
-| UX-C1 | «Configurazione completata» pur lasciando i campi non gestiti e controllo inattivo; checklist rimossa | Bassa | Alta | [17](evidence/2026-10-03-cfr-2-dev/17-onboarding-completed.png), [18](evidence/2026-10-03-cfr-2-dev/18-home-trial-inactive.png). Distinguere procedura terminata da configurazione pronta; il prossimo passo resta comunque in Home |
-| UX-C2 | Home attiva senza richiamo alle etichette pendenti; CF richiesto ancora etichettato «opzionale» nel checkout | Media | Alta | [35](evidence/2026-10-03-cfr-2-dev/35-labels-mobile-390.png), [41](evidence/2026-10-03-cfr-2-dev/41-home-mobile-active.png), [44](evidence/2026-10-03-cfr-2-dev/44-checkout-it-invalid-cf.png). Richiamo compatto vicino al riepilogo |
+| UX-C1 | «Configurazione completata» pur lasciando i campi non gestiti e controllo inattivo; checklist rimossa | Bassa | Alta | [17](../evidence/2026-10-03-cfr-2-dev/17-onboarding-completed.png), [18](../evidence/2026-10-03-cfr-2-dev/18-home-trial-inactive.png). Distinguere procedura terminata da configurazione pronta; il prossimo passo resta comunque in Home |
+| UX-C2 | Home attiva senza richiamo alle etichette pendenti; CF richiesto ancora etichettato «opzionale» nel checkout | Media | Alta | [35](../evidence/2026-10-03-cfr-2-dev/35-labels-mobile-390.png), [41](../evidence/2026-10-03-cfr-2-dev/41-home-mobile-active.png), [44](../evidence/2026-10-03-cfr-2-dev/44-checkout-it-invalid-cf.png). Richiamo compatto vicino al riepilogo |
 
 Il CF obbligatorio vuoto e non valido produce il messaggio inline reale.
 L'incongruenza del testo «opzionale» è distinta dalla validazione del valore.
 
 ## 7. Copertura delle prove
 
-Le immagini sono in [evidence/2026-10-03-cfr-2-dev](evidence/2026-10-03-cfr-2-dev).
+Le immagini sono in [evidence/2026-10-03-cfr-2-dev](../evidence/2026-10-03-cfr-2-dev).
 Gli ID indicano il giro di acquisizione, non la priorità.
 
 | Prove | Superfici |
@@ -441,9 +441,9 @@ L'editor Shopify ha temporaneamente smesso di rispondere al controllo del
 browser; il ripristino PEC EN è stato completato usando la UI nativa Chrome.
 Non è stato classificato come difetto CFR.
 
-La [rilettura finale](evidence/2026-10-03-cfr-2-dev/60-labels-restored-readback.png)
+La [rilettura finale](../evidence/2026-10-03-cfr-2-dev/60-labels-restored-readback.png)
 conferma entrambi i testi inglesi di partenza e la modalità Disattivata.
-La [Home finale](evidence/2026-10-03-cfr-2-dev/61-home-final-restored.png)
+La [Home finale](../evidence/2026-10-03-cfr-2-dev/61-home-final-restored.png)
 mostra controllo disattivato, campi non gestiti e messaggi predefiniti.
 Le schede temporanee sono state chiuse; CFR resta aperta. La vista finale
 è desktop. Il reset automatico dell'override viewport non è stato confermato

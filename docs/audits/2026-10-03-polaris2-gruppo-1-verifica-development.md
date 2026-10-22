@@ -16,7 +16,7 @@ Commit distribuito `fd1fb757e241298d78bfef679f31f7368ec81169`, tree
 | Deploy, smoke e readback | [Run 37141601325](https://github.com/max23468/CF-Ready/actions/runs/37141601325), verdi |
 
 Ricevuta provider salvata in
-[deploy-receipt-development.json](evidence/2026-10-03-polaris2-gruppo-1-live/deploy-receipt-development.json).
+[deploy-receipt-development.json](../evidence/2026-10-03-polaris2-gruppo-1-live/deploy-receipt-development.json).
 Migrazioni: nessuna nel diff, applicata o pendente; applicazione e readback
 riportano entrambi `No migrations to apply!`.
 Il coordinatore ha eseguito `publish:development`, gate locale full e coverage

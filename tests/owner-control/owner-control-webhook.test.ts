@@ -4,8 +4,8 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import {
   handleOwnerControlWebhook,
   MAX_OWNER_CONTROL_BODY_BYTES,
-} from "../app/owner-control/handler.server";
-import { callbackData } from "../app/owner-control/model";
+} from "../../app/owner-control/handler.server";
+import { callbackData } from "../../app/owner-control/model";
 
 import {
   claimOwnerControlUpdate,
@@ -14,7 +14,7 @@ import {
   readOwnerControlState,
   renewOwnerControlClaim,
   writeOwnerControlState,
-} from "../app/owner-control/repository.server";
+} from "../../app/owner-control/repository.server";
 
 import {
   NOW,
@@ -26,8 +26,8 @@ import {
   telegramSuccess,
   methods,
   bodyAt,
-} from "./support/owner-control";
-import { controlEnv, resetOwnerControl } from "./support/owner-control-db";
+} from "../support/owner-control";
+import { controlEnv, resetOwnerControl } from "../support/owner-control-db";
 
 beforeEach(resetOwnerControl);
 

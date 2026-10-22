@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.5.3 — 22 ottobre 2026
+
+- riordinate evidenze, audit, test owner, componenti UI e moduli webhook in
+  cartelle dedicate, aggiornando import, collegamenti e percorsi dei controlli;
+  rimossi il pacchetto ZIP duplicato della listing e i file di scaffolding superflui.
+
+Evidence, audits, owner tests, UI components and webhook modules now live in
+dedicated folders, with imports, links and verification paths updated. The duplicate
+listing ZIP and obsolete scaffolding files have been removed.
+
 ## 2.5.2 — 20 ottobre 2026
 
 - gli aggiornamenti ordinari delle dipendenze attendono almeno sette giorni

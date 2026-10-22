@@ -5,7 +5,7 @@ Base: `origin/develop`, commit `a5cf9bac0f411f51568bcbd5285951f904b8eb2c`.
 Worktree locale dedicato: `CF-Ready-polaris2-gruppo-2`.
 
 Fonte: audit originale non tracciato nel checkout principale,
-`docs/plans/2026-10-03-audit-ui-ux-development-2.0.md` del checkout principale.
+`docs/audits/2026-10-03-audit-ui-ux-development-2.0.md` del checkout principale.
 Audit e prove originali preservati. Confronto con le catture native 08 e
 con le prove 21, 35, 41, 50–52. Il primo passaggio era limitato al lavoro locale.
 L’owner ha poi autorizzato la pubblicazione senza promozione e la verifica finale.
@@ -29,16 +29,16 @@ Le catture conservate sono quelle Chromium; WebKit è coperto dai test.
 I file PNG prodotti da Vitest sono ridimensionati dal runner: i viewport CSS
 sono quelli indicati nei nomi e nei test, non le dimensioni raster dei file.
 
-Prove generate in `docs/plans/evidence/2026-10-03-polaris2-gruppo-2/`:
+Prove generate in `docs/evidence/2026-10-03-polaris2-gruppo-2/`:
 `polaris2/` e `precedente/`. Le catture del vecchio live sono soltanto baseline.
 
 Catture rappresentative a 390 px:
-[Home EN](evidence/2026-10-03-polaris2-gruppo-2/polaris2/group2-home-top-en-chromium-390.png),
-[piani EN](evidence/2026-10-03-polaris2-gruppo-2/polaris2/group2-plans-en-chromium-390.png),
-[FAQ EN](evidence/2026-10-03-polaris2-gruppo-2/polaris2/group2-guide-top-en-chromium-390.png),
-[scelta IT](evidence/2026-10-03-polaris2-gruppo-2/polaris2/group2-labels-choice-it-chromium-390.png),
-[verifica IT](evidence/2026-10-03-polaris2-gruppo-2/polaris2/group2-labels-manual-it-chromium-390.png),
-[piani nel tema precedente](evidence/2026-10-03-polaris2-gruppo-2/precedente/group2-plans-it-chromium-390.png).
+[Home EN](../evidence/2026-10-03-polaris2-gruppo-2/polaris2/group2-home-top-en-chromium-390.png),
+[piani EN](../evidence/2026-10-03-polaris2-gruppo-2/polaris2/group2-plans-en-chromium-390.png),
+[FAQ EN](../evidence/2026-10-03-polaris2-gruppo-2/polaris2/group2-guide-top-en-chromium-390.png),
+[scelta IT](../evidence/2026-10-03-polaris2-gruppo-2/polaris2/group2-labels-choice-it-chromium-390.png),
+[verifica IT](../evidence/2026-10-03-polaris2-gruppo-2/polaris2/group2-labels-manual-it-chromium-390.png),
+[piani nel tema precedente](../evidence/2026-10-03-polaris2-gruppo-2/precedente/group2-plans-it-chromium-390.png).
 
 Controlli:
 

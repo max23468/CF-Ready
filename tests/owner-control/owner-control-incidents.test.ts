@@ -1,23 +1,23 @@
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-import { renderOwnerControlAction } from "../app/owner-control/commands.server";
+import { renderOwnerControlAction } from "../../app/owner-control/commands.server";
 
 import {
   callbackData,
   parseCallback,
   parseCommand,
   type OwnerControlAction,
-} from "../app/owner-control/model";
+} from "../../app/owner-control/model";
 
-import { reconcileOwnerIncidents } from "../app/owner-control/incidents.server";
+import { reconcileOwnerIncidents } from "../../app/owner-control/incidents.server";
 import {
   BILLING_READBACK_STALE_HOURS,
   CHECKOUT_LABEL_OBSERVATION_MINUTES,
-} from "../app/owner-control/model";
+} from "../../app/owner-control/model";
 
-import { NOW } from "./support/owner-control";
-import { controlConfig, insertStore, resetOwnerControl } from "./support/owner-control-db";
+import { NOW } from "../support/owner-control";
+import { controlConfig, insertStore, resetOwnerControl } from "../support/owner-control-db";
 
 beforeEach(resetOwnerControl);
 

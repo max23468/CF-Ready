@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { SUPPORT_EMAIL, texts, type Locale } from "./i18n";
+import { SUPPORT_EMAIL, texts, type Locale } from "../../i18n";
 import "./SupportChat.css";
 
 // Un widget tawk.to per lingua: la lingua del widget si imposta nella dashboard.

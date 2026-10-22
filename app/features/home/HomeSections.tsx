@@ -4,8 +4,8 @@ import type { HomeData } from "./home.server";
 import { homeValidationPresentation } from "./home-next-step";
 import { trialContinuityNotice } from "./commercial-state";
 import { showPlans } from "./show-plans";
-import { BrandLockup } from "../../ui-brand";
-import { StatusList } from "../../ui-status-list";
+import { BrandLockup } from "../../ui/ui-brand";
+import { StatusList } from "../../ui/ui-status-list";
 
 type Texts = ReturnType<typeof texts>;
 type Submit = (intent: string, source?: string) => void;

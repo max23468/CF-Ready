@@ -5,7 +5,7 @@ import { APP_API_KEY, APP_POLARIS_URL } from "./env.server";
 import { resolveLocale } from "./i18n";
 import { POLARIS_V2_URL } from "./shopify-ui";
 import "./app.css";
-import "./ui-motion.css";
+import "./ui/ui-motion.css";
 
 const APP_BRIDGE_URL = "https://cdn.shopify.com/shopifycloud/app-bridge.js";
 

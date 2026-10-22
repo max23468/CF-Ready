@@ -9,7 +9,7 @@ import type {
 } from "../../checkout-labels/domain";
 import { texts, type Locale } from "../../i18n";
 import { showToast } from "../../save-bar";
-import { RevealBanner } from "../../ui-feedback";
+import { RevealBanner } from "../../ui/ui-feedback";
 import { useCheckoutLabelScopeRequest } from "../use-checkout-label-scopes";
 import { Address2CheckoutLabels } from "./Address2CheckoutLabels";
 import { KeepNativeLabelsChoice, NativeCheckoutLabels } from "./NativeCheckoutLabels";

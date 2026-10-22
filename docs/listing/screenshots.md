@@ -43,7 +43,9 @@ I requisiti di formato sono nelle [best practice Shopify](https://shopify.dev/do
 
 ## Consegna e ripristino
 
-- [ZIP con le due cartelle IT/EN e il manifest](assets/2x/cf-ready-2x-screenshots-it-en.zip).
+- Sorgenti della consegna: [cartella IT](assets/2x/it/),
+  [cartella EN](assets/2x/en/) e manifest. L'eventuale ZIP per l'upload si
+  prepara da questi file e non si conserva nel repository.
 - [Anteprima IT](assets/2x/anteprima-it.png) e [anteprima EN](assets/2x/anteprima-en.png).
 - [Manifest con ordine, didascalie e alt text](assets/2x/manifest.json).
 

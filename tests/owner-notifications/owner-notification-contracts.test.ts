@@ -18,7 +18,7 @@ import {
   type OperationalSnapshot,
   type PartnerEventNode,
   type PartnerEventType,
-} from "../app/owner-notifications/model";
+} from "../../app/owner-notifications/model";
 import {
   billingCopy,
   formatCalendarDate,
@@ -36,7 +36,7 @@ import {
   relationshipStatus,
   storeSection,
   trialDaysRemaining,
-} from "../app/owner-notifications/presentation";
+} from "../../app/owner-notifications/presentation";
 
 const SNAPSHOT: OperationalSnapshot = {
   display_name: "Negozio",

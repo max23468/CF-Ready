@@ -4,8 +4,8 @@ import { hasManagedField, type Messages, type Rules } from "../../config";
 import { rulesException, texts } from "../../i18n";
 import type { Locale } from "../../i18n";
 import { checkoutLabelCopy } from "../../checkout-labels/domain";
-import { BrandMark } from "../../ui-brand";
-import { Disclosure } from "../../ui-disclosure";
+import { BrandMark } from "../../ui/ui-brand";
+import { Disclosure } from "../../ui/ui-disclosure";
 import "./CheckoutSimulator.css";
 import {
   absentRequiredFieldsDue,
