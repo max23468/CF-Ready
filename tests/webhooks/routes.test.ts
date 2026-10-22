@@ -6,12 +6,14 @@ const mocks = vi.hoisted(() => ({
   first: vi.fn(),
 }));
 
-vi.mock("../../app/shopify-webhook.server", () => ({
+vi.mock("../../app/webhooks/shopify-webhook.server", () => ({
   authenticateWebhook: mocks.authenticateWebhook,
 }));
-vi.mock("../../app/webhook-ingress.server", () => ({ handleWebhook: mocks.handleWebhook }));
+vi.mock("../../app/webhooks/webhook-ingress.server", () => ({
+  handleWebhook: mocks.handleWebhook,
+}));
 
-import { handleWebhookRequest } from "../../app/webhook-request.server";
+import { handleWebhookRequest } from "../../app/webhooks/webhook-request.server";
 
 const db = {
   prepare: vi.fn(() => ({ bind: vi.fn(() => ({ first: mocks.first })) })),

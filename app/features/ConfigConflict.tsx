@@ -1,5 +1,5 @@
 import { texts, type Locale } from "../i18n";
-import { RevealBanner } from "../ui-feedback";
+import { RevealBanner } from "../ui/ui-feedback";
 
 export function ConfigConflict({
   locale,

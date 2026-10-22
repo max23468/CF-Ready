@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import type { WebhookJob } from "../../app/webhooks.server";
+import type { WebhookJob } from "../../app/webhooks/webhooks.server";
 
 export const CONFIG = { schemaVersion: 2, rules: { taxCode: "required_validated" } };
 

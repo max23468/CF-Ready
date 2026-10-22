@@ -1,5 +1,5 @@
 import { createContext, RouterContextProvider } from "react-router";
-import type { WebhookJob } from "./webhooks.server";
+import type { WebhookJob } from "./webhooks/webhooks.server";
 
 export const databaseContext = createContext<D1Database>();
 export const webhookQueueContext = createContext<Queue<WebhookJob> | undefined>(undefined);

@@ -1,4 +1,4 @@
-import { recordEvent } from "./events.server";
+import { recordEvent } from "../events.server";
 import type { WebhookJob } from "./webhook-ingress.server";
 
 const PROCESSING_TIMEOUT_MS = 5 * 60 * 1000;

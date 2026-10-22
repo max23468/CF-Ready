@@ -153,8 +153,14 @@ Tag e GitHub Release esistono solo dopo deploy, smoke e readback verdi delle
 superfici cambiate dello stesso commit. Chiudi riportando ambiente, commit, deployment ID, migrazioni e
 versione di rollback, e rimuovi soltanto branch e worktree temporanei del ciclo già assorbiti.
 
+`Pubblica` e “Promuovi” autorizzano anche i controlli di sicurezza Shopify locali
+obbligatori sul candidato e la review dell'agente corrente, senza una seconda
+conferma. Nuovi provider o invio del codice a servizi esterni richiedono invece
+un'autorizzazione specifica.
+
 `Pubblica` e “Promuovi” non autorizzano mai: temi Shopify live, submission App Store, billing
 o nuove attivazioni produttive, TestFlight o App Store, invii Aruba, email o
-scansioni reali, aggiornamenti Notion. Ognuna richiede una richiesta separata.
+scansioni su dati o sistemi reali esterne ai controlli locali del candidato,
+aggiornamenti Notion. Ognuna richiede una richiesta separata.
 Fuori da “Promuovi” o da una pubblicazione in Production, deploy Production e
 release richiedono un'autorizzazione esplicita.

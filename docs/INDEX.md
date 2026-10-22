@@ -4,6 +4,10 @@ Le evidenze sono ricevute storiche chiuse: versioni e commit al loro interno
 descrivono quel rilascio e non vanno aggiornati ai bump successivi. Lo stato
 corrente si legge da codice, configurazioni e `package.json`.
 
+I piani sono in [plans/](plans/), gli audit e le verifiche in
+[audits/](audits/), le ricevute e le raccolte di screenshot datate in
+[evidence/](evidence/).
+
 - [Master Plan](plans/2026-07-28-CF-Ready-Master-Plan.md) — requisiti,
   decisioni, milestone e gate.
 - [Contratti tecnici M1](contracts/m1-technical-contracts.md) — runtime,

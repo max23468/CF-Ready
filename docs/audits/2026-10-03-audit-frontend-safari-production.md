@@ -165,7 +165,7 @@ Visitate in italiano e inglese Home, Assistenza, Privacy, Termini e le quattro g
 
 I testi osservati mantengono il perimetro CF/PEC e la distinzione tra validità formale e identità. Non è una revisione legale dei documenti Privacy e Termini. Non è stato ispezionato visivamente ogni pixel di ogni sezione lunga.
 
-Prove pubbliche: screenshot `29` e `30` per Home e salto FAQ stretti, `31` per Home EN, `32–33` per assistenza, `34–35` per privacy, `36–37` per termini, `38–45` per le quattro guide IT/EN e `46` per la 404, nella [cartella delle prove](../../audit-data/2026-10-03-safari-production/).
+Prove pubbliche: screenshot `29` e `30` per Home e salto FAQ stretti, `31` per Home EN, `32–33` per assistenza, `34–35` per privacy, `36–37` per termini, `38–45` per le quattro guide IT/EN e `46` per la 404, nella [cartella delle prove](../evidence/2026-10-03-safari-production/).
 
 ### 9.2 Checkout shopper Numisleo in Safari
 
@@ -182,7 +182,7 @@ Il carrello iniziale era vuoto. È stato aggiunto un solo articolo temporaneo, q
 
 Non è stato premuto «Paga ora» né un pulsante express. La scomparsa degli errori non prova il completamento dell'ordine o tutti gli stadi di esecuzione della Function. Non sono state provate transazioni, wallet, clienti autenticati o tutti i mercati Shopify.
 
-Gli screenshot del checkout sono stati esaminati durante il test ma non conservati nel deliverable perché la barra di Safari conteneva l'identificatore riservato del checkout. Il [readback finale sanificato](../../audit-data/2026-10-03-safari-production/checkout-ripristino.txt) documenta campi personali e pagamento vuoti, lingua italiana e provincia iniziale Milano. I campi fiscali sono stati riletti vuoti prima di svuotare l'indirizzo, che li nasconde. La prova del carrello vuoto (schermata rimossa su richiesta dell’owner) chiude il ripristino dell'articolo temporaneo.
+Gli screenshot del checkout sono stati esaminati durante il test ma non conservati nel deliverable perché la barra di Safari conteneva l'identificatore riservato del checkout. Il [readback finale sanificato](../evidence/2026-10-03-safari-production/checkout-ripristino.txt) documenta campi personali e pagamento vuoti, lingua italiana e provincia iniziale Milano. I campi fiscali sono stati riletti vuoti prima di svuotare l'indirizzo, che li nasconde. La prova del carrello vuoto (schermata rimossa su richiesta dell’owner) chiude il ripristino dell'articolo temporaneo.
 
 ## 10. Inventario completo, responsive e limiti
 

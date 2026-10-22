@@ -30,9 +30,11 @@ non attesta l'esecuzione di questa procedura.
 
 ## Esecuzione su un candidato autorizzato
 
-Questi passaggi avviano una nuova scansione e richiedono un incarico che la
-autorizzi. L'incarico del 20 ottobre per predisporre questa procedura non la
-autorizza e non produce una prova di scansione.
+Una richiesta di pubblicazione o promozione autorizza anche questi controlli
+locali obbligatori e la review dell'agente corrente, senza conferma aggiuntiva.
+Restano soggetti ad autorizzazione specifica nuovi provider e invio del codice
+a servizi esterni. La sola manutenzione di questa procedura non avvia né
+attesta una scansione.
 
 1. Preparare un checkout isolato del candidato pulito e registrare SHA,
    versione, ambiente e configurazione selezionata. Verificare le versioni
@@ -47,7 +49,7 @@ autorizza e non produce una prova di scansione.
    artifact pubblici. Disabilitare il reporting CLI con
    `SHOPIFY_CLI_NO_ANALYTICS=1`; ciò non controlla il provider dell'agente.
 3. Dalla radice eseguire la sequenza seguente, scegliendo **una** configurazione.
-   Per Production ripetere gli stessi comandi con `--config production` sul
+   Per Production ripetere gli stessi comandi con `--config shopify.app.toml` sul
    candidato effettivamente promosso. Non usare `--client-id`, che comporta
    una verifica dell'account, né `--no-git-ignore`, che includerebbe file locali
    ignorati. Non aggiungere esclusioni per ottenere un esito favorevole.
@@ -57,13 +59,13 @@ autorizza e non produce una prova di scansione.
    ./node_modules/.bin/shopify version
    git rev-parse HEAD
    git status --porcelain
-   ./node_modules/.bin/shopify app security check --path . --config development --list-files --no-input
-   ./node_modules/.bin/shopify app security check --path . --config development --blocking high --print-instructions --no-input
+   ./node_modules/.bin/shopify app security check --path . --config dev --list-files --no-input
+   ./node_modules/.bin/shopify app security check --path . --config dev --blocking high --print-instructions --no-input
    ```
 
    Conservare elenco file, output, exit code e i file generati sotto
-   `.shopify/app-security/shopify.app.development/` (oppure
-   `shopify.app.production/`). Nessun numero di file è un requisito fisso:
+   `.shopify/app-security/shopify.app.dev/` (oppure
+   `shopify.app/`). Nessun numero di file è un requisito fisso:
    confrontare lo scope con le superfici del candidato, inclusi `app/`,
    `workers/` ed `extensions/`. Annotare file saltati e motivazioni.
 4. Consegnare al coding agent le istruzioni appena generate e seguirne il
@@ -75,7 +77,7 @@ autorizza e non produce una prova di scansione.
 5. Mostrare il risultato combinato:
 
    ```sh
-   ./node_modules/.bin/shopify app security review --path . --config development --blocking high --no-input
+   ./node_modules/.bin/shopify app security review --path . --config dev --blocking high --no-input
    git status --porcelain
    ```
 

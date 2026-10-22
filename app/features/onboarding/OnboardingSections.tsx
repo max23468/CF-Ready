@@ -3,7 +3,7 @@ import { formatDate, texts } from "../../i18n";
 import { trialContinuityTexts } from "../../i18n/trial-continuity";
 import type { OnboardingData } from "./onboarding.server";
 import type { onboardingStep4State } from "./step4-state";
-import { StatusList } from "../../ui-status-list";
+import { StatusList } from "../../ui/ui-status-list";
 
 const STEPS = 4;
 

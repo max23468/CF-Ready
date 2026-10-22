@@ -16,11 +16,11 @@ custom e di verificare entrambe le apparenze.
 
 | Finding | Correzione | File principali | Prova locale |
 | --- | --- | --- | --- |
-| V2-T1 | Cornici dei pannelli etichette affidate a `s-box`; separatori FAQ nativi `s-divider`. Rimossi i fallback `--p-*`, la cornice del chevron, il rosa fisso e le dimensioni font copiate. Focus tramite outline del browser. | `RulesLayout.css`, `Address2CheckoutLabels.tsx`, `NativeCheckoutLabels.tsx`, `app.guide.tsx/css`, `CustomerMessagesPreview.tsx/css` | [Regole desktop](evidence/2026-10-03-polaris2-gruppo-1/polaris2/gruppo1-labels-it-chromium-1280.png), [FAQ EN mobile](evidence/2026-10-03-polaris2-gruppo-1/polaris2/gruppo1-guide-en-chromium-390.png) |
-| V2-R1 | Titolo e badge vanno su righe distinte sotto 600 px; desktop con wrapping. Nessuna abbreviazione degli stati, riepilogo completo conservato. | `RulesLayout.css` | [IT 390](evidence/2026-10-03-polaris2-gruppo-1/polaris2/gruppo1-labels-it-chromium-390.png), [EN 390](evidence/2026-10-03-polaris2-gruppo-1/polaris2/gruppo1-labels-en-chromium-390.png) |
+| V2-T1 | Cornici dei pannelli etichette affidate a `s-box`; separatori FAQ nativi `s-divider`. Rimossi i fallback `--p-*`, la cornice del chevron, il rosa fisso e le dimensioni font copiate. Focus tramite outline del browser. | `RulesLayout.css`, `Address2CheckoutLabels.tsx`, `NativeCheckoutLabels.tsx`, `app.guide.tsx/css`, `CustomerMessagesPreview.tsx/css` | [Regole desktop](../evidence/2026-10-03-polaris2-gruppo-1/polaris2/gruppo1-labels-it-chromium-1280.png), [FAQ EN mobile](../evidence/2026-10-03-polaris2-gruppo-1/polaris2/gruppo1-guide-en-chromium-390.png) |
+| V2-R1 | Titolo e badge vanno su righe distinte sotto 600 px; desktop con wrapping. Nessuna abbreviazione degli stati, riepilogo completo conservato. | `RulesLayout.css` | [IT 390](../evidence/2026-10-03-polaris2-gruppo-1/polaris2/gruppo1-labels-it-chromium-390.png), [EN 390](../evidence/2026-10-03-polaris2-gruppo-1/polaris2/gruppo1-labels-en-chromium-390.png) |
 | V2-R2 | Una cornice nativa per pannello; casi distinti mediante titolo e spazio, senza box grigi o cornice della procedura. Spiegazione mercato come testo discreto, confronto attuale/proposto prima delle note e della procedura. Modalità, conteggi e ultima lettura restano disponibili. | `NativeCheckoutLabels.tsx`, `RulesLayout.css` | Stesse catture Regole, con procedura aperta |
-| V2-M1 | Griglia nativa a due colonne, icona e testo flessibile allineati in alto. | `CustomerMessagesPreview.tsx` | [Messaggi EN 390](evidence/2026-10-03-polaris2-gruppo-1/polaris2/gruppo1-messages-en-chromium-390.png) |
-| V2-M2 | Scelta dell'alternativa prevista dall'audit: “Esempio del messaggio” / “Message example”, testo critico in superficie neutra e nota IT/EN che posizione e aspetto dipendono da Shopify. Eliminati titolo ordine e icona alert inventati. Aggiornati anteprima principale, esempi sotto ogni campo e passo 3 onboarding. | `CustomerMessagesPreview.tsx/css`, `app.messages.tsx`, `app.onboarding.tsx`, `i18n/it.ts`, `i18n/en.ts` | [Messaggi IT desktop](evidence/2026-10-03-polaris2-gruppo-1/polaris2/gruppo1-messages-it-chromium-1280.png), [Onboarding IT 390](evidence/2026-10-03-polaris2-gruppo-1/polaris2/gruppo1-onboarding-it-chromium-390.png) |
+| V2-M1 | Griglia nativa a due colonne, icona e testo flessibile allineati in alto. | `CustomerMessagesPreview.tsx` | [Messaggi EN 390](../evidence/2026-10-03-polaris2-gruppo-1/polaris2/gruppo1-messages-en-chromium-390.png) |
+| V2-M2 | Scelta dell'alternativa prevista dall'audit: “Esempio del messaggio” / “Message example”, testo critico in superficie neutra e nota IT/EN che posizione e aspetto dipendono da Shopify. Eliminati titolo ordine e icona alert inventati. Aggiornati anteprima principale, esempi sotto ogni campo e passo 3 onboarding. | `CustomerMessagesPreview.tsx/css`, `app.messages.tsx`, `app.onboarding.tsx`, `i18n/it.ts`, `i18n/en.ts` | [Messaggi IT desktop](../evidence/2026-10-03-polaris2-gruppo-1/polaris2/gruppo1-messages-it-chromium-1280.png), [Onboarding IT 390](../evidence/2026-10-03-polaris2-gruppo-1/polaris2/gruppo1-onboarding-it-chromium-390.png) |
 
 ## Verifiche
 
@@ -43,7 +43,7 @@ custom e di verificare entrambe le apparenze.
 - `git diff --check`: verde. Mutation non eseguita: diff fuori dal perimetro.
 
 Le 32 catture Chromium sono salvate nelle cartelle `polaris1` e `polaris2` sotto
-`evidence/2026-10-03-polaris2-gruppo-1/`; le catture WebKit generate sono in
+`../evidence/2026-10-03-polaris2-gruppo-1/`; le catture WebKit generate sono in
 `tests/browser/__screenshots__/visual` e `visual-v2`, ignorate da Git.
 Le catture salvate usano un viewport esterno ampio per evitare il ridimensionamento
 del runner Vitest; il viewport del contenuto resta 1280 oppure 390 px.
