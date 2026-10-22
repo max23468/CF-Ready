@@ -314,15 +314,15 @@ describe("Obiettivo BFS", () => {
 });
 
 describe("Ricavi Partner", () => {
-  test("legge il cambio BCE senza credenziali, usa la cache e recupera un cambio recente in caso di errore", async () => {
-    const fetcher = vi.fn(
-      async () => new Response("<Cube time='2026-09-08'><Cube currency='USD' rate='1.25'/></Cube>"),
+  test("legge il cambio JSON senza credenziali, usa la cache e recupera un cambio recente in caso di errore", async () => {
+    const fetcher = vi.fn(async () =>
+      Response.json({ date: "2026-09-08", base: "EUR", quote: "USD", rate: 1.25 }),
     );
     const rate = await readEuroExchangeRate(env.DB, { now: NOW, fetcher });
     expect(rate).toEqual({ date: "2026-09-08", usdPerEuro: 1.25 });
     expect(fetcher.mock.calls[0]).toEqual([
-      "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
-      { signal: expect.any(AbortSignal), redirect: "error" },
+      "https://api.frankfurter.dev/v2/rate/eur/usd",
+      { signal: expect.any(AbortSignal), redirect: "manual" },
     ]);
     await expect(readEuroExchangeRate(env.DB, { now: NOW, fetcher })).resolves.toEqual(rate);
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -339,24 +339,26 @@ describe("Ricavi Partner", () => {
         now: new Date("2026-09-15T12:00:00Z"),
         fetcher: unavailable,
       }),
-    ).rejects.toThrow("ecb_rate_unavailable");
+    ).rejects.toThrow("exchange_rate_unavailable");
   });
 
-  test("rifiuta cambi BCE mancanti, nulli, scaduti, futuri o risposte troppo grandi", async () => {
-    for (const body of [
-      "<Cube/>",
-      "<Cube time='2026-09-08'><Cube currency='USD' rate='0'/></Cube>",
-      "<Cube time='2026-09-01'><Cube currency='USD' rate='1.25'/></Cube>",
-      "<Cube time='2026-09-09'><Cube currency='USD' rate='1.25'/></Cube>",
-      "<Cube time='2026-02-31'><Cube currency='USD' rate='1.25'/></Cube>",
-      "x".repeat(32_769),
+  test("rifiuta cambi mancanti, nulli, scaduti, futuri, date e coppie non valide", async () => {
+    for (const payload of [
+      null,
+      {},
+      { date: "2026-09-08", base: "EUR", quote: "USD", rate: 0 },
+      { date: "2026-09-01", base: "EUR", quote: "USD", rate: 1.25 },
+      { date: "2026-09-09", base: "EUR", quote: "USD", rate: 1.25 },
+      { date: "2026-02-31", base: "EUR", quote: "USD", rate: 1.25 },
+      { date: "2026-09-08", base: "USD", quote: "EUR", rate: 1.25 },
+      { date: "2026-09-08", base: "EUR", quote: "USD", rate: "1.25" },
     ]) {
       await expect(
         readEuroExchangeRate(env.DB, {
           now: NOW,
-          fetcher: async () => new Response(body),
+          fetcher: async () => Response.json(payload),
         }),
-      ).rejects.toThrow("ecb_rate_unavailable");
+      ).rejects.toThrow("exchange_rate_unavailable");
     }
     await expect(
       readEuroExchangeRate(env.DB, {
@@ -365,7 +367,24 @@ describe("Ricavi Partner", () => {
           throw new Error("network_failure");
         },
       }),
-    ).rejects.toThrow("ecb_rate_unavailable");
+    ).rejects.toThrow("exchange_rate_unavailable");
+  });
+
+  test("rifiuta i redirect anche se il body contiene un cambio valido", async () => {
+    const fetcher = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({ date: "2026-09-08", base: "EUR", quote: "USD", rate: 1.25 }),
+          {
+            status: 302,
+            headers: { Location: "https://example.invalid/redirect" },
+          },
+        ),
+    );
+    await expect(readEuroExchangeRate(env.DB, { now: NOW, fetcher })).rejects.toThrow(
+      "exchange_rate_unavailable",
+    );
+    expect(fetcher).toHaveBeenCalledOnce();
   });
 
   test("usa i default runtime con una risposta Partner vuota", async () => {
@@ -532,8 +551,8 @@ describe("Ricavi Partner", () => {
     );
     const sale = vi.fn(async () => responses.shift()!);
     const fetcher = (async (input: RequestInfo | URL, init?: RequestInit) =>
-      String(input).startsWith("https://www.ecb.europa.eu/")
-        ? new Response("<Cube time='2026-09-08'><Cube currency='USD' rate='1.25'/></Cube>")
+      String(input).startsWith("https://api.frankfurter.dev/")
+        ? Response.json({ date: "2026-09-08", base: "EUR", quote: "USD", rate: 1.25 })
         : String(init?.body).includes("OwnerControlUninstalls")
           ? uninstalls()
           : sale()) as unknown as typeof fetch;
