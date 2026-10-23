@@ -5,6 +5,10 @@ inputs:
   browsers:
     description: Browser separati da spazio, per esempio "chromium webkit"
     required: true
+  deps-timeout:
+    description: Secondi concessi alle dipendenze di sistema prima di fermare il job
+    required: false
+    default: "240"
 
 runs:
   using: composite
@@ -23,14 +27,19 @@ runs:
         key: playwright-${{ runner.os }}-${{ steps.versions.outputs.playwright }}-${{ steps.versions.outputs.browsers }}
     # Il 23 ottobre 2026 il mirror apt Azure ha servito 25.9 MB a 45.8 kB/s: i job browser
     # restavano bloccati fino al timeout. Con i .deb in cache apt scarica solo le versioni nuove.
+    # Una nuova immagine runner cambia la chiave: il ripiego parte dallo stesso insieme di browser.
+    # playwright-cache.yml tiene la cache su develop, l'unica visibile a tutte le PR.
     - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/apt-playwright/*.deb
-        key: playwright-apt-${{ steps.versions.outputs.image }}-${{ steps.versions.outputs.playwright }}-${{ steps.versions.outputs.browsers }}
-        restore-keys: playwright-apt-
+        key: playwright-apt-${{ steps.versions.outputs.browsers }}-${{ steps.versions.outputs.image }}-${{ steps.versions.outputs.playwright }}
+        restore-keys: |
+          playwright-apt-${{ steps.versions.outputs.browsers }}-
+          playwright-apt-
     - shell: bash
       env:
         BROWSERS: ${{ inputs.browsers }}
+        DEPS_TIMEOUT: ${{ inputs.deps-timeout }}
       run: |
         read -ra browsers <<< "$BROWSERS"
         archives="$HOME/.cache/apt-playwright"
@@ -40,7 +49,7 @@ runs:
         npx playwright install "${browsers[@]}" &
         download=$!
         status=0
-        timeout 240 npx playwright install-deps "${browsers[@]}" || status=$?
+        timeout "$DEPS_TIMEOUT" npx playwright install-deps "${browsers[@]}" || status=$?
         wait "$download" || status=$?
         sudo chown -R "$(id -u):$(id -g)" "$archives"
         exit "$status"
