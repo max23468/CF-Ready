@@ -6,6 +6,19 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.5.7 — 23 ottobre 2026
+
+- Polaris passa dalla release candidate al canale stabile 2.x, condiviso fra
+  script e preload Shopify, con tipi TypeScript 2.0.0.
+- Assistenza resta sopra Sidekick e la barra mobile dell'Admin e usa il font
+  del nuovo Admin; le etichette del checkout mostrano uno spinner durante il
+  primo caricamento.
+
+Polaris moves from the release candidate to the stable 2.x channel, shared by
+the script and Shopify preload, with TypeScript types 2.0.0.
+Support stays above Sidekick and the mobile admin bar and uses the new admin
+font. Checkout labels show a spinner while they first load.
+
 ## 2.5.6 — 23 ottobre 2026
 
 - semplificati i testi di Home, Messaggi, configurazione iniziale e sito in

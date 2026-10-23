@@ -46,6 +46,20 @@ describe("shell embedded", () => {
     expect(view.container.querySelector<HTMLElement>(".support-chat__panel")?.hidden).toBe(false);
   });
 
+  test("Assistenza resta sopra le barre dell'Admin indicate da App Bridge", async () => {
+    router.loaderData = { apiKey: "api-key", shopDomain: "demo.myshopify.com", locale: "it" };
+    const view = await mount(<App />);
+    const chat = view.container.querySelector<HTMLElement>(".support-chat")!;
+    const gap = () => window.innerHeight - chat.getBoundingClientRect().bottom;
+    expect(gap()).toBe(16);
+    document.documentElement.style.setProperty("--shopify-safe-area-inset-bottom", "64px");
+    try {
+      expect(gap()).toBe(80);
+    } finally {
+      document.documentElement.style.removeProperty("--shopify-safe-area-inset-bottom");
+    }
+  });
+
   test.each([
     ["it", "1k4bnk33m"],
     ["en", "1k4bqnrvs"],

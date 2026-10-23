@@ -72,6 +72,7 @@ test.each([
   ).toHaveLength(1);
 });
 
-test("Polaris v2 è il runtime di tutti gli ambienti", () => {
+test("il canale stabile Polaris 2.x è il runtime di tutti gli ambienti", () => {
   expect(POLARIS_URL).toBe(POLARIS_V2_URL);
+  expect(POLARIS_URL).toBe("https://cdn.shopify.com/shopifycloud/polaris-2.js");
 });
