@@ -4,8 +4,6 @@
   "ignoreExportsUsedInFile": true,
   // Moduli virtuali forniti da workerd e non da pacchetti npm.
   "ignoreDependencies": ["cloudflare"],
-  // jq è disponibile sui runner GitHub ospitati.
-  "ignoreBinaries": ["jq"],
   "ignoreIssues": {
     // Promise.all degli import in workers/app.ts: reconcileOwnerIncidents è consumato.
     "app/owner-notifications.server.ts": ["exports"],

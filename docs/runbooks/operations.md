@@ -666,6 +666,13 @@ prepara la versione.
 La CI del push può riusare l'ultimo run PR riuscito con tree identico e artifact
 completi non scaduti, trasferendo anche la base mutation incrementale. In ogni
 altro caso esegue i gate ordinari; la policy del commit esatto non si eredita.
+Nei workflow di deploy le chiamate provider idempotenti (letture, release di una
+versione Shopify esistente, deployment di una versione Worker già caricata)
+passano da `scripts/provider-retry.mjs`: quattro tentativi con attesa crescente e
+l'errore del provider sempre nel log. Il 23 ottobre 2026 un HTTP 500 Cloudflare
+ha fatto fallire il readback Production e il rollback non ha rilasciato la
+versione Shopify precedente, che esisteva. `shopify app deploy` non si ritenta,
+perché crea una versione nuova.
 Il coordinatore riusa PR e release già riuscite per lo stesso commit. I run
 provider in corso si attendono; dopo un run Worker/Shopify già riuscito si
 avvia una nuova verifica con preflight e readback freschi. Production distingue
