@@ -1,6 +1,7 @@
 export {
   addDays,
   billingCycleStart,
+  chargeTrialDays,
   currentPricingGeneration,
   conversionCreditEstimate,
   entitlementFor,

@@ -50,6 +50,15 @@ export function remainingTrialDays(trial: Trial | null, today: string) {
   return Math.round((Date.parse(trial.ends_at) - Date.parse(today)) / 86_400_000) + 1;
 }
 
+// FR-074: una prova già convertita conserva i giorni residui per la charge successiva, così
+// disdire e riattivare o cambiare piano durante la prova non anticipa il primo addebito.
+export function chargeTrialDays(trial: Trial | null, today: string) {
+  return remainingTrialDays(
+    trial?.status === "converted" ? { ...trial, status: "active" } : trial,
+    today,
+  );
+}
+
 const dateFormatters = new Map<string, Intl.DateTimeFormat>();
 
 export function localDate(timeZone: string, now = new Date()) {
