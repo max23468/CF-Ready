@@ -74,19 +74,35 @@ export function verifyPromotionHistory(commits) {
   }
 }
 
-async function request(path) {
-  const response = await fetch(`https://api.github.com${path}`, {
-    headers: {
-      accept: "application/vnd.github+json",
-      authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-      "x-github-api-version": "2022-11-28",
-    },
-  });
-  if (!response.ok) throw new Error(`GET ${path}: ${response.status}`);
-  return response.json();
-}
-
 const pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+// Solo letture: il 23 ottobre 2026 un 502 transitorio dell'API ha fatto fallire `verify`
+// di una promozione. 5xx, 429 ed errori di rete si ritentano; gli altri esiti no.
+export async function request(path, { attempts = 4, delayMs = 2_000 } = {}) {
+  for (let attempt = 1; ; attempt += 1) {
+    let outcome;
+    try {
+      const response = await fetch(`https://api.github.com${path}`, {
+        headers: {
+          accept: "application/vnd.github+json",
+          authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+          "x-github-api-version": "2022-11-28",
+        },
+      });
+      if (response.ok) return response.json();
+      if (response.status < 500 && response.status !== 429) {
+        throw new Error(`GET ${path}: ${response.status}`);
+      }
+      outcome = response.status;
+    } catch (error) {
+      if (error.message.startsWith("GET ")) throw error;
+      outcome = error.message;
+    }
+    if (attempt >= attempts) throw new Error(`GET ${path}: ${outcome}`);
+    console.warn(`GET ${path}: ${outcome}, nuovo tentativo.`);
+    await pause(delayMs * attempt);
+  }
+}
 
 export async function reviewedTreeHead(repository, sha, depth = 0) {
   const [detail, pullRequests] = await Promise.all([

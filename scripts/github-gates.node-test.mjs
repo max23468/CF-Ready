@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import test from "node:test";
 import {
+  request,
   developPullRequestFor,
   missingSuccessfulChecks,
   missingWithEquivalentChecks,
@@ -614,5 +615,42 @@ test("il riuso CI richiede l'ultimo run PR verde, lo stesso tree e artifact non 
     assert.equal(await reviewedCiEvidence("owner/repo", sha), undefined);
   } finally {
     globalThis.fetch = original;
+  }
+});
+
+// 23 ottobre 2026: un 502 transitorio dell'API ha fatto fallire `verify` di una promozione.
+test("le letture dell'API GitHub ritentano soltanto errori transitori", async () => {
+  const original = globalThis.fetch;
+  const warn = console.warn;
+  let calls = 0;
+  console.warn = () => {};
+  try {
+    globalThis.fetch = async () => {
+      calls += 1;
+      if (calls === 1) throw new Error("fetch failed");
+      if (calls === 2) return new Response("", { status: 502 });
+      return new Response('{"ok":true}', { status: 200 });
+    };
+    assert.deepEqual(await request("/repos/o/r", { delayMs: 0 }), { ok: true });
+    assert.equal(calls, 3);
+
+    calls = 0;
+    globalThis.fetch = async () => {
+      calls += 1;
+      return new Response("", { status: 404 });
+    };
+    await assert.rejects(request("/repos/o/r", { delayMs: 0 }), /GET \/repos\/o\/r: 404/);
+    assert.equal(calls, 1);
+
+    calls = 0;
+    globalThis.fetch = async () => {
+      calls += 1;
+      return new Response("", { status: 503 });
+    };
+    await assert.rejects(request("/repos/o/r", { delayMs: 0 }), /: 503/);
+    assert.equal(calls, 4);
+  } finally {
+    globalThis.fetch = original;
+    console.warn = warn;
   }
 });
