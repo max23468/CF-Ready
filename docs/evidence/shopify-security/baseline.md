@@ -20,6 +20,12 @@ ogni review.
 | Prove grezze locali | `.shopify/app-security/shopify.app.dev/` nel worktree del candidato, ignorata da Git. SHA-256: `deterministic-findings.json` `54a155e3…4c26a4e`, `agent-checks.json` `7938d91d…9055a35`, `agent-findings.json` `496471d4…6f454804` |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+## Review incrementali
+
+| Data e candidato | File cambiati dal baseline | Check ripetuti | Esito |
+| --- | --- | --- | --- |
+| 23 ottobre 2026, merge `845964ae199c121f399708782af04f99aeac5b04`, tree `64c0e735b77c4e6c5ec0f27530c1eee452d8f3cd` | `develop` con [max23468/CF-Ready#767](https://github.com/max23468/CF-Ready/pull/767): spinner in `CheckoutLabelsSection.tsx`, CSS Assistenza, URL Polaris 2 stabile su `cdn.shopify.com`, `@shopify/polaris-types` 2.0.0 (dev) | `CROSS_SITE_SCRIPTING`, `UNSAFE_INNERHTML`, `TEXT_SETTING_HTML_SMUGGLING`, `STATIC_FRAME_ANCESTORS`, `MISSING_EMBEDDED_CSP`, `DEPENDENCY_REACHABILITY`, `COMMITTED_SECRET` | Nessun nuovo sink, header o segreto; `npm audit --omit=dev` 0 vulnerabilità; stesse 12 occorrenze deterministiche. Altri 28 check riusati da `10609485`. Hash: `deterministic-findings.json` `2109b2ce…b73b807`, `agent-checks.json` `dbc1a7d4…c956e3a`, `agent-findings.json` `db681660…a62ffbb` |
+
 ## Falsi positivi deterministici
 
 Verificati sul codice; ciascuno è registrato come finding soppresso con la
