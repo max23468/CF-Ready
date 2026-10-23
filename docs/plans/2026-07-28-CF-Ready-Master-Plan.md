@@ -833,7 +833,7 @@ identità staff o dati checkout.
 
 **FR-073** — Durante il trial tutte le funzioni sono disponibili.
 
-**FR-074** — Se viene scelto mensile o annuale durante il trial, passare a Shopify solo i giorni residui.
+**FR-074** — Se viene scelto mensile o annuale durante il trial, passare a Shopify solo i giorni residui, anche dopo un piano già approvato e poi disdetto o cambiato entro la fine della prova.
 
 **FR-075** — L’acquisto una tantum richiede approvazione immediata e non ha una seconda prova.
 
@@ -2239,6 +2239,8 @@ Nessuna nuova prova dopo disinstallazione/reinstallazione.
 Per mensile o annuale:
 
 - creare la sottoscrizione con i soli giorni di prova residui;
+- calcolarli dalla fine della prova anche quando è già `converted`: disdire e
+  riattivare o cambiare piano prima di quella data non anticipa il primo addebito;
 - non riavviare 14 giorni;
 - mostrare chiaramente la data di primo addebito;
 - al ritorno da Shopify, verificare lo stato prima di concedere entitlement.

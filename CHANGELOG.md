@@ -6,6 +6,18 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.5.7 — 23 ottobre 2026
+
+- un piano mensile o annuale scelto dopo aver disdetto o cambiato un piano
+  approvato durante la prova riceve i giorni di prova residui, e la Home mostra
+  la data corretta del primo addebito. Prima la nuova sottoscrizione partiva
+  senza prova e veniva addebitata subito.
+
+A monthly or annual plan chosen after cancelling or changing a plan approved
+during the trial now keeps the remaining trial days, and Home shows the correct
+first charge date. Previously the new subscription started without a trial and
+was charged immediately.
+
 ## 2.5.6 — 23 ottobre 2026
 
 - semplificati i testi di Home, Messaggi, configurazione iniziale e sito in
