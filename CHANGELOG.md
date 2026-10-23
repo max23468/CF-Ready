@@ -13,11 +13,15 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 - Assistenza resta sopra Sidekick e la barra mobile dell'Admin e usa il font
   del nuovo Admin; le etichette del checkout mostrano uno spinner durante il
   primo caricamento.
+- Una nuova FAQ, nell'app e sul sito, spiega come togliere «(opzionale)»
+  dall'etichetta del Codice Fiscale obbligatorio, in automatico o a mano.
 
 Polaris moves from the release candidate to the stable 2.x channel, shared by
 the script and Shopify preload, with TypeScript types 2.0.0.
 Support stays above Sidekick and the mobile admin bar and uses the new admin
 font. Checkout labels show a spinner while they first load.
+A new FAQ, in the app and on the site, explains how to remove "(optional)"
+from the required Codice Fiscale label, automatically or manually.
 
 ## 2.5.6 — 23 ottobre 2026
 
