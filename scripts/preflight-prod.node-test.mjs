@@ -77,6 +77,29 @@ test("la ripresa Production distingue assenza, versione attiva, rilascio e colli
   assert.throws(() => plan([old], [{ ...before, versions: [] }]), /ambiguo/);
   assert.throws(() => plan([old], [deployment("c".repeat(40), "unknown")]), /coordinato/);
   assert.throws(() => plan([{ ...old, message: "manuale" }], []), /Provenienza/);
+  // 23 ottobre 2026: dopo un rollback automatico il retry si fermava sull'annotazione
+  // «Rollback Production <candidato>» del Worker ripristinato.
+  const rolledBack = {
+    ...before,
+    id: "rollback",
+    annotations: { "workers/message": `Rollback Production ${commit}` },
+  };
+  assert.deepEqual(
+    plan(
+      [
+        { ...old, status: "inactive" },
+        { ...candidate, status: "active" },
+      ],
+      [rolledBack, now, before],
+    ),
+    {
+      shopifyAction: "skip",
+      workerAction: "deploy",
+      rollbackWorkerVersionId: "old",
+      rollbackShopifyVersionTag: "1.0.0",
+    },
+  );
+  assert.throws(() => plan([old], [rolledBack]), /Provenienza/);
   assert.throws(() => productionDeployPlan([], [], { version: "x", commit }), /Candidato/);
 });
 

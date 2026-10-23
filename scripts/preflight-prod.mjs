@@ -141,13 +141,22 @@ export function productionDeployPlan(versions, deployments, { version, commit })
   if (worker && !stable(worker)) throw new Error("Deployment Worker Production ambiguo.");
   const workerCurrent = worker?.annotations?.["workers/message"] === message;
   const shopifyCurrent = active.versionTag === version && active.message === message;
+  // Il job di rollback annota il candidato fallito, non il commit ripristinato: la provenienza
+  // è quella del deploy che aveva distribuito per primo la stessa versione Worker.
+  const provenance = (deployment) => {
+    const annotation = deployment.annotations?.["workers/message"];
+    if (!annotation?.startsWith("Rollback Production ")) return annotation;
+    return deployments.find(
+      (entry) =>
+        entry !== deployment &&
+        stable(entry) &&
+        entry.versions[0].version_id === deployment.versions[0].version_id &&
+        /^Production [0-9a-f]{40}$/.test(entry.annotations?.["workers/message"] ?? ""),
+    )?.annotations["workers/message"];
+  };
   // Un retry dopo una scrittura parziale deve ripristinare una coppia dello stesso commit.
   const previousMessage =
-    !workerCurrent && worker
-      ? worker.annotations?.["workers/message"]
-      : !shopifyCurrent
-        ? active.message
-        : message;
+    !workerCurrent && worker ? provenance(worker) : !shopifyCurrent ? active.message : message;
   if (!/^Production [0-9a-f]{40}$/.test(previousMessage ?? ""))
     throw new Error("Provenienza rollback Production non verificabile.");
   const rollbackShopify = versions.find(
