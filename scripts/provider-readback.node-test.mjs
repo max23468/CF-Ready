@@ -116,3 +116,28 @@ test("l'entrypoint valida input e scrive il riepilogo del provider", () => {
   assert.notEqual(run("altro").status, 0);
   assert.notEqual(run("shopify", input, { DEPLOY_SOURCE_COMMIT: "" }).status, 0);
 });
+
+// 23 ottobre 2026: un HTTP 500 Cloudflare ha fatto fallire readback e rollback Production.
+test("deploy e rollback ritentano una chiamata provider transitoria", () => {
+  const directory = mkdtempSync(join(tmpdir(), "cf-ready-provider-retry-"));
+  const counter = join(directory, "attempts");
+  const script = `const fs=require("node:fs");const n=Number(fs.existsSync(process.argv[1])?fs.readFileSync(process.argv[1],"utf8"):0)+1;fs.writeFileSync(process.argv[1],String(n));if(n<3){process.stderr.write("HTTP 500");process.exit(1)}process.stdout.write("{}");`;
+  const retry = (...command) =>
+    spawnSync(
+      process.execPath,
+      [fileURLToPath(new URL("./provider-retry.mjs", import.meta.url)), "--", ...command],
+      { encoding: "utf8", env: { ...process.env, CF_READY_PROVIDER_RETRY_MS: "0" } },
+    );
+  const recovered = retry(process.execPath, "-e", script, counter);
+  assert.equal(recovered.status, 0, recovered.stderr);
+  assert.equal(recovered.stdout, "{}");
+  assert.equal(readFileSync(counter, "utf8"), "3");
+  // L'errore originale del provider resta nel log del job.
+  assert.match(recovered.stderr, /HTTP 500/);
+  assert.match(recovered.stderr, /fallita, nuovo tentativo/);
+
+  const failed = retry(process.execPath, "-e", "process.exit(1)");
+  assert.equal(failed.status, 1);
+  assert.match(failed.stderr, /non riuscito dopo 4 tentativi/);
+  assert.equal(retry().status, 1);
+});
