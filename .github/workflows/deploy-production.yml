@@ -172,7 +172,7 @@ jobs:
         if: env.SHOPIFY_DEPLOY_ACTION == 'release'
         env:
           SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
-        run: shopify app release --version "$DEPLOY_VERSION" --allow-updates --no-color
+        run: node scripts/provider-retry.mjs -- shopify app release --version "$DEPLOY_VERSION" --allow-updates --no-color
 
       - name: Readback versione attiva Shopify
         env:
@@ -180,7 +180,7 @@ jobs:
           DEPLOY_ENVIRONMENT: Production
           DEPLOY_SOURCE_COMMIT: ${{ github.sha }}
         run: |
-          shopify app versions list --no-color --json > "$RUNNER_TEMP/shopify-versions.json"
+          node scripts/provider-retry.mjs -- shopify app versions list --no-color --json > "$RUNNER_TEMP/shopify-versions.json"
           node scripts/provider-readback.mjs shopify "$RUNNER_TEMP/shopify-versions.json"
 
       # `--prebuilt` distribuisce la Build Output verificata dal preflight; `--mode prod` deve
@@ -202,7 +202,7 @@ jobs:
           DEPLOY_ENVIRONMENT: Production
           DEPLOY_SOURCE_COMMIT: ${{ github.sha }}
         run: |
-          npm exec -- cf workers deployments list --worker "$WORKER_NAME" > "$RUNNER_TEMP/worker-deployments.json"
+          node scripts/provider-retry.mjs -- npm exec -- cf workers deployments list --worker "$WORKER_NAME" > "$RUNNER_TEMP/worker-deployments.json"
           jq '.deployments[0] // {}' "$RUNNER_TEMP/worker-deployments.json" > "$RUNNER_TEMP/worker-deployment.json"
           node scripts/provider-readback.mjs worker "$RUNNER_TEMP/worker-deployment.json"
 
@@ -269,7 +269,7 @@ jobs:
             echo "- Worker: invariato, nessun ripristino necessario" >> "$GITHUB_STEP_SUMMARY"
             worker_ready_for_shopify=1
           elif [ "$ROLLBACK_ARMED" = "true" ]; then
-            if npm exec -- cf workers deployments create --worker "$WORKER_NAME" --bypass-deployment-checks \
+            if node scripts/provider-retry.mjs -- npm exec -- cf workers deployments create --worker "$WORKER_NAME" --bypass-deployment-checks \
               --body "$(jq -n --arg version "$WORKER_ROLLBACK_VERSION_ID" --arg message "Rollback Production ${GITHUB_SHA}" \
                 '{strategy: "percentage", versions: [{version_id: $version, percentage: 100}], annotations: {"workers/message": $message}}')" \
               > /dev/null; then
@@ -289,16 +289,16 @@ jobs:
           elif [ "$worker_ready_for_shopify" -ne 1 ]; then
             echo "::error::Shopify resta sulla versione compatibile perché il Worker non è stato ripristinato."
             rollback_failed=1
-          elif shopify app release --version "$SHOPIFY_ROLLBACK_VERSION_TAG" --allow-updates --no-color; then
+          elif node scripts/provider-retry.mjs -- shopify app release --version "$SHOPIFY_ROLLBACK_VERSION_TAG" --allow-updates --no-color; then
             echo "- Shopify ripristinato a \`$SHOPIFY_ROLLBACK_VERSION_TAG\`" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "::error::Impossibile ripristinare la versione Shopify Production precedente."
             rollback_failed=1
           fi
 
-          shopify app versions list --no-color --json > "$RUNNER_TEMP/shopify-rollback-readback.json"
+          node scripts/provider-retry.mjs -- shopify app versions list --no-color --json > "$RUNNER_TEMP/shopify-rollback-readback.json"
           if [ "$WORKER_DEPLOY_STARTED" = "true" ] && [ "$ROLLBACK_ARMED" = "true" ]; then
-            npm exec -- cf workers deployments list --worker "$WORKER_NAME" > "$RUNNER_TEMP/worker-rollback-list.json"
+            node scripts/provider-retry.mjs -- npm exec -- cf workers deployments list --worker "$WORKER_NAME" > "$RUNNER_TEMP/worker-rollback-list.json"
             jq '.deployments[0] // {}' "$RUNNER_TEMP/worker-rollback-list.json" > "$RUNNER_TEMP/worker-rollback-readback.json"
           else
             echo '{}' > "$RUNNER_TEMP/worker-rollback-readback.json"
