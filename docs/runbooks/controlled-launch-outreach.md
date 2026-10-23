@@ -87,6 +87,11 @@ governato da FR-093, quando i requisiti temporali e tecnici sono soddisfatti.
 
 ## Registro merchant installati
 
+Per il registro dei contatti aggiornato al 23 ottobre 2026, le richieste di
+recensione, le prove scadute, le disinstallazioni e i testi concordati, vedere
+[Registro contatti merchant](../operations/merchant-outreach.md).
+Il prospetto seguente conserva la rilevazione storica del 20 settembre.
+
 Questo registro è un prospetto operativo manuale, non una fonte autorevole sullo
 stato Shopify. Prima di usarlo per decidere un contatto, aggiornare i dati con:
 
