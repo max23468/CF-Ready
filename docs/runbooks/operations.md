@@ -615,6 +615,10 @@ I job browser installano Playwright con `.github/actions/setup-playwright`, che
 tiene in cache browser e pacchetti apt delle dipendenze di sistema: il 23
 ottobre 2026 il mirror apt ha bloccato quattro job fino al timeout. Installazione
 e test hanno un timeout per step, così un blocco emerge in pochi minuti.
+GitHub rende una cache creata in una PR visibile solo a quella PR, e su `develop`
+i job browser girano di rado: `playwright-cache.yml` ogni giorno, e quando cambia
+Playwright, riempie su `develop` la cache dei tre insiemi di browser senza fretta.
+Con una nuova immagine runner il ripiego parte dai pacchetti dello stesso insieme.
 Prima del push il coordinatore riallinea il branch a `develop` con un rebase;
 un conflitto ferma il ciclo. Prima di abilitare lo squash merge attende tutti i
 check obbligatori del ruleset `develop`, anche quelli non ancora registrati come
