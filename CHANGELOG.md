@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.5.8 — 23 ottobre 2026
+
+- `zod` passa alla 4.6.6 per l'avviso GHSA-mrhx-c7xc-m3w5. Lo usano soltanto gli
+  strumenti di sviluppo e build; app, Worker e Function restano invariati.
+
+`zod` moves to 4.6.6 for advisory GHSA-mrhx-c7xc-m3w5. Only development and build
+tools use it; the app, Worker and Function are unchanged.
+
 ## 2.5.7 — 23 ottobre 2026
 
 - Polaris passa dalla release candidate al canale stabile 2.x, condiviso fra

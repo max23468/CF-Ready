@@ -1,6 +1,6 @@
 {
   "name": "cf-ready",
-  "version": "2.5.7",
+  "version": "2.5.8",
   "private": true,
   "packageManager": "npm@12.2.1",
   "packageExtensions": {
@@ -150,7 +150,8 @@
     "lodash": "4.18.1",
     "qs": "6.16.1",
     "sharp": "0.35.5",
-    "undici": "8.12.2"
+    "undici": "8.12.2",
+    "zod": "4.6.6"
   },
   "author": "Matteo"
 }
