@@ -112,8 +112,6 @@ export const it = {
     nextStartTrial:
       "Le regole sono pronte. Avvia la prova gratuita quando vuoi oppure scegli subito un piano.",
     nextChoosePlan: "Scegli una modalità per riattivare le regole nel checkout.",
-    helpHeading: "Guida e assistenza",
-    helpBody: "Cosa controlla CF Ready, cosa non controlla e cosa succede nei casi particolari.",
     checkInHeading: "Grazie per aver scelto CF Ready",
     checkInBody:
       "Il controllo nel checkout è attivo. Se hai feedback sulla configurazione o hai bisogno di aiuto, scrivi direttamente allo sviluppatore.",
@@ -136,10 +134,10 @@ export const it = {
     resetConfirm: (language: string) =>
       `I quattro messaggi in ${language} tornano ai testi predefiniti. Gli altri non cambiano, e la modifica vale solo dopo il salvataggio.`,
     appearHeading: "Messaggi collegati alle regole",
-    appearIntro:
-      "I messaggi sono raggruppati in base alle regole scelte. Possono comparire nel checkout solo quando il controllo è attivo.",
+    appearIntro: "Con il controllo attivo nel checkout.",
     appears: "Può comparire",
     appearsNot: "Non compare",
+    notExpected: "Non previsto dalle regole attuali.",
     fieldNames: { taxCode: "Codice Fiscale", pec: "PEC" },
     shortLabels: {
       taxCodeRequired: "Obbligatorio",
@@ -149,23 +147,16 @@ export const it = {
     },
     languageSelector: "Lingua dei messaggi",
     previewHeading: "Esempio del messaggio",
-    previewContext: "Quando il cliente prova a completare l’ordine",
-    previewSelected: "Messaggio selezionato",
     previewHint:
-      "L’esempio mostra il testo del messaggio. Posizione e aspetto nel checkout dipendono da Shopify.",
-    previewNotShown: "Con le regole attuali questo messaggio non compare nel checkout.",
-    previewShown: "Con le regole attuali questo messaggio può comparire nel checkout.",
+      "L’anteprima mostra il testo; posizione e aspetto nel checkout dipendono da Shopify.",
     editorHeading: "Messaggi di errore",
     previewFieldLabel: "Etichetta del campo",
-    previewCurrentFieldLabel: "con l’etichetta attuale di Shopify",
-    previewProposedFieldLabel: "con l’etichetta proposta da CF Ready",
-    labelsNote:
-      "Personalizza gli errori di Codice Fiscale e PEC. Per i nomi dei campi, apri Regole checkout.",
-    manageLabels: "Apri Regole checkout",
+    previewCurrentFieldLabel: "Etichetta attuale di Shopify",
+    previewProposedFieldLabel: "Etichetta proposta da CF Ready",
+    manageLabels: "Modifica le etichette dei campi",
   },
   setup: {
     heading: "Prepara CF Ready",
-    welcome: "Scegli cosa controllare e quando attivare le regole nel checkout.",
     progress: (done: number, total: number) => `${done} di ${total} completati`,
     rulesTitle: "Scegli cosa controllare",
     rulesBody: "Decidi se Codice Fiscale e PEC sono non gestiti, facoltativi o obbligatori.",
@@ -190,9 +181,6 @@ export const it = {
     back: "Indietro",
     next: "Continua",
     welcomeHeading: "Benvenuto in CF Ready",
-    welcomeBody:
-      "Configura Codice Fiscale e PEC, controlla i messaggi mostrati al cliente e scegli quando attivare le regole.",
-    step1Heading: "Cosa fa e cosa non fa",
     step1Body:
       "CF Ready controlla Codice Fiscale e PEC nei campi nativi del checkout Shopify, senza modificare il tema.",
     step1Limits: [

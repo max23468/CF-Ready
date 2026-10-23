@@ -16,36 +16,14 @@ modifica.
 
 - Solo Codice Fiscale e PEC, tramite `TAX_CREDENTIAL_IT` e `TAX_EMAIL_IT`.
   Partita IVA, SDI, fatturazione elettronica, POS, temi, Theme App Extension e
-  Checkout UI Extension sono fuori perimetro; il campo “Interno” non si rinomina.
+  Checkout UI Extension sono fuori perimetro.
 - Ogni campo è `unmanaged`, `optional` o `required`, in modo indipendente.
   Salvare le regole e attivare la Validation restano azioni separate.
-- La validazione è formale: non attesta a chi appartiene un Codice Fiscale né
-  che una casella sia davvero una PEC.
-- Un errore dell'app non blocca vendite legittime: configurazione o entitlement
-  incerti ed errori runtime sono fail-open. Un campo obbligatorio assente blocca
-  soltanto se Shopify espone almeno una consegna italiana, oppure, quando il
-  merchant attiva la spunta D-192, senza Paese di consegna e con fatturazione
-  italiana.
 - Shopify è autorevole per Validation e billing; D1 conserva stato operativo.
   Una sola Validation per store, mai toccare risorse di altre app.
 - Scope Shopify minimo: niente ordini, clienti, prodotti o inventario senza un
   requisito approvato. Nuovi runtime, provider o dipendenze richiedono una
   decisione esplicita.
-
-## Sicurezza e dati
-
-- Segreti, token, `.env` reali, dati fiscali e personali non finiscono in
-  commit, output, log, telemetria o provider esterni. Verifica le env senza
-  stamparne il valore e usa fixture sintetiche.
-- Le uniche eccezioni sono le notifiche Telegram private dell'owner (D-134) e il
-  feedback di disinstallazione (D-159), nei limiti fissati da quelle decisioni.
-- Telemetria e prestazioni conservano solo esiti, durate e aggregati
-  allowlistati.
-- Ai confini Shopify valida HMAC, firma, stato o nonce. Webhook e callback
-  ritentabili sono idempotenti; i webhook seguono claim D1, Queue, ACK, con DLQ
-  per gli errori durevoli (ADR 0002).
-- Le migrazioni applicate sono immutabili: forward-fix, e mai una migrazione
-  distruttiva in una release non verificata.
 
 ## Lavoro nel repository
 
@@ -56,8 +34,7 @@ porta a termine in locale con i controlli pertinenti. Il formattatore è solo
 riscrive righe estranee che `oxfmt` poi conserva. Per Cloudflare usa `cf`
 (`npx cf`, D-183): `cloudflare.config.ts` è l'unica configurazione Workers e
 ogni build o deploy passa `--mode dev` o `--mode prod`. Wrangler si usa solo
-per i comandi elencati in
-[operations.md](docs/runbooks/operations.md#cli-cloudflare). Commit, push e PR
+per i comandi elencati in [operations.md](docs/runbooks/operations.md#cli-cloudflare). Commit, push e PR
 arrivano con una richiesta esplicita o con `Pubblica`. Un bug si corregge nel punto
 condiviso, con il test minimo che falliva prima del fix. Il ciclo di
 pubblicazione (`publish.mjs`, `ci-lane.mjs`, `version-policy.mjs`, workflow
@@ -67,8 +44,7 @@ non per affinamenti (D-191).
 Per la UI embedded usa Polaris e App Bridge Web Components prima di markup o
 CSS custom. UI merchant e testi checkout sono bilingui con fallback inglese,
 mai a metà. Le decisioni di prodotto vanno nel Master Plan, le deviazioni
-architetturali stabili in un ADR. Per incarichi delegati vedi
-[CONTRIBUTING.md](CONTRIBUTING.md#preparare-un-incarico).
+architetturali stabili in un ADR.
 
 ## Verifica
 
@@ -93,8 +69,7 @@ gate completo. `npm run check` resta disponibile per una diagnosi completa.
 
 Coverage (`npm run coverage:check`) e mutation (`npm run mutation:critical`)
 valgono quando il diff tocca il loro perimetro; le soglie stanno in
-`scripts/coverage-report.mjs` e in CI entrambe bloccano il merge. Provider, database remoto, browser e deploy
-richiedono prove fresche: un exit code `0` non dimostra lo stato live.
+`scripts/coverage-report.mjs` e in CI entrambe bloccano il merge. Provider, database remoto, browser e deploy richiedono prove fresche: un exit code `0` non dimostra lo stato live.
 Dichiara i controlli non eseguiti.
 
 Se tocchi Function, versione API, query o CLI Shopify, riconferma il contratto
@@ -120,9 +95,6 @@ Function API `2026-10` sulle fonti Shopify correnti e rigenera con la CLI.
   per fix. Le PR successive la riusano o ne alzano il livello rispetto alla
   versione su `main`. Tooling, test, workflow e documentazione non la cambiano.
   `scripts/version-policy.mjs` lo verifica in CI e nel gate locale (D-191).
-- Prima di usare il connettore Shopify leggi l'identità dello store: in
-  sviluppo scrivi soltanto su `cf-ready-dev.myshopify.com` o sullo store di
-  preview autorizzato `cf-ready-polaris-2.myshopify.com`.
 - Prima di una scrittura remota identifica ambiente, account e store target e
   verifica credenziali, backup e rollback senza esporre segreti.
 
@@ -150,17 +122,11 @@ salta il deploy Production, senza `site/` salta Pages, senza nuova versione
 non crea release. Dopo un errore si rilancia lo stesso comando; dettagli in
 [operations.md](docs/runbooks/operations.md#coordinatore-di-pubblicazione).
 Tag e GitHub Release esistono solo dopo deploy, smoke e readback verdi delle
-superfici cambiate dello stesso commit. Chiudi riportando ambiente, commit, deployment ID, migrazioni e
-versione di rollback, e rimuovi soltanto branch e worktree temporanei del ciclo già assorbiti.
+superfici cambiate dello stesso commit. Chiudi riportando ambiente, commit, deployment ID, migrazioni e versione di rollback, e rimuovi soltanto branch e worktree temporanei del ciclo già assorbiti.
 
 `Pubblica` e “Promuovi” autorizzano anche i controlli di sicurezza Shopify locali
 obbligatori sul candidato e la review dell'agente corrente, senza una seconda
 conferma. Nuovi provider o invio del codice a servizi esterni richiedono invece
 un'autorizzazione specifica.
-
-`Pubblica` e “Promuovi” non autorizzano mai: temi Shopify live, submission App Store, billing
-o nuove attivazioni produttive, TestFlight o App Store, invii Aruba, email o
-scansioni su dati o sistemi reali esterne ai controlli locali del candidato,
-aggiornamenti Notion. Ognuna richiede una richiesta separata.
 Fuori da “Promuovi” o da una pubblicazione in Production, deploy Production e
 release richiedono un'autorizzazione esplicita.
