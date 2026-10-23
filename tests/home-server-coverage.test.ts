@@ -1,4 +1,5 @@
 import { beforeEach, expect, test, vi } from "vitest";
+import { addDays, localDate } from "../app/billing/domain";
 import { DEFAULT_CONFIG } from "../app/config";
 import { createAppContext } from "../app/context.server";
 
@@ -365,6 +366,20 @@ test("uno store estero può creare una charge", async () => {
     confirmationUrl: "https://shopify.test/approve",
   });
   expect(mocks.createCharge).toHaveBeenCalledOnce();
+});
+
+test("dopo una disdetta durante la prova la nuova charge riceve i giorni residui", async () => {
+  const today = localDate("Europe/Rome");
+  const trial = { status: "converted", ends_at: addDays(today, 12) };
+  mocks.syncTrial
+    .mockResolvedValueOnce(trial)
+    .mockResolvedValueOnce({ ...trial, ends_at: addDays(today, -1) });
+
+  const { action } = await import("../app/features/home/home.server");
+  await action(actionRequest("annual"));
+  await action(actionRequest("monthly"));
+
+  expect(mocks.createCharge.mock.calls.map(([, charge]) => charge.trialDays)).toEqual([13, 0]);
 });
 
 test("la cancellazione copre gli stati terminali, il lock e gli errori", async () => {

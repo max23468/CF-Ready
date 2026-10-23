@@ -15,6 +15,10 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   primo caricamento.
 - Una nuova FAQ, nell'app e sul sito, spiega come togliere «(opzionale)»
   dall'etichetta del Codice Fiscale obbligatorio, in automatico o a mano.
+- Un piano mensile o annuale scelto dopo aver disdetto o cambiato un piano
+  approvato durante la prova riceve i giorni di prova residui, e la Home mostra
+  la data corretta del primo addebito. Prima la nuova sottoscrizione partiva
+  senza prova e veniva addebitata subito.
 
 Polaris moves from the release candidate to the stable 2.x channel, shared by
 the script and Shopify preload, with TypeScript types 2.0.0.
@@ -22,6 +26,10 @@ Support stays above Sidekick and the mobile admin bar and uses the new admin
 font. Checkout labels show a spinner while they first load.
 A new FAQ, in the app and on the site, explains how to remove "(optional)"
 from the required Codice Fiscale label, automatically or manually.
+A monthly or annual plan chosen after cancelling or changing a plan approved
+during the trial now keeps the remaining trial days, and Home shows the correct
+first charge date. Previously the new subscription started without a trial and
+was charged immediately.
 
 ## 2.5.6 — 23 ottobre 2026
 

@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import {
   addDays,
   billingCycleStart,
+  chargeTrialDays,
   conversionCreditEstimate,
   entitlementFor,
   proratedCredit,
@@ -64,6 +65,22 @@ test("i giorni di prova residui includono oggi e non vanno sotto zero", () => {
   expect(remainingTrialDays(prova, "2026-08-12")).toBe(1);
   expect(remainingTrialDays(prova, "2026-08-13")).toBe(0);
   expect(remainingTrialDays(null, "2026-08-01")).toBe(0);
+});
+
+test("la charge successiva conserva i giorni residui solo di una prova attiva o convertita", () => {
+  const prova = {
+    status: "converted" as const,
+    started_at: null,
+    ends_at: "2026-08-12",
+    pricing_generation: "launch" as const,
+  };
+
+  expect(chargeTrialDays(prova, "2026-08-01")).toBe(12);
+  expect(remainingTrialDays(prova, "2026-08-01")).toBe(0);
+  expect(chargeTrialDays({ ...prova, status: "active" }, "2026-08-01")).toBe(12);
+  expect(chargeTrialDays({ ...prova, status: "expired" }, "2026-08-01")).toBe(0);
+  expect(chargeTrialDays(prova, "2026-08-13")).toBe(0);
+  expect(chargeTrialDays(null, "2026-08-01")).toBe(0);
 });
 
 test("l'entitlement viene riscritto solo quando cambia davvero", () => {

@@ -4,6 +4,9 @@ Prima di ogni release Development o Production, e prima della submission,
 l'operatore esegue gli App security checks Shopify sul candidato e conserva
 la prova descritta qui. La verifica comprende scansione deterministica e
 review del coding agent; `npm audit` e gli altri audit non la sostituiscono.
+La scansione deterministica si ripete sempre per intero; la review dell'agente
+è [incrementale](#review-incrementale) rispetto all'ultimo
+[baseline](../evidence/shopify-security/baseline.md).
 
 ## Contratto verificato
 
@@ -86,21 +89,64 @@ attesta una scansione.
    L'exit code da solo non basta. Correggere i finding high prima di distribuire;
    per gli altri conservare valutazione, azione e responsabilità secondo le
    indicazioni Shopify. Un falso positivo richiede motivazione e riferimenti
-   al codice. Una correzione cambia il candidato: ripetere la verifica sul
-   risultato finale e non riusare i file precedenti come prova fresca.
-6. Compilare il [modello di prova](../evidence/templates/shopify-release-security.md)
-   con soli metadati e riferimenti privi di segreti. Collegarlo al record di
-   readiness o alla descrizione della PR prima della pubblicazione autorizzata.
-   Il record è una prova operativa da verificare, non una certificazione.
+   al codice: registrarlo come finding soppresso con `suppression.justification`.
+   Le soppressioni dell'agente non coprono le occorrenze deterministiche, quindi
+   `review --blocking high` può uscire 1 anche senza finding reali: il baseline
+   elenca ogni occorrenza con il suo motivo. Una correzione cambia il candidato:
+   ripetere la verifica incrementale sul risultato finale.
+6. Aggiornare [baseline.md](../evidence/shopify-security/baseline.md) con la
+   struttura del [modello di prova](../evidence/templates/shopify-release-security.md)
+   e copiare il documento registrato in
+   [agent-findings.json](../evidence/shopify-security/agent-findings.json), con
+   soli metadati e riferimenti privi di segreti, nello stesso branch del
+   candidato. Il record è una prova operativa da verificare, non una certificazione.
+
+## Review incrementale
+
+Il baseline registra SHA, tree, versioni di CLI e ruleset e l'esito di ogni
+check. A ogni release:
+
+1. Eseguire il passo 3 per intero: la scansione deterministica richiede pochi
+   secondi e rigenera `agent-checks.json`.
+2. Elencare i file cambiati con
+   `git diff --name-only <SHA baseline> <SHA candidato>` e confrontare le
+   versioni dei check in `agent-checks.json` con `agent-findings.json`.
+3. Ripetere con l'agente soltanto i check selezionati dalla tabella sotto, quelli
+   con versione nuova o diversa, quelli `unresolved` e quelli le cui occorrenze
+   deterministiche sono nuove o hanno cambiato file o riga. Un dubbio sulla
+   superficie vale come check da ripetere.
+4. Per gli altri check riusare voce e finding soppressi di `agent-findings.json`,
+   poi registrare con `record` il documento completo: la CLI sostituisce sempre
+   tutti i risultati.
+5. Aggiornare il baseline indicando quali check sono stati ripetuti e quali
+   riusati, con lo SHA da cui proviene ciascun esito riusato.
+
+| File cambiati | Check da ripetere |
+| --- | --- |
+| Solo documentazione, test, changelog, versione di `package.json` | Nessuno |
+| `shopify.app*.toml`, `extensions/**` | Tutti |
+| `package-lock.json` o dipendenze | `DEPENDENCY_REACHABILITY`, `COMMITTED_SECRET` |
+| `app/routes/**`, `workers/**`, `app/*auth*`, `app/session*`, `app/shopify.server.ts`, `app/webhooks/**`, `app/owner-control/**`, `app/performance*` | `UNAUTHENTICATED_ENDPOINT`, `MISSING_AUTHORIZATION_CHECK`, `CSRF_MISSING_PROTECTION`, `REQUEST_CONTROLLED_ADMIN_CONTEXT`, `REQUEST_DERIVED_SHOP_SCOPE`, `MISSING_TENANT_ISOLATION`, `UNSCOPED_SHOP_CONFIG_WRITE`, `SESSION_LIFECYCLE_AND_REPLAY`, `WEAK_SHOP_VALIDATION`, `OPEN_REDIRECT`, `OVERBROAD_DATA_ACCESS`, `EXPIRING_OFFLINE_TOKEN`, `CREDENTIAL_BROWSER_LEAKAGE`, `CREDENTIAL_LOG_LEAKAGE` |
+| Componenti e route `.tsx`, `app/i18n/**`, `site/**` | `CROSS_SITE_SCRIPTING`, `UNSAFE_INNERHTML`, `TEXT_SETTING_HTML_SMUGGLING`, `STATIC_FRAME_ANCESTORS`, `MISSING_EMBEDDED_CSP` |
+| Query SQL, repository D1, `migrations/**` | `SQL_INJECTION`, `MISSING_TENANT_ISOLATION`, `OVERBROAD_DATA_ACCESS` |
+| `fetch` verso l'esterno, client Partner o Telegram | `SSRF_REQUEST_FORGERY`, `CREDENTIAL_LOG_LEAKAGE` |
+| Metafield, Validation, billing o scope richiesti | `METAFIELD_OFFLINE_TOKEN`, `SCOPE_OVER_REQUEST`, `UNSCOPED_SHOP_CONFIG_WRITE` |
+| Qualsiasi file nuovo con segreti o configurazione, `cloudflare.config.ts` | `COMMITTED_SECRET`, `CREDENTIAL_LOG_LEAKAGE` |
+
+Si ripetono tutti i check quando cambia la versione minor o major della CLI o
+del ruleset, quando il baseline non è dell'ultima release o quando la tabella
+non copre un file cambiato.
 
 ## Identità del candidato e limiti
 
 Confrontare SHA e tree verificati con il candidato prima del comando di
 pubblicazione. Se squash o merge cambiano lo SHA ma conservano il contenuto,
 registrare entrambi gli SHA e dimostrare l'identità dei tree con Git. Un tree
-diverso richiede una nuova verifica. Non trasferire automaticamente una prova
-Development a Production: ripetere il controllo con la configurazione Production
-e registrare il legame con il commit promosso. Anche un retry deve verificare
+diverso richiede una nuova verifica incrementale. Per Production eseguire la
+scansione con `--config shopify.app.toml` sul commit promosso e riusare la
+review Development dello stesso tree, ripetendo solo i check delle righe
+`shopify.app*.toml` se la configurazione Production differisce; registrare il
+legame con il commit promosso. Anche un retry deve verificare
 che candidato, configurazione e prove siano ancora gli stessi.
 
 La scansione riguarda sorgenti, non il comportamento live. L'esecuzione manuale

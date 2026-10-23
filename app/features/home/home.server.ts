@@ -4,6 +4,7 @@ import { authenticateAdminTimed } from "../../admin-auth.server";
 import {
   addDays,
   cancelSubscription,
+  chargeTrialDays,
   createCharge,
   currentPricingGeneration,
   entitlementFor,
@@ -204,6 +205,7 @@ function homeView(
       state.account?.entitlement_status === "ending");
 
   const remaining = remainingTrialDays(state.trial, state.today);
+  const chargeDays = chargeTrialDays(state.trial, state.today);
   return {
     verified,
     locale,
@@ -218,7 +220,7 @@ function homeView(
     remaining,
     entitlement: state.entitlement,
     complimentary: state.complimentary?.status === "active",
-    firstChargeAt: remaining > 0 ? addDays(state.today, remaining) : null,
+    firstChargeAt: chargeDays > 0 ? addDays(state.today, chargeDays) : null,
     trialStatus: state.trial?.status ?? null,
     plan: planPrices(currentPricingGeneration(state.trial, state.account, state.today)),
     planKind: state.account?.plan_kind ?? "none",
@@ -374,7 +376,7 @@ async function subscribe(admin: Admin, db: D1Database, shopDomain: string, kind:
         amount: plan.amount,
         currency: plan.currency,
         interval: plan.interval,
-        trialDays: kind === "one_time" ? 0 : remainingTrialDays(trial, today),
+        trialDays: kind === "one_time" ? 0 : chargeTrialDays(trial, today),
         test: BILLING_IS_TEST,
         returnUrl: returnUrlFor(shopDomain),
       });
