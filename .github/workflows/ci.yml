@@ -130,36 +130,16 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - if: startsWith(matrix.part, 'ui-')
-        name: Avvia in parallelo le dipendenze di sistema del browser
-        env:
-          BROWSER: ${{ matrix.part == 'ui-webkit' && 'webkit' || 'chromium' }}
-        run: |
-          version="$(node -p 'require("./package-lock.json").packages["node_modules/@playwright/test"].version')"
-          (
-            status=0
-            npx --yes --ignore-scripts "playwright@$version" install-deps "$BROWSER" || status=$?
-            echo "$status" > "$RUNNER_TEMP/playwright-deps.exit"
-          ) > "$RUNNER_TEMP/playwright-deps.log" 2>&1 < /dev/null &
       - uses: ./.github/actions/setup-node-npm
       - run: npm ci
+      # Timeout per step: un blocco emerge in pochi minuti, non ai 15 del job.
       - if: startsWith(matrix.part, 'ui-')
-        id: playwright-version
-        run: echo "version=$(node -p 'require("@playwright/test/package.json").version')" >> "$GITHUB_OUTPUT"
-      - if: startsWith(matrix.part, 'ui-')
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        timeout-minutes: 6
+        uses: ./.github/actions/setup-playwright
         with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
-      - if: startsWith(matrix.part, 'ui-')
-        env:
-          BROWSER: ${{ matrix.part == 'ui-webkit' && 'webkit' || 'chromium' }}
-        run: |
-          npx playwright install "$BROWSER"
-          while [ ! -f "$RUNNER_TEMP/playwright-deps.exit" ]; do sleep 1; done
-          cat "$RUNNER_TEMP/playwright-deps.log"
-          exit "$(cat "$RUNNER_TEMP/playwright-deps.exit")"
-      - run: npm run coverage:${{ matrix.part }}
+          browsers: ${{ matrix.part == 'ui-webkit' && 'webkit' || 'chromium' }}
+      - timeout-minutes: 6
+        run: npm run coverage:${{ matrix.part }}
       - run: node scripts/coverage-collect.mjs --stamp ${{ matrix.part }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -325,16 +305,12 @@ jobs:
       - if: needs.lane.outputs.e2e == 'true' && needs.lane.outputs.reuse_ci != 'true'
         run: npm ci
       - if: needs.lane.outputs.e2e == 'true' && needs.lane.outputs.reuse_ci != 'true'
-        id: playwright-version
-        run: echo "version=$(node -p 'require("@playwright/test/package.json").version')" >> "$GITHUB_OUTPUT"
-      - if: needs.lane.outputs.e2e == 'true' && needs.lane.outputs.reuse_ci != 'true'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        timeout-minutes: 6
+        uses: ./.github/actions/setup-playwright
         with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+          browsers: chromium webkit
       - if: needs.lane.outputs.e2e == 'true' && needs.lane.outputs.reuse_ci != 'true'
-        run: npx playwright install --with-deps chromium webkit
-      - if: needs.lane.outputs.e2e == 'true' && needs.lane.outputs.reuse_ci != 'true'
+        timeout-minutes: 8
         run: npm run test:e2e
       - name: Carica trace Playwright
         if: failure() && needs.lane.outputs.e2e == 'true'

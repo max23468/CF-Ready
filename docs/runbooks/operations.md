@@ -594,11 +594,14 @@ Durante lo sviluppo eseguire test mirati; per la verifica finale locale usare
 non tracciati nel diff ed esegue lo stesso gate locale del coordinatore:
 `check:local` (documentazione, lint, formato, typecheck), la politica di
 versione, `test:changed` sui test Vitest collegati al diff per il runtime,
-`test:function` se cambia la Function e `test:operations` con
-`test:preflight` se cambiano script, workflow, sito o manifest. I soli metadati
-usano `check:docs`. Coverage, browser, build, dry-run e mutation restano alla
-CI, che li esegue in parallelo sul candidato: in locale servono solo a
-diagnosticare un errore.
+`test:ui:changed` sui test browser Chromium collegati al diff se cambiano `app/`
+o `tests/browser/`, `test:function` se cambia la Function e `test:operations`
+con `test:preflight` se cambiano script, workflow, sito o manifest. I soli
+metadati usano `check:docs`. Un gate verde lascia in `cf-ready-publications`,
+nei metadati Git, una ricevuta per tree, base e comandi: `Pubblica` non ripete
+un `verify:change` già verde sullo stesso contenuto. Coverage, WebKit, build,
+dry-run e mutation restano alla CI, che li esegue in parallelo sul candidato:
+in locale servono solo a diagnosticare un errore.
 
 `publish:development` crea o riprende la PR verso `develop`. Il deploy
 Development parte solo se cambia una superficie distribuita nel Worker o
@@ -608,10 +611,19 @@ Le raccolte instrumentate `coverage:app`, `coverage:ui-chromium` e
 `coverage:ui-webkit` hanno timeout per test di 30 e 45 secondi: istanbul e i
 runner simultanei rallentano i test, e su una macchina carica i limiti ordinari
 di 10 e 15 secondi facevano fallire la raccolta senza un difetto reale.
-Prima di abilitare lo squash merge attende tutti i check
-obbligatori del ruleset `develop`, anche quelli non ancora registrati come
+I job browser installano Playwright con `.github/actions/setup-playwright`, che
+tiene in cache browser e pacchetti apt delle dipendenze di sistema: il 23
+ottobre 2026 il mirror apt ha bloccato quattro job fino al timeout. Installazione
+e test hanno un timeout per step, così un blocco emerge in pochi minuti.
+Prima del push il coordinatore riallinea il branch a `develop` con un rebase;
+un conflitto ferma il ciclo. Prima di abilitare lo squash merge attende tutti i
+check obbligatori del ruleset `develop`, anche quelli non ancora registrati come
 `mutation`, e la fine di promozioni o deploy di un'altra pubblicazione,
-così `develop` non avanza sotto un ciclo in corso. Il deploy Development accetta
+così `develop` non avanza sotto un ciclo in corso. Legge tutti i check della PR:
+un job del workflow CI fallito ferma subito il ciclo, anche se il check
+obbligatorio che lo aggrega è ancora in attesa. Se `develop` è avanzato durante
+la CI, unisce `develop` nel branch e riattende i check, al massimo tre volte:
+lo squash conserva così il tree verificato dalla PR. Il deploy Development accetta
 i gate dell'HEAD PR quando il commit unito ne conserva il tree, senza attendere
 che la CI di push li ripeta; lo stesso riuso vale per promozione e merge
 Production (D-162). Dopo il merge elimina il branch remoto ma lascia checkout e
@@ -663,8 +675,9 @@ Worker/Shopify dello stesso commit per il rollback delle sole scritture avviate.
 Dopo
 un errore si rilancia quindi lo stesso comando: riparte dal primo passaggio
 incompleto. Quando viene avviato, il workflow Pages riconferma a sua volta la
-differenza dal deployment canonico prima di distribuire il sito e completare
-readback e smoke. Prima del deploy assegna a `menu.js` e `style.css` un nome
+differenza dal deployment canonico e, come Deploy Production, riusa i gate del
+merge Production senza ripetere la suite completa, prima di distribuire il sito
+e completare readback e smoke. Prima del deploy assegna a `menu.js` e `style.css` un nome
 derivato dal contenuto e aggiorna i riferimenti HTML nella copia preparata: ogni
 modifica produce quindi un URL nuovo anche se una regola cache del dominio
 mantiene gli asset precedenti. Lo smoke scarica entrambi gli asset versionati e
