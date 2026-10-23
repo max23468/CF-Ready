@@ -42,13 +42,15 @@ describe("Messaggi", () => {
         ).toEqual(available);
         expect(aside.querySelectorAll("s-list-item")).toHaveLength(4);
         expect(aside.querySelector("s-badge")).toBeNull();
+        const notes = view.container.querySelectorAll(".customer-messages-unavailable");
+        expect(notes).toHaveLength(4 - available.length);
+        for (const note of notes) expect(note.textContent).toBe(copy.notExpected);
         await view.unmount();
       }
     }
   });
 
-  test("l'anteprima dice sempre se il messaggio compare, così l'altezza non cambia", async () => {
-    // Prima la nota compariva solo per i messaggi "non previsti" e spostava i campi sotto.
+  test("disponibilità nel riepilogo e nota dell'anteprima compaiono una sola volta", async () => {
     router.loaderData = {
       locale: "it",
       configHash: "hash",
@@ -57,8 +59,12 @@ describe("Messaggi", () => {
     };
     const view = await mount(<CustomerMessages />);
     const preview = view.container.querySelector(".customer-messages-preview")!;
-    expect(preview.textContent).toContain(texts("it").messages.previewShown);
-    expect(preview.textContent).not.toContain(texts("it").messages.previewNotShown);
+    const copy = texts("it").messages;
+    expect(preview.textContent).not.toContain(copy.appearIntro);
+    expect(view.container.textContent?.split(copy.appearIntro)).toHaveLength(2);
+    expect(view.container.textContent?.split(copy.previewHint)).toHaveLength(2);
+    expect(view.container.querySelectorAll('s-link[href="/app/rules"]')).toHaveLength(2);
+    expect(view.container.querySelector(".customer-messages-preview__local s-icon")).toBeNull();
   });
 
   test("mostra tutte le righe esplicite di un messaggio valido", async () => {

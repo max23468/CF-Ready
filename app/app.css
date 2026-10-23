@@ -13,6 +13,11 @@ html[data-polaris-version="1"] s-stack[slot="aside"] {
 }
 
 @media (max-width: 600px) {
+  /* Permette di portare le ultime azioni sopra il pulsante Assistenza flottante. */
+  .app-route-surface {
+    padding-block-end: calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+
   html[data-polaris-version="1"] body {
     padding-inline: 16px;
   }

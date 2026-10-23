@@ -56,7 +56,7 @@ export function OnboardingListBlock({
   lead,
   items,
 }: {
-  lead: ReactNode;
+  lead?: ReactNode;
   items: readonly string[];
 }) {
   return (

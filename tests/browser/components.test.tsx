@@ -64,13 +64,10 @@ describe("componenti merchant nel browser", () => {
     const view = await render(
       <CustomerMessagesPreview
         activeLocale="en"
-        context="Contesto"
         heading="Anteprima"
         fieldLabel="Tax code"
         fieldLabelHeading="Etichetta"
-        hint="Suggerimento"
         message="Messaggio"
-        availability="Disponibilità"
         selectedLabel="Codice fiscale"
       />,
     );
@@ -82,7 +79,7 @@ describe("componenti merchant nel browser", () => {
     expect(view.container.querySelector("details")).toBeNull();
     expect(view.container.querySelector('s-icon[type="alert-circle"]')).toBeNull();
     expect(view.container.textContent?.match(/Anteprima/g)).toHaveLength(1);
-    expect(view.container.querySelector("s-box")?.textContent).toContain("Suggerimento");
+    expect(view.container.querySelector("s-box")?.textContent).toContain("Etichetta");
     expect(view.container.querySelector("s-badge")).toBeNull();
     // N-1: campo nativo in sola lettura, con l'etichetta del campo e il messaggio come errore.
     const field = view.container.querySelector<HTMLElement & { error: string; label: string }>(

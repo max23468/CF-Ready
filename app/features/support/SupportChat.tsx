@@ -54,6 +54,7 @@ export function SupportChat({ locale }: { locale: Locale }) {
         type="button"
         id="support-chat-toggle"
         className="support-chat__toggle"
+        aria-label={expanded ? t.support.minimizeChat : t.support.heading}
         aria-controls="support-chat-panel"
         aria-expanded={expanded}
         onClick={() => {
@@ -61,8 +62,16 @@ export function SupportChat({ locale }: { locale: Locale }) {
           setExpanded(!expanded);
         }}
       >
-        <img src="/cf-ready-mark-negative.svg" alt="" width="40" height="40" />
-        {expanded ? t.support.minimizeChat : t.support.heading}
+        <img
+          className="support-chat__brand"
+          src="/cf-ready-mark-negative.svg"
+          alt=""
+          width="40"
+          height="40"
+        />
+        <span className="support-chat__label">
+          {expanded ? t.support.minimizeChat : t.support.heading}
+        </span>
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
           {expanded ? (
             <path
