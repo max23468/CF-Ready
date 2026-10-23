@@ -2449,17 +2449,25 @@ Conclusioni operative:
 - il simulatore checkout usa soltanto Polaris Web Components, resta locale al
   browser e dichiara esplicitamente che non salva i valori di prova;
 - CSS custom minimo;
-- upgrade Polaris preparato il 3 ottobre 2026: `polaris-2.0-rc.js`, la v2
-  più recente disponibile, con tipi `@shopify/polaris-types@2.0.0-rc.1`.
+- upgrade Polaris preparato il 3 ottobre 2026 con `polaris-2.0-rc.js`.
   Dal 3 ottobre solo Development; il 4 ottobre 2026 l'owner ha autorizzato la
   promozione in Production della 2.0.16 e, con la 2.0.17, la v2 in tutti gli
-  ambienti, Production compresa. Script e preload usano lo stesso URL, anche
-  nei build ottimizzati. Il fondo e gli spazi della v2 restano nativi; i
-  ripristini visivi seguenti si applicano alla v1, che con il suo CSS e i test
-  visivi resta il ritorno rapido finché la v2 è una release candidate; la verifica embedded
-  reale resta distinta dalle prove con fixture sintetiche.
-  Fonti: [versioning v2](https://shopify.dev/docs/api/app-home/v2.0-rc/web-components/versioning)
-  e [annuncio Shopify](https://community.shopify.dev/t/polaris-2-0-release-candidate/37957);
+  ambienti, Production compresa. Il 23 ottobre 2026 l'owner richiede il passaggio
+  al canale stabile `polaris-2.js`, che segue gli aggiornamenti compatibili 2.x,
+  con tipi `@shopify/polaris-types@2.0.0`. La richiesta autorizza l'aggiornamento
+  mirato dei tipi prima dei sette giorni ordinari di attesa npm, senza cambiare
+  la regola generale. Script e preload usano lo stesso URL, anche nei build
+  ottimizzati. Il fondo e gli spazi della v2 restano nativi; i ripristini visivi
+  seguenti si applicano alla v1, conservata con il suo CSS e i test visivi per
+  il confronto. La verifica embedded reale resta distinta dalle prove con
+  fixture sintetiche; il passaggio al canale stabile richiede pubblicazione e
+  verifica Development prima della promozione Production.
+  Con il passaggio, Assistenza somma `--shopify-safe-area-inset-bottom` di App
+  Bridge alla propria posizione, così resta sopra Sidekick e la barra mobile
+  dell'Admin, e antepone `ShopifyInter`, il font del nuovo Admin, a Inter; la
+  prima lettura delle etichette del checkout mostra `s-spinner`.
+  Fonti: [versioning v2](https://shopify.dev/docs/api/app-home/latest/web-components/versioning)
+  e [annuncio Shopify](https://shopify.dev/changelog/posts/polaris-cdn-2-0-is-now-stable);
 - con Polaris 1 tutte le schermate condividono il fondo grigio Polaris (`--p-color-bg`, fallback
   `#F1F1F1`) per distinguere le card bianche native, compreso l'onboarding;
   componenti, bordi, tipografia e controlli restano Polaris. Ripristino richiesto
@@ -2491,7 +2499,9 @@ Conclusioni operative:
     colonna laterale: `s-page` senza aside è larga 966 px contro i
     1088 px della griglia con aside, quindi il contenitore di Regole, banner
     compresi, si allarga in modo simmetrico fino a quella misura
-    (`RulesLayout.css`). L'onboarding resta `inlineSize="small"` come flusso
+    (`RulesLayout.css`). `inlineSize="large"` non sostituisce questo calcolo:
+    il 23 ottobre 2026, con Polaris 2 reale, spostava le card di 16 px rispetto
+    a Home a 1054 e 500 px. L'onboarding resta `inlineSize="small"` come flusso
     guidato. Nessun altro CSS sposta o allarga la pagina. Il titolo di
     pagina sta nella barra dell'Admin, quindi la colonna laterale non si
     allinea a un titolo nel contenuto: è un comportamento dell'host e non si

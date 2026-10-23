@@ -8,11 +8,20 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
 ## 2.5.7 — 23 ottobre 2026
 
+- Polaris passa dalla release candidate al canale stabile 2.x, condiviso fra
+  script e preload Shopify, con tipi TypeScript 2.0.0.
+- Assistenza resta sopra Sidekick e la barra mobile dell'Admin e usa il font
+  del nuovo Admin; le etichette del checkout mostrano uno spinner durante il
+  primo caricamento.
 - un piano mensile o annuale scelto dopo aver disdetto o cambiato un piano
   approvato durante la prova riceve i giorni di prova residui, e la Home mostra
   la data corretta del primo addebito. Prima la nuova sottoscrizione partiva
   senza prova e veniva addebitata subito.
 
+Polaris moves from the release candidate to the stable 2.x channel, shared by
+the script and Shopify preload, with TypeScript types 2.0.0.
+Support stays above Sidekick and the mobile admin bar and uses the new admin
+font. Checkout labels show a spinner while they first load.
 A monthly or annual plan chosen after cancelling or changing a plan approved
 during the trial now keeps the remaining trial days, and Home shows the correct
 first charge date. Previously the new subscription started without a trial and
