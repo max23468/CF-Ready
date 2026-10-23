@@ -212,6 +212,12 @@ test("il gate locale esegue controlli statici e test legati al diff", () => {
   assert.deepEqual(localGateCommands("standard", baseSha, "runtime", ["app/root.tsx"]), [
     ["npm", ["run", "check:local"]],
     ["npm", ["run", "test:changed", "--", baseSha]],
+    ["npm", ["run", "test:ui:changed", "--", baseSha]],
+  ]);
+  // I test browser locali servono solo quando cambia la UI embedded o un suo test.
+  assert.deepEqual(localGateCommands("standard", baseSha, "runtime", ["workers/queue.ts"]), [
+    ["npm", ["run", "check:local"]],
+    ["npm", ["run", "test:changed", "--", baseSha]],
   ]);
   assert.deepEqual(
     localGateCommands("full", baseSha, "runtime", ["extensions/x/src/run.ts", "package.json"]),
@@ -267,6 +273,30 @@ test("classifica i check obbligatori e lo stato della pipeline", () => {
       { name: "verify", bucket: "pending" },
     ]),
     { state: "failed", names: ["e2e", "coverage"] },
+  );
+  // 23 ottobre 2026: ui-chromium era fallito alle 16:32, ma `coverage` attendeva WebKit
+  // bloccato e la PR risultava in attesa fino alle 16:46.
+  assert.deepEqual(
+    checksOutcome(
+      [
+        { name: "verify", bucket: "pass", workflow: "CI" },
+        { name: "coverage", bucket: "pending", workflow: "CI" },
+        { name: "coverage-collect (ui-chromium)", bucket: "fail", workflow: "CI" },
+      ],
+      ["verify", "coverage"],
+    ),
+    { state: "failed", names: ["coverage-collect (ui-chromium)"] },
+  );
+  assert.equal(
+    checksOutcome(
+      [
+        { name: "verify", bucket: "pass", workflow: "CI" },
+        { name: "React Doctor", bucket: "fail", workflow: "React Doctor" },
+        { name: "CodeQL", bucket: "pending", workflow: "CodeQL" },
+      ],
+      ["verify"],
+    ).state,
+    "passed",
   );
   assert.equal(isPipelineBusy({ promotions: [], runs: [{ status: "completed" }] }), false);
   assert.equal(isPipelineBusy({ promotions: [{ number: 1 }], runs: [] }), true);
@@ -339,6 +369,9 @@ if (command === "git") {
   else if (mode === "verification" && args[0] === "diff") process.stdout.write("M\\0scripts/task.mjs\\0");
   else if (mode === "verification" && args[0] === "ls-files") process.stdout.write("scripts/new.mjs\\0");
   else if (mode === "verification" && args[0] === "merge-base") print("${baseSha}\\n");
+  else if (joined === "rev-parse --git-path index") print(".git/index\\n");
+  else if (joined === "add --all" && process.env.GIT_INDEX_FILE) print("");
+  else if (joined === "write-tree" && process.env.GIT_INDEX_FILE) print("worktree-tree\\n");
   else if (args[0] === "diff") process.stdout.write("M\\0app/routes/app._index.tsx\\0");
   else if (joined === "rev-parse origin/main") print("${mainSha}\\n");
   else if (joined === "rev-parse origin/develop") print((existsSync(marker("reconciled")) ? "${mainSha}" : "${developSha}") + "\\n");
@@ -420,6 +453,27 @@ if (command === "git") {
   );
   assert.match(verified.stdout, /Versione: nessun bump/);
 
+  // Lo stesso tree già verificato non ripete i comandi del gate.
+  const repeated = spawnSync(
+    process.execPath,
+    [path.join(root, "scripts/publish.mjs"), "--verify-only"],
+    {
+      cwd: directory,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        FAIL_MODE: "verification",
+        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+      },
+    },
+  );
+  assert.equal(repeated.status, 0, repeated.stderr);
+  assert.match(repeated.stdout, /Gate locale già verde sul tree worktree-tree/);
+  assert.equal(
+    readFileSync(path.join(directory, ".npm-verify"), "utf8"),
+    "run check:local\nrun test:operations\nrun test:preflight\n",
+  );
+
   for (const target of ["development", "production"]) {
     const result = spawnSync(
       process.execPath,
@@ -480,11 +534,19 @@ if (command === "git") {
   else if (joined === "show -s --format=%P ${noDeployMainSha}" || joined === "show -s --format=%P ${oldMainSha}" || joined === "show -s --format=%P ${sourceSha}") print("${baseSha}\\n");
   else if (joined === "show -s --format=%P ${reconciledSha}") print("${developSha} ${noDeployMainSha}\\n");
   else if (["${mainSha}", "${developSha}", "${reconciledSha}"].some((sha) => joined === "rev-parse " + sha + "^{tree}")) print("tree\\n");
-  else if (joined === "rev-parse ${sourceSha}^{tree}") print("source-tree\\n");
+  else if (joined === "rev-parse ${sourceSha}^{tree}") print((mode === "gate-failed" ? "gate-failed-tree" : "source-tree") + "\\n");
   else if (/^rev-parse [0-9a-f]{40}\\^\\{tree\\}$/.test(joined)) print("old-tree\\n");
   else if (["${developSha}", "${reconciledSha}", "${mainSha}", "${sourceSha}"].some((sha) => joined === "show " + sha + ":package.json")) print('{"version":"1.2.4"}\\n');
   else if (args[0] === "show" && args[1].endsWith(":package.json")) print('{"version":"1.2.3"}\\n');
   else if (joined === "merge-base --is-ancestor ${noDeployMainSha} ${developSha}") process.exitCode = 1;
+  else if (joined === "merge-base --is-ancestor origin/develop HEAD" && ["behind", "advanced"].includes(mode)) {
+    // behind: indietro prima del push; advanced: develop avanza durante la CI.
+    const file = marker("ancestor-" + mode);
+    const calls = Number(existsSync(file) ? readFileSync(file, "utf8") : 0) + 1;
+    writeFileSync(file, String(calls));
+    process.exitCode = calls === (mode === "behind" ? 1 : 2) ? 1 : 0;
+  }
+  else if (args[0] === "rebase" || args[0] === "merge") writeFileSync(marker("git-" + args[0]), joined + "\\n", { flag: "a" });
   else if (args[0] === "merge-base" && args[1] === "--is-ancestor") process.exitCode = 0;
   else if (joined === "rev-parse origin/main") print((["develop-advanced", "bad-promotion"].includes(mode) ? "${oldMainSha}" : mode === "no-deploy-main" && !existsSync(marker("nd-promoted")) ? "${noDeployMainSha}" : "${mainSha}") + "\\n");
   else if (joined === "rev-parse origin/develop") print((mode === "develop-advanced" ? "${sourceSha}" : mode === "no-deploy-main" ? (existsSync(marker("run-reconcile-develop.yml")) ? "${reconciledSha}" : "${developSha}") : "${developSha}") + "\\n");
@@ -522,6 +584,7 @@ if (command === "git") {
     print([{ number: 10, state: "OPEN", headRefOid: head, mergeCommit: null, url: "https://github.test/pr/10" }]);
   } else if (args[0] === "pr" && args[1] === "list") print([]);
   else if (args[0] === "pr" && args[1] === "checks") {
+    writeFileSync(marker("checks-args"), args.join(" ") + "\\n");
     if (!existsSync(marker("checks-seen"))) { writeFileSync(marker("checks-seen"), "ok"); process.stderr.write("no checks reported on the 'codex/change' branch"); process.exitCode = 1; }
     else if (!existsSync(marker("mutation-reported"))) { writeFileSync(marker("mutation-reported"), "ok"); print([{ name: "verify", bucket: mode === "checks-failed" ? "fail" : "pass" }]); }
     else { writeFileSync(marker("mutation-waited"), "ok"); print([{ name: "verify", bucket: mode === "checks-failed" ? "fail" : "pass" }, { name: "mutation", bucket: "pass" }]); }
@@ -611,6 +674,11 @@ if (command === "git") {
   assert.match(result.stdout, /Gate locale della corsia standard prima del push/);
   assert.match(result.stdout, /PR #10: attendo i check obbligatori/);
   assert.ok(existsSync(path.join(directory, ".mutation-waited")));
+  // Tutti i check della PR, non solo gli obbligatori: un job CI fallito emerge subito.
+  assert.equal(
+    readFileSync(path.join(directory, ".checks-args"), "utf8"),
+    "pr checks 10 --json name,bucket,workflow\n",
+  );
   const mergeArgs = readFileSync(path.join(directory, ".merge-args"), "utf8");
   assert.match(mergeArgs, /^pr merge 10 --auto --squash$/m);
   assert.doesNotMatch(mergeArgs, /--delete-branch/);
@@ -620,7 +688,53 @@ if (command === "git") {
   );
   assert.equal(
     readFileSync(path.join(directory, ".npm-calls"), "utf8"),
-    `run check:local\nrun test:changed -- ${baseSha}\n`,
+    `run check:local\nrun test:changed -- ${baseSha}\nrun test:ui:changed -- ${baseSha}\n`,
+  );
+
+  const behind = spawnSync(
+    process.execPath,
+    [path.join(root, "scripts", "publish.mjs"), "--target", "development"],
+    {
+      cwd: directory,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CF_READY_PUBLISH_POLL_MS: "1",
+        FAIL_MODE: "behind",
+        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+      },
+    },
+  );
+  assert.equal(behind.status, 0, behind.stderr);
+  assert.match(behind.stdout, /codex\/change riallineato a develop prima del push/);
+  assert.equal(
+    readFileSync(path.join(directory, ".git-rebase"), "utf8"),
+    "rebase origin/develop\n",
+  );
+
+  const advanced = spawnSync(
+    process.execPath,
+    [path.join(root, "scripts", "publish.mjs"), "--target", "development"],
+    {
+      cwd: directory,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CF_READY_PUBLISH_POLL_MS: "1",
+        FAIL_MODE: "advanced",
+        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+      },
+    },
+  );
+  assert.equal(advanced.status, 0, advanced.stderr);
+  assert.match(advanced.stdout, /develop è avanzato durante la CI: codex\/change lo include/);
+  assert.equal(
+    readFileSync(path.join(directory, ".git-merge"), "utf8"),
+    "merge --no-edit origin/develop\n",
+  );
+  assert.match(
+    readFileSync(path.join(directory, ".git-push"), "utf8"),
+    /^push --quiet origin codex\/change$/m,
   );
 
   const queued = spawnSync(

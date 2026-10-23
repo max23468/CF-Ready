@@ -1,5 +1,13 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -18,9 +26,10 @@ async function pollWait(attempt, deadline) {
   await wait(Math.max(0, Math.min(pollingDelay(attempt), deadline - Date.now())));
 }
 
-function execute(command, args, { interactive = false, allowFailure = false } = {}) {
+function execute(command, args, { interactive = false, allowFailure = false, env } = {}) {
   const result = spawnSync(command, args, {
     encoding: "utf8",
+    env: env ? { ...process.env, ...env } : process.env,
     stdio: interactive ? "inherit" : ["ignore", "pipe", "pipe"],
   });
   if (!allowFailure && result.status !== 0) {
@@ -66,6 +75,12 @@ export function localGateCommands(lane, baseSha, surface = "runtime", files = []
   if (lane === "docs" || surface === "metadata") return [["npm", ["run", "check:docs"]]];
   const commands = [["npm", ["run", "check:local"]]];
   if (surface === "runtime") commands.push(["npm", ["run", "test:changed", "--", baseSha]]);
+  // Solo Chromium e solo i test browser collegati al diff: la suite completa resta alla CI.
+  if (
+    surface === "runtime" &&
+    files.some((path) => path.startsWith("app/") || path.startsWith("tests/browser/"))
+  )
+    commands.push(["npm", ["run", "test:ui:changed", "--", baseSha]]);
   if (files.some((path) => path.startsWith("extensions/")))
     commands.push(["npm", ["run", "test:function"]]);
   if (
@@ -83,16 +98,23 @@ export function localGateCommands(lane, baseSha, surface = "runtime", files = []
 }
 
 // gh elenca solo i check già registrati: un job che parte tardi, come l'aggregato
-// mutation, manca finché non inizia e va atteso secondo il ruleset.
+// mutation, manca finché non inizia e va atteso secondo il ruleset. Un job CI fallito
+// interrompe subito anche se il check obbligatorio che lo aggrega è ancora in attesa.
 export function checksOutcome(checks, required = []) {
-  const failed = checks.filter(({ bucket }) => bucket === "fail" || bucket === "cancel");
+  const blocking = ({ name, workflow }) =>
+    required.length === 0 || required.includes(name) || workflow === "CI";
+  const failed = checks.filter(
+    (check) => (check.bucket === "fail" || check.bucket === "cancel") && blocking(check),
+  );
   if (failed.length > 0) return { state: "failed", names: failed.map(({ name }) => name) };
-  const reported = new Set(checks.map(({ name }) => name));
+  const gating =
+    required.length === 0 ? checks : checks.filter(({ name }) => required.includes(name));
+  const reported = new Set(gating.map(({ name }) => name));
   const missing = required.filter((name) => !reported.has(name));
   if (
-    checks.length === 0 ||
+    gating.length === 0 ||
     missing.length > 0 ||
-    checks.some(({ bucket }) => bucket === "pending")
+    gating.some(({ bucket }) => bucket === "pending")
   ) {
     return { state: "pending", names: missing };
   }
@@ -186,9 +208,99 @@ export function runLocalGate(branch, sourceSha, workingTree = false) {
   console.log(
     `Versione: ${runVersionPolicy({ baseSha, headSha: sourceSha, files, headRef: branch, workingTree })}.`,
   );
-  for (const [command, args] of localGateCommands(lane, baseSha, surface, files)) {
+  const evidence = {
+    tree: workingTree ? workingTreeSnapshot() : gitTree(sourceSha),
+    baseSha,
+    commands: localGateCommands(lane, baseSha, surface, files),
+  };
+  // Stesso tree, stessa base e stessi comandi danno lo stesso esito: `verify:change`
+  // già verde non si ripete al momento di `Pubblica`.
+  const receipt = join(publicationsDirectory(), `local-gate-${evidence.tree}.json`);
+  if (existsSync(receipt) && sameLocalGate(JSON.parse(readFileSync(receipt, "utf8")), evidence)) {
+    console.log(`Gate locale già verde sul tree ${evidence.tree}: non lo ripeto.`);
+    return;
+  }
+  for (const [command, args] of evidence.commands) {
     execute(command, args, { interactive: true });
   }
+  writeFileSync(
+    receipt,
+    `${JSON.stringify({ ...evidence, completedAt: new Date().toISOString() }, null, 2)}\n`,
+  );
+}
+
+function sameLocalGate(receipt, { tree, baseSha, commands }) {
+  return (
+    JSON.stringify([receipt.tree, receipt.baseSha, receipt.commands]) ===
+    JSON.stringify([tree, baseSha, commands])
+  );
+}
+
+// Tree che avrebbe un commit di tutte le modifiche, file nuovi inclusi, senza toccare l'indice.
+function workingTreeSnapshot() {
+  const directory = mkdtempSync(join(tmpdir(), "cf-ready-index-"));
+  try {
+    const index = join(directory, "index");
+    const current = resolve(output("git", ["rev-parse", "--git-path", "index"]));
+    if (existsSync(current)) copyFileSync(current, index);
+    execute("git", ["add", "--all"], { env: { GIT_INDEX_FILE: index } });
+    return execute("git", ["write-tree"], { env: { GIT_INDEX_FILE: index } }).stdout.trim();
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+function publicationsDirectory() {
+  const directory = join(
+    resolve(output("git", ["rev-parse", "--git-common-dir"])),
+    "cf-ready-publications",
+  );
+  mkdirSync(directory, { recursive: true });
+  return directory;
+}
+
+// Il riuso della CI PR su develop vale solo se lo squash conserva il tree dell'HEAD PR:
+// con un branch indietro la CI di develop riparte da zero e il deploy Development la attende.
+function behindDevelop() {
+  execute("git", ["fetch", "--quiet", "origin", "develop"]);
+  return !isAncestor("origin/develop", "HEAD");
+}
+
+function rebaseOnDevelop(branch) {
+  if (!behindDevelop()) return;
+  const rebased = execute("git", ["rebase", "origin/develop"], { allowFailure: true });
+  if (rebased.status !== 0) {
+    execute("git", ["rebase", "--abort"], { allowFailure: true });
+    throw new Error(`${branch} non si riallinea a develop senza conflitti: risolvili e rilancia.`);
+  }
+  if (output("git", ["ls-remote", "--heads", "origin", branch])) {
+    execute("git", ["push", "--quiet", "--force-with-lease", "origin", branch]);
+  }
+  console.log(`${branch} riallineato a develop prima del push.`);
+}
+
+// Con la PR già aperta il merge evita di riscrivere commit pubblicati; lo squash finale
+// lo assorbe comunque.
+function mergeDevelop(branch) {
+  if (!behindDevelop()) return false;
+  const merged = execute("git", ["merge", "--no-edit", "origin/develop"], { allowFailure: true });
+  if (merged.status !== 0) {
+    execute("git", ["merge", "--abort"], { allowFailure: true });
+    throw new Error(`${branch} non si unisce a develop senza conflitti: risolvili e rilancia.`);
+  }
+  execute("git", ["push", "--quiet", "origin", branch]);
+  console.log(`develop è avanzato durante la CI: ${branch} lo include e la CI riparte.`);
+  return true;
+}
+
+async function waitForPullRequestHead(number, sha, attempts = 60) {
+  const deadline = Date.now() + attempts * Math.max(pollIntervalMs, 100);
+  for (let attempt = 0; attempt < attempts && Date.now() < deadline; attempt += 1) {
+    const current = pullRequest(number);
+    if (current.headRefOid === sha) return current;
+    await pollWait(attempt, deadline);
+  }
+  throw new Error(`La PR #${number} non riporta ancora l'HEAD ${sha}.`);
 }
 
 async function waitForRequiredChecks(number, base, attempts = 720) {
@@ -198,7 +310,7 @@ async function waitForRequiredChecks(number, base, attempts = 720) {
   for (let attempt = 0; attempt < attempts && Date.now() < deadline; attempt += 1) {
     const result = execute(
       "gh",
-      ["pr", "checks", String(number), "--required", "--json", "name,bucket"],
+      ["pr", "checks", String(number), "--json", "name,bucket,workflow"],
       { allowFailure: true },
     );
     // gh esce con 8 per i check pendenti, con 1 per quelli falliti o ancora non registrati.
@@ -300,9 +412,12 @@ async function ensurePullRequest({ branch, base, sourceSha, mergeMethod, title, 
       current = pullRequest(url);
     }
   }
-  if (base === "develop") {
+  // Dopo tre riallineamenti si unisce comunque: la CI di develop resta la rete di sicurezza.
+  for (let round = 0; base === "develop"; round += 1) {
     await waitForRequiredChecks(current.number, base);
     await waitForIdlePipeline();
+    if (round >= 2 || !mergeDevelop(branch)) break;
+    current = await waitForPullRequestHead(current.number, gitSha("HEAD"));
   }
   execute("gh", ["pr", "merge", String(current.number), "--auto", `--${mergeMethod}`]);
   return waitForMerge(current.number);
@@ -638,12 +753,7 @@ export function cleanupPublishedCheckout(
 
 function startRecord(name, fields) {
   const record = { ...fields, phases: [], receipts: [] };
-  const directory = join(
-    resolve(output("git", ["rev-parse", "--git-common-dir"])),
-    "cf-ready-publications",
-  );
-  mkdirSync(directory, { recursive: true });
-  const path = join(directory, `${name}.json`);
+  const path = join(publicationsDirectory(), `${name}.json`);
   const save = () => writeFileSync(path, `${JSON.stringify(record, null, 2)}\n`);
   const measured = async (phase, action) => {
     console.log(`Fase: ${phase}.`);
@@ -825,7 +935,9 @@ export async function publish(target) {
   if (!branch || branch === "main" || branch === "develop") {
     throw new Error("Avvia la pubblicazione dal branch della modifica.");
   }
-  const sourceSha = gitSha("HEAD");
+  const published = pullRequests(branch, "develop").some((pr) => pr.headRefOid === gitSha("HEAD"));
+  if (!published) rebaseOnDevelop(branch);
+  let sourceSha = gitSha("HEAD");
   const repositoryName = repository();
   const { record, path, measured } = startRecord(sourceSha, {
     sourceSha,
@@ -833,7 +945,7 @@ export async function publish(target) {
     target,
     repository: repositoryName,
   });
-  if (!pullRequests(branch, "develop").some((pr) => pr.headRefOid === sourceSha)) {
+  if (!published) {
     await measured("Verifica locale", () => runLocalGate(branch, sourceSha));
   }
   const developmentPr = await measured("PR Development e merge", () =>
@@ -844,6 +956,9 @@ export async function publish(target) {
       mergeMethod: "squash",
     }),
   );
+  // Un riallineamento durante la CI sposta l'HEAD unito oltre quello di partenza.
+  sourceSha = developmentPr.headRefOid;
+  record.sourceSha = sourceSha;
   const developSha = developmentPr.mergeCommit.oid;
   deleteRemoteBranch(branch);
   if (!needsDevelopmentDeploy(developSha)) {

@@ -51,6 +51,7 @@
     "benchmark:worker-cpu": "vitest bench benchmarks/webhook.bench.ts --run",
     "test:e2e": "playwright test --config tests/playwright.config.ts",
     "test:ui": "vitest run --config vitest.browser.config.ts",
+    "test:ui:changed": "vitest run --config vitest.browser.config.ts --passWithNoTests --project 'merchant-chromium*' --changed",
     "test": "vitest run",
     "test:changed": "vitest run --passWithNoTests --changed",
     "test:migrations": "node --test scripts/migration-policy.node-test.mjs && vitest run tests/migrations.test.ts",
