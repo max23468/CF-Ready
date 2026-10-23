@@ -539,21 +539,24 @@ if (command === "git") {
   else if (["${developSha}", "${reconciledSha}", "${mainSha}", "${sourceSha}"].some((sha) => joined === "show " + sha + ":package.json")) print('{"version":"1.2.4"}\\n');
   else if (args[0] === "show" && args[1].endsWith(":package.json")) print('{"version":"1.2.3"}\\n');
   else if (joined === "merge-base --is-ancestor ${noDeployMainSha} ${developSha}") process.exitCode = 1;
-  else if (joined === "merge-base --is-ancestor origin/develop HEAD" && ["behind", "advanced"].includes(mode)) {
+  else if (joined === "merge-base --is-ancestor origin/develop HEAD" && ["behind", "advanced", "rebase-conflict", "merge-conflict"].includes(mode)) {
     // behind: indietro prima del push; advanced: develop avanza durante la CI.
     const file = marker("ancestor-" + mode);
     const calls = Number(existsSync(file) ? readFileSync(file, "utf8") : 0) + 1;
     writeFileSync(file, String(calls));
-    process.exitCode = calls === (mode === "behind" ? 1 : 2) ? 1 : 0;
+    process.exitCode = calls === (["behind", "rebase-conflict"].includes(mode) ? 1 : 2) ? 1 : 0;
   }
-  else if (args[0] === "rebase" || args[0] === "merge") writeFileSync(marker("git-" + args[0]), joined + "\\n", { flag: "a" });
+  else if (args[0] === "rebase" || args[0] === "merge") {
+    writeFileSync(marker("git-" + args[0]), joined + "\\n", { flag: "a" });
+    if (mode.endsWith("-conflict") && args[1] !== "--abort") process.exitCode = 1;
+  }
   else if (args[0] === "merge-base" && args[1] === "--is-ancestor") process.exitCode = 0;
   else if (joined === "rev-parse origin/main") print((["develop-advanced", "bad-promotion"].includes(mode) ? "${oldMainSha}" : mode === "no-deploy-main" && !existsSync(marker("nd-promoted")) ? "${noDeployMainSha}" : "${mainSha}") + "\\n");
   else if (joined === "rev-parse origin/develop") print((mode === "develop-advanced" ? "${sourceSha}" : mode === "no-deploy-main" ? (existsSync(marker("run-reconcile-develop.yml")) ? "${reconciledSha}" : "${developSha}") : "${developSha}") + "\\n");
   else if (joined === "merge-base origin/main origin/develop") print("${mainSha}\\n");
   else if (joined === "merge-base origin/develop ${sourceSha}") print("${baseSha}\\n");
   else if (args[0] === "diff") print("M\\0app/routes/app._index.tsx\\0");
-  else if (joined === "ls-remote --heads origin codex/change") print(existsSync(marker("remote-deleted")) ? "" : "${sourceSha}\\trefs/heads/codex/change\\n");
+  else if (joined === "ls-remote --heads origin codex/change") print(existsSync(marker("remote-deleted")) && mode !== "behind" ? "" : "${sourceSha}\\trefs/heads/codex/change\\n");
   else if (args[0] === "push") {
     writeFileSync(marker("git-push"), joined + "\\n", { flag: "a" });
     if (args.includes("--delete")) writeFileSync(marker("remote-deleted"), "ok");
@@ -600,7 +603,10 @@ if (command === "git") {
     const viewedMarker = marker("viewed-" + number);
     const merged = existsSync(mergeMarker) && existsSync(viewedMarker);
     if (existsSync(mergeMarker) && !existsSync(viewedMarker)) writeFileSync(viewedMarker, "ok");
-    print({ number, state: mode === "closed-pr" ? "CLOSED" : merged ? "MERGED" : "OPEN", headRefOid: promotion ? "${developSha}" : "${sourceSha}", mergeCommit: merged ? { oid: promotion ? "${mainSha}" : "${developSha}" } : null, url: "https://github.test/pr/" + number });
+    // Dopo l'unione di develop GitHub riporta il nuovo HEAD con un giro di ritardo.
+    const lagging = mode === "advanced" && existsSync(marker("git-merge")) && !existsSync(marker("head-lagged"));
+    if (lagging) writeFileSync(marker("head-lagged"), "ok");
+    print({ number, state: mode === "closed-pr" ? "CLOSED" : merged ? "MERGED" : "OPEN", headRefOid: promotion ? "${developSha}" : lagging ? "${oldMainSha}" : "${sourceSha}", mergeCommit: merged ? { oid: promotion ? "${mainSha}" : "${developSha}" } : null, url: "https://github.test/pr/" + number });
   } else if (args[0] === "pr" && args[1] === "merge") {
     writeFileSync(marker("merge-" + args[2]), "ok");
     writeFileSync(marker("merge-args"), args.join(" ") + "\\n", { flag: "a" });
@@ -711,6 +717,11 @@ if (command === "git") {
     readFileSync(path.join(directory, ".git-rebase"), "utf8"),
     "rebase origin/develop\n",
   );
+  // Un branch già presente su GitHub si aggiorna solo se nessuno lo ha cambiato nel frattempo.
+  assert.match(
+    readFileSync(path.join(directory, ".git-push"), "utf8"),
+    /^push --quiet --force-with-lease origin codex\/change$/m,
+  );
 
   const advanced = spawnSync(
     process.execPath,
@@ -736,6 +747,7 @@ if (command === "git") {
     readFileSync(path.join(directory, ".git-push"), "utf8"),
     /^push --quiet origin codex\/change$/m,
   );
+  assert.ok(existsSync(path.join(directory, ".head-lagged")));
 
   const queued = spawnSync(
     process.execPath,
@@ -813,6 +825,8 @@ if (command === "git") {
   for (const [mode, message] of [
     ["dirty", /worktree deve essere pulito/],
     ["gate-failed", /npm run check:local non riuscito/],
+    ["rebase-conflict", /non si riallinea a develop senza conflitti/],
+    ["merge-conflict", /non si unisce a develop senza conflitti/],
     ["checks-failed", /La PR #10 ha check falliti: verify/],
     ["main", /branch della modifica/],
     ["closed-pr", /La PR #10 è CLOSED/],
