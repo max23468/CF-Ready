@@ -429,6 +429,7 @@ Rispetto alle alternative più ampie o invasive:
 | D-193 | A `CHECKOUT_COMPLETION` ogni errore indirizzato a un localized field si ripete anche con target globale `$.cart` e lo stesso messaggio; un campo assente, che ha già solo `$.cart`, non si duplica. A `CHECKOUT_INTERACTION` restano i soli errori sul campo. | Dopo un pagamento esterno come PayPal, al ritorno Shopify mostra in alto soltanto “C’è un problema nei dettagli del tuo ordine” e il messaggio di CF Ready resta sotto il campo, visibile solo scorrendo (prova dell’owner del 20 ottobre 2026 su un negozio digitale). La Function non conosce il metodo di pagamento, quindi il riepilogo compare anche con gli altri metodi al momento dell’invio. Deciso dall’owner il 20 ottobre 2026 per la `2.5.1` e confermato lo stesso giorno in Production su mobile: al ritorno da PayPal con CF vuoto il checkout mostra l’avviso di Shopify e, subito sotto, il messaggio di CF Ready, che resta anche sul campo. |
 | D-194 | Nella vista billing Telegram i netti includono lo 0,5% Hyperwallet indicato dall'owner, dopo le fee Shopify, senza nuove righe. MRR e ARR derivano dal listino nativo EUR e sottraggono la fee senza conversioni artificiali. I netti cumulati Partner in USD, compresi subtotali e rettifiche, diventano stime EUR: netto USD × 0,995 ÷ USD per EUR del cambio giornaliero BCE, arrotondato ai centesimi. Lordo e commissioni Shopify conservano valuta e importi originali. La riga Fee include Hyperwallet; il testo finale dichiara soltanto che i netti sono stimati dopo la commissione, senza fonte, data, tasso o dettagli tecnici. | L'owner ha scelto esplicitamente BCE come fonte esterna pubblica, senza invio di dati Shopify o credenziali. Cache D1 di un'ora, fallback a un cambio BCE più recente di sette giorni in caso di errore; senza cambio valido i netti USD convertiti risultano non disponibili, mentre un importo nullo resta zero EUR. I cumulati nativi EUR restano invariati. Nessun dato Partner viene riscritto e nessuna stima attesta un payout. Richiesto e precisato dall'owner il 22 ottobre 2026, inclusa la rimozione dei dettagli tecnici dopo la prova Telegram. Aggiorna D-154 e D-188. |
 | D-195 | Per i netti Telegram sostituire il recupero XML BCE di D-194 con `https://api.frankfurter.dev/v2/rate/eur/usd`: JSON pubblico senza chiave, con verifica di coppia EUR/USD, tasso positivo e data valida e recente. Conservare timeout, cache D1 di un'ora e fallback entro sette giorni, senza cambiare formule, righe o valute. La nuova cache `exchange_rate_eur_usd_v1` non riusa quella BCE. Nessun dato Shopify o segreto viene inviato al provider. | L'owner ha chiesto una fonte più semplice e veloce, poi ha demandato la scelta all'agente il 22 ottobre 2026. `redirect: "error"` è incompatibile con Workers; corretta l'opzione in `manual`, due prove locali Workers sul server BCE hanno comunque restituito un errore di rete. Frankfurter ha risposto correttamente e il codice applicativo completo è stato verificato nel runtime Workers con recupero pubblico reale. Fonte: [documentazione Frankfurter](https://frankfurter.dev/). Aggiorna la sola fonte del cambio di D-194, senza dichiarare una verifica del report Telegram live. |
+| D-196 | Il ciclo di pubblicazione accelera senza ridurre i gate. I job browser CI installano Playwright con un'azione condivisa che tiene in cache i pacchetti apt delle dipendenze di sistema, con timeout per step. Il coordinatore legge tutti i check della PR e si ferma al primo job CI fallito, anche non obbligatorio. Prima del push riallinea il branch a `develop` con un rebase; se `develop` avanza durante la CI della PR lo unisce e riattende i check, al massimo tre volte, così lo squash conserva il tree verificato. Deploy Pages Production riusa i gate del merge Production invece di ripetere `npm run check`. Il gate locale aggiunge i test browser Chromium collegati al diff quando cambiano `app/` o `tests/browser/` e conserva una ricevuta per tree, base e comandi, così `Pubblica` non ripete un `verify:change` già verde. Integra D-191. | L'owner il 23 ottobre 2026 ha chiesto di implementare le sei proposte dell'analisi del ciclo. Nelle 52 ricevute del coordinatore un ciclo Development senza intoppi dura 4-7 minuti, ma PR e merge sono arrivati a 13-14 minuti. Il 23 ottobre quattro installazioni Playwright si sono bloccate fino al timeout (25,9 MB in 9 min 27 s dal mirror apt), con cinque riesecuzioni manuali e un Deploy Development fallito dopo 11 minuti di attesa dei gate; un errore reale di `guide-route.test.tsx` è emerso 14 minuti dopo il fallimento del job, mentre in locale `test:ui:changed` lo esegue in circa 20 secondi. Pages spendeva 5 min 7 s su 6 min 40 s nella suite già verificata. Nessuna soglia cambia e nessun provider si aggiunge: le azioni usate sono già fissate nel repository. |
 
 Decisioni del 10 ottobre 2026, approvate dall'owner con «Implementa 2, 7, 8»:
 
@@ -833,7 +834,7 @@ identità staff o dati checkout.
 
 **FR-073** — Durante il trial tutte le funzioni sono disponibili.
 
-**FR-074** — Se viene scelto mensile o annuale durante il trial, passare a Shopify solo i giorni residui.
+**FR-074** — Se viene scelto mensile o annuale durante il trial, passare a Shopify solo i giorni residui, anche dopo un piano già approvato e poi disdetto o cambiato entro la fine della prova.
 
 **FR-075** — L’acquisto una tantum richiede approvazione immediata e non ha una seconda prova.
 
@@ -2239,6 +2240,8 @@ Nessuna nuova prova dopo disinstallazione/reinstallazione.
 Per mensile o annuale:
 
 - creare la sottoscrizione con i soli giorni di prova residui;
+- calcolarli dalla fine della prova anche quando è già `converted`: disdire e
+  riattivare o cambiare piano prima di quella data non anticipa il primo addebito;
 - non riavviare 14 giorni;
 - mostrare chiaramente la data di primo addebito;
 - al ritorno da Shopify, verificare lo stato prima di concedere entitlement.
@@ -2447,17 +2450,25 @@ Conclusioni operative:
 - il simulatore checkout usa soltanto Polaris Web Components, resta locale al
   browser e dichiara esplicitamente che non salva i valori di prova;
 - CSS custom minimo;
-- upgrade Polaris preparato il 3 ottobre 2026: `polaris-2.0-rc.js`, la v2
-  più recente disponibile, con tipi `@shopify/polaris-types@2.0.0-rc.1`.
+- upgrade Polaris preparato il 3 ottobre 2026 con `polaris-2.0-rc.js`.
   Dal 3 ottobre solo Development; il 4 ottobre 2026 l'owner ha autorizzato la
   promozione in Production della 2.0.16 e, con la 2.0.17, la v2 in tutti gli
-  ambienti, Production compresa. Script e preload usano lo stesso URL, anche
-  nei build ottimizzati. Il fondo e gli spazi della v2 restano nativi; i
-  ripristini visivi seguenti si applicano alla v1, che con il suo CSS e i test
-  visivi resta il ritorno rapido finché la v2 è una release candidate; la verifica embedded
-  reale resta distinta dalle prove con fixture sintetiche.
-  Fonti: [versioning v2](https://shopify.dev/docs/api/app-home/v2.0-rc/web-components/versioning)
-  e [annuncio Shopify](https://community.shopify.dev/t/polaris-2-0-release-candidate/37957);
+  ambienti, Production compresa. Il 23 ottobre 2026 l'owner richiede il passaggio
+  al canale stabile `polaris-2.js`, che segue gli aggiornamenti compatibili 2.x,
+  con tipi `@shopify/polaris-types@2.0.0`. La richiesta autorizza l'aggiornamento
+  mirato dei tipi prima dei sette giorni ordinari di attesa npm, senza cambiare
+  la regola generale. Script e preload usano lo stesso URL, anche nei build
+  ottimizzati. Il fondo e gli spazi della v2 restano nativi; i ripristini visivi
+  seguenti si applicano alla v1, conservata con il suo CSS e i test visivi per
+  il confronto. La verifica embedded reale resta distinta dalle prove con
+  fixture sintetiche; il passaggio al canale stabile richiede pubblicazione e
+  verifica Development prima della promozione Production.
+  Con il passaggio, Assistenza somma `--shopify-safe-area-inset-bottom` di App
+  Bridge alla propria posizione, così resta sopra Sidekick e la barra mobile
+  dell'Admin, e antepone `ShopifyInter`, il font del nuovo Admin, a Inter; la
+  prima lettura delle etichette del checkout mostra `s-spinner`.
+  Fonti: [versioning v2](https://shopify.dev/docs/api/app-home/latest/web-components/versioning)
+  e [annuncio Shopify](https://shopify.dev/changelog/posts/polaris-cdn-2-0-is-now-stable);
 - con Polaris 1 tutte le schermate condividono il fondo grigio Polaris (`--p-color-bg`, fallback
   `#F1F1F1`) per distinguere le card bianche native, compreso l'onboarding;
   componenti, bordi, tipografia e controlli restano Polaris. Ripristino richiesto
@@ -2489,7 +2500,9 @@ Conclusioni operative:
     colonna laterale: `s-page` senza aside è larga 966 px contro i
     1088 px della griglia con aside, quindi il contenitore di Regole, banner
     compresi, si allarga in modo simmetrico fino a quella misura
-    (`RulesLayout.css`). L'onboarding resta `inlineSize="small"` come flusso
+    (`RulesLayout.css`). `inlineSize="large"` non sostituisce questo calcolo:
+    il 23 ottobre 2026, con Polaris 2 reale, spostava le card di 16 px rispetto
+    a Home a 1054 e 500 px. L'onboarding resta `inlineSize="small"` come flusso
     guidato. Nessun altro CSS sposta o allarga la pagina. Il titolo di
     pagina sta nella barra dell'Admin, quindi la colonna laterale non si
     allinea a un titolo nel contenuto: è un comportamento dell'host e non si
@@ -4068,9 +4081,10 @@ report globale vecchio. Metadati non distribuiti non richiedono coverage.
 La selezione è deterministica, considera anche eliminazioni e rinomine e usa
 il gate completo per percorsi sconosciuti. Una modifica mista usa il perimetro
 più ampio. La verifica finale locale è `npm run verify:change`: controlli
-statici, politica di versione e test legati al diff, lo stesso gate locale del
-coordinatore (D-191). Coverage, browser, build, dry-run e mutation si
-verificano in CI.
+statici, politica di versione e test legati al diff, compresi quelli browser
+Chromium se cambia la UI embedded, lo stesso gate locale del coordinatore
+(D-191, D-196). Un tree già verde con la stessa base non ripete il gate.
+Coverage, WebKit, build, dry-run e mutation si verificano in CI.
 
 Le cinque raccolte coverage (app, browser Chromium, browser WebKit, Function e
 operazioni) girano in parallelo, con output separati. Il
@@ -4084,7 +4098,7 @@ la CI ordinaria. `ci-policy` resta sempre legata al commit esatto.
 
 I deploy Development non partono per sole modifiche a metadati, tooling,
 documentazione, test, benchmark o sito; Pages segue il proprio confronto del
-contenuto. In Production una versione Shopify dello stesso commit può essere
+contenuto e, come il deploy Production, riusa i gate del merge Production. In Production una versione Shopify dello stesso commit può essere
 già attiva oppure disponibile da rilasciare: il preflight distingue questi
 casi dal deploy nuovo e rifiuta collisioni o provenienze ambigue. La ripresa
 ricostruisce uno snapshot Worker/Shopify dello stesso commit, anche dopo una

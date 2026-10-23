@@ -10,6 +10,7 @@ on:
         type: boolean
 
 permissions:
+  checks: read
   contents: read
 
 concurrency:
@@ -103,27 +104,14 @@ jobs:
         if: steps.preflight.outputs.deploy_required == 'true'
       - if: steps.preflight.outputs.deploy_required == 'true'
         run: npm ci
-      - if: steps.preflight.outputs.deploy_required == 'true'
-        run: npx playwright install --with-deps chromium webkit
-
-      - if: steps.preflight.outputs.deploy_required == 'true'
-        run: npm install --global --allow-scripts=esbuild @shopify/cli@4.9.4
-
-      # `npm run check` include `quality:workflows` dal PR #729: come in ci.yml, actionlint
-      # arriva dalla release verificata con checksum.
-      - if: steps.preflight.outputs.deploy_required == 'true'
-        name: Installa actionlint verificato
-        shell: bash
-        run: |
-          directory="$RUNNER_TEMP/actionlint"
-          mkdir -p "$directory"
-          curl --fail --silent --show-error --location --output "$directory/actionlint.tar.gz" \
-            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
-          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $directory/actionlint.tar.gz" | sha256sum --check
-          tar -xzf "$directory/actionlint.tar.gz" -C "$directory" actionlint
-          echo "$directory" >> "$GITHUB_PATH"
-      - if: steps.preflight.outputs.deploy_required == 'true'
-        run: npm run check
+      # La CI è già verde sul merge Production: come Deploy Production, il sito ne riusa i
+      # gate invece di ripetere la suite completa.
+      - name: Riusa i gate dell'HEAD Production
+        if: steps.preflight.outputs.deploy_required == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUIRED_CHECKS: verify,e2e,react-doctor,coverage
+        run: node scripts/github-gates.mjs
 
       - name: Inietta l'identità del titolare
         if: steps.preflight.outputs.deploy_required == 'true'

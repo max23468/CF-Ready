@@ -1,6 +1,6 @@
 {
   "name": "cf-ready",
-  "version": "2.5.6",
+  "version": "2.5.7",
   "private": true,
   "packageManager": "npm@12.2.1",
   "packageExtensions": {
@@ -51,6 +51,7 @@
     "benchmark:worker-cpu": "vitest bench benchmarks/webhook.bench.ts --run",
     "test:e2e": "playwright test --config tests/playwright.config.ts",
     "test:ui": "vitest run --config vitest.browser.config.ts",
+    "test:ui:changed": "vitest run --config vitest.browser.config.ts --passWithNoTests --project 'merchant-chromium*' --changed",
     "test": "vitest run",
     "test:changed": "vitest run --passWithNoTests --changed",
     "test:migrations": "node --test scripts/migration-policy.node-test.mjs && vitest run tests/migrations.test.ts",
@@ -105,7 +106,7 @@
     "@playwright/test": "1.64.1",
     "@react-router/dev": "8.4.0",
     "@shopify/cli": "4.9.4",
-    "@shopify/polaris-types": "2.0.0-rc.3",
+    "@shopify/polaris-types": "2.0.0",
     "@stryker-mutator/core": "10.0.0",
     "@stryker-mutator/vitest-runner": "10.0.0",
     "@types/node": "26.6.5",

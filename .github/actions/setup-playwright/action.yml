@@ -1,0 +1,46 @@
+name: Setup Playwright
+description: Installa browser Playwright e dipendenze di sistema con cache di browser e pacchetti apt
+
+inputs:
+  browsers:
+    description: Browser separati da spazio, per esempio "chromium webkit"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - id: versions
+      shell: bash
+      env:
+        BROWSERS: ${{ inputs.browsers }}
+      run: |
+        echo "browsers=${BROWSERS// /-}" >> "$GITHUB_OUTPUT"
+        echo "playwright=$(node -p 'require("@playwright/test/package.json").version')" >> "$GITHUB_OUTPUT"
+        echo "image=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ steps.versions.outputs.playwright }}-${{ steps.versions.outputs.browsers }}
+    # Il 23 ottobre 2026 il mirror apt Azure ha servito 25.9 MB a 45.8 kB/s: i job browser
+    # restavano bloccati fino al timeout. Con i .deb in cache apt scarica solo le versioni nuove.
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/apt-playwright/*.deb
+        key: playwright-apt-${{ steps.versions.outputs.image }}-${{ steps.versions.outputs.playwright }}-${{ steps.versions.outputs.browsers }}
+        restore-keys: playwright-apt-
+    - shell: bash
+      env:
+        BROWSERS: ${{ inputs.browsers }}
+      run: |
+        read -ra browsers <<< "$BROWSERS"
+        archives="$HOME/.cache/apt-playwright"
+        mkdir -p "$archives/partial"
+        printf 'Dir::Cache::Archives "%s/";\nAPT::Keep-Downloaded-Packages "true";\nAcquire::Retries "3";\n' "$archives" |
+          sudo tee /etc/apt/apt.conf.d/99cf-ready-playwright > /dev/null
+        npx playwright install "${browsers[@]}" &
+        download=$!
+        status=0
+        timeout 240 npx playwright install-deps "${browsers[@]}" || status=$?
+        wait "$download" || status=$?
+        sudo chown -R "$(id -u):$(id -g)" "$archives"
+        exit "$status"
