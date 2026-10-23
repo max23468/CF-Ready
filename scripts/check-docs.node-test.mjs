@@ -734,6 +734,7 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
     "deploy-pages-production.yml",
     "deploy-production.yml",
     "mutation-campaign.yml",
+    "playwright-cache.yml",
   ]) {
     const workflow = readFileSync(new URL(`../.github/workflows/${path}`, import.meta.url), "utf8");
     assert.equal(
@@ -1021,7 +1022,23 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
   assert.doesNotMatch(ci, /playwright install/);
   assert.match(setupPlaywright, /path: ~\/\.cache\/apt-playwright\/\*\.deb/);
   assert.match(setupPlaywright, /Dir::Cache::Archives/);
-  assert.match(setupPlaywright, /timeout 240 npx playwright install-deps "\$\{browsers\[@\]\}"/);
+  assert.match(
+    setupPlaywright,
+    /timeout "\$DEPS_TIMEOUT" npx playwright install-deps "\$\{browsers\[@\]\}"/,
+  );
+  assert.match(setupPlaywright, /default: "240"/);
+  // La cache apt nasce su develop, visibile a tutte le PR, e non solo dentro una PR.
+  const cacheWorkflow = readFileSync(
+    new URL("../.github/workflows/playwright-cache.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(cacheWorkflow, /schedule:/);
+  assert.match(cacheWorkflow, /branches: \[develop\]/);
+  assert.match(cacheWorkflow, /browsers: \[chromium, webkit, chromium webkit\]/);
+  assert.match(
+    setupPlaywright,
+    /restore-keys: \|\n\s+playwright-apt-\$\{\{ steps\.versions\.outputs\.browsers \}\}-/,
+  );
   assert.match(setupPlaywright, /key: playwright-\$\{\{ runner\.os \}\}/);
   for (const step of ["npm run coverage:", "npm run test:e2e"]) {
     assert.match(ci, new RegExp(`timeout-minutes: \\d+\\n\\s+run: ${step}`), step);
