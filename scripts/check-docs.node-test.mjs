@@ -1149,8 +1149,22 @@ test("i deploy riusano i gate e conservano ricevute fuori dalle PR", () => {
   );
   assert.match(
     developmentRollback,
-    /if \[ "\$worker_restored" -eq 1 \] && shopify app versions list/,
+    /if \[ "\$worker_restored" -eq 1 \] && node scripts\/provider-retry\.mjs -- shopify app versions list/,
   );
+  // Le chiamate provider idempotenti di deploy e rollback ritentano gli errori transitori.
+  for (const workflow of [development, production]) {
+    for (const call of [
+      "shopify app release",
+      "shopify app versions list",
+      "cf workers deployments list",
+      "cf workers deployments create",
+    ]) {
+      const unprotected = workflow
+        .split("\n")
+        .filter((line) => line.includes(call) && !line.includes("provider-retry.mjs --"));
+      assert.deepEqual(unprotected, [], call);
+    }
+  }
   assert.match(production, /actions\/attest@[0-9a-f]{40}/);
   assert.ok(
     production.indexOf("name: Deploy Shopify Production") <
