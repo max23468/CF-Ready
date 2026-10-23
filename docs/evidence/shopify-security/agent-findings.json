@@ -1,0 +1,423 @@
+{
+  "schema_version": 1,
+  "scope": {
+    "include_dirs": [],
+    "excludes": [],
+    "no_git_ignore": false
+  },
+  "checks_executed": [
+    {
+      "check_id": "ACTIVE_UPLOADS_AND_PRIVILEGED_PREVIEWS",
+      "check_version": 1,
+      "status": "executed"
+    },
+    {
+      "check_id": "APP_PROXY_LIQUID_INJECTION",
+      "check_version": 3,
+      "status": "not_applicable",
+      "reason": {
+        "code": "capability_absent",
+        "message": "No [app_proxy] section in shopify.app.toml or shopify.app.dev.toml, no appProxy/logged_in_customer_id/application/liquid handling in app/, workers/ or extensions/ (extensions are a Validation Function and an admin_link)."
+      }
+    },
+    {
+      "check_id": "APP_PROXY_UNVERIFIED_SIGNATURE",
+      "check_version": 2,
+      "status": "not_applicable",
+      "reason": {
+        "code": "capability_absent",
+        "message": "No app proxy is configured in shopify.app.toml/shopify.app.dev.toml and no route reads proxy parameters (shop, logged_in_customer_id, path_prefix, signature)."
+      }
+    },
+    {
+      "check_id": "COMMITTED_SECRET",
+      "check_version": 4,
+      "status": "executed"
+    },
+    {
+      "check_id": "CREDENTIAL_BROWSER_LEAKAGE",
+      "check_version": 2,
+      "status": "executed"
+    },
+    {
+      "check_id": "CREDENTIAL_LOG_LEAKAGE",
+      "check_version": 2,
+      "status": "executed"
+    },
+    {
+      "check_id": "CROSS_SITE_SCRIPTING",
+      "check_version": 1,
+      "status": "executed"
+    },
+    {
+      "check_id": "CSRF_MISSING_PROTECTION",
+      "check_version": 2,
+      "status": "executed"
+    },
+    {
+      "check_id": "DEPENDENCY_REACHABILITY",
+      "check_version": 1,
+      "status": "executed"
+    },
+    {
+      "check_id": "DEPRECATED_SCRIPT_TAG_SCOPE",
+      "check_version": 2,
+      "status": "executed"
+    },
+    {
+      "check_id": "EOL_API_VERSION",
+      "check_version": 2,
+      "status": "executed"
+    },
+    {
+      "check_id": "EXPIRING_OFFLINE_TOKEN",
+      "check_version": 2,
+      "status": "executed"
+    },
+    {
+      "check_id": "INSECURE_WEBHOOK_URL",
+      "check_version": 2,
+      "status": "executed"
+    },
+    {
+      "check_id": "LIQUID_UNSAFE_RENDER",
+      "check_version": 1,
+      "status": "not_applicable",
+      "reason": {
+        "code": "capability_absent",
+        "message": "No theme app extension and no .liquid files: extensions/ contains only a function (cf-ready-validation) and an admin_link (support-link)."
+      }
+    },
+    {
+      "check_id": "METAFIELD_OFFLINE_TOKEN",
+      "check_version": 2,
+      "status": "executed"
+    },
+    {
+      "check_id": "MISSING_AUTHORIZATION_CHECK",
+      "check_version": 3,
+      "status": "executed"
+    },
+    {
+      "check_id": "MISSING_COMPLIANCE_WEBHOOKS",
+      "check_version": 1,
+      "status": "executed"
+    },
+    {
+      "check_id": "MISSING_EMBEDDED_CSP",
+      "check_version": 3,
+      "status": "executed"
+    },
+    {
+      "check_id": "MISSING_TENANT_ISOLATION",
+      "check_version": 4,
+      "status": "executed"
+    },
+    {
+      "check_id": "OPEN_REDIRECT",
+      "check_version": 2,
+      "status": "executed"
+    },
+    {
+      "check_id": "OVERBROAD_DATA_ACCESS",
+      "check_version": 2,
+      "status": "executed"
+    },
+    {
+      "check_id": "REQUEST_CONTROLLED_ADMIN_CONTEXT",
+      "check_version": 4,
+      "status": "executed"
+    },
+    {
+      "check_id": "REQUEST_DERIVED_SHOP_SCOPE",
+      "check_version": 3,
+      "status": "executed"
+    },
+    {
+      "check_id": "SCOPE_OVER_REQUEST",
+      "check_version": 1,
+      "status": "executed"
+    },
+    {
+      "check_id": "SCRIPT_TAG_URL_INJECTION",
+      "check_version": 2,
+      "status": "not_applicable",
+      "reason": {
+        "code": "no_script_tag_usage",
+        "message": "No scriptTagCreate/scriptTagUpdate/ScriptTag REST usage anywhere in app/, workers/ or extensions/; declared scopes are write_validations plus optional write_translations, read_locales, read_markets (shopify.app.toml:51-52), with no write_script_tags."
+      }
+    },
+    {
+      "check_id": "SESSION_LIFECYCLE_AND_REPLAY",
+      "check_version": 1,
+      "status": "executed"
+    },
+    {
+      "check_id": "SQL_INJECTION",
+      "check_version": 1,
+      "status": "executed"
+    },
+    {
+      "check_id": "SSRF_REQUEST_FORGERY",
+      "check_version": 1,
+      "status": "executed"
+    },
+    {
+      "check_id": "STATIC_FRAME_ANCESTORS",
+      "check_version": 2,
+      "status": "executed"
+    },
+    {
+      "check_id": "TEXT_SETTING_HTML_SMUGGLING",
+      "check_version": 2,
+      "status": "executed"
+    },
+    {
+      "check_id": "THEME_EXTENSION_XSS",
+      "check_version": 2,
+      "status": "not_applicable",
+      "reason": {
+        "code": "no_theme_app_extension",
+        "message": "extensions/ contains only cf-ready-validation (Cart and Checkout Validation Function) and support-link (admin_link); no *.liquid files or theme app extension assets exist in the repository."
+      }
+    },
+    {
+      "check_id": "UNAUTHENTICATED_ENDPOINT",
+      "check_version": 3,
+      "status": "executed"
+    },
+    {
+      "check_id": "UNSAFE_INNERHTML",
+      "check_version": 3,
+      "status": "executed"
+    },
+    {
+      "check_id": "UNSCOPED_SHOP_CONFIG_WRITE",
+      "check_version": 2,
+      "status": "executed"
+    },
+    {
+      "check_id": "WEAK_SHOP_VALIDATION",
+      "check_version": 1,
+      "status": "executed"
+    }
+  ],
+  "findings": [
+    {
+      "check_id": "UNAUTHENTICATED_ENDPOINT",
+      "check_version": 3,
+      "file": "app/routes/app.engagement.tsx",
+      "line": 13,
+      "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+      "evidence": [
+        {
+          "file": "app/routes/app.engagement.tsx",
+          "line": 20,
+          "quote": "const { session } = await authenticateAdmin(request, context);"
+        }
+      ],
+      "confidence": "high",
+      "suppression": {
+        "justification": "Loader returns 405; action only parses headers and checks an empty body before awaiting authenticateAdmin at line 20; D1 write uses session.shop."
+      }
+    },
+    {
+      "check_id": "UNAUTHENTICATED_ENDPOINT",
+      "check_version": 3,
+      "file": "app/routes/app.guide.tsx",
+      "line": 41,
+      "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+      "evidence": [
+        {
+          "file": "app/routes/app.guide.tsx",
+          "line": 43,
+          "quote": "const { session } = await authenticateAdminTimed(request, context, timing);"
+        }
+      ],
+      "confidence": "high",
+      "suppression": {
+        "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
+      }
+    },
+    {
+      "check_id": "UNAUTHENTICATED_ENDPOINT",
+      "check_version": 3,
+      "file": "app/routes/app.guide.tsx",
+      "line": 64,
+      "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+      "evidence": [
+        {
+          "file": "app/routes/app.guide.tsx",
+          "line": 65,
+          "quote": "const { admin, session, scopes } = await authenticateAdmin(request, context);"
+        }
+      ],
+      "confidence": "high",
+      "suppression": {
+        "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
+      }
+    },
+    {
+      "check_id": "UNAUTHENTICATED_ENDPOINT",
+      "check_version": 3,
+      "file": "app/routes/app.messages.tsx",
+      "line": 82,
+      "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+      "evidence": [
+        {
+          "file": "app/routes/app.messages.tsx",
+          "line": 84,
+          "quote": "const { admin, session } = await authenticateAdminTimed(request, context, timing);"
+        }
+      ],
+      "confidence": "high",
+      "suppression": {
+        "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
+      }
+    },
+    {
+      "check_id": "UNAUTHENTICATED_ENDPOINT",
+      "check_version": 3,
+      "file": "app/routes/app.rules.tsx",
+      "line": 64,
+      "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+      "evidence": [
+        {
+          "file": "app/routes/app.rules.tsx",
+          "line": 66,
+          "quote": "const authentication = await authenticateAdminTimed(request, context, timing);"
+        }
+      ],
+      "confidence": "high",
+      "suppression": {
+        "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
+      }
+    },
+    {
+      "check_id": "UNAUTHENTICATED_ENDPOINT",
+      "check_version": 3,
+      "file": "app/routes/app.rules.tsx",
+      "line": 115,
+      "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+      "evidence": [
+        {
+          "file": "app/routes/app.rules.tsx",
+          "line": 117,
+          "quote": "const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);"
+        }
+      ],
+      "confidence": "high",
+      "suppression": {
+        "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
+      }
+    },
+    {
+      "check_id": "UNAUTHENTICATED_ENDPOINT",
+      "check_version": 3,
+      "file": "app/routes/app.tsx",
+      "line": 29,
+      "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+      "evidence": [
+        {
+          "file": "app/routes/app.tsx",
+          "line": 30,
+          "quote": "const { session } = await authenticateAdmin(request, context);"
+        }
+      ],
+      "confidence": "high",
+      "suppression": {
+        "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
+      }
+    },
+    {
+      "check_id": "UNSAFE_INNERHTML",
+      "check_version": 3,
+      "file": "app/routes/app.tsx",
+      "line": 112,
+      "message": "Deterministic heuristic match on a sink that receives only trusted content.",
+      "evidence": [
+        {
+          "file": "app/performance-report.ts",
+          "line": 51,
+          "quote": "const json = JSON.stringify({ ...config, endpoint: PERFORMANCE_ENDPOINT }).replace("
+        }
+      ],
+      "confidence": "high",
+      "suppression": {
+        "justification": "False positive: the script is the literal REPORTER_SOURCE plus JSON of a closed-enum route and a server HMAC token, serialized with JSON.stringify and '<' escaped (app/performance-report.ts:51-56); no user-controlled data reaches the sink."
+      }
+    },
+    {
+      "check_id": "UNSAFE_INNERHTML",
+      "check_version": 3,
+      "file": "tests/browser/components.test.tsx",
+      "line": 351,
+      "message": "Deterministic heuristic match on a sink that receives only trusted content.",
+      "evidence": [
+        {
+          "file": "tests/browser/components.test.tsx",
+          "line": 351,
+          "quote": "new Function(performanceReporterScript({ route: \"home\", token: \"firma\" }))();"
+        }
+      ],
+      "confidence": "high",
+      "suppression": {
+        "justification": "Test-only code, not shipped: evaluates the same reporter script with literal route and token fixtures."
+      }
+    },
+    {
+      "check_id": "UNSAFE_INNERHTML",
+      "check_version": 3,
+      "file": "tests/browser/components.test.tsx",
+      "line": 381,
+      "message": "Deterministic heuristic match on a sink that receives only trusted content.",
+      "evidence": [
+        {
+          "file": "tests/browser/components.test.tsx",
+          "line": 381,
+          "quote": "new Function(performanceReporterScript({ route: \"rules\", token: \"firma\" }))();"
+        }
+      ],
+      "confidence": "high",
+      "suppression": {
+        "justification": "Test-only code, not shipped: evaluates the same reporter script with literal route and token fixtures."
+      }
+    },
+    {
+      "check_id": "UNSAFE_INNERHTML",
+      "check_version": 3,
+      "file": "tests/browser/components.test.tsx",
+      "line": 396,
+      "message": "Deterministic heuristic match on a sink that receives only trusted content.",
+      "evidence": [
+        {
+          "file": "tests/browser/components.test.tsx",
+          "line": 396,
+          "quote": "new Function(performanceReporterScript({ route: \"onboarding\", token: \"firma\" }))();"
+        }
+      ],
+      "confidence": "high",
+      "suppression": {
+        "justification": "Test-only code, not shipped: evaluates the same reporter script with literal route and token fixtures."
+      }
+    },
+    {
+      "check_id": "UNSAFE_INNERHTML",
+      "check_version": 3,
+      "file": "tests/browser/visual-surfaces.test.tsx",
+      "line": 38,
+      "message": "Deterministic heuristic match on a sink that receives only trusted content.",
+      "evidence": [
+        {
+          "file": "tests/browser/visual-surfaces.test.tsx",
+          "line": 38,
+          "quote": "script.src = polarisV2 ? POLARIS_V2_URL : POLARIS_STABLE_URL;"
+        }
+      ],
+      "confidence": "high",
+      "suppression": {
+        "justification": "Test-only code, not shipped: script.src is a constant Polaris CDN URL used as a visual fixture."
+      }
+    }
+  ]
+}

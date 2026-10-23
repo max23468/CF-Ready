@@ -82,7 +82,9 @@ I piani sono in [plans/](plans/), gli audit e le verifiche in
 - [Manutenzione sicurezza](runbooks/security-maintenance.md) — audit periodici
   di repository, dipendenze e provider Development.
 - [Controlli ufficiali Shopify a ogni release](runbooks/shopify-release-security-checks.md)
-  — scansione locale, review del coding agent e prova del candidato.
+  — scansione locale, review incrementale del coding agent e prova del candidato.
+- [Baseline controlli Shopify](evidence/shopify-security/baseline.md) — ultima
+  review completa, esiti per check e falsi positivi motivati.
 - [Changelog](../CHANGELOG.md) — versioni rilasciate e sintesi per milestone.
 - [README](../README.md) — setup e comandi correnti.
 - [Sicurezza](../SECURITY.md) — canale privato e disclosure coordinata.
