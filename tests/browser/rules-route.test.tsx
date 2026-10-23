@@ -24,7 +24,11 @@ describe("Regole", () => {
       labelSnapshot: null,
     };
     const view = await mount(<CheckoutRules />);
-    expect(view.container.textContent).toContain(texts("it").rules.labels.loading);
+    expect(
+      view.container.querySelector(
+        `s-spinner[accessibilityLabel="${texts("it").rules.labels.loading}"]`,
+      ),
+    ).not.toBeNull();
     expect(router.fetcher.submit).toHaveBeenCalledWith(
       {
         intent: "load_checkout_labels",
@@ -1474,7 +1478,7 @@ describe("Regole: salvataggio ed etichette (audit §5.1)", () => {
     router.fetcher.state = "submitting";
     router.loaderData = { ...router.loaderData! };
     await view.rerender(<CheckoutRules />);
-    expect(view.container.textContent).not.toContain(texts("it").rules.labels.loading);
+    expect(view.container.querySelector("s-spinner")).toBeNull();
     expect(view.container.querySelector("details.checkout-labels-disclosure")).toBe(panel);
   });
 

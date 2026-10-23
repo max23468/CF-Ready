@@ -1,9 +1,12 @@
 /* Brand: il verde bottiglia (#20492F) e il marchio in negativo sono ammessi anche qui
    (docs/brand/brand-foundation.md, decisione del 7 ottobre 2026). */
+/* App Bridge pubblica in `--shopify-safe-area-inset-bottom` l'altezza delle barre dell'Admin
+   sopra il fondo dell'iframe (Sidekick, navigazione mobile): Assistenza resta sopra. */
 .support-chat {
+  --support-chat-host-inset: var(--shopify-safe-area-inset-bottom, 0px);
   position: fixed;
   right: max(16px, env(safe-area-inset-right));
-  bottom: max(16px, env(safe-area-inset-bottom));
+  bottom: calc(max(16px, env(safe-area-inset-bottom)) + var(--support-chat-host-inset));
   z-index: 20;
   display: flex;
   flex-direction: column;
@@ -13,7 +16,7 @@
 
 .support-chat__panel {
   width: min(360px, calc(100vw - 32px));
-  max-height: calc(100dvh - 100px);
+  max-height: calc(100dvh - 100px - var(--support-chat-host-inset));
   overflow: auto;
   padding: 12px;
   box-sizing: border-box;
@@ -28,7 +31,7 @@
   display: block;
   width: 100%;
   /* Riempie l'altezza utile del pannello: sotto restano la riga email e il pulsante. */
-  height: min(560px, calc(100dvh - 170px));
+  height: min(560px, calc(100dvh - 170px - var(--support-chat-host-inset)));
   min-height: 240px;
   border: 0;
 }
@@ -45,10 +48,11 @@
   box-shadow: 0 4px 14px rgb(32 73 47 / 35%);
   color: #fff;
   /* Fuori dai componenti Polaris il documento non ha un font: senza questa pila
-     il pulsante userebbe il serif predefinito del browser. */
+     il pulsante userebbe il serif predefinito del browser. ShopifyInter è il font
+     del nuovo Admin con Polaris 2; Inter resta per l'Admin attuale. */
   font-family:
-    Inter, -apple-system, BlinkMacSystemFont, "San Francisco", "Segoe UI", Roboto, "Helvetica Neue",
-    sans-serif;
+    ShopifyInter, Inter, -apple-system, BlinkMacSystemFont, "San Francisco", "Segoe UI", Roboto,
+    "Helvetica Neue", sans-serif;
   font-size: 15px;
   font-weight: 650;
   cursor: pointer;

@@ -87,7 +87,8 @@ mise exec -- npm run check
 ```
 
 `verify:change` è il gate locale prima del push: controlli statici, politica di
-versione e test legati al diff. La CI esegue coverage, browser e mutation.
+versione e test legati al diff, compresi quelli browser Chromium se cambia la UI
+embedded. La CI esegue coverage, WebKit e mutation.
 
 Knip e actionlint sono bloccanti nel gate locale e nel job CI `verify` per le
 modifiche non documentali. `quality:knip` genera prima i tipi delle route e

@@ -51,9 +51,10 @@ architetturali stabili in un ADR.
 `scripts/ci-lane.mjs` classifica rischio e superficie del diff. Durante lo
 sviluppo esegui test mirati; per la verifica finale usa `npm run verify:change`,
 che include modifiche locali ed esegue lo stesso gate del coordinatore: controlli
-statici, politica di versione e test legati al diff. Coverage, browser, build,
-dry-run e mutation li esegue la CI in parallelo; in locale servono solo per
-diagnosticare un errore, non prima di `Pubblica`.
+statici, politica di versione e test legati al diff, compresi quelli browser
+Chromium se cambia la UI embedded. Un tree già verde non ripete il gate.
+Coverage, WebKit, build, dry-run e mutation li esegue la CI in parallelo; in
+locale servono solo per diagnosticare un errore, non prima di `Pubblica`.
 
 | Corsia | Quando | Gate locale |
 | --- | --- | --- |

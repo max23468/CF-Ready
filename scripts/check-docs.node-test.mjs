@@ -799,9 +799,12 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /wrangler pages deploy "\$RUNNER_TEMP\/pages-site"/);
   assert.match(workflow, /--branch main/);
   assert.match(workflow, /--commit-hash "\$GITHUB_SHA"/);
-  const shopifyCliInstall = "npm install --global --allow-scripts=esbuild @shopify/cli@4.9.4";
-  assert.match(workflow, new RegExp(shopifyCliInstall.replaceAll(".", "\\.")));
-  assert(workflow.indexOf(shopifyCliInstall) < workflow.indexOf("npm run check"));
+  // La suite è già verde sul merge Production: il sito ne riusa i gate, come Deploy Production.
+  assert.match(workflow, /REQUIRED_CHECKS: verify,e2e,react-doctor,coverage/);
+  assert(
+    workflow.indexOf("node scripts/github-gates.mjs") < workflow.indexOf("wrangler pages deploy"),
+  );
+  assert.doesNotMatch(workflow, /npm run check|playwright install/);
   assert.match(workflow, /canonical_deployment\.deployment_trigger\.metadata\.commit_hash/);
   assert.match(workflow, /deployments\/\$ROLLBACK_ID\/rollback/);
   assert.match(workflow, /--header "Cache-Control: no-cache"/);
@@ -1001,15 +1004,28 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
     packageJson.scripts["test:e2e"],
     "playwright test --config tests/playwright.config.ts",
   );
-  assert.match(ci, /playwright install --with-deps chromium webkit/);
-  assert.deepEqual(
-    [...ci.matchAll(/playwright install --with-deps ([^\n]+)/g)].map((match) => match[1].trim()),
-    ["chromium webkit"],
+  const setupPlaywright = readFileSync(
+    new URL("../.github/actions/setup-playwright/action.yml", import.meta.url),
+    "utf8",
   );
-  // La coverage browser divide i motori in due job e ciascuno installa solo il proprio.
-  assert.match(ci, /playwright@\$version" install-deps "\$BROWSER"/);
-  assert.match(ci, /npx playwright install "\$BROWSER"\n/);
-  assert.match(ci, /BROWSER: \$\{\{ matrix\.part == 'ui-webkit' && 'webkit' \|\| 'chromium' \}\}/);
+  // Browser e dipendenze di sistema arrivano da un'unica azione con cache dei .deb apt:
+  // e2e installa entrambi i motori, la coverage browser solo quello del proprio job.
+  assert.deepEqual(
+    [
+      ...ci.matchAll(
+        /uses: \.\/\.github\/actions\/setup-playwright\n\s+with:\n\s+browsers: ([^\n]+)/g,
+      ),
+    ].map((match) => match[1].trim()),
+    ["${{ matrix.part == 'ui-webkit' && 'webkit' || 'chromium' }}", "chromium webkit"],
+  );
+  assert.doesNotMatch(ci, /playwright install/);
+  assert.match(setupPlaywright, /path: ~\/\.cache\/apt-playwright\/\*\.deb/);
+  assert.match(setupPlaywright, /Dir::Cache::Archives/);
+  assert.match(setupPlaywright, /timeout 240 npx playwright install-deps "\$\{browsers\[@\]\}"/);
+  assert.match(setupPlaywright, /key: playwright-\$\{\{ runner\.os \}\}/);
+  for (const step of ["npm run coverage:", "npm run test:e2e"]) {
+    assert.match(ci, new RegExp(`timeout-minutes: \\d+\\n\\s+run: ${step}`), step);
+  }
   assert.equal(
     packageJson.scripts["coverage:ui-chromium"].includes("--project 'merchant-chromium*'"),
     true,
@@ -1018,9 +1034,7 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
     packageJson.scripts["coverage:ui-webkit"].includes("--project 'merchant-webkit*'"),
     true,
   );
-  assert.match(ci, /exit "\$\(cat "\$RUNNER_TEMP\/playwright-deps\.exit"\)"/);
-  assert.match(ci, /actions\/cache@[0-9a-f]{40}/);
-  assert.match(ci, /key: playwright-\$\{\{ runner\.os \}\}/);
+  assert.match(setupPlaywright, /actions\/cache@[0-9a-f]{40}/);
   assert.match(ci, /npm run test:e2e/);
   assert.match(readme, /playwright install chromium webkit/);
   assert.match(playwright, /fileURLToPath\(new URL\("\.\."/);

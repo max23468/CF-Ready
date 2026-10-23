@@ -90,7 +90,9 @@ export function CheckoutLabelsSection({
   if (scopeGranted === null) {
     return (
       <s-section heading={copy.heading}>
-        <s-paragraph color="subdued">{copy.loading}</s-paragraph>
+        <s-stack alignItems="center">
+          <s-spinner accessibilityLabel={copy.loading} />
+        </s-stack>
       </s-section>
     );
   }
