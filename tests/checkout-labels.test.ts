@@ -1,5 +1,11 @@
 import { env } from "cloudflare:test";
-import { guidedConfirmationIsValid } from "../app/checkout-labels/decisions";
+import {
+  findStoredSlot,
+  guidedConfirmationIsValid,
+  hasAddress2ObservationChange,
+  hasExternalChange,
+  matchingSlot,
+} from "../app/checkout-labels/decisions";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import {
   CHECKOUT_LABEL_KEYS,
@@ -16,6 +22,7 @@ import {
   classifyAddress2,
   classifyVisibleAddress2,
   type CheckoutLabelSlot,
+  type StoredCheckoutLabelSlot,
 } from "../app/checkout-labels/domain";
 import {
   readCheckoutLabels,
@@ -64,6 +71,43 @@ beforeEach(async () => {
 });
 
 afterEach(() => vi.useRealTimers());
+
+test("identifica uno slot per risorsa, chiave, lingua, mercato e tipo in lettura e nei conflitti", () => {
+  const current = slot();
+  const stored: StoredCheckoutLabelSlot = {
+    ...current,
+    managementEpoch: "epoch",
+    originalPresent: true,
+    originalValue: current.currentValue,
+    lastWritePresent: true,
+    lastWrittenValue: current.currentValue,
+    lastObservedValue: current.currentValue,
+    lastObservedAt: "2026-09-08T12:00:00.000Z",
+    guidedConfirmedValue: null,
+    guidedConfirmedAt: null,
+  };
+  expect(findStoredSlot([stored], current)).toBe(stored);
+  expect(matchingSlot([current], stored)).toBe(current);
+  expect(hasExternalChange([current], [stored], "epoch")).toBe(false);
+  expect(hasAddress2ObservationChange([current], [stored], "accepted", "required")).toBe(false);
+  const variants: Partial<CheckoutLabelSlot>[] = [
+    { resourceId: `${resourceId}-other` },
+    { key: CHECKOUT_LABEL_KEYS.optionalAddress2, name: "optionalAddress2" },
+    { locale: "en" },
+    { marketId: "gid://shopify/Market/1" },
+    { kind: "global_translation" },
+  ];
+  for (const variant of variants) {
+    const other = slot(variant);
+    expect(findStoredSlot([stored], other), JSON.stringify(variant)).toBeUndefined();
+    expect(matchingSlot([other], stored), JSON.stringify(variant)).toBeUndefined();
+    expect(hasExternalChange([other], [stored], "epoch"), JSON.stringify(variant)).toBe(true);
+    expect(
+      hasAddress2ObservationChange([other], [stored], "accepted", "required"),
+      JSON.stringify(variant),
+    ).toBe(true);
+  }
+});
 
 test("mantiene l’allowlist esatta, le copie deterministiche e i codici regionali", () => {
   expect(Object.values(CHECKOUT_LABEL_KEYS)).toEqual([

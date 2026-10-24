@@ -178,3 +178,21 @@ export function parseCallback(data: string): OwnerControlAction | null {
   if (target !== "-") return null;
   return { view, page, refresh: refresh === "r", ...copy };
 }
+
+// Prima dei 37 giorni vendita e credito del piano sostituito possono ancora arrivare da Partner.
+export function canCloseConversion(
+  shop: {
+    conversion_credit_status: string | null;
+    conversion_credit_observed_at: string | null;
+    conversion_requested_at: string | null;
+  },
+  now: Date,
+) {
+  return (
+    shop.conversion_credit_status === "needs_review" &&
+    shop.conversion_credit_observed_at === null &&
+    shop.conversion_requested_at !== null &&
+    Date.parse(shop.conversion_requested_at) <=
+      now.getTime() - FINANCIAL_OBSERVATION_DAYS * 24 * 60 * 60 * 1000
+  );
+}

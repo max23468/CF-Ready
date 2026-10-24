@@ -3,6 +3,9 @@ import type {
   CartValidationsGenerateRunResult,
 } from "../generated/api";
 import {
+  absentFieldsBlockOrder,
+  checkoutCountryApplies,
+  pecIsRequired,
   invalidPecMessage,
   invalidTaxCodeMessage,
   isValidPec,
@@ -149,40 +152,20 @@ export function cartValidationsGenerateRun(
     if (!config || (step !== "CHECKOUT_COMPLETION" && step !== "CHECKOUT_INTERACTION")) {
       return allow;
     }
-    if (input.cart.billingAddress?.countryCode && input.cart.billingAddress.countryCode !== "IT") {
-      return allow;
-    }
-
-    const deliveryCountries = input.cart.deliveryGroups.flatMap((group) =>
-      group.deliveryAddress?.countryCode ? [group.deliveryAddress.countryCode] : [],
+    const deliveryGroups = input.cart.deliveryGroups.map((group) => ({
+      countryCode: group.deliveryAddress?.countryCode,
+      selectedDeliveryOption: Boolean(group.selectedDeliveryOption),
+    }));
+    const billingCountry = input.cart.billingAddress?.countryCode;
+    if (!checkoutCountryApplies(billingCountry, deliveryGroups)) return allow;
+    const absentFieldsBlock = absentFieldsBlockOrder(
+      config.rules.blockAbsentWithoutDelivery,
+      deliveryGroups,
+      billingCountry,
     );
-    if (
-      deliveryCountries.length > 0 &&
-      !deliveryCountries.includes("IT" as (typeof deliveryCountries)[number])
-    ) {
-      return allow;
-    }
-
-    const hasItalianDelivery = deliveryCountries.includes(
-      "IT" as (typeof deliveryCountries)[number],
-    );
-    // D-028 tratta come mancante un campo obbligatorio assente solo con consegna italiana.
-    // D-192 lo estende, su scelta del merchant, agli ordini senza Paese di consegna con
-    // fatturazione esplicitamente italiana: digitale, ritiro e percorsi come PayPal.
-    const absentFieldsBlock =
-      hasItalianDelivery ||
-      (config.rules.blockAbsentWithoutDelivery &&
-        deliveryCountries.length === 0 &&
-        input.cart.billingAddress?.countryCode === "IT");
     if (input.cart.localizedFields.length === 0 && !absentFieldsBlock) return allow;
 
-    const checkRequiredEmpty = requiredFieldsAreDue(
-      step,
-      input.cart.deliveryGroups.map((group) => ({
-        countryCode: group.deliveryAddress?.countryCode,
-        selectedDeliveryOption: Boolean(group.selectedDeliveryOption),
-      })),
-    );
+    const checkRequiredEmpty = requiredFieldsAreDue(step, deliveryGroups);
 
     const language = input.localization.language.isoCode === "IT" ? "it" : "en";
     const messages = config.messages[language];
@@ -191,7 +174,7 @@ export function cartValidationsGenerateRun(
     const pec = input.cart.localizedFields.find(({ key }) => key === "TAX_EMAIL_IT");
     const pecRule: Rule =
       config.rules.pec === "required_when_company"
-        ? input.cart.billingAddress?.company?.trim()
+        ? pecIsRequired(config.rules.pec, input.cart.billingAddress?.company ?? "")
           ? "required_validated"
           : "optional_validated"
         : config.rules.pec;

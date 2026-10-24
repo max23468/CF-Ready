@@ -1,18 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type {
   ActionFunctionArgs,
   HeadersFunction,
   LoaderFunctionArgs,
   ShouldRevalidateFunction,
 } from "react-router";
-import {
-  data,
-  useActionData,
-  useLoaderData,
-  useLocation,
-  useNavigation,
-  useSubmit,
-} from "react-router";
+import { data, useActionData, useLoaderData, useLocation } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError } from "../app-error";
 import { authenticateAdminTimed } from "../admin-auth.server";
@@ -22,16 +15,9 @@ import { CheckoutSimulator } from "../features/rules/CheckoutSimulator";
 import { CheckoutLabelsSection } from "../features/rules/CheckoutLabelsSection";
 import "../features/rules/RulesLayout.css";
 import { AbsentWithoutDeliverySection } from "../features/rules/AbsentWithoutDeliverySection";
-import {
-  blocksAbsentWithoutDelivery,
-  mergeRulesFormDraft,
-  rebaseRulesDraft,
-  rulesDraftChanged,
-  type RulesFormDraft,
-} from "../features/rules/rules-form";
+import { blocksAbsentWithoutDelivery, type RulesFormDraft } from "../features/rules/rules-form";
 import { describeCheckout, resolveLocale, texts, validationStatus, type Locale } from "../i18n";
 import { skipRevalidationWhenLeaving, useSavedData } from "../revalidation";
-import { setSaveBarVisibility, showToast } from "../save-bar";
 import { RevealBanner } from "../ui/ui-feedback";
 import { createServerTiming } from "../server-timing.server";
 import {
@@ -44,20 +30,18 @@ import {
 import { databaseContext } from "../context.server";
 import { readCheckoutLabelState } from "../checkout-labels/repository.server";
 import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../checkout-labels/service.server";
+import { type CheckoutLabelsSnapshot } from "../checkout-labels/domain";
 import {
-  checkoutLabelValuesMatch,
-  proposedLabelForSlot,
-  type CheckoutLabelsSnapshot,
-} from "../checkout-labels/domain";
-import { labelManagementSaveState } from "../features/rules/checkout-labels-presentation";
+  useRulesDraft,
+  RULES_SAVE_BAR,
+  LABEL_CONFIRM_MODAL,
+} from "../features/rules/use-rules-draft";
 import { observedConfigHash, reconcile } from "../validation.server";
 import { handleRulesAction, saveAddress2Mode } from "../features/rules/rules-action.server";
 import { parseRulesIntent, RULES_INTENTS } from "../features/rules/rules-intents";
 import { useDeferredCheckoutLabels } from "../features/rules/use-deferred-checkout-labels";
 import { NATIVE_LABELS_ID } from "../features/rules/NativeCheckoutLabels";
 
-const SAVE_BAR = "checkout-rules-save-bar";
-const LABEL_CONFIRM_MODAL = "confirm-checkout-label-management";
 type RulesActionData =
   | Awaited<ReturnType<typeof handleRulesAction>>
   | Awaited<ReturnType<typeof saveAddress2Mode>>;
@@ -173,33 +157,27 @@ export default function CheckoutRules() {
   const labelSnapshot = labels.snapshot;
 
   const t = texts(saved.locale);
-  const send = useSubmit();
-  const busy = useNavigation().state !== "idle";
-  const current = { rules: saved.rules };
-  const baseRef = useRef(current);
-  const sentRef = useRef<RulesFormDraft | null>(null);
-  const baseHash = useRef(saved.configHash);
-  const [resolvedConflict, setResolvedConflict] = useState(false);
-  const errorCode = result?.ok === false ? result.errorCode : null;
-  const conflict = errorCode === "config_conflict" && !resolvedConflict;
-  const labelsErrorCode =
-    result?.ok && "labelsErrorCode" in result && typeof result.labelsErrorCode === "string"
-      ? result.labelsErrorCode
-      : null;
-  const [changedSinceResult, setChangedSinceResult] = useState(false);
-  const [formRevision, setFormRevision] = useState(0);
-  const [draft, setDraft] = useState({ rules: saved.rules });
-  const [labelsEnabled, setLabelsEnabled] = useState(labelState.mode !== "off");
-
-  // Un solo ascoltatore sul form delle impostazioni. Il simulatore è deliberatamente fuori:
-  // i suoi valori sono locali e non devono rendere sporca la configurazione del merchant.
-  const readDraft = (event: { currentTarget: HTMLFormElement }) => {
-    const data = new FormData(event.currentTarget);
-    setChangedSinceResult(true);
-    setDraft((current) => mergeRulesFormDraft(current, data));
-  };
-
-  useEffect(() => setChangedSinceResult(false), [result]);
+  const {
+    current,
+    draft,
+    busy,
+    conflict,
+    errorCode,
+    labelsErrorCode,
+    dirty,
+    labelsDirty,
+    changedSinceResult,
+    formRevision,
+    labelsEnabled,
+    automaticLabelWrites,
+    readDraft,
+    save,
+    submitSave,
+    reapply,
+    discard,
+    changeLabelsEnabled,
+    changeAbsentWithoutDelivery,
+  } = useRulesDraft(saved, result, labels);
   // G-B4: dalla Guida "Riproduci il caso nel simulatore" arriva con l'ancora del simulatore.
   // Le etichette si caricano dopo e allungano la colonna sopra il simulatore: a caricamento
   // concluso lo si riporta in vista, se il merchant non ha spostato il focus altrove.
@@ -213,90 +191,6 @@ export default function CheckoutRules() {
     target.scrollIntoView?.({ block: "start" });
     target.focus({ preventScroll: true });
   }, [hash, labelsLoading]);
-  const savedText = t.rules.saved;
-  useEffect(() => {
-    if (result?.ok && !labelsErrorCode) showToast(savedText);
-  }, [result, labelsErrorCode, savedText]);
-
-  const dirty = rulesDraftChanged(draft.rules, saved.rules);
-  const { automaticConfirmationRequired, dirty: labelsDirty } = labelManagementSaveState(
-    labelState,
-    labelsEnabled,
-    errorCode,
-  );
-  const automaticLabelWrites =
-    labelSnapshot?.slots.flatMap((slot) => {
-      if (slot.capability !== "automatic" || (slot.name !== "taxCode" && slot.name !== "pec")) {
-        return [];
-      }
-      const proposed = proposedLabelForSlot(slot, draft.rules);
-      if (proposed === null || checkoutLabelValuesMatch(proposed, slot.currentValue)) return [];
-      return [{ slot, proposed }];
-    }) ?? [];
-
-  useEffect(() => setSaveBarVisibility(SAVE_BAR, dirty || labelsDirty), [dirty, labelsDirty]);
-
-  const submitSave = (labelsConfirmed: boolean) => {
-    if (busy || conflict || sentRef.current) return;
-    sentRef.current = draft;
-    setResolvedConflict(false);
-    send(
-      {
-        configHash: baseHash.current ?? "",
-        taxCode: draft.rules.taxCode,
-        pec: draft.rules.pec,
-        blockAbsentWithoutDelivery: blocksAbsentWithoutDelivery(draft.rules) ? "1" : "0",
-        labelsEnabled: labelsEnabled ? "1" : "0",
-        labelsConfirmed: labelsConfirmed ? "1" : "0",
-        labelsRevision: labelSnapshot?.revision ?? "",
-      },
-      { method: "post" },
-    );
-  };
-
-  const save = () => {
-    if (busy || labelsLoading || conflict || sentRef.current) return;
-    const firstAutomaticWrite =
-      labelsEnabled &&
-      (labelState.mode === "off" || automaticConfirmationRequired) &&
-      automaticLabelWrites.length > 0;
-    if (firstAutomaticWrite) {
-      const modal = document.getElementById(LABEL_CONFIRM_MODAL) as
-        | (HTMLElement & {
-            showOverlay?: () => void;
-          })
-        | null;
-      modal?.showOverlay?.();
-      return;
-    }
-    submitSave(false);
-  };
-
-  useEffect(() => {
-    if (!result || !sentRef.current || busy) return;
-    sentRef.current = null;
-    if (result.ok) {
-      baseRef.current = { rules: saved.rules };
-      baseHash.current = saved.configHash;
-    }
-  }, [result, saved.rules, saved.configHash, busy]);
-
-  const reapply = () => {
-    setDraft(rebaseRulesDraft(baseRef.current, draft, current));
-    baseRef.current = current;
-    baseHash.current = saved.configHash;
-    setResolvedConflict(true);
-    setFormRevision((revision) => revision + 1);
-  };
-
-  const discard = () => {
-    baseRef.current = current;
-    baseHash.current = saved.configHash;
-    setResolvedConflict(true);
-    setDraft({ rules: saved.rules });
-    setLabelsEnabled(labelState.mode !== "off");
-    setFormRevision((current) => current + 1);
-  };
 
   if (saved.duplicateError) {
     return (
@@ -308,7 +202,7 @@ export default function CheckoutRules() {
 
   return (
     <s-page heading={t.rules.heading}>
-      <ui-save-bar id={SAVE_BAR}>
+      <ui-save-bar id={RULES_SAVE_BAR}>
         {/* Il salvataggio con le etichette dura alcuni secondi: Salva mostra il caricamento. */}
         <button
           type="button"
@@ -427,10 +321,7 @@ export default function CheckoutRules() {
             busy={busy}
             checkoutSettingsUrl={saved.checkoutSettingsUrl}
             storefrontUrl={saved.storefrontUrl}
-            onEnabledChange={(value) => {
-              setChangedSinceResult(true);
-              setLabelsEnabled(value);
-            }}
+            onEnabledChange={changeLabelsEnabled}
             onScopeGranted={() => labels.load(draft.rules)}
           />
         </div>
@@ -438,12 +329,7 @@ export default function CheckoutRules() {
           locale={saved.locale}
           rules={draft.rules}
           busy={busy}
-          onChange={(checked) => {
-            setChangedSinceResult(true);
-            setDraft((current) => ({
-              rules: { ...current.rules, blockAbsentWithoutDelivery: checked },
-            }));
-          }}
+          onChange={changeAbsentWithoutDelivery}
         />
       </div>
     </s-page>
