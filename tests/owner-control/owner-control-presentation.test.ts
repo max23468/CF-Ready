@@ -80,48 +80,71 @@ describe("presentazione Telegram", () => {
     ]);
   });
 
-  test("copre stati vuoti, fallback e paginazione", () => {
-    expect(dashboardMessage({}).richMessage.blocks).toBeTruthy();
-    expect(shopsMessage({ shops: [], count: 0, page: 0 }, "all").replyMarkup).toBeTruthy();
-    for (const filter of ["trial", "paid", "validation_off", "issues"] as const) {
-      expect(
-        shopsMessage({ shops: [], count: 0, page: 0 }, filter).richMessage.blocks,
-      ).toBeTruthy();
+  test("mostra stati vuoti e conserva filtri e destinazioni della paginazione", () => {
+    expect(ownerControlPlainText(dashboardMessage({}))).toContain("Attivi: —");
+    const filters = {
+      all: "Tutti",
+      trial: "Trial",
+      paid: "Piano attivo verificato",
+      validation_off: "Validation non attiva",
+      issues: "Con problemi",
+    } as const;
+    for (const filter of Object.keys(filters) as Array<keyof typeof filters>) {
+      const empty = shopsMessage({ shops: [], count: 0, page: 0 }, filter);
+      expect(ownerControlPlainText(empty)).toContain(`Store · ${filters[filter]}`);
+      expect(ownerControlPlainText(empty)).toContain("Risultato: Nessuno store");
+      expect(empty.replyMarkup?.inline_keyboard).toEqual([
+        [{ text: "‹ Dashboard", callback_data: "oc1:d:-:0" }],
+      ]);
+      const paged = shopsMessage({ shops: [], count: 20, page: 1 }, filter);
+      expect(paged.replyMarkup?.inline_keyboard[0]).toEqual([
+        { text: "‹", callback_data: `oc1:s:${filter}:0` },
+        { text: "›", callback_data: `oc1:s:${filter}:2` },
+      ]);
     }
     const shop = shopFixture({ display_name: null, validation_enabled: 0 });
-    const paged = shopsMessage({ shops: [shop], count: 20, page: 1 }, "all");
-    expect(paged.replyMarkup?.inline_keyboard.flat().map(({ text }) => text)).toEqual(
-      expect.arrayContaining(["‹", "›"]),
+    const paged = shopsMessage({ shops: [shop], count: 20, page: 1 }, "all", [
+      { shopId: shop.id, plan: "Basic" },
+    ]);
+    expect(ownerControlPlainText(paged)).toContain(
+      "atelier.myshopify.com: — · Shopify Basic · Validation non attiva",
     );
-    const plans = JSON.stringify(
-      shopsMessage({ shops: [shop], count: 20, page: 1 }, "all", [
-        { shopId: shop.id, plan: "Basic" },
-      ]),
+    expect(paged.replyMarkup?.inline_keyboard[0]).toEqual([
+      { text: "Apri · atelier.myshopify.com", callback_data: "oc1:o:1:0" },
+    ]);
+    expect(ownerControlPlainText(shopMessage(shop, [], null))).toContain(
+      "Piano Shopify: Non disponibile",
     );
-    expect(plans).toContain("Shopify Basic");
-    expect(JSON.stringify(shopMessage(shop, [], null))).toContain("Non disponibile");
     expect(
-      JSON.stringify(shopMessage(shopFixture({ installation_status: "uninstalled" }), [], null)),
-    ).toContain("Non applicabile");
+      ownerControlPlainText(
+        shopMessage(shopFixture({ installation_status: "uninstalled" }), [], null),
+      ),
+    ).toContain("Piano Shopify: Non applicabile");
     expect(
-      trialsMessage({ trials: [], count: 0, endingSoon: 0, page: 0 }).richMessage.blocks,
-    ).toBeTruthy();
-    expect(
-      trialsMessage({
-        trials: [
-          {
-            id: 1,
-            shop_domain: "a.myshopify.com",
-            display_name: null,
-            ends_at: "2026-09-01",
-            validation_enabled: 0,
-          },
-        ],
-        count: 20,
-        endingSoon: 1,
-        page: 1,
-      }).replyMarkup,
-    ).toBeTruthy();
+      ownerControlPlainText(trialsMessage({ trials: [], count: 0, endingSoon: 0, page: 0 })),
+    ).toContain("Trial: Nessun trial attivo");
+    const trials = trialsMessage({
+      trials: [
+        {
+          id: 1,
+          shop_domain: "a.myshopify.com",
+          display_name: null,
+          ends_at: "2026-09-01",
+          validation_enabled: 0,
+        },
+      ],
+      count: 20,
+      endingSoon: 1,
+      page: 1,
+    });
+    expect(ownerControlPlainText(trials)).toContain("🧪 20 attivi · 1 in scadenza");
+    expect(ownerControlPlainText(trials)).toMatch(
+      /a\.myshopify\.com: \d+ gg · Validation non attiva/,
+    );
+    expect(trials.replyMarkup?.inline_keyboard[0]).toEqual([
+      { text: "‹", callback_data: "oc1:t:-:0" },
+      { text: "›", callback_data: "oc1:t:-:2" },
+    ]);
   });
 
   test("copre dettaglio store e stati commerciali", () => {
@@ -133,7 +156,11 @@ describe("presentazione Telegram", () => {
       shopFixture({ entitlement_status: null, trial_status: "active" }),
       shopFixture({ entitlement_status: null, trial_status: null, config_hash: null }),
     ];
-    for (const shop of variants) expect(shopMessage(shop).richMessage.blocks).toBeTruthy();
+    for (const [index, shop] of variants.entries()) {
+      const expected = ["Omaggio", "Attivo", "Attivo", "In scadenza", "Trial", "Nessuno"][index];
+      expect(ownerControlPlainText(shopMessage(shop))).toContain(`Diritto: ${expected}`);
+    }
+    expect(ownerControlPlainText(shopMessage(variants[5]))).toContain("Hash config: —");
     expect(
       JSON.stringify(
         shopMessage(
@@ -203,32 +230,35 @@ describe("presentazione Telegram", () => {
     expect(summaries).toContain("Trial attiva · Validation attiva");
     expect(summaries).not.toContain("atelier.myshopify.com");
     expect(
-      shopsMessage(
-        {
-          shops: [
-            shopFixture({
-              plan_kind: null,
-              trial_status: null,
-              validation_enabled: 0,
-              last_error_code: "sync_failed",
-            }),
-          ],
-          count: 1,
-          page: 0,
-        },
-        "all",
-      ).richMessage.blocks,
-    ).toBeTruthy();
+      ownerControlPlainText(
+        shopsMessage(
+          {
+            shops: [
+              shopFixture({
+                plan_kind: null,
+                trial_status: null,
+                validation_enabled: 0,
+                last_error_code: "sync_failed",
+              }),
+            ],
+            count: 1,
+            page: 0,
+          },
+          "all",
+        ),
+      ),
+    ).toContain("Atelier: — · Validation non attiva · sync_failed");
   });
 
-  test("copre pannelli diagnostici con dati presenti e assenti", () => {
-    expect(errorsMessage([]).richMessage.blocks).toBeTruthy();
+  test("distingue dati assenti, anomalie e stato osservato dei componenti", () => {
+    expect(ownerControlPlainText(errorsMessage([]))).toContain("Stato: Nessun errore");
     expect(
-      errorsMessage([{ error_code: "sync_failed", count: 2, last_at: NOW.toISOString() }])
-        .richMessage.blocks,
-    ).toBeTruthy();
-    expect(activityMessage([]).richMessage.blocks).toBeTruthy();
-    expect(
+      ownerControlPlainText(
+        errorsMessage([{ error_code: "sync_failed", count: 2, last_at: NOW.toISOString() }]),
+      ),
+    ).toContain("sync_failed: 2 · 08/09/26, 14:00");
+    expect(ownerControlPlainText(activityMessage([]))).toContain("Stato: Nessuna attività");
+    const activity = ownerControlPlainText(
       activityMessage([
         {
           event_name: "rules_saved",
@@ -242,40 +272,65 @@ describe("presentazione Telegram", () => {
           display_name: null,
           shop_domain: "a.myshopify.com",
         },
-      ]).richMessage.blocks,
-    ).toBeTruthy();
+      ]),
+    );
+    expect(activity).toContain("Regole salvate: Sistema · 08/09/26, 14:00");
+    expect(activity).toContain("Prova avviata: a.myshopify.com · 08/09/26, 14:00");
+    expect(ownerControlPlainText(issuesMessage({ partner: { stale: 0 } }))).toContain(
+      "Partner sync: Regolare",
+    );
+    expect(ownerControlPlainText(issuesMessage({ partner: { stale: 1 } }))).toContain(
+      "Partner sync: Stale",
+    );
+    expect(ownerControlPlainText(issuesMessage({}))).toContain("Store con errore: —");
+    const absent = ownerControlPlainText(
+      healthMessage({
+        d1: false,
+        partner: {},
+        inbound: {},
+        notifications: {},
+        webhooks: {},
+      }),
+    );
+    for (const row of [
+      "D1: Errore",
+      "Partner sync: Stale o assente",
+      "Telegram inbound: Non verificato",
+    ]) {
+      expect(absent).toContain(row);
+    }
+    const observed = { d1: true, partner: { synced_at: NOW.toISOString(), stale: 0 } };
+    const webhook = {
+      configured: false,
+      matchesExpectedUrl: false,
+      pendingUpdateCount: 1,
+      lastErrorAt: null,
+      checkedAt: NOW.toISOString(),
+    };
+    const mismatch = ownerControlPlainText(healthMessage(observed, webhook));
+    expect(mismatch).toContain("D1: OK");
+    expect(mismatch).toContain("Partner sync: 08/09/26, 14:00");
+    expect(mismatch).toContain("Telegram inbound: Configurazione non corrispondente");
+    const active = ownerControlPlainText(
+      healthMessage(observed, {
+        ...webhook,
+        configured: true,
+        matchesExpectedUrl: true,
+        pendingUpdateCount: 0,
+        lastErrorAt: NOW.toISOString(),
+      }),
+    );
+    expect(active).toContain("Telegram inbound: Attivo · nessun arretrato");
+    expect(active).toContain("Errore webhook Telegram: 08/09/26, 14:00");
     expect(
-      issuesMessage({ partner: { synced_at: new Date().toISOString() } }).richMessage.blocks,
-    ).toBeTruthy();
-    expect(issuesMessage({}).richMessage.blocks).toBeTruthy();
-    expect(
-      healthMessage({ d1: false, partner: {}, inbound: {}, notifications: {}, webhooks: {} })
-        .richMessage.blocks,
-    ).toBeTruthy();
-    expect(
-      healthMessage(
-        { d1: true, partner: { synced_at: new Date().toISOString() } },
-        {
-          configured: false,
-          matchesExpectedUrl: false,
-          pendingUpdateCount: 1,
-          lastErrorAt: null,
-          checkedAt: NOW.toISOString(),
-        },
-      ).richMessage.blocks,
-    ).toBeTruthy();
-    expect(
-      healthMessage(
-        { d1: true, partner: { synced_at: new Date().toISOString() } },
-        {
+      ownerControlPlainText(
+        healthMessage(observed, {
+          ...webhook,
           configured: true,
           matchesExpectedUrl: true,
-          pendingUpdateCount: 0,
-          lastErrorAt: NOW.toISOString(),
-          checkedAt: NOW.toISOString(),
-        },
-      ).richMessage.blocks,
-    ).toBeTruthy();
+        }),
+      ),
+    ).toContain("Telegram inbound: Attivo · 1 in coda");
   });
 
   test("copre funnel, performance e versione con alternative di formato", () => {
@@ -321,7 +376,6 @@ describe("presentazione Telegram", () => {
     const exchangeRate = { date: "2026-09-08", usdPerEuro: 1.25 };
     const billing = billingMessage(billingData, revenue, undefined, exchangeRate);
     const billingText = JSON.stringify(billing);
-    expect(billing.richMessage.blocks).toBeTruthy();
     expect(billingText).toContain("💳 Stato · 12 installati");
     expect(billingText).toContain("2 · 2 in scadenza");
     expect(billingText).toContain("2 · 1 trial · 1 omaggio");
@@ -440,7 +494,7 @@ describe("presentazione Telegram", () => {
     );
     expect(emptyRevenue).toContain("Nessuna vendita registrata");
     expect(emptyRevenue).not.toContain("regolamentare non nota");
-    expect(
+    const funnel = ownerControlPlainText(
       funnelMessage([
         {
           cohort: "2026-36",
@@ -472,10 +526,25 @@ describe("presentazione Telegram", () => {
           seconds_to_paid_plan: null,
           evidence: "descriptive",
         },
-      ]).richMessage.blocks,
-    ).toBeTruthy();
-    expect(performanceMessage({ groups: [], comparison: null }).richMessage.blocks).toBeTruthy();
-    expect(
+      ]),
+    );
+    for (const row of [
+      "2026-36: 2 installati · 1 regole · 1 trial · 1 attivazioni · 1 piani paganti",
+      "Installati → piano: 50% · Attivati → piano: 100% · Attivati → disinstallati: 0%",
+      "Tempo medio al piano: 2 min",
+      "Campione: Piccolo, dato indicativo",
+      "2026-35: 20 installati",
+      "Installati → piano: — · Attivati → piano: — · Attivati → disinstallati: —",
+      "Tempo medio al piano: —",
+    ])
+      expect(funnel).toContain(row);
+    const emptyPerformance = ownerControlPlainText(
+      performanceMessage({ groups: [], comparison: null }),
+    );
+    for (const metric of ["LCP", "INP", "CLS"]) {
+      expect(emptyPerformance).toContain(`${metric}: 0/100 campioni · Nessun dato`);
+    }
+    const performance = ownerControlPlainText(
       performanceMessage({
         groups: [
           {
@@ -511,8 +580,17 @@ describe("presentazione Telegram", () => {
             { route: "rules", metric: "LCP", delta: null },
           ],
         },
-      }).richMessage.blocks,
-    ).toBeTruthy();
+      }),
+    );
+    for (const row of [
+      "CLS: 0.123 su 0.100 · 100/100 campioni · Sopra soglia",
+      "LCP: 1000 ms su 2500 ms · 50/100 campioni · Entro soglia · campioni insufficienti",
+      "INP: 100 ms su 200 ms · 100/100 campioni · Entro soglia",
+      "home · CLS: +0.030",
+      "rules · LCP: —",
+      "Confronto 1.0.0 → 1.1.0",
+    ])
+      expect(performance).toContain(row);
     const bfs = (sampleCount: number, p75: Record<"LCP" | "INP" | "CLS", number>) =>
       JSON.stringify(
         performanceMessage({
@@ -540,8 +618,8 @@ describe("presentazione Telegram", () => {
     expect(JSON.stringify(performanceMessage({ groups: [], comparison: null }))).toContain(
       "0/100 campioni · Nessun dato",
     );
-    expect(
-      versionMessage({ appVersion: "1", environment: "Test" }).richMessage.blocks,
-    ).toBeTruthy();
+    const version = ownerControlPlainText(versionMessage({ appVersion: "1", environment: "Test" }));
+    expect(version).toContain("App: 1");
+    expect(version).toContain("Ambiente: Test");
   });
 });
