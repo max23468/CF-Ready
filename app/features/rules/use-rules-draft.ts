@@ -45,7 +45,8 @@ export function useRulesDraft(
     result?.ok && "labelsErrorCode" in result && typeof result.labelsErrorCode === "string"
       ? result.labelsErrorCode
       : null;
-  const [changedSinceResult, setChangedSinceResult] = useState(false);
+  const [lastEdit, setLastEdit] = useState<{ result: RulesResult | undefined } | null>(null);
+  const changedSinceResult = lastEdit !== null && lastEdit.result === result;
   const [formRevision, setFormRevision] = useState(0);
   const [draft, setDraft] = useState({ rules: saved.rules });
   const [labelsEnabled, setLabelsEnabled] = useState(labelState.mode !== "off");
@@ -54,11 +55,10 @@ export function useRulesDraft(
   // i suoi valori sono locali e non devono rendere sporca la configurazione del merchant.
   const readDraft = (event: { currentTarget: HTMLFormElement }) => {
     const data = new FormData(event.currentTarget);
-    setChangedSinceResult(true);
+    setLastEdit({ result });
     setDraft((current) => mergeRulesFormDraft(current, data));
   };
 
-  useEffect(() => setChangedSinceResult(false), [result]);
   const savedText = t.rules.saved;
   useEffect(() => {
     if (result?.ok && !labelsErrorCode) showToast(savedText);
@@ -145,11 +145,11 @@ export function useRulesDraft(
   };
 
   const changeLabelsEnabled = (enabled: boolean) => {
-    setChangedSinceResult(true);
+    setLastEdit({ result });
     setLabelsEnabled(enabled);
   };
   const changeAbsentWithoutDelivery = (checked: boolean) => {
-    setChangedSinceResult(true);
+    setLastEdit({ result });
     setDraft((current) => ({ rules: { ...current.rules, blockAbsentWithoutDelivery: checked } }));
   };
   return {

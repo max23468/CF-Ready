@@ -1539,6 +1539,14 @@ describe("Regole: salvataggio ed etichette (audit §5.1)", () => {
     await click(show!);
     expect(native?.open).toBe(true);
     expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+
+    // Il risultato resta visibile finché una nuova modifica lo rende superato.
+    const form = view.container.querySelector("form")!;
+    await dispatch(form, new Event("change", { bubbles: true }));
+    expect(view.container.textContent).not.toContain(texts("it").rules.labelsSaved);
+    router.actionData = { ok: true, labelsErrorCode: "checkout_labels_confirmation_pending" };
+    await view.rerender(<CheckoutRules />);
+    expect(view.container.textContent).toContain(texts("it").rules.labelsSaved);
   });
 
   test("le lingue da verificare seguono un ordine fisso, non quello dello store", async () => {

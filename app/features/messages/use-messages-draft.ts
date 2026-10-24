@@ -45,6 +45,9 @@ export function useMessagesDraft(saved: SavedMessages, result: MessageResult | u
   const [mounted, setMounted] = useState<Record<string, number>>({});
 
   const remount = useCallback((fields: string[]) => {
+    // La risposta asincrona normalizza i campi uncontrolled: la chiave riallinea il DOM
+    // solo dove il server ha cambiato il testo, preservando le battute successive all'invio.
+    // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change
     setMounted((current) => {
       const next = { ...current };
       for (const field of fields) next[field] = (next[field] ?? 0) + 1;
