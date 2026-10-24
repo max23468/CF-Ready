@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { simulatorOutcome } from "../../../app/features/rules/checkout-simulator";
 import { diagnosePec, invalidPecMessage, pecHints } from "../../../app/checkout-field-validation";
 import type { CartValidationsGenerateRunInput } from "../generated/api";
 import {
@@ -88,6 +89,77 @@ function input(
 function allErrors(value: CartValidationsGenerateRunInput) {
   return cartValidationsGenerateRun(value).operations[0].validationAdd!.errors;
 }
+
+describe("equivalenza fra simulatore e Function", () => {
+  it.each([
+    { billing: "IT", deliveries: [] },
+    { billing: null, deliveries: [] },
+    { billing: "FR", deliveries: ["IT"] },
+    { billing: "IT", deliveries: ["FR"] },
+    { billing: "IT", deliveries: [null] },
+    { billing: null, deliveries: ["IT"] },
+    { billing: "IT", deliveries: [{ countryCode: "IT", selected: true }] },
+    { billing: "IT", deliveries: ["IT", "FR"] },
+    { billing: "IT", deliveries: [{ countryCode: "IT", selected: true }, null] },
+    { billing: "IT", deliveries: [{ countryCode: "IT", selected: true }, "IT"] },
+  ] satisfies Array<Pick<NonNullable<Parameters<typeof input>[0]>, "billing" | "deliveries">>)(
+    "conserva l'esito per contesto %j",
+    (context) => {
+      for (const step of ["CHECKOUT_INTERACTION", "CHECKOUT_COMPLETION"] as const) {
+        for (const blockAbsentWithoutDelivery of [false, true]) {
+          for (const company of ["", "Acme S.r.l."]) {
+            for (const fields of [
+              [],
+              [{ key: "TAX_CREDENTIAL_IT", value: "" }],
+              [{ key: "TAX_EMAIL_IT", value: "" }],
+              [
+                { key: "TAX_CREDENTIAL_IT", value: "invalid" },
+                { key: "TAX_EMAIL_IT", value: "" },
+              ],
+              [
+                { key: "TAX_CREDENTIAL_IT", value: "RSSMRA85T10A562S" },
+                { key: "TAX_EMAIL_IT", value: "mario@example.com" },
+              ],
+            ]) {
+              const rules = {
+                taxCode: "required_validated",
+                pec: "required_when_company",
+                blockAbsentWithoutDelivery,
+              } as const;
+              const value = input({
+                ...context,
+                step,
+                company,
+                fields,
+                config: { ...baseConfig, rules },
+              });
+              const taxCode = fields.find(({ key }) => key === "TAX_CREDENTIAL_IT");
+              const pec = fields.find(({ key }) => key === "TAX_EMAIL_IT");
+              const outcome = simulatorOutcome({
+                rules,
+                step,
+                company: value.cart.billingAddress?.company ?? "",
+                billingCountry: value.cart.billingAddress?.countryCode ?? "",
+                deliveryGroups: value.cart.deliveryGroups.map((group) => ({
+                  countryCode: group.deliveryAddress?.countryCode,
+                  selectedDeliveryOption: Boolean(group.selectedDeliveryOption),
+                })),
+                taxCodePresent: Boolean(taxCode),
+                pecPresent: Boolean(pec),
+                taxCode: taxCode?.value ?? "",
+                pec: pec?.value ?? "",
+              });
+              expect(
+                outcome === "blocked",
+                JSON.stringify({ context, step, company, fields, blockAbsentWithoutDelivery }),
+              ).toBe(allErrors(value).length > 0);
+            }
+          }
+        }
+      }
+    },
+  );
+});
 
 // D-193: a Completion la Function ripete in `$.cart` i messaggi dei campi. I test delle regole
 // verificano gli errori per campo; il riepilogo ha un test dedicato.
