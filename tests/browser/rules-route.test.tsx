@@ -1541,8 +1541,8 @@ describe("Regole: salvataggio ed etichette (audit §5.1)", () => {
     expect(focus).toHaveBeenCalledWith({ preventScroll: true });
 
     // Il risultato resta visibile finché una nuova modifica lo rende superato.
-    const form = view.container.querySelector("form")!;
-    await dispatch(form, new Event("change", { bubbles: true }));
+    const choices = view.container.querySelector("s-choice-list")!;
+    await dispatch(choices, new Event("change", { bubbles: true }));
     expect(view.container.textContent).not.toContain(texts("it").rules.labelsSaved);
     router.actionData = { ok: true, labelsErrorCode: "checkout_labels_confirmation_pending" };
     await view.rerender(<CheckoutRules />);
