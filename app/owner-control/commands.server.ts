@@ -4,11 +4,10 @@ import { createTelegramClient } from "../telegram/client.server";
 import { readGrowthReport } from "./growth.server";
 import { readBFSReport, refreshBFSPlans } from "./bfs.server";
 import { diagnosticShopMessage } from "./shop-diagnostics.server";
-import type { OwnerControlAction } from "./model";
+import { canCloseConversion, type OwnerControlAction } from "./model";
 import {
   activityMessage,
   billingMessage,
-  canCloseConversion,
   conversionReviewMessage,
   dashboardMessage,
   errorsMessage,
