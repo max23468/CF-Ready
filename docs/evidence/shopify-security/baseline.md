@@ -8,17 +8,28 @@ ogni review.
 
 | Dato | Valore |
 | --- | --- |
-| Data, operatore e reviewer | 23 ottobre 2026; coding agent Claude Code (Opus 5.5) su incarico dell'owner |
+| Data, operatore e reviewer | 24 ottobre 2026; coding agent Codex su incarico dell'owner |
 | Ambiente e configurazione | Development, `--config dev` (`shopify.app.dev.toml`) |
-| Versione app, SHA e tree analizzati | `2.5.7`, commit `10609485f98bb71cba4fbd51f9424c658d9949fc`, tree `e8d81af0d72f1d7a4339d493697e9d952df6f05c` |
-| Candidato da pubblicare | Branch `fix/trial-residual-after-cancel`; i commit successivi aggiungono solo questa prova e il runbook |
+| Versione app, SHA e tree analizzati | `2.5.9`, commit `dc0a9aedc6fba98a03ee67dd9f1a7b41b41d2dc3`, tree `60c4049c34e82e72cb5f9eda81cbc970a8eda79d` |
+| Candidato da pubblicare | Branch `codex/refactor-deslop`; il commit successivo aggiorna soltanto questa prova e i riferimenti dei finding |
 | Shopify CLI e ruleset | `@shopify/cli` 4.9.4, engine `shopify-app-security` 4.9.4, ruleset `app-security-rules@4.9.4`; Node 26.12.0, npm 12.2.1 |
-| Comandi e scope | `check --list-files`, `check --blocking high --print-instructions`, `record`, `review --blocking high`; scope `{"include_dirs":[],"excludes":[],"no_git_ignore":false}`, 333 file, nessuna esclusione |
+| Comandi e scope | `check --list-files`, `check --blocking high --print-instructions`, `record`, `review --blocking high`; scope `{"include_dirs":[],"excludes":[],"no_git_ignore":false}`, 338 file, nessuna esclusione, nessun file saltato |
 | Scansione deterministica | Exit 1: 2 gruppi high, 12 occorrenze, tutte falsi positivi (sotto); 2 check non applicabili |
 | Review coding agent | 35 check: 30 `executed`, 5 `not_applicable`, 0 `unresolved`; 0 finding reali |
 | Record e review combinata | `record` accettato (35 check, 12 finding soppressi). `review --blocking high` esce 1 perché le soppressioni agente non coprono le occorrenze deterministiche |
-| Prove grezze locali | `.shopify/app-security/shopify.app.dev/` nel worktree del candidato, ignorata da Git. SHA-256: `deterministic-findings.json` `54a155e3…4c26a4e`, `agent-checks.json` `7938d91d…9055a35`, `agent-findings.json` `496471d4…6f454804` |
+| Prove grezze locali | `.shopify/app-security/shopify.app.dev/` nel worktree isolato e copia nella directory Git comune `cf-ready-publications/security-dc0a9ae/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
+
+Review completa ripetuta sui 35 check generati dalla CLI, perché il diff tocca
+la Function. Verificati i nuovi hook delle bozze, il confronto degli slot e i
+moduli di presentazione owner insieme ai confini di autenticazione, SQL,
+sessioni, webhook, configurazione Shopify e rendering. Nessun nuovo sink o
+selettore di store controllabile dalla richiesta. Le 12 occorrenze sono state
+rivalutate sul candidato e registrate con le righe aggiornate.
+
+`npm audit --omit=dev` non rileva vulnerabilità. L'audit completo segnala
+`fast-uri` 3.1.8, dipendenza dei soli strumenti di sviluppo Stryker e
+react-doctor tramite Ajv; nessun import o percorso nel Worker distribuito.
 
 ## Review incrementali
 
@@ -35,7 +46,7 @@ stessa motivazione.
 | Check | Occorrenza | Motivo |
 | --- | --- | --- |
 | `UNAUTHENTICATED_ENDPOINT` | `app/routes/app.engagement.tsx:13` | Il loader risponde 405; l'action legge solo gli header e verifica il body vuoto, poi attende `authenticateAdmin` (riga 20) e scrive su `session.shop` |
-| `UNAUTHENTICATED_ENDPOINT` | `app/routes/app.guide.tsx:41`, `:64`; `app/routes/app.messages.tsx:82`; `app/routes/app.rules.tsx:64`, `:115`; `app/routes/app.tsx:29` | Prima di ogni accesso a D1 o Admin API attendono `authenticateAdmin` o `authenticateAdminTimed` (`app/admin-auth.server.ts:14-30`), che attende `authenticate.admin(request)` per richiesta. L'euristica riconosce solo la chiamata diretta |
+| `UNAUTHENTICATED_ENDPOINT` | `app/routes/app.guide.tsx:41`, `:64`; `app/routes/app.messages.tsx:68`; `app/routes/app.rules.tsx:48`, `:99`; `app/routes/app.tsx:29` | Prima di ogni accesso a D1 o Admin API attendono `authenticateAdmin` o `authenticateAdminTimed` (`app/admin-auth.server.ts:14-30`), che attende `authenticate.admin(request)` per richiesta. L'euristica riconosce solo la chiamata diretta |
 | `UNSAFE_INNERHTML` | `app/routes/app.tsx:112` | Lo script è il sorgente letterale del reporter più il JSON di una route a enum chiuso e di un token HMAC del server, serializzato con `<` convertito (`app/performance-report.ts:51-56`) |
 | `UNSAFE_INNERHTML` | `tests/browser/components.test.tsx:351`, `:381`, `:396`; `tests/browser/visual-surfaces.test.tsx:38` | Solo test, non distribuiti: script del reporter con fixture letterali e URL Polaris costante |
 
