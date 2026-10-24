@@ -10,8 +10,8 @@ ogni review.
 | --- | --- |
 | Data, operatore e reviewer | 24 ottobre 2026; coding agent Codex su incarico dell'owner |
 | Ambiente e configurazione | Development, `--config dev` (`shopify.app.dev.toml`) |
-| Versione app, SHA e tree analizzati | `2.5.9`, commit `dc0a9aedc6fba98a03ee67dd9f1a7b41b41d2dc3`, tree `60c4049c34e82e72cb5f9eda81cbc970a8eda79d` |
-| Candidato da pubblicare | Branch `codex/refactor-deslop`; il commit successivo aggiorna soltanto questa prova e i riferimenti dei finding |
+| Versione app, SHA e tree analizzati | `2.5.9`, commit `a452d0b84fb9105640800f9ebea677dc35d83455`, tree `efd09f6a2c54f0e60c962eaa04c5777709230c1e` |
+| Candidato da pubblicare | Branch `codex/refactor-deslop`; i commit successivi correggono il dispatch sintetico di un test browser e aggiornano questa prova |
 | Shopify CLI e ruleset | `@shopify/cli` 4.9.4, engine `shopify-app-security` 4.9.4, ruleset `app-security-rules@4.9.4`; Node 26.12.0, npm 12.2.1 |
 | Comandi e scope | `check --list-files`, `check --blocking high --print-instructions`, `record`, `review --blocking high`; scope `{"include_dirs":[],"excludes":[],"no_git_ignore":false}`, 338 file, nessuna esclusione, nessun file saltato |
 | Scansione deterministica | Exit 1: 2 gruppi high, 12 occorrenze, tutte falsi positivi (sotto); 2 check non applicabili |
@@ -27,9 +27,17 @@ sessioni, webhook, configurazione Shopify e rendering. Nessun nuovo sink o
 selettore di store controllabile dalla richiesta. Le 12 occorrenze sono state
 rivalutate sul candidato e registrate con le righe aggiornate.
 
-`npm audit --omit=dev` non rileva vulnerabilità. L'audit completo segnala
-`fast-uri` 3.1.8, dipendenza dei soli strumenti di sviluppo Stryker e
-react-doctor tramite Ajv; nessun import o percorso nel Worker distribuito.
+`npm audit` non rileva vulnerabilità dopo l'aggiornamento di `fast-uri` a
+3.1.9 nel solo lockfile, entro il range dichiarato da Ajv. Il pacchetto arriva
+dai soli strumenti di sviluppo Stryker e react-doctor; nessun import o percorso
+nel Worker distribuito. L'aggiornamento usa l'esclusione temporanea prevista
+da `.npmrc` per correggere una vulnerabilità già verificata.
+
+La review incrementale dopo il primo tentativo CI ha ripetuto i check di
+rendering e dipendenze: lo stato di modifica delle Regole è derivato dall'ultimo
+evento di editing e dal risultato corrente; nei Messaggi la sola eccezione
+React Doctor documentata riguarda il rimontaggio dei campi uncontrolled dopo
+la normalizzazione asincrona del server. Nessun confine di sicurezza cambia.
 
 ## Review incrementali
 
