@@ -65,6 +65,39 @@ export type CheckoutDeliveryContext = {
   selectedDeliveryOption?: boolean;
 };
 
+export function checkoutCountryApplies(
+  billingCountry: string | null | undefined,
+  deliveryGroups: readonly CheckoutDeliveryContext[],
+) {
+  if (billingCountry && billingCountry !== "IT") return false;
+  const countries = deliveryGroups.flatMap(({ countryCode }) => (countryCode ? [countryCode] : []));
+  return countries.length === 0 || countries.includes("IT");
+}
+
+// D-028 e D-192: i campi assenti bloccano con consegna italiana oppure, su scelta del
+// merchant, senza Paese di consegna e con fatturazione esplicitamente italiana.
+export function absentFieldsBlockOrder(
+  blockAbsentWithoutDelivery: boolean | undefined,
+  deliveryGroups: readonly CheckoutDeliveryContext[],
+  billingCountry: string | null | undefined,
+) {
+  return (
+    deliveryGroups.some(({ countryCode }) => countryCode === "IT") ||
+    (blockAbsentWithoutDelivery === true &&
+      deliveryGroups.every(({ countryCode }) => !countryCode) &&
+      billingCountry === "IT")
+  );
+}
+
+export function pecIsRequired(
+  mode: "unmanaged" | "optional_validated" | "required_validated" | "required_when_company",
+  company: string,
+) {
+  return (
+    mode === "required_validated" || (mode === "required_when_company" && company.trim() !== "")
+  );
+}
+
 export function requiredFieldsAreDue(
   step: "CHECKOUT_INTERACTION" | "CHECKOUT_COMPLETION",
   deliveryGroups: readonly CheckoutDeliveryContext[],

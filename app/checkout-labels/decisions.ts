@@ -111,25 +111,23 @@ export function translationInput(slot: CheckoutLabelSlot, value: string) {
 }
 
 export function findStoredSlot(stored: StoredCheckoutLabelSlot[], slot: CheckoutLabelSlot) {
-  return stored.find(
-    (candidate) =>
-      candidate.resourceId === slot.resourceId &&
-      candidate.key === slot.key &&
-      candidate.locale === slot.locale &&
-      candidate.marketId === slot.marketId &&
-      candidate.kind === slot.kind,
+  return stored.find((candidate) => sameSlot(candidate, slot));
+}
+
+type SlotIdentity = Pick<CheckoutLabelSlot, "resourceId" | "key" | "locale" | "marketId" | "kind">;
+
+function sameSlot(left: SlotIdentity, right: SlotIdentity) {
+  return (
+    left.resourceId === right.resourceId &&
+    left.key === right.key &&
+    left.locale === right.locale &&
+    left.marketId === right.marketId &&
+    left.kind === right.kind
   );
 }
 
-export function matchingSlot(slots: CheckoutLabelSlot[], target: CheckoutLabelSlot) {
-  return slots.find(
-    (slot) =>
-      slot.resourceId === target.resourceId &&
-      slot.key === target.key &&
-      slot.locale === target.locale &&
-      slot.marketId === target.marketId &&
-      slot.kind === target.kind,
-  );
+export function matchingSlot(slots: CheckoutLabelSlot[], target: SlotIdentity) {
+  return slots.find((slot) => sameSlot(slot, target));
 }
 
 export function hasExternalChange(
@@ -140,14 +138,7 @@ export function hasExternalChange(
   if (!epoch) return false;
   return stored.some((previous) => {
     if (previous.managementEpoch !== epoch || previous.lastWritePresent === null) return false;
-    const current = slots.find(
-      (slot) =>
-        slot.resourceId === previous.resourceId &&
-        slot.key === previous.key &&
-        slot.locale === previous.locale &&
-        slot.marketId === previous.marketId &&
-        slot.kind === previous.kind,
-    );
+    const current = matchingSlot(slots, previous);
     return !matchesLastWrite(current?.currentValue ?? null, previous);
   });
 }
@@ -171,14 +162,7 @@ export function hasAddress2ObservationChange(
       return !previous || previous.lastObservedValue !== observedLabelForSlot(slot);
     }) ||
     storedAddressSlots.some((previous) => {
-      const current = slots.find(
-        (slot) =>
-          slot.resourceId === previous.resourceId &&
-          slot.key === previous.key &&
-          slot.locale === previous.locale &&
-          slot.marketId === previous.marketId &&
-          slot.kind === previous.kind,
-      );
+      const current = matchingSlot(slots, previous);
       return !current && previous.lastObservedValue !== null;
     })
   );

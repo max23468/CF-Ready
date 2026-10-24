@@ -1,4 +1,7 @@
 import {
+  absentFieldsBlockOrder,
+  checkoutCountryApplies,
+  pecIsRequired,
   invalidPecMessage,
   invalidTaxCodeMessage,
   isValidPec,
@@ -43,11 +46,7 @@ export const simulatorScenarioValues: Record<
   empty: { company: "", taxCode: "", pec: "" },
 };
 
-export function pecIsRequired(mode: Rules["pec"], company: string) {
-  return (
-    mode === "required_validated" || (mode === "required_when_company" && company.trim() !== "")
-  );
-}
+export { pecIsRequired } from "../../checkout-field-validation";
 
 export function simulatorFieldError(
   mode: Rules["taxCode"] | Rules["pec"],
@@ -81,12 +80,12 @@ export function simulatorOutcome({
   taxCodePresent?: boolean;
   pecPresent?: boolean;
 }): SimulatorOutcome {
-  if (billingCountry && billingCountry !== "IT") return "notApplied";
-  const deliveryCountries = deliveryGroups.flatMap(({ countryCode }) =>
-    countryCode ? [countryCode] : [],
+  if (!checkoutCountryApplies(billingCountry, deliveryGroups)) return "notApplied";
+  const absentFieldsBlock = absentFieldsBlockOrder(
+    rules.blockAbsentWithoutDelivery,
+    deliveryGroups,
+    billingCountry,
   );
-  if (deliveryCountries.length > 0 && !deliveryCountries.includes("IT")) return "notApplied";
-  const absentFieldsBlock = absentFieldsBlockOrder(rules, deliveryGroups, billingCountry);
   if (!taxCodePresent && !pecPresent && !absentFieldsBlock) return "notApplied";
   if (rules.taxCode === "unmanaged" && rules.pec === "unmanaged") return "noChecks";
 
@@ -126,24 +125,6 @@ export function simulatorOutcome({
 
 type SimulatorDeliveryGroups = readonly { countryCode?: string | null }[];
 
-// Stessa condizione della Function: D-028 con consegna italiana, D-192 senza Paese di consegna
-// e con fatturazione italiana quando il merchant ha attivato la spunta.
-function absentFieldsBlockOrder(
-  rules: Rules,
-  deliveryGroups: SimulatorDeliveryGroups,
-  billingCountry: string,
-) {
-  const deliveryCountries = deliveryGroups.flatMap(({ countryCode }) =>
-    countryCode ? [countryCode] : [],
-  );
-  return (
-    deliveryCountries.includes("IT") ||
-    (rules.blockAbsentWithoutDelivery === true &&
-      deliveryCountries.length === 0 &&
-      billingCountry === "IT")
-  );
-}
-
 export function absentRequiredFieldsDue(
   rules: Rules,
   step: "CHECKOUT_INTERACTION" | "CHECKOUT_COMPLETION",
@@ -151,7 +132,8 @@ export function absentRequiredFieldsDue(
   billingCountry: string,
 ) {
   return (
-    step === "CHECKOUT_COMPLETION" && absentFieldsBlockOrder(rules, deliveryGroups, billingCountry)
+    step === "CHECKOUT_COMPLETION" &&
+    absentFieldsBlockOrder(rules.blockAbsentWithoutDelivery, deliveryGroups, billingCountry)
   );
 }
 

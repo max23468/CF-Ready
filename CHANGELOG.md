@@ -6,6 +6,23 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.5.9 — 24 ottobre 2026
+
+- Function e simulatore condividono le decisioni su Paese, campi assenti e
+  obbligatorietà della PEC aziendale; i test confrontano gli esiti sui medesimi input.
+- Regole e Messaggi separano la gestione delle bozze dal rendering, conservando
+  salvataggio, conflitti e ripristino. Il confronto degli slot delle etichette è unico.
+- Owner Control separa formattazione Telegram e pannelli commerciali, mantiene
+  nel modello la regola di chiusura delle conversioni e verifica nei test contenuti
+  e azioni dei pannelli. Nessuna modifica ai contratti persistiti o alle regole checkout.
+
+The Function and simulator share country, absent-field and company PEC decisions,
+with tests comparing their outcomes for the same inputs. Rules and Messages keep
+draft handling separate from rendering, and checkout labels share one slot identity
+comparison. Owner Control separates Telegram formatting and commercial panels,
+keeps conversion eligibility in the model, and tests panel contents and actions.
+Persisted contracts and checkout rules are unchanged.
+
 ## 2.5.8 — 23 ottobre 2026
 
 - `zod` passa alla 4.6.6 per l'avviso GHSA-mrhx-c7xc-m3w5. Lo usano soltanto gli

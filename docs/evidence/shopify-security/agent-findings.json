@@ -261,12 +261,12 @@
       "check_id": "UNAUTHENTICATED_ENDPOINT",
       "check_version": 3,
       "file": "app/routes/app.messages.tsx",
-      "line": 82,
+      "line": 68,
       "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
       "evidence": [
         {
           "file": "app/routes/app.messages.tsx",
-          "line": 84,
+          "line": 70,
           "quote": "const { admin, session } = await authenticateAdminTimed(request, context, timing);"
         }
       ],
@@ -279,12 +279,12 @@
       "check_id": "UNAUTHENTICATED_ENDPOINT",
       "check_version": 3,
       "file": "app/routes/app.rules.tsx",
-      "line": 64,
+      "line": 48,
       "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
       "evidence": [
         {
           "file": "app/routes/app.rules.tsx",
-          "line": 66,
+          "line": 50,
           "quote": "const authentication = await authenticateAdminTimed(request, context, timing);"
         }
       ],
@@ -297,12 +297,12 @@
       "check_id": "UNAUTHENTICATED_ENDPOINT",
       "check_version": 3,
       "file": "app/routes/app.rules.tsx",
-      "line": 115,
+      "line": 99,
       "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
       "evidence": [
         {
           "file": "app/routes/app.rules.tsx",
-          "line": 117,
+          "line": 101,
           "quote": "const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);"
         }
       ],
