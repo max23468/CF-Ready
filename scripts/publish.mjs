@@ -419,8 +419,19 @@ async function ensurePullRequest({ branch, base, sourceSha, mergeMethod, title, 
     if (round >= 2 || !mergeDevelop(branch)) break;
     current = await waitForPullRequestHead(current.number, gitSha("HEAD"));
   }
-  execute("gh", ["pr", "merge", String(current.number), "--auto", `--${mergeMethod}`]);
+  mergePullRequest(current.number, mergeMethod);
   return waitForMerge(current.number);
+}
+
+// GitHub rifiuta l'auto-merge di una PR già unibile ("clean status"): lì si unisce subito.
+function mergePullRequest(number, mergeMethod) {
+  const autoArgs = ["pr", "merge", String(number), "--auto", `--${mergeMethod}`];
+  const auto = execute("gh", autoArgs, { allowFailure: true });
+  if (auto.status === 0) return;
+  if (!/clean status/i.test(auto.stderr)) {
+    throw new Error(`gh ${autoArgs.join(" ")} non riuscito: ${auto.stderr.trim()}`);
+  }
+  execute("gh", ["pr", "merge", String(number), `--${mergeMethod}`]);
 }
 
 // gh pr merge --delete-branch cancellerebbe anche il branch locale e sposterebbe il
