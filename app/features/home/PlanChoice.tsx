@@ -199,7 +199,7 @@ function OneTimePlanOption({
           loading={pendingIntent === "one_time"}
           onClick={() => submit("one_time")}
         >
-          {data.entitlement.kind === "none" ? t.plan.oneTimeStart : t.plan.oneTimeSwitch}
+          {t.plan.oneTimeStart}
         </s-button>
       </s-stack>
     </s-stack>
