@@ -3594,7 +3594,10 @@ Usare la più recente versione stabile compatibile dell’intera matrice Shopify
   cooldown agli aggiornamenti di sicurezza; per npm, dopo revisione della
   correzione, usare `--min-release-age-exclude=nome-pacchetto` nel solo comando
   necessario, senza esclusioni permanenti. Le dipendenze del pacchetto escluso
-  mantengono l'attesa;
+  mantengono l'attesa. Il 25 ottobre 2026 l'owner autorizza un'eccezione mirata
+  senza vulnerabilità per `@shopify/shopify-app-react-router` 4.0.0,
+  `react-router`, `@react-router/dev` e `@react-router/node` 8.5.0, senza
+  cambiare la regola generale;
 - auto-merge verso `develop` delle sole PR Dependabot minor/patch dopo i gate
   verdi; major e promozioni verso `main` restano manuali.
 
