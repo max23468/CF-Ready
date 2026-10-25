@@ -612,6 +612,9 @@ if (command === "git") {
     if (mode === "clean" && args.includes("--auto")) {
       process.stderr.write("GraphQL: Pull request Pull request is in clean status (enablePullRequestAutoMerge)");
       process.exitCode = 1;
+    } else if (mode === "merge-failed") {
+      process.stderr.write("GraphQL: Pull request is not mergeable");
+      process.exitCode = 1;
     } else writeFileSync(marker("merge-" + args[2]), "ok");
     if (mode === "no-deploy-main" && args[2] === "11") writeFileSync(marker("nd-promoted"), "ok");
   } else if (args[0] === "run" && args[1] === "list" && !args.includes("--commit")) {
@@ -852,6 +855,10 @@ if (command === "git") {
     ["rebase-conflict", /non si riallinea a develop senza conflitti/],
     ["merge-conflict", /non si unisce a develop senza conflitti/],
     ["checks-failed", /La PR #10 ha check falliti: verify/],
+    [
+      "merge-failed",
+      /gh pr merge 10 --auto --squash non riuscito: GraphQL: Pull request is not mergeable/,
+    ],
     ["main", /branch della modifica/],
     ["closed-pr", /La PR #10 è CLOSED/],
     ["workflow-advanced", /develop è avanzato prima dell'avvio/],
