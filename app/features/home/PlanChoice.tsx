@@ -190,7 +190,11 @@ function OneTimePlanOption({
         <s-text color="subdued">{t.plan.oneTimePeriod}</s-text>
       </s-stack>
       <s-paragraph>
-        {trialNeverStarted ? t.plan.oneTimeChargeNotStarted : t.plan.oneTimeCharge}
+        {trialNeverStarted
+          ? t.plan.oneTimeChargeNotStarted
+          : data.entitlement.kind === "trial"
+            ? t.plan.oneTimeChargeTrial
+            : t.plan.oneTimeCharge}
       </s-paragraph>
       {creditExpected ? <s-paragraph>{t.plan.creditExpected}</s-paragraph> : null}
       <s-stack direction="inline" gap="base">

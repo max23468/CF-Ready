@@ -609,6 +609,31 @@ test("la prima installazione non viene presentata come un piano da riattivare", 
   ).toBe("lapsed");
 });
 
+test("il pagamento unico cita la prova soltanto mentre è in corso", () => {
+  const cases = [
+    [{ entitlement: { kind: "trial", validThrough: "2026-11-07" }, trialStatus: "active" }, true],
+    [{ entitlement: { kind: "none", validThrough: null }, trialStatus: "expired" }, false],
+    [{ entitlement: { kind: "subscription", validThrough: "2026-08-31" } }, false],
+  ] as const;
+  for (const [state, mentionsTrial] of cases) {
+    const paragraphs = renderedElements(
+      PlanChoice({
+        data: { ...data, ...state } as Parameters<typeof PlanChoice>[0]["data"],
+        busy: false,
+        pendingIntent: null,
+        submit: vi.fn(),
+        firstCharge: "oggi",
+      }),
+    )
+      .filter((element) => element.type === "s-paragraph")
+      .map((element) => (element.props as { children?: ReactNode }).children);
+    expect(paragraphs).toContain(
+      mentionsTrial ? texts("it").plan.oneTimeChargeTrial : texts("it").plan.oneTimeCharge,
+    );
+    expect(paragraphs.some((text) => String(text).includes("prova"))).toBe(mentionsTrial);
+  }
+});
+
 test("l’avanzamento onboarding resta compatto anche al quarto passo", () => {
   const rendered = elements(OnboardingProgress({ step: 4, t: texts("it") }));
   const labels = rendered

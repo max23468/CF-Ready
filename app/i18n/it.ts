@@ -431,7 +431,8 @@ export const it = {
     firstCharge: (date: string) => `Attiva quando vuoi: paghi solo dal ${date}.`,
     firstChargeAfterTrial: "Attiva quando vuoi: paghi solo dopo la prova.",
     firstChargeNow: "L’addebito parte alla tua approvazione su Shopify.",
-    oneTimeCharge: "Un solo addebito, nessun rinnovo. La prova termina quando approvi.",
+    oneTimeCharge: "Un solo addebito, nessun rinnovo.",
+    oneTimeChargeTrial: "Un solo addebito, nessun rinnovo. La prova termina quando approvi.",
     oneTimeChargeNotStarted:
       "Addebito unico alla tua approvazione su Shopify. La prova gratuita non verrà avviata.",
     chooseNowHeading: "Scegli subito un piano",
