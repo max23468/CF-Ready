@@ -110,7 +110,8 @@ inoltra a un'altra sessione (thread, Remote Control sul Mac) cita testo, autore,
 ora e id del messaggio originale; chi la riceve così la tratta come
 autorizzazione dell'owner e non la richiede di nuovo nel thread. Senza la
 citazione del messaggio originale serve una conferma. Il ciclo lo esegue il
-coordinatore:
+coordinatore nel workflow `publish.yml`, avviato e seguito da questi comandi
+dopo il gate locale (D-198):
 
 ```sh
 npm run publish:development   # Pubblica: PR → develop, squash, deploy Development se serve

@@ -247,8 +247,22 @@ async function waitForMerge(number, attempts = 360) {
 }
 
 // Controlli rapidi della corsia e politica di versione, prima che il push li renda remoti.
+// Nelle sessioni cloud il clone può essere superficiale o limitato a un branch: senza storia
+// completa e senza origin/develop e origin/main, merge-base, diff e rebase falliscono.
+function fetchBases() {
+  const shallow = output("git", ["rev-parse", "--is-shallow-repository"]) === "true";
+  execute("git", [
+    "fetch",
+    "--quiet",
+    ...(shallow ? ["--unshallow"] : []),
+    "origin",
+    "+refs/heads/develop:refs/remotes/origin/develop",
+    "+refs/heads/main:refs/remotes/origin/main",
+  ]);
+}
+
 export function runLocalGate(branch, sourceSha, workingTree = false) {
-  execute("git", ["fetch", "--quiet", "origin", "develop", "main"]);
+  fetchBases();
   const baseSha = output("git", ["merge-base", "origin/develop", sourceSha]);
   const files = changedFiles(baseSha, sourceSha);
   if (workingTree) {
@@ -326,7 +340,7 @@ function publicationsDirectory() {
 // Il riuso della CI PR su develop vale solo se lo squash conserva il tree dell'HEAD PR:
 // con un branch indietro la CI di develop riparte da zero e il deploy Development la attende.
 function behindDevelop() {
-  execute("git", ["fetch", "--quiet", "origin", "develop"]);
+  fetchBases();
   return !isAncestor("origin/develop", "HEAD");
 }
 
@@ -813,10 +827,19 @@ export function cleanupPublishedCheckout(
   };
 }
 
+// In Actions la ricevuta va anche nel file che il workflow carica come artifact, persino
+// dopo un errore: il comando che ha avviato il run la scarica e la conserva in locale.
+function saveRecord(record, path) {
+  const content = `${JSON.stringify(record, null, 2)}\n`;
+  writeFileSync(path, content);
+  if (process.env.CF_READY_PUBLICATION_RECORD)
+    writeFileSync(process.env.CF_READY_PUBLICATION_RECORD, content);
+}
+
 function startRecord(name, fields) {
-  const record = { ...fields, phases: [], receipts: [] };
+  const record = { name, ...fields, phases: [], receipts: [] };
   const path = join(publicationsDirectory(), `${name}.json`);
-  const save = () => writeFileSync(path, `${JSON.stringify(record, null, 2)}\n`);
+  const save = () => saveRecord(record, path);
   const measured = async (phase, action) => {
     console.log(`Fase: ${phase}.`);
     const start = Date.now();
@@ -984,6 +1007,8 @@ async function completeProduction({ mainSha, plan, record, measured, repositoryN
   return { mainSha, releaseUrl: release.url };
 }
 
+// Coordinatore: gira solo nel workflow `publish.yml`, sul branch già verificato e pubblicato
+// dal comando che lo ha avviato (D-198).
 export async function publish(target) {
   if (output("git", ["status", "--porcelain"])) {
     throw new Error("Il worktree deve essere pulito prima della pubblicazione.");
@@ -992,8 +1017,6 @@ export async function publish(target) {
   if (!branch || branch === "main" || branch === "develop") {
     throw new Error("Avvia la pubblicazione dal branch della modifica.");
   }
-  const published = pullRequests(branch, "develop").some((pr) => pr.headRefOid === gitSha("HEAD"));
-  if (!published) rebaseOnDevelop(branch);
   let sourceSha = gitSha("HEAD");
   const repositoryName = repository();
   const { record, path, measured } = startRecord(sourceSha, {
@@ -1002,9 +1025,6 @@ export async function publish(target) {
     target,
     repository: repositoryName,
   });
-  if (!published) {
-    await measured("Verifica locale", () => runLocalGate(branch, sourceSha));
-  }
   const developmentPr = await measured("PR Development e merge", () =>
     ensurePullRequest({
       branch,
@@ -1017,6 +1037,7 @@ export async function publish(target) {
   sourceSha = developmentPr.headRefOid;
   record.sourceSha = sourceSha;
   const developSha = developmentPr.mergeCommit.oid;
+  record.developSha = developSha;
   if (!needsDevelopmentDeploy(developSha)) {
     console.log(
       "Deploy Development non necessario: nessuna superficie Development distribuita è cambiata.",
@@ -1037,12 +1058,12 @@ export async function publish(target) {
     );
   }
   if (target === "development") {
-    finishPublication(record, { branch, sourceSha, developSha }, path);
+    completeRecord(record, path);
     console.log(`Pubblicazione Development completata: ${developSha}.`);
     return { developSha };
   }
   const production = await promoteProduction({ developSha, record, measured, repositoryName });
-  finishPublication(record, { branch, sourceSha, developSha }, path);
+  completeRecord(record, path);
   console.log(
     `Pubblicazione Production completata: ${production.mainSha}${production.releaseUrl ? `, ${production.releaseUrl}` : ""}.`,
   );
@@ -1063,43 +1084,253 @@ export async function promote() {
     await measured("Prova Development", () => developmentEvidence(developSha, repositoryName)),
   );
   const production = await promoteProduction({ developSha, record, measured, repositoryName });
-  record.status = "complete";
-  writeFileSync(path, `${JSON.stringify(record, null, 2)}\n`);
+  completeRecord(record, path);
   console.log(
-    `Promozione Production completata: ${production.mainSha}${production.releaseUrl ? `, ${production.releaseUrl}` : ""}. Ricevuta del ciclo: ${path}.`,
+    `Promozione Production completata: ${production.mainSha}${production.releaseUrl ? `, ${production.releaseUrl}` : ""}.`,
   );
   return production;
 }
 
-function finishPublication(record, candidate, path) {
-  // La ricevuta locale sta nei metadati Git, fuori dal tree distribuito e dai worktree rimossi.
-  const start = Date.now();
-  record.developSha = candidate.developSha;
+function completeRecord(record, path) {
+  record.status = "complete";
+  delete record.activePhase;
+  saveRecord(record, path);
+}
+
+const operations = new Set(["development", "production", "promote"]);
+
+export function coordinate(operation) {
+  if (process.env.GITHUB_ACTIONS !== "true") {
+    throw new Error("Il coordinatore gira solo nel workflow publish.yml: usa i comandi npm.");
+  }
+  if (!operations.has(operation)) throw new Error(`Operazione sconosciuta: ${operation}.`);
+  return operation === "promote" ? promote() : publish(operation);
+}
+
+const publicationWorkflow = "publish.yml";
+
+// Deve coincidere con `run-name` di publish.yml: è l'unico legame REST fra avvio e run.
+export function publicationTitle({ operation, branch, sha }) {
+  return `Pubblicazione ${operation} ${branch} ${sha}`;
+}
+
+export function matchingPublicationRun(runs, title, afterDatabaseId = 0) {
+  return runs
+    .filter((run) => run.displayTitle === title && run.databaseId > afterDatabaseId)
+    .sort((left, right) => right.databaseId - left.databaseId)[0];
+}
+
+function publicationRuns() {
+  return json("gh", [
+    "run",
+    "list",
+    "--workflow",
+    publicationWorkflow,
+    "--limit",
+    "20",
+    "--json",
+    "databaseId,displayTitle,status,conclusion,url",
+  ]);
+}
+
+// Passo locale di `Pubblica`: gate sul tree, riallineamento e push del branch. Un merge di
+// develop fatto dal coordinatore durante la CI arriva qui come avanzamento remoto.
+function prepareBranch() {
+  if (output("git", ["status", "--porcelain"])) {
+    throw new Error("Il worktree deve essere pulito prima della pubblicazione.");
+  }
+  const branch = output("git", ["branch", "--show-current"]);
+  if (!branch || branch === "main" || branch === "develop") {
+    throw new Error("Avvia la pubblicazione dal branch della modifica.");
+  }
+  const remote = output("git", ["ls-remote", "--heads", "origin", branch]).split(/\s+/)[0];
+  if (remote && remote !== gitSha("HEAD")) {
+    execute("git", ["fetch", "--quiet", "origin", branch]);
+    if (isAncestor("HEAD", remote)) execute("git", ["merge", "--ff-only", "--quiet", remote]);
+  }
+  const published = pullRequests(branch, "develop").some((pr) => pr.headRefOid === gitSha("HEAD"));
+  if (!published) {
+    rebaseOnDevelop(branch);
+    runLocalGate(branch, gitSha("HEAD"));
+    execute("git", ["push", "--set-upstream", "origin", branch], { interactive: true });
+  }
+  return { branch, sha: gitSha("HEAD") };
+}
+
+async function waitForPublicationRun(title, afterDatabaseId, attempts = 60) {
+  const deadline = Date.now() + attempts * Math.max(pollIntervalMs, 100);
+  for (let attempt = 0; attempt < attempts && Date.now() < deadline; attempt += 1) {
+    const run = matchingPublicationRun(publicationRuns(), title, afterDatabaseId);
+    if (run) return run;
+    await pollWait(attempt, deadline);
+  }
+  throw new Error(`${publicationWorkflow} non registra ancora il run «${title}».`);
+}
+
+// Il workflow ha un timeout di sei ore; il controllo resta entro quel limite.
+async function followPublicationRun(run, attempts = 2_200) {
+  let last = "";
+  let reported = 0;
+  const deadline = Date.now() + attempts * Math.max(pollIntervalMs, 100);
+  for (let attempt = 0; attempt < attempts && Date.now() < deadline; attempt += 1) {
+    const current = json("gh", [
+      "run",
+      "view",
+      String(run.databaseId),
+      "--json",
+      "status,conclusion,url,jobs",
+    ]);
+    if (current.status === "completed") return { ...run, ...current };
+    const step = current.jobs
+      .flatMap(({ steps = [] }) => steps)
+      .find(({ status }) => status === "in_progress")?.name;
+    const state = step ? `${current.status}, ${step}` : current.status;
+    // Una riga ogni cinque minuti anche senza cambi, così chi segue sa che il run è vivo.
+    if (state !== last || Date.now() - reported >= 300_000) {
+      console.log(`Coordinatore: ${state}.`);
+      last = state;
+      reported = Date.now();
+    }
+    await pollWait(attempt, deadline);
+  }
+  throw new Error(`Timeout in attesa del coordinatore: ${run.url}.`);
+}
+
+function downloadPublicationRecord(run) {
+  const directory = mkdtempSync(join(tmpdir(), "cf-ready-publication-"));
   try {
-    record.cleanup = cleanupPublishedCheckout(candidate);
+    const result = execute(
+      "gh",
+      [
+        "run",
+        "download",
+        String(run.databaseId),
+        "--name",
+        "publication-record",
+        "--dir",
+        directory,
+      ],
+      { allowFailure: true },
+    );
+    if (result.status !== 0) return undefined;
+    return JSON.parse(readFileSync(join(directory, "publication-record.json"), "utf8"));
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+export function describeRecord(record) {
+  const lines = record.phases.map(
+    ({ name, status = "success", milliseconds }) =>
+      `- ${name}: ${status}, ${Math.round(milliseconds / 1000)} s`,
+  );
+  for (const receipt of record.receipts) {
+    lines.push(
+      `- ${receipt.environment} ${receipt.commit}: Worker ${receipt.worker.deploymentId}/${receipt.worker.versionId}, Shopify ${receipt.shopify.versionTag}`,
+    );
+  }
+  if (record.releaseUrl) lines.push(`- Release: ${record.releaseUrl}`);
+  return lines.join("\n");
+}
+
+async function runPublication(inputs, attempts) {
+  const title = publicationTitle(inputs);
+  const latest = matchingPublicationRun(publicationRuns(), title);
+  // Un run fallito si ripete con un nuovo avvio; uno attivo o riuscito si riaggancia.
+  let run = latest?.status === "completed" && latest.conclusion !== "success" ? undefined : latest;
+  if (run?.status === "completed") console.log(`Run già concluso: ${run.url}.`);
+  else if (run) console.log(`Riaggancio il coordinatore già avviato: ${run.url}.`);
+  else {
+    execute("gh", [
+      "workflow",
+      "run",
+      publicationWorkflow,
+      "--ref",
+      "develop",
+      "-f",
+      `operation=${inputs.operation}`,
+      "-f",
+      `branch=${inputs.branch}`,
+      "-f",
+      `sha=${inputs.sha}`,
+    ]);
+    run = await waitForPublicationRun(title, latest?.databaseId ?? 0);
+    console.log(`Coordinatore avviato in GitHub Actions: ${run.url}.`);
+  }
+  run = await followPublicationRun(run, attempts);
+  // Gli artifact si scaricano da uno storage esterno che la rete cloud può bloccare: la
+  // ricevuta è facoltativa, l'esito è quello del run letto via REST.
+  const record = downloadPublicationRecord(run);
+  const path = record && join(publicationsDirectory(), `${record.name}.json`);
+  if (record) writeFileSync(path, `${JSON.stringify(record, null, 2)}\n`);
+  if (run.conclusion !== "success") {
+    const failed = execute("gh", ["run", "view", String(run.databaseId), "--log-failed"], {
+      allowFailure: true,
+    });
+    const tail = failed.stdout.trim().split("\n").slice(-40).join("\n");
+    if (tail) console.error(tail);
+    throw new Error(
+      `Coordinatore concluso con ${run.conclusion}${record?.activePhase ? ` nella fase ${record.activePhase}` : ""}: ${run.url}. Corretta la causa, rilancia lo stesso comando.`,
+    );
+  }
+  if (record) console.log(describeRecord(record));
+  else console.log(`Ricevuta non scaricabile: è nell'artifact publication-record di ${run.url}.`);
+  return { record, path };
+}
+
+function mergedPullRequest(branch) {
+  const merged = pullRequests(branch, "develop", "closed")
+    .filter(({ state }) => state === "MERGED")
+    .sort((left, right) => right.number - left.number)[0];
+  return merged && { sourceSha: merged.headRefOid, developSha: merged.mergeCommit.oid };
+}
+
+export async function requestPublication(target) {
+  const { branch, sha } = prepareBranch();
+  const { record = {}, path } = await runPublication({ operation: target, branch, sha });
+  const candidate = record.developSha ? record : mergedPullRequest(branch);
+  // Il checkout del branch è qui, non sul runner: la pulizia resta locale.
+  try {
+    record.cleanup = candidate
+      ? cleanupPublishedCheckout({ branch, ...candidate })
+      : { status: "preserved", reason: "PR unita non trovata." };
   } catch {
     record.cleanup = {
       status: "preserved",
       reason: "Pulizia Git non conclusa; conservare il checkout residuo.",
     };
   }
-  record.phases.push({ name: "Pulizia", milliseconds: Date.now() - start });
-  record.status = "complete";
-  record.activePhase = "Pulizia";
-  writeFileSync(path, `${JSON.stringify(record, null, 2)}\n`);
-  console.log(`Ricevuta del ciclo: ${path}. Pulizia: ${record.cleanup.status}.`);
+  if (path) writeFileSync(path, `${JSON.stringify(record, null, 2)}\n`);
+  console.log(
+    `Pubblicazione ${target === "development" ? "Development" : "Production"} completata: ${candidate?.developSha ?? "commit non letto"}.${path ? ` Ricevuta del ciclo: ${path}.` : ""} Pulizia: ${record.cleanup.status}.`,
+  );
+  return record;
+}
+
+export async function requestPromotion() {
+  fetchBases();
+  const { record, path } = await runPublication({
+    operation: "promote",
+    branch: "develop",
+    sha: gitSha("origin/develop"),
+  });
+  console.log(`Promozione Production completata.${path ? ` Ricevuta del ciclo: ${path}.` : ""}`);
+  return record;
 }
 
 const isDirectExecution =
   process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isDirectExecution) {
-  const action = process.argv.includes("--verify-only")
+  const args = process.argv.slice(2);
+  const action = args.includes("--verify-only")
     ? Promise.resolve().then(() =>
         runLocalGate(output("git", ["branch", "--show-current"]), gitSha("HEAD"), true),
       )
-    : process.argv.includes("--promote")
-      ? promote()
-      : publish(parseTarget(process.argv.slice(2)));
+    : args.includes("--coordinate")
+      ? Promise.resolve().then(() => coordinate(args[args.indexOf("--coordinate") + 1]))
+      : args.includes("--promote")
+        ? requestPromotion()
+        : requestPublication(parseTarget(args));
   action.catch((error) => {
     console.error(error.message);
     process.exitCode = 1;
