@@ -773,12 +773,19 @@ done
 
 Se la cache dell'ambiente nasce dalla sessione di un altro progetto, il blocco
 non trova il clone e l'hook `SessionStart` esegue lo stesso script alla prima
-sessione CF-Ready. Gli strumenti stanno in `~/.cache/cf-ready-tools`.
+sessione CF-Ready. Gli strumenti stanno in `~/.cache/cf-ready-tools`. Se
+l'immagine imposta `PLAYWRIGHT_BROWSERS_PATH`, come la VM cloud con
+`/opt/pw-browsers`, Chromium sta lì e non in `~/.cache/ms-playwright`: lo
+script legge già quella variabile.
 
-Il clone del cloud può essere superficiale o limitato a un branch: prima di
-gate e rebase il comando completa la storia e scarica `develop` e `main`. Il
-download degli artifact passa da uno storage esterno che la rete può bloccare,
-quindi la ricevuta del ciclo è facoltativa per il comando: l'esito è quello del
+Nel cloud `gh auth status` segnala il token come non valido anche quando le
+chiamate REST funzionano: l'accesso si controlla con
+`gh api 'repos/{owner}/{repo}'` (prova del 25 ottobre 2026).
+
+Il clone del cloud è superficiale e può essere limitato a un branch: prima di
+gate e rebase il comando completa la storia con `git fetch --unshallow` e
+scarica `develop` e `main`. Il download degli artifact passa da uno storage
+esterno che la rete può bloccare, quindi la ricevuta del ciclo è facoltativa per il comando: l'esito è quello del
 run letto via REST e la pulizia usa i commit della PR unita.
 
 Le preferenze personali dell'owner non stanno nel repository: lo setup script
