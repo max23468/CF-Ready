@@ -608,8 +608,14 @@ if (command === "git") {
     if (lagging) writeFileSync(marker("head-lagged"), "ok");
     print({ number, state: mode === "closed-pr" ? "CLOSED" : merged ? "MERGED" : "OPEN", headRefOid: promotion ? "${developSha}" : lagging ? "${oldMainSha}" : "${sourceSha}", mergeCommit: merged ? { oid: promotion ? "${mainSha}" : "${developSha}" } : null, url: "https://github.test/pr/" + number });
   } else if (args[0] === "pr" && args[1] === "merge") {
-    writeFileSync(marker("merge-" + args[2]), "ok");
     writeFileSync(marker("merge-args"), args.join(" ") + "\\n", { flag: "a" });
+    if (mode === "clean" && args.includes("--auto")) {
+      process.stderr.write("GraphQL: Pull request Pull request is in clean status (enablePullRequestAutoMerge)");
+      process.exitCode = 1;
+    } else if (mode === "merge-failed") {
+      process.stderr.write("GraphQL: Pull request is not mergeable");
+      process.exitCode = 1;
+    } else writeFileSync(marker("merge-" + args[2]), "ok");
     if (mode === "no-deploy-main" && args[2] === "11") writeFileSync(marker("nd-promoted"), "ok");
   } else if (args[0] === "run" && args[1] === "list" && !args.includes("--commit")) {
     print([]);
@@ -749,6 +755,27 @@ if (command === "git") {
   );
   assert.ok(existsSync(path.join(directory, ".head-lagged")));
 
+  const clean = spawnSync(
+    process.execPath,
+    [path.join(root, "scripts", "publish.mjs"), "--target", "development"],
+    {
+      cwd: directory,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CF_READY_PUBLISH_POLL_MS: "1",
+        FAIL_MODE: "clean",
+        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+      },
+    },
+  );
+  assert.equal(clean.status, 0, clean.stderr);
+  // Una PR già unibile rifiuta l'auto-merge: lo script la unisce subito con lo stesso metodo.
+  assert.match(
+    readFileSync(path.join(directory, ".merge-args"), "utf8"),
+    /^pr merge 10 --auto --squash\npr merge 10 --squash$/m,
+  );
+
   const queued = spawnSync(
     process.execPath,
     [path.join(root, "scripts", "publish.mjs"), "--target", "development"],
@@ -828,6 +855,10 @@ if (command === "git") {
     ["rebase-conflict", /non si riallinea a develop senza conflitti/],
     ["merge-conflict", /non si unisce a develop senza conflitti/],
     ["checks-failed", /La PR #10 ha check falliti: verify/],
+    [
+      "merge-failed",
+      /gh pr merge 10 --auto --squash non riuscito: GraphQL: Pull request is not mergeable/,
+    ],
     ["main", /branch della modifica/],
     ["closed-pr", /La PR #10 è CLOSED/],
     ["workflow-advanced", /develop è avanzato prima dell'avvio/],
