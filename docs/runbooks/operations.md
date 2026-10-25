@@ -620,7 +620,7 @@ i job browser girano di rado: `playwright-cache.yml` ogni giorno, e quando cambi
 Playwright, riempie su `develop` la cache dei tre insiemi di browser senza fretta.
 Con una nuova immagine runner il ripiego parte dai pacchetti dello stesso insieme.
 Prima del push il coordinatore riallinea il branch a `develop` con un rebase;
-un conflitto ferma il ciclo. Prima di abilitare lo squash merge attende tutti i
+un conflitto ferma il ciclo. Prima dello squash merge attende tutti i
 check obbligatori del ruleset `develop`, anche quelli non ancora registrati come
 `mutation`, e la fine di promozioni o deploy di un'altra pubblicazione,
 così `develop` non avanza sotto un ciclo in corso. Legge tutti i check della PR:
@@ -633,6 +633,18 @@ che la CI di push li ripeta; lo stesso riuso vale per promozione e merge
 Production (D-162). Dopo il merge elimina il branch remoto ma lascia checkout e
 branch locale, così un retry riparte dallo stesso comando e dallo stesso
 worktree; il branch locale si rimuove a ciclo chiuso.
+
+Il coordinatore parla con GitHub solo tramite le API REST di `gh api` (D-197):
+nelle sessioni Claude Code nel cloud GraphQL è bloccato, quindi niente `gh pr`,
+`gh release` o auto-merge. Il merge parte quando i check obbligatori della base
+sono verdi, anche per la promozione verso `main`; se GitHub lo rifiuta perché
+altre regole del branch, come code scanning, non sono ancora concluse, riprova
+con la stessa attesa crescente e si ferma subito su conflitti o PR in bozza.
+In una sessione cloud l'hook `.claude/hooks/session-start.sh` installa Node, npm
+e actionlint da `mise.toml` e le dipendenze con `npm ci`, così i comandi girano
+come sul Mac. I deploy usano i segreti dei workflow GitHub e non chiedono
+credenziali alla sessione; le ricevute in `cf-ready-publications` restano nel
+container e una sessione nuova ripete al più il gate locale.
 
 `promote:production` promuove il tip di `develop` (D-191). Riusa la ricevuta
 dell'ultimo deploy Development riuscito se dopo quel commit non è cambiata una

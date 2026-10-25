@@ -129,6 +129,7 @@ test("le superfici separano metadati, operazioni e runtime senza distribuire tes
     ".github/workflows/deploy-production.yml",
     "knip.jsonc",
     "AGENTS.md",
+    ".claude/hooks/session-start.sh",
   ]) {
     const result = classifyCiLane([file]);
     assert.equal(result.coverageMode, "operations");

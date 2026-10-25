@@ -48,6 +48,24 @@ function json(command, args) {
   return JSON.parse(output(command, args));
 }
 
+// Le sessioni cloud non raggiungono GraphQL: PR, check, merge e release passano dalle
+// API REST di GitHub, le stesse sul Mac e nel cloud.
+function rest(path, { method = "GET", fields = {}, allowFailure = false } = {}) {
+  const args = ["api", "-X", method, `repos/{owner}/{repo}${path && `/${path}`}`];
+  for (const [name, value] of Object.entries(fields)) {
+    args.push(typeof value === "string" ? "-f" : "-F", `${name}=${value}`);
+  }
+  return execute("gh", args, { allowFailure });
+}
+
+function restJson(path, options) {
+  return JSON.parse(rest(path, options).stdout);
+}
+
+function restPages(path) {
+  return json("gh", ["api", "--paginate", "--slurp", `repos/{owner}/{repo}/${path}`]);
+}
+
 export function parseTarget(args) {
   const index = args.indexOf("--target");
   const target = index >= 0 ? args[index + 1] : "";
@@ -55,6 +73,40 @@ export function parseTarget(args) {
     throw new Error("Usa --target development oppure --target production.");
   }
   return target;
+}
+
+function pullRequestFromRest(pr) {
+  const merged = Boolean(pr.merged_at);
+  return {
+    number: pr.number,
+    state: merged ? "MERGED" : pr.state === "open" ? "OPEN" : "CLOSED",
+    headRefOid: pr.head.sha,
+    mergeCommit: merged ? { oid: pr.merge_commit_sha } : null,
+    url: pr.html_url,
+  };
+}
+
+// Stessi bucket di `gh pr checks`: check run dell'HEAD con il workflow che li ha creati,
+// più gli status di commit.
+export function checksFromRest({ checkRuns, workflowRuns, statuses }) {
+  const workflows = new Map(workflowRuns.map((run) => [run.check_suite_id, run.name]));
+  const bucket = ({ status, conclusion }) => {
+    if (status !== "completed") return "pending";
+    if (["success", "neutral", "skipped"].includes(conclusion)) return "pass";
+    return conclusion === "cancelled" ? "cancel" : "fail";
+  };
+  return [
+    ...checkRuns.map((run) => ({
+      name: run.name,
+      bucket: bucket(run),
+      workflow: workflows.get(run.check_suite?.id) ?? "",
+    })),
+    ...statuses.map(({ context, state }) => ({
+      name: context,
+      bucket: state === "success" ? "pass" : state === "pending" ? "pending" : "fail",
+      workflow: "",
+    })),
+  ];
 }
 
 export function selectWorkflowRun(runs, sha) {
@@ -122,7 +174,7 @@ export function checksOutcome(checks, required = []) {
 }
 
 function requiredCheckNames(branch) {
-  return json("gh", ["api", `repos/{owner}/{repo}/rules/branches/${branch}`])
+  return restJson(`rules/branches/${branch}`)
     .filter(({ type }) => type === "required_status_checks")
     .flatMap(({ parameters }) => parameters.required_status_checks.map(({ context }) => context));
 }
@@ -135,35 +187,47 @@ export function isReconciled({ mainSha, developSha, mergeBase }) {
   return mainSha === developSha || mergeBase === mainSha;
 }
 
+let currentRepository;
 function repository() {
-  return json("gh", ["repo", "view", "--json", "nameWithOwner"]).nameWithOwner;
+  currentRepository ??= restJson("").full_name;
+  return currentRepository;
 }
 
-function pullRequests(branch, base) {
-  return json("gh", [
-    "pr",
-    "list",
-    "--head",
-    branch,
-    "--base",
-    base,
-    "--state",
-    "all",
-    "--limit",
-    "20",
-    "--json",
-    "number,state,headRefOid,mergeCommit,url",
-  ]);
+function pullRequests(branch, base, state = "all") {
+  const owner = repository().split("/")[0];
+  const query = new URLSearchParams({ head: `${owner}:${branch}`, base, state, per_page: "20" });
+  return restJson(`pulls?${query}`).map(pullRequestFromRest);
 }
 
 function pullRequest(number) {
-  return json("gh", [
-    "pr",
-    "view",
-    String(number),
-    "--json",
-    "number,state,headRefOid,mergeCommit,url",
-  ]);
+  return pullRequestFromRest(restJson(`pulls/${number}`));
+}
+
+// Come `gh pr create --fill`: un commit dà titolo e corpo, più commit un elenco.
+function filledPullRequest(base) {
+  const commits = output("git", [
+    "log",
+    "--reverse",
+    "--format=%s%x1f%b%x1e",
+    `origin/${base}..HEAD`,
+  ])
+    .split("\x1e")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => entry.split("\x1f"));
+  if (commits.length === 0) throw new Error(`Nessun commit da proporre verso ${base}.`);
+  const [[title, body = ""]] = commits;
+  return {
+    title,
+    body:
+      commits.length === 1 ? body.trim() : commits.map(([subject]) => `- ${subject}`).join("\n"),
+  };
+}
+
+function createPullRequest({ branch, base, title, body }) {
+  return pullRequestFromRest(
+    restJson("pulls", { method: "POST", fields: { base, head: branch, title, body } }),
+  );
 }
 
 async function waitForMerge(number, attempts = 360) {
@@ -303,26 +367,24 @@ async function waitForPullRequestHead(number, sha, attempts = 60) {
   throw new Error(`La PR #${number} non riporta ancora l'HEAD ${sha}.`);
 }
 
-async function waitForRequiredChecks(number, base, attempts = 720) {
+function pullRequestChecks(sha) {
+  return checksFromRest({
+    checkRuns: restPages(`commits/${sha}/check-runs?per_page=100`).flatMap(
+      ({ check_runs }) => check_runs,
+    ),
+    workflowRuns: restPages(`actions/runs?head_sha=${sha}&per_page=100`).flatMap(
+      ({ workflow_runs }) => workflow_runs,
+    ),
+    statuses: restJson(`commits/${sha}/status`).statuses,
+  });
+}
+
+async function waitForRequiredChecks({ number, headRefOid }, base, attempts = 720) {
   const required = requiredCheckNames(base);
   let announced = false;
   const deadline = Date.now() + attempts * Math.max(pollIntervalMs, 100);
   for (let attempt = 0; attempt < attempts && Date.now() < deadline; attempt += 1) {
-    const result = execute(
-      "gh",
-      ["pr", "checks", String(number), "--json", "name,bucket,workflow"],
-      { allowFailure: true },
-    );
-    // gh esce con 8 per i check pendenti, con 1 per quelli falliti o ancora non registrati.
-    if (
-      ![0, 1, 8].includes(result.status) ||
-      (result.status === 1 &&
-        !result.stdout.trim() &&
-        !/no (?:required )?checks reported/i.test(result.stderr))
-    ) {
-      throw new Error(`gh pr checks ${number} non riuscito: ${result.stderr.trim()}`);
-    }
-    const outcome = checksOutcome(JSON.parse(result.stdout.trim() || "[]"), required);
+    const outcome = checksOutcome(pullRequestChecks(headRefOid), required);
     if (outcome.state === "passed") return;
     if (outcome.state === "failed") {
       throw new Error(`La PR #${number} ha check falliti: ${outcome.names.join(", ")}.`);
@@ -342,18 +404,7 @@ async function waitForIdlePipeline(attempts = 720) {
   let announced = false;
   const deadline = Date.now() + attempts * Math.max(pollIntervalMs, 100);
   for (let attempt = 0; attempt < attempts && Date.now() < deadline; attempt += 1) {
-    const promotions = json("gh", [
-      "pr",
-      "list",
-      "--head",
-      "develop",
-      "--base",
-      "main",
-      "--state",
-      "open",
-      "--json",
-      "number",
-    ]);
+    const promotions = pullRequests("develop", "main", "open");
     const runs = [
       "deploy-development.yml",
       "deploy-production.yml",
@@ -393,45 +444,45 @@ async function ensurePullRequest({ branch, base, sourceSha, mergeMethod, title, 
     current = await pullRequestForHead(branch, base, sourceSha);
   }
   if (!current) {
-    if (base === "develop") {
-      const url = output("gh", ["pr", "create", "--base", base, "--head", branch, "--fill"]);
-      current = pullRequest(url);
-    } else {
-      const url = output("gh", [
-        "pr",
-        "create",
-        "--base",
-        base,
-        "--head",
-        branch,
-        "--title",
-        title,
-        "--body",
-        body,
-      ]);
-      current = pullRequest(url);
-    }
+    current = createPullRequest({
+      branch,
+      base,
+      ...(base === "develop" ? filledPullRequest(base) : { title, body }),
+    });
   }
   // Dopo tre riallineamenti si unisce comunque: la CI di develop resta la rete di sicurezza.
-  for (let round = 0; base === "develop"; round += 1) {
-    await waitForRequiredChecks(current.number, base);
+  for (let round = 0; ; round += 1) {
+    await waitForRequiredChecks(current, base);
+    if (base !== "develop") break;
     await waitForIdlePipeline();
     if (round >= 2 || !mergeDevelop(branch)) break;
     current = await waitForPullRequestHead(current.number, gitSha("HEAD"));
   }
-  mergePullRequest(current.number, mergeMethod);
+  await mergePullRequest(current, mergeMethod);
   return waitForMerge(current.number);
 }
 
-// GitHub rifiuta l'auto-merge di una PR già unibile ("clean status"): lì si unisce subito.
-function mergePullRequest(number, mergeMethod) {
-  const autoArgs = ["pr", "merge", String(number), "--auto", `--${mergeMethod}`];
-  const auto = execute("gh", autoArgs, { allowFailure: true });
-  if (auto.status === 0) return;
-  if (!/clean status/i.test(auto.stderr)) {
-    throw new Error(`gh ${autoArgs.join(" ")} non riuscito: ${auto.stderr.trim()}`);
+// Senza auto-merge, che esiste solo in GraphQL, si unisce dopo i check obbligatori e si
+// riprova finché GitHub completa le altre regole del branch, come code scanning.
+async function mergePullRequest({ number, headRefOid }, mergeMethod, attempts = 120) {
+  const deadline = Date.now() + attempts * Math.max(pollIntervalMs, 100);
+  let reason = "";
+  for (let attempt = 0; attempt < attempts && Date.now() < deadline; attempt += 1) {
+    const merged = rest(`pulls/${number}/merge`, {
+      method: "PUT",
+      fields: { merge_method: mergeMethod, sha: headRefOid },
+      allowFailure: true,
+    });
+    if (merged.status === 0) return;
+    reason = merged.stderr.trim();
+    if (!/HTTP 405/.test(reason))
+      throw new Error(`Merge della PR #${number} non riuscito: ${reason}`);
+    const { mergeable_state: state } = restJson(`pulls/${number}`);
+    if (state === "dirty") throw new Error(`La PR #${number} ha conflitti con la base.`);
+    if (state === "draft") throw new Error(`La PR #${number} è in bozza: segnala che è pronta.`);
+    await pollWait(attempt, deadline);
   }
-  execute("gh", ["pr", "merge", String(number), `--${mergeMethod}`]);
+  throw new Error(`La PR #${number} non è ancora unibile: ${reason}`);
 }
 
 // gh pr merge --delete-branch cancellerebbe anche il branch locale e sposterebbe il
@@ -648,23 +699,30 @@ function verifyPromotionCommit(mainSha, developSha) {
   }
 }
 
-function ensureRelease(repositoryName, version, mainSha) {
+function releaseByTag(tag) {
+  const result = rest(`releases/tags/${tag}`, { allowFailure: true });
+  if (result.status === 0) {
+    const { html_url: url, tag_name: tagName } = JSON.parse(result.stdout);
+    return { url, tagName };
+  }
+  if (/HTTP 404/.test(result.stderr)) return undefined;
+  throw new Error(`Lettura della release ${tag} non riuscita: ${result.stderr.trim()}`);
+}
+
+function ensureRelease(version, mainSha) {
   const tag = `v${version}`;
-  const existing = execute("gh", ["release", "view", tag, "--json", "url,tagName"], {
-    allowFailure: true,
-  });
-  if (existing.status === 0) {
-    const ref = json("gh", ["api", `repos/${repositoryName}/git/ref/tags/${tag}`]);
+  const existing = releaseByTag(tag);
+  if (existing) {
+    const ref = restJson(`git/ref/tags/${tag}`);
     if (ref.object?.sha !== mainSha) throw new Error(`${tag} esiste su un commit diverso.`);
     console.log(`Release ${tag} già verificata.`);
-    return JSON.parse(existing.stdout);
+    return existing;
   }
-  execute(
-    "gh",
-    ["release", "create", tag, "--target", mainSha, "--title", tag, "--generate-notes"],
-    { interactive: true },
-  );
-  return json("gh", ["release", "view", tag, "--json", "url,tagName"]);
+  const created = restJson("releases", {
+    method: "POST",
+    fields: { tag_name: tag, target_commitish: mainSha, name: tag, generate_release_notes: true },
+  });
+  return { url: created.html_url, tagName: created.tag_name };
 }
 
 export function validatePublishReceipt(
@@ -806,10 +864,7 @@ function lastSuccessfulRun(workflow, branch) {
 }
 
 function releaseExists(version) {
-  return (
-    execute("gh", ["release", "view", `v${version}`, "--json", "tagName"], { allowFailure: true })
-      .status === 0
-  );
+  return Boolean(releaseByTag(`v${version}`));
 }
 
 // Il piano confronta main col merge precedente; una promozione interrotta lascia però deploy,
@@ -931,9 +986,7 @@ async function completeProduction({ mainSha, plan, record, measured, repositoryN
     console.log(`Release non necessaria: ${plan.version} resta la versione rilasciata.`);
     return { mainSha };
   }
-  const release = await measured("Release", () =>
-    ensureRelease(repositoryName, plan.version, mainSha),
-  );
+  const release = await measured("Release", () => ensureRelease(plan.version, mainSha));
   record.releaseUrl = release.url;
   return { mainSha, releaseUrl: release.url };
 }
