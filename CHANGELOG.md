@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.5.12 — 28 ottobre 2026
+
+- `@shopify/shopify-app-react-router` passa alla 4.0.0 e React Router alla 8.5.0.
+  La 4.0 carica Polaris 2 come predefinito; CF Ready imposta già `polaris-2.js`
+  in modo esplicito nello script e nel preload, quindi l'interfaccia non cambia.
+
+`@shopify/shopify-app-react-router` moves to 4.0.0 and React Router to 8.5.0.
+Version 4.0 loads Polaris 2 by default; CF Ready already sets `polaris-2.js`
+explicitly in the script and the preload, so the interface does not change.
+
 ## 2.5.11 — 25 ottobre 2026
 
 - Il testo del pagamento unico cita la fine della prova solo mentre la prova è in
