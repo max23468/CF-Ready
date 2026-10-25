@@ -107,7 +107,7 @@ funzionalità attive e nessun addebito.
 | --- | --- | --- |
 | Mensile | € 2,99 / mese | |
 | Annuale | € 29,90 / anno | consigliato |
-| Un solo pagamento | € 89,90 | un pagamento, nessun rinnovo, un singolo store |
+| Pagamento unico | € 89,90 | un pagamento, nessun rinnovo, un singolo store |
 
 Le tre modalità hanno **identiche funzionalità**: nessun tier artificiale. I
 prezzi di lancio valgono i primi 90 giorni; chi sottoscrive mantiene il prezzo

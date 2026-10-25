@@ -51,7 +51,7 @@ per i suoi clienti.
 | prova di 14 giorni | 14-day trial | Il periodo iniziale gratuito, uno solo per store | trial, periodo di test, demo |
 | piano | plan | La modalità commerciale scelta | licenza, sottoscrizione generica |
 | abbonamento mensile / annuale | monthly / annual subscription | Gli addebiti ricorrenti | mensile secco, piano base |
-| Un solo pagamento | One payment | L'acquisto singolo senza rinnovi | Lifetime, a vita, per sempre, illimitato |
+| Pagamento unico | One-time payment | L'acquisto singolo senza rinnovi | Lifetime, a vita, per sempre, illimitato |
 | Consigliato | Recommended | L'etichetta dell'annuale | Migliore offerta, Risparmia il 17% |
 | prezzo di lancio | launch price | Il prezzo della prima generazione tariffaria | sconto, promozione, offerta |
 | generazione tariffaria | pricing generation | Il listino acquisito dallo store e mantenuto finché esiste continuità commerciale | fascia, tier |
