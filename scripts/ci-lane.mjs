@@ -60,6 +60,7 @@ const isOperationalOnly = (path) =>
   isOperationalGovernance(path) ||
   path.startsWith(".github/") ||
   path.startsWith("scripts/") ||
+  path.startsWith(".claude/") ||
   path === "knip.jsonc" ||
   path === "doctor.config.json";
 

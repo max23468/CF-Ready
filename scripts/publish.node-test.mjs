@@ -15,6 +15,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import {
+  checksFromRest,
   checksOutcome,
   isPipelineBusy,
   isReconciled,
@@ -298,6 +299,28 @@ test("classifica i check obbligatori e lo stato della pipeline", () => {
     ).state,
     "passed",
   );
+  // Le API REST danno gli stessi bucket di `gh pr checks`, workflow compreso.
+  assert.deepEqual(
+    checksFromRest({
+      checkRuns: [
+        { name: "verify", status: "completed", conclusion: "success", check_suite: { id: 1 } },
+        { name: "e2e", status: "in_progress", conclusion: null, check_suite: { id: 1 } },
+        { name: "mutation", status: "completed", conclusion: "skipped", check_suite: { id: 1 } },
+        { name: "coverage", status: "completed", conclusion: "cancelled", check_suite: { id: 1 } },
+        { name: "CodeQL", status: "completed", conclusion: "timed_out", check_suite: { id: 2 } },
+      ],
+      workflowRuns: [{ check_suite_id: 1, name: "CI" }],
+      statuses: [{ context: "external", state: "error" }],
+    }),
+    [
+      { name: "verify", bucket: "pass", workflow: "CI" },
+      { name: "e2e", bucket: "pending", workflow: "CI" },
+      { name: "mutation", bucket: "pass", workflow: "CI" },
+      { name: "coverage", bucket: "cancel", workflow: "CI" },
+      { name: "CodeQL", bucket: "fail", workflow: "" },
+      { name: "external", bucket: "fail", workflow: "" },
+    ],
+  );
   assert.equal(isPipelineBusy({ promotions: [], runs: [{ status: "completed" }] }), false);
   assert.equal(isPipelineBusy({ promotions: [{ number: 1 }], runs: [] }), true);
   assert.equal(isPipelineBusy({ promotions: [], runs: [{ status: "queued" }] }), true);
@@ -348,6 +371,12 @@ const mode = process.env.FAIL_MODE || "";
 const value = (name) => args[args.indexOf(name) + 1];
 const marker = (name) => path.join(process.cwd(), "." + name);
 const print = (payload) => process.stdout.write(typeof payload === "string" ? payload : JSON.stringify(payload));
+const route = args.find((arg) => arg.startsWith("repos/")) ?? "";
+const method = args[0] === "api" ? value("-X") : "";
+const field = (name) => args.find((arg) => arg.startsWith(name + "="))?.slice(name.length + 1);
+const restPr = ({ number, state, headRefOid, mergeCommit, mergeable = "clean" }) => ({ number, state: state === "OPEN" ? "open" : "closed",
+  merged_at: state === "MERGED" ? "2026-10-25T00:00:00Z" : null, head: { sha: headRefOid }, merge_commit_sha: mergeCommit?.oid ?? null,
+  mergeable_state: mergeable, html_url: "https://github.test/pr/" + number });
 if (command === "git") {
   const joined = args.join(" ");
   if (joined === "status --porcelain") print(mode === "dirty" ? " M file\\n" : "");
@@ -393,10 +422,10 @@ if (command === "git") {
       checks: { migrations: "readback-green", smoke: "green", providerReadback: "green" } };
     writeFileSync(path.join(value("--dir"), "deploy-receipt-" + environment.toLowerCase() + ".json"), JSON.stringify(receipt));
   }
-  else if (args[0] === "repo") print({ nameWithOwner: "owner/repository" });
-  else if (args[0] === "pr" && args[1] === "list") {
-    const development = value("--head") === "codex/change";
-    print([{ number: development ? 10 : 11, state: "MERGED", headRefOid: development ? "${sourceSha}" : "${developSha}", mergeCommit: { oid: development ? "${developSha}" : "${mainSha}" }, url: "https://github.test/pr" }]);
+  else if (route === "repos/{owner}/{repo}") print({ full_name: "owner/repository" });
+  else if (route.startsWith("repos/{owner}/{repo}/pulls?")) {
+    const development = route.includes("head=owner%3Acodex%2Fchange");
+    print([restPr({ number: development ? 10 : 11, state: "MERGED", headRefOid: development ? "${sourceSha}" : "${developSha}", mergeCommit: { oid: development ? "${developSha}" : "${mainSha}" } })]);
   } else if (args[0] === "run" && args[1] === "list") {
     const development = value("--workflow") === "deploy-development.yml";
     const file = marker("refresh-" + value("--workflow"));
@@ -405,8 +434,8 @@ if (command === "git") {
   } else if (args[0] === "workflow") {
     const file = marker("refresh-" + args[2]);
     writeFileSync(file, String((existsSync(file) ? Number(readFileSync(file, "utf8")) : 0) + 1));
-  } else if (args[0] === "release" && args[1] === "view") print({ tagName: "v1.2.3", url: "https://github.test/release" });
-  else if (args[0] === "api") print({ object: { sha: "${mainSha}" } });
+  } else if (route.startsWith("repos/{owner}/{repo}/releases/tags/")) print({ tag_name: "v1.2.3", html_url: "https://github.test/release" });
+  else if (route.startsWith("repos/{owner}/{repo}/git/ref/tags/")) print({ object: { sha: "${mainSha}" } });
   else process.exitCode = 2;
 } else process.exitCode = 2;
 `,
@@ -520,12 +549,19 @@ const mode = process.env.FAIL_MODE || "";
 const value = (name) => args[args.indexOf(name) + 1];
 const marker = (name) => path.join(process.cwd(), "." + name);
 const print = (payload) => process.stdout.write(typeof payload === "string" ? payload : JSON.stringify(payload));
+const route = args.find((arg) => arg.startsWith("repos/")) ?? "";
+const method = args[0] === "api" ? value("-X") : "";
+const field = (name) => args.find((arg) => arg.startsWith(name + "="))?.slice(name.length + 1);
+const restPr = ({ number, state, headRefOid, mergeCommit, mergeable = "clean" }) => ({ number, state: state === "OPEN" ? "open" : "closed",
+  merged_at: state === "MERGED" ? "2026-10-25T00:00:00Z" : null, head: { sha: headRefOid }, merge_commit_sha: mergeCommit?.oid ?? null,
+  mergeable_state: mergeable, html_url: "https://github.test/pr/" + number });
 if (command === "git") {
   const joined = args.join(" ");
   if (joined === "status --porcelain") print(mode === "dirty" ? " M file\\n" : "");
   else if (joined === "branch --show-current") print(mode === "main" ? "main\\n" : "codex/change\\n");
   else if (joined === "rev-parse HEAD" || joined === "rev-parse refs/heads/codex/change") print("${sourceSha}\\n");
   else if (joined === "rev-parse --git-common-dir") print(".git\\n");
+  else if (joined === "log --reverse --format=%s%x1f%b%x1e origin/develop..HEAD") print("feat: modifica\\x1fCorpo\\x1e\\n");
   else if (["${mainSha}", "${developSha}", "${reconciledSha}"].some((sha) => joined === "rev-parse " + sha + ":site")) print("site-tree-new\\n");
   else if (/^rev-parse [0-9a-f]{40}:site$/.test(joined)) print("site-tree-old\\n");
   else if (joined === "ls-remote origin refs/heads/develop") print((["develop-advanced", "workflow-advanced"].includes(mode) ? "${sourceSha}" : "${developSha}") + "\\trefs/heads/develop\\n");
@@ -556,10 +592,9 @@ if (command === "git") {
   else if (joined === "merge-base origin/main origin/develop") print("${mainSha}\\n");
   else if (joined === "merge-base origin/develop ${sourceSha}") print("${baseSha}\\n");
   else if (args[0] === "diff") print("M\\0app/routes/app._index.tsx\\0");
-  else if (joined === "ls-remote --heads origin codex/change") print(existsSync(marker("remote-deleted")) && mode !== "behind" ? "" : "${sourceSha}\\trefs/heads/codex/change\\n");
+  else if (joined === "ls-remote --heads origin codex/change") print("${sourceSha}\\trefs/heads/codex/change\\n");
   else if (args[0] === "push") {
     writeFileSync(marker("git-push"), joined + "\\n", { flag: "a" });
-    if (args.includes("--delete")) writeFileSync(marker("remote-deleted"), "ok");
   }
   else if (args[0] !== "fetch") process.exitCode = 2;
 } else if (command === "npm") {
@@ -576,29 +611,33 @@ if (command === "git") {
       checks: { migrations: "readback-green", smoke: "green", providerReadback: "green" } };
     writeFileSync(path.join(value("--dir"), "deploy-receipt-" + environment.toLowerCase() + ".json"), JSON.stringify(receipt));
   }
-  else if (args[0] === "repo") print({ nameWithOwner: "owner/repository" });
-  else if (args[0] === "pr" && args[1] === "list" && value("--head") === "develop" && value("--state") === "open") {
-    if (mode === "busy" && !existsSync(marker("busy-seen"))) { writeFileSync(marker("busy-seen"), "ok"); print([{ number: 5 }]); }
+  else if (route === "repos/{owner}/{repo}") print({ full_name: "owner/repository" });
+  else if (route.startsWith("repos/{owner}/{repo}/pulls?") && route.includes("head=owner%3Adevelop") && route.includes("state=open")) {
+    if (mode === "busy" && !existsSync(marker("busy-seen"))) { writeFileSync(marker("busy-seen"), "ok"); print([restPr({ number: 5, state: "OPEN", headRefOid: "${developSha}" })]); }
     else print([]);
-  } else if (args[0] === "pr" && args[1] === "list" && mode === "stale-head") {
+  } else if (route.startsWith("repos/{owner}/{repo}/pulls?") && mode === "stale-head") {
     const calls = Number(existsSync(marker("stale-calls")) ? readFileSync(marker("stale-calls"), "utf8") : 0) + 1;
     writeFileSync(marker("stale-calls"), String(calls));
     const head = calls <= 3 ? "${oldMainSha}" : "${sourceSha}";
-    print([{ number: 10, state: "OPEN", headRefOid: head, mergeCommit: null, url: "https://github.test/pr/10" }]);
-  } else if (args[0] === "pr" && args[1] === "list") print([]);
-  else if (args[0] === "pr" && args[1] === "checks") {
+    print([restPr({ number: 10, state: "OPEN", headRefOid: head })]);
+  } else if (route.startsWith("repos/{owner}/{repo}/pulls?")) print([]);
+  else if (route.includes("/check-runs?")) {
     writeFileSync(marker("checks-args"), args.join(" ") + "\\n");
-    if (!existsSync(marker("checks-seen"))) { writeFileSync(marker("checks-seen"), "ok"); process.stderr.write("no checks reported on the 'codex/change' branch"); process.exitCode = 1; }
-    else if (!existsSync(marker("mutation-reported"))) { writeFileSync(marker("mutation-reported"), "ok"); print([{ name: "verify", bucket: mode === "checks-failed" ? "fail" : "pass" }]); }
-    else { writeFileSync(marker("mutation-waited"), "ok"); print([{ name: "verify", bucket: mode === "checks-failed" ? "fail" : "pass" }, { name: "mutation", bucket: "pass" }]); }
+    const run = (name, pass = true) => ({ name, status: "completed", conclusion: pass ? "success" : "failure", check_suite: { id: 1 } });
+    if (!existsSync(marker("checks-seen"))) { writeFileSync(marker("checks-seen"), "ok"); print([{ check_runs: [] }]); }
+    else if (!existsSync(marker("mutation-reported"))) { writeFileSync(marker("mutation-reported"), "ok"); print([{ check_runs: [run("verify", mode !== "checks-failed")] }]); }
+    else { writeFileSync(marker("mutation-waited"), "ok"); print([{ check_runs: [run("verify", mode !== "checks-failed"), run("mutation")] }]); }
   }
-  else if (args[0] === "pr" && args[1] === "create") {
+  else if (route.includes("/actions/runs?head_sha=")) print([{ workflow_runs: [{ check_suite_id: 1, name: "CI" }] }]);
+  else if (/\\/commits\\/[0-9a-f]{40}\\/status$/.test(route)) print({ statuses: [] });
+  else if (method === "POST" && route === "repos/{owner}/{repo}/pulls") {
     if (mode === "stale-head") writeFileSync(marker("stale-created"), "ok");
-    if (value("--base") === "main") writeFileSync(marker("promotion-title"), value("--title") + "\\n", { flag: "a" });
-    print("https://github.test/pr/" + (value("--base") === "develop" ? 10 : 11) + "\\n");
-  } else if (args[0] === "pr" && args[1] === "view") {
-    const promotion = String(args[2]).endsWith("11");
-    const number = promotion ? 11 : 10;
+    const development = field("base") === "develop";
+    writeFileSync(marker((development ? "development" : "promotion") + "-title"), field("title") + "\\n", { flag: "a" });
+    print(restPr({ number: development ? 10 : 11, state: "OPEN", headRefOid: development ? "${sourceSha}" : "${developSha}" }));
+  } else if (method === "GET" && /\\/pulls\\/\\d+$/.test(route)) {
+    const number = Number(route.split("/").at(-1));
+    const promotion = number === 11;
     const mergeMarker = marker("merge-" + number);
     const viewedMarker = marker("viewed-" + number);
     const merged = existsSync(mergeMarker) && existsSync(viewedMarker);
@@ -606,17 +645,16 @@ if (command === "git") {
     // Dopo l'unione di develop GitHub riporta il nuovo HEAD con un giro di ritardo.
     const lagging = mode === "advanced" && existsSync(marker("git-merge")) && !existsSync(marker("head-lagged"));
     if (lagging) writeFileSync(marker("head-lagged"), "ok");
-    print({ number, state: mode === "closed-pr" ? "CLOSED" : merged ? "MERGED" : "OPEN", headRefOid: promotion ? "${developSha}" : lagging ? "${oldMainSha}" : "${sourceSha}", mergeCommit: merged ? { oid: promotion ? "${mainSha}" : "${developSha}" } : null, url: "https://github.test/pr/" + number });
-  } else if (args[0] === "pr" && args[1] === "merge") {
+    print(restPr({ number, state: mode === "closed-pr" ? "CLOSED" : merged ? "MERGED" : "OPEN", headRefOid: promotion ? "${developSha}" : lagging ? "${oldMainSha}" : "${sourceSha}", mergeCommit: merged ? { oid: promotion ? "${mainSha}" : "${developSha}" } : null, mergeable: mode === "merge-failed" ? "dirty" : "blocked" }));
+  } else if (method === "PUT" && route.endsWith("/merge")) {
+    const number = route.split("/").at(-2);
     writeFileSync(marker("merge-args"), args.join(" ") + "\\n", { flag: "a" });
-    if (mode === "clean" && args.includes("--auto")) {
-      process.stderr.write("GraphQL: Pull request Pull request is in clean status (enablePullRequestAutoMerge)");
+    if ((mode === "merge-pending" && !existsSync(marker("merge-retried"))) || mode === "merge-failed") {
+      writeFileSync(marker("merge-retried"), "ok");
+      process.stderr.write("gh: Pull Request is not mergeable (HTTP 405)");
       process.exitCode = 1;
-    } else if (mode === "merge-failed") {
-      process.stderr.write("GraphQL: Pull request is not mergeable");
-      process.exitCode = 1;
-    } else writeFileSync(marker("merge-" + args[2]), "ok");
-    if (mode === "no-deploy-main" && args[2] === "11") writeFileSync(marker("nd-promoted"), "ok");
+    } else writeFileSync(marker("merge-" + number), "ok");
+    if (mode === "no-deploy-main" && number === "11") writeFileSync(marker("nd-promoted"), "ok");
   } else if (args[0] === "run" && args[1] === "list" && !args.includes("--commit")) {
     print([]);
   } else if (args[0] === "run" && args[1] === "list") {
@@ -639,15 +677,16 @@ if (command === "git") {
     writeFileSync(marker("run-" + args[2]), "ok");
     writeFileSync(marker("workflow-args"), args.join(" ") + "\\n", { flag: "a" });
     if (mode === "workflow-failed") writeFileSync(marker("workflow-retried"), "ok");
-  } else if (args[0] === "release" && args[1] === "view") {
-    if (existsSync(marker("release"))) print({ tagName: args[2], url: "https://github.test/release" });
-    else process.exitCode = 1;
-  } else if (args[0] === "release" && args[1] === "create") {
+  } else if (route.startsWith("repos/{owner}/{repo}/releases/tags/")) {
+    if (existsSync(marker("release"))) print({ tag_name: route.split("/").at(-1), html_url: "https://github.test/release" });
+    else { process.stderr.write("gh: Not Found (HTTP 404)"); process.exitCode = 1; }
+  } else if (method === "POST" && route === "repos/{owner}/{repo}/releases") {
     writeFileSync(marker("release"), "ok");
     writeFileSync(marker("release-args"), args.join(" ") + "\\n", { flag: "a" });
-  } else if (args[0] === "api" && args[1] === "repos/{owner}/{repo}/rules/branches/develop") {
+    print({ tag_name: field("tag_name"), html_url: "https://github.test/release" });
+  } else if (/\\/rules\\/branches\\/(develop|main)$/.test(route)) {
     print([{ type: "pull_request" }, { type: "required_status_checks", parameters: { required_status_checks: [{ context: "verify" }, { context: "mutation" }] } }]);
-  } else if (args[0] === "api") {
+  } else if (route.startsWith("repos/{owner}/{repo}/git/ref/tags/")) {
     print({ object: { sha: mode === "release-mismatch" ? "${sourceSha}" : "${mainSha}" } });
   } else process.exitCode = 2;
 } else process.exitCode = 2;
@@ -679,24 +718,35 @@ if (command === "git") {
     readFileSync(path.join(directory, ".promotion-title"), "utf8"),
     "chore: promuovi CF Ready 1.2.4\n",
   );
-  assert.match(
-    readFileSync(path.join(directory, ".release-args"), "utf8"),
-    /^release create v1\.2\.4 --target /m,
+  // Come `gh pr create --fill`: titolo e corpo dall'unico commit del branch.
+  assert.equal(
+    readFileSync(path.join(directory, ".development-title"), "utf8"),
+    "feat: modifica\n",
   );
+  const releaseArgs = readFileSync(path.join(directory, ".release-args"), "utf8");
+  assert.match(releaseArgs, /-f tag_name=v1\.2\.4 /);
+  assert.match(releaseArgs, new RegExp(`-f target_commitish=${mainSha} `));
+  assert.match(releaseArgs, /-F generate_release_notes=true$/m);
   assert.match(result.stdout, /Gate locale della corsia standard prima del push/);
   assert.match(result.stdout, /PR #10: attendo i check obbligatori/);
   assert.ok(existsSync(path.join(directory, ".mutation-waited")));
   // Tutti i check della PR, non solo gli obbligatori: un job CI fallito emerge subito.
-  assert.equal(
+  assert.match(
     readFileSync(path.join(directory, ".checks-args"), "utf8"),
-    "pr checks 10 --json name,bucket,workflow\n",
+    /^api --paginate --slurp repos\/\{owner\}\/\{repo\}\/commits\/[0-9a-f]{40}\/check-runs\?per_page=100\n$/,
   );
   const mergeArgs = readFileSync(path.join(directory, ".merge-args"), "utf8");
-  assert.match(mergeArgs, /^pr merge 10 --auto --squash$/m);
-  assert.doesNotMatch(mergeArgs, /--delete-branch/);
+  assert.match(
+    mergeArgs,
+    new RegExp(
+      `^api -X PUT repos/\\{owner\\}/\\{repo\\}/pulls/10/merge -f merge_method=squash -f sha=${sourceSha}$`,
+      "m",
+    ),
+  );
+  assert.match(mergeArgs, /pulls\/11\/merge -f merge_method=merge -f sha=/);
   assert.equal(
     readFileSync(path.join(directory, ".git-push"), "utf8"),
-    "push --set-upstream origin codex/change\npush --quiet origin --delete codex/change\n",
+    "push --set-upstream origin codex/change\n",
   );
   assert.equal(
     readFileSync(path.join(directory, ".npm-calls"), "utf8"),
@@ -755,7 +805,7 @@ if (command === "git") {
   );
   assert.ok(existsSync(path.join(directory, ".head-lagged")));
 
-  const clean = spawnSync(
+  const pendingMerge = spawnSync(
     process.execPath,
     [path.join(root, "scripts", "publish.mjs"), "--target", "development"],
     {
@@ -764,17 +814,14 @@ if (command === "git") {
       env: {
         ...process.env,
         CF_READY_PUBLISH_POLL_MS: "1",
-        FAIL_MODE: "clean",
+        FAIL_MODE: "merge-pending",
         PATH: `${bin}${path.delimiter}${process.env.PATH}`,
       },
     },
   );
-  assert.equal(clean.status, 0, clean.stderr);
-  // Una PR già unibile rifiuta l'auto-merge: lo script la unisce subito con lo stesso metodo.
-  assert.match(
-    readFileSync(path.join(directory, ".merge-args"), "utf8"),
-    /^pr merge 10 --auto --squash\npr merge 10 --squash$/m,
-  );
+  assert.equal(pendingMerge.status, 0, pendingMerge.stderr);
+  // Con i check verdi GitHub può ancora rifiutare il merge per le altre regole: si riprova.
+  assert.ok(existsSync(path.join(directory, ".merge-retried")));
 
   const queued = spawnSync(
     process.execPath,
@@ -855,10 +902,7 @@ if (command === "git") {
     ["rebase-conflict", /non si riallinea a develop senza conflitti/],
     ["merge-conflict", /non si unisce a develop senza conflitti/],
     ["checks-failed", /La PR #10 ha check falliti: verify/],
-    [
-      "merge-failed",
-      /gh pr merge 10 --auto --squash non riuscito: GraphQL: Pull request is not mergeable/,
-    ],
+    ["merge-failed", /La PR #10 ha conflitti con la base/],
     ["main", /branch della modifica/],
     ["closed-pr", /La PR #10 è CLOSED/],
     ["workflow-advanced", /develop è avanzato prima dell'avvio/],
@@ -921,6 +965,12 @@ const tooling = ["tooling", "bump-only", "resume", "pending"].includes(mode);
 // resume e pending: main porta già 1.2.4, ma sito e release di un ciclo interrotto mancano.
 const interrupted = ["resume", "pending"].includes(mode);
 const bumped = !["tooling", "no-bump"].includes(mode);
+const route = args.find((arg) => arg.startsWith("repos/")) ?? "";
+const method = args[0] === "api" ? value("-X") : "";
+const field = (name) => args.find((arg) => arg.startsWith(name + "="))?.slice(name.length + 1);
+const restPr = ({ number, state, headRefOid, mergeCommit, mergeable = "clean" }) => ({ number, state: state === "OPEN" ? "open" : "closed",
+  merged_at: state === "MERGED" ? "2026-10-25T00:00:00Z" : null, head: { sha: headRefOid }, merge_commit_sha: mergeCommit?.oid ?? null,
+  mergeable_state: mergeable, html_url: "https://github.test/pr/" + number });
 if (command === "git") {
   if (joined === "rev-parse --git-common-dir") print(".git\\n");
   else if (joined === "rev-parse origin/develop") print("${developSha}\\n");
@@ -940,7 +990,7 @@ if (command === "git") {
   else if (joined === "merge-base origin/main origin/develop") print("${oldMainSha}\\n");
   else if (args[0] !== "fetch" && args[0] !== "merge-base") process.exitCode = 2;
 } else if (command === "gh") {
-  if (args[0] === "repo") print({ nameWithOwner: "owner/repository" });
+  if (route === "repos/{owner}/{repo}") print({ full_name: "owner/repository" });
   else if (args[0] === "run" && args[1] === "list" && args.includes("--status") && value("--workflow") === "deploy-development.yml") {
     print([{ databaseId: 30, status: "completed", conclusion: "success", headSha: mode === "stale" ? "${deployedSha}" : "${developSha}", url: "https://github.test/run" }]);
   } else if (args[0] === "run" && args[1] === "list" && args.includes("--status")) {
@@ -961,18 +1011,26 @@ if (command === "git") {
       worker: { deploymentId: "deployment", versionId: "worker", percentage: 100 },
       shopify: { versionId: "shopify", versionTag: "1.2.4", message: environment + " " + commit },
       checks: { migrations: "readback-green", smoke: "green", providerReadback: "green" } }));
-  } else if (args[0] === "pr" && args[1] === "list") print([]);
-  else if (args[0] === "pr" && args[1] === "create") {
-    writeFileSync(marker("title"), value("--title"));
-    print("https://github.test/pr/11\\n");
-  } else if (args[0] === "pr" && args[1] === "view") {
+  } else if (route.startsWith("repos/{owner}/{repo}/pulls?")) print([]);
+  else if (method === "POST" && route === "repos/{owner}/{repo}/pulls") {
+    writeFileSync(marker("title"), field("title"));
+    print(restPr({ number: 11, state: "OPEN", headRefOid: "${developSha}" }));
+  } else if (method === "GET" && route.endsWith("/pulls/11")) {
     const merged = existsSync(marker("merged"));
-    print({ number: 11, state: merged ? "MERGED" : "OPEN", headRefOid: "${developSha}", mergeCommit: merged ? { oid: "${mainSha}" } : null, url: "https://github.test/pr/11" });
-  } else if (args[0] === "pr" && args[1] === "merge") writeFileSync(marker("merged"), "ok");
-  else if (args[0] === "release" && args[1] === "view") {
-    if (existsSync(marker("release")) || args[2] === "v1.2.3") print({ tagName: args[2], url: "https://github.test/release" });
-    else process.exitCode = 1;
-  } else if (args[0] === "release" && args[1] === "create") writeFileSync(marker("release"), args[2]);
+    print(restPr({ number: 11, state: merged ? "MERGED" : "OPEN", headRefOid: "${developSha}", mergeCommit: merged ? { oid: "${mainSha}" } : null }));
+  } else if (method === "PUT" && route.endsWith("/pulls/11/merge")) writeFileSync(marker("merged"), "ok");
+  else if (route.endsWith("/rules/branches/main")) print([{ type: "required_status_checks", parameters: { required_status_checks: [{ context: "verify" }] } }]);
+  else if (route.includes("/check-runs?")) print([{ check_runs: [{ name: "verify", status: "completed", conclusion: "success", check_suite: { id: 1 } }] }]);
+  else if (route.includes("/actions/runs?head_sha=")) print([{ workflow_runs: [] }]);
+  else if (route.endsWith("/status")) print({ statuses: [] });
+  else if (route.startsWith("repos/{owner}/{repo}/releases/tags/")) {
+    const tag = route.split("/").at(-1);
+    if (existsSync(marker("release")) || tag === "v1.2.3") print({ tag_name: tag, html_url: "https://github.test/release" });
+    else { process.stderr.write("gh: Not Found (HTTP 404)"); process.exitCode = 1; }
+  } else if (method === "POST" && route === "repos/{owner}/{repo}/releases") {
+    writeFileSync(marker("release"), field("tag_name"));
+    print({ tag_name: field("tag_name"), html_url: "https://github.test/release" });
+  }
   else process.exitCode = 2;
 } else process.exitCode = 2;
 `,
