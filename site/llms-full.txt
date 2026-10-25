@@ -49,7 +49,7 @@ Validation runs inside Shopify during checkout: customer tax codes and PEC addre
 
 ## Trial and price
 
-The free trial lasts 14 days, once per store, with every feature and no automatic charge when it ends. Then merchants choose monthly, annual or one payment without renewals, with the same features and no order limits. The current price is shown on the Shopify App Store and inside the app, and the charge lands on the Shopify invoice.
+The free trial lasts 14 days, once per store, with every feature and no automatic charge when it ends. Then merchants choose monthly, annual or a one-time payment without renewals, with the same features and no order limits. The current price is shown on the Shopify App Store and inside the app, and the charge lands on the Shopify invoice.
 
 ## Contact
 

@@ -419,29 +419,25 @@ export const it = {
     monthlyPeriod: "al mese",
     annualPeriod: "all’anno",
     oneTimePeriod: "una sola volta",
-    monthlyDescription: "Si rinnova ogni mese finché non cancelli il rinnovo.",
-    annualDescription: (monthly: string) => `Equivale a ${monthly} al mese e si rinnova ogni anno.`,
+    monthlyDescription: "Si rinnova ogni mese. Puoi disdire in qualsiasi momento.",
+    annualDescription: (monthly: string) => `Un addebito l’anno, pari a ${monthly} al mese.`,
     monthlySwitch: "Passa al mensile",
     annualStart: "Attiva l’annuale",
     annualSwitch: "Passa all’annuale",
-    oneTimeSwitch: "Passa a un solo pagamento",
-    oneTimeStart: "Scegli un solo pagamento",
-    cancelRenewal: "Cancella il rinnovo",
+    oneTimeStart: "Scegli il pagamento unico",
+    cancelRenewal: "Disdici il rinnovo",
     cancelBody:
       "L’accesso resta fino alla fine del periodo corrente, senza credito per i giorni non usati. Regole e messaggi restano salvati.",
-    firstCharge: (date: string) =>
-      `Se attivi oggi, il primo addebito è il ${date}: i giorni di prova che restano non li perdi.`,
-    firstChargeAfterTrial:
-      "Se attivi oggi, il primo addebito arriva dopo la fine della prova: i giorni di prova che restano non li perdi.",
+    firstCharge: (date: string) => `Attiva quando vuoi: paghi solo dal ${date}.`,
+    firstChargeAfterTrial: "Attiva quando vuoi: paghi solo dopo la prova.",
     firstChargeNow: "L’addebito parte alla tua approvazione su Shopify.",
-    oneTimeCharge:
-      "Addebito unico alla tua approvazione su Shopify. I giorni di prova residui decadono.",
+    oneTimeCharge: "Un solo addebito, nessun rinnovo. La prova termina quando approvi.",
     oneTimeChargeNotStarted:
       "Addebito unico alla tua approvazione su Shopify. La prova gratuita non verrà avviata.",
     chooseNowHeading: "Scegli subito un piano",
-    chooseHeading: "Come vuoi continuare",
+    chooseHeading: "Scegli il piano",
     chooseBody:
-      "Le funzioni sono le stesse per ogni piano. Shopify gestisce gli addebiti nella fattura dello store.",
+      "Tutti i piani includono le stesse funzionalità. L’addebito arriva nella fattura Shopify.",
     // §14.11: formulazione approvata. §7.2 vieta «a vita», «per sempre», «illimitato» e
     // «senza limiti di tempo»: si dice cosa il pagamento include, senza promettere una durata.
     oneTimeSettled: "Include gli aggiornamenti dell’app e l’assistenza, senza costi aggiuntivi.",
@@ -457,7 +453,7 @@ export const it = {
     endingAlready: "Il rinnovo è cancellato: l’accesso resta fino alla fine del periodo corrente.",
     monthlyName: "Mensile",
     annualName: "Annuale",
-    oneTimeName: "Un solo pagamento",
+    oneTimeName: "Pagamento unico",
     creditExpected:
       "Shopify applicherà separatamente l’eventuale credito per il periodo non usato.",
     creditProcessing: "Stiamo verificando l’eventuale credito. Non devi fare nulla.",

@@ -29,7 +29,7 @@ const LABELS: Record<PlanKind, string> = {
   one_time: "CF Ready — pagamento unico",
 };
 
-// Un solo pagamento accanto alle sottoscrizioni è possibile solo con Manual Pricing.
+// Il pagamento unico accanto alle sottoscrizioni è possibile solo con Manual Pricing.
 const INTERVALS = {
   monthly: "EVERY_30_DAYS",
   annual: "ANNUAL",

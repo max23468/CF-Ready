@@ -1582,7 +1582,7 @@ test.each(
       )!
       .getBoundingClientRect();
     const banner = surfaceRect(home.container.querySelector("s-banner")!);
-    // La riga del titolo «Come vuoi continuare», non l'intera sezione.
+    // La riga del titolo «Scegli il piano», non l'intera sezione.
     const titleTop = sectionHeadingTop(plans);
     const above = banner.top - card.bottom;
     const below = titleTop - banner.bottom;

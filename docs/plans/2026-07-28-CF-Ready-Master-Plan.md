@@ -546,7 +546,7 @@ confronta con il contenuto servito all’edge.
 | D-067 | Condizione Italia sempre visibile e non modificabile, integrata accanto ai Paesi del simulatore invece che in un riquadro separato. | Il merchant deve capire l'automatismo nel punto esatto in cui ne vede l'effetto. |
 | D-068 | Riepilogo testuale dinamico seguito da un simulatore checkout interattivo, locale al browser e chiaramente dichiarato come anteprima. | Permette di provare regole, Paesi e messaggi effettivi senza salvare dati di prova né confondere la simulazione con il checkout Shopify reale. |
 | D-069 | Messaggi in tab Italiano/English, reset separato per lingua. | Evita di sovrascrivere entrambe le lingue. |
-| D-070 | Annuale evidenziato come “Consigliato”; una tantum come “Un solo pagamento”. | Evitare il titolo “Lifetime”. |
+| D-070 | Annuale evidenziato come “Consigliato”; una tantum come “Pagamento unico” (nome aggiornato dall’owner il 25 ottobre 2026, prima “Un solo pagamento”). | Evitare il titolo “Lifetime”. |
 | D-071 | Lingua UI automatica da Shopify; nessun selettore. | Ogni staff member vede la propria lingua, fallback inglese. |
 | D-072 | FAQ in pagina unica con sezioni espandibili. | Evita moltiplicazione di pagine. |
 | D-073 | Onboarding in quattro passaggi, riapribile senza reset. | Percorso guidato senza checklist permanente. |
@@ -2155,7 +2155,7 @@ Tutte le funzionalità sono uguali per tutti i piani commerciali:
 - nessuna differenza Basic/Pro;
 - nessuna funzione riservata a Shopify Plus;
 - prova comune di 14 giorni;
-- mensile, annuale o un solo pagamento.
+- mensile, annuale o pagamento unico.
 
 L’inclusione di un acquisto una tantum richiede Manual Pricing tramite Shopify Billing API. Non mescolare Shopify App Pricing e Billing API manuale.
 
@@ -2262,7 +2262,7 @@ Usare il replacement behavior Shopify `STANDARD`:
 - nessun calcolo custom;
 - mantenimento della pricing generation.
 
-### 14.8 Passaggio a “Un solo pagamento”
+### 14.8 Passaggio a “Pagamento unico”
 
 La logica approvata è credito pro rata del solo ciclo corrente non usufruito, non cumulo storico.
 
@@ -2357,11 +2357,11 @@ verificare`; non presenta il credito stimato come sconto immediato o costo netto
   manuale di fattura, rettifiche e payout;
 - policy definitiva approvata dall'owner il 2 agosto 2026.
 
-### 14.11 Comunicazione “Un solo pagamento”
+### 14.11 Comunicazione “Pagamento unico”
 
 Testo pubblico:
 
-> Un solo pagamento per questo store Shopify, senza rinnovi. Include gli
+> Pagamento unico per questo store Shopify, senza rinnovi. Include gli
 > aggiornamenti dell’app e l’assistenza, senza costi aggiuntivi.
 
 La formulazione precedente si chiudeva con «per la durata operativa del
@@ -2717,7 +2717,7 @@ Durante la prova:
 - avvisi interni a 7, 3 e 1 giorno;
 - tre modalità;
 - annuale evidenziato come `Consigliato`;
-- una tantum come `Un solo pagamento`;
+- una tantum come `Pagamento unico`;
 - nessuna email promemoria.
 
 Dopo l’acquisto:
