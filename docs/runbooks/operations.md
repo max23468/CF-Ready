@@ -752,8 +752,13 @@ verificandone il checksum, installa npm della stessa fonte, le dipendenze con
 già fatti. `mise` non serve nel cloud. Lo richiamano lo setup script
 dell'ambiente, il cui risultato resta in cache, e l'hook `SessionStart` di
 `.claude/settings.json`, che scrive il PATH in `CLAUDE_ENV_FILE`; lo script lo
-aggiunge anche a `~/.bashrc` per le sessioni in cui l'hook non gira. Un hook di
-progetto blocca Prettier come quello globale del Mac.
+mette anche nella prima riga di `~/.bashrc` per le sessioni in cui l'hook non
+gira, come quelle con più repository, dove la cartella di progetto è quella sopra
+i clone. Le shell non interattive leggono `~/.bashrc` solo fino al controllo di
+`PS1` iniziale: una riga in fondo non raggiunge i comandi, e senza `actionlint`
+`verify:change` si ferma su `quality:workflows` (prova del 25 ottobre 2026). Gli
+shim di mise aggiunti dopo dall'ambiente restano davanti e risolvono Node per
+cartella. Un hook di progetto blocca Prettier come quello globale del Mac.
 
 Nell'ambiente cloud (claude.ai/code, impostazioni dell'ambiente):
 
