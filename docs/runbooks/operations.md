@@ -630,9 +630,11 @@ la CI, unisce `develop` nel branch e riattende i check, al massimo tre volte:
 lo squash conserva così il tree verificato dalla PR. Il deploy Development accetta
 i gate dell'HEAD PR quando il commit unito ne conserva il tree, senza attendere
 che la CI di push li ripeta; lo stesso riuso vale per promozione e merge
-Production (D-162). Dopo il merge elimina il branch remoto ma lascia checkout e
-branch locale, così un retry riparte dallo stesso comando e dallo stesso
-worktree; il branch locale si rimuove a ciclo chiuso.
+Production (D-162). Dopo il merge il workflow `dependabot-automerge.yml` elimina
+il branch remoto unito in `develop`, perché le sessioni cloud non possono
+cancellare branch; checkout e branch locale restano, così un retry riparte dallo
+stesso comando e dallo stesso worktree, e il branch locale si rimuove a ciclo
+chiuso.
 
 Il coordinatore parla con GitHub solo tramite le API REST di `gh api` (D-197):
 nelle sessioni Claude Code nel cloud GraphQL è bloccato, quindi niente `gh pr`,

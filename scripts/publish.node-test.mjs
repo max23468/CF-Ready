@@ -592,10 +592,9 @@ if (command === "git") {
   else if (joined === "merge-base origin/main origin/develop") print("${mainSha}\\n");
   else if (joined === "merge-base origin/develop ${sourceSha}") print("${baseSha}\\n");
   else if (args[0] === "diff") print("M\\0app/routes/app._index.tsx\\0");
-  else if (joined === "ls-remote --heads origin codex/change") print(existsSync(marker("remote-deleted")) && mode !== "behind" ? "" : "${sourceSha}\\trefs/heads/codex/change\\n");
+  else if (joined === "ls-remote --heads origin codex/change") print("${sourceSha}\\trefs/heads/codex/change\\n");
   else if (args[0] === "push") {
     writeFileSync(marker("git-push"), joined + "\\n", { flag: "a" });
-    if (args.includes("--delete")) writeFileSync(marker("remote-deleted"), "ok");
   }
   else if (args[0] !== "fetch") process.exitCode = 2;
 } else if (command === "npm") {
@@ -747,7 +746,7 @@ if (command === "git") {
   assert.match(mergeArgs, /pulls\/11\/merge -f merge_method=merge -f sha=/);
   assert.equal(
     readFileSync(path.join(directory, ".git-push"), "utf8"),
-    "push --set-upstream origin codex/change\npush --quiet origin --delete codex/change\n",
+    "push --set-upstream origin codex/change\n",
   );
   assert.equal(
     readFileSync(path.join(directory, ".npm-calls"), "utf8"),

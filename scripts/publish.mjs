@@ -485,13 +485,6 @@ async function mergePullRequest({ number, headRefOid }, mergeMethod, attempts = 
   throw new Error(`La PR #${number} non è ancora unibile: ${reason}`);
 }
 
-// gh pr merge --delete-branch cancellerebbe anche il branch locale e sposterebbe il
-// checkout su develop: un retry dopo un deploy fallito non troverebbe più la modifica.
-function deleteRemoteBranch(branch) {
-  const remote = output("git", ["ls-remote", "--heads", "origin", branch]);
-  if (remote) execute("git", ["push", "--quiet", "origin", "--delete", branch]);
-}
-
 function workflowRuns(workflow, branch, sha) {
   return json("gh", [
     "run",
@@ -1024,7 +1017,6 @@ export async function publish(target) {
   sourceSha = developmentPr.headRefOid;
   record.sourceSha = sourceSha;
   const developSha = developmentPr.mergeCommit.oid;
-  deleteRemoteBranch(branch);
   if (!needsDevelopmentDeploy(developSha)) {
     console.log(
       "Deploy Development non necessario: nessuna superficie Development distribuita è cambiata.",
