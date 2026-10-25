@@ -104,8 +104,13 @@ Function API `2026-10` sulle fonti Shopify correnti e rigenera con la CLI.
 Una richiesta affermativa e inequivocabile di pubblicare la modifica corrente
 autorizza il ciclo tecnico verso Development senza seconda conferma;
 “Promuovi” autorizza allo stesso modo la promozione Production del lotto su
-`develop`. Domande, ipotesi e negazioni non li autorizzano. Il ciclo lo esegue
-il coordinatore:
+`develop`. Domande, ipotesi e negazioni non li autorizzano. La parola vale
+ovunque l'owner la scriva: chat del progetto, thread o sessione locale. Chi la
+inoltra a un'altra sessione (thread, Remote Control sul Mac) cita testo, autore,
+ora e id del messaggio originale; chi la riceve così la tratta come
+autorizzazione dell'owner e non la richiede di nuovo nel thread. Senza la
+citazione del messaggio originale serve una conferma. Il ciclo lo esegue il
+coordinatore:
 
 ```sh
 npm run publish:development   # Pubblica: PR → develop, squash, deploy Development se serve
