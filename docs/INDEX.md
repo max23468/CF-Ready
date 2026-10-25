@@ -68,6 +68,7 @@ I piani sono in [plans/](plans/), gli audit e le verifiche in
 - [ADR 0002](adr/0002-webhook-queue.md) — ACK webhook rapido con retry durevoli.
 - [ADR 0003](adr/0003-native-checkout-labels.md) — lettura, gestione e ripristino prudente delle etichette native del checkout.
 - [ADR 0004](adr/0004-cf-cli.md) — CLI `cf`, `cloudflare.config.ts` e residui Wrangler.
+- [ADR 0007](adr/0007-coordinator-in-actions.md) — coordinatore di pubblicazione in GitHub Actions.
 - [Brand Foundation](brand/brand-foundation.md) — identità e tono.
 - [Brand board](brand/brand-board.html) — riferimento visuale.
 - [Asset del brand](brand/assets/README.md) — file e modalità d’uso.
