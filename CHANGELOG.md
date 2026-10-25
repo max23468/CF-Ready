@@ -6,6 +6,14 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.5.11 — 25 ottobre 2026
+
+- Il testo del pagamento unico cita la fine della prova solo mentre la prova è in
+  corso; a prova scaduta o da un abbonamento indica soltanto addebito e rinnovi.
+
+The one-time payment copy mentions the trial ending only while the trial is
+running; after the trial or from a subscription it states only charge and renewals.
+
 ## 2.5.10 — 25 ottobre 2026
 
 - La scelta del piano ha testi più brevi: titolo «Scegli il piano», primo

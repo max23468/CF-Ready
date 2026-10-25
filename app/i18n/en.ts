@@ -430,7 +430,8 @@ export const en: typeof it = {
     firstCharge: (date: string) => `Start whenever you like: you only pay from ${date}.`,
     firstChargeAfterTrial: "Start whenever you like: you only pay after the trial.",
     firstChargeNow: "The charge starts as soon as you approve it on Shopify.",
-    oneTimeCharge: "One charge, no renewals. The trial ends when you approve.",
+    oneTimeCharge: "One charge, no renewals.",
+    oneTimeChargeTrial: "One charge, no renewals. The trial ends when you approve.",
     oneTimeChargeNotStarted:
       "One charge as soon as you approve it on Shopify. The free trial will not be started.",
     chooseNowHeading: "Choose a plan now",
