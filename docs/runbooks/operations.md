@@ -584,6 +584,23 @@ npm run promote:production    # Promuovi, da qualsiasi checkout
 npm run publish:production    # Pubblica in Production, i due passi insieme
 ```
 
+Il coordinatore gira nel workflow `publish.yml` (D-198, [ADR 0007](../adr/0007-coordinator-in-actions.md)).
+I comandi sono l'unico percorso, sul Mac come in una sessione cloud: eseguono il
+gate locale, riallineano e pubblicano il branch, avviano il workflow da
+`develop` e ne mostrano stato e step almeno ogni cinque minuti fino all'esito.
+Dopo l'avvio chiudere la sessione o spegnere il Mac non ferma la pubblicazione:
+rilanciare lo stesso comando riaggancia il run attivo, o ne avvia uno nuovo se
+l'ultimo è fallito, e in quel caso mostra la coda del log del passo fallito. Il
+titolo del run contiene operazione, branch e commit ed è il legame fra avvio e
+run. La concorrenza `publication` esegue un ciclo alla volta.
+
+Il workflow usa il PAT fine-grained dell'owner nel secret `PUBLISH_TOKEN`
+dell'environment `Publication`, limitato a `develop`: con il `GITHUB_TOKEN` PR e
+merge non avvierebbero CI né `reconcile-develop`. Copia il coordinatore da
+`develop` prima di passare al candidato e controlla che il branch remoto sia
+ancora sul commit verificato; un branch già unito ed eliminato si recupera dal
+commit.
+
 Prima di ogni release completare i
 [controlli ufficiali Shopify e la prova del candidato](shopify-release-security-checks.md).
 La review del coding agent è un passaggio operativo: i gate CI e il coordinatore
@@ -619,8 +636,10 @@ GitHub rende una cache creata in una PR visibile solo a quella PR, e su `develop
 i job browser girano di rado: `playwright-cache.yml` ogni giorno, e quando cambia
 Playwright, riempie su `develop` la cache dei tre insiemi di browser senza fretta.
 Con una nuova immagine runner il ripiego parte dai pacchetti dello stesso insieme.
-Prima del push il coordinatore riallinea il branch a `develop` con un rebase;
-un conflitto ferma il ciclo. Prima dello squash merge attende tutti i
+Prima del push il comando riallinea il branch a `develop` con un rebase;
+un conflitto ferma il ciclo. Se il coordinatore ha già unito `develop` nel
+branch durante la CI, il comando porta avanti il checkout locale prima di
+decidere. Prima dello squash merge il coordinatore attende tutti i
 check obbligatori del ruleset `develop`, anche quelli non ancora registrati come
 `mutation`, e la fine di promozioni o deploy di un'altra pubblicazione,
 così `develop` non avanza sotto un ciclo in corso. Legge tutti i check della PR:
@@ -636,17 +655,14 @@ cancellare branch; checkout e branch locale restano, così un retry riparte dall
 stesso comando e dallo stesso worktree, e il branch locale si rimuove a ciclo
 chiuso.
 
-Il coordinatore parla con GitHub solo tramite le API REST di `gh api` (D-197):
-nelle sessioni Claude Code nel cloud GraphQL è bloccato, quindi niente `gh pr`,
+Comando e coordinatore parlano con GitHub solo tramite REST (D-197): nelle
+sessioni Claude Code nel cloud GraphQL è bloccato, quindi niente `gh pr`,
 `gh release` o auto-merge. Il merge parte quando i check obbligatori della base
 sono verdi, anche per la promozione verso `main`; se GitHub lo rifiuta perché
 altre regole del branch, come code scanning, non sono ancora concluse, riprova
 con la stessa attesa crescente e si ferma subito su conflitti o PR in bozza.
-In una sessione cloud l'hook `.claude/hooks/session-start.sh` installa Node, npm
-e actionlint da `mise.toml` e le dipendenze con `npm ci`, così i comandi girano
-come sul Mac. I deploy usano i segreti dei workflow GitHub e non chiedono
-credenziali alla sessione; le ricevute in `cf-ready-publications` restano nel
-container e una sessione nuova ripete al più il gate locale.
+I deploy usano i segreti dei workflow GitHub e non chiedono credenziali alla
+sessione.
 
 `promote:production` promuove il tip di `develop` (D-191). Riusa la ricevuta
 dell'ultimo deploy Development riuscito se dopo quel commit non è cambiata una
@@ -707,15 +723,17 @@ derivato dal contenuto e aggiorna i riferimenti HTML nella copia preparata: ogni
 modifica produce quindi un URL nuovo anche se una regola cache del dominio
 mantiene gli asset precedenti. Lo smoke scarica entrambi gli asset versionati e
 li confronta con la sorgente. I workflow provider restano manuali e vincolati al
-proprio branch; il comando li avvia tramite l'identità GitHub dell'operatore.
+proprio branch; il coordinatore li avvia con il PAT dell'owner.
 Eseguire questi comandi costituisce un'azione remota e richiede l'autorizzazione
 prevista da `AGENTS.md`.
 
 L'attesa cresce da cinque a dieci secondi, entro i timeout originali, e mostra
-le transizioni di fase. Stato e durate vengono salvati anche nei tentativi
-falliti, senza registrare payload o errori provider non sanitizzati.
-A ciclo chiuso il coordinatore scarica e valida le
-ricevute Worker/Shopify e conserva durate, prove e risultato della pulizia in
+le transizioni di fase nel log del run. Stato e durate vengono salvati anche nei
+tentativi falliti, senza registrare payload o errori provider non sanitizzati,
+nell'artifact `publication-record` del run.
+Il coordinatore scarica e valida le ricevute Worker/Shopify; a ciclo chiuso il
+comando scarica la ricevuta del ciclo, ne mostra fasi, durate e deployment e la
+conserva con il risultato della pulizia in
 `cf-ready-publications/<source-sha>.json`, o `promotion-<develop-sha>.json` per
 `promote:production`, nella directory Git comune. Elimina
 solo il branch temporaneo `codex/` pulito, ancora sul candidato e con tree
@@ -724,6 +742,56 @@ privo di file ignorati non generati. I worktree gestiti da Codex restano alla
 pulizia dell'host, che li archivia con la relativa ricevuta. Conserva gli altri checkout e dichiara il
 motivo nella ricevuta. Il worktree e il branch locali restano disponibili fino
 alla chiusura del ciclo, così gli errori precedenti alla pulizia sono riprendibili.
+
+### Sessione cloud
+
+Una sessione Claude Code nel cloud si prepara con `.claude/cloud-setup.sh`:
+scarica Node e actionlint nelle versioni di `mise.toml` dai rilasci ufficiali,
+verificandone il checksum, installa npm della stessa fonte, le dipendenze con
+`npm ci` e Chromium di Playwright con le dipendenze di sistema, e salta i passi
+già fatti. `mise` non serve nel cloud. Lo richiamano lo setup script
+dell'ambiente, il cui risultato resta in cache, e l'hook `SessionStart` di
+`.claude/settings.json`, che scrive il PATH in `CLAUDE_ENV_FILE`; lo script lo
+aggiunge anche a `~/.bashrc` per le sessioni in cui l'hook non gira. Un hook di
+progetto blocca Prettier come quello globale del Mac.
+
+Nell'ambiente cloud (claude.ai/code, impostazioni dell'ambiente):
+
+- accesso di rete *Full*, scelto dall'owner; con *Custom* servono, oltre alla
+  lista predefinita, `*.githubusercontent.com` per actionlint,
+  `cdn.playwright.dev` e `playwright.download.prss.microsoft.com` per Chromium;
+- nello setup script, condiviso con gli altri progetti, un blocco che parte solo
+  se trova il clone di CF-Ready, riconosciuto dal `package.json`, e non blocca l'ambiente se fallisce:
+
+```bash
+for setup in $(find / -maxdepth 6 \( -path /proc -o -path /sys -o -name node_modules \) -prune -o -path '*/.claude/cloud-setup.sh' -print 2>/dev/null); do
+  if grep -q '"name": "cf-ready"' "${setup%/.claude/cloud-setup.sh}/package.json" 2>/dev/null; then
+    bash "$setup" || echo "Setup CF-Ready non riuscito: lo ripete l'hook di sessione."
+  fi
+done
+```
+
+Se la cache dell'ambiente nasce dalla sessione di un altro progetto, il blocco
+non trova il clone e l'hook `SessionStart` esegue lo stesso script alla prima
+sessione CF-Ready. Gli strumenti stanno in `~/.cache/cf-ready-tools`. Se
+l'immagine imposta `PLAYWRIGHT_BROWSERS_PATH`, come la VM cloud con
+`/opt/pw-browsers`, Chromium sta lì e non in `~/.cache/ms-playwright`: lo
+script legge già quella variabile.
+
+Nel cloud `gh auth status` segnala il token come non valido anche quando le
+chiamate REST funzionano: l'accesso si controlla con
+`gh api 'repos/{owner}/{repo}'` (prova del 25 ottobre 2026).
+
+Il clone del cloud è superficiale e può essere limitato a un branch: prima di
+gate e rebase il comando completa la storia con `git fetch --unshallow` e
+scarica `develop` e `main`. Il download degli artifact passa da uno storage
+esterno che la rete può bloccare, quindi la ricevuta del ciclo è facoltativa per il comando: l'esito è quello del
+run letto via REST e la pulizia usa i commit della PR unita.
+
+Le preferenze personali dell'owner non stanno nel repository: lo setup script
+può scriverle in `~/.claude/CLAUDE.md`. La sessione non riceve segreti
+Cloudflare, Shopify o Telegram; le operazioni che li richiedono restano ai
+workflow.
 
 ## Deploy Production
 

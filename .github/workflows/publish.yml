@@ -1,0 +1,108 @@
+name: Pubblicazione
+
+# Il nome del run lega l'avvio REST del comando npm al run da seguire (D-198).
+run-name: Pubblicazione ${{ inputs.operation }} ${{ inputs.branch }} ${{ inputs.sha }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: development, production o promote
+        required: true
+        type: choice
+        options:
+          - development
+          - production
+          - promote
+      branch:
+        description: Branch della modifica; develop per promote
+        required: true
+        type: string
+      sha:
+        description: Commit verificato dal gate locale; tip di develop per promote
+        required: true
+        type: string
+
+# PR, merge, push, deploy e release usano il PAT dell'owner: con il GITHUB_TOKEN PR e
+# merge non avvierebbero CI né riconciliazione.
+permissions:
+  contents: read
+
+concurrency:
+  group: publication
+  cancel-in-progress: false
+
+jobs:
+  coordinate:
+    name: Coordinatore
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    environment: Publication
+    steps:
+      - name: Verifica branch e input
+        env:
+          OPERATION: ${{ inputs.operation }}
+          BRANCH: ${{ inputs.branch }}
+          SHA: ${{ inputs.sha }}
+        run: |
+          test "$GITHUB_REF" = "refs/heads/develop"
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]
+          if [ "$OPERATION" = promote ]; then
+            test "$BRANCH" = develop
+          else
+            [[ "$BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]]
+            test "$BRANCH" != develop && test "$BRANCH" != main
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PUBLISH_TOKEN }}
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26.12.0
+
+      # Il ciclo cambia solo passando da develop: il candidato non esegue il proprio coordinatore.
+      - name: Copia il coordinatore di develop
+        run: cp -R scripts "$RUNNER_TEMP/coordinator"
+
+      - name: Identità Git dell'owner
+        env:
+          GH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        run: |
+          read -r id login < <(gh api user --jq '"\(.id) \(.login)"')
+          git config user.name "$login"
+          git config user.email "$id+$login@users.noreply.github.com"
+
+      - name: Checkout del candidato
+        if: inputs.operation != 'promote'
+        env:
+          BRANCH: ${{ inputs.branch }}
+          SHA: ${{ inputs.sha }}
+        run: |
+          git fetch --quiet origin "$SHA"
+          remote="$(git ls-remote --heads origin "$BRANCH" | cut -f1)"
+          if [ -n "$remote" ] && [ "$remote" != "$SHA" ]; then
+            echo "::error::$BRANCH è avanzato dopo l'avvio: rilancia il comando dal checkout aggiornato."
+            exit 1
+          fi
+          git switch --quiet -c "$BRANCH" "$SHA"
+          if [ -n "$remote" ]; then git branch --quiet --set-upstream-to "origin/$BRANCH"; fi
+
+      - name: Coordinatore
+        env:
+          GH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          OPERATION: ${{ inputs.operation }}
+          CF_READY_PUBLICATION_RECORD: ${{ runner.temp }}/publication-record.json
+        run: node "$RUNNER_TEMP/coordinator/publish.mjs" --coordinate "$OPERATION"
+
+      - name: Ricevuta del ciclo
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: publication-record
+          path: ${{ runner.temp }}/publication-record.json
+          if-no-files-found: ignore
+          retention-days: 90
