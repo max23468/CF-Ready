@@ -29,7 +29,7 @@
   }
 }
 
-/* Il banner della prova sta tra la card della validazione e il titolo «Come vuoi continuare» e
+/* Il banner della prova sta tra la card della validazione e il titolo «Scegli il piano» e
    ne resta equidistante. Con Polaris 2 il titolo di sezione, fuori dalla card, ha 19 px di
    respiro sopra il testo contro i 16 px che separano il banner dalla card: si compensa sopra.
    Con Polaris 1 il titolo sta dentro la card e le due distanze sono già 16 px. */

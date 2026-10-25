@@ -95,10 +95,10 @@ Formulazioni approvate riutilizzabili come sono (§4.3, §16.3, §14.11):
 
 - promessa breve: «Mai più ordini da fatturare senza Codice Fiscale.»
 - formulazione prudente: «Per i merchant che devono emettere fattura elettronica per gli ordini B2C, CF Ready impedisce che un cliente completi un ordine italiano senza aver compilato un Codice Fiscale formalmente valido.»
-- una tantum: «Un solo pagamento per questo store, senza rinnovi. Include l'app e i suoi aggiornamenti finché il servizio resta attivo.»
+- una tantum: «Pagamento unico per questo store, senza rinnovi. Include l'app e i suoi aggiornamenti finché il servizio resta attivo.»
 - disponibilità: «CF Ready è disponibile per gli store di qualunque Paese. Le regole si applicano quando la fatturazione è italiana o non ancora disponibile e almeno una consegna è italiana. Senza un Paese di consegna, si applicano soltanto ai campi fiscali italiani presenti. Non si applicano con fatturazione estera o sole consegne estere.»
 
-Altri vincoli linguistici: evitare "lifetime" come titolo contrattuale, usare `Un solo pagamento` (D-070); annuale etichettato `Consigliato` (D-070); badge `Prezzo di lancio` con data esatta e **niente countdown** (§14.3); IT ed EN semanticamente allineati (§16.4); prevalenza della versione italiana nei documenti legali (D-074); Controlled Launch non comunicato come beta o pilot (D-093); nessun incentivo alle recensioni (D-088, FR-095); listing, FAQ e Termini devono dichiarare che le generazioni successive degli ordini in abbonamento non sono coperte (FR-099).
+Altri vincoli linguistici: evitare "lifetime" come titolo contrattuale, usare `Pagamento unico` (D-070); annuale etichettato `Consigliato` (D-070); badge `Prezzo di lancio` con data esatta e **niente countdown** (§14.3); IT ed EN semanticamente allineati (§16.4); prevalenza della versione italiana nei documenti legali (D-074); Controlled Launch non comunicato come beta o pilot (D-093); nessun incentivo alle recensioni (D-088, FR-095); listing, FAQ e Termini devono dichiarare che le generazioni successive degli ordini in abbonamento non sono coperte (FR-099).
 
 ### 1.5 Vincoli su sito, listing e screenshot
 
@@ -467,7 +467,7 @@ CF Ready
 | L'azione | attivare / disattivare nel checkout | abilitare, accendere, pubblicare, deployare |
 | Lo stato | attiva / disattivata / non gestito | on/off, spenta, inattiva |
 | Il campo Shopify | campo nativo del checkout italiano | campo custom, campo aggiuntivo, nostro campo |
-| L'acquisto singolo | Un solo pagamento | Lifetime, a vita, per sempre, illimitato |
+| L'acquisto singolo | Pagamento unico | Lifetime, a vita, per sempre, illimitato |
 | Il piano annuale | Consigliato | Migliore offerta, Risparmia il 17% |
 | Il periodo gratuito | prova di 14 giorni | trial, periodo di test, demo |
 

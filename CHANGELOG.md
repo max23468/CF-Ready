@@ -6,6 +6,17 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.5.10 — 25 ottobre 2026
+
+- La scelta del piano ha testi più brevi: titolo «Scegli il piano», primo
+  addebito a fine prova, rinnovo mensile e annuale, bottone «Disdici il rinnovo».
+- La modalità senza rinnovi si chiama «Pagamento unico» nell'app, nel sito, nei
+  Termini e nel listing (D-070).
+
+Plan selection uses shorter copy: "Choose your plan", first charge after the
+trial, monthly and annual renewal wording. The no-renewal option is called
+"One-time payment" in the app, site, Terms and listing (D-070).
+
 ## 2.5.9 — 24 ottobre 2026
 
 - Function e simulatore condividono le decisioni su Paese, campi assenti e

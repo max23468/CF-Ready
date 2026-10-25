@@ -120,7 +120,7 @@ Features shown for the monthly/annual plan:
 Features shown for the one-time plan:
 
 - `Charge: €89.90 for one store`
-- `One payment, no renewal`
+- `One-time payment, no renewal`
 - `Same features as the subscription`
 - `Codice Fiscale and PEC at checkout`
 - `All updates included`

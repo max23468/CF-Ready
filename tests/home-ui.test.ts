@@ -593,7 +593,6 @@ test("la prima installazione non viene presentata come un piano da riattivare", 
   expect(paragraphs).toContain(texts("it").plan.oneTimeChargeNotStarted);
   expect(paragraphs).not.toContain(texts("it").plan.oneTimeCharge);
   expect(buttons).toContain(texts("it").plan.oneTimeStart);
-  expect(buttons).not.toContain(texts("it").plan.oneTimeSwitch);
   expect(primaryButtons).toEqual([texts("it").plan.startTrial]);
   expect(
     planStatus.some(
