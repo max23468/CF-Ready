@@ -17,11 +17,15 @@ import { fileURLToPath } from "node:url";
 import {
   checksFromRest,
   checksOutcome,
+  coordinate,
+  describeRecord,
   isPipelineBusy,
   isReconciled,
   latestWorkflowRun,
   localGateCommands,
+  matchingPublicationRun,
   parseTarget,
+  publicationTitle,
   selectWorkflowRun,
   pollingDelay,
   validatePublishReceipt,
@@ -383,6 +387,7 @@ if (command === "git") {
   else if (joined === "branch --show-current") print(mode === "main" ? "main\\n" : "codex/change\\n");
   else if (joined === "rev-parse HEAD" || joined === "rev-parse refs/heads/codex/change") print("${sourceSha}\\n");
   else if (joined === "rev-parse --git-common-dir") print(".git\\n");
+  else if (joined === "rev-parse --is-shallow-repository") print((mode === "shallow" ? "true" : "false") + "\\n");
   else if (/^rev-parse [0-9a-f]{40}:site$/.test(joined)) print("site-tree\\n");
   else if (joined === "ls-remote origin refs/heads/develop") print((mode === "develop-advanced" ? "${sourceSha}" : "${developSha}") + "\\trefs/heads/develop\\n");
   else if (joined === "ls-remote origin refs/heads/main") print("${mainSha}\\trefs/heads/main\\n");
@@ -447,13 +452,14 @@ if (command === "git") {
 
   const docs = spawnSync(
     process.execPath,
-    [path.join(root, "scripts", "publish.mjs"), "--target", "development"],
+    [path.join(root, "scripts", "publish.mjs"), "--coordinate", "development"],
     {
       cwd: directory,
       encoding: "utf8",
       env: {
         ...process.env,
         CF_READY_PUBLISH_POLL_MS: "1",
+        GITHUB_ACTIONS: "true",
         FAIL_MODE: "docs",
         PATH: `${bin}${path.delimiter}${process.env.PATH}`,
       },
@@ -506,13 +512,14 @@ if (command === "git") {
   for (const target of ["development", "production"]) {
     const result = spawnSync(
       process.execPath,
-      [path.join(root, "scripts", "publish.mjs"), "--target", target],
+      [path.join(root, "scripts", "publish.mjs"), "--coordinate", target],
       {
         cwd: directory,
         encoding: "utf8",
         env: {
           ...process.env,
           CF_READY_PUBLISH_POLL_MS: "1",
+          GITHUB_ACTIONS: "true",
           PATH: `${bin}${path.delimiter}${process.env.PATH}`,
         },
       },
@@ -561,6 +568,7 @@ if (command === "git") {
   else if (joined === "branch --show-current") print(mode === "main" ? "main\\n" : "codex/change\\n");
   else if (joined === "rev-parse HEAD" || joined === "rev-parse refs/heads/codex/change") print("${sourceSha}\\n");
   else if (joined === "rev-parse --git-common-dir") print(".git\\n");
+  else if (joined === "rev-parse --is-shallow-repository") print((mode === "shallow" ? "true" : "false") + "\\n");
   else if (joined === "log --reverse --format=%s%x1f%b%x1e origin/develop..HEAD") print("feat: modifica\\x1fCorpo\\x1e\\n");
   else if (["${mainSha}", "${developSha}", "${reconciledSha}"].some((sha) => joined === "rev-parse " + sha + ":site")) print("site-tree-new\\n");
   else if (/^rev-parse [0-9a-f]{40}:site$/.test(joined)) print("site-tree-old\\n");
@@ -575,12 +583,12 @@ if (command === "git") {
   else if (["${developSha}", "${reconciledSha}", "${mainSha}", "${sourceSha}"].some((sha) => joined === "show " + sha + ":package.json")) print('{"version":"1.2.4"}\\n');
   else if (args[0] === "show" && args[1].endsWith(":package.json")) print('{"version":"1.2.3"}\\n');
   else if (joined === "merge-base --is-ancestor ${noDeployMainSha} ${developSha}") process.exitCode = 1;
-  else if (joined === "merge-base --is-ancestor origin/develop HEAD" && ["behind", "advanced", "rebase-conflict", "merge-conflict"].includes(mode)) {
-    // behind: indietro prima del push; advanced: develop avanza durante la CI.
+  else if (joined === "merge-base --is-ancestor origin/develop HEAD" && ["advanced", "merge-conflict"].includes(mode)) {
+    // develop avanza durante la CI una sola volta.
     const file = marker("ancestor-" + mode);
     const calls = Number(existsSync(file) ? readFileSync(file, "utf8") : 0) + 1;
     writeFileSync(file, String(calls));
-    process.exitCode = calls === (["behind", "rebase-conflict"].includes(mode) ? 1 : 2) ? 1 : 0;
+    process.exitCode = calls === 1 ? 1 : 0;
   }
   else if (args[0] === "rebase" || args[0] === "merge") {
     writeFileSync(marker("git-" + args[0]), joined + "\\n", { flag: "a" });
@@ -697,13 +705,14 @@ if (command === "git") {
 
   const result = spawnSync(
     process.execPath,
-    [path.join(root, "scripts", "publish.mjs"), "--target", "production"],
+    [path.join(root, "scripts", "publish.mjs"), "--coordinate", "production"],
     {
       cwd: directory,
       encoding: "utf8",
       env: {
         ...process.env,
         CF_READY_PUBLISH_POLL_MS: "1",
+        GITHUB_ACTIONS: "true",
         PATH: `${bin}${path.delimiter}${process.env.PATH}`,
       },
     },
@@ -727,7 +736,6 @@ if (command === "git") {
   assert.match(releaseArgs, /-f tag_name=v1\.2\.4 /);
   assert.match(releaseArgs, new RegExp(`-f target_commitish=${mainSha} `));
   assert.match(releaseArgs, /-F generate_release_notes=true$/m);
-  assert.match(result.stdout, /Gate locale della corsia standard prima del push/);
   assert.match(result.stdout, /PR #10: attendo i check obbligatori/);
   assert.ok(existsSync(path.join(directory, ".mutation-waited")));
   // Tutti i check della PR, non solo gli obbligatori: un job CI fallito emerge subito.
@@ -748,46 +756,19 @@ if (command === "git") {
     readFileSync(path.join(directory, ".git-push"), "utf8"),
     "push --set-upstream origin codex/change\n",
   );
-  assert.equal(
-    readFileSync(path.join(directory, ".npm-calls"), "utf8"),
-    `run check:local\nrun test:changed -- ${baseSha}\nrun test:ui:changed -- ${baseSha}\n`,
-  );
-
-  const behind = spawnSync(
-    process.execPath,
-    [path.join(root, "scripts", "publish.mjs"), "--target", "development"],
-    {
-      cwd: directory,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CF_READY_PUBLISH_POLL_MS: "1",
-        FAIL_MODE: "behind",
-        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
-      },
-    },
-  );
-  assert.equal(behind.status, 0, behind.stderr);
-  assert.match(behind.stdout, /codex\/change riallineato a develop prima del push/);
-  assert.equal(
-    readFileSync(path.join(directory, ".git-rebase"), "utf8"),
-    "rebase origin/develop\n",
-  );
-  // Un branch già presente su GitHub si aggiorna solo se nessuno lo ha cambiato nel frattempo.
-  assert.match(
-    readFileSync(path.join(directory, ".git-push"), "utf8"),
-    /^push --quiet --force-with-lease origin codex\/change$/m,
-  );
+  // Gate locale e riallineamento restano al comando che avvia il workflow.
+  assert.equal(existsSync(path.join(directory, ".npm-calls")), false);
 
   const advanced = spawnSync(
     process.execPath,
-    [path.join(root, "scripts", "publish.mjs"), "--target", "development"],
+    [path.join(root, "scripts", "publish.mjs"), "--coordinate", "development"],
     {
       cwd: directory,
       encoding: "utf8",
       env: {
         ...process.env,
         CF_READY_PUBLISH_POLL_MS: "1",
+        GITHUB_ACTIONS: "true",
         FAIL_MODE: "advanced",
         PATH: `${bin}${path.delimiter}${process.env.PATH}`,
       },
@@ -807,13 +788,14 @@ if (command === "git") {
 
   const pendingMerge = spawnSync(
     process.execPath,
-    [path.join(root, "scripts", "publish.mjs"), "--target", "development"],
+    [path.join(root, "scripts", "publish.mjs"), "--coordinate", "development"],
     {
       cwd: directory,
       encoding: "utf8",
       env: {
         ...process.env,
         CF_READY_PUBLISH_POLL_MS: "1",
+        GITHUB_ACTIONS: "true",
         FAIL_MODE: "merge-pending",
         PATH: `${bin}${path.delimiter}${process.env.PATH}`,
       },
@@ -825,13 +807,14 @@ if (command === "git") {
 
   const queued = spawnSync(
     process.execPath,
-    [path.join(root, "scripts", "publish.mjs"), "--target", "development"],
+    [path.join(root, "scripts", "publish.mjs"), "--coordinate", "development"],
     {
       cwd: directory,
       encoding: "utf8",
       env: {
         ...process.env,
         CF_READY_PUBLISH_POLL_MS: "1",
+        GITHUB_ACTIONS: "true",
         FAIL_MODE: "busy",
         PATH: `${bin}${path.delimiter}${process.env.PATH}`,
       },
@@ -842,13 +825,14 @@ if (command === "git") {
 
   const stale = spawnSync(
     process.execPath,
-    [path.join(root, "scripts", "publish.mjs"), "--target", "development"],
+    [path.join(root, "scripts", "publish.mjs"), "--coordinate", "development"],
     {
       cwd: directory,
       encoding: "utf8",
       env: {
         ...process.env,
         CF_READY_PUBLISH_POLL_MS: "1",
+        GITHUB_ACTIONS: "true",
         FAIL_MODE: "stale-head",
         PATH: `${bin}${path.delimiter}${process.env.PATH}`,
       },
@@ -860,13 +844,14 @@ if (command === "git") {
 
   const linked = spawnSync(
     process.execPath,
-    [path.join(root, "scripts", "publish.mjs"), "--target", "production"],
+    [path.join(root, "scripts", "publish.mjs"), "--coordinate", "production"],
     {
       cwd: directory,
       encoding: "utf8",
       env: {
         ...process.env,
         CF_READY_PUBLISH_POLL_MS: "1",
+        GITHUB_ACTIONS: "true",
         FAIL_MODE: "no-deploy-main",
         PATH: `${bin}${path.delimiter}${process.env.PATH}`,
       },
@@ -882,13 +867,14 @@ if (command === "git") {
 
   const retried = spawnSync(
     process.execPath,
-    [path.join(root, "scripts", "publish.mjs"), "--target", "production"],
+    [path.join(root, "scripts", "publish.mjs"), "--coordinate", "production"],
     {
       cwd: directory,
       encoding: "utf8",
       env: {
         ...process.env,
         CF_READY_PUBLISH_POLL_MS: "1",
+        GITHUB_ACTIONS: "true",
         FAIL_MODE: "old-failed-run",
         PATH: `${bin}${path.delimiter}${process.env.PATH}`,
       },
@@ -898,8 +884,6 @@ if (command === "git") {
 
   for (const [mode, message] of [
     ["dirty", /worktree deve essere pulito/],
-    ["gate-failed", /npm run check:local non riuscito/],
-    ["rebase-conflict", /non si riallinea a develop senza conflitti/],
     ["merge-conflict", /non si unisce a develop senza conflitti/],
     ["checks-failed", /La PR #10 ha check falliti: verify/],
     ["merge-failed", /La PR #10 ha conflitti con la base/],
@@ -913,13 +897,14 @@ if (command === "git") {
   ]) {
     const failed = spawnSync(
       process.execPath,
-      [path.join(root, "scripts", "publish.mjs"), "--target", "production"],
+      [path.join(root, "scripts", "publish.mjs"), "--coordinate", "production"],
       {
         cwd: directory,
         encoding: "utf8",
         env: {
           ...process.env,
           CF_READY_PUBLISH_POLL_MS: "1",
+          GITHUB_ACTIONS: "true",
           FAIL_MODE: mode,
           PATH: `${bin}${path.delimiter}${process.env.PATH}`,
         },
@@ -938,6 +923,261 @@ if (command === "git") {
       assert.equal(record.phases.at(-1).status, "failed");
       assert.equal(record.activePhase, "Deploy e readback Development");
     }
+  }
+});
+
+test("il titolo lega l'avvio al run del coordinatore e la ricevuta si riassume", () => {
+  const title = publicationTitle({
+    operation: "development",
+    branch: "codex/change",
+    sha: sourceSha,
+  });
+  assert.equal(title, `Pubblicazione development codex/change ${sourceSha}`);
+  const workflow = readFileSync(path.join(root, ".github/workflows/publish.yml"), "utf8");
+  assert.match(
+    workflow,
+    /^run-name: Pubblicazione \$\{\{ inputs\.operation \}\} \$\{\{ inputs\.branch \}\} \$\{\{ inputs\.sha \}\}$/m,
+  );
+  const runs = [
+    { databaseId: 3, displayTitle: title },
+    { databaseId: 5, displayTitle: title },
+    { databaseId: 9, displayTitle: "Pubblicazione development altro" },
+  ];
+  assert.equal(matchingPublicationRun(runs, title).databaseId, 5);
+  assert.equal(matchingPublicationRun(runs, title, 5), undefined);
+  assert.equal(
+    describeRecord({
+      phases: [{ name: "PR Development e merge", status: "success", milliseconds: 1_400 }],
+      receipts: [
+        {
+          environment: "Development",
+          commit: developSha,
+          worker: { deploymentId: "deployment", versionId: "worker" },
+          shopify: { versionTag: "1.2.4-dev.tree" },
+        },
+      ],
+      releaseUrl: "https://github.test/release",
+    }),
+    `- PR Development e merge: success, 1 s\n- Development ${developSha}: Worker deployment/worker, Shopify 1.2.4-dev.tree\n- Release: https://github.test/release`,
+  );
+  const previous = process.env.GITHUB_ACTIONS;
+  process.env.GITHUB_ACTIONS = "";
+  try {
+    assert.throws(() => coordinate("development"), /solo nel workflow publish\.yml/);
+    process.env.GITHUB_ACTIONS = "true";
+    assert.throws(() => coordinate("deploy"), /Operazione sconosciuta/);
+  } finally {
+    if (previous === undefined) delete process.env.GITHUB_ACTIONS;
+    else process.env.GITHUB_ACTIONS = previous;
+  }
+});
+
+test("il comando verifica e pubblica il branch, poi avvia o riaggancia il coordinatore", (t) => {
+  const aheadSha = "4".repeat(40);
+  const dispatch = (mode, args = ["--target", "development"]) => {
+    const directory = mkdtempSync(path.join(tmpdir(), `cf-ready-dispatch-${mode}-`));
+    const bin = path.join(directory, "bin");
+    const provider = path.join(bin, "provider.mjs");
+    t.after(() => rmSync(directory, { recursive: true, force: true }));
+    mkdirSync(bin);
+    writeFileSync(path.join(directory, "package.json"), '{"version":"1.2.4"}\n');
+    writeFileSync(
+      provider,
+      `#!/usr/bin/env node
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
+const command = path.basename(process.argv[1]);
+const args = process.argv.slice(2);
+const mode = process.env.FAIL_MODE || "";
+const value = (name) => args[args.indexOf(name) + 1];
+const marker = (name) => path.join(process.cwd(), "." + name);
+const print = (payload) => process.stdout.write(typeof payload === "string" ? payload : JSON.stringify(payload));
+const route = args.find((arg) => arg.startsWith("repos/")) ?? "";
+const count = (name) => { const calls = Number(existsSync(marker(name)) ? readFileSync(marker(name), "utf8") : 0) + 1; writeFileSync(marker(name), String(calls)); return calls; };
+const title = (operation, branch, sha) => "Pubblicazione " + operation + " " + branch + " " + sha;
+const initialRuns = mode === "running" ? [{ databaseId: 7, displayTitle: title("development", "codex/change", "${sourceSha}"), status: "in_progress", conclusion: "", url: "https://github.test/run/7" }]
+  : mode === "failed-before" ? [{ databaseId: 6, displayTitle: title("development", "codex/change", "${sourceSha}"), status: "completed", conclusion: "failure", url: "https://github.test/run/6" }] : [];
+const runs = () => existsSync(marker("runs")) ? JSON.parse(readFileSync(marker("runs"), "utf8")) : initialRuns;
+const head = () => existsSync(marker("ff")) ? "${aheadSha}" : "${sourceSha}";
+if (command === "git") {
+  const joined = args.join(" ");
+  if (joined === "status --porcelain") print(mode === "dirty" ? " M file\\n" : "");
+  else if (joined === "branch --show-current") print("codex/change\\n");
+  else if (joined === "ls-remote --heads origin codex/change") print((mode === "remote-ahead" ? "${aheadSha}" : "${sourceSha}") + "\\trefs/heads/codex/change\\n");
+  else if (joined === "rev-parse HEAD" || joined === "rev-parse refs/heads/codex/change") print(head() + "\\n");
+  else if (joined === "rev-parse origin/develop") print("${developSha}\\n");
+  else if (joined === "rev-parse --git-common-dir") print(".git\\n");
+  else if (joined === "rev-parse --is-shallow-repository") print((mode === "shallow" ? "true" : "false") + "\\n");
+  else if (joined === "merge-base --is-ancestor HEAD ${aheadSha}") process.exitCode = 0;
+  else if (joined === "merge --ff-only --quiet ${aheadSha}") writeFileSync(marker("ff"), "ok");
+  else if (joined === "merge-base --is-ancestor origin/develop HEAD") process.exitCode = ["behind", "rebase-conflict"].includes(mode) && count("ancestor") === 1 ? 1 : 0;
+  else if (args[0] === "rebase") {
+    writeFileSync(marker("git-rebase"), joined + "\\n", { flag: "a" });
+    if (mode === "rebase-conflict" && args[1] !== "--abort") process.exitCode = 1;
+  }
+  else if (args[0] === "push") writeFileSync(marker("git-push"), joined + "\\n", { flag: "a" });
+  else if (args[0] === "merge-base") print("${baseSha}\\n");
+  else if (args[0] === "diff") process.stdout.write("M\\0app/routes/app._index.tsx\\0");
+  else if (/\\^\\{tree\\}$/.test(joined)) print("tree-" + args[1].slice(0, 40) + "\\n");
+  else if (args[0] === "show" && /^(${baseSha}|origin\\/main):package\\.json$/.test(args[1])) print('{"version":"1.2.3"}\\n');
+  else if (args[0] === "show" && args[1].endsWith(":package.json")) print('{"version":"1.2.4"}\\n');
+  else if (args[0] === "fetch") writeFileSync(marker("git-fetch"), joined + "\\n", { flag: "a" });
+  else process.exitCode = 2;
+} else if (command === "npm") {
+  writeFileSync(marker("npm-calls"), args.join(" ") + "\\n", { flag: "a" });
+  if (mode === "gate-failed") process.exitCode = 1;
+} else if (command === "gh") {
+  if (route === "repos/{owner}/{repo}") print({ full_name: "owner/repository" });
+  else if (route.startsWith("repos/{owner}/{repo}/pulls?") && route.includes("state=closed")) {
+    print([{ number: 10, state: "closed", merged_at: "2026-10-25T00:00:00Z", head: { sha: "${sourceSha}" }, merge_commit_sha: "${developSha}", html_url: "https://github.test/pr/10" }]);
+  } else if (route.startsWith("repos/{owner}/{repo}/pulls?")) {
+    const headSha = mode === "published" ? "${sourceSha}" : mode === "remote-ahead" ? "${aheadSha}" : "";
+    print(headSha ? [{ number: 10, state: "open", merged_at: null, head: { sha: headSha }, merge_commit_sha: null, html_url: "https://github.test/pr/10" }] : []);
+  } else if (args[0] === "run" && args[1] === "list") print(runs());
+  else if (args[0] === "workflow" && args[1] === "run") {
+    writeFileSync(marker("workflow-args"), args.join(" ") + "\\n", { flag: "a" });
+    const field = (name) => args.find((arg) => arg.startsWith(name + "="))?.slice(name.length + 1);
+    const list = runs();
+    const databaseId = Math.max(0, ...list.map((run) => run.databaseId)) + 1;
+    list.push({ databaseId, displayTitle: title(field("operation"), field("branch"), field("sha")), status: "queued", conclusion: "", url: "https://github.test/run/" + databaseId });
+    writeFileSync(marker("runs"), JSON.stringify(list));
+  } else if (args[0] === "run" && args[1] === "view" && args.includes("--log-failed")) print("errore del coordinatore\\n");
+  else if (args[0] === "run" && args[1] === "view") {
+    const done = count("view-" + args[2]) > 1;
+    print({ status: done ? "completed" : "in_progress", conclusion: done ? (mode === "run-failed" ? "failure" : "success") : "", url: "https://github.test/run/" + args[2],
+      jobs: [{ steps: [{ name: "Coordinatore", status: done ? "completed" : "in_progress" }] }] });
+  } else if (args[0] === "run" && args[1] === "download") {
+    writeFileSync(marker("downloaded"), args[2]);
+    if (mode === "no-record") { process.stderr.write("error downloading artifact"); process.exit(1); }
+    const failed = mode === "run-failed";
+    const record = { name: mode === "promote" ? "promotion-${developSha}" : head(), sourceSha: head(), developSha: "${developSha}", status: failed ? "failed" : "complete",
+      ...(failed ? { activePhase: "Deploy e readback Development" } : {}),
+      phases: [{ name: "PR Development e merge", status: "success", milliseconds: 1200 }], receipts: [] };
+    writeFileSync(path.join(value("--dir"), "publication-record.json"), JSON.stringify(record));
+  } else process.exitCode = 2;
+} else process.exitCode = 2;
+`,
+    );
+    chmodSync(provider, 0o755);
+    for (const command of ["git", "gh", "npm"]) symlinkSync(provider, path.join(bin, command));
+    const result = spawnSync(process.execPath, [path.join(root, "scripts/publish.mjs"), ...args], {
+      cwd: directory,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CF_READY_PUBLISH_POLL_MS: "1",
+        FAIL_MODE: mode,
+        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+      },
+    });
+    const read = (name) =>
+      existsSync(path.join(directory, `.${name}`))
+        ? readFileSync(path.join(directory, `.${name}`), "utf8")
+        : undefined;
+    return { ...result, read, directory };
+  };
+
+  const started = dispatch("started");
+  assert.equal(started.status, 0, started.stderr);
+  assert.equal(
+    started.read("npm-calls"),
+    `run check:local\nrun test:changed -- ${baseSha}\nrun test:ui:changed -- ${baseSha}\n`,
+  );
+  assert.equal(started.read("git-push"), "push --set-upstream origin codex/change\n");
+  assert.equal(
+    started.read("workflow-args"),
+    `workflow run publish.yml --ref develop -f operation=development -f branch=codex/change -f sha=${sourceSha}\n`,
+  );
+  assert.match(
+    started.stdout,
+    /Coordinatore avviato in GitHub Actions: https:\/\/github\.test\/run\/1/,
+  );
+  assert.match(started.stdout, /Coordinatore: in_progress, Coordinatore\./);
+  assert.match(started.stdout, /- PR Development e merge: success, 1 s/);
+  assert.match(started.stdout, new RegExp(`Pubblicazione Development completata: ${developSha}`));
+  const record = JSON.parse(
+    readFileSync(
+      path.join(started.directory, ".git/cf-ready-publications", `${sourceSha}.json`),
+      "utf8",
+    ),
+  );
+  assert.equal(record.status, "complete");
+  assert.equal(record.cleanup.status, "preserved");
+
+  // Una PR già aperta sull'HEAD non ripete gate né push.
+  const published = dispatch("published", ["--target", "production"]);
+  assert.equal(published.status, 0, published.stderr);
+  assert.equal(published.read("npm-calls"), undefined);
+  assert.equal(published.read("git-push"), undefined);
+  assert.match(published.read("workflow-args"), /-f operation=production /);
+
+  const running = dispatch("running");
+  assert.equal(running.status, 0, running.stderr);
+  assert.match(
+    running.stdout,
+    /Riaggancio il coordinatore già avviato: https:\/\/github\.test\/run\/7/,
+  );
+  assert.equal(running.read("workflow-args"), undefined);
+  assert.equal(running.read("downloaded"), "7");
+
+  // Dopo un run fallito lo stesso comando ne avvia uno nuovo.
+  const retried = dispatch("failed-before");
+  assert.equal(retried.status, 0, retried.stderr);
+  assert.match(retried.stdout, /run\/7\./);
+  assert.equal(retried.read("downloaded"), "7");
+
+  const behind = dispatch("behind");
+  assert.equal(behind.status, 0, behind.stderr);
+  assert.equal(behind.read("git-rebase"), "rebase origin/develop\n");
+  assert.match(behind.read("git-push"), /^push --quiet --force-with-lease origin codex\/change$/m);
+
+  // Il merge di develop fatto dal coordinatore durante la CI si recupera in avanti.
+  const ahead = dispatch("remote-ahead");
+  assert.equal(ahead.status, 0, ahead.stderr);
+  assert.equal(ahead.read("ff"), "ok");
+  assert.equal(ahead.read("npm-calls"), undefined);
+  assert.match(ahead.read("workflow-args"), new RegExp(`-f sha=${aheadSha}\\n$`));
+
+  // Un clone superficiale o a branch singolo si completa prima di gate e rebase.
+  const shallow = dispatch("shallow");
+  assert.equal(shallow.status, 0, shallow.stderr);
+  assert.match(
+    shallow.read("git-fetch"),
+    /^fetch --quiet --unshallow origin \+refs\/heads\/develop:refs\/remotes\/origin\/develop \+refs\/heads\/main:refs\/remotes\/origin\/main$/m,
+  );
+
+  // Senza artifact scaricabile valgono l'esito REST del run e la PR unita.
+  const unrecorded = dispatch("no-record");
+  assert.equal(unrecorded.status, 0, unrecorded.stderr);
+  assert.match(unrecorded.stdout, /Ricevuta non scaricabile: è nell'artifact publication-record/);
+  assert.match(
+    unrecorded.stdout,
+    new RegExp(`Pubblicazione Development completata: ${developSha}\\. Pulizia: preserved`),
+  );
+
+  const promoted = dispatch("promote", ["--promote"]);
+  assert.equal(promoted.status, 0, promoted.stderr);
+  assert.equal(
+    promoted.read("workflow-args"),
+    `workflow run publish.yml --ref develop -f operation=promote -f branch=develop -f sha=${developSha}\n`,
+  );
+  assert.match(promoted.stdout, /Promozione Production completata/);
+
+  for (const [mode, message] of [
+    ["dirty", /worktree deve essere pulito/],
+    ["gate-failed", /npm run check:local non riuscito/],
+    ["rebase-conflict", /non si riallinea a develop senza conflitti/],
+    ["run-failed", /Coordinatore concluso con failure nella fase Deploy e readback Development/],
+  ]) {
+    const failed = dispatch(mode);
+    assert.equal(failed.status, 1, failed.stdout);
+    assert.match(failed.stderr, message);
+    if (mode === "run-failed") {
+      assert.match(failed.stderr, /errore del coordinatore/);
+      assert.ok(
+        existsSync(path.join(failed.directory, ".git/cf-ready-publications", `${sourceSha}.json`)),
+      );
+    } else assert.equal(failed.read("workflow-args"), undefined);
   }
 });
 
@@ -1039,13 +1279,14 @@ if (command === "git") {
     for (const command of ["git", "gh"]) symlinkSync(provider, path.join(bin, command));
     const result = spawnSync(
       process.execPath,
-      [path.join(root, "scripts/publish.mjs"), "--promote"],
+      [path.join(root, "scripts/publish.mjs"), "--coordinate", "promote"],
       {
         cwd: directory,
         encoding: "utf8",
         env: {
           ...process.env,
           CF_READY_PUBLISH_POLL_MS: "1",
+          GITHUB_ACTIONS: "true",
           FAIL_MODE: mode,
           PATH: `${bin}${path.delimiter}${process.env.PATH}`,
         },
