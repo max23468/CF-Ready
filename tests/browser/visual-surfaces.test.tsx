@@ -255,7 +255,7 @@ test.each([
     expect(deactivate.textContent).toBe(copy.home.deactivate);
     expect(deactivate.getAttribute("variant")).toBe("tertiary");
     expect(deactivate.getAttribute("tone")).toBe("critical");
-    expect(plans.textContent).toContain(copy.plan.oneTimeCharge);
+    expect(plans.textContent).toContain(copy.plan.oneTimeChargeTrial);
     const prices = [...plans.querySelectorAll('s-heading[accessibilityRole="presentation"]')];
     expect(prices.map((price) => price.textContent)).toEqual(
       [data.plan.monthly, data.plan.annual, data.plan.one_time].map((price) =>
