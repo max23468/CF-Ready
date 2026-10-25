@@ -1,6 +1,6 @@
 {
   "name": "cf-ready",
-  "version": "2.5.11",
+  "version": "2.5.12",
   "private": true,
   "packageManager": "npm@12.2.1",
   "packageExtensions": {
@@ -14,9 +14,9 @@
         "graphql": ">=0.11 <=17"
       }
     },
-    "@shopify/shopify-app-react-router@3.0.2": {
+    "@shopify/shopify-app-react-router@4.0.0": {
       "peerDependencies": {
-        "react-router": "8.4.0"
+        "react-router": "8.5.0"
       }
     }
   },
@@ -93,18 +93,18 @@
   },
   "dependencies": {
     "@shopify/shopify-api": "15.0.1",
-    "@shopify/shopify-app-react-router": "3.0.2",
+    "@shopify/shopify-app-react-router": "4.0.0",
     "@shopify/shopify-app-session-storage": "7.0.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "react-router": "8.4.0"
+    "react-router": "8.5.0"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "2.0.0-beta.v.1",
     "@cloudflare/vitest-plugin": "1.4.4",
     "@graphql-codegen/cli": "7.4.6",
     "@playwright/test": "1.64.1",
-    "@react-router/dev": "8.4.0",
+    "@react-router/dev": "8.5.0",
     "@shopify/cli": "4.9.4",
     "@shopify/polaris-types": "2.0.0",
     "@stryker-mutator/core": "10.0.0",
