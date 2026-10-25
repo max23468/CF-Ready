@@ -54,10 +54,16 @@ if [ "$("$tools/bin/actionlint" -version 2>/dev/null | head -n 1)" != "$actionli
 fi
 
 # Le shell dei comandi successivi partono dal profilo: il PATH vale anche dove l'hook non
-# scrive CLAUDE_ENV_FILE.
+# scrive CLAUDE_ENV_FILE, come nelle sessioni con più repository. Le shell non interattive
+# leggono ~/.bashrc solo fino al controllo di PS1, quindi la riga sta in testa; le righe
+# successive dell'ambiente, come gli shim di mise, restano davanti.
 path_line="export PATH=\"$node_home/bin:$tools/bin:\$PATH\""
-touch "$HOME/.bashrc"
-grep -Fqx "$path_line" "$HOME/.bashrc" || printf '%s\n' "$path_line" >>"$HOME/.bashrc"
+bashrc="$HOME/.bashrc"
+touch "$bashrc"
+if [ "$(head -n 1 "$bashrc")" != "$path_line" ]; then
+  { printf '%s\n' "$path_line" && grep -Fvx "$path_line" "$bashrc" || true; } >"$bashrc.cf-ready"
+  cat "$bashrc.cf-ready" >"$bashrc" && rm "$bashrc.cf-ready"
+fi
 if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
   printf '%s\n' "$path_line" >>"$CLAUDE_ENV_FILE"
 fi
