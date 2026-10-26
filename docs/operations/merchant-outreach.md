@@ -1,6 +1,6 @@
 # Registro contatti merchant CF Ready
 
-Aggiornato il 23 ottobre 2026, Europe/Rome. Documento operativo della chat:
+Aggiornato il 24 ottobre 2026, Europe/Rome. Documento operativo della chat:
 selezione store, richieste di recensione, prove scadute, disinstallazioni,
 bozze, invii e preferenze di scrittura. Non autorizza nuovi invii.
 
@@ -8,7 +8,76 @@ Per richiesta dell'owner, registrare qui anche le successive spiegazioni,
 diagnosi e decisioni pertinenti emerse nella chat, distinguendo prove,
 interpretazioni e verifiche ancora aperte.
 
-## Recap verificato
+## Controllo del 24 ottobre 2026
+
+Nuova lettura Production D1, cronologia Shopify Partners, log Dev Dashboard
+e posta inviata in Mail. Le tabelle successive conservano il perimetro storico
+del 23 ottobre; questo aggiornamento non applica le sei migliorie strutturali,
+ancora in attesa del via dell'owner. Il controllo iniziale non aveva creato
+bozze né inviato e-mail; le bozze autorizzate successivamente sono annotate sotto.
+
+- Installazioni attive Production: **53**, di cui **51 eligible** e due development
+  secondo l'ultima classificazione BFS memorizzata. Non significa 51 abbonamenti
+  CF Ready. Nei 51 eligible, Validation attiva per 41 e disattiva per 10.
+- Nuove installazioni: Lunika Moka il 23 ottobre alle 13:43, piano CF Ready annuale
+  attivo; STAMIC il 23 ottobre alle 17:49, prova fino al 5 novembre. Entrambi
+  hanno Validation attiva e CF obbligatorio salvato; troppo recenti per recensioni.
+- Le richieste di recensione restano **30 store distinti**. In Mail risultano
+  1.820 messaggi inviati: i due ulteriori rispetto al precedente controllo
+  non aggiungono contatti ai candidati sotto. La verifica riguarda la posta
+  esaminata, non eventuali comunicazioni esterne a Mail.
+
+| Store senza contatto verificato | Proposta e prova disponibile |
+| --- | --- |
+| Pharmalab24 | Recensione: installato il 9 ottobre, Validation attiva e CF obbligatorio. Partners conferma il piano annuale attivato il 23 ottobre alle 10:29. Nei log Dev Dashboard sono presenti esecuzioni Function cf-ready-validation del 23 ottobre, comprese quelle delle 13:18. Non trattarlo come prova scaduta da recuperare. |
+| Gi.Vi. Trading | Feedback sulla disinstallazione: Partners conferma installazione il 22 ottobre alle 15:15 e disinstallazione alle 17:15, motivo “Test di più app”. Chiedere cosa cercava e cosa mancava. |
+| Chiara Paonessa art | Assistenza prioritaria: piano mensile attivo, regola CF obbligatorio salvata, Validation disattiva. Chiedere se serve aiuto per completare l'attivazione, senza dedurre che sia un errore. |
+| Storie di Gonne | Aiuto sull'avvio: installato il 15 settembre, onboarding allo step 4, Validation disattiva e nessun piano CF Ready attivo. |
+| nokobike | Aiuto sull'avvio: installato l'8 ottobre, onboarding allo step 1, Validation disattiva e nessun piano CF Ready attivo. |
+| Harmony | Aiuto sull'avvio: installato il 13 ottobre, CF obbligatorio salvato, Validation disattiva e nessuna prova o piano CF Ready attivo rilevati. |
+| ISF Farmaceutici | Aiuto sull'avvio: installato il 21 ottobre, regola CF obbligatorio salvata, Validation disattiva e nessuna prova o piano attivo rilevati. Lo stato onboarding not_started non cancella l'evento di avvio già verificato. |
+| DEV Imetec | Feedback facoltativo sull'uso: prova fino al 1 novembre, onboarding completato e Validation disattivata esplicitamente il 19 ottobre. Chiedere se serve supporto rispettando la scelta; classificato eligible, non development. |
+
+THE GLOBAL STORE resta un possibile contatto di avvio a priorità inferiore:
+onboarding allo step 4, CF non gestito, nessuna prova o piano attivo. DREAMIS,
+Mamanonmama babies e Moveen non hanno uno snapshot delle regole né un avvio
+completato verificato: non proporli per recensioni.
+
+Prove scadute senza piano CF Ready attivo: Shop de IlCartaista (9 ottobre),
+Abruzzè (15), ALMAMED (19), Magibags (20), Offmode (21) e **3trees (23)**.
+Sono tutti già contattati: nessun nuovo destinatario in questa categoria.
+3trees aveva ricevuto la richiesta di recensione il 19 ottobre; la nuova
+scadenza non autorizza un secondo contatto. Love or Not termina la prova il
+24 ottobre e risulta già contattato il 19/20: non definirlo scaduto soltanto
+perché la data coincide con oggi.
+
+Per le prossime recensioni, A&M 3D raggiunge una settimana dall'installazione
+il **25 ottobre alle 18:09**, tenendo conto del ritorno all'ora solare. Ega Studios la raggiunge il 26 ottobre; OrthoPro,
+Ottaviani Official Website e Terre di San Venanzio Fortunato il 27; Hachi il 28;
+Lunika Moka e STAMIC il 30. Prima della selezione riconfermare uso effettivo,
+stato e assenza di contatti recenti: l'anzianità di installazione da sola non
+dimostra sette giorni di utilizzo.
+
+### Bozze preparate in Mail il 24 ottobre
+
+Su richiesta esplicita dell'owner, creati gli otto testi già mostrati in chat.
+Readback finale: **otto bozze** nella cartella Bozze iCloud di Mail, con
+destinatari, oggetti e testi verificati. Mittente CF Ready,
+supporto@cfready.it; PS prima del grazie. Nessun invio eseguito.
+Le bozze non modificano il conteggio dei merchant già contattati.
+
+| Store | Destinatario | Fonte verificata il 24 ottobre |
+| --- | --- | --- |
+| Pharmalab24 | info@pharmalab24.com | Shopify Partners, store 97620623688 |
+| Gi.Vi. Trading | info@givitrading.it | [Contatti ufficiali](https://givitrading.it/pages/contact); il dominio Shopify bfb619-2.myshopify.com reindirizza a givitrading.it. Partners non espone un'e-mail: indirizzo pubblico, non verificato da Partners. |
+| Chiara Paonessa art | chiara.art.paonessa@gmail.com | Shopify Partners, store 92790358403 |
+| Storie di Gonne | susanna.revoltella@gmail.com | Shopify Partners, store 98535702905 |
+| nokobike | customercare@nokobike.com | Shopify Partners, store 96294666575 |
+| Harmony | harmonycreations77@gmail.com | Shopify Partners, store 96551960960 |
+| ISF Farmaceutici | isf.farmaceutici@gmail.com | Shopify Partners, store 88082678105 |
+| DEV Imetec | marco.rho@tenactagroup.com | Shopify Partners, store 79966044344 |
+
+## Recap verificato del 23 ottobre
 
 | Perimetro | Store |
 | --- | ---: |
