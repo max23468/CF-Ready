@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.5.13 — 27 ottobre 2026
+
+- Privacy e Termini in italiano e inglese riportano solo Temisfera. Il deploy
+  non inserisce più il nome personale; autore e modelli di comunicazione sono
+  allineati allo stesso riferimento.
+
+Italian and English privacy policies and terms now refer only to Temisfera.
+Deployment no longer inserts a personal name; author metadata and communication
+templates use the same reference.
+
 ## 2.5.12 — 28 ottobre 2026
 
 - `@shopify/shopify-app-react-router` passa alla 4.0.0 e React Router alla 8.5.0.
