@@ -5107,7 +5107,7 @@ Segnaposto lasciati nel sito, da sostituire nelle milestone indicate:
 | --- | --- | --- |
 | ~~Pulsante disabilitato «Presto sullo Shopify App Store»~~ | richiami all’installazione su tutte le pagine | chiuso dopo l'approvazione Shopify: CTA IT/EN attivi verso `https://apps.shopify.com/cf-ready` |
 | Nessuno screenshot dell’app | Home | screenshot reali prodotti da M9 (§24.5, §9.3 del brand) |
-| ~~Identità del titolare limitata al nome~~ | Privacy e Termini | chiuso in M9: nome della persona fisica titolare, iniettato al deploy dal secret `OWNER_LEGAL_NAME`. Nessun indirizzo geografico, rischio accettato dall'owner |
+| Identità pubblica | Privacy e Termini | Solo Temisfera, senza nome personale né iniezione al deploy, su richiesta dell'owner del 27 ottobre 2026. |
 
 Finché la listing non esiste, i richiami all’installazione sono pulsanti
 disabilitati che dichiarano l’attesa: un collegamento che porta a un errore 404
@@ -5198,17 +5198,14 @@ e l'audit è
 
 Decisioni prese durante la milestone:
 
-- **il titolare è una persona fisica senza Partita IVA**, identificato in
-  Privacy e Termini con nome e recapito email. L'art. 13.1.a GDPR chiede
-  identità e dati di contatto e non impone un indirizzo geografico; l'owner ha
-  deciso il 3 agosto 2026 di non pubblicarne uno e ha accettato il rischio che
-  la review lo richieda;
-- **il nome non sta nel repository.** `CF-Ready` è pubblico: pubblicare il nome
-  nei sorgenti lo renderebbe indicizzabile su GitHub a prescindere dagli header
-  del sito. I documenti contengono il segnaposto `__OWNER_NAME__` e il workflow
-  Pages lo sostituisce con il secret `OWNER_LEGAL_NAME` prima del deploy,
-  fallendo se il secret manca; lo smoke verifica che nessuna pagina pubblicata
-  contenga ancora il segnaposto;
+- **l'identità pubblica è Temisfera.** Su richiesta dell'owner del 27 ottobre
+  2026, Privacy e Termini in italiano e inglese riportano soltanto Temisfera
+  e il recapito email. La decisione sostituisce la precedente esposizione del
+  nome personale. Anche autore del progetto e modelli di comunicazione usano
+  Temisfera; i riferimenti personali nei documenti storici sono anonimizzati.
+- **nessuna identità personale viene iniettata al deploy.** Il workflow Pages
+  distribuisce i testi presenti nel repository senza richiedere un secret per
+  il nome; lo smoke verifica la presenza di Temisfera nei quattro documenti;
 - **i quattro documenti legali rispondono `X-Robots-Tag: noindex`.** Non un
   `Disallow` in `robots.txt`: quello impedisce la scansione ma non
   l'indicizzazione, e un URL escluso dal crawl può comparire in SERP proprio

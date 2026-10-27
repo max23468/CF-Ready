@@ -441,7 +441,10 @@ I quattro documenti legali sono serviti con `X-Robots-Tag: noindex`: restano
 pubblici e raggiungibili, fuori dai motori di ricerca. Il nome della persona
 fisica titolare non è nel repository — sta nel secret `OWNER_LEGAL_NAME` e viene
 iniettato dal workflow Pages, che verifica nello smoke di non aver pubblicato il
-segnaposto. Deploy eseguito il 3 agosto 2026 e verificato live.
+segnaposto. Deploy eseguito il 3 agosto 2026 e verificato live. Questa è la
+ricevuta storica della 1.0: la decisione del 27 ottobre 2026 la supera per
+l'identità pubblica, ora limitata a Temisfera nei sorgenti senza iniezione al
+deploy. Non costituisce una prova di pubblicazione della nuova modifica.
 
 ## 5. Rischi accettati, non bloccanti
 

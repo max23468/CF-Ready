@@ -1,3 +1,5 @@
+Nota: nome personale anonimizzato nel titolo del prodotto; il resto della rilevazione è invariato.
+
 Window: "Check-out - Numismatica Leonessa", App: Safari.
 0 finestra standard Check-out - Numismatica Leonessa, ID: SafariWindow?IsSecure=true&UUID=6FC659B8-54AD-4AA2-A4B8-A972D8EF9BA0, Secondary Actions: Raise
 	1 gruppo split
@@ -139,9 +141,9 @@ Descrizione
 Quantità
 Prezzo
 								136 row (selectable)
-									137 cella (selectable) Description: NL* STATO PONTIFICIO PAPA PIO IX 1 SOLDO Rame 1867 XXI SPL Perizia Filisina, Value: Quantità
+									137 cella (selectable) Description: NL* STATO PONTIFICIO PAPA PIO IX 1 SOLDO Rame 1867 XXI SPL Perizia [nome personale omesso], Value: Quantità
 1
-									138 cella (selectable) NL* STATO PONTIFICIO PAPA PIO IX 1 SOLDO Rame 1867 XXI SPL Perizia Filisina
+									138 cella (selectable) NL* STATO PONTIFICIO PAPA PIO IX 1 SOLDO Rame 1867 XXI SPL Perizia [nome personale omesso]
 									139 cella (selectable) 1
 									140 cella (selectable) 45,99 €
 						141 intestazione Riepilogo di spesa, Value: 3

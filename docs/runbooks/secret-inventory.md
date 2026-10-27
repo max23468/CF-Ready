@@ -19,7 +19,7 @@ dei rispettivi provider e non devono comparire nel repository o nei log.
 | `PUBLISH_TOKEN` | Publication | GitHub Actions | PAT fine-grained dell'owner solo su `CF-Ready` (Contents, Pull requests, Actions e Workflows in scrittura), environment limitato a `develop`, usato dal coordinatore `publish.yml` (D-198); senza scadenza (conferma dell'owner del 25 ottobre 2026) |
 | `SHOPIFY_APP_AUTOMATION_TOKEN` | CI Production | GitHub Actions | creato il 4 agosto 2026 dal Dev Dashboard dell'app CF Ready, environment `Production`. **Scade il 4 febbraio 2027**, vedi «Scadenze» |
 | `CLOUDFLARE_API_TOKEN` | CI Production | GitHub Actions | creato il 4 agosto 2026 con Workers Scripts Edit e D1 Edit sul solo account, environment `Production`; senza scadenza |
-| `OWNER_LEGAL_NAME` | Pages Production | GitHub Actions | configurato il 3 agosto 2026 nell'environment `Pages Production`, iniettato dal workflow e verificato dallo smoke |
+| `OWNER_LEGAL_NAME` | Pages Production | GitHub Actions | non più utilizzato: i documenti riportano solo Temisfera; rimozione del secret remoto non eseguita |
 | `TELEGRAM_BOT_TOKEN` | Production | Cloudflare Workers | configurato il 24 agosto 2026 direttamente dagli appunti; valore mai letto, scritto nel repository o mostrato nei log |
 | `TELEGRAM_CHAT_ID` | Production | Cloudflare Workers | configurato il 24 agosto 2026 dalla sola chat privata dell’owner; valore non mostrato né scritto nel repository |
 | `TELEGRAM_WEBHOOK_SECRET` | Production | Cloudflare Workers | configurato il 9 settembre 2026 con un valore casuale ammesso da Telegram e conservato fuori dal repository |
@@ -40,13 +40,11 @@ visibili.
 delle comunicazioni, dei documenti legali e del primo contatto di sicurezza. Le
 notifiche owner usano invece una chat Telegram privata dedicata.
 
-`OWNER_LEGAL_NAME` non protegge un accesso: è il nome della persona fisica che
-Privacy e Termini devono dichiarare come titolare. Sta nel secret store per non
-lasciarlo in chiaro in un repository pubblico. Nel repository resta il
-segnaposto `__OWNER_NAME__`, che il workflow Pages sostituisce prima del deploy
-e lo smoke verifica assente nelle pagine pubblicate. Il nome resta visibile sul
-sito e nella listing: `X-Robots-Tag: noindex` sui quattro documenti legali lo
-tiene fuori dai motori di ricerca, non lo rende riservato.
+`OWNER_LEGAL_NAME` è un residuo della precedente pubblicazione del nome personale.
+Dal cambiamento richiesto il 27 ottobre 2026, Privacy e Termini riportano solo
+Temisfera e il workflow non legge né inietta questo secret. La sua rimozione
+remota non è necessaria al deploy e non è stata eseguita. I quattro documenti
+conservano `X-Robots-Tag: noindex`.
 
 `TRIAL_LEDGER_HMAC_KEY` è un identificatore stabile del ledger, non una chiave
 di sessione: non va ruotata ordinariamente. Va conservata nel secret store con
