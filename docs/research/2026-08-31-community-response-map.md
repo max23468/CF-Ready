@@ -5,12 +5,12 @@
 **Perimetro:** Shopify Community, Shopify Developer Community, Reddit, forum
 specialistici e blog pubblici; LinkedIn escluso.
 
-**Account attribuiti a Matteo:** `max23468` (attuale) e `max2348` (precedente).
+**Account attribuiti a chi gestisce Temisfera:** `max23468` (attuale) e `max2348` (precedente).
 
 **Stato operativo:** dossier decisionale. Il post 12 di `max2348` e il
 successivo post 13 di `max23468` sul topic 554855 risultano temporaneamente
-nascosti; Matteo ha ricevuto la notifica di silenziamento del nuovo account.
-Matteo ha inviato una richiesta di revisione ai moderatori ed è in attesa di
+nascosti; il referente di Temisfera ha ricevuto la notifica di silenziamento del nuovo account.
+Il referente di Temisfera ha inviato una richiesta di revisione ai moderatori ed è in attesa di
 risposta. Nessun ulteriore invio Shopify Community è autorizzato finché la
 moderazione non ripristina esplicitamente l'account.
 
@@ -23,7 +23,7 @@ sui 50 risultati archiviati, il quadro è:
 - 50 risultati sono in archivio definitivo e fuori dalla coda operativa: 35
   Shopify, 5 Reddit, 4 forum specialistici e 6 articoli;
 - restano censiti 18 risultati: 17 Shopify e un articolo IFG;
-- dei 17 Shopify rimasti, 3 sono già attribuiti a Matteo e 14 hanno una bozza;
+- dei 17 Shopify rimasti, 3 sono già attribuiti a chi gestisce Temisfera e 14 hanno una bozza;
 - il topic proprio e la risposta visibile di `max23468` sono già gestiti e
   restano in standby fino a una nuova risposta autentica;
 - la risposta di `max2348` e il nuovo tentativo di `max23468` sul topic 554855
@@ -65,7 +65,7 @@ artificiale.
 
 Le bozze seguono questi confini:
 
-- prima si risolve il problema, poi si dichiara in modo trasparente che Matteo
+- prima si risolve il problema, poi si dichiara in modo trasparente che Temisfera
   sviluppa CF Ready;
 - su Shopify Community si nomina l'app senza inserire il link;
 - fuori da Shopify Community si inserisce un link solo se consentito e davvero
@@ -108,14 +108,14 @@ Riferimenti correnti usati per controllare le bozze:
 - **Titolo:** [Problema fatturazione italiana. Mancanza CF e Partita IVA obbligatoria](https://community.shopify.com/t/554855)
 - **Sito e lingua:** Shopify Community, italiano.
 - **Autori delle risposte:** `max2348` e `max23468`, entrambi attribuiti a
-  Matteo.
+  chi gestisce Temisfera.
 - **Topic pubblicato:** 2025-08-08.
 - **Primo tentativo:** 2026-08-25, post 12 di `max2348`.
 - **Secondo tentativo:** 2026-08-31, post 13 di `max23468`.
 - **Ultima risposta visibile:** 2025-11-24.
 - **Stato pubblico:** entrambi i post risultano `hidden: true`; il contenuto è
   sostituito dal segnaposto della moderazione.
-- **Stato account:** Matteo riferisce di aver ricevuto la notifica automatica
+- **Stato account:** Il referente di Temisfera riferisce di aver ricevuto la notifica automatica
   che il nuovo account è stato silenziato e non può creare risposte o topic.
 - **Valutazione:** il bisogno resta pertinente, ma il secondo tentativo ha
   confermato che un'altra risposta non è accettata dalla moderazione.
@@ -129,7 +129,7 @@ Riferimenti correnti usati per controllare le bozze:
 - **Sito e lingua:** Shopify Community, italiano.
 - **Autore della risposta:** `max23468`.
 - **Topic pubblicato:** 2022-04-25.
-- **Risposta di Matteo:** 2026-08-25, post 28.
+- **Risposta di chi gestisce Temisfera:** 2026-08-25, post 28.
 - **Stato:** **già risposto**, visibile; il messaggio include il link App Store;
   thread in standby.
 - **Verdetto:** non aggiungere una seconda risposta; rivalutare soltanto davanti
@@ -153,7 +153,7 @@ Le voci sono ordinate per ultima attività del topic.
 **Bozza:**
 
 > Ciao Elisa, separerei due problemi: raccogliere e controllare il Codice
-> Fiscale prima dell'ordine, ed emettere poi la fattura. Sono Matteo e sviluppo
+> Fiscale prima dell'ordine, ed emettere poi la fattura. Ti scrivo da Temisfera, che sviluppa
 > CF Ready per il primo: usa il campo nativo italiano di Shopify, può renderlo
 > obbligatorio e ne verifica solo la correttezza formale, senza emettere o
 > trasmettere fatture. Per gli obblighi fiscali e il flusso di fatturazione
@@ -173,8 +173,8 @@ Le voci sono ordinate per ultima attività del topic.
 **Bozza:**
 
 > Ciao, per evitare equivoci: i campi nativi italiani che Shopify espone sono
-> Codice Fiscale e PEC; Partita IVA e SDI sono un'esigenza diversa. Sono Matteo
-> e sviluppo CF Ready: può rendere obbligatorio e validare formalmente il solo
+> Codice Fiscale e PEC; Partita IVA e SDI sono un'esigenza diversa. Ti scrivo da Temisfera,
+> che sviluppa CF Ready: può rendere obbligatorio e validare formalmente il solo
 > Codice Fiscale e gestire la PEC separatamente, senza rinominare campi o
 > richiedere Plus. Non raccoglie P.IVA o SDI e non emette fatture. Se il vostro
 > requisito è almeno il CF per i privati, può coprire quella parte; se servono
@@ -193,7 +193,7 @@ Le voci sono ordinate per ultima attività del topic.
 **Bozza:**
 
 > Ciao, per la parte Codice Fiscale oggi non è più necessario usare “Indirizzo
-> 2”. Sono Matteo e sviluppo CF Ready: lavora sul campo fiscale nativo che
+> 2”. Ti scrivo da Temisfera, che sviluppa CF Ready: lavora sul campo fiscale nativo che
 > Shopify mostra nel checkout italiano, può renderlo obbligatorio e ne controlla
 > formalmente il formato anche senza Plus. Non gestisce Partita IVA, SDI o
 > fatturazione elettronica, quindi non copre l'intero flusso B2B discusso qui;
@@ -212,8 +212,8 @@ Le voci sono ordinate per ultima attività del topic.
 **Bozza:**
 
 > Ciao, la seconda strada è quella più pulita: evitare di rinominare “Indirizzo
-> 2” e lavorare direttamente sul campo Codice Fiscale nativo. Sono Matteo e
-> sviluppo CF Ready proprio per questo: può renderlo obbligatorio e verificarne
+> 2” e lavorare direttamente sul campo Codice Fiscale nativo. Ti scrivo da Temisfera, che
+> sviluppa CF Ready proprio per questo: può renderlo obbligatorio e verificarne
 > formalmente il formato nel checkout italiano, anche senza Plus. Non rinomina
 > il campo e non gestisce Partita IVA o SDI; serve quando il requisito reale è
 > il CF dei clienti italiani, lasciando l'indirizzo libero per il suo uso
@@ -232,8 +232,8 @@ Le voci sono ordinate per ultima attività del topic.
 
 > Ciao Thomas, sul punto tecnico oggi una soluzione c'è: il campo Codice
 > Fiscale nativo di Shopify può essere reso obbligatorio e validato prima della
-> chiusura dell'ordine, senza modificare il tema e senza Plus. Sono Matteo e
-> sviluppo CF Ready per questo caso. La verifica è formale, non anagrafica, e
+> chiusura dell'ordine, senza modificare il tema e senza Plus. Ti scrivo da Temisfera, che
+> sviluppa CF Ready per questo caso. La verifica è formale, non anagrafica, e
 > l'app non emette fatture né tratta P.IVA o SDI; evita però di dover rincorrere
 > il cliente perché il CF è rimasto vuoto. Sull'obbligo fiscale nel caso
 > specifico resta necessario il confronto con il commercialista.
@@ -251,8 +251,8 @@ Le voci sono ordinate per ultima attività del topic.
 **Bozza:**
 
 > Ciao, per il Codice Fiscale il campo nativo che vedi in fondo al checkout può
-> essere reso obbligatorio e controllato senza riutilizzare “Indirizzo 2”. Sono
-> Matteo e sviluppo CF Ready per questo caso: il controllo è formale, non
+> essere reso obbligatorio e controllato senza riutilizzare “Indirizzo 2”. Ti scrivo da
+> Temisfera, che sviluppa CF Ready per questo caso: il controllo è formale, non
 > certifica l'identità del cliente, e l'app non gestisce P.IVA o SDI. Lavora
 > soltanto sui checkout italiani pertinenti e non richiede Shopify Plus.
 
@@ -271,7 +271,7 @@ Le voci sono ordinate per ultima attività del topic.
 > Ciao, più che disattivare i campi nativi, valuterei di eliminare il workaround
 > su “Indirizzo 2”: Shopify sconsiglia di mantenere campi personalizzati
 > duplicati, perché il cliente può ritrovarsi a inserire due volte lo stesso
-> dato. Sono Matteo e sviluppo CF Ready: usa direttamente Codice Fiscale e PEC
+> dato. Ti scrivo da Temisfera, che sviluppa CF Ready: usa direttamente Codice Fiscale e PEC
 > nativi, può renderli facoltativi o obbligatori separatamente e controlla
 > formalmente il CF. Non gestisce P.IVA o SDI, ma evita il doppione e lascia
 > libero l'indirizzo.
@@ -307,7 +307,7 @@ Le voci sono ordinate per ultima attività del topic.
 
 > Ciao, validare un campo libero rinominato “P.IVA / Codice Fiscale” resta
 > ambiguo perché i due identificativi hanno formati diversi. Per il solo Codice
-> Fiscale oggi si può evitare quel workaround: sono Matteo e sviluppo CF Ready,
+> Fiscale oggi si può evitare quel workaround: ti scrivo da Temisfera, che sviluppa CF Ready,
 > che valida formalmente il campo CF nativo di Shopify e può renderlo
 > obbligatorio nel checkout italiano. Non valida Partita IVA e non trasforma
 > “Indirizzo 2”, quindi se servono entrambi i dati occorre separarli.
@@ -324,7 +324,7 @@ Le voci sono ordinate per ultima attività del topic.
 **Bozza:**
 
 > Ciao Elisa, rinominare “Indirizzo 2” non rende il valore un vero campo fiscale
-> e non ne controlla il formato. Sono Matteo e sviluppo CF Ready: usa il campo
+> e non ne controlla il formato. Ti scrivo da Temisfera, che sviluppa CF Ready: usa il campo
 > Codice Fiscale nativo di Shopify, può renderlo obbligatorio e ne verifica
 > formalmente il formato anche sui piani non-Plus. Non modifica il tema e non
 > gestisce P.IVA o SDI.
@@ -361,7 +361,7 @@ Le voci sono ordinate per ultima attività del topic.
 **Bozza:**
 
 > Ciao, separerei i due requisiti: Codice Fiscale e Partita IVA non vanno
-> trattati come lo stesso campo. Sono Matteo e sviluppo CF Ready per la sola
+> trattati come lo stesso campo. Ti scrivo da Temisfera, che sviluppa CF Ready per la sola
 > parte CF/PEC: lavora sui campi nativi italiani, può rendere obbligatorio e
 > validare formalmente il Codice Fiscale e non richiede Plus. Non raccoglie né
 > valida la Partita IVA, quindi non è una soluzione completa se ti servono
@@ -382,7 +382,7 @@ Le voci sono ordinate per ultima attività del topic.
 > Ciao, qui è importante distinguere correttezza formale e veridicità
 > anagrafica. Il formato e il carattere di controllo del Codice Fiscale si
 > possono verificare nel checkout; l'appartenenza a una persona reale richiede
-> invece fonti ufficiali e non va promessa. Sono Matteo e sviluppo CF Ready:
+> invece fonti ufficiali e non va promessa. Ti scrivo da Temisfera, che sviluppa CF Ready:
 > rende obbligatorio il campo CF nativo e ne verifica solo la correttezza
 > formale. Non controlla P.IVA, non attesta l'identità e non sostituisce il
 > parere del commercialista.
@@ -399,7 +399,7 @@ Le voci sono ordinate per ultima attività del topic.
 **Bozza:**
 
 > Ciao Mario, il campo Codice Fiscale è già esposto da Shopify nei checkout
-> italiani pertinenti, ma resta facoltativo. Sono Matteo e sviluppo CF Ready:
+> italiani pertinenti, ma resta facoltativo. Ti scrivo da Temisfera, che sviluppa CF Ready:
 > può renderlo obbligatorio e controllarne formalmente il formato prima che
 > l'ordine venga completato, anche senza Shopify Plus e senza modificare il
 > tema. Non emette fatture e non gestisce Partita IVA o SDI.
@@ -495,7 +495,7 @@ non modifica, chiude o archivia i thread sulle piattaforme esterne.
 
 - **Titolo:** [Fatturazione Elettronica Shopify: Flussi e Campi Fiscali](https://ifgecommerce.com/blogs/articoli-shopify/fatturazione-elettronica-shopify-campi-fiscali-sdi)
 - **Pubblicato:** 2026-08-13.
-- **Invio di Matteo:** 2026-09-01; commento segnalato dall'owner come inviato.
+- **Invio di chi gestisce Temisfera:** 2026-09-01; commento segnalato dall'owner come inviato.
 - **Visibilità:** non ancora verificata; il sito richiede l'approvazione dei
   commenti prima della pubblicazione.
 - **Canale:** commento pubblico soggetto ad approvazione.
@@ -533,7 +533,7 @@ non archiviati e non chiusi; questo non implica che sia opportuno riaprirli.
 
 La ricerca pubblica dell'account attuale espone una risposta e un topic. Il
 vecchio account non espone un elenco pubblico delle attività, ma il post 12 del
-topic 554855 è attribuito pubblicamente a `max2348`; Matteo ha confermato che
+topic 554855 è attribuito pubblicamente a `max2348`; il referente di Temisfera ha confermato che
 anche questo account è suo e ha indicato di rimandare quella risposta con
 `max23468`. Le risposte cancellate, rimosse definitivamente o non più accessibili
 non possono essere ricostruite in modo affidabile.
