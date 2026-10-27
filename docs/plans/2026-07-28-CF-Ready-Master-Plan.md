@@ -3927,7 +3927,7 @@ Il percorso di assistenza mantiene:
 - diagnosi guidata D-144 su richiesta, usando la stessa riconciliazione della Home;
 - recapito a una casella sviluppatore verificata;
 - nessuna copia email automatica al merchant;
-- risposta manuale dello sviluppatore.
+- risposta manuale, senza risposte automatiche.
 
 D-176 aggiunge la chat tawk.to su tutte le pagine dell’app tramite un pulsante
 fisso in basso a destra. Il pannello resta aperto durante l’uso dell’app e la

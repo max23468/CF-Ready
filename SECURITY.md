@@ -24,9 +24,8 @@ Includi:
 Confermeremo la presa in carico indicativamente entro 3 giorni lavorativi e una
 prima classificazione entro 7 giorni lavorativi. Sono obiettivi operativi, non
 uno SLA. Aggiorniamo il segnalante a ogni cambiamento rilevante e comunque alla
-pubblicazione della correzione. L'app è mantenuta da una sola persona: se un
-tempo indicativo non viene rispettato lo diciamo, invece di lasciare la
-segnalazione senza risposta.
+pubblicazione della correzione. Se un tempo indicativo non viene rispettato lo
+diciamo, invece di lasciare la segnalazione senza risposta.
 
 Se hai pubblicato accidentalmente una credenziale, revocala subito presso il
 provider prima di inviare la segnalazione.

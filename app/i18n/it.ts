@@ -114,8 +114,8 @@ export const it = {
     nextChoosePlan: "Scegli una modalità per riattivare le regole nel checkout.",
     checkInHeading: "Grazie per aver scelto CF Ready",
     checkInBody:
-      "Il controllo nel checkout è attivo. Se hai feedback sulla configurazione o hai bisogno di aiuto, scrivi direttamente allo sviluppatore.",
-    checkInContact: "Scrivimi",
+      "Il controllo nel checkout è attivo. Se hai feedback sulla configurazione o hai bisogno di aiuto, scrivici direttamente.",
+    checkInContact: "Scrivici",
     checkInDismiss: "Non mostrare più",
   },
   messages: {

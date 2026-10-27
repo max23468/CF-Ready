@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.5.14 — 27 ottobre 2026
+
+- Assistenza, FAQ, privacy, policy di sicurezza e messaggio di check-in nell’app
+  descrivono chi risponde e chi accede ai dati in forma impersonale o come
+  Temisfera, senza riferimenti a una singola persona.
+
+Support, FAQ, privacy, security policy and the in-app check-in message describe
+who replies and who can access data impersonally or as Temisfera, without
+referring to a single person.
+
 ## 2.5.13 — 27 ottobre 2026
 
 - Privacy e Termini in italiano e inglese riportano solo Temisfera. Il deploy
