@@ -52,6 +52,35 @@ la normalizzazione asincrona del server. Nessun confine di sicurezza cambia.
 
 ## Falsi positivi deterministici
 
+### Candidato Temisfera del 27 ottobre 2026
+
+- Development, `--config dev`, versione `2.5.13`, commit
+  `45abd821063823852430bc8d65e7674d9f089301`, tree
+  `cc77b822fd904f8f4650c12a27b4b03c8eef4064`; review di Codex su richiesta
+  di pubblicazione dell'owner. Il commit seguente aggiunge soltanto questa prova.
+- Scansione completa con CLI, engine e ruleset `4.9.4`: 338 file, nessuna
+  esclusione e nessun file saltato. Versioni dei 35 check invariate.
+- Rivalutati i confini dei 35 check: autenticazione per richiesta, isolamento
+  shop, webhook firmati, Telegram owner, sessioni cifrate e revoca, query
+  parametrizzate, URL esterni fissi, scope minimi, CSP e rendering. Il runtime
+  è invariato dal candidato `bfd54ecf`; il diff successivo riguarda tooling,
+  workflow, documenti e testi statici del sito. Nessun segreto introdotto dal
+  diff; `npm audit --omit=dev` riporta zero vulnerabilità.
+- Le sette occorrenze di autenticazione attendono i wrapper verificati in
+  `app/admin-auth.server.ts`; l'unico sink HTML distribuito serializza route
+  a enum e token del server con escape di `<` in `app/performance-report.ts`.
+  Le altre quattro occorrenze HTML sono fixture dei test non distribuite.
+  Le dodici soppressioni del documento agente restano valide sul candidato.
+- `record` accettato: 35 check, 30 `executed`, 5 `not_applicable`, nessun
+  `unresolved` né finding reale. La review combinata mantiene exit 1 per
+  7 occorrenze deterministiche `UNAUTHENTICATED_ENDPOINT` e 5 `UNSAFE_INNERHTML`,
+  tutte motivate nella tabella seguente; le soppressioni agente non ne
+  modificano l'exit code.
+- Prove grezze nella directory Git comune
+  `cf-ready-publications/security-temisfera-45abd82/`, fuori da Git.
+  SHA-256: deterministic `3d0a4858…e887672`, agent-checks `eeae2985…db84a66`,
+  agent-findings registrato `b10b6661…5f6ff87`.
+
 Verificati sul codice; ciascuno è registrato come finding soppresso con la
 stessa motivazione.
 

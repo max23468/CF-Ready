@@ -113,20 +113,6 @@ jobs:
           REQUIRED_CHECKS: verify,e2e,react-doctor,coverage
         run: node scripts/github-gates.mjs
 
-      - name: Inietta l'identità del titolare
-        if: steps.preflight.outputs.deploy_required == 'true'
-        env:
-          OWNER_LEGAL_NAME: ${{ secrets.OWNER_LEGAL_NAME }}
-        run: |
-          test -n "$OWNER_LEGAL_NAME"
-          files="$(grep --recursive --files-with-matches '__OWNER_NAME__' site)"
-          test -n "$files"
-          printf '%s\n' "$files" | xargs sed -i "s|__OWNER_NAME__|$OWNER_LEGAL_NAME|g"
-          if grep --recursive --quiet '__OWNER_NAME__' site; then
-            exit 1
-          fi
-          echo "- Identità del titolare iniettata in $(printf '%s\n' "$files" | wc -l | tr -d ' ') pagine" >> "$GITHUB_STEP_SUMMARY"
-
       - name: Prepara asset pubblici versionati
         if: steps.preflight.outputs.deploy_required == 'true'
         run: node scripts/prepare-pages-site.mjs site "$RUNNER_TEMP/pages-site"
@@ -335,12 +321,12 @@ jobs:
               cat "$RUNNER_TEMP/legal-headers.txt"
               exit 1
             fi
-            if grep --quiet '__OWNER_NAME__' "$RUNNER_TEMP/legal-body.html"; then
-              echo "::error::$route pubblica ancora il segnaposto dell'identità del titolare"
+            if ! grep --quiet '<strong>Temisfera</strong>' "$RUNNER_TEMP/legal-body.html"; then
+              echo "::error::$route non espone Temisfera nei documenti legali"
               exit 1
             fi
           done
-          echo "- Documenti legali: \`noindex\` attivo sui quattro URL, nessun segnaposto residuo" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Documenti legali: \`noindex\` attivo e Temisfera presente sui quattro URL" >> "$GITHUB_STEP_SUMMARY"
 
   rollback:
     name: Rollback Pages Production

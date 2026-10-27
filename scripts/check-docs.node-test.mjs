@@ -1324,15 +1324,24 @@ test("README e indice non duplicano la versione corrente", () => {
   );
 });
 
-// Il nome della persona fisica titolare non deve entrare in un repository pubblico:
-// nei sorgenti sta il segnaposto e il workflow Pages lo sostituisce al deploy. Se
-// qualcuno scrive il nome qui, questo test lo ferma prima del commit.
-test("l'identità del titolare resta un segnaposto e i documenti legali non sono indicizzabili", () => {
+test("i documenti legali riportano solo Temisfera e non sono indicizzabili", () => {
   const legal = ["privacy.html", "terms.html", "en/privacy.html", "en/terms.html"];
   for (const file of legal) {
     const page = readFileSync(new URL(`../site/${file}`, import.meta.url), "utf8");
-    assert.match(page, /<strong>__OWNER_NAME__<\/strong>/);
+    assert.match(page, /<strong>Temisfera<\/strong>/);
+    assert.doesNotMatch(page, /__OWNER_NAME__/);
+    const identity = page.match(/<h2>1\.[\s\S]*?<p>([\s\S]*?)<\/p>/)?.[1];
+    assert.ok(identity, `manca il paragrafo di identità in ${file}`);
+    assert.deepEqual(
+      [...identity.matchAll(/<strong>(.*?)<\/strong>/g)].map((match) => match[1]),
+      ["Temisfera"],
+    );
   }
+  const workflow = readFileSync(
+    new URL("../.github/workflows/deploy-pages-production.yml", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(workflow, /OWNER_LEGAL_NAME|__OWNER_NAME__/);
 
   // Righe confrontate come stringhe: una regex costruita dai percorsi andrebbe
   // sottoposta a escape, e un escape parziale cambierebbe in silenzio il pattern.
