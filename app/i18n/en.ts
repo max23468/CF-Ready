@@ -116,8 +116,8 @@ export const en: typeof it = {
     nextChoosePlan: "Choose a plan to apply your rules in checkout again.",
     checkInHeading: "Thank you for choosing CF Ready",
     checkInBody:
-      "The checkout check is active. If you have feedback on the setup or need help, message the developer directly.",
-    checkInContact: "Message me",
+      "The checkout check is active. If you have feedback on the setup or need help, message us directly.",
+    checkInContact: "Message us",
     checkInDismiss: "Don’t show this again",
   },
   messages: {
