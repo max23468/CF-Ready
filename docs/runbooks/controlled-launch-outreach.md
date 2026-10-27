@@ -31,7 +31,7 @@ contenuti che risolvono un problema preciso:
 1. Selezionare cinque contatti già pertinenti, privilegiando relazioni esistenti
    o richieste pubbliche recenti.
 2. Inviare un solo messaggio personale per contatto. Dichiarare subito che
-   Matteo è il creatore di CF Ready.
+   Temisfera sviluppa CF Ready.
 3. Registrare soltanto canale, data, categoria del contatto e stato
    `da contattare`, `inviato`, `risposto`, `installato`, `non interessato`.
    Niente contenuto delle conversazioni, dati fiscali o dati cliente nel repo.
@@ -43,14 +43,14 @@ contenuti che risolvono un problema preciso:
 ## Messaggio per un merchant
 
 > Ciao [nome], ho visto il problema che hai segnalato con Codice Fiscale e PEC
-> nel checkout Shopify. Sono Matteo e ho creato CF Ready proprio per rendere
+> nel checkout Shopify. Ti scrivo da Temisfera, che ha creato CF Ready proprio per rendere
 > questi campi facoltativi oppure obbligatori e controllarne il formato prima
 > che l'ordine venga completato. Se ti va di provarla, ti mando volentieri la
 > pagina dell'app e resto disponibile per la configurazione.
 
 ## Messaggio per agenzia o freelance
 
-> Ciao [nome], sono Matteo e ho sviluppato CF Ready, un'app Shopify per gestire
+> Ciao [nome], ti scrivo da Temisfera, che ha sviluppato CF Ready, un'app Shopify per gestire
 > Codice Fiscale e PEC nei campi italiani del checkout. Ogni campo può essere
 > disattivato, facoltativo oppure obbligatorio. Se tra i vostri clienti c'è uno
 > store con questa esigenza, posso mandarvi la pagina dell'app e seguire io la
@@ -60,7 +60,7 @@ contenuti che risolvono un problema preciso:
 
 Da usare solo quando risponde davvero alla domanda, adattandola al contesto:
 
-> Ciao, sono Matteo e ho creato CF Ready proprio per questo problema. Permette
+> Ciao, ti scrivo da Temisfera, che ha creato CF Ready proprio per questo problema. Permette
 > di impostare Codice Fiscale e PEC come facoltativi oppure obbligatori e ne
 > controlla il formato direttamente nel checkout. Se sei su Shopify Community
 > puoi cercare CF Ready nell'App Store; se vuoi ti aiuto anche a capire come

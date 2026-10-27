@@ -433,11 +433,11 @@ recensione dopo un utilizzo di due minuti.
 - Prima mostrare le bozze in chat quando richiesto. Creare bozze in Mail e
   inviarle sono azioni distinte, da eseguire su richiesta esplicita.
 - Tono semplice, diretto e moderatamente cordiale; apertura “Ciao al team di”.
-- Presentazione: “sono Matteo, lo sviluppatore di CF Ready”.
+- Presentazione: “vi scriviamo da Temisfera, che sviluppa CF Ready”.
 - Per le recensioni chiedere un'esperienza onesta, spiegare che basta un minuto
   e che anche poche righe aiutano; dire che la recensione sarebbe apprezzata.
 - Il testo approvato è uguale per i sette store, con il nome adattato.
-- PS di supporto **prima di “Grazie”**, poi firma Matteo / CF Ready.
+- PS di supporto **prima di “Grazie”**, poi firma Temisfera / CF Ready.
 - Per il costo chiedere prima se il merchant vuole continuare a usare l'app
   “al di là del prezzo”; discutere come venirgli incontro solo dopo.
 - Oggetto del recupero: “La vostra esperienza con CF Ready”, senza enfatizzare
@@ -450,18 +450,18 @@ Oggetto: Una recensione per CF Ready
 
 > Ciao al team di [store],
 >
-> sono Matteo, lo sviluppatore di CF Ready. Grazie per aver scelto l’app!
+> vi scriviamo da Temisfera, che sviluppa CF Ready. Grazie per aver scelto l’app!
 >
 > Vi andrebbe di lasciare una recensione su Shopify raccontando la vostra
 > esperienza? Basta un minuto e anche poche righe possono aiutare altri negozi
-> a conoscere CF Ready. La apprezzerei davvero molto.
+> a conoscere CF Ready. La apprezzeremmo davvero molto.
 >
 > https://apps.shopify.com/cf-ready?locale=it#modal-show=WriteReviewModal
 >
-> PS: se vi serve supporto, sono a disposizione.
+> PS: se vi serve supporto, siamo a disposizione.
 >
 > Grazie,  
-> Matteo  
+> Temisfera\
 > CF Ready
 
 ### Feedback dopo disinstallazione per confronto tra app
@@ -470,16 +470,16 @@ Oggetto: La vostra esperienza con CF Ready
 
 > Ciao al team di [store],
 >
-> sono Matteo, lo sviluppatore di CF Ready. Ho visto che avete provato l’app
+> vi scriviamo da Temisfera, che sviluppa CF Ready. Abbiamo visto che avete provato l’app
 > e indicato di stare confrontando più soluzioni.
 >
-> Vi andrebbe di raccontarmi cosa cercavate e se c’è qualcosa che vi ha portato
-> a disinstallarla? Anche un breve riscontro mi aiuterebbe a capire come migliorarla.
+> Vi andrebbe di raccontarci cosa cercavate e se c’è qualcosa che vi ha portato
+> a disinstallarla? Anche un breve riscontro ci aiuterebbe a capire come migliorarla.
 >
-> PS: se vi serve supporto o volete chiarire qualche dubbio sull’app, sono a disposizione.
+> PS: se vi serve supporto o volete chiarire qualche dubbio sull’app, siamo a disposizione.
 >
 > Grazie,  
-> Matteo  
+> Temisfera\
 > CF Ready
 
 ### Recupero dopo rinuncia per costo
@@ -488,17 +488,17 @@ Oggetto: La vostra esperienza con CF Ready
 
 > Ciao al team di [store],
 >
-> sono Matteo, lo sviluppatore di CF Ready. Ho letto che il costo è stato il
-> motivo della disinstallazione e volevo chiedervi come vi siete trovati con l’app.
+> vi scriviamo da Temisfera, che sviluppa CF Ready. Abbiamo letto che il costo è stato il
+> motivo della disinstallazione e volevamo chiedervi come vi siete trovati con l’app.
 >
 > Al di là del prezzo, CF Ready rispondeva alle vostre esigenze e vi farebbe
 > piacere continuare a utilizzarla? In quel caso, possiamo valutare insieme
 > come venirvi incontro sul costo.
 >
-> PS: se vi serve supporto, sono a disposizione.
+> PS: se vi serve supporto, siamo a disposizione.
 >
 > Grazie,  
-> Matteo  
+> Temisfera\
 > CF Ready
 
 L'ultimo testo conserva l'intento concordato per Mary Boutique con la posizione
