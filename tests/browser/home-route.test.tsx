@@ -319,6 +319,17 @@ describe("Home merchant", () => {
     );
   });
 
+  test("l'avviso dell'apertura ripara un errore ancora presente", async () => {
+    const failing = { ...homeData, errorCode: "validation_write_failed" };
+    router.loaderData = confirmedHome(failing);
+    const view = await mount(<HomePage />);
+    await act(async () => void (await Promise.resolve()));
+    const repair = view.container.querySelector<HTMLElement>('s-banner[tone="warning"] s-button');
+    if (!repair) throw new Error("riparazione nell'avviso assente");
+    await click(repair);
+    expect(router.fetcher.submit).toHaveBeenCalledWith({ intent: "repair" }, { method: "post" });
+  });
+
   test("un errore emerso dopo l'apertura si ripara dalla card della Validation", async () => {
     router.loaderData = confirmedHome(
       { ...homeData },
