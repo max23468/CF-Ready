@@ -19,7 +19,7 @@ export function SupportChat({ locale }: { locale: Locale }) {
   }, [expanded]);
 
   return (
-    <div className="support-chat">
+    <div className="support-chat" data-layout-region="support">
       <section
         id="support-chat-panel"
         ref={panel}

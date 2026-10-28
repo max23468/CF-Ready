@@ -9,6 +9,19 @@ export const PERFORMANCE_ROUTES = [
   "onboarding",
   "other",
 ] as const;
+// Aree della pagina a cui il reporter attribuisce lo spostamento più ampio (D-199): valori di
+// `data-layout-region`, mai selettori o testi. `page` copre ciò che non sta in un'area nota.
+export const PERFORMANCE_LAYOUT_REGIONS = [
+  "notice",
+  "checkin",
+  "setup",
+  "validation",
+  "trial",
+  "plans",
+  "aside",
+  "support",
+  "page",
+] as const;
 export const PERFORMANCE_SERVER_TIMING_NAMES = [
   "auth",
   "auth_session_lookup",
@@ -44,4 +57,5 @@ export const PERFORMANCE_SERVER_TIMING_NAMES = [
 
 export type PerformanceMetricName = (typeof PERFORMANCE_METRIC_NAMES)[number];
 export type PerformanceRoute = (typeof PERFORMANCE_ROUTES)[number];
+export type PerformanceLayoutRegion = (typeof PERFORMANCE_LAYOUT_REGIONS)[number];
 export type PerformanceServerTimingName = (typeof PERFORMANCE_SERVER_TIMING_NAMES)[number];

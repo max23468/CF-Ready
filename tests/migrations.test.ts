@@ -388,6 +388,8 @@ test("0013 crea campioni performance minimizzati e idempotenti", async () => {
     "app_route",
     "server_timing_json",
     "observed_at",
+    // 0031: solo un'area allowlistata della pagina, mai selettori o testi.
+    "layout_shift_source",
   ]);
   const indexes = await env.DB.prepare("PRAGMA index_list(performance_samples)").all<{
     name: string;
@@ -579,6 +581,8 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "0027_shop_timezone.sql",
     "0028_owner_metric_counters.sql",
     "0029_uninstall_history.sql",
+    "0030_shop_partner_development.sql",
+    "0031_performance_layout_shift_source.sql",
   ]);
   await applyThrough(db, migrations, "0022_configuration_history.sql");
   await insertShop(db);
@@ -599,6 +603,8 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
   await applyD1Migrations(db, [migrationAfter(migrations, "0026_billing_observability.sql")]);
   await applyD1Migrations(db, [migrationAfter(migrations, "0027_shop_timezone.sql")]);
   await applyD1Migrations(db, [migrationAfter(migrations, "0028_owner_metric_counters.sql")]);
+  await applyD1Migrations(db, [migrationAfter(migrations, "0029_uninstall_history.sql")]);
+  await applyD1Migrations(db, [migrationAfter(migrations, "0030_shop_partner_development.sql")]);
 
   expect(await db.prepare("SELECT * FROM owner_notifications WHERE id = 23").first()).toMatchObject(
     {
@@ -621,6 +627,18 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     .run();
 
   expect((await db.prepare("PRAGMA foreign_key_check").all()).results).toEqual([]);
+  // 0030 e 0031: colonne nuove, NULL sulle righe esistenti e limitate ai valori ammessi.
+  expect(await db.prepare("SELECT partner_development FROM shops").first()).toEqual({
+    partner_development: null,
+  });
+  await db.prepare("UPDATE shops SET partner_development = 1").run();
+  await expect(db.prepare("UPDATE shops SET partner_development = 2").run()).rejects.toThrow();
+  const sample = `INSERT INTO performance_samples
+      (shop_id, metric_id, metric_name, metric_value, app_version, app_route,
+       observed_at, layout_shift_source)
+    VALUES ((SELECT id FROM shops LIMIT 1), ?, 'CLS', 0.2, '2.5.15', 'home', '2026-10-28', ?)`;
+  await db.prepare(sample).bind("v1-cls-a", "notice").run();
+  await expect(db.prepare(sample).bind("v1-cls-b", "#plans").run()).rejects.toThrow();
   const tables = await db
     .prepare(
       `SELECT name FROM sqlite_schema

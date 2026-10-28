@@ -5,12 +5,12 @@ export function MerchantCheckIn({
   data,
   busy,
   pendingIntent,
-  submit,
+  onDismiss,
 }: {
   data: HomeData;
   busy: boolean;
   pendingIntent: string | null;
-  submit: (intent: string, source?: string) => void;
+  onDismiss: () => void;
 }) {
   const t = texts(data.locale);
 
@@ -19,7 +19,8 @@ export function MerchantCheckIn({
       heading={t.home.checkInHeading}
       tone="info"
       dismissible
-      onDismiss={() => submit("dismiss_checkin", "checkin")}
+      onDismiss={onDismiss}
+      data-layout-region="checkin"
     >
       <s-paragraph>{t.home.checkInBody}</s-paragraph>
       <s-button
@@ -43,7 +44,7 @@ export function MerchantCheckIn({
         slot="secondary-actions"
         disabled={busy}
         loading={pendingIntent === "dismiss_checkin"}
-        onClick={() => submit("dismiss_checkin", "checkin")}
+        onClick={onDismiss}
       >
         {t.home.checkInDismiss}
       </s-button>
