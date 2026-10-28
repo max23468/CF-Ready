@@ -3,6 +3,9 @@ import { test } from "node:test";
 
 import {
   compareVersions,
+  fetchLayoutShifts,
+  LAYOUT_SHIFT_QUERY,
+  parseLayoutShiftResult,
   parseOptions,
   parseTimings,
   TIMING_QUERY,
@@ -240,4 +243,40 @@ test("rifiuta durate e opzioni incomplete, distingue serie mancanti e associa so
   assert.deepEqual(report.comparisons[0].server_timings, [base]);
   assert.equal(report.alerts.length, 1);
   assert.equal(compareVersions([], [], "old", "new").status, "insufficient_samples");
+});
+
+test("le aree CLS sono aggregate per rotta, senza store e con validazione delle righe", () => {
+  assert.match(LAYOUT_SHIFT_QUERY, /metric_name = 'CLS'/);
+  assert.match(LAYOUT_SHIFT_QUERY, /datetime\(observed_at\) >= datetime\('now', '-28 days'\)/);
+  assert.match(LAYOUT_SHIFT_QUERY, /metric_value > 0\.1/);
+  assert.doesNotMatch(LAYOUT_SHIFT_QUERY, /\b(?:INSERT|UPDATE|DELETE|ALTER|DROP)\b/i);
+  assert.doesNotMatch(LAYOUT_SHIFT_QUERY, /shop_domain|shop_id|metric_id|country_code/);
+
+  const row = {
+    app_route: "home",
+    layout_shift_source: "notice",
+    sample_count: 12,
+    poor_count: 3,
+    max_value: 0.18,
+  };
+  assert.deepEqual(parseLayoutShiftResult(JSON.stringify([{ success: true, results: [row] }])), [
+    row,
+  ]);
+  assert.throws(
+    () =>
+      parseLayoutShiftResult(
+        JSON.stringify([{ success: true, results: [{ ...row, poor_count: -1 }] }]),
+      ),
+    /Area CLS non valida/,
+  );
+  assert.throws(() => parseLayoutShiftResult(JSON.stringify([{ success: false }])), /mancanti/);
+  assert.deepEqual(
+    fetchLayoutShifts("development", {
+      spawn: (_command, args) => {
+        assert.equal(args.at(-1), LAYOUT_SHIFT_QUERY);
+        return { status: 0, stdout: JSON.stringify([{ success: true, results: [] }]) };
+      },
+    }),
+    [],
+  );
 });

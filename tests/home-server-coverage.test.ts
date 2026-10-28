@@ -181,6 +181,7 @@ test("la Home completa automaticamente un onboarding già effettivo", async () =
     entitlement: { kind: "trial", validThrough: "2026-09-10" },
     complimentary: { status: "active" },
     creditEstimate: null,
+    billingConfirmed: true,
     errorCode: null,
     partnerDevelopment: false,
   });

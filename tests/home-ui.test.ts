@@ -221,7 +221,7 @@ test("la disattivazione invia l'intent soltanto dall'azione primaria", () => {
 });
 
 test("il check-in pagante resta neutro, apre l'assistenza e può sparire", () => {
-  const submit = vi.fn();
+  const onDismiss = vi.fn();
   const checkInData = {
     locale: "it",
     shopDomain: "merchant.example.myshopify.com",
@@ -232,7 +232,7 @@ test("il check-in pagante resta neutro, apre l'assistenza e può sparire", () =>
     errorCode: null,
   } as Parameters<typeof MerchantCheckIn>[0]["data"];
   const rendered = elements(
-    MerchantCheckIn({ data: checkInData, busy: false, pendingIntent: null, submit }),
+    MerchantCheckIn({ data: checkInData, busy: false, pendingIntent: null, onDismiss }),
   );
   const banner = rendered.find((element) => element.type === "s-banner");
   const buttons = rendered.filter((element) => element.type === "s-button");
@@ -251,11 +251,10 @@ test("il check-in pagante resta neutro, apre l'assistenza e può sparire", () =>
   expect((contact.props as { slot?: string }).slot).toBe("secondary-actions");
   expect((dismiss.props as { slot?: string }).slot).toBe("secondary-actions");
   (dismiss.props as { onClick: () => void }).onClick();
-  expect(submit).toHaveBeenCalledWith("dismiss_checkin", "checkin");
-  submit.mockClear();
+  expect(onDismiss).toHaveBeenCalledTimes(1);
   expect((banner.props as { dismissible?: boolean }).dismissible).toBe(true);
   (banner.props as { onDismiss: () => void }).onDismiss();
-  expect(submit).toHaveBeenCalledWith("dismiss_checkin", "checkin");
+  expect(onDismiss).toHaveBeenCalledTimes(2);
 });
 
 test("il prossimo passo usa un testo generico sui prossimi ordini", () => {

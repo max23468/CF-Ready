@@ -89,7 +89,7 @@ export const it = {
     verifying: "Verifica in corso…",
     verified: "Stato confermato da Shopify",
     verificationUnavailable: "Stato Shopify da verificare",
-    verificationFailed: "Non è stato possibile verificare lo stato con Shopify.",
+    noticeResolved: "Verifica completata: lo stato ora corrisponde a Shopify.",
     verificationRetry: "Riprova",
     repair: "Ripara configurazione",
     messagesLabel: "Messaggi al cliente",

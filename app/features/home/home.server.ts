@@ -91,7 +91,13 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const confirmed = reconciliation.then(async (state) => {
     const config = readConfig(state.validation?.metafield?.jsonValue);
     const onboarding = await completeOnboardingIfReady(db, shopDomain, local, state, config);
-    return homeView({ ...state, config }, base, onboarding, true);
+    // D-199: se Shopify non risponde sul billing la Home resta sul piano noto in D1, accanto
+    // all'avviso che il piano non è stato letto. Passare a "nessun piano" spostava la pagina senza
+    // un fatto nuovo; i diritti operativi restano quelli della riconciliazione.
+    const commercial = state.billingConfirmed
+      ? state
+      : { ...state, entitlement: stored.entitlement, complimentary: stored.complimentary };
+    return homeView({ ...commercial, config }, base, onboarding, true);
   });
   // Conversioni billing e completamento dell'onboarding non si fermano se il merchant chiude.
   waitUntil?.(confirmed.catch(() => undefined));
@@ -130,15 +136,14 @@ type HomeInputs = Pick<
   | "errorCode"
 > & { config: ReturnType<typeof readConfig> };
 
-// Il fuso dello store arriva solo da Shopify: per l'ultimo stato noto basta quello italiano,
-// perché CF Ready serve store italiani e la data viene ricalcolata alla conferma.
+// Il fuso dello store arriva da Shopify e la riconciliazione lo salva in D1; prima della prima
+// lettura basta quello italiano, perché CF Ready serve store italiani e la conferma ricalcola la data.
 const STORED_TIME_ZONE = "Europe/Rome";
 
 async function readStoredHome(
   db: D1Database,
   shopDomain: string,
 ): Promise<Omit<HomeInputs, "validationEnabled" | "errorCode">> {
-  const today = localDate(STORED_TIME_ZONE);
   const [snapshot, trial, account, complimentary, conversionCredit] = await Promise.all([
     readStoredShopSnapshot(db, shopDomain),
     readTrial(db, shopDomain),
@@ -146,11 +151,13 @@ async function readStoredHome(
     readComplimentaryEntitlement(db, shopDomain),
     readLatestBillingConversion(db, shopDomain),
   ]);
+  const today = localDate(snapshot.timeZone ?? STORED_TIME_ZONE);
   const activeComplimentary = complimentary?.status === "active" ? complimentary : null;
   return {
     shopName: snapshot.displayName ?? shopDomain,
     countryCode: snapshot.countryCode ?? "IT",
-    partnerDevelopment: false,
+    // Finché Shopify non l'ha detto, lo store non conta come reale: niente check-in al primo paint.
+    partnerDevelopment: snapshot.partnerDevelopment ?? true,
     today,
     trial,
     account,
@@ -246,8 +253,8 @@ function homeView(
         : null,
     errorCode: state.errorCode,
     onboarding: onboardingStatus,
+    // D-199: deciso già sull'ultimo stato noto, perché la Home lo mostra solo se c'era al primo paint.
     showMerchantCheckIn: Boolean(
-      verified &&
       !state.partnerDevelopment &&
       paidAccount &&
       state.validationEnabled &&

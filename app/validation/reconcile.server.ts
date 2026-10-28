@@ -189,6 +189,7 @@ export async function reconcile(
     displayName: shop.name,
     countryCode,
     ianaTimezone: shop.ianaTimezone,
+    partnerDevelopment: shop.plan.partnerDevelopment,
     validation,
     validationEnabled,
     errorCode,
@@ -226,6 +227,7 @@ export async function reconcile(
     entitlement,
     creditEstimate,
     conversionCredit,
+    billingConfirmed,
     errorCode,
     retryable,
   };

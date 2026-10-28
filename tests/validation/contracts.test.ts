@@ -267,9 +267,22 @@ describe("stato D1 Validation", () => {
     await persistValidationState(env.DB, shop, {
       displayName: "Negozio",
       countryCode: "IT",
+      partnerDevelopment: true,
       validation: VALIDATION,
       errorCode: null,
     });
+    // Una scrittura che non conosce il tipo di store conserva quello letto da Shopify (D-199).
+    await persistValidationState(env.DB, shop, {
+      displayName: "Negozio",
+      countryCode: "IT",
+      validation: VALIDATION,
+      errorCode: null,
+    });
+    expect(
+      await env.DB.prepare("SELECT partner_development FROM shops WHERE shop_domain = ?")
+        .bind(shop)
+        .first("partner_development"),
+    ).toBe(1);
     await saveOnboarding(env.DB, shop, { status: "in_progress", step: 99 });
     expect(await readOnboarding(env.DB, shop)).toMatchObject({ status: "in_progress", step: 4 });
     expect(await completeOnboardingAutomatically(env.DB, shop)).toBe(true);

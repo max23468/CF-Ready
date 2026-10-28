@@ -8,17 +8,20 @@ import {
 } from "./d1-report.mjs";
 
 import {
+  PERFORMANCE_LAYOUT_SHIFT_QUERY,
   PERFORMANCE_MINIMUM_SAMPLES,
   PERFORMANCE_QUERY,
   PERFORMANCE_REGRESSION_INCREASE,
   PERFORMANCE_TIMING_QUERY,
   PERFORMANCE_WINDOW_DAYS,
   comparePerformanceVersions,
+  parsePerformanceLayoutShifts,
   parsePerformanceRows,
   parsePerformanceTimings,
 } from "../app/reporting/performance.ts";
 
 export const TIMING_QUERY = PERFORMANCE_TIMING_QUERY;
+export const LAYOUT_SHIFT_QUERY = PERFORMANCE_LAYOUT_SHIFT_QUERY;
 export const parseTimings = parsePerformanceTimings;
 export const compareVersions = comparePerformanceVersions;
 
@@ -60,9 +63,20 @@ export function fetchReport(environment, options = {}) {
   return fetchD1Report(environment, PERFORMANCE_QUERY, parseD1Result, options);
 }
 
+export function parseLayoutShiftResult(stdout) {
+  const result = parseD1Json(stdout)?.[0];
+  if (!result?.success) throw new Error("Aree CLS mancanti.");
+  return parsePerformanceLayoutShifts(result.results);
+}
+
+export function fetchLayoutShifts(environment, options = {}) {
+  return fetchD1Report(environment, LAYOUT_SHIFT_QUERY, parseLayoutShiftResult, options);
+}
+
 function main() {
   const { environment, versions } = parseOptions(process.argv.slice(2));
   const groups = fetchReport(environment);
+  const layoutShiftSources = fetchLayoutShifts(environment);
   const timings = versions
     ? fetchD1Report(environment, TIMING_QUERY, (stdout) => {
         const result = parseD1Json(stdout)?.[0];
@@ -78,6 +92,7 @@ function main() {
         window_days: PERFORMANCE_WINDOW_DAYS,
         minimum_samples: PERFORMANCE_MINIMUM_SAMPLES,
         groups,
+        layout_shift_sources: layoutShiftSources,
         comparison,
         comparison_policy: {
           minimum_samples_per_version: PERFORMANCE_MINIMUM_SAMPLES,
