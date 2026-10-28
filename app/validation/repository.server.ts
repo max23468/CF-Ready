@@ -12,6 +12,7 @@ export async function persistValidationState(
     displayName: string;
     countryCode: string;
     ianaTimezone?: string;
+    partnerDevelopment?: boolean;
     validation: Validation | undefined;
     validationEnabled?: boolean;
     errorCode: AppErrorCode | null;
@@ -32,6 +33,7 @@ export async function persistValidationState(
            display_name = ?,
            country_code = ?,
            iana_timezone = COALESCE(?, iana_timezone),
+           partner_development = COALESCE(?, partner_development),
            installation_status = CASE
              WHEN installation_status = 'blocked_country' THEN 'active'
              ELSE installation_status
@@ -46,6 +48,7 @@ export async function persistValidationState(
         safeStoreDisplayName(state.displayName),
         state.countryCode,
         state.ianaTimezone ?? null,
+        state.partnerDevelopment === undefined ? null : Number(state.partnerDevelopment),
         now,
         shopDomain,
         state.expectedRevision ?? null,
@@ -181,12 +184,13 @@ export async function readHomeState(db: D1Database, shopDomain: string) {
   };
 }
 
-// Ultimo stato noto per il primo paint della Home (D-167): nome, paese e ultima configurazione
-// scritta dall'app. Non è autorevole; la riconciliazione Shopify lo sostituisce appena risponde.
+// Ultimo stato noto per il primo paint della Home (D-167, D-199): nome, paese, fuso, tipo di store
+// e ultima configurazione scritta dall'app. Non è autorevole; la riconciliazione Shopify lo sostituisce appena risponde.
 export async function readStoredShopSnapshot(db: D1Database, shopDomain: string) {
   const row = await db
     .prepare(
-      `SELECT shop.display_name, shop.country_code, history.rules_json, history.messages_json
+      `SELECT shop.display_name, shop.country_code, shop.iana_timezone, shop.partner_development,
+              history.rules_json, history.messages_json
          FROM shops shop
          LEFT JOIN configuration_history history ON history.id = (
            SELECT latest.id FROM configuration_history latest
@@ -199,6 +203,8 @@ export async function readStoredShopSnapshot(db: D1Database, shopDomain: string)
     .first<{
       display_name: string | null;
       country_code: string | null;
+      iana_timezone: string | null;
+      partner_development: number | null;
       rules_json: string | null;
       messages_json: string | null;
     }>();
@@ -218,6 +224,11 @@ export async function readStoredShopSnapshot(db: D1Database, shopDomain: string)
   return {
     displayName: row?.display_name ?? null,
     countryCode: row?.country_code ?? null,
+    timeZone: row?.iana_timezone ?? null,
+    partnerDevelopment:
+      row?.partner_development === null || row?.partner_development === undefined
+        ? null
+        : row.partner_development === 1,
     config,
   };
 }

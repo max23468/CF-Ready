@@ -160,7 +160,8 @@ test("la conferma Shopify sostituisce lo stato salvato", async () => {
     entitlement: { kind: "none", validThrough: null },
     creditEstimate: 1.5,
     conversionCredit: null,
-    errorCode: "billing_read_failed",
+    billingConfirmed: true,
+    errorCode: "validation_write_failed",
   });
 
   const { result } = await loadHome();
@@ -172,8 +173,37 @@ test("la conferma Shopify sostituisce lo stato salvato", async () => {
     rules: DEFAULT_CONFIG.rules,
     entitlement: { kind: "none", validThrough: null },
     creditEstimate: 1.5,
-    errorCode: "billing_read_failed",
+    errorCode: "validation_write_failed",
     onboarding: "in_progress",
+  });
+});
+
+test("con il billing Shopify non letto la conferma tiene il piano salvato (D-199)", async () => {
+  mocks.reconcile.mockResolvedValue({
+    shopName: "Negozio confermato",
+    countryCode: "IT",
+    partnerDevelopment: false,
+    today: "2026-08-05",
+    validation: { metafield: { jsonValue: DEFAULT_CONFIG } },
+    validationEnabled: true,
+    trial: null,
+    account: await mocks.readBillingAccount(),
+    complimentary: null,
+    // La riconciliazione non concede diritti senza readback: la Home non li toglie a vista.
+    entitlement: { kind: "none", validThrough: null },
+    creditEstimate: null,
+    conversionCredit: null,
+    billingConfirmed: false,
+    errorCode: "billing_read_failed",
+  });
+
+  const { result } = await loadHome();
+
+  await expect(result.data.confirmed).resolves.toMatchObject({
+    verified: true,
+    entitlement: { kind: "subscription", validThrough: "2999-01-01" },
+    errorCode: "billing_read_failed",
+    showMerchantCheckIn: false,
   });
 });
 
@@ -181,13 +211,21 @@ test.each([
   { partnerDevelopment: true, showMerchantCheckIn: false },
   { partnerDevelopment: false, showMerchantCheckIn: true },
 ])(
-  "il check-in attende Shopify e rispetta lo store Development: $partnerDevelopment",
+  "il check-in si decide già sullo stato salvato e rispetta lo store Development: $partnerDevelopment",
   async ({ partnerDevelopment, showMerchantCheckIn }) => {
     const reconciliation = deferred<unknown>();
     mocks.reconcile.mockReturnValue(reconciliation.promise);
+    mocks.readStoredShopSnapshot.mockResolvedValue({
+      displayName: "Negozio salvato",
+      countryCode: "IT",
+      timeZone: "Europe/Rome",
+      partnerDevelopment,
+      config: configured,
+    });
 
     const { result } = await loadHome();
-    expect(result.data.home.showMerchantCheckIn).toBe(false);
+    // D-199: la Home mostra il check-in solo se c'è al primo paint.
+    expect(result.data.home.showMerchantCheckIn).toBe(showMerchantCheckIn);
 
     reconciliation.resolve({
       shopName: "Negozio confermato",
@@ -202,6 +240,7 @@ test.each([
       entitlement: { kind: "subscription", validThrough: "2999-01-01" },
       creditEstimate: null,
       conversionCredit: null,
+      billingConfirmed: true,
       errorCode: null,
     });
 
