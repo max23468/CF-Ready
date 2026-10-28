@@ -6,6 +6,26 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.5.15 — 28 ottobre 2026
+
+- La Home non si sposta più quando Shopify conferma uno stato diverso da quello
+  salvato (D-199). L'avviso presente all'apertura resta al suo posto e dice
+  quando il problema è risolto; un problema emerso dopo l'apertura compare nella
+  card della Validation. Check-in e avviso della prova compaiono solo se c'erano
+  all'apertura, e il check-in si chiude subito al clic.
+- Se Shopify non risponde sul billing, la Home mostra il piano già noto accanto
+  all'avviso invece di passare a "nessun piano".
+- Il monitoraggio Web Vitals registra quale area della pagina produce lo
+  spostamento CLS più ampio e `report:performance` lo riepiloga per rotta.
+
+The Home no longer shifts when Shopify confirms a state that differs from the
+saved one. A notice shown on opening stays in place and says when the issue is
+resolved; an issue found after opening appears in the Validation card. The
+check-in and trial notices appear only if they were there on opening, and the
+check-in closes as soon as it is clicked. If Shopify billing cannot be read,
+the Home keeps the known plan next to the notice. Web Vitals monitoring now
+records which area of the page causes the largest CLS shift.
+
 ## 2.5.14 — 27 ottobre 2026
 
 - Assistenza, FAQ, privacy, policy di sicurezza e messaggio di check-in nell’app

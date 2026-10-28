@@ -299,7 +299,10 @@ npm run report:performance -- production
 
 Le soglie iniziali sono LCP ≤ 2.500 ms, INP ≤ 200 ms e CLS ≤ 0,1. Ogni gruppo
 ha stato `insufficient_samples` finché non raggiunge 100 campioni; dopo quella
-soglia è `pass` o `fail`. Il comando è di sola lettura e non sostituisce lo
+soglia è `pass` o `fail`. `layout_shift_sources` riporta per rotta l'area della
+pagina che ha prodotto lo spostamento CLS più ampio (D-199), con campioni,
+campioni oltre 0,1 e valore massimo: è il primo dato da leggere quando il CLS
+sale. Il comando è di sola lettura e non sostituisce lo
 stato Built for Shopify assegnato e riletto da Shopify.
 
 Nel Control Center Telegram, `/performance` mostra anche l'obiettivo di 50

@@ -365,8 +365,32 @@ describe("componenti merchant nel browser", () => {
       route: "home",
       token: "firma",
       serverTimings: { shopify_snapshot: 470 },
+      layoutShiftSource: null,
       metrics: [{ id: "v4-1", name: "LCP", value: 1200, country: "IT" }],
     });
+  });
+
+  // D-199: Chromium espone `layout-shift`; l'area arriva dal `data-layout-region` più vicino.
+  test("lo script attribuisce lo spostamento più ampio all'area della pagina", async () => {
+    if (!PerformanceObserver.supportedEntryTypes?.includes("layout-shift")) return;
+    const onReport = vi.fn(async () => undefined);
+    const beacon = vi.spyOn(navigator, "sendBeacon").mockReturnValue(true);
+    vi.stubGlobal("shopify", { webVitals: { onReport } });
+    const host = document.createElement("div");
+    host.innerHTML =
+      '<div></div><div data-layout-region="plans"><p style="margin:0;height:70vh">Piani</p></div>';
+    document.body.prepend(host);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    new Function(performanceReporterScript({ route: "home", token: "firma" }))();
+    (host.firstElementChild as HTMLElement).style.height = "25vh";
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const callback = onReport.mock.calls[0][0] as (report: ShopifyWebVitalsReport) => void;
+    callback({ metrics: [{ id: "v4-cls", name: "CLS", value: 0.3 }] as ShopifyWebVitalsMetric[] });
+
+    const [, blob] = beacon.mock.calls[0];
+    expect(JSON.parse(await (blob as Blob).text()).layoutShiftSource).toBe("plans");
+    host.remove();
   });
 
   test("lo script ripiega su fetch keepalive e ignora un trasporto fallito", async () => {

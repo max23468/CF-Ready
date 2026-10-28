@@ -17,7 +17,7 @@ export function PlanChoice(props: PlanProps) {
   return (
     <>
       <s-box paddingBlockEnd="base">
-        <div id="plans" className="home-plans" tabIndex={-1}>
+        <div id="plans" className="home-plans" tabIndex={-1} data-layout-region="plans">
           <s-stack direction="block" gap="base">
             {trialNeverStarted ? <StartTrialSection {...props} /> : null}
             <PlanSelection {...props} trialNeverStarted={trialNeverStarted} />

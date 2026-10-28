@@ -80,7 +80,7 @@ export function SetupGuide({
   const active = steps.findIndex((step) => !step.done);
 
   return (
-    <s-section>
+    <s-section data-layout-region="setup">
       <s-stack direction="block" gap="base">
         <s-stack direction="block" gap="small-100">
           <s-stack direction="inline" gap="small-100" alignItems="center">

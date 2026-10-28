@@ -9,14 +9,19 @@ test("la Home legge l'ultima configurazione salvata come stato non confermato", 
   expect(await readStoredShopSnapshot(env.DB, "assente-snapshot.myshopify.com")).toEqual({
     displayName: null,
     countryCode: null,
+    timeZone: null,
+    partnerDevelopment: null,
     config: null,
   });
 
   const shop = await insertShop("snapshot.example.myshopify.com");
   expect((await readStoredShopSnapshot(env.DB, shop)).config).toBeNull();
 
+  // D-199: fuso e tipo di store scritti dalla riconciliazione servono già al primo paint.
   await env.DB.prepare(
-    "UPDATE shops SET display_name = 'Negozio', country_code = 'IT' WHERE shop_domain = ?",
+    `UPDATE shops SET display_name = 'Negozio', country_code = 'IT',
+       iana_timezone = 'Europe/Rome', partner_development = 0
+     WHERE shop_domain = ?`,
   )
     .bind(shop)
     .run();
@@ -36,6 +41,8 @@ test("la Home legge l'ultima configurazione salvata come stato non confermato", 
   expect(await readStoredShopSnapshot(env.DB, shop)).toEqual({
     displayName: "Negozio",
     countryCode: "IT",
+    timeZone: "Europe/Rome",
+    partnerDevelopment: false,
     config: { schemaVersion: 3, ...current },
   });
 });

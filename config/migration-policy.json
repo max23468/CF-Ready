@@ -160,6 +160,16 @@
       "name": "0029_uninstall_history.sql",
       "sha256": "7a6b6646316b8ef61c734eaa89a9d9fc514365b1fafc5ced8982ee9add7c2cfc",
       "protects": ["anonymous uninstall history and review store separation"]
+    },
+    {
+      "name": "0030_shop_partner_development.sql",
+      "sha256": "f228dad5c1cc57094f674597d143c410d10c32e95db72459e68187172612dee8",
+      "protects": ["first-paint shop type for the Home check-in"]
+    },
+    {
+      "name": "0031_performance_layout_shift_source.sql",
+      "sha256": "f71676813ef089395015a490f45c7679bfb367ca117e31cd675270c217548d13",
+      "protects": ["allowlisted CLS attribution per sample"]
     }
   ]
 }

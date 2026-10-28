@@ -92,7 +92,7 @@ export const en: typeof it = {
     verifying: "Checking with Shopify…",
     verified: "Status confirmed by Shopify",
     verificationUnavailable: "Shopify status needs checking",
-    verificationFailed: "We couldn’t check your status with Shopify.",
+    noticeResolved: "Check complete: your status now matches Shopify.",
     verificationRetry: "Try again",
     repair: "Repair configuration",
     messagesLabel: "Customer messages",

@@ -908,6 +908,20 @@ test("corsia CI e report D1 attraversano gli entrypoint con input sintetici", as
       ],
     },
   ]);
+  const layoutShifts = JSON.stringify([
+    {
+      success: true,
+      results: [
+        {
+          app_route: "home",
+          layout_shift_source: "notice",
+          sample_count: 3,
+          poor_count: 1,
+          max_value: 0.18,
+        },
+      ],
+    },
+  ]);
   const launch = JSON.stringify([
     {
       success: true,
@@ -935,6 +949,7 @@ test("corsia CI e report D1 attraversano gli entrypoint con input sintetici", as
     npm: `
 case "$*" in
   *"WITH timing_samples AS"*) printf '%s\\n' '[{"success":true,"results":[]}]' ;;
+  *"AS layout_shift_source"*) printf '%s\\n' '${layoutShifts}' ;;
   *"WITH recent AS"*) printf '%s\\n' '${performance}' ;;
   *"stores_total"*) printf '%s\\n' '${launch}' ;;
   *) exit 3 ;;
@@ -944,6 +959,10 @@ esac`,
     env: { PATH: providerPath },
   });
   assert.equal(JSON.parse(performanceResult.stdout).groups[0].status, "pass");
+  assert.equal(
+    JSON.parse(performanceResult.stdout).layout_shift_sources[0].layout_shift_source,
+    "notice",
+  );
   const compared = runEntrypoint(
     "performance-report.mjs",
     ["development", "--compare", "1.1.3", "1.1.4"],

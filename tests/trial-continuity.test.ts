@@ -208,6 +208,8 @@ test("il richiamo della prova sta dopo la card e punta al listino esistente", ()
       pendingSource: null,
       submit,
       verification: "confirmed",
+      issue: null,
+      retryVerification: vi.fn(),
       t: texts("it"),
     }),
   );
