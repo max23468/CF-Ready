@@ -69,6 +69,7 @@ test("il server scarta metriche e campi non ammessi", () => {
     normalizePerformanceReport({
       route: "/app/messages?testo=riservato",
       serverTimings: { total: 2200, riservato: 99 },
+      layoutShiftSource: "s-section#piano",
       metrics: [
         { id: "v4-1", name: "INP", value: 942, country: "it", target: "riservato" },
         { id: "v4-2", name: "FID", value: 12, country: "IT" },
@@ -77,6 +78,7 @@ test("il server scarta metriche e campi non ammessi", () => {
   ).toEqual({
     route: "other",
     serverTimings: { total: 2200 },
+    layoutShiftSource: null,
     metrics: [{ id: "v4-1", name: "INP", value: 942, countryCode: null }],
   });
   expect(normalizePerformanceReport({ route: "home", metrics: [] })).toBeNull();
@@ -89,9 +91,11 @@ test("la route firmata registra versione e campioni idempotenti senza payload me
     token: await createPerformanceToken(shop),
     route: "messages",
     serverTimings: { auth: 48, shopify_snapshot: 2090, total: 2150 },
+    layoutShiftSource: "notice",
     metrics: [
       { id: "v4-lcp-1", name: "LCP", value: 3273, country: "IT", target: "riservato" },
       { id: "v4-inp-1", name: "INP", value: 942, country: "IT" },
+      { id: "v4-cls-1", name: "CLS", value: 0.18, country: "IT" },
     ],
   };
   const submit = () =>
@@ -110,14 +114,25 @@ test("la route firmata registra versione e campioni idempotenti senza payload me
 
   const { results } = await env.DB.prepare(
     `SELECT metric_id, metric_name, metric_value, country_code, app_version, app_route,
-            server_timing_json
+            server_timing_json, layout_shift_source
        FROM performance_samples
       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
       ORDER BY metric_name`,
   )
     .bind(shop)
     .all<Record<string, unknown>>();
+  // D-199: l'area dello spostamento resta solo sul campione CLS.
   expect(results).toEqual([
+    {
+      metric_id: "v4-cls-1",
+      metric_name: "CLS",
+      metric_value: 0.18,
+      country_code: "IT",
+      app_version: APP_VERSION,
+      app_route: "messages",
+      server_timing_json: '{"auth":48,"shopify_snapshot":2090,"total":2150}',
+      layout_shift_source: "notice",
+    },
     {
       metric_id: "v4-inp-1",
       metric_name: "INP",
@@ -126,6 +141,7 @@ test("la route firmata registra versione e campioni idempotenti senza payload me
       app_version: APP_VERSION,
       app_route: "messages",
       server_timing_json: '{"auth":48,"shopify_snapshot":2090,"total":2150}',
+      layout_shift_source: null,
     },
     {
       metric_id: "v4-lcp-1",
@@ -135,6 +151,7 @@ test("la route firmata registra versione e campioni idempotenti senza payload me
       app_version: APP_VERSION,
       app_route: "messages",
       server_timing_json: '{"auth":48,"shopify_snapshot":2090,"total":2150}',
+      layout_shift_source: null,
     },
   ]);
 });

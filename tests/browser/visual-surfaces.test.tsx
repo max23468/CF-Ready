@@ -196,10 +196,85 @@ test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", asy
     await view.rerender(<HomePage />);
     await expect
       .poll(() => view.container.textContent)
-      .toContain(texts("it").home.verificationFailed);
-    expect(status.textContent).toContain(texts("it").home.badgeActive);
+      .toContain(texts("it").home.verificationUnavailable);
+    expect(view.container.querySelector("s-banner")).toBeNull();
     await view.unmount();
   }
+});
+
+// D-199: CLS misurato da Chromium mentre la conferma Shopify sostituisce lo stato salvato in D1.
+// WebKit non espone `layout-shift`: lì non c'è nulla da misurare.
+const homeShiftBase = {
+  ...homeData,
+  onboarding: "completed",
+  validationEnabled: true,
+  rules: { taxCode: "required_validated", pec: "optional_validated" },
+  entitlement: { kind: "trial", validThrough: "2026-11-10" },
+  trialStatus: "active",
+  trialEndsAt: "2026-11-10",
+  firstChargeAt: "2026-11-10",
+  remaining: 12,
+} as const;
+
+test.each([
+  ["errore risolto dalla conferma", { errorCode: "billing_read_failed" }, {}],
+  ["errore rilevato dalla conferma", {}, { errorCode: "billing_read_failed" }],
+  ["check-in idoneo solo dopo la conferma", {}, { showMerchantCheckIn: true }],
+  ["conferma fallita", {}, null],
+] as const)("Polaris reale: la conferma non sposta la Home (%s)", async (_, stored, confirmed) => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("layout-shift")) return;
+  for (const width of [1280, 390]) {
+    await page.viewport(width, 844);
+    let settle!: () => void;
+    const confirmation = new Promise<object>((resolve, reject) => {
+      settle = () =>
+        confirmed
+          ? resolve({ ...homeShiftBase, ...confirmed, verified: true })
+          : reject(new Error("timeout"));
+    });
+    confirmation.catch(() => undefined);
+    router.loaderData = {
+      home: { ...homeShiftBase, ...stored, verified: false },
+      confirmed: confirmation,
+    };
+    const view = await mount(
+      <>
+        <HomePage />
+        <SupportChat locale="it" />
+      </>,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    let shift = 0;
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) shift += (entry as unknown as { value: number }).value;
+    });
+    observer.observe({ type: "layout-shift" });
+    await act(async () => settle());
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    for (const entry of observer.takeRecords()) {
+      shift += (entry as unknown as { value: number }).value;
+    }
+    observer.disconnect();
+    expect(shift, `${width} px`).toBeLessThan(0.01);
+    await view.unmount();
+  }
+});
+
+test("Polaris reale: l'avviso risolto si chiude e libera il suo spazio", async () => {
+  await page.viewport(1280, 844);
+  router.loaderData = confirmedHome(
+    { ...homeShiftBase, errorCode: "billing_read_failed" },
+    Promise.resolve({ ...homeShiftBase, verified: true }),
+  );
+  const view = await mount(<HomePage />);
+  await expect.poll(() => view.container.querySelector('s-banner[tone="success"]')).not.toBeNull();
+  const banner = view.container.querySelector<HTMLElement>('s-banner[tone="success"]')!;
+  const close = banner
+    .shadowRoot!.querySelector(".dismiss s-button")!
+    .shadowRoot!.querySelector<HTMLElement>("button")!;
+  await act(async () => close.click());
+  await expect.poll(() => view.container.querySelector(".cf-keep-height")).toBeNull();
+  await view.unmount();
 });
 
 test.each([

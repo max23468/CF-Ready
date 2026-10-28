@@ -74,6 +74,56 @@ SELECT app_version, app_route, timing_name, sample_count, duration AS p75
 FROM ranked WHERE rank = CAST((3 * sample_count + 3) / 4 AS INTEGER);
 `;
 
+// D-199: per rotta e area dello spostamento più ampio, quanti campioni CLS ci sono, quanti superano
+// la soglia e il valore massimo. `unknown` raccoglie i campioni senza area (browser senza
+// `layout-shift` o campioni precedenti alla 0031).
+export const PERFORMANCE_LAYOUT_SHIFT_QUERY = `
+SELECT app_route, COALESCE(layout_shift_source, 'unknown') AS layout_shift_source,
+       COUNT(*) AS sample_count,
+       SUM(metric_value > ${PERFORMANCE_THRESHOLDS.CLS}) AS poor_count,
+       MAX(metric_value) AS max_value
+  FROM performance_samples
+ WHERE metric_name = 'CLS'
+   AND datetime(observed_at) >= datetime('now', '-${PERFORMANCE_WINDOW_DAYS} days')
+ GROUP BY app_route, COALESCE(layout_shift_source, 'unknown')
+ ORDER BY poor_count DESC, sample_count DESC, app_route, layout_shift_source;
+`;
+
+export type PerformanceLayoutShiftGroup = {
+  app_route: string;
+  layout_shift_source: string;
+  sample_count: number;
+  poor_count: number;
+  max_value: number;
+};
+
+export function parsePerformanceLayoutShifts(rows: unknown): PerformanceLayoutShiftGroup[] {
+  if (!Array.isArray(rows)) throw new Error("Aree CLS mancanti.");
+  return rows.map((value) => {
+    const row = value as Record<string, unknown>;
+    if (
+      typeof row.app_route !== "string" ||
+      typeof row.layout_shift_source !== "string" ||
+      !Number.isInteger(row.sample_count) ||
+      (row.sample_count as number) < 1 ||
+      !Number.isInteger(row.poor_count) ||
+      (row.poor_count as number) < 0 ||
+      typeof row.max_value !== "number" ||
+      !Number.isFinite(row.max_value) ||
+      row.max_value < 0
+    ) {
+      throw new Error("Area CLS non valida.");
+    }
+    return {
+      app_route: row.app_route,
+      layout_shift_source: row.layout_shift_source,
+      sample_count: row.sample_count as number,
+      poor_count: row.poor_count as number,
+      max_value: row.max_value,
+    };
+  });
+}
+
 // Le query del Worker girano a ogni ciclo owner: D1 conta come righe lette anche gli ordinamenti
 // delle window function, quindi calcolano solo ciò che Control Center e avvisi BFS mostrano.
 // `observed_at` è sempre scritto da `toISOString()`: il confronto testuale con il cutoff ISO

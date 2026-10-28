@@ -227,7 +227,10 @@ describe("Home merchant", () => {
     router.loaderData = confirmedHome(entitled, Promise.reject(new Error("timeout")));
     await view.rerender(<HomePage key="failed" />);
     await act(async () => void (await Promise.resolve()));
-    expect(view.container.textContent).toContain(t.home.verificationFailed);
+    // D-199: il fallimento si legge nel badge e nella prima azione, senza avvisi in cima.
+    const failedStatus = view.container.querySelector('div[role="status"]');
+    expect(failedStatus?.textContent).toContain(t.home.verificationUnavailable);
+    expect(view.container.querySelector("s-banner")).toBeNull();
     expect(view.container.textContent).not.toContain(t.home.verifying);
     const retry = [...view.container.querySelectorAll("s-button")].find(
       (button) => button.textContent === t.home.verificationRetry,
@@ -240,7 +243,7 @@ describe("Home merchant", () => {
     await view.rerender(<HomePage key="confirmed" />);
     await act(async () => void (await Promise.resolve()));
     expect(view.container.textContent).not.toContain(t.home.verifying);
-    expect(view.container.textContent).not.toContain(t.home.verificationFailed);
+    expect(view.container.textContent).not.toContain(t.home.verificationUnavailable);
     expect(view.container.querySelector('div[role="status"]')?.textContent).toContain(
       t.home.badgeActive,
     );
@@ -249,7 +252,7 @@ describe("Home merchant", () => {
   });
 
   test("il check-in copre invio, dismiss e stato occupato", async () => {
-    const submit = vi.fn();
+    const onDismiss = vi.fn();
     const data = {
       ...homeData,
       entitlement: { kind: "subscription", validThrough: "2026-09-30" },
@@ -260,13 +263,90 @@ describe("Home merchant", () => {
         data={data as never}
         busy={false}
         pendingIntent="dismiss_checkin"
-        submit={submit}
+        onDismiss={onDismiss}
       />,
     );
     const banner = view.container.querySelector("s-banner");
     banner?.dispatchEvent(new CustomEvent("dismiss", { bubbles: true }));
     for (const button of view.container.querySelectorAll("s-button")) await click(button);
-    expect(submit).toHaveBeenCalledWith("dismiss_checkin", "checkin");
+    expect(onDismiss).toHaveBeenCalled();
+  });
+
+  // D-199: il check-in si decide al primo paint e sparisce al clic, prima della risposta.
+  test("il check-in compare solo se c'è all'apertura e si chiude subito", async () => {
+    const paid = {
+      ...homeData,
+      entitlement: { kind: "subscription", validThrough: "2026-09-30" },
+      planKind: "monthly",
+      accountStatus: "active",
+      validationEnabled: true,
+      onboarding: "completed",
+    };
+    router.loaderData = confirmedHome(
+      paid,
+      Promise.resolve({ ...paid, showMerchantCheckIn: true }),
+    );
+    const late = await mount(<HomePage />);
+    await act(async () => void (await Promise.resolve()));
+    expect(late.container.textContent).not.toContain(texts("it").home.checkInHeading);
+    await late.unmount();
+
+    router.loaderData = confirmedHome({ ...paid, showMerchantCheckIn: true });
+    const view = await mount(<HomePage />);
+    await act(async () => void (await Promise.resolve()));
+    const dismiss = [...view.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === texts("it").home.checkInDismiss,
+    );
+    if (!dismiss) throw new Error("chiusura check-in assente");
+    await click(dismiss);
+    expect(router.fetcher.submit).toHaveBeenCalledWith(
+      { intent: "dismiss_checkin", source: "checkin" },
+      { method: "post" },
+    );
+    expect(view.container.querySelector('s-banner[tone="info"]')).toBeNull();
+  });
+
+  // D-199: l'avviso presente all'apertura resta al suo posto e, se la conferma lo risolve, lo dice.
+  test("l'avviso dell'apertura dice che il problema è risolto", async () => {
+    const stored = { ...homeData, errorCode: "billing_read_failed" };
+    router.loaderData = confirmedHome(stored, Promise.resolve({ ...homeData }));
+    const view = await mount(<HomePage />);
+    await act(async () => void (await Promise.resolve()));
+    const resolved = view.container.querySelector('s-banner[tone="success"]');
+    expect(resolved?.textContent).toBe(texts("it").home.noticeResolved);
+    expect(view.container.querySelector('div[role="status"]')?.textContent).not.toContain(
+      texts("it").home.verificationUnavailable,
+    );
+  });
+
+  test("l'avviso dell'apertura ripara un errore ancora presente", async () => {
+    const failing = { ...homeData, errorCode: "validation_write_failed" };
+    router.loaderData = confirmedHome(failing);
+    const view = await mount(<HomePage />);
+    await act(async () => void (await Promise.resolve()));
+    const repair = view.container.querySelector<HTMLElement>('s-banner[tone="warning"] s-button');
+    if (!repair) throw new Error("riparazione nell'avviso assente");
+    await click(repair);
+    expect(router.fetcher.submit).toHaveBeenCalledWith({ intent: "repair" }, { method: "post" });
+  });
+
+  test("un errore emerso dopo l'apertura si ripara dalla card della Validation", async () => {
+    router.loaderData = confirmedHome(
+      { ...homeData },
+      Promise.resolve({ ...homeData, errorCode: "billing_read_failed" }),
+    );
+    const view = await mount(<HomePage />);
+    await act(async () => void (await Promise.resolve()));
+    expect(view.container.querySelector("s-banner")).toBeNull();
+    expect(view.container.querySelector('div[role="status"]')?.textContent).toBe(
+      texts("it").home.verificationUnavailable,
+    );
+    const repair = [...view.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === texts("it").home.repair,
+    );
+    if (!repair) throw new Error("riparazione assente");
+    await click(repair);
+    expect(router.fetcher.submit).toHaveBeenCalledWith({ intent: "repair" }, { method: "post" });
   });
 
   test("copre primo avvio, errore e azioni principali", async () => {

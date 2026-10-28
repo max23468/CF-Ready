@@ -496,6 +496,7 @@ function stubAdmin({
               shop: {
                 name: "CF Ready Dev",
                 ianaTimezone: "Europe/Rome",
+                plan: { partnerDevelopment: true },
                 shopAddress: { countryCodeV2: countryCode },
               },
               validations: {

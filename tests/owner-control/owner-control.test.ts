@@ -6,6 +6,7 @@ import { parseOwnerControlUpdate } from "../../app/owner-control/update.server";
 import { parseFunnel } from "../../app/reporting/funnel";
 import {
   comparePerformanceVersions,
+  parsePerformanceLayoutShifts,
   parsePerformanceRows,
   parsePerformanceTimings,
 } from "../../app/reporting/performance";
@@ -194,6 +195,31 @@ describe("reporting condiviso", () => {
     expect(comparePerformanceVersions([], [], "1.0.0", "1.1.0").status).toBe(
       "insufficient_samples",
     );
+  });
+
+  // D-199: aree dello spostamento CLS per rotta, senza store e con conteggi interi.
+  test("valida le aree CLS ai confini", () => {
+    expect(() => parsePerformanceLayoutShifts(null)).toThrow("mancanti");
+    const row = {
+      app_route: "home",
+      layout_shift_source: "notice",
+      sample_count: 4,
+      poor_count: 1,
+      max_value: 0.18,
+    };
+    for (const invalid of [
+      {},
+      { ...row, app_route: 1 },
+      { ...row, layout_shift_source: null },
+      { ...row, sample_count: 0 },
+      { ...row, poor_count: -1 },
+      { ...row, poor_count: 0.5 },
+      { ...row, max_value: Number.NaN },
+      { ...row, max_value: -0.1 },
+    ]) {
+      expect(() => parsePerformanceLayoutShifts([invalid])).toThrow("non valida");
+    }
+    expect(parsePerformanceLayoutShifts([row])).toEqual([row]);
   });
 
   test("valida durate server e coorti ai confini", () => {

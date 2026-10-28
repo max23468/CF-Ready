@@ -28,6 +28,11 @@ html[data-polaris-version="1"] s-stack[slot="aside"] {
   }
 }
 
+/* KeepHeight (D-199): i margini dei figli restano dentro il blocco anche con la min-height. */
+.cf-keep-height {
+  display: flow-root;
+}
+
 /* Un banner che si porta in vista resta separato dalle card che seguono. */
 .cf-reveal-banner {
   margin-block-end: var(--p-space-400, 1rem);

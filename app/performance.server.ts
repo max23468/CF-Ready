@@ -1,8 +1,10 @@
 import { performanceReportKey } from "./hash.server";
 import {
+  PERFORMANCE_LAYOUT_REGIONS,
   PERFORMANCE_METRIC_NAMES,
   PERFORMANCE_ROUTES,
   PERFORMANCE_SERVER_TIMING_NAMES,
+  type PerformanceLayoutRegion,
   type PerformanceMetricName,
   type PerformanceRoute,
   type PerformanceServerTimingName,
@@ -19,6 +21,7 @@ export type PerformanceReport = {
   route: PerformanceRoute;
   metrics: PerformanceSample[];
   serverTimings: Partial<Record<PerformanceServerTimingName, number>>;
+  layoutShiftSource: PerformanceLayoutRegion | null;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -66,7 +69,13 @@ export function normalizePerformanceReport(value: unknown): PerformanceReport | 
     return [{ id, name, value, countryCode }];
   });
 
-  return metrics.length ? { route, metrics, serverTimings } : null;
+  const layoutShiftSource = PERFORMANCE_LAYOUT_REGIONS.includes(
+    value.layoutShiftSource as PerformanceLayoutRegion,
+  )
+    ? (value.layoutShiftSource as PerformanceLayoutRegion)
+    : null;
+
+  return metrics.length ? { route, metrics, serverTimings, layoutShiftSource } : null;
 }
 
 // Il report parte con `sendBeacon` anche mentre l'iframe si chiude, quando il session token di App
@@ -131,9 +140,9 @@ export async function recordPerformanceReport(
         .prepare(
           `INSERT INTO performance_samples (
              shop_id, metric_id, metric_name, metric_value, country_code,
-             app_version, app_route, server_timing_json, observed_at
+             app_version, app_route, server_timing_json, observed_at, layout_shift_source
            )
-           SELECT id, ?, ?, ?, ?, ?, ?, ?, ? FROM shops WHERE shop_domain = ?
+           SELECT id, ?, ?, ?, ?, ?, ?, ?, ?, ? FROM shops WHERE shop_domain = ?
            ON CONFLICT(shop_id, metric_id, metric_name) DO NOTHING`,
         )
         .bind(
@@ -145,6 +154,7 @@ export async function recordPerformanceReport(
           report.route,
           serverTimingJson,
           observedAt,
+          metric.name === "CLS" ? report.layoutShiftSource : null,
           shopDomain,
         ),
     ),

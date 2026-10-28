@@ -206,6 +206,7 @@ export async function writeValidationUnderLock(
         displayName: data.shop.name,
         countryCode,
         ianaTimezone: data.shop.ianaTimezone,
+        partnerDevelopment: data.shop.plan.partnerDevelopment,
         validation: existing,
         errorCode,
       });
@@ -228,6 +229,7 @@ export async function writeValidationUnderLock(
         displayName: data.shop.name,
         countryCode,
         ianaTimezone: data.shop.ianaTimezone,
+        partnerDevelopment: data.shop.plan.partnerDevelopment,
         validation: readback,
         errorCode: consistent ? null : "validation_readback_failed",
       }),

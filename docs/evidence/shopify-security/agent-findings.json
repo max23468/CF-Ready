@@ -1,423 +1,809 @@
 {
   "schema_version": 1,
+  "source": "agent",
+  "engine": {
+    "name": "shopify-app-security",
+    "version": "4.9.4"
+  },
+  "generated_at": "2026-10-28T08:38:45.816Z",
   "scope": {
     "include_dirs": [],
     "excludes": [],
     "no_git_ignore": false
   },
-  "checks_executed": [
+  "checks": [
     {
-      "check_id": "ACTIVE_UPLOADS_AND_PRIVILEGED_PREVIEWS",
-      "check_version": 1,
-      "status": "executed"
+      "id": "ACTIVE_UPLOADS_AND_PRIVILEGED_PREVIEWS",
+      "version": 1,
+      "status": "executed",
+      "snapshot": {
+        "title": "Active upload or privileged preview may execute untrusted content",
+        "severity": "high",
+        "description": "Investigates uploaded or imported active content that may execute in storefront, embedded admin, customer-account, or operator preview surfaces.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/active-uploads-and-privileged-previews",
+        "current_version": 1,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "APP_PROXY_LIQUID_INJECTION",
-      "check_version": 3,
+      "id": "APP_PROXY_LIQUID_INJECTION",
+      "version": 3,
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
         "message": "No [app_proxy] section in shopify.app.toml or shopify.app.dev.toml, no appProxy/logged_in_customer_id/application/liquid handling in app/, workers/ or extensions/ (extensions are a Validation Function and an admin_link)."
-      }
+      },
+      "snapshot": {
+        "title": "App proxy Liquid injection risk",
+        "severity": "high",
+        "description": "Detects app proxy endpoints that interpolate request parameters into active Liquid or HTML responses.",
+        "guide": "https://shopify.dev/docs/apps/online-store/app-proxies",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/app-proxy-liquid-injection",
+        "current_version": 3,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
     },
     {
-      "check_id": "APP_PROXY_UNVERIFIED_SIGNATURE",
-      "check_version": 2,
+      "id": "APP_PROXY_UNVERIFIED_SIGNATURE",
+      "version": 2,
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
         "message": "No app proxy is configured in shopify.app.toml/shopify.app.dev.toml and no route reads proxy parameters (shop, logged_in_customer_id, path_prefix, signature)."
-      }
+      },
+      "snapshot": {
+        "title": "App proxy request trusted without signature verification",
+        "severity": "high",
+        "description": "Detects app proxy parameters read without visible signature verification.",
+        "guide": "https://shopify.dev/docs/apps/build/online-store/app-proxies/authenticate-app-proxies",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/app-proxy-unverified-signature",
+        "current_version": 2,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "COMMITTED_SECRET",
-      "check_version": 4,
-      "status": "executed"
+      "id": "COMMITTED_SECRET",
+      "version": 4,
+      "status": "executed",
+      "snapshot": {
+        "title": "Committed secret or environment file",
+        "severity": "high",
+        "description": "Detects environment files and common API key/token patterns in source files.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/committed-secret",
+        "current_version": 4,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "CREDENTIAL_BROWSER_LEAKAGE",
-      "check_version": 2,
-      "status": "executed"
+      "id": "CREDENTIAL_BROWSER_LEAKAGE",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Credential reaches the client browser",
+        "severity": "high",
+        "description": "Detects direct credential flows into responses, loaders, globals, DOM, and external requests.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/credential-browser-leakage",
+        "current_version": 2,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
     },
     {
-      "check_id": "CREDENTIAL_LOG_LEAKAGE",
-      "check_version": 2,
-      "status": "executed"
+      "id": "CREDENTIAL_LOG_LEAKAGE",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Credential reaches a log sink",
+        "severity": "high",
+        "description": "Detects direct credential flows to console and logger sinks.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/credential-log-leakage",
+        "current_version": 2,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
     },
     {
-      "check_id": "CROSS_SITE_SCRIPTING",
-      "check_version": 1,
-      "status": "executed"
+      "id": "CROSS_SITE_SCRIPTING",
+      "version": 1,
+      "status": "executed",
+      "snapshot": {
+        "title": "Cross-site scripting risk",
+        "severity": "high",
+        "description": "Investigates lower-trust data rendered as executable browser content in app-owned pages.",
+        "guide": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/cross-site-scripting",
+        "current_version": 1,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "CSRF_MISSING_PROTECTION",
-      "check_version": 2,
-      "status": "executed"
+      "id": "CSRF_MISSING_PROTECTION",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Cross-site request forgery protection may be missing",
+        "severity": "medium",
+        "description": "Investigates state-changing endpoints for missing request authenticity protections.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/csrf-missing-protection",
+        "current_version": 2,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "DEPENDENCY_REACHABILITY",
-      "check_version": 1,
-      "status": "executed"
+      "id": "DEPENDENCY_REACHABILITY",
+      "version": 1,
+      "status": "executed",
+      "snapshot": {
+        "title": "Vulnerable dependency may be reachable in app code",
+        "severity": "medium",
+        "description": "Investigates whether a vulnerable dependency version is actually used through the affected API, helper, or configuration.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/dependency-reachability",
+        "current_version": 1,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "DEPRECATED_SCRIPT_TAG_SCOPE",
-      "check_version": 2,
-      "status": "executed"
+      "id": "DEPRECATED_SCRIPT_TAG_SCOPE",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Deprecated ScriptTag capability",
+        "severity": "medium",
+        "description": "Detects the deprecated write_script_tags OAuth scope in shopify.app.toml.",
+        "guide": "https://shopify.dev/docs/apps/online-store/app-embeds",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/deprecated-script-tag-scope",
+        "current_version": 2,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
     },
     {
-      "check_id": "EOL_API_VERSION",
-      "check_version": 2,
-      "status": "executed"
+      "id": "EOL_API_VERSION",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "End-of-life API version",
+        "severity": "low",
+        "description": "Detects parsed config and React Router server API versions past the 12-month support window and 30-day grace period.",
+        "guide": "https://shopify.dev/docs/api/usage/versioning",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/eol-api-version",
+        "current_version": 2,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
     },
     {
-      "check_id": "EXPIRING_OFFLINE_TOKEN",
-      "check_version": 2,
-      "status": "executed"
+      "id": "EXPIRING_OFFLINE_TOKEN",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Expiring offline access tokens explicitly disabled",
+        "severity": "medium",
+        "description": "Verifies React Router expiring offline-token configuration and refresh-metadata storage compatibility.",
+        "guide": "https://shopify.dev/docs/apps/build/authentication-authorization/access-token-types/online-access-tokens",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/expiring-offline-token",
+        "current_version": 2,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
     },
     {
-      "check_id": "INSECURE_WEBHOOK_URL",
-      "check_version": 2,
-      "status": "executed"
+      "id": "INSECURE_WEBHOOK_URL",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Configured callback URL is not HTTPS",
+        "severity": "high",
+        "description": "Detects webhook subscriptions and OAuth redirect URLs configured with unsafe absolute URLs.",
+        "guide": "https://shopify.dev/docs/apps/webhooks",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/insecure-webhook-url",
+        "current_version": 2,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
     },
     {
-      "check_id": "LIQUID_UNSAFE_RENDER",
-      "check_version": 1,
+      "id": "LIQUID_UNSAFE_RENDER",
+      "version": 1,
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
         "message": "No theme app extension and no .liquid files: extensions/ contains only a function (cf-ready-validation) and an admin_link (support-link)."
-      }
+      },
+      "snapshot": {
+        "title": "Unsafe Liquid metafield or setting output",
+        "severity": "medium",
+        "description": "Detects metafield and merchant-setting output without context-appropriate escaping or serialization.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/liquid-unsafe-render",
+        "current_version": 1,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "METAFIELD_OFFLINE_TOKEN",
-      "check_version": 2,
-      "status": "executed"
+      "id": "METAFIELD_OFFLINE_TOKEN",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Metafield write in an unverified offline token context",
+        "severity": "high",
+        "description": "Investigates metafield and metaobject writes made with an offline Admin API context that no verified request for the same shop authorizes.",
+        "guide": "https://shopify.dev/docs/apps/build/authentication-authorization/access-token-types/online-access-tokens",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/metafield-offline-token",
+        "current_version": 2,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "MISSING_AUTHORIZATION_CHECK",
-      "check_version": 3,
-      "status": "executed"
+      "id": "MISSING_AUTHORIZATION_CHECK",
+      "version": 3,
+      "status": "executed",
+      "snapshot": {
+        "title": "Authorization check may be missing",
+        "severity": "high",
+        "description": "Investigates authenticated handlers that may not authorize access to the requested resource.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/missing-authorization-check",
+        "current_version": 3,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "MISSING_COMPLIANCE_WEBHOOKS",
-      "check_version": 1,
-      "status": "executed"
+      "id": "MISSING_COMPLIANCE_WEBHOOKS",
+      "version": 1,
+      "status": "executed",
+      "snapshot": {
+        "title": "Missing mandatory GDPR compliance webhooks",
+        "severity": "medium",
+        "description": "Detects apps missing mandatory compliance webhooks (shop/redact, customers/data_request, customers/redact).",
+        "guide": "https://shopify.dev/docs/apps/webhooks/configuration/mandatory-webhooks",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/missing-compliance-webhooks",
+        "current_version": 1,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
     },
     {
-      "check_id": "MISSING_EMBEDDED_CSP",
-      "check_version": 3,
-      "status": "executed"
+      "id": "MISSING_EMBEDDED_CSP",
+      "version": 3,
+      "status": "executed",
+      "snapshot": {
+        "title": "Embedded app missing frame-ancestors CSP directive",
+        "severity": "medium",
+        "description": "Detects embedded apps that set document response headers but omit frame-ancestors.",
+        "guide": "https://shopify.dev/docs/apps/build/security/set-up-iframe-protection",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/missing-embedded-csp",
+        "current_version": 3,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "MISSING_TENANT_ISOLATION",
-      "check_version": 4,
-      "status": "executed"
+      "id": "MISSING_TENANT_ISOLATION",
+      "version": 4,
+      "status": "executed",
+      "snapshot": {
+        "title": "Database query may not be scoped by shop",
+        "severity": "high",
+        "description": "Detects database queries in authenticated routes that don't reference the shop domain or session.",
+        "guide": "https://shopify.dev/docs/apps/build/authentication-authorization/session-tokens",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/missing-tenant-isolation",
+        "current_version": 4,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "OPEN_REDIRECT",
-      "check_version": 2,
-      "status": "executed"
+      "id": "OPEN_REDIRECT",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Open redirect in auth callback",
+        "severity": "medium",
+        "description": "Detects redirect targets taken from request parameters without validation.",
+        "guide": "https://shopify.dev/docs/apps/build/authentication-authorization",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/open-redirect",
+        "current_version": 2,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "OVERBROAD_DATA_ACCESS",
-      "check_version": 2,
-      "status": "executed"
+      "id": "OVERBROAD_DATA_ACCESS",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Data access may exceed the current request",
+        "severity": "medium",
+        "description": "Investigates reads that may expose data outside the authenticated shop or user boundary.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/overbroad-data-access",
+        "current_version": 2,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "REQUEST_CONTROLLED_ADMIN_CONTEXT",
-      "check_version": 4,
-      "status": "executed"
+      "id": "REQUEST_CONTROLLED_ADMIN_CONTEXT",
+      "version": 4,
+      "status": "executed",
+      "snapshot": {
+        "title": "Request input selects Admin API shop context",
+        "severity": "high",
+        "description": "Detects request-derived shop values passed into unauthenticated.admin(...), allowing callers to select another shop's Admin API context.",
+        "guide": "https://shopify.dev/docs/apps/build/authentication-authorization/access-tokens/online-access-tokens",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/request-controlled-admin-context",
+        "current_version": 4,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
     },
     {
-      "check_id": "REQUEST_DERIVED_SHOP_SCOPE",
-      "check_version": 3,
-      "status": "executed"
+      "id": "REQUEST_DERIVED_SHOP_SCOPE",
+      "version": 3,
+      "status": "executed",
+      "snapshot": {
+        "title": "Query scoped by shop value taken from request input",
+        "severity": "high",
+        "description": "Detects queries whose shop scope comes from request params rather than the authenticated session. Presence of a shop key is not proof of scoping when its value is attacker-controlled.",
+        "guide": "https://shopify.dev/docs/apps/build/authentication-authorization/session-tokens",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/request-derived-shop-scope",
+        "current_version": 3,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "SCOPE_OVER_REQUEST",
-      "check_version": 1,
-      "status": "executed"
+      "id": "SCOPE_OVER_REQUEST",
+      "version": 1,
+      "status": "executed",
+      "snapshot": {
+        "title": "OAuth scope may be over-requested",
+        "severity": "high",
+        "description": "Detects declared OAuth scopes that don't appear to be used by the app code.",
+        "guide": "https://shopify.dev/docs/api/usage/access-scopes",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/scope-over-request",
+        "current_version": 1,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "SCRIPT_TAG_URL_INJECTION",
-      "check_version": 2,
+      "id": "SCRIPT_TAG_URL_INJECTION",
+      "version": 2,
       "status": "not_applicable",
       "reason": {
         "code": "no_script_tag_usage",
         "message": "No scriptTagCreate/scriptTagUpdate/ScriptTag REST usage anywhere in app/, workers/ or extensions/; declared scopes are write_validations plus optional write_translations, read_locales, read_markets (shopify.app.toml:51-52), with no write_script_tags."
-      }
+      },
+      "snapshot": {
+        "title": "ScriptTag URL may be request controlled",
+        "severity": "high",
+        "description": "Investigates ScriptTag writes whose source URL may be controlled by untrusted input.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/script-tag-url-injection",
+        "current_version": 2,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "SESSION_LIFECYCLE_AND_REPLAY",
-      "check_version": 1,
-      "status": "executed"
+      "id": "SESSION_LIFECYCLE_AND_REPLAY",
+      "version": 1,
+      "status": "executed",
+      "snapshot": {
+        "title": "Session lifecycle or replay control may be missing",
+        "severity": "high",
+        "description": "Investigates stale sessions, replayable signed links, and missing invalidation or idempotency across lifecycle transitions.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/session-lifecycle-and-replay",
+        "current_version": 1,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "SQL_INJECTION",
-      "check_version": 1,
-      "status": "executed"
+      "id": "SQL_INJECTION",
+      "version": 1,
+      "status": "executed",
+      "snapshot": {
+        "title": "SQL injection risk",
+        "severity": "high",
+        "description": "Investigates lower-trust input that changes SQL syntax in a reachable database operation.",
+        "guide": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/sql-injection",
+        "current_version": 1,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "SSRF_REQUEST_FORGERY",
-      "check_version": 1,
-      "status": "executed"
+      "id": "SSRF_REQUEST_FORGERY",
+      "version": 1,
+      "status": "executed",
+      "snapshot": {
+        "title": "Server-side request forgery risk",
+        "severity": "high",
+        "description": "Investigates server-side requests whose destinations may be controlled by request input.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/ssrf-request-forgery",
+        "current_version": 1,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "STATIC_FRAME_ANCESTORS",
-      "check_version": 2,
-      "status": "executed"
+      "id": "STATIC_FRAME_ANCESTORS",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Embedded app frame-ancestors uses a wildcard",
+        "severity": "high",
+        "description": "Detects wildcard or static cross-shop frame-ancestors policies in embedded app code, whether written literally or built from variables.",
+        "guide": "https://shopify.dev/docs/apps/build/security/set-up-iframe-protection",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/static-frame-ancestors",
+        "current_version": 2,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
     },
     {
-      "check_id": "TEXT_SETTING_HTML_SMUGGLING",
-      "check_version": 2,
-      "status": "executed"
+      "id": "TEXT_SETTING_HTML_SMUGGLING",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Text setting may be rendered as unsafe HTML",
+        "severity": "high",
+        "description": "Investigates merchant-configurable text rendered as HTML without sanitization.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/text-setting-html-smuggling",
+        "current_version": 2,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "THEME_EXTENSION_XSS",
-      "check_version": 2,
+      "id": "THEME_EXTENSION_XSS",
+      "version": 2,
       "status": "not_applicable",
       "reason": {
         "code": "no_theme_app_extension",
         "message": "extensions/ contains only cf-ready-validation (Cart and Checkout Validation Function) and support-link (admin_link); no *.liquid files or theme app extension assets exist in the repository."
-      }
+      },
+      "snapshot": {
+        "title": "Theme extension cross-site scripting risk",
+        "severity": "high",
+        "description": "Investigates untrusted values rendered without safe escaping in theme extensions.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/theme-extension-xss",
+        "current_version": 2,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "UNAUTHENTICATED_ENDPOINT",
-      "check_version": 3,
-      "status": "executed"
-    },
-    {
-      "check_id": "UNSAFE_INNERHTML",
-      "check_version": 3,
-      "status": "executed"
-    },
-    {
-      "check_id": "UNSCOPED_SHOP_CONFIG_WRITE",
-      "check_version": 2,
-      "status": "executed"
-    },
-    {
-      "check_id": "WEAK_SHOP_VALIDATION",
-      "check_version": 1,
-      "status": "executed"
-    }
-  ],
-  "findings": [
-    {
-      "check_id": "UNAUTHENTICATED_ENDPOINT",
-      "check_version": 3,
-      "file": "app/routes/app.engagement.tsx",
-      "line": 13,
-      "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
-      "evidence": [
+      "id": "UNAUTHENTICATED_ENDPOINT",
+      "version": 3,
+      "status": "executed",
+      "snapshot": {
+        "title": "Route handler lacks recognized auth verification",
+        "severity": "high",
+        "description": "Uses the template route-auth heuristic, with agent review for context.shopify.authenticate.admin calls instead of treating them as missing authentication.",
+        "guide": "https://shopify.dev/docs/apps/auth",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/unauthenticated-endpoint",
+        "current_version": 3,
+        "precedence": "union"
+      },
+      "findings": [
         {
-          "file": "app/routes/app.engagement.tsx",
-          "line": 20,
-          "quote": "const { session } = await authenticateAdmin(request, context);"
+          "location": {
+            "file": "app/routes/app.engagement.tsx",
+            "line": 13
+          },
+          "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+          "evidence": [
+            {
+              "location": {
+                "file": "app/routes/app.engagement.tsx",
+                "line": 20
+              },
+              "quote": "const { session } = await authenticateAdmin(request, context);"
+            }
+          ],
+          "confidence": "high",
+          "suppression": {
+            "justification": "Loader returns 405; action only parses headers and checks an empty body before awaiting authenticateAdmin at line 20; D1 write uses session.shop."
+          }
+        },
+        {
+          "location": {
+            "file": "app/routes/app.guide.tsx",
+            "line": 41
+          },
+          "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+          "evidence": [
+            {
+              "location": {
+                "file": "app/routes/app.guide.tsx",
+                "line": 43
+              },
+              "quote": "const { session } = await authenticateAdminTimed(request, context, timing);"
+            }
+          ],
+          "confidence": "high",
+          "suppression": {
+            "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
+          }
+        },
+        {
+          "location": {
+            "file": "app/routes/app.guide.tsx",
+            "line": 64
+          },
+          "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+          "evidence": [
+            {
+              "location": {
+                "file": "app/routes/app.guide.tsx",
+                "line": 65
+              },
+              "quote": "const { admin, session, scopes } = await authenticateAdmin(request, context);"
+            }
+          ],
+          "confidence": "high",
+          "suppression": {
+            "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
+          }
+        },
+        {
+          "location": {
+            "file": "app/routes/app.messages.tsx",
+            "line": 68
+          },
+          "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+          "evidence": [
+            {
+              "location": {
+                "file": "app/routes/app.messages.tsx",
+                "line": 70
+              },
+              "quote": "const { admin, session } = await authenticateAdminTimed(request, context, timing);"
+            }
+          ],
+          "confidence": "high",
+          "suppression": {
+            "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
+          }
+        },
+        {
+          "location": {
+            "file": "app/routes/app.rules.tsx",
+            "line": 48
+          },
+          "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+          "evidence": [
+            {
+              "location": {
+                "file": "app/routes/app.rules.tsx",
+                "line": 50
+              },
+              "quote": "const authentication = await authenticateAdminTimed(request, context, timing);"
+            }
+          ],
+          "confidence": "high",
+          "suppression": {
+            "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
+          }
+        },
+        {
+          "location": {
+            "file": "app/routes/app.rules.tsx",
+            "line": 99
+          },
+          "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+          "evidence": [
+            {
+              "location": {
+                "file": "app/routes/app.rules.tsx",
+                "line": 101
+              },
+              "quote": "const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);"
+            }
+          ],
+          "confidence": "high",
+          "suppression": {
+            "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
+          }
+        },
+        {
+          "location": {
+            "file": "app/routes/app.tsx",
+            "line": 29
+          },
+          "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+          "evidence": [
+            {
+              "location": {
+                "file": "app/routes/app.tsx",
+                "line": 30
+              },
+              "quote": "const { session } = await authenticateAdmin(request, context);"
+            }
+          ],
+          "confidence": "high",
+          "suppression": {
+            "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
+          }
         }
-      ],
-      "confidence": "high",
-      "suppression": {
-        "justification": "Loader returns 405; action only parses headers and checks an empty body before awaiting authenticateAdmin at line 20; D1 write uses session.shop."
-      }
+      ]
     },
     {
-      "check_id": "UNAUTHENTICATED_ENDPOINT",
-      "check_version": 3,
-      "file": "app/routes/app.guide.tsx",
-      "line": 41,
-      "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
-      "evidence": [
+      "id": "UNSAFE_INNERHTML",
+      "version": 3,
+      "status": "executed",
+      "snapshot": {
+        "title": "Unsafe HTML assignment",
+        "severity": "high",
+        "description": "Detects innerHTML, outerHTML, and insertAdjacentHTML receiving non-literal values.",
+        "guide": "https://shopify.dev/docs/apps/online-store/security#xss-prevention",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/unsafe-innerhtml",
+        "current_version": 3,
+        "precedence": "union"
+      },
+      "findings": [
         {
-          "file": "app/routes/app.guide.tsx",
-          "line": 43,
-          "quote": "const { session } = await authenticateAdminTimed(request, context, timing);"
+          "location": {
+            "file": "app/routes/app.tsx",
+            "line": 112
+          },
+          "message": "Deterministic heuristic match on a sink that receives only trusted content.",
+          "evidence": [
+            {
+              "location": {
+                "file": "app/performance-report.ts",
+                "line": 81
+              },
+              "quote": "const json = JSON.stringify({ ...config, endpoint: PERFORMANCE_ENDPOINT }).replace("
+            }
+          ],
+          "confidence": "high",
+          "suppression": {
+            "justification": "False positive: the script is the literal REPORTER_SOURCE plus JSON of a closed-enum route and a server HMAC token, serialized with JSON.stringify and '<' escaped (app/performance-report.ts:51-56); no user-controlled data reaches the sink."
+          }
+        },
+        {
+          "location": {
+            "file": "tests/browser/components.test.tsx",
+            "line": 351
+          },
+          "message": "Deterministic heuristic match on a sink that receives only trusted content.",
+          "evidence": [
+            {
+              "location": {
+                "file": "tests/browser/components.test.tsx",
+                "line": 351
+              },
+              "quote": "new Function(performanceReporterScript({ route: \"home\", token: \"firma\" }))();"
+            }
+          ],
+          "confidence": "high",
+          "suppression": {
+            "justification": "Test-only code, not shipped: evaluates the same reporter script with literal route and token fixtures."
+          }
+        },
+        {
+          "location": {
+            "file": "tests/browser/components.test.tsx",
+            "line": 385
+          },
+          "message": "Deterministic heuristic match on a sink that receives only trusted content.",
+          "evidence": [
+            {
+              "location": {
+                "file": "tests/browser/components.test.tsx",
+                "line": 385
+              },
+              "quote": "new Function(performanceReporterScript({ route: \"home\", token: \"firma\" }))();"
+            }
+          ],
+          "confidence": "high",
+          "suppression": {
+            "justification": "Test-only code, not shipped: evaluates the same reporter script with literal route and token fixtures."
+          }
+        },
+        {
+          "location": {
+            "file": "tests/browser/components.test.tsx",
+            "line": 405
+          },
+          "message": "Deterministic heuristic match on a sink that receives only trusted content.",
+          "evidence": [
+            {
+              "location": {
+                "file": "tests/browser/components.test.tsx",
+                "line": 405
+              },
+              "quote": "new Function(performanceReporterScript({ route: \"rules\", token: \"firma\" }))();"
+            }
+          ],
+          "confidence": "high",
+          "suppression": {
+            "justification": "Test-only code, not shipped: evaluates the same reporter script with literal route and token fixtures."
+          }
+        },
+        {
+          "location": {
+            "file": "tests/browser/components.test.tsx",
+            "line": 420
+          },
+          "message": "Deterministic heuristic match on a sink that receives only trusted content.",
+          "evidence": [
+            {
+              "location": {
+                "file": "tests/browser/components.test.tsx",
+                "line": 420
+              },
+              "quote": "new Function(performanceReporterScript({ route: \"onboarding\", token: \"firma\" }))();"
+            }
+          ],
+          "confidence": "high",
+          "suppression": {
+            "justification": "Test-only code, not shipped: evaluates the same reporter script with literal route and token fixtures."
+          }
+        },
+        {
+          "location": {
+            "file": "tests/browser/visual-surfaces.test.tsx",
+            "line": 38
+          },
+          "message": "Deterministic heuristic match on a sink that receives only trusted content.",
+          "evidence": [
+            {
+              "location": {
+                "file": "tests/browser/visual-surfaces.test.tsx",
+                "line": 38
+              },
+              "quote": "script.src = polarisV2 ? POLARIS_V2_URL : POLARIS_STABLE_URL;"
+            }
+          ],
+          "confidence": "high",
+          "suppression": {
+            "justification": "Test-only code, not shipped: script.src is a constant Polaris CDN URL used as a visual fixture."
+          }
         }
-      ],
-      "confidence": "high",
-      "suppression": {
-        "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
-      }
+      ]
     },
     {
-      "check_id": "UNAUTHENTICATED_ENDPOINT",
-      "check_version": 3,
-      "file": "app/routes/app.guide.tsx",
-      "line": 64,
-      "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
-      "evidence": [
-        {
-          "file": "app/routes/app.guide.tsx",
-          "line": 65,
-          "quote": "const { admin, session, scopes } = await authenticateAdmin(request, context);"
-        }
-      ],
-      "confidence": "high",
-      "suppression": {
-        "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
-      }
+      "id": "UNSCOPED_SHOP_CONFIG_WRITE",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Config write trusts shop from request input",
+        "severity": "high",
+        "description": "Detects settings or metafield writes scoped by request-controlled shop input without visible auth verification.",
+        "guide": "https://shopify.dev/docs/apps/build/authentication-authorization/session-tokens",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/unscoped-shop-config-write",
+        "current_version": 2,
+        "precedence": "union"
+      },
+      "findings": []
     },
     {
-      "check_id": "UNAUTHENTICATED_ENDPOINT",
-      "check_version": 3,
-      "file": "app/routes/app.messages.tsx",
-      "line": 68,
-      "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
-      "evidence": [
-        {
-          "file": "app/routes/app.messages.tsx",
-          "line": 70,
-          "quote": "const { admin, session } = await authenticateAdminTimed(request, context, timing);"
-        }
-      ],
-      "confidence": "high",
-      "suppression": {
-        "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
-      }
-    },
-    {
-      "check_id": "UNAUTHENTICATED_ENDPOINT",
-      "check_version": 3,
-      "file": "app/routes/app.rules.tsx",
-      "line": 48,
-      "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
-      "evidence": [
-        {
-          "file": "app/routes/app.rules.tsx",
-          "line": 50,
-          "quote": "const authentication = await authenticateAdminTimed(request, context, timing);"
-        }
-      ],
-      "confidence": "high",
-      "suppression": {
-        "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
-      }
-    },
-    {
-      "check_id": "UNAUTHENTICATED_ENDPOINT",
-      "check_version": 3,
-      "file": "app/routes/app.rules.tsx",
-      "line": 99,
-      "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
-      "evidence": [
-        {
-          "file": "app/routes/app.rules.tsx",
-          "line": 101,
-          "quote": "const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);"
-        }
-      ],
-      "confidence": "high",
-      "suppression": {
-        "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
-      }
-    },
-    {
-      "check_id": "UNAUTHENTICATED_ENDPOINT",
-      "check_version": 3,
-      "file": "app/routes/app.tsx",
-      "line": 29,
-      "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
-      "evidence": [
-        {
-          "file": "app/routes/app.tsx",
-          "line": 30,
-          "quote": "const { session } = await authenticateAdmin(request, context);"
-        }
-      ],
-      "confidence": "high",
-      "suppression": {
-        "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
-      }
-    },
-    {
-      "check_id": "UNSAFE_INNERHTML",
-      "check_version": 3,
-      "file": "app/routes/app.tsx",
-      "line": 112,
-      "message": "Deterministic heuristic match on a sink that receives only trusted content.",
-      "evidence": [
-        {
-          "file": "app/performance-report.ts",
-          "line": 51,
-          "quote": "const json = JSON.stringify({ ...config, endpoint: PERFORMANCE_ENDPOINT }).replace("
-        }
-      ],
-      "confidence": "high",
-      "suppression": {
-        "justification": "False positive: the script is the literal REPORTER_SOURCE plus JSON of a closed-enum route and a server HMAC token, serialized with JSON.stringify and '<' escaped (app/performance-report.ts:51-56); no user-controlled data reaches the sink."
-      }
-    },
-    {
-      "check_id": "UNSAFE_INNERHTML",
-      "check_version": 3,
-      "file": "tests/browser/components.test.tsx",
-      "line": 351,
-      "message": "Deterministic heuristic match on a sink that receives only trusted content.",
-      "evidence": [
-        {
-          "file": "tests/browser/components.test.tsx",
-          "line": 351,
-          "quote": "new Function(performanceReporterScript({ route: \"home\", token: \"firma\" }))();"
-        }
-      ],
-      "confidence": "high",
-      "suppression": {
-        "justification": "Test-only code, not shipped: evaluates the same reporter script with literal route and token fixtures."
-      }
-    },
-    {
-      "check_id": "UNSAFE_INNERHTML",
-      "check_version": 3,
-      "file": "tests/browser/components.test.tsx",
-      "line": 381,
-      "message": "Deterministic heuristic match on a sink that receives only trusted content.",
-      "evidence": [
-        {
-          "file": "tests/browser/components.test.tsx",
-          "line": 381,
-          "quote": "new Function(performanceReporterScript({ route: \"rules\", token: \"firma\" }))();"
-        }
-      ],
-      "confidence": "high",
-      "suppression": {
-        "justification": "Test-only code, not shipped: evaluates the same reporter script with literal route and token fixtures."
-      }
-    },
-    {
-      "check_id": "UNSAFE_INNERHTML",
-      "check_version": 3,
-      "file": "tests/browser/components.test.tsx",
-      "line": 396,
-      "message": "Deterministic heuristic match on a sink that receives only trusted content.",
-      "evidence": [
-        {
-          "file": "tests/browser/components.test.tsx",
-          "line": 396,
-          "quote": "new Function(performanceReporterScript({ route: \"onboarding\", token: \"firma\" }))();"
-        }
-      ],
-      "confidence": "high",
-      "suppression": {
-        "justification": "Test-only code, not shipped: evaluates the same reporter script with literal route and token fixtures."
-      }
-    },
-    {
-      "check_id": "UNSAFE_INNERHTML",
-      "check_version": 3,
-      "file": "tests/browser/visual-surfaces.test.tsx",
-      "line": 38,
-      "message": "Deterministic heuristic match on a sink that receives only trusted content.",
-      "evidence": [
-        {
-          "file": "tests/browser/visual-surfaces.test.tsx",
-          "line": 38,
-          "quote": "script.src = polarisV2 ? POLARIS_V2_URL : POLARIS_STABLE_URL;"
-        }
-      ],
-      "confidence": "high",
-      "suppression": {
-        "justification": "Test-only code, not shipped: script.src is a constant Polaris CDN URL used as a visual fixture."
-      }
+      "id": "WEAK_SHOP_VALIDATION",
+      "version": 1,
+      "status": "executed",
+      "snapshot": {
+        "title": "Shop domain validation regex is not anchored",
+        "severity": "high",
+        "description": "Detects unanchored myshopify.com regexes that allow domain spoofing and token theft.",
+        "guide": "https://shopify.dev/docs/apps/build/authentication-authorization/get-access-tokens/oauth",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/weak-shop-validation",
+        "current_version": 1,
+        "precedence": "union"
+      },
+      "findings": []
     }
   ]
 }

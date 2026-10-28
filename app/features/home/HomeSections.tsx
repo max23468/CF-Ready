@@ -9,6 +9,7 @@ import { StatusList } from "../../ui/ui-status-list";
 
 type Texts = ReturnType<typeof texts>;
 type Submit = (intent: string, source?: string) => void;
+export type HomeIssue = "retry" | "repair";
 
 export function MotionBanner({
   children,
@@ -33,6 +34,8 @@ export function HomeValidationSection({
   pendingSource,
   submit,
   verification,
+  issue,
+  retryVerification,
   t,
 }: {
   data: HomeData;
@@ -43,18 +46,24 @@ export function HomeValidationSection({
   pendingSource: string | null;
   submit: Submit;
   verification: "pending" | "confirmed" | "failed";
+  issue: HomeIssue | null;
+  retryVerification: () => void;
   t: Texts;
 }) {
   const status = validationStatus(data.validationEnabled, entitled);
   const presentation = homeValidationPresentation(data, status, firstRun, t);
+  const badge =
+    verification === "pending"
+      ? { tone: "info" as const, text: t.home.verifying }
+      : issue
+        ? { tone: "warning" as const, text: t.home.verificationUnavailable }
+        : { tone: presentation.tone, text: presentation.badge };
   return (
-    <s-section heading={t.home.validationHeading}>
+    <s-section heading={t.home.validationHeading} data-layout-region="validation">
       <s-stack direction="block" gap="base">
         <s-stack direction="block" gap="small-100">
           <div role="status">
-            <s-badge tone={verification === "pending" ? "info" : presentation.tone}>
-              {verification === "pending" ? t.home.verifying : presentation.badge}
-            </s-badge>
+            <s-badge tone={badge.tone}>{badge.text}</s-badge>
           </div>
           {presentation.note ? <s-paragraph>{presentation.note}</s-paragraph> : null}
           {firstRun ? null : (
@@ -80,6 +89,8 @@ export function HomeValidationSection({
           pendingIntent={pendingIntent}
           pendingSource={pendingSource}
           submit={submit}
+          issue={issue}
+          retryVerification={retryVerification}
           t={t}
         />
       </s-stack>
@@ -94,7 +105,7 @@ export function HomeTrialNotice({ data, busy }: { data: HomeData; busy: boolean 
   if (!continuity) return null;
   return (
     // Il contenitore bilancia lo spazio nativo della card e del titolo successivo.
-    <div className="cf-trial-notice">
+    <div className="cf-trial-notice" data-layout-region="trial">
       <MotionBanner tone={continuity.tone}>
         {continuity.text}
         {continuity.action ? (
@@ -145,7 +156,8 @@ function HomeRulesSummary({ data, t }: { data: HomeData; t: Texts }) {
 
 // H-2: il primario è sempre il primo bottone. Da disattivata, con un diritto attivo, è
 // riattivare; altrimenti è modificare le regole. La disattivazione resta un'azione terziaria
-// critica: confermata dalla finestra, mai più evidente del primario.
+// critica: confermata dalla finestra, mai più evidente del primario. Un problema emerso dopo il
+// primo paint (D-199) prende il posto del primo bottone, nella stessa riga.
 function HomeValidationActions({
   data,
   entitled,
@@ -153,6 +165,8 @@ function HomeValidationActions({
   pendingIntent,
   pendingSource,
   submit,
+  issue,
+  retryVerification,
   t,
 }: {
   data: HomeData;
@@ -161,8 +175,31 @@ function HomeValidationActions({
   pendingIntent: string | null;
   pendingSource: string | null;
   submit: Submit;
+  issue: HomeIssue | null;
+  retryVerification: () => void;
   t: Texts;
 }) {
+  if (issue) {
+    return (
+      <s-stack direction="inline" gap="base">
+        {issue === "retry" ? (
+          <s-button variant="primary" onClick={retryVerification}>
+            {t.home.verificationRetry}
+          </s-button>
+        ) : (
+          <s-button
+            variant="primary"
+            disabled={busy}
+            loading={pendingIntent === "repair"}
+            onClick={() => submit("repair")}
+          >
+            {t.home.repair}
+          </s-button>
+        )}
+        <s-button href="/app/rules">{t.home.editRules}</s-button>
+      </s-stack>
+    );
+  }
   const activateFirst = !data.validationEnabled && entitled;
   const editRules = (
     <s-button href="/app/rules" variant={activateFirst ? "secondary" : "primary"}>
