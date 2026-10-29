@@ -6,6 +6,21 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.5.16 — 29 ottobre 2026
+
+- La Privacy Policy indica per categoria i fornitori diversi da Shopify (D-200),
+  descrive le notifiche operative in forma generica e dichiara nome dello store,
+  valute e metriche di prestazione dell'app con la loro conservazione.
+- Privacy e Termini usano `supporto@cfready.it`; l'articolo 3 dei Termini in
+  inglese segue il testo italiano.
+- I dati strutturati della home non collegano più il profilo partner Shopify.
+
+The Privacy Policy lists providers other than Shopify by category, describes
+operational notifications generically and declares store name, currencies and
+app performance metrics with their retention. Privacy and Terms use
+`supporto@cfready.it`, and article 3 of the English Terms follows the Italian
+text. The homepage structured data no longer links the Shopify partner profile.
+
 ## 2.5.15 — 28 ottobre 2026
 
 - La Home non si sposta più quando Shopify conferma uno stato diverso da quello
