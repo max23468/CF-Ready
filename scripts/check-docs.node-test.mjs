@@ -649,7 +649,7 @@ test("i dati strutturati restano verificabili e non inventano prezzo o recension
   const graph = (html) =>
     JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1])["@graph"];
   const organization = graph(home).find((node) => node["@type"] === "Organization");
-  assert.deepEqual(organization.sameAs, ["https://apps.shopify.com/partners/syncbay"]);
+  assert.equal(organization.sameAs, undefined);
   assert.deepEqual(organization.contactPoint, {
     "@type": "ContactPoint",
     contactType: "customer support",
