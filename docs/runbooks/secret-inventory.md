@@ -36,8 +36,8 @@ development store, perché CF Ready non ha un login proprio. Per il test usa un
 checkout con fatturazione e consegna italiane in cui Codice Fiscale e PEC sono
 visibili.
 
-`supporto@cfready.it` è la casella dell'assistenza; `info@cfready.it` quella
-delle comunicazioni, dei documenti legali e del primo contatto di sicurezza. Le
+`supporto@cfready.it` è la casella dell'assistenza e dei documenti legali;
+`info@cfready.it` quella delle comunicazioni e del primo contatto di sicurezza. Le
 notifiche owner usano invece una chat Telegram privata dedicata.
 
 `OWNER_LEGAL_NAME` è un residuo della precedente pubblicazione del nome personale.
