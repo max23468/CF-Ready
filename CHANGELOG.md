@@ -6,6 +6,16 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.6.1 — 30 ottobre 2026
+
+- “Gestisci piano” preseleziona il piano attuale e consente di scegliere un’altra
+  opzione prima di confermare dal footer del dialogo. Annulla, X ed Escape
+  scartano la scelta; l’addebito richiede sempre l’approvazione su Shopify.
+
+“Manage plan” preselects the current plan and lets merchants choose another
+option before confirming in the dialog footer. Cancel, X and Escape discard
+the selection; charges still require approval on Shopify.
+
 ## 2.6.0 — 30 ottobre 2026
 
 - Una reinstallazione riparte dall'onboarding: la disinstallazione azzera
