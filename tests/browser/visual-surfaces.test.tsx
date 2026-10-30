@@ -164,18 +164,19 @@ test("Polaris reale: Gestisci piano seleziona senza addebitare e conferma dal fo
       await expect
         .element(page.getByRole("button", { name: t.plan.annualSwitch, exact: true }))
         .toBeEnabled();
-      const choices = [...view.container.querySelectorAll("#manage-plan .managed-plan-option")];
-      for (const choice of choices) {
-        const rect = choice.getBoundingClientRect();
-        expect(rect.width).toBeGreaterThan(100);
-        expect(rect.left).toBeGreaterThanOrEqual(0);
-        expect(rect.right).toBeLessThanOrEqual(width);
-      }
       await page.screenshot({
         path: screenshotPath(
           `__screenshots__/visual/manage-plan-${locale}-${server.browser}-${width}.png`,
         ),
       });
+      const choices = [...view.container.querySelectorAll("#manage-plan .managed-plan-option")];
+      for (const choice of choices) {
+        // Misuriamo dopo la cattura, che completa il rendering del dialogo nativo
+        // anche in WebKit quando il viewport cambia tra un caso e il successivo.
+        await expect.poll(() => choice.getBoundingClientRect().width).toBeGreaterThan(100);
+        await expect.poll(() => choice.getBoundingClientRect().left).toBeGreaterThanOrEqual(0);
+        await expect.poll(() => choice.getBoundingClientRect().right).toBeLessThanOrEqual(width);
+      }
       await act(async () => {
         await page.getByRole("button", { name: t.common.cancel, exact: true }).click();
       });
