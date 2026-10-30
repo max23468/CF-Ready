@@ -5,7 +5,7 @@
     "name": "shopify-app-security",
     "version": "4.9.4"
   },
-  "generated_at": "2026-10-29T10:37:53.694Z",
+  "generated_at": "2026-10-30T07:45:20.343Z",
   "scope": {
     "include_dirs": [],
     "excludes": [],
@@ -502,7 +502,7 @@
             "file": "app/routes/app.engagement.tsx",
             "line": 13
           },
-          "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
@@ -514,47 +514,47 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "Loader returns 405; action only parses headers and checks an empty body before awaiting authenticateAdmin at line 20; D1 write uses session.shop."
+            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin/authenticateAdminTimed at app/routes/app.engagement.tsx:20 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
           "location": {
             "file": "app/routes/app.guide.tsx",
-            "line": 41
+            "line": 46
           },
-          "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.guide.tsx",
-                "line": 43
+                "line": 48
               },
               "quote": "const { session } = await authenticateAdminTimed(request, context, timing);"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
+            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin/authenticateAdminTimed at app/routes/app.guide.tsx:48 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
           "location": {
             "file": "app/routes/app.guide.tsx",
-            "line": 64
+            "line": 69
           },
-          "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.guide.tsx",
-                "line": 65
+                "line": 70
               },
               "quote": "const { admin, session, scopes } = await authenticateAdmin(request, context);"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
+            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin/authenticateAdminTimed at app/routes/app.guide.tsx:70 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
@@ -562,7 +562,7 @@
             "file": "app/routes/app.messages.tsx",
             "line": 68
           },
-          "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
@@ -574,47 +574,47 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
+            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin/authenticateAdminTimed at app/routes/app.messages.tsx:70 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
           "location": {
             "file": "app/routes/app.rules.tsx",
-            "line": 48
+            "line": 46
           },
-          "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.rules.tsx",
-                "line": 50
+                "line": 48
               },
               "quote": "const authentication = await authenticateAdminTimed(request, context, timing);"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
+            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin/authenticateAdminTimed at app/routes/app.rules.tsx:48 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
           "location": {
             "file": "app/routes/app.rules.tsx",
-            "line": 99
+            "line": 97
           },
-          "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.rules.tsx",
-                "line": 101
+                "line": 99
               },
               "quote": "const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
+            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin/authenticateAdminTimed at app/routes/app.rules.tsx:99 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
@@ -622,7 +622,7 @@
             "file": "app/routes/app.tsx",
             "line": 29
           },
-          "message": "Deterministic heuristic match; handler is authenticated through the app's authenticate.admin wrapper.",
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
@@ -634,7 +634,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive: the handler awaits authenticateAdmin/authenticateAdminTimed (app/admin-auth.server.ts:14-30), which awaits authenticate.admin(request) per request, before any D1 or Admin API access; data access uses the authenticated session.shop."
+            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin/authenticateAdminTimed at app/routes/app.tsx:30 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         }
       ]
@@ -658,119 +658,119 @@
             "file": "app/routes/app.tsx",
             "line": 112
           },
-          "message": "Deterministic heuristic match on a sink that receives only trusted content.",
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
                 "file": "app/performance-report.ts",
                 "line": 81
               },
-              "quote": "const json = JSON.stringify({ ...config, endpoint: PERFORMANCE_ENDPOINT }).replace("
+              "quote": "export function performanceReporterScript(config: { route: PerformanceRoute; token: string }) {"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive: the script is the literal REPORTER_SOURCE plus JSON of a closed-enum route and a server HMAC token, serialized with JSON.stringify and '<' escaped (app/performance-report.ts:51-56); no user-controlled data reaches the sink."
+            "justification": "False positive verified on this candidate: app/performance-report.ts:81-86 combines a literal reporter with JSON of a closed-enum route and server-issued HMAC token; every < is escaped as \\u003c before embedding. No merchant text or URL reaches the executable sink."
           }
         },
         {
           "location": {
             "file": "tests/browser/components.test.tsx",
-            "line": 351
+            "line": 368
           },
-          "message": "Deterministic heuristic match on a sink that receives only trusted content.",
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
                 "file": "tests/browser/components.test.tsx",
-                "line": 351
+                "line": 368
               },
               "quote": "new Function(performanceReporterScript({ route: \"home\", token: \"firma\" }))();"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "Test-only code, not shipped: evaluates the same reporter script with literal route and token fixtures."
+            "justification": "False positive verified on this candidate: this test-only sink receives the literal performance reporter with synthetic enum/token fixtures, or a script URL from fixed POLARIS_STABLE_URL/POLARIS_V2_URL constants on cdn.shopify.com. tests/ is excluded from the deployed Worker bundle; no request or merchant data is executed."
           }
         },
         {
           "location": {
             "file": "tests/browser/components.test.tsx",
-            "line": 385
+            "line": 402
           },
-          "message": "Deterministic heuristic match on a sink that receives only trusted content.",
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
                 "file": "tests/browser/components.test.tsx",
-                "line": 385
+                "line": 402
               },
               "quote": "new Function(performanceReporterScript({ route: \"home\", token: \"firma\" }))();"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "Test-only code, not shipped: evaluates the same reporter script with literal route and token fixtures."
+            "justification": "False positive verified on this candidate: this test-only sink receives the literal performance reporter with synthetic enum/token fixtures, or a script URL from fixed POLARIS_STABLE_URL/POLARIS_V2_URL constants on cdn.shopify.com. tests/ is excluded from the deployed Worker bundle; no request or merchant data is executed."
           }
         },
         {
           "location": {
             "file": "tests/browser/components.test.tsx",
-            "line": 405
+            "line": 422
           },
-          "message": "Deterministic heuristic match on a sink that receives only trusted content.",
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
                 "file": "tests/browser/components.test.tsx",
-                "line": 405
+                "line": 422
               },
               "quote": "new Function(performanceReporterScript({ route: \"rules\", token: \"firma\" }))();"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "Test-only code, not shipped: evaluates the same reporter script with literal route and token fixtures."
+            "justification": "False positive verified on this candidate: this test-only sink receives the literal performance reporter with synthetic enum/token fixtures, or a script URL from fixed POLARIS_STABLE_URL/POLARIS_V2_URL constants on cdn.shopify.com. tests/ is excluded from the deployed Worker bundle; no request or merchant data is executed."
           }
         },
         {
           "location": {
             "file": "tests/browser/components.test.tsx",
-            "line": 420
+            "line": 437
           },
-          "message": "Deterministic heuristic match on a sink that receives only trusted content.",
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
                 "file": "tests/browser/components.test.tsx",
-                "line": 420
+                "line": 437
               },
               "quote": "new Function(performanceReporterScript({ route: \"onboarding\", token: \"firma\" }))();"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "Test-only code, not shipped: evaluates the same reporter script with literal route and token fixtures."
+            "justification": "False positive verified on this candidate: this test-only sink receives the literal performance reporter with synthetic enum/token fixtures, or a script URL from fixed POLARIS_STABLE_URL/POLARIS_V2_URL constants on cdn.shopify.com. tests/ is excluded from the deployed Worker bundle; no request or merchant data is executed."
           }
         },
         {
           "location": {
             "file": "tests/browser/visual-surfaces.test.tsx",
-            "line": 38
+            "line": 39
           },
-          "message": "Deterministic heuristic match on a sink that receives only trusted content.",
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
                 "file": "tests/browser/visual-surfaces.test.tsx",
-                "line": 38
+                "line": 39
               },
               "quote": "script.src = polarisV2 ? POLARIS_V2_URL : POLARIS_STABLE_URL;"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "Test-only code, not shipped: script.src is a constant Polaris CDN URL used as a visual fixture."
+            "justification": "False positive verified on this candidate: this test-only sink receives the literal performance reporter with synthetic enum/token fixtures, or a script URL from fixed POLARIS_STABLE_URL/POLARIS_V2_URL constants on cdn.shopify.com. tests/ is excluded from the deployed Worker bundle; no request or merchant data is executed."
           }
         }
       ]

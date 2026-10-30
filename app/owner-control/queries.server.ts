@@ -81,6 +81,9 @@ export type ShopRow = {
   sale_cycle_start: string | null;
   shopify_charge_gid: string | null;
   conversion_credit_status: string | null;
+  conversion_id: number | null;
+  conversion_reviewed_at: string | null;
+  conversion_evidence_event_id: number | null;
   conversion_credit_amount_minor: number | null;
   conversion_credit_currency: string | null;
   conversion_credit_transaction_type: string | null;
@@ -102,6 +105,14 @@ const SHOP_SELECT = `
     b.current_period_end, b.shopify_status, b.is_test AS billing_is_test,
     b.last_reconciled_at, b.sale_observed_at, b.sale_checked_at,
     b.sale_charge_gid, b.sale_cycle_start, b.shopify_charge_gid,
+    (SELECT id FROM billing_conversions bc WHERE bc.shop_id = s.id
+      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_id,
+    (SELECT e.id FROM app_events e WHERE e.shop_id = s.id
+      AND e.event_name = 'billing_conversion_manually_reviewed'
+      ORDER BY e.occurred_at DESC, e.id DESC LIMIT 1) AS conversion_evidence_event_id,
+    (SELECT r.reviewed_at FROM billing_conversions bc
+      LEFT JOIN billing_conversion_reviews r ON r.conversion_id = bc.id WHERE bc.shop_id = s.id
+      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_reviewed_at,
     (SELECT credit_status FROM billing_conversions bc WHERE bc.shop_id = s.id
       ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_credit_status,
     (SELECT credit_amount_minor FROM billing_conversions bc WHERE bc.shop_id = s.id
@@ -280,7 +291,8 @@ export async function readBilling(db: D1Database) {
            FROM billing_conversions c
            JOIN shops s ON s.id = c.shop_id
           WHERE s.installation_status = 'active'
-            AND c.is_test = 0 AND c.credit_status = 'needs_review'`,
+            AND c.is_test = 0 AND c.credit_status = 'needs_review'
+            AND NOT EXISTS (SELECT 1 FROM billing_conversion_reviews r WHERE r.conversion_id = c.id)`,
       )
       .first<{ count: number }>(),
   ]);

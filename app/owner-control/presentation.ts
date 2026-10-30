@@ -4,7 +4,7 @@ import {
   PERFORMANCE_WINDOW_DAYS,
   type PerformanceMetric,
 } from "../reporting/performance";
-import { canCloseConversion, BFS_TARGET, type ShopsFilter } from "./model";
+import { canCloseConversion, canConfirmConversion, BFS_TARGET, type ShopsFilter } from "./model";
 import type { ShopRow } from "./queries.server";
 import type { ShopifyPlanRow } from "./shopify-plans.server";
 import type { BFSReport } from "./bfs.server";
@@ -162,7 +162,15 @@ export function shopMessage(
         ["Fattura merchant riscossa", "Non osservabile via API"],
         ["Payout liquidato", "Non osservabile via API"],
         ["Ultima riconciliazione", formatDate(shop.last_reconciled_at)],
-        ["Credito conversione", creditStatusLabel(shop.conversion_credit_status)],
+        [
+          "Credito conversione",
+          shop.conversion_reviewed_at
+            ? "Verificato manualmente"
+            : creditStatusLabel(shop.conversion_credit_status),
+        ],
+        ...(shop.conversion_reviewed_at
+          ? [["Verifica owner", formatDate(shop.conversion_reviewed_at)] as Row]
+          : []),
         [
           "Rettifica osservata",
           shop.conversion_credit_amount_minor === null || !shop.conversion_credit_currency
@@ -185,13 +193,17 @@ export function shopMessage(
         : []),
     ],
     keyboard([
-      ...(canCloseConversion(shop, now)
+      ...(canConfirmConversion(shop) ||
+      (!shop.conversion_reviewed_at && canCloseConversion(shop, now))
         ? [
             [
-              button("Chiudi conversione verificata", {
-                view: "conversion_review",
-                shopId: shop.id,
-              }),
+              button(
+                canConfirmConversion(shop) ? "Registra verifica" : "Chiudi conversione verificata",
+                {
+                  view: "conversion_review",
+                  shopId: shop.id,
+                },
+              ),
             ],
           ]
         : []),
@@ -201,6 +213,31 @@ export function shopMessage(
 }
 
 export function conversionReviewMessage(shop: ShopRow): OwnerControlMessage {
+  if (canConfirmConversion(shop)) {
+    return panel(
+      "Verifica conversione",
+      [
+        section(`🔎 ${shopName(shop)}`, [
+          ["Dopo la conferma", "Verificato manualmente"],
+          ...(shop.conversion_evidence_event_id
+            ? [["Prova registrata", `Evento ${shop.conversion_evidence_event_id}`] as Row]
+            : []),
+          ["Conferma solo se", "hai verificato vendita e rettifica nel Partner Dashboard"],
+          ["Effetto", "Registra la verifica; non emette rimborsi e non conferma il payout"],
+        ]),
+      ],
+      keyboard([
+        [
+          button("Conferma verifica", {
+            view: "conversion_confirm",
+            shopId: shop.id,
+            conversionId: shop.conversion_id!,
+          }),
+        ],
+        [button("‹ Annulla", { view: "shop", shopId: shop.id })],
+      ]),
+    );
+  }
   return panel(
     "Chiudi conversione",
     [
