@@ -83,6 +83,8 @@ export async function syncPartnerFinancialObservations(
   // suo riferimento, una già controllata dall'ultimo controllo meno il ritardo tollerato dalla
   // Partner API. Senza finestra ogni ciclo rileggerebbe l'intera storia delle transazioni. La
   // vendita di un abbonamento convertito può precedere la richiesta di un intero ciclo annuale.
+  // Le conversioni irrisolte mantengono quel riferimento anche dopo un poll riuscito: una
+  // rettifica può diventare visibile con una data storica, fuori dal replay di sette giorni.
   const createdAtMin = await db
     .prepare(
       `SELECT strftime('%Y-%m-%dT%H:%M:%SZ', MIN(window_start)) AS created_at_min FROM (
@@ -106,11 +108,7 @@ export async function syncPartnerFinancialObservations(
                   AND sale_cycle_start IS NOT current_period_start)
             )
          UNION ALL
-         SELECT CASE
-                  WHEN last_checked_at IS NULL
-                    THEN datetime(requested_at, '-${CONVERSION_LOOKBACK_DAYS} days')
-                  ELSE datetime(last_checked_at, '-${PARTNER_LAG_DAYS} days')
-                END
+         SELECT datetime(requested_at, '-${CONVERSION_LOOKBACK_DAYS} days')
            FROM billing_conversions
           WHERE is_test = 0 AND (
                 credit_status = 'pending'

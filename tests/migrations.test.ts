@@ -583,6 +583,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "0029_uninstall_history.sql",
     "0030_shop_partner_development.sql",
     "0031_performance_layout_shift_source.sql",
+    "0032_billing_conversion_reviews.sql",
   ]);
   await applyThrough(db, migrations, "0022_configuration_history.sql");
   await insertShop(db);
@@ -605,6 +606,25 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
   await applyD1Migrations(db, [migrationAfter(migrations, "0028_owner_metric_counters.sql")]);
   await applyD1Migrations(db, [migrationAfter(migrations, "0029_uninstall_history.sql")]);
   await applyD1Migrations(db, [migrationAfter(migrations, "0030_shop_partner_development.sql")]);
+  await db
+    .prepare(`INSERT INTO billing_conversions (
+    shop_id, subscription_gid, one_time_gid, credit_status, requested_at, is_test, created_at, updated_at
+  ) SELECT id, 'migration-subscription', 'migration-lifetime', 'needs_review',
+    '2026-10-01', 0, '2026-10-01', '2026-10-01' FROM shops LIMIT 1`)
+    .run();
+  await applyD1Migrations(db, [
+    migrationAfter(migrations, "0031_performance_layout_shift_source.sql"),
+  ]);
+  expect(await db.prepare("SELECT COUNT(*) AS n FROM billing_conversion_reviews").first("n")).toBe(
+    0,
+  );
+  expect(
+    await db
+      .prepare(
+        "SELECT credit_status FROM billing_conversions WHERE one_time_gid='migration-lifetime'",
+      )
+      .first("credit_status"),
+  ).toBe("needs_review");
 
   expect(await db.prepare("SELECT * FROM owner_notifications WHERE id = 23").first()).toMatchObject(
     {
@@ -654,6 +674,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "app_state",
     "billing_accounts",
     "billing_cancellation_intents",
+    "billing_conversion_reviews",
     "billing_conversions",
     "billing_events",
     "checkout_label_slots",

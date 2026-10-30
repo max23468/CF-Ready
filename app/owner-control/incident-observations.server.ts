@@ -144,6 +144,7 @@ export async function readIncidentObservations(db: D1Database, now: Date) {
          JOIN shops s ON s.id = c.shop_id
         WHERE c.credit_status = 'needs_review' AND c.is_test = 0
           AND c.credit_transaction_gid IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM billing_conversion_reviews r WHERE r.conversion_id = c.id)
        UNION ALL
        SELECT 'billing_source_sale:' || c.id AS incident_key, s.id AS shop_id,
               s.shop_domain, s.display_name, 'conversion_sale' AS issue,
@@ -154,6 +155,7 @@ export async function readIncidentObservations(db: D1Database, now: Date) {
         WHERE c.credit_status IN ('pending', 'confirmed', 'needs_review')
           AND c.is_test = 0
           AND c.subscription_sale_transaction_gid IS NULL
+          AND NOT EXISTS (SELECT 1 FROM billing_conversion_reviews r WHERE r.conversion_id = c.id)
           AND c.last_checked_at IS NOT NULL
           AND datetime(COALESCE(c.subscription_accepted_at, c.subscription_activated_at,
                                 c.requested_at))

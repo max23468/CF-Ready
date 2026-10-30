@@ -271,8 +271,10 @@ test("senza configurazione salvata la Home parte dai valori predefiniti", async 
   });
 });
 
-test("un credito di conversione di test non resta in verifica per sempre", async () => {
-  // Gli addebiti di test non producono crediti reali: la nota "Stiamo verificando" non si chiude.
+test.each([
+  { name: "di test", is_test: 1, reviewed_at: null },
+  { name: "verificato dall'owner", is_test: 0, reviewed_at: "2026-10-30T07:00:00Z" },
+])("un credito $name non resta in verifica per sempre", async ({ is_test, reviewed_at }) => {
   mocks.readLatestBillingConversion.mockResolvedValue({
     credit_estimate_minor: null,
     currency: null,
@@ -280,7 +282,8 @@ test("un credito di conversione di test non resta in verifica per sempre", async
     credit_amount_minor: null,
     credit_currency: null,
     credit_observed_at: null,
-    is_test: 1,
+    is_test,
+    reviewed_at,
   });
   mocks.reconcile.mockReturnValue(new Promise(() => undefined));
   const { result } = await loadHome();

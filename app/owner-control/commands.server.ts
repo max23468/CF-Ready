@@ -4,7 +4,7 @@ import { createTelegramClient } from "../telegram/client.server";
 import { readGrowthReport } from "./growth.server";
 import { readBFSReport, refreshBFSPlans } from "./bfs.server";
 import { diagnosticShopMessage } from "./shop-diagnostics.server";
-import { canCloseConversion, type OwnerControlAction } from "./model";
+import { canCloseConversion, canConfirmConversion, type OwnerControlAction } from "./model";
 import {
   activityMessage,
   billingMessage,
@@ -43,6 +43,7 @@ import {
 } from "./queries.server";
 import {
   closeReviewedConversion,
+  confirmReviewedConversion,
   ownerControlErrorCode,
   readOwnerControlState,
   writeOwnerControlState,
@@ -154,10 +155,18 @@ export async function renderOwnerControlAction(
     }
     case "conversion_review": {
       const shop = action.shopId === undefined ? null : await readShop(db, action.shopId);
-      return shop && canCloseConversion(shop, now)
+      return shop && (canConfirmConversion(shop) || canCloseConversion(shop, now))
         ? conversionReviewMessage(shop)
         : noticeMessage("Conversione", "Nessuna conversione da chiudere.");
     }
+    case "conversion_confirm":
+      if (action.shopId !== undefined && action.conversionId !== undefined) {
+        await confirmReviewedConversion(db, action.shopId, action.conversionId, now);
+      }
+      return renderOwnerControlAction(db, { view: "shop", shopId: action.shopId }, config, {
+        ...options,
+        now,
+      });
     case "conversion_close":
       // La scrittura è condizionata allo stato: un retry dello stesso update non cambia nulla.
       if (action.shopId !== undefined) await closeReviewedConversion(db, action.shopId, now);

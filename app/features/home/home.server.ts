@@ -244,7 +244,9 @@ function homeView(
     // Un addebito di test non produce mai un credito reale: la nota resterebbe in verifica per
     // sempre, quindi non si mostra.
     conversionCredit:
-      state.conversionCredit && !state.conversionCredit.is_test
+      state.conversionCredit &&
+      !state.conversionCredit.is_test &&
+      !state.conversionCredit.reviewed_at
         ? {
             estimate:
               state.conversionCredit.credit_estimate_minor === null
