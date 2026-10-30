@@ -52,6 +52,45 @@ SHA-256 delle prove sul candidato: `deterministic-findings.json`
 `agent-findings.json`
 `a21be3b938c126ad0faa2cf3fd4cdbd325aad54cfc61980c05ec34d3bd12e2da`.
 
+### Release 2.6.2 — review incrementale
+
+30 ottobre 2026, coding agent Claude Code su richiesta «Pubblica» dell'owner,
+`--config dev`. Candidato `2.6.2`, commit
+`529f95739e65020dcccbc8ed4f1dea10f176c3ab`, tree
+`5867fa3377c5f1e18fa692ce7de2ef5dfc118eaa`, branch
+`fix/messages-discard-clears-error`; il commit successivo aggiunge soltanto
+questa prova e il record. Rispetto a `41626dd` cambiano
+`app/features/messages/use-messages-draft.ts`, `app/routes/app.messages.tsx`,
+test, changelog e versione. CLI, engine, ruleset e versioni dei 35 check
+invariati; scansione completa con lo stesso scope, nessun file saltato.
+
+Ripetuti per le righe route e `.tsx`: `UNAUTHENTICATED_ENDPOINT`,
+`MISSING_AUTHORIZATION_CHECK`, `CSRF_MISSING_PROTECTION`,
+`REQUEST_CONTROLLED_ADMIN_CONTEXT`, `REQUEST_DERIVED_SHOP_SCOPE`,
+`MISSING_TENANT_ISOLATION`, `UNSCOPED_SHOP_CONFIG_WRITE`,
+`SESSION_LIFECYCLE_AND_REPLAY`, `WEAK_SHOP_VALIDATION`, `OPEN_REDIRECT`,
+`OVERBROAD_DATA_ACCESS`, `EXPIRING_OFFLINE_TOKEN`, `CREDENTIAL_BROWSER_LEAKAGE`,
+`CREDENTIAL_LOG_LEAKAGE`, `CROSS_SITE_SCRIPTING`, `UNSAFE_INNERHTML`,
+`TEXT_SETTING_HTML_SMUGGLING`, `STATIC_FRAME_ANCESTORS`, `MISSING_EMBEDDED_CSP`.
+Gli altri 16 esiti sono riusati da `41626dd`. Il diff cambia solo stato client
+del draft (la risposta rifiutata scartata da Annulla) e una prop dell'editor:
+loader, action, autenticazione, query e intestazioni restano invariati; il
+testo d'errore è una stringa i18n resa come attributo React. Lockfile cambiato
+solo nella versione del pacchetto, nessun segreto nel diff.
+
+Le 13 occorrenze deterministiche restano nelle stesse righe e con le stesse
+motivazioni. `record` accettato (35 check, 13 finding soppressi);
+`review --blocking high` esce 1 come nel baseline: 29 check superati, 5 non
+applicabili, nessun finding reale.
+
+Prove in `cf-ready-publications/security-messages-discard-529f957/` nella
+directory Git comune. SHA-256: deterministic
+`69e6c6fec4f06acbe40b25a6117d3369dca384d94d4da0c966ccb640789dafd3`,
+agent-checks
+`530350bad24c7a6e8d9ed82feba4a10f87857b5b07dcc29b3063a813be370aa7`,
+agent-findings
+`b5c873868f0221a3fcf44ae1e9e7aa7a547c0f5710e70b84458e4af9cb149048`.
+
 ### Ripresa dopo la verifica WebKit
 
 Il candidato `2526ce94da95769ba565da12f7e6ca0d97029b6f`, tree
